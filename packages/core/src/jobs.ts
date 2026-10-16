@@ -6,7 +6,7 @@ import { addWorktree, branchExists, fileAt, head, removeWorktree, topLevel } fro
 import { checkLimits, type Limits, spawnLimits } from "./job-limits.ts";
 import { writeRecord } from "./job-record.ts";
 import { describeRoles, prompt, type Role, type RoleView, roleModel, roleRegistry } from "./roles.ts";
-import { launch } from "./wrapper.ts";
+import { launch, type Slice } from "./job-scope.ts";
 
 // The job runner's spawn and the job record (spec/roadmap.md, entries 9 and 11). A worker gets its own branch and worktree
 // from HEAD, a read-only kind a detached checkout of HEAD; both live in `.arthur-worktrees/<id>` beside the repository,
@@ -87,9 +87,9 @@ const LOCKFILE = "package-lock.json";
 
 type Collect = (name: string, args: readonly unknown[]) => unknown[];
 
-// `folder` is in the repository jobs start from; `limits` are the core's `jobs` options, `agent` its `agent.command`;
-// `collect` reads what the plugins provide, e.g. the sections of a prompt (`prompt`).
-export function jobRunner(home: string, folder: string, limits: Limits, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
+// `folder` is in the repository jobs start from; `limits` are the core's `jobs` options and the jobs' slice, `agent` its
+// `agent.command`; `collect` reads what the plugins provide, e.g. the sections of a prompt (`prompt`).
+export function jobRunner(home: string, folder: string, limits: Limits & Slice, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
 	const kinds = new Map<string, { readonly owner: string; readonly kind: Kind }>();
 	const roles = roleRegistry();
 	const checks: { readonly owner: string; readonly check: SpawnCheck }[] = [];
@@ -144,7 +144,7 @@ export function jobRunner(home: string, folder: string, limits: Limits, agent: s
 			}
 			const { id, kind: kindName, branch, worktree } = job;
 			bus.emit("core", "job-started", { id, kind: kindName, project, root, branch, worktree, tickets });
-			launch(home, id, agent);
+			launch(home, id, agent, limits);
 			return { ...job, warnings };
 		},
 	};

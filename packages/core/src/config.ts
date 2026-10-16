@@ -62,8 +62,8 @@ type Check = (value: unknown) => string | undefined;
 type Shape = { readonly [key: string]: Check | Shape };
 
 const HH_MM = /^([01]\d|2[0-3]):[0-5]\d$/;
-// systemd's MemoryMax: bytes with an optional K, M, G or T suffix, a percentage up to 100, or infinity.
-const MEMORY = /^(\d+(\.\d+)?[KMGT]?|(\d{1,2}(\.\d+)?|100)%|infinity)$/;
+const PERCENT = /^\d{1,3}(\.\d{1,2})?%$/;
+const SIZE = /^(\d+)(?:\.(\d{1,2}))?([KMGT]?)$/;
 
 const optional =
 	(check: Check): Check =>
@@ -86,7 +86,7 @@ const SHAPE: Shape = {
 			budgetUsd: optional(atLeastZero),
 			cpu: optional((value) => (typeof value === "number" && Number.isFinite(value) && value > 0 ? undefined : "a number above 0")),
 			memory: optional((value) =>
-				typeof value === "string" && MEMORY.test(value) ? undefined : 'systemd MemoryMax syntax such as "70%", "8G" or "infinity"',
+				typeof value === "string" && memoryMax(value) ? undefined : 'systemd MemoryMax syntax such as "70%", "8G" or "infinity"',
 			),
 		},
 	},
@@ -152,4 +152,17 @@ function withDefaults(config: ArthurConfig, file: string): LoadedConfig {
 		},
 		plugins: config.plugins ?? [],
 	};
+}
+
+// systemd's MemoryMax, as far as systemd takes it: `infinity`; a percentage above 0 and up to 100 with at most 2 decimals;
+// or bytes with at most 2 decimals and an optional K, M, G or T (powers of 1024), at least 1 byte once the fraction is cut
+// and below 2^63 (systemd refuses some values below 2^64). The rest is refused, a few values systemd takes (P, E, more
+// decimals) included.
+function memoryMax(text: string): boolean {
+	if (text === "infinity") return true;
+	if (PERCENT.test(text)) return Number(text.slice(0, -1)) > 0 && Number(text.slice(0, -1)) <= 100;
+	const [, whole, fraction = "", unit = ""] = SIZE.exec(text) ?? [];
+	if (whole === undefined) return false;
+	const bytes = (BigInt(whole + fraction) * 1024n ** BigInt(["", "K", "M", "G", "T"].indexOf(unit))) / 10n ** BigInt(fraction.length);
+	return bytes >= 1n && bytes < 2n ** 63n;
 }

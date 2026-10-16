@@ -53,8 +53,9 @@ export default defineConfig({
 		jobs: {
 			timeoutMinutes: 120, // one job's time; the resources plugin adds its CPU and memory
 			budgetUsd: 2, // one job's money; 0 = no limit
-			cpu: undefined, // cores all jobs together may use, above 0; undefined = host cores minus 1 (at least 1)
-			memory: "70%", // systemd MemoryMax syntax: bytes with K, M, G or T, a percentage up to 100%, or "infinity"
+			cpu: undefined, // cores all jobs together may use, the CPUQuota of their slice; undefined = host cores minus 1 (at least 1)
+			memory: "70%", // MemoryMax of the jobs' slice: bytes with K, M, G or T, a percentage above 0 up to 100%, each with at most
+			// 2 decimals, or "infinity"; a value systemd would refuse is refused at load
 			idleMinutes: 10, // a running job with no output or tool call this long is `idle`; 0 = never
 			offlineGraceMinutes: 30, // a job whose machine stops answering is `blocked` this long, then failed
 		},

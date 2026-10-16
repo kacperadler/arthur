@@ -16,6 +16,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0046 Roadmap: arthur doctor checks what Arthur needs at every start (1fa33f6)
 - AR0048 A worker spawned on a ticket still in planning, or merged or dropped, starts anyway (cb93a10)
 - AR0049 `/findings` does not show findings a worker wrote on its branch (cbfd577)
+- AR0055 Roadmap: channels hand media to plugins; local voice transcription (d4e23cc)
 
 ### Fixed
 

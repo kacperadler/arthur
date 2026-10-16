@@ -39,3 +39,4 @@ In:
 ## Decisions
 
 - 2026-10-16: Source: F1 of AR0065
+- 2026-10-16: Coordinator: OK on emitting job-started for each continued run (one job-started and one job-ended per run; plugins see a job id once per run, documented).

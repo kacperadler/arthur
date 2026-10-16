@@ -210,7 +210,7 @@
     "title": "Roadmap 19: Env guard",
     "status": "done",
     "path": "spec/features/AR0022-roadmap-19-env-guard/ticket.md",
-    "updated": "2026-10-16T13:25:47.048Z",
+    "updated": "2026-10-16T13:30:49.559Z",
     "after": [
       "AR0014"
     ]

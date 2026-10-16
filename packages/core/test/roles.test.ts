@@ -9,7 +9,7 @@ import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
 import { type Registry, registry } from "../src/plugin.ts";
-import { temporaryFolder } from "../src/testing.ts";
+import { jobSlice, temporaryFolder } from "../src/testing.ts";
 
 const WORKER_FILE = fileURLToPath(new URL("../roles/worker.md", import.meta.url));
 const WORKER = readFileSync(WORKER_FILE, "utf8");
@@ -38,7 +38,7 @@ function repository(files: Readonly<Record<string, string | { readonly link: str
 
 function runner(root: string, home: string, names: Registry = registry()): JobRunner {
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
-	return jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2 }, "omp", time, eventBus(home), names.collect);
+	return jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, ...jobSlice }, "omp", time, eventBus(home), names.collect);
 }
 
 // A role file a plugin ships, outside every repository.

@@ -148,6 +148,23 @@ test("the kit clears every ARTHUR_ and tmux variable, and removes its folders wh
 	}
 });
 
+test("the kit's job slice is not Arthur's, and is stopped with what runs in it and its limits removed when the process exits", { skip: spawnSync("systemctl", ["--user", "show-environment"]).status !== 0 && "no systemd user manager" }, () => {
+	const kit = import.meta.resolve("@arthur/core/testing");
+	const show = (slice: string) => execFileSync("systemctl", ["--user", "show", `${slice}.slice`, "-p", "ActiveState", "-p", "DropInPaths"], { encoding: "utf8" });
+	const code = `const { jobSlice } = await import(${JSON.stringify(kit)});
+		const { execFileSync } = await import("node:child_process");
+		const unit = jobSlice.slice + ".slice";
+		execFileSync("systemctl", ["--user", "set-property", "--runtime", unit, "MemoryMax=1G"]);
+		execFileSync("systemd-run", ["--user", "--quiet", "--collect", "--slice=" + unit, "sleep", "300"]);
+		console.log(JSON.stringify({ slice: jobSlice.slice, before: execFileSync("systemctl", ["--user", "show", unit, "-p", "ActiveState", "-p", "DropInPaths"], { encoding: "utf8" }) }));`;
+	const run = spawnSync(process.execPath, ["--input-type=module", "-e", code], { encoding: "utf8" });
+	assert.equal(run.status, 0, run.stderr);
+	const { slice, before } = JSON.parse(run.stdout) as { readonly slice: string; readonly before: string };
+	assert.match(slice, /^arthur_test_[0-9a-f]{8}$/);
+	assert.match(before, /^ActiveState=active\nDropInPaths=\S+MemoryMax\.conf\n$/);
+	assert.equal(show(slice), "ActiveState=inactive\nDropInPaths=\n");
+});
+
 test("a tmux command under the kit reaches no live server", { skip: !hasTmux() && "tmux is not installed" }, () => {
 	const run = spawnSync("tmux", ["list-sessions"], { encoding: "utf8" });
 	assert.notEqual(run.status, 0, `tmux listed live sessions: ${run.stdout}`);

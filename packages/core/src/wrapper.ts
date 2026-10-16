@@ -1,35 +1,25 @@
 import { type ChildProcess, spawn } from "node:child_process";
-import { appendFileSync, closeSync, existsSync, openSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type AgentEvent, agentStream } from "./agent-stream.ts";
 import { checkLines, declaredChecks } from "./checks.ts";
 import { eventBus } from "./events.ts";
 import { deadline, reached } from "./job-limits.ts";
+import { endScope } from "./job-scope.ts";
 import { commitsSince } from "./git.ts";
 
-// The wrapper (spec/roadmap.md, entry 11): one background process per job, `node wrapper.ts <home> <id> <agent>`, which
-// starts the agent in the job's worktree and keeps the record `<home>/jobs/<id>/` current from what the agent prints:
-// `pid` and `state` (`running`) first, then `log`, `result`, `cost`, `tool-calls`, `activity` and `checks` as they change;
-// at the end every one of them and `commits`, then `state` (`done`, `failed`, `limit: time` or `limit: budget`) last, so a
-// reader that sees it final can trust the rest; then `job-ended`. A job past its record's `timeout` or `budget` (entry 12) is
-// stopped; a kind with `resume-on-budget` gets one resume at its budget, doubled. A record deleted while the job runs stops
-// the agent and ends the wrapper with one line on its own output, `<home>/wrapper.log`, writing nothing else.
+// The wrapper (spec/roadmap.md, entry 11): one background process per job, `node wrapper.ts <home> <id> <agent>`, started
+// in the job's scope by `launch` (job-scope.ts); it starts the agent in the job's worktree and keeps the record
+// `<home>/jobs/<id>/` current from what the agent prints: `pid` and `state` (`running`) first, then `log`, `result`,
+// `cost`, `tool-calls`, `activity` and `checks` as they change; at the end every one of them and `commits`, then `state`
+// (`done`, `failed`, `limit: time` or `limit: budget`) last, so a reader that sees it final can trust the rest; then
+// `job-ended`. A job past its record's `timeout` or `budget` (entry 12) is
+// stopped; a kind with `resume-on-budget` gets one resume at its budget, doubled. Once the agent is done, before the end's
+// files, what is left in the job's scope is killed (entry 13). A record deleted while the job runs stops the agent and
+// what is left in its scope, and ends the wrapper with one line on its own output, `<home>/wrapper.log`, writing nothing else.
 
 const WORKER_TOOLS = "read,edit,write,bash,grep,glob";
 const READ_ONLY_TOOLS = "read,bash,grep,glob";
-
-// Starts the wrapper of job `id` in a process group of its own and returns at once; `agent` is `core.agent.command`.
-export function launch(home: string, id: string, agent: string): void {
-	const log = join(home, "wrapper.log");
-	const output = openSync(log, "a");
-	try {
-		spawn(process.execPath, [import.meta.filename, home, id, agent], { detached: true, stdio: ["ignore", output, output] })
-			.on("error", (error) => appendFileSync(log, `[arthur ${new Date().toISOString()}] job ${id}: the wrapper did not start: ${error.message}\n`))
-			.unref();
-	} finally {
-		closeSync(output);
-	}
-}
 
 if (import.meta.main) {
 	const [home, id, agent] = process.argv.slice(2);
@@ -45,6 +35,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	let stopAgent = () => {};
 	const leave = (): never => {
 		stopAgent();
+		endScope(id);
 		process.stderr.write(`[arthur ${new Date().toISOString()}] job ${id}: its record ${folder} was deleted while it ran; the agent was stopped and nothing more is written\n`);
 		process.exit(1);
 	};
@@ -170,6 +161,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		[code, signal] = await play(args(`Your budget of $${budget} ran out and was doubled to $${doubled}, once. Go on with the task where you stopped.`));
 	}
 	cancel();
+	endScope(id);
 
 	let commits = "";
 	try {

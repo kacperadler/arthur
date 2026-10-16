@@ -2,7 +2,7 @@
 
 Arthur is one process, `arthur run`, in the folder that holds `arthur.config.ts`. A systemd user service keeps it running: it starts it at boot and again whenever it ends. Commands are for Ubuntu or Debian; run them as the user who will own Arthur, not as root.
 
-Arthur is in development. Of what this page sets up, `arthur run` and `arthur config check` exist today, and `arthur spawn` makes a job's worktree and record without starting its agent; the plugins and the rest of the job runner come in the order of [`spec/roadmap.md`](../spec/roadmap.md). A line that names a roadmap entry describes what that entry builds.
+Arthur is in development. Of what this page sets up, `arthur run` and `arthur config check` exist today, and `arthur spawn` starts a job with its limits (time, budget, and the joint CPU and memory of all jobs); the plugins and the rest of the job runner come in the order of [`spec/roadmap.md`](../spec/roadmap.md). A line that names a roadmap entry describes what that entry builds.
 
 ## 1. Install Node, git, tmux and OMP
 
@@ -97,6 +97,21 @@ systemctl show "user@$(id -u)" -p Restart
 ```
 
 The last command prints `Restart=always`.
+
+Each job runs under the same manager in a scope of its own, `arthur-job-<id>.scope`, inside `arthur-jobs.slice`, whose limits are `core.jobs.cpu` and `core.jobs.memory`, so all jobs together cannot starve the coordinator; whatever a job leaves running is killed when it ends. The manager holds jobs to those limits only when the system delegates the CPU and memory controllers to it, as systemd 255 of Ubuntu 24.04 does by default. Check:
+
+```sh
+cat "/sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).service/cgroup.controllers"
+```
+
+It prints a line with `cpu` and `memory`, such as `cpu memory pids`. When either is missing, delegate them, then reboot so the manager starts with them:
+
+```sh
+printf '[Service]\nDelegate=cpu cpuset io memory pids\n' | sudo install -D -m 644 /dev/stdin /etc/systemd/system/user@.service.d/delegate.conf
+sudo systemctl daemon-reload
+```
+
+`systemctl --user status arthur-jobs.slice` shows the jobs running and what they use. Without a user manager (macOS, a container) a job runs bare, with no joint limit, and the first line of its log says so.
 
 ## 6. Check everything with `arthur doctor`
 

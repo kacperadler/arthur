@@ -9,7 +9,7 @@ import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
-import { type AgentRun, fakeAgent, temporaryFolder } from "../src/testing.ts";
+import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 const commit = (root: string, message: string) => git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", message);
@@ -29,7 +29,7 @@ function setup(agent: string): { readonly root: string; readonly home: string; r
 	commit(root, "first");
 	const home = join(folder, "home");
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
-	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2 }, agent, time, eventBus(home), () => []);
+	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, ...jobSlice }, agent, time, eventBus(home), () => []);
 	writeFileSync(join(folder, "reviewer.md"), "# Reviewer\n");
 	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(join(folder, "reviewer.md")), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
@@ -122,7 +122,8 @@ test("a finished worker: the agent gets the worker's tools, model, thinking and 
 	});
 	assert.notEqual(Number(pid), start?.pid, "pid is the wrapper's, the job's process group");
 	assert.ok(Number(pid) > 0);
-	assert.match(log ?? "", /^\[arthur [^\]]+\] agent: \S+ -p --mode json/);
+	// The agent's command line first, after the one line of a job without a user manager (scope.test.ts).
+	assert.match(log ?? "", /^(\[arthur [^\]]+\] no systemd scope: [^\n]+\n)?\[arthur [^\]]+\] agent: \S+ -p --mode json/);
 	assert.match(log ?? "", /\nread README\.md\nbash npm test\nedit README\.md\nbash git commit -am 'fix the README'\n\[arthur [^\]]+\] done: the agent exited 0\n$/);
 	assert.deepEqual(readdirSync(folder).filter((name) => name.startsWith(".")), [], "no temporary file left");
 });

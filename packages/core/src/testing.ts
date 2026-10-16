@@ -1,3 +1,5 @@
+import { spawnSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
@@ -6,20 +8,30 @@ import { type Command, commandRegistry } from "./commands.ts";
 import type { QuietHours } from "./config.ts";
 import type { Event } from "./event-log.ts";
 import { eventBus } from "./events.ts";
+import type { Slice } from "./job-scope.ts";
 import { jobRunner, type Kind } from "./jobs.ts";
 import type { Role } from "./roles.ts";
 import { type Host, type Options, type Provider, pluginHost, registry } from "./plugin.ts";
 
-// The test kit (spec/roadmap.md, entries 4 and 11), published as `@arthur/core/testing`. Loading it is the safety net, and
-// `npm test` loads it into every test process (`--import`): every `ARTHUR_` variable and tmux's session variables are cleared
-// and tmux's default socket moves into a temporary folder, so a test reaches no live bot, token or tmux server; `omp` on
-// `PATH` is the kit's fake agent with no run scripted (it fails), so no job of a test reaches the real agent; every folder the
-// kit makes is removed when the process exits, passed or failed.
+// The test kit (spec/roadmap.md, entries 4, 11 and 13), published as `@arthur/core/testing`. Loading it is the safety net,
+// and `npm test` loads it into every test process (`--import`): every `ARTHUR_` variable and tmux's session variables are
+// cleared and tmux's default socket moves into a temporary folder, so a test reaches no live bot, token or tmux server; `omp`
+// on `PATH` is the kit's fake agent with no run scripted (it fails), so no job of a test reaches the real agent; every folder
+// the kit makes is removed when the process exits, passed or failed, and so is its slice, `jobSlice`.
 
 for (const key of Object.keys(process.env)) if (key.startsWith("ARTHUR_") || key === "TMUX" || key === "TMUX_PANE") delete process.env[key];
 const root = mkdtempSync(join(tmpdir(), "arthur-test-"));
 process.env.TMUX_TMPDIR = root;
-process.on("exit", () => rmSync(root, { recursive: true, force: true }));
+
+// The joint slice of the jobs a test starts, never Arthur's own: `arthur_test_<8 hex digits>.slice`, directly under the user
+// manager (a `-` in the name would nest it in another slice). At exit it is stopped, with any job still in it, and the
+// limits set on it are removed.
+export const jobSlice: Slice = { slice: `arthur_test_${randomBytes(4).toString("hex")}`, cpu: 2, memory: "2G" };
+
+process.on("exit", () => {
+	for (const verb of ["stop", "revert"]) spawnSync("systemctl", ["--user", verb, `${jobSlice.slice}.slice`], { stdio: "ignore" });
+	rmSync(root, { recursive: true, force: true });
+});
 process.env.PATH = [dirname(fakeAgent({ steps: [{ stderr: "fake agent: this test scripted no run" }], exitCode: 1 })), process.env.PATH].join(delimiter);
 
 // A new empty folder of the kit's, e.g. a test's home folder instead of a live `.arthur/`.
@@ -87,7 +99,7 @@ export type FakeHost = {
 // command's registration refuses like the real host's, naming the plugin. Its clock stands still at `now` (default
 // 2026-01-01T00:00:00Z) in `timeZone` (default UTC) until `setNow` moves it. `host.board` reads the project list the test
 // provides as `projects`. `host.jobs.spawn` starts from HEAD of the repository `root` (a test's own), with the core's
-// default limits, and runs the agent `omp` that `PATH` finds; without `root` a spawn refuses.
+// default limits, in the kit's `jobSlice`, and runs the agent `omp` that `PATH` finds; without `root` a spawn refuses.
 export function fakeHost(plugin: {
 	readonly name: string;
 	readonly options?: Options;
@@ -105,7 +117,7 @@ export function fakeHost(plugin: {
 	mkdirSync(folder);
 	let now = (plugin.now ?? new Date("2026-01-01T00:00:00Z")).getTime();
 	const time = clock(plugin.timeZone ?? "UTC", plugin.quietHours, () => new Date(now));
-	const jobs = jobRunner(home, plugin.root ?? home, { timeoutMinutes: 120, budgetUsd: 2 }, "omp", time, bus, names.collect);
+	const jobs = jobRunner(home, plugin.root ?? home, { timeoutMinutes: 120, budgetUsd: 2, ...jobSlice }, "omp", time, bus, names.collect);
 	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder, clock: time });
 	const provided: string[] = [];
 	const calls: Use[] = [];

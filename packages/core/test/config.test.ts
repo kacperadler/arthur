@@ -1,5 +1,7 @@
 import { loadConfig } from "@arthur/core";
+import { jobSlice } from "@arthur/core/testing";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { availableParallelism, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -109,11 +111,19 @@ test("a wrong type is refused, naming the path, what was expected and what was g
 	assert.match(await refusal(configFile("export default { plugins: {} };\n")), /: plugins: expected a list, got an object$/);
 });
 
-test("memory accepts systemd's sizes, percentages up to 100 and infinity", async () => {
-	for (const memory of ["100%", "0.5%", "1024", "512M", "1.5G", "2T", "infinity"]) {
-		const config = await loadConfig(withCore(`{ jobs: { memory: "${memory}" } }`));
-		assert.equal(config.core.jobs.memory, memory);
-	}
+// The values at each edge of systemd's MemoryMax: what systemd takes loads, what it refuses is refused at load. Where a user
+// manager runs, systemd itself is asked the same of each value, on the kit's test slice.
+const TAKEN = ["100%", "100.00%", "0.01%", "0.5%", "1", "1.5", "1024", "0.01K", "512M", "1.5G", "2T", "8388607.99T", "infinity"];
+const REFUSED = ["0", "0.5", "0K", "0%", "0.00%", "50.555%", "101%", "100.01%", ".5G", "8g", "1.5.5G", "16777216T", "99999999999999999999", "lots"];
+
+test("memory loads what systemd's MemoryMax takes and is refused at load for what systemd refuses", async () => {
+	for (const memory of TAKEN) assert.equal((await loadConfig(withCore(`{ jobs: { memory: "${memory}" } }`))).core.jobs.memory, memory);
+	// Refused although systemd takes them: 2^63 bytes, and an empty value, which resets the limit to none.
+	for (const memory of [...REFUSED, "8388608T", ""]) assert.match(await refusal(withCore(`{ jobs: { memory: "${memory}" } }`)), /: core\.jobs\.memory: expected systemd MemoryMax syntax/, memory);
+	if (spawnSync("systemctl", ["--user", "show-environment"]).status !== 0) return;
+	const set = (memory: string) => spawnSync("systemctl", ["--user", "set-property", "--runtime", `${jobSlice.slice}.slice`, `MemoryMax=${memory}`]).status;
+	for (const memory of TAKEN) assert.equal(set(memory), 0, `systemd refuses ${memory}`);
+	for (const memory of REFUSED) assert.notEqual(set(memory), 0, `systemd takes ${memory}`);
 });
 
 test("an unknown time zone is refused", async () => {

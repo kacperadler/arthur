@@ -9,7 +9,7 @@ import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
-import { type AgentRun, fakeAgent, temporaryFolder } from "../src/testing.ts";
+import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 
@@ -25,7 +25,7 @@ function setup(agent: string): { readonly root: string; readonly home: string; r
 	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "first");
 	const home = join(folder, "home");
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
-	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2 }, agent, time, eventBus(home), () => []);
+	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, ...jobSlice }, agent, time, eventBus(home), () => []);
 	writeFileSync(join(folder, "reviewer.md"), "# Reviewer\n");
 	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(join(folder, "reviewer.md")), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer", timeoutMinutes: 30, budgetUsd: 0.5 });

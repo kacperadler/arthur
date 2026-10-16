@@ -1,0 +1,6 @@
+{
+  "name": "@arthur/core",
+  "private": true,
+  "type": "module",
+  "license": "SEE LICENSE IN ../../LICENSE"
+}

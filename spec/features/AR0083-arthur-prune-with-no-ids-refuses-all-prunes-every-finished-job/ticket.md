@@ -24,6 +24,8 @@ The coordinator role runs prune often; a lost id must fail loudly, not free ever
 - `arthur prune` with no ids prints the usage line and exits 2, removing nothing; a test with two finished jobs shows both kept.
 - `arthur prune --all` frees every finished job as the bare command does today; a test.
 - An empty-string id (`arthur prune ""`) is refused like an unknown id, before anything is removed; a test.
+- Every command that removes or ends something (`prune`, `stop`, `steer`, `continue`, `ticket status`) refuses an empty-string id or text before acting, exit 2; one test per command.
+- The roadmap's coordinator role (entry 23) carries one rule: ids in a destructive command are written out literally, never taken from a variable set in an earlier tool call.
 - `prune.md`, `arthur prune --help` and any role or doc that runs a bare prune say `--all`.
 - `npm test` and `npm run check` pass; core line budget held.
 
@@ -38,3 +40,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: The human asked how Arthur avoids the coordinator's empty-ids prune; coordinator: bare prune refuses, `--all` is explicit.
+- 2026-10-16: The human asked again; coordinator: widened to every destructive command and to the coordinator role of entry 23.

@@ -10,6 +10,8 @@ import { type LoadedPlugins, loadPlugins } from "./host.ts";
 import type { JobRunner } from "./jobs.ts";
 import { boardCommands } from "./board-commands.ts";
 import { jobCommands } from "./job-commands.ts";
+import { coreVersion } from "./job-machine.ts";
+import { remoteJobCommand } from "./remote-job.ts";
 import { rolesCommand } from "./roles-command.ts";
 import { spawnCommand } from "./spawn-command.ts";
 import { ticketCommand } from "./ticket-command.ts";
@@ -74,6 +76,8 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 	const jobs = need("", (app) => app.jobs);
 	commands.register("core", spawnCommand(jobs));
 	for (const command of jobCommands(need("the job records are in the configured home folder, and ", (app) => app.home), jobs)) commands.register("core", command);
+	commands.register("core", remoteJobCommand());
+	commands.register("core", { name: "version", doc: new URL("../docs/commands/version.md", import.meta.url), run: () => console.log(coreVersion()) });
 	commands.register("core", {
 		name: "config",
 		doc: new URL("../docs/commands/config.md", import.meta.url),

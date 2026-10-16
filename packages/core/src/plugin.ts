@@ -46,7 +46,8 @@ export type Host = {
 	collect<T = unknown>(name: string, ...args: readonly unknown[]): T[];
 	// The command registry: `register` this plugin's commands; `route` and `phone` for a channel.
 	readonly commands: Commands;
-	// The job runner: this plugin's kinds and roles, its checks before a spawn, its steps in a new worktree, spawns and holds. `setup`
+	// The job runner: this plugin's kinds and roles, its checks before a spawn, its steps for a new worktree (on another machine
+	// through `run`, a command there), its machines, spawns and holds. `setup`
 	// registers; a `spawn` before every plugin's `setup` has run, and the core follows the jobs, throws and creates nothing.
 	readonly jobs: Jobs;
 	// The ticket board of every project in the list a plugin provides as `projects`; its events are named by this plugin.
@@ -136,6 +137,8 @@ export function pluginHost(
 			registerRole: (role) => runner.registerRole(own.name, role),
 			beforeSpawn: (check) => runner.beforeSpawn(own.name, check),
 			prepare: (fn) => runner.prepare(own.name, fn),
+			registerMachine: (machine) => runner.registerMachine(own.name, machine),
+			run: (machine, argv) => runner.run(machine, argv),
 			spawn: (request) => {
 				if (loading()) throw new Error(`${own.name}: spawn during setup; start jobs from start() or later`);
 				return runner.spawn(request);

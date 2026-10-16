@@ -57,7 +57,8 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 				const [pid, folder] = [read("pid"), join(home, "jobs", id)];
 				// The agent's command line names the record's prompt.
 				const alive = wrapperRuns(pid, id, table) || table.some(({ args }) => args.includes(join(folder, "prompt")));
-				if (!["working", "idle"].includes(read("state")) || alive) continue;
+				// A job on another machine is copied from there (job-machine.ts), not swept here.
+				if (!["working", "idle"].includes(read("state")) || alive || !["", "local"].includes(read("machine"))) continue;
 				seen.add(id);
 				if (!gone.has(id)) continue;
 				const reason = "failed: process gone";

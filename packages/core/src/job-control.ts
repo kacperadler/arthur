@@ -71,7 +71,8 @@ export async function continueJob(home: string, id: string, instruction: string,
 		if (branch === undefined) throw new Error(`${id} is a ${kind}, a read-only kind without a branch of its own; only a job with a branch is continued`);
 		if (worktree === undefined || !existsSync(worktree)) throw new Error(`${id}: its worktree was pruned; spawn a new job on its branch ${branch}`);
 		checkLimits("continue", { budgetUsd });
-		await check({ task, kind, project, model, thinking, timeoutMinutes: Number(field("timeout")), budgetUsd: budgetUsd ?? Number(field("budget")) });
+		const machine = field("machine") || "local";
+		await check({ task, kind, project, model, thinking, machine, timeoutMinutes: Number(field("timeout")), budgetUsd: budgetUsd ?? Number(field("budget")) });
 		// A new scope of the job's name cannot start while the old wrapper still runs in it; its `pid` goes, so `launch` waits for the new one's.
 		for (const end = Date.now() + GRACE_SECONDS * 1000; Date.now() < end && wrapperRuns(field("pid"), id); ) await sleep(50);
 		rmSync(join(folder, "pid"), { force: true });
@@ -79,7 +80,7 @@ export async function continueJob(home: string, id: string, instruction: string,
 		write(folder, "continue", instruction.trim());
 		appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] arthur continue: ${instruction.trim().split("\n")[0]}\n`);
 		moveJob(home, id, bus, () => ["working", ""]);
-		bus.emit("core", "job-started", { id, kind, project, root, branch, worktree, tickets: taskTickets(task) });
+		bus.emit("core", "job-started", { id, kind, project, root, branch, worktree, tickets: taskTickets(task), machine });
 		failed = await launch(home, { id, kind, project }, agent, slice, bus);
 		return failed;
 	} finally {

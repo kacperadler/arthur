@@ -123,9 +123,26 @@ arthur doctor
 
 It checks by code, without the model, what the enabled plugins need: git, Node 24, `omp`, a writable home, the service enabled with `Restart=always` and linger on, the Telegram token and bot, `ffmpeg` for the videos you send, Docker and SSH to each machine, the disk floor. It prints one line per requirement, `ok` or `missing: <reason>; without it: <what does not work>; fix: <fix>`, and exits 1 when something critical is missing (git, `omp`, a writable home), which also refuses the start of `arthur run`. Run each fix and `arthur doctor` again until no line says `missing`. At every start the same check runs first, and the start notice begins with what is still missing, each line once a day unless it changes.
 
+## Another machine for jobs
+
+A job can run on another machine, such as a Mac for an iOS build (`arthur spawn --machine <name>`, roadmap entry 21; the `machines` plugin of entry 30 lists them). Arthur reaches it only over SSH, as `ssh -o BatchMode=yes -o StrictHostKeyChecking=yes <host>`: never with a password, never accepting a host key it does not know. The machine runs the job's worktree, agent and guards through its own `arthur`; Arthur sends it no secret, only the task, the prompt and the commits. It needs:
+
+1. Node 24, git and OMP, logged in with its own credential (`omp login` there), as in step 1.
+2. Arthur's core of the same version as here: clone and `npm ci` as in step 2, at the same commit, without a config. `arthur version` prints the version; both machines must print the same, or every spawn there is refused naming both. Update it there with every update here.
+3. `node`, `omp`, `git` and `arthur` on the `PATH` of a command run over SSH, which reads no profile and returns early from Ubuntu's `~/.bashrc`: put the `PATH` line at the top of `~/.bashrc` there, before its `case $- in` line, not at its end.
+4. From this host, as Arthur's user: a key the machine accepts (`ssh-copy-id <host>`), and its host key known, accepted once by hand. Then this prints the same version as `arthur version` here, without asking anything:
+
+```sh
+ssh -o BatchMode=yes -o StrictHostKeyChecking=yes <host> arthur version
+```
+
+5. On Linux, linger there (`sudo loginctl enable-linger "$USER"`), so each job gets its scope as in step 5; without a user manager (macOS) a job runs bare.
+
+The machine's `home`, as registered, holds the job records (`<home>/jobs/`), each project's repository (`<home>/repos/<project>.git`, created on first use) and the job worktrees (`<home>/repos/.arthur-worktrees/`).
+
 ## Threat model
 
-Arthur exposes nothing to the internet: no port, no webhook. Every plugin calls out (Telegram and GitHub are polled) or talks to a local process, and other machines are reached over SSH on a private network (Tailscale). The risk is not who reaches Arthur, but what Arthur and its jobs can reach.
+Arthur exposes nothing to the internet: no port, no webhook. Every plugin calls out (Telegram and GitHub are polled) or talks to a local process, and other machines are reached over SSH on a private network (Tailscale). A job on another machine can do there whatever that machine's user can, as below. The risk is not who reaches Arthur, but what Arthur and its jobs can reach.
 
 - Arthur, the coordinator and every job run as your Linux user. A job runs `omp` with `bash` and can do whatever you can: read and write your files, use your SSH keys, push wherever they reach, reach the network. A deploy key per repository limits a push to that repository; an account key reaches every repository of the account.
 - A channel is a shell. The coordinator acts on what the allowed Telegram chat sends (`telegram`, entry 47), so whoever holds that account holds the VPS. Turn on Telegram's two-step verification.

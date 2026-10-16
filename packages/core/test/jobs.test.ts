@@ -59,12 +59,13 @@ test("a worker gets its own branch and worktree from HEAD, the record and job-st
 		base: git(root, "rev-parse", "HEAD"),
 		worktree,
 		project: "acme",
+		machine: "local",
 		prompt: readFileSync(new URL("../roles/worker.md", import.meta.url), "utf8"),
 	};
 	assert.deepEqual(record(home, job.id, Object.keys(spawned)), spawned);
 	assert.deepEqual(readdirSync(join(home, "jobs")), [job.id]);
 	const events = readEvents(home, 1).map(({ plugin, name, data }) => ({ plugin, name, data }));
-	const data = { id: job.id, kind: "worker", project: "acme", root, branch: `arthur/${job.id}`, worktree, tickets: [] };
+	const data = { id: job.id, kind: "worker", project: "acme", root, branch: `arthur/${job.id}`, worktree, tickets: [], machine: "local" };
 	assert.deepEqual(events[0], { plugin: "core", name: "job-started", data });
 });
 
@@ -150,7 +151,7 @@ test("a beforeSpawn reason, or a check that throws, refuses with the plugin's na
 	await assert.rejects(jobs.spawn({ task: "Too late.", model: "m" }), { message: "refused by session: restart due: abc1234" });
 	await assert.rejects(jobs.spawn({ task: "Let it crash." }), { message: "plugin resources: beforeSpawn failed: no machine check yet" });
 	nothingMade(root, home);
-	const spawn = { task: "Too late.", kind: "worker", project: "acme", model: "m", thinking: undefined, timeoutMinutes: 120, budgetUsd: 2, tickets: [] };
+	const spawn = { task: "Too late.", kind: "worker", project: "acme", model: "m", thinking: undefined, timeoutMinutes: 120, budgetUsd: 2, tickets: [], machine: "local" };
 	assert.deepEqual(seen[0], spawn);
 	await jobs.spawn({ task: "Go." });
 	assert.equal(seen.length, 3);

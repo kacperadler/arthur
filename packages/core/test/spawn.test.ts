@@ -8,7 +8,7 @@ import { readEvents } from "../src/event-log.ts";
 import { fakeAgent, temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
-const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>] [--timeout <minutes>] [--budget <usd>]";
+const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>] [--timeout <minutes>] [--budget <usd>] [--machine <name>]";
 
 // A plugin as a config holds it: it owns the kind `review` and its role, refuses a task that says "refuse", places a file in
 // every new worktree, failing on a task that says "break", and provides the repository as the one project, prefix AC.

@@ -38,11 +38,12 @@ flowchart TD
     session ~~~ schedule
   end
 
-  subgraph RES[Machines, resources and disk]
+  subgraph RES[Machines, models, resources and disk]
     machines[machines<br/>labels: os, arch, tools<br/>places each job]
+    models[models<br/>providers on other machines<br/>ordered model list per role]
     resources[resources<br/>caps per job and feature<br/>jobs from free resources<br/>disk floor per machine]
     docker[docker<br/>labels what a job creates<br/>removed with its worktree<br/>build cache cap, sweep]
-    machines ~~~ resources ~~~ docker
+    machines ~~~ models ~~~ resources ~~~ docker
   end
 
   subgraph PROJ[Projects, trackers, delivery, commits]
@@ -82,5 +83,5 @@ flowchart TD
 
   classDef first fill:#d8f5d8,stroke:#2d7a2d,color:#000;
   classDef later fill:#eee,stroke:#888,stroke-dasharray:4 3,color:#555;
-  class terminal,telegram,orchestration,session,schedule,machines,resources,docker,delivery,projects,youtrack,github,commit,manage,develop,voice first;
+  class terminal,telegram,orchestration,session,schedule,machines,models,resources,docker,delivery,projects,youtrack,github,commit,manage,develop,voice first;
   class whatsapp,signal,server later;

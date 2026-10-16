@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, rmSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
@@ -17,6 +17,8 @@ export type Machine = { readonly name: string; readonly ssh: string; readonly ho
 // What `arthur remote-job records` answers per job: the state read first, then each file changed since the time asked, and
 // `at`, the newest modification time there, which the next sweep asks from.
 export type Copy = { readonly state: string; readonly reason: string; readonly since: string; readonly at: number; readonly files: Readonly<Record<string, string>> };
+// What `host.jobs.run` resolves to.
+export type Ran = { readonly code: number | null; readonly stdout: string; readonly stderr: string };
 
 // ssh never asks for a password nor accepts a host key on its own.
 const OPTIONS = ["-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes"];
@@ -59,6 +61,23 @@ export function machineRegistry(home: string, bus: Bus) {
 			const found = typeof name === "string" ? machines.get(name) : undefined;
 			if (found === undefined) throw new Error(`unknown machine ${typeof name === "string" ? name : JSON.stringify(name)}; machines: ${[...machines.keys()].sort().join(", ")}`);
 			return found.machine;
+		},
+		// `host.jobs.run`: `argv` on the machine, here for `local`, else over SSH with each word quoted for the shell there.
+		// Resolves once it ended: its exit code (null when a signal killed it; 127 when it did not start here, as a shell says)
+		// and its whole output. ssh's own failure is its exit code 255 and its line on stderr.
+		async run(name: string, argv: readonly string[]): Promise<Ran> {
+			if (typeof name !== "string") throw new Error(`run: a machine name, got ${JSON.stringify(name)}`);
+			if (!Array.isArray(argv) || argv.length === 0 || !argv.every((word) => typeof word === "string")) throw new Error("run: argv must be a non-empty list of words");
+			const machine = await this.pick(name, () => []);
+			const [command = "", ...args] = machine.name === LOCAL ? argv : ["ssh", ...OPTIONS, machine.ssh, argv.map(quote).join(" ")];
+			const output = { stdout: "", stderr: "" };
+			const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
+			child.stdout.setEncoding("utf8").on("data", (chunk: string) => (output.stdout += chunk));
+			child.stderr.setEncoding("utf8").on("data", (chunk: string) => (output.stderr += chunk));
+			const ended = Promise.withResolvers<Ran>();
+			child.once("error", (error) => ended.resolve({ code: 127, stdout: output.stdout, stderr: `${command}: ${error.message}` }));
+			child.once("close", (code) => ended.resolve({ code, ...output }));
+			return ended.promise;
 		},
 		// The sweep's copy from every other machine; a machine that fails is named and the others still copy.
 		sync(): void {

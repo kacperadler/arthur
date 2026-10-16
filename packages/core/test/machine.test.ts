@@ -241,6 +241,25 @@ test("registerMachine refuses local, a machine registered twice, a bad name, an 
 	assert.throws(() => host.jobs.registerMachine({ ...machine, name: "local" }), { message: "machine local: registered by core and by machines; a machine belongs to one plugin" });
 });
 
+test("jobs.run runs one command on a machine: words with spaces and quotes arrive intact, the exit code comes back", async () => {
+	const { machine, jobs } = setup();
+	const words = ["a b", `it's "quoted"`, "$HOME", "", "; touch hacked"];
+	assert.deepEqual(await jobs.run("gpu", ["printf", "%s|", ...words]), { code: 0, stdout: `${words.join("|")}|`, stderr: "" });
+	assert.equal(existsSync(join(machine, "hacked")), false);
+	assert.deepEqual(await jobs.run("gpu", ["sh", "-c", "pwd; echo no >&2; exit 3"]), { code: 3, stdout: `${machine}\n`, stderr: "no\n" });
+	assert.equal(calls().length, 2);
+	assert.match(calls()[0] ?? "", /^-o BatchMode=yes -o StrictHostKeyChecking=yes gpu 'printf' /);
+	writeFileSync(join(machine, "refuse"), "");
+	assert.deepEqual(await jobs.run("gpu", ["true"]), { code: 255, stdout: "", stderr: "kacper@gpu: Permission denied (publickey).\n" });
+	await assert.rejects(jobs.run("mac", ["true"]), { message: "unknown machine mac; machines: gpu, local" });
+	await assert.rejects(jobs.run("gpu", []), { message: "run: argv must be a non-empty list of words" });
+
+	const host = fakeHost({ name: "projects" }).host;
+	assert.deepEqual(await host.jobs.run("local", ["sh", "-c", 'printf "%s" "$1"; exit 4', "sh", "a b"]), { code: 4, stdout: "a b", stderr: "" });
+	assert.deepEqual(await host.jobs.run("local", ["no-such-command-here"]), { code: 127, stdout: "", stderr: "no-such-command-here: spawn no-such-command-here ENOENT" });
+	assert.equal(calls().length, 3, "local takes no SSH step");
+});
+
 test("arthur version prints the core's version, without a config", () => {
 	const run = spawnSync(process.execPath, [CLI, "version"], { cwd: temporaryFolder(), encoding: "utf8" });
 	assert.deepEqual([run.status, run.stdout], [0, `${coreVersion()}\n`]);

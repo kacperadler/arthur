@@ -6,7 +6,7 @@ import type { Bus } from "./events.ts";
 import { addWorktree, branchExists, fileAt, head, removeWorktree, topLevel } from "./git.ts";
 import { checkLimits, type Limits, spawnLimits } from "./job-limits.ts";
 import { continueJob } from "./job-control.ts";
-import { addThere, launchThere, LOCAL, type Machine, machineRegistry, reach, removeThere } from "./job-machine.ts";
+import { addThere, launchThere, LOCAL, type Machine, machineRegistry, type Ran, reach, removeThere } from "./job-machine.ts";
 import { newJob, writeRecord } from "./job-record.ts";
 import { jobUpkeep } from "./job-records.ts";
 import { pluginStep } from "./plugin.ts";
@@ -72,10 +72,12 @@ export type Jobs = {
 	// A role whose prompt this plugin ships; its kinds name it.
 	registerRole(role: Role): void;
 	beforeSpawn(check: SpawnCheck): void;
-	// Runs after the worktree and the record exist and before the agent starts; a throw removes both and refuses the spawn.
+	// Runs after the worktree and the record exist and before the agent starts; a throw removes both and refuses the spawn. It
+	// runs in this process: for a job on another machine (`job.machine`) it acts there through `run`.
 	prepare(fn: Prepare): void;
-	// A machine jobs may run on over SSH (job-machine.ts); `local` is the core's.
+	// A machine jobs may run on over SSH (job-machine.ts); `local` is the core's. `run` runs one command on one (docs/commands/spawn.md).
 	registerMachine(machine: Machine): void;
+	run(machine: string, argv: readonly string[]): Promise<Ran>;
 	spawn(request: SpawnRequest): Promise<Started>;
 	// Holds a job in a run `blocked` on `dependency: <reason>` whatever its activity; `unblock` lets it go (docs/commands/jobs.md).
 	block(id: string, reason: string): void;
@@ -83,13 +85,12 @@ export type Jobs = {
 };
 
 // The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for.
-export type JobRunner = ReturnType<typeof jobUpkeep> & {
+export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run"> & {
 	registerKind(owner: string, kind: Kind): void;
 	registerRole(owner: string, role: Role): void;
 	beforeSpawn(owner: string, check: SpawnCheck): void;
 	prepare(owner: string, fn: Prepare): void;
 	registerMachine(owner: string, machine: Machine): void;
-	spawn(request: SpawnRequest): Promise<Started>;
 	// `arthur continue`: resumes an ended job with a branch in place (job-control.ts) once the `beforeSpawn` checks pass on its
 	// record, `budgetUsd` replacing its budget; resolves to why its wrapper did not start, as `failed` of a spawn.
 	continue(id: string, instruction: string, budgetUsd?: number): Promise<string | undefined>;
@@ -112,8 +113,8 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 	const upkeep = jobUpkeep(home, time, bus, (job) => collect("jobs.keep", [job]));
 	const runner: JobRunner = {
 		...upkeep,
-		// Dead jobs here, then the copy from every other machine.
 		sweep() {
+			// Dead jobs here, then the copy from every other machine.
 			upkeep.sweep();
 			machines.sync();
 		},
@@ -129,6 +130,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 		beforeSpawn: (owner, check) => void checks.push({ owner, check }),
 		prepare: (owner, fn) => void prepares.push({ owner, fn }),
 		registerMachine: (owner, machine) => machines.register(owner, machine),
+		run: (machine, argv) => machines.run(machine, argv),
 		roles: (project) => describeRoles(roles, [...kinds.values()].map((entry) => entry.kind), checkout(project).root, collect),
 		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (spawn) => checkSpawn({ ...spawn, tickets: taskTickets(spawn.task) })),
 		async spawn(request) {

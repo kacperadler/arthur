@@ -636,9 +636,9 @@
   {
     "id": "AR0076",
     "title": "Core comments that repeat the command docs become pointers",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0076-core-comments-that-repeat-the-command-docs-become-pointers/ticket.md",
-    "updated": "2026-10-16T17:09:31.688Z",
+    "updated": "2026-10-16T17:17:45.429Z",
     "after": [
       "AR0074",
       "AR0075",

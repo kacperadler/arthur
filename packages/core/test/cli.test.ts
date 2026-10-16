@@ -6,7 +6,7 @@ import { test } from "node:test";
 import { temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
-const CORE_LIST = "commands: config, help, run, ticket\n";
+const CORE_LIST = "commands: config, help, run, spawn, ticket\n";
 
 // A plugin's commands as a config holds them: `echo` prints what it got and exits 3, `boom` throws, `gone` loses its doc file
 // right after it registered it, before any `--help`.
@@ -33,7 +33,7 @@ function arthur(folder: string, ...args: string[]): { readonly status: number | 
 	return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
 }
 
-const ALL = "commands: boom, config, echo, gone, help, quiet, run, ticket\n";
+const ALL = "commands: boom, config, echo, gone, help, quiet, run, spawn, ticket\n";
 
 test("a plugin's command runs with its arguments and exits with its code; --project goes to the command, not its arguments", () => {
 	const folder = project();

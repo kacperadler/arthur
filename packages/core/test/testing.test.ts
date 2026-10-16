@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { test } from "node:test";
 import type { Plugin } from "@arthur/core/plugin";
-import { fakeHost } from "@arthur/core/testing";
+import { fakeHost, temporaryFolder } from "@arthur/core/testing";
 
 // A plugin as a later one will be: it provides one name and calls another in its setup.
 const schedule = (options: { readonly at: string }): Plugin => ({
@@ -86,6 +86,33 @@ test("the fake host delivers the test's events to the plugin and lists what the 
 			{ seq: 4, plugin: "delivery", name: "changelog-due", data: 2 },
 		],
 	);
+});
+
+// A plugin as delivery will be: it owns the read-only kind `review` and places a file in each new worktree.
+const delivery: Plugin = {
+	name: "delivery",
+	setup(host) {
+		host.jobs.registerKind({ name: "review", readOnly: true, role: "reviewer" });
+		host.jobs.beforeSpawn((spawn) => (spawn.kind === "worker" ? "delivery spawns reviews only" : undefined));
+		host.jobs.prepare((job) => writeFileSync(join(job.worktree, "REVIEW"), job.id));
+	},
+};
+
+test("the fake host records the kinds a plugin registers and spawns on the test's repository with its checks and steps", async () => {
+	const root = join(temporaryFolder(), "acme");
+	mkdirSync(root);
+	for (const args of [["init", "--quiet"], ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "--quiet", "--allow-empty", "-m", "first"]])
+		execFileSync("git", ["-C", root, ...args]);
+	const fake = fakeHost({ name: "delivery", root });
+	await delivery.setup(fake.host);
+	assert.deepEqual(fake.kinds, [{ name: "review", readOnly: true, role: "reviewer" }]);
+	await assert.rejects(fake.host.jobs.spawn({ task: "Build." }), { message: "refused by delivery: delivery spawns reviews only" });
+	const job = await fake.host.jobs.spawn({ task: "Review.", kind: "review" });
+	assert.match(job.id, /^2026-01-01-review-[0-9a-f]{8}$/);
+	assert.equal(readFileSync(join(job.worktree, "REVIEW"), "utf8"), job.id);
+	assert.equal(readFileSync(join(dirname(fake.host.folder), "jobs", job.id, "task"), "utf8"), "Review.");
+	const alone = fakeHost({ name: "delivery" });
+	await assert.rejects(alone.host.jobs.spawn({ task: "Review." }), { message: /is not in a Git repository/ });
 });
 
 // A child process loads the kit with live-looking variables, prints what it sees, and exits as the script says.

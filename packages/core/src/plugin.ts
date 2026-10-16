@@ -2,6 +2,7 @@ import { type Board, board } from "./board.ts";
 import type { Clock } from "./clock.ts";
 import type { CommandRegistry, Commands } from "./commands.ts";
 import type { Bus, Events } from "./events.ts";
+import type { JobRunner, Jobs } from "./jobs.ts";
 
 // The plugin shape and the host one plugin sees (spec/roadmap.md, entry 4). A plugin is a function from its options to a
 // `Plugin`; the config's plugin list holds what those functions return. Names are proposals until entry 51 fixes them.
@@ -44,6 +45,8 @@ export type Host = {
 	collect<T = unknown>(name: string, ...args: readonly unknown[]): T[];
 	// The command registry: `register` this plugin's commands; `route` and `phone` for a channel.
 	readonly commands: Commands;
+	// The job runner: this plugin's kinds, its checks before a spawn, its steps in a new worktree, and spawns.
+	readonly jobs: Jobs;
 	// The ticket board of every project in the list a plugin provides as `projects`; its events are named by this plugin.
 	readonly board: Board;
 };
@@ -79,7 +82,13 @@ export function registry(): Registry {
 	};
 }
 
-export function pluginHost(names: Registry, commands: CommandRegistry, bus: Bus, own: Pick<Host, "name" | "options" | "env" | "folder" | "clock">): Host {
+export function pluginHost(
+	names: Registry,
+	commands: CommandRegistry,
+	bus: Bus,
+	runner: JobRunner,
+	own: Pick<Host, "name" | "options" | "env" | "folder" | "clock">,
+): Host {
 	return {
 		...own,
 		events: {
@@ -91,6 +100,12 @@ export function pluginHost(names: Registry, commands: CommandRegistry, bus: Bus,
 		call: <T>(name: string, ...args: readonly unknown[]) => names.call(own.name, name, args) as T,
 		collect: <T>(name: string, ...args: readonly unknown[]) => names.collect(name, args) as T[],
 		commands: { register: (command) => commands.register(own.name, command), route: commands.route, phone: commands.phone },
+		jobs: {
+			registerKind: (kind) => runner.registerKind(own.name, kind),
+			beforeSpawn: (check) => runner.beforeSpawn(own.name, check),
+			prepare: (fn) => runner.prepare(own.name, fn),
+			spawn: runner.spawn,
+		},
 		board: board(() => names.collect("projects", []), own.clock, (name, data) => bus.emit(own.name, name, data)),
 	};
 }

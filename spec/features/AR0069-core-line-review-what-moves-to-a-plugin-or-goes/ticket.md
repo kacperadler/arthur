@@ -4,7 +4,10 @@
 {
   "id": "AR0069",
   "title": "Core line review: what moves to a plugin or goes",
-  "date": "2026-10-16"
+  "date": "2026-10-16",
+  "after": [
+    "AR0018"
+  ]
 }
 ```
 

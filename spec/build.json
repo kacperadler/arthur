@@ -571,6 +571,9 @@
     "title": "Core line review: what moves to a plugin or goes",
     "status": "planned",
     "path": "spec/features/AR0069-core-line-review-what-moves-to-a-plugin-or-goes/ticket.md",
-    "updated": "2026-10-16T15:14:24.556Z"
+    "updated": "2026-10-16T15:14:30.987Z",
+    "after": [
+      "AR0018"
+    ]
   }
 ]

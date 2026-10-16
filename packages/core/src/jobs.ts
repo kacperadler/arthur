@@ -8,7 +8,6 @@ import { checkLimits, type Limits, spawnLimits } from "./job-limits.ts";
 import { continueJob } from "./job-control.ts";
 import { writeRecord } from "./job-record.ts";
 import { jobUpkeep } from "./job-records.ts";
-import { copyNodeModules } from "./node-modules.ts";
 import { pluginStep } from "./plugin.ts";
 import { describeRoles, prompt, type Role, type RoleView, roleModel, roleRegistry } from "./roles.ts";
 import { launch, type Slice } from "./job-scope.ts";
@@ -136,7 +135,6 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice, 
 			addWorktree(root, job.worktree, commit, job.branch);
 			let warnings: string[] = [];
 			try {
-				copyNodeModules(root, job.worktree);
 				const built = prompt(role, job.worktree, () => collect("prompt", [role.name, job]));
 				warnings = built.warnings;
 				writeRecord(home, job, built.prompt, kind.resumeOnBudget === true);

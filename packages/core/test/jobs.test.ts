@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, readlinkSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
@@ -175,24 +175,6 @@ test("prepare runs after the worktree and the record exist, before job-started; 
 	const job = await jobs.spawn({ task: "Go." });
 	assert.equal(readFileSync(join(job.worktree, ".git-hook"), "utf8"), "placed");
 	assert.deepEqual(readEvents(home, 1).map((event) => event.name).filter((name) => name !== "job-ended"), ["job-started"]);
-});
-
-test("node_modules is copied when the lockfile is the same, links kept as they are; not when it differs or is missing", async () => {
-	const { root, home } = repository({ "package-lock.json": '{"v":1}\n', "packages/core/package.json": "{}\n" });
-	mkdirSync(join(root, "node_modules/@acme"), { recursive: true });
-	mkdirSync(join(root, "node_modules/left-pad"));
-	writeFileSync(join(root, "node_modules/left-pad/index.js"), "module.exports = 1;\n");
-	symlinkSync("../../packages/core", join(root, "node_modules/@acme/core"));
-	const jobs = runner(home, root);
-	const same = await jobs.spawn({ task: "Go." });
-	assert.equal(readFileSync(join(same.worktree, "node_modules/left-pad/index.js"), "utf8"), "module.exports = 1;\n");
-	assert.equal(readlinkSync(join(same.worktree, "node_modules/@acme/core")), "../../packages/core");
-	assert.equal(readFileSync(join(same.worktree, "node_modules/@acme/core/package.json"), "utf8"), "{}\n");
-	writeFileSync(join(root, "package-lock.json"), '{"v":2}\n');
-	assert.equal(existsSync(join((await jobs.spawn({ task: "Go." })).worktree, "node_modules")), false);
-	const bare = repository();
-	mkdirSync(join(bare.root, "node_modules/left-pad"), { recursive: true });
-	assert.equal(existsSync(join((await runner(bare.home, bare.root).spawn({ task: "Go." })).worktree, "node_modules")), false);
 });
 
 test("a branch, worktree or record that exists already under a drawn id makes the spawn draw another", async (t) => {

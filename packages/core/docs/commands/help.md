@@ -11,7 +11,7 @@ Each plugin registers its commands when it is set up, each with its doc page. Re
 Said, without running anything:
 
 - An unknown command: `arthur: unknown command <name>`, then every command's name; exit code 2.
-- When `arthur.config.ts` or a plugin does not load, only the core's commands (`config`, `help`) exist; listing the commands then says why, and the core's commands still run.
+- When `arthur.config.ts` or a plugin does not load, only the core's commands (`config`, `help`, `run`) exist; listing the commands then says why, and the core's commands still run (`arthur run` then refuses, naming why).
 - A doc file deleted after the command was registered: `arthur <command>: its doc file <path> was deleted after Arthur loaded`; exit code 1.
 - `--project` without a name, or given twice: exit code 2.
 - A command that throws: `arthur <command>: <message>`; exit code 1.

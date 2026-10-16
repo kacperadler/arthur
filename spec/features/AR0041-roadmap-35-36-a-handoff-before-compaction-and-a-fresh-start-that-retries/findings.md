@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `spec/roadmap.md:342` (entry 36)
 - What: after this ticket, compaction (35) and the nightly fresh start (36) write `.arthur/session/handoff.md` first and the next conversation reads it; `/restart fresh` still starts a new conversation (no `--continue`) with only `after-restart.md`, which holds steps for the human's `Restarted.` message, not the coordinator's work in progress or its unanswered questions. A question to the human asked before `/restart fresh` is lost, which is what the Goal of AR0041 rules out for the other two paths.
 - Suggestion: in entry 36, `/restart fresh` writes the same handoff before it stops the session (a failed write refuses the command with one line), and the new conversation reads it; plain `/restart` keeps `--continue` and needs none. `after-restart.md` stays as it is.
-- Status: open
+- Status: ticket AR0043

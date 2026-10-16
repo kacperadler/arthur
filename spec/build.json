@@ -366,9 +366,9 @@
   {
     "id": "AR0041",
     "title": "Roadmap 35-36: a handoff before compaction, and a fresh start that retries",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0041-roadmap-35-36-a-handoff-before-compaction-and-a-fresh-start-that-retries/ticket.md",
-    "updated": "2026-10-16T11:43:21.627Z"
+    "updated": "2026-10-16T11:44:06.610Z"
   },
   {
     "id": "AR0042",
@@ -376,5 +376,12 @@
     "status": "planned",
     "path": "spec/features/AR0042-a-project-with-a-branch-named-arthur-can-spawn-no-worker/ticket.md",
     "updated": "2026-10-16T11:43:30.289Z"
+  },
+  {
+    "id": "AR0043",
+    "title": "`/restart fresh` starts a new conversation without the handoff",
+    "status": "planned",
+    "path": "spec/features/AR0043-restart-fresh-starts-a-new-conversation-without-the-handoff/ticket.md",
+    "updated": "2026-10-16T11:44:21.278Z"
   }
 ]

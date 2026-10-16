@@ -93,9 +93,9 @@
   {
     "id": "AR0011",
     "title": "Roadmap 8: arthur run: Arthur as a process",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0011-roadmap-8-arthur-run-arthur-as-a-process/ticket.md",
-    "updated": "2026-10-16T09:46:23.719Z",
+    "updated": "2026-10-16T10:57:49.880Z",
     "after": [
       "AR0007",
       "AR0008"
@@ -314,9 +314,9 @@
   {
     "id": "AR0034",
     "title": "Roadmap: disk space and Docker cleanup with each worktree",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0034-roadmap-disk-space-and-docker-cleanup-with-each-worktree/ticket.md",
-    "updated": "2026-10-16T10:57:16.187Z"
+    "updated": "2026-10-16T11:00:46.220Z"
   },
   {
     "id": "AR0035",

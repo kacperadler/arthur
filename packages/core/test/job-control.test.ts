@@ -1,13 +1,15 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { delimiter, join } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { delimiter, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
+import { board } from "../src/board.ts";
+import { moveStartedTickets, refuseUnstartableTickets } from "../src/board-jobs.ts";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
-import { eventBus } from "../src/events.ts";
+import { type Bus, eventBus } from "../src/events.ts";
 import { steerJob, stopJob } from "../src/job-control.ts";
 import { GRACE_SECONDS } from "../src/job-stop.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
@@ -19,7 +21,7 @@ const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 
 // A repository `acme`, a home folder beside it, and a runner whose agent is `agent`; the plugin `delivery` owns the read-only
 // kind `review` and `audit`, which resumes once at its budget of $1.
-function setup(agent: string): { readonly root: string; readonly home: string; readonly jobs: JobRunner } {
+function setup(agent: string): { readonly root: string; readonly home: string; readonly jobs: JobRunner; readonly bus: Bus } {
 	const folder = temporaryFolder();
 	const root = join(folder, "acme");
 	mkdirSync(root);
@@ -29,12 +31,13 @@ function setup(agent: string): { readonly root: string; readonly home: string; r
 	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "first");
 	const home = join(folder, "home");
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
-	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, ...jobSlice }, agent, time, eventBus(home), () => []);
+	const bus = eventBus(home);
+	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, ...jobSlice }, agent, time, bus, () => []);
 	writeFileSync(join(folder, "reviewer.md"), "# Reviewer\n");
 	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(join(folder, "reviewer.md")), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
 	jobs.registerKind("delivery", { name: "audit", readOnly: false, role: "reviewer", budgetUsd: 1, resumeOnBudget: true });
-	return { root, home, jobs };
+	return { root, home, jobs, bus };
 }
 
 async function until<T>(what: string, predicate: () => T | undefined): Promise<T> {
@@ -371,6 +374,43 @@ test("a continue goes through the plugins' beforeSpawn checks on its record: a r
 	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
 	const [, second] = await ended(home, job.id, 2);
 	assert.deepEqual([second, starts(resumed).length], [{ id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" }, 1]);
+});
+
+test("a continued worker moves its ticket from review back to in-progress with one ticket-moved; at in-progress nothing is written", async () => {
+	const { agent } = resuming({ steps: [{ message: "First." }] }, { steps: [{ message: "Again." }] });
+	const { root, home, jobs, bus } = setup(agent);
+	const ticket = "spec/features/AC0001-one/ticket.md";
+	mkdirSync(join(root, dirname(ticket)), { recursive: true });
+	writeFileSync(join(root, ticket), "# AC0001\n");
+	git(root, "add", "--all");
+	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "ticket");
+	const path = join(root, "spec", "build.json");
+	writeFileSync(path, JSON.stringify([{ id: "AC0001", title: "One", status: "planned", path: ticket, updated: "2026-10-16T07:00:00.000Z" }]));
+	const core = board(() => [[{ name: "acme", path: root, prefix: "AC" }]], clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z")), (name, data) => bus.emit("core", name, data));
+	refuseUnstartableTickets(core, jobs);
+	moveStartedTickets(core, bus);
+	const status = () => core.get("AC0001")?.status;
+	const events = (name: string) => readEvents(home, 1).filter((event) => event.name === name).map((event) => event.data);
+	const worker = await jobs.spawn({ task: `Ticket: ${ticket}. Build it.` });
+	await ended(home, worker.id);
+	core.move("AC0001", "review");
+	// A kind with a branch that is not a worker moves no ticket at its start nor at its continue.
+	const audit = await jobs.spawn({ task: `Ticket: ${ticket}. Audit it.`, kind: "audit" });
+	await ended(home, audit.id);
+	assert.equal(await jobs.continue(audit.id, "Go on."), undefined);
+	await ended(home, audit.id, 2);
+	assert.equal(status(), "review");
+	const moves = events("ticket-moved").length;
+	assert.equal(await jobs.continue(worker.id, "Go on."), undefined);
+	await ended(home, worker.id, 2);
+	assert.equal(status(), "in-progress");
+	assert.deepEqual(events("ticket-moved").slice(moves), [{ id: "AC0001", project: "acme", from: "review", to: "in-progress" }]);
+	const started = events("job-started").filter((data) => (data as { id: string }).id === worker.id);
+	assert.deepEqual(started, [started[0], started[0]], "the continue's job-started is the spawn's");
+	const [text, written] = [readFileSync(path, "utf8"), statSync(path).mtimeMs];
+	assert.equal(await jobs.continue(worker.id, "Once more."), undefined);
+	await ended(home, worker.id, 3);
+	assert.deepEqual([readFileSync(path, "utf8"), statSync(path).mtimeMs, events("ticket-moved").length], [text, written, moves + 1]);
 });
 
 test("the arthur binary stops, steers and continues a job by its id; wrong usage exits 2, a refusal 1", async () => {

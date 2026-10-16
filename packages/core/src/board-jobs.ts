@@ -27,9 +27,9 @@ export function refuseUnstartableTickets(core: Board, jobs: JobRunner): void {
 	});
 }
 
-// The board follows the jobs (spec/roadmap.md, entry 18): a worker's `job-started` moves each ticket its task names to
-// in-progress; other kinds move none. The moves the board refuses fail the handler together, which the bus logs as the
-// core's. Subscribed by the real load and by the test kit's fake host alike, after the plugins' own handlers.
+// The board follows the jobs (spec/roadmap.md, entry 18): a worker's `job-started`, at a spawn or a continue, moves each
+// ticket its task names to in-progress; other kinds move none. The moves the board refuses fail the handler together, which
+// the bus logs as the core's. Subscribed by the real load and by the test kit's fake host alike, after the plugins' own handlers.
 export function moveStartedTickets(core: Board, bus: Bus): void {
 	bus.on("core", "job-started", ({ data }) => {
 		const { kind, tickets } = data as { readonly kind: string; readonly tickets: readonly string[] };

@@ -5,10 +5,12 @@ import type { Bus } from "./events.ts";
 import { addWorktree, branchExists, fileAt, head, removeWorktree, topLevel } from "./git.ts";
 import { writeRecord } from "./job-record.ts";
 import { describeRoles, prompt, type Role, type RoleView, roleModel, roleRegistry } from "./roles.ts";
+import { launch } from "./wrapper.ts";
 
-// The job runner's spawn and the job record (spec/roadmap.md, entry 9). A worker gets its own branch and worktree from HEAD,
-// a read-only kind a detached checkout of HEAD; both live in `.arthur-worktrees/<id>` beside the repository, outside the
-// main checkout and the home folder. The record is `<home>/jobs/<id>/`, one file per key, which appears whole.
+// The job runner's spawn and the job record (spec/roadmap.md, entries 9 and 11). A worker gets its own branch and worktree
+// from HEAD, a read-only kind a detached checkout of HEAD; both live in `.arthur-worktrees/<id>` beside the repository,
+// outside the main checkout and the home folder. The record is `<home>/jobs/<id>/`, one file per key, which appears whole;
+// then the job's wrapper starts its agent in the background.
 
 // A kind of job, owned by the plugin that registers it; the core owns `worker`.
 export type Kind = {
@@ -43,8 +45,8 @@ export type Spawn = {
 	readonly tickets: readonly string[];
 };
 
-// A job as `prepare` gets it; `branch` is undefined for a read-only kind.
-export type Job = Spawn & { readonly id: string; readonly root: string; readonly branch: string | undefined; readonly worktree: string };
+// A job as `prepare` gets it; `base` is the commit it starts from, `branch` undefined for a read-only kind.
+export type Job = Spawn & { readonly id: string; readonly root: string; readonly base: string; readonly branch: string | undefined; readonly worktree: string };
 // A job as `spawn` returns it: `warnings` are the prompt's, e.g. a criteria file the project lacks.
 export type Started = Job & { readonly warnings: readonly string[] };
 
@@ -82,9 +84,9 @@ const LOCKFILE = "package-lock.json";
 type Limits = { readonly timeoutMinutes: number; readonly budgetUsd: number };
 type Collect = (name: string, args: readonly unknown[]) => unknown[];
 
-// `folder` is in the repository jobs start from; `limits` are the core's `jobs` options; `collect` reads what the plugins
-// provide, e.g. the sections of a prompt (`prompt`).
-export function jobRunner(home: string, folder: string, limits: Limits, time: Clock, bus: Bus, collect: Collect): JobRunner {
+// `folder` is in the repository jobs start from; `limits` are the core's `jobs` options, `agent` its `agent.command`;
+// `collect` reads what the plugins provide, e.g. the sections of a prompt (`prompt`).
+export function jobRunner(home: string, folder: string, limits: Limits, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
 	const kinds = new Map<string, { readonly owner: string; readonly kind: Kind }>();
 	const roles = roleRegistry();
 	const checks: { readonly owner: string; readonly check: SpawnCheck }[] = [];
@@ -122,7 +124,7 @@ export function jobRunner(home: string, folder: string, limits: Limits, time: Cl
 				const reason = await step(owner, "beforeSpawn", () => check(spawn));
 				if (reason !== undefined) throw new Error(`refused by ${owner}: ${reason}`);
 			}
-			const job = newJob(spawn, root, kind.readOnly);
+			const job = newJob(spawn, root, commit, kind.readOnly);
 			addWorktree(root, job.worktree, commit, job.branch);
 			let warnings: string[] = [];
 			try {
@@ -138,6 +140,7 @@ export function jobRunner(home: string, folder: string, limits: Limits, time: Cl
 			}
 			const { id, kind: kindName, branch, worktree } = job;
 			bus.emit("core", "job-started", { id, kind: kindName, project, root, branch, worktree, tickets });
+			launch(home, id, agent);
 			return { ...job, warnings };
 		},
 	};
@@ -153,14 +156,14 @@ export function jobRunner(home: string, folder: string, limits: Limits, time: Cl
 	}
 
 	// A free id, `<date>-<kind>-<8 hex digits>`: no record, worktree or branch of that name exists yet.
-	function newJob(spawn: Spawn, root: string, readOnly: boolean): Job {
+	function newJob(spawn: Spawn, root: string, base: string, readOnly: boolean): Job {
 		for (;;) {
 			const random = Buffer.from(crypto.getRandomValues(new Uint8Array(4))).toString("hex");
 			const id = `${time.local().date}-${spawn.kind}-${random}`;
 			const branch = readOnly ? undefined : `arthur/${id}`;
 			const worktree = join(dirname(root), ".arthur-worktrees", id);
 			if (existsSync(join(home, "jobs", id)) || existsSync(worktree) || (branch !== undefined && branchExists(root, branch))) continue;
-			return { ...spawn, id, root, branch, worktree };
+			return { ...spawn, id, root, base, branch, worktree };
 		}
 	}
 }

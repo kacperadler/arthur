@@ -3,8 +3,9 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
+import { setTimeout as sleep } from "node:timers/promises";
 import { readEvents } from "../src/events.ts";
-import { temporaryFolder } from "../src/testing.ts";
+import { fakeAgent, temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>]";
@@ -59,6 +60,24 @@ test("arthur spawn prints the id of a worker on its own branch, with the record 
 	assert.deepEqual(["model", "budget", "timeout", "project", "worktree"].map(field), ["anthropic/opus", "3", "120", "acme", worktree]);
 	const [started] = readEvents(join(root, ".arthur"), 1);
 	assert.deepEqual([started?.name, (started?.data as { id: string }).id], ["job-started", id]);
+});
+
+test("arthur spawn returns while the agent of core.agent.command runs in the background; the job ends on its own", async () => {
+	const gate = join(temporaryFolder(), "go");
+	const agent = fakeAgent({ steps: [{ waitFor: gate }, { message: "Built it." }] });
+	const root = repository(CONFIG.replace('timeZone: "UTC"', `timeZone: "UTC", agent: { command: ${JSON.stringify(agent)} }`));
+	const run = arthur(root, "spawn", "Build it.");
+	assert.equal(run.status, 0, run.stderr);
+	const id = run.stdout.trim();
+	const started = join(dirname(agent), "starts.jsonl");
+	for (const start = Date.now(); !existsSync(started) && Date.now() - start < 20_000; ) await sleep(20);
+	const state = readFileSync(join(root, ".arthur/jobs", id, "state"), "utf8");
+	assert.equal(state, "running", "the agent waits for the gate after arthur spawn returned");
+	writeFileSync(gate, "");
+	const ended = () => readEvents(join(root, ".arthur"), 1).find((event) => event.name === "job-ended");
+	for (const start = Date.now(); ended() === undefined && Date.now() - start < 20_000; ) await sleep(20);
+	assert.deepEqual(ended()?.data, { id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" });
+	assert.equal(readFileSync(join(root, ".arthur/jobs", id, "result"), "utf8"), "Built it.");
 });
 
 test("--kind review makes a detached checkout with the kind's limits", () => {

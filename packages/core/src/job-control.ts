@@ -82,6 +82,7 @@ export async function continueJob(home: string, id: string, instruction: string,
 		const [state, task = "", kind = "", project = "", root, branch, worktree, model, thinking] = ["state", "task", "kind", "project", "root", "branch", "worktree", "model", "thinking"].map((name) => field(name) || undefined);
 		if (state === undefined || state === "running") throw new Error(`${id} is ${state ?? "not started yet"}; a running job is not continued, arthur steer gives it a correction`);
 		if (branch === undefined) throw new Error(`${id} is a ${kind}, a read-only kind without a branch of its own; only a job with a branch is continued`);
+		if (worktree === undefined || !existsSync(worktree)) throw new Error(`${id}: its worktree was pruned; spawn a new job on its branch ${branch}`);
 		checkLimits("continue", { budgetUsd });
 		await check({ task, kind, project, model, thinking, timeoutMinutes: Number(field("timeout")), budgetUsd: budgetUsd ?? Number(field("budget")) });
 		// A new scope of the job's name cannot start while the old wrapper still runs in it; its `pid` goes, so `launch` waits for the new one's.

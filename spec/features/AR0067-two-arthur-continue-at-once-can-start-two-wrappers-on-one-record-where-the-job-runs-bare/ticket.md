@@ -4,7 +4,10 @@
 {
   "id": "AR0067",
   "title": "Two `arthur continue` at once can start two wrappers on one record where the job runs bare",
-  "date": "2026-10-16"
+  "date": "2026-10-16",
+  "after": [
+    "AR0065"
+  ]
 }
 ```
 

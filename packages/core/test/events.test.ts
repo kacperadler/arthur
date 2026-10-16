@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import type { Event } from "../src/event-log.ts";
@@ -222,7 +222,6 @@ test("a bus that follows again delivers, in order and once, what came after the 
 	command.emit("core", "ticket-moved", "before any daemon");
 	const first = daemon();
 	const stop = first.follow(10);
-	assert.equal(existsSync(deliveredOf(home)), false, "a first start begins at the log's end and keeps nothing yet");
 	command.emit("core", "ticket-moved", "a");
 	t.mock.timers.tick(10);
 	first.emit("orchestration", "job-started", "nobody listens");
@@ -234,10 +233,9 @@ test("a bus that follows again delivers, in order and once, what came after the 
 	command.emit("core", "ticket-moved", "c");
 	const second = daemon();
 	second.emit("schedule", "ticket-moved", "own, before the follow");
+	assert.deepEqual(got, ["2 a", "6 own, before the follow"]);
 	t.after(second.follow(10));
-	assert.deepEqual(got, ["2 a", "6 own, before the follow"], "the replay waits for the first check");
-	t.mock.timers.tick(10);
-	assert.deepEqual(got, ["2 a", "6 own, before the follow", "4 b", "5 c", "7 reaction to b"]);
+	assert.deepEqual(got, ["2 a", "6 own, before the follow", "4 b", "5 c", "7 reaction to b"], "the replay, at the follow");
 	assert.equal(readFileSync(deliveredOf(home), "utf8"), "7\n");
 
 	const third = daemon();
@@ -275,4 +273,28 @@ test("a kept number past the log's last event, or no whole number, follows from 
 		assert.equal(readFileSync(deliveredOf(home), "utf8"), "3\n");
 		warned.mock.resetCalls();
 	}
+});
+
+test("own events from before the follow, and the log a first start skips, count as delivered: a restart delivers none", (t) => {
+	t.mock.timers.enable({ apis: ["setInterval"] });
+	const home = temporaryFolder();
+	const command = eventBus(home);
+	const got: string[] = [];
+	const daemon = () => {
+		const bus = eventBus(home);
+		bus.on("telegram", "notice", (event) => void got.push(`${event.seq} ${event.data}`));
+		return bus;
+	};
+	command.emit("core", "notice", "before any daemon");
+	daemon().follow(10)();
+	assert.equal(readFileSync(deliveredOf(home), "utf8"), "1\n", "a first start that delivers nothing still keeps where it began");
+	command.emit("core", "notice", "while down");
+	const second = daemon();
+	second.emit("schedule", "notice", "own, in setup");
+	second.follow(10)();
+	assert.deepEqual(got, ["3 own, in setup", "2 while down"]);
+	assert.equal(readFileSync(deliveredOf(home), "utf8"), "3\n", "the own event from before the follow, and nothing after it");
+	daemon().follow(10)();
+	t.mock.timers.tick(30);
+	assert.deepEqual(got, ["3 own, in setup", "2 while down"], "a restart delivers neither again");
 });

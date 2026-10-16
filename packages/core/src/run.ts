@@ -6,7 +6,7 @@ import type { Plugin } from "./plugin.ts";
 // `arthur run` (spec/roadmap.md, entry 8): Arthur as a process. Calls `start` of the plugins, already set up, in their setup
 // order, stays until SIGTERM (or SIGINT), then calls `stop` in reverse. One process per home folder: `<home>/run.pid` holds it.
 // From the lock on until the stops it follows the event log, so the events a command appends reach the plugins' subscribers;
-// those appended while no `arthur run` ran reach them at the start, after the last one delivered before (`events.ts`).
+// those appended while no `arthur run` ran reach them before the starts, after the last one delivered before (`events.ts`).
 
 const SIGNALS = ["SIGTERM", "SIGINT"] as const;
 // Under the 2^31 ms a timer can wait; it only keeps the process alive until a signal comes.

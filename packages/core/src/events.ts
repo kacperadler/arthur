@@ -23,9 +23,9 @@ export type Bus = {
 	on(plugin: string, name: string, fn: Handler): void;
 	emit(plugin: string, name: string, data: unknown): Event;
 	read(fromSeq: number): Event[];
-	// Every `everyMs` delivers the events another process appended; this bus's own were delivered at emit. Starts after the
-	// number kept in `<home>/events.delivered`, or from the log's end when there is none or it is no use. Returns the stop of
-	// the checks; an emit after it still delivers first what another process appended, so the events keep the log's order.
+	// Delivers at once the events after the number kept in `<home>/events.delivered` (none when there is no file or it is no
+	// use: then from the log's end), then every `everyMs` the events another process appended; this bus's own were delivered
+	// at emit. Returns the stop of the checks; an emit after it still delivers first what another process appended.
 	follow(everyMs: number): () => void;
 };
 
@@ -88,6 +88,10 @@ export function eventBus(home: string): Bus {
 		read: (fromSeq) => readEvents(home, fromSeq),
 		follow(everyMs) {
 			read = withLog(home, (fd) => resume(kept, logEnd(fd)));
+			// The replay, at once. Then the number also covers this bus's own events from before, which it skipped as delivered
+			// at emit, and, at a first start, the log before it, so the next start goes on from here even when nothing came.
+			tick();
+			keep(kept, read.next - 1);
 			const timer = setInterval(tick, everyMs);
 			timer.unref();
 			return () => clearInterval(timer);

@@ -18,7 +18,8 @@ import { closeSteers } from "./steer-inbox.ts";
 // trust the rest; then `job-ended`. SIGTERM to the wrapper (`arthur stop`, entry 14) and a job past its record's `timeout`
 // or `budget` (entry 12) run the one stop (job-stop.ts); a kind with `resume-on-budget` gets one resume at its budget,
 // doubled. A record with `continue` (`arthur continue`) resumes the agent's session with it. Once the agent is done, what
-// is left in the job's scope is killed (entry 13), and steers still waiting are moved aside. A record deleted while the job
+// is left in the job's scope is killed (entry 13), and steers still waiting are moved aside; a process the agent left that
+// holds its output open is waited for 2 seconds after the agent exited, then no longer read. A record deleted while the job
 // runs stops the agent and what is left in its scope, and ends the wrapper with one line on its own output,
 // `<home>/wrapper.log`, writing nothing else.
 
@@ -107,6 +108,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		running.stdout.on("data", (chunk: string) => record.apply(stream.push(chunk)));
 		running.stderr.on("data", (chunk: Buffer) => save("log", chunk, true));
 		running.once("error", (error) => (failure = error));
+		running.once("exit", () => setTimeout(() => [running.stdout, running.stderr].forEach((pipe) => pipe.destroy()), 2000).unref());
 		running.once("close", (code, killed) => closed.resolve([code, killed]));
 		const ending = await closed.promise;
 		record.apply(stream.end());

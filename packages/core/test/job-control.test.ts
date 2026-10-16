@@ -149,8 +149,8 @@ test("a stop that comes while a limit stops the job leaves the limit's state, an
 });
 
 test("a stop that comes once the agent exited on its own leaves the job's own ending", async () => {
-	// The agent exits at once; a process it left keeps its output open for a while, so the wrapper is still reading it.
-	const { agent, dir } = script((dir) => [`echo '${spent(0, "stop")}'`, "sleep 2 &", `echo $$ > '${dir}/pid'`, "exit 0"]);
+	// The agent exits at once; a process it left keeps its output open, so the wrapper is still reading it for a while.
+	const { agent, dir } = script((dir) => [`echo '${spent(0, "stop")}'`, "sleep 300 &", `echo $$ > '${dir}/pid'`, "exit 0"]);
 	const { home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Go." });
 	const pid = Number(await until("the agent", () => read(join(dir, "pid"))?.trim() || undefined));
@@ -159,6 +159,20 @@ test("a stop that comes once the agent exited on its own leaves the job's own en
 	process.kill(Number(field(home, job.id, "pid")), "SIGTERM");
 	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" }]);
 	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: the agent had ended already\n/);
+});
+
+test("a process the agent left holding its output open delays the job's end by the grace only, and is killed", async () => {
+	const { agent, dir } = script((dir) => [`echo '${spent(0, "stop")}'`, `sleep 300 & echo $! > '${dir}/holder'`, `echo $$ > '${dir}/pid'`, "exit 0"]);
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	const pid = Number(await until("the agent", () => read(join(dir, "pid"))?.trim() || undefined));
+	const holder = Number(read(join(dir, "holder")));
+	await until("the agent's exit", () => !alive(pid));
+	const exited = Date.now();
+	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" }]);
+	assert.ok(Date.now() - exited < 3000, `ended ${Date.now() - exited} ms after the agent exited`);
+	assert.equal(field(home, job.id, "state"), "done");
+	await until("the holder's end", () => !alive(holder));
 });
 
 test("refused, each with the id and the reason: stopping or steering a job that is not running, an unknown id", async () => {

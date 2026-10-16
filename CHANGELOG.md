@@ -29,6 +29,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0042 A project with a branch named `arthur` can spawn no worker (7e8d03d)
 - AR0044 An event a command appends while no daemon runs never reaches the subscribers (f7beab3)
 - AR0054 Roadmap entry 23 does not say the coordinator loads the env guard (71b8c57)
+- AR0058 The styleguide forbids a plugin to read another plugin's folder, and voice reads the channel's saved file (f3a1261)
 
 ### Changed
 

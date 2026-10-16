@@ -66,6 +66,22 @@ test("a runtime dependency in any package.json fails", () => {
 	);
 });
 
+test("a dev dependency beyond typescript and @types/node fails, in any package.json", () => {
+	assert.deepEqual(
+		check({
+			"package.json": JSON.stringify({
+				name: "arthur",
+				devDependencies: { typescript: "^7.0.2", "@types/node": "^24.19.2", vitest: "3" },
+			}),
+			"packages/telegram/package.json": JSON.stringify({ name: "@arthur/telegram", devDependencies: { "@types/node": "24", sinon: "1" } }),
+		}),
+		[
+			"package.json: has devDependency vitest; dev dependencies are the toolchain only (typescript, @types/node)",
+			"packages/telegram/package.json: has devDependency sinon; dev dependencies are the toolchain only (typescript, @types/node)",
+		],
+	);
+});
+
 test("an index.ts, types.ts or utils.ts fails, in src/ and test/ alike", () => {
 	assert.deepEqual(
 		check({

@@ -8,6 +8,7 @@ const MAX_FILE_LINES = 200;
 const CODE = /\.[cm]?[jt]s$/;
 const BANNED_NAMES = /^(index|types|utils)\.[cm]?[jt]s$/;
 const RUNTIME_KEYS = ["dependencies", "optionalDependencies", "peerDependencies"];
+const TOOLCHAIN = ["typescript", "@types/node"];
 // String literals and comments; strings come first so that `//` inside a string stays part of it.
 const TOKENS = /"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`|\/\/[^\n]*|\/\*[\s\S]*?\*\//g;
 const SPECIFIER = /(?:\bfrom|\bimport|\brequire)\s*\(?\s*(["'])([^"'\n]+)\1/g;
@@ -84,6 +85,10 @@ function checkManifest(path: string, report: Report): void {
 		if (deps && typeof deps === "object" && Object.keys(deps).length > 0)
 			report(path, `has ${key}; Arthur has no runtime dependency`);
 	}
+	const dev = manifest.devDependencies;
+	if (!dev || typeof dev !== "object") return;
+	for (const name of Object.keys(dev).filter((name) => !TOOLCHAIN.includes(name)))
+		report(path, `has devDependency ${name}; dev dependencies are the toolchain only (${TOOLCHAIN.join(", ")})`);
 }
 
 function exportKeys(exports: unknown): string[] {

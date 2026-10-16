@@ -56,7 +56,7 @@ test("/board: the full board when it fits one message, else the digest; all: the
 	assert.ok(full.length > 4096, `the full board is ${full.length} characters`);
 	const digest = await route("/board");
 	assert.equal(digest.split("\n").length, 40 + 10 + 1);
-	assert.match(digest, /\n\+ 2 older merged, 1 dropped: the full board is \/board all, or arthur ticket all$/);
+	assert.match(digest, /\n\+ 2 older merged, 1 dropped: the full board is \/board all$/);
 	assert.equal(await route("/board ALL"), full);
 });
 
@@ -68,7 +68,7 @@ test("/board at the limit: a full board of 4096 characters is sent whole, one of
 	assert.deepEqual([fits.length, fits.split("\n").length], [4096, 11]);
 	tickets(demo, "DM", [["merged", 10, "x".repeat(350)], ["merged", 1, "y".repeat(378)]]);
 	const digest = await route("/board");
-	assert.deepEqual(digest.split("\n").slice(-2), [`DM0002 merged      ${"x".repeat(350)}`, "+ 1 older merged: the full board is /board all, or arthur ticket all"]);
+	assert.deepEqual(digest.split("\n").slice(-2), [`DM0002 merged      ${"x".repeat(350)}`, "+ 1 older merged: the full board is /board all"]);
 	assert.equal((await route("/board all")).length, 4097);
 });
 

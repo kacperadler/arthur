@@ -19,6 +19,7 @@ export type CoreOptions = {
 		readonly idleMinutes?: number;
 		readonly cpu?: number;
 		readonly memory?: string;
+		readonly offlineGraceMinutes?: number;
 	};
 };
 
@@ -33,7 +34,7 @@ export type LoadedConfig = {
 		readonly agent: { readonly command: string };
 		readonly timeZone: string;
 		readonly quietHours: QuietHours | undefined;
-		readonly jobs: { readonly timeoutMinutes: number; readonly budgetUsd: number; readonly idleMinutes: number; readonly cpu: number; readonly memory: string };
+		readonly jobs: { readonly timeoutMinutes: number; readonly budgetUsd: number; readonly idleMinutes: number; readonly cpu: number; readonly memory: string; readonly offlineGraceMinutes: number };
 	};
 	readonly plugins: readonly unknown[];
 };
@@ -90,6 +91,7 @@ const SHAPE: Shape = {
 			memory: optional((value) =>
 				typeof value === "string" && memoryMax(value) ? undefined : 'systemd MemoryMax syntax such as "70%", "8G" or "infinity"',
 			),
+			offlineGraceMinutes: optional(atLeastZero),
 		},
 	},
 	plugins: optional((value) => (Array.isArray(value) ? undefined : "a list")),
@@ -149,13 +151,17 @@ function withDefaults(config: ArthurConfig, file: string): LoadedConfig {
 				timeoutMinutes: core.jobs?.timeoutMinutes ?? 120,
 				budgetUsd: core.jobs?.budgetUsd ?? 2,
 				idleMinutes: core.jobs?.idleMinutes ?? 10,
-				cpu: core.jobs?.cpu ?? Math.max(1, availableParallelism() - 1),
-				memory: core.jobs?.memory ?? "70%",
+				cpu: core.jobs?.cpu ?? machineLimit().cpu,
+				memory: core.jobs?.memory ?? machineLimit().memory,
+				offlineGraceMinutes: core.jobs?.offlineGraceMinutes ?? 30,
 			},
 		},
 		plugins: config.plugins ?? [],
 	};
 }
+
+// The jobs' joint limit when the config sets none: here, and on another machine, where the config is not, from its own cores.
+export const machineLimit = () => ({ cpu: Math.max(1, availableParallelism() - 1), memory: "70%" });
 
 // systemd's MemoryMax, as far as systemd takes it: `infinity`; a percentage above 0 and up to 100 with at most 2 decimals;
 // or bytes with at most 2 decimals and an optional K, M, G or T (powers of 1024), at least 1 byte once the fraction is cut

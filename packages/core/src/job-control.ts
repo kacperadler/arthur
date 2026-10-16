@@ -5,10 +5,12 @@ import { taskTickets } from "./board-jobs.ts";
 import type { Bus } from "./events.ts";
 import type { Spawn } from "./jobs.ts";
 import { checkLimits } from "./job-limits.ts";
+import { type Machine, sshAsync } from "./job-machine.ts";
 import { launch, type Slice } from "./job-scope.ts";
 import { GRACE_SECONDS } from "./job-stop.ts";
 import { current, field, ID, inRun, moveJob, told, write } from "./job-state.ts";
 import { takeLock } from "./lock.ts";
+import { syncMachine } from "./machine-sync.ts";
 import { processTable } from "./process-table.ts";
 import { queueSteer } from "./steer-inbox.ts";
 
@@ -57,8 +59,9 @@ export function steerJob(home: string, id: string, text: string): string {
 }
 
 // `arthur continue` (docs/commands/continue.md): returns why the wrapper did not start, or undefined. Its lock `continuing` is
-// taken before the state is read and released here only when the continue fails; else the new wrapper removes it.
-export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, check: (spawn: Omit<Spawn, "tickets">) => Promise<void>): Promise<string | undefined> {
+// taken before the state is read and released here only when the continue fails; else the new wrapper removes it. A job on
+// another machine (`there`) is checked here, then continued there by `arthur remote-job continue`, which refuses it as here.
+export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, check: (spawn: Omit<Spawn, "tickets">) => Promise<void>, there?: Machine): Promise<string | undefined> {
 	const { folder, field } = record(home, id);
 	if (instruction.trim() === "") throw new Error("the instruction is empty");
 	const lock = takeLock(join(folder, "continuing"));
@@ -69,21 +72,28 @@ export async function continueJob(home: string, id: string, instruction: string,
 		const now = current(home, id);
 		if (inRun(now)) throw new Error(`${id} is ${told(now)}, in a run; a job in a run is not continued, arthur steer gives it a correction`);
 		if (branch === undefined) throw new Error(`${id} is a ${kind}, a read-only kind without a branch of its own; only a job with a branch is continued`);
-		if (worktree === undefined || !existsSync(worktree)) throw new Error(`${id}: its worktree was pruned; spawn a new job on its branch ${branch}`);
+		if (worktree === undefined || (there === undefined && !existsSync(worktree))) throw new Error(`${id}: its worktree was pruned; spawn a new job on its branch ${branch}`);
 		checkLimits("continue", { budgetUsd });
 		const machine = field("machine") || "local";
 		await check({ task, kind, project, model, thinking, machine, timeoutMinutes: Number(field("timeout")), budgetUsd: budgetUsd ?? Number(field("budget")) });
-		// A new scope of the job's name cannot start while the old wrapper still runs in it; its `pid` goes, so `launch` waits for the new one's.
-		for (const end = Date.now() + GRACE_SECONDS * 1000; Date.now() < end && wrapperRuns(field("pid"), id); ) await sleep(50);
-		rmSync(join(folder, "pid"), { force: true });
+		const budget = budgetUsd === undefined ? [] : [String(budgetUsd)];
+		const startedThere = there && (await sshAsync(there, ["arthur", "remote-job", "continue", there.home, id, agent, slice.slice, ...budget], instruction.trim())).trim();
 		if (budgetUsd !== undefined) write(folder, "budget", String(budgetUsd));
-		write(folder, "continue", instruction.trim());
-		appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] arthur continue: ${instruction.trim().split("\n")[0]}\n`);
+		if (there === undefined) {
+			// A new scope of the job's name cannot start while the old wrapper still runs in it; its `pid` goes, so `launch` waits for the new one's.
+			for (const end = Date.now() + GRACE_SECONDS * 1000; Date.now() < end && wrapperRuns(field("pid"), id); ) await sleep(50);
+			rmSync(join(folder, "pid"), { force: true });
+			write(folder, "continue", instruction.trim());
+			appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] arthur continue: ${instruction.trim().split("\n")[0]}\n`);
+		}
 		moveJob(home, id, bus, () => ["working", ""]);
 		bus.emit("core", "job-started", { id, kind, project, root, branch, worktree, tickets: taskTickets(task), machine });
-		failed = await launch(home, { id, kind, project }, agent, slice, bus);
+		failed = there === undefined ? await launch(home, { id, kind, project }, agent, slice, bus) : startedThere || undefined;
+		// The wrapper there did not start: its end, here at once.
+		if (there !== undefined && failed !== undefined) syncMachine(home, there, bus);
 		return failed;
 	} finally {
-		if (failed !== undefined) lock.release();
+		// A wrapper there removes the lock there, not this one.
+		if (failed !== undefined || there !== undefined) lock.release();
 	}
 }

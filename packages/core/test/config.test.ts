@@ -42,7 +42,7 @@ test("a config without core options loads with every default filled", async () =
 			agent: { command: "omp" },
 			timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 			quietHours: undefined,
-			jobs: { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, cpu: Math.max(1, availableParallelism() - 1), memory: "70%" },
+			jobs: { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, cpu: Math.max(1, availableParallelism() - 1), memory: "70%" },
 		},
 		plugins: [],
 	});
@@ -57,7 +57,7 @@ export default {
 		agent: { command: "/usr/local/bin/omp" },
 		timeZone: "Europe/Warsaw",
 		quietHours: { from: "22:00", to: "07:30" },
-		jobs: { timeoutMinutes: minutes, budgetUsd: 0, idleMinutes: 5, cpu: 0.5, memory: "8G" },
+		jobs: { timeoutMinutes: minutes, budgetUsd: 0, idleMinutes: 5, cpu: 0.5, memory: "8G", offlineGraceMinutes: 0 },
 	},
 	plugins: [{ name: "fake" }],
 };
@@ -69,7 +69,7 @@ export default {
 		agent: { command: "/usr/local/bin/omp" },
 		timeZone: "Europe/Warsaw",
 		quietHours: { from: "22:00", to: "07:30" },
-		jobs: { timeoutMinutes: 0, budgetUsd: 0, idleMinutes: 5, cpu: 0.5, memory: "8G" },
+		jobs: { timeoutMinutes: 0, budgetUsd: 0, idleMinutes: 5, cpu: 0.5, memory: "8G", offlineGraceMinutes: 0 },
 	});
 	assert.deepEqual(config.plugins, [{ name: "fake" }]);
 });
@@ -77,6 +77,7 @@ export default {
 test("an option set to undefined takes its default", async () => {
 	const config = await loadConfig(withCore("{ timeZone: undefined, jobs: { cpu: undefined, budgetUsd: 3 } }"));
 	assert.equal(config.core.jobs.cpu, Math.max(1, availableParallelism() - 1));
+	assert.equal(config.core.jobs.offlineGraceMinutes, 30);
 	assert.equal(config.core.jobs.budgetUsd, 3);
 	assert.equal(config.core.timeZone, Intl.DateTimeFormat().resolvedOptions().timeZone);
 });
@@ -86,8 +87,8 @@ test("an unknown option is refused at every level, naming its path and the optio
 	assert.match(top, /: plugin: unknown option; expected one of core, plugins$/);
 	const core = await refusal(withCore('{ homeDir: ".arthur" }'));
 	assert.match(core, /: core\.homeDir: unknown option; expected one of home, envFile, agent, timeZone, quietHours, jobs$/);
-	const jobs = await refusal(withCore("{ jobs: { offlineGraceMinutes: 30 } }"));
-	assert.match(jobs, /: core\.jobs\.offlineGraceMinutes: unknown option; expected one of timeoutMinutes, budgetUsd, idleMinutes, cpu, memory$/);
+	const jobs = await refusal(withCore("{ jobs: { offlineMinutes: 30 } }"));
+	assert.match(jobs, /: core\.jobs\.offlineMinutes: unknown option; expected one of timeoutMinutes, budgetUsd, idleMinutes, cpu, memory, offlineGraceMinutes$/);
 });
 
 test("a wrong type is refused, naming the path, what was expected and what was given", async () => {
@@ -103,6 +104,7 @@ test("a wrong type is refused, naming the path, what was expected and what was g
 		["{ jobs: { memory: 70 } }", /: core\.jobs\.memory: expected systemd MemoryMax syntax .*, got 70$/],
 		['{ jobs: { memory: "101%" } }', /: core\.jobs\.memory: expected systemd MemoryMax syntax .*, got "101%"$/],
 		['{ jobs: { memory: "lots" } }', /: core\.jobs\.memory: expected systemd MemoryMax syntax .*, got "lots"$/],
+		["{ jobs: { offlineGraceMinutes: -1 } }", /: core\.jobs\.offlineGraceMinutes: expected a number of 0 or more, got -1$/],
 	];
 	for (const [core, expected] of cases) assert.match(await refusal(withCore(core)), expected, core);
 	assert.match(await refusal(configFile('export default "core";\n')), /: default export: expected an object from defineConfig\(\{ \.\.\. \}\), got "core"$/);
@@ -159,7 +161,7 @@ test("every problem is named, one line each, starting with the config file", asy
 	assert.deepEqual(lines, [
 		`${file}: core.home: expected a non-empty string, got 1`,
 		`${file}: core.timeZone: expected a time zone such as Europe/Warsaw, got "Nowhere"`,
-		`${file}: core.jobs.extra: unknown option; expected one of timeoutMinutes, budgetUsd, idleMinutes, cpu, memory`,
+		`${file}: core.jobs.extra: unknown option; expected one of timeoutMinutes, budgetUsd, idleMinutes, cpu, memory, offlineGraceMinutes`,
 		`${file}: core.jobs.budgetUsd: expected a number of 0 or more, got -1`,
 	]);
 });

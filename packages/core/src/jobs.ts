@@ -6,9 +6,10 @@ import type { Bus } from "./events.ts";
 import { addWorktree, branchExists, fileAt, head, removeWorktree, topLevel } from "./git.ts";
 import { checkLimits, type Limits, spawnLimits } from "./job-limits.ts";
 import { continueJob } from "./job-control.ts";
-import { addThere, launchThere, LOCAL, type Machine, machineRegistry, type Ran, reach, removeThere } from "./job-machine.ts";
+import { addThere, LOCAL, type Machine, machineRegistry, type Ran, reach, removeThere } from "./job-machine.ts";
 import { newJob, writeRecord } from "./job-record.ts";
 import { jobUpkeep } from "./job-records.ts";
+import { launchThere, syncMachines } from "./machine-sync.ts";
 import { pluginStep } from "./plugin.ts";
 import { describeRoles, prompt, type Role, type RoleView, roleModel, roleRegistry } from "./roles.ts";
 import { launch, type Slice } from "./job-scope.ts";
@@ -91,8 +92,7 @@ export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run
 	beforeSpawn(owner: string, check: SpawnCheck): void;
 	prepare(owner: string, fn: Prepare): void;
 	registerMachine(owner: string, machine: Machine): void;
-	// `arthur continue`: resumes an ended job with a branch in place (job-control.ts) once the `beforeSpawn` checks pass on its
-	// record, `budgetUsd` replacing its budget; resolves to why its wrapper did not start, as `failed` of a spawn.
+	// `arthur continue`: resumes an ended job with a branch in place (job-control.ts), `budgetUsd` replacing its budget; resolves to why its wrapper did not start.
 	continue(id: string, instruction: string, budgetUsd?: number): Promise<string | undefined>;
 	// What `arthur roles` prints: each role, the files it reads in the project's main checkout, and its model.
 	roles(project?: string): RoleView[];
@@ -104,19 +104,19 @@ type Collect = (name: string, args: readonly unknown[]) => unknown[];
 
 // `folder` is in the repository jobs start from; `limits` are the core's `jobs` options and the jobs' slice, `agent` its
 // `agent.command`; `collect` reads what the plugins provide, e.g. the sections of a prompt (`prompt`).
-export function jobRunner(home: string, folder: string, limits: Limits & Slice & { readonly idleMinutes: number }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
+export function jobRunner(home: string, folder: string, limits: Limits & Slice & { readonly idleMinutes: number; readonly offlineGraceMinutes: number }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
 	const kinds = new Map<string, { readonly owner: string; readonly kind: Kind }>();
 	const roles = roleRegistry();
 	const checks: { readonly owner: string; readonly check: SpawnCheck }[] = [];
 	const prepares: { readonly owner: string; readonly fn: Prepare }[] = [];
-	const machines = machineRegistry(home, bus);
-	const upkeep = jobUpkeep(home, time, bus, (job) => collect("jobs.keep", [job]));
+	const machines = machineRegistry(home);
+	const upkeep = jobUpkeep(home, time, bus, (job) => collect("jobs.keep", [job]), machines.of);
 	const runner: JobRunner = {
 		...upkeep,
 		sweep() {
 			// Dead jobs here, then the copy from every other machine.
 			upkeep.sweep();
-			machines.sync();
+			syncMachines(home, machines.others(), bus, time.now(), limits.offlineGraceMinutes);
 		},
 		registerKind(owner, kind) {
 			if (typeof kind.name !== "string" || !NAME.test(kind.name)) throw new Error(`kind ${JSON.stringify(kind.name)}: expected a name of lowercase letters, digits and dashes`);
@@ -132,7 +132,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 		registerMachine: (owner, machine) => machines.register(owner, machine),
 		run: (machine, argv) => machines.run(machine, argv),
 		roles: (project) => describeRoles(roles, [...kinds.values()].map((entry) => entry.kind), checkout(project).root, collect),
-		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (spawn) => checkSpawn({ ...spawn, tickets: taskTickets(spawn.task) })),
+		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (spawn) => checkSpawn({ ...spawn, tickets: taskTickets(spawn.task) }), machines.of(id)),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
 			const kind = kinds.get(name)?.kind;
@@ -175,7 +175,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 			}
 			const { id, kind: kindName, branch, worktree } = job;
 			bus.emit("core", "job-started", { id, kind: kindName, project, root, branch, worktree, tickets, machine: machine.name });
-			const failed = there === undefined ? await launch(home, job, agent, limits, bus) : launchThere(home, machine, id, agent, limits, bus);
+			const failed = there === undefined ? await launch(home, job, agent, limits, bus) : launchThere(home, machine, id, agent, limits.slice, bus);
 			return { ...job, warnings, failed };
 		},
 	};

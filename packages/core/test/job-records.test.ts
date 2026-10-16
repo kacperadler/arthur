@@ -30,7 +30,7 @@ function setup(agent = fakeAgent({ steps: [{ message: "Done." }] }), keep: (job:
 	const home = join(folder, "home");
 	mkdirSync(home);
 	const time = clock("UTC", undefined, () => NOW);
-	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, ...jobSlice }, agent, time, eventBus(home), (name, [job]) => (name === "jobs.keep" ? [keep(job)] : []));
+	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), (name, [job]) => (name === "jobs.keep" ? [keep(job)] : []));
 	writeFileSync(join(folder, "reviewer.md"), "# Reviewer\n");
 	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(join(folder, "reviewer.md")), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });

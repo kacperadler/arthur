@@ -8,6 +8,8 @@ How it reaches the agent: the steer is written whole into the record as `<home>/
 
 A steer still in `inbox/` when the job ends (the agent made no tool call after it) is moved to `steer/undelivered/`, the log saying `undelivered steer <number>: <first line>`, and `job-ended` names it: its data has `undelivered`, the numbers, when there is one. A later `arthur continue` does not deliver it; give the correction as the instruction instead.
 
+A job on another machine (its record's `machine`; see `arthur spawn --help`) is steered there: over SSH, `arthur remote-job steer` queues the text, given on its stdin, in the record there, and its agent there gets it as above.
+
 Refused (exit code 1, the reason after `arthur steer: `):
 
 - An id with no record in `<home>/jobs/`: `<id>: no such job in <home>/jobs`.
@@ -15,6 +17,7 @@ Refused (exit code 1, the reason after `arthur steer: `):
 - A job not in a run: `<id> is <state> (<reason>), not in a run; a steer reaches only a job in a run, and arthur continue resumes an ended or blocked worker`.
 - A job that ended while the steer was written: `<id>: the job ended before its next tool call; steer <number> was not delivered; arthur continue <id> with it`. The steer is in `steer/undelivered/`.
 - An empty text: `the text is empty`.
+- On another machine, each refusal above comes from there, after `machine <name>: arthur remote-job steer: `. A machine that does not answer: `machine <name>: ssh <ssh>: <ssh's last line>`. A machine no plugin registers now: `<id> runs on machine <name>, which no plugin registers; machines: <names>`.
 - A config or a plugin that does not load: `arthur.config.ts did not load:`, then the reasons.
 
 On a channel a refusal is the reply `/steer failed: <reason>`.

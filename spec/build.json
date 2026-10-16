@@ -63,9 +63,9 @@
   {
     "id": "AR0008",
     "title": "Roadmap 5: Event stream",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0008-roadmap-5-event-stream/ticket.md",
-    "updated": "2026-10-16T10:48:50.863Z",
+    "updated": "2026-10-16T10:49:13.547Z",
     "after": [
       "AR0007"
     ]

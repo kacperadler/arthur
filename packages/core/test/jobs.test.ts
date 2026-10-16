@@ -8,7 +8,7 @@ import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
-import { temporaryFolder } from "../src/testing.ts";
+import { jobSlice, temporaryFolder } from "../src/testing.ts";
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 
@@ -30,7 +30,7 @@ function repository(files: Readonly<Record<string, string>> = { "README.md": "ac
 // A runner whose clock reads 2026-10-16 in Warsaw, 23:30 UTC the evening before.
 function runner(home: string, root: string): JobRunner {
 	const time = clock("Europe/Warsaw", undefined, () => new Date("2026-10-15T23:30:00Z"));
-	return jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2 }, "omp", time, eventBus(home), () => []);
+	return jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, ...jobSlice }, "omp", time, eventBus(home), () => []);
 }
 
 // The files `names` of a record; the wrapper writes the run's files beside them as it goes.

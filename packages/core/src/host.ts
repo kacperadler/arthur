@@ -7,6 +7,7 @@ import { type CommandRegistry, commandRegistry } from "./commands.ts";
 import type { LoadedConfig } from "./config.ts";
 import { resolveEnv, type Shell } from "./env.ts";
 import { type Bus, eventBus } from "./events.ts";
+import { SLICE } from "./job-scope.ts";
 import { type JobRunner, jobRunner } from "./jobs.ts";
 import { type Plugin, pluginHost, registry } from "./plugin.ts";
 
@@ -34,7 +35,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const names = registry();
 	const time = clock(config.core.timeZone, config.core.quietHours);
 	const bus = eventBus(config.core.home);
-	const jobs = jobRunner(config.core.home, dirname(config.path), config.core.jobs, config.core.agent.command, time, bus, names.collect);
+	const jobs = jobRunner(config.core.home, dirname(config.path), { ...config.core.jobs, slice: SLICE }, config.core.agent.command, time, bus, names.collect);
 	for (const plugin of sorted) {
 		const { enabled: _, ...options } = plugin.options ?? {};
 		const folder = join(config.core.home, plugin.name);

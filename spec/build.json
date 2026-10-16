@@ -145,9 +145,9 @@
   {
     "id": "AR0016",
     "title": "Roadmap 13: Job limits: one scope per job in a joint slice",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0016-roadmap-13-job-limits-one-scope-per-job-in-a-joint-slice/ticket.md",
-    "updated": "2026-10-16T13:23:38.664Z",
+    "updated": "2026-10-16T13:48:24.994Z",
     "after": [
       "AR0014"
     ]
@@ -155,9 +155,9 @@
   {
     "id": "AR0017",
     "title": "Roadmap 14: Stop, continue, steer",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0017-roadmap-14-stop-continue-steer/ticket.md",
-    "updated": "2026-10-16T09:46:25.771Z",
+    "updated": "2026-10-16T13:48:47.551Z",
     "after": [
       "AR0014",
       "AR0016"
@@ -218,9 +218,9 @@
   {
     "id": "AR0023",
     "title": "Roadmap 20: Worktree guard and its shell parser",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0023-roadmap-20-worktree-guard-and-its-shell-parser/ticket.md",
-    "updated": "2026-10-16T09:46:27.845Z",
+    "updated": "2026-10-16T14:02:36.271Z",
     "after": [
       "AR0022"
     ]
@@ -452,10 +452,7 @@
     "title": "An agent that ignores SIGTERM runs on past its limit",
     "status": "planned",
     "path": "spec/features/AR0053-an-agent-that-ignores-sigterm-runs-on-past-its-limit/ticket.md",
-    "updated": "2026-10-16T13:23:05.923Z",
-    "after": [
-      "AR0017"
-    ]
+    "updated": "2026-10-16T13:48:41.703Z"
   },
   {
     "id": "AR0054",
@@ -463,5 +460,33 @@
     "status": "merged",
     "path": "spec/features/AR0054-roadmap-entry-23-does-not-say-the-coordinator-loads-the-env-guard/ticket.md",
     "updated": "2026-10-16T13:32:18.455Z"
+  },
+  {
+    "id": "AR0055",
+    "title": "Roadmap: channels hand media to plugins; local voice transcription",
+    "status": "merged",
+    "path": "spec/features/AR0055-roadmap-channels-hand-media-to-plugins-local-voice-transcription/ticket.md",
+    "updated": "2026-10-16T13:53:29.623Z"
+  },
+  {
+    "id": "AR0056",
+    "title": "A `systemd-run` that fails after the slice was set leaves a job that never ends",
+    "status": "in-progress",
+    "path": "spec/features/AR0056-a-systemd-run-that-fails-after-the-slice-was-set-leaves-a-job-that-never-ends/ticket.md",
+    "updated": "2026-10-16T13:56:59.265Z"
+  },
+  {
+    "id": "AR0057",
+    "title": "The vision and the architecture diagrams do not name the voice plugin or the channels' parts",
+    "status": "merged",
+    "path": "spec/features/AR0057-the-vision-and-the-architecture-diagrams-do-not-name-the-voice-plugin-or-the-channels-parts/ticket.md",
+    "updated": "2026-10-16T13:56:07.445Z"
+  },
+  {
+    "id": "AR0058",
+    "title": "The styleguide forbids a plugin to read another plugin's folder, and voice reads the channel's saved file",
+    "status": "merged",
+    "path": "spec/features/AR0058-the-styleguide-forbids-a-plugin-to-read-another-plugin-s-folder-and-voice-reads-the-channel-s-saved-file/ticket.md",
+    "updated": "2026-10-16T13:58:47.598Z"
   }
 ]

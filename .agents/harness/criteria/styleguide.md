@@ -13,7 +13,7 @@
 - Each source file stays at most 200 lines. The core and each plugin get a line budget when the structure test that holds it exists; the number lives in that test only, and a raise is a decision recorded in the ticket.
 - English only: code, comments, docs, messages, prompts, file keys.
 - No secret in code, config or a test fixture: an option ending in `Env` names the variable that holds it, and an error never prints its value.
-- Each plugin keeps its own state in its own folder under `.arthur/`; it does not read or write another plugin's folder.
+- Each plugin keeps its own state in its own folder under `.arthur/`; it does not read or write another plugin's folder. The one exception: a plugin may read a file whose path another plugin handed it in an event or a `collect` answer (a message part's `path`), and only that file. It never lists, reads or writes another plugin's folder otherwise.
 
 ## Simplest solution
 

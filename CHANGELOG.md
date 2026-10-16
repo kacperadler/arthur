@@ -16,6 +16,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0046 Roadmap: arthur doctor checks what Arthur needs at every start (1fa33f6)
 - AR0048 A worker spawned on a ticket still in planning, or merged or dropped, starts anyway (cb93a10)
 - AR0049 `/findings` does not show findings a worker wrote on its branch (cbfd577)
+- AR0055 Roadmap: channels hand media to plugins; local voice transcription (d4e23cc)
 
 ### Fixed
 
@@ -28,11 +29,13 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0042 A project with a branch named `arthur` can spawn no worker (7e8d03d)
 - AR0044 An event a command appends while no daemon runs never reaches the subscribers (f7beab3)
 - AR0054 Roadmap entry 23 does not say the coordinator loads the env guard (71b8c57)
+- AR0058 The styleguide forbids a plugin to read another plugin's folder, and voice reads the channel's saved file (f3a1261)
 
 ### Changed
 
 - AR0029 README still says no feature code exists (e58e20e)
 - AR0050 Roadmap entry 8 still says the events logged before the daemon started are not delivered (321618c)
+- AR0057 The vision and the architecture diagrams do not name the voice plugin or the channels' parts (ab17f2e)
 
 ### Other
 
@@ -50,6 +53,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0013 Roadmap 10: Prompt loader and arthur roles (3582642)
 - AR0014 Roadmap 11: Job runner: the wrapper, and the fake agent (8995340)
 - AR0015 Roadmap 12: Job limits: time and budget (0a053a3)
+- AR0016 Roadmap 13: Job limits: one scope per job in a joint slice (3308105)
 - AR0020 Roadmap 17: Ticket board: tickets and the board file (9819d29)
 - AR0021 Roadmap 18: Ticket board: transitions, after, the digest, and the board's phone commands (e9c57dc)
 - AR0022 Roadmap 19: Env guard (ebc6a89)

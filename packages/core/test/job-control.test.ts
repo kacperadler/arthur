@@ -435,7 +435,7 @@ test("a continue goes through the plugins' beforeSpawn checks on its record: a r
 	await assert.rejects(jobs.continue(job.id, "Go on."), { message: "plugin orchestration: beforeSpawn failed: no process table" });
 	assert.deepEqual(record(home, job.id), before);
 	assert.equal(starts(resumed).length, 0);
-	const spawn = { task: "Ticket: README.md. Go.", kind: "worker", project: "acme", model: "m", thinking: undefined, timeoutMinutes: 120, tickets: ["README.md"] };
+	const spawn = { task: "Ticket: README.md. Go.", kind: "worker", project: "acme", model: "m", thinking: undefined, timeoutMinutes: 120, tickets: ["README.md"], machine: "local" };
 	assert.deepEqual(seen.slice(1), [{ ...spawn, budgetUsd: 3 }, { ...spawn, budgetUsd: 2 }]);
 	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
 	const [, second] = await ended(home, job.id, 2);

@@ -190,16 +190,9 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 
 	// The repository a job of `project` starts from, and the project's name: only the main one until a plugin adds projects.
 	function checkout(project: string | undefined): { readonly root: string; readonly project: string } {
-		const root = repository(folder);
+		const root = topLevel(folder);
+		if (root === undefined) throw new Error(`${folder} is not in a Git repository; a job starts from its HEAD`);
 		if (project !== undefined && project !== basename(root)) throw new Error(`unknown project ${project}; the only project is ${basename(root)}`);
 		return { root, project: basename(root) };
-	}
-}
-
-function repository(folder: string): string {
-	try {
-		return topLevel(folder);
-	} catch {
-		throw new Error(`${folder} is not in a Git repository; a job starts from its HEAD`);
 	}
 }

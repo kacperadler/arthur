@@ -19,6 +19,8 @@ const commit = (root: string, message: string) => git(root, "-c", "user.name=tes
 // names in `machine` beside it, with `<machine>/bin` first on PATH, as ssh runs a command in a login's home; a file `refuse`
 // there makes it fail as ssh does when the server refuses the key.
 const bin = temporaryFolder();
+// The machine's PATH has no `arthur` but the one in its own bin: not the one `npm test` puts on this PATH.
+const machinePath = (process.env.PATH ?? "").split(delimiter).filter((folder) => !folder.includes("node_modules")).join(delimiter);
 const sshLog = join(bin, "ssh.log");
 writeFileSync(
 	join(bin, "ssh"),
@@ -28,7 +30,7 @@ machine=$(cat '${join(bin, "machine")}')
 while [ $# -gt 0 ]; do case "$1" in -o|-p|-l) shift 2;; -*) shift;; *) break;; esac; done
 host=$1; shift
 if [ -e "$machine/refuse" ]; then echo "kacper@$host: Permission denied (publickey)." >&2; exit 255; fi
-cd "$machine" && PATH="$machine/bin:$PATH" exec sh -c "$*"
+cd "$machine" && PATH="$machine/bin:${machinePath}" exec sh -c "$*"
 `,
 	{ mode: 0o755 },
 );

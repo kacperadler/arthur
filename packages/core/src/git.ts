@@ -15,9 +15,9 @@ function yes(root: string, args: readonly string[]): boolean {
 	return spawnSync("git", ["-C", root, ...args], { stdio: "ignore" }).status === 0;
 }
 
-// The top folder of the repository `folder` is in.
-export function topLevel(folder: string): string {
-	return git(folder, ["rev-parse", "--show-toplevel"]);
+// The top folder of the repository `folder` is in; undefined outside Git.
+export function topLevel(folder: string): string | undefined {
+	return yes(folder, ["rev-parse", "--show-toplevel"]) ? git(folder, ["rev-parse", "--show-toplevel"]) : undefined;
 }
 
 // The commit HEAD names; undefined in a repository with no commit yet.

@@ -670,9 +670,9 @@
   {
     "id": "AR0079",
     "title": "Core line budget 5080 for entries 1 to 22, with the allotment per entry",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0079-core-line-budget-5080-for-entries-1-to-22-with-the-allotment-per-entry/ticket.md",
-    "updated": "2026-10-16T16:13:30.496Z",
+    "updated": "2026-10-16T17:18:45.954Z",
     "after": [
       "AR0076"
     ]

@@ -82,16 +82,17 @@ test("a handler that throws or rejects does not stop the others and is logged wi
 
 test("two processes appending at once never interleave a line nor repeat a sequence number", async () => {
 	const home = temporaryFolder();
-	const events = JSON.stringify(import.meta.resolve("../src/event-log.ts"));
+	const events = JSON.stringify(import.meta.resolve("../src/events.ts"));
 	const count = 300;
 	// Both start at one moment and write lines of 6 to 7 KB, more than one atomic pipe write. The child imports the core by
 	// its path, given at run time.
 	const startAt = Date.now() + 1000;
 	const writer = (plugin: string) => {
 		const { promise, resolve } = Promise.withResolvers<number | null>();
-		const code = `const { appendEvent } = await import(${events});
+		const code = `const { eventBus } = await import(${events});
+			const bus = eventBus(${JSON.stringify(home)});
 			while (Date.now() < ${startAt});
-			for (let i = 0; i < ${count}; i++) appendEvent(${JSON.stringify(home)}, "${plugin}", "tick", { i, pad: "${plugin}".repeat(1000) });`;
+			for (let i = 0; i < ${count}; i++) bus.emit("${plugin}", "tick", { i, pad: "${plugin}".repeat(1000) });`;
 		spawn(process.execPath, ["--input-type=module", "-e", code], { stdio: "inherit" }).on("exit", resolve);
 		return promise;
 	};

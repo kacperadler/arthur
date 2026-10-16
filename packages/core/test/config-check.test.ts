@@ -71,6 +71,10 @@ test("every refusal of the host before setup fails the check, next to the env li
 		lines: ["plugins: orchestration is required and missing; add orchestration({ ... })", "no enabled plugin names an env variable"],
 		ok: false,
 	});
+	assert.deepEqual(await check(`[1, ${ORCHESTRATION}, { name: "telegram", options: { tokenEnv: "ARTHUR_TELEGRAM_TOKEN" } }]`), {
+		lines: ["plugins[0]: expected a plugin such as youtrack({ ... }), got 1", "plugins[2]: telegram: expected a setup function, got nothing", "no enabled plugin names an env variable"],
+		ok: false,
+	});
 	assert.deepEqual(await check(`[${ORCHESTRATION}, { name: "telegram", setup() {} }, { name: "telegram", setup() {} }]`), {
 		lines: ["plugins[2]: a second plugin named telegram; the first is plugins[1]", "ARTHUR_TELEGRAM_ is the prefix of both plugin telegram and plugin telegram"],
 		ok: false,
@@ -94,7 +98,7 @@ test("every refusal of the host before setup fails the check, next to the env li
 });
 
 test("a known secret never appears in an error, a warning or the check's output", async () => {
-	const plugins = `[{ name: "youtrack", options: {
+	const plugins = `[{ name: "youtrack", setup() {}, options: {
 		urlEnv: "ARTHUR_YOUTRACK_URL", tokenEnv: "ARTHUR_YOUTRACK_TOKEN", otherEnv: "ARTHUR_YOUTRACK_OTHER", pastedEnv: "${SECRET}",
 	} }]`;
 	const envText = `ARTHUR_YOUTRACK_URL=${SECRET}\nARTHUR_YOUTRACK_URL="${SECRET}"\n${SECRET}\nARTHUR_YOUTRACK_OTHER='${SECRET}\nBAD-${SECRET}=x\n`;
@@ -142,6 +146,7 @@ test("the arthur binary's config check prints a refusal of a plugin's setup and 
 		`plugin orchestration: setup failed: command config: registered by core and by orchestration; a command belongs to one plugin\n${none}`,
 	]);
 	assert.deepEqual(check(`[${ORCHESTRATION}, { name: "telegram", setup() { throw new Error("no bot token") } }]`), [1, `plugin telegram: setup failed: no bot token\n${none}`]);
+	assert.deepEqual(check(`[1, ${ORCHESTRATION}]`), [1, `plugins[0]: expected a plugin such as youtrack({ ... }), got 1\n${none}`]);
 	assert.deepEqual(check(`[{ name: "telegram", setup() { throw new Error("setup ran") } }]`), [1, `plugins: orchestration is required and missing; add orchestration({ ... })\n${none}`]);
 	assert.deepEqual(check(`[${ORCHESTRATION}]`), [0, none]);
 });

@@ -122,7 +122,7 @@ function knownZone(name: string): boolean {
 	}
 }
 
-function describe(value: unknown): string {
+export function describe(value: unknown): string {
 	if (value === undefined) return "nothing";
 	if (value === null) return "null";
 	if (Array.isArray(value)) return "a list";

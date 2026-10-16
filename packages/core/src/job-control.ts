@@ -19,23 +19,29 @@ export const ID = /^\d{4}-\d\d-\d\d-[a-z][a-z0-9]*(-[a-z0-9]+)*-[0-9a-f]{8}$/;
 // How long `arthur stop` waits for the wrapper to write the end: the grace, the SIGKILL, the scope.
 const STOP_WAIT_SECONDS = GRACE_SECONDS + 10;
 
-// The job's record folder and a reader of its files, undefined for a missing one; refused for an id that names no job.
-function record(home: string, id: string): { readonly folder: string; readonly field: (name: string) => string | undefined } {
+// A reader of one record's files; a missing one reads empty.
+export const field = (home: string, id: string) => (name: string): string => {
+	const path = join(home, "jobs", id, name);
+	return existsSync(path) ? readFileSync(path, "utf8") : "";
+};
+
+// The job's record folder and a reader of its files; refused for an id that names no job.
+function record(home: string, id: string): { readonly folder: string; readonly field: (name: string) => string } {
 	const folder = join(home, "jobs", id);
 	if (!ID.test(id) || !existsSync(join(folder, "kind"))) throw new Error(`${id}: no such job in ${join(home, "jobs")}`);
-	return { folder, field: (name) => (existsSync(join(folder, name)) ? readFileSync(join(folder, name), "utf8") : undefined) };
+	return { folder, field: field(home, id) };
 }
 
 // Whether `pid` is still the wrapper of job `id`, not a process that took its pid after it ended.
-function wrapperRuns(pid: string | undefined, id: string): boolean {
-	return processTable().some((entry) => String(entry.pid) === pid && entry.args.includes("wrapper.ts") && entry.args.includes(id));
+export function wrapperRuns(pid: string, id: string, table = processTable()): boolean {
+	return table.some((entry) => String(entry.pid) === pid && entry.args.includes("wrapper.ts") && entry.args.includes(id));
 }
 
 // Returns the line `arthur stop` prints once the job's state is final.
 export async function stopJob(home: string, id: string): Promise<string> {
 	const { field } = record(home, id);
 	const state = field("state");
-	if (state !== "running") throw new Error(`${id} is ${state ?? "not started yet"}, not running; nothing to stop`);
+	if (state !== "running") throw new Error(`${id} is ${state || "not started yet"}, not running; nothing to stop`);
 	const pid = field("pid");
 	if (!wrapperRuns(pid, id)) throw new Error(`${id}: its wrapper ${pid} is gone though its state says running; nothing to stop`);
 	process.kill(Number(pid), "SIGTERM");
@@ -50,9 +56,9 @@ export function steerJob(home: string, id: string, text: string): string {
 	const { folder, field } = record(home, id);
 	if (text.trim() === "") throw new Error("the text is empty");
 	const state = field("state");
-	if (state !== "running") throw new Error(`${id} is ${state ?? "not started yet"}, not running; a steer reaches only a running job, and arthur continue resumes an ended worker`);
+	if (state !== "running") throw new Error(`${id} is ${state || "not started yet"}, not running; a steer reaches only a running job, and arthur continue resumes an ended worker`);
 	try {
-		return queueSteer(join(folder, "steer"), field("pid") ?? "", text.trim());
+		return queueSteer(join(folder, "steer"), field("pid"), text.trim());
 	} catch (error) {
 		throw new Error(`${id}: ${error instanceof Error ? error.message : String(error)}; arthur continue ${id} with it`);
 	}

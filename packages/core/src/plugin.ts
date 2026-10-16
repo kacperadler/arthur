@@ -1,6 +1,7 @@
 import { type Board, board } from "./board.ts";
 import type { Clock } from "./clock.ts";
 import type { CommandRegistry, Commands } from "./commands.ts";
+import { describe } from "./config.ts";
 import type { Bus, Events } from "./events.ts";
 import type { JobRunner, Jobs } from "./jobs.ts";
 
@@ -59,6 +60,33 @@ export type Registry = {
 };
 
 type Call = (...args: readonly unknown[]) => unknown;
+
+const PLUGIN_NAME = /^[a-z]+(-[a-z]+)*$/;
+
+// One entry of the config's plugin list as a `Plugin`, else why it is not one.
+export function asPlugin(entry: unknown): Plugin | string {
+	if (typeof entry !== "object" || entry === null || Array.isArray(entry)) return `expected a plugin such as youtrack({ ... }), got ${describe(entry)}`;
+	const plugin = entry as Readonly<Record<string, unknown>>;
+	const { name, options, requires } = plugin;
+	if (typeof name !== "string" || !PLUGIN_NAME.test(name)) return `expected a plugin name of lowercase letters and dashes, got ${describe(name)}`;
+	if (options !== undefined && (typeof options !== "object" || options === null || Array.isArray(options)))
+		return `${name}: expected options as an object, got ${describe(options)}`;
+	if (requires !== undefined && !(Array.isArray(requires) && requires.every((item) => typeof item === "string")))
+		return `${name}: expected requires as a list of plugin names, got ${describe(requires)}`;
+	if (typeof plugin.setup !== "function") return `${name}: expected a setup function, got ${describe(plugin.setup)}`;
+	for (const key of ["check", "start", "stop"])
+		if (plugin[key] !== undefined && typeof plugin[key] !== "function") return `${name}: expected ${key} as a function, got ${describe(plugin[key])}`;
+	return entry as Plugin;
+}
+
+// A plugin's own step that throws (its `check`, `setup`, `beforeSpawn` or `prepare`), named by the plugin, the error as its cause.
+export async function pluginStep<T>(plugin: string, step: string, run: () => T | Promise<T>): Promise<T> {
+	try {
+		return await run();
+	} catch (error) {
+		throw new Error(`plugin ${plugin}: ${step} failed: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+	}
+}
 
 // The names provided by the plugins of one load; `plugin` is who provides or who calls, for the refusals.
 export function registry(): Registry {

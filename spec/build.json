@@ -93,9 +93,9 @@
   {
     "id": "AR0011",
     "title": "Roadmap 8: arthur run: Arthur as a process",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0011-roadmap-8-arthur-run-arthur-as-a-process/ticket.md",
-    "updated": "2026-10-16T10:57:49.880Z",
+    "updated": "2026-10-16T11:08:01.681Z",
     "after": [
       "AR0007",
       "AR0008"
@@ -331,9 +331,9 @@
   {
     "id": "AR0036",
     "title": "The lock's dead-holder takeover race has no test",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0036-the-lock-s-dead-holder-takeover-race-has-no-test/ticket.md",
-    "updated": "2026-10-16T10:54:15.628Z"
+    "updated": "2026-10-16T11:04:05.330Z"
   },
   {
     "id": "AR0037",
@@ -341,5 +341,12 @@
     "status": "dropped",
     "path": "spec/features/AR0037-ar0003-names-arthur-merge-as-roadmap-entry-53-it-is-entry-54/ticket.md",
     "updated": "2026-10-16T11:01:43.621Z"
+  },
+  {
+    "id": "AR0038",
+    "title": "Roadmap: Later entries for the web panel, a knowledge base and a company edition",
+    "status": "planned",
+    "path": "spec/features/AR0038-roadmap-later-entries-for-the-web-panel-a-knowledge-base-and-a-company-edition/ticket.md",
+    "updated": "2026-10-16T11:08:47.061Z"
   }
 ]

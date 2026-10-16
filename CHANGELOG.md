@@ -41,5 +41,6 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0010 Roadmap 7: Clock: time zone and quiet hours (db203fd)
 - AR0011 Roadmap 8: arthur run: Arthur as a process (dd9cacd)
 - AR0012 Roadmap 9: Job runner: spawn and the job record (30a43af)
+- AR0013 Roadmap 10: Prompt loader and arthur roles (3582642)
 - AR0020 Roadmap 17: Ticket board: tickets and the board file (9819d29)
 - AR0034 Roadmap: disk space and Docker cleanup with each worktree (af0e47f)

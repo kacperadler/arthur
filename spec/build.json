@@ -115,9 +115,9 @@
   {
     "id": "AR0013",
     "title": "Roadmap 10: Prompt loader and arthur roles",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0013-roadmap-10-prompt-loader-and-arthur-roles/ticket.md",
-    "updated": "2026-10-16T12:07:17.085Z",
+    "updated": "2026-10-16T12:07:30.580Z",
     "after": [
       "AR0012"
     ]

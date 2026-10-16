@@ -499,9 +499,9 @@
   {
     "id": "AR0060",
     "title": "The fake host does not refuse a worker whose ticket cannot move to in-progress",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0060-the-fake-host-does-not-refuse-a-worker-whose-ticket-cannot-move-to-in-progress/ticket.md",
-    "updated": "2026-10-16T14:16:35.043Z"
+    "updated": "2026-10-16T14:20:17.302Z"
   },
   {
     "id": "AR0061",

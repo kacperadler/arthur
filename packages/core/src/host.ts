@@ -1,17 +1,19 @@
 import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { clock } from "./clock.ts";
 import { type CommandRegistry, commandRegistry } from "./commands.ts";
 import type { LoadedConfig } from "./config.ts";
 import { resolveEnv, type Shell } from "./env.ts";
 import { eventBus } from "./events.ts";
+import { type JobRunner, jobRunner } from "./jobs.ts";
 import { type Plugin, pluginHost, registry } from "./plugin.ts";
 
 // The plugin host (spec/roadmap.md, entry 4): checks the config's plugin list, resolves the enabled plugins' env variables,
 // gives each its folder and runs `setup` in dependency order. Every refusal names the plugins involved.
 
-// The enabled plugins in setup order, which is the order `start` follows (and `stop` reverses); `warnings` come from the env file.
-export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[] };
+// The enabled plugins in setup order, which is the order `start` follows (and `stop` reverses); `warnings` come from the env file;
+// `jobs` spawns with the kinds, checks and steps the plugins registered.
+export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner };
 
 const PLUGIN_NAME = /^[a-z]+(-[a-z]+)*$/;
 const REQUIRED = "orchestration";
@@ -57,14 +59,15 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const names = registry();
 	const time = clock(config.core.timeZone, config.core.quietHours);
 	const bus = eventBus(config.core.home);
+	const jobs = jobRunner(config.core.home, dirname(config.path), config.core.jobs, time, bus);
 	for (const plugin of sorted) {
 		const { enabled: _, ...options } = plugin.options ?? {};
 		const folder = join(config.core.home, plugin.name);
 		mkdirSync(folder, { recursive: true });
-		const host = pluginHost(names, commands, bus, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time });
+		const host = pluginHost(names, commands, bus, jobs, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time });
 		await guard(plugin, "setup", () => plugin.setup(host));
 	}
-	return { plugins: sorted, warnings };
+	return { plugins: sorted, warnings, jobs };
 }
 
 // Required plugins first, otherwise the config's order; a cycle comes back as its path, e.g. `a -> b -> a`.

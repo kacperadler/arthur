@@ -2,7 +2,7 @@
 
 Arthur is one process, `arthur run`, in the folder that holds `arthur.config.ts`. A systemd user service keeps it running: it starts it at boot and again whenever it ends. Commands are for Ubuntu or Debian; run them as the user who will own Arthur, not as root.
 
-Arthur is in development. Of what this page sets up, `arthur run` and `arthur config check` exist today; the plugins and the job runner come in the order of [`spec/roadmap.md`](../spec/roadmap.md). A line that names a roadmap entry describes what that entry builds.
+Arthur is in development. Of what this page sets up, `arthur run` and `arthur config check` exist today, and `arthur spawn` makes a job's worktree and record without starting its agent; the plugins and the rest of the job runner come in the order of [`spec/roadmap.md`](../spec/roadmap.md). A line that names a roadmap entry describes what that entry builds.
 
 ## 1. Install Node, git, tmux and OMP
 
@@ -30,7 +30,7 @@ export PATH="$HOME/arthur/node_modules/.bin:$PATH"
 cp arthur.config.example.ts arthur.config.ts
 ```
 
-Edit `arthur.config.ts`: keep the plugins you want (`orchestration` is required) and remove the rest. It stays in `~/arthur`, so its `@arthur/*` imports resolve from the clone's `node_modules`. Its `core.home` (default `.arthur/` beside it) holds Arthur's state: the event log, each plugin's folder, the job records, and `run.pid`.
+Edit `arthur.config.ts`: keep the plugins you want (`orchestration` is required) and remove the rest. It stays in `~/arthur`, so its `@arthur/*` imports resolve from the clone's `node_modules`. Its `core.home` (default `.arthur/` beside it) holds Arthur's state: the event log, each plugin's folder, the job records, and `run.pid`. Job worktrees go to `.arthur-worktrees/` beside the repository they start from, here `~/.arthur-worktrees/`.
 
 ## 3. `.env`
 

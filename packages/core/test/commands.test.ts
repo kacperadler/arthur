@@ -87,6 +87,29 @@ test("a name that is not lowercase letters, digits and dashes is refused", () =>
 	assert.deepEqual(commands.names(), ["retro2", "review-needed"]);
 });
 
+test("a phone command Telegram's menu cannot list is refused: a dash, over 32 characters, an about empty or over 256", async () => {
+	const commands = commandRegistry();
+	const about = (text: string): Command["phone"] => ({ about: text, reply: () => "ok" });
+	const long = `a${"b".repeat(31)}`;
+	assert.throws(() => commands.register("core", command("review-needed", about("tickets to review"))), {
+		message: "command review-needed: a phone command's name has no dash and at most 32 characters, as a channel's menu needs",
+	});
+	assert.throws(() => commands.register("core", command(`${long}c`, about("too long a name"))), { message: /command a(b{31})c: a phone command's name has no dash/ });
+	for (const [text, got] of [["", "0"], ["   ", "3"], ["x".repeat(257), "257"], [undefined, "none"]] as const)
+		assert.throws(() => commands.register("core", command("jobs", about(text as string))), {
+			message: `command jobs: a phone command's about has 1 to 256 characters, not only spaces; got ${got}`,
+		});
+	assert.equal(
+		await refusal([plugin("orchestration", (host) => host.commands.register(command("retro-due", about("the retro"))))]),
+		"plugin orchestration: setup failed: command retro-due: a phone command's name has no dash and at most 32 characters, as a channel's menu needs",
+	);
+	commands.register("core", command("review-needed"));
+	commands.register("core", command(long, about("x")));
+	commands.register("core", command("jobs", about("y".repeat(256))));
+	assert.deepEqual(commands.names(), [long, "jobs", "review-needed"]);
+	assert.deepEqual(commands.phone().map((entry) => entry.name), [long, "jobs"]);
+});
+
 test("route gives a phone command the text after its name, trimmed, and empty when there is none", async () => {
 	const commands = commandRegistry();
 	const texts: string[] = [];

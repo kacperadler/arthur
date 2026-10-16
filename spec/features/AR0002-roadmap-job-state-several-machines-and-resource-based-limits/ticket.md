@@ -42,3 +42,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: The owner asked for job state, several machines over SSH/Tailscale with work placed by OS, and a resources plugin leading to resource-based concurrency.
+- 2026-10-16: Coordinator on F1 (macOS-only checks at merge): `arthur merge` runs a project's checks on a machine that has the project's required labels, not only on local; with no such machine online, the merge waits and says so. CI stays a second signal. Goes into roadmap entry 53 when the tickets are cut.

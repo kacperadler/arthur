@@ -9,9 +9,9 @@
   {
     "id": "AR0002",
     "title": "Roadmap: job state, several machines, and resource-based limits",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0002-roadmap-job-state-several-machines-and-resource-based-limits/ticket.md",
-    "updated": "2026-10-16T09:25:37.434Z",
+    "updated": "2026-10-16T09:38:15.554Z",
     "after": [
       "AR0001"
     ]

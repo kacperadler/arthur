@@ -63,9 +63,9 @@
   {
     "id": "AR0008",
     "title": "Roadmap 5: Event stream",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0008-roadmap-5-event-stream/ticket.md",
-    "updated": "2026-10-16T09:46:22.708Z",
+    "updated": "2026-10-16T10:53:31.266Z",
     "after": [
       "AR0007"
     ]
@@ -73,9 +73,9 @@
   {
     "id": "AR0009",
     "title": "Roadmap 6: Command registry and the arthur CLI",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0009-roadmap-6-command-registry-and-the-arthur-cli/ticket.md",
-    "updated": "2026-10-16T09:46:23.046Z",
+    "updated": "2026-10-16T10:45:41.714Z",
     "after": [
       "AR0007"
     ]
@@ -83,9 +83,9 @@
   {
     "id": "AR0010",
     "title": "Roadmap 7: Clock: time zone and quiet hours",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0010-roadmap-7-clock-time-zone-and-quiet-hours/ticket.md",
-    "updated": "2026-10-16T09:46:23.382Z",
+    "updated": "2026-10-16T10:48:56.376Z",
     "after": [
       "AR0007"
     ]
@@ -189,10 +189,9 @@
     "title": "Roadmap 17: Ticket board: tickets and the board file",
     "status": "planned",
     "path": "spec/features/AR0020-roadmap-17-ticket-board-tickets-and-the-board-file/ticket.md",
-    "updated": "2026-10-16T09:46:26.811Z",
+    "updated": "2026-10-16T10:53:49.410Z",
     "after": [
-      "AR0008",
-      "AR0009"
+      "AR0036"
     ]
   },
   {
@@ -294,5 +293,46 @@
     "after": [
       "AR0011"
     ]
+  },
+  {
+    "id": "AR0032",
+    "title": "A phone command name with a dash cannot go into Telegram's command menu",
+    "status": "planned",
+    "path": "spec/features/AR0032-a-phone-command-name-with-a-dash-cannot-go-into-telegram-s-command-menu/ticket.md",
+    "updated": "2026-10-16T10:45:57.775Z",
+    "after": [
+      "AR0012"
+    ]
+  },
+  {
+    "id": "AR0033",
+    "title": "An unknown `--project` name reaches the command unchecked",
+    "status": "planned",
+    "path": "spec/features/AR0033-an-unknown-project-name-reaches-the-command-unchecked/ticket.md",
+    "updated": "2026-10-16T10:45:57.569Z"
+  },
+  {
+    "id": "AR0034",
+    "title": "Roadmap: disk space and Docker cleanup with each worktree",
+    "status": "in-progress",
+    "path": "spec/features/AR0034-roadmap-disk-space-and-docker-cleanup-with-each-worktree/ticket.md",
+    "updated": "2026-10-16T10:49:38.335Z"
+  },
+  {
+    "id": "AR0035",
+    "title": "An event a command emits reaches the log but not the daemon's subscribers",
+    "status": "planned",
+    "path": "spec/features/AR0035-an-event-a-command-emits-reaches-the-log-but-not-the-daemon-s-subscribers/ticket.md",
+    "updated": "2026-10-16T10:53:49.207Z",
+    "after": [
+      "AR0011"
+    ]
+  },
+  {
+    "id": "AR0036",
+    "title": "The lock's dead-holder takeover race has no test",
+    "status": "planning",
+    "path": "spec/features/AR0036-the-lock-s-dead-holder-takeover-race-has-no-test/ticket.md",
+    "updated": "2026-10-16T10:53:31.265Z"
   }
 ]

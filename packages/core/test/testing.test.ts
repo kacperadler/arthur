@@ -70,6 +70,24 @@ test("the fake host's clock stands still, UTC at 2026-01-01T00:00:00Z unless giv
 	assert.equal(plain.host.clock.now().toISOString(), "2026-01-01T00:00:00.000Z", "each fake host has its own clock");
 });
 
+test("the fake host delivers the test's events to the plugin and lists what the plugin emitted, nested ones in their order", () => {
+	const fake = fakeHost({ name: "delivery" });
+	fake.host.events.on("review-ended", (event) => {
+		fake.host.events.emit("ticket-moved", { id: event.data, to: "done" });
+		fake.host.events.emit("merge-due", { id: event.data });
+	});
+	fake.host.events.on("ticket-moved", (event) => void fake.host.events.emit("changelog-due", event.seq));
+	assert.equal(fake.emit("review-ended", "AR1").plugin, "test");
+	assert.deepEqual(
+		fake.emitted.map(({ seq, plugin, name, data }) => ({ seq, plugin, name, data })),
+		[
+			{ seq: 2, plugin: "delivery", name: "ticket-moved", data: { id: "AR1", to: "done" } },
+			{ seq: 3, plugin: "delivery", name: "merge-due", data: { id: "AR1" } },
+			{ seq: 4, plugin: "delivery", name: "changelog-due", data: 2 },
+		],
+	);
+});
+
 // A child process loads the kit with live-looking variables, prints what it sees, and exits as the script says.
 function child(script: string): { readonly seen: { arthur: string[]; tmux: string | null; folder: string }; readonly status: number | null } {
 	const kit = import.meta.resolve("@arthur/core/testing");

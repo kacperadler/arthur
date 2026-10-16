@@ -25,3 +25,5 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0005 Roadmap 2: Config: defineConfig and the core's options (dd698ee)
 - AR0006 Roadmap 3: Config: env names, .env, and arthur config check (dfa9ef5)
 - AR0007 Roadmap 4: Plugin host, and the fake host (287f0c7)
+- AR0008 Roadmap 5: Event stream (7c8a5ce)
+- AR0009 Roadmap 6: Command registry and the arthur CLI (3e5fc73)

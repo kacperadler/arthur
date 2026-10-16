@@ -14,6 +14,7 @@ What it makes:
 - `node_modules` of the main checkout is copied into the worktree when the main checkout's `package-lock.json` is the job's byte for byte (a copy-on-write clone where the filesystem has one; links are kept as they are). A different or missing lockfile: no copy.
 - The job record `<home>/jobs/<id>/`, one file per key: `task`, `kind`, `model`, `thinking`, `timeout` (minutes), `budget` (USD), `branch`, `root` (the repository), `worktree`, `project`. An empty `branch`, `model` or `thinking` means none. Timeout and budget are the kind's own, else `core.jobs.timeoutMinutes` and `core.jobs.budgetUsd`. The record appears whole: it is written under `.<id>` and renamed.
 - Then each plugin's `prepare` step runs in the worktree (a hook to install, a file to place), and the event `job-started` is emitted with the job's `id`, `kind`, `project`, `root`, `branch`, `worktree` and `tickets` (the `Ticket:` files of the task).
+- A worker's `job-started` moves each ticket its `Ticket:` files lie in (`spec/features/<id>-<slug>/...`) to `in-progress` on the board (see `arthur ticket --help`). A move the board refuses (a ticket still in `planning`, a merged or dropped one, one not on the board, no project list) does not stop the job: it is printed as `plugin core: handler of job-started (event <n>) failed: <reasons>`. Other kinds move no ticket.
 
 Refused, before any worktree or record exists (exit code 1, the reason after `arthur spawn: `):
 

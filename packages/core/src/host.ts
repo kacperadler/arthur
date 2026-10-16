@@ -14,11 +14,13 @@ import { type Plugin, pluginHost, registry } from "./plugin.ts";
 
 // The enabled plugins in setup order, which is the order `start` follows (and `stop` reverses); `warnings` come from the env file;
 // `jobs` spawns with the kinds, checks and steps the plugins registered; `board` is the core's own, for `arthur ticket`: it
-// reads the plugins' project list and names its events `core`.
+// reads the plugins' project list, names its events `core`, and follows the jobs: a worker's `job-started` moves each ticket its
+// task names (`spec/features/<id>-<slug>/...`) to in-progress (spec/roadmap.md, entry 18); a move the board refuses is logged.
 export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board };
 
 const PLUGIN_NAME = /^[a-z]+(-[a-z]+)*$/;
 const REQUIRED = "orchestration";
+const FEATURE = /(?:^|\/)spec\/features\/([A-Z]+\d{4,})-[^/]*\//;
 
 // `commands` holds what the core registered before; the plugins' commands join it, and a name registered twice refuses the load.
 export async function loadPlugins(config: LoadedConfig, shell: Shell = process.env, commands: CommandRegistry = commandRegistry()): Promise<LoadedPlugins> {
@@ -35,7 +37,22 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		const host = pluginHost(names, commands, bus, jobs, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time });
 		await guard(plugin, "setup", () => plugin.setup(host));
 	}
-	return { plugins: sorted, warnings, jobs, board: board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data)) };
+	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));
+	bus.on("core", "job-started", ({ data }) => {
+		const { kind, tickets } = data as { readonly kind: string; readonly tickets: readonly string[] };
+		if (kind !== "worker") return;
+		const refused = tickets.flatMap((path) => {
+			const id = FEATURE.exec(path)?.[1];
+			try {
+				if (id !== undefined) core.move(id, "in-progress");
+				return [];
+			} catch (error) {
+				return [(error as Error).message];
+			}
+		});
+		if (refused.length > 0) throw new Error(refused.join("; "));
+	});
+	return { plugins: sorted, warnings, jobs, board: core };
 }
 
 // The host's refusals before any `setup`, which `arthur config check` runs too: the plugin list, `orchestration`, `requires`,

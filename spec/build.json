@@ -178,11 +178,9 @@
     "title": "Roadmap 16: Job state: working, idle, blocked, ended",
     "status": "planned",
     "path": "spec/features/AR0019-roadmap-16-job-state-working-idle-blocked-ended/ticket.md",
-    "updated": "2026-10-16T15:14:24.760Z",
+    "updated": "2026-10-16T15:40:46.766Z",
     "after": [
-      "AR0069",
-      "AR0017",
-      "AR0018"
+      "AR0079"
     ]
   },
   {
@@ -569,9 +567,9 @@
   {
     "id": "AR0069",
     "title": "Core line review: what moves to a plugin or goes",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0069-core-line-review-what-moves-to-a-plugin-or-goes/ticket.md",
-    "updated": "2026-10-16T15:39:35.821Z",
+    "updated": "2026-10-16T15:40:14.584Z",
     "after": [
       "AR0018"
     ]
@@ -581,9 +579,9 @@
     "title": "An `arthur continue` killed before its wrapper starts leaves `continuing`, and the job is never continued again",
     "status": "planned",
     "path": "spec/features/AR0070-an-arthur-continue-killed-before-its-wrapper-starts-leaves-continuing-and-the-job-is-never-continued-again/ticket.md",
-    "updated": "2026-10-16T15:29:05.888Z",
+    "updated": "2026-10-16T15:40:46.970Z",
     "after": [
-      "AR0068"
+      "AR0073"
     ]
   },
   {
@@ -595,5 +593,93 @@
     "after": [
       "AR0070"
     ]
+  },
+  {
+    "id": "AR0072",
+    "title": "`arthur config check` prints one bad plugin entry twice",
+    "status": "dropped",
+    "path": "spec/features/AR0072-arthur-config-check-prints-one-bad-plugin-entry-twice/ticket.md",
+    "updated": "2026-10-16T15:40:45.093Z"
+  },
+  {
+    "id": "AR0073",
+    "title": "Core: one plugin-entry check, one describe, one step guard, one record reader",
+    "status": "planned",
+    "path": "spec/features/AR0073-core-one-plugin-entry-check-one-describe-one-step-guard-one-record-reader/ticket.md",
+    "updated": "2026-10-16T15:40:45.353Z",
+    "after": [
+      "AR0068"
+    ]
+  },
+  {
+    "id": "AR0074",
+    "title": "Core: one flag parser for the CLI, spawn and continue",
+    "status": "planned",
+    "path": "spec/features/AR0074-core-one-flag-parser-for-the-cli-spawn-and-continue/ticket.md",
+    "updated": "2026-10-16T15:40:45.553Z",
+    "after": [
+      "AR0073"
+    ]
+  },
+  {
+    "id": "AR0075",
+    "title": "`arthur ticket all` goes; `arthur board all` is the full board",
+    "status": "planned",
+    "path": "spec/features/AR0075-arthur-ticket-all-goes-arthur-board-all-is-the-full-board/ticket.md",
+    "updated": "2026-10-16T15:40:45.958Z",
+    "after": [
+      "AR0073"
+    ]
+  },
+  {
+    "id": "AR0076",
+    "title": "Core comments that repeat the command docs become pointers",
+    "status": "planned",
+    "path": "spec/features/AR0076-core-comments-that-repeat-the-command-docs-become-pointers/ticket.md",
+    "updated": "2026-10-16T15:40:45.756Z",
+    "after": [
+      "AR0074"
+    ]
+  },
+  {
+    "id": "AR0077",
+    "title": "The node_modules copy moves to a prepare hook of the projects plugin",
+    "status": "planned",
+    "path": "spec/features/AR0077-the-node-modules-copy-moves-to-a-prepare-hook-of-the-projects-plugin/ticket.md",
+    "updated": "2026-10-16T15:40:46.158Z",
+    "after": [
+      "AR0073"
+    ]
+  },
+  {
+    "id": "AR0078",
+    "title": "The checks record file moves out of the wrapper into a delivery extension",
+    "status": "planned",
+    "path": "spec/features/AR0078-the-checks-record-file-moves-out-of-the-wrapper-into-a-delivery-extension/ticket.md",
+    "updated": "2026-10-16T15:40:46.360Z",
+    "after": [
+      "AR0073"
+    ]
+  },
+  {
+    "id": "AR0079",
+    "title": "Core line budget 5080 for entries 1 to 22, with the allotment per entry",
+    "status": "planned",
+    "path": "spec/features/AR0079-core-line-budget-5080-for-entries-1-to-22-with-the-allotment-per-entry/ticket.md",
+    "updated": "2026-10-16T15:40:46.565Z",
+    "after": [
+      "AR0074",
+      "AR0075",
+      "AR0076",
+      "AR0077",
+      "AR0078"
+    ]
+  },
+  {
+    "id": "AR0080",
+    "title": "/board, /task and /findings move into orchestration, with host.jobs.list()",
+    "status": "planned",
+    "path": "spec/features/AR0080-board-task-and-findings-move-into-orchestration-with-host-jobs-list/ticket.md",
+    "updated": "2026-10-16T15:40:37.562Z"
   }
 ]

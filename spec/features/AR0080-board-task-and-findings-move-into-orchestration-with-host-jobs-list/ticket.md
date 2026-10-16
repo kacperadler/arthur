@@ -1,0 +1,37 @@
+# AR0080 - /board, /task and /findings move into orchestration, with host.jobs.list()
+
+```json
+{
+  "id": "AR0080",
+  "title": "/board, /task and /findings move into orchestration, with host.jobs.list()",
+  "date": "2026-10-16"
+}
+```
+
+## Description
+
+B3 of the core line review: net about 105 lines out of the core; roadmap 18 and 23 edited. At or after entry 23 only.
+
+## Goal
+
+The core stays small enough to understand, with capability in plugins (vision); the plan is `spec/quality/core-lines-2026-10-16.md`, proposal B3.
+
+- Kind: cleanup
+
+## Done means
+
+- What proposal B3 of `spec/quality/core-lines-2026-10-16.md` names, and no behaviour change: every existing test passes unchanged except where the report names a doc or test edit.
+- `npm test` and `npm run check` pass.
+
+## Scope
+
+In:
+- The files proposal B3 names.
+
+Out:
+- Anything the report does not name.
+
+## Decisions
+
+- 2026-10-16: Coordinator: from the core line review (AR0069), accepted.
+- 2026-10-16: Coordinator: do not spawn before entry 23 (the orchestration plugin) is merged.

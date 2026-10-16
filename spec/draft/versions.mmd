@@ -1,0 +1,30 @@
+%% From today's harness to Arthur's first version and after it. Green = first version, grey dashed = later.
+flowchart TD
+  today[Today<br/>this repo, fixes only]
+  move[Move modules with their tests<br/>core first, then plugins]
+
+  subgraph V1[First version]
+    core[core]
+    p1[orchestration - always on,<br/>session, schedule,<br/>projects, youtrack, telegram]
+    p2[delivery, github,<br/>commit-rules]
+    p3[manage, develop]
+    core ~~~ p1 ~~~ p2 ~~~ p3
+  end
+
+  start[Arthur starts with an empty board<br/>old spec history stays here]
+  switch1[Switch one project<br/>the harness itself]
+  switch2[Switch the clients]
+
+  subgraph V2[Later, in this order]
+    signal[1 signal]
+    whatsapp[2 whatsapp bridge]
+    server[3 server and clients<br/>private network only]
+    signal --> whatsapp --> server
+  end
+
+  today --> move --> V1 --> start --> switch1 --> switch2 --> V2
+
+  classDef first fill:#d8f5d8,stroke:#2d7a2d,color:#000;
+  classDef later fill:#eee,stroke:#888,stroke-dasharray:4 3,color:#555;
+  class core,p1,p2,p3 first;
+  class signal,whatsapp,server later;

@@ -1,0 +1,23 @@
+%% From the config file to a running plugin. The file names variables, never values.
+flowchart TD
+  file[/arthur.config.ts<br/>plugin list and options/]
+  env[/shell or .env<br/>secret values/]
+  loader[config loader]
+  check{valid?}
+  refuse[refuse to start<br/>name the option or variable]
+  host[plugin host]
+  off[enabled: false<br/>not loaded, env not read]
+  plugin[plugin<br/>gets options and its secrets]
+  core[core<br/>job runner, board, event stream]
+  omp[omp agent in a worktree]
+
+  file -->|options, e.g. botTokenEnv| loader
+  env -->|value of each ...Env name| loader
+  loader --> check
+  check -->|"no: unknown option,<br/>missing variable,<br/>missing plugin it needs"| refuse
+  check -->|yes| host
+  host -.-> off
+  host -->|enabled| plugin
+  plugin <-->|events and commands| core
+  core -->|spawns| omp
+  omp -->|job ended| core

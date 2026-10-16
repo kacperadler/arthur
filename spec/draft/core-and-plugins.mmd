@@ -1,0 +1,67 @@
+%% Core and plugins. Green = first version, grey dashed = later. Plugins talk to the core, never to each other.
+%% Arthur exposes nothing to the internet: every arrow out of a plugin is a call it makes, or a local process.
+flowchart TD
+  human([Human])
+
+  subgraph CH[Channels and terminal]
+    terminal[terminal<br/>arthur attach]
+    telegram[telegram]
+    whatsapp[whatsapp<br/>local bridge]
+    signal[signal<br/>signal-cli]
+    terminal ~~~ telegram ~~~ whatsapp ~~~ signal
+  end
+
+  subgraph CORE[Arthur core - always on]
+    loader[config loader]
+    host[plugin host<br/>command registry]
+    runner[job runner<br/>worktree, log, stop]
+    board[ticket board]
+    events[event stream]
+    clock[clock<br/>time zone, quiet hours]
+    guards[env guard<br/>worktree guard]
+    loader --> host
+    host ~~~ runner ~~~ board ~~~ events ~~~ clock ~~~ guards
+  end
+
+  subgraph ORCH[Coordinator - always on]
+    orchestration[orchestration<br/>coordinator, max agents<br/>required]
+    session[session<br/>compact 08 13 18<br/>fresh 23, restart]
+    schedule[schedule<br/>actions and jobs]
+    orchestration ~~~ session ~~~ schedule
+  end
+
+  subgraph PROJ[Projects, trackers, delivery, commits]
+    projects[projects<br/>declared in the config]
+    youtrack[youtrack]
+    github[github<br/>polls CI and PRs]
+    delivery[delivery<br/>review, merge]
+    commit[commit-rules<br/>regex, words, file]
+    projects ~~~ youtrack ~~~ github ~~~ delivery ~~~ commit
+  end
+
+  subgraph SELF[Arthur itself]
+    manage[manage<br/>audit, retro, health]
+    develop[develop<br/>test kit, evals]
+    manage ~~~ develop
+  end
+
+  subgraph REACH[For clients]
+    server[server<br/>private network only]
+  end
+
+  config[/arthur.config.ts/] --> loader
+  env[/.env: secret values/] --> loader
+
+  human <-->|messages| CH
+  CH <-->|text, media| host
+  ORCH <-->|events, commands| host
+  PROJ <-->|events, commands| host
+  SELF <-->|events, commands| host
+  REACH <-->|events, commands| host
+  runner -->|spawns| omp[omp agent<br/>in a worktree]
+  github -.->|polls| gh[(GitHub)]
+
+  classDef first fill:#d8f5d8,stroke:#2d7a2d,color:#000;
+  classDef later fill:#eee,stroke:#888,stroke-dasharray:4 3,color:#555;
+  class terminal,telegram,orchestration,session,schedule,delivery,projects,youtrack,github,commit,manage,develop first;
+  class whatsapp,signal,server later;

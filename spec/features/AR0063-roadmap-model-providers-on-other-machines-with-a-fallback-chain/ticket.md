@@ -42,3 +42,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: The owner: Arthur can use a model on his Mac (Ollama, over the network); if that model is not available, it takes another available model of similar strength, for example Anthropic's Haiku 5.5 instead of Qwen3 Coder on the laptop.
+- 2026-10-16: Coordinator: OK on refusing a spawn whose explicit --model is unavailable, with no fallback.

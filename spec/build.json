@@ -155,9 +155,9 @@
   {
     "id": "AR0017",
     "title": "Roadmap 14: Stop, continue, steer",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0017-roadmap-14-stop-continue-steer/ticket.md",
-    "updated": "2026-10-16T14:31:52.317Z",
+    "updated": "2026-10-16T14:39:10.685Z",
     "after": [
       "AR0014",
       "AR0016"

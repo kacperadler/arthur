@@ -8,6 +8,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0027 Dev dependencies beyond the toolchain are not checked (226d399)
 
+### Fixed
+
+- AR0028 An instance name can produce the same variable prefix as another plugin (859864c)
+
 ### Changed
 
 - AR0029 README still says no feature code exists (e58e20e)

@@ -267,9 +267,9 @@
   {
     "id": "AR0028",
     "title": "An instance name can produce the same variable prefix as another plugin",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0028-an-instance-name-can-produce-the-same-variable-prefix-as-another-plugin/ticket.md",
-    "updated": "2026-10-16T10:27:46.054Z"
+    "updated": "2026-10-16T10:28:16.241Z"
   },
   {
     "id": "AR0029",
@@ -277,5 +277,12 @@
     "status": "merged",
     "path": "spec/features/AR0029-readme-still-says-no-feature-code-exists/ticket.md",
     "updated": "2026-10-16T10:27:47.090Z"
+  },
+  {
+    "id": "AR0030",
+    "title": "Owner lookup takes the first longer prefix, not the longest",
+    "status": "planning",
+    "path": "spec/features/AR0030-owner-lookup-takes-the-first-longer-prefix-not-the-longest/ticket.md",
+    "updated": "2026-10-16T10:28:16.239Z"
   }
 ]

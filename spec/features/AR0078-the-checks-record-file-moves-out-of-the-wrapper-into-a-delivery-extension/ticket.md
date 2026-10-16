@@ -6,7 +6,8 @@
   "title": "The checks record file moves out of the wrapper into a delivery extension",
   "date": "2026-10-16",
   "after": [
-    "AR0077"
+    "AR0077",
+    "AR0074"
   ]
 }
 ```

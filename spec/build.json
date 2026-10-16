@@ -649,9 +649,9 @@
   {
     "id": "AR0077",
     "title": "The node_modules copy moves to a prepare hook of the projects plugin",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0077-the-node-modules-copy-moves-to-a-prepare-hook-of-the-projects-plugin/ticket.md",
-    "updated": "2026-10-16T16:19:44.413Z",
+    "updated": "2026-10-16T16:20:15.102Z",
     "after": [
       "AR0073"
     ]
@@ -661,9 +661,10 @@
     "title": "The checks record file moves out of the wrapper into a delivery extension",
     "status": "planned",
     "path": "spec/features/AR0078-the-checks-record-file-moves-out-of-the-wrapper-into-a-delivery-extension/ticket.md",
-    "updated": "2026-10-16T16:13:29.898Z",
+    "updated": "2026-10-16T16:20:22.036Z",
     "after": [
-      "AR0077"
+      "AR0077",
+      "AR0074"
     ]
   },
   {

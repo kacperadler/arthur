@@ -70,7 +70,7 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 				console.error("usage: arthur config check");
 				return 2;
 			}
-			const { lines, ok } = await configCheck("arthur.config.ts");
+			const { lines, ok } = await configCheck("arthur.config.ts", process.env, problem);
 			for (const line of lines) console.log(line);
 			return ok ? 0 : 1;
 		},

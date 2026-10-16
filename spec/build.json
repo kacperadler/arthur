@@ -297,9 +297,9 @@
   {
     "id": "AR0032",
     "title": "A phone command name with a dash cannot go into Telegram's command menu",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0032-a-phone-command-name-with-a-dash-cannot-go-into-telegram-s-command-menu/ticket.md",
-    "updated": "2026-10-16T11:50:45.201Z",
+    "updated": "2026-10-16T11:51:20.607Z",
     "after": [
       "AR0012"
     ]

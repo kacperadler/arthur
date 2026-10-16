@@ -129,3 +129,19 @@ test("the arthur binary runs config check in the working folder: its lines, and 
 	const wrong = run(["config"]);
 	assert.deepEqual([wrong.status, wrong.stderr], [2, "usage: arthur config check\n"]);
 });
+
+test("the arthur binary's config check prints a refusal of a plugin's setup and fails; a refusal before setup is printed once", () => {
+	const check = (plugins: string) => {
+		const folder = project(plugins);
+		const result = spawnSync(process.execPath, [CLI, "config", "check"], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+		return [result.status, result.stdout.replaceAll(`${join(folder, "arthur.config.ts")}: `, "")];
+	};
+	const none = "no enabled plugin names an env variable\n";
+	assert.deepEqual(check(`[{ name: "orchestration", setup(host) { host.commands.register({ name: "config", run() {} }) } }]`), [
+		1,
+		`plugin orchestration: setup failed: command config: registered by core and by orchestration; a command belongs to one plugin\n${none}`,
+	]);
+	assert.deepEqual(check(`[${ORCHESTRATION}, { name: "telegram", setup() { throw new Error("no bot token") } }]`), [1, `plugin telegram: setup failed: no bot token\n${none}`]);
+	assert.deepEqual(check(`[{ name: "telegram", setup() { throw new Error("setup ran") } }]`), [1, `plugins: orchestration is required and missing; add orchestration({ ... })\n${none}`]);
+	assert.deepEqual(check(`[${ORCHESTRATION}]`), [0, none]);
+});

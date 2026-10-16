@@ -626,9 +626,9 @@
   {
     "id": "AR0075",
     "title": "`arthur ticket all` goes; `arthur board all` is the full board",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0075-arthur-ticket-all-goes-arthur-board-all-is-the-full-board/ticket.md",
-    "updated": "2026-10-16T16:35:17.814Z",
+    "updated": "2026-10-16T16:38:41.078Z",
     "after": [
       "AR0074"
     ]
@@ -659,9 +659,9 @@
   {
     "id": "AR0078",
     "title": "The checks record file moves out of the wrapper into a delivery extension",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0078-the-checks-record-file-moves-out-of-the-wrapper-into-a-delivery-extension/ticket.md",
-    "updated": "2026-10-16T16:32:21.433Z",
+    "updated": "2026-10-16T16:36:21.987Z",
     "after": [
       "AR0077",
       "AR0074"

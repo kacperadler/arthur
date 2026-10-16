@@ -7,9 +7,7 @@ import type { Bus } from "./events.ts";
 import { field, ID, stopJob, wrapperRuns } from "./job-control.ts";
 import { processTable } from "./process-table.ts";
 
-// Every project's job records `<home>/jobs/<id>/` (spec/roadmap.md, entry 15): `arthur jobs`, `arthur prune`, `/stopall`, and
-// the sweep `arthur run` makes for jobs whose processes are gone. A job is named by its full id or its short id, the 8 hex
-// digits that end it.
+// Every project's job records `<home>/jobs/<id>/`: docs/commands/jobs.md, prune.md and stopall.md.
 
 // A finished job as a plugin's `jobs.keep` gets it; `branch` is empty for a read-only kind.
 export type FinishedJob = { readonly [key in "id" | "kind" | "project" | "task" | "state" | "branch" | "worktree"]: string };
@@ -32,10 +30,7 @@ export function findJob(home: string, query: string): string {
 	throw new Error(`${query} matches ${found.length} jobs: ${found.join(", ")}; name one by its full id`);
 }
 
-// `list`: `arthur jobs`. `prune`: one line per job, of those `ids` names, else of every one; `keep` asks the plugins
-// (`collect("jobs.keep", job)`), and each answer that is a text is a reason to keep the record. `stopAll`: emits `stop-all`
-// (`ids`: the running jobs), then stops each, one line per job. `sweep`: fails a job whose state says running while neither
-// its wrapper nor its agent runs, on this sweep and the one before.
+// `sweep` fails a running job whose wrapper and agent are both gone, on this sweep and the one before.
 export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: FinishedJob) => readonly unknown[]) {
 	let gone = new Set<string>();
 	return {
@@ -72,8 +67,6 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 	};
 }
 
-// Under a heading per group, newest first, one line per job: its ticket, kind, state, how long it has run or when it ended,
-// its cost against its budget, its project when the records hold more than one, its short id.
 function jobsText(home: string, time: Clock): string {
 	const ids = jobIds(home);
 	if (ids.length === 0) return "no jobs";

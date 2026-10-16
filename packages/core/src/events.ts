@@ -2,10 +2,7 @@ import { closeSync, fstatSync, openSync, readFileSync, renameSync, writeFileSync
 import { join } from "node:path";
 import { append, type Event, LOG, logEnd, type Position, readEvents, readNew, withLog } from "./event-log.ts";
 
-// The event stream (spec/roadmap.md, entry 5): every event is appended to the log (`event-log.ts`), then delivered to the
-// subscribers of its name in this process. The daemon also follows the log (entry 8), so an event a command emits reaches
-// the daemon's subscribers too, and keeps in `<home>/events.delivered` the number of the last event it delivered, so the
-// events appended while it was down reach them when it starts again, each once.
+// The event stream: appended to the log (event-log.ts), then delivered in this process; `arthur run` follows it (run.md).
 
 export type Handler = (event: Event) => void | Promise<void>;
 

@@ -2,11 +2,8 @@ import { loadConfig } from "./config.ts";
 import { checkEnv, type Shell } from "./env.ts";
 import { checkPlugins } from "./host.ts";
 
-// `arthur config check` (spec/roadmap.md, entry 3): the host's refusals, then every variable the enabled plugins name, `set` or
-// `missing`, never a value. Fine when the config loads, the host refuses nothing before `setup` (none runs here), no name or
-// env-file line is refused, every variable is set, and `setupProblem` is undefined; warnings do not count. `setupProblem` is
-// what the binary's own load refused; it is printed only when nothing before `setup` is refused, since such a refusal stops
-// the load before any `setup` and is already in the lines here.
+// `arthur config check`: docs/commands/config.md. `setupProblem` is what the binary's own load refused, printed only when
+// nothing before `setup` is refused: such a refusal stops the load before any `setup` and is already in the lines here.
 export async function configCheck(
 	path: string,
 	shell: Shell = process.env,

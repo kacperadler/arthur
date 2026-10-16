@@ -5,12 +5,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import type { Bus } from "./events.ts";
 import type { Job } from "./jobs.ts";
 
-// A job's scope (spec/roadmap.md, entry 13): `launch` starts the job's wrapper, and with it everything the job runs, in a
-// systemd scope of its own, `arthur-job-<id>.scope`, inside one slice whose `CPUQuota` and `MemoryMax` are the core's
-// `jobs.cpu` and `jobs.memory`: all jobs together stay within them, so they cannot starve the coordinator. At the job's end
-// the wrapper kills whatever is left in its scope (`endScope`). Where `systemctl --user` cannot set the slice (no user
-// manager: macOS, a container) the job runs bare, said in one line of its log. A wrapper that does not start ends its job
-// `failed` here, so no record stays without a final `state`.
+// A job's systemd scope and the slice all jobs share: docs/commands/spawn.md.
 
 // The slice of Arthur's jobs, without `.slice`; a test names its own.
 export const SLICE = "arthur-jobs";
@@ -23,9 +18,7 @@ const START_MS = 10_000;
 
 const scope = (id: string) => `arthur-job-${id}.scope`;
 
-// Starts the wrapper of `job` in a process group of its own and waits until it wrote its `pid`; `agent` is
-// `core.agent.command`. A wrapper that did not start (`systemd-run` refused the scope, or is missing), exited before its
-// `pid`, or wrote none within START_MS (then it is killed) ends the job `failed`: returns that reason.
+// Starts the wrapper of `job` (`agent`: `core.agent.command`); returns why it did not start, which ended the job `failed`.
 export async function launch(home: string, job: Pick<Job, "id" | "kind" | "project">, agent: string, jobs: Slice, bus: Bus): Promise<string | undefined> {
 	const { id } = job;
 	const wrapper = [process.execPath, join(import.meta.dirname, "wrapper.ts"), home, id, agent];

@@ -1,9 +1,7 @@
 import { openAfter } from "./board-after.ts";
 import { type Entry, STATUSES } from "./board-file.ts";
 
-// The board as text (spec/roadmap.md, entry 18), one line per ticket: id, status, title, and the tickets it still waits for.
-// Open tickets first, in the order of their statuses and then of creation, then the merged ones, newest first, then the
-// dropped ones. The digest keeps every open ticket and the 10 newest merged, and counts the rest in one line.
+// The board as text and its digest (docs/commands/ticket.md); open tickets of one status in the order of creation.
 
 const NEWEST_MERGED = 10;
 

@@ -2,10 +2,7 @@ import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// The prompt loader (spec/roadmap.md, entry 10). A role's prompt is the role file the plugin owning the role ships, then the
-// project's own override `<roles>/<role>.md`, then each criteria file the role names, `<criteria>/<name>.md`, as
-// `## <title> (<path>)`, then the sections plugins provide as `prompt` for that role and job. The project's files are read
-// from the job's worktree, so they are its HEAD; one that is a symlink, or under one, is refused and never read.
+// The prompt loader: what a role's prompt holds, in which order, and what it refuses: docs/commands/roles.md.
 
 export type Role = {
 	readonly name: string;
@@ -92,9 +89,7 @@ export function sources(role: Role, folder: string): Source[] {
 	];
 }
 
-// The prompt of `role` for a job in `folder`, and a warning per criteria file that is missing or empty; `sections` asks the
-// plugins for theirs (`prompt`), only once the project's files passed. Refused, naming the path: a missing role file, a
-// symlinked or odd override or criteria file.
+// The prompt of `role` for a job in `folder`, with its warnings; `sections` is asked only once the project's files passed.
 export function prompt(role: Role, folder: string, sections: () => readonly unknown[]): { readonly prompt: string; readonly warnings: string[] } {
 	const parts: string[] = [];
 	const warnings: string[] = [];

@@ -8,9 +8,7 @@ import type { Command } from "./commands.ts";
 import { field } from "./job-control.ts";
 import { jobIds } from "./job-records.ts";
 
-// The board's phone commands (spec/roadmap.md, entry 18): `/board [PREFIX] [all]`, `/task <id>` and `/findings <id>`, answered
-// from the board's files without the model. Each also runs as `arthur <name>`, which prints the reply and reads a number alone
-// in `--project`. An id is `14` (the main project's), `AR14` or `AR0014`, in either case; its prefix picks the project.
+// `/board`, `/task` and `/findings`, also as `arthur <name>`: docs/commands/board.md, task.md and findings.md.
 
 // Telegram's limit for one message: a full board longer than that is sent as its digest, so no ticket is lost to a cut.
 const MESSAGE = 4096;
@@ -52,8 +50,6 @@ const boardReply: Reply = (board, words, project) => {
 	return all || full.length <= MESSAGE ? full : boardText(tickets, false);
 };
 
-// `/task` prefixes the ticket's status. `/findings` answers with the `findings.md` a job of the ticket changed on its branch,
-// headed so, when it is not main's; otherwise main's, and of a ticket without the file, or with an empty one, says so.
 function fileReply(board: Board, words: readonly string[], project: string | undefined, file: "ticket.md" | "findings.md", home: string | undefined): string | undefined {
 	const [, letters = "", digits] = /^([a-z]*)(\d+)$/i.exec(words.length === 1 ? (words[0] ?? "") : "") ?? [];
 	if (digits === undefined) return undefined;
@@ -77,9 +73,7 @@ function fileReply(board: Board, words: readonly string[], project: string | und
 	return text.trim() === "" ? `${id}: no findings (${path} is empty)` : text;
 }
 
-// The jobs of the ticket are the records (spec/roadmap.md, entry 9) of the project whose `task` names `ticketPath` on a
-// `Ticket:` line and that have a branch. Of those branches still there, newest last commit first, the first whose commits
-// since it left HEAD changed `findings.md` (so not a merged one) to a text not blank and not `main`, main's text.
+// The first branch of the ticket's jobs whose own commits changed `findings.md` to a text of its own: docs/commands/findings.md.
 function branchFindings(home: string, where: Project, ticketPath: string, path: string, main: string | undefined): { readonly name: string; readonly text: string } | undefined {
 	const branches = jobBranches(home, where.name, ticketPath);
 	if (branches.length === 0) return undefined;

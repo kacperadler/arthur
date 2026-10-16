@@ -1,6 +1,4 @@
-// A job's limits (spec/roadmap.md, entry 12): the minutes it may run and the USD its agent may spend, each `0` for none.
-// A spawn takes them from its request (`--timeout`, `--budget`), else its kind, else the core's `jobs` options; the
-// wrapper stops the agent at either one.
+// A job's limits, minutes and USD, `0` for none, and where a spawn takes them from: docs/commands/spawn.md.
 
 export type Limits = { readonly timeoutMinutes: number; readonly budgetUsd: number };
 

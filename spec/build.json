@@ -471,9 +471,9 @@
   {
     "id": "AR0056",
     "title": "A `systemd-run` that fails after the slice was set leaves a job that never ends",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0056-a-systemd-run-that-fails-after-the-slice-was-set-leaves-a-job-that-never-ends/ticket.md",
-    "updated": "2026-10-16T14:17:01.868Z"
+    "updated": "2026-10-16T14:17:32.507Z"
   },
   {
     "id": "AR0057",

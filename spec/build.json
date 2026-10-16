@@ -429,9 +429,9 @@
   {
     "id": "AR0050",
     "title": "Roadmap entry 8 still says the events logged before the daemon started are not delivered",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0050-roadmap-entry-8-still-says-the-events-logged-before-the-daemon-started-are-not-delivered/ticket.md",
-    "updated": "2026-10-16T12:29:12.678Z"
+    "updated": "2026-10-16T12:30:09.884Z"
   },
   {
     "id": "AR0051",

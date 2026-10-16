@@ -29,6 +29,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Changed
 
 - AR0029 README still says no feature code exists (e58e20e)
+- AR0050 Roadmap entry 8 still says the events logged before the daemon started are not delivered (321618c)
 
 ### Other
 

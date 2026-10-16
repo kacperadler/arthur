@@ -38,6 +38,8 @@ function take(path: string, mine: string): boolean {
 
 // Removes a dead holder's lock. Takers queue on `<path>.takeover`, so a slow one never removes the lock a faster one took
 // after the dead holder's; the inode tells the dead holder's file from a new one written by a pid that was reused since.
+// A guard left by a crashed taker is a dead holder's file too, removed the same way, so that racing takers never remove
+// the guard one of them took after it.
 function takeOver(path: string, mine: string, stale: Holder): void {
 	const guard = `${path}.takeover`;
 	try {
@@ -45,7 +47,7 @@ function takeOver(path: string, mine: string, stale: Holder): void {
 	} catch (error) {
 		if (code(error) !== "EEXIST") throw error;
 		const other = holder(guard);
-		if (other !== undefined && !alive(other.pid)) rmSync(guard, { force: true });
+		if (other !== undefined && !alive(other.pid)) takeOver(guard, mine, other);
 		return;
 	}
 	try {

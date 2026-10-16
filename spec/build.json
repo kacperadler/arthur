@@ -145,9 +145,9 @@
   {
     "id": "AR0016",
     "title": "Roadmap 13: Job limits: one scope per job in a joint slice",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0016-roadmap-13-job-limits-one-scope-per-job-in-a-joint-slice/ticket.md",
-    "updated": "2026-10-16T13:23:38.664Z",
+    "updated": "2026-10-16T13:42:06.707Z",
     "after": [
       "AR0014"
     ]
@@ -218,9 +218,9 @@
   {
     "id": "AR0023",
     "title": "Roadmap 20: Worktree guard and its shell parser",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0023-roadmap-20-worktree-guard-and-its-shell-parser/ticket.md",
-    "updated": "2026-10-16T09:46:27.845Z",
+    "updated": "2026-10-16T13:32:23.316Z",
     "after": [
       "AR0022"
     ]
@@ -463,5 +463,12 @@
     "status": "merged",
     "path": "spec/features/AR0054-roadmap-entry-23-does-not-say-the-coordinator-loads-the-env-guard/ticket.md",
     "updated": "2026-10-16T13:32:18.455Z"
+  },
+  {
+    "id": "AR0055",
+    "title": "Roadmap: channels hand media to plugins; local voice transcription",
+    "status": "planned",
+    "path": "spec/features/AR0055-roadmap-channels-hand-media-to-plugins-local-voice-transcription/ticket.md",
+    "updated": "2026-10-16T13:44:03.840Z"
   }
 ]

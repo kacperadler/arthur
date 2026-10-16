@@ -63,9 +63,9 @@
   {
     "id": "AR0008",
     "title": "Roadmap 5: Event stream",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0008-roadmap-5-event-stream/ticket.md",
-    "updated": "2026-10-16T10:49:13.547Z",
+    "updated": "2026-10-16T10:53:00.966Z",
     "after": [
       "AR0007"
     ]
@@ -315,8 +315,8 @@
   {
     "id": "AR0034",
     "title": "Roadmap: disk space and Docker cleanup with each worktree",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0034-roadmap-disk-space-and-docker-cleanup-with-each-worktree/ticket.md",
-    "updated": "2026-10-16T10:48:37.181Z"
+    "updated": "2026-10-16T10:49:38.335Z"
   }
 ]

@@ -133,21 +133,21 @@ test("arthur ticket creates, moves and lists tickets on the project's board, and
 	const moved = arthur(folder, "ticket", "status", "DM0001", "dropped");
 	assert.deepEqual([moved.status, moved.stdout], [0, "DM0001 dropped\n"]);
 	assert.equal(arthur(folder, "ticket", "new", "Next").stdout.split(" ")[0], "DM0002");
-	assert.deepEqual(arthur(folder, "ticket", "all").stdout, "DM0001 dropped     Board from the shell\nDM0002 planning    Next\n");
+	assert.deepEqual(arthur(folder, "board", "all").stdout, "DM0002 planning    Next\nDM0001 dropped     Board from the shell\n");
 	const log = readFileSync(join(folder, ".arthur", "events.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
 	assert.deepEqual(
 		log.map(({ plugin, name, data }) => [plugin, name, data.id]),
 		[["core", "ticket-created", "DM0001"], ["core", "ticket-moved", "DM0001"], ["core", "ticket-created", "DM0002"]],
 	);
-	assert.equal(arthur(folder, "ticket", "all", "--project", "shop").stderr, "arthur ticket: unknown project shop; projects: demo\n");
+	assert.equal(arthur(folder, "ticket", "new", "Elsewhere", "--project", "shop").stderr, "arthur ticket: unknown project shop; projects: demo\n");
 });
 
 test("arthur ticket: an empty board, wrong usage, and a config that does not load", () => {
 	const folder = project(BOARD);
-	assert.deepEqual([arthur(folder, "ticket", "all").stdout, existsSync(join(folder, "spec"))], ["the board is empty\n", false]);
-	for (const args of [[], ["new"], ["status", "DM0001"], ["all", "x"], ["move", "DM0001", "done"], ["after"]]) {
+	assert.deepEqual([arthur(folder, "board", "all").stdout, existsSync(join(folder, "spec"))], ["the board is empty\n", false]);
+	for (const args of [[], ["new"], ["status", "DM0001"], ["all"], ["move", "DM0001", "done"], ["after"]]) {
 		const run = arthur(folder, "ticket", ...args);
-		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket after <id> [<id>...]; arthur ticket all\n"], args.join(" "));
+		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket after <id> [<id>...]\n"], args.join(" "));
 	}
 	const broken = project(BOARD.replace('"orchestration"', '"schedule"'));
 	const run = arthur(broken, "ticket", "new", "Lost");

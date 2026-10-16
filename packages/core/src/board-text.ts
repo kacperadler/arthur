@@ -19,6 +19,6 @@ export function boardText(entries: readonly Entry[], all: boolean): string {
 	});
 	const older = merged.length - Math.min(merged.length, NEWEST_MERGED);
 	const rest = [older > 0 ? `${older} older merged` : "", dropped.length > 0 ? `${dropped.length} dropped` : ""].filter(Boolean).join(", ");
-	if (!all && rest !== "") lines.push(`+ ${rest}: the full board is /board all, or arthur ticket all`);
+	if (!all && rest !== "") lines.push(`+ ${rest}: the full board is /board all`);
 	return lines.join("\n");
 }

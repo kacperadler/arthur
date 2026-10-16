@@ -251,7 +251,7 @@ test("the digest: every open ticket by status with what it still waits for, the 
 			"DM0019 review      Ticket DM0019",
 			"DM0013 done        Ticket DM0013",
 			...newest,
-			"+ 2 older merged, 2 dropped: the full board is /board all, or arthur ticket all",
+			"+ 2 older merged, 2 dropped: the full board is /board all",
 		].join("\n"),
 	);
 });

@@ -1,13 +1,12 @@
 # arthur ticket
 
-Usage: `arthur ticket new <title>`, `arthur ticket status <id> <status>`, `arthur ticket after <id> [<id>...]`, `arthur ticket all`; `--project <name>` for another project than the main one.
+Usage: `arthur ticket new <title>`, `arthur ticket status <id> <status>`, `arthur ticket after <id> [<id>...]`; `--project <name>` for another project than the main one. The whole board is `arthur board all` (see `arthur board --help`).
 
 The ticket board of a project: each ticket is a folder `spec/features/<id>-<slug>/` in the project's repository, and the board is `spec/build.json` there, a JSON array with one entry per ticket (`id`, `title`, `status`, `path` of its `ticket.md`, `updated`, and `after` when it waits for other tickets). The board is changed only through this command and, for plugins, `host.board`; every change emits an event.
 
 - `new <title>`: creates a ticket in `planning` and prints its id and the path of its `ticket.md`, written from the core's template (`packages/core/templates/ticket.md`) with the id, the title and today's date in `timeZone`. The words after `new` are the title. Emits `ticket-created` (`id`, `project`, `title`, `status`, `path`).
 - `status <id> <status>`: moves the ticket to another status, if the table below allows it, and prints its id and status. The id's prefix names the project, so `--project` is not needed. Emits `ticket-moved` (`id`, `project`, `from`, `to`); a move to the status the ticket has already changes nothing and emits nothing.
 - `after <id> [<id>...]`: the tickets this one waits for, until each is merged; they replace the ones it waited for before, and no ids means it waits for none. Prints `<id> after <ids>`, or `<id> after nothing`. An id named twice counts once. Emits `ticket-after` (`id`, `project`, `after`) when the list changes.
-- `all`: every ticket of the project, in the order they were created, one line each: id, status, title; `the board is empty` when there is none.
 
 The statuses and the moves allowed from each:
 
@@ -27,7 +26,7 @@ Ids are the project's prefix and a number of at least 4 digits, from 1 (`AR0001`
 
 The projects, each with its folder and prefix, are the list the `projects` plugin provides; the main project is the first one. One writer at a time: each change holds `spec/.board/build.json.lock` for the moment it reads and writes the board, so two writers at once never lose a change; a lock whose process is gone is taken over. The board and a new `ticket.md` are written to a temporary file in `spec/.board/` and renamed, so a reader never sees half of either. `spec/.board/` holds a `.gitignore` of `*`, written back on each change when it differs, so a writer killed mid-write leaves nothing Git shows or commits.
 
-The board as text, for `/board` (see `arthur board --help`) and for plugins as `host.board.digest()`: one line per ticket (id, status, title, and `after <ids>` while any ticket it waits for is not merged), the open tickets first in the order of the statuses above, then the merged ones newest first, then the dropped ones. The digest keeps every open ticket and the 10 newest merged, and counts the rest in its last line: `+ <n> older merged, <m> dropped: the full board is /board all, or arthur ticket all`.
+The board as text, for `/board` (see `arthur board --help`) and for plugins as `host.board.digest()`: one line per ticket (id, status, title, and `after <ids>` while any ticket it waits for is not merged), the open tickets first in the order of the statuses above, then the merged ones newest first, then the dropped ones. The digest keeps every open ticket and the 10 newest merged, and counts the rest in its last line: `+ <n> older merged, <m> dropped: the full board is /board all`.
 
 Refused, one line each, with exit code 1:
 

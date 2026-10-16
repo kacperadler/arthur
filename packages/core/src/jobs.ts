@@ -80,8 +80,8 @@ export type JobRunner = ReturnType<typeof jobUpkeep> & {
 	beforeSpawn(owner: string, check: SpawnCheck): void;
 	prepare(owner: string, fn: Prepare): void;
 	spawn(request: SpawnRequest): Promise<Started>;
-	// `arthur continue`: resumes an ended job with a branch in place (job-control.ts), `budgetUsd` replacing its budget;
-	// resolves to why its wrapper did not start, as `failed` of a spawn.
+	// `arthur continue`: resumes an ended job with a branch in place (job-control.ts) once the `beforeSpawn` checks pass on its
+	// record, `budgetUsd` replacing its budget; resolves to why its wrapper did not start, as `failed` of a spawn.
 	continue(id: string, instruction: string, budgetUsd?: number): Promise<string | undefined>;
 	// What `arthur roles` prints: each role, the files it reads in the project's main checkout, and its model.
 	roles(project?: string): RoleView[];
@@ -112,7 +112,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice, 
 		beforeSpawn: (owner, check) => void checks.push({ owner, check }),
 		prepare: (owner, fn) => void prepares.push({ owner, fn }),
 		roles: (project) => describeRoles(roles, [...kinds.values()].map((entry) => entry.kind), checkout(project).root, collect),
-		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus),
+		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (spawn) => checkSpawn({ ...spawn, tickets: taskTickets(spawn.task) })),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
 			const kind = kinds.get(name)?.kind;
@@ -123,17 +123,14 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice, 
 			const commit = head(root);
 			if (commit === undefined) throw new Error(`${root} has no commit yet; a job starts from HEAD`);
 			if (!kind.readOnly && branchExists(root, "arthur")) throw new Error(`${root} has a branch named arthur, so Git cannot create a worker's branch arthur/<id> beside it; rename it: git branch -m arthur <new-name>`);
-			const tickets = [...new Set(taskTickets(request.task))];
+			const tickets = taskTickets(request.task);
 			const missing = tickets.filter((path) => !fileAt(root, commit, path));
 			if (missing.length > 0) throw new Error(`Ticket: ${missing.join(", ")}: no such file at HEAD (${commit.slice(0, 7)}); commit it first`);
 			const preset = roleModel(collect, role.name);
 			const { task, model = preset.model, thinking = preset.thinking } = request;
 			const { timeoutMinutes, budgetUsd } = spawnLimits(request, kind, limits);
 			const spawn: Spawn = { task, kind: name, project, model, thinking, timeoutMinutes, budgetUsd, tickets };
-			for (const { owner, check } of checks) {
-				const reason = await step(owner, "beforeSpawn", () => check(spawn));
-				if (reason !== undefined) throw new Error(`refused by ${owner}: ${reason}`);
-			}
+			await checkSpawn(spawn);
 			const job = newJob(spawn, root, commit, kind.readOnly);
 			addWorktree(root, job.worktree, commit, job.branch);
 			let warnings: string[] = [];
@@ -157,6 +154,13 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice, 
 	runner.registerKind("core", { name: "worker", readOnly: false, role: "worker" });
 	runner.registerRole("core", { name: "worker", file: new URL("../roles/worker.md", import.meta.url), criteria: ["styleguide"] });
 	return runner;
+
+	async function checkSpawn(spawn: Spawn): Promise<void> {
+		for (const { owner, check } of checks) {
+			const reason = await step(owner, "beforeSpawn", () => check(spawn));
+			if (reason !== undefined) throw new Error(`refused by ${owner}: ${reason}`);
+		}
+	}
 
 	// The repository a job of `project` starts from, and the project's name: only the main one until a plugin adds projects.
 	function checkout(project: string | undefined): { readonly root: string; readonly project: string } {

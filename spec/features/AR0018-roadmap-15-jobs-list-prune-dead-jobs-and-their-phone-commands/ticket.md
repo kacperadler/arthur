@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: Cut from `spec/roadmap.md` entry 15 by the coordinator; AR tickets need no approval (the owner, 2026-10-16).
+- 2026-10-16: Coordinator: core line budget raised by the 139 lines of entry 15 (jobs, prune, stopall, the sweep), on the condition that the review finds nothing in them to cut; contract comments elsewhere are not cut for it. A separate ticket reviews the whole core for what can move to plugins or be cut before the next core entries.

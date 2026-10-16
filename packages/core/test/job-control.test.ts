@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { delimiter, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
@@ -149,8 +149,8 @@ test("a stop that comes while a limit stops the job leaves the limit's state, an
 });
 
 test("a stop that comes once the agent exited on its own leaves the job's own ending", async () => {
-	// The agent exits at once; a process it left keeps its output open for a while, so the wrapper is still reading it.
-	const { agent, dir } = script((dir) => [`echo '${spent(0, "stop")}'`, "sleep 2 &", `echo $$ > '${dir}/pid'`, "exit 0"]);
+	// The agent exits at once; a process it left keeps its output open, so the wrapper is still reading it for a while.
+	const { agent, dir } = script((dir) => [`echo '${spent(0, "stop")}'`, "sleep 300 &", `echo $$ > '${dir}/pid'`, "exit 0"]);
 	const { home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Go." });
 	const pid = Number(await until("the agent", () => read(join(dir, "pid"))?.trim() || undefined));
@@ -159,6 +159,20 @@ test("a stop that comes once the agent exited on its own leaves the job's own en
 	process.kill(Number(field(home, job.id, "pid")), "SIGTERM");
 	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" }]);
 	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: the agent had ended already\n/);
+});
+
+test("a process the agent left holding its output open delays the job's end by the grace only, and is killed", async () => {
+	const { agent, dir } = script((dir) => [`echo '${spent(0, "stop")}'`, `sleep 300 & echo $! > '${dir}/holder'`, `echo $$ > '${dir}/pid'`, "exit 0"]);
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	const pid = Number(await until("the agent", () => read(join(dir, "pid"))?.trim() || undefined));
+	const holder = Number(read(join(dir, "holder")));
+	await until("the agent's exit", () => !alive(pid));
+	const exited = Date.now();
+	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" }]);
+	assert.ok(Date.now() - exited < 3000, `ended ${Date.now() - exited} ms after the agent exited`);
+	assert.equal(field(home, job.id, "state"), "done");
+	await until("the holder's end", () => !alive(holder));
 });
 
 test("refused, each with the id and the reason: stopping or steering a job that is not running, an unknown id", async () => {
@@ -310,6 +324,33 @@ test("continue is refused, with the id and the reason: a running job, a read-onl
 	assert.equal(field(home, job.id, "budget"), "2");
 });
 
+test("a continue goes through the plugins' beforeSpawn checks on its record: a refusal starts nothing and leaves the record", async () => {
+	const { agent, resumed } = resuming({ steps: [{ message: "First." }] }, { steps: [{ message: "Second." }] });
+	const { home, jobs } = setup(agent);
+	const seen: unknown[] = [];
+	const answers: (string | undefined | Error)[] = [undefined, "maxAgents 1 reached", new Error("no process table"), undefined];
+	jobs.beforeSpawn("orchestration", (spawn) => {
+		seen.push(spawn);
+		const answer = answers[seen.length - 1];
+		if (answer instanceof Error) throw answer;
+		return answer;
+	});
+	const job = await jobs.spawn({ task: "Ticket: README.md. Go.", model: "m" });
+	await ended(home, job.id);
+	const folder = join(home, "jobs", job.id);
+	const record = () => readdirSync(folder, { recursive: true, withFileTypes: true }).map((entry) => [join(entry.parentPath, entry.name), entry.isDirectory() ? "folder" : read(join(entry.parentPath, entry.name))]).sort();
+	const before = record();
+	await assert.rejects(jobs.continue(job.id, "Go on.", 3), { message: "refused by orchestration: maxAgents 1 reached" });
+	await assert.rejects(jobs.continue(job.id, "Go on."), { message: "plugin orchestration: beforeSpawn failed: no process table" });
+	assert.deepEqual(record(), before);
+	assert.equal(starts(resumed).length, 0);
+	const spawn = { task: "Ticket: README.md. Go.", kind: "worker", project: "acme", model: "m", thinking: undefined, timeoutMinutes: 120, tickets: ["README.md"] };
+	assert.deepEqual(seen.slice(1), [{ ...spawn, budgetUsd: 3 }, { ...spawn, budgetUsd: 2 }]);
+	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
+	const [, second] = await ended(home, job.id, 2);
+	assert.deepEqual([second, starts(resumed).length], [{ id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" }, 1]);
+});
+
 test("the arthur binary stops, steers and continues a job by its id; wrong usage exits 2, a refusal 1", async () => {
 	const root = join(temporaryFolder(), "acme");
 	mkdirSync(root);
@@ -318,13 +359,19 @@ test("the arthur binary stops, steers and continues a job by its id; wrong usage
 	git(root, "add", "--all");
 	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "first");
 	const agent = fakeAgent({ steps: [stuck()] });
-	writeFileSync(join(root, "arthur.config.ts"), `export default { core: { timeZone: "UTC", agent: { command: ${JSON.stringify(agent)} } }, plugins: [{ name: "orchestration", setup() {} }] };\n`);
+	const full = join(root, "..", "full");
+	const check = `host.jobs.beforeSpawn(() => (existsSync(${JSON.stringify(full)}) ? "maxAgents 1 reached" : undefined))`;
+	writeFileSync(join(root, "arthur.config.ts"), `import { existsSync } from "node:fs";\nexport default { core: { timeZone: "UTC", agent: { command: ${JSON.stringify(agent)} } }, plugins: [{ name: "orchestration", setup(host) { ${check}; } }] };\n`);
 	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
 	const home = join(root, ".arthur");
 	const id = arthur("spawn", "Go.").stdout.trim();
 	await running(home, id);
 	assert.deepEqual([arthur("steer", id, "Mind the tests.").stdout, arthur("stop", id).stdout], [`${id}: steer 0001 queued for after its next tool call\n`, `${id}: stopped\n`]);
 	assert.deepEqual(await ended(home, id), [{ id, kind: "worker", project: "acme", state: "stopped", reason: "the job was stopped by arthur stop", undelivered: ["0001"] }]);
+	writeFileSync(full, "");
+	const capped = arthur("continue", id, "Go on.");
+	assert.deepEqual([capped.status, capped.stdout, capped.stderr, starts(agent).length, field(home, id, "continue")], [1, "", "arthur continue: refused by orchestration: maxAgents 1 reached\n", 1, undefined]);
+	rmSync(full);
 	assert.equal(arthur("continue", id, "Go on.", "--budget", "0.5").stdout, `${id}: continued\n`);
 	await running(home, id);
 	const [, second] = await until("the agent's second start", () => (starts(agent).length === 2 ? starts(agent) : undefined));

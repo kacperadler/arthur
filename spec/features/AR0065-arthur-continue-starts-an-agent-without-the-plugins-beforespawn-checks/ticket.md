@@ -36,3 +36,4 @@ In:
 ## Decisions
 
 - 2026-10-16: Source: F1 of AR0017
+- 2026-10-16: Coordinator: core line budget 4226 -> 4232 (the shared beforeSpawn loop, after the worker cut two comment lines); no machine field yet: entry 21 adds it to both spawn and continue.

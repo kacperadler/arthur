@@ -6,10 +6,12 @@ import { test } from "node:test";
 import { checkStructure } from "./structure.ts";
 
 // The line budget of each package: the number of lines its src/ may hold. They live here only; a raise is a decision recorded in its ticket.
-// core: 4000 until AR0017 (stop, continue, steer: 374 lines on top of main's 3850), which needs 4224; 4224 until AR0018 (jobs,
-// prune, the dead-job sweep, /jobs, /steer, /stopall: 139 lines net, with board-commands.ts and cli.ts 8 lines shorter each
-// for sharing the record reader and one load check), which needs 4363.
-const BUDGETS = { core: 4363 };
+// core: 4000 until AR0017 (stop, continue, steer: 374 lines on top of main's 3850), which needs 4224; AR0066 (a held pipe
+// does not keep a job running: 2 lines in wrapper.ts), 4226; AR0065 (a continue runs the plugins' beforeSpawn checks on its
+// record: the shared check loop, the record's fields, the ticket parse: 8 lines), 4234; AR0018 (jobs, prune, the dead-job
+// sweep, /jobs, /steer, /stopall: 138 lines net, with board-commands.ts and cli.ts 8 lines shorter each for sharing the
+// record reader and one load check), 4372.
+const BUDGETS = { core: 4372 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

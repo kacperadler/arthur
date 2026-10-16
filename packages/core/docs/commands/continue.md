@@ -16,6 +16,7 @@ Refused (exit code 1, the reason after `arthur continue: `):
 - A running job, or one whose wrapper has not written its state yet: `<id> is running; a running job is not continued, arthur steer gives it a correction` (`not started yet` in place of `running` for the latter).
 - A read-only kind, which has no branch of its own: `<id> is a <kind>, a read-only kind without a branch of its own; only a job with a branch is continued`.
 - An empty instruction: `the instruction is empty`.
+- A plugin's `beforeSpawn` check, run on the job as its record has it (its `task` and the `Ticket:` files it names, `kind`, `project`, `model`, `thinking`, `timeout`, and the `--budget` or else its `budget`), that gives a reason: `refused by <plugin>: <reason>`; one that throws: `plugin <plugin>: beforeSpawn failed: <message>`. The core's own check refuses a worker whose ticket cannot move to in-progress, a `merged` one for example, as at a spawn (see `arthur spawn --help`). A refused continue starts nothing and leaves the record as it was.
 - A config or a plugin that does not load: `arthur.config.ts did not load:`, then the reasons.
 
 Wrong usage (not one id and one instruction, an unknown flag, `--budget` without a plain decimal or given twice) prints the usage line and exits 2.

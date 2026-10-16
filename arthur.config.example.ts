@@ -27,6 +27,7 @@ import { docker } from "@arthur/docker"; // first, named
 import { github } from "@arthur/github"; // first, derived
 import { machines } from "@arthur/machines"; // first, named
 import { manage } from "@arthur/manage"; // first, named
+import { models } from "@arthur/models"; // first, named
 import { orchestration } from "@arthur/orchestration"; // first, named, required
 import { projects } from "@arthur/projects"; // first, named
 import { resources } from "@arthur/resources"; // first, named
@@ -76,13 +77,29 @@ export default defineConfig({
 				restartDelaySeconds: 5, // start it again this long after it ended, for any reason
 			},
 			roles: {
-				worker: { model: undefined, thinking: undefined }, // undefined = the agent's own default
+				// `model` is one name or an ordered list: the first available at the job's start is used (the models plugin below)
+				worker: { model: ["mac/qwen3-coder", "anthropic/claude-haiku-5-5"], thinking: undefined },
 				reviewer: { model: "anthropic/claude-sonnet-5", thinking: "medium" },
-				planner: { model: undefined, thinking: undefined },
+				planner: { model: undefined, thinking: undefined }, // undefined = the agent's own default
 			},
 			plan: { budgetUsd: 5 },
 			autopilot: { budgetUsd: 1, budgetMaxUsd: 3 },
 			morningReport: { at: "08:00" }, // registers a schedule entry (an action: a message to the coordinator)
+		}),
+
+		// Models served on the owner's own machines (Ollama, or any OpenAI-compatible server), reached over Tailscale. A role's or
+		// a kind's `model` may be an ordered list: the first available at the job's start is used, and the job's record says which
+		// and why. A provider model is available when its server lists it within `probeSeconds`; a built-in one (`anthropic/...`)
+		// always is. A job on a provider model costs 0: its budget never stops it, its time limit does. A model lost mid-job fails
+		// the job; it is never switched mid-run. omp gets the provider through the job's own environment, never its global
+		// models.yml. With every model of a list unavailable the spawn is refused, naming each reason.
+		// An OpenAI-compatible server: `lab: { kind: "openai-compatible", url: "http://10.0.0.5:8000/v1", keyEnv: "ARTHUR_MODELS_LAB_KEY" }`.
+		models({
+			providers: {
+				// url: loopback, private, or Tailscale (100.64.0.0/10, a *.ts.net name); any other is refused at load
+				mac: { kind: "ollama", url: "http://mac-mini.tail1234.ts.net:11434" },
+			},
+			probeSeconds: 3, // a server that has not listed its models by then is unavailable; default 3
 		}),
 
 		// The machines jobs run on. `local` is the one Arthur and the coordinator run on; its os and arch are detected. The others

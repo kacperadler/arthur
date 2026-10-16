@@ -10,26 +10,27 @@
 
 ## Description
 
-Two or three sentences: what changes, and for whom.
+`nameProblem` in `packages/core/src/env.ts` attributes a variable name to the first longer prefix it finds in `owners` order. It now takes the longest, so a refusal names the right owner at any nesting depth.
 
 ## Goal
 
-A variable name is always attributed to the owner with the longest matching prefix, so a refusal names the right plugin or instance at any nesting depth.
+A variable name is always attributed to the owner with the longest matching prefix, so a refusal names the right plugin or instance at any nesting depth. Found by the AR0028 review (F1): with three or more nested levels the message could name the wrong owner.
 
-- Kind: bug | risk | cleanup | improvement
+- Kind: bug
 
 ## Done means
 
-- Observable result, and the test that proves it.
+- With three nested owners (e.g. plugin `a`, its instance `b`, plugin `a-b` with instance `c`) a name under the deepest prefix is attributed to the deepest owner; a new test in `packages/core/test/env.test.ts` fails before the change and passes after, whatever order the owners were declared in.
+- The existing two-level cases hold; no secret value in any message.
 - `npm test` and `npm run check` pass.
 
 ## Scope
 
 In:
-- `path/to/file.ts`: what changes there.
+- `packages/core/src/env.ts` (`nameProblem`), `packages/core/test/env.test.ts`.
 
 Out:
-- What this ticket does not do, and which ticket does.
+- The N-1 pairwise messages for three owners of one prefix (accepted by the review).
 
 ## Decisions
 

@@ -155,9 +155,9 @@
   {
     "id": "AR0017",
     "title": "Roadmap 14: Stop, continue, steer",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0017-roadmap-14-stop-continue-steer/ticket.md",
-    "updated": "2026-10-16T14:39:10.685Z",
+    "updated": "2026-10-16T14:47:46.437Z",
     "after": [
       "AR0014",
       "AR0016"
@@ -527,8 +527,8 @@
   {
     "id": "AR0064",
     "title": "The `models` plugin is missing from the vision and the architecture diagrams",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0064-the-models-plugin-is-missing-from-the-vision-and-the-architecture-diagrams/ticket.md",
-    "updated": "2026-10-16T14:46:27.918Z"
+    "updated": "2026-10-16T14:47:56.787Z"
   }
 ]

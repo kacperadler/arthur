@@ -38,3 +38,4 @@ In:
 ## Decisions
 
 - 2026-10-16: Source: F1 of AR0004
+- 2026-10-16: Coordinator: entry 66 adds the budget line itself from a required `--budget <lines>` flag (the worker's choice), so a new plugin passes at once and its ticket still sets the number.

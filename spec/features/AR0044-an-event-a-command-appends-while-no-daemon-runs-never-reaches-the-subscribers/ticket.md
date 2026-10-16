@@ -43,3 +43,4 @@ Out:
 - 2026-10-16: Source: F1 of AR0035
 - 2026-10-16: Coordinator: the daemon replays from its kept number (option 1), not each consumer re-reading; a short restart's replay of a stale notice is the accepted cost.
 - 2026-10-16: Coordinator: OK on at-least-once after a crash (SIGKILL mid-handlers redelivers that event; SIGTERM never does), the cost of writing the number after the handlers.
+- 2026-10-16: Coordinator: OK on the replay running before any plugin start (not on the first 500 ms check).

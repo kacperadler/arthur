@@ -3,6 +3,8 @@ import { randomBytes } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
+import { board } from "./board.ts";
+import { moveStartedTickets } from "./board-jobs.ts";
 import { clock } from "./clock.ts";
 import { type Command, commandRegistry } from "./commands.ts";
 import type { QuietHours } from "./config.ts";
@@ -99,7 +101,8 @@ export type FakeHost = {
 // command's registration refuses like the real host's, naming the plugin. Its clock stands still at `now` (default
 // 2026-01-01T00:00:00Z) in `timeZone` (default UTC) until `setNow` moves it. `host.board` reads the project list the test
 // provides as `projects`. `host.jobs.spawn` starts from HEAD of the repository `root` (a test's own), with the core's
-// default limits, in the kit's `jobSlice`, and runs the agent `omp` that `PATH` finds; without `root` a spawn refuses.
+// default limits, in the kit's `jobSlice`, and runs the agent `omp` that `PATH` finds; without `root` a spawn refuses. As in
+// a real load, a worker's start moves each ticket its task names to in-progress, on the board of that project list.
 export function fakeHost(plugin: {
 	readonly name: string;
 	readonly options?: Options;
@@ -119,6 +122,7 @@ export function fakeHost(plugin: {
 	const time = clock(plugin.timeZone ?? "UTC", plugin.quietHours, () => new Date(now));
 	const jobs = jobRunner(home, plugin.root ?? home, { timeoutMinutes: 120, budgetUsd: 2, ...jobSlice }, "omp", time, bus, names.collect);
 	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder, clock: time });
+	moveStartedTickets(board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data)), bus);
 	const provided: string[] = [];
 	const calls: Use[] = [];
 	const commands: Command[] = [];

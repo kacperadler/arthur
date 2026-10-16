@@ -124,6 +124,29 @@ test("the fake host records the kinds and roles a plugin registers and spawns on
 	await assert.rejects(alone.host.jobs.spawn({ task: "Review." }), { message: /is not in a Git repository/ });
 });
 
+test("on the fake host, as in a real load, a worker's start moves its planned ticket to in-progress; a read-only kind's moves nothing", async () => {
+	const root = join(temporaryFolder(), "acme");
+	const ticket = "spec/features/AC0001-one/ticket.md";
+	mkdirSync(join(root, dirname(ticket)), { recursive: true });
+	writeFileSync(join(root, ticket), "# AC0001\n");
+	const board = join(root, "spec/build.json");
+	writeFileSync(board, JSON.stringify([{ id: "AC0001", title: "One", status: "planned", path: ticket, updated: "2026-01-01T00:00:00Z" }]));
+	for (const args of [["init", "--quiet"], ["add", "--all"], ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "--quiet", "-m", "first"]])
+		execFileSync("git", ["-C", root, ...args]);
+	const fake = fakeHost({ name: "delivery", root });
+	fake.host.jobs.registerRole({ name: "reviewer", file: reviewer, criteria: [] });
+	fake.host.jobs.registerKind({ name: "review", readOnly: true, role: "reviewer" });
+	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC" }]);
+	const status = () => JSON.parse(readFileSync(board, "utf8"))[0].status;
+	await fake.host.jobs.spawn({ task: `Ticket: ${ticket}. Review it.`, kind: "review" });
+	assert.equal(status(), "planned");
+	await fake.host.jobs.spawn({ task: `Ticket: ${ticket}. Build it.` });
+	assert.equal(status(), "in-progress");
+	const moves = fake.host.events.read(1).filter((event) => event.name === "ticket-moved");
+	assert.deepEqual(moves.map(({ plugin, data }) => [plugin, data]), [["core", { id: "AC0001", project: "acme", from: "planned", to: "in-progress" }]]);
+	assert.deepEqual(fake.emitted, [], "the core's move is not the plugin's event");
+});
+
 // A child process loads the kit with live-looking variables, prints what it sees, and exits as the script says.
 function child(script: string): { readonly seen: { arthur: string[]; tmux: string | null; folder: string }; readonly status: number | null } {
 	const kit = import.meta.resolve("@arthur/core/testing");

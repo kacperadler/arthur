@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type Board, board } from "./board.ts";
+import { NEXT, STATUSES } from "./board-file.ts";
 import { clock } from "./clock.ts";
 import { type CommandRegistry, commandRegistry } from "./commands.ts";
 import type { LoadedConfig } from "./config.ts";
@@ -14,14 +15,17 @@ import { type Plugin, pluginHost, registry } from "./plugin.ts";
 
 // The enabled plugins in setup order, which is the order `start` follows (and `stop` reverses); `warnings` come from the env file;
 // `jobs` spawns with the kinds, checks and steps the plugins registered; `board` is the core's own, for `arthur ticket`: it
-// reads the plugins' project list, names its events `core`, and follows the jobs: a worker's `job-started` moves each ticket its
-// task names (`spec/features/<id>-<slug>/...`) to in-progress (spec/roadmap.md, entry 18); a move the board refuses is logged.
+// reads the plugins' project list, names its events `core`, and follows the jobs: its `beforeSpawn` refuses a worker whose task
+// names a ticket (`spec/features/<id>-<slug>/...`) that cannot move to in-progress, and a worker's `job-started` moves each such
+// ticket to in-progress (spec/roadmap.md, entry 18); a move the board refuses then is logged.
 // `follow` is what `arthur run` follows the event log with.
 export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"] };
 
 const PLUGIN_NAME = /^[a-z]+(-[a-z]+)*$/;
 const REQUIRED = "orchestration";
 const FEATURE = /(?:^|\/)spec\/features\/([A-Z]+\d{4,})-[^/]*\//;
+// The statuses a worker may start from: in-progress itself (a continue) and each one the board lets move to it.
+const STARTS = STATUSES.filter((status) => status === "in-progress" || NEXT[status].includes("in-progress"));
 
 // `commands` holds what the core registered before; the plugins' commands join it, and a name registered twice refuses the load.
 export async function loadPlugins(config: LoadedConfig, shell: Shell = process.env, commands: CommandRegistry = commandRegistry()): Promise<LoadedPlugins> {
@@ -39,6 +43,16 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		await guard(plugin, "setup", () => plugin.setup(host));
 	}
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));
+	jobs.beforeSpawn("core", ({ kind, tickets }) => {
+		if (kind !== "worker") return undefined;
+		const refused = tickets.flatMap((path) => {
+			const id = FEATURE.exec(path)?.[1];
+			const status = id === undefined ? undefined : core.get(id)?.status;
+			if (id === undefined || (status !== undefined && STARTS.includes(status))) return [];
+			return [status === undefined ? `${id} is not on the board` : `${id} is ${status}, which cannot move to in-progress`];
+		});
+		return refused.length > 0 ? `${refused.join("; ")}; a worker starts on a ticket that is ${STARTS.join(", ")}` : undefined;
+	});
 	bus.on("core", "job-started", ({ data }) => {
 		const { kind, tickets } = data as { readonly kind: string; readonly tickets: readonly string[] };
 		if (kind !== "worker") return;

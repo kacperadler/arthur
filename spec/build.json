@@ -218,9 +218,9 @@
   {
     "id": "AR0023",
     "title": "Roadmap 20: Worktree guard and its shell parser",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0023-roadmap-20-worktree-guard-and-its-shell-parser/ticket.md",
-    "updated": "2026-10-16T13:32:23.316Z",
+    "updated": "2026-10-16T13:49:57.358Z",
     "after": [
       "AR0022"
     ]
@@ -464,9 +464,9 @@
   {
     "id": "AR0055",
     "title": "Roadmap: channels hand media to plugins; local voice transcription",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0055-roadmap-channels-hand-media-to-plugins-local-voice-transcription/ticket.md",
-    "updated": "2026-10-16T13:44:07.172Z"
+    "updated": "2026-10-16T13:53:08.249Z"
   },
   {
     "id": "AR0056",

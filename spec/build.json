@@ -125,9 +125,9 @@
   {
     "id": "AR0014",
     "title": "Roadmap 11: Job runner: the wrapper, and the fake agent",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0014-roadmap-11-job-runner-the-wrapper-and-the-fake-agent/ticket.md",
-    "updated": "2026-10-16T09:46:24.751Z",
+    "updated": "2026-10-16T12:07:42.221Z",
     "after": [
       "AR0013"
     ]
@@ -197,9 +197,9 @@
   {
     "id": "AR0021",
     "title": "Roadmap 18: Ticket board: transitions, after, the digest, and the board's phone commands",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0021-roadmap-18-ticket-board-transitions-after-the-digest-and-the-board-s-phone-commands/ticket.md",
-    "updated": "2026-10-16T12:06:36.846Z",
+    "updated": "2026-10-16T12:12:18.469Z",
     "after": [
       "AR0020",
       "AR0012"

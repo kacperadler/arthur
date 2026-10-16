@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: Cut from `spec/roadmap.md` entry 11 by the coordinator; AR tickets need no approval (the owner, 2026-10-16).
+- 2026-10-16: Coordinator: OK on the worker's six calls: tools by the read-only flag, not the kind name; exit 0 with no final message is failed; state running/done/failed with the reason in the log and job-ended; a record deleted mid-run stops the agent and writes <home>/wrapper.log; a base key in the record; jobRunner takes agent from core.agent.command. The real omp smoke runs after the merge (coordinator).

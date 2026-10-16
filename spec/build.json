@@ -127,7 +127,7 @@
     "title": "Roadmap 11: Job runner: the wrapper, and the fake agent",
     "status": "in-progress",
     "path": "spec/features/AR0014-roadmap-11-job-runner-the-wrapper-and-the-fake-agent/ticket.md",
-    "updated": "2026-10-16T12:07:42.221Z",
+    "updated": "2026-10-16T12:33:29.393Z",
     "after": [
       "AR0013"
     ]

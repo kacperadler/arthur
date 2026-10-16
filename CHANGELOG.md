@@ -41,6 +41,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0067 Two `arthur continue` at once can start two wrappers on one record where the job runs bare (9dfd852)
 - AR0068 A continued worker leaves its ticket in review or done (06ad940)
 - AR0070 An `arthur continue` killed before its wrapper starts leaves `continuing`, and the job is never continued again (8e9fcd3)
+- AR0071 A pruned worker whose branch Git keeps loses its worktree, so `arthur continue` on it cannot start (81a3c42)
 
 ### Changed
 

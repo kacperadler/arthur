@@ -43,3 +43,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: The human: take the harness's projects as the example for Arthur and plan it well; not built in the harness (K0259 dropped).
+- 2026-10-16: The human: start the plan now.

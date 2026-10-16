@@ -239,9 +239,9 @@
   {
     "id": "AR0025",
     "title": "Roadmap 22: Jobs on another machine: stop, steer, continue, and the machine going offline",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0025-roadmap-22-jobs-on-another-machine-stop-steer-continue-and-the-machine-going-offline/ticket.md",
-    "updated": "2026-10-16T09:46:28.553Z",
+    "updated": "2026-10-16T19:49:09.785Z",
     "after": [
       "AR0024"
     ]

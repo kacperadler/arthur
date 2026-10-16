@@ -19,8 +19,9 @@ flowchart TD
     events[event stream]
     clock[clock<br/>time zone, quiet hours]
     guards[env guard<br/>worktree guard]
+    kit[test kit<br/>fake host, fake agent]
     loader --> host
-    host ~~~ runner ~~~ board ~~~ events ~~~ clock ~~~ guards
+    host ~~~ runner ~~~ board ~~~ events ~~~ clock ~~~ guards ~~~ kit
   end
 
   subgraph ORCH[Coordinator - always on]
@@ -41,7 +42,7 @@ flowchart TD
 
   subgraph SELF[Arthur itself]
     manage[manage<br/>audit, retro, health]
-    develop[develop<br/>test kit, evals]
+    develop[develop<br/>plugin new, evals]
     manage ~~~ develop
   end
 

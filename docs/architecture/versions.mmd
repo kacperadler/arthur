@@ -1,6 +1,6 @@
-%% From today's harness to Arthur's first version and after it. Green = first version, grey dashed = later.
+%% From the harness in use today to Arthur's first version and after it. Green = first version, grey dashed = later.
 flowchart TD
-  today[Today<br/>this repo, fixes only]
+  today[The harness in use today<br/>takes only fixes]
   move[Move modules with their tests<br/>core first, then plugins]
 
   subgraph V1[First version]
@@ -11,9 +11,9 @@ flowchart TD
     core ~~~ p1 ~~~ p2 ~~~ p3
   end
 
-  start[Arthur starts with an empty board<br/>old spec history stays here]
-  switch1[Switch one project<br/>the harness itself]
-  switch2[Switch the clients]
+  start[Arthur starts with an empty board<br/>the old history is not carried over]
+  switch1[Switch one project first<br/>Arthur itself]
+  switch2[Switch the other projects]
 
   subgraph V2[Later, in this order]
     signal[1 signal]

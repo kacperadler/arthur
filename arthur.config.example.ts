@@ -1,11 +1,11 @@
-// Example arthur.config.ts. A proposal for the new project (spec/next/vision.md); nothing here runs yet, and the
-// `@arthur/*` packages do not exist. Illustrative: the option names are proposed, not final.
+// Example arthur.config.ts. Nothing here runs yet, and the `@arthur/*` packages do not exist; the roadmap
+// (spec/roadmap.md) builds them. Illustrative: the option names are proposed, not final.
 //
 // Rules:
-// - One file, one list, like the plugin list in the human's screenshot: a plugin is a function call with its options.
+// - One file, one list: a plugin is a function call with its options.
 // - `enabled: false` is accepted by every plugin: the host does not load it and does not read its env variables.
 // - A secret is never a value here. An option ending in `Env` names the environment variable that holds it; the value
-//   comes from the shell or `.env` (a shell variable wins), as today. Everything else is plain, non-secret, and literal.
+//   comes from the shell or `.env` (a shell variable wins, even when empty). Everything else is plain, non-secret, and literal.
 // - Env variable names: `ARTHUR_<PLUGIN>_<WHAT>` (ARTHUR_YOUTRACK_TOKEN). A plugin with several accounts (YouTrack servers, Telegram
 //   bots, GitHub accounts) lists named instances, each with its own variables: `ARTHUR_<PLUGIN>_<INSTANCE>_<WHAT>`
 //   (ARTHUR_YOUTRACK_ACME_TOKEN). One instance may omit its name and use the short form. A project names its instance.
@@ -15,8 +15,8 @@
 //   on it. The human talks to it through a channel plugin or the terminal (`arthur attach`).
 // - Projects are declared here, in `projects`, and nowhere else: no separate JSON file. The board starts empty.
 // - Everything in this file, and everything Arthur says to the user, is English.
-// - Marked `first` ships in the first version, `later` after it (see versions.mmd). `named` = the human named it on
-//   2026-10-16; `derived` = the coordinator added it because the harness that exists today already does it.
+// - Marked `first` ships in the first version, `later` after it (docs/architecture/versions.mmd). `named` = the owner named it;
+//   `derived` = added because the harness Arthur replaces already does it.
 
 import { defineConfig } from "@arthur/core";
 import { commitRules } from "@arthur/commit-rules"; // first, named
@@ -36,12 +36,11 @@ import { youtrack } from "@arthur/youtrack"; // first, named
 
 export default defineConfig({
 	// The core's own options: where its files live, what every job may use, and the clock every plugin shares.
-	// Today these are H_JOB_TIMEOUT, H_JOB_BUDGET, H_JOBS_CPU, H_JOBS_MEMORY, H_PATH_PREPEND and the Warsaw time baked into
-	// the timers, the schedule and the Telegram quiet hours; none is a secret, so all are literal here.
+	// None is a secret, so all are literal here.
 	core: {
 		home: ".arthur", // jobs, logs, the board's lock
 		envFile: ".env", // read for the `...Env` names below; the file is never committed
-		agent: { command: "omp" }, // the agent CLI; OMP only (the human, 2026-10-16)
+		agent: { command: "omp" }, // the agent CLI; OMP only
 		timeZone: "Europe/Warsaw", // read by schedule, session, telegram and orchestration through the host
 		quietHours: { from: "22:00", to: "07:30" }, // channels send without a notification; the coordinator answers in one line
 		jobs: {
@@ -53,11 +52,18 @@ export default defineConfig({
 	},
 
 	plugins: [
-		// The coordinator, always on and required. `maxAgents` counts running jobs across all projects together. Also holds the
-		// planning of large tickets (planner role, plan review) and autopilot.
+		// The coordinator, always on and required: it runs one interactive omp in its own tmux session (`arthur attach`), and
+		// starts it again when it ends. `maxAgents` counts running jobs across all projects together. Also holds the planning of
+		// large tickets (planner role, plan review) and autopilot.
 		orchestration({
 			maxAgents: 3,
-			coordinator: { model: "anthropic/claude-opus-5-5", thinking: "high" },
+			coordinator: {
+				model: "anthropic/claude-opus-5-5",
+				thinking: "high",
+				tmux: { session: "arthur", socket: "arthur" },
+				exitWaitSeconds: 60, // wait for the previous omp to exit, so two never refresh the OAuth token at once
+				restartDelaySeconds: 5, // start it again this long after it ended, for any reason
+			},
 			roles: {
 				worker: { model: undefined, thinking: undefined }, // undefined = the agent's own default
 				reviewer: { model: "anthropic/claude-sonnet-5", thinking: "medium" },
@@ -69,16 +75,13 @@ export default defineConfig({
 		}),
 
 		// The coordinator's one long conversation: compacted during the day, new every night, restarted when merged code
-		// must load. Needs `orchestration`. Today these are timers and unit files; the times are the same.
+		// must load. Needs `orchestration`. The clock is core.timeZone.
 		session({
-			compactAt: ["08:00", "13:00", "18:00"], // the clock is core.timeZone
+			compactAt: ["08:00", "13:00", "18:00"],
 			compactWaitSeconds: 1800, // wait this long for an idle session, then skip that compaction
 			freshAt: "23:00", // a fresh conversation (no --continue); skipped while any job runs
-			exitWaitSeconds: 60, // wait for the previous omp to exit, so two never refresh the OAuth token at once
-			restartDelaySeconds: 5,
 			restartGuard: true, // refuse a spawn after a merge changed code the session loaded; the phone commands below clear it
 			probeLlm: true, // one word asked of the model at start; the channels say when there is no access
-			tmux: { session: "arthur", socket: "arthur" },
 			// Registers the phone commands `/restart` and `/restart fresh`: answered without the model, refused while any job runs.
 		}),
 
@@ -94,7 +97,7 @@ export default defineConfig({
 			],
 		}),
 
-		// The project list, in place of spec/clients.json, .agents/harness/project.json and .h/repos. Each project: where it lives
+		// The project list, the only place projects are declared. Each project: where it lives
 		// (a path, or a repo Arthur clones into `reposDir`), its ticket prefix (ids are PREFIX-1, PREFIX-2, ... from an empty board),
 		// its tracker instance (`tracker.instance` names an instance of the youtrack plugin; without it, the unnamed one), its CI
 		// workflow, its commit rules, and the files the roles read. Adding a project is an edit of this list.
@@ -104,7 +107,7 @@ export default defineConfig({
 				{
 					name: "arthur",
 					path: ".",
-					prefix: "A",
+					prefix: "AR",
 					autoMerge: true, // merge after a PASS and green CI without asking
 					tracker: { plugin: "youtrack", project: "ART" },
 					ci: { workflow: "ci.yml" },
@@ -148,13 +151,13 @@ export default defineConfig({
 			],
 		}),
 
-		// Review, merge and CI gate of a worker branch. A plugin, not core (the human, 2026-10-16).
+		// Review, merge and CI gate of a worker branch. A plugin, not core.
 		delivery({
 			review: { alwaysReview: ["policy", "hooks", "merge", "stop", "deploy", "bin", "secrets", "roles", "criteria"] },
 			merge: { afterPassAndGreenCi: true },
 		}),
 
-		// Polls GitHub (CI runs, pull requests) and wakes the coordinator, as K0252 does. Arthur has no endpoint for GitHub to call.
+		// Polls GitHub (CI runs, pull requests) and wakes the coordinator. Arthur has no endpoint for GitHub to call.
 		// The workflow to watch is each project's `ci.workflow`.
 		// Several accounts follow the same rule as YouTrack: `{ name: "acme", tokenEnv: "ARTHUR_GITHUB_ACME_TOKEN" }`.
 		github({
@@ -180,8 +183,9 @@ export default defineConfig({
 			prune: { keepJobsDays: 14 },
 		}),
 
-		// Plugins for developing Arthur: the test kit (fake agent, fake host), `arthur plugin new`, evals.
-		develop({ testKit: true, evals: { dir: "eval" } }),
+		// Plugins for developing Arthur: `arthur plugin new` and evals. The test kit (fake host, fake agent) is core's
+		// `@arthur/core/testing`, so a plugin tests against it without importing another plugin.
+		develop({ evals: { dir: "eval" } }),
 
 		// ---- later ----
 

@@ -5,6 +5,8 @@ import { type Command, type CommandRegistry, commandRegistry } from "./commands.
 import { configCheck } from "./config-check.ts";
 import { loadConfig } from "./config.ts";
 import { loadPlugins } from "./host.ts";
+import type { Plugin } from "./plugin.ts";
+import { runPlugins } from "./run.ts";
 
 // The `arthur` binary (spec/roadmap.md, entry 6): `arthur <command> [args]` runs a command the core or a plugin registered, on
 // `arthur.config.ts` in the working folder. The core's own commands run even when the config or a plugin does not load.
@@ -40,20 +42,25 @@ async function main(argv: readonly string[]): Promise<number> {
 	}
 }
 
+// What `arthur run` starts: the plugins as loaded, in setup order, and the home folder.
+type Loaded = { readonly plugins: readonly Plugin[]; readonly home: string };
+
 // Every command, the core's and the plugins'; when the config or a plugin does not load, the core's alone and the reason.
 async function load(): Promise<{ readonly commands: CommandRegistry; readonly problem?: string }> {
-	const commands = core();
+	let loaded: Loaded | undefined;
+	const commands = core(undefined, () => loaded);
 	try {
-		await loadPlugins(await loadConfig("arthur.config.ts"), process.env, commands);
+		const config = await loadConfig("arthur.config.ts");
+		loaded = { plugins: (await loadPlugins(config, process.env, commands)).plugins, home: config.core.home };
 		return { commands };
 	} catch (error) {
 		const problem = error instanceof Error ? error.message : String(error);
-		return { commands: core(problem), problem };
+		return { commands: core(problem, () => undefined), problem };
 	}
 }
 
-// `problem`: why the plugins' commands are missing, said with every list of the commands.
-function core(problem?: string): CommandRegistry {
+// `problem`: why the plugins' commands are missing, said with every list of the commands; `loaded` once the plugins are set up.
+function core(problem: string | undefined, loaded: () => Loaded | undefined): CommandRegistry {
 	const commands = commandRegistry();
 	commands.register("core", {
 		name: "config",
@@ -66,6 +73,19 @@ function core(problem?: string): CommandRegistry {
 			const { lines, ok } = await configCheck("arthur.config.ts");
 			for (const line of lines) console.log(line);
 			return ok ? 0 : 1;
+		},
+	});
+	commands.register("core", {
+		name: "run",
+		doc: new URL("../docs/commands/run.md", import.meta.url),
+		run({ args }) {
+			if (args.length > 0) {
+				console.error("usage: arthur run");
+				return 2;
+			}
+			const app = loaded();
+			if (app === undefined) throw new Error(`arthur.config.ts did not load:\n${problem}`);
+			return runPlugins(app.plugins, app.home);
 		},
 	});
 	commands.register("core", {

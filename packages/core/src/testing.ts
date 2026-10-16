@@ -48,7 +48,7 @@ export type FakeHost = {
 // The host one plugin sees, alone: its options as given (`enabled` is the host's, left out), its env values, and its folder,
 // `<temporary folder>/<name>/`, whose parent is the home folder holding the event log. A `call` or a command's registration
 // refuses like the real host's, naming the plugin. Its clock stands still at `now` (default 2026-01-01T00:00:00Z) in
-// `timeZone` (default UTC) until `setNow` moves it.
+// `timeZone` (default UTC) until `setNow` moves it. `host.board` reads the project list the test provides as `projects`.
 export function fakeHost(plugin: {
 	readonly name: string;
 	readonly options?: Options;

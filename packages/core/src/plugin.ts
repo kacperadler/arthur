@@ -1,3 +1,4 @@
+import { type Board, board } from "./board.ts";
 import type { Clock } from "./clock.ts";
 import type { CommandRegistry, Commands } from "./commands.ts";
 import type { Bus, Events } from "./events.ts";
@@ -43,6 +44,8 @@ export type Host = {
 	collect<T = unknown>(name: string, ...args: readonly unknown[]): T[];
 	// The command registry: `register` this plugin's commands; `route` and `phone` for a channel.
 	readonly commands: Commands;
+	// The ticket board of every project in the list a plugin provides as `projects`; its events are named by this plugin.
+	readonly board: Board;
 };
 
 export type Registry = {
@@ -88,5 +91,6 @@ export function pluginHost(names: Registry, commands: CommandRegistry, bus: Bus,
 		call: <T>(name: string, ...args: readonly unknown[]) => names.call(own.name, name, args) as T,
 		collect: <T>(name: string, ...args: readonly unknown[]) => names.collect(name, args) as T[],
 		commands: { register: (command) => commands.register(own.name, command), route: commands.route, phone: commands.phone },
+		board: board(() => names.collect("projects", []), own.clock, (name, data) => bus.emit(own.name, name, data)),
 	};
 }

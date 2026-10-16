@@ -65,7 +65,7 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | orchestration (named) | first, always on | The coordinator: its session process and `arthur attach`, the options above, wake on job end, the planning of large tickets, autopilot. |
 | machines (named) | first | The machines jobs run on: `local`, where Arthur runs, and others reached over SSH on a private network, each with labels (os, arch, tools); places each job on a machine that has the labels its project or ticket requires. Below. |
 | resources (named) | first | Caps per job (CPU, memory) and per feature (CPU, memory, time, money), how many jobs start from each machine's free resources, below `maxAgents`, and a floor of free disk per machine. Below. |
-| session (named) | first | The coordinator's conversation: compaction at 08:00, 13:00 and 18:00, a fresh start at 23:00, `/restart` and `/restart fresh`, the restart guard, the start notice and LLM probe. |
+| session (named) | first | The coordinator's conversation: compaction at 08:00, 13:00 and 18:00 whatever jobs run, a fresh start at 23:00 once no job runs (tried again every 15 minutes, skipped that night after 03:00), each after a handoff the next conversation reads first (work in progress, next steps, unanswered questions to the human), `/restart` and `/restart fresh`, the restart guard, the start notice and LLM probe. |
 | schedule (named) | first | A module for actions and jobs at set times: an entry is a daily time or a one-off date and time, and does an action (a message to the coordinator, optionally a named procedure) or a job (spawn one of a kind). Other plugins register their own entries from their options; hand-added ones live in a file. |
 | projects (named) | first | The project list, declared in the config: path or repo, ticket prefix, tracker instance, commit rules, auto-merge, CI workflow, vision and criteria paths, folders in front of `PATH`. Onboarding of a new repository. |
 | commit-rules (named) | first | Each project's commit format, set by a regex, a plain-words rule, or a path to a Markdown file that describes it. Below. |
@@ -166,7 +166,7 @@ Interface: `host.jobs.cleanup(fn)`, `host.jobs.prepare` returning variables for 
 
 ## Where the less obvious parts live
 
-- The coordinator's conversation (compaction, the daily fresh start, `/restart`, the restart guard, the start notice): `session`, first version.
+- The coordinator's conversation (compaction, the daily fresh start, the handoff between conversations, `/restart`, the restart guard, the start notice): `session`, first version.
 - The worktree guard and its shell parser: core, beside the env guard, on for every job.
 - Phone commands that need no model, and the command menu: the core's command registry; each plugin registers its own, channels route only.
 - Night and time zone: core config `timeZone` and `quietHours`, read by every plugin.

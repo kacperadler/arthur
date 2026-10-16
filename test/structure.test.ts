@@ -6,12 +6,13 @@ import { test } from "node:test";
 import { checkStructure } from "./structure.ts";
 
 // The line budget of each package: the number of lines its src/ may hold. They live here only; a raise is a decision recorded in its ticket.
-// core: 4000 until AR0017 (stop, continue, steer: 374 lines on top of main's 3850), which needs 4224; AR0066 (a held pipe
-// does not keep a job running: 2 lines in wrapper.ts), 4226; AR0065 (a continue runs the plugins' beforeSpawn checks on its
-// record: the shared check loop, the record's fields, the ticket parse: 8 lines), 4234; AR0018 (jobs, prune, the dead-job
-// sweep, /jobs, /steer, /stopall: 138 lines net, with board-commands.ts and cli.ts 8 lines shorter each for sharing the
-// record reader and one load check), 4372.
-const BUDGETS = { core: 4372 };
+// core: 4372 after AR0018. The core line review (AR0069, spec/quality/core-lines-2026-10-16.md) set one budget for entries 1 to
+// 22: 5080 lines for the core and its test kit together. 4189 after the cuts AR0073 to AR0078 and the bug tickets AR0068, AR0070
+// and AR0071; the allotment per entry on top: 16 (job state): 250, 21 (another machine: spawn and run): 350, 22 (another machine:
+// stop and offline): 200, the open core bug tickets: 95, of which those three took 9. An entry that needs more than its allotment
+// cuts elsewhere, or its ticket records the overrun as a decision. The test kit (testing.ts, fake-agent.ts: 268 lines) has a budget
+// of its own, so production growth shows on its own: an entry that grows the kit moves lines from core to core/testing.
+const BUDGETS = { core: 4812, "core/testing": 268 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 
@@ -33,7 +34,7 @@ const BASE: Readonly<Record<string, string>> = {
 
 function check(
 	files: Readonly<Record<string, string | undefined>>,
-	budgets: Readonly<Record<string, number>> = { core: 100, telegram: 300 },
+	budgets: Readonly<Record<string, number>> = { core: 100, "core/testing": 100, telegram: 300 },
 ): string[] {
 	const root = mkdtempSync(join(tmpdir(), "arthur-structure-test-"));
 	try {
@@ -140,12 +141,29 @@ test("a source file of exactly 200 lines passes, 201 lines fails", () => {
 
 test("a package over its line budget, or without one, fails; tests do not count", () => {
 	const telegram = { "packages/telegram/src/bot.ts": lines(8), "packages/telegram/test/long.test.ts": lines(50) };
-	assert.deepEqual(check(telegram, { core: 3, telegram: 10 }), []);
-	assert.deepEqual(check(telegram, { core: 2, telegram: 9 }), [
+	assert.deepEqual(check(telegram, { core: 1, "core/testing": 2, telegram: 10 }), []);
+	assert.deepEqual(check({ ...telegram, "packages/core/src/extra.ts": lines(2) }, { core: 2, "core/testing": 2, telegram: 9 }), [
 		"packages/core: has 3 source lines, over its line budget of 2",
 		"packages/telegram: has 10 source lines, over its line budget of 9",
 	]);
-	assert.deepEqual(check({}, { core: 3 }), ["packages/telegram: has no line budget; add one to test/structure.test.ts"]);
+	assert.deepEqual(check({}, { core: 3, "core/testing": 2 }), ["packages/telegram: has no line budget; add one to test/structure.test.ts"]);
+});
+
+test("the core's test kit, testing.ts and fake-agent.ts, counts against core/testing alone, and needs that budget", () => {
+	const kit = { "packages/core/src/fake-agent.ts": lines(5) };
+	assert.deepEqual(check(kit, { core: 1, "core/testing": 7, telegram: 300 }), []);
+	assert.deepEqual(check(kit, { core: 1, "core/testing": 6, telegram: 300 }), [
+		"packages/core: its test kit (src/testing.ts, src/fake-agent.ts) has 7 lines, over its line budget of 6",
+	]);
+	assert.deepEqual(check({ "packages/core/src/extra.ts": lines(6) }, { core: 7, "core/testing": 1, telegram: 300 }), [
+		"packages/core: its test kit (src/testing.ts, src/fake-agent.ts) has 2 lines, over its line budget of 1",
+	]);
+	assert.deepEqual(check({}, { core: 1, telegram: 300 }), [
+		"packages/core: has no line budget for its test kit; add core/testing to test/structure.test.ts",
+	]);
+	assert.deepEqual(check({ "packages/telegram/src/testing.ts": lines(5) }, { core: 1, "core/testing": 2, telegram: 6 }), [
+		"packages/telegram: has 7 source lines, over its line budget of 6",
+	]);
 });
 
 test("a plugin imports no other plugin, no core internal and no path outside its package", () => {

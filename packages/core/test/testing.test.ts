@@ -22,7 +22,7 @@ const schedule = (options: { readonly at: string }): Plugin => ({
 test("the fake host records what a plugin provides and calls, and lets the test drive both sides", async () => {
 	const fake = fakeHost({ name: "schedule", options: { at: "08:00" }, env: { ARTHUR_SCHEDULE_TOKEN: "t" } });
 	fake.provide("jobs.place", (job: string) => `local for ${job}`);
-	await schedule({ at: "08:00" }).setup(fake.host);
+	await fake.setup(schedule({ at: "08:00" }));
 	assert.deepEqual(fake.provided, ["schedule.register"]);
 	assert.deepEqual(fake.calls, [
 		{ kind: "call", name: "jobs.place", args: ["AR1"] },
@@ -46,7 +46,7 @@ test("the fake host's folder is the plugin's own, empty, inside the kit's tempor
 
 test("the fake host refuses a call nobody provides, naming the plugin, as the real host does", async () => {
 	const fake = fakeHost({ name: "schedule", options: { at: "08:00" } });
-	await assert.rejects(async () => schedule({ at: "08:00" }).setup(fake.host), {
+	await assert.rejects(fake.setup(schedule({ at: "08:00" })), {
 		message: 'plugin schedule: call("jobs.place"): no plugin provides it',
 	});
 	assert.throws(() => fake.call("health"), { message: 'plugin test: call("health"): no plugin provides it' });
@@ -108,7 +108,7 @@ test("the fake host records the kinds and roles a plugin registers and spawns on
 	for (const args of [["init", "--quiet"], ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "--quiet", "--allow-empty", "-m", "first"]])
 		execFileSync("git", ["-C", root, ...args]);
 	const fake = fakeHost({ name: "delivery", root });
-	await delivery.setup(fake.host);
+	await fake.setup(delivery);
 	assert.deepEqual(fake.kinds, [{ name: "review", readOnly: true, role: "reviewer" }]);
 	assert.deepEqual(fake.roles, [{ name: "reviewer", file: reviewer, criteria: ["review"] }]);
 	fake.provide("prompt", (role: string) => `Commit rules for the ${role}.`);
@@ -165,6 +165,19 @@ test("on the fake host, as in a real load, a worker on a ticket that cannot move
 	assert.equal(status(), "planning");
 });
 
+test("on the fake host, as in a real load, a spawn during setup throws and nothing is created; a spawn after setup goes on", async () => {
+	const { root, ticket, fake, status } = acme("planned");
+	const eager: Plugin = { name: "delivery", setup: (host) => void host.jobs.spawn({ task: `Ticket: ${ticket}. Build it.` }) };
+	await assert.rejects(fake.setup(eager), { message: "delivery: spawn during setup; start jobs from start() or later" });
+	const records = join(dirname(fake.host.folder), "jobs");
+	assert.deepEqual(existsSync(records) ? readdirSync(records) : [], []);
+	assert.equal(execFileSync("git", ["-C", root, "worktree", "list"], { encoding: "utf8" }).trim().split("\n").length, 1);
+	assert.deepEqual(fake.host.events.read(1), []);
+	assert.equal(status(), "planned");
+	await fake.host.jobs.spawn({ task: `Ticket: ${ticket}. Build it.` });
+	assert.equal(status(), "in-progress");
+});
+
 test("on the fake host, as in a real load, a plugin's own job-started handler runs before the core moves the ticket", async () => {
 	const { ticket, fake, status } = acme("planned");
 	const seen: (string | undefined)[] = [];
@@ -174,7 +187,7 @@ test("on the fake host, as in a real load, a plugin's own job-started handler ru
 			host.events.on("job-started", () => void seen.push(host.board.get("AC0001")?.status));
 		},
 	};
-	await watcher.setup(fake.host);
+	await fake.setup(watcher);
 	await fake.host.jobs.spawn({ task: `Ticket: ${ticket}. Build it.` });
 	assert.deepEqual(seen, ["planned"]);
 	assert.equal(status(), "in-progress");

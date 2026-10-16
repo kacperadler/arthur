@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 import type { LoadedConfig } from "../src/config.ts";
 import type { Shell } from "../src/env.ts";
@@ -184,6 +185,27 @@ test("a setup or a check that throws stops the load and names the plugin", async
 	assert.deepEqual(ran, ["orchestration", "schedule"]);
 	const check = config([fake([], "orchestration"), fake([], "youtrack", { check: () => { throw new Error("bad"); } })]);
 	assert.equal(await refusal(check), "plugin youtrack: check failed: bad");
+});
+
+test("a spawn during the load refuses it, from any plugin's host, and creates nothing; after the load a spawn goes to the runner", async () => {
+	const root = join(temporaryFolder(), "acme");
+	mkdirSync(root);
+	execFileSync("git", ["-C", root, "init", "--quiet", "--initial-branch=main"]);
+	execFileSync("git", ["-C", root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "--allow-empty", "-m", "first"]);
+	const inRoot = (plugins: readonly unknown[]): LoadedConfig => ({ ...config(plugins), path: join(root, "arthur.config.ts") });
+	const hosts: Host[] = [];
+	const keep = (host: Host) => void hosts.push(host);
+	const refused = "orchestration: spawn during setup; start jobs from start() or later";
+	const own = inRoot([fake([], "orchestration", { setup: (host) => void host.jobs.spawn({ task: "Go." }) })]);
+	assert.equal(await refusal(own), `plugin orchestration: setup failed: ${refused}`);
+	const other = inRoot([fake([], "orchestration", { setup: keep }), fake([], "schedule", { setup: () => hosts[0]?.jobs.spawn({ task: "Go." }).then(() => undefined) })]);
+	assert.equal(await refusal(other), `plugin schedule: setup failed: ${refused}`);
+	assert.equal(existsSync(join(other.core.home, "jobs")) || existsSync(join(own.core.home, "jobs")), false, "a record");
+	assert.equal(existsSync(join(dirname(root), ".arthur-worktrees")), false, "a worktree");
+	assert.equal(execFileSync("git", ["-C", root, "branch", "--list"], { encoding: "utf8" }), "* main\n");
+	hosts.length = 0;
+	await loadPlugins(inRoot([fake([], "orchestration", { setup: keep })]), {});
+	await assert.rejects(async () => hosts[0]?.jobs.spawn({ task: " " }), { message: "the task is empty" });
 });
 
 test("an entry that is no plugin, or a plugin with a wrong field, is refused by its place", async () => {

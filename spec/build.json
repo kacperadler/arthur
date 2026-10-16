@@ -115,9 +115,9 @@
   {
     "id": "AR0013",
     "title": "Roadmap 10: Prompt loader and arthur roles",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0013-roadmap-10-prompt-loader-and-arthur-roles/ticket.md",
-    "updated": "2026-10-16T12:05:10.262Z",
+    "updated": "2026-10-16T12:07:17.085Z",
     "after": [
       "AR0012"
     ]
@@ -197,9 +197,9 @@
   {
     "id": "AR0021",
     "title": "Roadmap 18: Ticket board: transitions, after, the digest, and the board's phone commands",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0021-roadmap-18-ticket-board-transitions-after-the-digest-and-the-board-s-phone-commands/ticket.md",
-    "updated": "2026-10-16T12:05:49.072Z",
+    "updated": "2026-10-16T12:06:36.846Z",
     "after": [
       "AR0020",
       "AR0012"

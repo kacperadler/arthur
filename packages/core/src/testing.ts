@@ -56,8 +56,9 @@ export type AgentStep =
 export type AgentRun = { readonly steps: readonly AgentStep[]; readonly exitCode?: number };
 
 // The fake agent: an executable `omp` in a new folder of the kit's, which plays `run` each time it starts and notes each
-// start as one JSON line (`pid`, `cwd`, `args`) in `starts.jsonl` beside it. Returns its path: a test puts its folder first on
-// `PATH` or names it as `core.agent.command`.
+// start as one JSON line (`pid`, `cwd`, `args`) in `starts.jsonl` beside it. It loads the `-e` extensions it is given and
+// calls their `tool_result` handlers after each tool call; each message one sends is a JSON line (`content`, `options`) in
+// `messages.jsonl` beside it. Returns its path: a test puts its folder first on `PATH` or names it as `core.agent.command`.
 export function fakeAgent(run: AgentRun): string {
 	const folder = temporaryFolder();
 	const quote = (text: string) => `'${text.replaceAll("'", `'\\''`)}'`;

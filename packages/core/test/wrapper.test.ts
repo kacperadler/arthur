@@ -15,7 +15,7 @@ const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root
 const commit = (root: string, message: string) => git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", message);
 const RECORD = ["state", "pid", "log", "result", "cost", "tool-calls", "activity", "checks", "commits"];
 const PACKAGE = JSON.stringify({ scripts: { check: "tsc", test: "node --test" } });
-const ENV_GUARD = ["-e", join(import.meta.dirname, "..", "src", "env-guard.ts")];
+const EXTENSIONS = ["env-guard.ts", "steer.ts"].flatMap((name) => ["-e", join(import.meta.dirname, "..", "src", name)]);
 
 // A repository `acme` that declares both checks, a home folder beside it, and a runner whose agent is `agent`; the plugin
 // `delivery` owns the read-only kind `review`.
@@ -107,7 +107,7 @@ test("a finished worker: the agent gets the worker's tools, model, thinking and 
 	assert.ok(start);
 	assert.deepEqual(start?.args, [
 		...["-p", "--mode", "json", "--auto-approve", "--tools", "read,edit,write,bash,grep,glob"],
-		...["--append-system-prompt", join(folder, "prompt"), ...ENV_GUARD, "--model", "anthropic/opus", "--thinking", "high", `@${join(folder, "task")}`],
+		...["--append-system-prompt", join(folder, "prompt"), ...EXTENSIONS, "--model", "anthropic/opus", "--thinking", "high", `@${join(folder, "task")}`],
 	]);
 	assert.equal(start?.cwd, job.worktree);
 	assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" });
@@ -121,7 +121,7 @@ test("a finished worker: the agent gets the worker's tools, model, thinking and 
 		checks: "test pass 3/3\nstale\n",
 		commits: `${git(root, "log", "--oneline", "-1", `arthur/${job.id}`)}\n`,
 	});
-	assert.notEqual(Number(pid), start?.pid, "pid is the wrapper's, the job's process group");
+	assert.notEqual(Number(pid), start?.pid, "pid is the wrapper's, not the agent's");
 	assert.ok(Number(pid) > 0);
 	// The agent's command line first, after the one line of a job without a user manager (scope.test.ts).
 	assert.match(log ?? "", /^(\[arthur [^\]]+\] no systemd scope: [^\n]+\n)?\[arthur [^\]]+\] agent: \S+ -p --mode json/);
@@ -137,7 +137,7 @@ test("a read-only kind gets no edit or write, no model flag, and no commits", as
 	const folder = join(home, "jobs", job.id);
 	assert.deepEqual(starts(agent)[0]?.args, [
 		...["-p", "--mode", "json", "--auto-approve", "--tools", "read,bash,grep,glob"],
-		...["--append-system-prompt", join(folder, "prompt"), ...ENV_GUARD, `@${join(folder, "task")}`],
+		...["--append-system-prompt", join(folder, "prompt"), ...EXTENSIONS, `@${join(folder, "task")}`],
 	]);
 	assert.deepEqual(data, { id: job.id, kind: "review", project: "acme", state: "done", reason: "the agent exited 0" });
 	assert.deepEqual([record.result, record.commits, record.checks, record["tool-calls"], record.cost], ["PASS", "", "", "0", "0.0000"]);

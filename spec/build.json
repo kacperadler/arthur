@@ -281,8 +281,8 @@
   {
     "id": "AR0030",
     "title": "Owner lookup takes the first longer prefix, not the longest",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0030-owner-lookup-takes-the-first-longer-prefix-not-the-longest/ticket.md",
-    "updated": "2026-10-16T10:31:40.172Z"
+    "updated": "2026-10-16T10:31:56.451Z"
   }
 ]

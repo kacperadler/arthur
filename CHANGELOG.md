@@ -11,6 +11,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Fixed
 
 - AR0028 An instance name can produce the same variable prefix as another plugin (859864c)
+- AR0030 Owner lookup takes the first longer prefix, not the longest (6ec64d6)
 
 ### Changed
 

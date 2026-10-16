@@ -422,9 +422,9 @@
   {
     "id": "AR0049",
     "title": "`/findings` does not show findings a worker wrote on its branch",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0049-findings-does-not-show-findings-a-worker-wrote-on-its-branch/ticket.md",
-    "updated": "2026-10-16T12:27:58.207Z"
+    "updated": "2026-10-16T12:32:50.397Z"
   },
   {
     "id": "AR0050",

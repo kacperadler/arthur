@@ -1,0 +1,143 @@
+import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
+import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { test } from "node:test";
+import { type Event, eventBus } from "../src/events.ts";
+import { loadPlugins } from "../src/host.ts";
+import type { Plugin } from "../src/plugin.ts";
+import { temporaryFolder } from "../src/testing.ts";
+
+const logOf = (home: string) => join(home, "events.jsonl");
+const brief = (events: readonly Event[]) => events.map(({ seq, plugin, name, data }) => ({ seq, plugin, name, data }));
+
+test("each event is one line with its sequence number, time and plugin; subscribers and readers get it as logged", async () => {
+	const home = join(temporaryFolder(), ".arthur");
+	const seen: Event[] = [];
+	const plugin = (name: string, setup: Plugin["setup"]): Plugin => ({ name, setup });
+	const jobs = { timeoutMinutes: 120, budgetUsd: 2, cpu: 1, memory: "70%" };
+	const core = { home, envFile: join(home, "env"), agent: { command: "omp" }, timeZone: "UTC", quietHours: undefined, jobs };
+	const before = new Date().toISOString();
+	await loadPlugins({
+		path: join(home, "arthur.config.ts"),
+		core,
+		plugins: [
+			plugin("orchestration", (host) => host.events.on("job-ended", (event) => void seen.push(event))),
+			plugin("telegram", (host) => {
+				host.events.emit("job-ended", { id: "AR1", at: new Date(0), skipped: undefined });
+				host.events.emit("message-received", { text: "hi" });
+				host.events.emit("job-ended", { id: "AR2" });
+			}),
+		],
+	}, {});
+	const lines = readFileSync(logOf(home), "utf8").split("\n");
+	assert.equal(lines.length, 4, "three lines, each ended by a line break");
+	const logged = lines.slice(0, 3).map((line) => JSON.parse(line) as Event);
+	assert.deepEqual(brief(logged), [
+		{ seq: 1, plugin: "telegram", name: "job-ended", data: { id: "AR1", at: "1970-01-01T00:00:00.000Z" } },
+		{ seq: 2, plugin: "telegram", name: "message-received", data: { text: "hi" } },
+		{ seq: 3, plugin: "telegram", name: "job-ended", data: { id: "AR2" } },
+	]);
+	for (const { time } of logged) assert.ok(time >= before && time <= new Date().toISOString(), time);
+	assert.deepEqual(seen, [logged[0], logged[2]]);
+	assert.deepEqual(eventBus(home).read(1), logged);
+});
+
+test("subscribers get events in emit order; an event emitted inside a handler is delivered after the current one", () => {
+	const bus = eventBus(temporaryFolder());
+	const order: string[] = [];
+	bus.on("schedule", "ticket-moved", (event) => {
+		order.push(`schedule got ${event.seq}`);
+		if (event.seq === 1) bus.emit("schedule", "ticket-moved", "inner");
+	});
+	bus.on("telegram", "ticket-moved", (event) => void order.push(`telegram got ${event.seq}`));
+	const outer = bus.emit("delivery", "ticket-moved", "outer");
+	bus.emit("delivery", "ticket-moved", "last");
+	assert.equal(outer.seq, 1);
+	assert.deepEqual(order, ["schedule got 1", "telegram got 1", "schedule got 2", "telegram got 2", "schedule got 3", "telegram got 3"]);
+	assert.deepEqual(bus.read(1).map((event) => event.data), ["outer", "inner", "last"]);
+});
+
+test("a handler that throws or rejects does not stop the others and is logged with its plugin's name", async (t) => {
+	const logged = t.mock.method(console, "error", () => undefined);
+	const bus = eventBus(temporaryFolder());
+	const got: string[] = [];
+	bus.on("schedule", "job-ended", () => {
+		throw new Error("no file");
+	});
+	bus.on("session", "job-ended", () => Promise.reject(new Error("no session")));
+	bus.on("telegram", "job-ended", (event) => void got.push(`telegram ${event.seq}`));
+	bus.emit("orchestration", "job-ended", { id: "AR1" });
+	bus.emit("orchestration", "job-ended", { id: "AR2" });
+	assert.deepEqual(got, ["telegram 1", "telegram 2"]);
+	await new Promise(setImmediate);
+	assert.deepEqual(logged.mock.calls.map((call) => call.arguments[0]).sort(), [
+		"plugin schedule: handler of job-ended (event 1) failed: no file",
+		"plugin schedule: handler of job-ended (event 2) failed: no file",
+		"plugin session: handler of job-ended (event 1) failed: no session",
+		"plugin session: handler of job-ended (event 2) failed: no session",
+	]);
+});
+
+test("two processes appending at once never interleave a line nor repeat a sequence number", async () => {
+	const home = temporaryFolder();
+	const events = JSON.stringify(import.meta.resolve("../src/events.ts"));
+	const count = 300;
+	// Both start at one moment and write lines of 6 to 7 KB, more than one atomic pipe write. The child imports the core by
+	// its path, given at run time.
+	const startAt = Date.now() + 1000;
+	const writer = (plugin: string) => {
+		const { promise, resolve } = Promise.withResolvers<number | null>();
+		const code = `const { appendEvent } = await import(${events});
+			while (Date.now() < ${startAt});
+			for (let i = 0; i < ${count}; i++) appendEvent(${JSON.stringify(home)}, "${plugin}", "tick", { i, pad: "${plugin}".repeat(1000) });`;
+		spawn(process.execPath, ["--input-type=module", "-e", code], { stdio: "inherit" }).on("exit", resolve);
+		return promise;
+	};
+	assert.deepEqual(await Promise.all([writer("daemon"), writer("command")]), [0, 0]);
+	const lines = readFileSync(logOf(home), "utf8").split("\n");
+	assert.equal(lines.pop(), "");
+	const logged = lines.map((line) => JSON.parse(line) as Event);
+	assert.deepEqual(logged.map((event) => event.seq), Array.from({ length: 2 * count }, (_, index) => index + 1));
+	for (const plugin of ["daemon", "command"]) {
+		const own = logged.filter((event) => event.plugin === plugin).map((event) => event.data);
+		const written = Array.from({ length: count }, (_, i) => ({ i, pad: plugin.repeat(1000) }));
+		assert.deepEqual(own, written, `${plugin}'s events, in its order`);
+	}
+	const plugins = logged.map((event) => event.plugin);
+	assert.ok(plugins.indexOf("daemon") < plugins.lastIndexOf("command") && plugins.indexOf("command") < plugins.lastIndexOf("daemon"), "the two ran at once");
+});
+
+test("a torn last line after a crash is skipped on read, and the next sequence number continues after it", () => {
+	const home = temporaryFolder();
+	const bus = eventBus(home);
+	bus.emit("orchestration", "job-started", { id: "AR1" });
+	bus.emit("orchestration", "job-started", { id: "AR2" });
+	appendFileSync(logOf(home), '{"seq":3,"time":"2026-10-16T10:00:00.000Z","plugin":"orchestration","na');
+	assert.deepEqual(bus.read(1).map((event) => event.seq), [1, 2]);
+	assert.equal(bus.emit("orchestration", "job-ended", { id: "AR1" }).seq, 3);
+	assert.deepEqual(brief(bus.read(1)).at(-1), { seq: 3, plugin: "orchestration", name: "job-ended", data: { id: "AR1" } });
+	assert.equal(readFileSync(logOf(home), "utf8").split("\n").length, 5, "the torn line kept on a line of its own");
+	assert.equal(bus.emit("orchestration", "job-ended", { id: "AR2" }).seq, 4);
+});
+
+test("lines broken by hand are skipped; the number continues after the last event, even one longer than a read chunk", () => {
+	const home = temporaryFolder();
+	const bus = eventBus(home);
+	const long = "x".repeat(200_000);
+	bus.emit("orchestration", "job-started", { long });
+	writeFileSync(logOf(home), `${readFileSync(logOf(home), "utf8")}null\n[]\n{"seq":"2","time":"t","plugin":"p","name":"n"}\n\n{"seq":0,"time":"t","plugin":"p","name":"n"}\n`);
+	assert.equal(bus.emit("orchestration", "job-ended", { long }).seq, 2);
+	assert.equal(bus.emit("orchestration", "job-ended", {}).seq, 3);
+	assert.deepEqual(bus.read(1).map((event) => event.seq), [1, 2, 3]);
+});
+
+test("reading from a sequence number gives that event on; past the end, or before any event was logged, nothing", () => {
+	const bus = eventBus(temporaryFolder());
+	assert.deepEqual(bus.read(1), []);
+	for (const name of ["a", "b", "c"]) bus.emit("orchestration", name, null);
+	assert.deepEqual(bus.read(2).map((event) => event.name), ["b", "c"]);
+	assert.deepEqual(bus.read(3).map((event) => event.name), ["c"]);
+	assert.deepEqual(bus.read(4), []);
+	assert.deepEqual(bus.read(1000), []);
+});

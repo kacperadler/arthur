@@ -197,9 +197,9 @@
   {
     "id": "AR0021",
     "title": "Roadmap 18: Ticket board: transitions, after, the digest, and the board's phone commands",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0021-roadmap-18-ticket-board-transitions-after-the-digest-and-the-board-s-phone-commands/ticket.md",
-    "updated": "2026-10-16T12:12:18.469Z",
+    "updated": "2026-10-16T12:12:27.192Z",
     "after": [
       "AR0020",
       "AR0012"

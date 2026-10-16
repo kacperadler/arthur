@@ -135,9 +135,9 @@
   {
     "id": "AR0015",
     "title": "Roadmap 12: Job limits: time and budget",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0015-roadmap-12-job-limits-time-and-budget/ticket.md",
-    "updated": "2026-10-16T09:46:25.086Z",
+    "updated": "2026-10-16T13:00:31.095Z",
     "after": [
       "AR0014"
     ]
@@ -208,9 +208,9 @@
   {
     "id": "AR0022",
     "title": "Roadmap 19: Env guard",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0022-roadmap-19-env-guard/ticket.md",
-    "updated": "2026-10-16T09:46:27.506Z",
+    "updated": "2026-10-16T13:13:35.739Z",
     "after": [
       "AR0014"
     ]

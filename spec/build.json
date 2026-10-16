@@ -178,9 +178,10 @@
     "title": "Roadmap 16: Job state: working, idle, blocked, ended",
     "status": "planned",
     "path": "spec/features/AR0019-roadmap-16-job-state-working-idle-blocked-ended/ticket.md",
-    "updated": "2026-10-16T15:40:46.766Z",
+    "updated": "2026-10-16T16:13:30.693Z",
     "after": [
-      "AR0079"
+      "AR0079",
+      "AR0071"
     ]
   },
   {
@@ -579,9 +580,10 @@
     "title": "An `arthur continue` killed before its wrapper starts leaves `continuing`, and the job is never continued again",
     "status": "planned",
     "path": "spec/features/AR0070-an-arthur-continue-killed-before-its-wrapper-starts-leaves-continuing-and-the-job-is-never-continued-again/ticket.md",
-    "updated": "2026-10-16T15:40:46.970Z",
+    "updated": "2026-10-16T16:13:30.099Z",
     "after": [
-      "AR0073"
+      "AR0074",
+      "AR0078"
     ]
   },
   {
@@ -626,9 +628,9 @@
     "title": "`arthur ticket all` goes; `arthur board all` is the full board",
     "status": "planned",
     "path": "spec/features/AR0075-arthur-ticket-all-goes-arthur-board-all-is-the-full-board/ticket.md",
-    "updated": "2026-10-16T15:40:45.958Z",
+    "updated": "2026-10-16T16:13:29.692Z",
     "after": [
-      "AR0073"
+      "AR0074"
     ]
   },
   {
@@ -636,9 +638,12 @@
     "title": "Core comments that repeat the command docs become pointers",
     "status": "planned",
     "path": "spec/features/AR0076-core-comments-that-repeat-the-command-docs-become-pointers/ticket.md",
-    "updated": "2026-10-16T15:40:45.756Z",
+    "updated": "2026-10-16T16:13:30.296Z",
     "after": [
-      "AR0074"
+      "AR0074",
+      "AR0075",
+      "AR0078",
+      "AR0071"
     ]
   },
   {
@@ -656,9 +661,9 @@
     "title": "The checks record file moves out of the wrapper into a delivery extension",
     "status": "planned",
     "path": "spec/features/AR0078-the-checks-record-file-moves-out-of-the-wrapper-into-a-delivery-extension/ticket.md",
-    "updated": "2026-10-16T15:40:46.360Z",
+    "updated": "2026-10-16T16:13:29.898Z",
     "after": [
-      "AR0073"
+      "AR0077"
     ]
   },
   {
@@ -666,13 +671,9 @@
     "title": "Core line budget 5080 for entries 1 to 22, with the allotment per entry",
     "status": "planned",
     "path": "spec/features/AR0079-core-line-budget-5080-for-entries-1-to-22-with-the-allotment-per-entry/ticket.md",
-    "updated": "2026-10-16T15:40:46.565Z",
+    "updated": "2026-10-16T16:13:30.496Z",
     "after": [
-      "AR0074",
-      "AR0075",
-      "AR0076",
-      "AR0077",
-      "AR0078"
+      "AR0076"
     ]
   },
   {

@@ -6,7 +6,10 @@
   "title": "Core comments that repeat the command docs become pointers",
   "date": "2026-10-16",
   "after": [
-    "AR0074"
+    "AR0074",
+    "AR0075",
+    "AR0078",
+    "AR0071"
   ]
 }
 ```
@@ -37,3 +40,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: Coordinator: from the core line review (AR0069), accepted.
+- 2026-10-16: The human: steps 1 (cuts AR0074 to AR0079) and 2 (entries 16, 21, 22) approved; in parallel only where tickets touch different files, otherwise one after another. Entry 23 starts only after both are merged.

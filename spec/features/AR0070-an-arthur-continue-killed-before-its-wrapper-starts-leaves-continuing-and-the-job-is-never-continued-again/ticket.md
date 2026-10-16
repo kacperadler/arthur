@@ -6,7 +6,8 @@
   "title": "An `arthur continue` killed before its wrapper starts leaves `continuing`, and the job is never continued again",
   "date": "2026-10-16",
   "after": [
-    "AR0073"
+    "AR0074",
+    "AR0078"
   ]
 }
 ```

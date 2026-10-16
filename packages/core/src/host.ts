@@ -18,6 +18,24 @@ const REQUIRED = "orchestration";
 
 // `commands` holds what the core registered before; the plugins' commands join it, and a name registered twice refuses the load.
 export async function loadPlugins(config: LoadedConfig, shell: Shell = process.env, commands: CommandRegistry = commandRegistry()): Promise<LoadedPlugins> {
+	const sorted = await checkPlugins(config);
+	const { values, warnings } = resolveEnv(config, shell);
+	const names = registry();
+	const time = clock(config.core.timeZone, config.core.quietHours);
+	const bus = eventBus(config.core.home);
+	for (const plugin of sorted) {
+		const { enabled: _, ...options } = plugin.options ?? {};
+		const folder = join(config.core.home, plugin.name);
+		mkdirSync(folder, { recursive: true });
+		const host = pluginHost(names, commands, bus, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time });
+		await guard(plugin, "setup", () => plugin.setup(host));
+	}
+	return { plugins: sorted, warnings };
+}
+
+// The host's refusals before any `setup`, which `arthur config check` runs too: the plugin list, `orchestration`, `requires`,
+// cycles and each enabled plugin's own `check`. Throws them, one line each; else returns the enabled plugins in setup order.
+export async function checkPlugins(config: LoadedConfig): Promise<Plugin[]> {
 	const at = (path: string) => `${config.path}: ${path}`;
 	const problems: string[] = [];
 	let unreadable = false;
@@ -53,18 +71,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	if (problems.length > 0) throw new Error(problems.join("\n"));
 	const sorted = setupOrder(enabled, byName);
 	if (typeof sorted === "string") throw new Error(at(`plugins: a cycle in requires: ${sorted}`));
-	const { values, warnings } = resolveEnv(config, shell);
-	const names = registry();
-	const time = clock(config.core.timeZone, config.core.quietHours);
-	const bus = eventBus(config.core.home);
-	for (const plugin of sorted) {
-		const { enabled: _, ...options } = plugin.options ?? {};
-		const folder = join(config.core.home, plugin.name);
-		mkdirSync(folder, { recursive: true });
-		const host = pluginHost(names, commands, bus, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time });
-		await guard(plugin, "setup", () => plugin.setup(host));
-	}
-	return { plugins: sorted, warnings };
+	return sorted;
 }
 
 // Required plugins first, otherwise the config's order; a cycle comes back as its path, e.g. `a -> b -> a`.

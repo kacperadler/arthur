@@ -2,7 +2,7 @@
 
 Usage: `arthur config check`
 
-Loads `arthur.config.ts` from the working folder and lists every env variable the enabled plugins name in their `...Env` options, one line each: `set` or `missing`, the variable, and the option that names it. A value is never printed.
+Loads `arthur.config.ts` from the working folder, runs the host's checks of the plugin list (no plugin's `setup` runs), and lists every env variable the enabled plugins name in their `...Env` options, one line each: `set` or `missing`, the variable, and the option that names it. A value is never printed.
 
 ```
 set     ARTHUR_YOUTRACK_URL (youtrack.instances[0].urlEnv)
@@ -27,5 +27,6 @@ Refused, one line each (the same lines refuse the start):
 - An env-file line without `=`, with a key that is not letters, digits and `_`, or with an unclosed quote: named by its line number, never shown.
 - An env file that exists but cannot be read.
 - A config that does not load (its own refusals, `loadConfig`).
+- A plugin list the host refuses, printed before the env lines: an entry that is not a plugin, two plugins with one name, `orchestration` missing or disabled, an `enabled` that is not true or false, a `requires` naming a plugin that is missing or disabled, a cycle in `requires`, and each enabled plugin's own `check` (its problems, or `plugin <name>: check failed: ...` when it throws). A refusal in a plugin's `setup` (such as a command name registered twice) shows only at the start.
 
 Exit code: 0 when nothing is refused and every variable is set, 1 otherwise, 2 on wrong usage.

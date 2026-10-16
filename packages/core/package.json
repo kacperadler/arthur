@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "license": "SEE LICENSE IN ../../LICENSE",
+  "bin": {
+    "arthur": "./src/cli.ts"
+  },
   "exports": {
     ".": "./src/config.ts"
   }

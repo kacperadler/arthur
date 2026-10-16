@@ -1,10 +1,10 @@
 import { spawnSync } from "node:child_process";
-import { appendFileSync, existsSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { FEATURE, taskTickets } from "./board-jobs.ts";
 import type { Clock } from "./clock.ts";
 import type { Bus } from "./events.ts";
-import { ID, stopJob } from "./job-control.ts";
+import { field, ID, stopJob, wrapperRuns } from "./job-control.ts";
 import { processTable } from "./process-table.ts";
 
 // Every project's job records `<home>/jobs/<id>/` (spec/roadmap.md, entry 15): `arthur jobs`, `arthur prune`, `/stopall`, and
@@ -13,12 +13,6 @@ import { processTable } from "./process-table.ts";
 
 // A finished job as a plugin's `jobs.keep` gets it; `branch` is empty for a read-only kind.
 export type FinishedJob = { readonly [key in "id" | "kind" | "project" | "task" | "state" | "branch" | "worktree"]: string };
-
-// A reader of one record's files; a missing one reads empty.
-export const field = (home: string, id: string) => (name: string): string => {
-	const path = join(home, "jobs", id, name);
-	return existsSync(path) ? readFileSync(path, "utf8") : "";
-};
 
 // When the file was last written; 0 when it is missing.
 const written = (home: string, id: string, name: string) => statSync(join(home, "jobs", id, name), { throwIfNoEntry: false })?.mtimeMs ?? 0;
@@ -63,8 +57,8 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 			for (const id of jobIds(home)) {
 				const read = field(home, id);
 				const [pid, folder] = [read("pid"), join(home, "jobs", id)];
-				// The agent's command line names the record's prompt; the wrapper's, its id.
-				const alive = table.some(({ pid: each, args }) => (String(each) === pid && args.includes("wrapper.ts") && args.includes(id)) || args.includes(join(folder, "prompt")));
+				// The agent's command line names the record's prompt.
+				const alive = wrapperRuns(pid, id, table) || table.some(({ args }) => args.includes(join(folder, "prompt")));
 				if (read("state") !== "running" || alive) continue;
 				seen.add(id);
 				if (!gone.has(id)) continue;

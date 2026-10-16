@@ -5,7 +5,8 @@ import type { Board, Project } from "./board.ts";
 import { taskTickets } from "./board-jobs.ts";
 import { boardText } from "./board-text.ts";
 import type { Command } from "./commands.ts";
-import { field, jobIds } from "./job-records.ts";
+import { field } from "./job-control.ts";
+import { jobIds } from "./job-records.ts";
 
 // The board's phone commands (spec/roadmap.md, entry 18): `/board [PREFIX] [all]`, `/task <id>` and `/findings <id>`, answered
 // from the board's files without the model. Each also runs as `arthur <name>`, which prints the reply and reads a number alone

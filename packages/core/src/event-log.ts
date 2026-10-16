@@ -14,10 +14,6 @@ export type Position = { offset: number; next: number };
 export const LOG = "events.jsonl";
 const CHUNK = 64 * 1024;
 
-export function appendEvent(home: string, plugin: string, name: string, data: unknown): Event {
-	return withLog(home, (fd) => append(fd, plugin, name, data));
-}
-
 // The log open under its lock, so no line is half written while `run` reads or writes it.
 export function withLog<T>(home: string, run: (fd: number) => T): T {
 	const path = join(home, LOG);

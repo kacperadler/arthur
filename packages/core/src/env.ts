@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import type { LoadedConfig } from "./config.ts";
+import { asPlugin } from "./plugin.ts";
 
 // The `...Env` options of the enabled plugins (spec/roadmap.md, entry 3). Each names a variable `ARTHUR_<PLUGIN>_<WHAT>`, or
 // `ARTHUR_<PLUGIN>_<INSTANCE>_<WHAT>` inside a named instance (an object in the options with a string `name`); its value
@@ -20,11 +21,9 @@ export type EnvCheck = {
 	readonly envFileFound: boolean;
 };
 
-type Plugin = { readonly name: string; readonly options: Readonly<Record<string, unknown>> };
 type Found = { readonly option: string; readonly name: unknown; readonly instance: string | undefined };
 type Owner = { readonly prefix: string; readonly owner: string };
 
-const PLUGIN_NAME = /^[a-z]+(-[a-z]+)*$/;
 const VARIABLE = /^[A-Z][A-Z0-9_]*$/;
 const KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -40,17 +39,13 @@ export function resolveEnv(config: LoadedConfig, shell: Shell = process.env): Pi
 	return { values: check.values, warnings: check.warnings };
 }
 
+// An entry of the plugin list that the host refuses (`checkPlugins`) is skipped: its refusal is the host's.
 export function checkEnv(config: LoadedConfig, shell: Shell = process.env): EnvCheck {
 	const problems: string[] = [];
-	const plugins: Plugin[] = [];
-	config.plugins.forEach((entry, index) => {
-		const plugin = asPlugin(entry);
-		if (typeof plugin === "string") problems.push(`${config.path}: plugins[${index}]: ${plugin}`);
-		else plugins.push(plugin);
-	});
+	const plugins = config.plugins.map(asPlugin).filter((plugin) => typeof plugin !== "string");
 	const file = readEnvFile(config.core.envFile);
 	problems.push(...file.problems);
-	const enabled = plugins.filter((plugin) => plugin.options.enabled !== false).map((plugin) => ({ plugin, found: [] as Found[] }));
+	const enabled = plugins.filter((plugin) => plugin.options?.enabled !== false).map((plugin) => ({ plugin, found: [] as Found[] }));
 	for (const { plugin, found } of enabled) findEnv(plugin.options, "", undefined, found);
 	// Every prefix someone owns, across plugins: the longest one a name starts with is its one owner, so none may be owned twice.
 	const owners: Owner[] = plugins.map((plugin) => ({ prefix: prefix(plugin.name), owner: `plugin ${plugin.name}` }));
@@ -80,17 +75,6 @@ export function checkEnv(config: LoadedConfig, shell: Shell = process.env): EnvC
 		values[plugin.name] = set;
 	}
 	return { variables, values, problems, warnings: file.warnings, envFileFound: file.found };
-}
-
-function asPlugin(entry: unknown): Plugin | string {
-	if (typeof entry !== "object" || entry === null || Array.isArray(entry))
-		return `expected a plugin such as youtrack({ ... }), got ${kind(entry)}`;
-	const { name, options } = entry as { readonly name?: unknown; readonly options?: unknown };
-	if (typeof name !== "string" || !PLUGIN_NAME.test(name))
-		return `expected a plugin name of lowercase letters and dashes, got ${typeof name === "string" ? JSON.stringify(name) : kind(name)}`;
-	if (options === undefined) return { name, options: {} };
-	if (typeof options !== "object" || options === null || Array.isArray(options)) return `${name}: expected options as an object, got ${kind(options)}`;
-	return { name, options: options as Readonly<Record<string, unknown>> };
 }
 
 // Every option ending in `Env`, at any depth; an object with a string `name` is a named instance.

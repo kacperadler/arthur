@@ -4,12 +4,12 @@ import { type Board, board } from "./board.ts";
 import { moveStartedTickets, refuseUnstartableTickets } from "./board-jobs.ts";
 import { clock } from "./clock.ts";
 import { type CommandRegistry, commandRegistry } from "./commands.ts";
-import type { LoadedConfig } from "./config.ts";
+import { describe, type LoadedConfig } from "./config.ts";
 import { resolveEnv, type Shell } from "./env.ts";
 import { type Bus, eventBus } from "./events.ts";
 import { SLICE } from "./job-scope.ts";
 import { type JobRunner, jobRunner } from "./jobs.ts";
-import { type Plugin, pluginHost, registry } from "./plugin.ts";
+import { asPlugin, type Plugin, pluginHost, pluginStep, registry } from "./plugin.ts";
 
 // The plugin host (spec/roadmap.md, entry 4): checks the config's plugin list, resolves the enabled plugins' env variables,
 // gives each its folder and runs `setup` in dependency order. Every refusal names the plugins involved.
@@ -22,7 +22,6 @@ import { type Plugin, pluginHost, registry } from "./plugin.ts";
 // `follow` is what `arthur run` follows the event log with.
 export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"] };
 
-const PLUGIN_NAME = /^[a-z]+(-[a-z]+)*$/;
 const REQUIRED = "orchestration";
 
 // `commands` holds what the core registered before; the plugins' commands join it, and a name registered twice refuses the load.
@@ -39,7 +38,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		const folder = join(config.core.home, plugin.name);
 		mkdirSync(folder, { recursive: true });
 		const host = pluginHost(names, commands, bus, jobs, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time }, () => loading);
-		await guard(plugin, "setup", () => plugin.setup(host));
+		await pluginStep(plugin.name, "setup", () => plugin.setup(host));
 	}
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));
 	refuseUnstartableTickets(core, jobs);
@@ -74,7 +73,7 @@ export async function checkPlugins(config: LoadedConfig): Promise<Plugin[]> {
 	for (const plugin of enabled) {
 		const { enabled: flag, ...options } = plugin.options ?? {};
 		if (flag !== undefined && flag !== true) problems.push(at(`${plugin.name}.enabled: expected true or false, got ${describe(flag)}`));
-		for (const { path, problem } of await guard(plugin, "check", () => plugin.check?.(options) ?? []))
+		for (const { path, problem } of await pluginStep(plugin.name, "check", () => plugin.check?.(options) ?? []))
 			problems.push(at(`${plugin.name}.${path}: ${problem}`));
 		for (const name of plugin.requires ?? []) {
 			const required = byName.get(name);
@@ -111,37 +110,4 @@ function setupOrder(plugins: readonly Plugin[], byName: ReadonlyMap<string, Plug
 		if (cycle) return cycle;
 	}
 	return sorted;
-}
-
-function asPlugin(entry: unknown): Plugin | string {
-	if (typeof entry !== "object" || entry === null || Array.isArray(entry)) return `expected a plugin such as youtrack({ ... }), got ${describe(entry)}`;
-	const plugin = entry as Readonly<Record<string, unknown>>;
-	const { name, options, requires } = plugin;
-	if (typeof name !== "string" || !PLUGIN_NAME.test(name)) return `expected a plugin name of lowercase letters and dashes, got ${describe(name)}`;
-	if (options !== undefined && (typeof options !== "object" || options === null || Array.isArray(options)))
-		return `${name}: expected options as an object, got ${describe(options)}`;
-	if (requires !== undefined && !(Array.isArray(requires) && requires.every((item) => typeof item === "string")))
-		return `${name}: expected requires as a list of plugin names, got ${describe(requires)}`;
-	if (typeof plugin.setup !== "function") return `${name}: expected a setup function, got ${describe(plugin.setup)}`;
-	for (const key of ["check", "start", "stop"])
-		if (plugin[key] !== undefined && typeof plugin[key] !== "function") return `${name}: expected ${key} as a function, got ${describe(plugin[key])}`;
-	return entry as Plugin;
-}
-
-// A plugin's own step that throws stops the load, named by the plugin.
-async function guard<T>(plugin: Plugin, step: string, run: () => T | Promise<T>): Promise<T> {
-	try {
-		return await run();
-	} catch (error) {
-		throw new Error(`plugin ${plugin.name}: ${step} failed: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
-	}
-}
-
-function describe(value: unknown): string {
-	if (value === undefined) return "nothing";
-	if (value === null) return "null";
-	if (Array.isArray(value)) return "a list";
-	if (typeof value === "string") return JSON.stringify(value);
-	if (typeof value === "object") return "an object";
-	return typeof value === "function" ? "a function" : String(value);
 }

@@ -9,6 +9,7 @@ import { continueJob } from "./job-control.ts";
 import { writeRecord } from "./job-record.ts";
 import { jobUpkeep } from "./job-records.ts";
 import { copyNodeModules } from "./node-modules.ts";
+import { pluginStep } from "./plugin.ts";
 import { describeRoles, prompt, type Role, type RoleView, roleModel, roleRegistry } from "./roles.ts";
 import { launch, type Slice } from "./job-scope.ts";
 
@@ -139,7 +140,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice, 
 				const built = prompt(role, job.worktree, () => collect("prompt", [role.name, job]));
 				warnings = built.warnings;
 				writeRecord(home, job, built.prompt, kind.resumeOnBudget === true);
-				for (const { owner, fn } of prepares) await step(owner, "prepare", () => fn(job));
+				for (const { owner, fn } of prepares) await pluginStep(owner, "prepare", () => fn(job));
 			} catch (error) {
 				removeWorktree(root, job.worktree, job.branch);
 				rmSync(join(home, "jobs", job.id), { recursive: true, force: true });
@@ -157,7 +158,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice, 
 
 	async function checkSpawn(spawn: Spawn): Promise<void> {
 		for (const { owner, check } of checks) {
-			const reason = await step(owner, "beforeSpawn", () => check(spawn));
+			const reason = await pluginStep(owner, "beforeSpawn", () => check(spawn));
 			if (reason !== undefined) throw new Error(`refused by ${owner}: ${reason}`);
 		}
 	}
@@ -187,14 +188,5 @@ function repository(folder: string): string {
 		return topLevel(folder);
 	} catch {
 		throw new Error(`${folder} is not in a Git repository; a job starts from its HEAD`);
-	}
-}
-
-// A plugin's hook that throws refuses the spawn, named by the plugin.
-async function step<T>(owner: string, name: string, run: () => T | Promise<T>): Promise<T> {
-	try {
-		return await run();
-	} catch (error) {
-		throw new Error(`plugin ${owner}: ${name} failed: ${error instanceof Error ? error.message : String(error)}`);
 	}
 }

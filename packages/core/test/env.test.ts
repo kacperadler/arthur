@@ -10,15 +10,15 @@ const root = mkdtempSync(join(tmpdir(), "arthur-env-test-"));
 after(() => rmSync(root, { recursive: true, force: true }));
 
 let count = 0;
-// A loaded config whose env file holds `envText`, or does not exist when it is undefined.
-function config(plugins: readonly unknown[], envText?: string): LoadedConfig {
+// A loaded config whose env file holds `envText`, or does not exist when it is undefined; each plugin gets a `setup`.
+function config(plugins: readonly object[], envText?: string): LoadedConfig {
 	const folder = join(root, String(++count));
 	mkdirSync(folder);
 	const envFile = join(folder, "env");
 	if (envText !== undefined) writeFileSync(envFile, envText);
 	const jobs = { timeoutMinutes: 120, budgetUsd: 2, cpu: 1, memory: "70%" };
 	const core = { home: join(folder, ".arthur"), envFile, agent: { command: "omp" }, timeZone: "UTC", quietHours: undefined, jobs };
-	return { path: join(folder, "arthur.config.ts"), core, plugins };
+	return { path: join(folder, "arthur.config.ts"), core, plugins: plugins.map((plugin) => ({ setup() {}, ...plugin })) };
 }
 
 const youtrack = (options: object) => ({ name: "youtrack", options });
@@ -190,14 +190,14 @@ test("an option that is not a name is refused without showing it; one left undef
 	]);
 });
 
-test("a plugin entry without a usable name or options is refused", () => {
-	const loaded = config([null, { name: "Bad_Name" }, { options: {} }, { name: "ok", options: [] }]);
-	assert.deepEqual(checkEnv(loaded, {}).problems, [
-		`${loaded.path}: plugins[0]: expected a plugin such as youtrack({ ... }), got null`,
-		`${loaded.path}: plugins[1]: expected a plugin name of lowercase letters and dashes, got "Bad_Name"`,
-		`${loaded.path}: plugins[2]: expected a plugin name of lowercase letters and dashes, got nothing`,
-		`${loaded.path}: plugins[3]: ok: expected options as an object, got a list`,
-	]);
+test("a plugin entry the host refuses is skipped: its refusal is the host's alone", () => {
+	const loaded = config([]);
+	const github = { name: "github", options: { tokenEnv: "ARTHUR_GITHUB_TOKEN" } };
+	const valid = { setup() {}, ...youtrack({ tokenEnv: "ARTHUR_YOUTRACK_TOKEN" }) };
+	const plugins = [null, { name: "Bad_Name", setup() {}, options: { tokenEnv: "X" } }, github, { name: "ok", setup() {}, options: [] }, valid];
+	const check = checkEnv({ ...loaded, plugins }, {});
+	assert.deepEqual(check.problems, []);
+	assert.deepEqual(check.variables.map((variable) => variable.option), ["youtrack.tokenEnv"]);
 });
 
 test("the env file: comments, blank lines, quotes, a # comment after a value, = inside a value, CRLF", () => {

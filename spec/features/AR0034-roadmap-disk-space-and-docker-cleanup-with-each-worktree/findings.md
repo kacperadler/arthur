@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `spec/features/AR0003-merge-checks-of-a-project-that-requires-another-os-run-on-local/ticket.md:22`, `:27`, `:33`
 - What: AR0003's Evidence, Done means and Scope say "entry 53 (`arthur merge`)" and "Add it to entry 53's Delivers and Done means". In `spec/roadmap.md`, entry 53 is `arthur review-needed` and `arthur merge` is entry 54 (AR0002's own Decision says 54). A worker following AR0003 literally edits the wrong entry.
 - Suggestion: change the three mentions in AR0003 to entry 54. Nothing else; AR0034 kept entries 1 to 68 at their numbers, so the fix stays valid.
-- Status: open
+- Status: dropped: AR0003 is dropped (folded into roadmap entry 54 by AR0002), so it is never built; AR0037 dropped

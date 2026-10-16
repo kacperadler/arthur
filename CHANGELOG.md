@@ -28,3 +28,4 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0008 Roadmap 5: Event stream (7c8a5ce)
 - AR0009 Roadmap 6: Command registry and the arthur CLI (3e5fc73)
 - AR0010 Roadmap 7: Clock: time zone and quiet hours (db203fd)
+- AR0034 Roadmap: disk space and Docker cleanup with each worktree (af0e47f)

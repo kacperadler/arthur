@@ -314,9 +314,9 @@
   {
     "id": "AR0034",
     "title": "Roadmap: disk space and Docker cleanup with each worktree",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0034-roadmap-disk-space-and-docker-cleanup-with-each-worktree/ticket.md",
-    "updated": "2026-10-16T11:00:46.220Z"
+    "updated": "2026-10-16T11:01:32.364Z"
   },
   {
     "id": "AR0035",
@@ -334,5 +334,12 @@
     "status": "in-progress",
     "path": "spec/features/AR0036-the-lock-s-dead-holder-takeover-race-has-no-test/ticket.md",
     "updated": "2026-10-16T10:54:15.628Z"
+  },
+  {
+    "id": "AR0037",
+    "title": "AR0003 names `arthur merge` as roadmap entry 53; it is entry 54",
+    "status": "dropped",
+    "path": "spec/features/AR0037-ar0003-names-arthur-merge-as-roadmap-entry-53-it-is-entry-54/ticket.md",
+    "updated": "2026-10-16T11:01:43.621Z"
   }
 ]

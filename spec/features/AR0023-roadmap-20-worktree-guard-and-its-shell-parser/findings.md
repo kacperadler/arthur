@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/worktree-guard.ts` (`jobPlace`)
 - What: the guard reads its places from the job's record: that project's main checkout (`root`), the home folder, and the folder holding the job's worktree (`<root>/../.arthur-worktrees`). Once entry 41 adds more projects, a job of one project may still write into another project's main checkout or its jobs' worktrees, since no record names them. Today the core has one project, so nothing is open yet.
 - Suggestion: with entry 41, have the wrapper hand the guard every project's checkout and worktree folder (for example a file in the record the runner writes), and guard each; keep the guard's command parsing as it is.
-- Status: open
+- Status: ticket AR0059

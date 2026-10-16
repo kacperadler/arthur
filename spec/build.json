@@ -218,9 +218,9 @@
   {
     "id": "AR0023",
     "title": "Roadmap 20: Worktree guard and its shell parser",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0023-roadmap-20-worktree-guard-and-its-shell-parser/ticket.md",
-    "updated": "2026-10-16T14:05:37.917Z",
+    "updated": "2026-10-16T14:05:58.373Z",
     "after": [
       "AR0022"
     ]
@@ -488,5 +488,12 @@
     "status": "merged",
     "path": "spec/features/AR0058-the-styleguide-forbids-a-plugin-to-read-another-plugin-s-folder-and-voice-reads-the-channel-s-saved-file/ticket.md",
     "updated": "2026-10-16T13:58:47.598Z"
+  },
+  {
+    "id": "AR0059",
+    "title": "The worktree guard knows only its own project's checkout",
+    "status": "planned",
+    "path": "spec/features/AR0059-the-worktree-guard-knows-only-its-own-project-s-checkout/ticket.md",
+    "updated": "2026-10-16T14:06:09.112Z"
   }
 ]

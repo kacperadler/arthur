@@ -331,9 +331,9 @@
   {
     "id": "AR0036",
     "title": "The lock's dead-holder takeover race has no test",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0036-the-lock-s-dead-holder-takeover-race-has-no-test/ticket.md",
-    "updated": "2026-10-16T11:04:05.330Z"
+    "updated": "2026-10-16T11:09:09.650Z"
   },
   {
     "id": "AR0037",

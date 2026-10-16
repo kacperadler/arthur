@@ -8,8 +8,27 @@ export const STATUSES = ["planning", "planned", "in-progress", "review", "done",
 
 export type Status = (typeof STATUSES)[number];
 
-// `path`: the ticket's `ticket.md`, from the project's folder; `updated`: when it was created or last moved, ISO 8601.
-export type Entry = { readonly id: string; readonly title: string; readonly status: Status; readonly path: string; readonly updated: string };
+// The allowed moves: `planned` is the human's approval, so the work starts only from it; merged and dropped are final.
+export const NEXT: Readonly<Record<Status, readonly Status[]>> = {
+	planning: ["planned", "dropped"],
+	planned: ["planning", "in-progress", "dropped"],
+	"in-progress": ["planning", "review", "done", "merged", "dropped"],
+	review: ["in-progress", "done", "merged", "dropped"],
+	done: ["in-progress", "review", "merged", "dropped"],
+	merged: [],
+	dropped: [],
+};
+
+// `path`: the ticket's `ticket.md`, from the project's folder; `updated`: when it was created or last moved, ISO 8601; `after`:
+// the ids of the tickets it waits for (entry 18), absent when it waits for none.
+export type Entry = {
+	readonly id: string;
+	readonly title: string;
+	readonly status: Status;
+	readonly path: string;
+	readonly updated: string;
+	readonly after?: readonly string[];
+};
 
 export const ID = /^([A-Z]+)(\d{4,})$/;
 
@@ -50,12 +69,14 @@ export function writeBoard(file: string, entries: readonly Entry[], temporary: s
 
 function entryProblem(entry: unknown): string | undefined {
 	if (typeof entry !== "object" || entry === null || Array.isArray(entry)) return ": expected a ticket object";
-	const { id, title, status, path, updated } = entry as Record<string, unknown>;
+	const { id, title, status, path, updated, after } = entry as Record<string, unknown>;
 	if (typeof id !== "string" || !ID.test(id)) return `.id: expected a prefix in capitals and a number of 4 digits or more, got ${describe(id)}`;
 	if (typeof title !== "string" || title === "") return ".title: expected a non-empty string";
 	if (!STATUSES.includes(status as Status)) return `.status: expected one of ${STATUSES.join(", ")}, got ${describe(status)}`;
 	if (typeof path !== "string" || path === "") return ".path: expected the path of its ticket.md";
 	if (typeof updated !== "string" || Number.isNaN(Date.parse(updated))) return ".updated: expected an ISO 8601 time";
+	if (after !== undefined && (!Array.isArray(after) || !after.every((each) => typeof each === "string" && ID.test(each))))
+		return `.after: expected a list of ticket ids, got ${describe(after)}`;
 	return undefined;
 }
 

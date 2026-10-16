@@ -72,6 +72,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	const args = [
 		...["-p", "--mode", "json", "--auto-approve", "--tools", branch === "" ? READ_ONLY_TOOLS : WORKER_TOOLS],
 		...["--append-system-prompt", join(folder, "prompt")],
+		...["-e", join(import.meta.dirname, "env-guard.ts")],
 		...(model ? ["--model", model] : []),
 		...(thinking ? ["--thinking", thinking] : []),
 		`@${join(folder, "task")}`,

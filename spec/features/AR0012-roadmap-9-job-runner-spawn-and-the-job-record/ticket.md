@@ -39,3 +39,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: Cut from `spec/roadmap.md` entry 9 by the coordinator; AR tickets need no approval (the owner, 2026-10-16).
+- 2026-10-16: Coordinator: OK on job worktrees in `.arthur-worktrees/<id>` next to the repository, no config option (out of the checkout and of `.arthur/`, as the harness does).

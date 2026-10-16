@@ -697,5 +697,12 @@
     "status": "dropped",
     "path": "spec/features/AR0082-readme-still-lists-arthur-ticket-all/ticket.md",
     "updated": "2026-10-16T16:39:27.829Z"
+  },
+  {
+    "id": "AR0083",
+    "title": "arthur prune with no ids refuses; --all prunes every finished job",
+    "status": "planned",
+    "path": "spec/features/AR0083-arthur-prune-with-no-ids-refuses-all-prunes-every-finished-job/ticket.md",
+    "updated": "2026-10-16T16:41:13.531Z"
   }
 ]

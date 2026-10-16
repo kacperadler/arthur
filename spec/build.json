@@ -83,9 +83,9 @@
   {
     "id": "AR0010",
     "title": "Roadmap 7: Clock: time zone and quiet hours",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0010-roadmap-7-clock-time-zone-and-quiet-hours/ticket.md",
-    "updated": "2026-10-16T10:56:58.118Z",
+    "updated": "2026-10-16T10:57:32.826Z",
     "after": [
       "AR0007"
     ]

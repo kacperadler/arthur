@@ -765,6 +765,7 @@ After entry 72, Arthur switches its first project, itself: it runs on the VPS (`
 - Package: server (its web page; the same plugin as 75 and 76).
 - Delivers: the board, the jobs with their states, the events and the coordinator's chat in a browser, served by `server` (75, 76) on the Tailscale network only; Tailscale identifies who connects, so the panel keeps no passwords.
 - Done means: refused at load: a bind address that is neither loopback nor Tailscale's `100.64.0.0/10` or `fd7a:115c:a1e0::/48`. Edge cases: a request from outside the Tailscale network is refused with no detail; the panel's job states are the ones `arthur jobs` prints; its events are the ones 75 streams; a command run from the panel gives the reply `arthur <cmd>` gives.
+- Before any code (the owner, 2026-10-16): the panel is planned with the owner first: the frontend libraries it uses, if any, and why each (the core and the other plugins keep no runtime dependencies), how it is built and served, and the screens; the owner approves the plan.
 - Depends on: 76.
 - Size: several days.
 - Covers: none (new: the owner asked for it on 2026-10-16).

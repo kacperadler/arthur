@@ -636,9 +636,9 @@
   {
     "id": "AR0076",
     "title": "Core comments that repeat the command docs become pointers",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0076-core-comments-that-repeat-the-command-docs-become-pointers/ticket.md",
-    "updated": "2026-10-16T16:13:30.296Z",
+    "updated": "2026-10-16T17:09:31.688Z",
     "after": [
       "AR0074",
       "AR0075",
@@ -718,5 +718,12 @@
     "status": "planning",
     "path": "spec/features/AR0085-a-continue-killed-between-its-new-wrapper-s-pid-and-state-lets-a-second-continue-start-beside-the-running-wrapper/ticket.md",
     "updated": "2026-10-16T17:03:55.677Z"
+  },
+  {
+    "id": "AR0086",
+    "title": "Roadmap 77: web panel, planned with the human first",
+    "status": "planning",
+    "path": "spec/features/AR0086-roadmap-77-web-panel-planned-with-the-human-first/ticket.md",
+    "updated": "2026-10-16T17:13:01.703Z"
   }
 ]

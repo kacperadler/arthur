@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import type { Board } from "./board.ts";
 import { type Command, type CommandRegistry, commandRegistry } from "./commands.ts";
 import { configCheck } from "./config-check.ts";
 import { loadConfig } from "./config.ts";
 import { loadPlugins } from "./host.ts";
+import { ticketCommand } from "./ticket-command.ts";
 
 // The `arthur` binary (spec/roadmap.md, entry 6): `arthur <command> [args]` runs a command the core or a plugin registered, on
 // `arthur.config.ts` in the working folder. The core's own commands run even when the config or a plugin does not load.
@@ -42,19 +44,29 @@ async function main(argv: readonly string[]): Promise<number> {
 
 // Every command, the core's and the plugins'; when the config or a plugin does not load, the core's alone and the reason.
 async function load(): Promise<{ readonly commands: CommandRegistry; readonly problem?: string }> {
-	const commands = core();
+	let board: Board | undefined;
+	const commands = core(undefined, () => board);
 	try {
-		await loadPlugins(await loadConfig("arthur.config.ts"), process.env, commands);
+		({ board } = await loadPlugins(await loadConfig("arthur.config.ts"), process.env, commands));
 		return { commands };
 	} catch (error) {
 		const problem = error instanceof Error ? error.message : String(error);
-		return { commands: core(problem), problem };
+		return { commands: core(problem, () => undefined), problem };
 	}
 }
 
-// `problem`: why the plugins' commands are missing, said with every list of the commands.
-function core(problem?: string): CommandRegistry {
+// `problem`: why the plugins' commands are missing, said with every list of the commands. `board`: the loaded plugins' board,
+// undefined until they load or when they did not.
+function core(problem: string | undefined, board: () => Board | undefined): CommandRegistry {
 	const commands = commandRegistry();
+	commands.register(
+		"core",
+		ticketCommand(() => {
+			const loaded = board();
+			if (loaded === undefined) throw new Error(`the board needs the project list, and arthur.config.ts did not load:\n${problem}`);
+			return loaded;
+		}),
+	);
 	commands.register("core", {
 		name: "config",
 		doc: new URL("../docs/commands/config.md", import.meta.url),

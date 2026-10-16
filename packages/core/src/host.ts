@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { type Board, board } from "./board.ts";
 import { clock } from "./clock.ts";
 import { type CommandRegistry, commandRegistry } from "./commands.ts";
 import type { LoadedConfig } from "./config.ts";
@@ -10,8 +11,9 @@ import { type Plugin, pluginHost, registry } from "./plugin.ts";
 // The plugin host (spec/roadmap.md, entry 4): checks the config's plugin list, resolves the enabled plugins' env variables,
 // gives each its folder and runs `setup` in dependency order. Every refusal names the plugins involved.
 
-// The enabled plugins in setup order, which is the order `start` follows (and `stop` reverses); `warnings` come from the env file.
-export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[] };
+// The enabled plugins in setup order, which is the order `start` follows (and `stop` reverses); `warnings` come from the env file;
+// `board` is the core's own, for `arthur ticket`: it reads the plugins' project list and names its events `core`.
+export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly board: Board };
 
 const PLUGIN_NAME = /^[a-z]+(-[a-z]+)*$/;
 const REQUIRED = "orchestration";
@@ -64,7 +66,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		const host = pluginHost(names, commands, bus, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time });
 		await guard(plugin, "setup", () => plugin.setup(host));
 	}
-	return { plugins: sorted, warnings };
+	return { plugins: sorted, warnings, board: board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data)) };
 }
 
 // Required plugins first, otherwise the config's order; a cycle comes back as its path, e.g. `a -> b -> a`.

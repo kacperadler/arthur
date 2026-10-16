@@ -187,9 +187,9 @@
   {
     "id": "AR0020",
     "title": "Roadmap 17: Ticket board: tickets and the board file",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0020-roadmap-17-ticket-board-tickets-and-the-board-file/ticket.md",
-    "updated": "2026-10-16T11:11:30.410Z",
+    "updated": "2026-10-16T11:26:13.341Z",
     "after": [
       "AR0036"
     ]
@@ -287,9 +287,9 @@
   {
     "id": "AR0031",
     "title": "`arthur config check` passes a plugin list the host refuses",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0031-arthur-config-check-passes-a-plugin-list-the-host-refuses/ticket.md",
-    "updated": "2026-10-16T11:24:22.661Z",
+    "updated": "2026-10-16T11:26:51.847Z",
     "after": [
       "AR0011"
     ]

@@ -5,6 +5,7 @@ import type { Board } from "./board.ts";
 import { type Command, type CommandRegistry, commandRegistry } from "./commands.ts";
 import { configCheck } from "./config-check.ts";
 import { loadConfig } from "./config.ts";
+import { parseFlags } from "./flags.ts";
 import { type LoadedPlugins, loadPlugins } from "./host.ts";
 import type { JobRunner } from "./jobs.ts";
 import { boardCommands } from "./board-commands.ts";
@@ -23,19 +24,9 @@ const USAGE = "usage: arthur <command> [args] [--project <name>]; arthur <comman
 process.exitCode = await main(process.argv.slice(2));
 
 async function main(argv: readonly string[]): Promise<number> {
-	const rest: string[] = [];
-	let project: string | undefined;
-	for (let index = 0; index < argv.length; index++) {
-		const arg = argv[index] ?? "";
-		if (arg !== "--project") {
-			rest.push(arg);
-			continue;
-		}
-		const value = argv[++index];
-		if (value === undefined || value.startsWith("-")) return usage("--project needs a project name");
-		if (project !== undefined) return usage(`--project given twice: ${project}, ${value}`);
-		project = value;
-	}
+	const parsed = parseFlags(argv, { project: (value, before) => (value === undefined || value.startsWith("-") ? "needs a project name" : before === undefined ? undefined : `given twice: ${before}, ${value}`) }, true);
+	if (typeof parsed === "string") return usage(parsed);
+	const { words: rest, values: { project } } = parsed;
 	const [name = "help", ...args] = rest[0] === "--help" ? [] : rest;
 	const { commands, problem } = await load();
 	const command = commands.find(name);

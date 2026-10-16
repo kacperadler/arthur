@@ -21,7 +21,7 @@ The statuses and the moves allowed from each:
 | `merged` | none: final |
 | `dropped` | none: final |
 
-`planned` is the human's approval, so work starts only from it. Statuses follow the jobs: a worker's start (`job-started`) moves each ticket its task names in a `Ticket:` line to `in-progress` (see `arthur spawn --help`).
+`planned` is the human's approval, so work starts only from it. Statuses follow the jobs: a worker's start (`job-started`), at a spawn or a continue, moves each ticket its task names in a `Ticket:` line to `in-progress` (see `arthur spawn --help` and `arthur continue --help`).
 
 Ids are the project's prefix and a number of at least 4 digits, from 1 (`AR0001`), one above the highest number the board or a ticket folder of that prefix has, so a dropped ticket's id is never given again. The folder's slug is the title in lowercase letters and digits joined by dashes, cut at a dash to at most 80 characters.
 

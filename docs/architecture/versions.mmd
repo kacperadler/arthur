@@ -4,8 +4,8 @@ flowchart TD
   move[Move modules with their tests<br/>core first, then plugins]
 
   subgraph V1[First version]
-    core[core]
-    p1[orchestration - always on,<br/>session, schedule,<br/>projects, youtrack, telegram]
+    core[core<br/>with job state and jobs over SSH]
+    p1[orchestration - always on,<br/>machines, resources,<br/>session, schedule,<br/>projects, youtrack, telegram]
     p2[delivery, github,<br/>commit-rules]
     p3[manage, develop]
     core ~~~ p1 ~~~ p2 ~~~ p3

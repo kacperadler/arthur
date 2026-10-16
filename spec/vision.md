@@ -18,10 +18,10 @@ The core itself does no orchestration. The coordinator is the `orchestration` pl
 - Projects are declared in `arthur.config.ts`, and nowhere else: each one's path or repository, ticket prefix, tracker instance, commit rules and other settings are options of the `projects` plugin. There is no separate JSON file for them. Adding a project is an edit of the config, reviewed like code.
 - The agent is OMP. The core runs `omp`; there is no agent-adapter layer.
 - Arthur is English only: code, docs, and everything it says to the user (channel messages, reports, prompts). The human may write in any language; Arthur answers in English.
-- Arthur exposes nothing to the internet: no public endpoint, no webhook receiver, no public port. Every plugin calls out (Telegram and GitHub are polled) or talks to a local process.
+- Arthur exposes nothing to the internet: no public endpoint, no webhook receiver, no public port. Every plugin calls out (Telegram and GitHub are polled) or talks to a local process. Other machines are reached over SSH on a private network (Tailscale), never over the internet.
 - One config file, `arthur.config.ts`: the plugin list, each plugin with its options. It holds no secret: an option ending in `Env` names the environment variable that holds it. The values stay in the shell or `.env`, which is never committed. Variables are `ARTHUR_<PLUGIN>_<WHAT>`, e.g. `ARTHUR_YOUTRACK_TOKEN`. A plugin with several accounts (YouTrack servers, Telegram bots, GitHub accounts) lists named instances, each with its own variables, `ARTHUR_<PLUGIN>_<INSTANCE>_<WHAT>`, e.g. `ARTHUR_YOUTRACK_ACME_TOKEN`; one instance may omit its name and use the short form. A project names its instance.
 - Core and each plugin are tested apart: the core against a fake plugin and a fake agent, a plugin against a fake host. A plugin never imports another plugin or the core's internals, only the core's published interface; it talks to the core and, through it, to others.
-- It runs on a VPS as a process. Running it needs Node and OMP, no runtime dependencies.
+- It runs on a VPS as a process, and may run jobs on other machines it reaches over SSH. Running it needs Node and OMP, no runtime dependencies.
 - It stays small enough for one person to understand from its map: the core has a line budget, and each plugin has its own.
 - The repository is public, on GitHub: `git@github.com:kacperadler/arthur.git`.
 
@@ -31,13 +31,13 @@ The `orchestration` plugin is the coordinator: one interactive `omp` in its own 
 
 | Option | Does |
 | --- | --- |
-| `maxAgents` | The most jobs running at once, across all projects together. Enforced, not only a rule in the prompt. |
+| `maxAgents` | The most jobs running at once, across all projects and machines together. Enforced, not only a rule in the prompt. With `resources` on it is the upper bound: fewer start when the machines' free resources say so. |
 | `coordinator`, `roles` | Model and thinking level of the coordinator and of each role (worker, reviewer, planner, auditor, retro, onboarding), and the quick model; the coordinator's tmux session and restart timing. |
 | `plan` | The budget of a plan for a large ticket (planner role, plan review). |
 | `autopilot` | The budget of a pre-approved job and its cap. |
 | `morningReport` | When the morning report is sent; registers a schedule entry. |
 
-The core keeps what is not a decision about directing: the limits of one job (time, budget) and of all jobs together (CPU, memory).
+The core keeps what is not a decision about directing: the limits of one job (time, budget) and of all jobs together (CPU, memory). A job's own CPU and memory, the caps of a feature, and how many jobs the free resources allow belong to the `resources` plugin.
 
 ## Core and plugins
 
@@ -49,7 +49,7 @@ The core, always on:
 | Plugin host | Calls each enabled plugin with the host API; a plugin subscribes to events, emits events, reads its options and env, and reads the project list. A disabled plugin is not loaded. |
 | Command registry | A plugin registers its commands, each with its doc page (what `arthur <cmd> --help` prints) and, where it has one, a phone command (`/jobs`, `/health`, `/restart`). A channel only routes `/name text` to the host and sends the reply; it imports no other plugin. |
 | Terminal | Every registered command runs from a shell as `arthur <cmd>`; `arthur attach`, which `orchestration` registers, opens the coordinator's session. |
-| Job runner | One job in one worktree on one branch: spawn `omp`, its log, limits (time, budget, CPU and memory in one joint slice), stop, continue, steer. Finds a job whose process is gone and fails it. A plugin registers the kinds of job it owns (review, audit, plan, ...). |
+| Job runner | One job in one worktree on one branch, on this machine or another one over SSH: spawn `omp`, its log, its state (working, idle, blocked, ended), limits (time, budget, CPU and memory in one joint slice), stop, continue, steer. Finds a job whose process is gone and fails it. A plugin registers the kinds of job it owns (review, audit, plan, ...). |
 | Ticket board | Tickets as files, the board as one JSON, changed only through the core's own command. Ids are the project's `prefix` and a number, from 1. |
 | Prompt loader | Builds each role's prompt: the role file a plugin ships, a project's own override, then the project's criteria files. |
 | Event stream | Every state change (job started, ended, ticket moved) is an event from day one, so a server plugin can come later without changing the core. |
@@ -63,6 +63,8 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | Plugin | First or later | Does |
 | --- | --- | --- |
 | orchestration (named) | first, always on | The coordinator: its session process and `arthur attach`, the options above, wake on job end, the planning of large tickets, autopilot. |
+| machines (named) | first | The machines jobs run on: `local`, where Arthur runs, and others reached over SSH on a private network, each with labels (os, arch, tools); places each job on a machine that has the labels its project or ticket requires. Below. |
+| resources (named) | first | Caps per job (CPU, memory) and per feature (CPU, memory, time, money), and how many jobs start from each machine's free resources, below `maxAgents`. Below. |
 | session (named) | first | The coordinator's conversation: compaction at 08:00, 13:00 and 18:00, a fresh start at 23:00, `/restart` and `/restart fresh`, the restart guard, the start notice and LLM probe. |
 | schedule (named) | first | A module for actions and jobs at set times: an entry is a daily time or a one-off date and time, and does an action (a message to the coordinator, optionally a named procedure) or a job (spawn one of a kind). Other plugins register their own entries from their options; hand-added ones live in a file. |
 | projects (named) | first | The project list, declared in the config: path or repo, ticket prefix, tracker instance, commit rules, auto-merge, CI workflow, vision and criteria paths, folders in front of `PATH`. Onboarding of a new repository. |
@@ -95,6 +97,41 @@ A project with no `commitRules` has none. The plugin never edits a project's own
 
 Arthur polls: the github plugin asks for the CI runs of the branches in play every `poll.everySeconds` (120 in the example) and emits `ci-finished` once per run, keyed by run id; the coordinator wakes on it. A project names the workflow to watch in its `ci` option. The cost is the interval's delay before the coordinator learns a run ended. Nothing listens for GitHub, so there is no secret to check and nothing to expose. If webhooks ever return, they come back as a decision of the owner, with the exposure explained first.
 
+## Job state, machines and resources
+
+The owner asked for these three on 2026-10-16. The roadmap builds job state and jobs on another machine into the core right after the job runner, and the `machines` and `resources` plugins right after orchestration.
+
+### Job state
+
+Home: the core's job runner; shown by `orchestration` and the channels. Every job is in one of four states, with a reason and since when:
+
+| State | Means |
+| --- | --- |
+| working | The agent is in a turn: output or a tool call within the last `jobs.idleMinutes`. |
+| idle | Its process is alive and not blocked, but has done nothing for `jobs.idleMinutes`: likely stuck. |
+| blocked | It cannot go on until something outside it happens: the user (a question its run ended with, its feature's cap reached) or a dependency (another ticket or job, its machine offline). |
+| ended | Nothing more will happen: finished, failed, stopped, a limit hit, process gone. |
+
+A run ends blocked when the first line of its final message is `Blocked: user <question>` or `Blocked: on <ticket or job id>`; `arthur continue` resumes it. Interface: the record's `state`, the `job-state` event on each change, `host.jobs.block(id, reason)` and `unblock(id)` for a plugin that holds a job, `arthur jobs` and `/jobs`. The coordinator's context lists the jobs that have not ended by state, its wake says the state a run ended in, and a job blocked on the user is a `notice` every channel sends.
+
+### Several machines
+
+Home: the core's job runner runs a job on a machine; the `machines` plugin declares the machines and places each job. Arthur and the coordinator run on one machine, `local`. Arthur reaches the others with `ssh` over a private network (Tailscale), with the user's own keys and `~/.ssh/config`: ssh never asks for a password and never accepts a host key on its own, and a machine whose address is not private is refused. Nothing listens for Arthur anywhere.
+
+Each machine has labels: `os` (`linux`, `macos`), `arch`, `tools` (`xcode`, `docker`, ...), and a `maxJobs`. A project (`requires` in `projects`) or a ticket (`requires` in its JSON block) names the labels its jobs need, and every job of it is placed on an online machine that has them: most jobs on Linux, an iOS build or a macOS check run on a Mac. `--machine` picks one by hand, checked against the labels.
+
+A machine needs Node, git, OMP logged in with its own credential, and the same version of Arthur's core; Arthur sends it no secret. The core pushes the base commit there over SSH, runs the worktree, the wrapper and the guards there, copies the job's record back on each sweep, and fetches the branch back when the job ends. A machine offline mid-job holds its jobs blocked for `jobs.offlineGraceMinutes`, then fails them and keeps their worktree there. Interface: `host.jobs.registerMachine`, `provide("jobs.place")`, `machine-online` and `machine-offline`, `arthur machines`, `/machines`, `arthur spawn --machine` and `--requires`.
+
+### Resources
+
+Home: the `resources` plugin. A job's time and money stay the core's limits (`jobs.timeoutMinutes`, `jobs.budgetUsd`), and so does the joint slice that keeps all jobs from starving the coordinator.
+
+- Per job: `perJob.cpu` and `perJob.memory`, on the job's own scope. A job over its memory cap ends `limit: memory`; CPU is slowed, not stopped. On macOS, which has no systemd, memory is sampled and CPU is not capped.
+- Per feature, all jobs of one ticket together: `perFeature.budgetUsd`, `hours`, `cpu`, `memory`; a ticket's `caps` replace them for that ticket. At the cap, spawns for the ticket are refused and its running jobs are stopped and held blocked until the human raises the cap.
+- How many jobs: each machine's free CPU and memory. A job starts only when its machine keeps `keepFree` after the job's reservation (its `perJob` caps); the coordinator sees each machine's room in its context and decides how many to start. `maxAgents` stays the upper bound across all machines.
+
+Interface: `beforeSpawn` refusals that name the shortfall, `provide("jobs.limits")` read by the core's job scope, `provide("resources.free")` read by placement, the `cap-reached` event, one context line per machine, `arthur resources`, `/resources`.
+
 ## How it is built
 
 - The plugin API is derived from three plugins: telegram, youtrack, schedule. They are a channel, a tracker and a timer; their common shape is the host API. The styleguide forbids abstracting before the second example, so the API is frozen after those three are built, not before.
@@ -116,6 +153,9 @@ Arthur polls: the github plugin asks for the CI runs of the branches in play eve
 - The commit-subject rule and its hook: the `commit-rules` plugin, per project. Arthur's own repository uses it like any project.
 - Language: English only from the first line of code; the board and every message read and write English keys.
 - Ticket prefixes: `projects`, option `prefix` per project. No renumbering: the board starts empty.
+- A job's state: the core's job runner (its record, `job-state`); shown by `orchestration` (context, wake, a notice when a job asks the user) and `/jobs` on every channel.
+- Running a job on another machine: the core's job runner, over SSH. Which machines exist, their labels, and which one a job goes to: `machines`.
+- A job's time and money: the core. A job's CPU and memory, a feature's caps, and how many jobs the free resources allow: `resources`.
 
 ## Licence
 
@@ -149,3 +189,6 @@ FSL-1.1-ALv2, the Functional Source License with Apache 2.0 after two years. It 
 13. Projects live in `arthur.config.ts` (path, prefix, tracker instance, commit rules, other settings), not in a separate JSON file.
 14. The coordinator is the `orchestration` plugin, required and impossible to disable, not part of the core: the core stays a job runner, and the coordinator is tested apart against a fake host.
 15. The agent is OMP; the config is TypeScript naming env variables; diagrams are Mermaid.
+16. Every job has one state: working, idle, blocked (on the user or a dependency), or ended; the coordinator and the channels show it.
+17. Arthur runs on one machine and starts jobs on others it reaches over SSH on a private network (Tailscale), placed by the labels (os, arch, tools) a project or a ticket requires. Nothing is exposed to the internet.
+18. A `resources` plugin caps what one job or one feature may use (CPU, memory, time, money; a job's time and money are the core's existing limits) and decides how many jobs start from each machine's free resources; `maxAgents` stays the upper bound.

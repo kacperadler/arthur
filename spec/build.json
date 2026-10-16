@@ -53,9 +53,9 @@
   {
     "id": "AR0007",
     "title": "Roadmap 4: Plugin host, and the fake host",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0007-roadmap-4-plugin-host-and-the-fake-host/ticket.md",
-    "updated": "2026-10-16T10:29:12.755Z",
+    "updated": "2026-10-16T10:32:14.326Z",
     "after": [
       "AR0006"
     ]

@@ -115,9 +115,9 @@
   {
     "id": "AR0013",
     "title": "Roadmap 10: Prompt loader and arthur roles",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0013-roadmap-10-prompt-loader-and-arthur-roles/ticket.md",
-    "updated": "2026-10-16T12:02:46.281Z",
+    "updated": "2026-10-16T12:03:32.663Z",
     "after": [
       "AR0012"
     ]
@@ -321,9 +321,9 @@
   {
     "id": "AR0035",
     "title": "An event a command emits reaches the log but not the daemon's subscribers",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0035-an-event-a-command-emits-reaches-the-log-but-not-the-daemon-s-subscribers/ticket.md",
-    "updated": "2026-10-16T11:59:33.714Z",
+    "updated": "2026-10-16T12:04:07.421Z",
     "after": [
       "AR0011"
     ]

@@ -4,6 +4,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ## 2026-10-16
 
+### Added
+
+- AR0027 Dev dependencies beyond the toolchain are not checked (226d399)
+
 ### Other
 
 - AR0001 Bootstrap: Arthur repository, docs, toolchain and the feature roadmap (bf0b60a)

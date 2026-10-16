@@ -260,8 +260,8 @@
   {
     "id": "AR0027",
     "title": "Dev dependencies beyond the toolchain are not checked",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0027-dev-dependencies-beyond-the-toolchain-are-not-checked/ticket.md",
-    "updated": "2026-10-16T09:55:14.833Z"
+    "updated": "2026-10-16T09:56:25.112Z"
   }
 ]

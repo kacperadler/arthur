@@ -82,6 +82,19 @@ test("arthur spawn returns while the agent of core.agent.command runs in the bac
 	assert.equal(readFileSync(join(root, ".arthur/jobs", id, "result"), "utf8"), "Built it.");
 });
 
+test("a wrapper that systemd-run did not start: arthur spawn prints the id, then the reason, and exits 1; the worktree stays", () => {
+	const root = repository();
+	const bin = temporaryFolder();
+	writeFileSync(join(bin, "systemctl"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+	writeFileSync(join(bin, "systemd-run"), "#!/bin/sh\necho 'Failed to start transient scope unit: Access denied' >&2\nexit 1\n", { mode: 0o755 });
+	const run = spawnSync(process.execPath, [CLI, "spawn", "Build it."], { cwd: root, encoding: "utf8", env: { PATH: `${bin}:${process.env.PATH}` } });
+	const id = run.stdout.trim();
+	assert.match(run.stdout, /^\d{4}-\d\d-\d\d-worker-[0-9a-f]{8}\n$/);
+	assert.deepEqual([run.status, run.stderr.split("\n").at(-2)], [1, "failed: systemd-run: Failed to start transient scope unit: Access denied"]);
+	assert.equal(readFileSync(join(root, ".arthur/jobs", id, "state"), "utf8"), "failed");
+	assert.equal(git(join(dirname(root), ".arthur-worktrees", id), "branch", "--show-current"), `arthur/${id}`);
+});
+
 test("--kind review makes a detached checkout with the kind's limits", () => {
 	const root = repository();
 	const run = arthur(root, "spawn", "--kind", "review", "Review it.");

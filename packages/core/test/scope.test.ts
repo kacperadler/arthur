@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
-import { join } from "node:path";
-import { test } from "node:test";
+import { delimiter, dirname, join } from "node:path";
+import { type TestContext, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { clock } from "../src/clock.ts";
 import { loadConfig } from "../src/config.ts";
@@ -135,4 +135,59 @@ test("without a user manager the job runs bare, its log saying so in one line, a
 	const line = /^\[arthur [^\]]+\] no systemd scope: [^\n]+; the job runs bare, without the joint limit of core\.jobs\.cpu and core\.jobs\.memory, and what it leaves behind is not killed at its end\n\[arthur [^\]]+\] agent: /;
 	assert.match(log, line);
 	assert.equal(log.match(/no systemd scope/g)?.length, 1, log);
+});
+
+// A folder on `PATH` until the test ends, first, or `alone`: a `systemctl` that sets any slice, and each script of `scripts`
+// under its name.
+function onPath(t: TestContext, scripts: Readonly<Record<string, string>>, alone = false): void {
+	const bin = temporaryFolder();
+	for (const [name, body] of Object.entries({ systemctl: "exit 0", ...scripts })) writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
+	const saved = process.env.PATH;
+	t.after(() => void (process.env.PATH = saved));
+	process.env.PATH = alone ? bin : [bin, saved].join(delimiter);
+}
+
+// A job whose wrapper did not start, as `spawn` returns it: ended `failed` with the reason `reasonIn` gives for the home
+// folder, its one `job-ended` emitted, the record's end written, no agent started, and its worktree and branch kept.
+async function endedAtSpawn(reasonIn: (home: string) => string): Promise<number> {
+	const agent = fakeAgent({ steps: [{ message: "Done." }] });
+	const { home, jobs } = setup(agent);
+	const reason = reasonIn(home);
+	const job = await jobs.spawn({ task: "Go." });
+	assert.equal(job.failed, reason);
+	const events = readEvents(home, 1).filter((event) => event.name === "job-ended");
+	assert.deepEqual(events.map((event) => event.data), [{ id: job.id, kind: "worker", project: "acme", state: "failed", reason }]);
+	const folder = join(home, "jobs", job.id);
+	const end = ["state", "result", "cost", "tool-calls", "activity", "checks", "commits"].map((name) => readFileSync(join(folder, name), "utf8"));
+	assert.deepEqual(end, ["failed", "", "0.0000", "0", "", "", ""]);
+	assert.ok(readFileSync(join(folder, "log"), "utf8").endsWith(`] failed: ${reason}\n`));
+	assert.equal(existsSync(join(dirname(agent), "starts.jsonl")), false, "no agent started");
+	assert.ok(existsSync(join(job.worktree, "README.md")));
+	assert.equal(git(job.root, "branch", "--list", `arthur/${job.id}`).replace(/^[*+]?\s*/, ""), `arthur/${job.id}`);
+	return Date.now();
+}
+
+test("a systemd-run that refuses the scope ends the job failed at spawn with its first stderr line", async (t) => {
+	onPath(t, { "systemd-run": "printf '\\nFailed to start transient scope unit: Access denied\\nSee the logs.\\n' >&2; exit 1" });
+	await endedAtSpawn(() => "systemd-run: Failed to start transient scope unit: Access denied");
+});
+
+test("a systemd-run that exits before the wrapper wrote its pid, without a word, ends the job failed at spawn", async (t) => {
+	onPath(t, { "systemd-run": "exit 3" });
+	await endedAtSpawn((home) => `the wrapper exited 3 before it wrote its pid; see ${join(home, "wrapper.log")}`);
+});
+
+test("a systemd-run missing while systemctl is there ends the job failed at spawn", async (t) => {
+	const real = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
+	onPath(t, { git: `exec '${real}' "$@"` }, true);
+	await endedAtSpawn(() => "systemd-run: spawn systemd-run ENOENT");
+});
+
+test("a wrapper that writes no pid within 10 s is killed, and the job ends failed at spawn", async (t) => {
+	const noted = join(temporaryFolder(), "pid");
+	onPath(t, { "systemd-run": `echo $$ > '${noted}'; exec sleep 300` });
+	const start = Date.now();
+	const end = await endedAtSpawn(() => "the wrapper wrote no pid within 10 s and was killed");
+	assert.ok(end - start >= 10_000, `ended after ${end - start} ms`);
+	assert.equal(running(Number(read(noted))), false, "the sleep it ran is gone");
 });

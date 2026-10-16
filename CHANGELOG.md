@@ -8,6 +8,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0027 Dev dependencies beyond the toolchain are not checked (226d399)
 - AR0031 `arthur config check` passes a plugin list the host refuses (19a97a0)
+- AR0035 An event a command emits reaches the log but not the daemon's subscribers (a8039bf)
 - AR0038 Roadmap: Later entries for the web panel, a knowledge base and a company edition (ea98772)
 - AR0039 `arthur config check` says ok when a plugin's `setup` refuses the start (82a9965)
 - AR0041 Roadmap 35-36: a handoff before compaction, and a fresh start that retries (ec7ac04)
@@ -40,5 +41,6 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0010 Roadmap 7: Clock: time zone and quiet hours (db203fd)
 - AR0011 Roadmap 8: arthur run: Arthur as a process (dd9cacd)
 - AR0012 Roadmap 9: Job runner: spawn and the job record (30a43af)
+- AR0013 Roadmap 10: Prompt loader and arthur roles (3582642)
 - AR0020 Roadmap 17: Ticket board: tickets and the board file (9819d29)
 - AR0034 Roadmap: disk space and Docker cleanup with each worktree (af0e47f)

@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { test } from "node:test";
+import { pathToFileURL } from "node:url";
 import type { Plugin } from "@arthur/core/plugin";
 import { fakeHost, temporaryFolder } from "@arthur/core/testing";
 
@@ -88,17 +89,20 @@ test("the fake host delivers the test's events to the plugin and lists what the 
 	);
 });
 
-// A plugin as delivery will be: it owns the read-only kind `review` and places a file in each new worktree.
+// A plugin as delivery will be: it owns the read-only kind `review` and its role, and places a file in each new worktree.
+const reviewer = pathToFileURL(join(temporaryFolder(), "reviewer.md"));
+writeFileSync(reviewer, "# Reviewer\n\nJudge the branch.\n");
 const delivery: Plugin = {
 	name: "delivery",
 	setup(host) {
+		host.jobs.registerRole({ name: "reviewer", file: reviewer, criteria: ["review"] });
 		host.jobs.registerKind({ name: "review", readOnly: true, role: "reviewer" });
 		host.jobs.beforeSpawn((spawn) => (spawn.kind === "worker" ? "delivery spawns reviews only" : undefined));
 		host.jobs.prepare((job) => writeFileSync(join(job.worktree, "REVIEW"), job.id));
 	},
 };
 
-test("the fake host records the kinds a plugin registers and spawns on the test's repository with its checks and steps", async () => {
+test("the fake host records the kinds and roles a plugin registers and spawns on the test's repository with its checks, steps and prompt", async () => {
 	const root = join(temporaryFolder(), "acme");
 	mkdirSync(root);
 	for (const args of [["init", "--quiet"], ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "--quiet", "--allow-empty", "-m", "first"]])
@@ -106,10 +110,15 @@ test("the fake host records the kinds a plugin registers and spawns on the test'
 	const fake = fakeHost({ name: "delivery", root });
 	await delivery.setup(fake.host);
 	assert.deepEqual(fake.kinds, [{ name: "review", readOnly: true, role: "reviewer" }]);
+	assert.deepEqual(fake.roles, [{ name: "reviewer", file: reviewer, criteria: ["review"] }]);
+	fake.provide("prompt", (role: string) => `Commit rules for the ${role}.`);
 	await assert.rejects(fake.host.jobs.spawn({ task: "Build." }), { message: "refused by delivery: delivery spawns reviews only" });
 	const job = await fake.host.jobs.spawn({ task: "Review.", kind: "review" });
 	assert.match(job.id, /^2026-01-01-review-[0-9a-f]{8}$/);
 	assert.equal(readFileSync(join(job.worktree, "REVIEW"), "utf8"), job.id);
+	assert.deepEqual(job.warnings, ["criteria file .agents/arthur/criteria/review.md is missing; the reviewer goes without it"]);
+	const prompt = readFileSync(join(dirname(fake.host.folder), "jobs", job.id, "prompt"), "utf8");
+	assert.equal(prompt, "# Reviewer\n\nJudge the branch.\n\nCommit rules for the reviewer.\n");
 	assert.equal(readFileSync(join(dirname(fake.host.folder), "jobs", job.id, "task"), "utf8"), "Review.");
 	const alone = fakeHost({ name: "delivery" });
 	await assert.rejects(alone.host.jobs.spawn({ task: "Review." }), { message: /is not in a Git repository/ });

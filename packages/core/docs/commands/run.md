@@ -8,6 +8,8 @@ It prints one line when every plugin has started, `arthur run: pid <pid> started
 
 One process per home folder (`core.home`, default `.arthur/`): `<home>/run.pid` holds the pid of the process that runs it. The file is removed at a clean exit; after a crash the next `arthur run` takes it over, since its pid is dead. On Linux the file also names the boot, so a pid reused by another process after a reboot does not hold it.
 
+While it runs, it follows the event log `<home>/events.jsonl`: every 500 ms it delivers to the plugins' subscribers the events another process appended since the last one it delivered, such as `ticket-moved` from `arthur ticket` or `job-started` from `arthur spawn`. An event emitted inside `arthur run` reaches them at once, and only once. Events logged before it started are not delivered, and from the moment the plugins begin to stop, no event from another process reaches them. A log cut or deleted by hand is followed again from its new end.
+
 Refused, starting nothing:
 
 - A second `arthur run` on the same home folder while the first lives: `arthur run: <home> is already run by pid <pid>; one arthur run per home folder`.

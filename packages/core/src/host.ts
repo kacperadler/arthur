@@ -5,7 +5,7 @@ import { clock } from "./clock.ts";
 import { type CommandRegistry, commandRegistry } from "./commands.ts";
 import type { LoadedConfig } from "./config.ts";
 import { resolveEnv, type Shell } from "./env.ts";
-import { eventBus } from "./events.ts";
+import { type Bus, eventBus } from "./events.ts";
 import { type JobRunner, jobRunner } from "./jobs.ts";
 import { type Plugin, pluginHost, registry } from "./plugin.ts";
 
@@ -16,7 +16,8 @@ import { type Plugin, pluginHost, registry } from "./plugin.ts";
 // `jobs` spawns with the kinds, checks and steps the plugins registered; `board` is the core's own, for `arthur ticket`: it
 // reads the plugins' project list, names its events `core`, and follows the jobs: a worker's `job-started` moves each ticket its
 // task names (`spec/features/<id>-<slug>/...`) to in-progress (spec/roadmap.md, entry 18); a move the board refuses is logged.
-export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board };
+// `follow` is what `arthur run` follows the event log with.
+export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"] };
 
 const PLUGIN_NAME = /^[a-z]+(-[a-z]+)*$/;
 const REQUIRED = "orchestration";
@@ -29,7 +30,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const names = registry();
 	const time = clock(config.core.timeZone, config.core.quietHours);
 	const bus = eventBus(config.core.home);
-	const jobs = jobRunner(config.core.home, dirname(config.path), config.core.jobs, time, bus);
+	const jobs = jobRunner(config.core.home, dirname(config.path), config.core.jobs, time, bus, names.collect);
 	for (const plugin of sorted) {
 		const { enabled: _, ...options } = plugin.options ?? {};
 		const folder = join(config.core.home, plugin.name);
@@ -52,7 +53,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		});
 		if (refused.length > 0) throw new Error(refused.join("; "));
 	});
-	return { plugins: sorted, warnings, jobs, board: core };
+	return { plugins: sorted, warnings, jobs, board: core, follow: bus.follow };
 }
 
 // The host's refusals before any `setup`, which `arthur config check` runs too: the plugin list, `orchestration`, `requires`,

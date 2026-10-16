@@ -39,3 +39,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: Cut from `spec/roadmap.md` entry 18 by the coordinator; AR tickets need no approval (the owner, 2026-10-16).
+- 2026-10-16: Coordinator: OK on the worker's status table (merged and dropped final, work starts from planned, merge without review from in-progress or review for the owner's word) and on the new `ticket-after` event (entry 51 lists it).

@@ -115,9 +115,9 @@
   {
     "id": "AR0013",
     "title": "Roadmap 10: Prompt loader and arthur roles",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0013-roadmap-10-prompt-loader-and-arthur-roles/ticket.md",
-    "updated": "2026-10-16T11:43:45.867Z",
+    "updated": "2026-10-16T12:07:30.580Z",
     "after": [
       "AR0012"
     ]
@@ -125,9 +125,9 @@
   {
     "id": "AR0014",
     "title": "Roadmap 11: Job runner: the wrapper, and the fake agent",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0014-roadmap-11-job-runner-the-wrapper-and-the-fake-agent/ticket.md",
-    "updated": "2026-10-16T09:46:24.751Z",
+    "updated": "2026-10-16T12:07:42.221Z",
     "after": [
       "AR0013"
     ]
@@ -197,9 +197,9 @@
   {
     "id": "AR0021",
     "title": "Roadmap 18: Ticket board: transitions, after, the digest, and the board's phone commands",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0021-roadmap-18-ticket-board-transitions-after-the-digest-and-the-board-s-phone-commands/ticket.md",
-    "updated": "2026-10-16T09:46:27.147Z",
+    "updated": "2026-10-16T12:12:18.469Z",
     "after": [
       "AR0020",
       "AR0012"
@@ -321,9 +321,9 @@
   {
     "id": "AR0035",
     "title": "An event a command emits reaches the log but not the daemon's subscribers",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0035-an-event-a-command-emits-reaches-the-log-but-not-the-daemon-s-subscribers/ticket.md",
-    "updated": "2026-10-16T11:50:57.630Z",
+    "updated": "2026-10-16T12:04:29.215Z",
     "after": [
       "AR0011"
     ]
@@ -383,5 +383,19 @@
     "status": "merged",
     "path": "spec/features/AR0043-restart-fresh-starts-a-new-conversation-without-the-handoff/ticket.md",
     "updated": "2026-10-16T11:47:12.097Z"
+  },
+  {
+    "id": "AR0044",
+    "title": "An event a command appends while no daemon runs never reaches the subscribers",
+    "status": "in-progress",
+    "path": "spec/features/AR0044-an-event-a-command-appends-while-no-daemon-runs-never-reaches-the-subscribers/ticket.md",
+    "updated": "2026-10-16T12:04:58.252Z"
+  },
+  {
+    "id": "AR0045",
+    "title": "A log cut by hand and grown past the old end between two follows loses events",
+    "status": "dropped",
+    "path": "spec/features/AR0045-a-log-cut-by-hand-and-grown-past-the-old-end-between-two-follows-loses-events/ticket.md",
+    "updated": "2026-10-16T12:04:53.818Z"
   }
 ]

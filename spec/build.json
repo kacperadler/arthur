@@ -478,9 +478,9 @@
   {
     "id": "AR0057",
     "title": "The vision and the architecture diagrams do not name the voice plugin or the channels' parts",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0057-the-vision-and-the-architecture-diagrams-do-not-name-the-voice-plugin-or-the-channels-parts/ticket.md",
-    "updated": "2026-10-16T13:53:46.837Z"
+    "updated": "2026-10-16T13:56:07.445Z"
   },
   {
     "id": "AR0058",

@@ -88,8 +88,9 @@ test("a finished worker: the agent gets the worker's tools, model, thinking and 
 	const changes: string[] = [];
 	const watcher = watch(folder, (_, name) => void (name !== null && !name.startsWith(".") && changes.push(name)));
 	t.after(() => watcher.close());
-	await until("the four tool calls", () => field("tool-calls") === "4");
-	assert.deepEqual(["state", "cost", "checks", "activity"].map(field), ["running", "0.0100", "test pass 3/3\nstale\n", "think"], "kept current while it runs");
+	const current = ["tool-calls", "state", "cost", "checks", "activity"];
+	const expected = ["4", "running", "0.0100", "test pass 3/3\nstale\n", "think"];
+	await until("the record kept current while it runs", () => JSON.stringify(current.map(field)) === JSON.stringify(expected));
 	writeFileSync(join(job.worktree, "README.md"), "acme, fixed\n");
 	git(job.worktree, "add", "--all");
 	commit(job.worktree, "fix the README");
@@ -206,4 +207,29 @@ test("a record deleted while the job runs: the agent is stopped, the wrapper end
 	const line = `job ${job.id}: its record ${folder} was deleted while it ran; the agent was stopped and nothing more is written`;
 	assert.match(readFileSync(join(home, "wrapper.log"), "utf8"), new RegExp(`^\\[arthur [^\\]]+\\] ${line.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}\\n$`));
 	assert.deepEqual(readEvents(home, 1).map((event) => event.name), ["job-started"]);
+});
+
+test("a record deleted while the job runs stops every process the agent started, not only the agent", async () => {
+	// An agent whose bash call left a process running, as `npm test` or a server does: a child of its own.
+	const dir = temporaryFolder();
+	const agent = join(dir, "omp");
+	const script = [
+		"#!/bin/sh",
+		`sleep 100 & echo $! > '${dir}/child'`,
+		`while [ ! -e '${dir}/deleted' ] && [ -d '${dir}' ]; do sleep 0.02; done`,
+		`echo '{"type":"turn_start"}'`,
+		`while [ -d '${dir}' ]; do sleep 0.02; done`,
+	];
+	writeFileSync(agent, `${script.join("\n")}\n`, { mode: 0o755 });
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	const folder = join(home, "jobs", job.id);
+	const wrapper = Number(await until("the wrapper's pid", () => (existsSync(join(folder, "pid")) ? readFileSync(join(folder, "pid"), "utf8") : undefined)));
+	const child = Number(await until("the agent's child", () => (existsSync(join(dir, "child")) ? readFileSync(join(dir, "child"), "utf8").trim() || undefined : undefined)));
+	assert.ok(alive(child));
+	rmSync(folder, { recursive: true });
+	writeFileSync(join(dir, "deleted"), "");
+	await until("the wrapper's end", () => !alive(wrapper));
+	await until("the end of the agent's child", () => !alive(child));
+	assert.equal(existsSync(folder), false, "nothing written into the record");
 });

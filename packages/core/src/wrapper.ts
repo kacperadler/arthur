@@ -80,7 +80,17 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	save("state", "running");
 	note(`agent: ${agent} ${args.join(" ")}`);
 	const child = spawn(agent, args, { cwd: worktree, stdio: ["ignore", "pipe", "pipe"] });
-	stopAgent = () => void child.kill("SIGTERM");
+	// SIGTERM to the job's process group, which `launch` makes the wrapper lead: the agent and every process it started (a
+	// bash call's `npm test`, a server) stop with it, while the wrapper ignores its own copy to write its line. A wrapper
+	// started by hand leads no group, and only the agent gets it.
+	stopAgent = () => {
+		process.on("SIGTERM", () => {});
+		try {
+			process.kill(-process.pid, "SIGTERM");
+		} catch {
+			child.kill("SIGTERM");
+		}
+	};
 
 	let calls = 0;
 	let cost = 0;

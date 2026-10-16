@@ -95,7 +95,7 @@
     "title": "Roadmap 8: arthur run: Arthur as a process",
     "status": "done",
     "path": "spec/features/AR0011-roadmap-8-arthur-run-arthur-as-a-process/ticket.md",
-    "updated": "2026-10-16T11:13:40.411Z",
+    "updated": "2026-10-16T11:19:41.406Z",
     "after": [
       "AR0007",
       "AR0008"

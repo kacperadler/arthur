@@ -589,9 +589,9 @@
   {
     "id": "AR0071",
     "title": "A pruned worker whose branch Git keeps loses its worktree, so `arthur continue` on it cannot start",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0071-a-pruned-worker-whose-branch-git-keeps-loses-its-worktree-so-arthur-continue-on-it-cannot-start/ticket.md",
-    "updated": "2026-10-16T15:29:05.677Z",
+    "updated": "2026-10-16T17:04:07.962Z",
     "after": [
       "AR0070"
     ]

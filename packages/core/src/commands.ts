@@ -11,13 +11,14 @@ export type CommandInput = {
 };
 
 export type Command = {
-	// Lowercase letters, digits and dashes; `/Jobs` is not `jobs`.
+	// Lowercase letters, digits and dashes; `/Jobs` is not `jobs`. A phone command's name has no dash and at most 32 characters.
 	readonly name: string;
 	// What `arthur <name> --help` prints, e.g. `new URL("../docs/commands/jobs.md", import.meta.url)`; it must exist at registration.
 	readonly doc: URL;
 	// Writes its own output; returns the exit code, nothing meaning 0.
 	readonly run: (input: CommandInput) => number | void | Promise<number | void>;
-	// `about` is the line of a channel's menu; `reply` answers the text after `/name`, empty when there is none.
+	// `about` is the line of a channel's menu, 1 to 256 characters, not only spaces; `reply` answers the text after `/name`, empty when there is none.
+	// Both limits are Telegram's for its command menu, so every phone command can be listed there.
 	readonly phone?: { readonly about: string; readonly reply: (text: string) => string | Promise<string> };
 };
 
@@ -40,6 +41,7 @@ export type CommandRegistry = Omit<Commands, "register"> & {
 };
 
 const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
+const PHONE_NAME = /^[a-z][a-z0-9]{0,31}$/;
 
 // `owner` is the plugin that registers, or `core`; a refusal names it.
 export function commandRegistry(): CommandRegistry {
@@ -55,6 +57,12 @@ export function commandRegistry(): CommandRegistry {
 			if (!(doc instanceof URL) || doc.protocol !== "file:")
 				throw new Error(`command ${name}: no doc file; register it with doc: new URL("../docs/commands/${name}.md", import.meta.url)`);
 			if (!existsSync(doc)) throw new Error(`command ${name}: its doc file ${fileURLToPath(doc)} does not exist`);
+			if (command.phone) {
+				if (!PHONE_NAME.test(name)) throw new Error(`command ${name}: a phone command's name has no dash and at most 32 characters, as a channel's menu needs`);
+				const { about } = command.phone;
+				if (typeof about !== "string" || about.trim() === "" || about.length > 256)
+					throw new Error(`command ${name}: a phone command's about has 1 to 256 characters, not only spaces; got ${typeof about === "string" ? about.length : "none"}`);
+			}
 			commands.set(name, { owner, command });
 		},
 		find: (name) => commands.get(name)?.command,

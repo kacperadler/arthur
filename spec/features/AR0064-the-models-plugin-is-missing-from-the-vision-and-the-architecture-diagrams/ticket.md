@@ -14,8 +14,9 @@ roadmap entry 82 and `arthur.config.example.ts` add a `models` plugin (marked `f
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+The vision and the diagrams describe the plugins the roadmap plans: the `models` plugin (entry 82).
 
+- Model: haiku
 - Kind: cleanup
 
 Evidence:
@@ -24,13 +25,14 @@ Evidence:
 
 ## Done means
 
-- The fix, with a test that proves it: one row in the vision's table (`models (named) | first | Models served on the owner's machines, and an ordered fallback per role or kind`), and `models` in the first-version box of `versions.mmd` and in `core-and-plugins.mmd` with its `first` class. Nothing else.
-- `npm test` and `npm run check` pass.
+- `spec/vision.md`: a `models (named) | first` row in the plugin table: model providers on other machines (Ollama or OpenAI-compatible, loopback, private or Tailscale only) and each role's ordered model list, the first available at spawn.
+- `docs/architecture/core-and-plugins.mmd` and `versions.mmd`: a `models` node beside `machines`, in the first version; both still render with `mmdc`.
+- `npm test` and `npm run check` pass. English only.
 
 ## Scope
 
 In:
-- one row in the vision's table (`models (named) | first | Models served on the owner's machines, and an ordered fallback per role or kind`), and `models` in the first-version box of `versions.mmd` and in `core-and-plugins.mmd` with its `first` class. Nothing else.
+- `spec/vision.md`, `docs/architecture/*.mmd`.
 
 ## Decisions
 

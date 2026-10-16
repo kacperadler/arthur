@@ -527,8 +527,8 @@
   {
     "id": "AR0064",
     "title": "The `models` plugin is missing from the vision and the architecture diagrams",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0064-the-models-plugin-is-missing-from-the-vision-and-the-architecture-diagrams/ticket.md",
-    "updated": "2026-10-16T14:46:15.999Z"
+    "updated": "2026-10-16T14:46:27.918Z"
   }
 ]

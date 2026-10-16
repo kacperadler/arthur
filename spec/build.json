@@ -659,9 +659,9 @@
   {
     "id": "AR0078",
     "title": "The checks record file moves out of the wrapper into a delivery extension",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0078-the-checks-record-file-moves-out-of-the-wrapper-into-a-delivery-extension/ticket.md",
-    "updated": "2026-10-16T16:36:21.987Z",
+    "updated": "2026-10-16T16:40:16.356Z",
     "after": [
       "AR0077",
       "AR0074"

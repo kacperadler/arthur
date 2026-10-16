@@ -516,5 +516,12 @@
     "status": "merged",
     "path": "spec/features/AR0062-a-worker-spawned-during-a-plugin-s-setup-skips-the-core-s-ticket-check-in-a-real-load/ticket.md",
     "updated": "2026-10-16T14:33:48.915Z"
+  },
+  {
+    "id": "AR0063",
+    "title": "Roadmap: model providers on other machines, with a fallback chain",
+    "status": "planned",
+    "path": "spec/features/AR0063-roadmap-model-providers-on-other-machines-with-a-fallback-chain/ticket.md",
+    "updated": "2026-10-16T14:36:17.919Z"
   }
 ]

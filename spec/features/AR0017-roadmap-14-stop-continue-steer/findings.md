@@ -13,7 +13,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/job-control.ts` (`continueJob`)
 - What: a continued job runs an agent again, but only a spawn goes through `beforeSpawn`; a check such as orchestration's `maxAgents` (roadmap entry 23) does not see a continue, so continuing ended jobs can run more agents than the cap. [INFERENCE: no plugin registers such a check yet.]
 - Suggestion: decide whether a continue counts as a spawn for the plugins' checks, and if so run the `beforeSpawn` checks (with the record's kind, project and tickets) before `launch` in `continueJob`.
-- Status: open
+- Status: ticket AR0065
 
 ## F2. A process that holds the agent's stdout open keeps the wrapper from ending the job
 
@@ -22,7 +22,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/wrapper.ts` (`play`, which waits for the agent's `close`)
 - What: the wrapper reads the agent until its stdout and stderr close, not until it exits. A process the agent started with those pipes inherited keeps them open after the agent exits: the test "a stop that comes once the agent exited on its own leaves the job's own ending" (`job-control.test.ts`) relies on a `sleep 2 &` doing so for two seconds. A daemon that never closes them leaves the job `running` forever, since `endScope`, which would kill it, runs only after `close`. [INFERENCE: omp's bash tool gives the commands it runs pipes of its own, so only a process omp itself starts this way is affected.]
 - Suggestion: once the agent has exited (`exit`), give the pipes a short time, then end the scope and stop reading, so a held pipe cannot hold the end.
-- Status: open
+- Status: ticket AR0066
 
 ## F3. Two `arthur continue` at once can start two wrappers on one record where the job runs bare
 
@@ -31,4 +31,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/job-control.ts` (`continueJob`)
 - What: `continueJob` checks that the state is final, then starts the wrapper, which writes `running` only when it runs. Two continues in that window both start a wrapper; in a scope the second `systemd-run` fails on the scope's name (and, as in AR0056, nothing reports it), but a job that runs bare gets two agents in one worktree, both writing the record. `arthur continue` also prints `continued` before the wrapper is known to have started.
 - Suggestion: take the record for the continue first (an exclusive create of a file in the record, removed by the wrapper at its start, or the core's lock), and report a wrapper that did not start.
-- Status: open
+- Status: ticket AR0067

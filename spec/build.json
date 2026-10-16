@@ -155,9 +155,9 @@
   {
     "id": "AR0017",
     "title": "Roadmap 14: Stop, continue, steer",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0017-roadmap-14-stop-continue-steer/ticket.md",
-    "updated": "2026-10-16T14:47:46.437Z",
+    "updated": "2026-10-16T14:48:29.595Z",
     "after": [
       "AR0014",
       "AR0016"
@@ -450,9 +450,9 @@
   {
     "id": "AR0053",
     "title": "An agent that ignores SIGTERM runs on past its limit",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0053-an-agent-that-ignores-sigterm-runs-on-past-its-limit/ticket.md",
-    "updated": "2026-10-16T13:48:41.703Z"
+    "updated": "2026-10-16T14:48:44.891Z"
   },
   {
     "id": "AR0054",
@@ -530,5 +530,26 @@
     "status": "merged",
     "path": "spec/features/AR0064-the-models-plugin-is-missing-from-the-vision-and-the-architecture-diagrams/ticket.md",
     "updated": "2026-10-16T14:47:56.787Z"
+  },
+  {
+    "id": "AR0065",
+    "title": "`arthur continue` starts an agent without the plugins' `beforeSpawn` checks",
+    "status": "planned",
+    "path": "spec/features/AR0065-arthur-continue-starts-an-agent-without-the-plugins-beforespawn-checks/ticket.md",
+    "updated": "2026-10-16T14:48:44.276Z"
+  },
+  {
+    "id": "AR0066",
+    "title": "A process that holds the agent's stdout open keeps the wrapper from ending the job",
+    "status": "planned",
+    "path": "spec/features/AR0066-a-process-that-holds-the-agent-s-stdout-open-keeps-the-wrapper-from-ending-the-job/ticket.md",
+    "updated": "2026-10-16T14:48:44.481Z"
+  },
+  {
+    "id": "AR0067",
+    "title": "Two `arthur continue` at once can start two wrappers on one record where the job runs bare",
+    "status": "planned",
+    "path": "spec/features/AR0067-two-arthur-continue-at-once-can-start-two-wrappers-on-one-record-where-the-job-runs-bare/ticket.md",
+    "updated": "2026-10-16T14:48:44.683Z"
   }
 ]

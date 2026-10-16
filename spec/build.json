@@ -166,9 +166,9 @@
   {
     "id": "AR0018",
     "title": "Roadmap 15: Jobs list, prune, dead jobs, and their phone commands",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0018-roadmap-15-jobs-list-prune-dead-jobs-and-their-phone-commands/ticket.md",
-    "updated": "2026-10-16T09:46:26.131Z",
+    "updated": "2026-10-16T14:48:57.729Z",
     "after": [
       "AR0017"
     ]
@@ -534,16 +534,16 @@
   {
     "id": "AR0065",
     "title": "`arthur continue` starts an agent without the plugins' `beforeSpawn` checks",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0065-arthur-continue-starts-an-agent-without-the-plugins-beforespawn-checks/ticket.md",
-    "updated": "2026-10-16T14:48:44.276Z"
+    "updated": "2026-10-16T14:48:58.267Z"
   },
   {
     "id": "AR0066",
     "title": "A process that holds the agent's stdout open keeps the wrapper from ending the job",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0066-a-process-that-holds-the-agent-s-stdout-open-keeps-the-wrapper-from-ending-the-job/ticket.md",
-    "updated": "2026-10-16T14:48:44.481Z"
+    "updated": "2026-10-16T14:48:58.879Z"
   },
   {
     "id": "AR0067",

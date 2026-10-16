@@ -36,3 +36,4 @@ In:
 ## Decisions
 
 - 2026-10-16: Source: F2 of AR0017
+- 2026-10-16: Coordinator: core line budget 4224 -> 4226 for the 2-line pipe grace in wrapper.ts.

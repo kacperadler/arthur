@@ -11,6 +11,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0038 Roadmap: Later entries for the web panel, a knowledge base and a company edition (ea98772)
 - AR0039 `arthur config check` says ok when a plugin's `setup` refuses the start (82a9965)
 - AR0041 Roadmap 35-36: a handoff before compaction, and a fresh start that retries (ec7ac04)
+- AR0043 `/restart fresh` starts a new conversation without the handoff (438705e)
 
 ### Fixed
 

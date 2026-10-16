@@ -297,9 +297,9 @@
   {
     "id": "AR0032",
     "title": "A phone command name with a dash cannot go into Telegram's command menu",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0032-a-phone-command-name-with-a-dash-cannot-go-into-telegram-s-command-menu/ticket.md",
-    "updated": "2026-10-16T11:43:46.385Z",
+    "updated": "2026-10-16T11:46:22.791Z",
     "after": [
       "AR0012"
     ]
@@ -380,8 +380,8 @@
   {
     "id": "AR0043",
     "title": "`/restart fresh` starts a new conversation without the handoff",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0043-restart-fresh-starts-a-new-conversation-without-the-handoff/ticket.md",
-    "updated": "2026-10-16T11:44:21.278Z"
+    "updated": "2026-10-16T11:47:12.097Z"
   }
 ]

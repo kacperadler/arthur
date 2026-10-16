@@ -6,8 +6,9 @@ import { test } from "node:test";
 import { checkStructure } from "./structure.ts";
 
 // The line budget of each package: the number of lines its src/ may hold. They live here only; a raise is a decision recorded in its ticket.
-// core: 4000 until AR0017 (stop, continue, steer: 374 lines on top of main's 3850), which needs 4224.
-const BUDGETS = { core: 4224 };
+// core: 4000 until AR0017 (stop, continue, steer: 374 lines on top of main's 3850), which needs 4224; AR0066 (a held pipe
+// does not keep a job running: 2 lines in wrapper.ts), 4226.
+const BUDGETS = { core: 4226 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

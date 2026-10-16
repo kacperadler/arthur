@@ -5,7 +5,7 @@ import type { Board } from "./board.ts";
 import { type Command, type CommandRegistry, commandRegistry } from "./commands.ts";
 import { configCheck } from "./config-check.ts";
 import { loadConfig } from "./config.ts";
-import { loadPlugins } from "./host.ts";
+import { type LoadedPlugins, loadPlugins } from "./host.ts";
 import type { JobRunner, SpawnRequest } from "./jobs.ts";
 import { ticketCommand } from "./ticket-command.ts";
 import type { Plugin } from "./plugin.ts";
@@ -45,9 +45,9 @@ async function main(argv: readonly string[]): Promise<number> {
 	}
 }
 
-// What `arthur run` starts: the plugins as loaded, in setup order, and the home folder; `jobs` is what `arthur spawn` uses,
-// `board`, the core's, what `arthur ticket` uses.
-type Loaded = { readonly plugins: readonly Plugin[]; readonly home: string; readonly jobs: JobRunner; readonly board: Board };
+// What `arthur run` starts: the plugins as loaded, in setup order, the home folder and how to follow the event log; `jobs` is
+// what `arthur spawn` uses, `board`, the core's, what `arthur ticket` uses.
+type Loaded = { readonly plugins: readonly Plugin[]; readonly home: string; readonly follow: LoadedPlugins["follow"]; readonly jobs: JobRunner; readonly board: Board };
 
 // Every command, the core's and the plugins'; when the config or a plugin does not load, the core's alone and the reason.
 async function load(): Promise<{ readonly commands: CommandRegistry; readonly problem?: string }> {
@@ -55,8 +55,8 @@ async function load(): Promise<{ readonly commands: CommandRegistry; readonly pr
 	const commands = core(undefined, () => loaded);
 	try {
 		const config = await loadConfig("arthur.config.ts");
-		const { plugins, jobs, board } = await loadPlugins(config, process.env, commands);
-		loaded = { plugins, home: config.core.home, jobs, board };
+		const { plugins, jobs, board, follow } = await loadPlugins(config, process.env, commands);
+		loaded = { plugins, home: config.core.home, follow, jobs, board };
 		return { commands };
 	} catch (error) {
 		const problem = error instanceof Error ? error.message : String(error);
@@ -98,7 +98,7 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 			}
 			const app = loaded();
 			if (app === undefined) throw new Error(`arthur.config.ts did not load:\n${problem}`);
-			return runPlugins(app.plugins, app.home);
+			return runPlugins(app.plugins, app.home, app.follow);
 		},
 	});
 	commands.register("core", {

@@ -33,16 +33,18 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const time = clock(config.core.timeZone, config.core.quietHours);
 	const bus = eventBus(config.core.home);
 	const jobs = jobRunner(config.core.home, dirname(config.path), { ...config.core.jobs, slice: SLICE }, config.core.agent.command, time, bus, names.collect);
+	let loading = true;
 	for (const plugin of sorted) {
 		const { enabled: _, ...options } = plugin.options ?? {};
 		const folder = join(config.core.home, plugin.name);
 		mkdirSync(folder, { recursive: true });
-		const host = pluginHost(names, commands, bus, jobs, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time });
+		const host = pluginHost(names, commands, bus, jobs, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time }, () => loading);
 		await guard(plugin, "setup", () => plugin.setup(host));
 	}
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));
 	refuseUnstartableTickets(core, jobs);
 	moveStartedTickets(core, bus);
+	loading = false;
 	return { plugins: sorted, warnings, jobs, board: core, follow: bus.follow };
 }
 

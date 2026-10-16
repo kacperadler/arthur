@@ -9,6 +9,7 @@
 // - Env variable names: `ARTHUR_<PLUGIN>_<WHAT>` (ARTHUR_YOUTRACK_TOKEN). A plugin with several accounts (YouTrack servers, Telegram
 //   bots, GitHub accounts) lists named instances, each with its own variables: `ARTHUR_<PLUGIN>_<INSTANCE>_<WHAT>`
 //   (ARTHUR_YOUTRACK_ACME_TOKEN). One instance may omit its name and use the short form. A project names its instance.
+//   `arthur config check` lists every variable the enabled plugins name, each `set` or `missing`, never its value.
 // - Arthur exposes nothing to the internet: no plugin here listens on a public address. Every plugin calls out (Telegram and GitHub
 //   are polled) or talks to a local process. Other machines are reached over SSH on a private network (Tailscale).
 // - The coordinator is always on: `orchestration` is required; the host refuses to start without it and refuses `enabled: false`

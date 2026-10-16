@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import type { LoadedConfig } from "./config.ts";
 
 // The `...Env` options of the enabled plugins (spec/roadmap.md, entry 3). Each names a variable `ARTHUR_<PLUGIN>_<WHAT>`, or
-// `ARTHUR_<PLUGIN>_<INSTANCE>_<WHAT>` inside a named instance (an object with a `name` below the plugin's options); its value
+// `ARTHUR_<PLUGIN>_<INSTANCE>_<WHAT>` inside a named instance (an object in the options with a string `name`); its value
 // comes from the shell, else from the env file. A plugin in the list is `{ name, options }`; `enabled: false` in its options
 // means its variables are neither looked up nor listed. No value is ever put into a problem, a warning or a variable's entry.
 
@@ -88,7 +88,7 @@ function asPlugin(entry: unknown): Plugin | string {
 	return { name, options: options as Readonly<Record<string, unknown>> };
 }
 
-// Every option ending in `Env`, at any depth; an object with a string `name` below the top is a named instance.
+// Every option ending in `Env`, at any depth; an object with a string `name` is a named instance.
 function findEnv(value: unknown, path: string, instance: string | undefined, found: Found[]): void {
 	if (Array.isArray(value)) {
 		value.forEach((item, index) => findEnv(item, `${path}[${index}]`, instance, found));
@@ -96,7 +96,7 @@ function findEnv(value: unknown, path: string, instance: string | undefined, fou
 	}
 	if (typeof value !== "object" || value === null) return;
 	const record = value as Readonly<Record<string, unknown>>;
-	const named = path !== "" && typeof record.name === "string" ? record.name : instance;
+	const named = typeof record.name === "string" ? record.name : instance;
 	for (const [key, field] of Object.entries(record)) {
 		const at = path ? `${path}.${key}` : key;
 		if (!key.endsWith("Env")) findEnv(field, at, named, found);

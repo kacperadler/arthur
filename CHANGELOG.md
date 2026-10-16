@@ -48,6 +48,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0057 The vision and the architecture diagrams do not name the voice plugin or the channels' parts (ab17f2e)
 - AR0064 The `models` plugin is missing from the vision and the architecture diagrams (166516e)
 - AR0069 Core line review: what moves to a plugin or goes (e4dc435)
+- AR0073 Core: one plugin-entry check, one describe, one step guard, one record reader (76d4505)
 
 ### Other
 

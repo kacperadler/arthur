@@ -11,4 +11,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/env.ts:50-58`, `packages/core/test/config-check.test.ts:78-81`, `packages/core/test/env.test.ts:126-140`
 - What: `[orchestration, telegram, telegram]` prints the host's `plugins[2]: a second plugin named telegram; the first is plugins[1]` and then `checkEnv`'s `ARTHUR_TELEGRAM_ is the prefix of both plugin telegram and plugin telegram`: one mistake, two lines. AR0073 skips only the entries `asPlugin` refuses, since both tests pin the second line and the ticket asks for no behaviour change.
 - Suggestion: `checkEnv` also skips a second plugin of a name already seen (one line in its `plugins` filter), and the two tests drop the prefix line for that case; a prefix shared by two different plugins or instances stays refused.
-- Status: open
+- Status: ticket AR0081

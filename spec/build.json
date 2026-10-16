@@ -604,9 +604,9 @@
   {
     "id": "AR0073",
     "title": "Core: one plugin-entry check, one describe, one step guard, one record reader",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0073-core-one-plugin-entry-check-one-describe-one-step-guard-one-record-reader/ticket.md",
-    "updated": "2026-10-16T16:05:13.971Z",
+    "updated": "2026-10-16T16:05:45.196Z",
     "after": [
       "AR0068"
     ]
@@ -681,5 +681,12 @@
     "status": "planned",
     "path": "spec/features/AR0080-board-task-and-findings-move-into-orchestration-with-host-jobs-list/ticket.md",
     "updated": "2026-10-16T15:40:37.562Z"
+  },
+  {
+    "id": "AR0081",
+    "title": "`arthur config check` still reports two plugins of one name twice",
+    "status": "planning",
+    "path": "spec/features/AR0081-arthur-config-check-still-reports-two-plugins-of-one-name-twice/ticket.md",
+    "updated": "2026-10-16T16:05:45.194Z"
   }
 ]

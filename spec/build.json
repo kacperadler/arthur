@@ -197,9 +197,9 @@
   {
     "id": "AR0021",
     "title": "Roadmap 18: Ticket board: transitions, after, the digest, and the board's phone commands",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0021-roadmap-18-ticket-board-transitions-after-the-digest-and-the-board-s-phone-commands/ticket.md",
-    "updated": "2026-10-16T12:12:27.192Z",
+    "updated": "2026-10-16T12:14:58.482Z",
     "after": [
       "AR0020",
       "AR0012"
@@ -387,9 +387,9 @@
   {
     "id": "AR0044",
     "title": "An event a command appends while no daemon runs never reaches the subscribers",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0044-an-event-a-command-appends-while-no-daemon-runs-never-reaches-the-subscribers/ticket.md",
-    "updated": "2026-10-16T12:04:58.252Z"
+    "updated": "2026-10-16T12:14:47.400Z"
   },
   {
     "id": "AR0045",
@@ -397,5 +397,12 @@
     "status": "dropped",
     "path": "spec/features/AR0045-a-log-cut-by-hand-and-grown-past-the-old-end-between-two-follows-loses-events/ticket.md",
     "updated": "2026-10-16T12:04:53.818Z"
+  },
+  {
+    "id": "AR0046",
+    "title": "Roadmap: arthur doctor checks what Arthur needs at every start",
+    "status": "planned",
+    "path": "spec/features/AR0046-roadmap-arthur-doctor-checks-what-arthur-needs-at-every-start/ticket.md",
+    "updated": "2026-10-16T12:15:44.739Z"
   }
 ]

@@ -82,4 +82,5 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0021 Roadmap 18: Ticket board: transitions, after, the digest, and the board's phone commands (e9c57dc)
 - AR0022 Roadmap 19: Env guard (ebc6a89)
 - AR0023 Roadmap 20: Worktree guard and its shell parser (29ed9c0)
+- AR0024 Roadmap 21: Jobs on another machine: spawn, run, and the branch back (113b11d)
 - AR0034 Roadmap: disk space and Docker cleanup with each worktree (af0e47f)

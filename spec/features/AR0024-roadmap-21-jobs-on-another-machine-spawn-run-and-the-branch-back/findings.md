@@ -13,7 +13,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/job-machine.ts` (`launchThere`), `packages/core/src/remote-job.ts` (`launch`)
 - What: `arthur remote-job launch` sets the slice there to this config's `core.jobs.cpu` and `core.jobs.memory`. `cpu` defaults to this host's cores minus one, so on a machine with fewer cores the quota is above what it has (no limit), and on one with more it holds jobs below it. `memory` as a percentage is fine; an absolute one (`8G`) is this host's figure.
 - Suggestion: let the machine's own defaults apply there (its cores minus one, `70%`), or take the limits from the machine's registration once resources (entries 32 to 34) give each machine its own; leave the per-job caps to those entries.
-- Status: open
+- Status: folded into AR0025 (AR0088 dropped)
 
 ## F2. Each sweep copies a job's whole `log` from another machine whenever it grew
 
@@ -22,4 +22,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/remote-job.ts` (`records`), `packages/core/src/job-machine.ts` (`syncMachine`)
 - What: the copy sends every changed file whole. A long run's `log` (one line per tool call plus the agent's stderr) grows to megabytes and goes over SSH again every 30 s while the job is active, then is compared and rewritten here.
 - Suggestion: ask for `log` from the size already copied (an offset per job, like `synced`) and append; keep whole files for the rest, which are small.
-- Status: open
+- Status: folded into AR0025 (AR0089 dropped)

@@ -228,9 +228,9 @@
   {
     "id": "AR0024",
     "title": "Roadmap 21: Jobs on another machine: spawn, run, and the branch back",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0024-roadmap-21-jobs-on-another-machine-spawn-run-and-the-branch-back/ticket.md",
-    "updated": "2026-10-16T19:48:19.901Z",
+    "updated": "2026-10-16T19:48:55.286Z",
     "after": [
       "AR0019",
       "AR0023"
@@ -732,5 +732,19 @@
     "status": "planning",
     "path": "spec/features/AR0087-roadmap-41-the-project-list-planned-from-the-harness-projects/ticket.md",
     "updated": "2026-10-16T19:47:53.559Z"
+  },
+  {
+    "id": "AR0088",
+    "title": "A job on another machine gets this host's joint CPU and memory limit",
+    "status": "dropped",
+    "path": "spec/features/AR0088-a-job-on-another-machine-gets-this-host-s-joint-cpu-and-memory-limit/ticket.md",
+    "updated": "2026-10-16T19:49:04.837Z"
+  },
+  {
+    "id": "AR0089",
+    "title": "Each sweep copies a job's whole `log` from another machine whenever it grew",
+    "status": "dropped",
+    "path": "spec/features/AR0089-each-sweep-copies-a-job-s-whole-log-from-another-machine-whenever-it-grew/ticket.md",
+    "updated": "2026-10-16T19:49:05.045Z"
   }
 ]

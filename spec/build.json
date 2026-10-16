@@ -53,9 +53,9 @@
   {
     "id": "AR0007",
     "title": "Roadmap 4: Plugin host, and the fake host",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0007-roadmap-4-plugin-host-and-the-fake-host/ticket.md",
-    "updated": "2026-10-16T10:32:14.326Z",
+    "updated": "2026-10-16T10:32:26.386Z",
     "after": [
       "AR0006"
     ]
@@ -284,5 +284,15 @@
     "status": "merged",
     "path": "spec/features/AR0030-owner-lookup-takes-the-first-longer-prefix-not-the-longest/ticket.md",
     "updated": "2026-10-16T10:31:56.451Z"
+  },
+  {
+    "id": "AR0031",
+    "title": "`arthur config check` passes a plugin list the host refuses",
+    "status": "planned",
+    "path": "spec/features/AR0031-arthur-config-check-passes-a-plugin-list-the-host-refuses/ticket.md",
+    "updated": "2026-10-16T10:32:46.130Z",
+    "after": [
+      "AR0011"
+    ]
   }
 ]

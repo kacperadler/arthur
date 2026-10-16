@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/config-check.ts:6`
 - What: `config check` runs only the env check, not the host's checks of `packages/core/src/host.ts` (`orchestration` required, `requires`, cycles, duplicate names, each plugin's own `check`). Reproduced: a config whose only plugin is `{ name: "telegram", options: {} }` prints `no enabled plugin names an env variable` and exits 0, while `loadPlugins` refuses it for the missing `orchestration`.
 - Suggestion: once `arthur run` (entry 8) loads plugins, have `config check` also report the host's refusals without running any `setup` (split the checking part of `loadPlugins` from the setup loop); the env lines stay as they are.
-- Status: open
+- Status: ticket AR0031

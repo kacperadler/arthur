@@ -6,9 +6,10 @@ import { type Command, type CommandRegistry, commandRegistry } from "./commands.
 import { configCheck } from "./config-check.ts";
 import { loadConfig } from "./config.ts";
 import { type LoadedPlugins, loadPlugins } from "./host.ts";
-import type { JobRunner, SpawnRequest } from "./jobs.ts";
+import type { JobRunner } from "./jobs.ts";
 import { boardCommands } from "./board-commands.ts";
 import { rolesCommand } from "./roles-command.ts";
+import { spawnCommand } from "./spawn-command.ts";
 import { ticketCommand } from "./ticket-command.ts";
 import type { Plugin } from "./plugin.ts";
 import { runPlugins } from "./run.ts";
@@ -75,14 +76,13 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 		return loadedBoard;
 	};
 	for (const command of [ticketCommand(board), ...boardCommands(board, () => loaded()?.home)]) commands.register("core", command);
-	commands.register(
-		"core",
-		rolesCommand(() => {
-			const jobs = loaded()?.jobs;
-			if (jobs === undefined) throw new Error(`the roles are what the plugins registered, and arthur.config.ts did not load:\n${problem}`);
-			return jobs;
-		}),
-	);
+	const jobs = (what: string) => () => {
+		const loadedJobs = loaded()?.jobs;
+		if (loadedJobs === undefined) throw new Error(`${what}arthur.config.ts did not load:\n${problem}`);
+		return loadedJobs;
+	};
+	commands.register("core", rolesCommand(jobs("the roles are what the plugins registered, and ")));
+	commands.register("core", spawnCommand(jobs("")));
 	commands.register("core", {
 		name: "config",
 		doc: new URL("../docs/commands/config.md", import.meta.url),
@@ -110,22 +110,6 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 		},
 	});
 	commands.register("core", {
-		name: "spawn",
-		doc: new URL("../docs/commands/spawn.md", import.meta.url),
-		async run({ args, project }) {
-			const request = spawnRequest(args, project);
-			if (typeof request === "string") {
-				console.error(`arthur spawn: ${request}\nusage: arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>]`);
-				return 2;
-			}
-			const app = loaded();
-			if (app === undefined) throw new Error(`arthur.config.ts did not load:\n${problem}`);
-			const job = await app.jobs.spawn(request);
-			for (const warning of job.warnings) console.error(`warning: ${warning}`);
-			console.log(job.id);
-		},
-	});
-	commands.register("core", {
 		name: "help",
 		doc: new URL("../docs/commands/help.md", import.meta.url),
 		run({ args }) {
@@ -141,27 +125,6 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 		},
 	});
 	return commands;
-}
-
-// One task and the flags of `arthur spawn`, or what is wrong with them.
-function spawnRequest(args: readonly string[], project: string | undefined): SpawnRequest | string {
-	const flags: Record<string, string> = {};
-	const tasks: string[] = [];
-	for (let index = 0; index < args.length; index++) {
-		const arg = args[index] ?? "";
-		if (!arg.startsWith("--")) {
-			tasks.push(arg);
-			continue;
-		}
-		const name = arg.slice(2);
-		const value = args[++index];
-		if (!["kind", "model", "thinking"].includes(name)) return `unknown flag ${arg}`;
-		if (value === undefined || value === "" || value.startsWith("--")) return `${arg} needs a value`;
-		if (name in flags) return `${arg} given twice`;
-		flags[name] = value;
-	}
-	if (tasks.length !== 1) return tasks.length === 0 ? "no task" : `one task, quoted; got ${tasks.length} arguments`;
-	return { task: tasks[0] ?? "", kind: flags.kind, model: flags.model, thinking: flags.thinking, project };
 }
 
 function usage(problem: string): number {

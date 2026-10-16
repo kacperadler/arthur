@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: Cut from `spec/roadmap.md` entry 12 by the coordinator; AR tickets need no approval (the owner, 2026-10-16).
+- 2026-10-16: Coordinator: OK on final states `limit: time` and `limit: budget` (like `limit: memory` of entry 32); the real omp `--continue` resume is smoked by the coordinator after the merge.

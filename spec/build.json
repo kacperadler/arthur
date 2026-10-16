@@ -415,9 +415,9 @@
   {
     "id": "AR0048",
     "title": "A worker spawned on a ticket still in planning, or merged or dropped, starts anyway",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0048-a-worker-spawned-on-a-ticket-still-in-planning-or-merged-or-dropped-starts-anyway/ticket.md",
-    "updated": "2026-10-16T12:41:34.714Z"
+    "updated": "2026-10-16T12:41:58.143Z"
   },
   {
     "id": "AR0049",
@@ -439,5 +439,12 @@
     "status": "dropped",
     "path": "spec/features/AR0051-a-log-cut-by-hand-and-grown-past-the-kept-number-while-the-daemon-is-down-replays-from-the-wrong-place/ticket.md",
     "updated": "2026-10-16T12:29:12.880Z"
+  },
+  {
+    "id": "AR0052",
+    "title": "A ticket moved to merged or dropped during a spawn still gets its worker",
+    "status": "dropped",
+    "path": "spec/features/AR0052-a-ticket-moved-to-merged-or-dropped-during-a-spawn-still-gets-its-worker/ticket.md",
+    "updated": "2026-10-16T12:42:05.269Z"
   }
 ]

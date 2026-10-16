@@ -14,6 +14,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0041 Roadmap 35-36: a handoff before compaction, and a fresh start that retries (ec7ac04)
 - AR0043 `/restart fresh` starts a new conversation without the handoff (438705e)
 - AR0046 Roadmap: arthur doctor checks what Arthur needs at every start (1fa33f6)
+- AR0048 A worker spawned on a ticket still in planning, or merged or dropped, starts anyway (cb93a10)
 - AR0049 `/findings` does not show findings a worker wrote on its branch (cbfd577)
 
 ### Fixed

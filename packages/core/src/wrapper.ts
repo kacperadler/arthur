@@ -76,7 +76,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		...(resume === undefined ? [] : ["--continue"]),
 		...["-p", "--mode", "json", "--auto-approve", "--tools", branch === "" ? READ_ONLY_TOOLS : WORKER_TOOLS],
 		...["--append-system-prompt", join(folder, "prompt")],
-		...["-e", join(import.meta.dirname, "env-guard.ts")],
+		...["env-guard.ts", "worktree-guard.ts"].flatMap((guard) => ["-e", join(import.meta.dirname, guard)]),
 		...(model ? ["--model", model] : []),
 		...(thinking ? ["--thinking", thinking] : []),
 		resume ?? `@${join(folder, "task")}`,
@@ -151,7 +151,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		note(`agent: ${agent} ${argv.join(" ")}`);
 		const stream = agentStream();
 		const closed = Promise.withResolvers<[number | null, NodeJS.Signals | null]>();
-		const running = spawn(agent, argv, { cwd: worktree, stdio: ["ignore", "pipe", "pipe"] });
+		const running = spawn(agent, argv, { cwd: worktree, env: { ...process.env, ARTHUR_JOB: folder }, stdio: ["ignore", "pipe", "pipe"] });
 		child = running;
 		running.stdout.setEncoding("utf8");
 		running.stdout.on("data", (chunk: string) => apply(stream.push(chunk)));

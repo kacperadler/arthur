@@ -387,9 +387,9 @@
   {
     "id": "AR0044",
     "title": "An event a command appends while no daemon runs never reaches the subscribers",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0044-an-event-a-command-appends-while-no-daemon-runs-never-reaches-the-subscribers/ticket.md",
-    "updated": "2026-10-16T12:28:40.388Z"
+    "updated": "2026-10-16T12:29:00.464Z"
   },
   {
     "id": "AR0045",
@@ -425,5 +425,19 @@
     "status": "review",
     "path": "spec/features/AR0049-findings-does-not-show-findings-a-worker-wrote-on-its-branch/ticket.md",
     "updated": "2026-10-16T12:27:58.207Z"
+  },
+  {
+    "id": "AR0050",
+    "title": "Roadmap entry 8 still says the events logged before the daemon started are not delivered",
+    "status": "planned",
+    "path": "spec/features/AR0050-roadmap-entry-8-still-says-the-events-logged-before-the-daemon-started-are-not-delivered/ticket.md",
+    "updated": "2026-10-16T12:29:12.678Z"
+  },
+  {
+    "id": "AR0051",
+    "title": "A log cut by hand and grown past the kept number while the daemon is down replays from the wrong place",
+    "status": "dropped",
+    "path": "spec/features/AR0051-a-log-cut-by-hand-and-grown-past-the-kept-number-while-the-daemon-is-down-replays-from-the-wrong-place/ticket.md",
+    "updated": "2026-10-16T12:29:12.880Z"
   }
 ]

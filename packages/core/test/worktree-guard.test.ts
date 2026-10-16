@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { clock } from "../src/clock.ts";
@@ -60,9 +60,11 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	const place = jobPlace(join(home, "jobs", own.id));
 	const [main, otherJob] = [`../../acme`, `../${other.id}`];
 	writeFileSync(join(own.worktree, "notes.txt"), "notes\n");
-	// A symlink inside the worktree that points out of it, and one whose target in the main checkout does not exist yet.
+	// A symlink inside the worktree that points out of it, one whose target in the main checkout does not exist yet, and a
+	// folder from which a link's relative target reaches the main checkout while from the worktree it does not.
 	symlinkSync(root, join(own.worktree, "out"));
 	symlinkSync(join(root, "new.txt"), join(own.worktree, "dangling"));
+	mkdirSync(join(own.worktree, "sub"));
 	const MAIN = "the main checkout";
 	const HOME = "Arthur's home folder";
 	const OTHER = "another job's worktree";
@@ -90,6 +92,10 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `ln -s ${main} link` }, MAIN],
 		["bash", { command: `ln -s README.md ${main}/link` }, MAIN],
 		["bash", { command: "ln -s ../../../acme out/x" }, MAIN],
+		["bash", { command: "ln -s ../../../acme sub/link" }, MAIN],
+		["bash", { command: "rm ~/acme/README.md" }, MAIN],
+		["bash", { command: 'rm "${HOME}/acme/README.md"' }, MAIN],
+		["bash", { command: "rm '~/acme/README.md'" }, undefined],
 		["bash", { command: `git -C ${main} commit -m x` }, MAIN],
 		["bash", { command: `git --work-tree=${otherJob} checkout -- .` }, OTHER],
 		["bash", { command: `cd ${otherJob} && git reset --hard` }, OTHER],
@@ -132,10 +138,18 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["read", { path: `${main}/README.md` }, undefined],
 		["grep", { pattern: "acme", path: main }, undefined],
 	];
-	for (const [toolName, input, expected] of calls) {
-		const reason = worktreeRefusal(place, toolName, input);
-		const named = reason === undefined ? undefined : reason.startsWith("arthur: refused: git stash") ? STASH : /writes into (.+?) \(/.exec(reason)?.[1];
-		assert.equal(named, expected, `${toolName} ${JSON.stringify(input)}: ${reason}`);
+	// `~` and `$HOME` are the user's home; here the folder that holds the main checkout.
+	const user = process.env.HOME;
+	process.env.HOME = dirname(root);
+	try {
+		for (const [toolName, input, expected] of calls) {
+			const reason = worktreeRefusal(place, toolName, input);
+			const named = reason === undefined ? undefined : reason.startsWith("arthur: refused: git stash") ? STASH : /writes into (.+?) \(/.exec(reason)?.[1];
+			assert.equal(named, expected, `${toolName} ${JSON.stringify(input)}: ${reason}`);
+		}
+	} finally {
+		if (user === undefined) delete process.env.HOME;
+		else process.env.HOME = user;
 	}
 	assert.equal(
 		worktreeRefusal(place, "bash", { command: `rm ${main}/README.md` }),

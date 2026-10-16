@@ -148,9 +148,11 @@ test("arthur prune keeps a running job and a record a plugin's jobs.keep asks fo
 	]);
 	assert.deepEqual(asked, [{ id: review.id, kind: "review", project: "acme", task: "Review.", state: "done", branch: "", worktree: review.worktree }]);
 	assert.equal(existsSync(review.worktree), false);
-	// A typo refuses the whole prune before anything is removed.
-	assert.throws(() => jobs.prune([review.id, "deadbeef"]), { message: `deadbeef: no such job in ${join(home, "jobs")}` });
-	assert.equal(existsSync(join(home, "jobs", review.id)), true);
+	// A typo refuses the whole prune before anything is removed: a job named before it that a prune would free stays whole.
+	const free = await worker(jobs, home);
+	assert.throws(() => jobs.prune([free.id, "deadbeef"]), { message: `deadbeef: no such job in ${join(home, "jobs")}` });
+	assert.deepEqual([existsSync(join(home, "jobs", free.id)), existsSync(free.worktree)], [true, true]);
+	assert.deepEqual(jobs.prune([free.id]), [`${free.id}: worktree ${free.worktree} removed; branch arthur/${free.id} deleted; record deleted`]);
 });
 
 test("a plugin's jobs.keep that throws ends the prune with its error, and the job it was asked about keeps its record", async () => {
@@ -166,6 +168,9 @@ test("the sweep fails a job whose wrapper and agent are gone on two sweeps in a 
 	const { home, jobs } = setup();
 	const id = "2026-10-16-worker-0000000a";
 	record(home, id, { state: "running", pid: "999999999", log: "" }, NOW);
+	// Ended jobs whose processes are gone, as every ended job's are: never failed, however many sweeps.
+	const ended = { "2026-10-16-worker-0000000b": "done", "2026-10-16-worker-0000000c": "stopped", "2026-10-16-worker-0000000d": "limit: time" };
+	for (const [each, state] of Object.entries(ended)) record(home, each, { state, pid: "999999999" }, NOW);
 	jobs.sweep();
 	assert.equal(field(home, id, "state"), "running", "gone on one sweep");
 	// Back on the next sweep: an agent whose command line names the record's prompt.
@@ -180,6 +185,7 @@ test("the sweep fails a job whose wrapper and agent are gone on two sweeps in a 
 	assert.deepEqual(events(home, "job-ended"), []);
 	jobs.sweep();
 	assert.equal(field(home, id, "state"), "failed");
+	assert.deepEqual(Object.keys(ended).map((each) => field(home, each, "state")), Object.values(ended));
 	assert.match(field(home, id, "log"), /^\[arthur [^\]]+\] failed: process gone: its wrapper 999999999 and its agent were not running on two sweeps in a row\n$/);
 	assert.deepEqual(events(home, "job-ended"), [{ id, kind: "worker", project: "acme", state: "failed", reason: "process gone" }]);
 	jobs.sweep();

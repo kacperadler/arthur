@@ -725,5 +725,12 @@
     "status": "planning",
     "path": "spec/features/AR0086-roadmap-77-web-panel-planned-with-the-human-first/ticket.md",
     "updated": "2026-10-16T17:13:01.703Z"
+  },
+  {
+    "id": "AR0087",
+    "title": "Roadmap 41: the project list, planned from the harness projects",
+    "status": "planning",
+    "path": "spec/features/AR0087-roadmap-41-the-project-list-planned-from-the-harness-projects/ticket.md",
+    "updated": "2026-10-16T19:47:53.559Z"
   }
 ]

@@ -145,9 +145,9 @@
   {
     "id": "AR0016",
     "title": "Roadmap 13: Job limits: one scope per job in a joint slice",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0016-roadmap-13-job-limits-one-scope-per-job-in-a-joint-slice/ticket.md",
-    "updated": "2026-10-16T09:46:25.429Z",
+    "updated": "2026-10-16T13:23:38.664Z",
     "after": [
       "AR0014"
     ]
@@ -208,9 +208,9 @@
   {
     "id": "AR0022",
     "title": "Roadmap 19: Env guard",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0022-roadmap-19-env-guard/ticket.md",
-    "updated": "2026-10-16T13:13:35.739Z",
+    "updated": "2026-10-16T13:25:47.048Z",
     "after": [
       "AR0014"
     ]

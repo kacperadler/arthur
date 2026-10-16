@@ -1,3 +1,5 @@
+import type { Clock } from "./clock.ts";
+
 // The plugin shape and the host one plugin sees (spec/roadmap.md, entry 4). A plugin is a function from its options to a
 // `Plugin`; the config's plugin list holds what those functions return. Names are proposals until entry 51 fixes them.
 
@@ -29,6 +31,8 @@ export type Host = {
 	readonly env: Readonly<Record<string, string>>;
 	// `<home>/<plugin>/`, created before `setup`; no other plugin reads or writes it.
 	readonly folder: string;
+	// One clock for every plugin, in the core's `timeZone` with its `quietHours`.
+	readonly clock: Clock;
 	// Several plugins may provide one name: `call` needs exactly one, `collect` reads them all, in setup order.
 	provide(name: string, fn: Provider): void;
 	call<T = unknown>(name: string, ...args: readonly unknown[]): T;
@@ -66,7 +70,7 @@ export function registry(): Registry {
 	};
 }
 
-export function pluginHost(names: Registry, own: Pick<Host, "name" | "options" | "env" | "folder">): Host {
+export function pluginHost(names: Registry, own: Pick<Host, "name" | "options" | "env" | "folder" | "clock">): Host {
 	return {
 		...own,
 		provide: (name, fn) => names.provide(own.name, name, fn),

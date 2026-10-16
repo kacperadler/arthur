@@ -79,6 +79,20 @@ test("provide, call and collect between plugins; collect with no provider return
 	assert.deepEqual(seen, ["local for AR1", ["orchestration for worker", "machines"], []]);
 });
 
+test("every plugin gets one clock, in the config's time zone with its quiet hours", async () => {
+	const hosts: Host[] = [];
+	const keep = (host: Host) => void hosts.push(host);
+	const loaded = config([fake([], "orchestration", { setup: keep }), fake([], "telegram", { setup: keep })]);
+	const core = { ...loaded.core, timeZone: "Europe/Warsaw", quietHours: { from: "22:00", to: "07:30" } };
+	await loadPlugins({ ...loaded, core });
+	const [orchestration, telegram] = hosts;
+	assert.equal(orchestration?.clock, telegram?.clock);
+	assert.equal(telegram?.clock.timeZone, "Europe/Warsaw");
+	assert.equal(telegram?.clock.isQuiet(new Date("2026-07-01T21:30:00Z")), true, "23:30 in Warsaw");
+	assert.equal(telegram?.clock.isQuiet(new Date("2026-07-01T05:30:00Z")), false, "07:30 in Warsaw");
+	assert.ok(Math.abs((telegram?.clock.now().getTime() ?? 0) - Date.now()) < 60_000, "the real clock tells the time");
+});
+
 test("a call to a name nobody provides, or that two plugins provide, is refused naming the plugins", async () => {
 	const call = (name: string) => fake([], "projects", { setup: (host) => void host.call(name) });
 	const one = await refusal(config([fake([], "orchestration"), call("jobs.place")]));

@@ -155,6 +155,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 - Package: core; the worker role (10) gains the `Blocked:` line.
 - Delivers: every job is in one of four states, kept in its record (`state`, with `reason` and `since`) and emitted as `job-state` (`id`, `project`, `ticket`, `machine`, `from`, `to`, `reason`) on each change. `working`: the agent is in a turn, with output or a tool call within the last `jobs.idleMinutes`. `idle`: its process is alive and not blocked, but has done nothing for `jobs.idleMinutes`. `blocked`: it cannot go on until something outside it happens, and the reason says what: `user: <question>` or `dependency: <what>`. `ended`: nothing more will happen, with the outcome (finished, failed, stopped, the limit hit, process gone). A run ends `blocked` instead of `ended` when the first line of its final message is `Blocked: user <question>` or `Blocked: on <ticket or job id>`, which the worker role tells a worker to write when it stops for one of them; the state a run ends in is written after every other file of the record, as entry 11 writes it. `host.jobs.block(id, reason)` and `unblock(id)` let a plugin hold a job (a machine offline, a cap reached); `arthur continue` moves a blocked or ended job back to `working`. `arthur jobs` and `/jobs` show each job's state, reason and for how long; `arthur jobs --state <state>` filters.
 - Done means: a table of fake-agent runs and the states each passes through. Edge cases: a `Blocked:` line that is not the first line ends the run `ended`; no activity for exactly `jobs.idleMinutes` turns a job idle, one minute less does not; the next tool call turns it back to working with one event; a state that does not change emits nothing; a plugin's block wins over idle, and `unblock` returns the job to working or idle by its activity; a job blocked after its run ended is not failed as `process gone` by the sweep (15); `jobs.idleMinutes: 0` turns idle off; `continue` of a blocked job clears its reason.
+- Fixed by design (the owner, 2026-10-16): the four states are facts about the process and stay in code, never configured; what happens on a change (a message, a ping, a move on the board) is a plugin's handler of `job-state`, its rules described in that plugin's Markdown.
 - Depends on: 14, 15.
 - Size: a day.
 - Covers: none (new: the owner asked for it on 2026-10-16).
@@ -173,6 +174,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 - Package: core.
 - Delivers: the allowed status transitions, statuses that follow jobs (`job-started` of a worker sets in-progress), merged and dropped final; `arthur ticket after <id> <ids>` (a ticket waits for others); the board digest (every open ticket, the 10 newest merged, one line for the rest); phone commands `/board [PREFIX] [all]`, `/task <id>`, `/findings <id>`, the id given as `14`, `AR14` or the full id.
 - Done means: refused: a transition the table does not allow, an `after` that makes a cycle, names an unknown or a dropped id. Edge cases: a merged ticket never moves back; the full board when it fits one message, else the digest; `/findings` of a ticket without the file; an id with another project's prefix.
+- Configurable (the owner, 2026-10-16): `board.statuses` (names, which are final) and `board.transitions` in the config, checked at load (an unknown name in a transition, no final status, a status the job events need missing: refused); the code enforces them; what each status means and what the coordinator does in it is the project's Markdown beside the roles. Without them, today's set and table hold.
 - Depends on: 17, 9.
 - Size: a day.
 - Covers: B4, B5, B11, T7, T9.
@@ -543,7 +545,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 ### 54. `arthur merge`
 
 - Package: delivery.
-- Delivers: files the reviews, merges the branch into main, runs install and the project's checks, resets main when a check fails; open findings become planning tickets; writes `outcome.md`; sets merged; names the tickets the merge unblocks; `--unreviewed` on the owner's word; the procedure sent after a merge.
+- Delivers: files the reviews, merges the branch into main, runs install and the project's checks, resets main when a check fails; open findings go to the `findings` plugin's `onMerge` (83), which by default makes each a planning ticket; writes `outcome.md`; sets merged; names the tickets the merge unblocks; `--unreviewed` on the owner's word; the procedure sent after a merge.
 - Done means: refused: a branch without a PASS on its tip (unless `--unreviewed`), a dirty main. Edge cases: a merge conflict leaves main as it was; a failed check resets main and says which check; findings with no open entry make no ticket; a finding's ticket gets the next id.
 - Depends on: 53, 18.
 - Size: a day.
@@ -718,6 +720,15 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 - Done means: tested against the fake host and a fake `docker` holding resources of known ages and labels. Edge cases: a leftover exactly `leftoverHours` old goes, one minute younger stays; the owner's own named volume (kept, counted in `arthur docker`); an `arthur.keep` resource of any age; a machine offline (skipped, named in the notice); Docker not running on one machine (named, the others swept); a running job's resources (untouched); `disk-low` during the daily sweep (the second waits for the first, nothing is swept twice at once); `--dry-run` removes nothing and lists what a real run would; a machine still under the floor after the sweep (said in the notice, with its free space and the floor); quiet hours (the notice sent without a notification, the channel's rule).
 - Depends on: 71, 40.
 - Size: a day.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
+### 83. Findings: what happens to them, per project
+
+- Package: findings.
+- Delivers: the `findings.md` format and its reader, out of the core; `provide("findings.onMerge")`, which the merge (54) calls with the open findings; the project option `findings.mode`: `ticket` (one planning ticket each, the default), `grouped` (one planning ticket per merged ticket, every open finding in it), `summary` (no ticket; each finding `deferred (client summary)`, listed in the outcome for the client); `/findings` moves here from 18.
+- Done means: tested with real files. Refused at load: an unknown mode. Edge cases: no open finding (nothing made); a finding already `ticket …`, `fixed` or `dropped` (left alone); `grouped` with one finding (one ticket); a project without the plugin (findings stay open, the merge says so once).
+- Depends on: 17, 54.
+- Size: half a day.
 - Covers: none (new: the owner asked for it on 2026-10-16).
 
 ## Later

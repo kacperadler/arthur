@@ -7,11 +7,14 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Added
 
 - AR0027 Dev dependencies beyond the toolchain are not checked (226d399)
+- AR0038 Roadmap: Later entries for the web panel, a knowledge base and a company edition (ea98772)
 
 ### Fixed
 
+- AR0026 `arthur plugin new` meets the line-budget rule (a263149)
 - AR0028 An instance name can produce the same variable prefix as another plugin (859864c)
 - AR0030 Owner lookup takes the first longer prefix, not the longest (6ec64d6)
+- AR0036 The lock's dead-holder takeover race has no test (73aa034)
 
 ### Changed
 
@@ -28,3 +31,4 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0008 Roadmap 5: Event stream (7c8a5ce)
 - AR0009 Roadmap 6: Command registry and the arthur CLI (3e5fc73)
 - AR0010 Roadmap 7: Clock: time zone and quiet hours (db203fd)
+- AR0034 Roadmap: disk space and Docker cleanup with each worktree (af0e47f)

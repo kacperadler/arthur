@@ -9,9 +9,9 @@ How to read an entry:
 - Done means: what a reviewer checks, edge cases included. Every entry also means: its tests run under `npm test` against fakes (the core against a fake plugin and a fake agent, a plugin against the fake host of `@arthur/core/testing`), `npm run check` and `npm test` pass, each command it adds has its doc page, each option it adds is in `arthur.config.example.ts`.
 - Covers: the capabilities of the harness Arthur replaces that it carries over, by their id in the table at the end.
 
-Order: the core first, piece by piece, then the first-version plugins in the vision's order, then the later plugins. Within the core the event stream comes right after the plugin host, because the job runner and the board emit into it from their first line. Job state (16) comes right after the job runner it describes, and jobs on another machine (21, 22) after the guards they carry there. Machines and resources (30 to 34) come right after orchestration, whose `maxAgents` and context they build on; placement reads the project list and the per-feature caps read the board through the host, so neither waits for the `projects` plugin. The plugin API is frozen (entry 51) only after schedule, youtrack and telegram use it. An entry that needs a plugin built later sits after that plugin (the morning report, the auto-merge).
+Order: the core first, piece by piece, then the first-version plugins in the vision's order, then the later plugins. Within the core the event stream comes right after the plugin host, because the job runner and the board emit into it from their first line. Job state (16) comes right after the job runner it describes, and jobs on another machine (21, 22) after the guards they carry there. Machines and resources (30 to 34) come right after orchestration, whose `maxAgents` and context they build on; placement reads the project list and the per-feature caps read the board through the host, so neither waits for the `projects` plugin. The plugin API is frozen (entry 51) only after schedule, youtrack and telegram use it. An entry that needs a plugin built later sits after that plugin (the morning report, the auto-merge). Disk and Docker (69 to 72) close the first version, before the switch: the disk floor extends the free resources of 34, the labels read the project list (41), the cleanup runs in the one worktree removal that prune (15) and the merge (54) share, and the sweep registers its entry with schedule (40).
 
-The host API, as these entries build it (names are proposals; entry 51 fixes them): a plugin is a function from its options to `{ name, requires, setup(host), start?(), stop?() }`. `setup` registers; `start` runs long-lived work and is called only by `arthur run`. The host gives a plugin its options with every `...Env` name resolved, its own folder `.arthur/<plugin>/`, `events` (`on`, `emit`), `commands` (`register`), `jobs` (`registerKind`, `spawn`, `beforeSpawn`, `prepare`, `block`, `unblock`, `registerMachine`), `board`, `clock`, `projects()`, and `provide(name, fn)` / `call(name, ...)` / `collect(name)`, through which plugins reach each other without importing each other.
+The host API, as these entries build it (names are proposals; entry 51 fixes them): a plugin is a function from its options to `{ name, requires, setup(host), start?(), stop?() }`. `setup` registers; `start` runs long-lived work and is called only by `arthur run`. The host gives a plugin its options with every `...Env` name resolved, its own folder `.arthur/<plugin>/`, `events` (`on`, `emit`), `commands` (`register`), `jobs` (`registerKind`, `spawn`, `beforeSpawn`, `prepare`, `cleanup`, `block`, `unblock`, `registerMachine`, `run`), `board`, `clock`, `projects()`, and `provide(name, fn)` / `call(name, ...)` / `collect(name)`, through which plugins reach each other without importing each other.
 
 ## Core
 
@@ -627,8 +627,8 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 ### 66. `arthur plugin new`
 
 - Package: develop.
-- Delivers: `arthur plugin new <name>` creates `packages/<name>/` with its `package.json`, a plugin file, a test against the fake host and a doc page; the result passes `npm run check` and `npm test` as created.
-- Done means: refused: an existing name, a name that is not lowercase letters and dashes. Edge cases: the structure test (entry 1) passes on the new package.
+- Delivers: `arthur plugin new <name> --budget <lines>` creates `packages/<name>/` with its `package.json`, a plugin file, a test against the fake host and a doc page, and adds `<name>: <lines>` to `BUDGETS` in `test/structure.test.ts` (the number the plugin's ticket decides); the result passes `npm run check` and `npm test` as created.
+- Done means: refused: an existing name, a name that is not lowercase letters and dashes, a missing `--budget` or one that is not a positive whole number; a refusal changes no file. Edge cases: the structure test (entry 1) passes on the new package with no hand edit; it still refuses a package without a budget.
 - Depends on: 51.
 - Size: half a day.
 - Covers: the vision's develop plugin (no predecessor capability).
@@ -651,45 +651,110 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 - Size: a day.
 - Covers: C7.
 
+## Disk and Docker
+
+### 69. Resources: free disk space per machine
+
+- Package: resources.
+- Delivers: `keepFree.disk` (bytes with K, M, G or T; `0` = no floor). At every machine check (34), the free space of each filesystem the machine's jobs write: its `home`, and each path another plugin names for that machine through `collect("resources.disk", machine)` (docker: its data root, 70); `df -Pk` on every machine, over SSH on another one, so `local` takes the same path. Through `beforeSpawn`, no job starts on a machine whose least free filesystem is under the floor; the refusal names the machine, the path, the space and the floor (`build: 12.3 GB free on /var/lib/docker, floor 20 GB`), and `resources.free` gives that machine no room, so placement (31) takes another machine with the labels. The context line and `arthur resources` add the free disk (`local: room for 2 more jobs (5.1 GB, 3.4 cores, 41 GB disk free)`). Falling under the floor emits `disk-low` (`machine`, `path`, `free`, `floor`) and one `notice`; running jobs are never stopped for disk, they finish in the reserve the floor keeps.
+- Done means: tested against the fake host and a fake `df` on `PATH` that answers in POSIX `df -P` output. Edge cases: free space exactly at the floor starts a job, one KiB under refuses it; floor `0` is no floor; the floor hit mid-job (the running jobs go on, one `disk-low` and one notice, the next spawn there refused, another machine with the labels takes it); free space hovering around the floor emits one `disk-low` per fall under it, not one per check; two paths on one filesystem count once; a provider's path missing on that machine (skipped with one line, the home still counts); `df` output that cannot be read, or a check that fails, counts as no room, said once, as in 34; a machine without Docker counts its home only.
+- Depends on: 34.
+- Size: half a day to a day.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
+### 70. Docker: labels on what a job creates
+
+- Package: docker; the `docker` key of a project's entry in `projects`; in the core, `host.jobs.prepare` (9) may return variables for the job's environment, and `host.jobs.run(machine, argv)` runs one command on a machine (over the SSH of entry 21 on another one).
+- Delivers: the plugin and its options (`buildCache`, `leftoverHours`, `sweep.at`), checked; it acts on machines labelled `tools: docker`. Through `prepare`, for each job on such a machine whose project has not set `docker: false`: a `docker` script for the job in the plugin's folder on that machine, first on the job's `PATH`, which runs the real `docker` (its absolute path found at prepare) with `--label arthur.job=<id>` added to `run`, `create`, `build`, `buildx build`, `container run`, `container create`, `image build`, `network create` and `volume create`, every other command unchanged; and `COMPOSE_PROJECT_NAME` from the job id (`arthur-<short id>`), so compose labels the containers, networks, volumes and images of its stack with `com.docker.compose.project` itself. `provide("resources.disk")` names Docker's data root (`docker info --format '{{.DockerRootDir}}'`) on each such machine where it lies on the machine's own filesystem.
+- Done means: tested against the fake host and a fake `docker` on `PATH` that records its arguments and answers in the shape of Docker's CLI output. Refused at load: `leftoverHours` below 1, a `buildCache` or `sweep.at` that does not parse. Edge cases: a project with `docker: false` gets no script and no variable; a machine without the label gets nothing; the label but no `docker` on the machine (no script, one line per machine, said once); a command that already carries `--label arthur.job=<other>` gets the job's own, so a job cannot label for another; a `--label` with another key is kept; arguments after the image (`docker run img --label x`) belong to the container and are left alone; global options before the command (`docker --log-level debug run …`) still get the label after the command; a compose `-p <name>` the job gives wins, and that stack is left to the sweep; `docker` called by its absolute path, or Docker's API called from a library, is unlabelled and left to the sweep; on macOS, Docker Desktop's data lives in its own virtual machine and is not named for the disk floor, said once.
+- Depends on: 69, 41.
+- Size: a day.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
+### 71. Docker: cleanup with each worktree
+
+- Package: core (one worktree removal, and its cleanup hooks) and docker.
+- Delivers: in the core, one removal of a job's worktree that every path uses: `arthur prune` (15, 22), the merge (54), and a ticket set to dropped (its ended jobs); before it, the hooks plugins register with `host.jobs.cleanup(fn)`, called with the job, on its machine. A hook that throws or runs past 2 minutes is abandoned and emitted as a `notice` naming the job, the machine, the plugin and the reason, and the worktree is removed all the same. In docker, the hook, for a job on a Docker machine whose project has not set `docker: false`, in this order: the containers labelled `arthur.job=<id>` or of the job's compose project, running ones stopped with a 10-second grace, removed with their anonymous volumes; then its networks; its volumes; the images it built (its label, or its compose project's); then the shared build cache cut to `buildCache` (`docker builder prune --max-used-space`). An image without the job's label (a pulled base, a shared or another job's image) is never removed. The removal's output gets one line per job: what was removed, what was kept and why, the space freed.
+- Done means: tested with real Git for the worktree and a fake `docker` that keeps a list of resources and refuses as Docker does (a volume in use, an image a container uses, a network with an endpoint). Edge cases: Docker not installed on the machine (nothing to clean, no line); Docker not running (`Cannot connect to the Docker daemon`: the worktree removed, one notice, the labelled resources left for the sweep, 72); a container still running at prune (stopped, then removed); a volume another job's container uses (kept, named in the line, removed by the sweep once unused); an image another job's container uses (kept); a job on another machine (every command there, through `host.jobs.run`); that machine offline (neither the worktree nor its Docker resources touched; the next prune tries both, as in 22); a cleanup failing half-way (what went stays gone, the rest named in the notice, the worktree removed); a ticket dropped while its job runs (the worktree goes at the job's end, through the next prune); a second prune of the same job (nothing left, no error); `buildCache: 0` (no cap); a job that created nothing (only the cache cap runs).
+- Depends on: 70, 54, 22.
+- Size: a day.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
+### 72. Docker: the leftover sweep and `arthur docker`
+
+- Package: docker; its entry registered with `schedule` (40).
+- Delivers: `sweep.at` registers a daily entry; `disk-low` (69) sweeps that machine at once; `arthur docker sweep [--machine <name>] [--dry-run]` sweeps by hand. On each machine with Docker, the sweep removes what is labelled with a job whose record no longer exists, at any age (a cleanup that failed, a volume kept while in use), and unlabelled leftovers older than `leftoverHours`: stopped containers and unused networks (Docker's `until` filter), dangling images, unused anonymous volumes (by their `CreatedAt`, since `docker volume prune` takes no `until`), build cache unused that long; then it cuts the build cache to `buildCache`. It never removes a running container, a named volume without Arthur's label, a tagged image no job built, a resource of a job whose record exists, or anything labelled `arthur.keep`. One `notice` per sweep: on each machine what it reclaimed, the free disk after, and what failed; none when nothing was reclaimed, nothing failed and no machine is under the floor. `arthur docker`: on each machine Docker's own usage (`docker system df`) and the resources labelled with each job, marking the jobs that no longer exist.
+- Done means: tested against the fake host and a fake `docker` holding resources of known ages and labels. Edge cases: a leftover exactly `leftoverHours` old goes, one minute younger stays; the owner's own named volume (kept, counted in `arthur docker`); an `arthur.keep` resource of any age; a machine offline (skipped, named in the notice); Docker not running on one machine (named, the others swept); a running job's resources (untouched); `disk-low` during the daily sweep (the second waits for the first, nothing is swept twice at once); `--dry-run` removes nothing and lists what a real run would; a machine still under the floor after the sweep (said in the notice, with its free space and the floor); quiet hours (the notice sent without a notification, the channel's rule).
+- Depends on: 71, 40.
+- Size: a day.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
 ## Later
 
-### 69. Signal
+### 73. Signal
 
 - Package: signal.
 - Delivers: a channel through `signal-cli` next to Arthur: receive by polling, send text and media, only the allowed number, the `channel.send` and `message-received` contract telegram uses.
 - Done means: tested against a fake `signal-cli` that answers in its documented JSON shape. Edge cases: `signal-cli` missing (one line, the plugin does not start); a message from another number; an attachment too large.
-- Depends on: the first version (entries 1 to 68).
+- Depends on: the first version (entries 1 to 72).
 - Size: a day.
 - Covers: none (new).
 
-### 70. WhatsApp through a local bridge
+### 74. WhatsApp through a local bridge
 
 - Package: whatsapp.
 - Delivers: a channel through a bridge on loopback (receive by polling, send text and media, only the allowed number); refuses a bridge URL that is not loopback.
 - Done means: tested against a fake bridge. Edge cases: a bridge URL on a public address refused at load; the bridge down (said once, retried); the session logged out.
-- Depends on: 69.
+- Depends on: 73.
 - Size: a day.
 - Covers: none (new).
 
-### 71. Server: events over a stream
+### 75. Server: events over a stream
 
 - Package: server.
 - Delivers: the event log over HTTP as a stream from a sequence number, every request carrying the token; binds only loopback or a private address.
 - Done means: refused at load: `0.0.0.0`, a public address. Edge cases: a request without or with a wrong token (401, no detail); a client that reconnects from its last sequence misses nothing; a slow client does not block the others.
-- Depends on: 70.
+- Depends on: 74.
 - Size: a day.
 - Covers: none (new).
 
-### 72. Server: commands over HTTP
+### 76. Server: commands over HTTP
 
 - Package: server.
 - Delivers: the registered commands over HTTP (name, arguments, the reply), with the token.
 - Done means: edge cases: an unknown command; a command that throws (one error line); two calls at once.
-- Depends on: 71.
+- Depends on: 75.
 - Size: half a day to a day.
 - Covers: none (new).
 
-After entry 68, Arthur switches its first project, itself: it runs on the VPS (`docs/deploy.md`) and takes its own tickets. The other projects follow, then the later entries.
+After entry 72, Arthur switches its first project, itself: it runs on the VPS (`docs/deploy.md`) and takes its own tickets. The other projects follow, then the later entries.
+
+### 77. Web panel: the board, jobs, events and chat in a browser
+
+- Package: server (its web page; the same plugin as 75 and 76).
+- Delivers: the board, the jobs with their states, the events and the coordinator's chat in a browser, served by `server` (75, 76) on the Tailscale network only; Tailscale identifies who connects, so the panel keeps no passwords.
+- Done means: refused at load: a bind address that is neither loopback nor Tailscale's `100.64.0.0/10` or `fd7a:115c:a1e0::/48`. Edge cases: a request from outside the Tailscale network is refused with no detail; the panel's job states are the ones `arthur jobs` prints; its events are the ones 75 streams; a command run from the panel gives the reply `arthur <cmd>` gives.
+- Depends on: 76.
+- Size: several days.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
+### 78. Knowledge base: documents, search, and a chat with sources
+
+- Package: knowledge.
+- Delivers: a project's or company's documents in three forms: plain documentation, search over them (RAG) that agents can query through a command, and a chat that answers from them with sources.
+- Done means: a search returns passages, each with its file and line; a chat answer names the files it used; a document removed from the folder is removed from the search results; a file that is not readable text is refused with its name. Edge cases: an empty folder; a query with no match says so.
+- Depends on: 77.
+- Size: several days.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
+### 79. Company edition: business roles as standing agents
+
+- Package: one plugin per role (`@arthur/marketing`, `@arthur/sales`, `@arthur/research`), and the approval step they share.
+- Delivers: business roles run as standing agents that talk through the coordinator by tickets and notes, not freely to each other. Every action that leaves the company (an email, a post, an offer) waits for a human's approval. Roles, keys and data are per role: each Tailscale user gets roles, and a role's manager approves its decisions.
+- Done means: an action that leaves the company is not sent until its manager approves it, and a refused one is not sent; a role cannot read another role's data or keys; a role agent reaches another role only through a ticket or a note. Edge cases: a role with no manager is refused at load; a Tailscale user with no role gets no role's data.
+- Depends on: 77 and 78.
+- Size: weeks; to be split into its own entries when it is planned.
+- Covers: none (new: the owner asked for it on 2026-10-16).
 
 ## Coverage of the harness Arthur replaces
 

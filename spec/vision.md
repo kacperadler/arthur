@@ -49,7 +49,7 @@ The core, always on:
 | Plugin host | Calls each enabled plugin with the host API; a plugin subscribes to events, emits events, reads its options and env, and reads the project list. A disabled plugin is not loaded. |
 | Command registry | A plugin registers its commands, each with its doc page (what `arthur <cmd> --help` prints) and, where it has one, a phone command (`/jobs`, `/health`, `/restart`). A channel only routes `/name text` to the host and sends the reply; it imports no other plugin. |
 | Terminal | Every registered command runs from a shell as `arthur <cmd>`; `arthur attach`, which `orchestration` registers, opens the coordinator's session. |
-| Job runner | One job in one worktree on one branch, on this machine or another one over SSH: spawn `omp`, its log, its state (working, idle, blocked, ended), limits (time, budget, CPU and memory in one joint slice), stop, continue, steer. Finds a job whose process is gone and fails it. A plugin registers the kinds of job it owns (review, audit, plan, ...). |
+| Job runner | One job in one worktree on one branch, on this machine or another one over SSH: spawn `omp`, its log, its state (working, idle, blocked, ended), limits (time, budget, CPU and memory in one joint slice), stop, continue, steer. Finds a job whose process is gone and fails it. A plugin registers the kinds of job it owns (review, audit, plan, ...). Removes a worktree in one place, whoever asks (prune, merge, a dropped ticket), after the cleanup hooks plugins register. |
 | Ticket board | Tickets as files, the board as one JSON, changed only through the core's own command. Ids are the project's `prefix` and a number, from 1. |
 | Prompt loader | Builds each role's prompt: the role file a plugin ships, a project's own override, then the project's criteria files. |
 | Event stream | Every state change (job started, ended, ticket moved) is an event from day one, so a server plugin can come later without changing the core. |
@@ -64,7 +64,7 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | --- | --- | --- |
 | orchestration (named) | first, always on | The coordinator: its session process and `arthur attach`, the options above, wake on job end, the planning of large tickets, autopilot. |
 | machines (named) | first | The machines jobs run on: `local`, where Arthur runs, and others reached over SSH on a private network, each with labels (os, arch, tools); places each job on a machine that has the labels its project or ticket requires. Below. |
-| resources (named) | first | Caps per job (CPU, memory) and per feature (CPU, memory, time, money), and how many jobs start from each machine's free resources, below `maxAgents`. Below. |
+| resources (named) | first | Caps per job (CPU, memory) and per feature (CPU, memory, time, money), how many jobs start from each machine's free resources, below `maxAgents`, and a floor of free disk per machine. Below. |
 | session (named) | first | The coordinator's conversation: compaction at 08:00, 13:00 and 18:00, a fresh start at 23:00, `/restart` and `/restart fresh`, the restart guard, the start notice and LLM probe. |
 | schedule (named) | first | A module for actions and jobs at set times: an entry is a daily time or a one-off date and time, and does an action (a message to the coordinator, optionally a named procedure) or a job (spawn one of a kind). Other plugins register their own entries from their options; hand-added ones live in a file. |
 | projects (named) | first | The project list, declared in the config: path or repo, ticket prefix, tracker instance, commit rules, auto-merge, CI workflow, vision and criteria paths, folders in front of `PATH`. Onboarding of a new repository. |
@@ -75,11 +75,14 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | github (derived) | first | Polls CI runs and pull requests, wakes the coordinator. |
 | manage (named: managing Arthur) | first | The audit, the retro, health, prune, stats. Its options (`audit.days`, `retro.day`) make the schedule entries, not prose in one. |
 | develop (named: developing Arthur) | first | A command that creates a plugin, evals of the coordinator's turns. |
+| docker (named) | first | Labels the Docker resources a job creates with its id and removes them with its worktree, on every machine; keeps the build cache under a cap; a daily sweep of leftovers. Below. |
 | signal (named) | later | A channel, through signal-cli. |
 | whatsapp (named) | later | A channel, through a local bridge. The official Business API is out: it delivers incoming messages by webhook. |
 | server (named) | later | The core's events and commands over HTTP and a stream, for clients (a phone app, a web page, a T3 Code-like UI). Bound to a private network, with a token. |
 
 Order of the later plugins, cheapest first: signal (a local process), then whatsapp (an unofficial bridge: the account may be banned), then server (needs a stable event protocol and auth).
+
+The core never assumes a project is a Git repository or that a single human approves everything, so the company edition (roadmap 79) is plugins on the same core.
 
 ## Commit rules
 
@@ -129,8 +132,30 @@ Home: the `resources` plugin. A job's time and money stay the core's limits (`jo
 - Per job: `perJob.cpu` and `perJob.memory`, on the job's own scope. A job over its memory cap ends `limit: memory`; CPU is slowed, not stopped. On macOS, which has no systemd, memory is sampled and CPU is not capped.
 - Per feature, all jobs of one ticket together: `perFeature.budgetUsd`, `hours`, `cpu`, `memory`; a ticket's `caps` replace them for that ticket. At the cap, spawns for the ticket are refused and its running jobs are stopped and held blocked until the human raises the cap.
 - How many jobs: each machine's free CPU and memory. A job starts only when its machine keeps `keepFree` after the job's reservation (its `perJob` caps); the coordinator sees each machine's room in its context and decides how many to start. `maxAgents` stays the upper bound across all machines.
+- Free disk: under `keepFree.disk` on a machine, no job starts there. Below, with Docker.
 
-Interface: `beforeSpawn` refusals that name the shortfall, `provide("jobs.limits")` read by the core's job scope, `provide("resources.free")` read by placement, the `cap-reached` event, one context line per machine, `arthur resources`, `/resources`.
+Interface: `beforeSpawn` refusals that name the shortfall, `provide("jobs.limits")` read by the core's job scope, `provide("resources.free")` read by placement, the `cap-reached` and `disk-low` events, one context line per machine, `arthur resources`, `/resources`.
+
+## Disk space and Docker
+
+The owner asked for this on 2026-10-16: jobs that build and run containers again and again fill the disk, and when it is full no agent can work. On the harness Arthur replaces, that day: Docker's build cache 31.7 GB (21 GB reclaimable), images 9.5 GB (4 GB reclaimable), 127 volumes (91% reclaimable), the disk 66% used with 41 GB free.
+
+Home, and why:
+
+- The disk floor: the `resources` plugin. Free disk is one more resource of a machine, beside CPU and memory: measured at the same machine check, refused through the same `beforeSpawn`, shown in the same context line, and needed whether Docker is there or not.
+- Docker's resources: a small `docker` plugin. Labels, cleanup and the sweep are Docker's own commands, needed only on machines labelled `tools: docker`; in `resources` they would double its size with code that is about Docker, not about room. The core knows no Docker: it stays a job runner and gives one hook, `host.jobs.cleanup(fn)`, run on the job's machine before its worktree is removed, wherever the removal comes from (prune, merge, a dropped ticket).
+
+Labels: on a machine labelled `tools: docker`, each job of a project that has not turned it off gets a `docker` first on its `PATH` that adds `--label arthur.job=<id>` to what it creates (`run`, `create`, `build`, `buildx build`, `network create`, `volume create`), and `COMPOSE_PROJECT_NAME` from its id, so compose labels its stack itself. What a job creates past them (a library calling Docker's API, `docker` by its absolute path) is unlabelled and left to the sweep.
+
+With the worktree: before a job's worktree is removed, on its machine, the job's containers are stopped and removed with their anonymous volumes, then its networks, its volumes and the images it built. Images it did not build (pulled bases, shared ones) are kept, and so is anything another job's container still uses. Then Docker's build cache, shared and never labelled per job, is cut to `buildCache`. A cleanup that fails (Docker not running, a timeout, a refusal) never keeps the worktree: the worktree is removed, the failure is a `notice`, and the sweep retries.
+
+The floor: each machine's free disk, on the filesystems its jobs write (its home, and Docker's data root where Docker runs), is measured at every machine check. Under `keepFree.disk` no job starts there: the refusal names the machine and the space (`build: 12.3 GB disk free, floor 20 GB`), and placement takes another machine with the labels. A machine that falls under the floor mid-job keeps its running jobs, which finish in the reserve the floor keeps; it emits `disk-low` once, and `docker` sweeps that machine at once.
+
+The sweep: daily at `sweep.at`, and on `disk-low`, on every machine with Docker. It removes what is labelled with a job that no longer exists, at any age, and unlabelled leftovers older than `leftoverHours`: stopped containers, unused networks, dangling images, unused anonymous volumes, build cache unused that long. It never touches a running container, a named volume without Arthur's label, a tagged image no job built, or anything labelled `arthur.keep`. One `notice` per sweep tells the owner on the channels what it reclaimed on each machine, the free disk after, and what failed; a sweep that changed nothing says nothing, unless a machine stays under the floor.
+
+Per project: `docker: false` in a project's `projects` entry turns the labels and the cleanup off for its jobs; the sweep is per machine and still runs.
+
+Interface: `host.jobs.cleanup(fn)`, `host.jobs.prepare` returning variables for the job's environment, `host.jobs.run(machine, argv)` (a command on a machine, over SSH for another one), `collect("resources.disk")` (paths whose filesystem counts, such as Docker's data root), `disk-low`, `arthur docker`, `arthur docker sweep`.
 
 ## How it is built
 
@@ -156,6 +181,7 @@ Interface: `beforeSpawn` refusals that name the shortfall, `provide("jobs.limits
 - A job's state: the core's job runner (its record, `job-state`); shown by `orchestration` (context, wake, a notice when a job asks the user) and `/jobs` on every channel.
 - Running a job on another machine: the core's job runner, over SSH. Which machines exist, their labels, and which one a job goes to: `machines`.
 - A job's time and money: the core. A job's CPU and memory, a feature's caps, and how many jobs the free resources allow: `resources`.
+- Free disk on a machine: `resources` (`keepFree.disk`). A job's Docker resources, the build cache cap and the leftover sweep: `docker`, through the core's cleanup hook on worktree removal.
 
 ## Licence
 
@@ -192,3 +218,4 @@ FSL-1.1-ALv2, the Functional Source License with Apache 2.0 after two years. It 
 16. Every job has one state: working, idle, blocked (on the user or a dependency), or ended; the coordinator and the channels show it.
 17. Arthur runs on one machine and starts jobs on others it reaches over SSH on a private network (Tailscale), placed by the labels (os, arch, tools) a project or a ticket requires. Nothing is exposed to the internet.
 18. A `resources` plugin caps what one job or one feature may use (CPU, memory, time, money; a job's time and money are the core's existing limits) and decides how many jobs start from each machine's free resources; `maxAgents` stays the upper bound.
+19. Arthur watches disk space and cleans Docker with each worktree, so agents never stop for a full disk: free disk is a resource of `resources`, a job's Docker resources are labelled and removed with its worktree by a `docker` plugin, and a daily sweep reclaims leftovers.

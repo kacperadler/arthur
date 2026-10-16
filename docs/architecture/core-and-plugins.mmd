@@ -15,7 +15,7 @@ flowchart TD
   subgraph CORE[Arthur core - always on]
     loader[config loader]
     host[plugin host<br/>command registry]
-    runner[job runner<br/>worktree, log, stop<br/>state: working, idle,<br/>blocked, ended<br/>here or over SSH]
+    runner[job runner<br/>worktree, log, stop<br/>state: working, idle,<br/>blocked, ended<br/>here or over SSH<br/>cleanup hooks on removal]
     board[ticket board]
     events[event stream]
     clock[clock<br/>time zone, quiet hours]
@@ -35,10 +35,11 @@ flowchart TD
     session ~~~ schedule
   end
 
-  subgraph RES[Machines and resources]
+  subgraph RES[Machines, resources and disk]
     machines[machines<br/>labels: os, arch, tools<br/>places each job]
-    resources[resources<br/>caps per job and feature<br/>jobs from free resources]
-    machines ~~~ resources
+    resources[resources<br/>caps per job and feature<br/>jobs from free resources<br/>disk floor per machine]
+    docker[docker<br/>labels what a job creates<br/>removed with its worktree<br/>build cache cap, sweep]
+    machines ~~~ resources ~~~ docker
   end
 
   subgraph PROJ[Projects, trackers, delivery, commits]
@@ -77,5 +78,5 @@ flowchart TD
 
   classDef first fill:#d8f5d8,stroke:#2d7a2d,color:#000;
   classDef later fill:#eee,stroke:#888,stroke-dasharray:4 3,color:#555;
-  class terminal,telegram,orchestration,session,schedule,machines,resources,delivery,projects,youtrack,github,commit,manage,develop first;
+  class terminal,telegram,orchestration,session,schedule,machines,resources,docker,delivery,projects,youtrack,github,commit,manage,develop first;
   class whatsapp,signal,server later;

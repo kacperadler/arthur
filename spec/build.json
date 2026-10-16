@@ -93,9 +93,9 @@
   {
     "id": "AR0011",
     "title": "Roadmap 8: arthur run: Arthur as a process",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0011-roadmap-8-arthur-run-arthur-as-a-process/ticket.md",
-    "updated": "2026-10-16T09:46:23.719Z",
+    "updated": "2026-10-16T11:13:40.411Z",
     "after": [
       "AR0007",
       "AR0008"
@@ -187,9 +187,9 @@
   {
     "id": "AR0020",
     "title": "Roadmap 17: Ticket board: tickets and the board file",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0020-roadmap-17-ticket-board-tickets-and-the-board-file/ticket.md",
-    "updated": "2026-10-16T10:54:05.490Z",
+    "updated": "2026-10-16T11:11:30.410Z",
     "after": [
       "AR0036"
     ]
@@ -249,9 +249,9 @@
   {
     "id": "AR0026",
     "title": "`arthur plugin new` meets the line-budget rule",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0026-arthur-plugin-new-meets-the-line-budget-rule/ticket.md",
-    "updated": "2026-10-16T09:55:15.031Z",
+    "updated": "2026-10-16T11:03:28.130Z",
     "after": [
       "AR0007"
     ]
@@ -314,9 +314,9 @@
   {
     "id": "AR0034",
     "title": "Roadmap: disk space and Docker cleanup with each worktree",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0034-roadmap-disk-space-and-docker-cleanup-with-each-worktree/ticket.md",
-    "updated": "2026-10-16T10:57:16.187Z"
+    "updated": "2026-10-16T11:01:32.364Z"
   },
   {
     "id": "AR0035",
@@ -331,8 +331,22 @@
   {
     "id": "AR0036",
     "title": "The lock's dead-holder takeover race has no test",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0036-the-lock-s-dead-holder-takeover-race-has-no-test/ticket.md",
-    "updated": "2026-10-16T10:54:15.628Z"
+    "updated": "2026-10-16T11:09:23.177Z"
+  },
+  {
+    "id": "AR0037",
+    "title": "AR0003 names `arthur merge` as roadmap entry 53; it is entry 54",
+    "status": "dropped",
+    "path": "spec/features/AR0037-ar0003-names-arthur-merge-as-roadmap-entry-53-it-is-entry-54/ticket.md",
+    "updated": "2026-10-16T11:01:43.621Z"
+  },
+  {
+    "id": "AR0038",
+    "title": "Roadmap: Later entries for the web panel, a knowledge base and a company edition",
+    "status": "merged",
+    "path": "spec/features/AR0038-roadmap-later-entries-for-the-web-panel-a-knowledge-base-and-a-company-edition/ticket.md",
+    "updated": "2026-10-16T11:10:58.896Z"
   }
 ]

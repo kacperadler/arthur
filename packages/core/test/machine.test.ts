@@ -296,6 +296,8 @@ test("prune never deletes a worktree on a machine it cannot reach, nor one Git r
 	const { home, machine, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
 	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
 	const worktree = join(there, "repos/.arthur-worktrees", job.id);
+	const inRun = spawnSync(process.execPath, [CLI, "remote-job", "prune", there, job.id, ""], { cwd: there, encoding: "utf8" });
+	assert.deepEqual([inRun.status, inRun.stderr, existsSync(worktree)], [1, `arthur remote-job: ${job.id} is working there, in a run\n`, true]);
 	assert.equal(await jobs.stopAll(), `${job.id}: stopped`);
 	assert.equal(read(home, job.id, "state"), "ended");
 	writeFileSync(join(machine, "refuse"), "");

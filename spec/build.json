@@ -168,7 +168,7 @@
     "title": "Roadmap 15: Jobs list, prune, dead jobs, and their phone commands",
     "status": "in-progress",
     "path": "spec/features/AR0018-roadmap-15-jobs-list-prune-dead-jobs-and-their-phone-commands/ticket.md",
-    "updated": "2026-10-16T15:14:14.722Z",
+    "updated": "2026-10-16T15:25:18.818Z",
     "after": [
       "AR0017"
     ]
@@ -549,9 +549,9 @@
   {
     "id": "AR0067",
     "title": "Two `arthur continue` at once can start two wrappers on one record where the job runs bare",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0067-two-arthur-continue-at-once-can-start-two-wrappers-on-one-record-where-the-job-runs-bare/ticket.md",
-    "updated": "2026-10-16T15:05:25.314Z",
+    "updated": "2026-10-16T15:25:22.739Z",
     "after": [
       "AR0065"
     ]

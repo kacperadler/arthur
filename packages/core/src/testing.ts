@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type Command, commandRegistry } from "./commands.ts";
+import { type Event, eventBus } from "./events.ts";
 import { type Host, type Options, type Provider, pluginHost, registry } from "./plugin.ts";
 
 // The test kit (spec/roadmap.md, entry 4), published as `@arthur/core/testing`. Loading it is the safety net, and `npm test`
@@ -30,20 +31,27 @@ export type FakeHost = {
 	readonly calls: readonly Use[];
 	// The commands it registered, in order; `host.commands.route` answers a channel's `/name text` with them.
 	readonly commands: readonly Command[];
+	// The events the plugin emitted, as logged, in the order of their sequence numbers.
+	readonly emitted: readonly Event[];
 	// The test as another plugin: drives what the plugin provides, or provides what it calls.
 	call<T = unknown>(name: string, ...args: readonly unknown[]): T;
 	collect<T = unknown>(name: string, ...args: readonly unknown[]): T[];
 	provide(name: string, fn: Provider): void;
+	// An event from the plugin `test`, delivered to the plugin's subscribers and logged like any other.
+	emit(name: string, data: unknown): Event;
 };
 
 // The host one plugin sees, alone: its options as given (`enabled` is the host's, left out), its env values, and its folder,
-// `<temporary folder>/<name>/`. A `call` or a command's registration refuses like the real host's, naming the plugin.
+// `<temporary folder>/<name>/`, whose parent is the home folder holding the event log. A `call` or a command's registration
+// refuses like the real host's, naming the plugin.
 export function fakeHost(plugin: { readonly name: string; readonly options?: Options; readonly env?: Readonly<Record<string, string>> }): FakeHost {
 	const names = registry();
 	const registered = commandRegistry();
-	const folder = join(temporaryFolder(), plugin.name);
+	const home = temporaryFolder();
+	const bus = eventBus(home);
+	const folder = join(home, plugin.name);
 	mkdirSync(folder);
-	const real = pluginHost(names, registered, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder });
+	const real = pluginHost(names, registered, bus, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder });
 	const provided: string[] = [];
 	const calls: Use[] = [];
 	const commands: Command[] = [];
@@ -74,8 +82,12 @@ export function fakeHost(plugin: { readonly name: string; readonly options?: Opt
 		provided,
 		calls,
 		commands,
+		get emitted() {
+			return bus.read(1).filter((event) => event.plugin === plugin.name);
+		},
 		call: <T>(name: string, ...args: readonly unknown[]) => names.call("test", name, args) as T,
 		collect: <T>(name: string, ...args: readonly unknown[]) => names.collect(name, args) as T[],
 		provide: (name, fn) => names.provide("test", name, fn),
+		emit: (name, data) => bus.emit("test", name, data),
 	};
 }

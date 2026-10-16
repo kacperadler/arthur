@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { type CommandRegistry, commandRegistry } from "./commands.ts";
 import type { LoadedConfig } from "./config.ts";
 import { resolveEnv, type Shell } from "./env.ts";
+import { eventBus } from "./events.ts";
 import { type Plugin, pluginHost, registry } from "./plugin.ts";
 
 // The plugin host (spec/roadmap.md, entry 4): checks the config's plugin list, resolves the enabled plugins' env variables,
@@ -53,11 +54,12 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	if (typeof sorted === "string") throw new Error(at(`plugins: a cycle in requires: ${sorted}`));
 	const { values, warnings } = resolveEnv(config, shell);
 	const names = registry();
+	const bus = eventBus(config.core.home);
 	for (const plugin of sorted) {
 		const { enabled: _, ...options } = plugin.options ?? {};
 		const folder = join(config.core.home, plugin.name);
 		mkdirSync(folder, { recursive: true });
-		const host = pluginHost(names, commands, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder });
+		const host = pluginHost(names, commands, bus, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder });
 		await guard(plugin, "setup", () => plugin.setup(host));
 	}
 	return { plugins: sorted, warnings };

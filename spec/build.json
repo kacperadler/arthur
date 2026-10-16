@@ -604,9 +604,9 @@
   {
     "id": "AR0073",
     "title": "Core: one plugin-entry check, one describe, one step guard, one record reader",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0073-core-one-plugin-entry-check-one-describe-one-step-guard-one-record-reader/ticket.md",
-    "updated": "2026-10-16T15:46:45.400Z",
+    "updated": "2026-10-16T16:05:13.971Z",
     "after": [
       "AR0068"
     ]

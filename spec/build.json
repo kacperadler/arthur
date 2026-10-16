@@ -43,9 +43,9 @@
   {
     "id": "AR0006",
     "title": "Roadmap 3: Config: env names, .env, and arthur config check",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0006-roadmap-3-config-env-names-env-and-arthur-config-check/ticket.md",
-    "updated": "2026-10-16T09:46:22.017Z",
+    "updated": "2026-10-16T10:03:35.168Z",
     "after": [
       "AR0005"
     ]

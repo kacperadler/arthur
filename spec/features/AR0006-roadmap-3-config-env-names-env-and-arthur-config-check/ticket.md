@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: Cut from `spec/roadmap.md` entry 3 by the coordinator; AR tickets need no approval (the owner, 2026-10-16).
+- 2026-10-16: Coordinator accepts: a plugin entry is `{ name, options }` with `enabled` inside `options` (entry 4 builds on it); the 18-line `arthur` binary in `packages/core/src/cli.ts` is temporary and entry 6 replaces it with the command registry.

@@ -1,3 +1,4 @@
+import { type Board, board } from "./board.ts";
 import type { Clock } from "./clock.ts";
 import type { CommandRegistry, Commands } from "./commands.ts";
 import type { Bus, Events } from "./events.ts";
@@ -46,6 +47,8 @@ export type Host = {
 	readonly commands: Commands;
 	// The job runner: this plugin's kinds, its checks before a spawn, its steps in a new worktree, and spawns.
 	readonly jobs: Jobs;
+	// The ticket board of every project in the list a plugin provides as `projects`; its events are named by this plugin.
+	readonly board: Board;
 };
 
 export type Registry = {
@@ -103,5 +106,6 @@ export function pluginHost(
 			prepare: (fn) => runner.prepare(own.name, fn),
 			spawn: runner.spawn,
 		},
+		board: board(() => names.collect("projects", []), own.clock, (name, data) => bus.emit(own.name, name, data)),
 	};
 }

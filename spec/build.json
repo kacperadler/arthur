@@ -104,9 +104,9 @@
   {
     "id": "AR0012",
     "title": "Roadmap 9: Job runner: spawn and the job record",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0012-roadmap-9-job-runner-spawn-and-the-job-record/ticket.md",
-    "updated": "2026-10-16T09:46:24.060Z",
+    "updated": "2026-10-16T11:36:41.287Z",
     "after": [
       "AR0008",
       "AR0009"
@@ -187,9 +187,9 @@
   {
     "id": "AR0020",
     "title": "Roadmap 17: Ticket board: tickets and the board file",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0020-roadmap-17-ticket-board-tickets-and-the-board-file/ticket.md",
-    "updated": "2026-10-16T11:11:30.410Z",
+    "updated": "2026-10-16T11:37:36.942Z",
     "after": [
       "AR0036"
     ]
@@ -287,9 +287,9 @@
   {
     "id": "AR0031",
     "title": "`arthur config check` passes a plugin list the host refuses",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0031-arthur-config-check-passes-a-plugin-list-the-host-refuses/ticket.md",
-    "updated": "2026-10-16T10:32:46.130Z",
+    "updated": "2026-10-16T11:27:06.692Z",
     "after": [
       "AR0011"
     ]
@@ -348,5 +348,19 @@
     "status": "merged",
     "path": "spec/features/AR0038-roadmap-later-entries-for-the-web-panel-a-knowledge-base-and-a-company-edition/ticket.md",
     "updated": "2026-10-16T11:10:58.896Z"
+  },
+  {
+    "id": "AR0039",
+    "title": "`arthur config check` says ok when a plugin's `setup` refuses the start",
+    "status": "merged",
+    "path": "spec/features/AR0039-arthur-config-check-says-ok-when-a-plugin-s-setup-refuses-the-start/ticket.md",
+    "updated": "2026-10-16T11:35:45.014Z"
+  },
+  {
+    "id": "AR0040",
+    "title": "A crash mid-write leaves the board's lock or temporary file in the project's `spec/`",
+    "status": "planned",
+    "path": "spec/features/AR0040-a-crash-mid-write-leaves-the-board-s-lock-or-temporary-file-in-the-project-s-spec/ticket.md",
+    "updated": "2026-10-16T11:37:58.946Z"
   }
 ]

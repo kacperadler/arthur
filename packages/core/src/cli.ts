@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import type { Board } from "./board.ts";
 import { type Command, type CommandRegistry, commandRegistry } from "./commands.ts";
 import { configCheck } from "./config-check.ts";
 import { loadConfig } from "./config.ts";
 import { loadPlugins } from "./host.ts";
 import type { JobRunner, SpawnRequest } from "./jobs.ts";
+import { ticketCommand } from "./ticket-command.ts";
 import type { Plugin } from "./plugin.ts";
 import { runPlugins } from "./run.ts";
 
@@ -43,8 +45,9 @@ async function main(argv: readonly string[]): Promise<number> {
 	}
 }
 
-// What `arthur run` starts: the plugins as loaded, in setup order, and the home folder; `jobs` is what `arthur spawn` uses.
-type Loaded = { readonly plugins: readonly Plugin[]; readonly home: string; readonly jobs: JobRunner };
+// What `arthur run` starts: the plugins as loaded, in setup order, and the home folder; `jobs` is what `arthur spawn` uses,
+// `board`, the core's, what `arthur ticket` uses.
+type Loaded = { readonly plugins: readonly Plugin[]; readonly home: string; readonly jobs: JobRunner; readonly board: Board };
 
 // Every command, the core's and the plugins'; when the config or a plugin does not load, the core's alone and the reason.
 async function load(): Promise<{ readonly commands: CommandRegistry; readonly problem?: string }> {
@@ -52,8 +55,8 @@ async function load(): Promise<{ readonly commands: CommandRegistry; readonly pr
 	const commands = core(undefined, () => loaded);
 	try {
 		const config = await loadConfig("arthur.config.ts");
-		const { plugins, jobs } = await loadPlugins(config, process.env, commands);
-		loaded = { plugins, home: config.core.home, jobs };
+		const { plugins, jobs, board } = await loadPlugins(config, process.env, commands);
+		loaded = { plugins, home: config.core.home, jobs, board };
 		return { commands };
 	} catch (error) {
 		const problem = error instanceof Error ? error.message : String(error);
@@ -64,6 +67,14 @@ async function load(): Promise<{ readonly commands: CommandRegistry; readonly pr
 // `problem`: why the plugins' commands are missing, said with every list of the commands; `loaded` once the plugins are set up.
 function core(problem: string | undefined, loaded: () => Loaded | undefined): CommandRegistry {
 	const commands = commandRegistry();
+	commands.register(
+		"core",
+		ticketCommand(() => {
+			const board = loaded()?.board;
+			if (board === undefined) throw new Error(`the board needs the project list, and arthur.config.ts did not load:\n${problem}`);
+			return board;
+		}),
+	);
 	commands.register("core", {
 		name: "config",
 		doc: new URL("../docs/commands/config.md", import.meta.url),
@@ -72,7 +83,7 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 				console.error("usage: arthur config check");
 				return 2;
 			}
-			const { lines, ok } = await configCheck("arthur.config.ts");
+			const { lines, ok } = await configCheck("arthur.config.ts", process.env, problem);
 			for (const line of lines) console.log(line);
 			return ok ? 0 : 1;
 		},

@@ -21,11 +21,11 @@ test("the README status line names a command that runs and links an existing roa
 	const link = status.match(/\]\(([^)]+)\)/)?.[1];
 	assert.ok(link && existsSync(join(ROOT, link)), `the status line links an existing file: ${link}`);
 
-	writeFileSync(join(folder, "arthur.config.ts"), "export default { plugins: [] };\n");
+	writeFileSync(join(folder, "arthur.config.ts"), 'export default { plugins: [{ name: "orchestration", setup() {} }] };\n');
 	const run = spawnSync(process.execPath, [CLI, ...command.split(" ").slice(1)], {
 		cwd: folder,
 		encoding: "utf8",
 		env: { PATH: process.env.PATH ?? "" },
 	});
-	assert.deepEqual([run.status, run.stderr], [0, ""], `${command} exits 0 on a config with no plugins`);
+	assert.deepEqual([run.status, run.stderr], [0, ""], `${command} exits 0 on the smallest config Arthur starts`);
 });

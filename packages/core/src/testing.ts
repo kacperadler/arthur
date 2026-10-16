@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { type Command, commandRegistry } from "./commands.ts";
 import { type Event, eventBus } from "./events.ts";
 import { type Host, type Options, type Provider, pluginHost, registry } from "./plugin.ts";
 
@@ -28,6 +29,8 @@ export type FakeHost = {
 	// What the plugin did through `host`, in order.
 	readonly provided: readonly string[];
 	readonly calls: readonly Use[];
+	// The commands it registered, in order; `host.commands.route` answers a channel's `/name text` with them.
+	readonly commands: readonly Command[];
 	// The events the plugin emitted, as logged, in the order of their sequence numbers.
 	readonly emitted: readonly Event[];
 	// The test as another plugin: drives what the plugin provides, or provides what it calls.
@@ -39,17 +42,19 @@ export type FakeHost = {
 };
 
 // The host one plugin sees, alone: its options as given (`enabled` is the host's, left out), its env values, and its folder,
-// `<temporary folder>/<name>/`, whose parent is the home folder holding the event log. A `call` refuses like the real
-// host's, naming the plugin.
+// `<temporary folder>/<name>/`, whose parent is the home folder holding the event log. A `call` or a command's registration
+// refuses like the real host's, naming the plugin.
 export function fakeHost(plugin: { readonly name: string; readonly options?: Options; readonly env?: Readonly<Record<string, string>> }): FakeHost {
 	const names = registry();
+	const registered = commandRegistry();
 	const home = temporaryFolder();
 	const bus = eventBus(home);
 	const folder = join(home, plugin.name);
 	mkdirSync(folder);
-	const real = pluginHost(names, bus, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder });
+	const real = pluginHost(names, registered, bus, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder });
 	const provided: string[] = [];
 	const calls: Use[] = [];
+	const commands: Command[] = [];
 	const host: Host = {
 		...real,
 		provide(name, fn) {
@@ -64,11 +69,19 @@ export function fakeHost(plugin: { readonly name: string; readonly options?: Opt
 			calls.push({ kind: "collect", name, args });
 			return real.collect<T>(name, ...args);
 		},
+		commands: {
+			...real.commands,
+			register(command) {
+				real.commands.register(command);
+				commands.push(command);
+			},
+		},
 	};
 	return {
 		host,
 		provided,
 		calls,
+		commands,
 		get emitted() {
 			return bus.read(1).filter((event) => event.plugin === plugin.name);
 		},

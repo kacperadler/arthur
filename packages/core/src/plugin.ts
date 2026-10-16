@@ -1,3 +1,4 @@
+import type { CommandRegistry, Commands } from "./commands.ts";
 import type { Bus, Events } from "./events.ts";
 
 // The plugin shape and the host one plugin sees (spec/roadmap.md, entry 4). A plugin is a function from its options to a
@@ -37,6 +38,8 @@ export type Host = {
 	provide(name: string, fn: Provider): void;
 	call<T = unknown>(name: string, ...args: readonly unknown[]): T;
 	collect<T = unknown>(name: string, ...args: readonly unknown[]): T[];
+	// The command registry: `register` this plugin's commands; `route` and `phone` for a channel.
+	readonly commands: Commands;
 };
 
 export type Registry = {
@@ -70,7 +73,7 @@ export function registry(): Registry {
 	};
 }
 
-export function pluginHost(names: Registry, bus: Bus, own: Pick<Host, "name" | "options" | "env" | "folder">): Host {
+export function pluginHost(names: Registry, commands: CommandRegistry, bus: Bus, own: Pick<Host, "name" | "options" | "env" | "folder">): Host {
 	return {
 		...own,
 		events: {
@@ -81,5 +84,6 @@ export function pluginHost(names: Registry, bus: Bus, own: Pick<Host, "name" | "
 		provide: (name, fn) => names.provide(own.name, name, fn),
 		call: <T>(name: string, ...args: readonly unknown[]) => names.call(own.name, name, args) as T,
 		collect: <T>(name: string, ...args: readonly unknown[]) => names.collect(name, args) as T[],
+		commands: { register: (command) => commands.register(own.name, command), route: commands.route, phone: commands.phone },
 	};
 }

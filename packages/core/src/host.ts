@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { type CommandRegistry, commandRegistry } from "./commands.ts";
 import type { LoadedConfig } from "./config.ts";
 import { resolveEnv, type Shell } from "./env.ts";
 import { eventBus } from "./events.ts";
@@ -14,7 +15,8 @@ export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warn
 const PLUGIN_NAME = /^[a-z]+(-[a-z]+)*$/;
 const REQUIRED = "orchestration";
 
-export async function loadPlugins(config: LoadedConfig, shell: Shell = process.env): Promise<LoadedPlugins> {
+// `commands` holds what the core registered before; the plugins' commands join it, and a name registered twice refuses the load.
+export async function loadPlugins(config: LoadedConfig, shell: Shell = process.env, commands: CommandRegistry = commandRegistry()): Promise<LoadedPlugins> {
 	const at = (path: string) => `${config.path}: ${path}`;
 	const problems: string[] = [];
 	let unreadable = false;
@@ -57,7 +59,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		const { enabled: _, ...options } = plugin.options ?? {};
 		const folder = join(config.core.home, plugin.name);
 		mkdirSync(folder, { recursive: true });
-		const host = pluginHost(names, bus, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder });
+		const host = pluginHost(names, commands, bus, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder });
 		await guard(plugin, "setup", () => plugin.setup(host));
 	}
 	return { plugins: sorted, warnings };

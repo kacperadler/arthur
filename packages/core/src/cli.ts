@@ -7,6 +7,8 @@ import { configCheck } from "./config-check.ts";
 import { loadConfig } from "./config.ts";
 import { type LoadedPlugins, loadPlugins } from "./host.ts";
 import type { JobRunner, SpawnRequest } from "./jobs.ts";
+import { boardCommands } from "./board-commands.ts";
+import { rolesCommand } from "./roles-command.ts";
 import { ticketCommand } from "./ticket-command.ts";
 import type { Plugin } from "./plugin.ts";
 import { runPlugins } from "./run.ts";
@@ -67,12 +69,18 @@ async function load(): Promise<{ readonly commands: CommandRegistry; readonly pr
 // `problem`: why the plugins' commands are missing, said with every list of the commands; `loaded` once the plugins are set up.
 function core(problem: string | undefined, loaded: () => Loaded | undefined): CommandRegistry {
 	const commands = commandRegistry();
+	const board = () => {
+		const loadedBoard = loaded()?.board;
+		if (loadedBoard === undefined) throw new Error(`the board needs the project list, and arthur.config.ts did not load:\n${problem}`);
+		return loadedBoard;
+	};
+	for (const command of [ticketCommand(board), ...boardCommands(board)]) commands.register("core", command);
 	commands.register(
 		"core",
-		ticketCommand(() => {
-			const board = loaded()?.board;
-			if (board === undefined) throw new Error(`the board needs the project list, and arthur.config.ts did not load:\n${problem}`);
-			return board;
+		rolesCommand(() => {
+			const jobs = loaded()?.jobs;
+			if (jobs === undefined) throw new Error(`the roles are what the plugins registered, and arthur.config.ts did not load:\n${problem}`);
+			return jobs;
 		}),
 	);
 	commands.register("core", {
@@ -112,7 +120,9 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 			}
 			const app = loaded();
 			if (app === undefined) throw new Error(`arthur.config.ts did not load:\n${problem}`);
-			console.log((await app.jobs.spawn(request)).id);
+			const job = await app.jobs.spawn(request);
+			for (const warning of job.warnings) console.error(`warning: ${warning}`);
+			console.log(job.id);
 		},
 	});
 	commands.register("core", {

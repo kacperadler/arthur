@@ -98,6 +98,16 @@ systemctl show "user@$(id -u)" -p Restart
 
 The last command prints `Restart=always`.
 
+## 6. Check everything with `arthur doctor`
+
+The last step of the install, and the first thing to run after an update or a reboot that went wrong (entry 80):
+
+```sh
+arthur doctor
+```
+
+It checks by code, without the model, what the enabled plugins need: git, Node 24, `omp`, a writable home, the service enabled with `Restart=always` and linger on, the Telegram token and bot, `ffmpeg` for the videos you send, Docker and SSH to each machine, the disk floor. It prints one line per requirement, `ok` or `missing: <reason>; without it: <what does not work>; fix: <fix>`, and exits 1 when something critical is missing (git, `omp`, a writable home), which also refuses the start of `arthur run`. Run each fix and `arthur doctor` again until no line says `missing`. At every start the same check runs first, and the start notice begins with what is still missing, each line once a day unless it changes.
+
 ## Threat model
 
 Arthur exposes nothing to the internet: no port, no webhook. Every plugin calls out (Telegram and GitHub are polled) or talks to a local process, and other machines are reached over SSH on a private network (Tailscale). The risk is not who reaches Arthur, but what Arthur and its jobs can reach.

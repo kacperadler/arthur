@@ -6,7 +6,7 @@ import { test } from "node:test";
 import { temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
-const CORE_LIST = "commands: config, help, run, spawn, ticket\n";
+const CORE_LIST = "commands: board, config, findings, help, roles, run, spawn, task, ticket\n";
 
 // A plugin's commands as a config holds them: `echo` prints what it got and exits 3, `boom` throws, `gone` loses its doc file
 // right after it registered it, before any `--help`.
@@ -33,7 +33,7 @@ function arthur(folder: string, ...args: string[]): { readonly status: number | 
 	return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
 }
 
-const ALL = "commands: boom, config, echo, gone, help, quiet, run, spawn, ticket\n";
+const ALL = "commands: board, boom, config, echo, findings, gone, help, quiet, roles, run, spawn, task, ticket\n";
 
 test("a plugin's command runs with its arguments and exits with its code; --project goes to the command, not its arguments", () => {
 	const folder = project();
@@ -145,13 +145,30 @@ test("arthur ticket creates, moves and lists tickets on the project's board, and
 test("arthur ticket: an empty board, wrong usage, and a config that does not load", () => {
 	const folder = project(BOARD);
 	assert.deepEqual([arthur(folder, "ticket", "all").stdout, existsSync(join(folder, "spec"))], ["the board is empty\n", false]);
-	for (const args of [[], ["new"], ["status", "DM0001"], ["all", "x"], ["move", "DM0001", "done"]]) {
+	for (const args of [[], ["new"], ["status", "DM0001"], ["all", "x"], ["move", "DM0001", "done"], ["after"]]) {
 		const run = arthur(folder, "ticket", ...args);
-		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket all\n"], args.join(" "));
+		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket after <id> [<id>...]; arthur ticket all\n"], args.join(" "));
 	}
 	const broken = project(BOARD.replace('"orchestration"', '"schedule"'));
 	const run = arthur(broken, "ticket", "new", "Lost");
 	assert.deepEqual([run.status, run.stderr.split("\n")[0]], [1, "arthur ticket: the board needs the project list, and arthur.config.ts did not load:"]);
 	assert.equal(existsSync(join(broken, "spec")), false);
 	assert.match(arthur(folder, "ticket", "--help").stdout, /^# arthur ticket\n/);
+});
+
+test("arthur ticket after, and the board's phone commands in the shell: arthur board, task and findings", () => {
+	const folder = project(BOARD);
+	for (const title of ["One", "Two"]) arthur(folder, "ticket", "new", title);
+	assert.deepEqual(arthur(folder, "ticket", "after", "DM0002", "DM0001").stdout, "DM0002 after DM0001\n");
+	const cycle = arthur(folder, "ticket", "after", "DM0001", "DM0002");
+	assert.deepEqual([cycle.status, cycle.stderr], [1, "arthur ticket: DM0001 cannot wait for itself: DM0001 after DM0002 after DM0001\n"]);
+	assert.deepEqual(arthur(folder, "board").stdout, "DM0001 planning    One\nDM0002 planning    Two  after DM0001\n");
+	assert.deepEqual(arthur(folder, "ticket", "after", "DM0002").stdout, "DM0002 after nothing\n");
+	assert.match(arthur(folder, "task", "2").stdout, /^DM0002 planning\n# DM0002 - Two\n/);
+	assert.equal(arthur(folder, "findings", "DM1").stdout, "DM0001: no findings (spec/features/DM0001-one/findings.md does not exist)\n");
+	const wrong = arthur(folder, "task", "1", "2");
+	assert.deepEqual([wrong.status, wrong.stderr], [2, "usage: arthur task <id>\n"]);
+	const elsewhere = arthur(folder, "task", "1", "--project", "shop");
+	assert.deepEqual([elsewhere.status, elsewhere.stderr], [1, "arthur task: unknown project shop; projects: demo\n"]);
+	assert.match(arthur(folder, "board", "--help").stdout, /^# arthur board\n/);
 });

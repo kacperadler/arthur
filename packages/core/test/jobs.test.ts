@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, readlinkSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { test } from "node:test";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
@@ -29,7 +30,7 @@ function repository(files: Readonly<Record<string, string>> = { "README.md": "ac
 // A runner whose clock reads 2026-10-16 in Warsaw, 23:30 UTC the evening before.
 function runner(home: string, root: string): JobRunner {
 	const time = clock("Europe/Warsaw", undefined, () => new Date("2026-10-15T23:30:00Z"));
-	return jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2 }, time, eventBus(home));
+	return jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2 }, time, eventBus(home), () => []);
 }
 
 const record = (home: string, id: string) =>
@@ -56,6 +57,7 @@ test("a worker gets its own branch and worktree from HEAD, the record and job-st
 		root,
 		worktree,
 		project: "acme",
+		prompt: readFileSync(new URL("../roles/worker.md", import.meta.url), "utf8"),
 	});
 	assert.deepEqual(readdirSync(join(home, "jobs")), [job.id]);
 	const events = readEvents(home, 1).map(({ plugin, name, data }) => ({ plugin, name, data }));
@@ -66,6 +68,9 @@ test("a worker gets its own branch and worktree from HEAD, the record and job-st
 test("a read-only kind gets a detached checkout of HEAD, no branch, and its own limits", async () => {
 	const { root, home } = repository();
 	const jobs = runner(home, root);
+	const role = join(temporaryFolder(), "reviewer.md");
+	writeFileSync(role, "# Reviewer\n");
+	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(role), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer", budgetUsd: 0.5, timeoutMinutes: 30 });
 	const job = await jobs.spawn({ task: "Review it.", kind: "review" });
 	assert.match(job.id, /^2026-10-16-review-[0-9a-f]{8}$/);
@@ -214,6 +219,9 @@ test("a branch named arthur refuses a worker before anything exists, naming the 
 	const { root, home } = repository();
 	git(root, "branch", "arthur");
 	const jobs = runner(home, root);
+	const role = join(temporaryFolder(), "reviewer.md");
+	writeFileSync(role, "# Reviewer\n");
+	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(role), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
 	const seen: string[] = [];
 	jobs.beforeSpawn("delivery", () => void seen.push("checked"));

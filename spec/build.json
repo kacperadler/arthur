@@ -115,9 +115,9 @@
   {
     "id": "AR0013",
     "title": "Roadmap 10: Prompt loader and arthur roles",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0013-roadmap-10-prompt-loader-and-arthur-roles/ticket.md",
-    "updated": "2026-10-16T12:03:32.663Z",
+    "updated": "2026-10-16T12:07:30.580Z",
     "after": [
       "AR0012"
     ]
@@ -125,9 +125,9 @@
   {
     "id": "AR0014",
     "title": "Roadmap 11: Job runner: the wrapper, and the fake agent",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0014-roadmap-11-job-runner-the-wrapper-and-the-fake-agent/ticket.md",
-    "updated": "2026-10-16T09:46:24.751Z",
+    "updated": "2026-10-16T12:07:42.221Z",
     "after": [
       "AR0013"
     ]
@@ -197,9 +197,9 @@
   {
     "id": "AR0021",
     "title": "Roadmap 18: Ticket board: transitions, after, the digest, and the board's phone commands",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0021-roadmap-18-ticket-board-transitions-after-the-digest-and-the-board-s-phone-commands/ticket.md",
-    "updated": "2026-10-16T11:51:35.143Z",
+    "updated": "2026-10-16T12:17:57.067Z",
     "after": [
       "AR0020",
       "AR0012"
@@ -387,9 +387,9 @@
   {
     "id": "AR0044",
     "title": "An event a command appends while no daemon runs never reaches the subscribers",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0044-an-event-a-command-appends-while-no-daemon-runs-never-reaches-the-subscribers/ticket.md",
-    "updated": "2026-10-16T12:04:53.621Z"
+    "updated": "2026-10-16T12:26:09.443Z"
   },
   {
     "id": "AR0045",
@@ -397,5 +397,33 @@
     "status": "dropped",
     "path": "spec/features/AR0045-a-log-cut-by-hand-and-grown-past-the-old-end-between-two-follows-loses-events/ticket.md",
     "updated": "2026-10-16T12:04:53.818Z"
+  },
+  {
+    "id": "AR0046",
+    "title": "Roadmap: arthur doctor checks what Arthur needs at every start",
+    "status": "merged",
+    "path": "spec/features/AR0046-roadmap-arthur-doctor-checks-what-arthur-needs-at-every-start/ticket.md",
+    "updated": "2026-10-16T12:21:31.537Z"
+  },
+  {
+    "id": "AR0047",
+    "title": "The fake host does not move a worker's ticket when the worker starts",
+    "status": "planned",
+    "path": "spec/features/AR0047-the-fake-host-does-not-move-a-worker-s-ticket-when-the-worker-starts/ticket.md",
+    "updated": "2026-10-16T12:18:13.021Z"
+  },
+  {
+    "id": "AR0048",
+    "title": "A worker spawned on a ticket still in planning, or merged or dropped, starts anyway",
+    "status": "planned",
+    "path": "spec/features/AR0048-a-worker-spawned-on-a-ticket-still-in-planning-or-merged-or-dropped-starts-anyway/ticket.md",
+    "updated": "2026-10-16T12:18:13.220Z"
+  },
+  {
+    "id": "AR0049",
+    "title": "`/findings` does not show findings a worker wrote on its branch",
+    "status": "in-progress",
+    "path": "spec/features/AR0049-findings-does-not-show-findings-a-worker-wrote-on-its-branch/ticket.md",
+    "updated": "2026-10-16T12:21:45.577Z"
   }
 ]

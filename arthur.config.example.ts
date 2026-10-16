@@ -23,6 +23,7 @@ import { defineConfig } from "@arthur/core";
 import { commitRules } from "@arthur/commit-rules"; // first, named
 import { delivery } from "@arthur/delivery"; // first, derived
 import { develop } from "@arthur/develop"; // first, named
+import { docker } from "@arthur/docker"; // first, named
 import { github } from "@arthur/github"; // first, derived
 import { machines } from "@arthur/machines"; // first, named
 import { manage } from "@arthur/manage"; // first, named
@@ -114,7 +115,10 @@ export default defineConfig({
 		resources({
 			perJob: { cpu: 2, memory: "4G" }, // a job's own cap, and what it reserves on its machine
 			perFeature: { budgetUsd: 15, hours: 8, cpu: 4, memory: "8G" }, // 0 = no cap
-			keepFree: { cpu: 1, memory: "2G" }, // left free on every machine, for the coordinator and the system
+			// Left free on every machine, for the coordinator and the system. `disk` is the floor of free disk where the machine's
+			// jobs write (its home, and Docker's data root where Docker runs): under it no job starts there, the refusal names the
+			// machine and the space, and running jobs go on; bytes with K, M, G or T; 0 = no floor.
+			keepFree: { cpu: 1, memory: "2G", disk: "20G" },
 		}),
 
 		// The coordinator's one long conversation: compacted during the day, new every night, restarted when merged code
@@ -143,8 +147,9 @@ export default defineConfig({
 		// The project list, the only place projects are declared. Each project: where it lives
 		// (a path, or a repo Arthur clones into `reposDir`), its ticket prefix (ids are PREFIX-1, PREFIX-2, ... from an empty board),
 		// its tracker instance (`tracker.instance` names an instance of the youtrack plugin; without it, the unnamed one), its CI
-		// workflow, its commit rules, the files the roles read, and the machine labels its jobs need (`requires`; a ticket's own
-		// `"requires"` in its JSON block replaces it). Adding a project is an edit of this list.
+		// workflow, its commit rules, the files the roles read, the machine labels its jobs need (`requires`; a ticket's own
+		// `"requires"` in its JSON block replaces it), and `docker: false` to leave its jobs' Docker resources unlabelled and
+		// uncleaned (default: on while the docker plugin is). Adding a project is an edit of this list.
 		projects({
 			reposDir: ".arthur/repos",
 			list: [
@@ -177,6 +182,7 @@ export default defineConfig({
 					tracker: { plugin: "youtrack", instance: "acme", project: "SITE" },
 					ci: { workflow: "ci.yml" },
 					commitRules: { file: "docs/commit-rules.md" }, // read as plain words, from the project's own repository
+					docker: false, // its jobs' containers are not labelled, nor removed with their worktree; the sweep still runs
 					prompts: { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria" },
 				},
 				{
@@ -240,6 +246,17 @@ export default defineConfig({
 		// Plugins for developing Arthur: `arthur plugin new` and evals. The test kit (fake host, fake agent) is core's
 		// `@arthur/core/testing`, so a plugin tests against it without importing another plugin.
 		develop({ evals: { dir: "eval" } }),
+
+		// Docker on every machine labelled `tools: docker`. What a job creates (containers, networks, volumes, images it builds) is
+		// labelled `arthur.job=<id>`, and compose stacks get the job's project name; all of it is removed on the job's machine
+		// when its worktree is removed (prune, merge, a dropped ticket). Pulled and shared images stay. A failed cleanup never
+		// keeps the worktree: it is a notice, and the sweep retries. Anything labelled `arthur.keep` is never touched.
+		docker({
+			buildCache: "10G", // after each cleanup and sweep, Docker's shared build cache is cut to this size; 0 = no cap
+			leftoverHours: 48, // the sweep removes unlabelled stopped containers, unused networks, dangling images, unused
+			// anonymous volumes and build cache older than this; what a job that no longer exists labelled goes at any age
+			sweep: { at: "04:00" }, // registers a daily schedule entry; also runs at once on a machine under `keepFree.disk`
+		}),
 
 		// ---- later ----
 

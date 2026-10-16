@@ -46,7 +46,8 @@ export type Host = {
 	collect<T = unknown>(name: string, ...args: readonly unknown[]): T[];
 	// The command registry: `register` this plugin's commands; `route` and `phone` for a channel.
 	readonly commands: Commands;
-	// The job runner: this plugin's kinds and roles, its checks before a spawn, its steps in a new worktree, spawns and holds. `setup`
+	// The job runner: this plugin's kinds and roles, its checks before a spawn, its steps for a new worktree (on another machine
+	// through `run`, a command there), its machines, spawns and holds. `setup`
 	// registers; a `spawn` before every plugin's `setup` has run, and the core follows the jobs, throws and creates nothing.
 	readonly jobs: Jobs;
 	// The ticket board of every project in the list a plugin provides as `projects`; its events are named by this plugin.

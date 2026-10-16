@@ -10,26 +10,28 @@
 
 ## Description
 
-Two or three sentences: what changes, and for whom.
+`packages/core/src/lock.ts` takes over a lock whose holder is dead, guarded by a `<path>.takeover` file. Two cases were checked by a throwaway script only: several processes racing for a dead holder's lock, and a takeover guard left by a crashed taker. This ticket pins both with tests.
 
 ## Goal
 
-The board lock (entry 17) can rely on the lock: concurrent takers of a dead holder's lock and a stuck takeover guard are pinned by a test of real processes.
+The board lock (entry 17) can rely on the lock: concurrent takers of a dead holder's lock and a stuck takeover guard are pinned by a test of real processes. Found by the AR0008 review (F2).
 
-- Kind: bug | risk | cleanup | improvement
+- Kind: risk
 
 ## Done means
 
-- Observable result, and the test that proves it.
+- A test starts several real Node processes racing for a lock held by a dead pid: exactly one holds it at a time (no overlap in their recorded hold intervals), all finish.
+- A test seeds a `.takeover` guard from a dead pid: the next taker recovers and takes the lock.
+- Mutation: removing the takeover guard makes the race test fail; said in the result.
 - `npm test` and `npm run check` pass.
 
 ## Scope
 
 In:
-- `path/to/file.ts`: what changes there.
+- `packages/core/test/lock.test.ts` (and `lock.ts` only if a test exposes a bug).
 
 Out:
-- What this ticket does not do, and which ticket does.
+- The board lock itself (entry 17).
 
 ## Decisions
 

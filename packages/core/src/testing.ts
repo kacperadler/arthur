@@ -125,7 +125,7 @@ export function fakeHost(plugin: {
 	mkdirSync(folder);
 	let now = (plugin.now ?? new Date("2026-01-01T00:00:00Z")).getTime();
 	const time = clock(plugin.timeZone ?? "UTC", plugin.quietHours, () => new Date(now));
-	const jobs = jobRunner(home, plugin.root ?? home, { timeoutMinutes: 120, budgetUsd: 2, ...jobSlice }, "omp", time, bus, names.collect);
+	const jobs = jobRunner(home, plugin.root ?? home, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, ...jobSlice }, "omp", time, bus, names.collect);
 	let loading = false, following = false;
 	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder, clock: time }, () => loading);
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));

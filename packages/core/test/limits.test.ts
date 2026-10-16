@@ -26,7 +26,7 @@ function setup(agent: string): { readonly root: string; readonly home: string; r
 	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "first");
 	const home = join(folder, "home");
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
-	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, ...jobSlice }, agent, time, eventBus(home), () => []);
+	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, ...jobSlice }, agent, time, eventBus(home), () => []);
 	writeFileSync(join(folder, "reviewer.md"), "# Reviewer\n");
 	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(join(folder, "reviewer.md")), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer", timeoutMinutes: 30, budgetUsd: 0.5 });
@@ -107,26 +107,26 @@ test("a limit that is not a number of 0 or more is refused: a spawn's before any
 		assert.throws(() => jobs.registerKind("delivery", { name: "plan", readOnly: true, role: "reviewer", ...kind }), { message });
 });
 
-// Each run's costs, the budget, and the state it ends in: a cost exactly at the budget stops, below it does not.
+// Each run's costs, the budget, and the outcome it ends with: a cost exactly at the budget stops, below it does not.
 const BUDGETS: readonly (readonly [string, readonly number[], number, string, string])[] = [
 	["a sum floating point leaves a hair below the budget", [0.7, 0.1, 0.1, 0.1], 1, "limit: budget", "1.0000"],
-	["one cent below the budget", [0.7, 0.1, 0.1, 0.09], 1, "done", "0.9900"],
-	["$0.0001 below the budget", [0.9999], 1, "done", "0.9999"],
+	["one cent below the budget", [0.7, 0.1, 0.1, 0.09], 1, "finished", "0.9900"],
+	["$0.0001 below the budget", [0.9999], 1, "finished", "0.9999"],
 	["one exactly at the budget", [0.5, 0.5], 1, "limit: budget", "1.0000"],
-	["a budget of 0, which is none", [5, 5], 0, "done", "10.0000"],
+	["a budget of 0, which is none", [5, 5], 0, "finished", "10.0000"],
 ];
 
-for (const [name, costs, budgetUsd, state, cost] of BUDGETS)
-	test(`budget: ${name}: ${state}`, async () => {
+for (const [name, costs, budgetUsd, outcome, cost] of BUDGETS)
+	test(`budget: ${name}: ${outcome}`, async () => {
 		// The agent ends on its own after its costs, unless the limit stopped it at the last of them.
 		const run: AgentRun = { steps: [...costs.map((cost) => ({ message: "Spent.", cost, stopReason: "toolUse" as const })), { message: "Done." }] };
-		const { home, jobs } = setup(fakeAgent(state === "done" ? run : { steps: [...run.steps.slice(0, -1), stuck()] }));
+		const { home, jobs } = setup(fakeAgent(outcome === "finished" ? run : { steps: [...run.steps.slice(0, -1), stuck()] }));
 		const job = await jobs.spawn({ task: "Go.", budgetUsd });
 		const data = await ended(home, job.id);
-		const reason = state === "done" ? "the agent exited 0" : `its cost $${cost} reached its budget of $${budgetUsd}`;
-		assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state, reason });
-		assert.deepEqual([field(home, job.id, "state"), field(home, job.id, "cost")], [state, cost]);
-		if (state !== "done") assert.match(field(home, job.id, "log"), /\] limit: budget: stopping the agent\n/);
+		const reason = outcome === "finished" ? "finished" : `limit: budget: its cost $${cost} reached its budget of $${budgetUsd}`;
+		assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason });
+		assert.deepEqual([field(home, job.id, "reason"), field(home, job.id, "cost")], [reason, cost]);
+		if (outcome !== "finished") assert.match(field(home, job.id, "log"), /\] limit: budget: stopping the agent\n/);
 	});
 
 test("a timeout during a long tool call stops the agent and the tool's process; a kind that resumes at its budget is not resumed", async () => {
@@ -139,8 +139,8 @@ test("a timeout during a long tool call stops the agent and the tool's process; 
 	const job = await jobs.spawn({ task: "Audit.", kind: "audit", timeoutMinutes: 0.01 });
 	const tool = Number(await until("the tool's process", () => (existsSync(join(dir, "tool")) ? readFileSync(join(dir, "tool"), "utf8").trim() || undefined : undefined)));
 	const data = await ended(home, job.id);
-	assert.deepEqual(data, { id: job.id, kind: "audit", project: "acme", state: "limit: time", reason: "the job ran past its timeout of 0.01 minutes" });
-	assert.deepEqual(["state", "activity", "tool-calls"].map((name) => field(home, job.id, name)), ["limit: time", "tool", "1"]);
+	assert.deepEqual(data, { id: job.id, kind: "audit", project: "acme", state: "ended", reason: "limit: time: the job ran past its timeout of 0.01 minutes" });
+	assert.deepEqual(["state", "activity", "tool-calls"].map((name) => field(home, job.id, name)), ["ended", "tool", "1"]);
 	await until("the tool's process stopped", () => !alive(tool));
 	assert.equal(readFileSync(join(dir, "starts"), "utf8"), "started\n");
 	assert.match(field(home, job.id, "log"), /\] limit: time: stopping the agent\n/);
@@ -156,7 +156,7 @@ test("a timeout of 0, and one longer than a Node timer can wait, never stop the 
 		await until("the agent's start", () => existsSync(join(agent, "..", "starts.jsonl")));
 		writeFileSync(gate, "");
 		await ended(home, job.id);
-		assert.equal(field(home, job.id, "state"), "done", `timeout ${timeoutMinutes}`);
+		assert.equal(field(home, job.id, "reason"), "finished", `timeout ${timeoutMinutes}`);
 	}
 });
 
@@ -165,8 +165,8 @@ test("a kind that asks for it is resumed once at its budget, doubled, and stoppe
 	const { home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Audit.", kind: "audit" });
 	const data = await ended(home, job.id);
-	assert.deepEqual(data, { id: job.id, kind: "audit", project: "acme", state: "limit: budget", reason: "its cost $2.0000 reached its budget of $2" });
-	assert.deepEqual(["state", "cost", "budget"].map((name) => field(home, job.id, name)), ["limit: budget", "2.0000", "2"]);
+	assert.deepEqual(data, { id: job.id, kind: "audit", project: "acme", state: "ended", reason: "limit: budget: its cost $2.0000 reached its budget of $2" });
+	assert.deepEqual(["reason", "cost", "budget"].map((name) => field(home, job.id, name)), ["limit: budget: its cost $2.0000 reached its budget of $2", "2.0000", "2"]);
 	const [first, second, ...more] = starts(agent);
 	const folder = join(home, "jobs", job.id);
 	const guard = ["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((file) => ["-e", join(import.meta.dirname, "..", "src", file)]);
@@ -196,7 +196,7 @@ test("an agent that ignores SIGTERM at its limit gets SIGKILL after the grace; i
 	const took = Date.now() - stopped;
 	assert.ok(took < (GRACE_SECONDS + 1) * 1000, `ended ${took} ms after the stop`);
 	assert.ok(took >= GRACE_SECONDS * 1000 - 100, `ended ${took} ms after the stop, before the grace was over`);
-	assert.deepEqual(["state", "budget"].map((name) => field(home, job.id, name)), ["limit: budget", "1"]);
+	assert.deepEqual(["reason", "budget"].map((name) => field(home, job.id, name)), ["limit: budget: its cost $1.0000 reached its budget of $1", "1"]);
 	const text = field(home, job.id, "log");
 	assert.match(text, /\] limit: time: reached as well\n/);
 	assert.match(text, new RegExp(`\\] the agent's process group is still alive ${GRACE_SECONDS} seconds after SIGTERM: SIGKILL\\n`));
@@ -211,12 +211,12 @@ test("a kind that does not ask for it is not resumed at its budget", async () =>
 	const { home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Review.", kind: "review" });
 	await ended(home, job.id);
-	assert.equal(field(home, job.id, "state"), "limit: budget");
+	assert.equal(field(home, job.id, "reason"), "limit: budget: its cost $0.5000 reached its budget of $0.5");
 	assert.deepEqual(["budget", "resume-on-budget"].map((name) => field(home, job.id, name)), ["0.5", "false"]);
 	assert.equal(starts(agent).length, 1);
 });
 
-test("a resumed run that finishes ends done, its cost the sum of both runs", async () => {
+test("a resumed run that finishes ends finished, its cost the sum of both runs", async () => {
 	// The first run spends the budget and waits to be stopped; the resumed one, which omp continues, finishes.
 	const first = fakeAgent({ steps: [{ message: "Spent.", cost: 1, stopReason: "toolUse" }, stuck()] });
 	const resumed = fakeAgent({ steps: [{ message: "Finished.", cost: 0.5 }] });
@@ -224,7 +224,7 @@ test("a resumed run that finishes ends done, its cost the sum of both runs", asy
 	writeFileSync(agent, `#!/bin/sh\ncase " $* " in *" --continue "*) exec '${resumed}' "$@" ;; esac\nexec '${first}' "$@"\n`, { mode: 0o755 });
 	const { home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Audit.", kind: "audit" });
-	assert.deepEqual(await ended(home, job.id), { id: job.id, kind: "audit", project: "acme", state: "done", reason: "the agent exited 0" });
+	assert.deepEqual(await ended(home, job.id), { id: job.id, kind: "audit", project: "acme", state: "ended", reason: "finished" });
 	assert.deepEqual(["result", "cost", "budget"].map((name) => field(home, job.id, name)), ["Finished.", "1.5000", "2"]);
 	assert.deepEqual([starts(first).length, starts(resumed).length], [1, 1]);
 	assert.deepEqual(readdirSync(join(home, "jobs")), [job.id]);

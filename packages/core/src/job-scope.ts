@@ -1,8 +1,9 @@
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
-import { appendFileSync, closeSync, existsSync, openSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { appendFileSync, closeSync, existsSync, openSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import type { Bus } from "./events.ts";
+import { moveJob, write } from "./job-state.ts";
 import type { Job } from "./jobs.ts";
 
 // A job's systemd scope and the slice all jobs share: docs/commands/spawn.md.
@@ -71,16 +72,15 @@ export async function launch(home: string, job: Pick<Job, "id" | "kind" | "proje
 
 // Ends the job as its wrapper would have, every file of the end written whole and `state` last, then `job-ended`; the
 // worktree and branch stay for inspection.
-function end(home: string, job: Pick<Job, "id" | "kind" | "project">, reason: string, bus: Bus): string {
+function end(home: string, job: Pick<Job, "id" | "kind" | "project">, why: string, bus: Bus): string {
 	const folder = join(home, "jobs", job.id);
-	appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] failed: ${reason}\n`);
-	const files = { result: "", cost: "0.0000", "tool-calls": "0", activity: "", commits: "", state: "failed" };
-	for (const [name, text] of Object.entries(files)) {
-		writeFileSync(join(folder, `.${name}`), text);
-		renameSync(join(folder, `.${name}`), join(folder, name));
-	}
-	bus.emit("core", "job-ended", { id: job.id, kind: job.kind, project: job.project, state: "failed", reason });
-	return reason;
+	const reason = `failed: ${why}`;
+	appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] ended: ${reason}\n`);
+	const files = { result: "", cost: "0.0000", "tool-calls": "0", activity: "", commits: "" };
+	for (const [name, text] of Object.entries(files)) write(folder, name, text);
+	moveJob(home, job.id, bus, () => ["ended", reason]);
+	bus.emit("core", "job-ended", { id: job.id, kind: job.kind, project: job.project, state: "ended", reason });
+	return why;
 }
 
 // Gives the slice its limits, at least 1% of a core; returns why it could not, e.g. `systemctl` missing or no user manager.

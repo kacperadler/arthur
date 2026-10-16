@@ -30,7 +30,7 @@ function setup(agent: string, slice: Slice = jobSlice) {
 	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "first");
 	const home = join(folder, "home");
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
-	return { home, jobs: jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, ...slice }, agent, time, eventBus(home), () => []) };
+	return { home, jobs: jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, ...slice }, agent, time, eventBus(home), () => []) };
 }
 
 async function until<T>(what: string, predicate: () => T | undefined): Promise<T> {
@@ -80,7 +80,7 @@ test("a job runs, with its agent, in its own scope inside the joint slice, which
 	assert.deepEqual([show(`${jobSlice.slice}.slice`, "CPUQuotaPerSecUSec"), show(`${jobSlice.slice}.slice`, "MemoryMax")], ["1.500000s", String(2 ** 30)]);
 	assert.doesNotMatch(read(join(record, "log")) ?? "", /no systemd scope/);
 	writeFileSync(gate, "");
-	assert.deepEqual((await ended(home)).data, { id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" });
+	assert.deepEqual((await ended(home)).data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 });
 
 test("core.jobs.cpu left undefined gives the slice the host's cores minus one, at least one", needsManager, async () => {
@@ -100,8 +100,8 @@ test("a job that forks a daemon leaves nothing running once its state is final, 
 	const event = await ended(home);
 	const pid = daemon();
 	assert.ok(pid !== undefined && !running(pid), `the daemon ${pid} still runs`);
-	assert.equal(readFileSync(join(home, "jobs", job.id, "state"), "utf8"), "done");
-	assert.deepEqual(event.data, { id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" });
+	assert.equal(readFileSync(join(home, "jobs", job.id, "state"), "utf8"), "ended");
+	assert.deepEqual(event.data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 	await until("the scope's end", () => show(`arthur-job-${job.id}.scope`, "ActiveState") === "inactive");
 });
 
@@ -130,7 +130,7 @@ test("without a user manager the job runs bare, its log saying so in one line, a
 	const wrapper = Number(await until("the wrapper's pid", () => read(join(home, "jobs", job.id, "pid"))));
 	if (existsSync("/proc")) assert.doesNotMatch(cgroup(wrapper) ?? "", /arthur-job-/);
 	writeFileSync(gate, "");
-	assert.deepEqual((await ended(home)).data, { id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" });
+	assert.deepEqual((await ended(home)).data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 	const log = readFileSync(join(home, "jobs", job.id, "log"), "utf8");
 	const line = /^\[arthur [^\]]+\] no systemd scope: [^\n]+; the job runs bare, without the joint limit of core\.jobs\.cpu and core\.jobs\.memory, and what it leaves behind is not killed at its end\n\[arthur [^\]]+\] agent: /;
 	assert.match(log, line);
@@ -147,7 +147,7 @@ function onPath(t: TestContext, scripts: Readonly<Record<string, string>>, alone
 	process.env.PATH = alone ? bin : [bin, saved].join(delimiter);
 }
 
-// A job whose wrapper did not start, as `spawn` returns it: ended `failed` with the reason `reasonIn` gives for the home
+// A job whose wrapper did not start, as `spawn` returns it: ended `failed: <reason>`, the reason `reasonIn` gives for the home
 // folder, its one `job-ended` emitted, the record's end written, no agent started, and its worktree and branch kept.
 async function endedAtSpawn(reasonIn: (home: string) => string): Promise<number> {
 	const agent = fakeAgent({ steps: [{ message: "Done." }] });
@@ -156,11 +156,11 @@ async function endedAtSpawn(reasonIn: (home: string) => string): Promise<number>
 	const job = await jobs.spawn({ task: "Go." });
 	assert.equal(job.failed, reason);
 	const events = readEvents(home, 1).filter((event) => event.name === "job-ended");
-	assert.deepEqual(events.map((event) => event.data), [{ id: job.id, kind: "worker", project: "acme", state: "failed", reason }]);
+	assert.deepEqual(events.map((event) => event.data), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: `failed: ${reason}` }]);
 	const folder = join(home, "jobs", job.id);
-	const end = ["state", "result", "cost", "tool-calls", "activity", "commits"].map((name) => readFileSync(join(folder, name), "utf8"));
-	assert.deepEqual(end, ["failed", "", "0.0000", "0", "", ""]);
-	assert.ok(readFileSync(join(folder, "log"), "utf8").endsWith(`] failed: ${reason}\n`));
+	const end = ["state", "reason", "result", "cost", "tool-calls", "activity", "commits"].map((name) => readFileSync(join(folder, name), "utf8"));
+	assert.deepEqual(end, ["ended", `failed: ${reason}`, "", "0.0000", "0", "", ""]);
+	assert.ok(readFileSync(join(folder, "log"), "utf8").endsWith(`] ended: failed: ${reason}\n`));
 	assert.equal(existsSync(join(dirname(agent), "starts.jsonl")), false, "no agent started");
 	assert.ok(existsSync(join(job.worktree, "README.md")));
 	assert.equal(git(job.root, "branch", "--list", `arthur/${job.id}`).replace(/^[*+]?\s*/, ""), `arthur/${job.id}`);

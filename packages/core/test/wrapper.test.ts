@@ -13,7 +13,7 @@ import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/test
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 const commit = (root: string, message: string) => git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", message);
-const RECORD = ["state", "pid", "log", "result", "cost", "tool-calls", "activity", "commits"];
+const RECORD = ["state", "reason", "pid", "log", "result", "cost", "tool-calls", "activity", "commits"];
 const EXTENSIONS = ["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((file) => ["-e", join(import.meta.dirname, "..", "src", file)]);
 
 // A repository `acme`, a home folder beside it, and a runner whose agent is `agent`; the plugin `delivery` owns the
@@ -28,7 +28,7 @@ function setup(agent: string): { readonly root: string; readonly home: string; r
 	commit(root, "first");
 	const home = join(folder, "home");
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
-	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, ...jobSlice }, agent, time, eventBus(home), () => []);
+	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, ...jobSlice }, agent, time, eventBus(home), () => []);
 	writeFileSync(join(folder, "reviewer.md"), "# Reviewer\n");
 	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(join(folder, "reviewer.md")), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
@@ -84,12 +84,12 @@ test("a finished worker: the agent gets the worker's tools, model, thinking and 
 	const job = await jobs.spawn({ task: "Fix the README.", model: "anthropic/opus", thinking: "high" });
 	const folder = join(home, "jobs", job.id);
 	const field = (name: string) => (existsSync(join(folder, name)) ? readFileSync(join(folder, name), "utf8") : undefined);
-	// Every file the wrapper writes into the record, in order; a rename shows under the new name.
+	// Every file the wrapper writes into the record, in order; a rename shows under the new name. The lock of a state change is no file of the record.
 	const changes: string[] = [];
-	const watcher = watch(folder, (_, name) => void (name !== null && !name.startsWith(".") && changes.push(name)));
+	const watcher = watch(folder, (_, name) => void (name !== null && !name.startsWith(".") && !name.startsWith("state.lock") && changes.push(name)));
 	t.after(() => watcher.close());
 	const current = ["tool-calls", "state", "cost", "activity"];
-	const expected = ["4", "running", "0.0100", "think"];
+	const expected = ["4", "working", "0.0100", "think"];
 	await until("the record kept current while it runs", () => JSON.stringify(current.map(field)) === JSON.stringify(expected));
 	writeFileSync(join(job.worktree, "README.md"), "acme, fixed\n");
 	git(job.worktree, "add", "--all");
@@ -108,10 +108,11 @@ test("a finished worker: the agent gets the worker's tools, model, thinking and 
 		...["--append-system-prompt", join(folder, "prompt"), ...EXTENSIONS, "--model", "anthropic/opus", "--thinking", "high", `@${join(folder, "task")}`],
 	]);
 	assert.equal(start?.cwd, job.worktree);
-	assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" });
+	assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 	const { log, pid, ...rest } = record;
 	assert.deepEqual(rest, {
-		state: "done",
+		state: "ended",
+		reason: "finished",
 		result: "Fixed the README.\nAll tests pass.",
 		cost: "0.0300",
 		"tool-calls": "4",
@@ -122,8 +123,8 @@ test("a finished worker: the agent gets the worker's tools, model, thinking and 
 	assert.ok(Number(pid) > 0);
 	// The agent's command line first, after the one line of a job without a user manager (scope.test.ts).
 	assert.match(log ?? "", /^(\[arthur [^\]]+\] no systemd scope: [^\n]+\n)?\[arthur [^\]]+\] agent: \S+ -p --mode json/);
-	assert.match(log ?? "", /\nread README\.md\nbash npm test\nedit README\.md\nbash git commit -am 'fix the README'\n\[arthur [^\]]+\] done: the agent exited 0\n$/);
-	assert.deepEqual(readdirSync(folder).filter((name) => name.startsWith(".")), [], "no temporary file left");
+	assert.match(log ?? "", /\nread README\.md\nbash npm test\nedit README\.md\nbash git commit -am 'fix the README'\n\[arthur [^\]]+\] ended: finished\n$/);
+	assert.deepEqual(readdirSync(folder).filter((name) => name.startsWith(".") || name.startsWith("state.lock")), [], "no temporary file or lock left");
 });
 
 test("a read-only kind gets no edit or write, no model flag, and no commits", async () => {
@@ -136,28 +137,29 @@ test("a read-only kind gets no edit or write, no model flag, and no commits", as
 		...["-p", "--mode", "json", "--auto-approve", "--tools", "read,bash,grep,glob"],
 		...["--append-system-prompt", join(folder, "prompt"), ...EXTENSIONS, `@${join(folder, "task")}`],
 	]);
-	assert.deepEqual(data, { id: job.id, kind: "review", project: "acme", state: "done", reason: "the agent exited 0" });
+	assert.deepEqual(data, { id: job.id, kind: "review", project: "acme", state: "ended", reason: "finished" });
 	assert.deepEqual([record.result, record.commits, record["tool-calls"], record.cost], ["PASS", "", "0", "0.0000"]);
 });
 
-// Each run, and the state and reason it ends in; every file of the record is there once the state is final.
-const ENDINGS: readonly (readonly [string, AgentRun, string, string])[] = [
-	["exit code", { steps: [{ message: "Done." }], exitCode: 3 }, "failed", "the agent exited 3"],
-	["error", { steps: [{ message: "", stopReason: "error", error: "401 authentication_error" }], exitCode: 1 }, "failed", "the agent stopped on error: 401 authentication_error"],
-	["aborted", { steps: [{ message: "Half.", stopReason: "aborted" }] }, "failed", "the agent stopped on aborted"],
-	["no final message", { steps: [{ tool: "read", args: { path: "README.md" } }] }, "failed", "the agent ended without a final message"],
-	["signal", { steps: [{ tool: "read", args: { path: "README.md" } }, { signal: "SIGKILL" }, { message: "never" }] }, "failed", "the agent was killed by SIGKILL"],
-	["crash mid-line", { steps: [{ stdout: '{"type":"message_end","message":{"role":"assist' }], exitCode: 134 }, "failed", "the agent exited 134"],
+// Each run, and the reason it ends `ended` with; every file of the record is there once the state is final.
+const ENDINGS: readonly (readonly [string, AgentRun, string])[] = [
+	["exit code", { steps: [{ message: "Done." }], exitCode: 3 }, "failed: the agent exited 3"],
+	["error", { steps: [{ message: "", stopReason: "error", error: "401 authentication_error" }], exitCode: 1 }, "failed: the agent stopped on error: 401 authentication_error"],
+	["aborted", { steps: [{ message: "Half.", stopReason: "aborted" }] }, "failed: the agent stopped on aborted"],
+	["no final message", { steps: [{ tool: "read", args: { path: "README.md" } }] }, "failed: the agent ended without a final message"],
+	["signal", { steps: [{ tool: "read", args: { path: "README.md" } }, { signal: "SIGKILL" }, { message: "never" }] }, "failed: the agent was killed by SIGKILL"],
+	["crash mid-line", { steps: [{ stdout: '{"type":"message_end","message":{"role":"assist' }], exitCode: 134 }, "failed: the agent exited 134"],
+	["a Blocked: line after a failure", { steps: [{ message: "Blocked: user may I?" }], exitCode: 1 }, "failed: the agent exited 1"],
 ];
 
-for (const [name, run, state, reason] of ENDINGS)
-	test(`an agent that ends on ${name}: ${state}, ${reason}`, async () => {
+for (const [name, run, reason] of ENDINGS)
+	test(`an agent that ends on ${name}: ended, ${reason}`, async () => {
 		const { home, jobs } = setup(fakeAgent(run));
 		const job = await jobs.spawn({ task: "Go." });
 		const { data, record } = await ended(home, job.id);
-		assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state, reason });
-		assert.equal(record.state, state);
-		assert.ok(record.log?.endsWith(`] ${state}: ${reason}\n`), record.log);
+		assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason });
+		assert.deepEqual([record.state, record.reason], ["ended", reason]);
+		assert.ok(record.log?.endsWith(`] ended: ${reason}\n`), record.log);
 		const tools = run.steps.filter((step) => "tool" in step).length;
 		assert.deepEqual([record["tool-calls"], record.commits], [String(tools), ""]);
 		if (name === "crash mid-line") assert.match(record.log ?? "", /\n\{"type":"message_end","message":\{"role":"assist\n/);
@@ -170,7 +172,7 @@ test("an agent that cannot start: failed, naming why", async () => {
 	const job = await jobs.spawn({ task: "Go." });
 	const { data, record } = await ended(home, job.id);
 	const reason = `the agent did not start: spawn ${missing} ENOENT`;
-	assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "failed", reason });
+	assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: `failed: ${reason}` });
 	assert.deepEqual([record.result, record.cost, record["tool-calls"]], ["", "0.0000", "0"]);
 });
 
@@ -181,7 +183,7 @@ test("lines longer than a pipe buffer reach the log and the result whole", async
 	const { home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Go." });
 	const { data, record } = await ended(home, job.id);
-	assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" });
+	assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 	assert.equal(record.result, long("m"));
 	const lines = (record.log ?? "").split("\n");
 	assert.ok(lines.includes(long("e")), "the stderr line whole");

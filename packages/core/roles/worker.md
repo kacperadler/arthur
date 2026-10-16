@@ -27,6 +27,8 @@ You implement one task in your own Git worktree, on your own branch. Nobody read
 
 The coordinator sees the first lines first, so put what needs action first. Then, in this order: what you need from the coordinator or the human (open questions, what the human checks; `none` when nothing); what changed; which checks you ran and their real results; your commits; the new findings and anything else the next person must know. Every count and fact in it comes from output you saw as you write it, not from memory.
 
+When you stop because the task cannot go on without something outside you, the very first line of the final message says so, alone on its line, and the rest follows as above: `Blocked: user <the precise question>` when only the human can answer it, `Blocked: on <ticket or job id>` when another ticket or job must be done first. Never write a `Blocked:` line when you finished the task.
+
 ## Never
 
 - Never change a ticket's status; the coordinator does that.

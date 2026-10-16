@@ -74,11 +74,11 @@ test("arthur spawn returns while the agent of core.agent.command runs in the bac
 	const started = join(dirname(agent), "starts.jsonl");
 	for (const start = Date.now(); !existsSync(started) && Date.now() - start < 20_000; ) await sleep(20);
 	const state = readFileSync(join(root, ".arthur/jobs", id, "state"), "utf8");
-	assert.equal(state, "running", "the agent waits for the gate after arthur spawn returned");
+	assert.equal(state, "working", "the agent waits for the gate after arthur spawn returned");
 	writeFileSync(gate, "");
 	const ended = () => readEvents(join(root, ".arthur"), 1).find((event) => event.name === "job-ended");
 	for (const start = Date.now(); ended() === undefined && Date.now() - start < 20_000; ) await sleep(20);
-	assert.deepEqual(ended()?.data, { id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" });
+	assert.deepEqual(ended()?.data, { id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 	assert.equal(readFileSync(join(root, ".arthur/jobs", id, "result"), "utf8"), "Built it.");
 });
 
@@ -91,7 +91,7 @@ test("a wrapper that systemd-run did not start: arthur spawn prints the id, then
 	const id = run.stdout.trim();
 	assert.match(run.stdout, /^\d{4}-\d\d-\d\d-worker-[0-9a-f]{8}\n$/);
 	assert.deepEqual([run.status, run.stderr.split("\n").at(-2)], [1, "failed: systemd-run: Failed to start transient scope unit: Access denied"]);
-	assert.equal(readFileSync(join(root, ".arthur/jobs", id, "state"), "utf8"), "failed");
+	assert.deepEqual(["state", "reason"].map((name) => readFileSync(join(root, ".arthur/jobs", id, name), "utf8")), ["ended", "failed: systemd-run: Failed to start transient scope unit: Access denied"]);
 	assert.equal(git(join(dirname(root), ".arthur-worktrees", id), "branch", "--show-current"), `arthur/${id}`);
 });
 

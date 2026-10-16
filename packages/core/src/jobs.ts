@@ -71,6 +71,9 @@ export type Jobs = {
 	// Runs after the worktree and the record exist and before the agent starts; a throw removes both and refuses the spawn.
 	prepare(fn: Prepare): void;
 	spawn(request: SpawnRequest): Promise<Started>;
+	// Holds a job in a run `blocked` on `dependency: <reason>` whatever its activity; `unblock` lets it go (docs/commands/jobs.md).
+	block(id: string, reason: string): void;
+	unblock(id: string): void;
 };
 
 // The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for.
@@ -93,7 +96,7 @@ type Collect = (name: string, args: readonly unknown[]) => unknown[];
 
 // `folder` is in the repository jobs start from; `limits` are the core's `jobs` options and the jobs' slice, `agent` its
 // `agent.command`; `collect` reads what the plugins provide, e.g. the sections of a prompt (`prompt`).
-export function jobRunner(home: string, folder: string, limits: Limits & Slice, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
+export function jobRunner(home: string, folder: string, limits: Limits & Slice & { readonly idleMinutes: number }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
 	const kinds = new Map<string, { readonly owner: string; readonly kind: Kind }>();
 	const roles = roleRegistry();
 	const checks: { readonly owner: string; readonly check: SpawnCheck }[] = [];
@@ -137,7 +140,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice, 
 			try {
 				const built = prompt(role, job.worktree, () => collect("prompt", [role.name, job]));
 				warnings = built.warnings;
-				writeRecord(home, job, built.prompt, kind.resumeOnBudget === true);
+				writeRecord(home, job, built.prompt, kind.resumeOnBudget === true, limits.idleMinutes, time.now());
 				for (const { owner, fn } of prepares) await pluginStep(owner, "prepare", () => fn(job));
 			} catch (error) {
 				removeWorktree(root, job.worktree, job.branch);

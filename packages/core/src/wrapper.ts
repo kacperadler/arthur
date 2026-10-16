@@ -1,11 +1,12 @@
 import { type ChildProcess, spawn } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { agentStream } from "./agent-stream.ts";
 import { eventBus } from "./events.ts";
 import { deadline, reached } from "./job-limits.ts";
 import { endScope } from "./job-scope.ts";
 import { signal, stopGroup } from "./job-stop.ts";
+import { blockedBy, moveJob, type State } from "./job-state.ts";
 import { commitsSince } from "./git.ts";
 import { runRecord } from "./run-record.ts";
 import { closeSteers } from "./steer-inbox.ts";
@@ -52,8 +53,19 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		});
 	const field = (name: string): string => guard(() => readFileSync(join(folder, name), "utf8"));
 	const note = (line: string) => save("log", `[arthur ${new Date().toISOString()}] ${line}\n`, true);
-	const names = ["kind", "project", "model", "thinking", "branch", "root", "worktree", "base", "timeout", "budget", "resume-on-budget"];
-	const [kind = "", project = "", model = "", thinking = "", branch = "", root = "", worktree = "", base = "", timeout = "", budget = "", resumes = ""] = names.map(field);
+	const names = ["kind", "project", "model", "thinking", "branch", "root", "worktree", "base", "timeout", "budget", "resume-on-budget", "idle-minutes"];
+	const [kind = "", project = "", model = "", thinking = "", branch = "", root = "", worktree = "", base = "", timeout = "", budget = "", resumes = "", idle = ""] = names.map(field);
+	const bus = eventBus(home);
+	// A move from `from` to `to` (job-state.ts), unless a plugin holds the job.
+	const move = (from: State, to: State) => guard(() => moveJob(home, id, bus, (now) => (now.hold === "" && now.state === from ? [to, ""] : undefined)));
+	// The agent's output: `active` takes its time, an idle job works again, and it turns idle after `idle-minutes` without any.
+	let quiet = () => {};
+	const active = () => {
+		guard(() => utimesSync(join(folder, "active"), new Date(), new Date()));
+		if (field("state") === "idle") move("idle", "working");
+		quiet();
+		quiet = deadline(Number(idle), () => move("working", "idle"));
+	};
 	const [instruction, spent] = ["continue", "cost"].map((name) => (existsSync(join(folder, name)) ? field(name) : undefined));
 	// A resumed run continues the agent's last session in the worktree, which is the job's own, with `resume` as its message.
 	const args = (resume: string | undefined) => [
@@ -81,7 +93,8 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	};
 	process.on("SIGTERM", () => halt("stop"));
 	save("pid", String(process.pid));
-	save("state", "running");
+	save("active", "");
+	active();
 	rmSync(join(folder, "continuing"), { recursive: true, force: true });
 	let budgetUsd = Number(budget);
 	const cancel = deadline(Number(timeout), () => halt("time"));
@@ -96,8 +109,14 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		const running = spawn(agent, argv, { cwd: worktree, env: { ...process.env, ARTHUR_JOB: folder }, stdio: ["ignore", "pipe", "pipe"], detached: true });
 		child = running;
 		running.stdout.setEncoding("utf8");
-		running.stdout.on("data", (chunk: string) => record.apply(stream.push(chunk)));
-		running.stderr.on("data", (chunk: Buffer) => save("log", chunk, true));
+		running.stdout.on("data", (chunk: string) => {
+			record.apply(stream.push(chunk));
+			active();
+		});
+		running.stderr.on("data", (chunk: Buffer) => {
+			save("log", chunk, true);
+			active();
+		});
 		running.once("error", (error) => (failure = error));
 		running.once("exit", () => setTimeout(() => [running.stdout, running.stderr].forEach((pipe) => pipe.destroy()), 2000).unref());
 		running.once("close", (code, killed) => closed.resolve([code, killed]));
@@ -116,6 +135,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		[code, killed] = await play(args(`Your budget of $${budget} ran out and was doubled to $${doubled}, once. Go on with the task where you stopped.`));
 	}
 	cancel();
+	quiet();
 	endScope(id);
 	const undelivered = guard(() => {
 		if (!existsSync(folder)) return leave();
@@ -129,19 +149,27 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	} catch (error) {
 		note(`no commits listed: ${error instanceof Error ? error.message : String(error)}`);
 	}
-	const [state, reason] =
-		why === "stop" ? ["stopped", "the job was stopped by arthur stop"]
-		: why === "time" ? ["limit: time", `the job ran past its timeout of ${timeout} minutes`]
-		: why === "budget" ? ["limit: budget", `its cost $${record.cost().toFixed(4)} reached its budget of $${budgetUsd}`]
-		: failure !== undefined ? ["failed", `the agent did not start: ${failure.message}`]
-		: killed !== null ? ["failed", `the agent was killed by ${killed}`]
-		: record.stopped() !== "" ? ["failed", `the agent stopped on ${record.stopped()}`]
-		: code !== 0 ? ["failed", `the agent exited ${code}`]
-		: record.result() === "" ? ["failed", "the agent ended without a final message"]
-		: ["done", "the agent exited 0"];
+	const reason =
+		why === "stop" ? "stopped"
+		: why === "time" ? `limit: time: the job ran past its timeout of ${timeout} minutes`
+		: why === "budget" ? `limit: budget: its cost $${record.cost().toFixed(4)} reached its budget of $${budgetUsd}`
+		: failure !== undefined ? `failed: the agent did not start: ${failure.message}`
+		: killed !== null ? `failed: the agent was killed by ${killed}`
+		: record.stopped() !== "" ? `failed: the agent stopped on ${record.stopped()}`
+		: code !== 0 ? `failed: the agent exited ${code}`
+		: record.result() === "" ? "failed: the agent ended without a final message"
+		: "finished";
+	// A run that finished on a `Blocked:` line waits for what it names; a plugin's hold ends with the run.
+	const blocked = reason === "finished" ? blockedBy(record.result()) : undefined;
+	const [state, said] = blocked === undefined ? (["ended", reason] as const) : (["blocked", blocked] as const);
 	record.end();
 	save("commits", commits === "" ? "" : `${commits}\n`);
-	note(`${state}: ${reason}`);
-	save("state", state);
-	eventBus(home).emit("core", "job-ended", { id, kind, project, state, reason, ...(undelivered.length > 0 ? { undelivered } : {}) });
+	note(`${state}: ${said}`);
+	guard(() =>
+		moveJob(home, id, bus, () => {
+			rmSync(join(folder, "hold"), { force: true });
+			return [state, said];
+		}),
+	);
+	bus.emit("core", "job-ended", { id, kind, project, state, reason: said, ...(undelivered.length > 0 ? { undelivered } : {}) });
 }

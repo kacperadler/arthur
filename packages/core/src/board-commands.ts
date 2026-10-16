@@ -5,7 +5,7 @@ import type { Board, Project } from "./board.ts";
 import { taskTickets } from "./board-jobs.ts";
 import { boardText } from "./board-text.ts";
 import type { Command } from "./commands.ts";
-import { field } from "./job-control.ts";
+import { field } from "./job-state.ts";
 import { jobIds } from "./job-records.ts";
 
 // `/board`, `/task` and `/findings`, also as `arthur <name>`: docs/commands/board.md, task.md and findings.md.

@@ -7,6 +7,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Added
 
 - AR0027 Dev dependencies beyond the toolchain are not checked (226d399)
+- AR0038 Roadmap: Later entries for the web panel, a knowledge base and a company edition (ea98772)
 
 ### Fixed
 

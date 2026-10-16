@@ -55,7 +55,7 @@ export function moveJob(home: string, id: string, bus: Bus, decide: (now: Curren
 	if (moved === undefined) return false;
 	const read = field(home, id);
 	const ticket = taskTickets(read("task")).map((path) => FEATURE.exec(path)?.[1]).find(Boolean) ?? null;
-	bus.emit("core", "job-state", { id, project: read("project"), ticket, machine: "local", ...moved });
+	bus.emit("core", "job-state", { id, project: read("project"), ticket, machine: read("machine") || "local", ...moved });
 	return true;
 }
 

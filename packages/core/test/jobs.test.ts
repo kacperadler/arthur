@@ -59,12 +59,13 @@ test("a worker gets its own branch and worktree from HEAD, the record and job-st
 		base: git(root, "rev-parse", "HEAD"),
 		worktree,
 		project: "acme",
+		machine: "local",
 		prompt: readFileSync(new URL("../roles/worker.md", import.meta.url), "utf8"),
 	};
 	assert.deepEqual(record(home, job.id, Object.keys(spawned)), spawned);
 	assert.deepEqual(readdirSync(join(home, "jobs")), [job.id]);
 	const events = readEvents(home, 1).map(({ plugin, name, data }) => ({ plugin, name, data }));
-	const data = { id: job.id, kind: "worker", project: "acme", root, branch: `arthur/${job.id}`, worktree, tickets: [] };
+	const data = { id: job.id, kind: "worker", project: "acme", root, branch: `arthur/${job.id}`, worktree, tickets: [], machine: "local" };
 	assert.deepEqual(events[0], { plugin: "core", name: "job-started", data });
 });
 

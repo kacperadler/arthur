@@ -548,9 +548,9 @@
   {
     "id": "AR0067",
     "title": "Two `arthur continue` at once can start two wrappers on one record where the job runs bare",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0067-two-arthur-continue-at-once-can-start-two-wrappers-on-one-record-where-the-job-runs-bare/ticket.md",
-    "updated": "2026-10-16T14:48:55.279Z",
+    "updated": "2026-10-16T15:05:25.314Z",
     "after": [
       "AR0065"
     ]

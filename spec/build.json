@@ -649,9 +649,9 @@
   {
     "id": "AR0077",
     "title": "The node_modules copy moves to a prepare hook of the projects plugin",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0077-the-node-modules-copy-moves-to-a-prepare-hook-of-the-projects-plugin/ticket.md",
-    "updated": "2026-10-16T16:13:33.812Z",
+    "updated": "2026-10-16T16:19:44.413Z",
     "after": [
       "AR0073"
     ]

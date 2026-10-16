@@ -33,9 +33,9 @@
   {
     "id": "AR0005",
     "title": "Roadmap 2: Config: defineConfig and the core's options",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0005-roadmap-2-config-defineconfig-and-the-core-s-options/ticket.md",
-    "updated": "2026-10-16T09:55:06.665Z",
+    "updated": "2026-10-16T10:03:05.414Z",
     "after": [
       "AR0004"
     ]

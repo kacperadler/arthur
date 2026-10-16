@@ -43,9 +43,9 @@
   {
     "id": "AR0006",
     "title": "Roadmap 3: Config: env names, .env, and arthur config check",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0006-roadmap-3-config-env-names-env-and-arthur-config-check/ticket.md",
-    "updated": "2026-10-16T10:20:21.772Z",
+    "updated": "2026-10-16T10:20:33.073Z",
     "after": [
       "AR0005"
     ]
@@ -263,5 +263,19 @@
     "status": "merged",
     "path": "spec/features/AR0027-dev-dependencies-beyond-the-toolchain-are-not-checked/ticket.md",
     "updated": "2026-10-16T09:56:25.112Z"
+  },
+  {
+    "id": "AR0028",
+    "title": "An instance name can produce the same variable prefix as another plugin",
+    "status": "planned",
+    "path": "spec/features/AR0028-an-instance-name-can-produce-the-same-variable-prefix-as-another-plugin/ticket.md",
+    "updated": "2026-10-16T10:20:47.269Z"
+  },
+  {
+    "id": "AR0029",
+    "title": "README still says no feature code exists",
+    "status": "planned",
+    "path": "spec/features/AR0029-readme-still-says-no-feature-code-exists/ticket.md",
+    "updated": "2026-10-16T10:20:47.481Z"
   }
 ]

@@ -13,7 +13,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/env.ts` (`nameProblem`, `prefix`, `part`)
 - What: a `youtrack` instance named `cloud` and a plugin named `youtrack-cloud` both own the prefix `ARTHUR_YOUTRACK_CLOUD_`; each may use `ARTHUR_YOUTRACK_CLOUD_TOKEN`, so one variable feeds two owners. Reproduced: `checkEnv` on those two plugins with the variable in the shell returns no problem and the value under both `youtrack` and `youtrack-cloud`. Likewise instance names `a-b` and `a b` both map to `A_B_` (not run). Not reachable with the example config.
 - Suggestion: refuse two owners (plugins or instances of one plugin) with the same prefix in `checkEnv`, naming both; leave the naming scheme as it is.
-- Status: open
+- Status: ticket AR0028
 
 ## F2. README still says no feature code exists
 
@@ -22,4 +22,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `README.md:5`
 - What: "No feature code exists" has been wrong since AR0005 merged `loadConfig`; AR0006 adds `arthur config check`.
 - Suggestion: say what runs today (`arthur config check`) and that the rest is in the roadmap.
-- Status: open
+- Status: ticket AR0029

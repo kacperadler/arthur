@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/host.ts:36-45` (`loadPlugins` registers `refuseUnstartableTickets` and `moveStartedTickets` after every plugin's `setup`), `packages/core/src/testing.ts:167` (the fake host registers them at the first spawn)
 - What: `host.jobs.spawn` is usable inside `setup`, before the core registers its `beforeSpawn` and its `job-started` move, so a worker spawned there runs on a `planning`, `merged` or unknown ticket and its ticket stays where it was. The fake host checks and moves such a spawn, so a test would not show it. [INFERENCE] from the lines, not run: no plugin spawns in `setup` today.
 - Suggestion: decide whether `spawn` inside `setup` is allowed; if not, refuse it (`jobs.spawn` throws until the load ends); if so, register the core's check before the plugins' setups and keep only the move last. Out: the order of the `job-started` handlers.
-- Status: open
+- Status: ticket AR0062

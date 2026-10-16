@@ -499,9 +499,9 @@
   {
     "id": "AR0060",
     "title": "The fake host does not refuse a worker whose ticket cannot move to in-progress",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0060-the-fake-host-does-not-refuse-a-worker-whose-ticket-cannot-move-to-in-progress/ticket.md",
-    "updated": "2026-10-16T14:20:17.302Z"
+    "updated": "2026-10-16T14:20:41.093Z"
   },
   {
     "id": "AR0061",
@@ -509,5 +509,12 @@
     "status": "dropped",
     "path": "spec/features/AR0061-on-the-fake-host-the-core-moves-a-worker-s-ticket-before-the-plugin-s-own-job-started-handler-runs-in-a-real-load-after/ticket.md",
     "updated": "2026-10-16T14:12:49.606Z"
+  },
+  {
+    "id": "AR0062",
+    "title": "A worker spawned during a plugin's `setup` skips the core's ticket check in a real load",
+    "status": "planned",
+    "path": "spec/features/AR0062-a-worker-spawned-during-a-plugin-s-setup-skips-the-core-s-ticket-check-in-a-real-load/ticket.md",
+    "updated": "2026-10-16T14:20:51.726Z"
   }
 ]

@@ -76,6 +76,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		...(resume === undefined ? [] : ["--continue"]),
 		...["-p", "--mode", "json", "--auto-approve", "--tools", branch === "" ? READ_ONLY_TOOLS : WORKER_TOOLS],
 		...["--append-system-prompt", join(folder, "prompt")],
+		...["-e", join(import.meta.dirname, "env-guard.ts")],
 		...(model ? ["--model", model] : []),
 		...(thinking ? ["--thinking", thinking] : []),
 		resume ?? `@${join(folder, "task")}`,

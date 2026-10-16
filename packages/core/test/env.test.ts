@@ -151,6 +151,36 @@ test("a name inside another plugin's instance prefix belongs to that instance al
 	assert.deepEqual(check.variables.map((variable) => variable.option), ["a.instances[0].tokenEnv"]);
 });
 
+test("with three nested owners a name belongs to the deepest, whatever order they were declared in", () => {
+	const token = "ARTHUR_A_B_C_TOKEN";
+	const shell = { [token]: "s3cret" };
+	const b = { name: "b", tokenEnv: token };
+	const bc = { name: "b-c", tokenEnv: token };
+	for (const instances of [[b, bc], [bc, b]]) {
+		const loaded = config([{ name: "a", options: { tokenEnv: token, instances } }]);
+		const at = instances.indexOf(b);
+		const check = checkEnv(loaded, shell);
+		assert.deepEqual(check.problems, [
+			`${loaded.path}: a.tokenEnv: expected ARTHUR_A_<WHAT>, got ${token}, a name of instance b-c of plugin a`,
+			`${loaded.path}: a.instances[${at}].tokenEnv: expected ARTHUR_A_B_<WHAT>, got ${token}, a name of instance b-c of plugin a`,
+		]);
+		assert.deepEqual(check.variables.map((variable) => variable.option), [`a.instances[${1 - at}].tokenEnv`]);
+		assert.doesNotMatch(refusal(loaded, shell), /s3cret/);
+	}
+	const a = { name: "a", options: { tokenEnv: token } };
+	const ab = { name: "a-b", options: { tokenEnv: token, instances: [{ name: "c", tokenEnv: token }] } };
+	for (const plugins of [[a, ab], [ab, a]]) {
+		const loaded = config(plugins);
+		const check = checkEnv(loaded, shell);
+		assert.deepEqual(check.problems.toSorted(), [
+			`${loaded.path}: a-b.tokenEnv: expected ARTHUR_A_B_<WHAT>, got ${token}, a name of instance c of plugin a-b`,
+			`${loaded.path}: a.tokenEnv: expected ARTHUR_A_<WHAT>, got ${token}, a name of instance c of plugin a-b`,
+		]);
+		assert.deepEqual(check.variables.map((variable) => variable.option), ["a-b.instances[0].tokenEnv"]);
+		assert.doesNotMatch(refusal(loaded, shell), /s3cret/);
+	}
+});
+
 test("an option that is not a name is refused without showing it; one left undefined needs nothing", () => {
 	const loaded = config([youtrack({ aEnv: 5, bEnv: null, cEnv: "ghp_pasted-secret", dEnv: undefined })]);
 	assert.deepEqual(checkEnv(loaded, {}).problems, [

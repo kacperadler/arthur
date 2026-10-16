@@ -109,14 +109,16 @@ function findEnv(value: unknown, path: string, instance: string | undefined, fou
 	}
 }
 
-// The name must be the option's own prefix and a non-empty rest, and not inside a longer prefix someone else owns.
+// The name must be the option's own prefix and a non-empty rest, and not inside a longer prefix someone else owns;
+// the longest such prefix names its owner, whatever order the owners come in.
 function nameProblem(name: unknown, own: string, taken: readonly Owner[]): string | undefined {
 	const expected = `expected ${own}<WHAT>`;
 	if (typeof name !== "string") return `${expected}, got ${kind(name)}`;
 	// Not shown: a text that is no variable name may be the secret itself, pasted by mistake.
 	if (!VARIABLE.test(name)) return `${expected} (capitals, digits and _); the text given is not shown`;
 	if (!name.startsWith(own) || name.length === own.length) return `${expected}, got ${name}`;
-	const other = taken.find((entry) => entry.prefix.length > own.length && name.startsWith(entry.prefix));
+	let other: Owner | undefined;
+	for (const entry of taken) if (entry.prefix.length > (other?.prefix ?? own).length && name.startsWith(entry.prefix)) other = entry;
 	if (other) return `${expected}, got ${name}, a name of ${other.owner}`;
 	return undefined;
 }

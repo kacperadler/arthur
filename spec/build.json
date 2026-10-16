@@ -168,7 +168,7 @@
     "title": "Roadmap 15: Jobs list, prune, dead jobs, and their phone commands",
     "status": "in-progress",
     "path": "spec/features/AR0018-roadmap-15-jobs-list-prune-dead-jobs-and-their-phone-commands/ticket.md",
-    "updated": "2026-10-16T14:48:57.729Z",
+    "updated": "2026-10-16T15:14:14.722Z",
     "after": [
       "AR0017"
     ]
@@ -178,8 +178,9 @@
     "title": "Roadmap 16: Job state: working, idle, blocked, ended",
     "status": "planned",
     "path": "spec/features/AR0019-roadmap-16-job-state-working-idle-blocked-ended/ticket.md",
-    "updated": "2026-10-16T09:46:26.473Z",
+    "updated": "2026-10-16T15:14:24.760Z",
     "after": [
+      "AR0069",
       "AR0017",
       "AR0018"
     ]
@@ -564,5 +565,12 @@
     "after": [
       "AR0067"
     ]
+  },
+  {
+    "id": "AR0069",
+    "title": "Core line review: what moves to a plugin or goes",
+    "status": "planned",
+    "path": "spec/features/AR0069-core-line-review-what-moves-to-a-plugin-or-goes/ticket.md",
+    "updated": "2026-10-16T15:14:24.556Z"
   }
 ]

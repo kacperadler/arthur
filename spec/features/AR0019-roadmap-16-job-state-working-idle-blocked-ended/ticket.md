@@ -6,6 +6,7 @@
   "title": "Roadmap 16: Job state: working, idle, blocked, ended",
   "date": "2026-10-16",
   "after": [
+    "AR0069",
     "AR0017",
     "AR0018"
   ]

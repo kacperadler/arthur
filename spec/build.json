@@ -104,9 +104,9 @@
   {
     "id": "AR0012",
     "title": "Roadmap 9: Job runner: spawn and the job record",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0012-roadmap-9-job-runner-spawn-and-the-job-record/ticket.md",
-    "updated": "2026-10-16T09:46:24.060Z",
+    "updated": "2026-10-16T11:20:10.944Z",
     "after": [
       "AR0008",
       "AR0009"
@@ -287,9 +287,9 @@
   {
     "id": "AR0031",
     "title": "`arthur config check` passes a plugin list the host refuses",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0031-arthur-config-check-passes-a-plugin-list-the-host-refuses/ticket.md",
-    "updated": "2026-10-16T10:32:46.130Z",
+    "updated": "2026-10-16T11:24:22.661Z",
     "after": [
       "AR0011"
     ]

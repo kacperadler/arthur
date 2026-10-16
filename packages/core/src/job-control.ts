@@ -11,9 +11,7 @@ import { takeLock } from "./lock.ts";
 import { processTable } from "./process-table.ts";
 import { queueSteer } from "./steer-inbox.ts";
 
-// Stop, steer and continue a job (spec/roadmap.md, entry 14), from its record `<home>/jobs/<id>/`. `arthur stop` asks the
-// job's wrapper (SIGTERM to it), which runs the one stop (job-stop.ts) and writes the end; `arthur steer` queues a
-// correction the agent gets after its next tool call (steer-inbox.ts); `arthur continue` starts the wrapper again in place.
+// Stop, steer and continue a job from its record `<home>/jobs/<id>/`: docs/commands/stop.md, steer.md and continue.md.
 
 // `<date>-<kind>-<8 hex digits>`, as the spawn makes it: nothing else names a folder in `<home>/jobs/`.
 export const ID = /^\d{4}-\d\d-\d\d-[a-z][a-z0-9]*(-[a-z0-9]+)*-[0-9a-f]{8}$/;
@@ -65,13 +63,8 @@ export function steerJob(home: string, id: string, text: string): string {
 	}
 }
 
-// Resumes an ended job with a branch of its own in place: its wrapper starts again on the same record, worktree and branch,
-// and the agent continues its last session there with `instruction`. `budgetUsd` replaces the budget, since the cost of the
-// runs before counts on; the timeout counts from the new start. `check` runs the plugins' `beforeSpawn` on the record first,
-// then `job-started` goes out as at a spawn (a worker's tickets move back to in-progress). Returns why the wrapper did not
-// start, which ended the job `failed`, or undefined. The record's `continuing`, a lock (lock.ts) taken before its state is read
-// and removed by the new wrapper once its state says running or here when the continue fails, refuses the second of two
-// continues at once; one left by a continue that was killed is taken over.
+// `arthur continue` (docs/commands/continue.md): returns why the wrapper did not start, or undefined. Its lock `continuing` is
+// taken before the state is read and released here only when the continue fails; else the new wrapper removes it.
 export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, check: (spawn: Omit<Spawn, "tickets">) => Promise<void>): Promise<string | undefined> {
 	const { folder, field } = record(home, id);
 	if (instruction.trim() === "") throw new Error("the instruction is empty");

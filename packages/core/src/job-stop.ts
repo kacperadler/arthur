@@ -2,11 +2,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { endScope } from "./job-scope.ts";
 import { descendants, processTable } from "./process-table.ts";
 
-// The one stop of a job (spec/roadmap.md, entry 14), which the wrapper runs for `arthur stop` and at a limit (entry 12):
-// SIGTERM to the agent's process group, the agent and every process it started in it; SIGKILL to the group when any of
-// them is still alive after the grace; then SIGKILL to each process below the agent that had left its group (a daemon
-// that called `setsid`), as seen before each signal, since one whose parent dies is no longer found below it; then every
-// other process left in the job's scope (entry 13), which also takes one that left before it could be seen.
+// The one stop of a job (docs/commands/stop.md); strays are seen before each signal, as one whose parent died is lost.
 
 export const GRACE_SECONDS = 5;
 

@@ -10,19 +10,8 @@ import { commitsSince } from "./git.ts";
 import { runRecord } from "./run-record.ts";
 import { closeSteers } from "./steer-inbox.ts";
 
-// The wrapper (spec/roadmap.md, entry 11): one background process per job, `node wrapper.ts <home> <id> <agent>`, started
-// in the job's scope by `launch` (job-scope.ts); it starts the agent, in a process group of its own, in the job's worktree
-// and keeps the record `<home>/jobs/<id>/` current from what the agent prints: `pid` and `state` (`running`) first, then
-// `log`, `result`, `cost`, `tool-calls` and `activity` as they change; at the end every one of them and `commits`,
-// then `state` (`done`, `failed`, `stopped`, `limit: time` or `limit: budget`) last, so a reader that sees it final can
-// trust the rest; then `job-ended`. SIGTERM to the wrapper (`arthur stop`, entry 14) and a job past its record's `timeout`
-// or `budget` (entry 12) run the one stop (job-stop.ts); a kind with `resume-on-budget` gets one resume at its budget,
-// doubled. A record with `continue` (`arthur continue`) resumes the agent's session with it; its `continuing`, which holds
-// the record against a second continue, is removed once the state says running. Once the agent is done, what is left in
-// the job's scope is killed (entry 13), and steers still waiting are moved aside; a process the agent left that holds its
-// output open is waited for 2 seconds after the agent exited, then no longer read. A record deleted while the job runs
-// stops the agent and what is left in its scope, and ends the wrapper with one line on its own output, `<home>/wrapper.log`,
-// writing nothing else.
+// One background process per job, `node wrapper.ts <home> <id> <agent>`, started in the job's scope by `launch` (job-scope.ts);
+// what it writes and when: docs/commands/spawn.md. A pipe a process the agent left holds open is read 2 s past its exit, then closed.
 
 const WORKER_TOOLS = "read,edit,write,bash,grep,glob";
 const READ_ONLY_TOOLS = "read,bash,grep,glob";

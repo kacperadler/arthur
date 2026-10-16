@@ -2,10 +2,7 @@ import { readFileSync } from "node:fs";
 import type { LoadedConfig } from "./config.ts";
 import { asPlugin } from "./plugin.ts";
 
-// The `...Env` options of the enabled plugins (spec/roadmap.md, entry 3). Each names a variable `ARTHUR_<PLUGIN>_<WHAT>`, or
-// `ARTHUR_<PLUGIN>_<INSTANCE>_<WHAT>` inside a named instance (an object in the options with a string `name`); its value
-// comes from the shell, else from the env file. A plugin in the list is `{ name, options }`; `enabled: false` in its options
-// means its variables are neither looked up nor listed. No value is ever put into a problem, a warning or a variable's entry.
+// The `...Env` options of the enabled plugins, their names and values: docs/commands/config.md. No value enters any output.
 
 export type Shell = Readonly<Record<string, string | undefined>>;
 

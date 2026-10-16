@@ -104,9 +104,9 @@
   {
     "id": "AR0012",
     "title": "Roadmap 9: Job runner: spawn and the job record",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0012-roadmap-9-job-runner-spawn-and-the-job-record/ticket.md",
-    "updated": "2026-10-16T11:42:58.825Z",
+    "updated": "2026-10-16T11:43:12.355Z",
     "after": [
       "AR0008",
       "AR0009"
@@ -366,8 +366,15 @@
   {
     "id": "AR0041",
     "title": "Roadmap 35-36: a handoff before compaction, and a fresh start that retries",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0041-roadmap-35-36-a-handoff-before-compaction-and-a-fresh-start-that-retries/ticket.md",
-    "updated": "2026-10-16T11:41:07.773Z"
+    "updated": "2026-10-16T11:43:21.627Z"
+  },
+  {
+    "id": "AR0042",
+    "title": "A project with a branch named `arthur` can spawn no worker",
+    "status": "planned",
+    "path": "spec/features/AR0042-a-project-with-a-branch-named-arthur-can-spawn-no-worker/ticket.md",
+    "updated": "2026-10-16T11:43:30.289Z"
   }
 ]

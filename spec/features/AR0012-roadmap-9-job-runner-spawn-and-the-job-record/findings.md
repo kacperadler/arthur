@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/jobs.ts` (`newJob`, the branch `arthur/<id>`)
 - What: a worker's branch is `arthur/<id>`. In a repository that has a branch named exactly `arthur`, Git cannot create `refs/heads/arthur/<id>` beside `refs/heads/arthur`, so every worker spawn fails with Git's message (`arthur spawn: git worktree: fatal: cannot lock ref 'refs/heads/arthur/…': 'refs/heads/arthur' exists; …`, exit 1). Nothing is left behind (no worktree, record or branch; seen in a throwaway run: `git init`, `git branch arthur`, `arthur spawn "Go."`). Read-only kinds are not affected. An exact branch name that exists is handled: the spawn draws another id.
 - Suggestion: refuse such a spawn with Arthur's own line naming the `arthur` branch and what to do (rename it), or pick a prefix that cannot clash; decide which with the owner.
-- Status: open
+- Status: ticket AR0042

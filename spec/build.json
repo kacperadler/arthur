@@ -578,9 +578,9 @@
   {
     "id": "AR0070",
     "title": "An `arthur continue` killed before its wrapper starts leaves `continuing`, and the job is never continued again",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0070-an-arthur-continue-killed-before-its-wrapper-starts-leaves-continuing-and-the-job-is-never-continued-again/ticket.md",
-    "updated": "2026-10-16T17:03:21.656Z",
+    "updated": "2026-10-16T17:03:55.680Z",
     "after": [
       "AR0074",
       "AR0078"
@@ -711,5 +711,12 @@
     "status": "planning",
     "path": "spec/features/AR0084-roadmap-24-the-coordinator-s-inbox-the-wake-and-a-human-s-message-mid-turn/ticket.md",
     "updated": "2026-10-16T17:03:09.617Z"
+  },
+  {
+    "id": "AR0085",
+    "title": "A continue killed between its new wrapper's `pid` and `state` lets a second continue start beside the running wrapper",
+    "status": "planning",
+    "path": "spec/features/AR0085-a-continue-killed-between-its-new-wrapper-s-pid-and-state-lets-a-second-continue-start-beside-the-running-wrapper/ticket.md",
+    "updated": "2026-10-16T17:03:55.677Z"
   }
 ]

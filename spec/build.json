@@ -287,9 +287,9 @@
   {
     "id": "AR0031",
     "title": "`arthur config check` passes a plugin list the host refuses",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0031-arthur-config-check-passes-a-plugin-list-the-host-refuses/ticket.md",
-    "updated": "2026-10-16T11:26:51.847Z",
+    "updated": "2026-10-16T11:27:06.692Z",
     "after": [
       "AR0011"
     ]
@@ -348,5 +348,12 @@
     "status": "merged",
     "path": "spec/features/AR0038-roadmap-later-entries-for-the-web-panel-a-knowledge-base-and-a-company-edition/ticket.md",
     "updated": "2026-10-16T11:10:58.896Z"
+  },
+  {
+    "id": "AR0039",
+    "title": "`arthur config check` says ok when a plugin's `setup` refuses the start",
+    "status": "planned",
+    "path": "spec/features/AR0039-arthur-config-check-says-ok-when-a-plugin-s-setup-refuses-the-start/ticket.md",
+    "updated": "2026-10-16T11:27:44.232Z"
   }
 ]

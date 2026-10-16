@@ -90,7 +90,7 @@ export async function continueJob(home: string, id: string, instruction: string,
 		bus.emit("core", "job-started", { id, kind, project, root, branch, worktree, tickets: taskTickets(task), machine });
 		failed = there === undefined ? await launch(home, { id, kind, project }, agent, slice, bus) : startedThere || undefined;
 		// The wrapper there did not start: its end, here at once.
-		if (there !== undefined && failed !== undefined) syncMachine(home, there, bus);
+		
 		return failed;
 	} finally {
 		// A wrapper there removes the lock there, not this one.

@@ -9,6 +9,7 @@ Resumes a job that has a branch of its own, a worker for example, and is `ended`
 - Before the wrapper starts, `job-started` is emitted again as at a spawn, with the record's `id`, `kind`, `project`, `root`, `branch`, `worktree` and `tickets`: a worker's tickets in `review` or `done` move back to `in-progress`, one already there is not written, and other kinds move none (see `arthur spawn --help`).
 - `commits` at the end lists the branch's commits since the job's first `base`, every run's together; `result`, `tool-calls` and `activity` are the new run's.
 - When the job's wrapper is still writing its end, it waits up to 5 seconds for it to exit, since the new one starts in a scope of the same name.
+- A job on another machine (its record's `machine`; see `arthur spawn --help`) continues there: once the checks here pass (its state here, its branch, the limits, the `beforeSpawn` checks), `arthur remote-job continue` does there over SSH what is said above, the instruction on its stdin, in the scope of the jobs' slice there, whose limit is the machine's own (see `arthur remote-job --help`); then the job here moves to `working` and `job-started` is emitted here with its `machine`. The sweep copies its run from there as after a spawn. A wrapper that does not start there ends the job there, and its end is copied here at once.
 
 Refused (exit code 1, the reason after `arthur continue: `):
 
@@ -19,6 +20,7 @@ Refused (exit code 1, the reason after `arthur continue: `):
 - A read-only kind, which has no branch of its own: `<id> is a <kind>, a read-only kind without a branch of its own; only a job with a branch is continued`.
 - A job whose worktree is gone, as `arthur prune` leaves one whose branch has commits Git refuses to delete: `<id>: its worktree was pruned; spawn a new job on its branch <branch>`. The branch keeps the work: a new worker starts from HEAD on a branch of its own, so its task names `<branch>` to merge or build on. Nothing in the record is written.
 - An empty instruction: `the instruction is empty`.
+- On another machine, a refusal from there, each as above (in a run there, its worktree pruned there, being continued there), after `machine <name>: arthur remote-job continue: `. A machine that does not answer: `machine <name>: ssh <ssh>: <ssh's last line>`. A machine no plugin registers now: `<id> runs on machine <name>, which no plugin registers; machines: <names>`.
 - A plugin's `beforeSpawn` check, run on the job as its record has it (its `task` and the `Ticket:` files it names, `kind`, `project`, `model`, `thinking`, `timeout`, and the `--budget` or else its `budget`), that gives a reason: `refused by <plugin>: <reason>`; one that throws: `plugin <plugin>: beforeSpawn failed: <message>`. The core's own check refuses a worker whose ticket cannot move to in-progress, a `merged` one for example, as at a spawn (see `arthur spawn --help`). A refused continue starts nothing and leaves the record as it was.
 - A config or a plugin that does not load: `arthur.config.ts did not load:`, then the reasons.
 

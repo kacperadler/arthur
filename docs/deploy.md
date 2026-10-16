@@ -125,7 +125,7 @@ It checks by code, without the model, what the enabled plugins need: git, Node 2
 
 ## Another machine for jobs
 
-A job can run on another machine, such as a Mac for an iOS build (`arthur spawn --machine <name>`, roadmap entry 21; the `machines` plugin of entry 30 lists them). Arthur reaches it only over SSH, as `ssh -o BatchMode=yes -o StrictHostKeyChecking=yes <host>`: never with a password, never accepting a host key it does not know. The machine runs the job's worktree, agent and guards through its own `arthur`; Arthur sends it no secret, only the task, the prompt and the commits. It needs:
+A job can run on another machine, such as a Mac for an iOS build (`arthur spawn --machine <name>`, roadmap entries 21 and 22; the `machines` plugin of entry 30 lists them). Arthur reaches it only over SSH, as `ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 <host>`: never with a password, never accepting a host key it does not know, giving up after 10 seconds on a machine that does not answer. The machine runs the job's worktree, agent and guards through its own `arthur`; Arthur sends it no secret, only the task, the prompt and the commits. `arthur stop`, `steer`, `continue` and `prune` of its jobs run there too. It needs:
 
 1. Node 24, git and OMP, logged in with its own credential (`omp login` there), as in step 1.
 2. Arthur's core of the same version as here: clone and `npm ci` as in step 2, at the same commit, without a config. `arthur version` prints the version; both machines must print the same, or every spawn there is refused naming both. Update it there with every update here.
@@ -136,9 +136,11 @@ A job can run on another machine, such as a Mac for an iOS build (`arthur spawn 
 ssh -o BatchMode=yes -o StrictHostKeyChecking=yes <host> arthur version
 ```
 
-5. On Linux, linger there (`sudo loginctl enable-linger "$USER"`), so each job gets its scope as in step 5; without a user manager (macOS) a job runs bare.
+5. On Linux, linger there (`sudo loginctl enable-linger "$USER"`), so each job gets its scope as in step 5, in a slice limited to the machine's own cores minus one and 70% of its memory; without a user manager (macOS) a job runs bare.
 
 The machine's `home`, as registered, holds the job records (`<home>/jobs/`), each project's repository (`<home>/repos/<project>.git`, created on first use) and the job worktrees (`<home>/repos/.arthur-worktrees/`).
+
+A machine that stops answering (switched off, off the network) does not lose its jobs: they wait `blocked` here and go on there; back within `core.jobs.offlineGraceMinutes` (default 30) they go on here as there, and past it they end `failed: machine offline` here while their worktree there stays for you. A job that ended there meanwhile brings its end and branch once the machine answers again (see `arthur spawn --help`).
 
 ## Threat model
 

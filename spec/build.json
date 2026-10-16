@@ -155,9 +155,9 @@
   {
     "id": "AR0017",
     "title": "Roadmap 14: Stop, continue, steer",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0017-roadmap-14-stop-continue-steer/ticket.md",
-    "updated": "2026-10-16T14:31:42.026Z",
+    "updated": "2026-10-16T14:31:52.317Z",
     "after": [
       "AR0014",
       "AR0016"
@@ -513,8 +513,8 @@
   {
     "id": "AR0062",
     "title": "A worker spawned during a plugin's `setup` skips the core's ticket check in a real load",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0062-a-worker-spawned-during-a-plugin-s-setup-skips-the-core-s-ticket-check-in-a-real-load/ticket.md",
-    "updated": "2026-10-16T14:29:09.239Z"
+    "updated": "2026-10-16T14:33:27.508Z"
   }
 ]

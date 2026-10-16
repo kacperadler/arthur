@@ -534,9 +534,9 @@
   {
     "id": "AR0065",
     "title": "`arthur continue` starts an agent without the plugins' `beforeSpawn` checks",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0065-arthur-continue-starts-an-agent-without-the-plugins-beforespawn-checks/ticket.md",
-    "updated": "2026-10-16T14:48:58.267Z"
+    "updated": "2026-10-16T15:04:40.257Z"
   },
   {
     "id": "AR0066",

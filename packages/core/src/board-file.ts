@@ -42,9 +42,8 @@ export function readBoard(file: string): Entry[] {
 	return value as Entry[];
 }
 
-// Written whole under another name, then renamed over the board, so a reader never sees half a board.
-export function writeBoard(file: string, entries: readonly Entry[]): void {
-	const temporary = `${file}.${process.pid}.tmp`;
+// Written whole to `temporary`, on the board's filesystem, then renamed over the board, so a reader never sees half a board.
+export function writeBoard(file: string, entries: readonly Entry[], temporary: string): void {
 	writeFileSync(temporary, `${JSON.stringify(entries, null, 2)}\n`);
 	renameSync(temporary, file);
 }

@@ -321,9 +321,9 @@
   {
     "id": "AR0035",
     "title": "An event a command emits reaches the log but not the daemon's subscribers",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0035-an-event-a-command-emits-reaches-the-log-but-not-the-daemon-s-subscribers/ticket.md",
-    "updated": "2026-10-16T12:04:07.421Z",
+    "updated": "2026-10-16T12:04:29.215Z",
     "after": [
       "AR0011"
     ]
@@ -383,5 +383,19 @@
     "status": "merged",
     "path": "spec/features/AR0043-restart-fresh-starts-a-new-conversation-without-the-handoff/ticket.md",
     "updated": "2026-10-16T11:47:12.097Z"
+  },
+  {
+    "id": "AR0044",
+    "title": "An event a command appends while no daemon runs never reaches the subscribers",
+    "status": "planned",
+    "path": "spec/features/AR0044-an-event-a-command-appends-while-no-daemon-runs-never-reaches-the-subscribers/ticket.md",
+    "updated": "2026-10-16T12:04:53.621Z"
+  },
+  {
+    "id": "AR0045",
+    "title": "A log cut by hand and grown past the old end between two follows loses events",
+    "status": "dropped",
+    "path": "spec/features/AR0045-a-log-cut-by-hand-and-grown-past-the-old-end-between-two-follows-loses-events/ticket.md",
+    "updated": "2026-10-16T12:04:53.818Z"
   }
 ]

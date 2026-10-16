@@ -389,7 +389,7 @@
     "title": "An event a command appends while no daemon runs never reaches the subscribers",
     "status": "in-progress",
     "path": "spec/features/AR0044-an-event-a-command-appends-while-no-daemon-runs-never-reaches-the-subscribers/ticket.md",
-    "updated": "2026-10-16T12:21:31.628Z"
+    "updated": "2026-10-16T12:21:31.999Z"
   },
   {
     "id": "AR0045",
@@ -422,11 +422,8 @@
   {
     "id": "AR0049",
     "title": "`/findings` does not show findings a worker wrote on its branch",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0049-findings-does-not-show-findings-a-worker-wrote-on-its-branch/ticket.md",
-    "updated": "2026-10-16T12:18:13.635Z",
-    "after": [
-      "AR0018"
-    ]
+    "updated": "2026-10-16T12:21:45.577Z"
   }
 ]

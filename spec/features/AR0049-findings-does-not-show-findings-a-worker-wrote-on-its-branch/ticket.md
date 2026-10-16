@@ -4,10 +4,7 @@
 {
   "id": "AR0049",
   "title": "`/findings` does not show findings a worker wrote on its branch",
-  "date": "2026-10-16",
-  "after": [
-    "AR0018"
-  ]
+  "date": "2026-10-16"
 }
 ```
 

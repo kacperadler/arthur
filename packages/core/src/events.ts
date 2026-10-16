@@ -1,13 +1,11 @@
-import { closeSync, fstatSync, openSync, readFileSync, readSync, writeFileSync } from "node:fs";
+import { closeSync, fstatSync, openSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { withLock } from "./lock.ts";
+import { append, type Event, LOG, logEnd, type Position, readEvents, readNew, withLog } from "./event-log.ts";
 
-// The event stream (spec/roadmap.md, entry 5): every event is appended to `<home>/events.jsonl`, one JSON line with its
-// sequence number, time and the plugin that emitted it, then delivered to the subscribers of its name in this process.
-// Every process that emits (the daemon, a command) appends under one lock, so lines never interleave and numbers never repeat.
-// The daemon also follows the log (entry 8), so an event a command emits reaches the daemon's subscribers too.
-
-export type Event = { readonly seq: number; readonly time: string; readonly plugin: string; readonly name: string; readonly data: unknown };
+// The event stream (spec/roadmap.md, entry 5): every event is appended to the log (`event-log.ts`), then delivered to the
+// subscribers of its name in this process. The daemon also follows the log (entry 8), so an event a command emits reaches
+// the daemon's subscribers too, and keeps in `<home>/events.delivered` the number of the last event it delivered, so the
+// events appended while it was down reach them when it starts again, each once.
 
 export type Handler = (event: Event) => void | Promise<void>;
 
@@ -25,57 +23,45 @@ export type Bus = {
 	on(plugin: string, name: string, fn: Handler): void;
 	emit(plugin: string, name: string, data: unknown): Event;
 	read(fromSeq: number): Event[];
-	// From the log's end now, every `everyMs` delivers the events another process appended; this bus's own were delivered at
-	// emit. Returns the stop.
+	// Delivers at once the events after the number kept in `<home>/events.delivered` (none when there is no file or it is no
+	// use: then from the log's end), then every `everyMs` the events another process appended; this bus's own were delivered
+	// at emit. Returns the stop of the checks; an emit after it still delivers first what another process appended.
 	follow(everyMs: number): () => void;
 };
 
-const LOG = "events.jsonl";
-const CHUNK = 64 * 1024;
+const DELIVERED = "events.delivered";
 
 export function eventBus(home: string): Bus {
-	const path = join(home, LOG);
+	const kept = join(home, DELIVERED);
 	const handlers = new Map<string, readonly { readonly plugin: string; readonly fn: Handler }[]>();
 	const queue: Event[] = [];
 	let delivering = false;
-	// While following: the bytes read so far (whole lines only), the next number to deliver, and this bus's own numbers not read yet.
-	let follow: { offset: number; next: number; readonly mine: Set<number> } | undefined;
+	// From the first follow on, how far the log was read: every event before `read.next` was delivered, in the log's order.
+	// `early`: this bus's own events emitted before the follow, delivered at emit, so never delivered again from the log.
+	let read: Position | undefined;
+	const early = new Set<number>();
 	const drain = () => {
 		// An event emitted by a handler waits in the queue until the current one has reached every subscriber.
 		if (delivering) return;
 		delivering = true;
-		for (let next = queue.shift(); next !== undefined; next = queue.shift())
+		for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
 			for (const { plugin, fn } of handlers.get(next.name) ?? []) deliver(plugin, next, fn);
+			// After the handlers ran: a crash before this line delivers the event again at the next start.
+			if (read !== undefined) keep(kept, next.seq);
+		}
 		delivering = false;
 	};
-	// The log's end, under its lock, so no line is half written; a log cut or deleted by hand is followed again from its new end.
-	const fromEnd = () =>
-		withLock(`${path}.lock`, () => {
-			const fd = openSync(path, "a+");
-			try {
-				const { size } = fstatSync(fd);
-				return { offset: size, next: lastSeq(fd, size) + 1, mine: new Set<number>() };
-			} finally {
-				closeSync(fd);
-			}
-		});
-	const tick = (state: NonNullable<typeof follow>) => {
-		const fd = openSync(path, "a+");
+	const catchUp = (fd: number, at: Position, size: number) => {
+		for (const event of readNew(fd, at, size)) if (!early.delete(event.seq)) queue.push(event);
+	};
+	const tick = () => {
+		if (read === undefined) return;
+		const fd = openSync(join(home, LOG), "a+");
 		try {
 			const { size } = fstatSync(fd);
-			if (size < state.offset) follow = fromEnd();
-			if (size <= state.offset) return;
-			const bytes = Buffer.alloc(size - state.offset);
-			readSync(fd, bytes, 0, bytes.length, state.offset);
-			// A line still being written waits until its line break is there.
-			const whole = bytes.lastIndexOf(0x0a) + 1;
-			state.offset += whole;
-			for (const line of bytes.subarray(0, whole).toString("utf8").split("\n")) {
-				const event = parse(line);
-				if (event === undefined || event.seq < state.next) continue;
-				state.next = event.seq + 1;
-				if (!state.mine.delete(event.seq)) queue.push(event);
-			}
+			// A log cut or deleted by hand is followed again from its new end.
+			if (size < read.offset) read = withLog(home, logEnd);
+			else catchUp(fd, read, size);
 		} finally {
 			closeSync(fd);
 		}
@@ -86,23 +72,56 @@ export function eventBus(home: string): Bus {
 			handlers.set(name, [...(handlers.get(name) ?? []), { plugin, fn }]);
 		},
 		emit(plugin, name, data) {
-			const event = appendEvent(home, plugin, name, data);
-			follow?.mine.add(event.seq);
+			const event = withLog(home, (fd) => {
+				const at = read;
+				const { size } = fstatSync(fd);
+				if (at !== undefined && size >= at.offset) catchUp(fd, at, size);
+				const event = append(fd, plugin, name, data);
+				if (at === undefined) early.add(event.seq);
+				else read = { offset: fstatSync(fd).size, next: event.seq + 1 };
+				return event;
+			});
 			queue.push(event);
 			drain();
 			return event;
 		},
 		read: (fromSeq) => readEvents(home, fromSeq),
 		follow(everyMs) {
-			follow = fromEnd();
-			const timer = setInterval(() => follow && tick(follow), everyMs);
+			read = withLog(home, (fd) => resume(kept, logEnd(fd)));
+			// The replay, at once. Then the number also covers this bus's own events from before, which it skipped as delivered
+			// at emit, and, at a first start, the log before it, so the next start goes on from here even when nothing came.
+			tick();
+			keep(kept, read.next - 1);
+			const timer = setInterval(tick, everyMs);
 			timer.unref();
-			return () => {
-				clearInterval(timer);
-				follow = undefined;
-			};
+			return () => clearInterval(timer);
 		},
 	};
+}
+
+// Where the daemon goes on: after the number it kept, or from the log's end at a first start or when the number is no use.
+function resume(kept: string, end: Position): Position {
+	let text: string;
+	try {
+		text = readFileSync(kept, "utf8").trim();
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return end;
+		throw error;
+	}
+	const last = Number(text);
+	if (!/^\d+$/.test(text) || !Number.isSafeInteger(last)) {
+		console.error(`arthur run: ${kept} holds no whole number; following the event log from its end`);
+		return end;
+	}
+	if (last < end.next - 1) return { offset: 0, next: last + 1 };
+	if (last > end.next - 1) console.error(`arthur run: ${kept} holds ${last}, past the log's last event ${end.next - 1}; following the event log from its end`);
+	return end;
+}
+
+// Whole, through a temporary file, so a crash leaves the number before or the one after.
+function keep(path: string, seq: number): void {
+	writeFileSync(`${path}.tmp`, `${seq}\n`);
+	renameSync(`${path}.tmp`, path);
 }
 
 // A handler that throws, or whose promise rejects, is logged with its plugin's name; the other handlers still get the event.
@@ -115,71 +134,4 @@ function deliver(plugin: string, event: Event, fn: Handler): void {
 	} catch (error) {
 		failed(error);
 	}
-}
-
-export function appendEvent(home: string, plugin: string, name: string, data: unknown): Event {
-	const path = join(home, LOG);
-	return withLock(`${path}.lock`, () => {
-		const fd = openSync(path, "a+");
-		try {
-			const { size } = fstatSync(fd);
-			const text = JSON.stringify({ seq: lastSeq(fd, size) + 1, time: new Date().toISOString(), plugin, name, data: data ?? null });
-			// A torn last line (a crash while writing it) is ended here, so it stays one skipped line instead of spoiling this one.
-			const end = Buffer.alloc(1);
-			const torn = size > 0 && readSync(fd, end, 0, 1, size - 1) === 1 && end[0] !== 0x0a;
-			writeFileSync(fd, `${torn ? "\n" : ""}${text}\n`);
-			return JSON.parse(text) as Event;
-		} finally {
-			closeSync(fd);
-		}
-	});
-}
-
-// Lines that are no event (torn, or broken by hand) are skipped; a log not written yet has no events.
-export function readEvents(home: string, fromSeq: number): Event[] {
-	let text: string;
-	try {
-		text = readFileSync(join(home, LOG), "utf8");
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
-		throw error;
-	}
-	return text.split("\n").flatMap((line) => {
-		const event = parse(line);
-		return event !== undefined && event.seq >= fromSeq ? [event] : [];
-	});
-}
-
-// The number of the last event in the log, read backwards from its end a chunk at a time; 0 when there is none.
-function lastSeq(fd: number, size: number): number {
-	let carry = Buffer.alloc(0);
-	for (let end = size; end > 0; ) {
-		const from = Math.max(0, end - CHUNK);
-		const chunk = Buffer.alloc(end - from);
-		readSync(fd, chunk, 0, chunk.length, from);
-		const bytes = Buffer.concat([chunk, carry]);
-		// The bytes before the first line break may belong to a line that starts in an earlier chunk.
-		const first = bytes.indexOf(0x0a);
-		const cut = from === 0 ? 0 : first === -1 ? bytes.length : first + 1;
-		carry = bytes.subarray(0, cut);
-		for (const line of bytes.subarray(cut).toString("utf8").split("\n").reverse()) {
-			const event = parse(line);
-			if (event !== undefined) return event.seq;
-		}
-		end = from;
-	}
-	return 0;
-}
-
-function parse(line: string): Event | undefined {
-	let value: unknown;
-	try {
-		value = JSON.parse(line);
-	} catch {
-		return undefined;
-	}
-	if (typeof value !== "object" || value === null) return undefined;
-	const { seq, time, plugin, name } = value as Readonly<Record<string, unknown>>;
-	const valid = Number.isSafeInteger(seq) && (seq as number) > 0 && typeof time === "string" && typeof plugin === "string" && typeof name === "string";
-	return valid ? (value as Event) : undefined;
 }

@@ -3,7 +3,8 @@ import { spawn } from "node:child_process";
 import { appendFileSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { type Event, eventBus } from "../src/events.ts";
+import type { Event } from "../src/event-log.ts";
+import { eventBus } from "../src/events.ts";
 import { loadPlugins } from "../src/host.ts";
 import type { Plugin } from "../src/plugin.ts";
 import { temporaryFolder } from "../src/testing.ts";
@@ -81,7 +82,7 @@ test("a handler that throws or rejects does not stop the others and is logged wi
 
 test("two processes appending at once never interleave a line nor repeat a sequence number", async () => {
 	const home = temporaryFolder();
-	const events = JSON.stringify(import.meta.resolve("../src/events.ts"));
+	const events = JSON.stringify(import.meta.resolve("../src/event-log.ts"));
 	const count = 300;
 	// Both start at one moment and write lines of 6 to 7 KB, more than one atomic pipe write. The child imports the core by
 	// its path, given at run time.
@@ -197,7 +198,103 @@ test("a following bus waits for a line's end, follows a log cut or deleted by ha
 
 	stop();
 	command.emit("session", "notice", "after the stop");
-	daemon.emit("orchestration", "notice", "own after the stop");
 	t.mock.timers.tick(100);
-	assert.deepEqual(got, [1, 1, 1, 3]);
+	assert.deepEqual(got, [1, 1, 1], "no check after the stop");
+	daemon.emit("orchestration", "notice", "own after the stop");
+	assert.deepEqual(got, [1, 1, 1, 2, 3], "an own emit delivers first what another process appended, in the log's order");
+});
+
+const deliveredOf = (home: string) => join(home, "events.delivered");
+
+test("a bus that follows again delivers, in order and once, what came after the last event it delivered", (t) => {
+	t.mock.timers.enable({ apis: ["setInterval"] });
+	const home = temporaryFolder();
+	const command = eventBus(home);
+	const got: string[] = [];
+	const daemon = () => {
+		const bus = eventBus(home);
+		bus.on("telegram", "ticket-moved", (event) => {
+			got.push(`${event.seq} ${event.data}`);
+			if (event.data === "b") bus.emit("delivery", "ticket-moved", "reaction to b");
+		});
+		return bus;
+	};
+	command.emit("core", "ticket-moved", "before any daemon");
+	const first = daemon();
+	const stop = first.follow(10);
+	command.emit("core", "ticket-moved", "a");
+	t.mock.timers.tick(10);
+	first.emit("orchestration", "job-started", "nobody listens");
+	assert.deepEqual(got, ["2 a"]);
+	assert.equal(readFileSync(deliveredOf(home), "utf8"), "3\n", "an event nobody listens to counts as delivered");
+	stop();
+
+	command.emit("core", "ticket-moved", "b");
+	command.emit("core", "ticket-moved", "c");
+	const second = daemon();
+	second.emit("schedule", "ticket-moved", "own, before the follow");
+	assert.deepEqual(got, ["2 a", "6 own, before the follow"]);
+	t.after(second.follow(10));
+	assert.deepEqual(got, ["2 a", "6 own, before the follow", "4 b", "5 c", "7 reaction to b"], "the replay, at the follow");
+	assert.equal(readFileSync(deliveredOf(home), "utf8"), "7\n");
+
+	const third = daemon();
+	t.after(third.follow(10));
+	t.mock.timers.tick(30);
+	assert.equal(got.length, 5, "a second restart delivers nothing again");
+});
+
+test("a kept number past the log's last event, or no whole number, follows from the log's end with one warning", (t) => {
+	t.mock.timers.enable({ apis: ["setInterval"] });
+	const warned = t.mock.method(console, "error", () => {});
+	for (const [text, warning] of [
+		["9\n", "holds 9, past the log's last event 2; following the event log from its end"],
+		["", "holds no whole number; following the event log from its end"],
+		["1.5", "holds no whole number; following the event log from its end"],
+		["-1", "holds no whole number; following the event log from its end"],
+		["1e3", "holds no whole number; following the event log from its end"],
+		["99999999999999999999", "holds no whole number; following the event log from its end"],
+		["2", undefined],
+	] as const) {
+		const home = temporaryFolder();
+		const command = eventBus(home);
+		command.emit("core", "notice", "logged before");
+		command.emit("core", "notice", "logged before");
+		writeFileSync(deliveredOf(home), text);
+		const daemon = eventBus(home);
+		const got: number[] = [];
+		daemon.on("telegram", "notice", (event) => void got.push(event.seq));
+		const stop = daemon.follow(10);
+		command.emit("core", "notice", "after the start");
+		t.mock.timers.tick(10);
+		stop();
+		assert.deepEqual(got, [3], `with ${JSON.stringify(text)}: from the end`);
+		assert.deepEqual(warned.mock.calls.map((call) => call.arguments[0]), warning === undefined ? [] : [`arthur run: ${deliveredOf(home)} ${warning}`]);
+		assert.equal(readFileSync(deliveredOf(home), "utf8"), "3\n");
+		warned.mock.resetCalls();
+	}
+});
+
+test("own events from before the follow, and the log a first start skips, count as delivered: a restart delivers none", (t) => {
+	t.mock.timers.enable({ apis: ["setInterval"] });
+	const home = temporaryFolder();
+	const command = eventBus(home);
+	const got: string[] = [];
+	const daemon = () => {
+		const bus = eventBus(home);
+		bus.on("telegram", "notice", (event) => void got.push(`${event.seq} ${event.data}`));
+		return bus;
+	};
+	command.emit("core", "notice", "before any daemon");
+	daemon().follow(10)();
+	assert.equal(readFileSync(deliveredOf(home), "utf8"), "1\n", "a first start that delivers nothing still keeps where it began");
+	command.emit("core", "notice", "while down");
+	const second = daemon();
+	second.emit("schedule", "notice", "own, in setup");
+	second.follow(10)();
+	assert.deepEqual(got, ["3 own, in setup", "2 while down"]);
+	assert.equal(readFileSync(deliveredOf(home), "utf8"), "3\n", "the own event from before the follow, and nothing after it");
+	daemon().follow(10)();
+	t.mock.timers.tick(30);
+	assert.deepEqual(got, ["3 own, in setup", "2 while down"], "a restart delivers neither again");
 });

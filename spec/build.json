@@ -93,9 +93,9 @@
   {
     "id": "AR0011",
     "title": "Roadmap 8: arthur run: Arthur as a process",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0011-roadmap-8-arthur-run-arthur-as-a-process/ticket.md",
-    "updated": "2026-10-16T11:08:01.681Z",
+    "updated": "2026-10-16T11:13:40.411Z",
     "after": [
       "AR0007",
       "AR0008"
@@ -187,9 +187,9 @@
   {
     "id": "AR0020",
     "title": "Roadmap 17: Ticket board: tickets and the board file",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0020-roadmap-17-ticket-board-tickets-and-the-board-file/ticket.md",
-    "updated": "2026-10-16T10:54:05.490Z",
+    "updated": "2026-10-16T11:11:30.410Z",
     "after": [
       "AR0036"
     ]

@@ -40,3 +40,4 @@ Out:
 
 - 2026-10-16: Cut from `spec/roadmap.md` entry 16 by the coordinator; AR tickets need no approval (the owner, 2026-10-16).
 - 2026-10-16: The human: steps 1 (cuts AR0074 to AR0079) and 2 (entries 16, 21, 22) approved; in parallel only where tickets touch different files, otherwise one after another. Entry 23 starts only after both are merged.
+- 2026-10-16 evening: The human: start AR0019, AR0024, AR0025 (one after another).

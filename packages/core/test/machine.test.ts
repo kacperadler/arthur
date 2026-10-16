@@ -208,6 +208,12 @@ test("arthur steer, stop, continue and prune of a job on another machine run the
 	assert.equal(read(there, job.id, "continue"), "Go on.");
 	jobs.sweep();
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["ended", "finished"]);
+	// A second continue, whose wrapper does not start there, ends here at once.
+	rmSync(join(there, "jobs", job.id, "timeout"));
+	const failed = await jobs.continue(job.id, "Once more.");
+	assert.match(failed ?? "", /^the wrapper exited 1 before it wrote its pid; see /);
+	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["ended", `failed: ${failed}`]);
+	assert.deepEqual(events(home, "job-ended").map((data) => data.reason), ["stopped", "finished", `failed: ${failed}`]);
 
 	assert.deepEqual(jobs.prune([job.id]), [`${job.id}: worktree ${worktree} removed there; branch ${job.branch} deleted there; branch ${job.branch} deleted; record deleted`]);
 	assert.deepEqual([existsSync(worktree), existsSync(join(there, "jobs", job.id)), existsSync(join(home, "jobs", job.id))], [false, false, false]);
@@ -342,13 +348,29 @@ test("a wrapper that does not start there ends the job there, and here at once w
 	assert.deepEqual(events(home, "job-ended").map((data) => data.id), [job.id]);
 });
 
-test("a plugin's hold on a job there stands at each copy while it runs there, and ends with its run", async () => {
+test("a plugin's hold on a job there stands at each copy while it runs there and through an offline spell, and ends with its run", async () => {
 	const gate = join(temporaryFolder(), "go");
-	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
+	const { home, machine, there, jobs, now } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
 	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
 	jobs.block(job.id, "waiting for AR0001");
 	jobs.sweep();
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "hold")], ["blocked", "waiting for AR0001"]);
+	writeFileSync(join(machine, "refuse"), "");
+	jobs.sweep();
+	assert.equal(read(home, job.id, "reason"), "dependency: machine gpu unreachable since 2026-10-16T12:00:00.000Z");
+	rmSync(join(machine, "refuse"));
+	jobs.sweep();
+	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["blocked", "dependency: waiting for AR0001"], "back: the hold's reason again");
+
+	// Past the grace the hold goes with the run here, so the job is no longer in a run.
+	const held = await jobs.spawn({ task: "Hold.", machine: "gpu" });
+	jobs.block(held.id, "waiting for AR0002");
+	writeFileSync(join(machine, "refuse"), "");
+	jobs.sweep();
+	now.at = new Date("2026-10-16T13:00:00Z");
+	jobs.sweep();
+	assert.deepEqual([read(home, held.id, "reason"), existsSync(join(home, "jobs", held.id, "hold"))], ["failed: machine offline", false]);
+	rmSync(join(machine, "refuse"));
 	writeFileSync(gate, "");
 	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
 	jobs.sweep();

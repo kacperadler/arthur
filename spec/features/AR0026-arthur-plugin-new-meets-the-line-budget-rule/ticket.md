@@ -4,7 +4,10 @@
 {
   "id": "AR0026",
   "title": "`arthur plugin new` meets the line-budget rule",
-  "date": "2026-10-16"
+  "date": "2026-10-16",
+  "after": [
+    "AR0007"
+  ]
 }
 ```
 

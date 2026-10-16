@@ -33,9 +33,9 @@
   {
     "id": "AR0005",
     "title": "Roadmap 2: Config: defineConfig and the core's options",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0005-roadmap-2-config-defineconfig-and-the-core-s-options/ticket.md",
-    "updated": "2026-10-16T09:46:21.677Z",
+    "updated": "2026-10-16T09:55:06.665Z",
     "after": [
       "AR0004"
     ]
@@ -250,15 +250,18 @@
   {
     "id": "AR0026",
     "title": "`arthur plugin new` meets the line-budget rule",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0026-arthur-plugin-new-meets-the-line-budget-rule/ticket.md",
-    "updated": "2026-10-16T09:54:44.826Z"
+    "updated": "2026-10-16T09:55:15.031Z",
+    "after": [
+      "AR0007"
+    ]
   },
   {
     "id": "AR0027",
     "title": "Dev dependencies beyond the toolchain are not checked",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0027-dev-dependencies-beyond-the-toolchain-are-not-checked/ticket.md",
-    "updated": "2026-10-16T09:54:44.828Z"
+    "updated": "2026-10-16T09:55:14.833Z"
   }
 ]

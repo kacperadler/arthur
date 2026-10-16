@@ -104,9 +104,9 @@
   {
     "id": "AR0012",
     "title": "Roadmap 9: Job runner: spawn and the job record",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0012-roadmap-9-job-runner-spawn-and-the-job-record/ticket.md",
-    "updated": "2026-10-16T11:36:41.287Z",
+    "updated": "2026-10-16T11:38:03.531Z",
     "after": [
       "AR0008",
       "AR0009"
@@ -359,8 +359,15 @@
   {
     "id": "AR0040",
     "title": "A crash mid-write leaves the board's lock or temporary file in the project's `spec/`",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0040-a-crash-mid-write-leaves-the-board-s-lock-or-temporary-file-in-the-project-s-spec/ticket.md",
-    "updated": "2026-10-16T11:37:58.946Z"
+    "updated": "2026-10-16T11:38:04.048Z"
+  },
+  {
+    "id": "AR0041",
+    "title": "Roadmap 35-36: a handoff before compaction, and a fresh start that retries",
+    "status": "planning",
+    "path": "spec/features/AR0041-roadmap-35-36-a-handoff-before-compaction-and-a-fresh-start-that-retries/ticket.md",
+    "updated": "2026-10-16T11:38:41.843Z"
   }
 ]

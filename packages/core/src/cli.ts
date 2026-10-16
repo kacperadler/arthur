@@ -7,6 +7,7 @@ import { configCheck } from "./config-check.ts";
 import { loadConfig } from "./config.ts";
 import { loadPlugins } from "./host.ts";
 import type { JobRunner, SpawnRequest } from "./jobs.ts";
+import { rolesCommand } from "./roles-command.ts";
 import { ticketCommand } from "./ticket-command.ts";
 import type { Plugin } from "./plugin.ts";
 import { runPlugins } from "./run.ts";
@@ -75,6 +76,14 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 			return board;
 		}),
 	);
+	commands.register(
+		"core",
+		rolesCommand(() => {
+			const jobs = loaded()?.jobs;
+			if (jobs === undefined) throw new Error(`the roles are what the plugins registered, and arthur.config.ts did not load:\n${problem}`);
+			return jobs;
+		}),
+	);
 	commands.register("core", {
 		name: "config",
 		doc: new URL("../docs/commands/config.md", import.meta.url),
@@ -112,7 +121,9 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 			}
 			const app = loaded();
 			if (app === undefined) throw new Error(`arthur.config.ts did not load:\n${problem}`);
-			console.log((await app.jobs.spawn(request)).id);
+			const job = await app.jobs.spawn(request);
+			for (const warning of job.warnings) console.error(`warning: ${warning}`);
+			console.log(job.id);
 		},
 	});
 	commands.register("core", {

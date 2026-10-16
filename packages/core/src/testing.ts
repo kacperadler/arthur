@@ -6,6 +6,7 @@ import { type Command, commandRegistry } from "./commands.ts";
 import type { QuietHours } from "./config.ts";
 import { type Event, eventBus } from "./events.ts";
 import { jobRunner, type Kind } from "./jobs.ts";
+import type { Role } from "./roles.ts";
 import { type Host, type Options, type Provider, pluginHost, registry } from "./plugin.ts";
 
 // The test kit (spec/roadmap.md, entry 4), published as `@arthur/core/testing`. Loading it is the safety net, and `npm test`
@@ -34,8 +35,10 @@ export type FakeHost = {
 	readonly calls: readonly Use[];
 	// The commands it registered, in order; `host.commands.route` answers a channel's `/name text` with them.
 	readonly commands: readonly Command[];
-	// The kinds of job it registered, in order; `host.jobs.spawn` runs its checks and steps on a real worktree of `root`.
+	// The kinds of job and the roles it registered, in order; `host.jobs.spawn` runs its checks and steps on a real worktree of
+	// `root` and builds the role's prompt there, with the sections the test provides as `prompt`.
 	readonly kinds: readonly Kind[];
+	readonly roles: readonly Role[];
 	// The events the plugin emitted, as logged, in the order of their sequence numbers.
 	readonly emitted: readonly Event[];
 	// The test as another plugin: drives what the plugin provides, or provides what it calls.
@@ -71,12 +74,13 @@ export function fakeHost(plugin: {
 	mkdirSync(folder);
 	let now = (plugin.now ?? new Date("2026-01-01T00:00:00Z")).getTime();
 	const time = clock(plugin.timeZone ?? "UTC", plugin.quietHours, () => new Date(now));
-	const jobs = jobRunner(home, plugin.root ?? home, { timeoutMinutes: 120, budgetUsd: 2 }, time, bus);
+	const jobs = jobRunner(home, plugin.root ?? home, { timeoutMinutes: 120, budgetUsd: 2 }, time, bus, names.collect);
 	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder, clock: time });
 	const provided: string[] = [];
 	const calls: Use[] = [];
 	const commands: Command[] = [];
 	const kinds: Kind[] = [];
+	const roles: Role[] = [];
 	const host: Host = {
 		...real,
 		provide(name, fn) {
@@ -104,6 +108,10 @@ export function fakeHost(plugin: {
 				real.jobs.registerKind(kind);
 				kinds.push(kind);
 			},
+			registerRole(role) {
+				real.jobs.registerRole(role);
+				roles.push(role);
+			},
 		},
 	};
 	return {
@@ -112,6 +120,7 @@ export function fakeHost(plugin: {
 		calls,
 		commands,
 		kinds,
+		roles,
 		get emitted() {
 			return bus.read(1).filter((event) => event.plugin === plugin.name);
 		},

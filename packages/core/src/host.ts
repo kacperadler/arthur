@@ -27,7 +27,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const names = registry();
 	const time = clock(config.core.timeZone, config.core.quietHours);
 	const bus = eventBus(config.core.home);
-	const jobs = jobRunner(config.core.home, dirname(config.path), config.core.jobs, time, bus);
+	const jobs = jobRunner(config.core.home, dirname(config.path), config.core.jobs, time, bus, names.collect);
 	for (const plugin of sorted) {
 		const { enabled: _, ...options } = plugin.options ?? {};
 		const folder = join(config.core.home, plugin.name);

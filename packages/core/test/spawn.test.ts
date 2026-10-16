@@ -9,10 +9,11 @@ import { temporaryFolder } from "../src/testing.ts";
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>]";
 
-// A plugin as a config holds it: it owns the kind `review`, refuses a task that says "refuse", and places a file in every
-// new worktree, failing on a task that says "break".
+// A plugin as a config holds it: it owns the kind `review` and its role, refuses a task that says "refuse", and places a file
+// in every new worktree, failing on a task that says "break".
 const CONFIG = `import { writeFileSync } from "node:fs";
 export default { core: { timeZone: "UTC", jobs: { budgetUsd: 3 } }, plugins: [{ name: "orchestration", setup(host) {
+	host.jobs.registerRole({ name: "reviewer", file: new URL("./reviewer.md", import.meta.url), criteria: [] });
 	host.jobs.registerKind({ name: "review", readOnly: true, role: "reviewer", timeoutMinutes: 15 });
 	host.jobs.beforeSpawn((spawn) => (spawn.task.includes("refuse") ? "maxAgents 3 reached" : undefined));
 	host.jobs.prepare(async (job) => {
@@ -34,6 +35,7 @@ function repository(config = CONFIG): string {
 	git(root, "add", "--all");
 	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "first");
 	writeFileSync(join(root, "arthur.config.ts"), config);
+	writeFileSync(join(root, "reviewer.md"), "# Reviewer\n");
 	return root;
 }
 
@@ -46,7 +48,8 @@ const jobs = (root: string) => (existsSync(join(root, ".arthur/jobs")) ? readdir
 test("arthur spawn prints the id of a worker on its own branch, with the record and job-started", () => {
 	const root = repository();
 	const run = arthur(root, "spawn", "Ticket: spec/features/AC0001-one/ticket.md. Build it.", "--model", "anthropic/opus");
-	assert.deepEqual([run.status, run.stderr], [0, ""]);
+	const warning = "warning: criteria file .agents/arthur/criteria/styleguide.md is missing; the worker goes without it\n";
+	assert.deepEqual([run.status, run.stderr], [0, warning]);
 	const id = run.stdout.trim();
 	assert.match(run.stdout, /^\d{4}-\d\d-\d\d-worker-[0-9a-f]{8}\n$/);
 	const worktree = join(dirname(root), ".arthur-worktrees", id);

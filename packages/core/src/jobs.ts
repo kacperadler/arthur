@@ -1,8 +1,10 @@
-import { constants, cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { constants, cpSync, existsSync, readFileSync, rmSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import type { Clock } from "./clock.ts";
 import type { Bus } from "./events.ts";
 import { addWorktree, branchExists, fileAt, head, removeWorktree, topLevel } from "./git.ts";
+import { writeRecord } from "./job-record.ts";
+import { describeRoles, prompt, type Role, type RoleView, roleModel, roleRegistry } from "./roles.ts";
 
 // The job runner's spawn and the job record (spec/roadmap.md, entry 9). A worker gets its own branch and worktree from HEAD,
 // a read-only kind a detached checkout of HEAD; both live in `.arthur-worktrees/<id>` beside the repository, outside the
@@ -13,7 +15,7 @@ export type Kind = {
 	readonly name: string;
 	// No branch of its own: a detached checkout of HEAD.
 	readonly readOnly: boolean;
-	// The role whose prompt the job's agent gets.
+	// The role whose prompt the job's agent gets; a plugin registers it with `registerRole`.
 	readonly role: string;
 	// Its own default limits; otherwise the core's `jobs.budgetUsd` and `jobs.timeoutMinutes`.
 	readonly budgetUsd?: number;
@@ -41,8 +43,10 @@ export type Spawn = {
 	readonly tickets: readonly string[];
 };
 
-// A job as `prepare` gets it and `spawn` returns it; `branch` is undefined for a read-only kind.
+// A job as `prepare` gets it; `branch` is undefined for a read-only kind.
 export type Job = Spawn & { readonly id: string; readonly root: string; readonly branch: string | undefined; readonly worktree: string };
+// A job as `spawn` returns it: `warnings` are the prompt's, e.g. a criteria file the project lacks.
+export type Started = Job & { readonly warnings: readonly string[] };
 
 // A reason refuses the spawn; undefined lets it go on.
 export type SpawnCheck = (spawn: Spawn) => string | undefined | Promise<string | undefined>;
@@ -51,18 +55,23 @@ export type Prepare = (job: Job) => void | Promise<void>;
 // What a plugin sees as `host.jobs`.
 export type Jobs = {
 	registerKind(kind: Kind): void;
+	// A role whose prompt this plugin ships; its kinds name it.
+	registerRole(role: Role): void;
 	beforeSpawn(check: SpawnCheck): void;
 	// Runs after the worktree and the record exist and before the agent starts; a throw removes both and refuses the spawn.
 	prepare(fn: Prepare): void;
-	spawn(request: SpawnRequest): Promise<Job>;
+	spawn(request: SpawnRequest): Promise<Started>;
 };
 
 // The runner of one load; `owner` is the plugin that registers, named in refusals.
 export type JobRunner = {
 	registerKind(owner: string, kind: Kind): void;
+	registerRole(owner: string, role: Role): void;
 	beforeSpawn(owner: string, check: SpawnCheck): void;
 	prepare(owner: string, fn: Prepare): void;
-	spawn(request: SpawnRequest): Promise<Job>;
+	spawn(request: SpawnRequest): Promise<Started>;
+	// What `arthur roles` prints: each role, the files it reads in the project's main checkout, and its model.
+	roles(project?: string): RoleView[];
 };
 
 const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
@@ -70,9 +79,14 @@ const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 const TICKET = /\bTicket:\s*`?([^\s`]+)/g;
 const LOCKFILE = "package-lock.json";
 
-// `folder` is in the repository jobs start from; `limits` are the core's `jobs` options.
-export function jobRunner(home: string, folder: string, limits: { readonly timeoutMinutes: number; readonly budgetUsd: number }, time: Clock, bus: Bus): JobRunner {
+type Limits = { readonly timeoutMinutes: number; readonly budgetUsd: number };
+type Collect = (name: string, args: readonly unknown[]) => unknown[];
+
+// `folder` is in the repository jobs start from; `limits` are the core's `jobs` options; `collect` reads what the plugins
+// provide, e.g. the sections of a prompt (`prompt`).
+export function jobRunner(home: string, folder: string, limits: Limits, time: Clock, bus: Bus, collect: Collect): JobRunner {
 	const kinds = new Map<string, { readonly owner: string; readonly kind: Kind }>();
+	const roles = roleRegistry();
 	const checks: { readonly owner: string; readonly check: SpawnCheck }[] = [];
 	const prepares: { readonly owner: string; readonly fn: Prepare }[] = [];
 	const runner: JobRunner = {
@@ -83,22 +97,24 @@ export function jobRunner(home: string, folder: string, limits: { readonly timeo
 			if (typeof kind.readOnly !== "boolean") throw new Error(`kind ${kind.name}: readOnly must be true or false`);
 			kinds.set(kind.name, { owner, kind });
 		},
+		registerRole: (owner, role) => roles.register(owner, role),
 		beforeSpawn: (owner, check) => void checks.push({ owner, check }),
 		prepare: (owner, fn) => void prepares.push({ owner, fn }),
+		roles: (project) => describeRoles(roles, [...kinds.values()].map((entry) => entry.kind), checkout(project).root, collect),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
 			const kind = kinds.get(name)?.kind;
 			if (kind === undefined) throw new Error(`unknown kind ${name}; kinds: ${[...kinds.keys()].sort().join(", ")}`);
+			const role = roles.get(kind.role);
 			if (request.task.trim() === "") throw new Error("the task is empty");
-			const root = repository(folder);
-			const project = basename(root);
-			if (request.project !== undefined && request.project !== project) throw new Error(`unknown project ${request.project}; the only project is ${project}`);
+			const { root, project } = checkout(request.project);
 			const commit = head(root);
 			if (commit === undefined) throw new Error(`${root} has no commit yet; a job starts from HEAD`);
 			const tickets = [...new Set(Array.from(request.task.matchAll(TICKET), (match) => (match[1] ?? "").replace(/[.,;:!?)]+$/, "")))];
 			const missing = tickets.filter((path) => !fileAt(root, commit, path));
 			if (missing.length > 0) throw new Error(`Ticket: ${missing.join(", ")}: no such file at HEAD (${commit.slice(0, 7)}); commit it first`);
-			const { task, model, thinking } = request;
+			const preset = roleModel(collect, role.name);
+			const { task, model = preset.model, thinking = preset.thinking } = request;
 			const timeoutMinutes = kind.timeoutMinutes ?? limits.timeoutMinutes;
 			const spawn: Spawn = { task, kind: name, project, model, thinking, timeoutMinutes, budgetUsd: kind.budgetUsd ?? limits.budgetUsd, tickets };
 			for (const { owner, check } of checks) {
@@ -107,9 +123,12 @@ export function jobRunner(home: string, folder: string, limits: { readonly timeo
 			}
 			const job = newJob(spawn, root, kind.readOnly);
 			addWorktree(root, job.worktree, commit, job.branch);
+			let warnings: string[] = [];
 			try {
 				copyNodeModules(root, job.worktree);
-				writeRecord(home, job);
+				const built = prompt(role, job.worktree, () => collect("prompt", [role.name, job]));
+				warnings = built.warnings;
+				writeRecord(home, job, built.prompt);
 				for (const { owner, fn } of prepares) await step(owner, "prepare", () => fn(job));
 			} catch (error) {
 				removeWorktree(root, job.worktree, job.branch);
@@ -118,11 +137,19 @@ export function jobRunner(home: string, folder: string, limits: { readonly timeo
 			}
 			const { id, kind: kindName, branch, worktree } = job;
 			bus.emit("core", "job-started", { id, kind: kindName, project, root, branch, worktree, tickets });
-			return job;
+			return { ...job, warnings };
 		},
 	};
 	runner.registerKind("core", { name: "worker", readOnly: false, role: "worker" });
+	runner.registerRole("core", { name: "worker", file: new URL("../roles/worker.md", import.meta.url), criteria: ["styleguide"] });
 	return runner;
+
+	// The repository a job of `project` starts from, and the project's name: only the main one until a plugin adds projects.
+	function checkout(project: string | undefined): { readonly root: string; readonly project: string } {
+		const root = repository(folder);
+		if (project !== undefined && project !== basename(root)) throw new Error(`unknown project ${project}; the only project is ${basename(root)}`);
+		return { root, project: basename(root) };
+	}
 
 	// A free id, `<date>-<kind>-<8 hex digits>`: no record, worktree or branch of that name exists yet.
 	function newJob(spawn: Spawn, root: string, readOnly: boolean): Job {
@@ -162,25 +189,4 @@ function copyNodeModules(root: string, worktree: string): void {
 	const theirs = join(worktree, LOCKFILE);
 	if (!existsSync(modules) || !existsSync(ours) || !existsSync(theirs) || !readFileSync(ours).equals(readFileSync(theirs))) return;
 	cpSync(modules, join(worktree, "node_modules"), { recursive: true, verbatimSymlinks: true, mode: constants.COPYFILE_FICLONE });
-}
-
-// Written into `.<id>` and renamed, so a reader sees all of it or nothing. An empty `branch`, `model` or `thinking` is none.
-function writeRecord(home: string, job: Job): void {
-	const folder = join(home, "jobs");
-	const temporary = join(folder, `.${job.id}`);
-	mkdirSync(temporary, { recursive: true });
-	const record = {
-		task: job.task,
-		kind: job.kind,
-		model: job.model ?? "",
-		thinking: job.thinking ?? "",
-		timeout: String(job.timeoutMinutes),
-		budget: String(job.budgetUsd),
-		branch: job.branch ?? "",
-		root: job.root,
-		worktree: job.worktree,
-		project: job.project,
-	};
-	for (const [name, value] of Object.entries(record)) writeFileSync(join(temporary, name), value);
-	renameSync(temporary, join(folder, job.id));
 }

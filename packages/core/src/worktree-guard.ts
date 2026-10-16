@@ -1,5 +1,6 @@
 import { readFileSync, readlinkSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve, sep } from "node:path";
+import { gitCall } from "./git-writes.ts";
 import { type Command, type Item, literal, shellCommands } from "./shell-words.ts";
 
 // The worktree guard (spec/roadmap.md, entry 20): an OMP extension the wrapper loads into every job with `-e`, beside the env
@@ -25,10 +26,6 @@ const SHELLS = ["bash", "sh", "zsh", "dash", "ksh"];
 // A command that may change every operand, and one that writes only its last operand or the folder after `-t`.
 const WRITES = ["mv", "rm", "rmdir", "touch", "mkdir", "truncate", "chmod", "chown", "chgrp", "unlink", "shred", "patch", "tee", "sponge"];
 const COPIES = ["cp", "install", "rsync", "scp"];
-// Git subcommands that write a tree, the index or a ref of the checkout they run in, and those that change their file operands.
-const GIT_WRITES = ["commit", "checkout", "checkout-index", "read-tree", "update-index", "reset", "add", "restore", "clean", "rebase", "merge", "cherry-pick", "revert", "apply", "am", "rm", "mv", "switch", "pull", "bisect", "sparse-checkout", "submodule", "symbolic-ref", "replace", "filter-branch"];
-const GIT_PATHS = ["add", "rm", "mv", "restore", "clean", "apply"];
-const GIT_VALUE_OPTIONS = ["-C", "-c", "--git-dir", "--work-tree", "--namespace"];
 const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save a patch instead (git diff > /tmp/<name>.patch, then git apply /tmp/<name>.patch)";
 
 const inside = (path: string, folder: string): boolean => path === folder || path.startsWith(folder.endsWith(sep) ? folder : folder + sep);
@@ -140,22 +137,14 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 		return undefined;
 	};
 	const git = (args: readonly string[]): string | undefined => {
-		const options: string[] = [];
-		let index = 0;
-		for (; index < args.length && args[index]!.startsWith("-"); index++) {
-			options.push(args[index]!);
-			if (GIT_VALUE_OPTIONS.includes(args[index]!)) options.push(args[++index] ?? "");
-		}
-		const [sub = "", ...rest] = args.slice(index);
+		const { sub, rest, chdirs, trees, writesCheckout, writesOperands } = gitCall(args);
 		if (sub === "stash" && !["list", "show"].includes(rest[0] ?? "")) return STASH;
-		const dir = options.reduce((base, option, at) => (options[at - 1] === "-C" ? real(resolve(base, option)) : base), cwd);
-		const trees = options.flatMap((option, at) => (/^--(?:git-dir|work-tree)=/.test(option) ? [option.slice(option.indexOf("=") + 1)] : /^--(?:git-dir|work-tree)$/.test(options[at - 1] ?? "") ? [option] : []));
+		const dir = chdirs.reduce((base, folder) => real(resolve(base, folder)), cwd);
 		// Every worktree shares the repository's refs: one the job does not own moves under the main checkout.
 		const ref = rest.filter((word, at) => !word.startsWith("-") && rest[at - 1] !== "-m")[0] ?? "--stdin";
 		if (sub === "update-ref" && ref !== "HEAD" && (place.branch === "" || ref !== `refs/heads/${place.branch}`)) return refusal(place, place.root, `git update-ref ${ref}`);
-		const tree = GIT_WRITES.includes(sub) ? (theirs([dir]) ?? theirs(trees, dir)) : undefined;
-		const named = GIT_PATHS.includes(sub) || (sub === "worktree" && ["add", "remove", "move", "lock", "unlock", "repair"].includes(rest[0] ?? "")) ? theirs(rest, dir) : undefined;
-		return tree ?? named;
+		const tree = writesCheckout ? (theirs([dir]) ?? theirs(trees, dir)) : undefined;
+		return tree ?? (writesOperands ? theirs(rest, dir) : undefined);
 	};
 	return run(shellCommands(command, process.env.HOME));
 }

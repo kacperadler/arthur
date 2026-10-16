@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: Coordinator: after four raises in one day, review the whole core before the next core entries.
+- 2026-10-16: Coordinator: accepted: core budget 5080 for entries 1 to 22 with the allotment per entry (16: 250, 21: 350, 22: 200, open bug tickets: 95), set once after the cuts land; moves B1 (node_modules to projects), B2 (checks to delivery), B3 (/board /task /findings to orchestration, at entry 23) go into the roadmap; the test kit gets its own line budget.

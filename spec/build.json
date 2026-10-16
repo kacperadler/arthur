@@ -559,9 +559,9 @@
   {
     "id": "AR0068",
     "title": "A continued worker leaves its ticket in review or done",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0068-a-continued-worker-leaves-its-ticket-in-review-or-done/ticket.md",
-    "updated": "2026-10-16T15:26:08.080Z",
+    "updated": "2026-10-16T15:29:15.638Z",
     "after": [
       "AR0018"
     ]
@@ -569,9 +569,9 @@
   {
     "id": "AR0069",
     "title": "Core line review: what moves to a plugin or goes",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0069-core-line-review-what-moves-to-a-plugin-or-goes/ticket.md",
-    "updated": "2026-10-16T15:14:30.987Z",
+    "updated": "2026-10-16T15:39:35.821Z",
     "after": [
       "AR0018"
     ]

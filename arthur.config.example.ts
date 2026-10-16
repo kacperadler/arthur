@@ -35,6 +35,7 @@ import { server } from "@arthur/server"; // later, named
 import { session } from "@arthur/session"; // first, named
 import { signal } from "@arthur/signal"; // later, named
 import { telegram } from "@arthur/telegram"; // first, named
+import { voice } from "@arthur/voice"; // first, named
 import { whatsapp } from "@arthur/whatsapp"; // later, named
 import { youtrack } from "@arthur/youtrack"; // first, named
 
@@ -232,12 +233,27 @@ export default defineConfig({
 			wakeOn: ["ci-finished", "pull-request-review"],
 		}),
 
-		// Channels: the same interface (receive text, send text, send media), one plugin each. A channel only routes `/name text`
-		// to the host and sends the reply; each plugin registers the commands it owns (`/jobs`, `/board`, `/health`, `/restart`, ...).
+		// Channels: the same interface (receive, send text, send media), one plugin each. A channel only receives: it saves what came
+		// under `.arthur/<channel>/` and emits one message with its parts typed (text, photo, video, voice, audio, file; an album is
+		// several parts), and transcribes nothing; a media plugin (voice) turns the parts it handles into text for the coordinator.
+		// A channel only routes `/name text` to the host and sends the reply; each plugin registers the commands it owns (`/jobs`,
+		// `/board`, `/health`, `/restart`, ...).
 		// Several bots: `{ name: "second", botTokenEnv: "ARTHUR_TELEGRAM_SECOND_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_SECOND_CHAT_ID" }`.
 		telegram({
 			bots: [{ botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }], // chat id: the only chat the bot answers
 			media: true,
+		}),
+
+		// Voice notes from any channel, transcribed on this server's CPU with whisper.cpp (`whisper-cli`); nothing leaves the
+		// server. ffmpeg converts the channel's audio; one note at a time, in the order they came. The coordinator gets
+		// `[voice <seconds> s] <transcript> (<path>)`; the original file stays where the channel saved it. `arthur doctor` checks
+		// `whisper-cli`, the model file and `ffmpeg`; while one is missing a note reaches the coordinator as its path.
+		voice({
+			model: "small", // a whisper.cpp model name (the file .arthur/voice/models/ggml-<model>.bin) or a path to a .bin file
+			threads: 4, // CPU threads whisper uses
+			language: "pl", // a language code, or "auto" for whisper's own detection
+			timeoutSeconds: 300, // a transcription running longer is cut; the coordinator gets the path and why
+			maxSeconds: 600, // a longer note is not transcribed; the human is told in one line, the coordinator gets the path
 		}),
 
 		// Plugins for managing Arthur: the nightly audit, the weekly retro, health, pruning, stats.

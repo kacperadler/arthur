@@ -729,6 +729,33 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 
 After entry 72, Arthur switches its first project, itself: it runs on the VPS (`docs/deploy.md`) and takes its own tickets. The other projects follow, then the later entries.
 
+### 77. Web panel: the board, jobs, events and chat in a browser
+
+- Package: server (its web page; the same plugin as 75 and 76).
+- Delivers: the board, the jobs with their states, the events and the coordinator's chat in a browser, served by `server` (75, 76) on the Tailscale network only; Tailscale identifies who connects, so the panel keeps no passwords.
+- Done means: refused at load: a bind address that is neither loopback nor Tailscale's `100.64.0.0/10` or `fd7a:115c:a1e0::/48`. Edge cases: a request from outside the Tailscale network is refused with no detail; the panel's job states are the ones `arthur jobs` prints; its events are the ones 75 streams; a command run from the panel gives the reply `arthur <cmd>` gives.
+- Depends on: 76.
+- Size: several days.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
+### 78. Knowledge base: documents, search, and a chat with sources
+
+- Package: knowledge.
+- Delivers: a project's or company's documents in three forms: plain documentation, search over them (RAG) that agents can query through a command, and a chat that answers from them with sources.
+- Done means: a search returns passages, each with its file and line; a chat answer names the files it used; a document removed from the folder is removed from the search results; a file that is not readable text is refused with its name. Edge cases: an empty folder; a query with no match says so.
+- Depends on: 77.
+- Size: several days.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
+### 79. Company edition: business roles as standing agents
+
+- Package: one plugin per role (`@arthur/marketing`, `@arthur/sales`, `@arthur/research`), and the approval step they share.
+- Delivers: business roles run as standing agents that talk through the coordinator by tickets and notes, not freely to each other. Every action that leaves the company (an email, a post, an offer) waits for a human's approval. Roles, keys and data are per role: each Tailscale user gets roles, and a role's manager approves its decisions.
+- Done means: an action that leaves the company is not sent until its manager approves it, and a refused one is not sent; a role cannot read another role's data or keys; a role agent reaches another role only through a ticket or a note. Edge cases: a role with no manager is refused at load; a Tailscale user with no role gets no role's data.
+- Depends on: 77 and 78.
+- Size: weeks; to be split into its own entries when it is planned.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
 ## Coverage of the harness Arthur replaces
 
 Each row is one capability of the harness Arthur replaces, as it was inventoried on 2026-10-16, and the entry that carries it. "Out of scope" names why.

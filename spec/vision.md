@@ -82,6 +82,8 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 
 Order of the later plugins, cheapest first: signal (a local process), then whatsapp (an unofficial bridge: the account may be banned), then server (needs a stable event protocol and auth).
 
+The core never assumes a project is a Git repository or that a single human approves everything, so the company edition (roadmap 79) is plugins on the same core.
+
 ## Commit rules
 
 Each project sets one rule in its `projects` entry, `commitRules`, in one of three forms:

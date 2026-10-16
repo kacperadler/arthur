@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: Coordinator: from the core line review (AR0069), accepted.
+- 2026-10-16: The human: finish the work already started (AR0073), then pause Arthur; no new AR ticket starts until he says so.

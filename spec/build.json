@@ -616,9 +616,9 @@
   {
     "id": "AR0074",
     "title": "Core: one flag parser for the CLI, spawn and continue",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0074-core-one-flag-parser-for-the-cli-spawn-and-continue/ticket.md",
-    "updated": "2026-10-16T15:40:45.553Z",
+    "updated": "2026-10-16T16:13:33.268Z",
     "after": [
       "AR0073"
     ]
@@ -649,9 +649,9 @@
   {
     "id": "AR0077",
     "title": "The node_modules copy moves to a prepare hook of the projects plugin",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0077-the-node-modules-copy-moves-to-a-prepare-hook-of-the-projects-plugin/ticket.md",
-    "updated": "2026-10-16T15:40:46.158Z",
+    "updated": "2026-10-16T16:13:33.812Z",
     "after": [
       "AR0073"
     ]

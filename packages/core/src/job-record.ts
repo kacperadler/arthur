@@ -6,8 +6,8 @@ import type { Job } from "./jobs.ts";
 // wrapper (entry 11) adds the files of the run.
 
 // Written into `.<id>` and renamed, so a reader sees all of it or nothing. An empty `branch`, `model` or `thinking` is none;
-// `prompt` is the role's, which the agent gets.
-export function writeRecord(home: string, job: Job, prompt: string): void {
+// `prompt` is the role's, which the agent gets; `resume-on-budget` is `true` when the kind asks for one resume at its budget.
+export function writeRecord(home: string, job: Job, prompt: string, resumeOnBudget: boolean): void {
 	const folder = join(home, "jobs");
 	const temporary = join(folder, `.${job.id}`);
 	mkdirSync(temporary, { recursive: true });
@@ -18,6 +18,7 @@ export function writeRecord(home: string, job: Job, prompt: string): void {
 		thinking: job.thinking ?? "",
 		timeout: String(job.timeoutMinutes),
 		budget: String(job.budgetUsd),
+		"resume-on-budget": String(resumeOnBudget),
 		branch: job.branch ?? "",
 		root: job.root,
 		base: job.base,

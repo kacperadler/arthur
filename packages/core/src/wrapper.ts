@@ -1,17 +1,19 @@
-import { spawn } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import { appendFileSync, closeSync, existsSync, openSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type AgentEvent, agentStream } from "./agent-stream.ts";
 import { checkLines, declaredChecks } from "./checks.ts";
 import { eventBus } from "./events.ts";
+import { deadline, reached } from "./job-limits.ts";
 import { commitsSince } from "./git.ts";
 
 // The wrapper (spec/roadmap.md, entry 11): one background process per job, `node wrapper.ts <home> <id> <agent>`, which
 // starts the agent in the job's worktree and keeps the record `<home>/jobs/<id>/` current from what the agent prints:
 // `pid` and `state` (`running`) first, then `log`, `result`, `cost`, `tool-calls`, `activity` and `checks` as they change;
-// at the end every one of them and `commits`, then `state` (`done` or `failed`) last, so a reader that sees it final can
-// trust the rest; then `job-ended`. A record deleted while the job runs stops the agent and ends the wrapper with one line
-// on its own output, `<home>/wrapper.log`, writing nothing else.
+// at the end every one of them and `commits`, then `state` (`done`, `failed`, `limit: time` or `limit: budget`) last, so a
+// reader that sees it final can trust the rest; then `job-ended`. A job past its record's `timeout` or `budget` (entry 12) is
+// stopped; a kind with `resume-on-budget` gets one resume at its budget, doubled. A record deleted while the job runs stops
+// the agent and ends the wrapper with one line on its own output, `<home>/wrapper.log`, writing nothing else.
 
 const WORKER_TOOLS = "read,edit,write,bash,grep,glob";
 const READ_ONLY_TOOLS = "read,bash,grep,glob";
@@ -67,30 +69,46 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		}
 	};
 	const note = (line: string) => save("log", `[arthur ${new Date().toISOString()}] ${line}\n`, true);
-	const fields = ["kind", "project", "model", "thinking", "branch", "root", "worktree", "base"].map(field);
-	const [kind = "", project = "", model = "", thinking = "", branch = "", root = "", worktree = "", base = ""] = fields;
-	const args = [
+	const names = ["kind", "project", "model", "thinking", "branch", "root", "worktree", "base", "timeout", "budget", "resume-on-budget"];
+	const [kind = "", project = "", model = "", thinking = "", branch = "", root = "", worktree = "", base = "", timeout = "", budget = "", resumes = ""] = names.map(field);
+	// A resumed run continues the agent's last session in the worktree, which is the job's own, with `resume` as its message.
+	const args = (resume?: string) => [
+		...(resume === undefined ? [] : ["--continue"]),
 		...["-p", "--mode", "json", "--auto-approve", "--tools", branch === "" ? READ_ONLY_TOOLS : WORKER_TOOLS],
 		...["--append-system-prompt", join(folder, "prompt")],
 		...(model ? ["--model", model] : []),
 		...(thinking ? ["--thinking", thinking] : []),
-		`@${join(folder, "task")}`,
+		resume ?? `@${join(folder, "task")}`,
 	];
 	save("pid", String(process.pid));
 	save("state", "running");
-	note(`agent: ${agent} ${args.join(" ")}`);
-	const child = spawn(agent, args, { cwd: worktree, stdio: ["ignore", "pipe", "pipe"] });
+	let child: ChildProcess | undefined;
 	// SIGTERM to the job's process group, which `launch` makes the wrapper lead: the agent and every process it started (a
 	// bash call's `npm test`, a server) stop with it, while the wrapper ignores its own copy to write its line. A wrapper
 	// started by hand leads no group, and only the agent gets it.
 	stopAgent = () => {
-		process.on("SIGTERM", () => {});
+		if (process.listenerCount("SIGTERM") === 0) process.on("SIGTERM", () => {});
 		try {
 			process.kill(-process.pid, "SIGTERM");
 		} catch {
-			child.kill("SIGTERM");
+			child?.kill("SIGTERM");
 		}
 	};
+	// The first limit the job reached stops it; `late` once its time is up, which a resume never gets back.
+	let limit = undefined as "time" | "budget" | undefined;
+	let late = false;
+	let budgetUsd = Number(budget);
+	const stopAt = (which: "time" | "budget") => {
+		if (limit !== undefined) return;
+		limit = which;
+		note(`limit: ${which}: stopping the agent`);
+		stopAgent();
+	};
+	const cancel = deadline(Number(timeout), () => {
+		late = true;
+		if (limit === undefined) stopAt("time");
+		else note("limit: time: reached as well");
+	});
 
 	let calls = 0;
 	let cost = 0;
@@ -122,19 +140,36 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 				stopped = event.stopReason === "error" || event.stopReason === "aborted" ? [event.stopReason, event.error].filter(Boolean).join(": ") : "";
 				cost += event.cost;
 				save("cost", cost.toFixed(4));
+				if (reached(cost, budgetUsd)) stopAt("budget");
 			}
 		}
 	};
-	const stream = agentStream();
-	child.stdout.setEncoding("utf8");
-	child.stdout.on("data", (chunk: string) => apply(stream.push(chunk)));
-	child.stderr.on("data", (chunk: Buffer) => save("log", chunk, true));
 	let failure = undefined as Error | undefined;
-	child.once("error", (error) => (failure = error));
-	const closed = Promise.withResolvers<[number | null, NodeJS.Signals | null]>();
-	child.once("close", (code, signal) => closed.resolve([code, signal]));
-	const [code, signal] = await closed.promise;
-	apply(stream.end());
+	// One run of the agent, until it exits and its output is read.
+	const play = async (argv: readonly string[]): Promise<[number | null, NodeJS.Signals | null]> => {
+		note(`agent: ${agent} ${argv.join(" ")}`);
+		const stream = agentStream();
+		const closed = Promise.withResolvers<[number | null, NodeJS.Signals | null]>();
+		const running = spawn(agent, argv, { cwd: worktree, stdio: ["ignore", "pipe", "pipe"] });
+		child = running;
+		running.stdout.setEncoding("utf8");
+		running.stdout.on("data", (chunk: string) => apply(stream.push(chunk)));
+		running.stderr.on("data", (chunk: Buffer) => save("log", chunk, true));
+		running.once("error", (error) => (failure = error));
+		running.once("close", (code, signal) => closed.resolve([code, signal]));
+		const ending = await closed.promise;
+		apply(stream.end());
+		return ending;
+	};
+	let [code, signal] = await play(args());
+	if (limit === "budget" && !late && resumes === "true") {
+		const doubled = budgetUsd * 2;
+		note(`limit: budget: $${cost.toFixed(4)} reached $${budgetUsd}; the kind resumes once, its budget doubled to $${doubled}`);
+		save("budget", String(doubled));
+		[budgetUsd, limit, stopped] = [doubled, undefined, ""];
+		[code, signal] = await play(args(`Your budget of $${budget} ran out and was doubled to $${doubled}, once. Go on with the task where you stopped.`));
+	}
+	cancel();
 
 	let commits = "";
 	try {
@@ -143,7 +178,9 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		note(`no commits listed: ${error instanceof Error ? error.message : String(error)}`);
 	}
 	const [state, reason] =
-		failure !== undefined ? ["failed", `the agent did not start: ${failure.message}`]
+		limit === "time" ? ["limit: time", `the job ran past its timeout of ${timeout} minutes`]
+		: limit === "budget" ? ["limit: budget", `its cost $${cost.toFixed(4)} reached its budget of $${budgetUsd}`]
+		: failure !== undefined ? ["failed", `the agent did not start: ${failure.message}`]
 		: signal !== null ? ["failed", `the agent was killed by ${signal}`]
 		: stopped !== "" ? ["failed", `the agent stopped on ${stopped}`]
 		: code !== 0 ? ["failed", `the agent exited ${code}`]

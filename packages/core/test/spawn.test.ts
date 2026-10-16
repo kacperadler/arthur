@@ -8,7 +8,7 @@ import { readEvents } from "../src/event-log.ts";
 import { fakeAgent, temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
-const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>]";
+const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>] [--timeout <minutes>] [--budget <usd>]";
 
 // A plugin as a config holds it: it owns the kind `review` and its role, refuses a task that says "refuse", places a file in
 // every new worktree, failing on a task that says "break", and provides the repository as the one project, prefix AC.
@@ -92,6 +92,14 @@ test("--kind review makes a detached checkout with the kind's limits", () => {
 	assert.deepEqual(["branch", "timeout"].map((name) => readFileSync(join(root, ".arthur/jobs", id, name), "utf8")), ["", "15"]);
 });
 
+test("--timeout and --budget replace the kind's limits, 0 included", () => {
+	const root = repository();
+	const run = arthur(root, "spawn", "--kind", "review", "Review it.", "--timeout", "0.5", "--budget", "0");
+	assert.equal(run.status, 0, run.stderr);
+	const id = run.stdout.trim();
+	assert.deepEqual(["timeout", "budget"].map((name) => readFileSync(join(root, ".arthur/jobs", id, name), "utf8")), ["0.5", "0"]);
+});
+
 test("refusals print the reason, exit 1 and leave no record, worktree or branch", () => {
 	const root = repository();
 	writeFileSync(join(root, "spec/features/AC0001-one/new.md"), "not committed\n");
@@ -117,7 +125,12 @@ test("wrong usage prints the usage line and exits 2", () => {
 	for (const [args, problem] of [
 		[[], "no task"],
 		[["a", "b"], "one task, quoted; got 2 arguments"],
-		[["Go.", "--budget", "3"], "unknown flag --budget"],
+		[["Go.", "--project-x", "3"], "unknown flag --project-x"],
+		[["Go.", "--budget"], "--budget needs a value"],
+		[["Go.", "--budget", "-1"], "--budget needs a number of 0 or more, got -1"],
+		[["Go.", "--timeout", "1e3"], "--timeout needs a number of 0 or more, got 1e3"],
+		[["Go.", "--timeout", "Infinity"], "--timeout needs a number of 0 or more, got Infinity"],
+		[["Go.", "--budget", "1", "--budget", "2"], "--budget given twice"],
 		[["Go.", "--kind"], "--kind needs a value"],
 		[["Go.", "--model", ""], "--model needs a value"],
 		[["Go.", "--kind", "--model", "m"], "--kind needs a value"],

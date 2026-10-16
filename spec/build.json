@@ -187,9 +187,9 @@
   {
     "id": "AR0020",
     "title": "Roadmap 17: Ticket board: tickets and the board file",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0020-roadmap-17-ticket-board-tickets-and-the-board-file/ticket.md",
-    "updated": "2026-10-16T11:37:24.553Z",
+    "updated": "2026-10-16T11:37:36.942Z",
     "after": [
       "AR0036"
     ]
@@ -355,5 +355,12 @@
     "status": "merged",
     "path": "spec/features/AR0039-arthur-config-check-says-ok-when-a-plugin-s-setup-refuses-the-start/ticket.md",
     "updated": "2026-10-16T11:35:45.014Z"
+  },
+  {
+    "id": "AR0040",
+    "title": "A crash mid-write leaves the board's lock or temporary file in the project's `spec/`",
+    "status": "planned",
+    "path": "spec/features/AR0040-a-crash-mid-write-leaves-the-board-s-lock-or-temporary-file-in-the-project-s-spec/ticket.md",
+    "updated": "2026-10-16T11:37:58.946Z"
   }
 ]

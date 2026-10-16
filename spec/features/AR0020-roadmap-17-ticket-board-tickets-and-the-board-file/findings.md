@@ -22,4 +22,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/board.ts` (`withLock(`${file}.lock`)`), `packages/core/src/board-file.ts` (`writeBoard`)
 - What: the lock `spec/build.json.lock` (and `spec/build.json.lock.<pid>` while it is taken) and the temporary `spec/build.json.<pid>.tmp` live next to the board, in the project's repository. They exist only for the moment of a write, and a dead holder's lock is taken over, but a process killed in that moment leaves an untracked file that `git add spec` would commit.
 - Suggestion: either ignore `spec/build.json.*` in the skeleton `arthur init` writes (entry 42), or keep the lock under the home folder, e.g. `.arthur/board/<project>.lock`. Out: changing the lock itself.
-- Status: open
+- Status: ticket AR0040

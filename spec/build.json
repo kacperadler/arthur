@@ -359,9 +359,9 @@
   {
     "id": "AR0040",
     "title": "A crash mid-write leaves the board's lock or temporary file in the project's `spec/`",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0040-a-crash-mid-write-leaves-the-board-s-lock-or-temporary-file-in-the-project-s-spec/ticket.md",
-    "updated": "2026-10-16T11:42:32.277Z"
+    "updated": "2026-10-16T11:45:37.832Z"
   },
   {
     "id": "AR0041",

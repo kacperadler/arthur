@@ -165,7 +165,9 @@ export default defineConfig({
 					tracker: { plugin: "youtrack", project: "ART" },
 					ci: { workflow: "ci.yml" },
 					commitRules: { regex: "^(feat|fix|refactor|perf|test|docs|build|ci|chore|revert)(\\([\\w-]+\\))?!?: .{1,72}$" },
-					prompts: { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria" },
+					// the files the roles read: its vision, its criteria files (`<criteriaDir>/<name>.md`) and its overrides of
+					// the roles (`<rolesDir>/<role>.md`); without `prompts`, the criteria and override folders shown here
+					prompts: { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria", rolesDir: ".agents/arthur/roles" },
 				},
 				{
 					name: "acme-shop",
@@ -176,7 +178,7 @@ export default defineConfig({
 					ci: { workflow: "build.yml" },
 					commitRules: { words: "Start with the ticket id, then a verb in the imperative." }, // judged by the review
 					pathPrepend: ["/home/arthur/.bun/bin"], // folders put in front of PATH for this project's jobs and checks
-					prompts: { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria" },
+					prompts: { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria", rolesDir: ".agents/arthur/roles" },
 				},
 				{
 					name: "acme-site",
@@ -187,7 +189,7 @@ export default defineConfig({
 					ci: { workflow: "ci.yml" },
 					commitRules: { file: "docs/commit-rules.md" }, // read as plain words, from the project's own repository
 					docker: false, // its jobs' containers are not labelled, nor removed with their worktree; the sweep still runs
-					prompts: { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria" },
+					prompts: { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria", rolesDir: ".agents/arthur/roles" },
 				},
 				{
 					name: "acme-ios",
@@ -197,7 +199,7 @@ export default defineConfig({
 					tracker: { plugin: "youtrack", instance: "acme", project: "IOS" },
 					ci: { workflow: "ios.yml" },
 					requires: { os: "macos", tools: ["xcode"] }, // every job of this project runs on a machine with these labels
-					prompts: { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria" },
+					prompts: { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria", rolesDir: ".agents/arthur/roles" },
 				},
 			],
 		}),

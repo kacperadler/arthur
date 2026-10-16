@@ -45,7 +45,7 @@ export type Host = {
 	collect<T = unknown>(name: string, ...args: readonly unknown[]): T[];
 	// The command registry: `register` this plugin's commands; `route` and `phone` for a channel.
 	readonly commands: Commands;
-	// The job runner: this plugin's kinds, its checks before a spawn, its steps in a new worktree, and spawns.
+	// The job runner: this plugin's kinds and roles, its checks before a spawn, its steps in a new worktree, and spawns.
 	readonly jobs: Jobs;
 	// The ticket board of every project in the list a plugin provides as `projects`; its events are named by this plugin.
 	readonly board: Board;
@@ -102,6 +102,7 @@ export function pluginHost(
 		commands: { register: (command) => commands.register(own.name, command), route: commands.route, phone: commands.phone },
 		jobs: {
 			registerKind: (kind) => runner.registerKind(own.name, kind),
+			registerRole: (role) => runner.registerRole(own.name, role),
 			beforeSpawn: (check) => runner.beforeSpawn(own.name, check),
 			prepare: (fn) => runner.prepare(own.name, fn),
 			spawn: runner.spawn,

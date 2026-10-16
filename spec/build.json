@@ -218,9 +218,9 @@
   {
     "id": "AR0023",
     "title": "Roadmap 20: Worktree guard and its shell parser",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0023-roadmap-20-worktree-guard-and-its-shell-parser/ticket.md",
-    "updated": "2026-10-16T13:49:57.358Z",
+    "updated": "2026-10-16T13:58:25.464Z",
     "after": [
       "AR0022"
     ]
@@ -485,8 +485,8 @@
   {
     "id": "AR0058",
     "title": "The styleguide forbids a plugin to read another plugin's folder, and voice reads the channel's saved file",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0058-the-styleguide-forbids-a-plugin-to-read-another-plugin-s-folder-and-voice-reads-the-channel-s-saved-file/ticket.md",
-    "updated": "2026-10-16T13:57:05.525Z"
+    "updated": "2026-10-16T13:58:24.779Z"
   }
 ]

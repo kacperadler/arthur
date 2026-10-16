@@ -56,6 +56,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0076 Core comments that repeat the command docs become pointers (50e254e)
 - AR0077 The node_modules copy moves to a prepare hook of the projects plugin (3d31a1c)
 - AR0078 The checks record file moves out of the wrapper into a delivery extension (02bd0f2)
+- AR0079 Core line budget 5080 for entries 1 to 22, with the allotment per entry (bc338cb)
 
 ### Other
 

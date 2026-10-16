@@ -53,9 +53,9 @@
   {
     "id": "AR0007",
     "title": "Roadmap 4: Plugin host, and the fake host",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0007-roadmap-4-plugin-host-and-the-fake-host/ticket.md",
-    "updated": "2026-10-16T09:46:22.362Z",
+    "updated": "2026-10-16T10:20:54.275Z",
     "after": [
       "AR0006"
     ]
@@ -267,15 +267,15 @@
   {
     "id": "AR0028",
     "title": "An instance name can produce the same variable prefix as another plugin",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0028-an-instance-name-can-produce-the-same-variable-prefix-as-another-plugin/ticket.md",
-    "updated": "2026-10-16T10:20:47.269Z"
+    "updated": "2026-10-16T10:24:26.403Z"
   },
   {
     "id": "AR0029",
     "title": "README still says no feature code exists",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0029-readme-still-says-no-feature-code-exists/ticket.md",
-    "updated": "2026-10-16T10:20:47.481Z"
+    "updated": "2026-10-16T10:27:35.803Z"
   }
 ]

@@ -3,6 +3,7 @@ import { basename, dirname, join } from "node:path";
 import type { Clock } from "./clock.ts";
 import type { Bus } from "./events.ts";
 import { addWorktree, branchExists, fileAt, head, removeWorktree, topLevel } from "./git.ts";
+import { checkLimits, type Limits, spawnLimits } from "./job-limits.ts";
 import { writeRecord } from "./job-record.ts";
 import { describeRoles, prompt, type Role, type RoleView, roleModel, roleRegistry } from "./roles.ts";
 import { launch } from "./wrapper.ts";
@@ -19,18 +20,21 @@ export type Kind = {
 	readonly readOnly: boolean;
 	// The role whose prompt the job's agent gets; a plugin registers it with `registerRole`.
 	readonly role: string;
-	// Its own default limits; otherwise the core's `jobs.budgetUsd` and `jobs.timeoutMinutes`.
+	// Its own default limits, else the core's `jobs` options; `resumeOnBudget`: one resume at the budget, the budget doubled.
 	readonly budgetUsd?: number;
 	readonly timeoutMinutes?: number;
+	readonly resumeOnBudget?: boolean;
 };
 
-// `kind` defaults to `worker`, `project` to the main one; `model` and `thinking` undefined mean the agent's own default.
+// `kind` defaults to `worker`, `project` to the main one; left undefined, `model` and `thinking` are the role's, a limit the kind's.
 export type SpawnRequest = {
 	readonly task: string;
 	readonly kind?: string;
 	readonly project?: string;
 	readonly model?: string;
 	readonly thinking?: string;
+	readonly timeoutMinutes?: number;
+	readonly budgetUsd?: number;
 };
 
 // A spawn as `beforeSpawn` checks it: every `Ticket:` file the task names is in `tickets`, as written.
@@ -81,7 +85,6 @@ const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 const TICKET = /\bTicket:\s*`?([^\s`]+)/g;
 const LOCKFILE = "package-lock.json";
 
-type Limits = { readonly timeoutMinutes: number; readonly budgetUsd: number };
 type Collect = (name: string, args: readonly unknown[]) => unknown[];
 
 // `folder` is in the repository jobs start from; `limits` are the core's `jobs` options, `agent` its `agent.command`;
@@ -97,6 +100,7 @@ export function jobRunner(home: string, folder: string, limits: Limits, agent: s
 			const first = kinds.get(kind.name);
 			if (first) throw new Error(`kind ${kind.name}: registered by ${first.owner} and by ${owner}; a kind belongs to one plugin`);
 			if (typeof kind.readOnly !== "boolean") throw new Error(`kind ${kind.name}: readOnly must be true or false`);
+			checkLimits(`kind ${kind.name}`, kind);
 			kinds.set(kind.name, { owner, kind });
 		},
 		registerRole: (owner, role) => roles.register(owner, role),
@@ -118,8 +122,8 @@ export function jobRunner(home: string, folder: string, limits: Limits, agent: s
 			if (missing.length > 0) throw new Error(`Ticket: ${missing.join(", ")}: no such file at HEAD (${commit.slice(0, 7)}); commit it first`);
 			const preset = roleModel(collect, role.name);
 			const { task, model = preset.model, thinking = preset.thinking } = request;
-			const timeoutMinutes = kind.timeoutMinutes ?? limits.timeoutMinutes;
-			const spawn: Spawn = { task, kind: name, project, model, thinking, timeoutMinutes, budgetUsd: kind.budgetUsd ?? limits.budgetUsd, tickets };
+			const { timeoutMinutes, budgetUsd } = spawnLimits(request, kind, limits);
+			const spawn: Spawn = { task, kind: name, project, model, thinking, timeoutMinutes, budgetUsd, tickets };
 			for (const { owner, check } of checks) {
 				const reason = await step(owner, "beforeSpawn", () => check(spawn));
 				if (reason !== undefined) throw new Error(`refused by ${owner}: ${reason}`);
@@ -131,7 +135,7 @@ export function jobRunner(home: string, folder: string, limits: Limits, agent: s
 				copyNodeModules(root, job.worktree);
 				const built = prompt(role, job.worktree, () => collect("prompt", [role.name, job]));
 				warnings = built.warnings;
-				writeRecord(home, job, built.prompt);
+				writeRecord(home, job, built.prompt, kind.resumeOnBudget === true);
 				for (const { owner, fn } of prepares) await step(owner, "prepare", () => fn(job));
 			} catch (error) {
 				removeWorktree(root, job.worktree, job.branch);

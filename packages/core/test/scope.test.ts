@@ -30,7 +30,7 @@ function setup(agent: string, slice: Slice = jobSlice) {
 	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "first");
 	const home = join(folder, "home");
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
-	return { home, jobs: jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, ...slice }, agent, time, eventBus(home), () => []) };
+	return { home, jobs: jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...slice }, agent, time, eventBus(home), () => []) };
 }
 
 async function until<T>(what: string, predicate: () => T | undefined): Promise<T> {

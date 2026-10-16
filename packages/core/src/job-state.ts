@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { FEATURE, taskTickets } from "./board-jobs.ts";
 import type { Bus } from "./events.ts";
@@ -21,6 +21,14 @@ export const field = (home: string, id: string) => (name: string): string => {
 	const path = join(home, "jobs", id, name);
 	return existsSync(path) ? readFileSync(path, "utf8") : "";
 };
+
+// Every record, the newest spawn first; a record being written (`.<id>`) is not one yet.
+export function jobIds(home: string): string[] {
+	const folder = join(home, "jobs");
+	const ids = existsSync(folder) ? readdirSync(folder).filter((name) => ID.test(name) && existsSync(join(folder, name, "kind"))) : [];
+	const spawned = (id: string) => statSync(join(folder, id, "kind"), { throwIfNoEntry: false })?.mtimeMs ?? 0;
+	return ids.sort((a, b) => spawned(b) - spawned(a));
+}
 
 export function current(home: string, id: string): Current {
 	const [state = "", reason = "", hold = ""] = ["state", "reason", "hold"].map(field(home, id));

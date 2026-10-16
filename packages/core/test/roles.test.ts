@@ -38,7 +38,7 @@ function repository(files: Readonly<Record<string, string | { readonly link: str
 
 function runner(root: string, home: string, names: Registry = registry()): JobRunner {
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
-	return jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, ...jobSlice }, "omp", time, eventBus(home), names.collect);
+	return jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, "omp", time, eventBus(home), names.collect);
 }
 
 // A role file a plugin ships, outside every repository.

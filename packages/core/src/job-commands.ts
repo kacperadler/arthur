@@ -1,13 +1,12 @@
 import type { Command } from "./commands.ts";
 import { amount, parseFlags, text } from "./flags.ts";
-import { steerJob, stopJob } from "./job-control.ts";
 import { findJob } from "./job-records.ts";
 import { STATES } from "./job-state.ts";
 import type { JobRunner } from "./jobs.ts";
 
 // `arthur stop`, `continue` and `steer` (spec/roadmap.md, entry 14), `arthur jobs`, `prune` and `stopall` (entry 15), on a
-// job's full or short id; `/jobs`, `/steer <id> <text>` and `/stopall` on a channel. `home` and `jobs` throw when the config
-// did not load, since the record lives in the configured home folder.
+// job's full or short id, on another machine there (entry 22); `/jobs`, `/steer <id> <text>` and `/stopall` on a channel.
+// `home` and `jobs` throw when the config did not load, since the record lives in the configured home folder.
 
 const USAGE = {
 	stop: "usage: arthur stop <id>",
@@ -21,10 +20,10 @@ const USAGE = {
 export function jobCommands(home: () => string, jobs: () => JobRunner): Command[] {
 	const steer = (query: string, text: string) => {
 		const id = findJob(home(), query);
-		return `${id}: steer ${steerJob(home(), id, text)} queued for after its next tool call`;
+		return `${id}: steer ${jobs().steer(id, text)} queued for after its next tool call`;
 	};
 	return [
-		command("stop", 1, async ([id = ""]) => console.log(await stopJob(home(), findJob(home(), id)))),
+		command("stop", 1, async ([id = ""]) => console.log(await jobs().stop(findJob(home(), id)))),
 		command("steer", 2, ([id = "", text = ""]) => console.log(steer(id, text)), {
 			about: "a correction a running job gets after its next tool call: /steer <id> <text>",
 			reply: (text) => {

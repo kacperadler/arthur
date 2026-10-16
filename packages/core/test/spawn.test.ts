@@ -134,7 +134,7 @@ test("two arthur spawn processes at once get distinct ids, branches and worktree
 	for (const id of ids) assert.equal(git(join(dirname(root), ".arthur-worktrees", id), "branch", "--show-current"), `arthur/${id}`);
 });
 
-test("a worker's start moves its ticket to in-progress, other kinds' do not; a move the board refuses is said, and the job goes on", () => {
+test("a worker's start moves its ticket to in-progress, other kinds' do not", () => {
 	const root = repository();
 	const task = "Ticket: spec/features/AC0001-one/ticket.md. Build it.";
 	const warning = "warning: criteria file .agents/arthur/criteria/styleguide.md is missing; the worker goes without it\n";
@@ -145,13 +145,41 @@ test("a worker's start moves its ticket to in-progress, other kinds' do not; a m
 	assert.equal(status(), "in-progress");
 	const moves = readEvents(join(root, ".arthur"), 1).filter((event) => event.name === "ticket-moved");
 	assert.deepEqual(moves.map(({ plugin, data }) => [plugin, data]), [["core", { id: "AC0001", project: "acme", from: "planned", to: "in-progress" }]]);
-	writeFileSync(join(root, "spec/build.json"), readFileSync(join(root, "spec/build.json"), "utf8").replace('"in-progress"', '"merged"'));
-	const run = arthur(root, "spawn", task);
-	const seq = readEvents(join(root, ".arthur"), 1).at(-1)?.seq;
-	assert.deepEqual(
-		[run.status, run.stderr],
-		[0, `plugin core: handler of job-started (event ${seq}) failed: AC0001: merged cannot move to in-progress; from merged: none, it is final\n${warning}`],
-	);
-	assert.equal(status(), "merged");
-	assert.equal(jobs(root).length, 4);
+	assert.equal(jobs(root).length, 3);
+});
+
+test("a worker on a ticket that cannot move to in-progress is refused before anything exists; review and done go on", () => {
+	const root = repository();
+	const board = join(root, "spec/build.json");
+	const set = (status: string) => writeFileSync(board, readFileSync(board, "utf8").replace(/"status": ?"[a-z-]+"/, `"status":"${status}"`));
+	const task = "Ticket: spec/features/AC0001-one/ticket.md. Build it.";
+	const starts = "a worker starts on a ticket that is planned, in-progress, review, done";
+	for (const status of ["planning", "merged", "dropped"]) {
+		set(status);
+		const run = arthur(root, "spawn", task);
+		assert.deepEqual([run.status, run.stdout, run.stderr], [1, "", `arthur spawn: refused by core: AC0001 is ${status}, which cannot move to in-progress; ${starts}\n`], status);
+	}
+	mkdirSync(join(root, "spec/features/AC0002-two"));
+	writeFileSync(join(root, "spec/features/AC0002-two/ticket.md"), "# AC0002\n");
+	git(root, "add", "spec/features");
+	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "second");
+	const both = arthur(root, "spawn", `${task} Ticket: spec/features/AC0002-two/ticket.md`);
+	assert.equal(both.stderr, `arthur spawn: refused by core: AC0001 is dropped, which cannot move to in-progress; AC0002 is not on the board; ${starts}\n`);
+	assert.deepEqual([jobs(root), readEvents(join(root, ".arthur"), 1)], [[], []]);
+	assert.equal(git(root, "branch", "--list"), "* main");
+	assert.equal(arthur(root, "spawn", "--kind", "review", task).status, 0);
+	for (const status of ["review", "done"]) {
+		set(status);
+		assert.equal(arthur(root, "spawn", task).status, 0, status);
+		assert.equal(JSON.parse(readFileSync(board, "utf8"))[0].status, "in-progress");
+	}
+	assert.equal(jobs(root).length, 3);
+});
+
+test("without a project list a worker naming a ticket is refused, one naming none goes on", () => {
+	const root = repository(CONFIG.replace(/\thost\.provide\("projects".*\n/, ""));
+	const run = arthur(root, "spawn", "Ticket: spec/features/AC0001-one/ticket.md. Build it.");
+	assert.deepEqual([run.status, run.stderr], [1, "arthur spawn: plugin core: beforeSpawn failed: no project list: the board needs each project's folder and ticket prefix, which the projects plugin provides\n"]);
+	assert.deepEqual(jobs(root), []);
+	assert.equal(arthur(root, "spawn", "Go.").status, 0);
 });

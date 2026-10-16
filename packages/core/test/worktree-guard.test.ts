@@ -8,7 +8,7 @@ import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { type Job, jobRunner } from "../src/jobs.ts";
-import { temporaryFolder } from "../src/testing.ts";
+import { jobSlice, temporaryFolder } from "../src/testing.ts";
 import worktreeGuard, { jobPlace, worktreeRefusal } from "../src/worktree-guard.ts";
 
 type Call = readonly [string, Record<string, unknown>];
@@ -48,7 +48,7 @@ async function jobs(calls: readonly Call[] = []): Promise<{ readonly root: strin
 		writeFileSync(join(import.meta.dirname, basename(process.cwd()) + ".json"), JSON.stringify(refused));\n`,
 		{ mode: 0o755 },
 	);
-	const runner = jobRunner(home, root, { timeoutMinutes: 5, budgetUsd: 1 }, agent, clock("UTC", undefined), eventBus(home), () => []);
+	const runner = jobRunner(home, root, { timeoutMinutes: 5, budgetUsd: 1, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), () => []);
 	const own = await runner.spawn({ task: "own" });
 	const other = await runner.spawn({ task: "other" });
 	await until("both jobs ended", () => (readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2 ? true : undefined));

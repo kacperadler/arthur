@@ -68,7 +68,9 @@ function commandIndex(words: readonly string[]): number {
 // of these after a `cd` there. The command is the word after assignments and wrappers (`sudo`, `timeout 60`), also in
 // `bash -c`, a shell's heredoc, `eval`; each path is resolved from where the commands before it left (`cd`, `pushd`, `git
 // -C`, a subshell undoing them), through symlinks. Not seen: a path built at run time (`$x`, a glob, a brace list, what
-// `xargs` reads), a program that writes (`node -e`, `tar -C`, `curl -o`), a link the same call makes. It is not a sandbox.
+// `xargs` reads), a program that writes (`node -e`, `tar -C`, `curl -o`), a link the same call makes, and the git commands
+// that rewrite the repository every worktree shares (`gc`, `prune`, `repack`, `reflog expire`, `maintenance run`,
+// `config`), or move a ref from the job's own worktree. It is not a sandbox.
 function bashRefusal(place: Place, command: string, start: string): string | undefined {
 	let cwd = start;
 	const subshells: string[] = [];

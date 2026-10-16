@@ -115,9 +115,9 @@
   {
     "id": "AR0013",
     "title": "Roadmap 10: Prompt loader and arthur roles",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0013-roadmap-10-prompt-loader-and-arthur-roles/ticket.md",
-    "updated": "2026-10-16T12:03:32.663Z",
+    "updated": "2026-10-16T12:05:10.262Z",
     "after": [
       "AR0012"
     ]
@@ -199,7 +199,7 @@
     "title": "Roadmap 18: Ticket board: transitions, after, the digest, and the board's phone commands",
     "status": "in-progress",
     "path": "spec/features/AR0021-roadmap-18-ticket-board-transitions-after-the-digest-and-the-board-s-phone-commands/ticket.md",
-    "updated": "2026-10-16T11:51:35.143Z",
+    "updated": "2026-10-16T12:05:49.072Z",
     "after": [
       "AR0020",
       "AR0012"
@@ -387,9 +387,9 @@
   {
     "id": "AR0044",
     "title": "An event a command appends while no daemon runs never reaches the subscribers",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0044-an-event-a-command-appends-while-no-daemon-runs-never-reaches-the-subscribers/ticket.md",
-    "updated": "2026-10-16T12:04:53.621Z"
+    "updated": "2026-10-16T12:04:58.252Z"
   },
   {
     "id": "AR0045",

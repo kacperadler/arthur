@@ -26,9 +26,9 @@
   {
     "id": "AR0004",
     "title": "Roadmap 1: Repository rules as a test",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0004-roadmap-1-repository-rules-as-a-test/ticket.md",
-    "updated": "2026-10-16T09:54:33.126Z"
+    "updated": "2026-10-16T09:54:44.830Z"
   },
   {
     "id": "AR0005",
@@ -246,5 +246,19 @@
     "after": [
       "AR0024"
     ]
+  },
+  {
+    "id": "AR0026",
+    "title": "`arthur plugin new` meets the line-budget rule",
+    "status": "planning",
+    "path": "spec/features/AR0026-arthur-plugin-new-meets-the-line-budget-rule/ticket.md",
+    "updated": "2026-10-16T09:54:44.826Z"
+  },
+  {
+    "id": "AR0027",
+    "title": "Dev dependencies beyond the toolchain are not checked",
+    "status": "planning",
+    "path": "spec/features/AR0027-dev-dependencies-beyond-the-toolchain-are-not-checked/ticket.md",
+    "updated": "2026-10-16T09:54:44.828Z"
   }
 ]

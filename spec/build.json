@@ -541,9 +541,9 @@
   {
     "id": "AR0066",
     "title": "A process that holds the agent's stdout open keeps the wrapper from ending the job",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0066-a-process-that-holds-the-agent-s-stdout-open-keeps-the-wrapper-from-ending-the-job/ticket.md",
-    "updated": "2026-10-16T14:48:58.879Z"
+    "updated": "2026-10-16T14:52:27.827Z"
   },
   {
     "id": "AR0067",

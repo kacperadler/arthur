@@ -8,6 +8,7 @@ import { loadConfig } from "./config.ts";
 import { type LoadedPlugins, loadPlugins } from "./host.ts";
 import type { JobRunner } from "./jobs.ts";
 import { boardCommands } from "./board-commands.ts";
+import { jobCommands } from "./job-commands.ts";
 import { rolesCommand } from "./roles-command.ts";
 import { spawnCommand } from "./spawn-command.ts";
 import { ticketCommand } from "./ticket-command.ts";
@@ -83,6 +84,12 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 	};
 	commands.register("core", rolesCommand(jobs("the roles are what the plugins registered, and ")));
 	commands.register("core", spawnCommand(jobs("")));
+	const home = () => {
+		const loadedHome = loaded()?.home;
+		if (loadedHome === undefined) throw new Error(`the job records are in the configured home folder, and arthur.config.ts did not load:\n${problem}`);
+		return loadedHome;
+	};
+	for (const command of jobCommands(home, jobs(""))) commands.register("core", command);
 	commands.register("core", {
 		name: "config",
 		doc: new URL("../docs/commands/config.md", import.meta.url),

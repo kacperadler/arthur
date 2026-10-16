@@ -1,10 +1,12 @@
-import { constants, cpSync, existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import type { Clock } from "./clock.ts";
 import type { Bus } from "./events.ts";
 import { addWorktree, branchExists, fileAt, head, removeWorktree, topLevel } from "./git.ts";
 import { checkLimits, type Limits, spawnLimits } from "./job-limits.ts";
+import { continueJob } from "./job-control.ts";
 import { writeRecord } from "./job-record.ts";
+import { copyNodeModules } from "./node-modules.ts";
 import { describeRoles, prompt, type Role, type RoleView, roleModel, roleRegistry } from "./roles.ts";
 import { launch, type Slice } from "./job-scope.ts";
 
@@ -76,6 +78,9 @@ export type JobRunner = {
 	beforeSpawn(owner: string, check: SpawnCheck): void;
 	prepare(owner: string, fn: Prepare): void;
 	spawn(request: SpawnRequest): Promise<Started>;
+	// `arthur continue`: resumes an ended job with a branch in place (job-control.ts), `budgetUsd` replacing its budget;
+	// resolves to why its wrapper did not start, as `failed` of a spawn.
+	continue(id: string, instruction: string, budgetUsd?: number): Promise<string | undefined>;
 	// What `arthur roles` prints: each role, the files it reads in the project's main checkout, and its model.
 	roles(project?: string): RoleView[];
 };
@@ -83,7 +88,6 @@ export type JobRunner = {
 const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 // `Ticket: <path>`, the path maybe in backticks; punctuation that ends the sentence is not part of it.
 const TICKET = /\bTicket:\s*`?([^\s`]+)/g;
-const LOCKFILE = "package-lock.json";
 
 type Collect = (name: string, args: readonly unknown[]) => unknown[];
 
@@ -107,6 +111,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice, 
 		beforeSpawn: (owner, check) => void checks.push({ owner, check }),
 		prepare: (owner, fn) => void prepares.push({ owner, fn }),
 		roles: (project) => describeRoles(roles, [...kinds.values()].map((entry) => entry.kind), checkout(project).root, collect),
+		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
 			const kind = kinds.get(name)?.kind;
@@ -187,14 +192,4 @@ async function step<T>(owner: string, name: string, run: () => T | Promise<T>): 
 	} catch (error) {
 		throw new Error(`plugin ${owner}: ${name} failed: ${error instanceof Error ? error.message : String(error)}`);
 	}
-}
-
-// The main checkout's `node_modules`, when its lockfile is the job's byte for byte; a copy-on-write clone where the
-// filesystem has one. Links stay as they are, so a workspace's link points into the job's own worktree.
-function copyNodeModules(root: string, worktree: string): void {
-	const modules = join(root, "node_modules");
-	const ours = join(root, LOCKFILE);
-	const theirs = join(worktree, LOCKFILE);
-	if (!existsSync(modules) || !existsSync(ours) || !existsSync(theirs) || !readFileSync(ours).equals(readFileSync(theirs))) return;
-	cpSync(modules, join(worktree, "node_modules"), { recursive: true, verbatimSymlinks: true, mode: constants.COPYFILE_FICLONE });
 }

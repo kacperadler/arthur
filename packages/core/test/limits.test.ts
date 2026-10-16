@@ -8,6 +8,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
+import { GRACE_SECONDS } from "../src/job-stop.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
 import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
 
@@ -168,7 +169,7 @@ test("a kind that asks for it is resumed once at its budget, doubled, and stoppe
 	assert.deepEqual(["state", "cost", "budget"].map((name) => field(home, job.id, name)), ["limit: budget", "2.0000", "2"]);
 	const [first, second, ...more] = starts(agent);
 	const folder = join(home, "jobs", job.id);
-	const guard = ["env-guard.ts", "worktree-guard.ts"].flatMap((file) => ["-e", join(import.meta.dirname, "..", "src", file)]);
+	const guard = ["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((file) => ["-e", join(import.meta.dirname, "..", "src", file)]);
 	const common = ["-p", "--mode", "json", "--auto-approve", "--tools", "read,bash,grep,glob", "--append-system-prompt", join(folder, "prompt"), ...guard];
 	assert.deepEqual(first?.args, [...common, `@${join(folder, "task")}`]);
 	assert.deepEqual(second?.args, ["--continue", ...common, "Your budget of $1 ran out and was doubled to $2, once. Go on with the task where you stopped."]);
@@ -177,23 +178,32 @@ test("a kind that asks for it is resumed once at its budget, doubled, and stoppe
 	assert.equal(log.match(/\] limit: budget: \$1\.0000 reached \$1; the kind resumes once, its budget doubled to \$2\n/g)?.length, 1, log);
 });
 
-test("a job whose time runs out while it stops at its budget is not resumed", async () => {
-	// An agent that ignores SIGTERM: stopped at its budget, it goes on until the test lets it end.
+test("an agent that ignores SIGTERM at its limit gets SIGKILL after the grace; its time out while it stops at its budget, it is not resumed", async () => {
+	// An agent that ignores SIGTERM: stopped at its budget, it would go on until the test lets it end, which it never does.
 	const dir = temporaryFolder();
 	const agent = join(dir, "omp");
 	const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 1, cacheRead: 0, cacheWrite: 0, total: 1 } };
 	const content = [{ type: "text", text: "Spent." }];
 	const message = { role: "assistant", content, api: "anthropic-messages", provider: "anthropic", model: "fake", usage, stopReason: "toolUse", timestamp: 0 };
-	const script = ["#!/bin/sh", `echo started >> '${dir}/starts'`, "trap '' TERM", `echo '${JSON.stringify({ type: "message_end", message })}'`];
+	const script = ["#!/bin/sh", `echo $$ >> '${dir}/starts'`, "trap '' TERM", `echo '${JSON.stringify({ type: "message_end", message })}'`];
 	writeFileSync(agent, `${[...script, `while [ ! -e '${dir}/go' ] && [ -d '${dir}' ]; do sleep 0.02; done`].join("\n")}\n`, { mode: 0o755 });
 	const { home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Audit.", kind: "audit", timeoutMinutes: 0.005 });
 	const log = join(home, "jobs", job.id, "log");
-	await until("the time up after the budget", () => existsSync(log) && readFileSync(log, "utf8").includes("] limit: time: reached as well\n"));
-	writeFileSync(join(dir, "go"), "");
+	await until("the stop at the budget", () => existsSync(log) && readFileSync(log, "utf8").includes("] limit: budget: stopping the agent\n"));
+	const stopped = Date.now();
 	await ended(home, job.id);
+	const took = Date.now() - stopped;
+	assert.ok(took < (GRACE_SECONDS + 1) * 1000, `ended ${took} ms after the stop`);
+	assert.ok(took >= GRACE_SECONDS * 1000 - 100, `ended ${took} ms after the stop, before the grace was over`);
 	assert.deepEqual(["state", "budget"].map((name) => field(home, job.id, name)), ["limit: budget", "1"]);
-	assert.equal(readFileSync(join(dir, "starts"), "utf8"), "started\n");
+	const text = field(home, job.id, "log");
+	assert.match(text, /\] limit: time: reached as well\n/);
+	assert.match(text, new RegExp(`\\] the agent's process group is still alive ${GRACE_SECONDS} seconds after SIGTERM: SIGKILL\\n`));
+	const pids = readFileSync(join(dir, "starts"), "utf8").trim().split("\n");
+	assert.equal(pids.length, 1, "not resumed");
+	assert.equal(alive(Number(pids[0])), false);
+	assert.equal(existsSync(join(dir, "go")), false);
 });
 
 test("a kind that does not ask for it is not resumed at its budget", async () => {

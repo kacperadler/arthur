@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `spec/roadmap.md`, entry 53 (`arthur merge`) and entry 31 (placement by labels)
 - What: entry 31 places every job of a ticket by its labels, so an iOS project's worker and review run on the Mac. Entry 53 still runs install and the project's checks in the main checkout, on `local` (Linux in the example). For a project with `requires: { os: "macos" }` those checks cannot pass there, and a failed check resets main, so such a project can never merge through `arthur merge`.
 - Suggestion: decide where a merge's checks run for a project whose `requires` excludes `local`: on a machine with the labels (the merged tree pushed there over SSH, as entry 21 pushes a base commit), or only in CI (`ci.workflow`, with `arthur merge --auto` as the gate). Add it to entry 53's Delivers and Done means; the merge itself stays on `local`.
-- Status: open
+- Status: ticket AR0003

@@ -9,11 +9,242 @@
   {
     "id": "AR0002",
     "title": "Roadmap: job state, several machines, and resource-based limits",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0002-roadmap-job-state-several-machines-and-resource-based-limits/ticket.md",
-    "updated": "2026-10-16T09:45:29.046Z",
+    "updated": "2026-10-16T09:45:40.220Z",
     "after": [
       "AR0001"
+    ]
+  },
+  {
+    "id": "AR0003",
+    "title": "Merge checks of a project that requires another OS run on `local`",
+    "status": "dropped",
+    "path": "spec/features/AR0003-merge-checks-of-a-project-that-requires-another-os-run-on-local/ticket.md",
+    "updated": "2026-10-16T09:45:51.253Z"
+  },
+  {
+    "id": "AR0004",
+    "title": "Roadmap 1: Repository rules as a test",
+    "status": "planned",
+    "path": "spec/features/AR0004-roadmap-1-repository-rules-as-a-test/ticket.md",
+    "updated": "2026-10-16T09:46:21.331Z"
+  },
+  {
+    "id": "AR0005",
+    "title": "Roadmap 2: Config: defineConfig and the core's options",
+    "status": "planned",
+    "path": "spec/features/AR0005-roadmap-2-config-defineconfig-and-the-core-s-options/ticket.md",
+    "updated": "2026-10-16T09:46:21.677Z",
+    "after": [
+      "AR0004"
+    ]
+  },
+  {
+    "id": "AR0006",
+    "title": "Roadmap 3: Config: env names, .env, and arthur config check",
+    "status": "planned",
+    "path": "spec/features/AR0006-roadmap-3-config-env-names-env-and-arthur-config-check/ticket.md",
+    "updated": "2026-10-16T09:46:22.017Z",
+    "after": [
+      "AR0005"
+    ]
+  },
+  {
+    "id": "AR0007",
+    "title": "Roadmap 4: Plugin host, and the fake host",
+    "status": "planned",
+    "path": "spec/features/AR0007-roadmap-4-plugin-host-and-the-fake-host/ticket.md",
+    "updated": "2026-10-16T09:46:22.362Z",
+    "after": [
+      "AR0006"
+    ]
+  },
+  {
+    "id": "AR0008",
+    "title": "Roadmap 5: Event stream",
+    "status": "planned",
+    "path": "spec/features/AR0008-roadmap-5-event-stream/ticket.md",
+    "updated": "2026-10-16T09:46:22.708Z",
+    "after": [
+      "AR0007"
+    ]
+  },
+  {
+    "id": "AR0009",
+    "title": "Roadmap 6: Command registry and the arthur CLI",
+    "status": "planned",
+    "path": "spec/features/AR0009-roadmap-6-command-registry-and-the-arthur-cli/ticket.md",
+    "updated": "2026-10-16T09:46:23.046Z",
+    "after": [
+      "AR0007"
+    ]
+  },
+  {
+    "id": "AR0010",
+    "title": "Roadmap 7: Clock: time zone and quiet hours",
+    "status": "planned",
+    "path": "spec/features/AR0010-roadmap-7-clock-time-zone-and-quiet-hours/ticket.md",
+    "updated": "2026-10-16T09:46:23.382Z",
+    "after": [
+      "AR0007"
+    ]
+  },
+  {
+    "id": "AR0011",
+    "title": "Roadmap 8: arthur run: Arthur as a process",
+    "status": "planned",
+    "path": "spec/features/AR0011-roadmap-8-arthur-run-arthur-as-a-process/ticket.md",
+    "updated": "2026-10-16T09:46:23.719Z",
+    "after": [
+      "AR0007",
+      "AR0008"
+    ]
+  },
+  {
+    "id": "AR0012",
+    "title": "Roadmap 9: Job runner: spawn and the job record",
+    "status": "planned",
+    "path": "spec/features/AR0012-roadmap-9-job-runner-spawn-and-the-job-record/ticket.md",
+    "updated": "2026-10-16T09:46:24.060Z",
+    "after": [
+      "AR0008",
+      "AR0009"
+    ]
+  },
+  {
+    "id": "AR0013",
+    "title": "Roadmap 10: Prompt loader and arthur roles",
+    "status": "planned",
+    "path": "spec/features/AR0013-roadmap-10-prompt-loader-and-arthur-roles/ticket.md",
+    "updated": "2026-10-16T09:46:24.405Z",
+    "after": [
+      "AR0012"
+    ]
+  },
+  {
+    "id": "AR0014",
+    "title": "Roadmap 11: Job runner: the wrapper, and the fake agent",
+    "status": "planned",
+    "path": "spec/features/AR0014-roadmap-11-job-runner-the-wrapper-and-the-fake-agent/ticket.md",
+    "updated": "2026-10-16T09:46:24.751Z",
+    "after": [
+      "AR0013"
+    ]
+  },
+  {
+    "id": "AR0015",
+    "title": "Roadmap 12: Job limits: time and budget",
+    "status": "planned",
+    "path": "spec/features/AR0015-roadmap-12-job-limits-time-and-budget/ticket.md",
+    "updated": "2026-10-16T09:46:25.086Z",
+    "after": [
+      "AR0014"
+    ]
+  },
+  {
+    "id": "AR0016",
+    "title": "Roadmap 13: Job limits: one scope per job in a joint slice",
+    "status": "planned",
+    "path": "spec/features/AR0016-roadmap-13-job-limits-one-scope-per-job-in-a-joint-slice/ticket.md",
+    "updated": "2026-10-16T09:46:25.429Z",
+    "after": [
+      "AR0014"
+    ]
+  },
+  {
+    "id": "AR0017",
+    "title": "Roadmap 14: Stop, continue, steer",
+    "status": "planned",
+    "path": "spec/features/AR0017-roadmap-14-stop-continue-steer/ticket.md",
+    "updated": "2026-10-16T09:46:25.771Z",
+    "after": [
+      "AR0014",
+      "AR0016"
+    ]
+  },
+  {
+    "id": "AR0018",
+    "title": "Roadmap 15: Jobs list, prune, dead jobs, and their phone commands",
+    "status": "planned",
+    "path": "spec/features/AR0018-roadmap-15-jobs-list-prune-dead-jobs-and-their-phone-commands/ticket.md",
+    "updated": "2026-10-16T09:46:26.131Z",
+    "after": [
+      "AR0017"
+    ]
+  },
+  {
+    "id": "AR0019",
+    "title": "Roadmap 16: Job state: working, idle, blocked, ended",
+    "status": "planned",
+    "path": "spec/features/AR0019-roadmap-16-job-state-working-idle-blocked-ended/ticket.md",
+    "updated": "2026-10-16T09:46:26.473Z",
+    "after": [
+      "AR0017",
+      "AR0018"
+    ]
+  },
+  {
+    "id": "AR0020",
+    "title": "Roadmap 17: Ticket board: tickets and the board file",
+    "status": "planned",
+    "path": "spec/features/AR0020-roadmap-17-ticket-board-tickets-and-the-board-file/ticket.md",
+    "updated": "2026-10-16T09:46:26.811Z",
+    "after": [
+      "AR0008",
+      "AR0009"
+    ]
+  },
+  {
+    "id": "AR0021",
+    "title": "Roadmap 18: Ticket board: transitions, after, the digest, and the board's phone commands",
+    "status": "planned",
+    "path": "spec/features/AR0021-roadmap-18-ticket-board-transitions-after-the-digest-and-the-board-s-phone-commands/ticket.md",
+    "updated": "2026-10-16T09:46:27.147Z",
+    "after": [
+      "AR0020",
+      "AR0012"
+    ]
+  },
+  {
+    "id": "AR0022",
+    "title": "Roadmap 19: Env guard",
+    "status": "planned",
+    "path": "spec/features/AR0022-roadmap-19-env-guard/ticket.md",
+    "updated": "2026-10-16T09:46:27.506Z",
+    "after": [
+      "AR0014"
+    ]
+  },
+  {
+    "id": "AR0023",
+    "title": "Roadmap 20: Worktree guard and its shell parser",
+    "status": "planned",
+    "path": "spec/features/AR0023-roadmap-20-worktree-guard-and-its-shell-parser/ticket.md",
+    "updated": "2026-10-16T09:46:27.845Z",
+    "after": [
+      "AR0022"
+    ]
+  },
+  {
+    "id": "AR0024",
+    "title": "Roadmap 21: Jobs on another machine: spawn, run, and the branch back",
+    "status": "planned",
+    "path": "spec/features/AR0024-roadmap-21-jobs-on-another-machine-spawn-run-and-the-branch-back/ticket.md",
+    "updated": "2026-10-16T09:46:28.188Z",
+    "after": [
+      "AR0019",
+      "AR0023"
+    ]
+  },
+  {
+    "id": "AR0025",
+    "title": "Roadmap 22: Jobs on another machine: stop, steer, continue, and the machine going offline",
+    "status": "planned",
+    "path": "spec/features/AR0025-roadmap-22-jobs-on-another-machine-stop-steer-continue-and-the-machine-going-offline/ticket.md",
+    "updated": "2026-10-16T09:46:28.553Z",
+    "after": [
+      "AR0024"
     ]
   }
 ]

@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, rmSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import type { Bus } from "./events.ts";
 import { jobIds } from "./job-records.ts";
@@ -121,9 +121,14 @@ function syncMachine(home: string, machine: Machine, bus: Bus): void {
 		const ended = copy.state !== "working" && copy.state !== "idle";
 		const branch = read("branch");
 		if (ended && branch !== "") gitOver(read("root"), ["fetch", "--quiet", url(machine, read("project")), `+refs/heads/${branch}:refs/heads/${branch}`]);
-		const moved = moveJob(home, id, bus, () => [copy.state as State, copy.reason], new Date(copy.since));
+		// A plugin's hold here stands while the run goes on there, and ends with it, as the wrapper's does.
+		moveJob(home, id, bus, (now) => {
+			if (now.hold !== "" && !ended) return undefined;
+			rmSync(join(folder, "hold"), { force: true });
+			return [copy.state as State, copy.reason];
+		}, new Date(copy.since));
 		write(folder, "synced", String(copy.at));
-		if (ended && moved) bus.emit("core", "job-ended", { id, kind: read("kind"), project: read("project"), state: copy.state, reason: copy.reason });
+		if (ended) bus.emit("core", "job-ended", { id, kind: read("kind"), project: read("project"), state: copy.state, reason: copy.reason });
 	}
 }
 

@@ -9,7 +9,7 @@ import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { coreVersion } from "../src/job-machine.ts";
 import { jobRunner } from "../src/jobs.ts";
-import { fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
+import { fakeAgent, fakeHost, jobSlice, temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
@@ -38,8 +38,9 @@ process.env.PATH = [bin, process.env.PATH].join(delimiter);
 const calls = () => (existsSync(sshLog) ? readFileSync(sshLog, "utf8").split("\n").filter(Boolean) : []);
 
 // A repository `acme` with one commit, a home folder beside it, and a machine `gpu` in a folder of its own whose `arthur` is
-// this core (`arthur` there: the script of `<machine>/bin/arthur`); the runner's plugin `machines` registers it.
-function setup(options: { readonly agent?: string; readonly arthur?: string; readonly place?: () => unknown } = {}) {
+// this core (`arthur` there: the script of `<machine>/bin/arthur`); the runner's plugin `machines` registers it, and `place`
+// answers its `jobs.place`, one answer per plugin that provides it.
+function setup(options: { readonly agent?: string; readonly arthur?: string; readonly place?: () => readonly unknown[] } = {}) {
 	rmSync(sshLog, { force: true });
 	const folder = temporaryFolder();
 	const root = join(folder, "acme");
@@ -53,7 +54,7 @@ function setup(options: { readonly agent?: string; readonly arthur?: string; rea
 	if (options.arthur !== "") writeFileSync(join(machine, "bin/arthur"), options.arthur ?? `#!/bin/sh\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
 	const there = join(machine, "arthur-home");
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T12:00:00Z"));
-	const collect = (name: string) => (name === "jobs.place" && options.place !== undefined ? [options.place()] : []);
+	const collect = (name: string) => (name === "jobs.place" ? [...(options.place?.() ?? [])] : []);
 	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, ...jobSlice }, options.agent ?? "omp", time, eventBus(home), collect);
 	jobs.registerMachine("machines", { name: "gpu", ssh: "gpu", home: there, labels: { os: "linux" } });
 	return { root, home, machine, there, jobs };
@@ -149,13 +150,16 @@ test("a job on local takes no SSH step, at its spawn or at a sweep, while anothe
 });
 
 test("without --machine the spawn goes where jobs.place answers; an unknown answer is refused", async () => {
-	const placed = setup({ place: () => Promise.resolve("gpu") });
+	const placed = setup({ place: () => [Promise.resolve("gpu")] });
 	const job = await placed.jobs.spawn({ task: "Go.", kind: "worker" });
 	assert.equal(read(placed.home, job.id, "machine"), "gpu");
 	const named = await placed.jobs.spawn({ task: "Go.", machine: "local" });
 	assert.equal(read(placed.home, named.id, "machine"), "local", "a named machine wins over the placement");
-	const wrong = setup({ place: () => undefined });
+	const wrong = setup({ place: () => [undefined] });
 	await assert.rejects(wrong.jobs.spawn({ task: "Go." }), { message: "unknown machine undefined; machines: gpu, local" });
+	const two = setup({ place: () => ["gpu", "local"] });
+	await assert.rejects(two.jobs.spawn({ task: "Go." }), { message: 'call("jobs.place"): provided by 2 plugins; call needs exactly one' });
+	assert.equal(existsSync(join(two.home, "jobs")), false);
 });
 
 test("a prepare that throws on a job on another machine removes its worktree and record there and here", async () => {
@@ -183,6 +187,47 @@ test("a machine that does not answer fails the sweep, naming it, and its running
 	});
 });
 
+test("a wrapper that does not start there ends the job there, and here at once with job-ended", async () => {
+	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Done." }] }) });
+	// The record there loses a file between its add and the launch: the wrapper fails reading it, before its pid.
+	jobs.prepare("projects", (job) => rmSync(join(there, "jobs", job.id, "timeout")));
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	assert.match(job.failed ?? "", /^the wrapper exited 1 before it wrote its pid; see /);
+	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["ended", `failed: ${job.failed}`]);
+	assert.deepEqual(events(home, "job-ended").map((data) => data.id), [job.id]);
+});
+
+test("a plugin's hold on a job there stands at each copy while it runs there, and ends with its run", async () => {
+	const gate = join(temporaryFolder(), "go");
+	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	jobs.block(job.id, "waiting for AR0001");
+	jobs.sweep();
+	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "hold")], ["blocked", "waiting for AR0001"]);
+	writeFileSync(gate, "");
+	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
+	jobs.sweep();
+	assert.deepEqual([read(home, job.id, "state"), existsSync(join(home, "jobs", job.id, "hold"))], ["ended", false]);
+	const copies = calls().length;
+	jobs.sweep();
+	assert.equal(calls().length, copies, "a job no longer held nor in a run is not copied again");
+});
+
+test("arthur spawn --machine names the machine; arthur remote-job refuses an unknown step, a relative home and a bad project", () => {
+	const root = setup().root;
+	writeFileSync(join(root, "arthur.config.ts"), 'export default { core: { timeZone: "UTC" }, plugins: [{ name: "orchestration", setup() {} }] };\n');
+	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8" });
+	const spawned = arthur("spawn", "Go.", "--machine", "mac");
+	assert.deepEqual([spawned.status, spawned.stderr], [1, "arthur spawn: unknown machine mac; machines: local\n"]);
+	const usage = "usage: arthur remote-job repo|add|launch|remove|records <home> [args]\n";
+	assert.deepEqual([arthur("remote-job", "push", "/x").status, arthur("remote-job", "push", "/x").stderr], [2, `arthur remote-job: unknown step "push"\n${usage}`]);
+	assert.deepEqual([arthur("remote-job", "repo", "home").status, arthur("remote-job", "repo", "home").stderr], [2, `arthur remote-job: the home folder must be an absolute path\n${usage}`]);
+	const home = temporaryFolder();
+	const bad = arthur("remote-job", "repo", home, "../acme", "HEAD");
+	assert.deepEqual([bad.status, bad.stderr], [1, 'arthur remote-job: a project name, got "../acme"\n']);
+	assert.deepEqual(readdirSync(home), []);
+});
+
 test("registerMachine refuses local, a machine registered twice, a bad name, an ssh that is an option, and a relative home", () => {
 	const { jobs } = setup();
 	const machine = { name: "mac", ssh: "mac", home: "/Users/kacper/.arthur", labels: {} };
@@ -192,6 +237,8 @@ test("registerMachine refuses local, a machine registered twice, a bad name, an 
 	assert.throws(() => jobs.registerMachine("machines", { ...machine, ssh: "-oProxyCommand=sh" }), { message: 'machine mac: ssh must be a Host of ~/.ssh/config or a host name, got "-oProxyCommand=sh"' });
 	assert.throws(() => jobs.registerMachine("machines", { ...machine, home: ".arthur" }), { message: 'machine mac: home must be an absolute path, got ".arthur"' });
 	jobs.registerMachine("machines", machine);
+	const host = fakeHost({ name: "machines" }).host;
+	assert.throws(() => host.jobs.registerMachine({ ...machine, name: "local" }), { message: "machine local: registered by core and by machines; a machine belongs to one plugin" });
 });
 
 test("arthur version prints the core's version, without a config", () => {

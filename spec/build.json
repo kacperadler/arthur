@@ -704,5 +704,12 @@
     "status": "planned",
     "path": "spec/features/AR0083-arthur-prune-with-no-ids-refuses-all-prunes-every-finished-job/ticket.md",
     "updated": "2026-10-16T16:41:13.531Z"
+  },
+  {
+    "id": "AR0084",
+    "title": "Roadmap 24: the coordinator's inbox, the wake, and a human's message mid-turn",
+    "status": "planning",
+    "path": "spec/features/AR0084-roadmap-24-the-coordinator-s-inbox-the-wake-and-a-human-s-message-mid-turn/ticket.md",
+    "updated": "2026-10-16T17:03:09.617Z"
   }
 ]

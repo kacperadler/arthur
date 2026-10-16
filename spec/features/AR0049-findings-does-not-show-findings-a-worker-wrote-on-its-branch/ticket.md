@@ -36,3 +36,4 @@ In:
 ## Decisions
 
 - 2026-10-16: Source: F3 of AR0021
+- 2026-10-16: Coordinator: OK on showing a branch only when its own commits changed findings.md (so an untouched or merged branch never shows stale text), and on the one-line cli.ts change passing the home folder.

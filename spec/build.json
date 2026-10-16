@@ -145,9 +145,9 @@
   {
     "id": "AR0016",
     "title": "Roadmap 13: Job limits: one scope per job in a joint slice",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0016-roadmap-13-job-limits-one-scope-per-job-in-a-joint-slice/ticket.md",
-    "updated": "2026-10-16T13:42:06.707Z",
+    "updated": "2026-10-16T13:48:04.491Z",
     "after": [
       "AR0014"
     ]
@@ -467,8 +467,8 @@
   {
     "id": "AR0055",
     "title": "Roadmap: channels hand media to plugins; local voice transcription",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0055-roadmap-channels-hand-media-to-plugins-local-voice-transcription/ticket.md",
-    "updated": "2026-10-16T13:44:03.840Z"
+    "updated": "2026-10-16T13:44:07.172Z"
   }
 ]

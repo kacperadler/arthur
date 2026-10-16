@@ -17,7 +17,7 @@ Can the owner merge this branch as it is? Judge the branch against its instructi
 
 - A requirement is missing, stubbed, faked, or only claimed in the final message.
 - A check fails, or a claimed result does not reproduce.
-- A boundary breaks: a plugin imports another plugin, a core file by path, or anything outside `@arthur/core`'s published exports; the core imports a plugin; a plugin reads or writes another plugin's folder under `.arthur/`.
+- A boundary breaks: a plugin imports another plugin, a core file by path, or anything outside `@arthur/core`'s published exports; the core imports a plugin; a plugin reads or writes another plugin's folder under `.arthur/`, or reads a file beyond the one path another plugin handed it in an event or a `collect` answer (a message part's `path`).
 - The styleguide's Shape rules break: a runtime dependency, an `index.ts`, `types.ts` or `utils.ts`, a class or enum, non-erasable TypeScript, a file over 200 lines, a line budget exceeded.
 - A new behavior has no test, its test would still pass with the behavior removed, or only the happy path is tested. A mutation of a key behavior (condition removed or inverted, refusal disabled, limit moved by one) that the tests do not catch is the same FAIL: name the mutation.
 - A plugin is tested against another real plugin instead of the fake host, or a fake of an outside service answers in a shape its documentation does not show.

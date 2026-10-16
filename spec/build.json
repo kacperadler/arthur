@@ -352,8 +352,8 @@
   {
     "id": "AR0039",
     "title": "`arthur config check` says ok when a plugin's `setup` refuses the start",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0039-arthur-config-check-says-ok-when-a-plugin-s-setup-refuses-the-start/ticket.md",
-    "updated": "2026-10-16T11:35:23.186Z"
+    "updated": "2026-10-16T11:35:45.014Z"
   }
 ]

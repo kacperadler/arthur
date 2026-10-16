@@ -41,3 +41,4 @@ Out:
 
 - 2026-10-16: Coordinator: from the core line review (AR0069), accepted.
 - 2026-10-16: The human: steps 1 (cuts AR0074 to AR0079) and 2 (entries 16, 21, 22) approved; in parallel only where tickets touch different files, otherwise one after another. Entry 23 starts only after both are merged.
+- 2026-10-16: The human: AR0070, AR0071, AR0076 and AR0079 run today, one after another (shared files); then Arthur pauses.

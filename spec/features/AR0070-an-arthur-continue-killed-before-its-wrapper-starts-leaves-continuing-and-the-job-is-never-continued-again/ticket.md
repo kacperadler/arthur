@@ -40,3 +40,4 @@ In:
 ## Decisions
 
 - 2026-10-16: Source: F1 of AR0067
+- 2026-10-16: The human: AR0070, AR0071, AR0076 and AR0079 run today, one after another (shared files); then Arthur pauses.

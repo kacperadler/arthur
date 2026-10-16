@@ -187,9 +187,9 @@
   {
     "id": "AR0020",
     "title": "Roadmap 17: Ticket board: tickets and the board file",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0020-roadmap-17-ticket-board-tickets-and-the-board-file/ticket.md",
-    "updated": "2026-10-16T11:31:46.180Z",
+    "updated": "2026-10-16T11:34:35.755Z",
     "after": [
       "AR0036"
     ]
@@ -352,8 +352,8 @@
   {
     "id": "AR0039",
     "title": "`arthur config check` says ok when a plugin's `setup` refuses the start",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0039-arthur-config-check-says-ok-when-a-plugin-s-setup-refuses-the-start/ticket.md",
-    "updated": "2026-10-16T11:30:33.276Z"
+    "updated": "2026-10-16T11:35:23.186Z"
   }
 ]

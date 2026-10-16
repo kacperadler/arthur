@@ -13,7 +13,7 @@ import { eventBus } from "./events.ts";
 import type { Slice } from "./job-scope.ts";
 import { jobRunner, type Kind } from "./jobs.ts";
 import type { Role } from "./roles.ts";
-import { type Host, type Options, type Provider, pluginHost, registry } from "./plugin.ts";
+import { type Host, type Options, type Plugin, type Provider, pluginHost, registry } from "./plugin.ts";
 
 // The test kit (spec/roadmap.md, entries 4, 11 and 13), published as `@arthur/core/testing`. Loading it is the safety net,
 // and `npm test` loads it into every test process (`--import`): every `ARTHUR_` variable and tmux's session variables are
@@ -73,8 +73,9 @@ export function fakeAgent(run: AgentRun): string {
 export type Use = { readonly kind: "call" | "collect"; readonly name: string; readonly args: readonly unknown[] };
 
 export type FakeHost = {
-	// Given to the plugin's `setup`.
+	// Given to the plugin's `setup`, which `setup(plugin)` runs: a spawn during it throws, as in a real load.
 	readonly host: Host;
+	setup(plugin: Pick<Plugin, "setup">): Promise<void>;
 	// What the plugin did through `host`, in order.
 	readonly provided: readonly string[];
 	readonly calls: readonly Use[];
@@ -125,9 +126,9 @@ export function fakeHost(plugin: {
 	let now = (plugin.now ?? new Date("2026-01-01T00:00:00Z")).getTime();
 	const time = clock(plugin.timeZone ?? "UTC", plugin.quietHours, () => new Date(now));
 	const jobs = jobRunner(home, plugin.root ?? home, { timeoutMinutes: 120, budgetUsd: 2, ...jobSlice }, "omp", time, bus, names.collect);
-	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder, clock: time });
+	let loading = false, following = false;
+	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder, clock: time }, () => loading);
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));
-	let following = false;
 	const provided: string[] = [];
 	const calls: Use[] = [];
 	const commands: Command[] = [];
@@ -165,7 +166,7 @@ export function fakeHost(plugin: {
 				roles.push(role);
 			},
 			spawn(request) {
-				if (!following) {
+				if (!following && !loading) {
 					refuseUnstartableTickets(core, jobs);
 					moveStartedTickets(core, bus);
 					following = true;
@@ -176,6 +177,10 @@ export function fakeHost(plugin: {
 	};
 	return {
 		host,
+		setup(plugin) {
+			loading = true;
+			return Promise.try(() => plugin.setup(host)).finally(() => (loading = false));
+		},
 		provided,
 		calls,
 		commands,

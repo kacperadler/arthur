@@ -304,7 +304,29 @@ test("a continue whose wrapper does not start ends the job failed and says why, 
 	const [, second] = await ended(home, job.id, 2);
 	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "failed", reason });
 	assert.deepEqual(["state", "pid"].map((name) => field(home, job.id, name)), ["failed", undefined]);
+	assert.equal(existsSync(join(home, "jobs", job.id, "continuing")), false, "a failed continue frees the record");
 });
+
+for (const manager of [true, false])
+	test(`two continues at once start one wrapper ${manager ? "in its scope" : "bare, without a user manager"}: the other is refused, the record ends once`, async (t) => {
+		if (!manager) bare(t);
+		const gate = join(temporaryFolder(), "gate");
+		const { agent, resumed } = resuming({ steps: [{ message: "First." }] }, { steps: [{ waitFor: gate }, { message: "Second." }] });
+		const { home, jobs } = setup(agent);
+		const job = await jobs.spawn({ task: "Go." });
+		await ended(home, job.id);
+		const both = await Promise.allSettled([jobs.continue(job.id, "One."), jobs.continue(job.id, "Two.")]);
+		assert.deepEqual(both.map((result) => (result.status === "fulfilled" ? result.value : (result.reason as Error).message)), [undefined, `${job.id}: being continued`]);
+		await running(home, job.id);
+		await until("the record freed by the new wrapper", () => !existsSync(join(home, "jobs", job.id, "continuing")));
+		await assert.rejects(jobs.continue(job.id, "Three."), { message: `${job.id} is running; a running job is not continued, arthur steer gives it a correction` });
+		assert.equal(existsSync(join(home, "jobs", job.id, "continuing")), false, "a refused continue frees the record");
+		writeFileSync(gate, "");
+		const [, second, ...more] = await ended(home, job.id, 2);
+		assert.deepEqual([second, more], [{ id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" }, []]);
+		assert.deepEqual([starts(resumed).length, field(home, job.id, "continue"), field(home, job.id, "log")?.match(/\] arthur continue: /g)?.length], [1, "One.", 1]);
+		assert.equal(field(home, job.id, "log")?.includes("no systemd scope"), !manager);
+	});
 
 test("continue is refused, with the id and the reason: a running job, a read-only kind, an unknown id, an empty instruction, a bad budget", async () => {
 	const gate = join(temporaryFolder(), "gate");

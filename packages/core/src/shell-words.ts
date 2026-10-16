@@ -1,10 +1,10 @@
 // The words of a shell command as bash sees them before brace and pathname expansion (spec/roadmap.md, entries 19 and 20):
 // split at unquoted blanks and the operators `; & | < > ( )`, quotes removed, a backslash-newline gone, the escapes of
-// `$'…'` decoded, a `#` comment dropped. An expansion whose value is known only when the command runs (`$x`, `${x}`, `$1`)
+// `$'…'` decoded. An expansion whose value is known only when the command runs (`$x`, `${x}`, `$1`)
 // is nothing, or the word it falls back to (`${x:-word}`, also with `=`, `+`, `?` and without the colon). The words of a
 // command substitution (`$(…)`, backticks) count as words of their own. A quoted or escaped character that brace or
 // pathname expansion would take as special (`\ * ? [ ] { } ,`) keeps a backslash before it, so a glob is told apart from
-// a quoted star; `literal` removes those backslashes. A heredoc body is split like any other text.
+// a quoted star; `literal` removes those backslashes. A comment or a heredoc body is split like any other text.
 
 const SPECIAL = "\\*?[]{},";
 const OPERATORS = ";&|<>()";
@@ -46,15 +46,9 @@ function closing(text: string, from: number, open: string, close: string): numbe
 export function shellWords(command: string): string[] {
 	const words: string[] = [];
 	let word = "";
-	let started = false;
-	const add = (text: string) => {
-		word += text;
-		started = true;
-	};
 	const end = () => {
-		if (started) words.push(word);
+		if (word !== "") words.push(word);
 		word = "";
-		started = false;
 	};
 	// The expansion that starts with `$` at `at`, inside double quotes or not: what it adds to the word, and where it ends.
 	const dollar = (at: number, inDouble: boolean): [string, number] => {
@@ -91,43 +85,39 @@ export function shellWords(command: string): string[] {
 	while (at < command.length) {
 		const char = command[at]!;
 		if (char === "\\") {
-			if (command[at + 1] !== "\n") add(quoted(command[at + 1] ?? "\\"));
+			if (command[at + 1] !== "\n") word += quoted(command[at + 1] ?? "\\");
 			at += 2;
 		} else if (char === "'") {
 			const close = command.indexOf("'", at + 1);
-			add(quoted(command.slice(at + 1, close < 0 ? undefined : close)));
+			word += quoted(command.slice(at + 1, close < 0 ? undefined : close));
 			at = close < 0 ? command.length : close + 1;
 		} else if (char === '"') {
-			add("");
 			for (at++; at < command.length && command[at] !== '"'; ) {
 				const inner = command[at]!;
 				if (inner === "\\" && '$`"\\\n'.includes(command[at + 1] ?? "")) {
-					if (command[at + 1] !== "\n") add(quoted(command[at + 1]!));
+					if (command[at + 1] !== "\n") word += quoted(command[at + 1]!);
 					at += 2;
 				} else if (inner === "$") {
 					const [text, next] = dollar(at, true);
-					add(text);
+					word += text;
 					at = next;
 				} else if (inner === "`") at = backtick(at);
 				else {
-					add(quoted(inner));
+					word += quoted(inner);
 					at++;
 				}
 			}
 			at++;
 		} else if (char === "$") {
 			const [text, next] = dollar(at, false);
-			add(text);
+			word += text;
 			at = next;
 		} else if (char === "`") at = backtick(at);
-		else if (char === "#" && !started) {
-			const newline = command.indexOf("\n", at);
-			at = newline < 0 ? command.length : newline;
-		} else if (OPERATORS.includes(char) || /\s/.test(char)) {
+		else if (OPERATORS.includes(char) || /\s/.test(char)) {
 			end();
 			at++;
 		} else {
-			add(char);
+			word += char;
 			at++;
 		}
 	}

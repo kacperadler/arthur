@@ -74,6 +74,7 @@ const PROJECT: ReadonlyArray<readonly [string, Record<string, unknown>, string |
 	["write", { path: "notes.txt", content: "copy .env.example to .env\n" }, undefined],
 	["edit", { input: "[notes.txt#1A2B]\nPUT 1.=1:\n+cat .env" }, undefined],
 	["read", { path: "notes.txt", i: "Reading .env" }, undefined],
+	["bash", { command: "ls", i: "Checking .env" }, undefined],
 	["todo_write", { text: "read .env" }, undefined],
 ];
 

@@ -2,8 +2,18 @@
   {
     "id": "AR0001",
     "title": "Bootstrap: Arthur repository, docs, toolchain and the feature roadmap",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0001-bootstrap-arthur-repository-docs-toolchain-and-the-feature-roadmap/ticket.md",
-    "updated": "2026-10-16T09:09:31.033Z"
+    "updated": "2026-10-16T09:22:16.632Z"
+  },
+  {
+    "id": "AR0002",
+    "title": "Roadmap: job state, several machines, and resource-based limits",
+    "status": "planned",
+    "path": "spec/features/AR0002-roadmap-job-state-several-machines-and-resource-based-limits/ticket.md",
+    "updated": "2026-10-16T09:25:37.434Z",
+    "after": [
+      "AR0001"
+    ]
   }
 ]

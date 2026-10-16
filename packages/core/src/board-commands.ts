@@ -86,6 +86,7 @@ function branchFindings(home: string, where: Project, ticketPath: string, path: 
 	const git = (...args: readonly string[]) => spawnSync("git", ["-C", where.path, ...args], { encoding: "utf8" });
 	const refs = git("for-each-ref", "--sort=-committerdate", "--format=%(refname:lstrip=2)", ...branches.map((name) => `refs/heads/${name}`));
 	if (refs.status !== 0) throw new Error(`git for-each-ref: ${refs.error?.message ?? refs.stderr.trim()}`);
+	// A pattern also lists the refs under it, and a read-only job's empty branch every branch: only the records' own count.
 	for (const name of refs.stdout.split("\n").filter((each) => branches.includes(each))) {
 		if (git("diff", "--quiet", `HEAD...refs/heads/${name}`, "--", path).status !== 1) continue;
 		const show = git("cat-file", "blob", `refs/heads/${name}:${path}`);
@@ -102,7 +103,7 @@ function jobBranches(home: string, project: string, ticketPath: string): string[
 		const keys = ["task", "branch", "project"].map((key) => join(folder, entry.name, key));
 		if (!entry.isDirectory() || entry.name.startsWith(".") || !keys.every((key) => existsSync(key))) return [];
 		const [task = "", branch = "", owner] = keys.map((key) => readFileSync(key, "utf8"));
-		if (branch === "" || owner !== project) return [];
+		if (owner !== project) return [];
 		const tickets = Array.from(task.matchAll(TICKET), (match) => (match[1] ?? "").replace(/[.,;:!?)]+$/, ""));
 		return tickets.includes(ticketPath) ? [branch] : [];
 	});

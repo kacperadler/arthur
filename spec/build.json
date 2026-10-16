@@ -534,9 +534,9 @@
   {
     "id": "AR0065",
     "title": "`arthur continue` starts an agent without the plugins' `beforeSpawn` checks",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0065-arthur-continue-starts-an-agent-without-the-plugins-beforespawn-checks/ticket.md",
-    "updated": "2026-10-16T15:04:40.257Z"
+    "updated": "2026-10-16T15:05:09.997Z"
   },
   {
     "id": "AR0066",
@@ -553,6 +553,16 @@
     "updated": "2026-10-16T14:48:55.279Z",
     "after": [
       "AR0065"
+    ]
+  },
+  {
+    "id": "AR0068",
+    "title": "A continued worker leaves its ticket in review or done",
+    "status": "planned",
+    "path": "spec/features/AR0068-a-continued-worker-leaves-its-ticket-in-review-or-done/ticket.md",
+    "updated": "2026-10-16T15:05:20.346Z",
+    "after": [
+      "AR0067"
     ]
   }
 ]

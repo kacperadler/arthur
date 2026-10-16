@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/job-control.ts` (`continueJob`), `packages/core/src/board-jobs.ts` (`moveStartedTickets`)
 - What: the core moves a worker's tickets to in-progress on `job-started`, which only a spawn emits; `continueJob` emits none. Since AR0065 the core's `beforeSpawn` lets a continue through on a ticket in `review` or `done` (as a spawn), but the ticket then stays in `review` or `done` while the worker runs again. [INFERENCE: from those lines; not run.]
 - Suggestion: on a continue the core moves the record's tickets to in-progress as at a spawn (an event of its own, or the move called from the continue); what other plugins see of a continue stays out.
-- Status: open
+- Status: ticket AR0068

@@ -36,6 +36,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0058 The styleguide forbids a plugin to read another plugin's folder, and voice reads the channel's saved file (f3a1261)
 - AR0060 The fake host does not refuse a worker whose ticket cannot move to in-progress (e5aa2d6)
 - AR0062 A worker spawned during a plugin's `setup` skips the core's ticket check in a real load (b16ef94)
+- AR0065 `arthur continue` starts an agent without the plugins' `beforeSpawn` checks (cd2bde1)
 - AR0066 A process that holds the agent's stdout open keeps the wrapper from ending the job (7e88ef3)
 
 ### Changed

@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/job-scope.ts`, `launch`
 - What: `launch` decides between a scope and a bare job by whether `systemctl --user set-property` succeeds, then starts the wrapper through `systemd-run --user --scope` in the background. When `systemd-run` itself fails after that (missing while `systemctl` is there, or the manager refusing the scope), its message goes to `<home>/wrapper.log`, the wrapper never runs, and the record keeps no `state`: the job neither runs nor ends, and no `job-ended` is emitted. Not reproduced; read from the lines.
 - Suggestion: entry 15's sweep of dead jobs (`process gone`) should cover a record with no `pid` and no `state` some time after `job-started`; alternatively `launch` could wait for `systemd-run`'s exit when it is not 0 within a short time and start the wrapper bare with the log line. Out: changing how the slice is set.
-- Status: open
+- Status: ticket AR0056

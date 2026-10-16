@@ -145,9 +145,9 @@
   {
     "id": "AR0016",
     "title": "Roadmap 13: Job limits: one scope per job in a joint slice",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0016-roadmap-13-job-limits-one-scope-per-job-in-a-joint-slice/ticket.md",
-    "updated": "2026-10-16T13:48:04.491Z",
+    "updated": "2026-10-16T13:48:24.994Z",
     "after": [
       "AR0014"
     ]
@@ -470,5 +470,12 @@
     "status": "in-progress",
     "path": "spec/features/AR0055-roadmap-channels-hand-media-to-plugins-local-voice-transcription/ticket.md",
     "updated": "2026-10-16T13:44:07.172Z"
+  },
+  {
+    "id": "AR0056",
+    "title": "A `systemd-run` that fails after the slice was set leaves a job that never ends",
+    "status": "planned",
+    "path": "spec/features/AR0056-a-systemd-run-that-fails-after-the-slice-was-set-leaves-a-job-that-never-ends/ticket.md",
+    "updated": "2026-10-16T13:48:36.694Z"
   }
 ]

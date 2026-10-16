@@ -187,9 +187,9 @@
   {
     "id": "AR0020",
     "title": "Roadmap 17: Ticket board: tickets and the board file",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0020-roadmap-17-ticket-board-tickets-and-the-board-file/ticket.md",
-    "updated": "2026-10-16T11:34:35.755Z",
+    "updated": "2026-10-16T11:37:24.553Z",
     "after": [
       "AR0036"
     ]

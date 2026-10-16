@@ -12,4 +12,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Found by: 2026-10-16-ar0067-one-continue-at-a-52c02319 (worker), 2026-10-16
 - Where: `packages/core/src/job-control.ts` (`continueJob`, its `finally`)
 - What: `continueJob` creates `<record>/continuing` before it reads the state and removes it in a `finally` when the continue fails; the new wrapper removes it once running. A process ended by a signal skips the `finally`: a Node process waiting in `try { await … } finally { … }` exited 130 on SIGINT without running its `finally` (run on 2026-10-16). So a Ctrl-C, or a SIGKILL, of `arthur continue` while it runs the plugins' `beforeSpawn` checks, waits for the old wrapper (up to 5 seconds), or waits for the new wrapper's `pid` (up to 10 seconds) leaves `continuing`, and every later continue of that job is refused `<id>: being continued` until the folder is removed by hand (said in `packages/core/docs/commands/continue.md`).
-- Status: open
+- Status: ticket AR0070

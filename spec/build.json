@@ -549,9 +549,9 @@
   {
     "id": "AR0067",
     "title": "Two `arthur continue` at once can start two wrappers on one record where the job runs bare",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0067-two-arthur-continue-at-once-can-start-two-wrappers-on-one-record-where-the-job-runs-bare/ticket.md",
-    "updated": "2026-10-16T15:25:22.739Z",
+    "updated": "2026-10-16T15:25:54.192Z",
     "after": [
       "AR0065"
     ]
@@ -572,6 +572,16 @@
     "status": "planned",
     "path": "spec/features/AR0069-core-line-review-what-moves-to-a-plugin-or-goes/ticket.md",
     "updated": "2026-10-16T15:14:30.987Z",
+    "after": [
+      "AR0018"
+    ]
+  },
+  {
+    "id": "AR0070",
+    "title": "An `arthur continue` killed before its wrapper starts leaves `continuing`, and the job is never continued again",
+    "status": "planned",
+    "path": "spec/features/AR0070-an-arthur-continue-killed-before-its-wrapper-starts-leaves-continuing-and-the-job-is-never-continued-again/ticket.md",
+    "updated": "2026-10-16T15:26:03.505Z",
     "after": [
       "AR0018"
     ]

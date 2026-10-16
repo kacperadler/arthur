@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "check": "tsc",
-    "test": "node --test \"test/**/*.test.ts\" \"packages/*/test/**/*.test.ts\""
+    "test": "node --import @arthur/core/testing --test \"test/**/*.test.ts\" \"packages/*/test/**/*.test.ts\""
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

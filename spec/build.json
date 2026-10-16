@@ -63,9 +63,9 @@
   {
     "id": "AR0008",
     "title": "Roadmap 5: Event stream",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0008-roadmap-5-event-stream/ticket.md",
-    "updated": "2026-10-16T10:53:00.966Z",
+    "updated": "2026-10-16T10:53:31.266Z",
     "after": [
       "AR0007"
     ]
@@ -189,10 +189,9 @@
     "title": "Roadmap 17: Ticket board: tickets and the board file",
     "status": "planned",
     "path": "spec/features/AR0020-roadmap-17-ticket-board-tickets-and-the-board-file/ticket.md",
-    "updated": "2026-10-16T09:46:26.811Z",
+    "updated": "2026-10-16T10:53:49.410Z",
     "after": [
-      "AR0008",
-      "AR0009"
+      "AR0036"
     ]
   },
   {
@@ -318,5 +317,22 @@
     "status": "in-progress",
     "path": "spec/features/AR0034-roadmap-disk-space-and-docker-cleanup-with-each-worktree/ticket.md",
     "updated": "2026-10-16T10:49:38.335Z"
+  },
+  {
+    "id": "AR0035",
+    "title": "An event a command emits reaches the log but not the daemon's subscribers",
+    "status": "planned",
+    "path": "spec/features/AR0035-an-event-a-command-emits-reaches-the-log-but-not-the-daemon-s-subscribers/ticket.md",
+    "updated": "2026-10-16T10:53:49.207Z",
+    "after": [
+      "AR0011"
+    ]
+  },
+  {
+    "id": "AR0036",
+    "title": "The lock's dead-holder takeover race has no test",
+    "status": "planning",
+    "path": "spec/features/AR0036-the-lock-s-dead-holder-takeover-race-has-no-test/ticket.md",
+    "updated": "2026-10-16T10:53:31.265Z"
   }
 ]

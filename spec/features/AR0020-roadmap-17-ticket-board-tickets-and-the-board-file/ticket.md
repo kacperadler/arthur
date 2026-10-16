@@ -6,8 +6,7 @@
   "title": "Roadmap 17: Ticket board: tickets and the board file",
   "date": "2026-10-16",
   "after": [
-    "AR0008",
-    "AR0009"
+    "AR0036"
   ]
 }
 ```

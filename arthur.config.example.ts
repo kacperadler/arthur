@@ -47,7 +47,8 @@ export default defineConfig({
 		agent: { command: "omp" }, // the agent CLI; OMP only
 		timeZone: "Europe/Warsaw", // read by schedule, session, telegram and orchestration through the host; default: the host's
 		quietHours: { from: "22:00", to: "07:30" }, // channels send without a notification; the coordinator answers in one line;
-		// "HH:MM", both required; left out = no quiet hours
+		// "HH:MM", both required; quiet from `from` up to `to`, across midnight when `from` is later; equal = never quiet;
+		// left out = no quiet hours
 		jobs: {
 			timeoutMinutes: 120, // one job's time; the resources plugin adds its CPU and memory
 			budgetUsd: 2, // one job's money; 0 = no limit

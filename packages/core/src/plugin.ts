@@ -1,3 +1,4 @@
+import type { Clock } from "./clock.ts";
 import type { CommandRegistry, Commands } from "./commands.ts";
 import type { Bus, Events } from "./events.ts";
 
@@ -32,6 +33,8 @@ export type Host = {
 	readonly env: Readonly<Record<string, string>>;
 	// `<home>/<plugin>/`, created before `setup`; no other plugin reads or writes it.
 	readonly folder: string;
+	// One clock for every plugin, in the core's `timeZone` with its `quietHours`.
+	readonly clock: Clock;
 	// Events go to every subscriber in this process and to the log `<home>/events.jsonl`, named by this plugin.
 	readonly events: Events;
 	// Several plugins may provide one name: `call` needs exactly one, `collect` reads them all, in setup order.
@@ -73,7 +76,7 @@ export function registry(): Registry {
 	};
 }
 
-export function pluginHost(names: Registry, commands: CommandRegistry, bus: Bus, own: Pick<Host, "name" | "options" | "env" | "folder">): Host {
+export function pluginHost(names: Registry, commands: CommandRegistry, bus: Bus, own: Pick<Host, "name" | "options" | "env" | "folder" | "clock">): Host {
 	return {
 		...own,
 		events: {

@@ -1,7 +1,9 @@
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { clock } from "./clock.ts";
 import { type Command, commandRegistry } from "./commands.ts";
+import type { QuietHours } from "./config.ts";
 import { type Event, eventBus } from "./events.ts";
 import { type Host, type Options, type Provider, pluginHost, registry } from "./plugin.ts";
 
@@ -39,19 +41,31 @@ export type FakeHost = {
 	provide(name: string, fn: Provider): void;
 	// An event from the plugin `test`, delivered to the plugin's subscribers and logged like any other.
 	emit(name: string, data: unknown): Event;
+	// Moves the host's clock to `at`, where it stays until the next call.
+	setNow(at: Date): void;
 };
 
 // The host one plugin sees, alone: its options as given (`enabled` is the host's, left out), its env values, and its folder,
 // `<temporary folder>/<name>/`, whose parent is the home folder holding the event log. A `call` or a command's registration
-// refuses like the real host's, naming the plugin.
-export function fakeHost(plugin: { readonly name: string; readonly options?: Options; readonly env?: Readonly<Record<string, string>> }): FakeHost {
+// refuses like the real host's, naming the plugin. Its clock stands still at `now` (default 2026-01-01T00:00:00Z) in
+// `timeZone` (default UTC) until `setNow` moves it.
+export function fakeHost(plugin: {
+	readonly name: string;
+	readonly options?: Options;
+	readonly env?: Readonly<Record<string, string>>;
+	readonly timeZone?: string;
+	readonly quietHours?: QuietHours;
+	readonly now?: Date;
+}): FakeHost {
 	const names = registry();
 	const registered = commandRegistry();
 	const home = temporaryFolder();
 	const bus = eventBus(home);
 	const folder = join(home, plugin.name);
 	mkdirSync(folder);
-	const real = pluginHost(names, registered, bus, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder });
+	let now = (plugin.now ?? new Date("2026-01-01T00:00:00Z")).getTime();
+	const time = clock(plugin.timeZone ?? "UTC", plugin.quietHours, () => new Date(now));
+	const real = pluginHost(names, registered, bus, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder, clock: time });
 	const provided: string[] = [];
 	const calls: Use[] = [];
 	const commands: Command[] = [];
@@ -89,5 +103,8 @@ export function fakeHost(plugin: { readonly name: string; readonly options?: Opt
 		collect: <T>(name: string, ...args: readonly unknown[]) => names.collect(name, args) as T[],
 		provide: (name, fn) => names.provide("test", name, fn),
 		emit: (name, data) => bus.emit("test", name, data),
+		setNow: (at) => {
+			now = at.getTime();
+		},
 	};
 }

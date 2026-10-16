@@ -51,6 +51,25 @@ test("the fake host refuses a call nobody provides, naming the plugin, as the re
 	assert.throws(() => fake.call("health"), { message: 'plugin test: call("health"): no plugin provides it' });
 });
 
+test("the fake host's clock stands still, UTC at 2026-01-01T00:00:00Z unless given, until the test moves it", () => {
+	const plain = fakeHost({ name: "schedule" });
+	assert.equal(plain.host.clock.timeZone, "UTC");
+	assert.equal(plain.host.clock.now().toISOString(), "2026-01-01T00:00:00.000Z");
+	assert.equal(plain.host.clock.isQuiet(), false);
+	const start = new Date("2026-07-01T21:00:00+02:00");
+	const fake = fakeHost({ name: "telegram", timeZone: "Europe/Warsaw", quietHours: { from: "22:00", to: "07:30" }, now: start });
+	const { clock } = fake.host;
+	assert.equal(clock.now().toISOString(), start.toISOString());
+	assert.equal(clock.isQuiet(), false);
+	assert.equal(clock.next("22:00").toISOString(), "2026-07-01T20:00:00.000Z");
+	fake.setNow(new Date("2026-07-01T22:00:00+02:00"));
+	assert.equal(clock.now().toISOString(), "2026-07-01T20:00:00.000Z");
+	assert.equal(clock.isQuiet(), true);
+	assert.equal(clock.next("22:00").toISOString(), "2026-07-02T20:00:00.000Z");
+	assert.deepEqual(clock.local(), { date: "2026-07-01", time: "22:00", day: "wed" });
+	assert.equal(plain.host.clock.now().toISOString(), "2026-01-01T00:00:00.000Z", "each fake host has its own clock");
+});
+
 test("the fake host delivers the test's events to the plugin and lists what the plugin emitted, nested ones in their order", () => {
 	const fake = fakeHost({ name: "delivery" });
 	fake.host.events.on("review-ended", (event) => {

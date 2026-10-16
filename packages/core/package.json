@@ -8,6 +8,7 @@
   },
   "exports": {
     ".": "./src/config.ts",
+    "./clock": "./src/clock.ts",
     "./plugin": "./src/plugin.ts",
     "./testing": "./src/testing.ts"
   }

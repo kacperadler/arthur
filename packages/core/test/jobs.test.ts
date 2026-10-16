@@ -218,6 +218,9 @@ test("a branch named arthur refuses a worker before anything exists, naming the 
 	const { root, home } = repository();
 	git(root, "branch", "arthur");
 	const jobs = runner(home, root);
+	const role = join(temporaryFolder(), "reviewer.md");
+	writeFileSync(role, "# Reviewer\n");
+	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(role), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
 	const seen: string[] = [];
 	jobs.beforeSpawn("delivery", () => void seen.push("checked"));

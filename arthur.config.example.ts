@@ -10,7 +10,7 @@
 //   bots, GitHub accounts) lists named instances, each with its own variables: `ARTHUR_<PLUGIN>_<INSTANCE>_<WHAT>`
 //   (ARTHUR_YOUTRACK_ACME_TOKEN). One instance may omit its name and use the short form. A project names its instance.
 // - Arthur exposes nothing to the internet: no plugin here listens on a public address. Every plugin calls out (Telegram and GitHub
-//   are polled) or talks to a local process.
+//   are polled) or talks to a local process. Other machines are reached over SSH on a private network (Tailscale).
 // - The coordinator is always on: `orchestration` is required; the host refuses to start without it and refuses `enabled: false`
 //   on it. The human talks to it through a channel plugin or the terminal (`arthur attach`).
 // - Projects are declared here, in `projects`, and nowhere else: no separate JSON file. The board starts empty.
@@ -23,9 +23,11 @@ import { commitRules } from "@arthur/commit-rules"; // first, named
 import { delivery } from "@arthur/delivery"; // first, derived
 import { develop } from "@arthur/develop"; // first, named
 import { github } from "@arthur/github"; // first, derived
+import { machines } from "@arthur/machines"; // first, named
 import { manage } from "@arthur/manage"; // first, named
 import { orchestration } from "@arthur/orchestration"; // first, named, required
 import { projects } from "@arthur/projects"; // first, named
+import { resources } from "@arthur/resources"; // first, named
 import { schedule } from "@arthur/schedule"; // first, named
 import { server } from "@arthur/server"; // later, named
 import { session } from "@arthur/session"; // first, named
@@ -44,10 +46,12 @@ export default defineConfig({
 		timeZone: "Europe/Warsaw", // read by schedule, session, telegram and orchestration through the host
 		quietHours: { from: "22:00", to: "07:30" }, // channels send without a notification; the coordinator answers in one line
 		jobs: {
-			timeoutMinutes: 120,
-			budgetUsd: 2,
+			timeoutMinutes: 120, // one job's time; the resources plugin adds its CPU and memory
+			budgetUsd: 2, // one job's money
 			cpu: undefined, // cores all jobs together may use; undefined = host cores minus 1
 			memory: "70%", // systemd MemoryMax syntax
+			idleMinutes: 10, // a running job with no output or tool call this long is `idle`; 0 = never
+			offlineGraceMinutes: 30, // a job whose machine stops answering is `blocked` this long, then failed
 		},
 	},
 
@@ -56,7 +60,7 @@ export default defineConfig({
 		// starts it again when it ends. `maxAgents` counts running jobs across all projects together. Also holds the planning of
 		// large tickets (planner role, plan review) and autopilot.
 		orchestration({
-			maxAgents: 3,
+			maxAgents: 3, // the upper bound across all projects and machines; with `resources` on, fewer when resources are short
 			coordinator: {
 				model: "anthropic/claude-opus-5-5",
 				thinking: "high",
@@ -72,6 +76,41 @@ export default defineConfig({
 			plan: { budgetUsd: 5 },
 			autopilot: { budgetUsd: 1, budgetMaxUsd: 3 },
 			morningReport: { at: "08:00" }, // registers a schedule entry (an action: a message to the coordinator)
+		}),
+
+		// The machines jobs run on. `local` is the one Arthur and the coordinator run on; its os and arch are detected. The others
+		// are reached with ssh over a private network (Tailscale), with the user's own keys and ~/.ssh/config: no secret here, no
+		// password prompt, no host key accepted on its own, and a host that resolves to a public address is refused. Each machine
+		// needs Node, git, OMP logged in, and Arthur's core. A project's or a ticket's `requires` names the labels its jobs need.
+		machines({
+			local: { labels: { tools: ["docker"] }, maxJobs: 3 },
+			list: [
+				{
+					name: "mac",
+					ssh: "mac-mini", // a Host in ~/.ssh/config, or a Tailscale name such as mac-mini.tail1234.ts.net
+					home: "/Users/arthur/.arthur", // the machine's own home folder for jobs and repositories
+					labels: { os: "macos", arch: "arm64", tools: ["xcode"] },
+					maxJobs: 2,
+				},
+				{
+					name: "build",
+					ssh: "build-box",
+					home: "/home/arthur/.arthur",
+					labels: { os: "linux", arch: "x64", tools: ["docker"] },
+					maxJobs: 4,
+				},
+			],
+			check: { everySeconds: 60 }, // reachability, labels, and free resources for `resources`
+		}),
+
+		// What jobs may use. A job's time and money are core.jobs; this adds its CPU and memory, the caps of a feature (all jobs
+		// of one ticket together), and how many jobs start: only while the machine keeps `keepFree` after the job's `perJob`
+		// reservation, and never above orchestration's `maxAgents`. A ticket may set its own caps in its JSON block:
+		// `"caps": { "budgetUsd": 40, "hours": 12 }`.
+		resources({
+			perJob: { cpu: 2, memory: "4G" }, // a job's own cap, and what it reserves on its machine
+			perFeature: { budgetUsd: 15, hours: 8, cpu: 4, memory: "8G" }, // 0 = no cap
+			keepFree: { cpu: 1, memory: "2G" }, // left free on every machine, for the coordinator and the system
 		}),
 
 		// The coordinator's one long conversation: compacted during the day, new every night, restarted when merged code
@@ -100,7 +139,8 @@ export default defineConfig({
 		// The project list, the only place projects are declared. Each project: where it lives
 		// (a path, or a repo Arthur clones into `reposDir`), its ticket prefix (ids are PREFIX-1, PREFIX-2, ... from an empty board),
 		// its tracker instance (`tracker.instance` names an instance of the youtrack plugin; without it, the unnamed one), its CI
-		// workflow, its commit rules, and the files the roles read. Adding a project is an edit of this list.
+		// workflow, its commit rules, the files the roles read, and the machine labels its jobs need (`requires`; a ticket's own
+		// `"requires"` in its JSON block replaces it). Adding a project is an edit of this list.
 		projects({
 			reposDir: ".arthur/repos",
 			list: [
@@ -133,6 +173,16 @@ export default defineConfig({
 					tracker: { plugin: "youtrack", instance: "acme", project: "SITE" },
 					ci: { workflow: "ci.yml" },
 					commitRules: { file: "docs/commit-rules.md" }, // read as plain words, from the project's own repository
+					prompts: { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria" },
+				},
+				{
+					name: "acme-ios",
+					repo: "git@github.com:acme/ios.git",
+					prefix: "IOS",
+					autoMerge: false,
+					tracker: { plugin: "youtrack", instance: "acme", project: "IOS" },
+					ci: { workflow: "ios.yml" },
+					requires: { os: "macos", tools: ["xcode"] }, // every job of this project runs on a machine with these labels
 					prompts: { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria" },
 				},
 			],

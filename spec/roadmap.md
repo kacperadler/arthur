@@ -9,9 +9,9 @@ How to read an entry:
 - Done means: what a reviewer checks, edge cases included. Every entry also means: its tests run under `npm test` against fakes (the core against a fake plugin and a fake agent, a plugin against the fake host of `@arthur/core/testing`), `npm run check` and `npm test` pass, each command it adds has its doc page, each option it adds is in `arthur.config.example.ts`.
 - Covers: the capabilities of the harness Arthur replaces that it carries over, by their id in the table at the end.
 
-Order: the core first, piece by piece, then the first-version plugins in the vision's order, then the later plugins. Within the core the event stream comes right after the plugin host, because the job runner and the board emit into it from their first line. The plugin API is frozen (entry 42) only after schedule, youtrack and telegram use it. An entry that needs a plugin built later sits after that plugin (the morning report, the auto-merge).
+Order: the core first, piece by piece, then the first-version plugins in the vision's order, then the later plugins. Within the core the event stream comes right after the plugin host, because the job runner and the board emit into it from their first line. Job state (16) comes right after the job runner it describes, and jobs on another machine (21, 22) after the guards they carry there. Machines and resources (30 to 34) come right after orchestration, whose `maxAgents` and context they build on; placement reads the project list and the per-feature caps read the board through the host, so neither waits for the `projects` plugin. The plugin API is frozen (entry 51) only after schedule, youtrack and telegram use it. An entry that needs a plugin built later sits after that plugin (the morning report, the auto-merge).
 
-The host API, as these entries build it (names are proposals; entry 42 fixes them): a plugin is a function from its options to `{ name, requires, setup(host), start?(), stop?() }`. `setup` registers; `start` runs long-lived work and is called only by `arthur run`. The host gives a plugin its options with every `...Env` name resolved, its own folder `.arthur/<plugin>/`, `events` (`on`, `emit`), `commands` (`register`), `jobs` (`registerKind`, `spawn`, `beforeSpawn`, `prepare`), `board`, `clock`, `projects()`, and `provide(name, fn)` / `call(name, ...)` / `collect(name)`, through which plugins reach each other without importing each other.
+The host API, as these entries build it (names are proposals; entry 51 fixes them): a plugin is a function from its options to `{ name, requires, setup(host), start?(), stop?() }`. `setup` registers; `start` runs long-lived work and is called only by `arthur run`. The host gives a plugin its options with every `...Env` name resolved, its own folder `.arthur/<plugin>/`, `events` (`on`, `emit`), `commands` (`register`), `jobs` (`registerKind`, `spawn`, `beforeSpawn`, `prepare`, `block`, `unblock`, `registerMachine`), `board`, `clock`, `projects()`, and `provide(name, fn)` / `call(name, ...)` / `collect(name)`, through which plugins reach each other without importing each other.
 
 ## Core
 
@@ -150,7 +150,16 @@ The host API, as these entries build it (names are proposals; entry 42 fixes the
 - Size: a day.
 - Covers: R9, R10, R12, G7, T6, T13, T14.
 
-### 16. Ticket board: tickets and the board file
+### 16. Job state: working, idle, blocked, ended
+
+- Package: core; the worker role (10) gains the `Blocked:` line.
+- Delivers: every job is in one of four states, kept in its record (`state`, with `reason` and `since`) and emitted as `job-state` (`id`, `project`, `ticket`, `machine`, `from`, `to`, `reason`) on each change. `working`: the agent is in a turn, with output or a tool call within the last `jobs.idleMinutes`. `idle`: its process is alive and not blocked, but has done nothing for `jobs.idleMinutes`. `blocked`: it cannot go on until something outside it happens, and the reason says what: `user: <question>` or `dependency: <what>`. `ended`: nothing more will happen, with the outcome (finished, failed, stopped, the limit hit, process gone). A run ends `blocked` instead of `ended` when the first line of its final message is `Blocked: user <question>` or `Blocked: on <ticket or job id>`, which the worker role tells a worker to write when it stops for one of them; the state a run ends in is written after every other file of the record, as entry 11 writes it. `host.jobs.block(id, reason)` and `unblock(id)` let a plugin hold a job (a machine offline, a cap reached); `arthur continue` moves a blocked or ended job back to `working`. `arthur jobs` and `/jobs` show each job's state, reason and for how long; `arthur jobs --state <state>` filters.
+- Done means: a table of fake-agent runs and the states each passes through. Edge cases: a `Blocked:` line that is not the first line ends the run `ended`; no activity for exactly `jobs.idleMinutes` turns a job idle, one minute less does not; the next tool call turns it back to working with one event; a state that does not change emits nothing; a plugin's block wins over idle, and `unblock` returns the job to working or idle by its activity; a job blocked after its run ended is not failed as `process gone` by the sweep (15); `jobs.idleMinutes: 0` turns idle off; `continue` of a blocked job clears its reason.
+- Depends on: 14, 15.
+- Size: a day.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
+### 17. Ticket board: tickets and the board file
 
 - Package: core; the ticket templates ship with the core.
 - Delivers: tickets as folders `spec/features/<id>-<slug>/` (`ticket.md`, `findings.md`, `review-N.md`, `outcome.md` from templates); the board `spec/build.json` of each project, changed only through `arthur ticket`; ids are the project's prefix and a number, from 1; statuses planning, planned, in-progress, review, done, merged, dropped; one writer at a time (a lock taken over from a dead pid); `ticket-created` and `ticket-moved` events; `host.board` for plugins.
@@ -159,16 +168,16 @@ The host API, as these entries build it (names are proposals; entry 42 fixes the
 - Size: a day.
 - Covers: B1, B2, B3 (the prefix), B12, G11, G13 (the prefix's use).
 
-### 17. Ticket board: transitions, `after`, the digest, and the board's phone commands
+### 18. Ticket board: transitions, `after`, the digest, and the board's phone commands
 
 - Package: core.
 - Delivers: the allowed status transitions, statuses that follow jobs (`job-started` of a worker sets in-progress), merged and dropped final; `arthur ticket after <id> <ids>` (a ticket waits for others); the board digest (every open ticket, the 10 newest merged, one line for the rest); phone commands `/board [PREFIX] [all]`, `/task <id>`, `/findings <id>`, the id given as `14`, `AR14` or the full id.
 - Done means: refused: a transition the table does not allow, an `after` that makes a cycle, names an unknown or a dropped id. Edge cases: a merged ticket never moves back; the full board when it fits one message, else the digest; `/findings` of a ticket without the file; an id with another project's prefix.
-- Depends on: 16, 9.
+- Depends on: 17, 9.
 - Size: a day.
 - Covers: B4, B5, B11, T7, T9.
 
-### 18. Env guard
+### 19. Env guard
 
 - Package: core; an OMP extension loaded in every job and in the coordinator.
 - Delivers: a tool call that names a secrets file (`.env`, not `.env.example`) is refused, down to quoting, expansion and options that carry the name; one `sed -i` that sets a key without printing is allowed.
@@ -177,18 +186,36 @@ The host API, as these entries build it (names are proposals; entry 42 fixes the
 - Size: half a day to a day.
 - Covers: R16.
 
-### 19. Worktree guard and its shell parser
+### 20. Worktree guard and its shell parser
 
 - Package: core; an OMP extension loaded in every job.
 - Delivers: in every job, a file tool or bash command that writes into the main checkout, the home folder `.arthur/`, or another job's worktree is refused: redirects, writing commands, `git` writes, `cd` there, symlinks, `git stash`. Reading passes. The shell parser is its own file, shared with the env guard.
 - Done means: a table of commands, each refused or allowed. Edge cases: a relative path that climbs out of the worktree; a symlink inside the worktree that points out of it; `cd` into the main checkout followed by a write; a heredoc; a write into the job's own worktree passes.
-- Depends on: 18.
+- Depends on: 19.
 - Size: a day.
 - Covers: R17, G2.
 
+### 21. Jobs on another machine: spawn, run, and the branch back
+
+- Package: core; the machine's prerequisites in `docs/deploy.md`.
+- Delivers: `host.jobs.registerMachine({ name, ssh, home, labels })`, with `local` always registered; `arthur spawn --machine <name>` and `host.jobs.spawn({ machine })`; when a spawn names no machine, the runner asks `call("jobs.place", job)` if a plugin provides it, else runs the job on `local`. For a job on another machine, every step runs over `ssh -o BatchMode=yes -o StrictHostKeyChecking=yes <ssh>`, so ssh never asks for a password or accepts a host key on its own: the project's repository there (created empty on first use) gets the base commit by `git push` over SSH; the worktree, `prepare`, the `node_modules` copy, the wrapper with the env and worktree guards run there through that machine's own `arthur`; each sweep copies the record's changed files back with one SSH call per machine; when the job ends, its branch is fetched into the main checkout. The record names its machine. The machine's prerequisites: Node, git, OMP logged in with its own credential, and the same version of Arthur's core; Arthur sends it no secret.
+- Done means: tested with real Git and a fake `ssh` on `PATH` that runs the command in a second temporary folder, the "machine", and can fail as ssh does (exit 255 and its line). Refused before any record exists, naming the machine: an unknown machine; the SSH key refused (`Permission denied (publickey)`, ssh's line quoted); `arthur` missing there or of another version (both versions named). Edge cases: the project's repository missing there (created); a base commit already there (no second push); the fetched branch already in the main checkout from an earlier run (updated, not duplicated); a job on `local` takes no SSH step at all.
+- Depends on: 16, 20.
+- Size: a day.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
+### 22. Jobs on another machine: stop, steer, continue, and the machine going offline
+
+- Package: core.
+- Delivers: `arthur stop`, `steer`, `continue` and `prune` of a job on another machine run there over SSH; a machine that does not answer (ssh exit 255) puts its running jobs in `blocked` with `dependency: machine <name> unreachable since <time>` instead of failing them as `process gone`; back within `jobs.offlineGraceMinutes`, each job takes the state its record there says (it kept running there); past the grace they end `failed: machine offline`, and their worktree there is kept for the human.
+- Done means: refused, naming the machine: `stop`, `steer` or `continue` of a job whose machine is offline. Edge cases: the machine offline mid-job and back before the grace (the job's commits all arrive, nothing ran twice); offline past the grace (failed once, one line, the worktree there untouched); a job that ended while its machine was offline (its end and branch arrive when the machine is back, even past the grace); `prune` never deletes a worktree on a machine it cannot reach.
+- Depends on: 21.
+- Size: a day.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
 ## Orchestration (required)
 
-### 20. The coordinator's process and `arthur attach`
+### 23. The coordinator's process and `arthur attach`
 
 - Package: orchestration.
 - Delivers: the plugin, required; its options (`maxAgents`, `coordinator`, `roles`, `plan`, `autopilot`, `morningReport`) checked; one interactive `omp` in its own tmux session (`coordinator.tmux`), with `--continue` and the coordinator's model and thinking; started again `restartDelaySeconds` after it ends for any reason; a start waits up to `exitWaitSeconds` for the previous `omp` to exit, so two never refresh the agent's credential at once; `arthur attach`; `arthur coordinator stop`, refused while any job runs; the coordinator's role file, in English.
@@ -197,416 +224,472 @@ The host API, as these entries build it (names are proposals; entry 42 fixes the
 - Size: a day.
 - Covers: S1, O1, the coordinator's settings and the session options it owns.
 
-### 21. The coordinator's inbox and the wake on job end
+### 24. The coordinator's inbox and the wake on job end
 
 - Package: orchestration; an OMP extension in the coordinator's session.
 - Delivers: messages for the coordinator (`message-received` from a channel, a schedule action, a job's end) are queued and delivered as turns, in order, once the session is idle; each finished turn is emitted as `coordinator-replied`; one wake message per sweep for the jobs that ended (state, the first 15 lines of the result, the procedure the kind's plugin names, the project when it is not the main one), claimed only after it was delivered; a footer while jobs run.
 - Done means: edge cases: two jobs ending in one sweep make one message; a failed delivery is retried and the third failure is told; a message arriving mid-turn waits; nothing is lost or delivered twice across a coordinator restart.
-- Depends on: 20.
+- Depends on: 23.
 - Size: a day.
 - Covers: O3.
 
-### 22. The coordinator's context on every turn
+### 25. The coordinator's context on every turn
 
 - Package: orchestration.
 - Delivers: on every turn the coordinator reads its role, each project's vision, the styleguide, a warning per missing criteria file, the board digest, the local time and whether it is night (from `host.clock`), and the lines other plugins add through `collect("coordinator.context")` (session: restart due; manage: retro due).
 - Done means: edge cases: a project without a vision file gets a warning line, not a failure; a contributing plugin that throws costs its line only, named; quiet hours across midnight.
-- Depends on: 21, 17, 7.
+- Depends on: 24, 18, 7.
 - Size: half a day.
 - Covers: O2.
 
-### 23. `maxAgents` and the models of each role
+### 26. `maxAgents` and the models of each role
 
 - Package: orchestration.
 - Delivers: `maxAgents` enforced through `beforeSpawn` across all projects, for every spawn, the human's included; the model and thinking level of each role and the quick model from `roles`; `--model` on a spawn wins.
 - Done means: refused: a spawn when `maxAgents` jobs run (the message names them); an invalid thinking level, before any job record exists. Edge cases: `maxAgents` of 1; a job ending frees its slot at once; a role without a model uses the agent's default.
-- Depends on: 20.
+- Depends on: 23.
 - Size: half a day.
 - Covers: O12, O13, the model settings.
 
-### 24. Planning of large tickets
+### 27. Job state in the coordinator and the channels
+
+- Package: orchestration.
+- Delivers: the coordinator's context lists every job that has not ended, grouped by state (`blocked` first), each with its reason and for how long; the wake message (24) says the state a run ended in and, for `blocked: user`, the question; a job that turns blocked on the user emits one `notice` (`<id> asks: <question>`), which every channel sends; the footer counts running jobs by state. On the channels `/jobs` shows the same states (16).
+- Done means: edge cases: a job blocked and continued before the next turn shows as working; one notice per block, not one per turn; a question longer than a message is cut, with the job id to read it whole; quiet hours send the notice without a notification (the channel's rule); no unended job means no section.
+- Depends on: 26, 16.
+- Size: half a day.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
+### 28. Planning of large tickets
 
 - Package: orchestration.
 - Delivers: `- Plan: yes` under a ticket's Goal; the kinds `plan` (read-only planner) and `plan-review`; `arthur ticket file` of a plan (replaces `plan.md`, history in Git) and of a plan review (`plan-review-N.md`); a worker on such a ticket needs its approved `plan.md`; the plan budget option; the procedure sent when a plan or plan review ends; the phone command `/plan <id>`.
 - Done means: refused: a worker spawn on a plan ticket without an approved plan; filing a failed plan job. Edge cases: re-planning keeps one `plan.md`; plan review numbers continue; `/plan` of a ticket without a plan.
-- Depends on: 22, 17.
+- Depends on: 25, 18.
 - Size: a day.
 - Covers: O9, O14, B6 (the plan part), B9, T10, G5.
 
-### 25. Autopilot
+### 29. Autopilot
 
 - Package: orchestration.
 - Delivers: `arthur ticket status <id> planned --autopilot`: pre-approval of a ticket from an audit or a finding, kind bug or cleanup, at most 3 Scope files, none on delivery's always-review list (asked through `call`), a budget above 0 and at most the cap; records `Pre-approved by policy`; the autopilot criteria file.
 - Done means: refused, each naming the rule broken: a feature ticket, 4 Scope files, a file on the always-review list, budget 0, a budget over the cap. Edge cases: exactly 3 files; the always-review list not provided (delivery off) refuses rather than passes.
-- Depends on: 24.
+- Depends on: 28.
 - Size: half a day.
 - Covers: B10, the autopilot settings.
 
+## Machines and resources
+
+### 30. Machines: the list, labels, and SSH checks
+
+- Package: machines.
+- Delivers: the `list` option: each machine's `name`, `ssh` (a `Host` of `~/.ssh/config` or a Tailscale name), `home`, `labels` (`os`, `arch`, `tools`) and `maxJobs`; `local` (os and arch detected, `tools` and `maxJobs` from the option); each registered with the core's job runner (21). At start and every `check.everySeconds`, `ssh <host> arthur version` and the machine's os and arch, compared with its labels; `machine-online` and `machine-offline` (with the reason) emitted once per change. The address `ssh -G <host>` resolves to must be private (loopback, RFC 1918, Tailscale's `100.64.0.0/10` and `fd7a:115c:a1e0::/48`): Arthur reaches its machines only over the private network. `arthur machines` and `/machines`: each machine, its labels, online or why not, its jobs.
+- Done means: tested against the fake host and a fake `ssh` on `PATH`. Refused at load, naming the machine: two machines with one name, a machine named `local`, an `os` label other than `linux` or `macos`, a host that resolves to a public address. Edge cases: the SSH key refused (the machine offline with ssh's line, said once, never retried with a password); an unknown or changed host key (offline, never accepted on its own); labels that disagree with what the machine reports (`os: macos` on a Linux box: offline, both named); a machine that goes offline and back emits each change once; `arthur` missing there.
+- Depends on: 22, 6.
+- Size: a day.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
+### 31. Machines: placing a job by labels
+
+- Package: machines; the `requires` option of `projects` and the `requires` key of a ticket's JSON block.
+- Delivers: a job's required labels: `arthur spawn --requires os=macos,tools=xcode`, else its ticket's `requires`, else its project's, else none; `provide("jobs.place")`: among the online machines that have every required label (`tools` needs each tool listed) and are under their `maxJobs`, the one with the most room (from `call("resources.free")` when the resources plugin provides it, else the fewest jobs), `local` on a tie; `--machine` is checked against the labels too. Every job of a ticket (worker, review, plan) is placed by the same labels, so its checks run where it was built.
+- Done means: refused before any record exists, naming the labels and each machine with its labels and state: a label no machine has; machines that have it but are all offline or full; `--machine` on a machine without a required label. Edge cases: a ticket's `requires` replaces the project's as a whole; an empty `requires` on a ticket clears the project's; a job without ticket or project requirement may go anywhere; the project list not provided (projects off) means no project requirement.
+- Depends on: 30, 18.
+- Size: half a day to a day.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
+### 32. Resources: caps per job
+
+- Package: resources; the core's job scope (13) reads the caps through `call("jobs.limits", job)`.
+- Delivers: `perJob.cpu` and `perJob.memory`, set on each job's own scope (`CPUQuota`, `MemoryMax`) inside the joint slice of entry 13, on every machine; where there is no user manager (macOS), memory is held by sampling the job's processes every 10 seconds and stopping it, and CPU is not capped, said once per machine. A job over its memory cap ends `limit: memory`; CPU over its cap is slowed, not stopped. Time and money of one job stay the core's (`jobs.timeoutMinutes`, `jobs.budgetUsd`, entry 12).
+- Done means: tested with a test slice name, never the production one, removed after the run. Refused at load: a per-job cap above the joint `jobs.cpu` or `jobs.memory`. Edge cases: a job that exceeds its memory cap ends with `limit: memory` and the other jobs keep running; on a machine without a user manager the same job is stopped within one sample; a `cpu` larger than a machine's cores is capped at its cores; the plugin off leaves the joint slice as the only limit.
+- Depends on: 13, 16.
+- Size: half a day to a day.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
+### 33. Resources: caps per feature
+
+- Package: resources.
+- Delivers: `perFeature` caps over all jobs of one ticket together (worker, reviews, plans): `budgetUsd` (the sum of their costs), `hours` (the sum of their run time), `cpu` and `memory` (a slice per ticket inside the jobs' slice, on each machine); a ticket's JSON block may set its own `caps`, each replacing the option's, `0` meaning no cap. A spawn for a ticket at its money or time cap is refused through `beforeSpawn`, naming the spend and the cap; a running job that takes its ticket past the cap is stopped and held `blocked` (`user: feature cap <what> reached: <spent> of <cap>`) through `host.jobs.block`, so `arthur continue` resumes it once the human raises the cap; `cap-reached` emitted; `arthur resources <ticket>` shows the spend against each cap.
+- Done means: edge cases: a job that exceeds its feature's cap (a cost exactly at the cap stops, one cent below does not); two jobs of one ticket crossing the cap together are both stopped and `cap-reached` is emitted once; a ticket's `caps` below what it has spent refuses the next spawn; a job whose cost file is missing counts as its whole budget, never as zero; a job without a ticket is held by the per-job caps only.
+- Depends on: 32, 18.
+- Size: a day.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
+### 34. Resources: how many jobs run, from each machine's free resources
+
+- Package: resources; `maxAgents` of `orchestration` stays the upper bound.
+- Delivers: each machine's free CPU and memory at every machine check (Node's `os` on `local`, the same over SSH elsewhere); `provide("resources.free")`, which placement (31) reads; through `beforeSpawn`, a job starts only when its machine keeps `keepFree` after the job's `perJob` reservation, and the refusal names each candidate machine and what is short; `maxAgents` still refuses above that. The coordinator's context gets one line per machine (`local: room for 2 more jobs (5.1 GB, 3.4 cores free)`) through `collect("coordinator.context")`, so it decides how many jobs to start; `arthur resources` and `/resources` show the same.
+- Done means: refused: every spawn when free resources are too low to start anything, naming each machine and its shortfall (a normal `beforeSpawn` refusal, retried when a job ends as at `maxAgents`). Edge cases: room for more jobs than `maxAgents` (`maxAgents` refuses); a reservation exactly equal to what is free above `keepFree` starts; two spawns at once never both take the last room (jobs started since the last check count with their reservation); a machine whose check fails counts as no room, said once.
+- Depends on: 33, 31, 26, 25.
+- Size: a day.
+- Covers: none (new: the owner asked for it on 2026-10-16).
+
 ## Session
 
-### 26. Compaction during the day
+### 35. Compaction during the day
 
 - Package: session.
 - Delivers: at each `compactAt` time in `timeZone`, the coordinator's conversation is compacted with the agent's own compaction, once the session is idle with nothing queued; after `compactWaitSeconds` the request is withdrawn with one line (`compact: skipped, session busy for N s`); nothing happens when no session runs; running jobs do not matter.
 - Done means: edge cases: a slot missed while Arthur was down is skipped, not run late; two slots close together never queue two compactions; daylight saving days.
-- Depends on: 21, 7.
+- Depends on: 24, 7.
 - Size: half a day to a day.
 - Covers: S2.
 
-### 27. Fresh start, `/restart` and `/restart fresh`
+### 36. Fresh start, `/restart` and `/restart fresh`
 
 - Package: session.
 - Delivers: at `freshAt` a new conversation (no `--continue`), skipped while any job runs; phone commands `/restart` and `/restart fresh`, answered without the model and refused while any job runs (`error: N jobs running: …; run /stopall first`), the command's message not read again by the next coordinator; after a restart one `Restarted.` message with the steps left in `.arthur/session/after-restart.md` and the health lines collected from other plugins.
 - Done means: edge cases: the fresh slot at no other hour, a missed slot not run late; `/restart` with one job running; an empty `after-restart.md` is not sent; the notice says `(fresh session)` after a fresh start.
-- Depends on: 26, 20.
+- Depends on: 35, 23.
 - Size: a day.
 - Covers: S3, S4, T15, O4.
 
-### 28. Restart guard
+### 37. Restart guard
 
 - Package: session.
 - Delivers: the session records the main commit and start time it loaded; a merge since then that changed code the session loaded (the host knows each plugin's package folder) makes every spawn refuse with `restart due: <merge>`, through `beforeSpawn`, unless `--ignore-restart`; the coordinator's context gets a `## Restart` line; `restartGuard: false` turns it off.
 - Done means: edge cases: a merge that changes only docs or tests does not count; a merge of a disabled plugin's code does not count; a restart clears it; the guard on a project other than Arthur's own does nothing.
-- Depends on: 27, 22.
+- Depends on: 36, 25.
 - Size: half a day to a day.
 - Covers: S5.
 
-### 29. Start notice and LLM probe
+### 38. Start notice and LLM probe
 
 - Package: session.
 - Delivers: at every start one word asked of the coordinator's model first; a `notice` event `coordinator up on <host>` or `no LLM access on <host>: <reason>; run omp login`; a turn that fails before any text emits `turn failed on <host>: <reason>`; `probeLlm: false` skips the probe.
 - Done means: edge cases: the probe times out; the agent's error carries a credential (it is not repeated); two starts in a row send two notices, not one merged.
-- Depends on: 27.
+- Depends on: 36.
 - Size: half a day.
 - Covers: S6.
 
 ## Schedule
 
-### 30. Schedule entries and the sweep
+### 39. Schedule entries and the sweep
 
 - Package: schedule.
 - Delivers: entries from the config and from the `file` option: a daily `HH:MM` (optionally on some days) or a one-off date and time, in `timeZone`; an action (a message to the coordinator `[scheduled <id>] …`, optionally naming a procedure) or a job (spawn of a kind); each due slot claimed once, run state in `.arthur/schedule/`.
 - Done means: edge cases: a daily entry missed for three days fires once and says it is late; a one-off in the past fires once at start; a hand-broken entry is skipped and named, the others still run; two sweeps at once claim a slot once; a day list that excludes today.
-- Depends on: 21, 7.
+- Depends on: 24, 7.
 - Size: a day.
 - Covers: C1, C3.
 
-### 31. Registered entries and `arthur schedule`
+### 40. Registered entries and `arthur schedule`
 
 - Package: schedule.
 - Delivers: `provide("schedule.register")`, through which another plugin registers its entries from its options (ids namespaced by the plugin); `arthur schedule add|list|remove` for hand-added entries in the file.
 - Done means: refused: a registered id that clashes, `remove` of a registered entry (it says which plugin's option makes it), an `add` with a time that is not valid. Edge cases: `list` shows both kinds with their source; a plugin disabled after registering leaves no entry behind.
-- Depends on: 30.
+- Depends on: 39.
 - Size: half a day.
 - Covers: C1 (the command), C2, G6 (the mechanism).
 
 ## Projects
 
-### 32. The project list
+### 41. The project list
 
 - Package: projects.
-- Delivers: the `list` option: name, `path` or `repo` (cloned into `reposDir`), `prefix`, `tracker`, `ci`, `commitRules`, `autoMerge`, `pathPrepend`, `prompts`; `provide("projects")`, which the host serves as `host.projects()`; `pathPrepend` in front of `PATH` for the project's jobs and checks; the phone command `/projects` (prefix, folder, open tickets, running jobs).
+- Delivers: the `list` option: name, `path` or `repo` (cloned into `reposDir`), `prefix`, `tracker`, `ci`, `commitRules`, `autoMerge`, `pathPrepend`, `prompts`, `requires` (the machine labels its jobs need, read by placement, 31); `provide("projects")`, which the host serves as `host.projects()`; `pathPrepend` in front of `PATH` for the project's jobs and checks; the phone command `/projects` (prefix, folder, open tickets, running jobs).
 - Done means: refused at load, naming the project: two projects with one name or prefix, both or neither of `path` and `repo`, a `tracker.instance` the tracker plugin does not have. Edge cases: a repo already cloned with another remote is refused, not overwritten; a clone that fails names the project and leaves no folder; `/projects` with a broken board gets a line for that project.
-- Depends on: 6, 16.
+- Depends on: 6, 17.
 - Size: a day.
 - Covers: P2, P4, T8, B3 (where the prefix is set), G8 (the paths), G13, the `PATH` setting.
 
-### 33. Onboarding a repository
+### 42. Onboarding a repository
 
 - Package: projects.
 - Delivers: `arthur init <project>` gives a project's repository what Arthur reads (the `spec/` skeleton, the criteria files, an empty board); the kind `onboarding`: reads the repository, asks up to 10 questions, then drafts the vision and criteria; the procedure sent when it ends; its merge accepts only those files.
 - Done means: refused: `init` on a project not in the config, `init` over an existing board. Edge cases: an empty repository; the onboarding asking more than 10 questions is cut at 10; a draft touching another file is refused at merge.
-- Depends on: 32, 10.
+- Depends on: 41, 10.
 - Size: a day.
 - Covers: P1, P3, O8.
 
 ## Commit rules
 
-### 34. Commit rules per project
+### 43. Commit rules per project
 
 - Package: commit-rules.
 - Delivers: each project's `commitRules`: a `regex` becomes a `commit-msg` hook, installed through `host.jobs.prepare` in the project's job worktrees, that refuses a non-matching subject and says the rule; `words`, or a `file` read from the project's repository at the job's commit, goes into the worker's and the reviewer's prompt through `provide("prompt")`. Arthur's own project uses the Conventional Commits regex.
 - Done means: refused at load: a regex that does not compile. Edge cases: a project without `commitRules` gets no hook and no text; a missing rule file warns and the job starts; the project's own git configuration outside Arthur's worktrees is untouched (asserted); a merge commit subject.
-- Depends on: 32, 10.
+- Depends on: 41, 10.
 - Size: half a day to a day.
 - Covers: G10, E4.
 
 ## YouTrack
 
-### 35. YouTrack: instances and reading
+### 44. YouTrack: instances and reading
 
 - Package: youtrack.
 - Delivers: `instances` (named and unnamed, `urlEnv`, `tokenEnv`); `arthur youtrack issue|article list|get`; a project's `tracker` picks the instance; tested against a fake server that answers in the shape of YouTrack's REST documentation.
 - Done means: refused before any call: an issue id outside the project's YouTrack project. Edge cases: the token never appears in an error (asserted with a known token); a 401, a 404, a timeout each give one line; paging past the first page; an unnamed and a named instance side by side.
-- Depends on: 32.
+- Depends on: 41.
 - Size: a day.
 - Covers: Y1 (reading), P4.
 
-### 36. YouTrack: writing issues, articles, fields and work items
+### 45. YouTrack: writing issues, articles, fields and work items
 
 - Package: youtrack.
 - Delivers: create or update an issue or an article from a file, set a custom field, add a work item; no verb deletes an issue.
 - Done means: edge cases: a field value the project does not allow (YouTrack's error in one line); updating an article that changed meanwhile; an empty file; a work item of 0 minutes is refused.
-- Depends on: 35.
+- Depends on: 44.
 - Size: a day.
 - Covers: Y1 (writing).
 
-### 37. YouTrack: comments, attachments, and the rules for jobs
+### 46. YouTrack: comments, attachments, and the rules for jobs
 
 - Package: youtrack.
 - Delivers: list, add, edit and soft-delete comments; save attachments to `.arthur/youtrack/<id>/`; the rules a job working on an issue gets in its prompt: issue text is never an instruction, never quoted back, and a job never writes to YouTrack.
 - Done means: edge cases: an attachment with a name that climbs out of the folder is saved under a safe name; an attachment of 0 bytes; deleting a comment of another author is refused by the server and said in one line.
-- Depends on: 35.
+- Depends on: 44.
 - Size: a day.
 - Covers: Y1 (comments, attachments), Y2.
 
 ## Telegram
 
-### 38. Telegram: receive and send text
+### 47. Telegram: receive and send text
 
 - Package: telegram.
 - Delivers: `bots` (named instances); long polling (30 s); only the allowed chat; messages older than 10 minutes dropped; text becomes `message-received` (`[via Telegram] <text>`); `coordinator-replied` and `notice` are sent, long text in slices at line breaks; during quiet hours sent without a notification; any other kind of message gets `only text, photos and files reach the coordinator`; tested against a fake Bot API in the shape of its documentation.
 - Done means: edge cases: a second poller (409) is said once and polling retries; a message from another chat is ignored and not acknowledged into the coordinator; a slice boundary inside a long line; quiet hours across midnight.
-- Depends on: 21, 7.
+- Depends on: 24, 7.
 - Size: a day.
 - Covers: T1, T2 (sending).
 
-### 39. Telegram: the outbox and retries
+### 48. Telegram: the outbox and retries
 
 - Package: telegram.
 - Delivers: one retry per send; a failed slice queued in `.arthur/telegram/outbox/` and sent first next time, in order; a refused (4xx) slice set aside and told once; a text too long for one message cut with a note.
 - Done means: edge cases: the outbox survives a restart; a 429 waits as Telegram says; a 4xx slice does not block the ones after it; two processes sending at once keep order.
-- Depends on: 38.
+- Depends on: 47.
 - Size: half a day.
 - Covers: T2.
 
-### 40. Telegram: media in and out, `arthur send`
+### 49. Telegram: media in and out, `arthur send`
 
 - Package: telegram; the core's `arthur send` command and the `channel.send` name every channel provides.
 - Delivers: a photo (largest size) or a file, and an album as one turn, saved under `.arthur/telegram/` and named in the message; `arthur send <file>… --caption` sends through every enabled channel: on Telegram photos and videos as an album, other files as documents after it, up to 10 files, sizes and extensions checked before anything is sent.
 - Done means: refused before any send: 11 files, a file over Telegram's size limit, a photo whose sides break Telegram's limits (with a hint to slice it). Edge cases: the token never in an error; an album of one; no channel enabled (`arthur send` says so).
-- Depends on: 38, 6.
+- Depends on: 47, 6.
 - Size: a day.
 - Covers: T3, T4.
 
-### 41. Telegram: phone commands and the menu
+### 50. Telegram: phone commands and the menu
 
 - Package: telegram.
 - Delivers: `/name text` routed to the host's command registry and the reply sent; the bot's command menu built from the phone commands the plugins register; the session's start notice sent as it comes.
 - Done means: edge cases: `/name@botname`; an unknown command gets the registry's line; the menu updated when the set of commands changed, not on every start; a command's reply longer than one message.
-- Depends on: 38, 6.
+- Depends on: 47, 6.
 - Size: half a day.
 - Covers: T5, G3 (routing).
 
-### 42. Freeze the host API
+### 51. Freeze the host API
 
 - Package: core; `docs/plugin-api.md`.
 - Delivers: the host API as schedule, youtrack and telegram use it, written down: the plugin shape, every host member, every core event and its fields, the `provide` names in use; the published types in `@arthur/core`'s exports; whatever no plugin uses removed. From here a change to the API is a decision recorded in its ticket.
 - Done means: the three plugins and the fake host use only what the doc lists (a test lists the core's exports and fails on one the doc does not name); `npm run check` passes with the types tightened.
-- Depends on: 31, 37, 41.
+- Depends on: 40, 46, 50.
 - Size: half a day.
 - Covers: the vision's decision to derive the API from three plugins.
 
 ## Delivery
 
-### 43. Review jobs
+### 52. Review jobs
 
 - Package: delivery.
 - Delivers: the kind `review` (read-only, a fresh model, the reviewer role and review criteria); the verdict `PASS` or `FAIL` from the last line moves the ticket to done or in-progress; no verdict fails the job; `arthur ticket file` of a review writes the next `review-N.md`, never twice; at most 2 FAILs since the last PASS, then `--round N`; the procedure sent at the limit.
 - Done means: edge cases: `PASS` not on the last line is no verdict; filing the same review twice is refused; the third review without `--round` is refused, naming the two FAILs.
-- Depends on: 42.
+- Depends on: 51.
 - Size: a day.
 - Covers: D1, B7, O10.
 
-### 44. `arthur review-needed`
+### 53. `arthur review-needed`
 
 - Package: delivery.
 - Delivers: decides review or no review for a branch: the always-review list (`review.alwaysReview`), deleted files, `.env` text in the diff, docs-only changes, small branches with passing checks; records the verdict and moves the ticket; `provide("delivery.alwaysReview")`.
 - Done means: a table of branches with the decision for each. Edge cases: a renamed file on the list; a branch with no commits; a docs-only branch that also deletes a file.
-- Depends on: 43.
+- Depends on: 52.
 - Size: a day.
 - Covers: D2.
 
-### 45. `arthur merge`
+### 54. `arthur merge`
 
 - Package: delivery.
 - Delivers: files the reviews, merges the branch into main, runs install and the project's checks, resets main when a check fails; open findings become planning tickets; writes `outcome.md`; sets merged; names the tickets the merge unblocks; `--unreviewed` on the owner's word; the procedure sent after a merge.
 - Done means: refused: a branch without a PASS on its tip (unless `--unreviewed`), a dirty main. Edge cases: a merge conflict leaves main as it was; a failed check resets main and says which check; findings with no open entry make no ticket; a finding's ticket gets the next id.
-- Depends on: 44, 17.
+- Depends on: 53, 18.
 - Size: a day.
 - Covers: D3 (merge), O5.
 
-### 46. Hand-back after a FAIL review
+### 55. Hand-back after a FAIL review
 
 - Package: delivery.
 - Delivers: after a FAIL: file it, continue the worker with the findings and a new budget, spawn the next review when the worker ends; cancelled by `stop-all`; spawns go through `beforeSpawn`, so `maxAgents` holds.
 - Done means: edge cases: `/stopall` between the worker's end and the next review cancels it; a refused spawn (at `maxAgents`) is retried when a slot frees, not dropped; the second FAIL stops the loop at the review limit.
-- Depends on: 45.
+- Depends on: 54.
 - Size: half a day to a day.
 - Covers: D4, T14 (the cancel).
 
-### 47. Changelog
+### 56. Changelog
 
 - Package: delivery.
 - Delivers: `arthur changelog`, and the rebuild after each merge: `CHANGELOG.md` from merged tickets, grouped by day and kind.
 - Done means: edge cases: no merged ticket; a ticket without a kind; the same output from two runs (stable order).
-- Depends on: 45.
+- Depends on: 54.
 - Size: half a day.
 - Covers: D5.
 
 ## GitHub
 
-### 48. GitHub: polling CI runs
+### 57. GitHub: polling CI runs
 
 - Package: github.
 - Delivers: `instances` (`tokenEnv`); every `poll.everySeconds` the CI runs of the branches in play, for each project's `ci.workflow`; `ci-finished` once per run id; for a commit that touches no watched path, the run of the nearest commit before it; tested against a fake API in the shape of GitHub's REST documentation.
 - Done means: edge cases: the same run seen on two polls emits once (across a restart too); a rate-limit answer waits as GitHub says; a 401 is said once, not every poll; a branch deleted while in play.
-- Depends on: 32, 42.
+- Depends on: 41, 51.
 - Size: a day.
 - Covers: GH1 (runs), the GitHub setting.
 
-### 49. GitHub: `arthur ci`, reruns, pushes, pull request reviews
+### 58. GitHub: `arthur ci`, reruns, pushes, pull request reviews
 
 - Package: github.
 - Delivers: `arthur ci <branch>` tells why a run failed (the failed step, the end of its log); `--rerun` reruns a failed or cancelled run once; the reviewed branch and main pushed to origin (one warning line on failure, never a prompt); pull request reviews polled and emitted for the coordinator when `wakeOn` names them.
 - Done means: refused: a second `--rerun` of the same run; a rerun of a passed run. Edge cases: a log too long (its end only); a push rejected as non-fast-forward; no remote.
-- Depends on: 48, 43.
+- Depends on: 57, 52.
 - Size: a day.
 - Covers: GH1 (`arthur ci`), GH2.
 
-### 50. Auto-merge after PASS and green CI
+### 59. Auto-merge after PASS and green CI
 
 - Package: delivery.
 - Delivers: `arthur merge --auto`: merges only with a PASS on the tip, CI passed (asked of github through `call`), the project's `autoMerge` on, and no held path (roles, vision, CI, `package.json`, the always-review list); `--no-ci` on the owner's word.
 - Done means: refused, each naming the rule: a PASS on an older commit, CI pending or failed, a held path, `autoMerge: false`, github disabled without `--no-ci`. Edge cases: CI passed on the tip after a new commit; a held path renamed.
-- Depends on: 45, 48.
+- Depends on: 54, 57.
 - Size: half a day.
 - Covers: D3 (`--auto`), GH3 (Arthur's own workflow is its `ci.workflow`).
 
 ## Manage
 
-### 51. `arthur health`
+### 60. `arthur health`
 
 - Package: manage.
 - Delivers: `arthur health` and `/health`: one line per thing that should have happened by now and has not, from the checks each plugin provides (`collect("health")`) and manage's own (a stalled ticket, main not pushed, a board uncommitted for an hour, a temporary folder full, low inodes); reads only; `health.everyMinutes` sends new lines as a `notice`.
 - Done means: edge cases: nothing wrong prints one line saying so; a provider that throws costs its line only, named; the same problem is not sent twice in a row.
-- Depends on: 42.
+- Depends on: 51.
 - Size: a day.
 - Covers: M1, T12.
 
-### 52. `arthur stats`
+### 61. `arthur stats`
 
 - Package: manage.
 - Delivers: per merged ticket the review rounds, verdicts, cost and days; the mean rounds, the share of first-round PASS, the share of autopilot, the 3 most expensive, the first line of each FAIL finding.
 - Done means: edge cases: no merged ticket; a ticket without reviews; a ticket whose cost file is missing counts as unknown, not zero.
-- Depends on: 45.
+- Depends on: 54.
 - Size: half a day.
 - Covers: M2.
 
-### 53. The audit
+### 62. The audit
 
 - Package: manage.
 - Delivers: the kind `audit` (read-only, on the commits since the last audit, the board digest, stats and open findings; up to 5 proposals or `NO PROPOSALS`); no commits since the last one means no job; filed as `spec/quality/<date>.md` with the commit audited; the audit criteria and the procedure sent when it ends; `audit.days`, `audit.at`, `audit.budgetUsd`, `audit.model` register the schedule entry.
 - Done means: refused: filing a failed audit. Edge cases: a second audit the same day; a day not in `audit.days` makes no job; a resume after the budget ran out happens once.
-- Depends on: 31, 52.
+- Depends on: 40, 61.
 - Size: a day.
 - Covers: M3, B8 (audit), O6, C5, G6, the audit setting.
 
-### 54. The retro
+### 63. The retro
 
 - Package: manage.
 - Delivers: the kind `retro` (read-only, on the FAIL reviews, findings and outcomes of the merges since the last retro, and the roles and criteria); `arthur retro-due` (10 merges and 2 FAILs, or 5 findings); filed as `spec/retro/<date>.md` and a phone page `spec/retro/<date>.html`; `/retro` sends the newest page; the retro criteria and procedure; `retro.day` and `retro.at` register the entry; the coordinator's context gets the retro-due line.
 - Done means: edge cases: exactly at the threshold; no retro yet; `/retro` with no page.
-- Depends on: 53.
+- Depends on: 62.
 - Size: a day.
 - Covers: M4, B8 (retro), O7, T11, C5.
 
-### 55. Prune and temporary folders on a schedule
+### 64. Prune and temporary folders on a schedule
 
 - Package: manage.
 - Delivers: `prune.keepJobsDays` runs the core's prune on a schedule; temporary folders Arthur made, older than a day, removed daily and at start when a day was missed.
 - Done means: edge cases: a folder of a running job is never removed; a folder another user owns is skipped with a line; a missed day runs once at start.
-- Depends on: 31, 15.
+- Depends on: 40, 15.
 - Size: half a day.
 - Covers: M5, R10 (on a schedule).
 
-### 56. The morning report
+### 65. The morning report
 
 - Package: orchestration.
 - Delivers: `morningReport.at` registers a schedule action with its procedure: built overnight, merged without the owner, waiting for approval, waiting for a decision, needs attention (from health).
 - Done means: edge cases: a night with nothing done says so in one line; schedule disabled refuses the option at load.
-- Depends on: 31, 51, 45.
+- Depends on: 40, 60, 54.
 - Size: half a day.
 - Covers: O11, C2 (the report entry).
 
 ## Develop
 
-### 57. `arthur plugin new`
+### 66. `arthur plugin new`
 
 - Package: develop.
 - Delivers: `arthur plugin new <name>` creates `packages/<name>/` with its `package.json`, a plugin file, a test against the fake host and a doc page; the result passes `npm run check` and `npm test` as created.
 - Done means: refused: an existing name, a name that is not lowercase letters and dashes. Edge cases: the structure test (entry 1) passes on the new package.
-- Depends on: 42.
+- Depends on: 51.
 - Size: half a day.
 - Covers: the vision's develop plugin (no predecessor capability).
 
-### 58. Evals: the runner
+### 67. Evals: the runner
 
 - Package: develop.
 - Delivers: `arthur eval` replays coordinator turns (a job ended, a schedule entry due, a message) against scenarios, on a copy of a fixture, with `arthur` replaced by a recording stub; a scenario is scored by what the run left behind (files, refs, the stub's log); pass rates against a baseline; every command refuses to run inside an eval session.
 - Done means: edge cases: a scenario whose fixture is missing fails alone; a turn that never ends hits the scenario's timeout; the stub never reaches the live home folder (asserted).
-- Depends on: 22, 57.
+- Depends on: 25, 66.
 - Size: a day.
 - Covers: E1, R1 (the eval refusal), the eval settings.
 
-### 59. Evals: the scenarios
+### 68. Evals: the scenarios
 
 - Package: develop, and each plugin whose procedure a scenario tests.
 - Delivers: the scenarios, each in the package of the plugin whose procedure it tests: after a restart with a plan, an audit with autopilot, a failed check, a failed CI run, a condition before review, an env refusal, "later" as a ticket, a merge, the morning report, a one-line night answer, no sleeping, onboarding questions, a retro, a FAIL review continued, a FAIL review handed back, a PASS review, a PASS review with its hook, unblocked after a restart, a worker done; the baseline.
 - Done means: every scenario runs against the fake agent in `npm test` (the scoring, not the model); the baseline holds a rate for each.
-- Depends on: 58, 56, 50.
+- Depends on: 67, 65, 59.
 - Size: a day.
 - Covers: C7.
 
 ## Later
 
-### 60. Signal
+### 69. Signal
 
 - Package: signal.
 - Delivers: a channel through `signal-cli` next to Arthur: receive by polling, send text and media, only the allowed number, the `channel.send` and `message-received` contract telegram uses.
 - Done means: tested against a fake `signal-cli` that answers in its documented JSON shape. Edge cases: `signal-cli` missing (one line, the plugin does not start); a message from another number; an attachment too large.
-- Depends on: the first version (entries 1 to 59).
+- Depends on: the first version (entries 1 to 68).
 - Size: a day.
 - Covers: none (new).
 
-### 61. WhatsApp through a local bridge
+### 70. WhatsApp through a local bridge
 
 - Package: whatsapp.
 - Delivers: a channel through a bridge on loopback (receive by polling, send text and media, only the allowed number); refuses a bridge URL that is not loopback.
 - Done means: tested against a fake bridge. Edge cases: a bridge URL on a public address refused at load; the bridge down (said once, retried); the session logged out.
-- Depends on: 60.
+- Depends on: 69.
 - Size: a day.
 - Covers: none (new).
 
-### 62. Server: events over a stream
+### 71. Server: events over a stream
 
 - Package: server.
 - Delivers: the event log over HTTP as a stream from a sequence number, every request carrying the token; binds only loopback or a private address.
 - Done means: refused at load: `0.0.0.0`, a public address. Edge cases: a request without or with a wrong token (401, no detail); a client that reconnects from its last sequence misses nothing; a slow client does not block the others.
-- Depends on: 61.
+- Depends on: 70.
 - Size: a day.
 - Covers: none (new).
 
-### 63. Server: commands over HTTP
+### 72. Server: commands over HTTP
 
 - Package: server.
 - Delivers: the registered commands over HTTP (name, arguments, the reply), with the token.
 - Done means: edge cases: an unknown command; a command that throws (one error line); two calls at once.
-- Depends on: 62.
+- Depends on: 71.
 - Size: half a day to a day.
 - Covers: none (new).
 
-After entry 59, Arthur switches its first project, itself: it runs on the VPS (`docs/deploy.md`) and takes its own tickets. The other projects follow, then the later entries.
+After entry 68, Arthur switches its first project, itself: it runs on the VPS (`docs/deploy.md`) and takes its own tickets. The other projects follow, then the later entries.
 
 ## Coverage of the harness Arthur replaces
 
@@ -616,7 +699,7 @@ Each row is one capability of the harness Arthur replaces, as it was inventoried
 
 | Id | Capability | Entry |
 | --- | --- | --- |
-| R1 | The CLI: find a command, `--help` from its doc, act on another project; refuse inside an eval | 6; eval refusal 58 |
+| R1 | The CLI: find a command, `--help` from its doc, act on another project; refuse inside an eval | 6; eval refusal 67 |
 | R2 | Start a job: worker on its own branch or read-only checkout, job record, `Ticket:` check, `node_modules` copy | 9 |
 | R3 | The wrapper: one process per job, tools by role, the job's files, state last | 11 |
 | R4 | Time and budget limits, per-kind budgets, one automatic resume | 12 |
@@ -625,14 +708,14 @@ Each row is one capability of the harness Arthur replaces, as it was inventoried
 | R7 | Continue a finished worker in place | 14 |
 | R8 | Steer a running worker; an undelivered steer named at the end | 14 |
 | R9 | List jobs of every project with short ids | 15 |
-| R10 | Prune finished jobs, Git deciding what is safe | 15; on a schedule 55 |
+| R10 | Prune finished jobs, Git deciding what is safe | 15; on a schedule 64 |
 | R11 | Git helpers | 9 |
 | R12 | Fail a job whose process is gone on two sweeps | 15 |
 | R13 | Settings from the shell and `.env`, the shell winning even when empty | 2, 3 |
 | R14 | The role prompt: role file, override, criteria; symlinks refused | 10 |
 | R15 | The worker role | 10 |
-| R16 | Env guard | 18 |
-| R17 | Worktree guard and the shell parser | 19 |
+| R16 | Env guard | 19 |
+| R17 | Worktree guard and the shell parser | 20 |
 | R18 | One extension file wiring the coordinator's hooks | Out of scope: the plugin host loads each plugin (4) |
 | R19 | A doc page per command, kept equal to the commands | 6 |
 
@@ -640,113 +723,113 @@ Each row is one capability of the harness Arthur replaces, as it was inventoried
 
 | Id | Capability | Entry |
 | --- | --- | --- |
-| B1 | Tickets as folders, the board file, statuses, template guidance refused at `planned` | 16 |
-| B2 | One writer at a time on the board | 16 |
-| B3 | Ticket ids with a per-project prefix | 16; the prefix set in 32 |
-| B4 | `after`: a ticket waits for others | 17 |
-| B5 | Statuses follow jobs | 17; review verdicts 43; merged 45 |
-| B6 | The worktree holds the `Ticket:` files and the approved plan | 9; plan 24 |
-| B7 | Filing a review, never twice | 43 |
-| B8 | Filing an audit or a retro | 53, 54 |
-| B9 | Filing a plan or plan review | 24 |
-| B10 | Autopilot pre-approval | 25 |
-| B11 | The board digest | 17 |
-| B12 | Each project's vision file, read by the roles | 16 (the skeleton), 22 (read) |
+| B1 | Tickets as folders, the board file, statuses, template guidance refused at `planned` | 17 |
+| B2 | One writer at a time on the board | 17 |
+| B3 | Ticket ids with a per-project prefix | 17; the prefix set in 41 |
+| B4 | `after`: a ticket waits for others | 18 |
+| B5 | Statuses follow jobs | 18; review verdicts 52; merged 54 |
+| B6 | The worktree holds the `Ticket:` files and the approved plan | 9; plan 28 |
+| B7 | Filing a review, never twice | 52 |
+| B8 | Filing an audit or a retro | 62, 63 |
+| B9 | Filing a plan or plan review | 28 |
+| B10 | Autopilot pre-approval | 29 |
+| B11 | The board digest | 18 |
+| B12 | Each project's vision file, read by the roles | 17 (the skeleton), 25 (read) |
 
 ### Orchestration
 
 | Id | Capability | Entry |
 | --- | --- | --- |
-| O1 | The coordinator's role | 20 |
-| O2 | The coordinator's context on every turn | 22 |
-| O3 | Wake on job end | 21 |
-| O4 | The `Restarted.` message after a restart | 27 |
-| O5 | The procedure after a merge | 45 |
-| O6 | The procedure when an audit ends | 53 |
-| O7 | The procedure when a retro ends | 54 |
-| O8 | The procedure when an onboarding ends | 33 |
-| O9 | The procedure when a plan or plan review ends | 24 |
-| O10 | The procedure at two FAIL reviews | 43 |
-| O11 | The morning report | 56 |
-| O12 | At most N jobs at once, enforced | 23 |
-| O13 | Model and thinking level per role | 23 |
-| O14 | The plan flow for a large ticket | 24 |
+| O1 | The coordinator's role | 23 |
+| O2 | The coordinator's context on every turn | 25 |
+| O3 | Wake on job end | 24 |
+| O4 | The `Restarted.` message after a restart | 36 |
+| O5 | The procedure after a merge | 54 |
+| O6 | The procedure when an audit ends | 62 |
+| O7 | The procedure when a retro ends | 63 |
+| O8 | The procedure when an onboarding ends | 42 |
+| O9 | The procedure when a plan or plan review ends | 28 |
+| O10 | The procedure at two FAIL reviews | 52 |
+| O11 | The morning report | 65 |
+| O12 | At most N jobs at once, enforced | 26 |
+| O13 | Model and thinking level per role | 26 |
+| O14 | The plan flow for a large ticket | 28 |
 
 ### Delivery, GitHub, manage, projects, YouTrack, develop
 
 | Id | Capability | Entry |
 | --- | --- | --- |
-| D1 | Review jobs and the 2-FAIL limit | 43 |
-| D2 | Review or no review for a branch | 44 |
-| D3 | Merge, findings to tickets, outcome; `--auto` after PASS and green CI | 45; `--auto` 50 |
-| D4 | Hand-back after a FAIL | 46 |
-| D5 | The changelog | 47 |
-| GH1 | CI runs of a branch and main; why a run failed; rerun | 48, 49 |
-| GH2 | Push the reviewed branch and main | 49 |
-| GH3 | The repository's own CI workflow | Out of scope as a capability: Arthur's `.github/workflows/ci.yml` exists; the github plugin watches it through `ci.workflow` (50) |
-| M1 | Health | 51 |
-| M2 | Stats | 52 |
-| M3 | The nightly audit | 53 |
-| M4 | The weekly retro and when it is due | 54 |
-| M5 | Clean old temporary folders | 55 |
-| P1 | Give a repository what Arthur reads | 33 |
-| P2 | The list of projects every command reaches | 32 |
-| P3 | Onboarding of a new repository | 33 |
-| P4 | A project names its tracker instance | 32, 35 |
-| Y1 | YouTrack: issues, articles, fields, work items, comments, attachments; no delete; ids checked; token hidden | 35, 36, 37 |
-| Y2 | Rules for a job working on an issue | 37 |
-| E1 | Evals of coordinator turns | 58 |
+| D1 | Review jobs and the 2-FAIL limit | 52 |
+| D2 | Review or no review for a branch | 53 |
+| D3 | Merge, findings to tickets, outcome; `--auto` after PASS and green CI | 54; `--auto` 59 |
+| D4 | Hand-back after a FAIL | 55 |
+| D5 | The changelog | 56 |
+| GH1 | CI runs of a branch and main; why a run failed; rerun | 57, 58 |
+| GH2 | Push the reviewed branch and main | 58 |
+| GH3 | The repository's own CI workflow | Out of scope as a capability: Arthur's `.github/workflows/ci.yml` exists; the github plugin watches it through `ci.workflow` (59) |
+| M1 | Health | 60 |
+| M2 | Stats | 61 |
+| M3 | The nightly audit | 62 |
+| M4 | The weekly retro and when it is due | 63 |
+| M5 | Clean old temporary folders | 64 |
+| P1 | Give a repository what Arthur reads | 42 |
+| P2 | The list of projects every command reaches | 41 |
+| P3 | Onboarding of a new repository | 42 |
+| P4 | A project names its tracker instance | 41, 44 |
+| Y1 | YouTrack: issues, articles, fields, work items, comments, attachments; no delete; ids checked; token hidden | 44, 45, 46 |
+| Y2 | Rules for a job working on an issue | 46 |
+| E1 | Evals of coordinator turns | 67 |
 | E2 | The test kit: fake agent, fake host, safety net, temporary folders | 4, 11 |
 | E3 | Rules that keep the code small, as a test | 1 |
-| E4 | The Conventional Commits hook | 34 (Arthur's own project uses the regex) |
+| E4 | The Conventional Commits hook | 43 (Arthur's own project uses the regex) |
 | E5 | One page on what the models read | 10 |
 
 ### Session
 
 | Id | Capability | Entry |
 | --- | --- | --- |
-| S1 | The coordinator as one interactive agent in tmux, started again, waiting for the previous one to exit; attach and stop | 20 |
-| S2 | Compaction at 08:00, 13:00, 18:00 | 26 |
-| S3 | The fresh start at 23:00 | 27 |
-| S4 | `/restart` and `/restart fresh` | 27 |
-| S5 | The restart guard | 28 |
-| S6 | The LLM probe and the turn-failed notice | 29 |
+| S1 | The coordinator as one interactive agent in tmux, started again, waiting for the previous one to exit; attach and stop | 23 |
+| S2 | Compaction at 08:00, 13:00, 18:00 | 35 |
+| S3 | The fresh start at 23:00 | 36 |
+| S4 | `/restart` and `/restart fresh` | 36 |
+| S5 | The restart guard | 37 |
+| S6 | The LLM probe and the turn-failed notice | 38 |
 | S7 | The service and the user manager survive; controllers delegated | 8; delegation 13 |
 | S8 | The VPS recipe | 8 |
 
-Session options: `compactAt` 26; `freshAt` 27; `timeZone` 7; `compactWaitSeconds` 26; `exitWaitSeconds`, `restartDelaySeconds` and the tmux session 20 (options of `orchestration`); no restart, stop or fresh start while jobs run, a rule in 20 and 27; `restartGuard` 28; `probeLlm` 29; the coordinator's model 23; the session's files in `.arthur/session/` 27.
+Session options: `compactAt` 35; `freshAt` 36; `timeZone` 7; `compactWaitSeconds` 35; `exitWaitSeconds`, `restartDelaySeconds` and the tmux session 23 (options of `orchestration`); no restart, stop or fresh start while jobs run, a rule in 23 and 36; `restartGuard` 37; `probeLlm` 38; the coordinator's model 26; the session's files in `.arthur/session/` 36.
 
 ### Telegram
 
 | Id | Capability | Entry |
 | --- | --- | --- |
-| T1 | The bridge: polling, one chat, old messages dropped, turns, replies, polling failures | 38 |
-| T2 | Sending: retry, outbox, refused slices, quiet hours, long text | 38, 39 |
-| T3 | Media in | 40 |
-| T4 | Media out, `send` | 40 |
-| T5 | The start notice and the command menu | 29, 41 |
+| T1 | The bridge: polling, one chat, old messages dropped, turns, replies, polling failures | 47 |
+| T2 | Sending: retry, outbox, refused slices, quiet hours, long text | 47, 48 |
+| T3 | Media in | 49 |
+| T4 | Media out, `send` | 49 |
+| T5 | The start notice and the command menu | 38, 50 |
 | T6 | `/jobs` | 15 |
-| T7 | `/board` | 17 |
-| T8 | `/projects` | 32 |
-| T9 | `/findings`, `/task` | 17 |
-| T10 | `/plan` | 24 |
-| T11 | `/retro` | 54 |
-| T12 | `/health` | 51 |
+| T7 | `/board` | 18 |
+| T8 | `/projects` | 41 |
+| T9 | `/findings`, `/task` | 18 |
+| T10 | `/plan` | 28 |
+| T11 | `/retro` | 63 |
+| T12 | `/health` | 60 |
 | T13 | `/steer` | 15 |
-| T14 | `/stopall` | 15; the hand-back cancel 46 |
-| T15 | `/restart`, `/restart fresh` | 27 |
+| T14 | `/stopall` | 15; the hand-back cancel 55 |
+| T15 | `/restart`, `/restart fresh` | 36 |
 
 ### Schedule, deploy, state
 
 | Id | Capability | Entry |
 | --- | --- | --- |
-| C1 | Schedule entries, the sweep, the `schedule` command | 30, 31 |
-| C2 | The recurring entries (morning report, retro, audit) and their day rules | 31, 53, 54, 56 |
-| C3 | The schedule's run state outside Git | 30 |
-| C4 | The deploy units | 8 (service), 13 (delegation), 26 and 27 (the session's times, run by `arthur run`), 55 (cleanup) |
-| C5 | Audit and retro reports | 53, 54 |
+| C1 | Schedule entries, the sweep, the `schedule` command | 39, 40 |
+| C2 | The recurring entries (morning report, retro, audit) and their day rules | 40, 62, 63, 65 |
+| C3 | The schedule's run state outside Git | 39 |
+| C4 | The deploy units | 8 (service), 13 (delegation), 35 and 36 (the session's times, run by `arthur run`), 64 (cleanup) |
+| C5 | Audit and retro reports | 62, 63 |
 | C6 | Planning documents for Arthur | Out of scope: they are this repository's `spec/` |
-| C7 | The eval scenarios | 59 |
+| C7 | The eval scenarios | 68 |
 | C8 | Runtime state | `.arthur/`: 8, each plugin its own folder (4) |
 | C9 | Secrets only in `.env`, the variables listed | 3 |
 | C10 | What a job can reach, and where protection ends | 8 (the threat model in `docs/deploy.md`) |
@@ -756,65 +839,65 @@ Session options: `compactAt` 26; `freshAt` 27; `timeZone` 7; `compactWaitSeconds
 | Command of the harness Arthur replaces | Arthur | Entry |
 | --- | --- | --- |
 | spawn (worker) | `arthur spawn` | 9 |
-| spawn a review | kind `review` | 43 |
-| spawn an audit, a retro | kinds `audit`, `retro` | 53, 54 |
-| spawn a plan, a plan review | kinds `plan`, `plan-review` | 24 |
-| spawn an onboarding | kind `onboarding` | 33 |
+| spawn a review | kind `review` | 52 |
+| spawn an audit, a retro | kinds `audit`, `retro` | 62, 63 |
+| spawn a plan, a plan review | kinds `plan`, `plan-review` | 28 |
+| spawn an onboarding | kind `onboarding` | 42 |
 | continue | `arthur continue` | 14 |
 | steer | `arthur steer` | 14 |
 | jobs | `arthur jobs` | 15 |
 | stop | `arthur stop` | 14 |
 | prune | `arthur prune` | 15 |
-| ticket (digest, all, new, status, after) | `arthur ticket` | 16, 17 |
-| ticket file | `arthur ticket file`, by kind | 43, 53, 54, 24 |
-| ticket status planned with autopilot | `arthur ticket status --autopilot` | 25 |
-| merge | `arthur merge` | 45, 50 |
-| review-needed | `arthur review-needed` | 44 |
-| changelog | `arthur changelog` | 47 |
-| ci | `arthur ci` | 49 |
-| schedule | `arthur schedule` | 31 |
+| ticket (digest, all, new, status, after) | `arthur ticket` | 17, 18 |
+| ticket file | `arthur ticket file`, by kind | 52, 62, 63, 28 |
+| ticket status planned with autopilot | `arthur ticket status --autopilot` | 29 |
+| merge | `arthur merge` | 54, 59 |
+| review-needed | `arthur review-needed` | 53 |
+| changelog | `arthur changelog` | 56 |
+| ci | `arthur ci` | 58 |
+| schedule | `arthur schedule` | 40 |
 | roles | `arthur roles` | 10 |
-| stats | `arthur stats` | 52 |
-| retro-due | `arthur retro-due` | 54 |
-| health | `arthur health` | 51 |
-| send | `arthur send` | 40 |
-| eval | `arthur eval` | 58 |
-| init | `arthur init` | 33 |
-| youtrack | `arthur youtrack` | 35, 36, 37 |
+| stats | `arthur stats` | 61 |
+| retro-due | `arthur retro-due` | 63 |
+| health | `arthur health` | 60 |
+| send | `arthur send` | 49 |
+| eval | `arthur eval` | 67 |
+| init | `arthur init` | 42 |
+| youtrack | `arthur youtrack` | 44, 45, 46 |
 
 ### Settings
 
 | Setting of the harness Arthur replaces | Arthur | Entry |
 | --- | --- | --- |
-| Telegram bot token and chat | `telegram` `bots` | 38 |
-| Model and thinking per role, quick model | `orchestration` `coordinator`, `roles` | 23 |
+| Telegram bot token and chat | `telegram` `bots` | 47 |
+| Model and thinking per role, quick model | `orchestration` `coordinator`, `roles` | 26 |
 | Job timeout and budget | `core.jobs` | 2, 12 |
-| Audit budget | `manage` `audit.budgetUsd` | 53 |
-| Plan budget | `orchestration` `plan` | 24 |
-| Autopilot budget and cap | `orchestration` `autopilot` | 25 |
+| Audit budget | `manage` `audit.budgetUsd` | 62 |
+| Plan budget | `orchestration` `plan` | 28 |
+| Autopilot budget and cap | `orchestration` `autopilot` | 29 |
 | Joint CPU and memory of jobs | `core.jobs.cpu`, `core.jobs.memory` | 13 |
-| Folders in front of `PATH` | `projects` `pathPrepend` | 32 |
-| GitHub token | `github` `instances` | 48 |
-| YouTrack URL and token per server | `youtrack` `instances` | 35 |
-| The wrapper's and guards' own switches | core internals | 11, 18, 19 |
-| The coordinator marker, the fresh-start marker, the test tmux socket | `orchestration`, `session` | 20, 27 |
-| The eval's stub switches | `develop` | 58 |
-| Test seams (process table, job slice, Bot API URL) | kept as test seams | 13, 15, 38 |
+| Folders in front of `PATH` | `projects` `pathPrepend` | 41 |
+| GitHub token | `github` `instances` | 57 |
+| YouTrack URL and token per server | `youtrack` `instances` | 44 |
+| The wrapper's and guards' own switches | core internals | 11, 19, 20 |
+| The coordinator marker, the fresh-start marker, the test tmux socket | `orchestration`, `session` | 23, 36 |
+| The eval's stub switches | `develop` | 67 |
+| Test seams (process table, job slice, Bot API URL) | kept as test seams | 13, 15, 47 |
 
 ### Gaps the inventory found, and their entries
 
 | Id | Gap | Entry |
 | --- | --- | --- |
-| G1 | The coordinator's conversation lifecycle | 26 to 29 |
-| G2 | Worktree guard | 19 |
-| G3 | Phone commands without the model, the menu | 6, 41 |
+| G1 | The coordinator's conversation lifecycle | 35 to 38 |
+| G2 | Worktree guard | 20 |
+| G3 | Phone commands without the model, the menu | 6, 50 |
 | G4 | Time zone and quiet hours | 3, 7 |
-| G5 | Planning of large tickets | 24 |
-| G6 | Which days the audit and retro run | 31, 53, 54 |
+| G5 | Planning of large tickets | 28 |
+| G6 | Which days the audit and retro run | 40, 62, 63 |
 | G7 | Dead jobs; the joint limit | 13, 15 |
-| G8 | A project's own vision and criteria | 10, 32 |
+| G8 | A project's own vision and criteria | 10, 41 |
 | G9 | A doc per command | 6 |
-| G10 | Commit rules per project | 34 |
-| G11 | English only, English keys | 16 (the board reads English keys; no old ticket is rewritten, the board starts empty) |
+| G10 | Commit rules per project | 43 |
+| G11 | English only, English keys | 17 (the board reads English keys; no old ticket is rewritten, the board starts empty) |
 | G12 | The predecessor's history of tickets and reports | Out of scope: it is not carried over (vision) |
-| G13 | Per-project prefixes; renumbering | 32; renumbering out of scope, the board starts empty |
+| G13 | Per-project prefixes; renumbering | 41; renumbering out of scope, the board starts empty |

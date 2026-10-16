@@ -1,5 +1,6 @@
 %% Core and plugins. Green = first version, grey dashed = later. Plugins talk to the core, never to each other.
-%% Arthur exposes nothing to the internet: every arrow out of a plugin is a call it makes, or a local process.
+%% Arthur exposes nothing to the internet: every arrow out of a plugin is a call it makes, or a local process;
+%% other machines are reached over SSH on a private network (Tailscale).
 flowchart TD
   human([Human])
 
@@ -14,7 +15,7 @@ flowchart TD
   subgraph CORE[Arthur core - always on]
     loader[config loader]
     host[plugin host<br/>command registry]
-    runner[job runner<br/>worktree, log, stop]
+    runner[job runner<br/>worktree, log, stop<br/>state: working, idle,<br/>blocked, ended<br/>here or over SSH]
     board[ticket board]
     events[event stream]
     clock[clock<br/>time zone, quiet hours]
@@ -24,11 +25,20 @@ flowchart TD
     host ~~~ runner ~~~ board ~~~ events ~~~ clock ~~~ guards ~~~ kit
   end
 
-  subgraph ORCH[Coordinator - always on]
-    orchestration[orchestration<br/>coordinator, max agents<br/>required]
+  subgraph ORCH[Coordinator - always on, required]
+    orchestration[orchestration<br/>coordinator, max agents]
+  end
+
+  subgraph CONV[Conversation and timers]
     session[session<br/>compact 08 13 18<br/>fresh 23, restart]
     schedule[schedule<br/>actions and jobs]
-    orchestration ~~~ session ~~~ schedule
+    session ~~~ schedule
+  end
+
+  subgraph RES[Machines and resources]
+    machines[machines<br/>labels: os, arch, tools<br/>places each job]
+    resources[resources<br/>caps per job and feature<br/>jobs from free resources]
+    machines ~~~ resources
   end
 
   subgraph PROJ[Projects, trackers, delivery, commits]
@@ -56,13 +66,16 @@ flowchart TD
   human <-->|messages| CH
   CH <-->|text, media| host
   ORCH <-->|events, commands| host
+  CONV <-->|events, commands| host
+  RES <-->|events, commands| host
   PROJ <-->|events, commands| host
   SELF <-->|events, commands| host
   REACH <-->|events, commands| host
   runner -->|spawns| omp[omp agent<br/>in a worktree]
+  runner -->|SSH, private network| remote[other machines<br/>e.g. a Mac<br/>omp in a worktree]
   github -.->|polls| gh[(GitHub)]
 
   classDef first fill:#d8f5d8,stroke:#2d7a2d,color:#000;
   classDef later fill:#eee,stroke:#888,stroke-dasharray:4 3,color:#555;
-  class terminal,telegram,orchestration,session,schedule,delivery,projects,youtrack,github,commit,manage,develop first;
+  class terminal,telegram,orchestration,session,schedule,machines,resources,delivery,projects,youtrack,github,commit,manage,develop first;
   class whatsapp,signal,server later;

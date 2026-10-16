@@ -115,9 +115,9 @@
   {
     "id": "AR0013",
     "title": "Roadmap 10: Prompt loader and arthur roles",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0013-roadmap-10-prompt-loader-and-arthur-roles/ticket.md",
-    "updated": "2026-10-16T09:46:24.405Z",
+    "updated": "2026-10-16T11:43:45.867Z",
     "after": [
       "AR0012"
     ]
@@ -297,9 +297,9 @@
   {
     "id": "AR0032",
     "title": "A phone command name with a dash cannot go into Telegram's command menu",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0032-a-phone-command-name-with-a-dash-cannot-go-into-telegram-s-command-menu/ticket.md",
-    "updated": "2026-10-16T10:45:57.775Z",
+    "updated": "2026-10-16T11:43:46.385Z",
     "after": [
       "AR0012"
     ]

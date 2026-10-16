@@ -627,8 +627,8 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 ### 66. `arthur plugin new`
 
 - Package: develop.
-- Delivers: `arthur plugin new <name>` creates `packages/<name>/` with its `package.json`, a plugin file, a test against the fake host and a doc page; the result passes `npm run check` and `npm test` as created.
-- Done means: refused: an existing name, a name that is not lowercase letters and dashes. Edge cases: the structure test (entry 1) passes on the new package.
+- Delivers: `arthur plugin new <name> --budget <lines>` creates `packages/<name>/` with its `package.json`, a plugin file, a test against the fake host and a doc page, and adds `<name>: <lines>` to `BUDGETS` in `test/structure.test.ts` (the number the plugin's ticket decides); the result passes `npm run check` and `npm test` as created.
+- Done means: refused: an existing name, a name that is not lowercase letters and dashes, a missing `--budget` or one that is not a positive whole number; a refusal changes no file. Edge cases: the structure test (entry 1) passes on the new package with no hand edit; it still refuses a package without a budget.
 - Depends on: 51.
 - Size: half a day.
 - Covers: the vision's develop plugin (no predecessor capability).

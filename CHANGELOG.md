@@ -27,6 +27,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0040 A crash mid-write leaves the board's lock or temporary file in the project's `spec/` (1d374f8)
 - AR0042 A project with a branch named `arthur` can spawn no worker (7e8d03d)
 - AR0044 An event a command appends while no daemon runs never reaches the subscribers (f7beab3)
+- AR0054 Roadmap entry 23 does not say the coordinator loads the env guard (71b8c57)
 
 ### Changed
 

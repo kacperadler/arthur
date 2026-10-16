@@ -460,8 +460,8 @@
   {
     "id": "AR0054",
     "title": "Roadmap entry 23 does not say the coordinator loads the env guard",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0054-roadmap-entry-23-does-not-say-the-coordinator-loads-the-env-guard/ticket.md",
-    "updated": "2026-10-16T13:31:18.213Z"
+    "updated": "2026-10-16T13:32:18.455Z"
   }
 ]

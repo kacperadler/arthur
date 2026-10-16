@@ -520,8 +520,8 @@
   {
     "id": "AR0063",
     "title": "Roadmap: model providers on other machines, with a fallback chain",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0063-roadmap-model-providers-on-other-machines-with-a-fallback-chain/ticket.md",
-    "updated": "2026-10-16T14:36:21.234Z"
+    "updated": "2026-10-16T14:45:49.990Z"
   }
 ]

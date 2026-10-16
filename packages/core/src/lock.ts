@@ -90,7 +90,7 @@ function takeOver(path: string, mine: string, stale: Holder): void {
 	}
 	try {
 		const now = holder(path);
-		if (now?.pid === stale.pid && now.ino === stale.ino) rmSync(path, { force: true });
+		if (now?.pid === stale.pid && now.ino === stale.ino) rmSync(path, { recursive: true, force: true });
 	} finally {
 		unlinkSync(guard);
 	}
@@ -98,14 +98,15 @@ function takeOver(path: string, mine: string, stale: Holder): void {
 
 type Holder = { readonly pid: number; readonly ino: number };
 
-// Undefined when the file is gone; a file that names no pid (edited by hand), or that an earlier boot wrote, counts as a dead holder's.
+// Undefined when the file is gone; a file that names no pid (edited by hand), or that an earlier boot wrote, counts as a dead
+// holder's, and so does a folder: `arthur continue` held its `continuing` as an empty folder before it named its pid.
 function holder(path: string): Holder | undefined {
 	try {
-		const { ino } = statSync(path);
-		const [text = "", boot, ...rest] = readFileSync(path, "utf8").trim().split(" ");
+		const stats = statSync(path);
+		const [text = "", boot, ...rest] = stats.isDirectory() ? [] : readFileSync(path, "utf8").trim().split(" ");
 		const pid = Number(text);
 		const thisBoot = boot === undefined || BOOT === "" || (boot === BOOT && rest.length === 0);
-		return { pid: Number.isSafeInteger(pid) && pid > 0 && thisBoot ? pid : 0, ino };
+		return { pid: Number.isSafeInteger(pid) && pid > 0 && thisBoot ? pid : 0, ino: stats.ino };
 	} catch (error) {
 		if (code(error) === "ENOENT") return undefined;
 		throw error;

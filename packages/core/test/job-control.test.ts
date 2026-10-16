@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -310,6 +310,33 @@ test("a continue whose wrapper does not start ends the job failed and says why, 
 	assert.equal(existsSync(join(home, "jobs", job.id, "continuing")), false, "a failed continue frees the record");
 });
 
+test("a continue returns only once the new wrapper's state says running, or the wrapper is gone, so a continue that takes its lock over reads running", { timeout: 30_000 }, async (t) => {
+	const gate = join(temporaryFolder(), "gate");
+	const { agent } = resuming({ steps: [{ message: "First." }] }, { steps: [{ waitFor: gate }, { message: "Second." }] });
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	await ended(home, job.id);
+	// A `systemd-run` that writes the wrapper's `pid` (its own, which the wrapper keeps through `exec`) a second before the
+	// wrapper starts and writes its state: `launch` returns at the `pid`, with the state still the old run's.
+	const bin = temporaryFolder();
+	const pid = join(home, "jobs", job.id, "pid");
+	writeFileSync(join(bin, "systemctl"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+	const shim = (then: string) => writeFileSync(join(bin, "systemd-run"), `#!/bin/sh\nwhile [ "$1" != -- ]; do shift; done\nshift\nprintf %s $$ > '${pid}.early'\nmv '${pid}.early' '${pid}'\nsleep 1\n${then}\n`, { mode: 0o755 });
+	shim('exec "$@"');
+	const saved = process.env.PATH;
+	t.after(() => void (process.env.PATH = saved));
+	process.env.PATH = [bin, saved].join(delimiter);
+	assert.equal(await jobs.continue(job.id, "Two."), undefined);
+	assert.equal(field(home, job.id, "state"), "running");
+	writeFileSync(gate, "");
+	const [, second] = await ended(home, job.id, 2);
+	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" });
+	// A wrapper that is gone before it wrote its state ends the wait: the continue returns, the state still the old run's.
+	shim("exit 0");
+	assert.equal(await jobs.continue(job.id, "Three."), undefined);
+	assert.equal(field(home, job.id, "state"), "done");
+});
+
 for (const manager of [true, false])
 	test(`two continues at once start one wrapper ${manager ? "in its scope" : "bare, without a user manager"}: the other is refused, the record ends once`, async (t) => {
 		if (!manager) bare(t);
@@ -330,6 +357,24 @@ for (const manager of [true, false])
 		assert.deepEqual([starts(resumed).length, field(home, job.id, "continue"), field(home, job.id, "log")?.match(/\] arthur continue: /g)?.length], [1, "One.", 1]);
 		assert.equal(field(home, job.id, "log")?.includes("no systemd scope"), !manager);
 	});
+
+test("a continue takes over the `continuing` a killed continue left, and is refused while a live process holds it", async (t) => {
+	const { agent, resumed } = resuming({ steps: [{ message: "First." }] }, { steps: [{ message: "Second." }] });
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	await ended(home, job.id);
+	const continuing = join(home, "jobs", job.id, "continuing");
+	const live = spawn("sleep", ["300"]);
+	t.after(() => live.kill());
+	writeFileSync(continuing, String(live.pid));
+	await assert.rejects(jobs.continue(job.id, "Two."), { message: `${job.id}: being continued` });
+	assert.deepEqual([read(continuing), field(home, job.id, "continue"), starts(resumed).length], [String(live.pid), undefined, 0], "the holder keeps it");
+	writeFileSync(continuing, String(spawnSync("true").pid));
+	assert.equal(await jobs.continue(job.id, "Two."), undefined);
+	const [, second] = await ended(home, job.id, 2);
+	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" });
+	assert.deepEqual([starts(resumed).length, field(home, job.id, "continue"), existsSync(continuing)], [1, "Two.", false]);
+});
 
 test("continue is refused, with the id and the reason: a running job, a read-only kind, an unknown id, an empty instruction, a bad budget", async () => {
 	const gate = join(temporaryFolder(), "gate");

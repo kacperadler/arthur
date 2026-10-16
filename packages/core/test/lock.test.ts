@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { takeLock, withLock } from "../src/lock.ts";
@@ -40,6 +40,17 @@ test("a lock of a dead pid, one that names no pid, or one an earlier boot wrote 
 		assert.equal(withLock(path, () => "ran", 200), "ran", `a lock holding ${JSON.stringify(text)}`);
 		assert.deepEqual(readdirSync(folder), []);
 	}
+});
+
+test("a folder at the lock's path, as `arthur continue` left its `continuing` before it named its pid, is taken over", () => {
+	const folder = temporaryFolder();
+	const path = join(folder, "continuing");
+	mkdirSync(path);
+	const lock = takeLock(path);
+	assert.ok("release" in lock, "taken");
+	assert.equal(readFileSync(path, "utf8").split(" ")[0], String(process.pid));
+	lock.release();
+	assert.deepEqual(readdirSync(folder), []);
 });
 
 test("takeLock refuses while its holder lives, naming it, and release removes only the lock it took", () => {

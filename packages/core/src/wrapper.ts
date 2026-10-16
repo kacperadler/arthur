@@ -1,5 +1,5 @@
 import { type ChildProcess, spawn } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { agentStream } from "./agent-stream.ts";
 import { eventBus } from "./events.ts";
@@ -17,11 +17,12 @@ import { closeSteers } from "./steer-inbox.ts";
 // then `state` (`done`, `failed`, `stopped`, `limit: time` or `limit: budget`) last, so a reader that sees it final can
 // trust the rest; then `job-ended`. SIGTERM to the wrapper (`arthur stop`, entry 14) and a job past its record's `timeout`
 // or `budget` (entry 12) run the one stop (job-stop.ts); a kind with `resume-on-budget` gets one resume at its budget,
-// doubled. A record with `continue` (`arthur continue`) resumes the agent's session with it. Once the agent is done, what
-// is left in the job's scope is killed (entry 13), and steers still waiting are moved aside; a process the agent left that
-// holds its output open is waited for 2 seconds after the agent exited, then no longer read. A record deleted while the job
-// runs stops the agent and what is left in its scope, and ends the wrapper with one line on its own output,
-// `<home>/wrapper.log`, writing nothing else.
+// doubled. A record with `continue` (`arthur continue`) resumes the agent's session with it; its `continuing`, which holds
+// the record against a second continue, is removed once the state says running. Once the agent is done, what is left in
+// the job's scope is killed (entry 13), and steers still waiting are moved aside; a process the agent left that holds its
+// output open is waited for 2 seconds after the agent exited, then no longer read. A record deleted while the job runs
+// stops the agent and what is left in its scope, and ends the wrapper with one line on its own output, `<home>/wrapper.log`,
+// writing nothing else.
 
 const WORKER_TOOLS = "read,edit,write,bash,grep,glob";
 const READ_ONLY_TOOLS = "read,bash,grep,glob";
@@ -92,6 +93,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	process.on("SIGTERM", () => halt("stop"));
 	save("pid", String(process.pid));
 	save("state", "running");
+	rmSync(join(folder, "continuing"), { recursive: true, force: true });
 	let budgetUsd = Number(budget);
 	const cancel = deadline(Number(timeout), () => halt("time"));
 	const record = runRecord(save, worktree, Number(spent ?? 0) || 0, (cost) => reached(cost, budgetUsd) && halt("budget"));

@@ -12,19 +12,9 @@ export function writeRecord(home: string, job: Job, prompt: string, resumeOnBudg
 	const temporary = join(folder, `.${job.id}`);
 	mkdirSync(temporary, { recursive: true });
 	const record = {
-		task: job.task,
-		kind: job.kind,
-		model: job.model ?? "",
-		thinking: job.thinking ?? "",
-		timeout: String(job.timeoutMinutes),
-		budget: String(job.budgetUsd),
-		"resume-on-budget": String(resumeOnBudget),
-		branch: job.branch ?? "",
-		root: job.root,
-		base: job.base,
-		worktree: job.worktree,
-		project: job.project,
-		prompt,
+		task: job.task, kind: job.kind, project: job.project, model: job.model ?? "", thinking: job.thinking ?? "", prompt,
+		timeout: String(job.timeoutMinutes), budget: String(job.budgetUsd), "resume-on-budget": String(resumeOnBudget),
+		branch: job.branch ?? "", root: job.root, base: job.base, worktree: job.worktree,
 	};
 	for (const [name, value] of Object.entries(record)) writeFileSync(join(temporary, name), value);
 	renameSync(temporary, join(folder, job.id));

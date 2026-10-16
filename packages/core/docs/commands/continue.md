@@ -13,6 +13,7 @@ Refused (exit code 1, the reason after `arthur continue: `):
 
 - An id with no record in `<home>/jobs/`: `<id>: no such job in <home>/jobs`.
 - A running job, or one whose wrapper has not written its state yet: `<id> is running; a running job is not continued, arthur steer gives it a correction` (`not started yet` in place of `running` for the latter).
+- Another `arthur continue` of the same job, from before it reads the job's state until its new wrapper says `running` or the continue fails: `<id>: being continued`. That continue holds the folder `<home>/jobs/<id>/continuing` meanwhile; one killed before its wrapper started leaves it behind, and the job is continued again once it is removed by hand.
 - A read-only kind, which has no branch of its own: `<id> is a <kind>, a read-only kind without a branch of its own; only a job with a branch is continued`.
 - An empty instruction: `the instruction is empty`.
 - A plugin's `beforeSpawn` check, run on the job as its record has it (its `task` and the `Ticket:` files it names, `kind`, `project`, `model`, `thinking`, `timeout`, and the `--budget` or else its `budget`), that gives a reason: `refused by <plugin>: <reason>`; one that throws: `plugin <plugin>: beforeSpawn failed: <message>`. The core's own check refuses a worker whose ticket cannot move to in-progress, a `merged` one for example, as at a spawn (see `arthur spawn --help`). A refused continue starts nothing and leaves the record as it was.

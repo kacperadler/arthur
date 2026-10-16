@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import type { Bus } from "./events.ts";
@@ -61,23 +61,30 @@ export function steerJob(home: string, id: string, text: string): string {
 // and the agent continues its last session there with `instruction`. `budgetUsd` replaces the budget, since the cost of the
 // runs before counts on; the timeout counts from the new start. `check` runs the plugins' `beforeSpawn` on the record first;
 // `agent`, `slice` and `bus` are the spawn's. Returns why the wrapper did not start, which ended the job `failed`, or undefined.
+// The record's `continuing` is created before its state is read and removed by the new wrapper once its state says running,
+// or here when the continue fails, so of two continues at once one is refused.
 export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, check: (spawn: Omit<Spawn, "tickets">) => Promise<void>): Promise<string | undefined> {
 	const { folder, field } = record(home, id);
 	if (instruction.trim() === "") throw new Error("the instruction is empty");
-	const state = field("state");
-	if (state === undefined || state === "running") throw new Error(`${id} is ${state ?? "not started yet"}; a running job is not continued, arthur steer gives it a correction`);
-	if (field("branch") === "") throw new Error(`${id} is a ${field("kind")}, a read-only kind without a branch of its own; only a job with a branch is continued`);
-	checkLimits("continue", { budgetUsd });
-	const [task = "", kind = "", project = "", model, thinking] = ["task", "kind", "project", "model", "thinking"].map((name) => field(name) || undefined);
-	await check({ task, kind, project, model, thinking, timeoutMinutes: Number(field("timeout")), budgetUsd: budgetUsd ?? Number(field("budget")) });
-	// A new scope of the job's name cannot start while the old wrapper still runs in it.
-	for (const end = Date.now() + GRACE_SECONDS * 1000; Date.now() < end && wrapperRuns(field("pid"), id); ) await sleep(50);
-	// The old run's `pid` goes, so `launch` waits for the new wrapper's.
-	rmSync(join(folder, "pid"), { force: true });
-	if (budgetUsd !== undefined) write(folder, "budget", String(budgetUsd));
-	write(folder, "continue", instruction.trim());
-	appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] arthur continue: ${instruction.trim().split("\n")[0]}\n`);
-	return launch(home, { id, kind, project }, agent, slice, bus);
+	if (mkdirSync(join(folder, "continuing"), { recursive: true }) === undefined) throw new Error(`${id}: being continued`);
+	let failed: string | undefined = "refused";
+	try {
+		const state = field("state");
+		if (state === undefined || state === "running") throw new Error(`${id} is ${state ?? "not started yet"}; a running job is not continued, arthur steer gives it a correction`);
+		if (field("branch") === "") throw new Error(`${id} is a ${field("kind")}, a read-only kind without a branch of its own; only a job with a branch is continued`);
+		checkLimits("continue", { budgetUsd });
+		const [task = "", kind = "", project = "", model, thinking] = ["task", "kind", "project", "model", "thinking"].map((name) => field(name) || undefined);
+		await check({ task, kind, project, model, thinking, timeoutMinutes: Number(field("timeout")), budgetUsd: budgetUsd ?? Number(field("budget")) });
+		// A new scope of the job's name cannot start while the old wrapper still runs in it; its `pid` goes, so `launch` waits for the new one's.
+		for (const end = Date.now() + GRACE_SECONDS * 1000; Date.now() < end && wrapperRuns(field("pid"), id); ) await sleep(50);
+		rmSync(join(folder, "pid"), { force: true });
+		if (budgetUsd !== undefined) write(folder, "budget", String(budgetUsd));
+		write(folder, "continue", instruction.trim());
+		appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] arthur continue: ${instruction.trim().split("\n")[0]}\n`);
+		return (failed = await launch(home, { id, kind, project }, agent, slice, bus));
+	} finally {
+		if (failed !== undefined) rmSync(join(folder, "continuing"), { recursive: true, force: true });
+	}
 }
 
 function write(folder: string, name: string, text: string): void {

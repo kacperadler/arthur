@@ -387,9 +387,9 @@
   {
     "id": "AR0044",
     "title": "An event a command appends while no daemon runs never reaches the subscribers",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0044-an-event-a-command-appends-while-no-daemon-runs-never-reaches-the-subscribers/ticket.md",
-    "updated": "2026-10-16T12:27:36.075Z"
+    "updated": "2026-10-16T12:28:40.388Z"
   },
   {
     "id": "AR0045",

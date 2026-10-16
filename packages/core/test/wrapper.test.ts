@@ -13,19 +13,17 @@ import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/test
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 const commit = (root: string, message: string) => git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", message);
-const RECORD = ["state", "pid", "log", "result", "cost", "tool-calls", "activity", "checks", "commits"];
-const PACKAGE = JSON.stringify({ scripts: { check: "tsc", test: "node --test" } });
+const RECORD = ["state", "pid", "log", "result", "cost", "tool-calls", "activity", "commits"];
 const EXTENSIONS = ["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((file) => ["-e", join(import.meta.dirname, "..", "src", file)]);
 
-// A repository `acme` that declares both checks, a home folder beside it, and a runner whose agent is `agent`; the plugin
-// `delivery` owns the read-only kind `review`.
+// A repository `acme`, a home folder beside it, and a runner whose agent is `agent`; the plugin `delivery` owns the
+// read-only kind `review`.
 function setup(agent: string): { readonly root: string; readonly home: string; readonly jobs: JobRunner } {
 	const folder = temporaryFolder();
 	const root = join(folder, "acme");
 	mkdirSync(root);
 	git(root, "init", "--quiet", "--initial-branch=main");
 	writeFileSync(join(root, "README.md"), "acme\n");
-	writeFileSync(join(root, "package.json"), PACKAGE);
 	git(root, "add", "--all");
 	commit(root, "first");
 	const home = join(folder, "home");
@@ -90,8 +88,8 @@ test("a finished worker: the agent gets the worker's tools, model, thinking and 
 	const changes: string[] = [];
 	const watcher = watch(folder, (_, name) => void (name !== null && !name.startsWith(".") && changes.push(name)));
 	t.after(() => watcher.close());
-	const current = ["tool-calls", "state", "cost", "checks", "activity"];
-	const expected = ["4", "running", "0.0100", "test pass 3/3\nstale\n", "think"];
+	const current = ["tool-calls", "state", "cost", "activity"];
+	const expected = ["4", "running", "0.0100", "think"];
 	await until("the record kept current while it runs", () => JSON.stringify(current.map(field)) === JSON.stringify(expected));
 	writeFileSync(join(job.worktree, "README.md"), "acme, fixed\n");
 	git(job.worktree, "add", "--all");
@@ -118,7 +116,6 @@ test("a finished worker: the agent gets the worker's tools, model, thinking and 
 		cost: "0.0300",
 		"tool-calls": "4",
 		activity: "think",
-		checks: "test pass 3/3\nstale\n",
 		commits: `${git(root, "log", "--oneline", "-1", `arthur/${job.id}`)}\n`,
 	});
 	assert.notEqual(Number(pid), start?.pid, "pid is the wrapper's, not the agent's");
@@ -140,7 +137,7 @@ test("a read-only kind gets no edit or write, no model flag, and no commits", as
 		...["--append-system-prompt", join(folder, "prompt"), ...EXTENSIONS, `@${join(folder, "task")}`],
 	]);
 	assert.deepEqual(data, { id: job.id, kind: "review", project: "acme", state: "done", reason: "the agent exited 0" });
-	assert.deepEqual([record.result, record.commits, record.checks, record["tool-calls"], record.cost], ["PASS", "", "", "0", "0.0000"]);
+	assert.deepEqual([record.result, record.commits, record["tool-calls"], record.cost], ["PASS", "", "0", "0.0000"]);
 });
 
 // Each run, and the state and reason it ends in; every file of the record is there once the state is final.

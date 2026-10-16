@@ -158,8 +158,8 @@ async function endedAtSpawn(reasonIn: (home: string) => string): Promise<number>
 	const events = readEvents(home, 1).filter((event) => event.name === "job-ended");
 	assert.deepEqual(events.map((event) => event.data), [{ id: job.id, kind: "worker", project: "acme", state: "failed", reason }]);
 	const folder = join(home, "jobs", job.id);
-	const end = ["state", "result", "cost", "tool-calls", "activity", "checks", "commits"].map((name) => readFileSync(join(folder, name), "utf8"));
-	assert.deepEqual(end, ["failed", "", "0.0000", "0", "", "", ""]);
+	const end = ["state", "result", "cost", "tool-calls", "activity", "commits"].map((name) => readFileSync(join(folder, name), "utf8"));
+	assert.deepEqual(end, ["failed", "", "0.0000", "0", "", ""]);
 	assert.ok(readFileSync(join(folder, "log"), "utf8").endsWith(`] failed: ${reason}\n`));
 	assert.equal(existsSync(join(dirname(agent), "starts.jsonl")), false, "no agent started");
 	assert.ok(existsSync(join(job.worktree, "README.md")));

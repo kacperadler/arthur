@@ -155,9 +155,9 @@
   {
     "id": "AR0017",
     "title": "Roadmap 14: Stop, continue, steer",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0017-roadmap-14-stop-continue-steer/ticket.md",
-    "updated": "2026-10-16T09:46:25.771Z",
+    "updated": "2026-10-16T13:48:47.551Z",
     "after": [
       "AR0014",
       "AR0016"
@@ -452,10 +452,7 @@
     "title": "An agent that ignores SIGTERM runs on past its limit",
     "status": "planned",
     "path": "spec/features/AR0053-an-agent-that-ignores-sigterm-runs-on-past-its-limit/ticket.md",
-    "updated": "2026-10-16T13:23:05.923Z",
-    "after": [
-      "AR0017"
-    ]
+    "updated": "2026-10-16T13:48:41.703Z"
   },
   {
     "id": "AR0054",

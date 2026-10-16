@@ -35,3 +35,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: Cut from `spec/roadmap.md` entry 1 by the coordinator; AR tickets need no approval (the owner, 2026-10-16).
+- 2026-10-16: Coordinator: the core line budget is 4000 lines of src/ (about 180 per core entry); raises are the coordinator's call once a worker shows what it cut first.

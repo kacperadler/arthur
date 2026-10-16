@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { board } from "./board.ts";
-import { moveStartedTickets } from "./board-jobs.ts";
+import { moveStartedTickets, refuseUnstartableTickets } from "./board-jobs.ts";
 import { clock } from "./clock.ts";
 import { type Command, commandRegistry } from "./commands.ts";
 import type { QuietHours } from "./config.ts";
@@ -102,7 +102,11 @@ export type FakeHost = {
 // 2026-01-01T00:00:00Z) in `timeZone` (default UTC) until `setNow` moves it. `host.board` reads the project list the test
 // provides as `projects`. `host.jobs.spawn` starts from HEAD of the repository `root` (a test's own), with the core's
 // default limits, in the kit's `jobSlice`, and runs the agent `omp` that `PATH` finds; without `root` a spawn refuses. As in
-// a real load, a worker's start moves each ticket its task names to in-progress, on the board of that project list.
+// a real load, the core follows the jobs after the plugin's `setup`: at the first spawn, its `beforeSpawn` joins after the
+// plugin's checks and refuses a worker on a ticket of that project list that cannot move to in-progress, and its move joins
+// after the plugin's `job-started` handlers, so they still see the ticket as it was (`planned`) and then it is in-progress.
+// A plugin must not rely on that status: a `job-started` from another process (`arthur spawn`, which the daemon follows)
+// reaches its handler after the move.
 export function fakeHost(plugin: {
 	readonly name: string;
 	readonly options?: Options;
@@ -122,7 +126,8 @@ export function fakeHost(plugin: {
 	const time = clock(plugin.timeZone ?? "UTC", plugin.quietHours, () => new Date(now));
 	const jobs = jobRunner(home, plugin.root ?? home, { timeoutMinutes: 120, budgetUsd: 2, ...jobSlice }, "omp", time, bus, names.collect);
 	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder, clock: time });
-	moveStartedTickets(board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data)), bus);
+	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));
+	let following = false;
 	const provided: string[] = [];
 	const calls: Use[] = [];
 	const commands: Command[] = [];
@@ -158,6 +163,14 @@ export function fakeHost(plugin: {
 			registerRole(role) {
 				real.jobs.registerRole(role);
 				roles.push(role);
+			},
+			spawn(request) {
+				if (!following) {
+					refuseUnstartableTickets(core, jobs);
+					moveStartedTickets(core, bus);
+					following = true;
+				}
+				return real.jobs.spawn(request);
 			},
 		},
 	};

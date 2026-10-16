@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { test } from "node:test";
@@ -124,20 +124,25 @@ test("the fake host records the kinds and roles a plugin registers and spawns on
 	await assert.rejects(alone.host.jobs.spawn({ task: "Review." }), { message: /is not in a Git repository/ });
 });
 
-test("on the fake host, as in a real load, a worker's start moves its planned ticket to in-progress; a read-only kind's moves nothing", async () => {
+// The repository `acme` (prefix AC) with one committed ticket AC0001 in `status`, and the fake host on it with its project list.
+function acme(status: string) {
 	const root = join(temporaryFolder(), "acme");
 	const ticket = "spec/features/AC0001-one/ticket.md";
 	mkdirSync(join(root, dirname(ticket)), { recursive: true });
 	writeFileSync(join(root, ticket), "# AC0001\n");
 	const board = join(root, "spec/build.json");
-	writeFileSync(board, JSON.stringify([{ id: "AC0001", title: "One", status: "planned", path: ticket, updated: "2026-01-01T00:00:00Z" }]));
+	writeFileSync(board, JSON.stringify([{ id: "AC0001", title: "One", status, path: ticket, updated: "2026-01-01T00:00:00Z" }]));
 	for (const args of [["init", "--quiet"], ["add", "--all"], ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "--quiet", "-m", "first"]])
 		execFileSync("git", ["-C", root, ...args]);
 	const fake = fakeHost({ name: "delivery", root });
+	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC" }]);
+	return { root, ticket, fake, status: () => JSON.parse(readFileSync(board, "utf8"))[0].status };
+}
+
+test("on the fake host, as in a real load, a worker's start moves its planned ticket to in-progress; a read-only kind's moves nothing", async () => {
+	const { ticket, fake, status } = acme("planned");
 	fake.host.jobs.registerRole({ name: "reviewer", file: reviewer, criteria: [] });
 	fake.host.jobs.registerKind({ name: "review", readOnly: true, role: "reviewer" });
-	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC" }]);
-	const status = () => JSON.parse(readFileSync(board, "utf8"))[0].status;
 	await fake.host.jobs.spawn({ task: `Ticket: ${ticket}. Review it.`, kind: "review" });
 	assert.equal(status(), "planned");
 	await fake.host.jobs.spawn({ task: `Ticket: ${ticket}. Build it.` });
@@ -145,6 +150,34 @@ test("on the fake host, as in a real load, a worker's start moves its planned ti
 	const moves = fake.host.events.read(1).filter((event) => event.name === "ticket-moved");
 	assert.deepEqual(moves.map(({ plugin, data }) => [plugin, data]), [["core", { id: "AC0001", project: "acme", from: "planned", to: "in-progress" }]]);
 	assert.deepEqual(fake.emitted, [], "the core's move is not the plugin's event");
+});
+
+test("on the fake host, as in a real load, a worker on a ticket that cannot move to in-progress is refused before anything exists", async () => {
+	const { root, ticket, fake, status } = acme("planning");
+	await assert.rejects(fake.host.jobs.spawn({ task: `Ticket: ${ticket}. Build it.` }), {
+		message: "refused by core: AC0001 is planning, which cannot move to in-progress; a worker starts on a ticket that is planned, in-progress, review, done",
+	});
+	const records = join(dirname(fake.host.folder), "jobs");
+	assert.deepEqual(existsSync(records) ? readdirSync(records) : [], []);
+	assert.doesNotMatch(execFileSync("git", ["-C", root, "branch", "--list"], { encoding: "utf8" }), /arthur\//);
+	assert.equal(execFileSync("git", ["-C", root, "worktree", "list"], { encoding: "utf8" }).trim().split("\n").length, 1);
+	assert.deepEqual(fake.host.events.read(1), []);
+	assert.equal(status(), "planning");
+});
+
+test("on the fake host, as in a real load, a plugin's own job-started handler runs before the core moves the ticket", async () => {
+	const { ticket, fake, status } = acme("planned");
+	const seen: (string | undefined)[] = [];
+	const watcher: Plugin = {
+		name: "delivery",
+		setup(host) {
+			host.events.on("job-started", () => void seen.push(host.board.get("AC0001")?.status));
+		},
+	};
+	await watcher.setup(fake.host);
+	await fake.host.jobs.spawn({ task: `Ticket: ${ticket}. Build it.` });
+	assert.deepEqual(seen, ["planned"]);
+	assert.equal(status(), "in-progress");
 });
 
 // A child process loads the kit with live-looking variables, prints what it sees, and exits as the script says.

@@ -20,6 +20,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0030 Owner lookup takes the first longer prefix, not the longest (6ec64d6)
 - AR0036 The lock's dead-holder takeover race has no test (73aa034)
 - AR0040 A crash mid-write leaves the board's lock or temporary file in the project's `spec/` (1d374f8)
+- AR0042 A project with a branch named `arthur` can spawn no worker (7e8d03d)
 
 ### Changed
 

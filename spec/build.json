@@ -297,9 +297,9 @@
   {
     "id": "AR0032",
     "title": "A phone command name with a dash cannot go into Telegram's command menu",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0032-a-phone-command-name-with-a-dash-cannot-go-into-telegram-s-command-menu/ticket.md",
-    "updated": "2026-10-16T11:46:22.791Z",
+    "updated": "2026-10-16T11:50:45.201Z",
     "after": [
       "AR0012"
     ]
@@ -373,9 +373,9 @@
   {
     "id": "AR0042",
     "title": "A project with a branch named `arthur` can spawn no worker",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0042-a-project-with-a-branch-named-arthur-can-spawn-no-worker/ticket.md",
-    "updated": "2026-10-16T11:43:30.289Z"
+    "updated": "2026-10-16T11:50:44.407Z"
   },
   {
     "id": "AR0043",

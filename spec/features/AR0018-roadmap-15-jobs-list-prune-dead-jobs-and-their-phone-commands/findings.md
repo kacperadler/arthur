@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/job-records.ts` (`prune`), `packages/core/src/job-control.ts` (`continueJob`)
 - What: `arthur prune` removes a clean worktree first, since Git refuses to delete a branch that a worktree has checked out, then tries `git branch -d`; a branch with unmerged commits stays with the record, but its worktree is gone (tested in `job-records.test.ts`, "arthur prune frees a merged worker's worktree..."). `arthur continue` on that job still passes its checks and starts the wrapper, whose agent has no working folder. [INFERENCE: the agent's spawn with a missing `cwd` fails, and the job ends `failed: the agent did not start`; not run.]
 - Suggestion: either keep the worktree of a job whose branch is not merged into HEAD (ask `git merge-base --is-ancestor <branch> HEAD` before removing it, and say so in the line), or have `continueJob` refuse a job whose worktree is gone with the reason. Out: deleting the branch with `-D`.
-- Status: open
+- Status: ticket AR0071

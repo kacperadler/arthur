@@ -65,6 +65,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0015 Roadmap 12: Job limits: time and budget (0a053a3)
 - AR0016 Roadmap 13: Job limits: one scope per job in a joint slice (3308105)
 - AR0017 Roadmap 14: Stop, continue, steer (3bde36e)
+- AR0018 Roadmap 15: Jobs list, prune, dead jobs, and their phone commands (58a6aa5)
 - AR0020 Roadmap 17: Ticket board: tickets and the board file (9819d29)
 - AR0021 Roadmap 18: Ticket board: transitions, after, the digest, and the board's phone commands (e9c57dc)
 - AR0022 Roadmap 19: Env guard (ebc6a89)

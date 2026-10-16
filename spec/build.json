@@ -166,9 +166,9 @@
   {
     "id": "AR0018",
     "title": "Roadmap 15: Jobs list, prune, dead jobs, and their phone commands",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0018-roadmap-15-jobs-list-prune-dead-jobs-and-their-phone-commands/ticket.md",
-    "updated": "2026-10-16T15:28:24.338Z",
+    "updated": "2026-10-16T15:28:55.940Z",
     "after": [
       "AR0017"
     ]
@@ -581,9 +581,19 @@
     "title": "An `arthur continue` killed before its wrapper starts leaves `continuing`, and the job is never continued again",
     "status": "planned",
     "path": "spec/features/AR0070-an-arthur-continue-killed-before-its-wrapper-starts-leaves-continuing-and-the-job-is-never-continued-again/ticket.md",
-    "updated": "2026-10-16T15:26:03.505Z",
+    "updated": "2026-10-16T15:29:05.888Z",
     "after": [
-      "AR0018"
+      "AR0068"
+    ]
+  },
+  {
+    "id": "AR0071",
+    "title": "A pruned worker whose branch Git keeps loses its worktree, so `arthur continue` on it cannot start",
+    "status": "planned",
+    "path": "spec/features/AR0071-a-pruned-worker-whose-branch-git-keeps-loses-its-worktree-so-arthur-continue-on-it-cannot-start/ticket.md",
+    "updated": "2026-10-16T15:29:05.677Z",
+    "after": [
+      "AR0070"
     ]
   }
 ]

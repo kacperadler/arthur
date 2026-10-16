@@ -616,9 +616,9 @@
   {
     "id": "AR0074",
     "title": "Core: one flag parser for the CLI, spawn and continue",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0074-core-one-flag-parser-for-the-cli-spawn-and-continue/ticket.md",
-    "updated": "2026-10-16T16:31:33.392Z",
+    "updated": "2026-10-16T16:32:08.425Z",
     "after": [
       "AR0073"
     ]

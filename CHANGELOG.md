@@ -49,6 +49,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0064 The `models` plugin is missing from the vision and the architecture diagrams (166516e)
 - AR0069 Core line review: what moves to a plugin or goes (e4dc435)
 - AR0073 Core: one plugin-entry check, one describe, one step guard, one record reader (76d4505)
+- AR0074 Core: one flag parser for the CLI, spawn and continue (d6b7621)
 - AR0077 The node_modules copy moves to a prepare hook of the projects plugin (3d31a1c)
 
 ### Other

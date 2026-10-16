@@ -56,8 +56,8 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	const names = ["kind", "project", "model", "thinking", "branch", "root", "worktree", "base", "timeout", "budget", "resume-on-budget", "idle-minutes"];
 	const [kind = "", project = "", model = "", thinking = "", branch = "", root = "", worktree = "", base = "", timeout = "", budget = "", resumes = "", idle = ""] = names.map(field);
 	const bus = eventBus(home);
-	// A move from `from` to `to` (job-state.ts), unless a plugin holds the job.
-	const move = (from: State, to: State) => guard(() => moveJob(home, id, bus, (now) => (now.hold === "" && now.state === from ? [to, ""] : undefined)));
+	// A move from `from` to `to` (job-state.ts) only: a job a plugin holds is `blocked` until `unblock`, so it never moves here.
+	const move = (from: State, to: State) => guard(() => moveJob(home, id, bus, (now) => (now.state === from ? [to, ""] : undefined)));
 	// The agent's output: `active` takes its time, an idle job works again, and it turns idle after `idle-minutes` without any.
 	let quiet = () => {};
 	const active = () => {

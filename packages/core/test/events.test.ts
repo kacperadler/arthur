@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { type Event, eventBus } from "../src/events.ts";
@@ -140,4 +140,64 @@ test("reading from a sequence number gives that event on; past the end, or befor
 	assert.deepEqual(bus.read(3).map((event) => event.name), ["c"]);
 	assert.deepEqual(bus.read(4), []);
 	assert.deepEqual(bus.read(1000), []);
+});
+
+test("a following bus delivers what another writer appends after it began, in order, and its own events once, at emit", (t) => {
+	t.mock.timers.enable({ apis: ["setInterval"] });
+	const home = temporaryFolder();
+	const daemon = eventBus(home);
+	const command = eventBus(home);
+	command.emit("core", "ticket-moved", "before the follow");
+	const got: string[] = [];
+	daemon.on("telegram", "ticket-moved", (event) => {
+		got.push(`${event.seq} ${event.plugin} ${event.data}`);
+		if (event.data === "by the command") daemon.emit("delivery", "ticket-moved", "the reaction");
+	});
+	t.after(daemon.follow(100));
+	daemon.emit("orchestration", "ticket-moved", "own");
+	assert.deepEqual(got, ["2 orchestration own"], "its own at once, before any tick");
+	command.emit("core", "ticket-moved", "by the command");
+	command.emit("core", "job-started", "nobody listens");
+	command.emit("core", "ticket-moved", "second");
+	t.mock.timers.tick(99);
+	assert.deepEqual(got, ["2 orchestration own"], "nothing between ticks");
+	t.mock.timers.tick(1);
+	// The reaction, emitted inside a handler, waits behind the events already read.
+	assert.deepEqual(got, ["2 orchestration own", "3 core by the command", "5 core second", "6 delivery the reaction"]);
+	t.mock.timers.tick(100);
+	assert.equal(got.length, 4, "its own reaction, read back from the log, is not delivered again");
+});
+
+test("a following bus waits for a line's end, follows a log cut or deleted by hand from its new end, and stops", (t) => {
+	t.mock.timers.enable({ apis: ["setInterval"] });
+	const home = temporaryFolder();
+	const daemon = eventBus(home);
+	const got: number[] = [];
+	daemon.on("telegram", "notice", (event) => void got.push(event.seq));
+	const stop = daemon.follow(10);
+	const line = '{"seq":1,"time":"2026-10-16T10:00:00.000Z","plugin":"session","name":"notice","data":"up"}\n';
+	appendFileSync(logOf(home), line.slice(0, 40));
+	t.mock.timers.tick(10);
+	assert.deepEqual(got, [], "half a line is no event yet");
+	appendFileSync(logOf(home), line.slice(40));
+	t.mock.timers.tick(10);
+	assert.deepEqual(got, [1]);
+
+	const command = eventBus(home);
+	writeFileSync(logOf(home), "");
+	t.mock.timers.tick(10);
+	command.emit("session", "notice", "after the cut");
+	t.mock.timers.tick(10);
+	assert.deepEqual(got, [1, 1], "numbers start again in the cut log");
+	rmSync(logOf(home));
+	t.mock.timers.tick(10);
+	command.emit("session", "notice", "after the delete");
+	t.mock.timers.tick(10);
+	assert.deepEqual(got, [1, 1, 1]);
+
+	stop();
+	command.emit("session", "notice", "after the stop");
+	daemon.emit("orchestration", "notice", "own after the stop");
+	t.mock.timers.tick(100);
+	assert.deepEqual(got, [1, 1, 1, 3]);
 });

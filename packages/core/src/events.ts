@@ -5,6 +5,7 @@ import { withLock } from "./lock.ts";
 // The event stream (spec/roadmap.md, entry 5): every event is appended to `<home>/events.jsonl`, one JSON line with its
 // sequence number, time and the plugin that emitted it, then delivered to the subscribers of its name in this process.
 // Every process that emits (the daemon, a command) appends under one lock, so lines never interleave and numbers never repeat.
+// The daemon also follows the log (entry 8), so an event a command emits reaches the daemon's subscribers too.
 
 export type Event = { readonly seq: number; readonly time: string; readonly plugin: string; readonly name: string; readonly data: unknown };
 
@@ -24,31 +25,83 @@ export type Bus = {
 	on(plugin: string, name: string, fn: Handler): void;
 	emit(plugin: string, name: string, data: unknown): Event;
 	read(fromSeq: number): Event[];
+	// From the log's end now, every `everyMs` delivers the events another process appended; this bus's own were delivered at
+	// emit. Returns the stop.
+	follow(everyMs: number): () => void;
 };
 
 const LOG = "events.jsonl";
 const CHUNK = 64 * 1024;
 
 export function eventBus(home: string): Bus {
+	const path = join(home, LOG);
 	const handlers = new Map<string, readonly { readonly plugin: string; readonly fn: Handler }[]>();
 	const queue: Event[] = [];
 	let delivering = false;
+	// While following: the bytes read so far (whole lines only), the next number to deliver, and this bus's own numbers not read yet.
+	let follow: { offset: number; next: number; readonly mine: Set<number> } | undefined;
+	const drain = () => {
+		// An event emitted by a handler waits in the queue until the current one has reached every subscriber.
+		if (delivering) return;
+		delivering = true;
+		for (let next = queue.shift(); next !== undefined; next = queue.shift())
+			for (const { plugin, fn } of handlers.get(next.name) ?? []) deliver(plugin, next, fn);
+		delivering = false;
+	};
+	// The log's end, under its lock, so no line is half written; a log cut or deleted by hand is followed again from its new end.
+	const fromEnd = () =>
+		withLock(`${path}.lock`, () => {
+			const fd = openSync(path, "a+");
+			try {
+				const { size } = fstatSync(fd);
+				return { offset: size, next: lastSeq(fd, size) + 1, mine: new Set<number>() };
+			} finally {
+				closeSync(fd);
+			}
+		});
+	const tick = (state: NonNullable<typeof follow>) => {
+		const fd = openSync(path, "a+");
+		try {
+			const { size } = fstatSync(fd);
+			if (size < state.offset) follow = fromEnd();
+			if (size <= state.offset) return;
+			const bytes = Buffer.alloc(size - state.offset);
+			readSync(fd, bytes, 0, bytes.length, state.offset);
+			// A line still being written waits until its line break is there.
+			const whole = bytes.lastIndexOf(0x0a) + 1;
+			state.offset += whole;
+			for (const line of bytes.subarray(0, whole).toString("utf8").split("\n")) {
+				const event = parse(line);
+				if (event === undefined || event.seq < state.next) continue;
+				state.next = event.seq + 1;
+				if (!state.mine.delete(event.seq)) queue.push(event);
+			}
+		} finally {
+			closeSync(fd);
+		}
+		drain();
+	};
 	return {
 		on(plugin, name, fn) {
 			handlers.set(name, [...(handlers.get(name) ?? []), { plugin, fn }]);
 		},
 		emit(plugin, name, data) {
 			const event = appendEvent(home, plugin, name, data);
+			follow?.mine.add(event.seq);
 			queue.push(event);
-			// An event emitted by a handler waits in the queue until the current one has reached every subscriber.
-			if (delivering) return event;
-			delivering = true;
-			for (let next = queue.shift(); next !== undefined; next = queue.shift())
-				for (const { plugin, fn } of handlers.get(next.name) ?? []) deliver(plugin, next, fn);
-			delivering = false;
+			drain();
 			return event;
 		},
 		read: (fromSeq) => readEvents(home, fromSeq),
+		follow(everyMs) {
+			follow = fromEnd();
+			const timer = setInterval(() => follow && tick(follow), everyMs);
+			timer.unref();
+			return () => {
+				clearInterval(timer);
+				follow = undefined;
+			};
+		},
 	};
 }
 

@@ -5,7 +5,7 @@ import { clock } from "./clock.ts";
 import { type CommandRegistry, commandRegistry } from "./commands.ts";
 import type { LoadedConfig } from "./config.ts";
 import { resolveEnv, type Shell } from "./env.ts";
-import { eventBus } from "./events.ts";
+import { type Bus, eventBus } from "./events.ts";
 import { type JobRunner, jobRunner } from "./jobs.ts";
 import { type Plugin, pluginHost, registry } from "./plugin.ts";
 
@@ -14,8 +14,8 @@ import { type Plugin, pluginHost, registry } from "./plugin.ts";
 
 // The enabled plugins in setup order, which is the order `start` follows (and `stop` reverses); `warnings` come from the env file;
 // `jobs` spawns with the kinds, checks and steps the plugins registered; `board` is the core's own, for `arthur ticket`: it
-// reads the plugins' project list and names its events `core`.
-export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board };
+// reads the plugins' project list and names its events `core`; `follow` is what `arthur run` follows the event log with.
+export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"] };
 
 const PLUGIN_NAME = /^[a-z]+(-[a-z]+)*$/;
 const REQUIRED = "orchestration";
@@ -35,7 +35,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		const host = pluginHost(names, commands, bus, jobs, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time });
 		await guard(plugin, "setup", () => plugin.setup(host));
 	}
-	return { plugins: sorted, warnings, jobs, board: board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data)) };
+	return { plugins: sorted, warnings, jobs, board: board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data)), follow: bus.follow };
 }
 
 // The host's refusals before any `setup`, which `arthur config check` runs too: the plugin list, `orchestration`, `requires`,

@@ -12,6 +12,7 @@ const BOOT_ID = "/proc/sys/kernel/random/boot_id";
 
 // Each plugin logs its `start` and `stop` to `log.txt` beside the config; `more` replaces any of its parts.
 const HEAD = `import { appendFileSync, existsSync } from "node:fs";
+import { setTimeout as sleep } from "node:timers/promises";
 const log = (line) => appendFileSync(new URL("./log.txt", import.meta.url), line + "\\n");
 const plugin = (name, more = {}) => ({ name, setup() {}, start() { log("start " + name); }, stop() { log("stop " + name); }, ...more });
 `;
@@ -145,4 +146,62 @@ test("arthur run refuses arguments, and a config that does not load, starting no
 	const extra = runOnce(project('plugin("orchestration")').folder, "now");
 	assert.deepEqual([extra.status, extra.stderr], [2, "usage: arthur run\n"]);
 	assert.ok(!existsSync(join(home, "run.pid")));
+});
+
+test("an event a command emits reaches the daemon's subscribers once, from the daemon's start until its plugins stop", async (t) => {
+	// The daemon answers each `pinged` with a `ponged`. Its stop waits until a command has pinged during it, then 1.5 s, three
+	// follows of 500 ms: an event that does not arrive gives no signal to wait for, so this one wait is real time.
+	const orchestration = `plugin("orchestration", {
+		setup(host) {
+			host.events.on("pinged", (event) => {
+				log(process.pid + " pinged " + event.seq + " " + event.data);
+				if (process.argv.includes("run")) host.events.emit("ponged", event.seq);
+			});
+			host.events.on("ponged", (event) => log(process.pid + " ponged " + event.seq));
+			host.commands.register({ name: "ping", doc: new URL("./ping.md", import.meta.url), run: ({ args }) => void host.events.emit("pinged", args[0]) });
+		},
+		async stop() {
+			log("stop orchestration");
+			while (!existsSync(new URL("./pinged-in-stop", import.meta.url))) await sleep(10);
+			await sleep(1500);
+			log("stopped orchestration");
+		},
+	})`;
+	const { folder, log } = project(orchestration);
+	writeFileSync(join(folder, "ping.md"), "# arthur ping\n");
+	const ping = (data: string) => {
+		const command = spawnSync(process.execPath, [CLI, "ping", data], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+		assert.deepEqual([command.status, command.stderr], [0, ""]);
+		return command.pid;
+	};
+	const before = ping("a");
+	const run = start(t, folder);
+	await until(() => run.output().includes("started"), "the start");
+	const daemon = run.child.pid;
+	const b = ping("b");
+	await until(() => log().includes(`${daemon} ponged 3`), "the daemon's answer to b");
+	const c = ping("c");
+	await until(() => log().includes(`${daemon} ponged 5`), "the daemon's answer to c");
+	run.child.kill("SIGTERM");
+	await until(() => log().includes("stop orchestration"), "the stop");
+	const d = ping("d");
+	writeFileSync(join(folder, "pinged-in-stop"), "");
+	assert.equal((await run.ended).status, 0);
+	assert.equal(
+		log(),
+		[
+			`${before} pinged 1 a`,
+			"start orchestration",
+			`${b} pinged 2 b`,
+			`${daemon} pinged 2 b`,
+			`${daemon} ponged 3`,
+			`${c} pinged 4 c`,
+			`${daemon} pinged 4 c`,
+			`${daemon} ponged 5`,
+			"stop orchestration",
+			`${d} pinged 6 d`,
+			"stopped orchestration",
+			"",
+		].join("\n"),
+	);
 });

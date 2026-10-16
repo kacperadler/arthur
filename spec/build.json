@@ -578,9 +578,9 @@
   {
     "id": "AR0070",
     "title": "An `arthur continue` killed before its wrapper starts leaves `continuing`, and the job is never continued again",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0070-an-arthur-continue-killed-before-its-wrapper-starts-leaves-continuing-and-the-job-is-never-continued-again/ticket.md",
-    "updated": "2026-10-16T16:58:55.233Z",
+    "updated": "2026-10-16T17:03:21.656Z",
     "after": [
       "AR0074",
       "AR0078"

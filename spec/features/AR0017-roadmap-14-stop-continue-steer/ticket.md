@@ -39,3 +39,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: Cut from `spec/roadmap.md` entry 14 by the coordinator; AR tickets need no approval (the owner, 2026-10-16).
+- 2026-10-16: Coordinator: OK on the three calls: steer works on any running job (read-only kinds too); on continue the cost carries over and --budget replaces the budget (no --budget after a budget stop stops again at once), the timeout restarts; the agent runs in its own process group so the wrapper can SIGKILL it and tell arthur stop from its own signals.

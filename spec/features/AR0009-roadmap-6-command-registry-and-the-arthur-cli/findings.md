@@ -13,7 +13,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/commands.ts` (`NAME`, `phone()`)
 - What: the registry accepts command names of lowercase letters, digits and dashes (`review-needed`, `retro-due`), and any phone command's `about`. Telegram's `setMyCommands` takes only `[a-z0-9_]{1,32}` names and a description of 3 to 256 characters, so a phone command named with a dash, or with a short or long `about`, would make the menu call fail when entry 50 builds it.
 - Suggestion: in entry 50, decide whether the registry refuses such phone commands at registration (all channels then share Telegram's limits) or telegram maps or skips them in its menu; the CLI names stay as they are.
-- Status: open
+- Status: ticket AR0032
 
 ## F2. An unknown `--project` name reaches the command unchecked
 
@@ -22,4 +22,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/cli.ts` (`main`)
 - What: `arthur <cmd> --project <name>` hands the name to the command as `project`; nothing yet knows the project list (entry 41 adds `host.projects()`), so `--project typo` is not refused by the binary and each command would have to check it.
 - Suggestion: with entry 41, the binary refuses a `--project` name that `host.projects()` does not list, naming the known projects, before the command runs.
-- Status: open
+- Status: ticket AR0033

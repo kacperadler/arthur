@@ -73,9 +73,9 @@
   {
     "id": "AR0009",
     "title": "Roadmap 6: Command registry and the arthur CLI",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0009-roadmap-6-command-registry-and-the-arthur-cli/ticket.md",
-    "updated": "2026-10-16T10:45:13.337Z",
+    "updated": "2026-10-16T10:45:41.714Z",
     "after": [
       "AR0007"
     ]
@@ -294,5 +294,22 @@
     "after": [
       "AR0011"
     ]
+  },
+  {
+    "id": "AR0032",
+    "title": "A phone command name with a dash cannot go into Telegram's command menu",
+    "status": "planned",
+    "path": "spec/features/AR0032-a-phone-command-name-with-a-dash-cannot-go-into-telegram-s-command-menu/ticket.md",
+    "updated": "2026-10-16T10:45:57.775Z",
+    "after": [
+      "AR0012"
+    ]
+  },
+  {
+    "id": "AR0033",
+    "title": "An unknown `--project` name reaches the command unchecked",
+    "status": "planned",
+    "path": "spec/features/AR0033-an-unknown-project-name-reaches-the-command-unchecked/ticket.md",
+    "updated": "2026-10-16T10:45:57.569Z"
   }
 ]

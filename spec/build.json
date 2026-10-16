@@ -218,9 +218,9 @@
   {
     "id": "AR0023",
     "title": "Roadmap 20: Worktree guard and its shell parser",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0023-roadmap-20-worktree-guard-and-its-shell-parser/ticket.md",
-    "updated": "2026-10-16T13:58:25.464Z",
+    "updated": "2026-10-16T14:02:36.271Z",
     "after": [
       "AR0022"
     ]

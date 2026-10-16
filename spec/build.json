@@ -321,9 +321,9 @@
   {
     "id": "AR0035",
     "title": "An event a command emits reaches the log but not the daemon's subscribers",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0035-an-event-a-command-emits-reaches-the-log-but-not-the-daemon-s-subscribers/ticket.md",
-    "updated": "2026-10-16T10:53:49.207Z",
+    "updated": "2026-10-16T11:50:57.630Z",
     "after": [
       "AR0011"
     ]

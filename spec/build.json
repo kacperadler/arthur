@@ -249,9 +249,9 @@
   {
     "id": "AR0026",
     "title": "`arthur plugin new` meets the line-budget rule",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0026-arthur-plugin-new-meets-the-line-budget-rule/ticket.md",
-    "updated": "2026-10-16T11:03:13.241Z",
+    "updated": "2026-10-16T11:03:28.130Z",
     "after": [
       "AR0007"
     ]

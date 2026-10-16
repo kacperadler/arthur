@@ -3,6 +3,8 @@ import { NEXT, STATUSES } from "./board-file.ts";
 import type { Bus } from "./events.ts";
 import type { JobRunner } from "./jobs.ts";
 
+// The paths a job's task names on `Ticket:`, each maybe in backticks; punctuation that ends the sentence is not part of it.
+export const taskTickets = (task: string) => Array.from(task.matchAll(/\bTicket:\s*`?([^\s`]+)/g), (match) => (match[1] ?? "").replace(/[.,;:!?)]+$/, ""));
 // The ticket a task's `Ticket:` path lies in: `spec/features/<id>-<slug>/...`.
 export const FEATURE = /(?:^|\/)spec\/features\/([A-Z]+\d{4,})-[^/]*\//;
 

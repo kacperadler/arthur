@@ -1,9 +1,11 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Board, Project } from "./board.ts";
+import { taskTickets } from "./board-jobs.ts";
 import { boardText } from "./board-text.ts";
 import type { Command } from "./commands.ts";
+import { field, jobIds } from "./job-records.ts";
 
 // The board's phone commands (spec/roadmap.md, entry 18): `/board [PREFIX] [all]`, `/task <id>` and `/findings <id>`, answered
 // from the board's files without the model. Each also runs as `arthur <name>`, which prints the reply and reads a number alone
@@ -11,9 +13,6 @@ import type { Command } from "./commands.ts";
 
 // Telegram's limit for one message: a full board longer than that is sent as its digest, so no ticket is lost to a cut.
 const MESSAGE = 4096;
-
-// The spawn's `Ticket: <path>` (jobs.ts), the path maybe in backticks; punctuation that ends the sentence is not part of it.
-const TICKET = /\bTicket:\s*`?([^\s`]+)/g;
 
 // Undefined: the words are wrong usage.
 type Reply = (board: Board, words: readonly string[], project: string | undefined) => string | undefined;
@@ -86,7 +85,7 @@ function branchFindings(home: string, where: Project, ticketPath: string, path: 
 	const git = (...args: readonly string[]) => spawnSync("git", ["-C", where.path, ...args], { encoding: "utf8" });
 	const refs = git("for-each-ref", "--sort=-committerdate", "--format=%(refname:lstrip=2)", ...branches.map((name) => `refs/heads/${name}`));
 	if (refs.status !== 0) throw new Error(`git for-each-ref: ${refs.error?.message ?? refs.stderr.trim()}`);
-	// A pattern also lists the refs under it, and a read-only job's empty branch every branch: only the records' own count.
+	// A pattern also lists the refs under it: only the records' own count.
 	for (const name of refs.stdout.split("\n").filter((each) => branches.includes(each))) {
 		if (git("diff", "--quiet", `HEAD...refs/heads/${name}`, "--", path).status !== 1) continue;
 		const show = git("cat-file", "blob", `refs/heads/${name}:${path}`);
@@ -95,17 +94,10 @@ function branchFindings(home: string, where: Project, ticketPath: string, path: 
 	return undefined;
 }
 
-// A record being written (`.<id>`), or one missing a key, is skipped.
 function jobBranches(home: string, project: string, ticketPath: string): string[] {
-	const folder = join(home, "jobs");
-	if (!existsSync(folder)) return [];
-	return readdirSync(folder, { withFileTypes: true }).flatMap((entry) => {
-		const keys = ["task", "branch", "project"].map((key) => join(folder, entry.name, key));
-		if (!entry.isDirectory() || entry.name.startsWith(".") || !keys.every((key) => existsSync(key))) return [];
-		const [task = "", branch = "", owner] = keys.map((key) => readFileSync(key, "utf8"));
-		if (owner !== project) return [];
-		const tickets = Array.from(task.matchAll(TICKET), (match) => (match[1] ?? "").replace(/[.,;:!?)]+$/, ""));
-		return tickets.includes(ticketPath) ? [branch] : [];
+	return jobIds(home).flatMap((id) => {
+		const read = field(home, id);
+		return read("project") === project && read("branch") !== "" && taskTickets(read("task")).includes(ticketPath) ? [read("branch")] : [];
 	});
 }
 

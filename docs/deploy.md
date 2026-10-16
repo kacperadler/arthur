@@ -2,7 +2,7 @@
 
 Arthur is one process, `arthur run`, in the folder that holds `arthur.config.ts`. A systemd user service keeps it running: it starts it at boot and again whenever it ends. Commands are for Ubuntu or Debian; run them as the user who will own Arthur, not as root.
 
-Arthur is in development. Of what this page sets up, `arthur run` and `arthur config check` exist today, `arthur spawn` starts a job with its limits (time, budget, and the joint CPU and memory of all jobs), and `arthur stop`, `arthur continue` and `arthur steer` act on it; the plugins and the rest of the job runner come in the order of [`spec/roadmap.md`](../spec/roadmap.md). A line that names a roadmap entry describes what that entry builds.
+Arthur is in development. Of what this page sets up, `arthur run` and `arthur config check` exist today, `arthur spawn` starts a job with its limits (time, budget, and the joint CPU and memory of all jobs), `arthur stop`, `arthur continue` and `arthur steer` act on it, and `arthur jobs`, `arthur prune` and `arthur stopall` list, free and stop jobs; the plugins and the rest of the job runner come in the order of [`spec/roadmap.md`](../spec/roadmap.md). A line that names a roadmap entry describes what that entry builds.
 
 ## 1. Install Node, git, tmux and OMP
 
@@ -155,4 +155,4 @@ arthur config check
 systemctl --user restart arthur
 ```
 
-A restart stops every plugin, the coordinator included. Once the job runner exists, run `arthur jobs` first and restart when none runs.
+A restart stops every plugin, the coordinator included. Run `arthur jobs` first and restart when none runs.

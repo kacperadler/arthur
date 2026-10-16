@@ -116,10 +116,39 @@ test("a named instance's variable carries the instance's name, and no other inst
 	]);
 	const check = checkEnv(loaded, {});
 	assert.deepEqual(check.problems, [
-		`${loaded.path}: commit-rules.tokenEnv: expected ARTHUR_COMMIT_RULES_<WHAT>, got ARTHUR_COMMIT_RULES_ACME_TOKEN, a name of instance acme`,
+		`${loaded.path}: commit-rules.tokenEnv: expected ARTHUR_COMMIT_RULES_<WHAT>, got ARTHUR_COMMIT_RULES_ACME_TOKEN, a name of instance acme of plugin commit-rules`,
 		`${loaded.path}: commit-rules.bots[0].urlEnv: expected ARTHUR_COMMIT_RULES_ACME_<WHAT>, got ARTHUR_COMMIT_RULES_URL`,
 	]);
 	assert.deepEqual(check.variables.map((variable) => variable.option), ["commit-rules.bots[0].tokenEnv", "commit-rules.bots[1].auth.tokenEnv"]);
+});
+
+test("two owners of the same prefix are refused, naming both, whether plugins or instances", () => {
+	const token = "ARTHUR_YOUTRACK_CLOUD_TOKEN";
+	const loaded = config([
+		youtrack({ instances: [{ name: "cloud", tokenEnv: token }, { name: "a-b", urlEnv: "ARTHUR_YOUTRACK_A_B_URL" }, { name: "a b", urlEnv: "ARTHUR_YOUTRACK_A_B_URL" }] }),
+		{ name: "youtrack-cloud", options: { tokenEnv: token } },
+		{ name: "github", options: { enabled: false } },
+		{ name: "github", options: {} },
+	]);
+	const check = checkEnv(loaded, { [token]: "t" });
+	assert.deepEqual(check.problems, [
+		`${loaded.path}: ARTHUR_GITHUB_ is the prefix of both plugin github and plugin github`,
+		`${loaded.path}: ARTHUR_YOUTRACK_CLOUD_ is the prefix of both plugin youtrack-cloud and instance cloud of plugin youtrack`,
+		`${loaded.path}: ARTHUR_YOUTRACK_A_B_ is the prefix of both instance a-b of plugin youtrack and instance a b of plugin youtrack`,
+	]);
+	assert.match(refusal(loaded, { [token]: "t" }), /ARTHUR_YOUTRACK_CLOUD_ is the prefix of both plugin youtrack-cloud and instance cloud/);
+});
+
+test("a name inside another plugin's instance prefix belongs to that instance alone", () => {
+	const loaded = config([
+		{ name: "a", options: { instances: [{ name: "b-c", tokenEnv: "ARTHUR_A_B_C_TOKEN" }] } },
+		{ name: "a-b", options: { tokenEnv: "ARTHUR_A_B_C_TOKEN" } },
+	]);
+	const check = checkEnv(loaded, {});
+	assert.deepEqual(check.problems, [
+		`${loaded.path}: a-b.tokenEnv: expected ARTHUR_A_B_<WHAT>, got ARTHUR_A_B_C_TOKEN, a name of instance b-c of plugin a`,
+	]);
+	assert.deepEqual(check.variables.map((variable) => variable.option), ["a.instances[0].tokenEnv"]);
 });
 
 test("an option that is not a name is refused without showing it; one left undefined needs nothing", () => {

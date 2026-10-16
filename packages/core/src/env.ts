@@ -50,20 +50,25 @@ export function checkEnv(config: LoadedConfig, shell: Shell = process.env): EnvC
 	});
 	const file = readEnvFile(config.core.envFile);
 	problems.push(...file.problems);
+	const enabled = plugins.filter((plugin) => plugin.options.enabled !== false).map((plugin) => ({ plugin, found: [] as Found[] }));
+	for (const { plugin, found } of enabled) findEnv(plugin.options, "", undefined, found);
+	// Every prefix someone owns, across plugins: the longest one a name starts with is its one owner, so none may be owned twice.
 	const owners: Owner[] = plugins.map((plugin) => ({ prefix: prefix(plugin.name), owner: `plugin ${plugin.name}` }));
+	for (const { plugin, found } of enabled)
+		for (const instance of new Set(found.flatMap((entry) => (entry.instance === undefined ? [] : [entry.instance]))))
+			owners.push({ prefix: prefix(plugin.name) + part(instance), owner: `instance ${instance} of plugin ${plugin.name}` });
+	owners.forEach((entry, index) => {
+		const first = owners.slice(0, index).find((other) => other.prefix === entry.prefix);
+		if (first) problems.push(`${config.path}: ${entry.prefix} is the prefix of both ${first.owner} and ${entry.owner}`);
+	});
 	const variables: EnvVariable[] = [];
 	const values: Record<string, Record<string, string>> = {};
-	for (const plugin of plugins) {
-		if (plugin.options.enabled === false) continue;
-		const found: Found[] = [];
-		findEnv(plugin.options, "", undefined, found);
+	for (const { plugin, found } of enabled) {
 		const own = prefix(plugin.name);
-		const instances = new Set(found.flatMap((entry) => (entry.instance === undefined ? [] : [entry.instance])));
-		const taken = [...owners, ...[...instances].map((instance) => ({ prefix: own + part(instance), owner: `instance ${instance}` }))];
 		const set: Record<string, string> = {};
 		for (const { option, name, instance } of found) {
 			const path = `${plugin.name}.${option}`;
-			const problem = nameProblem(name, instance === undefined ? own : own + part(instance), taken);
+			const problem = nameProblem(name, instance === undefined ? own : own + part(instance), owners);
 			if (problem !== undefined || typeof name !== "string") {
 				problems.push(`${config.path}: ${path}: ${problem}`);
 				continue;

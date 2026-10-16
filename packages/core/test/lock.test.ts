@@ -51,7 +51,7 @@ test("processes racing for a dead holder's lock hold it one at a time, and all f
 });
 
 test("processes racing for a dead holder's lock past a crashed taker's guard hold it one at a time, and all finish", async () => {
-	await race(["board.lock", "board.lock.takeover"], 20);
+	await race(["board.lock", "board.lock.takeover"], 50);
 });
 
 // Before each round the files are written with a dead pid; then 8 processes take `board.lock` at once, each holding it

@@ -11,4 +11,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/wrapper.ts` (`stopAgent`)
 - What: a job at its time or budget limit gets SIGTERM to its process group and nothing more. An agent (or a tool process it waits on) that ignores SIGTERM keeps running, and spending, until it ends on its own; the record says `limit: time` or `limit: budget` only then. Reproduced in `packages/core/test/limits.test.ts`, "a job whose time runs out while it stops at its budget is not resumed": its agent runs `trap '' TERM` and goes on until the test writes its `go` file.
 - Suggestion: roadmap entry 14's SIGKILL after a grace (and entry 13's scope) should also be what a limit stop uses, so a limit always ends the job; entry 14 lists "a job that ignores SIGTERM" as its edge case. Out: anything else in the wrapper.
-- Status: open
+- Status: ticket AR0053

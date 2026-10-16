@@ -135,9 +135,9 @@
   {
     "id": "AR0015",
     "title": "Roadmap 12: Job limits: time and budget",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0015-roadmap-12-job-limits-time-and-budget/ticket.md",
-    "updated": "2026-10-16T13:22:33.963Z",
+    "updated": "2026-10-16T13:22:53.778Z",
     "after": [
       "AR0014"
     ]
@@ -446,5 +446,15 @@
     "status": "dropped",
     "path": "spec/features/AR0052-a-ticket-moved-to-merged-or-dropped-during-a-spawn-still-gets-its-worker/ticket.md",
     "updated": "2026-10-16T12:42:05.269Z"
+  },
+  {
+    "id": "AR0053",
+    "title": "An agent that ignores SIGTERM runs on past its limit",
+    "status": "planned",
+    "path": "spec/features/AR0053-an-agent-that-ignores-sigterm-runs-on-past-its-limit/ticket.md",
+    "updated": "2026-10-16T13:23:05.923Z",
+    "after": [
+      "AR0017"
+    ]
   }
 ]

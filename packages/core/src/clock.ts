@@ -80,11 +80,14 @@ export function clock(timeZone: string, quietHours: QuietHours | undefined, now:
 			const allowed = days === undefined ? DAYS : checkDays(days);
 			const from = now().getTime();
 			const today = wall(from) - (wall(from) % DAY);
-			for (let date = today; ; date += DAY) {
+			// Today and the seven days after it hold every day of the week once past today's slot; bounded so a day list the
+			// checks above let through ends in an error, never in a timer loop that never returns.
+			for (let date = today; date <= today + 7 * DAY; date += DAY) {
 				if (!allowed.includes(DAYS[new Date(date).getUTCDay()] as Day)) continue;
 				const at = instant(date + minute * MINUTE);
 				if (at > from) return new Date(at);
 			}
+			throw new Error(`clock.next: no ${time} on ${allowed.join(", ")} within a week`);
 		},
 	};
 }

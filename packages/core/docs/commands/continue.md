@@ -7,7 +7,7 @@ Resumes an ended job that has a branch of its own, a worker for example, in plac
 - `--budget <usd>`: replaces the job's `budget`, a plain decimal of 0 or more (`0` is no limit). The record's `cost` counts on from the runs before, so a job that ended at its budget is stopped again at once without a higher one.
 - The `timeout` stays the job's and counts from the new start.
 - Before the wrapper starts, `job-started` is emitted again as at a spawn, with the record's `id`, `kind`, `project`, `root`, `branch`, `worktree` and `tickets`: a worker's tickets in `review` or `done` move back to `in-progress`, one already there is not written, and other kinds move none (see `arthur spawn --help`).
-- `commits` at the end lists the branch's commits since the job's first `base`, every run's together; `result`, `checks`, `tool-calls` and `activity` are the new run's.
+- `commits` at the end lists the branch's commits since the job's first `base`, every run's together; `result`, `tool-calls` and `activity` are the new run's.
 - When the job's wrapper is still writing its end, it waits up to 5 seconds for it to exit, since the new one starts in a scope of the same name.
 
 Refused (exit code 1, the reason after `arthur continue: `):

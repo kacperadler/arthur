@@ -81,7 +81,7 @@ export async function launch(home: string, job: Pick<Job, "id" | "kind" | "proje
 function end(home: string, job: Pick<Job, "id" | "kind" | "project">, reason: string, bus: Bus): string {
 	const folder = join(home, "jobs", job.id);
 	appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] failed: ${reason}\n`);
-	const files = { result: "", cost: "0.0000", "tool-calls": "0", activity: "", checks: "", commits: "", state: "failed" };
+	const files = { result: "", cost: "0.0000", "tool-calls": "0", activity: "", commits: "", state: "failed" };
 	for (const [name, text] of Object.entries(files)) {
 		writeFileSync(join(folder, `.${name}`), text);
 		renameSync(join(folder, `.${name}`), join(folder, name));

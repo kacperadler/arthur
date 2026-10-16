@@ -4,8 +4,7 @@
 
 export type AgentEvent =
 	| { readonly kind: "tool"; readonly name: string; readonly detail: string }
-	// `command` is the bash command the call ran, undefined for any other tool; `output` its text.
-	| { readonly kind: "tool-end"; readonly name: string; readonly command: string | undefined; readonly output: string; readonly failed: boolean }
+	| { readonly kind: "tool-end" }
 	| { readonly kind: "turn" }
 	// `stopReason` as omp says it (`stop` ends the run, `toolUse` a turn); `error` omp's text for a failed one; `cost` in USD.
 	| { readonly kind: "message"; readonly text: string; readonly stopReason: string; readonly error: string; readonly cost: number }
@@ -14,11 +13,8 @@ export type AgentEvent =
 type Part = { readonly type?: unknown; readonly text?: unknown };
 type Raw = {
 	readonly type?: unknown;
-	readonly toolCallId?: unknown;
 	readonly toolName?: unknown;
 	readonly args?: { readonly command?: unknown; readonly path?: unknown; readonly pattern?: unknown };
-	readonly result?: { readonly content?: unknown };
-	readonly isError?: unknown;
 	readonly message?: {
 		readonly role?: unknown;
 		readonly content?: unknown;
@@ -31,8 +27,6 @@ type Raw = {
 // Takes stdout in chunks of any size: a line waits, however long, until its line break or the end.
 export function agentStream(): { push(chunk: string): AgentEvent[]; end(): AgentEvent[] } {
 	let buffer = "";
-	// A tool's end event carries no arguments, so a bash call's command waits here under its call id.
-	const commands = new Map<unknown, string>();
 	const take = (line: string): AgentEvent[] => {
 		const trimmed = line.trim();
 		if (trimmed === "") return [];
@@ -43,7 +37,7 @@ export function agentStream(): { push(chunk: string): AgentEvent[]; end(): Agent
 			return [{ kind: "line", line: trimmed }];
 		}
 		if (typeof event !== "object" || event === null || Array.isArray(event)) return [{ kind: "line", line: trimmed }];
-		return interpret(event as Raw, commands);
+		return interpret(event as Raw);
 	};
 	return {
 		push(chunk) {
@@ -61,19 +55,13 @@ export function agentStream(): { push(chunk: string): AgentEvent[]; end(): Agent
 	};
 }
 
-function interpret(event: Raw, commands: Map<unknown, string>): AgentEvent[] {
+function interpret(event: Raw): AgentEvent[] {
 	const name = typeof event.toolName === "string" ? event.toolName : "";
 	if (event.type === "tool_execution_start") {
-		const command = event.args?.command;
-		if (name === "bash" && typeof command === "string") commands.set(event.toolCallId, command);
-		const detail = String(command ?? event.args?.path ?? event.args?.pattern ?? "");
+		const detail = String(event.args?.command ?? event.args?.path ?? event.args?.pattern ?? "");
 		return [{ kind: "tool", name, detail: detail.replace(/\s+/g, " ").slice(0, 100) }];
 	}
-	if (event.type === "tool_execution_end") {
-		const command = commands.get(event.toolCallId);
-		commands.delete(event.toolCallId);
-		return [{ kind: "tool-end", name, command, output: text(event.result?.content), failed: event.isError === true }];
-	}
+	if (event.type === "tool_execution_end") return [{ kind: "tool-end" }];
 	if (event.type === "turn_start") return [{ kind: "turn" }];
 	const message = event.message;
 	if (event.type !== "message_end" || message?.role !== "assistant") return [];

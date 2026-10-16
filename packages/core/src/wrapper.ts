@@ -13,7 +13,7 @@ import { closeSteers } from "./steer-inbox.ts";
 // The wrapper (spec/roadmap.md, entry 11): one background process per job, `node wrapper.ts <home> <id> <agent>`, started
 // in the job's scope by `launch` (job-scope.ts); it starts the agent, in a process group of its own, in the job's worktree
 // and keeps the record `<home>/jobs/<id>/` current from what the agent prints: `pid` and `state` (`running`) first, then
-// `log`, `result`, `cost`, `tool-calls`, `activity` and `checks` as they change; at the end every one of them and `commits`,
+// `log`, `result`, `cost`, `tool-calls` and `activity` as they change; at the end every one of them and `commits`,
 // then `state` (`done`, `failed`, `stopped`, `limit: time` or `limit: budget`) last, so a reader that sees it final can
 // trust the rest; then `job-ended`. SIGTERM to the wrapper (`arthur stop`, entry 14) and a job past its record's `timeout`
 // or `budget` (entry 12) run the one stop (job-stop.ts); a kind with `resume-on-budget` gets one resume at its budget,
@@ -96,7 +96,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	rmSync(join(folder, "continuing"), { recursive: true, force: true });
 	let budgetUsd = Number(budget);
 	const cancel = deadline(Number(timeout), () => halt("time"));
-	const record = runRecord(save, worktree, Number(spent ?? 0) || 0, (cost) => reached(cost, budgetUsd) && halt("budget"));
+	const record = runRecord(save, Number(spent ?? 0) || 0, (cost) => reached(cost, budgetUsd) && halt("budget"));
 
 	let failure = undefined as Error | undefined;
 	// One run of the agent, until it exits, its output is read and its stop, if any, is over.

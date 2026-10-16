@@ -520,8 +520,15 @@
   {
     "id": "AR0063",
     "title": "Roadmap: model providers on other machines, with a fallback chain",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0063-roadmap-model-providers-on-other-machines-with-a-fallback-chain/ticket.md",
-    "updated": "2026-10-16T14:45:49.990Z"
+    "updated": "2026-10-16T14:46:16.001Z"
+  },
+  {
+    "id": "AR0064",
+    "title": "The `models` plugin is missing from the vision and the architecture diagrams",
+    "status": "planning",
+    "path": "spec/features/AR0064-the-models-plugin-is-missing-from-the-vision-and-the-architecture-diagrams/ticket.md",
+    "updated": "2026-10-16T14:46:15.999Z"
   }
 ]

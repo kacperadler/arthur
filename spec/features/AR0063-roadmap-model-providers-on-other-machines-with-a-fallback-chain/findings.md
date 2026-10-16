@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `spec/vision.md:74`, `docs/architecture/versions.mmd:9`, `docs/architecture/core-and-plugins.mmd:15`
 - What: roadmap entry 82 and `arthur.config.example.ts` add a `models` plugin (marked `first, named`), but the vision's plugin table and both diagrams list every plugin except it; voice (81) was added to all three. This ticket's Scope names only the roadmap and the example config.
 - Suggestion: one row in the vision's table (`models (named) | first | Models served on the owner's machines, and an ordered fallback per role or kind`), and `models` in the first-version box of `versions.mmd` and in `core-and-plugins.mmd` with its `first` class. Nothing else.
-- Status: open
+- Status: ticket AR0064

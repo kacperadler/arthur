@@ -71,6 +71,7 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | commit-rules (named) | first | Each project's commit format, set by a regex, a plain-words rule, or a path to a Markdown file that describes it. Below. |
 | youtrack (named) | first | One entry per server; reads and writes issues, comments, articles, work items. |
 | telegram (named) | first | A channel: receive, send text, send media. |
+| voice (named) | first | Local transcription of voice parts with whisper.cpp: claims every `voice` part from any channel, on the CPU, nothing sent to the cloud. |
 | delivery (derived) | first | Review, always-review list, merge after PASS and green CI, the changelog. |
 | github (derived) | first | Polls CI runs and pull requests, wakes the coordinator. |
 | manage (named: managing Arthur) | first | The audit, the retro, health, prune, stats. Its options (`audit.days`, `retro.day`) make the schedule entries, not prose in one. |
@@ -160,7 +161,7 @@ Interface: `host.jobs.cleanup(fn)`, `host.jobs.prepare` returning variables for 
 ## How it is built
 
 - The plugin API is derived from three plugins: telegram, youtrack, schedule. They are a channel, a tracker and a timer; their common shape is the host API. The styleguide forbids abstracting before the second example, so the API is frozen after those three are built, not before.
-- Channels (telegram, whatsapp, signal) share one interface: receive text, send text, send media. Each channel answers one allowed chat or number.
+- Channels (telegram, whatsapp, signal) share one interface: receive a message as typed `parts` (text, photo, video, voice, audio, file), send text, send media. A channel hands the parts to the core, which asks the plugins that claim them (`collect("message.part")`) to replace each by its text before the coordinator's turn. Each channel answers one allowed chat or number.
 - Arthur is built by moving the predecessor's modules with their tests, not by rewriting them, feature by feature, in the order of `spec/roadmap.md`. Each ticket is neither a one-liner nor a whole plugin; each module and plugin is tested on its own, edge cases included. The predecessor takes only fixes until the switch. Arthur switches one project first, itself, then the others.
 - The repository starts clean, with an empty board: the predecessor's history holds client names, paths and work, and is not published.
 

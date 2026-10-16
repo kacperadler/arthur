@@ -1,11 +1,13 @@
 import { existsSync, rmSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
+import { taskTickets } from "./board-jobs.ts";
 import type { Clock } from "./clock.ts";
 import type { Bus } from "./events.ts";
 import { addWorktree, branchExists, fileAt, head, removeWorktree, topLevel } from "./git.ts";
 import { checkLimits, type Limits, spawnLimits } from "./job-limits.ts";
 import { continueJob } from "./job-control.ts";
 import { writeRecord } from "./job-record.ts";
+import { jobUpkeep } from "./job-records.ts";
 import { copyNodeModules } from "./node-modules.ts";
 import { describeRoles, prompt, type Role, type RoleView, roleModel, roleRegistry } from "./roles.ts";
 import { launch, type Slice } from "./job-scope.ts";
@@ -71,8 +73,8 @@ export type Jobs = {
 	spawn(request: SpawnRequest): Promise<Started>;
 };
 
-// The runner of one load; `owner` is the plugin that registers, named in refusals.
-export type JobRunner = {
+// The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for.
+export type JobRunner = ReturnType<typeof jobUpkeep> & {
 	registerKind(owner: string, kind: Kind): void;
 	registerRole(owner: string, role: Role): void;
 	beforeSpawn(owner: string, check: SpawnCheck): void;
@@ -86,9 +88,6 @@ export type JobRunner = {
 };
 
 const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
-// `Ticket: <path>`, the path maybe in backticks; punctuation that ends the sentence is not part of it. Each once, as written.
-const TICKET = /\bTicket:\s*`?([^\s`]+)/g;
-const ticketsOf = (task: string) => [...new Set(Array.from(task.matchAll(TICKET), (match) => (match[1] ?? "").replace(/[.,;:!?)]+$/, "")))];
 
 type Collect = (name: string, args: readonly unknown[]) => unknown[];
 
@@ -100,6 +99,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice, 
 	const checks: { readonly owner: string; readonly check: SpawnCheck }[] = [];
 	const prepares: { readonly owner: string; readonly fn: Prepare }[] = [];
 	const runner: JobRunner = {
+		...jobUpkeep(home, time, bus, (job) => collect("jobs.keep", [job])),
 		registerKind(owner, kind) {
 			if (typeof kind.name !== "string" || !NAME.test(kind.name)) throw new Error(`kind ${JSON.stringify(kind.name)}: expected a name of lowercase letters, digits and dashes`);
 			const first = kinds.get(kind.name);
@@ -112,7 +112,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice, 
 		beforeSpawn: (owner, check) => void checks.push({ owner, check }),
 		prepare: (owner, fn) => void prepares.push({ owner, fn }),
 		roles: (project) => describeRoles(roles, [...kinds.values()].map((entry) => entry.kind), checkout(project).root, collect),
-		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (spawn) => checkSpawn({ ...spawn, tickets: ticketsOf(spawn.task) })),
+		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (spawn) => checkSpawn({ ...spawn, tickets: taskTickets(spawn.task) })),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
 			const kind = kinds.get(name)?.kind;
@@ -123,7 +123,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice, 
 			const commit = head(root);
 			if (commit === undefined) throw new Error(`${root} has no commit yet; a job starts from HEAD`);
 			if (!kind.readOnly && branchExists(root, "arthur")) throw new Error(`${root} has a branch named arthur, so Git cannot create a worker's branch arthur/<id> beside it; rename it: git branch -m arthur <new-name>`);
-			const tickets = ticketsOf(request.task);
+			const tickets = taskTickets(request.task);
 			const missing = tickets.filter((path) => !fileAt(root, commit, path));
 			if (missing.length > 0) throw new Error(`Ticket: ${missing.join(", ")}: no such file at HEAD (${commit.slice(0, 7)}); commit it first`);
 			const preset = roleModel(collect, role.name);

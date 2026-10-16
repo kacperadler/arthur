@@ -14,7 +14,7 @@ import { queueSteer } from "./steer-inbox.ts";
 // correction the agent gets after its next tool call (steer-inbox.ts); `arthur continue` starts the wrapper again in place.
 
 // `<date>-<kind>-<8 hex digits>`, as the spawn makes it: nothing else names a folder in `<home>/jobs/`.
-const ID = /^\d{4}-\d\d-\d\d-[a-z][a-z0-9]*(-[a-z0-9]+)*-[0-9a-f]{8}$/;
+export const ID = /^\d{4}-\d\d-\d\d-[a-z][a-z0-9]*(-[a-z0-9]+)*-[0-9a-f]{8}$/;
 // How long `arthur stop` waits for the wrapper to write the end: the grace, the SIGKILL, the scope.
 const STOP_WAIT_SECONDS = GRACE_SECONDS + 10;
 

@@ -71,25 +71,18 @@ async function load(): Promise<{ readonly commands: CommandRegistry; readonly pr
 // `problem`: why the plugins' commands are missing, said with every list of the commands; `loaded` once the plugins are set up.
 function core(problem: string | undefined, loaded: () => Loaded | undefined): CommandRegistry {
 	const commands = commandRegistry();
-	const board = () => {
-		const loadedBoard = loaded()?.board;
-		if (loadedBoard === undefined) throw new Error(`the board needs the project list, and arthur.config.ts did not load:\n${problem}`);
-		return loadedBoard;
+	// What a command takes from the load; `why` it needs the load, said when arthur.config.ts did not load.
+	const need = <T>(why: string, pick: (app: Loaded) => T) => () => {
+		const app = loaded();
+		if (app === undefined) throw new Error(`${why}arthur.config.ts did not load:\n${problem}`);
+		return pick(app);
 	};
+	const board = need("the board needs the project list, and ", (app) => app.board);
 	for (const command of [ticketCommand(board), ...boardCommands(board, () => loaded()?.home)]) commands.register("core", command);
-	const jobs = (what: string) => () => {
-		const loadedJobs = loaded()?.jobs;
-		if (loadedJobs === undefined) throw new Error(`${what}arthur.config.ts did not load:\n${problem}`);
-		return loadedJobs;
-	};
-	commands.register("core", rolesCommand(jobs("the roles are what the plugins registered, and ")));
-	commands.register("core", spawnCommand(jobs("")));
-	const home = () => {
-		const loadedHome = loaded()?.home;
-		if (loadedHome === undefined) throw new Error(`the job records are in the configured home folder, and arthur.config.ts did not load:\n${problem}`);
-		return loadedHome;
-	};
-	for (const command of jobCommands(home, jobs(""))) commands.register("core", command);
+	commands.register("core", rolesCommand(need("the roles are what the plugins registered, and ", (app) => app.jobs)));
+	const jobs = need("", (app) => app.jobs);
+	commands.register("core", spawnCommand(jobs));
+	for (const command of jobCommands(need("the job records are in the configured home folder, and ", (app) => app.home), jobs)) commands.register("core", command);
 	commands.register("core", {
 		name: "config",
 		doc: new URL("../docs/commands/config.md", import.meta.url),
@@ -111,9 +104,8 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 				console.error("usage: arthur run");
 				return 2;
 			}
-			const app = loaded();
-			if (app === undefined) throw new Error(`arthur.config.ts did not load:\n${problem}`);
-			return runPlugins(app.plugins, app.home, app.follow);
+			const app = need("", (loadedApp) => loadedApp)();
+			return runPlugins(app.plugins, app.home, app.follow, app.jobs.sweep);
 		},
 	});
 	commands.register("core", {

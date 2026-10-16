@@ -7,16 +7,18 @@ import type { Plugin } from "./plugin.ts";
 // order, stays until SIGTERM (or SIGINT), then calls `stop` in reverse. One process per home folder: `<home>/run.pid` holds it.
 // From the lock on until the stops it follows the event log, so the events a command appends reach the plugins' subscribers;
 // those appended while no `arthur run` ran reach them before the starts, after the last one delivered before (`events.ts`).
+// Over the same time it sweeps for dead jobs every SWEEP_MS (spec/roadmap.md, entry 15).
 
 const SIGNALS = ["SIGTERM", "SIGINT"] as const;
 // Under the 2^31 ms a timer can wait; it only keeps the process alive until a signal comes.
 const KEEP_ALIVE_MS = 2 ** 30;
 // How often the log is checked for lines another process wrote: one `fstat`, and a read only when it grew.
 const FOLLOW_MS = 500;
+const SWEEP_MS = 30_000;
 
-// `plugins` in setup order, as `loadPlugins` returns them, with its `follow`. Resolves to the exit code: 1 when a `start` or a
-// `stop` failed. Throws, starting nothing, when another live process runs the home folder.
-export async function runPlugins(plugins: readonly Plugin[], home: string, follow: (everyMs: number) => () => void): Promise<number> {
+// `plugins` in setup order, as `loadPlugins` returns them, with its `follow`; `sweep` is the job runner's. Resolves to the exit
+// code: 1 when a `start` or a `stop` failed. Throws, starting nothing, when another live process runs the home folder.
+export async function runPlugins(plugins: readonly Plugin[], home: string, follow: (everyMs: number) => () => void, sweep: () => void): Promise<number> {
 	let signalled: string | undefined;
 	let wake = () => {};
 	const stopping = new Promise<void>((resolve) => (wake = resolve));
@@ -32,6 +34,8 @@ export async function runPlugins(plugins: readonly Plugin[], home: string, follo
 		const lock = takeLock(join(home, "run.pid"));
 		if ("heldBy" in lock) throw new Error(`${home} is already run by pid ${lock.heldBy}; one arthur run per home folder`);
 		let unfollow = () => {};
+		const failed = (error: unknown) => console.error(`arthur run: the sweep for dead jobs failed: ${error instanceof Error ? error.message : String(error)}`);
+		const sweeping = setInterval(() => Promise.try(sweep).catch(failed), SWEEP_MS);
 		try {
 			unfollow = follow(FOLLOW_MS);
 			const started: Plugin[] = [];
@@ -68,6 +72,7 @@ export async function runPlugins(plugins: readonly Plugin[], home: string, follo
 			return code;
 		} finally {
 			unfollow();
+			clearInterval(sweeping);
 			lock.release();
 		}
 	} finally {

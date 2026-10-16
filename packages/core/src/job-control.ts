@@ -7,6 +7,7 @@ import type { Spawn } from "./jobs.ts";
 import { checkLimits } from "./job-limits.ts";
 import { launch, type Slice } from "./job-scope.ts";
 import { GRACE_SECONDS } from "./job-stop.ts";
+import { takeLock } from "./lock.ts";
 import { processTable } from "./process-table.ts";
 import { queueSteer } from "./steer-inbox.ts";
 
@@ -68,12 +69,14 @@ export function steerJob(home: string, id: string, text: string): string {
 // and the agent continues its last session there with `instruction`. `budgetUsd` replaces the budget, since the cost of the
 // runs before counts on; the timeout counts from the new start. `check` runs the plugins' `beforeSpawn` on the record first,
 // then `job-started` goes out as at a spawn (a worker's tickets move back to in-progress). Returns why the wrapper did not
-// start, which ended the job `failed`, or undefined. The record's `continuing`, created before its state is read and removed
-// by the new wrapper once its state says running or here when the continue fails, refuses the second of two continues at once.
+// start, which ended the job `failed`, or undefined. The record's `continuing`, a lock (lock.ts) taken before its state is read
+// and removed by the new wrapper once its state says running or here when the continue fails, refuses the second of two
+// continues at once; one left by a continue that was killed is taken over.
 export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, check: (spawn: Omit<Spawn, "tickets">) => Promise<void>): Promise<string | undefined> {
 	const { folder, field } = record(home, id);
 	if (instruction.trim() === "") throw new Error("the instruction is empty");
-	if (mkdirSync(join(folder, "continuing"), { recursive: true }) === undefined) throw new Error(`${id}: being continued`);
+	const lock = takeLock(join(folder, "continuing"));
+	if ("heldBy" in lock) throw new Error(`${id}: being continued`);
 	let failed: string | undefined = "refused";
 	try {
 		const [state, task = "", kind = "", project = "", root, branch, worktree, model, thinking] = ["state", "task", "kind", "project", "root", "branch", "worktree", "model", "thinking"].map((name) => field(name) || undefined);
@@ -88,9 +91,12 @@ export async function continueJob(home: string, id: string, instruction: string,
 		write(folder, "continue", instruction.trim());
 		appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] arthur continue: ${instruction.trim().split("\n")[0]}\n`);
 		bus.emit("core", "job-started", { id, kind, project, root, branch, worktree, tickets: taskTickets(task) });
-		return (failed = await launch(home, { id, kind, project }, agent, slice, bus));
+		failed = await launch(home, { id, kind, project }, agent, slice, bus);
+		// The wrapper writes `pid`, then `state`: once this process ends, a continue that takes its lock over reads `running`.
+		while (failed === undefined && field("state") !== "running" && wrapperRuns(field("pid"), id)) await sleep(20);
+		return failed;
 	} finally {
-		if (failed !== undefined) rmSync(join(folder, "continuing"), { recursive: true, force: true });
+		if (failed !== undefined) lock.release();
 	}
 }
 

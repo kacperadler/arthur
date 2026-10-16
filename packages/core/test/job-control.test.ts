@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -330,6 +330,24 @@ for (const manager of [true, false])
 		assert.deepEqual([starts(resumed).length, field(home, job.id, "continue"), field(home, job.id, "log")?.match(/\] arthur continue: /g)?.length], [1, "One.", 1]);
 		assert.equal(field(home, job.id, "log")?.includes("no systemd scope"), !manager);
 	});
+
+test("a continue takes over the `continuing` a killed continue left, and is refused while a live process holds it", async (t) => {
+	const { agent, resumed } = resuming({ steps: [{ message: "First." }] }, { steps: [{ message: "Second." }] });
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	await ended(home, job.id);
+	const continuing = join(home, "jobs", job.id, "continuing");
+	const live = spawn("sleep", ["300"]);
+	t.after(() => live.kill());
+	writeFileSync(continuing, String(live.pid));
+	await assert.rejects(jobs.continue(job.id, "Two."), { message: `${job.id}: being continued` });
+	assert.deepEqual([read(continuing), field(home, job.id, "continue"), starts(resumed).length], [String(live.pid), undefined, 0], "the holder keeps it");
+	writeFileSync(continuing, String(spawnSync("true").pid));
+	assert.equal(await jobs.continue(job.id, "Two."), undefined);
+	const [, second] = await ended(home, job.id, 2);
+	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" });
+	assert.deepEqual([starts(resumed).length, field(home, job.id, "continue"), existsSync(continuing)], [1, "Two.", false]);
+});
 
 test("continue is refused, with the id and the reason: a running job, a read-only kind, an unknown id, an empty instruction, a bad budget", async () => {
 	const gate = join(temporaryFolder(), "gate");

@@ -561,9 +561,9 @@
     "title": "A continued worker leaves its ticket in review or done",
     "status": "planned",
     "path": "spec/features/AR0068-a-continued-worker-leaves-its-ticket-in-review-or-done/ticket.md",
-    "updated": "2026-10-16T15:05:20.346Z",
+    "updated": "2026-10-16T15:26:08.080Z",
     "after": [
-      "AR0067"
+      "AR0018"
     ]
   },
   {

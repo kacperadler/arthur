@@ -6,7 +6,7 @@
   "title": "A continued worker leaves its ticket in review or done",
   "date": "2026-10-16",
   "after": [
-    "AR0067"
+    "AR0018"
   ]
 }
 ```

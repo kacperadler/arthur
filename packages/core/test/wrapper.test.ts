@@ -6,7 +6,8 @@ import { pathToFileURL } from "node:url";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { clock } from "../src/clock.ts";
-import { eventBus, readEvents } from "../src/events.ts";
+import { readEvents } from "../src/event-log.ts";
+import { eventBus } from "../src/events.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
 import { type AgentRun, fakeAgent, temporaryFolder } from "../src/testing.ts";
 

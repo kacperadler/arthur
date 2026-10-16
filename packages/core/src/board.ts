@@ -1,12 +1,14 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
-import { type Entry, ID, readBoard, STATUSES, type Status, writeBoard } from "./board-file.ts";
+import { afterProblem } from "./board-after.ts";
+import { type Entry, ID, NEXT, readBoard, STATUSES, type Status, writeBoard } from "./board-file.ts";
+import { boardText } from "./board-text.ts";
 import type { Clock } from "./clock.ts";
 import { withLock } from "./lock.ts";
 import { checkTitle, guidanceLeft, slug, ticketText } from "./ticket-template.ts";
 
-// The ticket board (spec/roadmap.md, entry 17): each project's tickets as folders `spec/features/<id>-<slug>/` and its board
-// `spec/build.json`, changed only here, one writer at a time across processes. Ids are the project's prefix and a number,
+// The ticket board (spec/roadmap.md, entries 17 and 18): each project's tickets as folders `spec/features/<id>-<slug>/` and its
+// board `spec/build.json`, changed only here, one writer at a time across processes. Ids are the project's prefix and a number,
 // from 1, counted on after every ticket the board or the folder has, dropped ones included. The projects are the list a
 // plugin provides as `projects` (entry 41); the first one is the main project.
 
@@ -15,15 +17,22 @@ export type Project = { readonly name: string; readonly path: string; readonly p
 export type Ticket = Entry & { readonly project: string };
 
 export type Board = {
+	// The checked project list; the first is the main one.
+	projects(): Project[];
 	// The project's tickets, in the order they were created; `project` undefined is the main one.
 	list(project?: string): Ticket[];
 	// By its full id (`AR0014`): the prefix names the project. Undefined when no project or ticket has it.
 	get(id: string): Ticket | undefined;
 	// A new ticket in planning, its `ticket.md` from the template; emits `ticket-created`.
 	create(title: string, project?: string): Ticket;
-	// Emits `ticket-moved` (`id`, `project`, `from`, `to`); a move to the status it has is no change and no event.
-	// `planned` is refused while the template's guidance is left in its `ticket.md`.
+	// Emits `ticket-moved` (`id`, `project`, `from`, `to`); a move to the status it has is no change and no event. A move
+	// `NEXT` does not allow is refused; `planned` is refused while the template's guidance is left in its `ticket.md`.
 	move(id: string, to: string): Ticket;
+	// The tickets `id` waits for, on its own board, replacing the ones before; none waits for nothing. Refused: an id not on the
+	// board, a dropped one, a cycle. Emits `ticket-after` (`id`, `project`, `after`) when it changes.
+	after(id: string, ids: readonly string[]): Ticket;
+	// Every open ticket, the 10 newest merged, and one line counting the rest; `project` undefined is the main one.
+	digest(project?: string): string;
 };
 
 const FILE = "spec/build.json";
@@ -57,8 +66,24 @@ export function board(lists: () => readonly unknown[], clock: Clock, emit: (name
 			return result;
 		});
 	};
+	// Under the lock: ticket `id` replaced by what `change` returns for it (itself when nothing changes), on its own board.
+	const update = (id: string, change: (found: Entry, entries: readonly Entry[], where: Project) => Entry) => {
+		const where = owner(id);
+		if (where === undefined) throw new Error(`${id}: no project has its prefix; prefixes: ${projects(lists()).map((each) => each.prefix).join(", ")}`);
+		const [before, after] = write(where, (entries) => {
+			const index = entries.findIndex((each) => each.id === id);
+			const found = entries[index];
+			if (found === undefined) throw new Error(`${id}: not on the board of project ${where.name}`);
+			const changed = change(found, entries, where);
+			entries[index] = changed;
+			return [found, changed] as const;
+		});
+		return { where, before, after, ticket: { ...after, project: where.name } };
+	};
 	return {
+		projects: () => projects(lists()),
 		list: (name) => tickets(project(name)),
+		digest: (name) => boardText(tickets(project(name)), false),
 		get(id) {
 			const where = owner(id);
 			return where && tickets(where).find((ticket) => ticket.id === id);
@@ -82,19 +107,27 @@ export function board(lists: () => readonly unknown[], clock: Clock, emit: (name
 		},
 		move(id, to) {
 			if (!STATUSES.includes(to as Status)) throw new Error(`${id}: unknown status ${JSON.stringify(to)}; statuses: ${STATUSES.join(", ")}`);
-			const where = owner(id);
-			if (where === undefined) throw new Error(`${id}: no project has its prefix; prefixes: ${projects(lists()).map((each) => each.prefix).join(", ")}`);
-			const { entry, from } = write(where, (entries) => {
-				const index = entries.findIndex((each) => each.id === id);
-				const found = entries[index];
-				if (found === undefined) throw new Error(`${id}: not on the board of project ${where.name}`);
-				if (found.status === to) return { entry: found, from: found.status };
-				if (to === "planned") refuseGuidance(where, found);
-				entries[index] = { ...found, status: to as Status, updated: clock.now().toISOString() };
-				return { entry: entries[index], from: found.status };
+			const { where, before, after, ticket } = update(id, (found, _, at) => {
+				if (found.status === to) return found;
+				const allowed = NEXT[found.status];
+				if (!allowed.includes(to as Status)) throw new Error(`${id}: ${found.status} cannot move to ${to}; from ${found.status}: ${allowed.join(", ") || "none, it is final"}`);
+				if (to === "planned") refuseGuidance(at, found);
+				return { ...found, status: to as Status, updated: clock.now().toISOString() };
 			});
-			if (from !== entry.status) emit("ticket-moved", { id, project: where.name, from, to });
-			return { ...entry, project: where.name };
+			if (after !== before) emit("ticket-moved", { id, project: where.name, from: before.status, to });
+			return ticket;
+		},
+		after(id, ids) {
+			const wanted = [...new Set(ids)];
+			const { where, before, after, ticket } = update(id, (found, entries) => {
+				const problem = afterProblem(entries, id, wanted);
+				if (problem !== undefined) throw new Error(problem);
+				if ((found.after ?? []).join() === wanted.join()) return found;
+				const { after: _, ...rest } = found;
+				return wanted.length > 0 ? { ...rest, after: wanted } : rest;
+			});
+			if (after !== before) emit("ticket-after", { id, project: where.name, after: wanted });
+			return ticket;
 		},
 	};
 }

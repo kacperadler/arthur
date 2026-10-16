@@ -1,10 +1,10 @@
 import type { Board } from "./board.ts";
 import type { Command } from "./commands.ts";
 
-// `arthur ticket` (spec/roadmap.md, entry 17): the one way a human or the coordinator changes the board. `board` throws when
-// the config did not load, since the board needs the plugins' project list.
+// `arthur ticket` (spec/roadmap.md, entries 17 and 18): the one way a human or the coordinator changes the board. `board` throws
+// when the config did not load, since the board needs the plugins' project list.
 
-const USAGE = "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket all";
+const USAGE = "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket after <id> [<id>...]; arthur ticket all";
 
 export function ticketCommand(board: () => Board): Command {
 	return {
@@ -21,6 +21,11 @@ export function ticketCommand(board: () => Board): Command {
 			if (verb === "status" && id !== undefined && status !== undefined && rest.length === 2) {
 				const ticket = board().move(id, status);
 				console.log(`${ticket.id} ${ticket.status}`);
+				return 0;
+			}
+			if (verb === "after" && id !== undefined) {
+				const ticket = board().after(id, rest.slice(1));
+				console.log(`${ticket.id} after ${ticket.after?.join(", ") ?? "nothing"}`);
 				return 0;
 			}
 			if (verb === "all" && rest.length === 0) {

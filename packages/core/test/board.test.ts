@@ -83,7 +83,7 @@ test("planned is refused for a ticket whose ticket.md is gone; other statuses ar
 	assert.throws(() => board.move("DM0001", "planned"), {
 		message: /^DM0001: cannot read spec\/features\/DM0001-gone\/ticket\.md to check it for template guidance: ENOENT/,
 	});
-	assert.equal(board.move("DM0001", "in-progress").status, "in-progress");
+	assert.equal(board.move("DM0001", "dropped").status, "dropped");
 });
 
 test("a move to the status a ticket has changes nothing: no write, no event", () => {
@@ -113,9 +113,9 @@ test("refused: an unknown status, an id not on the board, an id whose prefix no 
 test("keys the board does not read are kept when a ticket moves", () => {
 	const { board, file } = setup();
 	board.create("Waits");
-	writeFileSync(file, JSON.stringify([{ ...JSON.parse(readFileSync(file, "utf8"))[0], after: ["DM0000"] }]));
-	board.move("DM0001", "review");
-	assert.deepEqual(JSON.parse(readFileSync(file, "utf8"))[0].after, ["DM0000"]);
+	writeFileSync(file, JSON.stringify([{ ...JSON.parse(readFileSync(file, "utf8"))[0], requires: { os: "macos" } }]));
+	board.move("DM0001", "dropped");
+	assert.deepEqual(JSON.parse(readFileSync(file, "utf8"))[0].requires, { os: "macos" });
 });
 
 test("a title that is empty, padded, on two lines or without a letter or digit is refused; a long one is cut at a dash", () => {
@@ -136,9 +136,124 @@ test("the main project is the first; --project picks another by name; each proje
 	assert.equal(board.create("Core").id, "AR0001");
 	assert.equal(board.create("Cart", "shop").id, "SH0001");
 	assert.deepEqual(board.get("SH0001")?.project, "shop");
-	assert.deepEqual(board.move("SH0001", "done").project, "shop");
+	assert.deepEqual(board.move("SH0001", "dropped").project, "shop");
 	assert.deepEqual(board.list("shop").map((ticket) => ticket.id), ["SH0001"]);
 	assert.throws(() => board.list("blog"), { message: "unknown project blog; projects: arthur, shop" });
+});
+
+// A board written by hand, each ticket with a `ticket.md` free of the template's guidance.
+function handWritten(root: string, entries: readonly Record<string, unknown>[]): void {
+	for (const { path } of entries) {
+		mkdirSync(join(root, String(path), ".."), { recursive: true });
+		writeFileSync(join(root, String(path)), "# filled in\n");
+	}
+	writeFileSync(join(root, "spec", "build.json"), JSON.stringify(entries));
+}
+
+const entry = (id: string, status: string, more: Record<string, unknown> = {}) => ({
+	id,
+	title: `Ticket ${id}`,
+	status,
+	path: `spec/features/${id}-ticket/ticket.md`,
+	updated: NOW.toISOString(),
+	...more,
+});
+
+const ALLOWED: Readonly<Record<string, readonly string[]>> = {
+	planning: ["planned", "dropped"],
+	planned: ["planning", "in-progress", "dropped"],
+	"in-progress": ["planning", "review", "done", "merged", "dropped"],
+	review: ["in-progress", "done", "merged", "dropped"],
+	done: ["in-progress", "review", "merged", "dropped"],
+	merged: [],
+	dropped: [],
+};
+
+test("a move is allowed only as the table says; a merged or dropped ticket never moves again", () => {
+	for (const [from, allowed] of Object.entries(ALLOWED)) {
+		for (const to of Object.keys(ALLOWED).filter((status) => status !== from)) {
+			const { fake, board, root, file } = setup();
+			handWritten(root, [entry("DM0001", from)]);
+			const before = readFileSync(file, "utf8");
+			if (allowed.includes(to)) {
+				assert.equal(board.move("DM0001", to).status, to, `${from} -> ${to}`);
+				continue;
+			}
+			assert.throws(() => board.move("DM0001", to), { message: `DM0001: ${from} cannot move to ${to}; from ${from}: ${allowed.join(", ") || "none, it is final"}` });
+			assert.deepEqual([readFileSync(file, "utf8"), fake.emitted.length], [before, 0], `${from} -> ${to} left the board as it was`);
+		}
+	}
+});
+
+test("after: a ticket waits for others on its board; replaced, cleared, and emitted only when it changes", () => {
+	const { fake, board, root, file } = setup();
+	handWritten(root, [entry("DM0001", "planning"), entry("DM0002", "planned"), entry("DM0003", "merged")]);
+	assert.deepEqual(board.after("DM0001", ["DM0002", "DM0003", "DM0002"]).after, ["DM0002", "DM0003"]);
+	assert.deepEqual(JSON.parse(readFileSync(file, "utf8"))[0].after, ["DM0002", "DM0003"]);
+	const written = readFileSync(file, "utf8");
+	assert.deepEqual(board.after("DM0001", ["DM0002", "DM0003"]).after, ["DM0002", "DM0003"]);
+	assert.equal(readFileSync(file, "utf8"), written, "the same list writes nothing");
+	assert.deepEqual(board.after("DM0001", ["DM0003"]).after, ["DM0003"]);
+	assert.equal(board.after("DM0001", []).after, undefined);
+	assert.equal("after" in JSON.parse(readFileSync(file, "utf8"))[0], false);
+	assert.deepEqual(events(fake), [
+		{ plugin: "delivery", name: "ticket-after", data: { id: "DM0001", project: "demo", after: ["DM0002", "DM0003"] } },
+		{ plugin: "delivery", name: "ticket-after", data: { id: "DM0001", project: "demo", after: ["DM0003"] } },
+		{ plugin: "delivery", name: "ticket-after", data: { id: "DM0001", project: "demo", after: [] } },
+	]);
+});
+
+test("after refuses an unknown id, another project's, a dropped one, itself and a cycle; the board is left as it is", () => {
+	const shop = temporaryFolder();
+	const { fake, board, root, file } = setup([
+		{ name: "demo", path: temporaryFolder(), prefix: "DM" },
+		{ name: "shop", path: shop, prefix: "SH" },
+	]);
+	handWritten(root, [entry("DM0001", "planning", { after: ["DM0002"] }), entry("DM0002", "planned", { after: ["DM0003"] }), entry("DM0003", "planning"), entry("DM0004", "dropped")]);
+	handWritten(shop, [entry("SH0001", "planning")]);
+	const before = readFileSync(file, "utf8");
+	for (const [id, after, message] of [
+		["DM0001", ["DM0002", "DM0009"], "DM0001 cannot wait for DM0009: not on its board"],
+		["DM0001", ["SH0001"], "DM0001 cannot wait for SH0001: not on its board"],
+		["DM0001", ["DM0004"], "DM0001 cannot wait for DM0004: dropped"],
+		["DM0001", ["DM0001"], "DM0001 cannot wait for itself: DM0001 after DM0001"],
+		["DM0003", ["DM0001"], "DM0003 cannot wait for itself: DM0003 after DM0001 after DM0002 after DM0003"],
+		["DM0009", [], "DM0009: not on the board of project demo"],
+	] as const) {
+		assert.throws(() => board.after(id, after), { message });
+	}
+	assert.deepEqual([readFileSync(file, "utf8"), fake.emitted.length], [before, 0]);
+});
+
+test("the digest: every open ticket by status with what it still waits for, the 10 newest merged, one line for the rest", () => {
+	const { board, root } = setup();
+	assert.equal(board.digest(), "the board is empty");
+	const merged = Array.from({ length: 12 }, (_, index) =>
+		entry(`DM${String(index + 1).padStart(4, "0")}`, "merged", { updated: new Date(NOW.getTime() + index * 60_000).toISOString() }),
+	);
+	handWritten(root, [
+		...merged,
+		entry("DM0013", "done"),
+		entry("DM0014", "planning", { after: ["DM0001", "DM0015"] }),
+		entry("DM0015", "in-progress"),
+		entry("DM0016", "dropped"),
+		entry("DM0017", "dropped", { after: ["DM0015"] }),
+		entry("DM0018", "planned"),
+		entry("DM0019", "review"),
+	]);
+	const newest = Array.from({ length: 10 }, (_, index) => `DM${String(12 - index).padStart(4, "0")} merged      Ticket DM${String(12 - index).padStart(4, "0")}`);
+	assert.equal(
+		board.digest(),
+		[
+			"DM0014 planning    Ticket DM0014  after DM0015",
+			"DM0018 planned     Ticket DM0018",
+			"DM0015 in-progress Ticket DM0015",
+			"DM0019 review      Ticket DM0019",
+			"DM0013 done        Ticket DM0013",
+			...newest,
+			"+ 2 older merged, 2 dropped: the full board is /board all, or arthur ticket all",
+		].join("\n"),
+	);
 });
 
 test("the project list is checked: none, twice, empty, a bad entry, a name or prefix twice", () => {
@@ -177,12 +292,14 @@ test("a board file broken by hand is refused, naming the file, and never written
 		[JSON.stringify([{ ...valid, path: undefined }]), "[0].path: expected the path of its ticket.md"],
 		[JSON.stringify([{ ...valid, updated: "yesterday" }]), "[0].updated: expected an ISO 8601 time"],
 		[JSON.stringify([valid, valid]), "[1].id: DM0001 is on the board twice"],
+		[JSON.stringify([{ ...valid, after: "DM0002" }]), '[0].after: expected a list of ticket ids, got "DM0002"'],
+		[JSON.stringify([{ ...valid, after: ["dm2"] }]), '[0].after: expected a list of ticket ids, got ["dm2"]'],
 	];
 	for (const [text, problem] of cases) {
 		const { board, root, file } = setup();
 		mkdirSync(join(root, "spec"));
 		writeFileSync(file, text);
-		for (const run of [() => board.list(), () => board.create("New"), () => board.move("DM0001", "done"), () => board.get("DM0001")]) {
+		for (const run of [() => board.list(), () => board.create("New"), () => board.move("DM0001", "done"), () => board.get("DM0001"), () => board.after("DM0001", []), () => board.digest()]) {
 			assert.throws(run, (error: Error) => error.message.startsWith(`${file}: ${problem}`) && error.message.endsWith("fix the file by hand, or restore it from Git"), text);
 		}
 		assert.equal(readFileSync(file, "utf8"), text);
@@ -213,7 +330,7 @@ test("a writer killed mid-write leaves nothing Git shows, and the next write tak
 	};
 	const source = (file: string) => JSON.stringify(pathToFileURL(join(import.meta.dirname, "..", "src", file)).href);
 	for (const [action, renamedTo, temporary] of [
-		[`move("DM0001", "done")`, "build.json", "build.json.tmp"],
+		[`move("DM0001", "dropped")`, "build.json", "build.json.tmp"],
 		[`create("Two")`, "ticket.md", "ticket.md.tmp"],
 	]) {
 		const { board, root } = setup();
@@ -248,7 +365,7 @@ test("a writer killed mid-write leaves nothing Git shows, and the next write tak
 			writer.kill("SIGKILL");
 			await exited;
 			assert.equal(git(root, "status", "--porcelain", "--untracked-files=all"), "", `killed during ${action}`);
-			assert.equal(board.move("DM0001", "in-progress").status, "in-progress");
+			assert.equal(board.move("DM0001", "dropped").status, "dropped");
 			assert.equal(git(root, "status", "--porcelain", "--untracked-files=all"), " M spec/build.json\n", `the write after ${action}`);
 			assert.deepEqual(readdirSync(transient).filter((name) => name.includes("lock")), [], "the dead holder's lock is gone");
 		} finally {

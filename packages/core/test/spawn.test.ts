@@ -4,14 +4,14 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
-import { readEvents } from "../src/events.ts";
+import { readEvents } from "../src/event-log.ts";
 import { fakeAgent, temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>]";
 
-// A plugin as a config holds it: it owns the kind `review` and its role, refuses a task that says "refuse", and places a file
-// in every new worktree, failing on a task that says "break".
+// A plugin as a config holds it: it owns the kind `review` and its role, refuses a task that says "refuse", places a file in
+// every new worktree, failing on a task that says "break", and provides the repository as the one project, prefix AC.
 const CONFIG = `import { writeFileSync } from "node:fs";
 export default { core: { timeZone: "UTC", jobs: { budgetUsd: 3 } }, plugins: [{ name: "orchestration", setup(host) {
 	host.jobs.registerRole({ name: "reviewer", file: new URL("./reviewer.md", import.meta.url), criteria: [] });
@@ -21,16 +21,18 @@ export default { core: { timeZone: "UTC", jobs: { budgetUsd: 3 } }, plugins: [{ 
 		if (job.task.includes("break")) throw new Error("no hook");
 		writeFileSync(job.worktree + "/.placed", job.id);
 	});
+	host.provide("projects", () => [{ name: "acme", path: import.meta.dirname, prefix: "AC" }]);
 } }] };
 `;
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 
-// A repository holding the config and a committed ticket; its home folder is `.arthur/` inside it, as by default.
+// A repository holding the config and a committed ticket, planned on the board; its home folder is `.arthur/` inside it, as by default.
 function repository(config = CONFIG): string {
 	const root = join(temporaryFolder(), "acme");
 	mkdirSync(join(root, "spec/features/AC0001-one"), { recursive: true });
 	writeFileSync(join(root, "spec/features/AC0001-one/ticket.md"), "# AC0001\n");
+	writeFileSync(join(root, "spec/build.json"), JSON.stringify([{ id: "AC0001", title: "One", status: "planned", path: "spec/features/AC0001-one/ticket.md", updated: "2026-10-16T00:00:00Z" }]));
 	writeFileSync(join(root, ".gitignore"), ".arthur/\n");
 	git(dirname(root), "init", "--quiet", "--initial-branch=main", root);
 	git(root, "add", "--all");
@@ -149,4 +151,54 @@ test("two arthur spawn processes at once get distinct ids, branches and worktree
 	assert.deepEqual(jobs(root).sort(), [...ids].sort());
 	assert.deepEqual(git(root, "branch", "--list", "arthur/*", "--format=%(refname:short)").split("\n").sort(), ids.map((id) => `arthur/${id}`).sort());
 	for (const id of ids) assert.equal(git(join(dirname(root), ".arthur-worktrees", id), "branch", "--show-current"), `arthur/${id}`);
+});
+
+test("a worker's start moves its ticket to in-progress, other kinds' do not", () => {
+	const root = repository();
+	const task = "Ticket: spec/features/AC0001-one/ticket.md. Build it.";
+	const warning = "warning: criteria file .agents/arthur/criteria/styleguide.md is missing; the worker goes without it\n";
+	const status = () => JSON.parse(readFileSync(join(root, "spec/build.json"), "utf8"))[0].status;
+	assert.deepEqual(arthur(root, "spawn", "--kind", "review", task).stderr, "");
+	assert.equal(status(), "planned");
+	for (const _ of [1, 2]) assert.deepEqual(arthur(root, "spawn", task).stderr, warning);
+	assert.equal(status(), "in-progress");
+	const moves = readEvents(join(root, ".arthur"), 1).filter((event) => event.name === "ticket-moved");
+	assert.deepEqual(moves.map(({ plugin, data }) => [plugin, data]), [["core", { id: "AC0001", project: "acme", from: "planned", to: "in-progress" }]]);
+	assert.equal(jobs(root).length, 3);
+});
+
+test("a worker on a ticket that cannot move to in-progress is refused before anything exists; review and done go on", () => {
+	const root = repository();
+	const board = join(root, "spec/build.json");
+	const set = (status: string) => writeFileSync(board, readFileSync(board, "utf8").replace(/"status": ?"[a-z-]+"/, `"status":"${status}"`));
+	const task = "Ticket: spec/features/AC0001-one/ticket.md. Build it.";
+	const starts = "a worker starts on a ticket that is planned, in-progress, review, done";
+	for (const status of ["planning", "merged", "dropped"]) {
+		set(status);
+		const run = arthur(root, "spawn", task);
+		assert.deepEqual([run.status, run.stdout, run.stderr], [1, "", `arthur spawn: refused by core: AC0001 is ${status}, which cannot move to in-progress; ${starts}\n`], status);
+	}
+	mkdirSync(join(root, "spec/features/AC0002-two"));
+	writeFileSync(join(root, "spec/features/AC0002-two/ticket.md"), "# AC0002\n");
+	git(root, "add", "spec/features");
+	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "second");
+	const both = arthur(root, "spawn", `${task} Ticket: spec/features/AC0002-two/ticket.md`);
+	assert.equal(both.stderr, `arthur spawn: refused by core: AC0001 is dropped, which cannot move to in-progress; AC0002 is not on the board; ${starts}\n`);
+	assert.deepEqual([jobs(root), readEvents(join(root, ".arthur"), 1)], [[], []]);
+	assert.equal(git(root, "branch", "--list"), "* main");
+	assert.equal(arthur(root, "spawn", "--kind", "review", task).status, 0);
+	for (const status of ["review", "done"]) {
+		set(status);
+		assert.equal(arthur(root, "spawn", task).status, 0, status);
+		assert.equal(JSON.parse(readFileSync(board, "utf8"))[0].status, "in-progress");
+	}
+	assert.equal(jobs(root).length, 3);
+});
+
+test("without a project list a worker naming a ticket is refused, one naming none goes on", () => {
+	const root = repository(CONFIG.replace(/\thost\.provide\("projects".*\n/, ""));
+	const run = arthur(root, "spawn", "Ticket: spec/features/AC0001-one/ticket.md. Build it.");
+	assert.deepEqual([run.status, run.stderr], [1, "arthur spawn: plugin core: beforeSpawn failed: no project list: the board needs each project's folder and ticket prefix, which the projects plugin provides\n"]);
+	assert.deepEqual(jobs(root), []);
+	assert.equal(arthur(root, "spawn", "Go.").status, 0);
 });

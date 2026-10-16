@@ -125,9 +125,9 @@
   {
     "id": "AR0014",
     "title": "Roadmap 11: Job runner: the wrapper, and the fake agent",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0014-roadmap-11-job-runner-the-wrapper-and-the-fake-agent/ticket.md",
-    "updated": "2026-10-16T09:46:24.751Z",
+    "updated": "2026-10-16T12:52:06.041Z",
     "after": [
       "AR0013"
     ]
@@ -197,9 +197,9 @@
   {
     "id": "AR0021",
     "title": "Roadmap 18: Ticket board: transitions, after, the digest, and the board's phone commands",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0021-roadmap-18-ticket-board-transitions-after-the-digest-and-the-board-s-phone-commands/ticket.md",
-    "updated": "2026-10-16T12:06:36.846Z",
+    "updated": "2026-10-16T12:17:57.067Z",
     "after": [
       "AR0020",
       "AR0012"
@@ -387,9 +387,9 @@
   {
     "id": "AR0044",
     "title": "An event a command appends while no daemon runs never reaches the subscribers",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0044-an-event-a-command-appends-while-no-daemon-runs-never-reaches-the-subscribers/ticket.md",
-    "updated": "2026-10-16T12:04:58.252Z"
+    "updated": "2026-10-16T12:29:00.464Z"
   },
   {
     "id": "AR0045",
@@ -397,5 +397,54 @@
     "status": "dropped",
     "path": "spec/features/AR0045-a-log-cut-by-hand-and-grown-past-the-old-end-between-two-follows-loses-events/ticket.md",
     "updated": "2026-10-16T12:04:53.818Z"
+  },
+  {
+    "id": "AR0046",
+    "title": "Roadmap: arthur doctor checks what Arthur needs at every start",
+    "status": "merged",
+    "path": "spec/features/AR0046-roadmap-arthur-doctor-checks-what-arthur-needs-at-every-start/ticket.md",
+    "updated": "2026-10-16T12:21:31.537Z"
+  },
+  {
+    "id": "AR0047",
+    "title": "The fake host does not move a worker's ticket when the worker starts",
+    "status": "planned",
+    "path": "spec/features/AR0047-the-fake-host-does-not-move-a-worker-s-ticket-when-the-worker-starts/ticket.md",
+    "updated": "2026-10-16T12:18:13.021Z"
+  },
+  {
+    "id": "AR0048",
+    "title": "A worker spawned on a ticket still in planning, or merged or dropped, starts anyway",
+    "status": "merged",
+    "path": "spec/features/AR0048-a-worker-spawned-on-a-ticket-still-in-planning-or-merged-or-dropped-starts-anyway/ticket.md",
+    "updated": "2026-10-16T12:41:58.143Z"
+  },
+  {
+    "id": "AR0049",
+    "title": "`/findings` does not show findings a worker wrote on its branch",
+    "status": "merged",
+    "path": "spec/features/AR0049-findings-does-not-show-findings-a-worker-wrote-on-its-branch/ticket.md",
+    "updated": "2026-10-16T12:33:07.058Z"
+  },
+  {
+    "id": "AR0050",
+    "title": "Roadmap entry 8 still says the events logged before the daemon started are not delivered",
+    "status": "merged",
+    "path": "spec/features/AR0050-roadmap-entry-8-still-says-the-events-logged-before-the-daemon-started-are-not-delivered/ticket.md",
+    "updated": "2026-10-16T12:30:09.884Z"
+  },
+  {
+    "id": "AR0051",
+    "title": "A log cut by hand and grown past the kept number while the daemon is down replays from the wrong place",
+    "status": "dropped",
+    "path": "spec/features/AR0051-a-log-cut-by-hand-and-grown-past-the-kept-number-while-the-daemon-is-down-replays-from-the-wrong-place/ticket.md",
+    "updated": "2026-10-16T12:29:12.880Z"
+  },
+  {
+    "id": "AR0052",
+    "title": "A ticket moved to merged or dropped during a spawn still gets its worker",
+    "status": "dropped",
+    "path": "spec/features/AR0052-a-ticket-moved-to-merged-or-dropped-during-a-spawn-still-gets-its-worker/ticket.md",
+    "updated": "2026-10-16T12:42:05.269Z"
   }
 ]

@@ -36,3 +36,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: The owner asked that Arthur watches disk space and cleans Docker with each worktree, so agents never stop for a full disk.
+- 2026-10-16: The owner: the docker plugin checks that Docker runs safely: as the user without sudo (docker group or rootless), never Arthur as root, no unencrypted TCP socket. Added to entry 70.

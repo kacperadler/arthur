@@ -205,3 +205,84 @@ test("an event a command emits reaches the daemon's subscribers once, from the d
 		].join("\n"),
 	);
 });
+
+test("the events appended while no daemon runs reach the next one once, a crash mid-delivery repeats it, a stop does not", async (t) => {
+	// Only the daemon logs what it gets. `slow` holds its handler 1 s, long enough to stop the daemon during it.
+	const orchestration = `plugin("orchestration", {
+		setup(host) {
+			const daemon = process.argv.includes("run");
+			host.events.on("pinged", (event) => daemon && log(process.pid + " pinged " + event.seq + " " + event.data));
+			host.events.on("slow", (event) => {
+				if (!daemon) return;
+				log(process.pid + " slow begun " + event.seq);
+				Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
+				log(process.pid + " slow done " + event.seq);
+			});
+			for (const name of ["pinged", "slow"])
+				host.commands.register({ name, doc: new URL("./ping.md", import.meta.url), run: ({ args }) => void host.events.emit(name, args[0]) });
+		},
+	})`;
+	const { folder, home, log } = project(orchestration);
+	writeFileSync(join(folder, "ping.md"), "# arthur ping\n");
+	const emit = (name: string, data: string) => {
+		const command = spawnSync(process.execPath, [CLI, name, data], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+		assert.deepEqual([command.status, command.stderr], [0, ""]);
+	};
+	const daemon = async () => {
+		const run = start(t, folder);
+		await until(() => run.output().includes("started"), "the start");
+		return { ...run, pid: run.child.pid };
+	};
+	emit("pinged", "before any daemon");
+	const first = await daemon();
+	emit("pinged", "b");
+	await until(() => log().includes(`${first.pid} pinged 2 b`), "b");
+	first.child.kill("SIGTERM");
+	assert.equal((await first.ended).status, 0);
+	assert.equal(readFileSync(join(home, "events.delivered"), "utf8"), "2\n");
+
+	emit("pinged", "c");
+	emit("pinged", "d");
+	const second = await daemon();
+	await until(() => log().includes(`${second.pid} pinged 4 d`), "the replay of c and d");
+	emit("slow", "crash");
+	await until(() => log().includes(`${second.pid} slow begun 5`), "the slow handler");
+	second.child.kill("SIGKILL");
+	await second.ended;
+
+	const third = await daemon();
+	await until(() => log().includes(`${third.pid} slow done 5`), "the replay of the event the crash cut");
+	emit("slow", "stop");
+	await until(() => log().includes(`${third.pid} slow begun 6`), "the slow handler");
+	third.child.kill("SIGTERM");
+	assert.equal((await third.ended).status, 0);
+
+	const fourth = await daemon();
+	emit("pinged", "e");
+	await until(() => log().includes(`${fourth.pid} pinged 7 e`), "e");
+	fourth.child.kill("SIGTERM");
+	assert.equal((await fourth.ended).status, 0);
+	assert.equal(
+		log(),
+		[
+			"start orchestration",
+			`${first.pid} pinged 2 b`,
+			"stop orchestration",
+			// The replay comes before the starts.
+			`${second.pid} pinged 3 c`,
+			`${second.pid} pinged 4 d`,
+			"start orchestration",
+			`${second.pid} slow begun 5`,
+			`${third.pid} slow begun 5`,
+			`${third.pid} slow done 5`,
+			"start orchestration",
+			`${third.pid} slow begun 6`,
+			`${third.pid} slow done 6`,
+			"stop orchestration",
+			"start orchestration",
+			`${fourth.pid} pinged 7 e`,
+			"stop orchestration",
+			"",
+		].join("\n"),
+	);
+});

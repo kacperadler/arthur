@@ -13,6 +13,9 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0039 `arthur config check` says ok when a plugin's `setup` refuses the start (82a9965)
 - AR0041 Roadmap 35-36: a handoff before compaction, and a fresh start that retries (ec7ac04)
 - AR0043 `/restart fresh` starts a new conversation without the handoff (438705e)
+- AR0046 Roadmap: arthur doctor checks what Arthur needs at every start (1fa33f6)
+- AR0048 A worker spawned on a ticket still in planning, or merged or dropped, starts anyway (cb93a10)
+- AR0049 `/findings` does not show findings a worker wrote on its branch (cbfd577)
 
 ### Fixed
 
@@ -23,10 +26,12 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0036 The lock's dead-holder takeover race has no test (73aa034)
 - AR0040 A crash mid-write leaves the board's lock or temporary file in the project's `spec/` (1d374f8)
 - AR0042 A project with a branch named `arthur` can spawn no worker (7e8d03d)
+- AR0044 An event a command appends while no daemon runs never reaches the subscribers (f7beab3)
 
 ### Changed
 
 - AR0029 README still says no feature code exists (e58e20e)
+- AR0050 Roadmap entry 8 still says the events logged before the daemon started are not delivered (321618c)
 
 ### Other
 
@@ -43,4 +48,5 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0012 Roadmap 9: Job runner: spawn and the job record (30a43af)
 - AR0013 Roadmap 10: Prompt loader and arthur roles (3582642)
 - AR0020 Roadmap 17: Ticket board: tickets and the board file (9819d29)
+- AR0021 Roadmap 18: Ticket board: transitions, after, the digest, and the board's phone commands (e9c57dc)
 - AR0034 Roadmap: disk space and Docker cleanup with each worktree (af0e47f)

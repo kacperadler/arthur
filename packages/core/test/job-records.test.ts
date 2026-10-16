@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
@@ -30,7 +30,7 @@ function setup(agent = fakeAgent({ steps: [{ message: "Done." }] }), keep: (job:
 	const home = join(folder, "home");
 	mkdirSync(home);
 	const time = clock("UTC", undefined, () => NOW);
-	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, ...jobSlice }, agent, time, eventBus(home), (name, [job]) => (name === "jobs.keep" ? [keep(job)] : []));
+	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, ...jobSlice }, agent, time, eventBus(home), (name, [job]) => (name === "jobs.keep" ? [keep(job)] : []));
 	writeFileSync(join(folder, "reviewer.md"), "# Reviewer\n");
 	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(join(folder, "reviewer.md")), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
@@ -49,45 +49,53 @@ async function until<T>(what: string, predicate: () => T | undefined | false): P
 
 const field = (home: string, id: string, name: string) => readFileSync(join(home, "jobs", id, name), "utf8");
 const events = (home: string, name: string) => readEvents(home, 1).filter((event) => event.name === name).map((event) => event.data);
-const finished = (home: string, id: string) => until(`${id} ended`, () => existsSync(join(home, "jobs", id, "state")) && field(home, id, "state") !== "running");
+const finished = (home: string, id: string) => until(`${id} ended`, () => existsSync(join(home, "jobs", id, "state")) && field(home, id, "state") === "ended");
 
-// A record as the spawn and the wrapper leave it, spawned at `born` and with its state written at `at`.
+// A record as the spawn and the wrapper leave it, spawned at `born`, its state taken at `at`.
 function record(home: string, id: string, keys: Readonly<Record<string, string>>, born: Date, at = born): void {
 	const folder = join(home, "jobs", id);
 	mkdirSync(folder, { recursive: true });
-	for (const [key, value] of Object.entries({ kind: "worker", project: "acme", task: "Go.", budget: "2", ...keys })) writeFileSync(join(folder, key), value);
+	for (const [key, value] of Object.entries({ kind: "worker", project: "acme", task: "Go.", budget: "2", since: at.toISOString(), ...keys })) writeFileSync(join(folder, key), value);
 	utimesSync(join(folder, "kind"), born, born);
-	if (keys.state !== undefined) utimesSync(join(folder, "state"), at, at);
 }
 
-test("arthur jobs: every project's jobs grouped, newest first, one line each with the short id; no jobs says so", () => {
+test("arthur jobs: every project's jobs grouped by state, newest first, one line each with the short id and the reason; no jobs says so", () => {
 	const { home, jobs } = setup();
 	assert.equal(jobs.list(), "no jobs");
 	const hours = (count: number) => new Date(NOW.getTime() - count * 3_600_000);
-	record(home, "2026-10-16-worker-0000000a", { task: "Ticket: spec/features/AR0018-jobs/ticket.md.", state: "running", cost: "0.4" }, hours(2), hours(1.25));
-	record(home, "2026-10-15-worker-0000000b", { state: "done", cost: "1.234" }, hours(30), hours(29));
-	record(home, "2026-10-16-review-0000000c", { kind: "review", task: "Review.\nTicket: `spec/features/AR0017-stop/ticket.md`", state: "done", cost: "0.5" }, hours(3), hours(2.5));
-	record(home, "2026-10-16-worker-0000000d", { state: "failed", project: "shop" }, hours(4), hours(3.5));
-	record(home, "2026-10-16-worker-0000000e", { state: "limit: budget", cost: "2" }, hours(5), hours(4.5));
-	record(home, "2026-10-16-worker-0000000f", {}, hours(0.1));
+	record(home, "2026-10-16-worker-0000000a", { task: "Ticket: spec/features/AR0018-jobs/ticket.md.", state: "working", cost: "0.4" }, hours(2), hours(1.25));
+	record(home, "2026-10-15-worker-0000000b", { state: "ended", reason: "finished", cost: "1.234" }, hours(30), hours(29));
+	record(home, "2026-10-16-review-0000000c", { kind: "review", task: "Review.\nTicket: `spec/features/AR0017-stop/ticket.md`", state: "ended", reason: "finished", cost: "0.5" }, hours(3), hours(2.5));
+	record(home, "2026-10-16-worker-0000000d", { state: "ended", reason: "failed: the agent exited 1", project: "shop" }, hours(4), hours(3.5));
+	record(home, "2026-10-16-worker-0000000e", { state: "blocked", reason: "user: may I drop the old table?", cost: "2" }, hours(5), hours(4.5));
+	record(home, "2026-10-16-worker-0000000f", { state: "idle", since: "" }, hours(0.1));
+	record(home, "2026-10-16-worker-00000011", { state: "blocked", reason: "dependency: machine mac unreachable", hold: "machine mac unreachable" }, hours(0.2), hours(0.05));
 	mkdirSync(join(home, "jobs", ".2026-10-16-worker-00000010"), { recursive: true });
 	writeFileSync(join(home, "jobs", ".2026-10-16-worker-00000010", "kind"), "worker");
 	assert.equal(
 		jobs.list(),
 		[
-			"running",
-			"-  worker  starting  -  $0.00/$2.00  acme  0000000f",
-			"AR0018  worker  running  1h15m  $0.40/$2.00  acme  0000000a",
+			"blocked",
+			"-  worker  blocked  0h03m  $0.00/$2.00  acme  00000011  dependency: machine mac unreachable",
+			"-  worker  blocked  4h30m  $2.00/$2.00  acme  0000000e  user: may I drop the old table?",
 			"",
-			"needs attention",
-			"-  worker  failed  08:30  $0.00/$2.00  shop  0000000d",
-			"-  worker  limit: budget  07:30  $2.00/$2.00  acme  0000000e",
+			"working",
+			"AR0018  worker  working  1h15m  $0.40/$2.00  acme  0000000a",
 			"",
-			"done",
-			"AR0017  review  done  09:30  $0.50/$2.00  acme  0000000c",
-			"-  worker  done  2026-10-15  $1.23/$2.00  acme  0000000b",
+			"idle",
+			"-  worker  idle  -  $0.00/$2.00  acme  0000000f",
+			"",
+			"ended",
+			"AR0017  review  ended  09:30  $0.50/$2.00  acme  0000000c  finished",
+			"-  worker  ended  08:30  $0.00/$2.00  shop  0000000d  failed: the agent exited 1",
+			"-  worker  ended  2026-10-15  $1.23/$2.00  acme  0000000b  finished",
 		].join("\n"),
 	);
+	assert.equal(jobs.list("blocked").split("\n").slice(1).map((line) => line.split("  ")[5]).join(" "), "00000011 0000000e");
+	assert.equal(jobs.list("ended").split("\n")[0], "ended");
+	assert.equal(jobs.list("working"), "working\nAR0018  worker  working  1h15m  $0.40/$2.00  0000000a");
+	rmSync(join(home, "jobs", "2026-10-16-worker-0000000f"), { recursive: true });
+	assert.equal(jobs.list("idle"), "no idle jobs");
 });
 
 test("a job is named by its full or short id; a short id that matches two jobs is refused with both, an unknown one too", () => {
@@ -129,7 +137,7 @@ test("arthur prune frees a merged worker's worktree, branch and record, and keep
 	assert.deepEqual(jobs.prune([unmerged.id.slice(-8)]), [`${unmerged.id}: branch arthur/${unmerged.id} deleted; record deleted`]);
 });
 
-test("arthur prune keeps a running job and a record a plugin's jobs.keep asks for; a read-only kind loses its checkout only", async () => {
+test("arthur prune keeps a job that has not ended and a record a plugin's jobs.keep asks for; a read-only kind loses its checkout only", async () => {
 	const asked: unknown[] = [];
 	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }), (job) => {
 		asked.push(job);
@@ -137,16 +145,16 @@ test("arthur prune keeps a running job and a record a plugin's jobs.keep asks fo
 	});
 	const review = await jobs.spawn({ task: "Review.", kind: "review" });
 	await finished(home, review.id);
-	record(home, "2026-10-16-worker-0000000a", { state: "running", root: "/nowhere" }, NOW);
-	record(home, "2026-10-16-worker-0000000b", {}, NOW);
-	record(home, "2026-10-16-worker-0000000c", { state: "done" }, NOW);
+	record(home, "2026-10-16-worker-0000000a", { state: "working", root: "/nowhere" }, NOW);
+	record(home, "2026-10-16-worker-0000000b", { state: "blocked", reason: "user: may I?" }, NOW);
+	record(home, "2026-10-16-worker-0000000c", { state: "ended", reason: "finished" }, NOW);
 	assert.deepEqual(jobs.prune(["0000000a", "0000000b", "0000000c", review.id]), [
-		"2026-10-16-worker-0000000a: kept: it is running, not finished",
-		"2026-10-16-worker-0000000b: kept: it is not started yet, not finished",
+		"2026-10-16-worker-0000000a: kept: it is working, not ended",
+		"2026-10-16-worker-0000000b: kept: it is blocked (user: may I?), not ended",
 		"2026-10-16-worker-0000000c: kept: its record names no repository (root)",
 		`${review.id}: worktree ${review.worktree} removed; kept the record: its verdict counts toward the review limit`,
 	]);
-	assert.deepEqual(asked, [{ id: review.id, kind: "review", project: "acme", task: "Review.", state: "done", branch: "", worktree: review.worktree }]);
+	assert.deepEqual(asked, [{ id: review.id, kind: "review", project: "acme", task: "Review.", state: "ended", reason: "finished", branch: "", worktree: review.worktree }]);
 	assert.equal(existsSync(review.worktree), false);
 	// A typo refuses the whole prune before anything is removed: a job named before it that a prune would free stays whole.
 	const free = await worker(jobs, home);
@@ -164,15 +172,17 @@ test("a plugin's jobs.keep that throws ends the prune with its error, and the jo
 	assert.deepEqual([existsSync(join(home, "jobs", job.id)), existsSync(job.worktree)], [true, false]);
 });
 
-test("the sweep fails a job whose wrapper and agent are gone on two sweeps in a row, not one gone on one sweep only", async (t) => {
+test("the sweep ends a working or idle job whose wrapper and agent are gone on two sweeps in a row, never a blocked one", async (t) => {
 	const { home, jobs } = setup();
-	const id = "2026-10-16-worker-0000000a";
-	record(home, id, { state: "running", pid: "999999999", log: "" }, NOW);
-	// Ended jobs whose processes are gone, as every ended job's are: never failed, however many sweeps.
-	const ended = { "2026-10-16-worker-0000000b": "done", "2026-10-16-worker-0000000c": "stopped", "2026-10-16-worker-0000000d": "limit: time" };
-	for (const [each, state] of Object.entries(ended)) record(home, each, { state, pid: "999999999" }, NOW);
+	const [id, idle] = ["2026-10-16-worker-0000000a", "2026-10-16-worker-00000010"];
+	record(home, id, { state: "working", pid: "999999999", log: "" }, NOW);
+	record(home, idle, { state: "idle", pid: "999999999", log: "" }, NOW);
+	// Ended jobs, a run that ended blocked and a job a plugin holds while its machine is away: never ended, however many sweeps.
+	const kept = { "2026-10-16-worker-0000000b": "finished", "2026-10-16-worker-0000000c": "stopped", "2026-10-16-worker-0000000d": "user: may I?", "2026-10-16-worker-0000000e": "dependency: machine mac unreachable" };
+	for (const [each, reason] of Object.entries(kept)) record(home, each, { state: reason.includes(":") ? "blocked" : "ended", reason, pid: "999999999" }, NOW);
+	writeFileSync(join(home, "jobs", "2026-10-16-worker-0000000e", "hold"), "machine mac unreachable");
 	jobs.sweep();
-	assert.equal(field(home, id, "state"), "running", "gone on one sweep");
+	assert.equal(field(home, id, "state"), "working", "gone on one sweep");
 	// Back on the next sweep: an agent whose command line names the record's prompt.
 	const agent = spawn("sh", ["-c", "sleep 30", "--append-system-prompt", join(home, "jobs", id, "prompt")], { stdio: "ignore" });
 	t.after(() => agent.kill());
@@ -181,22 +191,23 @@ test("the sweep fails a job whose wrapper and agent are gone on two sweeps in a 
 	agent.kill();
 	await until("the agent gone", () => agent.exitCode !== null || agent.signalCode !== null);
 	jobs.sweep();
-	assert.equal(field(home, id, "state"), "running", "gone, back, then gone once more");
-	assert.deepEqual(events(home, "job-ended"), []);
+	assert.equal(field(home, id, "state"), "working", "gone, back, then gone once more");
+	assert.deepEqual(events(home, "job-ended").map((data) => (data as { id: string }).id), [idle]);
 	jobs.sweep();
-	assert.equal(field(home, id, "state"), "failed");
-	assert.deepEqual(Object.keys(ended).map((each) => field(home, each, "state")), Object.values(ended));
-	assert.match(field(home, id, "log"), /^\[arthur [^\]]+\] failed: process gone: its wrapper 999999999 and its agent were not running on two sweeps in a row\n$/);
-	assert.deepEqual(events(home, "job-ended"), [{ id, kind: "worker", project: "acme", state: "failed", reason: "process gone" }]);
+	assert.deepEqual(["state", "reason"].map((name) => field(home, id, name)), ["ended", "failed: process gone"]);
+	assert.deepEqual(Object.keys(kept).map((each) => field(home, each, "reason")), Object.values(kept));
+	assert.match(field(home, id, "log"), /^\[arthur [^\]]+\] ended: failed: process gone: its wrapper 999999999 and its agent were not running on two sweeps in a row\n$/);
+	assert.deepEqual(events(home, "job-ended").at(-1), { id, kind: "worker", project: "acme", state: "ended", reason: "failed: process gone" });
+	assert.deepEqual(events(home, "job-state").at(-1), { id, project: "acme", ticket: null, machine: "local", from: "working", to: "ended", reason: "failed: process gone" });
 	jobs.sweep();
-	assert.equal(events(home, "job-ended").length, 1, "a failed job is not swept again");
+	assert.equal(events(home, "job-ended").length, 2, "an ended job is not swept again");
 });
 
 test("/stopall stops every running job, one line each, and emits stop-all; with nothing running it says so", async () => {
 	const { home, jobs, commands } = setup(fakeAgent({ steps: [{ waitFor: join(temporaryFolder(), "never") }] }));
 	assert.equal(await commands.route("/stopall"), "no running jobs");
 	const [one, two] = [await jobs.spawn({ task: "Go." }), await jobs.spawn({ task: "Go." })];
-	for (const job of [one, two]) await until("running", () => field(home, job.id, "state") === "running");
+	for (const job of [one, two]) await until("working", () => field(home, job.id, "state") === "working");
 	assert.deepEqual((await commands.route("/stopall")).split("\n").toSorted(), [`${one?.id}: stopped`, `${two?.id}: stopped`].toSorted());
 	assert.deepEqual(events(home, "stop-all"), [{ ids: [] }, { ids: [two?.id, one?.id] }]);
 });
@@ -204,12 +215,12 @@ test("/stopall stops every running job, one line each, and emits stop-all; with 
 test("/steer <id> <text> steers a running job by its short id; /jobs lists; wrong usage gets the usage", async () => {
 	const { home, jobs, commands } = setup(fakeAgent({ steps: [{ waitFor: join(temporaryFolder(), "never") }] }));
 	const job = await jobs.spawn({ task: "Go." });
-	await until("running", () => field(home, job.id, "state") === "running");
+	await until("working", () => field(home, job.id, "state") === "working");
 	assert.equal(await commands.route(`/steer ${job.id.slice(-8)} Mind the tests.\nAll of them.`), `${job.id}: steer 0001 queued for after its next tool call`);
 	assert.equal(readFileSync(join(home, "jobs", job.id, "steer", "inbox", "0001"), "utf8"), "Mind the tests.\nAll of them.\n");
 	for (const text of ["/steer", `/steer ${job.id}`, `/steer ${job.id}   `]) assert.equal(await commands.route(text), "usage: /steer <id> <text>");
 	assert.equal(await commands.route("/steer deadbeef x"), `/steer failed: deadbeef: no such job in ${join(home, "jobs")}`);
-	assert.match(await commands.route("/jobs"), new RegExp(`^running\\n-  worker  running  0h00m  \\$0\\.00/\\$2\\.00  ${job.id.slice(-8)}$`));
+	assert.match(await commands.route("/jobs"), new RegExp(`^working\\n-  worker  working  0h00m  \\$0\\.00/\\$2\\.00  ${job.id.slice(-8)}$`));
 	await commands.route("/stopall");
 });
 
@@ -224,15 +235,19 @@ test("the arthur binary lists, stops, steers, continues and prunes a job by its 
 	const arthur = (...args: string[]) => spawnSync(process.execPath, [cli, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
 	const id = arthur("spawn", "Go.").stdout.trim();
 	const short = id.slice(-8);
-	await until("running", () => existsSync(join(root, ".arthur", "jobs", id, "state")) && field(join(root, ".arthur"), id, "state") === "running");
-	assert.match(arthur("jobs").stdout, new RegExp(`^running\\n-  worker  running  \\dh\\d\\dm  \\$0\\.00/\\$2\\.00  ${short}\\n$`));
+	await until("working", () => existsSync(join(root, ".arthur", "jobs", id, "state")) && field(join(root, ".arthur"), id, "state") === "working");
+	assert.match(arthur("jobs").stdout, new RegExp(`^working\\n-  worker  working  \\dh\\d\\dm  \\$0\\.00/\\$2\\.00  ${short}\\n$`));
+	assert.equal(arthur("jobs", "--state", "idle").stdout, "no idle jobs\n");
 	assert.equal(arthur("steer", short, "Mind the tests.").stdout, `${id}: steer 0001 queued for after its next tool call\n`);
 	assert.equal(arthur("stop", short).stdout, `${id}: stopped\n`);
 	assert.equal(arthur("continue", short, "Go on.").stdout, `${id}: continued\n`);
 	assert.equal(arthur("stopall").stdout, `${id}: stopped\n`);
 	assert.equal(arthur("prune", short).stdout, `${id}: worktree ${join(root, "..", ".arthur-worktrees", id)} removed; branch arthur/${id} deleted; record deleted\n`);
 	for (const [args, problem] of [
-		[["jobs", "all"], "expected no arguments, got 1 arguments\nusage: arthur jobs"],
+		[["jobs", "all"], "expected no arguments, got 1 arguments\nusage: arthur jobs [--state <state>]"],
+		[["jobs", "--state", "running"], "--state needs one of blocked, working, idle, ended, got running\nusage: arthur jobs [--state <state>]"],
+		[["jobs", "--state"], "--state needs a value\nusage: arthur jobs [--state <state>]"],
+		[["jobs", "--state", "idle", "--state", "ended"], "--state given twice\nusage: arthur jobs [--state <state>]"],
 		[["stopall", "now"], "expected no arguments, got 1 arguments\nusage: arthur stopall"],
 		[["prune", "--force"], "unknown flag --force\nusage: arthur prune [<id>...]"],
 	] as const) assert.deepEqual([arthur(...args).status, arthur(...args).stderr], [2, `arthur ${args[0]}: ${problem}\n`]);

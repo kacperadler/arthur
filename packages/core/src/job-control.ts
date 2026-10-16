@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { taskTickets } from "./board-jobs.ts";
@@ -7,22 +7,15 @@ import type { Spawn } from "./jobs.ts";
 import { checkLimits } from "./job-limits.ts";
 import { launch, type Slice } from "./job-scope.ts";
 import { GRACE_SECONDS } from "./job-stop.ts";
+import { current, field, ID, inRun, moveJob, told, write } from "./job-state.ts";
 import { takeLock } from "./lock.ts";
 import { processTable } from "./process-table.ts";
 import { queueSteer } from "./steer-inbox.ts";
 
 // Stop, steer and continue a job from its record `<home>/jobs/<id>/`: docs/commands/stop.md, steer.md and continue.md.
 
-// `<date>-<kind>-<8 hex digits>`, as the spawn makes it: nothing else names a folder in `<home>/jobs/`.
-export const ID = /^\d{4}-\d\d-\d\d-[a-z][a-z0-9]*(-[a-z0-9]+)*-[0-9a-f]{8}$/;
 // How long `arthur stop` waits for the wrapper to write the end: the grace, the SIGKILL, the scope.
 const STOP_WAIT_SECONDS = GRACE_SECONDS + 10;
-
-// A reader of one record's files; a missing one reads empty.
-export const field = (home: string, id: string) => (name: string): string => {
-	const path = join(home, "jobs", id, name);
-	return existsSync(path) ? readFileSync(path, "utf8") : "";
-};
 
 // The job's record folder and a reader of its files; refused for an id that names no job.
 function record(home: string, id: string): { readonly folder: string; readonly field: (name: string) => string } {
@@ -36,26 +29,26 @@ export function wrapperRuns(pid: string, id: string, table = processTable()): bo
 	return table.some((entry) => String(entry.pid) === pid && entry.args.includes("wrapper.ts") && entry.args.includes(id));
 }
 
-// Returns the line `arthur stop` prints once the job's state is final.
+// Returns the line `arthur stop` prints once the job's run is over.
 export async function stopJob(home: string, id: string): Promise<string> {
 	const { field } = record(home, id);
-	const state = field("state");
-	if (state !== "running") throw new Error(`${id} is ${state || "not started yet"}, not running; nothing to stop`);
+	const now = current(home, id);
+	if (!inRun(now)) throw new Error(`${id} is ${told(now)}, not in a run; nothing to stop`);
 	const pid = field("pid");
-	if (!wrapperRuns(pid, id)) throw new Error(`${id}: its wrapper ${pid} is gone though its state says running; nothing to stop`);
+	if (!wrapperRuns(pid, id)) throw new Error(`${id}: its wrapper ${pid} is gone though its state says ${now.state}; nothing to stop`);
 	process.kill(Number(pid), "SIGTERM");
-	for (const end = Date.now() + STOP_WAIT_SECONDS * 1000; field("state") === "running"; await sleep(50))
+	for (const end = Date.now() + STOP_WAIT_SECONDS * 1000; inRun(current(home, id)); await sleep(50))
 		if (Date.now() > end) throw new Error(`${id}: its wrapper ${pid} did not end the job within ${STOP_WAIT_SECONDS} seconds of SIGTERM`);
-	const final = field("state");
-	return final === "stopped" ? `${id}: stopped` : `${id}: ended ${final} before the stop`;
+	const final = current(home, id);
+	return final.reason === "stopped" ? `${id}: stopped` : `${id}: ${told(final)} before the stop`;
 }
 
 // Returns the steer's number.
 export function steerJob(home: string, id: string, text: string): string {
 	const { folder, field } = record(home, id);
 	if (text.trim() === "") throw new Error("the text is empty");
-	const state = field("state");
-	if (state !== "running") throw new Error(`${id} is ${state || "not started yet"}, not running; a steer reaches only a running job, and arthur continue resumes an ended worker`);
+	const now = current(home, id);
+	if (!inRun(now)) throw new Error(`${id} is ${told(now)}, not in a run; a steer reaches only a job in a run, and arthur continue resumes an ended or blocked worker`);
 	try {
 		return queueSteer(join(folder, "steer"), field("pid"), text.trim());
 	} catch (error) {
@@ -72,8 +65,9 @@ export async function continueJob(home: string, id: string, instruction: string,
 	if ("heldBy" in lock) throw new Error(`${id}: being continued`);
 	let failed: string | undefined = "refused";
 	try {
-		const [state, task = "", kind = "", project = "", root, branch, worktree, model, thinking] = ["state", "task", "kind", "project", "root", "branch", "worktree", "model", "thinking"].map((name) => field(name) || undefined);
-		if (state === undefined || state === "running") throw new Error(`${id} is ${state ?? "not started yet"}; a running job is not continued, arthur steer gives it a correction`);
+		const [task = "", kind = "", project = "", root, branch, worktree, model, thinking] = ["task", "kind", "project", "root", "branch", "worktree", "model", "thinking"].map((name) => field(name) || undefined);
+		const now = current(home, id);
+		if (inRun(now)) throw new Error(`${id} is ${told(now)}, in a run; a job in a run is not continued, arthur steer gives it a correction`);
 		if (branch === undefined) throw new Error(`${id} is a ${kind}, a read-only kind without a branch of its own; only a job with a branch is continued`);
 		if (worktree === undefined || !existsSync(worktree)) throw new Error(`${id}: its worktree was pruned; spawn a new job on its branch ${branch}`);
 		checkLimits("continue", { budgetUsd });
@@ -84,17 +78,11 @@ export async function continueJob(home: string, id: string, instruction: string,
 		if (budgetUsd !== undefined) write(folder, "budget", String(budgetUsd));
 		write(folder, "continue", instruction.trim());
 		appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] arthur continue: ${instruction.trim().split("\n")[0]}\n`);
+		moveJob(home, id, bus, () => ["working", ""]);
 		bus.emit("core", "job-started", { id, kind, project, root, branch, worktree, tickets: taskTickets(task) });
 		failed = await launch(home, { id, kind, project }, agent, slice, bus);
-		// The wrapper writes `pid`, then `state`: once this process ends, a continue that takes its lock over reads `running`.
-		while (failed === undefined && field("state") !== "running" && wrapperRuns(field("pid"), id)) await sleep(20);
 		return failed;
 	} finally {
 		if (failed !== undefined) lock.release();
 	}
-}
-
-function write(folder: string, name: string, text: string): void {
-	writeFileSync(join(folder, `.${name}`), text);
-	renameSync(join(folder, `.${name}`), join(folder, name));
 }

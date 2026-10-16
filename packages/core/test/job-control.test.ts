@@ -32,7 +32,7 @@ function setup(agent: string): { readonly root: string; readonly home: string; r
 	const home = join(folder, "home");
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
 	const bus = eventBus(home);
-	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, ...jobSlice }, agent, time, bus, () => []);
+	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, ...jobSlice }, agent, time, bus, () => []);
 	writeFileSync(join(folder, "reviewer.md"), "# Reviewer\n");
 	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(join(folder, "reviewer.md")), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
@@ -59,7 +59,7 @@ const ended = (home: string, id: string, count = 1) =>
 		const data = readEvents(home, 1).filter((event) => event.name === "job-ended" && (event.data as { id: string }).id === id).map((event) => event.data);
 		return data.length >= count ? data : undefined;
 	});
-const running = (home: string, id: string) => until("the job running", () => field(home, id, "state") === "running");
+const running = (home: string, id: string) => until("the job working", () => field(home, id, "state") === "working");
 const starts = (agent: string) => (read(join(agent, "..", "starts.jsonl")) ?? "").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line) as { readonly pid: number; readonly args: readonly string[]; readonly cwd: string });
 const alive = (pid: number) => {
 	try {
@@ -98,10 +98,10 @@ test("arthur stop ends a running job stopped: SIGTERM to the agent and the proce
 	const started = Date.now();
 	assert.equal(await stopJob(home, job.id), `${job.id}: stopped`);
 	assert.ok(Date.now() - started < GRACE_SECONDS * 1000, "no grace needed: the agent ends on SIGTERM");
-	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "stopped", reason: "the job was stopped by arthur stop" }]);
-	assert.equal(field(home, job.id, "state"), "stopped");
+	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "stopped" }]);
+	assert.deepEqual([field(home, job.id, "state"), field(home, job.id, "reason")], ["ended", "stopped"]);
 	assert.equal(alive(tool), false);
-	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: stopping the agent\n(.*\n)?\[arthur [^\]]+\] stopped: the job was stopped by arthur stop\n$/);
+	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: stopping the agent\n(.*\n)?\[arthur [^\]]+\] ended: stopped\n$/);
 	assert.doesNotMatch(field(home, job.id, "log") ?? "", /SIGKILL/);
 });
 
@@ -148,7 +148,7 @@ test("a stop that comes while a limit stops the job leaves the limit's state, an
 	const { home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Audit.", kind: "audit" });
 	await until("the stop at the budget", () => field(home, job.id, "log")?.includes("] limit: budget: stopping the agent\n"));
-	assert.equal(await stopJob(home, job.id), `${job.id}: ended limit: budget before the stop`);
+	assert.equal(await stopJob(home, job.id), `${job.id}: ended (limit: budget: its cost $1.0000 reached its budget of $1) before the stop`);
 	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: asked as well\n/);
 	assert.equal(field(home, job.id, "budget"), "1");
 	assert.equal(read(join(dir, "pid"))?.trim().split("\n").length, 1, "one start, no resume");
@@ -161,9 +161,9 @@ test("a stop that comes once the agent exited on its own leaves the job's own en
 	const job = await jobs.spawn({ task: "Go." });
 	const pid = Number(await until("the agent", () => read(join(dir, "pid"))?.trim() || undefined));
 	await until("the agent's exit", () => !alive(pid));
-	assert.equal(field(home, job.id, "state"), "running");
+	assert.equal(field(home, job.id, "state"), "working");
 	process.kill(Number(field(home, job.id, "pid")), "SIGTERM");
-	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" }]);
+	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }]);
 	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: the agent had ended already\n/);
 });
 
@@ -175,18 +175,23 @@ test("a process the agent left holding its output open delays the job's end by t
 	const holder = Number(read(join(dir, "holder")));
 	await until("the agent's exit", () => !alive(pid));
 	const exited = Date.now();
-	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" }]);
+	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }]);
 	assert.ok(Date.now() - exited < 3000, `ended ${Date.now() - exited} ms after the agent exited`);
-	assert.equal(field(home, job.id, "state"), "done");
+	assert.equal(field(home, job.id, "state"), "ended");
 	await until("the holder's end", () => !alive(holder));
 });
 
-test("refused, each with the id and the reason: stopping or steering a job that is not running, an unknown id", async () => {
+test("refused, each with the id and the reason: stopping or steering a job not in a run, an unknown id", async () => {
 	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }));
 	const job = await jobs.spawn({ task: "Go." });
 	await ended(home, job.id);
-	await assert.rejects(stopJob(home, job.id), { message: `${job.id} is done, not running; nothing to stop` });
-	assert.throws(() => steerJob(home, job.id, "Also this."), { message: `${job.id} is done, not running; a steer reaches only a running job, and arthur continue resumes an ended worker` });
+	await assert.rejects(stopJob(home, job.id), { message: `${job.id} is ended (finished), not in a run; nothing to stop` });
+	assert.throws(() => steerJob(home, job.id, "Also this."), { message: `${job.id} is ended (finished), not in a run; a steer reaches only a job in a run, and arthur continue resumes an ended or blocked worker` });
+	// A run that ended blocked is not in a run either.
+	writeFileSync(join(home, "jobs", job.id, "state"), "blocked");
+	writeFileSync(join(home, "jobs", job.id, "reason"), "user: may I?");
+	await assert.rejects(stopJob(home, job.id), { message: `${job.id} is blocked (user: may I?), not in a run; nothing to stop` });
+	assert.throws(() => steerJob(home, job.id, "Also this."), { message: /^\S+ is blocked \(user: may I\?\), not in a run; a steer/ });
 	for (const id of ["2026-10-16-worker-00000000", "../../etc", ""]) {
 		await assert.rejects(stopJob(home, id), { message: `${id}: no such job in ${join(home, "jobs")}` });
 		assert.throws(() => steerJob(home, id, "x"), { message: `${id}: no such job in ${join(home, "jobs")}` });
@@ -199,10 +204,10 @@ test("a stop of a job whose wrapper is gone sends no signal and says so", async 
 	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }));
 	const job = await jobs.spawn({ task: "Go." });
 	await ended(home, job.id);
-	// As after a crash of the wrapper: the record says running, and its pid is now another process's, this test's.
-	writeFileSync(join(home, "jobs", job.id, "state"), "running");
+	// As after a crash of the wrapper: the record says working, and its pid is now another process's, this test's.
+	writeFileSync(join(home, "jobs", job.id, "state"), "working");
 	writeFileSync(join(home, "jobs", job.id, "pid"), String(process.pid));
-	await assert.rejects(stopJob(home, job.id), { message: `${job.id}: its wrapper ${process.pid} is gone though its state says running; nothing to stop` });
+	await assert.rejects(stopJob(home, job.id), { message: `${job.id}: its wrapper ${process.pid} is gone though its state says working; nothing to stop` });
 });
 
 test("two steers before the next tool call both reach the agent after it, in order, and are moved to done", async () => {
@@ -228,7 +233,7 @@ test("two steers before the next tool call both reach the agent after it, in ord
 	// The extension's lines, in order; the wrapper's line of the tool call may come between them.
 	assert.match(field(home, job.id, "log") ?? "", /\] steered 0001: Use the second file\.\n(.*\n)*\[arthur [^\]]+\] steered 0002: And keep the tests\.\n/);
 	writeFileSync(join(gates, "two"), "");
-	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" }]);
+	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }]);
 	assert.equal(read(messages)?.trim().split("\n").length, 2, "each steer once");
 });
 
@@ -239,7 +244,7 @@ test("a steer still undelivered when the job ends is moved aside, logged, and na
 	await running(home, job.id);
 	assert.equal(steerJob(home, job.id, "Too late."), "0001");
 	writeFileSync(gate, "");
-	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0", undelivered: ["0001"] }]);
+	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished", undelivered: ["0001"] }]);
 	const steer = join(home, "jobs", job.id, "steer");
 	assert.deepEqual([readdirSync(join(steer, "inbox")), readdirSync(join(steer, "undelivered"))], [[], ["0001"]]);
 	assert.equal(readFileSync(join(steer, "undelivered", "0001"), "utf8"), "Too late.\n");
@@ -271,9 +276,9 @@ test("arthur continue resumes an ended worker in place: same id, branch, worktre
 	await ended(home, job.id);
 	await jobs.continue(job.id, "  Also fix the README.\nThen commit.  ", 3);
 	const [, second] = await ended(home, job.id, 2);
-	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" });
+	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 	const folder = join(home, "jobs", job.id);
-	assert.deepEqual(["state", "result", "cost", "budget", "tool-calls", "continue"].map((name) => field(home, job.id, name)), ["done", "Second.", "2.5000", "3", "1", "Also fix the README.\nThen commit."]);
+	assert.deepEqual(["state", "reason", "result", "cost", "budget", "tool-calls", "continue"].map((name) => field(home, job.id, name)), ["ended", "finished", "Second.", "2.5000", "3", "1", "Also fix the README.\nThen commit."]);
 	const [start] = starts(resumed);
 	const extensions = ["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((name) => ["-e", join(import.meta.dirname, "..", "src", name)]);
 	assert.deepEqual(start?.args, ["--continue", "-p", "--mode", "json", "--auto-approve", "--tools", "read,edit,write,bash,grep,glob", "--append-system-prompt", join(folder, "prompt"), ...extensions, "Also fix the README.\nThen commit."]);
@@ -291,7 +296,7 @@ test("a continued job without a higher budget is stopped at once at the budget i
 	await ended(home, job.id);
 	await jobs.continue(job.id, "Go on.");
 	const [, second] = await ended(home, job.id, 2);
-	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "limit: budget", reason: "its cost $2.0100 reached its budget of $2" });
+	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "limit: budget: its cost $2.0100 reached its budget of $2" });
 });
 
 test("a continue whose wrapper does not start ends the job failed and says why, not continued", async (t) => {
@@ -308,36 +313,34 @@ test("a continue whose wrapper does not start ends the job failed and says why, 
 	const reason = "systemd-run: Failed to start transient scope unit: Access denied";
 	assert.equal(await jobs.continue(job.id, "Go on."), reason);
 	const [, second] = await ended(home, job.id, 2);
-	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "failed", reason });
-	assert.deepEqual(["state", "pid"].map((name) => field(home, job.id, name)), ["failed", undefined]);
+	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: `failed: ${reason}` });
+	assert.deepEqual(["state", "reason", "pid"].map((name) => field(home, job.id, name)), ["ended", `failed: ${reason}`, undefined]);
 	assert.equal(existsSync(join(home, "jobs", job.id, "continuing")), false, "a failed continue frees the record");
 });
 
-test("a continue returns only once the new wrapper's state says running, or the wrapper is gone, so a continue that takes its lock over reads running", { timeout: 30_000 }, async (t) => {
+test("a continue moves the job to working before its wrapper starts, so a continue that takes its lock over is refused", { timeout: 30_000 }, async (t) => {
 	const gate = join(temporaryFolder(), "gate");
 	const { agent } = resuming({ steps: [{ message: "First." }] }, { steps: [{ waitFor: gate }, { message: "Second." }] });
 	const { home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Go." });
 	await ended(home, job.id);
 	// A `systemd-run` that writes the wrapper's `pid` (its own, which the wrapper keeps through `exec`) a second before the
-	// wrapper starts and writes its state: `launch` returns at the `pid`, with the state still the old run's.
+	// wrapper starts: `launch` returns at the `pid`, before the new wrapper ran at all.
 	const bin = temporaryFolder();
 	const pid = join(home, "jobs", job.id, "pid");
 	writeFileSync(join(bin, "systemctl"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
-	const shim = (then: string) => writeFileSync(join(bin, "systemd-run"), `#!/bin/sh\nwhile [ "$1" != -- ]; do shift; done\nshift\nprintf %s $$ > '${pid}.early'\nmv '${pid}.early' '${pid}'\nsleep 1\n${then}\n`, { mode: 0o755 });
-	shim('exec "$@"');
+	writeFileSync(join(bin, "systemd-run"), `#!/bin/sh\nwhile [ "$1" != -- ]; do shift; done\nshift\nprintf %s $$ > '${pid}.early'\nmv '${pid}.early' '${pid}'\nsleep 1\nexec "$@"\n`, { mode: 0o755 });
 	const saved = process.env.PATH;
 	t.after(() => void (process.env.PATH = saved));
 	process.env.PATH = [bin, saved].join(delimiter);
 	assert.equal(await jobs.continue(job.id, "Two."), undefined);
-	assert.equal(field(home, job.id, "state"), "running");
+	assert.deepEqual(["state", "reason"].map((name) => field(home, job.id, name)), ["working", ""]);
+	// As once this process ended: its `continuing` is taken over, and the state refuses.
+	rmSync(join(home, "jobs", job.id, "continuing"), { force: true });
+	await assert.rejects(jobs.continue(job.id, "Three."), { message: `${job.id} is working, in a run; a job in a run is not continued, arthur steer gives it a correction` });
 	writeFileSync(gate, "");
 	const [, second] = await ended(home, job.id, 2);
-	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" });
-	// A wrapper that is gone before it wrote its state ends the wait: the continue returns, the state still the old run's.
-	shim("exit 0");
-	assert.equal(await jobs.continue(job.id, "Three."), undefined);
-	assert.equal(field(home, job.id, "state"), "done");
+	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 });
 
 for (const manager of [true, false])
@@ -352,11 +355,11 @@ for (const manager of [true, false])
 		assert.deepEqual(both.map((result) => (result.status === "fulfilled" ? result.value : (result.reason as Error).message)), [undefined, `${job.id}: being continued`]);
 		await running(home, job.id);
 		await until("the record freed by the new wrapper", () => !existsSync(join(home, "jobs", job.id, "continuing")));
-		await assert.rejects(jobs.continue(job.id, "Three."), { message: `${job.id} is running; a running job is not continued, arthur steer gives it a correction` });
+		await assert.rejects(jobs.continue(job.id, "Three."), { message: `${job.id} is working, in a run; a job in a run is not continued, arthur steer gives it a correction` });
 		assert.equal(existsSync(join(home, "jobs", job.id, "continuing")), false, "a refused continue frees the record");
 		writeFileSync(gate, "");
 		const [, second, ...more] = await ended(home, job.id, 2);
-		assert.deepEqual([second, more], [{ id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" }, []]);
+		assert.deepEqual([second, more], [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }, []]);
 		assert.deepEqual([starts(resumed).length, field(home, job.id, "continue"), field(home, job.id, "log")?.match(/\] arthur continue: /g)?.length], [1, "One.", 1]);
 		assert.equal(field(home, job.id, "log")?.includes("no systemd scope"), !manager);
 	});
@@ -375,16 +378,18 @@ test("a continue takes over the `continuing` a killed continue left, and is refu
 	writeFileSync(continuing, String(spawnSync("true").pid));
 	assert.equal(await jobs.continue(job.id, "Two."), undefined);
 	const [, second] = await ended(home, job.id, 2);
-	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" });
+	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 	assert.deepEqual([starts(resumed).length, field(home, job.id, "continue"), existsSync(continuing)], [1, "Two.", false]);
 });
 
-test("continue is refused, with the id and the reason: a running job, a read-only kind, an unknown id, an empty instruction, a bad budget", async () => {
+test("continue is refused, with the id and the reason: a job in a run, a read-only kind, an unknown id, an empty instruction, a bad budget", async () => {
 	const gate = join(temporaryFolder(), "gate");
 	const { home, jobs } = setup(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }));
 	const job = await jobs.spawn({ task: "Go." });
 	await running(home, job.id);
-	await assert.rejects(jobs.continue(job.id, "More."), { message: `${job.id} is running; a running job is not continued, arthur steer gives it a correction` });
+	await assert.rejects(jobs.continue(job.id, "More."), { message: `${job.id} is working, in a run; a job in a run is not continued, arthur steer gives it a correction` });
+	jobs.block(job.id, "machine mac unreachable");
+	await assert.rejects(jobs.continue(job.id, "More."), { message: `${job.id} is blocked (dependency: machine mac unreachable), in a run; a job in a run is not continued, arthur steer gives it a correction` });
 	writeFileSync(gate, "");
 	await ended(home, job.id);
 	const review = await jobs.spawn({ task: "Review.", kind: "review" });
@@ -434,7 +439,7 @@ test("a continue goes through the plugins' beforeSpawn checks on its record: a r
 	assert.deepEqual(seen.slice(1), [{ ...spawn, budgetUsd: 3 }, { ...spawn, budgetUsd: 2 }]);
 	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
 	const [, second] = await ended(home, job.id, 2);
-	assert.deepEqual([second, starts(resumed).length], [{ id: job.id, kind: "worker", project: "acme", state: "done", reason: "the agent exited 0" }, 1]);
+	assert.deepEqual([second, starts(resumed).length], [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }, 1]);
 });
 
 test("a continued worker moves its ticket from review back to in-progress with one ticket-moved; at in-progress nothing is written", async () => {
@@ -490,7 +495,7 @@ test("the arthur binary stops, steers and continues a job by its id; wrong usage
 	const id = arthur("spawn", "Go.").stdout.trim();
 	await running(home, id);
 	assert.deepEqual([arthur("steer", id, "Mind the tests.").stdout, arthur("stop", id).stdout], [`${id}: steer 0001 queued for after its next tool call\n`, `${id}: stopped\n`]);
-	assert.deepEqual(await ended(home, id), [{ id, kind: "worker", project: "acme", state: "stopped", reason: "the job was stopped by arthur stop", undelivered: ["0001"] }]);
+	assert.deepEqual(await ended(home, id), [{ id, kind: "worker", project: "acme", state: "ended", reason: "stopped", undelivered: ["0001"] }]);
 	writeFileSync(full, "");
 	const capped = arthur("continue", id, "Go on.");
 	assert.deepEqual([capped.status, capped.stdout, capped.stderr, starts(agent).length, field(home, id, "continue")], [1, "", "arthur continue: refused by orchestration: maxAgents 1 reached\n", 1, undefined]);
@@ -515,7 +520,7 @@ test("the arthur binary stops, steers and continues a job by its id; wrong usage
 		assert.deepEqual([run.status, run.stderr], [2, `arthur ${args[0]}: ${problem}\n${usage[args[0]]}\n`], args.join(" "));
 	}
 	const refused = arthur("stop", id);
-	assert.deepEqual([refused.status, refused.stderr], [1, `arthur stop: ${id} is stopped, not running; nothing to stop\n`]);
+	assert.deepEqual([refused.status, refused.stderr], [1, `arthur stop: ${id} is ended (stopped), not in a run; nothing to stop\n`]);
 	writeFileSync(join(root, "arthur.config.ts"), "export default { plugins: [] };\n");
 	const unloaded = arthur("steer", id, "x");
 	assert.equal(unloaded.status, 1);

@@ -16,6 +16,7 @@ export type CoreOptions = {
 	readonly jobs?: {
 		readonly timeoutMinutes?: number;
 		readonly budgetUsd?: number;
+		readonly idleMinutes?: number;
 		readonly cpu?: number;
 		readonly memory?: string;
 	};
@@ -32,7 +33,7 @@ export type LoadedConfig = {
 		readonly agent: { readonly command: string };
 		readonly timeZone: string;
 		readonly quietHours: QuietHours | undefined;
-		readonly jobs: { readonly timeoutMinutes: number; readonly budgetUsd: number; readonly cpu: number; readonly memory: string };
+		readonly jobs: { readonly timeoutMinutes: number; readonly budgetUsd: number; readonly idleMinutes: number; readonly cpu: number; readonly memory: string };
 	};
 	readonly plugins: readonly unknown[];
 };
@@ -84,6 +85,7 @@ const SHAPE: Shape = {
 		jobs: {
 			timeoutMinutes: optional(atLeastZero),
 			budgetUsd: optional(atLeastZero),
+			idleMinutes: optional(atLeastZero),
 			cpu: optional((value) => (typeof value === "number" && Number.isFinite(value) && value > 0 ? undefined : "a number above 0")),
 			memory: optional((value) =>
 				typeof value === "string" && memoryMax(value) ? undefined : 'systemd MemoryMax syntax such as "70%", "8G" or "infinity"',
@@ -146,6 +148,7 @@ function withDefaults(config: ArthurConfig, file: string): LoadedConfig {
 			jobs: {
 				timeoutMinutes: core.jobs?.timeoutMinutes ?? 120,
 				budgetUsd: core.jobs?.budgetUsd ?? 2,
+				idleMinutes: core.jobs?.idleMinutes ?? 10,
 				cpu: core.jobs?.cpu ?? Math.max(1, availableParallelism() - 1),
 				memory: core.jobs?.memory ?? "70%",
 			},

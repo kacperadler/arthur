@@ -42,7 +42,7 @@ test("a config without core options loads with every default filled", async () =
 			agent: { command: "omp" },
 			timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 			quietHours: undefined,
-			jobs: { timeoutMinutes: 120, budgetUsd: 2, cpu: Math.max(1, availableParallelism() - 1), memory: "70%" },
+			jobs: { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, cpu: Math.max(1, availableParallelism() - 1), memory: "70%" },
 		},
 		plugins: [],
 	});
@@ -57,7 +57,7 @@ export default {
 		agent: { command: "/usr/local/bin/omp" },
 		timeZone: "Europe/Warsaw",
 		quietHours: { from: "22:00", to: "07:30" },
-		jobs: { timeoutMinutes: minutes, budgetUsd: 0, cpu: 0.5, memory: "8G" },
+		jobs: { timeoutMinutes: minutes, budgetUsd: 0, idleMinutes: 5, cpu: 0.5, memory: "8G" },
 	},
 	plugins: [{ name: "fake" }],
 };
@@ -69,7 +69,7 @@ export default {
 		agent: { command: "/usr/local/bin/omp" },
 		timeZone: "Europe/Warsaw",
 		quietHours: { from: "22:00", to: "07:30" },
-		jobs: { timeoutMinutes: 0, budgetUsd: 0, cpu: 0.5, memory: "8G" },
+		jobs: { timeoutMinutes: 0, budgetUsd: 0, idleMinutes: 5, cpu: 0.5, memory: "8G" },
 	});
 	assert.deepEqual(config.plugins, [{ name: "fake" }]);
 });
@@ -86,8 +86,8 @@ test("an unknown option is refused at every level, naming its path and the optio
 	assert.match(top, /: plugin: unknown option; expected one of core, plugins$/);
 	const core = await refusal(withCore('{ homeDir: ".arthur" }'));
 	assert.match(core, /: core\.homeDir: unknown option; expected one of home, envFile, agent, timeZone, quietHours, jobs$/);
-	const jobs = await refusal(withCore("{ jobs: { idleMinutes: 10 } }"));
-	assert.match(jobs, /: core\.jobs\.idleMinutes: unknown option; expected one of timeoutMinutes, budgetUsd, cpu, memory$/);
+	const jobs = await refusal(withCore("{ jobs: { offlineGraceMinutes: 30 } }"));
+	assert.match(jobs, /: core\.jobs\.offlineGraceMinutes: unknown option; expected one of timeoutMinutes, budgetUsd, idleMinutes, cpu, memory$/);
 });
 
 test("a wrong type is refused, naming the path, what was expected and what was given", async () => {
@@ -145,11 +145,11 @@ test('a quietHours time that is not "HH:MM" is refused, and so is a missing one'
 	assert.deepEqual(edges.core.quietHours, { from: "00:00", to: "23:59" });
 });
 
-test("a negative budget or timeout is refused; 0 is accepted", async () => {
-	for (const key of ["budgetUsd", "timeoutMinutes"]) {
+test("a negative budget, timeout or idle time is refused; 0 is accepted", async () => {
+	for (const key of ["budgetUsd", "timeoutMinutes", "idleMinutes"]) {
 		const message = await refusal(withCore(`{ jobs: { ${key}: -0.01 } }`));
 		assert.match(message, new RegExp(`: core\\.jobs\\.${key}: expected a number of 0 or more, got -0\\.01$`));
-		assert.equal((await loadConfig(withCore(`{ jobs: { ${key}: 0 } }`))).core.jobs[key as "budgetUsd" | "timeoutMinutes"], 0);
+		assert.equal((await loadConfig(withCore(`{ jobs: { ${key}: 0 } }`))).core.jobs[key as "budgetUsd" | "timeoutMinutes" | "idleMinutes"], 0);
 	}
 });
 
@@ -159,7 +159,7 @@ test("every problem is named, one line each, starting with the config file", asy
 	assert.deepEqual(lines, [
 		`${file}: core.home: expected a non-empty string, got 1`,
 		`${file}: core.timeZone: expected a time zone such as Europe/Warsaw, got "Nowhere"`,
-		`${file}: core.jobs.extra: unknown option; expected one of timeoutMinutes, budgetUsd, cpu, memory`,
+		`${file}: core.jobs.extra: unknown option; expected one of timeoutMinutes, budgetUsd, idleMinutes, cpu, memory`,
 		`${file}: core.jobs.budgetUsd: expected a number of 0 or more, got -1`,
 	]);
 });

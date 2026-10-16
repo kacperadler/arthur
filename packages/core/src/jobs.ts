@@ -51,8 +51,8 @@ export type Spawn = {
 
 // A job as `prepare` gets it; `base` is the commit it starts from, `branch` undefined for a read-only kind.
 export type Job = Spawn & { readonly id: string; readonly root: string; readonly base: string; readonly branch: string | undefined; readonly worktree: string };
-// A job as `spawn` returns it: `warnings` are the prompt's, e.g. a criteria file the project lacks.
-export type Started = Job & { readonly warnings: readonly string[] };
+// A job as `spawn` returns it: `warnings` are the prompt's; `failed` why its wrapper did not start, the job ended `failed`.
+export type Started = Job & { readonly warnings: readonly string[]; readonly failed: string | undefined };
 
 // A reason refuses the spawn; undefined lets it go on.
 export type SpawnCheck = (spawn: Spawn) => string | undefined | Promise<string | undefined>;
@@ -144,8 +144,8 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice, 
 			}
 			const { id, kind: kindName, branch, worktree } = job;
 			bus.emit("core", "job-started", { id, kind: kindName, project, root, branch, worktree, tickets });
-			launch(home, id, agent, limits);
-			return { ...job, warnings };
+			const failed = await launch(home, job, agent, limits, bus);
+			return { ...job, warnings, failed };
 		},
 	};
 	runner.registerKind("core", { name: "worker", readOnly: false, role: "worker" });

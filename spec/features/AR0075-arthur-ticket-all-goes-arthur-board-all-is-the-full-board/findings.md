@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `README.md:5`
 - What: the status paragraph says "the ticket board (`arthur ticket new|status|after|all`, `host.board`)". AR0075 removed `all`: `arthur ticket all` now prints the usage line and exits 2. The README was out of the ticket's scope (the report names only `ticket.md`, `board.md` and the tests), so it was left as it is.
 - Suggestion: change it to `arthur ticket new|status|after`; the same paragraph already names `/board`, which runs in the shell as `arthur board [all]`. Nothing else changes.
-- Status: open
+- Status: fixed on main by the coordinator (one-line README edit); AR0082 dropped

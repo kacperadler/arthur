@@ -626,9 +626,9 @@
   {
     "id": "AR0075",
     "title": "`arthur ticket all` goes; `arthur board all` is the full board",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0075-arthur-ticket-all-goes-arthur-board-all-is-the-full-board/ticket.md",
-    "updated": "2026-10-16T16:38:41.078Z",
+    "updated": "2026-10-16T16:39:22.461Z",
     "after": [
       "AR0074"
     ]
@@ -690,5 +690,12 @@
     "status": "planning",
     "path": "spec/features/AR0081-arthur-config-check-still-reports-two-plugins-of-one-name-twice/ticket.md",
     "updated": "2026-10-16T16:05:45.194Z"
+  },
+  {
+    "id": "AR0082",
+    "title": "README still lists `arthur ticket all`",
+    "status": "dropped",
+    "path": "spec/features/AR0082-readme-still-lists-arthur-ticket-all/ticket.md",
+    "updated": "2026-10-16T16:39:27.829Z"
   }
 ]

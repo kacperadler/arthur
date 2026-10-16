@@ -50,6 +50,9 @@ async function until<T>(what: string, predicate: () => T | undefined): Promise<T
 
 const read = (path: string) => (existsSync(path) ? readFileSync(path, "utf8") : undefined);
 const field = (home: string, id: string, name: string) => read(join(home, "jobs", id, name));
+// Every file and folder of job `id`'s record, with each file's text.
+const record = (home: string, id: string) =>
+	readdirSync(join(home, "jobs", id), { recursive: true, withFileTypes: true }).map((entry) => [join(entry.parentPath, entry.name), entry.isDirectory() ? "folder" : read(join(entry.parentPath, entry.name))]).sort();
 // The data of each `job-ended` of job `id`, once there are `count`.
 const ended = (home: string, id: string, count = 1) =>
 	until(`job-ended ${count}`, () => {
@@ -394,6 +397,21 @@ test("continue is refused, with the id and the reason: a running job, a read-onl
 	assert.equal(field(home, job.id, "budget"), "2");
 });
 
+test("continue of a worker whose worktree prune freed, while Git keeps its unmerged branch, is refused and leaves the record", async () => {
+	const { agent, resumed } = resuming({ steps: [{ message: "First." }] }, { steps: [{ message: "Second." }] });
+	const { root, home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	await ended(home, job.id);
+	git(job.worktree, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "--allow-empty", "-m", "work");
+	const [line = ""] = jobs.prune([job.id]);
+	assert.match(line, new RegExp(`^${job.id}: worktree ${job.worktree} removed; kept branch arthur/${job.id} and the record: `));
+	assert.deepEqual([existsSync(job.worktree), git(root, "branch", "--list", `arthur/${job.id}`)], [false, `arthur/${job.id}`]);
+	const before = record(home, job.id);
+	await assert.rejects(jobs.continue(job.id, "Go on.", 3), { message: `${job.id}: its worktree was pruned; spawn a new job on its branch arthur/${job.id}` });
+	assert.deepEqual(record(home, job.id), before);
+	assert.equal(starts(resumed).length, 0);
+});
+
 test("a continue goes through the plugins' beforeSpawn checks on its record: a refusal starts nothing and leaves the record", async () => {
 	const { agent, resumed } = resuming({ steps: [{ message: "First." }] }, { steps: [{ message: "Second." }] });
 	const { home, jobs } = setup(agent);
@@ -407,12 +425,10 @@ test("a continue goes through the plugins' beforeSpawn checks on its record: a r
 	});
 	const job = await jobs.spawn({ task: "Ticket: README.md. Go.", model: "m" });
 	await ended(home, job.id);
-	const folder = join(home, "jobs", job.id);
-	const record = () => readdirSync(folder, { recursive: true, withFileTypes: true }).map((entry) => [join(entry.parentPath, entry.name), entry.isDirectory() ? "folder" : read(join(entry.parentPath, entry.name))]).sort();
-	const before = record();
+	const before = record(home, job.id);
 	await assert.rejects(jobs.continue(job.id, "Go on.", 3), { message: "refused by orchestration: maxAgents 1 reached" });
 	await assert.rejects(jobs.continue(job.id, "Go on."), { message: "plugin orchestration: beforeSpawn failed: no process table" });
-	assert.deepEqual(record(), before);
+	assert.deepEqual(record(home, job.id), before);
 	assert.equal(starts(resumed).length, 0);
 	const spawn = { task: "Ticket: README.md. Go.", kind: "worker", project: "acme", model: "m", thinking: undefined, timeoutMinutes: 120, tickets: ["README.md"] };
 	assert.deepEqual(seen.slice(1), [{ ...spawn, budgetUsd: 3 }, { ...spawn, budgetUsd: 2 }]);

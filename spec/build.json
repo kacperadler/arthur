@@ -208,9 +208,9 @@
   {
     "id": "AR0022",
     "title": "Roadmap 19: Env guard",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0022-roadmap-19-env-guard/ticket.md",
-    "updated": "2026-10-16T13:30:49.559Z",
+    "updated": "2026-10-16T13:31:08.723Z",
     "after": [
       "AR0014"
     ]
@@ -456,5 +456,12 @@
     "after": [
       "AR0017"
     ]
+  },
+  {
+    "id": "AR0054",
+    "title": "Roadmap entry 23 does not say the coordinator loads the env guard",
+    "status": "planned",
+    "path": "spec/features/AR0054-roadmap-entry-23-does-not-say-the-coordinator-loads-the-env-guard/ticket.md",
+    "updated": "2026-10-16T13:31:18.213Z"
   }
 ]

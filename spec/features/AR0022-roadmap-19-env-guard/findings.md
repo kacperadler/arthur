@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `spec/roadmap.md` entry 23; `packages/core/package.json` (`./env-guard`)
 - What: entry 19 says the env guard is loaded "in every job and in the coordinator". AR0022 loads it in every job (`wrapper.ts` passes `-e`) and publishes it as `@arthur/core/env-guard`, but no coordinator exists yet, and entry 23 (the coordinator's `omp`) does not mention the guard, so its builder can start the coordinator without it and the coordinator's tool calls would read `.env` freely.
 - Suggestion: add to entry 23's Delivers and Done means: the coordinator's `omp` gets `-e <the resolved path of @arthur/core/env-guard>` (`fileURLToPath(import.meta.resolve("@arthur/core/env-guard"))`), with a test that the command line carries it.
-- Status: open
+- Status: ticket AR0054

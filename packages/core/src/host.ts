@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type Board, board } from "./board.ts";
-import { NEXT, STATUSES } from "./board-file.ts";
+import { moveStartedTickets, refuseUnstartableTickets } from "./board-jobs.ts";
 import { clock } from "./clock.ts";
 import { type CommandRegistry, commandRegistry } from "./commands.ts";
 import type { LoadedConfig } from "./config.ts";
@@ -24,9 +24,6 @@ export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warn
 
 const PLUGIN_NAME = /^[a-z]+(-[a-z]+)*$/;
 const REQUIRED = "orchestration";
-const FEATURE = /(?:^|\/)spec\/features\/([A-Z]+\d{4,})-[^/]*\//;
-// The statuses a worker may start from: in-progress itself (a continue) and each one the board lets move to it.
-const STARTS = STATUSES.filter((status) => status === "in-progress" || NEXT[status].includes("in-progress"));
 
 // `commands` holds what the core registered before; the plugins' commands join it, and a name registered twice refuses the load.
 export async function loadPlugins(config: LoadedConfig, shell: Shell = process.env, commands: CommandRegistry = commandRegistry()): Promise<LoadedPlugins> {
@@ -44,30 +41,8 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		await guard(plugin, "setup", () => plugin.setup(host));
 	}
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));
-	jobs.beforeSpawn("core", ({ kind, tickets }) => {
-		if (kind !== "worker") return undefined;
-		const refused = tickets.flatMap((path) => {
-			const id = FEATURE.exec(path)?.[1];
-			const status = id === undefined ? undefined : core.get(id)?.status;
-			if (id === undefined || (status !== undefined && STARTS.includes(status))) return [];
-			return [status === undefined ? `${id} is not on the board` : `${id} is ${status}, which cannot move to in-progress`];
-		});
-		return refused.length > 0 ? `${refused.join("; ")}; a worker starts on a ticket that is ${STARTS.join(", ")}` : undefined;
-	});
-	bus.on("core", "job-started", ({ data }) => {
-		const { kind, tickets } = data as { readonly kind: string; readonly tickets: readonly string[] };
-		if (kind !== "worker") return;
-		const refused = tickets.flatMap((path) => {
-			const id = FEATURE.exec(path)?.[1];
-			try {
-				if (id !== undefined) core.move(id, "in-progress");
-				return [];
-			} catch (error) {
-				return [(error as Error).message];
-			}
-		});
-		if (refused.length > 0) throw new Error(refused.join("; "));
-	});
+	refuseUnstartableTickets(core, jobs);
+	moveStartedTickets(core, bus);
 	return { plugins: sorted, warnings, jobs, board: core, follow: bus.follow };
 }
 

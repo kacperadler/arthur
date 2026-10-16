@@ -15,7 +15,7 @@ const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root
 const commit = (root: string, message: string) => git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", message);
 const RECORD = ["state", "pid", "log", "result", "cost", "tool-calls", "activity", "checks", "commits"];
 const PACKAGE = JSON.stringify({ scripts: { check: "tsc", test: "node --test" } });
-const EXTENSIONS = ["env-guard.ts", "steer.ts"].flatMap((name) => ["-e", join(import.meta.dirname, "..", "src", name)]);
+const EXTENSIONS = ["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((file) => ["-e", join(import.meta.dirname, "..", "src", file)]);
 
 // A repository `acme` that declares both checks, a home folder beside it, and a runner whose agent is `agent`; the plugin
 // `delivery` owns the read-only kind `review`.

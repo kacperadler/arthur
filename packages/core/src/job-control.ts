@@ -1,6 +1,7 @@
-import { appendFileSync, existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import type { Bus } from "./events.ts";
 import { checkLimits } from "./job-limits.ts";
 import { launch, type Slice } from "./job-scope.ts";
 import { GRACE_SECONDS } from "./job-stop.ts";
@@ -57,8 +58,9 @@ export function steerJob(home: string, id: string, text: string): string {
 
 // Resumes an ended job with a branch of its own in place: its wrapper starts again on the same record, worktree and branch,
 // and the agent continues its last session there with `instruction`. `budgetUsd` replaces the budget, since the cost of the
-// runs before counts on; the timeout counts from the new start. `agent` and `slice` are the spawn's.
-export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice): Promise<void> {
+// runs before counts on; the timeout counts from the new start. `agent`, `slice` and `bus` are the spawn's. Returns why the
+// wrapper did not start, which ended the job `failed` (job-scope.ts), or undefined.
+export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus): Promise<string | undefined> {
 	const { folder, field } = record(home, id);
 	if (instruction.trim() === "") throw new Error("the instruction is empty");
 	const state = field("state");
@@ -67,10 +69,12 @@ export async function continueJob(home: string, id: string, instruction: string,
 	checkLimits("continue", { budgetUsd });
 	// A new scope of the job's name cannot start while the old wrapper still runs in it.
 	for (const end = Date.now() + GRACE_SECONDS * 1000; Date.now() < end && wrapperRuns(field("pid"), id); ) await sleep(50);
+	// The old run's `pid` goes, so `launch` waits for the new wrapper's.
+	rmSync(join(folder, "pid"), { force: true });
 	if (budgetUsd !== undefined) write(folder, "budget", String(budgetUsd));
 	write(folder, "continue", instruction.trim());
 	appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] arthur continue: ${instruction.trim().split("\n")[0]}\n`);
-	launch(home, id, agent, slice);
+	return launch(home, { id, kind: field("kind") ?? "", project: field("project") ?? "" }, agent, slice, bus);
 }
 
 function write(folder: string, name: string, text: string): void {

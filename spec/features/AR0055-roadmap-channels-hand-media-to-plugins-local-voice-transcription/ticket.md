@@ -36,3 +36,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: The owner: voice messages transcribed locally (no cloud), as a separate plugin next to the channels, not inside each channel; every incoming message is sorted into its kinds (text, voice, video, images, several at once) and each kind handled by its plugin.
+- 2026-10-16: Coordinator: OK on the worker's three calls: first claimer in setup order wins; the voice plugin always claims voice notes (a missing tool hands the note on as a path); the transcript line names the original file.

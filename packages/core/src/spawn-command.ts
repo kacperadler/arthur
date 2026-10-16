@@ -22,6 +22,9 @@ export function spawnCommand(jobs: () => JobRunner): Command {
 			const job = await jobs().spawn(request);
 			for (const warning of job.warnings) console.error(`warning: ${warning}`);
 			console.log(job.id);
+			if (job.failed === undefined) return;
+			console.error(`failed: ${job.failed}`);
+			return 1;
 		},
 	};
 }

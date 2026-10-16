@@ -53,8 +53,8 @@ export type Spawn = {
 
 // A job as `prepare` gets it; `base` is the commit it starts from, `branch` undefined for a read-only kind.
 export type Job = Spawn & { readonly id: string; readonly root: string; readonly base: string; readonly branch: string | undefined; readonly worktree: string };
-// A job as `spawn` returns it: `warnings` are the prompt's, e.g. a criteria file the project lacks.
-export type Started = Job & { readonly warnings: readonly string[] };
+// A job as `spawn` returns it: `warnings` are the prompt's; `failed` why its wrapper did not start, the job ended `failed`.
+export type Started = Job & { readonly warnings: readonly string[]; readonly failed: string | undefined };
 
 // A reason refuses the spawn; undefined lets it go on.
 export type SpawnCheck = (spawn: Spawn) => string | undefined | Promise<string | undefined>;
@@ -78,8 +78,9 @@ export type JobRunner = {
 	beforeSpawn(owner: string, check: SpawnCheck): void;
 	prepare(owner: string, fn: Prepare): void;
 	spawn(request: SpawnRequest): Promise<Started>;
-	// `arthur continue`: resumes an ended job with a branch in place (job-control.ts), `budgetUsd` replacing its budget.
-	continue(id: string, instruction: string, budgetUsd?: number): Promise<void>;
+	// `arthur continue`: resumes an ended job with a branch in place (job-control.ts), `budgetUsd` replacing its budget;
+	// resolves to why its wrapper did not start, as `failed` of a spawn.
+	continue(id: string, instruction: string, budgetUsd?: number): Promise<string | undefined>;
 	// What `arthur roles` prints: each role, the files it reads in the project's main checkout, and its model.
 	roles(project?: string): RoleView[];
 };
@@ -110,7 +111,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice, 
 		beforeSpawn: (owner, check) => void checks.push({ owner, check }),
 		prepare: (owner, fn) => void prepares.push({ owner, fn }),
 		roles: (project) => describeRoles(roles, [...kinds.values()].map((entry) => entry.kind), checkout(project).root, collect),
-		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits),
+		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
 			const kind = kinds.get(name)?.kind;
@@ -148,8 +149,8 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice, 
 			}
 			const { id, kind: kindName, branch, worktree } = job;
 			bus.emit("core", "job-started", { id, kind: kindName, project, root, branch, worktree, tickets });
-			launch(home, id, agent, limits);
-			return { ...job, warnings };
+			const failed = await launch(home, job, agent, limits, bus);
+			return { ...job, warnings, failed };
 		},
 	};
 	runner.registerKind("core", { name: "worker", readOnly: false, role: "worker" });

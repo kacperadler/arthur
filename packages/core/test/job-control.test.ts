@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -255,7 +255,7 @@ test("arthur continue resumes an ended worker in place: same id, branch, worktre
 	const folder = join(home, "jobs", job.id);
 	assert.deepEqual(["state", "result", "cost", "budget", "tool-calls", "continue"].map((name) => field(home, job.id, name)), ["done", "Second.", "2.5000", "3", "1", "Also fix the README.\nThen commit."]);
 	const [start] = starts(resumed);
-	const extensions = ["env-guard.ts", "steer.ts"].flatMap((name) => ["-e", join(import.meta.dirname, "..", "src", name)]);
+	const extensions = ["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((name) => ["-e", join(import.meta.dirname, "..", "src", name)]);
 	assert.deepEqual(start?.args, ["--continue", "-p", "--mode", "json", "--auto-approve", "--tools", "read,edit,write,bash,grep,glob", "--append-system-prompt", join(folder, "prompt"), ...extensions, "Also fix the README.\nThen commit."]);
 	assert.equal(start?.cwd, job.worktree);
 	assert.deepEqual([starts(first).length, starts(resumed).length], [1, 1]);
@@ -272,6 +272,24 @@ test("a continued job without a higher budget is stopped at once at the budget i
 	await jobs.continue(job.id, "Go on.");
 	const [, second] = await ended(home, job.id, 2);
 	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "limit: budget", reason: "its cost $2.0100 reached its budget of $2" });
+});
+
+test("a continue whose wrapper does not start ends the job failed and says why, not continued", async (t) => {
+	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }));
+	const job = await jobs.spawn({ task: "Go." });
+	await ended(home, job.id);
+	// A `systemctl` that sets any slice and a `systemd-run` that refuses the scope, first on PATH.
+	const bin = temporaryFolder();
+	writeFileSync(join(bin, "systemctl"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+	writeFileSync(join(bin, "systemd-run"), "#!/bin/sh\necho 'Failed to start transient scope unit: Access denied' >&2\nexit 1\n", { mode: 0o755 });
+	const saved = process.env.PATH;
+	t.after(() => void (process.env.PATH = saved));
+	process.env.PATH = [bin, saved].join(delimiter);
+	const reason = "systemd-run: Failed to start transient scope unit: Access denied";
+	assert.equal(await jobs.continue(job.id, "Go on."), reason);
+	const [, second] = await ended(home, job.id, 2);
+	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "failed", reason });
+	assert.deepEqual(["state", "pid"].map((name) => field(home, job.id, name)), ["failed", undefined]);
 });
 
 test("continue is refused, with the id and the reason: a running job, a read-only kind, an unknown id, an empty instruction, a bad budget", async () => {

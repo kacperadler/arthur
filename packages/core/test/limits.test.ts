@@ -169,7 +169,7 @@ test("a kind that asks for it is resumed once at its budget, doubled, and stoppe
 	assert.deepEqual(["state", "cost", "budget"].map((name) => field(home, job.id, name)), ["limit: budget", "2.0000", "2"]);
 	const [first, second, ...more] = starts(agent);
 	const folder = join(home, "jobs", job.id);
-	const guard = ["env-guard.ts", "steer.ts"].flatMap((name) => ["-e", join(import.meta.dirname, "..", "src", name)]);
+	const guard = ["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((file) => ["-e", join(import.meta.dirname, "..", "src", file)]);
 	const common = ["-p", "--mode", "json", "--auto-approve", "--tools", "read,bash,grep,glob", "--append-system-prompt", join(folder, "prompt"), ...guard];
 	assert.deepEqual(first?.args, [...common, `@${join(folder, "task")}`]);
 	assert.deepEqual(second?.args, ["--continue", ...common, "Your budget of $1 ran out and was doubled to $2, once. Go on with the task where you stopped."]);

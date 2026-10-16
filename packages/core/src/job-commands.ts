@@ -18,14 +18,16 @@ export function jobCommands(home: () => string, jobs: () => JobRunner): Command[
 		command("stop", 1, async ([id = ""]) => console.log(await stopJob(home(), id))),
 		command("steer", 2, ([id = "", text = ""]) => console.log(`${id}: steer ${steerJob(home(), id, text)} queued for after its next tool call`)),
 		command("continue", 2, async ([id = "", instruction = ""], budget) => {
-			await jobs().continue(id, instruction, budget === undefined ? undefined : Number(budget));
-			console.log(`${id}: continued`);
+			const failed = await jobs().continue(id, instruction, budget === undefined ? undefined : Number(budget));
+			if (failed === undefined) return console.log(`${id}: continued`);
+			console.error(`${id}: failed: ${failed}`);
+			return 1;
 		}),
 	];
 }
 
 // `count` arguments, each one word or one quoted text; only `continue` takes `--budget`.
-function command(name: keyof typeof USAGE, count: number, run: (words: readonly string[], budget: string | undefined) => void | Promise<void>): Command {
+function command(name: keyof typeof USAGE, count: number, run: (words: readonly string[], budget: string | undefined) => number | void | Promise<number | void>): Command {
 	return {
 		name,
 		doc: new URL(`../docs/commands/${name}.md`, import.meta.url),
@@ -40,7 +42,7 @@ function command(name: keyof typeof USAGE, count: number, run: (words: readonly 
 				else if (!AMOUNT.test((budget = args[++index] ?? ""))) return usage(name, `--budget needs a number of 0 or more, got ${budget || "nothing"}`);
 			}
 			if (words.length !== count) return usage(name, `expected ${count === 1 ? "the id" : "the id and one quoted text"}, got ${words.length} arguments`);
-			await run(words, budget);
+			return run(words, budget);
 		},
 	};
 }

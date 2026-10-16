@@ -11,6 +11,9 @@ flowchart TD
     signal[signal<br/>signal-cli]
     terminal ~~~ telegram ~~~ whatsapp ~~~ signal
   end
+  subgraph MEDIA[Media]
+    voice[voice<br/>whisper.cpp, on the CPU]
+  end
 
   subgraph CORE[Arthur core - always on]
     loader[config loader]
@@ -65,7 +68,8 @@ flowchart TD
   env[/.env: secret values/] --> loader
 
   human <-->|messages| CH
-  CH <-->|text, media| host
+  CH <-->|typed parts, text, media| host
+  MEDIA <-->|claims voice parts, text back| host
   ORCH <-->|events, commands| host
   CONV <-->|events, commands| host
   RES <-->|events, commands| host
@@ -78,5 +82,5 @@ flowchart TD
 
   classDef first fill:#d8f5d8,stroke:#2d7a2d,color:#000;
   classDef later fill:#eee,stroke:#888,stroke-dasharray:4 3,color:#555;
-  class terminal,telegram,orchestration,session,schedule,machines,resources,docker,delivery,projects,youtrack,github,commit,manage,develop first;
+  class terminal,telegram,orchestration,session,schedule,machines,resources,docker,delivery,projects,youtrack,github,commit,manage,develop,voice first;
   class whatsapp,signal,server later;

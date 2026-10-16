@@ -4,10 +4,7 @@
 {
   "id": "AR0053",
   "title": "An agent that ignores SIGTERM runs on past its limit",
-  "date": "2026-10-16",
-  "after": [
-    "AR0017"
-  ]
+  "date": "2026-10-16"
 }
 ```
 

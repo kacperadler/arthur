@@ -1,4 +1,5 @@
 import type { Command } from "./commands.ts";
+import { amount, parseFlags } from "./flags.ts";
 import { steerJob, stopJob } from "./job-control.ts";
 import { findJob } from "./job-records.ts";
 import type { JobRunner } from "./jobs.ts";
@@ -15,8 +16,6 @@ const USAGE = {
 	prune: "usage: arthur prune [<id>...]",
 	stopall: "usage: arthur stopall",
 };
-// A plain decimal, as `arthur spawn --budget` takes it.
-const AMOUNT = /^\d+(\.\d+)?$/;
 
 export function jobCommands(home: () => string, jobs: () => JobRunner): Command[] {
 	const steer = (query: string, text: string) => {
@@ -53,15 +52,9 @@ function command(name: keyof typeof USAGE, count: number, run: Run, phone?: Comm
 		doc: new URL(`../docs/commands/${name}.md`, import.meta.url),
 		...(phone === undefined ? {} : { phone }),
 		async run({ args }) {
-			const words: string[] = [];
-			let budget: string | undefined;
-			for (let index = 0; index < args.length; index++) {
-				const arg = args[index] ?? "";
-				if (!arg.startsWith("--")) words.push(arg);
-				else if (arg !== "--budget" || name !== "continue") return usage(name, `unknown flag ${arg}`);
-				else if (budget !== undefined) return usage(name, "--budget given twice");
-				else if (!AMOUNT.test((budget = args[++index] ?? ""))) return usage(name, `--budget needs a number of 0 or more, got ${budget || "nothing"}`);
-			}
+			const parsed = parseFlags(args, name === "continue" ? { budget: (value, before) => (before === undefined ? amount(value, before) : "given twice") } : {});
+			if (typeof parsed === "string") return usage(name, parsed);
+			const { words, values: { budget } } = parsed;
 			if (count >= 0 && words.length !== count) return usage(name, `expected ${["no arguments", "the id", "the id and one quoted text"][count]}, got ${words.length} arguments`);
 			return run(words, budget);
 		},

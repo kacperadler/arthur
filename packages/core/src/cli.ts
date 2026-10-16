@@ -74,7 +74,7 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 		if (loadedBoard === undefined) throw new Error(`the board needs the project list, and arthur.config.ts did not load:\n${problem}`);
 		return loadedBoard;
 	};
-	for (const command of [ticketCommand(board), ...boardCommands(board)]) commands.register("core", command);
+	for (const command of [ticketCommand(board), ...boardCommands(board, () => loaded()?.home)]) commands.register("core", command);
 	commands.register(
 		"core",
 		rolesCommand(() => {

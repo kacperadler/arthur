@@ -97,11 +97,11 @@ test("uncommitted changes stay in the main checkout and are not in the job", asy
 	assert.equal(git(job.worktree, "status", "--porcelain"), "");
 });
 
-// Nothing of a job exists: no record, no worktree, no branch but main, no event.
-function nothingMade(root: string, home: string): void {
+// Nothing of a job exists: no record, no worktree, no branch but `names` (main), no event.
+function nothingMade(root: string, home: string, names: readonly string[] = ["main"]): void {
 	assert.equal(existsSync(join(home, "jobs")) && readdirSync(join(home, "jobs")).length > 0, false, "a record");
 	assert.equal(existsSync(join(dirname(root), ".arthur-worktrees")) && readdirSync(join(dirname(root), ".arthur-worktrees")).length > 0, false, "a worktree");
-	assert.deepEqual(branches(root), ["main"]);
+	assert.deepEqual(branches(root), names);
 	assert.deepEqual(git(root, "worktree", "list", "--porcelain").match(/^worktree /gm)?.length, 1);
 	assert.deepEqual(readEvents(home, 1), []);
 }
@@ -212,6 +212,23 @@ test("two spawns at once get distinct ids, branches and worktrees", async () => 
 	assert.notEqual(one?.id, two?.id);
 	assert.deepEqual(branches(root).sort(), [`arthur/${one?.id}`, `arthur/${two?.id}`, "main"].sort());
 	assert.equal(readFileSync(join(home, "jobs", one?.id ?? "", "task"), "utf8"), "One.");
+});
+
+test("a branch named arthur refuses a worker before anything exists, naming the fix; a read-only kind still spawns", async () => {
+	const { root, home } = repository();
+	git(root, "branch", "arthur");
+	const jobs = runner(home, root);
+	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
+	const seen: string[] = [];
+	jobs.beforeSpawn("delivery", () => void seen.push("checked"));
+	await assert.rejects(jobs.spawn({ task: "Go." }), {
+		message: `${root} has a branch named arthur, so Git cannot create a worker's branch arthur/<id> beside it; rename it: git branch -m arthur <new-name>`,
+	});
+	nothingMade(root, home, ["arthur", "main"]);
+	assert.deepEqual(seen, []);
+	const job = await jobs.spawn({ task: "Review it.", kind: "review" });
+	assert.equal(job.branch, undefined);
+	assert.ok(existsSync(job.worktree));
 });
 
 test("a folder outside Git and a repository with no commit are refused", async () => {

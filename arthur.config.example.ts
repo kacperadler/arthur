@@ -122,11 +122,15 @@ export default defineConfig({
 		}),
 
 		// The coordinator's one long conversation: compacted during the day, new every night, restarted when merged code
-		// must load. Needs `orchestration`. The clock is core.timeZone.
+		// must load. Before a compaction or a fresh start the coordinator writes `.arthur/session/handoff.md` (work in
+		// progress, next steps, every unanswered question to the human with when it was asked), which the next conversation
+		// reads first; a failed write withdraws that compaction or try. Needs `orchestration`. The clock is core.timeZone.
 		session({
-			compactAt: ["08:00", "13:00", "18:00"],
+			compactAt: ["08:00", "13:00", "18:00"], // running jobs do not hold a compaction back
 			compactWaitSeconds: 1800, // wait this long for an idle session, then skip that compaction
-			freshAt: "23:00", // a fresh conversation (no --continue); skipped while any job runs
+			freshAt: "23:00", // a fresh conversation (no --continue), only once no job of any kind (worker, review, ...) runs
+			freshRetryMinutes: 15, // while a job runs, try again this often; a positive whole number; default 15
+			freshUntil: "03:00", // "HH:MM", the last try (the next day when earlier than freshAt); then that night is skipped
 			restartGuard: true, // refuse a spawn after a merge changed code the session loaded; the phone commands below clear it
 			probeLlm: true, // one word asked of the model at start; the channels say when there is no access
 			// Registers the phone commands `/restart` and `/restart fresh`: answered without the model, refused while any job runs.

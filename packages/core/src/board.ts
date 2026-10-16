@@ -1,4 +1,4 @@
-import { mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { type Entry, ID, readBoard, STATUSES, type Status, writeBoard } from "./board-file.ts";
 import type { Clock } from "./clock.ts";
@@ -28,6 +28,9 @@ export type Board = {
 
 const FILE = "spec/build.json";
 const FEATURES = "spec/features";
+// The board's lock and temporary files: a folder beside the board, so a rename from it stays on the board's filesystem and
+// is atomic, whose `.gitignore` ignores the folder whole, so a writer killed mid-write leaves nothing a commit could take.
+const TRANSIENT = "spec/.board";
 
 // `lists`: what every provider of `projects` returned; `emit`: an event, named by whoever holds this board.
 export function board(lists: () => readonly unknown[], clock: Clock, emit: (name: string, data: unknown) => unknown): Board {
@@ -39,15 +42,18 @@ export function board(lists: () => readonly unknown[], clock: Clock, emit: (name
 	};
 	const owner = (id: string): Project | undefined => projects(lists()).find((each) => ID.exec(id)?.[1] === each.prefix);
 	const tickets = (where: Project): Ticket[] => readBoard(join(where.path, FILE)).map((entry) => ({ ...entry, project: where.name }));
-	// Under the board's lock: read, change, and write the board only when `change` added or replaced a ticket.
-	const write = <T>(where: Project, change: (entries: Entry[]) => T): T => {
+	// Under the board's lock: read, change, and write the board only when `change` added or replaced a ticket. The temporary
+	// files have fixed names: only the lock's holder writes them, over whatever a killed holder left.
+	const write = <T>(where: Project, change: (entries: Entry[], transient: string) => T): T => {
 		const file = join(where.path, FILE);
-		mkdirSync(join(where.path, "spec"), { recursive: true });
-		return withLock(`${file}.lock`, () => {
+		const transient = transientFolder(where);
+		return withLock(join(transient, "build.json.lock"), () => {
 			const entries = readBoard(file);
 			const before = [...entries];
-			const result = change(entries);
-			if (entries.length !== before.length || entries.some((entry, index) => entry !== before[index])) writeBoard(file, entries);
+			const result = change(entries, transient);
+			if (entries.length !== before.length || entries.some((entry, index) => entry !== before[index])) {
+				writeBoard(file, entries, join(transient, "build.json.tmp"));
+			}
 			return result;
 		});
 	};
@@ -61,12 +67,12 @@ export function board(lists: () => readonly unknown[], clock: Clock, emit: (name
 			const problem = checkTitle(title);
 			if (problem !== undefined) throw new Error(`${problem}: ${JSON.stringify(title)}`);
 			const where = project(name);
-			const entry = write(where, (entries) => {
+			const entry = write(where, (entries, transient) => {
 				const id = `${where.prefix}${String(lastNumber(where, entries) + 1).padStart(4, "0")}`;
 				const folder = `${FEATURES}/${id}-${slug(title)}`;
 				mkdirSync(join(where.path, folder), { recursive: true });
 				const path = `${folder}/ticket.md`;
-				writeWhole(join(where.path, path), ticketText(id, title, clock.local().date));
+				writeWhole(join(where.path, path), ticketText(id, title, clock.local().date), join(transient, "ticket.md.tmp"));
 				const created: Entry = { id, title, status: "planning", path, updated: clock.now().toISOString() };
 				entries.push(created);
 				return created;
@@ -116,10 +122,17 @@ function refuseGuidance(where: Project, entry: Entry): void {
 	if (left.length > 0) throw new Error(`${entry.id}: not planned: ${entry.path} still holds the template's guidance, replace it first:\n${left.join("\n")}`);
 }
 
-function writeWhole(path: string, text: string): void {
-	const temporary = `${path}.${process.pid}.tmp`;
-	writeFileSync(temporary, text, { flag: "wx" });
+function writeWhole(path: string, text: string, temporary: string): void {
+	writeFileSync(temporary, text);
 	renameSync(temporary, path);
+}
+
+function transientFolder(where: Project): string {
+	const folder = join(where.path, TRANSIENT);
+	mkdirSync(folder, { recursive: true });
+	const ignore = join(folder, ".gitignore");
+	if (!existsSync(ignore) || readFileSync(ignore, "utf8") !== "*\n") writeFileSync(ignore, "*\n");
+	return folder;
 }
 
 const PREFIX = /^[A-Z]+$/;

@@ -38,3 +38,5 @@ Out:
 ## Decisions
 
 - 2026-10-16: Cut from `spec/roadmap.md` entry 10 by the coordinator; AR tickets need no approval (the owner, 2026-10-16).
+- 2026-10-16: Coordinator: OK on `roles.model` as a provided hook (role name -> model, thinking; agent default with no provider; `--model`/`--thinking` override); entry 26 provides it.
+- 2026-10-16: Coordinator: OK on refusing a symlinked override or criteria file (never read) and warning on an empty criteria file.

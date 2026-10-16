@@ -16,6 +16,6 @@ Said, without running anything:
 - `--project` without a name, or given twice: exit code 2.
 - A command that throws: `arthur <command>: <message>`; exit code 1.
 
-Phone commands: a command may also answer `/<name> <text>` on a channel, without the model. A channel routes the message to the host and sends back the reply: the command's answer, `unknown command /<name>; phone commands: /a, /b` for a name no phone command has, or `/<name> failed: <first line of the error>` when it throws. A channel's command menu lists the phone commands, each with its one line.
+Phone commands: a command may also answer `/<name> <text>` on a channel, without the model. A channel routes the message to the host and sends back the reply: the command's answer, `unknown command /<name>; phone commands: /a, /b` for a name no phone command has, or `/<name> failed: <first line of the error>` when it throws. A channel's command menu lists the phone commands, each with its one line. So that every phone command fits Telegram's menu, a phone command is also refused at start when its name has a dash or more than 32 characters, or its line is empty, only spaces, or longer than 256 characters; a command without a phone side keeps its dashes (`arthur review-needed`).
 
 Exit code: 0 when the page or the list is printed, 1 when a doc file is gone, 2 on wrong usage or an unknown command.

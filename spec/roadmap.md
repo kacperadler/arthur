@@ -330,8 +330,8 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 ### 35. Compaction during the day
 
 - Package: session.
-- Delivers: at each `compactAt` time in `timeZone`, the coordinator's conversation is compacted with the agent's own compaction, once the session is idle with nothing queued; after `compactWaitSeconds` the request is withdrawn with one line (`compact: skipped, session busy for N s`); nothing happens when no session runs; running jobs do not matter.
-- Done means: edge cases: a slot missed while Arthur was down is skipped, not run late; two slots close together never queue two compactions; daylight saving days.
+- Delivers: at each `compactAt` time in `timeZone`, once the session is idle with nothing queued, the coordinator first writes a handoff, `.arthur/session/handoff.md`: the work in progress, the next steps, and every question to the human still unanswered, with when it was asked; then the conversation is compacted with the agent's own compaction, and the compacted conversation starts by reading the handoff. After `compactWaitSeconds` the request is withdrawn with one line (`compact: skipped, session busy for N s`); a handoff write that fails (no new handoff when the coordinator's turn ends) withdraws the compaction with one line (`compact: skipped, handoff not written: <reason>`); nothing happens when no session runs; running jobs do not block compaction.
+- Done means: edge cases: a slot missed while Arthur was down is skipped, not run late; two slots close together never queue two compactions; daylight saving days; a handoff write that fails withdraws the compaction with one line and leaves the conversation as it was; an empty handoff is not read back.
 - Depends on: 24, 7.
 - Size: half a day to a day.
 - Covers: S2.
@@ -339,8 +339,8 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 ### 36. Fresh start, `/restart` and `/restart fresh`
 
 - Package: session.
-- Delivers: at `freshAt` a new conversation (no `--continue`), skipped while any job runs; phone commands `/restart` and `/restart fresh`, answered without the model and refused while any job runs (`error: N jobs running: …; run /stopall first`), the command's message not read again by the next coordinator; after a restart one `Restarted.` message with the steps left in `.arthur/session/after-restart.md` and the health lines collected from other plugins.
-- Done means: edge cases: the fresh slot at no other hour, a missed slot not run late; `/restart` with one job running; an empty `after-restart.md` is not sent; the notice says `(fresh session)` after a fresh start.
+- Delivers: at `freshAt` a new conversation (no `--continue`), only once no job runs, of any kind (worker, review, plan, audit, …); while one runs, it tries again every `freshRetryMinutes` (default 15), the last try at `freshUntil` (default `"03:00"`), then skips that night with one line (`fresh: skipped, N jobs running at <freshUntil>`). Before it the coordinator writes the handoff of entry 35, and the new conversation starts by reading it; a handoff write that fails withdraws that try with one line, and the next try writes it again. Phone commands `/restart` and `/restart fresh`, answered without the model and refused while any job runs (`error: N jobs running: …; run /stopall first`), the command's message not read again by the next coordinator. Both first ask the coordinator for the same handoff (`.arthur/session/handoff.md`, entry 35), and the new conversation starts by reading it: `/restart` keeps `--continue` and `/restart fresh` does not, so the handoff carries the work in progress and the unanswered questions across every way a conversation ends. After a restart one `Restarted.` message with the steps left in `.arthur/session/after-restart.md` (the steps for the human, not the handoff) and the health lines collected from other plugins; a handoff not written in time does not stop the restart, and the message says `handoff not written`.
+- Done means: `freshUntil` that is not `"HH:MM"` and `freshRetryMinutes` that is not a positive whole number are refused at load, naming the option. Edge cases: no fresh start outside the window from `freshAt` to `freshUntil`; Arthur down at `freshAt` skips that night, not run late; a job that ends just before `freshUntil` (the try at `freshUntil` starts the fresh conversation); `freshUntil` earlier than `freshAt`, the window across midnight, and equal to it, a single try; a job started during the wait (the wait goes on); a handoff write that fails at one try; an empty handoff is not read back; a handoff older than the last one read is not read again; `/restart` with one job running; `/restart` or `/restart fresh` with no coordinator running asks for no handoff; an empty `after-restart.md` is not sent; the notice says `(fresh session)` after a fresh start.
 - Depends on: 35, 23.
 - Size: a day.
 - Covers: S3, S4, T15, O4.
@@ -862,7 +862,7 @@ Each row is one capability of the harness Arthur replaces, as it was inventoried
 | S7 | The service and the user manager survive; controllers delegated | 8; delegation 13 |
 | S8 | The VPS recipe | 8 |
 
-Session options: `compactAt` 35; `freshAt` 36; `timeZone` 7; `compactWaitSeconds` 35; `exitWaitSeconds`, `restartDelaySeconds` and the tmux session 23 (options of `orchestration`); no restart, stop or fresh start while jobs run, a rule in 23 and 36; `restartGuard` 37; `probeLlm` 38; the coordinator's model 26; the session's files in `.arthur/session/` 36.
+Session options: `compactAt` 35; `freshAt`, `freshRetryMinutes` and `freshUntil` 36; `timeZone` 7; `compactWaitSeconds` 35; `exitWaitSeconds`, `restartDelaySeconds` and the tmux session 23 (options of `orchestration`); no restart, stop or fresh start while jobs run, a rule in 23 and 36; `restartGuard` 37; `probeLlm` 38; the coordinator's model 26; the session's files in `.arthur/session/`: the handoff 35, the rest 36.
 
 ### Telegram
 

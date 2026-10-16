@@ -110,6 +110,7 @@ export function jobRunner(home: string, folder: string, limits: Limits, time: Cl
 			const { root, project } = checkout(request.project);
 			const commit = head(root);
 			if (commit === undefined) throw new Error(`${root} has no commit yet; a job starts from HEAD`);
+			if (!kind.readOnly && branchExists(root, "arthur")) throw new Error(`${root} has a branch named arthur, so Git cannot create a worker's branch arthur/<id> beside it; rename it: git branch -m arthur <new-name>`);
 			const tickets = [...new Set(Array.from(request.task.matchAll(TICKET), (match) => (match[1] ?? "").replace(/[.,;:!?)]+$/, "")))];
 			const missing = tickets.filter((path) => !fileAt(root, commit, path));
 			if (missing.length > 0) throw new Error(`Ticket: ${missing.join(", ")}: no such file at HEAD (${commit.slice(0, 7)}); commit it first`);

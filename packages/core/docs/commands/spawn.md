@@ -21,6 +21,7 @@ Refused, before any worktree or record exists (exit code 1, the reason after `ar
 - An unknown kind: `unknown kind <name>; kinds: <registered kinds>`.
 - A kind whose role no plugin registered, or whose role file is missing: `role <role> is not registered; roles: <roles>`, `role <role>: its role file <path> is missing`.
 - An empty task: `the task is empty`.
+- A worker in a repository with a branch named `arthur`, where Git cannot create `arthur/<id>`: `<repository> has a branch named arthur, so Git cannot create a worker's branch arthur/<id> beside it; rename it: git branch -m arthur <new-name>`. A read-only kind is not refused.
 - A `Ticket: <path>` in the task whose file is not in HEAD, for example a ticket not committed yet: `Ticket: <paths>: no such file at HEAD (<commit>); commit it first`. Each `Ticket:` the task names is checked; the path ends at a space, and a closing `.`, `,`, `;`, `:`, `!`, `?` or `)` is not part of it.
 - A plugin's `beforeSpawn` check that gives a reason: `refused by <plugin>: <reason>`; one that throws: `plugin <plugin>: beforeSpawn failed: <message>`.
 - A project that is not the main one: `unknown project <name>; the only project is <name>`.

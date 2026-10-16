@@ -10,13 +10,18 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0031 `arthur config check` passes a plugin list the host refuses (19a97a0)
 - AR0038 Roadmap: Later entries for the web panel, a knowledge base and a company edition (ea98772)
 - AR0039 `arthur config check` says ok when a plugin's `setup` refuses the start (82a9965)
+- AR0041 Roadmap 35-36: a handoff before compaction, and a fresh start that retries (ec7ac04)
+- AR0043 `/restart fresh` starts a new conversation without the handoff (438705e)
 
 ### Fixed
 
 - AR0026 `arthur plugin new` meets the line-budget rule (a263149)
 - AR0028 An instance name can produce the same variable prefix as another plugin (859864c)
 - AR0030 Owner lookup takes the first longer prefix, not the longest (6ec64d6)
+- AR0032 A phone command name with a dash cannot go into Telegram's command menu (5194823)
 - AR0036 The lock's dead-holder takeover race has no test (73aa034)
+- AR0040 A crash mid-write leaves the board's lock or temporary file in the project's `spec/` (1d374f8)
+- AR0042 A project with a branch named `arthur` can spawn no worker (7e8d03d)
 
 ### Changed
 

@@ -10,7 +10,7 @@ The ticket board of a project: each ticket is a folder `spec/features/<id>-<slug
 
 Ids are the project's prefix and a number of at least 4 digits, from 1 (`AR0001`), one above the highest number the board or a ticket folder of that prefix has, so a dropped ticket's id is never given again. The folder's slug is the title in lowercase letters and digits joined by dashes, cut at a dash to at most 80 characters.
 
-The projects, each with its folder and prefix, are the list the `projects` plugin provides; the main project is the first one. One writer at a time: each change holds `spec/build.json.lock` for the moment it reads and writes the board, so two writers at once never lose a change; a lock whose process is gone is taken over. The board is written to a temporary file and renamed, so a reader never sees half of it.
+The projects, each with its folder and prefix, are the list the `projects` plugin provides; the main project is the first one. One writer at a time: each change holds `spec/.board/build.json.lock` for the moment it reads and writes the board, so two writers at once never lose a change; a lock whose process is gone is taken over. The board and a new `ticket.md` are written to a temporary file in `spec/.board/` and renamed, so a reader never sees half of either. `spec/.board/` holds a `.gitignore` of `*`, written back on each change when it differs, so a writer killed mid-write leaves nothing Git shows or commits.
 
 Refused, one line each, with exit code 1:
 

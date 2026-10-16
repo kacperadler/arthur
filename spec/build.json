@@ -115,9 +115,9 @@
   {
     "id": "AR0013",
     "title": "Roadmap 10: Prompt loader and arthur roles",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0013-roadmap-10-prompt-loader-and-arthur-roles/ticket.md",
-    "updated": "2026-10-16T09:46:24.405Z",
+    "updated": "2026-10-16T12:02:46.281Z",
     "after": [
       "AR0012"
     ]
@@ -197,9 +197,9 @@
   {
     "id": "AR0021",
     "title": "Roadmap 18: Ticket board: transitions, after, the digest, and the board's phone commands",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0021-roadmap-18-ticket-board-transitions-after-the-digest-and-the-board-s-phone-commands/ticket.md",
-    "updated": "2026-10-16T09:46:27.147Z",
+    "updated": "2026-10-16T11:51:35.143Z",
     "after": [
       "AR0020",
       "AR0012"
@@ -297,9 +297,9 @@
   {
     "id": "AR0032",
     "title": "A phone command name with a dash cannot go into Telegram's command menu",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0032-a-phone-command-name-with-a-dash-cannot-go-into-telegram-s-command-menu/ticket.md",
-    "updated": "2026-10-16T10:45:57.775Z",
+    "updated": "2026-10-16T11:51:20.607Z",
     "after": [
       "AR0012"
     ]
@@ -321,9 +321,9 @@
   {
     "id": "AR0035",
     "title": "An event a command emits reaches the log but not the daemon's subscribers",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0035-an-event-a-command-emits-reaches-the-log-but-not-the-daemon-s-subscribers/ticket.md",
-    "updated": "2026-10-16T10:53:49.207Z",
+    "updated": "2026-10-16T11:59:33.714Z",
     "after": [
       "AR0011"
     ]
@@ -359,22 +359,29 @@
   {
     "id": "AR0040",
     "title": "A crash mid-write leaves the board's lock or temporary file in the project's `spec/`",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0040-a-crash-mid-write-leaves-the-board-s-lock-or-temporary-file-in-the-project-s-spec/ticket.md",
-    "updated": "2026-10-16T11:42:32.277Z"
+    "updated": "2026-10-16T11:45:53.284Z"
   },
   {
     "id": "AR0041",
     "title": "Roadmap 35-36: a handoff before compaction, and a fresh start that retries",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0041-roadmap-35-36-a-handoff-before-compaction-and-a-fresh-start-that-retries/ticket.md",
-    "updated": "2026-10-16T11:43:21.627Z"
+    "updated": "2026-10-16T11:44:06.610Z"
   },
   {
     "id": "AR0042",
     "title": "A project with a branch named `arthur` can spawn no worker",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0042-a-project-with-a-branch-named-arthur-can-spawn-no-worker/ticket.md",
-    "updated": "2026-10-16T11:43:30.289Z"
+    "updated": "2026-10-16T11:50:44.407Z"
+  },
+  {
+    "id": "AR0043",
+    "title": "`/restart fresh` starts a new conversation without the handoff",
+    "status": "merged",
+    "path": "spec/features/AR0043-restart-fresh-starts-a-new-conversation-without-the-handoff/ticket.md",
+    "updated": "2026-10-16T11:47:12.097Z"
   }
 ]

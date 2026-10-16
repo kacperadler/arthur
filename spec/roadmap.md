@@ -218,8 +218,8 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 ### 23. The coordinator's process and `arthur attach`
 
 - Package: orchestration.
-- Delivers: the plugin, required; its options (`maxAgents`, `coordinator`, `roles`, `plan`, `autopilot`, `morningReport`) checked; one interactive `omp` in its own tmux session (`coordinator.tmux`), with `--continue` and the coordinator's model and thinking; started again `restartDelaySeconds` after it ends for any reason; a start waits up to `exitWaitSeconds` for the previous `omp` to exit, so two never refresh the agent's credential at once; `arthur attach`; `arthur coordinator stop`, refused while any job runs; the coordinator's role file, in English.
-- Done means: tested with the fake agent and a tmux socket in the test's folder. Edge cases: the previous `omp` still alive after the wait (the start is refused and logged, then retried); the coordinator crashing in a loop does not spin faster than the delay; `attach` with no session says so.
+- Delivers: the plugin, required; its options (`maxAgents`, `coordinator`, `roles`, `plan`, `autopilot`, `morningReport`) checked; one interactive `omp` in its own tmux session (`coordinator.tmux`), with `--continue` and the coordinator's model and thinking, started with `-e` on `@arthur/core/env-guard` like every job; started again `restartDelaySeconds` after it ends for any reason; a start waits up to `exitWaitSeconds` for the previous `omp` to exit, so two never refresh the agent's credential at once; `arthur attach`; `arthur coordinator stop`, refused while any job runs; the coordinator's role file, in English.
+- Done means: tested with the fake agent and a tmux socket in the test's folder. Edge cases: the previous `omp` still alive after the wait (the start is refused and logged, then retried); the coordinator crashing in a loop does not spin faster than the delay; `attach` with no session says so; a coordinator tool call naming a secrets file (`.env`) is refused with the env guard's line.
 - Depends on: 8, 10, 15.
 - Size: a day.
 - Covers: S1, O1, the coordinator's settings and the session options it owns.

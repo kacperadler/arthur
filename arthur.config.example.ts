@@ -38,18 +38,20 @@ import { youtrack } from "@arthur/youtrack"; // first, named
 
 export default defineConfig({
 	// The core's own options: where its files live, what every job may use, and the clock every plugin shares.
-	// None is a secret, so all are literal here.
+	// None is a secret, so all are literal here. Each may be left out; its default is the value shown unless the comment says
+	// otherwise. Relative paths are taken from this file's folder. An unknown option, a wrong type or value refuses the start.
 	core: {
 		home: ".arthur", // jobs, logs, the board's lock
 		envFile: ".env", // read for the `...Env` names below; the file is never committed
 		agent: { command: "omp" }, // the agent CLI; OMP only
-		timeZone: "Europe/Warsaw", // read by schedule, session, telegram and orchestration through the host
-		quietHours: { from: "22:00", to: "07:30" }, // channels send without a notification; the coordinator answers in one line
+		timeZone: "Europe/Warsaw", // read by schedule, session, telegram and orchestration through the host; default: the host's
+		quietHours: { from: "22:00", to: "07:30" }, // channels send without a notification; the coordinator answers in one line;
+		// "HH:MM", both required; left out = no quiet hours
 		jobs: {
 			timeoutMinutes: 120, // one job's time; the resources plugin adds its CPU and memory
-			budgetUsd: 2, // one job's money
-			cpu: undefined, // cores all jobs together may use; undefined = host cores minus 1
-			memory: "70%", // systemd MemoryMax syntax
+			budgetUsd: 2, // one job's money; 0 = no limit
+			cpu: undefined, // cores all jobs together may use, above 0; undefined = host cores minus 1 (at least 1)
+			memory: "70%", // systemd MemoryMax syntax: bytes with K, M, G or T, a percentage up to 100%, or "infinity"
 			idleMinutes: 10, // a running job with no output or tool call this long is `idle`; 0 = never
 			offlineGraceMinutes: 30, // a job whose machine stops answering is `blocked` this long, then failed
 		},

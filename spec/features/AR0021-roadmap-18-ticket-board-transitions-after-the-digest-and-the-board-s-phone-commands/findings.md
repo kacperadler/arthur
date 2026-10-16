@@ -13,7 +13,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/host.ts` (`loadPlugins` subscribes the core's board to `job-started`), `packages/core/src/testing.ts` (`fakeHost` does not)
 - What: in a real load, a worker's `job-started` moves each ticket its task names to in-progress. `fakeHost` builds its own bus, board and job runner without that subscription, so a plugin tested against it (delivery's hand-back, 55) sees its spawned worker's ticket stay in `planned`, unlike in production.
 - Suggestion: move the subscription into one exported function of the core (for example beside `board()`), called by both `loadPlugins` and `fakeHost`, with a fake-host test that a worker spawn moves the ticket. `testing.ts` was out of this ticket's files.
-- Status: open
+- Status: ticket AR0047
 
 ## F2. A worker spawned on a ticket still in planning, or merged or dropped, starts anyway
 
@@ -22,7 +22,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/host.ts` (the `job-started` handler)
 - What: the move to in-progress happens after the job exists, so a ticket the table does not let move (planning, merged, dropped) only gets a line `plugin core: handler of job-started (event N) failed: AC0001: merged cannot move to in-progress; ...` on stderr, and the worker runs on a ticket that was never approved or is already closed (reproduced in `packages/core/test/spawn.test.ts`, the last test).
 - Suggestion: a core `beforeSpawn` check that refuses a worker whose ticket cannot move to in-progress, naming the ticket and its status; the handler then never fails on a status. Out: the plan check of entry 28.
-- Status: open
+- Status: ticket AR0048
 
 ## F3. `/findings` does not show findings a worker wrote on its branch
 
@@ -31,4 +31,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/board-commands.ts` (`fileReply`)
 - What: `/findings <id>` reads `findings.md` from the project's main checkout. A worker writes its findings on its branch, so until the merge `/findings` answers `no findings` while the branch holds some. The harness Arthur replaces showed the newest worker branch's version, marked "not merged".
 - Suggestion: when a job of the ticket has a branch that still exists and its `findings.md` differs from main's, answer with the branch's version (`git show <branch>:<path>`), headed `findings from branch <branch> (not merged)`. Needs the job records' ticket and branch (entries 9, 15).
-- Status: open
+- Status: ticket AR0049

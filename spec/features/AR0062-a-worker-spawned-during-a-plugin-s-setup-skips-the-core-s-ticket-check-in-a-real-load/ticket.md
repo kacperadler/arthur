@@ -37,3 +37,4 @@ In:
 
 - 2026-10-16: Source: F1 of AR0060
 - 2026-10-16: Coordinator: refuse a spawn during setup (setup registers; start runs), not reorder the check.
+- 2026-10-16: Coordinator: OK on `fake.setup(plugin)` on the fake host (it must run setup to know when setup runs); plugin tests call it instead of `plugin.setup(fake.host)`.

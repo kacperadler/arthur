@@ -135,9 +135,9 @@
   {
     "id": "AR0015",
     "title": "Roadmap 12: Job limits: time and budget",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0015-roadmap-12-job-limits-time-and-budget/ticket.md",
-    "updated": "2026-10-16T13:00:31.095Z",
+    "updated": "2026-10-16T13:22:33.963Z",
     "after": [
       "AR0014"
     ]

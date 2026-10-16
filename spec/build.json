@@ -485,8 +485,8 @@
   {
     "id": "AR0058",
     "title": "The styleguide forbids a plugin to read another plugin's folder, and voice reads the channel's saved file",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0058-the-styleguide-forbids-a-plugin-to-read-another-plugin-s-folder-and-voice-reads-the-channel-s-saved-file/ticket.md",
-    "updated": "2026-10-16T13:53:47.041Z"
+    "updated": "2026-10-16T13:56:12.052Z"
   }
 ]

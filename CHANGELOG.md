@@ -52,6 +52,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0074 Core: one flag parser for the CLI, spawn and continue (d6b7621)
 - AR0075 `arthur ticket all` goes; `arthur board all` is the full board (fccbd27)
 - AR0077 The node_modules copy moves to a prepare hook of the projects plugin (3d31a1c)
+- AR0078 The checks record file moves out of the wrapper into a delivery extension (02bd0f2)
 
 ### Other
 

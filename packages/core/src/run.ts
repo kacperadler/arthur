@@ -5,7 +5,8 @@ import type { Plugin } from "./plugin.ts";
 
 // `arthur run` (spec/roadmap.md, entry 8): Arthur as a process. Calls `start` of the plugins, already set up, in their setup
 // order, stays until SIGTERM (or SIGINT), then calls `stop` in reverse. One process per home folder: `<home>/run.pid` holds it.
-// From the lock on until the stops it follows the event log, so the events a command appends reach the plugins' subscribers.
+// From the lock on until the stops it follows the event log, so the events a command appends reach the plugins' subscribers;
+// those appended while no `arthur run` ran reach them at the start, after the last one delivered before (`events.ts`).
 
 const SIGNALS = ["SIGTERM", "SIGINT"] as const;
 // Under the 2^31 ms a timer can wait; it only keeps the process alive until a signal comes.
@@ -51,7 +52,7 @@ export async function runPlugins(plugins: readonly Plugin[], home: string, follo
 				console.log(`arthur run: pid ${process.pid} started ${started.map((plugin) => plugin.name).join(", ")}`);
 				await stopping;
 			}
-			// Once the plugins stop, no event another process appends reaches them.
+			// Once the plugins stop, the events another process appends wait for the next start.
 			unfollow();
 			started.reverse();
 			console.log(`arthur run: ${signalled ?? "a start failed"}: stopping ${started.map((plugin) => plugin.name).join(", ") || "nothing"}`);

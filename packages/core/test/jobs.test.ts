@@ -4,7 +4,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, readlinkSync, symlink
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { clock } from "../src/clock.ts";
-import { eventBus, readEvents } from "../src/events.ts";
+import { readEvents } from "../src/event-log.ts";
+import { eventBus } from "../src/events.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
 import { temporaryFolder } from "../src/testing.ts";
 

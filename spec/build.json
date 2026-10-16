@@ -513,8 +513,8 @@
   {
     "id": "AR0062",
     "title": "A worker spawned during a plugin's `setup` skips the core's ticket check in a real load",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0062-a-worker-spawned-during-a-plugin-s-setup-skips-the-core-s-ticket-check-in-a-real-load/ticket.md",
-    "updated": "2026-10-16T14:33:27.508Z"
+    "updated": "2026-10-16T14:33:48.915Z"
   }
 ]

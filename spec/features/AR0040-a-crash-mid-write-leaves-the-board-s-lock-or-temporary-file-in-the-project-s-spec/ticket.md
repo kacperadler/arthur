@@ -36,3 +36,4 @@ In:
 ## Decisions
 
 - 2026-10-16: Source: F2 of AR0020
+- 2026-10-16: Coordinator: OK on `spec/.board/` with its own `.gitignore` of `*` (same filesystem, so the rename stays atomic; no human-owned file is touched).

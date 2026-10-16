@@ -337,6 +337,7 @@ test("a copy brings only the log's new bytes, appended here; arthur remote-job r
 	const size = Buffer.byteLength(`${before}one more line ✓\n`);
 	assert.deepEqual(records(`0:${Buffer.byteLength(before)}`), { ...records("0:0"), logFrom: Buffer.byteLength(before), files: { ...records("0:0")?.files, log: "one more line ✓\n" } });
 	assert.deepEqual([records("0:0")?.logFrom, records("0:0")?.logSize, records(`0:${size + 1}`)?.logFrom], [0, size, 0], "a log shorter than asked comes whole");
+	assert.deepEqual([records(`0:${size}`)?.logFrom, records(`0:${size}`)?.files.log], [size, ""], "caught up exactly: nothing new, not the whole log");
 	writeFileSync(gate, "");
 });
 

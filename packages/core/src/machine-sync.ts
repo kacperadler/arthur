@@ -86,14 +86,14 @@ function unreachable(home: string, machine: Machine, bus: Bus, at: Date, graceMi
 		if (read("offline") === "") write(folder, "offline", at.toISOString());
 		const reason = `machine ${machine.name} unreachable since ${read("offline")}`;
 		const late = at.getTime() - Date.parse(read("offline")) >= graceMinutes * 60_000;
-		const failed = moveJob(home, id, bus, (now) => {
+		const moved = moveJob(home, id, bus, (now) => {
 			if (now.state === "ended") return undefined;
 			if (!late) return ["blocked", `dependency: ${reason}`];
 			rmSync(join(folder, "hold"), { force: true });
 			appendFileSync(join(folder, "log"), `[arthur ${at.toISOString()}] ended: ${OFFLINE}: ${reason}, past core.jobs.offlineGraceMinutes (${graceMinutes})\n`);
 			return ["ended", OFFLINE];
 		}, at);
-		if (failed && late) bus.emit("core", "job-ended", { id, kind: read("kind"), project: read("project"), state: "ended", reason: OFFLINE });
+		if (moved && late) bus.emit("core", "job-ended", { id, kind: read("kind"), project: read("project"), state: "ended", reason: OFFLINE });
 	}
 }
 

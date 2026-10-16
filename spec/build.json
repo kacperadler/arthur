@@ -557,9 +557,9 @@
   {
     "id": "AR0068",
     "title": "A continued worker leaves its ticket in review or done",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0068-a-continued-worker-leaves-its-ticket-in-review-or-done/ticket.md",
-    "updated": "2026-10-16T15:46:06.527Z",
+    "updated": "2026-10-16T15:46:40.327Z",
     "after": [
       "AR0018"
     ]

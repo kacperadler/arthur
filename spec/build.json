@@ -104,9 +104,9 @@
   {
     "id": "AR0012",
     "title": "Roadmap 9: Job runner: spawn and the job record",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0012-roadmap-9-job-runner-spawn-and-the-job-record/ticket.md",
-    "updated": "2026-10-16T11:20:10.944Z",
+    "updated": "2026-10-16T11:31:53.562Z",
     "after": [
       "AR0008",
       "AR0009"

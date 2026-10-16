@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
+import { once } from "node:events";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -185,16 +186,75 @@ test("a board file broken by hand is refused, naming the file, and never written
 			assert.throws(run, (error: Error) => error.message.startsWith(`${file}: ${problem}`) && error.message.endsWith("fix the file by hand, or restore it from Git"), text);
 		}
 		assert.equal(readFileSync(file, "utf8"), text);
-		assert.deepEqual(readdirSync(join(root, "spec")), ["build.json"], "no ticket folder, no temporary file, no lock left");
+		assert.deepEqual(readdirSync(join(root, "spec")).sort(), [".board", "build.json"], "no ticket folder left");
+		assert.deepEqual(readdirSync(join(root, "spec", ".board")), [".gitignore"], "no temporary file, no lock left");
 	}
 });
 
-test("a board lock left by a dead pid is taken over", () => {
-	const { board, file } = setup();
-	mkdirSync(join(file, ".."), { recursive: true });
-	writeFileSync(`${file}.lock`, String(spawnSync(process.execPath, ["-e", ""]).pid));
-	assert.equal(board.create("After a crash").id, "DM0001");
-	assert.deepEqual(readdirSync(join(file, "..")).sort(), ["build.json", "features"]);
+test("the board's own folder gets its .gitignore back when a crash or a hand left it empty or changed", () => {
+	for (const text of ["", "*", "build.json.tmp\n"]) {
+		const { board, root } = setup();
+		const ignore = join(root, "spec", ".board", ".gitignore");
+		mkdirSync(join(ignore, ".."), { recursive: true });
+		writeFileSync(ignore, text);
+		board.create("One");
+		assert.equal(readFileSync(ignore, "utf8"), "*\n", JSON.stringify(text));
+	}
+});
+
+// The writer is a real process, frozen at the rename that ends its write (the lock held, the temporary file written), then
+// killed. Git runs without the user's or the system's config.
+test("a writer killed mid-write leaves nothing Git shows, and the next write takes its lock over", async () => {
+	const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" };
+	const git = (root: string, ...args: string[]) => {
+		const run = spawnSync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.com", ...args], { cwd: root, env, encoding: "utf8" });
+		assert.equal(run.status, 0, run.stderr);
+		return run.stdout;
+	};
+	const source = (file: string) => JSON.stringify(pathToFileURL(join(import.meta.dirname, "..", "src", file)).href);
+	for (const [action, renamedTo, temporary] of [
+		[`move("DM0001", "done")`, "build.json", "build.json.tmp"],
+		[`create("Two")`, "ticket.md", "ticket.md.tmp"],
+	]) {
+		const { board, root } = setup();
+		git(root, "init", "--quiet");
+		board.create("One");
+		git(root, "add", "--all");
+		git(root, "commit", "--quiet", "--message", "One");
+		assert.equal(git(root, "status", "--porcelain", "--untracked-files=all"), "", "the board's own folder is ignored once it exists");
+		// `renameSync` is swapped on the `node:fs` module; `syncBuiltinESMExports` passes it to the board's named import of it.
+		const script = `
+			import fs from "node:fs";
+			import { syncBuiltinESMExports } from "node:module";
+			import { board } from ${source("board.ts")};
+			import { clock } from ${source("clock.ts")};
+			const rename = fs.renameSync;
+			fs.renameSync = (from, to) => {
+				if (String(to).endsWith(${JSON.stringify(renamedTo)})) {
+					fs.writeSync(1, "written\\n");
+					Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0);
+				}
+				return rename(from, to);
+			};
+			syncBuiltinESMExports();
+			board(() => [[{ name: "demo", path: ${JSON.stringify(root)}, prefix: "DM" }]], clock("UTC", undefined), () => {}).${action};
+		`;
+		const writer = spawn(process.execPath, ["--input-type=module", "-e", script], { stdio: ["ignore", "pipe", "inherit"] });
+		try {
+			await once(writer.stdout, "data");
+			const transient = join(root, "spec", ".board");
+			assert.deepEqual(readdirSync(transient).sort(), [".gitignore", "build.json.lock", temporary], action);
+			const exited = once(writer, "exit");
+			writer.kill("SIGKILL");
+			await exited;
+			assert.equal(git(root, "status", "--porcelain", "--untracked-files=all"), "", `killed during ${action}`);
+			assert.equal(board.move("DM0001", "in-progress").status, "in-progress");
+			assert.equal(git(root, "status", "--porcelain", "--untracked-files=all"), " M spec/build.json\n", `the write after ${action}`);
+			assert.deepEqual(readdirSync(transient).filter((name) => name.includes("lock")), [], "the dead holder's lock is gone");
+		} finally {
+			writer.kill("SIGKILL");
+		}
+	}
 });
 
 test("two writers at once never lose a change: every ticket of both is on the board, each with its own id", async () => {

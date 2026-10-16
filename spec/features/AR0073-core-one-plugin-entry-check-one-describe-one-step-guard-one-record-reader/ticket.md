@@ -39,3 +39,4 @@ Out:
 
 - 2026-10-16: Coordinator: from the core line review (AR0069), accepted.
 - 2026-10-16: The human: finish the work already started (AR0073), then pause Arthur; no new AR ticket starts until he says so.
+- 2026-10-16: Coordinator: 33 lines out (4372 -> 4339) is accepted; the report said "about 38" and A4 cannot save lines (the old reader was one line). Nothing outside A1 to A5 is cut here; C1 has its own ticket.

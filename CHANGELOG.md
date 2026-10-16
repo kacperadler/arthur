@@ -8,6 +8,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0027 Dev dependencies beyond the toolchain are not checked (226d399)
 
+### Changed
+
+- AR0029 README still says no feature code exists (e58e20e)
+
 ### Other
 
 - AR0001 Bootstrap: Arthur repository, docs, toolchain and the feature roadmap (bf0b60a)

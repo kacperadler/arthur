@@ -30,11 +30,12 @@ function repository(files: Readonly<Record<string, string>> = { "README.md": "ac
 // A runner whose clock reads 2026-10-16 in Warsaw, 23:30 UTC the evening before.
 function runner(home: string, root: string): JobRunner {
 	const time = clock("Europe/Warsaw", undefined, () => new Date("2026-10-15T23:30:00Z"));
-	return jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2 }, time, eventBus(home), () => []);
+	return jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2 }, "omp", time, eventBus(home), () => []);
 }
 
-const record = (home: string, id: string) =>
-	Object.fromEntries(readdirSync(join(home, "jobs", id)).map((name) => [name, readFileSync(join(home, "jobs", id, name), "utf8")]));
+// The files `names` of a record; the wrapper writes the run's files beside them as it goes.
+const record = (home: string, id: string, names: readonly string[]) =>
+	Object.fromEntries(names.map((name) => [name, readFileSync(join(home, "jobs", id, name), "utf8")]));
 const branches = (root: string) => git(root, "branch", "--list", "--format=%(refname:short)").split("\n");
 
 test("a worker gets its own branch and worktree from HEAD, the record and job-started", async () => {
@@ -46,7 +47,7 @@ test("a worker gets its own branch and worktree from HEAD, the record and job-st
 	assert.equal(git(worktree, "branch", "--show-current"), `arthur/${job.id}`);
 	assert.equal(git(worktree, "rev-parse", "HEAD"), git(root, "rev-parse", "HEAD"));
 	assert.equal(readFileSync(join(worktree, "README.md"), "utf8"), "acme\n");
-	assert.deepEqual(record(home, job.id), {
+	const spawned = {
 		task: "Fix the README.",
 		kind: "worker",
 		model: "anthropic/opus",
@@ -55,14 +56,16 @@ test("a worker gets its own branch and worktree from HEAD, the record and job-st
 		budget: "2",
 		branch: `arthur/${job.id}`,
 		root,
+		base: git(root, "rev-parse", "HEAD"),
 		worktree,
 		project: "acme",
 		prompt: readFileSync(new URL("../roles/worker.md", import.meta.url), "utf8"),
-	});
+	};
+	assert.deepEqual(record(home, job.id, Object.keys(spawned)), spawned);
 	assert.deepEqual(readdirSync(join(home, "jobs")), [job.id]);
 	const events = readEvents(home, 1).map(({ plugin, name, data }) => ({ plugin, name, data }));
 	const data = { id: job.id, kind: "worker", project: "acme", root, branch: `arthur/${job.id}`, worktree, tickets: [] };
-	assert.deepEqual(events, [{ plugin: "core", name: "job-started", data }]);
+	assert.deepEqual(events[0], { plugin: "core", name: "job-started", data });
 });
 
 test("a read-only kind gets a detached checkout of HEAD, no branch, and its own limits", async () => {
@@ -78,7 +81,7 @@ test("a read-only kind gets a detached checkout of HEAD, no branch, and its own 
 	assert.equal(git(job.worktree, "branch", "--show-current"), "");
 	assert.equal(git(job.worktree, "rev-parse", "HEAD"), git(root, "rev-parse", "HEAD"));
 	assert.deepEqual(branches(root), ["main"]);
-	const { branch, model, thinking, timeout, budget, kind } = record(home, job.id);
+	const { branch, model, thinking, timeout, budget, kind } = record(home, job.id, ["branch", "model", "thinking", "timeout", "budget", "kind"]);
 	assert.deepEqual({ branch, model, thinking, timeout, budget, kind }, { branch: "", model: "", thinking: "", timeout: "30", budget: "0.5", kind: "review" });
 });
 
@@ -171,7 +174,7 @@ test("prepare runs after the worktree and the record exist, before job-started; 
 	nothingMade(root, home);
 	const job = await jobs.spawn({ task: "Go." });
 	assert.equal(readFileSync(join(job.worktree, ".git-hook"), "utf8"), "placed");
-	assert.deepEqual(readEvents(home, 1).map((event) => event.name), ["job-started"]);
+	assert.deepEqual(readEvents(home, 1).map((event) => event.name).filter((name) => name !== "job-ended"), ["job-started"]);
 });
 
 test("node_modules is copied when the lockfile is the same, links kept as they are; not when it differs or is missing", async () => {

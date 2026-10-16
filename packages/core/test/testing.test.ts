@@ -154,6 +154,11 @@ test("a tmux command under the kit reaches no live server", { skip: !hasTmux() &
 	assert.match(run.stderr, /no server running|error connecting/);
 });
 
+test("omp under the kit is the fake agent with no run scripted: it fails, and no job of a test reaches the real agent", () => {
+	const run = spawnSync("omp", ["-p", "--mode", "json", "Fix it."], { encoding: "utf8" });
+	assert.deepEqual([run.status, run.stdout, run.stderr], [1, "", "fake agent: this test scripted no run\n"]);
+});
+
 function hasTmux(): boolean {
 	try {
 		execFileSync("tmux", ["-V"], { stdio: "ignore" });

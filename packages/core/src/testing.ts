@@ -1,6 +1,6 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { clock } from "./clock.ts";
 import { type Command, commandRegistry } from "./commands.ts";
 import type { QuietHours } from "./config.ts";
@@ -10,19 +10,49 @@ import { jobRunner, type Kind } from "./jobs.ts";
 import type { Role } from "./roles.ts";
 import { type Host, type Options, type Provider, pluginHost, registry } from "./plugin.ts";
 
-// The test kit (spec/roadmap.md, entry 4), published as `@arthur/core/testing`. Loading it is the safety net, and `npm test`
-// loads it into every test process (`--import`): every `ARTHUR_` variable and tmux's session variables are cleared and tmux's
-// default socket moves into a temporary folder, so a test reaches no live bot, token or tmux server; every folder the kit
-// makes is removed when the process exits, passed or failed.
+// The test kit (spec/roadmap.md, entries 4 and 11), published as `@arthur/core/testing`. Loading it is the safety net, and
+// `npm test` loads it into every test process (`--import`): every `ARTHUR_` variable and tmux's session variables are cleared
+// and tmux's default socket moves into a temporary folder, so a test reaches no live bot, token or tmux server; `omp` on
+// `PATH` is the kit's fake agent with no run scripted (it fails), so no job of a test reaches the real agent; every folder the
+// kit makes is removed when the process exits, passed or failed.
 
 for (const key of Object.keys(process.env)) if (key.startsWith("ARTHUR_") || key === "TMUX" || key === "TMUX_PANE") delete process.env[key];
 const root = mkdtempSync(join(tmpdir(), "arthur-test-"));
 process.env.TMUX_TMPDIR = root;
 process.on("exit", () => rmSync(root, { recursive: true, force: true }));
+process.env.PATH = [dirname(fakeAgent({ steps: [{ stderr: "fake agent: this test scripted no run" }], exitCode: 1 })), process.env.PATH].join(delimiter);
 
 // A new empty folder of the kit's, e.g. a test's home folder instead of a live `.arthur/`.
 export function temporaryFolder(): string {
 	return mkdtempSync(join(root, "folder-"));
+}
+
+// One step of a fake agent's run, played in order. `tool`: a tool call, omp's start and end events of it, `output` the tool's
+// text and `failed` its error flag. `message`: an assistant message that ends a turn, with its `cost` in USD; `stopReason`
+// `stop` (the default) ends the run, `toolUse` comes before a tool call, `error` or `aborted` is a failed one, with omp's
+// `error` text. `stdout`, `stderr`: one line printed as it is. `waitFor`: waits until the file exists. `signal`: the fake
+// kills itself with it.
+export type AgentStep =
+	| { readonly tool: string; readonly args?: Readonly<Record<string, unknown>>; readonly output?: string; readonly failed?: boolean }
+	| { readonly message: string; readonly cost?: number; readonly stopReason?: "stop" | "toolUse" | "error" | "aborted"; readonly error?: string }
+	| { readonly stdout: string }
+	| { readonly stderr: string }
+	| { readonly waitFor: string }
+	| { readonly signal: NodeJS.Signals };
+
+// A scripted run: its steps, then its exit code (default 0).
+export type AgentRun = { readonly steps: readonly AgentStep[]; readonly exitCode?: number };
+
+// The fake agent: an executable `omp` in a new folder of the kit's, which plays `run` each time it starts and notes each
+// start as one JSON line (`pid`, `cwd`, `args`) in `starts.jsonl` beside it. Returns its path: a test puts its folder first on
+// `PATH` or names it as `core.agent.command`.
+export function fakeAgent(run: AgentRun): string {
+	const folder = temporaryFolder();
+	const quote = (text: string) => `'${text.replaceAll("'", `'\\''`)}'`;
+	const player = [process.execPath, join(import.meta.dirname, "fake-agent.ts"), join(folder, "run.json")].map(quote).join(" ");
+	writeFileSync(join(folder, "run.json"), JSON.stringify(run));
+	writeFileSync(join(folder, "omp"), `#!/bin/sh\nexec ${player} "$@"\n`, { mode: 0o755 });
+	return join(folder, "omp");
 }
 
 // One `call` or `collect` the plugin made.
@@ -57,7 +87,7 @@ export type FakeHost = {
 // command's registration refuses like the real host's, naming the plugin. Its clock stands still at `now` (default
 // 2026-01-01T00:00:00Z) in `timeZone` (default UTC) until `setNow` moves it. `host.board` reads the project list the test
 // provides as `projects`. `host.jobs.spawn` starts from HEAD of the repository `root` (a test's own), with the core's
-// default limits; without `root` a spawn refuses.
+// default limits, and runs the agent `omp` that `PATH` finds; without `root` a spawn refuses.
 export function fakeHost(plugin: {
 	readonly name: string;
 	readonly options?: Options;
@@ -75,7 +105,7 @@ export function fakeHost(plugin: {
 	mkdirSync(folder);
 	let now = (plugin.now ?? new Date("2026-01-01T00:00:00Z")).getTime();
 	const time = clock(plugin.timeZone ?? "UTC", plugin.quietHours, () => new Date(now));
-	const jobs = jobRunner(home, plugin.root ?? home, { timeoutMinutes: 120, budgetUsd: 2 }, time, bus, names.collect);
+	const jobs = jobRunner(home, plugin.root ?? home, { timeoutMinutes: 120, budgetUsd: 2 }, "omp", time, bus, names.collect);
 	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder, clock: time });
 	const provided: string[] = [];
 	const calls: Use[] = [];

@@ -38,7 +38,7 @@ function repository(files: Readonly<Record<string, string | { readonly link: str
 
 function runner(root: string, home: string, names: Registry = registry()): JobRunner {
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
-	return jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2 }, time, eventBus(home), names.collect);
+	return jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2 }, "omp", time, eventBus(home), names.collect);
 }
 
 // A role file a plugin ships, outside every repository.
@@ -102,7 +102,7 @@ test("a missing criteria file, and a project without a criteria folder, warn and
 	const worker = await runner(bare.root, bare.home).spawn({ task: "Go." });
 	assert.deepEqual(worker.warnings, [`criteria file ${CRITERIA}/styleguide.md is missing; the worker goes without it`]);
 	assert.equal(prompt(bare.home, worker.id), WORKER);
-	assert.deepEqual(readEvents(bare.home, 1).map((event) => event.name), ["job-started"]);
+	assert.deepEqual(readEvents(bare.home, 1).map((event) => event.name).filter((name) => name !== "job-ended"), ["job-started"]);
 	const { root, home } = repository({ [`${CRITERIA}/review.md`]: "# Review\n", [`${CRITERIA}/empty.md`]: "\n  \n" });
 	const review = await withReviewer(root, home, ["styleguide", "review", "empty"]).spawn({ task: "Review it.", kind: "review" });
 	assert.deepEqual(review.warnings, [

@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 
-// The Git a job runner needs (spec/roadmap.md, entry 9), each one `git` call on the repository at `root`.
+// The Git a job runner needs (spec/roadmap.md, entries 9 and 11), each one `git` call on the repository at `root`.
 
 // Runs `git -C <root> <args>`; its output with the last newline removed, or an error with what Git said.
 function git(root: string, args: readonly string[]): string {
@@ -45,4 +45,9 @@ export function addWorktree(root: string, path: string, commit: string, branch: 
 export function removeWorktree(root: string, path: string, branch: string | undefined): void {
 	git(root, ["worktree", "remove", "--force", path]);
 	if (branch !== undefined) git(root, ["branch", "--quiet", "-D", branch]);
+}
+
+// The commits on `branch` since `base`, newest first, one `<short hash> <subject>` line each.
+export function commitsSince(root: string, base: string, branch: string): string {
+	return git(root, ["log", "--oneline", `${base}..${branch}`]);
 }

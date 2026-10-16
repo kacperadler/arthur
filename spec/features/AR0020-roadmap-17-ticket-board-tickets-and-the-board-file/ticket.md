@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: Cut from `spec/roadmap.md` entry 17 by the coordinator; AR tickets need no approval (the owner, 2026-10-16).
+- 2026-10-16: Coordinator: OK on the worker's design: the board reads projects (name, absolute path, prefix; first is the main one) from the plugin that provides `projects`; with none, `arthur ticket` refuses and names why. Prefixes stay only in the projects plugin (vision); entry 41 provides it.

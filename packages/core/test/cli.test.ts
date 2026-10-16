@@ -6,7 +6,7 @@ import { test } from "node:test";
 import { temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
-const CORE_LIST = "commands: config, help, ticket\n";
+const CORE_LIST = "commands: config, help, run, ticket\n";
 
 // A plugin's commands as a config holds them: `echo` prints what it got and exits 3, `boom` throws, `gone` loses its doc file
 // right after it registered it, before any `--help`.
@@ -33,7 +33,7 @@ function arthur(folder: string, ...args: string[]): { readonly status: number | 
 	return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
 }
 
-const ALL = "commands: boom, config, echo, gone, help, quiet, ticket\n";
+const ALL = "commands: boom, config, echo, gone, help, quiet, run, ticket\n";
 
 test("a plugin's command runs with its arguments and exits with its code; --project goes to the command, not its arguments", () => {
 	const folder = project();
@@ -99,8 +99,9 @@ test("--project without a name, or twice, is wrong usage", () => {
 test("when the config does not load, the core's commands still run and a list of commands says why the others are missing", () => {
 	const folder = project(CONFIG.replace('"orchestration"', '"schedule"'));
 	const check = arthur(folder, "config", "check");
-	assert.deepEqual([check.status, check.stderr], [0, ""]);
-	const why = `only the core's commands are listed: arthur.config.ts did not load:\n${join(folder, "arthur.config.ts")}: plugins: orchestration is required and missing; add orchestration({ ... })\n`;
+	const refusal = `${join(folder, "arthur.config.ts")}: plugins: orchestration is required and missing; add orchestration({ ... })`;
+	assert.deepEqual([check.status, check.stdout, check.stderr], [1, `${refusal}\nno enabled plugin names an env variable\n`, ""]);
+	const why = `only the core's commands are listed: arthur.config.ts did not load:\n${refusal}\n`;
 	const unknown = arthur(folder, "echo");
 	assert.deepEqual([unknown.status, unknown.stderr], [2, `arthur: unknown command echo\n${CORE_LIST}${why}`]);
 	const help = arthur(folder, "help");

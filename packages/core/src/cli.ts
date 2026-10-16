@@ -7,6 +7,8 @@ import { configCheck } from "./config-check.ts";
 import { loadConfig } from "./config.ts";
 import { loadPlugins } from "./host.ts";
 import { ticketCommand } from "./ticket-command.ts";
+import type { Plugin } from "./plugin.ts";
+import { runPlugins } from "./run.ts";
 
 // The `arthur` binary (spec/roadmap.md, entry 6): `arthur <command> [args]` runs a command the core or a plugin registered, on
 // `arthur.config.ts` in the working folder. The core's own commands run even when the config or a plugin does not load.
@@ -42,12 +44,17 @@ async function main(argv: readonly string[]): Promise<number> {
 	}
 }
 
+// What `arthur run` starts: the plugins as loaded, in setup order, and the home folder; `board`, the core's, for `arthur ticket`.
+type Loaded = { readonly plugins: readonly Plugin[]; readonly home: string; readonly board: Board };
+
 // Every command, the core's and the plugins'; when the config or a plugin does not load, the core's alone and the reason.
 async function load(): Promise<{ readonly commands: CommandRegistry; readonly problem?: string }> {
-	let board: Board | undefined;
-	const commands = core(undefined, () => board);
+	let loaded: Loaded | undefined;
+	const commands = core(undefined, () => loaded);
 	try {
-		({ board } = await loadPlugins(await loadConfig("arthur.config.ts"), process.env, commands));
+		const config = await loadConfig("arthur.config.ts");
+		const { plugins, board } = await loadPlugins(config, process.env, commands);
+		loaded = { plugins, home: config.core.home, board };
 		return { commands };
 	} catch (error) {
 		const problem = error instanceof Error ? error.message : String(error);
@@ -55,16 +62,15 @@ async function load(): Promise<{ readonly commands: CommandRegistry; readonly pr
 	}
 }
 
-// `problem`: why the plugins' commands are missing, said with every list of the commands. `board`: the loaded plugins' board,
-// undefined until they load or when they did not.
-function core(problem: string | undefined, board: () => Board | undefined): CommandRegistry {
+// `problem`: why the plugins' commands are missing, said with every list of the commands; `loaded` once the plugins are set up.
+function core(problem: string | undefined, loaded: () => Loaded | undefined): CommandRegistry {
 	const commands = commandRegistry();
 	commands.register(
 		"core",
 		ticketCommand(() => {
-			const loaded = board();
-			if (loaded === undefined) throw new Error(`the board needs the project list, and arthur.config.ts did not load:\n${problem}`);
-			return loaded;
+			const board = loaded()?.board;
+			if (board === undefined) throw new Error(`the board needs the project list, and arthur.config.ts did not load:\n${problem}`);
+			return board;
 		}),
 	);
 	commands.register("core", {
@@ -78,6 +84,19 @@ function core(problem: string | undefined, board: () => Board | undefined): Comm
 			const { lines, ok } = await configCheck("arthur.config.ts");
 			for (const line of lines) console.log(line);
 			return ok ? 0 : 1;
+		},
+	});
+	commands.register("core", {
+		name: "run",
+		doc: new URL("../docs/commands/run.md", import.meta.url),
+		run({ args }) {
+			if (args.length > 0) {
+				console.error("usage: arthur run");
+				return 2;
+			}
+			const app = loaded();
+			if (app === undefined) throw new Error(`arthur.config.ts did not load:\n${problem}`);
+			return runPlugins(app.plugins, app.home);
 		},
 	});
 	commands.register("core", {

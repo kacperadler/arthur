@@ -23,9 +23,11 @@ function project(plugins: string, envText?: string): string {
 	return folder;
 }
 
+const ORCHESTRATION = `{ name: "orchestration", setup() {} }`;
 const PLUGINS = `[
-	{ name: "youtrack", options: { instances: [{ urlEnv: "ARTHUR_YOUTRACK_URL" }, { name: "acme", tokenEnv: "ARTHUR_YOUTRACK_ACME_TOKEN" }] } },
-	{ name: "server", options: { enabled: false, tokenEnv: "ARTHUR_SERVER_TOKEN" } },
+	${ORCHESTRATION},
+	{ name: "youtrack", setup() {}, options: { instances: [{ urlEnv: "ARTHUR_YOUTRACK_URL" }, { name: "acme", tokenEnv: "ARTHUR_YOUTRACK_ACME_TOKEN" }] } },
+	{ name: "server", setup() {}, options: { enabled: false, tokenEnv: "ARTHUR_SERVER_TOKEN" } },
 ]`;
 
 test("each variable of the enabled plugins is listed set or missing, with the option that names it", async () => {
@@ -52,11 +54,43 @@ test("a missing env file is named when a variable is missing; a duplicate key is
 });
 
 test("a refused name fails the check; a config that does not load prints its refusal; no variables is said", async () => {
-	const bad = project(`[{ name: "youtrack", options: { tokenEnv: "ARTHUR_GITHUB_TOKEN" } }]`);
+	const bad = project(`[${ORCHESTRATION}, { name: "youtrack", setup() {}, options: { tokenEnv: "ARTHUR_GITHUB_TOKEN" } }]`);
 	const config = join(bad, "arthur.config.ts");
 	assert.deepEqual(await configCheck(config, {}), { lines: [`${config}: youtrack.tokenEnv: expected ARTHUR_YOUTRACK_<WHAT>, got ARTHUR_GITHUB_TOKEN`], ok: false });
 	assert.deepEqual(await configCheck(join(root, "nowhere.ts"), {}), { lines: [`config file not found: ${join(root, "nowhere.ts")}`], ok: false });
-	assert.deepEqual(await configCheck(join(project("[]"), "arthur.config.ts"), {}), { lines: ["no enabled plugin names an env variable"], ok: true });
+	assert.deepEqual(await configCheck(join(project(`[${ORCHESTRATION}]`), "arthur.config.ts"), {}), { lines: ["no enabled plugin names an env variable"], ok: true });
+});
+
+test("every refusal of the host before setup fails the check, next to the env lines, and no setup runs", async () => {
+	const check = async (plugins: string) => {
+		const config = join(project(plugins), "arthur.config.ts");
+		const { lines, ok } = await configCheck(config, {});
+		return { lines: lines.map((line) => line.replace(`${config}: `, "")), ok };
+	};
+	assert.deepEqual(await check(`[{ name: "telegram", setup() {}, options: {} }]`), {
+		lines: ["plugins: orchestration is required and missing; add orchestration({ ... })", "no enabled plugin names an env variable"],
+		ok: false,
+	});
+	assert.deepEqual(await check(`[${ORCHESTRATION}, { name: "telegram", setup() {} }, { name: "telegram", setup() {} }]`), {
+		lines: ["plugins[2]: a second plugin named telegram; the first is plugins[1]", "ARTHUR_TELEGRAM_ is the prefix of both plugin telegram and plugin telegram"],
+		ok: false,
+	});
+	assert.deepEqual(await check(`[${ORCHESTRATION}, { name: "a", requires: ["b"], setup() {} }, { name: "b", requires: ["a"], setup() {} }]`), {
+		lines: ["plugins: a cycle in requires: a -> b -> a", "no enabled plugin names an env variable"],
+		ok: false,
+	});
+	assert.deepEqual(await check(`[${ORCHESTRATION}, { name: "telegram", requires: ["machines"], setup() {}, check: (options) => [{ path: "chat", problem: "expected a number, got " + typeof options.chat }] }]`), {
+		lines: ["telegram.chat: expected a number, got undefined", "telegram.requires: telegram requires machines, which is not in the plugin list", "no enabled plugin names an env variable"],
+		ok: false,
+	});
+	assert.deepEqual(await check(`[${ORCHESTRATION}, { name: "telegram", setup() {}, check() { throw new Error("no chat") } }]`), {
+		lines: ["plugin telegram: check failed: no chat", "no enabled plugin names an env variable"],
+		ok: false,
+	});
+	assert.deepEqual(await check(`[{ name: "orchestration", setup() { throw new Error("setup ran") } }, { name: "telegram", setup() { throw new Error("setup ran") } }]`), {
+		lines: ["no enabled plugin names an env variable"],
+		ok: true,
+	});
 });
 
 test("a known secret never appears in an error, a warning or the check's output", async () => {

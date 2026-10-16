@@ -93,9 +93,9 @@
   {
     "id": "AR0011",
     "title": "Roadmap 8: arthur run: Arthur as a process",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0011-roadmap-8-arthur-run-arthur-as-a-process/ticket.md",
-    "updated": "2026-10-16T11:08:01.681Z",
+    "updated": "2026-10-16T11:19:53.953Z",
     "after": [
       "AR0007",
       "AR0008"
@@ -104,9 +104,9 @@
   {
     "id": "AR0012",
     "title": "Roadmap 9: Job runner: spawn and the job record",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0012-roadmap-9-job-runner-spawn-and-the-job-record/ticket.md",
-    "updated": "2026-10-16T09:46:24.060Z",
+    "updated": "2026-10-16T11:31:53.562Z",
     "after": [
       "AR0008",
       "AR0009"
@@ -187,9 +187,9 @@
   {
     "id": "AR0020",
     "title": "Roadmap 17: Ticket board: tickets and the board file",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0020-roadmap-17-ticket-board-tickets-and-the-board-file/ticket.md",
-    "updated": "2026-10-16T10:54:05.490Z",
+    "updated": "2026-10-16T11:31:46.180Z",
     "after": [
       "AR0036"
     ]
@@ -287,9 +287,9 @@
   {
     "id": "AR0031",
     "title": "`arthur config check` passes a plugin list the host refuses",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0031-arthur-config-check-passes-a-plugin-list-the-host-refuses/ticket.md",
-    "updated": "2026-10-16T10:32:46.130Z",
+    "updated": "2026-10-16T11:27:06.692Z",
     "after": [
       "AR0011"
     ]
@@ -348,5 +348,12 @@
     "status": "merged",
     "path": "spec/features/AR0038-roadmap-later-entries-for-the-web-panel-a-knowledge-base-and-a-company-edition/ticket.md",
     "updated": "2026-10-16T11:10:58.896Z"
+  },
+  {
+    "id": "AR0039",
+    "title": "`arthur config check` says ok when a plugin's `setup` refuses the start",
+    "status": "review",
+    "path": "spec/features/AR0039-arthur-config-check-says-ok-when-a-plugin-s-setup-refuses-the-start/ticket.md",
+    "updated": "2026-10-16T11:30:33.276Z"
   }
 ]

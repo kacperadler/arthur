@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
-import { existsSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { withLock } from "../src/lock.ts";
+import { takeLock, withLock } from "../src/lock.ts";
 import { temporaryFolder } from "../src/testing.ts";
+
+// A lock file as a holder that crashed in this boot left it: its pid, then the boot where the system names one.
+const BOOT_ID = "/proc/sys/kernel/random/boot_id";
+const crashed = (pid: number | undefined) => (existsSync(BOOT_ID) ? `${pid} ${readFileSync(BOOT_ID, "utf8").trim()}` : String(pid));
 
 test("the lock holds the holder's pid while it runs, and is gone after, also when the run throws", () => {
 	const folder = temporaryFolder();
@@ -25,9 +29,11 @@ test("a lock held by a live process is waited for, then refused naming its pid",
 	assert.ok(existsSync(path), "the live holder's lock is kept");
 });
 
-test("a lock of a dead pid, or one that names no pid, is taken over", () => {
+test("a lock of a dead pid, one that names no pid, or one an earlier boot wrote is taken over", () => {
 	const dead = spawnSync(process.execPath, ["-e", ""]).pid;
-	for (const text of [String(dead), "", "not a pid"]) {
+	// The test's own pid is alive: only the boot it names makes the lock stale, on a system that names its boot.
+	const earlierBoot = existsSync(BOOT_ID) ? [`${process.pid} 00000000-0000-0000-0000-000000000000`] : [];
+	for (const text of [String(dead), crashed(dead), "", "not a pid", ...earlierBoot]) {
 		const folder = temporaryFolder();
 		const path = join(folder, "board.lock");
 		writeFileSync(path, text);
@@ -36,12 +42,30 @@ test("a lock of a dead pid, or one that names no pid, is taken over", () => {
 	}
 });
 
+test("takeLock refuses while its holder lives, naming it, and release removes only the lock it took", () => {
+	const folder = temporaryFolder();
+	const path = join(folder, "run.pid");
+	const first = takeLock(path);
+	assert.ok("release" in first);
+	assert.deepEqual(takeLock(path), { heldBy: process.pid });
+	assert.deepEqual(readdirSync(folder), ["run.pid"], "a refused take leaves nothing behind");
+	first.release();
+	assert.deepEqual(readdirSync(folder), []);
+	const second = takeLock(path);
+	assert.ok("release" in second);
+	// Removed by hand, then taken by another process: not this one's to remove.
+	rmSync(path);
+	writeFileSync(path, "1");
+	second.release();
+	assert.equal(readFileSync(path, "utf8"), "1");
+});
+
 test("a takeover guard left by a crashed taker is cleared, and the dead holder's lock is taken over", () => {
 	const dead = spawnSync(process.execPath, ["-e", ""]).pid;
 	const folder = temporaryFolder();
 	const path = join(folder, "board.lock");
-	writeFileSync(path, String(dead));
-	writeFileSync(`${path}.takeover`, String(dead));
+	writeFileSync(path, crashed(dead));
+	writeFileSync(`${path}.takeover`, crashed(dead));
 	assert.equal(withLock(path, () => readdirSync(folder).join(), 200), "board.lock");
 	assert.deepEqual(readdirSync(folder), []);
 });
@@ -77,7 +101,7 @@ async function race(seeded: readonly string[], rounds: number): Promise<void> {
 	try {
 		await Promise.all(children.map(answer));
 		for (let round = 0; round < rounds; round++) {
-			for (const name of seeded) writeFileSync(join(folder, name), String(dead));
+			for (const name of seeded) writeFileSync(join(folder, name), crashed(dead));
 			const answers = children.map(answer);
 			for (const child of children) child.send("go");
 			for (const [from, to] of (await Promise.all(answers)) as [string, string][]) held.push([BigInt(from), BigInt(to)]);

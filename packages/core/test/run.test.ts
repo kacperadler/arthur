@@ -1,0 +1,148 @@
+import assert from "node:assert/strict";
+import { type ChildProcess, spawn, spawnSync } from "node:child_process";
+import { once } from "node:events";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { type TestContext, test } from "node:test";
+import { setTimeout as sleep } from "node:timers/promises";
+import { temporaryFolder } from "../src/testing.ts";
+
+const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
+const BOOT_ID = "/proc/sys/kernel/random/boot_id";
+
+// Each plugin logs its `start` and `stop` to `log.txt` beside the config; `more` replaces any of its parts.
+const HEAD = `import { appendFileSync, existsSync } from "node:fs";
+const log = (line) => appendFileSync(new URL("./log.txt", import.meta.url), line + "\\n");
+const plugin = (name, more = {}) => ({ name, setup() {}, start() { log("start " + name); }, stop() { log("stop " + name); }, ...more });
+`;
+
+function project(plugins: string): { readonly folder: string; readonly home: string; readonly log: () => string } {
+	const folder = temporaryFolder();
+	writeFileSync(join(folder, "arthur.config.ts"), `${HEAD}export default { plugins: [${plugins}] };\n`);
+	const log = () => (existsSync(join(folder, "log.txt")) ? readFileSync(join(folder, "log.txt"), "utf8") : "");
+	return { folder, home: join(folder, ".arthur"), log };
+}
+
+type Ended = { readonly status: number | null; readonly stdout: string; readonly stderr: string };
+
+// `arthur run` in the background; killed at the end of the test if it still runs.
+function start(t: TestContext, folder: string): { readonly child: ChildProcess; readonly output: () => string; readonly ended: Promise<Ended> } {
+	const child = spawn(process.execPath, [CLI, "run"], { cwd: folder, env: { PATH: process.env.PATH ?? "" } });
+	let stdout = "";
+	let stderr = "";
+	child.stdout.on("data", (chunk) => (stdout += chunk));
+	child.stderr.on("data", (chunk) => (stderr += chunk));
+	const ended = once(child, "close").then(([status]) => ({ status: status as number | null, stdout, stderr }));
+	t.after(() => child.kill("SIGKILL"));
+	return { child, output: () => stdout, ended };
+}
+
+function runOnce(folder: string, ...args: string[]): Ended {
+	return spawnSync(process.execPath, [CLI, "run", ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+}
+
+async function until(holds: () => boolean, what: string): Promise<void> {
+	for (const deadline = Date.now() + 10_000; !holds(); await sleep(10)) if (Date.now() > deadline) assert.fail(`waited 10 s for ${what}`);
+}
+
+test("arthur run starts in dependency order, refuses a second run on the home naming the pid, and stops in reverse on SIGTERM", async (t) => {
+	const { folder, home, log } = project('plugin("a", { requires: ["b"] }), plugin("orchestration"), plugin("b", { stop: undefined })');
+	const run = start(t, folder);
+	await until(() => run.output().includes("started"), "the start");
+	assert.equal(log(), "start b\nstart a\nstart orchestration\n");
+	assert.equal(run.output(), `arthur run: pid ${run.child.pid} started b, a, orchestration\n`);
+	assert.match(readFileSync(join(home, "run.pid"), "utf8"), new RegExp(`^${run.child.pid}( |$)`));
+
+	const second = runOnce(folder);
+	assert.deepEqual(
+		[second.status, second.stdout, second.stderr],
+		[1, "", `arthur run: ${home} is already run by pid ${run.child.pid}; one arthur run per home folder\n`],
+	);
+	assert.equal(log(), "start b\nstart a\nstart orchestration\n", "the second run started nothing");
+
+	run.child.kill("SIGTERM");
+	const ended = await run.ended;
+	assert.deepEqual([ended.status, ended.stderr], [0, ""]);
+	assert.equal(log(), "start b\nstart a\nstart orchestration\nstop orchestration\nstop a\n");
+	assert.match(ended.stdout, /\narthur run: SIGTERM: stopping orchestration, a, b\narthur run: stopped\n$/);
+	assert.ok(!existsSync(join(home, "run.pid")), "the lock is gone after a clean stop");
+});
+
+test("a lock of a dead pid, one that names no pid, or one written in an earlier boot is taken over", async (t) => {
+	const dead = spawnSync(process.execPath, ["-e", ""]).pid;
+	// The test's own pid is alive: only the boot it names makes the lock stale.
+	const stale = [String(dead), "not a pid", ...(existsSync(BOOT_ID) ? [`${process.pid} 00000000-0000-0000-0000-000000000000`] : [])];
+	for (const text of stale) {
+		const { folder, home, log } = project('plugin("orchestration")');
+		mkdirSync(home);
+		writeFileSync(join(home, "run.pid"), text);
+		const run = start(t, folder);
+		await until(() => run.output().includes("started"), `the start over a lock holding ${JSON.stringify(text)}`);
+		assert.match(readFileSync(join(home, "run.pid"), "utf8"), new RegExp(`^${run.child.pid}( |$)`));
+		run.child.kill("SIGTERM");
+		assert.equal((await run.ended).status, 0);
+		assert.equal(log(), "start orchestration\nstop orchestration\n");
+	}
+});
+
+test("a lock of a live pid written in this boot refuses the run", { skip: !existsSync(BOOT_ID) }, () => {
+	const { folder, home, log } = project('plugin("orchestration")');
+	mkdirSync(home);
+	writeFileSync(join(home, "run.pid"), `${process.pid} ${readFileSync(BOOT_ID, "utf8").trim()}`);
+	const run = runOnce(folder);
+	assert.deepEqual([run.status, run.stderr], [1, `arthur run: ${home} is already run by pid ${process.pid}; one arthur run per home folder\n`]);
+	assert.equal(log(), "");
+	assert.ok(existsSync(join(home, "run.pid")), "the live holder's lock is kept");
+});
+
+test("a start that throws stops the plugins started before it, in reverse, starts none after it, and exits 1 naming the plugin", () => {
+	const { folder, home, log } = project(
+		'plugin("orchestration"), plugin("a"), plugin("b", { start() { log("start b"); throw new Error("no socket"); } }), plugin("c")',
+	);
+	const run = runOnce(folder);
+	assert.deepEqual([run.status, run.stderr], [1, "arthur run: plugin b: start failed: no socket\n"]);
+	assert.equal(log(), "start orchestration\nstart a\nstart b\nstop a\nstop orchestration\n");
+	assert.equal(run.stdout, "arthur run: a start failed: stopping a, orchestration\narthur run: stopped\n");
+	assert.ok(!existsSync(join(home, "run.pid")));
+});
+
+test("SIGINT stops like SIGTERM; a stop that throws is named, the other plugins still stop, and the exit code is 1", async (t) => {
+	const { folder, home, log } = project('plugin("orchestration"), plugin("a", { stop() { log("stop a"); throw new Error("stuck"); } }), plugin("b")');
+	const run = start(t, folder);
+	await until(() => run.output().includes("started"), "the start");
+	run.child.kill("SIGINT");
+	const ended = await run.ended;
+	assert.deepEqual([ended.status, ended.stderr], [1, "arthur run: plugin a: stop failed: stuck\n"]);
+	assert.match(ended.stdout, /\narthur run: SIGINT: stopping b, a, orchestration\n/);
+	assert.equal(log(), "start orchestration\nstart a\nstart b\nstop b\nstop a\nstop orchestration\n");
+	assert.ok(!existsSync(join(home, "run.pid")));
+});
+
+test("SIGTERM during a start lets it finish, stops it and those before it, and starts no other", async (t) => {
+	// b's start ends once it has seen the signal itself; Arthur's listener came first, so by then Arthur has seen it too.
+	const slow = `plugin("b", { async start() {
+		const seen = new Promise((resolve) => process.once("SIGTERM", resolve));
+		log("start b");
+		await seen;
+		log("started b");
+	} })`;
+	const { folder, home, log } = project(`plugin("orchestration"), ${slow}, plugin("c")`);
+	const run = start(t, folder);
+	await until(() => log().includes("start b"), "b's start");
+	run.child.kill("SIGTERM");
+	const ended = await run.ended;
+	assert.deepEqual([ended.status, ended.stderr], [0, ""]);
+	assert.equal(log(), "start orchestration\nstart b\nstarted b\nstop b\nstop orchestration\n");
+	assert.equal(ended.stdout, "arthur run: SIGTERM: stopping b, orchestration\narthur run: stopped\n");
+	assert.ok(!existsSync(join(home, "run.pid")));
+});
+
+test("arthur run refuses arguments, and a config that does not load, starting nothing", () => {
+	const { folder, home } = project('plugin("schedule")');
+	const broken = runOnce(folder);
+	assert.equal(broken.status, 1);
+	assert.match(broken.stderr, /^arthur run: arthur\.config\.ts did not load:\n.*orchestration is required and missing/);
+	const extra = runOnce(project('plugin("orchestration")').folder, "now");
+	assert.deepEqual([extra.status, extra.stderr], [2, "usage: arthur run\n"]);
+	assert.ok(!existsSync(join(home, "run.pid")));
+});

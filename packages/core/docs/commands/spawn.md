@@ -8,7 +8,7 @@ Starts a job on the task, given as one quoted argument, and prints its id, `<dat
 - `--model`, `--thinking`: the agent's model and thinking level; left out, the role's (`arthur roles`), else the agent's own default.
 - `--timeout <minutes>`, `--budget <usd>`: the job's limits, a plain decimal of 0 or more such as `30` or `0.5`; `0` is no limit. Left out, the kind's own (`registerKind`'s `timeoutMinutes`, `budgetUsd`), else `core.jobs.timeoutMinutes` (default 120) and `core.jobs.budgetUsd` (default 2). A plugin's `host.jobs.spawn` takes them as `timeoutMinutes` and `budgetUsd` and is refused, before anything exists, for a value that is not a number of 0 or more: `spawn: <key> must be a number of 0 or more, got <value>`.
 - `--machine <name>`: the machine the job runs on, `local` or one a plugin registered with `host.jobs.registerMachine` (below). Left out, the machine a plugin's `jobs.place` answers when one provides it (roadmap entry 31), else `local`. A plugin's `host.jobs.spawn` takes it as `machine`.
-- `--project <name>`: the project; until a plugin adds projects, the only one is the main repository, named by its folder.
+- `--project <name>`: the project, a name in the list of the `projects` plugin (`arthur projects --help`); the job starts from HEAD of that project's folder, and left out, of the first project in the list, the main one. An unknown name is refused, naming the projects (`unknown project <name>; projects: <names>`). Without the projects plugin, the only project is the repository of the folder Arthur runs in, named by its folder.
 
 What it makes:
 

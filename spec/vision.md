@@ -68,7 +68,8 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | resources (named) | first | Caps per job (CPU, memory) and per feature (CPU, memory, time, money), how many jobs start from each machine's free resources, below `maxAgents`, and a floor of free disk per machine. Below. |
 | session (named) | first | The coordinator's conversation: compaction at 08:00, 13:00 and 18:00 whatever jobs run, a fresh start at 23:00 once no job runs (tried again every 15 minutes, skipped that night after 03:00), each after a handoff the next conversation reads first (work in progress, next steps, unanswered questions to the human), `/restart` and `/restart fresh`, the restart guard, the start notice and LLM probe. |
 | schedule (named) | first | A module for actions and jobs at set times: an entry is a daily time or a one-off date and time, and does an action (a message to the coordinator, optionally a named procedure) or a job (spawn one of a kind). Other plugins register their own entries from their options; hand-added ones live in a file. |
-| projects (named) | first | The project list, declared in the config: path or repo, ticket prefix, tracker instance, commit rules, auto-merge, CI workflow, vision and criteria paths, folders in front of `PATH`. Onboarding of a new repository. |
+| projects (named) | first | The project list, declared in the config: path or repo, ticket prefix, tracker instance, commit rules, auto-merge, CI workflow, vision and criteria paths. Onboarding of a new repository. |
+| nvm (named) | first | Each project's Node version, from its `.nvmrc`, first on its jobs' `PATH` through nvm on the job's machine. |
 | commit-rules (named) | first | Each project's commit format, set by a regex, a plain-words rule, or a path to a Markdown file that describes it. Below. |
 | youtrack (named) | first | One entry per server; reads and writes issues, comments, articles, work items. |
 | telegram (named) | first | A channel: receive, send text, send media. |
@@ -180,6 +181,7 @@ Interface: `host.jobs.cleanup(fn)`, `host.jobs.prepare` returning variables for 
 - The commit-subject rule and its hook: the `commit-rules` plugin, per project. Arthur's own repository uses it like any project.
 - Language: English only from the first line of code; the board and every message read and write English keys.
 - Ticket prefixes: `projects`, option `prefix` per project. No renumbering: the board starts empty.
+- A project's Node version: `nvm`, from the project's `.nvmrc`, which onboarding adds.
 - A job's state: the core's job runner (its record, `job-state`); shown by `orchestration` (context, wake, a notice when a job asks the user) and `/jobs` on every channel.
 - Running a job on another machine: the core's job runner, over SSH. Which machines exist, their labels, and which one a job goes to: `machines`.
 - A job's time and money: the core. A job's CPU and memory, a feature's caps, and how many jobs the free resources allow: `resources`.

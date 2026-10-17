@@ -221,7 +221,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 
 - Package: orchestration.
 - Delivers: the plugin, required; its options (`maxAgents`, `coordinator`, `roles`, `plan`, `autopilot`, `morningReport`) checked; one interactive `omp` in its own tmux session (`coordinator.tmux`), with `--continue` and the coordinator's model and thinking, started with `-e` on `@arthur/core/env-guard` like every job; started again `restartDelaySeconds` after it ends for any reason; a start waits up to `exitWaitSeconds` for the previous `omp` to exit, so two never refresh the agent's credential at once; `arthur attach`; `arthur coordinator stop`, refused while any job runs; the coordinator's role file, in English.
-- Done means: tested with the fake agent and a tmux socket in the test's folder. Edge cases: the previous `omp` still alive after the wait (the start is refused and logged, then retried); the coordinator crashing in a loop does not spin faster than the delay; `attach` with no session says so; a coordinator tool call naming a secrets file (`.env`) is refused with the env guard's line.
+- Done means: tested with the fake agent and a tmux socket in the test's folder. Edge cases: the previous `omp` still alive after the wait (the start is refused and logged, then retried); the coordinator crashing in a loop does not spin faster than the delay; `attach` with no session says so; a coordinator tool call naming a secrets file (`.env`) is refused with the env guard's line. The coordinator's role file carries the rule (AR0090, the harness's K0264) that a reply is written for an owner who remembers nothing of earlier turns, tickets, or files: every ticket, finding, job, or project a reply names gets at least one plain sentence on what it is and what the owner will see change (never file names); an id never stands alone. Every question to the owner says what is being decided, why it came up, the options with what each means in practice, and the coordinator's recommendation, so the message alone answers it. This outranks any limit on a reply's length: a reply that needs it runs longer, short per item.
 - Depends on: 8, 10, 15.
 - Size: a day.
 - Covers: S1, O1, the coordinator's settings and the session options it owns.
@@ -651,7 +651,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 
 - Package: orchestration.
 - Delivers: `morningReport.at` registers a schedule action with its procedure: built overnight, merged without the owner, waiting for approval, waiting for a decision, needs attention (from health).
-- Done means: edge cases: a night with nothing done says so in one line; schedule disabled refuses the option at load.
+- Done means: edge cases: a night with nothing done says so in one line; schedule disabled refuses the option at load. The report's procedure carries the rule of the coordinator's role file (23, AR0090): every ticket, finding, job, or project the report names gets at least one plain sentence on what it is and what the owner will see change (never file names); an id never stands alone. Every decision it waits for is a question that says what is being decided, why it came up, the options with what each means in practice, and the coordinator's recommendation, so the report alone answers it. This outranks any limit on the report's length: a report that needs it runs longer, short per item.
 - Depends on: 40, 60, 54.
 - Size: half a day.
 - Covers: O11, C2 (the report entry).

@@ -46,3 +46,4 @@ Out:
 - 2026-10-16: The human: start the plan now.
 - 2026-10-17: The owner: shop is three projects, MP shop/main, LB shop/north, LA shop/south.
 - 2026-10-17: The owner, on dropping pathPrepend: two projects may need different versions of one tool (e.g. Node through nvm); not settled yet, asked how.
+- 2026-10-17: The owner: no pathPrepend; tool versions come from an nvm plugin, and onboarding a project adds an .nvmrc file to it. Revise the plan and roadmap (entry 42 onboarding, a new nvm plugin entry) to match.

@@ -750,8 +750,8 @@
   {
     "id": "AR0090",
     "title": "The coordinator role explains every ticket and question to an owner who knows nothing of them",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0090-the-coordinator-role-explains-every-ticket-and-question-to-an-owner-who-knows-nothing-of-them/ticket.md",
-    "updated": "2026-10-17T07:20:38.766Z"
+    "updated": "2026-10-17T07:21:08.268Z"
   }
 ]

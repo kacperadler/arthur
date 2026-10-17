@@ -148,7 +148,7 @@ Arthur exposes nothing to the internet: no port, no webhook. Every plugin calls 
 
 - Arthur, the coordinator and every job run as your Linux user. A job runs `omp` with `bash` and can do whatever you can: read and write your files, use your SSH keys, push wherever they reach, reach the network. A deploy key per repository limits a push to that repository; an account key reaches every repository of the account.
 - A channel is a shell. The coordinator acts on what the allowed Telegram chat sends (`telegram`, entry 47), so whoever holds that account holds the VPS. Turn on Telegram's two-step verification.
-- Secrets stay in `.env` and in the process that needs them. The env guard (entry 19) refuses a job's tool call that names `.env`; a program a job runs can still read any file you can.
+- Secrets stay in the env file (`core.envFile`) and in the process that needs them. The env guard (entry 19) refuses a tool call of a job or of the coordinator that names a secrets file; a program a job runs can still read any file you can.
 - A job's edits stay in its own worktree: the worktree guard (entry 20) refuses a write into the main checkout, `.arthur/`, another job's worktree, or another project's main checkout or its jobs' worktrees. It parses commands, so it keeps honest mistakes apart; it is not a sandbox. It does not refuse the git commands that rewrite the repository every worktree shares, `git gc`, `prune`, `repack`, `reflog expire`, `maintenance run` and `config`, nor a ref a job moves or deletes from its own worktree.
 - Limits: time and money per job (entry 12), and one joint CPU and memory limit for all jobs (entry 13), so jobs cannot starve the coordinator.
 - Nothing limits the network, and nothing confines reads.

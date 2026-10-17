@@ -40,3 +40,4 @@ Out:
 - 2026-10-16: Coordinator: also in this ticket, from AR0024's review and findings (the human asked for findings grouped per entry, not one ticket each): `arthur continue` on a job on another machine names the machine and runs there (today it says "its worktree was pruned"); the `host.jobs.run` quoting test adds a backtick and a newline; F1 of AR0024 (a job there gets this host's joint CPU and memory limit) and F2 (each sweep copies the whole log when it grew: copy only the new bytes).
 - 2026-10-16: Coordinator: accepted ssh -o ConnectTimeout=10 (a silent machine must not freeze the sweep); roadmap 21 updated on main.
 - 2026-10-17: The owner resumed Arthur's build; this entry is next.
+- 2026-10-17: Worker: line budgets in `test/structure.test.ts`: orchestration 300 (276 at the commit); 8 lines move from core (4804) to core/testing (276) for the fake agent's `tool_call` handlers, which the env-guard test of the coordinator needs.

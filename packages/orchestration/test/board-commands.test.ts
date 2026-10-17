@@ -1,25 +1,26 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { boardCommands } from "../src/board-commands.ts";
-import { commandRegistry } from "../src/commands.ts";
-import { fakeHost, temporaryFolder } from "../src/testing.ts";
+import { fileURLToPath } from "node:url";
+import { fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { orchestration } from "../src/orchestration.ts";
 
-// Two projects, `demo` (DM, the main one) and `shop` (SH), with the board's phone commands in a registry as the core registers
-// them, and each command's reply reached through `route`, as a channel reaches it. `home` holds the job records.
-function setup() {
-	const fake = fakeHost({ name: "telegram" });
+const CLI = fileURLToPath(import.meta.resolve("@arthur/core/plugin").replace(/plugin\.ts$/, "cli.ts"));
+
+// Two projects, `demo` (DM, the main one) and `shop` (SH), with the plugin set up on the fake host, and each command's reply
+// reached through `route`, as a channel reaches it. `home` holds the job records, which the plugin reads with `host.jobs.list()`.
+async function setup() {
+	const fake = fakeHost({ name: "orchestration" });
 	const [demo, shop] = [temporaryFolder(), temporaryFolder()];
 	fake.provide("projects", () => [
 		{ name: "demo", path: demo, prefix: "DM" },
 		{ name: "shop", path: shop, prefix: "SH" },
 	]);
+	await fake.setup(orchestration());
 	const home = dirname(fake.host.folder);
-	const commands = commandRegistry();
-	for (const command of boardCommands(() => fake.host.board, () => home)) commands.register("core", command);
-	return { route: commands.route, commands, demo, shop, home };
+	return { route: fake.host.commands.route, commands: fake.host.commands, demo, shop, home };
 }
 
 // A board written by hand: for each spec, `count` tickets of `status`, numbered on from 1, each with a `ticket.md`.
@@ -35,15 +36,15 @@ function tickets(root: string, prefix: string, specs: readonly (readonly [status
 	writeFileSync(join(root, "spec", "build.json"), JSON.stringify(board));
 }
 
-test("the board's three commands are phone commands, each in a channel's menu", () => {
+test("the board's three commands are phone commands, each in a channel's menu", async () => {
 	assert.deepEqual(
-		setup().commands.phone().map((command) => command.name),
+		(await setup()).commands.phone().map((command) => command.name),
 		["board", "findings", "task"],
 	);
 });
 
 test("/board: the full board when it fits one message, else the digest; all: the full board whatever its length", async () => {
-	const { route, demo } = setup();
+	const { route, demo } = await setup();
 	assert.equal(await route("/board"), "the board is empty");
 	tickets(demo, "DM", [["merged", 12], ["dropped", 1], ["planning", 1]]);
 	const small = await route("/board");
@@ -61,7 +62,7 @@ test("/board: the full board when it fits one message, else the digest; all: the
 });
 
 test("/board at the limit: a full board of 4096 characters is sent whole, one of 4097 as the digest", async () => {
-	const { route, demo } = setup();
+	const { route, demo } = await setup();
 	// 11 lines of `DM0001 merged      <title>` (19 characters and the title) and 10 line breaks.
 	tickets(demo, "DM", [["merged", 10, "x".repeat(350)], ["merged", 1, "y".repeat(377)]]);
 	const fits = await route("/board");
@@ -73,7 +74,7 @@ test("/board at the limit: a full board of 4096 characters is sent whole, one of
 });
 
 test("/board PREFIX picks the project; an unknown prefix and wrong usage are said", async () => {
-	const { route, shop } = setup();
+	const { route, shop } = await setup();
 	tickets(shop, "SH", [["review", 1]]);
 	assert.equal(await route("/board SH"), "SH0001 review      Ticket SH0001");
 	assert.equal(await route("/board sh all"), "SH0001 review      Ticket SH0001");
@@ -82,7 +83,7 @@ test("/board PREFIX picks the project; an unknown prefix and wrong usage are sai
 });
 
 test("/task: the id as 1, DM1, dm0001 or DM0001; another project's prefix answers from its board", async () => {
-	const { route, demo, shop } = setup();
+	const { route, demo, shop } = await setup();
 	tickets(demo, "DM", [["planned", 1]]);
 	tickets(shop, "SH", [["done", 1]]);
 	for (const id of ["1", "DM1", "dm0001", "DM0001", " DM0001 "]) assert.equal(await route(`/task ${id}`), "DM0001 planned\n# DM0001 - the ticket\n", id);
@@ -93,14 +94,14 @@ test("/task: the id as 1, DM1, dm0001 or DM0001; another project's prefix answer
 });
 
 test("/task of a ticket whose ticket.md is gone says it cannot read it", async () => {
-	const { route, demo } = setup();
+	const { route, demo } = await setup();
 	mkdirSync(join(demo, "spec"));
 	writeFileSync(join(demo, "spec", "build.json"), JSON.stringify([{ id: "DM0001", title: "Gone", status: "planned", path: "spec/features/DM0001-gone/ticket.md", updated: "2026-10-16T00:00:00Z" }]));
 	assert.match(await route("/task 1"), /^\/task failed: DM0001: cannot read spec\/features\/DM0001-gone\/ticket\.md: ENOENT/);
 });
 
 test("/findings: the file as it is; a ticket without the file, or with an empty one, has no findings", async () => {
-	const { route, demo } = setup();
+	const { route, demo } = await setup();
 	tickets(demo, "DM", [["in-progress", 3]]);
 	const folder = (id: string) => join(demo, "spec", "features", `${id}-ticket`);
 	writeFileSync(join(folder("DM0002"), "findings.md"), " \n");
@@ -113,7 +114,7 @@ test("/findings: the file as it is; a ticket without the file, or with an empty 
 });
 
 test("/findings: the newest unmerged branch of a job of the ticket whose findings.md is not main's, headed; otherwise main's", async () => {
-	const { route, demo, home } = setup();
+	const { route, demo, home } = await setup();
 	const git = (date: string, ...args: string[]) =>
 		execFileSync("git", ["-C", demo, "-c", "user.name=test", "-c", "user.email=test@example.com", ...args], { env: { ...process.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date } });
 	const findings = (id: string) => join(demo, "spec", "features", `${id}-ticket`, "findings.md");
@@ -168,4 +169,23 @@ test("/findings: the newest unmerged branch of a job of the ticket whose finding
 	assert.equal(await route("/findings 1"), "new, F1 ticketed\n", "neither the merged branch nor arthur/same, which left main before its change, is shown");
 	record("2026-10-03-worker-00000013", { task: `Ticket: ${one}`, branch: "arthur/echo" });
 	assert.equal(await route("/findings 1"), "new, F1 ticketed\n", "a branch whose findings.md is main's");
+});
+
+test("in the shell: arthur board, task and findings, their usage, an unknown --project, and --help", () => {
+	const folder = temporaryFolder();
+	const plugin = fileURLToPath(new URL("../src/orchestration.ts", import.meta.url));
+	writeFileSync(
+		join(folder, "arthur.config.ts"),
+		`import { orchestration } from ${JSON.stringify(plugin)};\nexport default { plugins: [orchestration(), { name: "projects", setup(host) {\n\thost.provide("projects", () => [{ name: "demo", path: import.meta.dirname, prefix: "DM" }]);\n} }] };\n`,
+	);
+	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+	for (const title of ["One", "Two"]) arthur("ticket", "new", title);
+	assert.deepEqual([arthur("board").stdout, arthur("board", "all").stdout], ["DM0001 planning    One\nDM0002 planning    Two\n", "DM0001 planning    One\nDM0002 planning    Two\n"]);
+	assert.match(arthur("task", "2").stdout, /^DM0002 planning\n# DM0002 - Two\n/);
+	assert.equal(arthur("findings", "DM1").stdout, "DM0001: no findings (spec/features/DM0001-one/findings.md does not exist)\n");
+	const wrong = arthur("task", "1", "2");
+	assert.deepEqual([wrong.status, wrong.stderr], [2, "usage: arthur task <id>\n"]);
+	const elsewhere = arthur("task", "1", "--project", "shop");
+	assert.deepEqual([elsewhere.status, elsewhere.stderr], [1, "arthur task: unknown project shop; projects: demo\n"]);
+	for (const name of ["board", "task", "findings"]) assert.match(arthur(name, "--help").stdout, new RegExp(`^# arthur ${name}\n`), name);
 });

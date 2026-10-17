@@ -147,6 +147,7 @@ export function pluginHost(
 			},
 			block: (id, reason) => runner.block(id, reason),
 			unblock: (id) => runner.unblock(id),
+			list: () => runner.records(),
 			running: () => runner.running(),
 		},
 		board: board(() => names.collect("projects", []), own.clock, (name, data) => bus.emit(own.name, name, data)),

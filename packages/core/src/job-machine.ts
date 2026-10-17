@@ -97,7 +97,9 @@ export const url = (machine: Machine, project: string) => `${machine.ssh}:${repo
 // Runs `argv` there, `input` on its stdin; its stdout, or the error of `failure`. `sshAsync` waits without blocking.
 export function ssh(machine: Machine, argv: readonly string[], input = ""): string {
 	const run = spawnSync("ssh", [...OPTIONS, machine.ssh, argv.map(quote).join(" ")], { encoding: "utf8", input });
-	if (run.error !== undefined) throw new Error(`machine ${machine.name}: ssh: ${run.error.message}`);
+	// A command that ends without reading its input: its exit code tells what happened.
+	const unread = run.status !== null && (run.error as NodeJS.ErrnoException | undefined)?.code === "EPIPE";
+	if (run.error !== undefined && !unread) throw new Error(`machine ${machine.name}: ssh: ${run.error.message}`);
 	const failed = failure(machine, argv, run.status ?? run.signal, run.stderr);
 	if (failed !== undefined) throw failed;
 	return run.stdout;

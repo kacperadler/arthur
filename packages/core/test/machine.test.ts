@@ -8,7 +8,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
-import { coreVersion } from "../src/job-machine.ts";
+import { coreVersion, ssh, sshAsync } from "../src/job-machine.ts";
 import type { Slice } from "../src/job-scope.ts";
 import { jobRunner } from "../src/jobs.ts";
 import { fakeAgent, fakeHost, jobSlice, temporaryFolder } from "../src/testing.ts";
@@ -251,6 +251,16 @@ test("offline mid-job: stop, steer and continue are refused naming the machine; 
 	assert.deepEqual(git(root, "log", "--format=%s", job.branch ?? "").split("\n"), ["once back", "while offline", "first"]);
 	assert.equal(starts(agent).length, 1, "the agent ran once");
 	assert.deepEqual([events(home, "job-started").length, events(home, "job-ended").length], [1, 1]);
+});
+
+test("an ssh refused before it reads its input says ssh's own line, not EPIPE", async () => {
+	const { machine, there } = setup();
+	writeFileSync(join(machine, "refuse"), "");
+	// More than a pipe holds: the write cannot finish before the refused ssh exits.
+	const input = "x".repeat(1 << 20);
+	const gpu = { name: "gpu", ssh: "gpu", home: there, labels: {} };
+	assert.throws(() => ssh(gpu, ["cat"], input), { message: UNREACHABLE });
+	await assert.rejects(sshAsync(gpu, ["cat"], input), { message: UNREACHABLE });
 });
 
 test("offline past the grace: failed once, the worktree there kept; its end and branch arrive when the machine is back", async () => {

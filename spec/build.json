@@ -893,8 +893,8 @@
   {
     "id": "AR0109",
     "title": "The browser tab icon is a crop of the logo badge",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0109-the-browser-tab-icon-is-a-crop-of-the-logo-badge/ticket.md",
-    "updated": "2026-10-17T18:17:16.389Z"
+    "updated": "2026-10-17T18:25:35.832Z"
   }
 ]

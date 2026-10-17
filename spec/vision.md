@@ -11,7 +11,7 @@ The core itself does no orchestration. The coordinator is the `orchestration` pl
 ## What stays true
 
 - One human directs many agents; the human creates the work, decides when it is done, keeps each project's vision. The rules about approval and merge are options of the `orchestration` and `delivery` plugins, not core code.
-- The coordinator is always on, and it is the one that talks with the user: through a channel plugin (Telegram first) or through the terminal, where the human attaches to the coordinator's own session (`arthur attach`). Several channels may be on at once; none is required, since the terminal is always there. There is no mode without a coordinator.
+- The coordinator is always on, and it talks with the user in the main chat: through a channel plugin (Telegram first) or through the terminal, where the human attaches to the coordinator's own session (`arthur attach`). Several channels may be on at once; none is required, since the terminal is always there. There is no mode without a coordinator. A project may also have its own agent (decision 20), which talks in that project's own chat and works only on that project; the coordinator keeps `maxAgents`, the morning report and the work across projects.
 - Work happens in isolated worktrees, on their own branches.
 - Plain files in git and in the home folder (`.arthur/`) are the truth: tickets, the board, job records. No database.
 - Arthur starts with an empty board. Nothing of the predecessor's tickets, outcomes, reviews or reports is carried over.
@@ -28,12 +28,12 @@ The core itself does no orchestration. The coordinator is the `orchestration` pl
 
 ## The coordinator and its options
 
-The `orchestration` plugin is the coordinator: one interactive `omp` in its own tmux session, started again whenever it ends. It directs every project in the `projects` list, and its limits count across all of them. What remains configurable:
+The `orchestration` plugin is the coordinator: one interactive `omp` in its own tmux session, started again whenever it ends. It directs every project in the `projects` list that has no agent of its own, and the work across projects; its limits count across all of them. A project with a `chat` in `projects` gets its own agent: one more interactive `omp`, supervised the same way, in the project's folder, which directs that project's jobs and answers in that chat. What remains configurable:
 
 | Option | Does |
 | --- | --- |
 | `maxAgents` | The most jobs running at once, across all projects and machines together. Enforced, not only a rule in the prompt. With `resources` on it is the upper bound: fewer start when the machines' free resources say so. |
-| `coordinator`, `roles` | Model and thinking level of the coordinator and of each role (worker, reviewer, planner, auditor, retro, onboarding), and the quick model; the coordinator's tmux session and restart timing. |
+| `coordinator`, `roles` | Model and thinking level of the coordinator, of each project agent (`roles.project`) and of each role (worker, reviewer, planner, auditor, retro, onboarding), and the quick model; the coordinator's tmux session and restart timing. |
 | `plan` | The budget of a plan for a large ticket (planner role, plan review). |
 | `autopilot` | The budget of a pre-approved job and its cap. |
 | `morningReport` | When the morning report is sent; registers a schedule entry. |
@@ -63,7 +63,7 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 
 | Plugin | First or later | Does |
 | --- | --- | --- |
-| orchestration (named) | first, always on | The coordinator: its session process and `arthur attach`, the options above, wake on job end, the planning of large tickets, autopilot. |
+| orchestration (named) | first, always on | The coordinator: its session process and `arthur attach`, the options above, wake on job end, the planning of large tickets, autopilot. Later, an agent per project with a `chat`, and the routing of that chat to it (roadmap 85 to 88). |
 | machines (named) | first | The machines jobs run on: `local`, where Arthur runs, and others reached over SSH on a private network, each with labels (os, arch, tools); places each job on a machine that has the labels its project or ticket requires. Below. |
 | models (named) | first | Model providers on other machines (Ollama or OpenAI-compatible, loopback, private or Tailscale only) and each role's ordered model list, the first available at spawn. |
 | resources (named) | first | Caps per job (CPU, memory) and per feature (CPU, memory, time, money), how many jobs start from each machine's free resources, below `maxAgents`, and a floor of free disk per machine. Below. |
@@ -71,6 +71,7 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | schedule (named) | first | A module for actions and jobs at set times: an entry is a daily time or a one-off date and time, and does an action (a message to the coordinator, optionally a named procedure) or a job (spawn one of a kind). Other plugins register their own entries from their options; hand-added ones live in a file. |
 | projects (named) | first | The project list, declared in the config: path or repo, ticket prefix, tracker instance, commit rules, auto-merge, CI workflow, vision and criteria paths. Onboarding of a new repository. |
 | nvm (named) | first | Each project's Node version, from its `.nvmrc`, first on its jobs' `PATH` through nvm on the job's machine. |
+| findings (named) | first | The `findings.md` format, and what happens to a merged ticket's open findings, per project: a planning ticket each, one per merged ticket, or a summary for the client; `/findings`. |
 | commit-rules (named) | first | Each project's commit format, set by a regex, a plain-words rule, or a path to a Markdown file that describes it. Below. |
 | youtrack (named) | first | One entry per server; reads and writes issues, comments, articles, work items. |
 | telegram (named) | first | A channel: receive, send text, send media. |
@@ -81,10 +82,12 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | develop (named: developing Arthur) | first | A command that creates a plugin, evals of the coordinator's turns. |
 | docker (named) | first | Labels the Docker resources a job creates with its id and removes them with its worktree, on every machine; keeps the build cache under a cap; a daily sweep of leftovers. Below. |
 | signal (named) | later | A channel, through signal-cli. |
+| discord (named) | later | A channel, through Discord's gateway: an outbound WebSocket, no Interactions Endpoint URL. |
+| slack (named) | later | A channel, through Slack's Socket Mode: an outbound WebSocket, no Request URL; phone commands as `/arthur <name> <text>`. |
 | whatsapp (named) | later | A channel, through a local bridge. The official Business API is out: it delivers incoming messages by webhook. |
 | server (named) | later | The core's events and commands over HTTP and a stream, for clients (a phone app, a web page, a T3 Code-like UI). Bound to a private network, with a token. |
 
-Order of the later plugins, cheapest first: signal (a local process), then whatsapp (an unofficial bridge: the account may be banned), then server (needs a stable event protocol and auth).
+Order of the later plugins, cheapest first: signal (a local process), then discord and slack (official bots, no ban risk, but each a gateway client that has to stay alive), then whatsapp (an unofficial bridge: the account may be banned), then server (needs a stable event protocol and auth). Project agents (roadmap 85 to 88) come before all of them, once the other projects have moved to Arthur.
 
 The core never assumes a project is a Git repository or that a single human approves everything, so the company edition (roadmap 79) is plugins on the same core.
 
@@ -164,7 +167,7 @@ Interface: `host.jobs.cleanup(fn)`, `host.jobs.prepare` returning variables for 
 ## How it is built
 
 - The plugin API is derived from three plugins: telegram, youtrack, schedule. They are a channel, a tracker and a timer; their common shape is the host API. The styleguide forbids abstracting before the second example, so the API is frozen after those three are built, not before.
-- Channels (telegram, whatsapp, signal) share one interface: receive a message as typed `parts` (text, photo, video, voice, audio, file), send text, send media. A channel hands the parts to the core, which asks the plugins that claim them (`collect("message.part")`) to replace each by its text before the coordinator's turn. Each channel answers one allowed chat or number.
+- Channels (telegram, signal, discord, slack, whatsapp) share one interface: receive a message as typed `parts` (text, photo, video, voice, audio, file), send text, send media. A message may name its place (a Telegram topic, a Discord or Slack channel), and a send may name the place it goes to. A channel hands the parts to the core, which asks the plugins that claim them (`collect("message.part")`) to replace each by its text before the coordinator's turn. Each channel answers one allowed chat or number, or one Discord server or Slack workspace, and there only the owner's user.
 - Arthur is built by moving the predecessor's modules with their tests, not by rewriting them, feature by feature, in the order of `spec/roadmap.md`. Each ticket is neither a one-liner nor a whole plugin; each module and plugin is tested on its own, edge cases included. The predecessor takes only fixes until the switch. Arthur switches one project first, itself, then the others.
 - The repository starts clean, with an empty board: the predecessor's history holds client names, paths and work, and is not published.
 
@@ -187,6 +190,7 @@ Interface: `host.jobs.cleanup(fn)`, `host.jobs.prepare` returning variables for 
 - Running a job on another machine: the core's job runner, over SSH. Which machines exist, their labels, and which one a job goes to: `machines`.
 - A job's time and money: the core. A job's CPU and memory, a feature's caps, and how many jobs the free resources allow: `resources`.
 - Free disk on a machine: `resources` (`keepFree.disk`). A job's Docker resources, the build cache cap and the leftover sweep: `docker`, through the core's cleanup hook on worktree removal.
+- A project's own agent and the routing of its chat: `orchestration`; the place it answers in: the project's `chat` key in `projects`.
 
 ## Licence
 
@@ -207,14 +211,14 @@ FSL-1.1-ALv2, the Functional Source License with Apache 2.0 after two years. It 
 
 1. Merge and review are a plugin, `delivery`, shipped in the first version. The core stays a job runner.
 2. The plugin API is frozen after building three plugins (telegram, youtrack, schedule), not before.
-3. One channel interface; WhatsApp last of the channels.
+3. One channel interface; a message may name its place (a topic or a channel), which a project's `chat` maps to its agent; WhatsApp last of the channels.
 4. Server later. The first version polls GitHub. Arthur exposes nothing to the internet (no public port, no webhooks). The core emits events from day one.
 5. The name is Arthur. `arthur.config.ts` and `.arthur/` are its files. Everything is English.
 6. The env prefix is `ARTHUR_` (`ARTHUR_YOUTRACK_TOKEN`), with named instances as above.
 7. The repository is `git@github.com:kacperadler/arthur.git`, public, under FSL-1.1-ALv2.
 8. `schedule` is a module for actions and jobs at set times.
 9. `session` is a plugin; its config covers compaction at 08, 13 and 18 and the fresh start at 23.
-10. The coordinator is always there and talks with the user through a channel or the terminal; there is no single-agent mode.
+10. The coordinator is always there and talks with the user through a channel or the terminal; there is no single-agent mode. A project may have its own agent beside the coordinator (20).
 11. Commit rules are their own plugin; the format is a regex, a plain-words rule, or a Markdown file, per project.
 12. Arthur starts with an empty board; no history of the predecessor is carried over.
 13. Projects live in `arthur.config.ts` (path, prefix, tracker instance, commit rules, other settings), not in a separate JSON file.
@@ -224,3 +228,4 @@ FSL-1.1-ALv2, the Functional Source License with Apache 2.0 after two years. It 
 17. Arthur runs on one machine and starts jobs on others it reaches over SSH on a private network (Tailscale), placed by the labels (os, arch, tools) a project or a ticket requires. Nothing is exposed to the internet.
 18. A `resources` plugin caps what one job or one feature may use (CPU, memory, time, money; a job's time and money are the core's existing limits) and decides how many jobs start from each machine's free resources; `maxAgents` stays the upper bound.
 19. Arthur watches disk space and cleans Docker with each worktree, so agents never stop for a full disk: free disk is a resource of `resources`, a job's Docker resources are labelled and removed with its worktree by a `docker` plugin, and a daily sweep reclaims leftovers.
+20. (the owner, 2026-10-17) The coordinator stays, and a project with a `chat` gets its own agent, which talks with the owner in that project's chat (a Telegram topic, a Discord channel, a Slack channel) and works only on that project; the coordinator keeps `maxAgents`, the morning report and the work across projects. Later, for companies, the coordinator directs like a CEO and each project's agent leads like a department head; agents above projects may be added then, and none is built now. Discord and Slack are channels, later, after signal and before WhatsApp. Teams is not for now.

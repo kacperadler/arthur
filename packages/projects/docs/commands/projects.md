@@ -57,4 +57,4 @@ Every new worktree, of every kind of job, gets its dependencies before its agent
 - `composer.lock`: `composer install`
 - `uv.lock`: `uv sync --frozen`
 
-No lockfile and no `install`, or `install: ""`: nothing runs. Two known lockfiles and no `install` refuse the spawn; an install that exits with another code than 0 refuses it too, naming the project, the command and its last line of output. A refused spawn leaves no worktree and no record. A tool an install needs must be on the `PATH` of Arthur's service (see `docs/deploy.md`).
+No lockfile and no `install`, or `install: ""`: nothing runs. Two known lockfiles and no `install` refuse the spawn; an install that exits with another code than 0 refuses it too, naming the project, the command and its last line of output. A refused spawn leaves no worktree and no record. A tool an install needs must be on the `PATH` of Arthur's service (see `docs/setup.md`).

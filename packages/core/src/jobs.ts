@@ -84,6 +84,8 @@ export type Jobs = {
 	// Holds a job in a run `blocked` on `dependency: <reason>` whatever its activity; `unblock` lets it go (docs/commands/jobs.md).
 	block(id: string, reason: string): void;
 	unblock(id: string): void;
+	// The ids of every project's jobs in a run (working, idle, or held), as `arthur stopall` counts them, the newest spawn first.
+	running(): string[];
 };
 
 // The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for.

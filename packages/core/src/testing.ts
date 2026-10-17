@@ -102,7 +102,7 @@ export type FakeHost = {
 // command's registration refuses like the real host's, naming the plugin. Its clock stands still at `now` (default
 // 2026-01-01T00:00:00Z) in `timeZone` (default UTC) until `setNow` moves it. `host.board` reads the project list the test
 // provides as `projects`. `host.jobs.spawn` starts from HEAD of the project's folder in that list, else of the repository
-// `root` (a test's own), with the core's default limits, in the kit's `jobSlice`, and runs the agent `omp` that `PATH` finds.
+// `root` (a test's own), with the core's default limits, in the kit's `jobSlice`, and runs the agent `omp` that `PATH` finds, as `host.agent` names it.
 // As in a real load, the core follows the jobs after the plugin's `setup`: at the first spawn, its `beforeSpawn` joins after the
 // plugin's checks and refuses a worker on a ticket of that project list that cannot move to in-progress, and its move joins
 // after the plugin's `job-started` handlers, so they still see the ticket as it was (`planned`) and then it is in-progress.
@@ -127,7 +127,7 @@ export function fakeHost(plugin: {
 	const time = clock(plugin.timeZone ?? "UTC", plugin.quietHours, () => new Date(now));
 	const jobs = jobRunner(home, plugin.root ?? home, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, "omp", time, bus, names.collect);
 	let loading = false, following = false;
-	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder, clock: time }, () => loading);
+	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder, clock: time, agent: "omp" }, () => loading);
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));
 	const provided: string[] = [];
 	const calls: Use[] = [];

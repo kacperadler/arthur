@@ -13,7 +13,9 @@ import { checkStructure } from "./structure.ts";
 // cuts elsewhere, or its ticket records the overrun as a decision. The test kit (testing.ts, fake-agent.ts: 268 lines) has a budget
 // of its own, so production growth shows on its own: an entry that grows the kit moves lines from core to core/testing.
 // projects: 320, set by AR0087 (roadmap 41) for the project list, its context lines, `arthur projects`, the clone and the install.
-const BUDGETS = { core: 4812, "core/testing": 268, projects: 320 };
+// AR0094 (roadmap 23): 8 lines from core to core/testing, the fake agent asking `tool_call` handlers as omp does; orchestration:
+// 300 for the plugin's options, the coordinator's process, `arthur attach` and `arthur coordinator stop` (276 at the merge).
+const BUDGETS = { core: 4804, "core/testing": 276, projects: 320, orchestration: 300 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

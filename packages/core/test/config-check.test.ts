@@ -76,7 +76,7 @@ test("every refusal of the host before setup fails the check, next to the env li
 		ok: false,
 	});
 	assert.deepEqual(await check(`[${ORCHESTRATION}, { name: "telegram", setup() {} }, { name: "telegram", setup() {} }]`), {
-		lines: ["plugins[2]: a second plugin named telegram; the first is plugins[1]", "ARTHUR_TELEGRAM_ is the prefix of both plugin telegram and plugin telegram"],
+		lines: ["plugins[2]: a second plugin named telegram; the first is plugins[1]", "no enabled plugin names an env variable"],
 		ok: false,
 	});
 	assert.deepEqual(await check(`[${ORCHESTRATION}, { name: "a", requires: ["b"], setup() {} }, { name: "b", requires: ["a"], setup() {} }]`), {

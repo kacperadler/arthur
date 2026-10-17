@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -56,6 +56,13 @@ function check(
 
 test("the repository keeps every rule", () => {
 	assert.deepEqual(checkStructure(join(import.meta.dirname, ".."), BUDGETS), []);
+});
+
+// GitHub draws the README's ```mermaid block on the repository page; arthur.mmd is its source, so the two must not drift apart.
+test("the README's mermaid block is arthur.mmd, unchanged", () => {
+	const root = join(import.meta.dirname, "..");
+	const block = readFileSync(join(root, "README.md"), "utf8").match(/^```mermaid\n([\s\S]*?)^```$/m)?.[1];
+	assert.equal(block, readFileSync(join(root, "arthur.mmd"), "utf8"), "copy arthur.mmd into the README's ```mermaid block");
 });
 
 test("a tree that keeps every rule passes, @arthur/core/testing and a type import of the core included", () => {

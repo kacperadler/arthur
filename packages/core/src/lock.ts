@@ -1,9 +1,11 @@
 import { linkSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { setTimeout as sleep } from "node:timers/promises";
 
 // A lock between processes on one machine: the file `path` holds the pid of its holder and, where the system has one (Linux),
 // the id of the boot it ran in. A lock whose pid is dead (a crash while it was held), or that was written in an earlier boot,
 // whose pid may name another process now, is taken over. `withLock` holds it for a moment: a live holder past `waitMs` is an
-// error. `takeLock` holds it for as long as a process runs.
+// error. `takeLock` holds it for as long as a process runs. `queueLock` waits for it without blocking this process, whose
+// own other holder may need its turn to finish.
 
 const RETRY_MS = 2;
 const BOOT = bootId();
@@ -44,6 +46,22 @@ export function takeLock(path: string): { readonly release: () => void } | { rea
 			if (now?.pid === process.pid && now.ino === ino) unlinkSync(path);
 		},
 	};
+}
+
+// Waits its turn behind any live holder, this process included; past `waitMs` it is an error. The function it returns
+// releases the lock once: a second call never removes a lock taken since, whatever inode the new one got.
+export async function queueLock(path: string, waitMs = 60_000): Promise<() => void> {
+	for (const until = Date.now() + waitMs; ; await sleep(10)) {
+		const lock = takeLock(path);
+		if ("release" in lock) {
+			let held = true;
+			return () => {
+				if (held) lock.release();
+				held = false;
+			};
+		}
+		if (Date.now() > until) throw new Error(`${path}: held by pid ${lock.heldBy} for over ${waitMs / 1000} s`);
+	}
 }
 
 // This process's lock file beside `path`, written in whole: `path` is linked to it, so a reader never sees it half written.

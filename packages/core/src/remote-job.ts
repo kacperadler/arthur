@@ -58,7 +58,7 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 	},
 	// Reads the instruction on stdin; prints why the wrapper did not start, as `launch`.
 	async continue(home, [id = "", agent = "", slice = "", budget]) {
-		const failed = await continueJob(home, id, readFileSync(0, "utf8"), budget === undefined ? undefined : Number(budget), agent, { slice, ...machineLimit() }, eventBus(home), async () => {});
+		const failed = await continueJob(home, id, readFileSync(0, "utf8"), budget === undefined ? undefined : Number(budget), agent, { slice, ...machineLimit() }, eventBus(home), async () => () => {});
 		if (failed !== undefined) console.log(failed);
 	},
 	// Removes the worktree, Git deciding, the branch when it is still at `tip`, the branch the main checkout holds, and the

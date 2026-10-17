@@ -70,7 +70,8 @@ export default defineConfig({
 		// starts it again when it ends. `maxAgents` counts running jobs across all projects together. Also holds the planning of
 		// large tickets (planner role, plan review) and autopilot.
 		orchestration({
-			maxAgents: 3, // the upper bound across all projects and machines; with `resources` on, fewer when resources are short
+			maxAgents: 3, // jobs in a run at once, across all projects and machines, the human's spawns included; default 3. With
+			// `resources` on, fewer when resources are short. A spawn above it is refused, naming the running jobs
 			coordinator: {
 				model: "anthropic/claude-opus-5-5",
 				thinking: "high",
@@ -79,10 +80,12 @@ export default defineConfig({
 				restartDelaySeconds: 5, // start it again this long after it ended, for any reason
 			},
 			roles: {
+				// `--model` and `--thinking` on a spawn win over the role's; a role left out, or without a model, uses the agent's default
 				// `model` is one name or an ordered list: the first available at the job's start is used (the models plugin below)
 				worker: { model: ["mac/qwen3-coder", "anthropic/claude-haiku-5-5"], thinking: undefined },
 				reviewer: { model: "anthropic/claude-sonnet-5", thinking: "medium" },
 				planner: { model: undefined, thinking: undefined }, // undefined = the agent's own default
+				quick: { model: "anthropic/claude-haiku-5-5" }, // not a role: omp's quick model (--smol) on every job and the coordinator
 			},
 			plan: { budgetUsd: 5 },
 			autopilot: { budgetUsd: 1, budgetMaxUsd: 3 },

@@ -66,7 +66,8 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		quiet();
 		quiet = deadline(Number(idle), () => move("working", "idle"));
 	};
-	const [instruction, spent] = ["continue", "cost"].map((name) => (existsSync(join(folder, name)) ? field(name) : undefined));
+	// `quick` is missing from a record an older Arthur wrote.
+	const [instruction, spent, quick] = ["continue", "cost", "quick"].map((name) => (existsSync(join(folder, name)) ? field(name) : undefined));
 	// A resumed run continues the agent's last session in the worktree, which is the job's own, with `resume` as its message.
 	const args = (resume: string | undefined) => [
 		...(resume === undefined ? [] : ["--continue"]),
@@ -75,6 +76,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		...["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((extension) => ["-e", join(import.meta.dirname, extension)]),
 		...(model ? ["--model", model] : []),
 		...(thinking ? ["--thinking", thinking] : []),
+		...(quick ? ["--smol", quick] : []),
 		resume ?? `@${join(folder, "task")}`,
 	];
 	// What stopped the job first, which its state says, whatever came after; `final` once nothing may resume it: its time

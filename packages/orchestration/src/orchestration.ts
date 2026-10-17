@@ -5,10 +5,12 @@ import { boardCommands } from "./board-commands.ts";
 import { pane, STOPPED, supervise, tmux } from "./coordinator.ts";
 import { inbox } from "./inbox.ts";
 import { checkOptions, type Coordinator, coordinatorOptions } from "./orchestration-options.ts";
+import { spawnRules } from "./spawn-rules.ts";
 
 // The orchestration plugin (spec/roadmap.md, entry 23), required by the host: the coordinator's process, kept running by
 // `arthur run`; its inbox (entry 24, inbox.ts); `arthur attach` and `arthur coordinator stop`, docs/commands/coordinator.md
-// and attach.md; and the board's phone commands `/board`, `/task` and `/findings` (board-commands.ts).
+// and attach.md; the board's phone commands `/board`, `/task` and `/findings` (board-commands.ts); and `maxAgents` and each
+// role's model (entry 26, spawn-rules.ts).
 
 export type OrchestrationOptions = {
 	readonly enabled?: boolean;
@@ -20,6 +22,7 @@ export type OrchestrationOptions = {
 		readonly exitWaitSeconds?: number;
 		readonly restartDelaySeconds?: number;
 	};
+	// A role's `model` and `thinking`; `quick` takes only a `model`, omp's quick model (`--smol`) for every job and the coordinator.
 	readonly roles?: Readonly<Record<string, { readonly model?: string | readonly string[]; readonly thinking?: string }>>;
 	readonly plan?: { readonly budgetUsd?: number };
 	readonly autopilot?: { readonly budgetUsd?: number; readonly budgetMaxUsd?: number };
@@ -39,6 +42,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			const { folder, agent } = host;
 			place = { coordinator, folder, agent };
 			messages = inbox(host);
+			spawnRules(host);
 			const where = `tmux session ${coordinator.session} (socket ${coordinator.socket})`;
 			host.commands.register({
 				name: "attach",

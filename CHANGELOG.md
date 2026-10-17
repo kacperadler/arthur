@@ -9,6 +9,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0033 An unknown `--project` name reaches the command unchecked (2f47a42)
 - AR0090 The coordinator role explains every ticket and question to an owner who knows nothing of them (4aefdb4)
 - AR0101 A diagram in the repository root of what Arthur is built from, built and not yet built (37081c1)
+- AR0103 The README tells a newcomer what Arthur is, what works today, and how to try it (a1b3299)
 
 ### Fixed
 

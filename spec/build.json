@@ -851,8 +851,15 @@
   {
     "id": "AR0103",
     "title": "The README tells a newcomer what Arthur is, what works today, and how to try it",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0103-the-readme-tells-a-newcomer-what-arthur-is-what-works-today-and-how-to-try-it/ticket.md",
-    "updated": "2026-10-17T15:08:00.262Z"
+    "updated": "2026-10-17T15:21:17.825Z"
+  },
+  {
+    "id": "AR0104",
+    "title": "Arthur's home folder `.arthur/` in its own clone is not ignored by Git",
+    "status": "dropped",
+    "path": "spec/features/AR0104-arthur-s-home-folder-arthur-in-its-own-clone-is-not-ignored-by-git/ticket.md",
+    "updated": "2026-10-17T15:21:26.752Z"
   }
 ]

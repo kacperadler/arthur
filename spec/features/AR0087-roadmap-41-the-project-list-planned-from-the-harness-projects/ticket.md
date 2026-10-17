@@ -44,3 +44,5 @@ Out:
 
 - 2026-10-16: The human: take the harness's projects as the example for Arthur and plan it well; not built in the harness (K0259 dropped).
 - 2026-10-16: The human: start the plan now.
+- 2026-10-17: The owner: shop is three projects, MP shop/main, LB shop/north, LA shop/south.
+- 2026-10-17: The owner, on dropping pathPrepend: two projects may need different versions of one tool (e.g. Node through nvm); not settled yet, asked how.

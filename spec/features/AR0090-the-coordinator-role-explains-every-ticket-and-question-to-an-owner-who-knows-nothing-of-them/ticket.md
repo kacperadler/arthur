@@ -34,3 +34,4 @@ Out:
 ## Decisions
 
 - 2026-10-17: the owner asked that the communication fix also work in Arthur.
+- 2026-10-17: The owner approved it.

@@ -4,7 +4,10 @@
 {
   "id": "AR0080",
   "title": "/board, /task and /findings move into orchestration, with host.jobs.list()",
-  "date": "2026-10-16"
+  "date": "2026-10-16",
+  "after": [
+    "AR0094"
+  ]
 }
 ```
 

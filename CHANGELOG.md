@@ -2,6 +2,12 @@
 
 Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-18
+
+### Other
+
+- AR0110 Roadmap 26: maxAgents and the models of each role (5dfeb7e)
+
 ## 2026-10-17
 
 ### Added

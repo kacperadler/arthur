@@ -191,7 +191,7 @@ test("arthur steer, stop, continue and prune of a job on another machine run the
 	assert.equal(jobs.steer(job.id, "Use the second file."), "0001");
 	writeFileSync(join(gates, "one"), "");
 	await until("the steer there", () => messages(agent).length === 1);
-	assert.deepEqual(messages(agent), [{ content: "Use the second file.", options: { deliverAs: "steer" } }]);
+	assert.deepEqual(messages(agent), [{ content: "Use the second file.", options: { deliverAs: "steer" }, step: 1 }]);
 
 	assert.equal(await jobs.stop(job.id), `${job.id}: stopped`);
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["ended", "stopped"], "the end there is here at once");

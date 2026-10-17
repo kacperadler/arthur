@@ -8,7 +8,6 @@ import { loadConfig } from "./config.ts";
 import { parseFlags } from "./flags.ts";
 import { type LoadedPlugins, loadPlugins } from "./host.ts";
 import type { JobRunner } from "./jobs.ts";
-import { boardCommands } from "./board-commands.ts";
 import { jobCommands } from "./job-commands.ts";
 import { coreVersion } from "./job-machine.ts";
 import { remoteJobCommand } from "./remote-job.ts";
@@ -72,8 +71,7 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 		if (app === undefined) throw new Error(`${why}arthur.config.ts did not load:\n${problem}`);
 		return pick(app);
 	};
-	const board = need("the board needs the project list, and ", (app) => app.board);
-	for (const command of [ticketCommand(board), ...boardCommands(board, () => loaded()?.home)]) commands.register("core", command);
+	commands.register("core", ticketCommand(need("the board needs the project list, and ", (app) => app.board)));
 	commands.register("core", rolesCommand(need("the roles are what the plugins registered, and ", (app) => app.jobs)));
 	const jobs = need("", (app) => app.jobs);
 	commands.register("core", spawnCommand(jobs));

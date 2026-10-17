@@ -9,7 +9,7 @@ import { checkLimits, type Limits, spawnLimits } from "./job-limits.ts";
 import { continueJob } from "./job-control.ts";
 import { addThere, LOCAL, type Machine, machineRegistry, type Ran, reach, removeThere } from "./job-machine.ts";
 import { newJob, writeRecord } from "./job-record.ts";
-import { jobUpkeep } from "./job-records.ts";
+import { type JobRecord, jobUpkeep } from "./job-records.ts";
 import { launchThere, syncMachines } from "./machine-sync.ts";
 import { pluginStep } from "./plugin.ts";
 import { describeRoles, prompt, type Role, type RoleView, roleModel, roleRegistry } from "./roles.ts";
@@ -84,7 +84,9 @@ export type Jobs = {
 	// Holds a job in a run `blocked` on `dependency: <reason>` whatever its activity; `unblock` lets it go (docs/commands/jobs.md).
 	block(id: string, reason: string): void;
 	unblock(id: string): void;
-	// The ids of every project's jobs in a run (working, idle, or held), as `arthur stopall` counts them, the newest spawn first.
+	// Every project's job records, in any state, the newest spawn first (docs/commands/jobs.md).
+	list(): JobRecord[];
+	// The ids of `list()`'s jobs in a run (working, idle, or held), as `arthur stopall` counts them.
 	running(): string[];
 };
 

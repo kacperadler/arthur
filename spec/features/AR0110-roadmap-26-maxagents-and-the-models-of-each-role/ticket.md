@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-17: The owner asked for six Arthur tickets done overnight, in order; the coordinator picked this entry as the sixth.
+- 2026-10-17: Coordinator (owner delegated Arthur calls): orchestration line budget 658 -> 690 accepted; maxAgents defaults to 3; the quick model is `roles.quick: { model }`, passed as omp `--smol`.

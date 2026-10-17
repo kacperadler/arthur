@@ -168,40 +168,46 @@ export default defineConfig({
 			],
 		}),
 
-		// The project list, the only place projects are declared. Each project: where it lives
-		// (a path, or a repo Arthur clones into `reposDir`), its ticket prefix (ids are PREFIX-1, PREFIX-2, ... from an empty board),
-		// its tracker instance (`tracker.instance` names an instance of the youtrack plugin; without it, the unnamed one), its CI
-		// workflow, its commit rules, the files the roles read, the machine labels its jobs need (`requires`; a ticket's own
-		// `"requires"` in its JSON block replaces it), and `docker: false` to leave its jobs' Docker resources unlabelled and
-		// uncleaned (default: on while the docker plugin is). Adding a project is an edit of this list.
+		// The project list, the only place projects are declared; the first is the main one. Each project: its name (lowercase
+		// letters, digits, dots and dashes), where it lives (a path, or a repo Arthur clones into `reposDir`, which lies outside
+		// the home folder), its ticket prefix (ids are PREFIX0001, PREFIX0002, ... from an empty board), its `title` and `about`
+		// (the line the coordinator reads every turn, so a word in a message finds the project), its `install` (else the lockfile
+		// picks a frozen install; "" for none), its tracker instance (`tracker.instance` names an instance of the youtrack plugin;
+		// without it, the unnamed one), its CI workflow, its commit rules, the machine labels its jobs need (`requires`; a ticket's
+		// own `"requires"` in its JSON block replaces it), and `docker: false` to leave its jobs' Docker resources unlabelled and
+		// uncleaned (default: on while the docker plugin is). Adding a project is an edit of this list; `arthur projects` shows it.
+		// One repository may be several projects, each checkout its own entry. `arthur.config.ts` is ignored by Git, so the real
+		// list stays on the machine.
 		projects({
-			reposDir: ".arthur/repos",
+			reposDir: "../repos",
 			list: [
 				{
 					name: "arthur",
+					title: "Arthur",
+					about: "Runs coding agents in Git worktrees for one human, with a ticket board and plugins from one config.",
 					path: ".",
 					prefix: "AR",
 					autoMerge: true, // merge after a PASS and green CI without asking
 					tracker: { plugin: "youtrack", project: "ART" },
 					ci: { workflow: "ci.yml" },
 					commitRules: { regex: "^(feat|fix|refactor|perf|test|docs|build|ci|chore|revert)(\\([\\w-]+\\))?!?: .{1,72}$" },
-					// the files the roles read: its vision, its criteria files (`<criteriaDir>/<name>.md`) and its overrides of
-					// the roles (`<rolesDir>/<role>.md`); without `prompts`, the criteria and override folders shown here
-					prompts: { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria", rolesDir: ".agents/arthur/roles" },
 				},
 				{
 					name: "acme-shop",
+					title: "Acme Shop",
+					about: "The online shop of the client Acme: customers order garden tools; it succeeds when an order is paid.",
 					repo: "git@github.com:acme/shop.git",
 					prefix: "SHOP",
+					install: "bun install --frozen-lockfile && bun run build:deps", // runs in each new worktree
 					autoMerge: false, // every merge waits for the human
 					tracker: { plugin: "youtrack", instance: "acme", project: "SHOP" },
 					ci: { workflow: "build.yml" },
 					commitRules: { words: "Start with the ticket id, then a verb in the imperative." }, // judged by the review
-					pathPrepend: ["/home/arthur/.bun/bin"], // folders put in front of PATH for this project's jobs and checks
-					prompts: { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria", rolesDir: ".agents/arthur/roles" },
 				},
 				{
 					name: "acme-site",
+					title: "Acme Site",
+					about: "Acme's company website: who they are and how to reach them.",
 					repo: "git@github.com:acme/site.git",
 					prefix: "SITE",
 					autoMerge: false,
@@ -209,17 +215,17 @@ export default defineConfig({
 					ci: { workflow: "ci.yml" },
 					commitRules: { file: "docs/commit-rules.md" }, // read as plain words, from the project's own repository
 					docker: false, // its jobs' containers are not labelled, nor removed with their worktree; the sweep still runs
-					prompts: { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria", rolesDir: ".agents/arthur/roles" },
 				},
 				{
 					name: "acme-ios",
+					title: "Acme iOS",
 					repo: "git@github.com:acme/ios.git",
 					prefix: "IOS",
+					install: "", // nothing to install
 					autoMerge: false,
 					tracker: { plugin: "youtrack", instance: "acme", project: "IOS" },
 					ci: { workflow: "ios.yml" },
 					requires: { os: "macos", tools: ["xcode"] }, // every job of this project runs on a machine with these labels
-					prompts: { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria", rolesDir: ".agents/arthur/roles" },
 				},
 			],
 		}),

@@ -3,10 +3,10 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { test } from "node:test";
+import { mock, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { clock } from "../src/clock.ts";
-import { commandRegistry } from "../src/commands.ts";
+import { type CommandRegistry, commandRegistry } from "../src/commands.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { jobCommands } from "../src/job-commands.ts";
@@ -249,8 +249,82 @@ test("the arthur binary lists, stops, steers, continues and prunes a job by its 
 		[["jobs", "--state"], "--state needs a value\nusage: arthur jobs [--state <state>]"],
 		[["jobs", "--state", "idle", "--state", "ended"], "--state given twice\nusage: arthur jobs [--state <state>]"],
 		[["stopall", "now"], "expected no arguments, got 1 arguments\nusage: arthur stopall"],
-		[["prune", "--force"], "unknown flag --force\nusage: arthur prune [<id>...]"],
+		[["prune", "--force"], "unknown flag --force\nusage: arthur prune (<id>... | --all)"],
 	] as const) assert.deepEqual([arthur(...args).status, arthur(...args).stderr], [2, `arthur ${args[0]}: ${problem}\n`]);
 	const refused = arthur("prune", "deadbeef");
 	assert.deepEqual([refused.status, refused.stderr], [1, `arthur prune: deadbeef: no such job in ${join(root, ".arthur", "jobs")}\n`]);
+});
+
+// Runs a job command in-process; what it prints and what it refuses are captured, its exit code kept.
+async function command(commands: CommandRegistry, name: string, ...args: string[]) {
+	const out: string[] = [];
+	const err: string[] = [];
+	const log = mock.method(console, "log", (line = "") => {
+		out.push(String(line));
+	});
+	const error = mock.method(console, "error", (line = "") => {
+		err.push(String(line));
+	});
+	try {
+		const found = commands.find(name);
+		assert.ok(found, name);
+		const code = await found.run({ args, project: undefined });
+		return { code: typeof code === "number" ? code : 0, out: out.join("\n"), err: err.join("\n") };
+	} finally {
+		log.mock.restore();
+		error.mock.restore();
+	}
+}
+
+test("arthur prune with no ids refuses with the usage line and exit 2; two finished jobs are both kept", async () => {
+	const { home, jobs, commands } = setup();
+	const first = await worker(jobs, home);
+	const second = await worker(jobs, home);
+	assert.deepEqual(await command(commands, "prune"), { code: 2, out: "", err: "arthur prune: needs one or more ids, or --all for every finished job\nusage: arthur prune (<id>... | --all)" });
+	assert.deepEqual([existsSync(join(home, "jobs", first.id)), existsSync(first.worktree), existsSync(join(home, "jobs", second.id)), existsSync(second.worktree)], [true, true, true, true]);
+});
+
+test("arthur prune --all frees every finished job as the bare prune did; --all with ids is refused with exit 2 and frees nothing", async () => {
+	const { home, jobs, commands } = setup();
+	const first = await worker(jobs, home);
+	const second = await worker(jobs, home);
+	assert.deepEqual(await command(commands, "prune", first.id, "--all"), { code: 2, out: "", err: "arthur prune: --all takes no ids\nusage: arthur prune (<id>... | --all)" });
+	assert.deepEqual([existsSync(join(home, "jobs", first.id)), existsSync(join(home, "jobs", second.id))], [true, true]);
+	const freed = await command(commands, "prune", "--all");
+	assert.equal(freed.code, 0);
+	assert.deepEqual(freed.out.split("\n").sort(), [
+		`${first.id}: worktree ${first.worktree} removed; branch arthur/${first.id} deleted; record deleted`,
+		`${second.id}: worktree ${second.worktree} removed; branch arthur/${second.id} deleted; record deleted`,
+	].sort());
+	assert.deepEqual([existsSync(join(home, "jobs", first.id)), existsSync(join(home, "jobs", second.id))], [false, false]);
+});
+
+test("an empty id is refused with exit 2 before anything is removed, even beside a real id", async () => {
+	const { home, jobs, commands } = setup();
+	const free = await worker(jobs, home);
+	assert.deepEqual(await command(commands, "prune", free.id, ""), { code: 2, out: "", err: "arthur prune: an empty id or text\nusage: arthur prune (<id>... | --all)" });
+	assert.deepEqual([existsSync(join(home, "jobs", free.id)), existsSync(free.worktree)], [true, true]);
+});
+
+test("stop with an empty id is refused with exit 2 before it acts; the job is not touched", async () => {
+	const { home, jobs, commands } = setup();
+	const job = await worker(jobs, home);
+	assert.deepEqual(await command(commands, "stop", ""), { code: 2, out: "", err: "arthur stop: an empty id or text\nusage: arthur stop <id>" });
+	assert.equal(field(home, job.id, "state"), "ended");
+});
+
+test("steer with an empty id or an empty text is refused with exit 2 before it acts; no steer is queued", async () => {
+	const { home, jobs, commands } = setup();
+	const job = await worker(jobs, home);
+	assert.deepEqual(await command(commands, "steer", job.id, ""), { code: 2, out: "", err: "arthur steer: an empty id or text\nusage: arthur steer <id> <text>" });
+	assert.deepEqual(await command(commands, "steer", "", "Mind the tests."), { code: 2, out: "", err: "arthur steer: an empty id or text\nusage: arthur steer <id> <text>" });
+	assert.equal(existsSync(join(home, "jobs", job.id, "steer", "inbox", "0001")), false);
+});
+
+test("continue with an empty id or an empty instruction is refused with exit 2; the ended job's record is left as it was", async () => {
+	const { home, jobs, commands } = setup();
+	const job = await worker(jobs, home);
+	assert.deepEqual(await command(commands, "continue", job.id, ""), { code: 2, out: "", err: "arthur continue: an empty id or text\nusage: arthur continue <id> <instruction> [--budget <usd>]" });
+	assert.deepEqual(await command(commands, "continue", "", "Go on."), { code: 2, out: "", err: "arthur continue: an empty id or text\nusage: arthur continue <id> <instruction> [--budget <usd>]" });
+	assert.equal(field(home, job.id, "state"), "ended");
 });

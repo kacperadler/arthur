@@ -767,16 +767,16 @@
   {
     "id": "AR0092",
     "title": "A project added while a job runs is guarded from that job at once",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0092-a-project-added-while-a-job-runs-is-guarded-from-that-job-at-once/ticket.md",
-    "updated": "2026-10-17T11:47:28.504Z"
+    "updated": "2026-10-17T11:53:59.673Z"
   },
   {
     "id": "AR0093",
     "title": "The job runner's prune still treats an empty list as every finished job",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0093-the-job-runner-s-prune-still-treats-an-empty-list-as-every-finished-job/ticket.md",
-    "updated": "2026-10-17T11:47:29.584Z"
+    "updated": "2026-10-17T11:55:28.462Z"
   },
   {
     "id": "AR0094",

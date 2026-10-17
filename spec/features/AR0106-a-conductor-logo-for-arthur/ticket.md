@@ -36,3 +36,4 @@ Out:
 ## Decisions
 
 - 2026-10-17: The owner: a conductor with a baton.
+- 2026-10-17: The owner picked variant 1 (the conductor seen from the side) but finds it far too primitive: the logo must look better than the Jenkins butler. A full-colour illustrated mark plus a simplified one-colour favicon version.

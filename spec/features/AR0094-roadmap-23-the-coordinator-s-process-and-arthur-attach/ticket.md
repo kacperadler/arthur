@@ -36,3 +36,4 @@ Out:
 
 - 2026-10-17: Cut from `spec/roadmap.md` entry 23 by the coordinator; AR tickets need no approval (the owner, 2026-10-16).
 - 2026-10-17: The owner resumed Arthur's build; this entry is next.
+- 2026-10-17: Worker: line budgets in `test/structure.test.ts`: orchestration 300 (276 at the commit); 8 lines move from core (4804) to core/testing (276) for the fake agent's `tool_call` handlers, which the env-guard test of the coordinator needs.

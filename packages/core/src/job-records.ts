@@ -36,6 +36,7 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 		syncMachine(home, machine, bus);
 		return line;
 	};
+	const running = (): string[] => jobIds(home).filter((id) => inRun(current(home, id)));
 	return {
 		list: (state?: string) => jobsText(home, time, state),
 		block: (id: string, reason: string) => blockJob(home, id, reason, bus, time.now()),
@@ -53,11 +54,12 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 			const all = ids === "all" ? jobIds(home) : [...new Set(ids.map((query) => findJob(home, query)))];
 			return all.length === 0 ? ["no jobs"] : all.map((id) => `${id}: ${prune(home, id, keep, there)}`);
 		},
+		running,
 		async stopAll() {
-			const running = jobIds(home).filter((id) => inRun(current(home, id)));
-			bus.emit("core", "stop-all", { ids: running });
-			if (running.length === 0) return "no running jobs";
-			return (await Promise.all(running.map((id) => stop(id).catch((error: Error) => error.message)))).join("\n");
+			const ids = running();
+			bus.emit("core", "stop-all", { ids });
+			if (ids.length === 0) return "no running jobs";
+			return (await Promise.all(ids.map((id) => stop(id).catch((error: Error) => error.message)))).join("\n");
 		},
 		sweep() {
 			const table = processTable();

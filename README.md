@@ -1,15 +1,134 @@
 # Arthur
 
-Arthur runs coding agents (OMP) for one human: a small core runs each job in its own Git worktree and keeps a ticket board in plain files, and plugins add the rest (the coordinator, schedules, projects, review and merge, GitHub, YouTrack, Telegram) from one config file, `arthur.config.ts`. It exposes nothing to the internet.
+Arthur lets one human direct many coding agents through one coordinator: the human creates the work, says when it is done and keeps each project's vision; the coordinator, an agent that is always on, starts and follows the jobs. Each job runs the OMP agent in its own Git worktree, on its own branch. A small core runs the jobs and keeps a ticket board in plain files, and plugins switch on everything else from one TypeScript config, `arthur.config.ts`. Arthur exposes nothing to the internet.
 
-**Status: in development, not usable yet.** What runs today: config loading, and `arthur config check`, which loads `arthur.config.ts` and lists the env variables the enabled plugins need, each `set` or `missing`, never their values; the plugin host, and the command registry behind the `arthur` binary (`arthur help`, `arthur <cmd> --help`) and a channel's `/name text`; `arthur run`, which starts the plugins and stops them on SIGTERM, one process per home folder; `arthur spawn`, which makes a job's worktree, record and role prompt from HEAD and runs its agent in the background, keeping the record current until the job ends; `arthur stop`, `arthur continue` and `arthur steer`, which stop a running job (SIGKILL after a grace when SIGTERM is not enough, at its time or budget limit too), resume an ended worker in place, and give a running job a correction after its next tool call; `arthur jobs`, `arthur prune` and `arthur stopall`, which list every project's jobs with their short ids, free what finished jobs hold as far as Git finds it safe, and stop every running job, answering `/jobs`, `/steer` and `/stopall` on a channel, while `arthur run` fails a job whose processes are gone on two sweeps in a row; the fake agent of the test kit; `arthur roles`, which lists the files each role's prompt reads and its model; the ticket board (`arthur ticket new|status|after`, `host.board`), which reads the project list a plugin provides, allows only the moves of its status table and moves a worker's ticket to in-progress when the worker starts; the projects plugin (`@arthur/projects`), which declares the project list in `arthur.config.ts`, gives the coordinator one line per project, answers `arthur projects` and `/projects`, starts a job of `--project <name>` from that project's folder and installs each new worktree's dependencies; the orchestration plugin (`@arthur/orchestration`), which keeps the coordinator, one interactive `omp` under the env guard, running in its own tmux session while `arthur run` runs, never beside a previous one still alive, with `arthur attach` and `arthur coordinator stop`, and answers `/board`, `/task` and `/findings` on a channel. The rest (the job's agent and limits, the plugins) is ordered in [`spec/roadmap.md`](spec/roadmap.md).
+## What Arthur is
 
-- What Arthur is and is not: [`spec/vision.md`](spec/vision.md).
-- Diagrams (Mermaid): [core and plugins](docs/architecture/core-and-plugins.mmd), [from config to a running plugin](docs/architecture/config-flow.mmd), [versions](docs/architecture/versions.mmd).
-- An example config: [`arthur.config.example.ts`](arthur.config.example.ts).
-- Running it on a VPS, and its threat model: [`docs/deploy.md`](docs/deploy.md).
+From [`spec/vision.md`](spec/vision.md):
+
+- One human directs many agents through one coordinator, who does not read code. The human talks to it through a channel plugin (Telegram first) or from the terminal, in the coordinator's own session (`arthur attach`).
+- Work happens in isolated worktrees, on their own branches, on this machine or on another one reached over SSH on a private network.
+- Plain files in Git and in the home folder `.arthur/` are the truth: tickets, the board, job records. No database.
+- One config file, `arthur.config.ts`: the plugin list, each plugin with its options, and every project. It holds no secret: an option ending in `Env` names the variable that holds it, and the value stays in the shell or `.env`.
+- A core that stays small enough for one person to understand, with a line budget, and plugins that talk to each other only through the core.
+- It runs on a VPS as a process. Running it needs Node and OMP, no runtime dependencies.
+
+## What Arthur is not
+
+- A hosted service, accounts, or a marketplace of third-party plugins. Plugins are packages the owner installs and lists in the config.
+- Anything that listens on a public address: no webhooks, no public endpoint. Every plugin calls out (Telegram and GitHub are polled) or talks to a local process.
+- A mode without a coordinator, or a project list outside the config.
+- Another agent runtime: Claude Code, Codex and others are not supported; OMP only.
+- Config in JSON or YAML, or a secret inside the config.
+- Open source: it is source-available (see [Licence](#licence)).
+
+## Status
+
+**Status: in development, not usable yet** (main on 2026-10-17). The core runs, from `arthur config check` to jobs in their own worktrees, and the coordinator starts in its tmux session, but it does not yet hear when a job ends, no channel reaches it, and nothing reviews or merges. The order of the rest is [`spec/roadmap.md`](spec/roadmap.md).
+
+What works today:
+
+- The core, roadmap entries 1 to 22, all merged: config and `.env`, the plugin host, events and commands, `arthur run`, jobs on this machine or another one with their time and money limits inside one CPU and memory slice for all jobs, their states, stop, continue and steer, the ticket board, and the env and worktree guards in every job.
+- The coordinator (`@arthur/orchestration`, entry 23): one `omp` in its own tmux session while `arthur run` runs, started again when it ends; `arthur attach`; `/board`, `/task` and `/findings`.
+- The project list (`@arthur/projects`, entry 41): every project in `arthur.config.ts`, `--project <name>` on any command, and each new worktree's dependencies installed.
+
+What is next:
+
+- Entry 24: the coordinator's inbox, and its wake when a job ends.
+- The rest of the coordinator (entries 25 to 29 and 65), and an agent per project with Discord and Slack channels (the plan of AR0098); then the other plugins, in the roadmap's order.
+
+## Features
+
+Each feature and its state on main on 2026-10-17, read from `packages/` and `spec/build.json`: built when every roadmap entry it needs is merged, in progress when some are, planned when none is.
+
+| Feature | State | Roadmap entries |
+| --- | --- | --- |
+| Repository rules as a test: line budgets, no runtime dependency, plugin boundaries | built | 1 |
+| Config, `.env` and `arthur config check` | built | 2, 3 |
+| Plugin host, event stream, command registry, `arthur run` | built | 4 to 6, 8 |
+| Clock: time zone and quiet hours | built | 7 |
+| Jobs: spawn, the wrapper, time and budget limits, one systemd scope per job, stop, continue, steer, list, prune, job state | built | 9, 11 to 16 |
+| Roles and prompts, `arthur roles` | built | 10 |
+| Ticket board: tickets, statuses, `after`, the digest | built | 17, 18 |
+| Env guard and worktree guard, for every project's checkout | built | 19, 20 |
+| Jobs on another machine over SSH | built | 21, 22 |
+| Test kit: the fake host and the fake agent | built | 4, 11 |
+| Core: `arthur doctor` | planned | 80 |
+| Core: `arthur send` and the message parts every channel hands over | planned | 49 |
+| Core: cleanup hooks with each worktree | planned | 71 |
+| Core: the frozen plugin API | planned | 51 |
+| orchestration: the coordinator, `arthur attach`, `/board`, `/task`, `/findings`; its inbox, context, `maxAgents`, planning, autopilot, morning report | in progress, 1 of 8 entries | 23 built; 24 to 29, 65 |
+| orchestration: an agent per project, with its own chat | planned | plan of AR0098 |
+| projects: the project list and each worktree's install; onboarding a repository | in progress, 1 of 2 entries | 41 built; 42 |
+| session: compaction, fresh start, restart guard, start notice | planned | 35 to 38 |
+| schedule: actions and jobs at set times | planned | 39, 40 |
+| machines: labels, and placing each job | planned | 30, 31 |
+| resources: caps per job and per feature, free CPU, memory and disk | planned | 32 to 34, 69 |
+| models: providers on other machines, a fallback chain | planned | 82 |
+| docker: labels, cleanup with each worktree, the leftover sweep | planned | 70 to 72 |
+| nvm: each project's Node version | planned | 84 |
+| commit-rules: a regex hook, words or a file per project | planned | 43 |
+| findings: what happens to them on a merge | planned | 83 |
+| telegram: text, media and the phone menu | planned | 47 to 50 |
+| voice: local transcription of voice notes | planned | 81 |
+| delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | planned | 52 to 56, 59 |
+| github: CI runs, reruns, pushes, pull request reviews | planned | 57, 58 |
+| youtrack: issues, articles, comments | planned | 44 to 46 |
+| manage: health, stats, audit, retro, prune on a schedule | planned | 60 to 64 |
+| develop: `arthur plugin new`, evals | planned | 66 to 68 |
+| Later: signal, whatsapp, discord and slack channels; server and web panel; knowledge base; company edition | planned | 73 to 79; plan of AR0098 |
+
+## Commands
+
+The commands that exist today, one line each; `arthur <command> --help` prints its page.
+
+- `arthur help [<command>]`: every command's name, or one command's page.
+- `arthur config check`: loads `arthur.config.ts` and lists every env variable the enabled plugins need, `set` or `missing`, never its value.
+- `arthur run`: runs Arthur as a process: starts the plugins, delivers the events, and stops them on SIGTERM; one process per home folder.
+- `arthur spawn <task>`: starts a job from HEAD on its own branch and worktree, its agent in the background, and prints its id.
+- `arthur jobs` (`/jobs`): every project's jobs, grouped by state, one line each.
+- `arthur stop <id>`: stops a job in a run, and every process it started.
+- `arthur stopall` (`/stopall`): stops every job in a run, of every project.
+- `arthur steer <id> <text>` (`/steer`): one correction, which the job's agent gets after its next tool call.
+- `arthur continue <id> <instruction>`: resumes an ended or blocked worker in place: same id, branch, worktree and session.
+- `arthur prune (<id>... | --all)`: frees the worktree, branch and record of ended jobs, as far as Git finds it safe.
+- `arthur roles`: every role, its model, and the files its prompt reads.
+- `arthur ticket new|status|after`: creates a ticket, moves it to another status, or sets the tickets it waits for.
+- `arthur version`: the version of the core, which a machine that runs jobs must match.
+- `arthur remote-job`: the half of a job on another machine that runs there; Arthur runs it over SSH, a person has no reason to.
+- `arthur attach` (orchestration): attaches this terminal to the coordinator's tmux session.
+- `arthur coordinator stop` (orchestration): ends the coordinator's session until `arthur run` starts again; refused while a job runs.
+- `arthur board [PREFIX] [all]` (`/board`, orchestration): a project's ticket board, one line per ticket.
+- `arthur task <id>` (`/task`, orchestration): a ticket's status and its `ticket.md`.
+- `arthur findings <id>` (`/findings`, orchestration): a ticket's `findings.md`, from its worker's branch before the merge.
+- `arthur projects` (`/projects`, projects): every project, its folder, its open tickets and its install.
+
+## Try it
 
 Development needs Node 24: `npm ci`, then `npm run check` and `npm test`.
+
+To run what exists, in a clone after `npm ci`, with `node_modules/.bin` on your `PATH`, write an `arthur.config.ts` (Git ignores it) with the only two plugins built so far:
+
+```ts
+import { defineConfig } from "@arthur/core";
+import { orchestration } from "@arthur/orchestration";
+import { projects } from "@arthur/projects";
+
+export default defineConfig({
+	plugins: [orchestration({}), projects({ list: [{ name: "arthur", prefix: "AR", path: "." }] })],
+});
+```
+
+Then `arthur config check`, `arthur projects` and `arthur board` answer at once. `arthur run` starts the coordinator, which needs tmux and OMP, and `arthur attach` opens it. [`docs/deploy.md`](docs/deploy.md) has the whole setup on a VPS as a systemd service, and its threat model.
+
+## Read more
+
+- What Arthur is and is not, in full: [`spec/vision.md`](spec/vision.md).
+- The order of the work: [`spec/roadmap.md`](spec/roadmap.md); the board: [`spec/build.json`](spec/build.json).
+- Diagrams (Mermaid): [core and plugins](docs/architecture/core-and-plugins.mmd), [from config to a running plugin](docs/architecture/config-flow.mmd), [versions](docs/architecture/versions.mmd).
+- An example config with every plugin, planned ones included: [`arthur.config.example.ts`](arthur.config.example.ts).
+- Running it on a VPS, and its threat model: [`docs/deploy.md`](docs/deploy.md).
+- The licence: [`LICENSE`](LICENSE).
 
 ## What Arthur is built from
 

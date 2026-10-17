@@ -889,5 +889,12 @@
     "status": "dropped",
     "path": "spec/features/AR0108-the-site-s-favicon-is-the-full-logo-while-ar0106-draws-a-favicon-of-its-own/ticket.md",
     "updated": "2026-10-17T16:01:52.159Z"
+  },
+  {
+    "id": "AR0109",
+    "title": "The browser tab icon is a crop of the logo badge",
+    "status": "planned",
+    "path": "spec/features/AR0109-the-browser-tab-icon-is-a-crop-of-the-logo-badge/ticket.md",
+    "updated": "2026-10-17T18:17:16.389Z"
   }
 ]

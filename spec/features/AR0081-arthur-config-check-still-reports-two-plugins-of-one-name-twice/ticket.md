@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-16: Source: F1 of AR0073
+- 2026-10-17: The owner approved it for the overnight run of six tickets (AR0107, AR0084, AR0081, AR0085, AR0110, AR0098), done in order and merged after PASS and green GitHub CI.

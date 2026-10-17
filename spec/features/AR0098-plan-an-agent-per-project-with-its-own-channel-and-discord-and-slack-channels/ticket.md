@@ -6,7 +6,7 @@
   "title": "Plan: an agent per project with its own channel, and Discord and Slack channels",
   "date": "2026-10-17",
   "after": [
-    "AR0099"
+    "AR0110"
   ]
 }
 ```

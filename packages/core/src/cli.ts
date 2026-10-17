@@ -30,11 +30,13 @@ async function main(argv: readonly string[]): Promise<number> {
 	if (typeof parsed === "string") return usage(parsed);
 	const { words: rest, values: { project } } = parsed;
 	const [name = "help", ...args] = rest[0] === "--help" ? [] : rest;
-	const { commands, problem } = await load();
+	const { commands, problem, project: known } = await load();
 	const command = commands.find(name);
 	if (command === undefined) return unknown(name, commands, problem);
 	if (args.includes("--help")) return printDoc(command);
 	try {
+		// No command runs for a project Arthur does not know; without a load the commands that read the list refuse anyway.
+		if (project !== undefined) known?.(project);
 		return (await command.run({ args, project })) ?? 0;
 	} catch (error) {
 		console.error(`arthur ${name}: ${error instanceof Error ? error.message : String(error)}`);
@@ -47,14 +49,14 @@ async function main(argv: readonly string[]): Promise<number> {
 type Loaded = { readonly plugins: readonly Plugin[]; readonly home: string; readonly follow: LoadedPlugins["follow"]; readonly jobs: JobRunner; readonly board: Board };
 
 // Every command, the core's and the plugins'; when the config or a plugin does not load, the core's alone and the reason.
-async function load(): Promise<{ readonly commands: CommandRegistry; readonly problem?: string }> {
+async function load(): Promise<{ readonly commands: CommandRegistry; readonly problem?: string; readonly project?: LoadedPlugins["project"] }> {
 	let loaded: Loaded | undefined;
 	const commands = core(undefined, () => loaded);
 	try {
 		const config = await loadConfig("arthur.config.ts");
-		const { plugins, jobs, board, follow } = await loadPlugins(config, process.env, commands);
+		const { plugins, jobs, board, follow, project } = await loadPlugins(config, process.env, commands);
 		loaded = { plugins, home: config.core.home, follow, jobs, board };
-		return { commands };
+		return { commands, project };
 	} catch (error) {
 		const problem = error instanceof Error ? error.message : String(error);
 		return { commands: core(problem, () => undefined), problem };

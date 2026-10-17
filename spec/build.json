@@ -903,9 +903,9 @@
   {
     "id": "AR0110",
     "title": "Roadmap 26: maxAgents and the models of each role",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0110-roadmap-26-maxagents-and-the-models-of-each-role/ticket.md",
-    "updated": "2026-10-17T21:27:13.551Z",
+    "updated": "2026-10-17T22:27:14.230Z",
     "after": [
       "AR0084"
     ]
@@ -930,5 +930,12 @@
     "status": "planning",
     "path": "spec/features/AR0113-the-inbox-is-proved-once-against-real-omp-mid-turn-join-resumed-turn-willcontinue/ticket.md",
     "updated": "2026-10-17T21:59:18.049Z"
+  },
+  {
+    "id": "AR0114",
+    "title": "README's orchestration row shows entries 24 and 26 as not built",
+    "status": "planning",
+    "path": "spec/features/AR0114-readme-s-orchestration-row-shows-entries-24-and-26-as-not-built/ticket.md",
+    "updated": "2026-10-17T22:27:20.855Z"
   }
 ]

@@ -62,6 +62,10 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 			return all.length === 0 ? ["no jobs"] : all.map((id) => `${id}: ${prune(home, id, keep, there)}`);
 		},
 		records,
+		result(id: string): string {
+			if (!ID.test(id)) throw new Error(`${JSON.stringify(id)}: not a job id (<date>-<kind>-<8 hex digits>)`);
+			return field(home, id)("result");
+		},
 		running,
 		async stopAll() {
 			const ids = running();

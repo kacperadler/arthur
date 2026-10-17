@@ -88,6 +88,8 @@ export type Jobs = {
 	list(): JobRecord[];
 	// The ids of `list()`'s jobs in a run (working, idle, or held), as `arthur stopall` counts them.
 	running(): string[];
+	// The final message of job `id`, empty while it runs or when it wrote none; refused for anything but a job's id.
+	result(id: string): string;
 };
 
 // The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for.

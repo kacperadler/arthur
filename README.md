@@ -26,7 +26,7 @@ From [`spec/vision.md`](spec/vision.md):
 
 ## Status
 
-**Status: in development, not usable yet** (main on 2026-10-17). The core runs, from `arthur config check` to jobs in their own worktrees, and the coordinator starts in its tmux session, but it does not yet hear when a job ends, no channel reaches it, and nothing reviews or merges. The order of the rest is [`spec/roadmap.md`](spec/roadmap.md).
+**Status: in development, not usable yet** (main on 2026-10-17). The core runs, from `arthur config check` to jobs in their own worktrees, and the coordinator starts in its tmux session, hears through its inbox when a job ends, and answers in one reply everything since its last one, a message that arrives mid-turn included; but no channel reaches it yet, and nothing reviews or merges. The order of the rest is [`spec/roadmap.md`](spec/roadmap.md).
 
 What works today:
 

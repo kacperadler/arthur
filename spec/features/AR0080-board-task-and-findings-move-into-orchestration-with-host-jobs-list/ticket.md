@@ -25,6 +25,7 @@ The core stays small enough to understand, with capability in plugins (vision); 
 
 - What proposal B3 of `spec/quality/core-lines-2026-10-16.md` names, and no behaviour change: every existing test passes unchanged except where the report names a doc or test edit.
 - `npm test` and `npm run check` pass.
+- `host.jobs.list()` is designed so `host.jobs.running()` (added by AR0094) is a filter of it, or the difference between them is named in `docs/` (F2 of AR0094).
 
 ## Scope
 
@@ -38,3 +39,4 @@ Out:
 
 - 2026-10-16: Coordinator: from the core line review (AR0069), accepted.
 - 2026-10-16: Coordinator: do not spawn before entry 23 (the orchestration plugin) is merged.
+- 2026-10-17: Coordinator: F2 of AR0094 (running() and list() overlap) joins this ticket.

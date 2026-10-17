@@ -781,9 +781,9 @@
   {
     "id": "AR0094",
     "title": "Roadmap 23: The coordinator's process and arthur attach",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0094-roadmap-23-the-coordinator-s-process-and-arthur-attach/ticket.md",
-    "updated": "2026-10-17T11:47:27.426Z"
+    "updated": "2026-10-17T12:12:57.671Z"
   },
   {
     "id": "AR0095",
@@ -791,5 +791,19 @@
     "status": "dropped",
     "path": "spec/features/AR0095-a-project-added-to-the-config-is-unguarded-until-some-arthur-command-loads-it/ticket.md",
     "updated": "2026-10-17T12:00:38.579Z"
+  },
+  {
+    "id": "AR0096",
+    "title": "The coordinator's role skips the prompt loader and `arthur roles`",
+    "status": "dropped",
+    "path": "spec/features/AR0096-the-coordinator-s-role-skips-the-prompt-loader-and-arthur-roles/ticket.md",
+    "updated": "2026-10-17T12:13:14.456Z"
+  },
+  {
+    "id": "AR0097",
+    "title": "`host.jobs.running()` and AR0080's planned `host.jobs.list()` overlap",
+    "status": "dropped",
+    "path": "spec/features/AR0097-host-jobs-running-and-ar0080-s-planned-host-jobs-list-overlap/ticket.md",
+    "updated": "2026-10-17T12:13:14.653Z"
   }
 ]

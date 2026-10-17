@@ -1,19 +1,18 @@
-import { existsSync, readFileSync, readlinkSync, realpathSync, statSync } from "node:fs";
+import { appendFileSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { gitCall } from "./git-writes.ts";
+import { declaredPlace, jobPlace, type Place, real } from "./job-place.ts";
 import { type Command, type Item, literal, shellCommands } from "./shell-words.ts";
 
 // The worktree guard (spec/roadmap.md, entry 20): an OMP extension the wrapper loads into every job with `-e`, beside the env
 // guard, that refuses a tool call writing into the main checkout, the home folder, another job's worktree, or any project's
-// checkout or job worktree before the tool runs. `ARTHUR_JOB` names the job's record, which says where they are; the home
-// folder holds the record, and a project's jobs' worktrees sit in `.arthur-worktrees` beside its checkout. Reading passes
-// everywhere; writing anywhere else (the job's own worktree, /tmp) passes. Without `ARTHUR_JOB` (not in a job) it refuses nothing.
+// checkout or job worktree before the tool runs. `ARTHUR_JOB` names the job's record, which says where they are, the other
+// projects as declared now (job-place.ts); the home folder holds the record, and a project's jobs' worktrees sit in
+// `.arthur-worktrees` beside its checkout. Reading passes everywhere; writing anywhere else (the job's own worktree, /tmp)
+// passes. Without `ARTHUR_JOB` (not in a job) it refuses nothing.
 
 type Verdict = { block: true; reason: string } | undefined;
 type ExtensionApi = { on(event: "tool_call", handler: (event: { readonly toolName: string; readonly input: Readonly<Record<string, unknown>> }) => Verdict): void };
-// Absolute paths with their symlinks resolved; `branch` is empty for a read-only kind's detached checkout; `others` are the
-// other projects, each with its main checkout and the folder of its jobs' worktrees.
-export type Place = { readonly worktree: string; readonly branch: string; readonly home: string; readonly root: string; readonly worktrees: string; readonly others: readonly { readonly name: string; readonly root: string; readonly worktrees: string }[] };
 
 // Commands that run the command after them, with their options that take a value: `timeout 60 rm x` is `rm`.
 const WRAPPERS: Readonly<Record<string, readonly string[]>> = {
@@ -30,22 +29,6 @@ const COPIES = ["cp", "install", "rsync", "scp"];
 const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save a patch instead (git diff > /tmp/<name>.patch, then git apply /tmp/<name>.patch)";
 
 const inside = (path: string, folder: string): boolean => path === folder || path.startsWith(folder.endsWith(sep) ? folder : folder + sep);
-
-// `path` with its nearest existing ancestor resolved through symlinks, and a link whose target does not exist yet followed,
-// so a link cannot name a place its target is not.
-function real(path: string, depth = 0): string {
-	for (let rest = "", at = path; ; at = dirname(at)) {
-		try {
-			return join(realpathSync(at), rest);
-		} catch {
-			try {
-				if (depth < 40) return real(join(resolve(dirname(at), readlinkSync(at)), rest), depth + 1);
-			} catch {}
-			if (dirname(at) === at) return path;
-			rest = join(basename(at), rest);
-		}
-	}
-}
 
 // The line that refuses writing `path` (absolute, resolved), or undefined when it is not a guarded place. Of nested places
 // (a project's checkout inside another's, the home folder inside the main checkout) the innermost names it.
@@ -176,25 +159,19 @@ export function worktreeRefusal(place: Place, toolName: string, input: Readonly<
 	return undefined;
 }
 
-// The places of the job whose record is `record` (`<home>/jobs/<id>`), as the runner wrote them. A record from before
-// `projects` was written names no other project; a line that is not `<name> <absolute root>` is none.
-export function jobPlace(record: string): Place {
-	const field = (name: string) => readFileSync(join(record, name), "utf8").trim();
-	const [worktree, root] = [real(field("worktree")), real(field("root"))];
-	const others = (existsSync(join(record, "projects")) ? field("projects").split("\n") : []).flatMap((line) => {
-		const at = /^\S+ \//.test(line) ? real(line.slice(line.indexOf(" ") + 1)) : root;
-		return at === root ? [] : [{ name: line.slice(0, line.indexOf(" ")), root: at, worktrees: real(join(dirname(at), ".arthur-worktrees")) }];
-	});
-	return { worktree, branch: field("branch"), home: real(dirname(dirname(record))), root, worktrees: dirname(worktree), others };
-}
-
-// `tool_call` fires before the tool runs, and a handler that throws blocks the call too.
+// `tool_call` fires before the tool runs, and a handler that throws blocks the call too. The other projects are read anew on
+// each call; when their list cannot be read, the record's is used, said once in the job's log.
 export default function worktreeGuard(pi: ExtensionApi): void {
 	const record = process.env.ARTHUR_JOB;
 	if (record === undefined || record === "") return;
 	const place = jobPlace(record);
+	let said = false;
+	const fallback = (reason: string) => {
+		if (!said) appendFileSync(join(record, "log"), `[arthur ${new Date().toISOString()}] worktree guard: the project list is unreadable (${reason}); guarding the projects this job's record lists\n`);
+		said = true;
+	};
 	pi.on("tool_call", (event) => {
-		const reason = worktreeRefusal(place, event.toolName, event.input);
+		const reason = worktreeRefusal(declaredPlace(place, fallback), event.toolName, event.input);
 		return reason === undefined ? undefined : { block: true, reason };
 	});
 }

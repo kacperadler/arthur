@@ -865,16 +865,16 @@
   {
     "id": "AR0105",
     "title": "A landing page and docs site for Arthur, built with Astro Starlight",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0105-a-landing-page-and-docs-site-for-arthur-built-with-astro-starlight/ticket.md",
-    "updated": "2026-10-17T15:30:12.083Z"
+    "updated": "2026-10-17T15:43:32.758Z"
   },
   {
     "id": "AR0106",
     "title": "A conductor logo for Arthur",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0106-a-conductor-logo-for-arthur/ticket.md",
-    "updated": "2026-10-17T15:34:41.092Z"
+    "updated": "2026-10-17T15:41:26.095Z"
   },
   {
     "id": "AR0107",

@@ -1,12 +1,14 @@
-import { dirname } from "node:path";
+import { readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
 import { projectFolder } from "./clone.ts";
 import { installCommand, installStep } from "./install.ts";
 import { checkOptions } from "./project-options.ts";
 
 // The projects plugin (spec/roadmap.md, entry 41): the project list in `arthur.config.ts` and nowhere else, served as
-// `projects`; one line per project in the coordinator's context; `arthur projects` and `/projects`; a doctor requirement per
-// project; and the install of every new worktree. docs/commands/projects.md.
+// `projects` and kept in `<home>/projects/checkouts` for the worktree guard; one line per project in the coordinator's context;
+// `arthur projects` and `/projects`; a doctor requirement per project; and the install of every new worktree.
+// docs/commands/projects.md.
 
 export type ProjectEntry = {
 	readonly name: string;
@@ -42,6 +44,7 @@ export function projects(options: ProjectsOptions): Plugin {
 		setup(host) {
 			const { list, reposDir } = host.options as ProjectsOptions;
 			const all: Project[] = list.map((entry) => ({ ...entry, title: entry.title ?? entry.name, path: projectFolder(entry, reposDir, dirname(host.folder)) }));
+			keepCheckouts(host.folder, all);
 			host.provide("projects", () => all);
 			host.provide("coordinator.context", () => [HEADER, ...all.map(projectLine)].join("\n"));
 			host.provide("doctor", () => all.map(requirement));
@@ -60,6 +63,19 @@ export function projects(options: ProjectsOptions): Plugin {
 			host.jobs.prepare(installStep(host, all));
 		},
 	};
+}
+
+// Each project's name and checkout, `<name> <folder>` a line, in `<folder>/checkouts`, which the worktree guard of every running
+// job reads on each tool call (packages/core/src/job-place.ts); rewritten, whole, only when the list changed.
+function keepCheckouts(folder: string, all: readonly Project[]): void {
+	const [file, text] = [join(folder, "checkouts"), all.map((project) => `${project.name} ${project.path}\n`).join("")];
+	let kept: string | undefined;
+	try {
+		kept = readFileSync(file, "utf8");
+	} catch {}
+	if (kept === text) return;
+	writeFileSync(`${file}.${process.pid}`, text);
+	renameSync(`${file}.${process.pid}`, file);
 }
 
 // `SH Shop (web-shop): <about>`: the name left out when it is the title, the about when there is none.

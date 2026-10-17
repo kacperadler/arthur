@@ -4,10 +4,10 @@ import { extname, join } from "node:path";
 import { frontmatter, mermaidHtml, repo, splitReadme, splitTitle, toPage } from "./markdown.ts";
 import { parseBoard, parseRoadmap, roadmapPage } from "./roadmap.ts";
 
-/** The logo files in `docs/logo/` the site uses: the full logo for the hero, and for the favicon the small icon when there is one, else the full logo. */
+/** The logo files in `docs/logo/` the site uses: the full logo for the hero, and for the favicon the small `arthur-favicon.png` when there is one, else the full logo. */
 export function logoFiles(folder: string): { logo?: string; favicon?: string } {
 	const logo = ["arthur.svg", "arthur.png"].find((name) => existsSync(join(folder, name)));
-	const icon = ["arthur-favicon.svg", "arthur-favicon.png"].find((name) => existsSync(join(folder, name)));
+	const icon = existsSync(join(folder, "arthur-favicon.png")) ? "arthur-favicon.png" : undefined;
 	return { logo, favicon: icon ?? logo };
 }
 

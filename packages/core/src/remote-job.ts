@@ -35,7 +35,8 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 		const { job, prompt, resumeOnBudget, idleMinutes, since } = JSON.parse(readFileSync(0, "utf8")) as Added;
 		addWorktree(job.root, job.worktree, job.base, job.branch);
 		try {
-			writeRecord(home, job, prompt, resumeOnBudget, idleMinutes, new Date(since));
+			// Every project's repository there is `<home>/repos/<project>.git`, with its jobs' worktrees, in the home folder the guard refuses.
+			writeRecord(home, job, prompt, resumeOnBudget, idleMinutes, new Date(since), "");
 		} catch (error) {
 			removeWorktree(job.root, job.worktree, job.branch);
 			throw error;

@@ -61,7 +61,7 @@ Each feature and its state on main on 2026-10-17, read from `packages/` and `spe
 | Core: cleanup hooks with each worktree | planned | 71 |
 | Core: the frozen plugin API | planned | 51 |
 | orchestration: the coordinator, `arthur attach`, `/board`, `/task`, `/findings`; its inbox, context, `maxAgents`, planning, autopilot, morning report | in progress, 1 of 8 entries | 23 built; 24 to 29, 65 |
-| orchestration: an agent per project, with its own chat | planned | plan of AR0098 |
+| orchestration: an agent per project, with its own chat | planned | 85 to 88 |
 | projects: the project list and each worktree's install; onboarding a repository | in progress, 1 of 2 entries | 41 built; 42 |
 | session: compaction, fresh start, restart guard, start notice | planned | 35 to 38 |
 | schedule: actions and jobs at set times | planned | 39, 40 |
@@ -79,7 +79,7 @@ Each feature and its state on main on 2026-10-17, read from `packages/` and `spe
 | youtrack: issues, articles, comments | planned | 44 to 46 |
 | manage: health, stats, audit, retro, prune on a schedule | planned | 60 to 64 |
 | develop: `arthur plugin new`, evals | planned | 66 to 68 |
-| Later: signal, whatsapp, discord and slack channels; server and web panel; knowledge base; company edition | planned | 73 to 79; plan of AR0098 |
+| Later: signal, discord, slack and whatsapp channels; server and web panel; knowledge base; company edition | planned | 73 to 79, 89 to 92 |
 
 ## Commands
 

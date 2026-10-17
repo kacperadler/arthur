@@ -12,6 +12,7 @@ test("the options of arthur.config.example.ts pass, and none at all pass with th
 			worker: { model: ["mac/qwen3-coder", "anthropic/claude-haiku-5-5"], thinking: undefined },
 			reviewer: { model: "anthropic/claude-sonnet-5", thinking: "medium" },
 			planner: { model: undefined, thinking: undefined },
+			project: { model: "anthropic/claude-opus-5-5", thinking: "high" },
 			quick: { model: "anthropic/claude-haiku-5-5" },
 		},
 		plan: { budgetUsd: 5 },

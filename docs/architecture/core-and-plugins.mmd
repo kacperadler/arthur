@@ -9,7 +9,9 @@ flowchart TD
     telegram[telegram]
     whatsapp[whatsapp<br/>local bridge]
     signal[signal<br/>signal-cli]
-    terminal ~~~ telegram ~~~ whatsapp ~~~ signal
+    discord[discord<br/>gateway, outbound]
+    slack[slack<br/>Socket Mode, outbound]
+    terminal ~~~ telegram ~~~ signal ~~~ discord ~~~ slack ~~~ whatsapp
   end
   subgraph MEDIA[Media]
     voice[voice<br/>whisper.cpp, on the CPU]
@@ -30,6 +32,8 @@ flowchart TD
 
   subgraph ORCH[Coordinator - always on, required]
     orchestration[orchestration<br/>coordinator, max agents]
+    agents[project agents<br/>one per project with a chat]
+    orchestration ~~~ agents
   end
 
   subgraph CONV[Conversation and timers]
@@ -48,11 +52,13 @@ flowchart TD
 
   subgraph PROJ[Projects, trackers, delivery, commits]
     projects[projects<br/>declared in the config]
+    nvm[nvm<br/>Node version per project]
+    findings[findings<br/>findings.md, on merge]
     youtrack[youtrack]
     github[github<br/>polls CI and PRs]
     delivery[delivery<br/>review, merge]
     commit[commit-rules<br/>regex, words, file]
-    projects ~~~ youtrack ~~~ github ~~~ delivery ~~~ commit
+    projects ~~~ nvm ~~~ findings ~~~ youtrack ~~~ github ~~~ delivery ~~~ commit
   end
 
   subgraph SELF[Arthur itself]
@@ -83,5 +89,5 @@ flowchart TD
 
   classDef first fill:#d8f5d8,stroke:#2d7a2d,color:#000;
   classDef later fill:#eee,stroke:#888,stroke-dasharray:4 3,color:#555;
-  class terminal,telegram,orchestration,session,schedule,machines,models,resources,docker,delivery,projects,youtrack,github,commit,manage,develop,voice first;
-  class whatsapp,signal,server later;
+  class terminal,telegram,orchestration,session,schedule,machines,models,resources,docker,delivery,projects,nvm,findings,youtrack,github,commit,manage,develop,voice first;
+  class whatsapp,signal,discord,slack,agents,server later;

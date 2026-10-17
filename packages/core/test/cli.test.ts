@@ -1,18 +1,19 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { test } from "node:test";
 import { temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const CORE_LIST = "commands: board, config, continue, findings, help, jobs, prune, remote-job, roles, run, spawn, steer, stop, stopall, task, ticket, version\n";
 
-// A plugin's commands as a config holds them: `echo` prints what it got and exits 3, `boom` throws, `gone` loses its doc file
-// right after it registered it, before any `--help`.
+// A plugin's commands as a config holds them, with the projects `acme` and `shop` in the config's folder: `echo` prints what it
+// got and exits 3, `boom` throws, `gone` loses its doc file right after it registered it, before any `--help`.
 const CONFIG = `import { rmSync } from "node:fs";
 const doc = (name) => new URL("./" + name + ".md", import.meta.url);
 export default { plugins: [{ name: "orchestration", setup(host) {
+	host.provide("projects", () => [{ name: "acme", path: import.meta.dirname, prefix: "AC" }, { name: "shop", path: import.meta.dirname, prefix: "SH" }]);
 	host.commands.register({ name: "echo", doc: doc("echo"), run: ({ args, project }) => { console.log(JSON.stringify({ args, project })); return 3; } });
 	host.commands.register({ name: "quiet", doc: doc("quiet"), run: () => {} });
 	host.commands.register({ name: "boom", doc: doc("boom"), run: async () => { throw new Error("it broke"); } });
@@ -94,6 +95,28 @@ test("--project without a name, or twice, is wrong usage", () => {
 		const run = arthur(folder, ...args);
 		assert.deepEqual([run.status, run.stdout, run.stderr.split("\n")[0]], [2, "", `arthur: ${problem}`], args.join(" "));
 	}
+});
+
+test("a --project name Arthur does not know is refused before the command runs, naming the known projects", () => {
+	const folder = project();
+	for (const [args, refusal] of [
+		[["echo", "--project", "blog"], "arthur echo: unknown project blog"],
+		[["--project", "Acme", "echo"], "arthur echo: unknown project Acme"],
+		[["version", "--project", "blog"], "arthur version: unknown project blog"],
+	] as const) {
+		const run = arthur(folder, ...args);
+		assert.deepEqual([run.status, run.stdout, run.stderr], [1, "", `${refusal}; projects: acme, shop\n`], args.join(" "));
+	}
+	assert.equal(arthur(folder, "echo", "--project", "shop").stdout, `${JSON.stringify({ args: [], project: "shop" })}\n`);
+	const unlisted = project(CONFIG.replace(/\thost\.provide\("projects".*\n/, ""));
+	const outside = arthur(unlisted, "echo", "--project", "acme");
+	assert.deepEqual([outside.status, outside.stdout, outside.stderr], [1, "", `arthur echo: unknown project acme; no plugin provides the project list and ${unlisted} is not in a Git repository\n`]);
+	assert.equal(arthur(unlisted, "echo").status, 3);
+	spawnSync("git", ["init", "-q", unlisted]);
+	const repository = basename(unlisted);
+	const other = arthur(unlisted, "echo", "--project", "acme");
+	assert.deepEqual([other.status, other.stdout, other.stderr], [1, "", `arthur echo: unknown project acme; the only project is ${repository}\n`]);
+	assert.equal(arthur(unlisted, "echo", "--project", repository).status, 3);
 });
 
 test("when the config does not load, the core's commands still run and a list of commands says why the others are missing", () => {

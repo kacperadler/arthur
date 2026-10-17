@@ -38,6 +38,8 @@ export type Host = {
 	readonly folder: string;
 	// One clock for every plugin, in the core's `timeZone` with its `quietHours`.
 	readonly clock: Clock;
+	// The core's `agent.command`, the agent a plugin starts outside a job (orchestration's coordinator).
+	readonly agent: string;
 	// Events go to every subscriber in this process and to the log `<home>/events.jsonl`, named by this plugin.
 	readonly events: Events;
 	// Several plugins may provide one name: `call` needs exactly one, `collect` reads them all, in setup order.
@@ -118,7 +120,7 @@ export function pluginHost(
 	commands: CommandRegistry,
 	bus: Bus,
 	runner: JobRunner,
-	own: Pick<Host, "name" | "options" | "env" | "folder" | "clock">,
+	own: Pick<Host, "name" | "options" | "env" | "folder" | "clock" | "agent">,
 	loading: () => boolean,
 ): Host {
 	return {
@@ -145,6 +147,7 @@ export function pluginHost(
 			},
 			block: (id, reason) => runner.block(id, reason),
 			unblock: (id) => runner.unblock(id),
+			running: () => runner.running(),
 		},
 		board: board(() => names.collect("projects", []), own.clock, (name, data) => bus.emit(own.name, name, data)),
 	};

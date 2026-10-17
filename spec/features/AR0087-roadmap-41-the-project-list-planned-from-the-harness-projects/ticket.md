@@ -48,3 +48,4 @@ Out:
 - 2026-10-17: The owner, on dropping pathPrepend: two projects may need different versions of one tool (e.g. Node through nvm); not settled yet, asked how.
 - 2026-10-17: The owner: no pathPrepend; tool versions come from an nvm plugin, and onboarding a project adds an .nvmrc file to it. Revise the plan and roadmap (entry 42 onboarding, a new nvm plugin entry) to match.
 - 2026-10-17: Plan approved by the human: plan.md at 171a639 (open questions as the plan answers them: a missing Node version refuses the spawn naming nvm install; .nvmrc as the plan says).
+- 2026-10-17: The owner: the real project list stays local, never on GitHub (the repo is public): arthur.config.ts in .gitignore, examples and tests use made-up projects.

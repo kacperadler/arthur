@@ -823,8 +823,8 @@
   {
     "id": "AR0099",
     "title": "CI on GitHub is red: three tests need a git identity or a systemd user session",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0099-ci-on-github-is-red-three-tests-need-a-git-identity-or-a-systemd-user-session/ticket.md",
-    "updated": "2026-10-17T12:31:21.875Z"
+    "updated": "2026-10-17T13:03:40.069Z"
   }
 ]

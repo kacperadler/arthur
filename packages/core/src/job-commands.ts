@@ -42,7 +42,7 @@ export function jobCommands(home: () => string, jobs: () => JobRunner): Command[
 		command("prune", -1, (ids, { all }) => {
 			if (all === undefined && ids.length === 0) return usage("prune", "needs one or more ids, or --all for every finished job");
 			if (all !== undefined && ids.length > 0) return usage("prune", "--all takes no ids");
-			console.log(jobs().prune(ids).join("\n"));
+			console.log(jobs().prune(all === undefined ? ids : "all").join("\n"));
 		}),
 		command("stopall", 0, async () => console.log(await jobs().stopAll()), { about: "stop every running job of every project", reply: () => jobs().stopAll() }),
 	];

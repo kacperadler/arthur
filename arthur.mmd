@@ -5,16 +5,14 @@
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the discord and slack channels.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
 flowchart TD
-  subgraph TOP[The human and the channels]
-    human([Owner])
-    files[/arthur.config.ts<br/>.env: secret values/]
-    terminal[terminal<br/>arthur CLI, arthur attach]
-    tg[(Telegram)]
-    telegram[telegram<br/>text, media, phone menu]
-    voice[voice<br/>whisper.cpp, on the CPU]
-  end
+  human([Owner])
+  human -.->|phone| tg
+  human -->|writes| files
+  human -->|shell| terminal
 
   subgraph CORE[Arthur core: 22 of 22 core entries built]
+    files[/arthur.config.ts<br/>.env: secret values/]
+    terminal[terminal<br/>arthur CLI, arthur attach]
     loader[config loader<br/>arthur config check]
     run[arthur run<br/>one process per home]
     commands[command registry<br/>arthur CLI, /name text]
@@ -27,6 +25,8 @@ flowchart TD
     runner[job runner<br/>spawn, limits, stop, steer<br/>state, prune, other machines]
     kit[test kit<br/>fake host, fake agent]
     corelater[later in the core<br/>doctor, arthur send<br/>cleanup hooks, frozen API]
+    files -->|loads| loader
+    terminal --> commands
     loader --> host
     run --> host
     commands --- host
@@ -39,50 +39,57 @@ flowchart TD
     kit ~~~ corelater
   end
 
-  subgraph FIRST[First-version plugins: each talks only to the core]
-    subgraph COORD[Coordinator]
-      orchestration[orchestration<br/>coordinator, arthur attach<br/>1 of 8 entries]
-      agents[project agents<br/>one per project, its own chat]
-      session[session<br/>compaction, fresh start]
-      schedule[schedule<br/>actions, jobs at set times]
-      orchestration ~~~ agents ~~~ session ~~~ schedule
+  subgraph PLUGINS[Plugins: each talks only to the core]
+    subgraph FIRST[First-version plugins]
+      subgraph CHAN[Channels and media]
+        telegram[telegram<br/>text, media, phone menu]
+        voice[voice<br/>whisper.cpp, on the CPU]
+        telegram ~~~ voice
+      end
+      subgraph COORD[Coordinator]
+        orchestration[orchestration<br/>coordinator, arthur attach<br/>1 of 8 entries]
+        agents[project agents<br/>one per project, its own chat]
+        session[session<br/>compaction, fresh start]
+        schedule[schedule<br/>actions, jobs at set times]
+        orchestration ~~~ agents ~~~ session ~~~ schedule
+      end
+      subgraph PROJ[Projects]
+        projects[projects<br/>project list, install<br/>1 of 2 entries]
+        nvm[nvm<br/>Node version per project]
+        commit[commit-rules<br/>regex, words, file]
+        findings[findings<br/>findings.md, on merge]
+        projects ~~~ nvm ~~~ commit ~~~ findings
+      end
+      subgraph RES[Machines and resources]
+        machines[machines<br/>labels, places each job]
+        resources[resources<br/>caps, free CPU, disk]
+        models[models<br/>providers, fallback chain]
+        docker[docker<br/>labels, cleanup, sweep]
+        machines ~~~ resources ~~~ models ~~~ docker
+      end
+      subgraph DELIV[Delivery and trackers]
+        delivery[delivery<br/>review, merge, changelog]
+        github[github<br/>polls CI and PRs]
+        youtrack[youtrack<br/>issues, articles]
+        delivery ~~~ github ~~~ youtrack
+      end
+      subgraph SELF[Arthur itself]
+        manage[manage<br/>audit, retro, health]
+        develop[develop<br/>plugin new, evals]
+        manage ~~~ develop
+      end
     end
-    subgraph PROJ[Projects]
-      projects[projects<br/>project list, install<br/>1 of 2 entries]
-      nvm[nvm<br/>Node version per project]
-      commit[commit-rules<br/>regex, words, file]
-      findings[findings<br/>findings.md, on merge]
-      projects ~~~ nvm ~~~ commit ~~~ findings
-    end
-    subgraph RES[Machines and resources]
-      machines[machines<br/>labels, places each job]
-      resources[resources<br/>caps, free CPU, disk]
-      models[models<br/>providers, fallback chain]
-      docker[docker<br/>labels, cleanup, sweep]
-      machines ~~~ resources ~~~ models ~~~ docker
-    end
-    subgraph DELIV[Delivery and trackers]
-      delivery[delivery<br/>review, merge, changelog]
-      github[github<br/>polls CI and PRs]
-      youtrack[youtrack<br/>issues, articles]
-      delivery ~~~ github ~~~ youtrack
-    end
-    subgraph SELF[Arthur itself]
-      manage[manage<br/>audit, retro, health]
-      develop[develop<br/>plugin new, evals]
-      manage ~~~ develop
-    end
-  end
 
-  subgraph LATER[Later plugins]
-    signal[signal<br/>a channel, signal-cli]
-    discord[discord<br/>a channel, gateway]
-    slack[slack<br/>a channel, Socket Mode]
-    whatsapp[whatsapp<br/>a channel, local bridge]
-    server[server, web panel<br/>private network only]
-    knowledge[knowledge base<br/>search, chat with sources]
-    company[company edition<br/>business roles as agents]
-    signal ~~~ discord ~~~ slack ~~~ whatsapp ~~~ server ~~~ knowledge ~~~ company
+    subgraph LATER[Later plugins]
+      signal[signal<br/>a channel, signal-cli]
+      discord[discord<br/>a channel, gateway]
+      slack[slack<br/>a channel, Socket Mode]
+      whatsapp[whatsapp<br/>a channel, local bridge]
+      server[server, web panel<br/>private network only]
+      knowledge[knowledge base<br/>search, chat with sources]
+      company[company edition<br/>business roles as agents]
+      signal ~~~ discord ~~~ slack ~~~ whatsapp ~~~ server ~~~ knowledge ~~~ company
+    end
   end
 
   subgraph OUT[Outside Arthur]
@@ -93,6 +100,7 @@ flowchart TD
     dockerd[(Docker)]
     gh[(GitHub)]
     yt[(YouTrack)]
+    tg[(Telegram)]
     dc[(Discord)]
     sl[(Slack)]
   end
@@ -108,14 +116,6 @@ flowchart TD
   end
 
   OUT ~~~ LEGEND
-  human -->|writes| files
-  human -->|shell, tmux| terminal
-  human -->|phone| tg
-  telegram -.->|polls, sends| tg
-  files -->|loads| loader
-  terminal --> commands
-  telegram -.->|messages| host
-  voice -.->|voice parts| host
 
   host <-->|events, commands| FIRST
   host <-.->|events, commands| LATER
@@ -128,6 +128,7 @@ flowchart TD
   docker -.->|labels, sweeps| dockerd
   github -.->|polls| gh
   youtrack -.->|reads, writes| yt
+  telegram -.->|polls, sends| tg
   discord -.->|gateway| dc
   slack -.->|Socket Mode| sl
 
@@ -135,19 +136,20 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class lbuilt,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit built;
+  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit built;
   class lpartial,orchestration,projects partial;
   class lplanned,telegram,voice,corelater,agents,session,schedule,nvm,commit,findings,machines,resources,models,docker,delivery,github,youtrack,manage,develop,signal,discord,slack,whatsapp,server,knowledge,company planned;
-  class loutside,human,files,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl outside;
+  class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl outside;
   style larrows fill:#fff,stroke:#999,color:#000
   style LEGEND fill:#fff,stroke:#999
-  style TOP fill:#f7f9fc,stroke:#4a6fa5
   style CORE fill:#f2fbf2,stroke:#2d7a2d
-  style FIRST fill:#fafafa,stroke:#999
+  style PLUGINS fill:#fcfcfc,stroke:#777
+  style FIRST fill:#f5f5f5,stroke:#999
+  style CHAN fill:#fff,stroke:#bbb
   style COORD fill:#fff,stroke:#bbb
   style PROJ fill:#fff,stroke:#bbb
   style RES fill:#fff,stroke:#bbb
   style DELIV fill:#fff,stroke:#bbb
   style SELF fill:#fff,stroke:#bbb
-  style LATER fill:#fafafa,stroke:#999,stroke-dasharray:5 4
+  style LATER fill:#f5f5f5,stroke:#999,stroke-dasharray:5 4
   style OUT fill:#f7f9fc,stroke:#4a6fa5

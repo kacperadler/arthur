@@ -41,3 +41,4 @@ Out:
 - 2026-10-17: The owner asked for it while Arthur's build is paused; a diagram is not build work, so it runs now.
 - 2026-10-17: The owner: the diagram itself goes in README.md, so GitHub shows it on the repository page (it renders a ```mermaid block natively; an SVG from mermaid-cli cut labels off on his phone). arthur.mmd stays the source; a test fails when the README block differs from it.
 - 2026-10-17: The owner: the diagram also shows what the approved AR0098 plan adds, as planned (grey): discord and slack channels among the later plugins, and per-project agents beside the coordinator.
+- 2026-10-17: The owner: the diagram is split into three zones, the core, the plugins and outside Arthur (the owner alone above them); telegram and voice are plugins and sit with the plugins; the grouping inside each zone stays.

@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `.gitignore`
 - What: `docs/deploy.md` step 2 puts `arthur.config.ts` in the clone, so `core.home` defaults to `.arthur/` inside it. `.gitignore` holds `.h/`, `.env`, `node_modules/` and `arthur.config.ts`, not `.arthur/`. With the README's try config, `arthur projects` alone created `.arthur/projects/checkouts` and `.arthur/orchestration`, and `git status --short` then showed `?? .arthur/`: a `git add --all` in the clone would commit the event log and the job records.
 - Suggestion: add `.arthur/` to `.gitignore`; nothing else changes.
-- Status: open
+- Status: fixed in c7c6b7a; ticket AR0104 dropped

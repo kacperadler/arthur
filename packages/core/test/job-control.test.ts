@@ -351,6 +351,31 @@ test("a continue moves the job to working before its wrapper starts, so a contin
 	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 });
 
+test("a continue waits for a wrapper of the job that wrote no pid yet and refuses to start a second one beside it", { timeout: 30_000 }, async (t) => {
+	const { agent, resumed } = resuming({ steps: [{ message: "First." }] }, { steps: [{ message: "Second." }] });
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	await ended(home, job.id);
+	// As a continue killed while its new wrapper started leaves the record once the job ended: no `pid`, the wrapper running.
+	rmSync(join(home, "jobs", job.id, "pid"));
+	const wrapper = join(import.meta.dirname, "..", "src", "wrapper.ts");
+	const lone = (...args: string[]) => spawn(process.execPath, ["-e", "setTimeout(() => {}, 300_000)", ...args], { stdio: "ignore" });
+	// The wrapper's command line as `launch` starts it, and `arthur continue <id> <instruction>` whose instruction names it.
+	const [starting, decoy] = [lone(wrapper, home, job.id, agent), lone("continue", job.id, "fix", wrapper, "now")];
+	t.after(() => [starting, decoy].forEach((child) => child.kill()));
+	await until("both in the process table", () => [starting.pid, decoy.pid].every((pid) => pid !== undefined && alive(pid)));
+	const before = record(home, job.id);
+	await assert.rejects(jobs.continue(job.id, "Two."), { message: `${job.id}: its wrapper ${starting.pid} still runs ${GRACE_SECONDS} seconds on; a second one is not started beside it` });
+	assert.deepEqual(record(home, job.id), before, "a refused continue writes nothing and frees the record");
+	assert.equal(starts(resumed).length, 0);
+	starting.kill();
+	await until("the wrapper gone", () => starting.exitCode !== null || starting.signalCode !== null);
+	assert.equal(await jobs.continue(job.id, "Two."), undefined);
+	const [, second] = await ended(home, job.id, 2);
+	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
+	assert.equal(starts(resumed).length, 1);
+});
+
 for (const scoped of [true, false])
 	test(`two continues at once start one wrapper ${scoped ? "in its scope" : "bare, without a user manager"}: the other is refused, the record ends once`, { skip: scoped && !manager && "no systemd user manager" }, async (t) => {
 		if (!scoped) bare(t);

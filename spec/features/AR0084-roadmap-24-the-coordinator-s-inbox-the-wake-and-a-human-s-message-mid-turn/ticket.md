@@ -6,7 +6,8 @@
   "title": "Roadmap 24: the coordinator's inbox, the wake, and a human's message mid-turn",
   "date": "2026-10-16",
   "after": [
-    "AR0080"
+    "AR0080",
+    "AR0099"
   ]
 }
 ```
@@ -40,3 +41,5 @@ Out:
 ## Decisions
 
 - 2026-10-16: The human: in Arthur this must be thought through and planned first. Plan job before any worker; the human approves the plan.
+- 2026-10-17: Plan approved by the human: plan.md at 28bfcf0.
+- 2026-10-17: The human: start only once CI on GitHub is green (AR0099).

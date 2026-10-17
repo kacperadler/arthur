@@ -19,6 +19,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0059 The worktree guard knows only its own project's checkout (0177255)
 - AR0083 arthur prune with no ids refuses; --all prunes every finished job (d799302)
+- AR0085 A continue killed between its new wrapper's `pid` and `state` lets a second continue start beside the running wrapper (0a3ae06)
 - AR0091 An ssh that exits before reading its input fails as EPIPE instead of with ssh's own line (531c8e9)
 - AR0092 A project added while a job runs is guarded from that job at once (ecaf58f)
 - AR0099 CI on GitHub is red: three tests need a git identity or a systemd user session (ab5a288)

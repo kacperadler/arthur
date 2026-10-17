@@ -1,18 +1,19 @@
-import { readFileSync, readlinkSync, realpathSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readlinkSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { gitCall } from "./git-writes.ts";
 import { type Command, type Item, literal, shellCommands } from "./shell-words.ts";
 
 // The worktree guard (spec/roadmap.md, entry 20): an OMP extension the wrapper loads into every job with `-e`, beside the env
-// guard, that refuses a tool call writing into the main checkout, the home folder, or another job's worktree before the tool
-// runs. `ARTHUR_JOB` names the job's record, which says where the job's worktree and the main checkout are; the home folder
-// holds the record, and every job's worktree sits in the folder that holds this one's. Reading passes everywhere; writing
-// anywhere else (the job's own worktree, /tmp) passes. Without `ARTHUR_JOB` (not in a job) it refuses nothing.
+// guard, that refuses a tool call writing into the main checkout, the home folder, another job's worktree, or any project's
+// checkout or job worktree before the tool runs. `ARTHUR_JOB` names the job's record, which says where they are; the home
+// folder holds the record, and a project's jobs' worktrees sit in `.arthur-worktrees` beside its checkout. Reading passes
+// everywhere; writing anywhere else (the job's own worktree, /tmp) passes. Without `ARTHUR_JOB` (not in a job) it refuses nothing.
 
 type Verdict = { block: true; reason: string } | undefined;
 type ExtensionApi = { on(event: "tool_call", handler: (event: { readonly toolName: string; readonly input: Readonly<Record<string, unknown>> }) => Verdict): void };
-// Absolute paths with their symlinks resolved; `branch` is empty for a read-only kind's detached checkout.
-export type Place = { readonly worktree: string; readonly branch: string; readonly home: string; readonly root: string; readonly worktrees: string };
+// Absolute paths with their symlinks resolved; `branch` is empty for a read-only kind's detached checkout; `others` are the
+// other projects, each with its main checkout and the folder of its jobs' worktrees.
+export type Place = { readonly worktree: string; readonly branch: string; readonly home: string; readonly root: string; readonly worktrees: string; readonly others: readonly { readonly name: string; readonly root: string; readonly worktrees: string }[] };
 
 // Commands that run the command after them, with their options that take a value: `timeout 60 rm x` is `rm`.
 const WRAPPERS: Readonly<Record<string, readonly string[]>> = {
@@ -46,10 +47,13 @@ function real(path: string, depth = 0): string {
 	}
 }
 
-// The line that refuses writing `path` (absolute, resolved), or undefined when it is not a guarded place.
+// The line that refuses writing `path` (absolute, resolved), or undefined when it is not a guarded place. Of nested places
+// (a project's checkout inside another's, the home folder inside the main checkout) the innermost names it.
 function refusal(place: Place, path: string, shown = path): string | undefined {
 	if (inside(path, place.worktree)) return undefined;
-	const name = inside(path, place.home) ? "Arthur's home folder" : inside(path, place.worktrees) ? "another job's worktree" : inside(path, place.root) ? "the main checkout" : undefined;
+	const places: (readonly [string, string])[] = [[place.home, "Arthur's home folder"], [place.worktrees, "another job's worktree"], [place.root, "the main checkout"]];
+	for (const other of place.others) places.push([other.worktrees, `a job worktree of project ${other.name}`], [other.root, `the main checkout of project ${other.name}`]);
+	const name = places.filter(([folder]) => inside(path, folder)).sort(([a], [b]) => b.length - a.length)[0]?.[1];
 	return name && `arthur: refused: this call writes into ${name} (${shown}); a job writes only in its own worktree ${place.worktree} and outside Arthur's checkouts and home folder`;
 }
 
@@ -172,11 +176,16 @@ export function worktreeRefusal(place: Place, toolName: string, input: Readonly<
 	return undefined;
 }
 
-// The places of the job whose record is `record` (`<home>/jobs/<id>`), as the runner wrote them.
+// The places of the job whose record is `record` (`<home>/jobs/<id>`), as the runner wrote them. A record from before
+// `projects` was written names no other project; a line that is not `<name> <absolute root>` is none.
 export function jobPlace(record: string): Place {
 	const field = (name: string) => readFileSync(join(record, name), "utf8").trim();
-	const worktree = real(field("worktree"));
-	return { worktree, branch: field("branch"), home: real(dirname(dirname(record))), root: real(field("root")), worktrees: dirname(worktree) };
+	const [worktree, root] = [real(field("worktree")), real(field("root"))];
+	const others = (existsSync(join(record, "projects")) ? field("projects").split("\n") : []).flatMap((line) => {
+		const at = /^\S+ \//.test(line) ? real(line.slice(line.indexOf(" ") + 1)) : root;
+		return at === root ? [] : [{ name: line.slice(0, line.indexOf(" ")), root: at, worktrees: real(join(dirname(at), ".arthur-worktrees")) }];
+	});
+	return { worktree, branch: field("branch"), home: real(dirname(dirname(record))), root, worktrees: dirname(worktree), others };
 }
 
 // `tool_call` fires before the tool runs, and a handler that throws blocks the call too.

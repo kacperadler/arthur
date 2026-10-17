@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -180,6 +180,51 @@ test("the wrapper loads the guard into the job's agent, which then refuses its w
 		assert.match(refused[0] ?? "", /^arthur: refused: this call writes into the main checkout \(\.\.\/\.\.\/acme\/README\.md\)/);
 		assert.equal(refused[1], null);
 	}
+});
+
+test("a job of one project refuses writes into another project's main checkout and its jobs' worktrees, naming it", async () => {
+	// Two repositories in folders of their own, so their jobs' worktrees do not share a folder.
+	const [alpha, beta] = ["alpha", "beta"].map((name) => {
+		const root = join(temporaryFolder(), name);
+		mkdirSync(root);
+		git(root, "init", "--quiet", "--initial-branch=main");
+		writeFileSync(join(root, "README.md"), `${name}\n`);
+		git(root, "add", "--all");
+		git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "first");
+		return root;
+	}) as [string, string];
+	const home = join(alpha, ".arthur");
+	const list = [{ name: "alpha", prefix: "AL", path: alpha }, { name: "beta", prefix: "BE", path: beta }];
+	const agent = join(temporaryFolder(), "omp");
+	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
+	const collect = (name: string) => (name === "projects" ? [list] : []);
+	const runner = jobRunner(home, alpha, { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
+	const own = await runner.spawn({ task: "own" });
+	const theirs = await runner.spawn({ task: "theirs", project: "beta" });
+	await until("both jobs ended", () => (readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2 ? true : undefined));
+	assert.equal(dirname(theirs.worktree), join(dirname(beta), ".arthur-worktrees"));
+	const record = join(home, "jobs", own.id);
+	const place = jobPlace(record);
+	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
+		["write", { path: join(beta, "README.md"), content: "x" }, "the main checkout of project beta"],
+		["edit", { input: `[${join(theirs.worktree, "README.md")}#1A2B]\nPUT 1.=1:\n+x` }, "a job worktree of project beta"],
+		["bash", { command: `rm ${join(theirs.worktree, "README.md")}` }, "a job worktree of project beta"],
+		["bash", { command: "touch x", cwd: beta }, "the main checkout of project beta"],
+		["bash", { command: `git -C ${beta} commit -m x` }, "the main checkout of project beta"],
+		["write", { path: join(alpha, "README.md"), content: "x" }, "the main checkout"],
+		["write", { path: "README.md", content: "x" }, undefined],
+		["bash", { command: "touch x" }, undefined],
+		["bash", { command: `cat ${join(beta, "README.md")} > /dev/null` }, undefined],
+	];
+	for (const [toolName, input, expected] of calls) {
+		const reason = worktreeRefusal(place, toolName, input);
+		assert.equal(/writes into (.+?) \(/.exec(reason ?? "")?.[1], expected, `${toolName} ${JSON.stringify(input)}: ${reason}`);
+	}
+	// A record written before `projects` was, or one a human broke, names no other project.
+	writeFileSync(join(record, "projects"), `beta\nbeta relative/path\n`);
+	assert.equal(worktreeRefusal(jobPlace(record), "write", { path: join(beta, "README.md"), content: "x" }), undefined);
+	rmSync(join(record, "projects"));
+	assert.equal(worktreeRefusal(jobPlace(record), "write", { path: join(beta, "README.md"), content: "x" }), undefined);
 });
 
 test("outside a job, without ARTHUR_JOB, the extension refuses nothing", () => {

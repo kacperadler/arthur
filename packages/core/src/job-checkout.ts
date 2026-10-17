@@ -27,3 +27,9 @@ export function checkout(folder: string, lists: readonly unknown[], project: str
 	if (root === undefined) throw new Error(`project ${found.name}: ${found.path} is not in a Git repository; a job starts from its HEAD`);
 	return { root, project: found.name };
 }
+
+// Every declared project's main checkout, `<name> <root>` a line, which a job's record keeps for its worktree guard; a project's
+// folder in no Git repository (not cloned yet) stands for its checkout. Without a list, the job's own `root` is the only one.
+export function checkouts(lists: readonly unknown[]): string {
+	return lists.length === 0 ? "" : projectList(lists).map((each) => `${each.name} ${topLevel(each.path) ?? each.path}`).join("\n");
+}

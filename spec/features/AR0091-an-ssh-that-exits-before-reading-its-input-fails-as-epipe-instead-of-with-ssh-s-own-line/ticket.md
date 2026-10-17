@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-17: Source: F1 of AR0090
+- 2026-10-17: The owner approved it.

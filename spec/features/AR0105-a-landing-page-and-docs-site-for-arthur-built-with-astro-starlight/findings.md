@@ -11,4 +11,22 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `site/scripts/generate.ts:20-26`
 - What: as the plan says, the generator copies `docs/logo/arthur.svg` to both the hero image and `site/public/favicon.svg`. AR0106's worktree (not merged) also holds `docs/logo/arthur-favicon.svg`, a version drawn for small sizes; the full logo shrunk to 16 px loses its detail.
 - Suggestion: once AR0106 is merged, copy `docs/logo/arthur-favicon.svg` to `favicon.svg` when it exists, and `arthur.svg` otherwise. Nothing else in the site changes.
-- Status: open
+- Status: dropped (folded into AR0106, which now also wires the site favicon; AR0108 dropped)
+
+## F2. Two merged tickets for one roadmap entry: the last one in board order wins
+
+- Kind: risk
+- Found by: 2026-10-17-review-ar0105-site-5535afa4 (review), 2026-10-17
+- Where: `site/scripts/roadmap.ts`
+- What: when two tickets of one entry are both `merged`, the last in board order is shown, with no warning.
+- Suggestion: none needed while the board is consistent.
+- Status: dropped (only an already-inconsistent board triggers it)
+
+## F3. A relative link climbing above the repository root makes a malformed GitHub URL
+
+- Kind: bug
+- Found by: 2026-10-17-review-ar0105-site-5535afa4 (review), 2026-10-17
+- Where: `site/scripts/markdown.ts` (`repoUrl`)
+- What: `../../etc/x` from `docs/setup.md` gives `blob/main/../etc/x` instead of clamping to the root.
+- Suggestion: none; the input is the repository's own Markdown and no file links that way.
+- Status: dropped (no real content reaches it)

@@ -729,9 +729,9 @@
   {
     "id": "AR0087",
     "title": "Roadmap 41: the project list, planned from the harness projects",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0087-roadmap-41-the-project-list-planned-from-the-harness-projects/ticket.md",
-    "updated": "2026-10-16T19:47:53.559Z"
+    "updated": "2026-10-17T07:58:20.382Z"
   },
   {
     "id": "AR0088",
@@ -750,8 +750,8 @@
   {
     "id": "AR0090",
     "title": "The coordinator role explains every ticket and question to an owner who knows nothing of them",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0090-the-coordinator-role-explains-every-ticket-and-question-to-an-owner-who-knows-nothing-of-them/ticket.md",
-    "updated": "2026-10-17T07:21:08.268Z"
+    "updated": "2026-10-17T07:32:28.571Z"
   }
 ]

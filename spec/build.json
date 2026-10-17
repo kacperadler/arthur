@@ -767,9 +767,9 @@
   {
     "id": "AR0092",
     "title": "A project added while a job runs is guarded from that job at once",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0092-a-project-added-while-a-job-runs-is-guarded-from-that-job-at-once/ticket.md",
-    "updated": "2026-10-17T11:53:59.673Z"
+    "updated": "2026-10-17T12:00:26.992Z"
   },
   {
     "id": "AR0093",
@@ -784,5 +784,12 @@
     "status": "in-progress",
     "path": "spec/features/AR0094-roadmap-23-the-coordinator-s-process-and-arthur-attach/ticket.md",
     "updated": "2026-10-17T11:47:27.426Z"
+  },
+  {
+    "id": "AR0095",
+    "title": "A project added to the config is unguarded until some `arthur` command loads it",
+    "status": "dropped",
+    "path": "spec/features/AR0095-a-project-added-to-the-config-is-unguarded-until-some-arthur-command-loads-it/ticket.md",
+    "updated": "2026-10-17T12:00:38.579Z"
   }
 ]

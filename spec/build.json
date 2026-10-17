@@ -815,5 +815,12 @@
     "status": "planning",
     "path": "spec/features/AR0098-plan-an-agent-per-project-with-its-own-channel-and-discord-and-slack-channels/ticket.md",
     "updated": "2026-10-17T12:20:14.596Z"
+  },
+  {
+    "id": "AR0099",
+    "title": "CI on GitHub is red: three tests need a git identity or a systemd user session",
+    "status": "planned",
+    "path": "spec/features/AR0099-ci-on-github-is-red-three-tests-need-a-git-identity-or-a-systemd-user-session/ticket.md",
+    "updated": "2026-10-17T12:31:19.173Z"
   }
 ]

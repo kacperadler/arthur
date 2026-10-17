@@ -9,7 +9,8 @@ import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { type Job, jobRunner } from "../src/jobs.ts";
 import { jobSlice, temporaryFolder } from "../src/testing.ts";
-import worktreeGuard, { jobPlace, worktreeRefusal } from "../src/worktree-guard.ts";
+import { jobPlace } from "../src/job-place.ts";
+import worktreeGuard, { worktreeRefusal } from "../src/worktree-guard.ts";
 
 type Call = readonly [string, Record<string, unknown>];
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
@@ -21,6 +22,17 @@ async function until<T>(what: string, predicate: () => T | undefined): Promise<T
 		if (value !== undefined) return value;
 	}
 	throw new Error(`timed out waiting for ${what}`);
+}
+
+// A new repository `<temporary folder>/<name>` with one commit.
+function repository(name: string): string {
+	const root = join(temporaryFolder(), name);
+	mkdirSync(root);
+	git(root, "init", "--quiet", "--initial-branch=main");
+	writeFileSync(join(root, "README.md"), `${name}\n`);
+	git(root, "add", "--all");
+	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "first");
+	return root;
 }
 
 // The repository `acme` with its home folder `acme/.arthur`, and two worker jobs the runner spawned from it, `own` and
@@ -184,15 +196,7 @@ test("the wrapper loads the guard into the job's agent, which then refuses its w
 
 test("a job of one project refuses writes into another project's main checkout and its jobs' worktrees, naming it", async () => {
 	// Two repositories in folders of their own, so their jobs' worktrees do not share a folder.
-	const [alpha, beta] = ["alpha", "beta"].map((name) => {
-		const root = join(temporaryFolder(), name);
-		mkdirSync(root);
-		git(root, "init", "--quiet", "--initial-branch=main");
-		writeFileSync(join(root, "README.md"), `${name}\n`);
-		git(root, "add", "--all");
-		git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "first");
-		return root;
-	}) as [string, string];
+	const [alpha, beta] = [repository("alpha"), repository("beta")];
 	const home = join(alpha, ".arthur");
 	const list = [{ name: "alpha", prefix: "AL", path: alpha }, { name: "beta", prefix: "BE", path: beta }];
 	const agent = join(temporaryFolder(), "omp");
@@ -225,6 +229,38 @@ test("a job of one project refuses writes into another project's main checkout a
 	assert.equal(worktreeRefusal(jobPlace(record), "write", { path: join(beta, "README.md"), content: "x" }), undefined);
 	rmSync(join(record, "projects"));
 	assert.equal(worktreeRefusal(jobPlace(record), "write", { path: join(beta, "README.md"), content: "x" }), undefined);
+});
+
+test("a project declared while a job runs is refused to it at once; an unreadable list falls back to the record's, said once", async (t) => {
+	const [alpha, beta] = [repository("alpha"), repository("beta")];
+	const home = join(alpha, ".arthur");
+	const agent = join(temporaryFolder(), "omp");
+	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
+	const collect = (name: string) => (name === "projects" ? [[{ name: "alpha", prefix: "AL", path: alpha }]] : []);
+	const runner = jobRunner(home, alpha, { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
+	const own = await runner.spawn({ task: "own" });
+	await until("the job ended", () => (readEvents(home, 1).some((event) => event.name === "job-ended") ? true : undefined));
+	const record = join(home, "jobs", own.id);
+	t.after(() => delete process.env.ARTHUR_JOB);
+	process.env.ARTHUR_JOB = record;
+	let handler: ((event: { toolName: string; input: Record<string, unknown> }) => { reason: string } | undefined) | undefined;
+	worktreeGuard({ on: (_, registered) => (handler = registered) });
+	const write = () => handler?.({ toolName: "write", input: { path: join(beta, "README.md"), content: "x" } })?.reason;
+	const said = () => readFileSync(join(record, "log"), "utf8").split("\n").filter((line) => line.includes("worktree guard: the project list is unreadable"));
+	assert.equal(write(), undefined, "beta is not declared yet");
+	assert.match(said()[0] ?? "", /\(ENOENT: .*projects\/checkouts.*\); guarding the projects this job's record lists$/);
+	// The projects plugin rewrites its list as the config loads with beta added.
+	mkdirSync(join(home, "projects"));
+	writeFileSync(join(home, "projects", "checkouts"), `alpha ${alpha}\nbeta ${beta}\n`);
+	assert.match(write() ?? "", /writes into the main checkout of project beta \(/);
+	rmSync(join(home, "projects", "checkouts"));
+	mkdirSync(join(home, "projects", "checkouts"));
+	assert.equal(write(), undefined, "a list that cannot be read: the record's, which names alpha only");
+	assert.equal(said().length, 1);
+	// A job whose record names beta is guarded from it while the list cannot be read.
+	writeFileSync(join(record, "projects"), `alpha ${alpha}\nbeta ${beta}\n`);
+	worktreeGuard({ on: (_, registered) => (handler = registered) });
+	assert.match(write() ?? "", /writes into the main checkout of project beta \(/);
 });
 
 test("outside a job, without ARTHUR_JOB, the extension refuses nothing", () => {

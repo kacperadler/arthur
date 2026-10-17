@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { test } from "node:test";
 import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
@@ -40,6 +40,26 @@ test("the list is served in config order, each folder absolute, the title the na
 	} finally {
 		process.chdir(cwd);
 	}
+});
+
+test("each load keeps every project's name and checkout in <home>/projects/checkouts, rewritten only when the list changed", async () => {
+	const [shop, blog] = [repository(), repository()];
+	const first = await load({ list: [{ name: "web-shop", prefix: "SH", path: shop }] });
+	const file = join(first.host.folder, "checkouts");
+	// The config loaded again in the same home folder, as each `arthur` command does.
+	const reload = async (list: ProjectsOptions["list"]) => {
+		const again = fakeHost({ name: "projects" });
+		await again.setup({ setup: (host) => projects({ list }).setup({ ...host, folder: first.host.folder, options: { list } }) });
+	};
+	assert.equal(readFileSync(file, "utf8"), `web-shop ${shop}\n`);
+	const inode = statSync(file).ino;
+	await reload([{ name: "web-shop", prefix: "SH", path: shop }]);
+	assert.equal(statSync(file).ino, inode, "the same list leaves the file as it is");
+	await reload([{ name: "web-shop", prefix: "SH", path: shop }, { name: "blog", prefix: "BL", path: blog }]);
+	assert.equal(readFileSync(file, "utf8"), `web-shop ${shop}\nblog ${blog}\n`);
+	await assert.rejects(reload([{ name: "web-shop", prefix: "SH", path: join(shop, "gone") }]), /is not a folder/);
+	assert.equal(readFileSync(file, "utf8"), `web-shop ${shop}\nblog ${blog}\n`, "a config that does not load leaves the list as it was");
+	assert.deepEqual(readdirSync(first.host.folder), ["checkouts"]);
 });
 
 test("one repository checked out three times is three projects, each with its own board, whatever ids that board holds", async () => {

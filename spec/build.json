@@ -680,9 +680,9 @@
   {
     "id": "AR0080",
     "title": "/board, /task and /findings move into orchestration, with host.jobs.list()",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0080-board-task-and-findings-move-into-orchestration-with-host-jobs-list/ticket.md",
-    "updated": "2026-10-17T11:47:24.428Z",
+    "updated": "2026-10-17T12:13:19.505Z",
     "after": [
       "AR0094"
     ]
@@ -713,7 +713,10 @@
     "title": "Roadmap 24: the coordinator's inbox, the wake, and a human's message mid-turn",
     "status": "planning",
     "path": "spec/features/AR0084-roadmap-24-the-coordinator-s-inbox-the-wake-and-a-human-s-message-mid-turn/ticket.md",
-    "updated": "2026-10-16T17:03:09.617Z"
+    "updated": "2026-10-17T12:13:24.328Z",
+    "after": [
+      "AR0080"
+    ]
   },
   {
     "id": "AR0085",
@@ -805,5 +808,12 @@
     "status": "dropped",
     "path": "spec/features/AR0097-host-jobs-running-and-ar0080-s-planned-host-jobs-list-overlap/ticket.md",
     "updated": "2026-10-17T12:13:14.653Z"
+  },
+  {
+    "id": "AR0098",
+    "title": "Plan: an agent per project with its own channel, and Discord and Slack channels",
+    "status": "planning",
+    "path": "spec/features/AR0098-plan-an-agent-per-project-with-its-own-channel-and-discord-and-slack-channels/ticket.md",
+    "updated": "2026-10-17T12:20:14.596Z"
   }
 ]

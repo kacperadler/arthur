@@ -4,7 +4,10 @@
 {
   "id": "AR0084",
   "title": "Roadmap 24: the coordinator's inbox, the wake, and a human's message mid-turn",
-  "date": "2026-10-16"
+  "date": "2026-10-16",
+  "after": [
+    "AR0080"
+  ]
 }
 ```
 

@@ -105,6 +105,10 @@ test("arthur stop ends a running job stopped: SIGTERM to the agent and the proce
 	assert.doesNotMatch(field(home, job.id, "log") ?? "", /SIGKILL/);
 });
 
+// Whether this host has a systemd user manager; where it has none (a container, a shell without a session), a test of the
+// job's scope itself is skipped.
+const manager = spawnSync("systemctl", ["--user", "show-environment"]).status === 0;
+
 // As where there is no user manager (macOS, a container): the job runs bare, so no scope kills what the stop leaves.
 function bare(t: { after(fn: () => void): void }): void {
 	const saved = { XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR, DBUS_SESSION_BUS_ADDRESS: process.env.DBUS_SESSION_BUS_ADDRESS };
@@ -167,19 +171,23 @@ test("a stop that comes once the agent exited on its own leaves the job's own en
 	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: the agent had ended already\n/);
 });
 
-test("a process the agent left holding its output open delays the job's end by the grace only, and is killed", async () => {
-	const { agent, dir } = script((dir) => [`echo '${spent(0, "stop")}'`, `sleep 300 & echo $! > '${dir}/holder'`, `echo $$ > '${dir}/pid'`, "exit 0"]);
-	const { home, jobs } = setup(agent);
-	const job = await jobs.spawn({ task: "Go." });
-	const pid = Number(await until("the agent", () => read(join(dir, "pid"))?.trim() || undefined));
-	const holder = Number(read(join(dir, "holder")));
-	await until("the agent's exit", () => !alive(pid));
-	const exited = Date.now();
-	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }]);
-	assert.ok(Date.now() - exited < 3000, `ended ${Date.now() - exited} ms after the agent exited`);
-	assert.equal(field(home, job.id, "state"), "ended");
-	await until("the holder's end", () => !alive(holder));
-});
+for (const scoped of [true, false])
+	test(`a process the agent left holding its output open delays the job's end by the grace only; ${scoped ? "its scope kills it" : "bare, it runs on"}`, { skip: scoped && !manager && "no systemd user manager" }, async (t) => {
+		if (!scoped) bare(t);
+		const { agent, dir } = script((dir) => [`echo '${spent(0, "stop")}'`, `sleep 300 & echo $! > '${dir}/holder'`, `echo $$ > '${dir}/pid'`, "exit 0"]);
+		const { home, jobs } = setup(agent);
+		const job = await jobs.spawn({ task: "Go." });
+		const pid = Number(await until("the agent", () => read(join(dir, "pid"))?.trim() || undefined));
+		const holder = Number(read(join(dir, "holder")));
+		t.after(() => void (alive(holder) && process.kill(holder, "SIGKILL")));
+		await until("the agent's exit", () => !alive(pid));
+		const exited = Date.now();
+		assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }]);
+		assert.ok(Date.now() - exited < 3000, `ended ${Date.now() - exited} ms after the agent exited`);
+		assert.equal(field(home, job.id, "state"), "ended");
+		if (scoped) await until("the holder's end", () => !alive(holder));
+		else assert.equal(alive(holder), true, "what a bare job leaves behind is not killed at its end, as its log says");
+	});
 
 test("refused, each with the id and the reason: stopping or steering a job not in a run, an unknown id", async () => {
 	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }));
@@ -343,9 +351,9 @@ test("a continue moves the job to working before its wrapper starts, so a contin
 	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 });
 
-for (const manager of [true, false])
-	test(`two continues at once start one wrapper ${manager ? "in its scope" : "bare, without a user manager"}: the other is refused, the record ends once`, async (t) => {
-		if (!manager) bare(t);
+for (const scoped of [true, false])
+	test(`two continues at once start one wrapper ${scoped ? "in its scope" : "bare, without a user manager"}: the other is refused, the record ends once`, { skip: scoped && !manager && "no systemd user manager" }, async (t) => {
+		if (!scoped) bare(t);
 		const gate = join(temporaryFolder(), "gate");
 		const { agent, resumed } = resuming({ steps: [{ message: "First." }] }, { steps: [{ waitFor: gate }, { message: "Second." }] });
 		const { home, jobs } = setup(agent);
@@ -361,7 +369,7 @@ for (const manager of [true, false])
 		const [, second, ...more] = await ended(home, job.id, 2);
 		assert.deepEqual([second, more], [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }, []]);
 		assert.deepEqual([starts(resumed).length, field(home, job.id, "continue"), field(home, job.id, "log")?.match(/\] arthur continue: /g)?.length], [1, "One.", 1]);
-		assert.equal(field(home, job.id, "log")?.includes("no systemd scope"), !manager);
+		assert.equal(field(home, job.id, "log")?.includes("no systemd scope"), !scoped);
 	});
 
 test("a continue takes over the `continuing` a killed continue left, and is refused while a live process holds it", async (t) => {

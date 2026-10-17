@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-17: The owner asked for it while Arthur's build is paused; documentation, not build work, so it runs now.
+- 2026-10-17: The owner: the README says what Arthur is and what it is not (from the vision), and lists its features, each marked built, in progress (partly built) or planned, checked against main as AR0101 did.

@@ -39,3 +39,5 @@ Out:
 - 2026-10-17: The owner: the logo is a conductor with a baton. A setup guide is needed, and Arthur should help with setup itself.
 - 2026-10-17: The owner: `arthur setup` finds the tools on the machine, shows what is configured and what is not, and what can still be put in the config.
 - 2026-10-17: The owner: GitHub Pages at kacperadler.github.io/arthur; plan now, during the pause. The logo is AR0106, the setup guide and `arthur setup` are AR0107.
+- 2026-10-17: Plan approved by the human: plan.md at 942023a.
+- 2026-10-17: The human chose as recommended: Mermaid drawn in the browser (option 1); the site goes live before AR0106 and AR0107, which appear once merged.

@@ -680,9 +680,9 @@
   {
     "id": "AR0080",
     "title": "/board, /task and /findings move into orchestration, with host.jobs.list()",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0080-board-task-and-findings-move-into-orchestration-with-host-jobs-list/ticket.md",
-    "updated": "2026-10-17T12:13:19.505Z",
+    "updated": "2026-10-17T12:31:55.539Z",
     "after": [
       "AR0094"
     ]
@@ -711,11 +711,12 @@
   {
     "id": "AR0084",
     "title": "Roadmap 24: the coordinator's inbox, the wake, and a human's message mid-turn",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0084-roadmap-24-the-coordinator-s-inbox-the-wake-and-a-human-s-message-mid-turn/ticket.md",
-    "updated": "2026-10-17T12:13:24.328Z",
+    "updated": "2026-10-17T12:33:23.482Z",
     "after": [
-      "AR0080"
+      "AR0080",
+      "AR0099"
     ]
   },
   {
@@ -812,15 +813,18 @@
   {
     "id": "AR0098",
     "title": "Plan: an agent per project with its own channel, and Discord and Slack channels",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0098-plan-an-agent-per-project-with-its-own-channel-and-discord-and-slack-channels/ticket.md",
-    "updated": "2026-10-17T12:20:14.596Z"
+    "updated": "2026-10-17T12:33:23.713Z",
+    "after": [
+      "AR0099"
+    ]
   },
   {
     "id": "AR0099",
     "title": "CI on GitHub is red: three tests need a git identity or a systemd user session",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0099-ci-on-github-is-red-three-tests-need-a-git-identity-or-a-systemd-user-session/ticket.md",
-    "updated": "2026-10-17T12:31:19.173Z"
+    "updated": "2026-10-17T12:31:21.875Z"
   }
 ]

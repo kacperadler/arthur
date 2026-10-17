@@ -4,7 +4,10 @@
 {
   "id": "AR0098",
   "title": "Plan: an agent per project with its own channel, and Discord and Slack channels",
-  "date": "2026-10-17"
+  "date": "2026-10-17",
+  "after": [
+    "AR0099"
+  ]
 }
 ```
 
@@ -40,3 +43,6 @@ Out:
 - 2026-10-17: Coordinator's recommendation to the owner: option B.
 - 2026-10-17: The owner chose option B: the coordinator plus an agent per project, each with its own chat.
 - 2026-10-17: The owner on why B: later, for companies, the coordinator is the CEO who directs and assigns work, and each project agent is a department lead; the plan keeps that hierarchy open (agents above projects may be added later) without building it now.
+- 2026-10-17: Plan approved by the human: plan.md at 3c2c875.
+- 2026-10-17: The human: start only once CI on GitHub is green (AR0099).
+- 2026-10-17: The human chose /arthur <name> <text> on Slack (the plan's Option 1).

@@ -15,7 +15,9 @@ import { checkStructure } from "./structure.ts";
 // projects: 320, set by AR0087 (roadmap 41) for the project list, its context lines, `arthur projects`, the clone and the install.
 // AR0094 (roadmap 23): 8 lines from core to core/testing, the fake agent asking `tool_call` handlers as omp does; orchestration:
 // 300 for the plugin's options, the coordinator's process, `arthur attach` and `arthur coordinator stop` (276 at the merge).
-const BUDGETS = { core: 4804, "core/testing": 276, projects: 320, orchestration: 300 };
+// AR0080 (proposal B3 of the line review): `/board`, `/task` and `/findings` move from core to orchestration, with
+// `host.jobs.list()` and `host.board.full()` in the core; core: 91 lines less (4713), orchestration: 98 more (398).
+const BUDGETS = { core: 4713, "core/testing": 276, projects: 320, orchestration: 398 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

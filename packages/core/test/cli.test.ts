@@ -6,7 +6,7 @@ import { test } from "node:test";
 import { temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
-const CORE_LIST = "commands: board, config, continue, findings, help, jobs, prune, remote-job, roles, run, spawn, steer, stop, stopall, task, ticket, version\n";
+const CORE_LIST = "commands: config, continue, help, jobs, prune, remote-job, roles, run, spawn, steer, stop, stopall, ticket, version\n";
 
 // A plugin's commands as a config holds them, with the projects `acme` and `shop` in the config's folder: `echo` prints what it
 // got and exits 3, `boom` throws, `gone` loses its doc file right after it registered it, before any `--help`.
@@ -34,7 +34,7 @@ function arthur(folder: string, ...args: string[]): { readonly status: number | 
 	return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
 }
 
-const ALL = "commands: board, boom, config, continue, echo, findings, gone, help, jobs, prune, quiet, remote-job, roles, run, spawn, steer, stop, stopall, task, ticket, version\n";
+const ALL = "commands: boom, config, continue, echo, gone, help, jobs, prune, quiet, remote-job, roles, run, spawn, steer, stop, stopall, ticket, version\n";
 
 test("a plugin's command runs with its arguments and exits with its code; --project goes to the command, not its arguments", () => {
 	const folder = project();
@@ -139,9 +139,11 @@ test("a plugin registering a core command's name refuses the load, and the list 
 	assert.match(run.stderr, /plugin orchestration: setup failed: command config: registered by core and by orchestration/);
 });
 
-// One project in the config's folder, provided by the required plugin as the projects plugin will.
+// One project in the config's folder, provided by the required plugin as the projects plugin will, and `board`, which prints
+// the whole board through `host.board` as the orchestration plugin's `arthur board all` does.
 const BOARD = `export default { plugins: [{ name: "orchestration", setup(host) {
 	host.provide("projects", () => [{ name: "demo", path: import.meta.dirname, prefix: "DM" }]);
+	host.commands.register({ name: "board", doc: new URL("./quiet.md", import.meta.url), run: () => console.log(host.board.full()) });
 } }] };
 `;
 
@@ -190,7 +192,7 @@ test("arthur ticket with an empty word, in new, status or after, is refused with
 	assert.equal(arthur(folder, "board", "all").stdout, before);
 });
 
-test("arthur ticket after, and the board's phone commands in the shell: arthur board, task and findings", () => {
+test("arthur ticket after: the board shows what a ticket waits for until it waits for nothing", () => {
 	const folder = project(BOARD);
 	for (const title of ["One", "Two"]) arthur(folder, "ticket", "new", title);
 	assert.deepEqual(arthur(folder, "ticket", "after", "DM0002", "DM0001").stdout, "DM0002 after DM0001\n");
@@ -198,11 +200,4 @@ test("arthur ticket after, and the board's phone commands in the shell: arthur b
 	assert.deepEqual([cycle.status, cycle.stderr], [1, "arthur ticket: DM0001 cannot wait for itself: DM0001 after DM0002 after DM0001\n"]);
 	assert.deepEqual(arthur(folder, "board").stdout, "DM0001 planning    One\nDM0002 planning    Two  after DM0001\n");
 	assert.deepEqual(arthur(folder, "ticket", "after", "DM0002").stdout, "DM0002 after nothing\n");
-	assert.match(arthur(folder, "task", "2").stdout, /^DM0002 planning\n# DM0002 - Two\n/);
-	assert.equal(arthur(folder, "findings", "DM1").stdout, "DM0001: no findings (spec/features/DM0001-one/findings.md does not exist)\n");
-	const wrong = arthur(folder, "task", "1", "2");
-	assert.deepEqual([wrong.status, wrong.stderr], [2, "usage: arthur task <id>\n"]);
-	const elsewhere = arthur(folder, "task", "1", "--project", "shop");
-	assert.deepEqual([elsewhere.status, elsewhere.stderr], [1, "arthur task: unknown project shop; projects: demo\n"]);
-	assert.match(arthur(folder, "board", "--help").stdout, /^# arthur board\n/);
 });

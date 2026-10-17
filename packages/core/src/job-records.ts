@@ -14,6 +14,8 @@ import { processTable } from "./process-table.ts";
 
 // An ended job as a plugin's `jobs.keep` gets it; `branch` is empty for a read-only kind.
 export type FinishedJob = { readonly [key in "id" | "kind" | "project" | "task" | "state" | "reason" | "branch" | "worktree"]: string };
+// A job as `host.jobs.list()` gives it, in any state; `tickets` are the paths its task names on `Ticket:`, `hold` empty unless held.
+export type JobRecord = { readonly [key in "id" | "kind" | "project" | "state" | "reason" | "hold" | "branch"]: string } & { readonly tickets: readonly string[] };
 
 // The full id of the one job `query` names; refused when none or several match, naming them.
 export function findJob(home: string, query: string): string {
@@ -36,7 +38,12 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 		syncMachine(home, machine, bus);
 		return line;
 	};
-	const running = (): string[] => jobIds(home).filter((id) => inRun(current(home, id)));
+	const records = (): JobRecord[] =>
+		jobIds(home).map((id) => {
+			const read = field(home, id);
+			return { id, kind: read("kind"), project: read("project"), ...current(home, id), branch: read("branch"), tickets: taskTickets(read("task")) };
+		});
+	const running = (): string[] => records().filter(inRun).map((job) => job.id);
 	return {
 		list: (state?: string) => jobsText(home, time, state),
 		block: (id: string, reason: string) => blockJob(home, id, reason, bus, time.now()),
@@ -54,6 +61,7 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 			const all = ids === "all" ? jobIds(home) : [...new Set(ids.map((query) => findJob(home, query)))];
 			return all.length === 0 ? ["no jobs"] : all.map((id) => `${id}: ${prune(home, id, keep, there)}`);
 		},
+		records,
 		running,
 		async stopAll() {
 			const ids = running();

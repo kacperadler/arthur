@@ -98,6 +98,26 @@ test("arthur jobs: every project's jobs grouped by state, newest first, one line
 	assert.equal(jobs.list("idle"), "no idle jobs");
 });
 
+test("host.jobs.list(): every record in any state, newest spawn first, missing files empty; running() is the ids of those in a run", () => {
+	const { home, jobs } = setup();
+	assert.deepEqual([jobs.records(), jobs.running()], [[], []]);
+	const hours = (count: number) => new Date(NOW.getTime() - count * 3_600_000);
+	const ticket = "spec/features/AR0018-jobs/ticket.md";
+	record(home, "2026-10-16-worker-0000000a", { task: `Ticket: ${ticket}.\nTicket: \`${ticket}\``, state: "working", branch: "arthur/a" }, hours(1));
+	record(home, "2026-10-16-review-0000000b", { kind: "review", project: "shop", state: "ended", reason: "finished" }, hours(2));
+	record(home, "2026-10-16-worker-0000000c", { state: "idle" }, hours(3));
+	record(home, "2026-10-16-worker-0000000d", { state: "blocked", reason: "user: may I?" }, hours(4));
+	record(home, "2026-10-16-worker-0000000e", { state: "blocked", reason: "dependency: x", hold: "x" }, hours(5));
+	record(home, "2026-10-16-worker-0000000f", { task: "" }, hours(6));
+	mkdirSync(join(home, "jobs", ".2026-10-16-worker-00000010"), { recursive: true });
+	writeFileSync(join(home, "jobs", ".2026-10-16-worker-00000010", "kind"), "worker");
+	const [first, second] = jobs.records();
+	assert.deepEqual(first, { id: "2026-10-16-worker-0000000a", kind: "worker", project: "acme", state: "working", reason: "", hold: "", branch: "arthur/a", tickets: [ticket] });
+	assert.deepEqual(second, { id: "2026-10-16-review-0000000b", kind: "review", project: "shop", state: "ended", reason: "finished", hold: "", branch: "", tickets: [] });
+	assert.deepEqual(jobs.records().map((job) => [job.id.slice(-1), job.state, job.hold]), [["a", "working", ""], ["b", "ended", ""], ["c", "idle", ""], ["d", "blocked", ""], ["e", "blocked", "x"], ["f", "", ""]]);
+	assert.deepEqual(jobs.running(), ["2026-10-16-worker-0000000a", "2026-10-16-worker-0000000c", "2026-10-16-worker-0000000e"]);
+});
+
 test("a job is named by its full or short id; a short id that matches two jobs is refused with both, an unknown one too", () => {
 	const { home } = setup();
 	record(home, "2026-10-16-worker-0000000a", {}, NOW);

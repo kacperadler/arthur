@@ -36,3 +36,4 @@ In:
 
 - 2026-10-17: Source: F1 of AR0090
 - 2026-10-17: The owner approved it.
+- 2026-10-17: Merged by the coordinator after review PASS and green checks, per the human 2026-10-16 (K0253: the coordinator merges Arthur branches itself).

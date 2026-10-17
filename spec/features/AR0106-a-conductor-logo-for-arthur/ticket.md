@@ -1,0 +1,38 @@
+# AR0106 - A conductor logo for Arthur
+
+```json
+{
+  "id": "AR0106",
+  "title": "A conductor logo for Arthur",
+  "date": "2026-10-17"
+}
+```
+
+## Description
+
+Arthur needs a logo for its site (AR0105) and README: a conductor with a baton, the owner's choice (2026-10-17).
+
+## Goal
+
+The owner picks one of three variants; the chosen one is ready for the site and the README.
+
+- Kind: improvement
+
+## Done means
+
+- A logo of a conductor with a baton (the owner's choice): three simple SVG variants of it, each readable at 32 px as a favicon and in one colour, rendered to PNG for the owner to choose from; the chosen one is used on the site and in the README.
+- Files: `docs/logo/conductor-1.svg` to `-3.svg`, hand-written SVG (no external tool, no font: shapes only); each rendered to PNG at 512 and 32 px in the job folder and looked at; the final message names the PNG paths so the coordinator sends them to the owner.
+- Nothing else changes until the owner picks; then one `docs/logo/arthur.svg` and a line in the README.
+- `npm test` and `npm run check` pass.
+
+## Scope
+
+In:
+- `docs/logo/`.
+
+Out:
+- The site (AR0105).
+
+## Decisions
+
+- 2026-10-17: The owner: a conductor with a baton.

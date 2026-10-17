@@ -8,6 +8,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0090 The coordinator role explains every ticket and question to an owner who knows nothing of them (4aefdb4)
 
+### Other
+
+- AR0087 Roadmap 41: the project list, planned from the harness projects (04ec21e)
+
 ## 2026-10-16
 
 ### Added

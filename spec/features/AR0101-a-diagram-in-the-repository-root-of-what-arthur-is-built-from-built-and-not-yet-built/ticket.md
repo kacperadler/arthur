@@ -39,3 +39,4 @@ Out:
 ## Decisions
 
 - 2026-10-17: The owner asked for it while Arthur's build is paused; a diagram is not build work, so it runs now.
+- 2026-10-17: The owner: the diagram itself goes in README.md, so GitHub shows it on the repository page (it renders a ```mermaid block natively; an SVG from mermaid-cli cut labels off on his phone). arthur.mmd stays the source; a test fails when the README block differs from it.

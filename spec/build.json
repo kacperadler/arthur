@@ -833,5 +833,12 @@
     "status": "dropped",
     "path": "spec/features/AR0100-the-wrapper-test-of-a-finished-worker-fails-in-a-full-npm-test-run-from-a-job-s-worktree/ticket.md",
     "updated": "2026-10-17T13:08:07.042Z"
+  },
+  {
+    "id": "AR0101",
+    "title": "A diagram in the repository root of what Arthur is built from, built and not yet built",
+    "status": "planned",
+    "path": "spec/features/AR0101-a-diagram-in-the-repository-root-of-what-arthur-is-built-from-built-and-not-yet-built/ticket.md",
+    "updated": "2026-10-17T13:13:03.728Z"
   }
 ]

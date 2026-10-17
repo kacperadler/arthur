@@ -44,12 +44,12 @@ const TRANSIENT = "spec/.board";
 // `lists`: what every provider of `projects` returned; `emit`: an event, named by whoever holds this board.
 export function board(lists: () => readonly unknown[], clock: Clock, emit: (name: string, data: unknown) => unknown): Board {
 	const project = (name: string | undefined): Project => {
-		const all = projects(lists());
+		const all = projectList(lists());
 		const found = name === undefined ? all[0] : all.find((each) => each.name === name);
 		if (found === undefined) throw new Error(`unknown project ${name}; projects: ${all.map((each) => each.name).join(", ")}`);
 		return found;
 	};
-	const owner = (id: string): Project | undefined => projects(lists()).find((each) => ID.exec(id)?.[1] === each.prefix);
+	const owner = (id: string): Project | undefined => projectList(lists()).find((each) => ID.exec(id)?.[1] === each.prefix);
 	const tickets = (where: Project): Ticket[] => readBoard(join(where.path, FILE)).map((entry) => ({ ...entry, project: where.name }));
 	// Under the board's lock: read, change, and write the board only when `change` added or replaced a ticket. The temporary
 	// files have fixed names: only the lock's holder writes them, over whatever a killed holder left.
@@ -69,7 +69,7 @@ export function board(lists: () => readonly unknown[], clock: Clock, emit: (name
 	// Under the lock: ticket `id` replaced by what `change` returns for it (itself when nothing changes), on its own board.
 	const update = (id: string, change: (found: Entry, entries: readonly Entry[], where: Project) => Entry) => {
 		const where = owner(id);
-		if (where === undefined) throw new Error(`${id}: no project has its prefix; prefixes: ${projects(lists()).map((each) => each.prefix).join(", ")}`);
+		if (where === undefined) throw new Error(`${id}: no project has its prefix; prefixes: ${projectList(lists()).map((each) => each.prefix).join(", ")}`);
 		const [before, after] = write(where, (entries) => {
 			const index = entries.findIndex((each) => each.id === id);
 			const found = entries[index];
@@ -81,7 +81,7 @@ export function board(lists: () => readonly unknown[], clock: Clock, emit: (name
 		return { where, before, after, ticket: { ...after, project: where.name } };
 	};
 	return {
-		projects: () => projects(lists()),
+		projects: () => projectList(lists()),
 		list: (name) => tickets(project(name)),
 		digest: (name) => boardText(tickets(project(name)), false),
 		get(id) {
@@ -170,8 +170,8 @@ function transientFolder(where: Project): string {
 
 const PREFIX = /^[A-Z]+$/;
 
-// The project list, checked: it comes from another plugin.
-function projects(lists: readonly unknown[]): Project[] {
+// The project list, checked: it comes from another plugin. The job runner reads it too, for a job's project.
+export function projectList(lists: readonly unknown[]): Project[] {
 	if (lists.length === 0) throw new Error("no project list: the board needs each project's folder and ticket prefix, which the projects plugin provides");
 	if (lists.length > 1) throw new Error(`the project list is provided ${lists.length} times; one plugin provides it`);
 	const [list] = lists;

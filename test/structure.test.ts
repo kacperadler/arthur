@@ -12,7 +12,8 @@ import { checkStructure } from "./structure.ts";
 // stop and offline): 200, the open core bug tickets: 95, of which those three took 9. An entry that needs more than its allotment
 // cuts elsewhere, or its ticket records the overrun as a decision. The test kit (testing.ts, fake-agent.ts: 268 lines) has a budget
 // of its own, so production growth shows on its own: an entry that grows the kit moves lines from core to core/testing.
-const BUDGETS = { core: 4812, "core/testing": 268 };
+// projects: 320, set by AR0087 (roadmap 41) for the project list, its context lines, `arthur projects`, the clone and the install.
+const BUDGETS = { core: 4812, "core/testing": 268, projects: 320 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

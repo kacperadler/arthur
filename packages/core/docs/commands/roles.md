@@ -39,6 +39,6 @@ The first line: the role, its model and thinking level, the kinds that use it, a
 
 The project's files are looked up in the main checkout's working tree, so an uncommitted file shows here before a job reads it. The sections plugins add through `prompt` depend on the job and are not listed.
 
-`--project <name>`: the project; until a plugin adds projects, the only one is the main repository, named by its folder (`unknown project <name>; the only project is <name>` otherwise).
+`--project <name>`: the project, a name in the list of the `projects` plugin; its main checkout is the project's folder there, and left out, the first in the list (`unknown project <name>; projects: <names>` otherwise). Without the projects plugin, the only project is the main repository, named by its folder (`unknown project <name>; the only project is <name>` otherwise).
 
 Exit code 0 when the list is printed; 1 when `arthur.config.ts` or a plugin does not load (the roles are what the plugins registered), or on an unknown project; 2 on any argument.

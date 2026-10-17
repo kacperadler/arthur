@@ -1,9 +1,10 @@
 import { rmSync } from "node:fs";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import { taskTickets } from "./board-jobs.ts";
 import type { Clock } from "./clock.ts";
 import type { Bus } from "./events.ts";
-import { addWorktree, branchExists, fileAt, head, removeWorktree, topLevel } from "./git.ts";
+import { addWorktree, branchExists, fileAt, head, removeWorktree } from "./git.ts";
+import { checkout } from "./job-checkout.ts";
 import { checkLimits, type Limits, spawnLimits } from "./job-limits.ts";
 import { continueJob } from "./job-control.ts";
 import { addThere, LOCAL, type Machine, machineRegistry, type Ran, reach, removeThere } from "./job-machine.ts";
@@ -102,8 +103,9 @@ const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 
 type Collect = (name: string, args: readonly unknown[]) => unknown[];
 
-// `folder` is in the repository jobs start from; `limits` are the core's `jobs` options and the jobs' slice, `agent` its
-// `agent.command`; `collect` reads what the plugins provide, e.g. the sections of a prompt (`prompt`).
+// `folder` is in the repository jobs start from while no plugin provides `projects` (job-checkout.ts); `limits` are the core's
+// `jobs` options and the jobs' slice, `agent` its `agent.command`; `collect` reads what the plugins provide, e.g. the sections
+// of a prompt (`prompt`) and the project list (`projects`).
 export function jobRunner(home: string, folder: string, limits: Limits & Slice & { readonly idleMinutes: number; readonly offlineGraceMinutes: number }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
 	const kinds = new Map<string, { readonly owner: string; readonly kind: Kind }>();
 	const roles = roleRegistry();
@@ -131,7 +133,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 		prepare: (owner, fn) => void prepares.push({ owner, fn }),
 		registerMachine: (owner, machine) => machines.register(owner, machine),
 		run: (machine, argv) => machines.run(machine, argv),
-		roles: (project) => describeRoles(roles, [...kinds.values()].map((entry) => entry.kind), checkout(project).root, collect),
+		roles: (project) => describeRoles(roles, [...kinds.values()].map((entry) => entry.kind), checkout(folder, collect("projects", []), project).root, collect),
 		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (spawn) => checkSpawn({ ...spawn, tickets: taskTickets(spawn.task) }), machines.of(id)),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
@@ -139,7 +141,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 			if (kind === undefined) throw new Error(`unknown kind ${name}; kinds: ${[...kinds.keys()].sort().join(", ")}`);
 			const role = roles.get(kind.role);
 			if (request.task.trim() === "") throw new Error("the task is empty");
-			const { root, project } = checkout(request.project);
+			const { root, project } = checkout(folder, collect("projects", []), request.project);
 			const commit = head(root);
 			if (commit === undefined) throw new Error(`${root} has no commit yet; a job starts from HEAD`);
 			if (!kind.readOnly && branchExists(root, "arthur")) throw new Error(`${root} has a branch named arthur, so Git cannot create a worker's branch arthur/<id> beside it; rename it: git branch -m arthur <new-name>`);
@@ -188,13 +190,5 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 			const reason = await pluginStep(owner, "beforeSpawn", () => check(spawn));
 			if (reason !== undefined) throw new Error(`refused by ${owner}: ${reason}`);
 		}
-	}
-
-	// The repository a job of `project` starts from, and the project's name: only the main one until a plugin adds projects.
-	function checkout(project: string | undefined): { readonly root: string; readonly project: string } {
-		const root = topLevel(folder);
-		if (root === undefined) throw new Error(`${folder} is not in a Git repository; a job starts from its HEAD`);
-		if (project !== undefined && project !== basename(root)) throw new Error(`unknown project ${project}; the only project is ${basename(root)}`);
-		return { root, project: basename(root) };
 	}
 }

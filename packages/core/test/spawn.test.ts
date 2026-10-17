@@ -121,7 +121,7 @@ test("refusals print the reason, exit 1 and leave no record, worktree or branch"
 		[["Please refuse."], "refused by orchestration: maxAgents 3 reached"],
 		[["Go.", "--kind", "audit"], "unknown kind audit; kinds: review, worker"],
 		[["Ticket: spec/features/AC0001-one/new.md"], `Ticket: spec/features/AC0001-one/new.md: no such file at HEAD (${head}); commit it first`],
-		[["Go.", "--project", "other"], "unknown project other; the only project is acme"],
+		[["Go.", "--project", "other"], "unknown project other; projects: acme"],
 		[["Now break."], "plugin orchestration: prepare failed: no hook; the job's worktree and record were removed"],
 	] as const) {
 		const run = arthur(root, "spawn", ...args);
@@ -227,4 +227,24 @@ test("without a project list a worker naming a ticket is refused, one naming non
 	assert.deepEqual([run.status, run.stderr], [1, "arthur spawn: plugin core: beforeSpawn failed: no project list: the board needs each project's folder and ticket prefix, which the projects plugin provides\n"]);
 	assert.deepEqual(jobs(root), []);
 	assert.equal(arthur(root, "spawn", "Go.").status, 0);
+	assert.equal(arthur(root, "spawn", "Go.", "--project", "other").stderr, "arthur spawn: unknown project other; the only project is acme\n");
+});
+
+test("--project starts the job from that project's HEAD, in its repository, and records its name", () => {
+	const root = repository();
+	const shop = join(dirname(root), "shop");
+	git(dirname(root), "init", "--quiet", "--initial-branch=main", shop);
+	git(shop, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "--allow-empty", "-m", "shop");
+	const list = `[{ name: "acme", path: import.meta.dirname, prefix: "AC" }, { name: "shop", path: ${JSON.stringify(shop)}, prefix: "SH" }]`;
+	writeFileSync(join(root, "arthur.config.ts"), CONFIG.replace(/\[\{ name: "acme".*?\}\]/, list));
+	const run = arthur(root, "spawn", "Go.", "--project", "shop");
+	assert.equal(run.status, 0, run.stderr);
+	const id = run.stdout.trim();
+	const field = (name: string) => readFileSync(join(root, ".arthur/jobs", id, name), "utf8");
+	assert.deepEqual(["project", "root", "base"].map(field), ["shop", shop, git(shop, "rev-parse", "HEAD")]);
+	assert.equal(git(field("worktree"), "rev-parse", "HEAD"), git(shop, "rev-parse", "HEAD"));
+	assert.equal(arthur(root, "spawn", "Go.").status, 0, "the main project is the first");
+	assert.deepEqual(readdirSync(join(root, ".arthur/jobs")).map((job) => readFileSync(join(root, ".arthur/jobs", job, "project"), "utf8")).sort(), ["acme", "shop"]);
+	const unknown = arthur(root, "spawn", "Go.", "--project", "blog");
+	assert.deepEqual([unknown.status, unknown.stderr], [1, "arthur spawn: unknown project blog; projects: acme, shop\n"]);
 });

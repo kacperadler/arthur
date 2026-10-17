@@ -30,7 +30,7 @@ export PATH="$HOME/arthur/node_modules/.bin:$PATH"
 cp arthur.config.example.ts arthur.config.ts
 ```
 
-Edit `arthur.config.ts`: keep the plugins you want (`orchestration` is required) and remove the rest. It stays in `~/arthur`, so its `@arthur/*` imports resolve from the clone's `node_modules`. Its `core.home` (default `.arthur/` beside it) holds Arthur's state: the event log, each plugin's folder, the job records, and `run.pid`. Job worktrees go to `.arthur-worktrees/` beside the repository they start from, here `~/.arthur-worktrees/`.
+Edit `arthur.config.ts`: keep the plugins you want (`orchestration` is required) and remove the rest. It stays in `~/arthur`, so its `@arthur/*` imports resolve from the clone's `node_modules`. Its `core.home` (default `.arthur/` beside it) holds Arthur's state: the event log, each plugin's folder, the job records, and `run.pid`. Job worktrees go to `.arthur-worktrees/` beside the repository they start from, here `~/.arthur-worktrees/`. Git ignores `arthur.config.ts` (`.gitignore`): it holds your own project list, which never goes to the public repository; `git pull` leaves it as it is.
 
 ## 3. `.env`
 
@@ -54,7 +54,7 @@ printf 'PATH=%s:%s/.local/bin:/usr/local/bin:/usr/bin:/bin\n' "$(dirname "$(whic
 cat ~/.config/arthur.env
 ```
 
-It prints something like `PATH=/home/<user>/.nvm/versions/node/v24.21.0/bin:/home/<user>/.local/bin:/usr/local/bin:/usr/bin:/bin`. Run the `printf` again after `nvm install` switches Node to a new version, then restart the service.
+It prints something like `PATH=/home/<user>/.nvm/versions/node/v24.21.0/bin:/home/<user>/.local/bin:/usr/local/bin:/usr/bin:/bin`. Run the `printf` again after `nvm install` switches Node to a new version, then restart the service. A tool a project's jobs need, such as `bun` for a project's install, goes on this `PATH` (`~/.local/bin` is on it), and at the top of `~/.bashrc` on another machine (step 3 there); a project's Node version comes from its `.nvmrc` once the nvm plugin (roadmap 84) is on.
 
 ## 5. The service
 

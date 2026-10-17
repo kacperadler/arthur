@@ -101,9 +101,9 @@ export type FakeHost = {
 // `<temporary folder>/<name>/`, whose parent is the home folder holding the event log and the job records. A `call` or a
 // command's registration refuses like the real host's, naming the plugin. Its clock stands still at `now` (default
 // 2026-01-01T00:00:00Z) in `timeZone` (default UTC) until `setNow` moves it. `host.board` reads the project list the test
-// provides as `projects`. `host.jobs.spawn` starts from HEAD of the repository `root` (a test's own), with the core's
-// default limits, in the kit's `jobSlice`, and runs the agent `omp` that `PATH` finds; without `root` a spawn refuses. As in
-// a real load, the core follows the jobs after the plugin's `setup`: at the first spawn, its `beforeSpawn` joins after the
+// provides as `projects`. `host.jobs.spawn` starts from HEAD of the project's folder in that list, else of the repository
+// `root` (a test's own), with the core's default limits, in the kit's `jobSlice`, and runs the agent `omp` that `PATH` finds.
+// As in a real load, the core follows the jobs after the plugin's `setup`: at the first spawn, its `beforeSpawn` joins after the
 // plugin's checks and refuses a worker on a ticket of that project list that cannot move to in-progress, and its move joins
 // after the plugin's `job-started` handlers, so they still see the ticket as it was (`planned`) and then it is in-progress.
 // A plugin must not rely on that status: a `job-started` from another process (`arthur spawn`, which the daemon follows)

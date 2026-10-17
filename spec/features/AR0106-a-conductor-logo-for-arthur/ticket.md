@@ -41,3 +41,4 @@ Out:
 - 2026-10-17: Takes AR0105's F1 (AR0108 dropped): the site generator copies the small-size favicon to `site/public/favicon.svg` (or .png) when it exists, else the full logo; and it accepts the owner's PNG logo, not only `docs/logo/arthur.svg`.
 - 2026-10-17: The owner: the conductor is seen from behind (facing the orchestra), in the ChatGPT logo.
 - 2026-10-17: The owner prefers a minimalist one-colour silhouette mark (negative space, dynamic pose, a music stand) over a detailed illustration; his reference was a stock image, not committed (a watermarked stock image cannot go into a public repository).
+- 2026-10-17: The owner: code symbols ({ } ; </>) float around the baton instead of music notes.

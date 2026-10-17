@@ -13,7 +13,7 @@ const USAGE = {
 	continue: "usage: arthur continue <id> <instruction> [--budget <usd>]",
 	steer: "usage: arthur steer <id> <text>",
 	jobs: "usage: arthur jobs [--state <state>]",
-	prune: "usage: arthur prune [<id>...]",
+	prune: "usage: arthur prune (<id>... | --all)",
 	stopall: "usage: arthur stopall",
 };
 
@@ -39,28 +39,37 @@ export function jobCommands(home: () => string, jobs: () => JobRunner): Command[
 			return 1;
 		}),
 		command("jobs", 0, (_, { state }) => console.log(jobs().list(state)), { about: "every project's jobs by state, one line each, with the short id", reply: () => jobs().list() }),
-		command("prune", -1, (ids) => console.log(jobs().prune(ids).join("\n"))),
+		command("prune", -1, (ids, { all }) => {
+			if (all === undefined && ids.length === 0) return usage("prune", "needs one or more ids, or --all for every finished job");
+			if (all !== undefined && ids.length > 0) return usage("prune", "--all takes no ids");
+			console.log(jobs().prune(ids).join("\n"));
+		}),
 		command("stopall", 0, async () => console.log(await jobs().stopAll()), { about: "stop every running job of every project", reply: () => jobs().stopAll() }),
 	];
 }
 
-// `count` arguments (-1: any number), each one word or one quoted text; only `continue` takes `--budget`, only `jobs` `--state`.
+// `count` arguments (-1: any number), each one word or one quoted text; only `continue` takes `--budget`, only `jobs` `--state`,
+// only `prune` `--all`, a switch the run gets with the value "". An empty word is refused before the command acts.
 type Run = (words: readonly string[], values: Partial<Record<string, string>>) => number | void | Promise<number | void>;
 const FLAGS: Partial<Record<keyof typeof USAGE, Parameters<typeof parseFlags>[1]>> = {
 	continue: { budget: (value, before) => (before === undefined ? amount(value, before) : "given twice") },
 	jobs: { state: (value, before) => text(value, before) ?? (STATES.some((state) => state === value) ? undefined : `needs one of ${STATES.join(", ")}, got ${value}`) },
 };
+const SWITCHES: Partial<Record<keyof typeof USAGE, readonly string[]>> = { prune: ["--all"] };
 function command(name: keyof typeof USAGE, count: number, run: Run, phone?: Command["phone"]): Command {
 	return {
 		name,
 		doc: new URL(`../docs/commands/${name}.md`, import.meta.url),
 		...(phone === undefined ? {} : { phone }),
 		async run({ args }) {
-			const parsed = parseFlags(args, FLAGS[name] ?? {});
+			const switches = SWITCHES[name] ?? [];
+			const set = args.filter((arg) => switches.includes(arg));
+			const parsed = parseFlags(args.filter((arg) => !switches.includes(arg)), FLAGS[name] ?? {});
 			if (typeof parsed === "string") return usage(name, parsed);
 			const { words, values } = parsed;
 			if (count >= 0 && words.length !== count) return usage(name, `expected ${["no arguments", "the id", "the id and one quoted text"][count]}, got ${words.length} arguments`);
-			return run(words, values);
+			if (words.includes("")) return usage(name, "an empty id or text");
+			return run(words, { ...values, ...Object.fromEntries(set.map((arg) => [arg.slice(2), ""])) });
 		},
 	};
 }

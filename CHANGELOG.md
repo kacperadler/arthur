@@ -2,6 +2,12 @@
 
 Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-17
+
+### Added
+
+- AR0090 The coordinator role explains every ticket and question to an owner who knows nothing of them (4aefdb4)
+
 ## 2026-10-16
 
 ### Added

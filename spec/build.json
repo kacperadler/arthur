@@ -750,8 +750,15 @@
   {
     "id": "AR0090",
     "title": "The coordinator role explains every ticket and question to an owner who knows nothing of them",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0090-the-coordinator-role-explains-every-ticket-and-question-to-an-owner-who-knows-nothing-of-them/ticket.md",
-    "updated": "2026-10-17T07:32:28.571Z"
+    "updated": "2026-10-17T08:26:46.682Z"
+  },
+  {
+    "id": "AR0091",
+    "title": "An ssh that exits before reading its input fails as EPIPE instead of with ssh's own line",
+    "status": "planning",
+    "path": "spec/features/AR0091-an-ssh-that-exits-before-reading-its-input-fails-as-epipe-instead-of-with-ssh-s-own-line/ticket.md",
+    "updated": "2026-10-17T08:26:46.679Z"
   }
 ]

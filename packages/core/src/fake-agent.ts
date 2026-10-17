@@ -4,21 +4,47 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import type { AgentRun } from "./testing.ts";
 
-// The fake agent's player (spec/roadmap.md, entries 11, 14 and 23), started by the `omp` script `fakeAgent` writes, as
+// The fake agent's player (spec/roadmap.md, entries 11, 14, 23 and 24), started by the `omp` script `fakeAgent` writes, as
 // `node fake-agent.ts <run.json> <omp's arguments>`: it notes the start in `starts.jsonl` beside the run, loads each `-e`
-// extension as omp does, then plays the run, printing each event in the shape `omp --mode json` prints it, asking the
-// extensions' `tool_call` handlers before each tool call (a block fails the call with its reason, as omp does), calling their
-// `tool_result` handlers after it, noting each message they send (`sendUserMessage`) in `messages.jsonl` beside the run, and
-// exits with the run's code.
+// extension as omp does and calls its `session_start` handlers, then plays the run, printing each event in the shape
+// `omp --mode json` prints it, asking the extensions' `tool_call` handlers before each tool call (a block fails the call with
+// its reason, as omp does), calling their `tool_result` handlers after it, noting each message they send (`sendUserMessage`)
+// in `messages.jsonl` beside the run with the step it came in, and exits with the run's code. A handler's `ctx` has a UI
+// (`hasUI`) unless omp runs with `--mode`; `ui` calls are noted in `ui.jsonl`; it is idle outside a turn (`prompt` to `end`).
 
 const [file = "", ...args] = process.argv.slice(2);
 const run = JSON.parse(readFileSync(file, "utf8")) as AgentRun;
-appendFileSync(join(dirname(file), "starts.jsonl"), `${JSON.stringify({ pid: process.pid, cwd: process.cwd(), args })}\n`);
+const note = (name: string, entry: object) => appendFileSync(join(dirname(file), name), `${JSON.stringify(entry)}\n`);
+note("starts.jsonl", { pid: process.pid, cwd: process.cwd(), args });
 
+// The step being played; whether no turn runs; the messages sent while idle, for the next `prompt`; the turns' messages.
+let [at, idle, failures, continued] = [-1, true, run.failSends ?? 0, 0];
+const prompts: string[] = [];
+const conversation: object[] = [];
+const user = (text: string) => ({ role: "user", content: [{ type: "text", text }] });
 const handlers: { readonly event: string; readonly handler: (...args: unknown[]) => unknown }[] = [];
 const pi = {
 	on: (event: string, handler: (...args: unknown[]) => unknown) => void handlers.push({ event, handler }),
-	sendUserMessage: (content: string, options: unknown) => appendFileSync(join(dirname(file), "messages.jsonl"), `${JSON.stringify({ content, options })}\n`),
+	sendUserMessage(content: string, options: unknown) {
+		if (failures-- > 0) throw new Error("fake agent: sendUserMessage failed");
+		note("messages.jsonl", { content, options, step: at });
+		if (idle) prompts.push(content);
+		else conversation.push(user(content));
+	},
+};
+const ui = (method: string) => (...values: unknown[]) => note("ui.jsonl", { method, args: values });
+const ctx = {
+	hasUI: !args.includes("--mode"),
+	cwd: process.cwd(),
+	isIdle: () => idle,
+	ui: { setStatus: ui("setStatus"), notify: ui("notify") },
+	// As omp's: unref'd, and a throw is logged, not fatal.
+	setInterval: (fn: () => unknown, ms: number) => setInterval(() => Promise.try(fn).catch((error) => console.error(error)), ms).unref(),
+};
+const ask = async (type: string, data: object) => {
+	const answers: unknown[] = [];
+	for (const { event, handler } of handlers) if (event === type) answers.push(await handler({ type, ...data }, ctx));
+	return answers;
 };
 for (const [index, arg] of args.entries()) {
 	if (arg !== "-e") continue;
@@ -26,6 +52,7 @@ for (const [index, arg] of args.entries()) {
 	const extension = (await import(pathToFileURL(args[index + 1] ?? "").href)) as { default: (api: typeof pi) => void };
 	extension.default(pi);
 }
+await ask("session_start", {});
 
 // Resolves once the line is handed to the pipe, so a signal that follows never cuts it.
 const print = (stream: NodeJS.WriteStream, line: string) => {
@@ -36,20 +63,19 @@ const print = (stream: NodeJS.WriteStream, line: string) => {
 const event = (data: object) => print(process.stdout, JSON.stringify(data));
 
 for (const [index, step] of run.steps.entries()) {
+	at = index;
 	if ("tool" in step) {
 		const toolCallId = `toolu_fake_${index}`;
-		await event({ type: "tool_execution_start", toolCallId, toolName: step.tool, args: step.args ?? {} });
-		let blocked: string | undefined;
-		for (const { event: name, handler } of handlers) {
-			if (name !== "tool_call" || blocked !== undefined) continue;
-			const verdict = (await handler({ type: "tool_call", toolCallId, toolName: step.tool, input: step.args ?? {} }, {})) as { block?: boolean; reason?: string } | undefined;
-			if (verdict?.block) blocked = verdict.reason || "Tool execution was blocked by an extension";
-		}
+		const input = step.args ?? {};
+		await event({ type: "tool_execution_start", toolCallId, toolName: step.tool, args: input });
+		const verdicts = (await ask("tool_call", { toolCallId, toolName: step.tool, input })) as ({ block?: boolean; reason?: string } | undefined)[];
+		const verdict = verdicts.find((each) => each?.block);
+		const blocked = verdict === undefined ? undefined : verdict.reason || "Tool execution was blocked by an extension";
 		const isError = blocked !== undefined || (step.failed ?? false);
 		const result = { content: [{ type: "text", text: blocked ?? step.output ?? "" }], details: {} };
+		conversation.push({ role: "toolResult", toolCallId, toolName: step.tool, ...result, isError });
 		// Inside the tool's execution, as omp runs it, before the end event.
-		const done = { type: "tool_result", toolCallId, toolName: step.tool, input: step.args ?? {}, ...result, isError };
-		for (const { event: name, handler } of handlers) if (name === "tool_result") await handler(done, {});
+		await ask("tool_result", { toolCallId, toolName: step.tool, input, ...result, isError });
 		await event({ type: "tool_execution_end", toolCallId, toolName: step.tool, result, isError });
 	} else if ("message" in step) {
 		const cost = step.cost ?? 0;
@@ -65,8 +91,24 @@ for (const [index, step] of run.steps.entries()) {
 			timestamp: Date.now(),
 			...(step.error === undefined ? {} : { errorMessage: step.error }),
 		};
+		conversation.push(message);
 		await event({ type: "turn_start" });
 		await event({ type: "message_end", message });
+	} else if ("prompt" in step) {
+		while (prompts.length === 0) await sleep(10);
+		conversation.push(...prompts.splice(0).map(user));
+		idle = false;
+		await ask("agent_start", {});
+	} else if ("end" in step) {
+		// As omp's main session: its `session_stop` handlers first; a continuation, at most 8 in a row, goes on with the next steps.
+		const answers = (await ask("session_stop", { messages: [...conversation], stop_hook_active: continued > 0 })) as ({ continue?: boolean; additionalContext?: string } | undefined)[];
+		const more = continued < 8 ? answers.find((answer) => answer?.continue === true && typeof answer.additionalContext === "string" && answer.additionalContext !== "") : undefined;
+		continued = more === undefined ? 0 : continued + 1;
+		if (more !== undefined) {
+			note("messages.jsonl", { content: more.additionalContext, options: { continue: true }, step: index });
+			conversation.push(user(more.additionalContext ?? ""));
+		} else idle = true;
+		await ask("agent_end", { messages: [...conversation], willContinue: more === undefined ? undefined : true });
 	} else if ("stdout" in step) await print(process.stdout, step.stdout);
 	else if ("stderr" in step) await print(process.stderr, step.stderr);
 	// Waits for the test; a test whose folder is gone, as after its process exited, never comes.

@@ -15,19 +15,17 @@ import { jobRunner, type Kind } from "./jobs.ts";
 import type { Role } from "./roles.ts";
 import { type Host, type Options, type Plugin, type Provider, pluginHost, registry } from "./plugin.ts";
 
-// The test kit (spec/roadmap.md, entries 4, 11 and 13), published as `@arthur/core/testing`. Loading it is the safety net,
-// and `npm test` loads it into every test process (`--import`): every `ARTHUR_` variable and tmux's session variables are
-// cleared and tmux's default socket moves into a temporary folder, so a test reaches no live bot, token or tmux server; `omp`
-// on `PATH` is the kit's fake agent with no run scripted (it fails), so no job of a test reaches the real agent; every folder
-// the kit makes is removed when the process exits, passed or failed, and so is its slice, `jobSlice`.
+// The test kit (spec/roadmap.md, entries 4, 11 and 13), `@arthur/core/testing`, which `npm test` loads into every test process
+// (`--import`) as the safety net: every `ARTHUR_` variable and tmux's session variables are cleared and tmux's default socket
+// moves into a temporary folder, so no test reaches a live bot, token or tmux server; `omp` on `PATH` is the fake agent with
+// no run (it fails), so no job reaches the real agent; every folder the kit makes, and its slice `jobSlice`, go at exit.
 
 for (const key of Object.keys(process.env)) if (key.startsWith("ARTHUR_") || key === "TMUX" || key === "TMUX_PANE") delete process.env[key];
 const root = mkdtempSync(join(tmpdir(), "arthur-test-"));
 process.env.TMUX_TMPDIR = root;
 
-// The joint slice of the jobs a test starts, never Arthur's own: `arthur_test_<8 hex digits>.slice`, directly under the user
-// manager (a `-` in the name would nest it in another slice). At exit it is stopped, with any job still in it, and the
-// limits set on it are removed.
+// The joint slice of a test's jobs, never Arthur's own: `arthur_test_<8 hex digits>.slice` right under the user manager (a `-`
+// would nest it in another slice); at exit it is stopped, with any job still in it, and its limits are removed.
 export const jobSlice: Slice = { slice: `arthur_test_${randomBytes(4).toString("hex")}`, cpu: 2, memory: "2G" };
 
 process.on("exit", () => {
@@ -41,25 +39,28 @@ export function temporaryFolder(): string {
 	return mkdtempSync(join(root, "folder-"));
 }
 
-// One step of a fake agent's run, played in order. `tool`: a tool call, omp's start and end events of it, `output` the tool's
-// text and `failed` its error flag. `message`: an assistant message that ends a turn, with its `cost` in USD; `stopReason`
-// `stop` (the default) ends the run, `toolUse` comes before a tool call, `error` or `aborted` is a failed one, with omp's
-// `error` text. `stdout`, `stderr`: one line printed as it is. `waitFor`: waits until the file exists. `signal`: the fake
-// kills itself with it.
+// A scripted run of the fake agent: its `steps`, played in order, then its `exitCode` (default 0); its extensions' first
+// `failSends` messages throw. A step: `tool`, a tool call, omp's start and end events of it, `output` the tool's text and
+// `failed` its error flag. `message`: an assistant message that ends a turn, with its `cost` in USD; `stopReason` `stop` (the
+// default) ends the run, `toolUse` comes before a tool call, `error` or `aborted` is a failed one, with omp's `error` text.
+// `prompt`: a turn of an interactive session starts (`agent_start`) once an extension sent a message while idle; `end`: it
+// ends (`agent_end`) unless a `session_stop` handler continues it, 8 times in a row at most. `stdout`, `stderr`: one line
+// printed as it is. `waitFor`: waits until the file exists. `signal`: the fake kills itself with it.
 export type AgentStep =
 	| { readonly tool: string; readonly args?: Readonly<Record<string, unknown>>; readonly output?: string; readonly failed?: boolean }
 	| { readonly message: string; readonly cost?: number; readonly stopReason?: "stop" | "toolUse" | "error" | "aborted"; readonly error?: string }
+	| { readonly prompt: true }
+	| { readonly end: true }
 	| { readonly stdout: string }
 	| { readonly stderr: string }
 	| { readonly waitFor: string }
 	| { readonly signal: NodeJS.Signals };
 
-// A scripted run: its steps, then its exit code (default 0).
-export type AgentRun = { readonly steps: readonly AgentStep[]; readonly exitCode?: number };
+export type AgentRun = { readonly steps: readonly AgentStep[]; readonly exitCode?: number; readonly failSends?: number };
 
 // The fake agent: an executable `omp` in a new folder of the kit's, which plays `run` each time it starts, notes each start
-// (`pid`, `cwd`, `args`) in `starts.jsonl` beside it, and each message its `-e` extensions send from `tool_result`
-// (`content`, `options`) in `messages.jsonl`. Returns its path, for `PATH` or as `core.agent.command`.
+// (`pid`, `cwd`, `args`) in `starts.jsonl` beside it, each message its `-e` extensions send (`content`, `options`, `step`) in
+// `messages.jsonl`, and their `ctx.ui` calls in `ui.jsonl`. Returns its path, for `PATH` or as `core.agent.command`.
 export function fakeAgent(run: AgentRun): string {
 	const folder = temporaryFolder();
 	const quote = (text: string) => `'${text.replaceAll("'", `'\\''`)}'`;
@@ -103,11 +104,10 @@ export type FakeHost = {
 // 2026-01-01T00:00:00Z) in `timeZone` (default UTC) until `setNow` moves it. `host.board` reads the project list the test
 // provides as `projects`. `host.jobs.spawn` starts from HEAD of the project's folder in that list, else of the repository
 // `root` (a test's own), with the core's default limits, in the kit's `jobSlice`, and runs the agent `omp` that `PATH` finds, as `host.agent` names it.
-// As in a real load, the core follows the jobs after the plugin's `setup`: at the first spawn, its `beforeSpawn` joins after the
-// plugin's checks and refuses a worker on a ticket of that project list that cannot move to in-progress, and its move joins
-// after the plugin's `job-started` handlers, so they still see the ticket as it was (`planned`) and then it is in-progress.
-// A plugin must not rely on that status: a `job-started` from another process (`arthur spawn`, which the daemon follows)
-// reaches its handler after the move.
+// As in a real load, the core follows the jobs after `setup`: at the first spawn, its `beforeSpawn` joins after the plugin's
+// checks and refuses a worker on a ticket of that list that cannot move to in-progress, and its move joins after the plugin's
+// `job-started` handlers, which still see the ticket `planned`. A plugin must not rely on that: a `job-started` from another
+// process (`arthur spawn`, which the daemon follows) reaches its handler after the move.
 export function fakeHost(plugin: {
 	readonly name: string;
 	readonly options?: Options;

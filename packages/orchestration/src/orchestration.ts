@@ -3,11 +3,12 @@ import { join } from "node:path";
 import type { Plugin } from "@arthur/core/plugin";
 import { boardCommands } from "./board-commands.ts";
 import { pane, STOPPED, supervise, tmux } from "./coordinator.ts";
+import { inbox } from "./inbox.ts";
 import { checkOptions, type Coordinator, coordinatorOptions } from "./orchestration-options.ts";
 
 // The orchestration plugin (spec/roadmap.md, entry 23), required by the host: the coordinator's process, kept running by
-// `arthur run`; `arthur attach` and `arthur coordinator stop`, docs/commands/coordinator.md and attach.md; and the board's
-// phone commands `/board`, `/task` and `/findings` (board-commands.ts).
+// `arthur run`; its inbox (entry 24, inbox.ts); `arthur attach` and `arthur coordinator stop`, docs/commands/coordinator.md
+// and attach.md; and the board's phone commands `/board`, `/task` and `/findings` (board-commands.ts).
 
 export type OrchestrationOptions = {
 	readonly enabled?: boolean;
@@ -28,6 +29,7 @@ export type OrchestrationOptions = {
 export function orchestration(options: OrchestrationOptions = {}): Plugin {
 	let place: { readonly coordinator: Coordinator; readonly folder: string; readonly agent: string } | undefined;
 	let supervisor: { stop(): Promise<void> } | undefined;
+	let messages: ReturnType<typeof inbox> | undefined;
 	return {
 		name: "orchestration",
 		options,
@@ -36,6 +38,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			const coordinator = coordinatorOptions(host.options);
 			const { folder, agent } = host;
 			place = { coordinator, folder, agent };
+			messages = inbox(host);
 			const where = `tmux session ${coordinator.session} (socket ${coordinator.socket})`;
 			host.commands.register({
 				name: "attach",
@@ -76,10 +79,12 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			for (const command of boardCommands(host)) host.commands.register(command);
 		},
 		start() {
+			messages?.start();
 			if (place !== undefined) supervisor = supervise(place.coordinator, place.folder, place.agent);
 		},
 		async stop() {
 			await supervisor?.stop();
+			messages?.stop();
 		},
 	};
 }

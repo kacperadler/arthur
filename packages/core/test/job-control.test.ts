@@ -233,8 +233,8 @@ test("two steers before the next tool call both reach the agent after it, in ord
 	await until("both steers", () => field(home, job.id, "log")?.includes("] steered 0002: "));
 	const sent = read(messages)?.trim().split("\n").map((line) => JSON.parse(line));
 	assert.deepEqual(sent, [
-		{ content: "Use the second file.\nIt is newer.", options: { deliverAs: "steer" } },
-		{ content: "And keep the tests.", options: { deliverAs: "steer" } },
+		{ content: "Use the second file.\nIt is newer.", options: { deliverAs: "steer" }, step: 1 },
+		{ content: "And keep the tests.", options: { deliverAs: "steer" }, step: 1 },
 	]);
 	const steer = join(home, "jobs", job.id, "steer");
 	assert.deepEqual([readdirSync(join(steer, "inbox")), readdirSync(join(steer, "done"))], [[], ["0001", "0002"]]);

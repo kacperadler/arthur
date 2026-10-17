@@ -240,6 +240,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 
 - Package: orchestration.
 - Delivers: on every turn the coordinator reads its role, each project's vision, the styleguide, a warning per missing criteria file, the board digest, the local time and whether it is night (from `host.clock`), and the lines other plugins add through `collect("coordinator.context")` (session: restart due; manage: retro due; projects: its block of project lines, 41); and the `prompts` key of a project in `projects` (the paths of its vision, criteria and role overrides), which 41 left out because the prompt loader reads fixed folders until this entry.
+- Also delivers (F1 of AR0094): the coordinator's role is read like every other role, with the project's override and the criteria files, and `arthur roles` lists the coordinator and the file it reads.
 - Done means: edge cases: a project without a vision file gets a warning line, not a failure; a contributing plugin that throws costs its line only, named; quiet hours across midnight.
 - Depends on: 24, 18, 7.
 - Size: half a day.

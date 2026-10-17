@@ -23,6 +23,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Other
 
 - AR0087 Roadmap 41: the project list, planned from the harness projects (04ec21e)
+- AR0094 Roadmap 23: The coordinator's process and arthur attach (3a3f14a)
 
 ## 2026-10-16
 

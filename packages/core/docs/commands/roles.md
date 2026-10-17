@@ -15,21 +15,21 @@ Each kind of job names a role (`worker` for the kind `worker`; a plugin's kinds 
 
 The task itself is not part of the prompt; it is the record's `task`. The project's files (2 and 3) are read from the job's worktree, so they are those of HEAD: an uncommitted change to a criteria file is not read. Their folders are relative to the project's repository.
 
-Model and thinking level: from the one plugin that provides `roles.model` (the coordinator's `roles` option), called with the role's name and answering `{ model, thinking }`, each a string or undefined; without one, the agent's own default. `arthur spawn --model` and `--thinking` win over the role's.
+Model, thinking level and quick model: from the one plugin that provides `roles.model` (the coordinator's `roles` option), called with the role's name and answering `{ model, thinking, quick }`, each a string or undefined; without one, the agent's own default. The quick model goes to the agent as `--smol`. `arthur spawn --model` and `--thinking` win over the role's.
 
 ## The spawn
 
 - A role whose file is missing refuses the spawn, before any worktree or record exists: `role <role>: its role file <path> is missing`. So does a kind whose role no plugin registered: `role <role> is not registered; roles: <roles>`.
 - A criteria file that is missing warns and the job starts without it: `criteria file <path> is missing; the <role> goes without it`. A project without a criteria folder gets that warning for each file its role names. An empty criteria file adds nothing and warns: `criteria file <path> is empty; nothing added`. `arthur spawn` prints each warning on stderr as `warning: <text>`; `host.jobs.spawn` returns them as the job's `warnings`.
 - An override or criteria file that is a symlink, or lies under a symlinked folder, is never read: the spawn is refused with `<path> is a symlink; refused, the roles read a project's file only as a plain file`, and the job's worktree and record are removed. So is one that is not a plain file (`<path> is not a file`). A symlink could make the prompt carry whatever it points at, a secrets file included.
-- A provider of `prompt` that returns anything but text or undefined refuses the spawn: `a plugin's prompt section must be text, got <type>`. Two providers of `roles.model`, or a model or thinking level that is not a non-empty string, refuse it too.
+- A provider of `prompt` that returns anything but text or undefined refuses the spawn: `a plugin's prompt section must be text, got <type>`. Two providers of `roles.model`, or a model, thinking level or quick model that is not a non-empty string, refuse it too.
 
 ## The output
 
 One block per role, in the order the roles were registered, the core's `worker` first:
 
 ```
-worker: model the agent's default, thinking the agent's default; kinds worker; from core
+worker: model the agent's default, thinking the agent's default, quick model the agent's default; kinds worker; from core
   role     /srv/arthur/packages/core/roles/worker.md
   override .agents/arthur/roles/worker.md  none
   criteria .agents/arthur/criteria/styleguide.md

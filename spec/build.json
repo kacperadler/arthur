@@ -690,9 +690,9 @@
   {
     "id": "AR0081",
     "title": "`arthur config check` still reports two plugins of one name twice",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0081-arthur-config-check-still-reports-two-plugins-of-one-name-twice/ticket.md",
-    "updated": "2026-10-16T16:05:45.194Z"
+    "updated": "2026-10-17T21:27:18.076Z"
   },
   {
     "id": "AR0082",
@@ -722,9 +722,9 @@
   {
     "id": "AR0085",
     "title": "A continue killed between its new wrapper's `pid` and `state` lets a second continue start beside the running wrapper",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0085-a-continue-killed-between-its-new-wrapper-s-pid-and-state-lets-a-second-continue-start-beside-the-running-wrapper/ticket.md",
-    "updated": "2026-10-17T21:27:13.356Z",
+    "updated": "2026-10-17T21:27:18.275Z",
     "after": [
       "AR0081"
     ]

@@ -23,4 +23,4 @@ Refused (exit code 1, the reason after `arthur stop: `):
 - On another machine, each refusal above comes from there, after `machine <name>: arthur remote-job stop: `. A machine that does not answer: `machine <name>: ssh <ssh>: <ssh's last line>`, the job held `blocked` meanwhile (see `arthur jobs --help`). A machine no plugin registers now: `<id> runs on machine <name>, which no plugin registers; machines: <names>`.
 - A config or a plugin that does not load: the record's home folder is the config's, so `arthur.config.ts did not load:`, then the reasons.
 
-Wrong usage (no id, more than one, a flag) prints the usage line and exits 2.
+Wrong usage (no id, more than one, a flag, an empty id `""`) prints the usage line and exits 2.

@@ -123,7 +123,9 @@ test("a finished worker: the agent gets the worker's tools, model, thinking and 
 	assert.ok(Number(pid) > 0);
 	// The agent's command line first, after the one line of a job without a user manager (scope.test.ts).
 	assert.match(log ?? "", /^(\[arthur [^\]]+\] no systemd scope: [^\n]+\n)?\[arthur [^\]]+\] agent: \S+ -p --mode json/);
-	assert.match(log ?? "", /\nread README\.md\nbash npm test\nedit README\.md\nbash git commit -am 'fix the README'\n\[arthur [^\]]+\] ended: finished\n$/);
+	// The worktree guard's one line, written by the agent's own process, may land anywhere among the tool lines.
+	const tools = (log ?? "").replace(/\[arthur [^\]]+\] worktree guard: [^\n]*\n/, "");
+	assert.match(tools, /\nread README\.md\nbash npm test\nedit README\.md\nbash git commit -am 'fix the README'\n\[arthur [^\]]+\] ended: finished\n$/);
 	assert.deepEqual(readdirSync(folder).filter((name) => name.startsWith(".") || name.startsWith("state.lock")), [], "no temporary file or lock left");
 });
 

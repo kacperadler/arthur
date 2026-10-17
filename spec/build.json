@@ -711,9 +711,9 @@
   {
     "id": "AR0084",
     "title": "Roadmap 24: the coordinator's inbox, the wake, and a human's message mid-turn",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0084-roadmap-24-the-coordinator-s-inbox-the-wake-and-a-human-s-message-mid-turn/ticket.md",
-    "updated": "2026-10-17T21:43:58.380Z",
+    "updated": "2026-10-17T21:59:07.541Z",
     "after": [
       "AR0080",
       "AR0099"
@@ -909,5 +909,26 @@
     "after": [
       "AR0084"
     ]
+  },
+  {
+    "id": "AR0111",
+    "title": "A hand-over omp accepts and then fails leaves the inbox waiting until a restart",
+    "status": "planning",
+    "path": "spec/features/AR0111-a-hand-over-omp-accepts-and-then-fails-leaves-the-inbox-waiting-until-a-restart/ticket.md",
+    "updated": "2026-10-17T21:59:07.538Z"
+  },
+  {
+    "id": "AR0112",
+    "title": "A turn that keeps failing is handed its messages again every second, without a pause",
+    "status": "planning",
+    "path": "spec/features/AR0112-a-turn-that-keeps-failing-is-handed-its-messages-again-every-second-without-a-pause/ticket.md",
+    "updated": "2026-10-17T21:59:07.540Z"
+  },
+  {
+    "id": "AR0113",
+    "title": "The inbox is proved once against real omp: mid-turn join, resumed turn, willContinue",
+    "status": "planning",
+    "path": "spec/features/AR0113-the-inbox-is-proved-once-against-real-omp-mid-turn-join-resumed-turn-willcontinue/ticket.md",
+    "updated": "2026-10-17T21:59:18.049Z"
   }
 ]

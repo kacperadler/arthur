@@ -713,7 +713,7 @@
     "title": "Roadmap 24: the coordinator's inbox, the wake, and a human's message mid-turn",
     "status": "in-progress",
     "path": "spec/features/AR0084-roadmap-24-the-coordinator-s-inbox-the-wake-and-a-human-s-message-mid-turn/ticket.md",
-    "updated": "2026-10-17T21:27:27.837Z",
+    "updated": "2026-10-17T21:43:58.380Z",
     "after": [
       "AR0080",
       "AR0099"
@@ -722,9 +722,9 @@
   {
     "id": "AR0085",
     "title": "A continue killed between its new wrapper's `pid` and `state` lets a second continue start beside the running wrapper",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0085-a-continue-killed-between-its-new-wrapper-s-pid-and-state-lets-a-second-continue-start-beside-the-running-wrapper/ticket.md",
-    "updated": "2026-10-17T21:41:18.801Z",
+    "updated": "2026-10-17T21:47:39.421Z",
     "after": [
       "AR0081"
     ]

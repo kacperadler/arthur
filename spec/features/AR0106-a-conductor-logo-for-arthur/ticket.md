@@ -39,3 +39,4 @@ Out:
 - 2026-10-17: The owner picked variant 1 (the conductor seen from the side) but finds it far too primitive: the logo must look better than the Jenkins butler. A full-colour illustrated mark plus a simplified one-colour favicon version.
 - 2026-10-17: The owner: the drawn logo is still weak; he will make one with ChatGPT and send it. The branch waits; its SVGs are replaced by his image.
 - 2026-10-17: Takes AR0105's F1 (AR0108 dropped): the site generator copies the small-size favicon to `site/public/favicon.svg` (or .png) when it exists, else the full logo; and it accepts the owner's PNG logo, not only `docs/logo/arthur.svg`.
+- 2026-10-17: The owner: the conductor is seen from behind (facing the orchestra), in the ChatGPT logo.

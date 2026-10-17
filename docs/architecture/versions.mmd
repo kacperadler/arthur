@@ -16,10 +16,13 @@ flowchart TD
   switch2[Switch the other projects]
 
   subgraph V2[Later, in this order]
-    signal[1 signal]
-    whatsapp[2 whatsapp bridge]
-    server[3 server and clients<br/>private network only]
-    signal --> whatsapp --> server
+    agents[1 project agents<br/>one per project with a chat]
+    signal[2 signal]
+    discord[3 discord]
+    slack[4 slack]
+    whatsapp[5 whatsapp bridge]
+    server[6 server and clients<br/>private network only]
+    agents --> signal --> discord --> slack --> whatsapp --> server
   end
 
   today --> move --> V1 --> start --> switch1 --> switch2 --> V2
@@ -27,4 +30,4 @@ flowchart TD
   classDef first fill:#d8f5d8,stroke:#2d7a2d,color:#000;
   classDef later fill:#eee,stroke:#888,stroke-dasharray:4 3,color:#555;
   class core,p1,p2,p3 first;
-  class signal,whatsapp,server later;
+  class agents,signal,discord,slack,whatsapp,server later;

@@ -9,7 +9,7 @@ How to read an entry:
 - Done means: what a reviewer checks, edge cases included. Every entry also means: its tests run under `npm test` against fakes (the core against a fake plugin and a fake agent, a plugin against the fake host of `@arthur/core/testing`), `npm run check` and `npm test` pass, each command it adds has its doc page, each option it adds is in `arthur.config.example.ts`, once entry 80 is merged, each thing its plugin needs to work (a binary, a token, a reachable service) is a requirement it provides to `collect("doctor")`, and, once entry 93 is merged, each option it adds has its one-line meaning in its package's option table and each binary it runs is in that file's `tools`.
 - Covers: the capabilities of the harness Arthur replaces that it carries over, by their id in the table at the end.
 
-Order: the core first, piece by piece, then the first-version plugins in the vision's order, then the later plugins. Within the core the event stream comes right after the plugin host, because the job runner and the board emit into it from their first line. Job state (16) comes right after the job runner it describes, and jobs on another machine (21, 22) after the guards they carry there. Machines and resources (30 to 34) come right after orchestration, whose `maxAgents` and context they build on; placement reads the project list and the per-feature caps read the board through the host, so neither waits for the `projects` plugin. The plugin API is frozen (entry 51) only after schedule, youtrack and telegram use it. An entry that needs a plugin built later sits after that plugin (the morning report, the auto-merge). Disk and Docker (69 to 72) close the first version, before the switch: the disk floor extends the free resources of 34, the labels read the project list (41), the cleanup runs in the one worktree removal that prune (15) and the merge (54) share, and the sweep registers its entry with schedule (40). `arthur doctor` (80) sits right after the start notice (38), which it runs before, and took the next free number so that 1 to 79 keep theirs; a plugin built after it brings its own requirements. The option tables (93) and `arthur setup` (94) sit right after `arthur doctor` (80): `arthur setup` prints doctor's lines and reads the tables, which take over the option checks of orchestration (23) and projects (41); a plugin built after them brings its own table, and they took the next free numbers after 85 to 92, which the approved plan of AR0098 holds. Voice (81) sits right after telegram's media (49), whose `parts` and `message.part` it plugs into, and before the freeze (51), so `message.part` is frozen as a plugin uses it; it took the next free number too. Models (82) sit right after `arthur doctor` (80), whose requirements they add, and after the roles' models (26) and the job limits (12) they extend; they took the next free number too. The later channels (73, 74) use the same `parts`, so every media plugin works with them unchanged.
+Order: the core first, piece by piece, then the first-version plugins in the vision's order, then the later plugins. Within the core the event stream comes right after the plugin host, because the job runner and the board emit into it from their first line. Job state (16) comes right after the job runner it describes, and jobs on another machine (21, 22) after the guards they carry there. Machines and resources (30 to 34) come right after orchestration, whose `maxAgents` and context they build on; placement reads the project list and the per-feature caps read the board through the host, so neither waits for the `projects` plugin. The plugin API is frozen (entry 51) only after schedule, youtrack and telegram use it. An entry that needs a plugin built later sits after that plugin (the morning report, the auto-merge). Disk and Docker (69 to 72) close the first version, before the switch: the disk floor extends the free resources of 34, the labels read the project list (41), the cleanup runs in the one worktree removal that prune (15) and the merge (54) share, and the sweep registers its entry with schedule (40). `arthur doctor` (80) sits right after the start notice (38), which it runs before, and took the next free number so that 1 to 79 keep theirs; a plugin built after it brings its own requirements. The option tables (93) and `arthur setup` (94) sit right after `arthur doctor` (80): `arthur setup` prints doctor's lines and reads the tables, which take over the option checks of orchestration (23) and projects (41); a plugin built after them brings its own table, and they took the next free numbers after 85 to 92, which the approved plan of AR0098 holds. Voice (81) sits right after telegram's media (49), whose `parts` and `message.part` it plugs into, and before the freeze (51), so `message.part` is frozen as a plugin uses it; it took the next free number too. Models (82) sit right after `arthur doctor` (80), whose requirements they add, and after the roles' models (26) and the job limits (12) they extend; they took the next free number too. The later channels (73, 74, 89 to 92) use the same `parts`, so every media plugin works with them unchanged. The later entries follow the order the plan of AR0098 recommends: project agents (85 to 88) first, once the other projects have moved to Arthur, since only then is there more than one project to split; then signal (73), the cheapest, one local process; then Discord (89, 90) and Slack (91, 92), official bots with no ban risk, each a gateway client that has to stay alive; then WhatsApp (74), last of the channels; then the server (75 to 77). The `place` the project agents route by is added to telegram's entries (47 to 50) and the channel contract (49) before the freeze (51), so it is frozen as a channel uses it; Telegram topics already give per-project chats in the first version, so Discord and Slack do not move up.
 
 The host API, as these entries build it (names are proposals; entry 51 fixes them): a plugin is a function from its options to `{ name, requires, setup(host), start?(), stop?() }`. `setup` registers; `start` runs long-lived work and is called only by `arthur run`. A `jobs.spawn` before every plugin's `setup` has run throws `<plugin>: spawn during setup; start jobs from start() or later`, so no job starts before the core follows the jobs. The host gives a plugin its options with every `...Env` name resolved, its own folder `.arthur/<plugin>/`, `events` (`on`, `emit`), `commands` (`register`), `jobs` (`registerKind`, `spawn`, `beforeSpawn`, `prepare`, `registerExtension`, `cleanup`, `block`, `unblock`, `registerMachine`, `run`, `list`, `running`, `result`: a job's final message), `board` (its `projects()` is the project list), `clock`, and `provide(name, fn)` / `call(name, ...)` / `collect(name)`, through which plugins reach each other without importing each other.
 
@@ -559,6 +559,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 - Package: telegram.
 - Delivers: `bots` (named instances); long polling (30 s); only the allowed chat; messages older than 10 minutes dropped; text becomes `message-received` `{ channel: "telegram", text }`, which the inbox marks `[via telegram]` (24); `coordinator-replied` (to the replies whose `channels` hold `telegram`) and `notice` are sent, long text in slices at line breaks; during quiet hours sent without a notification; any other kind of message gets `only text, photos and files reach the coordinator`; tested against a fake Bot API in the shape of its documentation.
 - Done means: edge cases: a second poller (409) is said once and polling retries; a message from another chat is ignored and not acknowledged into the coordinator; a slice boundary inside a long line; quiet hours across midnight.
+- Also delivers (AR0098, for the project agents of 85 and 86): a message sent in a topic carries its `message_thread_id` as `place` in `message-received`, and a send with a `place` passes it as `message_thread_id`; a message outside any topic has no `place`, and a send without one goes to the chat itself. Telegram's docs say topics work in the owner's private chat with the bot ("private chats of bots with forum topic mode enabled", `getMe.has_topics_enabled`), so the allowed chat stays one chat, with no group and no privacy-mode problem.
 - Depends on: 24, 7.
 - Size: a day.
 - Covers: T1, T2 (sending).
@@ -568,15 +569,17 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 - Package: telegram.
 - Delivers: one retry per send; a failed slice queued in `.arthur/telegram/outbox/` and sent first next time, in order; a refused (4xx) slice set aside and told once; a text too long for one message cut with a note.
 - Done means: edge cases: the outbox survives a restart; a 429 waits as Telegram says; a 4xx slice does not block the ones after it; two processes sending at once keep order.
+- Also delivers (AR0098): a slice in the outbox keeps its `place` and is sent to it; edge case: a queued slice for a topic, sent after a restart, reaches that topic.
 - Depends on: 47.
 - Size: half a day.
 - Covers: T2.
 
 ### 49. Telegram: media in and out, `arthur send`
 
-- Package: telegram; in the core, the `parts` of `message-received` and how they become the coordinator's turn (the contract every channel uses, 73 and 74 included), the `arthur send` command, and the `channel.send` name every channel provides.
+- Package: telegram; in the core, the `parts` of `message-received` and how they become the coordinator's turn (the contract every channel uses, 73, 74 and 89 to 92 included), the `arthur send` command, and the `channel.send` name every channel provides.
 - Delivers: a channel only receives: it saves what came and emits one `message-received` with `channel` (its plugin's name) and `parts`, in the order the message holds them, each `{ kind: text | photo | video | voice | audio | file, path?, text?, mime, seconds? }`. A text or a caption is a `text` part with `text` and `mime: "text/plain"`; every other part is a file the channel saved under `.arthur/<channel>/`, with its `path`, its `mime`, and `seconds` when the channel gives a length; an album is several parts of one message. On Telegram: a photo (largest size), a video or a round video note (`video`), a voice note (`voice`), an audio file (`audio`), any other document (`file`); any other kind of message (a sticker, a location, a poll) gets `only text, photos, videos, voice notes, audio and files reach the coordinator`. The channel transcribes, converts and reads nothing. Before the coordinator gets the turn, the core asks `collect("message.part", part)` of the enabled plugins for each part that is not text: a plugin that handles the part's kind answers `{ text, reply? }` (or a promise of it), any other `undefined`; the first claim in setup order replaces the part by its `text`, and its `reply` goes back to the human through the channel the message came from. An unclaimed media part reaches the coordinator as its saved path, as before; an unclaimed `voice` part (no voice plugin, 81, is enabled) becomes one line `[voice note not transcribed: the voice plugin is not enabled]`, and the channel says the same line to the human. The turn is `[via <channel>]` and each part's text, in order. Messages keep their order: one waits until every part of the ones before it is resolved, so a text sent after a voice note does not overtake it. `arthur send <file>… --caption` sends through every enabled channel: on Telegram photos and videos as an album, other files as documents after it, up to 10 files, sizes and extensions checked before anything is sent.
 - Done means: refused before any send: 11 files, a file over Telegram's size limit, a photo whose sides break Telegram's limits (with a hint to slice it). Edge cases: the token never in an error; an album of one; an album of photos and a video with a caption (one message, its parts in order); a voice note with no plugin enabled (the line to the coordinator and to the human); a claim that throws or rejects leaves the part as its saved path, with the plugin and its error in one line; a text right after a voice note whose claim is slow reaches the coordinator after it; no channel enabled (`arthur send` says so).
+- Also delivers (AR0098, before the freeze in 51, since it is the contract every channel uses): an optional `place` (a Telegram topic, a Discord or Slack channel id) on `message-received`, `channel.send`, `coordinator-replied` and `notice`: a channel sets it on a message that names one, and sends to it when one is given, else to its allowed chat.
 - Depends on: 47, 6.
 - Size: a day.
 - Covers: T3, T4.
@@ -595,6 +598,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 - Package: telegram.
 - Delivers: `/name text` routed to the host's command registry and the reply sent; the bot's command menu built from the phone commands the plugins register; the session's start notice sent as it comes.
 - Done means: edge cases: `/name@botname`; an unknown command gets the registry's line; the menu updated when the set of commands changed, not on every start; a command's reply longer than one message.
+- Also delivers (AR0098): `route` passes the message's `channel` and `place` to a phone command, and its reply goes back to that place, so `/restart` knows which session to restart (36, 88).
 - Depends on: 47, 6.
 - Size: half a day.
 - Covers: T5, G3 (routing).
@@ -819,6 +823,42 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 
 ## Later
 
+### 85. Project agents: their processes and `arthur attach <project>`
+
+- Package: orchestration; projects (the `chat` key); telegram (its `doctor` requirement for topics).
+- Delivers: the project key `chat: { plugin, instance?, place }` in `projects`, checked there for its shape only, next to `tracker` (41); its presence turns that project's agent on, and a project without it changes nothing. Each project with a `chat` gets one interactive `omp`, supervised like the coordinator (23), in its own tmux session on the coordinator's socket, named the coordinator's session, `-`, and the project's name; started with `--cwd <project folder>` and `--session-dir <home>/orchestration/<project>/sessions`, so each agent keeps its conversations in its own folder and `--continue` never resumes the coordinator's conversation or a human's `omp` run in the same folder. Its role file is `roles/project-agent.md`: it works like the coordinator, directing that project's jobs through `arthur spawn` and `arthur ticket`, and edits no code itself; `roles.project` gives its model and thinking level (26). Each agent has its own pid file and stop mark, so one crashing in a loop never touches another; the sessions start one after another, so two `omp` never refresh the shared login at once. `arthur attach [<project>]` and `arthur coordinator stop [<project>]`; the doc page tells the owner that each agent takes about 0.7 GB outside the jobs' slice, so `jobs.memory` goes down for each agent added. Telegram's requirement for `arthur doctor` (80), whenever some project's `chat` names it: the bot's `getMe.has_topics_enabled` is true.
+- Done means: tested with the fake agent and a tmux socket in the test's folder. Refused at load, naming the projects: a `chat` whose plugin provides no `channel.send`; two projects with one place on one channel; a `chat` of the wrong shape. Edge cases: no project with a `chat` starts only the coordinator, as before; one agent crashing in a loop leaves the coordinator and the other agents running; `attach` of a project without an agent names the projects that have one; topics turned off for the bot (doctor names the setting).
+- Depends on: 23, 41, 49.
+- Size: a day.
+- Covers: none (new: the owner chose it on 2026-10-17, AR0098).
+
+### 86. Project agents: routing, wake, and `arthur agent tell`
+
+- Package: orchestration.
+- Delivers: one inbox (24) per session; a `message-received` whose `channel` and `place` some project's `chat` names goes to that project's agent, any other to the coordinator; a session's `coordinator-replied` carries the `place` of the messages it answers, so each reply goes back where they came from; a job's end wakes the agent of the job's project, else the coordinator; a job of a project with an agent that turns blocked on the user sends its `notice` (27) to that project's place; `arthur agent tell <project|coordinator> <text>` puts one message, marked `[from <sender>]`, in another session's inbox, so work across projects passes through the coordinator. The coordinator's role routes work for a project with an agent through `arthur agent tell`, so two agents never act on one project.
+- Done means: edge cases: a message for a project whose agent is down waits in its inbox and is delivered once the agent is up; a job of a project whose agent was just removed wakes the coordinator; nothing is delivered twice across a restart of either session; `tell` to an unknown agent is refused, naming the agents that exist.
+- Depends on: 85, 24, 27.
+- Size: a day.
+- Covers: none (new: the owner chose it on 2026-10-17, AR0098).
+
+### 87. Project agents: their context
+
+- Package: orchestration.
+- Delivers: entry 25's context for one project, on each of its agent's turns: its vision, a warning per missing criteria file, its board digest, its jobs by state (27), the slots of `maxAgents` in use (`n of maxAgents`, counted across every project), the local time and whether it is night. In the coordinator's context, one line per project agent: up since, or down since.
+- Done means: edge cases: a project without a vision file gets a warning line, not a failure; a job of another project never shows in a project agent's context but counts in its slots; an agent down shows as down in the coordinator's context.
+- Depends on: 86, 25.
+- Size: half a day.
+- Covers: none (new: the owner chose it on 2026-10-17, AR0098).
+
+### 88. Session: every session
+
+- Package: session; it asks orchestration for the list of sessions through `provide`.
+- Delivers: entries 35 to 38 for each session, the coordinator's and each project agent's: each has its own handoff; a compaction at each `compactAt` runs for the sessions one after another, never in parallel; the coordinator's fresh start waits for every job, as today, and a project agent's only for its project's jobs; `/restart` restarts the session of the chat it was sent from (50); the restart guard holds until every session that loaded the merged code has restarted; each session sends its own start notice to its own chat. The morning report (65) stays with the coordinator.
+- Done means: edge cases: a project agent's fresh start is not held back by another project's job; `/restart` from the main chat restarts the coordinator only; one session's failed handoff withdraws only its own compaction; with no project agent, everything behaves as in 35 to 38.
+- Depends on: 87, 35, 36, 37, 38.
+- Size: a day.
+- Covers: none (new: the owner chose it on 2026-10-17, AR0098).
+
 ### 73. Signal
 
 - Package: signal.
@@ -828,12 +868,48 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 - Size: a day.
 - Covers: none (new).
 
+### 89. Discord: gateway, text in and out
+
+- Package: discord.
+- Delivers: named instances, like telegram's `bots`; one Discord server and, in it, only the owner's user; Discord's gateway over Node's built-in `WebSocket`, an outbound connection with no Interactions Endpoint URL, so nothing listens: Hello, a heartbeat with jitter, Identify with the GUILDS, GUILD_MESSAGES and MESSAGE_CONTENT intents, and Resume through `resume_gateway_url` after a drop; a message becomes `message-received` with `place` its channel id (49); sending through REST `POST /channels/{id}/messages`, at most 2000 characters per message, in slices at line breaks; a 429 waits as long as its `retry_after` says; an outbox as in 48, under `.arthur/discord/`. Its requirement for `arthur doctor` (80): the token works and the MESSAGE_CONTENT intent is on.
+- Done means: tested against a fake gateway and a fake REST API in the shape of Discord's documentation. Edge cases: a missed heartbeat ACK closes the connection and resumes; opcode 7 (reconnect) resumes; opcode 9 (invalid session) identifies again with backoff, and a reconnect loop resumes and never identifies in a tight loop, since Discord resets the bot token after 1000 IDENTIFYs in 24 hours; close code 4014 (disallowed intent) names MESSAGE_CONTENT and the setting in Discord's developer portal; 4004 (bad token) never prints the token; a message from another user, from another server, or from the bot itself is ignored.
+- Depends on: 73.
+- Size: a day.
+- Covers: none (new: the owner asked for it on 2026-10-17).
+
+### 90. Discord: media and phone commands
+
+- Package: discord.
+- Delivers: attachments become `parts` (49), saved under `.arthur/discord/`; media goes out as multipart `files[n]`, up to 10 files per message and at most 25 MiB per request; `/name text` typed as plain text is routed to the command registry and the reply sent to its channel. No application commands, so there is no interaction to answer.
+- Done means: refused before any send: 11 files, a request over 25 MiB. Edge cases: a message of only an attachment; an unknown command gets the registry's line; a reply longer than 2000 characters is sliced.
+- Depends on: 89.
+- Size: a day.
+- Covers: none (new: the owner asked for it on 2026-10-17).
+
+### 91. Slack: Socket Mode, text in and out
+
+- Package: slack.
+- Delivers: named instances, like telegram's `bots`; one Slack workspace (its team id) and, in it, only the owner's user; Socket Mode, an outbound connection with no Request URL, so nothing listens: `apps.connections.open` with the app-level token (`xapp-`), then Node's built-in `WebSocket`; each envelope acknowledged with its `envelope_id` at once; a reconnect on a `disconnect` message or a drop; Events API `message` events become `message-received` with `place` their channel id (49); `chat.postMessage` with the bot token (`xoxb-`), in slices at line breaks; a 429 waits for `Retry-After`; an outbox as in 48, under `.arthur/slack/`.
+- Done means: tested against a fake Socket Mode server and a fake Web API in the shape of Slack's documentation. Edge cases: an envelope delivered again (its retry) is handled once; a `disconnect` message opens a new connection with no message lost; a message from another user, another workspace or the bot itself is ignored; neither token ever printed.
+- Depends on: 90.
+- Size: a day.
+- Covers: none (new: the owner asked for it on 2026-10-17).
+
+### 92. Slack: media and the `/arthur` command
+
+- Package: slack.
+- Delivers: files in are fetched from `url_private_download` with the bot token and become `parts` (49), saved under `.arthur/slack/`; files out go through `files.getUploadURLExternal`, the upload, then `files.completeUploadExternal`; one slash command, `/arthur <name> <text>`, arrives as a `slash_commands` envelope (no Request URL) and is routed as `/name text` (the owner, 2026-10-17: Slack rejects an unknown `/` command typed as text, so one registered command carries them all; it is one line in the app's manifest).
+- Done means: edge cases: `/arthur` with no name answers with the list of phone commands; an unknown name gets the registry's line; a failed upload step names the step and sends nothing half.
+- Depends on: 91.
+- Size: a day.
+- Covers: none (new: the owner asked for it on 2026-10-17).
+
 ### 74. WhatsApp through a local bridge
 
 - Package: whatsapp.
 - Delivers: a channel through a bridge on loopback (receive by polling, send text and media, only the allowed number), with the `channel.send` and `message-received` contract telegram uses: the same `parts` (49), files saved under `.arthur/whatsapp/`, so voice notes reach the voice plugin (81) and every media plugin as they do from Telegram; refuses a bridge URL that is not loopback.
 - Done means: tested against a fake bridge. Edge cases: a bridge URL on a public address refused at load; the bridge down (said once, retried); the session logged out.
-- Depends on: 73.
+- Depends on: 92.
 - Size: a day.
 - Covers: none (new).
 

@@ -680,9 +680,9 @@
   {
     "id": "AR0080",
     "title": "/board, /task and /findings move into orchestration, with host.jobs.list()",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0080-board-task-and-findings-move-into-orchestration-with-host-jobs-list/ticket.md",
-    "updated": "2026-10-17T12:37:12.651Z",
+    "updated": "2026-10-17T13:08:00.211Z",
     "after": [
       "AR0094"
     ]
@@ -826,5 +826,12 @@
     "status": "merged",
     "path": "spec/features/AR0099-ci-on-github-is-red-three-tests-need-a-git-identity-or-a-systemd-user-session/ticket.md",
     "updated": "2026-10-17T13:03:40.069Z"
+  },
+  {
+    "id": "AR0100",
+    "title": "The wrapper test of a finished worker fails in a full `npm test` run from a job's worktree",
+    "status": "dropped",
+    "path": "spec/features/AR0100-the-wrapper-test-of-a-finished-worker-fails-in-a-full-npm-test-run-from-a-job-s-worktree/ticket.md",
+    "updated": "2026-10-17T13:08:07.042Z"
   }
 ]

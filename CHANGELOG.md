@@ -19,6 +19,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ### Changed
 
+- AR0080 /board, /task and /findings move into orchestration, with host.jobs.list() (5dc7de2)
 - AR0093 The job runner's prune still treats an empty list as every finished job (1822526)
 
 ### Other

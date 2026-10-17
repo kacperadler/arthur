@@ -85,8 +85,8 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 			return false;
 		}
 		if (Date.now() - began >= EXIT_POLL_MS) console.log(`orchestration: the previous ${agent} (pid ${pid}) exited after ${waited} s`);
-		const { model, thinking, session } = coordinator;
-		const command = [agent, "--continue", "--auto-approve", ...(model ? ["--model", model] : []), ...(thinking ? ["--thinking", thinking] : [])];
+		const { model, thinking, quick, session } = coordinator;
+		const command = [agent, "--continue", "--auto-approve", ...(model ? ["--model", model] : []), ...(thinking ? ["--thinking", thinking] : []), ...(quick ? ["--smol", quick] : [])];
 		command.push("-e", ENV_GUARD, "-e", INBOX, "--append-system-prompt", ROLE);
 		const env = ["-e", `ARTHUR_ORCHESTRATION_FOLDER=${folder}`];
 		const made = tmux(coordinator, ["new-session", "-d", "-P", "-F", "#{pane_pid}", "-s", session, "-c", process.cwd(), ...env, ...command]);

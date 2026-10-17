@@ -282,6 +282,8 @@ test("arthur continue resumes an ended worker in place: same id, branch, worktre
 	const { root, home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Go." });
 	await ended(home, job.id);
+	// A record an Arthur before the quick model wrote has no `quick`.
+	rmSync(join(home, "jobs", job.id, "quick"));
 	await jobs.continue(job.id, "  Also fix the README.\nThen commit.  ", 3);
 	const [, second] = await ended(home, job.id, 2);
 	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
@@ -468,7 +470,7 @@ test("a continue goes through the plugins' beforeSpawn checks on its record: a r
 	await assert.rejects(jobs.continue(job.id, "Go on."), { message: "plugin orchestration: beforeSpawn failed: no process table" });
 	assert.deepEqual(record(home, job.id), before);
 	assert.equal(starts(resumed).length, 0);
-	const spawn = { task: "Ticket: README.md. Go.", kind: "worker", project: "acme", model: "m", thinking: undefined, timeoutMinutes: 120, tickets: ["README.md"], machine: "local" };
+	const spawn = { task: "Ticket: README.md. Go.", kind: "worker", project: "acme", model: "m", thinking: undefined, quick: undefined, timeoutMinutes: 120, tickets: ["README.md"], machine: "local" };
 	assert.deepEqual(seen.slice(1), [{ ...spawn, budgetUsd: 3 }, { ...spawn, budgetUsd: 2 }]);
 	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
 	const [, second] = await ended(home, job.id, 2);

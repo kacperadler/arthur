@@ -18,7 +18,7 @@ export function ticketCommand(board: () => Board): Command {
 				return 0;
 			}
 			const [id, status] = rest;
-			if (verb === "status" && id !== undefined && status !== undefined && rest.length === 2) {
+			if (verb === "status" && id !== undefined && id !== "" && status !== undefined && status !== "" && rest.length === 2) {
 				const ticket = board().move(id, status);
 				console.log(`${ticket.id} ${ticket.status}`);
 				return 0;

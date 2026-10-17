@@ -16,7 +16,7 @@ Refused (exit code 1, the reason after `arthur steer: `):
 - A short id that matches two jobs: `<id> matches 2 jobs: <id>, <id>; name one by its full id`.
 - A job not in a run: `<id> is <state> (<reason>), not in a run; a steer reaches only a job in a run, and arthur continue resumes an ended or blocked worker`.
 - A job that ended while the steer was written: `<id>: the job ended before its next tool call; steer <number> was not delivered; arthur continue <id> with it`. The steer is in `steer/undelivered/`.
-- An empty text: `the text is empty`.
+- An empty argument, the id or the text (`""`): wrong usage, the usage line and exit code 2, before anything is steered. A text of only spaces: `the text is empty`.
 - On another machine, each refusal above comes from there, after `machine <name>: arthur remote-job steer: `. A machine that does not answer: `machine <name>: ssh <ssh>: <ssh's last line>`. A machine no plugin registers now: `<id> runs on machine <name>, which no plugin registers; machines: <names>`.
 - A config or a plugin that does not load: `arthur.config.ts did not load:`, then the reasons.
 

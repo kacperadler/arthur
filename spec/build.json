@@ -690,9 +690,9 @@
   {
     "id": "AR0081",
     "title": "`arthur config check` still reports two plugins of one name twice",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0081-arthur-config-check-still-reports-two-plugins-of-one-name-twice/ticket.md",
-    "updated": "2026-10-17T21:27:18.076Z"
+    "updated": "2026-10-17T21:34:30.051Z"
   },
   {
     "id": "AR0082",
@@ -711,9 +711,9 @@
   {
     "id": "AR0084",
     "title": "Roadmap 24: the coordinator's inbox, the wake, and a human's message mid-turn",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0084-roadmap-24-the-coordinator-s-inbox-the-wake-and-a-human-s-message-mid-turn/ticket.md",
-    "updated": "2026-10-17T21:27:12.367Z",
+    "updated": "2026-10-17T21:27:27.837Z",
     "after": [
       "AR0080",
       "AR0099"
@@ -724,7 +724,7 @@
     "title": "A continue killed between its new wrapper's `pid` and `state` lets a second continue start beside the running wrapper",
     "status": "planned",
     "path": "spec/features/AR0085-a-continue-killed-between-its-new-wrapper-s-pid-and-state-lets-a-second-continue-start-beside-the-running-wrapper/ticket.md",
-    "updated": "2026-10-17T21:27:18.275Z",
+    "updated": "2026-10-17T21:31:07.360Z",
     "after": [
       "AR0081"
     ]
@@ -882,9 +882,9 @@
   {
     "id": "AR0107",
     "title": "Plan: arthur setup finds the tools, shows the config, and a setup guide",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0107-plan-arthur-setup-finds-the-tools-shows-the-config-and-a-setup-guide/ticket.md",
-    "updated": "2026-10-17T21:27:12.167Z"
+    "updated": "2026-10-17T21:27:27.276Z"
   },
   {
     "id": "AR0108",

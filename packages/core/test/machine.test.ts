@@ -97,7 +97,7 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	// The agent's commit there, made while it waits; the main checkout has the job's branch from an earlier run already.
 	commit(worktree, "the change");
 	const tip = git(worktree, "rev-parse", "HEAD");
-	git(root, "branch", job.branch ?? "", git(root, "commit-tree", "main^{tree}", "-p", "main", "-m", "the earlier run"));
+	git(root, "branch", job.branch ?? "", git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit-tree", "main^{tree}", "-p", "main", "-m", "the earlier run"));
 	assert.equal(existsSync(join(root, "..", ".arthur-worktrees", job.id)), false, "no worktree here");
 	jobs.sweep();
 	assert.equal(read(home, job.id, "state"), "working");

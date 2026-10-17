@@ -757,8 +757,8 @@
   {
     "id": "AR0091",
     "title": "An ssh that exits before reading its input fails as EPIPE instead of with ssh's own line",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0091-an-ssh-that-exits-before-reading-its-input-fails-as-epipe-instead-of-with-ssh-s-own-line/ticket.md",
-    "updated": "2026-10-17T08:52:51.906Z"
+    "updated": "2026-10-17T08:54:10.945Z"
   }
 ]

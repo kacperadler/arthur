@@ -4,7 +4,7 @@ The landing page and docs of Arthur, at https://kacperadler.github.io/arthur/, b
 
 No page here is written by hand. `scripts/generate.ts` runs before every `npm run dev` and `npm run build` and writes `src/content/docs/` from scratch (Git ignores it) from the repository's files:
 
-- the landing page from `README.md`: its first paragraph is the tagline, the rest from its first `##` is the body, and `docs/logo/arthur.svg`, when it exists, is the hero image and the favicon;
+- the landing page from `README.md`: its first paragraph under the H1 is the tagline, the rest from its first `##` is the body, and the logo in `docs/logo/` (`arthur.svg`, else `arthur.png`), when there is one, is the hero image; the favicon is the small icon `arthur-favicon.svg` (else `.png`) when it exists, else the logo;
 - the roadmap page from `spec/roadmap.md` and the board, `spec/build.json`;
 - the diagram page from `arthur.mmd`;
 - the setup page from `docs/setup.md`, when it exists.

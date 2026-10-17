@@ -1,8 +1,15 @@
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { extname, join } from "node:path";
 import { frontmatter, mermaidHtml, repo, splitReadme, splitTitle, toPage } from "./markdown.ts";
 import { parseBoard, parseRoadmap, roadmapPage } from "./roadmap.ts";
+
+/** The logo files in `docs/logo/` the site uses: the full logo for the hero, and for the favicon the small icon when there is one, else the full logo. */
+export function logoFiles(folder: string): { logo?: string; favicon?: string } {
+	const logo = ["arthur.svg", "arthur.png"].find((name) => existsSync(join(folder, name)));
+	const icon = ["arthur-favicon.svg", "arthur-favicon.png"].find((name) => existsSync(join(folder, name)));
+	return { logo, favicon: icon ?? logo };
+}
 
 /** Builds every page of the site from the repository's files into `src/content/docs/`, from scratch. */
 if (import.meta.main) {
@@ -11,18 +18,20 @@ if (import.meta.main) {
 	const read = (file: string) => readFileSync(join(root, file), "utf8");
 	const pages = join(site, "src/content/docs");
 	const assets = join(site, "src/assets");
-	const favicon = join(site, "public/favicon.svg");
+	const publicDir = join(site, "public");
 	rmSync(pages, { recursive: true, force: true });
 	rmSync(assets, { recursive: true, force: true });
-	rmSync(favicon, { force: true });
+	for (const name of ["favicon.svg", "favicon.png"]) rmSync(join(publicDir, name), { force: true });
 	mkdirSync(pages, { recursive: true });
 
-	const logo = existsSync(join(root, "docs/logo/arthur.svg"));
+	const { logo, favicon } = logoFiles(join(root, "docs/logo"));
 	if (logo) {
 		mkdirSync(assets, { recursive: true });
-		mkdirSync(join(site, "public"), { recursive: true });
-		copyFileSync(join(root, "docs/logo/arthur.svg"), join(assets, "arthur.svg"));
-		copyFileSync(join(root, "docs/logo/arthur.svg"), favicon);
+		copyFileSync(join(root, "docs/logo", logo), join(assets, logo));
+	}
+	if (favicon) {
+		mkdirSync(publicDir, { recursive: true });
+		copyFileSync(join(root, "docs/logo", favicon), join(publicDir, `favicon${extname(favicon)}`));
 	}
 	const setup = existsSync(join(root, "docs/setup.md"));
 
@@ -33,7 +42,7 @@ if (import.meta.main) {
 		...(setup ? [{ text: "Setup", link: "setup/", variant: "secondary" }] : []),
 		{ text: "GitHub", link: repo, variant: "minimal", icon: "github" },
 	];
-	const image = logo ? { image: { file: "../../assets/arthur.svg", alt: "Arthur's logo" } } : {};
+	const image = logo ? { image: { file: `../../assets/${logo}`, alt: "Arthur's logo" } } : {};
 	const hero = { title: readme.title, tagline: readme.tagline, ...image, actions };
 	writeFileSync(
 		join(pages, "index.md"),

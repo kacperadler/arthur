@@ -767,22 +767,22 @@
   {
     "id": "AR0092",
     "title": "A project added while a job runs is guarded from that job at once",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0092-a-project-added-while-a-job-runs-is-guarded-from-that-job-at-once/ticket.md",
-    "updated": "2026-10-17T11:47:24.628Z"
+    "updated": "2026-10-17T11:47:28.504Z"
   },
   {
     "id": "AR0093",
     "title": "The job runner's prune still treats an empty list as every finished job",
-    "status": "planning",
+    "status": "in-progress",
     "path": "spec/features/AR0093-the-job-runner-s-prune-still-treats-an-empty-list-as-every-finished-job/ticket.md",
-    "updated": "2026-10-17T11:46:36.500Z"
+    "updated": "2026-10-17T11:47:29.584Z"
   },
   {
     "id": "AR0094",
     "title": "Roadmap 23: The coordinator's process and arthur attach",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0094-roadmap-23-the-coordinator-s-process-and-arthur-attach/ticket.md",
-    "updated": "2026-10-17T11:47:24.225Z"
+    "updated": "2026-10-17T11:47:27.426Z"
   }
 ]

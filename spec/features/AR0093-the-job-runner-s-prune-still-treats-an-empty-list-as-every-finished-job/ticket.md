@@ -14,7 +14,7 @@ the command refuses an empty list before the runner is called (`packages/core/sr
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+No path, in the core or the shell, frees every finished job unless it asks for all by name: an empty list or an empty word is refused, never read as everything.
 
 - Kind: cleanup
 

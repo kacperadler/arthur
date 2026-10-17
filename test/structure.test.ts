@@ -17,7 +17,9 @@ import { checkStructure } from "./structure.ts";
 // 300 for the plugin's options, the coordinator's process, `arthur attach` and `arthur coordinator stop` (276 at the merge).
 // AR0080 (proposal B3 of the line review): `/board`, `/task` and `/findings` move from core to orchestration, with
 // `host.jobs.list()` and `host.board.full()` in the core; core: 91 lines less (4713), orchestration: 98 more (398).
-const BUDGETS = { core: 4713, "core/testing": 276, projects: 320, orchestration: 398 };
+// AR0084 (roadmap 24): the coordinator's inbox, its OMP extension and the wake, orchestration 260 more (658); the fake agent's
+// interactive session moves 64 lines from core to core/testing (4649 and 340), with `host.jobs.result(id)` in the core.
+const BUDGETS = { core: 4649, "core/testing": 340, projects: 320, orchestration: 658 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

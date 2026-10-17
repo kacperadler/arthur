@@ -10,6 +10,7 @@ import { type OrchestrationOptions, orchestration } from "../src/orchestration.t
 
 const ENV_GUARD = fileURLToPath(import.meta.resolve("@arthur/core/env-guard"));
 const ROLE = fileURLToPath(new URL("../roles/coordinator.md", import.meta.url));
+const INBOX = fileURLToPath(new URL("../src/inbox-extension.ts", import.meta.url));
 const CLI = fileURLToPath(import.meta.resolve("@arthur/core/plugin").replace(/plugin\.ts$/, "cli.ts"));
 const PATH = process.env.PATH ?? "";
 
@@ -72,7 +73,7 @@ test("the coordinator is one interactive omp in its tmux session, with --continu
 	await plugin.start?.();
 	await until("the coordinator's start", () => starts().length === 1);
 	const [start] = starts();
-	assert.deepEqual(start?.args, ["--continue", "--auto-approve", "--model", "anthropic/claude-opus-5-5", "--thinking", "high", "-e", ENV_GUARD, "--append-system-prompt", ROLE]);
+	assert.deepEqual(start?.args, ["--continue", "--auto-approve", "--model", "anthropic/claude-opus-5-5", "--thinking", "high", "-e", ENV_GUARD, "-e", INBOX, "--append-system-prompt", ROLE]);
 	assert.equal(start?.cwd, process.cwd());
 	assert.ok(existsSync(ROLE));
 	assert.equal(tmux(socket, "display-message", "-p", "-t", "=coord:", "#{pane_pid}").stdout.trim(), String(start?.pid));

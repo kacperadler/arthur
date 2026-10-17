@@ -118,6 +118,15 @@ test("host.jobs.list(): every record in any state, newest spawn first, missing f
 	assert.deepEqual(jobs.running(), ["2026-10-16-worker-0000000a", "2026-10-16-worker-0000000c", "2026-10-16-worker-0000000e"]);
 });
 
+test("host.jobs.result(id): the record's final message, empty without one; anything but a job id is refused before a read", () => {
+	const { home, jobs } = setup();
+	record(home, "2026-10-16-worker-0000000a", { state: "ended", result: "Built it.\nTwo lines." }, NOW);
+	record(home, "2026-10-16-worker-0000000b", { state: "working" }, NOW);
+	assert.deepEqual(["0000000a", "0000000b", "0000000c"].map((hex) => jobs.result(`2026-10-16-worker-${hex}`)), ["Built it.\nTwo lines.", "", ""]);
+	for (const id of ["0000000a", "../2026-10-16-worker-0000000a", "2026-10-16-worker-0000000a/../../x", ""])
+		assert.throws(() => jobs.result(id), { message: `${JSON.stringify(id)}: not a job id (<date>-<kind>-<8 hex digits>)` });
+});
+
 test("a job is named by its full or short id; a short id that matches two jobs is refused with both, an unknown one too", () => {
 	const { home } = setup();
 	record(home, "2026-10-16-worker-0000000a", {}, NOW);

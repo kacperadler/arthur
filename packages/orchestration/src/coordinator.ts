@@ -10,6 +10,7 @@ import type { Coordinator } from "./orchestration-options.ts";
 
 const ROLE = fileURLToPath(new URL("../roles/coordinator.md", import.meta.url));
 const ENV_GUARD = fileURLToPath(import.meta.resolve("@arthur/core/env-guard"));
+const INBOX = fileURLToPath(new URL("inbox-extension.ts", import.meta.url));
 // How often the session is looked at, and how often a previous agent still alive is.
 const POLL_MS = 500;
 const EXIT_POLL_MS = 200;
@@ -86,8 +87,9 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 		if (Date.now() - began >= EXIT_POLL_MS) console.log(`orchestration: the previous ${agent} (pid ${pid}) exited after ${waited} s`);
 		const { model, thinking, session } = coordinator;
 		const command = [agent, "--continue", "--auto-approve", ...(model ? ["--model", model] : []), ...(thinking ? ["--thinking", thinking] : [])];
-		command.push("-e", ENV_GUARD, "--append-system-prompt", ROLE);
-		const made = tmux(coordinator, ["new-session", "-d", "-P", "-F", "#{pane_pid}", "-s", session, "-c", process.cwd(), ...command]);
+		command.push("-e", ENV_GUARD, "-e", INBOX, "--append-system-prompt", ROLE);
+		const env = ["-e", `ARTHUR_ORCHESTRATION_FOLDER=${folder}`];
+		const made = tmux(coordinator, ["new-session", "-d", "-P", "-F", "#{pane_pid}", "-s", session, "-c", process.cwd(), ...env, ...command]);
 		if (made.status !== 0) {
 			const why = made.error?.message ?? String(made.stderr).trim().split("\n").at(-1);
 			console.error(`orchestration: coordinator start failed: tmux new-session: ${why}; trying again in ${delay} s`);

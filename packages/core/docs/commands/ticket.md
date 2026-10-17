@@ -5,7 +5,7 @@ Usage: `arthur ticket new <title>`, `arthur ticket status <id> <status>`, `arthu
 The ticket board of a project: each ticket is a folder `spec/features/<id>-<slug>/` in the project's repository, and the board is `spec/build.json` there, a JSON array with one entry per ticket (`id`, `title`, `status`, `path` of its `ticket.md`, `updated`, and `after` when it waits for other tickets). The board is changed only through this command and, for plugins, `host.board`; every change emits an event.
 
 - `new <title>`: creates a ticket in `planning` and prints its id and the path of its `ticket.md`, written from the core's template (`packages/core/templates/ticket.md`) with the id, the title and today's date in `timeZone`. The words after `new` are the title. Emits `ticket-created` (`id`, `project`, `title`, `status`, `path`).
-- `status <id> <status>`: moves the ticket to another status, if the table below allows it, and prints its id and status. The id's prefix names the project, so `--project` is not needed. Emits `ticket-moved` (`id`, `project`, `from`, `to`); a move to the status the ticket has already changes nothing and emits nothing. An empty id or status (`""`) is wrong usage, exit 2.
+- `status <id> <status>`: moves the ticket to another status, if the table below allows it, and prints its id and status. The id's prefix names the project, so `--project` is not needed. Emits `ticket-moved` (`id`, `project`, `from`, `to`); a move to the status the ticket has already changes nothing and emits nothing.
 - `after <id> [<id>...]`: the tickets this one waits for, until each is merged; they replace the ones it waited for before, and no ids means it waits for none. Prints `<id> after <ids>`, or `<id> after nothing`. An id named twice counts once. Emits `ticket-after` (`id`, `project`, `after`) when the list changes.
 
 The statuses and the moves allowed from each:
@@ -40,4 +40,4 @@ Refused, one line each, with exit code 1:
 - No project list (no plugin provides `projects`), a list provided twice, an empty one, a project without a name, an absolute folder or a prefix of capital letters, two projects with one name or one prefix, and an unknown `--project`.
 - A config that does not load: the board needs the plugins' project list.
 
-Exit code: 0 when done, 1 when refused, 2 on wrong usage.
+Exit code: 0 when done, 1 when refused, 2 on wrong usage: an empty word (`""`) after any verb, as `arthur ticket new ""`, `arthur ticket status <id> ""` or `arthur ticket after "" <id>`, is wrong usage, before the board is read.

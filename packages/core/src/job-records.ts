@@ -46,9 +46,11 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 			const machine = there(id);
 			return machine === undefined ? steerJob(home, id, text) : ssh(machine, ["arthur", "remote-job", "steer", machine.home, id], text).trim();
 		},
-		prune(ids: readonly string[]) {
+		// `"all"` frees every finished job; an empty list is refused, never read as everything.
+		prune(ids: readonly string[] | "all") {
+			if (ids.length === 0) throw new Error('prune needs one or more ids, or "all" for every finished job');
 			// Every id is found first, so a typo refuses the prune before anything is removed.
-			const all = ids.length > 0 ? [...new Set(ids.map((query) => findJob(home, query)))] : jobIds(home);
+			const all = ids === "all" ? jobIds(home) : [...new Set(ids.map((query) => findJob(home, query)))];
 			return all.length === 0 ? ["no jobs"] : all.map((id) => `${id}: ${prune(home, id, keep, there)}`);
 		},
 		async stopAll() {

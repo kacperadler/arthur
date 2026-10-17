@@ -38,3 +38,4 @@ Out:
 
 - 2026-10-17: The owner: Discord and Slack as channels, certainly; Teams not for now.
 - 2026-10-17: Coordinator's recommendation to the owner: option B.
+- 2026-10-17: The owner chose option B: the coordinator plus an agent per project, each with its own chat.

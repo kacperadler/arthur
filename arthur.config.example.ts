@@ -74,7 +74,7 @@ export default defineConfig({
 			coordinator: {
 				model: "anthropic/claude-opus-5-5",
 				thinking: "high",
-				tmux: { session: "arthur", socket: "arthur" },
+				tmux: { session: "arthur", socket: "arthur" }, // `arthur attach` joins it; a socket with a `/` is a path (tmux -S)
 				exitWaitSeconds: 60, // wait for the previous omp to exit, so two never refresh the OAuth token at once
 				restartDelaySeconds: 5, // start it again this long after it ended, for any reason
 			},

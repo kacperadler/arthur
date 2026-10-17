@@ -722,9 +722,9 @@
   {
     "id": "AR0085",
     "title": "A continue killed between its new wrapper's `pid` and `state` lets a second continue start beside the running wrapper",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0085-a-continue-killed-between-its-new-wrapper-s-pid-and-state-lets-a-second-continue-start-beside-the-running-wrapper/ticket.md",
-    "updated": "2026-10-17T21:31:07.360Z",
+    "updated": "2026-10-17T21:41:18.801Z",
     "after": [
       "AR0081"
     ]
@@ -882,9 +882,9 @@
   {
     "id": "AR0107",
     "title": "Plan: arthur setup finds the tools, shows the config, and a setup guide",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0107-plan-arthur-setup-finds-the-tools-shows-the-config-and-a-setup-guide/ticket.md",
-    "updated": "2026-10-17T21:27:27.276Z"
+    "updated": "2026-10-17T21:42:20.136Z"
   },
   {
     "id": "AR0108",

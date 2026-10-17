@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { FEATURE, taskTickets } from "./board-jobs.ts";
 import type { Clock } from "./clock.ts";
 import type { Bus } from "./events.ts";
-import { steerJob, stopJob, wrapperRuns } from "./job-control.ts";
+import { steerJob, stopJob, wrappers } from "./job-control.ts";
 import { type Machine, ssh, sshAsync } from "./job-machine.ts";
 import { blockJob, current, field, ID, inRun, jobIds, moveJob, STATES, told, unblockJob } from "./job-state.ts";
 import { syncMachine } from "./machine-sync.ts";
@@ -75,8 +75,8 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 			for (const id of jobIds(home)) {
 				const read = field(home, id);
 				const [pid, folder] = [read("pid"), join(home, "jobs", id)];
-				// The agent's command line names the record's prompt.
-				const alive = wrapperRuns(pid, id, table) || table.some(({ args }) => args.includes(join(folder, "prompt")));
+				// A wrapper of the job, also one that has not written its `pid` yet; the agent's command line names the record's prompt.
+				const alive = wrappers(id, table).length > 0 || table.some(({ args }) => args.includes(join(folder, "prompt")));
 				// A job on another machine is copied from there (job-machine.ts), not swept here.
 				if (!["working", "idle"].includes(read("state")) || alive || !["", "local"].includes(read("machine"))) continue;
 				seen.add(id);

@@ -1,0 +1,28 @@
+---
+import Default from "@astrojs/starlight/components/MarkdownContent.astro";
+---
+
+<Default><slot /></Default>
+
+<script>
+	// Mermaid is large: it loads only on a page that has a diagram.
+	if (document.querySelector("pre.mermaid")) {
+		import("mermaid").then(({ default: mermaid }) => {
+			// At its own size, scrolled inside its block: shrunk to the column, Arthur's diagram is unreadable.
+			mermaid.initialize({ startOnLoad: false, flowchart: { useMaxWidth: false } });
+			mermaid.run();
+		});
+	}
+</script>
+
+<style is:global>
+	/* The diagrams' labels are black: a white background keeps them readable in dark mode. */
+	.sl-markdown-content pre.mermaid {
+		background: #fff;
+		overflow: auto;
+		max-height: 80vh;
+	}
+	.sl-markdown-content pre.mermaid svg {
+		max-width: none;
+	}
+</style>

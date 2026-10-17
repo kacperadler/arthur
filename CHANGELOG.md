@@ -12,6 +12,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Fixed
 
 - AR0059 The worktree guard knows only its own project's checkout (0177255)
+- AR0083 arthur prune with no ids refuses; --all prunes every finished job (d799302)
 - AR0091 An ssh that exits before reading its input fails as EPIPE instead of with ssh's own line (531c8e9)
 
 ### Other

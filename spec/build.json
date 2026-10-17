@@ -701,9 +701,9 @@
   {
     "id": "AR0083",
     "title": "arthur prune with no ids refuses; --all prunes every finished job",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0083-arthur-prune-with-no-ids-refuses-all-prunes-every-finished-job/ticket.md",
-    "updated": "2026-10-17T11:39:13.525Z"
+    "updated": "2026-10-17T11:46:36.502Z"
   },
   {
     "id": "AR0084",
@@ -767,5 +767,12 @@
     "status": "planning",
     "path": "spec/features/AR0092-a-project-added-while-a-job-runs-is-guarded-from-that-job-at-once/ticket.md",
     "updated": "2026-10-17T11:45:35.277Z"
+  },
+  {
+    "id": "AR0093",
+    "title": "The job runner's prune still treats an empty list as every finished job",
+    "status": "planning",
+    "path": "spec/features/AR0093-the-job-runner-s-prune-still-treats-an-empty-list-as-every-finished-job/ticket.md",
+    "updated": "2026-10-17T11:46:36.500Z"
   }
 ]

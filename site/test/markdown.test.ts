@@ -54,6 +54,11 @@ test("the README splits into title, its first paragraph as HTML, and its body fr
 	assert.equal(readme.body, "## Status\n\nText.");
 });
 
+test("a logo above the README's H1 is neither its title nor its tagline", () => {
+	const readme = splitReadme('<img src="docs/logo/arthur.png" width="200">\n\n# Arthur\n\nArthur runs jobs.\n\n## Status\n');
+	assert.deepEqual([readme.title, readme.tagline], ["Arthur", "Arthur runs jobs."]);
+});
+
 test("a README without an H1 or a first paragraph fails", () => {
 	assert.throws(() => splitReadme("Arthur\n\nText."), /README\.md: no H1 title/);
 	assert.throws(() => splitReadme("# Arthur\n\n## Status\n"), /README\.md: no first paragraph/);

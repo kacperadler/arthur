@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkOptions, coordinatorOptions } from "../src/orchestration-options.ts";
+import { checkOptions, coordinatorOptions, roleOptions } from "../src/orchestration-options.ts";
 
 const paths = (options: Record<string, unknown>) => checkOptions(options).map(({ path, problem }) => `${path}: ${problem}`);
 
@@ -8,15 +8,22 @@ test("the options of arthur.config.example.ts pass, and none at all pass with th
 	const example = {
 		maxAgents: 3,
 		coordinator: { model: "anthropic/claude-opus-5-5", thinking: "high", tmux: { session: "arthur", socket: "arthur" }, exitWaitSeconds: 60, restartDelaySeconds: 5 },
-		roles: { worker: { model: ["mac/qwen3-coder", "anthropic/claude-haiku-5-5"], thinking: undefined }, reviewer: { model: "anthropic/claude-sonnet-5", thinking: "medium" }, planner: { model: undefined, thinking: undefined } },
+		roles: {
+			worker: { model: ["mac/qwen3-coder", "anthropic/claude-haiku-5-5"], thinking: undefined },
+			reviewer: { model: "anthropic/claude-sonnet-5", thinking: "medium" },
+			planner: { model: undefined, thinking: undefined },
+			quick: { model: "anthropic/claude-haiku-5-5" },
+		},
 		plan: { budgetUsd: 5 },
 		autopilot: { budgetUsd: 1, budgetMaxUsd: 3 },
 		morningReport: { at: "08:00" },
 	};
 	assert.deepEqual(paths(example), []);
 	assert.deepEqual(paths({}), []);
-	assert.deepEqual(coordinatorOptions({}), { model: undefined, thinking: undefined, session: "arthur", socket: "arthur", exitWaitSeconds: 60, restartDelaySeconds: 5 });
-	assert.deepEqual(coordinatorOptions({ coordinator: { tmux: { socket: "/tmp/x.sock" }, exitWaitSeconds: 0 } }), { model: undefined, thinking: undefined, session: "arthur", socket: "/tmp/x.sock", exitWaitSeconds: 0, restartDelaySeconds: 5 });
+	assert.deepEqual(coordinatorOptions({}), { model: undefined, thinking: undefined, quick: undefined, session: "arthur", socket: "arthur", exitWaitSeconds: 60, restartDelaySeconds: 5 });
+	assert.deepEqual(coordinatorOptions({ coordinator: { tmux: { socket: "/tmp/x.sock" }, exitWaitSeconds: 0 } }), { model: undefined, thinking: undefined, quick: undefined, session: "arthur", socket: "/tmp/x.sock", exitWaitSeconds: 0, restartDelaySeconds: 5 });
+	assert.equal(coordinatorOptions(example).quick, "anthropic/claude-haiku-5-5");
+	assert.deepEqual([roleOptions(example, "reviewer"), roleOptions(example, "auditor"), roleOptions({}, "worker"), roleOptions(example, "toString")], [{ model: "anthropic/claude-sonnet-5", thinking: "medium" }, {}, {}, {}]);
 });
 
 test("each wrong option is refused, naming its path", () => {
@@ -25,7 +32,7 @@ test("each wrong option is refused, naming its path", () => {
 			maxAgent: 3,
 			maxAgents: 0,
 			coordinator: { thinking: "huge", tmux: { session: "a:b", socket: "", port: 1 }, exitWaitSeconds: 1.5, restartDelaySeconds: 0, model: "" },
-			roles: { Worker: {}, worker: { model: [], thinking: "high", budget: 1 }, reviewer: "fast" },
+			roles: { Worker: {}, worker: { model: [], thinking: "high", budget: 1 }, reviewer: "fast", quick: { model: ["a/b"], thinking: "low" } },
 			plan: { budgetUsd: -1 },
 			autopilot: 3,
 			morningReport: { at: "24:00" },
@@ -47,6 +54,8 @@ test("each wrong option is refused, naming its path", () => {
 			"roles.worker.model: expected a model name, or a non-empty list of them, got a list",
 			"roles.worker.budget: unknown key; keys: model, thinking",
 			'roles.reviewer: expected an object with model, thinking, got "fast"',
+			"roles.quick.model: expected a non-empty string, got a list",
+			"roles.quick.thinking: unknown key; keys: model",
 		],
 	);
 	assert.deepEqual(paths({ roles: ["worker"] }), ["roles: expected one entry per role, e.g. { worker: { model, thinking } }, got a list"]);

@@ -65,6 +65,7 @@ export type RoleView = {
 	readonly kinds: readonly string[];
 	readonly model?: string;
 	readonly thinking?: string;
+	readonly quick?: string;
 	readonly sources: readonly Source[];
 };
 
@@ -112,15 +113,15 @@ export function prompt(role: Role, folder: string, sections: () => readonly unkn
 	return { prompt: `${parts.join("\n\n")}\n`, warnings };
 }
 
-// The role's model and thinking level, from the one plugin that provides `roles.model` (orchestration's `roles` option); left
-// out, the agent's own default.
-export function roleModel(collect: Collect, role: string): { readonly model?: string; readonly thinking?: string } {
+// The role's model, thinking level and quick model (omp's `--smol`), from the one plugin that provides `roles.model`
+// (orchestration's `roles` option); left out, the agent's own default.
+export function roleModel(collect: Collect, role: string): { readonly model?: string; readonly thinking?: string; readonly quick?: string } {
 	const found = collect("roles.model", [role]);
 	if (found.length > 1) throw new Error(`roles.model is provided ${found.length} times; one plugin provides it`);
-	const { model, thinking } = (found[0] ?? {}) as Record<string, unknown>;
-	for (const [key, value] of Object.entries({ model, thinking }))
+	const { model, thinking, quick } = (found[0] ?? {}) as Record<string, unknown>;
+	for (const [key, value] of Object.entries({ model, thinking, "quick model": quick }))
 		if (value !== undefined && (typeof value !== "string" || value === "")) throw new Error(`roles.model: the ${key} of role ${role} must be a non-empty string or undefined`);
-	return { model: model as string | undefined, thinking: thinking as string | undefined };
+	return { model: model as string | undefined, thinking: thinking as string | undefined, quick: quick as string | undefined };
 }
 
 // A project's own file, never through a symlink: one on the way to it would read whatever it points at.

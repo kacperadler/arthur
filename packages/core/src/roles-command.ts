@@ -22,7 +22,7 @@ export function rolesCommand(jobs: () => JobRunner): Command {
 
 function describe(role: RoleView): string {
 	const kinds = role.kinds.length > 0 ? role.kinds.join(", ") : "none";
-	const model = `model ${role.model ?? "the agent's default"}, thinking ${role.thinking ?? "the agent's default"}`;
+	const model = `model ${role.model ?? "the agent's default"}, thinking ${role.thinking ?? "the agent's default"}, quick model ${role.quick ?? "the agent's default"}`;
 	return [`${role.name}: ${model}; kinds ${kinds}; from ${role.owner}`, ...role.sources.map((source) => `  ${source.what.padEnd(8)} ${source.path}${state(source)}`)].join("\n");
 }
 

@@ -19,9 +19,9 @@ type Line = { readonly at: number; readonly text: string };
 
 // The plugin set up on a fake host with its tmux server on a socket in the test's folder, the agent `omp` on `PATH` being
 // `agent` (a fake's path), and its output caught; its server is killed and `PATH` restored when the test ends.
-async function load(t: TestContext, agent: string, coordinator: NonNullable<OrchestrationOptions["coordinator"]> = {}, root?: string) {
+async function load(t: TestContext, agent: string, coordinator: NonNullable<OrchestrationOptions["coordinator"]> = {}, root?: string, roles?: OrchestrationOptions["roles"]) {
 	const socket = join(temporaryFolder(), "tmux.sock");
-	const options: OrchestrationOptions = { coordinator: { exitWaitSeconds: 1, restartDelaySeconds: 1, ...coordinator, tmux: { session: "coord", socket, ...coordinator.tmux } } };
+	const options: OrchestrationOptions = { coordinator: { exitWaitSeconds: 1, restartDelaySeconds: 1, ...coordinator, tmux: { session: "coord", socket, ...coordinator.tmux } }, roles };
 	const tmuxSocket = options.coordinator?.tmux?.socket ?? socket;
 	process.env.PATH = `${dirname(agent)}${delimiter}${PATH}`;
 	const [out, err] = [[] as Line[], [] as Line[]];
@@ -66,14 +66,15 @@ function waiting(steps: AgentRun["steps"] = []): { agent: string; release: () =>
 	return { agent, release: () => writeFileSync(join(folder, "release"), "") };
 }
 
-test("the coordinator is one interactive omp in its tmux session, with --continue, its model and thinking, the env guard and its role", async (t) => {
+test("the coordinator is one interactive omp in its tmux session, with --continue, its model, thinking and quick model, the env guard and its role", async (t) => {
 	const { agent, release } = waiting();
 	t.after(release);
-	const { plugin, socket, starts } = await load(t, agent, { model: "anthropic/claude-opus-5-5", thinking: "high" });
+	const { plugin, socket, starts } = await load(t, agent, { model: "anthropic/claude-opus-5-5", thinking: "high" }, undefined, { quick: { model: "anthropic/claude-haiku-5-5" } });
 	await plugin.start?.();
 	await until("the coordinator's start", () => starts().length === 1);
 	const [start] = starts();
-	assert.deepEqual(start?.args, ["--continue", "--auto-approve", "--model", "anthropic/claude-opus-5-5", "--thinking", "high", "-e", ENV_GUARD, "-e", INBOX, "--append-system-prompt", ROLE]);
+	const models = ["--model", "anthropic/claude-opus-5-5", "--thinking", "high", "--smol", "anthropic/claude-haiku-5-5"];
+	assert.deepEqual(start?.args, ["--continue", "--auto-approve", ...models, "-e", ENV_GUARD, "-e", INBOX, "--append-system-prompt", ROLE]);
 	assert.equal(start?.cwd, process.cwd());
 	assert.ok(existsSync(ROLE));
 	assert.equal(tmux(socket, "display-message", "-p", "-t", "=coord:", "#{pane_pid}").stdout.trim(), String(start?.pid));

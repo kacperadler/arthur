@@ -865,16 +865,16 @@
   {
     "id": "AR0105",
     "title": "A landing page and docs site for Arthur, built with Astro Starlight",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0105-a-landing-page-and-docs-site-for-arthur-built-with-astro-starlight/ticket.md",
-    "updated": "2026-10-17T15:30:12.083Z"
+    "updated": "2026-10-17T16:01:32.649Z"
   },
   {
     "id": "AR0106",
     "title": "A conductor logo for Arthur",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0106-a-conductor-logo-for-arthur/ticket.md",
-    "updated": "2026-10-17T15:34:41.092Z"
+    "updated": "2026-10-17T15:41:26.095Z"
   },
   {
     "id": "AR0107",
@@ -882,5 +882,12 @@
     "status": "planning",
     "path": "spec/features/AR0107-plan-arthur-setup-finds-the-tools-shows-the-config-and-a-setup-guide/ticket.md",
     "updated": "2026-10-17T15:34:36.112Z"
+  },
+  {
+    "id": "AR0108",
+    "title": "The site's favicon is the full logo, while AR0106 draws a favicon of its own",
+    "status": "dropped",
+    "path": "spec/features/AR0108-the-site-s-favicon-is-the-full-logo-while-ar0106-draws-a-favicon-of-its-own/ticket.md",
+    "updated": "2026-10-17T16:01:52.159Z"
   }
 ]

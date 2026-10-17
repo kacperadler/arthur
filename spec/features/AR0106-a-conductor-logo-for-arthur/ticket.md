@@ -36,3 +36,12 @@ Out:
 ## Decisions
 
 - 2026-10-17: The owner: a conductor with a baton.
+- 2026-10-17: The owner picked variant 1 (the conductor seen from the side) but finds it far too primitive: the logo must look better than the Jenkins butler. A full-colour illustrated mark plus a simplified one-colour favicon version.
+- 2026-10-17: The owner: the drawn logo is still weak; he will make one with ChatGPT and send it. The branch waits; its SVGs are replaced by his image.
+- 2026-10-17: Takes AR0105's F1 (AR0108 dropped): the site generator copies the small-size favicon to `site/public/favicon.svg` (or .png) when it exists, else the full logo; and it accepts the owner's PNG logo, not only `docs/logo/arthur.svg`.
+- 2026-10-17: The owner: the conductor is seen from behind (facing the orchestra), in the ChatGPT logo.
+- 2026-10-17: The owner prefers a minimalist one-colour silhouette mark (negative space, dynamic pose, a music stand) over a detailed illustration; his reference was a stock image, not committed (a watermarked stock image cannot go into a public repository).
+- 2026-10-17: The owner: code symbols ({ } ; </>) float around the baton instead of music notes.
+- 2026-10-17: The owner: minimalism is the point, not one colour; a second accent colour is fine.
+- 2026-10-17: The owner: back to the first ChatGPT picture (conductor from behind in a round badge, a robot orchestra = the agents), with gold code symbols instead of music notes.
+- 2026-10-17: The owner chose his ChatGPT badge (`owner-logo.png`: conductor from behind, robot orchestra, gold code symbols) as the logo. The small icon is made by the worker from his minimalist silhouette (`owner-silhouette.jpg`, his own ChatGPT image), simplified for 16-32 px. The drawn SVG variants are removed.

@@ -1,0 +1,5 @@
+dist/
+.astro/
+src/content/docs/
+src/assets/
+public/favicon.svg

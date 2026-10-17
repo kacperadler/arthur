@@ -8,15 +8,16 @@ import type { Job, Spawn } from "./jobs.ts";
 
 // Written into `.<id>` and renamed, so a reader sees all of it or nothing. An empty `branch`, `model` or `thinking` is none;
 // `prompt` is the role's, which the agent gets; `resume-on-budget` is `true` when the kind asks for one resume at its budget.
-// A job starts `working` (job-state.ts) at `since`; `idle-minutes` is the core's `jobs.idleMinutes`.
-export function writeRecord(home: string, job: Job, prompt: string, resumeOnBudget: boolean, idleMinutes: number, since: Date): void {
+// A job starts `working` (job-state.ts) at `since`; `idle-minutes` is the core's `jobs.idleMinutes`; `projects` is every
+// project's main checkout, `checkouts` (job-checkout.ts), which the worktree guard refuses too.
+export function writeRecord(home: string, job: Job, prompt: string, resumeOnBudget: boolean, idleMinutes: number, since: Date, projects: string): void {
 	const folder = join(home, "jobs");
 	const temporary = join(folder, `.${job.id}`);
 	mkdirSync(temporary, { recursive: true });
 	const record = {
 		task: job.task, kind: job.kind, project: job.project, model: job.model ?? "", thinking: job.thinking ?? "", prompt,
 		timeout: String(job.timeoutMinutes), budget: String(job.budgetUsd), "resume-on-budget": String(resumeOnBudget),
-		"idle-minutes": String(idleMinutes), branch: job.branch ?? "", root: job.root, base: job.base, worktree: job.worktree, machine: job.machine,
+		"idle-minutes": String(idleMinutes), branch: job.branch ?? "", root: job.root, base: job.base, worktree: job.worktree, machine: job.machine, projects,
 		reason: "", since: since.toISOString(), state: "working",
 	};
 	for (const [name, value] of Object.entries(record)) writeFileSync(join(temporary, name), value);

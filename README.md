@@ -20,6 +20,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
 %% Core entries 1-22 are merged; orchestration has entry 23 of 23-29 and 65; projects has entry 41 of 41-42; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
+%% Also planned, from the approved plan of AR0098: project agents in orchestration, and the discord and slack channels.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
 flowchart TD
   subgraph TOP[The human and the channels]
@@ -59,9 +60,10 @@ flowchart TD
   subgraph FIRST[First-version plugins: each talks only to the core]
     subgraph COORD[Coordinator]
       orchestration[orchestration<br/>coordinator, arthur attach<br/>1 of 8 entries]
+      agents[project agents<br/>one per project, its own chat]
       session[session<br/>compaction, fresh start]
       schedule[schedule<br/>actions, jobs at set times]
-      orchestration ~~~ session ~~~ schedule
+      orchestration ~~~ agents ~~~ session ~~~ schedule
     end
     subgraph PROJ[Projects]
       projects[projects<br/>project list, install<br/>1 of 2 entries]
@@ -92,11 +94,13 @@ flowchart TD
 
   subgraph LATER[Later plugins]
     signal[signal<br/>a channel, signal-cli]
+    discord[discord<br/>a channel, gateway]
+    slack[slack<br/>a channel, Socket Mode]
     whatsapp[whatsapp<br/>a channel, local bridge]
     server[server, web panel<br/>private network only]
     knowledge[knowledge base<br/>search, chat with sources]
     company[company edition<br/>business roles as agents]
-    signal ~~~ whatsapp ~~~ server ~~~ knowledge ~~~ company
+    signal ~~~ discord ~~~ slack ~~~ whatsapp ~~~ server ~~~ knowledge ~~~ company
   end
 
   subgraph OUT[Outside Arthur]
@@ -107,6 +111,8 @@ flowchart TD
     dockerd[(Docker)]
     gh[(GitHub)]
     yt[(YouTrack)]
+    dc[(Discord)]
+    sl[(Slack)]
   end
 
   subgraph LEGEND["Legend: state of main on 2026-10-17"]
@@ -140,6 +146,8 @@ flowchart TD
   docker -.->|labels, sweeps| dockerd
   github -.->|polls| gh
   youtrack -.->|reads, writes| yt
+  discord -.->|gateway| dc
+  slack -.->|Socket Mode| sl
 
   classDef built fill:#d8f5d8,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
@@ -147,8 +155,8 @@ flowchart TD
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
   class lbuilt,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit built;
   class lpartial,orchestration,projects partial;
-  class lplanned,telegram,voice,corelater,session,schedule,nvm,commit,findings,machines,resources,models,docker,delivery,github,youtrack,manage,develop,signal,whatsapp,server,knowledge,company planned;
-  class loutside,human,files,tg,omp,repos,remote,providers,dockerd,gh,yt outside;
+  class lplanned,telegram,voice,corelater,agents,session,schedule,nvm,commit,findings,machines,resources,models,docker,delivery,github,youtrack,manage,develop,signal,discord,slack,whatsapp,server,knowledge,company planned;
+  class loutside,human,files,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl outside;
   style larrows fill:#fff,stroke:#999,color:#000
   style LEGEND fill:#fff,stroke:#999
   style TOP fill:#f7f9fc,stroke:#4a6fa5

@@ -56,6 +56,7 @@ Each feature and its state on main on 2026-10-17, read from `packages/` and `spe
 | Jobs on another machine over SSH | built | 21, 22 |
 | Test kit: the fake host and the fake agent | built | 4, 11 |
 | Core: `arthur doctor` | planned | 80 |
+| Core: `arthur setup`, and every option's meaning beside its check | planned | 93, 94 |
 | Core: `arthur send` and the message parts every channel hands over | planned | 49 |
 | Core: cleanup hooks with each worktree | planned | 71 |
 | Core: the frozen plugin API | planned | 51 |
@@ -121,7 +122,7 @@ export default defineConfig({
 });
 ```
 
-Then `arthur config check`, `arthur projects` and `arthur board` answer at once. `arthur run` starts the coordinator, which needs tmux and OMP, and `arthur attach` opens it. [`docs/deploy.md`](docs/deploy.md) has the whole setup on a VPS as a systemd service, and its threat model.
+Then `arthur config check`, `arthur projects` and `arthur board` answer at once. `arthur run` starts the coordinator, which needs tmux and OMP, and `arthur attach` opens it. [`docs/setup.md`](docs/setup.md) sets it up on a VPS as a systemd service, step by step; [`docs/deploy.md`](docs/deploy.md) adds other machines for jobs and the threat model.
 
 ## Read more
 
@@ -129,7 +130,7 @@ Then `arthur config check`, `arthur projects` and `arthur board` answer at once.
 - The order of the work: [`spec/roadmap.md`](spec/roadmap.md); the board: [`spec/build.json`](spec/build.json).
 - Diagrams (Mermaid): [core and plugins](docs/architecture/core-and-plugins.mmd), [from config to a running plugin](docs/architecture/config-flow.mmd), [versions](docs/architecture/versions.mmd).
 - An example config with every plugin, planned ones included: [`arthur.config.example.ts`](arthur.config.example.ts).
-- Running it on a VPS, and its threat model: [`docs/deploy.md`](docs/deploy.md).
+- Setting it up on a VPS, each step with its check: [`docs/setup.md`](docs/setup.md); other machines for jobs, the threat model, daily use: [`docs/deploy.md`](docs/deploy.md).
 - The licence: [`LICENSE`](LICENSE).
 
 ## What Arthur is built from
@@ -163,7 +164,7 @@ flowchart TD
     guards[env guard<br/>worktree guard]
     runner[job runner<br/>spawn, limits, stop, steer<br/>state, prune, other machines]
     kit[test kit<br/>fake host, fake agent]
-    corelater[later in the core<br/>doctor, arthur send<br/>cleanup hooks, frozen API]
+    corelater[later in the core<br/>doctor, setup, arthur send<br/>cleanup hooks, frozen API]
     files -->|loads| loader
     terminal --> commands
     loader --> host

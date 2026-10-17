@@ -6,10 +6,10 @@ How to read an entry:
 
 - Package: where the code lives. `packages/core/` is `@arthur/core`; a plugin is `packages/<plugin>/`, `@arthur/<plugin>`.
 - Delivers: what it adds, and through which interface (a command, an event, the host API, an option).
-- Done means: what a reviewer checks, edge cases included. Every entry also means: its tests run under `npm test` against fakes (the core against a fake plugin and a fake agent, a plugin against the fake host of `@arthur/core/testing`), `npm run check` and `npm test` pass, each command it adds has its doc page, each option it adds is in `arthur.config.example.ts`, and, once entry 80 is merged, each thing its plugin needs to work (a binary, a token, a reachable service) is a requirement it provides to `collect("doctor")`.
+- Done means: what a reviewer checks, edge cases included. Every entry also means: its tests run under `npm test` against fakes (the core against a fake plugin and a fake agent, a plugin against the fake host of `@arthur/core/testing`), `npm run check` and `npm test` pass, each command it adds has its doc page, each option it adds is in `arthur.config.example.ts`, once entry 80 is merged, each thing its plugin needs to work (a binary, a token, a reachable service) is a requirement it provides to `collect("doctor")`, and, once entry 93 is merged, each option it adds has its one-line meaning in its package's option table and each binary it runs is in that file's `tools`.
 - Covers: the capabilities of the harness Arthur replaces that it carries over, by their id in the table at the end.
 
-Order: the core first, piece by piece, then the first-version plugins in the vision's order, then the later plugins. Within the core the event stream comes right after the plugin host, because the job runner and the board emit into it from their first line. Job state (16) comes right after the job runner it describes, and jobs on another machine (21, 22) after the guards they carry there. Machines and resources (30 to 34) come right after orchestration, whose `maxAgents` and context they build on; placement reads the project list and the per-feature caps read the board through the host, so neither waits for the `projects` plugin. The plugin API is frozen (entry 51) only after schedule, youtrack and telegram use it. An entry that needs a plugin built later sits after that plugin (the morning report, the auto-merge). Disk and Docker (69 to 72) close the first version, before the switch: the disk floor extends the free resources of 34, the labels read the project list (41), the cleanup runs in the one worktree removal that prune (15) and the merge (54) share, and the sweep registers its entry with schedule (40). `arthur doctor` (80) sits right after the start notice (38), which it runs before, and took the next free number so that 1 to 79 keep theirs; a plugin built after it brings its own requirements. Voice (81) sits right after telegram's media (49), whose `parts` and `message.part` it plugs into, and before the freeze (51), so `message.part` is frozen as a plugin uses it; it took the next free number too. Models (82) sit right after `arthur doctor` (80), whose requirements they add, and after the roles' models (26) and the job limits (12) they extend; they took the next free number too. The later channels (73, 74) use the same `parts`, so every media plugin works with them unchanged.
+Order: the core first, piece by piece, then the first-version plugins in the vision's order, then the later plugins. Within the core the event stream comes right after the plugin host, because the job runner and the board emit into it from their first line. Job state (16) comes right after the job runner it describes, and jobs on another machine (21, 22) after the guards they carry there. Machines and resources (30 to 34) come right after orchestration, whose `maxAgents` and context they build on; placement reads the project list and the per-feature caps read the board through the host, so neither waits for the `projects` plugin. The plugin API is frozen (entry 51) only after schedule, youtrack and telegram use it. An entry that needs a plugin built later sits after that plugin (the morning report, the auto-merge). Disk and Docker (69 to 72) close the first version, before the switch: the disk floor extends the free resources of 34, the labels read the project list (41), the cleanup runs in the one worktree removal that prune (15) and the merge (54) share, and the sweep registers its entry with schedule (40). `arthur doctor` (80) sits right after the start notice (38), which it runs before, and took the next free number so that 1 to 79 keep theirs; a plugin built after it brings its own requirements. The option tables (93) and `arthur setup` (94) sit right after `arthur doctor` (80): `arthur setup` prints doctor's lines and reads the tables, which take over the option checks of orchestration (23) and projects (41); a plugin built after them brings its own table, and they took the next free numbers after 85 to 92, which the approved plan of AR0098 holds. Voice (81) sits right after telegram's media (49), whose `parts` and `message.part` it plugs into, and before the freeze (51), so `message.part` is frozen as a plugin uses it; it took the next free number too. Models (82) sit right after `arthur doctor` (80), whose requirements they add, and after the roles' models (26) and the job limits (12) they extend; they took the next free number too. The later channels (73, 74) use the same `parts`, so every media plugin works with them unchanged.
 
 The host API, as these entries build it (names are proposals; entry 51 fixes them): a plugin is a function from its options to `{ name, requires, setup(host), start?(), stop?() }`. `setup` registers; `start` runs long-lived work and is called only by `arthur run`. A `jobs.spawn` before every plugin's `setup` has run throws `<plugin>: spawn during setup; start jobs from start() or later`, so no job starts before the core follows the jobs. The host gives a plugin its options with every `...Env` name resolved, its own folder `.arthur/<plugin>/`, `events` (`on`, `emit`), `commands` (`register`), `jobs` (`registerKind`, `spawn`, `beforeSpawn`, `prepare`, `registerExtension`, `cleanup`, `block`, `unblock`, `registerMachine`, `run`), `board` (its `projects()` is the project list), `clock`, and `provide(name, fn)` / `call(name, ...)` / `collect(name)`, through which plugins reach each other without importing each other.
 
@@ -80,8 +80,8 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 
 ### 8. `arthur run`: Arthur as a process
 
-- Package: core; `docs/deploy.md`.
-- Delivers: `arthur run` loads the config, sets up every plugin, calls `start` in dependency order, and on SIGTERM calls `stop` in reverse; one process per home folder (a pid lock taken over from a dead pid). From the lock until the stops, it follows `.arthur/events.jsonl` from the last number it delivered, every 500 ms, and delivers to its subscribers the events another process (a command such as `arthur ticket` or `arthur spawn`) appended; a process that emits still delivers its own at once, and the daemon never delivers its own twice. No socket or port carries events. `docs/deploy.md`: install Node, git, tmux and OMP on a VPS, the systemd user service that keeps `arthur run` alive (started again after it dies, the user manager too), `.env`, the threat model, daily use, updating.
+- Package: core; `docs/setup.md` and `docs/deploy.md`.
+- Delivers: `arthur run` loads the config, sets up every plugin, calls `start` in dependency order, and on SIGTERM calls `stop` in reverse; one process per home folder (a pid lock taken over from a dead pid). From the lock until the stops, it follows `.arthur/events.jsonl` from the last number it delivered, every 500 ms, and delivers to its subscribers the events another process (a command such as `arthur ticket` or `arthur spawn`) appended; a process that emits still delivers its own at once, and the daemon never delivers its own twice. No socket or port carries events. `docs/setup.md`: install Node, git, tmux and OMP on a VPS, the systemd user service that keeps `arthur run` alive (started again after it dies, the user manager too), `.env`; `docs/deploy.md`: the threat model, daily use, updating.
 - Done means: a second `arthur run` on the same home refuses, naming the pid; a stale lock of a dead pid is taken over; a plugin whose `start` throws stops the others already started, in reverse, and the process exits non-zero naming the plugin; SIGTERM during `start` still stops what started; an event a command emits reaches the daemon's subscribers once. Edge cases: a first start begins at the log's end; a later start delivers every event after the kept number (AR0044); a line still being written waits for its line break; a log cut or deleted by hand is followed from its new end; a plugin that emits during its stop gets the events appended before its own first, so the log's order and the kept number hold.
 - Depends on: 4, 5.
 - Size: half a day to a day.
@@ -371,11 +371,84 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 ### 80. `arthur doctor`: what Arthur needs, checked at every start
 
 - Package: core (`collect("doctor")`, the command, the core's own requirements, the refusal in `arthur run`) and session (its requirements, the start notice); each plugin named below provides its own requirements, in this entry when the plugin exists, else in that plugin's entry.
-- Delivers: through `collect("doctor")` each enabled plugin provides its requirements, each `{ name, check(): ok | missing reason, costs: what does not work without it, fix: one command or step, critical?: boolean }`. The requirements: core: `git`, Node 24 or newer, the agent binary `omp`, `home` writable, each critical; session: the systemd user service installed, enabled, with `Restart=always`, and linger on; telegram: the token present and the bot reachable; media (telegram's media in, 49): `ffmpeg`, for the videos the human sends; voice (81): the whisper.cpp binary `whisper-cli`, the model file, and `ffmpeg`; docker: Docker reachable on each machine labelled `tools: docker`; machines: SSH to each machine, and on it each tool its labels name; projects (41): an `about` for each project, not critical; nvm (84): nvm present on each machine; resources: the disk floor (69); models (82): each provider reachable and each listed model present. `arthur doctor` prints one line per requirement, `<plugin> <name>: ok` or `<plugin> <name>: missing: <reason>; without it: <costs>; fix: <fix>`, and exits 1 when anything critical is missing; it runs no model. At every `arthur run` start, doctor runs before the LLM probe (38), and its missing lines go first in the start notice. A critical miss refuses the start before any plugin's `start`, with those lines: printed, so the service's journal shows them, and sent as one `notice`; anything else starts, with reduced function.
+- Delivers: through `collect("doctor")` each enabled plugin provides its requirements, each `{ name, check(): ok | missing reason, costs: what does not work without it, fix: one command or step, critical?: boolean }`. The requirements: core: `git`, Node 24 or newer, the agent binary `omp`, `home` writable, each critical, and the CPU and memory controllers delegated to the user manager (13), not critical; orchestration: `tmux`, critical, since there is no coordinator without it; session: the systemd user service installed, enabled, with `Restart=always`, and linger on; telegram: the token present and the bot reachable; media (telegram's media in, 49): `ffmpeg`, for the videos the human sends; voice (81): the whisper.cpp binary `whisper-cli`, the model file, and `ffmpeg`; docker: Docker reachable on each machine labelled `tools: docker`; machines: SSH to each machine, and on it each tool its labels name; projects (41): an `about` for each project, not critical; nvm (84): nvm present on each machine; resources: the disk floor (69); models (82): each provider reachable and each listed model present. `arthur doctor` prints one line per requirement, `<plugin> <name>: ok` or `<plugin> <name>: missing: <reason>; without it: <costs>; fix: <fix>`, and exits 1 when anything critical is missing; it runs no model. At every `arthur run` start, doctor runs before the LLM probe (38), and its missing lines go first in the start notice. A critical miss refuses the start before any plugin's `start`, with those lines: printed, so the service's journal shows them, and sent as one `notice`; anything else starts, with reduced function. `arthur setup` (94) prints the same lines, from the same function.
 - Done means: each line format above, `ok` and `missing`; exit 0 with only non-critical misses, 1 with one critical miss; no model and no network call beyond what a check names. Edge cases: a check that throws costs its line only, named (`<plugin> <name>: missing: check failed: <error>`), and every other line is still printed; a check that hangs is cut after 10 s (`missing: check timed out after 10 s`); a plugin disabled in the config is not checked and has no line; no systemd user manager (macOS, a container) is one non-critical line; the same missing line is not sent again at each start within a day unless it changed, so the service starting a refused `arthur run` again every 5 s sends its refusal once; a line fixed and missing again is sent again; with `home` not writable the refusal is printed only, since nothing can record that it was sent; `arthur doctor` always prints every line, sent before or not; no missing line leaves the start notice of 38 as it was.
 - Depends on: 38, 4.
 - Size: a day.
 - Covers: none (new: the owner asked for it on 2026-10-16); the step after install of S8.
+
+### 93. Option tables: every option with its meaning, and the tools each plugin runs
+
+- Package: core (the table's type and its walker, published in `@arthur/core`'s exports; the core's own table) and the two plugins built before it, orchestration and projects (their tables); each later plugin writes its table in its own entry.
+- Delivers: every option the core and each plugin accept is an entry of one table: `{ about, check }` for a value, or `{ about, fields }` for a nested object, where `about` is the option's meaning in one line. The plugin's own option check walks that same table, so an option without its meaning cannot exist and the list never drifts from the code. It is the third table of one shape, so the core publishes the type: the core's `SHAPE` in `config.ts`, orchestration's `FIELDS` in `orchestration-options.ts` and projects' `FIELDS` in `project-options.ts` become tables of it. Each package's options file also exports a one-line `summary` of the plugin and `tools`, each `{ name, version: argv }`, the command that prints the tool's version: the core names `git`, `node`, `omp`, `ssh` and `systemd-run`; orchestration names `tmux`. Each plugin package publishes this file as `@arthur/<plugin>/options`, which loads without setting up the plugin.
+- Done means: every refusal the option checks gave before is given the same, its option path and wording included, so their tests pass unchanged; a nested object's fields are walked at any depth. Refused by a test over every package's table: an entry without `about`, with an empty one, or with a line break in it; a `summary` that is empty or more than one line; a tool without a `version` command. Edge cases: an unknown key is still refused, naming its path; an option two levels deep (`coordinator.tmux.session`) has its meaning like a top-level one.
+- Depends on: 23, 41.
+- Size: half a day.
+- Covers: S8.
+
+### 94. `arthur setup`: what is there, what is set, what is missing
+
+- Package: core; `docs/setup.md` points to it.
+- Delivers: `arthur setup`, a report you run again after each fix. It writes nothing, installs nothing, never runs a model, and never prints a variable's value. It finds the installed plugins by listing `node_modules/@arthur/*` from the config's folder and loads each package's `./options` (93) by path, the way the core already loads `arthur.config.ts`: no static import, so the core still imports no plugin (the structure test of entry 1 stays as it is; the reviewer judges this reading by path), and a plugin that is installed but not in the config is shown too. Plugins that are planned but not built have no code to read, so they are not listed; the roadmap names them. Its sections, in this order:
+  1. Tools: each tool in the `tools` of the core and every installed plugin, its version (the first line its `version` command prints) or `not found`, and which plugins use it, marked `(off)` or `(not in the config)`.
+  2. Config: the core, then each plugin the config lists, `on` or `off`. For each one that is on: its options `set` and `not set`, and its env lines as `arthur config check` prints them, `set` or `missing`, never a value.
+  3. Requirements: `arthur doctor`'s lines (80), from the same function.
+  4. Can still go in arthur.config.ts: each installed plugin that is off or not listed, with its `summary` and every option's meaning, and its default when it has one.
+  5. Next: numbered steps, each with its fix, in this order: config, then env, then critical requirements, then the rest; and the closing line `Run arthur setup again after each step.`
+
+  An example run, at a point after telegram (47) and voice (81) exist; their option names are the example config's proposals:
+
+  ```
+  $ arthur setup
+  Tools
+    git          2.43.0          core
+    node         v24.21.0        core
+    omp          omp/18.3.0      core
+    ssh          OpenSSH_9.6p1   core
+    tmux         3.4             orchestration
+    ffmpeg       not found       telegram, voice (off)
+    whisper-cli  not found       voice (off)
+    docker       27.3.1          docker (not in the config)
+
+  Config: arthur.config.ts
+    core           set: home, jobs.budgetUsd; not set: envFile, agent, timeZone, quietHours, jobs.timeoutMinutes, …
+    orchestration  on   set: maxAgents, coordinator.model; not set: coordinator.tmux, roles, plan, autopilot, morningReport, …
+    projects       on   set: list (2 projects), reposDir
+    telegram       on   set: bots (1), media
+                        env set     ARTHUR_TELEGRAM_BOT_TOKEN (telegram.bots[0].botTokenEnv)
+                        env missing ARTHUR_TELEGRAM_CHAT_ID (telegram.bots[0].chatIdEnv)
+    voice          off (enabled: false)
+
+  Requirements (arthur doctor)
+    core git: ok
+    core omp: ok
+    orchestration tmux: ok
+    telegram ffmpeg: missing: not found; without it: the videos you send reach the coordinator as files; fix: sudo apt-get install -y ffmpeg
+    projects shop board: missing: no spec/build.json; without it: no tickets for shop; fix: arthur init shop
+
+  Can still go in arthur.config.ts
+    voice (off): local transcription of voice notes with whisper.cpp
+      model           a whisper.cpp model name, or a path to a .bin file; default "small"
+      threads         CPU threads whisper uses; default 4
+      language        a language code, or "auto"; default "pl"
+      timeoutSeconds  a longer transcription is cut; default 300
+      maxSeconds      a longer note is not transcribed; default 600
+    docker (not in the config): labels and removes the Docker resources of each job
+      buildCache      the cap of Docker's build cache
+      leftoverHours   unlabelled leftovers older than this are swept
+      sweep.at        the daily sweep, "HH:MM"
+
+  Next
+    1. Set ARTHUR_TELEGRAM_CHAT_ID in .env (telegram.bots[0].chatIdEnv), then arthur config check. Refuses the start.
+    2. sudo apt-get install -y ffmpeg
+    3. arthur init shop
+  Run arthur setup again after each step.
+  ```
+
+- Done means: exit code 1 when a step in Next would refuse `arthur run` (a config or env refusal, a critical requirement), else 0; a test sets a known value for a variable in the shell and another in `.env` and finds neither in the output. Edge cases: no config (Config says `no arthur.config.ts`, and Next's first step is writing it, pointing to `docs/setup.md`); a config that does not load (its refusal under Config, Requirements skipped, exit 1); a tool whose version command fails or hangs (`not found` or `no version: <its last line>`, cut after 5 s; every other line still printed); an installed package without `./options` (named, `no options table`, every other plugin still listed); a plugin listed with `enabled: false` (off, its env not read, listed under Can still go); nothing missing (Next says `nothing`, exit 0).
+- Depends on: 93, 80.
+- Size: a day.
+- Covers: S8.
 
 ## Models
 
@@ -424,7 +497,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 ### 42. Onboarding a repository
 
 - Package: projects.
-- Delivers: `arthur init <project>` gives a project's repository what Arthur reads (the `spec/` skeleton, the criteria files, an empty board) and an `.nvmrc` with the major version of the Node it runs on (`24` today), unless the repository has one, for the nvm plugin (84); the kind `onboarding`: reads the repository, asks up to 10 questions, then drafts the vision and criteria; the procedure sent when it ends; its merge accepts only those files (`init` writes the `.nvmrc`, not the job).
+- Delivers: `arthur init <project>` gives a project's repository what Arthur reads (the `spec/` skeleton, the criteria files, an empty board) and an `.nvmrc` with the major version of the Node it runs on (`24` today), unless the repository has one, for the nvm plugin (84); the kind `onboarding`: reads the repository, asks up to 10 questions, then drafts the vision and criteria; the procedure sent when it ends; its merge accepts only those files (`init` writes the `.nvmrc`, not the job). Its `doctor` requirement (80), one per project, not critical: `projects <project> board: missing: no spec/build.json; without it: no tickets for <project>; fix: arthur init <project>`, so `arthur setup` (94) walks a new owner to `arthur init`.
 - Done means: refused: `init` on a project not in the config, `init` over an existing board. Edge cases: an empty repository; an existing `.nvmrc` is kept unchanged; a repository without `package.json` still gets one; the onboarding asking more than 10 questions is cut at 10; a draft touching another file is refused at merge.
 - Depends on: 41, 10.
 - Size: a day.
@@ -433,7 +506,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 ### 84. nvm: each project's Node version
 
 - Package: nvm; in the core, `host.jobs.prepare` (9) may return variables for the job's environment, and the variables a `prepare` returns reach the prepares after it (the change entries 70 and 82 name; whichever entry is built first adds it).
-- Delivers: through `prepare`, for a job whose worktree has `.nvmrc`, it runs `. "$NVM_DIR/nvm.sh" && nvm which <version>` on the job's machine through `host.jobs.run`, and that bin folder goes first on the job's `PATH` through the variables `prepare` returns; nvm's prepare runs before the install of 41, so the install runs under the same Node. Its `doctor` requirement: nvm present on each machine. Bun has no nvm: it stays on the service `PATH` (`docs/deploy.md`, step 4).
+- Delivers: through `prepare`, for a job whose worktree has `.nvmrc`, it runs `. "$NVM_DIR/nvm.sh" && nvm which <version>` on the job's machine through `host.jobs.run`, and that bin folder goes first on the job's `PATH` through the variables `prepare` returns; nvm's prepare runs before the install of 41, so the install runs under the same Node. Its `doctor` requirement: nvm present on each machine. Bun has no nvm: it stays on the service `PATH` (`docs/setup.md`, step 8).
 - Done means: tested against the fake host and a fake `$NVM_DIR/nvm.sh`. Edge cases: no `.nvmrc` (no variable, the machine's default Node is used); a version that is not installed refuses the spawn, naming the version, the machine and the fix `nvm install <version>` (no download during a spawn); an empty or unreadable `.nvmrc` is refused, naming the file; nvm missing on the machine is refused, naming the machine; a job on another machine resolves the version there.
 - Depends on: 41, 21, 80.
 - Size: half a day.
@@ -529,7 +602,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 ### 51. Freeze the host API
 
 - Package: core; `docs/plugin-api.md`.
-- Delivers: the host API as schedule, youtrack and telegram use it, written down: the plugin shape, every host member, every core event and its fields, the `provide` names in use; the published types in `@arthur/core`'s exports; whatever no plugin uses removed. From here a change to the API is a decision recorded in its ticket.
+- Delivers: the host API as schedule, youtrack and telegram use it, written down: the plugin shape, every host member, every core event and its fields, the `provide` names in use; the published types in `@arthur/core`'s exports, the option table's type included (93); each plugin package's `./options` export (93): its option table, `summary` and `tools`; whatever no plugin uses removed. From here a change to the API is a decision recorded in its ticket.
 - Done means: the three plugins and the fake host use only what the doc lists (a test lists the core's exports and fails on one the doc does not name); `npm run check` passes with the types tightened.
 - Depends on: 40, 46, 50.
 - Size: half a day.
@@ -782,7 +855,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 - Size: half a day to a day.
 - Covers: none (new).
 
-After entry 72, Arthur switches its first project, itself: it runs on the VPS (`docs/deploy.md`) and takes its own tickets. The other projects follow, then the later entries.
+After entry 72, Arthur switches its first project, itself: it runs on the VPS (`docs/setup.md`) and takes its own tickets. The other projects follow, then the later entries.
 
 ### 77. Web panel: the board, jobs, events and chat in a browser
 
@@ -916,7 +989,7 @@ Each row is one capability of the harness Arthur replaces, as it was inventoried
 | S5 | The restart guard | 37 |
 | S6 | The LLM probe and the turn-failed notice | 38 |
 | S7 | The service and the user manager survive; controllers delegated | 8; delegation 13 |
-| S8 | The VPS recipe | 8; its step after install, `arthur doctor`, 80 |
+| S8 | The VPS recipe | 8; `docs/setup.md`, each step with its check, and `arthur setup`, 94; its step after install, `arthur doctor`, 80 |
 
 Session options: `compactAt` 35; `freshAt`, `freshRetryMinutes` and `freshUntil` 36; `timeZone` 7; `compactWaitSeconds` 35; `exitWaitSeconds`, `restartDelaySeconds` and the tmux session 23 (options of `orchestration`); no restart, stop or fresh start while jobs run, a rule in 23 and 36; `restartGuard` 37; `probeLlm` 38; the coordinator's model 26; the session's files in `.arthur/session/`: the handoff 35, the rest 36.
 

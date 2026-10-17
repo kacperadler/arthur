@@ -24,7 +24,7 @@ flowchart TD
     guards[env guard<br/>worktree guard]
     runner[job runner<br/>spawn, limits, stop, steer<br/>state, prune, other machines]
     kit[test kit<br/>fake host, fake agent]
-    corelater[later in the core<br/>doctor, arthur send<br/>cleanup hooks, frozen API]
+    corelater[later in the core<br/>doctor, setup, arthur send<br/>cleanup hooks, frozen API]
     files -->|loads| loader
     terminal --> commands
     loader --> host

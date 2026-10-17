@@ -11,6 +11,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0101 A diagram in the repository root of what Arthur is built from, built and not yet built (37081c1)
 - AR0103 The README tells a newcomer what Arthur is, what works today, and how to try it (a1b3299)
 - AR0105 A landing page and docs site for Arthur, built with Astro Starlight (b377424)
+- AR0106 A conductor logo for Arthur (884525a)
 
 ### Fixed
 

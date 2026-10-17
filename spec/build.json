@@ -680,9 +680,9 @@
   {
     "id": "AR0080",
     "title": "/board, /task and /findings move into orchestration, with host.jobs.list()",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0080-board-task-and-findings-move-into-orchestration-with-host-jobs-list/ticket.md",
-    "updated": "2026-10-17T12:31:55.539Z",
+    "updated": "2026-10-17T12:37:12.651Z",
     "after": [
       "AR0094"
     ]

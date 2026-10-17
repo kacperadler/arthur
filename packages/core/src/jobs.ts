@@ -4,7 +4,7 @@ import { taskTickets } from "./board-jobs.ts";
 import type { Clock } from "./clock.ts";
 import type { Bus } from "./events.ts";
 import { addWorktree, branchExists, fileAt, head, removeWorktree } from "./git.ts";
-import { checkout } from "./job-checkout.ts";
+import { checkout, checkouts } from "./job-checkout.ts";
 import { checkLimits, type Limits, spawnLimits } from "./job-limits.ts";
 import { continueJob } from "./job-control.ts";
 import { addThere, LOCAL, type Machine, machineRegistry, type Ran, reach, removeThere } from "./job-machine.ts";
@@ -167,7 +167,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 				const [resumeOnBudget, since] = [kind.resumeOnBudget === true, time.now()];
 				if (there !== undefined) addThere(machine, { job: { ...job, root: there }, prompt: built.prompt, resumeOnBudget, idleMinutes: limits.idleMinutes, since: since.toISOString() });
 				added = true;
-				writeRecord(home, job, built.prompt, resumeOnBudget, limits.idleMinutes, since);
+				writeRecord(home, job, built.prompt, resumeOnBudget, limits.idleMinutes, since, checkouts(collect("projects", [])));
 				for (const { owner, fn } of prepares) await pluginStep(owner, "prepare", () => fn(job));
 			} catch (error) {
 				if (there === undefined) removeWorktree(root, job.worktree, job.branch);

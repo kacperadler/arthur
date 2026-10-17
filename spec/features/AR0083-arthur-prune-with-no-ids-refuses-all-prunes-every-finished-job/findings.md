@@ -11,4 +11,13 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/job-records.ts:51` (`jobUpkeep().prune`: `ids.length > 0 ? ... : jobIds(home)`)
 - What: the command refuses an empty list before the runner is called (`packages/core/src/job-commands.ts`, `--all` is the only way to ask for every job), so the shell cannot widen the prune. The runner itself still frees every finished job for `[]`, and the test suite calls it that way (`jobs.prune([])` in `packages/core/test/job-records.test.ts`). A future core caller that passes an empty variable would widen the prune again. The plugin view `Jobs` (`packages/core/src/jobs.ts`) does not expose `prune`, so no plugin reaches it today.
 - Suggestion: make the runner's prune take an explicit all (a separate function, or `"all"`), and migrate its callers in the core and its tests. Out: the command's refusals, already in place.
-- Status: open
+- Status: ticket AR0093
+
+## F2. `arthur ticket new ""` and `arthur ticket after "" <id>` accept an empty word
+
+- Kind: cleanup
+- Found by: 2026-10-17-review-ar0083-aea841ff (review), 2026-10-17
+- Where: `packages/core/src/ticket-command.ts`
+- What: AR0083 refused an empty word in `prune`, `stop`, `steer`, `continue` and `ticket status`; `ticket new` and `ticket after` were not named and still take one.
+- Suggestion: the same refusal, exit 2, in those two.
+- Status: ticket AR0093

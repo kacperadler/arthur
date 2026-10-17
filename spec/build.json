@@ -868,5 +868,19 @@
     "status": "planning",
     "path": "spec/features/AR0105-a-landing-page-and-docs-site-for-arthur-built-with-astro-starlight/ticket.md",
     "updated": "2026-10-17T15:30:12.083Z"
+  },
+  {
+    "id": "AR0106",
+    "title": "A conductor logo for Arthur",
+    "status": "planned",
+    "path": "spec/features/AR0106-a-conductor-logo-for-arthur/ticket.md",
+    "updated": "2026-10-17T15:34:41.092Z"
+  },
+  {
+    "id": "AR0107",
+    "title": "Plan: arthur setup finds the tools, shows the config, and a setup guide",
+    "status": "planning",
+    "path": "spec/features/AR0107-plan-arthur-setup-finds-the-tools-shows-the-config-and-a-setup-guide/ticket.md",
+    "updated": "2026-10-17T15:34:36.112Z"
   }
 ]

@@ -40,3 +40,4 @@ Out:
 - 2026-10-16: Coordinator: from the core line review (AR0069), accepted.
 - 2026-10-16: Coordinator: do not spawn before entry 23 (the orchestration plugin) is merged.
 - 2026-10-17: Coordinator: F2 of AR0094 (running() and list() overlap) joins this ticket.
+- 2026-10-17: Coordinator: both side effects of the move accepted: with a config that does not load, board, task and findings are unknown commands (exit 2, the load error printed); cli.test.ts drops them from the core lists and its BOARD config registers a small board command.

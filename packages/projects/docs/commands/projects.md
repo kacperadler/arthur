@@ -41,6 +41,8 @@ Refused at load, each refusal naming the project: a missing `name` or `prefix`; 
 
 A missing clone is made at load: into a temporary name, renamed when whole, so a clone that fails names the project and leaves no folder. A folder there already that is a clone of another `origin` is refused and left as it is; one of the same `origin` is used as it is.
 
+Each load that succeeds keeps the list's names and folders in `<home>/projects/checkouts`, a line `<name> <folder>` each, rewritten whole only when they changed. Every running job's worktree guard reads it on each tool call, so a project added to the list (and loaded, as by `arthur projects`) is refused to every other project's job at once, not from its next spawn.
+
 ## The coordinator's context
 
 On every turn the coordinator reads one block: a line saying how it matches a word to a project, then one line per project in config order, `<prefix> <title> (<name>): <about>`, the `(<name>)` left out when it equals the title and the `: <about>` when there is none. The matching line: a prefix, name or title, in any case, names that project; a word found in only one project's title or about names it; a word that fits none or several makes the coordinator ask which, naming the candidates; an exact match comes first. A line is at most about 410 characters.

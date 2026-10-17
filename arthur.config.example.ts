@@ -14,7 +14,8 @@
 //   are polled) or talks to a local process. Other machines are reached over SSH on a private network (Tailscale).
 // - The coordinator is always on: `orchestration` is required; the host refuses to start without it and refuses `enabled: false`
 //   on it. The human talks to it through a channel plugin or the terminal (`arthur attach`).
-// - Projects are declared here, in `projects`, and nowhere else: no separate JSON file. The board starts empty.
+// - Projects are declared here, in `projects`, and nowhere else: no separate JSON file. The board starts empty. Your
+//   `arthur.config.ts` is ignored by Git (`.gitignore`), so your project list stays on your machine.
 // - Everything in this file, and everything Arthur says to the user, is English.
 // - Marked `first` ships in the first version, `later` after it (docs/architecture/versions.mmd). `named` = the owner named it;
 //   `derived` = added because the harness Arthur replaces already does it.

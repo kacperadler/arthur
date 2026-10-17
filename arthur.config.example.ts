@@ -24,6 +24,7 @@ import { defineConfig } from "@arthur/core";
 import { commitRules } from "@arthur/commit-rules"; // first, named
 import { delivery } from "@arthur/delivery"; // first, derived
 import { develop } from "@arthur/develop"; // first, named
+import { discord } from "@arthur/discord"; // later, named
 import { docker } from "@arthur/docker"; // first, named
 import { github } from "@arthur/github"; // first, derived
 import { machines } from "@arthur/machines"; // first, named
@@ -36,6 +37,7 @@ import { schedule } from "@arthur/schedule"; // first, named
 import { server } from "@arthur/server"; // later, named
 import { session } from "@arthur/session"; // first, named
 import { signal } from "@arthur/signal"; // later, named
+import { slack } from "@arthur/slack"; // later, named
 import { telegram } from "@arthur/telegram"; // first, named
 import { voice } from "@arthur/voice"; // first, named
 import { whatsapp } from "@arthur/whatsapp"; // later, named
@@ -68,7 +70,9 @@ export default defineConfig({
 	plugins: [
 		// The coordinator, always on and required: it runs one interactive omp in its own tmux session (`arthur attach`), and
 		// starts it again when it ends. `maxAgents` counts running jobs across all projects together. Also holds the planning of
-		// large tickets (planner role, plan review) and autopilot.
+		// large tickets (planner role, plan review) and autopilot. A project with a `chat` (projects, below) gets its own agent
+		// beside the coordinator, supervised the same way (`arthur attach <project>`); it answers in that chat and works only on
+		// that project, and its jobs count in the same `maxAgents`.
 		orchestration({
 			maxAgents: 3, // jobs in a run at once, across all projects and machines, the human's spawns included; default 3. With
 			// `resources` on, fewer when resources are short. A spawn above it is refused, naming the running jobs
@@ -85,6 +89,7 @@ export default defineConfig({
 				worker: { model: ["mac/qwen3-coder", "anthropic/claude-haiku-5-5"], thinking: undefined },
 				reviewer: { model: "anthropic/claude-sonnet-5", thinking: "medium" },
 				planner: { model: undefined, thinking: undefined }, // undefined = the agent's own default
+				project: { model: "anthropic/claude-opus-5-5", thinking: "high" }, // each project's own agent
 				quick: { model: "anthropic/claude-haiku-5-5" }, // not a role: omp's quick model (--smol) on every job and the coordinator
 			},
 			plan: { budgetUsd: 5 },
@@ -178,8 +183,10 @@ export default defineConfig({
 		// (the line the coordinator reads every turn, so a word in a message finds the project), its `install` (else the lockfile
 		// picks a frozen install; "" for none), its tracker instance (`tracker.instance` names an instance of the youtrack plugin;
 		// without it, the unnamed one), its CI workflow, its commit rules, the machine labels its jobs need (`requires`; a ticket's
-		// own `"requires"` in its JSON block replaces it), and `docker: false` to leave its jobs' Docker resources unlabelled and
-		// uncleaned (default: on while the docker plugin is). Adding a project is an edit of this list; `arthur projects` shows it.
+		// own `"requires"` in its JSON block replaces it), `docker: false` to leave its jobs' Docker resources unlabelled and
+		// uncleaned (default: on while the docker plugin is), and `chat`: the place of a channel (a Telegram topic, a Discord or
+		// Slack channel) where the project's own agent talks with you; without it the coordinator handles the project. Adding a
+		// project is an edit of this list; `arthur projects` shows it.
 		// One repository may be several projects, each checkout its own entry. `arthur.config.ts` is ignored by Git, so the real
 		// list stays on the machine.
 		projects({
@@ -207,6 +214,7 @@ export default defineConfig({
 					tracker: { plugin: "youtrack", instance: "acme", project: "SHOP" },
 					ci: { workflow: "build.yml" },
 					commitRules: { words: "Start with the ticket id, then a verb in the imperative." }, // judged by the review
+					chat: { plugin: "telegram", place: "12" }, // its own agent answers in topic 12 of the bot's chat (`instance` names a bot)
 				},
 				{
 					name: "acme-site",
@@ -267,6 +275,8 @@ export default defineConfig({
 		// several parts), and transcribes nothing; a media plugin (voice) turns the parts it handles into text for the coordinator.
 		// A channel only routes `/name text` to the host and sends the reply; each plugin registers the commands it owns (`/jobs`,
 		// `/board`, `/health`, `/restart`, ...).
+		// A message may carry its place (a Telegram topic, a Discord or Slack channel): a place some project's `chat` names goes to
+		// that project's agent, any other to the coordinator, and the reply goes back to it.
 		// Several bots: `{ name: "second", botTokenEnv: "ARTHUR_TELEGRAM_SECOND_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_SECOND_CHAT_ID" }`.
 		telegram({
 			bots: [{ botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }], // chat id: the only chat the bot answers
@@ -326,6 +336,36 @@ export default defineConfig({
 			cli: "signal-cli",
 			accountEnv: "ARTHUR_SIGNAL_ACCOUNT", // Arthur's own number
 			allowedNumberEnv: "ARTHUR_SIGNAL_ALLOWED_NUMBER", // the only number the plugin answers
+		}),
+
+		// Discord through its gateway: an outbound WebSocket, no Interactions Endpoint URL, so nothing listens. One server, and in
+		// it only your user. Turn on the MESSAGE_CONTENT intent in Discord's developer portal; without it messages arrive empty.
+		// Phone commands are typed as `/name text`.
+		discord({
+			enabled: false,
+			bots: [
+				{
+					tokenEnv: "ARTHUR_DISCORD_BOT_TOKEN",
+					guildIdEnv: "ARTHUR_DISCORD_GUILD_ID", // the only server the bot answers
+					userIdEnv: "ARTHUR_DISCORD_USER_ID", // the only user it answers
+					channelIdEnv: "ARTHUR_DISCORD_CHANNEL_ID", // the coordinator's channel; a project's `chat.place` names another
+				},
+			],
+		}),
+
+		// Slack through Socket Mode: an outbound WebSocket, no Request URL, so nothing listens. One workspace, and in it only your
+		// user. Slack refuses an unknown `/` command typed as text, so phone commands go through one: `/arthur <name> <text>`.
+		slack({
+			enabled: false,
+			apps: [
+				{
+					appTokenEnv: "ARTHUR_SLACK_APP_TOKEN", // xapp-..., opens the Socket Mode connection
+					botTokenEnv: "ARTHUR_SLACK_BOT_TOKEN", // xoxb-..., sends and fetches files
+					teamIdEnv: "ARTHUR_SLACK_TEAM_ID", // the only workspace the app answers
+					userIdEnv: "ARTHUR_SLACK_USER_ID", // the only user it answers
+					channelIdEnv: "ARTHUR_SLACK_CHANNEL_ID", // the coordinator's channel; a project's `chat.place` names another
+				},
+			],
 		}),
 
 		// The core's events and commands over HTTP and a stream, for clients (a phone app, a web page, a T3 Code-like UI).

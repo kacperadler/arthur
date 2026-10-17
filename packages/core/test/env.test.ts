@@ -127,16 +127,25 @@ test("two owners of the same prefix are refused, naming both, whether plugins or
 	const loaded = config([
 		youtrack({ instances: [{ name: "cloud", tokenEnv: token }, { name: "a-b", urlEnv: "ARTHUR_YOUTRACK_A_B_URL" }, { name: "a b", urlEnv: "ARTHUR_YOUTRACK_A_B_URL" }] }),
 		{ name: "youtrack-cloud", options: { tokenEnv: token } },
-		{ name: "github", options: { enabled: false } },
-		{ name: "github", options: {} },
 	]);
 	const check = checkEnv(loaded, { [token]: "t" });
 	assert.deepEqual(check.problems, [
-		`${loaded.path}: ARTHUR_GITHUB_ is the prefix of both plugin github and plugin github`,
 		`${loaded.path}: ARTHUR_YOUTRACK_CLOUD_ is the prefix of both plugin youtrack-cloud and instance cloud of plugin youtrack`,
 		`${loaded.path}: ARTHUR_YOUTRACK_A_B_ is the prefix of both instance a-b of plugin youtrack and instance a b of plugin youtrack`,
 	]);
 	assert.match(refusal(loaded, { [token]: "t" }), /ARTHUR_YOUTRACK_CLOUD_ is the prefix of both plugin youtrack-cloud and instance cloud/);
+});
+
+test("a second plugin of a name is the host's refusal alone: the first one's options are checked, the second's never", () => {
+	const loaded = config([
+		{ name: "github", options: { enabled: false } },
+		{ name: "github", options: { tokenEnv: "ARTHUR_GITHUB_TOKEN", urlEnv: "WRONG" } },
+		{ name: "telegram", options: { tokenEnv: "ARTHUR_TELEGRAM_TOKEN" } },
+		{ name: "telegram", options: { tokenEnv: "WRONG" } },
+	]);
+	const check = checkEnv(loaded, { ARTHUR_TELEGRAM_TOKEN: "t" });
+	assert.deepEqual(check.problems, []);
+	assert.deepEqual(check.variables, [{ plugin: "telegram", option: "telegram.tokenEnv", name: "ARTHUR_TELEGRAM_TOKEN", set: true }]);
 });
 
 test("a name inside another plugin's instance prefix belongs to that instance alone", () => {

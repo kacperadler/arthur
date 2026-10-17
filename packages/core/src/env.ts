@@ -36,10 +36,13 @@ export function resolveEnv(config: LoadedConfig, shell: Shell = process.env): Pi
 	return { values: check.values, warnings: check.warnings };
 }
 
-// An entry of the plugin list that the host refuses (`checkPlugins`) is skipped: its refusal is the host's.
+// An entry of the plugin list that the host refuses (`checkPlugins`) is skipped: its refusal is the host's. So is a second plugin of a name.
 export function checkEnv(config: LoadedConfig, shell: Shell = process.env): EnvCheck {
 	const problems: string[] = [];
-	const plugins = config.plugins.map(asPlugin).filter((plugin) => typeof plugin !== "string");
+	const plugins = config.plugins
+		.map(asPlugin)
+		.filter((plugin) => typeof plugin !== "string")
+		.filter((plugin, index, all) => all.findIndex((other) => other.name === plugin.name) === index);
 	const file = readEnvFile(config.core.envFile);
 	problems.push(...file.problems);
 	const enabled = plugins.filter((plugin) => plugin.options?.enabled !== false).map((plugin) => ({ plugin, found: [] as Found[] }));

@@ -26,9 +26,10 @@ function record(home: string, id: string): { readonly folder: string; readonly f
 	return { folder, field: field(home, id) };
 }
 
-// Whether `pid` is still the wrapper of job `id`, not a process that took its pid after it ended.
-export function wrapperRuns(pid: string, id: string, table = processTable()): boolean {
-	return table.some((entry) => String(entry.pid) === pid && entry.args.includes("wrapper.ts") && entry.args.includes(id));
+// The pids of job `id`'s wrappers, told by their command line `.../wrapper.ts <home> <id> <agent>` (`launch`, job-scope.ts),
+// also before one wrote its `pid` (a continue killed meanwhile left that moment) and not a process that took its pid since.
+export function wrappers(id: string, table = processTable()): string[] {
+	return table.filter(({ args }) => args.includes(` ${id} `, args.indexOf("/wrapper.ts ") + 1) && args.includes("/wrapper.ts ")).map((entry) => String(entry.pid));
 }
 
 // Returns the line `arthur stop` prints once the job's run is over.
@@ -37,7 +38,7 @@ export async function stopJob(home: string, id: string): Promise<string> {
 	const now = current(home, id);
 	if (!inRun(now)) throw new Error(`${id} is ${told(now)}, not in a run; nothing to stop`);
 	const pid = field("pid");
-	if (!wrapperRuns(pid, id)) throw new Error(`${id}: its wrapper ${pid} is gone though its state says ${now.state}; nothing to stop`);
+	if (!wrappers(id).includes(pid)) throw new Error(`${id}: its wrapper ${pid} is gone though its state says ${now.state}; nothing to stop`);
 	process.kill(Number(pid), "SIGTERM");
 	for (const end = Date.now() + STOP_WAIT_SECONDS * 1000; inRun(current(home, id)); await sleep(50))
 		if (Date.now() > end) throw new Error(`${id}: its wrapper ${pid} did not end the job within ${STOP_WAIT_SECONDS} seconds of SIGTERM`);
@@ -77,11 +78,16 @@ export async function continueJob(home: string, id: string, instruction: string,
 		const machine = field("machine") || "local";
 		await check({ task, kind, project, model, thinking, machine, timeoutMinutes: Number(field("timeout")), budgetUsd: budgetUsd ?? Number(field("budget")) });
 		const budget = budgetUsd === undefined ? [] : [String(budgetUsd)];
+		// A new scope of the job's name cannot start while a wrapper of the job still runs in it, and two wrappers never run for a
+		// job: one that runs on past the grace refuses the continue. Its `pid` goes, so `launch` waits for the new one's.
+		for (const end = Date.now() + GRACE_SECONDS * 1000; there === undefined; await sleep(50)) {
+			const running = wrappers(id);
+			if (running.length === 0) break;
+			if (Date.now() > end) throw new Error(`${id}: its wrapper ${running.join(", ")} still runs ${GRACE_SECONDS} seconds on; a second one is not started beside it`);
+		}
 		const startedThere = there && (await sshAsync(there, ["arthur", "remote-job", "continue", there.home, id, agent, slice.slice, ...budget], instruction.trim())).trim();
 		if (budgetUsd !== undefined) write(folder, "budget", String(budgetUsd));
 		if (there === undefined) {
-			// A new scope of the job's name cannot start while the old wrapper still runs in it; its `pid` goes, so `launch` waits for the new one's.
-			for (const end = Date.now() + GRACE_SECONDS * 1000; Date.now() < end && wrapperRuns(field("pid"), id); ) await sleep(50);
 			rmSync(join(folder, "pid"), { force: true });
 			write(folder, "continue", instruction.trim());
 			appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] arthur continue: ${instruction.trim().split("\n")[0]}\n`);

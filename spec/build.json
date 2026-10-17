@@ -861,5 +861,12 @@
     "status": "dropped",
     "path": "spec/features/AR0104-arthur-s-home-folder-arthur-in-its-own-clone-is-not-ignored-by-git/ticket.md",
     "updated": "2026-10-17T15:21:26.752Z"
+  },
+  {
+    "id": "AR0105",
+    "title": "A landing page and docs site for Arthur, built with Astro Starlight",
+    "status": "planning",
+    "path": "spec/features/AR0105-a-landing-page-and-docs-site-for-arthur-built-with-astro-starlight/ticket.md",
+    "updated": "2026-10-17T15:30:12.083Z"
   }
 ]

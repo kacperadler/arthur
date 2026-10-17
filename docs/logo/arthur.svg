@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Arthur: a conductor with a baton</title>
+  <defs>
+    <clipPath id="badge"><circle cx="256" cy="256" r="236"/></clipPath>
+  </defs>
+  <circle cx="256" cy="256" r="236" fill="#e6ecf5"/>
+  <g clip-path="url(#badge)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- music notes -->
+    <g fill="#e2a83b" stroke="#e2a83b">
+      <ellipse cx="96" cy="206" rx="12" ry="8.5" transform="rotate(-20 96 206)" stroke="none"/>
+      <path d="M106 202V152c10 6 20 14 16 28" fill="none" stroke-width="5"/>
+      <ellipse cx="124" cy="132" rx="11" ry="8" transform="rotate(-20 124 132)" stroke="none"/>
+      <ellipse cx="160" cy="120" rx="11" ry="8" transform="rotate(-20 160 120)" stroke="none"/>
+      <path d="M133 128V86l37-10v40" fill="none" stroke-width="5"/>
+      <path d="M133 86l37-10" fill="none" stroke-width="10"/>
+    </g>
+    <!-- trousers -->
+    <path d="M180 360C210 356 244 352 276 346C282 400 288 460 294 520H242C236 470 226 430 214 400C210 440 206 480 204 520H160C168 470 174 410 180 360Z" fill="#141b30"/>
+    <!-- raised arm, baton, fist -->
+    <path d="M248 250C268 228 290 214 312 204C318 186 322 166 326 150L350 164C346 186 340 208 330 226C310 248 288 262 266 276Z" fill="#18203a"/>
+    <g transform="translate(-10 -8)">
+    <path d="M334 154L360 170L366 160L340 144Z" fill="#ffffff"/>
+    <path d="M356 132L404 88" fill="none" stroke="#1c2541" stroke-width="8"/>
+    <path d="M356 132L404 88" fill="none" stroke="#ffffff" stroke-width="4"/>
+    <path d="M340 148C334 134 342 120 356 118C364 117 370 120 373 125C379 126 381 132 377 136C381 139 381 145 376 148C379 152 376 157 370 157C364 160 352 160 346 156C343 154 341 151 340 148Z" fill="#f0c4a0"/>
+    <path d="M377 136C373 137 370 136 368 134M376 148C372 149 369 147 367 145" fill="none" stroke="#c98f6b" stroke-width="2.5"/>
+    <path d="M342 136C346 126 356 120 366 120C372 120 374 126 368 128C360 130 352 134 346 140Z" fill="#e4b08c"/>
+    <circle cx="373" cy="121" r="4.5" fill="#e2a83b"/>
+    </g>
+    <!-- coat with tails -->
+    <path d="M208 214C184 218 164 228 160 252C156 282 158 318 166 350C156 392 144 432 128 474C154 446 178 408 196 370C220 364 246 358 274 352C280 318 278 278 270 244C266 230 258 222 250 218Z" fill="#1c2541"/>
+    <path d="M208 214C184 218 164 228 160 252C156 282 158 318 166 350C156 392 144 432 128 474L140 462C154 428 166 392 176 352C170 316 170 278 176 254C182 236 194 222 208 214Z" fill="#2c3a63"/>
+    <path d="M168 350C178 356 188 362 196 370" fill="none" stroke="#11182c" stroke-width="3"/>
+    <!-- shirt front and lapels -->
+    <path d="M234 220L262 224C268 262 264 300 252 336C240 296 232 258 234 220Z" fill="#ffffff"/>
+    <path d="M252 336C258 300 262 262 262 224C266 228 270 238 272 250C274 282 268 316 252 336Z" fill="#11182c"/>
+    <path d="M234 220C230 258 238 298 252 336C232 308 220 270 220 230Z" fill="#2c3a63"/>
+    <!-- neck, collar, bow tie -->
+    <path d="M206 186C208 198 208 210 206 220L242 224C238 214 238 204 240 196Z" fill="#d9a27e"/>
+    <path d="M206 212C220 220 238 222 254 218L262 230C244 234 222 230 202 222Z" fill="#ffffff"/>
+    <path d="M244 226C232 218 226 220 226 228C226 236 232 238 244 232C256 238 262 236 262 228C262 220 256 218 244 226Z" fill="#11182c"/>
+    <!-- near arm with open hand -->
+    <path d="M198 256C200 238 222 232 230 246C236 266 238 284 240 300C260 298 282 292 300 288L304 318C280 324 252 332 230 336C212 338 204 328 202 312C200 292 198 272 198 256Z" fill="#2c3a63"/>
+    <path d="M240 300C234 304 228 310 226 316" fill="none" stroke="#1c2541" stroke-width="3"/>
+    <path d="M298 286L312 284L314 316L302 318Z" fill="#ffffff"/>
+    <path d="M312 288C324 282 340 280 354 284C366 286 378 290 384 296C386 300 382 303 376 302C368 304 356 306 346 308C336 312 324 316 314 316Z" fill="#f0c4a0"/>
+    <path d="M318 290C322 278 330 270 338 270C344 272 340 282 330 292Z" fill="#f0c4a0"/>
+    <path d="M346 293C360 294 370 296 380 298M342 300C356 300 366 301 376 302" fill="none" stroke="#c98f6b" stroke-width="2.5"/>
+    <!-- head -->
+    <g transform="translate(4 8)">
+    <path d="M198 104C222 92 248 100 256 122C258 130 259 136 266 146C269 151 265 156 258 156C261 160 261 164 257 167C259 171 258 175 254 178C252 188 244 196 230 198C216 199 202 193 194 182C186 168 184 150 186 134C188 120 190 110 198 104Z" fill="#f0c4a0"/>
+    <ellipse cx="232" cy="158" rx="9" ry="6" fill="#eab08f"/>
+    <path d="M204 188C190 186 182 166 181 140C180 108 200 80 228 78C250 76 266 88 266 104C266 110 264 114 260 116C252 106 238 100 224 102C212 104 204 112 202 124C200 130 196 134 196 140C196 156 200 174 204 188Z" fill="#141b30"/>
+    <path d="M210 90C226 82 246 84 258 98M198 110C208 98 224 92 240 94" fill="none" stroke="#3a4a78" stroke-width="3.5"/>
+    <ellipse cx="201" cy="148" rx="8" ry="12" fill="#e4b08c"/>
+    <path d="M200 141C204 145 204 152 200 156" fill="none" stroke="#c98f6b" stroke-width="3"/>
+    <path d="M234 121C239 117 246 117 251 120" fill="none" stroke="#141b30" stroke-width="3.5"/>
+    <path d="M237 131C240 128 246 128 249 131" fill="none" stroke="#141b30" stroke-width="2.5"/>
+    <ellipse cx="243" cy="134" rx="3.5" ry="4" fill="#141b30"/>
+    <path d="M254 151C256 153 258 153 260 152" fill="none" stroke="#c98f6b" stroke-width="2.5"/>
+    <path d="M246 166C250 169 254 169 257 165" fill="none" stroke="#a8644a" stroke-width="3"/>
+    </g>
+    <g fill="#e2a83b" stroke="#e2a83b">
+      <ellipse cx="392" cy="402" rx="12" ry="8.5" transform="rotate(-20 392 402)" stroke="none"/>
+      <path d="M402 398V348c10 6 20 14 16 28" fill="none" stroke-width="5"/>
+    </g>
+  </g>
+  <circle cx="256" cy="256" r="236" fill="none" stroke="#1c2541" stroke-width="16"/>
+</svg>

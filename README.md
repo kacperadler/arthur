@@ -1,5 +1,7 @@
 # Arthur
 
+<img src="docs/logo/arthur.svg" alt="Arthur's logo: a conductor with a baton" width="160">
+
 Arthur lets one human direct many coding agents through one coordinator: the human creates the work, says when it is done and keeps each project's vision; the coordinator, an agent that is always on, starts and follows the jobs. Each job runs the OMP agent in its own Git worktree, on its own branch. A small core runs the jobs and keeps a ticket board in plain files, and plugins switch on everything else from one TypeScript config, `arthur.config.ts`. Arthur exposes nothing to the internet.
 
 ## What Arthur is

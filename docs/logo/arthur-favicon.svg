@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <title>Arthur: a conductor with a baton</title>
+  <style>@media (prefers-color-scheme: dark) { g { fill: #e6ecf5; stroke: #e6ecf5 } }</style>
+  <mask id="shirt">
+    <rect width="32" height="32" fill="#fff"/>
+    <path d="M13.2 12.2L16.6 12.4L15.2 18.6Z" fill="#000"/>
+  </mask>
+  <g mask="url(#shirt)" fill="#1c2541" stroke="#1c2541" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M13 2.6C15.8 2.4 17.6 4 17.6 5.6C17.4 6.2 17 6.4 16.8 6.6C17.4 7.4 18.2 8 18.1 8.5C18 8.8 17.6 8.9 17.3 8.9C17.4 9.8 16.8 10.8 15.6 11.1C13 11.6 9.6 10.4 9.2 7.4C8.9 4.6 10.6 2.8 13 2.6Z" stroke="none"/>
+    <path d="M11.4 10h3.4v2.4h-3.4z" stroke="none"/>
+    <path d="M12 11.6C9.6 12 8.5 13.5 8.3 15.5C8 18 8.2 20 8.8 22C7.8 24.6 6.6 27.2 5.4 29.6C7.6 28.2 9.8 25.8 11.4 23.2C13 22.8 15 22.4 17 22C17.4 19.5 17.4 16.5 16.8 14C16.5 12.5 15.5 11.7 14.5 11.6Z" stroke="none"/>
+    <path d="M11.6 23L10.9 30.6M15.4 22.6L16.8 30.6" stroke-width="2.8" fill="none"/>
+    <path d="M15.6 14.4L20 12.6L21.4 7" stroke-width="2.6" fill="none"/>
+    <circle cx="21.6" cy="6.4" r="1.5" stroke="none"/>
+    <path d="M22.2 5.8L28.4 1.6" stroke-width="1.2" fill="none"/>
+    <path d="M12.4 15L13 19.8L18.6 20.6" stroke-width="2.4" fill="none"/>
+    <path d="M18.4 19.6C20 19.3 22 19.6 23.6 20.6C24 21 23.6 21.4 23 21.3C21.6 21.4 20 21.8 18.8 22Z" stroke="none"/>
+    <path d="M19.6 19.7C19.8 18.8 20.2 18.1 20.8 18C21.3 18.1 21.1 19 20.6 19.7Z" stroke-width="0.8"/>
+  </g>
+</svg>

@@ -44,3 +44,4 @@ Out:
 - 2026-10-17: The owner: code symbols ({ } ; </>) float around the baton instead of music notes.
 - 2026-10-17: The owner: minimalism is the point, not one colour; a second accent colour is fine.
 - 2026-10-17: The owner: back to the first ChatGPT picture (conductor from behind in a round badge, a robot orchestra = the agents), with gold code symbols instead of music notes.
+- 2026-10-17: The owner chose his ChatGPT badge (`owner-logo.png`: conductor from behind, robot orchestra, gold code symbols) as the logo. The small icon is made by the worker from his minimalist silhouette (`owner-silhouette.jpg`, his own ChatGPT image), simplified for 16-32 px. The drawn SVG variants are removed.

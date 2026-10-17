@@ -33,6 +33,8 @@ export type Board = {
 	after(id: string, ids: readonly string[]): Ticket;
 	// Every open ticket, the 10 newest merged, and one line counting the rest; `project` undefined is the main one.
 	digest(project?: string): string;
+	// Every ticket, the digest's lines and the rest of the merged and dropped ones; `project` undefined is the main one.
+	full(project?: string): string;
 };
 
 const FILE = "spec/build.json";
@@ -84,6 +86,7 @@ export function board(lists: () => readonly unknown[], clock: Clock, emit: (name
 		projects: () => projectList(lists()),
 		list: (name) => tickets(project(name)),
 		digest: (name) => boardText(tickets(project(name)), false),
+		full: (name) => boardText(tickets(project(name)), true),
 		get(id) {
 			const where = owner(id);
 			return where && tickets(where).find((ticket) => ticket.id === id);

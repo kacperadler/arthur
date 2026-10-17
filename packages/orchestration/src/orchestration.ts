@@ -1,11 +1,13 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Plugin } from "@arthur/core/plugin";
+import { boardCommands } from "./board-commands.ts";
 import { pane, STOPPED, supervise, tmux } from "./coordinator.ts";
 import { checkOptions, type Coordinator, coordinatorOptions } from "./orchestration-options.ts";
 
 // The orchestration plugin (spec/roadmap.md, entry 23), required by the host: the coordinator's process, kept running by
-// `arthur run`; `arthur attach` and `arthur coordinator stop`. docs/commands/coordinator.md and attach.md.
+// `arthur run`; `arthur attach` and `arthur coordinator stop`, docs/commands/coordinator.md and attach.md; and the board's
+// phone commands `/board`, `/task` and `/findings` (board-commands.ts).
 
 export type OrchestrationOptions = {
 	readonly enabled?: boolean;
@@ -71,6 +73,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 					console.log(`arthur coordinator stop: ${ended ? `${where} ended` : `${where} was not running`}; it stays stopped until arthur run starts again`);
 				},
 			});
+			for (const command of boardCommands(host)) host.commands.register(command);
 		},
 		start() {
 			if (place !== undefined) supervisor = supervise(place.coordinator, place.folder, place.agent);

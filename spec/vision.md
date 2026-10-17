@@ -24,6 +24,7 @@ The core itself does no orchestration. The coordinator is the `orchestration` pl
 - It runs on a VPS as a process, and may run jobs on other machines it reaches over SSH. Running it needs Node and OMP, no runtime dependencies.
 - It stays small enough for one person to understand from its map: the core has a line budget, and each plugin has its own.
 - The repository is public, on GitHub: `git@github.com:kacperadler/arthur.git`.
+- What reaches GitHub is about Arthur alone (the owner, 2026-10-17): no committed file names a client, another project of the owner, its folders, or the work done for it. The owner's real project list lives only in `arthur.config.ts`, which Git ignores; examples, tests and plans use made-up names.
 
 ## The coordinator and its options
 

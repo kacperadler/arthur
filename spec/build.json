@@ -847,5 +847,12 @@
     "status": "dropped",
     "path": "spec/features/AR0102-the-vision-and-the-core-and-plugins-diagram-miss-the-findings-and-nvm-plugins/ticket.md",
     "updated": "2026-10-17T13:43:32.178Z"
+  },
+  {
+    "id": "AR0103",
+    "title": "The README tells a newcomer what Arthur is, what works today, and how to try it",
+    "status": "planned",
+    "path": "spec/features/AR0103-the-readme-tells-a-newcomer-what-arthur-is-what-works-today-and-how-to-try-it/ticket.md",
+    "updated": "2026-10-17T15:08:00.262Z"
   }
 ]

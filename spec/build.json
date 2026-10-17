@@ -713,7 +713,7 @@
     "title": "Roadmap 24: the coordinator's inbox, the wake, and a human's message mid-turn",
     "status": "planned",
     "path": "spec/features/AR0084-roadmap-24-the-coordinator-s-inbox-the-wake-and-a-human-s-message-mid-turn/ticket.md",
-    "updated": "2026-10-17T12:33:23.482Z",
+    "updated": "2026-10-17T21:27:12.367Z",
     "after": [
       "AR0080",
       "AR0099"
@@ -724,7 +724,10 @@
     "title": "A continue killed between its new wrapper's `pid` and `state` lets a second continue start beside the running wrapper",
     "status": "planning",
     "path": "spec/features/AR0085-a-continue-killed-between-its-new-wrapper-s-pid-and-state-lets-a-second-continue-start-beside-the-running-wrapper/ticket.md",
-    "updated": "2026-10-16T17:03:55.677Z"
+    "updated": "2026-10-17T21:27:13.356Z",
+    "after": [
+      "AR0081"
+    ]
   },
   {
     "id": "AR0086",
@@ -815,9 +818,9 @@
     "title": "Plan: an agent per project with its own channel, and Discord and Slack channels",
     "status": "planned",
     "path": "spec/features/AR0098-plan-an-agent-per-project-with-its-own-channel-and-discord-and-slack-channels/ticket.md",
-    "updated": "2026-10-17T12:33:23.713Z",
+    "updated": "2026-10-17T21:27:13.759Z",
     "after": [
-      "AR0099"
+      "AR0110"
     ]
   },
   {
@@ -879,9 +882,9 @@
   {
     "id": "AR0107",
     "title": "Plan: arthur setup finds the tools, shows the config, and a setup guide",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0107-plan-arthur-setup-finds-the-tools-shows-the-config-and-a-setup-guide/ticket.md",
-    "updated": "2026-10-17T15:34:36.112Z"
+    "updated": "2026-10-17T21:27:12.167Z"
   },
   {
     "id": "AR0108",
@@ -896,5 +899,15 @@
     "status": "merged",
     "path": "spec/features/AR0109-the-browser-tab-icon-is-a-crop-of-the-logo-badge/ticket.md",
     "updated": "2026-10-17T18:25:35.832Z"
+  },
+  {
+    "id": "AR0110",
+    "title": "Roadmap 26: maxAgents and the models of each role",
+    "status": "planned",
+    "path": "spec/features/AR0110-roadmap-26-maxagents-and-the-models-of-each-role/ticket.md",
+    "updated": "2026-10-17T21:27:13.551Z",
+    "after": [
+      "AR0084"
+    ]
   }
 ]

@@ -4,7 +4,10 @@
 {
   "id": "AR0085",
   "title": "A continue killed between its new wrapper's `pid` and `state` lets a second continue start beside the running wrapper",
-  "date": "2026-10-16"
+  "date": "2026-10-16",
+  "after": [
+    "AR0081"
+  ]
 }
 ```
 
@@ -35,3 +38,4 @@ In:
 ## Decisions
 
 - 2026-10-16: Source: F1 of AR0070
+- 2026-10-17: The owner approved it for the overnight run of six tickets (AR0107, AR0084, AR0081, AR0085, AR0110, AR0098), done in order and merged after PASS and green GitHub CI.

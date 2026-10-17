@@ -37,3 +37,4 @@ Out:
 ## Decisions
 
 - 2026-10-17: The owner: the command is `arthur setup`; it finds the tools, shows what is configured and what is not, and what can still go in the config.
+- 2026-10-17: The owner approved it for the overnight run of six tickets (AR0107, AR0084, AR0081, AR0085, AR0110, AR0098), done in order and merged after PASS and green GitHub CI.

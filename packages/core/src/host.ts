@@ -39,7 +39,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		const { enabled: _, ...options } = plugin.options ?? {};
 		const folder = join(config.core.home, plugin.name);
 		mkdirSync(folder, { recursive: true });
-		const host = pluginHost(names, commands, bus, jobs, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time }, () => loading);
+		const host = pluginHost(names, commands, bus, jobs, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time, agent: config.core.agent.command }, () => loading);
 		await pluginStep(plugin.name, "setup", () => plugin.setup(host));
 	}
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));

@@ -1,0 +1,9 @@
+{
+  "name": "@arthur/orchestration",
+  "private": true,
+  "type": "module",
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "exports": {
+    ".": "./src/orchestration.ts"
+  }
+}

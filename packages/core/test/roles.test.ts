@@ -154,18 +154,19 @@ test("a prompt section that is not text refuses the spawn and removes what was m
 	nothingMade(root, home);
 });
 
-test("the role's model and thinking come from roles.model; --model and --thinking win; a second provider or a bad value refuses", async () => {
+test("the role's model, thinking and quick model come from roles.model; --model and --thinking win; a second provider or a bad value refuses", async () => {
 	const { root, home } = repository();
 	const names = registry();
-	names.provide("orchestration", "roles.model", (role: string) => (role === "worker" ? { model: "anthropic/opus", thinking: "high" } : undefined));
+	names.provide("orchestration", "roles.model", (role: string) => (role === "worker" ? { model: "anthropic/opus", thinking: "high", quick: "anthropic/haiku" } : undefined));
 	const jobs = withReviewer(root, home, [], names);
 	const worker = await jobs.spawn({ task: "Go." });
-	assert.deepEqual([worker.model, worker.thinking], ["anthropic/opus", "high"]);
-	assert.deepEqual(["model", "thinking"].map((key) => readFileSync(join(home, "jobs", worker.id, key), "utf8")), ["anthropic/opus", "high"]);
+	assert.deepEqual([worker.model, worker.thinking, worker.quick], ["anthropic/opus", "high", "anthropic/haiku"]);
+	assert.deepEqual(["model", "thinking", "quick"].map((key) => readFileSync(join(home, "jobs", worker.id, key), "utf8")), ["anthropic/opus", "high", "anthropic/haiku"]);
 	const chosen = await jobs.spawn({ task: "Go.", model: "anthropic/sonnet", thinking: "low" });
 	assert.deepEqual([chosen.model, chosen.thinking], ["anthropic/sonnet", "low"]);
 	const review = await jobs.spawn({ task: "Review it.", kind: "review" });
-	assert.deepEqual([review.model, review.thinking], [undefined, undefined]);
+	assert.deepEqual([review.model, review.thinking, review.quick], [undefined, undefined, undefined]);
+	assert.equal(readFileSync(join(home, "jobs", review.id, "quick"), "utf8"), "");
 
 	const other = repository();
 	const twice = registry();
@@ -176,6 +177,11 @@ test("the role's model and thinking come from roles.model; --model and --thinkin
 	bad.provide("orchestration", "roles.model", () => ({ model: 3 }));
 	await assert.rejects(runner(other.root, other.home, bad).spawn({ task: "Go." }), {
 		message: "roles.model: the model of role worker must be a non-empty string or undefined",
+	});
+	const quick = registry();
+	quick.provide("orchestration", "roles.model", () => ({ quick: "" }));
+	await assert.rejects(runner(other.root, other.home, quick).spawn({ task: "Go." }), {
+		message: "roles.model: the quick model of role worker must be a non-empty string or undefined",
 	});
 	nothingMade(other.root, other.home);
 });
@@ -203,7 +209,7 @@ const CONFIG = `export default { plugins: [{ name: "orchestration", setup(host) 
 	host.jobs.registerRole({ name: "reviewer", file: new URL("./reviewer.md", import.meta.url), criteria: ["styleguide", "review", "policy"] });
 	host.jobs.registerKind({ name: "review", readOnly: true, role: "reviewer" });
 	host.jobs.registerRole({ name: "auditor", file: new URL("./auditor.md", import.meta.url), criteria: ["audit"] });
-	host.provide("roles.model", (role) => (role === "reviewer" ? { model: "anthropic/sonnet", thinking: "medium" } : undefined));
+	host.provide("roles.model", (role) => (role === "reviewer" ? { model: "anthropic/sonnet", thinking: "medium", quick: "anthropic/haiku" } : undefined));
 } }] };
 `;
 
@@ -226,17 +232,17 @@ test("arthur roles prints each role, its model, and the files it reads in the ma
 	assert.equal(
 		run.stdout,
 		[
-			"worker: model the agent's default, thinking the agent's default; kinds worker; from core",
+			"worker: model the agent's default, thinking the agent's default, quick model the agent's default; kinds worker; from core",
 			`  role     ${WORKER_FILE}`,
 			`  override ${ROLES}/worker.md`,
 			`  criteria ${CRITERIA}/styleguide.md`,
-			"reviewer: model anthropic/sonnet, thinking medium; kinds review; from orchestration",
+			"reviewer: model anthropic/sonnet, thinking medium, quick model anthropic/haiku; kinds review; from orchestration",
 			`  role     ${join(root, "reviewer.md")}`,
 			`  override ${ROLES}/reviewer.md  none`,
 			`  criteria ${CRITERIA}/styleguide.md`,
 			`  criteria ${CRITERIA}/review.md  empty: adds nothing`,
 			`  criteria ${CRITERIA}/policy.md  a symlink: never read, a spawn is refused`,
-			"auditor: model the agent's default, thinking the agent's default; kinds none; from orchestration",
+			"auditor: model the agent's default, thinking the agent's default, quick model the agent's default; kinds none; from orchestration",
 			`  role     ${join(root, "auditor.md")}  missing: a spawn is refused`,
 			`  override ${ROLES}/auditor.md  none`,
 			`  criteria ${CRITERIA}/audit.md  missing: a spawn warns and starts without it`,

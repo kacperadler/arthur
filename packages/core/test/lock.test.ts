@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { setImmediate } from "node:timers/promises";
 import { test } from "node:test";
-import { takeLock, withLock } from "../src/lock.ts";
+import { queueLock, takeLock, withLock } from "../src/lock.ts";
 import { temporaryFolder } from "../src/testing.ts";
 
 // A lock file as a holder that crashed in this boot left it: its pid, then the boot where the system names one.
@@ -50,6 +51,31 @@ test("a folder at the lock's path, as `arthur continue` left its `continuing` be
 	assert.ok("release" in lock, "taken");
 	assert.equal(readFileSync(path, "utf8").split(" ")[0], String(process.pid));
 	lock.release();
+	assert.deepEqual(readdirSync(folder), []);
+});
+
+test("queueLock waits its turn behind a holder in this same process; each release removes the lock once; a holder past the wait is named", async () => {
+	const folder = temporaryFolder();
+	const path = join(folder, "spawn.lock");
+	const first = await queueLock(path);
+	let taken = false;
+	const second = queueLock(path).then((release) => {
+		taken = true;
+		return release;
+	});
+	await setImmediate();
+	assert.equal(taken, false, "the second waits while the first holds it");
+	first();
+	const release = await second;
+	// The first's second call comes after the second took the lock, whatever inode it got: the lock stays.
+	first();
+	assert.deepEqual(readdirSync(folder), ["spawn.lock"]);
+	release();
+	assert.deepEqual(readdirSync(folder), []);
+	const held = takeLock(path);
+	// The wait is what is tested: 50 ms of the real clock.
+	await assert.rejects(queueLock(path, 50), { message: `${path}: held by pid ${process.pid} for over 0.05 s` });
+	if ("release" in held) held.release();
 	assert.deepEqual(readdirSync(folder), []);
 });
 

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { setImmediate } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
 import { clock } from "../src/clock.ts";
@@ -151,10 +152,28 @@ test("a beforeSpawn reason, or a check that throws, refuses with the plugin's na
 	await assert.rejects(jobs.spawn({ task: "Too late.", model: "m" }), { message: "refused by session: restart due: abc1234" });
 	await assert.rejects(jobs.spawn({ task: "Let it crash." }), { message: "plugin resources: beforeSpawn failed: no machine check yet" });
 	nothingMade(root, home);
-	const spawn = { task: "Too late.", kind: "worker", project: "acme", model: "m", thinking: undefined, timeoutMinutes: 120, budgetUsd: 2, tickets: [], machine: "local" };
+	const spawn = { task: "Too late.", kind: "worker", project: "acme", model: "m", thinking: undefined, quick: undefined, timeoutMinutes: 120, budgetUsd: 2, tickets: [], machine: "local" };
 	assert.deepEqual(seen[0], spawn);
 	await jobs.spawn({ task: "Go." });
 	assert.equal(seen.length, 3);
+});
+
+test("two spawns at once take turns from their checks to their record, so a check counting jobs sees the first; a refusal frees the turn", async () => {
+	const { root, home } = repository();
+	const jobs = runner(home, root);
+	// A check that counts the records, as orchestration's `maxAgents` counts running jobs, and yields to the next turn of the
+	// event loop before it answers: without the turns, the second spawn's check runs then and counts none too.
+	jobs.beforeSpawn("orchestration", async () => {
+		const before = existsSync(join(home, "jobs")) ? readdirSync(join(home, "jobs")).filter((name) => !name.startsWith(".")).length : 0;
+		await setImmediate();
+		return before >= 1 ? `1 job already: ${readdirSync(join(home, "jobs")).join(", ")}` : undefined;
+	});
+	const [first, second] = await Promise.allSettled([jobs.spawn({ task: "One." }), jobs.spawn({ task: "Two." })]);
+	assert.equal(first.status, "fulfilled");
+	assert.equal(second.status, "rejected");
+	assert.match(String((second as PromiseRejectedResult).reason), /refused by orchestration: 1 job already: 2026-10-16-worker-[0-9a-f]{8}$/);
+	assert.deepEqual(readdirSync(home).filter((name) => name.startsWith("spawn.lock")), [], "no lock left");
+	await assert.rejects(jobs.spawn({ task: "Three." }), /refused by orchestration: 1 job already/);
 });
 
 test("prepare runs after the worktree and the record exist, before job-started; one that throws removes both", async () => {

@@ -1,9 +1,9 @@
 import { describe } from "@arthur/core";
 import type { OptionProblem, Options } from "@arthur/core/plugin";
 
-// The orchestration plugin's options (spec/roadmap.md, entry 23), checked before any setup: docs/commands/coordinator.md,
-// "Options". `maxAgents`, `roles`, `plan`, `autopilot` and `morningReport` are read by later entries (26, 28, 29, 65) and checked
-// here for their shape only; `coordinator` is this entry's, with its defaults applied by `coordinatorOptions`.
+// The orchestration plugin's options (spec/roadmap.md, entries 23 and 26), checked before any setup: docs/commands/coordinator.md,
+// "Options". `plan`, `autopilot` and `morningReport` are read by later entries (28, 29, 65) and checked here for their shape
+// only; `coordinator` is entry 23's, with its defaults applied by `coordinatorOptions`; `maxAgents` and `roles` are entry 26's.
 
 type Check = (value: unknown) => string | undefined;
 // An object of these keys, each left out or passing its check; a nested object is its own field list.
@@ -22,6 +22,11 @@ const thinking: Check = (value) => (typeof value === "string" && THINKING.includ
 const models: Check = (value) =>
 	text(value) === undefined || (Array.isArray(value) && value.length > 0 && value.every((each) => text(each) === undefined)) ? undefined : "a model name, or a non-empty list of them";
 const role: Fields = { model: models, thinking };
+// `roles.quick` is not a role: its one model is omp's quick model (`--smol`) for every job and the coordinator.
+export const QUICK = "quick";
+const quick: Fields = { model: text };
+// The most jobs in a run at once, across every project and machine, when `maxAgents` is left out: the harness Arthur replaces held 3.
+export const MAX_AGENTS = 3;
 
 const FIELDS: Fields = {
 	maxAgents: whole(1),
@@ -45,8 +50,8 @@ export function checkOptions(options: Options): OptionProblem[] {
 	const { roles } = options;
 	if (typeof roles === "object" && roles !== null && !Array.isArray(roles))
 		for (const [name, value] of Object.entries(roles)) {
-			if (/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(name)) checkObject(`roles.${name}.`, value, role, problems);
-			else problems.push({ path: `roles.${name}`, problem: "expected a role name of lowercase letters, digits and dashes" });
+			if (!/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(name)) problems.push({ path: `roles.${name}`, problem: "expected a role name of lowercase letters, digits and dashes" });
+			else checkObject(`roles.${name}.`, value, name === QUICK ? quick : role, problems);
 		}
 	return problems;
 }
@@ -69,10 +74,12 @@ function checkObject(path: string, value: unknown, fields: Fields, problems: Opt
 	}
 }
 
-// The coordinator's process, as `coordinator` sets it: the session `arthur` on tmux socket `arthur` by default.
+// The coordinator's process, as `coordinator` sets it: the session `arthur` on tmux socket `arthur` by default; `quick` is
+// `roles.quick.model`.
 export type Coordinator = {
 	readonly model?: string;
 	readonly thinking?: string;
+	readonly quick?: string;
 	readonly session: string;
 	readonly socket: string;
 	readonly exitWaitSeconds: number;
@@ -84,9 +91,16 @@ export function coordinatorOptions(options: Options): Coordinator {
 	return {
 		model: given.model,
 		thinking: given.thinking,
+		quick: roleOptions(options, QUICK).model as string | undefined,
 		session: given.tmux?.session ?? "arthur",
 		socket: given.tmux?.socket ?? "arthur",
 		exitWaitSeconds: given.exitWaitSeconds ?? 60,
 		restartDelaySeconds: given.restartDelaySeconds ?? 5,
 	};
+}
+
+// One entry of `roles`, checked; empty when it is not there.
+export function roleOptions(options: Options, name: string): { readonly model?: string | readonly string[]; readonly thinking?: string } {
+	const roles = (options.roles ?? {}) as Readonly<Record<string, { model?: string | readonly string[]; thinking?: string }>>;
+	return Object.hasOwn(roles, name) ? (roles[name] ?? {}) : {};
 }

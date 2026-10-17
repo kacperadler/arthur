@@ -12,6 +12,7 @@ import { newJob, writeRecord } from "./job-record.ts";
 import { type JobRecord, jobUpkeep } from "./job-records.ts";
 import { launchThere, syncMachines } from "./machine-sync.ts";
 import { pluginStep } from "./plugin.ts";
+import { spawnChecks } from "./spawn-check.ts";
 import { describeRoles, prompt, type Role, type RoleView, roleModel, roleRegistry } from "./roles.ts";
 import { launch, type Slice } from "./job-scope.ts";
 
@@ -46,13 +47,14 @@ export type SpawnRequest = {
 	readonly machine?: string;
 };
 
-// A spawn as `beforeSpawn` checks it: every `Ticket:` file the task names is in `tickets`, as written.
+// A spawn as `beforeSpawn` checks it: `tickets` holds every `Ticket:` file the task names, as written; `quick` is omp's `--smol`.
 export type Spawn = {
 	readonly task: string;
 	readonly kind: string;
 	readonly project: string;
 	readonly model: string | undefined;
 	readonly thinking: string | undefined;
+	readonly quick: string | undefined;
 	readonly timeoutMinutes: number;
 	readonly budgetUsd: number;
 	readonly tickets: readonly string[];
@@ -115,7 +117,7 @@ type Collect = (name: string, args: readonly unknown[]) => unknown[];
 export function jobRunner(home: string, folder: string, limits: Limits & Slice & { readonly idleMinutes: number; readonly offlineGraceMinutes: number }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
 	const kinds = new Map<string, { readonly owner: string; readonly kind: Kind }>();
 	const roles = roleRegistry();
-	const checks: { readonly owner: string; readonly check: SpawnCheck }[] = [];
+	const checks = spawnChecks(home);
 	const prepares: { readonly owner: string; readonly fn: Prepare }[] = [];
 	const machines = machineRegistry(home);
 	const upkeep = jobUpkeep(home, time, bus, (job) => collect("jobs.keep", [job]), machines.of);
@@ -135,12 +137,12 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 			kinds.set(kind.name, { owner, kind });
 		},
 		registerRole: (owner, role) => roles.register(owner, role),
-		beforeSpawn: (owner, check) => void checks.push({ owner, check }),
+		beforeSpawn: (owner, check) => checks.add(owner, check),
 		prepare: (owner, fn) => void prepares.push({ owner, fn }),
 		registerMachine: (owner, machine) => machines.register(owner, machine),
 		run: (machine, argv) => machines.run(machine, argv),
 		roles: (project) => describeRoles(roles, [...kinds.values()].map((entry) => entry.kind), checkout(folder, collect("projects", []), project).root, collect),
-		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (spawn) => checkSpawn({ ...spawn, tickets: taskTickets(spawn.task) }), machines.of(id)),
+		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (spawn) => checks.pass({ ...spawn, tickets: taskTickets(spawn.task) }), machines.of(id)),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
 			const kind = kinds.get(name)?.kind;
@@ -157,44 +159,42 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 			const preset = roleModel(collect, role.name);
 			const { task, model = preset.model, thinking = preset.thinking } = request;
 			const { timeoutMinutes, budgetUsd } = spawnLimits(request, kind, limits);
-			const asked = { task, kind: name, project, model, thinking, timeoutMinutes, budgetUsd, tickets };
+			const asked = { task, kind: name, project, model, thinking, quick: preset.quick, timeoutMinutes, budgetUsd, tickets };
 			const machine = await machines.pick(request.machine, () => collect("jobs.place", [asked]));
 			const spawn: Spawn = { ...asked, machine: machine.name };
-			await checkSpawn(spawn);
-			// The project's repository on another machine, where every step after this one runs over SSH; undefined on `local`.
-			const there = machine.name === LOCAL ? undefined : reach(machine, project, root, commit);
-			const job = newJob(home, time.local().date, spawn, root, commit, kind.readOnly, there ?? root);
-			if (there === undefined) addWorktree(root, job.worktree, commit, job.branch);
-			let [warnings, added] = [[] as string[], false];
+			const release = await checks.pass(spawn);
 			try {
-				// A worktree on another machine: the project's files the prompt reads come from the main checkout.
-				const built = prompt(role, there === undefined ? job.worktree : root, () => collect("prompt", [role.name, job]));
-				warnings = built.warnings;
-				const [resumeOnBudget, since] = [kind.resumeOnBudget === true, time.now()];
-				if (there !== undefined) addThere(machine, { job: { ...job, root: there }, prompt: built.prompt, resumeOnBudget, idleMinutes: limits.idleMinutes, since: since.toISOString() });
-				added = true;
-				writeRecord(home, job, built.prompt, resumeOnBudget, limits.idleMinutes, since, checkouts(collect("projects", [])));
-				for (const { owner, fn } of prepares) await pluginStep(owner, "prepare", () => fn(job));
-			} catch (error) {
-				if (there === undefined) removeWorktree(root, job.worktree, job.branch);
-				else if (added) removeThere(machine, job.id);
-				rmSync(join(home, "jobs", job.id), { recursive: true, force: true });
-				throw new Error(`${error instanceof Error ? error.message : String(error)}; the job's worktree and record were removed`);
+				// The project's repository on another machine, where every step after this one runs over SSH; undefined on `local`.
+				const there = machine.name === LOCAL ? undefined : reach(machine, project, root, commit);
+				const job = newJob(home, time.local().date, spawn, root, commit, kind.readOnly, there ?? root);
+				if (there === undefined) addWorktree(root, job.worktree, commit, job.branch);
+				let [warnings, added] = [[] as string[], false];
+				try {
+					// A worktree on another machine: the project's files the prompt reads come from the main checkout.
+					const built = prompt(role, there === undefined ? job.worktree : root, () => collect("prompt", [role.name, job]));
+					warnings = built.warnings;
+					const [resumeOnBudget, since] = [kind.resumeOnBudget === true, time.now()];
+					if (there !== undefined) addThere(machine, { job: { ...job, root: there }, prompt: built.prompt, resumeOnBudget, idleMinutes: limits.idleMinutes, since: since.toISOString() });
+					added = true;
+					writeRecord(home, job, built.prompt, resumeOnBudget, limits.idleMinutes, since, checkouts(collect("projects", [])));
+					release();
+					for (const { owner, fn } of prepares) await pluginStep(owner, "prepare", () => fn(job));
+				} catch (error) {
+					if (there === undefined) removeWorktree(root, job.worktree, job.branch);
+					else if (added) removeThere(machine, job.id);
+					rmSync(join(home, "jobs", job.id), { recursive: true, force: true });
+					throw new Error(`${error instanceof Error ? error.message : String(error)}; the job's worktree and record were removed`);
+				}
+				const { id, kind: kindName, branch, worktree } = job;
+				bus.emit("core", "job-started", { id, kind: kindName, project, root, branch, worktree, tickets, machine: machine.name });
+				const failed = there === undefined ? await launch(home, job, agent, limits, bus) : launchThere(home, machine, id, agent, limits.slice, bus);
+				return { ...job, warnings, failed };
+			} finally {
+				release();
 			}
-			const { id, kind: kindName, branch, worktree } = job;
-			bus.emit("core", "job-started", { id, kind: kindName, project, root, branch, worktree, tickets, machine: machine.name });
-			const failed = there === undefined ? await launch(home, job, agent, limits, bus) : launchThere(home, machine, id, agent, limits.slice, bus);
-			return { ...job, warnings, failed };
 		},
 	};
 	runner.registerKind("core", { name: "worker", readOnly: false, role: "worker" });
 	runner.registerRole("core", { name: "worker", file: new URL("../roles/worker.md", import.meta.url), criteria: ["styleguide"] });
 	return runner;
-
-	async function checkSpawn(spawn: Spawn): Promise<void> {
-		for (const { owner, check } of checks) {
-			const reason = await pluginStep(owner, "beforeSpawn", () => check(spawn));
-			if (reason !== undefined) throw new Error(`refused by ${owner}: ${reason}`);
-		}
-	}
 }

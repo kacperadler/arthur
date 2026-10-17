@@ -47,3 +47,4 @@ Out:
 - 2026-10-17: The human: start only once CI on GitHub is green (AR0099).
 - 2026-10-17: The human chose /arthur <name> <text> on Slack (the plan's Option 1).
 - 2026-10-17: Coordinator: F1 of AR0101 joins the follow-up edits: a `findings` row in the vision's plugin table, and `nvm` and `findings` boxes in `docs/architecture/core-and-plugins.mmd`.
+- 2026-10-17: The owner chose option B: the coordinator stays; a project with a `chat` gets its own agent; Discord and Slack later as channel plugins.

@@ -23,6 +23,7 @@ Can the owner merge this branch as it is? Judge the branch against its instructi
 - A plugin is tested against another real plugin instead of the fake host, or a fake of an outside service answers in a shape its documentation does not show.
 - A test uses a production resource name (tmux socket, systemd unit, bot, port, fixed `/tmp` path, a checkout's `.arthur/`) or leaves one behind.
 - Something can lose the owner's work: deleting worktrees, branches or job records without Git's own safety (`git worktree remove` without `--force`, `git branch -d`, not `-D`), or without being asked.
+- The owner's work leaks: a committed file (code, test, doc, ticket, plan, review, finding, commit message) names a real client, a project of the owner other than Arthur, its folder on a server, or what is built for it. Arthur's repository is public and is about Arthur alone; use made-up names (`acme`, `web-shop`) (the owner, 2026-10-17).
 - A secret can leak: a value in the config, a fixture or the code; a value printed in an error or a log; a job able to read `.env`.
 - Something listens on a public address, or a text that is not English reaches code, docs or the user.
 - Code beyond what the change needs, by the styleguide's Simplest solution.

@@ -837,8 +837,15 @@
   {
     "id": "AR0101",
     "title": "A diagram in the repository root of what Arthur is built from, built and not yet built",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0101-a-diagram-in-the-repository-root-of-what-arthur-is-built-from-built-and-not-yet-built/ticket.md",
-    "updated": "2026-10-17T13:29:02.056Z"
+    "updated": "2026-10-17T13:43:24.507Z"
+  },
+  {
+    "id": "AR0102",
+    "title": "The vision and the core-and-plugins diagram miss the `findings` and `nvm` plugins",
+    "status": "dropped",
+    "path": "spec/features/AR0102-the-vision-and-the-core-and-plugins-diagram-miss-the-findings-and-nvm-plugins/ticket.md",
+    "updated": "2026-10-17T13:43:32.178Z"
   }
 ]

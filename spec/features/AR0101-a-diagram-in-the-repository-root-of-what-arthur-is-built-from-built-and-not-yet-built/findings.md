@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `spec/vision.md:64` (the plugin table), `docs/architecture/core-and-plugins.mmd`
 - What: the roadmap plans a `findings` plugin (entry 83) and an `nvm` plugin (entry 84), both outside its Later section. The vision's plugin table names `nvm` but not `findings`. `docs/architecture/core-and-plugins.mmd` names neither. `arthur.mmd` shows both, so the three pictures of the plugin list disagree. AR0064 closed the same gap for `models`.
 - Suggestion: add a `findings` row to the vision's plugin table, and `nvm` and `findings` boxes to `core-and-plugins.mmd`. Leave the roadmap as it is.
-- Status: open
+- Status: ticket AR0102 (dropped 2026-10-17: folded into AR0098, which edits the vision and core-and-plugins.mmd)

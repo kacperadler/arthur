@@ -60,11 +60,8 @@ export function joinBoard(sections: readonly Section[], board: readonly Ticket[]
 			throw new Error(`spec/build.json: ${ticket.id} (${ticket.title}) names entry ${number}, which spec/roadmap.md does not have`);
 		}
 		const current = chosen.get(number);
-		if (ticket.status === "merged") {
-			if (current?.status !== "merged") chosen.set(number, ticket);
-		} else if (open(ticket) && (current === undefined || (open(current) && (ticket.updated ?? "") > (current.updated ?? "")))) {
-			chosen.set(number, ticket);
-		}
+		const newer = current === undefined || (open(current) && (ticket.updated ?? "") > (current.updated ?? ""));
+		if (ticket.status === "merged" || (open(ticket) && newer)) chosen.set(number, ticket);
 	}
 	return chosen;
 }

@@ -4,6 +4,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ## 2026-10-18
 
+### Added
+
+- AR0098 Plan: an agent per project with its own channel, and Discord and Slack channels (5cbfc1c)
+
 ### Other
 
 - AR0110 Roadmap 26: maxAgents and the models of each role (5dfeb7e)

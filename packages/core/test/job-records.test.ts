@@ -122,7 +122,7 @@ test("arthur prune frees a merged worker's worktree, branch and record, and keep
 	const dirty = await worker(jobs, home);
 	git(unmerged.worktree, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "--allow-empty", "-m", "work");
 	writeFileSync(join(dirty.worktree, "notes.txt"), "not committed\n");
-	const lines = jobs.prune([]);
+	const lines = jobs.prune("all");
 	assert.equal(lines.length, 3);
 	assert.ok(lines.includes(`${dirty.id}: kept its worktree, branch and record: git worktree: fatal: '${dirty.worktree}' contains modified or untracked files, use --force to delete it`), lines.join("\n"));
 	assert.ok(lines.includes(`${merged.id}: worktree ${merged.worktree} removed; branch arthur/${merged.id} deleted; record deleted`), lines.join("\n"));
@@ -163,12 +163,20 @@ test("arthur prune keeps a job that has not ended and a record a plugin's jobs.k
 	assert.deepEqual(jobs.prune([free.id]), [`${free.id}: worktree ${free.worktree} removed; branch arthur/${free.id} deleted; record deleted`]);
 });
 
+test("the runner's prune refuses an empty list and an empty id, and frees nothing: only \"all\" frees every finished job", async () => {
+	const { home, jobs } = setup();
+	const job = await worker(jobs, home);
+	assert.throws(() => jobs.prune([]), { message: 'prune needs one or more ids, or "all" for every finished job' });
+	assert.throws(() => jobs.prune([""]), { message: `: no such job in ${join(home, "jobs")}` });
+	assert.deepEqual([existsSync(join(home, "jobs", job.id)), existsSync(job.worktree)], [true, true]);
+});
+
 test("a plugin's jobs.keep that throws ends the prune with its error, and the job it was asked about keeps its record", async () => {
 	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }), () => {
 		throw new Error("delivery: the review limit is unreadable");
 	});
 	const job = await worker(jobs, home);
-	assert.throws(() => jobs.prune([]), { message: "delivery: the review limit is unreadable" });
+	assert.throws(() => jobs.prune("all"), { message: "delivery: the review limit is unreadable" });
 	assert.deepEqual([existsSync(join(home, "jobs", job.id)), existsSync(job.worktree)], [true, false]);
 });
 

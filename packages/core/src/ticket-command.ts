@@ -12,13 +12,18 @@ export function ticketCommand(board: () => Board): Command {
 		doc: new URL("../docs/commands/ticket.md", import.meta.url),
 		run({ args, project }) {
 			const [verb, ...rest] = args;
+			// An empty word is wrong usage in every verb, before the board is read.
+			if (rest.includes("")) {
+				console.error(USAGE);
+				return 2;
+			}
 			if (verb === "new" && rest.length > 0) {
 				const ticket = board().create(rest.join(" "), project);
 				console.log(`${ticket.id} ${ticket.path}`);
 				return 0;
 			}
 			const [id, status] = rest;
-			if (verb === "status" && id !== undefined && id !== "" && status !== undefined && status !== "" && rest.length === 2) {
+			if (verb === "status" && id !== undefined && status !== undefined && rest.length === 2) {
 				const ticket = board().move(id, status);
 				console.log(`${ticket.id} ${ticket.status}`);
 				return 0;

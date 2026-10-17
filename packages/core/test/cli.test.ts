@@ -179,11 +179,11 @@ test("arthur ticket: an empty board, wrong usage, and a config that does not loa
 	assert.match(arthur(folder, "ticket", "--help").stdout, /^# arthur ticket\n/);
 });
 
-test("arthur ticket status with an empty id or an empty status is refused with exit 2; the board is left as it was", () => {
+test("arthur ticket with an empty word, in new, status or after, is refused with exit 2; the board is left as it was", () => {
 	const folder = project(BOARD);
-	arthur(folder, "ticket", "new", "One");
+	for (const title of ["One", "Two"]) arthur(folder, "ticket", "new", title);
 	const before = arthur(folder, "board", "all").stdout;
-	for (const args of [["status", "", "planned"], ["status", "DM0001", ""]]) {
+	for (const args of [["status", "", "planned"], ["status", "DM0001", ""], ["new", ""], ["new", "Three", ""], ["after", "", "DM0001"], ["after", "DM0002", ""], ["after", "DM0002", "DM0001", ""]]) {
 		const run = arthur(folder, "ticket", ...args);
 		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket after <id> [<id>...]\n"], args.join(" "));
 	}

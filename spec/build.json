@@ -682,7 +682,10 @@
     "title": "/board, /task and /findings move into orchestration, with host.jobs.list()",
     "status": "planned",
     "path": "spec/features/AR0080-board-task-and-findings-move-into-orchestration-with-host-jobs-list/ticket.md",
-    "updated": "2026-10-16T15:40:37.562Z"
+    "updated": "2026-10-17T11:47:24.428Z",
+    "after": [
+      "AR0094"
+    ]
   },
   {
     "id": "AR0081",
@@ -766,7 +769,7 @@
     "title": "A project added while a job runs is guarded from that job at once",
     "status": "planned",
     "path": "spec/features/AR0092-a-project-added-while-a-job-runs-is-guarded-from-that-job-at-once/ticket.md",
-    "updated": "2026-10-17T11:47:23.934Z"
+    "updated": "2026-10-17T11:47:24.628Z"
   },
   {
     "id": "AR0093",
@@ -778,8 +781,8 @@
   {
     "id": "AR0094",
     "title": "Roadmap 23: The coordinator's process and arthur attach",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0094-roadmap-23-the-coordinator-s-process-and-arthur-attach/ticket.md",
-    "updated": "2026-10-17T11:47:23.943Z"
+    "updated": "2026-10-17T11:47:24.225Z"
   }
 ]

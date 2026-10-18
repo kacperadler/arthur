@@ -982,16 +982,16 @@
   {
     "id": "AR0120",
     "title": "Roadmap 25: the coordinator's context on every turn",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0120-roadmap-25-the-coordinator-s-context-on-every-turn/ticket.md",
-    "updated": "2026-10-18T10:31:22.765Z"
+    "updated": "2026-10-18T10:51:25.633Z"
   },
   {
     "id": "AR0121",
     "title": "Roadmap 27: job state in the coordinator and the channels",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0121-roadmap-27-job-state-in-the-coordinator-and-the-channels/ticket.md",
-    "updated": "2026-10-18T09:47:16.027Z",
+    "updated": "2026-10-18T10:51:57.181Z",
     "after": [
       "AR0120"
     ]
@@ -1023,9 +1023,9 @@
   {
     "id": "AR0125",
     "title": "Roadmap 31: Machines: placing a job by labels",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0125-roadmap-31-machines-placing-a-job-by-labels/ticket.md",
-    "updated": "2026-10-18T09:51:35.661Z",
+    "updated": "2026-10-18T10:56:18.417Z",
     "after": [
       "AR0124"
     ]
@@ -1035,7 +1035,7 @@
     "title": "Roadmap 32: Resources: caps per job",
     "status": "review",
     "path": "spec/features/AR0126-roadmap-32-resources-caps-per-job/ticket.md",
-    "updated": "2026-10-18T10:22:28.532Z"
+    "updated": "2026-10-18T10:56:32.680Z"
   },
   {
     "id": "AR0127",
@@ -1064,5 +1064,33 @@
     "status": "dropped",
     "path": "spec/features/AR0130-roadmap-30-names-npm-i-g-arthur-as-the-fix-for-a-machine-without-arthur-which-does-not-install-it/ticket.md",
     "updated": "2026-10-18T10:32:44.039Z"
+  },
+  {
+    "id": "AR0131",
+    "title": "Plan: mail and calendar plugins, and the way to the company edition",
+    "status": "planning",
+    "path": "spec/features/AR0131-plan-mail-and-calendar-plugins-and-the-way-to-the-company-edition/ticket.md",
+    "updated": "2026-10-18T10:46:48.131Z"
+  },
+  {
+    "id": "AR0132",
+    "title": "The context extension is proved against the fake agent only, not against real omp",
+    "status": "dropped",
+    "path": "spec/features/AR0132-the-context-extension-is-proved-against-the-fake-agent-only-not-against-real-omp/ticket.md",
+    "updated": "2026-10-18T10:51:34.184Z"
+  },
+  {
+    "id": "AR0133",
+    "title": "README and arthur.mmd still list entry 25 as not built",
+    "status": "dropped",
+    "path": "spec/features/AR0133-readme-and-arthur-mmd-still-list-entry-25-as-not-built/ticket.md",
+    "updated": "2026-10-18T10:51:34.380Z"
+  },
+  {
+    "id": "AR0134",
+    "title": "Roadmap: Discord as a first-version channel, and own apps over Tailscale",
+    "status": "planned",
+    "path": "spec/features/AR0134-roadmap-discord-as-a-first-version-channel-and-own-apps-over-tailscale/ticket.md",
+    "updated": "2026-10-18T10:59:53.031Z"
   }
 ]

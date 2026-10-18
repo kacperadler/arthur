@@ -166,19 +166,20 @@ export default defineConfig({
 			keepFree: { cpu: 1, memory: "2G", disk: "20G" },
 		}),
 
-		// The coordinator's one long conversation: compacted during the day, new every night, restarted when merged code
+		// The coordinator's one long conversation: compacted during the day, new every night, and new jobs held once merged code
 		// must load. Before a compaction or a fresh start the coordinator writes `.arthur/session/handoff.md` (work in
 		// progress, next steps, every unanswered question to the human with when it was asked), which the next conversation
 		// reads first; a failed write withdraws that compaction or try. Needs `orchestration`. The clock is core.timeZone.
-		// Built so far: compaction (35), the fresh start and `/restart` (36). `restartGuard` and `probeLlm` come with entries 37
-		// and 38; until then the plugin refuses them as unknown options.
+		// Built so far: compaction (35), the fresh start and `/restart` (36), the restart guard (37). `probeLlm` comes with
+		// entry 38; until then the plugin refuses it as an unknown option.
 		session({
 			compactAt: ["08:00", "13:00", "18:00"], // "HH:MM" each; [] = never; running jobs do not hold a compaction back
 			compactWaitSeconds: 1800, // wait this long for an idle session with nothing queued, then skip that compaction; at least 1
 			freshAt: "23:00", // "HH:MM"; a fresh conversation (no --continue), only once no job of any kind (worker, review, ...) runs
 			freshRetryMinutes: 15, // while a job runs, try again this often; a positive whole number; default 15
 			freshUntil: "03:00", // "HH:MM", the last try (the next day when earlier than freshAt); then that night is skipped
-			restartGuard: true, // refuse a spawn after a merge changed code the session loaded; the phone commands below clear it
+			restartGuard: true, // once a commit changed the code `arthur run` loaded, refuse every spawn and continue (unless
+			// --ignore-restart) until `arthur run` starts again; `/restart` restarts only the coordinator, so it does not clear it
 			probeLlm: true, // one word asked of the model at start; the channels say when there is no access
 			// Registers `arthur restart [fresh]` and the phone commands `/restart` and `/restart fresh`: answered without the model,
 			// refused while any job runs; after the handoff, one `Restarted.` notice with `.arthur/session/after-restart.md`.

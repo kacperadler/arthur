@@ -8,15 +8,16 @@ import { readEvents } from "../src/event-log.ts";
 import { fakeAgent, temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
-const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>] [--timeout <minutes>] [--budget <usd>] [--machine <name>] [--requires <labels>]";
+const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>] [--timeout <minutes>] [--budget <usd>] [--machine <name>] [--requires <labels>] [--ignore-restart]";
 
-// A plugin as a config holds it: it owns the kind `review` and its role, refuses a task that says "refuse", places a file in
-// every new worktree, failing on a task that says "break", and provides the repository as the one project, prefix AC.
+// A plugin as a config holds it: it owns the kind `review` and its role, refuses a task that says "refuse", and one that says
+// "stale" unless `--ignore-restart`, places a file in every new worktree, failing on a task that says "break", and provides the
+// repository as the one project, prefix AC.
 const CONFIG = `import { writeFileSync } from "node:fs";
 export default { core: { timeZone: "UTC", jobs: { budgetUsd: 3 } }, plugins: [{ name: "orchestration", setup(host) {
 	host.jobs.registerRole({ name: "reviewer", file: new URL("./reviewer.md", import.meta.url), criteria: [] });
 	host.jobs.registerKind({ name: "review", readOnly: true, role: "reviewer", timeoutMinutes: 15 });
-	host.jobs.beforeSpawn((spawn) => (spawn.task.includes("refuse") ? "maxAgents 3 reached" : undefined));
+	host.jobs.beforeSpawn((spawn) => (spawn.task.includes("refuse") ? "maxAgents 3 reached" : spawn.task.includes("stale") && !spawn.ignoreRestart ? "restart due: AC0001" : undefined));
 	host.jobs.prepare(async (job) => {
 		if (job.task.includes("break")) throw new Error("no hook");
 		writeFileSync(job.worktree + "/.placed", job.id);
@@ -119,6 +120,7 @@ test("refusals print the reason, exit 1 and leave no record, worktree or branch"
 	const head = git(root, "rev-parse", "--short=7", "HEAD");
 	for (const [args, reason] of [
 		[["Please refuse."], "refused by orchestration: maxAgents 3 reached"],
+		[["Go on stale code."], "refused by orchestration: restart due: AC0001"],
 		[["Go.", "--kind", "audit"], "unknown kind audit; kinds: review, worker"],
 		[["Ticket: spec/features/AC0001-one/new.md"], `Ticket: spec/features/AC0001-one/new.md: no such file at HEAD (${head}); commit it first`],
 		[["Go.", "--project", "other"], "unknown project other; projects: acme"],
@@ -132,6 +134,15 @@ test("refusals print the reason, exit 1 and leave no record, worktree or branch"
 	assert.equal(existsSync(join(dirname(root), ".arthur-worktrees")) && readdirSync(join(dirname(root), ".arthur-worktrees")).length > 0, false);
 	assert.equal(git(root, "branch", "--list"), "* main");
 	assert.deepEqual(readEvents(join(root, ".arthur"), 1), []);
+});
+
+test("--ignore-restart reaches the beforeSpawn checks as ignoreRestart, anywhere among the flags", () => {
+	const root = repository();
+	for (const args of [["Go on stale code.", "--ignore-restart"], ["--ignore-restart", "--kind", "review", "Go on stale code."]]) {
+		const run = arthur(root, "spawn", ...args);
+		assert.equal(run.status, 0, run.stderr);
+	}
+	assert.equal(jobs(root).length, 2);
 });
 
 test("wrong usage prints the usage line and exits 2", () => {

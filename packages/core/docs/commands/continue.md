@@ -1,10 +1,11 @@
 # arthur continue
 
-Usage: `arthur continue <id> <instruction> [--budget <usd>]`
+Usage: `arthur continue <id> <instruction> [--budget <usd>] [--ignore-restart]`
 
 Resumes a job that has a branch of its own, a worker for example, and is `ended` or `blocked` at the end of its run (see `arthur jobs --help`), in place, with one more instruction as one quoted argument, and prints `<id>: continued`; the job is named by its full id or its short id, as `arthur jobs` shows it. It keeps the id, the record, the branch and the worktree, and the agent continues its last session there: the wrapper starts again (see `arthur spawn --help`) and runs `<agent> --continue ... <instruction>` in place of `@<record>/task`. The instruction is in the record as `continue`, and the log says `arthur continue: <first line>`. Before the wrapper starts, the job moves to `working` and its reason is cleared, emitting `job-state`. `arthur continue` returns once the wrapper wrote its `pid`; `job-ended` comes again at the new end. A wrapper that does not start ends the job `ended`, reason `failed: <reason>`, as at a spawn (see `arthur spawn --help`), and `arthur continue` prints `<id>: failed: <reason>` on stderr and exits 1.
 
 - `--budget <usd>`: replaces the job's `budget`, a plain decimal of 0 or more (`0` is no limit). The record's `cost` counts on from the runs before, so a job that ended at its budget is stopped again at once without a higher one.
+- `--ignore-restart`: a switch, no value, as at `arthur spawn --help`: the session plugin's restart guard lets this continue start while a restart is due; every other check still applies.
 - The `timeout` stays the job's and counts from the new start.
 - Before the wrapper starts, `job-started` is emitted again as at a spawn, with the record's `id`, `kind`, `project`, `root`, `branch`, `worktree` and `tickets`: a worker's tickets in `review` or `done` move back to `in-progress`, one already there is not written, and other kinds move none (see `arthur spawn --help`).
 - `commits` at the end lists the branch's commits since the job's first `base`, every run's together; `result`, `tool-calls` and `activity` are the new run's.

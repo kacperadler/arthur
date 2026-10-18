@@ -1276,9 +1276,9 @@
   {
     "id": "AR0159",
     "title": "packages/session/test/restart.test.ts:204 fails now and then with \"Unexpected end of JSON input\"",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0159-packages-session-test-restart-test-ts-204-fails-now-and-then-with-unexpected-end-of-json-input/ticket.md",
-    "updated": "2026-10-18T23:45:12.550Z",
+    "updated": "2026-10-18T23:45:29.956Z",
     "after": [
       "AR0153"
     ]
@@ -1307,9 +1307,9 @@
   {
     "id": "AR0163",
     "title": "Roadmap 40: Registered entries and arthur schedule",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0163-roadmap-40-registered-entries-and-arthur-schedule/ticket.md",
-    "updated": "2026-10-18T23:42:35.546Z"
+    "updated": "2026-10-18T23:50:40.474Z"
   },
   {
     "id": "AR0164",

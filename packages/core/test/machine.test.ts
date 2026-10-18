@@ -42,8 +42,9 @@ const calls = () => (existsSync(sshLog) ? readFileSync(sshLog, "utf8").split("\n
 
 // A repository `acme` with one commit, a home folder beside it, and a machine `gpu` in a folder of its own whose `arthur` is
 // this core (`arthur` there: the script of `<machine>/bin/arthur`); the runner's plugin `machines` registers it, and `place`
-// answers its `jobs.place`, one answer per plugin that provides it. The runner's clock stands at `now.at`, which a test moves.
-function setup(options: { readonly agent?: string; readonly arthur?: string; readonly place?: () => readonly unknown[]; readonly slice?: Slice } = {}) {
+// answers its `jobs.place`, `caps` its `jobs.limits`, one answer per plugin that provides it. The runner's clock stands at
+// `now.at`, which a test moves.
+function setup(options: { readonly agent?: string; readonly arthur?: string; readonly place?: () => readonly unknown[]; readonly caps?: () => readonly unknown[]; readonly slice?: Slice } = {}) {
 	rmSync(sshLog, { force: true });
 	const folder = temporaryFolder();
 	const root = join(folder, "acme");
@@ -58,7 +59,7 @@ function setup(options: { readonly agent?: string; readonly arthur?: string; rea
 	const there = join(machine, "arthur-home");
 	const now = { at: new Date("2026-10-16T12:00:00Z") };
 	const time = clock("UTC", undefined, () => now.at);
-	const collect = (name: string) => (name === "jobs.place" ? [...(options.place?.() ?? [])] : []);
+	const collect = (name: string) => (name === "jobs.place" ? [...(options.place?.() ?? [])] : name === "jobs.limits" ? [...(options.caps?.() ?? [])] : []);
 	const limits = { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...(options.slice ?? jobSlice) };
 	const jobs = jobRunner(home, root, limits, options.agent ?? "omp", time, eventBus(home), collect);
 	jobs.registerMachine("machines", { name: "gpu", ssh: "gpu", home: there, labels: { os: "linux" } });
@@ -328,6 +329,17 @@ test("a job there gets the machine's own joint limit, not this config's", { skip
 	const show = (property: string) => execFileSync("systemctl", ["--user", "show", `${jobSlice.slice}.slice`, "-p", property, "--value"], { encoding: "utf8" }).trim();
 	assert.equal(show("CPUQuotaPerSecUSec"), `${Math.max(1, availableParallelism() - 1)}s`);
 	assert.ok(Math.abs(Number(show("MemoryMax")) / totalmem() - 0.7) < 0.01, `MemoryMax ${show("MemoryMax")} of ${totalmem()}`);
+});
+
+test("a job with caps on a machine without a user manager runs bare there with its caps, the machine told once here, by name", async () => {
+	const { home, there, machine, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Done." }] }), caps: () => [{ cpu: 2, memory: "1G" }] });
+	writeFileSync(join(machine, "bin/systemctl"), "#!/bin/sh\necho 'Failed to connect to bus: No medium found' >&2\nexit 1\n", { mode: 0o755 });
+	const [first, second] = [await jobs.spawn({ task: "Go.", machine: "gpu" }), await jobs.spawn({ task: "Go.", machine: "gpu" })];
+	assert.deepEqual([first.failed, second.failed], [undefined, undefined]);
+	assert.deepEqual(["cpu", "memory"].map((name) => read(there, second.id, name)), ["2", "1G"]);
+	assert.match(read(there, second.id, "log"), /no systemd scope: Failed to connect to bus: No medium found; the job runs bare/);
+	const text = "machine gpu runs jobs without a systemd scope (Failed to connect to bus: No medium found): a job's memory cap there is held by sampling its processes every 10 s, and its CPU is not capped";
+	assert.deepEqual(events(home, "notice"), [{ text }]);
 });
 
 test("a copy brings only the log's new bytes, appended here; arthur remote-job records sends the log from the byte asked", async () => {

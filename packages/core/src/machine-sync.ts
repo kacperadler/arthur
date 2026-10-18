@@ -2,6 +2,7 @@ import { appendFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import type { Bus } from "./events.ts";
 import { gitOver, type Machine, ssh, url } from "./job-machine.ts";
+import { sayUncapped, UNCAPPED } from "./job-scope.ts";
 import { current, field, inRun, jobIds, moveJob, type State, write } from "./job-state.ts";
 
 // The sweep's copy of the records of jobs on another machine (spec/roadmap.md, entries 21 and 22), and what a machine that
@@ -100,8 +101,15 @@ function unreachable(home: string, machine: Machine, bus: Bus, at: Date, graceMi
 // Starts the job's wrapper there in its own scope of the slice `slice`, whose limit is the machine's own; returns why it did
 // not start, which ended the job there and, by a copy at once, here.
 export function launchThere(home: string, machine: Machine, id: string, agent: string, slice: string, bus: Bus): string | undefined {
-	const failed = ssh(machine, ["arthur", "remote-job", "launch", machine.home, id, agent, slice]).trim();
-	if (failed === "") return undefined;
-	syncMachine(home, machine, bus);
+	const failed = launched(home, machine, ssh(machine, ["arthur", "remote-job", "launch", machine.home, id, agent, slice]), bus);
+	if (failed !== undefined) syncMachine(home, machine, bus);
 	return failed;
+}
+
+// What `arthur remote-job launch` or `continue` printed: a line `uncapped: <why>` is told here once per machine, the rest is
+// why the wrapper did not start, nothing once it started.
+export function launched(home: string, machine: Machine, printed: string, bus: Bus): string | undefined {
+	const lines = printed.trim().split("\n");
+	for (const line of lines) if (line.startsWith(UNCAPPED)) sayUncapped(home, machine.name, line.slice(UNCAPPED.length), bus);
+	return lines.filter((line) => !line.startsWith(UNCAPPED)).join("\n").trim() || undefined;
 }

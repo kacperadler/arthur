@@ -989,9 +989,9 @@
   {
     "id": "AR0121",
     "title": "Roadmap 27: job state in the coordinator and the channels",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0121-roadmap-27-job-state-in-the-coordinator-and-the-channels/ticket.md",
-    "updated": "2026-10-18T10:51:57.181Z",
+    "updated": "2026-10-18T11:31:14.277Z",
     "after": [
       "AR0120"
     ]
@@ -1023,9 +1023,9 @@
   {
     "id": "AR0125",
     "title": "Roadmap 31: Machines: placing a job by labels",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0125-roadmap-31-machines-placing-a-job-by-labels/ticket.md",
-    "updated": "2026-10-18T10:56:18.417Z",
+    "updated": "2026-10-18T11:08:30.028Z",
     "after": [
       "AR0124"
     ]
@@ -1033,9 +1033,9 @@
   {
     "id": "AR0126",
     "title": "Roadmap 32: Resources: caps per job",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0126-roadmap-32-resources-caps-per-job/ticket.md",
-    "updated": "2026-10-18T10:56:32.680Z"
+    "updated": "2026-10-18T12:33:48.852Z"
   },
   {
     "id": "AR0127",
@@ -1092,5 +1092,19 @@
     "status": "planned",
     "path": "spec/features/AR0134-roadmap-discord-as-a-first-version-channel-and-own-apps-over-tailscale/ticket.md",
     "updated": "2026-10-18T10:59:53.031Z"
+  },
+  {
+    "id": "AR0135",
+    "title": "The inbox drops a new message whose event number an old one had, after the event log is cut by hand",
+    "status": "planning",
+    "path": "spec/features/AR0135-the-inbox-drops-a-new-message-whose-event-number-an-old-one-had-after-the-event-log-is-cut-by-hand/ticket.md",
+    "updated": "2026-10-18T11:31:14.273Z"
+  },
+  {
+    "id": "AR0136",
+    "title": "A flaky test that fails GitHub CI now and then is found and fixed",
+    "status": "in-progress",
+    "path": "spec/features/AR0136-a-flaky-test-that-fails-github-ci-now-and-then-is-found-and-fixed/ticket.md",
+    "updated": "2026-10-18T12:19:17.717Z"
   }
 ]

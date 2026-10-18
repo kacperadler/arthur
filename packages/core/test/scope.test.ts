@@ -9,8 +9,8 @@ import { clock } from "../src/clock.ts";
 import { loadConfig } from "../src/config.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
-import type { Slice } from "../src/job-scope.ts";
-import { jobRunner } from "../src/jobs.ts";
+import type { Caps, Slice } from "../src/job-scope.ts";
+import { jobRunner, type Spawn } from "../src/jobs.ts";
 import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
 
 // Every job here runs in the kit's slice, `jobSlice`, never Arthur's own, and the kit removes it when the process exits.
@@ -19,8 +19,9 @@ const needsManager = { skip: !manager && "no systemd user manager" };
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 const show = (unit: string, property: string) => execFileSync("systemctl", ["--user", "show", unit, "-p", property, "--value"], { encoding: "utf8" }).trim();
 
-// A repository `acme`, a home folder beside it, and a runner whose agent is `agent`, its jobs in `slice`.
-function setup(agent: string, slice: Slice = jobSlice) {
+// A repository `acme`, a home folder beside it, and a runner whose agent is `agent`, its jobs in `slice`; `caps` answers each
+// spawn's `jobs.limits`, one answer per plugin that provides it.
+function setup(agent: string, slice: Slice = jobSlice, caps: (spawn: Spawn) => readonly Caps[] = () => []) {
 	const folder = temporaryFolder();
 	const root = join(folder, "acme");
 	mkdirSync(root);
@@ -30,7 +31,8 @@ function setup(agent: string, slice: Slice = jobSlice) {
 	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "first");
 	const home = join(folder, "home");
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
-	return { home, jobs: jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...slice }, agent, time, eventBus(home), () => []) };
+	const collect = (name: string, [spawn]: readonly unknown[]) => (name === "jobs.limits" ? [...caps(spawn as Spawn)] : []);
+	return { home, jobs: jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...slice }, agent, time, eventBus(home), collect) };
 }
 
 async function until<T>(what: string, predicate: () => T | undefined): Promise<T> {
@@ -118,12 +120,8 @@ test("a record deleted while the job runs kills the daemon its agent forked as w
 	assert.ok(!running(pid), `the daemon ${pid} still runs`);
 });
 
-test("without a user manager the job runs bare, its log saying so in one line, and ends as usual", async (t) => {
-	const saved = { XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR, DBUS_SESSION_BUS_ADDRESS: process.env.DBUS_SESSION_BUS_ADDRESS };
-	t.after(() => Object.assign(process.env, saved));
-	// No bus to reach: as in a container, and as on macOS, where `systemctl` is missing.
-	process.env.XDG_RUNTIME_DIR = temporaryFolder();
-	delete process.env.DBUS_SESSION_BUS_ADDRESS;
+test("without a user manager the job runs bare, its log saying so in one line, and ends as usual; without caps nothing more is told", async (t) => {
+	noManager(t);
 	const gate = join(temporaryFolder(), "gate");
 	const { home, jobs } = setup(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }));
 	const job = await jobs.spawn({ task: "Go." });
@@ -135,6 +133,7 @@ test("without a user manager the job runs bare, its log saying so in one line, a
 	const line = /^\[arthur [^\]]+\] no systemd scope: [^\n]+; the job runs bare, without the joint limit of core\.jobs\.cpu and core\.jobs\.memory, and what it leaves behind is not killed at its end\n\[arthur [^\]]+\] agent: /;
 	assert.match(log, line);
 	assert.equal(log.match(/no systemd scope/g)?.length, 1, log);
+	assert.deepEqual(readEvents(home, 1).filter((event) => event.name === "notice"), []);
 });
 
 // A folder on `PATH` until the test ends, first, or `alone`: a `systemctl` that sets any slice, and each script of `scripts`
@@ -190,4 +189,100 @@ test("a wrapper that writes no pid within 10 s is killed, and the job ends faile
 	const end = await endedAtSpawn(() => "the wrapper wrote no pid within 10 s and was killed");
 	assert.ok(end - start >= 10_000, `ended after ${end - start} ms`);
 	assert.equal(running(Number(read(noted))), false, "the sleep it ran is gone");
+});
+
+// No user manager to reach until the test ends: as in a container, and as on macOS, where `systemctl` is missing.
+function noManager(t: TestContext): void {
+	const saved = { XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR, DBUS_SESSION_BUS_ADDRESS: process.env.DBUS_SESSION_BUS_ADDRESS };
+	t.after(() => Object.assign(process.env, saved));
+	process.env.XDG_RUNTIME_DIR = temporaryFolder();
+	delete process.env.DBUS_SESSION_BUS_ADDRESS;
+}
+
+// An agent that, while the file `on()` names exists, removes it and starts `node` holding `mb` MB in its own process group,
+// which notes its pid in `hog` once it holds them; then it plays `run` as the fake agent.
+function hogging(mb: number, run: AgentRun): { readonly agent: string; readonly on: string; readonly hog: string } {
+	const folder = temporaryFolder();
+	const [on, hog] = [join(folder, "on"), join(folder, "hog")];
+	const code = `const a = []; for (let i = 0; i < ${mb}; i += 16) a.push(Buffer.alloc(16 << 20, 1)); require("fs").writeFileSync("${hog}", String(process.pid)); setInterval(() => a.length, 1000);`;
+	const script = ["#!/bin/sh", `if [ -e '${on}' ]; then rm '${on}'; '${process.execPath}' -e '${code}' & fi`, `exec '${fakeAgent(run)}' "$@"`];
+	writeFileSync(join(folder, "omp"), `${script.join("\n")}\n`, { mode: 0o755 });
+	return { agent: join(folder, "omp"), on, hog };
+}
+
+// The reason job `id` ended with, once its record says it ended.
+const endedWith = (home: string, id: string) => until(`${id}'s end`, () => read(join(home, "jobs", id, "state")) === "ended" && read(join(home, "jobs", id, "reason")));
+
+test("a job's own caps go on its scope: its CPUQuota, at most the machine's cores, and its MemoryMax with no swap", needsManager, async () => {
+	const gate = join(temporaryFolder(), "gate");
+	const cores = availableParallelism();
+	const { home, jobs } = setup(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }), jobSlice, (spawn) => [spawn.task === "Small." ? { cpu: 0.5, memory: "300M" } : { cpu: cores + 2 }]);
+	const [small, large] = [await jobs.spawn({ task: "Small." }), await jobs.spawn({ task: "Large." })];
+	await until("both wrappers", () => [small, large].every((job) => read(join(home, "jobs", job.id, "pid")) !== undefined));
+	const unit = (id: string) => `arthur-job-${id}.scope`;
+	assert.deepEqual(["CPUQuotaPerSecUSec", "MemoryMax", "MemorySwapMax"].map((property) => show(unit(small.id), property)), ["500ms", String(300 * 2 ** 20), "0"]);
+	assert.deepEqual(["CPUQuotaPerSecUSec", "MemoryMax"].map((property) => show(unit(large.id), property)), [`${cores}s`, "infinity"]);
+	assert.deepEqual([read(join(home, "jobs", small.id, "cpu")), read(join(home, "jobs", small.id, "memory"))], ["0.5", "300M"]);
+	writeFileSync(gate, "");
+	for (const job of [small, large]) assert.equal(await endedWith(home, job.id), "finished", "CPU over its cap is slowed, not stopped");
+});
+
+test("with no plugin providing jobs.limits a job's scope has no cap of its own: the joint slice is its only limit", needsManager, async () => {
+	const gate = join(temporaryFolder(), "gate");
+	const { home, jobs } = setup(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }));
+	const job = await jobs.spawn({ task: "Go." });
+	await until("the wrapper", () => read(join(home, "jobs", job.id, "pid")));
+	assert.deepEqual(["CPUQuotaPerSecUSec", "MemoryMax"].map((property) => show(`arthur-job-${job.id}.scope`, property)), ["infinity", "infinity"]);
+	writeFileSync(gate, "");
+	assert.equal(await endedWith(home, job.id), "finished");
+});
+
+test("two plugins that provide jobs.limits refuse the spawn before anything exists", async () => {
+	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }), jobSlice, () => [{}, {}]);
+	await assert.rejects(jobs.spawn({ task: "Go." }), { message: 'call("jobs.limits"): provided by 2 plugins; call needs exactly one' });
+	assert.equal(existsSync(join(home, "jobs")), false);
+});
+
+test("a job over its memory cap ends limit: memory, and another job with a cap keeps running", needsManager, async () => {
+	const gate = join(temporaryFolder(), "gate");
+	const { agent, on } = hogging(640, { steps: [{ waitFor: gate }, { message: "Done." }] });
+	const { home, jobs } = setup(agent, jobSlice, () => [{ memory: "300M" }]);
+	writeFileSync(on, "");
+	const hog = await jobs.spawn({ task: "Hog." });
+	const other = await jobs.spawn({ task: "Go." });
+	assert.equal(await endedWith(home, hog.id), "limit: memory: the job went over its memory cap of 300M");
+	assert.match(readFileSync(join(home, "jobs", hog.id, "log"), "utf8"), /limit: memory: stopping the agent/);
+	assert.equal(readFileSync(join(home, "jobs", other.id, "state"), "utf8"), "working");
+	assert.ok(running(Number(read(join(home, "jobs", other.id, "pid")))), "the other job's wrapper runs on");
+	writeFileSync(gate, "");
+	assert.equal(await endedWith(home, other.id), "finished");
+});
+
+test("without a user manager a job over its memory cap is stopped within one 10 s sample, and the machine is told once", async (t) => {
+	noManager(t);
+	const gate = join(temporaryFolder(), "gate");
+	const { agent, on, hog } = hogging(640, { steps: [{ waitFor: gate }, { message: "Done." }] });
+	const { home, jobs } = setup(agent, jobSlice, () => [{ cpu: 1, memory: "300M" }]);
+	writeFileSync(on, "");
+	const job = await jobs.spawn({ task: "Hog." });
+	const pid = Number(await until("the hog holding its memory", () => read(hog)));
+	const held = Date.now();
+	assert.equal(await endedWith(home, job.id), "limit: memory: the job went over its memory cap of 300M");
+	assert.ok(Date.now() - held < 12_000, `stopped ${Date.now() - held} ms after it held the memory`);
+	assert.equal(running(pid), false, "the hog is stopped with the agent");
+	writeFileSync(gate, "");
+	const next = await jobs.spawn({ task: "Go." });
+	assert.equal(await endedWith(home, next.id), "finished");
+	const notices = readEvents(home, 1).filter((event) => event.name === "notice").map((event) => event.data);
+	assert.equal(notices.length, 1, JSON.stringify(notices));
+	assert.match(JSON.stringify(notices[0]), /^\{"text":"machine local runs jobs without a systemd scope \(.+\): a job's memory cap there is held by sampling its processes every 10 s, and its CPU is not capped"\}$/);
+});
+
+test("a systemd older than 253, which takes no OOMPolicy on a scope, gets the memory cap without it", async (t) => {
+	const args = join(temporaryFolder(), "args");
+	onPath(t, { systemctl: '[ "$1" = --version ] && echo "systemd 249 (249.11-0ubuntu3)"; exit 0', "systemd-run": `printf '%s\\n' "$@" > '${args}'; exit 1` });
+	const { jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }), jobSlice, () => [{ memory: "300M" }]);
+	await jobs.spawn({ task: "Go." });
+	const given = readFileSync(args, "utf8").split("\n");
+	assert.deepEqual(given.slice(given.indexOf("-p"), given.indexOf("--")), ["-p", "MemoryMax=300M", "-p", "MemorySwapMax=0"]);
 });

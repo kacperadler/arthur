@@ -984,7 +984,7 @@
     "title": "Roadmap 25: the coordinator's context on every turn",
     "status": "review",
     "path": "spec/features/AR0120-roadmap-25-the-coordinator-s-context-on-every-turn/ticket.md",
-    "updated": "2026-10-18T10:07:18.958Z"
+    "updated": "2026-10-18T10:17:12.603Z"
   },
   {
     "id": "AR0121",
@@ -1016,9 +1016,9 @@
   {
     "id": "AR0124",
     "title": "Roadmap 30: Machines: the list, labels, and SSH checks",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0124-roadmap-30-machines-the-list-labels-and-ssh-checks/ticket.md",
-    "updated": "2026-10-18T09:51:44.314Z"
+    "updated": "2026-10-18T10:17:28.065Z"
   },
   {
     "id": "AR0125",
@@ -1035,7 +1035,7 @@
     "title": "Roadmap 32: Resources: caps per job",
     "status": "in-progress",
     "path": "spec/features/AR0126-roadmap-32-resources-caps-per-job/ticket.md",
-    "updated": "2026-10-18T09:59:44.028Z"
+    "updated": "2026-10-18T10:17:59.631Z"
   },
   {
     "id": "AR0127",
@@ -1043,5 +1043,12 @@
     "status": "planned",
     "path": "spec/features/AR0127-roadmap-a-silent-mode-for-the-coordinator-in-the-channels/ticket.md",
     "updated": "2026-10-18T10:06:06.939Z"
+  },
+  {
+    "id": "AR0128",
+    "title": "Plan: releases, installing, and updating Arthur",
+    "status": "planning",
+    "path": "spec/features/AR0128-plan-releases-installing-and-updating-arthur/ticket.md",
+    "updated": "2026-10-18T10:18:34.875Z"
   }
 ]

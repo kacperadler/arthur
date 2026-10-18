@@ -6,7 +6,7 @@ Arthur is in development. A line that names a roadmap entry describes what that 
 
 ## Another machine for jobs
 
-A job can run on another machine, such as a Mac for an iOS build (`arthur spawn --machine <name>`, roadmap entries 21 and 22; the `machines` plugin of entry 30 lists them). Arthur reaches it only over SSH, as `ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 <host>`: never with a password, never accepting a host key it does not know, giving up after 10 seconds on a machine that does not answer. The machine runs the job's worktree, agent and guards through its own `arthur`; Arthur sends it no secret, only the task, the prompt and the commits. `arthur stop`, `steer`, `continue` and `prune` of its jobs run there too. It needs:
+A job can run on another machine, such as a Mac for an iOS build (`arthur spawn --machine <name>`, roadmap entries 21 and 22; the `machines` plugin of entry 30 declares and checks them). Arthur reaches it only over SSH, as `ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 <host>`: never with a password, never accepting a host key it does not know, giving up after 10 seconds on a machine that does not answer. The machine runs the job's worktree, agent and guards through its own `arthur`; Arthur sends it no secret, only the task, the prompt and the commits. `arthur stop`, `steer`, `continue` and `prune` of its jobs run there too. It needs:
 
 1. Node 24, git and OMP, logged in with its own credential (`omp login` there), as in steps 2 and 3 of [`setup.md`](setup.md).
 2. Arthur's core of the same version as here: clone and `npm ci` as in step 4 of [`setup.md`](setup.md), at the same commit, without a config. `arthur version` prints the version; both machines must print the same, or every spawn there is refused naming both. Update it there with every update here.
@@ -18,6 +18,7 @@ ssh -o BatchMode=yes -o StrictHostKeyChecking=yes <host> arthur version
 ```
 
 5. On Linux, linger there (`sudo loginctl enable-linger "$USER"`), so each job gets its scope as in step 10 of [`setup.md`](setup.md), in a slice limited to the machine's own cores minus one and 70% of its memory; without a user manager (macOS) a job runs bare.
+6. Here, the machine in the `list` of the `machines` plugin in `arthur.config.ts`, with its name, its `ssh` host, its `home` and its labels (see `arthur machines --help`); a host that resolves to a public address is refused at load. `arthur machines` then checks it at once: `online (<os> <arch>, arthur <version>)`, or `offline: <reason>; fix: <fix>`. `arthur run` checks it again at its start and every `check.everySeconds`.
 
 The machine's `home`, as registered, holds the job records (`<home>/jobs/`), each project's repository (`<home>/repos/<project>.git`, created on first use) and the job worktrees (`<home>/repos/.arthur-worktrees/`).
 

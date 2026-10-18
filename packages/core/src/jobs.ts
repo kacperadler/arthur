@@ -79,9 +79,9 @@ export type Jobs = {
 	// Runs after the worktree and the record exist and before the agent starts; a throw removes both and refuses the spawn. It
 	// runs in this process: for a job on another machine (`job.machine`) it acts there through `run`.
 	prepare(fn: Prepare): void;
-	// A machine jobs may run on over SSH (job-machine.ts); `local` is the core's. `run` runs one command on one (docs/commands/spawn.md).
+	// A machine jobs may run on over SSH (job-machine.ts); `local` is the core's. `run`: one command on one (docs/commands/spawn.md).
 	registerMachine(machine: Machine): void;
-	run(machine: string, argv: readonly string[]): Promise<Ran>;
+	run(machine: string, argv: readonly string[], limitSeconds?: number): Promise<Ran>;
 	spawn(request: SpawnRequest): Promise<Started>;
 	// Holds a job in a run `blocked` on `dependency: <reason>` whatever its activity; `unblock` lets it go (docs/commands/jobs.md).
 	block(id: string, reason: string): void;
@@ -140,7 +140,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 		beforeSpawn: (owner, check) => checks.add(owner, check),
 		prepare: (owner, fn) => void prepares.push({ owner, fn }),
 		registerMachine: (owner, machine) => machines.register(owner, machine),
-		run: (machine, argv) => machines.run(machine, argv),
+		run: (machine, argv, limitSeconds) => machines.run(machine, argv, limitSeconds),
 		roles: (project) => describeRoles(roles, [...kinds.values()].map((entry) => entry.kind), checkout(folder, collect("projects", []), project).root, collect),
 		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (spawn) => checks.pass({ ...spawn, tickets: taskTickets(spawn.task) }), machines.of(id)),
 		async spawn(request) {

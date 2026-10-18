@@ -31,7 +31,7 @@ machines({
 - `list`: the other machines, optional. Each entry has `name` (lowercase letters, digits and dashes, from a letter), `ssh` (a `Host` of `~/.ssh/config` or a Tailscale name, never an ssh option), `home` (Arthur's home folder there, an absolute path: its job records, repositories and worktrees), all required; `labels`, each optional: `os` (`linux` or `macos`), `arch` (as `uname -m` says it in Node's words: `x86_64` is `x64`, `aarch64` is `arm64`) and `tools` (a list of names, such as `xcode` or `docker`); and `maxJobs`, a whole number of 1 or more. Left out, `maxJobs` sets no limit of the machine's own; `maxAgents` of orchestration still counts every job.
 - `check.everySeconds`: how often `arthur run` checks every listed machine; default 60, at least 10.
 
-Each listed machine is registered with the core's job runner, with its labels, so `arthur spawn --machine <name>` runs a job there (see `arthur spawn --help`); placing a job by labels is roadmap entry 31.
+Each listed machine is registered with the core's job runner, with its labels, so `arthur spawn --machine <name>` runs a job there (see `arthur spawn --help`), and each job is placed by its labels (below).
 
 Refused at load, each refusal naming the machine and the option's path: a missing `name`, `ssh` or `home`; a name, ssh or home of another form; any other key; an `os` label other than `linux` or `macos`; a `tools` that is not a list of names; a `maxJobs` that is not a whole number of 1 or more; `os` or `arch` on `local`; a machine named `local`; two machines with one name; an `everySeconds` under 10. And a machine whose `ssh` resolves to a public address: the host name `ssh -G <ssh>` prints, or each address that name resolves to, must be private, which is loopback (`127.0.0.0/8`, `::1`), RFC 1918 (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`) or Tailscale (`100.64.0.0/10`, `fd7a:115c:a1e0::/48`): Arthur reaches its machines only over the private network. A name that does not resolve at load (Tailscale down) does not refuse it: its check says so.
 
@@ -55,6 +55,29 @@ The machine is online when all three pass. Otherwise it is offline, the reason o
 Each offline reason comes with its fix: `ssh-copy-id <ssh>` for a refused key; for a host key, compare `ssh-keyscan <ssh>` with the key the machine itself shows, then add it to `~/.ssh/known_hosts`; Arthur's core at this commit there (`docs/deploy.md`) when `arthur` is missing or of another version; the labels in `arthur.config.ts` set to what the machine is; the machine on the private network (`tailscale up` there) when it does not answer.
 
 In `arthur run`, each change is an event, once: `machine-online` with `machine`, `os`, `arch` and `version`, or `machine-offline` with `machine` and `reason`. The first check after the start tells each machine's state; after that only a change does, so a machine that stays offline is told once, and one that goes offline and comes back is told twice. A reason that changes while the machine stays offline is no event. `arthur machines` from a shell checks, but emits nothing: the events are `arthur run`'s.
+
+## Placing a job
+
+The plugin answers the core's `jobs.place` for every spawn, `arthur spawn` and a plugin's `host.jobs.spawn` alike, so each job runs on a machine that has what it needs. The labels a job needs come from the first of these that is there:
+
+1. `arthur spawn --requires os=macos,tools=xcode` (a plugin's spawn: `requires: { os: "macos", tools: ["xcode"] }`).
+2. The `requires` key of its ticket's JSON block, the `json` block at the top of the ticket's `ticket.md`, such as `"requires": { "os": "macos", "tools": ["xcode"] }`. The ticket is the first `Ticket:` of the task that lies in a ticket folder (`spec/features/<id>-<slug>/`), read in the project's main checkout. The ticket's `requires` replaces the project's as a whole; an empty one, `"requires": {}`, clears it.
+3. The project's `requires` in the `projects` plugin's list (see `arthur projects --help`).
+4. None: the job may go to any machine.
+
+The ticket and the project come from the list the `projects` plugin provides; without it (projects off), neither requires anything. Every job of a ticket, worker, review or plan, whose task names the ticket, is placed by the same labels, so its checks run where it was built.
+
+A machine has the labels when its `os` and `arch` are the ones asked (a machine without that label has not) and its `tools` hold each tool asked. Without `--machine`, the job goes to one of the machines that have the labels, are online and are under their `maxJobs` (the jobs counted are those in a run on it: working, idle, or held; `local` is always online, the others are checked now as above, in parallel): the one with the most room. The room is what the resources plugin answers when it provides `resources.free` (called with the machine's name, the jobs it has room for, roadmap entry 34), else the fewest jobs in a run; on a tie `local`, then the list's order. With `--machine`, the named machine must have the labels and is not checked, so a job goes there as before; an unknown name is the core's to refuse.
+
+Refused before any worktree or record exists, naming the labels, where they come from (`--requires`, `ticket <id>` or `project <name>`), and every machine with its labels and its state (`online, <n> jobs`, `online, full: <n> of <maxJobs> jobs`, or `offline: <reason>`):
+
+```
+no machine has the labels; the job needs tools gpu (--requires); machines: local (os linux, arch x64, tools docker): online, 0 of 3 jobs; mac (os macos, arch arm64, tools xcode): online, 1 of 2 jobs
+every machine with the labels is offline or full; the job needs os macos, tools xcode (ticket AR0003); machines: local (os linux, arch x64, tools docker): online, 0 of 3 jobs; mac (os macos, arch arm64, tools xcode): offline: ssh mac-mini: arthur@mac-mini: Permission denied (publickey).
+machine local lacks os macos, tools xcode; the job needs os macos, tools xcode (project shop); machines: ...
+```
+
+Also refused, naming where: a `requires` that is not `{ os?, arch?, tools? }` with `os` and `arch` non-empty strings and `tools` a list of them (`<where>: requires must be ...`), and a ticket whose JSON block is not JSON (`<file>: its JSON block is not JSON (<error>); fix it by hand`).
 
 ## arthur doctor
 

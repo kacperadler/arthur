@@ -3,11 +3,12 @@ import { coreVersion } from "@arthur/core";
 import type { Plugin } from "@arthur/core/plugin";
 import { checkMachine, publicAddress, type Report } from "./machine-check.ts";
 import { checkOptions, type Labels, type MachineEntry, type MachinesOptions } from "./machine-options.ts";
+import { labelsText, placement } from "./machine-place.ts";
 
-// The machines plugin (spec/roadmap.md, entry 30): the machines of the `list` option, each registered with the core's job
-// runner; `local`'s labels; each machine checked at start and every `check.everySeconds` (machine-check.ts), its changes
-// emitted as `machine-online` and `machine-offline`; `arthur machines` and `/machines`; a doctor requirement per machine.
-// docs/commands/machines.md.
+// The machines plugin (spec/roadmap.md, entries 30 and 31): the machines of the `list` option, each registered with the core's
+// job runner; `local`'s labels; each machine checked at start and every `check.everySeconds` (machine-check.ts), its changes
+// emitted as `machine-online` and `machine-offline`; each job placed by labels (machine-place.ts); `arthur machines` and
+// `/machines`; a doctor requirement per machine. docs/commands/machines.md.
 
 export type { MachineEntry, MachinesOptions };
 
@@ -73,13 +74,14 @@ export function machines(options: MachinesOptions = {}): Plugin {
 				}));
 			});
 			const localLabels = { os: platform === "darwin" ? "macos" : platform, arch, ...(local.labels?.tools === undefined ? {} : { tools: local.labels.tools }) };
+			const seats = [{ name: "local", labels: localLabels, maxJobs: local.maxJobs }, ...list.map(({ name, labels = {}, maxJobs }) => ({ name, labels, maxJobs }))];
+			host.provide("jobs.place", placement(host, seats, checked));
 			const overview = async () => {
 				const reports = await checked();
 				const jobs = host.jobs.list().filter((job) => job.state !== "ended");
 				const block = (name: string, head: string, labels: Labels, maxJobs: number | undefined) => {
 					const own = jobs.filter((job) => job.machine === name).map((job) => `${job.id} (${job.state || "no state"})`);
-					const shown = Object.entries(labels).map(([key, value]) => `${key} ${Array.isArray(value) ? value.join(" ") : value}`);
-					return `${name}${head}\n  labels: ${shown.join(", ") || "none"}; maxJobs: ${maxJobs ?? "not set"}; ${own.length === 0 ? "no jobs" : `jobs: ${own.join(", ")}`}`;
+					return `${name}${head}\n  labels: ${labelsText(labels)}; maxJobs: ${maxJobs ?? "not set"}; ${own.length === 0 ? "no jobs" : `jobs: ${own.join(", ")}`}`;
 				};
 				const state = (report: Report | undefined) => (report?.online === true ? `online (${report.os} ${report.arch}, arthur ${report.version})` : `offline: ${report?.reason}; fix: ${report?.fix}`);
 				return [

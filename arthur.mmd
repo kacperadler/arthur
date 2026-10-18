@@ -60,7 +60,7 @@ flowchart TD
         projects ~~~ nvm ~~~ commit ~~~ findings
       end
       subgraph RES[Machines and resources]
-        machines[machines<br/>list, labels, SSH checks<br/>1 of 2 entries]
+        machines[machines<br/>list, labels, SSH checks<br/>places each job by labels]
         resources[resources<br/>caps, free CPU, disk<br/>1 of 4 entries]
         models[models<br/>providers, fallback chain]
         docker[docker<br/>labels, cleanup, sweep]
@@ -136,8 +136,8 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit built;
-  class lpartial,orchestration,projects,machines,resources partial;
+  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,machines built;
+  class lpartial,orchestration,projects,resources partial;
   class lplanned,telegram,voice,corelater,agents,session,schedule,nvm,commit,findings,models,docker,delivery,github,youtrack,manage,develop,signal,discord,slack,whatsapp,server,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl outside;
   style larrows fill:#fff,stroke:#999,color:#000

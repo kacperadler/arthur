@@ -29,7 +29,9 @@ import { checkStructure } from "./structure.ts";
 // counts by state, orchestration 70 more (875); core within its budget (`since` in `host.jobs.list()`).
 // AR0126 (roadmap 32): each job's own CPU and memory caps on its scope, `jobs.limits`, the memory watch of the wrapper (cgroup
 // `oom` events, or `ps` samples without a scope) and the once-per-machine notice: core 102 more (4751); resources: 42.
-const BUDGETS = { core: 4751, "core/testing": 340, projects: 320, orchestration: 875, machines: 280, resources: 42 };
+// AR0125 (roadmap 31): placing a job by labels (`--requires`, a ticket's, a project's), machines 95 more (375); core 13 more
+// (4764) for `arthur spawn --requires` and `jobs.place` asked about every spawn, main's core being at its 4751 after AR0126.
+const BUDGETS = { core: 4764, "core/testing": 340, projects: 320, orchestration: 875, machines: 375, resources: 42 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

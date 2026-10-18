@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { arch, platform } from "node:process";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
@@ -265,4 +266,128 @@ test("without a list only local is there, and the doctor has no line", async () 
 	assert.deepEqual(requirements(fake), []);
 	assert.match(await fake.host.commands.route("/machines"), /^local: online \(\w+ \w+, arthur \w+\)\n {2}labels: os \w+, arch \w+; maxJobs: not set; no jobs$/);
 	assert.deepEqual(calls(), []);
+});
+
+// Placing a job by labels (roadmap entry 31). `local` here has its detected os and arch and the tool docker, room for 3 jobs.
+const OS = platform === "darwin" ? "macos" : platform;
+const LOCAL = { labels: { tools: ["docker"] }, maxJobs: 3 };
+const LOCAL_TEXT = `local (os ${OS}, arch ${arch}, tools docker)`;
+
+type Placing = { readonly fake: FakeHost; readonly home: string; projects: unknown[] };
+
+// The plugin with `local`, mac and build, each online, and the list `projects` holds as the projects plugin's; none provided
+// when `provided` is false.
+async function placing(provided = true): Promise<Placing> {
+	machine("mac-mini", "Darwin arm64");
+	machine("build-box");
+	const { fake } = await load({ local: LOCAL, list: [MAC, BUILD] });
+	const at: Placing = { fake, home: dirname(fake.host.folder), projects: [] };
+	if (provided) fake.provide("projects", () => at.projects);
+	return at;
+}
+
+// The project `acme` as the projects plugin serves it, with `requires` when given: a repository with one commit holding
+// ticket AC0001, whose `ticket.md` has `json` as its JSON block, none when undefined.
+function acme(requires?: unknown, json?: string): Readonly<Record<string, unknown>> {
+	const folder = join(temporaryFolder(), "acme");
+	mkdirSync(join(folder, "spec/features/AC0001-one"), { recursive: true });
+	writeFileSync(join(folder, "spec/features/AC0001-one/ticket.md"), `# AC0001 - One\n${json === undefined ? "" : `\n\`\`\`json\n${json}\n\`\`\`\n`}\n## Goal\n`);
+	execFileSync("git", ["init", "--quiet", "--initial-branch=main", folder]);
+	execFileSync("git", ["-C", folder, "add", "--all"]);
+	execFileSync("git", ["-C", folder, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "first"]);
+	return { name: "acme", path: folder, prefix: "AC", ...(requires === undefined ? {} : { requires }) };
+}
+
+const TICKET = "spec/features/AC0001-one/ticket.md";
+// What the core asks `jobs.place` (packages/core/src/jobs.ts), with `asked` over it.
+const place = (at: Placing, asked: Readonly<Record<string, unknown>> = {}) =>
+	at.fake.call<Promise<string>>("jobs.place", { task: "Go.", kind: "worker", project: "acme", model: undefined, thinking: undefined, quick: undefined, timeoutMinutes: 120, budgetUsd: 2, tickets: [], machine: undefined, requires: undefined, ...asked });
+
+// A job's record on `machine` in `state`, as the core's runner writes it.
+function job(at: Placing, id: string, machine: string, state = "working"): void {
+	const folder = join(at.home, "jobs", `2026-10-18-worker-${id}`);
+	mkdirSync(folder, { recursive: true });
+	for (const [name, text] of Object.entries({ kind: "worker", project: "acme", machine, state })) writeFileSync(join(folder, name), text);
+}
+
+test("a job's labels: --requires, else its ticket's, else its project's; a ticket's replaces the project's whole, an empty one clears it", async () => {
+	const at = await placing();
+	at.projects = [acme({ tools: ["xcode"] }, '{ "id": "AC0001", "title": "One" }')];
+	assert.equal(await place(at, { tickets: [TICKET] }), "mac", "a ticket without requires: the project's");
+	assert.equal(await place(at), "mac", "no ticket: the project's");
+	at.projects = [acme({ tools: ["xcode"] }, '{ "id": "AC0001", "requires": { "tools": ["docker"] } }')];
+	assert.equal(await place(at, { tickets: [TICKET] }), "local", "the ticket's alone: docker, which only local has");
+	assert.equal(await place(at, { tickets: ["spec/features/AC0001-one/plan.md"] }), "local", "any file of the ticket's folder names it");
+	assert.equal(await place(at, { tickets: [TICKET], requires: { os: "macos", tools: ["xcode"] } }), "mac", "--requires over the ticket's");
+	job(at, "0000000a", "local");
+	at.projects = [acme({ tools: ["xcode"] }, '{ "id": "AC0001", "requires": {} }')];
+	assert.equal(await place(at, { tickets: [TICKET] }), "mac", "an empty requires clears the project's: the fewest jobs");
+	at.projects = [acme({ tools: ["xcode"] })];
+	assert.equal(await place(at, { tickets: [TICKET] }), "mac", "a ticket without a JSON block: the project's");
+	at.projects = [acme(undefined, '{ "requires": { "tools": ["docker"] } }')];
+	assert.equal(await place(at, { tickets: [TICKET], project: "shop" }), "mac", "a project not in the list requires nothing, its ticket unread");
+});
+
+test("without a requirement any machine: the fewest jobs in a run, local and then the list's order on a tie; no project list, no requirement", async () => {
+	const at = await placing(false);
+	assert.equal(await place(at, { tickets: [TICKET] }), "local");
+	job(at, "0000000a", "local");
+	assert.equal(await place(at), "mac");
+	job(at, "0000000b", "mac");
+	job(at, "0000000c", "build", "ended");
+	job(at, "0000000d", "build", "blocked");
+	assert.equal(await place(at), "build", "an ended job and one blocked out of its run take no room");
+	writeFileSync(join(root, "build-box", "fail"), "ssh: connect to host build-box port 22: Connection timed out");
+	assert.equal(await place(at), "local", "an offline machine takes no job");
+});
+
+test("the most room from resources.free when the resources plugin provides it, local and then the list's order on a tie", async () => {
+	const at = await placing(false);
+	const free: Record<string, number> = { local: 1, mac: 3, build: 3 };
+	at.fake.provide("resources.free", (name: string) => Promise.resolve(free[name]));
+	job(at, "0000000a", "mac");
+	assert.equal(await place(at), "mac", "room, not the fewest jobs");
+	free.local = 3;
+	assert.equal(await place(at), "local");
+});
+
+test("refused before any record exists, naming the labels and each machine with its labels and state", async () => {
+	const at = await placing();
+	const project = acme(undefined, '{ "id": "AC0001", "requires": { "os": "macos", "tools": ["xcode"] } }');
+	at.projects = [project];
+	writeFileSync(join(root, "build-box", "fail"), "arthur@build-box: Permission denied (publickey).");
+	job(at, "0000000a", "mac");
+	job(at, "0000000b", "mac", "idle");
+	const machines = `${LOCAL_TEXT}: online, 0 of 3 jobs; mac (os macos, arch arm64, tools xcode): online, full: 2 of 2 jobs; build (os linux, arch x64): offline: ssh build-box: arthur@build-box: Permission denied (publickey).`;
+	const spawn = (request: Readonly<Record<string, unknown>>) => at.fake.host.jobs.spawn({ task: "Go.", kind: "worker", ...request });
+	await assert.rejects(spawn({ requires: { tools: ["gpu", "docker"] } }), { message: `no machine has the labels; the job needs tools gpu docker (--requires); machines: ${machines}` });
+	await assert.rejects(spawn({ task: `Ticket: ${TICKET}. Go.` }), { message: `every machine with the labels is offline or full; the job needs os macos, tools xcode (ticket AC0001); machines: ${machines}` });
+	await assert.rejects(spawn({ task: `Ticket: ${TICKET}. Go.`, machine: "build" }), { message: `machine build lacks os macos, tools xcode; the job needs os macos, tools xcode (ticket AC0001); machines: ${machines}` });
+	await assert.rejects(spawn({ machine: "gpu" }), { message: "unknown machine gpu; machines: build, local, mac" });
+	rmSync(join(at.home, "jobs", "2026-10-18-worker-0000000b"), { recursive: true });
+	writeFileSync(join(root, "mac-mini", "fail"), KEY_REFUSED);
+	await assert.rejects(spawn({ task: `Ticket: ${TICKET}. Go.` }), { message: /^every machine with the labels is offline or full; .*mac \(os macos, arch arm64, tools xcode\): offline: ssh mac-mini: arthur@mac-mini: Permission denied/ });
+	for (const id of ["0000000c", "0000000d", "0000000e"]) job(at, id, "local");
+	const offline = `mac (os macos, arch arm64, tools xcode): offline: ssh mac-mini: ${KEY_REFUSED}; build (os linux, arch x64): offline: ssh build-box: arthur@build-box: Permission denied (publickey).`;
+	await assert.rejects(spawn({ requires: { tools: ["docker"] } }), { message: `every machine with the labels is offline or full; the job needs tools docker (--requires); machines: ${LOCAL_TEXT}: online, full: 3 of 3 jobs; ${offline}` });
+	assert.deepEqual(readdirSync(join(at.home, "jobs")), ["0000000a", "0000000c", "0000000d", "0000000e"].map((id) => `2026-10-18-worker-${id}`), "no record made");
+	assert.equal(existsSync(join(dirname(String(project.path)), ".arthur-worktrees")), false, "no worktree made");
+});
+
+test("--machine with the labels goes there unchecked; a ticket's broken JSON block or a requires of another shape is refused, naming it", async () => {
+	const at = await placing();
+	const project = acme(undefined, '{ "id": "AC0001", "requires": { "tools": ["xcode"] } }');
+	at.projects = [project];
+	writeFileSync(join(root, "mac-mini", "fail"), KEY_REFUSED);
+	assert.equal(await place(at, { tickets: [TICKET], machine: "mac" }), "mac");
+	assert.deepEqual(calls(), [], "a named machine with the labels is not checked");
+	const file = join(String(project.path), TICKET);
+	writeFileSync(file, '# AC0001\n\n```json\n{ "id": "AC0001", }\n```\n');
+	await assert.rejects(place(at, { tickets: [TICKET] }), { message: new RegExp(`^${file}: its JSON block is not JSON \\(.+\\); fix it by hand$`) });
+	writeFileSync(file, '# AC0001\n\n```json\n{ "requires": { "tools": "xcode" } }\n```\n');
+	const shape = "requires must be { os?, arch?, tools? }, os and arch non-empty strings, tools a list of them; got";
+	await assert.rejects(place(at, { tickets: [TICKET] }), { message: `ticket AC0001 (${file}): ${shape} an object` });
+	await assert.rejects(place(at, { requires: { gpu: true } }), { message: `--requires: ${shape} an object` });
+	at.projects = [{ ...project, requires: ["macos"] }];
+	await assert.rejects(place(at), { message: `project acme: ${shape} a list` });
 });

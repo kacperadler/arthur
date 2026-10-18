@@ -36,3 +36,4 @@ Out:
 
 - 2026-10-18: The owner: build the roadmap in its order, plugins included, starting today; this entry is next in that order.
 - 2026-10-18: Coordinator (owner delegated Arthur calls): core budget 4649 -> 4691 and resources 42 accepted; `check(options, core)` accepted before the API freeze (entry 51); `perFeature` and `keepFree` stay refused until entries 33, 34 and 69 build them (an option that does nothing is not accepted).
+- 2026-10-18: Coordinator: after merging main (AR0124) the core raise is +54, to 4703, accepted.

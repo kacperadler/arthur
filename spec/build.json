@@ -1307,9 +1307,9 @@
   {
     "id": "AR0163",
     "title": "Roadmap 40: Registered entries and arthur schedule",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0163-roadmap-40-registered-entries-and-arthur-schedule/ticket.md",
-    "updated": "2026-10-18T23:26:02.990Z"
+    "updated": "2026-10-18T23:37:24.570Z"
   },
   {
     "id": "AR0164",
@@ -1328,8 +1328,8 @@
   {
     "id": "AR0166",
     "title": "Roadmap 80: arthur doctor, checked at every start",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0166-roadmap-80-arthur-doctor-checked-at-every-start/ticket.md",
-    "updated": "2026-10-18T23:37:21.921Z"
+    "updated": "2026-10-18T23:37:24.421Z"
   }
 ]

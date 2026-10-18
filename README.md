@@ -31,13 +31,13 @@ From [`spec/vision.md`](spec/vision.md):
 What works today:
 
 - The core, roadmap entries 1 to 22, all merged: config and `.env`, the plugin host, events and commands, `arthur run`, jobs on this machine or another one with their time and money limits inside one CPU and memory slice for all jobs, their states, stop, continue and steer, the ticket board, and the env and worktree guards in every job.
-- The coordinator (`@arthur/orchestration`, entry 23): one `omp` in its own tmux session while `arthur run` runs, started again when it ends; `arthur attach`; `/board`, `/task` and `/findings`.
+- The coordinator (`@arthur/orchestration`, entries 23, 24 and 26): one `omp` in its own tmux session while `arthur run` runs, started again when it ends; `arthur attach`; `/board`, `/task` and `/findings`; an inbox that wakes it when a job ends and takes a human's message mid-turn; `maxAgents` across all projects, and each role's model.
 - The project list (`@arthur/projects`, entry 41): every project in `arthur.config.ts`, `--project <name>` on any command, and each new worktree's dependencies installed.
 
 What is next:
 
-- Entry 24: the coordinator's inbox, and its wake when a job ends.
-- The rest of the coordinator (entries 25 to 29 and 65), and an agent per project with Discord and Slack channels (the plan of AR0098); then the other plugins, in the roadmap's order.
+- The rest of the coordinator (entries 25, 27 to 29 and 65): its context on every turn, the jobs' states in its context and on the channels, planning of large tickets, autopilot, and the morning report.
+- An agent per project, with its own chat (entries 85 to 88, the plan of AR0098); then the other plugins, in the roadmap's order.
 
 ## Features
 

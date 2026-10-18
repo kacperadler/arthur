@@ -22,7 +22,9 @@ import { checkStructure } from "./structure.ts";
 // AR0110 (roadmap 26): `maxAgents`, each role's model and the quick model, orchestration 32 more (690).
 // AR0112: the wait before a failed turn's messages go again, its notice, and a new owner message ending it, orchestration 7 more (697).
 // AR0111: the inbox's watchdog for a hand-over omp takes and loses, and for a turn that says it goes on and does not, orchestration 21 more (718).
-const BUDGETS = { core: 4649, "core/testing": 340, projects: 320, orchestration: 718 };
+// AR0126 (roadmap 32): each job's own CPU and memory caps on its scope, `jobs.limits`, the memory watch of the wrapper (cgroup
+// `oom` events, or `ps` samples without a scope) and the once-per-machine notice: core 42 more (4691); resources: 42.
+const BUDGETS = { core: 4691, "core/testing": 340, projects: 320, orchestration: 718, resources: 42 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

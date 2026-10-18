@@ -1,5 +1,5 @@
-import { lstatSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, realpathSync } from "node:fs";
+import { normalize, relative, resolve } from "node:path";
 import { describe } from "@arthur/core";
 import type { Host } from "@arthur/core/plugin";
 import { type Entry, entryProblems, isOneOff, type JobEntry, lastSlot } from "./entry.ts";
@@ -72,11 +72,11 @@ function fromFile(file: string | undefined, root: string, configured: readonly E
 	return { entries, problems };
 }
 
-// A procedure's text as it reads now; a symlink is never read.
+// A procedure's text as it reads now; a symlink anywhere below `root` on its path (its real path differs) is never read.
 function procedureText(root: string, path: string): { readonly text: string } | { readonly problem: string } {
 	const file = resolve(root, path);
 	try {
-		if (lstatSync(file).isSymbolicLink()) return { problem: `${path} is a symlink, which is never read` };
+		if (relative(realpathSync(root), realpathSync(file)) !== normalize(path)) return { problem: `${path} is or goes through a symlink, which is never read` };
 		return { text: readFileSync(file, "utf8").trim() };
 	} catch (error) {
 		return { problem: `${path}: ${(error as Error).message}` };

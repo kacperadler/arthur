@@ -8,6 +8,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0098 Plan: an agent per project with its own channel, and Discord and Slack channels (5cbfc1c)
 - AR0116 Lessons from the predecessor: two worker rules and three roadmap edge cases (1e52be0)
+- AR0118 The setup guide has an optional Tailscale step for other machines (74729e0)
 
 ### Fixed
 

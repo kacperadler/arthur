@@ -24,6 +24,7 @@ Small, frequent yes/no and pick-one decisions are made fast, without spending th
 - `plan.md` in this folder:
   - Where Arthur would ask such a model, each with its question type and what happens below the confidence threshold: whether an owner message is a question, a task or a decision (silent mode, AR0127); which project an incoming message belongs to (project agents, 85 to 88); whether a job's final message is blocked on the owner (27); whether a CI failure looks flaky (58); a finding's kind and autopilot eligibility (29); review needed beyond the rules (53); which model a ticket's worker needs.
   - The plugin's shape: `decisions` with named providers (`url`, `keyEnv`, the same private-address rule as `models`, entry 82), `ask(state, questions)` for other plugins, the threshold per question type, and the fallback when no provider answers (the coordinator's model, or no automatic decision).
+  - Candidates, compared on size, languages, hardware and how they are served: the 31B, 12B and 11B Polish and English decision models of one open line (its own engine, `POST /v1/systemone`; the 31B needs about 62 GB of GPU memory, the 11B had GGUF and MLX ports), and a small open line of 322M to 421M encoder checkpoints (`pip install`, CPU-friendly, one multilingual, context 512 to 1024 tokens); which one fits the VPS (no GPU), the Mac, or an API.
   - Hardware: what runs where (a 31B model needs about 62 GB of GPU memory; smaller ones or an API), and the cost against the Claude limits.
   - How a decision is checked before it is trusted: an eval set from real board history (entry 67).
   - Where it lands in the roadmap: entry numbers and dependencies.
@@ -40,3 +41,4 @@ Out:
 ## Decisions
 
 - 2026-10-18: The owner wants Arthur to support decision models, local and by API, and asked what they would be for; the coordinator proposes a plan first.
+- 2026-10-18: The owner named more candidates: the 12B and 11B models of the same line, and a small open encoder-based decision model line (CPU-sized); the plan compares them.

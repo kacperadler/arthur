@@ -75,10 +75,11 @@ In `orchestration({ ... })` in `arthur.config.ts`, every key optional; an unknow
 - `maxAgents`: a whole number of at least 1, default 3.
 - `coordinator`: `model` (a non-empty string), `thinking` (one of `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, `auto`), `tmux: { session, socket }` (the session: letters, digits, `_` and `-`, since tmux reads `:` and `.` in a target; the socket: a non-empty string), `exitWaitSeconds` (a whole number of at least 0), `restartDelaySeconds` (a whole number of at least 1).
 - `roles`: one entry per role, its name lowercase letters, digits and dashes, each `{ model, thinking }`: `model` a model name or a non-empty list of them, `thinking` as above. The entry `quick` is not a role: `{ model }` only, a model name. An entry `coordinator` is refused: the coordinator's are `coordinator.model` and `coordinator.thinking`, which `arthur roles` shows for the role `coordinator`.
-- `plan: { budgetUsd }`, `autopilot: { budgetUsd, budgetMaxUsd }`: amounts in USD, 0 or more.
+- `plan: { budgetUsd }`: the budget of a plan job, an amount in USD, 0 or more, default 5 (`arthur plan --help`).
+- `autopilot: { budgetUsd, budgetMaxUsd }`: amounts in USD, 0 or more.
 - `morningReport: { at }`: `"HH:MM"`, 00:00 to 23:59.
 
-`plan`, `autopilot` and `morningReport` are checked here for their shape; the entries that read them say what they do.
+`autopilot` and `morningReport` are checked here for their shape; the entries that read them say what they do.
 
 ## maxAgents and the models of each role
 

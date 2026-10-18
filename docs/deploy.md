@@ -56,4 +56,4 @@ arthur config check
 systemctl --user restart arthur
 ```
 
-A restart stops every plugin, the coordinator included. Run `arthur jobs` first and restart when none runs.
+A restart stops every plugin, the coordinator included. Run `arthur jobs` first and restart when none runs. Until it, once a pull or a merge changed Arthur's code, the session plugin's restart guard refuses every new job, `restart due: ...` (`packages/session/docs/session.md`, "The restart guard").

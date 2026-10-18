@@ -215,15 +215,16 @@ test("a request whose agent is gone, or a file that is not a request, is dropped
 	assert.deepEqual(box.err, [`session: ${box.file} is not a request, so it is dropped: { torn`]);
 });
 
-test("the options: compactAt times, compactWaitSeconds and the fresh start's, each refused naming its path, and no option of a later entry", () => {
+test("the options: compactAt times, compactWaitSeconds, the fresh start's and restartGuard, each refused naming its path, and no option of a later entry", () => {
 	assert.deepEqual(checkOptions({}), []);
-	assert.deepEqual(checkOptions({ compactAt: [], compactWaitSeconds: 1, freshAt: "00:00", freshRetryMinutes: 1, freshUntil: "00:00" }), []);
-	assert.deepEqual(checkOptions({ compactAt: ["08:00", "23:59", "00:00"], compactWaitSeconds: 1800, freshAt: "23:00", freshRetryMinutes: 15, freshUntil: "03:00" }), []);
-	assert.deepEqual(checkOptions({ compactAt: "13:00", compactWaitSeconds: 0, restartGuard: true }), [
-		{ path: "restartGuard", problem: "unknown option; options: compactAt, compactWaitSeconds, freshAt, freshRetryMinutes, freshUntil" },
+	assert.deepEqual(checkOptions({ compactAt: [], compactWaitSeconds: 1, freshAt: "00:00", freshRetryMinutes: 1, freshUntil: "00:00", restartGuard: false }), []);
+	assert.deepEqual(checkOptions({ compactAt: ["08:00", "23:59", "00:00"], compactWaitSeconds: 1800, freshAt: "23:00", freshRetryMinutes: 15, freshUntil: "03:00", restartGuard: true }), []);
+	assert.deepEqual(checkOptions({ compactAt: "13:00", compactWaitSeconds: 0, probeLlm: true }), [
+		{ path: "probeLlm", problem: "unknown option; options: compactAt, compactWaitSeconds, freshAt, freshRetryMinutes, freshUntil, restartGuard" },
 		{ path: "compactAt", problem: 'expected a list of times "HH:MM", got "13:00"' },
 		{ path: "compactWaitSeconds", problem: "expected a whole number of seconds of at least 1, got 0" },
 	]);
+	for (const restartGuard of ["false", 0, null]) assert.deepEqual(checkOptions({ restartGuard }), [{ path: "restartGuard", problem: `expected true or false, got ${JSON.stringify(restartGuard)}` }]);
 	for (const [freshUntil, freshRetryMinutes] of [["3:00", 0], ["24:00", -15], [300, 1.5], [undefined, "15"]] as const)
 		assert.deepEqual(checkOptions({ freshAt: "23:00", freshUntil, freshRetryMinutes }), [
 			...(freshUntil === undefined ? [] : [{ path: "freshUntil", problem: `expected a time "HH:MM" from 00:00 to 23:59, got ${JSON.stringify(freshUntil)}` }]),

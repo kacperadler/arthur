@@ -39,3 +39,4 @@ Out:
 - 2026-10-18: The owner: silent mode only in Arthur, and not switched by commands such as /quiet and /loud; it follows from who started the turn.
 - 2026-10-18: The owner: one command, `/silent`, which toggles (Telegram allows no hyphen, so no `/non-silent`); it also turns on by itself with delegated work that has a stop condition; while on, nothing but the end, the stop condition, a decision, or the answer to his own question.
 - 2026-10-18: The owner: `/silent` it is; update the roadmap, the vision, the docs and the README with it.
+- 2026-10-18: Coordinator (owner delegated Arthur calls): the four choices accepted: wake-up replies go to every channel; the mechanism lives in orchestration (call coordinator.silent), Discord follows it; arthur silent on/off/ask for the coordinator; a broken state file counts as on.

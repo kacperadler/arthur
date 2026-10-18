@@ -268,7 +268,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 
 - Package: orchestration.
 - Delivers: `- Plan: yes` under a ticket's Goal; the kinds `plan` (read-only planner) and `plan-review`; `arthur ticket file` of a plan (replaces `plan.md`, history in Git) and of a plan review (`plan-review-N.md`); a worker on such a ticket needs its approved `plan.md`; the plan budget option; the procedure sent when a plan or plan review ends; the phone command `/plan <id>`.
-- Done means: refused: a worker spawn on a plan ticket without an approved plan; filing a failed plan job. Edge cases: re-planning keeps one `plan.md`; plan review numbers continue; `/plan` of a ticket without a plan.
+- Done means: refused: a worker spawn on a plan ticket without an approved plan; filing a failed plan job. Edge cases: re-planning keeps one `plan.md`; plan review numbers continue; `/plan` of a ticket without a plan. Every plan and plan-review task carries `Ticket: spec/features/<id>-<slug>/ticket.md`, so placement (31) reads the ticket's labels; a test shows such a job lands on the ticket's machine (F1 of AR0125).
 - Depends on: 25, 18.
 - Size: a day.
 - Covers: O9, O14, B6 (the plan part), B9, T10, G5.
@@ -325,7 +325,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 
 - Package: resources; `maxAgents` of `orchestration` stays the upper bound.
 - Delivers: each machine's free CPU and memory at every machine check (Node's `os` on `local`, the same over SSH elsewhere); `provide("resources.free")`, which placement (31) reads; through `beforeSpawn`, a job starts only when its machine keeps `keepFree` after the job's `perJob` reservation, and the refusal names each candidate machine and what is short; `maxAgents` still refuses above that. The coordinator's context gets one line per machine (`local: room for 2 more jobs (5.1 GB, 3.4 cores free)`) through `collect("coordinator.context")`, so it decides how many jobs to start; `arthur resources` and `/resources` show the same.
-- Done means: refused: every spawn when free resources are too low to start anything, naming each machine and its shortfall (a normal `beforeSpawn` refusal, retried when a job ends as at `maxAgents`). Edge cases: room for more jobs than `maxAgents` (`maxAgents` refuses); a reservation exactly equal to what is free above `keepFree` starts; two spawns at once never both take the last room (jobs started since the last check count with their reservation); a machine whose check fails counts as no room, said once.
+- Done means: refused: every spawn when free resources are too low to start anything, naming each machine and its shortfall (a normal `beforeSpawn` refusal, retried when a job ends as at `maxAgents`). Edge cases: room for more jobs than `maxAgents` (`maxAgents` refuses); a reservation exactly equal to what is free above `keepFree` starts; two spawns at once never both take the last room (jobs started since the last check count with their reservation); a machine whose check fails counts as no room, said once. `resources.free(machine)` answers a number, the jobs that machine has room for, as placement (31) reads it (`packages/machines/docs/commands/machines.md`); a test spawns through the machines plugin's placement on the fake host to prove the two agree (F2 of AR0125).
 - Depends on: 33, 31, 26, 25.
 - Size: a day.
 - Covers: none (new: the owner asked for it on 2026-10-16).
@@ -619,7 +619,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 
 - Package: delivery.
 - Delivers: the kind `review` (read-only, a fresh model, the reviewer role and review criteria); the verdict `PASS` or `FAIL` from the last line moves the ticket to done or in-progress; no verdict fails the job; `arthur ticket file` of a review writes the next `review-N.md`, never twice; at most 2 FAILs since the last PASS, then `--round N`; the procedure sent at the limit.
-- Done means: edge cases: `PASS` not on the last line is no verdict; filing the same review twice is refused; the third review without `--round` is refused, naming the two FAILs.
+- Done means: edge cases: `PASS` not on the last line is no verdict; filing the same review twice is refused; the third review without `--round` is refused, naming the two FAILs. Every review task carries `Ticket: spec/features/<id>-<slug>/ticket.md`, so placement (31) reads the ticket's labels; a test shows a review of a ticket with `os=macos` lands on that machine (F1 of AR0125).
 - Depends on: 51.
 - Size: a day.
 - Covers: D1, B7, O10.

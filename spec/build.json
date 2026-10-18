@@ -1023,9 +1023,9 @@
   {
     "id": "AR0125",
     "title": "Roadmap 31: Machines: placing a job by labels",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0125-roadmap-31-machines-placing-a-job-by-labels/ticket.md",
-    "updated": "2026-10-18T12:58:36.994Z",
+    "updated": "2026-10-18T13:43:48.549Z",
     "after": [
       "AR0124"
     ]
@@ -1113,5 +1113,19 @@
     "status": "planning",
     "path": "spec/features/AR0137-the-burst-test-still-relies-on-the-test-s-300-ms-timers-staying-under-a-second/ticket.md",
     "updated": "2026-10-18T13:24:17.580Z"
+  },
+  {
+    "id": "AR0138",
+    "title": "Plan and review jobs must name their ticket on a `Ticket:` line to be placed by its labels",
+    "status": "dropped",
+    "path": "spec/features/AR0138-plan-and-review-jobs-must-name-their-ticket-on-a-ticket-line-to-be-placed-by-its-labels/ticket.md",
+    "updated": "2026-10-18T13:44:09.098Z"
+  },
+  {
+    "id": "AR0139",
+    "title": "`resources.free` answer shape fixed here for entry 34",
+    "status": "dropped",
+    "path": "spec/features/AR0139-resources-free-answer-shape-fixed-here-for-entry-34/ticket.md",
+    "updated": "2026-10-18T13:44:09.270Z"
   }
 ]

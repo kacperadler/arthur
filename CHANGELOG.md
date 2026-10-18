@@ -28,6 +28,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0120 Roadmap 25: the coordinator's context on every turn (be0d3db)
 - AR0121 Roadmap 27: job state in the coordinator and the channels (6987f04)
 - AR0124 Roadmap 30: Machines: the list, labels, and SSH checks (05828fd)
+- AR0125 Roadmap 31: Machines: placing a job by labels (5dd1733)
 - AR0126 Roadmap 32: Resources: caps per job (1bde258)
 
 ## 2026-10-17

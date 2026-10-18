@@ -40,3 +40,4 @@ Out:
 
 - 2026-10-17: Source: F3 of AR0084
 - 2026-10-18: The owner approved it.
+- 2026-10-18: The smoke transcript is in `smoke.md` (moved from `outcome.md`, which `h merge` writes).

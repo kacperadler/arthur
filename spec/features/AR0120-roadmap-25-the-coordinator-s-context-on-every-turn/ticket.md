@@ -35,3 +35,4 @@ Out:
 ## Decisions
 
 - 2026-10-18: Proposed by the coordinator as the next orchestration entries toward the switch (owner: focus on Arthur, switch as soon as possible); waits for approval.
+- 2026-10-18: The owner approved it.

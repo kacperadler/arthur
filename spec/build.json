@@ -982,16 +982,16 @@
   {
     "id": "AR0120",
     "title": "Roadmap 25: the coordinator's context on every turn",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0120-roadmap-25-the-coordinator-s-context-on-every-turn/ticket.md",
-    "updated": "2026-10-18T08:40:10.663Z"
+    "updated": "2026-10-18T09:47:15.823Z"
   },
   {
     "id": "AR0121",
     "title": "Roadmap 27: job state in the coordinator and the channels",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0121-roadmap-27-job-state-in-the-coordinator-and-the-channels/ticket.md",
-    "updated": "2026-10-18T08:40:11.140Z",
+    "updated": "2026-10-18T09:47:16.027Z",
     "after": [
       "AR0120"
     ]
@@ -999,8 +999,8 @@
   {
     "id": "AR0122",
     "title": "A `/compact` typed in the coordinator's pane for more than 30 s delivers a hand-over made meanwhile twice",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0122-a-compact-typed-in-the-coordinator-s-pane-for-more-than-30-s-delivers-a-hand-over-made-meanwhile-twice/ticket.md",
-    "updated": "2026-10-18T09:28:21.853Z"
+    "updated": "2026-10-18T09:47:16.224Z"
   }
 ]

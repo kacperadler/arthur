@@ -43,13 +43,13 @@ export function temporaryFolder(): string {
 // messages throw, and the next `dropSends` sent while idle are lost with no turn (omp's prompt failing after it returned). A step:
 // `tool`, a tool call, omp's start and end events of it, `output` the tool's text and `failed` its error flag. `message`: an assistant
 // message that ends a turn, with its `cost` in USD; `stopReason` `stop` (the default) ends the run, `toolUse` comes before a tool call,
-// `error` or `aborted` is a failed one, with omp's `error` text. `prompt`: a turn starts (`agent_start`) once an extension sent a message
-// while idle; `end`: it ends (`agent_end`) unless a `session_stop` handler continues it, 8 in a row at most, or, with `continues`, says it
-// goes on and starts none (omp's compaction after a turn). `stdout`, `stderr`: one line. `waitFor`: until the file exists. `signal`: kills itself with it.
+// `error` or `aborted` a failed one, with omp's `error` text. `prompt`: a turn starts (`agent_start`) once an extension sent a message while
+// idle, busy `compactMs` first (omp's compaction before it); `end`: it ends (`agent_end`) unless a `session_stop` handler continues it (8 in a
+// row at most) or, with `continues`, says it goes on and starts none (omp's compaction after it). `stdout`/`stderr`: one line. `waitFor`: until the file exists. `signal`: kills itself with it.
 export type AgentStep =
 	| { readonly tool: string; readonly args?: Readonly<Record<string, unknown>>; readonly output?: string; readonly failed?: boolean }
 	| { readonly message: string; readonly cost?: number; readonly stopReason?: "stop" | "toolUse" | "error" | "aborted"; readonly error?: string }
-	| { readonly prompt: true }
+	| { readonly prompt: true; readonly compactMs?: number }
 	| { readonly end: true; readonly continues?: true }
 	| { readonly stdout: string }
 	| { readonly stderr: string }

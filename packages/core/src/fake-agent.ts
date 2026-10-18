@@ -98,8 +98,9 @@ for (const [index, step] of run.steps.entries()) {
 		await event({ type: "message_end", message });
 	} else if ("prompt" in step) {
 		while (prompts.length === 0) await sleep(10);
-		conversation.push(...prompts.splice(0).map(user));
 		idle = false;
+		await sleep(step.compactMs ?? 0);
+		conversation.push(...prompts.splice(0).map(user));
 		await ask("agent_start", {});
 	} else if ("end" in step) {
 		// As omp's main session: its `session_stop` handlers first; a continuation, at most 8 in a row, goes on with the next steps.

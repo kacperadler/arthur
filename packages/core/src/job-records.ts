@@ -15,8 +15,9 @@ import { processTable } from "./process-table.ts";
 // An ended job as a plugin's `jobs.keep` gets it; `branch` is empty for a read-only kind.
 export type FinishedJob = { readonly [key in "id" | "kind" | "project" | "task" | "state" | "reason" | "branch" | "worktree"]: string };
 // A job as `host.jobs.list()` gives it, in any state; `tickets` are the paths its task names on `Ticket:`, `hold` empty unless held,
-// `machine` the one it runs on, `local` for a record that names none; `since` when it took its state (ISO 8601).
-export type JobRecord = { readonly [key in "id" | "kind" | "project" | "state" | "reason" | "hold" | "since" | "branch" | "machine"]: string } & { readonly tickets: readonly string[] };
+// `machine` the one it runs on, `local` for a record that names none; `since` when it took its state (ISO 8601); `cost` and
+// `budget` its files (USD), `seconds` the time it spent in a run, the current one up to now.
+export type JobRecord = { readonly [key in "id" | "kind" | "project" | "state" | "reason" | "hold" | "since" | "branch" | "machine" | "cost" | "budget"]: string } & { readonly tickets: readonly string[]; readonly seconds: number };
 
 // The full id of the one job `query` names; refused when none or several match, naming them.
 export function findJob(home: string, query: string): string {
@@ -42,12 +43,18 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 	const records = (): JobRecord[] =>
 		jobIds(home).map((id) => {
 			const read = field(home, id);
-			return { id, kind: read("kind"), project: read("project"), ...current(home, id), since: read("since"), branch: read("branch"), machine: read("machine") || "local", tickets: taskTickets(read("task")) };
+			const [now, since] = [current(home, id), read("since")];
+			const seconds = (Number(read("ran")) || 0) + (inRun(now) ? Math.max(0, time.now().getTime() - Date.parse(since)) / 1000 || 0 : 0);
+			return { id, kind: read("kind"), project: read("project"), ...now, since, branch: read("branch"), machine: read("machine") || "local", cost: read("cost"), budget: read("budget"), seconds, tickets: taskTickets(read("task")) };
 		});
 	const running = (): string[] => records().filter(inRun).map((job) => job.id);
 	return {
 		list: (state?: string) => jobsText(home, time, state),
-		block: (id: string, reason: string) => blockJob(home, id, reason, bus, time.now()),
+		// With `halt`, resolves once the stopped run is over.
+		block(id: string, reason: string, halt = false): Promise<unknown> {
+			blockJob(home, id, reason, bus, time.now(), halt);
+			return halt ? stop(id) : Promise.resolve();
+		},
 		unblock: (id: string) => unblockJob(home, id, bus, time.now()),
 		stop,
 		// Returns the steer's number.

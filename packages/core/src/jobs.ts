@@ -83,8 +83,8 @@ export type Jobs = RoleReads & {
 	registerMachine(machine: Machine): void;
 	run(machine: string, argv: readonly string[], limitSeconds?: number): Promise<Ran>;
 	spawn(request: SpawnRequest): Promise<Started>;
-	// Holds a job in a run `blocked` on `dependency: <reason>` whatever its activity; `unblock` lets it go (docs/commands/jobs.md).
-	block(id: string, reason: string): void;
+	// Holds a job in a run `blocked` on `dependency: <reason>` until `unblock`; `stop`: stops it too, on `user: <reason>` (docs/commands/jobs.md).
+	block(id: string, reason: string, stop?: boolean): Promise<unknown>;
 	unblock(id: string): void;
 	// Every project's job records, in any state, the newest spawn first (docs/commands/jobs.md).
 	list(): JobRecord[];

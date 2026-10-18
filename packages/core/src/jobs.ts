@@ -97,8 +97,7 @@ export type Jobs = RoleReads & {
 	running(): string[];
 	// The final message of job `id`, empty while it runs or when it wrote none; refused for anything but a job's id.
 	result(id: string): string;
-	// `arthur ticket file <id> <job>`: the final message of job `job`, finished on ticket `id`, filed by its kind's `file`, which
-	// returns the path it wrote (ticket-file.ts).
+	// `arthur ticket file <id> <job>`: job `job`, finished on ticket `id`, filed by its kind's `file`; the path written (ticket-file.ts).
 	file(id: string, job: string): string;
 };
 
@@ -111,7 +110,6 @@ export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run
 	registerMachine(owner: string, machine: Machine): void;
 	// `arthur continue`: resumes an ended job with a branch in place (job-control.ts), `budgetUsd` replacing its budget; resolves to why its wrapper did not start.
 	continue(id: string, instruction: string, budgetUsd?: number): Promise<string | undefined>;
-	// `file` on the board `board`, which finds the ticket and its project.
 	file(board: Board, id: string, job: string): string;
 	// What `arthur roles` prints: each role, the files it reads in the project's main checkout, and its model.
 	roles(project?: string): RoleView[];

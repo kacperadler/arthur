@@ -89,10 +89,11 @@ export default defineConfig({
 				worker: { model: ["mac/qwen3-coder", "anthropic/claude-haiku-5-5"], thinking: undefined },
 				reviewer: { model: "anthropic/claude-sonnet-5", thinking: "medium" },
 				planner: { model: undefined, thinking: undefined }, // undefined = the agent's own default
+				"plan-reviewer": { model: "anthropic/claude-sonnet-5", thinking: "medium" }, // `arthur spawn --kind plan-review`
 				project: { model: "anthropic/claude-opus-5-5", thinking: "high" }, // each project's own agent
 				quick: { model: "anthropic/claude-haiku-5-5" }, // not a role: omp's quick model (--smol) on every job and the coordinator
 			},
-			plan: { budgetUsd: 5 },
+			plan: { budgetUsd: 5 }, // a plan job's budget (`arthur spawn --kind plan`), one resume at it, doubled; default 5
 			autopilot: { budgetUsd: 1, budgetMaxUsd: 3 },
 			morningReport: { at: "08:00" }, // registers a schedule entry (an action: a message to the coordinator)
 		}),

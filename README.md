@@ -31,13 +31,13 @@ From [`spec/vision.md`](spec/vision.md):
 What works today:
 
 - The core, roadmap entries 1 to 22, all merged: config and `.env`, the plugin host, events and commands, `arthur run`, jobs on this machine or another one with their time and money limits inside one CPU and memory slice for all jobs, their states, stop, continue and steer, the ticket board, and the env and worktree guards in every job.
-- The coordinator (`@arthur/orchestration`, entries 23 to 27): one `omp` in its own tmux session while `arthur run` runs, started again when it ends; `arthur attach`; `/board`, `/task` and `/findings`; an inbox that wakes it when a job ends and takes a human's message mid-turn; its context on every turn (`arthur coordinator context`): its role, each project's vision and board, the jobs not ended by state, the time; a `notice` for the channels when a job asks the owner a question; `maxAgents` across all projects, and each role's model.
+- The coordinator (`@arthur/orchestration`, entries 23 to 28): one `omp` in its own tmux session while `arthur run` runs, started again when it ends; `arthur attach`; `/board`, `/task` and `/findings`; an inbox that wakes it when a job ends and takes a human's message mid-turn; its context on every turn (`arthur coordinator context`): its role, each project's vision and board, the jobs not ended by state, the time; a `notice` for the channels when a job asks the owner a question; `maxAgents` across all projects, and each role's model; a large ticket (`- Plan: yes`) planned by a read-only planner, its plan filed with `arthur ticket file`, shown with `/plan`, and a worker refused until the owner approved that plan.
 - The project list (`@arthur/projects`, entry 41): every project in `arthur.config.ts`, `--project <name>` on any command, and each new worktree's dependencies installed.
 - The machines (`@arthur/machines`, entries 30 and 31): the other machines jobs run on, with their labels, each checked over SSH at start and every `check.everySeconds` (private address, `arthur version`, os and arch against its labels), `machine-online` and `machine-offline` on each change, and `arthur machines`; each job placed on a machine with the labels it needs (`arthur spawn --requires`, else its ticket's, else its project's), online and under its `maxJobs`, with the fewest jobs.
 
 What is next:
 
-- The rest of the coordinator (entries 28, 29 and 65): planning of large tickets, autopilot, and the morning report.
+- The rest of the coordinator (entries 29 and 65): autopilot and the morning report.
 - An agent per project, with its own chat (entries 85 to 88, the plan of AR0098); then the other plugins, in the roadmap's order.
 
 ## Features
@@ -61,7 +61,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | Core: `arthur send` and the message parts every channel hands over | planned | 49 |
 | Core: cleanup hooks with each worktree | planned | 71 |
 | Core: the frozen plugin API | planned | 51 |
-| orchestration: the coordinator, `arthur attach`, `/board`, `/task`, `/findings`; its inbox, context, jobs by state, `maxAgents`, planning, autopilot, morning report | in progress, 5 of 8 entries | 23 to 27 built; 28, 29, 65 |
+| orchestration: the coordinator, `arthur attach`, `/board`, `/task`, `/findings`, `/plan`; its inbox, context, jobs by state, `maxAgents`, planning, autopilot, morning report | in progress, 6 of 8 entries | 23 to 28 built; 29, 65 |
 | orchestration: an agent per project, with its own chat | planned | 85 to 88 |
 | projects: the project list and each worktree's install; onboarding a repository | in progress, 1 of 2 entries | 41 built; 42 |
 | session: compaction, fresh start, restart guard, start notice | planned | 35 to 38 |

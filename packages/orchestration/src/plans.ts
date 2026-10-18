@@ -74,8 +74,8 @@ function blob(at: string, commit: string, path: string): string | undefined {
 	return parsed.status === 0 ? parsed.stdout.trim() : undefined;
 }
 
-// The lines of a ticket.md's `## <name>` section, up to the next `## ` heading.
-function section(text: string, name: string): string[] {
+// The lines of a ticket.md's `## <name>` section, up to the next `## ` heading; autopilot.ts reads its sections with it too.
+export function section(text: string, name: string): string[] {
 	const lines = text.split("\n");
 	const start = lines.findIndex((line) => line.trimEnd() === `## ${name}`);
 	if (start < 0) return [];

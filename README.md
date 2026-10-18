@@ -31,14 +31,14 @@ From [`spec/vision.md`](spec/vision.md):
 What works today:
 
 - The core, roadmap entries 1 to 22, all merged: config and `.env`, the plugin host, events and commands, `arthur run`, jobs on this machine or another one with their time and money limits inside one CPU and memory slice for all jobs, their states, stop, continue and steer, the ticket board, and the env and worktree guards in every job.
-- The coordinator (`@arthur/orchestration`, entries 23 to 28): one `omp` in its own tmux session while `arthur run` runs, started again when it ends; `arthur attach`; `/board`, `/task` and `/findings`; an inbox that wakes it when a job ends and takes a human's message mid-turn; its context on every turn (`arthur coordinator context`): its role, each project's vision and board, the jobs not ended by state, the time; a `notice` for the channels when a job asks the owner a question; `maxAgents` across all projects, and each role's model; a large ticket (`- Plan: yes`) planned by a read-only planner, its plan filed with `arthur ticket file`, shown with `/plan`, and a worker refused until the owner approved that plan.
+- The coordinator (`@arthur/orchestration`, entries 23 to 29): one `omp` in its own tmux session while `arthur run` runs, started again when it ends; `arthur attach`; `/board`, `/task` and `/findings`; an inbox that wakes it when a job ends and takes a human's message mid-turn; its context on every turn (`arthur coordinator context`): its role, each project's vision and board, the jobs not ended by state, the time; a `notice` for the channels when a job asks the owner a question; `maxAgents` across all projects, and each role's model; a large ticket (`- Plan: yes`) planned by a read-only planner, its plan filed with `arthur ticket file`, shown with `/plan`, and a worker refused until the owner approved that plan; a small bug or cleanup ticket from a finding or an audit pre-approved by policy (`arthur ticket status <id> planned --autopilot`), so it runs overnight.
 - The project list (`@arthur/projects`, entry 41): every project in `arthur.config.ts`, `--project <name>` on any command, and each new worktree's dependencies installed.
 - The coordinator's conversation (`@arthur/session`, entries 35 to 37): compacted at each `compactAt` time once the coordinator is idle, and started fresh at `freshAt` once no job runs (tried every `freshRetryMinutes` until `freshUntil`), each after a handoff it writes and the next conversation reads first; `/restart` and `/restart fresh`, refused while a job runs, and one `Restarted.` notice after; the restart guard: once a commit changed the code `arthur run` loaded, every spawn and continue is refused (unless `--ignore-restart`) until `arthur run` starts again, and the coordinator's context says so.
 - The machines (`@arthur/machines`, entries 30 and 31): the other machines jobs run on, with their labels, each checked over SSH at start and every `check.everySeconds` (private address, `arthur version`, os and arch against its labels), `machine-online` and `machine-offline` on each change, and `arthur machines`; each job placed on a machine with the labels it needs (`arthur spawn --requires`, else its ticket's, else its project's), online and under its `maxJobs`, with the fewest jobs.
 
 What is next:
 
-- The rest of the coordinator (entries 29 and 65): autopilot and the morning report.
+- The rest of the coordinator (entry 65): the morning report.
 - An agent per project, with its own chat (entries 85 to 88, the plan of AR0098); then the other plugins, in the roadmap's order.
 
 ## Features
@@ -62,7 +62,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | Core: `arthur send` and the message parts every channel hands over | planned | 49 |
 | Core: cleanup hooks with each worktree | planned | 71 |
 | Core: the frozen plugin API | planned | 51 |
-| orchestration: the coordinator, `arthur attach`, `/board`, `/task`, `/findings`, `/plan`; its inbox, context, jobs by state, `maxAgents`, planning, autopilot, morning report | in progress, 6 of 8 entries | 23 to 28 built; 29, 65 |
+| orchestration: the coordinator, `arthur attach`, `/board`, `/task`, `/findings`, `/plan`; its inbox, context, jobs by state, `maxAgents`, planning, autopilot, morning report | in progress, 7 of 8 entries | 23 to 29 built; 65 |
 | orchestration: an agent per project, with its own chat | planned | 85 to 88 |
 | projects: the project list and each worktree's install; onboarding a repository | in progress, 1 of 2 entries | 41 built; 42 |
 | session: compaction, fresh start, `/restart`, restart guard, start notice | in progress, 3 of 4 entries | 35 to 37 built; 38 |
@@ -74,7 +74,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | nvm: each project's Node version | planned | 84 |
 | commit-rules: a regex hook, words or a file per project | planned | 43 |
 | findings: what happens to them on a merge | planned | 83 |
-| telegram: text, media and the phone menu | planned | 47 to 50 |
+| telegram: text, media and the phone menu; the coordinator's silent mode (`/silent`), which every channel follows | planned | 47 to 50 |
 | discord: one private server, a main channel for the coordinator and one per project; text, media, phone commands | planned | 89, 90 |
 | voice: local transcription of voice notes | planned | 81 |
 | delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | planned | 52 to 56, 59 |
@@ -146,7 +146,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-18.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22 are merged; orchestration has entries 23 to 28 of 23-29 and 65; projects has entry 41 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 37 of 35-38; no other plugin exists yet.
+%% Core entries 1-22 are merged; orchestration has entries 23 to 29 of 23-29 and 65; projects has entry 41 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 37 of 35-38; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -195,7 +195,7 @@ flowchart TD
         telegram ~~~ discord ~~~ voice
       end
       subgraph COORD[Coordinator]
-        orchestration[orchestration<br/>coordinator, arthur attach<br/>context, jobs by state, planning<br/>6 of 8 entries]
+        orchestration[orchestration<br/>coordinator, arthur attach<br/>context, jobs by state, planning, autopilot<br/>7 of 8 entries]
         session[session<br/>compaction, fresh start, restart guard<br/>3 of 4 entries]
         schedule[schedule<br/>actions, jobs at set times]
         orchestration ~~~ session ~~~ schedule

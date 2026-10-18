@@ -32,3 +32,4 @@ Out:
 ## Decisions
 
 - 2026-10-18: The owner asked for a night plan for Arthur with Claude 7 Day usage up to 75%; entry 37 is next in order after 36 merged.
+- 2026-10-18: Coordinator (owner delegated Arthur calls): core 4852 -> 4859 (+7, host.code) and session 453 -> 539 (+86, restart-guard.ts) accepted; only a restart of arthur run clears a due restart (a /restart that cleared it would claim new code while plugins run old code): accepted; whether /restart should end arthur run while a restart is due stays F1 for the owner; the line under ## session instead of ## Restart accepted.

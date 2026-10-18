@@ -40,3 +40,4 @@ Out:
 - 2026-10-18: Proposed by the coordinator as the next orchestration entries toward the switch (owner: focus on Arthur, switch as soon as possible); waits for approval.
 - 2026-10-18: The owner approved it.
 - 2026-10-18: Also show entry 25 (AR0120) built in the README feature table and arthur.mmd (F2 of AR0120).
+- 2026-10-18: Coordinator: orchestration budget 805 -> 875 accepted if the review finds nothing to cut; `since` on host.jobs.list() accepted.

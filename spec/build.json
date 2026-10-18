@@ -1033,9 +1033,9 @@
   {
     "id": "AR0126",
     "title": "Roadmap 32: Resources: caps per job",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0126-roadmap-32-resources-caps-per-job/ticket.md",
-    "updated": "2026-10-18T11:47:52.813Z"
+    "updated": "2026-10-18T12:33:48.852Z"
   },
   {
     "id": "AR0127",
@@ -1103,8 +1103,8 @@
   {
     "id": "AR0136",
     "title": "A flaky test that fails GitHub CI now and then is found and fixed",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0136-a-flaky-test-that-fails-github-ci-now-and-then-is-found-and-fixed/ticket.md",
-    "updated": "2026-10-18T11:49:42.244Z"
+    "updated": "2026-10-18T12:19:17.717Z"
   }
 ]

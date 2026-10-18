@@ -40,13 +40,16 @@ import { checkStructure } from "./structure.ts";
 // AR0141 (roadmap 33): caps per feature; core 22 more (4786) for the ticket's slice, `ran`, `cost`/`budget`/`seconds` in
 // `host.jobs.list()` and `block(..., stop)`; resources 189 more (231) for `perFeature`, a ticket's `caps`, the sweep and `arthur resources`.
 // Merged: core 4786 + 64 (AR0123) = 4850, orchestration 892 + 132 (AR0123) = 1024.
+// AR0140 (roadmap 29): autopilot, `ticket.autopilot` with its rules, its record and the move, and the option check of its cap,
+// orchestration 111 more (1135); core 14 more (4864) for `arthur ticket status <id> planned --autopilot [--budget]` asking it.
 // AR0144 (roadmap 36): the fresh start at `freshAt`, `/restart` and `/restart fresh`, the handoff read at every start and the
 // `Restarted.` notice, session 240 more (453); orchestration 11 more (903 alone; 1024 + 11 = 1035 merged with AR0123) for `coordinator.restart` and the start without
 // `--continue` after it, which the session plugin needs and cannot do itself.
 // AR0142 (roadmap 34): how many jobs run from each machine's free CPU and memory; core 2 more (4852 merged) for `host.jobs.machines()`,
 // the list of registered machines a plugin had no way to read; resources 170 more (401) for `keepFree`, the check of each
 // machine kept per machine, the room, `resources.free`, the spawn check, the context lines and `arthur resources`/`/resources`.
-const BUDGETS = { core: 4852, "core/testing": 340, projects: 320, orchestration: 1035, machines: 375, resources: 401, session: 453 };
+// Merged with AR0140: core 4852 + 14 = 4866, orchestration 1035 + 111 = 1146.
+const BUDGETS = { core: 4866, "core/testing": 340, projects: 320, orchestration: 1146, machines: 375, resources: 401, session: 453 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

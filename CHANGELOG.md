@@ -11,6 +11,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Other
 
 - AR0153 Roadmap 37: Restart guard (2799aaa)
+- AR0158 Roadmap 39: Schedule entries and the sweep (32f5997)
 
 ## 2026-10-18
 

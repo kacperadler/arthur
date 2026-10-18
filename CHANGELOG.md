@@ -8,6 +8,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0098 Plan: an agent per project with its own channel, and Discord and Slack channels (5cbfc1c)
 
+### Fixed
+
+- AR0113 The inbox is proved once against real omp: mid-turn join, resumed turn, willContinue (1f6adb6)
+
 ### Changed
 
 - AR0115 arthur.mmd shows project agents in the first version, and orchestration as 1 of 8 entries built (7af750c)

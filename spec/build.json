@@ -925,21 +925,21 @@
     "title": "A turn that keeps failing is handed its messages again every second, without a pause",
     "status": "in-progress",
     "path": "spec/features/AR0112-a-turn-that-keeps-failing-is-handed-its-messages-again-every-second-without-a-pause/ticket.md",
-    "updated": "2026-10-18T07:24:34.583Z"
+    "updated": "2026-10-18T08:23:24.093Z"
   },
   {
     "id": "AR0113",
     "title": "The inbox is proved once against real omp: mid-turn join, resumed turn, willContinue",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0113-the-inbox-is-proved-once-against-real-omp-mid-turn-join-resumed-turn-willcontinue/ticket.md",
-    "updated": "2026-10-18T07:24:35.175Z"
+    "updated": "2026-10-18T08:23:21.117Z"
   },
   {
     "id": "AR0114",
     "title": "README's orchestration row shows entries 24 and 26 as not built",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0114-readme-s-orchestration-row-shows-entries-24-and-26-as-not-built/ticket.md",
-    "updated": "2026-10-18T07:24:28.105Z",
+    "updated": "2026-10-18T08:22:02.015Z",
     "after": [
       "AR0115"
     ]
@@ -954,9 +954,9 @@
   {
     "id": "AR0116",
     "title": "Lessons from the predecessor: two worker rules and three roadmap edge cases",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0116-lessons-from-the-predecessor-two-worker-rules-and-five-roadmap-edge-cases/ticket.md",
-    "updated": "2026-10-18T07:28:50.819Z"
+    "updated": "2026-10-18T08:22:02.650Z"
   },
   {
     "id": "AR0117",

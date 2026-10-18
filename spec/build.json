@@ -1259,9 +1259,9 @@
   {
     "id": "AR0157",
     "title": "Roadmap 38: Start notice and LLM probe",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0157-roadmap-38-start-notice-and-llm-probe/ticket.md",
-    "updated": "2026-10-18T22:00:21.001Z",
+    "updated": "2026-10-18T23:19:07.717Z",
     "after": [
       "AR0153"
     ]
@@ -1269,16 +1269,16 @@
   {
     "id": "AR0158",
     "title": "Roadmap 39: Schedule entries and the sweep",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0158-roadmap-39-schedule-entries-and-the-sweep/ticket.md",
-    "updated": "2026-10-18T22:38:15.076Z"
+    "updated": "2026-10-18T23:00:02.888Z"
   },
   {
     "id": "AR0159",
     "title": "packages/session/test/restart.test.ts:204 fails now and then with \"Unexpected end of JSON input\"",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0159-packages-session-test-restart-test-ts-204-fails-now-and-then-with-unexpected-end-of-json-input/ticket.md",
-    "updated": "2026-10-18T22:18:47.368Z",
+    "updated": "2026-10-18T23:17:19.013Z",
     "after": [
       "AR0153"
     ]
@@ -1296,5 +1296,19 @@
     "status": "planning",
     "path": "spec/features/AR0161-host-code-finds-a-plugin-s-package-by-its-name-not-by-the-module-the-config-imported/ticket.md",
     "updated": "2026-10-18T22:45:18.423Z"
+  },
+  {
+    "id": "AR0162",
+    "title": "A registered entry's procedure will be a path the entry check refuses",
+    "status": "planning",
+    "path": "spec/features/AR0162-a-registered-entry-s-procedure-will-be-a-path-the-entry-check-refuses/ticket.md",
+    "updated": "2026-10-18T23:00:02.885Z"
+  },
+  {
+    "id": "AR0163",
+    "title": "Roadmap 40: Registered entries and arthur schedule",
+    "status": "in-progress",
+    "path": "spec/features/AR0163-roadmap-40-registered-entries-and-arthur-schedule/ticket.md",
+    "updated": "2026-10-18T23:00:28.825Z"
   }
 ]

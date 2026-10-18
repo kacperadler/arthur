@@ -33,3 +33,4 @@ Out:
 
 - 2026-10-18: The owner asked for a night plan for Arthur with Claude 7 Day usage up to 75%. Entries 37 and 38 touch the session plugin and run one after another; 39 (schedule) is independent of them and fills the free slot. 80, 93, 94 and 82 wait for 38 or 41.
 - 2026-10-19: Coordinator (owner delegated Arthur calls): the four choices accepted: a procedure is a relative .md inside the run folder (absolute, .., non-.md, symlinks refused); a new daily entry skips slots before its first sweep except one at most 5 min before; a slot run over 5 min late is marked late; a refused scheduled spawn tells the coordinator and keeps the slot claimed.
+- 2026-10-19: The schedule package gets a line budget of 277 in `test/structure.test.ts` (a new package; the core is unchanged): the entries' checks and slots (`entry.ts`), the claims of the run state (`run-state.ts`), the sweep (`sweep.ts`) and the plugin with its option check (`schedule.ts`).

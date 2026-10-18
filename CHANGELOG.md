@@ -8,6 +8,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0098 Plan: an agent per project with its own channel, and Discord and Slack channels (5cbfc1c)
 
+### Changed
+
+- AR0115 arthur.mmd shows project agents in the first version, and orchestration as 1 of 8 entries built (7af750c)
+
 ### Other
 
 - AR0110 Roadmap 26: maxAgents and the models of each role (5dfeb7e)

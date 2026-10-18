@@ -11,4 +11,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `README.md:33-40`
 - What: the "What works today" and "What is next" lists say entry 24 (the coordinator's inbox) is next and that entries 25 to 29 and 65 follow with "an agent per project" after them. `spec/build.json` has AR0084 (entry 24) and AR0110 (entry 26) merged. The status line (`README.md:29`) and the feature table's heading also still say "main on 2026-10-17".
 - Suggestion: rewrite those two lists from `spec/build.json`, and move "an agent per project" (entries 85 to 88) ahead of the other later plugins as the roadmap now orders it. Out of this ticket's Scope; AR0114 covers only the feature table row.
-- Status: open
+- Status: ticket AR0114 (AR0117, made by the merge, dropped as its duplicate)

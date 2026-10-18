@@ -8,8 +8,9 @@ import type { Host } from "@arthur/core/plugin";
 type Board = Host["board"];
 type Command = Parameters<Host["commands"]["register"]>[0];
 
-// Telegram's limit for one message: a full board longer than that is sent as its digest, so no ticket is lost to a cut.
-const MESSAGE = 4096;
+// Telegram's limit for one message: a full board longer than that is sent as its digest, so no ticket is lost to a cut; a
+// blocked job's question longer than that is cut (blocked-notice.ts).
+export const MESSAGE = 4096;
 
 // Undefined: the words are wrong usage.
 type Reply = (words: readonly string[], project: string | undefined) => string | undefined;

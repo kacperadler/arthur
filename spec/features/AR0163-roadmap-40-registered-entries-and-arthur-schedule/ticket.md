@@ -33,3 +33,4 @@ Out:
 ## Decisions
 
 - 2026-10-19: The owner asked for a night plan for Arthur with Claude 7 Day usage up to 75%; entry 40 is next after 39 merged.
+- 2026-10-19: The schedule package's line budget in `test/structure.test.ts` rises by 220 to 497: `schedule.register` with its own procedure rule (`register.ts`), the file's entries read and changed under a lock (`entry-file.ts`), and `arthur schedule add|list|remove` (`schedule-command.ts`). The core publishes its existing lock as `@arthur/core/lock` (one line in its `exports`, no core source line), so two `add`s at once lose neither's entry.

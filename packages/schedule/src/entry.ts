@@ -5,7 +5,7 @@ import type { OptionProblem } from "@arthur/core/plugin";
 
 // One schedule entry (spec/roadmap.md, entry 39), from the config or the `file` option: a daily "HH:MM", only on `days` when
 // given, or a one-off "YYYY-MM-DDTHH:MM", in core.timeZone; it does an action (a message to the coordinator, with the text of
-// a procedure file under it) or a job (a spawn): docs/schedule.md.
+// a procedure file under it) or a job (a spawn): docs/commands/schedule.md.
 export type Action = { readonly message: string; readonly procedure?: string };
 export type JobEntry = { readonly task: string; readonly kind?: string; readonly project?: string };
 export type Entry = { readonly id: string; readonly at: string; readonly days?: readonly Day[]; readonly action?: Action; readonly job?: JobEntry };
@@ -17,7 +17,8 @@ const DAYS: readonly unknown[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun
 const HOUR = 3_600_000;
 
 type Fields = Readonly<Record<string, unknown>>;
-const isObject = (value: unknown): value is Fields => typeof value === "object" && value !== null && !Array.isArray(value);
+export const isObject = (value: unknown): value is Fields => typeof value === "object" && value !== null && !Array.isArray(value);
+export const isId = (value: unknown): value is string => typeof value === "string" && ID.test(value);
 
 // What keeps `entry` from running, each problem's path under `path` ("entries[0]", or "" for an entry of the file).
 export function entryProblems(entry: unknown, path: string): OptionProblem[] {
@@ -25,7 +26,7 @@ export function entryProblems(entry: unknown, path: string): OptionProblem[] {
 	if (!isObject(entry)) return [{ path, problem: `expected an entry { id, at, action or job }, got ${describe(entry)}` }];
 	const { id, at, days, action, job, ...unknown } = entry;
 	const problems: OptionProblem[] = Object.keys(unknown).map((key) => ({ path: under(key), problem: "unknown key; keys: id, at, days, action, job" }));
-	if (typeof id !== "string" || !ID.test(id)) problems.push({ path: under("id"), problem: `expected letters and digits, joined by single dots, dashes or underscores, got ${describe(id)}` });
+	if (!isId(id)) problems.push({ path: under("id"), problem: `expected letters and digits, joined by single dots, dashes or underscores, got ${describe(id)}` });
 	const once = typeof at === "string" ? ONE_OFF.exec(at) : null;
 	if (!(typeof at === "string" && DAILY.test(at)) && !(once !== null && realDate(once[1] as string)))
 		problems.push({ path: under("at"), problem: `expected "HH:MM" for every day or "YYYY-MM-DDTHH:MM" for once, got ${describe(at)}` });

@@ -11,4 +11,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `README.md:29`, `README.md:44` (and the `arthur.mmd` copy in the README block, its legend and its comment)
 - What: the status line and the feature table's intro still date the state "main on 2026-10-17", though entries 24 and 26 merged on 2026-10-17 and 2026-10-18 changed the feature table. This ticket changed only the two lists (`README.md:33-40`), as its last Decision sets.
 - Suggestion: refresh the dates from `spec/build.json` in one change with `arthur.mmd` (the structure test keeps the README block equal to it).
-- Status: open
+- Status: dropped (the date is refreshed with the next change to the feature table; AR0119, made by the merge, dropped)

@@ -1,6 +1,7 @@
 import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
+import { byState } from "./context.ts";
 
 // The coordinator's inbox, the plugin's side (spec/roadmap.md, entry 24): every message for the coordinator becomes one file
 // `<folder>/inbox/queued/<event's number>`, which the inbox extension (inbox-extension.ts) hands to the coordinator's agent;
@@ -58,12 +59,14 @@ export function queue(folder: string, seq: number, message: Message): void {
 	}
 }
 
-// The wake: how the run ended, the first lines of its final message, its project when not the main one, and what the plugins
-// add for it (the procedure of its kind).
+// The wake: the state its run ended in (the question, when blocked on the owner), the first lines of its final message, its
+// project when not the main one, and what the plugins add for it (the procedure of its kind).
 function wake(host: Host, data: unknown): string {
 	const job = (data ?? {}) as Readonly<Record<string, unknown>>;
 	const id = String(job.id);
-	const lines = [`Job ${id} ended its run: ${String(job.state)}${text(job.reason) ? ` (${job.reason})` : ""}.`];
+	const asks = job.state === "blocked" && typeof job.reason === "string" && job.reason.startsWith("user: ") ? job.reason.slice("user: ".length) : undefined;
+	const state = `${String(job.state)}${text(job.reason) ? ` (${job.reason})` : ""}`;
+	const lines = [asks === undefined ? `Job ${id} ended its run: ${state}.` : `Job ${id} ended its run blocked on the owner; its question, also sent as a notice: ${asks}`];
 	const main = host.collect("projects").length > 0 ? host.board.projects()[0]?.name : undefined;
 	if (main !== undefined && job.project !== main) lines.push(`Project: ${String(job.project)}.`);
 	const result = host.jobs.result(id).trimEnd().split("\n");
@@ -76,10 +79,14 @@ function wake(host: Host, data: unknown): string {
 	return lines.join("\n");
 }
 
-// `arthur · N running: <short ids>`, empty when none runs; the extension shows it in the coordinator's footer.
+// `arthur · <n> <state>, …: <short ids>` for the jobs in a run, by state, empty when none runs; the extension shows it in the
+// coordinator's footer.
 function footer(host: Host): void {
-	const running = host.jobs.running();
-	const shown = running.length === 0 ? "" : `arthur · ${running.length} running: ${running.map((id) => id.split("-").at(-1)).join(", ")}`;
+	const running = new Set(host.jobs.running());
+	const jobs = byState(host.jobs.list().filter((job) => running.has(job.id)));
+	const counts = [...jobs].map(([state, each]) => `${each.length} ${state || "no state"}`).join(", ");
+	const ids = [...jobs.values()].flat().map((job) => job.id.split("-").at(-1));
+	const shown = ids.length === 0 ? "" : `arthur · ${counts}: ${ids.join(", ")}`;
 	writeFileSync(join(host.folder, "footer.new"), shown);
 	renameSync(join(host.folder, "footer.new"), join(host.folder, "footer"));
 }

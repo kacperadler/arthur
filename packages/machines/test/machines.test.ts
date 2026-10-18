@@ -5,7 +5,7 @@ import { arch, platform } from "node:process";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
-import { coreVersion } from "@arthur/core";
+import { coreVersion, loadConfig } from "@arthur/core";
 import type { Plugin } from "@arthur/core/plugin";
 import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { type MachinesOptions, machines } from "../src/machines.ts";
@@ -18,6 +18,10 @@ import { type MachinesOptions, machines } from "../src/machines.ts";
 const bin = temporaryFolder();
 const root = temporaryFolder();
 const sshLog = join(bin, "ssh.log");
+// The core's options as an empty config loads them, which a plugin's `check` gets beside its own.
+const config = join(temporaryFolder(), "arthur.config.ts");
+writeFileSync(config, "export default {};\n");
+const core = (await loadConfig(config)).core;
 // The machine's PATH has the system's tools and no `arthur` but the one in its own bin.
 const machinePath = ["/usr/bin", "/bin"].join(delimiter);
 writeFileSync(
@@ -59,7 +63,7 @@ type Loaded = { readonly fake: FakeHost; readonly plugin: Plugin };
 async function load(options: MachinesOptions): Promise<Loaded> {
 	rmSync(sshLog, { force: true });
 	const plugin = machines(options);
-	assert.deepEqual(plugin.check?.(options), []);
+	assert.deepEqual(plugin.check?.(options, core), []);
 	const fake = fakeHost({ name: "machines", options });
 	await fake.setup(plugin);
 	return { fake, plugin };

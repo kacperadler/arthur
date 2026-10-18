@@ -5,9 +5,10 @@ import type { Clock } from "./clock.ts";
 import type { Bus } from "./events.ts";
 import { addWorktree, branchExists, fileAt, head, removeWorktree } from "./git.ts";
 import { checkout, checkouts } from "./job-checkout.ts";
-import { checkLimits, type Limits, spawnLimits } from "./job-limits.ts";
+import { type Limits, spawnLimits } from "./job-limits.ts";
 import { continueJob } from "./job-control.ts";
 import { addThere, LOCAL, type Machine, machineRegistry, type Ran, reach, removeThere, type Requires } from "./job-machine.ts";
+import { kindRegistry } from "./job-kinds.ts";
 import { newJob, writeRecord } from "./job-record.ts";
 import { type JobRecord, jobUpkeep } from "./job-records.ts";
 import { launchThere, syncMachines } from "./machine-sync.ts";
@@ -15,12 +16,14 @@ import { pluginStep } from "./plugin.ts";
 import { spawnChecks } from "./spawn-check.ts";
 import { type Collect, describeRoles, prompt, type Role, type RoleReads, roleModel, roleReads, roleRegistry, type RoleView } from "./roles.ts";
 import { type Caps, jobCaps, launch, type Slice, sayUncapped } from "./job-scope.ts";
+import type { Board } from "./board.ts";
+import { type File, fileJob } from "./ticket-file.ts";
 
 // The job runner's spawn and the job record (spec/roadmap.md, entries 9 and 11). A worker gets its own branch and worktree from
 // HEAD, a read-only kind a detached checkout of HEAD; both live in `.arthur-worktrees/<id>` beside the repository, outside the main
 // checkout and the home folder. The record is `<home>/jobs/<id>/`, one file per key, appearing whole; then the wrapper starts.
 
-// A kind of job, owned by the plugin that registers it; the core owns `worker`.
+// A kind of job, owned by the plugin that registers it (job-kinds.ts); the core owns `worker`.
 export type Kind = {
 	readonly name: string;
 	// No branch of its own: a detached checkout of HEAD.
@@ -31,6 +34,8 @@ export type Kind = {
 	readonly budgetUsd?: number;
 	readonly timeoutMinutes?: number;
 	readonly resumeOnBudget?: boolean;
+	// How `arthur ticket file` files a finished job of this kind in its ticket's folder (ticket-file.ts); without it, nothing is filed.
+	readonly file?: File;
 };
 
 // `kind` defaults to `worker`, `project` to the main one; left undefined, `model` and `thinking` are the role's, a limit the kind's.
@@ -92,6 +97,8 @@ export type Jobs = RoleReads & {
 	running(): string[];
 	// The final message of job `id`, empty while it runs or when it wrote none; refused for anything but a job's id.
 	result(id: string): string;
+	// `arthur ticket file <id> <job>`: job `job`, finished on ticket `id`, filed by its kind's `file`; the path written (ticket-file.ts).
+	file(id: string, job: string): string;
 };
 
 // The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for.
@@ -103,17 +110,16 @@ export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run
 	registerMachine(owner: string, machine: Machine): void;
 	// `arthur continue`: resumes an ended job with a branch in place (job-control.ts), `budgetUsd` replacing its budget; resolves to why its wrapper did not start.
 	continue(id: string, instruction: string, budgetUsd?: number): Promise<string | undefined>;
+	file(board: Board, id: string, job: string): string;
 	// What `arthur roles` prints: each role, the files it reads in the project's main checkout, and its model.
 	roles(project?: string): RoleView[];
 };
-
-const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 
 // `folder` is in the repository jobs start from while no plugin provides `projects` (job-checkout.ts); `limits` are the core's
 // `jobs` options and the jobs' slice, `agent` its `agent.command`; `collect` reads what the plugins provide, e.g. the sections
 // of a prompt (`prompt`) and the project list (`projects`).
 export function jobRunner(home: string, folder: string, limits: Limits & Slice & { readonly idleMinutes: number; readonly offlineGraceMinutes: number }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
-	const kinds = new Map<string, { readonly owner: string; readonly kind: Kind }>();
+	const kinds = kindRegistry();
 	const roles = roleRegistry();
 	const where = (project: string | undefined) => checkout(folder, collect("projects", []), project);
 	const checks = spawnChecks(home);
@@ -128,25 +134,19 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 			upkeep.sweep();
 			syncMachines(home, machines.others(), bus, time.now(), limits.offlineGraceMinutes);
 		},
-		registerKind(owner, kind) {
-			if (typeof kind.name !== "string" || !NAME.test(kind.name)) throw new Error(`kind ${JSON.stringify(kind.name)}: expected a name of lowercase letters, digits and dashes`);
-			const first = kinds.get(kind.name);
-			if (first) throw new Error(`kind ${kind.name}: registered by ${first.owner} and by ${owner}; a kind belongs to one plugin`);
-			if (typeof kind.readOnly !== "boolean") throw new Error(`kind ${kind.name}: readOnly must be true or false`);
-			checkLimits(`kind ${kind.name}`, kind);
-			kinds.set(kind.name, { owner, kind });
-		},
+		registerKind: (owner, kind) => kinds.register(owner, kind),
 		registerRole: (owner, role) => roles.register(owner, role),
 		beforeSpawn: (owner, check) => checks.add(owner, check),
 		prepare: (owner, fn) => void prepares.push({ owner, fn }),
 		registerMachine: (owner, machine) => machines.register(owner, machine),
 		run: (machine, argv, limitSeconds) => machines.run(machine, argv, limitSeconds),
-		roles: (project) => describeRoles(roles, [...kinds.values()].map((entry) => entry.kind), where(project), collect),
+		roles: (project) => describeRoles(roles, kinds.all(), where(project), collect),
 		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), (spawn) => checks.pass({ ...spawn, tickets: taskTickets(spawn.task) }), machines.of(id)),
+		file: (board, id, job) => fileJob(home, board, (name) => kinds.get(name)?.file, id, job),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
-			const kind = kinds.get(name)?.kind;
-			if (kind === undefined) throw new Error(`unknown kind ${name}; kinds: ${[...kinds.keys()].sort().join(", ")}`);
+			const kind = kinds.get(name);
+			if (kind === undefined) throw new Error(`unknown kind ${name}; kinds: ${kinds.all().map((each) => each.name).sort().join(", ")}`);
 			const role = roles.get(kind.role);
 			if (request.task.trim() === "") throw new Error("the task is empty");
 			const { root, project, files } = where(request.project);

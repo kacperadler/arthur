@@ -170,10 +170,12 @@ test("arthur ticket creates, moves and lists tickets on the project's board, and
 test("arthur ticket: an empty board, wrong usage, and a config that does not load", () => {
 	const folder = project(BOARD);
 	assert.deepEqual([arthur(folder, "board", "all").stdout, existsSync(join(folder, "spec"))], ["the board is empty\n", false]);
-	for (const args of [[], ["new"], ["status", "DM0001"], ["all"], ["move", "DM0001", "done"], ["after"]]) {
+	for (const args of [[], ["new"], ["status", "DM0001"], ["all"], ["move", "DM0001", "done"], ["after"], ["file", "DM0001"], ["file", "DM0001", "a", "b"]]) {
 		const run = arthur(folder, "ticket", ...args);
-		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket after <id> [<id>...]\n"], args.join(" "));
+		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket after <id> [<id>...]; arthur ticket file <id> <job>\n"], args.join(" "));
 	}
+	const unknown = arthur(folder, "ticket", "file", "DM0001", "2026-01-01-plan-0000beef");
+	assert.deepEqual([unknown.status, unknown.stderr], [1, "arthur ticket: DM0001 is not on the board\n"], "file reads the board, then the job");
 	const broken = project(BOARD.replace('"orchestration"', '"schedule"'));
 	const run = arthur(broken, "ticket", "new", "Lost");
 	assert.deepEqual([run.status, run.stderr.split("\n")[0]], [1, "arthur ticket: the board needs the project list, and arthur.config.ts did not load:"]);
@@ -185,9 +187,9 @@ test("arthur ticket with an empty word, in new, status or after, is refused with
 	const folder = project(BOARD);
 	for (const title of ["One", "Two"]) arthur(folder, "ticket", "new", title);
 	const before = arthur(folder, "board", "all").stdout;
-	for (const args of [["status", "", "planned"], ["status", "DM0001", ""], ["new", ""], ["new", "Three", ""], ["after", "", "DM0001"], ["after", "DM0002", ""], ["after", "DM0002", "DM0001", ""]]) {
+	for (const args of [["status", "", "planned"], ["status", "DM0001", ""], ["new", ""], ["new", "Three", ""], ["after", "", "DM0001"], ["after", "DM0002", ""], ["after", "DM0002", "DM0001", ""], ["file", "DM0001", ""], ["file", "", "x"]]) {
 		const run = arthur(folder, "ticket", ...args);
-		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket after <id> [<id>...]\n"], args.join(" "));
+		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket after <id> [<id>...]; arthur ticket file <id> <job>\n"], args.join(" "));
 	}
 	assert.equal(arthur(folder, "board", "all").stdout, before);
 });

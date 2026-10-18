@@ -1016,9 +1016,9 @@
   {
     "id": "AR0124",
     "title": "Roadmap 30: Machines: the list, labels, and SSH checks",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0124-roadmap-30-machines-the-list-labels-and-ssh-checks/ticket.md",
-    "updated": "2026-10-18T10:17:28.065Z"
+    "updated": "2026-10-18T10:29:04.188Z"
   },
   {
     "id": "AR0125",

@@ -1,6 +1,7 @@
 import { basename } from "node:path";
 import { projectList } from "./board.ts";
 import { topLevel } from "./git.ts";
+import { type ProjectCheckout, promptFiles } from "./roles.ts";
 
 // The project `name` names (spec/roadmap.md, entries 9 and 41), as the binary checks `--project` before a command runs.
 // `lists`: what every provider of `projects` returned; with a list, `name` is a name in it and undefined is the first, the main
@@ -20,12 +21,12 @@ export function knownProject(folder: string, lists: readonly unknown[], name: st
 	return { name: basename(root), path: root };
 }
 
-// The repository a job of `project` starts from, and the project's name.
-export function checkout(folder: string, lists: readonly unknown[], project: string | undefined): { readonly root: string; readonly project: string } {
+// The repository a job of `project` starts from, the project's name, and where its prompt files are.
+export function checkout(folder: string, lists: readonly unknown[], project: string | undefined): ProjectCheckout {
 	const found = knownProject(folder, lists, project);
 	const root = lists.length > 0 ? topLevel(found.path) : found.path;
 	if (root === undefined) throw new Error(`project ${found.name}: ${found.path} is not in a Git repository; a job starts from its HEAD`);
-	return { root, project: found.name };
+	return { root, project: found.name, files: promptFiles(found) };
 }
 
 // Every declared project's main checkout, `<name> <root>` a line, which a job's record keeps for its worktree guard; a project's

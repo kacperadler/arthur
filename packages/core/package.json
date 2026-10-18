@@ -8,6 +8,7 @@
   },
   "exports": {
     ".": "./src/config.ts",
+    "./cli": "./src/cli.ts",
     "./clock": "./src/clock.ts",
     "./env-guard": "./src/env-guard.ts",
     "./plugin": "./src/plugin.ts",

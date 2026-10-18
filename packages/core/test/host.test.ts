@@ -80,6 +80,32 @@ test("provide, call and collect between plugins; collect with no provider return
 	assert.deepEqual(seen, ["local for AR1", ["orchestration for worker", "machines"], []]);
 });
 
+test("collectEach names each answer's plugin; a provider that throws costs its own answer, and collect still throws", async () => {
+	const seen: unknown[] = [];
+	await loadPlugins(
+		config([
+			fake([], "orchestration", { setup: (host) => host.provide("health", (at: string) => `orchestration at ${at}`) }),
+			fake([], "machines", {
+				setup: (host) =>
+					host.provide("health", () => {
+						throw new Error("ssh refused");
+					}),
+			}),
+			fake([], "projects", {
+				setup: (host) => {
+					host.provide("health", () => undefined);
+					seen.push(host.collectEach("health", "08:00"), host.collectEach("doctor"));
+					assert.throws(() => host.collect("health", "08:00"), { message: "ssh refused" });
+				},
+			}),
+		]),
+	);
+	assert.deepEqual(seen, [
+		[{ plugin: "orchestration", value: "orchestration at 08:00" }, { plugin: "machines", error: new Error("ssh refused") }, { plugin: "projects", value: undefined }],
+		[],
+	]);
+});
+
 test("every plugin gets one clock, in the config's time zone with its quiet hours", async () => {
 	const hosts: Host[] = [];
 	const keep = (host: Host) => void hosts.push(host);

@@ -44,7 +44,7 @@ export function temporaryFolder(): string {
 // `tool`, a tool call, omp's start and end events of it, `output` the tool's text and `failed` its error flag. `message`: an assistant
 // message that ends a turn, with its `cost` in USD; `stopReason` `stop` (the default) ends the run, `toolUse` comes before a tool call,
 // `error` or `aborted` a failed one, with omp's `error` text. `prompt`: a turn starts (`agent_start`) once an extension sent a message while
-// idle, busy `compactMs` first (omp's compaction before it); `end`: it ends (`agent_end`) unless a `session_stop` handler continues it (8 in a
+// idle, busy `compactMs` first (omp's compaction before it), after its `before_agent_start` handlers; `end`: it ends (`agent_end`) unless a `session_stop` handler continues it (8 in a
 // row at most) or, with `continues`, says it goes on and starts none (omp's compaction after it). `stdout`/`stderr`: one line. `waitFor`: until the file exists. `signal`: kills itself with it.
 export type AgentStep =
 	| { readonly tool: string; readonly args?: Readonly<Record<string, unknown>>; readonly output?: string; readonly failed?: boolean }
@@ -60,7 +60,7 @@ export type AgentRun = { readonly steps: readonly AgentStep[]; readonly exitCode
 
 // The fake agent: an executable `omp` in a new folder of the kit's, which plays `run` each time it starts, notes each start
 // (`pid`, `cwd`, `args`) in `starts.jsonl` beside it, each message its `-e` extensions send (`content`, `options`, `step`) in
-// `messages.jsonl`, and their `ctx.ui` calls in `ui.jsonl`. Returns its path, for `PATH` or as `core.agent.command`.
+// `messages.jsonl`, their `ctx.ui` calls in `ui.jsonl`, and each turn's system prompt in `system.jsonl`. Returns its path, for `PATH` or as `core.agent.command`.
 export function fakeAgent(run: AgentRun): string {
 	const folder = temporaryFolder();
 	const quote = (text: string) => `'${text.replaceAll("'", `'\\''`)}'`;

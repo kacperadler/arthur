@@ -144,6 +144,45 @@ test("a symlinked override or criteria file, one under a symlinked folder, or on
 	}
 });
 
+test("a project's prompts move the files the roles read; host.jobs reads a role's prompt and the vision outside a spawn", async () => {
+	const harness = { [".agents/harness/roles/worker.md"]: "Use spaces.\n", [".agents/harness/criteria/styleguide.md"]: "# House style\n", "docs/vision.md": "# Acme\n\nSell tools.\n" };
+	const { root, home } = repository({ ...harness, [`${ROLES}/worker.md`]: "Use tabs.\n", "spec/vision.md": "# Old\n" });
+	const names = registry();
+	const prompts = { vision: "docs/vision.md", criteriaDir: ".agents/harness/criteria", rolesDir: ".agents/harness/roles" };
+	names.provide("projects", "projects", () => [{ name: "acme", path: root, prefix: "AC", prompts }]);
+	names.provide("commit-rules", "prompt", () => "Commit rules.");
+	const jobs = runner(root, home, names);
+	const expected = `${WORKER.trim()}\n\n## Project override, which wins over the role above (.agents/harness/roles/worker.md)\n\nUse spaces.\n\n## House style (.agents/harness/criteria/styleguide.md)\n\n# House style\n`;
+	const worker = await jobs.spawn({ task: "Go." });
+	assert.equal(prompt(home, worker.id), `${expected}\nCommit rules.\n`);
+	assert.deepEqual(jobs.prompt("worker"), { prompt: expected, warnings: [] }, "without the plugins' sections, which are a job's");
+	assert.deepEqual(jobs.vision(), { project: "acme", path: "docs/vision.md", text: "# Acme\n\nSell tools.\n" });
+	assert.throws(() => jobs.prompt("reviewer"), { message: "role reviewer is not registered; roles: worker" });
+	rmSync(join(root, "docs/vision.md"));
+	symlinkSync("../README.md", join(root, "docs/vision.md"));
+	assert.deepEqual(jobs.vision("acme"), { project: "acme", path: "docs/vision.md", problem: "a symlink" });
+	rmSync(join(root, "docs"), { recursive: true });
+	assert.deepEqual(jobs.vision("acme"), { project: "acme", path: "docs/vision.md", problem: "missing" });
+});
+
+test("a project's prompts naming a path outside its repository, or another key, refuse the spawn and the reads, naming the project", async () => {
+	for (const [prompts, key, path] of [
+		[{ vision: "../secret.md" }, "vision", "../secret.md"],
+		[{ criteriaDir: "/etc" }, "criteriaDir", "/etc"],
+		[{ rolesDir: "a/../../b" }, "rolesDir", "a/../../b"],
+		[{ visions: "spec" }, "visions", "spec"],
+	] as const) {
+		const { root, home } = repository();
+		const names = registry();
+		names.provide("projects", "projects", () => [{ name: "acme", path: root, prefix: "AC", prompts }]);
+		const jobs = runner(root, home, names);
+		const message = `project acme: prompts.${key}: expected vision, criteriaDir, rolesDir, each a path inside its repository, got ${JSON.stringify(path)}`;
+		await assert.rejects(jobs.spawn({ task: "Go." }), { message }, key);
+		assert.throws(() => jobs.vision(), { message }, key);
+		nothingMade(root, home);
+	}
+});
+
 test("a prompt section that is not text refuses the spawn and removes what was made", async () => {
 	const { root, home } = repository();
 	const names = registry();

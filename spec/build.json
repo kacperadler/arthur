@@ -1131,9 +1131,9 @@
   {
     "id": "AR0140",
     "title": "Roadmap 29: Autopilot",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0140-roadmap-29-autopilot/ticket.md",
-    "updated": "2026-10-18T21:56:11.728Z",
+    "updated": "2026-10-18T21:59:55.202Z",
     "after": [
       "AR0123"
     ]
@@ -1234,5 +1234,26 @@
     "status": "in-progress",
     "path": "spec/features/AR0153-roadmap-37-restart-guard/ticket.md",
     "updated": "2026-10-18T21:53:35.643Z"
+  },
+  {
+    "id": "AR0154",
+    "title": "A pre-approved ticket's budget is recorded, not held at its worker's spawn",
+    "status": "planning",
+    "path": "spec/features/AR0154-a-pre-approved-ticket-s-budget-is-recorded-not-held-at-its-worker-s-spawn/ticket.md",
+    "updated": "2026-10-18T21:59:55.197Z"
+  },
+  {
+    "id": "AR0155",
+    "title": "Two `--autopilot` runs on one ticket at once can both record it",
+    "status": "planning",
+    "path": "spec/features/AR0155-two-autopilot-runs-on-one-ticket-at-once-can-both-record-it/ticket.md",
+    "updated": "2026-10-18T21:59:55.199Z"
+  },
+  {
+    "id": "AR0156",
+    "title": "`--autopilot` does not read a ticket's own budget",
+    "status": "planning",
+    "path": "spec/features/AR0156-autopilot-does-not-read-a-ticket-s-own-budget/ticket.md",
+    "updated": "2026-10-18T21:59:55.200Z"
   }
 ]

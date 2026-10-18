@@ -104,6 +104,7 @@ export type FakeHost = {
 // 2026-01-01T00:00:00Z) in `timeZone` (default UTC) until `setNow` moves it. `host.board` reads the project list the test
 // provides as `projects`. `host.jobs.spawn` starts from HEAD of the project's folder in that list, else of the repository
 // `root` (a test's own), with the core's default limits, in the kit's `jobSlice`, and runs the agent `omp` that `PATH` finds, as `host.agent` names it.
+// `host.code` is `code`, default none: the package folders a test's restart guard watches, in a repository of its own.
 // As in a real load, the core follows the jobs after `setup`: at the first spawn, its `beforeSpawn` joins after the plugin's
 // checks and refuses a worker on a ticket of that list that cannot move to in-progress, and its move joins after the plugin's
 // `job-started` handlers, which still see the ticket `planned`. A plugin must not rely on that: a `job-started` from another
@@ -116,6 +117,7 @@ export function fakeHost(plugin: {
 	readonly quietHours?: QuietHours;
 	readonly now?: Date;
 	readonly root?: string;
+	readonly code?: readonly string[];
 }): FakeHost {
 	const names = registry();
 	const registered = commandRegistry();
@@ -127,13 +129,9 @@ export function fakeHost(plugin: {
 	const time = clock(plugin.timeZone ?? "UTC", plugin.quietHours, () => new Date(now));
 	const jobs = jobRunner(home, plugin.root ?? home, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, "omp", time, bus, names.collect);
 	let loading = false, following = false;
-	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder, clock: time, agent: "omp" }, () => loading);
+	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder, clock: time, agent: "omp", code: plugin.code ?? [] }, () => loading);
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));
-	const provided: string[] = [];
-	const calls: Use[] = [];
-	const commands: Command[] = [];
-	const kinds: Kind[] = [];
-	const roles: Role[] = [];
+	const [provided, calls, commands, kinds, roles] = [[] as string[], [] as Use[], [] as Command[], [] as Kind[], [] as Role[]];
 	const host: Host = {
 		...real,
 		provide(name, fn) {

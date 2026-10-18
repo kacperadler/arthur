@@ -45,6 +45,8 @@ Run these with bash.
 
 `arthur coordinator stop` ends this session until `arthur run` starts again, and is refused while any job runs. Run it only when the owner asks. The owner reaches this session from a terminal with `arthur attach`.
 
+While the `Restart:` line of your context says due, every spawn and continue is refused: tell the owner which merges wait for `arthur run` to restart (`/restart` does not do it); `--ignore-restart` only when the owner asks, never for a scheduled or autopilot job.
+
 ## Final message
 
 Your reply is sent when your turn ends, and it is the one reply to everything since your last one: it answers every owner message since then, those marked sent during this turn included, and names any question it still leaves open. A message that changes or cancels what you are doing comes first: stop that work, and say in the reply what was already done and what you stopped.

@@ -64,7 +64,7 @@ export function steerJob(home: string, id: string, text: string): string {
 // another machine (`there`) is checked here, then continued there by `arthur remote-job continue`, which refuses it as here.
 // `check` runs the `beforeSpawn` checks and holds the spawn lock (spawn-check.ts) until the job is `working` again; `uncapped`
 // hears why a job with caps runs bare here (job-scope.ts).
-export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, uncapped: (why: string) => void, check: (spawn: Omit<Spawn, "tickets">) => Promise<() => void>, there?: Machine): Promise<string | undefined> {
+export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, uncapped: (why: string) => void, check: (spawn: Omit<Spawn, "tickets" | "ignoreRestart">) => Promise<() => void>, there?: Machine): Promise<string | undefined> {
 	const { folder, field } = record(home, id);
 	if (instruction.trim() === "") throw new Error("the instruction is empty");
 	const lock = takeLock(join(folder, "continuing"));

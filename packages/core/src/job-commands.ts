@@ -10,7 +10,7 @@ import type { JobRunner } from "./jobs.ts";
 
 const USAGE = {
 	stop: "usage: arthur stop <id>",
-	continue: "usage: arthur continue <id> <instruction> [--budget <usd>]",
+	continue: "usage: arthur continue <id> <instruction> [--budget <usd>] [--ignore-restart]",
 	steer: "usage: arthur steer <id> <text>",
 	jobs: "usage: arthur jobs [--state <state>]",
 	prune: "usage: arthur prune (<id>... | --all)",
@@ -31,9 +31,9 @@ export function jobCommands(home: () => string, jobs: () => JobRunner): Command[
 				return id === undefined ? "usage: /steer <id> <text>" : steer(id, correction);
 			},
 		}),
-		command("continue", 2, async ([query = "", instruction = ""], { budget }) => {
+		command("continue", 2, async ([query = "", instruction = ""], { budget, "ignore-restart": ignoreRestart }) => {
 			const id = findJob(home(), query);
-			const failed = await jobs().continue(id, instruction, budget === undefined ? undefined : Number(budget));
+			const failed = await jobs().continue(id, instruction, budget === undefined ? undefined : Number(budget), ignoreRestart !== undefined);
 			if (failed === undefined) return console.log(`${id}: continued`);
 			console.error(`${id}: failed: ${failed}`);
 			return 1;
@@ -48,14 +48,14 @@ export function jobCommands(home: () => string, jobs: () => JobRunner): Command[
 	];
 }
 
-// `count` arguments (-1: any number), each one word or one quoted text; only `continue` takes `--budget`, only `jobs` `--state`,
-// only `prune` `--all`, a switch the run gets with the value "". An empty word is refused before the command acts.
+// `count` arguments (-1: any number), each one word or one quoted text; only `continue` takes `--budget` and `--ignore-restart`,
+// only `jobs` `--state`, only `prune` `--all`, a switch the run gets with the value "". An empty word is refused before the command acts.
 type Run = (words: readonly string[], values: Partial<Record<string, string>>) => number | void | Promise<number | void>;
 const FLAGS: Partial<Record<keyof typeof USAGE, Parameters<typeof parseFlags>[1]>> = {
 	continue: { budget: (value, before) => (before === undefined ? amount(value, before) : "given twice") },
 	jobs: { state: (value, before) => text(value, before) ?? (STATES.some((state) => state === value) ? undefined : `needs one of ${STATES.join(", ")}, got ${value}`) },
 };
-const SWITCHES: Partial<Record<keyof typeof USAGE, readonly string[]>> = { prune: ["--all"] };
+const SWITCHES: Partial<Record<keyof typeof USAGE, readonly string[]>> = { prune: ["--all"], continue: ["--ignore-restart"] };
 function command(name: keyof typeof USAGE, count: number, run: Run, phone?: Command["phone"]): Command {
 	return {
 		name,

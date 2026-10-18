@@ -5,11 +5,13 @@ import { describe } from "@arthur/core";
 import type { Host, OptionProblem, Options, Plugin } from "@arthur/core/plugin";
 import { alive, put, REQUEST, type Request, readRequest } from "./request.ts";
 import { registerRestart, restarts } from "./restart.ts";
+import { noteLoaded, registerGuard } from "./restart-guard.ts";
 
-// The session plugin (spec/roadmap.md, entries 35 and 36): the coordinator's conversation compacted at each `compactAt`, new at
+// The session plugin (spec/roadmap.md, entries 35 to 37): the coordinator's conversation compacted at each `compactAt`, new at
 // `freshAt` once no job runs, restarted on `/restart`, each after a handoff the coordinator writes and the next conversation
 // reads first. `arthur run` asks for each in `<home>/session/request.json` and acts on its outcome (restart.ts for restarts);
-// the handoff extension, which orchestration loads into the coordinator's agent, does the agent's part: docs/session.md.
+// the handoff extension, which orchestration loads into the coordinator's agent, does the agent's part; the restart guard
+// (restart-guard.ts) holds spawns once a commit changed the code `arthur run` loaded: docs/session.md.
 
 export type SessionOptions = {
 	readonly enabled?: boolean;
@@ -18,10 +20,11 @@ export type SessionOptions = {
 	readonly freshAt?: string;
 	readonly freshRetryMinutes?: number;
 	readonly freshUntil?: string;
+	readonly restartGuard?: boolean;
 };
 
 const EXTENSION = fileURLToPath(new URL("handoff-extension.ts", import.meta.url));
-const OPTIONS = ["compactAt", "compactWaitSeconds", "freshAt", "freshRetryMinutes", "freshUntil"];
+const OPTIONS = ["compactAt", "compactWaitSeconds", "freshAt", "freshRetryMinutes", "freshUntil", "restartGuard"];
 const HH_MM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const TICK_MS = 500;
 
@@ -37,11 +40,13 @@ export function session(options: SessionOptions = {}): Plugin {
 			host = given;
 			given.provide("coordinator.extension", () => ({ file: EXTENSION, env: { ARTHUR_SESSION_FOLDER: given.folder } }));
 			registerRestart(given);
+			if (options.restartGuard !== false) registerGuard(given);
 		},
 		start() {
 			if (host === undefined) return;
 			// One left by an `arthur run` before this one is not done late.
 			rmSync(join(host.folder, REQUEST), { force: true });
+			if (options.restartGuard !== false) noteLoaded(host);
 			const [compact, restart] = [compactions(host), restarts(host)];
 			timer = setInterval(() => {
 				compact();
@@ -81,12 +86,13 @@ export function checkOptions(options: Options): OptionProblem[] {
 	const problems: OptionProblem[] = Object.keys(options)
 		.filter((key) => !OPTIONS.includes(key))
 		.map((key) => ({ path: key, problem: `unknown option; options: ${OPTIONS.join(", ")}` }));
-	const { compactAt, compactWaitSeconds, freshRetryMinutes } = options;
+	const { compactAt, compactWaitSeconds, freshRetryMinutes, restartGuard } = options;
 	if (compactAt !== undefined && !Array.isArray(compactAt)) problems.push({ path: "compactAt", problem: `expected a list of times "HH:MM", got ${describe(compactAt)}` });
 	const times = [...(Array.isArray(compactAt) ? compactAt : []).entries()].map(([index, time]) => [`compactAt[${index}]`, time] as const);
 	for (const [path, time] of [...times, ["freshAt", options.freshAt], ["freshUntil", options.freshUntil]] as const)
 		if ((path.startsWith("compactAt") || time !== undefined) && (typeof time !== "string" || !HH_MM.test(time))) problems.push({ path, problem: `expected a time "HH:MM" from 00:00 to 23:59, got ${describe(time)}` });
 	for (const [path, value, unit] of [["compactWaitSeconds", compactWaitSeconds, "seconds"], ["freshRetryMinutes", freshRetryMinutes, "minutes"]] as const)
 		if (value !== undefined && !(Number.isInteger(value) && (value as number) >= 1)) problems.push({ path, problem: `expected a whole number of ${unit} of at least 1, got ${describe(value)}` });
+	if (restartGuard !== undefined && typeof restartGuard !== "boolean") problems.push({ path: "restartGuard", problem: `expected true or false, got ${describe(restartGuard)}` });
 	return problems;
 }

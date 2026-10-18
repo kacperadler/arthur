@@ -1006,9 +1006,9 @@
   {
     "id": "AR0123",
     "title": "Roadmap 28: Planning of large tickets",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0123-roadmap-28-planning-of-large-tickets/ticket.md",
-    "updated": "2026-10-18T09:51:35.466Z",
+    "updated": "2026-10-18T20:15:06.385Z",
     "after": [
       "AR0120"
     ]
@@ -1141,9 +1141,9 @@
   {
     "id": "AR0141",
     "title": "Roadmap 33: Resources: caps per feature",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0141-roadmap-33-resources-caps-per-feature/ticket.md",
-    "updated": "2026-10-18T19:34:23.689Z"
+    "updated": "2026-10-18T20:27:55.653Z"
   },
   {
     "id": "AR0142",
@@ -1158,18 +1158,39 @@
   {
     "id": "AR0143",
     "title": "Roadmap 35: Compaction during the day",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0143-roadmap-35-compaction-during-the-day/ticket.md",
-    "updated": "2026-10-18T19:34:24.703Z"
+    "updated": "2026-10-18T20:10:13.600Z"
   },
   {
     "id": "AR0144",
     "title": "Roadmap 36: Fresh start, /restart and /restart fresh",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0144-roadmap-36-fresh-start-restart-and-restart-fresh/ticket.md",
-    "updated": "2026-10-18T19:34:25.842Z",
+    "updated": "2026-10-18T20:10:51.054Z",
     "after": [
       "AR0143"
     ]
+  },
+  {
+    "id": "AR0145",
+    "title": "A continued job sets its ticket's slice from the caps kept at its spawn",
+    "status": "planning",
+    "path": "spec/features/AR0145-a-continued-job-sets-its-ticket-s-slice-from-the-caps-kept-at-its-spawn/ticket.md",
+    "updated": "2026-10-18T20:27:55.648Z"
+  },
+  {
+    "id": "AR0146",
+    "title": "Caps per feature on CPU and memory are not held, and not said, on a machine without a user manager",
+    "status": "planning",
+    "path": "spec/features/AR0146-caps-per-feature-on-cpu-and-memory-are-not-held-and-not-said-on-a-machine-without-a-user-manager/ticket.md",
+    "updated": "2026-10-18T20:27:55.650Z"
+  },
+  {
+    "id": "AR0147",
+    "title": "A ticket over its memory cap ends a job `failed: the agent was killed by ...`, not `limit: memory`",
+    "status": "planning",
+    "path": "spec/features/AR0147-a-ticket-over-its-memory-cap-ends-a-job-failed-the-agent-was-killed-by-not-limit-memory/ticket.md",
+    "updated": "2026-10-18T20:27:55.651Z"
   }
 ]

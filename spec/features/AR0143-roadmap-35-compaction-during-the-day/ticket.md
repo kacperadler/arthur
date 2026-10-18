@@ -32,3 +32,4 @@ Out:
 ## Decisions
 
 - 2026-10-18: The owner: build the roadmap in its order; on 2026-10-18 evening he asked for a night plan for Arthur with Claude 7 Day usage up to 75%. This entry is in that plan.
+- 2026-10-18: Coordinator (owner delegated Arthur calls): orchestration line budget 875 -> 892 (+17, coordinator.extension for other plugins) and new session budget 213 accepted.

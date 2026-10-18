@@ -7,13 +7,14 @@ import { coordinatorContext } from "./context.ts";
 import { pane, STOPPED, supervise, tmux } from "./coordinator.ts";
 import { inbox } from "./inbox.ts";
 import { checkOptions, type Coordinator, coordinatorOptions } from "./orchestration-options.ts";
+import { plans } from "./plans.ts";
 import { spawnRules } from "./spawn-rules.ts";
 
 // The orchestration plugin (spec/roadmap.md, entry 23), required by the host: the coordinator's process, kept running by
 // `arthur run`; its inbox (entry 24, inbox.ts); its role and its context on every turn (entry 25, context.ts); `arthur attach`
-// and `arthur coordinator stop|context`, docs/commands/coordinator.md and attach.md; the board's phone commands `/board`, `/task`
-// and `/findings` (board-commands.ts); `maxAgents` and each role's model (entry 26, spawn-rules.ts); and the notice of a job
-// blocked on the owner (entry 27, blocked-notice.ts).
+// and `arthur coordinator stop|context`, docs/commands/coordinator.md and attach.md; the board's phone commands `/board`, `/task`,
+// `/findings` and `/plan` (board-commands.ts); `maxAgents` and each role's model (entry 26, spawn-rules.ts); the notice of a job
+// blocked on the owner (entry 27, blocked-notice.ts); and the planning of large tickets (entry 28, plans.ts).
 
 export type OrchestrationOptions = {
 	readonly enabled?: boolean;
@@ -47,6 +48,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			messages = inbox(host);
 			blockedNotice(host);
 			spawnRules(host, coordinator);
+			plans(host);
 			// Read like every role, with the project's override and criteria; no kind spawns it, `arthur run` starts it.
 			host.jobs.registerRole({ name: "coordinator", file: new URL("../roles/coordinator.md", import.meta.url), criteria: ["styleguide"] });
 			const where = `tmux session ${coordinator.session} (socket ${coordinator.socket})`;

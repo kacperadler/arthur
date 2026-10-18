@@ -8,9 +8,11 @@ import type { Coordinator } from "./orchestration-options.ts";
 // The coordinator's process (spec/roadmap.md, entry 23): one interactive agent in its own tmux session, started again after
 // it ends, never beside a previous one still alive: docs/commands/coordinator.md.
 
-const ROLE = fileURLToPath(new URL("../roles/coordinator.md", import.meta.url));
 const ENV_GUARD = fileURLToPath(import.meta.resolve("@arthur/core/env-guard"));
 const INBOX = fileURLToPath(new URL("inbox-extension.ts", import.meta.url));
+const CONTEXT = fileURLToPath(new URL("context-extension.ts", import.meta.url));
+// What the context extension runs before each turn: this node, the core's CLI, in the folder `arthur run` runs in.
+const CONTEXT_COMMAND = JSON.stringify([process.execPath, fileURLToPath(import.meta.resolve("@arthur/core/cli")), "coordinator", "context"]);
 // How often the session is looked at, and how often a previous agent still alive is.
 const POLL_MS = 500;
 const EXIT_POLL_MS = 200;
@@ -87,8 +89,8 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 		if (Date.now() - began >= EXIT_POLL_MS) console.log(`orchestration: the previous ${agent} (pid ${pid}) exited after ${waited} s`);
 		const { model, thinking, quick, session } = coordinator;
 		const command = [agent, "--continue", "--auto-approve", ...(model ? ["--model", model] : []), ...(thinking ? ["--thinking", thinking] : []), ...(quick ? ["--smol", quick] : [])];
-		command.push("-e", ENV_GUARD, "-e", INBOX, "--append-system-prompt", ROLE);
-		const env = ["-e", `ARTHUR_ORCHESTRATION_FOLDER=${folder}`];
+		command.push("-e", ENV_GUARD, "-e", INBOX, "-e", CONTEXT);
+		const env = ["-e", `ARTHUR_ORCHESTRATION_FOLDER=${folder}`, "-e", `ARTHUR_ORCHESTRATION_CONTEXT=${CONTEXT_COMMAND}`];
 		const made = tmux(coordinator, ["new-session", "-d", "-P", "-F", "#{pane_pid}", "-s", session, "-c", process.cwd(), ...env, ...command]);
 		if (made.status !== 0) {
 			const why = made.error?.message ?? String(made.stderr).trim().split("\n").at(-1);

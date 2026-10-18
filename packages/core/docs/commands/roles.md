@@ -9,13 +9,17 @@ Prints every role, its model, and the files its prompt reads, in the order the p
 Each kind of job names a role (`worker` for the kind `worker`; a plugin's kinds name its roles, for example `reviewer`). The plugin that owns the role registers it with `host.jobs.registerRole({ name, file, criteria })`; the core owns `worker`. When a job is spawned, its prompt is built in this order and kept in the job record as `<home>/jobs/<id>/prompt`:
 
 1. The role file the plugin ships (`file`). The core's worker role is `packages/core/roles/worker.md`: how a worker works, its Never list, its final message.
-2. The project's own override of the role, `.agents/arthur/roles/<role>.md`, under the heading `## Project override, which wins over the role above (<path>)`. A project without one for a role adds nothing: one role may have an override and another none.
-3. Each criteria file the role names (`criteria`), `.agents/arthur/criteria/<name>.md`, as `## <title> (<path>)` followed by the file; the title is the file's first `# ` heading, else its name. The worker reads `styleguide`.
+2. The project's own override of the role, `<rolesDir>/<role>.md`, under the heading `## Project override, which wins over the role above (<path>)`. A project without one for a role adds nothing: one role may have an override and another none.
+3. Each criteria file the role names (`criteria`), `<criteriaDir>/<name>.md`, as `## <title> (<path>)` followed by the file; the title is the file's first `# ` heading, else its name. The worker reads `styleguide`.
 4. The sections other plugins add for that role and job, each a provider of `prompt` called with the role's name and the job (for example a project's commit rules, a tracker's rules), in setup order. A provider returns text, or undefined for none.
 
-The task itself is not part of the prompt; it is the record's `task`. The project's files (2 and 3) are read from the job's worktree, so they are those of HEAD: an uncommitted change to a criteria file is not read. Their folders are relative to the project's repository.
+The task itself is not part of the prompt; it is the record's `task`. The project's files (2 and 3) are read from the job's worktree, so they are those of HEAD: an uncommitted change to a criteria file is not read.
 
-Model, thinking level and quick model: from the one plugin that provides `roles.model` (the coordinator's `roles` option), called with the role's name and answering `{ model, thinking, quick }`, each a string or undefined; without one, the agent's own default. The quick model goes to the agent as `--smol`. `arthur spawn --model` and `--thinking` win over the role's.
+Where a project keeps them: `rolesDir` (default `.agents/arthur/roles`), `criteriaDir` (default `.agents/arthur/criteria`) and `vision` (default `spec/vision.md`, the project's vision), each relative to the project's repository, set per project by its `prompts` key in the `projects` plugin's list. A path that is absolute or leads out of the repository (`..`) is refused before anything is read: `project <name>: prompts.<key>: expected vision, criteriaDir, rolesDir, each a path inside its repository, got <path>`; so is any other key.
+
+Outside a spawn a plugin reads a role through `host.jobs.prompt(role, project?)`: the same prompt (1 to 3) from the project's main checkout, without the sections of 4, which belong to a job, with the same warnings and refusals; and the project's vision through `host.jobs.vision(project?)`: `{ project, path, text }`, or `problem` (`missing`, `a symlink`, `not a file`) instead of `text`, never read through a symlink. Left out, the project is the main one. The orchestration plugin reads the coordinator's role and each project's vision so, every turn (`arthur coordinator --help`).
+
+Model, thinking level and quick model: from the one plugin that provides `roles.model` (orchestration's `roles` option; for the role `coordinator`, its `coordinator.model` and `coordinator.thinking`), called with the role's name and answering `{ model, thinking, quick }`, each a string or undefined; without one, the agent's own default. The quick model goes to the agent as `--smol`. `arthur spawn --model` and `--thinking` win over the role's.
 
 ## The spawn
 
@@ -26,7 +30,7 @@ Model, thinking level and quick model: from the one plugin that provides `roles.
 
 ## The output
 
-One block per role, in the order the roles were registered, the core's `worker` first:
+One block per role, in the order the roles were registered, the core's `worker` first; the coordinator's role (`coordinator`, from orchestration) is listed with no kind, since `arthur run` starts it and no spawn does:
 
 ```
 worker: model the agent's default, thinking the agent's default, quick model the agent's default; kinds worker; from core

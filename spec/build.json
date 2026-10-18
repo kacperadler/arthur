@@ -1089,9 +1089,9 @@
   {
     "id": "AR0134",
     "title": "Roadmap: Discord as a first-version channel, and own apps over Tailscale",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0134-roadmap-discord-as-a-first-version-channel-and-own-apps-over-tailscale/ticket.md",
-    "updated": "2026-10-18T21:39:52.375Z"
+    "updated": "2026-10-18T21:53:09.205Z"
   },
   {
     "id": "AR0135",
@@ -1131,9 +1131,9 @@
   {
     "id": "AR0140",
     "title": "Roadmap 29: Autopilot",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0140-roadmap-29-autopilot/ticket.md",
-    "updated": "2026-10-18T21:24:56.963Z",
+    "updated": "2026-10-18T21:49:34.750Z",
     "after": [
       "AR0123"
     ]
@@ -1213,5 +1213,19 @@
     "status": "planning",
     "path": "spec/features/AR0150-free-cores-come-from-the-1-minute-load-average-which-on-linux-also-counts-processes-waiting-on-disk/ticket.md",
     "updated": "2026-10-18T21:43:37.721Z"
+  },
+  {
+    "id": "AR0151",
+    "title": "The example config and two diagrams still call Discord later",
+    "status": "planning",
+    "path": "spec/features/AR0151-the-example-config-and-two-diagrams-still-call-discord-later/ticket.md",
+    "updated": "2026-10-18T21:53:09.201Z"
+  },
+  {
+    "id": "AR0152",
+    "title": "Roadmap entry 93 depends on 41 but sits before it",
+    "status": "planning",
+    "path": "spec/features/AR0152-roadmap-entry-93-depends-on-41-but-sits-before-it/ticket.md",
+    "updated": "2026-10-18T21:53:09.203Z"
   }
 ]

@@ -1006,9 +1006,9 @@
   {
     "id": "AR0123",
     "title": "Roadmap 28: Planning of large tickets",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0123-roadmap-28-planning-of-large-tickets/ticket.md",
-    "updated": "2026-10-18T20:46:57.187Z",
+    "updated": "2026-10-18T20:50:40.894Z",
     "after": [
       "AR0120"
     ]
@@ -1165,9 +1165,9 @@
   {
     "id": "AR0144",
     "title": "Roadmap 36: Fresh start, /restart and /restart fresh",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0144-roadmap-36-fresh-start-restart-and-restart-fresh/ticket.md",
-    "updated": "2026-10-18T20:10:51.054Z",
+    "updated": "2026-10-18T20:48:17.447Z",
     "after": [
       "AR0143"
     ]

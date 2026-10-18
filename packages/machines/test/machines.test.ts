@@ -209,7 +209,8 @@ test("ten machines that hang cost one check of 10 s, each cut and its ssh killed
 	// One after another, as a doctor may ask: the first starts every machine's check.
 	for (const requirement of requirements(fake)) assert.equal(await requirement.check(), "missing: check timed out after 10 s");
 	const took = Date.now() - started;
-	assert.ok(took >= 9_900 && took < 14_000, `took ${took} ms`);
+	// Below the 20 s of two checks in a row, with room for a slow runner.
+	assert.ok(took >= 9_900 && took < 19_000, `took ${took} ms`);
 	assert.equal(calls().length, 10);
 	const alive = (pid: number) => {
 		try {

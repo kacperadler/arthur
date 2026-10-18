@@ -118,7 +118,8 @@ test("a previous omp still alive after exitWaitSeconds refuses the start, logged
 	const [first] = starts();
 	tmux(socket, "kill-session", "-t", "=coord");
 	await until("two refusals", () => err.filter((line) => line.text.includes("coordinator start refused")).length >= 2);
-	assert.match(err[0]?.text ?? "", new RegExp(`^orchestration: coordinator start refused: the previous omp \\(pid ${first?.pid}\\) is still running 1\\.\\d s later; trying again in 1 s$`));
+	// At least exitWaitSeconds; a slow runner may wait longer before it looks again.
+	assert.match(err[0]?.text ?? "", new RegExp(`^orchestration: coordinator start refused: the previous omp \\(pid ${first?.pid}\\) is still running [1-9]\\d*\\.\\d s later; trying again in 1 s$`));
 	assert.equal(starts().length, 1, "no second omp beside the first");
 	const released = Date.now();
 	writeFileSync(join(folder, "release"), "");

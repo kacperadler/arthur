@@ -1,0 +1,70 @@
+import { lookup } from "node:dns/promises";
+import { BlockList, isIP } from "node:net";
+import type { Host } from "@arthur/core/plugin";
+import type { MachineEntry } from "./machine-options.ts";
+
+// One machine's check (spec/roadmap.md, entry 30): its address private, then one command over the core's SSH that answers
+// its os, arch and Arthur's version, compared with its labels and this core's version. docs/commands/machines.md.
+
+export type Report =
+	| { readonly online: true; readonly os: string; readonly arch: string; readonly version: string }
+	| { readonly online: false; readonly reason: string; readonly fix: string };
+
+// The private network Arthur reaches its machines on: loopback, RFC 1918, and Tailscale's.
+const PRIVATE = new BlockList();
+for (const [address, prefix] of [["127.0.0.0", 8], ["10.0.0.0", 8], ["172.16.0.0", 12], ["192.168.0.0", 16], ["100.64.0.0", 10]] as const) PRIVATE.addSubnet(address, prefix, "ipv4");
+PRIVATE.addAddress("::1", "ipv6");
+PRIVATE.addSubnet("fd7a:115c:a1e0::", 48, "ipv6");
+
+// `uname -s` and `uname -m` as the labels name them, which are Node's `process.platform` and `process.arch` words.
+const OS: Readonly<Record<string, string>> = { Linux: "linux", Darwin: "macos" };
+const ARCH: Readonly<Record<string, string>> = { x86_64: "x64", amd64: "x64", aarch64: "arm64", arm64: "arm64" };
+
+const lastLine = (text: string) => text.trim().split("\n").at(-1) ?? "";
+
+// The first address `ssh -G <ssh>` resolves to that is not private, undefined when each is; throws when none is found.
+export async function publicAddress(host: Host, ssh: string): Promise<string | undefined> {
+	const ran = await host.jobs.run("local", ["ssh", "-G", ssh]);
+	const name = /^hostname (\S+)$/m.exec(ran.stdout)?.[1];
+	if (ran.code !== 0 || name === undefined) throw new Error(`ssh -G ${ssh}: ${lastLine(ran.stderr) || `exit code ${ran.code}`}`);
+	const addresses = isIP(name) === 0 ? (await lookup(name, { all: true })).map((found) => found.address) : [name];
+	return addresses.find((address) => !PRIVATE.check(address, isIP(address) === 6 ? "ipv6" : "ipv4"));
+}
+
+// The fix of ssh's own failure, by its line: a refused key, a host key not known or changed, or a machine that does not answer.
+function sshFix(said: string, ssh: string): string {
+	if (/permission denied/i.test(said)) return `ssh-copy-id ${ssh}`;
+	if (/host key|host identification/i.test(said)) return `compare ssh-keyscan ${ssh} with the key the machine itself shows, then add it to ~/.ssh/known_hosts`;
+	return `bring ${ssh} onto the private network (tailscale up there), then ssh ${ssh} true`;
+}
+
+// At most `limitSeconds`, the ssh there killed past it; never throws.
+export async function checkMachine(host: Host, machine: MachineEntry, ours: string, limitSeconds: number): Promise<Report> {
+	const offline = (reason: string, fix: string): Report => ({ online: false, reason, fix });
+	const started = Date.now();
+	try {
+		const address = await publicAddress(host, machine.ssh);
+		if (address !== undefined) return offline(`ssh ${machine.ssh} resolves to ${address}, not a private address`, `reach ${machine.ssh} by its Tailscale name or a private address`);
+	} catch (error) {
+		return offline(error instanceof Error ? error.message : String(error), `make ${machine.ssh} a Host of ~/.ssh/config or a name that resolves (Tailscale's MagicDNS)`);
+	}
+	const left = limitSeconds - (Date.now() - started) / 1000;
+	if (left <= 0) return offline(`check timed out after ${limitSeconds} s`, `ssh ${machine.ssh} true, by hand`);
+	const ran = await host.jobs.run(machine.name, ["sh", "-c", "uname -sm && arthur version"], left);
+	const said = lastLine(ran.stderr) || `exit code ${ran.code}`;
+	if (ran.code === null) return offline(`check timed out after ${limitSeconds} s`, `ssh ${machine.ssh} true, by hand`);
+	if (ran.code === 255) return offline(`ssh ${machine.ssh}: ${said}`, sshFix(said, machine.ssh));
+	if (ran.code === 127) return offline(`arthur is not there (${said})`, "install Arthur's core there at this commit, arthur on the PATH of a command over ssh (docs/deploy.md)");
+	if (ran.code !== 0) return offline(`uname -sm && arthur version failed there: ${said}`, `ssh ${machine.ssh} 'uname -sm && arthur version', by hand`);
+	const [system = "", theirs = ""] = ran.stdout.trim().split("\n").map((line) => line.trim());
+	const words = system.split(/\s+/);
+	const [uname = "", hardware = ""] = [words[0], words.at(-1)];
+	const [os, arch] = [OS[uname] ?? uname.toLowerCase(), ARCH[hardware] ?? hardware];
+	const { os: wantOs, arch: wantArch } = machine.labels ?? {};
+	if ((wantOs !== undefined && wantOs !== os) || (wantArch !== undefined && wantArch !== arch)) {
+		const labels = [wantOs && `os ${wantOs}`, wantArch && `arch ${wantArch}`].filter(Boolean).join(", ");
+		return offline(`its labels say ${labels}; the machine says ${os} ${arch}`, `set the labels of ${machine.name} in arthur.config.ts to what ssh ${machine.ssh} reaches`);
+	}
+	if (theirs !== ours) return offline(`it runs arthur ${theirs || "(no version)"}, this one is ${ours}; both need the same version`, "update Arthur there to this commit (docs/deploy.md)");
+	return { online: true, os, arch, version: ours };
+}

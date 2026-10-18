@@ -58,7 +58,7 @@ export PATH="$HOME/arthur/node_modules/.bin:$PATH"
 
 ## 5. `arthur.config.ts`
 
-Write `~/arthur/arthur.config.ts` with the two plugins built so far: `orchestration`, which every config needs, and `projects`, with your projects. Each project names its repository: `path`, a clone already on this machine, or `repo`, a Git URL Arthur clones into `reposDir` (see `arthur projects --help`):
+Write `~/arthur/arthur.config.ts` with two plugins: `orchestration`, which every config needs, and `projects`, with your projects; other machines for jobs come with the `machines` plugin of step 11. Each project names its repository: `path`, a clone already on this machine, or `repo`, a Git URL Arthur clones into `reposDir` (see `arthur projects --help`):
 
 ```ts
 import { defineConfig } from "@arthur/core";
@@ -211,6 +211,8 @@ Repeat the `Host` block for each machine. The key must already be accepted there
 ```sh
 ssh mac true
 ```
+
+Then add each machine to the `machines` plugin in `arthur.config.ts`, as in step 6 of [Another machine for jobs](deploy.md#another-machine-for-jobs); `arthur machines` says `online` for each, or why not and the fix.
 
 ## 12. The coordinator
 

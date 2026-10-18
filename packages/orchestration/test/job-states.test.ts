@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
@@ -139,16 +139,28 @@ test("one notice per block: a second process given the same event sends none; th
 });
 
 test("the marks of noticed events older than 7 days go at the next block, newer ones stay", async (t) => {
-	const { fake, blocked } = await setup(t);
+	const { fake, notices, blocked } = await setup(t);
 	const asked = join(fake.host.folder, "asked");
 	mkdirSync(asked);
-	for (const [name, days] of [["1", 8], ["2", 6]] as const) {
+	for (const [name, days] of [["900001-0", 8], ["900002-0", 6]] as const) {
 		writeFileSync(join(asked, name), "");
 		const at = new Date(Date.now() - days * 24 * 3_600_000);
 		utimesSync(join(asked, name), at, at);
 	}
-	const seq = blocked(ID, "may I?").seq;
-	assert.deepEqual(readdirSync(asked).sort(), ["2", String(seq)].sort());
+	const event = blocked(ID, "may I?");
+	assert.deepEqual(notices(), [{ text: `${ID} asks: may I?` }]);
+	assert.deepEqual(readdirSync(asked).sort(), ["900002-0", `${event.seq}-${Date.parse(event.time)}`].sort());
+});
+
+test("after the event log is cut by hand, a block with a number noticed before is still a notice", async (t) => {
+	const { home, notices, blocked } = await setup(t);
+	const first = blocked(ID, "may I?");
+	assert.deepEqual(notices(), [{ text: `${ID} asks: may I?` }]);
+	rmSync(join(home, "events.jsonl"));
+	await sleep(5);
+	const again = blocked(ID, "and now?");
+	assert.equal(again.seq, first.seq, "the numbers start again");
+	assert.deepEqual(notices(), [{ text: `${ID} asks: and now?` }], "the cut log holds only what came after");
 });
 
 test("a question longer than one message is cut to 4096 characters with the job id to read it whole; 4096 exactly is sent whole", async (t) => {

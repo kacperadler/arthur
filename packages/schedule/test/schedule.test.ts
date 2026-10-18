@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -188,18 +188,33 @@ test("times in the daylight saving changes: the spring gap runs at the jump, the
 	assert.deepEqual(box.messages().slice(2), ["[scheduled repeat] Repeat."], "02:30 is shown twice that day: its first pass only");
 });
 
-test("an action's procedure goes under its message as the file reads when due; one that cannot be read holds the entry back, named", async (t) => {
-	const box = load(t, [{ id: "morning", at: "09:00", action: { message: "Write the morning report.", procedure: "procedures/morning.md" } }, { id: "linked", at: "09:00", action: { message: "Never.", procedure: "procedures/linked.md" } }], "2026-10-19T08:00:00+02:00");
+test("an action's procedure goes under its message as the file reads when due; one that cannot be read, or whose path holds a symlink anywhere, holds the entry back, named", async (t) => {
+	// The folder arthur runs in may itself be reached through a symlink; only the path below it is checked.
+	const root = join(temporaryFolder(), "via-link");
+	symlinkSync(temporaryFolder(), root);
+	const action = (procedure: string) => ({ message: "Never.", procedure });
+	const entries: Entry[] = [
+		{ id: "morning", at: "09:00", action: { message: "Write the morning report.", procedure: "procedures/morning.md" } },
+		{ id: "linked", at: "09:00", action: action("procedures/linked.md") },
+		{ id: "up", at: "09:00", action: action("procedures/up/secret.md") },
+		{ id: "self", at: "09:00", action: action("procedures/self/other.md") },
+	];
+	const box = load(t, entries, "2026-10-19T08:00:00+02:00", root);
 	box.write("secret.md", "not for the coordinator");
-	mkdirSync(join(box.root, "procedures"));
+	box.write("procedures/other.md", "inside, but reached through a symlink");
 	symlinkSync("../secret.md", join(box.root, "procedures/linked.md"));
+	symlinkSync("..", join(box.root, "procedures/up"));
+	symlinkSync(".", join(box.root, "procedures/self"));
 	await box.sweep();
 	box.at("2026-10-19T09:00:00+02:00");
 	await box.sweep();
 	assert.deepEqual(box.messages(), []);
+	const through = (id: string, path: string) => `schedule: ${id}: skipped until its procedure can be read: ${path} is or goes through a symlink, which is never read`;
 	assert.deepEqual(box.notices(), [
-		`schedule: morning: skipped until its procedure can be read: procedures/morning.md: ENOENT: no such file or directory, lstat '${join(box.root, "procedures/morning.md")}'`,
-		"schedule: linked: skipped until its procedure can be read: procedures/linked.md is a symlink, which is never read",
+		`schedule: morning: skipped until its procedure can be read: procedures/morning.md: ENOENT: no such file or directory, lstat '${join(realpathSync(box.root), "procedures/morning.md")}'`,
+		through("linked", "procedures/linked.md"),
+		through("up", "procedures/up/secret.md"),
+		through("self", "procedures/self/other.md"),
 	]);
 	box.write("procedures/morning.md", "# Morning report\n\nFirst version.\n");
 	box.at("2026-10-19T09:01:00+02:00");
@@ -208,7 +223,7 @@ test("an action's procedure goes under its message as the file reads when due; o
 	box.at("2026-10-20T09:00:00+02:00");
 	await box.sweep();
 	assert.deepEqual(box.messages(), ["[scheduled morning] Write the morning report.\n\n# Morning report\n\nFirst version.", "[scheduled morning] Write the morning report.\n\n# Morning report\n\nSecond version."]);
-	assert.equal(box.notices().length, 2, "a problem is said once while it lasts");
+	assert.equal(box.notices().length, 4, "a problem is said once while it lasts");
 });
 
 test("a job entry spawns a job of its kind, late saying so; a spawn the core refuses goes to the coordinator with the reason", async (t) => {

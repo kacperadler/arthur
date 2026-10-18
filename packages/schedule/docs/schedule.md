@@ -45,7 +45,7 @@ The file is a file a human edits, so the sweep checks its entries as the config'
 
 - An entry the checks above refuse is skipped and named: `spec/schedule.json[2] "doc-check": skipped, at: expected ...`. So is one whose id the config or an earlier entry of the file already has: `..., its id is taken by an entry of the config`.
 - A file that is not JSON, or not a list: `spec/schedule.json: none of its entries run: <why>`; the config's entries still run.
-- A procedure file that cannot be read (missing, unreadable, or a symlink, which is never read) holds its entry back, unclaimed, until it can: `<id>: skipped until its procedure can be read: <why>`. Its slot then runs, late when it is.
+- A procedure file that cannot be read (missing, unreadable, or one whose path holds a symlink, the file itself or any folder on the way below the folder `arthur run` runs in, which is never read) holds its entry back, unclaimed, until it can: `<id>: skipped until its procedure can be read: <why>`, for a symlink `<path> is or goes through a symlink, which is never read`. Its slot then runs, late when it is.
 
 Each such line is printed by `arthur run` as `schedule: <line>` and sent to every channel as one `notice`, once while it lasts; a problem that went away and comes back is said again, and so is every problem at the next start of `arthur run`.
 

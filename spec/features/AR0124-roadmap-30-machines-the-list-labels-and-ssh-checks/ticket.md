@@ -35,3 +35,4 @@ Out:
 ## Decisions
 
 - 2026-10-18: The owner: build the roadmap in its order, plugins included, starting today; this entry is next in that order.
+- 2026-10-18: Coordinator (owner delegated Arthur calls): accepted the worker's calls: a version mismatch counts as offline; labels.os and labels.arch are optional; maxJobs left out means no own limit; machines line budget 280; tool checks left to entry 80, start notice to 80 and 38.

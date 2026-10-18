@@ -1,6 +1,6 @@
 # resources
 
-The `resources` plugin: what one job may use of a machine's CPU and memory (roadmap entry 32), and what all jobs of one ticket may spend and use together (entry 33). A job's own time and money stay the core's (`core.jobs.timeoutMinutes`, `core.jobs.budgetUsd`), and so does the joint slice of all jobs (`core.jobs.cpu`, `core.jobs.memory`), which keeps them from starving the coordinator. How many jobs the free resources allow is roadmap entry 34.
+The `resources` plugin: what one job may use of a machine's CPU and memory (roadmap entry 32), what all jobs of one ticket may spend and use together (entry 33), and how many jobs each machine has room for, from its free CPU and memory (entry 34). A job's own time and money stay the core's (`core.jobs.timeoutMinutes`, `core.jobs.budgetUsd`), and so does the joint slice of all jobs (`core.jobs.cpu`, `core.jobs.memory`), which keeps them from starving the coordinator. Free disk is roadmap entry 69.
 
 ## Options
 
@@ -14,10 +14,12 @@ In `resources({ ... })` in `arthur.config.ts`; every key optional, a cap left ou
 | `perFeature.hours` | The hours all jobs of one ticket may run together, a number of 0 or more, `0` for no cap. |
 | `perFeature.cpu` | The cores all jobs of one ticket share, the `CPUQuota` of the ticket's slice, `0` for no cap. |
 | `perFeature.memory` | The memory all jobs of one ticket share, the `MemoryMax` of the ticket's slice, in `perJob.memory`'s syntax, `0` for no cap. |
+| `keepFree.cpu` | The cores left free on every machine, for the coordinator and the system: a number of 0 or more, default 0. |
+| `keepFree.memory` | The memory left free on every machine: bytes with K, M, G or T (`2G`) or a percentage of the machine's memory (`10%`), default none. `keepFree.disk` is roadmap entry 69; until then it is refused as an unknown key. |
 
 The plugin answers `jobs.limits` with them for every job, and the core sets them on the job's own scope inside the joint slice, on this host and on every other machine; where a machine has no user manager (macOS), the job's memory is sampled every 10 seconds instead and its CPU is not capped, which a `notice` says once per machine. See "Caps per job" in `arthur spawn --help`.
 
-Refused at load (and by `arthur config check`), naming the option: a cap above the joint limit of all jobs together as this host's config sets it, `perJob.cpu: <cpu> is above core.jobs.cpu, <cores>, the cores of all jobs together` and `perJob.memory: <memory> is above core.jobs.memory, <memory>, the memory of all jobs together` (a percentage counted of this host's memory); a value of the wrong kind; an option or key it does not take. With the plugin off (`enabled: false`) or not listed, the joint slice is a job's only limit.
+Refused at load (and by `arthur config check`), naming the option: a cap above the joint limit of all jobs together as this host's config sets it, `perJob.cpu: <cpu> is above core.jobs.cpu, <cores>, the cores of all jobs together` and `perJob.memory: <memory> is above core.jobs.memory, <memory>, the memory of all jobs together` (a percentage counted of this host's memory); a value of the wrong kind (`keepFree.memory` `infinity` too); an option or key it does not take. With the plugin off (`enabled: false`) or not listed, the joint slice is a job's only limit, and every machine takes jobs up to `maxAgents`.
 
 ## Caps per feature
 
@@ -29,3 +31,22 @@ A job belongs to the ticket its first `Ticket:` path lies in (`spec/features/<id
 - CPU and memory: a ticket with a `cpu` or `memory` cap puts each of its jobs in the slice `<jobs' slice>-<id>.slice` inside the jobs' slice, on each machine, whose `CPUQuota` (at most the machine's cores) and `MemoryMax` are set at each launch from the caps the job's record kept at its spawn. Without a user manager (macOS) they are not held.
 
 `arthur resources <ticket>` shows the spend against each cap: `arthur resources --help`.
+
+## How many jobs run
+
+Each machine's room for more jobs comes from its free CPU and memory, so the coordinator starts only as many as the machines hold; `maxAgents` of `orchestration` stays the upper bound across them all.
+
+- The check: `arthur run` checks every registered machine (`local` and each of the `machines` plugin's list) at its start and every 60 seconds; a spawn or `arthur resources` checks a machine again whose last check is 2 minutes old or more, or missing. On `local` it reads Node's `os`: `availableParallelism()` cores, the 1-minute `loadavg()`, `freemem()` and `totalmem()`; on another machine the same four through `node -e` over the core's SSH, cut after 10 seconds. Free cores are the cores less the load (none when the load is above them). Each check is kept in `.arthur/resources/machines/<name>.json` with the jobs in a run on the machine as it began, so every process reads the same one.
+- The room: what is free, less `keepFree`, less the reservation of each job in a run on the machine that the check did not see (started since), in whole reservations. A job reserves its `perJob` caps: `cpu` (at most the machine's cores) and `memory` (a percentage of that machine's memory; `infinity` reserves none). A reservation exactly equal to what is left fits. Without `perJob` a job reserves nothing, and a machine has room for any number while it keeps `keepFree`.
+- A machine whose check fails (ssh refused, `node` missing there, numbers it did not answer, 10 seconds without an answer) has no room. It is said once, as a `notice`, `machine <name>: its free CPU and memory are unknown (<reason>); no job starts there until a check answers`, and again only after a check that answered.
+- Placement: the plugin answers `resources.free` with a machine's name, the number of jobs it has room for, which the `machines` plugin's placement reads to pick the machine with the most (`arthur machines --help`, "Placing a job").
+- Spawn: through `beforeSpawn`, also for `arthur continue`, a job starts only on a machine with room for it. Spawns take the core's spawn lock in turn, so two at once never both take the last room: the second counts the first at its reservation. Refused, naming every machine and its room: `refused by resources: no room on <machine> for another job: <one line per machine, joined by "; ">; spawn again once a job ends`. As at `maxAgents`, the coordinator spawns again when a job ends.
+- The coordinator's context gets one line per machine through `collect("coordinator.context")`, read from the checks kept, without checking anew; `arthur resources` and `/resources` show the same lines (`arthur resources --help`):
+
+```
+local: room for 2 more jobs (5.1 GB, 3.4 cores free)
+mac: no room, short of 1.2 GB memory (4.8 GB, 6.0 cores free; keepFree 2.0 GB, 1.0 cores; a job reserves 4.0 GB, 2.0 cores; reserved for 1 job started since the check)
+gpu: no room, its check failed: ssh failed: ssh: connect to host gpu port 22: Connection refused
+```
+
+The free memory and cores a line shows are what the check found less the reservations of the jobs started since; GB are 2^30 bytes. A machine not checked yet: `<name>: no room, not checked yet`.

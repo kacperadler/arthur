@@ -4,7 +4,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import type { AgentRun } from "./testing.ts";
 
-// The fake agent's player (spec/roadmap.md, entries 11, 14, 23 and 24), started by the `omp` script `fakeAgent` writes, as
+// The fake agent's player (spec/roadmap.md, entries 11, 14, 23, 24 and 35), started by the `omp` script `fakeAgent` writes, as
 // `node fake-agent.ts <run.json> <omp's arguments>`: it notes the start in `starts.jsonl` beside the run, loads each `-e`
 // extension as omp does and calls its `session_start` handlers, then plays the run, printing each event in the shape
 // `omp --mode json` prints it, asking the extensions' `tool_call` handlers before each tool call (a block fails the call with
@@ -41,6 +41,13 @@ const ctx = {
 	hasUI: !args.includes("--mode"),
 	cwd: process.cwd(),
 	isIdle: () => idle,
+	// A message sent while idle that no `prompt` took yet, as omp's queue holds it.
+	hasPendingMessages: () => prompts.length > 0,
+	// As omp's `/compact`: noted in `compactions.jsonl` with its instructions and the step, or throwing the run's `compactError`.
+	compact: async (instructions?: unknown) => {
+		if (run.compactError !== undefined) throw new Error(run.compactError);
+		note("compactions.jsonl", { instructions: instructions ?? null, step: at });
+	},
 	ui: { setStatus: ui("setStatus"), notify: ui("notify") },
 	// As omp's: unref'd, and a throw is logged, not fatal.
 	setInterval: (fn: () => unknown, ms: number) => setInterval(() => Promise.try(fn).catch((error) => console.error(error)), ms).unref(),

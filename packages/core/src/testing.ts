@@ -40,7 +40,7 @@ export function temporaryFolder(): string {
 }
 
 // A scripted run of the fake agent: its `steps`, played in order, then its `exitCode` (default 0); its extensions' first `failSends`
-// messages throw, and the next `dropSends` sent while idle are lost with no turn (omp's prompt failing after it returned). A step:
+// messages throw, the next `dropSends` sent while idle are lost with no turn (omp's prompt failing after it returned), and `ctx.compact` throws `compactError`. A step:
 // `tool`, a tool call, omp's start and end events of it, `output` the tool's text and `failed` its error flag. `message`: an assistant
 // message that ends a turn, with its `cost` in USD; `stopReason` `stop` (the default) ends the run, `toolUse` comes before a tool call,
 // `error` or `aborted` a failed one, with omp's `error` text. `prompt`: a turn starts (`agent_start`) once an extension sent a message while
@@ -56,11 +56,11 @@ export type AgentStep =
 	| { readonly waitFor: string }
 	| { readonly signal: NodeJS.Signals };
 
-export type AgentRun = { readonly steps: readonly AgentStep[]; readonly exitCode?: number; readonly failSends?: number; readonly dropSends?: number };
+export type AgentRun = { readonly steps: readonly AgentStep[]; readonly exitCode?: number; readonly failSends?: number; readonly dropSends?: number; readonly compactError?: string };
 
 // The fake agent: an executable `omp` in a new folder of the kit's, which plays `run` each time it starts, notes each start
 // (`pid`, `cwd`, `args`) in `starts.jsonl` beside it, each message its `-e` extensions send (`content`, `options`, `step`) in
-// `messages.jsonl`, their `ctx.ui` calls in `ui.jsonl`, and each turn's system prompt in `system.jsonl`. Returns its path, for `PATH` or as `core.agent.command`.
+// `messages.jsonl`, their `ctx.ui` calls in `ui.jsonl`, their `ctx.compact` calls in `compactions.jsonl`, and each turn's system prompt in `system.jsonl`. Returns its path, for `PATH` or as `core.agent.command`.
 export function fakeAgent(run: AgentRun): string {
 	const folder = temporaryFolder();
 	const quote = (text: string) => `'${text.replaceAll("'", `'\\''`)}'`;

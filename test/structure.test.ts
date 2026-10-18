@@ -31,9 +31,12 @@ import { checkStructure } from "./structure.ts";
 // `oom` events, or `ps` samples without a scope) and the once-per-machine notice: core 102 more (4751); resources: 42.
 // AR0125 (roadmap 31): placing a job by labels (`--requires`, a ticket's, a project's), machines 95 more (375); core 13 more
 // (4764) for `arthur spawn --requires` and `jobs.place` asked about every spawn, main's core being at its 4751 after AR0126.
+// AR0143 (roadmap 35): compaction during the day; orchestration 17 more (892) to load another plugin's OMP extension into the
+// coordinator's agent (`coordinator.extension`), which the session plugin needs and cannot add itself; session: 213; the fake
+// agent's `ctx.compact` and `hasPendingMessages`, core/testing within its budget (335).
 // AR0141 (roadmap 33): caps per feature; core 22 more (4786) for the ticket's slice, `ran`, `cost`/`budget`/`seconds` in
 // `host.jobs.list()` and `block(..., stop)`; resources 189 more (231) for `perFeature`, a ticket's `caps`, the sweep and `arthur resources`.
-const BUDGETS = { core: 4786, "core/testing": 340, projects: 320, orchestration: 875, machines: 375, resources: 231 };
+const BUDGETS = { core: 4786, "core/testing": 340, projects: 320, orchestration: 892, machines: 375, resources: 231, session: 213 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

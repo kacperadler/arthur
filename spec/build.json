@@ -1006,9 +1006,9 @@
   {
     "id": "AR0123",
     "title": "Roadmap 28: Planning of large tickets",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0123-roadmap-28-planning-of-large-tickets/ticket.md",
-    "updated": "2026-10-18T09:51:35.466Z",
+    "updated": "2026-10-18T20:06:30.211Z",
     "after": [
       "AR0120"
     ]
@@ -1141,9 +1141,9 @@
   {
     "id": "AR0141",
     "title": "Roadmap 33: Resources: caps per feature",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0141-roadmap-33-resources-caps-per-feature/ticket.md",
-    "updated": "2026-10-18T19:34:23.689Z"
+    "updated": "2026-10-18T20:08:40.961Z"
   },
   {
     "id": "AR0142",
@@ -1158,9 +1158,9 @@
   {
     "id": "AR0143",
     "title": "Roadmap 35: Compaction during the day",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0143-roadmap-35-compaction-during-the-day/ticket.md",
-    "updated": "2026-10-18T19:34:24.703Z"
+    "updated": "2026-10-18T20:10:13.600Z"
   },
   {
     "id": "AR0144",

@@ -12,6 +12,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ### Fixed
 
+- AR0111 A hand-over omp accepts and then fails leaves the inbox waiting until a restart (66fb3d3)
 - AR0112 A turn that keeps failing is handed its messages again every second, without a pause (c1f0e3d)
 - AR0113 The inbox is proved once against real omp: mid-turn join, resumed turn, willContinue (1f6adb6)
 

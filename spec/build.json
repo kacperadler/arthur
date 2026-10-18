@@ -913,9 +913,9 @@
   {
     "id": "AR0111",
     "title": "A hand-over omp accepts and then fails leaves the inbox waiting until a restart",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0111-a-hand-over-omp-accepts-and-then-fails-leaves-the-inbox-waiting-until-a-restart/ticket.md",
-    "updated": "2026-10-18T08:38:02.250Z",
+    "updated": "2026-10-18T09:28:21.855Z",
     "after": [
       "AR0112"
     ]
@@ -995,5 +995,12 @@
     "after": [
       "AR0120"
     ]
+  },
+  {
+    "id": "AR0122",
+    "title": "A `/compact` typed in the coordinator's pane for more than 30 s delivers a hand-over made meanwhile twice",
+    "status": "planning",
+    "path": "spec/features/AR0122-a-compact-typed-in-the-coordinator-s-pane-for-more-than-30-s-delivers-a-hand-over-made-meanwhile-twice/ticket.md",
+    "updated": "2026-10-18T09:28:21.853Z"
   }
 ]

@@ -978,5 +978,22 @@
     "status": "dropped",
     "path": "spec/features/AR0119-readme-status-line-and-feature-table-heading-still-say-main-on-2026-10-17/ticket.md",
     "updated": "2026-10-18T08:39:48.100Z"
+  },
+  {
+    "id": "AR0120",
+    "title": "Roadmap 25: the coordinator's context on every turn",
+    "status": "planning",
+    "path": "spec/features/AR0120-roadmap-25-the-coordinator-s-context-on-every-turn/ticket.md",
+    "updated": "2026-10-18T08:40:10.663Z"
+  },
+  {
+    "id": "AR0121",
+    "title": "Roadmap 27: job state in the coordinator and the channels",
+    "status": "planning",
+    "path": "spec/features/AR0121-roadmap-27-job-state-in-the-coordinator-and-the-channels/ticket.md",
+    "updated": "2026-10-18T08:40:11.140Z",
+    "after": [
+      "AR0120"
+    ]
   }
 ]

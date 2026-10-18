@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-17: Source: F2 of AR0084
+- 2026-10-18: The owner approved it.

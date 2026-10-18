@@ -36,3 +36,4 @@ In:
 ## Decisions
 
 - 2026-10-18: Source: F1 of AR0098
+- 2026-10-18: The owner approved it.

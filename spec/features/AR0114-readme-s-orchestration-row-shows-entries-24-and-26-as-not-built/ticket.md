@@ -4,7 +4,10 @@
 {
   "id": "AR0114",
   "title": "README's orchestration row shows entries 24 and 26 as not built",
-  "date": "2026-10-17"
+  "date": "2026-10-17",
+  "after": [
+    "AR0115"
+  ]
 }
 ```
 
@@ -39,3 +42,5 @@ Out:
 ## Decisions
 
 - 2026-10-17: Source: F2 of AR0110
+- 2026-10-18: The owner approved it.
+- 2026-10-18: Runs after AR0115, which edits the same README row; do only what AR0115 left undone.

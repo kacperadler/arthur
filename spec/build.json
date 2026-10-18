@@ -920,29 +920,32 @@
   {
     "id": "AR0112",
     "title": "A turn that keeps failing is handed its messages again every second, without a pause",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0112-a-turn-that-keeps-failing-is-handed-its-messages-again-every-second-without-a-pause/ticket.md",
-    "updated": "2026-10-17T21:59:07.540Z"
+    "updated": "2026-10-18T07:24:27.311Z"
   },
   {
     "id": "AR0113",
     "title": "The inbox is proved once against real omp: mid-turn join, resumed turn, willContinue",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0113-the-inbox-is-proved-once-against-real-omp-mid-turn-join-resumed-turn-willcontinue/ticket.md",
-    "updated": "2026-10-17T21:59:18.049Z"
+    "updated": "2026-10-18T07:24:27.509Z"
   },
   {
     "id": "AR0114",
     "title": "README's orchestration row shows entries 24 and 26 as not built",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0114-readme-s-orchestration-row-shows-entries-24-and-26-as-not-built/ticket.md",
-    "updated": "2026-10-17T22:27:20.855Z"
+    "updated": "2026-10-18T07:24:28.105Z",
+    "after": [
+      "AR0115"
+    ]
   },
   {
     "id": "AR0115",
     "title": "arthur.mmd shows project agents in the first version, and orchestration as 1 of 8 entries built",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0115-arthur-mmd-shows-project-agents-in-the-first-version-and-orchestration-as-1-of-8-entries-built/ticket.md",
-    "updated": "2026-10-17T22:49:28.897Z"
+    "updated": "2026-10-18T07:24:27.905Z"
   }
 ]

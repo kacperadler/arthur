@@ -36,3 +36,4 @@ In:
 
 - 2026-10-17: Source: F2 of AR0084
 - 2026-10-18: The owner approved it.
+- 2026-10-18: The orchestration line budget rises by 6, to 696 (worker): the wait and its notice add 6 lines to a package already at its budget of 690.

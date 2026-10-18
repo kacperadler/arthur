@@ -20,7 +20,8 @@ import { checkStructure } from "./structure.ts";
 // AR0084 (roadmap 24): the coordinator's inbox, its OMP extension and the wake, orchestration 260 more (658); the fake agent's
 // interactive session moves 64 lines from core to core/testing (4649 and 340), with `host.jobs.result(id)` in the core.
 // AR0110 (roadmap 26): `maxAgents`, each role's model and the quick model, orchestration 32 more (690).
-const BUDGETS = { core: 4649, "core/testing": 340, projects: 320, orchestration: 690 };
+// AR0112: the wait before a failed turn's messages go again and its notice, orchestration 6 more (696).
+const BUDGETS = { core: 4649, "core/testing": 340, projects: 320, orchestration: 696 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -17,9 +17,11 @@ const CONTEXT_COMMAND = JSON.stringify([process.execPath, fileURLToPath(import.m
 // How often the session is looked at, and how often a previous agent still alive is.
 const POLL_MS = 500;
 const EXIT_POLL_MS = 200;
-// In the plugin's folder: the last agent started, `<pid> <start time>`; and the mark `arthur coordinator stop` leaves.
+// In the plugin's folder: the last agent started, `<pid> <start time>`; the mark `arthur coordinator stop` leaves; and the mark
+// `coordinator.restart` leaves for a fresh conversation at the next start.
 export const PID_FILE = "coordinator.pid";
 export const STOPPED = "stopped";
+export const FRESH = "fresh";
 
 // tmux on the coordinator's own server: a socket with a slash is a path (`-S`), any other a name in tmux's folder (`-L`).
 export function tmux(coordinator: Coordinator, args: readonly string[], inherit = false) {
@@ -104,7 +106,8 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 		}
 		if (Date.now() - began >= EXIT_POLL_MS) console.log(`orchestration: the previous ${agent} (pid ${pid}) exited after ${waited} s`);
 		const { model, thinking, quick, session } = coordinator;
-		const command = [agent, "--continue", "--auto-approve", ...(model ? ["--model", model] : []), ...(thinking ? ["--thinking", thinking] : []), ...(quick ? ["--smol", quick] : [])];
+		const fresh = existsSync(join(folder, FRESH));
+		const command = [agent, ...(fresh ? [] : ["--continue"]), "--auto-approve", ...(model ? ["--model", model] : []), ...(thinking ? ["--thinking", thinking] : []), ...(quick ? ["--smol", quick] : [])];
 		command.push("-e", ENV_GUARD, "-e", INBOX, "-e", CONTEXT, ...added.flatMap((extension) => ["-e", extension.file]));
 		const variables = [`ARTHUR_ORCHESTRATION_FOLDER=${folder}`, `ARTHUR_ORCHESTRATION_CONTEXT=${CONTEXT_COMMAND}`, ...added.flatMap((extension) => Object.entries(extension.env).map(([key, value]) => `${key}=${value}`))];
 		const env = variables.flatMap((variable) => ["-e", variable]);
@@ -117,7 +120,8 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 		const started = String(made.stdout).trim();
 		writeFileSync(`${file}.new`, `${started} ${startTime(started)}\n`);
 		renameSync(`${file}.new`, file);
-		console.log(`orchestration: coordinator started: ${agent} (pid ${started}) in tmux session ${session}`);
+		if (fresh) rmSync(join(folder, FRESH), { force: true });
+		console.log(`orchestration: coordinator started: ${agent} (pid ${started}) in tmux session ${session}${fresh ? ", a fresh conversation" : ""}`);
 		return true;
 	}
 }

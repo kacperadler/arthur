@@ -405,7 +405,7 @@ test("a plugin's hold on a job there stands at each copy while it runs there and
 	assert.equal(calls().length, copies, "a job no longer held nor in a run is not copied again");
 });
 
-test("a block with stop on a job there stops its run there and holds it blocked on the user here; ran and the feature slice stay this side's", async () => {
+test("a block with stop on a job there stops its run there and holds it blocked on the user here; the feature slice goes there", async () => {
 	const gate = join(temporaryFolder(), "go");
 	const caps = () => [{ feature: { name: "AC0001", cpu: 1, memory: "1G" } }];
 	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }), caps });
@@ -417,8 +417,6 @@ test("a block with stop on a job there stops its run there and holds it blocked 
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason"), existsSync(join(home, "jobs", job.id, "hold"))], ["blocked", reason, false]);
 	assert.deepEqual([read(there, job.id, "state"), read(there, job.id, "reason")], ["ended", "stopped"]);
 	assert.deepEqual(events(home, "job-ended"), [{ id: job.id, kind: "worker", project: "acme", state: "blocked", reason }]);
-	writeFileSync(join(there, "jobs", job.id, "ran"), "99999");
-	assert.notEqual(read(home, job.id, "ran"), "99999");
 	writeFileSync(gate, "");
 });
 

@@ -169,6 +169,17 @@ test("a job of a ticket with CPU and memory caps runs in the ticket's slice insi
 	rmSync(gate);
 });
 
+test("the sweep leaves a job it stopped already, still in its stop, and emits no second cap-reached", async (t) => {
+	const { fake, plugin, home } = await load({ perFeature: { budgetUsd: 1 } });
+	const reason = "user: feature cap budgetUsd reached: $3.0000 of $1";
+	record(home, "00000001", { cost: "3.0000", state: "blocked", reason, hold: reason.slice(6) });
+	t.mock.method(console, "error", () => {});
+	await plugin.start?.();
+	await plugin.stop?.();
+	assert.deepEqual(fake.emitted.filter((event) => event.name === "cap-reached"), []);
+	assert.equal(readFileSync(join(home, "jobs/2026-10-18-worker-00000001/reason"), "utf8"), reason);
+});
+
 test("arthur resources <ticket> shows each cap with the spend against it and where it comes from; refused for an unknown ticket and wrong usage", async (t) => {
 	const now = new Date();
 	const { fake, home } = await load({ perFeature: { budgetUsd: 15, cpu: 4 } }, '{ "caps": { "hours": 8 } }', now);

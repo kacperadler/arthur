@@ -31,7 +31,10 @@ import { checkStructure } from "./structure.ts";
 // `oom` events, or `ps` samples without a scope) and the once-per-machine notice: core 102 more (4751); resources: 42.
 // AR0125 (roadmap 31): placing a job by labels (`--requires`, a ticket's, a project's), machines 95 more (375); core 13 more
 // (4764) for `arthur spawn --requires` and `jobs.place` asked about every spawn, main's core being at its 4751 after AR0126.
-const BUDGETS = { core: 4764, "core/testing": 340, projects: 320, orchestration: 875, machines: 375, resources: 42 };
+// AR0123 (roadmap 28): planning of large tickets, the kinds plan and plan-review with their filing, the plan guard on a worker
+// and `/plan`, orchestration 132 more (1007); core 64 more (4828) for `arthur ticket file`, `host.jobs.file` and a kind's `file`
+// (ticket-file.ts), and the kinds' registry moved out of jobs.ts (job-kinds.ts) to keep that file under 200 lines.
+const BUDGETS = { core: 4828, "core/testing": 340, projects: 320, orchestration: 1007, machines: 375, resources: 42 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

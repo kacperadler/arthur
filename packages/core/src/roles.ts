@@ -16,8 +16,7 @@ export type Role = {
 export type PromptFiles = { readonly vision: string; readonly criteriaDir: string; readonly rolesDir: string };
 export const PROJECT_FILES: PromptFiles = { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria", rolesDir: ".agents/arthur/roles" };
 
-// A project's `prompts` over the defaults. The list comes from another plugin and the core reads these files, so each must
-// be a path inside the project's repository; anything else is refused, naming the project.
+// A project's `prompts` over the defaults, each a path inside its repository (the core reads them there), else refused.
 export function promptFiles(project: { readonly name: string; readonly prompts?: unknown }): PromptFiles {
 	const files: Readonly<Record<string, unknown>> = { ...PROJECT_FILES, ...(project.prompts ?? {}) };
 	for (const [key, path] of Object.entries(files))
@@ -35,18 +34,16 @@ export type Source = {
 };
 
 export type Collect = (name: string, args: readonly unknown[]) => unknown[];
-// The main checkout of a project and where its prompt files are; `Where` finds it for a project, the main one when undefined.
-export type ProjectCheckout = { readonly root: string; readonly project: string; readonly files: PromptFiles };
-type Where = (project: string | undefined) => ProjectCheckout;
+export type ProjectCheckout = { readonly root: string; readonly project: string; readonly files: PromptFiles }; // and where its prompt files are
 
-// What a plugin reads of the roles outside a spawn, as `host.jobs`: the prompt of `role` for the main checkout of `project`,
-// without the plugins' sections, which are a job's; and the project's vision, `text` unless `problem` says why it is not read.
+// What a plugin reads of the roles outside a spawn, as `host.jobs`, in the main checkout `where` finds (the main project's when
+// undefined): the prompt of `role` without the plugins' sections, which are a job's; the vision, `text` unless `problem` says why not.
 export type RoleReads = {
 	prompt(role: string, project?: string): { readonly prompt: string; readonly warnings: string[] };
 	vision(project?: string): { readonly project: string; readonly path: string; readonly text?: string; readonly problem?: Source["problem"] };
 };
 
-export function roleReads(registry: RoleRegistry, where: Where): RoleReads {
+export function roleReads(registry: RoleRegistry, where: (project: string | undefined) => ProjectCheckout): RoleReads {
 	return {
 		prompt(name, project) {
 			const { root, files } = where(project);

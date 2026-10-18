@@ -187,22 +187,26 @@ test("an event a command emits reaches the daemon's subscribers once, from the d
 	const d = ping("d");
 	writeFileSync(join(folder, "pinged-in-stop"), "");
 	assert.equal((await run.ended).status, 0);
-	assert.equal(
-		log(),
+	// A command delivers its event to its own subscribers after it appended it to the log, so the daemon, following the log, may
+	// log it first: the daemon's lines are checked in order, and each command's own line once, between its run and the next.
+	const lines = log().split("\n");
+	const [ownB, ownC] = [`${b} pinged 2 b`, `${c} pinged 4 c`];
+	const at = (line: string) => (lines.indexOf(line) === lines.lastIndexOf(line) ? lines.indexOf(line) : -1);
+	assert.ok(at("start orchestration") < at(ownB) && at(ownB) < at(`${daemon} pinged 4 c`) && at(`${daemon} ponged 3`) < at(ownC) && at(ownC) < at("stop orchestration"), log());
+	assert.deepEqual(
+		lines.filter((line) => line !== ownB && line !== ownC),
 		[
 			`${before} pinged 1 a`,
 			"start orchestration",
-			`${b} pinged 2 b`,
 			`${daemon} pinged 2 b`,
 			`${daemon} ponged 3`,
-			`${c} pinged 4 c`,
 			`${daemon} pinged 4 c`,
 			`${daemon} ponged 5`,
 			"stop orchestration",
 			`${d} pinged 6 d`,
 			"stopped orchestration",
 			"",
-		].join("\n"),
+		],
 	);
 });
 

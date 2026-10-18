@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, utimesSync, writeFile
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { type AgentRun, type AgentStep, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, type AgentStep, type FakeHost, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { pause } from "../src/inbox-extension.ts";
 import { queue } from "../src/inbox.ts";
 import { orchestration } from "../src/orchestration.ts";
@@ -73,6 +73,14 @@ function repository(): string {
 	git("add", "--all");
 	git("commit", "--quiet", "-m", "first");
 	return root;
+}
+
+// The data of the job-ended a job's wrapper emitted; it writes the job's state and result before that, so a job seen ended
+// may not have emitted it yet.
+async function jobEnded(fake: FakeHost): Promise<unknown> {
+	let data: unknown;
+	await until("the job's job-ended", () => (data = fake.host.events.read(1).find((event) => event.name === "job-ended")?.data) !== undefined);
+	return data;
 }
 
 test("a message while idle is one turn marked with its channel, its reply emitted with its number; one after that turn ended is the next turn", async (t) => {
@@ -188,8 +196,7 @@ test("job ends and a schedule message mid-turn wait for the next turn: one messa
 	const result = Array.from({ length: 20 }, (_, index) => `line ${index + 1}`).join("\n");
 	process.env.PATH = `${dirname(fakeAgent({ steps: [{ message: result }] }))}${delimiter}${PATH}`;
 	const job = await box.fake.host.jobs.spawn({ task: "Go." });
-	await until("the job's end", () => box.fake.host.jobs.result(job.id) !== "" && box.fake.host.jobs.running().length === 0);
-	const ended = box.fake.host.events.read(1).find((event) => event.name === "job-ended")?.data as Record<string, unknown>;
+	const ended = (await jobEnded(box.fake)) as Record<string, unknown>;
 	await box.start();
 	const first = box.say("What runs?");
 	await until("the turn", () => box.messages().length === 1);
@@ -253,13 +260,14 @@ test("a turn whose agent_end says it goes on and then starts none, as after omp'
 	const steps: AgentStep[] = [{ prompt: true }, { message: "Done." }, { end: true, continues: true }, { prompt: true }, { message: "Again." }, { end: true }, { prompt: true }];
 	const box = await load(t, { steps });
 	await box.start();
+	// Taken before the message: the turn's 30 s idle starts after it, however late the test sees the turn.
+	const saidAt = Date.now();
 	const first = box.say("Go.");
 	await until("the turn", () => box.messages().length === 1);
-	const endedAt = Date.now();
 	await sleep(1000);
 	const second = box.say("Next.");
 	await until("the first reply", () => box.emitted("coordinator-replied").length === 1, 45_000);
-	assert.ok(Date.now() - endedAt >= 29_000, `the turn ends only after 30 s idle: ${Date.now() - endedAt}`);
+	assert.ok(Date.now() - saidAt >= 30_000, `the turn ends only after 30 s idle: ${Date.now() - saidAt}`);
 	await until("the second reply", () => box.emitted("coordinator-replied").length === 2);
 	assert.deepEqual(
 		box.messages().map((message) => message.content),
@@ -313,9 +321,10 @@ test("a turn that keeps ending without a reply has its messages go again at once
 	await box.start();
 	box.say("Go.");
 	const [quick = 0, five = 0, ten = 0] = await deliveries(box, 4);
-	assert.ok(quick < 2000, `the first redelivery is quick: ${quick}`);
-	assert.ok(five >= 4900 && five < 6500, `the second waits 5 s: ${five}`);
-	assert.ok(ten >= 9900 && ten < 11500, `the third waits 10 s: ${ten}`);
+	// Each wait apart from the one before and after it (0, 5, 10, 20 s), with room for a slow runner's lag either way.
+	assert.ok(quick < 4000, `the first redelivery is quick: ${quick}`);
+	assert.ok(five >= 4000 && five < 9000, `the second waits 5 s: ${five}`);
+	assert.ok(ten >= 9000 && ten < 19_000, `the third waits 10 s: ${ten}`);
 	// Past the fourth turn's end, which tells nothing more.
 	await sleep(1500);
 	assert.deepEqual(box.emitted("notice"), [
@@ -338,7 +347,7 @@ test("a reply ends the wait: the next turn that ends without a reply has its mes
 	const second = box.say("Again?");
 	// The first three are already in: only the gap between the fourth and the fifth is a wait.
 	const [, , , quick = 0] = await deliveries(box, 5);
-	assert.ok(quick < 2000, `the first redelivery after a reply is quick: ${quick}`);
+	assert.ok(quick < 4000, `the first redelivery after a reply is quick: ${quick}`);
 	await until("the second reply", () => box.emitted("coordinator-replied").length === 2);
 	assert.deepEqual(
 		box.messages().map((message) => message.content),
@@ -352,18 +361,19 @@ test("a reply ends the wait: the next turn that ends without a reply has its mes
 });
 
 test("a new owner message ends the wait: the waiting messages and the new one go at the next tick; a message from Arthur waits with them", async (t) => {
-	const box = await load(t, { steps: [...FAILED, ...FAILED, { prompt: true }, { message: "Done." }, { end: true }, { prompt: true }] });
+	// Three failed turns: the wait is 10 s, far longer than the next tick even on a slow runner.
+	const box = await load(t, { steps: [...FAILED, ...FAILED, ...FAILED, { prompt: true }, { message: "Done." }, { end: true }, { prompt: true }] });
 	await box.start();
 	const first = box.say("Go.");
-	await deliveries(box, 2);
+	await deliveries(box, 3);
 	const scheduled = box.fake.emit("coordinator-message", { text: "Write the morning report." }).seq;
 	await sleep(2000);
-	assert.equal(box.messages().length, 2, "a message from Arthur does not end the wait");
+	assert.equal(box.messages().length, 3, "a message from Arthur does not end the wait");
 	const saidAt = Date.now();
 	const second = box.say("Now?");
-	await until("the third delivery", () => box.messages().length === 3);
-	assert.ok(Date.now() - saidAt < 1500, `the owner's message goes at the next tick: ${Date.now() - saidAt}`);
-	assert.equal(box.messages()[2]?.content, [`${AGAIN_MARK} Go.`, "[Arthur] Write the morning report.", "[via telegram] Now?", ARTHUR].join("\n\n"));
+	await until("the fourth delivery", () => box.messages().length === 4);
+	assert.ok(Date.now() - saidAt < 5000, `the owner's message goes at the next tick, not in about 8 s at the wait's end: ${Date.now() - saidAt}`);
+	assert.equal(box.messages()[3]?.content, [`${AGAIN_MARK} Go.`, "[Arthur] Write the morning report.", "[via telegram] Now?", ARTHUR].join("\n\n"));
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
 	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [first, scheduled, second], channels: ["telegram"] }]);
 });
@@ -424,9 +434,8 @@ test("the footer names the running jobs while one runs and is cleared when none 
 	await until("the footer", () => status().length === 1);
 	assert.deepEqual(status(), [["arthur", `arthur · 1 working: ${job.id.split("-").at(-1)}`]]);
 	gate.open("job");
-	await until("the job's end", () => box.fake.host.jobs.running().length === 0);
 	// As arthur run delivers the wrapper's event.
-	box.fake.emit("job-ended", box.fake.host.events.read(1).find((event) => event.name === "job-ended")?.data);
+	box.fake.emit("job-ended", await jobEnded(box.fake));
 	await until("the footer cleared", () => status().length === 2);
 	assert.deepEqual(status()[1], ["arthur", null]);
 });

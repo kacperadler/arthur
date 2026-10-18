@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -211,7 +212,8 @@ test("a plugin's jobs.keep that throws ends the prune with its error, and the jo
 
 test("the sweep ends a working or idle job whose wrapper and agent are gone on two sweeps in a row, never a blocked one", async (t) => {
 	const { home, jobs } = setup();
-	const [id, idle] = ["2026-10-16-worker-0000000a", "2026-10-16-worker-00000010"];
+	// Ids of their own: the sweep looks for the wrapper of an id in the whole process table, where another test run may have one.
+	const [id, idle] = [`2026-10-16-worker-${randomBytes(4).toString("hex")}`, `2026-10-16-worker-${randomBytes(4).toString("hex")}`];
 	record(home, id, { state: "working", pid: "999999999", log: "" }, NOW);
 	record(home, idle, { state: "idle", pid: "999999999", log: "" }, NOW);
 	// Ended jobs, a run that ended blocked and a job a plugin holds while its machine is away: never ended, however many sweeps.
@@ -242,7 +244,7 @@ test("the sweep ends a working or idle job whose wrapper and agent are gone on t
 
 test("the sweep keeps a working job whose wrapper runs before it wrote its pid; a process that names the wrapper before the id is none", async (t) => {
 	const { home, jobs } = setup();
-	const id = "2026-10-16-worker-0000000a";
+	const id = `2026-10-16-worker-${randomBytes(4).toString("hex")}`;
 	record(home, id, { state: "working", log: "" }, NOW);
 	const wrapper = join(import.meta.dirname, "..", "src", "wrapper.ts");
 	const lone = (...args: string[]) => spawn(process.execPath, ["-e", "setTimeout(() => {}, 300_000)", ...args], { stdio: "ignore" });

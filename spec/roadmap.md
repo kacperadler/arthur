@@ -627,7 +627,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 
 - Package: delivery; in the core, `host.jobs.registerExtension(url)`: an OMP extension each job's agent loads with `-e`, after the core's own.
 - Delivers: decides review or no review for a branch: the always-review list (`review.alwaysReview`), deleted files, `.env` text in the diff, docs-only changes, small branches with passing checks; records the verdict and moves the ticket; `provide("delivery.alwaysReview")`. The passing checks come from a job's `checks`, which delivery's own extension, registered through `host.jobs.registerExtension`, writes to `.arthur/delivery/<id>/checks` from each bash `tool_result` while the agent runs: one line per run of the project's own checks, for the `check` and `test` scripts of the worktree's `package.json`, `check pass|fail` for `npm run check` (a TypeScript error in its output fails it), `test pass|fail <passed>/<total>` for `npm test` from node --test's last summary (`test pass|fail` from the exit status without one), and `stale` after the first edit or write that follows them.
-- Done means: a table of branches with the decision for each. Edge cases: a renamed file on the list; a branch with no commits; a docs-only branch that also deletes a file. For `checks`: commands joined by `;`, `&&` or `|` (a piped `npm test | tail` read from its output); a script the `package.json` does not declare, or a missing or broken `package.json` (no line); `npm t` and `npm run test`; a command that only mentions `npm test` (no line); two edits after a check (one `stale`).
+- Done means: a table of branches with the decision for each. Edge cases: a renamed file on the list; a branch with no commits; a docs-only branch that also deletes a file. For `checks`: commands joined by `;`, `&&` or `|` (a piped `npm test | tail` read from its output); a script the `package.json` does not declare, or a missing or broken `package.json` (no line); `npm t` and `npm run test`; a command that only mentions `npm test` (no line); two edits after a check (one `stale`). The default always-review list covers the files that read secrets (the `.env` loading of entry 3) and the CI-failure handling (57 to 59).
 - Depends on: 52.
 - Size: a day.
 - Covers: D2.
@@ -674,7 +674,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 
 - Package: github.
 - Delivers: `arthur ci <branch>` tells why a run failed (the failed step, the end of its log); `--rerun` reruns a failed or cancelled run once; the reviewed branch and main pushed to origin (one warning line on failure, never a prompt); pull request reviews polled and emitted for the coordinator when `wakeOn` names them.
-- Done means: refused: a second `--rerun` of the same run; a rerun of a passed run. Edge cases: a log too long (its end only); a push rejected as non-fast-forward; no remote.
+- Done means: refused: a second `--rerun` of the same run; a rerun of a passed run. Edge cases: a log too long (its end only); a push rejected as non-fast-forward; no remote. `arthur ci` reads the same run `arthur merge --auto` counts (59): the newest run that built the branch (57), not only a run on the tip commit.
 - Depends on: 57, 52.
 - Size: a day.
 - Covers: GH1 (`arthur ci`), GH2.
@@ -683,7 +683,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 
 - Package: delivery.
 - Delivers: `arthur merge --auto`: merges only with a PASS on the tip, CI passed (asked of github through `call`), the project's `autoMerge` on, and no held path (roles, vision, CI, `package.json`, the always-review list); `--no-ci` on the owner's word.
-- Done means: refused, each naming the rule: a PASS on an older commit, CI pending or failed, a held path, `autoMerge: false`, github disabled without `--no-ci`. Edge cases: CI passed on the tip after a new commit; a held path renamed.
+- Done means: refused, each naming the rule: a PASS on an older commit, CI pending or failed, a held path, `autoMerge: false`, github disabled without `--no-ci`. Edge cases: CI passed on the tip after a new commit; a held path renamed. When CI ends while the branch waits, the coordinator is woken with the verdict once per run end, also across a restart; a CI run that hangs is cancelled after 30 minutes.
 - Depends on: 54, 57.
 - Size: half a day.
 - Covers: D3 (`--auto`), GH3 (Arthur's own workflow is its `ci.workflow`).

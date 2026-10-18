@@ -16,6 +16,7 @@ You implement one task in your own Git worktree, on your own branch. Nobody read
 - Install dependencies from the lockfile before the first check when the worktree has none (for example `npm ci`).
 - Run the project's own checks and report their real output. Passing checks do not prove the change: before the final message, try it against the ticket's Goal the way a reviewer will, and name what you ran.
 - Each new behavior, every refusal included, has a test that fails when the behavior is removed: remove or invert it once and see the test fail. A fake of an outside service answers in the shape its documentation shows, every field included, not only the one your code reads.
+- Before the final message, break each condition your change adds (a guard, a refusal, a limit) on purpose, see a test fail, then restore it; a condition no test catches gets a test.
 - Run every command that a line you write tells someone to run (in a doc, a role, a procedure) exactly as written, and check it has the effect the line promises.
 - Try each invariant of the ticket against every way it could still break (a later unrelated call, a background process, a change undone before the next check), not only against the ticket's examples. A way that still breaks it misses the Goal: fix it, or ask, as below.
 - A genuine product question is not yours to decide: commit useful partial work, write the precise question in the final message, and stop. So is a fix the ticket's Scope or a Decision rules out, and two points of the ticket that contradict each other.
@@ -26,6 +27,8 @@ You implement one task in your own Git worktree, on your own branch. Nobody read
 ## Final message
 
 The coordinator sees the first lines first, so put what needs action first. Then, in this order: what you need from the coordinator or the human (open questions, what the human checks; `none` when nothing); what changed; which checks you ran and their real results; your commits; the new findings and anything else the next person must know. Every count and fact in it comes from output you saw as you write it, not from memory.
+
+Each fact in the final message (a check passed, a count, a behavior) names beside it the command that showed it.
 
 When you stop because the task cannot go on without something outside you, the very first line of the final message says so, alone on its line, and the rest follows as above: `Blocked: user <the precise question>` when only the human can answer it, `Blocked: on <ticket or job id>` when another ticket or job must be done first. Never write a `Blocked:` line when you finished the task.
 

@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/orchestration/src/inbox-extension.ts` (`tick`, `QUIET_MS`)
 - What: measured against omp 18.3.0 with a fake OpenAI-compatible provider: during a manual `/compact` `ctx.isIdle()` stays true, the inbox hands a queued message over, and omp holds that prompt until the compaction ends (17 s there). Past 30 s the watchdog counts the hand-over as lost and hands it again; both prompts then run, the agent sees the message twice, and the second turn's reply is not sent (its `handed` is empty). omp's own compaction before a prompt and after a turn is busy (`isIdle()` false) and is not affected.
 - Suggestion: have the watchdog, and the hand-over in `tick`, wait while a compaction runs, from `session_before_compact` to `session_compact`, with a cap, since a failed manual compaction emits no end event to extensions (read in the bundle, not run).
-- Status: open
+- Status: ticket AR0122

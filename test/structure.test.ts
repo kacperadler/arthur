@@ -40,7 +40,10 @@ import { checkStructure } from "./structure.ts";
 // AR0141 (roadmap 33): caps per feature; core 22 more (4786) for the ticket's slice, `ran`, `cost`/`budget`/`seconds` in
 // `host.jobs.list()` and `block(..., stop)`; resources 189 more (231) for `perFeature`, a ticket's `caps`, the sweep and `arthur resources`.
 // Merged: core 4786 + 64 (AR0123) = 4850, orchestration 892 + 132 (AR0123) = 1024.
-const BUDGETS = { core: 4850, "core/testing": 340, projects: 320, orchestration: 1024, machines: 375, resources: 231, session: 213 };
+// AR0144 (roadmap 36): the fresh start at `freshAt`, `/restart` and `/restart fresh`, the handoff read at every start and the
+// `Restarted.` notice, session 240 more (453); orchestration 11 more (903 alone; 1024 + 11 = 1035 merged with AR0123) for `coordinator.restart` and the start without
+// `--continue` after it, which the session plugin needs and cannot do itself.
+const BUDGETS = { core: 4850, "core/testing": 340, projects: 320, orchestration: 1035, machines: 375, resources: 231, session: 453 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

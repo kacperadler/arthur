@@ -227,7 +227,7 @@ test("a hand-over that throws is retried each tick; the third failure in a row i
 	const said = box.say("Go.");
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
 	assert.deepEqual(box.emitted("notice"), [
-		{ text: "the coordinator's inbox could not hand 1 message(s) to the agent 3 times in a row (fake agent: sendUserMessage failed); it keeps trying every 0.5 s" },
+		{ text: "the coordinator's inbox could not hand 1 message(s) to the agent 3 times in a row (fake agent: sendUserMessage failed); it keeps trying" },
 	]);
 	assert.deepEqual(box.messages(), [{ content: "[via telegram] Go.", step: 0 }]);
 	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [said], channels: ["telegram"] }]);

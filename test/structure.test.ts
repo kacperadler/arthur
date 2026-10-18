@@ -22,7 +22,8 @@ import { checkStructure } from "./structure.ts";
 // AR0110 (roadmap 26): `maxAgents`, each role's model and the quick model, orchestration 32 more (690).
 // AR0112: the wait before a failed turn's messages go again, its notice, and a new owner message ending it, orchestration 7 more (697).
 // AR0111: the inbox's watchdog for a hand-over omp takes and loses, and for a turn that says it goes on and does not, orchestration 21 more (718).
-const BUDGETS = { core: 4649, "core/testing": 340, projects: 320, orchestration: 718 };
+// machines: 280, set by AR0124 (roadmap 30) for the machine list, labels, the SSH checks, `arthur machines` and the doctor lines.
+const BUDGETS = { core: 4649, "core/testing": 340, projects: 320, orchestration: 718, machines: 280 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -140,7 +140,7 @@ export function pluginHost(
 			beforeSpawn: (check) => runner.beforeSpawn(own.name, check),
 			prepare: (fn) => runner.prepare(own.name, fn),
 			registerMachine: (machine) => runner.registerMachine(own.name, machine),
-			run: (machine, argv) => runner.run(machine, argv),
+			run: (machine, argv, limitSeconds) => runner.run(machine, argv, limitSeconds),
 			spawn: (request) => {
 				if (loading()) throw new Error(`${own.name}: spawn during setup; start jobs from start() or later`);
 				return runner.spawn(request);

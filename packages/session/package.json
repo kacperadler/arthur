@@ -1,0 +1,9 @@
+{
+  "name": "@arthur/session",
+  "private": true,
+  "type": "module",
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "exports": {
+    ".": "./src/session.ts"
+  }
+}

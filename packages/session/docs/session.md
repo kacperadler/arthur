@@ -1,6 +1,6 @@
 # session
 
-The `session` plugin: the coordinator's one long conversation, compacted at set times during the day so it never overflows its context (roadmap entry 35), started fresh at night once no job runs, and restarted on `/restart` (entry 36). Before each, the coordinator writes its handoff, and the next conversation reads it first. It needs `orchestration`, which runs the coordinator. The restart guard and the start notice are roadmap entries 37 and 38.
+The `session` plugin: the coordinator's one long conversation, compacted at set times during the day so it never overflows its context (roadmap entry 35), started fresh at night once no job runs, and restarted on `/restart` (entry 36). Before each, the coordinator writes its handoff, and the next conversation reads it first. Its restart guard holds new jobs once a commit changed the code `arthur run` loaded, until `arthur run` starts again (entry 37). It needs `orchestration`, which runs the coordinator. The start notice is roadmap entry 38.
 
 ## Options
 
@@ -13,8 +13,9 @@ In `session({ ... })` in `arthur.config.ts`; every key optional:
 | `freshAt` | The time of day, `"HH:MM"` in `core.timeZone`, of the first try of the fresh start: a new conversation, without `--continue`, only once no job runs. Default `"23:00"`. |
 | `freshRetryMinutes` | While a job runs, the fresh start is tried again this often, counted from `freshAt`; a whole number of minutes of at least 1. A try also waits this long for the handoff. Default 15. |
 | `freshUntil` | The time of the last try, `"HH:MM"`; earlier than `freshAt` it is the next day, equal to it a single try. Default `"03:00"`. |
+| `restartGuard` | `true` or `false`: once a commit changed the code `arthur run` loaded, refuse every spawn and continue until it starts again, and say so in the coordinator's context (below). Default `true`; `false` turns the guard off. |
 
-Refused at load (and by `arthur config check`), naming the option: a `compactAt` that is not a list, an entry, `freshAt` or `freshUntil` that is not `"HH:MM"` (`compactAt[<index>]: expected a time "HH:MM" from 00:00 to 23:59, got <value>`, `freshUntil: ...`), a `compactWaitSeconds` or `freshRetryMinutes` that is not a whole number of at least 1 (`freshRetryMinutes: expected a whole number of minutes of at least 1, got <value>`), and any other option, `restartGuard` and `probeLlm` of entries 37 and 38 included, until those entries are built.
+Refused at load (and by `arthur config check`), naming the option: a `compactAt` that is not a list, an entry, `freshAt` or `freshUntil` that is not `"HH:MM"` (`compactAt[<index>]: expected a time "HH:MM" from 00:00 to 23:59, got <value>`, `freshUntil: ...`), a `compactWaitSeconds` or `freshRetryMinutes` that is not a whole number of at least 1 (`freshRetryMinutes: expected a whole number of minutes of at least 1, got <value>`), a `restartGuard` that is not `true` or `false` (`restartGuard: expected true or false, got <value>`), and any other option, `probeLlm` of entry 38 included, until that entry is built.
 
 ## The handoff
 
@@ -61,6 +62,20 @@ A night whose `freshAt` passed while `arthur run` was down is skipped, not run l
 
 Once the next coordinator is up, one `Restarted.` notice goes to every channel, `Restarted. (fresh session)` after a fresh start: `arthur restart --help`, which also covers `/restart` and `/restart fresh`.
 
+## The restart guard
+
+`arthur run` loads Arthur's code once, at its start, so a merge after that runs only once `arthur run` starts again. The guard holds new jobs meanwhile, so that the jobs running can end and the restart can be made, and nobody runs on code older than main without knowing it:
+
+1. At its start, `arthur run` notes in `<home>/session/loaded.json` the time, the checkout that holds the core (Arthur's own: `git rev-parse --show-toplevel` of the core's package folder), its `HEAD` commit, and the code it loaded: the `src/` folder of the core and of each enabled plugin in that checkout, the host's `code` (each plugin's package folder beside the core's, named after the plugin). A disabled plugin is not loaded, so its code is not watched; neither is a plugin written in the config, nor one whose package lies outside that checkout. With the core outside a Git checkout there is nothing to note and the guard does nothing.
+2. At every spawn and every `arthur continue`, through `beforeSpawn`, of any kind, for any project, the checkout's `HEAD` is compared with the commit noted, only in those folders. A merge of docs, tests, roles or any other file does not count, and neither does one in another project's repository. A change that a later commit undid does not count either: the code at `HEAD` is the code loaded.
+3. When it differs, a restart is due, and the spawn is refused, exit code 1: `refused by session: restart due: AR0153, 1a2b3c4 changed Arthur's code since arthur run started 2026-10-18 08:41 at 0a41782; restart arthur run once no job runs, or pass --ignore-restart`. Each commit on `HEAD`'s first-parent line since the one noted that changed that code is named by the ticket of its `Merge <id>: ...` subject, else by its short hash, oldest first; a `HEAD` moved back past the commit noted names the commit it is at.
+4. `arthur spawn --ignore-restart` and `arthur continue --ignore-restart` start that one job all the same.
+5. A restart of `arthur run` clears it: the service's `systemctl --user restart arthur` (`docs/deploy.md`, "Updating"), or `arthur run` started again by hand. Its start notes the code anew. `/restart` and the fresh start restart only the coordinator's agent, not `arthur run`, so they do not clear it.
+
+The coordinator's context gets one line on every turn (`arthur coordinator --help`, under `## session`): `Restart: none due; no commit changed Arthur's code since arthur run started 2026-10-18 08:41 at 0a41782.`, or `Restart: due, AR0153 changed Arthur's code since ...` and what that holds. Nothing while no note exists.
+
+A `loaded.json` that is not what `arthur run` notes (edited by hand) refuses every spawn, `plugin session: beforeSpawn failed: <path> is not what arthur run notes at its start; it is noted again at the next start`, and the context gets `coordinator.context failed:` with the same words; `--ignore-restart` still starts a job. A Git command that fails (a commit noted that is gone) refuses the spawn the same way, with Git's first line: `git diff in <checkout>: fatal: bad object <commit>`.
+
 ## Files
 
-In `<home>/session/`: `request.json` (the request of the moment), `handoff.md` (the coordinator's handoff), `handoff-read` (the modification time of the last handoff read), `agent` (the pid of the coordinator's agent), `restarted.json` (a restart made, until the next coordinator is up; one that is not a restart's mark is dropped, named), and `after-restart.md` (the steps for the human after a restart, sent once with `Restarted.`).
+In `<home>/session/`: `request.json` (the request of the moment), `handoff.md` (the coordinator's handoff), `handoff-read` (the modification time of the last handoff read), `agent` (the pid of the coordinator's agent), `restarted.json` (a restart made, until the next coordinator is up; one that is not a restart's mark is dropped, named), `after-restart.md` (the steps for the human after a restart, sent once with `Restarted.`), and `loaded.json` (what `arthur run` loaded at its start, for the restart guard).

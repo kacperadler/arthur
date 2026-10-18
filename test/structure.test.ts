@@ -49,7 +49,11 @@ import { checkStructure } from "./structure.ts";
 // the list of registered machines a plugin had no way to read; resources 170 more (401) for `keepFree`, the check of each
 // machine kept per machine, the room, `resources.free`, the spawn check, the context lines and `arthur resources`/`/resources`.
 // Merged with AR0140: core 4852 + 14 = 4866, orchestration 1035 + 111 = 1146.
-const BUDGETS = { core: 4866, "core/testing": 340, projects: 320, orchestration: 1146, machines: 375, resources: 401, session: 453 };
+// AR0153 (roadmap 37): the restart guard; core 7 more (4859 alone; 4866 + 7 = 4873 merged with AR0140) for `host.code`, the
+// package folders of the code a load runs, which the session plugin has no other way to know, and `--ignore-restart` reaching
+// the `beforeSpawn` checks; session 86 more (539) for the note at the start, the comparison with HEAD, the spawn check, the
+// context line and `restartGuard`.
+const BUDGETS = { core: 4873, "core/testing": 340, projects: 320, orchestration: 1146, machines: 375, resources: 401, session: 539 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

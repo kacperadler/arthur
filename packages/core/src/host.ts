@@ -1,4 +1,4 @@
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type Board, board } from "./board.ts";
 import { moveStartedTickets, refuseUnstartableTickets } from "./board-jobs.ts";
@@ -26,6 +26,7 @@ export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warn
 export type AutopilotRequest = { readonly id: string; readonly budgetUsd?: number };
 
 const REQUIRED = "orchestration";
+const CORE = dirname(import.meta.dirname);
 
 // `commands` holds what the core registered before; the plugins' commands join it, and a name registered twice refuses the load.
 export async function loadPlugins(config: LoadedConfig, shell: Shell = process.env, commands: CommandRegistry = commandRegistry()): Promise<LoadedPlugins> {
@@ -36,11 +37,14 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const bus = eventBus(config.core.home);
 	const jobs = jobRunner(config.core.home, dirname(config.path), { ...config.core.jobs, slice: SLICE }, config.core.agent.command, time, bus, names.collect);
 	let loading = true;
+	// `Host.code`: the core's package folder, then each plugin's package folder beside it (`packages/<name>` in Arthur's checkout,
+	// `node_modules/@arthur/<name>` in an install); a plugin the config writes itself has none.
+	const code = [CORE, ...sorted.map((plugin) => join(dirname(CORE), plugin.name)).filter((folder) => existsSync(join(folder, "package.json")))];
 	for (const plugin of sorted) {
 		const { enabled: _, ...options } = plugin.options ?? {};
 		const folder = join(config.core.home, plugin.name);
 		mkdirSync(folder, { recursive: true });
-		const host = pluginHost(names, commands, bus, jobs, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time, agent: config.core.agent.command }, () => loading);
+		const host = pluginHost(names, commands, bus, jobs, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time, agent: config.core.agent.command, code }, () => loading);
 		await pluginStep(plugin.name, "setup", () => plugin.setup(host));
 	}
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));

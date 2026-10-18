@@ -26,8 +26,8 @@ import { checkStructure } from "./structure.ts";
 // AR0120 (roadmap 25): the coordinator's context on every turn, its OMP extension, `arthur coordinator context` and the coordinator's
 // role registered, orchestration 87 more (805); core within its budget (`host.jobs.prompt`/`vision`, `collectEach`, `prompts`).
 // AR0121 (roadmap 27): the jobs not ended in the coordinator's context, the wake's question, the blocked notice and the footer's
-// counts by state, orchestration 69 more (874); core within its budget (`since` in `host.jobs.list()`).
-const BUDGETS = { core: 4649, "core/testing": 340, projects: 320, orchestration: 874, machines: 280 };
+// counts by state, orchestration 70 more (875); core within its budget (`since` in `host.jobs.list()`).
+const BUDGETS = { core: 4649, "core/testing": 340, projects: 320, orchestration: 875, machines: 280 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

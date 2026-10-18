@@ -6,8 +6,9 @@ import { MESSAGE } from "./board-commands.ts";
 // A job blocked on the owner (spec/roadmap.md, entry 27): its `job-state` to `blocked` on `user: <question>` emits one `notice`
 // `{ text: "<id> asks: <question>" }`, which every channel sends, without a notification in quiet hours (the channel's rule);
 // a text longer than one message is cut, saying where the whole question is. Every process that loads the plugin gets the
-// event, and `arthur run` gets it again after a crash, so `<folder>/asked/<event number>`, created by the first one only, makes
-// it one notice per block; files there older than 7 days go at the next block: docs/commands/coordinator.md, "Jobs blocked on the owner".
+// event, and `arthur run` gets it again after a crash, so `<folder>/asked/<event number>-<its time in ms>`, created by the
+// first one only, makes it one notice per block; the time keeps a log cut by hand, whose numbers start again, from matching an
+// old mark. Files there older than 7 days go at the next block: docs/commands/coordinator.md, "Jobs blocked on the owner".
 
 const KEEP_MS = 7 * 24 * 3_600_000;
 
@@ -18,7 +19,7 @@ export function blockedNotice(host: Host): void {
 		const asked = join(host.folder, "asked");
 		mkdirSync(asked, { recursive: true });
 		try {
-			writeFileSync(join(asked, String(event.seq)), "", { flag: "wx" });
+			writeFileSync(join(asked, `${event.seq}-${Date.parse(event.time)}`), "", { flag: "wx" });
 		} catch (error) {
 			if ((error as NodeJS.ErrnoException).code === "EEXIST") return;
 			throw error;

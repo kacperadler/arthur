@@ -1,10 +1,10 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Plugin } from "@arthur/core/plugin";
+import type { Host, Plugin } from "@arthur/core/plugin";
 import { blockedNotice } from "./blocked-notice.ts";
 import { boardCommands } from "./board-commands.ts";
 import { coordinatorContext } from "./context.ts";
-import { pane, STOPPED, supervise, tmux } from "./coordinator.ts";
+import { extensions, pane, STOPPED, supervise, tmux } from "./coordinator.ts";
 import { inbox } from "./inbox.ts";
 import { checkOptions, type Coordinator, coordinatorOptions } from "./orchestration-options.ts";
 import { spawnRules } from "./spawn-rules.ts";
@@ -33,7 +33,7 @@ export type OrchestrationOptions = {
 };
 
 export function orchestration(options: OrchestrationOptions = {}): Plugin {
-	let place: { readonly coordinator: Coordinator; readonly folder: string; readonly agent: string } | undefined;
+	let place: { readonly coordinator: Coordinator; readonly folder: string; readonly agent: string; readonly host: Host } | undefined;
 	let supervisor: { stop(): Promise<void> } | undefined;
 	let messages: ReturnType<typeof inbox> | undefined;
 	return {
@@ -43,7 +43,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 		setup(host) {
 			const coordinator = coordinatorOptions(host.options);
 			const { folder, agent } = host;
-			place = { coordinator, folder, agent };
+			place = { coordinator, folder, agent, host };
 			messages = inbox(host);
 			blockedNotice(host);
 			spawnRules(host, coordinator);
@@ -94,7 +94,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 		},
 		start() {
 			messages?.start();
-			if (place !== undefined) supervisor = supervise(place.coordinator, place.folder, place.agent);
+			if (place !== undefined) supervisor = supervise(place.coordinator, place.folder, place.agent, extensions(place.host.collectEach("coordinator.extension")));
 		},
 		async stop() {
 			await supervisor?.stop();

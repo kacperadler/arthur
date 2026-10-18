@@ -1,8 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+import type { Answer } from "@arthur/core/plugin";
 import type { Coordinator } from "./orchestration-options.ts";
 
 // The coordinator's process (spec/roadmap.md, entry 23): one interactive agent in its own tmux session, started again after
@@ -36,9 +37,24 @@ export function pane(coordinator: Coordinator): "none" | "alive" | "dead" {
 // The start time `ps` gives a live process, empty for a gone one: with the pid it names one process, whatever reuses the pid.
 const startTime = (pid: string): string => (/^\d+$/.test(pid) ? String(spawnSync("ps", ["-o", "lstart=", "-p", pid], { encoding: "utf8" }).stdout ?? "").trim() : "");
 
+// What another plugin adds to the coordinator's agent through `collect("coordinator.extension")`: an OMP extension it loads
+// with `-e` after orchestration's own, and the variables it reads. An answer of another shape is left out, named.
+export type Extension = { readonly file: string; readonly env: Readonly<Record<string, string>> };
+export function extensions(answers: readonly Answer<unknown>[]): Extension[] {
+	return answers.flatMap((answer) => {
+		const { file, env } = ("value" in answer ? (answer.value ?? {}) : {}) as { readonly file?: unknown; readonly env?: unknown };
+		const variables = typeof env === "object" && env !== null ? Object.entries(env) : undefined;
+		if (typeof file === "string" && isAbsolute(file) && existsSync(file) && variables?.every(([key, value]) => /^ARTHUR_[A-Z0-9_]+$/.test(key) && typeof value === "string"))
+			return [{ file, env: Object.fromEntries(variables) as Record<string, string> }];
+		const why = "error" in answer ? answer.error.message : "expected { file, env }: the absolute path of an existing file, and ARTHUR_* variables with text values";
+		console.error(`orchestration: the coordinator.extension of ${answer.plugin} is left out: ${why}`);
+		return [];
+	});
+}
+
 // Keeps the coordinator running until `stop`, which ends its session; a stop mark left by `arthur coordinator stop` is lifted
 // first, since a new `arthur run` starts it again. Its lines go to `arthur run`'s output.
-export function supervise(coordinator: Coordinator, folder: string, agent: string): { stop(): Promise<void> } {
+export function supervise(coordinator: Coordinator, folder: string, agent: string, added: readonly Extension[] = []): { stop(): Promise<void> } {
 	rmSync(join(folder, STOPPED), { force: true });
 	const quit = new AbortController();
 	const pause = (ms: number) => sleep(ms, undefined, { signal: quit.signal }).catch(() => {});
@@ -89,8 +105,9 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 		if (Date.now() - began >= EXIT_POLL_MS) console.log(`orchestration: the previous ${agent} (pid ${pid}) exited after ${waited} s`);
 		const { model, thinking, quick, session } = coordinator;
 		const command = [agent, "--continue", "--auto-approve", ...(model ? ["--model", model] : []), ...(thinking ? ["--thinking", thinking] : []), ...(quick ? ["--smol", quick] : [])];
-		command.push("-e", ENV_GUARD, "-e", INBOX, "-e", CONTEXT);
-		const env = ["-e", `ARTHUR_ORCHESTRATION_FOLDER=${folder}`, "-e", `ARTHUR_ORCHESTRATION_CONTEXT=${CONTEXT_COMMAND}`];
+		command.push("-e", ENV_GUARD, "-e", INBOX, "-e", CONTEXT, ...added.flatMap((extension) => ["-e", extension.file]));
+		const variables = [`ARTHUR_ORCHESTRATION_FOLDER=${folder}`, `ARTHUR_ORCHESTRATION_CONTEXT=${CONTEXT_COMMAND}`, ...added.flatMap((extension) => Object.entries(extension.env).map(([key, value]) => `${key}=${value}`))];
+		const env = variables.flatMap((variable) => ["-e", variable]);
 		const made = tmux(coordinator, ["new-session", "-d", "-P", "-F", "#{pane_pid}", "-s", session, "-c", process.cwd(), ...env, ...command]);
 		if (made.status !== 0) {
 			const why = made.error?.message ?? String(made.stderr).trim().split("\n").at(-1);

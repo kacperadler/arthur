@@ -21,7 +21,8 @@ import { checkStructure } from "./structure.ts";
 // interactive session moves 64 lines from core to core/testing (4649 and 340), with `host.jobs.result(id)` in the core.
 // AR0110 (roadmap 26): `maxAgents`, each role's model and the quick model, orchestration 32 more (690).
 // AR0112: the wait before a failed turn's messages go again, its notice, and a new owner message ending it, orchestration 7 more (697).
-const BUDGETS = { core: 4649, "core/testing": 340, projects: 320, orchestration: 697 };
+// AR0111: the inbox's watchdog for a hand-over omp takes and loses, and for a turn that says it goes on and does not, orchestration 21 more (718).
+const BUDGETS = { core: 4649, "core/testing": 340, projects: 320, orchestration: 718 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

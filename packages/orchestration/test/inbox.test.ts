@@ -227,10 +227,60 @@ test("a hand-over that throws is retried each tick; the third failure in a row i
 	const said = box.say("Go.");
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
 	assert.deepEqual(box.emitted("notice"), [
-		{ text: "the coordinator's inbox could not hand 1 message(s) to the agent 3 times in a row (fake agent: sendUserMessage failed); it keeps trying every 0.5 s" },
+		{ text: "the coordinator's inbox could not hand 1 message(s) to the agent 3 times in a row (fake agent: sendUserMessage failed); it keeps trying" },
 	]);
 	assert.deepEqual(box.messages(), [{ content: "[via telegram] Go.", step: 0 }]);
 	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [said], channels: ["telegram"] }]);
+});
+
+const WATCHDOG = "(no turn started within 30 s); it keeps trying";
+
+test("a hand-over omp takes and then loses goes again, with its mark, after 30 s idle with no turn; after two throws it is the third failure, told", async (t) => {
+	const box = await load(t, { steps: [{ prompt: true }, { message: "Redone." }, { end: true }, { prompt: true }], failSends: 2, dropSends: 1 });
+	mkdirSync(join(box.folder, "inbox", "turn"), { recursive: true });
+	writeFileSync(join(box.folder, "inbox", "turn", "108"), JSON.stringify({ channel: "telegram", text: "Not answered." }));
+	const startedAt = Date.now();
+	await box.start();
+	await until("the delivery", () => box.messages().length === 1, 45_000);
+	assert.ok(Date.now() - startedAt >= 30_000, `the lost hand-over goes again only after 30 s: ${Date.now() - startedAt}`);
+	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
+	assert.deepEqual(box.messages(), [{ content: `[via telegram, ${RESTART}] Not answered.`, step: 0 }]);
+	assert.deepEqual(box.emitted("notice"), [{ text: `the coordinator's inbox could not hand 1 message(s) to the agent 3 times in a row ${WATCHDOG}` }]);
+	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Redone.", answers: [108], channels: ["telegram"] }]);
+});
+
+test("a turn whose agent_end says it goes on and then starts none, as after omp's compaction, ends with it after 30 s idle; the next message goes", async (t) => {
+	const steps: AgentStep[] = [{ prompt: true }, { message: "Done." }, { end: true, continues: true }, { prompt: true }, { message: "Again." }, { end: true }, { prompt: true }];
+	const box = await load(t, { steps });
+	await box.start();
+	const first = box.say("Go.");
+	await until("the turn", () => box.messages().length === 1);
+	const endedAt = Date.now();
+	await sleep(1000);
+	const second = box.say("Next.");
+	await until("the first reply", () => box.emitted("coordinator-replied").length === 1, 45_000);
+	assert.ok(Date.now() - endedAt >= 29_000, `the turn ends only after 30 s idle: ${Date.now() - endedAt}`);
+	await until("the second reply", () => box.emitted("coordinator-replied").length === 2);
+	assert.deepEqual(
+		box.messages().map((message) => message.content),
+		["[via telegram] Go.", "[via telegram] Next."],
+	);
+	assert.deepEqual(box.emitted("coordinator-replied"), [
+		{ text: "Done.", answers: [first], channels: ["telegram"] },
+		{ text: "Again.", answers: [second], channels: ["telegram"] },
+	]);
+	assert.deepEqual(box.emitted("notice"), []);
+});
+
+test("omp busy past 30 s before the turn starts, as through its compaction before the prompt, gets the message once", async (t) => {
+	const box = await load(t, { steps: [{ prompt: true, compactMs: 32_000 }, { message: "Done." }, { end: true }, { prompt: true }] });
+	await box.start();
+	const said = box.say("Go.");
+	await until("the reply", () => box.emitted("coordinator-replied").length === 1, 45_000);
+	await sleep(1500);
+	assert.deepEqual(box.messages(), [{ content: "[via telegram] Go.", step: 0 }]);
+	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [said], channels: ["telegram"] }]);
+	assert.deepEqual(box.emitted("notice"), []);
 });
 
 test("a turn that ends in an error answers nothing; its message is delivered again, marked, and answered", async (t) => {

@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-18: The owner: build the roadmap in its order, plugins included, starting today; this entry is next in that order.
+- 2026-10-18: Coordinator (owner delegated Arthur calls): machines budget 280 -> 375 accepted if the review finds nothing to cut; accepted the worker's calls: `--requires os=..,arch=..,tools=..`; the first `Ticket:` path counts, read from the main checkout; no project or ticket requirement without the projects plugin; `--machine` checked against labels only; `resources.free(machine)` answers a job count (entry 34 provides it, F2); only jobs in a run count against `maxJobs`.

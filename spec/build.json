@@ -984,7 +984,7 @@
     "title": "Roadmap 25: the coordinator's context on every turn",
     "status": "in-progress",
     "path": "spec/features/AR0120-roadmap-25-the-coordinator-s-context-on-every-turn/ticket.md",
-    "updated": "2026-10-18T09:47:22.282Z"
+    "updated": "2026-10-18T10:02:13.866Z"
   },
   {
     "id": "AR0121",
@@ -1033,8 +1033,15 @@
   {
     "id": "AR0126",
     "title": "Roadmap 32: Resources: caps per job",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0126-roadmap-32-resources-caps-per-job/ticket.md",
-    "updated": "2026-10-18T09:59:41.676Z"
+    "updated": "2026-10-18T09:59:44.028Z"
+  },
+  {
+    "id": "AR0127",
+    "title": "Roadmap: a silent mode for the coordinator in the channels",
+    "status": "planned",
+    "path": "spec/features/AR0127-roadmap-a-silent-mode-for-the-coordinator-in-the-channels/ticket.md",
+    "updated": "2026-10-18T10:06:06.939Z"
   }
 ]

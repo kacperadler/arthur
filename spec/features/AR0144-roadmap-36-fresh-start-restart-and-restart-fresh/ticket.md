@@ -35,3 +35,4 @@ Out:
 ## Decisions
 
 - 2026-10-18: The owner: build the roadmap in its order; on 2026-10-18 evening he asked for a night plan for Arthur with Claude 7 Day usage up to 75%. This entry is in that plan.
+- 2026-10-18: Coordinator (owner delegated Arthur calls): session 213 -> 453 (+240) and orchestration 892 -> 903 (+11, ending the coordinator for a fresh start) accepted; freshAt default 23:00, /restart waits 120 s for the handoff, the Restarted. notice as a notice event, the coordinator role sentence replaced (+280 bytes), compact.json renamed request.json holding one request at a time: accepted.

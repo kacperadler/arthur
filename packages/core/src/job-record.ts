@@ -7,9 +7,10 @@ import type { Job, Spawn } from "./jobs.ts";
 // The job record `<home>/jobs/<id>/` (spec/roadmap.md, entries 9 and 10) as the spawn writes it, one file per key; the
 // wrapper (entry 11) adds the files of the run.
 
-// Written into `.<id>` and renamed, so a reader sees all of it or nothing. An empty `branch`, `model`, `thinking`, `quick`, `cpu` or
-// `memory` is none; `prompt` is the role's, which the agent gets; `resume-on-budget` is `true` when the kind asks for one resume
-// at its budget; `cpu` and `memory` are the job's own caps (job-scope.ts).
+// Written into `.<id>` and renamed, so a reader sees all of it or nothing. An empty `branch`, `model`, `thinking`, `quick`, `cpu`,
+// `memory`, `feature`, `feature-cpu` or `feature-memory` is none; `prompt` is the role's, which the agent gets; `resume-on-budget`
+// is `true` when the kind asks for one resume at its budget; the caps are the job's own and its ticket's slice's (job-scope.ts);
+// `cost` starts at 0, so a missing one is a broken record.
 // A job starts `working` (job-state.ts) at `since`; `idle-minutes` is the core's `jobs.idleMinutes`; `projects` is every
 // project's main checkout, `checkouts` (job-checkout.ts), which the worktree guard refuses too.
 export function writeRecord(home: string, job: Job, prompt: string, resumeOnBudget: boolean, idleMinutes: number, since: Date, projects: string): void {
@@ -18,7 +19,8 @@ export function writeRecord(home: string, job: Job, prompt: string, resumeOnBudg
 	mkdirSync(temporary, { recursive: true });
 	const record = {
 		task: job.task, kind: job.kind, project: job.project, model: job.model ?? "", thinking: job.thinking ?? "", quick: job.quick ?? "", prompt,
-		timeout: String(job.timeoutMinutes), budget: String(job.budgetUsd), "resume-on-budget": String(resumeOnBudget), cpu: String(job.cpu ?? ""), memory: job.memory ?? "",
+		timeout: String(job.timeoutMinutes), budget: String(job.budgetUsd), "resume-on-budget": String(resumeOnBudget), cpu: String(job.cpu ?? ""), memory: job.memory ?? "", cost: "0.0000",
+		feature: job.feature?.name ?? "", "feature-cpu": String(job.feature?.cpu ?? ""), "feature-memory": job.feature?.memory ?? "",
 		"idle-minutes": String(idleMinutes), branch: job.branch ?? "", root: job.root, base: job.base, worktree: job.worktree, machine: job.machine, projects,
 		reason: "", since: since.toISOString(), state: "working",
 	};

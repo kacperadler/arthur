@@ -104,7 +104,7 @@ test("host.jobs.list(): every record in any state, newest spawn first, missing f
 	assert.deepEqual([jobs.records(), jobs.running()], [[], []]);
 	const hours = (count: number) => new Date(NOW.getTime() - count * 3_600_000);
 	const ticket = "spec/features/AR0018-jobs/ticket.md";
-	record(home, "2026-10-16-worker-0000000a", { task: `Ticket: ${ticket}.\nTicket: \`${ticket}\``, state: "working", branch: "arthur/a" }, hours(1));
+	record(home, "2026-10-16-worker-0000000a", { task: `Ticket: ${ticket}.\nTicket: \`${ticket}\``, state: "working", branch: "arthur/a", cost: "1.2500", budget: "2", ran: "60" }, hours(1));
 	record(home, "2026-10-16-review-0000000b", { kind: "review", project: "shop", state: "ended", reason: "finished", machine: "mac" }, hours(2));
 	record(home, "2026-10-16-worker-0000000c", { state: "idle" }, hours(3));
 	record(home, "2026-10-16-worker-0000000d", { state: "blocked", reason: "user: may I?" }, hours(4));
@@ -113,8 +113,9 @@ test("host.jobs.list(): every record in any state, newest spawn first, missing f
 	mkdirSync(join(home, "jobs", ".2026-10-16-worker-00000010"), { recursive: true });
 	writeFileSync(join(home, "jobs", ".2026-10-16-worker-00000010", "kind"), "worker");
 	const [first, second] = jobs.records();
-	assert.deepEqual(first, { id: "2026-10-16-worker-0000000a", kind: "worker", project: "acme", state: "working", reason: "", hold: "", since: hours(1).toISOString(), branch: "arthur/a", machine: "local", tickets: [ticket] });
-	assert.deepEqual(second, { id: "2026-10-16-review-0000000b", kind: "review", project: "shop", state: "ended", reason: "finished", hold: "", since: hours(2).toISOString(), branch: "", machine: "mac", tickets: [] });
+	const fields = { id: "2026-10-16-worker-0000000a", kind: "worker", project: "acme", state: "working", reason: "", hold: "", since: hours(1).toISOString(), branch: "arthur/a", machine: "local" };
+	assert.deepEqual(first, { ...fields, cost: "1.2500", budget: "2", seconds: 3660, tickets: [ticket] }, "a job in a run: its ran and the hour since");
+	assert.deepEqual(second, { id: "2026-10-16-review-0000000b", kind: "review", project: "shop", state: "ended", reason: "finished", hold: "", since: hours(2).toISOString(), branch: "", machine: "mac", cost: "", budget: "2", seconds: 0, tickets: [] });
 	assert.deepEqual(jobs.records().map((job) => [job.id.slice(-1), job.state, job.hold]), [["a", "working", ""], ["b", "ended", ""], ["c", "idle", ""], ["d", "blocked", ""], ["e", "blocked", "x"], ["f", "", ""]]);
 	assert.deepEqual(jobs.running(), ["2026-10-16-worker-0000000a", "2026-10-16-worker-0000000c", "2026-10-16-worker-0000000e"]);
 });

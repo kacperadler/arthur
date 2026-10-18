@@ -71,9 +71,9 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 		if (app === undefined) throw new Error(`${why}arthur.config.ts did not load:\n${problem}`);
 		return pick(app);
 	};
-	commands.register("core", ticketCommand(need("the board needs the project list, and ", (app) => app.board)));
-	commands.register("core", rolesCommand(need("the roles are what the plugins registered, and ", (app) => app.jobs)));
 	const jobs = need("", (app) => app.jobs);
+	commands.register("core", ticketCommand(need("the board needs the project list, and ", (app) => app.board), jobs));
+	commands.register("core", rolesCommand(need("the roles are what the plugins registered, and ", (app) => app.jobs)));
 	commands.register("core", spawnCommand(jobs));
 	for (const command of jobCommands(need("the job records are in the configured home folder, and ", (app) => app.home), jobs)) commands.register("core", command);
 	commands.register("core", remoteJobCommand());

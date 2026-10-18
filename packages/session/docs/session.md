@@ -1,6 +1,6 @@
 # session
 
-The `session` plugin: the coordinator's one long conversation, compacted at set times during the day so it never overflows its context (roadmap entry 35), started fresh at night once no job runs, and restarted on `/restart` (entry 36). Before each, the coordinator writes its handoff, and the next conversation reads it first. Its restart guard holds new jobs once a commit changed the code `arthur run` loaded, until `arthur run` starts again (entry 37). It needs `orchestration`, which runs the coordinator. The start notice is roadmap entry 38.
+The `session` plugin: the coordinator's one long conversation, compacted at set times during the day so it never overflows its context (roadmap entry 35), started fresh at night once no job runs, and restarted on `/restart` (entry 36). Before each, the coordinator writes its handoff, and the next conversation reads it first. Its restart guard holds new jobs once a commit changed the code `arthur run` loaded, until `arthur run` starts again (entry 37). At every start of `arthur run` it asks the coordinator's model for one word and tells the owner whether the coordinator is up, and it tells each coordinator turn that fails before any text (entry 38). It needs `orchestration`, which runs the coordinator.
 
 ## Options
 
@@ -14,8 +14,9 @@ In `session({ ... })` in `arthur.config.ts`; every key optional:
 | `freshRetryMinutes` | While a job runs, the fresh start is tried again this often, counted from `freshAt`; a whole number of minutes of at least 1. A try also waits this long for the handoff. Default 15. |
 | `freshUntil` | The time of the last try, `"HH:MM"`; earlier than `freshAt` it is the next day, equal to it a single try. Default `"03:00"`. |
 | `restartGuard` | `true` or `false`: once a commit changed the code `arthur run` loaded, refuse every spawn and continue until it starts again, and say so in the coordinator's context (below). Default `true`; `false` turns the guard off. |
+| `probeLlm` | `true` or `false`: at every start of `arthur run`, ask the coordinator's model for one word before the start notice (below). Default `true`; `false` skips the probe, and the start notice says `coordinator up` without asking. |
 
-Refused at load (and by `arthur config check`), naming the option: a `compactAt` that is not a list, an entry, `freshAt` or `freshUntil` that is not `"HH:MM"` (`compactAt[<index>]: expected a time "HH:MM" from 00:00 to 23:59, got <value>`, `freshUntil: ...`), a `compactWaitSeconds` or `freshRetryMinutes` that is not a whole number of at least 1 (`freshRetryMinutes: expected a whole number of minutes of at least 1, got <value>`), a `restartGuard` that is not `true` or `false` (`restartGuard: expected true or false, got <value>`), and any other option, `probeLlm` of entry 38 included, until that entry is built.
+Refused at load (and by `arthur config check`), naming the option: a `compactAt` that is not a list, an entry, `freshAt` or `freshUntil` that is not `"HH:MM"` (`compactAt[<index>]: expected a time "HH:MM" from 00:00 to 23:59, got <value>`, `freshUntil: ...`), a `compactWaitSeconds` or `freshRetryMinutes` that is not a whole number of at least 1 (`freshRetryMinutes: expected a whole number of minutes of at least 1, got <value>`), a `restartGuard` or `probeLlm` that is not `true` or `false` (`probeLlm: expected true or false, got <value>`), and any other option.
 
 ## The handoff
 
@@ -76,6 +77,21 @@ The coordinator's context gets one line on every turn (`arthur coordinator --hel
 
 A `loaded.json` that is not what `arthur run` notes (edited by hand) refuses every spawn, `plugin session: beforeSpawn failed: <path> is not what arthur run notes at its start; it is noted again at the next start`, and the context gets `coordinator.context failed:` with the same words; `--ignore-restart` still starts a job. A Git command that fails (a commit noted that is gone) refuses the spawn the same way, with Git's first line: `git diff in <checkout>: fatal: bad object <commit>`.
 
+## The start notice
+
+So that the owner learns Arthur is up, and a model provider that fails (a login expired, a key revoked, a model gone) is found at the start instead of at the coordinator's first real turn:
+
+1. At every start of `arthur run` (the service starting it again counts), the coordinator's model is asked for one word first: `<agent> -p --no-session --no-title --no-tools --no-extensions --no-skills --no-rules --mode json --model <coordinator.model> "Answer with one word: ready."`, the agent `core.agent.command`, the model the one orchestration answers for the role `coordinator` (`arthur roles`), the agent's own default when none is set. It runs beside the coordinator's own start and holds nothing back.
+2. Answered with text, every channel gets one notice: `coordinator up on <host>`, `<host>` the machine's name.
+3. Otherwise the notice is `no LLM access on <host>: <reason>; run omp login`. The reason is the first line of the model's error (`401 {"type":"error","error":{"type":"authentication_error",...}}`), else omp's `error: ...` line (`No API key found for anthropic.`), else its first line on stderr (`Model "<model>" not found`), else `no answer within 60 s` when the probe is cut after 60 s (the agent is killed), `the model's turn ended with aborted`, `no answer`, or `exit code <n>`.
+4. With `probeLlm: false` nothing is asked, and the notice is `coordinator up on <host>` at once.
+
+Two starts in a row send two notices, one each: nothing is merged or held back. An `arthur run` stopped while its probe runs kills the probe and sends no notice. The notice tells about the model; that the coordinator's tmux session started is in `arthur run`'s output (`arthur coordinator --help`).
+
+A coordinator turn that fails before any text (its last message an error, and none of its replies since the message that started it holds text) sends the notice `turn failed on <host>: <reason>`, the first line of omp's error, once per turn. The session's second extension in the coordinator's agent, `packages/session/src/turn-extension.ts`, leaves each in `<home>/session/turn-failed/`, and `arthur run` sends them within 500 ms, oldest first; one left before this `arthur run` started is dropped, not told late. A turn the owner aborted, one that replied before it failed, and one omp says goes on, are not told.
+
+A credential is never repeated in either notice: in the reason, the value of every environment variable whose name holds `KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `CREDENTIAL` or `AUTH` (8 characters or more), a `Bearer` token, a key with a vendor's prefix (`sk-`, `xoxb-`, `ghp_`, ...), and any run of 20 or more letters, digits, `_` and `-` that mixes letters and digits become `[redacted]`. The reasons are cut at 300 characters.
+
 ## Files
 
-In `<home>/session/`: `request.json` (the request of the moment), `handoff.md` (the coordinator's handoff), `handoff-read` (the modification time of the last handoff read), `agent` (the pid of the coordinator's agent), `restarted.json` (a restart made, until the next coordinator is up; one that is not a restart's mark is dropped, named), `after-restart.md` (the steps for the human after a restart, sent once with `Restarted.`), and `loaded.json` (what `arthur run` loaded at its start, for the restart guard).
+In `<home>/session/`: `request.json` (the request of the moment), `handoff.md` (the coordinator's handoff), `handoff-read` (the modification time of the last handoff read), `agent` (the pid of the coordinator's agent), `restarted.json` (a restart made, until the next coordinator is up; one that is not a restart's mark is dropped, named), `after-restart.md` (the steps for the human after a restart, sent once with `Restarted.`), `loaded.json` (what `arthur run` loaded at its start, for the restart guard), and `turn-failed/` (the coordinator turns that failed before any text, until `arthur run` sends them).

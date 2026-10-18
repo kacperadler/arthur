@@ -13,4 +13,18 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `spec/roadmap.md:292` (entry 30, Also delivers); `docs/deploy.md:12`
 - What: entry 30 lists `npm i -g arthur` among the doctor fixes. Every `package.json` here is `"private": true` and nothing is published to npm; `docs/deploy.md` step 2 installs the core on another machine by cloning and `npm ci` at the same commit. The machines plugin's fix follows deploy.md (`install Arthur's core there at this commit, arthur on the PATH of a command over ssh (docs/deploy.md)`), so the roadmap and the code now say different things.
 - Suggestion: change the roadmap's fix to deploy.md's install; nothing in the code changes.
-- Status: open
+- Status: dropped (AR0128, the release plan, decides the install command)
+
+## F2. The `ssh -G` call at load has no time limit
+
+- Kind: risk
+- Found by: 2026-10-18-review-ar0124-machines-l-55254714 (review), 2026-10-18
+- Where: `packages/machines/src/machine-check.ts:27`
+- Status: dropped (`ssh -G` reads local config only and does no network I/O)
+
+## F3. A name is resolved again at each check, not cached
+
+- Kind: risk
+- Found by: 2026-10-18-review-ar0124-machines-l-55254714 (review), 2026-10-18
+- Where: `packages/machines/src/machine-check.ts`
+- Status: dropped (a rebind lasts until the next round, which marks the machine offline; config safety, not an adversarial boundary)

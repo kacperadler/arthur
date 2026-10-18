@@ -1265,5 +1265,12 @@
     "after": [
       "AR0153"
     ]
+  },
+  {
+    "id": "AR0158",
+    "title": "Roadmap 39: Schedule entries and the sweep",
+    "status": "planned",
+    "path": "spec/features/AR0158-roadmap-39-schedule-entries-and-the-sweep/ticket.md",
+    "updated": "2026-10-18T22:00:37.485Z"
   }
 ]

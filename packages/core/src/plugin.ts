@@ -136,6 +136,7 @@ export function pluginHost(
 	own: Pick<Host, "name" | "options" | "env" | "folder" | "clock" | "agent">,
 	loading: () => boolean,
 ): Host {
+	const tickets = board(() => names.collect("projects", []), own.clock, (name, data) => bus.emit(own.name, name, data));
 	return {
 		...own,
 		events: {
@@ -164,9 +165,10 @@ export function pluginHost(
 			list: () => runner.records(),
 			running: () => runner.running(),
 			result: (id) => runner.result(id),
+			file: (id, job) => runner.file(tickets, id, job),
 			prompt: (role, project) => runner.prompt(role, project),
 			vision: (project) => runner.vision(project),
 		},
-		board: board(() => names.collect("projects", []), own.clock, (name, data) => bus.emit(own.name, name, data)),
+		board: tickets,
 	};
 }

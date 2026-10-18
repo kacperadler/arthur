@@ -9,8 +9,8 @@ import { type AgentRun, type FakeHost, fakeAgent, fakeHost, temporaryFolder } fr
 import { type OrchestrationOptions, orchestration } from "../src/orchestration.ts";
 
 const ENV_GUARD = fileURLToPath(import.meta.resolve("@arthur/core/env-guard"));
-const ROLE = fileURLToPath(new URL("../roles/coordinator.md", import.meta.url));
 const INBOX = fileURLToPath(new URL("../src/inbox-extension.ts", import.meta.url));
+const CONTEXT = fileURLToPath(new URL("../src/context-extension.ts", import.meta.url));
 const CLI = fileURLToPath(import.meta.resolve("@arthur/core/plugin").replace(/plugin\.ts$/, "cli.ts"));
 const PATH = process.env.PATH ?? "";
 
@@ -66,7 +66,7 @@ function waiting(steps: AgentRun["steps"] = []): { agent: string; release: () =>
 	return { agent, release: () => writeFileSync(join(folder, "release"), "") };
 }
 
-test("the coordinator is one interactive omp in its tmux session, with --continue, its model, thinking and quick model, the env guard and its role", async (t) => {
+test("the coordinator is one interactive omp in its tmux session, with --continue, its model, thinking and quick model, the env guard and its context", async (t) => {
 	const { agent, release } = waiting();
 	t.after(release);
 	const { plugin, socket, starts } = await load(t, agent, { model: "anthropic/claude-opus-5-5", thinking: "high" }, undefined, { quick: { model: "anthropic/claude-haiku-5-5" } });
@@ -74,9 +74,11 @@ test("the coordinator is one interactive omp in its tmux session, with --continu
 	await until("the coordinator's start", () => starts().length === 1);
 	const [start] = starts();
 	const models = ["--model", "anthropic/claude-opus-5-5", "--thinking", "high", "--smol", "anthropic/claude-haiku-5-5"];
-	assert.deepEqual(start?.args, ["--continue", "--auto-approve", ...models, "-e", ENV_GUARD, "-e", INBOX, "--append-system-prompt", ROLE]);
+	assert.deepEqual(start?.args, ["--continue", "--auto-approve", ...models, "-e", ENV_GUARD, "-e", INBOX, "-e", CONTEXT]);
 	assert.equal(start?.cwd, process.cwd());
-	assert.ok(existsSync(ROLE));
+	// The context extension runs `arthur coordinator context` with this node, in the agent's folder, before each turn.
+	const command = tmux(socket, "show-environment", "-t", "=coord", "ARTHUR_ORCHESTRATION_CONTEXT").stdout.trim();
+	assert.equal(command, `ARTHUR_ORCHESTRATION_CONTEXT=${JSON.stringify([process.execPath, CLI, "coordinator", "context"])}`);
 	assert.equal(tmux(socket, "display-message", "-p", "-t", "=coord:", "#{pane_pid}").stdout.trim(), String(start?.pid));
 	// A second start while it runs is not made: one coordinator.
 	await sleep(1500);
@@ -159,7 +161,8 @@ test("arthur attach with no session says so; wrong usage of either command exits
 	assert.equal(code, 1);
 	assert.match(said[0] ?? "", /^arthur attach: no coordinator: tmux session coord \(socket .*tmux\.sock\) is not running; arthur run starts it$/);
 	assert.deepEqual(await command(fake, "attach", ["now"], lines), { code: 2, out: [], err: ["usage: arthur attach"] });
-	for (const args of [[], ["start"], ["stop", "now"]]) assert.deepEqual(await command(fake, "coordinator", args, lines), { code: 2, out: [], err: ["usage: arthur coordinator stop"] });
+	for (const args of [[], ["start"], ["stop", "now"], ["context", "now"]])
+		assert.deepEqual(await command(fake, "coordinator", args, lines), { code: 2, out: [], err: ["usage: arthur coordinator stop|context"] });
 });
 
 test("arthur coordinator stop is refused while a job runs, naming it, and the coordinator goes on", async (t) => {

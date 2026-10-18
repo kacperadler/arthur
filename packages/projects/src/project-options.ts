@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import { isAbsolute, normalize, resolve, sep } from "node:path";
 import { describe } from "@arthur/core";
 import type { OptionProblem, Options } from "@arthur/core/plugin";
 
@@ -28,6 +28,8 @@ const object =
 		return wrong || required.some((key) => record[key] === undefined) ? form : undefined;
 	};
 const rules = object({ regex: text, words: text, file: text }, [], "exactly one of { regex }, { words }, { file }, a non-empty string");
+// A file the core's prompt loader reads in the project's repository; one outside it is never read.
+const inside: Check = (value) => (typeof value === "string" && value !== "" && !isAbsolute(value) && normalize(value).split(sep)[0] !== ".." ? undefined : "a path");
 
 const FIELDS: Readonly<Record<string, Check>> = {
 	name: (value) => (typeof value === "string" && NAME.test(value) ? undefined : "lowercase letters, digits, dots and dashes, from a letter or digit"),
@@ -47,6 +49,7 @@ const FIELDS: Readonly<Record<string, Check>> = {
 		"{ os?, arch?, tools? }: os and arch non-empty strings, tools a list of them",
 	),
 	docker: flag,
+	prompts: object({ vision: inside, criteriaDir: inside, rolesDir: inside }, [], "{ vision?, criteriaDir?, rolesDir? }, each a path inside the project's repository"),
 };
 
 export function checkOptions(options: Options): OptionProblem[] {

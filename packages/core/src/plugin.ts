@@ -42,10 +42,11 @@ export type Host = {
 	readonly agent: string;
 	// Events go to every subscriber in this process and to the log `<home>/events.jsonl`, named by this plugin.
 	readonly events: Events;
-	// Several plugins may provide one name: `call` needs exactly one, `collect` reads them all, in setup order.
+	// Several plugins may provide one name: `call` needs exactly one, `collect` reads them all, in setup order; `collectEach` too, each answer with its plugin, a throw costing that answer only (`error`).
 	provide(name: string, fn: Provider): void;
 	call<T = unknown>(name: string, ...args: readonly unknown[]): T;
 	collect<T = unknown>(name: string, ...args: readonly unknown[]): T[];
+	collectEach<T = unknown>(name: string, ...args: readonly unknown[]): Answer<T>[];
 	// The command registry: `register` this plugin's commands; `route` and `phone` for a channel.
 	readonly commands: Commands;
 	// The job runner: this plugin's kinds and roles, its checks before a spawn, its steps for a new worktree (on another machine
@@ -56,10 +57,13 @@ export type Host = {
 	readonly board: Board;
 };
 
+export type Answer<T> = { readonly plugin: string; readonly value: T } | { readonly plugin: string; readonly error: Error };
+
 export type Registry = {
 	provide(plugin: string, name: string, fn: Provider): void;
 	call(plugin: string, name: string, args: readonly unknown[]): unknown;
 	collect(name: string, args: readonly unknown[]): unknown[];
+	collectEach(name: string, args: readonly unknown[]): Answer<unknown>[];
 };
 
 type Call = (...args: readonly unknown[]) => unknown;
@@ -111,6 +115,15 @@ export function registry(): Registry {
 		collect(name, args) {
 			return (providers.get(name) ?? []).map((entry) => entry.fn(...args));
 		},
+		collectEach(name, args) {
+			return (providers.get(name) ?? []).map(({ plugin, fn }) => {
+				try {
+					return { plugin, value: fn(...args) };
+				} catch (error) {
+					return { plugin, error: error instanceof Error ? error : new Error(String(error)) };
+				}
+			});
+		},
 	};
 }
 
@@ -133,6 +146,7 @@ export function pluginHost(
 		provide: (name, fn) => names.provide(own.name, name, fn),
 		call: <T>(name: string, ...args: readonly unknown[]) => names.call(own.name, name, args) as T,
 		collect: <T>(name: string, ...args: readonly unknown[]) => names.collect(name, args) as T[],
+		collectEach: <T>(name: string, ...args: readonly unknown[]) => names.collectEach(name, args) as Answer<T>[],
 		commands: { register: (command) => commands.register(own.name, command), route: commands.route, phone: commands.phone },
 		jobs: {
 			registerKind: (kind) => runner.registerKind(own.name, kind),
@@ -150,6 +164,8 @@ export function pluginHost(
 			list: () => runner.records(),
 			running: () => runner.running(),
 			result: (id) => runner.result(id),
+			prompt: (role, project) => runner.prompt(role, project),
+			vision: (project) => runner.vision(project),
 		},
 		board: board(() => names.collect("projects", []), own.clock, (name, data) => bus.emit(own.name, name, data)),
 	};

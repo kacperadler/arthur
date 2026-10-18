@@ -1,6 +1,7 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Plugin } from "@arthur/core/plugin";
+import { blockedNotice } from "./blocked-notice.ts";
 import { boardCommands } from "./board-commands.ts";
 import { coordinatorContext } from "./context.ts";
 import { pane, STOPPED, supervise, tmux } from "./coordinator.ts";
@@ -11,7 +12,8 @@ import { spawnRules } from "./spawn-rules.ts";
 // The orchestration plugin (spec/roadmap.md, entry 23), required by the host: the coordinator's process, kept running by
 // `arthur run`; its inbox (entry 24, inbox.ts); its role and its context on every turn (entry 25, context.ts); `arthur attach`
 // and `arthur coordinator stop|context`, docs/commands/coordinator.md and attach.md; the board's phone commands `/board`, `/task`
-// and `/findings` (board-commands.ts); and `maxAgents` and each role's model (entry 26, spawn-rules.ts).
+// and `/findings` (board-commands.ts); `maxAgents` and each role's model (entry 26, spawn-rules.ts); and the notice of a job
+// blocked on the owner (entry 27, blocked-notice.ts).
 
 export type OrchestrationOptions = {
 	readonly enabled?: boolean;
@@ -43,6 +45,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			const { folder, agent } = host;
 			place = { coordinator, folder, agent };
 			messages = inbox(host);
+			blockedNotice(host);
 			spawnRules(host, coordinator);
 			// Read like every role, with the project's override and criteria; no kind spawns it, `arthur run` starts it.
 			host.jobs.registerRole({ name: "coordinator", file: new URL("../roles/coordinator.md", import.meta.url), criteria: ["styleguide"] });

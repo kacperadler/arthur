@@ -42,3 +42,4 @@ Out:
 ## Decisions
 
 - 2026-10-18: The owner asked how releases, installing and version checks will work; the coordinator proposes a plan first.
+- 2026-10-18: The owner approved it.

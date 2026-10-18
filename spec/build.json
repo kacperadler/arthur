@@ -1040,9 +1040,9 @@
   {
     "id": "AR0127",
     "title": "Roadmap: a silent mode for the coordinator in the channels",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0127-roadmap-a-silent-mode-for-the-coordinator-in-the-channels/ticket.md",
-    "updated": "2026-10-18T21:53:32.518Z"
+    "updated": "2026-10-18T22:14:27.716Z"
   },
   {
     "id": "AR0128",
@@ -1269,8 +1269,8 @@
   {
     "id": "AR0158",
     "title": "Roadmap 39: Schedule entries and the sweep",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0158-roadmap-39-schedule-entries-and-the-sweep/ticket.md",
-    "updated": "2026-10-18T22:00:37.485Z"
+    "updated": "2026-10-18T22:00:40.100Z"
   }
 ]

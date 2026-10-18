@@ -1255,5 +1255,15 @@
     "status": "planning",
     "path": "spec/features/AR0156-autopilot-does-not-read-a-ticket-s-own-budget/ticket.md",
     "updated": "2026-10-18T21:59:55.200Z"
+  },
+  {
+    "id": "AR0157",
+    "title": "Roadmap 38: Start notice and LLM probe",
+    "status": "planned",
+    "path": "spec/features/AR0157-roadmap-38-start-notice-and-llm-probe/ticket.md",
+    "updated": "2026-10-18T22:00:21.001Z",
+    "after": [
+      "AR0153"
+    ]
   }
 ]

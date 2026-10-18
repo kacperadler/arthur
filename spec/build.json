@@ -982,9 +982,9 @@
   {
     "id": "AR0120",
     "title": "Roadmap 25: the coordinator's context on every turn",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0120-roadmap-25-the-coordinator-s-context-on-every-turn/ticket.md",
-    "updated": "2026-10-18T10:38:44.595Z"
+    "updated": "2026-10-18T10:51:25.633Z"
   },
   {
     "id": "AR0121",
@@ -1033,9 +1033,9 @@
   {
     "id": "AR0126",
     "title": "Roadmap 32: Resources: caps per job",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0126-roadmap-32-resources-caps-per-job/ticket.md",
-    "updated": "2026-10-18T10:38:29.251Z"
+    "updated": "2026-10-18T10:48:27.918Z"
   },
   {
     "id": "AR0127",
@@ -1071,5 +1071,19 @@
     "status": "planning",
     "path": "spec/features/AR0131-plan-mail-and-calendar-plugins-and-the-way-to-the-company-edition/ticket.md",
     "updated": "2026-10-18T10:46:48.131Z"
+  },
+  {
+    "id": "AR0132",
+    "title": "The context extension is proved against the fake agent only, not against real omp",
+    "status": "dropped",
+    "path": "spec/features/AR0132-the-context-extension-is-proved-against-the-fake-agent-only-not-against-real-omp/ticket.md",
+    "updated": "2026-10-18T10:51:34.184Z"
+  },
+  {
+    "id": "AR0133",
+    "title": "README and arthur.mmd still list entry 25 as not built",
+    "status": "dropped",
+    "path": "spec/features/AR0133-readme-and-arthur-mmd-still-list-entry-25-as-not-built/ticket.md",
+    "updated": "2026-10-18T10:51:34.380Z"
   }
 ]

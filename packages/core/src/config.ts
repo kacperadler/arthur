@@ -163,6 +163,9 @@ function withDefaults(config: ArthurConfig, file: string): LoadedConfig {
 // The jobs' joint limit when the config sets none: here, and on another machine, where the config is not, from its own cores.
 export const machineLimit = () => ({ cpu: Math.max(1, availableParallelism() - 1), memory: "70%" });
 
+// What `arthur version` prints; a machine that runs jobs must print the same (job-machine.ts), which the machines plugin checks.
+export { coreVersion } from "./job-machine.ts";
+
 // systemd's MemoryMax, as far as systemd takes it: `infinity`; a percentage above 0 and up to 100 with at most 2 decimals;
 // or bytes with at most 2 decimals and an optional K, M, G or T (powers of 1024), at least 1 byte once the fraction is cut
 // and below 2^63 (systemd refuses some values below 2^64). The rest is refused, a few values systemd takes (P, E, more

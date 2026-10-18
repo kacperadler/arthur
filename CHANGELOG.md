@@ -32,6 +32,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0125 Roadmap 31: Machines: placing a job by labels (5dd1733)
 - AR0126 Roadmap 32: Resources: caps per job (1bde258)
 - AR0141 Roadmap 33: Resources: caps per feature (2376bf5)
+- AR0142 Roadmap 34: Resources: how many jobs run, from each machine's free resources (3d25315)
 - AR0143 Roadmap 35: Compaction during the day (e91a0df)
 - AR0144 Roadmap 36: Fresh start, /restart and /restart fresh (f419a71)
 

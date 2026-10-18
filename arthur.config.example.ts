@@ -150,18 +150,19 @@ export default defineConfig({
 		resources({
 			// A job's own cap on its scope, and what it reserves on its machine (34). `cpu`: cores, a number above 0, at most the
 			// machine's cores; over it a job is slowed. `memory`: MemoryMax syntax as core.jobs.memory; over it a job ends
-			// `limit: memory`. Each left out = no cap; above core.jobs.cpu or core.jobs.memory = refused at load. Without a user
-			// manager (macOS) memory is sampled every 10 s and CPU is not capped. `keepFree` comes with roadmap entries 34 and
-			// 69; until then the plugin refuses it as an unknown option.
+			// `limit: memory`. Each left out = no cap and no reservation; above core.jobs.cpu or core.jobs.memory = refused at
+			// load. Without a user manager (macOS) memory is sampled every 10 s and CPU is not capped.
 			perJob: { cpu: 2, memory: "4G" },
 			// All jobs of one ticket together (worker, reviews, plans), each replaced by the ticket's own `caps`; 0 = no cap.
 			// `budgetUsd`: their costs summed; `hours`: their run time summed. A spawn at either is refused; a running job that
 			// reaches one is stopped and held `blocked` on the user, `cap-reached` emitted, `arthur continue` resumes it once the
 			// cap is raised. `cpu`, `memory`: a slice per ticket inside the jobs' slice (needs a user manager). `arthur resources <ticket>`.
 			perFeature: { budgetUsd: 15, hours: 8, cpu: 4, memory: "8G" },
-			// Left free on every machine, for the coordinator and the system. `disk` is the floor of free disk where the machine's
-			// jobs write (its home, and Docker's data root where Docker runs): under it no job starts there, the refusal names the
-			// machine and the space, and running jobs go on; bytes with K, M, G or T; 0 = no floor.
+			// Left free on every machine, for the coordinator and the system: a job starts on a machine only while its free CPU
+			// and memory (checked every 60 s by `arthur run`) keep these after the job's perJob reservation; the refusal names
+			// each machine and what is short. `cpu`: cores, default 0; `memory`: bytes with K, M, G or T, or a percentage of the
+			// machine's memory, default none. `disk` comes with roadmap entry 69; until then the plugin refuses it as an unknown
+			// key. Each machine's room is in the coordinator's context, `arthur resources` and `/resources`.
 			keepFree: { cpu: 1, memory: "2G", disk: "20G" },
 		}),
 

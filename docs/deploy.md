@@ -17,7 +17,7 @@ A job can run on another machine, such as a Mac for an iOS build (`arthur spawn 
 ssh -o BatchMode=yes -o StrictHostKeyChecking=yes <host> arthur version
 ```
 
-5. On Linux, linger there (`sudo loginctl enable-linger "$USER"`), so each job gets its scope as in step 10 of [`setup.md`](setup.md), in a slice limited to the machine's own cores minus one and 70% of its memory; without a user manager (macOS) a job runs bare.
+5. On Linux, linger there (`sudo loginctl enable-linger "$USER"`), so each job gets its scope as in step 10 of [`setup.md`](setup.md), in a slice limited to the machine's own cores minus one and 70% of its memory; without a user manager (macOS) a job runs bare, and a job's `perJob` memory cap of the `resources` plugin is held by sampling its processes every 10 seconds, its CPU not capped.
 
 The machine's `home`, as registered, holds the job records (`<home>/jobs/`), each project's repository (`<home>/repos/<project>.git`, created on first use) and the job worktrees (`<home>/repos/.arthur-worktrees/`).
 
@@ -31,7 +31,7 @@ Arthur exposes nothing to the internet: no port, no webhook. Every plugin calls 
 - A channel is a shell. The coordinator acts on what the allowed Telegram chat sends (`telegram`, entry 47), so whoever holds that account holds the VPS. Turn on Telegram's two-step verification.
 - Secrets stay in the env file (`core.envFile`) and in the process that needs them. The env guard (entry 19) refuses a tool call of a job or of the coordinator that names a secrets file; a program a job runs can still read any file you can.
 - A job's edits stay in its own worktree: the worktree guard (entry 20) refuses a write into the main checkout, `.arthur/`, another job's worktree, or another project's main checkout or its jobs' worktrees. It parses commands, so it keeps honest mistakes apart; it is not a sandbox. It does not refuse the git commands that rewrite the repository every worktree shares, `git gc`, `prune`, `repack`, `reflog expire`, `maintenance run` and `config`, nor a ref a job moves or deletes from its own worktree.
-- Limits: time and money per job (entry 12), and one joint CPU and memory limit for all jobs (entry 13), so jobs cannot starve the coordinator.
+- Limits: time and money per job (entry 12), one joint CPU and memory limit for all jobs (entry 13), so jobs cannot starve the coordinator, and with the `resources` plugin each job's own CPU and memory (entry 32), so one job cannot take all of it.
 - Nothing limits the network, and nothing confines reads.
 - Text from outside (an issue, a comment, a message from someone else) that reaches a job can steer it with all of the above. Give each client, or anything you do not screen, its own Linux user with its own Arthur.
 - `/stopall` (entry 15) stops every running job without the model.

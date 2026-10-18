@@ -75,7 +75,7 @@ export async function checkPlugins(config: LoadedConfig): Promise<Plugin[]> {
 	for (const plugin of enabled) {
 		const { enabled: flag, ...options } = plugin.options ?? {};
 		if (flag !== undefined && flag !== true) problems.push(at(`${plugin.name}.enabled: expected true or false, got ${describe(flag)}`));
-		for (const { path, problem } of await pluginStep(plugin.name, "check", () => plugin.check?.(options) ?? []))
+		for (const { path, problem } of await pluginStep(plugin.name, "check", () => plugin.check?.(options, config.core) ?? []))
 			problems.push(at(`${plugin.name}.${path}: ${problem}`));
 		for (const name of plugin.requires ?? []) {
 			const required = byName.get(name);

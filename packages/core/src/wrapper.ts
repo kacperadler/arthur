@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { agentStream } from "./agent-stream.ts";
 import { eventBus } from "./events.ts";
 import { deadline, reached } from "./job-limits.ts";
+import { watchMemory } from "./job-memory.ts";
 import { endScope } from "./job-scope.ts";
 import { signal, stopGroup } from "./job-stop.ts";
 import { blockedBy, moveJob, type State } from "./job-state.ts";
@@ -66,8 +67,8 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		quiet();
 		quiet = deadline(Number(idle), () => move("working", "idle"));
 	};
-	// `quick` is missing from a record an older Arthur wrote.
-	const [instruction, spent, quick] = ["continue", "cost", "quick"].map((name) => (existsSync(join(folder, name)) ? field(name) : undefined));
+	// `quick` and `memory` are missing from a record an older Arthur wrote.
+	const [instruction, spent, quick, memory = ""] = ["continue", "cost", "quick", "memory"].map((name) => (existsSync(join(folder, name)) ? field(name) : undefined));
 	// A resumed run continues the agent's last session in the worktree, which is the job's own, with `resume` as its message.
 	const args = (resume: string | undefined) => [
 		...(resume === undefined ? [] : ["--continue"]),
@@ -80,11 +81,13 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		resume ?? `@${join(folder, "task")}`,
 	];
 	// What stopped the job first, which its state says, whatever came after; `final` once nothing may resume it: its time
-	// is up, or `arthur stop` asked. A stop that comes once the agent exited on its own leaves its ending as it is.
-	let why = undefined as "time" | "budget" | "stop" | undefined;
+	// is up, its memory went over its cap, or `arthur stop` asked. A stop that comes once the agent exited on its own leaves its
+	// ending as it is.
+	type Why = "time" | "budget" | "memory" | "stop";
+	let why = undefined as Why | undefined;
 	let final = false;
 	let stopping = Promise.resolve();
-	const halt = (which: "time" | "budget" | "stop") => {
+	const halt = (which: Why) => {
 		final ||= which !== "budget";
 		const what = which === "stop" ? "arthur stop" : `limit: ${which}`;
 		if (why !== undefined) return which === "budget" || note(`${what}: ${which === "stop" ? "asked" : "reached"} as well`);
@@ -101,6 +104,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	let budgetUsd = Number(budget);
 	const cancel = deadline(Number(timeout), () => halt("time"));
 	const record = runRecord(save, Number(spent ?? 0) || 0, (cost) => reached(cost, budgetUsd) && halt("budget"));
+	const watching = watchMemory(id, memory, () => halt("memory"));
 
 	let failure = undefined as Error | undefined;
 	// One run of the agent, until it exits, its output is read and its stop, if any, is over.
@@ -138,6 +142,8 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	}
 	cancel();
 	quiet();
+	// A kill over the cap that ended the agent before a sample saw it ends the job at the cap all the same.
+	if (watching() && why === undefined) why = "memory";
 	endScope(id);
 	const undelivered = guard(() => {
 		if (!existsSync(folder)) return leave();
@@ -155,6 +161,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		why === "stop" ? "stopped"
 		: why === "time" ? `limit: time: the job ran past its timeout of ${timeout} minutes`
 		: why === "budget" ? `limit: budget: its cost $${record.cost().toFixed(4)} reached its budget of $${budgetUsd}`
+		: why === "memory" ? `limit: memory: the job went over its memory cap of ${memory}`
 		: failure !== undefined ? `failed: the agent did not start: ${failure.message}`
 		: killed !== null ? `failed: the agent was killed by ${killed}`
 		: record.stopped() !== "" ? `failed: the agent stopped on ${record.stopped()}`

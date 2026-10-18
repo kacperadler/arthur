@@ -136,13 +136,13 @@ test("two plugins with one name are refused, naming the plugin and both places, 
 	assert.equal(await refusal(twice), `${twice.path}: plugins[2]: a second plugin named telegram; the first is plugins[1]`);
 });
 
-test("each plugin checks its own options, without enabled; its problems refuse the start, naming plugin and option path", async () => {
+test("each plugin checks its own options, without enabled, with the core's as loaded; its problems refuse the start, naming plugin and option path", async () => {
 	const given: unknown[] = [];
 	const loaded = config([
 		fake([], "orchestration", {
 			options: { enabled: true, maxAgents: -1 },
-			check: (options) => {
-				given.push(options);
+			check: (options, core) => {
+				given.push(options, core);
 				return [{ path: "maxAgents", problem: "expected a number of 1 or more, got -1" }];
 			},
 		}),
@@ -155,7 +155,7 @@ test("each plugin checks its own options, without enabled; its problems refuse t
 			`${loaded.path}: youtrack.instances[1].name: expected a non-empty string, got nothing`,
 		].join("\n"),
 	);
-	assert.deepEqual(given, [{ maxAgents: -1 }]);
+	assert.deepEqual(given, [{ maxAgents: -1 }, loaded.core]);
 });
 
 test("a disabled plugin is not loaded: not checked, no setup, no folder, its env variables not read", async () => {

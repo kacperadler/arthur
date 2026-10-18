@@ -1,0 +1,9 @@
+{
+  "name": "@arthur/resources",
+  "private": true,
+  "type": "module",
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "exports": {
+    ".": "./src/resources.ts"
+  }
+}

@@ -40,3 +40,4 @@ Out:
 - 2026-10-18: Worker, on the coordinator's instruction to record it: core line budget 4649 -> 4751 (102 lines: `jobs.limits`, the caps on each job's scope, the wrapper's memory watch, the once-per-machine notice); AR0120 had used the core's spare lines, so none were left; resources budget 42.
 - 2026-10-18: Coordinator: core 4751 after merging main with AR0120 accepted (the same 102 lines of this ticket).
 - 2026-10-18: The owner: finish this ticket despite the Claude 7 Day usage reaching 58% (the stop point); no other new Arthur work.
+- 2026-10-18: Coordinator: CI `ci` failed on 849397e and f4b76a2 but passed on bb40d22 with the same code, and once on main 66a6a42 without this ticket; a flaky test, not this branch. CI rerun by this commit.

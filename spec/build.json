@@ -1089,9 +1089,9 @@
   {
     "id": "AR0134",
     "title": "Roadmap: Discord as a first-version channel, and own apps over Tailscale",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0134-roadmap-discord-as-a-first-version-channel-and-own-apps-over-tailscale/ticket.md",
-    "updated": "2026-10-18T10:59:53.031Z"
+    "updated": "2026-10-18T21:39:52.375Z"
   },
   {
     "id": "AR0135",
@@ -1131,9 +1131,9 @@
   {
     "id": "AR0140",
     "title": "Roadmap 29: Autopilot",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0140-roadmap-29-autopilot/ticket.md",
-    "updated": "2026-10-18T19:34:25.401Z",
+    "updated": "2026-10-18T21:24:56.963Z",
     "after": [
       "AR0123"
     ]
@@ -1148,9 +1148,9 @@
   {
     "id": "AR0142",
     "title": "Roadmap 34: Resources: how many jobs run, from each machine's free resources",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0142-roadmap-34-resources-how-many-jobs-run-from-each-machine-s-free-resources/ticket.md",
-    "updated": "2026-10-18T20:28:20.928Z",
+    "updated": "2026-10-18T21:43:37.723Z",
     "after": [
       "AR0141"
     ]
@@ -1165,9 +1165,9 @@
   {
     "id": "AR0144",
     "title": "Roadmap 36: Fresh start, /restart and /restart fresh",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0144-roadmap-36-fresh-start-restart-and-restart-fresh/ticket.md",
-    "updated": "2026-10-18T20:48:17.447Z",
+    "updated": "2026-10-18T21:18:39.476Z",
     "after": [
       "AR0143"
     ]
@@ -1192,5 +1192,26 @@
     "status": "planning",
     "path": "spec/features/AR0147-a-ticket-over-its-memory-cap-ends-a-job-failed-the-agent-was-killed-by-not-limit-memory/ticket.md",
     "updated": "2026-10-18T20:27:55.651Z"
+  },
+  {
+    "id": "AR0148",
+    "title": "A throw in the session's 500 ms tick ends `arthur run`",
+    "status": "planning",
+    "path": "spec/features/AR0148-a-throw-in-the-session-s-500-ms-tick-ends-arthur-run/ticket.md",
+    "updated": "2026-10-18T21:18:39.474Z"
+  },
+  {
+    "id": "AR0149",
+    "title": "The free-resources check runs on its own 60 s timer, not at each machines check",
+    "status": "planning",
+    "path": "spec/features/AR0149-the-free-resources-check-runs-on-its-own-60-s-timer-not-at-each-machines-check/ticket.md",
+    "updated": "2026-10-18T21:43:37.719Z"
+  },
+  {
+    "id": "AR0150",
+    "title": "Free cores come from the 1-minute load average, which on Linux also counts processes waiting on disk",
+    "status": "planning",
+    "path": "spec/features/AR0150-free-cores-come-from-the-1-minute-load-average-which-on-linux-also-counts-processes-waiting-on-disk/ticket.md",
+    "updated": "2026-10-18T21:43:37.721Z"
   }
 ]

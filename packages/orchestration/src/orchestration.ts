@@ -5,7 +5,7 @@ import { autopilot } from "./autopilot.ts";
 import { blockedNotice } from "./blocked-notice.ts";
 import { boardCommands } from "./board-commands.ts";
 import { coordinatorContext } from "./context.ts";
-import { extensions, pane, STOPPED, supervise, tmux } from "./coordinator.ts";
+import { extensions, FRESH, pane, STOPPED, supervise, tmux } from "./coordinator.ts";
 import { inbox } from "./inbox.ts";
 import { checkOptions, type Coordinator, coordinatorOptions } from "./orchestration-options.ts";
 import { plans } from "./plans.ts";
@@ -94,6 +94,13 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 					const ended = tmux(coordinator, ["kill-session", "-t", `=${coordinator.session}`]).status === 0;
 					console.log(`arthur coordinator stop: ${ended ? `${where} ended` : `${where} was not running`}; it stays stopped until arthur run starts again`);
 				},
+			});
+			// For another plugin (session's /restart and fresh start): ends the coordinator's session, which `arthur run` starts
+			// again; a fresh one, without `--continue`, after the mark. Running jobs are the caller's to check.
+			host.provide("coordinator.restart", (asked: { readonly fresh?: unknown } = {}) => {
+				if (typeof asked.fresh !== "boolean") throw new Error(`coordinator.restart: expected { fresh: true | false }, got ${JSON.stringify(asked)}`);
+				if (asked.fresh) writeFileSync(join(folder, FRESH), "");
+				tmux(coordinator, ["kill-session", "-t", `=${coordinator.session}`]);
 			});
 			for (const command of boardCommands(host)) host.commands.register(command);
 		},

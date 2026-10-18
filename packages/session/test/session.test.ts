@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
@@ -25,7 +25,7 @@ async function load(t: TestContext, options: SessionOptions, now: string) {
 	const plugin = session(options);
 	await fake.setup(plugin);
 	t.after(() => plugin.stop?.());
-	const file = join(fake.host.folder, "compact.json");
+	const file = join(fake.host.folder, "request.json");
 	return {
 		fake,
 		out,
@@ -80,13 +80,16 @@ test("at a compactAt slot the coordinator writes its handoff, the conversation i
 	const read = `[Arthur] Your conversation was just compacted. Before that you wrote this handoff (${box.handoff}); go on from it:\n\n${HANDOFF}\n\n${ARTHUR}`;
 	assert.deepEqual(agent.messages()[1], { content: read, options: { attribution: "agent" }, step: 4 });
 	await until("the request gone", () => box.request() === undefined);
+	assert.equal(readFileSync(join(box.fake.host.folder, "handoff-read"), "utf8"), String(statSync(box.handoff).mtimeMs), "noted as read, so no start reads it again");
 	assert.deepEqual(box.err, []);
 });
 
 test("a handoff write that fails withdraws the compaction with one line and leaves the conversation as it was", async (t) => {
 	for (const ending of [{ message: "Nothing to write." }, { message: "", stopReason: "error" as const, error: "529 overloaded" }]) {
 		const box = await load(t, { compactAt: ["13:00"], compactWaitSeconds: 60 }, "2026-10-18T12:59:00+02:00");
+		// One the conversation read already, so its start does not read it again.
 		writeFileSync(box.handoff, "An older handoff.\n");
+		writeFileSync(join(box.fake.host.folder, "handoff-read"), String(statSync(box.handoff).mtimeMs));
 		const agent = coordinator(t, box.fake, (gate) => ({ steps: [{ prompt: true }, ending, { end: true }, { waitFor: gate("release") }] }));
 		await box.start();
 		box.at("2026-10-18T13:00:00+02:00");
@@ -140,14 +143,14 @@ test("with no session running a slot does nothing: its request is dropped withou
 	await box.start();
 	box.at("2026-10-18T13:00:00+02:00");
 	await until("the request", () => box.request() !== undefined);
-	assert.deepEqual({ ...box.request(), asked: 0 }, { slot: "13:00", asked: 0, waitSeconds: 1 });
+	assert.deepEqual({ ...box.request(), asked: 0 }, { then: "compact", slot: "13:00", asked: 0, waitSeconds: 1 });
 	await until("the request gone", () => box.request() === undefined);
 	assert.deepEqual([box.out, box.err], [[], []]);
 });
 
 test("a slot missed while Arthur was down is skipped, not run late, and a request left by the last run is dropped", async (t) => {
 	const box = await load(t, { compactAt: ["13:00"], compactWaitSeconds: 60 }, "2026-10-18T13:05:00+02:00");
-	writeFileSync(box.file, JSON.stringify({ slot: "08:00", asked: Date.now(), waitSeconds: 60 }));
+	writeFileSync(box.file, JSON.stringify({ then: "compact", slot: "08:00", asked: Date.now(), waitSeconds: 60 }));
 	await box.start();
 	assert.equal(box.request(), undefined);
 	await sleep(1200);
@@ -204,23 +207,29 @@ test("a request whose agent is gone, or a file that is not a request, is dropped
 	const box = await load(t, { compactAt: ["13:00"], compactWaitSeconds: 600 }, "2026-10-18T12:00:00+02:00");
 	await box.start();
 	const gone = spawnSync(process.execPath, ["-e", ""]).pid;
-	writeFileSync(box.file, JSON.stringify({ slot: "13:00", asked: Date.now(), waitSeconds: 600, pid: gone }));
+	writeFileSync(box.file, JSON.stringify({ then: "compact", slot: "13:00", asked: Date.now(), waitSeconds: 600, pid: gone }));
 	await until("the request of a gone agent dropped", () => box.request() === undefined);
 	assert.deepEqual([box.out, box.err], [[], []]);
 	writeFileSync(box.file, "{ torn");
 	await until("the torn file dropped", () => !existsSync(box.file));
-	assert.deepEqual(box.err, [`session: ${box.file} is not a compaction request, so it is dropped: { torn`]);
+	assert.deepEqual(box.err, [`session: ${box.file} is not a request, so it is dropped: { torn`]);
 });
 
-test("the options: compactAt times and compactWaitSeconds, each refused naming its path, and no option of a later entry", () => {
+test("the options: compactAt times, compactWaitSeconds and the fresh start's, each refused naming its path, and no option of a later entry", () => {
 	assert.deepEqual(checkOptions({}), []);
-	assert.deepEqual(checkOptions({ compactAt: [], compactWaitSeconds: 1 }), []);
-	assert.deepEqual(checkOptions({ compactAt: ["08:00", "23:59", "00:00"], compactWaitSeconds: 1800 }), []);
-	assert.deepEqual(checkOptions({ compactAt: "13:00", compactWaitSeconds: 0, freshAt: "23:00" }), [
-		{ path: "freshAt", problem: "unknown option; options: compactAt, compactWaitSeconds" },
+	assert.deepEqual(checkOptions({ compactAt: [], compactWaitSeconds: 1, freshAt: "00:00", freshRetryMinutes: 1, freshUntil: "00:00" }), []);
+	assert.deepEqual(checkOptions({ compactAt: ["08:00", "23:59", "00:00"], compactWaitSeconds: 1800, freshAt: "23:00", freshRetryMinutes: 15, freshUntil: "03:00" }), []);
+	assert.deepEqual(checkOptions({ compactAt: "13:00", compactWaitSeconds: 0, restartGuard: true }), [
+		{ path: "restartGuard", problem: "unknown option; options: compactAt, compactWaitSeconds, freshAt, freshRetryMinutes, freshUntil" },
 		{ path: "compactAt", problem: 'expected a list of times "HH:MM", got "13:00"' },
 		{ path: "compactWaitSeconds", problem: "expected a whole number of seconds of at least 1, got 0" },
 	]);
+	for (const [freshUntil, freshRetryMinutes] of [["3:00", 0], ["24:00", -15], [300, 1.5], [undefined, "15"]] as const)
+		assert.deepEqual(checkOptions({ freshAt: "23:00", freshUntil, freshRetryMinutes }), [
+			...(freshUntil === undefined ? [] : [{ path: "freshUntil", problem: `expected a time "HH:MM" from 00:00 to 23:59, got ${JSON.stringify(freshUntil)}` }]),
+			{ path: "freshRetryMinutes", problem: `expected a whole number of minutes of at least 1, got ${JSON.stringify(freshRetryMinutes)}` },
+		]);
+	assert.deepEqual(checkOptions({ freshAt: "11pm" }), [{ path: "freshAt", problem: 'expected a time "HH:MM" from 00:00 to 23:59, got "11pm"' }]);
 	assert.deepEqual(checkOptions({ compactAt: ["8:00", "24:00", 13, "13:00"], compactWaitSeconds: 1.5 }), [
 		{ path: "compactAt[0]", problem: 'expected a time "HH:MM" from 00:00 to 23:59, got "8:00"' },
 		{ path: "compactAt[1]", problem: 'expected a time "HH:MM" from 00:00 to 23:59, got "24:00"' },

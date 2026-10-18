@@ -190,12 +190,13 @@ test("an agent that ignores SIGTERM at its limit gets SIGKILL after the grace; i
 	const { home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Audit.", kind: "audit", timeoutMinutes: 0.005 });
 	const log = join(home, "jobs", job.id, "log");
-	await until("the stop at the budget", () => existsSync(log) && readFileSync(log, "utf8").includes("] limit: budget: stopping the agent\n"));
-	const stopped = Date.now();
+	// The grace counts from the wrapper's own time of the stop, which its log line gives, not from when the test saw that line.
+	const line = await until("the stop at the budget", () => (existsSync(log) && /\[arthur ([^\]]+)\] limit: budget: stopping the agent\n/.exec(readFileSync(log, "utf8"))) || undefined);
+	const stopped = Date.parse(line[1] ?? "");
 	await ended(home, job.id);
 	const took = Date.now() - stopped;
-	assert.ok(took < (GRACE_SECONDS + 1) * 1000, `ended ${took} ms after the stop`);
-	assert.ok(took >= GRACE_SECONDS * 1000 - 100, `ended ${took} ms after the stop, before the grace was over`);
+	assert.ok(took < (GRACE_SECONDS + 5) * 1000, `ended ${took} ms after the stop`);
+	assert.ok(took >= GRACE_SECONDS * 1000, `ended ${took} ms after the stop, before the grace was over`);
 	assert.deepEqual(["reason", "budget"].map((name) => field(home, job.id, name)), ["limit: budget: its cost $1.0000 reached its budget of $1", "1"]);
 	const text = field(home, job.id, "log");
 	assert.match(text, /\] limit: time: reached as well\n/);

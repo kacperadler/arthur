@@ -7,7 +7,7 @@ import { eventBus } from "./events.ts";
 import { addWorktree, removeWorktree } from "./git.ts";
 import { continueJob, steerJob, stopJob } from "./job-control.ts";
 import { writeRecord } from "./job-record.ts";
-import { launch } from "./job-scope.ts";
+import { launch, UNCAPPED } from "./job-scope.ts";
 import { current, field, ID, inRun, told } from "./job-state.ts";
 import type { Job } from "./jobs.ts";
 import { withLock } from "./lock.ts";
@@ -42,10 +42,11 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 			throw error;
 		}
 	},
-	// Prints why the wrapper did not start, which ended the job there; nothing once it started.
+	// Prints why the wrapper did not start, which ended the job there; nothing once it started; before that, `uncapped: <why>`
+	// for a job with caps that runs bare here.
 	async launch(home, [id = "", agent = "", slice = ""]) {
 		const read = record(home, id);
-		const failed = await launch(home, { id, kind: read("kind"), project: read("project") }, agent, { slice, ...machineLimit() }, eventBus(home));
+		const failed = await launch(home, { id, kind: read("kind"), project: read("project") }, agent, { slice, ...machineLimit() }, eventBus(home), (why) => console.log(`${UNCAPPED}${why}`));
 		if (failed !== undefined) console.log(failed);
 	},
 	// `stop`, `steer` and `continue` as here, on the record there: `arthur stop --help` and the others say what each refuses.
@@ -58,7 +59,7 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 	},
 	// Reads the instruction on stdin; prints why the wrapper did not start, as `launch`.
 	async continue(home, [id = "", agent = "", slice = "", budget]) {
-		const failed = await continueJob(home, id, readFileSync(0, "utf8"), budget === undefined ? undefined : Number(budget), agent, { slice, ...machineLimit() }, eventBus(home), async () => () => {});
+		const failed = await continueJob(home, id, readFileSync(0, "utf8"), budget === undefined ? undefined : Number(budget), agent, { slice, ...machineLimit() }, eventBus(home), (why) => console.log(`${UNCAPPED}${why}`), async () => () => {});
 		if (failed !== undefined) console.log(failed);
 	},
 	// Removes the worktree, Git deciding, the branch when it is still at `tip`, the branch the main checkout holds, and the

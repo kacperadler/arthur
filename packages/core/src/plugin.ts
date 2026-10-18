@@ -1,7 +1,7 @@
 import { type Board, board } from "./board.ts";
 import type { Clock } from "./clock.ts";
 import type { CommandRegistry, Commands } from "./commands.ts";
-import { describe } from "./config.ts";
+import { describe, type LoadedConfig } from "./config.ts";
 import type { Bus, Events } from "./events.ts";
 import type { JobRunner, Jobs } from "./jobs.ts";
 
@@ -22,8 +22,8 @@ export type Plugin = {
 	readonly options?: Options;
 	// The plugins this one needs; each must be in the list and enabled, and its `setup` runs first.
 	readonly requires?: readonly string[];
-	// Its own options, `enabled` left out; every problem refuses the start.
-	readonly check?: (options: Options) => readonly OptionProblem[];
+	// Its own options, `enabled` left out, and the core's as loaded (its defaults applied); every problem refuses the start.
+	readonly check?: (options: Options, core: LoadedConfig["core"]) => readonly OptionProblem[];
 	readonly setup: (host: Host) => void | Promise<void>;
 	readonly start?: () => void | Promise<void>;
 	readonly stop?: () => void | Promise<void>;

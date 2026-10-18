@@ -982,9 +982,9 @@
   {
     "id": "AR0120",
     "title": "Roadmap 25: the coordinator's context on every turn",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0120-roadmap-25-the-coordinator-s-context-on-every-turn/ticket.md",
-    "updated": "2026-10-18T09:47:15.823Z"
+    "updated": "2026-10-18T09:47:22.282Z"
   },
   {
     "id": "AR0121",
@@ -999,8 +999,35 @@
   {
     "id": "AR0122",
     "title": "A `/compact` typed in the coordinator's pane for more than 30 s delivers a hand-over made meanwhile twice",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0122-a-compact-typed-in-the-coordinator-s-pane-for-more-than-30-s-delivers-a-hand-over-made-meanwhile-twice/ticket.md",
-    "updated": "2026-10-18T09:47:16.224Z"
+    "updated": "2026-10-18T09:47:22.887Z"
+  },
+  {
+    "id": "AR0123",
+    "title": "Roadmap 28: Planning of large tickets",
+    "status": "planned",
+    "path": "spec/features/AR0123-roadmap-28-planning-of-large-tickets/ticket.md",
+    "updated": "2026-10-18T09:51:35.466Z",
+    "after": [
+      "AR0120"
+    ]
+  },
+  {
+    "id": "AR0124",
+    "title": "Roadmap 30: Machines: the list, labels, and SSH checks",
+    "status": "planned",
+    "path": "spec/features/AR0124-roadmap-30-machines-the-list-labels-and-ssh-checks/ticket.md",
+    "updated": "2026-10-18T09:51:35.071Z"
+  },
+  {
+    "id": "AR0125",
+    "title": "Roadmap 31: Machines: placing a job by labels",
+    "status": "planned",
+    "path": "spec/features/AR0125-roadmap-31-machines-placing-a-job-by-labels/ticket.md",
+    "updated": "2026-10-18T09:51:35.661Z",
+    "after": [
+      "AR0124"
+    ]
   }
 ]

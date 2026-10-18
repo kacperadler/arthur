@@ -301,6 +301,23 @@ test("a reply ends the wait: the next turn that ends without a reply has its mes
 	assert.deepEqual(box.emitted("notice"), []);
 });
 
+test("a new owner message ends the wait: the waiting messages and the new one go at the next tick; a message from Arthur waits with them", async (t) => {
+	const box = await load(t, { steps: [...FAILED, ...FAILED, { prompt: true }, { message: "Done." }, { end: true }, { prompt: true }] });
+	await box.start();
+	const first = box.say("Go.");
+	await deliveries(box, 2);
+	const scheduled = box.fake.emit("coordinator-message", { text: "Write the morning report." }).seq;
+	await sleep(2000);
+	assert.equal(box.messages().length, 2, "a message from Arthur does not end the wait");
+	const saidAt = Date.now();
+	const second = box.say("Now?");
+	await until("the third delivery", () => box.messages().length === 3);
+	assert.ok(Date.now() - saidAt < 1500, `the owner's message goes at the next tick: ${Date.now() - saidAt}`);
+	assert.equal(box.messages()[2]?.content, [`${AGAIN_MARK} Go.`, "[Arthur] Write the morning report.", "[via telegram] Now?", ARTHUR].join("\n\n"));
+	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
+	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [first, scheduled, second], channels: ["telegram"] }]);
+});
+
 test("the wait before a failed turn's messages go again is none the first time, then 5 s doubling, at most 5 min", () => {
 	assert.deepEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 50].map(pause), [0, 5000, 10_000, 20_000, 40_000, 80_000, 160_000, 300_000, 300_000, 300_000]);
 });

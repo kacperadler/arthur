@@ -32,7 +32,7 @@ const UNANSWERED = "sent before; its turn ended without a reply";
 const AGAIN = "Your reply above has not been sent; write one reply that answers this together with everything your reply above answered.";
 const ARTHUR = "The lines marked [Arthur] come from Arthur (a job's end, a schedule), not from the owner.";
 
-// The wait before the messages of the `failed`th turn in a row without a reply go again: none the first time, then 5 s doubling, at most 5 min.
+// The wait before the messages of the `failed`th turn in a row without a reply go again: none, then 5 s doubling to 5 min; a new owner message ends it.
 export const pause = (failed: number) => (failed < 2 ? 0 : Math.min(5000 * 2 ** (failed - 2), 300_000));
 
 export default function inbox(pi: ExtensionApi): void {
@@ -102,6 +102,7 @@ export default function inbox(pi: ExtensionApi): void {
 		if (live || !ctx.isIdle()) return;
 		const names = numbers(QUEUED);
 		if (names.join() !== queued) [queued, since] = [names.join(), Date.now()];
+		if (Date.now() < resume && names.some((name) => read(QUEUED, name).channel !== undefined)) resume = 0;
 		if (Date.now() < resume || (waiting.size === 0 && (names.length === 0 || Date.now() - since < SETTLE_MS))) return;
 		live = hand([...waiting.keys(), ...claim(false)].sort((a, b) => Number(a) - Number(b)), "", false);
 	};

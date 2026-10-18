@@ -1006,9 +1006,9 @@
   {
     "id": "AR0123",
     "title": "Roadmap 28: Planning of large tickets",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0123-roadmap-28-planning-of-large-tickets/ticket.md",
-    "updated": "2026-10-18T20:15:06.385Z",
+    "updated": "2026-10-18T20:50:40.894Z",
     "after": [
       "AR0120"
     ]
@@ -1131,9 +1131,9 @@
   {
     "id": "AR0140",
     "title": "Roadmap 29: Autopilot",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0140-roadmap-29-autopilot/ticket.md",
-    "updated": "2026-10-18T19:34:25.401Z",
+    "updated": "2026-10-18T21:14:54.468Z",
     "after": [
       "AR0123"
     ]
@@ -1148,9 +1148,9 @@
   {
     "id": "AR0142",
     "title": "Roadmap 34: Resources: how many jobs run, from each machine's free resources",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0142-roadmap-34-resources-how-many-jobs-run-from-each-machine-s-free-resources/ticket.md",
-    "updated": "2026-10-18T19:34:25.623Z",
+    "updated": "2026-10-18T21:04:26.906Z",
     "after": [
       "AR0141"
     ]
@@ -1165,9 +1165,9 @@
   {
     "id": "AR0144",
     "title": "Roadmap 36: Fresh start, /restart and /restart fresh",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0144-roadmap-36-fresh-start-restart-and-restart-fresh/ticket.md",
-    "updated": "2026-10-18T20:10:51.054Z",
+    "updated": "2026-10-18T21:18:39.476Z",
     "after": [
       "AR0143"
     ]
@@ -1192,5 +1192,12 @@
     "status": "planning",
     "path": "spec/features/AR0147-a-ticket-over-its-memory-cap-ends-a-job-failed-the-agent-was-killed-by-not-limit-memory/ticket.md",
     "updated": "2026-10-18T20:27:55.651Z"
+  },
+  {
+    "id": "AR0148",
+    "title": "A throw in the session's 500 ms tick ends `arthur run`",
+    "status": "planning",
+    "path": "spec/features/AR0148-a-throw-in-the-session-s-500-ms-tick-ends-arthur-run/ticket.md",
+    "updated": "2026-10-18T21:18:39.474Z"
   }
 ]

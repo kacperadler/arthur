@@ -2,8 +2,8 @@ import { describe } from "@arthur/core";
 import type { OptionProblem, Options } from "@arthur/core/plugin";
 
 // The orchestration plugin's options (spec/roadmap.md, entries 23 and 26), checked before any setup: docs/commands/coordinator.md,
-// "Options". `plan`, `autopilot` and `morningReport` are read by later entries (28, 29, 65) and checked here for their shape
-// only; `coordinator` is entry 23's, with its defaults applied by `coordinatorOptions`; `maxAgents` and `roles` are entry 26's.
+// "Options". `plan` is entry 28's (plans.ts); `autopilot` and `morningReport` are read by later entries (29, 65) and checked
+// here for their shape only; `coordinator` is entry 23's, with its defaults applied by `coordinatorOptions`; `maxAgents` and `roles` are entry 26's.
 
 type Check = (value: unknown) => string | undefined;
 // An object of these keys, each left out or passing its check; a nested object is its own field list.

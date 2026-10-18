@@ -69,3 +69,10 @@ test("the limits pass at their edge: no wait for the previous agent, a delay of 
 	assert.deepEqual(paths({ maxAgents: 1, coordinator: { exitWaitSeconds: 0, restartDelaySeconds: 1, tmux: { session: "my_coord-2" } }, plan: { budgetUsd: 0 }, morningReport: { at: "23:59" } }), []);
 	assert.deepEqual(paths({ coordinator: { exitWaitSeconds: -1 } }), ["coordinator.exitWaitSeconds: expected a whole number of at least 0, got -1"]);
 });
+
+test("autopilot's budget above its cap is refused, its defaults (1, cap 3) counted; equal to the cap passes", () => {
+	assert.deepEqual(paths({ autopilot: { budgetUsd: 3 } }), []);
+	assert.deepEqual(paths({ autopilot: { budgetUsd: 2, budgetMaxUsd: 2 } }), []);
+	assert.deepEqual(paths({ autopilot: { budgetUsd: 3.5 } }), ["autopilot.budgetUsd: expected at most autopilot.budgetMaxUsd (3), got 3.5"]);
+	assert.deepEqual(paths({ autopilot: { budgetMaxUsd: 0.5 } }), ["autopilot.budgetUsd: expected at most autopilot.budgetMaxUsd (0.5), got 1"]);
+});

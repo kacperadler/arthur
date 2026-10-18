@@ -172,7 +172,7 @@ test("arthur ticket: an empty board, wrong usage, and a config that does not loa
 	assert.deepEqual([arthur(folder, "board", "all").stdout, existsSync(join(folder, "spec"))], ["the board is empty\n", false]);
 	for (const args of [[], ["new"], ["status", "DM0001"], ["all"], ["move", "DM0001", "done"], ["after"], ["file", "DM0001"], ["file", "DM0001", "a", "b"]]) {
 		const run = arthur(folder, "ticket", ...args);
-		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket after <id> [<id>...]; arthur ticket file <id> <job>\n"], args.join(" "));
+		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file <id> <job>\n"], args.join(" "));
 	}
 	const unknown = arthur(folder, "ticket", "file", "DM0001", "2026-01-01-plan-0000beef");
 	assert.deepEqual([unknown.status, unknown.stderr], [1, "arthur ticket: DM0001 is not on the board\n"], "file reads the board, then the job");
@@ -189,7 +189,7 @@ test("arthur ticket with an empty word, in new, status or after, is refused with
 	const before = arthur(folder, "board", "all").stdout;
 	for (const args of [["status", "", "planned"], ["status", "DM0001", ""], ["new", ""], ["new", "Three", ""], ["after", "", "DM0001"], ["after", "DM0002", ""], ["after", "DM0002", "DM0001", ""], ["file", "DM0001", ""], ["file", "", "x"]]) {
 		const run = arthur(folder, "ticket", ...args);
-		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket after <id> [<id>...]; arthur ticket file <id> <job>\n"], args.join(" "));
+		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file <id> <job>\n"], args.join(" "));
 	}
 	assert.equal(arthur(folder, "board", "all").stdout, before);
 });
@@ -202,4 +202,38 @@ test("arthur ticket after: the board shows what a ticket waits for until it wait
 	assert.deepEqual([cycle.status, cycle.stderr], [1, "arthur ticket: DM0001 cannot wait for itself: DM0001 after DM0002 after DM0001\n"]);
 	assert.deepEqual(arthur(folder, "board").stdout, "DM0001 planning    One\nDM0002 planning    Two  after DM0001\n");
 	assert.deepEqual(arthur(folder, "ticket", "after", "DM0002").stdout, "DM0002 after nothing\n");
+});
+
+test("arthur ticket status <id> planned --autopilot asks ticket.autopilot with the id and --budget, prints its line, and exits 1 on its refusal", () => {
+	const folder = project(`export default { plugins: [{ name: "orchestration", setup(host) {
+	host.provide("projects", () => [{ name: "demo", path: import.meta.dirname, prefix: "DM" }]);
+	host.provide("ticket.autopilot", async (request) => {
+		if (request.id === "DM0009") throw new Error("DM0009: not pre-approved: its kind is feature");
+		return "asked " + JSON.stringify(request);
+	});
+} }] };
+`);
+	const run = (...args: string[]) => {
+		const done = arthur(folder, "ticket", "status", ...args);
+		return [done.status, done.stdout, done.stderr];
+	};
+	assert.deepEqual(run("DM0001", "planned", "--autopilot"), [0, 'asked {"id":"DM0001"}\n', ""]);
+	assert.deepEqual(run("DM0001", "--autopilot", "planned", "--budget", "2.5"), [0, 'asked {"id":"DM0001","budgetUsd":2.5}\n', ""]);
+	assert.deepEqual(run("DM0001", "planned", "--autopilot", "--budget", "0"), [0, 'asked {"id":"DM0001","budgetUsd":0}\n', ""], "budget 0 is the plugin's to refuse");
+	assert.deepEqual(run("DM0009", "planned", "--autopilot"), [1, "", "arthur ticket: DM0009: not pre-approved: its kind is feature\n"]);
+	const usage =
+		"usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file <id> <job>\n";
+	for (const [args, problem] of [
+		[["DM0001", "dropped", "--autopilot"], "--autopilot sets one ticket planned"],
+		[["DM0001", "--autopilot"], "--autopilot sets one ticket planned"],
+		[["DM0001", "DM0002", "planned", "--autopilot"], "--autopilot sets one ticket planned"],
+		[["DM0001", "planned", "--autopilot", "--budget"], "--budget needs a value"],
+		[["DM0001", "planned", "--autopilot", "--budget", "-1"], "--budget needs a number of 0 or more, got -1"],
+		[["DM0001", "planned", "--autopilot", "--budget", "x"], "--budget needs a number of 0 or more, got x"],
+		[["DM0001", "planned", "--autopilot", "--budget", "1", "--budget", "2"], "--budget given twice"],
+		[["DM0001", "planned", "--autopilot", "--model", "x"], "unknown flag --model"],
+	] as const)
+		assert.deepEqual(run(...args), [2, "", `arthur ticket: ${problem}\n${usage}`], args.join(" "));
+	// --budget without --autopilot is no move's flag.
+	assert.deepEqual(run("DM0001", "planned", "--budget", "1"), [2, "", usage]);
 });

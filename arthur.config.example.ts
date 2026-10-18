@@ -94,6 +94,9 @@ export default defineConfig({
 				quick: { model: "anthropic/claude-haiku-5-5" }, // not a role: omp's quick model (--smol) on every job and the coordinator
 			},
 			plan: { budgetUsd: 5 }, // a plan job's budget (`arthur spawn --kind plan`), one resume at it, doubled; default 5
+			// `arthur ticket status <id> planned --autopilot`: a bug or cleanup from a finding or an audit, at most 3 Scope files, none on
+			// delivery's always-review list, set planned by policy. `budgetUsd`: its worker's budget unless `--budget` gives one, above 0;
+			// default 1. `budgetMaxUsd`: the most `--budget` may give; default 3. budgetUsd above budgetMaxUsd refuses the start
 			autopilot: { budgetUsd: 1, budgetMaxUsd: 3 },
 			morningReport: { at: "08:00" }, // registers a schedule entry (an action: a message to the coordinator)
 		}),

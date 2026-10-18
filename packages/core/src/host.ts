@@ -21,8 +21,9 @@ import { asPlugin, type Plugin, pluginHost, pluginStep, registry } from "./plugi
 // names a ticket (`spec/features/<id>-<slug>/...`) that cannot move to in-progress, and a worker's `job-started` moves each such
 // ticket to in-progress (spec/roadmap.md, entry 18); a move the board refuses then is logged.
 // `follow` is what `arthur run` follows the event log with; `project` is the project a name names (job-checkout.ts), refusing
-// one Arthur does not know.
-export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"]; readonly project: (name: string) => unknown };
+// one Arthur does not know; `autopilot` asks the plugin that provides `ticket.autopilot` to pre-approve a ticket (`arthur ticket`).
+export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"]; readonly project: (name: string) => unknown; readonly autopilot: (request: AutopilotRequest) => unknown };
+export type AutopilotRequest = { readonly id: string; readonly budgetUsd?: number };
 
 const REQUIRED = "orchestration";
 
@@ -46,7 +47,8 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	refuseUnstartableTickets(core, jobs);
 	moveStartedTickets(core, bus);
 	loading = false;
-	return { plugins: sorted, warnings, jobs, board: core, follow: bus.follow, project: (name) => knownProject(dirname(config.path), names.collect("projects", []), name) };
+	const autopilot = (request: AutopilotRequest) => names.call("core", "ticket.autopilot", [request]);
+	return { plugins: sorted, warnings, jobs, board: core, follow: bus.follow, project: (name) => knownProject(dirname(config.path), names.collect("projects", []), name), autopilot };
 }
 
 // The host's refusals before any `setup`, which `arthur config check` runs too: the plugin list, `orchestration`, `requires`,

@@ -173,8 +173,9 @@ export default defineConfig({
 		// must load. Before a compaction or a fresh start the coordinator writes `.arthur/session/handoff.md` (work in
 		// progress, next steps, every unanswered question to the human with when it was asked), which the next conversation
 		// reads first; a failed write withdraws that compaction or try. Needs `orchestration`. The clock is core.timeZone.
-		// Built so far: compaction (35), the fresh start and `/restart` (36), the restart guard (37). `probeLlm` comes with
-		// entry 38; until then the plugin refuses it as an unknown option.
+		// Built: compaction (35), the fresh start and `/restart` (36), the restart guard (37), the start notice and LLM probe (38):
+		// at every start the channels get `coordinator up on <host>` or `no LLM access on <host>: <reason>; run omp login`, and
+		// `turn failed on <host>: <reason>` for each coordinator turn that fails before any text.
 		session({
 			compactAt: ["08:00", "13:00", "18:00"], // "HH:MM" each; [] = never; running jobs do not hold a compaction back
 			compactWaitSeconds: 1800, // wait this long for an idle session with nothing queued, then skip that compaction; at least 1
@@ -183,20 +184,23 @@ export default defineConfig({
 			freshUntil: "03:00", // "HH:MM", the last try (the next day when earlier than freshAt); then that night is skipped
 			restartGuard: true, // once a commit changed the code `arthur run` loaded, refuse every spawn and continue (unless
 			// --ignore-restart) until `arthur run` starts again; `/restart` restarts only the coordinator, so it does not clear it
-			probeLlm: true, // one word asked of the model at start; the channels say when there is no access
+			probeLlm: true, // one word asked of the coordinator's model at every start, cut after 60 s; false = no probe
 			// Registers `arthur restart [fresh]` and the phone commands `/restart` and `/restart fresh`: answered without the model,
 			// refused while any job runs; after the handoff, one `Restarted.` notice with `.arthur/session/after-restart.md`.
 		}),
 
-		// Actions and jobs at set times. An entry is a daily `HH:MM` or a one-off date and time in core.timeZone, and does one of:
-		// an action (a message for the coordinator, optionally a named procedure) or a job (spawn one of a given kind).
+		// Actions and jobs at set times (packages/schedule/docs/schedule.md). An entry is a daily "HH:MM" (optionally on some
+		// `days`) or a one-off "YYYY-MM-DDTHH:MM", in core.timeZone, and does one of: an action (a message for the coordinator,
+		// `[scheduled <id>] ...`, with the text of a `procedure` file under it) or a job (spawn one of a given kind). `arthur run`
+		// sweeps every 10 s and runs each due slot once; a slot missed while it was down runs once, saying it is late.
 		// Plugins register their own entries from their options (orchestration: the morning report; manage: the audit and the
-		// retro); `file` holds the ones added by hand with the `schedule` command.
+		// retro); `file` holds the ones added by hand with the `schedule` command (both roadmap entry 40).
 		schedule({
-			file: "spec/schedule.json",
+			file: "spec/schedule.json", // a JSON list of entries like those below, read at every sweep; a broken one is skipped, named
 			entries: [
 				{ id: "weekly-summary", at: "09:00", days: ["mon"], action: { message: "Summarise last week's merges for the human." } },
 				{ id: "doc-check", at: "03:00", days: ["wed"], job: { kind: "worker", project: "arthur", task: "Check that every command has its doc page." } },
+				{ id: "release-day", at: "2026-11-02T08:30", action: { message: "Release day.", procedure: "docs/release.md" } }, // procedure: a .md path from here
 			],
 		}),
 

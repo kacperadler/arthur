@@ -22,12 +22,13 @@ const lines = (file: string): Record<string, unknown>[] => (existsSync(file) ? r
 
 // The plugin on a fake host in Warsaw at `now`, started as `arthur run` starts it, its printed lines caught; the test provides
 // orchestration's `coordinator.restart`, which notes `fresh` and ends every coordinator started, as killing its session does.
+// No LLM probe, and `notices` leaves out the start notice (start-notice.test.ts).
 async function load(t: TestContext, options: SessionOptions, now: string) {
 	const [out, err] = [[] as string[], [] as string[]];
 	t.mock.method(console, "log", (text: string) => void out.push(text));
 	t.mock.method(console, "error", (text: string) => void err.push(text));
 	const fake = fakeHost({ name: "session", options: { compactAt: [], ...options }, timeZone: "Europe/Warsaw", now: new Date(now) });
-	const plugin = session(options);
+	const plugin = session({ probeLlm: false, ...options });
 	await fake.setup(plugin);
 	const [restarts, agents, gates] = [[] as boolean[], [] as ChildProcess[], temporaryFolder()];
 	fake.provide("coordinator.restart", (asked: { fresh: boolean }) => {
@@ -50,7 +51,7 @@ async function load(t: TestContext, options: SessionOptions, now: string) {
 		start: () => plugin.start?.(),
 		at: (when: string) => fake.setNow(new Date(when)),
 		request: () => (existsSync(join(folder, "request.json")) ? (JSON.parse(readFileSync(join(folder, "request.json"), "utf8")) as Record<string, unknown>) : undefined),
-		notices: () => fake.emitted.filter((event) => event.name === "notice").map((event) => (event.data as { text: string }).text),
+		notices: () => fake.emitted.filter((event) => event.name === "notice").map((event) => (event.data as { text: string }).text).filter((text) => !text.startsWith("coordinator up on ")),
 		route: (text: string) => fake.host.commands.route(text),
 		gate: (name: string) => join(gates, name),
 		open: (name: string) => writeFileSync(join(gates, name), ""),
@@ -325,6 +326,7 @@ test("/restart with a coordinator: the handoff first, the restart goes on with -
 	assert.deepEqual(box.out, ["session: restart: done; the coordinator restarts, which starts by reading the handoff"]);
 	const second = box.coordinator({ steps: [{ prompt: true }, { message: "Going on." }, { end: true }, { waitFor: box.gate("never") }] });
 	await second.up();
+	// The agent notes its pid before it sends the handoff, so wait for the message itself.
 	await until("the handoff read", () => second.messages().length > 0);
 	assert.deepEqual(second.messages().map((message) => message.content), [read(box.handoff, HANDOFF)], "the handoff, and never the command's message");
 	await until("the notice", () => box.notices().length === 1);

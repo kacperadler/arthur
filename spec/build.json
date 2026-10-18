@@ -1261,7 +1261,7 @@
     "title": "Roadmap 38: Start notice and LLM probe",
     "status": "done",
     "path": "spec/features/AR0157-roadmap-38-start-notice-and-llm-probe/ticket.md",
-    "updated": "2026-10-18T23:19:07.717Z",
+    "updated": "2026-10-18T23:33:13.809Z",
     "after": [
       "AR0153"
     ]
@@ -1307,8 +1307,8 @@
   {
     "id": "AR0163",
     "title": "Roadmap 40: Registered entries and arthur schedule",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0163-roadmap-40-registered-entries-and-arthur-schedule/ticket.md",
-    "updated": "2026-10-18T23:00:28.825Z"
+    "updated": "2026-10-18T23:26:02.990Z"
   }
 ]

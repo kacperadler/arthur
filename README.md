@@ -75,7 +75,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | nvm: each project's Node version | planned | 84 |
 | commit-rules: a regex hook, words or a file per project | planned | 43 |
 | findings: what happens to them on a merge | planned | 83 |
-| telegram: text, media and the phone menu | planned | 47 to 50 |
+| telegram: text, media and the phone menu; the coordinator's silent mode (`/silent`), which every channel follows | planned | 47 to 50 |
 | discord: one private server, a main channel for the coordinator and one per project; text, media, phone commands | planned | 89, 90 |
 | voice: local transcription of voice notes | planned | 81 |
 | delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | planned | 52 to 56, 59 |

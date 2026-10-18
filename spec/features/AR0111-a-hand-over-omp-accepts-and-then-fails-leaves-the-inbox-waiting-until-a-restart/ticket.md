@@ -40,3 +40,4 @@ In:
 - 2026-10-17: Source: F1 of AR0084
 - 2026-10-18: The owner approved it.
 - 2026-10-18: Runs after AR0112, which changes the same inbox redelivery code.
+- 2026-10-18: The orchestration line budget rises by 21, to 718 (worker): the watchdog in `tick`, its shared notice, and the turn's end moved into one function that the watchdog also calls for an `agent_end` that says the turn goes on and starts none.

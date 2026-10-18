@@ -9,7 +9,6 @@
 
 - `smoke.md`: the transcript of one live run against omp 18.3.0: a message joins after a tool call, a reply is resumed through `session_stop`, `agent_end.willContinue` is set, and a subagent never takes the inbox. No code changed.
 
-
 ## Checks on main
 
 - `npm run check`: passed.

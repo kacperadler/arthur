@@ -1259,9 +1259,9 @@
   {
     "id": "AR0157",
     "title": "Roadmap 38: Start notice and LLM probe",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0157-roadmap-38-start-notice-and-llm-probe/ticket.md",
-    "updated": "2026-10-18T23:33:13.809Z",
+    "updated": "2026-10-18T23:36:58.640Z",
     "after": [
       "AR0153"
     ]
@@ -1310,5 +1310,19 @@
     "status": "review",
     "path": "spec/features/AR0163-roadmap-40-registered-entries-and-arthur-schedule/ticket.md",
     "updated": "2026-10-18T23:26:02.990Z"
+  },
+  {
+    "id": "AR0164",
+    "title": "The inbox's notice after 3 unanswered turns repeats omp's error unredacted",
+    "status": "planning",
+    "path": "spec/features/AR0164-the-inbox-s-notice-after-3-unanswered-turns-repeats-omp-s-error-unredacted/ticket.md",
+    "updated": "2026-10-18T23:36:58.635Z"
+  },
+  {
+    "id": "AR0165",
+    "title": "A provider outage sends a `turn failed` notice at every retry of the inbox",
+    "status": "planning",
+    "path": "spec/features/AR0165-a-provider-outage-sends-a-turn-failed-notice-at-every-retry-of-the-inbox/ticket.md",
+    "updated": "2026-10-18T23:36:58.637Z"
   }
 ]

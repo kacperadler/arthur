@@ -38,3 +38,4 @@ Out:
 - 2026-10-18: Coordinator (owner delegated Arthur calls): core budget 4649 -> 4691 and resources 42 accepted; `check(options, core)` accepted before the API freeze (entry 51); `perFeature` and `keepFree` stay refused until entries 33, 34 and 69 build them (an option that does nothing is not accepted).
 - 2026-10-18: Coordinator: after merging main (AR0124) the core raise is +54, to 4703, accepted.
 - 2026-10-18: Worker, on the coordinator's instruction to record it: core line budget 4649 -> 4751 (102 lines: `jobs.limits`, the caps on each job's scope, the wrapper's memory watch, the once-per-machine notice); AR0120 had used the core's spare lines, so none were left; resources budget 42.
+- 2026-10-18: Coordinator: core 4751 after merging main with AR0120 accepted (the same 102 lines of this ticket).

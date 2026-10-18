@@ -14,12 +14,11 @@ import { launchThere, syncMachines } from "./machine-sync.ts";
 import { pluginStep } from "./plugin.ts";
 import { spawnChecks } from "./spawn-check.ts";
 import { describeRoles, prompt, type Role, type RoleView, roleModel, roleRegistry } from "./roles.ts";
-import { launch, type Slice } from "./job-scope.ts";
+import { type Caps, jobCaps, launch, type Slice, sayUncapped } from "./job-scope.ts";
 
-// The job runner's spawn and the job record (spec/roadmap.md, entries 9 and 11). A worker gets its own branch and worktree
-// from HEAD, a read-only kind a detached checkout of HEAD; both live in `.arthur-worktrees/<id>` beside the repository,
-// outside the main checkout and the home folder. The record is `<home>/jobs/<id>/`, one file per key, which appears whole;
-// then the job's wrapper starts its agent in the background.
+// The job runner's spawn and the job record (spec/roadmap.md, entries 9 and 11). A worker gets its own branch and worktree from
+// HEAD, a read-only kind a detached checkout of HEAD; both live in `.arthur-worktrees/<id>` beside the repository, outside the main
+// checkout and the home folder. The record is `<home>/jobs/<id>/`, one file per key, appearing whole; then the wrapper starts.
 
 // A kind of job, owned by the plugin that registers it; the core owns `worker`.
 export type Kind = {
@@ -61,8 +60,8 @@ export type Spawn = {
 	readonly machine: string;
 };
 
-// A job as `prepare` gets it; `base` is the commit it starts from, `branch` undefined for a read-only kind.
-export type Job = Spawn & { readonly id: string; readonly root: string; readonly base: string; readonly branch: string | undefined; readonly worktree: string };
+// A job as `prepare` gets it; `base` is the commit it starts from, `branch` undefined for a read-only kind; its caps are what a plugin's `jobs.limits` answers.
+export type Job = Spawn & Caps & { readonly id: string; readonly root: string; readonly base: string; readonly branch: string | undefined; readonly worktree: string };
 // A job as `spawn` returns it: `warnings` are the prompt's; `failed` why its wrapper did not start, the job ended `failed`.
 export type Started = Job & { readonly warnings: readonly string[]; readonly failed: string | undefined };
 
@@ -142,7 +141,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 		registerMachine: (owner, machine) => machines.register(owner, machine),
 		run: (machine, argv) => machines.run(machine, argv),
 		roles: (project) => describeRoles(roles, [...kinds.values()].map((entry) => entry.kind), checkout(folder, collect("projects", []), project).root, collect),
-		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (spawn) => checks.pass({ ...spawn, tickets: taskTickets(spawn.task) }), machines.of(id)),
+		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), (spawn) => checks.pass({ ...spawn, tickets: taskTickets(spawn.task) }), machines.of(id)),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
 			const kind = kinds.get(name)?.kind;
@@ -162,11 +161,12 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 			const asked = { task, kind: name, project, model, thinking, quick: preset.quick, timeoutMinutes, budgetUsd, tickets };
 			const machine = await machines.pick(request.machine, () => collect("jobs.place", [asked]));
 			const spawn: Spawn = { ...asked, machine: machine.name };
+			const caps = await jobCaps(collect("jobs.limits", [spawn]));
 			const release = await checks.pass(spawn);
 			try {
 				// The project's repository on another machine, where every step after this one runs over SSH; undefined on `local`.
 				const there = machine.name === LOCAL ? undefined : reach(machine, project, root, commit);
-				const job = newJob(home, time.local().date, spawn, root, commit, kind.readOnly, there ?? root);
+				const job = newJob(home, time.local().date, { ...spawn, ...caps }, root, commit, kind.readOnly, there ?? root);
 				if (there === undefined) addWorktree(root, job.worktree, commit, job.branch);
 				let [warnings, added] = [[] as string[], false];
 				try {
@@ -187,7 +187,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 				}
 				const { id, kind: kindName, branch, worktree } = job;
 				bus.emit("core", "job-started", { id, kind: kindName, project, root, branch, worktree, tickets, machine: machine.name });
-				const failed = there === undefined ? await launch(home, job, agent, limits, bus) : launchThere(home, machine, id, agent, limits.slice, bus);
+				const failed = there === undefined ? await launch(home, job, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus)) : launchThere(home, machine, id, agent, limits.slice, bus);
 				return { ...job, warnings, failed };
 			} finally {
 				release();

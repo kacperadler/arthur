@@ -42,3 +42,4 @@ Out:
 - 2026-10-18: Coordinator: core budget 4649 -> 4662 after merging main accepted (13 lines: --requires and jobs.place on every spawn). AR0126 (core +102) merges first; this branch then merges main once more and gets one review of the merge.
 - 2026-10-18: The owner: finish this ticket despite the Claude 7 Day usage reaching 58% (the stop point); no other new Arthur work.
 - 2026-10-18: Coordinator: core 4764 (main 4751 plus this ticket's 13) accepted.
+- 2026-10-18: Coordinator: CI `ci` failed on 0aab2e1 after review-2 PASS (local 440/440 twice); the flaky tests AR0136 fixes. Rerun by this commit.

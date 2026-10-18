@@ -982,9 +982,9 @@
   {
     "id": "AR0120",
     "title": "Roadmap 25: the coordinator's context on every turn",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0120-roadmap-25-the-coordinator-s-context-on-every-turn/ticket.md",
-    "updated": "2026-10-18T10:31:22.765Z"
+    "updated": "2026-10-18T10:38:44.595Z"
   },
   {
     "id": "AR0121",
@@ -1023,9 +1023,9 @@
   {
     "id": "AR0125",
     "title": "Roadmap 31: Machines: placing a job by labels",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0125-roadmap-31-machines-placing-a-job-by-labels/ticket.md",
-    "updated": "2026-10-18T09:51:35.661Z",
+    "updated": "2026-10-18T10:32:52.634Z",
     "after": [
       "AR0124"
     ]
@@ -1035,7 +1035,7 @@
     "title": "Roadmap 32: Resources: caps per job",
     "status": "review",
     "path": "spec/features/AR0126-roadmap-32-resources-caps-per-job/ticket.md",
-    "updated": "2026-10-18T10:22:28.532Z"
+    "updated": "2026-10-18T10:38:29.251Z"
   },
   {
     "id": "AR0127",
@@ -1064,5 +1064,12 @@
     "status": "dropped",
     "path": "spec/features/AR0130-roadmap-30-names-npm-i-g-arthur-as-the-fix-for-a-machine-without-arthur-which-does-not-install-it/ticket.md",
     "updated": "2026-10-18T10:32:44.039Z"
+  },
+  {
+    "id": "AR0131",
+    "title": "Plan: mail and calendar plugins, and the way to the company edition",
+    "status": "planning",
+    "path": "spec/features/AR0131-plan-mail-and-calendar-plugins-and-the-way-to-the-company-edition/ticket.md",
+    "updated": "2026-10-18T10:46:48.131Z"
   }
 ]

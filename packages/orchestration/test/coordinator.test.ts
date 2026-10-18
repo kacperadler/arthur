@@ -89,6 +89,29 @@ test("the coordinator is one interactive omp in its tmux session, with --continu
 	assert.equal(starts().length, 1, "nothing starts it after arthur run stopped");
 });
 
+test("another plugin's coordinator.extension loads after orchestration's own, with its variables; an answer of another shape is left out, named", async (t) => {
+	const { agent, release } = waiting();
+	t.after(release);
+	const extension = join(temporaryFolder(), "session-extension.ts");
+	writeFileSync(extension, "export default () => {};\n");
+	const { fake, plugin, socket, err, starts } = await load(t, agent);
+	fake.provide("coordinator.extension", () => ({ file: extension, env: { ARTHUR_SESSION_FOLDER: "/home/arthur/.arthur/session" } }));
+	for (const answer of [{ file: "session-extension.ts", env: {} }, { file: extension, env: { HOME: "/" } }, { file: extension }, undefined])
+		fake.provide("coordinator.extension", () => answer);
+	fake.provide("coordinator.extension", () => {
+		throw new Error("no folder");
+	});
+	await plugin.start?.();
+	await until("the coordinator's start", () => starts().length === 1);
+	assert.deepEqual(starts()[0]?.args.slice(-8), ["-e", ENV_GUARD, "-e", INBOX, "-e", CONTEXT, "-e", extension]);
+	assert.equal(tmux(socket, "show-environment", "-t", "=coord", "ARTHUR_SESSION_FOLDER").stdout.trim(), "ARTHUR_SESSION_FOLDER=/home/arthur/.arthur/session");
+	const shape = "expected { file, env }: the absolute path of an existing file, and ARTHUR_* variables with text values";
+	assert.deepEqual(
+		err.map((line) => line.text),
+		[...Array.from({ length: 4 }, () => `orchestration: the coordinator.extension of test is left out: ${shape}`), "orchestration: the coordinator.extension of test is left out: no folder"],
+	);
+});
+
 test("a coordinator that ends is started again after restartDelaySeconds, and one crashing in a loop never faster", async (t) => {
 	const agent = fakeAgent({ steps: [{ stderr: "crash" }], exitCode: 1 });
 	const { plugin, out, starts } = await load(t, agent, { restartDelaySeconds: 1 });

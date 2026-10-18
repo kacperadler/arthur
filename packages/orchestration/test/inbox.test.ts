@@ -5,6 +5,7 @@ import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
 import { type AgentRun, type AgentStep, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { pause } from "../src/inbox-extension.ts";
 import { queue } from "../src/inbox.ts";
 import { orchestration } from "../src/orchestration.ts";
 
@@ -243,6 +244,82 @@ test("a turn that ends in an error answers nothing; its message is delivered aga
 		{ content: "[via telegram, sent before; its turn ended without a reply] Go.", step: 3 },
 	]);
 	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [said], channels: ["telegram"] }]);
+});
+
+// The times at which the fake agent got its first `count` messages, polled as `until` does.
+async function deliveries(box: { messages(): unknown[] }, count: number): Promise<number[]> {
+	const at: number[] = [];
+	while (at.length < count) {
+		await until(`delivery ${at.length + 1}`, () => box.messages().length > at.length);
+		at.push(Date.now());
+	}
+	return at.slice(1).map((time, index) => time - (at[index] ?? 0));
+}
+const FAILED: AgentStep[] = [{ prompt: true }, { message: "", stopReason: "error", error: "overloaded" }, { end: true }];
+const AGAIN_MARK = "[via telegram, sent before; its turn ended without a reply]";
+
+test("a turn that keeps ending without a reply has its messages go again at once, then after 5 s, then 10 s; only the third such turn is told", async (t) => {
+	const box = await load(t, { steps: [...FAILED, ...FAILED, ...FAILED, ...FAILED, { prompt: true }] });
+	await box.start();
+	box.say("Go.");
+	const [quick = 0, five = 0, ten = 0] = await deliveries(box, 4);
+	assert.ok(quick < 2000, `the first redelivery is quick: ${quick}`);
+	assert.ok(five >= 4900 && five < 6500, `the second waits 5 s: ${five}`);
+	assert.ok(ten >= 9900 && ten < 11500, `the third waits 10 s: ${ten}`);
+	// Past the fourth turn's end, which tells nothing more.
+	await sleep(1500);
+	assert.deepEqual(box.emitted("notice"), [
+		{ text: "the coordinator's last 3 turns ended without a reply (error: overloaded); their messages go again in 10 s, then after twice as long each time, at most 5 min" },
+	]);
+	assert.deepEqual(
+		box.messages().map((message) => message.content),
+		["[via telegram] Go.", `${AGAIN_MARK} Go.`, `${AGAIN_MARK} Go.`, `${AGAIN_MARK} Go.`],
+	);
+	assert.deepEqual(box.emitted("coordinator-replied"), []);
+});
+
+test("a reply ends the wait: the next turn that ends without a reply has its messages go again at once", async (t) => {
+	const steps: AgentStep[] = [...FAILED, ...FAILED, { prompt: true }, { message: "Done." }, { end: true }, ...FAILED, { prompt: true }, { message: "Again." }, { end: true }, { prompt: true }];
+	const box = await load(t, { steps });
+	await box.start();
+	const first = box.say("Go.");
+	await deliveries(box, 3);
+	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
+	const second = box.say("Again?");
+	// The first three are already in: only the gap between the fourth and the fifth is a wait.
+	const [, , , quick = 0] = await deliveries(box, 5);
+	assert.ok(quick < 2000, `the first redelivery after a reply is quick: ${quick}`);
+	await until("the second reply", () => box.emitted("coordinator-replied").length === 2);
+	assert.deepEqual(
+		box.messages().map((message) => message.content),
+		["[via telegram] Go.", `${AGAIN_MARK} Go.`, `${AGAIN_MARK} Go.`, "[via telegram] Again?", `${AGAIN_MARK} Again?`],
+	);
+	assert.deepEqual(box.emitted("coordinator-replied"), [
+		{ text: "Done.", answers: [first], channels: ["telegram"] },
+		{ text: "Again.", answers: [second], channels: ["telegram"] },
+	]);
+	assert.deepEqual(box.emitted("notice"), []);
+});
+
+test("a new owner message ends the wait: the waiting messages and the new one go at the next tick; a message from Arthur waits with them", async (t) => {
+	const box = await load(t, { steps: [...FAILED, ...FAILED, { prompt: true }, { message: "Done." }, { end: true }, { prompt: true }] });
+	await box.start();
+	const first = box.say("Go.");
+	await deliveries(box, 2);
+	const scheduled = box.fake.emit("coordinator-message", { text: "Write the morning report." }).seq;
+	await sleep(2000);
+	assert.equal(box.messages().length, 2, "a message from Arthur does not end the wait");
+	const saidAt = Date.now();
+	const second = box.say("Now?");
+	await until("the third delivery", () => box.messages().length === 3);
+	assert.ok(Date.now() - saidAt < 1500, `the owner's message goes at the next tick: ${Date.now() - saidAt}`);
+	assert.equal(box.messages()[2]?.content, [`${AGAIN_MARK} Go.`, "[Arthur] Write the morning report.", "[via telegram] Now?", ARTHUR].join("\n\n"));
+	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
+	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [first, scheduled, second], channels: ["telegram"] }]);
+});
+
+test("the wait before a failed turn's messages go again is none the first time, then 5 s doubling, at most 5 min", () => {
+	assert.deepEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 50].map(pause), [0, 5000, 10_000, 20_000, 40_000, 80_000, 160_000, 300_000, 300_000, 300_000]);
 });
 
 test("a coordinator restarted mid-turn gets the message once more, marked, answers it once, and never a third time", async (t) => {

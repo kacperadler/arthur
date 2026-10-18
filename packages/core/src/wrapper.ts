@@ -7,7 +7,7 @@ import { deadline, reached } from "./job-limits.ts";
 import { watchMemory } from "./job-memory.ts";
 import { endScope } from "./job-scope.ts";
 import { signal, stopGroup } from "./job-stop.ts";
-import { blockedBy, moveJob, type State } from "./job-state.ts";
+import { blockedBy, current, kept, moveJob, type State } from "./job-state.ts";
 import { commitsSince } from "./git.ts";
 import { runRecord } from "./run-record.ts";
 import { closeSteers } from "./steer-inbox.ts";
@@ -168,8 +168,8 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		: code !== 0 ? `failed: the agent exited ${code}`
 		: record.result() === "" ? "failed: the agent ended without a final message"
 		: "finished";
-	// A run that finished on a `Blocked:` line waits for what it names; a plugin's hold ends with the run.
-	const blocked = reason === "finished" ? blockedBy(record.result()) : undefined;
+	// A run that finished on a `Blocked:` line waits for what it names; a plugin's hold ends with the run, unless it stopped the run.
+	const blocked = kept(guard(() => current(home, id))) ?? (reason === "finished" ? blockedBy(record.result()) : undefined);
 	const [state, said] = blocked === undefined ? (["ended", reason] as const) : (["blocked", blocked] as const);
 	record.end();
 	save("commits", commits === "" ? "" : `${commits}\n`);

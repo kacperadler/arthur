@@ -151,10 +151,14 @@ export default defineConfig({
 			// A job's own cap on its scope, and what it reserves on its machine (34). `cpu`: cores, a number above 0, at most the
 			// machine's cores; over it a job is slowed. `memory`: MemoryMax syntax as core.jobs.memory; over it a job ends
 			// `limit: memory`. Each left out = no cap; above core.jobs.cpu or core.jobs.memory = refused at load. Without a user
-			// manager (macOS) memory is sampled every 10 s and CPU is not capped. `perFeature` and `keepFree` come with roadmap
-			// entries 33, 34 and 69; until then the plugin refuses them as unknown options.
+			// manager (macOS) memory is sampled every 10 s and CPU is not capped. `keepFree` comes with roadmap entries 34 and
+			// 69; until then the plugin refuses it as an unknown option.
 			perJob: { cpu: 2, memory: "4G" },
-			perFeature: { budgetUsd: 15, hours: 8, cpu: 4, memory: "8G" }, // 0 = no cap
+			// All jobs of one ticket together (worker, reviews, plans), each replaced by the ticket's own `caps`; 0 = no cap.
+			// `budgetUsd`: their costs summed; `hours`: their run time summed. A spawn at either is refused; a running job that
+			// reaches one is stopped and held `blocked` on the user, `cap-reached` emitted, `arthur continue` resumes it once the
+			// cap is raised. `cpu`, `memory`: a slice per ticket inside the jobs' slice (needs a user manager). `arthur resources <ticket>`.
+			perFeature: { budgetUsd: 15, hours: 8, cpu: 4, memory: "8G" },
 			// Left free on every machine, for the coordinator and the system. `disk` is the floor of free disk where the machine's
 			// jobs write (its home, and Docker's data root where Docker runs): under it no job starts there, the refusal names the
 			// machine and the space, and running jobs go on; bytes with K, M, G or T; 0 = no floor.
@@ -165,9 +169,11 @@ export default defineConfig({
 		// must load. Before a compaction or a fresh start the coordinator writes `.arthur/session/handoff.md` (work in
 		// progress, next steps, every unanswered question to the human with when it was asked), which the next conversation
 		// reads first; a failed write withdraws that compaction or try. Needs `orchestration`. The clock is core.timeZone.
+		// Built so far: compaction (35). `freshAt` and the options after it come with entries 36 to 38; until then the plugin
+		// refuses them as unknown options.
 		session({
-			compactAt: ["08:00", "13:00", "18:00"], // running jobs do not hold a compaction back
-			compactWaitSeconds: 1800, // wait this long for an idle session, then skip that compaction
+			compactAt: ["08:00", "13:00", "18:00"], // "HH:MM" each; [] = never; running jobs do not hold a compaction back
+			compactWaitSeconds: 1800, // wait this long for an idle session with nothing queued, then skip that compaction; at least 1
 			freshAt: "23:00", // a fresh conversation (no --continue), only once no job of any kind (worker, review, ...) runs
 			freshRetryMinutes: 15, // while a job runs, try again this often; a positive whole number; default 15
 			freshUntil: "03:00", // "HH:MM", the last try (the next day when earlier than freshAt); then that night is skipped

@@ -160,7 +160,7 @@ export function pluginHost(
 				if (loading()) throw new Error(`${own.name}: spawn during setup; start jobs from start() or later`);
 				return runner.spawn(request);
 			},
-			block: (id, reason) => runner.block(id, reason),
+			block: (id, reason, stop) => runner.block(id, reason, stop),
 			unblock: (id) => runner.unblock(id),
 			list: () => runner.records(),
 			running: () => runner.running(),

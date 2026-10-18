@@ -32,3 +32,4 @@ Out:
 ## Decisions
 
 - 2026-10-18: The owner: build the roadmap in its order; on 2026-10-18 evening he asked for a night plan for Arthur with Claude 7 Day usage up to 75%. This entry is in that plan.
+- 2026-10-18: Coordinator (owner delegated Arthur calls): core 4764 -> 4786 (+22: ticket slice, ran file, cost/budget/seconds in jobs.list, stop on jobs.block) and resources 42 -> 231 (perFeature, ticket caps, background check, arthur resources) accepted; the review checks they buy only that. A missing cost file counts as the whole budget, and a job stopped at a cap ends blocked: accepted.

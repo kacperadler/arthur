@@ -38,9 +38,9 @@ test("a per-job cap above the joint core.jobs.cpu or core.jobs.memory is refused
 });
 
 test("options it does not take, and values systemd would refuse, are refused at load", async () => {
-	const given = { perJob: { cpu: 0, memory: "4 GB", disk: "1G" }, perFeature: { hours: 8 } } as unknown as ResourcesOptions;
+	const given = { perJob: { cpu: 0, memory: "4 GB", disk: "1G" }, keepFree: { cpu: 1 } } as unknown as ResourcesOptions;
 	assert.deepEqual(await check(given), [
-		{ path: "perFeature", problem: "unknown option; options: perJob" },
+		{ path: "keepFree", problem: "unknown option; options: perJob, perFeature" },
 		{ path: "perJob.disk", problem: "unknown key; keys: cpu, memory" },
 		{ path: "perJob.cpu", problem: "expected a number of cores above 0, got 0" },
 		{ path: "perJob.memory", problem: 'expected systemd MemoryMax syntax such as "4G", "25%" or "infinity", got "4 GB"' },
@@ -53,13 +53,13 @@ test("jobs.limits answers perJob's caps for every job, and nothing for one left 
 	const capped = fakeHost({ name: "resources", options: { perJob: { cpu: 2, memory: "4G" } } });
 	await capped.setup(resources({ perJob: { cpu: 2, memory: "4G" } }));
 	assert.deepEqual(capped.provided, ["jobs.limits"]);
-	assert.deepEqual(capped.call("jobs.limits", { task: "Go.", machine: "local" }), { cpu: 2, memory: "4G" });
+	assert.deepEqual(capped.call("jobs.limits", { task: "Go.", machine: "local", tickets: [] }), { cpu: 2, memory: "4G" });
 	const bare = fakeHost({ name: "resources", options: { perJob: { memory: "1G" } } });
 	await bare.setup(resources({ perJob: { memory: "1G" } }));
-	assert.deepEqual(bare.call("jobs.limits", {}), { memory: "1G" });
+	assert.deepEqual(bare.call("jobs.limits", { tickets: [] }), { memory: "1G" });
 	const none = fakeHost({ name: "resources" });
 	await none.setup(resources({}));
-	assert.deepEqual(none.call("jobs.limits", {}), {});
+	assert.deepEqual(none.call("jobs.limits", { tickets: [] }), {});
 });
 
 test("a job spawned with the plugin gets its caps on its own scope, in the test kit's slice", { skip: !manager && "no systemd user manager" }, async (t) => {

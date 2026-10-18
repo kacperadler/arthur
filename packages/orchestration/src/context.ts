@@ -2,11 +2,20 @@ import type { Host } from "@arthur/core/plugin";
 
 // The coordinator's context (spec/roadmap.md, entry 25): what `arthur coordinator context` prints, which the context extension
 // (context-extension.ts) adds to the coordinator's system prompt before every turn. Its role, read as every role is; each
-// project's vision; a warning per file missing; each project's board digest; the local time and whether it is night; and each
-// plugin's answer to `collect("coordinator.context")`. A vision, a board or a plugin that fails costs its own lines, named:
-// docs/commands/coordinator.md, "The coordinator's context".
+// project's vision; a warning per file missing; each project's board digest; the jobs that have not ended, by state (entry 27);
+// the local time and whether it is night; and each plugin's answer to `collect("coordinator.context")`. A vision, a board or a
+// plugin that fails costs its own lines, named: docs/commands/coordinator.md, "The coordinator's context".
 
 const firstLine = (error: unknown) => (error instanceof Error ? error.message : String(error)).split("\n")[0];
+const ORDER = ["blocked", "working", "idle"];
+
+// Jobs grouped by state, `blocked` first, then working and idle, then a state written by hand; each group in the list's order.
+export function byState<T extends { readonly state: string }>(jobs: readonly T[]): Map<string, T[]> {
+	const rank = (state: string) => (ORDER.includes(state) ? ORDER.indexOf(state) : ORDER.length);
+	const groups = new Map<string, T[]>();
+	for (const job of jobs.toSorted((a, b) => rank(a.state) - rank(b.state))) groups.set(job.state, [...(groups.get(job.state) ?? []), job]);
+	return groups;
+}
 
 export function coordinatorContext(host: Host): string {
 	const { prompt, warnings } = host.jobs.prompt("coordinator");
@@ -31,6 +40,20 @@ export function coordinatorContext(host: Host): string {
 			digest = `the board was not read: ${firstLine(error)}`;
 		}
 		parts.push(`## Board${name === undefined ? "" : ` of ${name}`}\n\n${digest}`);
+	}
+	const jobs = byState(host.jobs.list().filter((job) => job.state !== "ended"));
+	if (jobs.size > 0) {
+		const now = host.clock.now().getTime();
+		const lines = [...jobs].flatMap(([state, each]) => [
+			`${state || "no state"}:`,
+			...each.map((job) => {
+				const minutes = Math.max(0, Math.floor((now - Date.parse(job.since)) / 60_000));
+				const since = Number.isNaN(minutes) ? "since an unknown time" : `for ${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, "0")}m`;
+				const project = projects.length > 1 && job.project !== projects[0] ? `, project ${job.project}` : "";
+				return `- ${job.id}${project}, ${since}${job.reason === "" ? "" : `: ${job.reason}`}`;
+			}),
+		]);
+		parts.push(`## Jobs not ended\n\n${lines.join("\n")}`);
 	}
 	const { date, time, day } = host.clock.local();
 	const night = host.clock.isQuiet() ? "night: within the owner's quiet hours" : "day: outside the owner's quiet hours";

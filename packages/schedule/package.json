@@ -1,0 +1,9 @@
+{
+  "name": "@arthur/schedule",
+  "private": true,
+  "type": "module",
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "exports": {
+    ".": "./src/schedule.ts"
+  }
+}

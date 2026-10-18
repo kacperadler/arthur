@@ -185,8 +185,10 @@ export default defineConfig({
 		// without it, the unnamed one), its CI workflow, its commit rules, the machine labels its jobs need (`requires`; a ticket's
 		// own `"requires"` in its JSON block replaces it), `docker: false` to leave its jobs' Docker resources unlabelled and
 		// uncleaned (default: on while the docker plugin is), and `chat`: the place of a channel (a Telegram topic, a Discord or
-		// Slack channel) where the project's own agent talks with you; without it the coordinator handles the project. Adding a
-		// project is an edit of this list; `arthur projects` shows it.
+		// Slack channel) where the project's own agent talks with you; without it the coordinator handles the project. `prompts`
+		// moves the files the roles read inside its repository: its vision (default spec/vision.md), its criteria folder (default
+		// .agents/arthur/criteria) and its role overrides (default .agents/arthur/roles). Adding a project is an edit of this
+		// list; `arthur projects` shows it.
 		// One repository may be several projects, each checkout its own entry. `arthur.config.ts` is ignored by Git, so the real
 		// list stays on the machine.
 		projects({
@@ -202,6 +204,7 @@ export default defineConfig({
 					tracker: { plugin: "youtrack", project: "ART" },
 					ci: { workflow: "ci.yml" },
 					commitRules: { regex: "^(feat|fix|refactor|perf|test|docs|build|ci|chore|revert)(\\([\\w-]+\\))?!?: .{1,72}$" },
+					prompts: { criteriaDir: ".agents/harness/criteria", rolesDir: ".agents/harness/roles" }, // the vision stays spec/vision.md
 				},
 				{
 					name: "acme-shop",

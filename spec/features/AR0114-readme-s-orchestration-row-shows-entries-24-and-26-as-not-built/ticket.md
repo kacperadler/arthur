@@ -44,3 +44,4 @@ Out:
 - 2026-10-17: Source: F2 of AR0110
 - 2026-10-18: The owner approved it.
 - 2026-10-18: Runs after AR0115, which edits the same README row; do only what AR0115 left undone.
+- 2026-10-18: AR0115 fixed the feature table row; this ticket now does F1 of AR0115 instead: rewrite the README "What works today" and "What is next" lists (README.md:33-40) from spec/build.json, with an agent per project (entries 85 to 88) first among the later plugins as the roadmap orders it.

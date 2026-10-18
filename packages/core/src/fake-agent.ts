@@ -9,8 +9,9 @@ import type { AgentRun } from "./testing.ts";
 // extension as omp does and calls its `session_start` handlers, then plays the run, printing each event in the shape
 // `omp --mode json` prints it, asking the extensions' `tool_call` handlers before each tool call (a block fails the call with
 // its reason, as omp does), calling their `tool_result` handlers after it, noting each message they send (`sendUserMessage`)
-// in `messages.jsonl` beside the run with the step it came in, and exits with the run's code. A handler's `ctx` has a UI
-// (`hasUI`) unless omp runs with `--mode`; `ui` calls are noted in `ui.jsonl`; it is idle outside a turn (`prompt` to `end`).
+// in `messages.jsonl` beside the run with the step it came in, and the system prompt of each turn in `system.jsonl`, and exits with
+// the run's code. A handler's `ctx` has a UI (`hasUI`) unless omp runs with `--mode`; `ui` calls are noted in `ui.jsonl`; it is
+// idle outside a turn (`prompt` to `end`).
 
 const [file = "", ...args] = process.argv.slice(2);
 const run = JSON.parse(readFileSync(file, "utf8")) as AgentRun;
@@ -23,6 +24,7 @@ let [at, idle, failures, drops, continued] = [-1, true, run.failSends ?? 0, run.
 const prompts: string[] = [];
 const conversation: object[] = [];
 const user = (text: string) => ({ role: "user", content: [{ type: "text", text }] });
+const BASE = "The fake agent's own system prompt.";
 const handlers: { readonly event: string; readonly handler: (...args: unknown[]) => unknown }[] = [];
 const pi = {
 	on: (event: string, handler: (...args: unknown[]) => unknown) => void handlers.push({ event, handler }),
@@ -100,7 +102,11 @@ for (const [index, step] of run.steps.entries()) {
 		while (prompts.length === 0) await sleep(10);
 		idle = false;
 		await sleep(step.compactMs ?? 0);
-		conversation.push(...prompts.splice(0).map(user));
+		// As omp: the extensions' `before_agent_start` handlers first, the last system prompt one returns going to the model.
+		const turn = prompts.splice(0);
+		const answers = (await ask("before_agent_start", { prompt: turn.join("\n\n"), systemPrompt: [BASE] })) as ({ systemPrompt?: string[] } | undefined)[];
+		note("system.jsonl", { systemPrompt: answers.findLast((answer) => answer?.systemPrompt !== undefined)?.systemPrompt ?? [BASE], step: index });
+		conversation.push(...turn.map(user));
 		await ask("agent_start", {});
 	} else if ("end" in step) {
 		// As omp's main session: its `session_stop` handlers first; a continuation, at most 8 in a row, goes on with the next steps.

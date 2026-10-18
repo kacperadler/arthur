@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, isAbsolute, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // The prompt loader: what a role's prompt holds, in which order, and what it refuses: docs/commands/roles.md.
@@ -12,8 +12,18 @@ export type Role = {
 	readonly criteria: readonly string[];
 };
 
-// Where a project keeps the files the roles read, relative to its repository.
-export const PROJECT_FILES = { roles: ".agents/arthur/roles", criteria: ".agents/arthur/criteria" } as const;
+// Where a project keeps the files the roles read, relative to its repository; its `prompts` in the project list moves them.
+export type PromptFiles = { readonly vision: string; readonly criteriaDir: string; readonly rolesDir: string };
+export const PROJECT_FILES: PromptFiles = { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria", rolesDir: ".agents/arthur/roles" };
+
+// A project's `prompts` over the defaults, each a path inside its repository (the core reads them there), else refused.
+export function promptFiles(project: { readonly name: string; readonly prompts?: unknown }): PromptFiles {
+	const files: Readonly<Record<string, unknown>> = { ...PROJECT_FILES, ...(project.prompts ?? {}) };
+	for (const [key, path] of Object.entries(files))
+		if (!Object.hasOwn(PROJECT_FILES, key) || typeof path !== "string" || path === "" || isAbsolute(path) || normalize(path).split(sep)[0] === "..")
+			throw new Error(`project ${project.name}: prompts.${key}: expected ${Object.keys(PROJECT_FILES).join(", ")}, each a path inside its repository, got ${JSON.stringify(path)}`);
+	return files as PromptFiles;
+}
 
 // One file a role reads: `path` is absolute for the role file, else relative to the project; `problem` when it is not read.
 export type Source = {
@@ -23,7 +33,28 @@ export type Source = {
 	readonly problem?: "missing" | "a symlink" | "not a file";
 };
 
-type Collect = (name: string, args: readonly unknown[]) => unknown[];
+export type Collect = (name: string, args: readonly unknown[]) => unknown[];
+export type ProjectCheckout = { readonly root: string; readonly project: string; readonly files: PromptFiles }; // and where its prompt files are
+
+// What a plugin reads of the roles outside a spawn, as `host.jobs`, in the main checkout `where` finds (the main project's when
+// undefined): the prompt of `role` without the plugins' sections, which are a job's; the vision, `text` unless `problem` says why not.
+export type RoleReads = {
+	prompt(role: string, project?: string): { readonly prompt: string; readonly warnings: string[] };
+	vision(project?: string): { readonly project: string; readonly path: string; readonly text?: string; readonly problem?: Source["problem"] };
+};
+
+export function roleReads(registry: RoleRegistry, where: (project: string | undefined) => ProjectCheckout): RoleReads {
+	return {
+		prompt(name, project) {
+			const { root, files } = where(project);
+			return prompt(registry.get(name), root, files, () => []);
+		},
+		vision(project) {
+			const { root, project: name, files } = where(project);
+			return { project: name, path: files.vision, ...projectFile(root, files.vision) };
+		},
+	};
+}
 
 export type RoleRegistry = {
 	register(owner: string, role: Role): void;
@@ -69,32 +100,32 @@ export type RoleView = {
 	readonly sources: readonly Source[];
 };
 
-export function describeRoles(registry: RoleRegistry, kinds: readonly { readonly name: string; readonly role: string }[], folder: string, collect: Collect): RoleView[] {
+export function describeRoles(registry: RoleRegistry, kinds: readonly { readonly name: string; readonly role: string }[], at: ProjectCheckout, collect: Collect): RoleView[] {
 	return registry.list().map(({ owner, role }) => ({
 		name: role.name,
 		owner,
 		kinds: kinds.filter((kind) => kind.role === role.name).map((kind) => kind.name),
 		...roleModel(collect, role.name),
-		sources: sources(role, folder),
+		sources: sources(role, at.root, at.files),
 	}));
 }
 
-// The files `role` reads in the project at `folder`, in the order of the prompt.
-export function sources(role: Role, folder: string): Source[] {
+// The files `role` reads in the project at `folder`, whose prompt files are `files`, in the order of the prompt.
+export function sources(role: Role, folder: string, files: PromptFiles): Source[] {
 	const file = fileURLToPath(role.file);
 	const own = (what: "override" | "criteria", path: string): Source => ({ what, path, ...projectFile(folder, path) });
 	return [
 		existsSync(file) ? { what: "role", path: file, text: readFileSync(file, "utf8") } : { what: "role", path: file, problem: "missing" },
-		own("override", join(PROJECT_FILES.roles, `${role.name}.md`)),
-		...role.criteria.map((name) => own("criteria", join(PROJECT_FILES.criteria, `${name}.md`))),
+		own("override", join(files.rolesDir, `${role.name}.md`)),
+		...role.criteria.map((name) => own("criteria", join(files.criteriaDir, `${name}.md`))),
 	];
 }
 
 // The prompt of `role` for a job in `folder`, with its warnings; `sections` is asked only once the project's files passed.
-export function prompt(role: Role, folder: string, sections: () => readonly unknown[]): { readonly prompt: string; readonly warnings: string[] } {
+export function prompt(role: Role, folder: string, files: PromptFiles, sections: () => readonly unknown[]): { readonly prompt: string; readonly warnings: string[] } {
 	const parts: string[] = [];
 	const warnings: string[] = [];
-	for (const { what, path, text = "", problem } of sources(role, folder)) {
+	for (const { what, path, text = "", problem } of sources(role, folder, files)) {
 		if (problem === "missing" && what === "role") throw new Error(`role ${role.name}: its role file ${path} is missing`);
 		if (problem === "missing" && what === "criteria") warnings.push(`criteria file ${path} is missing; the ${role.name} goes without it`);
 		if (problem !== undefined && problem !== "missing") throw new Error(`${path} is ${problem}; refused, the roles read a project's file only as a plain file`);

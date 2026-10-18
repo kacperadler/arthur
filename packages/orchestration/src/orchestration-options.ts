@@ -51,6 +51,7 @@ export function checkOptions(options: Options): OptionProblem[] {
 	if (typeof roles === "object" && roles !== null && !Array.isArray(roles))
 		for (const [name, value] of Object.entries(roles)) {
 			if (!/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(name)) problems.push({ path: `roles.${name}`, problem: "expected a role name of lowercase letters, digits and dashes" });
+			else if (name === "coordinator") problems.push({ path: "roles.coordinator", problem: "the coordinator's model and thinking are coordinator.model and coordinator.thinking" });
 			else checkObject(`roles.${name}.`, value, name === QUICK ? quick : role, problems);
 		}
 	return problems;

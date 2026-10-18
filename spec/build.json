@@ -1033,9 +1033,9 @@
   {
     "id": "AR0126",
     "title": "Roadmap 32: Resources: caps per job",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0126-roadmap-32-resources-caps-per-job/ticket.md",
-    "updated": "2026-10-18T10:17:59.631Z"
+    "updated": "2026-10-18T10:22:28.532Z"
   },
   {
     "id": "AR0127",
@@ -1050,5 +1050,12 @@
     "status": "planning",
     "path": "spec/features/AR0128-plan-releases-installing-and-updating-arthur/ticket.md",
     "updated": "2026-10-18T10:18:34.875Z"
+  },
+  {
+    "id": "AR0129",
+    "title": "Plan: a decisions plugin for typed decision models, local or by API",
+    "status": "planning",
+    "path": "spec/features/AR0129-plan-a-decisions-plugin-for-typed-decision-models-local-or-by-api/ticket.md",
+    "updated": "2026-10-18T10:25:31.585Z"
   }
 ]

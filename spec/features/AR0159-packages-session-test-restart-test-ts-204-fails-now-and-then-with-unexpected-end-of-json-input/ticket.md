@@ -24,16 +24,14 @@ Evidence:
 
 ## Done means
 
-- Observable result, and the test that proves it.
+- `packages/session/test/restart.test.ts` passes 30 full runs in a row under load (e.g. 4 suites in parallel), where before it failed with `Unexpected end of JSON input` at least once; the cause (a non-atomic write of `request.json`, or the test reading it mid-write) is fixed at its source, the write made atomic (write a temp file, then rename) if it is the plugin's.
 - `npm test` and `npm run check` pass.
 
 ## Scope
 
 In:
-- `path/to/file.ts`: what changes there.
-
-Out:
-- What this ticket does not do, and which ticket does.
+- `packages/session/src/session.ts`
+- `packages/session/test/restart.test.ts`
 
 ## Decisions
 

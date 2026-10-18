@@ -209,3 +209,37 @@ test("arthur continue moves a run that ended blocked back to working and clears 
 		["working", "blocked", "user: which table?"],
 	]);
 });
+
+test("a block with stop stops the run and holds the job blocked on the user once it ended, whatever the outcome; arthur continue resumes it", async () => {
+	const gate = join(temporaryFolder(), "gate");
+	const { home, jobs } = setup(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }));
+	const job = await jobs.spawn({ task: TASK });
+	await until("the wrapper's pid", () => existsSync(join(home, "jobs", job.id, "pid")));
+	await jobs.block(job.id, "feature cap budgetUsd reached: $2.0000 of $2", true);
+	const reason = "user: feature cap budgetUsd reached: $2.0000 of $2";
+	assert.deepEqual([field(home, job.id, "state"), field(home, job.id, "reason"), existsSync(join(home, "jobs", job.id, "hold"))], ["blocked", reason, false]);
+	assert.deepEqual(ends(home, job.id).map(({ data }) => data), [{ id: job.id, kind: "worker", project: "acme", state: "blocked", reason }]);
+	assert.deepEqual(jobs.running(), []);
+	assert.match(field(home, job.id, "log"), /arthur stop: stopping the agent\n.*blocked: user: feature cap/);
+	writeFileSync(gate, "");
+	assert.equal(await jobs.continue(job.id, "The cap was raised; go on."), undefined);
+	await until("the second job-ended", () => ends(home, job.id).length > 1);
+	assert.deepEqual([field(home, job.id, "state"), field(home, job.id, "reason")], ["ended", "finished"], "a plain block ends with the run again");
+});
+
+test("ran adds each spell in a run, held ones included, and not the time out of one; records count a run up to the runner's clock", () => {
+	const { home, jobs, id, now } = held();
+	const at = (seconds: number) => new Date(NOW.getTime() + seconds * 1000);
+	const bus = eventBus(home);
+	moveJob(home, id, bus, () => ["idle", ""], at(60));
+	moveJob(home, id, bus, () => ["blocked", "user: which?"], at(90));
+	moveJob(home, id, bus, () => ["working", ""], at(1000));
+	assert.equal(field(home, id, "ran"), "90");
+	now.at = at(1010);
+	jobs.block(id, "waiting");
+	now.at = at(1030);
+	assert.deepEqual([field(home, id, "ran"), jobs.records().find((job) => job.id === id)?.seconds], ["100", 120]);
+	writeFileSync(join(home, "jobs", id, "ran"), "broken");
+	moveJob(home, id, bus, () => ["ended", "finished"], at(1040));
+	assert.deepEqual([field(home, id, "ran"), jobs.records()[0]?.seconds], ["30", 30], "a broken ran starts again from 0, an ended job counts no more");
+});

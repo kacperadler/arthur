@@ -4,7 +4,10 @@
 {
   "id": "AR0111",
   "title": "A hand-over omp accepts and then fails leaves the inbox waiting until a restart",
-  "date": "2026-10-17"
+  "date": "2026-10-17",
+  "after": [
+    "AR0112"
+  ]
 }
 ```
 
@@ -35,3 +38,5 @@ In:
 ## Decisions
 
 - 2026-10-17: Source: F1 of AR0084
+- 2026-10-18: The owner approved it.
+- 2026-10-18: Runs after AR0112, which changes the same inbox redelivery code.

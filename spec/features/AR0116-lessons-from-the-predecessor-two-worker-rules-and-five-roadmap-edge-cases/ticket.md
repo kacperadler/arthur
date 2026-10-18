@@ -43,3 +43,4 @@ Out:
 ## Decisions
 
 - 2026-10-18: Proposed by the coordinator at the owner's question which predecessor fixes Arthur should carry; waits for approval.
+- 2026-10-18: The owner approved it.

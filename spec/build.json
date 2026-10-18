@@ -1040,9 +1040,9 @@
   {
     "id": "AR0127",
     "title": "Roadmap: a silent mode for the coordinator in the channels",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0127-roadmap-a-silent-mode-for-the-coordinator-in-the-channels/ticket.md",
-    "updated": "2026-10-18T10:06:06.939Z"
+    "updated": "2026-10-18T21:53:32.518Z"
   },
   {
     "id": "AR0128",
@@ -1227,5 +1227,12 @@
     "status": "planning",
     "path": "spec/features/AR0152-roadmap-entry-93-depends-on-41-but-sits-before-it/ticket.md",
     "updated": "2026-10-18T21:53:09.203Z"
+  },
+  {
+    "id": "AR0153",
+    "title": "Roadmap 37: Restart guard",
+    "status": "planned",
+    "path": "spec/features/AR0153-roadmap-37-restart-guard/ticket.md",
+    "updated": "2026-10-18T21:53:33.209Z"
   }
 ]

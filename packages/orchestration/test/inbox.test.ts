@@ -205,7 +205,7 @@ test("job ends and a schedule message mid-turn wait for the next turn: one messa
 		...result.split("\n").slice(0, 15),
 		"Procedure: review its branch against the ticket.",
 		"",
-		"[Arthur] Job 2026-10-17-worker-0000abcd ended its run: blocked (user: may I?).",
+		"[Arthur] Job 2026-10-17-worker-0000abcd ended its run blocked on the owner; its question, also sent as a notice: may I?",
 		"Project: shop.",
 		"Its final message: none.",
 		"Procedure: review its branch against the ticket.",
@@ -422,7 +422,7 @@ test("the footer names the running jobs while one runs and is cleared when none 
 	const job = await box.fake.host.jobs.spawn({ task: "Go." });
 	const status = () => box.ui().filter((call) => call.method === "setStatus").map((call) => call.args);
 	await until("the footer", () => status().length === 1);
-	assert.deepEqual(status(), [["arthur", `arthur · 1 running: ${job.id.split("-").at(-1)}`]]);
+	assert.deepEqual(status(), [["arthur", `arthur · 1 working: ${job.id.split("-").at(-1)}`]]);
 	gate.open("job");
 	await until("the job's end", () => box.fake.host.jobs.running().length === 0);
 	// As arthur run delivers the wrapper's event.

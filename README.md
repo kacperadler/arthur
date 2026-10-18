@@ -26,23 +26,23 @@ From [`spec/vision.md`](spec/vision.md):
 
 ## Status
 
-**Status: in development, not usable yet** (main on 2026-10-17). The core runs, from `arthur config check` to jobs in their own worktrees, and the coordinator starts in its tmux session, hears through its inbox when a job ends, and answers in one reply everything since its last one, a message that arrives mid-turn included; but no channel reaches it yet, and nothing reviews or merges. The order of the rest is [`spec/roadmap.md`](spec/roadmap.md).
+**Status: in development, not usable yet** (main on 2026-10-18). The core runs, from `arthur config check` to jobs in their own worktrees, and the coordinator starts in its tmux session, reads its context on every turn (the boards, the visions, the jobs not ended by state), hears through its inbox when a job ends, and answers in one reply everything since its last one, a message that arrives mid-turn included; but no channel reaches it yet, and nothing reviews or merges. The order of the rest is [`spec/roadmap.md`](spec/roadmap.md).
 
 What works today:
 
 - The core, roadmap entries 1 to 22, all merged: config and `.env`, the plugin host, events and commands, `arthur run`, jobs on this machine or another one with their time and money limits inside one CPU and memory slice for all jobs, their states, stop, continue and steer, the ticket board, and the env and worktree guards in every job.
-- The coordinator (`@arthur/orchestration`, entries 23, 24 and 26): one `omp` in its own tmux session while `arthur run` runs, started again when it ends; `arthur attach`; `/board`, `/task` and `/findings`; an inbox that wakes it when a job ends and takes a human's message mid-turn; `maxAgents` across all projects, and each role's model.
+- The coordinator (`@arthur/orchestration`, entries 23 to 27): one `omp` in its own tmux session while `arthur run` runs, started again when it ends; `arthur attach`; `/board`, `/task` and `/findings`; an inbox that wakes it when a job ends and takes a human's message mid-turn; its context on every turn (`arthur coordinator context`): its role, each project's vision and board, the jobs not ended by state, the time; a `notice` for the channels when a job asks the owner a question; `maxAgents` across all projects, and each role's model.
 - The project list (`@arthur/projects`, entry 41): every project in `arthur.config.ts`, `--project <name>` on any command, and each new worktree's dependencies installed.
 - The machine list (`@arthur/machines`, entry 30): the other machines jobs run on, with their labels, each checked over SSH at start and every `check.everySeconds` (private address, `arthur version`, os and arch against its labels), `machine-online` and `machine-offline` on each change, and `arthur machines`.
 
 What is next:
 
-- The rest of the coordinator (entries 25, 27 to 29 and 65): its context on every turn, the jobs' states in its context and on the channels, planning of large tickets, autopilot, and the morning report.
+- The rest of the coordinator (entries 28, 29 and 65): planning of large tickets, autopilot, and the morning report.
 - An agent per project, with its own chat (entries 85 to 88, the plan of AR0098); then the other plugins, in the roadmap's order.
 
 ## Features
 
-Each feature and its state on main on 2026-10-17, read from `packages/` and `spec/build.json`: built when every roadmap entry it needs is merged, in progress when some are, planned when none is.
+Each feature and its state on main on 2026-10-18, read from `packages/` and `spec/build.json`: built when every roadmap entry it needs is merged, in progress when some are, planned when none is.
 
 | Feature | State | Roadmap entries |
 | --- | --- | --- |
@@ -61,7 +61,7 @@ Each feature and its state on main on 2026-10-17, read from `packages/` and `spe
 | Core: `arthur send` and the message parts every channel hands over | planned | 49 |
 | Core: cleanup hooks with each worktree | planned | 71 |
 | Core: the frozen plugin API | planned | 51 |
-| orchestration: the coordinator, `arthur attach`, `/board`, `/task`, `/findings`; its inbox, context, `maxAgents`, planning, autopilot, morning report | in progress, 3 of 8 entries | 23, 24 and 26 built; 25, 27 to 29, 65 |
+| orchestration: the coordinator, `arthur attach`, `/board`, `/task`, `/findings`; its inbox, context, jobs by state, `maxAgents`, planning, autopilot, morning report | in progress, 5 of 8 entries | 23 to 27 built; 28, 29, 65 |
 | orchestration: an agent per project, with its own chat | planned | 85 to 88 |
 | projects: the project list and each worktree's install; onboarding a repository | in progress, 1 of 2 entries | 41 built; 42 |
 | session: compaction, fresh start, restart guard, start notice | planned | 35 to 38 |
@@ -101,7 +101,7 @@ The commands that exist today, one line each; `arthur <command> --help` prints i
 - `arthur version`: the version of the core, which a machine that runs jobs must match.
 - `arthur remote-job`: the half of a job on another machine that runs there; Arthur runs it over SSH, a person has no reason to.
 - `arthur attach` (orchestration): attaches this terminal to the coordinator's tmux session.
-- `arthur coordinator stop` (orchestration): ends the coordinator's session until `arthur run` starts again; refused while a job runs.
+- `arthur coordinator stop|context` (orchestration): `stop` ends the coordinator's session until `arthur run` starts again, refused while a job runs; `context` prints what the coordinator reads before every turn.
 - `arthur board [PREFIX] [all]` (`/board`, orchestration): a project's ticket board, one line per ticket.
 - `arthur task <id>` (`/task`, orchestration): a ticket's status and its `ticket.md`.
 - `arthur findings <id>` (`/findings`, orchestration): a ticket's `findings.md`, from its worker's branch before the merge.
@@ -140,9 +140,9 @@ Then `arthur config check`, `arthur projects` and `arthur board` answer at once.
 Which parts are built today and which are planned. The source is [`arthur.mmd`](arthur.mmd); a test keeps this copy equal to it.
 
 ```mermaid
-%% What Arthur is built from, and what of it is built: the state of main on 2026-10-17.
+%% What Arthur is built from, and what of it is built: the state of main on 2026-10-18.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22 are merged; orchestration has entries 23, 24 and 26 of 23-29 and 65; projects has entry 41 of 41-42; machines has entry 30 of 30-31; resources has entry 32 of 32-34 and 69; no other plugin exists yet.
+%% Core entries 1-22 are merged; orchestration has entries 23 to 27 of 23-29 and 65; projects has entry 41 of 41-42; machines has entry 30 of 30-31; resources has entry 32 of 32-34 and 69; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the discord and slack channels.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -189,7 +189,7 @@ flowchart TD
         telegram ~~~ voice
       end
       subgraph COORD[Coordinator]
-        orchestration[orchestration<br/>coordinator, arthur attach<br/>3 of 8 entries]
+        orchestration[orchestration<br/>coordinator, arthur attach<br/>context, jobs by state<br/>5 of 8 entries]
         session[session<br/>compaction, fresh start]
         schedule[schedule<br/>actions, jobs at set times]
         orchestration ~~~ session ~~~ schedule
@@ -247,7 +247,7 @@ flowchart TD
     sl[(Slack)]
   end
 
-  subgraph LEGEND["Legend: state of main on 2026-10-17"]
+  subgraph LEGEND["Legend: state of main on 2026-10-18"]
     direction LR
     lbuilt[green: built<br/>merged, in packages/]
     lpartial[light green: partly built<br/>N of M entries merged]

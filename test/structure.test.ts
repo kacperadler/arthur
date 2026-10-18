@@ -34,7 +34,9 @@ import { checkStructure } from "./structure.ts";
 // AR0143 (roadmap 35): compaction during the day; orchestration 17 more (892) to load another plugin's OMP extension into the
 // coordinator's agent (`coordinator.extension`), which the session plugin needs and cannot add itself; session: 213; the fake
 // agent's `ctx.compact` and `hasPendingMessages`, core/testing within its budget (335).
-const BUDGETS = { core: 4764, "core/testing": 340, projects: 320, orchestration: 892, machines: 375, resources: 42, session: 213 };
+// AR0141 (roadmap 33): caps per feature; core 22 more (4786) for the ticket's slice, `ran`, `cost`/`budget`/`seconds` in
+// `host.jobs.list()` and `block(..., stop)`; resources 189 more (231) for `perFeature`, a ticket's `caps`, the sweep and `arthur resources`.
+const BUDGETS = { core: 4786, "core/testing": 340, projects: 320, orchestration: 892, machines: 375, resources: 231, session: 213 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

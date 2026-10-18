@@ -405,6 +405,27 @@ test("a plugin's hold on a job there stands at each copy while it runs there and
 	assert.equal(calls().length, copies, "a job no longer held nor in a run is not copied again");
 });
 
+test("a block with stop on a job there stops its run there and holds it blocked on the user here; the feature slice goes there", async () => {
+	const gate = join(temporaryFolder(), "go");
+	const caps = () => [{ feature: { name: "AC0001", cpu: 1, memory: "1G" } }];
+	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }), caps });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	assert.deepEqual(["feature", "feature-cpu", "feature-memory"].map((name) => read(there, job.id, name)), ["AC0001", "1", "1G"]);
+	await jobs.block(job.id, "feature cap hours reached: 8.00 h of 8 h", true);
+	jobs.sweep();
+	const reason = "user: feature cap hours reached: 8.00 h of 8 h";
+	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason"), existsSync(join(home, "jobs", job.id, "hold"))], ["blocked", reason, false]);
+	assert.deepEqual([read(there, job.id, "state"), read(there, job.id, "reason")], ["ended", "stopped"]);
+	assert.deepEqual(events(home, "job-ended"), [{ id: job.id, kind: "worker", project: "acme", state: "blocked", reason }]);
+	writeFileSync(gate, "");
+});
+
+test("jobs.limits' feature must name its slice in letters and digits, or the spawn is refused before anything exists", async () => {
+	const { home, jobs } = setup({ caps: () => [{ feature: { name: "AC-1" } }] });
+	await assert.rejects(jobs.spawn({ task: "Go." }), { message: 'jobs.limits: feature.name must be letters and digits, got "AC-1"' });
+	assert.equal(existsSync(join(home, "jobs")), false);
+});
+
 test("arthur spawn --machine names the machine; arthur remote-job refuses an unknown step, a relative home and a bad project", () => {
 	const root = setup().root;
 	writeFileSync(join(root, "arthur.config.ts"), 'export default { core: { timeZone: "UTC" }, plugins: [{ name: "orchestration", setup() {} }] };\n');

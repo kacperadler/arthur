@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { Bus } from "./events.ts";
 import { gitOver, type Machine, ssh, url } from "./job-machine.ts";
 import { sayUncapped, UNCAPPED } from "./job-scope.ts";
-import { current, field, inRun, jobIds, moveJob, type State, write } from "./job-state.ts";
+import { current, field, inRun, jobIds, kept, moveJob, type State, write } from "./job-state.ts";
 
 // The sweep's copy of the records of jobs on another machine (spec/roadmap.md, entries 21 and 22), and what a machine that
 // does not answer does to them: docs/commands/spawn.md, "On another machine".
@@ -21,8 +21,8 @@ export type Copy = {
 	readonly files: Readonly<Record<string, string>>;
 };
 
-// Files a copy never overwrites: the repository is the main checkout here; the state moves through `moveJob`.
-const OWN = ["root", "machine", "state", "reason", "since"];
+// Files a copy never overwrites: the repository is the main checkout here; the state moves through `moveJob`, which keeps `ran`.
+const OWN = ["root", "machine", "state", "reason", "since", "ran"];
 const OFFLINE = "failed: machine offline";
 
 // The jobs of `machine` a copy follows: those in a run, and those its going offline held or failed, the record's `offline`
@@ -67,14 +67,16 @@ export function syncMachine(home: string, machine: Machine, bus: Bus): void {
 		if (read("state") === "ended" && !ended) continue;
 		const branch = read("branch");
 		if (ended && branch !== "") gitOver(read("root"), ["fetch", "--quiet", url(machine, read("project")), `+refs/heads/${branch}:refs/heads/${branch}`]);
-		// A plugin's hold here stands while the run goes on there, and ends with it, as the wrapper's does.
+		// A plugin's hold here stands while the run goes on there, and ends with it, as the wrapper's does, unless it stopped the run.
+		let [state, reason] = [copy.state, copy.reason];
 		moveJob(home, id, bus, (now) => {
-			if (now.hold !== "" && !ended) return ["blocked", `dependency: ${now.hold}`];
+			if (now.hold !== "" && !ended) return ["blocked", kept(now) ?? `dependency: ${now.hold}`];
 			rmSync(join(folder, "hold"), { force: true });
-			return [copy.state as State, copy.reason];
+			[state, reason] = kept(now) === undefined ? [state, reason] : ["blocked", now.reason];
+			return [state as State, reason];
 		}, new Date(copy.since));
 		rmSync(join(folder, "offline"), { force: true });
-		if (ended) bus.emit("core", "job-ended", { id, kind: read("kind"), project: read("project"), state: copy.state, reason: copy.reason });
+		if (ended) bus.emit("core", "job-ended", { id, kind: read("kind"), project: read("project"), state, reason });
 	}
 }
 

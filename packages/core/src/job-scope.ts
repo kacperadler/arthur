@@ -15,8 +15,9 @@ export const SLICE = "arthur-jobs";
 // The joint slice: its name, the cores (`cpu`) and the systemd `MemoryMax` (`memory`) all jobs in it share.
 export type Slice = { readonly slice: string; readonly cpu: number; readonly memory: string };
 
-// One job's own caps, which a plugin's `jobs.limits` answers (spec/roadmap.md, entry 32): cores, and systemd `MemoryMax`.
-export type Caps = { readonly cpu?: number; readonly memory?: string };
+// One job's own caps, which a plugin's `jobs.limits` answers (spec/roadmap.md, entries 32 and 33): cores, and systemd
+// `MemoryMax`; `feature`, the slice of its ticket inside the jobs' slice, `name` in letters and digits, and what all its jobs share.
+export type Caps = { readonly cpu?: number; readonly memory?: string; readonly feature?: { readonly name: string; readonly cpu?: number; readonly memory?: string } };
 
 // How long `launch` waits for the wrapper's `pid`.
 const START_MS = 10_000;
@@ -26,8 +27,9 @@ const scope = (id: string) => `arthur-job-${id}.scope`;
 // The caps of a spawn: what the one plugin that provides `jobs.limits` answers, none without one.
 export async function jobCaps(answers: readonly unknown[]): Promise<Caps> {
 	if (answers.length > 1) throw new Error(`call("jobs.limits"): provided by ${answers.length} plugins; call needs exactly one`);
-	const { cpu, memory } = ((await answers[0]) ?? {}) as Caps;
-	return { cpu, memory };
+	const { cpu, memory, feature } = ((await answers[0]) ?? {}) as Caps;
+	if (feature !== undefined && !/^[A-Za-z0-9]+$/.test(String(feature?.name))) throw new Error(`jobs.limits: feature.name must be letters and digits, got ${JSON.stringify(feature?.name)}`);
+	return { cpu, memory, ...(feature === undefined ? {} : { feature: { name: feature.name, cpu: feature.cpu, memory: feature.memory } }) };
 }
 
 // Starts the wrapper of `job` (`agent`: `core.agent.command`); returns why it did not start, which ended the job `failed`.
@@ -35,8 +37,10 @@ export async function jobCaps(answers: readonly unknown[]): Promise<Caps> {
 export async function launch(home: string, job: Pick<Job, "id" | "kind" | "project">, agent: string, jobs: Slice, bus: Bus, uncapped: (why: string) => void): Promise<string | undefined> {
 	const { id } = job;
 	const wrapper = [process.execPath, join(import.meta.dirname, "wrapper.ts"), home, id, agent];
-	const [cpu = "", memory = ""] = ["cpu", "memory"].map(field(home, id));
-	const bare = setSlice(jobs);
+	const [cpu = "", memory = "", feature = "", featureCpu = "", featureMemory = ""] = ["cpu", "memory", "feature", "feature-cpu", "feature-memory"].map(field(home, id));
+	// The slice of the job's ticket, a `-` nesting it in the jobs' slice.
+	const slice = feature === "" ? jobs.slice : `${jobs.slice}-${feature}`;
+	const bare = setSlice(jobs.slice, String(jobs.cpu), jobs.memory) ?? (feature === "" ? undefined : setSlice(slice, featureCpu && String(Math.min(Number(featureCpu), availableParallelism())), featureMemory));
 	if (bare !== undefined) {
 		const line = `no systemd scope: ${bare}; the job runs bare, without the joint limit of core.jobs.cpu and core.jobs.memory, and what it leaves behind is not killed at its end`;
 		appendFileSync(join(home, "jobs", id, "log"), `[arthur ${new Date().toISOString()}] ${line}\n`);
@@ -44,7 +48,7 @@ export async function launch(home: string, job: Pick<Job, "id" | "kind" | "proje
 	}
 	const log = join(home, "wrapper.log");
 	// `systemd-run` execs `sh`, which execs the wrapper with its stderr on the log: what reaches the pipe is systemd-run's own.
-	const scoped = ["systemd-run", "--user", "--scope", "--quiet", "--collect", `--slice=${jobs.slice}.slice`, `--unit=${scope(id)}`, ...ownLimits(cpu, memory), "--"];
+	const scoped = ["systemd-run", "--user", "--scope", "--quiet", "--collect", `--slice=${slice}.slice`, `--unit=${scope(id)}`, ...ownLimits(cpu, memory), "--"];
 	const [command = "", ...args] = bare === undefined ? [...scoped, "/bin/sh", "-c", 'exec "$@" 2>>"$0"', log, ...wrapper] : wrapper;
 	const output = openSync(log, "a");
 	let child: ChildProcess;
@@ -97,10 +101,11 @@ function end(home: string, job: Pick<Job, "id" | "kind" | "project">, why: strin
 	return why;
 }
 
-// Gives the slice its limits, at least 1% of a core; returns why it could not, e.g. `systemctl` missing or no user manager.
-function setSlice(jobs: Slice): string | undefined {
-	const limits = [`CPUQuota=${Math.max(1, Math.round(jobs.cpu * 100))}%`, `MemoryMax=${jobs.memory}`];
-	const set = spawnSync("systemctl", ["--user", "set-property", "--runtime", `${jobs.slice}.slice`, ...limits], { encoding: "utf8" });
+// Gives a slice its limits, `cpu` cores (at least 1% of one) and `memory`, empty for none; returns why it could not, e.g.
+// `systemctl` missing or no user manager.
+function setSlice(slice: string, cpu: string, memory: string): string | undefined {
+	const limits = [`CPUQuota=${cpu === "" ? "" : `${Math.max(1, Math.round(Number(cpu) * 100))}%`}`, `MemoryMax=${memory || "infinity"}`];
+	const set = spawnSync("systemctl", ["--user", "set-property", "--runtime", `${slice}.slice`, ...limits], { encoding: "utf8" });
 	if (set.error !== undefined) return set.error.message;
 	return set.status === 0 ? undefined : set.stderr.trim() || `systemctl exited ${set.status ?? set.signal}`;
 }

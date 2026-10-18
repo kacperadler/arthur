@@ -1,13 +1,11 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import type { Board } from "./board.ts";
 import { type Command, type CommandRegistry, commandRegistry } from "./commands.ts";
 import { configCheck } from "./config-check.ts";
 import { loadConfig } from "./config.ts";
 import { parseFlags } from "./flags.ts";
 import { type LoadedPlugins, loadPlugins } from "./host.ts";
-import type { JobRunner } from "./jobs.ts";
 import { jobCommands } from "./job-commands.ts";
 import { coreVersion } from "./job-machine.ts";
 import { remoteJobCommand } from "./remote-job.ts";
@@ -44,8 +42,8 @@ async function main(argv: readonly string[]): Promise<number> {
 }
 
 // What `arthur run` starts: the plugins as loaded, in setup order, the home folder and how to follow the event log; `jobs` is
-// what `arthur spawn` uses, `board`, the core's, what `arthur ticket` uses.
-type Loaded = { readonly plugins: readonly Plugin[]; readonly home: string; readonly follow: LoadedPlugins["follow"]; readonly jobs: JobRunner; readonly board: Board };
+// what `arthur spawn` uses, `board`, the core's, and `autopilot` what `arthur ticket` uses.
+type Loaded = Pick<LoadedPlugins, "plugins" | "follow" | "jobs" | "board" | "autopilot"> & { readonly home: string };
 
 // Every command, the core's and the plugins'; when the config or a plugin does not load, the core's alone and the reason.
 async function load(): Promise<{ readonly commands: CommandRegistry; readonly problem?: string; readonly project?: LoadedPlugins["project"] }> {
@@ -53,8 +51,8 @@ async function load(): Promise<{ readonly commands: CommandRegistry; readonly pr
 	const commands = core(undefined, () => loaded);
 	try {
 		const config = await loadConfig("arthur.config.ts");
-		const { plugins, jobs, board, follow, project } = await loadPlugins(config, process.env, commands);
-		loaded = { plugins, home: config.core.home, follow, jobs, board };
+		const { plugins, jobs, board, follow, project, autopilot } = await loadPlugins(config, process.env, commands);
+		loaded = { plugins, home: config.core.home, follow, jobs, board, autopilot };
 		return { commands, project };
 	} catch (error) {
 		const problem = error instanceof Error ? error.message : String(error);
@@ -72,7 +70,7 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 		return pick(app);
 	};
 	const jobs = need("", (app) => app.jobs);
-	commands.register("core", ticketCommand(need("the board needs the project list, and ", (app) => app.board), jobs));
+	commands.register("core", ticketCommand(need("the board needs the project list, and ", (app) => app.board), jobs, need("", (app) => app.autopilot)));
 	commands.register("core", rolesCommand(need("the roles are what the plugins registered, and ", (app) => app.jobs)));
 	commands.register("core", spawnCommand(jobs));
 	for (const command of jobCommands(need("the job records are in the configured home folder, and ", (app) => app.home), jobs)) commands.register("core", command);

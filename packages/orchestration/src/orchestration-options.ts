@@ -1,9 +1,10 @@
 import { describe } from "@arthur/core";
 import type { OptionProblem, Options } from "@arthur/core/plugin";
+import { AUTOPILOT_BUDGET, AUTOPILOT_CAP } from "./autopilot.ts";
 
 // The orchestration plugin's options (spec/roadmap.md, entries 23 and 26), checked before any setup: docs/commands/coordinator.md,
-// "Options". `plan` is entry 28's (plans.ts); `autopilot` and `morningReport` are read by later entries (29, 65) and checked
-// here for their shape only; `coordinator` is entry 23's, with its defaults applied by `coordinatorOptions`; `maxAgents` and `roles` are entry 26's.
+// "Options". `plan` is entry 28's (plans.ts), `autopilot` entry 29's (autopilot.ts); `morningReport` is read by a later entry (65)
+// and checked here for its shape only; `coordinator` is entry 23's, with its defaults applied by `coordinatorOptions`; `maxAgents` and `roles` are entry 26's.
 
 type Check = (value: unknown) => string | undefined;
 // An object of these keys, each left out or passing its check; a nested object is its own field list.
@@ -47,6 +48,9 @@ const FIELDS: Fields = {
 export function checkOptions(options: Options): OptionProblem[] {
 	const problems: OptionProblem[] = [];
 	checkObject("", options, FIELDS, problems);
+	const { budgetUsd = AUTOPILOT_BUDGET, budgetMaxUsd = AUTOPILOT_CAP } = (options.autopilot ?? {}) as { readonly budgetUsd?: unknown; readonly budgetMaxUsd?: unknown };
+	if (typeof budgetUsd === "number" && typeof budgetMaxUsd === "number" && budgetUsd > budgetMaxUsd)
+		problems.push({ path: "autopilot.budgetUsd", problem: `expected at most autopilot.budgetMaxUsd (${budgetMaxUsd}), got ${budgetUsd}` });
 	const { roles } = options;
 	if (typeof roles === "object" && roles !== null && !Array.isArray(roles))
 		for (const [name, value] of Object.entries(roles)) {

@@ -2,6 +2,12 @@
 
 Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-19
+
+### Added
+
+- AR0127 Roadmap: a silent mode for the coordinator in the channels (9327313)
+
 ## 2026-10-18
 
 ### Added
@@ -32,6 +38,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0124 Roadmap 30: Machines: the list, labels, and SSH checks (05828fd)
 - AR0125 Roadmap 31: Machines: placing a job by labels (5dd1733)
 - AR0126 Roadmap 32: Resources: caps per job (1bde258)
+- AR0140 Roadmap 29: Autopilot (905cc9a)
 - AR0141 Roadmap 33: Resources: caps per feature (2376bf5)
 - AR0142 Roadmap 34: Resources: how many jobs run, from each machine's free resources (3d25315)
 - AR0143 Roadmap 35: Compaction during the day (e91a0df)

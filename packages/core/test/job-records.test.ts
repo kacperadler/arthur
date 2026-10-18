@@ -385,7 +385,7 @@ test("steer with an empty id or an empty text is refused with exit 2 before it a
 test("continue with an empty id or an empty instruction is refused with exit 2; the ended job's record is left as it was", async () => {
 	const { home, jobs, commands } = setup();
 	const job = await worker(jobs, home);
-	assert.deepEqual(await command(commands, "continue", job.id, ""), { code: 2, out: "", err: "arthur continue: an empty id or text\nusage: arthur continue <id> <instruction> [--budget <usd>]" });
-	assert.deepEqual(await command(commands, "continue", "", "Go on."), { code: 2, out: "", err: "arthur continue: an empty id or text\nusage: arthur continue <id> <instruction> [--budget <usd>]" });
+	assert.deepEqual(await command(commands, "continue", job.id, ""), { code: 2, out: "", err: "arthur continue: an empty id or text\nusage: arthur continue <id> <instruction> [--budget <usd>] [--ignore-restart]" });
+	assert.deepEqual(await command(commands, "continue", "", "Go on."), { code: 2, out: "", err: "arthur continue: an empty id or text\nusage: arthur continue <id> <instruction> [--budget <usd>] [--ignore-restart]" });
 	assert.equal(field(home, job.id, "state"), "ended");
 });

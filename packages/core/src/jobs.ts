@@ -50,9 +50,10 @@ export type SpawnRequest = {
 	// A registered machine; left out, the one a plugin's `jobs.place` answers, else `local`. `requires`: the labels it needs there.
 	readonly machine?: string;
 	readonly requires?: Requires;
+	readonly ignoreRestart?: boolean;
 };
 
-// A spawn as `beforeSpawn` checks it: `tickets` holds every `Ticket:` file the task names, as written; `quick` is omp's `--smol`.
+// A spawn as `beforeSpawn` checks it: `tickets` holds every `Ticket:` file the task names, as written; `quick` is omp's `--smol`; `ignoreRestart` its `--ignore-restart` (session's restart guard).
 export type Spawn = {
 	readonly task: string;
 	readonly kind: string;
@@ -64,6 +65,7 @@ export type Spawn = {
 	readonly budgetUsd: number;
 	readonly tickets: readonly string[];
 	readonly machine: string;
+	readonly ignoreRestart: boolean;
 };
 
 // A job as `prepare` gets it; `base` is the commit it starts from, `branch` undefined for a read-only kind; its caps are what a plugin's `jobs.limits` answers.
@@ -109,7 +111,7 @@ export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run
 	prepare(owner: string, fn: Prepare): void;
 	registerMachine(owner: string, machine: Machine): void;
 	// `arthur continue`: resumes an ended job with a branch in place (job-control.ts), `budgetUsd` replacing its budget; resolves to why its wrapper did not start.
-	continue(id: string, instruction: string, budgetUsd?: number): Promise<string | undefined>;
+	continue(id: string, instruction: string, budgetUsd?: number, ignoreRestart?: boolean): Promise<string | undefined>;
 	file(board: Board, id: string, job: string): string;
 	// What `arthur roles` prints: each role, the files it reads in the project's main checkout, and its model.
 	roles(project?: string): RoleView[];
@@ -118,11 +120,9 @@ export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run
 // `folder` is in the repository jobs start from while no plugin provides `projects` (job-checkout.ts); `limits` are the core's `jobs` options
 // and the jobs' slice, `agent` its `agent.command`; `collect` reads what the plugins provide, e.g. a prompt's sections and the project list.
 export function jobRunner(home: string, folder: string, limits: Limits & Slice & { readonly idleMinutes: number; readonly offlineGraceMinutes: number }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
-	const kinds = kindRegistry();
-	const roles = roleRegistry();
+	const [kinds, roles] = [kindRegistry(), roleRegistry()];
 	const where = (project: string | undefined) => checkout(folder, collect("projects", []), project);
-	const checks = spawnChecks(home);
-	const prepares: { readonly owner: string; readonly fn: Prepare }[] = [];
+	const [checks, prepares] = [spawnChecks(home), [] as { readonly owner: string; readonly fn: Prepare }[]];
 	const machines = machineRegistry(home);
 	const upkeep = jobUpkeep(home, time, bus, (job) => collect("jobs.keep", [job]), machines.of);
 	const runner: JobRunner = {
@@ -141,7 +141,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 		run: (machine, argv, limitSeconds) => machines.run(machine, argv, limitSeconds),
 		machines: () => [LOCAL, ...machines.others().map((machine) => machine.name)],
 		roles: (project) => describeRoles(roles, kinds.all(), where(project), collect),
-		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), (spawn) => checks.pass({ ...spawn, tickets: taskTickets(spawn.task) }), machines.of(id)),
+		continue: (id, instruction, budgetUsd, ignoreRestart = false) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), (spawn) => checks.pass({ ...spawn, tickets: taskTickets(spawn.task), ignoreRestart }), machines.of(id)),
 		file: (board, id, job) => fileJob(home, board, (name) => kinds.get(name)?.file, id, job),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
@@ -161,7 +161,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 			const { timeoutMinutes, budgetUsd } = spawnLimits(request, kind, limits);
 			const asked = { task, kind: name, project, model, thinking, quick: preset.quick, timeoutMinutes, budgetUsd, tickets };
 			const machine = await machines.pick(request.machine, request.requires, () => collect("jobs.place", [{ ...asked, machine: request.machine, requires: request.requires }]));
-			const spawn: Spawn = { ...asked, machine: machine.name };
+			const spawn: Spawn = { ...asked, machine: machine.name, ignoreRestart: request.ignoreRestart === true };
 			const caps = await jobCaps(collect("jobs.limits", [spawn]));
 			const release = await checks.pass(spawn);
 			try {

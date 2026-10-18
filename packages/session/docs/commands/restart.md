@@ -2,7 +2,7 @@
 
 Usage: `arthur restart [fresh]`, and on a channel the phone commands `/restart` and `/restart fresh`, answered without the model. Comes with the `session` plugin; the restart itself is `arthur run`'s, so it needs `arthur run` running.
 
-`/restart` ends the coordinator's conversation and starts it again with `--continue`; `/restart fresh` starts a fresh conversation, without `--continue`. Both first ask the coordinator for its handoff, `<home>/session/handoff.md`, and the next conversation starts by reading it (`arthur restart` and the fresh start at night: `packages/session/docs/session.md`):
+`/restart` ends the coordinator's conversation and starts it again with `--continue`; `/restart fresh` starts a fresh conversation, without `--continue`. Only the coordinator's agent restarts, not `arthur run`, so a restart due of the restart guard stays until `arthur run` starts again (`packages/session/docs/session.md`, "The restart guard"). Both first ask the coordinator for its handoff, `<home>/session/handoff.md`, and the next conversation starts by reading it (`arthur restart` and the fresh start at night: `packages/session/docs/session.md`):
 
 1. Refused while any job runs, of any kind: `error: <n> job(s) running: <short ids>; run /stopall first`, exit code 1. Nothing is asked and nothing restarts.
 2. Refused while a restart is already on its way (another `/restart`, or the fresh start's try): `error: a restart is already on its way, asked by /restart` or `..., asked by freshAt <time>`, exit code 1. A compaction still asked for gives way to the restart.

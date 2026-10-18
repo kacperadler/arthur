@@ -196,6 +196,21 @@ test("a disabled plugin is not loaded: not checked, no setup, no folder, its env
 	assert.equal(existsSync(join(loaded.core.home, "signal")), false);
 });
 
+test("host.code holds the core's package folder, then each enabled plugin's package folder beside it; none for a disabled one or one without a package", async () => {
+	const hosts: Host[] = [];
+	const keep = (host: Host) => void hosts.push(host);
+	const loaded = config([
+		fake([], "session", { setup: keep }),
+		fake([], "orchestration", { setup: keep }),
+		fake([], "resources", { options: { enabled: false } }),
+		fake([], "telegram", { setup: keep }),
+	]);
+	await loadPlugins(loaded, {});
+	const packages = join(import.meta.dirname, "..", "..");
+	assert.deepEqual(hosts[0]?.code, ["core", "session", "orchestration"].map((name) => join(packages, name)), "the core, then the plugins in setup order");
+	assert.ok(hosts.every((host) => host.code === hosts[0]?.code), "one list for every plugin");
+});
+
 test("a missing env variable of an enabled plugin refuses the start before any setup", async () => {
 	const ran: string[] = [];
 	const loaded = config([fake(ran, "orchestration"), fake(ran, "telegram", { options: { botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN" } })]);

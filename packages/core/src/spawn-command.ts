@@ -6,7 +6,7 @@ import type { JobRunner, SpawnRequest } from "./jobs.ts";
 // `arthur spawn` (spec/roadmap.md, entries 9, 12, 21 and 31): one job on one task, its id printed. `jobs` throws when the config
 // did not load, since the kinds are what the plugins registered.
 
-const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>] [--timeout <minutes>] [--budget <usd>] [--machine <name>] [--requires <labels>]";
+const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>] [--timeout <minutes>] [--budget <usd>] [--machine <name>] [--requires <labels>] [--ignore-restart]";
 const limit: Check = (value, before) => text(value, before) ?? amount(value, before);
 const labels: Check = (value, before) => text(value, before) ?? (typeof requirement(value ?? "") === "string" ? `needs os=<os>,arch=<arch>,tools=<tool>, each label once but tools, got ${value}` : undefined);
 
@@ -30,14 +30,15 @@ export function spawnCommand(jobs: () => JobRunner): Command {
 	};
 }
 
-// One task and the flags, or what is wrong with them.
+// One task and the flags, or what is wrong with them; `--ignore-restart` is a switch.
 function spawnRequest(args: readonly string[], project: string | undefined): SpawnRequest | string {
-	const parsed = parseFlags(args, { kind: text, model: text, thinking: text, timeout: limit, budget: limit, machine: text, requires: labels });
+	const ignoreRestart = args.includes("--ignore-restart");
+	const parsed = parseFlags(args.filter((arg) => arg !== "--ignore-restart"), { kind: text, model: text, thinking: text, timeout: limit, budget: limit, machine: text, requires: labels });
 	if (typeof parsed === "string") return parsed;
 	const { words: tasks, values: { kind, model, thinking, timeout, budget, machine, requires } } = parsed;
 	if (tasks.length !== 1) return tasks.length === 0 ? "no task" : `one task, quoted; got ${tasks.length} arguments`;
 	const limits = { timeoutMinutes: timeout === undefined ? undefined : Number(timeout), budgetUsd: budget === undefined ? undefined : Number(budget) };
-	return { task: tasks[0] ?? "", kind, model, thinking, project, machine, requires: requires === undefined ? undefined : (requirement(requires) as Requires), ...limits };
+	return { task: tasks[0] ?? "", kind, model, thinking, project, machine, requires: requires === undefined ? undefined : (requirement(requires) as Requires), ignoreRestart, ...limits };
 }
 
 // `os=macos,tools=xcode,tools=docker` as labels: `os` and `arch` at most once, `tools` once per tool; a string when it is not that.

@@ -33,7 +33,7 @@ What works today:
 - The core, roadmap entries 1 to 22, all merged: config and `.env`, the plugin host, events and commands, `arthur run`, jobs on this machine or another one with their time and money limits inside one CPU and memory slice for all jobs, their states, stop, continue and steer, the ticket board, and the env and worktree guards in every job.
 - The coordinator (`@arthur/orchestration`, entries 23 to 27): one `omp` in its own tmux session while `arthur run` runs, started again when it ends; `arthur attach`; `/board`, `/task` and `/findings`; an inbox that wakes it when a job ends and takes a human's message mid-turn; its context on every turn (`arthur coordinator context`): its role, each project's vision and board, the jobs not ended by state, the time; a `notice` for the channels when a job asks the owner a question; `maxAgents` across all projects, and each role's model.
 - The project list (`@arthur/projects`, entry 41): every project in `arthur.config.ts`, `--project <name>` on any command, and each new worktree's dependencies installed.
-- The machine list (`@arthur/machines`, entry 30): the other machines jobs run on, with their labels, each checked over SSH at start and every `check.everySeconds` (private address, `arthur version`, os and arch against its labels), `machine-online` and `machine-offline` on each change, and `arthur machines`.
+- The machines (`@arthur/machines`, entries 30 and 31): the other machines jobs run on, with their labels, each checked over SSH at start and every `check.everySeconds` (private address, `arthur version`, os and arch against its labels), `machine-online` and `machine-offline` on each change, and `arthur machines`; each job placed on a machine with the labels it needs (`arthur spawn --requires`, else its ticket's, else its project's), online and under its `maxJobs`, with the fewest jobs.
 
 What is next:
 
@@ -66,7 +66,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | projects: the project list and each worktree's install; onboarding a repository | in progress, 1 of 2 entries | 41 built; 42 |
 | session: compaction, fresh start, restart guard, start notice | planned | 35 to 38 |
 | schedule: actions and jobs at set times | planned | 39, 40 |
-| machines: the list, labels and SSH checks, `arthur machines`; placing each job by labels | in progress, 1 of 2 entries | 30 built; 31 |
+| machines: the list, labels and SSH checks, `arthur machines`; placing each job by labels | built | 30, 31 |
 | resources: caps per job and per feature, free CPU, memory and disk | in progress, 1 of 4 entries | 32 built; 33, 34, 69 |
 | models: providers on other machines, a fallback chain | planned | 82 |
 | docker: labels, cleanup with each worktree, the leftover sweep | planned | 70 to 72 |
@@ -202,7 +202,7 @@ flowchart TD
         projects ~~~ nvm ~~~ commit ~~~ findings
       end
       subgraph RES[Machines and resources]
-        machines[machines<br/>list, labels, SSH checks<br/>1 of 2 entries]
+        machines[machines<br/>list, labels, SSH checks<br/>places each job by labels]
         resources[resources<br/>caps, free CPU, disk<br/>1 of 4 entries]
         models[models<br/>providers, fallback chain]
         docker[docker<br/>labels, cleanup, sweep]
@@ -278,8 +278,8 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit built;
-  class lpartial,orchestration,projects,machines,resources partial;
+  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,machines built;
+  class lpartial,orchestration,projects,resources partial;
   class lplanned,telegram,voice,corelater,agents,session,schedule,nvm,commit,findings,models,docker,delivery,github,youtrack,manage,develop,signal,discord,slack,whatsapp,server,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl outside;
   style larrows fill:#fff,stroke:#999,color:#000

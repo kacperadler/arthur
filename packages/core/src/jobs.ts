@@ -7,7 +7,7 @@ import { addWorktree, branchExists, fileAt, head, removeWorktree } from "./git.t
 import { checkout, checkouts } from "./job-checkout.ts";
 import { checkLimits, type Limits, spawnLimits } from "./job-limits.ts";
 import { continueJob } from "./job-control.ts";
-import { addThere, LOCAL, type Machine, machineRegistry, type Ran, reach, removeThere } from "./job-machine.ts";
+import { addThere, LOCAL, type Machine, machineRegistry, type Ran, reach, removeThere, type Requires } from "./job-machine.ts";
 import { newJob, writeRecord } from "./job-record.ts";
 import { type JobRecord, jobUpkeep } from "./job-records.ts";
 import { launchThere, syncMachines } from "./machine-sync.ts";
@@ -43,8 +43,9 @@ export type SpawnRequest = {
 	readonly thinking?: string;
 	readonly timeoutMinutes?: number;
 	readonly budgetUsd?: number;
-	// A registered machine; left out, the one a plugin's `jobs.place` answers, else `local`.
+	// A registered machine; left out, the one a plugin's `jobs.place` answers, else `local`. `requires`: the labels it needs there.
 	readonly machine?: string;
+	readonly requires?: Requires;
 };
 
 // A spawn as `beforeSpawn` checks it: `tickets` holds every `Ticket:` file the task names, as written; `quick` is omp's `--smol`.
@@ -160,7 +161,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 			const { task, model = preset.model, thinking = preset.thinking } = request;
 			const { timeoutMinutes, budgetUsd } = spawnLimits(request, kind, limits);
 			const asked = { task, kind: name, project, model, thinking, quick: preset.quick, timeoutMinutes, budgetUsd, tickets };
-			const machine = await machines.pick(request.machine, () => collect("jobs.place", [asked]));
+			const machine = await machines.pick(request.machine, request.requires, () => collect("jobs.place", [{ ...asked, machine: request.machine, requires: request.requires }]));
 			const spawn: Spawn = { ...asked, machine: machine.name };
 			const release = await checks.pass(spawn);
 			try {
@@ -185,9 +186,8 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 					rmSync(join(home, "jobs", job.id), { recursive: true, force: true });
 					throw new Error(`${error instanceof Error ? error.message : String(error)}; the job's worktree and record were removed`);
 				}
-				const { id, kind: kindName, branch, worktree } = job;
-				bus.emit("core", "job-started", { id, kind: kindName, project, root, branch, worktree, tickets, machine: machine.name });
-				const failed = there === undefined ? await launch(home, job, agent, limits, bus) : launchThere(home, machine, id, agent, limits.slice, bus);
+				bus.emit("core", "job-started", { id: job.id, kind: name, project, root, branch: job.branch, worktree: job.worktree, tickets, machine: machine.name });
+				const failed = there === undefined ? await launch(home, job, agent, limits, bus) : launchThere(home, machine, job.id, agent, limits.slice, bus);
 				return { ...job, warnings, failed };
 			} finally {
 				release();

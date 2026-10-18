@@ -8,7 +8,7 @@ import { readEvents } from "../src/event-log.ts";
 import { fakeAgent, temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
-const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>] [--timeout <minutes>] [--budget <usd>] [--machine <name>]";
+const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>] [--timeout <minutes>] [--budget <usd>] [--machine <name>] [--requires <labels>]";
 
 // A plugin as a config holds it: it owns the kind `review` and its role, refuses a task that says "refuse", places a file in
 // every new worktree, failing on a task that says "break", and provides the repository as the one project, prefix AC.
@@ -123,6 +123,7 @@ test("refusals print the reason, exit 1 and leave no record, worktree or branch"
 		[["Ticket: spec/features/AC0001-one/new.md"], `Ticket: spec/features/AC0001-one/new.md: no such file at HEAD (${head}); commit it first`],
 		[["Go.", "--project", "other"], "unknown project other; projects: acme"],
 		[["Now break."], "plugin orchestration: prepare failed: no hook; the job's worktree and record were removed"],
+		[["Go.", "--requires", "os=macos"], "requires: no plugin places jobs by labels (jobs.place); the machines plugin does"],
 	] as const) {
 		const run = arthur(root, "spawn", ...args);
 		assert.deepEqual([run.status, run.stdout, run.stderr], [1, "", `arthur spawn: ${reason}\n`], args.join(" "));
@@ -148,11 +149,22 @@ test("wrong usage prints the usage line and exits 2", () => {
 		[["Go.", "--model", ""], "--model needs a value"],
 		[["Go.", "--kind", "--model", "m"], "--kind needs a value"],
 		[["Go.", "--model", "a", "--model", "b"], "--model given twice"],
+		...["os=macos,os=linux", "arch=x64,arch=arm64", "gpu=yes", "os=", "os=mac os", "os=macos,", "tools"].map((labels) => [["Go.", "--requires", labels], `--requires needs os=<os>,arch=<arch>,tools=<tool>, each label once but tools, got ${labels}`] as const),
 	] as const) {
 		const run = arthur(root, "spawn", ...args);
 		assert.deepEqual([run.status, run.stdout, run.stderr], [2, "", `arthur spawn: ${problem}\n${USAGE}\n`], args.join(" "));
 	}
 	assert.deepEqual(jobs(root), []);
+});
+
+test("--requires reaches jobs.place as labels, tools once per tool, with the machine the spawn names", () => {
+	const place = 'host.provide("jobs.place", (asked) => (writeFileSync(import.meta.dirname + "/asked.json", JSON.stringify([asked.requires, asked.machine ?? null])), "local"));\n';
+	const root = repository(CONFIG.replace("\thost.provide(", `\t${place}\thost.provide(`));
+	const run = arthur(root, "spawn", "--kind", "review", "Go.", "--requires", "tools=xcode,os=macos,tools=docker,arch=arm64");
+	assert.equal(run.status, 0, run.stderr);
+	assert.deepEqual(JSON.parse(readFileSync(join(root, "asked.json"), "utf8")), [{ os: "macos", arch: "arm64", tools: ["xcode", "docker"] }, null]);
+	assert.equal(arthur(root, "spawn", "--kind", "review", "Go.", "--machine", "local").status, 0);
+	assert.deepEqual(JSON.parse(readFileSync(join(root, "asked.json"), "utf8")), [null, "local"], "a named machine is asked about too");
 });
 
 test("a config that does not load refuses the spawn with the reason", () => {

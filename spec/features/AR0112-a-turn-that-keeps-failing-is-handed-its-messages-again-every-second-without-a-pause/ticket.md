@@ -25,6 +25,7 @@ Evidence:
 ## Done means
 
 - The fix, with a test that proves it: wait longer before each redelivery of the same message (doubling from 5 s, at most 5 min), and tell the owner once by `notice` after a few failed turns. Out: the first redelivery, which stays quick.
+- a new owner message that arrives during the wait ends it: the queued messages and the new one go at the next tick, with a test
 - `npm test` and `npm run check` pass.
 
 ## Scope
@@ -36,4 +37,5 @@ In:
 
 - 2026-10-17: Source: F2 of AR0084
 - 2026-10-18: The owner approved it.
-- 2026-10-18: The orchestration line budget rises by 6, to 696 (worker): the wait and its notice add 6 lines to a package already at its budget of 690.
+- 2026-10-18: The orchestration line budget rises by 7, to 697 (worker): the wait, its notice, and a new owner message ending it add 7 lines to a package already at its budget of 690.
+- 2026-10-18: The owner: a new owner message ends the wait at once (F1)

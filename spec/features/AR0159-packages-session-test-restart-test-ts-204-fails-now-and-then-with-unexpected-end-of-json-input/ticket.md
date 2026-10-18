@@ -4,7 +4,10 @@
 {
   "id": "AR0159",
   "title": "packages/session/test/restart.test.ts:204 fails now and then with \"Unexpected end of JSON input\"",
-  "date": "2026-10-19"
+  "date": "2026-10-19",
+  "after": [
+    "AR0153"
+  ]
 }
 ```
 
@@ -36,3 +39,4 @@ In:
 ## Decisions
 
 - 2026-10-19: Source: F1 of AR0127
+- 2026-10-19: Pre-approved by policy (h ticket status --autopilot)

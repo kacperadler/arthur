@@ -17,7 +17,8 @@ async function until(what: string, holds: () => boolean, ms = 20_000): Promise<v
 	for (const deadline = Date.now() + ms; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
 }
 
-const lines = (file: string): Record<string, unknown>[] => (existsSync(file) ? readFileSync(file, "utf8").trim().split("\n").map((line) => JSON.parse(line)) : []);
+// The fake agent appends each line as it goes, so a read can catch the file created but its line not yet written: whole lines only.
+const lines = (file: string): Record<string, unknown>[] => (existsSync(file) ? readFileSync(file, "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line)) : []);
 
 // The plugin on a fake host in Warsaw at `now`, started as `arthur run` starts it, its printed lines caught; the test provides
 // orchestration's `coordinator.restart`, which notes `fresh` and ends every coordinator started, as killing its session does.
@@ -94,6 +95,7 @@ test("at freshAt with no job running the coordinator writes its handoff, the con
 	assert.deepEqual(box.notices(), [], "no notice before the next coordinator is up");
 	const second = box.coordinator({ steps: [{ prompt: true }, { message: "Going on." }, { end: true }, { waitFor: box.gate("never") }] }, []);
 	await second.up();
+	await until("the handoff read", () => second.messages().length > 0);
 	assert.deepEqual(second.messages(), [{ content: read(box.handoff, HANDOFF), options: { attribution: "agent" }, step: -1 }], "its first turn reads the handoff");
 	await until("the notice", () => box.notices().length === 1);
 	assert.deepEqual(box.notices(), ["Restarted. (fresh session)"]);
@@ -257,8 +259,10 @@ test("at a start only a handoff newer than the last one read is read, and an emp
 	writeFileSync(box.handoff, `${HANDOFF}\n`);
 	const newer = box.coordinator(quiet);
 	await newer.up();
+	await until("the handoff read", () => newer.messages().length > 0);
 	assert.deepEqual(newer.messages().map((message) => message.content), [read(box.handoff, HANDOFF)]);
-	assert.equal(readFileSync(join(box.folder, "handoff-read"), "utf8"), String(statSync(box.handoff).mtimeMs), "noted as read");
+	// The extension notes it as read just after it sends it.
+	await until("the handoff noted as read", () => readFileSync(join(box.folder, "handoff-read"), "utf8") === String(statSync(box.handoff).mtimeMs));
 	const next = box.coordinator(quiet);
 	await next.up();
 	await sleep(300);
@@ -321,6 +325,7 @@ test("/restart with a coordinator: the handoff first, the restart goes on with -
 	assert.deepEqual(box.out, ["session: restart: done; the coordinator restarts, which starts by reading the handoff"]);
 	const second = box.coordinator({ steps: [{ prompt: true }, { message: "Going on." }, { end: true }, { waitFor: box.gate("never") }] });
 	await second.up();
+	await until("the handoff read", () => second.messages().length > 0);
 	assert.deepEqual(second.messages().map((message) => message.content), [read(box.handoff, HANDOFF)], "the handoff, and never the command's message");
 	await until("the notice", () => box.notices().length === 1);
 	const health = "Health:\n- main not pushed for 2 h\n- github: CI token missing\n- test: health failed: no repository";

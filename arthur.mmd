@@ -1,6 +1,6 @@
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-18.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22 are merged; orchestration has entries 23 to 27 of 23-29 and 65; projects has entry 41 of 41-42; machines has entry 30 of 30-31; resources has entry 32 of 32-34 and 69; session has entry 35 of 35-38; no other plugin exists yet.
+%% Core entries 1-22 are merged; orchestration has entries 23 to 27 of 23-29 and 65; projects has entry 41 of 41-42; machines has entry 30 of 30-31; resources has entries 32 and 33 of 32-34 and 69; session has entry 35 of 35-38; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the discord and slack channels.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -61,7 +61,7 @@ flowchart TD
       end
       subgraph RES[Machines and resources]
         machines[machines<br/>list, labels, SSH checks<br/>places each job by labels]
-        resources[resources<br/>caps, free CPU, disk<br/>1 of 4 entries]
+        resources[resources<br/>caps, free CPU, disk<br/>2 of 4 entries]
         models[models<br/>providers, fallback chain]
         docker[docker<br/>labels, cleanup, sweep]
         machines ~~~ resources ~~~ models ~~~ docker

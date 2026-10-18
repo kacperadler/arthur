@@ -35,3 +35,4 @@ Out:
 ## Decisions
 
 - 2026-10-18: The owner asked for a night plan for Arthur with Claude 7 Day usage up to 75%; entry 38 is next in order (depends on 36, merged).
+- 2026-10-19: Coordinator (owner delegated Arthur calls): session 539 -> 691 (+152: start-notice.ts, turn-extension.ts, credential.ts, session.ts) accepted; every start = every arthur run start; the probe runs alongside the start, cut at a fixed 60 s; 'coordinator up' = the model answered; a failed turn reaches the channels through turn-failed/ files, older ones dropped; the credential redaction rules as listed: accepted.

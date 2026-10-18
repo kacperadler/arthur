@@ -68,7 +68,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | session: compaction, fresh start, `/restart`, restart guard, start notice | in progress, 2 of 4 entries | 35, 36 built; 37, 38 |
 | schedule: actions and jobs at set times | planned | 39, 40 |
 | machines: the list, labels and SSH checks, `arthur machines`; placing each job by labels | built | 30, 31 |
-| resources: caps per job and per feature, free CPU, memory and disk | in progress, 2 of 4 entries | 32, 33 built; 34, 69 |
+| resources: caps per job and per feature, free CPU, memory and disk | in progress, 3 of 4 entries | 32 to 34 built; 69 |
 | models: providers on other machines, a fallback chain | planned | 82 |
 | docker: labels, cleanup with each worktree, the leftover sweep | planned | 70 to 72 |
 | nvm: each project's Node version | planned | 84 |
@@ -109,7 +109,7 @@ The commands that exist today, one line each; `arthur <command> --help` prints i
 - `arthur projects` (`/projects`, projects): every project, its folder, its open tickets and its install.
 - `arthur machines` (`/machines`, machines): every machine, its labels, online or why not, and its jobs.
 - `arthur restart [fresh]` (`/restart`, session): restarts the coordinator after its handoff, with `--continue` or, with `fresh`, in a new conversation; refused while a job runs.
-- `arthur resources <ticket>` (resources): what all jobs of one ticket spent against its caps per feature.
+- `arthur resources [<ticket>]` (`/resources`, resources): each machine's room for more jobs from its free CPU and memory; with a ticket, what all its jobs spent against its caps per feature.
 
 ## Try it
 
@@ -145,7 +145,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-18.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22 are merged; orchestration has entries 23 to 28 of 23-29 and 65; projects has entry 41 of 41-42; machines has entry 30 of 30-31; resources has entries 32 and 33 of 32-34 and 69; session has entries 35 and 36 of 35-38; no other plugin exists yet.
+%% Core entries 1-22 are merged; orchestration has entries 23 to 28 of 23-29 and 65; projects has entry 41 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 and 36 of 35-38; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the discord and slack channels.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -206,7 +206,7 @@ flowchart TD
       end
       subgraph RES[Machines and resources]
         machines[machines<br/>list, labels, SSH checks<br/>places each job by labels]
-        resources[resources<br/>caps, free CPU, disk<br/>2 of 4 entries]
+        resources[resources<br/>caps, free CPU, disk<br/>3 of 4 entries]
         models[models<br/>providers, fallback chain]
         docker[docker<br/>labels, cleanup, sweep]
         machines ~~~ resources ~~~ models ~~~ docker

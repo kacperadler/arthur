@@ -43,7 +43,10 @@ import { checkStructure } from "./structure.ts";
 // AR0144 (roadmap 36): the fresh start at `freshAt`, `/restart` and `/restart fresh`, the handoff read at every start and the
 // `Restarted.` notice, session 240 more (453); orchestration 11 more (903 alone; 1024 + 11 = 1035 merged with AR0123) for `coordinator.restart` and the start without
 // `--continue` after it, which the session plugin needs and cannot do itself.
-const BUDGETS = { core: 4850, "core/testing": 340, projects: 320, orchestration: 1035, machines: 375, resources: 231, session: 453 };
+// AR0142 (roadmap 34): how many jobs run from each machine's free CPU and memory; core 2 more (4852 merged) for `host.jobs.machines()`,
+// the list of registered machines a plugin had no way to read; resources 170 more (401) for `keepFree`, the check of each
+// machine kept per machine, the room, `resources.free`, the spawn check, the context lines and `arthur resources`/`/resources`.
+const BUDGETS = { core: 4852, "core/testing": 340, projects: 320, orchestration: 1035, machines: 375, resources: 401, session: 453 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

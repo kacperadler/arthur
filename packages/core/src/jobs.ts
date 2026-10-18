@@ -81,12 +81,12 @@ export type Jobs = RoleReads & {
 	// A role whose prompt this plugin ships; its kinds name it.
 	registerRole(role: Role): void;
 	beforeSpawn(check: SpawnCheck): void;
-	// Runs after the worktree and the record exist and before the agent starts; a throw removes both and refuses the spawn. It
-	// runs in this process: for a job on another machine (`job.machine`) it acts there through `run`.
+	// After the worktree and the record exist, before the agent starts; a throw removes both and refuses the spawn; it runs here, on another machine through `run`.
 	prepare(fn: Prepare): void;
-	// A machine jobs may run on over SSH (job-machine.ts); `local` is the core's. `run`: one command on one (docs/commands/spawn.md).
+	// Machines jobs run on over SSH, `local` the core's; `run`: one command on one; `machines`: every name (docs/commands/spawn.md).
 	registerMachine(machine: Machine): void;
 	run(machine: string, argv: readonly string[], limitSeconds?: number): Promise<Ran>;
+	machines(): string[];
 	spawn(request: SpawnRequest): Promise<Started>;
 	// Holds a job in a run `blocked` on `dependency: <reason>` until `unblock`; `stop`: stops it too, on `user: <reason>` (docs/commands/jobs.md).
 	block(id: string, reason: string, stop?: boolean): Promise<unknown>;
@@ -102,7 +102,7 @@ export type Jobs = RoleReads & {
 };
 
 // The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for.
-export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run" | "prompt" | "vision"> & {
+export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run" | "machines" | "prompt" | "vision"> & {
 	registerKind(owner: string, kind: Kind): void;
 	registerRole(owner: string, role: Role): void;
 	beforeSpawn(owner: string, check: SpawnCheck): void;
@@ -115,9 +115,8 @@ export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run
 	roles(project?: string): RoleView[];
 };
 
-// `folder` is in the repository jobs start from while no plugin provides `projects` (job-checkout.ts); `limits` are the core's
-// `jobs` options and the jobs' slice, `agent` its `agent.command`; `collect` reads what the plugins provide, e.g. the sections
-// of a prompt (`prompt`) and the project list (`projects`).
+// `folder` is in the repository jobs start from while no plugin provides `projects` (job-checkout.ts); `limits` are the core's `jobs` options
+// and the jobs' slice, `agent` its `agent.command`; `collect` reads what the plugins provide, e.g. a prompt's sections and the project list.
 export function jobRunner(home: string, folder: string, limits: Limits & Slice & { readonly idleMinutes: number; readonly offlineGraceMinutes: number }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
 	const kinds = kindRegistry();
 	const roles = roleRegistry();
@@ -140,6 +139,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 		prepare: (owner, fn) => void prepares.push({ owner, fn }),
 		registerMachine: (owner, machine) => machines.register(owner, machine),
 		run: (machine, argv, limitSeconds) => machines.run(machine, argv, limitSeconds),
+		machines: () => [LOCAL, ...machines.others().map((machine) => machine.name)],
 		roles: (project) => describeRoles(roles, kinds.all(), where(project), collect),
 		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), (spawn) => checks.pass({ ...spawn, tickets: taskTickets(spawn.task) }), machines.of(id)),
 		file: (board, id, job) => fileJob(home, board, (name) => kinds.get(name)?.file, id, job),

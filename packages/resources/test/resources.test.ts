@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { availableParallelism } from "node:os";
+import os, { availableParallelism } from "node:os";
+import { syncBuiltinESMExports } from "node:module";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -38,9 +39,9 @@ test("a per-job cap above the joint core.jobs.cpu or core.jobs.memory is refused
 });
 
 test("options it does not take, and values systemd would refuse, are refused at load", async () => {
-	const given = { perJob: { cpu: 0, memory: "4 GB", disk: "1G" }, keepFree: { cpu: 1 } } as unknown as ResourcesOptions;
+	const given = { perJob: { cpu: 0, memory: "4 GB", disk: "1G" }, keepDisk: "20G" } as unknown as ResourcesOptions;
 	assert.deepEqual(await check(given), [
-		{ path: "keepFree", problem: "unknown option; options: perJob, perFeature" },
+		{ path: "keepDisk", problem: "unknown option; options: perJob, perFeature, keepFree" },
 		{ path: "perJob.disk", problem: "unknown key; keys: cpu, memory" },
 		{ path: "perJob.cpu", problem: "expected a number of cores above 0, got 0" },
 		{ path: "perJob.memory", problem: 'expected systemd MemoryMax syntax such as "4G", "25%" or "infinity", got "4 GB"' },
@@ -52,7 +53,7 @@ test("options it does not take, and values systemd would refuse, are refused at 
 test("jobs.limits answers perJob's caps for every job, and nothing for one left out", async () => {
 	const capped = fakeHost({ name: "resources", options: { perJob: { cpu: 2, memory: "4G" } } });
 	await capped.setup(resources({ perJob: { cpu: 2, memory: "4G" } }));
-	assert.deepEqual(capped.provided, ["jobs.limits"]);
+	assert.deepEqual(capped.provided, ["jobs.limits", "resources.free", "coordinator.context"]);
 	assert.deepEqual(capped.call("jobs.limits", { task: "Go.", machine: "local", tickets: [] }), { cpu: 2, memory: "4G" });
 	const bare = fakeHost({ name: "resources", options: { perJob: { memory: "1G" } } });
 	await bare.setup(resources({ perJob: { memory: "1G" } }));
@@ -72,6 +73,14 @@ test("a job spawned with the plugin gets its caps on its own scope, in the test 
 	t.after(() => void (process.env.PATH = saved));
 	process.env.PATH = [dirname(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] })), saved].join(delimiter);
 	const options = { perJob: { cpu: 1.5, memory: "512M" } };
+	// Room for the job on this host however busy it is: no load, 64 GB free.
+	t.mock.method(os, "loadavg", () => [0, 0, 0]);
+	t.mock.method(os, "freemem", () => 64 * 2 ** 30);
+	syncBuiltinESMExports();
+	t.after(() => {
+		t.mock.restoreAll();
+		syncBuiltinESMExports();
+	});
 	const fake = fakeHost({ name: "resources", options, root });
 	await fake.setup(resources(options));
 	const job = await fake.host.jobs.spawn({ task: "Go." });

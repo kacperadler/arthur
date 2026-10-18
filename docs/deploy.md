@@ -10,7 +10,7 @@ A job can run on another machine, such as a Mac for an iOS build (`arthur spawn 
 
 1. Node 24, git and OMP, logged in with its own credential (`omp login` there), as in steps 2 and 3 of [`setup.md`](setup.md).
 2. Arthur's core of the same version as here: clone and `npm ci` as in step 4 of [`setup.md`](setup.md), at the same commit, without a config. `arthur version` prints the version; both machines must print the same, or every spawn there is refused naming both. Update it there with every update here.
-3. `node`, `omp`, `git` and `arthur` on the `PATH` of a command run over SSH, which reads no profile and returns early from Ubuntu's `~/.bashrc`: put the `PATH` line at the top of `~/.bashrc` there, before its `case $- in` line, not at its end.
+3. `node`, `omp`, `git` and `arthur` on the `PATH` of a command run over SSH, which reads no profile and returns early from Ubuntu's `~/.bashrc`: put the `PATH` line at the top of `~/.bashrc` there, before its `case $- in` line, not at its end. The `resources` plugin reads the machine's free CPU and memory with `node -e` over SSH.
 4. From this host, as Arthur's user: a key the machine accepts (`ssh-copy-id <host>`), and its host key known, accepted once by hand. Then this prints the same version as `arthur version` here, without asking anything:
 
 ```sh
@@ -32,7 +32,7 @@ Arthur exposes nothing to the internet: no port, no webhook. Every plugin calls 
 - A channel is a shell. The coordinator acts on what the allowed Telegram chat sends (`telegram`, entry 47), so whoever holds that account holds the VPS. Turn on Telegram's two-step verification.
 - Secrets stay in the env file (`core.envFile`) and in the process that needs them. The env guard (entry 19) refuses a tool call of a job or of the coordinator that names a secrets file; a program a job runs can still read any file you can.
 - A job's edits stay in its own worktree: the worktree guard (entry 20) refuses a write into the main checkout, `.arthur/`, another job's worktree, or another project's main checkout or its jobs' worktrees. It parses commands, so it keeps honest mistakes apart; it is not a sandbox. It does not refuse the git commands that rewrite the repository every worktree shares, `git gc`, `prune`, `repack`, `reflog expire`, `maintenance run` and `config`, nor a ref a job moves or deletes from its own worktree.
-- Limits: time and money per job (entry 12), one joint CPU and memory limit for all jobs (entry 13), so jobs cannot starve the coordinator, and with the `resources` plugin each job's own CPU and memory (entry 32), so one job cannot take all of it.
+- Limits: time and money per job (entry 12), one joint CPU and memory limit for all jobs (entry 13), so jobs cannot starve the coordinator, and with the `resources` plugin each job's own CPU and memory (entry 32), so one job cannot take all of it, and a new job only on a machine whose free CPU and memory keep `keepFree` after the job's reservation (entry 34).
 - Nothing limits the network, and nothing confines reads.
 - Text from outside (an issue, a comment, a message from someone else) that reaches a job can steer it with all of the above. Give each client, or anything you do not screen, its own Linux user with its own Arthur.
 - `/stopall` (entry 15) stops every running job without the model.

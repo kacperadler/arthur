@@ -1,6 +1,6 @@
 # arthur spawn
 
-Usage: `arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>] [--timeout <minutes>] [--budget <usd>] [--machine <name>] [--requires <labels>]`
+Usage: `arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>] [--timeout <minutes>] [--budget <usd>] [--machine <name>] [--requires <labels>] [--ignore-restart]`
 
 Starts a job on the task, given as one quoted argument, and prints its id, `<date>-<kind>-<8 hex digits>` (the date in `core.timeZone`), for example `2026-10-16-worker-b046ca2a`. The job starts from HEAD of the repository that holds `arthur.config.ts`; uncommitted changes there stay where they are and are not in the job.
 
@@ -10,6 +10,7 @@ Starts a job on the task, given as one quoted argument, and prints its id, `<dat
 - `--machine <name>`: the machine the job runs on, `local` or one a plugin registered with `host.jobs.registerMachine` (below). Left out, the machine a plugin's `jobs.place` answers when one provides it (the `machines` plugin places each job by labels: `arthur machines --help`), else `local`. A plugin's `jobs.place` is asked about a named machine too and may refuse it, as `machines` refuses one without the labels the job needs; a named machine wins over what it answers. A plugin's `host.jobs.spawn` takes it as `machine`.
 - `--requires <labels>`: the machine labels the job needs, such as `os=macos,tools=xcode`: `os` and `arch` at most once each, `tools` once per tool (`tools=xcode,tools=docker`), no spaces. They replace the ones of the job's ticket and project; how they are read is `arthur machines --help`. A plugin's `host.jobs.spawn` takes them as `requires`, `{ os?, arch?, tools? }`. Without a plugin that provides `jobs.place` the spawn is refused before anything exists: `requires: no plugin places jobs by labels (jobs.place); the machines plugin does`.
 - `--project <name>`: the project, a name in the list of the `projects` plugin (`arthur projects --help`); the job starts from HEAD of that project's folder, and left out, of the first project in the list, the main one. An unknown name is refused, naming the projects (`unknown project <name>; projects: <names>`). Without the projects plugin, the only project is the repository of the folder Arthur runs in, named by its folder.
+- `--ignore-restart`: a switch, no value; the `beforeSpawn` checks get it as `ignoreRestart: true`. The session plugin's restart guard then lets this one job start while a restart is due (`refused by session: restart due: ...`; `packages/session/docs/session.md`, "The restart guard"). Every other check still applies.
 
 What it makes:
 

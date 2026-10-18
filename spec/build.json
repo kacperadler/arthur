@@ -1231,9 +1231,9 @@
   {
     "id": "AR0153",
     "title": "Roadmap 37: Restart guard",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0153-roadmap-37-restart-guard/ticket.md",
-    "updated": "2026-10-18T22:32:32.257Z"
+    "updated": "2026-10-18T22:45:18.425Z"
   },
   {
     "id": "AR0154",
@@ -1282,5 +1282,19 @@
     "after": [
       "AR0153"
     ]
+  },
+  {
+    "id": "AR0160",
+    "title": "`/restart` cannot clear a restart due, since it restarts only the coordinator's agent",
+    "status": "planning",
+    "path": "spec/features/AR0160-restart-cannot-clear-a-restart-due-since-it-restarts-only-the-coordinator-s-agent/ticket.md",
+    "updated": "2026-10-18T22:45:18.421Z"
+  },
+  {
+    "id": "AR0161",
+    "title": "`host.code` finds a plugin's package by its name, not by the module the config imported",
+    "status": "planning",
+    "path": "spec/features/AR0161-host-code-finds-a-plugin-s-package-by-its-name-not-by-the-module-the-config-imported/ticket.md",
+    "updated": "2026-10-18T22:45:18.423Z"
   }
 ]

@@ -1131,9 +1131,9 @@
   {
     "id": "AR0140",
     "title": "Roadmap 29: Autopilot",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0140-roadmap-29-autopilot/ticket.md",
-    "updated": "2026-10-18T20:51:00.174Z",
+    "updated": "2026-10-18T21:14:54.468Z",
     "after": [
       "AR0123"
     ]
@@ -1165,9 +1165,9 @@
   {
     "id": "AR0144",
     "title": "Roadmap 36: Fresh start, /restart and /restart fresh",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0144-roadmap-36-fresh-start-restart-and-restart-fresh/ticket.md",
-    "updated": "2026-10-18T21:03:12.146Z",
+    "updated": "2026-10-18T21:14:59.553Z",
     "after": [
       "AR0143"
     ]

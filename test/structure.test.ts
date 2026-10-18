@@ -55,10 +55,13 @@ import { checkStructure } from "./structure.ts";
 // context line and `restartGuard`.
 // AR0158 (roadmap 39): schedule entries and the sweep, schedule: 277, for the entries' checks and slots, the claims of the run
 // state and the sweep; core unchanged.
+// AR0157 (roadmap 38): the start notice and the LLM probe; session 152 more (691) for the probe of the coordinator's model,
+// the notice at every start, the turn extension that leaves each coordinator turn failed before any text, its notice, and the
+// redaction of a credential in either.
 // AR0163 (roadmap 40): registered entries and `arthur schedule`, schedule 220 more (497), for `schedule.register` with its own
 // procedure rule (register.ts), the file's entries read and changed under a lock (entry-file.ts) and `arthur schedule
 // add|list|remove` (schedule-command.ts); core unchanged but for `@arthur/core/lock` in its exports.
-const BUDGETS = { core: 4873, "core/testing": 340, projects: 320, orchestration: 1146, machines: 375, resources: 401, session: 539, schedule: 497 };
+const BUDGETS = { core: 4873, "core/testing": 340, projects: 320, orchestration: 1146, machines: 375, resources: 401, session: 691, schedule: 497 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

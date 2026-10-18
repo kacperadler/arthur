@@ -1259,9 +1259,9 @@
   {
     "id": "AR0157",
     "title": "Roadmap 38: Start notice and LLM probe",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0157-roadmap-38-start-notice-and-llm-probe/ticket.md",
-    "updated": "2026-10-18T22:45:40.714Z",
+    "updated": "2026-10-18T23:36:58.640Z",
     "after": [
       "AR0153"
     ]
@@ -1276,9 +1276,9 @@
   {
     "id": "AR0159",
     "title": "packages/session/test/restart.test.ts:204 fails now and then with \"Unexpected end of JSON input\"",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0159-packages-session-test-restart-test-ts-204-fails-now-and-then-with-unexpected-end-of-json-input/ticket.md",
-    "updated": "2026-10-18T22:45:40.065Z",
+    "updated": "2026-10-18T23:17:19.013Z",
     "after": [
       "AR0153"
     ]
@@ -1307,8 +1307,29 @@
   {
     "id": "AR0163",
     "title": "Roadmap 40: Registered entries and arthur schedule",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0163-roadmap-40-registered-entries-and-arthur-schedule/ticket.md",
-    "updated": "2026-10-18T23:00:26.398Z"
+    "updated": "2026-10-18T23:37:24.570Z"
+  },
+  {
+    "id": "AR0164",
+    "title": "The inbox's notice after 3 unanswered turns repeats omp's error unredacted",
+    "status": "planning",
+    "path": "spec/features/AR0164-the-inbox-s-notice-after-3-unanswered-turns-repeats-omp-s-error-unredacted/ticket.md",
+    "updated": "2026-10-18T23:36:58.635Z"
+  },
+  {
+    "id": "AR0165",
+    "title": "A provider outage sends a `turn failed` notice at every retry of the inbox",
+    "status": "planning",
+    "path": "spec/features/AR0165-a-provider-outage-sends-a-turn-failed-notice-at-every-retry-of-the-inbox/ticket.md",
+    "updated": "2026-10-18T23:36:58.637Z"
+  },
+  {
+    "id": "AR0166",
+    "title": "Roadmap 80: arthur doctor, checked at every start",
+    "status": "in-progress",
+    "path": "spec/features/AR0166-roadmap-80-arthur-doctor-checked-at-every-start/ticket.md",
+    "updated": "2026-10-18T23:37:24.421Z"
   }
 ]

@@ -60,7 +60,7 @@ How the flaky tests were found: `npm test` run 6 at a time on a 7-core machine (
 - Where: `packages/orchestration/test/inbox.test.ts:173` ("several messages while idle, each within a second of the last, are one turn, in order")
 - What: the test sends four messages 300 ms apart and expects one turn; the inbox extension hands the queue over once it has not grown for `SETTLE_MS` (1 s) by `Date.now()` in the agent's process (`packages/orchestration/src/inbox-extension.ts:143`). A test process stalled for 700 ms between two messages would see them split into two turns. It passed every one of the 20 orchestration runs under load and the 6 full loaded runs; the gap cannot be held open from the test, since the extension reads the real clock.
 - Suggestion: give the extension's clock a test seam (the fake agent could pass one in), so the test moves time instead of sleeping; that touches production code, out of AR0136's scope.
-- Status: open
+- Status: ticket AR0137
 
 ## F7. The daemon test expects one order of two processes' lines in a shared log
 
@@ -70,3 +70,14 @@ How the flaky tests were found: `npm test` run 6 at a time on a 7-core machine (
 - What: failing assertion `assert.equal(log(), [...].join("\n"))`, in 1 of the 24 loaded runs of fed4c7c: the command's own line `<pid c> pinged 4 c` came after the daemon's `<daemon> pinged 4 c` and `<daemon> ponged 5`, not before them. Cause: a command's `emit` appends the event to the log and only then delivers it to its own subscribers (`packages/core/src/events.ts:71-79`, as its comment says), while `arthur run` follows the log every 500 ms; a command process held up between the two lets the daemon log first. Production promises no order between two processes' handlers; only the test assumed one. Reproduced every time by holding the command's own subscriber 1.5 s (`Atomics.wait` in the test's config, outside the daemon): the old test fails with that diff, the new one passes.
 - Suggestion: check the daemon's lines in order with the commands' own lines left out, and each command's own line once, after the start and before the next command's event reaches the daemon.
 - Status: fixed in bf9f6a5
+
+## F8. A coordinator Decisions line was committed on the worker's branch
+
+- Status: dropped (the coordinator recorded its own proof run there because the worker's budget ran out; nothing to change)
+- Source: review-1.md
+
+## F9. `limits.test.ts` reads `line[1] ?? ""` into `Date.parse`
+
+- Status: dropped (the capture is always filled by `toISOString()`; review-1 calls it unreachable)
+- Source: review-1.md
+

@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/orchestration/src/inbox-extension.ts` (`tick`, the `Date.now() < resume` check)
 - What: while the messages of failed turns wait (5 s doubling to 5 min), a message the owner sends meanwhile is queued and goes only when the wait ends, together with them, since an idle turn always hands every waiting message with the new ones. After a model outage that has just ended, the owner's "are you there?" can sit for up to 5 min. The wait lives in the extension's process, so a restart of the coordinator ends it.
 - Suggestion: decide whether a new owner message (one with a channel) should end the wait and start a turn at once with the waiting ones; a job's end and a schedule message keep waiting.
-- Status: open
+- Status: fixed in 95f524d (the owner decided 2026-10-18: a new owner message ends the wait at once)

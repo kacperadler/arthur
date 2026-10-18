@@ -37,3 +37,4 @@ Out:
 ## Decisions
 
 - 2026-10-18: The owner asked whether Arthur's setup covers Tailscale; it does not; proposed by the coordinator, waits for approval.
+- 2026-10-18: The owner approved it.

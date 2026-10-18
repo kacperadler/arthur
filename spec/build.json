@@ -1008,7 +1008,7 @@
     "title": "Roadmap 28: Planning of large tickets",
     "status": "done",
     "path": "spec/features/AR0123-roadmap-28-planning-of-large-tickets/ticket.md",
-    "updated": "2026-10-18T20:15:06.385Z",
+    "updated": "2026-10-18T20:46:57.187Z",
     "after": [
       "AR0120"
     ]
@@ -1148,9 +1148,9 @@
   {
     "id": "AR0142",
     "title": "Roadmap 34: Resources: how many jobs run, from each machine's free resources",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0142-roadmap-34-resources-how-many-jobs-run-from-each-machine-s-free-resources/ticket.md",
-    "updated": "2026-10-18T19:34:25.623Z",
+    "updated": "2026-10-18T20:28:20.928Z",
     "after": [
       "AR0141"
     ]

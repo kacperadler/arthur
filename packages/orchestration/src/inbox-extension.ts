@@ -13,7 +13,7 @@ type Context = {
 	readonly ui: { setStatus(key: string, text: string | undefined): void };
 	setInterval(fn: () => void, ms: number): unknown;
 };
-type Said = { readonly role?: string; readonly stopReason?: string; readonly content?: readonly { readonly type?: string; readonly text?: string }[] };
+type Said = { readonly role?: string; readonly stopReason?: string; readonly errorMessage?: string; readonly content?: readonly { readonly type?: string; readonly text?: string }[] };
 type Continuation = { continue: true; additionalContext: string } | undefined;
 type ExtensionApi = {
 	on(event: "session_start" | "agent_start" | "tool_result", handler: (event: unknown, ctx: Context) => void): void;
@@ -32,6 +32,9 @@ const UNANSWERED = "sent before; its turn ended without a reply";
 const AGAIN = "Your reply above has not been sent; write one reply that answers this together with everything your reply above answered.";
 const ARTHUR = "The lines marked [Arthur] come from Arthur (a job's end, a schedule), not from the owner.";
 
+// The wait before the messages of the `failed`th turn in a row without a reply go again: none the first time, then 5 s doubling, at most 5 min.
+export const pause = (failed: number) => (failed < 2 ? 0 : Math.min(5000 * 2 ** (failed - 2), 300_000));
+
 export default function inbox(pi: ExtensionApi): void {
 	const folder = process.env.ARTHUR_ORCHESTRATION_FOLDER ?? "";
 	if (folder === "") return;
@@ -49,7 +52,7 @@ export default function inbox(pi: ExtensionApi): void {
 	const waiting = new Map<string, string>();
 	// A turn runs: from a hand-over or `agent_start` to the `agent_end` that does not continue.
 	let [live, started] = [false, false];
-	let [failures, written, since] = [0, 0, 0];
+	let [failures, written, since, unanswered, resume] = [0, 0, 0, 0, 0];
 	let [queued, shown] = ["", ""];
 
 	const write = (entry: object) => {
@@ -99,7 +102,7 @@ export default function inbox(pi: ExtensionApi): void {
 		if (live || !ctx.isIdle()) return;
 		const names = numbers(QUEUED);
 		if (names.join() !== queued) [queued, since] = [names.join(), Date.now()];
-		if (waiting.size === 0 && (names.length === 0 || Date.now() - since < SETTLE_MS)) return;
+		if (Date.now() < resume || (waiting.size === 0 && (names.length === 0 || Date.now() - since < SETTLE_MS))) return;
 		live = hand([...waiting.keys(), ...claim(false)].sort((a, b) => Number(a) - Number(b)), "", false);
 	};
 	// The numbers a reply in `box` answers; a reply moved on meanwhile is read in the next box.
@@ -159,8 +162,11 @@ export default function inbox(pi: ExtensionApi): void {
 		const last = event.messages?.at(-1);
 		if (last?.role !== "assistant" || ["error", "aborted", "toolUse"].includes(last.stopReason ?? "")) {
 			for (const name of turn) waiting.set(name, UNANSWERED);
+			resume = Date.now() + pause(++unanswered);
+			if (unanswered === 3) write({ notice: `the coordinator's last 3 turns ended without a reply (${[last?.stopReason, last?.errorMessage].filter(Boolean).join(": ") || "no reply"}); their messages go again in 10 s, then after twice as long each time, at most 5 min` });
 			return;
 		}
+		[unanswered, resume] = [0, 0];
 		const text = (last.content ?? []).flatMap((block) => (block.type === "text" ? [block.text ?? ""] : [])).join("\n");
 		const channels = [...new Set(turn.flatMap((name) => read(TURN, name).channel ?? []))];
 		write({ text, answers: turn.map(Number), channels });

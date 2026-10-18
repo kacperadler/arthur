@@ -186,7 +186,33 @@ sudo systemctl daemon-reload
 cat "/sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).service/cgroup.controllers"
 ```
 
-## 11. The coordinator
+## 11. Other machines (optional): Tailscale
+
+Jobs on other machines ([deploy.md](deploy.md#another-machine-for-jobs), roadmap entry 30), model providers on them (82) and the panel (77) reach them over Tailscale, a private network. Only those need this step: a single VPS needs none of it, so skip it.
+
+On the VPS and on each other machine, as that machine's user:
+
+```sh
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+```
+
+`tailscale up` prints a login URL: open it and sign in to the same account on every machine. In the Tailscale admin console, turn on MagicDNS (the DNS page), so each machine answers to its name, such as `mac`. Then, on the VPS, add each other machine to `~/.ssh/config` by that name, with the user it has there:
+
+```
+Host mac
+  User <user>
+```
+
+Repeat the `Host` block for each machine. The key must already be accepted there: if `ssh mac true` asks for a password, copy the key with `ssh-copy-id mac`, as in step 4 of [Another machine for jobs](deploy.md#another-machine-for-jobs).
+
+**Check:** `ssh <name> true` exits 0 without a password prompt, for each machine in `~/.ssh/config`:
+
+```sh
+ssh mac true
+```
+
+## 12. The coordinator
 
 `arthur run` starts the coordinator, one `omp` in its own tmux session (roadmap entry 23). Talk to it from the terminal:
 
@@ -198,13 +224,13 @@ Detach with `Ctrl-b d`; the coordinator goes on.
 
 **Check:** `arthur attach` opens the coordinator's `omp` session. When none runs, it says `arthur attach: no coordinator: tmux session <session> (socket <socket>) is not running; arthur run starts it`: go back to step 9.
 
-## 12. A channel
+## 13. A channel
 
-Not built yet (roadmap entries 47 to 50): Telegram, which lets you talk to the coordinator from your phone. Until then the terminal of step 11 is the only way in.
+Not built yet (roadmap entries 47 to 50): Telegram, which lets you talk to the coordinator from your phone. Until then the terminal of step 12 is the only way in.
 
 **Check:** none yet.
 
-## 13. Check everything with `arthur doctor`
+## 14. Check everything with `arthur doctor`
 
 Not built yet (roadmap entry 80). It is the last step of the install, and the first thing to run after an update or a reboot that went wrong:
 
@@ -218,9 +244,9 @@ Until then, run the checks of steps 2, 8 and 9 by hand.
 
 **Check:** no line of `arthur doctor` says `missing`. Today it answers `arthur: unknown command doctor`.
 
-## 14. What is there and what is missing: `arthur setup`
+## 15. What is there and what is missing: `arthur setup`
 
-Not built yet (roadmap entry 94). One command that runs the checks above and walks you through each missing step: the tools it finds (git, Node, omp, ssh, tmux, Docker, ffmpeg, whisper-cli) with their versions; each plugin, `on` or `off`, with its options set and not set and its env variables `set` or `missing`, never a value; `arthur doctor`'s lines; every plugin you could still add to `arthur.config.ts`, with each of its options and what it means; and the next steps, numbered, each with its fix. It writes nothing and installs nothing; run it again after each fix.
+Not built yet (roadmap entry 94). One command that runs the checks above and walks you through each missing step: the tools it finds (git, Node, omp, ssh, tmux, Docker, ffmpeg, whisper-cli, Tailscale) with their versions; each plugin, `on` or `off`, with its options set and not set and its env variables `set` or `missing`, never a value; `arthur doctor`'s lines; every plugin you could still add to `arthur.config.ts`, with each of its options and what it means; and the next steps, numbered, each with its fix. It writes nothing and installs nothing; run it again after each fix.
 
 Until then, run each step's Check on this page.
 

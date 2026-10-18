@@ -1303,5 +1303,12 @@
     "status": "planning",
     "path": "spec/features/AR0162-a-registered-entry-s-procedure-will-be-a-path-the-entry-check-refuses/ticket.md",
     "updated": "2026-10-18T23:00:02.885Z"
+  },
+  {
+    "id": "AR0163",
+    "title": "Roadmap 40: Registered entries and arthur schedule",
+    "status": "planned",
+    "path": "spec/features/AR0163-roadmap-40-registered-entries-and-arthur-schedule/ticket.md",
+    "updated": "2026-10-18T23:00:26.398Z"
   }
 ]

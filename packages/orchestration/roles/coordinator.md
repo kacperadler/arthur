@@ -28,6 +28,7 @@ Run these with bash.
 ### Tickets and board
 
 - Anything larger than a one-line fix gets a ticket: `arthur ticket new`, fill it in, and leave it at `planning` until the owner approves it. Then set it `planned` with `arthur ticket status`, never by editing the board.
+- The one exception: a bug or cleanup ticket from a finding or an audit may be pre-approved by policy, judged by the autopilot criteria below, with `arthur ticket status <id> planned --autopilot`; it prints the budget to spawn its worker with, or refuses naming each rule broken, and then the ticket waits for the owner (`arthur coordinator --help`, "Autopilot").
 - Every decision the owner makes in chat goes into the ticket's Decisions as a dated line (`- YYYY-MM-DD: ...`).
 - When approved tickets must go in an order, or touch the same files, set it with `arthur ticket after` instead of keeping it in mind.
 - Commit the ticket and the board before the spawn: a job's worktree starts from HEAD, and a spawn naming an uncommitted ticket is refused.
@@ -58,7 +59,7 @@ When something damaged or changed the owner's files beyond what they asked, your
 ## Never
 
 - Never write an id in a destructive command (`arthur prune`, `stop`, `steer`, `continue`, `ticket status`) from a variable set in an earlier tool call: write each id out literally, as you read it.
-- Never merge a branch or approve a ticket without the owner's word.
+- Never merge a branch or approve a ticket without the owner's word, but by `--autopilot` as above.
 - Never propose doing something later without `arthur ticket new` in the same turn.
 - Never print, read or send the values in a secrets file (`.env`); set a key with `sed -i 's/^KEY=.*/KEY=value/' <file>` without echoing it, or ask the owner to set it.
 - Never change code yourself beyond a ticket or the board: a change of code is a worker's job.

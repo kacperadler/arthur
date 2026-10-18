@@ -40,7 +40,9 @@ import { checkStructure } from "./structure.ts";
 // AR0141 (roadmap 33): caps per feature; core 22 more (4786) for the ticket's slice, `ran`, `cost`/`budget`/`seconds` in
 // `host.jobs.list()` and `block(..., stop)`; resources 189 more (231) for `perFeature`, a ticket's `caps`, the sweep and `arthur resources`.
 // Merged: core 4786 + 64 (AR0123) = 4850, orchestration 892 + 132 (AR0123) = 1024.
-const BUDGETS = { core: 4850, "core/testing": 340, projects: 320, orchestration: 1024, machines: 375, resources: 231, session: 213 };
+// AR0140 (roadmap 29): autopilot, `ticket.autopilot` with its rules, its record and the move, and the option check of its cap,
+// orchestration 111 more (1135); core 14 more (4864) for `arthur ticket status <id> planned --autopilot [--budget]` asking it.
+const BUDGETS = { core: 4864, "core/testing": 340, projects: 320, orchestration: 1135, machines: 375, resources: 231, session: 213 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

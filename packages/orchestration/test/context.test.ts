@@ -30,10 +30,11 @@ function repository(files: Readonly<Record<string, string>>): string {
 const board = (...titles: string[]) =>
 	JSON.stringify(titles.map((title, index) => ({ id: `DM000${index + 1}`, title, status: "planning", path: `spec/features/DM000${index + 1}-x/ticket.md`, updated: "2026-10-01T00:00:00.000Z" })));
 
-// The main project `demo` (DM) with its vision, styleguide, override of the role and board; `shop` (SH) with none of them.
+// The main project `demo` (DM) with its vision, styleguide and autopilot criteria, override of the role and board; `shop` (SH) with none of them.
 const DEMO = {
 	"spec/vision.md": "# Demo\n\nA demo shop.\n",
 	".agents/arthur/criteria/styleguide.md": "# Styleguide\n\nSmall files.\n",
+	".agents/arthur/criteria/autopilot.md": "# Autopilot\n\nOnly typos.\n",
 	".agents/arthur/roles/coordinator.md": "Answer in Polish.\n",
 	"spec/build.json": board("First"),
 };
@@ -74,6 +75,7 @@ test("the context: the role with the main project's override and criteria, each 
 			ROLE,
 			"## Project override, which wins over the role above (.agents/arthur/roles/coordinator.md)\n\nAnswer in Polish.",
 			"## Styleguide (.agents/arthur/criteria/styleguide.md)\n\n# Styleguide\n\nSmall files.",
+			"## Autopilot (.agents/arthur/criteria/autopilot.md)\n\n# Autopilot\n\nOnly typos.",
 			"## Vision of demo (spec/vision.md)\n\n# Demo\n\nA demo shop.",
 			"## Warnings\n\n- project shop has no vision: spec/vision.md is missing; the coordinator goes without it",
 			"## Board of demo\n\nDM0001 planning    First",
@@ -137,6 +139,7 @@ test("arthur roles lists the coordinator, the plugin it is from, its model and t
 				`  role     ${ROLE_FILE}`,
 				"  override .agents/arthur/roles/coordinator.md",
 				"  criteria .agents/arthur/criteria/styleguide.md",
+				"  criteria .agents/arthur/criteria/autopilot.md",
 			].join("\n"),
 		),
 		run.stdout,

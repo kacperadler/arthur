@@ -1,6 +1,7 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
+import { autopilot } from "./autopilot.ts";
 import { blockedNotice } from "./blocked-notice.ts";
 import { boardCommands } from "./board-commands.ts";
 import { coordinatorContext } from "./context.ts";
@@ -14,7 +15,8 @@ import { spawnRules } from "./spawn-rules.ts";
 // `arthur run`; its inbox (entry 24, inbox.ts); its role and its context on every turn (entry 25, context.ts); `arthur attach`
 // and `arthur coordinator stop|context`, docs/commands/coordinator.md and attach.md; the board's phone commands `/board`, `/task`,
 // `/findings` and `/plan` (board-commands.ts); `maxAgents` and each role's model (entry 26, spawn-rules.ts); the notice of a job
-// blocked on the owner (entry 27, blocked-notice.ts); and the planning of large tickets (entry 28, plans.ts).
+// blocked on the owner (entry 27, blocked-notice.ts); the planning of large tickets (entry 28, plans.ts); and autopilot (entry 29,
+// autopilot.ts).
 
 export type OrchestrationOptions = {
 	readonly enabled?: boolean;
@@ -49,8 +51,9 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			blockedNotice(host);
 			spawnRules(host, coordinator);
 			plans(host);
+			autopilot(host);
 			// Read like every role, with the project's override and criteria; no kind spawns it, `arthur run` starts it.
-			host.jobs.registerRole({ name: "coordinator", file: new URL("../roles/coordinator.md", import.meta.url), criteria: ["styleguide"] });
+			host.jobs.registerRole({ name: "coordinator", file: new URL("../roles/coordinator.md", import.meta.url), criteria: ["styleguide", "autopilot"] });
 			const where = `tmux session ${coordinator.session} (socket ${coordinator.socket})`;
 			host.commands.register({
 				name: "attach",

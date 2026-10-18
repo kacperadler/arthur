@@ -1269,9 +1269,9 @@
   {
     "id": "AR0158",
     "title": "Roadmap 39: Schedule entries and the sweep",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0158-roadmap-39-schedule-entries-and-the-sweep/ticket.md",
-    "updated": "2026-10-18T22:56:16.472Z"
+    "updated": "2026-10-18T23:00:02.888Z"
   },
   {
     "id": "AR0159",
@@ -1296,5 +1296,12 @@
     "status": "planning",
     "path": "spec/features/AR0161-host-code-finds-a-plugin-s-package-by-its-name-not-by-the-module-the-config-imported/ticket.md",
     "updated": "2026-10-18T22:45:18.423Z"
+  },
+  {
+    "id": "AR0162",
+    "title": "A registered entry's procedure will be a path the entry check refuses",
+    "status": "planning",
+    "path": "spec/features/AR0162-a-registered-entry-s-procedure-will-be-a-path-the-entry-check-refuses/ticket.md",
+    "updated": "2026-10-18T23:00:02.885Z"
   }
 ]

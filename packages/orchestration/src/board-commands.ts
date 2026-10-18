@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
 
-// `/board`, `/task` and `/findings`, also as `arthur <name>`: docs/commands/board.md, task.md and findings.md.
+// `/board`, `/task`, `/findings` and `/plan`, also as `arthur <name>`: docs/commands/board.md, task.md, findings.md and plan.md.
 
 type Board = Host["board"];
 type Command = Parameters<Host["commands"]["register"]>[0];
@@ -21,6 +21,7 @@ export function boardCommands(host: Host): Command[] {
 		command("board", "[PREFIX] [all]", "the board, or its digest when it does not fit one message; all: every ticket", (words, project) => boardReply(board, words, project)),
 		command("task", "<id>", "a ticket's status and its ticket.md: /task 14, /task AR14", (words, project) => fileReply(board, words, project, "ticket.md", jobs)),
 		command("findings", "<id>", "a ticket's findings.md: /findings 14, /findings AR14", (words, project) => fileReply(board, words, project, "findings.md", jobs)),
+		command("plan", "<id>", "a ticket's status and its plan.md: /plan 14, /plan AR14", (words, project) => fileReply(board, words, project, "plan.md", jobs)),
 	];
 }
 
@@ -49,7 +50,7 @@ function boardReply(board: Board, words: readonly string[], project: string | un
 	return all || full.length <= MESSAGE ? full : board.digest(name);
 }
 
-function fileReply(board: Board, words: readonly string[], project: string | undefined, file: "ticket.md" | "findings.md", jobs: Host["jobs"]): string | undefined {
+function fileReply(board: Board, words: readonly string[], project: string | undefined, file: "ticket.md" | "findings.md" | "plan.md", jobs: Host["jobs"]): string | undefined {
 	const [, letters = "", digits] = /^([a-z]*)(\d+)$/i.exec(words.length === 1 ? (words[0] ?? "") : "") ?? [];
 	if (digits === undefined) return undefined;
 	const projects = board.projects();
@@ -66,6 +67,7 @@ function fileReply(board: Board, words: readonly string[], project: string | und
 		if (file === "ticket.md" || (error as NodeJS.ErrnoException).code !== "ENOENT") throw new Error(`${id}: cannot read ${path}: ${(error as Error).message}`);
 	}
 	if (file === "ticket.md") return `${id} ${ticket.status}\n${text}`;
+	if (file === "plan.md") return text === undefined ? `${id}: no plan (${path} does not exist)` : `${id} ${ticket.status}\n${text}`;
 	const branch = branchFindings(jobs, where.name, where.path, ticket.path, path, text);
 	if (branch !== undefined) return `findings from branch ${branch.name} (not merged)\n${branch.text}`;
 	if (text === undefined) return `${id}: no findings (${path} does not exist)`;

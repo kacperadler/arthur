@@ -31,15 +31,22 @@ import { checkStructure } from "./structure.ts";
 // `oom` events, or `ps` samples without a scope) and the once-per-machine notice: core 102 more (4751); resources: 42.
 // AR0125 (roadmap 31): placing a job by labels (`--requires`, a ticket's, a project's), machines 95 more (375); core 13 more
 // (4764) for `arthur spawn --requires` and `jobs.place` asked about every spawn, main's core being at its 4751 after AR0126.
+// AR0123 (roadmap 28): planning of large tickets, the kinds plan and plan-review with their filing, the plan guard on a worker
+// and `/plan`, orchestration 132 more; core 64 more for `arthur ticket file`, `host.jobs.file` and a kind's `file`
+// (ticket-file.ts), and the kinds' registry moved out of jobs.ts (job-kinds.ts) to keep that file under 200 lines.
 // AR0143 (roadmap 35): compaction during the day; orchestration 17 more (892) to load another plugin's OMP extension into the
 // coordinator's agent (`coordinator.extension`), which the session plugin needs and cannot add itself; session: 213; the fake
 // agent's `ctx.compact` and `hasPendingMessages`, core/testing within its budget (335).
 // AR0141 (roadmap 33): caps per feature; core 22 more (4786) for the ticket's slice, `ran`, `cost`/`budget`/`seconds` in
 // `host.jobs.list()` and `block(..., stop)`; resources 189 more (231) for `perFeature`, a ticket's `caps`, the sweep and `arthur resources`.
-// AR0142 (roadmap 34): how many jobs run from each machine's free CPU and memory; core 2 more (4788) for `host.jobs.machines()`,
+// Merged: core 4786 + 64 (AR0123) = 4850, orchestration 892 + 132 (AR0123) = 1024.
+// AR0144 (roadmap 36): the fresh start at `freshAt`, `/restart` and `/restart fresh`, the handoff read at every start and the
+// `Restarted.` notice, session 240 more (453); orchestration 11 more (903 alone; 1024 + 11 = 1035 merged with AR0123) for `coordinator.restart` and the start without
+// `--continue` after it, which the session plugin needs and cannot do itself.
+// AR0142 (roadmap 34): how many jobs run from each machine's free CPU and memory; core 2 more (4852 merged) for `host.jobs.machines()`,
 // the list of registered machines a plugin had no way to read; resources 170 more (401) for `keepFree`, the check of each
 // machine kept per machine, the room, `resources.free`, the spawn check, the context lines and `arthur resources`/`/resources`.
-const BUDGETS = { core: 4788, "core/testing": 340, projects: 320, orchestration: 892, machines: 375, resources: 401, session: 213 };
+const BUDGETS = { core: 4852, "core/testing": 340, projects: 320, orchestration: 1035, machines: 375, resources: 401, session: 453 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

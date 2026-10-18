@@ -20,8 +20,7 @@ export type Ran = { readonly code: number | null; readonly stdout: string; reado
 const OPTIONS = ["-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes", "-o", "ConnectTimeout=10"];
 const HOST = /^[A-Za-z0-9_][A-Za-z0-9_.@-]*$/;
 const quote = (word: string) => `'${word.replaceAll("'", `'\\''`)}'`;
-// A machine's name, and a kind's (jobs.ts).
-export const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
+const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 export const LOCAL = "local";
 
 // The version both ends must share: a hash of the core's source files, so two checkouts of one commit agree.

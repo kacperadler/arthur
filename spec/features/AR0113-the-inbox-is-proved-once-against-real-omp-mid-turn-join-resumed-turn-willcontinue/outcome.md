@@ -9,8 +9,6 @@
 
 - `smoke.md`: the transcript of one live run against omp 18.3.0: a message joins after a tool call, a reply is resumed through `session_stop`, `agent_end.willContinue` is set, and a subagent never takes the inbox. No code changed.
 
-- docs(AR0113): live omp smoke of the inbox, all three behaviours seen
-- docs(AR0113): smoke transcript in smoke.md, outcome.md is the merge's
 
 ## Checks on main
 

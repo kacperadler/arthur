@@ -40,3 +40,5 @@ In:
 - 2026-10-17: Source: F1 of AR0084
 - 2026-10-18: The owner approved it.
 - 2026-10-18: Runs after AR0112, which changes the same inbox redelivery code.
+- 2026-10-18: The orchestration line budget rises by 21, to 718 (worker): the watchdog in `tick`, its shared notice, and the turn's end moved into one function that the watchdog also calls for an `agent_end` that says the turn goes on and starts none.
+- 2026-10-18: Coordinator (owner delegated Arthur calls): the 30 s idle limit is accepted (it outlasts a `/compact` typed in the pane, measured 17 s); the watchdog also covers an `agent_end` that says the turn goes on and starts none (measured against real omp); budget 718 accepted.

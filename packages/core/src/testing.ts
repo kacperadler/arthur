@@ -39,24 +39,24 @@ export function temporaryFolder(): string {
 	return mkdtempSync(join(root, "folder-"));
 }
 
-// A scripted run of the fake agent: its `steps`, played in order, then its `exitCode` (default 0); its extensions' first
-// `failSends` messages throw. A step: `tool`, a tool call, omp's start and end events of it, `output` the tool's text and
-// `failed` its error flag. `message`: an assistant message that ends a turn, with its `cost` in USD; `stopReason` `stop` (the
-// default) ends the run, `toolUse` comes before a tool call, `error` or `aborted` is a failed one, with omp's `error` text.
-// `prompt`: a turn of an interactive session starts (`agent_start`) once an extension sent a message while idle; `end`: it
-// ends (`agent_end`) unless a `session_stop` handler continues it, 8 times in a row at most. `stdout`, `stderr`: one line
-// printed as it is. `waitFor`: waits until the file exists. `signal`: the fake kills itself with it.
+// A scripted run of the fake agent: its `steps`, played in order, then its `exitCode` (default 0); its extensions' first `failSends`
+// messages throw, and the next `dropSends` sent while idle are lost with no turn (omp's prompt failing after it returned). A step:
+// `tool`, a tool call, omp's start and end events of it, `output` the tool's text and `failed` its error flag. `message`: an assistant
+// message that ends a turn, with its `cost` in USD; `stopReason` `stop` (the default) ends the run, `toolUse` comes before a tool call,
+// `error` or `aborted` a failed one, with omp's `error` text. `prompt`: a turn starts (`agent_start`) once an extension sent a message while
+// idle, busy `compactMs` first (omp's compaction before it); `end`: it ends (`agent_end`) unless a `session_stop` handler continues it (8 in a
+// row at most) or, with `continues`, says it goes on and starts none (omp's compaction after it). `stdout`/`stderr`: one line. `waitFor`: until the file exists. `signal`: kills itself with it.
 export type AgentStep =
 	| { readonly tool: string; readonly args?: Readonly<Record<string, unknown>>; readonly output?: string; readonly failed?: boolean }
 	| { readonly message: string; readonly cost?: number; readonly stopReason?: "stop" | "toolUse" | "error" | "aborted"; readonly error?: string }
-	| { readonly prompt: true }
-	| { readonly end: true }
+	| { readonly prompt: true; readonly compactMs?: number }
+	| { readonly end: true; readonly continues?: true }
 	| { readonly stdout: string }
 	| { readonly stderr: string }
 	| { readonly waitFor: string }
 	| { readonly signal: NodeJS.Signals };
 
-export type AgentRun = { readonly steps: readonly AgentStep[]; readonly exitCode?: number; readonly failSends?: number };
+export type AgentRun = { readonly steps: readonly AgentStep[]; readonly exitCode?: number; readonly failSends?: number; readonly dropSends?: number };
 
 // The fake agent: an executable `omp` in a new folder of the kit's, which plays `run` each time it starts, notes each start
 // (`pid`, `cwd`, `args`) in `starts.jsonl` beside it, each message its `-e` extensions send (`content`, `options`, `step`) in

@@ -14,11 +14,12 @@ type Context = {
 	setInterval(fn: () => void, ms: number): unknown;
 };
 type Said = { readonly role?: string; readonly stopReason?: string; readonly errorMessage?: string; readonly content?: readonly { readonly type?: string; readonly text?: string }[] };
+type Ended = { readonly messages?: readonly Said[]; readonly willContinue?: boolean };
 type Continuation = { continue: true; additionalContext: string } | undefined;
 type ExtensionApi = {
 	on(event: "session_start" | "agent_start" | "tool_result", handler: (event: unknown, ctx: Context) => void): void;
 	on(event: "session_stop", handler: (event: unknown, ctx: Context) => Continuation): void;
-	on(event: "agent_end", handler: (event: { readonly messages?: readonly Said[]; readonly willContinue?: boolean }, ctx: Context) => void): void;
+	on(event: "agent_end", handler: (event: Ended, ctx: Context) => void): void;
 	sendUserMessage(content: string, options?: { readonly deliverAs?: "aside"; readonly attribution?: "agent" }): void;
 };
 
@@ -27,6 +28,11 @@ const TICK_MS = 500;
 // While idle, a turn starts once the queue has not grown for this long, so a burst of messages is one turn.
 const SETTLE_MS = 1000;
 const KEEP_MS = 7 * 24 * 3_600_000;
+// omp 18.3.0 catches a hand-over's failed prompt itself (No API key, ...): a hand-over, or an `agent_end` that says the turn
+// goes on, followed by no `agent_start` while omp is idle this long failed, or ended the turn (a compaction after the turn
+// that does not go on). Measured against omp: it is busy through a compaction before the prompt, however long, and idle
+// through a `/compact` typed in its pane, which a hand-over waits for.
+const QUIET_MS = 30_000;
 const RESTART = "sent before a restart; no reply to it was sent";
 const UNANSWERED = "sent before; its turn ended without a reply";
 const AGAIN = "Your reply above has not been sent; write one reply that answers this together with everything your reply above answered.";
@@ -48,11 +54,13 @@ export default function inbox(pi: ExtensionApi): void {
 	// Handed to the agent in the running turn; those of them given to the last `session_stop`, taken only if the turn goes on.
 	let handed: string[] = [];
 	let resumed: string[] = [];
-	// In `turn/` but not handed (a failed hand-over, a restart, a turn that ended without a reply), each with its mark.
+	// In `turn/` but not in a turn that started (a failed hand-over, a restart, a turn that ended without a reply), with its mark.
 	const waiting = new Map<string, string>();
-	// A turn runs: from a hand-over or `agent_start` to the `agent_end` that does not continue.
+	// A turn runs: from a hand-over or `agent_start` to the `agent_end` that does not continue, or to `QUIET_MS` idle since a
+	// hand-over or an `agent_end` that continues (`ended`) with no `agent_start` (`quiet`, its time; 0 once one came).
 	let [live, started] = [false, false];
-	let [failures, written, since, unanswered, resume] = [0, 0, 0, 0, 0];
+	let [failures, written, since, unanswered, resume, quiet] = [0, 0, 0, 0, 0, 0];
+	let ended: Ended | undefined;
 	let [queued, shown] = ["", ""];
 
 	const write = (entry: object) => {
@@ -78,7 +86,11 @@ export default function inbox(pi: ExtensionApi): void {
 		const human = messages.some((message) => message.channel !== undefined);
 		return { content: [...lines, ...(messages.every((message) => message.channel !== undefined) ? [] : [ARTHUR])].join("\n\n"), human };
 	};
-	// Hands `names`, in `turn/`, to the agent; a throw keeps them waiting for the next tick, and the third in a row is told once.
+	// The third hand-over in a row that fails, at once or with no turn, is told once.
+	const failed = (count: number, why: string) => {
+		if (++failures === 3) write({ notice: `the coordinator's inbox could not hand ${count} message(s) to the agent 3 times in a row (${why}); it keeps trying` });
+	};
+	// Hands `names`, in `turn/`, to the agent; a throw keeps them waiting for the next tick.
 	const hand = (names: readonly string[], mark: string, aside: boolean): boolean => {
 		if (names.length === 0) return false;
 		const { content, human } = compose(names, mark);
@@ -86,25 +98,51 @@ export default function inbox(pi: ExtensionApi): void {
 			pi.sendUserMessage(content, aside ? { deliverAs: "aside" } : human ? undefined : { attribution: "agent" });
 		} catch (error) {
 			for (const name of names) waiting.set(name, waiting.get(name) ?? "");
-			const why = error instanceof Error ? error.message : String(error);
-			if (++failures === 3) write({ notice: `the coordinator's inbox could not hand ${names.length} message(s) to the agent 3 times in a row (${why}); it keeps trying every ${TICK_MS / 1000} s` });
+			failed(names.length, error instanceof Error ? error.message : String(error));
 			return false;
 		}
-		failures = 0;
-		for (const name of names) waiting.delete(name);
 		handed.push(...names);
 		return true;
+	};
+	// The turn's end: its reply written and its messages answered, or, with none, its messages waiting to go again.
+	const end = (event: Ended) => {
+		// A continuation omp did not take (past its cap of 8 in a turn, or the turn aborted): its messages are the next turn.
+		for (const name of resumed) waiting.set(name, "");
+		const turn = handed.filter((name) => !resumed.includes(name));
+		[live, handed, resumed, quiet, ended] = [false, [], [], 0, undefined];
+		if (turn.length === 0) return;
+		const last = event.messages?.at(-1);
+		if (last?.role !== "assistant" || ["error", "aborted", "toolUse"].includes(last.stopReason ?? "")) {
+			for (const name of turn) waiting.set(name, UNANSWERED);
+			resume = Date.now() + pause(++unanswered);
+			if (unanswered === 3) write({ notice: `the coordinator's last 3 turns ended without a reply (${[last?.stopReason, last?.errorMessage].filter(Boolean).join(": ") || "no reply"}); their messages go again in 10 s, then after twice as long each time, at most 5 min` });
+			return;
+		}
+		[unanswered, resume] = [0, 0];
+		const text = (last.content ?? []).flatMap((block) => (block.type === "text" ? [block.text ?? ""] : [])).join("\n");
+		const channels = [...new Set(turn.flatMap((name) => read(TURN, name).channel ?? []))];
+		write({ text, answers: turn.map(Number), channels });
+		for (const name of turn) move(name, TURN, ANSWERED);
 	};
 	const tick = (ctx: Context) => {
 		const footer = existsSync(path("footer")) ? readFileSync(path("footer"), "utf8") : "";
 		if (footer !== shown) ctx.ui.setStatus("arthur", footer === "" ? undefined : footer);
 		shown = footer;
+		if (live && quiet !== 0 && ctx.isIdle() && Date.now() - quiet >= QUIET_MS) {
+			if (ended !== undefined) end(ended);
+			else {
+				for (const name of handed) waiting.set(name, waiting.get(name) ?? "");
+				failed(handed.length, `no turn started within ${QUIET_MS / 1000} s`);
+				[live, handed, quiet] = [false, [], 0];
+			}
+		}
 		if (live || !ctx.isIdle()) return;
 		const names = numbers(QUEUED);
 		if (names.join() !== queued) [queued, since] = [names.join(), Date.now()];
 		if (Date.now() < resume && names.some((name) => read(QUEUED, name).channel !== undefined)) resume = 0;
 		if (Date.now() < resume || (waiting.size === 0 && (names.length === 0 || Date.now() - since < SETTLE_MS))) return;
 		live = hand([...waiting.keys(), ...claim(false)].sort((a, b) => Number(a) - Number(b)), "", false);
+		quiet = live ? Date.now() : 0;
 	};
 	// The numbers a reply in `box` answers; a reply moved on meanwhile is read in the next box.
 	const replied = (box: string) =>
@@ -133,7 +171,9 @@ export default function inbox(pi: ExtensionApi): void {
 		ctx.setInterval(() => tick(ctx), TICK_MS);
 	});
 	pi.on("agent_start", (_event, ctx) => {
-		if (ctx.hasUI) live = true;
+		if (!ctx.hasUI) return;
+		for (const name of handed) waiting.delete(name);
+		[live, failures, quiet, ended] = [true, 0, 0, undefined];
 	});
 	// After a tool call: a human's messages join the running turn without cutting its tool batch.
 	pi.on("tool_result", (_event, ctx) => {
@@ -151,26 +191,7 @@ export default function inbox(pi: ExtensionApi): void {
 	});
 	pi.on("agent_end", (event, ctx) => {
 		if (!ctx.hasUI) return;
-		if (event.willContinue === true) {
-			resumed = [];
-			return;
-		}
-		// A continuation omp did not take (past its cap of 8 in a turn, or the turn aborted): its messages are the next turn.
-		for (const name of resumed) waiting.set(name, "");
-		const turn = handed.filter((name) => !resumed.includes(name));
-		[live, handed, resumed] = [false, [], []];
-		if (turn.length === 0) return;
-		const last = event.messages?.at(-1);
-		if (last?.role !== "assistant" || ["error", "aborted", "toolUse"].includes(last.stopReason ?? "")) {
-			for (const name of turn) waiting.set(name, UNANSWERED);
-			resume = Date.now() + pause(++unanswered);
-			if (unanswered === 3) write({ notice: `the coordinator's last 3 turns ended without a reply (${[last?.stopReason, last?.errorMessage].filter(Boolean).join(": ") || "no reply"}); their messages go again in 10 s, then after twice as long each time, at most 5 min` });
-			return;
-		}
-		[unanswered, resume] = [0, 0];
-		const text = (last.content ?? []).flatMap((block) => (block.type === "text" ? [block.text ?? ""] : [])).join("\n");
-		const channels = [...new Set(turn.flatMap((name) => read(TURN, name).channel ?? []))];
-		write({ text, answers: turn.map(Number), channels });
-		for (const name of turn) move(name, TURN, ANSWERED);
+		if (event.willContinue !== true) return end(event);
+		[resumed, ended, quiet] = [[], event, Date.now()];
 	});
 }

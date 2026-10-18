@@ -1231,9 +1231,9 @@
   {
     "id": "AR0153",
     "title": "Roadmap 37: Restart guard",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0153-roadmap-37-restart-guard/ticket.md",
-    "updated": "2026-10-18T22:16:19.242Z"
+    "updated": "2026-10-18T22:27:11.206Z"
   },
   {
     "id": "AR0154",
@@ -1269,9 +1269,9 @@
   {
     "id": "AR0158",
     "title": "Roadmap 39: Schedule entries and the sweep",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0158-roadmap-39-schedule-entries-and-the-sweep/ticket.md",
-    "updated": "2026-10-18T22:00:40.100Z"
+    "updated": "2026-10-18T22:19:02.497Z"
   },
   {
     "id": "AR0159",

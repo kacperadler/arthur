@@ -16,6 +16,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ### Changed
 
+- AR0114 README's orchestration row shows entries 24 and 26 as not built (c062de4)
 - AR0115 arthur.mmd shows project agents in the first version, and orchestration as 1 of 8 entries built (7af750c)
 
 ### Other

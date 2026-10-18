@@ -982,9 +982,9 @@
   {
     "id": "AR0120",
     "title": "Roadmap 25: the coordinator's context on every turn",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0120-roadmap-25-the-coordinator-s-context-on-every-turn/ticket.md",
-    "updated": "2026-10-18T09:47:22.282Z"
+    "updated": "2026-10-18T10:31:22.765Z"
   },
   {
     "id": "AR0121",
@@ -1016,9 +1016,9 @@
   {
     "id": "AR0124",
     "title": "Roadmap 30: Machines: the list, labels, and SSH checks",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0124-roadmap-30-machines-the-list-labels-and-ssh-checks/ticket.md",
-    "updated": "2026-10-18T09:51:44.314Z"
+    "updated": "2026-10-18T10:32:33.734Z"
   },
   {
     "id": "AR0125",
@@ -1033,8 +1033,36 @@
   {
     "id": "AR0126",
     "title": "Roadmap 32: Resources: caps per job",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0126-roadmap-32-resources-caps-per-job/ticket.md",
-    "updated": "2026-10-18T09:59:41.676Z"
+    "updated": "2026-10-18T10:22:28.532Z"
+  },
+  {
+    "id": "AR0127",
+    "title": "Roadmap: a silent mode for the coordinator in the channels",
+    "status": "planned",
+    "path": "spec/features/AR0127-roadmap-a-silent-mode-for-the-coordinator-in-the-channels/ticket.md",
+    "updated": "2026-10-18T10:06:06.939Z"
+  },
+  {
+    "id": "AR0128",
+    "title": "Plan: releases, installing, and updating Arthur",
+    "status": "planning",
+    "path": "spec/features/AR0128-plan-releases-installing-and-updating-arthur/ticket.md",
+    "updated": "2026-10-18T10:18:34.875Z"
+  },
+  {
+    "id": "AR0129",
+    "title": "Plan: a decisions plugin for typed decision models, local or by API",
+    "status": "planning",
+    "path": "spec/features/AR0129-plan-a-decisions-plugin-for-typed-decision-models-local-or-by-api/ticket.md",
+    "updated": "2026-10-18T10:25:31.585Z"
+  },
+  {
+    "id": "AR0130",
+    "title": "Roadmap 30 names `npm i -g arthur` as the fix for a machine without Arthur, which does not install it",
+    "status": "dropped",
+    "path": "spec/features/AR0130-roadmap-30-names-npm-i-g-arthur-as-the-fix-for-a-machine-without-arthur-which-does-not-install-it/ticket.md",
+    "updated": "2026-10-18T10:32:44.039Z"
   }
 ]

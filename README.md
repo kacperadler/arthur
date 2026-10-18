@@ -33,6 +33,7 @@ What works today:
 - The core, roadmap entries 1 to 22, all merged: config and `.env`, the plugin host, events and commands, `arthur run`, jobs on this machine or another one with their time and money limits inside one CPU and memory slice for all jobs, their states, stop, continue and steer, the ticket board, and the env and worktree guards in every job.
 - The coordinator (`@arthur/orchestration`, entries 23, 24 and 26): one `omp` in its own tmux session while `arthur run` runs, started again when it ends; `arthur attach`; `/board`, `/task` and `/findings`; an inbox that wakes it when a job ends and takes a human's message mid-turn; `maxAgents` across all projects, and each role's model.
 - The project list (`@arthur/projects`, entry 41): every project in `arthur.config.ts`, `--project <name>` on any command, and each new worktree's dependencies installed.
+- The machine list (`@arthur/machines`, entry 30): the other machines jobs run on, with their labels, each checked over SSH at start and every `check.everySeconds` (private address, `arthur version`, os and arch against its labels), `machine-online` and `machine-offline` on each change, and `arthur machines`.
 
 What is next:
 
@@ -65,7 +66,7 @@ Each feature and its state on main on 2026-10-17, read from `packages/` and `spe
 | projects: the project list and each worktree's install; onboarding a repository | in progress, 1 of 2 entries | 41 built; 42 |
 | session: compaction, fresh start, restart guard, start notice | planned | 35 to 38 |
 | schedule: actions and jobs at set times | planned | 39, 40 |
-| machines: labels, and placing each job | planned | 30, 31 |
+| machines: the list, labels and SSH checks, `arthur machines`; placing each job by labels | in progress, 1 of 2 entries | 30 built; 31 |
 | resources: caps per job and per feature, free CPU, memory and disk | in progress, 1 of 4 entries | 32 built; 33, 34, 69 |
 | models: providers on other machines, a fallback chain | planned | 82 |
 | docker: labels, cleanup with each worktree, the leftover sweep | planned | 70 to 72 |
@@ -105,6 +106,7 @@ The commands that exist today, one line each; `arthur <command> --help` prints i
 - `arthur task <id>` (`/task`, orchestration): a ticket's status and its `ticket.md`.
 - `arthur findings <id>` (`/findings`, orchestration): a ticket's `findings.md`, from its worker's branch before the merge.
 - `arthur projects` (`/projects`, projects): every project, its folder, its open tickets and its install.
+- `arthur machines` (`/machines`, machines): every machine, its labels, online or why not, and its jobs.
 
 ## Try it
 
@@ -140,7 +142,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-17.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22 are merged; orchestration has entries 23, 24 and 26 of 23-29 and 65; projects has entry 41 of 41-42; resources has entry 32 of 32-34 and 69; no other plugin exists yet.
+%% Core entries 1-22 are merged; orchestration has entries 23, 24 and 26 of 23-29 and 65; projects has entry 41 of 41-42; machines has entry 30 of 30-31; resources has entry 32 of 32-34 and 69; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the discord and slack channels.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -200,7 +202,7 @@ flowchart TD
         projects ~~~ nvm ~~~ commit ~~~ findings
       end
       subgraph RES[Machines and resources]
-        machines[machines<br/>labels, places each job]
+        machines[machines<br/>list, labels, SSH checks<br/>1 of 2 entries]
         resources[resources<br/>caps, free CPU, disk<br/>1 of 4 entries]
         models[models<br/>providers, fallback chain]
         docker[docker<br/>labels, cleanup, sweep]
@@ -277,8 +279,8 @@ flowchart TD
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
   class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit built;
-  class lpartial,orchestration,projects,resources partial;
-  class lplanned,telegram,voice,corelater,agents,session,schedule,nvm,commit,findings,machines,models,docker,delivery,github,youtrack,manage,develop,signal,discord,slack,whatsapp,server,knowledge,company planned;
+  class lpartial,orchestration,projects,machines,resources partial;
+  class lplanned,telegram,voice,corelater,agents,session,schedule,nvm,commit,findings,models,docker,delivery,github,youtrack,manage,develop,signal,discord,slack,whatsapp,server,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl outside;
   style larrows fill:#fff,stroke:#999,color:#000
   style LEGEND fill:#fff,stroke:#999

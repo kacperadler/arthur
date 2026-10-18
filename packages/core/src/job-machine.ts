@@ -65,19 +65,21 @@ export function machineRegistry(home: string) {
 		},
 		others: (): Machine[] => [...machines.values()].map((entry) => entry.machine).filter((machine) => machine.name !== LOCAL),
 		// `host.jobs.run`: `argv` on the machine, here for `local`, else over SSH with each word quoted for the shell there.
-		// ssh's own failure is its exit code 255 and its line on stderr.
-		async run(name: string, argv: readonly string[]): Promise<Ran> {
+		// ssh's own failure is its exit code 255 and its line on stderr; past `limitSeconds` it is killed (`execute`).
+		async run(name: string, argv: readonly string[], limitSeconds?: number): Promise<Ran> {
 			if (typeof name !== "string") throw new Error(`run: a machine name, got ${JSON.stringify(name)}`);
 			if (!Array.isArray(argv) || argv.length === 0 || !argv.every((word) => typeof word === "string")) throw new Error("run: argv must be a non-empty list of words");
+			if (limitSeconds !== undefined && !(limitSeconds > 0)) throw new Error(`run: limitSeconds must be above 0, got ${JSON.stringify(limitSeconds)}`);
 			const machine = await this.pick(name, () => []);
-			return execute(machine.name === LOCAL ? argv : ["ssh", ...OPTIONS, machine.ssh, argv.map(quote).join(" ")]);
+			return execute(machine.name === LOCAL ? argv : ["ssh", ...OPTIONS, machine.ssh, argv.map(quote).join(" ")], "", limitSeconds);
 		},
 	};
 }
 
 // Runs `command` here, `input` on its stdin; resolves once it ended, to its exit code (null when a signal killed it; 127 when
-// it did not start, as a shell says) and its whole output.
-function execute([command = "", ...args]: readonly string[], input = ""): Promise<Ran> {
+// it did not start, as a shell says) and its whole output. Past `limitSeconds` it is killed and resolves at once, its pipes
+// closed even when a child of it holds them: code null, `timed out after <n> s` the last line of its stderr.
+function execute([command = "", ...args]: readonly string[], input = "", limitSeconds?: number): Promise<Ran> {
 	const output = { stdout: "", stderr: "" };
 	const child = spawn(command, args, { stdio: "pipe" });
 	// A command that ends without reading its input: its exit code tells what happened.
@@ -85,9 +87,15 @@ function execute([command = "", ...args]: readonly string[], input = ""): Promis
 	child.stdout.setEncoding("utf8").on("data", (chunk: string) => (output.stdout += chunk));
 	child.stderr.setEncoding("utf8").on("data", (chunk: string) => (output.stderr += chunk));
 	const ended = Promise.withResolvers<Ran>();
+	const cut = () => {
+		child.kill("SIGKILL");
+		for (const pipe of [child.stdout, child.stderr]) pipe.destroy();
+		ended.resolve({ code: null, stdout: output.stdout, stderr: `${output.stderr}timed out after ${limitSeconds} s\n` });
+	};
+	const limit = limitSeconds === undefined ? undefined : setTimeout(cut, limitSeconds * 1000);
 	child.once("error", (error) => ended.resolve({ code: 127, stdout: output.stdout, stderr: `${command}: ${error.message}` }));
 	child.once("close", (code) => ended.resolve({ code, ...output }));
-	return ended.promise;
+	return ended.promise.finally(() => clearTimeout(limit));
 }
 
 // The project's repository there, bare, created empty on first use.

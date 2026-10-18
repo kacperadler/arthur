@@ -1,6 +1,6 @@
 # arthur coordinator
 
-Usage: `arthur coordinator stop`. Comes with the `orchestration` plugin, which every config holds.
+Usage: `arthur coordinator stop`, `arthur coordinator context`. Comes with the `orchestration` plugin, which every config holds.
 
 ## The coordinator's process
 
@@ -9,7 +9,7 @@ The coordinator is one interactive agent (`core.agent.command`, `omp`) in its ow
 1. At `arthur run`'s start, a stop mark left by `arthur coordinator stop` is lifted. A session already running under that name (left by an `arthur run` that crashed) is kept, not started twice.
 2. Every 500 ms it looks at the session. When the session is gone, or its agent exited and the pane stayed (a `remain-on-exit` in the human's `~/.tmux.conf`; the session is then killed), the coordinator has ended, for whatever reason: the agent quit or crashed, or someone killed the session. It is started again `coordinator.restartDelaySeconds` (default 5) after that, so a coordinator that crashes at once does not start more often than once per delay.
 3. A start first waits, up to `coordinator.exitWaitSeconds` (default 60), until the agent of the previous start has exited, so two never refresh the agent's credential at once (a refresh token is used once; the loser's login is lost). The previous agent is the pid `<home>/orchestration/coordinator.pid` names, with its start time from `ps`, so a pid reused by another process does not count, after a reboot for example.
-4. Then `tmux new-session -d -s <session> -c <the folder arthur run runs in> -e ARTHUR_ORCHESTRATION_FOLDER=<home>/orchestration` starts `<agent> --continue --auto-approve [--model <coordinator.model>] [--thinking <coordinator.thinking>] [--smol <roles.quick.model>] -e <@arthur/core/env-guard> -e <the inbox extension> --append-system-prompt <the coordinator's role file>`: the last conversation goes on (a new one when there is none), nobody is there to approve tool calls, the env guard refuses a tool call naming a secrets file as it does in every job (see `arthur spawn --help`), and the inbox extension (`packages/orchestration/src/inbox-extension.ts`) hands the coordinator its messages (below). The role file is `packages/orchestration/roles/coordinator.md`.
+4. Then `tmux new-session -d -s <session> -c <the folder arthur run runs in> -e ARTHUR_ORCHESTRATION_FOLDER=<home>/orchestration -e ARTHUR_ORCHESTRATION_CONTEXT=<the context command>` starts `<agent> --continue --auto-approve [--model <coordinator.model>] [--thinking <coordinator.thinking>] [--smol <roles.quick.model>] -e <@arthur/core/env-guard> -e <the inbox extension> -e <the context extension>`: the last conversation goes on (a new one when there is none), nobody is there to approve tool calls, the env guard refuses a tool call naming a secrets file as it does in every job (see `arthur spawn --help`), the inbox extension (`packages/orchestration/src/inbox-extension.ts`) hands the coordinator its messages, and the context extension (`packages/orchestration/src/context-extension.ts`) gives it its role and context before every turn (both below). The context command is a JSON list: the `node` that runs `arthur run`, the core's CLI, `coordinator`, `context`.
 5. At `arthur run`'s `stop` the session is killed.
 
 Lines it prints in `arthur run`'s output:
@@ -37,13 +37,28 @@ Every message for the coordinator becomes a turn of its conversation, and every 
 - The footer of the coordinator's screen shows `arthur · <n> running: <short ids>` while jobs run, from the file `<home>/orchestration/footer` the plugin writes at each `job-started`, `job-state` and `job-ended`.
 - The extension acts only in the coordinator's own session, one with a UI: never in a `task` subagent.
 
+## The coordinator's context
+
+Before every turn, the context extension runs the context command in the coordinator's folder (the one `arthur run` runs in, which holds `arthur.config.ts`) and adds what it prints, as one part, to the end of the agent's system prompt: what changed since the last turn (a ticket, a new hour, a plugin's line) is there in the next. It acts only in the coordinator's own session, one with a UI, never in a `task` subagent. `arthur coordinator context` prints the same text, so the owner can read what the coordinator reads:
+
+1. The coordinator's role, read as every role is (`arthur roles --help`): the role file `packages/orchestration/roles/coordinator.md`, the main project's override `.agents/arthur/roles/coordinator.md`, and its criteria file `styleguide`. `arthur roles` lists it, with no kind.
+2. `## Vision of <project> (<path>)` and the file, for each project in the list's order: its vision, `spec/vision.md` unless its `prompts.vision` says otherwise.
+3. `## Warnings`, when there is one, a line each: `- criteria file <path> is missing; the coordinator goes without it`, `- criteria file <path> is empty; nothing added`, `- project <name> has no vision: <path> is missing|empty|a symlink|not a file; the coordinator goes without it` (never read through a symlink), `- project <name>: its vision was not read: <error>` (a folder that is no Git repository, a `prompts` path refused).
+4. `## Board of <project>` and its digest, for each project: every open ticket, the 10 newest merged, and one line counting the rest (`arthur ticket --help`). A board that cannot be read costs that board only: `the board was not read: <error's first line>`. Without the projects plugin the one section is `## Board` and says why there is no board.
+5. `## Time`: `<HH:MM> on <day> <YYYY-MM-DD> (<core.timeZone>), night: within the owner's quiet hours.` from `host.clock`, or `..., day: outside the owner's quiet hours.`; night is `core.quietHours`, across midnight when `from` is the later time (22:00 to 07:30: 23:30 and 03:00 are night, 07:30 is day); without quiet hours it is always day.
+6. What each plugin answers to `collect("coordinator.context")`, in setup order, under `## <plugin>`: text (the projects plugin's block of project lines, later session's restart due and manage's retro due). Undefined or blank text adds nothing. A provider that throws costs its own section only: `coordinator.context failed: <error's first line>`; one that answers anything but text: `coordinator.context answered <type>, not text`.
+
+Parts are separated by a blank line. When the command fails (exit not 0, or 60 s without an end), the turn still goes: the system prompt gets the shipped role file and `## Context` saying `Arthur could not build your context this turn (the board, the visions, the time): <what the command printed on stderr>`, and to say so in the reply. A symlinked override or criteria file of the main project fails it so: `<path> is a symlink; refused, the roles read a project's file only as a plain file`.
+
+`arthur coordinator context` exits 0 with the text, 1 when it cannot be built (`arthur coordinator: <error>`).
+
 ## arthur coordinator stop
 
 Ends the coordinator's session and keeps it stopped until `arthur run` starts again (a restart of its service, for example). It writes the stop mark `<home>/orchestration/stopped` first, then kills the session, and prints `arthur coordinator stop: tmux session <session> (socket <socket>) ended; it stays stopped until arthur run starts again`, or `... was not running; ...` when no session ran (the mark still keeps it from being started).
 
 Refused, exit code 1, while any job of any project is in a run (`working`, `idle`, or held `blocked`, as `arthur stopall` counts them): the coordinator is who hears a job's end, so nobody would. `arthur coordinator stop: refused: <n> jobs running: <id>, <id>; the coordinator is who hears their end; stop them first (arthur stop <id>, or arthur stopall)`. There is no force mode.
 
-Wrong usage (no argument, another one, more than one) prints `usage: arthur coordinator stop` and exits 2.
+Wrong usage (no argument, another one, more than one) prints `usage: arthur coordinator stop|context` and exits 2.
 
 ## Options
 
@@ -51,7 +66,7 @@ In `orchestration({ ... })` in `arthur.config.ts`, every key optional; an unknow
 
 - `maxAgents`: a whole number of at least 1, default 3.
 - `coordinator`: `model` (a non-empty string), `thinking` (one of `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, `auto`), `tmux: { session, socket }` (the session: letters, digits, `_` and `-`, since tmux reads `:` and `.` in a target; the socket: a non-empty string), `exitWaitSeconds` (a whole number of at least 0), `restartDelaySeconds` (a whole number of at least 1).
-- `roles`: one entry per role, its name lowercase letters, digits and dashes, each `{ model, thinking }`: `model` a model name or a non-empty list of them, `thinking` as above. The entry `quick` is not a role: `{ model }` only, a model name.
+- `roles`: one entry per role, its name lowercase letters, digits and dashes, each `{ model, thinking }`: `model` a model name or a non-empty list of them, `thinking` as above. The entry `quick` is not a role: `{ model }` only, a model name. An entry `coordinator` is refused: the coordinator's are `coordinator.model` and `coordinator.thinking`, which `arthur roles` shows for the role `coordinator`.
 - `plan: { budgetUsd }`, `autopilot: { budgetUsd, budgetMaxUsd }`: amounts in USD, 0 or more.
 - `morningReport: { at }`: `"HH:MM"`, 00:00 to 23:59.
 

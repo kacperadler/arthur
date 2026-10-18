@@ -13,7 +13,7 @@ import { type JobRecord, jobUpkeep } from "./job-records.ts";
 import { launchThere, syncMachines } from "./machine-sync.ts";
 import { pluginStep } from "./plugin.ts";
 import { spawnChecks } from "./spawn-check.ts";
-import { describeRoles, prompt, type Role, type RoleView, roleModel, roleRegistry } from "./roles.ts";
+import { type Collect, describeRoles, prompt, type Role, type RoleReads, roleModel, roleReads, roleRegistry, type RoleView } from "./roles.ts";
 import { launch, type Slice } from "./job-scope.ts";
 
 // The job runner's spawn and the job record (spec/roadmap.md, entries 9 and 11). A worker gets its own branch and worktree
@@ -70,8 +70,8 @@ export type Started = Job & { readonly warnings: readonly string[]; readonly fai
 export type SpawnCheck = (spawn: Spawn) => string | undefined | Promise<string | undefined>;
 export type Prepare = (job: Job) => void | Promise<void>;
 
-// What a plugin sees as `host.jobs`.
-export type Jobs = {
+// What a plugin sees as `host.jobs`; what it reads of the roles outside a spawn (`prompt`, `vision`) is in roles.ts.
+export type Jobs = RoleReads & {
 	registerKind(kind: Kind): void;
 	// A role whose prompt this plugin ships; its kinds name it.
 	registerRole(role: Role): void;
@@ -95,7 +95,7 @@ export type Jobs = {
 };
 
 // The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for.
-export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run"> & {
+export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run" | "prompt" | "vision"> & {
 	registerKind(owner: string, kind: Kind): void;
 	registerRole(owner: string, role: Role): void;
 	beforeSpawn(owner: string, check: SpawnCheck): void;
@@ -109,20 +109,20 @@ export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run
 
 const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 
-type Collect = (name: string, args: readonly unknown[]) => unknown[];
-
 // `folder` is in the repository jobs start from while no plugin provides `projects` (job-checkout.ts); `limits` are the core's
 // `jobs` options and the jobs' slice, `agent` its `agent.command`; `collect` reads what the plugins provide, e.g. the sections
 // of a prompt (`prompt`) and the project list (`projects`).
 export function jobRunner(home: string, folder: string, limits: Limits & Slice & { readonly idleMinutes: number; readonly offlineGraceMinutes: number }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
 	const kinds = new Map<string, { readonly owner: string; readonly kind: Kind }>();
 	const roles = roleRegistry();
+	const where = (project: string | undefined) => checkout(folder, collect("projects", []), project);
 	const checks = spawnChecks(home);
 	const prepares: { readonly owner: string; readonly fn: Prepare }[] = [];
 	const machines = machineRegistry(home);
 	const upkeep = jobUpkeep(home, time, bus, (job) => collect("jobs.keep", [job]), machines.of);
 	const runner: JobRunner = {
 		...upkeep,
+		...roleReads(roles, where),
 		sweep() {
 			// Dead jobs here, then the copy from every other machine.
 			upkeep.sweep();
@@ -141,7 +141,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 		prepare: (owner, fn) => void prepares.push({ owner, fn }),
 		registerMachine: (owner, machine) => machines.register(owner, machine),
 		run: (machine, argv, limitSeconds) => machines.run(machine, argv, limitSeconds),
-		roles: (project) => describeRoles(roles, [...kinds.values()].map((entry) => entry.kind), checkout(folder, collect("projects", []), project).root, collect),
+		roles: (project) => describeRoles(roles, [...kinds.values()].map((entry) => entry.kind), where(project), collect),
 		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (spawn) => checks.pass({ ...spawn, tickets: taskTickets(spawn.task) }), machines.of(id)),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
@@ -149,7 +149,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 			if (kind === undefined) throw new Error(`unknown kind ${name}; kinds: ${[...kinds.keys()].sort().join(", ")}`);
 			const role = roles.get(kind.role);
 			if (request.task.trim() === "") throw new Error("the task is empty");
-			const { root, project } = checkout(folder, collect("projects", []), request.project);
+			const { root, project, files } = where(request.project);
 			const commit = head(root);
 			if (commit === undefined) throw new Error(`${root} has no commit yet; a job starts from HEAD`);
 			if (!kind.readOnly && branchExists(root, "arthur")) throw new Error(`${root} has a branch named arthur, so Git cannot create a worker's branch arthur/<id> beside it; rename it: git branch -m arthur <new-name>`);
@@ -171,7 +171,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 				let [warnings, added] = [[] as string[], false];
 				try {
 					// A worktree on another machine: the project's files the prompt reads come from the main checkout.
-					const built = prompt(role, there === undefined ? job.worktree : root, () => collect("prompt", [role.name, job]));
+					const built = prompt(role, there === undefined ? job.worktree : root, files, () => collect("prompt", [role.name, job]));
 					warnings = built.warnings;
 					const [resumeOnBudget, since] = [kind.resumeOnBudget === true, time.now()];
 					if (there !== undefined) addThere(machine, { job: { ...job, root: there }, prompt: built.prompt, resumeOnBudget, idleMinutes: limits.idleMinutes, since: since.toISOString() });

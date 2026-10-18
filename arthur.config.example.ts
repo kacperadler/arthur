@@ -115,16 +115,19 @@ export default defineConfig({
 		// The machines jobs run on. `local` is the one Arthur and the coordinator run on; its os and arch are detected. The others
 		// are reached with ssh over a private network (Tailscale), with the user's own keys and ~/.ssh/config: no secret here, no
 		// password prompt, no host key accepted on its own, and a host that resolves to a public address is refused. Each machine
-		// needs Node, git, OMP logged in, and Arthur's core. A project's or a ticket's `requires` names the labels its jobs need.
+		// needs Node, git, OMP logged in, and Arthur's core of the same version. A project's or a ticket's `requires` names the
+		// labels its jobs need. `arthur machines` (`/machines`) shows each one, online or why not, and its jobs.
 		machines({
-			local: { labels: { tools: ["docker"] }, maxJobs: 3 },
+			local: { labels: { tools: ["docker"] }, maxJobs: 3 }, // both optional; `os` and `arch` are detected, never set here
 			list: [
 				{
-					name: "mac",
+					name: "mac", // lowercase letters, digits and dashes; not `local`, and one machine per name
 					ssh: "mac-mini", // a Host in ~/.ssh/config, or a Tailscale name such as mac-mini.tail1234.ts.net
 					home: "/Users/arthur/.arthur", // the machine's own home folder for jobs and repositories
+					// Each optional; `os` is "linux" or "macos", `arch` Node's word ("x64", "arm64"). A label that disagrees with
+					// what the machine says keeps it offline, both named.
 					labels: { os: "macos", arch: "arm64", tools: ["xcode"] },
-					maxJobs: 2,
+					maxJobs: 2, // left out: no limit of its own; orchestration's maxAgents still counts every job
 				},
 				{
 					name: "build",
@@ -134,7 +137,9 @@ export default defineConfig({
 					maxJobs: 4,
 				},
 			],
-			check: { everySeconds: 60 }, // reachability, labels, and free resources for `resources`
+			// Every machine checked over ssh at start and this often (default 60, at least 10): its address private, `arthur
+			// version` and its os and arch, each check cut after 10 s; a change is `machine-online` or `machine-offline`
+			check: { everySeconds: 60 },
 		}),
 
 		// What jobs may use. A job's time and money are core.jobs; this adds its CPU and memory, the caps of a feature (all jobs

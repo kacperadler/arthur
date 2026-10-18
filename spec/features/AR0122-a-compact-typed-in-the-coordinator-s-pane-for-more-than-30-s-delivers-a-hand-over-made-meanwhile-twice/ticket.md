@@ -36,3 +36,4 @@ In:
 
 - 2026-10-18: Source: F1 of AR0111
 - 2026-10-18: The owner approved it.
+- 2026-10-18: Dropped by the coordinator (owner delegated Arthur calls): the only fix found (listening to `session_before_compact`) turns off omp's background compaction for the coordinator, so every compaction would make the owner wait; that costs more than the rare double reply after a hand-typed `/compact` over 30 s, which stays documented. Branch h/2026-10-18-ar0122-compact-double-de-60bebe84 not merged. Revisit if omp exposes a compaction state to extensions.

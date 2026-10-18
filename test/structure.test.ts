@@ -27,7 +27,9 @@ import { checkStructure } from "./structure.ts";
 // role registered, orchestration 87 more (805); core within its budget (`host.jobs.prompt`/`vision`, `collectEach`, `prompts`).
 // AR0121 (roadmap 27): the jobs not ended in the coordinator's context, the wake's question, the blocked notice and the footer's
 // counts by state, orchestration 70 more (875); core within its budget (`since` in `host.jobs.list()`).
-const BUDGETS = { core: 4649, "core/testing": 340, projects: 320, orchestration: 875, machines: 280 };
+// AR0126 (roadmap 32): each job's own CPU and memory caps on its scope, `jobs.limits`, the memory watch of the wrapper (cgroup
+// `oom` events, or `ps` samples without a scope) and the once-per-machine notice: core 102 more (4751); resources: 42.
+const BUDGETS = { core: 4751, "core/testing": 340, projects: 320, orchestration: 875, machines: 280, resources: 42 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

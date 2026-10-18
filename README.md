@@ -60,7 +60,7 @@ Each feature and its state on main on 2026-10-17, read from `packages/` and `spe
 | Core: `arthur send` and the message parts every channel hands over | planned | 49 |
 | Core: cleanup hooks with each worktree | planned | 71 |
 | Core: the frozen plugin API | planned | 51 |
-| orchestration: the coordinator, `arthur attach`, `/board`, `/task`, `/findings`; its inbox, context, `maxAgents`, planning, autopilot, morning report | in progress, 1 of 8 entries | 23 built; 24 to 29, 65 |
+| orchestration: the coordinator, `arthur attach`, `/board`, `/task`, `/findings`; its inbox, context, `maxAgents`, planning, autopilot, morning report | in progress, 3 of 8 entries | 23, 24 and 26 built; 25, 27 to 29, 65 |
 | orchestration: an agent per project, with its own chat | planned | 85 to 88 |
 | projects: the project list and each worktree's install; onboarding a repository | in progress, 1 of 2 entries | 41 built; 42 |
 | session: compaction, fresh start, restart guard, start notice | planned | 35 to 38 |
@@ -140,7 +140,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-17.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22 are merged; orchestration has entry 23 of 23-29 and 65; projects has entry 41 of 41-42; no other plugin exists yet.
+%% Core entries 1-22 are merged; orchestration has entries 23, 24 and 26 of 23-29 and 65; projects has entry 41 of 41-42; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the discord and slack channels.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -187,11 +187,10 @@ flowchart TD
         telegram ~~~ voice
       end
       subgraph COORD[Coordinator]
-        orchestration[orchestration<br/>coordinator, arthur attach<br/>1 of 8 entries]
-        agents[project agents<br/>one per project, its own chat]
+        orchestration[orchestration<br/>coordinator, arthur attach<br/>3 of 8 entries]
         session[session<br/>compaction, fresh start]
         schedule[schedule<br/>actions, jobs at set times]
-        orchestration ~~~ agents ~~~ session ~~~ schedule
+        orchestration ~~~ session ~~~ schedule
       end
       subgraph PROJ[Projects]
         projects[projects<br/>project list, install<br/>1 of 2 entries]
@@ -221,6 +220,7 @@ flowchart TD
     end
 
     subgraph LATER[Later plugins]
+      agents[project agents<br/>one per project, its own chat]
       signal[signal<br/>a channel, signal-cli]
       discord[discord<br/>a channel, gateway]
       slack[slack<br/>a channel, Socket Mode]
@@ -228,7 +228,7 @@ flowchart TD
       server[server, web panel<br/>private network only]
       knowledge[knowledge base<br/>search, chat with sources]
       company[company edition<br/>business roles as agents]
-      signal ~~~ discord ~~~ slack ~~~ whatsapp ~~~ server ~~~ knowledge ~~~ company
+      agents ~~~ signal ~~~ discord ~~~ slack ~~~ whatsapp ~~~ server ~~~ knowledge ~~~ company
     end
   end
 

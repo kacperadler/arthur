@@ -1259,9 +1259,9 @@
   {
     "id": "AR0157",
     "title": "Roadmap 38: Start notice and LLM probe",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0157-roadmap-38-start-notice-and-llm-probe/ticket.md",
-    "updated": "2026-10-18T22:00:21.001Z",
+    "updated": "2026-10-18T22:45:40.714Z",
     "after": [
       "AR0153"
     ]
@@ -1271,14 +1271,14 @@
     "title": "Roadmap 39: Schedule entries and the sweep",
     "status": "done",
     "path": "spec/features/AR0158-roadmap-39-schedule-entries-and-the-sweep/ticket.md",
-    "updated": "2026-10-18T22:38:15.076Z"
+    "updated": "2026-10-18T22:56:16.472Z"
   },
   {
     "id": "AR0159",
     "title": "packages/session/test/restart.test.ts:204 fails now and then with \"Unexpected end of JSON input\"",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0159-packages-session-test-restart-test-ts-204-fails-now-and-then-with-unexpected-end-of-json-input/ticket.md",
-    "updated": "2026-10-18T22:18:47.368Z",
+    "updated": "2026-10-18T22:45:40.065Z",
     "after": [
       "AR0153"
     ]

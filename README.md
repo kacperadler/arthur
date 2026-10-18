@@ -65,7 +65,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | orchestration: the coordinator, `arthur attach`, `/board`, `/task`, `/findings`, `/plan`; its inbox, context, jobs by state, `maxAgents`, planning, autopilot, morning report | in progress, 7 of 8 entries | 23 to 29 built; 65 |
 | orchestration: an agent per project, with its own chat | planned | 85 to 88 |
 | projects: the project list and each worktree's install; onboarding a repository | in progress, 1 of 2 entries | 41 built; 42 |
-| session: compaction, fresh start, `/restart`, restart guard, start notice | in progress, 3 of 4 entries | 35 to 37 built; 38 |
+| session: compaction, fresh start, `/restart`, restart guard, start notice and LLM probe | built | 35 to 38 |
 | schedule: actions and jobs at set times | planned | 39, 40 |
 | machines: the list, labels and SSH checks, `arthur machines`; placing each job by labels | built | 30, 31 |
 | resources: caps per job and per feature, free CPU, memory and disk | in progress, 3 of 4 entries | 32 to 34 built; 69 |
@@ -144,9 +144,9 @@ Then `arthur config check`, `arthur projects` and `arthur board` answer at once.
 Which parts are built today and which are planned. The source is [`arthur.mmd`](arthur.mmd); a test keeps this copy equal to it.
 
 ```mermaid
-%% What Arthur is built from, and what of it is built: the state of main on 2026-10-18.
+%% What Arthur is built from, and what of it is built: the state of main on 2026-10-19.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22 are merged; orchestration has entries 23 to 29 of 23-29 and 65; projects has entry 41 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 37 of 35-38; no other plugin exists yet.
+%% Core entries 1-22 are merged; orchestration has entries 23 to 29 of 23-29 and 65; projects has entry 41 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -196,7 +196,7 @@ flowchart TD
       end
       subgraph COORD[Coordinator]
         orchestration[orchestration<br/>coordinator, arthur attach<br/>context, jobs by state, planning, autopilot<br/>7 of 8 entries]
-        session[session<br/>compaction, fresh start, restart guard<br/>3 of 4 entries]
+        session[session<br/>compaction, fresh start, restart guard<br/>start notice, LLM probe]
         schedule[schedule<br/>actions, jobs at set times]
         orchestration ~~~ session ~~~ schedule
       end
@@ -254,7 +254,7 @@ flowchart TD
     sl[(Slack)]
   end
 
-  subgraph LEGEND["Legend: state of main on 2026-10-18"]
+  subgraph LEGEND["Legend: state of main on 2026-10-19"]
     direction LR
     lbuilt[green: built<br/>merged, in packages/]
     lpartial[light green: partly built<br/>N of M entries merged]
@@ -285,8 +285,8 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,machines built;
-  class lpartial,orchestration,projects,resources,session partial;
+  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,machines,session built;
+  class lpartial,orchestration,projects,resources partial;
   class lplanned,telegram,discord,voice,corelater,agents,schedule,nvm,commit,findings,models,docker,delivery,github,youtrack,manage,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl outside;
   style larrows fill:#fff,stroke:#999,color:#000

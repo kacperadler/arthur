@@ -173,8 +173,9 @@ export default defineConfig({
 		// must load. Before a compaction or a fresh start the coordinator writes `.arthur/session/handoff.md` (work in
 		// progress, next steps, every unanswered question to the human with when it was asked), which the next conversation
 		// reads first; a failed write withdraws that compaction or try. Needs `orchestration`. The clock is core.timeZone.
-		// Built so far: compaction (35), the fresh start and `/restart` (36), the restart guard (37). `probeLlm` comes with
-		// entry 38; until then the plugin refuses it as an unknown option.
+		// Built: compaction (35), the fresh start and `/restart` (36), the restart guard (37), the start notice and LLM probe (38):
+		// at every start the channels get `coordinator up on <host>` or `no LLM access on <host>: <reason>; run omp login`, and
+		// `turn failed on <host>: <reason>` for each coordinator turn that fails before any text.
 		session({
 			compactAt: ["08:00", "13:00", "18:00"], // "HH:MM" each; [] = never; running jobs do not hold a compaction back
 			compactWaitSeconds: 1800, // wait this long for an idle session with nothing queued, then skip that compaction; at least 1
@@ -183,7 +184,7 @@ export default defineConfig({
 			freshUntil: "03:00", // "HH:MM", the last try (the next day when earlier than freshAt); then that night is skipped
 			restartGuard: true, // once a commit changed the code `arthur run` loaded, refuse every spawn and continue (unless
 			// --ignore-restart) until `arthur run` starts again; `/restart` restarts only the coordinator, so it does not clear it
-			probeLlm: true, // one word asked of the model at start; the channels say when there is no access
+			probeLlm: true, // one word asked of the coordinator's model at every start, cut after 60 s; false = no probe
 			// Registers `arthur restart [fresh]` and the phone commands `/restart` and `/restart fresh`: answered without the model,
 			// refused while any job runs; after the handoff, one `Restarted.` notice with `.arthur/session/after-restart.md`.
 		}),

@@ -15,6 +15,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0111 A hand-over omp accepts and then fails leaves the inbox waiting until a restart (66fb3d3)
 - AR0112 A turn that keeps failing is handed its messages again every second, without a pause (c1f0e3d)
 - AR0113 The inbox is proved once against real omp: mid-turn join, resumed turn, willContinue (1f6adb6)
+- AR0136 A flaky test that fails GitHub CI now and then is found and fixed (f520142)
 
 ### Changed
 

@@ -1023,9 +1023,9 @@
   {
     "id": "AR0125",
     "title": "Roadmap 31: Machines: placing a job by labels",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0125-roadmap-31-machines-placing-a-job-by-labels/ticket.md",
-    "updated": "2026-10-18T11:08:30.028Z",
+    "updated": "2026-10-18T12:58:36.994Z",
     "after": [
       "AR0124"
     ]
@@ -1103,8 +1103,15 @@
   {
     "id": "AR0136",
     "title": "A flaky test that fails GitHub CI now and then is found and fixed",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0136-a-flaky-test-that-fails-github-ci-now-and-then-is-found-and-fixed/ticket.md",
-    "updated": "2026-10-18T12:19:17.717Z"
+    "updated": "2026-10-18T13:24:17.583Z"
+  },
+  {
+    "id": "AR0137",
+    "title": "The burst test still relies on the test's 300 ms timers staying under a second",
+    "status": "planning",
+    "path": "spec/features/AR0137-the-burst-test-still-relies-on-the-test-s-300-ms-timers-staying-under-a-second/ticket.md",
+    "updated": "2026-10-18T13:24:17.580Z"
   }
 ]

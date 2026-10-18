@@ -1029,5 +1029,12 @@
     "after": [
       "AR0124"
     ]
+  },
+  {
+    "id": "AR0126",
+    "title": "Roadmap 32: Resources: caps per job",
+    "status": "planned",
+    "path": "spec/features/AR0126-roadmap-32-resources-caps-per-job/ticket.md",
+    "updated": "2026-10-18T09:59:41.676Z"
   }
 ]

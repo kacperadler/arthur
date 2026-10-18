@@ -1006,9 +1006,9 @@
   {
     "id": "AR0123",
     "title": "Roadmap 28: Planning of large tickets",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0123-roadmap-28-planning-of-large-tickets/ticket.md",
-    "updated": "2026-10-18T20:06:30.211Z",
+    "updated": "2026-10-18T20:15:06.385Z",
     "after": [
       "AR0120"
     ]
@@ -1141,9 +1141,9 @@
   {
     "id": "AR0141",
     "title": "Roadmap 33: Resources: caps per feature",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0141-roadmap-33-resources-caps-per-feature/ticket.md",
-    "updated": "2026-10-18T20:08:40.961Z"
+    "updated": "2026-10-18T20:15:12.342Z"
   },
   {
     "id": "AR0142",
@@ -1165,9 +1165,9 @@
   {
     "id": "AR0144",
     "title": "Roadmap 36: Fresh start, /restart and /restart fresh",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0144-roadmap-36-fresh-start-restart-and-restart-fresh/ticket.md",
-    "updated": "2026-10-18T19:34:25.842Z",
+    "updated": "2026-10-18T20:10:51.054Z",
     "after": [
       "AR0143"
     ]

@@ -35,3 +35,4 @@ Out:
 ## Decisions
 
 - 2026-10-18: The owner: build the roadmap in its order, plugins included, starting today; this entry is next in that order.
+- 2026-10-18: The owner: finish this ticket despite the Claude 7 Day usage reaching 58% (the stop point); no other new Arthur work.

@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-18: The owner: build the roadmap in its order, plugins included, starting today; this entry is next in that order.
+- 2026-10-18: Coordinator (owner delegated Arthur calls): orchestration 875 -> 1007 (+132) and core 4764 -> 4828 (+64) accepted; the stricter plan guard (worker refused unless plan.md at HEAD matches the commit named in a 'Plan approved by the owner' Decisions line) accepted: a re-planned ticket must not start on a plan the owner never saw.

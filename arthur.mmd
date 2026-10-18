@@ -1,6 +1,6 @@
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-18.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22 are merged; orchestration has entries 23 to 27 of 23-29 and 65; projects has entry 41 of 41-42; machines has entry 30 of 30-31; resources has entries 32 and 33 of 32-34 and 69; no other plugin exists yet.
+%% Core entries 1-22 are merged; orchestration has entries 23 to 27 of 23-29 and 65; projects has entry 41 of 41-42; machines has entry 30 of 30-31; resources has entries 32 and 33 of 32-34 and 69; session has entry 35 of 35-38; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the discord and slack channels.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -48,7 +48,7 @@ flowchart TD
       end
       subgraph COORD[Coordinator]
         orchestration[orchestration<br/>coordinator, arthur attach<br/>context, jobs by state<br/>5 of 8 entries]
-        session[session<br/>compaction, fresh start]
+        session[session<br/>compaction, fresh start<br/>1 of 4 entries]
         schedule[schedule<br/>actions, jobs at set times]
         orchestration ~~~ session ~~~ schedule
       end
@@ -137,8 +137,8 @@ flowchart TD
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
   class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,machines built;
-  class lpartial,orchestration,projects,resources partial;
-  class lplanned,telegram,voice,corelater,agents,session,schedule,nvm,commit,findings,models,docker,delivery,github,youtrack,manage,develop,signal,discord,slack,whatsapp,server,knowledge,company planned;
+  class lpartial,orchestration,projects,resources,session partial;
+  class lplanned,telegram,voice,corelater,agents,schedule,nvm,commit,findings,models,docker,delivery,github,youtrack,manage,develop,signal,discord,slack,whatsapp,server,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl outside;
   style larrows fill:#fff,stroke:#999,color:#000
   style LEGEND fill:#fff,stroke:#999

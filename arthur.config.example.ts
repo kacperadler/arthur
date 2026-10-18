@@ -168,9 +168,11 @@ export default defineConfig({
 		// must load. Before a compaction or a fresh start the coordinator writes `.arthur/session/handoff.md` (work in
 		// progress, next steps, every unanswered question to the human with when it was asked), which the next conversation
 		// reads first; a failed write withdraws that compaction or try. Needs `orchestration`. The clock is core.timeZone.
+		// Built so far: compaction (35). `freshAt` and the options after it come with entries 36 to 38; until then the plugin
+		// refuses them as unknown options.
 		session({
-			compactAt: ["08:00", "13:00", "18:00"], // running jobs do not hold a compaction back
-			compactWaitSeconds: 1800, // wait this long for an idle session, then skip that compaction
+			compactAt: ["08:00", "13:00", "18:00"], // "HH:MM" each; [] = never; running jobs do not hold a compaction back
+			compactWaitSeconds: 1800, // wait this long for an idle session with nothing queued, then skip that compaction; at least 1
 			freshAt: "23:00", // a fresh conversation (no --continue), only once no job of any kind (worker, review, ...) runs
 			freshRetryMinutes: 15, // while a job runs, try again this often; a positive whole number; default 15
 			freshUntil: "03:00", // "HH:MM", the last try (the next day when earlier than freshAt); then that night is skipped

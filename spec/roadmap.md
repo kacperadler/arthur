@@ -390,7 +390,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 
 - Package: core; `docs/setup.md` points to it.
 - Delivers: `arthur setup`, a report you run again after each fix. It writes nothing, installs nothing, never runs a model, and never prints a variable's value. It finds the installed plugins by listing `node_modules/@arthur/*` from the config's folder and loads each package's `./options` (93) by path, the way the core already loads `arthur.config.ts`: no static import, so the core still imports no plugin (the structure test of entry 1 stays as it is; the reviewer judges this reading by path), and a plugin that is installed but not in the config is shown too. Plugins that are planned but not built have no code to read, so they are not listed; the roadmap names them. Its sections, in this order:
-  1. Tools: each tool in the `tools` of the core and every installed plugin, its version (the first line its `version` command prints) or `not found`, and which plugins use it, marked `(off)` or `(not in the config)`.
+  1. Tools: each tool in the `tools` of the core and every installed plugin, its version (the first line its `version` command prints) or `not found`, and which plugins use it, marked `(off)` or `(not in the config)`. The core's tools include `tailscale`, which the Tailscale step of `docs/setup.md` needs on every machine; no plugin uses it yet, so it is shown as `core`.
   2. Config: the core, then each plugin the config lists, `on` or `off`. For each one that is on: its options `set` and `not set`, and its env lines as `arthur config check` prints them, `set` or `missing`, never a value.
   3. Requirements: `arthur doctor`'s lines (80), from the same function.
   4. Can still go in arthur.config.ts: each installed plugin that is off or not listed, with its `summary` and every option's meaning, and its default when it has one.
@@ -405,6 +405,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
     node         v24.21.0        core
     omp          omp/18.3.0      core
     ssh          OpenSSH_9.6p1   core
+    tailscale    1.78.1          core
     tmux         3.4             orchestration
     ffmpeg       not found       telegram, voice (off)
     whisper-cli  not found       voice (off)

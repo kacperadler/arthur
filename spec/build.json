@@ -999,9 +999,9 @@
   {
     "id": "AR0122",
     "title": "A `/compact` typed in the coordinator's pane for more than 30 s delivers a hand-over made meanwhile twice",
-    "status": "in-progress",
+    "status": "dropped",
     "path": "spec/features/AR0122-a-compact-typed-in-the-coordinator-s-pane-for-more-than-30-s-delivers-a-hand-over-made-meanwhile-twice/ticket.md",
-    "updated": "2026-10-18T09:47:22.887Z"
+    "updated": "2026-10-18T09:59:28.186Z"
   },
   {
     "id": "AR0123",
@@ -1016,9 +1016,9 @@
   {
     "id": "AR0124",
     "title": "Roadmap 30: Machines: the list, labels, and SSH checks",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0124-roadmap-30-machines-the-list-labels-and-ssh-checks/ticket.md",
-    "updated": "2026-10-18T09:51:35.071Z"
+    "updated": "2026-10-18T09:51:44.314Z"
   },
   {
     "id": "AR0125",

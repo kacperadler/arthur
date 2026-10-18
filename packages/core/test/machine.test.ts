@@ -441,7 +441,7 @@ test("arthur spawn --machine names the machine; arthur remote-job refuses an unk
 	assert.deepEqual(readdirSync(home), []);
 });
 
-test("registerMachine refuses local, a machine registered twice, a bad name, an ssh that is an option, and a relative home", () => {
+test("registerMachine refuses local, a machine registered twice, a bad name, an ssh that is an option, and a relative home; machines() names the rest", () => {
 	const { jobs } = setup();
 	const machine = { name: "mac", ssh: "mac", home: "/Users/kacper/.arthur", labels: {} };
 	assert.throws(() => jobs.registerMachine("machines", { ...machine, name: "local" }), { message: "machine local: registered by core and by machines; a machine belongs to one plugin" });
@@ -450,8 +450,10 @@ test("registerMachine refuses local, a machine registered twice, a bad name, an 
 	assert.throws(() => jobs.registerMachine("machines", { ...machine, ssh: "-oProxyCommand=sh" }), { message: 'machine mac: ssh must be a Host of ~/.ssh/config or a host name, got "-oProxyCommand=sh"' });
 	assert.throws(() => jobs.registerMachine("machines", { ...machine, home: ".arthur" }), { message: 'machine mac: home must be an absolute path, got ".arthur"' });
 	jobs.registerMachine("machines", machine);
+	assert.deepEqual(jobs.machines(), ["local", "gpu", "mac"], "local first, then in the order registered, no refused one");
 	const host = fakeHost({ name: "machines" }).host;
 	assert.throws(() => host.jobs.registerMachine({ ...machine, name: "local" }), { message: "machine local: registered by core and by machines; a machine belongs to one plugin" });
+	assert.deepEqual(host.jobs.machines(), ["local"]);
 });
 
 test("jobs.run runs one command on a machine: words with spaces, quotes, backticks and newlines arrive intact, the exit code comes back", async () => {

@@ -193,7 +193,7 @@ test("arthur resources <ticket> shows each cap with the spend against it and whe
 		log.mock.calls[0]?.arguments[0],
 		"AC0001: 2 jobs, 1 in a run\nbudgetUsd: $1.2345 of $15 (perFeature)\nhours: 0.52 h of 8 h (ticket AC0001)\ncpu: 4 cores for all its jobs (perFeature)\nmemory: no cap",
 	);
-	for (const args of [[], ["AC0001", "AC0002"], ["1"]]) assert.equal(await command?.run({ args, project: undefined }), 2);
-	assert.deepEqual(error.mock.calls.map((call) => call.arguments[0]), Array(3).fill("usage: arthur resources <ticket id>"));
+	for (const args of [["AC0001", "AC0002"], ["1"]]) assert.equal(await command?.run({ args, project: undefined }), 2);
+	assert.deepEqual(error.mock.calls.map((call) => call.arguments[0]), Array(2).fill("usage: arthur resources [<ticket id>]"));
 	assert.throws(() => command?.run({ args: ["AC0099"], project: undefined }), { message: "AC0099: no such ticket on the board, and no jobs" });
 });

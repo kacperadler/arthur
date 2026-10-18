@@ -7,7 +7,7 @@ import { addWorktree, branchExists, fileAt, head, removeWorktree } from "./git.t
 import { checkout, checkouts } from "./job-checkout.ts";
 import { checkLimits, type Limits, spawnLimits } from "./job-limits.ts";
 import { continueJob } from "./job-control.ts";
-import { addThere, LOCAL, type Machine, machineRegistry, type Ran, reach, removeThere, type Requires } from "./job-machine.ts";
+import { addThere, LOCAL, type Machine, machineRegistry, NAME, type Ran, reach, removeThere, type Requires } from "./job-machine.ts";
 import { newJob, writeRecord } from "./job-record.ts";
 import { type JobRecord, jobUpkeep } from "./job-records.ts";
 import { launchThere, syncMachines } from "./machine-sync.ts";
@@ -79,9 +79,10 @@ export type Jobs = RoleReads & {
 	// Runs after the worktree and the record exist and before the agent starts; a throw removes both and refuses the spawn. It
 	// runs in this process: for a job on another machine (`job.machine`) it acts there through `run`.
 	prepare(fn: Prepare): void;
-	// A machine jobs may run on over SSH (job-machine.ts); `local` is the core's. `run`: one command on one (docs/commands/spawn.md).
+	// Machines jobs run on over SSH, `local` the core's; `run`: one command on one; `machines`: every name (docs/commands/spawn.md).
 	registerMachine(machine: Machine): void;
 	run(machine: string, argv: readonly string[], limitSeconds?: number): Promise<Ran>;
+	machines(): string[];
 	spawn(request: SpawnRequest): Promise<Started>;
 	// Holds a job in a run `blocked` on `dependency: <reason>` until `unblock`; `stop`: stops it too, on `user: <reason>` (docs/commands/jobs.md).
 	block(id: string, reason: string, stop?: boolean): Promise<unknown>;
@@ -95,7 +96,7 @@ export type Jobs = RoleReads & {
 };
 
 // The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for.
-export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run" | "prompt" | "vision"> & {
+export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run" | "machines" | "prompt" | "vision"> & {
 	registerKind(owner: string, kind: Kind): void;
 	registerRole(owner: string, role: Role): void;
 	beforeSpawn(owner: string, check: SpawnCheck): void;
@@ -106,8 +107,6 @@ export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run
 	// What `arthur roles` prints: each role, the files it reads in the project's main checkout, and its model.
 	roles(project?: string): RoleView[];
 };
-
-const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 
 // `folder` is in the repository jobs start from while no plugin provides `projects` (job-checkout.ts); `limits` are the core's
 // `jobs` options and the jobs' slice, `agent` its `agent.command`; `collect` reads what the plugins provide, e.g. the sections
@@ -141,6 +140,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 		prepare: (owner, fn) => void prepares.push({ owner, fn }),
 		registerMachine: (owner, machine) => machines.register(owner, machine),
 		run: (machine, argv, limitSeconds) => machines.run(machine, argv, limitSeconds),
+		machines: () => [LOCAL, ...machines.others().map((machine) => machine.name)],
 		roles: (project) => describeRoles(roles, [...kinds.values()].map((entry) => entry.kind), where(project), collect),
 		continue: (id, instruction, budgetUsd) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), (spawn) => checks.pass({ ...spawn, tickets: taskTickets(spawn.task) }), machines.of(id)),
 		async spawn(request) {

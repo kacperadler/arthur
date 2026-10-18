@@ -89,10 +89,11 @@ export default defineConfig({
 				worker: { model: ["mac/qwen3-coder", "anthropic/claude-haiku-5-5"], thinking: undefined },
 				reviewer: { model: "anthropic/claude-sonnet-5", thinking: "medium" },
 				planner: { model: undefined, thinking: undefined }, // undefined = the agent's own default
+				"plan-reviewer": { model: "anthropic/claude-sonnet-5", thinking: "medium" }, // `arthur spawn --kind plan-review`
 				project: { model: "anthropic/claude-opus-5-5", thinking: "high" }, // each project's own agent
 				quick: { model: "anthropic/claude-haiku-5-5" }, // not a role: omp's quick model (--smol) on every job and the coordinator
 			},
-			plan: { budgetUsd: 5 },
+			plan: { budgetUsd: 5 }, // a plan job's budget (`arthur spawn --kind plan`), one resume at it, doubled; default 5
 			autopilot: { budgetUsd: 1, budgetMaxUsd: 3 },
 			morningReport: { at: "08:00" }, // registers a schedule entry (an action: a message to the coordinator)
 		}),
@@ -150,10 +151,14 @@ export default defineConfig({
 			// A job's own cap on its scope, and what it reserves on its machine (34). `cpu`: cores, a number above 0, at most the
 			// machine's cores; over it a job is slowed. `memory`: MemoryMax syntax as core.jobs.memory; over it a job ends
 			// `limit: memory`. Each left out = no cap; above core.jobs.cpu or core.jobs.memory = refused at load. Without a user
-			// manager (macOS) memory is sampled every 10 s and CPU is not capped. `perFeature` and `keepFree` come with roadmap
-			// entries 33, 34 and 69; until then the plugin refuses them as unknown options.
+			// manager (macOS) memory is sampled every 10 s and CPU is not capped. `keepFree` comes with roadmap entries 34 and
+			// 69; until then the plugin refuses it as an unknown option.
 			perJob: { cpu: 2, memory: "4G" },
-			perFeature: { budgetUsd: 15, hours: 8, cpu: 4, memory: "8G" }, // 0 = no cap
+			// All jobs of one ticket together (worker, reviews, plans), each replaced by the ticket's own `caps`; 0 = no cap.
+			// `budgetUsd`: their costs summed; `hours`: their run time summed. A spawn at either is refused; a running job that
+			// reaches one is stopped and held `blocked` on the user, `cap-reached` emitted, `arthur continue` resumes it once the
+			// cap is raised. `cpu`, `memory`: a slice per ticket inside the jobs' slice (needs a user manager). `arthur resources <ticket>`.
+			perFeature: { budgetUsd: 15, hours: 8, cpu: 4, memory: "8G" },
 			// Left free on every machine, for the coordinator and the system. `disk` is the floor of free disk where the machine's
 			// jobs write (its home, and Docker's data root where Docker runs): under it no job starts there, the refusal names the
 			// machine and the space, and running jobs go on; bytes with K, M, G or T; 0 = no floor.

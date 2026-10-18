@@ -37,3 +37,4 @@ Out:
 - 2026-10-18: Proposed by the coordinator as the next orchestration entries toward the switch (owner: focus on Arthur, switch as soon as possible); waits for approval.
 - 2026-10-18: The owner approved it.
 - 2026-10-18: The orchestration line budget rises by 87, to 805 (worker): the context (context.ts), its OMP extension run before every turn (context-extension.ts), `arthur coordinator context`, and the coordinator's role registered with its model in `roles.model`.
+- 2026-10-18: Coordinator (owner delegated Arthur calls): orchestration budget 718 -> 805 accepted for entry 25, provided the review finds nothing that could be cut.

@@ -74,7 +74,7 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | findings (named) | first | The `findings.md` format, and what happens to a merged ticket's open findings, per project: a planning ticket each, one per merged ticket, or a summary for the client; `/findings`. |
 | commit-rules (named) | first | Each project's commit format, set by a regex, a plain-words rule, or a path to a Markdown file that describes it. Below. |
 | youtrack (named) | first | One entry per server; reads and writes issues, comments, articles, work items. |
-| telegram (named) | first | A channel: receive, send text, send media. |
+| telegram (named) | first | A channel: receive, send text, send media. Follows the coordinator's silent mode (`/silent`, roadmap 47): while it is on, sends only the end of the work the owner delegated, its stop condition met, a decision, and the answer to his own message. |
 | discord (named) | first | A channel, through Discord's gateway: an outbound WebSocket, no Interactions Endpoint URL. One private server: a main channel for the coordinator and one channel per project; the bot answers only the owner. The channel the owner uses (decision 21). |
 | voice (named) | first | Local transcription of voice parts with whisper.cpp: claims every `voice` part from any channel, on the CPU, nothing sent to the cloud. |
 | delivery (derived) | first | Review, always-review list, merge after PASS and green CI, the changelog. |
@@ -167,7 +167,7 @@ Interface: `host.jobs.cleanup(fn)`, `host.jobs.prepare` returning variables for 
 ## How it is built
 
 - The plugin API is derived from three plugins: telegram, youtrack, schedule. They are a channel, a tracker and a timer; their common shape is the host API. The styleguide forbids abstracting before the second example, so the API is frozen after those three are built, not before.
-- Channels (telegram, signal, discord, slack, whatsapp) share one interface: receive a message as typed `parts` (text, photo, video, voice, audio, file), send text, send media. A message may name its place (a Telegram topic, a Discord or Slack channel), and a send may name the place it goes to. A channel hands the parts to the core, which asks the plugins that claim them (`collect("message.part")`) to replace each by its text before the coordinator's turn. Each channel answers one allowed chat or number, or one Discord server or Slack workspace, and there only the owner's user.
+- Channels (telegram, signal, discord, slack, whatsapp) share one interface: receive a message as typed `parts` (text, photo, video, voice, audio, file), send text, send media. A message may name its place (a Telegram topic, a Discord or Slack channel), and a send may name the place it goes to. A channel hands the parts to the core, which asks the plugins that claim them (`collect("message.part")`) to replace each by its text before the coordinator's turn. Each channel answers one allowed chat or number, or one Discord server or Slack workspace, and there only the owner's user. Every channel follows the coordinator's silent mode: `/silent` toggles it, and the coordinator turns it on by itself when the owner delegates work with a stop condition, and off when that work ends; while it is on, the owner hears only the end of that work, its stop condition met, a decision, and the answer to his own message, and quiet hours still send without a sound.
 - Arthur is built by moving the predecessor's modules with their tests, not by rewriting them, feature by feature, in the order of `spec/roadmap.md`. Each ticket is neither a one-liner nor a whole plugin; each module and plugin is tested on its own, edge cases included. The predecessor takes only fixes until the switch. Arthur switches one project first, itself, then the others.
 - The repository starts clean, with an empty board: the predecessor's history holds client names, paths and work, and is not published.
 
@@ -187,6 +187,7 @@ Interface: `host.jobs.cleanup(fn)`, `host.jobs.prepare` returning variables for 
 - Ticket prefixes: `projects`, option `prefix` per project. No renumbering: the board starts empty.
 - A project's Node version: `nvm`, from the project's `.nvmrc`, which onboarding adds.
 - A job's state: the core's job runner (its record, `job-state`); shown by `orchestration` (context, wake, a notice when a job asks the user) and `/jobs` on every channel.
+- The silent mode (`arthur silent`, `/silent`, its state, which reply and notice it holds): `orchestration`; every channel asks it before it sends a notice.
 - Running a job on another machine: the core's job runner, over SSH. Which machines exist, their labels, and which one a job goes to: `machines`.
 - A job's time and money: the core. A job's CPU and memory, a feature's caps, and how many jobs the free resources allow: `resources`.
 - Free disk on a machine: `resources` (`keepFree.disk`). A job's Docker resources, the build cache cap and the leftover sweep: `docker`, through the core's cleanup hook on worktree removal.

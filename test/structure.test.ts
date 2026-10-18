@@ -53,10 +53,12 @@ import { checkStructure } from "./structure.ts";
 // package folders of the code a load runs, which the session plugin has no other way to know, and `--ignore-restart` reaching
 // the `beforeSpawn` checks; session 86 more (539) for the note at the start, the comparison with HEAD, the spawn check, the
 // context line and `restartGuard`.
+// AR0158 (roadmap 39): schedule entries and the sweep, schedule: 277, for the entries' checks and slots, the claims of the run
+// state and the sweep; core unchanged.
 // AR0157 (roadmap 38): the start notice and the LLM probe; session 152 more (691) for the probe of the coordinator's model,
 // the notice at every start, the turn extension that leaves each coordinator turn failed before any text, its notice, and the
 // redaction of a credential in either.
-const BUDGETS = { core: 4873, "core/testing": 340, projects: 320, orchestration: 1146, machines: 375, resources: 401, session: 691 };
+const BUDGETS = { core: 4873, "core/testing": 340, projects: 320, orchestration: 1146, machines: 375, resources: 401, session: 691, schedule: 277 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

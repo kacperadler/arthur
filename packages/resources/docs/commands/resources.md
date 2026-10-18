@@ -1,8 +1,21 @@
 # arthur resources
 
-Usage: `arthur resources <ticket id>`
+Usage: `arthur resources [<ticket id>]`; on a channel `/resources`.
 
-Shows what all jobs of one ticket (worker, reviews, plans: every job whose first `Ticket:` path lies in `spec/features/<id>-<slug>/`) spent against the ticket's caps per feature (roadmap entry 33), answered without the model:
+Without a ticket id, each machine's room for more jobs (roadmap entry 34), one line per machine, `local` first, then in the order the machines were registered, answered without the model; the shell, the channel and the coordinator's context get the same lines:
+
+```
+local: room for 2 more jobs (5.1 GB, 3.4 cores free)
+mac: no room, short of 1.2 GB memory (4.8 GB, 6.0 cores free; keepFree 2.0 GB, 1.0 cores; a job reserves 4.0 GB, 2.0 cores; reserved for 1 job started since the check)
+gpu: no room, its check failed: ssh failed: ssh: connect to host gpu port 22: Connection refused
+```
+
+- `room for <n> more jobs`: the whole `perJob` reservations that fit in what is free less `keepFree`; `room for any number of jobs, perJob reserving nothing` without `perJob`.
+- `no room, short of ...`: how much more memory or how many more cores one more job needs, then what is free, `keepFree`, what a job reserves, and the jobs started since the check, each counted at its reservation.
+- `no room, its check failed: <reason>` and `no room, not checked yet`: a machine with no numbers takes no job.
+- The free memory and cores are those of the machine's last check, less the reservations of the jobs started since. A check 2 minutes old or more, or missing, is made again first; how a machine is checked: `docs/resources.md` of the `resources` plugin, "How many jobs run".
+
+With a ticket id, what all jobs of that ticket (worker, reviews, plans: every job whose first `Ticket:` path lies in `spec/features/<id>-<slug>/`) spent against the ticket's caps per feature (roadmap entry 33), answered without the model:
 
 ```
 AC0001: 3 jobs, 1 in a run
@@ -17,6 +30,6 @@ memory: no cap
 - `cpu`, `memory`: what the ticket's slice gives all its jobs together; the spend is not measured.
 - After each cap, where it comes from: `ticket <id>` (the `caps` of the ticket's JSON block) or `perFeature`; `no cap` when neither sets it or it is `0`.
 
-Refused (exit code 1, after `arthur resources: `): a ticket on no board that has no jobs, `<id>: no such ticket on the board, and no jobs`; a ticket whose JSON block is not JSON or whose `caps` have the wrong shape, naming the file. Wrong usage (no id, more than one, or not an id such as `AC0001`) prints the usage line and exits 2.
+Refused (exit code 1, after `arthur resources: `): a ticket on no board that has no jobs, `<id>: no such ticket on the board, and no jobs`; a ticket whose JSON block is not JSON or whose `caps` have the wrong shape, naming the file. Wrong usage (more than one argument, or one that is not an id such as `AC0001`) prints `usage: arthur resources [<ticket id>]` and exits 2; on a channel, `/resources` with any text answers `usage: /resources`.
 
-What the caps do, and the `cap-reached` event: `docs/resources.md` of the `resources` plugin, "Caps per feature".
+What the caps do, the `cap-reached` event, and how each machine is checked: `docs/resources.md` of the `resources` plugin.

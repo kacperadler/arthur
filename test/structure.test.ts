@@ -36,7 +36,10 @@ import { checkStructure } from "./structure.ts";
 // agent's `ctx.compact` and `hasPendingMessages`, core/testing within its budget (335).
 // AR0141 (roadmap 33): caps per feature; core 22 more (4786) for the ticket's slice, `ran`, `cost`/`budget`/`seconds` in
 // `host.jobs.list()` and `block(..., stop)`; resources 189 more (231) for `perFeature`, a ticket's `caps`, the sweep and `arthur resources`.
-const BUDGETS = { core: 4786, "core/testing": 340, projects: 320, orchestration: 892, machines: 375, resources: 231, session: 213 };
+// AR0142 (roadmap 34): how many jobs run from each machine's free CPU and memory; core 2 more (4788) for `host.jobs.machines()`,
+// the list of registered machines a plugin had no way to read; resources 170 more (401) for `keepFree`, the check of each
+// machine kept per machine, the room, `resources.free`, the spawn check, the context lines and `arthur resources`/`/resources`.
+const BUDGETS = { core: 4788, "core/testing": 340, projects: 320, orchestration: 892, machines: 375, resources: 401, session: 213 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

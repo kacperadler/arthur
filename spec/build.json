@@ -923,9 +923,9 @@
   {
     "id": "AR0112",
     "title": "A turn that keeps failing is handed its messages again every second, without a pause",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0112-a-turn-that-keeps-failing-is-handed-its-messages-again-every-second-without-a-pause/ticket.md",
-    "updated": "2026-10-18T08:23:24.093Z"
+    "updated": "2026-10-18T08:37:46.339Z"
   },
   {
     "id": "AR0113",
@@ -968,8 +968,8 @@
   {
     "id": "AR0118",
     "title": "The setup guide has an optional Tailscale step for other machines",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0118-the-setup-guide-has-an-optional-tailscale-step-for-other-machines/ticket.md",
-    "updated": "2026-10-18T08:27:08.568Z"
+    "updated": "2026-10-18T08:36:38.587Z"
   }
 ]

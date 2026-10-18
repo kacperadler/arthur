@@ -15,8 +15,8 @@ import { processTable } from "./process-table.ts";
 // An ended job as a plugin's `jobs.keep` gets it; `branch` is empty for a read-only kind.
 export type FinishedJob = { readonly [key in "id" | "kind" | "project" | "task" | "state" | "reason" | "branch" | "worktree"]: string };
 // A job as `host.jobs.list()` gives it, in any state; `tickets` are the paths its task names on `Ticket:`, `hold` empty unless held,
-// `machine` the one it runs on, `local` for a record that names none.
-export type JobRecord = { readonly [key in "id" | "kind" | "project" | "state" | "reason" | "hold" | "branch" | "machine"]: string } & { readonly tickets: readonly string[] };
+// `machine` the one it runs on, `local` for a record that names none; `since` when it took its state (ISO 8601).
+export type JobRecord = { readonly [key in "id" | "kind" | "project" | "state" | "reason" | "hold" | "since" | "branch" | "machine"]: string } & { readonly tickets: readonly string[] };
 
 // The full id of the one job `query` names; refused when none or several match, naming them.
 export function findJob(home: string, query: string): string {
@@ -42,7 +42,7 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 	const records = (): JobRecord[] =>
 		jobIds(home).map((id) => {
 			const read = field(home, id);
-			return { id, kind: read("kind"), project: read("project"), ...current(home, id), branch: read("branch"), machine: read("machine") || "local", tickets: taskTickets(read("task")) };
+			return { id, kind: read("kind"), project: read("project"), ...current(home, id), since: read("since"), branch: read("branch"), machine: read("machine") || "local", tickets: taskTickets(read("task")) };
 		});
 	const running = (): string[] => records().filter(inRun).map((job) => job.id);
 	return {

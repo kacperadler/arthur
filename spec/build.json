@@ -1127,5 +1127,49 @@
     "status": "dropped",
     "path": "spec/features/AR0139-resources-free-answer-shape-fixed-here-for-entry-34/ticket.md",
     "updated": "2026-10-18T13:44:09.270Z"
+  },
+  {
+    "id": "AR0140",
+    "title": "Roadmap 29: Autopilot",
+    "status": "planned",
+    "path": "spec/features/AR0140-roadmap-29-autopilot/ticket.md",
+    "updated": "2026-10-18T19:34:25.401Z",
+    "after": [
+      "AR0123"
+    ]
+  },
+  {
+    "id": "AR0141",
+    "title": "Roadmap 33: Resources: caps per feature",
+    "status": "planned",
+    "path": "spec/features/AR0141-roadmap-33-resources-caps-per-feature/ticket.md",
+    "updated": "2026-10-18T19:34:23.689Z"
+  },
+  {
+    "id": "AR0142",
+    "title": "Roadmap 34: Resources: how many jobs run, from each machine's free resources",
+    "status": "planned",
+    "path": "spec/features/AR0142-roadmap-34-resources-how-many-jobs-run-from-each-machine-s-free-resources/ticket.md",
+    "updated": "2026-10-18T19:34:25.623Z",
+    "after": [
+      "AR0141"
+    ]
+  },
+  {
+    "id": "AR0143",
+    "title": "Roadmap 35: Compaction during the day",
+    "status": "planned",
+    "path": "spec/features/AR0143-roadmap-35-compaction-during-the-day/ticket.md",
+    "updated": "2026-10-18T19:34:24.703Z"
+  },
+  {
+    "id": "AR0144",
+    "title": "Roadmap 36: Fresh start, /restart and /restart fresh",
+    "status": "planned",
+    "path": "spec/features/AR0144-roadmap-36-fresh-start-restart-and-restart-fresh/ticket.md",
+    "updated": "2026-10-18T19:34:25.842Z",
+    "after": [
+      "AR0143"
+    ]
   }
 ]

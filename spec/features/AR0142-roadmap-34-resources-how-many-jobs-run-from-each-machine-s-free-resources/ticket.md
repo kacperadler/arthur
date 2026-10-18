@@ -35,3 +35,5 @@ Out:
 ## Decisions
 
 - 2026-10-18: The owner: build the roadmap in its order; on 2026-10-18 evening he asked for a night plan for Arthur with Claude 7 Day usage up to 75%. This entry is in that plan.
+- 2026-10-18: Coordinator (owner delegated Arthur calls): core +2 (host.jobs.machines) and resources 231 -> 401 (+170) accepted; resources checks each machine itself at start, every 60 s and on demand when 2 min old, instead of on every machine check (plugins may not import each other): accepted, F1 records it.
+- 2026-10-18: Coordinator: CI `ci` failed on 8238c39 while the merge review ran npm test 504/504 green in its worktree; logs are unreadable here (no token). CI rerun by this commit.

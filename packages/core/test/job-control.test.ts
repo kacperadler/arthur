@@ -127,7 +127,8 @@ test("arthur stop of an agent that ignores SIGTERM: SIGKILL to its group after t
 	const started = Date.now();
 	assert.equal(await stopJob(home, job.id), `${job.id}: stopped`);
 	const took = Date.now() - started;
-	assert.ok(took >= GRACE_SECONDS * 1000 && took < (GRACE_SECONDS + 1) * 1000, `stopped after ${took} ms`);
+	// Below the GRACE_SECONDS + 10 after which arthur stop gives up, with room for a slow runner.
+	assert.ok(took >= GRACE_SECONDS * 1000 && took < (GRACE_SECONDS + 5) * 1000, `stopped after ${took} ms`);
 	await until("the agent's end", () => !alive(pid));
 	assert.match(field(home, job.id, "log") ?? "", new RegExp(`\\] the agent's process group is still alive ${GRACE_SECONDS} seconds after SIGTERM: SIGKILL\\n`));
 });
@@ -183,7 +184,8 @@ for (const scoped of [true, false])
 		await until("the agent's exit", () => !alive(pid));
 		const exited = Date.now();
 		assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }]);
-		assert.ok(Date.now() - exited < 3000, `ended ${Date.now() - exited} ms after the agent exited`);
+		// The wrapper waits 2 s for the pipes, not the holder's 300 s; the ceiling has room for a slow runner.
+		assert.ok(Date.now() - exited < 10_000, `ended ${Date.now() - exited} ms after the agent exited`);
 		assert.equal(field(home, job.id, "state"), "ended");
 		if (scoped) await until("the holder's end", () => !alive(holder));
 		else assert.equal(alive(holder), true, "what a bare job leaves behind is not killed at its end, as its log says");

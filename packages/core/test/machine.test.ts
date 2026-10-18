@@ -455,8 +455,9 @@ test("jobs.run runs one command on a machine: words with spaces, quotes, backtic
 test("jobs.run past limitSeconds kills the command and resolves at once, though a child of it holds its pipes", async () => {
 	const { jobs } = setup();
 	const started = Date.now();
-	assert.deepEqual(await jobs.run("local", ["sh", "-c", "echo begun; sleep 3 & sleep 3"], 0.3), { code: null, stdout: "begun\n", stderr: "timed out after 0.3 s\n" });
-	assert.ok(Date.now() - started < 2000, `resolved after ${Date.now() - started} ms, not at the limit`);
+	assert.deepEqual(await jobs.run("local", ["sh", "-c", "echo begun; sleep 10 & sleep 10"], 0.3), { code: null, stdout: "begun\n", stderr: "timed out after 0.3 s\n" });
+	// Well before the 10 s the pipes stay open, with room for a slow runner.
+	assert.ok(Date.now() - started < 8000, `resolved after ${Date.now() - started} ms, not at the limit`);
 	assert.deepEqual(await jobs.run("gpu", ["sh", "-c", "echo there"], 5), { code: 0, stdout: "there\n", stderr: "" }, "within its limit it runs as without one");
 	await assert.rejects(jobs.run("local", ["true"], 0), { message: "run: limitSeconds must be above 0, got 0" });
 });

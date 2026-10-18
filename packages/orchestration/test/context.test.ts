@@ -165,12 +165,14 @@ async function turns(cwd: string, command: readonly string[], between: () => voi
 
 test("before every turn the extension adds what arthur coordinator context prints then to the system prompt", async () => {
 	const folder = configured();
-	const [first, second] = await turns(folder, [process.execPath, CLI, "coordinator", "context"], () => writeFileSync(join(folder, "spec/build.json"), board("First", "Second")));
+	const [first, second] = (await turns(folder, [process.execPath, CLI, "coordinator", "context"], () => writeFileSync(join(folder, "spec/build.json"), board("First", "Second")))) as string[][];
 	const printed = spawnSync(process.execPath, [CLI, "coordinator", "context"], { cwd: folder, encoding: "utf8" }).stdout.trim();
-	assert.deepEqual(second, [BASE, printed]);
 	assert.ok(printed.startsWith(`${ROLE}\n\n## Project override`), printed);
 	assert.match(printed, /## Board of demo\n\nDM0001 planning    First\nDM0002 planning    Second\n\n## Time\n\n\d\d:\d\d on /);
-	assert.deepEqual(first, [BASE, printed.replace("\nDM0002 planning    Second", "")], "the board as it was before the first turn");
+	// Each turn read the clock at its own minute, which a slow run may have left by now; the set-clock test above checks the time line.
+	const timeless = (parts: readonly string[] | undefined) => parts?.map((part) => part.replace(/\n\n## Time\n\n\d\d:\d\d on \w+ \d{4}-\d\d-\d\d /, "\n\n## Time\n\n<time> "));
+	assert.deepEqual(timeless(second), timeless([BASE, printed]));
+	assert.deepEqual(timeless(first), timeless([BASE, printed.replace("\nDM0002 planning    Second", "")]), "the board as it was before the first turn");
 });
 
 test("when arthur coordinator context fails, the turn gets the shipped role and why; a session without a UI gets nothing", async () => {

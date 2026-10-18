@@ -36,3 +36,4 @@ Out:
 ## Decisions
 
 - 2026-10-18: The owner: a flaky test must be found and fixed; approved past the 58% usage stop.
+- 2026-10-18: Coordinator: proof on bf9f6a5 (the tree in /tmp/ar0136/fixed, test files identical): 4 rounds of 6 parallel full `npm test` runs, 24 of 24 passed 423/423. F6 stays open for a ticket at the merge.

@@ -1324,5 +1324,12 @@
     "status": "planning",
     "path": "spec/features/AR0165-a-provider-outage-sends-a-turn-failed-notice-at-every-retry-of-the-inbox/ticket.md",
     "updated": "2026-10-18T23:36:58.637Z"
+  },
+  {
+    "id": "AR0166",
+    "title": "Roadmap 80: arthur doctor, checked at every start",
+    "status": "planned",
+    "path": "spec/features/AR0166-roadmap-80-arthur-doctor-checked-at-every-start/ticket.md",
+    "updated": "2026-10-18T23:37:21.921Z"
   }
 ]

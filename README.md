@@ -8,7 +8,7 @@ Arthur lets one human direct many coding agents through one coordinator: the hum
 
 From [`spec/vision.md`](spec/vision.md):
 
-- One human directs many agents through one coordinator, who does not read code. The human talks to it through a channel plugin (Telegram first) or from the terminal, in the coordinator's own session (`arthur attach`).
+- One human directs many agents through one coordinator, who does not read code. The human talks to it through a channel plugin (Discord, the owner's pick, or Telegram, whichever the config turns on) or from the terminal, in the coordinator's own session (`arthur attach`).
 - Work happens in isolated worktrees, on their own branches, on this machine or on another one reached over SSH on a private network.
 - Plain files in Git and in the home folder `.arthur/` are the truth: tickets, the board, job records. No database.
 - One config file, `arthur.config.ts`: the plugin list, each plugin with its options, and every project. It holds no secret: an option ending in `Env` names the variable that holds it, and the value stays in the shell or `.env`.
@@ -18,7 +18,7 @@ From [`spec/vision.md`](spec/vision.md):
 ## What Arthur is not
 
 - A hosted service, accounts, or a marketplace of third-party plugins. Plugins are packages the owner installs and lists in the config.
-- Anything that listens on a public address: no webhooks, no public endpoint. Every plugin calls out (Telegram and GitHub are polled) or talks to a local process.
+- Anything that listens on a public address: no webhooks, no public endpoint. Every plugin calls out (Telegram and GitHub are polled, Discord's gateway is an outbound connection) or talks to a local process.
 - A mode without a coordinator, or a project list outside the config.
 - Another agent runtime: Claude Code, Codex and others are not supported; OMP only.
 - Config in JSON or YAML, or a secret inside the config.
@@ -75,13 +75,14 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | commit-rules: a regex hook, words or a file per project | planned | 43 |
 | findings: what happens to them on a merge | planned | 83 |
 | telegram: text, media and the phone menu | planned | 47 to 50 |
+| discord: one private server, a main channel for the coordinator and one per project; text, media, phone commands | planned | 89, 90 |
 | voice: local transcription of voice notes | planned | 81 |
 | delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | planned | 52 to 56, 59 |
 | github: CI runs, reruns, pushes, pull request reviews | planned | 57, 58 |
 | youtrack: issues, articles, comments | planned | 44 to 46 |
 | manage: health, stats, audit, retro, prune on a schedule | planned | 60 to 64 |
 | develop: `arthur plugin new`, evals | planned | 66 to 68 |
-| Later: signal, discord, slack and whatsapp channels; server and web panel; knowledge base; company edition | planned | 73 to 79, 89 to 92 |
+| Later: signal, slack and whatsapp channels; server, web panel and the owner's mobile app (Expo) by the VPS's Tailscale name; knowledge base; company edition | planned | 73 to 79, 91, 92, 95 |
 
 ## Commands
 
@@ -147,11 +148,12 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
 %% Core entries 1-22 are merged; orchestration has entries 23 to 28 of 23-29 and 65; projects has entry 41 of 41-42; machines has entry 30 of 30-31; resources has entries 32 and 33 of 32-34 and 69; session has entries 35 and 36 of 35-38; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
-%% Also planned, from the approved plan of AR0098: project agents in orchestration, and the discord and slack channels.
+%% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
 flowchart TD
   human([Owner])
   human -.->|phone| tg
+  human -.->|phone| dc
   human -->|writes| files
   human -->|shell| terminal
 
@@ -188,8 +190,9 @@ flowchart TD
     subgraph FIRST[First-version plugins]
       subgraph CHAN[Channels and media]
         telegram[telegram<br/>text, media, phone menu]
+        discord[discord<br/>main channel, one per project<br/>text, media, /name text]
         voice[voice<br/>whisper.cpp, on the CPU]
-        telegram ~~~ voice
+        telegram ~~~ discord ~~~ voice
       end
       subgraph COORD[Coordinator]
         orchestration[orchestration<br/>coordinator, arthur attach<br/>context, jobs by state, planning<br/>6 of 8 entries]
@@ -227,13 +230,14 @@ flowchart TD
     subgraph LATER[Later plugins]
       agents[project agents<br/>one per project, its own chat]
       signal[signal<br/>a channel, signal-cli]
-      discord[discord<br/>a channel, gateway]
       slack[slack<br/>a channel, Socket Mode]
       whatsapp[whatsapp<br/>a channel, local bridge]
-      server[server, web panel<br/>private network only]
+      server[server<br/>events, commands over HTTP<br/>private network only]
+      apps[own apps<br/>web panel, mobile app in Expo<br/>by Tailscale name, no public port]
       knowledge[knowledge base<br/>search, chat with sources]
       company[company edition<br/>business roles as agents]
-      agents ~~~ signal ~~~ discord ~~~ slack ~~~ whatsapp ~~~ server ~~~ knowledge ~~~ company
+      agents ~~~ signal ~~~ slack ~~~ whatsapp ~~~ server ~~~ apps ~~~ knowledge ~~~ company
+      apps -.->|Tailscale| server
     end
   end
 
@@ -283,7 +287,7 @@ flowchart TD
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
   class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,machines built;
   class lpartial,orchestration,projects,resources,session partial;
-  class lplanned,telegram,voice,corelater,agents,schedule,nvm,commit,findings,models,docker,delivery,github,youtrack,manage,develop,signal,discord,slack,whatsapp,server,knowledge,company planned;
+  class lplanned,telegram,discord,voice,corelater,agents,schedule,nvm,commit,findings,models,docker,delivery,github,youtrack,manage,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl outside;
   style larrows fill:#fff,stroke:#999,color:#000
   style LEGEND fill:#fff,stroke:#999

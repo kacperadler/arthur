@@ -10,6 +10,8 @@ import type { Added } from "./remote-job.ts";
 
 // `ssh`: a `Host` of `~/.ssh/config` or a host name; `home`: Arthur's home folder there; `labels` are the placement's (entry 31).
 export type Machine = { readonly name: string; readonly ssh: string; readonly home: string; readonly labels: Readonly<Record<string, unknown>> };
+// The labels a job needs (entry 31): the machine's `os` and `arch`, each tool of `tools`; a plugin's `jobs.place` reads them.
+export type Requires = { readonly os?: string; readonly arch?: string; readonly tools?: readonly string[] };
 
 // What `host.jobs.run` resolves to.
 export type Ran = { readonly code: number | null; readonly stdout: string; readonly stderr: string };
@@ -43,14 +45,14 @@ export function machineRegistry(home: string) {
 			if (typeof labels !== "object" || labels === null || Array.isArray(labels)) throw new Error(`machine ${name}: labels must be an object`);
 			machines.set(name, { owner, machine });
 		},
-		// The machine a spawn runs on: the one it names, else the one a plugin's `jobs.place` answers, else `local`.
-		async pick(named: string | undefined, place: () => readonly unknown[]): Promise<Machine> {
-			let name: unknown = named;
-			if (name === undefined) {
-				const answers = place();
-				if (answers.length > 1) throw new Error(`call("jobs.place"): provided by ${answers.length} plugins; call needs exactly one`);
-				name = answers.length === 0 ? LOCAL : await answers[0];
-			}
+		// The machine a spawn runs on: the one it names, else the one a plugin's `jobs.place` answers, else `local`. A plugin's
+		// `jobs.place` is asked about a named machine too, and may refuse it; labels a spawn `requires` need a plugin to place it.
+		async pick(named: string | undefined, requires: unknown, place: () => readonly unknown[]): Promise<Machine> {
+			const answers = place();
+			if (answers.length > 1) throw new Error(`call("jobs.place"): provided by ${answers.length} plugins; call needs exactly one`);
+			if (answers.length === 0 && requires !== undefined) throw new Error("requires: no plugin places jobs by labels (jobs.place); the machines plugin does");
+			const placed: unknown = answers.length === 0 ? LOCAL : await answers[0];
+			const name = named ?? placed;
 			const found = typeof name === "string" ? machines.get(name) : undefined;
 			if (found === undefined) throw new Error(`unknown machine ${typeof name === "string" ? name : JSON.stringify(name)}; machines: ${names()}`);
 			return found.machine;
@@ -70,7 +72,7 @@ export function machineRegistry(home: string) {
 			if (typeof name !== "string") throw new Error(`run: a machine name, got ${JSON.stringify(name)}`);
 			if (!Array.isArray(argv) || argv.length === 0 || !argv.every((word) => typeof word === "string")) throw new Error("run: argv must be a non-empty list of words");
 			if (limitSeconds !== undefined && !(limitSeconds > 0)) throw new Error(`run: limitSeconds must be above 0, got ${JSON.stringify(limitSeconds)}`);
-			const machine = await this.pick(name, () => []);
+			const machine = await this.pick(name, undefined, () => []);
 			return execute(machine.name === LOCAL ? argv : ["ssh", ...OPTIONS, machine.ssh, argv.map(quote).join(" ")], "", limitSeconds);
 		},
 	};

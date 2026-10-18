@@ -33,7 +33,7 @@ Each entry:
 - `title`: the full name, one line of at most 60 characters; the name when left out.
 - `about`: what the project is and what it is for, one line of at most 300 characters. Without it the coordinator knows the project only by its prefix, name and title, and `arthur doctor` says so (`projects <name> about: missing: no about`, not critical).
 - `install`: the shell command that installs a new worktree's dependencies; `""` turns the install off.
-- Read by other plugins, checked here for their shape only: `tracker` (`{ plugin, instance?, project }`), `ci` (`{ workflow }`), `commitRules` (exactly one of `{ regex }`, `{ words }`, `{ file }`), `autoMerge` (true or false), `requires` (`{ os?, arch?, tools? }`, the machine labels its jobs need) and `docker` (true or false).
+- Read by other plugins, checked here for their shape only: `tracker` (`{ plugin, instance?, project }`), `ci` (`{ workflow }`), `commitRules` (exactly one of `{ regex }`, `{ words }`, `{ file }`), `autoMerge` (true or false), `requires` (`{ os?, arch?, tools? }`, the machine labels its jobs need, which the `machines` plugin places them by: `arthur machines --help`) and `docker` (true or false).
 
 Relative paths, `path` and `reposDir`, count from the folder Arthur runs in. One repository may be declared several times, each checkout its own project with its own name, prefix and folder: a client branch is a checkout declared as its own project.
 

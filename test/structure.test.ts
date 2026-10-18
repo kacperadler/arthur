@@ -34,7 +34,10 @@ import { checkStructure } from "./structure.ts";
 // AR0143 (roadmap 35): compaction during the day; orchestration 17 more (892) to load another plugin's OMP extension into the
 // coordinator's agent (`coordinator.extension`), which the session plugin needs and cannot add itself; session: 213; the fake
 // agent's `ctx.compact` and `hasPendingMessages`, core/testing within its budget (335).
-const BUDGETS = { core: 4764, "core/testing": 340, projects: 320, orchestration: 892, machines: 375, resources: 42, session: 213 };
+// AR0144 (roadmap 36): the fresh start at `freshAt`, `/restart` and `/restart fresh`, the handoff read at every start and the
+// `Restarted.` notice, session 240 more (453); orchestration 11 more (903) for `coordinator.restart` and the start without
+// `--continue` after it, which the session plugin needs and cannot do itself.
+const BUDGETS = { core: 4764, "core/testing": 340, projects: 320, orchestration: 903, machines: 375, resources: 42, session: 453 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

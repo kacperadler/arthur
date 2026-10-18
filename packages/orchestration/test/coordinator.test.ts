@@ -124,6 +124,25 @@ test("a coordinator that ends is started again after restartDelaySeconds, and on
 	assert.ok(out.some((line) => line.text === "orchestration: the coordinator ended; starting it again in 1 s"));
 });
 
+test("coordinator.restart ends the session; the next start is a fresh conversation after fresh: true, once, and goes on with --continue after fresh: false", async (t) => {
+	const { agent, release } = waiting();
+	t.after(release);
+	const { fake, plugin, out, starts } = await load(t, agent);
+	await plugin.start?.();
+	await until("the first start", () => starts().length === 1);
+	fake.call("coordinator.restart", { fresh: true });
+	await until("the fresh start", () => starts().length === 2);
+	assert.equal(starts()[1]?.args[0], "--auto-approve", "no --continue");
+	await until("its line", () => out.some((line) => line.text === `orchestration: coordinator started: omp (pid ${starts()[1]?.pid}) in tmux session coord, a fresh conversation`));
+	assert.equal(existsSync(join(fake.host.folder, "fresh")), false, "the mark is gone once the fresh start is made");
+	fake.call("coordinator.restart", { fresh: false });
+	await until("the next start", () => starts().length === 3);
+	assert.equal(starts()[2]?.args[0], "--continue");
+	assert.throws(() => fake.call("coordinator.restart", { fresh: "yes" }), { message: 'coordinator.restart: expected { fresh: true | false }, got {"fresh":"yes"}' });
+	await sleep(1500);
+	assert.equal(starts().length, 3, "a refused call ends nothing");
+});
+
 test("a previous omp still alive after exitWaitSeconds refuses the start, logged, and the start is tried again until it exits", async (t) => {
 	// The first start ignores the hangup tmux sends when its session is killed, and stays until `release`.
 	const folder = temporaryFolder();

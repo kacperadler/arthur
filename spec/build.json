@@ -1089,9 +1089,9 @@
   {
     "id": "AR0134",
     "title": "Roadmap: Discord as a first-version channel, and own apps over Tailscale",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0134-roadmap-discord-as-a-first-version-channel-and-own-apps-over-tailscale/ticket.md",
-    "updated": "2026-10-18T10:59:53.031Z"
+    "updated": "2026-10-18T21:19:05.378Z"
   },
   {
     "id": "AR0135",
@@ -1131,9 +1131,9 @@
   {
     "id": "AR0140",
     "title": "Roadmap 29: Autopilot",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0140-roadmap-29-autopilot/ticket.md",
-    "updated": "2026-10-18T21:14:54.468Z",
+    "updated": "2026-10-18T21:24:56.963Z",
     "after": [
       "AR0123"
     ]
@@ -1148,9 +1148,9 @@
   {
     "id": "AR0142",
     "title": "Roadmap 34: Resources: how many jobs run, from each machine's free resources",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0142-roadmap-34-resources-how-many-jobs-run-from-each-machine-s-free-resources/ticket.md",
-    "updated": "2026-10-18T21:04:26.906Z",
+    "updated": "2026-10-18T21:19:00.792Z",
     "after": [
       "AR0141"
     ]

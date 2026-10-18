@@ -24,6 +24,8 @@ export type ProjectEntry = {
 	readonly autoMerge?: boolean;
 	readonly requires?: { readonly os?: string; readonly arch?: string; readonly tools?: readonly string[] };
 	readonly docker?: boolean;
+	// The files the roles read in its repository; left out, `spec/vision.md`, `.agents/arthur/criteria` and `.agents/arthur/roles`.
+	readonly prompts?: { readonly vision?: string; readonly criteriaDir?: string; readonly rolesDir?: string };
 };
 
 // As `projects` serves it: the entry, its folder absolute and its title set.

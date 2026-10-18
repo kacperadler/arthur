@@ -20,6 +20,7 @@ test("a list that keeps every rule passes: path and repo projects, every optiona
 		autoMerge: true,
 		requires: { os: "linux", arch: "x64", tools: ["docker"] },
 		docker: false,
+		prompts: { vision: "docs/vision.md", criteriaDir: ".agents/harness/criteria", rolesDir: "./.agents/harness/roles" },
 	};
 	assert.deepEqual(problems([full, docs, { name: "api.v2", prefix: "API", path: "../api" }]), []);
 	assert.deepEqual(problems([shop], {}), [], "reposDir is needed only by a repo");
@@ -70,10 +71,10 @@ test("two projects with one folder are refused: the same path, or a path where a
 	]);
 });
 
-test("an unknown key is refused, pathPrepend and prompts among them", () => {
-	for (const key of ["pathPrepend", "prompts", "branch"])
+test("an unknown key is refused, pathPrepend among them", () => {
+	for (const key of ["pathPrepend", "branch"])
 		assert.deepEqual(problems([{ ...shop, [key]: ["/opt/bin"] }]), [
-			`list[0].${key}: project web-shop: unknown key; keys: name, prefix, path, repo, title, about, install, tracker, ci, commitRules, autoMerge, requires, docker`,
+			`list[0].${key}: project web-shop: unknown key; keys: name, prefix, path, repo, title, about, install, tracker, ci, commitRules, autoMerge, requires, docker, prompts`,
 		]);
 	assert.deepEqual(problems([shop], { aliases: {} }), ["aliases: unknown option; options: list, reposDir"]);
 });
@@ -87,6 +88,8 @@ test("a wrong shape for each key a later plugin reads is refused", () => {
 		requires: ["linux", { tools: "docker" }, { os: 1 }, { gpu: true }],
 		docker: ["no"],
 		install: [false, ["npm", "ci"]],
+		// A path the core would read outside the project's repository, or not a path.
+		prompts: ["spec", { vision: "/etc/passwd" }, { criteriaDir: "../other/criteria" }, { rolesDir: "a/../../b" }, { vision: "" }, { overrides: "x" }],
 	};
 	for (const [key, values] of Object.entries(wrong))
 		for (const value of values) {

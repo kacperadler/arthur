@@ -60,6 +60,9 @@ test("each wrong option is refused, naming its path", () => {
 		],
 	);
 	assert.deepEqual(paths({ roles: ["worker"] }), ["roles: expected one entry per role, e.g. { worker: { model, thinking } }, got a list"]);
+	assert.deepEqual(paths({ roles: { coordinator: { model: "anthropic/opus" } } }), [
+		"roles.coordinator: the coordinator's model and thinking are coordinator.model and coordinator.thinking",
+	]);
 });
 
 test("the limits pass at their edge: no wait for the previous agent, a delay of one second, the last minute of the day", () => {

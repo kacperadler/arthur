@@ -33,6 +33,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0126 Roadmap 32: Resources: caps per job (1bde258)
 - AR0141 Roadmap 33: Resources: caps per feature (2376bf5)
 - AR0143 Roadmap 35: Compaction during the day (e91a0df)
+- AR0144 Roadmap 36: Fresh start, /restart and /restart fresh (f419a71)
 
 ## 2026-10-17
 

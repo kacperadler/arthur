@@ -35,3 +35,5 @@ Out:
 ## Decisions
 
 - 2026-10-18: The owner wants a choice of channel and leans to Discord (a channel per project plus a main one), and own apps over Tailscale later; proposed by the coordinator, waits for the owner's pick.
+- 2026-10-18: The owner asked whether Signal could be the first channel instead; the coordinator laid out the tradeoffs (signal-cli with Java, a second number, groups instead of channels, no command menu); the pick is still open.
+- 2026-10-18: The owner picked Discord as the first-version channel (Telegram stays in the plan as an option). Security notes to carry into the roadmap: the bot answers only the owner's user id on one server; a private server with 2FA required; the bot token only in the environment; the least gateway intents and permissions; no secrets pasted in channels.

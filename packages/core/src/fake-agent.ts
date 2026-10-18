@@ -17,8 +17,9 @@ const run = JSON.parse(readFileSync(file, "utf8")) as AgentRun;
 const note = (name: string, entry: object) => appendFileSync(join(dirname(file), name), `${JSON.stringify(entry)}\n`);
 note("starts.jsonl", { pid: process.pid, cwd: process.cwd(), args });
 
-// The step being played; whether no turn runs; the messages sent while idle, for the next `prompt`; the turns' messages.
-let [at, idle, failures, continued] = [-1, true, run.failSends ?? 0, 0];
+// The step being played; whether no turn runs; the sends still to throw and to drop; the messages sent while idle, for the next
+// `prompt`; the turns' messages.
+let [at, idle, failures, drops, continued] = [-1, true, run.failSends ?? 0, run.dropSends ?? 0, 0];
 const prompts: string[] = [];
 const conversation: object[] = [];
 const user = (text: string) => ({ role: "user", content: [{ type: "text", text }] });
@@ -27,6 +28,7 @@ const pi = {
 	on: (event: string, handler: (...args: unknown[]) => unknown) => void handlers.push({ event, handler }),
 	sendUserMessage(content: string, options: unknown) {
 		if (failures-- > 0) throw new Error("fake agent: sendUserMessage failed");
+		if (idle && drops-- > 0) return;
 		note("messages.jsonl", { content, options, step: at });
 		if (idle) prompts.push(content);
 		else conversation.push(user(content));
@@ -108,7 +110,8 @@ for (const [index, step] of run.steps.entries()) {
 			note("messages.jsonl", { content: more.additionalContext, options: { continue: true }, step: index });
 			conversation.push(user(more.additionalContext ?? ""));
 		} else idle = true;
-		await ask("agent_end", { messages: [...conversation], willContinue: more === undefined ? undefined : true });
+		const goesOn = more !== undefined || step.continues === true;
+		await ask("agent_end", { messages: [...conversation], willContinue: goesOn ? true : undefined });
 	} else if ("stdout" in step) await print(process.stdout, step.stdout);
 	else if ("stderr" in step) await print(process.stderr, step.stderr);
 	// Waits for the test; a test whose folder is gone, as after its process exited, never comes.

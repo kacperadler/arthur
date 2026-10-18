@@ -21,7 +21,7 @@ The plan for the telegram plugin (entry 47 or 48) includes a silent mode before 
 
 ## Done means
 
-- `spec/roadmap.md`: entry 48 (or 47, whichever owns sending) gains a silent rule with no command to switch it: a coordinator reply to the owner's own message rings (he is waiting for it); a reply the coordinator writes on its own, woken by a job's end, a review or a schedule entry, goes without a notification, unless it reports the delegated work done, its stop condition met (a limit reached), or a decision the owner must make, which the coordinator marks and which rings. Edge cases: a job blocked on the owner rings; quiet hours silence everything, the ringing ones too; the coordinator's role says when to mark a reply as ringing.
+- `spec/roadmap.md`: entry 48 (or 47, whichever owns sending) gains a silent mode. `/silent` toggles it and answers with the new state (`silent: on` or `silent: off, <summary of what happened meanwhile>`); it also turns on by itself when the owner delegates work with a stop condition, and off when that work ends. The state is stored under the home folder and survives a restart. While on, the coordinator sends nothing on its own wakes (job ends, reviews, schedule entries) except one message when the work is done, its stop condition is met (a limit reached), or the owner must decide; a message from the owner gets an answer to that message only. Edge cases: a job blocked on the owner is a decision and is sent; quiet hours still send without a sound; the coordinator's role says what counts as done, met, or a decision.
 - `npm test` and `npm run check` pass.
 
 ## Scope
@@ -36,3 +36,4 @@ Out:
 
 - 2026-10-18: The owner asked for a silent mode for the coordinator and for Arthur; proposed by the coordinator.
 - 2026-10-18: The owner: silent mode only in Arthur, and not switched by commands such as /quiet and /loud; it follows from who started the turn.
+- 2026-10-18: The owner: one command, `/silent`, which toggles (Telegram allows no hyphen, so no `/non-silent`); it also turns on by itself with delegated work that has a stop condition; while on, nothing but the end, the stop condition, a decision, or the answer to his own question.

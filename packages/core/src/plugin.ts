@@ -52,9 +52,9 @@ export type Host = {
 	readonly clock: Clock;
 	// The core's `agent.command`, the agent a plugin starts outside a job (orchestration's coordinator).
 	readonly agent: string;
-	// The package folders of the code this load runs: the core's, then each enabled plugin's, the one around the module it names
-	// (`Plugin.module`; a plugin that names none has none). The session plugin's restart guard watches their `src/`.
+	// The package folders this load runs, the core's, then each enabled plugin's around its `module` if any (the session plugin's restart guard watches their `src/`); `package`, this plugin's own.
 	readonly code: readonly string[];
+	readonly package?: string;
 	// Events go to every subscriber in this process and to the log `<home>/events.jsonl`, named by this plugin.
 	readonly events: Events;
 	// Several plugins may provide one name: `call` needs exactly one, `collect` reads them all, in setup order; `collectEach` too, each answer with its plugin, a throw costing that answer only (`error`).
@@ -149,7 +149,7 @@ export function pluginHost(
 	commands: CommandRegistry,
 	bus: Bus,
 	runner: JobRunner,
-	own: Pick<Host, "name" | "options" | "env" | "folder" | "clock" | "agent" | "code">,
+	own: Pick<Host, "name" | "options" | "env" | "folder" | "clock" | "agent" | "code" | "package">,
 	loading: () => boolean,
 ): Host {
 	const tickets = board(() => names.collect("projects", []), own.clock, (name, data) => bus.emit(own.name, name, data));

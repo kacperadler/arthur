@@ -10,28 +10,22 @@
 
 ## Description
 
-Two or three sentences: what changes, and for whom.
+Since AR0200 the example config's commit regex counts the whole subject, but the commit-rules doc still shows the old one, which lets a subject of about 90 characters through. A reader who copies the doc gets the wrong rule.
 
 ## Goal
 
-The regex example in `packages/commit-rules/docs/commit-rules.md:7` refuses a subject over 72 characters in all, prefix included: `^(?=.{1,72}$)(feat|fix|docs)(\([\w-]+\))?!?: .+$`, as `arthur.config.example.ts` has since AR0200.
+The regex example in `packages/commit-rules/docs/commit-rules.md:7` refuses a subject over 72 characters in all, prefix included: `^(?=.{1,72}$)(feat|fix|docs)(\([\w-]+\))?!?: .+$`, as `arthur.config.example.ts` has.
 
-- Kind: bug | risk | cleanup | improvement
+- Kind: cleanup
 
 ## Done means
 
-- Observable result, and the test that proves it.
-- `npm test` and `npm run check` pass.
+- The doc line shows the lookahead regex; a throwaway check shows a 72-character subject passes and a 73-character one is refused. Text only, no permanent test.
 
 ## Scope
 
-In:
-- `path/to/file.ts`: what changes there.
-
-Out:
-- What this ticket does not do, and which ticket does.
+- `packages/commit-rules/docs/commit-rules.md` only; `spec/vision.md` waits for the owner's word.
 
 ## Decisions
 
-- YYYY-MM-DD: one decision the human made, in one line.
 - 2026-10-19: Source: F1 of AR0200. Approved under the owner's word of the same day: findings are built in batches. The same line in spec/vision.md waits for the owner's word.

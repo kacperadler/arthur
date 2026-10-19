@@ -151,7 +151,14 @@ test("while on, a reply to only Arthur's messages is held; an owner's is sent; a
 	await run("on");
 	reply("A wake after a stale ask.", [], Date.now() + 5);
 	await sweep();
-	assert.equal(held(), 5, "off and on remove an ask left behind");
+	assert.equal(held(), 5, "off removes an ask left behind");
+	await run("off");
+	// A mark a crashed process left while off.
+	writeFileSync(join(folder, "silent-ask"), String(Date.now()));
+	await run("on");
+	reply("A wake after an ask from before on.", [], Date.now() + 10);
+	await sweep();
+	assert.equal(held(), 6, "on from off removes an ask left behind");
 });
 
 test("a restart while on: still on, the context says so, held replies stay held and the next one is held too", async (t) => {

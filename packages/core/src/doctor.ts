@@ -7,8 +7,8 @@ import type { Answer, Requirement } from "./plugin.ts";
 // through `collect("doctor")`, all checked at once, each cut after 10 s, one line each; at `arthur run`'s start, before any
 // plugin's `start`, the missing lines are printed, and sent at most once a day: docs/commands/doctor.md.
 
-// One line as printed; `missing` and `critical` decide the exit code and the start.
-export type DoctorLine = { readonly plugin: string; readonly name: string; readonly text: string; readonly missing: boolean; readonly critical: boolean };
+// One line as printed; `missing` and `critical` decide the exit code and the start; `fix`, a missing line's, is `arthur setup`'s step.
+export type DoctorLine = { readonly plugin: string; readonly name: string; readonly text: string; readonly missing: boolean; readonly critical: boolean; readonly fix?: string };
 
 const LIMIT_SECONDS = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -36,8 +36,9 @@ export async function doctor(own: readonly Requirement[], answers: readonly Answ
 						`check timed out after ${LIMIT_SECONDS} s`,
 					);
 		if (typeof listed !== "string") return Promise.all(listed.map((requirement) => line(plugin, requirement)));
-		const text = `${plugin} requirements: missing: check failed: ${listed}; without it: what ${plugin} needs is not checked; fix: plugin ${plugin}'s doctor answer`;
-		return [{ plugin, name: "requirements", text, missing: true, critical: false }];
+		const fix = `plugin ${plugin}'s doctor answer`;
+		const text = `${plugin} requirements: missing: check failed: ${listed}; without it: what ${plugin} needs is not checked; fix: ${fix}`;
+		return [{ plugin, name: "requirements", text, missing: true, critical: false, fix }];
 	});
 	return (await Promise.all(lists)).flat();
 }
@@ -52,7 +53,7 @@ async function line(plugin: string, requirement: Requirement): Promise<DoctorLin
 	if (answer === "ok" || answer.startsWith("ok (")) return { plugin, name, text: `${plugin} ${name}: ${answer}`, missing: false, critical: false };
 	const reason = answer.startsWith("missing: ") ? answer.slice("missing: ".length) : `check failed: it answered ${JSON.stringify(answer)}, neither ok nor missing`;
 	const text = `${plugin} ${name}: missing: ${reason}; without it: ${requirement.costs}; fix: ${requirement.fix}`;
-	return { plugin, name, text, missing: true, critical: requirement.critical === true };
+	return { plugin, name, text, missing: true, critical: requirement.critical === true, fix: requirement.fix };
 }
 
 // At `arthur run`'s start: each missing line printed, the journal's record of them; with a critical one, the refusal. Returns

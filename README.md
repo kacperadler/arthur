@@ -30,7 +30,7 @@ From [`spec/vision.md`](spec/vision.md):
 
 What works today:
 
-- The core, roadmap entries 1 to 22, all merged: config and `.env`, the plugin host, events and commands, `arthur run`, jobs on this machine or another one with their time and money limits inside one CPU and memory slice for all jobs, their states, stop, continue and steer, the ticket board, and the env and worktree guards in every job. Entry 93: every option of the core and of each plugin in one table with its meaning and default, which its check walks, and the tools each package runs (`./options` of each package).
+- The core, roadmap entries 1 to 22, all merged: config and `.env`, the plugin host, events and commands, `arthur run`, jobs on this machine or another one with their time and money limits inside one CPU and memory slice for all jobs, their states, stop, continue and steer, the ticket board, and the env and worktree guards in every job. Entry 93: every option of the core and of each plugin in one table with its meaning and default, which its check walks, and the tools each package runs (`./options` of each package). Entry 94: `arthur setup`, one report of the tools and their versions, what the config sets, what `arthur doctor` finds missing, the installed plugins that could still go in, and the next steps in order.
 - The coordinator (`@arthur/orchestration`, entries 23 to 29): one `omp` in its own tmux session while `arthur run` runs, started again when it ends; `arthur attach`; `/board`, `/task` and `/findings`; an inbox that wakes it when a job ends and takes a human's message mid-turn; its context on every turn (`arthur coordinator context`): its role, each project's vision and board, the jobs not ended by state, the time; a `notice` for the channels when a job asks the owner a question; `maxAgents` across all projects, and each role's model; a large ticket (`- Plan: yes`) planned by a read-only planner, its plan filed with `arthur ticket file`, shown with `/plan`, and a worker refused until the owner approved that plan; a small bug or cleanup ticket from a finding or an audit pre-approved by policy (`arthur ticket status <id> planned --autopilot`), so it runs overnight.
 - The project list (`@arthur/projects`, entry 41): every project in `arthur.config.ts`, `--project <name>` on any command, and each new worktree's dependencies installed.
 - The coordinator's conversation (`@arthur/session`, entries 35 to 37): compacted at each `compactAt` time once the coordinator is idle, and started fresh at `freshAt` once no job runs (tried every `freshRetryMinutes` until `freshUntil`), each after a handoff it writes and the next conversation reads first; `/restart` and `/restart fresh`, refused while a job runs, which end `arthur run` too while a restart is due, so its service starts it on the new code, and one `Restarted.` notice after; the restart guard: once a commit changed the code `arthur run` loaded, every spawn and continue is refused (unless `--ignore-restart`) until `arthur run` starts again, and the coordinator's context says so.
@@ -59,7 +59,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | Jobs on another machine over SSH | built | 21, 22 |
 | Test kit: the fake host and the fake agent | built | 4, 11 |
 | Core: `arthur doctor`, checked at every start | built | 80 |
-| Core: `arthur setup`, and every option's meaning beside its check | in progress, 1 of 2 entries | 93 built; 94 |
+| Core: `arthur setup`, and every option's meaning beside its check | built | 93, 94 |
 | Core: `arthur send` and the message parts every channel hands over | planned | 49 |
 | Core: cleanup hooks with each worktree | planned | 71 |
 | Core: the frozen plugin API | planned | 51 |
@@ -147,7 +147,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-19.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22, 80 and 93 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entry 41 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; no other plugin exists yet.
+%% Core entries 1-22, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entry 41 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale; from AR0174: the decision log in orchestration.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -158,7 +158,7 @@ flowchart TD
   human -->|writes| files
   human -->|shell| terminal
 
-  subgraph CORE[Arthur core: 24 of 27 core entries built]
+  subgraph CORE[Arthur core: 25 of 27 core entries built]
     files[/arthur.config.ts<br/>.env: secret values/]
     terminal[terminal<br/>arthur CLI, arthur attach]
     loader[config loader<br/>arthur config check]
@@ -172,8 +172,8 @@ flowchart TD
     guards[env guard<br/>worktree guard]
     runner[job runner<br/>spawn, limits, stop, steer<br/>state, prune, other machines]
     kit[test kit<br/>fake host, fake agent]
-    options[option tables<br/>every option's meaning, each package's tools]
-    corelater[later in the core<br/>setup, arthur send<br/>cleanup hooks, frozen API]
+    options[option tables, arthur setup<br/>every option's meaning, each package's tools]
+    corelater[later in the core<br/>arthur send<br/>cleanup hooks, frozen API]
     files -->|loads| loader
     terminal --> commands
     loader --> host

@@ -16,6 +16,7 @@ import { ticketCommand } from "./ticket-command.ts";
 import type { Plugin } from "./plugin.ts";
 import { coreRequirements } from "./requirements.ts";
 import { runPlugins } from "./run.ts";
+import { setup } from "./setup.ts";
 
 // The `arthur` binary (spec/roadmap.md, entry 6): `arthur <command> [args]` runs a command the core or a plugin registered, on
 // `arthur.config.ts` in the working folder. The core's own commands run even when the config or a plugin does not load.
@@ -109,6 +110,17 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined, set
 			for (const line of lines) console.log(line.text);
 			if (app === undefined) throw new Error(`${settings === undefined ? "" : "the plugins' requirements are not checked: "}arthur.config.ts did not load:\n${problem}`);
 			return lines.some((line) => line.critical) ? 1 : 0;
+		},
+	});
+	commands.register("core", {
+		name: "setup",
+		doc: new URL("../docs/commands/setup.md", import.meta.url),
+		run({ args }) {
+			if (args.length > 0) {
+				console.error("usage: arthur setup");
+				return 2;
+			}
+			return setup(process.env, problem, loaded()?.doctor);
 		},
 	});
 	commands.register("core", {

@@ -2,7 +2,7 @@
 
 From a fresh VPS to a running Arthur, step by step. Arthur is one process, `arthur run`, in the folder that holds `arthur.config.ts`; a systemd user service keeps it running: it starts it at boot and again whenever it ends. Commands are for Ubuntu or Debian. Each step ends with **Check:**, the command that proves the step is done and what it prints; run it before the next step.
 
-Arthur is in development. Of what this page sets up, `arthur run`, `arthur config check`, `arthur projects`, `arthur board` and `arthur attach` exist today; a step that needs something not built yet says `Not built yet (roadmap entry N)` and gives the way to do it by hand until then. The rest comes in the order of [`spec/roadmap.md`](../spec/roadmap.md).
+Arthur is in development. Of what this page sets up, `arthur run`, `arthur config check`, `arthur doctor`, `arthur setup`, `arthur projects`, `arthur board` and `arthur attach` exist today; a step that needs something not built yet says `Not built yet (roadmap entry N)` and gives the way to do it by hand until then. The rest comes in the order of [`spec/roadmap.md`](../spec/roadmap.md).
 
 Jobs on another machine, the threat model, daily use and updating are in [`deploy.md`](deploy.md).
 
@@ -248,8 +248,12 @@ It checks by code, without the model, what Arthur and the enabled plugins need: 
 
 ## 15. What is there and what is missing: `arthur setup`
 
-Not built yet (roadmap entry 94). One command that runs the checks above and walks you through each missing step: the tools it finds (git, Node, omp, ssh, tmux, Docker, ffmpeg, whisper-cli, Tailscale) with their versions; each plugin, `on` or `off`, with its options set and not set and its env variables `set` or `missing`, never a value; `arthur doctor`'s lines; every plugin you could still add to `arthur.config.ts`, with each of its options and what it means; and the next steps, numbered, each with its fix. It writes nothing and installs nothing; run it again after each fix.
+Run it once `arthur` is on your `PATH` (step 4), and again after each fix:
 
-Until then, run each step's Check on this page.
+```sh
+arthur setup
+```
 
-**Check:** `arthur setup` lists nothing under Next. Today it answers `arthur: unknown command setup`.
+One report of the steps above (`arthur setup --help`): the tools it finds (git, Node, omp, ssh, systemd-run, Tailscale, and each installed plugin's, such as tmux) with their versions or `not found`; the config, each plugin `on` or `off`, with its options set and not set and its env variables `set` or `missing`, never a value; `arthur doctor`'s lines; each installed plugin you could still add to `arthur.config.ts`, with each of its options, what it means and its default; and Next, the steps still to do, numbered, each with its fix: the config first, then `.env`, then what refuses the start, then the rest. It installs nothing, runs no model and writes nothing beyond what `arthur doctor` does. Without `arthur.config.ts` its first step is writing it (step 5). It exits 1 while a step in Next would refuse `arthur run`.
+
+**Check:** `arthur setup` says `nothing` under Next, and exits 0.

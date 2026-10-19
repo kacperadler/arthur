@@ -11,6 +11,8 @@ export const tools: readonly Tool[] = [
 	{ name: "omp", version: ["omp", "--version"] },
 	{ name: "ssh", version: ["ssh", "-V"] },
 	{ name: "systemd-run", version: ["systemd-run", "--version"] },
+	// The Tailscale step of docs/setup.md needs it on every machine; no plugin uses it yet.
+	{ name: "tailscale", version: ["tailscale", "version"] },
 ];
 
 const HH_MM = /^([01]\d|2[0-3]):[0-5]\d$/;

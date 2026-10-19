@@ -36,12 +36,14 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		process.stderr.write(`[arthur ${new Date().toISOString()}] job ${id}: its record ${folder} was deleted while it ran; the agent was stopped and nothing more is written\n`);
 		process.exit(1);
 	};
-	// A use of the record that finds it gone ends the wrapper.
+	// A use of the record that finds it gone ends the wrapper, and so does one that finds the `pid` it wrote gone (a `rm -r` midway).
+	let started = false;
+	const gone = () => !existsSync(folder) || (started && !existsSync(join(folder, "pid")));
 	const guard = <T>(use: () => T): T => {
 		try {
 			return use();
 		} catch (error) {
-			if (existsSync(folder)) throw error;
+			if (!gone()) throw error;
 			return leave();
 		}
 	};
@@ -99,6 +101,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	};
 	process.on("SIGTERM", () => halt("stop"));
 	save("pid", String(process.pid));
+	started = true;
 	save("active", "");
 	active();
 	rmSync(join(folder, "continuing"), { recursive: true, force: true });
@@ -153,7 +156,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	if (went !== undefined && why === undefined) [why, overCap] = ["memory", went];
 	endScope(id);
 	const undelivered = guard(() => {
-		if (!existsSync(folder)) return leave();
+		if (gone()) return leave();
 		mkdirSync(join(folder, "steer"), { recursive: true });
 		return closeSteers(join(folder, "steer"), String(process.pid), note);
 	});

@@ -164,7 +164,12 @@ import { checkStructure } from "./structure.ts";
 // 9 more (467), AR0150, for the busy cores sampled over a second from `cpus()`, here and in the `node -e` script there.
 // Merged with main: core 5455 + 31 = 5486, resources 458 + 9 = 467.
 // Merged with AR0212: telegram 401 as above; the rest as main has them.
-const BUDGETS = { core: 5486, "core/testing": 349, projects: 480, orchestration: 1381, machines: 446, resources: 467, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 401 };
+// AR0191, AR0193, AR0198, AR0202 (findings batch): models 21 more (506): probe answers kept in probes.json under a lock per
+// provider and machine across processes (probe.ts, 15), omp's models.yml read on each registered machine (model-doctor.ts, 6);
+// cut first: the probes' in-process map of running probes, which the lock replaces, and the local models.yml line now read
+// through `host.jobs.run` as the others are. Core 6 more (5492, after main's 5486): a record whose `pid` is gone ends the
+// wrapper (wrapper.ts, 3), a prompt section's `{ text, warnings }` checked and its warnings joined to the spawn's (roles.ts, 3).
+const BUDGETS = { core: 5492, "core/testing": 349, projects: 480, orchestration: 1381, machines: 446, resources: 467, session: 873, schedule: 552, models: 506, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 401 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

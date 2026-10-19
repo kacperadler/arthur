@@ -136,33 +136,32 @@ test("words go into the worker's and the reviewer's prompt, and no other role's"
 	assert.deepEqual(commit(worker.worktree, "Fixed it").code, 0, "words are no hook");
 });
 
-test("a file is read from the project's repository at the job's commit, not from the working tree", async (t) => {
+test("a file is read from the project's repository at the job's commit, not from the working tree", async () => {
 	const root = repository({ "docs/commit-rules.md": `# Commits\n\n${WORDS}\n` });
 	const base = git(root, "rev-parse", "HEAD").slice(0, 7);
 	writeFileSync(join(root, "docs/commit-rules.md"), "Anything goes.\n");
-	const warned = t.mock.method(console, "error", () => {});
 	const fake = await load(root, { file: "docs/commit-rules.md" });
 	const job = await fake.host.jobs.spawn({ task: "Build it." });
 	assert.ok(promptOf(fake, job.id).endsWith(`## Commit messages\n\nThis project's rule for every commit message you write (docs/commit-rules.md at ${base}):\n\n# Commits\n\n${WORDS}\n`));
-	assert.equal(warned.mock.callCount(), 0);
+	assert.deepEqual(job.warnings.filter((warning) => warning.startsWith("commit-rules")), []);
 });
 
-test("a missing, empty or folder rule file warns and the job starts without it", async (t) => {
+test("a missing, empty or folder rule file is a warning of the spawn, not a line on stderr, and the job starts without it", async (t) => {
 	const root = repository({ "docs/empty.md": " \n\n", "docs/rules/a.md": "A\n" });
 	const base = git(root, "rev-parse", "HEAD").slice(0, 7);
-	const warned = t.mock.method(console, "error", () => {});
+	const printed = t.mock.method(console, "error", () => {});
 	for (const [file, problem, kind, role] of [
 		["docs/missing.md", "missing or not a file", "worker", "worker"],
 		["docs/rules", "missing or not a file", "review", "reviewer"],
 		["docs/empty.md", "empty", "worker", "worker"],
 	] as const) {
-		warned.mock.resetCalls();
 		const fake = await load(root, { file });
 		const job = await fake.host.jobs.spawn({ task: "Build it.", kind });
 		assert.equal(job.failed, undefined);
 		assert.equal(promptOf(fake, job.id).includes("Commit messages"), false, file);
-		assert.deepEqual(warned.mock.calls.map((call) => call.arguments[0]), [`warning: commit-rules: project acme: rule file ${file} at ${base} is ${problem}; the ${role} goes without it`]);
+		assert.deepEqual(job.warnings.filter((warning) => warning.startsWith("commit-rules")), [`commit-rules: project acme: rule file ${file} at ${base} is ${problem}; the ${role} goes without it`]);
 	}
+	assert.equal(printed.mock.callCount(), 0);
 });
 
 test("refused at load: a regex that does not compile, naming the project", async () => {

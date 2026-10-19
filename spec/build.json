@@ -1238,23 +1238,23 @@
   {
     "id": "AR0154",
     "title": "A pre-approved ticket's budget is recorded, not held at its worker's spawn",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0154-a-pre-approved-ticket-s-budget-is-recorded-not-held-at-its-worker-s-spawn/ticket.md",
-    "updated": "2026-10-18T21:59:55.197Z"
+    "updated": "2026-10-19T15:07:27.390Z"
   },
   {
     "id": "AR0155",
     "title": "Two `--autopilot` runs on one ticket at once can both record it",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0155-two-autopilot-runs-on-one-ticket-at-once-can-both-record-it/ticket.md",
-    "updated": "2026-10-18T21:59:55.199Z"
+    "updated": "2026-10-19T15:07:27.596Z"
   },
   {
     "id": "AR0156",
     "title": "`--autopilot` does not read a ticket's own budget",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0156-autopilot-does-not-read-a-ticket-s-own-budget/ticket.md",
-    "updated": "2026-10-18T21:59:55.200Z"
+    "updated": "2026-10-19T15:07:27.795Z"
   },
   {
     "id": "AR0157",
@@ -1324,9 +1324,9 @@
   {
     "id": "AR0165",
     "title": "A provider outage sends a `turn failed` notice at every retry of the inbox",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0165-a-provider-outage-sends-a-turn-failed-notice-at-every-retry-of-the-inbox/ticket.md",
-    "updated": "2026-10-18T23:36:58.637Z"
+    "updated": "2026-10-19T15:07:27.996Z"
   },
   {
     "id": "AR0166",
@@ -1345,9 +1345,9 @@
   {
     "id": "AR0168",
     "title": "Orchestration cannot register the morning report while schedule is optional",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0168-orchestration-cannot-register-the-morning-report-while-schedule-is-optional/ticket.md",
-    "updated": "2026-10-19T00:28:58.146Z"
+    "updated": "2026-10-19T15:07:28.199Z"
   },
   {
     "id": "AR0169",
@@ -1394,9 +1394,9 @@
   {
     "id": "AR0175",
     "title": "A `/restart` whose restart throws in the tick tells the owner nothing",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0175-a-restart-whose-restart-throws-in-the-tick-tells-the-owner-nothing/ticket.md",
-    "updated": "2026-10-19T06:56:25.156Z"
+    "updated": "2026-10-19T15:07:28.401Z"
   },
   {
     "id": "AR0176",
@@ -1464,9 +1464,9 @@
   {
     "id": "AR0185",
     "title": "The coordinator's role does not say when to run `arthur init` and start an onboarding",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0185-the-coordinator-s-role-does-not-say-when-to-run-arthur-init-and-start-an-onboarding/ticket.md",
-    "updated": "2026-10-19T11:35:29.758Z"
+    "updated": "2026-10-19T15:07:28.601Z"
   },
   {
     "id": "AR0186",

@@ -3,7 +3,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { type Command, type CommandRegistry, commandRegistry } from "./commands.ts";
 import { configCheck } from "./config-check.ts";
-import { loadConfig } from "./config.ts";
+import { type LoadedConfig, loadConfig } from "./config.ts";
+import { type DoctorLine, doctor, printAtStart } from "./doctor.ts";
 import { parseFlags } from "./flags.ts";
 import { type LoadedPlugins, loadPlugins } from "./host.ts";
 import { jobCommands } from "./job-commands.ts";
@@ -13,6 +14,7 @@ import { rolesCommand } from "./roles-command.ts";
 import { spawnCommand } from "./spawn-command.ts";
 import { ticketCommand } from "./ticket-command.ts";
 import type { Plugin } from "./plugin.ts";
+import { coreRequirements } from "./requirements.ts";
 import { runPlugins } from "./run.ts";
 
 // The `arthur` binary (spec/roadmap.md, entry 6): `arthur <command> [args]` runs a command the core or a plugin registered, on
@@ -43,25 +45,28 @@ async function main(argv: readonly string[]): Promise<number> {
 
 // What `arthur run` starts: the plugins as loaded, in setup order, the home folder and how to follow the event log; `jobs` is
 // what `arthur spawn` uses, `board`, the core's, and `autopilot` what `arthur ticket` uses.
-type Loaded = Pick<LoadedPlugins, "plugins" | "follow" | "jobs" | "board" | "autopilot"> & { readonly home: string };
+type Loaded = Pick<LoadedPlugins, "plugins" | "follow" | "jobs" | "board" | "autopilot" | "doctor" | "emit"> & { readonly home: string };
 
 // Every command, the core's and the plugins'; when the config or a plugin does not load, the core's alone and the reason.
 async function load(): Promise<{ readonly commands: CommandRegistry; readonly problem?: string; readonly project?: LoadedPlugins["project"] }> {
 	let loaded: Loaded | undefined;
+	let settings: LoadedConfig["core"] | undefined;
 	const commands = core(undefined, () => loaded);
 	try {
 		const config = await loadConfig("arthur.config.ts");
-		const { plugins, jobs, board, follow, project, autopilot } = await loadPlugins(config, process.env, commands);
-		loaded = { plugins, home: config.core.home, follow, jobs, board, autopilot };
+		settings = config.core;
+		const { plugins, jobs, board, follow, project, autopilot, doctor: checks, emit } = await loadPlugins(config, process.env, commands);
+		loaded = { plugins, home: config.core.home, follow, jobs, board, autopilot, doctor: checks, emit };
 		return { commands, project };
 	} catch (error) {
 		const problem = error instanceof Error ? error.message : String(error);
-		return { commands: core(problem, () => undefined), problem };
+		return { commands: core(problem, () => undefined, settings), problem };
 	}
 }
 
-// `problem`: why the plugins' commands are missing, said with every list of the commands; `loaded` once the plugins are set up.
-function core(problem: string | undefined, loaded: () => Loaded | undefined): CommandRegistry {
+// `problem`: why the plugins' commands are missing, said with every list of the commands; `loaded` once the plugins are set up;
+// `settings`, the core's options when the config loaded and a plugin did not, for the core's own requirements.
+function core(problem: string | undefined, loaded: () => Loaded | undefined, settings?: LoadedConfig["core"]): CommandRegistry {
 	const commands = commandRegistry();
 	// What a command takes from the load; `why` it needs the load, said when arthur.config.ts did not load.
 	const need = <T>(why: string, pick: (app: Loaded) => T) => () => {
@@ -89,16 +94,36 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined): Co
 			return ok ? 0 : 1;
 		},
 	});
+	// Without the plugins, the core's own requirements alone: a missing home or git may be why they did not load.
+	const coreLines = (): Promise<DoctorLine[]> | undefined => settings && doctor(coreRequirements(settings.home, settings.agent.command), []);
+	commands.register("core", {
+		name: "doctor",
+		doc: new URL("../docs/commands/doctor.md", import.meta.url),
+		async run({ args }) {
+			if (args.length > 0) {
+				console.error("usage: arthur doctor");
+				return 2;
+			}
+			const app = loaded();
+			const lines = (await (app?.doctor() ?? coreLines())) ?? [];
+			for (const line of lines) console.log(line.text);
+			if (app === undefined) throw new Error(`${settings === undefined ? "" : "the plugins' requirements are not checked: "}arthur.config.ts did not load:\n${problem}`);
+			return lines.some((line) => line.critical) ? 1 : 0;
+		},
+	});
 	commands.register("core", {
 		name: "run",
 		doc: new URL("../docs/commands/run.md", import.meta.url),
-		run({ args }) {
+		async run({ args }) {
 			if (args.length > 0) {
 				console.error("usage: arthur run");
 				return 2;
 			}
+			// Printed only: without the load there is no event log to send it to.
+			const lines = loaded() === undefined ? await coreLines() : undefined;
+			if (lines !== undefined && printAtStart(lines)) return 1;
 			const app = need("", (loadedApp) => loadedApp)();
-			return runPlugins(app.plugins, app.home, app.follow, app.jobs.sweep);
+			return runPlugins(app.plugins, app.home, app.follow, app.jobs.sweep, app.doctor, app.emit);
 		},
 	});
 	commands.register("core", {

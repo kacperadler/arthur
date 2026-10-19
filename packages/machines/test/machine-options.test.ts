@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { checkOptions } from "../src/machine-options.ts";
 
-const MAC = { name: "mac", ssh: "mac-mini", home: "/Users/arthur/.arthur", labels: { os: "macos", arch: "arm64", tools: ["xcode"] }, maxJobs: 2 };
+const MAC = { name: "mac", ssh: "mac-mini", home: "/Users/arthur/.arthur", labels: { os: "macos", arch: "arm64", tools: ["xcodebuild"] }, maxJobs: 2 };
 
 test("the example's options pass, and so do none at all", () => {
 	assert.deepEqual(checkOptions({ local: { labels: { tools: ["docker"] }, maxJobs: 3 }, list: [MAC, { name: "build-2", ssh: "arthur@100.64.0.9", home: "/srv/arthur" }], check: { everySeconds: 10 } }), []);
@@ -29,9 +29,9 @@ test("each entry's shape: required keys, the forms the core would refuse, labels
 		{ path: "list[0].port", problem: "machine mac: unknown key; keys: name, ssh, home, labels, maxJobs" },
 	]);
 	assert.deepEqual(checkOptions({ list: [{ ...MAC, name: "Mac" }] }), [{ path: "list[0].name", problem: 'machine Mac: expected lowercase letters, digits and dashes, from a letter, got "Mac"' }]);
-	assert.deepEqual(checkOptions({ list: [{ ...MAC, labels: { arch: "", tools: "xcode", gpu: true } }] }), [
+	assert.deepEqual(checkOptions({ list: [{ ...MAC, labels: { arch: "", tools: "xcodebuild", gpu: true } }] }), [
 		{ path: "list[0].labels.arch", problem: 'machine mac: expected a non-empty string, got ""' },
-		{ path: "list[0].labels.tools", problem: 'machine mac: expected a list of non-empty strings, got "xcode"' },
+		{ path: "list[0].labels.tools", problem: 'machine mac: expected a list of non-empty strings, got "xcodebuild"' },
 		{ path: "list[0].labels.gpu", problem: "machine mac: unknown key; keys: os, arch, tools" },
 	]);
 	assert.deepEqual(checkOptions({ list: [{ ...MAC, labels: ["macos"] }] }), [{ path: "list[0].labels", problem: "machine mac: expected an object of os, arch, tools, got a list" }]);

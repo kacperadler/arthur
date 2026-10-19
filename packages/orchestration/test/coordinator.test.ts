@@ -6,6 +6,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { type TestContext, test } from "node:test";
 import { type AgentRun, type FakeHost, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import type { Requirement } from "@arthur/core/plugin";
 import { type OrchestrationOptions, orchestration } from "../src/orchestration.ts";
 
 const ENV_GUARD = fileURLToPath(import.meta.resolve("@arthur/core/env-guard"));
@@ -263,4 +264,16 @@ test("arthur attach puts the terminal in the coordinator's session until it deta
 	tmux(socket, "detach-client", "-s", "=coord");
 	assert.equal(await exited, 0);
 	assert.equal(tmux(socket, "has-session", "-t", "=coord").status, 0, "the session goes on after the detach");
+});
+
+test("doctor: tmux, critical: ok where tmux -V runs; missing, with its fix, where it is not on PATH or fails", async (t) => {
+	const { fake } = await load(t, fakeAgent({ steps: [] }));
+	const [tmuxNeeded, ...more] = fake.collect<readonly Requirement[]>("doctor").flat();
+	assert.ok(tmuxNeeded);
+	assert.deepEqual([tmuxNeeded.name, await tmuxNeeded.check(), tmuxNeeded.costs, tmuxNeeded.fix, tmuxNeeded.critical, more], ["tmux", "ok", "no coordinator", "sudo apt-get install -y tmux (docs/setup.md, step 2)", true, []]);
+	const bin = temporaryFolder();
+	process.env.PATH = bin;
+	assert.equal(await tmuxNeeded.check(), "missing: tmux not found on PATH");
+	writeFileSync(join(bin, "tmux"), "#!/bin/sh\necho 'tmux: need UTF-8 locale (LC_CTYPE) but have ANSI_X3.4-1968' >&2\nexit 1\n", { mode: 0o755 });
+	assert.equal(await tmuxNeeded.check(), "missing: tmux -V: tmux: need UTF-8 locale (LC_CTYPE) but have ANSI_X3.4-1968");
 });

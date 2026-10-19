@@ -10,6 +10,7 @@ import { extensions, FRESH, pane, STOPPED, supervise, tmux } from "./coordinator
 import { inbox } from "./inbox.ts";
 import { checkOptions, type Coordinator, coordinatorOptions } from "./orchestration-options.ts";
 import { plans } from "./plans.ts";
+import { silentMode } from "./silent.ts";
 import { spawnRules } from "./spawn-rules.ts";
 
 // The orchestration plugin (spec/roadmap.md, entry 23), required by the host: the coordinator's process, kept running by
@@ -17,7 +18,7 @@ import { spawnRules } from "./spawn-rules.ts";
 // and `arthur coordinator stop|context`, docs/commands/coordinator.md and attach.md; the board's phone commands `/board`, `/task`,
 // `/findings` and `/plan` (board-commands.ts); `maxAgents` and each role's model (entry 26, spawn-rules.ts); the notice of a job
 // blocked on the owner (entry 27, blocked-notice.ts); the planning of large tickets (entry 28, plans.ts); autopilot (entry 29,
-// autopilot.ts); and tmux as its `arthur doctor` requirement (entry 80).
+// autopilot.ts); the silent mode (entry 47, silent.ts); and tmux as its `arthur doctor` requirement (entry 80).
 
 export type OrchestrationOptions = {
 	readonly enabled?: boolean;
@@ -53,6 +54,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			spawnRules(host, coordinator);
 			plans(host);
 			autopilot(host);
+			silentMode(host);
 			// Read like every role, with the project's override and criteria; no kind spawns it, `arthur run` starts it.
 			host.jobs.registerRole({ name: "coordinator", file: new URL("../roles/coordinator.md", import.meta.url), criteria: ["styleguide", "autopilot"] });
 			// One requirement of `arthur doctor` (entry 80): there is no coordinator without tmux.

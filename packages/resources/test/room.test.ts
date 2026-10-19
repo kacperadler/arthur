@@ -7,7 +7,9 @@ import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { loadConfig } from "@arthur/core";
+import { everyOption, type OptionTable } from "@arthur/core/option-table";
 import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { table } from "../src/resource-options.ts";
 import { type ResourcesOptions, resources } from "../src/resources.ts";
 import { roomOf } from "../src/room.ts";
 
@@ -258,4 +260,26 @@ test("a machines round is each listed machine's check: a spawn's check asked whi
 	assert.equal(fake.collect<string>("coordinator.context")[0]?.split("\n")[1], `gpu: no room, its check failed: ${refused}`);
 	assert.deepEqual(notices(), [`machine gpu: its free CPU and memory are unknown (${refused}); no job starts there until a check answers`]);
 	assert.equal(sshCalls(), 0, "no check of its own over ssh");
+});
+
+// Each default `table` writes as a value, by its path, parsed as JSON when it parses; `words` are the paths of those written as
+// words for a person, left out.
+function valueDefaults(table: OptionTable, words: readonly string[]): Record<string, unknown> {
+	const value = (text: string): unknown => {
+		try {
+			return JSON.parse(text);
+		} catch {
+			return text;
+		}
+	};
+	return Object.fromEntries(everyOption(table).flatMap(({ path, entry }) => (entry.default === undefined || words.includes(path) ? [] : [[path, value(entry.default)]])));
+}
+
+test("each default the option table writes as a value is the one the code applies with nothing set", () => {
+	const caps = ["perJob.cpu", "perJob.memory", "perFeature.budgetUsd", "perFeature.hours", "perFeature.cpu", "perFeature.memory"];
+	const defaults = valueDefaults(table, [...caps, "keepFree.memory"]);
+	assert.deepEqual(Object.keys(defaults), ["keepFree.cpu"]);
+	// Four free cores, a core per job: the room left out of keepFree is the room with its cpu at the table's default, and a core more kept free is one job less.
+	const room = (keepFree: { cpu?: number }) => roomOf("local", sample(4, 0, 8 * GB), 0, { cpu: 1 }, keepFree).jobs;
+	assert.deepEqual([room({}), room({ cpu: defaults["keepFree.cpu"] as number }), room({ cpu: 1 })], [4, 4, 3]);
 });

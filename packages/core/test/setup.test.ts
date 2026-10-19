@@ -63,10 +63,10 @@ function section(output: string, title: string): string[] {
 
 const FULL = `${NEED}
 export default { core: { home: HOME, jobs: { budgetUsd: 3 } }, plugins: [
-	{ name: "orchestration", options: { maxAgents: 2, coordinator: { model: "m" } }, setup(host) { host.provide("doctor", () => [need("tmux", true)]); } },
+	{ name: "orchestration", options: { maxAgents: 2, coordinator: { model: "m" } }, doctor: () => [need("tmux", true)], setup() {} },
 	{ name: "telegram", options: { botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID", bots: [1, 2], media: true },
-		setup(host) { host.provide("doctor", () => [need("ffmpeg", false, "missing: not found"), need("bot", false, "missing: unreachable")]); } },
-	{ name: "voice", options: { enabled: false, modelEnv: "ARTHUR_VOICE_MODEL" }, setup(host) { host.provide("doctor", () => [need("whisper", true, "missing: no whisper")]); } },
+		doctor: () => [need("ffmpeg", false, "missing: not found")], setup(host) { host.provide("doctor", () => [need("bot", false, "missing: unreachable")]); } },
+	{ name: "voice", options: { enabled: false, modelEnv: "ARTHUR_VOICE_MODEL" }, doctor: () => [need("whisper", true, "missing: no whisper")], setup(host) { host.provide("doctor", () => [need("whisper", true, "missing: no whisper")]); } },
 ] };
 `;
 const INSTALLED = { orchestration: ORCHESTRATION, telegram: TELEGRAM, voice: VOICE, docker: DOCKER, broken: undefined };
@@ -130,7 +130,7 @@ test("arthur setup writes nothing beyond what arthur doctor does, and takes no a
 	assert.deepEqual([extra.status, extra.stdout, extra.stderr], [2, "", "usage: arthur setup\n"]);
 });
 
-test("a missing variable is a step that refuses the start; the plugins' requirements wait for it; a disabled plugin's env is not read; the env file's warnings", () => {
+test("a missing variable is a step that refuses the start; each enabled plugin's own doctor is checked, what it checks in its setup waits; a disabled plugin's env is not read; the env file's warnings", () => {
 	const { folder, arthur } = project({ config: FULL, env: "# none yet\nARTHUR_OTHER=a-secret-1\nARTHUR_OTHER=a-secret-2\n", packages: INSTALLED });
 	const run = arthur(["setup"], { ARTHUR_TELEGRAM_BOT_TOKEN: "shell-secret-123" });
 	assert.deepEqual(section(run.stdout, "Config").slice(4), [
@@ -139,10 +139,15 @@ test("a missing variable is a step that refuses the start; the plugins' requirem
 		"voice | off (enabled: false)",
 		`${join(folder, ".env")}: ARTHUR_OTHER is set on lines 2, 3; the last wins`,
 	]);
-	assert.deepEqual(section(run.stdout, "Requirements").slice(-1), ["the plugins' requirements are not checked until what Config refuses is fixed"]);
+	assert.deepEqual(section(run.stdout, "Requirements").slice(6), [
+		"orchestration tmux: ok",
+		"telegram ffmpeg: missing: not found; without it: no ffmpeg; fix: fix ffmpeg",
+		"the requirements a plugin checks in its setup are not checked until what Config refuses is fixed",
+	]);
 	assert.deepEqual(section(run.stdout, "Next"), [
 		"Next",
 		"1. Set ARTHUR_TELEGRAM_CHAT_ID in .env (telegram.chatIdEnv), then arthur config check. Refuses the start.",
+		"2. fix ffmpeg",
 		"Run arthur setup again after each step.",
 	]);
 	assert.ok(!run.stdout.includes("ARTHUR_VOICE_MODEL"), "voice is off: its variable is neither listed nor a step");

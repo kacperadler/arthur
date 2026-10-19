@@ -38,3 +38,4 @@ In:
 - 2026-10-19: The owner approved this. The coordinator builds it alongside the roadmap entry that touches the same files.
 - 2026-10-19: Left out of the resources batch: carrying the numbers in the machines check changes two plugins' protocol. Built with the next roadmap entry that changes machines or resources.
 - 2026-10-19: The owner: close what is open today; built now with AR0217.
+- 2026-10-19: The coordinator accepts budgets machines 456 and resources 483, the hook name machines.round (it hands over the round as it begins), and a failing node -e taking the machine offline (it could start no job before either).

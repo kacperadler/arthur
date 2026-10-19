@@ -7,7 +7,9 @@ import { fileURLToPath } from "node:url";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
 import { type AgentRun, type FakeHost, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { everyOption, type OptionTable } from "@arthur/core/option-table";
 import { checkOptions, type SessionOptions, session } from "../src/session.ts";
+import { DEFAULTS, table } from "../src/session-options.ts";
 
 const ARTHUR = "This message comes from Arthur, not the owner; your reply goes to the owner only if one of their messages joins this turn.";
 const HANDOFF = "Work in progress: AR0143, its worker runs.\nNext: review its branch.\nUnanswered: merge AR0140? (asked at 12:40)";
@@ -311,4 +313,21 @@ test("the options: compactAt times, compactWaitSeconds, the fresh start's, resta
 		{ path: "compactAt[2]", problem: 'expected a time "HH:MM" from 00:00 to 23:59, got 13' },
 		{ path: "compactWaitSeconds", problem: "expected a whole number of seconds of at least 1, got 1.5" },
 	]);
+});
+
+// Each default `table` writes as a value, by its path, parsed as JSON when it parses; `words` are the paths of those written as
+// words for a person, left out.
+function valueDefaults(table: OptionTable, words: readonly string[]): Record<string, unknown> {
+	const value = (text: string): unknown => {
+		try {
+			return JSON.parse(text);
+		} catch {
+			return text;
+		}
+	};
+	return Object.fromEntries(everyOption(table).flatMap(({ path, entry }) => (entry.default === undefined || words.includes(path) ? [] : [[path, value(entry.default)]])));
+}
+
+test("each default the option table writes as a value is the one the code applies with nothing set", () => {
+	assert.deepEqual(valueDefaults(table, []), DEFAULTS);
 });

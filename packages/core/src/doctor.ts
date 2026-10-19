@@ -1,11 +1,13 @@
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { hostname } from "node:os";
 import { join } from "node:path";
-import type { Answer, Requirement } from "./plugin.ts";
+import type { LoadedConfig } from "./config.ts";
+import { type Answer, asPlugin, type Requirement } from "./plugin.ts";
 
-// `arthur doctor` (spec/roadmap.md, entry 80): the core's own requirements (requirements.ts), then each enabled plugin's
-// through `collect("doctor")`, all checked at once, each cut after 10 s, one line each; at `arthur run`'s start, before any
-// plugin's `start`, the missing lines are printed, and sent at most once a day: docs/commands/doctor.md.
+// `arthur doctor` (spec/roadmap.md, entry 80): the core's own requirements (requirements.ts), then each enabled plugin's, its
+// own `doctor` (without its setup, so also while the load refuses) and what it provides as `doctor`, all checked at once, each
+// cut after 10 s, one line each; at `arthur run`'s start, before any plugin's `start`, the missing lines are printed, and sent at
+// most once a day: docs/commands/doctor.md.
 
 // One line as printed; `missing` and `critical` decide the exit code and the start; `fix`, a missing line's, is `arthur setup`'s step.
 export type DoctorLine = { readonly plugin: string; readonly name: string; readonly text: string; readonly missing: boolean; readonly critical: boolean; readonly fix?: string };
@@ -24,7 +26,18 @@ function within<T>(work: Promise<T>, late: T): Promise<T> {
 	return Promise.race([work, cut]).finally(() => clearTimeout(timer));
 }
 
-// `own`: the core's requirements; `answers`: what `collectEach("doctor")` gave, each plugin's list, or its promise, in setup order.
+// Each enabled plugin's own `doctor`, asked with its options (`enabled` left out) and the core's, before or without its setup;
+// `entries` as the config lists them, one that is no plugin left out (the load names it).
+export function ownAnswers(entries: readonly unknown[], core: LoadedConfig["core"]): Answer<unknown>[] {
+	return entries.flatMap((entry) => {
+		const plugin = asPlugin(entry);
+		if (typeof plugin === "string" || plugin.doctor === undefined || plugin.options?.enabled === false) return [];
+		const { enabled: _, ...options } = plugin.options ?? {};
+		return [{ plugin: plugin.name, value: Promise.try(() => plugin.doctor?.(options, core)) }];
+	});
+}
+
+// `own`: the core's requirements; `answers`: each plugin's list, or its promise, in setup order (`ownAnswers`, `collectEach("doctor")`).
 export async function doctor(own: readonly Requirement[], answers: readonly Answer<unknown>[]): Promise<DoctorLine[]> {
 	const lists = [{ plugin: "core", value: own }, ...answers].map(async (answer): Promise<DoctorLine[]> => {
 		const { plugin } = answer;

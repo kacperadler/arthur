@@ -45,3 +45,4 @@ A plan, written with the owner, that adds roadmap entries for:
 ## Decisions
 
 - 2026-10-19: The owner asked whether Arthur will allow such workflows. To be planned together with AR0129, the decisions plugin.
+- 2026-10-19: The owner: planned after the switch, together (AR0129 and AR0216), when they are built.

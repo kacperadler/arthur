@@ -4,9 +4,11 @@ import { mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
+import { everyOption } from "@arthur/core/option-table";
 import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import type { Entry } from "../src/entry.ts";
 import { claim } from "../src/run-state.ts";
+import { table } from "../src/schedule-options.ts";
 import { schedule } from "../src/schedule.ts";
 import { sweeper } from "../src/sweep.ts";
 
@@ -226,7 +228,7 @@ test("an action's procedure goes under its message as the file reads when due; o
 	assert.equal(box.notices().length, 4, "a problem is said once while it lasts");
 });
 
-test("a job entry spawns a job of its kind, late saying so; a spawn the core refuses goes to the coordinator with the reason", async (t) => {
+test("a job entry spawns a job of its kind, the kind the option table names when it names none, late saying so; a spawn the core refuses goes to the coordinator with the reason", async (t) => {
 	const root = temporaryFolder();
 	execFileSync("git", ["init", "--quiet", "--initial-branch=main", root]);
 	execFileSync("git", ["-C", root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "--allow-empty", "-m", "first"]);
@@ -234,7 +236,7 @@ test("a job entry spawns a job of its kind, late saying so; a spawn the core ref
 	t.after(() => void (process.env.PATH = saved));
 	process.env.PATH = [dirname(fakeAgent({ steps: [{ message: "Checked." }] })), saved].join(delimiter);
 	const entries: Entry[] = [
-		{ id: "docs", at: "03:00", job: { task: "Check that every command has its doc page.", kind: "worker" } },
+		{ id: "docs", at: "03:00", job: { task: "Check that every command has its doc page." } },
 		{ id: "audit", at: "03:00", job: { task: "Audit the code.", kind: "audit" } },
 	];
 	const box = load(t, entries, "2026-10-19T02:58:00+02:00", root);
@@ -242,6 +244,9 @@ test("a job entry spawns a job of its kind, late saying so; a spawn the core ref
 	box.at("2026-10-19T03:06:00+02:00");
 	await box.sweep();
 	const [job] = box.fake.host.jobs.list();
+	// Every default the table writes as a value, the others being words for a person.
+	const defaults = everyOption(table).flatMap(({ path, entry }) => (entry.default === undefined || ["entries.*.days", "entries.*.job.project"].includes(path) ? [] : [[path, entry.default]]));
+	assert.deepEqual(defaults, [["entries.*.job.kind", job?.kind]]);
 	assert.deepEqual([job?.kind, readFileSync(join(dirname(box.fake.host.folder), "jobs", job?.id ?? "", "task"), "utf8")], ["worker", "Check that every command has its doc page."]);
 	assert.deepEqual(box.logs, [`schedule: docs (late: due 2026-10-19 03:00): started job ${job?.id}`]);
 	assert.deepEqual(box.messages(), ["[scheduled audit] (late: due 2026-10-19 03:00) Its job (kind audit) did not start: unknown kind audit; kinds: worker\nIts task: Audit the code."]);

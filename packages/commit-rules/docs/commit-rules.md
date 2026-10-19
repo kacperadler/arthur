@@ -4,7 +4,7 @@ The `commit-rules` plugin (roadmap entry 43): each project's rule for its commit
 
 | Form | Example | What the plugin does |
 | --- | --- | --- |
-| `regex` | `{ regex: "^(feat\|fix\|docs)(\\([\\w-]+\\))?!?: .{1,72}$" }` | A `commit-msg` hook in each job worktree of the project refuses a commit whose subject does not match, and says the rule. Nothing goes into the prompt. |
+| `regex` | `{ regex: "^(?=.{1,72}$)(feat\|fix\|docs)(\\([\\w-]+\\))?!?: .+$" }` | A `commit-msg` hook in each job worktree of the project refuses a commit whose subject does not match, and says the rule. Nothing goes into the prompt. |
 | `words` | `{ words: "Start with the ticket id, then a verb in the imperative." }` | The words go into the prompt of the project's workers and reviewers; the review judges the branch's messages by them. No hook. |
 | `file` | `{ file: "docs/commit-rules.md" }` | The file, a path in the project's repository, is read at the commit the job starts from and goes into the prompt as words, so the rule is versioned with the project. No hook. |
 
@@ -36,4 +36,4 @@ The rule of `words` or `file` is a section at the end of the prompt of the roles
 - worker: `## Commit messages`, then `This project's rule for every commit message you write (<source>):` and the rule.
 - reviewer: the same heading, then `This project's rule for commit messages; judge each commit of the branch by it, and a message that breaks it is a finding (<source>):` and the rule.
 
-`<source>` is `commitRules.words in arthur.config.ts`, or `<file> at <the job's commit, 7 digits>`. The file is read from Git at that commit, never from the working tree, so an uncommitted change does not count. A file missing at that commit, a folder, or an empty one warns on stderr and the job starts without the section: `warning: commit-rules: project <name>: rule file <file> at <commit> is missing or not a file; the <role> goes without it` (`is empty` for an empty one).
+`<source>` is `commitRules.words in arthur.config.ts`, or `<file> at <the job's commit, 7 digits>`. The file is read from Git at that commit, never from the working tree, so an uncommitted change does not count. A file missing at that commit, a folder, or an empty one is a warning of the spawn (`arthur spawn` prints it on stderr, `host.jobs.spawn` returns it in the job's `warnings`) and the job starts without the section: `warning: commit-rules: project <name>: rule file <file> at <commit> is missing or not a file; the <role> goes without it` (`is empty` for an empty one).

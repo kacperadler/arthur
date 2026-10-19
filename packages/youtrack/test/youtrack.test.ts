@@ -8,9 +8,10 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { pathToFileURL } from "node:url";
+import { everyOption, type OptionTable } from "@arthur/core/option-table";
 import { fakeHost, temporaryFolder } from "@arthur/core/testing";
-import { checkOptions } from "../src/youtrack-options.ts";
-import { type YoutrackOptions, youtrack } from "../src/youtrack.ts";
+import { checkOptions, table } from "../src/youtrack-options.ts";
+import { TIMEOUT_SECONDS, type YoutrackOptions, youtrack } from "../src/youtrack.ts";
 
 const TOKEN = "perm:YXJ0aHVy.dGVzdA==.Kn0wnT0kenN3verPr1nted";
 const ACME_TOKEN = "perm:YWNtZQ==.dGVzdA==.AcmeT0kenN3verPr1nted";
@@ -728,4 +729,21 @@ test("the options are checked before setup, each problem at its path", () => {
 			"instances[5]: instances[0] has no name either; at most one instance is unnamed",
 		],
 	);
+});
+
+// Each default `table` writes as a value, by its path, parsed as JSON when it parses; `words` are the paths of those written as
+// words for a person, left out.
+function valueDefaults(table: OptionTable, words: readonly string[]): Record<string, unknown> {
+	const value = (text: string): unknown => {
+		try {
+			return JSON.parse(text);
+		} catch {
+			return text;
+		}
+	};
+	return Object.fromEntries(everyOption(table).flatMap(({ path, entry }) => (entry.default === undefined || words.includes(path) ? [] : [[path, value(entry.default)]])));
+}
+
+test("each default the option table writes as a value is the one the code applies with nothing set", () => {
+	assert.deepEqual(valueDefaults(table, ["instances.*.name"]), { timeoutSeconds: TIMEOUT_SECONDS });
 });

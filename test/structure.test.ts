@@ -165,7 +165,10 @@ import { checkStructure } from "./structure.ts";
 // AR0161: `host.code` holds the package folder around the module a plugin names as its own (`module: import.meta.url`), not
 // the folder beside the core's named after the plugin; core 9 more (5490) for `Plugin.module`, its refusal and the walk up to
 // the nearest package.json (host.ts); each of the 11 plugins 1 more for its `module` line.
-const BUDGETS = { core: 5490, "core/testing": 349, projects: 481, orchestration: 1382, machines: 447, resources: 459, session: 874, schedule: 553, models: 486, youtrack: 465, "commit-rules": 169, nvm: 85, telegram: 402 };
+// AR0169: a registered schedule entry may `run` its plugin's own code at its time (the third kind, chosen over each plugin's own
+// timer so a run is claimed once per slot, caught up and listed like the others); schedule 17 more (570) for its check beside
+// an action or a job (register.ts), the runs awaited in turn after the jobs with a failure's notice (sweep.ts), and its `list` line.
+const BUDGETS = { core: 5490, "core/testing": 349, projects: 481, orchestration: 1382, machines: 447, resources: 459, session: 874, schedule: 570, models: 486, youtrack: 465, "commit-rules": 169, nvm: 85, telegram: 402 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

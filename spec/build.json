@@ -1317,9 +1317,9 @@
   {
     "id": "AR0164",
     "title": "The inbox's notice after 3 unanswered turns repeats omp's error unredacted",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0164-the-inbox-s-notice-after-3-unanswered-turns-repeats-omp-s-error-unredacted/ticket.md",
-    "updated": "2026-10-19T05:41:43.001Z"
+    "updated": "2026-10-19T05:57:09.818Z"
   },
   {
     "id": "AR0165",
@@ -1331,9 +1331,9 @@
   {
     "id": "AR0166",
     "title": "Roadmap 80: arthur doctor, checked at every start",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0166-roadmap-80-arthur-doctor-checked-at-every-start/ticket.md",
-    "updated": "2026-10-19T00:25:10.204Z"
+    "updated": "2026-10-19T05:55:59.428Z"
   },
   {
     "id": "AR0167",

@@ -51,3 +51,4 @@ Out:
 ## Decisions
 
 - 2026-10-19: The owner raised the Arthur usage ceiling to 80% of Claude 7 Day ("mozesz zmienic limit na 80%"). The coordinator starts the next roadmap entry under it.
+- 2026-10-19: Coordinator (owner delegated Arthur calls): the four departures the worker named are accepted: plugin requirements are not checked while Config refuses (F1 tracks it), setup writes only what the load and doctor already write, the version column takes the first word with a digit, lists show their length. Any line budget raise in 651e64b is accepted if it equals the counted lines.

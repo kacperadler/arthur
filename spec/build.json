@@ -1485,15 +1485,15 @@
   {
     "id": "AR0188",
     "title": "Roadmap 43: commit rules per project",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0188-roadmap-43-commit-rules-per-project/ticket.md",
-    "updated": "2026-10-19T12:12:34.820Z"
+    "updated": "2026-10-19T12:12:41.947Z"
   },
   {
     "id": "AR0189",
     "title": "Roadmap 44: YouTrack instances and reading",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0189-roadmap-44-youtrack-instances-and-reading/ticket.md",
-    "updated": "2026-10-19T12:12:35.319Z"
+    "updated": "2026-10-19T12:12:42.647Z"
   }
 ]

@@ -1286,9 +1286,9 @@
   {
     "id": "AR0160",
     "title": "`/restart` cannot clear a restart due, since it restarts only the coordinator's agent",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0160-restart-cannot-clear-a-restart-due-since-it-restarts-only-the-coordinator-s-agent/ticket.md",
-    "updated": "2026-10-19T07:42:34.961Z",
+    "updated": "2026-10-19T07:46:39.424Z",
     "after": [
       "AR0148"
     ]
@@ -1382,7 +1382,7 @@
     "title": "GitHub CI names each failed test and stays green on main",
     "status": "in-progress",
     "path": "spec/features/AR0173-github-ci-names-each-failed-test-and-stays-green-on-main/ticket.md",
-    "updated": "2026-10-19T06:17:44.794Z"
+    "updated": "2026-10-19T07:45:47.718Z"
   },
   {
     "id": "AR0174",

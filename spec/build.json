@@ -1653,9 +1653,9 @@
   {
     "id": "AR0212",
     "title": "Roadmap 48: Telegram outbox and retries",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0212-roadmap-48-telegram-outbox-and-retries/ticket.md",
-    "updated": "2026-10-19T16:37:03.963Z"
+    "updated": "2026-10-19T16:53:29.161Z"
   },
   {
     "id": "AR0213",

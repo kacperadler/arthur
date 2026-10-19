@@ -62,6 +62,8 @@ async function load(t: TestContext, run: AgentRun, setup: { readonly root?: stri
 		starts: () => lines(join(dirname(agent), "starts.jsonl")),
 		emitted: (name: string) => fake.emitted.filter((event) => event.name === name).map((event) => event.data),
 		say: (text: string, channel = "telegram") => fake.emit("message-received", { channel, text }).seq,
+		// The inbox file of event `seq`: `<number>-<time in ms>`.
+		file: (seq: number) => { const event = fake.host.events.read(seq).find((each) => each.seq === seq); return `${seq}-${Date.parse(event?.time ?? "")}`; },
 	};
 }
 
@@ -99,7 +101,7 @@ test("a message while idle is one turn marked with its channel, its reply emitte
 		{ text: "Started.", answers: [first], channels: ["telegram"] },
 		{ text: "Also started.", answers: [second], channels: ["telegram"] },
 	]);
-	assert.deepEqual(sorted(join(box.folder, "inbox", "answered")), [String(first), String(second)].sort());
+	assert.deepEqual(sorted(join(box.folder, "inbox", "answered")), [box.file(first), box.file(second)].sort());
 	assert.deepEqual([...sorted(join(box.folder, "inbox", "queued")), ...sorted(join(box.folder, "inbox", "turn")), ...sorted(join(box.folder, "outbox")).filter((name) => name !== "sent")], []);
 	assert.equal(sorted(join(box.folder, "outbox", "sent")).length, 2);
 });
@@ -425,14 +427,18 @@ test("at the start, a message left in turn/ that a written reply answers is answ
 	file("inbox/turn/107", JSON.stringify({ channel: "telegram", text: "Answered before the restart." }));
 	file("inbox/turn/108", JSON.stringify({ channel: "telegram", text: "Not answered." }));
 	file("outbox/sent/1000-000001.json", JSON.stringify({ text: "Done.", answers: [107], channels: ["telegram"] }));
+	// Named by number and time since AR0135: a reply answers its own file, never another event of that number from a cut log.
+	file("inbox/turn/109-2000", JSON.stringify({ channel: "telegram", text: "Answered, named by time." }));
+	file("inbox/turn/107-3000", JSON.stringify({ channel: "telegram", text: "A new 107." }));
+	file("outbox/sent/1001-000001.json", JSON.stringify({ text: "Done too.", answers: ["109-2000"], channels: ["telegram"] }));
 	file("outbox/sent/0999-000001.json", JSON.stringify({ text: "Old.", answers: [100], channels: ["telegram"] }), 8 * DAY);
 	file("inbox/answered/100", "{}", 8 * DAY);
 	file("inbox/answered/101", "{}", 6 * DAY);
 	await box.start();
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
-	assert.deepEqual(box.messages(), [{ content: `[via telegram, ${RESTART}] Not answered.`, step: 0 }]);
-	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Redone.", answers: [108], channels: ["telegram"] }]);
-	assert.deepEqual(sorted(join(box.folder, "inbox", "answered")), ["101", "107", "108"]);
+	assert.deepEqual(box.messages(), [{ content: `[via telegram, ${RESTART}] A new 107.\n\n[via telegram, ${RESTART}] Not answered.`, step: 0 }]);
+	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Redone.", answers: [107, 108], channels: ["telegram"] }]);
+	assert.deepEqual(sorted(join(box.folder, "inbox", "answered")), ["101", "107", "107-3000", "108", "109-2000"]);
 	assert.deepEqual(sorted(join(box.folder, "outbox", "sent")).filter((name) => name.startsWith("09") || name.startsWith("1000")), ["1000-000001.json"]);
 });
 
@@ -454,19 +460,24 @@ test("the footer names the running jobs while one runs and is cleared when none 
 	assert.deepEqual(status()[1], ["arthur", null]);
 });
 
-test("one event queued twice, and again after its file moved to turn/ and answered/, leaves one file", () => {
+test("one event queued twice, and again after its file moved to turn/ and answered/, leaves one file; a new event of that number after a cut log is queued", () => {
 	const folder = temporaryFolder();
 	const inbox = (step: string) => sorted(join(folder, "inbox", step));
-	queue(folder, 5, { channel: "telegram", text: "Hi." });
-	queue(folder, 5, { channel: "telegram", text: "Hi." });
-	assert.deepEqual([inbox("queued"), readFileSync(join(folder, "inbox", "queued", "5"), "utf8")], [["5"], '{"channel":"telegram","text":"Hi."}']);
+	const event = { seq: 5, time: "2026-10-18T10:00:00.000Z" };
+	const name = `5-${Date.parse(event.time)}`;
+	queue(folder, event, { channel: "telegram", text: "Hi." });
+	queue(folder, event, { channel: "telegram", text: "Hi." });
+	assert.deepEqual([inbox("queued"), readFileSync(join(folder, "inbox", "queued", name), "utf8")], [[name], '{"channel":"telegram","text":"Hi."}']);
 	for (const [from, to] of [["queued", "turn"], ["turn", "answered"]]) {
 		mkdirSync(join(folder, "inbox", to ?? ""));
-		execFileSync("mv", [join(folder, "inbox", from ?? "", "5"), join(folder, "inbox", to ?? "", "5")]);
-		queue(folder, 5, { channel: "telegram", text: "Hi." });
-		assert.deepEqual([inbox("queued"), inbox("turn"), inbox("answered")], [[], to === "turn" ? ["5"] : [], to === "answered" ? ["5"] : []]);
+		execFileSync("mv", [join(folder, "inbox", from ?? "", name), join(folder, "inbox", to ?? "", name)]);
+		queue(folder, event, { channel: "telegram", text: "Hi." });
+		assert.deepEqual([inbox("queued"), inbox("turn"), inbox("answered")], [[], to === "turn" ? [name] : [], to === "answered" ? [name] : []]);
 	}
 	assert.deepEqual(readdirSync(join(folder, "inbox")).sort(), ["answered", "queued", "turn"], "no draft left behind");
+	// The log cut by hand starts its numbers again: event 5 of the new log is another message.
+	queue(folder, { seq: 5, time: "2026-10-19T08:00:00.000Z" }, { channel: "telegram", text: "New." });
+	assert.deepEqual(inbox("queued"), [`5-${Date.parse("2026-10-19T08:00:00.000Z")}`]);
 });
 
 test("a malformed message-received or coordinator-message queues nothing and logs one line each", async (t) => {

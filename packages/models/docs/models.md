@@ -52,5 +52,6 @@ A provider model costs 0: its job keeps its time limit, its budget is 0 (no limi
 - `provider <name>`: its model list answers from here, `ok (<n> models)`.
 - `model <provider>/<model>`, for each provider model a list names (orchestration's `roles`, through `models.lists`): its server lists it; the fix is `ollama pull <model>` there, or loading it in the server.
 - `omp models.yml`: omp's own `models.yml` configures neither `ollama` nor `lm-studio` of the kinds in `providers`, since its provider would replace the one the job's environment sets; critical.
+- `omp models.yml on <machine>`, for each machine registered with the core (the machines plugin's `list`): the same check of the `models.yml` omp reads there (`$PI_CODING_AGENT_DIR/models.yml`, else `~/.omp/agent/models.yml`), read with `cat` over SSH through `host.jobs.run`; none there is `ok (no models.yml)`; critical. A machine that does not answer is not checked, `ok (not reached: <ssh's line>)`: its own `machines <name>` line says why, and an offline machine never refuses the start.
 
 A provider or a model line is critical only when a list names it with no later model on another provider or built in; `curl` when a provider is.

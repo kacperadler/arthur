@@ -1,6 +1,6 @@
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-19.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22, 80 and 93 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entry 41 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; no other plugin exists yet.
+%% Core entries 1-22, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entry 41 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale; from AR0174: the decision log in orchestration.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -11,7 +11,7 @@ flowchart TD
   human -->|writes| files
   human -->|shell| terminal
 
-  subgraph CORE[Arthur core: 24 of 27 core entries built]
+  subgraph CORE[Arthur core: 25 of 27 core entries built]
     files[/arthur.config.ts<br/>.env: secret values/]
     terminal[terminal<br/>arthur CLI, arthur attach]
     loader[config loader<br/>arthur config check]
@@ -25,8 +25,8 @@ flowchart TD
     guards[env guard<br/>worktree guard]
     runner[job runner<br/>spawn, limits, stop, steer<br/>state, prune, other machines]
     kit[test kit<br/>fake host, fake agent]
-    options[option tables<br/>every option's meaning, each package's tools]
-    corelater[later in the core<br/>setup, arthur send<br/>cleanup hooks, frozen API]
+    options[option tables, arthur setup<br/>every option's meaning, each package's tools]
+    corelater[later in the core<br/>arthur send<br/>cleanup hooks, frozen API]
     files -->|loads| loader
     terminal --> commands
     loader --> host

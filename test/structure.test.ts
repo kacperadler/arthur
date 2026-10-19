@@ -88,7 +88,12 @@ import { checkStructure } from "./structure.ts";
 // AR0173 (CI names each failed test): the wrapper forks the agent with its `oom_score_adj` at 1000 (`oomFirst`, job-memory.ts),
 // so a job over its memory cap loses the agent, never the wrapper, to a second kernel kill; core 11 more (5127 alone; 5182 + 11
 // = 5193 merged with main).
-const BUDGETS = { core: 5193, "core/testing": 344, projects: 325, orchestration: 1207, machines: 415, resources: 458, session: 849, schedule: 552 };
+// AR0179 (roadmap 94): `arthur setup`; core 210 more (5392 alone; 5193 + 210 = 5403 merged with AR0173) for the report
+// (setup.ts: its sections, the option paths set and not set, the steps in order and the exit code), the installed plugins'
+// options files read by path and each tool's version cut after 5 s (installed.ts), the config's reading shared with `arthur
+// config check` (config-check.ts), a missing line's `fix` (doctor.ts), the command (cli.ts) and the core's tool `tailscale`;
+// no line cut elsewhere: a scan of the core's exports used by no other file found only public types.
+const BUDGETS = { core: 5403, "core/testing": 344, projects: 325, orchestration: 1207, machines: 415, resources: 458, session: 849, schedule: 552 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

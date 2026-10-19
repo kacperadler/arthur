@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/session/src/restart.ts:93-106` (`settle`), `packages/session/src/restart.ts:22-25` (`restart`)
 - What: `/restart` with a coordinator running answers `...; Restarted. follows` and leaves the request for the tick. When the tick's `restart()` then throws (`restarted.json` cannot be written, or `coordinator.restart` throws), `settle` has already removed `request.json`, so after AR0148 the only trace is `session: restart failed: <first line>` in `arthur run`'s log, printed once per distinct error: no notice reaches the channel, `Restarted.` never comes, and a second `/restart` that fails the same way prints nothing new. Seen by reading the lines; not reproduced through a channel [INFERENCE].
 - Suggestion: when `restart()` throws for a `/restart` (not the night's fresh start), emit a `notice` `restart: not done: <first line>` before rethrowing, so the owner who asked hears it; the night's fresh start stays as it is (logged, the next night tries again).
-- Status: open
+- Status: ticket AR0175

@@ -179,7 +179,12 @@ import { checkStructure } from "./structure.ts";
 // (cli.ts, setup.ts); orchestration's tmux and session's service and linger moved into theirs, no line more.
 // Merged with main: core 5492 + 22 (AR0180) = 5514, models 506 + 2 (AR0177) = 508, resources 467; machines, session, telegram
 // and youtrack as AR0177 has them.
-const BUDGETS = { core: 5514, "core/testing": 349, projects: 480, orchestration: 1381, machines: 448, resources: 467, session: 877, schedule: 552, models: 508, youtrack: 466, "commit-rules": 168, nvm: 84, telegram: 403 };
+// AR0149: one ssh call per machine and round serves the machines check and the free CPU and memory: machines 10 more (456) for
+// the `node -e` script in the check's command, its line in the report and the `machines.round` hook as each round begins;
+// resources 16 more (483) for the hook kept as each listed machine's check, a check in flight waited for, and `local` alone on
+// the 60 s timer; cut first: the round's numbers go through the same parse as this side's own `node -e`, no second parser.
+// Merged with main: machines 448 + 10 (AR0149) = 458, resources 467 + 16 (AR0149) = 483; the rest as main has them.
+const BUDGETS = { core: 5514, "core/testing": 349, projects: 480, orchestration: 1381, machines: 458, resources: 483, session: 877, schedule: 552, models: 508, youtrack: 466, "commit-rules": 168, nvm: 84, telegram: 403 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

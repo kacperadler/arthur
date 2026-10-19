@@ -1,13 +1,15 @@
 import type { Plugin } from "@arthur/core/plugin";
 import type { FeatureCaps } from "./feature-caps.ts";
 import { featureGuard } from "./feature-guard.ts";
+import type { Said } from "./machine-free.ts";
 import { checkOptions } from "./resource-options.ts";
 import { CHECK_SECONDS, type KeepFree, roomGuard } from "./room.ts";
 
 // The resources plugin (spec/roadmap.md, entries 32 to 34): each job's own CPU and memory, `perJob`, answered as `jobs.limits`,
 // which the core sets on the job's scope inside the joint slice of `core.jobs.cpu` and `core.jobs.memory`; the caps of all
 // jobs of one ticket together, `perFeature` and a ticket's own `caps`; and how many jobs each machine has room for, from its
-// free CPU and memory less `keepFree` and the jobs' `perJob` reservations (room.ts): docs/resources.md.
+// free CPU and memory less `keepFree` and the jobs' `perJob` reservations (room.ts), each listed machine's read at each round
+// of the `machines` plugin (`machines.round`): docs/resources.md.
 
 export type Caps = { readonly cpu?: number; readonly memory?: string };
 export type ResourcesOptions = { readonly enabled?: boolean; readonly perJob?: Caps; readonly perFeature?: FeatureCaps; readonly keepFree?: KeepFree };
@@ -31,11 +33,12 @@ export function resources(options: ResourcesOptions): Plugin {
 			const room = roomGuard(host, host.folder, perJob, keepFree);
 			host.provide("jobs.limits", (spawn: { readonly tickets: readonly string[] }) => ({ ...caps, ...guard.slice(spawn) }));
 			host.provide("resources.free", room.free);
+			host.provide("machines.round", (checks: ReadonlyMap<string, Promise<Said>>) => void Promise.try(() => room.round(checks)).catch((error: Error) => console.error(`resources: the check of free CPU and memory failed: ${error.message}`)));
 			host.provide("coordinator.context", room.context);
 			host.jobs.beforeSpawn(guard.check);
 			host.jobs.beforeSpawn(room.check);
 			sweep = () => guard.sweep().catch((error: Error) => console.error(`resources: the sweep of the feature caps failed: ${error.message}`));
-			check = () => room.checkAll().then(() => {}, (error: Error) => console.error(`resources: the check of free CPU and memory failed: ${error.message}`));
+			check = () => room.checkLocal().then(() => {}, (error: Error) => console.error(`resources: the check of free CPU and memory failed: ${error.message}`));
 			host.commands.register({
 				name: "resources",
 				doc: new URL("../docs/commands/resources.md", import.meta.url),

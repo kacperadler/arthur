@@ -53,7 +53,7 @@ test("options it does not take, and values systemd would refuse, are refused at 
 test("jobs.limits answers perJob's caps for every job, and nothing for one left out", async () => {
 	const capped = fakeHost({ name: "resources", options: { perJob: { cpu: 2, memory: "4G" } } });
 	await capped.setup(resources({ perJob: { cpu: 2, memory: "4G" } }));
-	assert.deepEqual(capped.provided, ["jobs.limits", "resources.free", "coordinator.context"]);
+	assert.deepEqual(capped.provided, ["jobs.limits", "resources.free", "machines.round", "coordinator.context"]);
 	assert.deepEqual(capped.call("jobs.limits", { task: "Go.", machine: "local", tickets: [] }), { cpu: 2, memory: "4G" });
 	const bare = fakeHost({ name: "resources", options: { perJob: { memory: "1G" } } });
 	await bare.setup(resources({ perJob: { memory: "1G" } }));

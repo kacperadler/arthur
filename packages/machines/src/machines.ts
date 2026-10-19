@@ -7,8 +7,9 @@ import { labelsText, placement } from "./machine-place.ts";
 
 // The machines plugin (spec/roadmap.md, entries 30 and 31): the machines of the `list` option, each registered with the core's
 // job runner; `local`'s labels; each machine checked at start and every `check.everySeconds` (machine-check.ts), its changes
-// emitted as `machine-online` and `machine-offline`; each job placed by labels (machine-place.ts); `arthur machines` and
-// `/machines`; a doctor requirement per machine, `local` only with tools labels. docs/commands/machines.md.
+// emitted as `machine-online` and `machine-offline`, each round handed to `collect("machines.round")` as it begins; each job
+// placed by labels (machine-place.ts); `arthur machines` and `/machines`; a doctor requirement per machine, `local` only with
+// tools labels. docs/commands/machines.md.
 
 export type { MachineEntry, MachinesOptions };
 
@@ -44,8 +45,11 @@ export function machines(options: MachinesOptions = {}): Plugin {
 			const told = new Map<string, boolean>();
 			let running: Promise<ReadonlyMap<string, Report>> | undefined;
 			const timedOut = (machine: MachineEntry): Report => ({ online: false, reason: `check timed out after ${LIMIT_SECONDS} s`, fix: `ssh ${machine.ssh} true, by hand` });
-			round = () =>
-				(running ??= Promise.all(list.map(async (machine) => [machine.name, await within(checkMachine(host, machine, coreVersion(), LIMIT_SECONDS), timedOut(machine))] as const)).then((reports) => {
+			const start = () => {
+				const checks = list.map((machine) => [machine.name, within(checkMachine(host, machine, coreVersion(), LIMIT_SECONDS), timedOut(machine))] as const);
+				// As the round begins, each listed machine's check to come: the line of its free CPU and memory, or why it is offline.
+				host.collect("machines.round", new Map(checks.map(([name, check]) => [name, check.then((report) => (report.online ? { free: report.free } : { error: report.reason }))])));
+				return Promise.all(checks.map(async ([name, check]) => [name, await check] as const)).then((reports) => {
 					running = undefined;
 					for (const [name, report] of reports) {
 						if (!following || told.get(name) === report.online) continue;
@@ -54,7 +58,9 @@ export function machines(options: MachinesOptions = {}): Plugin {
 						else host.events.emit("machine-offline", { machine: name, reason: report.reason });
 					}
 					return new Map(reports);
-				}));
+				});
+			};
+			round = () => (running ??= start());
 			const checked = round;
 			const localLabels = { os: platform === "darwin" ? "macos" : platform, arch, ...(local.labels?.tools === undefined ? {} : { tools: local.labels.tools }) };
 			// `local`'s line, only with tools labels, in the shape of a listed machine's; `local` itself is always there.

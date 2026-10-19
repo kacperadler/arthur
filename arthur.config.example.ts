@@ -147,7 +147,8 @@ export default defineConfig({
 				},
 			],
 			// Every machine checked over ssh at start and this often (default 60, at least 10): its address private, `arthur
-			// version` and its os and arch, each check cut after 10 s; a change is `machine-online` or `machine-offline`
+			// version`, its os and arch and its free CPU and memory (for resources), each check cut after 10 s; a change is
+			// `machine-online` or `machine-offline`
 			check: { everySeconds: 60 },
 		}),
 
@@ -167,10 +168,11 @@ export default defineConfig({
 			// cap is raised. `cpu`, `memory`: a slice per ticket inside the jobs' slice (needs a user manager). `arthur resources <ticket>`.
 			perFeature: { budgetUsd: 15, hours: 8, cpu: 4, memory: "8G" },
 			// Left free on every machine, for the coordinator and the system: a job starts on a machine only while its free CPU
-			// and memory (checked every 60 s by `arthur run`) keep these after the job's perJob reservation; the refusal names
-			// each machine and what is short. `cpu`: cores, default 0; `memory`: bytes with K, M, G or T, or a percentage of the
-			// machine's memory, default none. `disk` comes with roadmap entry 69; until then the plugin refuses it as an unknown
-			// key. Each machine's room is in the coordinator's context, `arthur resources` and `/resources`.
+			// and memory (local's checked every 60 s by `arthur run`, another machine's at each machines check) keep these after
+			// the job's perJob reservation; the refusal names each machine and what is short. `cpu`: cores, default 0; `memory`:
+			// bytes with K, M, G or T, or a percentage of the machine's memory, default none. `disk` comes with roadmap entry 69;
+			// until then the plugin refuses it as an unknown key. Each machine's room is in the coordinator's context,
+			// `arthur resources` and `/resources`.
 			keepFree: { cpu: 1, memory: "2G", disk: "20G" },
 		}),
 

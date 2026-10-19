@@ -58,7 +58,11 @@ import { checkStructure } from "./structure.ts";
 // AR0157 (roadmap 38): the start notice and the LLM probe; session 152 more (691) for the probe of the coordinator's model,
 // the notice at every start, the turn extension that leaves each coordinator turn failed before any text, its notice, and the
 // redaction of a credential in either.
-const BUDGETS = { core: 4873, "core/testing": 340, projects: 320, orchestration: 1146, machines: 375, resources: 401, session: 691, schedule: 277 };
+// AR0166 (roadmap 80): `arthur doctor` and its check at every start; core 239 more (5112) for the requirement shape, the checks
+// in parallel with their 10 s cut, the core's own requirements, the command, the refusal of `arthur run` and the once-a-day
+// record (doctor.ts, requirements.ts); orchestration 16 more (1162) for tmux; session 64 more (755) for the user service and
+// linger, and the missing lines that open the start notice.
+const BUDGETS = { core: 5112, "core/testing": 340, projects: 320, orchestration: 1162, machines: 375, resources: 401, session: 755, schedule: 277 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

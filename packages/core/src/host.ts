@@ -7,9 +7,11 @@ import { type CommandRegistry, commandRegistry } from "./commands.ts";
 import { describe, type LoadedConfig } from "./config.ts";
 import { resolveEnv, type Shell } from "./env.ts";
 import { type Bus, eventBus } from "./events.ts";
+import { type DoctorLine, doctor } from "./doctor.ts";
 import { knownProject } from "./job-checkout.ts";
 import { SLICE } from "./job-scope.ts";
 import { type JobRunner, jobRunner } from "./jobs.ts";
+import { coreRequirements } from "./requirements.ts";
 import { asPlugin, type Plugin, pluginHost, pluginStep, registry } from "./plugin.ts";
 
 // The plugin host (spec/roadmap.md, entry 4): checks the config's plugin list, resolves the enabled plugins' env variables,
@@ -21,8 +23,9 @@ import { asPlugin, type Plugin, pluginHost, pluginStep, registry } from "./plugi
 // names a ticket (`spec/features/<id>-<slug>/...`) that cannot move to in-progress, and a worker's `job-started` moves each such
 // ticket to in-progress (spec/roadmap.md, entry 18); a move the board refuses then is logged.
 // `follow` is what `arthur run` follows the event log with; `project` is the project a name names (job-checkout.ts), refusing
-// one Arthur does not know; `autopilot` asks the plugin that provides `ticket.autopilot` to pre-approve a ticket (`arthur ticket`).
-export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"]; readonly project: (name: string) => unknown; readonly autopilot: (request: AutopilotRequest) => unknown };
+// one Arthur does not know; `autopilot` asks the plugin that provides `ticket.autopilot` to pre-approve a ticket (`arthur ticket`);
+// `doctor` checks the core's requirements and each plugin's (`arthur doctor`); `emit` logs and delivers an event of the core's.
+export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"]; readonly project: (name: string) => unknown; readonly autopilot: (request: AutopilotRequest) => unknown; readonly doctor: () => Promise<DoctorLine[]>; readonly emit: (name: string, data: unknown) => void };
 export type AutopilotRequest = { readonly id: string; readonly budgetUsd?: number };
 
 const REQUIRED = "orchestration";
@@ -52,7 +55,9 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	moveStartedTickets(core, bus);
 	loading = false;
 	const autopilot = (request: AutopilotRequest) => names.call("core", "ticket.autopilot", [request]);
-	return { plugins: sorted, warnings, jobs, board: core, follow: bus.follow, project: (name) => knownProject(dirname(config.path), names.collect("projects", []), name), autopilot };
+	const project = (name: string) => knownProject(dirname(config.path), names.collect("projects", []), name);
+	const checks = () => doctor(coreRequirements(config.core.home, config.core.agent.command), names.collectEach("doctor", []));
+	return { plugins: sorted, warnings, jobs, board: core, follow: bus.follow, project, autopilot, doctor: checks, emit: (name, data) => void bus.emit("core", name, data) };
 }
 
 // The host's refusals before any `setup`, which `arthur config check` runs too: the plugin list, `orchestration`, `requires`,

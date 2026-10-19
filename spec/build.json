@@ -1485,9 +1485,9 @@
   {
     "id": "AR0188",
     "title": "Roadmap 43: commit rules per project",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0188-roadmap-43-commit-rules-per-project/ticket.md",
-    "updated": "2026-10-19T13:10:10.944Z"
+    "updated": "2026-10-19T13:22:29.127Z"
   },
   {
     "id": "AR0189",
@@ -1548,8 +1548,8 @@
   {
     "id": "AR0197",
     "title": "Roadmap 45: YouTrack writing issues, articles, fields and work items",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0197-roadmap-45-youtrack-writing-issues-articles-fields-and-work-items/ticket.md",
-    "updated": "2026-10-19T13:10:24.171Z"
+    "updated": "2026-10-19T13:10:26.747Z"
   }
 ]

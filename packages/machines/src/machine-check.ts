@@ -3,12 +3,16 @@ import { BlockList, isIP } from "node:net";
 import type { Host } from "@arthur/core/plugin";
 import type { MachineEntry } from "./machine-options.ts";
 
-// One machine's check (spec/roadmap.md, entry 30): its address private, then one command over the core's SSH that answers
-// its os, arch and Arthur's version, compared with its labels and this core's version. docs/commands/machines.md.
+// One machine's check (spec/roadmap.md, entries 30 and 80): its address private, then one command over the core's SSH that
+// answers its os, arch and Arthur's version, compared with its labels and this core's version, and which of its `tools`
+// labels `command -v` does not find there. docs/commands/machines.md.
 
 export type Report =
-	| { readonly online: true; readonly os: string; readonly arch: string; readonly version: string }
+	| { readonly online: true; readonly os: string; readonly arch: string; readonly version: string; readonly missing: readonly string[] }
 	| { readonly online: false; readonly reason: string; readonly fix: string };
+
+// Each tool label is a command name; one not found is said on a line of its own, after the version.
+const SCRIPT = 'uname -sm && arthur version && for tool do command -v "$tool" >/dev/null || echo "missing $tool"; done';
 
 // The private network Arthur reaches its machines on: loopback, RFC 1918, and Tailscale's.
 const PRIVATE = new BlockList();
@@ -50,13 +54,13 @@ export async function checkMachine(host: Host, machine: MachineEntry, ours: stri
 	}
 	const left = limitSeconds - (Date.now() - started) / 1000;
 	if (left <= 0) return offline(`check timed out after ${limitSeconds} s`, `ssh ${machine.ssh} true, by hand`);
-	const ran = await host.jobs.run(machine.name, ["sh", "-c", "uname -sm && arthur version"], left);
+	const ran = await host.jobs.run(machine.name, ["sh", "-c", SCRIPT, "sh", ...(machine.labels?.tools ?? [])], left);
 	const said = lastLine(ran.stderr) || `exit code ${ran.code}`;
 	if (ran.code === null) return offline(`check timed out after ${limitSeconds} s`, `ssh ${machine.ssh} true, by hand`);
 	if (ran.code === 255) return offline(`ssh ${machine.ssh}: ${said}`, sshFix(said, machine.ssh));
 	if (ran.code === 127) return offline(`arthur is not there (${said})`, "install Arthur's core there at this commit, arthur on the PATH of a command over ssh (docs/deploy.md)");
 	if (ran.code !== 0) return offline(`uname -sm && arthur version failed there: ${said}`, `ssh ${machine.ssh} 'uname -sm && arthur version', by hand`);
-	const [system = "", theirs = ""] = ran.stdout.trim().split("\n").map((line) => line.trim());
+	const [system = "", theirs = "", ...rest] = ran.stdout.trim().split("\n").map((line) => line.trim());
 	const words = system.split(/\s+/);
 	const [uname = "", hardware = ""] = [words[0], words.at(-1)];
 	const [os, arch] = [OS[uname] ?? uname.toLowerCase(), ARCH[hardware] ?? hardware];
@@ -66,5 +70,5 @@ export async function checkMachine(host: Host, machine: MachineEntry, ours: stri
 		return offline(`its labels say ${labels}; the machine says ${os} ${arch}`, `set the labels of ${machine.name} in arthur.config.ts to what ssh ${machine.ssh} reaches`);
 	}
 	if (theirs !== ours) return offline(`it runs arthur ${theirs || "(no version)"}, this one is ${ours}; both need the same version`, "update Arthur there to this commit (docs/deploy.md)");
-	return { online: true, os, arch, version: ours };
+	return { online: true, os, arch, version: ours, missing: rest.flatMap((line) => (line.startsWith("missing ") ? [line.slice("missing ".length)] : [])) };
 }

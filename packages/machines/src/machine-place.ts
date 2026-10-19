@@ -19,7 +19,7 @@ const NONE: Need = { labels: {}, from: "" };
 // A ticket's folder in a `Ticket:` path, and its id.
 const FEATURE = /^(.*?spec\/features\/([A-Z]+\d{4,})-[^/]*\/)/;
 
-// `os macos, arch arm64, tools xcode docker`, as `arthur machines` shows labels.
+// `os macos, arch arm64, tools xcodebuild docker`, as `arthur machines` shows labels.
 export function labelsText(labels: Labels): string {
 	return Object.entries(labels).map(([key, value]) => `${key} ${Array.isArray(value) ? value.join(" ") : value}`).join(", ") || "none";
 }

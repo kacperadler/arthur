@@ -337,6 +337,19 @@ test("a turn that keeps ending without a reply has its messages go again at once
 	assert.deepEqual(box.emitted("coordinator-replied"), []);
 });
 
+test("the notice after 3 turns without a reply never repeats a credential in omp's error", async (t) => {
+	t.after(() => delete process.env.ARTHUR_INBOX_TEST_API_KEY);
+	process.env.ARTHUR_INBOX_TEST_API_KEY = "hunter-two-secret";
+	const error = "401 invalid x-api-key sk-ant-api03-AbCdEf123456 (hunter-two-secret), request_id req_011CgAWsav66AwnrHwNLjFA6";
+	const box = await load(t, { steps: [...FAILED, ...FAILED, { prompt: true }, { message: "", stopReason: "error", error }, { end: true }, { prompt: true }] });
+	await box.start();
+	box.say("Go.");
+	await until("the notice", () => box.emitted("notice").length === 1);
+	assert.deepEqual(box.emitted("notice"), [
+		{ text: "the coordinator's last 3 turns ended without a reply (error: 401 invalid x-api-key [redacted] ([redacted]), request_id [redacted]); their messages go again in 10 s, then after twice as long each time, at most 5 min" },
+	]);
+});
+
 test("a reply ends the wait: the next turn that ends without a reply has its messages go again at once", async (t) => {
 	const steps: AgentStep[] = [...FAILED, ...FAILED, { prompt: true }, { message: "Done." }, { end: true }, ...FAILED, { prompt: true }, { message: "Again." }, { end: true }, { prompt: true }];
 	const box = await load(t, { steps });

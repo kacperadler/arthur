@@ -58,12 +58,24 @@ import { checkStructure } from "./structure.ts";
 // AR0157 (roadmap 38): the start notice and the LLM probe; session 152 more (691) for the probe of the coordinator's model,
 // the notice at every start, the turn extension that leaves each coordinator turn failed before any text, its notice, and the
 // redaction of a credential in either.
+// AR0166 (roadmap 80): `arthur doctor` and its check at every start; core 239 more (5112) for the requirement shape, the checks
+// in parallel with their 10 s cut, the core's own requirements, the command, the refusal of `arthur run` and the once-a-day
+// record (doctor.ts, requirements.ts); orchestration 16 more (1162) for tmux; session 64 more (755) for the user service and
+// linger, and the missing lines that open the start notice; machines 16 more (391) for each tools label checked with
+// `command -v` in the machine's check over ssh, named in its doctor line (the owner's decision: a tools label is a command name).
 // AR0163 (roadmap 40): registered entries and `arthur schedule`, schedule 220 more (497), for `schedule.register` with its own
 // procedure rule (register.ts), the file's entries read and changed under a lock (entry-file.ts) and `arthur schedule
 // add|list|remove` (schedule-command.ts); core unchanged but for `@arthur/core/lock` in its exports.
-// AR0148: a throw in the session's 500 ms tick no longer ends `arthur run`; session 9 more (700) for the catch around each tick,
-// told once per distinct error, and the fresh start's try noted only once its request is written.
-const BUDGETS = { core: 4873, "core/testing": 340, projects: 320, orchestration: 1146, machines: 375, resources: 401, session: 700, schedule: 497 };
+// AR0167 (CI flakes): the fake agent makes each file it notes with its first line, by a link, so a test that reads it while
+// the agent runs never sees it empty; core/testing 4 more (344). A record's file removed between the check and the read
+// (`hold`, as `arthur stop` polls a job's end) reads empty instead of throwing: core 4 more (4877).
+// Merged: core 5112 + 4 (AR0167) = 5116.
+// AR0164: the inbox's notice after 3 unanswered turns redacts omp's error as the session plugin does, with a copy of its
+// credential.ts (a plugin cannot import another's), orchestration 17 more (1163 alone; 1162 + 17 = 1179 merged with AR0166).
+// AR0148: a throw in the session's 500 ms tick no longer ends `arthur run`; session 9 more (700 alone; 755 + 9 = 764 merged
+// with AR0166) for the catch around each tick, told once per distinct error, and the fresh start's try noted only once its
+// request is written.
+const BUDGETS = { core: 5116, "core/testing": 344, projects: 320, orchestration: 1179, machines: 391, resources: 401, session: 764, schedule: 497 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

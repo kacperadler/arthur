@@ -69,12 +69,15 @@ async function load(options: MachinesOptions): Promise<Loaded> {
 	return { fake, plugin };
 }
 
-const MAC = { name: "mac", ssh: "mac-mini", home: "/Users/arthur/.arthur", labels: { os: "macos", arch: "arm64", tools: ["xcode"] }, maxJobs: 2 };
+const MAC = { name: "mac", ssh: "mac-mini", home: "/Users/arthur/.arthur", labels: { os: "macos", arch: "arm64", tools: ["xcodebuild"] }, maxJobs: 2 };
 const BUILD = { name: "build", ssh: "build-box", home: "/home/arthur/.arthur", labels: { os: "linux", arch: "x64" } };
 
 type Requirement = { readonly name: string; check(): Promise<string>; readonly costs: string; readonly fix: string; readonly critical: boolean };
 const requirements = (fake: FakeHost) => fake.collect<Requirement[]>("doctor").flat();
 const events = (fake: FakeHost) => fake.emitted.map((event) => [event.name, event.data]);
+// The one command of a machine's check over ssh, as the core quotes it, before its tools labels.
+const CHECK = `'sh' '-c' 'uname -sm && arthur version && for tool do command -v "$tool" >/dev/null || echo "missing $tool"; done'`;
+const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 async function until<T>(what: string, predicate: () => T | undefined | false): Promise<T> {
 	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
@@ -103,7 +106,7 @@ test("at start every machine is checked and told once; a key refused stays offli
 		const offline = { machine: "build", reason: "ssh build-box: arthur@build-box: Permission denied (publickey)." };
 		const told = [["machine-online", { machine: "mac", os: "macos", arch: "arm64", version: coreVersion() }], ["machine-offline", offline]];
 		assert.deepEqual(events(fake), told);
-		for (const call of calls()) assert.match(call, /^-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 (mac|build)-\w+ 'sh' '-c' 'uname -sm && arthur version'$/);
+		for (const call of calls()) assert.match(call, new RegExp(`^-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 (mac-mini ${escape(CHECK)} 'sh' 'xcodebuild'|build-box ${escape(CHECK)} 'sh')$`));
 		// Two more rounds, as the doctor and the command ask for them: nothing changed, nothing told.
 		await Promise.all(requirements(fake).map((requirement) => requirement.check()));
 		assert.equal((await fake.host.commands.route("/machines")).split("\n").length, 6);
@@ -137,18 +140,20 @@ test("a check outside arthur run (the command, the doctor) tells nothing; arthur
 	}
 });
 
-test("each way a machine is offline, with its reason and its fix, as the doctor says it", async () => {
+test("each way a machine is offline, with its reason and its fix, and each tools label command -v does not find there, as the doctor says it", async () => {
 	machine("mac-mini", "Linux x86_64");
 	writeFileSync(join(machine("build-box"), "fail"), HOST_KEY);
 	machine("old-box", "Linux x86_64", "0123456789ab");
 	machine("bare-box", "Linux aarch64", null);
-	machine("arm-box", "Linux aarch64");
+	// The tools labels name commands: arm has its docker; gpu has docker and neither of the other two.
+	for (const host of ["arm-box", "gpu-box"]) writeFileSync(join(machine(host, host === "arm-box" ? "Linux aarch64" : "Linux x86_64"), "bin/docker"), "#!/bin/sh\n", { mode: 0o755 });
 	const list = [
 		MAC,
 		BUILD,
 		{ name: "old", ssh: "old-box", home: "/home/arthur/.arthur" },
 		{ name: "bare", ssh: "bare-box", home: "/home/arthur/.arthur" },
 		{ name: "arm", ssh: "arm-box", home: "/home/arthur/.arthur", labels: { arch: "arm64", tools: ["docker"] } },
+		{ name: "gpu", ssh: "gpu-box", home: "/home/arthur/.arthur", labels: { tools: ["docker", "nvidia-smi", "xcodebuild"] } },
 	];
 	const { fake } = await load({ list });
 	const lines = await Promise.all(requirements(fake).map(async (requirement) => [requirement.name, await requirement.check(), requirement.fix, requirement.costs, requirement.critical]));
@@ -170,8 +175,16 @@ test("each way a machine is offline, with its reason and its fix, as the doctor 
 			false,
 		],
 		["arm", `ok (linux arm64, arthur ${coreVersion()})`, "ssh arm-box true, by hand", "no job runs on arm", false],
+		[
+			"gpu",
+			`missing: command -v finds no nvidia-smi, xcodebuild there (linux x64, arthur ${coreVersion()})`,
+			"install nvidia-smi, xcodebuild on gpu, on the PATH of a command over ssh (docs/deploy.md), or drop what it does not need from its tools label",
+			"no job that needs nvidia-smi, xcodebuild runs on gpu",
+			false,
+		],
 	]);
 	assert.ok(calls().every((call) => call.startsWith("-o BatchMode=yes -o StrictHostKeyChecking=yes ")), "a host key is never accepted on its own");
+	assert.ok(calls().some((call) => call.endsWith(`gpu-box ${CHECK} 'sh' 'docker' 'nvidia-smi' 'xcodebuild'`)), "each tool label is asked of command -v, in the one check over ssh");
 });
 
 test("a machine whose ssh resolves to a public address is refused at load; one that turns public later is offline", async () => {
@@ -245,7 +258,7 @@ test("arthur machines and /machines: local first with its detected labels, then 
 		`local: online (${os} ${arch}, arthur ${coreVersion()})`,
 		`  labels: os ${os}, arch ${arch}, tools docker; maxJobs: 3; jobs: 2026-10-18-worker-0000000c (blocked)`,
 		`mac (ssh mac-mini): online (macos arm64, arthur ${coreVersion()})`,
-		"  labels: os macos, arch arm64, tools xcode; maxJobs: 2; jobs: 2026-10-18-worker-0000000a (working)",
+		"  labels: os macos, arch arm64, tools xcodebuild; maxJobs: 2; jobs: 2026-10-18-worker-0000000a (working)",
 		"build (ssh build-box): offline: ssh build-box: arthur@build-box: Permission denied (publickey).; fix: ssh-copy-id build-box",
 		"  labels: os linux, arch x64; maxJobs: not set; no jobs",
 	].join("\n");
@@ -312,17 +325,17 @@ function job(at: Placing, id: string, machine: string, state = "working"): void 
 
 test("a job's labels: --requires, else its ticket's, else its project's; a ticket's replaces the project's whole, an empty one clears it", async () => {
 	const at = await placing();
-	at.projects = [acme({ tools: ["xcode"] }, '{ "id": "AC0001", "title": "One" }')];
+	at.projects = [acme({ tools: ["xcodebuild"] }, '{ "id": "AC0001", "title": "One" }')];
 	assert.equal(await place(at, { tickets: [TICKET] }), "mac", "a ticket without requires: the project's");
 	assert.equal(await place(at), "mac", "no ticket: the project's");
-	at.projects = [acme({ tools: ["xcode"] }, '{ "id": "AC0001", "requires": { "tools": ["docker"] } }')];
+	at.projects = [acme({ tools: ["xcodebuild"] }, '{ "id": "AC0001", "requires": { "tools": ["docker"] } }')];
 	assert.equal(await place(at, { tickets: [TICKET] }), "local", "the ticket's alone: docker, which only local has");
 	assert.equal(await place(at, { tickets: ["spec/features/AC0001-one/plan.md"] }), "local", "any file of the ticket's folder names it");
-	assert.equal(await place(at, { tickets: [TICKET], requires: { os: "macos", tools: ["xcode"] } }), "mac", "--requires over the ticket's");
+	assert.equal(await place(at, { tickets: [TICKET], requires: { os: "macos", tools: ["xcodebuild"] } }), "mac", "--requires over the ticket's");
 	job(at, "0000000a", "local");
-	at.projects = [acme({ tools: ["xcode"] }, '{ "id": "AC0001", "requires": {} }')];
+	at.projects = [acme({ tools: ["xcodebuild"] }, '{ "id": "AC0001", "requires": {} }')];
 	assert.equal(await place(at, { tickets: [TICKET] }), "mac", "an empty requires clears the project's: the fewest jobs");
-	at.projects = [acme({ tools: ["xcode"] })];
+	at.projects = [acme({ tools: ["xcodebuild"] })];
 	assert.equal(await place(at, { tickets: [TICKET] }), "mac", "a ticket without a JSON block: the project's");
 	at.projects = [acme(undefined, '{ "requires": { "tools": ["docker"] } }')];
 	assert.equal(await place(at, { tickets: [TICKET], project: "shop" }), "mac", "a project not in the list requires nothing, its ticket unread");
@@ -353,22 +366,22 @@ test("the most room from resources.free when the resources plugin provides it, l
 
 test("refused before any record exists, naming the labels and each machine with its labels and state", async () => {
 	const at = await placing();
-	const project = acme(undefined, '{ "id": "AC0001", "requires": { "os": "macos", "tools": ["xcode"] } }');
+	const project = acme(undefined, '{ "id": "AC0001", "requires": { "os": "macos", "tools": ["xcodebuild"] } }');
 	at.projects = [project];
 	writeFileSync(join(root, "build-box", "fail"), "arthur@build-box: Permission denied (publickey).");
 	job(at, "0000000a", "mac");
 	job(at, "0000000b", "mac", "idle");
-	const machines = `${LOCAL_TEXT}: online, 0 of 3 jobs; mac (os macos, arch arm64, tools xcode): online, full: 2 of 2 jobs; build (os linux, arch x64): offline: ssh build-box: arthur@build-box: Permission denied (publickey).`;
+	const machines = `${LOCAL_TEXT}: online, 0 of 3 jobs; mac (os macos, arch arm64, tools xcodebuild): online, full: 2 of 2 jobs; build (os linux, arch x64): offline: ssh build-box: arthur@build-box: Permission denied (publickey).`;
 	const spawn = (request: Readonly<Record<string, unknown>>) => at.fake.host.jobs.spawn({ task: "Go.", kind: "worker", ...request });
 	await assert.rejects(spawn({ requires: { tools: ["gpu", "docker"] } }), { message: `no machine has the labels; the job needs tools gpu docker (--requires); machines: ${machines}` });
-	await assert.rejects(spawn({ task: `Ticket: ${TICKET}. Go.` }), { message: `every machine with the labels is offline or full; the job needs os macos, tools xcode (ticket AC0001); machines: ${machines}` });
-	await assert.rejects(spawn({ task: `Ticket: ${TICKET}. Go.`, machine: "build" }), { message: `machine build lacks os macos, tools xcode; the job needs os macos, tools xcode (ticket AC0001); machines: ${machines}` });
+	await assert.rejects(spawn({ task: `Ticket: ${TICKET}. Go.` }), { message: `every machine with the labels is offline or full; the job needs os macos, tools xcodebuild (ticket AC0001); machines: ${machines}` });
+	await assert.rejects(spawn({ task: `Ticket: ${TICKET}. Go.`, machine: "build" }), { message: `machine build lacks os macos, tools xcodebuild; the job needs os macos, tools xcodebuild (ticket AC0001); machines: ${machines}` });
 	await assert.rejects(spawn({ machine: "gpu" }), { message: "unknown machine gpu; machines: build, local, mac" });
 	rmSync(join(at.home, "jobs", "2026-10-18-worker-0000000b"), { recursive: true });
 	writeFileSync(join(root, "mac-mini", "fail"), KEY_REFUSED);
-	await assert.rejects(spawn({ task: `Ticket: ${TICKET}. Go.` }), { message: /^every machine with the labels is offline or full; .*mac \(os macos, arch arm64, tools xcode\): offline: ssh mac-mini: arthur@mac-mini: Permission denied/ });
+	await assert.rejects(spawn({ task: `Ticket: ${TICKET}. Go.` }), { message: /^every machine with the labels is offline or full; .*mac \(os macos, arch arm64, tools xcodebuild\): offline: ssh mac-mini: arthur@mac-mini: Permission denied/ });
 	for (const id of ["0000000c", "0000000d", "0000000e"]) job(at, id, "local");
-	const offline = `mac (os macos, arch arm64, tools xcode): offline: ssh mac-mini: ${KEY_REFUSED}; build (os linux, arch x64): offline: ssh build-box: arthur@build-box: Permission denied (publickey).`;
+	const offline = `mac (os macos, arch arm64, tools xcodebuild): offline: ssh mac-mini: ${KEY_REFUSED}; build (os linux, arch x64): offline: ssh build-box: arthur@build-box: Permission denied (publickey).`;
 	await assert.rejects(spawn({ requires: { tools: ["docker"] } }), { message: `every machine with the labels is offline or full; the job needs tools docker (--requires); machines: ${LOCAL_TEXT}: online, full: 3 of 3 jobs; ${offline}` });
 	assert.deepEqual(readdirSync(join(at.home, "jobs")), ["0000000a", "0000000c", "0000000d", "0000000e"].map((id) => `2026-10-18-worker-${id}`), "no record made");
 	assert.equal(existsSync(join(dirname(String(project.path)), ".arthur-worktrees")), false, "no worktree made");
@@ -376,7 +389,7 @@ test("refused before any record exists, naming the labels and each machine with 
 
 test("--machine with the labels goes there unchecked; a ticket's broken JSON block or a requires of another shape is refused, naming it", async () => {
 	const at = await placing();
-	const project = acme(undefined, '{ "id": "AC0001", "requires": { "tools": ["xcode"] } }');
+	const project = acme(undefined, '{ "id": "AC0001", "requires": { "tools": ["xcodebuild"] } }');
 	at.projects = [project];
 	writeFileSync(join(root, "mac-mini", "fail"), KEY_REFUSED);
 	assert.equal(await place(at, { tickets: [TICKET], machine: "mac" }), "mac");
@@ -384,7 +397,7 @@ test("--machine with the labels goes there unchecked; a ticket's broken JSON blo
 	const file = join(String(project.path), TICKET);
 	writeFileSync(file, '# AC0001\n\n```json\n{ "id": "AC0001", }\n```\n');
 	await assert.rejects(place(at, { tickets: [TICKET] }), { message: new RegExp(`^${file}: its JSON block is not JSON \\(.+\\); fix it by hand$`) });
-	writeFileSync(file, '# AC0001\n\n```json\n{ "requires": { "tools": "xcode" } }\n```\n');
+	writeFileSync(file, '# AC0001\n\n```json\n{ "requires": { "tools": "xcodebuild" } }\n```\n');
 	const shape = "requires must be { os?, arch?, tools? }, os and arch non-empty strings, tools a list of them; got";
 	await assert.rejects(place(at, { tickets: [TICKET] }), { message: `ticket AC0001 (${file}): ${shape} an object` });
 	await assert.rejects(place(at, { requires: { gpu: true } }), { message: `--requires: ${shape} an object` });

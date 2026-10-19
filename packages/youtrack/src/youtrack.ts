@@ -3,9 +3,9 @@ import type { Instance } from "./youtrack-api.ts";
 import { type Tracked, youtrackCommand } from "./youtrack-command.ts";
 import { checkOptions } from "./youtrack-options.ts";
 
-// The youtrack plugin (spec/roadmap.md, entry 44): YouTrack servers as instances, named and unnamed, each project's `tracker`
-// picking one; `arthur youtrack issue|article list|get` reads them: docs/commands/youtrack.md. It needs the project list, so
-// `projects` sets up first.
+// The youtrack plugin (spec/roadmap.md, entries 44 and 45): YouTrack servers as instances, named and unnamed, each project's
+// `tracker` picking one; `arthur youtrack issue|article ...` reads and writes them: docs/commands/youtrack.md. It needs the
+// project list, so `projects` sets up first.
 
 export type InstanceOptions = { readonly name?: string; readonly urlEnv: string; readonly tokenEnv: string };
 

@@ -108,11 +108,18 @@ import { checkStructure } from "./structure.ts";
 // AR0189 (roadmap 44): youtrack: 251, set for its instances and their variables checked at load, each project's tracker
 // checked against them, the REST reading with its one-line errors and paging, and `arthur youtrack issue|article list|get`;
 // a new package, so nothing was cut elsewhere; core unchanged.
+// AR0188 (roadmap 43): commit-rules: 168, for the regex checked at load and its commit-msg hook in each job's worktree, the
+// project's own hooks forwarded and a shared `core.bare` or `core.worktree` moved into the main one's `config.worktree` first
+// (hook.ts, 13 of the 168, after review 1), words or a file in the worker's and reviewer's prompt, and its empty options file.
+// AR0197 (roadmap 45): youtrack 110 more (361) for writing: issue and article create and update from a file, the article's
+// version check, a custom field set in the shape its type takes, a work item, and the POST in the API call; cut first: the
+// usage line to one, and the article's version a word instead of a `--version` flag with its own parsing (7 lines).
+// AR0195: youtrack 2 more (363) for `issue list` unresolved by default and `--all`; its query inlined first (1 line).
 // AR0196 (roadmap 84): nvm: 84, set for its prepare (the worktree's .nvmrc read and `nvm which` asked on the job's machine, in
 // one call, each refusal), its doctor line per machine and its refusal to load after projects; a new package, so nothing was
 // cut elsewhere; core unchanged in lines: a prepare's second argument, the variables of the prepares before it, took no new
 // line. projects 2 more (475), by the ticket's decision, for its install run with the PATH the prepares before it returned.
-const BUDGETS = { core: 5448, "core/testing": 344, projects: 475, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 251, nvm: 84 };
+const BUDGETS = { core: 5448, "core/testing": 344, projects: 475, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 363, "commit-rules": 168, nvm: 84 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

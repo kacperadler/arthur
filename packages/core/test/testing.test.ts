@@ -6,7 +6,7 @@ import { dirname, join, relative } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
 import type { Plugin } from "@arthur/core/plugin";
-import { fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 
 // A plugin as a later one will be: it provides one name and calls another in its setup.
 const schedule = (options: { readonly at: string }): Plugin => ({
@@ -243,6 +243,19 @@ test("a tmux command under the kit reaches no live server", { skip: !hasTmux() &
 test("omp under the kit is the fake agent with no run scripted: it fails, and no job of a test reaches the real agent", () => {
 	const run = spawnSync("omp", ["-p", "--mode", "json", "Fix it."], { encoding: "utf8" });
 	assert.deepEqual([run.status, run.stdout, run.stderr], [1, "", "fake agent: this test scripted no run\n"]);
+});
+
+test("the fake agent notes its start only once its extensions are loaded and their session_start handlers answered", () => {
+	const agent = fakeAgent({ steps: [{ message: "Done." }] });
+	const [starts, seen, extension] = ["starts.jsonl", "seen", "extension.ts"].map((name) => join(dirname(agent), name)) as [string, string, string];
+	// An extension that, as the worktree guard reads the job's record, notes whether the start is noted yet as it loads and as it
+	// answers session_start.
+	const look = `appendFileSync(${JSON.stringify(seen)}, String(existsSync(${JSON.stringify(starts)})) + "\\n")`;
+	writeFileSync(extension, `import { appendFileSync, existsSync } from "node:fs";\n${look};\nexport default (pi) => pi.on("session_start", () => ${look});\n`);
+	const run = spawnSync(agent, ["-e", extension], { encoding: "utf8" });
+	assert.equal(run.status, 0, run.stderr);
+	assert.equal(readFileSync(seen, "utf8"), "false\nfalse\n", "no start noted while the extension loads or answers session_start");
+	assert.equal(readFileSync(starts, "utf8").split("\n").length, 2, "one start, noted after");
 });
 
 function hasTmux(): boolean {

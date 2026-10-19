@@ -12,7 +12,7 @@ A project without `commitRules` gets no hook and no text.
 
 ## Refused at load
 
-- A `regex` that does not compile as a JavaScript regular expression refuses the start, naming the project: `plugin commit-rules: setup failed: project <name>: commitRules.regex does not compile: <why>`.
+- A `regex` that does not compile as a JavaScript regular expression refuses the load, naming the project, so `arthur config check` and `arthur run` say it and no job starts: `plugin commit-rules: setup failed: project <name>: commitRules.regex does not compile: <why>`.
 - Any option but `enabled`: `unknown option; commit-rules takes none: a project's rule is its commitRules in the projects list`.
 
 The shape of `commitRules` (exactly one of the three keys, a non-empty string) is the `projects` plugin's check.

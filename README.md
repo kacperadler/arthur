@@ -36,6 +36,7 @@ What works today:
 - The coordinator's conversation (`@arthur/session`, entries 35 to 37): compacted at each `compactAt` time once the coordinator is idle, and started fresh at `freshAt` once no job runs (tried every `freshRetryMinutes` until `freshUntil`), each after a handoff it writes and the next conversation reads first; `/restart` and `/restart fresh`, refused while a job runs, which end `arthur run` too while a restart is due, so its service starts it on the new code, and one `Restarted.` notice after; the restart guard: once a commit changed the code `arthur run` loaded, every spawn and continue is refused (unless `--ignore-restart`) until `arthur run` starts again, and the coordinator's context says so.
 - The machines (`@arthur/machines`, entries 30 and 31): the other machines jobs run on, with their labels, each checked over SSH at start and every `check.everySeconds` (private address, `arthur version`, os and arch against its labels), `machine-online` and `machine-offline` on each change, and `arthur machines`; each job placed on a machine with the labels it needs (`arthur spawn --requires`, else its ticket's, else its project's), online and under its `maxJobs`, with the fewest jobs.
 - The schedule (`@arthur/schedule`, entries 39 and 40): entries in `arthur.config.ts`, in a JSON file and registered by other plugins from their options (ids `<plugin>.<id>`), each a daily time (on some days) or a one-off date and time, that send the coordinator a message, with a procedure's text under it, or spawn a job; `arthur run` runs each due slot once, a slot missed while it was down once and saying it is late, and names a hand-broken entry while the others still run; `arthur schedule` lists every entry with its source and next run, and `add` and `remove` change the file's.
+- Commit rules (`@arthur/commit-rules`, entry 43): each project's `commitRules`; a `regex`, checked at load, becomes a `commit-msg` hook in the project's job worktrees that refuses a subject it does not match and says the rule (a merge passes; the project's own hooks still run); `words`, or a `file` read from the repository at the job's commit, go into the worker's and the reviewer's prompt.
 
 What is next:
 
@@ -73,7 +74,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | models: providers on other machines, a fallback chain | planned | 82 |
 | docker: labels, cleanup with each worktree, the leftover sweep | planned | 70 to 72 |
 | nvm: each project's Node version | planned | 84 |
-| commit-rules: a regex hook, words or a file per project | planned | 43 |
+| commit-rules: a regex hook, words or a file per project | built | 43 |
 | findings: what happens to them on a merge | planned | 83 |
 | telegram: text, media and the phone menu; the coordinator's silent mode (`/silent`), which every channel follows | planned | 47 to 50 |
 | discord: one private server, a main channel for the coordinator and one per project; text, media, phone commands | planned | 89, 90 |
@@ -148,7 +149,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-19.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; no other plugin exists yet.
+%% Core entries 1-22, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; commit-rules has entry 43 of 43; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale; from AR0174: the decision log in orchestration.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -288,9 +289,9 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,machines,session,schedule,projects built;
+  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,machines,session,schedule,projects,commit built;
   class lpartial,orchestration,resources partial;
-  class lplanned,telegram,discord,voice,corelater,agents,nvm,commit,findings,models,docker,delivery,github,youtrack,manage,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
+  class lplanned,telegram,discord,voice,corelater,agents,nvm,findings,models,docker,delivery,github,youtrack,manage,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl outside;
   style larrows fill:#fff,stroke:#999,color:#000
   style LEGEND fill:#fff,stroke:#999

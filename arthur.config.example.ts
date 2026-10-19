@@ -274,9 +274,10 @@ export default defineConfig({
 			],
 		}),
 
-		// Applies each project's `commitRules`: a regex becomes a commit-msg hook in the project's worktrees that refuses a
-		// non-matching subject; words and a file are given to the worker and the reviewer, and the review judges them.
-		commitRules({ installHook: true }),
+		// Applies each project's `commitRules`: a regex becomes a commit-msg hook in the project's job worktrees that refuses a
+		// non-matching subject; words and a file are given to the worker and the reviewer, and the review judges them. It takes no
+		// option of its own (packages/commit-rules/docs/commit-rules.md).
+		commitRules(),
 
 		// One entry per YouTrack server. The names are the variables, not their values. The unnamed one uses
 		// ARTHUR_YOUTRACK_URL and ARTHUR_YOUTRACK_TOKEN; `acme` uses ARTHUR_YOUTRACK_ACME_URL and ARTHUR_YOUTRACK_ACME_TOKEN.

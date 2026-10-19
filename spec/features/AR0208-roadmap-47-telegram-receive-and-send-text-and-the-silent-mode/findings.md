@@ -11,7 +11,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/nvm/package.json:5`
 - What: every package says `"license": "Apache-2.0"` since AR0203, but nvm, merged just before it, still says `"SEE LICENSE IN ../../LICENSE"` (`grep -rn '"license"' packages/*/package.json`).
 - Suggestion: set it to `"Apache-2.0"`, and have `test/structure.ts`'s manifest check refuse any other value, so the next new package cannot drift; nothing else changes.
-- Status: open
+- Status: ticket AR0210
 
 ## F2. A message to a named bot is answered by the unnamed one
 
@@ -20,4 +20,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/telegram/src/telegram.ts` (`main`), `packages/orchestration/src/inbox.ts` (`queue`)
 - What: with several bots, every bot's messages reach the coordinator as `{ channel: "telegram", text }`, but the replies and notices go only from the unnamed bot (else the first) to its chat, since neither `message-received` nor `coordinator-replied` says which bot a message came through. The owner writing to a second bot gets the answer in the first bot's chat.
 - Suggestion: when entries 85 and 86 bind a named bot to a project's chat, carry the bot (an instance) with the message and its reply, as `place` is carried; until then the docs say the unnamed bot sends.
-- Status: open
+- Status: ticket AR0211

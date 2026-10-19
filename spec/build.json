@@ -1625,9 +1625,9 @@
   {
     "id": "AR0208",
     "title": "Roadmap 47: Telegram receive and send text, and the silent mode",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0208-roadmap-47-telegram-receive-and-send-text-and-the-silent-mode/ticket.md",
-    "updated": "2026-10-19T15:27:38.918Z"
+    "updated": "2026-10-19T15:46:16.484Z"
   },
   {
     "id": "AR0209",
@@ -1635,5 +1635,19 @@
     "status": "planning",
     "path": "spec/features/AR0209-an-a2a-plugin-other-agents-give-arthur-tasks-and-arthur-gives-them/ticket.md",
     "updated": "2026-10-19T15:41:55.417Z"
+  },
+  {
+    "id": "AR0210",
+    "title": "The nvm package still names the old licence",
+    "status": "planned",
+    "path": "spec/features/AR0210-the-nvm-package-still-names-the-old-licence/ticket.md",
+    "updated": "2026-10-19T15:46:44.001Z"
+  },
+  {
+    "id": "AR0211",
+    "title": "A message to a named bot is answered by the unnamed one",
+    "status": "planning",
+    "path": "spec/features/AR0211-a-message-to-a-named-bot-is-answered-by-the-unnamed-one/ticket.md",
+    "updated": "2026-10-19T15:46:16.480Z"
   }
 ]

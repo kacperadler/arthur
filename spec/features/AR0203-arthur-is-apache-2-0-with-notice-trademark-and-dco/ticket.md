@@ -36,3 +36,4 @@ In: the files above. Out: a CI check of sign-offs (not asked).
 ## Decisions
 
 - 2026-10-19: The owner, urgent: Apache-2.0 instead of FSL-1.1-ALv2; NOTICE; package.json license fields; README and vision.md licence sections (open source, the name and logo stay his); CONTRIBUTING.md with a DCO requirement.
+- 2026-10-19: The coordinator decides: old tickets (AR0001 and this one) are records of what was decided and keep their wording; hash matches are not text. The grep point holds for every live document (LICENSE, NOTICE, README, vision, CONTRIBUTING, package files, docs).

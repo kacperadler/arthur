@@ -17,6 +17,7 @@ const SHORT_NAME = /^[A-Za-z][A-Za-z0-9_]*$/;
 export function youtrack(options: YoutrackOptions): Plugin {
 	return {
 		name: "youtrack",
+		module: import.meta.url,
 		options,
 		requires: ["projects"],
 		check: checkOptions,

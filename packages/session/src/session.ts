@@ -41,6 +41,7 @@ export function session(options: SessionOptions = {}): Plugin {
 	let missing: readonly string[] = [];
 	return {
 		name: "session",
+		module: import.meta.url,
 		options,
 		requires: ["orchestration"],
 		check: checkOptions,

@@ -21,6 +21,7 @@ export function resources(options: ResourcesOptions): Plugin {
 	let timers: NodeJS.Timeout[] = [];
 	return {
 		name: "resources",
+		module: import.meta.url,
 		options,
 		check: checkOptions,
 		setup(host) {

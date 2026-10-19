@@ -1478,22 +1478,50 @@
   {
     "id": "AR0187",
     "title": "Roadmap 82: models on other machines, and a fallback chain",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0187-roadmap-82-models-on-other-machines-and-a-fallback-chain/ticket.md",
-    "updated": "2026-10-19T12:07:55.137Z"
+    "updated": "2026-10-19T12:48:15.340Z"
   },
   {
     "id": "AR0188",
     "title": "Roadmap 43: commit rules per project",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0188-roadmap-43-commit-rules-per-project/ticket.md",
-    "updated": "2026-10-19T12:12:34.820Z"
+    "updated": "2026-10-19T12:39:35.377Z"
   },
   {
     "id": "AR0189",
     "title": "Roadmap 44: YouTrack instances and reading",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0189-roadmap-44-youtrack-instances-and-reading/ticket.md",
-    "updated": "2026-10-19T12:12:35.319Z"
+    "updated": "2026-10-19T12:43:55.525Z"
+  },
+  {
+    "id": "AR0190",
+    "title": "`arthur continue` of a job on a provider model starts the agent without its provider",
+    "status": "planning",
+    "path": "spec/features/AR0190-arthur-continue-of-a-job-on-a-provider-model-starts-the-agent-without-its-provider/ticket.md",
+    "updated": "2026-10-19T12:48:15.332Z"
+  },
+  {
+    "id": "AR0191",
+    "title": "The 30 s reuse of a probe holds in one process only, so two `arthur spawn` commands each probe",
+    "status": "planning",
+    "path": "spec/features/AR0191-the-30-s-reuse-of-a-probe-holds-in-one-process-only-so-two-arthur-spawn-commands-each-probe/ticket.md",
+    "updated": "2026-10-19T12:48:15.335Z"
+  },
+  {
+    "id": "AR0192",
+    "title": "The roadmap's Tailscale IPv6 range and the machines plugin's disagree",
+    "status": "planning",
+    "path": "spec/features/AR0192-the-roadmap-s-tailscale-ipv6-range-and-the-machines-plugin-s-disagree/ticket.md",
+    "updated": "2026-10-19T12:48:15.337Z"
+  },
+  {
+    "id": "AR0193",
+    "title": "The doctor checks omp's `models.yml` on this machine only",
+    "status": "planning",
+    "path": "spec/features/AR0193-the-doctor-checks-omp-s-models-yml-on-this-machine-only/ticket.md",
+    "updated": "2026-10-19T12:48:15.339Z"
   }
 ]

@@ -97,10 +97,18 @@ import { checkStructure } from "./structure.ts";
 // (10 lines) became `requirements`, 8 lines for it and the new board requirement. The rest: init.ts (63: the command, its
 // refusals, the skeleton written once per file) and onboarding.ts (83: kind and role, its prompt's paths, the questions cut at
 // 10 across runs, `merge.check`).
+// AR0187 (roadmap 82): the models plugin, models: 485, for its options and their url checks (model-options.ts), the probes over
+// curl on the job's machine with their 30 s reuse (probe.ts), the usage report and its windows (usage.ts), the doctor lines
+// (model-doctor.ts), `models.pick`, the job's variables and `arthur usage` (models.ts). Cut first: jobs.ts's sweep, 5 lines to 2,
+// and orchestration's refusal of a role's list, which the core now makes. Core 45 more (5448): a spawn's model list and
+// `models.pick` with its answer checked (job-model.ts, 24), a prepare's variables checked and carried to the wrapper here and
+// on stdin there (jobEnv, launch, launchThere, remote-job launch), `ARTHUR_AGENT_MODEL` in the wrapper, `input` on
+// `host.jobs.run`, the record's `model-why`, an awaited `roles.model`, `--model a,b` and the spawn's `model:` line;
+// orchestration 6 more (1213) for `models.lists`, every role's model as a list, which the models plugin's doctor lines read.
 // AR0189 (roadmap 44): youtrack: 251, set for its instances and their variables checked at load, each project's tracker
 // checked against them, the REST reading with its one-line errors and paging, and `arthur youtrack issue|article list|get`;
 // a new package, so nothing was cut elsewhere; core unchanged.
-const BUDGETS = { core: 5403, "core/testing": 344, projects: 473, orchestration: 1207, machines: 415, resources: 458, session: 849, schedule: 552, youtrack: 251 };
+const BUDGETS = { core: 5448, "core/testing": 344, projects: 473, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 251 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

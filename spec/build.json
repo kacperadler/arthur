@@ -1639,9 +1639,9 @@
   {
     "id": "AR0210",
     "title": "The nvm package still names the old licence",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0210-the-nvm-package-still-names-the-old-licence/ticket.md",
-    "updated": "2026-10-19T15:52:29.885Z"
+    "updated": "2026-10-19T16:32:01.714Z"
   },
   {
     "id": "AR0211",

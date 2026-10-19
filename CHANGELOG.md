@@ -37,6 +37,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0199 The option-tables test cannot list a plugin without options (d7bd88e)
 - AR0207 The option-tables test cannot hold a plugin without options, so nvm's options file is not checked there
+- AR0210 The nvm package still names the old licence (e9e6d98)
 
 ### Other
 

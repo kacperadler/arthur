@@ -24,7 +24,7 @@ import { defineConfig } from "@arthur/core";
 import { commitRules } from "@arthur/commit-rules"; // first, named
 import { delivery } from "@arthur/delivery"; // first, derived
 import { develop } from "@arthur/develop"; // first, named
-import { discord } from "@arthur/discord"; // later, named
+import { discord } from "@arthur/discord"; // first, named
 import { docker } from "@arthur/docker"; // first, named
 import { github } from "@arthur/github"; // first, derived
 import { machines } from "@arthur/machines"; // first, named
@@ -241,7 +241,7 @@ export default defineConfig({
 					autoMerge: true, // merge after a PASS and green CI without asking
 					tracker: { plugin: "youtrack", project: "ART" },
 					ci: { workflow: "ci.yml" },
-					commitRules: { regex: "^(feat|fix|refactor|perf|test|docs|build|ci|chore|revert)(\\([\\w-]+\\))?!?: .{1,72}$" },
+					commitRules: { regex: "^(?=.{1,72}$)(feat|fix|refactor|perf|test|docs|build|ci|chore|revert)(\\([\\w-]+\\))?!?: .+$" },
 					prompts: { criteriaDir: ".agents/harness/criteria", rolesDir: ".agents/harness/roles" }, // the vision stays spec/vision.md
 				},
 				{

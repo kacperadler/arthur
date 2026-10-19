@@ -5,14 +5,16 @@ import type { MachineEntry } from "./machine-options.ts";
 
 // One machine's check (spec/roadmap.md, entries 30 and 80): its address private, then one command over the core's SSH that
 // answers its os, arch and Arthur's version, compared with its labels and this core's version, and which of its `tools`
-// labels `command -v` does not find there. docs/commands/machines.md.
+// labels `command -v` does not find there; and the same of `local`'s tools labels. docs/commands/machines.md.
 
 export type Report =
 	| { readonly online: true; readonly os: string; readonly arch: string; readonly version: string; readonly missing: readonly string[] }
 	| { readonly online: false; readonly reason: string; readonly fix: string };
 
 // Each tool label is a command name; one not found is said on a line of its own, after the version.
-const SCRIPT = 'uname -sm && arthur version && for tool do command -v "$tool" >/dev/null || echo "missing $tool"; done';
+const TOOLS = 'for tool do command -v "$tool" >/dev/null || echo "missing $tool"; done';
+const SCRIPT = `uname -sm && arthur version && ${TOOLS}`;
+const missing = (lines: readonly string[]) => lines.flatMap((line) => (line.startsWith("missing ") ? [line.slice("missing ".length)] : []));
 
 // The private network Arthur reaches its machines on: loopback, RFC 1918, and Tailscale's.
 const PRIVATE = new BlockList();
@@ -70,5 +72,12 @@ export async function checkMachine(host: Host, machine: MachineEntry, ours: stri
 		return offline(`its labels say ${labels}; the machine says ${os} ${arch}`, `set the labels of ${machine.name} in arthur.config.ts to what ssh ${machine.ssh} reaches`);
 	}
 	if (theirs !== ours) return offline(`it runs arthur ${theirs || "(no version)"}, this one is ${ours}; both need the same version`, "update Arthur there to this commit (docs/deploy.md)");
-	return { online: true, os, arch, version: ours, missing: rest.flatMap((line) => (line.startsWith("missing ") ? [line.slice("missing ".length)] : [])) };
+	return { online: true, os, arch, version: ours, missing: missing(rest) };
+}
+
+// The `tools` that `command -v` does not find on the PATH of `arthur run`, by the loop of a listed machine's check; the
+// reason when the loop fails or is cut at `limitSeconds` (`timed out after <n> s`).
+export async function missingHere(host: Host, tools: readonly string[], limitSeconds: number): Promise<readonly string[] | string> {
+	const ran = await host.jobs.run("local", ["sh", "-c", TOOLS, "sh", ...tools], limitSeconds);
+	return ran.code === 0 ? missing(ran.stdout.split("\n")) : `the check of its tools failed: ${lastLine(ran.stderr) || `exit code ${ran.code}`}`;
 }

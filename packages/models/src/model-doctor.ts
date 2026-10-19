@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Host, Requirement } from "@arthur/core/plugin";
@@ -6,8 +5,12 @@ import { type Kind, type Provider, providerModel } from "./model-options.ts";
 import { listed, type Probe } from "./probe.ts";
 
 // The models plugin's `arthur doctor` lines (spec/roadmap.md, entries 80 and 82): curl, each provider reachable from here, each
-// provider model a list names present, and omp's own models.yml leaving omp's `ollama` and `lm-studio` providers to the job's
-// environment. A provider or a model is critical only when a list names it with no later model on another provider or built in.
+// provider model a list names present, and omp's own models.yml, here and on each registered machine, leaving omp's `ollama`
+// and `lm-studio` providers to the job's environment. A provider or a model is critical only when a list names it with no
+// later model on another provider or built in.
+
+// omp's models.yml on a machine, as omp finds it there; exit code 3 when there is none (ssh's own failure is 255).
+const YML = 'f="${PI_CODING_AGENT_DIR:-$HOME/.omp/agent}/models.yml"; [ -e "$f" ] || exit 3; cat "$f"';
 
 // omp's provider for each kind, whose variables a job's environment sets (models.ts).
 export const OMP_PROVIDER: Readonly<Record<Kind, string>> = { ollama: "ollama", "openai-compatible": "lm-studio" };
@@ -20,7 +23,7 @@ export function doctorLines(host: Host, providers: Readonly<Record<string, Provi
 		lists.some((list) => list.some((each, index) => providerModel(providers, each)?.provider === provider && (model === undefined || each === model) && list.slice(index + 1).every((later) => providerModel(providers, later)?.provider === provider)));
 	const named = [...new Set(lists.flat().filter((model) => providerModel(providers, model) !== undefined))];
 	const folder = process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".omp", "agent");
-	const kinds = [...new Set(Object.values(providers).map((provider) => provider.kind))];
+	const own = [...new Set(Object.values(providers).map((provider) => OMP_PROVIDER[provider.kind]))];
 	return [
 		{
 			name: "curl",
@@ -54,21 +57,24 @@ export function doctorLines(host: Host, providers: Readonly<Record<string, Provi
 				critical: last(provider, model),
 			};
 		}),
-		{
-			name: "omp models.yml",
-			check: () => {
-				let text = "";
-				try {
-					text = readFileSync(join(folder, "models.yml"), "utf8");
-				} catch {
-					return "ok (no models.yml)";
-				}
-				const own = kinds.map((kind) => OMP_PROVIDER[kind]).filter((omp) => new RegExp(`^\\s+["']?${omp}["']?\\s*:`, "m").test(text));
-				return own.length === 0 ? "ok" : `missing: ${join(folder, "models.yml")} configures ${own.join(" and ")}, which replaces the provider a job's environment sets`;
-			},
-			costs: "a job on a provider model reaches the server omp's models.yml names, not its provider's",
-			fix: `remove the ${kinds.map((kind) => OMP_PROVIDER[kind]).join(" and ")} provider from ${join(folder, "models.yml")}`,
-			critical: true,
-		},
+		// omp's models.yml here and on each machine; one that does not answer is not checked: its `machines <name>` line says why.
+		...host.jobs.machines().map((machine) => {
+			const where = machine === "local" ? join(folder, "models.yml") : `omp's models.yml on ${machine}`;
+			return {
+				name: machine === "local" ? "omp models.yml" : `omp models.yml on ${machine}`,
+				check: async () => {
+					const ran = await host.jobs.run(machine, ["sh", "-c", YML], 10);
+					const said = ran.stderr.trim().split("\n").at(-1) || `exit code ${ran.code}`;
+					if (ran.code === 3) return "ok (no models.yml)";
+					if (ran.code === 255) return `ok (not reached: ${said})`;
+					if (ran.code !== 0) return `missing: it was not read: ${said}`;
+					const found = own.filter((omp) => new RegExp(`^\\s+["']?${omp}["']?\\s*:`, "m").test(ran.stdout));
+					return found.length === 0 ? "ok" : `missing: ${where} configures ${found.join(" and ")}, which replaces the provider a job's environment sets`;
+				},
+				costs: "a job on a provider model reaches the server omp's models.yml names, not its provider's",
+				fix: `remove the ${own.join(" and ")} provider from ${where}`,
+				critical: true,
+			};
+		}),
 	];
 }

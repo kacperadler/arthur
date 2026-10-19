@@ -5,8 +5,8 @@ import type { Bus } from "./events.ts";
 import type { Job } from "./jobs.ts";
 import { checkLimits } from "./job-limits.ts";
 import { type Machine, sshAsync } from "./job-machine.ts";
-import { recordedJob } from "./job-record.ts";
-import { launch, type Slice } from "./job-scope.ts";
+import { capFields, recordedJob } from "./job-record.ts";
+import { type Caps, launch, type Slice } from "./job-scope.ts";
 import { GRACE_SECONDS } from "./job-stop.ts";
 import { current, field, ID, inRun, moveJob, told, write } from "./job-state.ts";
 import { takeLock } from "./lock.ts";
@@ -62,10 +62,11 @@ export function steerJob(home: string, id: string, text: string): string {
 // `arthur continue` (docs/commands/continue.md): returns why the wrapper did not start, or undefined. Its lock `continuing` is
 // taken before the state is read and released here only when the continue fails; else the new wrapper removes it. A job on
 // another machine (`there`) is checked here, then continued there by `arthur remote-job continue`, which refuses it as here.
-// `check` runs the `beforeSpawn` checks and holds the spawn lock (spawn-check.ts) until the job is `working` again; `prepare`
-// runs the prepares told it is a continue, their variables going to the wrapper here, else on the stdin of `remote-job continue`
-// as at a spawn, never into the record; `uncapped` hears why a job with caps runs bare here (job-scope.ts).
-export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, uncapped: (why: string) => void, steps: { readonly check: (job: Job) => Promise<() => void>; readonly prepare: (job: Job) => Promise<Readonly<Record<string, string>>> }, there?: Machine): Promise<string | undefined> {
+// `check` runs the `beforeSpawn` checks and holds the spawn lock (spawn-check.ts) until the job is `working` again, and answers
+// the caps in force now (`jobs.limits`), which replace the record's before the launch; `prepare` runs the prepares told it is a
+// continue, their variables going to the wrapper here, else on the stdin of `remote-job continue` as at a spawn, never into the
+// record; `uncapped` hears why a job with caps runs bare here (job-scope.ts).
+export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, uncapped: (why: string) => void, steps: { readonly check: (job: Job) => Promise<{ readonly release: () => void; readonly caps: Caps }>; readonly prepare: (job: Job) => Promise<Readonly<Record<string, string>>> }, there?: Machine): Promise<string | undefined> {
 	const { folder, field } = record(home, id);
 	if (instruction.trim() === "") throw new Error("the instruction is empty");
 	const lock = takeLock(join(folder, "continuing"));
@@ -79,8 +80,10 @@ export async function continueJob(home: string, id: string, instruction: string,
 		if (branch === undefined) throw new Error(`${id} is a ${kind}, a read-only kind without a branch of its own; only a job with a branch is continued`);
 		if (worktree === "" || (there === undefined && !existsSync(worktree))) throw new Error(`${id}: its worktree was pruned; spawn a new job on its branch ${branch}`);
 		checkLimits("continue", { budgetUsd });
-		const job = { ...recorded, budgetUsd: budgetUsd ?? recorded.budgetUsd };
-		release = await steps.check(job);
+		const asked = { ...recorded, budgetUsd: budgetUsd ?? recorded.budgetUsd };
+		const passed = await steps.check(asked);
+		release = passed.release;
+		const job = { ...asked, cpu: passed.caps.cpu, memory: passed.caps.memory, feature: passed.caps.feature };
 		const env = await steps.prepare(job);
 		const budget = budgetUsd === undefined ? [] : [String(budgetUsd)];
 		// A new scope of the job's name cannot start while a wrapper of the job still runs in it, and two wrappers never run for a
@@ -90,8 +93,9 @@ export async function continueJob(home: string, id: string, instruction: string,
 			if (running.length === 0) break;
 			if (Date.now() > end) throw new Error(`${id}: its wrapper ${running.join(", ")} still runs ${GRACE_SECONDS} seconds on; a second one is not started beside it`);
 		}
-		const startedThere = there && launched(home, there, await sshAsync(there, ["arthur", "remote-job", "continue", there.home, id, agent, slice.slice, ...budget], JSON.stringify({ instruction: instruction.trim(), env })), bus);
+		const startedThere = there && launched(home, there, await sshAsync(there, ["arthur", "remote-job", "continue", there.home, id, agent, slice.slice, JSON.stringify(passed.caps), ...budget], JSON.stringify({ instruction: instruction.trim(), env })), bus);
 		if (budgetUsd !== undefined) write(folder, "budget", String(budgetUsd));
+		for (const [name, text] of Object.entries(capFields(passed.caps))) write(folder, name, text);
 		if (there === undefined) {
 			rmSync(join(folder, "pid"), { force: true });
 			write(folder, "continue", instruction.trim());

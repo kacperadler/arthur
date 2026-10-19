@@ -3,7 +3,7 @@ import { dirname, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { envLine, readConfig } from "./config-check.ts";
 import * as core from "./core-options.ts";
-import { type DoctorLine, doctor } from "./doctor.ts";
+import { type DoctorLine, doctor, ownAnswers } from "./doctor.ts";
 import type { Shell } from "./env.ts";
 import { installedPlugins, type OptionsFile, toolVersion } from "./installed.ts";
 import { everyOption, type OptionTable, type Tool } from "./option-table.ts";
@@ -16,8 +16,9 @@ import { coreRequirements } from "./requirements.ts";
 
 const CONFIG = "arthur.config.ts";
 
-// `problem`: what the binary's own load refused; `checks`: `arthur doctor` over the loaded plugins, when they loaded. Prints
-// the report; returns 1 when a step in Next would refuse `arthur run`, else 0.
+// `problem`: what the binary's own load refused; `checks`: `arthur doctor` over the loaded plugins, when they loaded, else the
+// core's requirements and each plugin's own `doctor` are checked. Prints the report; returns 1 when a step in Next would refuse
+// `arthur run`, else 0.
 export async function setup(shell: Shell, problem: string | undefined, checks: (() => Promise<DoctorLine[]>) | undefined): Promise<number> {
 	const path = resolve(CONFIG);
 	const found = existsSync(path);
@@ -57,10 +58,10 @@ export async function setup(shell: Shell, problem: string | undefined, checks: (
 	out.push(...refusals.flatMap((refusal) => refusal.split("\n")).map((line) => `  refused: ${line}`), "");
 
 	out.push("Requirements (arthur doctor)");
-	const lines = config === undefined ? [] : await (checks?.() ?? doctor(coreRequirements(config.core.home, config.core.agent.command), []));
+	const lines = config === undefined ? [] : await (checks?.() ?? doctor(coreRequirements(config.core.home, config.core.agent.command), ownAnswers(config.plugins, config.core)));
 	if (config === undefined) out.push(`  skipped: ${found ? `${CONFIG} does not load` : `no ${CONFIG}`}`);
 	out.push(...lines.map((line) => `  ${line.text}`));
-	if (config !== undefined && checks === undefined) out.push(`  the plugins' requirements are not checked until what Config refuses is fixed`);
+	if (config !== undefined && checks === undefined) out.push(`  the requirements a plugin checks in its setup are not checked until what Config refuses is fixed`);
 	out.push("", `Can still go in ${CONFIG}`);
 	const later = known ? order.filter((name) => on.get(name) !== true) : [];
 	if (!known) out.push(`  skipped: ${CONFIG} does not load`);

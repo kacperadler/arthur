@@ -7,7 +7,9 @@ import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { loadConfig } from "@arthur/core";
+import { everyOption, type OptionTable } from "@arthur/core/option-table";
 import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { table } from "../src/resource-options.ts";
 import { type ResourcesOptions, resources } from "../src/resources.ts";
 import { roomOf } from "../src/room.ts";
 
@@ -16,7 +18,8 @@ const CORES = os.availableParallelism();
 const NOW = new Date("2026-10-18T10:00:00Z");
 
 // The fake `ssh` on PATH, for this file: each call noted in `ssh.log`; on host `<host>` it prints `<machines>/<host>/free.json`,
-// as `node -e` there would, or, when `<machines>/<host>/fail` exists, ssh's own line from it on stderr and exit code 255.
+// as `node -e` there would, or, when `<machines>/<host>/fail` exists, ssh's own line from it on stderr and exit code 255; when
+// `<machines>/<host>/real` exists, it runs the command here.
 const bin = temporaryFolder();
 const machines = temporaryFolder();
 const sshLog = join(bin, "ssh.log");
@@ -27,6 +30,7 @@ printf '%s\\n' "$*" >> '${sshLog}'
 while [ $# -gt 0 ]; do case "$1" in -o) shift 2;; -*) shift;; *) break;; esac; done
 there='${machines}'/"$1"
 if [ -e "$there/fail" ]; then cat "$there/fail" >&2; exit 255; fi
+if [ -e "$there/real" ]; then shift; exec sh -c "$*"; fi
 cat "$there/free.json"
 `,
 	{ mode: 0o755 },
@@ -43,9 +47,14 @@ function gpu(freeCores: number, freeBytes: number, fail?: string): void {
 	if (fail !== undefined) writeFileSync(join(there, "fail"), `${fail}\n`);
 }
 
-// `local` answers this free CPU and memory through Node's `os`, until the test ends.
+// `local` answers this free CPU and memory through Node's `os`, until the test ends: its cores busy for `CORES - freeCores` ms
+// of CPU time per ms, and a load average of twice its cores, as waits on disk would make it. The clock the check times its
+// second by moves only as `cpus()` is read, so the cores in use come out exact however late the timer fires.
 function local(t: TestContext, freeCores: number, freeBytes: number): void {
-	t.mock.method(os, "loadavg", () => [CORES - freeCores, 0, 0]);
+	let clock = 0;
+	t.mock.method(performance, "now", () => clock);
+	t.mock.method(os, "cpus", () => [{ model: "fake", speed: 1000, times: { user: (CORES - freeCores) * (clock += 500), nice: 0, sys: 0, idle: 0, irq: 0 } }]);
+	t.mock.method(os, "loadavg", () => [CORES * 2, CORES * 2, CORES * 2]);
 	t.mock.method(os, "freemem", () => freeBytes);
 	syncBuiltinESMExports();
 	t.after(() => {
@@ -193,6 +202,19 @@ test("another machine that answers no numbers, or whose node is missing, has no 
 	assert.equal(fake.collect<string>("coordinator.context")[0]?.split("\n")[1], 'gpu: no room, its check failed: node -e answered "{ \\"cores\\": 8, \\"load\\": \\"high\\" }", not cores, load and memory');
 });
 
+test("free cores are the cores less the CPU time in use over a second, not the load average, which counts waits on disk; another machine's node -e answers the same", async (t) => {
+	local(t, CORES, 4 * GB);
+	gpu(0, 0);
+	writeFileSync(join(machines, "gpu", "real"), "");
+	const { fake } = await load(t);
+	const jobs = Math.min(3, 2 * CORES - 1);
+	assert.equal(await fake.call<Promise<number>>("resources.free", "local"), jobs, "an idle machine with a load average of twice its cores");
+	assert.equal(fake.collect<string>("coordinator.context")[0]?.split("\n")[0], `local: room for ${jobs} more job${jobs === 1 ? "" : "s"} (4.0 GB, ${CORES}.0 cores free)`);
+	await fake.call<Promise<number>>("resources.free", "gpu");
+	const there = JSON.parse(readFileSync(join(fake.host.folder, "machines", "gpu.json"), "utf8"));
+	assert.deepEqual([there.cores, there.total, typeof there.load], [CORES, os.totalmem(), "number"], JSON.stringify(there));
+});
+
 test("the coordinator's context, arthur resources and /resources show one line per machine; arthur run checks each at its start", async (t) => {
 	local(t, 1, 3 * GB);
 	gpu(2, 1 * GB);
@@ -213,4 +235,26 @@ test("the coordinator's context, arthur resources and /resources show one line p
 	assert.deepEqual(log.mock.calls.map((call) => call.arguments), [[lines]]);
 	assert.equal(await command?.run({ args: ["AC0001", "more"], project: undefined }), 2);
 	assert.deepEqual(error.mock.calls.map((call) => call.arguments), [["usage: arthur resources [<ticket id>]"]]);
+});
+
+// Each default `table` writes as a value, by its path, parsed as JSON when it parses; `words` are the paths of those written as
+// words for a person, left out.
+function valueDefaults(table: OptionTable, words: readonly string[]): Record<string, unknown> {
+	const value = (text: string): unknown => {
+		try {
+			return JSON.parse(text);
+		} catch {
+			return text;
+		}
+	};
+	return Object.fromEntries(everyOption(table).flatMap(({ path, entry }) => (entry.default === undefined || words.includes(path) ? [] : [[path, value(entry.default)]])));
+}
+
+test("each default the option table writes as a value is the one the code applies with nothing set", () => {
+	const caps = ["perJob.cpu", "perJob.memory", "perFeature.budgetUsd", "perFeature.hours", "perFeature.cpu", "perFeature.memory"];
+	const defaults = valueDefaults(table, [...caps, "keepFree.memory"]);
+	assert.deepEqual(Object.keys(defaults), ["keepFree.cpu"]);
+	// Four free cores, a core per job: the room left out of keepFree is the room with its cpu at the table's default, and a core more kept free is one job less.
+	const room = (keepFree: { cpu?: number }) => roomOf("local", sample(4, 0, 8 * GB), 0, { cpu: 1 }, keepFree).jobs;
+	assert.deepEqual([room({}), room({ cpu: defaults["keepFree.cpu"] as number }), room({ cpu: 1 })], [4, 4, 3]);
 });

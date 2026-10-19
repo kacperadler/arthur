@@ -27,7 +27,8 @@ Config: arthur.config.ts
 Requirements (arthur doctor)
   core git: ok
   ...
-  the plugins' requirements are not checked until what Config refuses is fixed
+  orchestration tmux: ok
+  the requirements a plugin checks in its setup are not checked until what Config refuses is fixed
 
 Can still go in arthur.config.ts
   session (off): the coordinator's conversation: compacted by day, fresh each night, restarts, the restart guard and the LLM probe
@@ -46,7 +47,7 @@ The plugins are the packages installed beside the config, `node_modules/@arthur/
 
 - **Tools**: each tool the core and every installed plugin run, its version, and which plugins use it, `(off)` when the config lists a plugin with `enabled: false`, `(not in the config)` when it does not list it. The version is the first word with a digit in the first line its version command prints, that line when none has one; `not found` when the command is not on `PATH`; `no version: <its last line>` when it fails, `no version: it printed nothing`, and `no version: cut after 5 s` when it does not end within 5 seconds. Every command runs at once, and a tool's line costs only that line.
 - **Config**: the core, then each plugin the config lists, `on` or `off (enabled: false)`. For each one that is on, the options its table has, `set` and `not set` (a nested object's fields by their path once it is set, a list with its length), and its env variables as `arthur config check` prints them, `set` or `missing`, never a value. A plugin without an options table shows the options the config gives it. A plugin that is off has its env not read. Below, each refusal of `arthur config check` (`refused: <line>`), or, when it has none, why the plugins did not load, and the env file's warnings.
-- **Requirements**: `arthur doctor`'s lines, from the same check (`arthur doctor --help`). When the plugins did not load, the core's own lines, then `the plugins' requirements are not checked until what Config refuses is fixed`.
+- **Requirements**: `arthur doctor`'s lines, from the same check (`arthur doctor --help`). When the plugins did not load (a variable missing, a refused option, a setup that failed), the core's own lines and each enabled plugin's own `doctor`, which needs neither its setup nor its env values (`orchestration tmux`, `session service`, `session linger`), then `the requirements a plugin checks in its setup are not checked until what Config refuses is fixed`: those of `machines`, `models`, `nvm` and `projects`, which need what their setup reaches (a machine, a key, a clone).
 - **Can still go in arthur.config.ts**: each installed plugin that is off or not in the config, with its summary, and every option at any depth (`*` for each item of a list or record) with its meaning, and its default when it has one; `nothing` when there is none.
 - **Next**: numbered steps, each with its fix, in this order: the config (`Fix what Config refuses above, then arthur config check`), each missing env variable (`Set <name> in <env file> (<option>), then arthur config check`), each critical requirement missing, then every other requirement missing; a step that refuses `arthur run` ends `Refuses the start.`; and the closing line `Run arthur setup again after each step.` With nothing to do it says `nothing`.
 

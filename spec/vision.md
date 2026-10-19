@@ -97,7 +97,7 @@ Each project sets one rule in its `projects` entry, `commitRules`, in one of thr
 
 | Form | Example | How it is enforced |
 | --- | --- | --- |
-| `regex` | `^(feat\|fix\|docs)(\(.+\))?!?: .{1,72}$` | A `commit-msg` git hook in the project's worktrees refuses a subject that does not match, and says the rule. |
+| `regex` | `^(?=.{1,72}$)(feat\|fix\|docs)(\([\w-]+\))?!?: .+$` | A `commit-msg` git hook in the project's worktrees refuses a subject that does not match, and says the rule. |
 | `words` | `Start with the ticket id, then a verb in the imperative.` | Given to the worker and the reviewer in their prompts; the review judges it. A model cannot refuse a commit as a hook does, so a miss is a review finding, not a refusal. |
 | `file` | `docs/commit-rules.md` | The Markdown file is read as `words`, from the project's own repository, so the rule is versioned with it. |
 

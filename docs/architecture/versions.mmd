@@ -5,7 +5,7 @@ flowchart TD
 
   subgraph V1[First version]
     core[core<br/>with job state and jobs over SSH]
-    p1[orchestration - always on,<br/>machines, models, resources,<br/>session, schedule,<br/>projects, youtrack, telegram]
+    p1[orchestration - always on,<br/>machines, models, resources,<br/>session, schedule,<br/>projects, youtrack, telegram,<br/>discord]
     p2[delivery, github,<br/>commit-rules, voice]
     p3[manage, develop,<br/>docker]
     core ~~~ p1 ~~~ p2 ~~~ p3
@@ -18,11 +18,11 @@ flowchart TD
   subgraph V2[Later, in this order]
     agents[1 project agents<br/>one per project with a chat]
     signal[2 signal]
-    discord[3 discord]
-    slack[4 slack]
-    whatsapp[5 whatsapp bridge]
-    server[6 server and clients<br/>private network only]
-    agents --> signal --> discord --> slack --> whatsapp --> server
+    slack[3 slack]
+    whatsapp[4 whatsapp bridge]
+    server[5 server and clients<br/>private network only]
+    apps[6 own apps<br/>web panel, mobile app in Expo<br/>by Tailscale name, no public port]
+    agents --> signal --> slack --> whatsapp --> server --> apps
   end
 
   today --> move --> V1 --> start --> switch1 --> switch2 --> V2
@@ -30,4 +30,4 @@ flowchart TD
   classDef first fill:#d8f5d8,stroke:#2d7a2d,color:#000;
   classDef later fill:#eee,stroke:#888,stroke-dasharray:4 3,color:#555;
   class core,p1,p2,p3 first;
-  class agents,signal,discord,slack,whatsapp,server later;
+  class agents,signal,slack,whatsapp,server,apps later;

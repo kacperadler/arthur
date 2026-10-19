@@ -63,7 +63,7 @@ export const table: OptionTable = {
 	autopilot: {
 		about: "Tickets set planned by policy (arthur ticket status <id> planned --autopilot)",
 		fields: {
-			budgetUsd: { about: "Its worker's budget in USD unless --budget gives one; at most budgetMaxUsd", default: String(AUTOPILOT_BUDGET), check: usd },
+			budgetUsd: { about: "Its worker's budget in USD unless --budget or the ticket's JSON block (budget) gives one; at most budgetMaxUsd", default: String(AUTOPILOT_BUDGET), check: usd },
 			budgetMaxUsd: { about: "The most --budget may give its worker, in USD", default: String(AUTOPILOT_CAP), check: usd },
 		},
 	},

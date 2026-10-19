@@ -21,24 +21,34 @@ const LINE = /:\d+(-\d+)?$/;
 export function autopilot(host: Host): void {
 	const options = (host.options.autopilot ?? {}) as { readonly budgetUsd?: number; readonly budgetMaxUsd?: number };
 	const cap = options.budgetMaxUsd ?? AUTOPILOT_CAP;
-	host.provide("ticket.autopilot", async ({ id, budgetUsd = options.budgetUsd ?? AUTOPILOT_BUDGET }: { readonly id: string; readonly budgetUsd?: number }) => {
+	host.provide("ticket.autopilot", async ({ id, budgetUsd }: { readonly id: string; readonly budgetUsd?: number }) => {
 		// One pre-approval of a ticket at a time, across processes: the check, the record and the move are one step.
 		const release = await queueLock(join(host.folder, `autopilot-${id.replace(/[^\w-]/g, "_")}.lock`));
 		try {
-			return await preApprove(host, id, budgetUsd, cap);
+			return await preApprove(host, id, budgetUsd, options.budgetUsd ?? AUTOPILOT_BUDGET, cap);
 		} finally {
 			release();
 		}
 	});
 }
 
-async function preApprove(host: Host, id: string, budgetUsd: number, cap: number): Promise<string> {
+// `asked` is `--budget`; left out, the ticket's own `budget` (the findings plugin, entry 83, writes it into its JSON block), else
+// `fallback`, `autopilot.budgetUsd`.
+async function preApprove(host: Host, id: string, asked: number | undefined, fallback: number, cap: number): Promise<string> {
 	const ticket = host.board.get(id);
 	if (ticket === undefined) throw new Error(`${id} is not on the board`);
 	const at = host.board.projects().find((each) => each.name === ticket.project)?.path ?? "";
 	const file = join(at, ticket.path);
 	const text = readFileSync(file, "utf8");
 	const problems: string[] = [];
+	const block = asked === undefined ? /^```json\n([\s\S]*?)^```$/m.exec(text)?.[1] : undefined;
+	let own: unknown;
+	try {
+		own = block === undefined ? undefined : (JSON.parse(block) ?? {}).budget;
+	} catch (error) {
+		problems.push(`its JSON block is not JSON (${(error as Error).message}); fix it by hand`);
+	}
+	const budgetUsd = asked ?? own ?? fallback;
 	if (ticket.status !== "planning") problems.push(`it is ${ticket.status}; autopilot pre-approves a ticket in planning`);
 	const source = section(text, "Decisions").flatMap((line) => sourceOf(host, at, line) ?? []);
 	if (source.length === 0) problems.push('it is not from a finding or an audit: no "- YYYY-MM-DD: Source: F<n> of <id>" or "Source: audit spec/quality/<file>.md" under its Decisions names one that exists');
@@ -55,7 +65,7 @@ async function preApprove(host: Host, id: string, budgetUsd: number, cap: number
 	if (files.length > SCOPE_FILES) problems.push(`its Scope names ${files.length} files, at most ${SCOPE_FILES}: ${files.join(", ")}`);
 	if (loose.length > 0) problems.push(`its Scope names a folder or a pattern, not one file: ${loose.join(", ")}`);
 	if (files.length > 0) problems.push(...(await alwaysReview(host, ticket.project, files)));
-	if (!(typeof budgetUsd === "number" && Number.isFinite(budgetUsd) && budgetUsd > 0)) problems.push(`budget $${budgetUsd}; a pre-approved ticket needs a budget above 0 (--budget, or autopilot.budgetUsd)`);
+	if (!(typeof budgetUsd === "number" && Number.isFinite(budgetUsd) && budgetUsd > 0)) problems.push(`budget ${typeof budgetUsd === "number" ? `$${budgetUsd}` : JSON.stringify(budgetUsd)}; a pre-approved ticket needs a budget above 0 (--budget, the budget of its JSON block, or autopilot.budgetUsd)`);
 	else if (budgetUsd > cap) problems.push(`budget $${budgetUsd} is over the cap of $${cap} (autopilot.budgetMaxUsd)`);
 	if (problems.length > 0) throw new Error(`${id}: not pre-approved: ${problems.join("; ")}`);
 	const plural = files.length === 1 ? "" : "s";

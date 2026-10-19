@@ -131,7 +131,9 @@ import { checkStructure } from "./structure.ts";
 // autopilot's check, record and move, its body moved into `preApprove`.
 // AR0165: a provider outage tells its turn failure once per reason, and once when turns work again; session 18 more (867) for
 // the turn extension's last reason told and its working-again mark, and that notice.
-const BUDGETS = { core: 5448, "core/testing": 346, projects: 475, orchestration: 1243, machines: 415, resources: 458, session: 867, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84 };
+// AR0156: autopilot takes the `budget` of the ticket's JSON block when `--budget` is left out; orchestration 10 more (1253) for
+// reading it, a block that is not JSON refused.
+const BUDGETS = { core: 5448, "core/testing": 346, projects: 475, orchestration: 1253, machines: 415, resources: 458, session: 867, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

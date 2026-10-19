@@ -44,6 +44,8 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 	return {
 		name: "orchestration",
 		options,
+		// Set up after schedule when it is loaded, so the morning report (entry 65) can register with it; schedule stays optional.
+		after: ["schedule"],
 		check: checkOptions,
 		setup(host) {
 			const coordinator = coordinatorOptions(host.options);

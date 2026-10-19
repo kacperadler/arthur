@@ -39,13 +39,13 @@ export function temporaryFolder(): string {
 	return mkdtempSync(join(root, "folder-"));
 }
 
-// A scripted run of the fake agent: its `steps`, played in order, then its `exitCode` (default 0); its extensions' first `failSends`
-// messages throw, the next `dropSends` sent while idle are lost with no turn (omp's prompt failing after it returned), and `ctx.compact` throws `compactError`. A step:
-// `tool`, a tool call, omp's start and end events of it, `output` the tool's text and `failed` its error flag. `message`: an assistant
-// message that ends a turn, with its `cost` in USD; `stopReason` `stop` (the default) ends the run, `toolUse` comes before a tool call,
-// `error` or `aborted` a failed one, with omp's `error` text. `prompt`: a turn starts (`agent_start`) once an extension sent a message while
-// idle, busy `compactMs` first (omp's compaction before it), after its `before_agent_start` handlers; `end`: it ends (`agent_end`) unless a `session_stop` handler continues it (8 in a
-// row at most) or, with `continues`, says it goes on and starts none (omp's compaction after it). `stdout`/`stderr`: one line. `waitFor`: until the file exists. `signal`: kills itself with it.
+// A scripted run of the fake agent: its `steps`, played in order, then its `exitCode` (default 0); its extensions' first `failSends` messages throw, the next `dropSends` sent while idle
+// are lost with no turn (omp's prompt failing after it returned), and `ctx.compact` throws `compactError`; with `clock`, a file, `Date.now()` in the agent and its extensions answers the
+// time in ms it holds while it exists, so a test moves time. A step: `tool`, a tool call, omp's start and end events of it, `output` the tool's text and `failed` its error flag.
+// `message`: an assistant message that ends a turn, with its `cost` in USD; `stopReason` `stop` (the default) ends the run, `toolUse` comes before a tool call, `error` or `aborted` a
+// failed one, with omp's `error` text. `prompt`: a turn starts (`agent_start`) once an extension sent a message while idle, busy `compactMs` first (omp's compaction before it), after its
+// `before_agent_start` handlers; `end`: it ends (`agent_end`) unless a `session_stop` handler continues it (8 in a row at most) or, with `continues`, says it goes on and starts none
+// (omp's compaction after it). `stdout`/`stderr`: one line. `waitFor`: until the file exists. `signal`: kills itself with it.
 export type AgentStep =
 	| { readonly tool: string; readonly args?: Readonly<Record<string, unknown>>; readonly output?: string; readonly failed?: boolean }
 	| { readonly message: string; readonly cost?: number; readonly stopReason?: "stop" | "toolUse" | "error" | "aborted"; readonly error?: string }
@@ -56,7 +56,7 @@ export type AgentStep =
 	| { readonly waitFor: string }
 	| { readonly signal: NodeJS.Signals };
 
-export type AgentRun = { readonly steps: readonly AgentStep[]; readonly exitCode?: number; readonly failSends?: number; readonly dropSends?: number; readonly compactError?: string };
+export type AgentRun = { readonly steps: readonly AgentStep[]; readonly exitCode?: number; readonly failSends?: number; readonly dropSends?: number; readonly compactError?: string; readonly clock?: string };
 
 // The fake agent: an executable `omp` in a new folder of the kit's, which plays `run` each time it starts, notes each start
 // (`pid`, `cwd`, `args`) in `starts.jsonl` beside it once its `-e` extensions are loaded, each message they send (`content`, `options`, `step`) in
@@ -83,9 +83,10 @@ export type FakeHost = {
 	// The commands it registered, in order; `host.commands.route` answers a channel's `/name text` with them.
 	readonly commands: readonly Command[];
 	// The kinds of job and the roles it registered, in order; `host.jobs.spawn` runs its checks and steps on a real worktree of
-	// `root` and builds the role's prompt there, with the sections the test provides as `prompt`.
+	// `root` and builds the role's prompt there, with the sections the test provides as `prompt`; `continue` is `arthur continue`.
 	readonly kinds: readonly Kind[];
 	readonly roles: readonly Role[];
+	continue(id: string, instruction: string, budgetUsd?: number): Promise<string | undefined>;
 	// The events the plugin emitted, as logged, in the order of their sequence numbers.
 	readonly emitted: readonly Event[];
 	// The test as another plugin: drives what the plugin provides, or provides what it calls.
@@ -184,6 +185,7 @@ export function fakeHost(plugin: {
 		commands,
 		kinds,
 		roles,
+		continue: (id, instruction, budgetUsd) => jobs.continue(id, instruction, budgetUsd),
 		get emitted() {
 			return bus.read(1).filter((event) => event.plugin === plugin.name);
 		},

@@ -36,3 +36,4 @@ In:
 
 - 2026-10-19: Source: F2 of AR0163
 - 2026-10-19: The owner approved this. The coordinator builds it alongside the roadmap entry that touches the same files.
+- 2026-10-19: The owner: close what is open today. Built in the core and orchestration batch hosted by AR0190.

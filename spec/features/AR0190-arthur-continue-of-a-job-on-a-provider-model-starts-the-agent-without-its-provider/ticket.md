@@ -36,3 +36,4 @@ In:
 
 - 2026-10-19: Source: F1 of AR0187
 - 2026-10-19: Approved under the owner's word of the same day: findings are built alongside the roadmap entry that touches the same files.
+- 2026-10-19: Host of the models and jobs core findings batch: AR0190, AR0191, AR0192, AR0193, AR0198, AR0202, built and merged together.

@@ -1338,9 +1338,9 @@
   {
     "id": "AR0167",
     "title": "GitHub CI fails now and then on main with the same code",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0167-github-ci-fails-now-and-then-on-main-with-the-same-code/ticket.md",
-    "updated": "2026-10-19T05:42:55.882Z"
+    "updated": "2026-10-19T05:46:50.637Z"
   },
   {
     "id": "AR0168",
@@ -1362,5 +1362,12 @@
     "status": "done",
     "path": "spec/features/AR0170-roadmap-93-option-tables-every-option-with-its-meaning-and-the-tools-each-plugin-runs/ticket.md",
     "updated": "2026-10-19T01:04:42.363Z"
+  },
+  {
+    "id": "AR0171",
+    "title": "The resources scope test assumes a machine of 2 cores or more",
+    "status": "planning",
+    "path": "spec/features/AR0171-the-resources-scope-test-assumes-a-machine-of-2-cores-or-more/ticket.md",
+    "updated": "2026-10-19T05:46:50.634Z"
   }
 ]

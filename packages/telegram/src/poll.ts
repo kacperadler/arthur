@@ -5,7 +5,7 @@ import { type ApiError, type Bot, call } from "./bot-api.ts";
 // One bot's long polling (spec/roadmap.md, entry 47): `getUpdates` waiting up to 30 s, each update confirmed by the next call's
 // `offset`. A message of the bot's own chat, at most 10 minutes old, is the owner's: its text becomes `message-received`
 // `{ channel: "telegram", text, place? }`, any other kind of message gets a line back. A message of any other chat is
-// dropped unanswered. A failed call is said once until a call answers, and polling goes on after 2 s:
+// dropped unanswered. A failed call is said once until a call answers, and polling goes on after 2 s (a 429: its retry_after):
 // packages/telegram/docs/telegram.md, "Receiving".
 
 export type Send = (bot: Bot, text: string, place: string | undefined) => void;
@@ -32,13 +32,14 @@ export async function poll(host: Host, bot: Bot, signal: AbortSignal, send: Send
 			updates = await call(bot, "getUpdates", { offset, timeout: WAIT_S, allowed_updates: ["message"] }, AbortSignal.any([signal, AbortSignal.timeout((WAIT_S + 10) * 1000)]));
 		} catch (error) {
 			if (signal.aborted) return;
-			const { code, message } = error as ApiError;
-			// A second poller of the same token answers 409 to every call: one notice for the whole stretch, whatever it says.
+			const { code, message, retryAfter } = error as ApiError;
+			// A 429 says how long to wait; a second poller of the same token answers 409 to every call, one notice for the stretch.
+			const wait = Math.max(RETRY_MS, retryAfter * 1000);
 			const kind = code === 409 ? "409" : message;
 			if (said !== kind && code === 409) host.events.emit("notice", { text: `${message}; until it ends, nothing written to this bot reaches the coordinator; polling retries every ${RETRY_MS / 1000} s` });
-			else if (said !== kind) console.error(`${message}; polling retries every ${RETRY_MS / 1000} s`);
+			else if (said !== kind) console.error(`${message}; polling retries in ${wait / 1000} s`);
 			said = kind;
-			await sleep(RETRY_MS, undefined, { signal }).catch(() => undefined);
+			await sleep(wait, undefined, { signal }).catch(() => undefined);
 			continue;
 		}
 		said = "";

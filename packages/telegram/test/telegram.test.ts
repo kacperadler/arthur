@@ -20,7 +20,7 @@ async function until(what: string, holds: () => boolean, ms = 20_000): Promise<v
 	for (const deadline = Date.now() + ms; !holds(); await sleep(20)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
 }
 
-type Call = { readonly token: string; readonly method: string; readonly params: Readonly<Record<string, unknown>> };
+type Call = { readonly token: string; readonly method: string; readonly params: Readonly<Record<string, unknown>>; readonly at: number };
 
 // A message as the Bot API's documentation shows one in a private chat, every field a text message has; `fields` adds or
 // replaces some (`text: undefined` with a `sticker` is a sticker). `age` is how many seconds before NOW it was sent.
@@ -39,7 +39,7 @@ const message = (id: number, fields: Readonly<Record<string, unknown>> = {}, age
 async function botApi(t: TestContext) {
 	const calls: Call[] = [];
 	const updates = new Map<string, { update_id: number; message: unknown }[]>();
-	const failures: { method: string; code: number; description: string }[] = [];
+	const failures: { method: string; code: number; description: string; parameters?: { retry_after: number } }[] = [];
 	const waiting = new Set<() => void>();
 	let next = 100;
 	const send = (response: ServerResponse, status: number, body: unknown) => response.writeHead(status, { "Content-Type": "application/json" }).end(JSON.stringify(body));
@@ -48,11 +48,14 @@ async function botApi(t: TestContext) {
 		for await (const chunk of request) raw += String(chunk);
 		const [, token = "", method = ""] = /^\/bot([^/]+)\/(\w+)$/.exec(request.url ?? "") ?? [];
 		const params = JSON.parse(raw) as Record<string, unknown>;
-		calls.push({ token, method, params });
+		calls.push({ token, method, params, at: Date.now() });
 		if (![TOKEN, SECOND].includes(token)) return send(response, 401, { ok: false, error_code: 401, description: "Unauthorized" });
 		const failure = failures.findIndex((each) => each.method === method);
 		const [scripted] = failure >= 0 ? failures.splice(failure, 1) : [];
-		if (scripted !== undefined) return send(response, scripted.code, { ok: false, error_code: scripted.code, description: scripted.description });
+		if (scripted !== undefined) {
+			const { code, description, parameters } = scripted;
+			return send(response, code, { ok: false, error_code: code, description, ...(parameters === undefined ? {} : { parameters }) });
+		}
 		if (method === "sendMessage") {
 			const { chat_id, text, message_thread_id } = params;
 			return send(response, 200, { ok: true, result: { message_id: next++, from: { id: 7012345678, is_bot: true, first_name: "Arthur", username: "arthur_bot" }, chat: { id: chat_id, type: "private" }, date: 1, text, ...(message_thread_id === undefined ? {} : { message_thread_id }) } });
@@ -90,7 +93,7 @@ async function botApi(t: TestContext) {
 			for (const answer of [...waiting]) answer();
 			return update;
 		},
-		fail: (method: string, code: number, description: string) => void failures.push({ method, code, description }),
+		fail: (method: string, code: number, description: string, parameters?: { retry_after: number }) => void failures.push({ method, code, description, parameters }),
 	};
 }
 
@@ -289,7 +292,7 @@ test("a failed call is one line naming the bot and method, never the token; poll
 	await until("the message", () => received().length === 1);
 	await until("the second notice", () => api.sent().length === 2);
 	assert.deepEqual(errors, [
-		"telegram bot (unnamed): getUpdates: 502: Bad Gateway; polling retries every 2 s",
+		"telegram bot (unnamed): getUpdates: 502: Bad Gateway; polling retries in 2 s",
 		"telegram bot (unnamed): sendMessage: 400: Bad Request: chat not found for bot[token]; a slice of 7 characters was not sent",
 	]);
 	// A loopback port nothing listens on any more.
@@ -301,7 +304,19 @@ test("a failed call is one line naming the bot and method, never the token; poll
 	const gone = await load(t, { apiUrl: `http://127.0.0.1:${port}` });
 	await gone.plugin.start?.();
 	await until("the unreachable line", () => gone.errors.length === 1);
-	assert.equal(gone.errors[0], "telegram bot (unnamed): getUpdates: cannot reach the Bot API (ECONNREFUSED); polling retries every 2 s");
+	assert.equal(gone.errors[0], "telegram bot (unnamed): getUpdates: cannot reach the Bot API (ECONNREFUSED); polling retries in 2 s");
+});
+
+test("a 429 while polling waits the seconds Telegram says, and says so once", async (t) => {
+	const api = await botApi(t);
+	const { plugin, errors, received } = await load(t, { apiUrl: api.url });
+	api.fail("getUpdates", 429, "Too Many Requests: retry after 3", { retry_after: 3 });
+	await plugin.start?.();
+	api.push({ text: "After the wait." });
+	await until("the message", () => received().length === 1);
+	const [refused, next] = api.polls().length >= 2 ? api.calls.filter((call) => call.method === "getUpdates") : [];
+	assert.ok(next !== undefined && refused !== undefined && next.at - refused.at >= 3000, `${next?.at} - ${refused?.at}`);
+	assert.deepEqual(errors, ["telegram bot (unnamed): getUpdates: 429: Too Many Requests: retry after 3; polling retries in 3 s"]);
 });
 
 test("every bot polls its own chat; the unnamed bot sends, wherever it is in the list", async (t) => {

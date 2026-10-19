@@ -7,6 +7,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Added
 
 - AR0127 Roadmap: a silent mode for the coordinator in the channels (9327313)
+- AR0174 Roadmap: a decision log of what the owner decided when Arthur asked (8b7a138)
 
 ### Fixed
 

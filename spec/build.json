@@ -1286,9 +1286,9 @@
   {
     "id": "AR0160",
     "title": "`/restart` cannot clear a restart due, since it restarts only the coordinator's agent",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0160-restart-cannot-clear-a-restart-due-since-it-restarts-only-the-coordinator-s-agent/ticket.md",
-    "updated": "2026-10-19T05:41:39.883Z",
+    "updated": "2026-10-19T06:56:44.607Z",
     "after": [
       "AR0148"
     ]
@@ -1387,9 +1387,9 @@
   {
     "id": "AR0174",
     "title": "Roadmap: a decision log of what the owner decided when Arthur asked",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0174-roadmap-a-decision-log-of-what-the-owner-decided-when-arthur-asked/ticket.md",
-    "updated": "2026-10-19T06:53:53.009Z"
+    "updated": "2026-10-19T07:00:45.570Z"
   },
   {
     "id": "AR0175",
@@ -1397,5 +1397,12 @@
     "status": "planning",
     "path": "spec/features/AR0175-a-restart-whose-restart-throws-in-the-tick-tells-the-owner-nothing/ticket.md",
     "updated": "2026-10-19T06:56:25.156Z"
+  },
+  {
+    "id": "AR0176",
+    "title": "The roadmap has no entry yet for decisions pre-approved from the decision log",
+    "status": "planning",
+    "path": "spec/features/AR0176-the-roadmap-has-no-entry-yet-for-decisions-pre-approved-from-the-decision-log/ticket.md",
+    "updated": "2026-10-19T07:00:45.567Z"
   }
 ]

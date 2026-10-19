@@ -5,7 +5,7 @@ import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
 import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
-import type { Requirement } from "@arthur/core/plugin";
+import type { LoadedConfig } from "@arthur/core";
 import { session } from "../src/session.ts";
 
 const HOST = hostname();
@@ -31,11 +31,14 @@ const manager = (unit: { readonly load: string; readonly file: string; readonly 
 exit 1`;
 const linger = (value: string) => `[ "$*" = "show-user ${USER} -p Linger --value" ] && echo ${value}`;
 
+// The plugin's own doctor, read without its setup (it reads neither its options nor the core's); its setup provides none, so
+// `arthur doctor` lists each once.
 async function requirements() {
 	const fake = fakeHost({ name: "session", options: { compactAt: [] } });
 	await fake.setup(session({ compactAt: [] }));
-	const lists = await Promise.all(fake.collect<Promise<Requirement[]>>("doctor"));
-	return Promise.all(lists.flat().map(async (requirement) => [requirement.name, await requirement.check(), requirement.critical === true]));
+	assert.deepEqual(fake.collect("doctor"), []);
+	const list = (await session().doctor?.({}, {} as LoadedConfig["core"])) ?? [];
+	return Promise.all(list.map(async (requirement) => [requirement.name, await requirement.check(), requirement.critical === true]));
 }
 
 test("doctor: the service installed, enabled, with Restart=always, and linger on are ok; neither is critical", async (t) => {

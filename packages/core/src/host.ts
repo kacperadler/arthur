@@ -7,7 +7,7 @@ import { type CommandRegistry, commandRegistry } from "./commands.ts";
 import { describe, type LoadedConfig } from "./config.ts";
 import { resolveEnv, type Shell } from "./env.ts";
 import { type Bus, eventBus } from "./events.ts";
-import { type DoctorLine, doctor } from "./doctor.ts";
+import { type DoctorLine, doctor, ownAnswers } from "./doctor.ts";
 import { knownProject } from "./job-checkout.ts";
 import { SLICE } from "./job-scope.ts";
 import { type JobRunner, jobRunner } from "./jobs.ts";
@@ -56,7 +56,11 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	loading = false;
 	const autopilot = (request: AutopilotRequest) => names.call("core", "ticket.autopilot", [request]);
 	const project = (name: string) => knownProject(dirname(config.path), names.collect("projects", []), name);
-	const checks = () => doctor(coreRequirements(config.core.home, config.core.agent.command), names.collectEach("doctor", []));
+	const checks = () => {
+		const provided = names.collectEach("doctor", []);
+		const answers = sorted.flatMap((plugin) => [...ownAnswers([plugin], config.core), ...provided.filter((answer) => answer.plugin === plugin.name)]);
+		return doctor(coreRequirements(config.core.home, config.core.agent.command), answers);
+	};
 	return { plugins: sorted, warnings, jobs, board: core, follow: bus.follow, project, autopilot, doctor: checks, emit: (name, data) => void bus.emit("core", name, data) };
 }
 

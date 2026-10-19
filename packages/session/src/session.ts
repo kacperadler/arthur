@@ -44,10 +44,10 @@ export function session(options: SessionOptions = {}): Plugin {
 		options,
 		requires: ["orchestration"],
 		check: checkOptions,
+		doctor: serviceRequirements,
 		setup(given) {
 			host = given;
 			for (const file of EXTENSIONS) given.provide("coordinator.extension", () => ({ file, env: { ARTHUR_SESSION_FOLDER: given.folder } }));
-			given.provide("doctor", serviceRequirements);
 			given.events.on("doctor", ({ data }) => {
 				const lines = typeof data === "object" && data !== null && "lines" in data ? data.lines : undefined;
 				missing = Array.isArray(lines) ? lines.filter((line) => typeof line === "string") : [];

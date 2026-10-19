@@ -1628,5 +1628,12 @@
     "status": "done",
     "path": "spec/features/AR0208-roadmap-47-telegram-receive-and-send-text-and-the-silent-mode/ticket.md",
     "updated": "2026-10-19T15:27:38.918Z"
+  },
+  {
+    "id": "AR0209",
+    "title": "An a2a plugin: other agents give Arthur tasks, and Arthur gives them",
+    "status": "planning",
+    "path": "spec/features/AR0209-an-a2a-plugin-other-agents-give-arthur-tasks-and-arthur-gives-them/ticket.md",
+    "updated": "2026-10-19T15:41:55.417Z"
   }
 ]

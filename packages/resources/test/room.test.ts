@@ -18,7 +18,8 @@ const CORES = os.availableParallelism();
 const NOW = new Date("2026-10-18T10:00:00Z");
 
 // The fake `ssh` on PATH, for this file: each call noted in `ssh.log`; on host `<host>` it prints `<machines>/<host>/free.json`,
-// as `node -e` there would, or, when `<machines>/<host>/fail` exists, ssh's own line from it on stderr and exit code 255.
+// as `node -e` there would, or, when `<machines>/<host>/fail` exists, ssh's own line from it on stderr and exit code 255; when
+// `<machines>/<host>/real` exists, it runs the command here.
 const bin = temporaryFolder();
 const machines = temporaryFolder();
 const sshLog = join(bin, "ssh.log");
@@ -29,6 +30,7 @@ printf '%s\\n' "$*" >> '${sshLog}'
 while [ $# -gt 0 ]; do case "$1" in -o) shift 2;; -*) shift;; *) break;; esac; done
 there='${machines}'/"$1"
 if [ -e "$there/fail" ]; then cat "$there/fail" >&2; exit 255; fi
+if [ -e "$there/real" ]; then shift; exec sh -c "$*"; fi
 cat "$there/free.json"
 `,
 	{ mode: 0o755 },
@@ -45,9 +47,14 @@ function gpu(freeCores: number, freeBytes: number, fail?: string): void {
 	if (fail !== undefined) writeFileSync(join(there, "fail"), `${fail}\n`);
 }
 
-// `local` answers this free CPU and memory through Node's `os`, until the test ends.
+// `local` answers this free CPU and memory through Node's `os`, until the test ends: its cores busy for `CORES - freeCores` ms
+// of CPU time per ms, and a load average of twice its cores, as waits on disk would make it. The clock the check times its
+// second by moves only as `cpus()` is read, so the cores in use come out exact however late the timer fires.
 function local(t: TestContext, freeCores: number, freeBytes: number): void {
-	t.mock.method(os, "loadavg", () => [CORES - freeCores, 0, 0]);
+	let clock = 0;
+	t.mock.method(performance, "now", () => clock);
+	t.mock.method(os, "cpus", () => [{ model: "fake", speed: 1000, times: { user: (CORES - freeCores) * (clock += 500), nice: 0, sys: 0, idle: 0, irq: 0 } }]);
+	t.mock.method(os, "loadavg", () => [CORES * 2, CORES * 2, CORES * 2]);
 	t.mock.method(os, "freemem", () => freeBytes);
 	syncBuiltinESMExports();
 	t.after(() => {
@@ -193,6 +200,19 @@ test("another machine that answers no numbers, or whose node is missing, has no 
 	writeFileSync(join(machines, "gpu", "free.json"), '{ "cores": 8, "load": "high" }\n');
 	assert.equal(await fake.call<Promise<number>>("resources.free", "gpu"), 0);
 	assert.equal(fake.collect<string>("coordinator.context")[0]?.split("\n")[1], 'gpu: no room, its check failed: node -e answered "{ \\"cores\\": 8, \\"load\\": \\"high\\" }", not cores, load and memory');
+});
+
+test("free cores are the cores less the CPU time in use over a second, not the load average, which counts waits on disk; another machine's node -e answers the same", async (t) => {
+	local(t, CORES, 4 * GB);
+	gpu(0, 0);
+	writeFileSync(join(machines, "gpu", "real"), "");
+	const { fake } = await load(t);
+	const jobs = Math.min(3, 2 * CORES - 1);
+	assert.equal(await fake.call<Promise<number>>("resources.free", "local"), jobs, "an idle machine with a load average of twice its cores");
+	assert.equal(fake.collect<string>("coordinator.context")[0]?.split("\n")[0], `local: room for ${jobs} more job${jobs === 1 ? "" : "s"} (4.0 GB, ${CORES}.0 cores free)`);
+	await fake.call<Promise<number>>("resources.free", "gpu");
+	const there = JSON.parse(readFileSync(join(fake.host.folder, "machines", "gpu.json"), "utf8"));
+	assert.deepEqual([there.cores, there.total, typeof there.load], [CORES, os.totalmem(), "number"], JSON.stringify(there));
 });
 
 test("the coordinator's context, arthur resources and /resources show one line per machine; arthur run checks each at its start", async (t) => {

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import dns from "node:dns/promises";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingHttpHeaders } from "node:http";
@@ -8,6 +8,7 @@ import type { AddressInfo } from "node:net";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
+import { promisify } from "node:util";
 import { everyOption, type OptionTable } from "@arthur/core/option-table";
 import type { Requirement } from "@arthur/core/plugin";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
@@ -105,7 +106,7 @@ test("refused at load: a kind other than the two, a url not http or https or wit
 	assert.deepEqual(problems({ providers: { mac: { kind: "vllm", url: "http://127.0.0.1:1" } } }), ['providers.mac.kind: expected ollama or openai-compatible, got "vllm"']);
 	for (const url of ["ftp://127.0.0.1/", "http://8.8.8.8:11434", "http://example.com:11434", "http://172.32.0.1", "http://100.128.0.1", "http://[2001:db8::1]:1234", "not a url"])
 		assert.match(problems({ providers: { mac: { kind: "ollama", url } } }).join("\n"), /^providers\.mac\.url: expected an http or https url whose host is loopback, private or Tailscale/, url);
-	for (const url of ["http://127.0.0.1:11434", "http://localhost:11434", "https://mac.tail1234.ts.net", "http://10.0.0.7", "http://172.31.0.1", "http://192.168.1.20", "http://100.64.0.1", "http://[::1]:1234/v1", "http://[fd7a:115c:a1e5::1]:11434"])
+	for (const url of ["http://127.0.0.1:11434", "http://localhost:11434", "https://mac.tail1234.ts.net", "http://10.0.0.7", "http://172.31.0.1", "http://192.168.1.20", "http://100.64.0.1", "http://[::1]:1234/v1", "http://[fd7a:115c:a1e0::1]:11434"])
 		assert.deepEqual(problems({ providers: { mac: { kind: "ollama", url } } }), [], url);
 	for (const probeSeconds of [0, -1, 1.5, "3"]) assert.equal(problems({ probeSeconds }).length, 1, String(probeSeconds));
 	assert.deepEqual(problems({ probeSeconds: 1, limits: { warnAt: 80, stopAt: 100 } }), []);
@@ -180,7 +181,7 @@ test("a list skips a model whose server is unreachable, slow, lacks it, answers 
 	}
 });
 
-test("two picks at once make one request to the server; it is reused for 30 s on the host's clock, then asked again", async () => {
+test("two picks at once make one request to the server; it is reused for 30 s on the host's clock, then asked again; a broken probes.json keeps nothing", async () => {
 	const mac = await ollama();
 	try {
 		const { fake, pick } = await load({ providers: { mac: { kind: "ollama", url: mac.url } } });
@@ -192,8 +193,51 @@ test("two picks at once make one request to the server; it is reused for 30 s on
 		fake.setNow(new Date(NOW.getTime() + 30_000));
 		await pick(["mac/qwen3-coder"]);
 		assert.equal(mac.seen.length, 2, "30 s later");
+		for (const [kept, seen] of [["{ not json", 3], [JSON.stringify({ "local mac": { at: NOW.getTime() + 30_000, answer: { models: "qwen3-coder" } } }), 4]] as const) {
+			writeFileSync(join(fake.host.folder, "probes.json"), kept);
+			await pick(["mac/qwen3-coder"]);
+			assert.equal(mac.seen.length, seen, kept);
+		}
+		await pick(["mac/qwen3-coder"]);
+		assert.equal(mac.seen.length, 4, "the answer written again is reused");
 	} finally {
 		mac.close();
+	}
+});
+
+test("two processes probing at once make one request: the second waits for the first's answer in probes.json", async () => {
+	const [folder, asking] = [temporaryFolder(), temporaryFolder()];
+	// The server holds its answer until both processes are asking, so the second asks while the first one's request runs.
+	const requests: string[] = [];
+	const http = createServer(async (request, response) => {
+		requests.push(request.url ?? "");
+		while (readdirSync(asking).length < 2) await sleep(10);
+		response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(TAGS));
+	});
+	await new Promise<void>((resolve) => http.listen(0, "127.0.0.1", resolve));
+	const src = (path: string) => JSON.stringify(join(import.meta.dirname, "..", "..", path));
+	const script = [
+		`import { writeFileSync } from "node:fs";`,
+		`import { join } from "node:path";`,
+		`import { fakeHost } from ${src("core/src/testing.ts")};`,
+		`import { probes } from ${src("models/src/probe.ts")};`,
+		"const [folder, url, asking] = process.argv.slice(1);",
+		`const { host } = fakeHost({ name: "models" });`,
+		`const ask = probes({ ...host, folder }, { mac: { kind: "ollama", url } }, 3);`,
+		`writeFileSync(join(asking, String(process.pid)), "");`,
+		`const answer = await ask("local", "mac");`,
+		"process.stdout.write(JSON.stringify(answer), () => process.exit(0));",
+	].join("\n");
+	try {
+		const url = `http://127.0.0.1:${(http.address() as AddressInfo).port}`;
+		const run = () => promisify(execFile)(process.execPath, ["--input-type=module", "--eval", script, folder, url, asking]);
+		const answers = await Promise.all([run(), run()]);
+		assert.deepEqual(answers.map(({ stdout }) => JSON.parse(stdout)), [{ models: ["qwen3-coder:latest"] }, { models: ["qwen3-coder:latest"] }]);
+		assert.deepEqual(requests, ["/api/tags"]);
+		assert.deepEqual(JSON.parse(readFileSync(join(folder, "probes.json"), "utf8")), { "local mac": { at: NOW.getTime(), answer: { models: ["qwen3-coder:latest"] } } });
+	} finally {
+		http.closeAllConnections();
+		http.close();
 	}
 });
 
@@ -397,6 +441,36 @@ test("doctor: each provider reachable, each listed model present, critical only 
 	} finally {
 		delete process.env.PI_CODING_AGENT_DIR;
 		mac.close();
+	}
+});
+
+test("doctor: omp's models.yml on each registered machine, read over ssh; absent is ok, a machine that does not answer is not checked", async () => {
+	const bin = temporaryFolder();
+	const there = temporaryFolder();
+	const ssh = `#!/bin/sh\nwhile [ $# -gt 0 ]; do case "$1" in -o) shift 2;; -*) shift;; *) break;; esac; done\n[ "$1" = off ] && { echo 'ssh: connect to host off port 22: Connection refused' >&2; exit 255; }\nshift\nPI_CODING_AGENT_DIR='${there}' exec sh -c "$*"\n`;
+	writeFileSync(join(bin, "ssh"), ssh, { mode: 0o755 });
+	process.env.PATH = [bin, PATH].join(delimiter);
+	process.env.PI_CODING_AGENT_DIR = temporaryFolder();
+	try {
+		const options: ModelsOptions = { providers: { mac: { kind: "ollama", url: "http://127.0.0.1:9" } } };
+		const fake = fakeHost({ name: "models", options, now: NOW });
+		await fake.setup(models(options));
+		for (const name of ["gpu", "off"]) fake.host.jobs.registerMachine({ name, ssh: name, home: temporaryFolder(), labels: {} });
+		const lines = async () => Promise.all((fake.collect<Requirement[]>("doctor")[0] ?? []).filter((line) => line.name.startsWith("omp")).map(async (line) => [line.name, await line.check(), line.critical === true, line.fix]));
+		const fix = (where: string) => `remove the ollama provider from ${where}`;
+		const off = ["omp models.yml on off", "ok (not reached: ssh: connect to host off port 22: Connection refused)", true, fix("omp's models.yml on off")];
+		assert.deepEqual(await lines(), [
+			["omp models.yml", "ok (no models.yml)", true, fix(join(process.env.PI_CODING_AGENT_DIR, "models.yml"))],
+			["omp models.yml on gpu", "ok (no models.yml)", true, fix("omp's models.yml on gpu")],
+			off,
+		]);
+		writeFileSync(join(there, "models.yml"), "providers:\n  ollama:\n    baseUrl: http://127.0.0.1:11434\n");
+		assert.deepEqual((await lines())[1], ["omp models.yml on gpu", "missing: omp's models.yml on gpu configures ollama, which replaces the provider a job's environment sets", true, fix("omp's models.yml on gpu")]);
+		writeFileSync(join(there, "models.yml"), "providers:\n  mine:\n    baseUrl: http://127.0.0.1:11434\n");
+		assert.deepEqual((await lines()).slice(1), [["omp models.yml on gpu", "ok", true, fix("omp's models.yml on gpu")], off]);
+	} finally {
+		delete process.env.PI_CODING_AGENT_DIR;
+		process.env.PATH = PATH;
 	}
 });
 

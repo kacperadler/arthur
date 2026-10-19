@@ -5,9 +5,9 @@ import { pathToFileURL } from "node:url";
 import type { AgentRun } from "./testing.ts";
 
 // The fake agent's player (spec/roadmap.md, entries 11, 14, 23, 24 and 35), started by the `omp` script `fakeAgent` writes, as
-// `node fake-agent.ts <run.json> <omp's arguments>`: it notes the start in `starts.jsonl` beside the run, loads each `-e`
-// extension as omp does and calls its `session_start` handlers, then plays the run, printing each event in the shape
-// `omp --mode json` prints it, asking the extensions' `tool_call` handlers before each tool call (a block fails the call with
+// `node fake-agent.ts <run.json> <omp's arguments>`: it loads each `-e` extension as omp does (one may read the job's record) and
+// calls its `session_start` handlers, only then notes the start in `starts.jsonl` beside the run, plays the run, printing each event
+// in the shape `omp --mode json` prints it, asking the extensions' `tool_call` handlers before each tool call (a block fails the call with
 // its reason, as omp does), calling their `tool_result` handlers after it, noting each message they send (`sendUserMessage`)
 // in `messages.jsonl` beside the run with the step it came in, and the system prompt of each turn in `system.jsonl`, and exits with
 // the run's code. A handler's `ctx` has a UI (`hasUI`) unless omp runs with `--mode`; `ui` calls are noted in `ui.jsonl`; it is
@@ -27,7 +27,6 @@ const note = (name: string, entry: object) => {
 	}
 	rmSync(whole);
 };
-note("starts.jsonl", { pid: process.pid, cwd: process.cwd(), args });
 
 // The step being played; whether no turn runs; the sends still to throw and to drop; the messages sent while idle, for the next
 // `prompt`; the turns' messages.
@@ -75,6 +74,7 @@ for (const [index, arg] of args.entries()) {
 	extension.default(pi);
 }
 await ask("session_start", {});
+note("starts.jsonl", { pid: process.pid, cwd: process.cwd(), args });
 
 // Resolves once the line is handed to the pipe, so a signal that follows never cuts it.
 const print = (stream: NodeJS.WriteStream, line: string) => {

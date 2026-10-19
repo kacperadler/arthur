@@ -65,6 +65,15 @@ test("a bug from a finding, 2 Scope files, none held, is set planned with the bu
 	assert.equal(loaded.text(), approved);
 });
 
+test("two pre-approvals of one ticket at once record it once: the second waits, then sees it planned", async () => {
+	const loaded = await load();
+	const results = await Promise.allSettled([loaded.preApprove(), loaded.preApprove()]);
+	assert.deepEqual(results.map((result) => result.status).sort(), ["fulfilled", "rejected"]);
+	assert.match(String(results.find((result) => result.status === "rejected")?.reason), /it is planned; autopilot pre-approves a ticket in planning/);
+	assert.equal(loaded.text().split("Pre-approved by policy").length, 2, "one record");
+	assert.equal(loaded.fake.emitted.filter((event) => event.name === "ticket-moved").length, 1);
+});
+
 test("exactly 3 Scope files pass, a path with a line number or named twice counted once; a cleanup from an audit at the cap passes", async () => {
 	const scope = "In:\n- `src/a.ts:12`, `src/a.ts:40-52`, `src/b.ts`\n- `README.md`: a line. `arthur ticket status` and `fixIt` are no files.";
 	const loaded = await load({ kind: "cleanup", scope, decisions: "- 2026-01-01: Source: audit spec/quality/2026-01-01.md" });

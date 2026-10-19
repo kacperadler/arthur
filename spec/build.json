@@ -1674,8 +1674,8 @@
   {
     "id": "AR0215",
     "title": "The commit-rules doc shows the regex that counts 72 after the prefix",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0215-the-commit-rules-doc-shows-the-regex-that-counts-72-after-the-prefix/ticket.md",
-    "updated": "2026-10-19T16:58:42.490Z"
+    "updated": "2026-10-19T16:58:54.010Z"
   }
 ]

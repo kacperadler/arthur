@@ -106,3 +106,5 @@ Without a systemd user manager (macOS, a container: `systemctl --user show-envir
 ## Files
 
 In `<home>/session/`: `request.json` (the request of the moment), `handoff.md` (the coordinator's handoff), `handoff-read` (the modification time of the last handoff read), `agent` (the pid of the coordinator's agent), `restarted.json` (a restart made, until the next coordinator is up; one that is not a restart's mark is dropped, named), `after-restart.md` (the steps for the human after a restart, sent once with `Restarted.`), `loaded.json` (what `arthur run` loaded at its start, for the restart guard), and `turn-failed/` (the coordinator turns that failed before any text, until `arthur run` sends them).
+
+A file here that cannot be read, written or removed (a disk full, the folder made read-only) never ends `arthur run`: the 500 ms look that failed prints `session: <compaction|restart|turn notice> failed: <the error's first line>`, once per distinct error, and the next look tries again. A fresh start's try whose request could not be written is made at the first look that can write it; a night's restart that threw ends that night, and the next night tries again.

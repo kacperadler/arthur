@@ -96,12 +96,13 @@ export async function checkPlugins(config: LoadedConfig): Promise<Plugin[]> {
 		}
 	}
 	if (problems.length > 0) throw new Error(problems.join("\n"));
-	const sorted = setupOrder(enabled, byName);
-	if (typeof sorted === "string") throw new Error(at(`plugins: a cycle in requires: ${sorted}`));
+	const sorted = setupOrder(enabled, new Map(enabled.map((plugin) => [plugin.name, plugin])));
+	if (typeof sorted === "string") throw new Error(at(`plugins: a cycle in requires or after: ${sorted}`));
 	return sorted;
 }
 
-// Required plugins first, otherwise the config's order; a cycle comes back as its path, e.g. `a -> b -> a`.
+// Required plugins and the enabled ones a plugin sets up after first, otherwise the config's order; a cycle comes back as its
+// path, e.g. `a -> b -> a`.
 function setupOrder(plugins: readonly Plugin[], byName: ReadonlyMap<string, Plugin>): Plugin[] | string {
 	const sorted: Plugin[] = [];
 	const done = new Set<string>();
@@ -109,7 +110,7 @@ function setupOrder(plugins: readonly Plugin[], byName: ReadonlyMap<string, Plug
 		if (done.has(plugin.name)) return undefined;
 		const loop = path.indexOf(plugin.name);
 		if (loop !== -1) return [...path.slice(loop), plugin.name].join(" -> ");
-		for (const name of plugin.requires ?? []) {
+		for (const name of [...(plugin.requires ?? []), ...(plugin.after ?? [])]) {
 			const required = byName.get(name);
 			const cycle = required && visit(required, [...path, plugin.name]);
 			if (cycle) return cycle;

@@ -80,7 +80,7 @@ test("every refusal of the host before setup fails the check, next to the env li
 		ok: false,
 	});
 	assert.deepEqual(await check(`[${ORCHESTRATION}, { name: "a", requires: ["b"], setup() {} }, { name: "b", requires: ["a"], setup() {} }]`), {
-		lines: ["plugins: a cycle in requires: a -> b -> a", "no enabled plugin names an env variable"],
+		lines: ["plugins: a cycle in requires or after: a -> b -> a", "no enabled plugin names an env variable"],
 		ok: false,
 	});
 	assert.deepEqual(await check(`[${ORCHESTRATION}, { name: "telegram", requires: ["machines"], setup() {}, check: (options) => [{ path: "chat", problem: "expected a number, got " + typeof options.chat }] }]`), {

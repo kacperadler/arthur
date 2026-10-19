@@ -178,6 +178,7 @@ export function pluginHost(
 			file: (id, job) => runner.file(tickets, id, job),
 			prompt: (role, project) => runner.prompt(role, project),
 			vision: (project) => runner.vision(project),
+			criteria: () => runner.criteria(),
 		},
 		board: tickets,
 	};

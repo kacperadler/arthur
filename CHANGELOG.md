@@ -23,10 +23,12 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0188 Roadmap 43: commit rules per project (72692ea)
 - AR0189 Roadmap 44: YouTrack instances and reading (2bda2a3)
 - AR0191 The 30 s reuse of a probe holds in one process only, so two `arthur spawn` commands each probe (06fa19c)
+- AR0193 The doctor checks omp's `models.yml` on this machine only
 - AR0194 The coordinator's role does not name `arthur youtrack`
 - AR0195 `arthur youtrack issue list` reads every issue of a project, resolved ones too
 - AR0196 Roadmap 84: nvm, each project's Node version (1556c9f)
 - AR0197 Roadmap 45: YouTrack writing issues, articles, fields and work items (4919c0a)
+- AR0198 A plugin's prompt section cannot add to the spawn's warnings
 - AR0200 The example's Conventional Commits regex allows subjects over 72 characters
 - AR0203 Arthur is Apache-2.0, with NOTICE, trademark and DCO (d284b8c)
 - AR0205 The coordinator's role does not say when it may write to YouTrack
@@ -50,13 +52,16 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0171 The resources scope test assumes a machine of 2 cores or more
 - AR0173 GitHub CI names each failed test and stays green on main (a1fbecb)
 - AR0175 A `/restart` whose restart throws in the tick tells the owner nothing
+- AR0177 An option's `default` is text beside the code's own default, and nothing checks they agree (41a59ad)
 - AR0201 wrapper.test.ts failed once on a cleanup race (244a725)
+- AR0202 A record removed file by file crashes the wrapper instead of ending it with its one line
 - AR0204 `issue update` overwrites a description changed since it was read
 
 ### Changed
 
 - AR0151 The example config and two diagrams still call Discord later (e373e84)
 - AR0152 Roadmap entry 93 depends on 41 but sits before it
+- AR0192 The roadmap's Tailscale IPv6 range and the machines plugin's disagree
 - AR0199 The option-tables test cannot list a plugin without options (d7bd88e)
 - AR0207 The option-tables test cannot hold a plugin without options, so nvm's options file is not checked there
 - AR0210 The nvm package still names the old licence (e9e6d98)

@@ -1401,16 +1401,16 @@
   {
     "id": "AR0176",
     "title": "The roadmap has no entry yet for decisions pre-approved from the decision log",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0176-the-roadmap-has-no-entry-yet-for-decisions-pre-approved-from-the-decision-log/ticket.md",
-    "updated": "2026-10-19T16:14:25.727Z"
+    "updated": "2026-10-19T18:26:38.926Z"
   },
   {
     "id": "AR0177",
     "title": "An option's `default` is text beside the code's own default, and nothing checks they agree",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0177-an-option-s-default-is-text-beside-the-code-s-own-default-and-nothing-checks-they-agree/ticket.md",
-    "updated": "2026-10-19T15:52:39.553Z"
+    "updated": "2026-10-19T18:26:31.315Z"
   },
   {
     "id": "AR0178",
@@ -1429,9 +1429,9 @@
   {
     "id": "AR0180",
     "title": "While an env variable is missing, neither `arthur doctor` nor `arthur setup` checks the plugins' requirements",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0180-while-an-env-variable-is-missing-neither-arthur-doctor-nor-arthur-setup-checks-the-plugins-requirements/ticket.md",
-    "updated": "2026-10-19T15:52:39.952Z"
+    "updated": "2026-10-19T18:26:38.724Z"
   },
   {
     "id": "AR0181",
@@ -1674,9 +1674,9 @@
   {
     "id": "AR0215",
     "title": "The commit-rules doc shows the regex that counts 72 after the prefix",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0215-the-commit-rules-doc-shows-the-regex-that-counts-72-after-the-prefix/ticket.md",
-    "updated": "2026-10-19T16:58:54.010Z"
+    "updated": "2026-10-19T18:26:39.153Z"
   },
   {
     "id": "AR0216",

@@ -55,7 +55,7 @@ test("every option of the core and of each plugin has its meaning in one line, e
 	}
 	assert.deepEqual(
 		core.tools.map((tool) => tool.name),
-		["git", "node", "omp", "ssh", "systemd-run"],
+		["git", "node", "omp", "ssh", "systemd-run", "tailscale"],
 	);
 	assert.deepEqual(
 		Object.values(PLUGINS).flatMap(([file]) => file.tools.map((tool) => tool.name)),

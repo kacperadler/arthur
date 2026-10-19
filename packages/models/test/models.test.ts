@@ -398,3 +398,33 @@ test("doctor: each provider reachable, each listed model present, critical only 
 		mac.close();
 	}
 });
+
+test("doctor: omp's models.yml on each registered machine, read over ssh; absent is ok, a machine that does not answer is not checked", async () => {
+	const bin = temporaryFolder();
+	const there = temporaryFolder();
+	const ssh = `#!/bin/sh\nwhile [ $# -gt 0 ]; do case "$1" in -o) shift 2;; -*) shift;; *) break;; esac; done\n[ "$1" = off ] && { echo 'ssh: connect to host off port 22: Connection refused' >&2; exit 255; }\nshift\nPI_CODING_AGENT_DIR='${there}' exec sh -c "$*"\n`;
+	writeFileSync(join(bin, "ssh"), ssh, { mode: 0o755 });
+	process.env.PATH = [bin, PATH].join(delimiter);
+	process.env.PI_CODING_AGENT_DIR = temporaryFolder();
+	try {
+		const options: ModelsOptions = { providers: { mac: { kind: "ollama", url: "http://127.0.0.1:9" } } };
+		const fake = fakeHost({ name: "models", options, now: NOW });
+		await fake.setup(models(options));
+		for (const name of ["gpu", "off"]) fake.host.jobs.registerMachine({ name, ssh: name, home: temporaryFolder(), labels: {} });
+		const lines = async () => Promise.all((fake.collect<Requirement[]>("doctor")[0] ?? []).filter((line) => line.name.startsWith("omp")).map(async (line) => [line.name, await line.check(), line.critical === true, line.fix]));
+		const fix = (where: string) => `remove the ollama provider from ${where}`;
+		const off = ["omp models.yml on off", "ok (not reached: ssh: connect to host off port 22: Connection refused)", true, fix("omp's models.yml on off")];
+		assert.deepEqual(await lines(), [
+			["omp models.yml", "ok (no models.yml)", true, fix(join(process.env.PI_CODING_AGENT_DIR, "models.yml"))],
+			["omp models.yml on gpu", "ok (no models.yml)", true, fix("omp's models.yml on gpu")],
+			off,
+		]);
+		writeFileSync(join(there, "models.yml"), "providers:\n  ollama:\n    baseUrl: http://127.0.0.1:11434\n");
+		assert.deepEqual((await lines())[1], ["omp models.yml on gpu", "missing: omp's models.yml on gpu configures ollama, which replaces the provider a job's environment sets", true, fix("omp's models.yml on gpu")]);
+		writeFileSync(join(there, "models.yml"), "providers:\n  mine:\n    baseUrl: http://127.0.0.1:11434\n");
+		assert.deepEqual((await lines()).slice(1), [["omp models.yml on gpu", "ok", true, fix("omp's models.yml on gpu")], off]);
+	} finally {
+		delete process.env.PI_CODING_AGENT_DIR;
+		process.env.PATH = PATH;
+	}
+});

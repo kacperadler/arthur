@@ -32,3 +32,5 @@ GitHub's job logs need a token, so each was found by load: the suite or one file
 5. `packages/session/test/restart.test.ts`, "at a start only a handoff newer than the last one read is read, and an empty one never" (ba75b20).
    - Symptom: the handoff message was asserted right after `up()`, but the agent notes its pid before it sends the handoff and notes it read after: `[]` instead of the message, or "noted as read" failed. The test now waits for each.
    - Found: `restart.test.ts`, 12 copies at once on one core: 3 of 12 failed before (with item 4), 0 of 12 after.
+
+Stress after the fixes (coordinator, 2026-10-19, at 92658e1): the full suite 3 runs at once pinned to 2 cores (`taskset -c 0,1 npm test`), 5 rounds: 15 of 15 passed, 548 of 548 tests each. A sixth round was cut by the coordinator's own 1 h command limit mid-run (Node: "Promise resolution is still pending but the event loop has already resolved", the process killed), not counted.

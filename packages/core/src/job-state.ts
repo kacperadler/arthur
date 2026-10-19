@@ -16,10 +16,14 @@ export type Current = { readonly state: string; readonly reason: string; readonl
 // `<date>-<kind>-<8 hex digits>`, as the spawn makes it: nothing else names a folder in `<home>/jobs/`.
 export const ID = /^\d{4}-\d\d-\d\d-[a-z][a-z0-9]*(-[a-z0-9]+)*-[0-9a-f]{8}$/;
 
-// A reader of one record's files; a missing one reads empty.
+// A reader of one record's files; a missing one reads empty, also one removed between a check and the read.
 export const field = (home: string, id: string) => (name: string): string => {
-	const path = join(home, "jobs", id, name);
-	return existsSync(path) ? readFileSync(path, "utf8") : "";
+	try {
+		return readFileSync(join(home, "jobs", id, name), "utf8");
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return "";
+		throw error;
+	}
 };
 
 // Every record, the newest spawn first; a record being written (`.<id>`) is not one yet.

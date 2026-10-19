@@ -1196,9 +1196,9 @@
   {
     "id": "AR0148",
     "title": "A throw in the session's 500 ms tick ends `arthur run`",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0148-a-throw-in-the-session-s-500-ms-tick-ends-arthur-run/ticket.md",
-    "updated": "2026-10-19T05:41:39.263Z"
+    "updated": "2026-10-19T05:41:42.352Z"
   },
   {
     "id": "AR0149",
@@ -1317,9 +1317,9 @@
   {
     "id": "AR0164",
     "title": "The inbox's notice after 3 unanswered turns repeats omp's error unredacted",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0164-the-inbox-s-notice-after-3-unanswered-turns-repeats-omp-s-error-unredacted/ticket.md",
-    "updated": "2026-10-19T05:41:39.681Z"
+    "updated": "2026-10-19T05:41:43.001Z"
   },
   {
     "id": "AR0165",
@@ -1338,9 +1338,9 @@
   {
     "id": "AR0167",
     "title": "GitHub CI fails now and then on main with the same code",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0167-github-ci-fails-now-and-then-on-main-with-the-same-code/ticket.md",
-    "updated": "2026-10-19T05:41:23.858Z"
+    "updated": "2026-10-19T05:42:55.882Z"
   },
   {
     "id": "AR0168",

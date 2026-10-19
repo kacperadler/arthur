@@ -46,10 +46,12 @@ function gpu(freeCores: number, freeBytes: number, fail?: string): void {
 }
 
 // `local` answers this free CPU and memory through Node's `os`, until the test ends: its cores busy for `CORES - freeCores` ms
-// of CPU time per ms, and a load average of twice its cores, as waits on disk would make it.
+// of CPU time per ms, and a load average of twice its cores, as waits on disk would make it. The clock the check times its
+// second by moves only as `cpus()` is read, so the cores in use come out exact however late the timer fires.
 function local(t: TestContext, freeCores: number, freeBytes: number): void {
-	const times = () => ({ user: (CORES - freeCores) * performance.now(), nice: 0, sys: 0, idle: 0, irq: 0 });
-	t.mock.method(os, "cpus", () => [{ model: "fake", speed: 1000, times: times() }]);
+	let clock = 0;
+	t.mock.method(performance, "now", () => clock);
+	t.mock.method(os, "cpus", () => [{ model: "fake", speed: 1000, times: { user: (CORES - freeCores) * (clock += 500), nice: 0, sys: 0, idle: 0, irq: 0 } }]);
 	t.mock.method(os, "loadavg", () => [CORES * 2, CORES * 2, CORES * 2]);
 	t.mock.method(os, "freemem", () => freeBytes);
 	syncBuiltinESMExports();

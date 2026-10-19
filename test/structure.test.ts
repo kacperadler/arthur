@@ -61,7 +61,9 @@ import { checkStructure } from "./structure.ts";
 // AR0163 (roadmap 40): registered entries and `arthur schedule`, schedule 220 more (497), for `schedule.register` with its own
 // procedure rule (register.ts), the file's entries read and changed under a lock (entry-file.ts) and `arthur schedule
 // add|list|remove` (schedule-command.ts); core unchanged but for `@arthur/core/lock` in its exports.
-const BUDGETS = { core: 4873, "core/testing": 340, projects: 320, orchestration: 1146, machines: 375, resources: 401, session: 691, schedule: 497 };
+// AR0164: the inbox's notice after 3 unanswered turns redacts omp's error as the session plugin does, with a copy of its
+// credential.ts (a plugin cannot import another's), orchestration 17 more (1163).
+const BUDGETS = { core: 4873, "core/testing": 340, projects: 320, orchestration: 1163, machines: 375, resources: 401, session: 691, schedule: 497 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

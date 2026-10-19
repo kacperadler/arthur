@@ -78,7 +78,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | nvm: each project's Node version | built | 84 |
 | commit-rules: a regex hook, words or a file per project | built | 43 |
 | findings: what happens to them on a merge | planned | 83 |
-| telegram: text, media and the phone menu; the coordinator's silent mode (`/silent`), which every channel follows | in progress, 1 of 4 entries | 47 built; 48 to 50 |
+| telegram: text, media and the phone menu; the coordinator's silent mode (`/silent`), which every channel follows | in progress, 2 of 4 entries | 47, 48 built; 49, 50 |
 | discord: one private server, a main channel for the coordinator and one per project; text, media, phone commands | planned | 89, 90 |
 | voice: local transcription of voice notes | planned | 81 |
 | delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | planned | 52 to 56, 59 |
@@ -198,7 +198,7 @@ flowchart TD
   subgraph PLUGINS[Plugins: each talks only to the core]
     subgraph FIRST[First-version plugins]
       subgraph CHAN[Channels and media]
-        telegram[telegram<br/>text, media, phone menu<br/>1 of 4 entries; planned: outbox, media, phone menu]
+        telegram[telegram<br/>text, media, phone menu<br/>2 of 4 entries; planned: media, phone menu]
         discord[discord<br/>main channel, one per project<br/>text, media, /name text]
         voice[voice<br/>whisper.cpp, on the CPU]
         telegram ~~~ discord ~~~ voice

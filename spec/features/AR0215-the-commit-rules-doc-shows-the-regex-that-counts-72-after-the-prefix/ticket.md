@@ -29,3 +29,4 @@ The regex example in `packages/commit-rules/docs/commit-rules.md:7` refuses a su
 ## Decisions
 
 - 2026-10-19: Source: F1 of AR0200. Approved under the owner's word of the same day: findings are built in batches. The same line in spec/vision.md waits for the owner's word.
+- 2026-10-19: The owner approved the same fix in spec/vision.md; the coordinator made it at once.

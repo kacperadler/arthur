@@ -1684,5 +1684,12 @@
     "status": "planning",
     "path": "spec/features/AR0216-plan-stimuli-and-reactions-sentry-uptime-and-server-load-start-a-chain/ticket.md",
     "updated": "2026-10-19T17:34:43.750Z"
+  },
+  {
+    "id": "AR0217",
+    "title": "A ticket's memory cap can be stretched by swap",
+    "status": "planned",
+    "path": "spec/features/AR0217-a-ticket-s-memory-cap-can-be-stretched-by-swap/ticket.md",
+    "updated": "2026-10-19T17:47:56.816Z"
   }
 ]

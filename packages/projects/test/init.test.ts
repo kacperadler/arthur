@@ -25,9 +25,11 @@ function repository(files: Readonly<Record<string, string>>, commit = true): str
 	return root;
 }
 
-async function load(list: readonly ProjectEntry[]): Promise<FakeHost> {
+// The plugin set up with `list`, beside a role registered as another plugin's, which reads `criteria` (the coordinator's by default).
+async function load(list: readonly ProjectEntry[], criteria = ["styleguide", "autopilot"]): Promise<FakeHost> {
 	const fake = fakeHost({ name: "projects" });
-	await fake.setup({ setup: (host) => projects({ list }).setup({ ...host, options: { list } }) });
+	const other = { name: "coordinator", file: new URL("../roles/onboarding.md", import.meta.url), criteria };
+	await fake.setup({ setup: (host) => (host.jobs.registerRole(other), projects({ list }).setup({ ...host, options: { list } })) });
 	return fake;
 }
 
@@ -77,6 +79,14 @@ test("an empty repository gets the vision and criteria skeletons, an .nvmrc and 
 	const again = await init(t, fake, ["shop"]);
 	assert.deepEqual([again.code, again.out], [1, ""]);
 	assert.match(again.err, /^arthur init: shop has a board already, /);
+});
+
+test("init writes a skeleton for each criteria file a registered role reads, its title alone when none is shipped", async (t) => {
+	const shop = repository({ "README.md": "# Shop\n" });
+	const fake = await load([{ name: "shop", prefix: "SH", path: shop }], ["code-review", "styleguide"]);
+	assert.equal((await init(t, fake, ["shop"])).out.split("\n")[0], "created: spec/vision.md, .agents/arthur/criteria/styleguide.md, .agents/arthur/criteria/code-review.md, .nvmrc, spec/build.json");
+	assert.equal(readFileSync(join(shop, ".agents/arthur/criteria/code-review.md"), "utf8"), "# Code review\n");
+	assert.equal(existsSync(join(shop, ".agents/arthur/criteria/autopilot.md")), false, "no registered role reads autopilot here");
 });
 
 // The board appearing while init runs, as a second init's does: a dangling symlink there passes the first look, as no board.

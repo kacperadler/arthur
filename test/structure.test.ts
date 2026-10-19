@@ -128,6 +128,11 @@ import { checkStructure } from "./structure.ts";
 // quiet hours; a new package. Orchestration 121 more (1334) for the silent mode: `arthur silent` and `/silent`, its state
 // file, the summary built from the event log, `coordinator.silent`, the held replies and the `## Silent` context line; cut
 // first: the `whole` check onto one line and the state's write inlined (5 lines).
+// AR0212 (roadmap 48, with AR0211): telegram 158 more (401) for the outbox (outbox.ts): a file per slice, one retry, a 429's
+// wait, the slice that fails queued first for next time, the refused one set aside and told once in a notice cut to one
+// message, the lock between processes, the flush after an answered poll; and a reply sent by the bot its messages came
+// through (`instance`, 7). Cut first: telegram.ts's own send loop, its start gate and its `polling` closure, which the
+// outbox's `flush` and one `begin` replace (29 lines out, 36 in with AR0211's 7), and the sender's five variables on two lines.
 // AR0154: a worker, or a continue, on a pre-approved ticket held to the budget its `Pre-approved by policy` line records, until
 // the owner's own approval after it; orchestration 19 more (1232) for that `beforeSpawn` refusal (plans.ts: the record and the
 // approval read under Decisions, the per-ticket refusals split in two); core/testing 2 more (346) for `continue` on the fake
@@ -146,12 +151,18 @@ import { checkStructure } from "./structure.ts";
 // AR0137: the burst test moves the agent's clock instead of sleeping; core/testing 3 more (349) for the fake agent's `clock`,
 // its doc reflowed by a line to keep testing.ts at 200.
 // Merged with AR0208: orchestration 1334 + 47 (AR0135, AR0154 to AR0156, AR0168) = 1381; core, core/testing and session as above.
+// AR0172: machines 31 more (446) for the doctor line of `local`'s tools labels, the `command -v` loop of a listed machine's
+// check run here through `host.jobs.run("local", ...)` (machine-check.ts), its line, costs and fix (machines.ts).
+// AR0186: `arthur init` writes a criteria skeleton per name the registered roles read; core 4 more (5452 alone) for
+// `host.jobs.criteria()` (roles.ts, plugin.ts), projects 5 more (480) for the title-only skeleton of a name it ships none for.
+// Merged with main: core 5451 + 4 (AR0186) = 5455, projects 480, machines 446.
+// Merged with AR0212: telegram 401 as above; the rest as main has them.
 // AR0191, AR0193, AR0198, AR0202 (findings batch): models 21 more (506): probe answers kept in probes.json under a lock per
 // provider and machine across processes (probe.ts, 15), omp's models.yml read on each registered machine (model-doctor.ts, 6);
 // cut first: the probes' in-process map of running probes, which the lock replaces, and the local models.yml line now read
-// through `host.jobs.run` as the others are. Core 6 more (5457, after AR0168's 5451): a record whose `pid` is gone ends the
+// through `host.jobs.run` as the others are. Core 6 more (5461, after main's 5455): a record whose `pid` is gone ends the
 // wrapper (wrapper.ts, 3), a prompt section's `{ text, warnings }` checked and its warnings joined to the spawn's (roles.ts, 3).
-const BUDGETS = { core: 5457, "core/testing": 349, projects: 475, orchestration: 1381, machines: 415, resources: 458, session: 873, schedule: 552, models: 506, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 243 };
+const BUDGETS = { core: 5461, "core/testing": 349, projects: 480, orchestration: 1381, machines: 446, resources: 458, session: 873, schedule: 552, models: 506, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 401 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

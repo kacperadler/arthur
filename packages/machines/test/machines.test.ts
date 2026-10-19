@@ -281,6 +281,29 @@ test("without a list only local is there, and the doctor has no line", async () 
 	assert.deepEqual(calls(), []);
 });
 
+test("local's tools labels are checked with command -v on the PATH of arthur run, its line first, in a listed machine's shape", async () => {
+	machine("build-box");
+	const here = `${platform === "darwin" ? "macos" : platform} ${arch}, arthur ${coreVersion()}`;
+	const { fake } = await load({ local: { labels: { tools: ["sh", "no-such-tool-ar0172", "no-such-tool-ar0172b"] } }, list: [BUILD] });
+	const lines = await Promise.all(requirements(fake).map(async (requirement) => [requirement.name, await requirement.check(), requirement.fix, requirement.costs, requirement.critical]));
+	assert.deepEqual(lines, [
+		[
+			"local",
+			`missing: command -v finds no no-such-tool-ar0172, no-such-tool-ar0172b here (${here})`,
+			"install no-such-tool-ar0172, no-such-tool-ar0172b on the PATH of arthur run, or drop what it does not need from local's tools label",
+			"no job that needs no-such-tool-ar0172, no-such-tool-ar0172b runs on local",
+			false,
+		],
+		["build", `ok (linux x64, arthur ${coreVersion()})`, "ssh build-box true, by hand", "no job runs on build", false],
+	]);
+	assert.deepEqual(calls().filter((call) => !call.startsWith("-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 build-box ")), [], "local is checked here, never over ssh");
+	// A tool only in a folder of this process's PATH, which `arthur run` passes on to what it runs.
+	writeFileSync(join(bin, "ar0172-tool"), "#!/bin/sh\n", { mode: 0o755 });
+	const { fake: found } = await load({ local: { labels: { tools: ["ar0172-tool", "sh"] } } });
+	assert.deepEqual(await Promise.all(requirements(found).map(async (requirement) => [requirement.name, await requirement.check()])), [["local", `ok (${here})`]]);
+	assert.deepEqual(calls(), []);
+});
+
 // Placing a job by labels (roadmap entry 31). `local` here has its detected os and arch and the tool docker, room for 3 jobs.
 const OS = platform === "darwin" ? "macos" : platform;
 const LOCAL = { labels: { tools: ["docker"] }, maxJobs: 3 };

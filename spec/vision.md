@@ -195,7 +195,7 @@ Interface: `host.jobs.cleanup(fn)`, `host.jobs.prepare` returning variables for 
 
 ## Licence
 
-FSL-1.1-ALv2, the Functional Source License with Apache 2.0 after two years. It is source-available, not open source by the OSI definition. Anyone may read, run, change and fork it, but not sell it as a competing product during the two years; each release becomes Apache-2.0 two years after it. The README says this plainly and does not call the project "open source".
+Apache-2.0. Arthur is open source: anyone may use, change, fork and sell it under the Apache License 2.0. The name "Arthur" and the Arthur logo are reserved: they stay Kacper Adler's and are not licensed with the code (`NOTICE`). Contributions come under the same licence, each commit signed off under the Developer Certificate of Origin (`CONTRIBUTING.md`).
 
 ## Not the goal
 
@@ -216,7 +216,7 @@ FSL-1.1-ALv2, the Functional Source License with Apache 2.0 after two years. It 
 4. Server later. The first version polls GitHub. Arthur exposes nothing to the internet (no public port, no webhooks). The core emits events from day one.
 5. The name is Arthur. `arthur.config.ts` and `.arthur/` are its files. Everything is English.
 6. The env prefix is `ARTHUR_` (`ARTHUR_YOUTRACK_TOKEN`), with named instances as above.
-7. The repository is `git@github.com:kacperadler/arthur.git`, public, under FSL-1.1-ALv2.
+7. The repository is `git@github.com:kacperadler/arthur.git`, public, open source under Apache-2.0; the name "Arthur" and its logo stay the owner's (the owner, 2026-10-19).
 8. `schedule` is a module for actions and jobs at set times.
 9. `session` is a plugin; its config covers compaction at 08, 13 and 18 and the fresh start at 23.
 10. The coordinator is always there and talks with the user through a channel or the terminal; there is no single-agent mode. A project may have its own agent beside the coordinator (20).

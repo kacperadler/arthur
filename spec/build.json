@@ -1457,9 +1457,9 @@
   {
     "id": "AR0184",
     "title": "The `.nvmrc` that `arthur init` writes is read by nothing until the nvm plugin (84)",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0184-the-nvmrc-that-arthur-init-writes-is-read-by-nothing-until-the-nvm-plugin-84/ticket.md",
-    "updated": "2026-10-19T11:35:29.756Z"
+    "updated": "2026-10-19T14:17:55.209Z"
   },
   {
     "id": "AR0185",
@@ -1541,9 +1541,9 @@
   {
     "id": "AR0196",
     "title": "Roadmap 84: nvm, each project's Node version",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0196-roadmap-84-nvm-each-project-s-node-version/ticket.md",
-    "updated": "2026-10-19T14:00:49.838Z"
+    "updated": "2026-10-19T14:17:45.438Z"
   },
   {
     "id": "AR0197",
@@ -1590,9 +1590,9 @@
   {
     "id": "AR0203",
     "title": "Arthur is Apache-2.0, with NOTICE, trademark and DCO",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0203-arthur-is-apache-2-0-with-notice-trademark-and-dco/ticket.md",
-    "updated": "2026-10-19T13:59:33.381Z"
+    "updated": "2026-10-19T14:21:57.586Z"
   },
   {
     "id": "AR0204",
@@ -1611,8 +1611,22 @@
   {
     "id": "AR0206",
     "title": "Roadmap 46: YouTrack comments, attachments, and the rules for jobs",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0206-roadmap-46-youtrack-comments-attachments-and-the-rules-for-jobs/ticket.md",
-    "updated": "2026-10-19T14:00:50.957Z"
+    "updated": "2026-10-19T14:32:04.480Z"
+  },
+  {
+    "id": "AR0207",
+    "title": "The option-tables test cannot hold a plugin without options, so nvm's options file is not checked there",
+    "status": "planning",
+    "path": "spec/features/AR0207-the-option-tables-test-cannot-hold-a-plugin-without-options-so-nvm-s-options-file-is-not-checked-there/ticket.md",
+    "updated": "2026-10-19T14:17:45.436Z"
+  },
+  {
+    "id": "AR0208",
+    "title": "Roadmap 47: Telegram receive and send text, and the silent mode",
+    "status": "in-progress",
+    "path": "spec/features/AR0208-roadmap-47-telegram-receive-and-send-text-and-the-silent-mode/ticket.md",
+    "updated": "2026-10-19T14:19:19.192Z"
   }
 ]

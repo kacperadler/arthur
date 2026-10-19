@@ -1382,7 +1382,7 @@
     "title": "GitHub CI names each failed test and stays green on main",
     "status": "done",
     "path": "spec/features/AR0173-github-ci-names-each-failed-test-and-stays-green-on-main/ticket.md",
-    "updated": "2026-10-19T08:41:19.559Z"
+    "updated": "2026-10-19T10:30:03.961Z"
   },
   {
     "id": "AR0174",

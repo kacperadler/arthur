@@ -17,6 +17,9 @@ const TICKET = /^spec\/features\/[A-Z]+\d{4,}-[^/]+\/ticket\.md$/;
 const MARK = /^- Plan: yes\s*$/;
 // Under its Decisions: the owner's approval of the plan.md that commit holds.
 const APPROVED = /^- \d{4}-\d\d-\d\d: Plan approved by the owner: plan\.md at ([0-9a-f]{7,40})\b/;
+// Under its Decisions: autopilot's record (autopilot.ts) with the budget it checked, and an approval the owner gave after it.
+const PRE_APPROVED = /^- \d{4}-\d\d-\d\d: Pre-approved by policy: .*, budget \$(\d+(?:\.\d+)?) of the \$\S+ cap\s*$/;
+const OWNER = /^- \d{4}-\d\d-\d\d: .*\b(?:the owner approved|approved by the owner)\b/i;
 
 export function plans(host: Host): void {
 	const budgetUsd = (host.options.plan as { readonly budgetUsd?: number } | undefined)?.budgetUsd ?? PLAN_BUDGET;
@@ -24,12 +27,12 @@ export function plans(host: Host): void {
 	host.jobs.registerRole({ name: "plan-reviewer", file: new URL("../roles/plan-reviewer.md", import.meta.url), criteria: ["styleguide"] });
 	host.jobs.registerKind({ name: PLAN, readOnly: true, role: "planner", budgetUsd, resumeOnBudget: true, file: filePlan });
 	host.jobs.registerKind({ name: PLAN_REVIEW, readOnly: true, role: "plan-reviewer", file: filePlanReview });
-	host.jobs.beforeSpawn(({ kind, project, task, tickets }) => {
+	host.jobs.beforeSpawn(({ kind, project, task, tickets, budgetUsd }) => {
 		const plan = kind === PLAN || kind === PLAN_REVIEW;
 		if (!plan && (kind !== "worker" || tickets.length === 0)) return undefined;
 		// Only once a task names a ticket: the board needs the project list.
 		const at = () => host.board.projects().find((each) => each.name === project)?.path ?? "";
-		return plan ? planTicket(host, kind, at, tickets) : unapproved(at(), task, tickets);
+		return plan ? planTicket(host, kind, at, tickets) : unapproved(at(), task, tickets, budgetUsd);
 	});
 	const procedure = new URL("../roles/coordinator/plan-ended.md", import.meta.url);
 	host.provide("coordinator.wake", (job: { readonly kind?: unknown }) => (job.kind === PLAN || job.kind === PLAN_REVIEW ? readFileSync(procedure, "utf8").trim() : undefined));
@@ -49,23 +52,39 @@ function planTicket(host: Host, kind: string, at: () => string, tickets: readonl
 }
 
 // A worker on a ticket with `- Plan: yes` under its Goal needs the plan the owner approved: committed at HEAD, the same plan.md
-// as at the commit a Decisions line names, and named on the task's `Plan:` line, so the worker follows it.
-function unapproved(at: string, task: string, tickets: readonly string[]): string | undefined {
+// as at the commit a Decisions line names, and named on the task's `Plan:` line, so the worker follows it. A worker, or a
+// continue, on a ticket pre-approved by policy needs a budget above 0 and at most the one recorded, until the owner approves it.
+function unapproved(at: string, task: string, tickets: readonly string[], budgetUsd: number): string | undefined {
 	// Each ticket's folder once, with its id.
 	const folders = new Map(tickets.map((path) => FEATURE.exec(path)?.slice(1, 3) ?? []).flatMap(([folder, id]) => (folder === undefined || id === undefined ? [] : [[folder, id] as const])));
 	const planned = new Set(Array.from(task.matchAll(/\bPlan:\s*`?([^\s`]+)/g), (match) => (match[1] ?? "").replace(/[.,;:!?)]+$/, "")));
 	const refused = [...folders].flatMap(([folder, id]) => {
 		const shown = spawnSync("git", ["-C", at, "cat-file", "blob", `HEAD:${folder}/ticket.md`], { encoding: "utf8" });
-		if (shown.status !== 0 || !section(shown.stdout, "Goal").some((line) => MARK.test(line))) return [];
-		const plan = `${folder}/plan.md`;
-		const now = blob(at, "HEAD", plan);
-		if (now === undefined) return [`${id} says "- Plan: yes" and has no committed plan.md; plan it first: arthur spawn --kind plan 'Ticket: ${folder}/ticket.md', then the owner's ok`];
-		const commits = section(shown.stdout, "Decisions").flatMap((line) => APPROVED.exec(line)?.[1] ?? []);
-		if (!commits.some((commit) => blob(at, commit, plan) === now))
-			return [`${id}: its plan.md at HEAD is not one the owner approved: no "- YYYY-MM-DD: Plan approved by the owner: plan.md at <commit>" under its Decisions names a commit with this plan.md`];
-		return planned.has(plan) ? [] : [`${id}: the task needs the line Plan: ${plan}, so the worker follows the approved plan`];
+		if (shown.status !== 0) return [];
+		const decisions = section(shown.stdout, "Decisions");
+		return [section(shown.stdout, "Goal").some((line) => MARK.test(line)) ? unplanned(at, folder, id, decisions, planned) : undefined, overBudget(id, decisions, budgetUsd)].flatMap((reason) => reason ?? []);
 	});
 	return refused.length > 0 ? refused.join("; ") : undefined;
+}
+
+// Why a worker may not start yet on a `- Plan: yes` ticket, if it may not.
+function unplanned(at: string, folder: string, id: string, decisions: readonly string[], planned: ReadonlySet<string>): string | undefined {
+	const plan = `${folder}/plan.md`;
+	const now = blob(at, "HEAD", plan);
+	if (now === undefined) return `${id} says "- Plan: yes" and has no committed plan.md; plan it first: arthur spawn --kind plan 'Ticket: ${folder}/ticket.md', then the owner's ok`;
+	const commits = decisions.flatMap((line) => APPROVED.exec(line)?.[1] ?? []);
+	if (!commits.some((commit) => blob(at, commit, plan) === now))
+		return `${id}: its plan.md at HEAD is not one the owner approved: no "- YYYY-MM-DD: Plan approved by the owner: plan.md at <commit>" under its Decisions names a commit with this plan.md`;
+	return planned.has(plan) ? undefined : `${id}: the task needs the line Plan: ${plan}, so the worker follows the approved plan`;
+}
+
+// The last `Pre-approved by policy` line's budget holds a worker, unless a line after it records the owner's own approval.
+function overBudget(id: string, decisions: readonly string[], budgetUsd: number): string | undefined {
+	const at = decisions.findLastIndex((line) => PRE_APPROVED.test(line));
+	if (at < 0 || decisions.slice(at + 1).some((line) => OWNER.test(line))) return undefined;
+	const held = Number(PRE_APPROVED.exec(decisions[at] ?? "")?.[1]);
+	if (budgetUsd > 0 && budgetUsd <= held) return undefined;
+	return `${id} is pre-approved by policy with a budget of $${held}; its worker gets at most that, above 0, not $${budgetUsd}${budgetUsd === 0 ? " (no limit)" : ""}: --budget ${held}, or the owner's approval under its Decisions ("- YYYY-MM-DD: The owner approved ...")`;
 }
 
 // The object id of `path` in `commit`, undefined when it has none there.

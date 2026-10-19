@@ -86,8 +86,8 @@ test("refused, each naming the rule broken: a feature, 4 Scope files, a file on 
 	const four = "In:\n- `src/a.ts`, `src/b.ts`, `src/c.ts`, `src/d.ts`";
 	await refused(await load({ scope: four }), ["its Scope names 4 files, at most 3: src/a.ts, src/b.ts, src/c.ts, src/d.ts"]);
 	await refused(await load({ scope: "In:\n- `src/a.ts`, `package.json`" }), ["on delivery's always-review list: package.json"]);
-	await refused(await load(), ["budget $0; a pre-approved ticket needs a budget above 0 (--budget, or autopilot.budgetUsd)"], 0);
-	await refused(await load({}, { autopilot: { budgetUsd: 0 } }), ["budget $0; a pre-approved ticket needs a budget above 0 (--budget, or autopilot.budgetUsd)"]);
+	await refused(await load(), ["budget $0; a pre-approved ticket needs a budget above 0 (--budget, the budget of its JSON block, or autopilot.budgetUsd)"], 0);
+	await refused(await load({}, { autopilot: { budgetUsd: 0 } }), ["budget $0; a pre-approved ticket needs a budget above 0 (--budget, the budget of its JSON block, or autopilot.budgetUsd)"]);
 	await refused(await load(), ["budget $3.5 is over the cap of $3 (autopilot.budgetMaxUsd)"], 3.5);
 	await refused(await load({}, { autopilot: { budgetMaxUsd: 5 } }), ["budget $6 is over the cap of $5 (autopilot.budgetMaxUsd)"], 6);
 	// Every rule broken at once is named at once.
@@ -95,8 +95,25 @@ test("refused, each naming the rule broken: a feature, 4 Scope files, a file on 
 		"its kind is feature; autopilot pre-approves only bug or cleanup",
 		"its Scope names 4 files, at most 3: src/a.ts, src/b.ts, src/c.ts, package.json",
 		"on delivery's always-review list: package.json",
-		"budget $0; a pre-approved ticket needs a budget above 0 (--budget, or autopilot.budgetUsd)",
+		"budget $0; a pre-approved ticket needs a budget above 0 (--budget, the budget of its JSON block, or autopilot.budgetUsd)",
 	], 0);
+});
+
+test("the budget of the ticket's JSON block is taken when --budget is left out, still capped; a block that is not JSON is refused", async () => {
+	const withBudget = async (json: string) => {
+		const loaded = await load();
+		writeFileSync(join(loaded.root, TICKET), loaded.text().replace('{ "id": "AC0002" }', json));
+		return loaded;
+	};
+	const own = await withBudget('{ "id": "AC0002", "budget": 2.5 }');
+	assert.match(await own.preApprove(), /, budget \$2\.5 of the \$3 cap; spawn its worker with --budget 2\.5$/);
+	assert.match(await (await withBudget('{ "id": "AC0002", "budget": 2.5 }')).preApprove(1), /; spawn its worker with --budget 1$/, "--budget wins");
+	await refused(await withBudget('{ "id": "AC0002", "budget": 4 }'), ["budget $4 is over the cap of $3 (autopilot.budgetMaxUsd)"]);
+	await refused(await withBudget('{ "id": "AC0002", "budget": 0 }'), ["budget $0; a pre-approved ticket needs a budget above 0 (--budget, the budget of its JSON block, or autopilot.budgetUsd)"]);
+	await refused(await withBudget('{ "id": "AC0002", "budget": "2" }'), ['budget "2"; a pre-approved ticket needs a budget above 0 (--budget, the budget of its JSON block, or autopilot.budgetUsd)']);
+	const broken = await withBudget('{ "id": "AC0002", }');
+	await assert.rejects(broken.preApprove(), { message: /^AC0002: not pre-approved: its JSON block is not JSON \(.+\); fix it by hand$/ });
+	assert.equal(broken.status(), "planning");
 });
 
 test("the always-review list not provided (delivery off), or answered in another shape, refuses rather than passes", async () => {

@@ -6,7 +6,7 @@ import type { Host, OptionProblem, Options, Plugin } from "@arthur/core/plugin";
 import { alive, put, REQUEST, type Request, readRequest } from "./request.ts";
 import { registerRestart, restarts } from "./restart.ts";
 import { noteLoaded, registerGuard } from "./restart-guard.ts";
-import { serviceRequirements } from "./service.ts";
+import { noteService, SERVICE, serviceRequirements } from "./service.ts";
 import { startNotice, turnFailures } from "./start-notice.ts";
 
 // The session plugin (spec/roadmap.md, entries 35 to 38): the coordinator's conversation compacted at each `compactAt`, new at
@@ -15,7 +15,8 @@ import { startNotice, turnFailures } from "./start-notice.ts";
 // the handoff extension, which orchestration loads into the coordinator's agent, does the agent's part; the restart guard
 // (restart-guard.ts) holds spawns once a commit changed the code `arthur run` loaded; at each start the model is probed and
 // the start notice sent, opening with the lines `arthur doctor` found missing, and a turn that fails before any text is told
-// (start-notice.ts); the user service and linger as its `arthur doctor` requirements (service.ts): docs/session.md.
+// (start-notice.ts); the user service and linger as its `arthur doctor` requirements, and whether this `arthur run` is the
+// service's (service.ts): docs/session.md.
 
 export type SessionOptions = {
 	readonly enabled?: boolean;
@@ -55,11 +56,12 @@ export function session(options: SessionOptions = {}): Plugin {
 			registerRestart(given);
 			if (options.restartGuard !== false) registerGuard(given);
 		},
-		start() {
+		async start() {
 			if (host === undefined) return;
 			// One left by an `arthur run` before this one is not done late.
 			rmSync(join(host.folder, REQUEST), { force: true });
 			if (options.restartGuard !== false) noteLoaded(host);
+			await noteService(host.folder);
 			stopProbe = startNotice(host, options.probeLlm !== false, missing);
 			const ticks = [["compaction", compactions(host)], ["restart", restarts(host)], ["turn notice", turnFailures(host)]] as const;
 			// A tick that throws (a folder made read-only, a disk full) is told once per distinct error and runs again at the next.
@@ -78,6 +80,7 @@ export function session(options: SessionOptions = {}): Plugin {
 		stop() {
 			clearInterval(timer);
 			stopProbe?.();
+			if (host !== undefined) rmSync(join(host.folder, SERVICE), { force: true });
 		},
 	};
 }

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { type ChildProcess, spawn } from "node:child_process";
+import { type ChildProcess, execFileSync, spawn } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmdirSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
@@ -21,15 +21,18 @@ const lines = (file: string): Record<string, unknown>[] => (existsSync(file) ? r
 
 // The plugin on a fake host in Warsaw at `now`, started as `arthur run` starts it, its printed lines caught; the test provides
 // orchestration's `coordinator.restart`, which notes `fresh` and ends every coordinator started, as killing its session does.
-// No LLM probe, and `notices` leaves out the start notice (start-notice.test.ts).
-async function load(t: TestContext, options: SessionOptions, now: string) {
+// No LLM probe, and `notices` leaves out the start notice (start-notice.test.ts). `code` is what its restart guard watches;
+// `ended` notes each SIGTERM `arthur run` sends itself, with how many coordinator restarts were asked before it.
+async function load(t: TestContext, options: SessionOptions, now: string, code: readonly string[] = []) {
 	const [out, err] = [[] as string[], [] as string[]];
 	t.mock.method(console, "log", (text: string) => void out.push(text));
 	t.mock.method(console, "error", (text: string) => void err.push(text));
-	const fake = fakeHost({ name: "session", options: { compactAt: [], ...options }, timeZone: "Europe/Warsaw", now: new Date(now) });
+	const fake = fakeHost({ name: "session", options: { compactAt: [], ...options }, timeZone: "Europe/Warsaw", now: new Date(now), code });
 	const plugin = session({ probeLlm: false, ...options });
 	await fake.setup(plugin);
-	const [restarts, agents, gates] = [[] as boolean[], [] as ChildProcess[], temporaryFolder()];
+	const [restarts, agents, gates, ended] = [[] as boolean[], [] as ChildProcess[], temporaryFolder(), [] as number[]];
+	const kill = process.kill.bind(process);
+	t.mock.method(process, "kill", (pid: number, signal?: string | number) => (pid === process.pid && signal === "SIGTERM" ? ended.push(restarts.length) > 0 : kill(pid, signal)));
 	fake.provide("coordinator.restart", (asked: { fresh: boolean }) => {
 		restarts.push(asked.fresh);
 		for (const child of agents) child.kill();
@@ -45,9 +48,11 @@ async function load(t: TestContext, options: SessionOptions, now: string) {
 		out,
 		err,
 		restarts,
+		ended,
 		folder,
 		handoff: join(folder, "handoff.md"),
 		start: () => plugin.start?.(),
+		stop: () => plugin.stop?.(),
 		at: (when: string) => fake.setNow(new Date(when)),
 		request: () => (existsSync(join(folder, "request.json")) ? (JSON.parse(readFileSync(join(folder, "request.json"), "utf8")) as Record<string, unknown>) : undefined),
 		notices: () => fake.emitted.filter((event) => event.name === "notice").map((event) => (event.data as { text: string }).text).filter((text) => !text.startsWith("coordinator up on ")),
@@ -74,6 +79,37 @@ async function load(t: TestContext, options: SessionOptions, now: string) {
 			};
 		},
 	};
+}
+
+// Arthur's checkout for the restart guard: the session package's code, committed; `code` for `load`; `merge` commits a change
+// to that code as `h merge` names it, which makes a restart due.
+function checkout() {
+	const root = join(temporaryFolder(), "arthur");
+	const git = (...args: string[]) => execFileSync("git", ["-C", root, "-c", "user.name=test", "-c", "user.email=test@example.com", ...args]);
+	const file = join(root, "packages/session/src/session.ts");
+	mkdirSync(dirname(file), { recursive: true });
+	writeFileSync(file, "one\n");
+	execFileSync("git", ["init", "--quiet", "--initial-branch=main", root]);
+	git("add", "--all");
+	git("commit", "--quiet", "-m", "first");
+	return {
+		code: [join(root, "packages/session")],
+		merge(id: string) {
+			writeFileSync(file, `${id}\n`);
+			git("commit", "--quiet", "--all", "-m", `Merge ${id}: a change`);
+		},
+	};
+}
+
+// A user manager first on PATH until the test ends, answering for arthur.service as systemd 255 prints it: its `Restart` and
+// `MainPID` (`arthur run` the service's when that is this process).
+const PATH = process.env.PATH;
+function service(t: TestContext, unit: { readonly restart: string; readonly pid: number }): void {
+	const bin = temporaryFolder();
+	const answer = `[ "$*" = "--user show arthur.service -p MainPID -p Restart" ] && { printf 'Restart=%s\\nMainPID=%s\\n' '${unit.restart}' '${unit.pid}'; exit 0; }`;
+	writeFileSync(join(bin, "systemctl"), `#!/bin/sh\n${answer}\nexit 1\n`, { mode: 0o755 });
+	t.after(() => void (process.env.PATH = PATH));
+	process.env.PATH = [bin, PATH].join(delimiter);
 }
 
 test("at freshAt with no job running the coordinator writes its handoff, the conversation starts fresh and reads it first, and Restarted. says (fresh session)", async (t) => {
@@ -417,4 +453,80 @@ test("a night's restart that throws is told, and the next night tries again", as
 	rmdirSync(blocked);
 	box.at("2026-10-19T23:00:00+02:00");
 	await until("the next night's restart", () => box.restarts.length === 1);
+});
+
+test("while a restart is due under the service, /restart ends arthur run after the handoff and the coordinator's restart, and Restarted. after its next start says so", async (t) => {
+	const arthur = checkout();
+	const box = await load(t, {}, "2026-10-18T12:00:00+02:00", arthur.code);
+	service(t, { restart: "always", pid: process.pid });
+	const first = box.coordinator({ steps: [{ prompt: true }, { waitFor: box.gate("written") }, { message: "Written." }, { end: true }, { waitFor: box.gate("never") }] });
+	await first.up();
+	await box.start();
+	arthur.merge("AR0002");
+	const also = "then arthur run ends, a restart being due (AR0002 changed Arthur's code), and its service starts it again on the new code";
+	assert.equal(await box.route("/restart"), `restarting: the coordinator writes its handoff first, for at most 120 s; ${also}; Restarted. follows`);
+	await until("the handoff request", () => first.messages().length === 1);
+	assert.deepEqual([box.restarts, box.ended], [[], []], "nothing before the handoff");
+	writeFileSync(box.handoff, `${HANDOFF}\n`);
+	box.open("written");
+	await until("arthur run ended", () => box.ended.length === 1);
+	assert.deepEqual([box.restarts, box.ended], [[false], [1]], "the coordinator's restart asked first, then arthur run ends");
+	assert.deepEqual(box.out, ["session: restart: done; the coordinator restarts, which starts by reading the handoff; arthur run ends, and its service starts it again on the new code"]);
+	// The next `arthur run`, as the service starts it: the same plugin started again, then the next coordinator.
+	box.stop();
+	await box.start();
+	await box.coordinator({ steps: [{ waitFor: box.gate("never") }] }).up();
+	await until("the notice", () => box.notices().length === 1);
+	assert.deepEqual(box.notices(), ["Restarted. (arthur run restarted)"]);
+	assert.equal(await box.route("/restart"), "restarting: the coordinator writes its handoff first, for at most 120 s; Restarted. follows", "the restart is no longer due");
+});
+
+test("while a restart is due under the service with no coordinator, or its note is broken, /restart ends arthur run at its next tick", async (t) => {
+	for (const [broken, why] of [[false, "AR0002 changed Arthur's code"], [true, "is not what arthur run notes at its start; it is noted again at the next start"]] as const) {
+		const arthur = checkout();
+		const box = await load(t, {}, "2026-10-18T12:00:00+02:00", arthur.code);
+		service(t, { restart: "always", pid: process.pid });
+		await box.start();
+		const loaded = join(box.folder, "loaded.json");
+		if (broken) writeFileSync(loaded, "{ torn");
+		else arthur.merge("AR0002");
+		const reason = broken ? `${loaded} ${why}` : why;
+		assert.equal(await box.route("/restart fresh"), `no coordinator is running, so no handoff is asked; its next start is a fresh conversation; then arthur run ends, a restart being due (${reason}), and its service starts it again on the new code`);
+		await until("arthur run ended", () => box.ended.length === 1);
+		assert.deepEqual([box.restarts, box.ended, box.request()], [[true], [1], undefined]);
+		assert.deepEqual(box.out, ["session: restart: done; the coordinator restarts in a fresh conversation, with no handoff: no coordinator was running; arthur run ends, and its service starts it again on the new code"]);
+	}
+});
+
+test("an arthur run that is not the service's, or a service without Restart=always, restarts only the coordinator while a restart is due, and says so", async (t) => {
+	for (const unit of [{ restart: "always", pid: process.pid + 1 }, { restart: "on-failure", pid: process.pid }]) {
+		const arthur = checkout();
+		const box = await load(t, {}, "2026-10-18T12:00:00+02:00", arthur.code);
+		service(t, unit);
+		await box.start();
+		arthur.merge("AR0002");
+		const only = "a restart is due (AR0002 changed Arthur's code), but arthur run runs without its service, so only the coordinator restarts and the restart stays due";
+		assert.equal(await box.route("/restart"), `no coordinator is running, so no handoff is asked; its next start goes on with --continue; ${only}`);
+		assert.deepEqual(box.restarts, [false]);
+		await box.coordinator({ steps: [{ waitFor: box.gate("never") }] }).up();
+		await until("the notice", () => box.notices().length === 1);
+		assert.deepEqual([box.notices(), box.ended], [["Restarted. (handoff not written)"], []]);
+	}
+});
+
+test("under the service, /restart with no restart due, or with restartGuard: false, restarts only the coordinator", async (t) => {
+	for (const restartGuard of [true, false]) {
+		const box = await load(t, { restartGuard }, "2026-10-18T12:00:00+02:00", checkout().code);
+		service(t, { restart: "always", pid: process.pid });
+		await box.start();
+		// Off, the guard notes nothing; a note left from before it was turned off is not read.
+		if (!restartGuard) writeFileSync(join(box.folder, "loaded.json"), "{ torn");
+		const first = box.coordinator({ steps: [{ prompt: true }, { message: "No handoff." }, { end: true }, { waitFor: box.gate("never") }] });
+		await first.up();
+		assert.equal(await box.route("/restart"), "restarting: the coordinator writes its handoff first, for at most 120 s; Restarted. follows");
+		await until("the restart", () => box.restarts.length === 1);
+		await box.coordinator({ steps: [{ waitFor: box.gate("never") }] }).up();
+		await until("the notice", () => box.notices().length === 1);
+		assert.deepEqual([box.notices(), box.ended], [["Restarted. (handoff not written)"], []]);
+	}
 });

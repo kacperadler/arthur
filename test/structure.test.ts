@@ -128,7 +128,9 @@ import { checkStructure } from "./structure.ts";
 // quiet hours; a new package. Orchestration 121 more (1334) for the silent mode: `arthur silent` and `/silent`, its state
 // file, the summary built from the event log, `coordinator.silent`, the held replies and the `## Silent` context line; cut
 // first: the `whole` check onto one line and the state's write inlined (5 lines).
-const BUDGETS = { core: 5448, "core/testing": 344, projects: 475, orchestration: 1334, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 243 };
+// AR0172: machines 31 more (446) for the doctor line of `local`'s tools labels, the `command -v` loop of a listed machine's
+// check run here through `host.jobs.run("local", ...)` (machine-check.ts), its line, costs and fix (machines.ts).
+const BUDGETS = { core: 5448, "core/testing": 344, projects: 475, orchestration: 1334, machines: 446, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 243 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

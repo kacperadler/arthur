@@ -158,6 +158,11 @@ async function server(t: TestContext, issues = 3) {
 		if (path === "/api/issues/SHOP-1/attachments" && !acme) return send(response, 200, page(ATTACHMENTS("")));
 		if (path === "/api/issues/SITE-1/attachments" && acme) return send(response, 200, page([attachment("74-5", "notes.txt", "/acme/api/files/74-5?sign=MTgw", 10, "text/plain", null)]));
 		if (path === "/api/issues/SHOP-3/attachments") return send(response, 200, page([ATTACHMENTS("")[0], attachment("74-6", "x.png", "http://youtrack.example/api/files/74-6?sign=MTgx", 3, "image/png", null)]));
+		// SHOP-4's names: an absolute path, and one holding control characters (a line break, a bell, an escape).
+		if (path === "/api/issues/SHOP-4/attachments") {
+			const names = ["/etc/cron.d/evil", "line\nbreak\u0007\u001b[2J.txt"];
+			return send(response, 200, page(names.map((name, index) => attachment(`74-${index + 1}`, name, `/api/files/74-${index + 1}?sign=MTgy`, 8, "text/plain", null))));
+		}
 		const file = FILES[path.replace(/^\/api\/files\//, "")];
 		if (path.startsWith("/api/files/") && file !== undefined) return response.writeHead(200, { "Content-Type": "application/octet-stream" }).end(file);
 		send(response, 404, { error: "Not Found", error_description: "HTTP 404 Not Found" });
@@ -583,6 +588,17 @@ test("an attachment on another server than the instance's refuses the whole save
 	);
 	assert.deepEqual(seen.map(({ path }) => path), ["/api/issues/SHOP-3/attachments"]);
 	assert.equal(existsSync(join(run.folder, "SHOP-3")), false);
+});
+
+test("an absolute attachment name and one with control characters are saved under safe names inside the issue's folder", async (t) => {
+	const { url } = await server(t);
+	const run = await load(t, envFor(url));
+	const into = join(run.folder, "SHOP-4");
+	const { code, out } = await run(undefined, "issue", "attachments", "SHOP-4");
+	assert.deepEqual([code, out], [0, `${join(into, "_etc_cron.d_evil")} 8 B text/plain\n${join(into, "line_break__[2J.txt")} 23 B text/plain`]);
+	assert.deepEqual(readdirSync(into).sort(), ["_etc_cron.d_evil", "line_break__[2J.txt"]);
+	assert.deepEqual([readFileSync(join(into, "_etc_cron.d_evil")), readFileSync(join(into, "line_break__[2J.txt"))], [FILES["74-1"], FILES["74-2"]]);
+	assert.equal(existsSync(join(run.folder, "SHOP-4", "etc")), false);
 });
 
 test("inside a job, every write to YouTrack is refused before any call; reading still works", async (t) => {

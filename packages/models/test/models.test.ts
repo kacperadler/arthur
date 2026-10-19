@@ -104,7 +104,7 @@ test("refused at load: a kind other than the two, a url not http or https or wit
 	assert.deepEqual(problems({ providers: { mac: { kind: "vllm", url: "http://127.0.0.1:1" } } }), ['providers.mac.kind: expected ollama or openai-compatible, got "vllm"']);
 	for (const url of ["ftp://127.0.0.1/", "http://8.8.8.8:11434", "http://example.com:11434", "http://172.32.0.1", "http://100.128.0.1", "http://[2001:db8::1]:1234", "not a url"])
 		assert.match(problems({ providers: { mac: { kind: "ollama", url } } }).join("\n"), /^providers\.mac\.url: expected an http or https url whose host is loopback, private or Tailscale/, url);
-	for (const url of ["http://127.0.0.1:11434", "http://localhost:11434", "https://mac.tail1234.ts.net", "http://10.0.0.7", "http://172.31.0.1", "http://192.168.1.20", "http://100.64.0.1", "http://[::1]:1234/v1", "http://[fd7a:115c:a1e5::1]:11434"])
+	for (const url of ["http://127.0.0.1:11434", "http://localhost:11434", "https://mac.tail1234.ts.net", "http://10.0.0.7", "http://172.31.0.1", "http://192.168.1.20", "http://100.64.0.1", "http://[::1]:1234/v1", "http://[fd7a:115c:a1e0::1]:11434"])
 		assert.deepEqual(problems({ providers: { mac: { kind: "ollama", url } } }), [], url);
 	for (const probeSeconds of [0, -1, 1.5, "3"]) assert.equal(problems({ probeSeconds }).length, 1, String(probeSeconds));
 	assert.deepEqual(problems({ probeSeconds: 1, limits: { warnAt: 80, stopAt: 100 } }), []);

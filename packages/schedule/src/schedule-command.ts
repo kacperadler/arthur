@@ -1,10 +1,11 @@
 import { rmSync } from "node:fs";
 import { join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
-import { type Entry, entryProblems, isId, isOneOff, lastSlot } from "./entry.ts";
+import { type Entry, isId, isOneOff, lastSlot } from "./entry.ts";
 import { changeEntries, owners, readEntries } from "./entry-file.ts";
 import type { Registered } from "./register.ts";
 import { lastClaimed } from "./run-state.ts";
+import { entryProblems } from "./schedule-options.ts";
 
 // `arthur schedule [list]`, `add` and `remove` (spec/roadmap.md, entry 40): every entry with where it comes from and its next
 // run; `add` and `remove` change the entries of the `file` option only: docs/commands/schedule.md.

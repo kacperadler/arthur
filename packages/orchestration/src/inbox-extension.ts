@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { redact } from "./credential.ts";
 import type { Message } from "./inbox.ts";
 
 // The coordinator's inbox, the agent's side (spec/roadmap.md, entry 24): an OMP extension the coordinator's `omp` loads with
@@ -115,7 +116,7 @@ export default function inbox(pi: ExtensionApi): void {
 		if (last?.role !== "assistant" || ["error", "aborted", "toolUse"].includes(last.stopReason ?? "")) {
 			for (const name of turn) waiting.set(name, UNANSWERED);
 			resume = Date.now() + pause(++unanswered);
-			if (unanswered === 3) write({ notice: `the coordinator's last 3 turns ended without a reply (${[last?.stopReason, last?.errorMessage].filter(Boolean).join(": ") || "no reply"}); their messages go again in 10 s, then after twice as long each time, at most 5 min` });
+			if (unanswered === 3) write({ notice: `the coordinator's last 3 turns ended without a reply (${[last?.stopReason, redact(last?.errorMessage ?? "")].filter(Boolean).join(": ") || "no reply"}); their messages go again in 10 s, then after twice as long each time, at most 5 min` });
 			return;
 		}
 		[unanswered, resume] = [0, 0];

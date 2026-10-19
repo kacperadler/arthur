@@ -3,25 +3,39 @@ import { join } from "node:path";
 import { clock as wallClock } from "@arthur/core/clock";
 import type { Host } from "@arthur/core/plugin";
 import { agentUp, alive, put, REQUEST, type Request, readRequest } from "./request.ts";
+import { restartDue } from "./restart-guard.ts";
+import { servicePid } from "./service.ts";
 import type { SessionOptions } from "./session.ts";
 
 // The fresh start and `/restart` (spec/roadmap.md, entry 36): a restart only once no job runs, after the handoff the
 // coordinator writes (handoff-extension.ts), through orchestration's `coordinator.restart`; at `freshAt` a fresh conversation,
 // tried every `freshRetryMinutes` until `freshUntil`; after the restart one `Restarted.` notice: docs/session.md and
-// docs/commands/restart.md.
+// docs/commands/restart.md. While a restart is due (restart-guard.ts), `/restart` under the service ends `arthur run` too.
 
 // How long `/restart` waits for the handoff before it restarts without one.
 const RESTART_WAIT_SECONDS = 120;
-// Left by a restart until the next coordinator is up: `before` is the agent it ended, `written` whether the handoff was.
+// Left by a restart until the next coordinator is up: `before` is the agent it ended, `written` whether the handoff was, `run`
+// whether `arthur run` ended too.
 const RESTARTED = "restarted.json";
 const AFTER = "after-restart.md";
 
 // `<n> job(s) running`, with their short ids unless `named` is false (the fresh start's line).
 const running = (ids: readonly string[], named = true) => `${ids.length} job${ids.length === 1 ? "" : "s"} running${named ? `: ${ids.map((id) => id.split("-").at(-1)).join(", ")}` : ""}`;
 
-function restart(host: Host, fresh: boolean, written: boolean): void {
-	put(join(host.folder, RESTARTED), JSON.stringify({ fresh, written, before: agentUp(host.folder) ?? 0 }));
+function restart(host: Host, fresh: boolean, written: boolean, run = false): void {
+	put(join(host.folder, RESTARTED), JSON.stringify({ fresh, written, before: agentUp(host.folder) ?? 0, run }));
 	host.call("coordinator.restart", { fresh });
+}
+
+// While the guard is on, why a restart of `arthur run` is due: the commits that changed its code, or why its note is broken.
+function due(host: Host): string | undefined {
+	if ((host.options as SessionOptions).restartGuard === false) return undefined;
+	try {
+		const state = restartDue(host.folder);
+		return state === undefined || state.due.length === 0 ? undefined : `${state.due.join(", ")} changed Arthur's code`;
+	} catch (error) {
+		return (error as Error).message.split("\n")[0];
+	}
 }
 
 // `arthur restart [fresh]` and the phone command `/restart [fresh]`, answered without the model.
@@ -34,15 +48,24 @@ export function registerRestart(host: Host): void {
 		if (ids.length > 0) return { code: 1, line: `error: ${running(ids)}; run /stopall first` };
 		const pending = readRequest(host.folder);
 		if (pending !== undefined && pending.then !== "compact") return { code: 1, line: `error: a restart is already on its way, asked by ${pending.slot === "/restart" ? "/restart" : `freshAt ${pending.slot}`}` };
-		// A compaction still asked for gives way: the extension drops it once the file holds another request.
-		if (agentUp(host.folder) === undefined) {
+		const why = due(host);
+		const run = why !== undefined && servicePid(host.folder) !== undefined;
+		const also =
+			why === undefined ? "" : run ? `; then arthur run ends, a restart being due (${why}), and its service starts it again on the new code` : `; a restart is due (${why}), but arthur run runs without its service, so only the coordinator restarts and the restart stays due`;
+		const none = agentUp(host.folder) === undefined;
+		const line = none
+			? `no coordinator is running, so no handoff is asked; its next start ${fresh ? "is a fresh conversation" : "goes on with --continue"}${also}`
+			: `restarting${fresh ? " in a fresh conversation" : ""}: the coordinator writes its handoff first, for at most ${RESTART_WAIT_SECONDS} s${also}; Restarted. follows`;
+		// With no coordinator the restart is made at once, unless `arthur run` ends too: that is its own tick's, in its process.
+		if (none && !run) {
 			rmSync(join(host.folder, REQUEST), { force: true });
 			restart(host, fresh, false);
-			return { code: 0, line: `no coordinator is running, so no handoff is asked; its next start ${fresh ? "is a fresh conversation" : "goes on with --continue"}` };
+			return { code: 0, line };
 		}
-		const asked: Request = { then: fresh ? "fresh" : "restart", slot: "/restart", asked: Date.now(), waitSeconds: RESTART_WAIT_SECONDS };
+		// A compaction still asked for gives way: the extension drops it once the file holds another request.
+		const asked: Request = { then: fresh ? "fresh" : "restart", slot: "/restart", asked: Date.now(), waitSeconds: RESTART_WAIT_SECONDS, run };
 		put(join(host.folder, REQUEST), JSON.stringify(asked));
-		return { code: 0, line: `restarting${fresh ? " in a fresh conversation" : ""}: the coordinator writes its handoff first, for at most ${RESTART_WAIT_SECONDS} s; Restarted. follows` };
+		return { code: 0, line };
 	};
 	host.commands.register({
 		name: "restart",
@@ -52,7 +75,7 @@ export function registerRestart(host: Host): void {
 			(code === 0 ? console.log : console.error)(line);
 			return code;
 		},
-		phone: { about: "Restart the coordinator after its handoff; /restart fresh starts a new conversation; refused while a job runs", reply: (text) => answer(text).line },
+		phone: { about: "Restart the coordinator after its handoff, and arthur run too while a restart is due; /restart fresh starts a new conversation; refused while a job runs", reply: (text) => answer(text).line },
 	});
 }
 
@@ -101,30 +124,35 @@ export function restarts(host: Host): () => void {
 			host.events.emit("notice", { text: `restart: not done, ${running(ids)}; run /stopall first` });
 			return;
 		}
-		restart(host, fresh, written);
-		const how = written ? "which starts by reading the handoff" : none ? "with no handoff: no coordinator was running" : `with no handoff (${why})`;
-		console.log(`session: ${byNight ? "fresh: done" : "restart: done"}; the coordinator restarts${fresh ? " in a fresh conversation" : ""}, ${how}`);
+		// The night is over before the restart is asked, so one that throws never holds the next night's tries.
 		if (byNight) [night, tried] = [plan(), undefined];
+		// `arthur run` ends only when it is the service's, as it noted at its start; SIGTERM, as the service's own stop, stops every
+		// plugin, the coordinator included, and the service starts it again.
+		const run = request.run === true && servicePid(host.folder) === process.pid;
+		restart(host, fresh, written, run);
+		const how = written ? "which starts by reading the handoff" : none ? "with no handoff: no coordinator was running" : `with no handoff (${why})`;
+		console.log(`session: ${byNight ? "fresh: done" : "restart: done"}; the coordinator restarts${fresh ? " in a fresh conversation" : ""}, ${how}${run ? "; arthur run ends, and its service starts it again on the new code" : ""}`);
+		if (run) process.kill(process.pid, "SIGTERM");
 	};
 
 	const notice = () => {
 		const marked = join(host.folder, RESTARTED);
 		if (!existsSync(marked)) return;
 		const text = readFileSync(marked, "utf8");
-		let left: { readonly fresh?: unknown; readonly written?: unknown; readonly before?: unknown } = {};
+		let left: { readonly fresh?: unknown; readonly written?: unknown; readonly before?: unknown; readonly run?: unknown } = {};
 		try {
 			left = JSON.parse(text);
 		} catch {}
-		const { fresh, written, before } = left;
+		const { fresh, written, before, run } = left;
 		if (typeof fresh !== "boolean" || typeof written !== "boolean" || typeof before !== "number") {
-			console.error(`session: ${marked} is not a restart's mark, so it is dropped: ${text.slice(0, 200)}`);
 			rmSync(marked, { force: true });
+			console.error(`session: ${marked} is not a restart's mark, so it is dropped: ${text.slice(0, 200)}`);
 			return;
 		}
 		const pid = agentUp(host.folder);
 		if (pid === undefined || pid === before) return;
 		rmSync(marked, { force: true });
-		const notes = [fresh ? "fresh session" : "", written ? "" : "handoff not written"].filter(Boolean).join("; ");
+		const notes = [run === true ? "arthur run restarted" : "", fresh ? "fresh session" : "", written ? "" : "handoff not written"].filter(Boolean).join("; ");
 		const after = join(host.folder, AFTER);
 		const steps = existsSync(after) ? readFileSync(after, "utf8").trim() : "";
 		const health = host.collectEach<unknown>("health").flatMap((answer) => ("error" in answer ? [`${answer.plugin}: health failed: ${answer.error.message.split("\n")[0]}`] : [answer.value].flat().filter((line): line is string => typeof line === "string" && line.trim() !== "")));
@@ -144,12 +172,13 @@ export function restarts(host: Host): () => void {
 			night = plan();
 			return;
 		}
-		tried = night.at;
 		const ids = host.jobs.running();
 		if (ids.length > 0) return again(running(ids, false), false);
 		const pending = readRequest(host.folder);
 		if (pending !== undefined && pending.then !== "compact") return again("a restart already asked", false);
 		const asked: Request = { then: "fresh", slot: freshAt, asked: Date.now(), waitSeconds: freshRetryMinutes * 60 };
 		put(file, JSON.stringify(asked));
+		// Noted once the request is out: one whose write threw is tried again at the next tick.
+		tried = night.at;
 	};
 }

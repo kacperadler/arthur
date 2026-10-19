@@ -1196,9 +1196,9 @@
   {
     "id": "AR0148",
     "title": "A throw in the session's 500 ms tick ends `arthur run`",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0148-a-throw-in-the-session-s-500-ms-tick-ends-arthur-run/ticket.md",
-    "updated": "2026-10-19T06:02:04.911Z"
+    "updated": "2026-10-19T06:56:25.159Z"
   },
   {
     "id": "AR0149",
@@ -1286,9 +1286,9 @@
   {
     "id": "AR0160",
     "title": "`/restart` cannot clear a restart due, since it restarts only the coordinator's agent",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0160-restart-cannot-clear-a-restart-due-since-it-restarts-only-the-coordinator-s-agent/ticket.md",
-    "updated": "2026-10-19T05:41:39.883Z",
+    "updated": "2026-10-19T07:46:39.424Z",
     "after": [
       "AR0148"
     ]
@@ -1317,9 +1317,9 @@
   {
     "id": "AR0164",
     "title": "The inbox's notice after 3 unanswered turns repeats omp's error unredacted",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0164-the-inbox-s-notice-after-3-unanswered-turns-repeats-omp-s-error-unredacted/ticket.md",
-    "updated": "2026-10-19T06:14:26.985Z"
+    "updated": "2026-10-19T06:29:24.516Z"
   },
   {
     "id": "AR0165",
@@ -1359,9 +1359,9 @@
   {
     "id": "AR0170",
     "title": "Roadmap 93: Option tables, every option with its meaning, and the tools each plugin runs",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0170-roadmap-93-option-tables-every-option-with-its-meaning-and-the-tools-each-plugin-runs/ticket.md",
-    "updated": "2026-10-19T01:04:42.363Z"
+    "updated": "2026-10-19T07:18:00.751Z"
   },
   {
     "id": "AR0171",
@@ -1380,8 +1380,50 @@
   {
     "id": "AR0173",
     "title": "GitHub CI names each failed test and stays green on main",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0173-github-ci-names-each-failed-test-and-stays-green-on-main/ticket.md",
-    "updated": "2026-10-19T06:17:42.046Z"
+    "updated": "2026-10-19T08:41:19.559Z"
+  },
+  {
+    "id": "AR0174",
+    "title": "Roadmap: a decision log of what the owner decided when Arthur asked",
+    "status": "merged",
+    "path": "spec/features/AR0174-roadmap-a-decision-log-of-what-the-owner-decided-when-arthur-asked/ticket.md",
+    "updated": "2026-10-19T07:00:45.570Z"
+  },
+  {
+    "id": "AR0175",
+    "title": "A `/restart` whose restart throws in the tick tells the owner nothing",
+    "status": "planning",
+    "path": "spec/features/AR0175-a-restart-whose-restart-throws-in-the-tick-tells-the-owner-nothing/ticket.md",
+    "updated": "2026-10-19T06:56:25.156Z"
+  },
+  {
+    "id": "AR0176",
+    "title": "The roadmap has no entry yet for decisions pre-approved from the decision log",
+    "status": "planning",
+    "path": "spec/features/AR0176-the-roadmap-has-no-entry-yet-for-decisions-pre-approved-from-the-decision-log/ticket.md",
+    "updated": "2026-10-19T07:00:45.567Z"
+  },
+  {
+    "id": "AR0177",
+    "title": "An option's `default` is text beside the code's own default, and nothing checks they agree",
+    "status": "planning",
+    "path": "spec/features/AR0177-an-option-s-default-is-text-beside-the-code-s-own-default-and-nothing-checks-they-agree/ticket.md",
+    "updated": "2026-10-19T07:18:00.744Z"
+  },
+  {
+    "id": "AR0178",
+    "title": "`roles.quick.model` has its meaning only in the `about` of `roles`",
+    "status": "planning",
+    "path": "spec/features/AR0178-roles-quick-model-has-its-meaning-only-in-the-about-of-roles/ticket.md",
+    "updated": "2026-10-19T07:18:00.748Z"
+  },
+  {
+    "id": "AR0179",
+    "title": "Roadmap 94: arthur setup, what is there, what is set, what is missing",
+    "status": "done",
+    "path": "spec/features/AR0179-roadmap-94-arthur-setup-what-is-there-what-is-set-what-is-missing/ticket.md",
+    "updated": "2026-10-19T09:53:12.214Z"
   }
 ]

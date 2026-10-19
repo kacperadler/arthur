@@ -184,7 +184,7 @@ export default defineConfig({
 			freshRetryMinutes: 15, // while a job runs, try again this often; a positive whole number; default 15
 			freshUntil: "03:00", // "HH:MM", the last try (the next day when earlier than freshAt); then that night is skipped
 			restartGuard: true, // once a commit changed the code `arthur run` loaded, refuse every spawn and continue (unless
-			// --ignore-restart) until `arthur run` starts again; `/restart` restarts only the coordinator, so it does not clear it
+			// --ignore-restart) until `arthur run` starts again; `/restart` under the service ends `arthur run` then, which clears it
 			probeLlm: true, // one word asked of the coordinator's model at every start, cut after 60 s; false = no probe
 			// Registers `arthur restart [fresh]` and the phone commands `/restart` and `/restart fresh`: answered without the model,
 			// refused while any job runs; after the handoff, one `Restarted.` notice with `.arthur/session/after-restart.md`.

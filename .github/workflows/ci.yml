@@ -6,11 +6,16 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
-      - run: npm ci && npm run check && npm test
+      - run: npm ci
+      - run: npm run check
+      # The spec reporter for the log; test/github-annotations.ts turns each failed test into an `::error` annotation, readable without a token.
+      - run: npm test
+        env:
+          NODE_OPTIONS: --test-reporter=spec --test-reporter-destination=stdout --test-reporter=${{ github.workspace }}/test/github-annotations.ts --test-reporter-destination=stdout

@@ -178,8 +178,9 @@ test("a prepare that throws on a job on another machine removes its worktree and
 	assert.equal(git(join(there, "repos/acme.git"), "branch", "--list"), "");
 });
 
-const messages = (agent: string) => (existsSync(join(agent, "..", "messages.jsonl")) ? readFileSync(join(agent, "..", "messages.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line) as unknown) : []);
-const starts = (agent: string) => (existsSync(join(agent, "..", "starts.jsonl")) ? readFileSync(join(agent, "..", "starts.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line) as { readonly cwd: string }) : []);
+// Whole lines only: a line the agent is still appending has no line break yet.
+const messages = (agent: string) => (existsSync(join(agent, "..", "messages.jsonl")) ? readFileSync(join(agent, "..", "messages.jsonl"), "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line) as unknown) : []);
+const starts = (agent: string) => (existsSync(join(agent, "..", "starts.jsonl")) ? readFileSync(join(agent, "..", "starts.jsonl"), "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line) as { readonly cwd: string }) : []);
 const endedThere = (there: string, id: string) => until("the job's end there", () => existsSync(join(there, "jobs", id, "state")) && read(there, id, "state") === "ended");
 const UNREACHABLE = "machine gpu: ssh gpu: kacper@gpu: Permission denied (publickey).";
 

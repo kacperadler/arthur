@@ -585,6 +585,28 @@ test("an attachment on another server than the instance's refuses the whole save
 	assert.equal(existsSync(join(run.folder, "SHOP-3")), false);
 });
 
+test("inside a job, every write to YouTrack is refused before any call; reading still works", async (t) => {
+	const { url, seen } = await server(t);
+	const run = await load(t, envFor(url));
+	const at = files(t, { "text.md": "Fixed\n\nIn 1.2." });
+	t.after(() => delete process.env.ARTHUR_JOB);
+	process.env.ARTHUR_JOB = join(dirname(run.folder), "jobs", "2026-10-19-worker-0a1b2c3d");
+	const writes = [
+		["issue", "create", at("text.md")],
+		["issue", "update", "SHOP-1", at("text.md"), String(FULL_ISSUE.updated)],
+		["issue", "set", "SHOP-1", "Priority", "Major"],
+		["issue", "work", "SHOP-1", "30"],
+		["article", "create", at("text.md")],
+		["article", "update", "SHOP-A-2", at("text.md"), String(ARTICLE.updated)],
+		["comment", "add", "SHOP-1", at("text.md")],
+		["comment", "edit", "SHOP-1", "4-17", at("text.md")],
+		["comment", "delete", "SHOP-1", "4-17"],
+	];
+	for (const args of writes) assert.equal(await refusal(run(undefined, ...args)), "a job never writes to YouTrack; put what should go there in your final message; nothing was asked of YouTrack", args.join(" "));
+	assert.deepEqual(seen, []);
+	for (const args of [["issue", "get", "SHOP-1"], ["comment", "list", "SHOP-1"], ["issue", "attachments", "SHOP-2"]]) assert.equal((await run(undefined, ...args)).code, 0, args.join(" "));
+});
+
 test("every job of a project on YouTrack gets the rules for its issues in its prompt, in any role; a job of another project gets none", async (t) => {
 	const repository = () => {
 		const root = temporaryFolder();

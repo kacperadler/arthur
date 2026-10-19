@@ -2,7 +2,7 @@
   "name": "@arthur/machines",
   "private": true,
   "type": "module",
-  "license": "SEE LICENSE IN ../../LICENSE",
+  "license": "Apache-2.0",
   "exports": {
     ".": "./src/machines.ts",
     "./options": "./src/machine-options.ts"

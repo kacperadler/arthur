@@ -2,7 +2,7 @@
   "name": "@arthur/schedule",
   "private": true,
   "type": "module",
-  "license": "SEE LICENSE IN ../../LICENSE",
+  "license": "Apache-2.0",
   "exports": {
     ".": "./src/schedule.ts",
     "./options": "./src/schedule-options.ts"

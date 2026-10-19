@@ -8,11 +8,12 @@ import { join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+import { everyOption, type OptionTable } from "@arthur/core/option-table";
 import { fakeHost } from "@arthur/core/testing";
 import { OTHER } from "../src/poll.ts";
 import { cut, slices } from "../src/slices.ts";
-import { checkOptions } from "../src/telegram-options.ts";
-import { type TelegramOptions, telegram } from "../src/telegram.ts";
+import { checkOptions, table } from "../src/telegram-options.ts";
+import { API_URL, type TelegramOptions, telegram } from "../src/telegram.ts";
 
 // Built at run time, so no literal in the repository looks like a bot token to a secret scanner; Telegram answers both 401.
 const TOKEN = ["7012345678", `AAH-${"t".repeat(31)}`].join(":");
@@ -548,4 +549,21 @@ test("two processes sending at once through one outbox: each one's slices go in 
 			texts.filter((text) => text.startsWith(who)),
 			Array.from({ length: 20 }, (_, i) => `${who} ${i}`),
 		);
+});
+
+// Each default `table` writes as a value, by its path, parsed as JSON when it parses; `words` are the paths of those written as
+// words for a person, left out.
+function valueDefaults(table: OptionTable, words: readonly string[]): Record<string, unknown> {
+	const value = (text: string): unknown => {
+		try {
+			return JSON.parse(text);
+		} catch {
+			return text;
+		}
+	};
+	return Object.fromEntries(everyOption(table).flatMap(({ path, entry }) => (entry.default === undefined || words.includes(path) ? [] : [[path, value(entry.default)]])));
+}
+
+test("each default the option table writes as a value is the one the code applies with nothing set", () => {
+	assert.deepEqual(valueDefaults(table, ["bots.*.name"]), { apiUrl: API_URL });
 });

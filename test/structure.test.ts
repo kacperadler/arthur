@@ -164,11 +164,27 @@ import { checkStructure } from "./structure.ts";
 // 9 more (467), AR0150, for the busy cores sampled over a second from `cpus()`, here and in the `node -e` script there.
 // Merged with main: core 5455 + 31 = 5486, resources 458 + 9 = 467.
 // Merged with AR0212: telegram 401 as above; the rest as main has them.
+// AR0191, AR0193, AR0198, AR0202 (findings batch): models 21 more (506): probe answers kept in probes.json under a lock per
+// provider and machine across processes (probe.ts, 15), omp's models.yml read on each registered machine (model-doctor.ts, 6);
+// cut first: the probes' in-process map of running probes, which the lock replaces, and the local models.yml line now read
+// through `host.jobs.run` as the others are. Core 6 more (5492, after main's 5486): a record whose `pid` is gone ends the
+// wrapper (wrapper.ts, 3), a prompt section's `{ text, warnings }` checked and its warnings joined to the spawn's (roles.ts, 3).
+// AR0177: every default an option table writes as a value is checked against the one the code applies, by a test per package;
+// where the code applied a literal inside its setup, the literal became an exported constant the test reads: machines 2 more
+// (448, `EVERY_SECONDS`), models 2 more (487, `DEFAULTS`), session 4 more (877, `DEFAULTS` and its import in restart.ts),
+// telegram 2 more (403, `API_URL`), youtrack 2 more (466, `TIMEOUT_SECONDS`), each a comment and the constant.
+// AR0180: a plugin's own `doctor`, read from its options without its setup or env values, so `arthur doctor`, `arthur setup` and
+// a refused `arthur run` check it while the load refuses; core 22 more (5477) for `Plugin.doctor` and its check (plugin.ts),
+// `ownAnswers` (doctor.ts), each plugin's own answers before its provided ones (host.ts), and the config kept for the fallback
+// (cli.ts, setup.ts); orchestration's tmux and session's service and linger moved into theirs, no line more.
+// Merged with main: core 5492 + 22 (AR0180) = 5514, models 506 + 2 (AR0177) = 508, resources 467; machines, session, telegram
+// and youtrack as AR0177 has them.
 // AR0149: one ssh call per machine and round serves the machines check and the free CPU and memory: machines 10 more (456) for
 // the `node -e` script in the check's command, its line in the report and the `machines.round` hook as each round begins;
 // resources 16 more (483) for the hook kept as each listed machine's check, a check in flight waited for, and `local` alone on
 // the 60 s timer; cut first: the round's numbers go through the same parse as this side's own `node -e`, no second parser.
-const BUDGETS = { core: 5486, "core/testing": 349, projects: 480, orchestration: 1381, machines: 456, resources: 483, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 401 };
+// Merged with main: machines 448 + 10 (AR0149) = 458, resources 467 + 16 (AR0149) = 483; the rest as main has them.
+const BUDGETS = { core: 5514, "core/testing": 349, projects: 480, orchestration: 1381, machines: 458, resources: 483, session: 877, schedule: 552, models: 508, youtrack: 466, "commit-rules": 168, nvm: 84, telegram: 403 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

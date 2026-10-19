@@ -7,6 +7,9 @@ export const summary = "the coordinator's conversation: compacted by day, fresh 
 
 export const tools: readonly Tool[] = [];
 
+// What the code applies to an option left out (session.ts, restart.ts).
+export const DEFAULTS = { compactAt: ["08:00", "13:00", "18:00"], compactWaitSeconds: 1800, freshAt: "23:00", freshRetryMinutes: 15, freshUntil: "03:00", restartGuard: true, probeLlm: true };
+
 const HH_MM = /^([01]\d|2[0-3]):[0-5]\d$/;
 export const time: Check = (value) => (typeof value === "string" && HH_MM.test(value) ? undefined : 'a time "HH:MM" from 00:00 to 23:59');
 const whole =

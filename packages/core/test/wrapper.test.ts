@@ -216,6 +216,23 @@ test("a record deleted while the job runs: the agent is stopped, the wrapper end
 	assert.deepEqual(readEvents(home, 1).map((event) => event.name), ["job-started"]);
 });
 
+test("a record removed file by file, its folder kept a while as `rm -r` does: the wrapper ends with its one line, never a crash", async () => {
+	const gates = temporaryFolder();
+	const agent = fakeAgent({ steps: [{ waitFor: join(gates, "emptied") }, { stderr: "still here" }, { waitFor: join(gates, "never") }] });
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	const folder = join(home, "jobs", job.id);
+	const wrapper = Number(await until("the wrapper's pid", () => (existsSync(join(folder, "pid")) ? readFileSync(join(folder, "pid"), "utf8") : undefined)));
+	const [start] = await until("the agent's start", () => (existsSync(join(dirname(agent), "starts.jsonl")) ? starts(agent) : undefined));
+	for (const name of readdirSync(folder)) rmSync(join(folder, name), { recursive: true });
+	writeFileSync(join(gates, "emptied"), "");
+	await until("the wrapper's end", () => !alive(wrapper));
+	await until("the agent's end", () => !alive(start?.pid ?? 0));
+	const line = `job ${job.id}: its record ${folder} was deleted while it ran; the agent was stopped and nothing more is written`;
+	assert.match(readFileSync(join(home, "wrapper.log"), "utf8"), new RegExp(`^\\[arthur [^\\]]+\\] ${line.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}\\n$`));
+	assert.equal(existsSync(join(folder, "state")), false, "no state written into the record");
+});
+
 test("a record deleted while the job runs stops every process the agent started, not only the agent", async () => {
 	// An agent whose bash call left a process running, as `npm test` or a server does: a child of its own.
 	const dir = temporaryFolder();

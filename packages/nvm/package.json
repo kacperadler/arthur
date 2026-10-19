@@ -2,7 +2,7 @@
   "name": "@arthur/nvm",
   "private": true,
   "type": "module",
-  "license": "SEE LICENSE IN ../../LICENSE",
+  "license": "Apache-2.0",
   "exports": {
     ".": "./src/nvm.ts",
     "./options": "./src/nvm-options.ts"

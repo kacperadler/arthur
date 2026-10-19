@@ -166,6 +166,29 @@ test("the plan guard reads only the Goal: a Plan: yes line elsewhere, a ticket w
 	assert.equal((await jobs.spawn({ task: "No ticket at all." })).kind, "worker");
 });
 
+test("a worker or a continue on a pre-approved ticket needs a budget above 0 and at most the recorded one, until the owner approves it", async (t) => {
+	const { jobs, fake, root, commit, ended } = await load(t);
+	const small = "spec/features/AC0002-small/ticket.md";
+	const task = `Ticket: ${small}`;
+	const decisions = "## Decisions\n\n- 2026-01-01: Source: F1 of AC0001\n- 2026-01-02: Pre-approved by policy: bug from F1 of AC0001, 1 Scope file, budget $1.5 of the $3 cap\n";
+	writeFileSync(join(root, small), `# AC0002\n\n## Goal\n\n- Kind: bug\n\n${decisions}`);
+	commit("pre-approved");
+	const over = (got: string) => ({ message: `refused by orchestration: AC0002 is pre-approved by policy with a budget of $1.5; its worker gets at most that, above 0, not $${got}: --budget 1.5, or the owner's approval under its Decisions ("- YYYY-MM-DD: The owner approved ...")` });
+	await assert.rejects(jobs.spawn({ task }), over("2"), "the jobs' default budget");
+	await assert.rejects(jobs.spawn({ task, budgetUsd: 1.51 }), over("1.51"));
+	await assert.rejects(jobs.spawn({ task, budgetUsd: 0 }), over("0 (no limit)"));
+	const worker = await jobs.spawn({ task, budgetUsd: 1.5 });
+	await ended(worker.id);
+	await assert.rejects(fake.continue(worker.id, "Go on.", 10), over("10"));
+	// The owner's own approval after the record lifts it; one before it does not.
+	writeFileSync(join(root, small), `# AC0002\n\n## Goal\n\n- Kind: bug\n\n${decisions.replace("- 2026-01-02", "- 2026-01-01: The owner approved this.\n- 2026-01-02")}`);
+	commit("approved before");
+	await assert.rejects(jobs.spawn({ task, budgetUsd: 10 }), over("10"));
+	writeFileSync(join(root, small), `# AC0002\n\n## Goal\n\n- Kind: bug\n\n${decisions}- 2026-01-03: The owner approved this at $10.\n`);
+	commit("approved after");
+	assert.equal((await jobs.spawn({ task, budgetUsd: 10 })).budgetUsd, 10);
+});
+
 test("a plan job carries its ticket, so placement reads the ticket's labels and the job goes to the ticket's machine", async (t) => {
 	const { jobs, fake, root } = await load(t);
 	// A fake ssh that notes where it was sent and fails, as an unreachable machine does.

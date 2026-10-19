@@ -27,6 +27,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Fixed
 
 - AR0148 A throw in the session's 500 ms tick ends `arthur run` (cee952c)
+- AR0154 A pre-approved ticket's budget is recorded, not held at its worker's spawn (3ff3338)
 - AR0164 The inbox's notice after 3 unanswered turns repeats omp's error unredacted (1bf2a8a)
 - AR0167 GitHub CI fails now and then on main with the same code (59e5760)
 - AR0173 GitHub CI names each failed test and stays green on main (a1fbecb)
@@ -37,6 +38,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0199 The option-tables test cannot list a plugin without options (d7bd88e)
 - AR0207 The option-tables test cannot hold a plugin without options, so nvm's options file is not checked there
+- AR0210 The nvm package still names the old licence (e9e6d98)
 
 ### Other
 

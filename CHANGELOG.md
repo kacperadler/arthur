@@ -59,6 +59,8 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0201 wrapper.test.ts failed once on a cleanup race (244a725)
 - AR0202 A record removed file by file crashes the wrapper instead of ending it with its one line
 - AR0204 `issue update` overwrites a description changed since it was read
+- AR0213 A pre-approved ticket's worker on a free model is refused (bd3400d)
+- AR0217 A ticket's memory cap can be stretched by swap
 
 ### Changed
 

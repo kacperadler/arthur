@@ -1,6 +1,9 @@
+import { everyOption, type OptionTable } from "@arthur/core/option-table";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkOptions, coordinatorOptions, roleOptions } from "../src/orchestration-options.ts";
+import { AUTOPILOT_BUDGET, AUTOPILOT_CAP } from "../src/autopilot.ts";
+import { checkOptions, coordinatorOptions, MAX_AGENTS, roleOptions, table } from "../src/orchestration-options.ts";
+import { PLAN_BUDGET } from "../src/plans.ts";
 
 const paths = (options: Record<string, unknown>) => checkOptions(options).map(({ path, problem }) => `${path}: ${problem}`);
 
@@ -25,6 +28,34 @@ test("the options of arthur.config.example.ts pass, and none at all pass with th
 	assert.deepEqual(coordinatorOptions({ coordinator: { tmux: { socket: "/tmp/x.sock" }, exitWaitSeconds: 0 } }), { model: undefined, thinking: undefined, quick: undefined, session: "arthur", socket: "/tmp/x.sock", exitWaitSeconds: 0, restartDelaySeconds: 5 });
 	assert.equal(coordinatorOptions(example).quick, "anthropic/claude-haiku-5-5");
 	assert.deepEqual([roleOptions(example, "reviewer"), roleOptions(example, "auditor"), roleOptions({}, "worker"), roleOptions(example, "toString")], [{ model: "anthropic/claude-sonnet-5", thinking: "medium" }, {}, {}, {}]);
+});
+
+// Each default `table` writes as a value, by its path, parsed as JSON when it parses; `words` are the paths of those written as
+// words for a person, left out.
+function valueDefaults(table: OptionTable, words: readonly string[]): Record<string, unknown> {
+	const value = (text: string): unknown => {
+		try {
+			return JSON.parse(text);
+		} catch {
+			return text;
+		}
+	};
+	return Object.fromEntries(everyOption(table).flatMap(({ path, entry }) => (entry.default === undefined || words.includes(path) ? [] : [[path, value(entry.default)]])));
+}
+
+test("each default the option table writes as a value is the one the code applies with nothing set", () => {
+	const coordinator = coordinatorOptions({});
+	assert.deepEqual(valueDefaults(table, ["coordinator.model", "coordinator.thinking", "roles.*.model", "roles.*.thinking"]), {
+		maxAgents: MAX_AGENTS,
+		"coordinator.tmux.session": coordinator.session,
+		"coordinator.tmux.socket": coordinator.socket,
+		"coordinator.exitWaitSeconds": coordinator.exitWaitSeconds,
+		"coordinator.restartDelaySeconds": coordinator.restartDelaySeconds,
+		"plan.budgetUsd": PLAN_BUDGET,
+		"autopilot.budgetUsd": AUTOPILOT_BUDGET,
+		"autopilot.budgetMaxUsd": AUTOPILOT_CAP,
+	});
+	assert.deepEqual([coordinator.model, coordinator.thinking, roleOptions({}, "worker")], [undefined, undefined, {}], "the agent's own: nothing is passed");
 });
 
 test("each wrong option is refused, naming its path", () => {

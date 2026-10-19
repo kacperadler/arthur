@@ -276,6 +276,7 @@ test("an entry that is no plugin, or a plugin with a wrong field, is refused by 
 		{ name: "session", setup() {}, options: [] },
 		{ name: "youtrack", setup() {}, stop: true },
 		{ name: "manage", setup() {}, after: ["schedule", 1] },
+		{ name: "voice", setup() {}, doctor: [] },
 		fake([], "github", { options: { enabled: "no" } }),
 	]);
 	assert.equal(
@@ -288,6 +289,7 @@ test("an entry that is no plugin, or a plugin with a wrong field, is refused by 
 			"plugins[4]: session: expected options as an object, got a list",
 			"plugins[5]: youtrack: expected stop as a function, got true",
 			"plugins[6]: manage: expected after as a list of plugin names, got a list",
+			"plugins[7]: voice: expected doctor as a function, got a list",
 			'github.enabled: expected true or false, got "no"',
 		]
 			.map((line) => `${loaded.path}: ${line}`)

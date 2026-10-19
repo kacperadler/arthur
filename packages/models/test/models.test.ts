@@ -9,10 +9,11 @@ import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { promisify } from "node:util";
+import { everyOption, type OptionTable } from "@arthur/core/option-table";
 import type { Requirement } from "@arthur/core/plugin";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
-import { checkOptions } from "../src/model-options.ts";
-import { type ModelsOptions, models } from "../src/models.ts";
+import { checkOptions, table } from "../src/model-options.ts";
+import { DEFAULTS, type ModelsOptions, models } from "../src/models.ts";
 
 // The models plugin against the fake host, a fake Ollama and a fake OpenAI-compatible server on loopback ports the OS picks,
 // each answering its model list in its documented shape, and the fake agent as `omp`, its usage report included.
@@ -471,4 +472,21 @@ test("doctor: omp's models.yml on each registered machine, read over ssh; absent
 		delete process.env.PI_CODING_AGENT_DIR;
 		process.env.PATH = PATH;
 	}
+});
+
+// Each default `table` writes as a value, by its path, parsed as JSON when it parses; `words` are the paths of those written as
+// words for a person, left out.
+function valueDefaults(table: OptionTable, words: readonly string[]): Record<string, unknown> {
+	const value = (text: string): unknown => {
+		try {
+			return JSON.parse(text);
+		} catch {
+			return text;
+		}
+	};
+	return Object.fromEntries(everyOption(table).flatMap(({ path, entry }) => (entry.default === undefined || words.includes(path) ? [] : [[path, value(entry.default)]])));
+}
+
+test("each default the option table writes as a value is the one the code applies with nothing set", () => {
+	assert.deepEqual(valueDefaults(table, ["providers.*.keyEnv"]), { probeSeconds: DEFAULTS.probeSeconds, "limits.warnAt": DEFAULTS.warnAt, "limits.stopAt": DEFAULTS.stopAt });
 });

@@ -1,6 +1,6 @@
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-19.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22 are merged; orchestration has entries 23 to 29 of 23-29 and 65; projects has entry 41 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entry 39 of 39-40; no other plugin exists yet.
+%% Core entries 1-22 and 80 are merged; orchestration has entries 23 to 29 of 23-29 and 65; projects has entry 41 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entry 39 of 39-40; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -15,7 +15,7 @@ flowchart TD
     files[/arthur.config.ts<br/>.env: secret values/]
     terminal[terminal<br/>arthur CLI, arthur attach]
     loader[config loader<br/>arthur config check]
-    run[arthur run<br/>one process per home]
+    run[arthur run<br/>one process per home<br/>arthur doctor at every start]
     commands[command registry<br/>arthur CLI, /name text]
     host[plugin host<br/>provide, call, collect]
     events[event stream<br/>.arthur/events.jsonl]
@@ -25,7 +25,7 @@ flowchart TD
     guards[env guard<br/>worktree guard]
     runner[job runner<br/>spawn, limits, stop, steer<br/>state, prune, other machines]
     kit[test kit<br/>fake host, fake agent]
-    corelater[later in the core<br/>doctor, setup, arthur send<br/>cleanup hooks, frozen API]
+    corelater[later in the core<br/>setup, arthur send<br/>cleanup hooks, frozen API]
     files -->|loads| loader
     terminal --> commands
     loader --> host

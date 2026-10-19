@@ -16,6 +16,10 @@ export type OptionProblem = { readonly path: string; readonly problem: string };
 // Any function: a provider's arguments are whatever its callers pass.
 export type Provider = (...args: never[]) => unknown;
 
+// One thing a plugin needs to work, which it provides in a list through `provide("doctor", ...)` (spec/roadmap.md, entry 80):
+// `check` answers `ok`, `ok (<detail>)` or `missing: <reason>`; `fix` is read after it, so it may name that reason's fix.
+export type Requirement = { readonly name: string; check(): string | Promise<string>; readonly costs: string; readonly fix: string; readonly critical?: boolean };
+
 export type Plugin = {
 	readonly name: string;
 	// As written in the config. `enabled: false` means the host neither loads the plugin nor reads its env variables.

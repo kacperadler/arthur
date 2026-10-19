@@ -259,8 +259,10 @@ test("at a start only a handoff newer than the last one read is read, and an emp
 	writeFileSync(box.handoff, `${HANDOFF}\n`);
 	const newer = box.coordinator(quiet);
 	await newer.up();
+	// The agent notes its pid before it sends the handoff, and notes the handoff read after.
+	await until("the handoff read", () => newer.messages().length > 0);
 	assert.deepEqual(newer.messages().map((message) => message.content), [read(box.handoff, HANDOFF)]);
-	assert.equal(readFileSync(join(box.folder, "handoff-read"), "utf8"), String(statSync(box.handoff).mtimeMs), "noted as read");
+	await until("the handoff noted as read", () => readFileSync(join(box.folder, "handoff-read"), "utf8") === String(statSync(box.handoff).mtimeMs));
 	const next = box.coordinator(quiet);
 	await next.up();
 	await sleep(300);

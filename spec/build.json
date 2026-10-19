@@ -1562,9 +1562,9 @@
   {
     "id": "AR0199",
     "title": "The option-tables test cannot list a plugin without options",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0199-the-option-tables-test-cannot-list-a-plugin-without-options/ticket.md",
-    "updated": "2026-10-19T14:48:25.724Z"
+    "updated": "2026-10-19T15:07:12.044Z"
   },
   {
     "id": "AR0200",
@@ -1618,15 +1618,15 @@
   {
     "id": "AR0207",
     "title": "The option-tables test cannot hold a plugin without options, so nvm's options file is not checked there",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0207-the-option-tables-test-cannot-hold-a-plugin-without-options-so-nvm-s-options-file-is-not-checked-there/ticket.md",
-    "updated": "2026-10-19T14:48:25.923Z"
+    "updated": "2026-10-19T15:07:21.744Z"
   },
   {
     "id": "AR0208",
     "title": "Roadmap 47: Telegram receive and send text, and the silent mode",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0208-roadmap-47-telegram-receive-and-send-text-and-the-silent-mode/ticket.md",
-    "updated": "2026-10-19T14:19:19.192Z"
+    "updated": "2026-10-19T15:03:10.998Z"
   }
 ]

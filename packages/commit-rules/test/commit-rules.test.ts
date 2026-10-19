@@ -4,9 +4,11 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
+import type { Host } from "@arthur/core/plugin";
 import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { checkOptions, table } from "../src/commit-rules-options.ts";
 import { commitRules, type Rule } from "../src/commit-rules.ts";
+import { hookStep } from "../src/hook.ts";
 
 const REGEX = "^(feat|fix|docs)(\\([\\w-]+\\))?!?: .{1,72}$";
 const RULE = "commit refused: the subject \"Fixed it\" does not match this project's commit rule, the regex ^(feat|fix|docs)(\\([\\w-]+\\))?!?: .{1,72}$";
@@ -185,4 +187,44 @@ test("the plugin takes no option: a project's rule is its commitRules", () => {
 	assert.deepEqual(table, {});
 	assert.deepEqual(checkOptions({}), []);
 	assert.deepEqual(checkOptions({ installHook: true }), [{ path: "installHook", problem: "unknown option; commit-rules takes none: a project's rule is its commitRules in the projects list" }]);
+});
+
+// The hook as `prepare` installs it in a worktree the test made, as `arthur remote-job add` makes one on another machine.
+const install = (worktree: string) => {
+	const job = { project: "acme", machine: "local", worktree } as Parameters<Parameters<Host["jobs"]["prepare"]>[0]>[0];
+	return hookStep(fakeHost({ name: "commit-rules" }).host, [{ name: "acme", commitRules: { regex: REGEX } }])(job);
+};
+
+test("a bare repository, as on another machine: its worktrees, earlier and later ones, still work, and it stays bare", async () => {
+	const folder = temporaryFolder();
+	const bare = join(folder, "repos", "acme.git");
+	git(folder, "init", "--quiet", "--bare", bare);
+	git(repository(), "push", "--quiet", bare, "main");
+	const add = (name: string) => {
+		git(bare, "worktree", "add", "--quiet", "-b", name, join(folder, name), "main");
+		return join(folder, name);
+	};
+	const [earlier, job] = [add("earlier"), add("job")];
+	await install(job);
+	assert.deepEqual(commit(job, "Fixed it"), { code: 1, said: RULE });
+	assert.deepEqual(commit(job, "feat: done"), { code: 0, said: "" });
+	const later = add("later");
+	for (const worktree of [earlier, job, later]) assert.equal(git(worktree, "status", "--porcelain"), "", worktree);
+	assert.deepEqual(commit(earlier, "Fixed it").code, 0, "no hook in a worktree it did not install");
+	assert.equal(git(bare, "rev-parse", "--is-bare-repository"), "true");
+	assert.equal(spawnSync("git", ["config", "--file", join(bare, "config"), "--get", "core.bare"]).status, 1, "moved out of the shared config");
+});
+
+test("a repository whose shared config sets core.worktree: the main checkout keeps it, the job's worktree is its own", async () => {
+	const root = repository();
+	git(root, "config", "core.worktree", root);
+	const job = join(temporaryFolder(), "job");
+	git(root, "worktree", "add", "--quiet", "-b", "job", job);
+	await install(job);
+	assert.deepEqual([git(job, "rev-parse", "--show-toplevel"), git(root, "rev-parse", "--show-toplevel"), git(root, "config", "core.worktree")], [job, root, root]);
+	assert.deepEqual(commit(job, "Fixed it"), { code: 1, said: RULE });
+	writeFileSync(join(job, "new.txt"), "x\n");
+	git(job, "add", "new.txt");
+	assert.deepEqual(commit(job, "feat: a file"), { code: 0, said: "" });
+	assert.equal(git(root, "status", "--porcelain"), "", "the commit was the job's, not the main checkout's");
 });

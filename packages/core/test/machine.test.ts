@@ -442,6 +442,18 @@ test("arthur spawn --machine names the machine; arthur remote-job refuses an unk
 	assert.deepEqual(readdirSync(home), []);
 });
 
+test("arthur remote-job repo creates the project's repository bare once, then leaves its config as it is", () => {
+	const home = temporaryFolder();
+	const repo = (commitId: string) => spawnSync(process.execPath, [CLI, "remote-job", "repo", home, "acme", commitId], { cwd: home, encoding: "utf8" });
+	assert.deepEqual([repo("HEAD").stdout, git(join(home, "repos/acme.git"), "rev-parse", "--is-bare-repository")], ["missing\n", "true"]);
+	// As a `prepare` that turns on `extensions.worktreeConfig` leaves it: `core.bare` moved out of the shared config.
+	const config = join(home, "repos/acme.git/config");
+	git(join(home, "repos/acme.git"), "config", "--file", config, "--unset", "core.bare");
+	const before = readFileSync(config, "utf8");
+	assert.equal(repo("HEAD").stdout, "missing\n");
+	assert.equal(readFileSync(config, "utf8"), before, "no core.bare written back");
+});
+
 test("registerMachine refuses local, a machine registered twice, a bad name, an ssh that is an option, and a relative home; machines() names the rest", () => {
 	const { jobs } = setup();
 	const machine = { name: "mac", ssh: "mac", home: "/Users/kacper/.arthur", labels: {} };

@@ -17,7 +17,8 @@ async function until(what: string, holds: () => boolean, ms = 20_000): Promise<v
 	for (const deadline = Date.now() + ms; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
 }
 
-const lines = (file: string): Record<string, unknown>[] => (existsSync(file) ? readFileSync(file, "utf8").trim().split("\n").map((line) => JSON.parse(line)) : []);
+// Whole lines only: a line the agent is still appending has no line break yet.
+const lines = (file: string): Record<string, unknown>[] => (existsSync(file) ? readFileSync(file, "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line)) : []);
 
 // The plugin on a fake host in Warsaw at `now`, started as `arthur run` starts it, its printed lines caught; the test provides
 // orchestration's `coordinator.restart`, which notes `fresh` and ends every coordinator started, as killing its session does.

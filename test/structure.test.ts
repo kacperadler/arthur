@@ -85,7 +85,10 @@ import { checkStructure } from "./structure.ts";
 // merged with AR0170) for the note at the start whether this `arthur run` is arthur.service's main process with
 // `Restart=always`, the reply that says either way, and the end after the coordinator's restart with its
 // `Restarted. (arthur run restarted)`.
-const BUDGETS = { core: 5182, "core/testing": 344, projects: 325, orchestration: 1207, machines: 415, resources: 458, session: 849, schedule: 552 };
+// AR0173 (CI names each failed test): the wrapper forks the agent with its `oom_score_adj` at 1000 (`oomFirst`, job-memory.ts),
+// so a job over its memory cap loses the agent, never the wrapper, to a second kernel kill; core 11 more (5127 alone; 5182 + 11
+// = 5193 merged with main).
+const BUDGETS = { core: 5193, "core/testing": 344, projects: 325, orchestration: 1207, machines: 415, resources: 458, session: 849, schedule: 552 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

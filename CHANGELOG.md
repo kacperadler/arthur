@@ -13,6 +13,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0156 `--autopilot` does not read a ticket's own budget
 - AR0160 `/restart` cannot clear a restart due, since it restarts only the coordinator's agent (c51c1ce)
 - AR0165 A provider outage sends a `turn failed` notice at every retry of the inbox
+- AR0169 A registered entry can send a message or spawn a job, not run its plugin's own code
 - AR0172 The tools labels of local are not checked by arthur doctor
 - AR0174 Roadmap: a decision log of what the owner decided when Arthur asked (8b7a138)
 - AR0176 The roadmap has no entry yet for decisions pre-approved from the decision log
@@ -39,6 +40,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0208 Roadmap 47: Telegram receive and send text, and the silent mode (16c2dc6)
 - AR0211 A message to a named bot is answered by the unnamed one
 - AR0212 Roadmap 48: Telegram outbox and retries (8de5935)
+- AR0218 With check.everySeconds above 120 a spawn between rounds still checks a listed machine over ssh itself (e0c0a28)
 
 ### Fixed
 
@@ -49,6 +51,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0150 Free cores come from the 1-minute load average, which on Linux also counts processes waiting on disk
 - AR0154 A pre-approved ticket's budget is recorded, not held at its worker's spawn (3ff3338)
 - AR0155 Two `--autopilot` runs on one ticket at once can both record it
+- AR0161 `host.code` finds a plugin's package by its name, not by the module the config imported
 - AR0164 The inbox's notice after 3 unanswered turns repeats omp's error unredacted (1bf2a8a)
 - AR0167 GitHub CI fails now and then on main with the same code (59e5760)
 - AR0168 Orchestration cannot register the morning report while schedule is optional
@@ -56,6 +59,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0173 GitHub CI names each failed test and stays green on main (a1fbecb)
 - AR0175 A `/restart` whose restart throws in the tick tells the owner nothing
 - AR0177 An option's `default` is text beside the code's own default, and nothing checks they agree (41a59ad)
+- AR0190 `arthur continue` of a job on a provider model starts the agent without its provider
 - AR0201 wrapper.test.ts failed once on a cleanup race (244a725)
 - AR0202 A record removed file by file crashes the wrapper instead of ending it with its one line
 - AR0204 `issue update` overwrites a description changed since it was read

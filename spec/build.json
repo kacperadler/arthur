@@ -1695,15 +1695,15 @@
   {
     "id": "AR0218",
     "title": "With check.everySeconds above 120 a spawn between rounds still checks a listed machine over ssh itself",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0218-with-check-everyseconds-above-120-a-spawn-between-rounds-still-checks-a-listed-machine-over-ssh-itself/ticket.md",
-    "updated": "2026-10-19T18:46:41.815Z"
+    "updated": "2026-10-19T19:48:41.132Z"
   },
   {
     "id": "AR0219",
     "title": "schedule.register still finds a plugin's package folder by its name",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0219-schedule-register-still-finds-a-plugin-s-package-folder-by-its-name/ticket.md",
-    "updated": "2026-10-19T19:15:24.411Z"
+    "updated": "2026-10-19T19:48:48.366Z"
   }
 ]

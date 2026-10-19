@@ -49,7 +49,7 @@ const LOCAL_LABELS: OptionTable = { os: { about: "Detected, never set", check: d
 const LOCAL: OptionTable = { labels: { about: "Its labels: its os and arch are detected, its tools given here", fields: LOCAL_LABELS }, maxJobs: MAX_JOBS };
 const EVERY: OptionTable = {
 	everySeconds: {
-		about: "Seconds between the checks of every machine over ssh: its address private, arthur version, its os and arch",
+		about: "Seconds between the checks of every machine over ssh: its address private, arthur version, its os and arch, its free CPU and memory",
 		default: "60",
 		check: (value) => (Number.isInteger(value) && (value as number) >= 10 ? undefined : "a whole number of seconds, 10 or more, as a check may take 10 s"),
 	},

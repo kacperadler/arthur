@@ -179,6 +179,11 @@ import { checkStructure } from "./structure.ts";
 // (cli.ts, setup.ts); orchestration's tmux and session's service and linger moved into theirs, no line more.
 // Merged with main: core 5492 + 22 (AR0180) = 5514, models 506 + 2 (AR0177) = 508, resources 467; machines, session, telegram
 // and youtrack as AR0177 has them.
+// AR0149: one ssh call per machine and round serves the machines check and the free CPU and memory: machines 10 more (456) for
+// the `node -e` script in the check's command, its line in the report and the `machines.round` hook as each round begins;
+// resources 16 more (483) for the hook kept as each listed machine's check, a check in flight waited for, and `local` alone on
+// the 60 s timer; cut first: the round's numbers go through the same parse as this side's own `node -e`, no second parser.
+// Merged with main: machines 448 + 10 (AR0149) = 458, resources 467 + 16 (AR0149) = 483; the rest as main has them.
 // AR0213 and AR0190 (core and orchestration batch, hosted by AR0190): `Kind` moved from jobs.ts into job-kinds.ts to keep jobs.ts
 // under 200 lines (core unchanged); a spawn's `free` in its record, so a continue's check knows it (core unchanged in lines);
 // `arthur continue` runs the prepares again, told it is a continue: core 26 more (5481) for the job read back from its record
@@ -192,7 +197,9 @@ import { checkStructure } from "./structure.ts";
 // an action or a job (register.ts), the runs awaited in turn after the jobs with a failure's notice (sweep.ts), and its `list` line.
 // Merged with main (AR0191 to AR0202, AR0177, AR0180): main's budgets plus this batch's raises: core 5514 + 35 = 5549, schedule
 // 552 + 18 = 570, each other plugin 1 more for its `module` line.
-const BUDGETS = { core: 5549, "core/testing": 349, projects: 481, orchestration: 1382, machines: 449, resources: 468, session: 878, schedule: 570, models: 509, youtrack: 467, "commit-rules": 169, nvm: 85, telegram: 404 };
+// Merged with main (AR0149): main's budgets plus this batch's raises, machines 458 + 1 = 459, resources 483 + 1 = 484; the
+// rest as the merge before: core 5549, schedule 570, each other plugin 1 more for its `module` line.
+const BUDGETS = { core: 5549, "core/testing": 349, projects: 481, orchestration: 1382, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 467, "commit-rules": 169, nvm: 85, telegram: 404 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

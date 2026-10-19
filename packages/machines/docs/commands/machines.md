@@ -40,7 +40,7 @@ Refused at load, each refusal naming the machine and the option's path: a missin
 `arthur run` checks every listed machine at its start and every `check.everySeconds`; `arthur machines`, `/machines` and `arthur doctor` check them when asked. All machines are checked in parallel, and each check is cut after 10 seconds, its ssh killed, so ten machines that do not answer cost 10 seconds, not 100; a check asked while one runs waits for that one. A check:
 
 1. The address, as at load: `ssh -G <ssh>` and the name it prints resolved here, each address private.
-2. One command over the core's SSH, `ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 <ssh> sh -c 'uname -sm && arthur version && for tool do command -v "$tool" >/dev/null || echo "missing $tool"; done' sh <tools>`, `<tools>` the machine's `tools` labels: ssh never asks for a password and never accepts a host key on its own.
+2. One command over the core's SSH, `ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 <ssh> sh -c 'uname -sm && arthur version && node -e "$1" && shift && for tool do command -v "$tool" >/dev/null || echo "missing $tool"; done' sh <free> <tools>`, `<free>` a Node script that prints one JSON line of the machine's free CPU and memory over one second, for the `resources` plugin, `<tools>` the machine's `tools` labels: ssh never asks for a password and never accepts a host key on its own.
 3. What the machine says compared with its labels (`os`, `arch`, where given) and with this core's version.
 
 The machine is online when all three pass. Otherwise it is offline, the reason one of:
@@ -50,9 +50,11 @@ The machine is online when all three pass. Otherwise it is offline, the reason o
 - `arthur is not there (<its line>)`: no `arthur` on the `PATH` of a command over ssh there.
 - `its labels say os macos; the machine says linux x64`: a label that disagrees with the machine, both named.
 - `it runs arthur <version>, this one is <version>; both need the same version`.
-- `uname -sm && arthur version failed there: <its line>`, or `check timed out after 10 s`.
+- `uname -sm && arthur version && node -e failed there: <its line>`, or `check timed out after 10 s`.
 
 Each offline reason comes with its fix: `ssh-copy-id <ssh>` for a refused key; for a host key, compare `ssh-keyscan <ssh>` with the key the machine itself shows, then add it to `~/.ssh/known_hosts`; Arthur's core at this commit there (`docs/deploy.md`) when `arthur` is missing or of another version; the labels in `arthur.config.ts` set to what the machine is; the machine on the private network (`tailscale up` there) when it does not answer.
+
+As each round begins, in `arthur run`, `arthur machines`, `/machines` and `arthur doctor` alike, the plugin calls `collect("machines.round", checks)`, `checks` a `Map` of each listed machine's name to a promise of its check: `{ free }`, the line `node -e` printed, once it is online, or `{ error }`, its offline reason above. The `resources` plugin keeps it as the machine's free CPU and memory, so one ssh call per machine and round serves both.
 
 In `arthur run`, each change is an event, once: `machine-online` with `machine`, `os`, `arch` and `version`, or `machine-offline` with `machine` and `reason`. The first check after the start tells each machine's state; after that only a change does, so a machine that stays offline is told once, and one that goes offline and comes back is told twice. A reason that changes while the machine stays offline is no event. `arthur machines` from a shell checks, but emits nothing: the events are `arthur run`'s.
 

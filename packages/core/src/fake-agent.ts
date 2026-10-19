@@ -15,6 +15,9 @@ import type { AgentRun } from "./testing.ts";
 
 const [file = "", ...args] = process.argv.slice(2);
 const run = JSON.parse(readFileSync(file, "utf8")) as AgentRun;
+// With `clock`, `Date.now()` here and in the extensions answers the time in ms that file holds, while it exists.
+const [clock, realNow] = [run.clock, Date.now];
+if (clock !== undefined) Date.now = () => (existsSync(clock) ? Number(readFileSync(clock, "utf8")) : realNow());
 // A file a test reads while the agent runs is never seen empty: it is made whole with its first line, by a link.
 const note = (name: string, entry: object) => {
 	const [path, line, whole] = [join(dirname(file), name), `${JSON.stringify(entry)}\n`, join(dirname(file), `.${name}.${process.pid}`)];

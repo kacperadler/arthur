@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, utimesSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
@@ -174,7 +174,15 @@ test("past omp's 8 continuations in a turn, a message is not answered by that tu
 });
 
 test("several messages while idle, each within a second of the last, are one turn, in order", async (t) => {
-	const box = await load(t, { steps: [{ prompt: true }, { message: "All three." }, { end: true }, { prompt: true }] });
+	// The agent's clock stands still where the test puts it, so a stalled runner never splits the burst.
+	const clock = join(temporaryFolder(), "clock");
+	let now = Date.now();
+	const move = (ms: number) => {
+		writeFileSync(`${clock}.new`, String((now += ms)));
+		renameSync(`${clock}.new`, clock);
+	};
+	move(0);
+	const box = await load(t, { steps: [{ prompt: true }, { message: "All three." }, { end: true }, { prompt: true }], clock });
 	await box.start();
 	// The footer is the sign the extension ticks.
 	writeFileSync(join(box.folder, "footer"), "arthur · ready");
@@ -182,8 +190,15 @@ test("several messages while idle, each within a second of the last, are one tur
 	const numbers: number[] = [];
 	for (const text of ["One.", "Two.", "Three.", "Four."]) {
 		numbers.push(box.say(text));
-		await sleep(300);
+		move(900);
 	}
+	// Four more ticks, over a second of real time: the agent's clock still says 0 ms since the last message.
+	for (const tick of [1, 2, 3, 4]) {
+		writeFileSync(join(box.folder, "footer"), `arthur · tick ${tick}`);
+		await until(`tick ${tick}`, () => box.ui().length === 1 + tick);
+	}
+	assert.deepEqual(box.messages(), [], "under a second since the last message, however long in real time");
+	await until("the turn", () => box.messages().length > 0 || (move(500), false));
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
 	assert.deepEqual(box.messages(), [{ content: "[via telegram] One.\n\n[via telegram] Two.\n\n[via telegram] Three.\n\n[via telegram] Four.", step: 0 }]);
 	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "All three.", answers: numbers, channels: ["telegram"] }]);

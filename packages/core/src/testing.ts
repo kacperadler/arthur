@@ -59,7 +59,7 @@ export type AgentStep =
 export type AgentRun = { readonly steps: readonly AgentStep[]; readonly exitCode?: number; readonly failSends?: number; readonly dropSends?: number; readonly compactError?: string };
 
 // The fake agent: an executable `omp` in a new folder of the kit's, which plays `run` each time it starts, notes each start
-// (`pid`, `cwd`, `args`) in `starts.jsonl` beside it, each message its `-e` extensions send (`content`, `options`, `step`) in
+// (`pid`, `cwd`, `args`) in `starts.jsonl` beside it once its `-e` extensions are loaded, each message they send (`content`, `options`, `step`) in
 // `messages.jsonl`, their `ctx.ui` calls in `ui.jsonl`, their `ctx.compact` calls in `compactions.jsonl`, and each turn's system prompt in `system.jsonl`. Returns its path, for `PATH` or as `core.agent.command`.
 export function fakeAgent(run: AgentRun): string {
 	const folder = temporaryFolder();

@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-19: Source: F1 of AR0167
+- 2026-10-19: The owner approved this. The coordinator builds it alongside the roadmap entry that touches the same files.

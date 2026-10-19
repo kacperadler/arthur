@@ -46,3 +46,4 @@ Out:
 ## Decisions
 
 - 2026-10-19: The coordinator starts this under the owner's 85% usage ceiling (79% used).
+- 2026-10-19: The coordinator accepts the budget raises: orchestration 1213 to 1334 (5 lines cut first), telegram 243. Replies and notices go from the unnamed bot (else the first), finding F2. /silent from Telegram waits for entry 50; the 429 retry_after wait is accepted.

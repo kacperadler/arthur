@@ -41,3 +41,4 @@ Out: the core and every other plugin.
 ## Decisions
 
 - 2026-10-19: The coordinator starts this under the owner's 85% usage ceiling, with findings built alongside, as the owner said.
+- 2026-10-19: The coordinator accepts every job of a YouTrack project getting the job rules, and a job's YouTrack write refused through ARTHUR_JOB (3 lines in youtrack-command.ts). The coordinator writes to YouTrack only when the owner asks, until the owner says otherwise.

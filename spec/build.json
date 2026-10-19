@@ -1096,9 +1096,9 @@
   {
     "id": "AR0135",
     "title": "The inbox drops a new message whose event number an old one had, after the event log is cut by hand",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0135-the-inbox-drops-a-new-message-whose-event-number-an-old-one-had-after-the-event-log-is-cut-by-hand/ticket.md",
-    "updated": "2026-10-18T11:31:14.273Z"
+    "updated": "2026-10-19T15:07:39.621Z"
   },
   {
     "id": "AR0136",
@@ -1110,9 +1110,9 @@
   {
     "id": "AR0137",
     "title": "The burst test still relies on the test's 300 ms timers staying under a second",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0137-the-burst-test-still-relies-on-the-test-s-300-ms-timers-staying-under-a-second/ticket.md",
-    "updated": "2026-10-18T13:24:17.580Z"
+    "updated": "2026-10-19T15:07:39.823Z"
   },
   {
     "id": "AR0138",
@@ -1175,23 +1175,23 @@
   {
     "id": "AR0145",
     "title": "A continued job sets its ticket's slice from the caps kept at its spawn",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0145-a-continued-job-sets-its-ticket-s-slice-from-the-caps-kept-at-its-spawn/ticket.md",
-    "updated": "2026-10-18T20:27:55.648Z"
+    "updated": "2026-10-19T14:52:11.178Z"
   },
   {
     "id": "AR0146",
     "title": "Caps per feature on CPU and memory are not held, and not said, on a machine without a user manager",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0146-caps-per-feature-on-cpu-and-memory-are-not-held-and-not-said-on-a-machine-without-a-user-manager/ticket.md",
-    "updated": "2026-10-18T20:27:55.650Z"
+    "updated": "2026-10-19T14:52:11.382Z"
   },
   {
     "id": "AR0147",
     "title": "A ticket over its memory cap ends a job `failed: the agent was killed by ...`, not `limit: memory`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0147-a-ticket-over-its-memory-cap-ends-a-job-failed-the-agent-was-killed-by-not-limit-memory/ticket.md",
-    "updated": "2026-10-18T20:27:55.651Z"
+    "updated": "2026-10-19T14:52:11.588Z"
   },
   {
     "id": "AR0148",
@@ -1203,16 +1203,16 @@
   {
     "id": "AR0149",
     "title": "The free-resources check runs on its own 60 s timer, not at each machines check",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0149-the-free-resources-check-runs-on-its-own-60-s-timer-not-at-each-machines-check/ticket.md",
-    "updated": "2026-10-18T21:43:37.719Z"
+    "updated": "2026-10-19T14:52:11.789Z"
   },
   {
     "id": "AR0150",
     "title": "Free cores come from the 1-minute load average, which on Linux also counts processes waiting on disk",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0150-free-cores-come-from-the-1-minute-load-average-which-on-linux-also-counts-processes-waiting-on-disk/ticket.md",
-    "updated": "2026-10-18T21:43:37.721Z"
+    "updated": "2026-10-19T14:52:11.991Z"
   },
   {
     "id": "AR0151",
@@ -1238,23 +1238,23 @@
   {
     "id": "AR0154",
     "title": "A pre-approved ticket's budget is recorded, not held at its worker's spawn",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0154-a-pre-approved-ticket-s-budget-is-recorded-not-held-at-its-worker-s-spawn/ticket.md",
-    "updated": "2026-10-18T21:59:55.197Z"
+    "updated": "2026-10-19T15:07:27.390Z"
   },
   {
     "id": "AR0155",
     "title": "Two `--autopilot` runs on one ticket at once can both record it",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0155-two-autopilot-runs-on-one-ticket-at-once-can-both-record-it/ticket.md",
-    "updated": "2026-10-18T21:59:55.199Z"
+    "updated": "2026-10-19T15:07:27.596Z"
   },
   {
     "id": "AR0156",
     "title": "`--autopilot` does not read a ticket's own budget",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0156-autopilot-does-not-read-a-ticket-s-own-budget/ticket.md",
-    "updated": "2026-10-18T21:59:55.200Z"
+    "updated": "2026-10-19T15:07:27.795Z"
   },
   {
     "id": "AR0157",
@@ -1324,9 +1324,9 @@
   {
     "id": "AR0165",
     "title": "A provider outage sends a `turn failed` notice at every retry of the inbox",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0165-a-provider-outage-sends-a-turn-failed-notice-at-every-retry-of-the-inbox/ticket.md",
-    "updated": "2026-10-18T23:36:58.637Z"
+    "updated": "2026-10-19T15:07:27.996Z"
   },
   {
     "id": "AR0166",
@@ -1345,9 +1345,9 @@
   {
     "id": "AR0168",
     "title": "Orchestration cannot register the morning report while schedule is optional",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0168-orchestration-cannot-register-the-morning-report-while-schedule-is-optional/ticket.md",
-    "updated": "2026-10-19T00:28:58.146Z"
+    "updated": "2026-10-19T15:07:28.199Z"
   },
   {
     "id": "AR0169",
@@ -1366,9 +1366,9 @@
   {
     "id": "AR0171",
     "title": "The resources scope test assumes a machine of 2 cores or more",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0171-the-resources-scope-test-assumes-a-machine-of-2-cores-or-more/ticket.md",
-    "updated": "2026-10-19T05:46:50.634Z"
+    "updated": "2026-10-19T14:52:12.194Z"
   },
   {
     "id": "AR0172",
@@ -1394,9 +1394,9 @@
   {
     "id": "AR0175",
     "title": "A `/restart` whose restart throws in the tick tells the owner nothing",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0175-a-restart-whose-restart-throws-in-the-tick-tells-the-owner-nothing/ticket.md",
-    "updated": "2026-10-19T06:56:25.156Z"
+    "updated": "2026-10-19T15:07:28.401Z"
   },
   {
     "id": "AR0176",
@@ -1464,9 +1464,9 @@
   {
     "id": "AR0185",
     "title": "The coordinator's role does not say when to run `arthur init` and start an onboarding",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0185-the-coordinator-s-role-does-not-say-when-to-run-arthur-init-and-start-an-onboarding/ticket.md",
-    "updated": "2026-10-19T11:35:29.758Z"
+    "updated": "2026-10-19T15:07:28.601Z"
   },
   {
     "id": "AR0186",
@@ -1562,9 +1562,9 @@
   {
     "id": "AR0199",
     "title": "The option-tables test cannot list a plugin without options",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0199-the-option-tables-test-cannot-list-a-plugin-without-options/ticket.md",
-    "updated": "2026-10-19T13:27:26.732Z"
+    "updated": "2026-10-19T15:07:12.044Z"
   },
   {
     "id": "AR0200",
@@ -1590,43 +1590,43 @@
   {
     "id": "AR0203",
     "title": "Arthur is Apache-2.0, with NOTICE, trademark and DCO",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0203-arthur-is-apache-2-0-with-notice-trademark-and-dco/ticket.md",
-    "updated": "2026-10-19T14:15:55.334Z"
+    "updated": "2026-10-19T14:21:57.586Z"
   },
   {
     "id": "AR0204",
     "title": "`issue update` overwrites a description changed since it was read",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0204-issue-update-overwrites-a-description-changed-since-it-was-read/ticket.md",
-    "updated": "2026-10-19T14:00:26.116Z"
+    "updated": "2026-10-19T14:48:10.577Z"
   },
   {
     "id": "AR0205",
     "title": "The coordinator's role does not say when it may write to YouTrack",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0205-the-coordinator-s-role-does-not-say-when-it-may-write-to-youtrack/ticket.md",
-    "updated": "2026-10-19T14:00:26.118Z"
+    "updated": "2026-10-19T14:48:10.776Z"
   },
   {
     "id": "AR0206",
     "title": "Roadmap 46: YouTrack comments, attachments, and the rules for jobs",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0206-roadmap-46-youtrack-comments-attachments-and-the-rules-for-jobs/ticket.md",
-    "updated": "2026-10-19T14:00:54.284Z"
+    "updated": "2026-10-19T14:48:02.620Z"
   },
   {
     "id": "AR0207",
     "title": "The option-tables test cannot hold a plugin without options, so nvm's options file is not checked there",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0207-the-option-tables-test-cannot-hold-a-plugin-without-options-so-nvm-s-options-file-is-not-checked-there/ticket.md",
-    "updated": "2026-10-19T14:17:45.436Z"
+    "updated": "2026-10-19T15:07:21.744Z"
   },
   {
     "id": "AR0208",
     "title": "Roadmap 47: Telegram receive and send text, and the silent mode",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0208-roadmap-47-telegram-receive-and-send-text-and-the-silent-mode/ticket.md",
-    "updated": "2026-10-19T14:19:16.024Z"
+    "updated": "2026-10-19T15:13:02.742Z"
   }
 ]

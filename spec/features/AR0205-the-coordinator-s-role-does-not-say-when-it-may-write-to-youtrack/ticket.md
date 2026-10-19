@@ -36,3 +36,4 @@ In:
 
 - 2026-10-19: Source: F2 of AR0197
 - 2026-10-19: Approved under the owner's word of the same day: findings are built alongside the roadmap entry that touches the same files.
+- 2026-10-19: The owner decided: the coordinator writes to YouTrack only when he asks. The role line as merged in AR0206 stays.

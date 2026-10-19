@@ -50,7 +50,7 @@ export async function launch(home: string, job: Pick<Job, "id" | "kind" | "proje
 	const [cpu = "", memory = "", feature = "", featureCpu = "", featureMemory = ""] = ["cpu", "memory", "feature", "feature-cpu", "feature-memory"].map(field(home, id));
 	// The slice of the job's ticket, a `-` nesting it in the jobs' slice.
 	const slice = feature === "" ? jobs.slice : `${jobs.slice}-${feature}`;
-	const bare = setSlice(jobs.slice, String(jobs.cpu), jobs.memory) ?? (feature === "" ? undefined : setSlice(slice, featureCpu && String(Math.min(Number(featureCpu), availableParallelism())), featureMemory));
+	const bare = setSlice(jobs.slice, String(jobs.cpu), jobs.memory) ?? (feature === "" ? undefined : setSlice(slice, featureCpu && String(Math.min(Number(featureCpu), availableParallelism())), featureMemory, `MemorySwapMax=${featureMemory === "" ? "infinity" : "0"}`));
 	if (bare !== undefined) {
 		const line = `no systemd scope: ${bare}; the job runs bare, without the joint limit of core.jobs.cpu and core.jobs.memory, and what it leaves behind is not killed at its end`;
 		appendFileSync(join(home, "jobs", id, "log"), `[arthur ${new Date().toISOString()}] ${line}\n`);
@@ -111,10 +111,10 @@ function end(home: string, job: Pick<Job, "id" | "kind" | "project">, why: strin
 	return why;
 }
 
-// Gives a slice its limits, `cpu` cores (at least 1% of one) and `memory`, empty for none; returns why it could not, e.g.
-// `systemctl` missing or no user manager.
-function setSlice(slice: string, cpu: string, memory: string): string | undefined {
-	const limits = [`CPUQuota=${cpu === "" ? "" : `${Math.max(1, Math.round(Number(cpu) * 100))}%`}`, `MemoryMax=${memory || "infinity"}`];
+// Gives a slice its limits, `cpu` cores (at least 1% of one), `memory`, empty for none, and `more` properties (a ticket's slice:
+// no swap beyond its memory cap, so the cap holds); returns why it could not, e.g. `systemctl` missing or no user manager.
+function setSlice(slice: string, cpu: string, memory: string, ...more: string[]): string | undefined {
+	const limits = [`CPUQuota=${cpu === "" ? "" : `${Math.max(1, Math.round(Number(cpu) * 100))}%`}`, `MemoryMax=${memory || "infinity"}`, ...more];
 	const set = spawnSync("systemctl", ["--user", "set-property", "--runtime", `${slice}.slice`, ...limits], { encoding: "utf8" });
 	if (set.error !== undefined) return set.error.message;
 	return set.status === 0 ? undefined : set.stderr.trim() || `systemctl exited ${set.status ?? set.signal}`;

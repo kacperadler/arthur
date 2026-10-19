@@ -157,11 +157,13 @@ test("the owner's text becomes message-received; a topic's carries its place; ea
 	await until("the first poll", () => api.polls().length === 1);
 	assert.deepEqual(api.polls()[0], { offset: 0, timeout: 30, allowed_updates: ["message"] });
 	const first = api.push({ text: "Start AR0081." });
-	const second = api.push({ text: "In the topic.", message_thread_id: 12, is_topic_message: true });
-	await until("both messages", () => received().length === 2);
+	api.push({ text: "In the topic.", message_thread_id: 12, is_topic_message: true });
+	const second = api.push({ text: "A reply, no topic.", message_thread_id: 40, reply_to_message: message(1) });
+	await until("all three messages", () => received().length === 3);
 	assert.deepEqual(received(), [
 		{ channel: "telegram", text: "Start AR0081." },
 		{ channel: "telegram", text: "In the topic.", place: "12" },
+		{ channel: "telegram", text: "A reply, no topic." },
 	]);
 	await until("the confirming poll", () => api.polls().some((poll) => poll.offset === second.update_id + 1));
 	assert.ok(first.update_id < second.update_id);

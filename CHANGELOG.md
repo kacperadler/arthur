@@ -7,6 +7,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Added
 
 - AR0127 Roadmap: a silent mode for the coordinator in the channels (9327313)
+- AR0174 Roadmap: a decision log of what the owner decided when Arthur asked (8b7a138)
 
 ### Fixed
 
@@ -21,6 +22,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0158 Roadmap 39: Schedule entries and the sweep (32f5997)
 - AR0163 Roadmap 40: Registered entries and arthur schedule (f3e9ecc)
 - AR0166 Roadmap 80: arthur doctor, checked at every start (27a50bd)
+- AR0170 Roadmap 93: Option tables, every option with its meaning, and the tools each plugin runs (8032932)
 
 ## 2026-10-18
 

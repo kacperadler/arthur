@@ -1,8 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
-import { totalmem } from "node:os";
 import { join } from "node:path";
-import { describe, memoryBytes } from "@arthur/core";
-import type { Host, OptionProblem } from "@arthur/core/plugin";
+import type { Host } from "@arthur/core/plugin";
+import { CAPS, capsProblems } from "./resource-options.ts";
 
 // Caps per feature (spec/roadmap.md, entry 33): what all jobs of one ticket together may spend and use, from `perFeature`,
 // each replaced by the `caps` of the ticket's own JSON block, `0` meaning no cap: docs/resources.md.
@@ -13,24 +12,12 @@ export type InForce = { readonly caps: FeatureCaps; readonly from: Readonly<Reco
 // What the spend reads of a job of `host.jobs.list()`.
 type Job = { readonly cost: string; readonly budget: string; readonly seconds: number };
 
-export const KEYS = ["budgetUsd", "hours", "cpu", "memory"] as const;
+export const KEYS = Object.keys(CAPS) as readonly (keyof typeof CAPS)[];
 // A ticket's folder in a `Ticket:` path, and its id.
 const FEATURE = /(?:^|\/)spec\/features\/([A-Z]+\d{4,})-[^/]*\//;
 
 // The ticket of a job or a spawn: the first of its `Ticket:` paths that lies in one; undefined for none.
 export const ticketOf = (tickets: readonly string[]): string | undefined => tickets.map((path) => FEATURE.exec(path)?.[1]).find(Boolean);
-
-// The problems of `value` as caps, each path under `at`: `perFeature` in the options, `caps` in a ticket.
-export function capsProblems(value: unknown, at: string): OptionProblem[] {
-	if (typeof value !== "object" || value === null || Array.isArray(value)) return [{ path: at, problem: `expected an object with ${KEYS.join(", ")}, got ${describe(value)}` }];
-	return Object.entries(value).flatMap(([key, each]): OptionProblem[] => {
-		const path = `${at}.${key}`;
-		if (!(KEYS as readonly string[]).includes(key)) return [{ path, problem: `unknown key; keys: ${KEYS.join(", ")}` }];
-		if (key === "memory")
-			return each === 0 || (typeof each === "string" && memoryBytes(each, totalmem()) !== undefined) ? [] : [{ path, problem: `expected systemd MemoryMax syntax such as "8G", "25%" or "infinity", or 0 for no cap, got ${describe(each)}` }];
-		return typeof each === "number" && Number.isFinite(each) && each >= 0 ? [] : [{ path, problem: `expected a number of 0 or more, 0 for no cap, got ${describe(each)}` }];
-	});
-}
 
 // The `caps` of ticket `id`'s JSON block, in its `ticket.md` in its project's main checkout, as the human edits it; undefined
 // without a project list, for a ticket on no board, and for a block without `caps`. A block that is not JSON, or caps of the

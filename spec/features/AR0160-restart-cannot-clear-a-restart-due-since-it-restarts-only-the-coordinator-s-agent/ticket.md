@@ -39,3 +39,4 @@ In:
 
 - 2026-10-19: Source: F1 of AR0153
 - 2026-10-19: The owner (Telegram, 07:2x): 'nie czekaj tylko rób' on the night's findings and the /restart question; the coordinator recommended /restart ends arthur run while a restart is due, approved with the rest.
+- 2026-10-19: Coordinator (owner delegated Arthur calls): session 764 -> 818 (+54, ending arthur run under its service) accepted.

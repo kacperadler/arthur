@@ -64,3 +64,7 @@ The third is a real failure the annotations named at once: on GitHub's runner th
    - Symptom: the annotation of run 39220691635 (7fc87b9, an empty commit): the job ended `limit: memory: the job went over its memory cap of 300M`, as asserted, but its log lacked `limit: memory: stopping the agent`.
    - Cause: with item 2's fix the kernel's second kill takes the agent (score 1000) instead of the wrapper, so the agent can be gone before the wrapper's next 1 s sample; the wrapper then ends the job at the cap from `memory.events` after the run, without the stopping line, as docs/commands/spawn.md says ("a kill that ended the agent itself included").
    - Fix: the test asserts the job's end reason only.
+
+## Stress after the fixes
+
+Run by the coordinator on f53fc97, in a separate clone on the VPS: 10 rounds of 3 full `npm test` runs at once, each under `taskset -c 0,1`. 30 of 30 passed, each `tests 564, fail 0` (7332 s in all).

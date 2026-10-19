@@ -19,6 +19,7 @@ const SECTION: Readonly<Record<string, string>> = {
 export function commitRules(options: { readonly enabled?: boolean } = {}): Plugin {
 	return {
 		name: "commit-rules",
+		module: import.meta.url,
 		options,
 		requires: ["projects"],
 		check: checkOptions,

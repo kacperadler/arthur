@@ -22,6 +22,7 @@ export function models(options: ModelsOptions = {}): Plugin {
 	let refresh = () => {};
 	return {
 		name: "models",
+		module: import.meta.url,
 		options,
 		check: checkOptions,
 		async setup(host) {

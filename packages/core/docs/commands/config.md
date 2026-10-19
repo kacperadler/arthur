@@ -27,7 +27,7 @@ Refused, one line each (the same lines refuse the start):
 - An env-file line without `=`, with a key that is not letters, digits and `_`, or with an unclosed quote: named by its line number, never shown.
 - An env file that exists but cannot be read.
 - A config that does not load (its own refusals, `loadConfig`).
-- A plugin list the host refuses, printed before the env lines: an entry that is not a plugin (its variables are then neither looked up nor listed), two plugins with one name, `orchestration` missing or disabled, an `enabled` that is not true or false, a `requires` naming a plugin that is missing or disabled, a cycle in `requires` and `after`, and each enabled plugin's own `check` (its problems, or `plugin <name>: check failed: ...` when it throws).
+- A plugin list the host refuses, printed before the env lines: an entry that is not a plugin (its variables are then neither looked up nor listed), a plugin's `module` that is not its own `import.meta.url` (a `file:` URL), two plugins with one name, `orchestration` missing or disabled, an `enabled` that is not true or false, a `requires` naming a plugin that is missing or disabled, a cycle in `requires` and `after`, and each enabled plugin's own `check` (its problems, or `plugin <name>: check failed: ...` when it throws).
 - A refusal in a plugin's `setup`, printed before the env lines when nothing above is refused (any of those stops the start before a `setup` runs): a command name the core or another plugin already registered, or a `setup` that throws: `plugin <name>: setup failed: ...`.
 
 Exit code: 0 when nothing is refused and every variable is set, 1 otherwise, 2 on wrong usage.

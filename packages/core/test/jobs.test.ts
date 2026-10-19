@@ -152,7 +152,7 @@ test("a beforeSpawn reason, or a check that throws, refuses with the plugin's na
 	await assert.rejects(jobs.spawn({ task: "Too late.", model: "m" }), { message: "refused by session: restart due: abc1234" });
 	await assert.rejects(jobs.spawn({ task: "Let it crash." }), { message: "plugin resources: beforeSpawn failed: no machine check yet" });
 	nothingMade(root, home);
-	const spawn = { task: "Too late.", kind: "worker", project: "acme", model: "m", modelWhy: undefined, thinking: undefined, quick: undefined, timeoutMinutes: 120, budgetUsd: 2, tickets: [], machine: "local", ignoreRestart: false };
+	const spawn = { task: "Too late.", kind: "worker", project: "acme", model: "m", modelWhy: undefined, thinking: undefined, quick: undefined, timeoutMinutes: 120, budgetUsd: 2, free: false, tickets: [], machine: "local", ignoreRestart: false };
 	assert.deepEqual(seen[0], spawn);
 	await jobs.spawn({ task: "Go." });
 	assert.equal(seen.length, 3);

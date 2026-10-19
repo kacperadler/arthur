@@ -188,11 +188,22 @@ test("the plugin takes no option: a project's rule is its commitRules", () => {
 	assert.deepEqual(checkOptions({ installHook: true }), [{ path: "installHook", problem: "unknown option; commit-rules takes none: a project's rule is its commitRules in the projects list" }]);
 });
 
-// The hook as `prepare` installs it in a worktree the test made, as `arthur remote-job add` makes one on another machine.
-const install = (worktree: string) => {
+// The hook as `prepare` installs it in a worktree the test made, as `arthur remote-job add` makes one on another machine;
+// `continued` as `arthur continue` runs the prepares again.
+const install = (worktree: string, continued = false) => {
 	const job = { project: "acme", machine: "local", worktree } as Parameters<Parameters<Host["jobs"]["prepare"]>[0]>[0];
-	return hookStep(fakeHost({ name: "commit-rules" }).host, [{ name: "acme", commitRules: { regex: REGEX } }])(job, {});
+	return hookStep(fakeHost({ name: "commit-rules" }).host, [{ name: "acme", commitRules: { regex: REGEX } }])(job, {}, continued);
 };
+
+test("a continue installs nothing: the worktree keeps what its spawn installed", async () => {
+	const root = repository();
+	const job = join(temporaryFolder(), "job");
+	git(root, "worktree", "add", "--quiet", "-b", "job", job);
+	const before = gitSetup(root);
+	assert.equal(await install(job, true), undefined);
+	assert.deepEqual(gitSetup(root), before);
+	assert.deepEqual(commit(job, "Fixed it"), { code: 0, said: "" }, "no hook was installed");
+});
 
 test("a bare repository, as on another machine: its worktrees, earlier and later ones, still work, and it stays bare", async () => {
 	const folder = temporaryFolder();

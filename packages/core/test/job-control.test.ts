@@ -473,8 +473,8 @@ test("a continue goes through the plugins' beforeSpawn checks on its record: a r
 	await assert.rejects(jobs.continue(job.id, "Go on."), { message: "plugin orchestration: beforeSpawn failed: no process table" });
 	assert.deepEqual(record(home, job.id), before);
 	assert.equal(starts(resumed).length, 0);
-	const spawn = { task: "Ticket: README.md. Go.", kind: "worker", project: "acme", model: "m", thinking: undefined, quick: undefined, timeoutMinutes: 120, tickets: ["README.md"], machine: "local", ignoreRestart: false };
-	assert.deepEqual(seen.slice(1), [{ ...spawn, budgetUsd: 3 }, { ...spawn, budgetUsd: 2 }]);
+	const spawn = { id: job.id, task: "Ticket: README.md. Go.", kind: "worker", project: "acme", model: "m", thinking: undefined, quick: undefined, timeoutMinutes: 120, free: false, tickets: ["README.md"], machine: "local", ignoreRestart: false, branch: job.branch, worktree: job.worktree };
+	assert.partialDeepStrictEqual(seen.slice(1), [{ ...spawn, budgetUsd: 3 }, { ...spawn, budgetUsd: 2 }], "the job as its record holds it, the --budget replacing its own");
 	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
 	const [, second] = await ended(home, job.id, 2);
 	assert.deepEqual([second, starts(resumed).length], [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }, 1]);

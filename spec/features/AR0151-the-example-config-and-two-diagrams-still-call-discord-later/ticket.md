@@ -36,3 +36,4 @@ In:
 
 - 2026-10-18: Source: F1 of AR0134
 - 2026-10-19: The owner approved this. The coordinator builds it alongside the roadmap entry that touches the same files.
+- 2026-10-19: Host of the docs, doctor and config findings batch (the owner: small findings in batches): AR0151, AR0152, AR0172, AR0177, AR0178, AR0180, AR0186, AR0200, built and merged together.

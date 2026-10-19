@@ -445,7 +445,8 @@ test("at the start, a message left in turn/ that a written reply answers is answ
 	// Named by number and time since AR0135: a reply answers its own file, never another event of that number from a cut log.
 	file("inbox/turn/109-2000", JSON.stringify({ channel: "telegram", text: "Answered, named by time." }));
 	file("inbox/turn/107-3000", JSON.stringify({ channel: "telegram", text: "A new 107." }));
-	file("outbox/sent/1001-000001.json", JSON.stringify({ text: "Done too.", answers: ["109-2000"], channels: ["telegram"] }));
+	// A reply the silent mode held answers its files too.
+	file("outbox/held/1001-000001.json", JSON.stringify({ text: "Done too.", answers: ["109-2000"], channels: [] }));
 	file("outbox/sent/0999-000001.json", JSON.stringify({ text: "Old.", answers: [100], channels: ["telegram"] }), 8 * DAY);
 	file("inbox/answered/100", "{}", 8 * DAY);
 	file("inbox/answered/101", "{}", 6 * DAY);

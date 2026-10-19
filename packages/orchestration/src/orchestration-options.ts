@@ -17,10 +17,7 @@ export const tools: readonly Tool[] = [{ name: "tmux", version: ["tmux", "-V"] }
 export const THINKING = ["off", "minimal", "low", "medium", "high", "xhigh", "max", "auto"];
 
 const text: Check = (value) => (typeof value === "string" && value !== "" ? undefined : "a non-empty string");
-const whole =
-	(min: number): Check =>
-	(value) =>
-		Number.isInteger(value) && (value as number) >= min ? undefined : `a whole number of at least ${min}`;
+const whole = (min: number): Check => (value) => (Number.isInteger(value) && (value as number) >= min ? undefined : `a whole number of at least ${min}`);
 const usd: Check = (value) => (typeof value === "number" && Number.isFinite(value) && value >= 0 ? undefined : "an amount in USD, 0 or more");
 const thinking: Check = (value) => (typeof value === "string" && THINKING.includes(value) ? undefined : `one of ${THINKING.join(", ")}`);
 const models: Check = (value) =>

@@ -322,7 +322,7 @@ export default defineConfig({
 		// Several bots: `{ name: "second", botTokenEnv: "ARTHUR_TELEGRAM_SECOND_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_SECOND_CHAT_ID" }`.
 		telegram({
 			bots: [{ botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }], // chat id: the only chat the bot answers
-			media: true,
+			// media: true, // entry 49: photos, files and voice notes in and out; until then refused as unknown
 		}),
 
 		// Voice notes from any channel, transcribed on this server's CPU with whisper.cpp (`whisper-cli`); nothing leaves the

@@ -24,7 +24,7 @@ type ExtensionApi = {
 	sendUserMessage(content: string, options?: { readonly deliverAs?: "aside"; readonly attribution?: "agent" }): void;
 };
 
-const [QUEUED, TURN, ANSWERED, OUTBOX, SENT] = ["inbox/queued", "inbox/turn", "inbox/answered", "outbox", "outbox/sent"];
+const [QUEUED, TURN, ANSWERED, OUTBOX, SENT, HELD] = ["inbox/queued", "inbox/turn", "inbox/answered", "outbox", "outbox/sent", "outbox/held"];
 const TICK_MS = 500;
 // While idle, a turn starts once the queue has not grown for this long, so a burst of messages is one turn.
 const SETTLE_MS = 1000;
@@ -163,12 +163,12 @@ export default function inbox(pi: ExtensionApi): void {
 		if (!ctx.hasUI || started) return;
 		started = true;
 		// A turn a restart cut: its messages a written reply answers are answered; the others go again, marked.
-		const answered = new Set([...replied(OUTBOX), ...replied(SENT)].map(String));
+		const answered = new Set([...replied(OUTBOX), ...replied(SENT), ...replied(HELD)].map(String));
 		for (const name of numbers(TURN)) {
 			if (answered.has(name)) move(name, TURN, ANSWERED);
 			else waiting.set(name, RESTART);
 		}
-		for (const box of [ANSWERED, SENT])
+		for (const box of [ANSWERED, SENT, HELD])
 			for (const name of existsSync(path(box)) ? readdirSync(path(box)) : [])
 				if (Date.now() - statSync(path(box, name)).mtimeMs > KEEP_MS) rmSync(path(box, name), { force: true });
 		ctx.setInterval(() => tick(ctx), TICK_MS);

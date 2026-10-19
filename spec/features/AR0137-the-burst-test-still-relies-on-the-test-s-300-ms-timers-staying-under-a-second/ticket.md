@@ -14,7 +14,7 @@ the test sends four messages 300 ms apart and expects one turn; the inbox extens
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+The burst test proves several quick messages make one turn without depending on the test's 300 ms timers staying under a second, so a stalled CI runner cannot fail it.
 
 - Kind: risk
 
@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-18: Source: F6 of AR0136
+- 2026-10-19: Approved under the owner's word: built in the orchestration findings batch (host AR0154).

@@ -9,6 +9,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0127 Roadmap: a silent mode for the coordinator in the channels (9327313)
 - AR0160 `/restart` cannot clear a restart due, since it restarts only the coordinator's agent (c51c1ce)
 - AR0174 Roadmap: a decision log of what the owner decided when Arthur asked (8b7a138)
+- AR0179 Roadmap 94: arthur setup, what is there, what is set, what is missing (f3f1b88)
 
 ### Fixed
 

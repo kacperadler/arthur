@@ -1422,8 +1422,15 @@
   {
     "id": "AR0179",
     "title": "Roadmap 94: arthur setup, what is there, what is set, what is missing",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0179-roadmap-94-arthur-setup-what-is-there-what-is-set-what-is-missing/ticket.md",
-    "updated": "2026-10-19T10:55:58.874Z"
+    "updated": "2026-10-19T10:59:58.294Z"
+  },
+  {
+    "id": "AR0180",
+    "title": "While an env variable is missing, neither `arthur doctor` nor `arthur setup` checks the plugins' requirements",
+    "status": "planning",
+    "path": "spec/features/AR0180-while-an-env-variable-is-missing-neither-arthur-doctor-nor-arthur-setup-checks-the-plugins-requirements/ticket.md",
+    "updated": "2026-10-19T10:59:58.291Z"
   }
 ]

@@ -1590,9 +1590,9 @@
   {
     "id": "AR0203",
     "title": "Arthur is Apache-2.0, with NOTICE, trademark and DCO",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0203-arthur-is-apache-2-0-with-notice-trademark-and-dco/ticket.md",
-    "updated": "2026-10-19T14:15:55.334Z"
+    "updated": "2026-10-19T14:21:57.586Z"
   },
   {
     "id": "AR0204",
@@ -1611,9 +1611,9 @@
   {
     "id": "AR0206",
     "title": "Roadmap 46: YouTrack comments, attachments, and the rules for jobs",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0206-roadmap-46-youtrack-comments-attachments-and-the-rules-for-jobs/ticket.md",
-    "updated": "2026-10-19T14:00:54.284Z"
+    "updated": "2026-10-19T14:19:40.594Z"
   },
   {
     "id": "AR0207",

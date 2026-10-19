@@ -56,6 +56,25 @@ test('install: "" and no lockfile run nothing', async () => {
 	assert.deepEqual(called(), []);
 });
 
+test("the install runs with the PATH a prepare before it returned, as the nvm plugin's Node first; without one, Arthur's own", async () => {
+	writeFileSync(calls, "");
+	// The bin folder nvm would name: a `node` that says its version, and an `npm` that notes which node it runs on.
+	const nvmBin = temporaryFolder();
+	writeFileSync(join(nvmBin, "node"), "#!/bin/sh\necho v22.1.0\n", { mode: 0o755 });
+	writeFileSync(join(nvmBin, "npm"), `#!/bin/sh\necho "$(pwd) npm $* on $(node --version)" >> '${calls}'\n`, { mode: 0o755 });
+	const root = repository({ "package-lock.json": "{}" });
+	const list = [{ name: "shop", prefix: "SH", path: root }];
+	const fake = fakeHost({ name: "projects", options: { list } });
+	let path: string | undefined;
+	fake.host.jobs.prepare(() => (path === undefined ? undefined : { PATH: path }));
+	await fake.setup(projects({ list }));
+	path = [nvmBin, process.env.PATH].join(delimiter);
+	const job = await fake.host.jobs.spawn({ task: "Go." });
+	path = undefined;
+	const plain = await fake.host.jobs.spawn({ task: "Go." });
+	assert.deepEqual(called(), [`${job.worktree} npm ci on v22.1.0`, `${plain.worktree} npm ci`]);
+});
+
 test("a read-only kind installs too, in its detached checkout", async () => {
 	writeFileSync(calls, "");
 	const fake = await load([{ name: "shop", prefix: "SH", path: repository({ "package-lock.json": "{}" }) }]);

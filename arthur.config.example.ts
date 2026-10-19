@@ -211,8 +211,8 @@ export default defineConfig({
 		}),
 
 		// Each project's Node: a job whose worktree has `.nvmrc` runs on the Node it names, which nvm finds on the job's machine
-		// (`nvm which`; never a download) and puts first on the job's PATH. Listed before projects, so the prepares after its own
-		// get that PATH. No options. packages/nvm/docs/nvm.md.
+		// (`nvm which`; never a download) and puts first on the job's PATH, which the projects install runs with. It must come
+		// before projects: listed after it, the load is refused. No options. packages/nvm/docs/nvm.md.
 		nvm(),
 
 		// The project list, the only place projects are declared; the first is the main one. Each project: its name (lowercase

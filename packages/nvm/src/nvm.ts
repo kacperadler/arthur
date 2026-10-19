@@ -34,6 +34,8 @@ export function nvm(options: { readonly enabled?: boolean } = {}): Plugin {
 		options,
 		check: checkOptions,
 		setup(host) {
+			// Prepares run in setup order: one after projects' install would leave it on the service's Node.
+			if (host.collect("projects").length > 0) throw new Error("nvm is listed after projects, whose install would then run before nvm's PATH exists; list nvm() before projects in the plugins of arthur.config.ts");
 			host.jobs.prepare(async (job, env) => {
 				const [file, machine] = [`${job.worktree}/.nvmrc`, `machine ${job.machine}`];
 				const ran = await host.jobs.run(job.machine, ["sh", "-c", WHICH, "nvm", job.worktree], LIMIT_SECONDS);

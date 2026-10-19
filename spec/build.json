@@ -1625,8 +1625,8 @@
   {
     "id": "AR0208",
     "title": "Roadmap 47: Telegram receive and send text, and the silent mode",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0208-roadmap-47-telegram-receive-and-send-text-and-the-silent-mode/ticket.md",
-    "updated": "2026-10-19T15:03:10.998Z"
+    "updated": "2026-10-19T15:13:02.742Z"
   }
 ]

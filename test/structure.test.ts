@@ -119,7 +119,12 @@ import { checkStructure } from "./structure.ts";
 // one call, each refusal), its doctor line per machine and its refusal to load after projects; a new package, so nothing was
 // cut elsewhere; core unchanged in lines: a prepare's second argument, the variables of the prepares before it, took no new
 // line. projects 2 more (475), by the ticket's decision, for its install run with the PATH the prepares before it returned.
-const BUDGETS = { core: 5448, "core/testing": 344, projects: 475, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 363, "commit-rules": 168, nvm: 84 };
+// AR0208 (roadmap 47): telegram: 240, set for its bots checked at load, the long polling with its one-time 409 notice, the
+// owner's text as message-received with its topic's place, the replies and notices sent in slices without a notification in
+// quiet hours; a new package. Orchestration 121 more (1334) for the silent mode: `arthur silent` and `/silent`, its state
+// file, the summary built from the event log, `coordinator.silent`, the held replies and the `## Silent` context line; cut
+// first: the `whole` check onto one line and the state's write inlined (5 lines).
+const BUDGETS = { core: 5448, "core/testing": 344, projects: 475, orchestration: 1334, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 363, "commit-rules": 168, nvm: 84, telegram: 240 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

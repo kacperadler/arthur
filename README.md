@@ -78,7 +78,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | nvm: each project's Node version | built | 84 |
 | commit-rules: a regex hook, words or a file per project | built | 43 |
 | findings: what happens to them on a merge | planned | 83 |
-| telegram: text, media and the phone menu; the coordinator's silent mode (`/silent`), which every channel follows | planned | 47 to 50 |
+| telegram: text, media and the phone menu; the coordinator's silent mode (`/silent`), which every channel follows | in progress, 1 of 4 entries | 47 built; 48 to 50 |
 | discord: one private server, a main channel for the coordinator and one per project; text, media, phone commands | planned | 89, 90 |
 | voice: local transcription of voice notes | planned | 81 |
 | delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | planned | 52 to 56, 59 |
@@ -108,6 +108,7 @@ The commands that exist today, one line each; `arthur <command> --help` prints i
 - `arthur remote-job`: the half of a job on another machine that runs there; Arthur runs it over SSH, a person has no reason to.
 - `arthur attach` (orchestration): attaches this terminal to the coordinator's tmux session.
 - `arthur coordinator stop|context` (orchestration): `stop` ends the coordinator's session until `arthur run` starts again, refused while a job runs; `context` prints what the coordinator reads before every turn.
+- `arthur silent [on '<work>' | off | ask]` (`/silent`, orchestration): the silent mode, for delegated work: while it is on, the owner hears only the end of the work, a decision and the answers to his own messages; `off` sums up what happened meanwhile.
 - `arthur board [PREFIX] [all]` (`/board`, orchestration): a project's ticket board, one line per ticket.
 - `arthur task <id>` (`/task`, orchestration): a ticket's status and its `ticket.md`.
 - `arthur findings <id>` (`/findings`, orchestration): a ticket's `findings.md`, from its worker's branch before the merge.
@@ -197,7 +198,7 @@ flowchart TD
   subgraph PLUGINS[Plugins: each talks only to the core]
     subgraph FIRST[First-version plugins]
       subgraph CHAN[Channels and media]
-        telegram[telegram<br/>text, media, phone menu]
+        telegram[telegram<br/>text, media, phone menu<br/>1 of 4 entries; planned: outbox, media, phone menu]
         discord[discord<br/>main channel, one per project<br/>text, media, /name text]
         voice[voice<br/>whisper.cpp, on the CPU]
         telegram ~~~ discord ~~~ voice
@@ -294,8 +295,8 @@ flowchart TD
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
   class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,machines,session,schedule,projects,models,nvm,commit built;
-  class lpartial,orchestration,resources,youtrack partial;
-  class lplanned,telegram,discord,voice,corelater,agents,findings,docker,delivery,github,manage,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
+  class lpartial,orchestration,resources,youtrack,telegram partial;
+  class lplanned,discord,voice,corelater,agents,findings,docker,delivery,github,manage,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl outside;
   style larrows fill:#fff,stroke:#999,color:#000
   style LEGEND fill:#fff,stroke:#999

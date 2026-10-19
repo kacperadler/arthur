@@ -157,6 +157,19 @@ test("a coordinator turn that fails before any text is left for arthur run, its 
 	assert.equal(left.length, 1);
 	assert.match(left[0] ?? "", new RegExp(`^\\d+-${process.pid}-1\\.txt$`));
 	assert.equal(readFileSync(join(folder, "turn-failed", left[0] ?? ""), "utf8"), "529 overloaded; key [redacted]");
+	// While the provider is down the inbox hands the messages over again: the same first line is not left again, another is.
+	const files = () => readdirSync(join(folder, "turn-failed")).sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
+	end([user, said("assistant", "", "error", `${overloaded}\nsecond line differs`)]);
+	assert.equal(files().length, 1, "the same reason once");
+	end([user, said("assistant", "", "error", "500 internal")]);
+	end([user, said("assistant", "", "aborted")]);
+	assert.equal(files().length, 2, "a new reason, and an aborted turn is no answer");
+	end([user, said("assistant", "Back.")]);
+	end([user, said("assistant", "Still here.")]);
+	assert.match(files().at(-1) ?? "", new RegExp(`^\\d+-${process.pid}-3\\.ok$`), "working again, once");
+	assert.equal(files().length, 3);
+	end([user, said("assistant", "", "error", overloaded)]);
+	assert.match(files().at(-1) ?? "", /-4\.txt$/, "after it worked again, the first reason is told again");
 });
 
 test("arthur run sends each turn failure the coordinator's agent left as turn failed on <host>; one left before its start is dropped", async (t) => {
@@ -168,12 +181,14 @@ test("arthur run sends each turn failure the coordinator's agent left as turn fa
 	const extension = box.fake.collect<{ file: string; env: Record<string, string> }>("coordinator.extension").find(({ file }) => file.endsWith("turn-extension.ts"));
 	assert.ok(extension);
 	const gates = temporaryFolder();
-	const omp = fakeAgent({ steps: [{ message: "", stopReason: "error", error: "529 overloaded\nretry later" }, { end: true }, { waitFor: join(gates, "next") }, { message: "", stopReason: "error", error: "500 internal" }, { end: true }, { waitFor: join(gates, "never") }] });
+	const omp = fakeAgent({ steps: [{ message: "", stopReason: "error", error: "529 overloaded\nretry later" }, { end: true }, { waitFor: join(gates, "next") }, { message: "", stopReason: "error", error: "500 internal" }, { end: true }, { waitFor: join(gates, "again") }, { message: "Back." }, { end: true }, { waitFor: join(gates, "never") }] });
 	const child = spawn(omp, ["--continue", "-e", extension.file], { env: { ...process.env, ...extension.env }, stdio: "ignore" });
 	t.after(() => child.kill());
 	await until("the first notice", () => box.notices().length === 2);
 	writeFileSync(join(gates, "next"), "");
 	await until("the second notice", () => box.notices().length === 3);
-	assert.deepEqual(box.notices(), [`coordinator up on ${HOST}`, `turn failed on ${HOST}: 529 overloaded`, `turn failed on ${HOST}: 500 internal`]);
+	writeFileSync(join(gates, "again"), "");
+	await until("the working-again notice", () => box.notices().length === 4);
+	assert.deepEqual(box.notices(), [`coordinator up on ${HOST}`, `turn failed on ${HOST}: 529 overloaded`, `turn failed on ${HOST}: 500 internal`, `turns work again on ${HOST}`]);
 	assert.deepEqual(readdirSync(failed), [], "each sent once, the old one dropped");
 });

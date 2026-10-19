@@ -128,7 +128,25 @@ import { checkStructure } from "./structure.ts";
 // quiet hours; a new package. Orchestration 121 more (1334) for the silent mode: `arthur silent` and `/silent`, its state
 // file, the summary built from the event log, `coordinator.silent`, the held replies and the `## Silent` context line; cut
 // first: the `whole` check onto one line and the state's write inlined (5 lines).
-const BUDGETS = { core: 5448, "core/testing": 344, projects: 475, orchestration: 1334, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 243 };
+// AR0154: a worker, or a continue, on a pre-approved ticket held to the budget its `Pre-approved by policy` line records, until
+// the owner's own approval after it; orchestration 19 more (1232) for that `beforeSpawn` refusal (plans.ts: the record and the
+// approval read under Decisions, the per-ticket refusals split in two); core/testing 2 more (346) for `continue` on the fake
+// host, which no plugin test could reach.
+// AR0155: two pre-approvals of one ticket at once record it once; orchestration 11 more (1243) for the lock per ticket around
+// autopilot's check, record and move, its body moved into `preApprove`.
+// AR0165: a provider outage tells its turn failure once per reason, and once when turns work again; session 18 more (867) for
+// the turn extension's last reason told and its working-again mark, and that notice.
+// AR0156: autopilot takes the `budget` of the ticket's JSON block when `--budget` is left out; orchestration 10 more (1253) for
+// reading it, a block that is not JSON refused.
+// AR0168: a plugin's `after`, set up after those plugins when they are loaded, none refused when not; core 3 more (5451) for
+// its check beside `requires` and the setup order; orchestration 2 more (1255) for its `after: ["schedule"]`.
+// AR0175: a `/restart` that throws in the tick tells the owner; session 6 more (873) for that notice.
+// AR0135: inbox files named `<event number>-<time in ms>`, so a log cut by hand never drops a new message; orchestration 5 more
+// (1260) for the name, the order by number and the replies' answers given as event numbers.
+// AR0137: the burst test moves the agent's clock instead of sleeping; core/testing 3 more (349) for the fake agent's `clock`,
+// its doc reflowed by a line to keep testing.ts at 200.
+// Merged with AR0208: orchestration 1334 + 47 (AR0135, AR0154 to AR0156, AR0168) = 1381; core, core/testing and session as above.
+const BUDGETS = { core: 5451, "core/testing": 349, projects: 475, orchestration: 1381, machines: 415, resources: 458, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 243 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

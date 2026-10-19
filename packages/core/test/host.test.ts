@@ -145,6 +145,22 @@ test("a missing required plugin is refused, and a disabled one like a missing on
 	assert.deepEqual(ran, []);
 });
 
+test("after: set up after a plugin that is loaded, whatever the config's order; one missing or disabled is no refusal", async () => {
+	const ran: string[] = [];
+	const register = (host: Host) => void host.call("schedule.register", "morning report");
+	const registered: unknown[] = [];
+	const schedule = (options = {}) => fake(ran, "schedule", { options, setup: (host) => host.provide("schedule.register", (entry: unknown) => void registered.push(entry)) });
+	await loadPlugins(config([fake(ran, "orchestration", { after: ["schedule"], setup: register }), fake(ran, "telegram"), schedule()]));
+	assert.deepEqual(ran, ["schedule", "orchestration", "telegram"]);
+	assert.deepEqual(registered, ["morning report"]);
+	const alone = (host: Host) => assert.deepEqual(host.collect("schedule.register", "x"), [], "nobody provides it");
+	for (const plugins of [[fake(ran, "orchestration", { after: ["schedule"], setup: alone })], [fake(ran, "orchestration", { after: ["schedule"], setup: alone }), schedule({ enabled: false })]]) {
+		ran.length = 0;
+		await loadPlugins(config(plugins));
+		assert.deepEqual(ran, ["orchestration"], "a disabled plugin is not set up for it");
+	}
+});
+
 test("a cycle in requires is refused, naming its plugins in order; a plugin requiring itself too", async () => {
 	const cycle = config([
 		fake([], "orchestration"),
@@ -152,9 +168,11 @@ test("a cycle in requires is refused, naming its plugins in order; a plugin requ
 		fake([], "b", { requires: ["c"] }),
 		fake([], "c", { requires: ["a"] }),
 	]);
-	assert.equal(await refusal(cycle), `${cycle.path}: plugins: a cycle in requires: a -> b -> c -> a`);
+	assert.equal(await refusal(cycle), `${cycle.path}: plugins: a cycle in requires or after: a -> b -> c -> a`);
 	const self = config([fake([], "orchestration", { requires: ["orchestration"] })]);
-	assert.equal(await refusal(self), `${self.path}: plugins: a cycle in requires: orchestration -> orchestration`);
+	assert.equal(await refusal(self), `${self.path}: plugins: a cycle in requires or after: orchestration -> orchestration`);
+	const after = config([fake([], "orchestration", { after: ["schedule"] }), fake([], "schedule", { requires: ["orchestration"] })]);
+	assert.equal(await refusal(after), `${after.path}: plugins: a cycle in requires or after: orchestration -> schedule -> orchestration`);
 });
 
 test("two plugins with one name are refused, naming the plugin and both places, even when one is disabled", async () => {
@@ -257,6 +275,7 @@ test("an entry that is no plugin, or a plugin with a wrong field, is refused by 
 		{ name: "schedule", setup() {}, requires: "orchestration" },
 		{ name: "session", setup() {}, options: [] },
 		{ name: "youtrack", setup() {}, stop: true },
+		{ name: "manage", setup() {}, after: ["schedule", 1] },
 		fake([], "github", { options: { enabled: "no" } }),
 	]);
 	assert.equal(
@@ -268,6 +287,7 @@ test("an entry that is no plugin, or a plugin with a wrong field, is refused by 
 			"plugins[3]: schedule: expected requires as a list of plugin names, got \"orchestration\"",
 			"plugins[4]: session: expected options as an object, got a list",
 			"plugins[5]: youtrack: expected stop as a function, got true",
+			"plugins[6]: manage: expected after as a list of plugin names, got a list",
 			'github.enabled: expected true or false, got "no"',
 		]
 			.map((line) => `${loaded.path}: ${line}`)

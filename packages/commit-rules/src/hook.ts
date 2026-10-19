@@ -29,11 +29,15 @@ const FORWARDED = [
 
 // Run in the worktree: $1 the worktree, $2 to $4 the scripts, $5 the regex, then the forwarded names. `own` is the hooks folder
 // the project uses without Arthur: its `core.hooksPath` as Git reads it there (relative to the worktree, as Git takes it), else `hooks`.
+// Once `extensions.worktreeConfig` is on, a `core.bare` or `core.worktree` in the shared config holds for every worktree (a bare
+// repository's, as on another machine, would all fail), so each moves first into the main one's `config.worktree`, as Git's own
+// `git sparse-checkout init` does (`git help worktree`, CONFIGURATION FILE); the repository itself reads the same value there.
 const INSTALL = `set -e
 cd "$1"
 dir="$(git rev-parse --absolute-git-dir)/arthur-hooks"
+common="$(git rev-parse --path-format=absolute --git-common-dir)"
 own="$(git config --type=path --get core.hooksPath || true)"
-[ -n "$own" ] || own="$(git rev-parse --path-format=absolute --git-common-dir)/hooks"
+[ -n "$own" ] || own="$common/hooks"
 mkdir -p "$dir"
 printf '%s\\n' "$own" > "$dir/own"
 printf '%s' "$2" > "$dir/check.mjs"
@@ -43,6 +47,15 @@ printf '%s' "$5" > "$dir/rule"
 chmod +x "$dir/commit-msg" "$dir/forward"
 shift 5
 for name in "$@"; do ln -sf forward "$dir/$name"; done
+if [ "$(git config --file "$common/config" --type=bool --get core.bare || true)" = true ]; then
+	git config --file "$common/config.worktree" core.bare true
+	git config --file "$common/config" --unset core.bare
+fi
+main="$(git config --file "$common/config" --get core.worktree || true)"
+if [ -n "$main" ]; then
+	git config --file "$common/config.worktree" core.worktree "$main"
+	git config --file "$common/config" --unset core.worktree
+fi
 git config extensions.worktreeConfig true
 git config --worktree core.hooksPath "$dir"
 `;

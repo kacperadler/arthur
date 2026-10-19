@@ -1,6 +1,6 @@
 # session
 
-The `session` plugin: the coordinator's one long conversation, compacted at set times during the day so it never overflows its context (roadmap entry 35), started fresh at night once no job runs, and restarted on `/restart` (entry 36). Before each, the coordinator writes its handoff, and the next conversation reads it first. Its restart guard holds new jobs once a commit changed the code `arthur run` loaded, until `arthur run` starts again (entry 37). At every start of `arthur run` it asks the coordinator's model for one word and tells the owner whether the coordinator is up, and it tells each coordinator turn that fails before any text (entry 38). It needs `orchestration`, which runs the coordinator.
+The `session` plugin: the coordinator's one long conversation, compacted at set times during the day so it never overflows its context (roadmap entry 35), started fresh at night once no job runs, and restarted on `/restart` (entry 36). Before each, the coordinator writes its handoff, and the next conversation reads it first. Its restart guard holds new jobs once a commit changed the code `arthur run` loaded, until `arthur run` starts again (entry 37). At every start of `arthur run` it asks the coordinator's model for one word and tells the owner whether the coordinator is up, after what `arthur doctor` found missing, and it tells each coordinator turn that fails before any text (entry 38). It gives `arthur doctor` the user service and linger (entry 80). It needs `orchestration`, which runs the coordinator.
 
 ## Options
 
@@ -88,9 +88,20 @@ So that the owner learns Arthur is up, and a model provider that fails (a login 
 
 Two starts in a row send two notices, one each: nothing is merged or held back. An `arthur run` stopped while its probe runs kills the probe and sends no notice. The notice tells about the model; that the coordinator's tmux session started is in `arthur run`'s output (`arthur coordinator --help`).
 
+The notice opens with the lines `arthur doctor` found missing that this start sends, one per line, before `coordinator up on <host>` or `no LLM access ...`: the core's `doctor` event, `{ lines }`, which `arthur run` emits before any plugin's start. A line is sent at most once a day (`arthur doctor --help`); with none to send, the notice is as above.
+
 A coordinator turn that fails before any text (its last message an error, and none of its replies since the message that started it holds text) sends the notice `turn failed on <host>: <reason>`, the first line of omp's error, once per turn. The session's second extension in the coordinator's agent, `packages/session/src/turn-extension.ts`, leaves each in `<home>/session/turn-failed/`, and `arthur run` sends them within 500 ms, oldest first; one left before this `arthur run` started is dropped, not told late. A turn the owner aborted, one that replied before it failed, and one omp says goes on, are not told.
 
 A credential is never repeated in either notice: in the reason, the value of every environment variable whose name holds `KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `CREDENTIAL` or `AUTH` (8 characters or more), a `Bearer` token, a key with a vendor's prefix (`sk-`, `xoxb-`, `ghp_`, ...), and any run of 20 or more letters, digits, `_` and `-` that mixes letters and digits become `[redacted]`. The reasons are cut at 300 characters.
+
+## arthur doctor
+
+The plugin gives `arthur doctor` (`arthur doctor --help`) two requirements, neither critical, so `arthur run` starts without them:
+
+- `session service`: the systemd user service `arthur.service` is installed (`LoadState=loaded`), enabled (`UnitFileState=enabled`) and has `Restart=always`, as `systemctl --user show arthur.service` says. Missing: `arthur.service is not installed`, `arthur.service is disabled, not enabled`, `arthur.service has Restart=on-failure, not always`; without it nothing starts `arthur run` at boot, or again after it ends; the fix is step 9 of `docs/setup.md`.
+- `session linger`: `loginctl show-user <user> -p Linger --value` says `yes`. Missing: `linger is off for <user>`, so the user manager, and `arthur run` with it, starts only once the user logs in; the fix is `sudo loginctl enable-linger <user>`.
+
+Without a systemd user manager (macOS, a container: `systemctl --user show-environment` fails) the plugin has no line; the core's `core controllers` line says so, once.
 
 ## Files
 

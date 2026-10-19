@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
@@ -15,8 +16,8 @@ import { spawnRules } from "./spawn-rules.ts";
 // `arthur run`; its inbox (entry 24, inbox.ts); its role and its context on every turn (entry 25, context.ts); `arthur attach`
 // and `arthur coordinator stop|context`, docs/commands/coordinator.md and attach.md; the board's phone commands `/board`, `/task`,
 // `/findings` and `/plan` (board-commands.ts); `maxAgents` and each role's model (entry 26, spawn-rules.ts); the notice of a job
-// blocked on the owner (entry 27, blocked-notice.ts); the planning of large tickets (entry 28, plans.ts); and autopilot (entry 29,
-// autopilot.ts).
+// blocked on the owner (entry 27, blocked-notice.ts); the planning of large tickets (entry 28, plans.ts); autopilot (entry 29,
+// autopilot.ts); and tmux as its `arthur doctor` requirement (entry 80).
 
 export type OrchestrationOptions = {
 	readonly enabled?: boolean;
@@ -54,6 +55,21 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			autopilot(host);
 			// Read like every role, with the project's override and criteria; no kind spawns it, `arthur run` starts it.
 			host.jobs.registerRole({ name: "coordinator", file: new URL("../roles/coordinator.md", import.meta.url), criteria: ["styleguide", "autopilot"] });
+			// One requirement of `arthur doctor` (entry 80): there is no coordinator without tmux.
+			host.provide("doctor", () => [
+				{
+					name: "tmux",
+					check: () => {
+						const shown = spawnSync("tmux", ["-V"], { encoding: "utf8", timeout: 10_000 });
+						if (shown.status === 0) return "ok";
+						const code = (shown.error as NodeJS.ErrnoException | undefined)?.code;
+						return `missing: ${code === "ENOENT" ? "tmux not found on PATH" : `tmux -V: ${shown.error?.message ?? (shown.stderr.trim() || `exit code ${shown.status}`)}`}`;
+					},
+					costs: "no coordinator",
+					fix: "sudo apt-get install -y tmux (docs/setup.md, step 2)",
+					critical: true,
+				},
+			]);
 			const where = `tmux session ${coordinator.session} (socket ${coordinator.socket})`;
 			host.commands.register({
 				name: "attach",

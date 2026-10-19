@@ -41,7 +41,7 @@ function spawnRequest(args: readonly string[], project: string | undefined): Spa
 	return { task: tasks[0] ?? "", kind, model, thinking, project, machine, requires: requires === undefined ? undefined : (requirement(requires) as Requires), ignoreRestart, ...limits };
 }
 
-// `os=macos,tools=xcode,tools=docker` as labels: `os` and `arch` at most once, `tools` once per tool; a string when it is not that.
+// `os=macos,tools=xcodebuild,tools=docker` as labels: `os` and `arch` at most once, `tools` once per tool; a string when it is not that.
 function requirement(value: string): Requires | string {
 	const pairs = value.split(",").map((pair) => /^(os|arch|tools)=([^\s=]+)$/.exec(pair));
 	const of = (key: string) => pairs.flatMap((pair) => (pair?.[1] === key ? [pair[2] ?? ""] : []));

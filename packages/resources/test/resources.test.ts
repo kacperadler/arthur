@@ -73,8 +73,8 @@ test("a job spawned with the plugin gets its caps on its own scope, in the test 
 	t.after(() => void (process.env.PATH = saved));
 	process.env.PATH = [dirname(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] })), saved].join(delimiter);
 	const options = { perJob: { cpu: 1.5, memory: "512M" } };
-	// Room for the job on this host however busy it is: no load, 64 GB free.
-	t.mock.method(os, "loadavg", () => [0, 0, 0]);
+	// Room for the job on this host however busy it is: no CPU time in use, 64 GB free.
+	t.mock.method(os, "cpus", () => [{ model: "fake", speed: 1000, times: { user: 0, nice: 0, sys: 0, idle: 0, irq: 0 } }]);
 	t.mock.method(os, "freemem", () => 64 * 2 ** 30);
 	syncBuiltinESMExports();
 	t.after(() => {

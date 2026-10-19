@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/commit-rules/docs/commit-rules.md:7`, `spec/vision.md:100`
 - What: AR0200 changed only `arthur.config.example.ts`; the `regex` example of the commit-rules doc (`^(feat|fix|docs)(\([\w-]+\))?!?: .{1,72}$`) and of the vision's table (`^(feat|fix|docs)(\(.+\))?!?: .{1,72}$`) still let a subject of about 90 characters pass, so a reader copying either gets the rule AR0200 fixed in the example.
 - Suggestion: the same lookahead in both, `^(?=.{1,72}$)(feat|fix|docs)(\([\w-]+\))?!?: .+$`; the vision is the owner's, so its line waits for the owner's word. Out: the regex in `packages/commit-rules/test/commit-rules.test.ts`, which tests the hook, not the 72.
-- Status: open
+- Status: ticket AR0215

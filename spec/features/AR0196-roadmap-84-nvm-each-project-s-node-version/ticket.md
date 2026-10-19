@@ -40,3 +40,4 @@ Out:
 ## Decisions
 
 - 2026-10-19: The owner told the coordinator to run several workers at once, under the 80% usage ceiling, and to build finding tickets alongside the roadmap entry that touches the same files.
+- 2026-10-19: The coordinator allows the change in packages/projects install.ts on this branch: the install runs with the PATH the prepares before it returned, with a test. The order is not left to documentation: a config that lists nvm after projects is refused at load, with a message that says to list nvm() before projects. No fixed prepare order in the core.

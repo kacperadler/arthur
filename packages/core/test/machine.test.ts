@@ -359,7 +359,7 @@ test("a job with caps on a machine without a user manager runs bare there with i
 	assert.deepEqual([first.failed, second.failed], [undefined, undefined]);
 	assert.deepEqual(["cpu", "memory"].map((name) => read(there, second.id, name)), ["2", "1G"]);
 	assert.match(read(there, second.id, "log"), /no systemd scope: Failed to connect to bus: No medium found; the job runs bare/);
-	const text = "machine gpu runs jobs without a systemd scope (Failed to connect to bus: No medium found): a job's memory cap there is held by sampling its processes every 10 s, and its CPU is not capped";
+	const text = "machine gpu runs jobs without a systemd scope (Failed to connect to bus: No medium found): a job's memory cap there is held by sampling its processes every 10 s, its CPU is not capped, and a ticket's CPU and memory caps, shared by all its jobs, are not held";
 	assert.deepEqual(events(home, "notice"), [{ text }]);
 });
 

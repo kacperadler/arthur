@@ -1478,8 +1478,15 @@
   {
     "id": "AR0187",
     "title": "Roadmap 82: models on other machines, and a fallback chain",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0187-roadmap-82-models-on-other-machines-and-a-fallback-chain/ticket.md",
-    "updated": "2026-10-19T11:36:05.913Z"
+    "updated": "2026-10-19T12:07:55.137Z"
+  },
+  {
+    "id": "AR0188",
+    "title": "Roadmap 43: commit rules per project",
+    "status": "planned",
+    "path": "spec/features/AR0188-roadmap-43-commit-rules-per-project/ticket.md",
+    "updated": "2026-10-19T12:12:34.820Z"
   }
 ]

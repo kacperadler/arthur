@@ -1,0 +1,37 @@
+// Telegram's Bot API (spec/roadmap.md, entry 47): one POST of JSON to `<apiUrl>/bot<token>/<method>`, answered
+// `{ ok, result }` or `{ ok: false, error_code, description }`. A failure is one line naming the bot and the method, never the
+// token, which is part of the URL.
+
+export type Bot = {
+	// The name, or `(unnamed)`, as errors say it.
+	readonly label: string;
+	readonly token: string;
+	readonly chat: number;
+	readonly apiUrl: string;
+};
+
+// A refusal or no answer; `code` is Telegram's `error_code`, 0 when none came.
+export type ApiError = Error & { readonly code: number };
+
+export async function call(bot: Bot, method: string, params: Readonly<Record<string, unknown>>, signal: AbortSignal): Promise<unknown> {
+	const fail = (code: number, text: string): ApiError =>
+		Object.assign(new Error(`telegram bot ${bot.label}: ${method}: ${text.replaceAll(bot.token, "[token]").replace(/\s+/g, " ").slice(0, 300)}`), { code });
+	let text: string;
+	let status: number;
+	try {
+		const response = await fetch(`${bot.apiUrl}/bot${bot.token}/${method}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(params), signal });
+		[status, text] = [response.status, await response.text()];
+	} catch (error) {
+		if (signal.aborted && signal.reason instanceof DOMException && signal.reason.name === "TimeoutError") throw fail(0, "no answer in time");
+		if (signal.aborted) throw error;
+		const cause = error instanceof Error && typeof error.cause === "object" && error.cause !== null && "code" in error.cause ? error.cause.code : undefined;
+		throw fail(0, `cannot reach the Bot API${typeof cause === "string" ? ` (${cause})` : ""}`);
+	}
+	let answer: { readonly ok?: unknown; readonly result?: unknown; readonly error_code?: unknown; readonly description?: unknown } = {};
+	try {
+		answer = JSON.parse(text) ?? {};
+	} catch {}
+	if (answer.ok === true) return answer.result;
+	const code = typeof answer.error_code === "number" ? answer.error_code : status;
+	throw fail(code, `${code}: ${typeof answer.description === "string" && answer.description.trim() !== "" ? answer.description : "no description"}`);
+}

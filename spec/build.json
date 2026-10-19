@@ -1276,9 +1276,9 @@
   {
     "id": "AR0159",
     "title": "packages/session/test/restart.test.ts:204 fails now and then with \"Unexpected end of JSON input\"",
-    "status": "in-progress",
+    "status": "dropped",
     "path": "spec/features/AR0159-packages-session-test-restart-test-ts-204-fails-now-and-then-with-unexpected-end-of-json-input/ticket.md",
-    "updated": "2026-10-18T23:45:29.956Z",
+    "updated": "2026-10-19T05:47:18.815Z",
     "after": [
       "AR0153"
     ]

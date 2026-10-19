@@ -2,7 +2,7 @@
   "name": "@arthur/youtrack",
   "private": true,
   "type": "module",
-  "license": "SEE LICENSE IN ../../LICENSE",
+  "license": "Apache-2.0",
   "exports": {
     ".": "./src/youtrack.ts",
     "./options": "./src/youtrack-options.ts"

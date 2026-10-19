@@ -2,7 +2,7 @@
   "name": "@arthur/session",
   "private": true,
   "type": "module",
-  "license": "SEE LICENSE IN ../../LICENSE",
+  "license": "Apache-2.0",
   "exports": {
     ".": "./src/session.ts",
     "./options": "./src/session-options.ts"

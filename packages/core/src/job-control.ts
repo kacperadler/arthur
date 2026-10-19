@@ -6,7 +6,8 @@ import type { Bus } from "./events.ts";
 import type { Spawn } from "./jobs.ts";
 import { checkLimits } from "./job-limits.ts";
 import { type Machine, sshAsync } from "./job-machine.ts";
-import { launch, type Slice } from "./job-scope.ts";
+import { capFields } from "./job-record.ts";
+import { type Caps, launch, type Slice } from "./job-scope.ts";
 import { GRACE_SECONDS } from "./job-stop.ts";
 import { current, field, ID, inRun, moveJob, told, write } from "./job-state.ts";
 import { takeLock } from "./lock.ts";
@@ -62,9 +63,10 @@ export function steerJob(home: string, id: string, text: string): string {
 // `arthur continue` (docs/commands/continue.md): returns why the wrapper did not start, or undefined. Its lock `continuing` is
 // taken before the state is read and released here only when the continue fails; else the new wrapper removes it. A job on
 // another machine (`there`) is checked here, then continued there by `arthur remote-job continue`, which refuses it as here.
-// `check` runs the `beforeSpawn` checks and holds the spawn lock (spawn-check.ts) until the job is `working` again; `uncapped`
-// hears why a job with caps runs bare here (job-scope.ts).
-export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, uncapped: (why: string) => void, check: (spawn: Omit<Spawn, "tickets" | "ignoreRestart">) => Promise<() => void>, there?: Machine): Promise<string | undefined> {
+// `check` runs the `beforeSpawn` checks and holds the spawn lock (spawn-check.ts) until the job is `working` again, and answers
+// the caps in force now (`jobs.limits`), which replace the record's before the launch; `uncapped` hears why a job with caps runs
+// bare here (job-scope.ts).
+export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, uncapped: (why: string) => void, check: (spawn: Omit<Spawn, "tickets" | "ignoreRestart">) => Promise<{ readonly release: () => void; readonly caps: Caps }>, there?: Machine): Promise<string | undefined> {
 	const { folder, field } = record(home, id);
 	if (instruction.trim() === "") throw new Error("the instruction is empty");
 	const lock = takeLock(join(folder, "continuing"));
@@ -78,7 +80,8 @@ export async function continueJob(home: string, id: string, instruction: string,
 		if (worktree === undefined || (there === undefined && !existsSync(worktree))) throw new Error(`${id}: its worktree was pruned; spawn a new job on its branch ${branch}`);
 		checkLimits("continue", { budgetUsd });
 		const machine = field("machine") || "local";
-		release = await check({ task, kind, project, model, thinking, quick, machine, timeoutMinutes: Number(field("timeout")), budgetUsd: budgetUsd ?? Number(field("budget")) });
+		const passed = await check({ task, kind, project, model, thinking, quick, machine, timeoutMinutes: Number(field("timeout")), budgetUsd: budgetUsd ?? Number(field("budget")) });
+		release = passed.release;
 		const budget = budgetUsd === undefined ? [] : [String(budgetUsd)];
 		// A new scope of the job's name cannot start while a wrapper of the job still runs in it, and two wrappers never run for a
 		// job: one that runs on past the grace refuses the continue. Its `pid` goes, so `launch` waits for the new one's.
@@ -87,8 +90,9 @@ export async function continueJob(home: string, id: string, instruction: string,
 			if (running.length === 0) break;
 			if (Date.now() > end) throw new Error(`${id}: its wrapper ${running.join(", ")} still runs ${GRACE_SECONDS} seconds on; a second one is not started beside it`);
 		}
-		const startedThere = there && launched(home, there, await sshAsync(there, ["arthur", "remote-job", "continue", there.home, id, agent, slice.slice, ...budget], instruction.trim()), bus);
+		const startedThere = there && launched(home, there, await sshAsync(there, ["arthur", "remote-job", "continue", there.home, id, agent, slice.slice, JSON.stringify(passed.caps), ...budget], instruction.trim()), bus);
 		if (budgetUsd !== undefined) write(folder, "budget", String(budgetUsd));
+		for (const [name, text] of Object.entries(capFields(passed.caps))) write(folder, name, text);
 		if (there === undefined) {
 			rmSync(join(folder, "pid"), { force: true });
 			write(folder, "continue", instruction.trim());

@@ -1541,9 +1541,9 @@
   {
     "id": "AR0196",
     "title": "Roadmap 84: nvm, each project's Node version",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0196-roadmap-84-nvm-each-project-s-node-version/ticket.md",
-    "updated": "2026-10-19T13:47:18.641Z"
+    "updated": "2026-10-19T14:00:49.838Z"
   },
   {
     "id": "AR0197",
@@ -1607,5 +1607,12 @@
     "status": "planning",
     "path": "spec/features/AR0205-the-coordinator-s-role-does-not-say-when-it-may-write-to-youtrack/ticket.md",
     "updated": "2026-10-19T14:00:26.118Z"
+  },
+  {
+    "id": "AR0206",
+    "title": "Roadmap 46: YouTrack comments, attachments, and the rules for jobs",
+    "status": "planned",
+    "path": "spec/features/AR0206-roadmap-46-youtrack-comments-attachments-and-the-rules-for-jobs/ticket.md",
+    "updated": "2026-10-19T14:00:50.957Z"
   }
 ]

@@ -13,6 +13,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0153 Roadmap 37: Restart guard (2799aaa)
 - AR0157 Roadmap 38: Start notice and LLM probe (289fa48)
 - AR0158 Roadmap 39: Schedule entries and the sweep (32f5997)
+- AR0163 Roadmap 40: Registered entries and arthur schedule (f3e9ecc)
 
 ## 2026-10-18
 

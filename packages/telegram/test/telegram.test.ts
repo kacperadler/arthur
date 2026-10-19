@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import { once } from "node:events";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { setTimeout as sleep } from "node:timers/promises";
+import { join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { setTimeout as sleep } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
 import { fakeHost } from "@arthur/core/testing";
 import { OTHER } from "../src/poll.ts";
-import { slices } from "../src/slices.ts";
+import { cut, slices } from "../src/slices.ts";
 import { checkOptions } from "../src/telegram-options.ts";
 import { type TelegramOptions, telegram } from "../src/telegram.ts";
 
@@ -19,6 +23,16 @@ const CONFLICT = "Conflict: terminated by other getUpdates request; make sure th
 
 async function until(what: string, holds: () => boolean, ms = 20_000): Promise<void> {
 	for (const deadline = Date.now() + ms; !holds(); await sleep(20)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
+}
+
+// The address of a loopback port nothing listens on any more: the Bot API unreachable.
+async function nowhere(): Promise<string> {
+	const closed = createServer().listen(0, "127.0.0.1");
+	await once(closed, "listening");
+	const { port } = closed.address() as AddressInfo;
+	closed.close();
+	await once(closed, "close");
+	return `http://127.0.0.1:${port}`;
 }
 
 type Call = { readonly token: string; readonly method: string; readonly params: Readonly<Record<string, unknown>>; readonly at: number };
@@ -36,9 +50,11 @@ const message = (id: number, fields: Readonly<Record<string, unknown>> = {}, age
 
 // A fake Bot API on a loopback port the OS picks. `getUpdates` answers the updates from `offset` on, or waits, as long polling
 // does, until one is pushed or its `timeout` passes; `sendMessage` answers the sent Message. `fail` scripts the next answers
-// of a method in the documented error shape (`ok: false`, `error_code`, `description`), with its HTTP status.
+// of a method in the documented error shape (`ok: false`, `error_code`, `description`), with its HTTP status. `sent` is every
+// sendMessage call, `took` those it answered with a Message.
 async function botApi(t: TestContext) {
 	const calls: Call[] = [];
+	const taken: Call[] = [];
 	const updates = new Map<string, { update_id: number; message: unknown }[]>();
 	const failures: { method: string; code: number; description: string; parameters?: { retry_after: number } }[] = [];
 	const waiting = new Set<() => void>();
@@ -59,6 +75,7 @@ async function botApi(t: TestContext) {
 		}
 		if (method === "sendMessage") {
 			const { chat_id, text, message_thread_id } = params;
+			taken.push({ token, method, params, at: Date.now() });
 			return send(response, 200, { ok: true, result: { message_id: next++, from: { id: 7012345678, is_bot: true, first_name: "Arthur", username: "arthur_bot" }, chat: { id: chat_id, type: "private" }, date: 1, text, ...(message_thread_id === undefined ? {} : { message_thread_id }) } });
 		}
 		if (method !== "getUpdates") return send(response, 404, { ok: false, error_code: 404, description: "Not Found" });
@@ -87,6 +104,7 @@ async function botApi(t: TestContext) {
 		url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
 		calls,
 		sent: (token = TOKEN) => calls.filter((call) => call.method === "sendMessage" && call.token === token).map((call) => call.params),
+		took: (token = TOKEN) => taken.filter((call) => call.token === token).map((call) => call.params),
 		polls: (token = TOKEN) => calls.filter((call) => call.method === "getUpdates" && call.token === token).map((call) => call.params),
 		push(fields: Readonly<Record<string, unknown>> = {}, age = 5, token = TOKEN) {
 			const update = { update_id: id++, message: message(id, fields, age) };
@@ -98,8 +116,9 @@ async function botApi(t: TestContext) {
 	};
 }
 
-// The plugin on a fake host, with `coordinator.silent` holding what `held` says, its console.error lines kept.
-async function load(t: TestContext, options: Partial<TelegramOptions> & { readonly apiUrl: string }, setup: { readonly now?: Date; readonly held?: (notice: unknown) => boolean; readonly env?: Readonly<Record<string, string>> } = {}) {
+// The plugin on a fake host, with `coordinator.silent` holding what `held` says, its console.error lines kept; `folder` stands for
+// the plugin's folder, so a second load shares the first one's outbox, as a restart or a second process does.
+async function load(t: TestContext, options: Partial<TelegramOptions> & { readonly apiUrl: string }, setup: { readonly now?: Date; readonly held?: (notice: unknown) => boolean; readonly env?: Readonly<Record<string, string>>; readonly folder?: string } = {}) {
 	const errors: string[] = [];
 	t.mock.method(console, "error", (text: string) => void errors.push(text));
 	const full = { bots: [{ botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }], ...options };
@@ -111,9 +130,11 @@ async function load(t: TestContext, options: Partial<TelegramOptions> & { readon
 		return setup.held?.(notice) ?? false;
 	});
 	const plugin = telegram(full as TelegramOptions);
-	await fake.setup(plugin);
+	const folder = setup.folder ?? fake.host.folder;
+	await (setup.folder === undefined ? fake.setup(plugin) : plugin.setup({ ...fake.host, folder }));
 	t.after(() => plugin.stop?.());
-	return { fake, plugin, errors, asked, received: () => fake.emitted.filter((event) => event.name === "message-received").map((event) => event.data) };
+	const queued = (box = "") => (existsSync(join(folder, "outbox", box)) ? readdirSync(join(folder, "outbox", box)).filter((name) => name.endsWith(".json")) : []);
+	return { fake, plugin, errors, asked, folder, queued, received: () => fake.emitted.filter((event) => event.name === "message-received").map((event) => event.data) };
 }
 
 test("options: bots is a list of at least one, each with its two variables, at most one unnamed, names unique; apiUrl an http URL", () => {
@@ -204,7 +225,7 @@ test("any other kind of message gets one line back, in its topic; none reaches t
 
 test("replies go when their channels hold telegram or are empty, notices unless coordinator.silent holds them, in order, a place to its topic", async (t) => {
 	const api = await botApi(t);
-	const { fake, plugin, asked } = await load(t, { apiUrl: api.url }, { held: (notice) => (notice as { text: string }).text === "held" });
+	const { fake, plugin, asked, queued } = await load(t, { apiUrl: api.url }, { held: (notice) => (notice as { text: string }).text === "held" });
 	fake.emit("coordinator-replied", { text: "To the owner.", answers: [1], channels: ["telegram", "discord"] });
 	fake.emit("coordinator-replied", { text: "Only Discord.", answers: [2], channels: ["discord"] });
 	fake.emit("coordinator-replied", { text: "A job ended.", answers: [3], channels: [] });
@@ -215,6 +236,7 @@ test("replies go when their channels hold telegram or are empty, notices unless 
 	const fetched = t.mock.method(globalThis, "fetch");
 	await new Promise(setImmediate);
 	assert.equal(fetched.mock.callCount(), 0, "nothing goes before the start, the replay of the log included");
+	assert.deepEqual(queued(), [], "nor is queued: a command that loads the plugin and never starts it writes no outbox");
 	await plugin.start?.();
 	await until("four sends", () => api.sent().length === 4);
 	assert.deepEqual(api.sent(), [
@@ -283,28 +305,15 @@ test("a second poller (409) is said once in a notice, polling retries and the me
 	await until("the notice sent", () => api.sent().length === 1);
 });
 
-test("a failed call is one line naming the bot and method, never the token; polling goes on", async (t) => {
+test("a failed poll is one line naming the bot and method, never the token; polling goes on", async (t) => {
 	const api = await botApi(t);
-	const { fake, plugin, errors, received } = await load(t, { apiUrl: api.url });
+	const { plugin, errors, received } = await load(t, { apiUrl: api.url });
 	api.fail("getUpdates", 502, "Bad Gateway");
-	api.fail("sendMessage", 400, `Bad Request: chat not found for bot${TOKEN}`);
 	await plugin.start?.();
-	fake.emit("notice", { text: "refused" });
-	fake.emit("notice", { text: "sent" });
 	api.push({ text: "Still polling." });
 	await until("the message", () => received().length === 1);
-	await until("the second notice", () => api.sent().length === 2);
-	assert.deepEqual(errors, [
-		"telegram bot (unnamed): getUpdates: 502: Bad Gateway; polling retries in 2 s",
-		"telegram bot (unnamed): sendMessage: 400: Bad Request: chat not found for bot[token]; a slice of 7 characters was not sent",
-	]);
-	// A loopback port nothing listens on any more.
-	const closed = createServer().listen(0, "127.0.0.1");
-	await once(closed, "listening");
-	const { port } = closed.address() as AddressInfo;
-	closed.close();
-	await once(closed, "close");
-	const gone = await load(t, { apiUrl: `http://127.0.0.1:${port}` });
+	assert.deepEqual(errors, ["telegram bot (unnamed): getUpdates: 502: Bad Gateway; polling retries in 2 s"]);
+	const gone = await load(t, { apiUrl: await nowhere() });
 	await gone.plugin.start?.();
 	await until("the unreachable line", () => gone.errors.length === 1);
 	assert.equal(gone.errors[0], "telegram bot (unnamed): getUpdates: cannot reach the Bot API (ECONNREFUSED); polling retries in 2 s");
@@ -322,7 +331,7 @@ test("a 429 while polling waits the seconds Telegram says, and says so once", as
 	assert.deepEqual(errors, ["telegram bot (unnamed): getUpdates: 429: Too Many Requests: retry after 3; polling retries in 3 s"]);
 });
 
-test("every bot polls its own chat; the unnamed bot sends, wherever it is in the list", async (t) => {
+test("every bot polls its own chat; a reply goes by each bot the messages it answers came through, the rest by the unnamed one", async (t) => {
 	const api = await botApi(t);
 	const bots = [
 		{ name: "second", botTokenEnv: "ARTHUR_TELEGRAM_SECOND_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_SECOND_CHAT_ID" },
@@ -332,10 +341,26 @@ test("every bot polls its own chat; the unnamed bot sends, wherever it is in the
 	const { fake, plugin, received } = await load(t, { apiUrl: api.url, bots }, { env });
 	await plugin.start?.();
 	api.push({ text: "To the second bot." }, 5, SECOND);
-	await until("its message", () => received().length === 1);
-	fake.emit("coordinator-replied", { text: "Answered.", answers: [1], channels: ["telegram"] });
-	await until("the reply", () => api.sent().length === 1);
-	assert.deepEqual(api.sent(SECOND), []);
+	api.push({ text: "To the unnamed bot." }, 5, TOKEN);
+	await until("both messages", () => received().length === 2);
+	const seq = (text: string) => fake.emitted.find((event) => event.name === "message-received" && (event.data as { text: string }).text === text)?.seq;
+	const [second, unnamed] = [seq("To the second bot."), seq("To the unnamed bot.")];
+	assert.deepEqual(new Set(received()), new Set([{ channel: "telegram", text: "To the second bot.", instance: "second" }, { channel: "telegram", text: "To the unnamed bot." }]));
+	fake.emit("coordinator-replied", { text: "To the second.", answers: [second], channels: ["telegram"] });
+	fake.emit("coordinator-replied", { text: "To the unnamed.", answers: [unnamed], channels: ["telegram"] });
+	fake.emit("coordinator-replied", { text: "To both.", answers: [unnamed, second], channels: ["telegram"] });
+	fake.emit("coordinator-replied", { text: "A job ended.", answers: [], channels: [] });
+	fake.emit("coordinator-replied", { text: "Answers no message of the log.", answers: [10_000], channels: ["telegram"] });
+	fake.emit("notice", { text: "A notice." });
+	await until("the sends", () => api.took(SECOND).length === 2 && api.took(TOKEN).length === 5);
+	assert.deepEqual(
+		api.took(SECOND).map((sent) => sent.text),
+		["To the second.", "To both."],
+	);
+	assert.deepEqual(
+		api.took(TOKEN).map((sent) => sent.text),
+		["To the unnamed.", "To both.", "A job ended.", "Answers no message of the log.", "A notice."],
+	);
 	assert.ok(api.polls(SECOND).length >= 1 && api.polls(TOKEN).length >= 1);
 });
 
@@ -349,4 +374,178 @@ test("stop ends the long poll at once, and a plugin never started stops too", as
 	assert.ok(Date.now() - started < 5000, "the 30 s poll is aborted");
 	const idle = await load(t, { apiUrl: api.url });
 	await idle.plugin.stop?.();
+});
+
+const sends = (calls: readonly Call[]) => calls.filter((call) => call.method === "sendMessage");
+
+test("one retry per send, after 2 s; a slice failing twice waits with the ones after it and goes first next time, said once", async (t) => {
+	const api = await botApi(t);
+	const { fake, plugin, errors, queued, folder } = await load(t, { apiUrl: api.url });
+	await plugin.start?.();
+	api.fail("sendMessage", 502, "Bad Gateway");
+	fake.emit("notice", { text: "once" });
+	await until("the retry", () => api.took().length === 1);
+	const [failed, retried] = sends(api.calls);
+	assert.ok(failed !== undefined && retried !== undefined && retried.at - failed.at >= 2000, "the retry waits 2 s");
+	assert.deepEqual(errors, [], "a send the retry took is said nowhere");
+	for (let count = 0; count < 4; count++) api.fail("sendMessage", 502, "Bad Gateway");
+	const [a, b] = ["a".repeat(3000), "b".repeat(2000)];
+	fake.emit("coordinator-replied", { text: `${a}\n${b}`, answers: [1], channels: [] });
+	await until("the failure said", () => errors.length === 1);
+	assert.equal(errors[0], `telegram bot (unnamed): sendMessage: 502: Bad Gateway; the slice waits in ${join(folder, "outbox")} and goes first next time`);
+	assert.equal(queued().length, 2, "the reply's second slice waits behind its first");
+	fake.emit("notice", { text: "next" });
+	await until("the next time, failed again", () => sends(api.calls).length === 6);
+	fake.emit("notice", { text: "last" });
+	await until("all of them", () => api.took().length === 5);
+	assert.deepEqual(
+		api.took().map((sent) => sent.text),
+		["once", a, b, "next", "last"],
+	);
+	assert.equal(errors.length, 1, "the same failure is said once until a slice goes");
+	assert.deepEqual(queued(), []);
+});
+
+test("Telegram unreachable: the slices wait in the outbox through a restart, then go first, in order, a topic's to its topic", async (t) => {
+	const api = await botApi(t);
+	const down = await load(t, { apiUrl: await nowhere() });
+	await down.plugin.start?.();
+	down.fake.emit("notice", { text: "AR1 asks: may I?", place: "12" });
+	down.fake.emit("notice", { text: "After it." });
+	await until("the failure said", () => down.errors.some((line) => line.includes("sendMessage")));
+	await down.plugin.stop?.();
+	assert.equal(down.queued().length, 2);
+	assert.ok(down.errors.includes(`telegram bot (unnamed): sendMessage: cannot reach the Bot API (ECONNREFUSED); the slice waits in ${join(down.folder, "outbox")} and goes first next time`));
+	const back = await load(t, { apiUrl: api.url }, { folder: down.folder });
+	await back.plugin.start?.();
+	await until("both sent", () => api.took().length === 2);
+	assert.deepEqual(api.took(), [
+		{ chat_id: CHAT, text: "AR1 asks: may I?", disable_notification: false, message_thread_id: 12 },
+		{ chat_id: CHAT, text: "After it.", disable_notification: false },
+	]);
+	await until("the outbox empty", () => back.queued().length === 0);
+});
+
+test("Telegram back while nothing new is sent: an answered poll sends what waits", async (t) => {
+	const api = await botApi(t);
+	const { fake, plugin, errors, queued } = await load(t, { apiUrl: api.url });
+	for (let count = 0; count < 2; count++) api.fail("sendMessage", 502, "Bad Gateway");
+	api.fail("getUpdates", 502, "Bad Gateway");
+	await plugin.start?.();
+	fake.emit("notice", { text: "Waited." });
+	await until("the failure said", () => errors.some((line) => line.includes("sendMessage")));
+	api.push({ text: "A poll answers." });
+	await until("the waiting slice sent", () => api.took().length === 1);
+	assert.deepEqual(queued(), []);
+});
+
+test("a 429 on a send waits the seconds Telegram says before the retry; a stop during that wait keeps the slice queued", async (t) => {
+	const api = await botApi(t);
+	const { fake, plugin, queued } = await load(t, { apiUrl: api.url });
+	await plugin.start?.();
+	api.fail("sendMessage", 429, "Too Many Requests: retry after 3", { retry_after: 3 });
+	fake.emit("notice", { text: "After the wait." });
+	await until("the retry", () => api.took().length === 1);
+	const [limited, retried] = sends(api.calls);
+	assert.ok(limited !== undefined && retried !== undefined && retried.at - limited.at >= 3000, `${retried?.at} - ${limited?.at}`);
+	api.fail("sendMessage", 429, "Too Many Requests: retry after 60", { retry_after: 60 });
+	fake.emit("notice", { text: "Held back." });
+	await until("the second 429", () => sends(api.calls).length === 3);
+	const stopping = Date.now();
+	await plugin.stop?.();
+	assert.ok(Date.now() - stopping < 5000, "the stop cuts the 60 s wait short");
+	assert.equal(queued().length, 1, "the slice waits for the next start");
+});
+
+test("a refused (4xx) slice is set aside and told once until a slice goes, never blocking the ones after it; the told text cut to one message", async (t) => {
+	const api = await botApi(t);
+	const { fake, plugin, errors, queued, folder } = await load(t, { apiUrl: api.url });
+	await plugin.start?.();
+	const blocked = `Forbidden: bot was blocked by the user bot${TOKEN}`;
+	for (let count = 0; count < 3; count++) api.fail("sendMessage", 403, blocked);
+	const long = Array.from({ length: 40 }, (_, line) => String(line).padEnd(99, "r")).join("\n");
+	fake.emit("notice", { text: long });
+	fake.emit("notice", { text: "Refused too." });
+	// The told notice is refused third: it is not told again.
+	await until("three set aside", () => queued("refused").length === 3);
+	assert.equal(sends(api.calls).length, 3, "a refused slice is not retried");
+	fake.emit("notice", { text: "Goes." });
+	await until("it goes", () => api.took().length === 1);
+	api.fail("sendMessage", 400, "Bad Request: message thread not found");
+	fake.emit("notice", { text: "To a topic gone.", place: "77" });
+	await until("the second told notice", () => api.took().length === 2);
+	const [first, second] = queued("refused").sort();
+	const told = fake.emitted.filter((event) => event.name === "notice").map((event) => (event.data as { text: string }).text);
+	const aside = join(folder, "outbox", "refused", first ?? "");
+	const note = `\n… cut; whole in ${aside}`;
+	assert.equal(told.length, 2, "told once, then once more after a slice went");
+	assert.equal(told[0]?.slice(0, told[0].indexOf("rrr")), `telegram bot (unnamed): sendMessage: 403: Forbidden: bot was blocked by the user bot[token]; this slice was set aside in ${aside}:\n0`);
+	assert.ok(told[0]?.endsWith(note) && told[0].length <= 4096 && told[0].length > 4096 - 120, `cut to one message with the note, at a line: ${told[0]?.length}`);
+	assert.equal(JSON.parse(readFileSync(aside, "utf8")).text, long, "the whole slice kept");
+	assert.equal(told[1], `telegram bot (unnamed): sendMessage: 400: Bad Request: message thread not found; this slice was set aside in ${join(folder, "outbox", "refused", queued("refused").sort()[3] ?? "")}:\nTo a topic gone.`);
+	assert.deepEqual(api.took()[1], { chat_id: CHAT, text: told[1], disable_notification: false }, "the told notice goes to the chat itself");
+	assert.equal(errors.length, 4, "each set aside is one line");
+	assert.equal(errors[1], `telegram bot (unnamed): sendMessage: 403: Forbidden: bot was blocked by the user bot[token]; the slice is set aside in ${join(folder, "outbox", "refused", second ?? "")}`);
+	assert.ok(errors.every((line) => !line.includes(TOKEN)));
+	assert.deepEqual(queued(), []);
+});
+
+test("a file in the outbox that is no slice, broken or edited by hand, is set aside with a line; one of a bot gone goes by the unnamed one", async (t) => {
+	const api = await botApi(t);
+	const { plugin, errors, queued, folder } = await load(t, { apiUrl: api.url });
+	mkdirSync(join(folder, "outbox"));
+	writeFileSync(join(folder, "outbox", "1-broken.json"), "{ not json");
+	writeFileSync(join(folder, "outbox", "2-edited.json"), JSON.stringify({ bot: null, text: "Edited.", place: "general" }));
+	writeFileSync(join(folder, "outbox", "3-gone.json"), JSON.stringify({ bot: "gone", text: "A bot no longer in the config.", place: "7" }));
+	await plugin.start?.();
+	await until("the good one", () => api.took().length === 1);
+	assert.deepEqual(api.took(), [{ chat_id: CHAT, text: "A bot no longer in the config.", disable_notification: false, message_thread_id: 7 }]);
+	assert.deepEqual(queued("refused").sort(), ["1-broken.json", "2-edited.json"]);
+	assert.deepEqual(errors, [
+		`telegram: ${join(folder, "outbox", "1-broken.json")} is not a slice { bot, text, place? }; the slice is set aside in ${join(folder, "outbox", "refused", "1-broken.json")}`,
+		`telegram: ${join(folder, "outbox", "2-edited.json")} is not a slice { bot, text, place? }; the slice is set aside in ${join(folder, "outbox", "refused", "2-edited.json")}`,
+	]);
+	assert.deepEqual(cut("x".repeat(4096), 4096, "\n… cut"), "x".repeat(4096), "4096 exactly is not cut");
+	assert.deepEqual(cut(`${"x".repeat(4000)}\n${"y".repeat(100)}`, 4096, "\n… cut"), `${"x".repeat(4000)}\n… cut`);
+});
+
+// A second process, as `arthur run` is: the plugin on a host of its own sharing the parent's plugin folder, which sends 20
+// notices once the parent writes to its stdin, then stops.
+const CHILD = `
+import { fakeHost } from "@arthur/core/testing";
+import { telegram } from ${JSON.stringify(new URL("../src/telegram.ts", import.meta.url).href)};
+const options = { bots: [{ botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }], apiUrl: process.env.API };
+const env = { ARTHUR_TELEGRAM_BOT_TOKEN: process.env.BOT_TOKEN, ARTHUR_TELEGRAM_CHAT_ID: process.env.CHAT_ID };
+const fake = fakeHost({ name: "telegram", options, env });
+fake.provide("coordinator.silent", () => false);
+const plugin = telegram(options);
+await plugin.setup({ ...fake.host, folder: process.env.FOLDER });
+await plugin.start();
+process.stdout.write("ready\\n");
+for await (const _ of process.stdin) break;
+for (let i = 0; i < 20; i++) fake.emit("notice", { text: "child " + i });
+await plugin.stop();
+`;
+
+test("two processes sending at once through one outbox: each one's slices go in its order, each once", async (t) => {
+	const api = await botApi(t);
+	const { fake, plugin, folder, queued } = await load(t, { apiUrl: api.url });
+	await plugin.start?.();
+	// The kit clears every ARTHUR_ variable at its import, so the child gets the bot's under other names.
+	const env = { ...process.env, API: api.url, FOLDER: folder, BOT_TOKEN: TOKEN, CHAT_ID: String(CHAT) };
+	const child = spawn(process.execPath, ["--input-type=module", "-e", CHILD], { cwd: fileURLToPath(new URL("../../..", import.meta.url)), env, stdio: ["pipe", "pipe", "inherit"] });
+	t.after(() => child.kill());
+	const exited = once(child, "exit");
+	await Promise.race([once(child.stdout, "data"), exited]);
+	child.stdin.end("go\n");
+	for (let i = 0; i < 20; i++) fake.emit("notice", { text: `parent ${i}` });
+	assert.deepEqual(await exited, [0, null]);
+	await until("40 sent", () => api.took().length >= 40 && queued().length === 0);
+	const texts = api.took().map((sent) => sent.text as string);
+	assert.equal(new Set(texts).size, 40, `each once: ${texts.length} sent`);
+	for (const who of ["parent", "child"])
+		assert.deepEqual(
+			texts.filter((text) => text.startsWith(who)),
+			Array.from({ length: 20 }, (_, i) => `${who} ${i}`),
+		);
 });

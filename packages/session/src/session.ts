@@ -7,7 +7,7 @@ import { alive, put, REQUEST, type Request, readRequest } from "./request.ts";
 import { registerRestart, restarts } from "./restart.ts";
 import { noteLoaded, registerGuard } from "./restart-guard.ts";
 import { noteService, SERVICE, serviceRequirements } from "./service.ts";
-import { table, time } from "./session-options.ts";
+import { DEFAULTS, table, time } from "./session-options.ts";
 import { startNotice, turnFailures } from "./start-notice.ts";
 
 // The session plugin (spec/roadmap.md, entries 35 to 38): the coordinator's conversation compacted at each `compactAt`, new at
@@ -53,15 +53,15 @@ export function session(options: SessionOptions = {}): Plugin {
 				missing = Array.isArray(lines) ? lines.filter((line) => typeof line === "string") : [];
 			});
 			registerRestart(given);
-			if (options.restartGuard !== false) registerGuard(given);
+			if (options.restartGuard ?? DEFAULTS.restartGuard) registerGuard(given);
 		},
 		async start() {
 			if (host === undefined) return;
 			// One left by an `arthur run` before this one is not done late.
 			rmSync(join(host.folder, REQUEST), { force: true });
-			if (options.restartGuard !== false) noteLoaded(host);
+			if (options.restartGuard ?? DEFAULTS.restartGuard) noteLoaded(host);
 			await noteService(host.folder);
-			stopProbe = startNotice(host, options.probeLlm !== false, missing);
+			stopProbe = startNotice(host, options.probeLlm ?? DEFAULTS.probeLlm, missing);
 			const ticks = [["compaction", compactions(host)], ["restart", restarts(host)], ["turn notice", turnFailures(host)]] as const;
 			// A tick that throws (a folder made read-only, a disk full) is told once per distinct error and runs again at the next.
 			const told = new Set<string>();
@@ -87,7 +87,7 @@ export function session(options: SessionOptions = {}): Plugin {
 // Every 500 ms: the outcome of a compaction, printed once its agent wrote it; one no agent took within its wait, or whose agent
 // is gone, dropped without a word (no session ran); and at a slot, a request, unless one is still there.
 function compactions(host: Host): () => void {
-	const { compactAt = ["08:00", "13:00", "18:00"], compactWaitSeconds = 1800 } = host.options as SessionOptions;
+	const { compactAt = DEFAULTS.compactAt, compactWaitSeconds = DEFAULTS.compactWaitSeconds } = host.options as SessionOptions;
 	const file = join(host.folder, REQUEST);
 	const upcoming = () => compactAt.map((time) => ({ time, at: host.clock.next(time) })).sort((a, b) => a.at.getTime() - b.at.getTime())[0];
 	let next = upcoming();

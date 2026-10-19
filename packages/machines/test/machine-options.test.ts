@@ -1,6 +1,8 @@
+import { everyOption, type OptionTable } from "@arthur/core/option-table";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkOptions } from "../src/machine-options.ts";
+import { checkOptions, table } from "../src/machine-options.ts";
+import { EVERY_SECONDS } from "../src/machines.ts";
 
 const MAC = { name: "mac", ssh: "mac-mini", home: "/Users/arthur/.arthur", labels: { os: "macos", arch: "arm64", tools: ["xcodebuild"] }, maxJobs: 2 };
 
@@ -52,4 +54,21 @@ test("local takes tools and maxJobs, never os or arch; everySeconds is 10 or mor
 	]);
 	assert.deepEqual(checkOptions({ check: { everySeconds: 9 } }), [{ path: "check.everySeconds", problem: "expected a whole number of seconds, 10 or more, as a check may take 10 s, got 9" }]);
 	assert.deepEqual(checkOptions({ machines: [] }), [{ path: "machines", problem: "unknown key; keys: local, list, check" }]);
+});
+
+// Each default `table` writes as a value, by its path, parsed as JSON when it parses; `words` are the paths of those written as
+// words for a person, left out.
+function valueDefaults(table: OptionTable, words: readonly string[]): Record<string, unknown> {
+	const value = (text: string): unknown => {
+		try {
+			return JSON.parse(text);
+		} catch {
+			return text;
+		}
+	};
+	return Object.fromEntries(everyOption(table).flatMap(({ path, entry }) => (entry.default === undefined || words.includes(path) ? [] : [[path, value(entry.default)]])));
+}
+
+test("each default the option table writes as a value is the one the code applies with nothing set", () => {
+	assert.deepEqual(valueDefaults(table, ["local.maxJobs", "list.*.maxJobs"]), { "check.everySeconds": EVERY_SECONDS });
 });

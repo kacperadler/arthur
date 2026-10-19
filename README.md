@@ -39,7 +39,7 @@ What works today:
 
 What is next:
 
-- The rest of the coordinator (entry 65): the morning report.
+- The rest of the coordinator (entries 96 and 65): the decision log of what the owner decided when Arthur asked, then the morning report.
 - An agent per project, with its own chat (entries 85 to 88, the plan of AR0098); then the other plugins, in the roadmap's order.
 
 ## Features
@@ -63,7 +63,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | Core: `arthur send` and the message parts every channel hands over | planned | 49 |
 | Core: cleanup hooks with each worktree | planned | 71 |
 | Core: the frozen plugin API | planned | 51 |
-| orchestration: the coordinator, `arthur attach`, `/board`, `/task`, `/findings`, `/plan`; its inbox, context, jobs by state, `maxAgents`, planning, autopilot, morning report | in progress, 7 of 8 entries | 23 to 29 built; 65 |
+| orchestration: the coordinator, `arthur attach`, `/board`, `/task`, `/findings`, `/plan`; its inbox, context, jobs by state, `maxAgents`, planning, autopilot, decision log, morning report | in progress, 7 of 9 entries | 23 to 29 built; 96, 65 |
 | orchestration: an agent per project, with its own chat | planned | 85 to 88 |
 | projects: the project list and each worktree's install; onboarding a repository | in progress, 1 of 2 entries | 41 built; 42 |
 | session: compaction, fresh start, `/restart`, restart guard, start notice and LLM probe | built | 35 to 38 |
@@ -147,9 +147,9 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-19.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22 and 80 are merged; orchestration has entries 23 to 29 of 23-29 and 65; projects has entry 41 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; no other plugin exists yet.
+%% Core entries 1-22 and 80 are merged; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entry 41 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
-%% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale.
+%% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale; from AR0174: the decision log in orchestration.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
 flowchart TD
   human([Owner])
@@ -196,7 +196,7 @@ flowchart TD
         telegram ~~~ discord ~~~ voice
       end
       subgraph COORD[Coordinator]
-        orchestration[orchestration<br/>coordinator, arthur attach<br/>context, jobs by state, planning, autopilot<br/>7 of 8 entries]
+        orchestration[orchestration<br/>coordinator, arthur attach<br/>context, jobs by state, planning, autopilot<br/>7 of 9 entries; planned: decision log, morning report]
         session[session<br/>compaction, fresh start, restart guard<br/>start notice, LLM probe]
         schedule[schedule<br/>actions, jobs at set times<br/>registered entries, arthur schedule]
         orchestration ~~~ session ~~~ schedule

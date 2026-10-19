@@ -10,9 +10,9 @@ import type { Host } from "@arthur/core/plugin";
 // docs/resources.md, "How many jobs run".
 
 // What one check found: the machine's cores, the cores its processes kept busy over one second (`load`), its free and total
-// memory in bytes; or why it failed. `jobs` are the jobs in a run on it as the check began: what the numbers already hold.
+// memory in bytes; or why it failed. `jobs` are the jobs in a run on it as the check began: what the numbers already hold; `everySeconds`, the cadence of the round that made it.
 export type Measured = { readonly cores: number; readonly load: number; readonly free: number; readonly total: number };
-export type Sample = { readonly at: string; readonly jobs: readonly string[] } & (Measured | { readonly error: string });
+export type Sample = { readonly at: string; readonly jobs: readonly string[]; readonly everySeconds?: number } & (Measured | { readonly error: string });
 // What a round of the `machines` plugin says of a listed machine (`machines.round`): the line its check's `node -e` printed,
 // the same SCRIPT as here, or why the machine is offline.
 export type Said = { readonly free: string } | { readonly error: string };
@@ -62,18 +62,18 @@ export function readSample(folder: string, name: string): Sample | undefined {
 	} catch {
 		return undefined;
 	}
-	const kept = typeof sample === "object" && sample !== null && typeof sample.at === "string" && Array.isArray(sample.jobs);
+	const kept = typeof sample === "object" && sample !== null && typeof sample.at === "string" && Array.isArray(sample.jobs) && (sample.everySeconds === undefined || number(sample.everySeconds, 1));
 	return kept && (typeof sample.error === "string" || measured(sample)) ? (sample as Sample) : undefined;
 }
 
-// Checks machine `name` now, or reads `said`, its check in a round of the `machines` plugin begun now, and keeps the result. A
-// check that fails after one that answered (or none) is said once, as a `notice`; the next ones that fail too are not. Never
-// throws for the machine's own failure.
-export async function checkSample(host: Host, folder: string, name: string, said?: Promise<Said>): Promise<Sample> {
+// Checks machine `name` now, or reads `said`, its check in a round of the `machines` plugin begun now, every `everySeconds`, and
+// keeps the result. A check that fails after one that answered (or none) is said once, as a `notice`; the next ones that fail
+// too are not. Never throws for the machine's own failure.
+export async function checkSample(host: Host, folder: string, name: string, said?: Promise<Said>, everySeconds?: number): Promise<Sample> {
 	const running = new Set(host.jobs.running());
 	const jobs = host.jobs.list().filter((job) => job.machine === name && running.has(job.id)).map((job) => job.id);
 	const found = await measure(host, name, said).catch((error: Error) => ({ error: error.message }));
-	const sample: Sample = { at: host.clock.now().toISOString(), jobs, ...found };
+	const sample: Sample = { at: host.clock.now().toISOString(), jobs, everySeconds, ...found };
 	const before = readSample(folder, name);
 	const file = join(folder, "machines", `${name}.json`);
 	mkdirSync(join(folder, "machines"), { recursive: true });

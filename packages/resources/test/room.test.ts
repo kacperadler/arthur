@@ -262,6 +262,31 @@ test("a machines round is each listed machine's check: a spawn's check asked whi
 	assert.equal(sshCalls(), 0, "no check of its own over ssh");
 });
 
+test("a round's check stands until twice its check.everySeconds, so a spawn between rounds makes no ssh call; a check of its own, or one whose cadence is hand-broken, stands 2 minutes", async (t) => {
+	gpu(4, 8 * GB);
+	const { fake } = await load(t);
+	const free = (name: string) => fake.call<Promise<number>>("resources.free", name);
+	const at = (seconds: number) => fake.setNow(new Date(NOW.getTime() + seconds * 1000));
+	fake.collect("machines.round", new Map([["gpu", Promise.resolve({ free: JSON.stringify({ cores: 8, load: 6, free: 4 * GB, total: 16 * GB }) })]]), 300);
+	assert.equal(await free("gpu"), 3, "the round's 4 GB and 2 cores free, less 1 GB and 0.5 cores kept");
+	at(599);
+	assert.equal(await free("gpu"), 3);
+	assert.equal(sshCalls(), 0, "the round's check of 599 s ago is read, its rounds 300 s apart");
+	at(600);
+	assert.equal(await free("gpu"), 7, "made again over ssh: 8 GB and 4 cores free");
+	assert.equal(sshCalls(), 1);
+	at(719);
+	assert.equal(await free("gpu"), 7);
+	assert.equal(sshCalls(), 1, "its own check of 119 s ago is read");
+	at(720);
+	await free("gpu");
+	assert.equal(sshCalls(), 2, "its own check of 120 s ago is made again");
+	const file = join(fake.host.folder, "machines", "gpu.json");
+	writeFileSync(file, JSON.stringify({ ...JSON.parse(readFileSync(file, "utf8")), everySeconds: "300" }));
+	await free("gpu");
+	assert.equal(sshCalls(), 3, "a hand-broken cadence is no check");
+});
+
 // Each default `table` writes as a value, by its path, parsed as JSON when it parses; `words` are the paths of those written as
 // words for a person, left out.
 function valueDefaults(table: OptionTable, words: readonly string[]): Record<string, unknown> {

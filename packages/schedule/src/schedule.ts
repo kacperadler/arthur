@@ -25,7 +25,7 @@ export function schedule(options: ScheduleOptions = {}): Plugin {
 			const { file, entries = [] } = host.options as ScheduleOptions;
 			const root = process.cwd();
 			const registered: Registered[] = [];
-			host.provide("schedule.register", (plugin: unknown, list: unknown) => register(registered, entries, host.code, plugin, list));
+			host.provide("schedule.register", (plugin: unknown, list: unknown, own: unknown) => register(registered, entries, host.code, plugin, list, own));
 			const run = sweeper(host, entries, registered, file, root);
 			sweep = () => run().catch((error: Error) => console.error(`schedule: the sweep failed: ${error.message}`));
 			host.commands.register({

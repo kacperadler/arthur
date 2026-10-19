@@ -41,14 +41,14 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const bus = eventBus(config.core.home);
 	const jobs = jobRunner(config.core.home, dirname(config.path), { ...config.core.jobs, slice: SLICE }, config.core.agent.command, time, bus, names.collect);
 	let loading = true;
-	// `Host.code`: the core's package folder, then the package folder of each plugin's own `module`, the nearest folder above it
-	// with a package.json, once each; a plugin that names no module has none.
-	const code = [...new Set([CORE, ...sorted.flatMap((plugin) => (plugin.module === undefined ? [] : (packageOf(fileURLToPath(plugin.module)) ?? [])))])];
-	for (const plugin of sorted) {
+	// `Host.package`: the nearest folder with a package.json above each plugin's own `module`; `Host.code`: the core's, then those, once each.
+	const packages = sorted.map((plugin) => (plugin.module === undefined ? undefined : packageOf(fileURLToPath(plugin.module))));
+	const code = [...new Set([CORE, ...packages.filter((each) => each !== undefined)])];
+	for (const [index, plugin] of sorted.entries()) {
 		const { enabled: _, ...options } = plugin.options ?? {};
 		const folder = join(config.core.home, plugin.name);
 		mkdirSync(folder, { recursive: true });
-		const host = pluginHost(names, commands, bus, jobs, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time, agent: config.core.agent.command, code }, () => loading);
+		const host = pluginHost(names, commands, bus, jobs, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time, agent: config.core.agent.command, code, package: packages[index] }, () => loading);
 		await pluginStep(plugin.name, "setup", () => plugin.setup(host));
 	}
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));

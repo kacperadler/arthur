@@ -2,7 +2,7 @@
   "name": "@arthur/resources",
   "private": true,
   "type": "module",
-  "license": "SEE LICENSE IN ../../LICENSE",
+  "license": "Apache-2.0",
   "exports": {
     ".": "./src/resources.ts",
     "./options": "./src/resource-options.ts"

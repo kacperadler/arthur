@@ -22,7 +22,7 @@ From [`spec/vision.md`](spec/vision.md):
 - A mode without a coordinator, or a project list outside the config.
 - Another agent runtime: Claude Code, Codex and others are not supported; OMP only.
 - Config in JSON or YAML, or a secret inside the config.
-- Open source: it is source-available (see [Licence](#licence)).
+- Closed source: it is open source under Apache-2.0 (see [Licence](#licence)).
 
 ## Status
 
@@ -143,7 +143,7 @@ Then `arthur config check`, `arthur projects` and `arthur board` answer at once.
 - Diagrams (Mermaid): [core and plugins](docs/architecture/core-and-plugins.mmd), [from config to a running plugin](docs/architecture/config-flow.mmd), [versions](docs/architecture/versions.mmd).
 - An example config with every plugin, planned ones included: [`arthur.config.example.ts`](arthur.config.example.ts).
 - Setting it up on a VPS, each step with its check: [`docs/setup.md`](docs/setup.md); other machines for jobs, the threat model, daily use: [`docs/deploy.md`](docs/deploy.md).
-- The licence: [`LICENSE`](LICENSE).
+- The licence: [`LICENSE`](LICENSE), [`NOTICE`](NOTICE); contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## What Arthur is built from
 
@@ -313,4 +313,4 @@ flowchart TD
 
 ## Licence
 
-[FSL-1.1-ALv2](LICENSE), the Functional Source License with Apache 2.0 after two years. Arthur is source-available, not open source: you may read, run, change and fork it for any purpose except offering it as a competing commercial product, and each release becomes Apache-2.0 two years after it is published.
+[Apache-2.0](LICENSE). Arthur is open source: you may use, change, fork and sell it under the Apache License 2.0. The name "Arthur" and the Arthur logo are not licensed with it; they stay Kacper Adler's (see [`NOTICE`](NOTICE)). Contributions are welcome under the same licence, each commit signed off under the Developer Certificate of Origin (see [`CONTRIBUTING.md`](CONTRIBUTING.md)).

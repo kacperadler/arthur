@@ -1203,9 +1203,9 @@
   {
     "id": "AR0149",
     "title": "The free-resources check runs on its own 60 s timer, not at each machines check",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0149-the-free-resources-check-runs-on-its-own-60-s-timer-not-at-each-machines-check/ticket.md",
-    "updated": "2026-10-19T14:52:11.789Z"
+    "updated": "2026-10-19T15:30:30.705Z"
   },
   {
     "id": "AR0150",

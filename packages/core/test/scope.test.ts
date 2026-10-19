@@ -227,6 +227,25 @@ test("a job's own caps go on its scope: its CPUQuota, at most the machine's core
 	for (const job of [small, large]) assert.equal(await endedWith(home, job.id), "finished", "CPU over its cap is slowed, not stopped");
 });
 
+test("arthur continue sets the ticket's slice to the caps in force now, not to those kept at the job's spawn", needsManager, async () => {
+	const gate = join(temporaryFolder(), "gate");
+	let answer: Caps = { feature: { name: "AC0001", cpu: 1, memory: "300M" } };
+	const { home, jobs } = setup(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }), jobSlice, () => [answer]);
+	const job = await jobs.spawn({ task: "Go." });
+	const slice = `${jobSlice.slice}-AC0001.slice`;
+	assert.deepEqual(["CPUQuotaPerSecUSec", "MemoryMax"].map((property) => show(slice, property)), ["1s", String(300 * 2 ** 20)]);
+	writeFileSync(gate, "");
+	assert.equal(await endedWith(home, job.id), "finished");
+	rmSync(gate);
+	answer = { memory: "400M", feature: { name: "AC0001", memory: "1G" } };
+	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
+	assert.deepEqual(["CPUQuotaPerSecUSec", "MemoryMax"].map((property) => show(slice, property)), ["infinity", String(2 ** 30)]);
+	assert.equal(show(`arthur-job-${job.id}.scope`, "MemoryMax"), String(400 * 2 ** 20));
+	assert.deepEqual(["cpu", "memory", "feature", "feature-cpu", "feature-memory"].map((name) => read(join(home, "jobs", job.id, name)) ?? ""), ["", "400M", "AC0001", "", "1G"]);
+	writeFileSync(gate, "");
+	assert.equal(await endedWith(home, job.id), "finished");
+});
+
 test("with no plugin providing jobs.limits a job's scope has no cap of its own: the joint slice is its only limit", needsManager, async () => {
 	const gate = join(temporaryFolder(), "gate");
 	const { home, jobs } = setup(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }));

@@ -1492,9 +1492,9 @@
   {
     "id": "AR0189",
     "title": "Roadmap 44: YouTrack instances and reading",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0189-roadmap-44-youtrack-instances-and-reading/ticket.md",
-    "updated": "2026-10-19T13:05:56.163Z"
+    "updated": "2026-10-19T13:09:54.916Z"
   },
   {
     "id": "AR0190",
@@ -1523,5 +1523,19 @@
     "status": "planning",
     "path": "spec/features/AR0193-the-doctor-checks-omp-s-models-yml-on-this-machine-only/ticket.md",
     "updated": "2026-10-19T12:48:15.339Z"
+  },
+  {
+    "id": "AR0194",
+    "title": "The coordinator's role does not name `arthur youtrack`",
+    "status": "planning",
+    "path": "spec/features/AR0194-the-coordinator-s-role-does-not-name-arthur-youtrack/ticket.md",
+    "updated": "2026-10-19T13:09:54.912Z"
+  },
+  {
+    "id": "AR0195",
+    "title": "`arthur youtrack issue list` reads every issue of a project, resolved ones too",
+    "status": "planning",
+    "path": "spec/features/AR0195-arthur-youtrack-issue-list-reads-every-issue-of-a-project-resolved-ones-too/ticket.md",
+    "updated": "2026-10-19T13:09:54.914Z"
   }
 ]

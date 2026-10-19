@@ -36,6 +36,7 @@ What works today:
 - The coordinator's conversation (`@arthur/session`, entries 35 to 37): compacted at each `compactAt` time once the coordinator is idle, and started fresh at `freshAt` once no job runs (tried every `freshRetryMinutes` until `freshUntil`), each after a handoff it writes and the next conversation reads first; `/restart` and `/restart fresh`, refused while a job runs, which end `arthur run` too while a restart is due, so its service starts it on the new code, and one `Restarted.` notice after; the restart guard: once a commit changed the code `arthur run` loaded, every spawn and continue is refused (unless `--ignore-restart`) until `arthur run` starts again, and the coordinator's context says so.
 - The machines (`@arthur/machines`, entries 30 and 31): the other machines jobs run on, with their labels, each checked over SSH at start and every `check.everySeconds` (private address, `arthur version`, os and arch against its labels), `machine-online` and `machine-offline` on each change, and `arthur machines`; each job placed on a machine with the labels it needs (`arthur spawn --requires`, else its ticket's, else its project's), online and under its `maxJobs`, with the fewest jobs.
 - The schedule (`@arthur/schedule`, entries 39 and 40): entries in `arthur.config.ts`, in a JSON file and registered by other plugins from their options (ids `<plugin>.<id>`), each a daily time (on some days) or a one-off date and time, that send the coordinator a message, with a procedure's text under it, or spawn a job; `arthur run` runs each due slot once, a slot missed while it was down once and saying it is late, and names a hand-broken entry while the others still run; `arthur schedule` lists every entry with its source and next run, and `add` and `remove` change the file's.
+- The models (`@arthur/models`, entry 82): named providers, Ollama or OpenAI-compatible servers on loopback, private or Tailscale addresses; a role's or a spawn's model as an ordered list (`arthur spawn --model a,b`), of which each job gets the first available, probed from the job's machine, the record saying which and why; a job on a provider model gets it in its own environment only and costs 0; `arthur usage` and `/usage`, each account's limit windows, which skip a model at `limits.stopAt` and warn at `limits.warnAt`; `arthur doctor` lines for each provider and listed model.
 
 What is next:
 
@@ -70,7 +71,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | schedule: actions and jobs at set times, registered entries, `arthur schedule` | built | 39, 40 |
 | machines: the list, labels and SSH checks, `arthur machines`; placing each job by labels | built | 30, 31 |
 | resources: caps per job and per feature, free CPU, memory and disk | in progress, 3 of 4 entries | 32 to 34 built; 69 |
-| models: providers on other machines, a fallback chain | planned | 82 |
+| models: providers on other machines, a fallback chain, `arthur usage` | built | 82 |
 | docker: labels, cleanup with each worktree, the leftover sweep | planned | 70 to 72 |
 | nvm: each project's Node version | planned | 84 |
 | commit-rules: a regex hook, words or a file per project | planned | 43 |
@@ -113,6 +114,7 @@ The commands that exist today, one line each; `arthur <command> --help` prints i
 - `arthur machines` (`/machines`, machines): every machine, its labels, online or why not, and its jobs.
 - `arthur restart [fresh]` (`/restart`, session): restarts the coordinator after its handoff, with `--continue` or, with `fresh`, in a new conversation, and `arthur run` too under its service while a restart is due; refused while a job runs.
 - `arthur resources [<ticket>]` (`/resources`, resources): each machine's room for more jobs from its free CPU and memory; with a ticket, what all its jobs spent against its caps per feature.
+- `arthur usage [--email]` (`/usage`, models): each account's limit windows from the agent's report, used % and when each resets.
 - `arthur youtrack issue|article list|get` (youtrack): a project's YouTrack issues and articles, read from the instance its `tracker` picks.
 
 ## Try it
@@ -149,7 +151,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-19.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; youtrack has entry 44 of 44-46; no other plugin exists yet.
+%% Core entries 1-22, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; youtrack has entry 44 of 44-46; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale; from AR0174: the decision log in orchestration.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -214,7 +216,7 @@ flowchart TD
       subgraph RES[Machines and resources]
         machines[machines<br/>list, labels, SSH checks<br/>places each job by labels]
         resources[resources<br/>caps, free CPU, disk<br/>3 of 4 entries]
-        models[models<br/>providers, fallback chain]
+        models[models<br/>providers, fallback chain<br/>arthur usage]
         docker[docker<br/>labels, cleanup, sweep]
         machines ~~~ resources ~~~ models ~~~ docker
       end
@@ -277,7 +279,7 @@ flowchart TD
   runner -->|worktree, branch| repos
   runner -->|SSH| remote
   projects -->|clones| repos
-  models -.->|probes| providers
+  models -->|probes| providers
   docker -.->|labels, sweeps| dockerd
   github -.->|polls| gh
   youtrack -.->|reads, writes| yt
@@ -289,9 +291,9 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,machines,session,schedule,projects built;
+  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,machines,session,schedule,projects,models built;
   class lpartial,orchestration,resources,youtrack partial;
-  class lplanned,telegram,discord,voice,corelater,agents,nvm,commit,findings,models,docker,delivery,github,manage,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
+  class lplanned,telegram,discord,voice,corelater,agents,nvm,commit,findings,docker,delivery,github,manage,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl outside;
   style larrows fill:#fff,stroke:#999,color:#000
   style LEGEND fill:#fff,stroke:#999

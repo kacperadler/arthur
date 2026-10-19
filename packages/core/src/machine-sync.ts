@@ -100,10 +100,10 @@ function unreachable(home: string, machine: Machine, bus: Bus, at: Date, graceMi
 	}
 }
 
-// Starts the job's wrapper there in its own scope of the slice `slice`, whose limit is the machine's own; returns why it did
-// not start, which ended the job there and, by a copy at once, here.
-export function launchThere(home: string, machine: Machine, id: string, agent: string, slice: string, bus: Bus): string | undefined {
-	const failed = launched(home, machine, ssh(machine, ["arthur", "remote-job", "launch", machine.home, id, agent, slice]), bus);
+// Starts the job's wrapper there in its own scope of the slice `slice`, whose limit is the machine's own, with the variables
+// `env` the prepares returned, sent on stdin; returns why it did not start, which ended the job there and, by a copy at once, here.
+export function launchThere(home: string, machine: Machine, id: string, agent: string, slice: string, bus: Bus, env: Readonly<Record<string, string>> = {}): string | undefined {
+	const failed = launched(home, machine, ssh(machine, ["arthur", "remote-job", "launch", machine.home, id, agent, slice], JSON.stringify(env)), bus);
 	if (failed !== undefined) syncMachine(home, machine, bus);
 	return failed;
 }

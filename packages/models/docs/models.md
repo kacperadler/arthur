@@ -33,7 +33,7 @@ The core asks `models.pick` at every spawn with a model, a single one too: the l
 
 ## A job on a provider model
 
-Through `prepare`, the job gets the provider in its own environment only, under omp's provider of its kind, which reads it there:
+Through `prepare`, the job gets the provider in its own environment only, under omp's provider of its kind, which reads it there; `arthur continue` runs the prepare again, so a continued job gets it as at its spawn:
 
 - `ollama`: omp's `ollama` provider, `OLLAMA_BASE_URL=<url>`, `OLLAMA_API_KEY` from `keyEnv`, `--model ollama/<model>`;
 - `openai-compatible`: omp's `lm-studio` provider, which reads any OpenAI-compatible `/models`, `LM_STUDIO_BASE_URL=<url>`, `LM_STUDIO_API_KEY` from `keyEnv`, `--model lm-studio/<model>`.

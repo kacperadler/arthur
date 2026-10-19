@@ -157,7 +157,12 @@ import { checkStructure } from "./structure.ts";
 // `host.jobs.criteria()` (roles.ts, plugin.ts), projects 5 more (480) for the title-only skeleton of a name it ships none for.
 // Merged with main: core 5451 + 4 (AR0186) = 5455, projects 480, machines 446.
 // Merged with AR0212: telegram 401 as above; the rest as main has them.
-const BUDGETS = { core: 5455, "core/testing": 349, projects: 480, orchestration: 1381, machines: 446, resources: 458, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 401 };
+// AR0213 and AR0190 (core and orchestration batch, hosted by AR0190): `Kind` moved from jobs.ts into job-kinds.ts to keep jobs.ts
+// under 200 lines (core unchanged); a spawn's `free` in its record, so a continue's check knows it (core unchanged in lines);
+// `arthur continue` runs the prepares again, told it is a continue: core 26 more (5481) for the job read back from its record
+// (`recordedJob`, 12), the prepares' loop shared by spawn and continue (5), the variables to the wrapper here and on `remote-job
+// continue`'s stdin there, and `continued` on `Prepare`; commit-rules and projects each return at once on a continue (0 more).
+const BUDGETS = { core: 5481, "core/testing": 349, projects: 480, orchestration: 1381, machines: 446, resources: 458, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 401 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

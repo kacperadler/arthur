@@ -63,7 +63,7 @@ export type Started = Job & { readonly warnings: readonly string[]; readonly fai
 
 // A reason refuses the spawn; undefined lets it go on.
 export type SpawnCheck = (spawn: Spawn) => string | undefined | Promise<string | undefined>;
-export type Prepare = (job: Job, env: Readonly<Record<string, string>>) => void | Readonly<Record<string, string>> | Promise<void | Readonly<Record<string, string>>>;
+export type Prepare = (job: Job, env: Readonly<Record<string, string>>, continued: boolean) => void | Readonly<Record<string, string>> | Promise<void | Readonly<Record<string, string>>>;
 
 // What a plugin sees as `host.jobs`; what it reads of the roles outside a spawn (`prompt`, `vision`, `criteria`) is in roles.ts.
 export type Jobs = RoleReads & {
@@ -72,6 +72,7 @@ export type Jobs = RoleReads & {
 	registerRole(role: Role): void;
 	beforeSpawn(check: SpawnCheck): void;
 	// After the worktree and the record exist, before the agent starts; a throw removes both and refuses the spawn; it runs here, on another machine through `run`. Variables it returns go into the job's environment only (job-scope.ts), never its record, and reach the prepares after it, in setup order, as `env`.
+	// `arthur continue` runs it again on the job its record holds, `continued` true, for its variables only: a throw refuses the continue, and a step that sets up the worktree returns at once.
 	prepare(fn: Prepare): void;
 	// Machines jobs run on over SSH, `local` the core's; `run`: one command on one, `input` on its stdin; `machines`: every name (docs/commands/spawn.md).
 	registerMachine(machine: Machine): void;
@@ -113,6 +114,11 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 	const [checks, prepares] = [spawnChecks(home), [] as { readonly owner: string; readonly fn: Prepare }[]];
 	const machines = machineRegistry(home);
 	const upkeep = jobUpkeep(home, time, bus, (job) => collect("jobs.keep", [job]), machines.of);
+	const prepared = async (job: Job, continued: boolean) => {
+		const env: Record<string, string> = {};
+		for (const { owner, fn } of prepares) Object.assign(env, jobEnv(owner, await pluginStep(owner, "prepare", () => fn(job, { ...env }, continued))));
+		return env;
+	};
 	const runner: JobRunner = {
 		...upkeep,
 		...roleReads(roles, where),
@@ -126,7 +132,8 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 		run: (machine, argv, limitSeconds, input) => machines.run(machine, argv, limitSeconds, input),
 		machines: () => [LOCAL, ...machines.others().map((machine) => machine.name)],
 		roles: (project) => describeRoles(roles, kinds.all(), where(project), collect),
-		continue: (id, instruction, budgetUsd, ignoreRestart = false) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), (spawn) => checks.pass({ ...spawn, tickets: taskTickets(spawn.task), ignoreRestart }), machines.of(id)),
+		continue: (id, instruction, budgetUsd, ignoreRestart = false) =>
+			continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), { check: (job) => checks.pass({ ...job, ignoreRestart }), prepare: (job) => prepared({ ...job, ignoreRestart }, true) }, machines.of(id)),
 		file: (board, id, job) => fileJob(home, board, (name) => kinds.get(name)?.file, id, job),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
@@ -155,7 +162,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 				const there = machine.name === LOCAL ? undefined : reach(machine, project, root, commit);
 				const job = newJob(home, time.local().date, { ...spawn, ...caps }, root, commit, kind.readOnly, there ?? root);
 				if (there === undefined) addWorktree(root, job.worktree, commit, job.branch);
-				let [warnings, added, env] = [[] as string[], false, {} as Record<string, string>];
+				let [warnings, added, env] = [[] as string[], false, {} as Readonly<Record<string, string>>];
 				try {
 					// A worktree on another machine: the project's files the prompt reads come from the main checkout.
 					const built = prompt(role, there === undefined ? job.worktree : root, files, () => collect("prompt", [role.name, job]));
@@ -165,7 +172,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 					added = true;
 					writeRecord(home, job, built.prompt, resumeOnBudget, limits.idleMinutes, since, checkouts(collect("projects", [])));
 					release();
-					for (const { owner, fn } of prepares) Object.assign(env, jobEnv(owner, await pluginStep(owner, "prepare", () => fn(job, { ...env }))));
+					env = await prepared(job, false);
 				} catch (error) {
 					if (there === undefined) removeWorktree(root, job.worktree, job.branch);
 					else if (added) removeThere(machine, job.id);

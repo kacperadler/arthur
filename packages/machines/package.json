@@ -4,6 +4,7 @@
   "type": "module",
   "license": "SEE LICENSE IN ../../LICENSE",
   "exports": {
-    ".": "./src/machines.ts"
+    ".": "./src/machines.ts",
+    "./options": "./src/machine-options.ts"
   }
 }

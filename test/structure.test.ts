@@ -75,10 +75,17 @@ import { checkStructure } from "./structure.ts";
 // AR0148: a throw in the session's 500 ms tick no longer ends `arthur run`; session 9 more (700 alone; 755 + 9 = 764 merged
 // with AR0166) for the catch around each tick, told once per distinct error, and the fresh start's try noted only once its
 // request is written.
-// AR0160: while a restart is due, `/restart` ends `arthur run` under its service; session 54 more (818) for the note at the start
-// whether this `arthur run` is arthur.service's main process with `Restart=always`, the reply that says either way, and the
-// end after the coordinator's restart with its `Restarted. (arthur run restarted)`.
-const BUDGETS = { core: 5116, "core/testing": 344, projects: 320, orchestration: 1179, machines: 391, resources: 401, session: 818, schedule: 497 };
+// AR0170 (roadmap 93): every option in one table with its meaning and default, which each package's check walks, and each
+// package's options file (`./options`: table, summary, tools). Core 66 more for the table's type and walker (option-table.ts)
+// and the core's table (core-options.ts); the meanings are most of the rest: orchestration 28 more, projects 5, machines 24,
+// resources 57, session 31, schedule 55, the last three each with its check moved into its options file or beside it.
+// Merged with main: core 5116 + 66 = 5182, orchestration 1179 + 28 = 1207, projects 325, machines 391 + 24 = 415, resources
+// 458, session 764 + 31 = 795, schedule 552.
+// AR0160: while a restart is due, `/restart` ends `arthur run` under its service; session 54 more (818 alone; 795 + 54 = 849
+// merged with AR0170) for the note at the start whether this `arthur run` is arthur.service's main process with
+// `Restart=always`, the reply that says either way, and the end after the coordinator's restart with its
+// `Restarted. (arthur run restarted)`.
+const BUDGETS = { core: 5182, "core/testing": 344, projects: 325, orchestration: 1207, machines: 415, resources: 458, session: 849, schedule: 552 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

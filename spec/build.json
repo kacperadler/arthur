@@ -1286,9 +1286,9 @@
   {
     "id": "AR0160",
     "title": "`/restart` cannot clear a restart due, since it restarts only the coordinator's agent",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0160-restart-cannot-clear-a-restart-due-since-it-restarts-only-the-coordinator-s-agent/ticket.md",
-    "updated": "2026-10-19T05:41:39.883Z",
+    "updated": "2026-10-19T07:29:51.818Z",
     "after": [
       "AR0148"
     ]
@@ -1359,9 +1359,9 @@
   {
     "id": "AR0170",
     "title": "Roadmap 93: Option tables, every option with its meaning, and the tools each plugin runs",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0170-roadmap-93-option-tables-every-option-with-its-meaning-and-the-tools-each-plugin-runs/ticket.md",
-    "updated": "2026-10-19T01:04:42.363Z"
+    "updated": "2026-10-19T07:18:00.751Z"
   },
   {
     "id": "AR0171",
@@ -1387,9 +1387,9 @@
   {
     "id": "AR0174",
     "title": "Roadmap: a decision log of what the owner decided when Arthur asked",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0174-roadmap-a-decision-log-of-what-the-owner-decided-when-arthur-asked/ticket.md",
-    "updated": "2026-10-19T06:53:53.009Z"
+    "updated": "2026-10-19T07:00:45.570Z"
   },
   {
     "id": "AR0175",
@@ -1397,5 +1397,26 @@
     "status": "planning",
     "path": "spec/features/AR0175-a-restart-whose-restart-throws-in-the-tick-tells-the-owner-nothing/ticket.md",
     "updated": "2026-10-19T06:56:25.156Z"
+  },
+  {
+    "id": "AR0176",
+    "title": "The roadmap has no entry yet for decisions pre-approved from the decision log",
+    "status": "planning",
+    "path": "spec/features/AR0176-the-roadmap-has-no-entry-yet-for-decisions-pre-approved-from-the-decision-log/ticket.md",
+    "updated": "2026-10-19T07:00:45.567Z"
+  },
+  {
+    "id": "AR0177",
+    "title": "An option's `default` is text beside the code's own default, and nothing checks they agree",
+    "status": "planning",
+    "path": "spec/features/AR0177-an-option-s-default-is-text-beside-the-code-s-own-default-and-nothing-checks-they-agree/ticket.md",
+    "updated": "2026-10-19T07:18:00.744Z"
+  },
+  {
+    "id": "AR0178",
+    "title": "`roles.quick.model` has its meaning only in the `about` of `roles`",
+    "status": "planning",
+    "path": "spec/features/AR0178-roles-quick-model-has-its-meaning-only-in-the-about-of-roles/ticket.md",
+    "updated": "2026-10-19T07:18:00.748Z"
   }
 ]

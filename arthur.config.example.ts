@@ -30,6 +30,7 @@ import { github } from "@arthur/github"; // first, derived
 import { machines } from "@arthur/machines"; // first, named
 import { manage } from "@arthur/manage"; // first, named
 import { models } from "@arthur/models"; // first, named
+import { nvm } from "@arthur/nvm"; // first, named
 import { orchestration } from "@arthur/orchestration"; // first, named, required
 import { projects } from "@arthur/projects"; // first, named
 import { resources } from "@arthur/resources"; // first, named
@@ -208,6 +209,11 @@ export default defineConfig({
 				{ id: "release-day", at: "2026-11-02T08:30", action: { message: "Release day.", procedure: "docs/release.md" } }, // procedure: a .md path from here
 			],
 		}),
+
+		// Each project's Node: a job whose worktree has `.nvmrc` runs on the Node it names, which nvm finds on the job's machine
+		// (`nvm which`; never a download) and puts first on the job's PATH, which the projects install runs with. It must come
+		// before projects: listed after it, the load is refused. No options. packages/nvm/docs/nvm.md.
+		nvm(),
 
 		// The project list, the only place projects are declared; the first is the main one. Each project: its name (lowercase
 		// letters, digits, dots and dashes), where it lives (a path, or a repo Arthur clones into `reposDir`, which lies outside

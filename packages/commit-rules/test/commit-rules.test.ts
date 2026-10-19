@@ -192,7 +192,7 @@ test("the plugin takes no option: a project's rule is its commitRules", () => {
 // The hook as `prepare` installs it in a worktree the test made, as `arthur remote-job add` makes one on another machine.
 const install = (worktree: string) => {
 	const job = { project: "acme", machine: "local", worktree } as Parameters<Parameters<Host["jobs"]["prepare"]>[0]>[0];
-	return hookStep(fakeHost({ name: "commit-rules" }).host, [{ name: "acme", commitRules: { regex: REGEX } }])(job);
+	return hookStep(fakeHost({ name: "commit-rules" }).host, [{ name: "acme", commitRules: { regex: REGEX } }])(job, {});
 };
 
 test("a bare repository, as on another machine: its worktrees, earlier and later ones, still work, and it stays bare", async () => {

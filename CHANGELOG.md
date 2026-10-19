@@ -14,6 +14,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0187 Roadmap 82: models on other machines, and a fallback chain (bb71f18)
 - AR0188 Roadmap 43: commit rules per project (72692ea)
 - AR0189 Roadmap 44: YouTrack instances and reading (2bda2a3)
+- AR0197 Roadmap 45: YouTrack writing issues, articles, fields and work items (4919c0a)
 
 ### Fixed
 

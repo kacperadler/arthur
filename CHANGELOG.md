@@ -7,6 +7,8 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Added
 
 - AR0127 Roadmap: a silent mode for the coordinator in the channels (9327313)
+- AR0146 Caps per feature on CPU and memory are not held, and not said, on a machine without a user manager
+- AR0147 A ticket over its memory cap ends a job `failed: the agent was killed by ...`, not `limit: memory`
 - AR0156 `--autopilot` does not read a ticket's own budget
 - AR0160 `/restart` cannot clear a restart due, since it restarts only the coordinator's agent (c51c1ce)
 - AR0165 A provider outage sends a `turn failed` notice at every retry of the inbox
@@ -20,6 +22,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0187 Roadmap 82: models on other machines, and a fallback chain (bb71f18)
 - AR0188 Roadmap 43: commit rules per project (72692ea)
 - AR0189 Roadmap 44: YouTrack instances and reading (2bda2a3)
+- AR0191 The 30 s reuse of a probe holds in one process only, so two `arthur spawn` commands each probe (06fa19c)
 - AR0194 The coordinator's role does not name `arthur youtrack`
 - AR0195 `arthur youtrack issue list` reads every issue of a project, resolved ones too
 - AR0196 Roadmap 84: nvm, each project's Node version (1556c9f)
@@ -38,11 +41,13 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0137 The burst test still relies on the test's 300 ms timers staying under a second
 - AR0145 A continued job sets its ticket's slice from the caps kept at its spawn (b4ab6a6)
 - AR0148 A throw in the session's 500 ms tick ends `arthur run` (cee952c)
+- AR0150 Free cores come from the 1-minute load average, which on Linux also counts processes waiting on disk
 - AR0154 A pre-approved ticket's budget is recorded, not held at its worker's spawn (3ff3338)
 - AR0155 Two `--autopilot` runs on one ticket at once can both record it
 - AR0164 The inbox's notice after 3 unanswered turns repeats omp's error unredacted (1bf2a8a)
 - AR0167 GitHub CI fails now and then on main with the same code (59e5760)
 - AR0168 Orchestration cannot register the morning report while schedule is optional
+- AR0171 The resources scope test assumes a machine of 2 cores or more
 - AR0173 GitHub CI names each failed test and stays green on main (a1fbecb)
 - AR0175 A `/restart` whose restart throws in the tick tells the owner nothing
 - AR0201 wrapper.test.ts failed once on a cleanup race (244a725)

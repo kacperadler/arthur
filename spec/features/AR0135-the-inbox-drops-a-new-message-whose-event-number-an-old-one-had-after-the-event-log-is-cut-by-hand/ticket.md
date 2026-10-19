@@ -14,7 +14,7 @@
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+A new owner message is never dropped as a duplicate after the event log is cut by hand: the inbox tells a reused event number from the event it already took.
 
 - Kind: risk
 
@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-18: Source: F1 of AR0121
+- 2026-10-19: Approved under the owner's word: built in the orchestration findings batch (host AR0154).

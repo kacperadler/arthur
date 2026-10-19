@@ -10,7 +10,7 @@ export type KeepFree = { readonly cpu?: number; readonly memory?: string };
 type Reserve = { readonly cpu?: number; readonly memory?: string };
 
 // `arthur run` checks `local` this often, and each other machine at each round of the `machines` plugin; a check older than
-// twice this is made again when a spawn or a command needs it.
+// twice this, or than twice the `check.everySeconds` of the round that made it, is made again when a spawn or a command needs it.
 export const CHECK_SECONDS = 60;
 const GB = 2 ** 30;
 
@@ -54,10 +54,10 @@ export function roomGuard(host: Host, folder: string, perJob: Reserve, keepFree:
 	};
 	const check = (name: string) => checking.get(name) ?? keep(name, checkSample(host, folder, name));
 	// A check in flight, a round's included, so nothing reads the one before it; else the last check, made again when there is
-	// none or it is older than twice CHECK_SECONDS.
+	// none or it is older than twice its round's `everySeconds`, or CHECK_SECONDS for a check of this plugin's own.
 	const fresh = async (name: string) => {
 		const sample = readSample(folder, name);
-		return checking.get(name) ?? (sample !== undefined && host.clock.now().getTime() - Date.parse(sample.at) < 2 * CHECK_SECONDS * 1000 ? sample : check(name));
+		return checking.get(name) ?? (sample !== undefined && host.clock.now().getTime() - Date.parse(sample.at) < 2 * (sample.everySeconds ?? CHECK_SECONDS) * 1000 ? sample : check(name));
 	};
 	const room = (name: string, sample: Sample | undefined) => {
 		const running = new Set(host.jobs.running());
@@ -67,8 +67,8 @@ export function roomGuard(host: Host, folder: string, perJob: Reserve, keepFree:
 	const lines = async () => (await Promise.all(host.jobs.machines().map(async (name) => room(name, await fresh(name)).line))).join("\n");
 	return {
 		checkLocal: () => check("local"),
-		// `machines.round`: each listed machine's check of a round begun now, kept as its check, so no other ssh call is made.
-		round: (checks: ReadonlyMap<string, Promise<Said>>) => Promise.all([...checks].map(([name, said]) => keep(name, checkSample(host, folder, name, said)))),
+		// `machines.round`: each listed machine's check of a round begun now, every `everySeconds`, kept as its check: no other ssh call.
+		round: (checks: ReadonlyMap<string, Promise<Said>>, everySeconds?: number) => Promise.all([...checks].map(([name, said]) => keep(name, checkSample(host, folder, name, said, everySeconds)))),
 		// `resources.free`: the jobs machine `name` has room for, as placement reads it.
 		free: async (name: string) => room(name, await fresh(name)).jobs,
 		// `beforeSpawn`: a job starts only on a machine with room for it; the refusal names every machine and its room.

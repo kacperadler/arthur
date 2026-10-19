@@ -34,7 +34,7 @@ export function resources(options: ResourcesOptions): Plugin {
 			const room = roomGuard(host, host.folder, perJob, keepFree);
 			host.provide("jobs.limits", (spawn: { readonly tickets: readonly string[] }) => ({ ...caps, ...guard.slice(spawn) }));
 			host.provide("resources.free", room.free);
-			host.provide("machines.round", (checks: ReadonlyMap<string, Promise<Said>>) => void Promise.try(() => room.round(checks)).catch((error: Error) => console.error(`resources: the check of free CPU and memory failed: ${error.message}`)));
+			host.provide("machines.round", (checks: ReadonlyMap<string, Promise<Said>>, everySeconds?: number) => void Promise.try(() => room.round(checks, everySeconds)).catch((error: Error) => console.error(`resources: the check of free CPU and memory failed: ${error.message}`)));
 			host.provide("coordinator.context", room.context);
 			host.jobs.beforeSpawn(guard.check);
 			host.jobs.beforeSpawn(room.check);

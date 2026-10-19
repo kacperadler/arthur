@@ -147,19 +147,22 @@ test("a check outside arthur run (the command, the doctor) tells nothing; arthur
 	}
 });
 
-test("each round hands machines.round every listed machine's check as it begins: its free CPU and memory, or why it is offline, from its one ssh call", async () => {
+test("each round hands machines.round every listed machine's check as it begins: its free CPU and memory, or why it is offline, from its one ssh call, and check.everySeconds", async () => {
 	// The real node there, so the line is what the check's own script measures.
 	writeFileSync(join(machine("mac-mini", "Darwin arm64"), "bin/node"), `#!/bin/sh\nexec '${process.execPath}' "$@"\n`, { mode: 0o755 });
 	writeFileSync(join(machine("build-box"), "fail"), KEY_REFUSED.replace("mac-mini", "build-box"));
-	const { fake } = await load({ list: [MAC, BUILD] });
+	const { fake } = await load({ list: [MAC, BUILD], check: { everySeconds: 300 } });
 	const rounds: ReadonlyMap<string, Promise<{ readonly free?: string; readonly error?: string }>>[] = [];
 	const begun: Promise<unknown>[] = [];
-	fake.provide("machines.round", (checks: (typeof rounds)[number]) => {
+	const cadence: unknown[] = [];
+	fake.provide("machines.round", (checks: (typeof rounds)[number], everySeconds: unknown) => {
 		rounds.push(checks);
+		cadence.push(everySeconds);
 		begun.push(Promise.race([...checks.values(), Promise.resolve("pending")]));
 	});
 	await fake.host.commands.route("/machines");
 	assert.equal(rounds.length, 1, "one hook per round");
+	assert.deepEqual(cadence, [300], "the round's cadence, so a check counts as long as the next round is not due");
 	assert.equal(await begun[0], "pending", "handed over before any check ended");
 	assert.deepEqual([...(rounds[0]?.keys() ?? [])], ["mac", "build"]);
 	assert.deepEqual(await rounds[0]?.get("build"), { error: "ssh build-box: arthur@build-box: Permission denied (publickey)." });

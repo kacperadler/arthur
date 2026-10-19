@@ -46,7 +46,9 @@ export default function inbox(pi: ExtensionApi): void {
 	const folder = process.env.ARTHUR_ORCHESTRATION_FOLDER ?? "";
 	if (folder === "") return;
 	const path = (...names: string[]) => join(folder, ...names);
-	const numbers = (box: string) => (existsSync(path(box)) ? readdirSync(path(box)).filter((name) => /^\d+$/.test(name)).sort((a, b) => Number(a) - Number(b)) : []);
+	// A message's file is `<event number>-<event time in ms>` (a plain number before AR0135), in the order of the numbers.
+	const order = (a: string, b: string) => parseInt(a) - parseInt(b) || a.localeCompare(b, "en", { numeric: true });
+	const numbers = (box: string) => (existsSync(path(box)) ? readdirSync(path(box)).filter((name) => /^\d+(-\d+)?$/.test(name)).sort(order) : []);
 	const read = (box: string, name: string) => JSON.parse(readFileSync(path(box, name), "utf8")) as Message;
 	const move = (name: string, from: string, to: string) => {
 		mkdirSync(path(to), { recursive: true });
@@ -122,7 +124,7 @@ export default function inbox(pi: ExtensionApi): void {
 		[unanswered, resume] = [0, 0];
 		const text = (last.content ?? []).flatMap((block) => (block.type === "text" ? [block.text ?? ""] : [])).join("\n");
 		const channels = [...new Set(turn.flatMap((name) => read(TURN, name).channel ?? []))];
-		write({ text, answers: turn.map(Number), channels });
+		write({ text, answers: turn, channels });
 		for (const name of turn) move(name, TURN, ANSWERED);
 	};
 	const tick = (ctx: Context) => {
@@ -142,14 +144,14 @@ export default function inbox(pi: ExtensionApi): void {
 		if (names.join() !== queued) [queued, since] = [names.join(), Date.now()];
 		if (Date.now() < resume && names.some((name) => read(QUEUED, name).channel !== undefined)) resume = 0;
 		if (Date.now() < resume || (waiting.size === 0 && (names.length === 0 || Date.now() - since < SETTLE_MS))) return;
-		live = hand([...waiting.keys(), ...claim(false)].sort((a, b) => Number(a) - Number(b)), "", false);
+		live = hand([...waiting.keys(), ...claim(false)].sort(order), "", false);
 		quiet = live ? Date.now() : 0;
 	};
-	// The numbers a reply in `box` answers; a reply moved on meanwhile is read in the next box.
-	const replied = (box: string) =>
+	// The files a reply in `box` answers; a reply moved on meanwhile is read in the next box.
+	const replied = (box: string): unknown[] =>
 		(existsSync(path(box)) ? readdirSync(path(box)) : []).filter((name) => name.endsWith(".json")).flatMap((name) => {
 			try {
-				return (JSON.parse(readFileSync(path(box, name), "utf8")) as { answers?: number[] }).answers ?? [];
+				return (JSON.parse(readFileSync(path(box, name), "utf8")) as { answers?: unknown[] }).answers ?? [];
 			} catch (error) {
 				if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
 				throw error;
@@ -161,9 +163,9 @@ export default function inbox(pi: ExtensionApi): void {
 		if (!ctx.hasUI || started) return;
 		started = true;
 		// A turn a restart cut: its messages a written reply answers are answered; the others go again, marked.
-		const answered = new Set([...replied(OUTBOX), ...replied(SENT)]);
+		const answered = new Set([...replied(OUTBOX), ...replied(SENT)].map(String));
 		for (const name of numbers(TURN)) {
-			if (answered.has(Number(name))) move(name, TURN, ANSWERED);
+			if (answered.has(name)) move(name, TURN, ANSWERED);
 			else waiting.set(name, RESTART);
 		}
 		for (const box of [ANSWERED, SENT])

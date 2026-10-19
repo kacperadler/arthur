@@ -41,3 +41,4 @@ Out:
 ## Decisions
 
 - 2026-10-19: The coordinator starts this under the owner's 85% usage ceiling (80% used).
+- 2026-10-19: The coordinator accepts telegram's budget 401 (the new outbox.ts) and the reading of the cut text: the refused-slice notice is cut with a note; /board and /findings cuts come with entry 50.

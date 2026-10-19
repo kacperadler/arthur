@@ -236,17 +236,15 @@ Not built yet (roadmap entries 47 to 50): Telegram, which lets you talk to the c
 
 ## 14. Check everything with `arthur doctor`
 
-Not built yet (roadmap entry 80). It is the last step of the install, and the first thing to run after an update or a reboot that went wrong:
+The last step of the install, and the first thing to run after an update or a reboot that went wrong:
 
 ```sh
 arthur doctor
 ```
 
-It checks by code, without the model, what the enabled plugins need: git, Node 24, `omp`, a writable home, the service enabled with `Restart=always` and linger on, the Telegram token and bot, `ffmpeg` for the videos you send, Docker and SSH to each machine, the disk floor. It prints one line per requirement, `ok` or `missing: <reason>; without it: <what does not work>; fix: <fix>`, and exits 1 when something critical is missing (git, `omp`, a writable home), which also refuses the start of `arthur run`. Run each fix and `arthur doctor` again until no line says `missing`. At every start the same check runs first, and the start notice begins with what is still missing, each line once a day unless it changes.
+It checks by code, without the model, what Arthur and the enabled plugins need: git, Node 24, `omp`, a writable home, the CPU and memory controllers delegated (step 10), `tmux`, the service enabled with `Restart=always` and linger on (step 9), SSH to each machine, an `about` for each project. It prints one line per requirement, `ok` or `missing: <reason>; without it: <what does not work>; fix: <fix>`, and exits 1 when something critical is missing (git, Node 24, `omp`, a writable home, `tmux`), which also refuses the start of `arthur run`. Run each fix and `arthur doctor` again until no line says `missing`. At every start the same check runs first, and the start notice begins with what is still missing, each line once a day unless it changes. The plugins still to come add their own: the Telegram token and bot, `ffmpeg` for the videos you send, Docker on each machine, the disk floor.
 
-Until then, run the checks of steps 2, 8 and 9 by hand.
-
-**Check:** no line of `arthur doctor` says `missing`. Today it answers `arthur: unknown command doctor`.
+**Check:** no line of `arthur doctor` says `missing`, and it exits 0.
 
 ## 15. What is there and what is missing: `arthur setup`
 

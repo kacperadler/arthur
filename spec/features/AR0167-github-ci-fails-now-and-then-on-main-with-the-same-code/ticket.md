@@ -33,3 +33,4 @@ In:
 ## Decisions
 
 - 2026-10-19: Coordinator, during the owner's night plan: red CI on unchanged code blocks the night's merges; fixing it comes before the next roadmap entry.
+- 2026-10-19: The owner: do not wait, go on; keep the tests from failing. Coordinator: merge on the evidence above after a short review of it.

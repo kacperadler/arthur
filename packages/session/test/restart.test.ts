@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { type ChildProcess, spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
@@ -259,8 +259,10 @@ test("at a start only a handoff newer than the last one read is read, and an emp
 	writeFileSync(box.handoff, `${HANDOFF}\n`);
 	const newer = box.coordinator(quiet);
 	await newer.up();
+	// The agent notes its pid before it sends the handoff, and notes the handoff read after.
+	await until("the handoff read", () => newer.messages().length > 0);
 	assert.deepEqual(newer.messages().map((message) => message.content), [read(box.handoff, HANDOFF)]);
-	assert.equal(readFileSync(join(box.folder, "handoff-read"), "utf8"), String(statSync(box.handoff).mtimeMs), "noted as read");
+	await until("the handoff noted as read", () => readFileSync(join(box.folder, "handoff-read"), "utf8") === String(statSync(box.handoff).mtimeMs));
 	const next = box.coordinator(quiet);
 	await next.up();
 	await sleep(300);
@@ -387,4 +389,32 @@ test("a restart's mark that is not one is dropped, named", async (t) => {
 	await box.start();
 	await until("the mark dropped", () => !existsSync(join(box.folder, "restarted.json")));
 	assert.deepEqual(box.err, [`session: ${join(box.folder, "restarted.json")} is not a restart's mark, so it is dropped: { torn`]);
+});
+
+test("a fresh try whose request cannot be written is told once, and made at the first tick that can write it", async (t) => {
+	const box = await load(t, { freshAt: "23:00" }, "2026-10-18T22:59:00+02:00");
+	await box.start();
+	chmodSync(box.folder, 0o555);
+	t.after(() => chmodSync(box.folder, 0o755));
+	box.at("2026-10-18T23:00:00+02:00");
+	await until("the error", () => box.err.length > 0);
+	await sleep(1200);
+	assert.deepEqual([box.err, box.restarts], [[`session: restart failed: EACCES: permission denied, open '${join(box.folder, `request.json.${process.pid}`)}'`], []]);
+	chmodSync(box.folder, 0o755);
+	await until("the restart", () => box.restarts.length === 1);
+	assert.deepEqual(box.out, ["session: fresh: done; the coordinator restarts in a fresh conversation, with no handoff: no coordinator was running"]);
+});
+
+test("a night's restart that throws is told, and the next night tries again", async (t) => {
+	const box = await load(t, { freshAt: "23:00" }, "2026-10-18T22:59:00+02:00");
+	// The mark's temporary name taken by a folder: its write throws before the coordinator is restarted.
+	const blocked = join(box.folder, `restarted.json.${process.pid}`);
+	mkdirSync(blocked);
+	await box.start();
+	box.at("2026-10-18T23:00:00+02:00");
+	await until("the error", () => box.err.length > 0);
+	assert.deepEqual([box.err, box.restarts, box.out], [[`session: restart failed: EISDIR: illegal operation on a directory, open '${blocked}'`], [], []]);
+	rmdirSync(blocked);
+	box.at("2026-10-19T23:00:00+02:00");
+	await until("the next night's restart", () => box.restarts.length === 1);
 });

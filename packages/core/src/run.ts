@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { type DoctorLine, printAtStart, sendAtStart } from "./doctor.ts";
 import { takeLock } from "./lock.ts";
 import type { Plugin } from "./plugin.ts";
 
@@ -13,9 +14,17 @@ const KEEP_ALIVE_MS = 2 ** 30;
 const FOLLOW_MS = 500;
 const SWEEP_MS = 30_000;
 
-// `plugins` in setup order, as `loadPlugins` returns them, with its `follow`; `sweep` is the job runner's. Resolves to the exit
-// code: 1 when a `start` or a `stop` failed. Throws, starting nothing, when another live process runs the home folder.
-export async function runPlugins(plugins: readonly Plugin[], home: string, follow: (everyMs: number) => () => void, sweep: () => void): Promise<number> {
+// `plugins` in setup order, as `loadPlugins` returns them, with its `follow`, `doctor` and `emit`; `sweep` is the job runner's.
+// Resolves to the exit code: 1 when a critical requirement is missing (doctor.ts), or a `start` or a `stop` failed. Throws,
+// starting nothing, when another live process runs the home folder.
+export async function runPlugins(
+	plugins: readonly Plugin[],
+	home: string,
+	follow: (everyMs: number) => () => void,
+	sweep: () => void,
+	doctor: () => Promise<readonly DoctorLine[]>,
+	emit: (name: string, data: unknown) => void,
+): Promise<number> {
 	let signalled: string | undefined;
 	let wake = () => {};
 	const stopping = new Promise<void>((resolve) => (wake = resolve));
@@ -27,6 +36,12 @@ export async function runPlugins(plugins: readonly Plugin[], home: string, follo
 	for (const name of SIGNALS) process.on(name, signal);
 	const keepAlive = setInterval(() => {}, KEEP_ALIVE_MS);
 	try {
+		// Before the lock, which needs a writable home.
+		const lines = await doctor();
+		if (printAtStart(lines)) {
+			sendAtStart(home, lines, emit);
+			return 1;
+		}
 		mkdirSync(home, { recursive: true });
 		const lock = takeLock(join(home, "run.pid"));
 		if ("heldBy" in lock) throw new Error(`${home} is already run by pid ${lock.heldBy}; one arthur run per home folder`);
@@ -35,6 +50,8 @@ export async function runPlugins(plugins: readonly Plugin[], home: string, follo
 		const sweeping = setInterval(() => Promise.try(sweep).catch(failed), SWEEP_MS);
 		try {
 			unfollow = follow(FOLLOW_MS);
+			// After the replay of the log, so this start's lines come last.
+			sendAtStart(home, lines, emit);
 			const started: Plugin[] = [];
 			let code = 0;
 			for (const plugin of plugins) {

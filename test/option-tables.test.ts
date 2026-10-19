@@ -9,6 +9,8 @@ import type { Plugin } from "@arthur/core/plugin";
 import { temporaryFolder } from "@arthur/core/testing";
 import { machines } from "@arthur/machines";
 import * as machinesFile from "@arthur/machines/options";
+import { models } from "@arthur/models";
+import * as modelsFile from "@arthur/models/options";
 import { orchestration } from "@arthur/orchestration";
 import * as orchestrationFile from "@arthur/orchestration/options";
 import { projects } from "@arthur/projects";
@@ -19,6 +21,8 @@ import { schedule } from "@arthur/schedule";
 import * as scheduleFile from "@arthur/schedule/options";
 import { session } from "@arthur/session";
 import * as sessionFile from "@arthur/session/options";
+import { youtrack } from "@arthur/youtrack";
+import * as youtrackFile from "@arthur/youtrack/options";
 
 // Roadmap entry 93 over every package's options file: what `arthur setup` (94) reads. A plugin's own tests never load another
 // plugin; this one, outside every package, loads them all.
@@ -32,6 +36,8 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	resources: [resourcesFile, resources({})],
 	session: [sessionFile, session()],
 	schedule: [scheduleFile, schedule()],
+	models: [modelsFile, models()],
+	youtrack: [youtrackFile, youtrack({ instances: [] })],
 };
 
 // What is wrong with `file`: an option, at any depth, whose meaning or default is not one line; a summary that is not one
@@ -59,7 +65,7 @@ test("every option of the core and of each plugin has its meaning in one line, e
 	);
 	assert.deepEqual(
 		Object.values(PLUGINS).flatMap(([file]) => file.tools.map((tool) => tool.name)),
-		["tmux"],
+		["tmux", "curl"],
 	);
 });
 

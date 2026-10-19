@@ -8,7 +8,7 @@ import { readEvents } from "../src/event-log.ts";
 import { fakeAgent, temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
-const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>] [--thinking <level>] [--timeout <minutes>] [--budget <usd>] [--machine <name>] [--requires <labels>] [--ignore-restart]";
+const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>[,<model>...]] [--thinking <level>] [--timeout <minutes>] [--budget <usd>] [--machine <name>] [--requires <labels>] [--ignore-restart]";
 
 // A plugin as a config holds it: it owns the kind `review` and its role, refuses a task that says "refuse", and one that says
 // "stale" unless `--ignore-restart`, places a file in every new worktree, failing on a task that says "break", and provides the
@@ -160,6 +160,7 @@ test("wrong usage prints the usage line and exits 2", () => {
 		[["Go.", "--model", ""], "--model needs a value"],
 		[["Go.", "--kind", "--model", "m"], "--kind needs a value"],
 		[["Go.", "--model", "a", "--model", "b"], "--model given twice"],
+		...["a,", ",a", "a,,b", "a, ,b"].map((models) => [["Go.", "--model", models], `--model needs model names separated by commas, got ${models}`] as const),
 		...["os=macos,os=linux", "arch=x64,arch=arm64", "gpu=yes", "os=", "os=mac os", "os=macos,", "tools"].map((labels) => [["Go.", "--requires", labels], `--requires needs os=<os>,arch=<arch>,tools=<tool>, each label once but tools, got ${labels}`] as const),
 	] as const) {
 		const run = arthur(root, "spawn", ...args);

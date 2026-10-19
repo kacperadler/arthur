@@ -1196,9 +1196,9 @@
   {
     "id": "AR0148",
     "title": "A throw in the session's 500 ms tick ends `arthur run`",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0148-a-throw-in-the-session-s-500-ms-tick-ends-arthur-run/ticket.md",
-    "updated": "2026-10-19T06:29:37.576Z"
+    "updated": "2026-10-19T06:52:20.064Z"
   },
   {
     "id": "AR0149",
@@ -1387,8 +1387,8 @@
   {
     "id": "AR0174",
     "title": "Roadmap: a decision log of what the owner decided when Arthur asked",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0174-roadmap-a-decision-log-of-what-the-owner-decided-when-arthur-asked/ticket.md",
-    "updated": "2026-10-19T06:31:11.803Z"
+    "updated": "2026-10-19T06:45:05.117Z"
   }
 ]

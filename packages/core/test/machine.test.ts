@@ -123,22 +123,33 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	assert.equal(calls().filter((call) => call.includes("git-receive-pack")).length, 1, "the base commit there is not pushed twice");
 });
 
-test("a prepare's variables reach the agent there through the launch's stdin, never an argument nor the record there or here", async () => {
+test("a prepare's variables reach the agent there through the launch's stdin, and again through a continue's, never an argument nor the record there or here", async () => {
 	const omp = fakeAgent({ steps: [{ message: "Done." }] });
 	const agent = join(dirname(omp), "env-omp");
 	writeFileSync(agent, `#!/bin/sh\nenv > '${join(dirname(omp), "env")}'\nexec '${omp}' "$@"\n`, { mode: 0o755 });
 	const { home, there, jobs } = setup({ agent });
-	jobs.prepare("models", () => ({ OLLAMA_BASE_URL: "http://100.101.102.103:11434", OLLAMA_API_KEY: "remote-s3cr3t", ARTHUR_AGENT_MODEL: "ollama/qwen3" }));
+	const continued: boolean[] = [];
+	jobs.prepare("models", (_job, _env, again) => (continued.push(again), { OLLAMA_BASE_URL: "http://100.101.102.103:11434", OLLAMA_API_KEY: "remote-s3cr3t", ARTHUR_AGENT_MODEL: "ollama/qwen3" }));
 	const job = await jobs.spawn({ task: "Build it.", machine: "gpu", model: "mac/qwen3" });
 	assert.equal(job.failed, undefined);
 	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
 	const env = readFileSync(join(dirname(omp), "env"), "utf8");
 	assert.match(env, /^OLLAMA_API_KEY=remote-s3cr3t$/m);
 	assert.match(env, /^OLLAMA_BASE_URL=http:\/\/100\.101\.102\.103:11434$/m);
-	const [start] = readFileSync(join(dirname(omp), "starts.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line).args as string[]);
+	const starts = () => readFileSync(join(dirname(omp), "starts.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line).args as string[]);
+	const [start] = starts();
 	assert.equal(start?.[start.indexOf("--model") + 1], "ollama/qwen3");
 	jobs.sweep();
 	assert.equal(read(home, job.id, "model"), "mac/qwen3");
+	rmSync(join(dirname(omp), "env"));
+	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
+	await until("the continued job's end there", () => starts().length === 2 && read(there, job.id, "state") === "ended");
+	const again = readFileSync(join(dirname(omp), "env"), "utf8");
+	assert.match(again, /^OLLAMA_API_KEY=remote-s3cr3t$/m);
+	assert.match(again, /^OLLAMA_BASE_URL=http:\/\/100\.101\.102\.103:11434$/m);
+	const second = starts()[1] ?? [];
+	assert.deepEqual([second[second.indexOf("--model") + 1], continued], ["ollama/qwen3", [false, true]]);
+	jobs.sweep();
 	const secret = (folder: string) => readdirSync(folder, { withFileTypes: true }).filter((entry) => entry.isFile() && readFileSync(join(folder, entry.name), "utf8").includes("remote-s3cr3t")).map((entry) => entry.name);
 	assert.deepEqual([secret(join(there, "jobs", job.id)), secret(join(home, "jobs", job.id)), calls().filter((call) => call.includes("remote-s3cr3t"))], [[], [], []]);
 });

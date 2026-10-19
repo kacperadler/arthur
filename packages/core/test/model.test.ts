@@ -122,6 +122,34 @@ test("a prepare's variables reach the agent's environment and each later prepare
 	assert.deepEqual(records(home), [job.id]);
 });
 
+test("arthur continue runs the prepares again, told it is a continue: a provider model's variables reach the agent as at the spawn, never the record; a throw refuses it", async () => {
+	const { root, home, agent, env, args } = setup();
+	const jobs = runner(home, root, agent);
+	const seen: unknown[] = [];
+	let broken = false;
+	jobs.prepare("models", (job, _env, continued) => {
+		seen.push({ continued, model: job.model, budgetUsd: job.budgetUsd, worktree: job.worktree, tickets: job.tickets });
+		return { OLLAMA_BASE_URL: "http://127.0.0.1:11434", OLLAMA_API_KEY: "s3cr3t-key", ARTHUR_AGENT_MODEL: "ollama/qwen3" };
+	});
+	jobs.prepare("nvm", () => {
+		if (broken) throw new Error("nvm is missing");
+	});
+	const job = await jobs.spawn({ task: "Go.", model: "mac/qwen3" });
+	assert.equal(await ended(home, job.id), "finished");
+	assert.equal(await jobs.continue(job.id, "Go on.", 3), undefined);
+	assert.equal(await ended(home, job.id), "finished");
+	assert.deepEqual(args().map(modelOf), ["ollama/qwen3", "ollama/qwen3"], "the agent's model again, not the record's mac/qwen3");
+	assert.match(env(), /^OLLAMA_API_KEY=s3cr3t-key$/m);
+	assert.match(env(), /^OLLAMA_BASE_URL=http:\/\/127\.0\.0\.1:11434$/m);
+	const at = { model: "mac/qwen3", worktree: job.worktree, tickets: [] };
+	assert.deepEqual(seen, [{ continued: false, ...at, budgetUsd: 2 }, { continued: true, ...at, budgetUsd: 3 }], "the job its record holds, with the continue's budget");
+	const files = readdirSync(join(home, "jobs", job.id), { withFileTypes: true }).filter((entry) => entry.isFile());
+	assert.deepEqual(files.filter((entry) => read(home, job.id, entry.name).includes("s3cr3t-key")).map((entry) => entry.name), []);
+	broken = true;
+	await assert.rejects(jobs.continue(job.id, "Once more."), { message: "plugin nvm: prepare failed: nvm is missing" });
+	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "continue"), args().length], ["ended", "Go on.", 2], "a refused continue starts nothing and leaves the record");
+});
+
 test("ARTHUR_AGENT_MODEL in Arthur's own environment never reaches a job", async () => {
 	const { root, home, agent, env, args } = setup();
 	process.env.ARTHUR_AGENT_MODEL = "evil/model";

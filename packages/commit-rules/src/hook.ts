@@ -88,11 +88,11 @@ if (!new RegExp(rule).test(subject)) {
 }
 `;
 
-// The `prepare` of every kind: the hook of the job's project, when its rule is a regex; one that cannot be installed refuses the spawn.
+// The `prepare` of every kind: the hook of the job's project, when its rule is a regex, not again at a continue; one that cannot be installed refuses the spawn.
 export function hookStep(host: Host, projects: readonly Project[]): Prepare {
-	return async (job) => {
+	return async (job, _env, continued) => {
 		const rule = projects.find((project) => project.name === job.project)?.commitRules;
-		if (rule === undefined || !("regex" in rule)) return;
+		if (continued || rule === undefined || !("regex" in rule)) return;
 		const ran = await host.jobs.run(job.machine, ["sh", "-c", INSTALL, "commit-rules", job.worktree, CHECK, COMMIT_MSG, FORWARD, rule.regex, ...FORWARDED]);
 		if (ran.code === 0) return;
 		const last = (ran.stderr.trim() || ran.stdout.trim()).split("\n").at(-1);

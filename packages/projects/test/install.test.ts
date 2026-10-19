@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
+import { setTimeout } from "node:timers/promises";
 import { test } from "node:test";
 import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { type ProjectEntry, projects } from "../src/projects.ts";
@@ -81,6 +82,17 @@ test("a read-only kind installs too, in its detached checkout", async () => {
 	fake.host.jobs.registerKind({ name: "review", readOnly: true, role: "worker" });
 	const job = await fake.host.jobs.spawn({ task: "Review it.", kind: "review" });
 	assert.deepEqual([job.branch, called()], [undefined, [`${job.worktree} npm ci`]]);
+});
+
+test("a continue installs nothing again: the worktree keeps its spawn's install", async () => {
+	writeFileSync(calls, "");
+	const fake = await load([{ name: "shop", prefix: "SH", path: repository({ "package-lock.json": "{}" }) }]);
+	const job = await fake.host.jobs.spawn({ task: "Go." });
+	const state = join(record(fake, job.id), "state");
+	for (const end = Date.now() + 15_000; readFileSync(state, "utf8") !== "ended"; await setTimeout(50)) if (Date.now() > end) throw new Error(`${job.id} did not end`);
+	await fake.continue(job.id, "Go on.");
+	assert.equal(readFileSync(join(record(fake, job.id), "continue"), "utf8"), "Go on.", "the continue went through");
+	assert.deepEqual(called(), [`${job.worktree} npm ci`]);
 });
 
 test("a failing install refuses the spawn, naming the project and the command; no worktree or record is left", async (t) => {

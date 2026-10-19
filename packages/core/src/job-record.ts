@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { taskTickets } from "./board-jobs.ts";
 import { branchExists } from "./git.ts";
 import type { Caps } from "./job-scope.ts";
 import type { Job, Spawn } from "./jobs.ts";
@@ -27,6 +28,19 @@ export function writeRecord(home: string, job: Job, prompt: string, resumeOnBudg
 	};
 	for (const [name, value] of Object.entries(record)) writeFileSync(join(temporary, name), value);
 	renameSync(temporary, join(folder, job.id));
+}
+
+// The job as its record `field` reads it, for `arthur continue` (job-control.ts): the `beforeSpawn` checks and the prepares.
+export function recordedJob(id: string, field: (name: string) => string): Job {
+	const or = (name: string) => field(name) || undefined;
+	const [cpu, featureCpu] = [field("cpu"), field("feature-cpu")];
+	const [task, feature] = [field("task"), or("feature")];
+	return {
+		id, task, kind: field("kind"), project: field("project"), model: or("model"), modelWhy: or("model-why"), thinking: or("thinking"), quick: or("quick"),
+		timeoutMinutes: Number(field("timeout")), budgetUsd: Number(field("budget")), free: field("free") === "true", tickets: taskTickets(task), machine: field("machine") || "local", ignoreRestart: false,
+		cpu: cpu === "" ? undefined : Number(cpu), memory: or("memory"), feature: feature === undefined ? undefined : { name: feature, cpu: featureCpu === "" ? undefined : Number(featureCpu), memory: or("feature-memory") },
+		root: field("root"), base: field("base"), branch: or("branch"), worktree: field("worktree"),
+	};
 }
 
 // A free id, `<date>-<kind>-<8 hex digits>`: no record, worktree or branch of that name exists yet. The worktree goes beside

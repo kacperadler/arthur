@@ -44,7 +44,7 @@ flowchart TD
   subgraph PLUGINS[Plugins: each talks only to the core]
     subgraph FIRST[First-version plugins]
       subgraph CHAN[Channels and media]
-        telegram[telegram<br/>text, media, phone menu]
+        telegram[telegram<br/>text, media, phone menu<br/>1 of 4 entries; planned: outbox, media, phone menu]
         discord[discord<br/>main channel, one per project<br/>text, media, /name text]
         voice[voice<br/>whisper.cpp, on the CPU]
         telegram ~~~ discord ~~~ voice
@@ -141,8 +141,8 @@ flowchart TD
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
   class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,machines,session,schedule,projects,models,nvm,commit built;
-  class lpartial,orchestration,resources,youtrack partial;
-  class lplanned,telegram,discord,voice,corelater,agents,findings,docker,delivery,github,manage,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
+  class lpartial,orchestration,resources,youtrack,telegram partial;
+  class lplanned,discord,voice,corelater,agents,findings,docker,delivery,github,manage,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl outside;
   style larrows fill:#fff,stroke:#999,color:#000
   style LEGEND fill:#fff,stroke:#999

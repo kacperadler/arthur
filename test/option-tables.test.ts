@@ -21,6 +21,8 @@ import { schedule } from "@arthur/schedule";
 import * as scheduleFile from "@arthur/schedule/options";
 import { session } from "@arthur/session";
 import * as sessionFile from "@arthur/session/options";
+import { telegram } from "@arthur/telegram";
+import * as telegramFile from "@arthur/telegram/options";
 import { youtrack } from "@arthur/youtrack";
 import * as youtrackFile from "@arthur/youtrack/options";
 
@@ -38,6 +40,7 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	schedule: [scheduleFile, schedule()],
 	models: [modelsFile, models()],
 	youtrack: [youtrackFile, youtrack({ instances: [] })],
+	telegram: [telegramFile, telegram({ bots: [] })],
 };
 
 // What is wrong with `file`: an option, at any depth, whose meaning or default is not one line; a summary that is not one

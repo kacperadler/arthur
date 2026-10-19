@@ -1485,9 +1485,9 @@
   {
     "id": "AR0188",
     "title": "Roadmap 43: commit rules per project",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0188-roadmap-43-commit-rules-per-project/ticket.md",
-    "updated": "2026-10-19T12:59:34.794Z"
+    "updated": "2026-10-19T13:10:10.944Z"
   },
   {
     "id": "AR0189",
@@ -1537,5 +1537,12 @@
     "status": "planning",
     "path": "spec/features/AR0195-arthur-youtrack-issue-list-reads-every-issue-of-a-project-resolved-ones-too/ticket.md",
     "updated": "2026-10-19T13:09:54.914Z"
+  },
+  {
+    "id": "AR0196",
+    "title": "Roadmap 84: nvm, each project's Node version",
+    "status": "planned",
+    "path": "spec/features/AR0196-roadmap-84-nvm-each-project-s-node-version/ticket.md",
+    "updated": "2026-10-19T13:10:20.909Z"
   }
 ]

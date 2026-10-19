@@ -43,6 +43,7 @@ const HEADER =
 export function projects(options: ProjectsOptions): Plugin {
 	return {
 		name: "projects",
+		module: import.meta.url,
 		options,
 		check: checkOptions,
 		setup(host) {

@@ -31,6 +31,7 @@ const lastLine = (text: string) => text.trim().split("\n").at(-1)?.trim() ?? "";
 export function nvm(options: { readonly enabled?: boolean } = {}): Plugin {
 	return {
 		name: "nvm",
+		module: import.meta.url,
 		options,
 		check: checkOptions,
 		setup(host) {

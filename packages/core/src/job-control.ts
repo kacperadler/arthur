@@ -1,12 +1,11 @@
 import { appendFileSync, existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
-import { taskTickets } from "./board-jobs.ts";
 import type { Bus } from "./events.ts";
-import type { Spawn } from "./jobs.ts";
+import type { Job } from "./jobs.ts";
 import { checkLimits } from "./job-limits.ts";
 import { type Machine, sshAsync } from "./job-machine.ts";
-import { capFields } from "./job-record.ts";
+import { capFields, recordedJob } from "./job-record.ts";
 import { type Caps, launch, type Slice } from "./job-scope.ts";
 import { GRACE_SECONDS } from "./job-stop.ts";
 import { current, field, ID, inRun, moveJob, told, write } from "./job-state.ts";
@@ -64,24 +63,28 @@ export function steerJob(home: string, id: string, text: string): string {
 // taken before the state is read and released here only when the continue fails; else the new wrapper removes it. A job on
 // another machine (`there`) is checked here, then continued there by `arthur remote-job continue`, which refuses it as here.
 // `check` runs the `beforeSpawn` checks and holds the spawn lock (spawn-check.ts) until the job is `working` again, and answers
-// the caps in force now (`jobs.limits`), which replace the record's before the launch; `uncapped` hears why a job with caps runs
-// bare here (job-scope.ts).
-export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, uncapped: (why: string) => void, check: (spawn: Omit<Spawn, "tickets" | "ignoreRestart">) => Promise<{ readonly release: () => void; readonly caps: Caps }>, there?: Machine): Promise<string | undefined> {
+// the caps in force now (`jobs.limits`), which replace the record's before the launch; `prepare` runs the prepares told it is a
+// continue, their variables going to the wrapper here, else on the stdin of `remote-job continue` as at a spawn, never into the
+// record; `uncapped` hears why a job with caps runs bare here (job-scope.ts).
+export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, uncapped: (why: string) => void, steps: { readonly check: (job: Job) => Promise<{ readonly release: () => void; readonly caps: Caps }>; readonly prepare: (job: Job) => Promise<Readonly<Record<string, string>>> }, there?: Machine): Promise<string | undefined> {
 	const { folder, field } = record(home, id);
 	if (instruction.trim() === "") throw new Error("the instruction is empty");
 	const lock = takeLock(join(folder, "continuing"));
 	if ("heldBy" in lock) throw new Error(`${id}: being continued`);
 	let [failed, release] = ["refused" as string | undefined, () => {}];
 	try {
-		const [task = "", kind = "", project = "", root, branch, worktree, model, thinking, quick] = ["task", "kind", "project", "root", "branch", "worktree", "model", "thinking", "quick"].map((name) => field(name) || undefined);
+		const recorded = recordedJob(id, field);
+		const { kind, project, branch, worktree, tickets, machine } = recorded;
 		const now = current(home, id);
 		if (inRun(now)) throw new Error(`${id} is ${told(now)}, in a run; a job in a run is not continued, arthur steer gives it a correction`);
 		if (branch === undefined) throw new Error(`${id} is a ${kind}, a read-only kind without a branch of its own; only a job with a branch is continued`);
-		if (worktree === undefined || (there === undefined && !existsSync(worktree))) throw new Error(`${id}: its worktree was pruned; spawn a new job on its branch ${branch}`);
+		if (worktree === "" || (there === undefined && !existsSync(worktree))) throw new Error(`${id}: its worktree was pruned; spawn a new job on its branch ${branch}`);
 		checkLimits("continue", { budgetUsd });
-		const machine = field("machine") || "local";
-		const passed = await check({ task, kind, project, model, thinking, quick, machine, timeoutMinutes: Number(field("timeout")), budgetUsd: budgetUsd ?? Number(field("budget")) });
+		const asked = { ...recorded, budgetUsd: budgetUsd ?? recorded.budgetUsd };
+		const passed = await steps.check(asked);
 		release = passed.release;
+		const job = { ...asked, cpu: passed.caps.cpu, memory: passed.caps.memory, feature: passed.caps.feature };
+		const env = await steps.prepare(job);
 		const budget = budgetUsd === undefined ? [] : [String(budgetUsd)];
 		// A new scope of the job's name cannot start while a wrapper of the job still runs in it, and two wrappers never run for a
 		// job: one that runs on past the grace refuses the continue. Its `pid` goes, so `launch` waits for the new one's.
@@ -90,7 +93,7 @@ export async function continueJob(home: string, id: string, instruction: string,
 			if (running.length === 0) break;
 			if (Date.now() > end) throw new Error(`${id}: its wrapper ${running.join(", ")} still runs ${GRACE_SECONDS} seconds on; a second one is not started beside it`);
 		}
-		const startedThere = there && launched(home, there, await sshAsync(there, ["arthur", "remote-job", "continue", there.home, id, agent, slice.slice, JSON.stringify(passed.caps), ...budget], instruction.trim()), bus);
+		const startedThere = there && launched(home, there, await sshAsync(there, ["arthur", "remote-job", "continue", there.home, id, agent, slice.slice, JSON.stringify(passed.caps), ...budget], JSON.stringify({ instruction: instruction.trim(), env })), bus);
 		if (budgetUsd !== undefined) write(folder, "budget", String(budgetUsd));
 		for (const [name, text] of Object.entries(capFields(passed.caps))) write(folder, name, text);
 		if (there === undefined) {
@@ -100,8 +103,8 @@ export async function continueJob(home: string, id: string, instruction: string,
 		}
 		moveJob(home, id, bus, () => ["working", ""]);
 		release();
-		bus.emit("core", "job-started", { id, kind, project, root, branch, worktree, tickets: taskTickets(task), machine });
-		failed = there === undefined ? await launch(home, { id, kind, project }, agent, slice, bus, uncapped) : startedThere;
+		bus.emit("core", "job-started", { id, kind, project, root: job.root, branch, worktree, tickets, machine });
+		failed = there === undefined ? await launch(home, job, agent, slice, bus, uncapped, env) : startedThere;
 		// The wrapper there did not start: its end, here at once.
 		if (there !== undefined && failed !== undefined) syncMachine(home, there, bus);
 		return failed;

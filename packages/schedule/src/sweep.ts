@@ -21,6 +21,7 @@ export function sweeper(host: Host, configured: readonly Entry[], registered: re
 		const now = host.clock.now();
 		const { entries, problems } = readEntries(file, root, owners(configured, registered));
 		const jobs: { readonly id: string; readonly job: JobEntry; readonly late: string }[] = [];
+		const runs: { readonly id: string; readonly run: () => Promise<void>; readonly late: string }[] = [];
 		for (const entry of [...configured, ...registered, ...entries]) {
 			const slot = lastSlot(entry, host.clock.timeZone, now);
 			if (slot === undefined) continue;
@@ -37,6 +38,8 @@ export function sweeper(host: Host, configured: readonly Entry[], registered: re
 			if (!claim(host.folder, entry.id, slot, now)) continue;
 			if (entry.action !== undefined) host.events.emit("coordinator-message", { text: `[scheduled ${entry.id}]${late} ${entry.action.message}${procedure === undefined ? "" : `\n\n${procedure.text}`}` });
 			if (entry.job !== undefined) jobs.push({ id: entry.id, job: entry.job, late });
+			const { run } = entry as Registered;
+			if (run !== undefined) runs.push({ id: entry.id, run, late });
 		}
 		// Each problem is said once while it lasts: in the log and to every channel.
 		for (const problem of problems.filter((each) => !said.includes(each))) {
@@ -45,6 +48,13 @@ export function sweeper(host: Host, configured: readonly Entry[], registered: re
 		}
 		said = problems;
 		for (const { id, job, late } of jobs) await start(host, id, job, late);
+		// A plugin's own code, in turn; its failure goes to every channel, the slot staying claimed.
+		for (const { id, run, late } of runs)
+			await Promise.try(run).catch((error: unknown) => {
+				const text = `schedule: ${id}${late}: its run failed: ${error instanceof Error ? error.message : String(error)}`;
+				console.error(text);
+				host.events.emit("notice", { text });
+			});
 	};
 }
 

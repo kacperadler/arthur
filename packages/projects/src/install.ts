@@ -27,11 +27,11 @@ export function installCommand(project: Installs, root: string, commit: string):
 }
 
 // The `prepare` of every kind: the install runs in the job's worktree, on the job's machine, with the PATH a prepare before it
-// returned (the nvm plugin's Node first); one that fails refuses the spawn.
+// returned (the nvm plugin's Node first); one that fails refuses the spawn. A continue's worktree keeps its spawn's install.
 export function installStep(host: Host, list: readonly Installs[]): Prepare {
-	return async (job, env) => {
+	return async (job, env, continued) => {
 		const project = list.find((each) => each.name === job.project);
-		if (project === undefined) return;
+		if (continued || project === undefined) return;
 		const command = installCommand(project, job.root, job.base);
 		if (command === "") return;
 		const script = 'cd "$1" || exit; if [ -n "$3" ]; then export PATH="$3"; fi; exec sh -c "$2"';

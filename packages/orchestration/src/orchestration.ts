@@ -43,6 +43,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 	let messages: ReturnType<typeof inbox> | undefined;
 	return {
 		name: "orchestration",
+		module: import.meta.url,
 		options,
 		// Set up after schedule when it is loaded, so the morning report (entry 65) can register with it; schedule stays optional.
 		after: ["schedule"],

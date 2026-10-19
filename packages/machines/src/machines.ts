@@ -31,6 +31,7 @@ export function machines(options: MachinesOptions = {}): Plugin {
 	let timer: NodeJS.Timeout | undefined;
 	return {
 		name: "machines",
+		module: import.meta.url,
 		options,
 		check: checkOptions,
 		async setup(host) {

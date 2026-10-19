@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { commitRules } from "@arthur/commit-rules";
 import * as commitRulesFile from "@arthur/commit-rules/options";
 import { loadConfig } from "@arthur/core";
@@ -134,4 +135,9 @@ test("each package's check refuses an unknown option, naming its path and exactl
 		const expected = names.length > 0 ? refused?.problem.endsWith(`: ${names.join(", ")}`) : refused?.problem.startsWith("unknown option; ");
 		assert.ok(expected, `${name}: ${refused?.problem}`);
 	}
+});
+
+test("each plugin names its own module, so host.code holds its package and the restart guard watches its code", () => {
+	for (const [name, [, plugin]] of Object.entries(PLUGINS))
+		assert.equal(plugin.module === undefined ? undefined : dirname(dirname(fileURLToPath(plugin.module))), join(import.meta.dirname, "..", "packages", name), name);
 });

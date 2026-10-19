@@ -189,6 +189,22 @@ test("a worker or a continue on a pre-approved ticket needs a budget above 0 and
 	assert.equal((await jobs.spawn({ task, budgetUsd: 10 })).budgetUsd, 10);
 });
 
+test("a worker or a continue on a pre-approved ticket on a free model starts with its budget of 0; a paid one with 0 stays refused", async (t) => {
+	const { jobs, fake, root, commit, ended } = await load(t);
+	const small = "spec/features/AC0002-small/ticket.md";
+	writeFileSync(join(root, small), "# AC0002\n\n## Goal\n\n- Kind: bug\n\n## Decisions\n\n- 2026-01-02: Pre-approved by policy: bug from F1 of AC0001, 1 Scope file, budget $1.5 of the $3 cap\n");
+	commit("pre-approved");
+	// The models plugin's answer: a provider model costs nothing, a built-in one does.
+	fake.provide("models.pick", (list: readonly string[]) => ({ model: list[0], why: `using ${list[0]}`, free: list[0] === "mac/qwen3" }));
+	const worker = await jobs.spawn({ task: `Ticket: ${small}`, model: "mac/qwen3", budgetUsd: 2 });
+	assert.deepEqual([worker.budgetUsd, worker.free, worker.failed], [0, true, undefined]);
+	await ended(worker.id);
+	assert.equal(await fake.continue(worker.id, "Go on."), undefined, "its record's budget of 0 on its free model");
+	await ended(worker.id);
+	const refused = /^refused by orchestration: AC0002 is pre-approved by policy with a budget of \$1\.5; its worker gets at most that, above 0, not \$0 \(no limit\)/;
+	await assert.rejects(jobs.spawn({ task: `Ticket: ${small}`, model: "anthropic/opus", budgetUsd: 0 }), { message: refused });
+});
+
 test("a plan job carries its ticket, so placement reads the ticket's labels and the job goes to the ticket's machine", async (t) => {
 	const { jobs, fake, root } = await load(t);
 	// A fake ssh that notes where it was sent and fails, as an unreachable machine does.

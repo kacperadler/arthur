@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { taskTickets } from "./board-jobs.ts";
 import { branchExists } from "./git.ts";
 import type { Caps } from "./job-scope.ts";
 import type { Job, Spawn } from "./jobs.ts";
@@ -11,7 +12,7 @@ import type { Job, Spawn } from "./jobs.ts";
 // `quick`, `cpu`, `memory`, `feature`, `feature-cpu` or `feature-memory` is none; `model-why` says why the model was picked from
 // its list (job-model.ts); `prompt` is the role's, which the agent gets; `resume-on-budget`
 // is `true` when the kind asks for one resume at its budget; the caps are the job's own and its ticket's slice's (job-scope.ts);
-// `cost` starts at 0, so a missing one is a broken record.
+// `cost` starts at 0, so a missing one is a broken record; `free` is `true` for a model that costs nothing (job-model.ts).
 // A job starts `working` (job-state.ts) at `since`; `idle-minutes` is the core's `jobs.idleMinutes`; `projects` is every
 // project's main checkout, `checkouts` (job-checkout.ts), which the worktree guard refuses too.
 export function writeRecord(home: string, job: Job, prompt: string, resumeOnBudget: boolean, idleMinutes: number, since: Date, projects: string): void {
@@ -20,7 +21,7 @@ export function writeRecord(home: string, job: Job, prompt: string, resumeOnBudg
 	mkdirSync(temporary, { recursive: true });
 	const record = {
 		task: job.task, kind: job.kind, project: job.project, model: job.model ?? "", "model-why": job.modelWhy ?? "", thinking: job.thinking ?? "", quick: job.quick ?? "", prompt,
-		timeout: String(job.timeoutMinutes), budget: String(job.budgetUsd), "resume-on-budget": String(resumeOnBudget), ...capFields(job), cost: "0.0000",
+		timeout: String(job.timeoutMinutes), budget: String(job.budgetUsd), free: String(job.free), "resume-on-budget": String(resumeOnBudget), ...capFields(job), cost: "0.0000",
 		"idle-minutes": String(idleMinutes), branch: job.branch ?? "", root: job.root, base: job.base, worktree: job.worktree, machine: job.machine, projects,
 		reason: "", since: since.toISOString(), state: "working",
 	};
@@ -31,6 +32,19 @@ export function writeRecord(home: string, job: Job, prompt: string, resumeOnBudg
 // The record's files of a job's caps, `arthur continue` writing them anew from what `jobs.limits` answers then.
 export function capFields(caps: Caps): Readonly<Record<string, string>> {
 	return { cpu: String(caps.cpu ?? ""), memory: caps.memory ?? "", feature: caps.feature?.name ?? "", "feature-cpu": String(caps.feature?.cpu ?? ""), "feature-memory": caps.feature?.memory ?? "" };
+}
+
+// The job as its record `field` reads it, for `arthur continue` (job-control.ts): the `beforeSpawn` checks and the prepares.
+export function recordedJob(id: string, field: (name: string) => string): Job {
+	const or = (name: string) => field(name) || undefined;
+	const [cpu, featureCpu] = [field("cpu"), field("feature-cpu")];
+	const [task, feature] = [field("task"), or("feature")];
+	return {
+		id, task, kind: field("kind"), project: field("project"), model: or("model"), modelWhy: or("model-why"), thinking: or("thinking"), quick: or("quick"),
+		timeoutMinutes: Number(field("timeout")), budgetUsd: Number(field("budget")), free: field("free") === "true", tickets: taskTickets(task), machine: field("machine") || "local", ignoreRestart: false,
+		cpu: cpu === "" ? undefined : Number(cpu), memory: or("memory"), feature: feature === undefined ? undefined : { name: feature, cpu: featureCpu === "" ? undefined : Number(featureCpu), memory: or("feature-memory") },
+		root: field("root"), base: field("base"), branch: or("branch"), worktree: field("worktree"),
+	};
 }
 
 // A free id, `<date>-<kind>-<8 hex digits>`: no record, worktree or branch of that name exists yet. The worktree goes beside

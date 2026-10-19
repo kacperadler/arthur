@@ -28,6 +28,7 @@ export function telegram(options: TelegramOptions): Plugin {
 	const stopping = new AbortController();
 	return {
 		name: "telegram",
+		module: import.meta.url,
 		options,
 		check: checkOptions,
 		setup(host) {

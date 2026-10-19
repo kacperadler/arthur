@@ -79,20 +79,21 @@ export function startNotice(host: Host, probeLlm: boolean, missing: readonly str
 	return () => quit.abort();
 }
 
-// Every 500 ms in `arthur run`: one notice per turn failure the turn extension left, oldest first. One left before this
-// `arthur run` started is dropped, not told late.
+// Every 500 ms in `arthur run`: one notice per turn failure the turn extension left, oldest first, and one for each mark that
+// turns work again after one told. One left before this `arthur run` started is dropped, not told late.
 export function turnFailures(host: Host): () => void {
 	const [folder, began, here] = [join(host.folder, TURN_FAILED), Math.floor(performance.timeOrigin), hostname()];
 	return () => {
 		if (!existsSync(folder)) return;
 		const names = readdirSync(folder)
-			.filter((name) => /^\d+-\d+-\d+\.txt$/.test(name))
+			.filter((name) => /^\d+-\d+-\d+\.(txt|ok)$/.test(name))
 			.sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
 		for (const name of names) {
 			const file = join(folder, name);
 			const reason = readFileSync(file, "utf8").trim();
 			rmSync(file, { force: true });
-			if (Number(name.split("-")[0]) >= began) host.events.emit("notice", { text: `turn failed on ${here}: ${line(reason) || "no reason given"}` });
+			if (Number(name.split("-")[0]) < began) continue;
+			host.events.emit("notice", { text: name.endsWith(".ok") ? `turns work again on ${here}` : `turn failed on ${here}: ${line(reason) || "no reason given"}` });
 		}
 	};
 }

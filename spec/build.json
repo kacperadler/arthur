@@ -1562,9 +1562,9 @@
   {
     "id": "AR0199",
     "title": "The option-tables test cannot list a plugin without options",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0199-the-option-tables-test-cannot-list-a-plugin-without-options/ticket.md",
-    "updated": "2026-10-19T13:27:26.732Z"
+    "updated": "2026-10-19T14:48:25.724Z"
   },
   {
     "id": "AR0200",
@@ -1618,9 +1618,9 @@
   {
     "id": "AR0207",
     "title": "The option-tables test cannot hold a plugin without options, so nvm's options file is not checked there",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0207-the-option-tables-test-cannot-hold-a-plugin-without-options-so-nvm-s-options-file-is-not-checked-there/ticket.md",
-    "updated": "2026-10-19T14:17:45.436Z"
+    "updated": "2026-10-19T14:48:25.923Z"
   },
   {
     "id": "AR0208",

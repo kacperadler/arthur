@@ -1317,9 +1317,9 @@
   {
     "id": "AR0164",
     "title": "The inbox's notice after 3 unanswered turns repeats omp's error unredacted",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0164-the-inbox-s-notice-after-3-unanswered-turns-repeats-omp-s-error-unredacted/ticket.md",
-    "updated": "2026-10-19T05:57:09.818Z"
+    "updated": "2026-10-19T06:14:26.985Z"
   },
   {
     "id": "AR0165",
@@ -1376,5 +1376,12 @@
     "status": "planning",
     "path": "spec/features/AR0172-the-tools-labels-of-local-are-not-checked-by-arthur-doctor/ticket.md",
     "updated": "2026-10-19T06:14:11.553Z"
+  },
+  {
+    "id": "AR0173",
+    "title": "GitHub CI names each failed test and stays green on main",
+    "status": "planning",
+    "path": "spec/features/AR0173-github-ci-names-each-failed-test-and-stays-green-on-main/ticket.md",
+    "updated": "2026-10-19T06:17:24.962Z"
   }
 ]

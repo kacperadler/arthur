@@ -2,8 +2,9 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { describe } from "@arthur/core";
 import { withLock } from "@arthur/core/lock";
-import { type Entry, entryProblems } from "./entry.ts";
+import type { Entry } from "./entry.ts";
 import type { Registered } from "./register.ts";
+import { entryProblems } from "./schedule-options.ts";
 
 // The `file` option's entries (spec/roadmap.md, entries 39 and 40): a JSON list a human edits, read anew at every sweep and
 // changed by `arthur schedule add|remove`. `file` is as the option has it, read from `root`, the folder `arthur run` runs in.

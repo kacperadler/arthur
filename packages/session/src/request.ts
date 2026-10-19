@@ -7,7 +7,7 @@ import { join } from "node:path";
 
 // Asked at `asked` (ms) by `slot` (a compactAt or freshAt time, or `/restart`), withdrawn once the session has been busy for
 // `waitSeconds`; `pid` is the agent that took it, `line` its outcome: a compaction's line, or for a restart `handoff written`
-// or `handoff not written: <reason>`.
+// or `handoff not written: <reason>`; `run`: a `/restart` that ends `arthur run` too, a restart being due under its service.
 export type Request = {
 	readonly then: "compact" | "restart" | "fresh";
 	readonly slot: string;
@@ -15,6 +15,7 @@ export type Request = {
 	readonly waitSeconds: number;
 	readonly pid?: number;
 	readonly line?: string;
+	readonly run?: boolean;
 };
 
 const THEN = ["compact", "restart", "fresh"];
@@ -36,8 +37,8 @@ export function readRequest(folder: string): Request | undefined {
 		const request = JSON.parse(text) as Request;
 		if (THEN.includes(request.then) && typeof request.slot === "string" && Number.isFinite(request.asked) && Number.isFinite(request.waitSeconds)) return request;
 	} catch {}
-	console.error(`session: ${file} is not a request, so it is dropped: ${text.slice(0, 200)}`);
 	rmSync(file, { force: true });
+	console.error(`session: ${file} is not a request, so it is dropped: ${text.slice(0, 200)}`);
 	return undefined;
 }
 

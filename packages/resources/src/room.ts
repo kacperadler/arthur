@@ -1,6 +1,5 @@
-import { totalmem } from "node:os";
-import { describe, memoryBytes } from "@arthur/core";
-import type { Host, OptionProblem } from "@arthur/core/plugin";
+import { memoryBytes } from "@arthur/core";
+import type { Host } from "@arthur/core/plugin";
 import { checkSample, readSample, type Sample } from "./machine-free.ts";
 
 // How many jobs run (spec/roadmap.md, entry 34): each machine's room for more jobs, from its last check of free CPU and memory,
@@ -13,17 +12,6 @@ type Reserve = { readonly cpu?: number; readonly memory?: string };
 // `arthur run` checks every machine this often; a check older than twice this is made again when a spawn or a command needs it.
 export const CHECK_SECONDS = 60;
 const GB = 2 ** 30;
-
-// The problems of `keepFree`: an object of `cpu` (cores, 0 or more) and `memory` (MemoryMax syntax, not `infinity`).
-export function keepFreeProblems(value: unknown): OptionProblem[] {
-	if (typeof value !== "object" || value === null || Array.isArray(value)) return [{ path: "keepFree", problem: `expected an object with cpu, memory, got ${describe(value)}` }];
-	const { cpu, memory, ...unknown } = value as Readonly<Record<string, unknown>>;
-	const problems: OptionProblem[] = Object.keys(unknown).map((key) => ({ path: `keepFree.${key}`, problem: "unknown key; keys: cpu, memory" }));
-	if (cpu !== undefined && !(typeof cpu === "number" && Number.isFinite(cpu) && cpu >= 0)) problems.push({ path: "keepFree.cpu", problem: `expected a number of cores, 0 or more, got ${describe(cpu)}` });
-	if (memory !== undefined && (memory === "infinity" || typeof memory !== "string" || memoryBytes(memory, totalmem()) === undefined))
-		problems.push({ path: "keepFree.memory", problem: `expected bytes with K, M, G or T ("2G") or a percentage of the machine's memory ("10%"), got ${describe(memory)}` });
-	return problems;
-}
 
 // What machine `name` has room for, as `sample` and the `pending` jobs started on it since found it: the number of jobs, and
 // the line that says it. Each job reserves its `perJob` caps (CPU at most the machine's cores, memory `infinity` none); it

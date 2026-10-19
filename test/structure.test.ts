@@ -70,9 +70,25 @@ import { checkStructure } from "./structure.ts";
 // the agent runs never sees it empty; core/testing 4 more (344). A record's file removed between the check and the read
 // (`hold`, as `arthur stop` polls a job's end) reads empty instead of throwing: core 4 more (4877).
 // Merged: core 5112 + 4 (AR0167) = 5116.
+// AR0164: the inbox's notice after 3 unanswered turns redacts omp's error as the session plugin does, with a copy of its
+// credential.ts (a plugin cannot import another's), orchestration 17 more (1163 alone; 1162 + 17 = 1179 merged with AR0166).
+// AR0148: a throw in the session's 500 ms tick no longer ends `arthur run`; session 9 more (700 alone; 755 + 9 = 764 merged
+// with AR0166) for the catch around each tick, told once per distinct error, and the fresh start's try noted only once its
+// request is written.
+// AR0170 (roadmap 93): every option in one table with its meaning and default, which each package's check walks, and each
+// package's options file (`./options`: table, summary, tools). Core 66 more for the table's type and walker (option-table.ts)
+// and the core's table (core-options.ts); the meanings are most of the rest: orchestration 28 more, projects 5, machines 24,
+// resources 57, session 31, schedule 55, the last three each with its check moved into its options file or beside it.
+// Merged with main: core 5116 + 66 = 5182, orchestration 1179 + 28 = 1207, projects 325, machines 391 + 24 = 415, resources
+// 458, session 764 + 31 = 795, schedule 552.
+// AR0160: while a restart is due, `/restart` ends `arthur run` under its service; session 54 more (818 alone; 795 + 54 = 849
+// merged with AR0170) for the note at the start whether this `arthur run` is arthur.service's main process with
+// `Restart=always`, the reply that says either way, and the end after the coordinator's restart with its
+// `Restarted. (arthur run restarted)`.
 // AR0173 (CI names each failed test): the wrapper forks the agent with its `oom_score_adj` at 1000 (`oomFirst`, job-memory.ts),
-// so a job over its memory cap loses the agent, never the wrapper, to a second kernel kill; core 11 more (5127).
-const BUDGETS = { core: 5127, "core/testing": 344, projects: 320, orchestration: 1162, machines: 391, resources: 401, session: 755, schedule: 497 };
+// so a job over its memory cap loses the agent, never the wrapper, to a second kernel kill; core 11 more (5127 alone; 5182 + 11
+// = 5193 merged with main).
+const BUDGETS = { core: 5193, "core/testing": 344, projects: 325, orchestration: 1207, machines: 415, resources: 458, session: 849, schedule: 552 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

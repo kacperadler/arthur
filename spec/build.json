@@ -1586,5 +1586,12 @@
     "status": "planning",
     "path": "spec/features/AR0202-a-record-removed-file-by-file-crashes-the-wrapper-instead-of-ending-it-with-its-one-line/ticket.md",
     "updated": "2026-10-19T13:56:15.935Z"
+  },
+  {
+    "id": "AR0203",
+    "title": "Arthur is Apache-2.0, with NOTICE, trademark and DCO",
+    "status": "planned",
+    "path": "spec/features/AR0203-arthur-is-apache-2-0-with-notice-trademark-and-dco/ticket.md",
+    "updated": "2026-10-19T13:59:30.945Z"
   }
 ]

@@ -198,7 +198,7 @@ flowchart TD
   subgraph PLUGINS[Plugins: each talks only to the core]
     subgraph FIRST[First-version plugins]
       subgraph CHAN[Channels and media]
-        telegram[telegram<br/>text, media, phone menu<br/>1 of 4 entries; planned: outbox, media, phone menu]
+        telegram[telegram<br/>text, media, phone menu<br/>2 of 4 entries; planned: media, phone menu]
         discord[discord<br/>main channel, one per project<br/>text, media, /name text]
         voice[voice<br/>whisper.cpp, on the CPU]
         telegram ~~~ discord ~~~ voice

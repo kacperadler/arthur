@@ -9,12 +9,15 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0127 Roadmap: a silent mode for the coordinator in the channels (9327313)
 - AR0146 Caps per feature on CPU and memory are not held, and not said, on a machine without a user manager
 - AR0147 A ticket over its memory cap ends a job `failed: the agent was killed by ...`, not `limit: memory`
+- AR0149 The free-resources check runs on its own 60 s timer, not at each machines check (ea8aa95)
 - AR0156 `--autopilot` does not read a ticket's own budget
 - AR0160 `/restart` cannot clear a restart due, since it restarts only the coordinator's agent (c51c1ce)
 - AR0165 A provider outage sends a `turn failed` notice at every retry of the inbox
 - AR0172 The tools labels of local are not checked by arthur doctor
 - AR0174 Roadmap: a decision log of what the owner decided when Arthur asked (8b7a138)
+- AR0176 The roadmap has no entry yet for decisions pre-approved from the decision log
 - AR0179 Roadmap 94: arthur setup, what is there, what is set, what is missing (f3f1b88)
+- AR0180 While an env variable is missing, neither `arthur doctor` nor `arthur setup` checks the plugins' requirements
 - AR0181 Roadmap 42: Onboarding a repository (9239fdd)
 - AR0184 The `.nvmrc` that `arthur init` writes is read by nothing until the nvm plugin (84)
 - AR0185 The coordinator's role does not say when to run `arthur init` and start an onboarding
@@ -65,6 +68,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0199 The option-tables test cannot list a plugin without options (d7bd88e)
 - AR0207 The option-tables test cannot hold a plugin without options, so nvm's options file is not checked there
 - AR0210 The nvm package still names the old licence (e9e6d98)
+- AR0215 The commit-rules doc shows the regex that counts 72 after the prefix
 
 ### Other
 

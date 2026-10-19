@@ -23,7 +23,7 @@ export const KINDS: readonly Kind[] = ["ollama", "openai-compatible"];
 const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 
 // The private network a provider is reached on: loopback, RFC 1918, unique local IPv6 (which holds Tailscale's
-// fd7a:115c:a1e5::/48) and Tailscale's 100.64.0.0/10.
+// fd7a:115c:a1e0::/48) and Tailscale's 100.64.0.0/10.
 const PRIVATE = new BlockList();
 for (const [address, prefix] of [["127.0.0.0", 8], ["10.0.0.0", 8], ["172.16.0.0", 12], ["192.168.0.0", 16], ["100.64.0.0", 10]] as const) PRIVATE.addSubnet(address, prefix, "ipv4");
 PRIVATE.addAddress("::1", "ipv6");

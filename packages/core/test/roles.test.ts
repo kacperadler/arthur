@@ -215,7 +215,7 @@ test("the role's model, thinking and quick model come from roles.model; --model 
 	const bad = registry();
 	bad.provide("orchestration", "roles.model", () => ({ model: 3 }));
 	await assert.rejects(runner(other.root, other.home, bad).spawn({ task: "Go." }), {
-		message: "roles.model: the model of role worker must be a non-empty string or undefined",
+		message: "roles.model: the model of role worker must be a non-empty string, a non-empty list of them, or undefined",
 	});
 	const quick = registry();
 	quick.provide("orchestration", "roles.model", () => ({ quick: "" }));

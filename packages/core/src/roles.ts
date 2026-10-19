@@ -1,6 +1,7 @@
 import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
 import { basename, isAbsolute, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isModelList } from "./job-model.ts";
 
 // The prompt loader: what a role's prompt holds, in which order, and what it refuses: docs/commands/roles.md.
 
@@ -94,20 +95,20 @@ export type RoleView = {
 	readonly name: string;
 	readonly owner: string;
 	readonly kinds: readonly string[];
-	readonly model?: string;
+	readonly model?: string | readonly string[];
 	readonly thinking?: string;
 	readonly quick?: string;
 	readonly sources: readonly Source[];
 };
 
-export function describeRoles(registry: RoleRegistry, kinds: readonly { readonly name: string; readonly role: string }[], at: ProjectCheckout, collect: Collect): RoleView[] {
-	return registry.list().map(({ owner, role }) => ({
+export async function describeRoles(registry: RoleRegistry, kinds: readonly { readonly name: string; readonly role: string }[], at: ProjectCheckout, collect: Collect): Promise<RoleView[]> {
+	return Promise.all(registry.list().map(async ({ owner, role }) => ({
 		name: role.name,
 		owner,
 		kinds: kinds.filter((kind) => kind.role === role.name).map((kind) => kind.name),
-		...roleModel(collect, role.name),
+		...(await roleModel(collect, role.name)),
 		sources: sources(role, at.root, at.files),
-	}));
+	})));
 }
 
 // The files `role` reads in the project at `folder`, whose prompt files are `files`, in the order of the prompt.
@@ -144,15 +145,17 @@ export function prompt(role: Role, folder: string, files: PromptFiles, sections:
 	return { prompt: `${parts.join("\n\n")}\n`, warnings };
 }
 
-// The role's model, thinking level and quick model (omp's `--smol`), from the one plugin that provides `roles.model`
-// (orchestration's `roles` option); left out, the agent's own default.
-export function roleModel(collect: Collect, role: string): { readonly model?: string; readonly thinking?: string; readonly quick?: string } {
+// The role's model, or an ordered list of models, as written (the models plugin picks from a list at spawn, entry 82), its
+// thinking level and quick model (omp's `--smol`), from the one plugin that provides `roles.model` (orchestration's `roles`
+// option), its answer awaited; left out, the agent's own default.
+export async function roleModel(collect: Collect, role: string): Promise<{ readonly model?: string | readonly string[]; readonly thinking?: string; readonly quick?: string }> {
 	const found = collect("roles.model", [role]);
 	if (found.length > 1) throw new Error(`roles.model is provided ${found.length} times; one plugin provides it`);
-	const { model, thinking, quick } = (found[0] ?? {}) as Record<string, unknown>;
-	for (const [key, value] of Object.entries({ model, thinking, "quick model": quick }))
+	const { model, thinking, quick } = ((await found[0]) ?? {}) as Record<string, unknown>;
+	if (model !== undefined && !isModelList(model)) throw new Error(`roles.model: the model of role ${role} must be a non-empty string, a non-empty list of them, or undefined`);
+	for (const [key, value] of Object.entries({ thinking, "quick model": quick }))
 		if (value !== undefined && (typeof value !== "string" || value === "")) throw new Error(`roles.model: the ${key} of role ${role} must be a non-empty string or undefined`);
-	return { model: model as string | undefined, thinking: thinking as string | undefined, quick: quick as string | undefined };
+	return { model: model as string | readonly string[] | undefined, thinking: thinking as string | undefined, quick: quick as string | undefined };
 }
 
 // A project's own file, never through a symlink: one on the way to it would read whatever it points at.

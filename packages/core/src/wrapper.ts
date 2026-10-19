@@ -75,7 +75,8 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		...["-p", "--mode", "json", "--auto-approve", "--tools", branch === "" ? READ_ONLY_TOOLS : WORKER_TOOLS],
 		...["--append-system-prompt", join(folder, "prompt")],
 		...["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((extension) => ["-e", join(import.meta.dirname, extension)]),
-		...(model ? ["--model", model] : []),
+		// A provider model goes under the name of omp's provider that the job's environment sets (`ARTHUR_AGENT_MODEL`, job-scope.ts).
+		...(model ? ["--model", process.env.ARTHUR_AGENT_MODEL || model] : []),
 		...(thinking ? ["--thinking", thinking] : []),
 		...(quick ? ["--smol", quick] : []),
 		resume ?? `@${join(folder, "task")}`,

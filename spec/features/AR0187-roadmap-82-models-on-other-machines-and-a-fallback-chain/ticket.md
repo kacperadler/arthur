@@ -43,4 +43,6 @@ Out: decision models (AR0129).
 ## Decisions
 
 - 2026-10-19: The coordinator starts this under the owner's 80% usage ceiling. 82 is the first unbuilt roadmap entry in roadmap order.
+- 2026-10-19 (worker): line budgets. Cut first: jobs.ts's sweep (5 lines to 2) and orchestration's refusal of a role's list, which the core now makes. Then raised: core 5403 to 5448 (job-model.ts, a prepare's variables to the wrapper here and on stdin there, `ARTHUR_AGENT_MODEL`, `input` on `host.jobs.run`, `model-why`, an awaited `roles.model`, `--model a,b`), orchestration 1207 to 1213 (`models.lists`), models 485 (new). Recorded in `test/structure.test.ts`.
+- 2026-10-19 (worker): the core, not orchestration's `roles.model`, calls `models.pick` for a role's list, so `roles.model` answers the list as written and `arthur roles`, which asks it, probes nothing (the entry's edge case); the answer is the same first available model.
 - 2026-10-19: The coordinator accepts the budget raises (core 5448, orchestration 1213, models 485) and the split: core asks models.pick at spawn, so arthur roles probes nothing.

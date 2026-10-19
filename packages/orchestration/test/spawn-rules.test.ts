@@ -39,7 +39,7 @@ async function load(t: TestContext, options: OrchestrationOptions, steps: AgentR
 		const file = join(dirname(agent), "starts.jsonl");
 		return existsSync(file) ? readFileSync(file, "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line).args) : []; // whole lines only
 	};
-	return { jobs: fake.host.jobs, home, release, records, starts, worktrees: join(dirname(root), ".arthur-worktrees") };
+	return { jobs: fake.host.jobs, collect: fake.collect, home, release, records, starts, worktrees: join(dirname(root), ".arthur-worktrees") };
 }
 
 // The model flags among an agent's arguments, each with its value.
@@ -125,8 +125,11 @@ test("a role without a model, and no roles at all, start the agent without --mod
 	assert.deepEqual(modelFlags(bare.starts()[0] ?? []), []);
 });
 
-test("a role whose model is a list is refused before any record: the list needs the models plugin", async (t) => {
-	const { jobs, records } = await load(t, { roles: { worker: { model: ["mac/qwen3-coder", "anthropic/haiku"] } } });
-	await assert.rejects(jobs.spawn({ task: "Go." }), { message: "roles.worker.model: a model list needs the models plugin" });
+test("a role's model list goes to the core as written, which refuses it before any record without the models plugin; models.lists has each", async (t) => {
+	const roles = { worker: { model: ["mac/qwen3-coder", "anthropic/haiku"] }, reviewer: { model: "anthropic/sonnet" }, planner: { thinking: "high" as const }, quick: { model: "anthropic/haiku" } };
+	const { jobs, records, collect } = await load(t, { roles });
+	assert.deepEqual(collect("roles.model", "worker"), [{ model: ["mac/qwen3-coder", "anthropic/haiku"], thinking: undefined, quick: "anthropic/haiku" }]);
+	await assert.rejects(jobs.spawn({ task: "Go." }), { message: "a model list needs the models plugin" });
 	assert.deepEqual(records(), []);
+	assert.deepEqual(collect("models.lists"), [[["mac/qwen3-coder", "anthropic/haiku"], ["anthropic/sonnet"]]], "the quick model and a role without a model are no list");
 });

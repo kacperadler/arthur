@@ -10,6 +10,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ### Fixed
 
+- AR0164 The inbox's notice after 3 unanswered turns repeats omp's error unredacted (1bf2a8a)
 - AR0167 GitHub CI fails now and then on main with the same code (59e5760)
 
 ### Other

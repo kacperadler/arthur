@@ -1317,9 +1317,9 @@
   {
     "id": "AR0164",
     "title": "The inbox's notice after 3 unanswered turns repeats omp's error unredacted",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0164-the-inbox-s-notice-after-3-unanswered-turns-repeats-omp-s-error-unredacted/ticket.md",
-    "updated": "2026-10-19T06:24:53.641Z"
+    "updated": "2026-10-19T06:29:24.516Z"
   },
   {
     "id": "AR0165",

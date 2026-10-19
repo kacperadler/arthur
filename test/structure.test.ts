@@ -123,6 +123,11 @@ import { checkStructure } from "./structure.ts";
 // 38), attachments saved under safe names (youtrack-attachments.ts, 34), a file's bytes from the API (`request`), `issue
 // update`'s version, the verbs' wiring, the jobs' rules in the prompt and a write refused inside a job (3); cut first: four
 // copies of `field` to one export of youtrack-api.ts (11 lines), and `update`'s article-only branch made the one path for both kinds.
+// AR0208 (roadmap 47): telegram: 243, set for its bots checked at load, the long polling with its one-time 409 notice and a 429's wait, the
+// owner's text as message-received with its topic's place, the replies and notices sent in slices without a notification in
+// quiet hours; a new package. Orchestration 121 more (1334) for the silent mode: `arthur silent` and `/silent`, its state
+// file, the summary built from the event log, `coordinator.silent`, the held replies and the `## Silent` context line; cut
+// first: the `whole` check onto one line and the state's write inlined (5 lines).
 // AR0154: a worker, or a continue, on a pre-approved ticket held to the budget its `Pre-approved by policy` line records, until
 // the owner's own approval after it; orchestration 19 more (1232) for that `beforeSpawn` refusal (plans.ts: the record and the
 // approval read under Decisions, the per-ticket refusals split in two); core/testing 2 more (346) for `continue` on the fake
@@ -140,7 +145,8 @@ import { checkStructure } from "./structure.ts";
 // (1260) for the name, the order by number and the replies' answers given as event numbers.
 // AR0137: the burst test moves the agent's clock instead of sleeping; core/testing 3 more (349) for the fake agent's `clock`,
 // its doc reflowed by a line to keep testing.ts at 200.
-const BUDGETS = { core: 5451, "core/testing": 349, projects: 475, orchestration: 1260, machines: 415, resources: 458, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84 };
+// Merged with AR0208: orchestration 1334 + 47 (AR0135, AR0154 to AR0156, AR0168) = 1381; core, core/testing and session as above.
+const BUDGETS = { core: 5451, "core/testing": 349, projects: 475, orchestration: 1381, machines: 415, resources: 458, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 243 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

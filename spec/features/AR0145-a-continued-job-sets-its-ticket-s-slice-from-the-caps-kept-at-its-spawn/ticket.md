@@ -37,3 +37,4 @@ In:
 - 2026-10-18: Source: F1 of AR0141
 - 2026-10-19: The owner approved this. The coordinator builds it alongside the roadmap entry that touches the same files.
 - 2026-10-19: The owner asked for small findings to be built in batches by 2 workers while 1 builds the roadmap. This ticket hosts the resources batch: AR0145, AR0146, AR0147, AR0149, AR0150, AR0171, built and merged together.
+- 2026-10-19: The coordinator accepts core 5448 to 5479 and resources 458 to 467. AR0149 leaves the batch: it is a protocol change across machines and resources, kept at planning for when either plugin is next changed.

@@ -1096,9 +1096,9 @@
   {
     "id": "AR0135",
     "title": "The inbox drops a new message whose event number an old one had, after the event log is cut by hand",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0135-the-inbox-drops-a-new-message-whose-event-number-an-old-one-had-after-the-event-log-is-cut-by-hand/ticket.md",
-    "updated": "2026-10-18T11:31:14.273Z"
+    "updated": "2026-10-19T15:07:39.621Z"
   },
   {
     "id": "AR0136",
@@ -1110,9 +1110,9 @@
   {
     "id": "AR0137",
     "title": "The burst test still relies on the test's 300 ms timers staying under a second",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0137-the-burst-test-still-relies-on-the-test-s-300-ms-timers-staying-under-a-second/ticket.md",
-    "updated": "2026-10-18T13:24:17.580Z"
+    "updated": "2026-10-19T15:07:39.823Z"
   },
   {
     "id": "AR0138",
@@ -1203,9 +1203,9 @@
   {
     "id": "AR0149",
     "title": "The free-resources check runs on its own 60 s timer, not at each machines check",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0149-the-free-resources-check-runs-on-its-own-60-s-timer-not-at-each-machines-check/ticket.md",
-    "updated": "2026-10-19T14:52:11.789Z"
+    "updated": "2026-10-19T15:30:30.705Z"
   },
   {
     "id": "AR0150",
@@ -1217,16 +1217,16 @@
   {
     "id": "AR0151",
     "title": "The example config and two diagrams still call Discord later",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0151-the-example-config-and-two-diagrams-still-call-discord-later/ticket.md",
-    "updated": "2026-10-18T21:53:09.201Z"
+    "updated": "2026-10-19T15:52:38.948Z"
   },
   {
     "id": "AR0152",
     "title": "Roadmap entry 93 depends on 41 but sits before it",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0152-roadmap-entry-93-depends-on-41-but-sits-before-it/ticket.md",
-    "updated": "2026-10-18T21:53:09.203Z"
+    "updated": "2026-10-19T15:52:39.150Z"
   },
   {
     "id": "AR0153",
@@ -1373,9 +1373,9 @@
   {
     "id": "AR0172",
     "title": "The tools labels of local are not checked by arthur doctor",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0172-the-tools-labels-of-local-are-not-checked-by-arthur-doctor/ticket.md",
-    "updated": "2026-10-19T06:14:11.553Z"
+    "updated": "2026-10-19T15:52:39.352Z"
   },
   {
     "id": "AR0173",
@@ -1408,16 +1408,16 @@
   {
     "id": "AR0177",
     "title": "An option's `default` is text beside the code's own default, and nothing checks they agree",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0177-an-option-s-default-is-text-beside-the-code-s-own-default-and-nothing-checks-they-agree/ticket.md",
-    "updated": "2026-10-19T07:18:00.744Z"
+    "updated": "2026-10-19T15:52:39.553Z"
   },
   {
     "id": "AR0178",
     "title": "`roles.quick.model` has its meaning only in the `about` of `roles`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0178-roles-quick-model-has-its-meaning-only-in-the-about-of-roles/ticket.md",
-    "updated": "2026-10-19T07:18:00.748Z"
+    "updated": "2026-10-19T15:52:39.751Z"
   },
   {
     "id": "AR0179",
@@ -1429,9 +1429,9 @@
   {
     "id": "AR0180",
     "title": "While an env variable is missing, neither `arthur doctor` nor `arthur setup` checks the plugins' requirements",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0180-while-an-env-variable-is-missing-neither-arthur-doctor-nor-arthur-setup-checks-the-plugins-requirements/ticket.md",
-    "updated": "2026-10-19T10:59:58.291Z"
+    "updated": "2026-10-19T15:52:39.952Z"
   },
   {
     "id": "AR0181",
@@ -1471,9 +1471,9 @@
   {
     "id": "AR0186",
     "title": "`arthur init` writes the criteria skeletons of today's roles only",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0186-arthur-init-writes-the-criteria-skeletons-of-today-s-roles-only/ticket.md",
-    "updated": "2026-10-19T11:35:29.759Z"
+    "updated": "2026-10-19T15:52:40.152Z"
   },
   {
     "id": "AR0187",
@@ -1569,9 +1569,9 @@
   {
     "id": "AR0200",
     "title": "The example's Conventional Commits regex allows subjects over 72 characters",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0200-the-example-s-conventional-commits-regex-allows-subjects-over-72-characters/ticket.md",
-    "updated": "2026-10-19T13:27:26.733Z"
+    "updated": "2026-10-19T15:52:40.355Z"
   },
   {
     "id": "AR0201",
@@ -1625,8 +1625,36 @@
   {
     "id": "AR0208",
     "title": "Roadmap 47: Telegram receive and send text, and the silent mode",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0208-roadmap-47-telegram-receive-and-send-text-and-the-silent-mode/ticket.md",
-    "updated": "2026-10-19T15:03:10.998Z"
+    "updated": "2026-10-19T15:46:16.484Z"
+  },
+  {
+    "id": "AR0209",
+    "title": "An a2a plugin: other agents give Arthur tasks, and Arthur gives them",
+    "status": "planning",
+    "path": "spec/features/AR0209-an-a2a-plugin-other-agents-give-arthur-tasks-and-arthur-gives-them/ticket.md",
+    "updated": "2026-10-19T15:41:55.417Z"
+  },
+  {
+    "id": "AR0210",
+    "title": "The nvm package still names the old licence",
+    "status": "done",
+    "path": "spec/features/AR0210-the-nvm-package-still-names-the-old-licence/ticket.md",
+    "updated": "2026-10-19T15:52:29.885Z"
+  },
+  {
+    "id": "AR0211",
+    "title": "A message to a named bot is answered by the unnamed one",
+    "status": "planned",
+    "path": "spec/features/AR0211-a-message-to-a-named-bot-is-answered-by-the-unnamed-one/ticket.md",
+    "updated": "2026-10-19T15:47:02.086Z"
+  },
+  {
+    "id": "AR0212",
+    "title": "Roadmap 48: Telegram outbox and retries",
+    "status": "in-progress",
+    "path": "spec/features/AR0212-roadmap-48-telegram-outbox-and-retries/ticket.md",
+    "updated": "2026-10-19T15:47:04.786Z"
   }
 ]

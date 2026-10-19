@@ -228,9 +228,17 @@ Detach with `Ctrl-b d`; the coordinator goes on.
 
 ## 13. A channel
 
-Not built yet (roadmap entries 47 to 50): Telegram, which lets you talk to the coordinator from your phone. Until then the terminal of step 12 is the only way in.
+Telegram lets you talk to the coordinator from your phone (roadmap entry 47; photos, files and the command menu come with 48 to 50). Make a bot and give Arthur its token and your chat id, as `packages/telegram/docs/telegram.md`, "Setting it up", says:
 
-**Check:** none yet.
+```ts
+import { telegram } from "@arthur/telegram";
+// in plugins:
+telegram({ bots: [{ botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }] }),
+```
+
+Then restart the service (step 9). Without a channel, the terminal of step 12 is the only way in.
+
+**Check:** `arthur config check` says `set` for both variables, and a message you write to the bot gets the coordinator's answer within a minute.
 
 ## 14. Check everything with `arthur doctor`
 

@@ -221,7 +221,7 @@ test("host.code holds the core's package folder, then each enabled plugin's pack
 		fake([], "session", { setup: keep }),
 		fake([], "orchestration", { setup: keep }),
 		fake([], "resources", { options: { enabled: false } }),
-		fake([], "telegram", { setup: keep }),
+		fake([], "discord", { setup: keep }),
 	]);
 	await loadPlugins(loaded, {});
 	const packages = join(import.meta.dirname, "..", "..");

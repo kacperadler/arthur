@@ -22,6 +22,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0203 Arthur is Apache-2.0, with NOTICE, trademark and DCO (d284b8c)
 - AR0205 The coordinator's role does not say when it may write to YouTrack
 - AR0206 Roadmap 46: YouTrack comments, attachments, and the rules for jobs (00b089f)
+- AR0208 Roadmap 47: Telegram receive and send text, and the silent mode (16c2dc6)
 
 ### Fixed
 
@@ -35,6 +36,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Changed
 
 - AR0199 The option-tables test cannot list a plugin without options (d7bd88e)
+- AR0207 The option-tables test cannot hold a plugin without options, so nvm's options file is not checked there
 
 ### Other
 

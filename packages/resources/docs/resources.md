@@ -13,7 +13,7 @@ In `resources({ ... })` in `arthur.config.ts`; every key optional, a cap left ou
 | `perFeature.budgetUsd` | The USD all jobs of one ticket may cost together, a number of 0 or more, `0` for no cap. |
 | `perFeature.hours` | The hours all jobs of one ticket may run together, a number of 0 or more, `0` for no cap. |
 | `perFeature.cpu` | The cores all jobs of one ticket share, the `CPUQuota` of the ticket's slice, `0` for no cap. |
-| `perFeature.memory` | The memory all jobs of one ticket share, the `MemoryMax` of the ticket's slice, in `perJob.memory`'s syntax, `0` for no cap. |
+| `perFeature.memory` | The memory all jobs of one ticket share, the `MemoryMax` of the ticket's slice, in `perJob.memory`'s syntax, `0` for no cap. Over it the kernel kills a process of one of its jobs, which ends `limit: memory: the jobs of ticket <id> went over their memory cap of <memory>`. |
 | `keepFree.cpu` | The cores left free on every machine, for the coordinator and the system: a number of 0 or more, default 0. |
 | `keepFree.memory` | The memory left free on every machine: bytes with K, M, G or T (`2G`) or a percentage of the machine's memory (`10%`), default none. `keepFree.disk` is roadmap entry 69; until then it is refused as an unknown key. |
 

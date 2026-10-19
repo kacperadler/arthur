@@ -21,6 +21,8 @@ import { schedule } from "@arthur/schedule";
 import * as scheduleFile from "@arthur/schedule/options";
 import { session } from "@arthur/session";
 import * as sessionFile from "@arthur/session/options";
+import { youtrack } from "@arthur/youtrack";
+import * as youtrackFile from "@arthur/youtrack/options";
 
 // Roadmap entry 93 over every package's options file: what `arthur setup` (94) reads. A plugin's own tests never load another
 // plugin; this one, outside every package, loads them all.
@@ -35,6 +37,7 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	session: [sessionFile, session()],
 	schedule: [scheduleFile, schedule()],
 	models: [modelsFile, models()],
+	youtrack: [youtrackFile, youtrack({ instances: [] })],
 };
 
 // What is wrong with `file`: an option, at any depth, whose meaning or default is not one line; a summary that is not one

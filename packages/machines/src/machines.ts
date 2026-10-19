@@ -48,8 +48,8 @@ export function machines(options: MachinesOptions = {}): Plugin {
 			const timedOut = (machine: MachineEntry): Report => ({ online: false, reason: `check timed out after ${LIMIT_SECONDS} s`, fix: `ssh ${machine.ssh} true, by hand` });
 			const start = () => {
 				const checks = list.map((machine) => [machine.name, within(checkMachine(host, machine, coreVersion(), LIMIT_SECONDS), timedOut(machine))] as const);
-				// As the round begins, each listed machine's check to come: the line of its free CPU and memory, or why it is offline.
-				host.collect("machines.round", new Map(checks.map(([name, check]) => [name, check.then((report) => (report.online ? { free: report.free } : { error: report.reason }))])));
+				// As the round begins, each listed machine's check to come (the line of its free CPU and memory, or why it is offline) and everySeconds.
+				host.collect("machines.round", new Map(checks.map(([name, check]) => [name, check.then((report) => (report.online ? { free: report.free } : { error: report.reason }))])), everySeconds);
 				return Promise.all(checks.map(async ([name, check]) => [name, await check] as const)).then((reports) => {
 					running = undefined;
 					for (const [name, report] of reports) {

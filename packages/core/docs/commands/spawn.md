@@ -87,7 +87,7 @@ Limits: the wrapper stops a job at its limit with the stop of `arthur stop` (see
 
 A kind's `timeoutMinutes` or `budgetUsd` that is not a number of 0 or more, or a `resumeOnBudget` that is not `true` or `false`, is refused when its plugin registers it: `kind <name>: <key> must be ...`.
 
-A record deleted while the job runs is noticed at the wrapper's next write: it sends SIGTERM to the agent's process group, so the agent and every process it started stop, kills what is left in the job's scope (a job that runs bare: one that left the group runs on), writes the one line `[arthur <time>] job <id>: its record <path> was deleted while it ran; the agent was stopped and nothing more is written` to `<home>/wrapper.log`, and ends; nothing more goes into the record's folder and no `job-ended` is emitted. `<home>/wrapper.log` also holds whatever a wrapper prints that has no record to go to, such as a crash.
+A record deleted while the job runs, also one a `rm -r` is still emptying (its `pid` gone, its folder not yet), is noticed at the wrapper's next write that fails: it sends SIGTERM to the agent's process group, so the agent and every process it started stop, kills what is left in the job's scope (a job that runs bare: one that left the group runs on), writes the one line `[arthur <time>] job <id>: its record <path> was deleted while it ran; the agent was stopped and nothing more is written` to `<home>/wrapper.log`, and ends; nothing more goes into the record's folder and no `job-ended` is emitted. `<home>/wrapper.log` also holds whatever a wrapper prints that has no record to go to, such as a crash.
 
 ## Caps per job
 

@@ -39,3 +39,4 @@ Out: anything in another plugin. Another job (AR0187) is changing the core's spa
 ## Decisions
 
 - 2026-10-19: The owner told the coordinator to run several workers at once ("lec"), under the 80% usage ceiling.
+- 2026-10-19: The coordinator accepts setting extensions.worktreeConfig=true in the project's .git/config, the only shared key changed, so that a job worktree's hook needs no core spawn change while AR0187 changes spawn. Workers do not push; the coordinator pushes the branch.

@@ -48,3 +48,4 @@ Out:
 ## Decisions
 
 - 2026-10-19: The coordinator starts this under the owner's 80% usage ceiling. The next roadmap entry in order after 94 is 42, the only unbuilt entry of a plugin already in progress.
+- 2026-10-19: The coordinator accepts the projects budget raise from 325 to 473 (+148, init.ts and onboarding.ts; requirement merged into requirements first). It also accepts merge.check as the place of the refusal at merge, until entry 54 calls it (F1).

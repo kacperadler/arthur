@@ -1196,9 +1196,9 @@
   {
     "id": "AR0148",
     "title": "A throw in the session's 500 ms tick ends `arthur run`",
-    "status": "planning",
+    "status": "in-progress",
     "path": "spec/features/AR0148-a-throw-in-the-session-s-500-ms-tick-ends-arthur-run/ticket.md",
-    "updated": "2026-10-18T21:18:39.474Z"
+    "updated": "2026-10-19T05:41:42.352Z"
   },
   {
     "id": "AR0149",
@@ -1276,9 +1276,9 @@
   {
     "id": "AR0159",
     "title": "packages/session/test/restart.test.ts:204 fails now and then with \"Unexpected end of JSON input\"",
-    "status": "review",
+    "status": "dropped",
     "path": "spec/features/AR0159-packages-session-test-restart-test-ts-204-fails-now-and-then-with-unexpected-end-of-json-input/ticket.md",
-    "updated": "2026-10-18T23:17:19.013Z",
+    "updated": "2026-10-19T05:47:18.815Z",
     "after": [
       "AR0153"
     ]
@@ -1286,9 +1286,12 @@
   {
     "id": "AR0160",
     "title": "`/restart` cannot clear a restart due, since it restarts only the coordinator's agent",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0160-restart-cannot-clear-a-restart-due-since-it-restarts-only-the-coordinator-s-agent/ticket.md",
-    "updated": "2026-10-18T22:45:18.421Z"
+    "updated": "2026-10-19T05:41:39.883Z",
+    "after": [
+      "AR0148"
+    ]
   },
   {
     "id": "AR0161",
@@ -1300,23 +1303,23 @@
   {
     "id": "AR0162",
     "title": "A registered entry's procedure will be a path the entry check refuses",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0162-a-registered-entry-s-procedure-will-be-a-path-the-entry-check-refuses/ticket.md",
-    "updated": "2026-10-18T23:00:02.885Z"
+    "updated": "2026-10-19T00:29:07.302Z"
   },
   {
     "id": "AR0163",
     "title": "Roadmap 40: Registered entries and arthur schedule",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0163-roadmap-40-registered-entries-and-arthur-schedule/ticket.md",
-    "updated": "2026-10-18T23:26:02.990Z"
+    "updated": "2026-10-19T00:28:58.151Z"
   },
   {
     "id": "AR0164",
     "title": "The inbox's notice after 3 unanswered turns repeats omp's error unredacted",
-    "status": "planning",
+    "status": "in-progress",
     "path": "spec/features/AR0164-the-inbox-s-notice-after-3-unanswered-turns-repeats-omp-s-error-unredacted/ticket.md",
-    "updated": "2026-10-18T23:36:58.635Z"
+    "updated": "2026-10-19T05:41:43.001Z"
   },
   {
     "id": "AR0165",
@@ -1328,8 +1331,43 @@
   {
     "id": "AR0166",
     "title": "Roadmap 80: arthur doctor, checked at every start",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0166-roadmap-80-arthur-doctor-checked-at-every-start/ticket.md",
-    "updated": "2026-10-18T23:37:21.921Z"
+    "updated": "2026-10-19T00:25:10.204Z"
+  },
+  {
+    "id": "AR0167",
+    "title": "GitHub CI fails now and then on main with the same code",
+    "status": "merged",
+    "path": "spec/features/AR0167-github-ci-fails-now-and-then-on-main-with-the-same-code/ticket.md",
+    "updated": "2026-10-19T05:46:50.637Z"
+  },
+  {
+    "id": "AR0168",
+    "title": "Orchestration cannot register the morning report while schedule is optional",
+    "status": "planning",
+    "path": "spec/features/AR0168-orchestration-cannot-register-the-morning-report-while-schedule-is-optional/ticket.md",
+    "updated": "2026-10-19T00:28:58.146Z"
+  },
+  {
+    "id": "AR0169",
+    "title": "A registered entry can send a message or spawn a job, not run its plugin's own code",
+    "status": "planning",
+    "path": "spec/features/AR0169-a-registered-entry-can-send-a-message-or-spawn-a-job-not-run-its-plugin-s-own-code/ticket.md",
+    "updated": "2026-10-19T00:28:58.149Z"
+  },
+  {
+    "id": "AR0170",
+    "title": "Roadmap 93: Option tables, every option with its meaning, and the tools each plugin runs",
+    "status": "done",
+    "path": "spec/features/AR0170-roadmap-93-option-tables-every-option-with-its-meaning-and-the-tools-each-plugin-runs/ticket.md",
+    "updated": "2026-10-19T01:04:42.363Z"
+  },
+  {
+    "id": "AR0171",
+    "title": "The resources scope test assumes a machine of 2 cores or more",
+    "status": "planning",
+    "path": "spec/features/AR0171-the-resources-scope-test-assumes-a-machine-of-2-cores-or-more/ticket.md",
+    "updated": "2026-10-19T05:46:50.634Z"
   }
 ]

@@ -4,7 +4,10 @@
 {
   "id": "AR0160",
   "title": "`/restart` cannot clear a restart due, since it restarts only the coordinator's agent",
-  "date": "2026-10-19"
+  "date": "2026-10-19",
+  "after": [
+    "AR0148"
+  ]
 }
 ```
 
@@ -35,3 +38,4 @@ In:
 ## Decisions
 
 - 2026-10-19: Source: F1 of AR0153
+- 2026-10-19: The owner (Telegram, 07:2x): 'nie czekaj tylko rób' on the night's findings and the /restart question; the coordinator recommended /restart ends arthur run while a restart is due, approved with the rest.

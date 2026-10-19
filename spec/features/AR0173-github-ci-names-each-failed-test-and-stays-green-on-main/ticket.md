@@ -41,3 +41,4 @@ Out:
 ## Decisions
 
 - 2026-10-19: Owner, on red CI: "zanim coś wjedzie do main to musi mieć zielone CI". This approves the ticket.
+- 2026-10-19: Coordinator (owner delegated Arthur calls): core 5116 -> 5127 (+11, oomFirst in the wrapper) accepted. Merge waits for the coordinator's 30-run stress on f53fc97 and green ci on the tip.

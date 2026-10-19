@@ -58,7 +58,7 @@ export async function launch(home: string, job: Pick<Job, "id" | "kind" | "proje
 	}
 	const log = join(home, "wrapper.log");
 	// `systemd-run` execs `sh`, which execs the wrapper with its stderr on the log: what reaches the pipe is systemd-run's own.
-	const scoped = ["systemd-run", "--user", "--scope", "--quiet", "--collect", `--slice=${slice}.slice`, `--unit=${scope(id)}`, ...ownLimits(cpu, memory), "--"];
+	const scoped = ["systemd-run", "--user", "--scope", "--quiet", "--collect", `--slice=${slice}.slice`, `--unit=${scope(id)}`, ...ownLimits(cpu, memory, featureMemory), "--"];
 	const [command = "", ...args] = bare === undefined ? [...scoped, "/bin/sh", "-c", 'exec "$@" 2>>"$0"', log, ...wrapper] : wrapper;
 	const output = openSync(log, "a");
 	let child: ChildProcess;
@@ -122,12 +122,14 @@ function setSlice(slice: string, cpu: string, memory: string): string | undefine
 
 // The scope's own `-p` properties from the job's caps, read from its record (empty for none): its cores, at most this machine's;
 // its memory, with no swap beyond it, so the cap holds; and from systemd 253 on, which takes `OOMPolicy` on a scope and else
-// stops the whole scope at a kill, a process the kernel kills over the cap ends only itself, so the wrapper lives to end the job.
-function ownLimits(cpu: string, memory: string): string[] {
+// stops the whole scope at a kill, a process the kernel kills over the cap, or over its ticket's `ticketMemory`, ends only
+// itself, so the wrapper lives to end the job.
+function ownLimits(cpu: string, memory: string, ticketMemory: string): string[] {
 	const limits = cpu === "" ? [] : [`CPUQuota=${Math.max(1, Math.round(Math.min(Number(cpu), availableParallelism()) * 100))}%`];
-	if (memory !== "") {
+	if (memory !== "") limits.push(`MemoryMax=${memory}`, "MemorySwapMax=0");
+	if (memory !== "" || ticketMemory !== "") {
 		const systemd = Number(/^systemd (\d+)/.exec(spawnSync("systemctl", ["--version"], { encoding: "utf8" }).stdout ?? "")?.[1] ?? 0);
-		limits.push(`MemoryMax=${memory}`, "MemorySwapMax=0", ...(systemd >= 253 ? ["OOMPolicy=continue"] : []));
+		if (systemd >= 253) limits.push("OOMPolicy=continue");
 	}
 	return limits.flatMap((limit) => ["-p", limit]);
 }

@@ -209,14 +209,15 @@ function noManager(t: TestContext): void {
 }
 
 // An agent that, while the file `on()` names exists, removes it and starts `node` holding `mb` MB in its own process group,
-// which notes its pid in `hog` once it holds them; then it plays `run` as the fake agent.
-function hogging(mb: number, run: AgentRun): { readonly agent: string; readonly on: string; readonly hog: string } {
+// which notes its pid in `hog` once it holds them; then it plays `run` as the fake agent, which notes each start in `starts`.
+function hogging(mb: number, run: AgentRun): { readonly agent: string; readonly on: string; readonly hog: string; readonly starts: string } {
 	const folder = temporaryFolder();
 	const [on, hog] = [join(folder, "on"), join(folder, "hog")];
 	const code = `const a = []; for (let i = 0; i < ${mb}; i += 16) a.push(Buffer.alloc(16 << 20, 1)); require("fs").writeFileSync("${hog}", String(process.pid)); setInterval(() => a.length, 1000);`;
-	const script = ["#!/bin/sh", `if [ -e '${on}' ]; then rm '${on}'; '${process.execPath}' -e '${code}' & fi`, `exec '${fakeAgent(run)}' "$@"`];
+	const played = fakeAgent(run);
+	const script = ["#!/bin/sh", `if [ -e '${on}' ]; then rm '${on}'; '${process.execPath}' -e '${code}' & fi`, `exec '${played}' "$@"`];
 	writeFileSync(join(folder, "omp"), `${script.join("\n")}\n`, { mode: 0o755 });
-	return { agent: join(folder, "omp"), on, hog };
+	return { agent: join(folder, "omp"), on, hog, starts: join(dirname(played), "starts.jsonl") };
 }
 
 // The reason job `id` ended with, once its record says it ended.
@@ -331,4 +332,27 @@ test("a systemd older than 253, which takes no OOMPolicy on a scope, gets the me
 	await jobs.spawn({ task: "Go." });
 	const given = readFileSync(args, "utf8").split("\n");
 	assert.deepEqual(given.slice(given.indexOf("-p"), given.indexOf("--")), ["-p", "MemoryMax=300M", "-p", "MemorySwapMax=0"]);
+});
+
+test("a job with its ticket's memory cap and none of its own gets OOMPolicy continue from systemd 253 on, so a kill over the ticket's cap leaves its wrapper", async (t) => {
+	const args = join(temporaryFolder(), "args");
+	onPath(t, { systemctl: '[ "$1" = --version ] && echo "systemd 255 (255.4-1ubuntu8)"; exit 0', "systemd-run": `printf '%s\\n' "$@" > '${args}'; exit 1` });
+	const { jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }), jobSlice, () => [{ feature: { name: "AC0001", memory: "300M" } }]);
+	await jobs.spawn({ task: "Go." });
+	const given = readFileSync(args, "utf8").split("\n");
+	assert.deepEqual(given.slice(given.indexOf("-p"), given.indexOf("--")), ["-p", "OOMPolicy=continue"]);
+});
+
+test("a job over its ticket's memory cap ends limit: memory naming the ticket, and the ticket's other job, whose process was not killed, runs on", needsManager, async () => {
+	const gate = join(temporaryFolder(), "gate");
+	const { agent, on, starts } = hogging(640, { steps: [{ waitFor: gate }, { message: "Done." }] });
+	const { home, jobs } = setup(agent, jobSlice, () => [{ memory: "1G", feature: { name: "AC0001", memory: "400M" } }]);
+	const other = await jobs.spawn({ task: "Go." });
+	await until("the other job's agent", () => read(starts));
+	writeFileSync(on, "");
+	const hog = await jobs.spawn({ task: "Hog." });
+	assert.equal(await endedWith(home, hog.id), "limit: memory: the jobs of ticket AC0001 went over their memory cap of 400M");
+	assert.equal(readFileSync(join(home, "jobs", other.id, "state"), "utf8"), "working");
+	writeFileSync(gate, "");
+	assert.equal(await endedWith(home, other.id), "finished");
 });

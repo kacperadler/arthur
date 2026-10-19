@@ -70,7 +70,9 @@ import { checkStructure } from "./structure.ts";
 // the agent runs never sees it empty; core/testing 4 more (344). A record's file removed between the check and the read
 // (`hold`, as `arthur stop` polls a job's end) reads empty instead of throwing: core 4 more (4877).
 // Merged: core 5112 + 4 (AR0167) = 5116.
-const BUDGETS = { core: 5116, "core/testing": 344, projects: 320, orchestration: 1162, machines: 391, resources: 401, session: 755, schedule: 497 };
+// AR0164: the inbox's notice after 3 unanswered turns redacts omp's error as the session plugin does, with a copy of its
+// credential.ts (a plugin cannot import another's), orchestration 17 more (1163 alone; 1162 + 17 = 1179 merged with AR0166).
+const BUDGETS = { core: 5116, "core/testing": 344, projects: 320, orchestration: 1179, machines: 391, resources: 401, session: 755, schedule: 497 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -20,6 +20,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0196 Roadmap 84: nvm, each project's Node version (1556c9f)
 - AR0197 Roadmap 45: YouTrack writing issues, articles, fields and work items (4919c0a)
 - AR0203 Arthur is Apache-2.0, with NOTICE, trademark and DCO (d284b8c)
+- AR0206 Roadmap 46: YouTrack comments, attachments, and the rules for jobs (00b089f)
 
 ### Fixed
 

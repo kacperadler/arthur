@@ -1597,23 +1597,23 @@
   {
     "id": "AR0204",
     "title": "`issue update` overwrites a description changed since it was read",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0204-issue-update-overwrites-a-description-changed-since-it-was-read/ticket.md",
-    "updated": "2026-10-19T14:00:26.116Z"
+    "updated": "2026-10-19T14:48:10.577Z"
   },
   {
     "id": "AR0205",
     "title": "The coordinator's role does not say when it may write to YouTrack",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0205-the-coordinator-s-role-does-not-say-when-it-may-write-to-youtrack/ticket.md",
-    "updated": "2026-10-19T14:00:26.118Z"
+    "updated": "2026-10-19T14:48:10.776Z"
   },
   {
     "id": "AR0206",
     "title": "Roadmap 46: YouTrack comments, attachments, and the rules for jobs",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0206-roadmap-46-youtrack-comments-attachments-and-the-rules-for-jobs/ticket.md",
-    "updated": "2026-10-19T14:43:39.953Z"
+    "updated": "2026-10-19T14:48:02.620Z"
   },
   {
     "id": "AR0207",

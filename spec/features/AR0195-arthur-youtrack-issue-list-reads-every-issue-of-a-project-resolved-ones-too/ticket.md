@@ -37,3 +37,4 @@ In:
 - 2026-10-19: Source: F2 of AR0189
 - 2026-10-19: Approved under the owner's word of the same day: findings are built alongside the roadmap entry that touches the same files.
 - 2026-10-19: Open question to the owner: unresolved only by default with `--all`, or all with `--query`. The coordinator recommends the first.
+- 2026-10-19: The owner decided: `issue list` shows unresolved issues by default, and `--all` shows every issue. It is built on AR0197's branch.

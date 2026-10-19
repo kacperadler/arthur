@@ -70,7 +70,7 @@ export default defineConfig({
 });
 ```
 
-Do not copy `arthur.config.example.ts`: it lists every plugin, planned ones included, and the packages of those do not exist yet, so it does not load (`Cannot find package '@arthur/commit-rules'`). Take a plugin from it once its roadmap entry is merged.
+Do not copy `arthur.config.example.ts`: it lists every plugin, planned ones included, and the packages of those do not exist yet, so it does not load (`Cannot find package '@arthur/delivery'`). Take a plugin from it once its roadmap entry is merged.
 
 Every option the core and each built plugin take, with its meaning and its default, is in one table per package, the same one its check walks: the core's in `packages/core/src/core-options.ts`, each plugin's in the file its `package.json` exports as `./options` (for example `packages/orchestration/src/orchestration-options.ts`), with the plugin's one-line summary and the tools it runs.
 

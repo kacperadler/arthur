@@ -1485,9 +1485,9 @@
   {
     "id": "AR0188",
     "title": "Roadmap 43: commit rules per project",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0188-roadmap-43-commit-rules-per-project/ticket.md",
-    "updated": "2026-10-19T13:10:10.944Z"
+    "updated": "2026-10-19T13:27:26.736Z"
   },
   {
     "id": "AR0189",
@@ -1534,22 +1534,50 @@
   {
     "id": "AR0195",
     "title": "`arthur youtrack issue list` reads every issue of a project, resolved ones too",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0195-arthur-youtrack-issue-list-reads-every-issue-of-a-project-resolved-ones-too/ticket.md",
-    "updated": "2026-10-19T13:09:54.914Z"
+    "updated": "2026-10-19T13:41:59.884Z"
   },
   {
     "id": "AR0196",
     "title": "Roadmap 84: nvm, each project's Node version",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0196-roadmap-84-nvm-each-project-s-node-version/ticket.md",
-    "updated": "2026-10-19T13:10:23.532Z"
+    "updated": "2026-10-19T13:36:47.679Z"
   },
   {
     "id": "AR0197",
     "title": "Roadmap 45: YouTrack writing issues, articles, fields and work items",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0197-roadmap-45-youtrack-writing-issues-articles-fields-and-work-items/ticket.md",
-    "updated": "2026-10-19T13:10:24.171Z"
+    "updated": "2026-10-19T13:41:27.274Z"
+  },
+  {
+    "id": "AR0198",
+    "title": "A plugin's prompt section cannot add to the spawn's warnings",
+    "status": "planning",
+    "path": "spec/features/AR0198-a-plugin-s-prompt-section-cannot-add-to-the-spawn-s-warnings/ticket.md",
+    "updated": "2026-10-19T13:27:26.729Z"
+  },
+  {
+    "id": "AR0199",
+    "title": "The option-tables test cannot list a plugin without options",
+    "status": "planning",
+    "path": "spec/features/AR0199-the-option-tables-test-cannot-list-a-plugin-without-options/ticket.md",
+    "updated": "2026-10-19T13:27:26.732Z"
+  },
+  {
+    "id": "AR0200",
+    "title": "The example's Conventional Commits regex allows subjects over 72 characters",
+    "status": "planning",
+    "path": "spec/features/AR0200-the-example-s-conventional-commits-regex-allows-subjects-over-72-characters/ticket.md",
+    "updated": "2026-10-19T13:27:26.733Z"
+  },
+  {
+    "id": "AR0201",
+    "title": "wrapper.test.ts failed once on a cleanup race",
+    "status": "in-progress",
+    "path": "spec/features/AR0201-wrapper-test-ts-failed-once-on-a-cleanup-race/ticket.md",
+    "updated": "2026-10-19T13:27:54.069Z"
   }
 ]

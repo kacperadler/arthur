@@ -37,19 +37,19 @@ function fakeNvm(folder: string, versions: readonly string[]): string {
 		mkdirSync(join(folder, "versions/node", `v${version}`, "bin"), { recursive: true });
 		symlinkSync(process.execPath, join(folder, "versions/node", `v${version}`, "bin/node"));
 	}
-	const nodes = `'${folder}'/versions/node/v"$2" '${folder}'/versions/node/v"$2".*`;
+	// As nvm, it finds its versions through NVM_DIR, which it cannot guess when dash sources it.
 	writeFileSync(
 		join(folder, "nvm.sh"),
 		`nvm() {
-  echo "$*" >> '${folder}/calls'
+  echo "$*" >> "$NVM_DIR/calls"
   case "$1" in
   --version) echo 0.40.8 ;;
   which)
-    found=$(for d in ${nodes}; do [ -x "$d/bin/node" ] && echo "$d/bin/node"; done | sort -V | tail -n 1)
+    found=$(for d in "$NVM_DIR"/versions/node/v"$2" "$NVM_DIR"/versions/node/v"$2".*; do [ -x "$d/bin/node" ] && echo "$d/bin/node"; done | sort -V | tail -n 1)
     [ -n "$found" ] && { echo "$found"; return 0; }
     echo "N/A: version \\"v$2\\" is not yet installed." >&2
     echo >&2
-    echo "You need to run \\\`nvm install $2\\\` to install it before using it." >&2
+    echo "You need to run \\\`nvm install $2\\\` to install and use it." >&2
     return 1 ;;
   esac
 }

@@ -1196,9 +1196,9 @@
   {
     "id": "AR0148",
     "title": "A throw in the session's 500 ms tick ends `arthur run`",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0148-a-throw-in-the-session-s-500-ms-tick-ends-arthur-run/ticket.md",
-    "updated": "2026-10-19T06:19:30.939Z"
+    "updated": "2026-10-19T06:29:37.576Z"
   },
   {
     "id": "AR0149",
@@ -1383,5 +1383,12 @@
     "status": "in-progress",
     "path": "spec/features/AR0173-github-ci-names-each-failed-test-and-stays-green-on-main/ticket.md",
     "updated": "2026-10-19T06:17:44.794Z"
+  },
+  {
+    "id": "AR0174",
+    "title": "Roadmap: a decision log of what the owner decided when Arthur asked",
+    "status": "planned",
+    "path": "spec/features/AR0174-roadmap-a-decision-log-of-what-the-owner-decided-when-arthur-asked/ticket.md",
+    "updated": "2026-10-19T06:31:11.803Z"
   }
 ]

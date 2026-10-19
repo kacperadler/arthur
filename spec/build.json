@@ -1663,5 +1663,12 @@
     "status": "planned",
     "path": "spec/features/AR0213-a-pre-approved-ticket-s-worker-on-a-free-model-is-refused/ticket.md",
     "updated": "2026-10-19T16:41:35.340Z"
+  },
+  {
+    "id": "AR0214",
+    "title": "Plan: role agents talk to each other, each with its own chat place",
+    "status": "planning",
+    "path": "spec/features/AR0214-plan-role-agents-talk-to-each-other-each-with-its-own-chat-place/ticket.md",
+    "updated": "2026-10-19T16:43:16.510Z"
   }
 ]

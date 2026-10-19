@@ -1548,9 +1548,9 @@
   {
     "id": "AR0197",
     "title": "Roadmap 45: YouTrack writing issues, articles, fields and work items",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0197-roadmap-45-youtrack-writing-issues-articles-fields-and-work-items/ticket.md",
-    "updated": "2026-10-19T13:42:02.243Z"
+    "updated": "2026-10-19T13:48:30.324Z"
   },
   {
     "id": "AR0198",
@@ -1576,8 +1576,8 @@
   {
     "id": "AR0201",
     "title": "wrapper.test.ts failed once on a cleanup race",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0201-wrapper-test-ts-failed-once-on-a-cleanup-race/ticket.md",
-    "updated": "2026-10-19T13:43:57.835Z"
+    "updated": "2026-10-19T13:52:13.908Z"
   }
 ]

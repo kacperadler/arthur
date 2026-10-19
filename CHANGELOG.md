@@ -14,6 +14,9 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0187 Roadmap 82: models on other machines, and a fallback chain (bb71f18)
 - AR0188 Roadmap 43: commit rules per project (72692ea)
 - AR0189 Roadmap 44: YouTrack instances and reading (2bda2a3)
+- AR0194 The coordinator's role does not name `arthur youtrack`
+- AR0195 `arthur youtrack issue list` reads every issue of a project, resolved ones too
+- AR0196 Roadmap 84: nvm, each project's Node version (1556c9f)
 - AR0197 Roadmap 45: YouTrack writing issues, articles, fields and work items (4919c0a)
 
 ### Fixed

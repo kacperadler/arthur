@@ -11,4 +11,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `test/option-tables.test.ts` (`PLUGINS` and the assertion `${name} has options`)
 - What: the nvm plugin's options file (`packages/nvm/src/nvm-options.ts`) has an empty `table`, since nvm has no options but `enabled`. The test that checks every package's options file (summary in one line, each tool's version command) asserts that each file has at least one option, so nvm is left out of `PLUGINS` and its summary is checked by no test. `arthur setup` prints it fine (`nvm on no options`, seen by hand on this branch).
 - Suggestion: let that assertion accept an empty table for a plugin that declares none (or drop it: an option without a meaning is already caught per option), and add `nvm: [nvmFile, nvm()]` to `PLUGINS`. Out: options for nvm.
-- Status: open
+- Status: ticket AR0207

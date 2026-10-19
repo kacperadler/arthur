@@ -1300,16 +1300,16 @@
   {
     "id": "AR0162",
     "title": "A registered entry's procedure will be a path the entry check refuses",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0162-a-registered-entry-s-procedure-will-be-a-path-the-entry-check-refuses/ticket.md",
-    "updated": "2026-10-18T23:00:02.885Z"
+    "updated": "2026-10-19T00:29:07.302Z"
   },
   {
     "id": "AR0163",
     "title": "Roadmap 40: Registered entries and arthur schedule",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0163-roadmap-40-registered-entries-and-arthur-schedule/ticket.md",
-    "updated": "2026-10-18T23:50:40.474Z"
+    "updated": "2026-10-19T00:28:58.151Z"
   },
   {
     "id": "AR0164",
@@ -1335,8 +1335,22 @@
   {
     "id": "AR0167",
     "title": "GitHub CI fails now and then on main with the same code",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0167-github-ci-fails-now-and-then-on-main-with-the-same-code/ticket.md",
-    "updated": "2026-10-19T00:26:46.619Z"
+    "updated": "2026-10-19T00:26:49.090Z"
+  },
+  {
+    "id": "AR0168",
+    "title": "Orchestration cannot register the morning report while schedule is optional",
+    "status": "planning",
+    "path": "spec/features/AR0168-orchestration-cannot-register-the-morning-report-while-schedule-is-optional/ticket.md",
+    "updated": "2026-10-19T00:28:58.146Z"
+  },
+  {
+    "id": "AR0169",
+    "title": "A registered entry can send a message or spawn a job, not run its plugin's own code",
+    "status": "planning",
+    "path": "spec/features/AR0169-a-registered-entry-can-send-a-message-or-spawn-a-job-not-run-its-plugin-s-own-code/ticket.md",
+    "updated": "2026-10-19T00:28:58.149Z"
   }
 ]

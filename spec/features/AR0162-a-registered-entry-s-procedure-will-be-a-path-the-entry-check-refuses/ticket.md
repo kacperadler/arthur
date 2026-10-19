@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-19: Source: F1 of AR0158
+- 2026-10-19: Coordinator: fixed by AR0163 (registered procedures checked against the plugin's package folder); dropped.

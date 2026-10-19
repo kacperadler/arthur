@@ -4,7 +4,7 @@ The `commit-rules` plugin (roadmap entry 43): each project's rule for its commit
 
 | Form | Example | What the plugin does |
 | --- | --- | --- |
-| `regex` | `{ regex: "^(feat\|fix\|docs)(\\([\\w-]+\\))?!?: .{1,72}$" }` | A `commit-msg` hook in each job worktree of the project refuses a commit whose subject does not match, and says the rule. Nothing goes into the prompt. |
+| `regex` | `{ regex: "^(?=.{1,72}$)(feat\|fix\|docs)(\\([\\w-]+\\))?!?: .+$" }` | A `commit-msg` hook in each job worktree of the project refuses a commit whose subject does not match, and says the rule. Nothing goes into the prompt. |
 | `words` | `{ words: "Start with the ticket id, then a verb in the imperative." }` | The words go into the prompt of the project's workers and reviewers; the review judges the branch's messages by them. No hook. |
 | `file` | `{ file: "docs/commit-rules.md" }` | The file, a path in the project's repository, is read at the commit the job starts from and goes into the prompt as words, so the rule is versioned with the project. No hook. |
 

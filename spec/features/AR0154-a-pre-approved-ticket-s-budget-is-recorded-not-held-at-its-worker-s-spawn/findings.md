@@ -11,4 +11,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/jobs.ts:164`, `packages/orchestration/src/plans.ts` (`overBudget`)
 - What: the core gives a job on a free model (`models.pick` answers `free: true`) the budget 0 before the `beforeSpawn` checks run, and AR0154's check refuses a worker on a pre-approved ticket with a budget of 0 (no limit), so such a worker cannot start on a free model, though it would spend nothing [INFERENCE: read from the lines, not run with the models plugin].
 - Suggestion: give `Spawn` whether its model is free (the `free` that `pickModel` returns), and let the check pass a budget of 0 on a free model; the check of a paid model stays as it is.
-- Status: open
+- Status: ticket AR0213

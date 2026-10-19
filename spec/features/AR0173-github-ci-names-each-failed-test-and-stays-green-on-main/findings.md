@@ -60,3 +60,7 @@ The third is a real failure the annotations named at once: on GitHub's runner th
    - Symptom: `AssertionError: took 9999 ms`, the annotation of run 39219661015 (ab1286d, an empty commit) on GitHub. The test asserted `took >= 10_000`, `took` measured with `Date.now()`.
    - Cause: [INFERENCE] the 10 s cut is a Node timer on the monotonic clock, while `Date.now()` is the wall clock, which the runner's time sync can slow by a few ms over 10 s; here 2000 timers of 10 ms never measured under 10 ms, so it did not show.
    - Fix: the lower bound is 9950 ms: a cut at 5 s still fails it, and a hang never ends the test.
+4. `packages/core/test/scope.test.ts`, "a job over its memory cap ends limit: memory, and another job with a cap keeps running", again, after item 2's fix.
+   - Symptom: the annotation of run 39220691635 (7fc87b9, an empty commit): the job ended `limit: memory: the job went over its memory cap of 300M`, as asserted, but its log lacked `limit: memory: stopping the agent`.
+   - Cause: with item 2's fix the kernel's second kill takes the agent (score 1000) instead of the wrapper, so the agent can be gone before the wrapper's next 1 s sample; the wrapper then ends the job at the cap from `memory.events` after the run, without the stopping line, as docs/commands/spawn.md says ("a kill that ended the agent itself included").
+   - Fix: the test asserts the job's end reason only.

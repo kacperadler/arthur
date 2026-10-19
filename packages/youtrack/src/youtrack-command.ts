@@ -1,19 +1,23 @@
-import { call, getAll, type Instance } from "./youtrack-api.ts";
+import { call, field, getAll, type Instance } from "./youtrack-api.ts";
+import { saveAttachments } from "./youtrack-attachments.ts";
+import { comments } from "./youtrack-comments.ts";
 import { addWork, create, setField, update } from "./youtrack-write.ts";
 
-// `arthur youtrack issue|article ...` (spec/roadmap.md, entries 44 and 45): a project's issues and articles, read from and
-// written to the instance its `tracker` picks: docs/commands/youtrack.md. An id outside the project's YouTrack project is
-// refused before any call. No verb deletes.
+// `arthur youtrack issue|article|comment ...` (spec/roadmap.md, entries 44 to 46): a project's issues, articles and comments,
+// read from and written to the instance its `tracker` picks, an issue's attachments saved: docs/commands/youtrack.md. An id
+// outside the project's YouTrack project is refused before any call. No verb deletes an issue or an article.
 
 // A project of the list, and what its `tracker` names when that is youtrack: the instance and the YouTrack project's id.
 export type Tracked = { readonly name: string; readonly tracker: { readonly instance: Instance; readonly project: string } | undefined };
 
-const USAGE = "usage: arthur youtrack issue list [--all]|get <id>|create <file>|update <id> <file>|set <id> <field> <value>|work <id> <minutes> [<text>]; arthur youtrack article list|get <id>|create <file>|update <id> <file> <version>; --project <name> for another project than the main one";
+const USAGE =
+	"usage: arthur youtrack issue list [--all]|get <id>|create <file>|update <id> <file> <version>|set <id> <field> <value>|work <id> <minutes> [<text>]|attachments <id>; arthur youtrack article list|get <id>|create <file>|update <id> <file> <version>; arthur youtrack comment list <id>|add <id> <file>|edit <id> <comment> <file>|delete <id> <comment>; --project <name> for another project than the main one";
 
 // The words each verb takes after it; a `?` marks an optional last one.
 const VERBS: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = {
-	issue: { list: [], get: ["id"], create: ["file"], update: ["id", "file"], set: ["id", "field", "value"], work: ["id", "minutes", "text?"] },
+	issue: { list: [], get: ["id"], create: ["file"], update: ["id", "file", "version"], set: ["id", "field", "value"], work: ["id", "minutes", "text?"], attachments: ["id"] },
 	article: { list: [], get: ["id"], create: ["file"], update: ["id", "file", "version"] },
+	comment: { list: ["id"], add: ["id", "file"], edit: ["id", "comment", "file"], delete: ["id", "comment"] },
 };
 
 const FIELDS = {
@@ -23,8 +27,8 @@ const FIELDS = {
 	article: "idReadable,summary,content,created,updated,reporter(login,name),parentArticle(idReadable)",
 };
 
-// Writes its output; a refusal throws, wrong usage is exit code 2.
-export async function youtrackCommand(projects: readonly Tracked[], args: readonly string[], name: string | undefined): Promise<number> {
+// Writes its output; a refusal throws, wrong usage is exit code 2. `folder` is the plugin's own, where attachments go.
+export async function youtrackCommand(projects: readonly Tracked[], args: readonly string[], name: string | undefined, folder: string): Promise<number> {
 	// `--all`: `issue list` with the resolved issues too (AR0195); by default only the unresolved ones.
 	const all = args.includes("--all");
 	const [kind = "", verb = "", ...words] = args.filter((each) => each !== "--all");
@@ -40,7 +44,7 @@ export async function youtrackCommand(projects: readonly Tracked[], args: readon
 		throw new Error(`project ${project.name} has no youtrack tracker; ${others.length > 0 ? `projects with one: ${others.join(", ")}` : "no project has one"}`);
 	}
 	const { instance, project: short } = project.tracker;
-	if (verb === "list") {
+	if (verb === "list" && kind !== "comment") {
 		const path = kind === "issue" ? "issues" : `admin/projects/${short}/articles`;
 		const items = await getAll(instance, path, { fields: kind === "issue" ? FIELDS.issues : FIELDS.articles, ...(kind === "issue" ? { query: `project: ${short}${all ? "" : " #Unresolved"}` } : {}) }, `project ${short}`);
 		// `SHOP-12 Summary`, ` (resolved)` after a resolved issue.
@@ -53,26 +57,28 @@ export async function youtrackCommand(projects: readonly Tracked[], args: readon
 		return 0;
 	}
 	const [id = "", first = "", second] = words;
-	const form = kind === "issue" ? /^([A-Za-z][A-Za-z0-9_]*)-\d+$/ : /^([A-Za-z][A-Za-z0-9_]*)-A-\d+$/i;
+	const form = kind === "article" ? /^([A-Za-z][A-Za-z0-9_]*)-A-\d+$/i : /^([A-Za-z][A-Za-z0-9_]*)-\d+$/;
 	const prefix = form.exec(id)?.[1];
-	if (prefix === undefined) throw new Error(`${id} is not ${kind === "issue" ? `an issue id such as ${short}-12` : `an article id such as ${short}-A-3`}`);
+	if (prefix === undefined) throw new Error(`${id} is not ${kind === "article" ? `an article id such as ${short}-A-3` : `an issue id such as ${short}-12`}`);
 	if (prefix.toUpperCase() !== short.toUpperCase()) throw new Error(`${id} is outside YouTrack project ${short}, the tracker of project ${project.name}; nothing was asked of YouTrack`);
 	const asked = `${short}${id.slice(prefix.length).toUpperCase()}`;
-	if (verb === "update") console.log(text(await update(instance, kind as "issue" | "article", asked, first, second)));
+	if (kind === "comment") console.log(text(await comments(instance, verb, asked, words.slice(1))));
+	else if (verb === "attachments") console.log(text(await saveAttachments(instance, folder, asked)));
+	else if (verb === "update") console.log(text(await update(instance, kind as "issue" | "article", asked, first, second ?? "")));
 	else if (verb === "set") console.log(text(await setField(instance, asked, first, second ?? "")));
 	else if (verb === "work") console.log(text(await addWork(instance, asked, first, second)));
 	else console.log(kind === "issue" ? issueText(await call(instance, `issues/${asked}`, { fields: FIELDS.issue }, `issue ${asked}`)) : articleText(await call(instance, `articles/${asked}`, { fields: FIELDS.article }, `article ${asked}`)));
 	return 0;
 }
 
+// `version:` is the `updated` that `issue update` and `article update` are given, so a change made since is not overwritten.
 function issueText(item: unknown): string {
 	const fields = field(item, "customFields");
 	const values = (Array.isArray(fields) ? fields : []).map((each) => `${text(field(each, "name"))}: ${value(field(each, "value"))}`);
 	const resolved = field(item, "resolved");
-	return [heading(item), `resolved: ${typeof resolved === "number" ? day(resolved) : "no"}`, ...values, "", text(field(item, "description"))].join("\n");
+	return [heading(item), `version: ${text(field(item, "updated"))}`, `resolved: ${typeof resolved === "number" ? day(resolved) : "no"}`, ...values, "", text(field(item, "description"))].join("\n");
 }
 
-// `version:` is the `updated` that `article update` is given, so a change made since is not overwritten.
 function articleText(item: unknown): string {
 	const parent = field(field(item, "parentArticle"), "idReadable");
 	return [heading(item), `version: ${text(field(item, "updated"))}`, ...(typeof parent === "string" ? [`parent: ${text(parent)}`] : []), "", text(field(item, "content"))].join("\n");
@@ -92,10 +98,6 @@ function value(item: unknown): string {
 	if (Array.isArray(item)) return item.length === 0 ? "none" : item.map(value).join(", ");
 	if (typeof item !== "object") return text(item);
 	return text(["name", "presentation", "text"].map((key) => field(item, key)).find((each) => each !== undefined && each !== null));
-}
-
-function field(item: unknown, key: string): unknown {
-	return typeof item === "object" && item !== null && key in item ? (item as Readonly<Record<string, unknown>>)[key] : undefined;
 }
 
 function day(time: unknown): string {

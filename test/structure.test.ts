@@ -115,7 +115,11 @@ import { checkStructure } from "./structure.ts";
 // version check, a custom field set in the shape its type takes, a work item, and the POST in the API call; cut first: the
 // usage line to one, and the article's version a word instead of a `--version` flag with its own parsing (7 lines).
 // AR0195: youtrack 2 more (363) for `issue list` unresolved by default and `--all`; its query inlined first (1 line).
-const BUDGETS = { core: 5448, "core/testing": 344, projects: 473, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 363, "commit-rules": 168 };
+// AR0206 (roadmap 46, with AR0204): youtrack 98 more (461) for comment list, add, edit and soft delete (youtrack-comments.ts,
+// 38), attachments saved under safe names (youtrack-attachments.ts, 34), a file's bytes from the API (`request`), `issue
+// update`'s version, the verbs' wiring and the jobs' rules in the prompt; cut first: four copies of `field` to one export of
+// youtrack-api.ts (11 lines), and `update`'s article-only branch made the one path for both kinds.
+const BUDGETS = { core: 5448, "core/testing": 344, projects: 473, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 461, "commit-rules": 168 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

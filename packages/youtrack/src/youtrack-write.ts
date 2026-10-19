@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs";
-import { call, type Instance } from "./youtrack-api.ts";
+import { call, field, type Instance } from "./youtrack-api.ts";
 
 // Writing to YouTrack (spec/roadmap.md, entry 45): an issue or an article created or updated from a file, an issue's custom
 // field set, a work item added; docs/commands/youtrack.md. No verb deletes. Each returns the line to print; a refusal of
-// what was given (an empty file, 0 minutes) throws before any call, and an article is updated only from the version read.
+// what was given (an empty file, 0 minutes) throws before any call, and an update is made only from the version read.
 
 type Kind = "issue" | "article";
 
@@ -19,21 +19,21 @@ export async function create(instance: Instance, project: string, kind: Kind, fi
 	return `created ${String(field(made, "idReadable"))}: ${item.summary}`;
 }
 
-// `version` is the `updated` an article had when it was read (`article get` prints it): one changed since is not overwritten.
-export async function update(instance: Instance, kind: Kind, id: string, file: string, version: string | undefined): Promise<string> {
+// `version` is the `updated` the issue or article had when it was read (`get` prints it): one changed since is not
+// overwritten (AR0204). An issue says who changed it in `updater`, an article in `updatedBy`.
+export async function update(instance: Instance, kind: Kind, id: string, file: string, version: string): Promise<string> {
 	const item = fromFile(kind, file);
-	if (kind === "article") {
-		if (!/^\d+$/.test(version ?? "")) throw new Error(`${version} is not a version: the number after version: in what arthur youtrack article get ${id} printed`);
-		const now = await call(instance, `articles/${id}`, { fields: "updated,updatedBy(login,name)" }, `article ${id}`);
-		const updated = field(now, "updated");
-		if (updated !== Number(version)) {
-			const who = field(field(now, "updatedBy"), "login");
-			const when = typeof updated === "number" ? ` at ${new Date(updated).toISOString()}` : "";
-			throw new Error(`${id} changed since version ${version}: ${typeof who === "string" ? who : "someone"} updated it${when}; read it again with arthur youtrack article get ${id} and make the change on what it holds now; nothing was written`);
-		}
+	if (!/^\d+$/.test(version)) throw new Error(`${version} is not a version: the number after version: in what arthur youtrack ${kind} get ${id} printed`);
+	const by = kind === "issue" ? "updater" : "updatedBy";
+	const now = await call(instance, `${kind}s/${id}`, { fields: `updated,${by}(login,name)` }, `${kind} ${id}`);
+	const updated = field(now, "updated");
+	if (updated !== Number(version)) {
+		const who = field(field(now, by), "login");
+		const when = typeof updated === "number" ? ` at ${new Date(updated).toISOString()}` : "";
+		throw new Error(`${id} changed since version ${version}: ${typeof who === "string" ? who : "someone"} updated it${when}; read it again with arthur youtrack ${kind} get ${id} and make the change on what it holds now; nothing was written`);
 	}
 	const done = await call(instance, `${kind}s/${id}`, { fields: "idReadable,updated" }, `${kind} ${id}`, item);
-	return kind === "article" ? `updated ${id}; version: ${String(field(done, "updated"))}` : `updated ${id}`;
+	return `updated ${id}; version: ${String(field(done, "updated"))}`;
 }
 
 // The value in the shape the field's type takes (YouTrack's "Custom Fields in REST API"); a value the project does not allow
@@ -60,16 +60,19 @@ export async function addWork(instance: Instance, id: string, minutes: string, t
 
 // The file's first line, a Markdown heading's `#` dropped, is the summary; the rest the description or content.
 function fromFile(kind: Kind, file: string): { readonly summary: string } & Partial<Record<(typeof TEXT)[Kind], string>> {
-	let content: string;
-	try {
-		content = readFileSync(file, "utf8");
-	} catch (error) {
-		throw new Error(`cannot read ${file}: ${error instanceof Error && "code" in error ? String(error.code) : String(error)}; nothing was asked of YouTrack`);
-	}
-	const [first = "", ...rest] = content.trim().split("\n");
+	const [first = "", ...rest] = readText(file).trim().split("\n");
 	const summary = first.replace(/^#+(\s+|$)/, "").trim();
 	if (summary === "") throw new Error(`${file} is empty or starts with an empty heading; its first line is the ${kind}'s summary, the rest its ${TEXT[kind]}; nothing was asked of YouTrack`);
 	return { summary, [TEXT[kind]]: rest.join("\n").trim() };
+}
+
+// A file a write sends, a comment's too.
+export function readText(file: string): string {
+	try {
+		return readFileSync(file, "utf8");
+	} catch (error) {
+		throw new Error(`cannot read ${file}: ${error instanceof Error && "code" in error ? String(error.code) : String(error)}; nothing was asked of YouTrack`);
+	}
 }
 
 // A custom field's type (`enum[1]`, `user[*]`, `integer`, `date`, ...) and the value given in its JSON shape: a list for
@@ -83,8 +86,4 @@ function shaped(type: string, value: string): unknown {
 	if (type === "integer" || type === "float") return /^-?\d+(\.\d+)?$/.test(value) ? Number(value) : value;
 	if (type === "date" || type === "date and time") return /^\d{4}-\d{2}-\d{2}/.test(value) && !Number.isNaN(Date.parse(value)) ? Date.parse(value) : value;
 	return value;
-}
-
-function field(item: unknown, key: string): unknown {
-	return typeof item === "object" && item !== null && key in item ? (item as Readonly<Record<string, unknown>>)[key] : undefined;
 }

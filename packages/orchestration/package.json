@@ -2,7 +2,7 @@
   "name": "@arthur/orchestration",
   "private": true,
   "type": "module",
-  "license": "SEE LICENSE IN ../../LICENSE",
+  "license": "Apache-2.0",
   "exports": {
     ".": "./src/orchestration.ts",
     "./options": "./src/orchestration-options.ts"

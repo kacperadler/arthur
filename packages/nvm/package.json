@@ -1,0 +1,10 @@
+{
+  "name": "@arthur/nvm",
+  "private": true,
+  "type": "module",
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "exports": {
+    ".": "./src/nvm.ts",
+    "./options": "./src/nvm-options.ts"
+  }
+}

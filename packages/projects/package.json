@@ -2,7 +2,7 @@
   "name": "@arthur/projects",
   "private": true,
   "type": "module",
-  "license": "SEE LICENSE IN ../../LICENSE",
+  "license": "Apache-2.0",
   "exports": {
     ".": "./src/projects.ts",
     "./options": "./src/project-options.ts"

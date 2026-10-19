@@ -241,7 +241,7 @@ export default defineConfig({
 					autoMerge: true, // merge after a PASS and green CI without asking
 					tracker: { plugin: "youtrack", project: "ART" },
 					ci: { workflow: "ci.yml" },
-					commitRules: { regex: "^(feat|fix|refactor|perf|test|docs|build|ci|chore|revert)(\\([\\w-]+\\))?!?: .{1,72}$" },
+					commitRules: { regex: "^(?=.{1,72}$)(feat|fix|refactor|perf|test|docs|build|ci|chore|revert)(\\([\\w-]+\\))?!?: .+$" },
 					prompts: { criteriaDir: ".agents/harness/criteria", rolesDir: ".agents/harness/roles" }, // the vision stays spec/vision.md
 				},
 				{

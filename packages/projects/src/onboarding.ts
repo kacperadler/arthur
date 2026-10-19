@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
-import { CRITERIA, drafted, writeOnce } from "./init.ts";
+import { drafted, writeOnce } from "./init.ts";
 import type { Project } from "./projects.ts";
 
 // The kind `onboarding` (spec/roadmap.md, entry 42): its role, the files it drafts named in its prompt, the procedure its end
@@ -23,7 +23,7 @@ export function onboarding(host: Host, all: readonly Project[]): void {
 		const project = all.find((each) => each.name === job.project);
 		if (role !== KIND || project === undefined) return undefined;
 		const { vision, criteriaDir } = drafted(project);
-		const criteria = CRITERIA.map((name) => `\`${criteriaDir}/${name}.md\``).join(", ");
+		const criteria = host.jobs.criteria().map((name) => `\`${criteriaDir}/${name}.md\``).join(", ");
 		return `## The files this onboarding drafts\n\n- The vision: \`${vision}\`\n- The criteria: ${criteria}\n\nIts merge accepts only \`${vision}\` and \`${criteriaDir}/*.md\`.`;
 	});
 	const procedure = new URL("../roles/coordinator/onboarding-ended.md", import.meta.url);

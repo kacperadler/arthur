@@ -7,11 +7,14 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Added
 
 - AR0127 Roadmap: a silent mode for the coordinator in the channels (9327313)
+- AR0156 `--autopilot` does not read a ticket's own budget
 - AR0160 `/restart` cannot clear a restart due, since it restarts only the coordinator's agent (c51c1ce)
+- AR0165 A provider outage sends a `turn failed` notice at every retry of the inbox
 - AR0174 Roadmap: a decision log of what the owner decided when Arthur asked (8b7a138)
 - AR0179 Roadmap 94: arthur setup, what is there, what is set, what is missing (f3f1b88)
 - AR0181 Roadmap 42: Onboarding a repository (9239fdd)
 - AR0184 The `.nvmrc` that `arthur init` writes is read by nothing until the nvm plugin (84)
+- AR0185 The coordinator's role does not say when to run `arthur init` and start an onboarding
 - AR0187 Roadmap 82: models on other machines, and a fallback chain (bb71f18)
 - AR0188 Roadmap 43: commit rules per project (72692ea)
 - AR0189 Roadmap 44: YouTrack instances and reading (2bda2a3)
@@ -26,16 +29,22 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ### Fixed
 
+- AR0135 The inbox drops a new message whose event number an old one had, after the event log is cut by hand
+- AR0137 The burst test still relies on the test's 300 ms timers staying under a second
 - AR0148 A throw in the session's 500 ms tick ends `arthur run` (cee952c)
 - AR0154 A pre-approved ticket's budget is recorded, not held at its worker's spawn (3ff3338)
+- AR0155 Two `--autopilot` runs on one ticket at once can both record it
 - AR0164 The inbox's notice after 3 unanswered turns repeats omp's error unredacted (1bf2a8a)
 - AR0167 GitHub CI fails now and then on main with the same code (59e5760)
+- AR0168 Orchestration cannot register the morning report while schedule is optional
 - AR0173 GitHub CI names each failed test and stays green on main (a1fbecb)
+- AR0175 A `/restart` whose restart throws in the tick tells the owner nothing
 - AR0201 wrapper.test.ts failed once on a cleanup race (244a725)
 - AR0204 `issue update` overwrites a description changed since it was read
 
 ### Changed
 
+- AR0151 The example config and two diagrams still call Discord later (e373e84)
 - AR0199 The option-tables test cannot list a plugin without options (d7bd88e)
 - AR0207 The option-tables test cannot hold a plugin without options, so nvm's options file is not checked there
 - AR0210 The nvm package still names the old licence (e9e6d98)

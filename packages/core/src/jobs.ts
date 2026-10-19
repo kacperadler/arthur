@@ -79,7 +79,7 @@ export type Started = Job & { readonly warnings: readonly string[]; readonly fai
 export type SpawnCheck = (spawn: Spawn) => string | undefined | Promise<string | undefined>;
 export type Prepare = (job: Job, env: Readonly<Record<string, string>>) => void | Readonly<Record<string, string>> | Promise<void | Readonly<Record<string, string>>>;
 
-// What a plugin sees as `host.jobs`; what it reads of the roles outside a spawn (`prompt`, `vision`) is in roles.ts.
+// What a plugin sees as `host.jobs`; what it reads of the roles outside a spawn (`prompt`, `vision`, `criteria`) is in roles.ts.
 export type Jobs = RoleReads & {
 	registerKind(kind: Kind): void;
 	// A role whose prompt this plugin ships; its kinds name it.
@@ -106,7 +106,7 @@ export type Jobs = RoleReads & {
 };
 
 // The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for.
-export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run" | "machines" | "prompt" | "vision"> & {
+export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run" | "machines" | "prompt" | "vision" | "criteria"> & {
 	registerKind(owner: string, kind: Kind): void;
 	registerRole(owner: string, role: Role): void;
 	beforeSpawn(owner: string, check: SpawnCheck): void;

@@ -9,6 +9,7 @@ const CODE = /\.[cm]?[jt]s$/;
 const BANNED_NAMES = /^(index|types|utils)\.[cm]?[jt]s$/;
 const RUNTIME_KEYS = ["dependencies", "optionalDependencies", "peerDependencies"];
 const TOOLCHAIN = ["typescript", "@types/node"];
+const LICENSE = "Apache-2.0";
 // The core's test kit: it never runs in production, so its lines count against a budget of their own, `core/testing`.
 const TEST_KIT = [join("src", "testing.ts"), join("src", "fake-agent.ts")];
 // String literals and comments; strings come first so that `//` inside a string stays part of it.
@@ -89,6 +90,7 @@ function importRule(pkg: Pkg, file: string, specifier: string): string | undefin
 function checkManifest(path: string, report: Report): void {
 	if (!existsSync(path)) return;
 	const manifest = JSON.parse(readFileSync(path, "utf8"));
+	if (manifest.license !== LICENSE) report(path, `has license ${JSON.stringify(manifest.license ?? null)}; every Arthur package is ${LICENSE}`);
 	for (const key of RUNTIME_KEYS) {
 		const deps = manifest[key];
 		if (deps && typeof deps === "object" && Object.keys(deps).length > 0)

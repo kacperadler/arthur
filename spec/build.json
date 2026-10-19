@@ -1296,9 +1296,9 @@
   {
     "id": "AR0161",
     "title": "`host.code` finds a plugin's package by its name, not by the module the config imported",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0161-host-code-finds-a-plugin-s-package-by-its-name-not-by-the-module-the-config-imported/ticket.md",
-    "updated": "2026-10-19T16:14:25.077Z"
+    "updated": "2026-10-19T19:15:24.614Z"
   },
   {
     "id": "AR0162",
@@ -1352,9 +1352,9 @@
   {
     "id": "AR0169",
     "title": "A registered entry can send a message or spawn a job, not run its plugin's own code",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0169-a-registered-entry-can-send-a-message-or-spawn-a-job-not-run-its-plugin-s-own-code/ticket.md",
-    "updated": "2026-10-19T16:14:25.391Z"
+    "updated": "2026-10-19T19:15:24.832Z"
   },
   {
     "id": "AR0170",
@@ -1499,9 +1499,9 @@
   {
     "id": "AR0190",
     "title": "`arthur continue` of a job on a provider model starts the agent without its provider",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0190-arthur-continue-of-a-job-on-a-provider-model-starts-the-agent-without-its-provider/ticket.md",
-    "updated": "2026-10-19T16:14:26.396Z"
+    "updated": "2026-10-19T19:15:25.041Z"
   },
   {
     "id": "AR0191",
@@ -1660,9 +1660,9 @@
   {
     "id": "AR0213",
     "title": "A pre-approved ticket's worker on a free model is refused",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0213-a-pre-approved-ticket-s-worker-on-a-free-model-is-refused/ticket.md",
-    "updated": "2026-10-19T16:41:35.340Z"
+    "updated": "2026-10-19T19:14:48.485Z"
   },
   {
     "id": "AR0214",
@@ -1698,5 +1698,12 @@
     "status": "planned",
     "path": "spec/features/AR0218-with-check-everyseconds-above-120-a-spawn-between-rounds-still-checks-a-listed-machine-over-ssh-itself/ticket.md",
     "updated": "2026-10-19T18:46:41.815Z"
+  },
+  {
+    "id": "AR0219",
+    "title": "schedule.register still finds a plugin's package folder by its name",
+    "status": "planned",
+    "path": "spec/features/AR0219-schedule-register-still-finds-a-plugin-s-package-folder-by-its-name/ticket.md",
+    "updated": "2026-10-19T19:15:24.411Z"
   }
 ]

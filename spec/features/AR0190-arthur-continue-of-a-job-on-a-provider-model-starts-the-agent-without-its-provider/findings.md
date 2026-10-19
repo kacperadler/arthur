@@ -22,4 +22,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/telegram/test/telegram.test.ts:382`
 - What: in the full `npm test` after merging origin/main, "one retry per send, after 2 s; a slice failing twice waits with the ones after it and goes first next time, said once" failed after 24 s (733 of 734 passed); run alone right after, it passed in 6.5 s. The merge changed only telegram's `module` line in that package, so it is a timing-dependent test, not this batch's behaviour [INFERENCE: the failure's assertion was not captured].
 - Suggestion: run it under load (the full suite, or several at once) to see which wait it misses, and make it wait for the state it asserts rather than a time; out: the outbox's behaviour.
-- Status: open
+- Status: dropped (did not reproduce: review 2 of AR0213 ran the full suite twice, 734/734, and the file 10 times under taskset -c 0,1, 10/10; a new failure gets its own ticket)

@@ -1286,9 +1286,9 @@
   {
     "id": "AR0160",
     "title": "`/restart` cannot clear a restart due, since it restarts only the coordinator's agent",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0160-restart-cannot-clear-a-restart-due-since-it-restarts-only-the-coordinator-s-agent/ticket.md",
-    "updated": "2026-10-19T07:15:29.352Z",
+    "updated": "2026-10-19T07:29:51.818Z",
     "after": [
       "AR0148"
     ]

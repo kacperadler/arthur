@@ -37,7 +37,7 @@ export function noteLoaded(host: Host): void {
 
 // What `arthur run` noted, and the commits on HEAD's first-parent line since then that changed its code, oldest first, each the
 // ticket of its `Merge <id>: ...` subject, else its short hash; undefined when nothing is noted. A broken note throws.
-function restartDue(folder: string): { readonly loaded: Loaded; readonly due: readonly string[] } | undefined {
+export function restartDue(folder: string): { readonly loaded: Loaded; readonly due: readonly string[] } | undefined {
 	const file = join(folder, LOADED);
 	if (!existsSync(file)) return undefined;
 	const loaded = parse(readFileSync(file, "utf8"));
@@ -75,6 +75,6 @@ export function registerGuard(host: Host): void {
 		const state = restartDue(host.folder);
 		if (state === undefined) return undefined;
 		if (state.due.length === 0) return `Restart: none due; no commit changed Arthur's code ${since(state.loaded)}.`;
-		return `Restart: due, ${state.due.join(", ")} changed Arthur's code ${since(state.loaded)}. Every spawn and continue is refused, unless --ignore-restart, until arthur run starts again (the service: systemctl --user restart arthur) once no job runs.`;
+		return `Restart: due, ${state.due.join(", ")} changed Arthur's code ${since(state.loaded)}. Every spawn and continue is refused, unless --ignore-restart, until arthur run starts again (the service: systemctl --user restart arthur, or /restart, which ends it) once no job runs.`;
 	});
 }

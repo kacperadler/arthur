@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { type Command, type CommandRegistry, commandRegistry } from "./commands.ts";
 import { configCheck } from "./config-check.ts";
 import { type LoadedConfig, loadConfig } from "./config.ts";
-import { type DoctorLine, doctor, printAtStart } from "./doctor.ts";
+import { type DoctorLine, doctor, ownAnswers, printAtStart } from "./doctor.ts";
 import { parseFlags } from "./flags.ts";
 import { type LoadedPlugins, loadPlugins } from "./host.ts";
 import { jobCommands } from "./job-commands.ts";
@@ -51,23 +51,23 @@ type Loaded = Pick<LoadedPlugins, "plugins" | "follow" | "jobs" | "board" | "aut
 // Every command, the core's and the plugins'; when the config or a plugin does not load, the core's alone and the reason.
 async function load(): Promise<{ readonly commands: CommandRegistry; readonly problem?: string; readonly project?: LoadedPlugins["project"] }> {
 	let loaded: Loaded | undefined;
-	let settings: LoadedConfig["core"] | undefined;
+	let read: LoadedConfig | undefined;
 	const commands = core(undefined, () => loaded);
 	try {
 		const config = await loadConfig("arthur.config.ts");
-		settings = config.core;
+		read = config;
 		const { plugins, jobs, board, follow, project, autopilot, doctor: checks, emit } = await loadPlugins(config, process.env, commands);
 		loaded = { plugins, home: config.core.home, follow, jobs, board, autopilot, doctor: checks, emit };
 		return { commands, project };
 	} catch (error) {
 		const problem = error instanceof Error ? error.message : String(error);
-		return { commands: core(problem, () => undefined, settings), problem };
+		return { commands: core(problem, () => undefined, read), problem };
 	}
 }
 
 // `problem`: why the plugins' commands are missing, said with every list of the commands; `loaded` once the plugins are set up;
-// `settings`, the core's options when the config loaded and a plugin did not, for the core's own requirements.
-function core(problem: string | undefined, loaded: () => Loaded | undefined, settings?: LoadedConfig["core"]): CommandRegistry {
+// `config` when it loaded and a plugin did not, for the core's own requirements and each plugin's own `doctor`.
+function core(problem: string | undefined, loaded: () => Loaded | undefined, config?: LoadedConfig): CommandRegistry {
 	const commands = commandRegistry();
 	// What a command takes from the load; `why` it needs the load, said when arthur.config.ts did not load.
 	const need = <T>(why: string, pick: (app: Loaded) => T) => () => {
@@ -95,8 +95,8 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined, set
 			return ok ? 0 : 1;
 		},
 	});
-	// Without the plugins, the core's own requirements alone: a missing home or git may be why they did not load.
-	const coreLines = (): Promise<DoctorLine[]> | undefined => settings && doctor(coreRequirements(settings.home, settings.agent.command), []);
+	// Without the plugins' setup, the core's requirements and each plugin's `doctor`: a missing home, git or variable may be why.
+	const coreLines = (): Promise<DoctorLine[]> | undefined => config && doctor(coreRequirements(config.core.home, config.core.agent.command), ownAnswers(config.plugins, config.core));
 	commands.register("core", {
 		name: "doctor",
 		doc: new URL("../docs/commands/doctor.md", import.meta.url),
@@ -108,7 +108,7 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined, set
 			const app = loaded();
 			const lines = (await (app?.doctor() ?? coreLines())) ?? [];
 			for (const line of lines) console.log(line.text);
-			if (app === undefined) throw new Error(`${settings === undefined ? "" : "the plugins' requirements are not checked: "}arthur.config.ts did not load:\n${problem}`);
+			if (app === undefined) throw new Error(`${config === undefined ? "" : "the requirements a plugin checks in its setup are not checked: "}arthur.config.ts did not load:\n${problem}`);
 			return lines.some((line) => line.critical) ? 1 : 0;
 		},
 	});

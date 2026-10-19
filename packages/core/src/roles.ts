@@ -125,7 +125,8 @@ export function sources(role: Role, folder: string, files: PromptFiles): Source[
 	];
 }
 
-// The prompt of `role` for a job in `folder`, with its warnings; `sections` is asked only once the project's files passed.
+// The prompt of `role` for a job in `folder`, with its warnings; `sections` is asked only once the project's files passed, and
+// each is text, undefined, or `{ text, warnings }`, whose warnings join the prompt's.
 export function prompt(role: Role, folder: string, files: PromptFiles, sections: () => readonly unknown[]): { readonly prompt: string; readonly warnings: string[] } {
 	const parts: string[] = [];
 	const warnings: string[] = [];
@@ -142,8 +143,10 @@ export function prompt(role: Role, folder: string, files: PromptFiles, sections:
 		if (what === "criteria") parts.push(`## ${/^#\s+(.+)$/m.exec(body)?.[1]?.trim() ?? basename(path, ".md")} (${path})\n\n${body}`);
 	}
 	for (const section of sections()) {
-		if (section !== undefined && typeof section !== "string") throw new Error(`a plugin's prompt section must be text, got ${typeof section}`);
-		if (section?.trim()) parts.push(section.trim());
+		const { text, warnings: more = [] } = typeof section === "object" && section !== null ? (section as { readonly text?: unknown; readonly warnings?: unknown }) : { text: section };
+		if ((text !== undefined && typeof text !== "string") || !Array.isArray(more) || more.some((warning) => typeof warning !== "string")) throw new Error(`a plugin's prompt section must be text or { text, warnings } of text, got ${typeof section}`);
+		warnings.push(...more);
+		if (text?.trim()) parts.push(text.trim());
 	}
 	return { prompt: `${parts.join("\n\n")}\n`, warnings };
 }

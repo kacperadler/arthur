@@ -16,6 +16,8 @@ export type TelegramOptions = { readonly enabled?: boolean; readonly bots: reado
 
 const asRecord = (value: unknown) => (typeof value === "object" && value !== null ? value : {}) as Readonly<Record<string, unknown>>;
 // A place is a topic's `message_thread_id`; any other is not Telegram's, and the message goes to the chat itself.
+// Telegram's own Bot API server, when `apiUrl` is left out.
+export const API_URL = "https://api.telegram.org";
 const topic = (place: unknown) => (typeof place === "string" && /^[1-9]\d{0,15}$/.test(place) ? place : undefined);
 
 export function telegram(options: TelegramOptions): Plugin {
@@ -30,7 +32,7 @@ export function telegram(options: TelegramOptions): Plugin {
 		options,
 		check: checkOptions,
 		setup(host) {
-			const { bots: listed, apiUrl = "https://api.telegram.org" } = host.options as TelegramOptions;
+			const { bots: listed, apiUrl = API_URL } = host.options as TelegramOptions;
 			const bots = listed.map((each, index) => bot(host.env, each, index, apiUrl.replace(/\/+$/, "")));
 			const main = bots[Math.max(0, listed.findIndex((each) => each.name === undefined))] as Bot;
 			const box = outbox(host, bots, main, stopping.signal);

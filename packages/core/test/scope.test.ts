@@ -136,6 +136,15 @@ test("without a user manager the job runs bare, its log saying so in one line, a
 	assert.deepEqual(readEvents(home, 1).filter((event) => event.name === "notice"), []);
 });
 
+test("without a user manager a job with only its ticket's caps runs bare, and the machine is told once that they are not held", async (t) => {
+	noManager(t);
+	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }), jobSlice, () => [{ feature: { name: "AC0001", cpu: 1, memory: "1G" } }]);
+	for (const task of ["One.", "Two."]) assert.equal(await endedWith(home, (await jobs.spawn({ task })).id), "finished");
+	const notices = readEvents(home, 1).filter((event) => event.name === "notice").map((event) => JSON.stringify(event.data));
+	assert.equal(notices.length, 1, notices.join("\n"));
+	assert.match(notices[0] ?? "", /^\{"text":"machine local runs jobs without a systemd scope \(.+\): .*, and a ticket's CPU and memory caps, shared by all its jobs, are not held"\}$/);
+});
+
 // A folder on `PATH` until the test ends, first, or `alone`: a `systemctl` that sets any slice, and each script of `scripts`
 // under its name.
 function onPath(t: TestContext, scripts: Readonly<Record<string, string>>, alone = false): void {
@@ -200,14 +209,19 @@ function noManager(t: TestContext): void {
 }
 
 // An agent that, while the file `on()` names exists, removes it and starts `node` holding `mb` MB in its own process group,
-// which notes its pid in `hog` once it holds them; then it plays `run` as the fake agent.
-function hogging(mb: number, run: AgentRun): { readonly agent: string; readonly on: string; readonly hog: string } {
+// which notes its pid in `hog` once it holds them; else it takes back the `oom_score_adj` of this process, which its wrapper
+// keeps, so over a cap two jobs share the kernel takes the hog's job, the hog and its agent at 1000, never this one. Then it
+// plays `run` as the fake agent, which notes each start in `starts`.
+function hogging(mb: number, run: AgentRun): { readonly agent: string; readonly on: string; readonly hog: string; readonly starts: string } {
 	const folder = temporaryFolder();
 	const [on, hog] = [join(folder, "on"), join(folder, "hog")];
 	const code = `const a = []; for (let i = 0; i < ${mb}; i += 16) a.push(Buffer.alloc(16 << 20, 1)); require("fs").writeFileSync("${hog}", String(process.pid)); setInterval(() => a.length, 1000);`;
-	const script = ["#!/bin/sh", `if [ -e '${on}' ]; then rm '${on}'; '${process.execPath}' -e '${code}' & fi`, `exec '${fakeAgent(run)}' "$@"`];
+	const played = fakeAgent(run);
+	const own = existsSync("/proc/self/oom_score_adj") ? readFileSync("/proc/self/oom_score_adj", "utf8").trim() : "";
+	const restore = own === "" ? ":" : `echo ${own} > /proc/self/oom_score_adj`;
+	const script = ["#!/bin/sh", `if [ -e '${on}' ]; then rm '${on}'; '${process.execPath}' -e '${code}' & else ${restore}; fi`, `exec '${played}' "$@"`];
 	writeFileSync(join(folder, "omp"), `${script.join("\n")}\n`, { mode: 0o755 });
-	return { agent: join(folder, "omp"), on, hog };
+	return { agent: join(folder, "omp"), on, hog, starts: join(dirname(played), "starts.jsonl") };
 }
 
 // The reason job `id` ended with, once its record says it ended.
@@ -225,6 +239,25 @@ test("a job's own caps go on its scope: its CPUQuota, at most the machine's core
 	assert.deepEqual([read(join(home, "jobs", small.id, "cpu")), read(join(home, "jobs", small.id, "memory"))], ["0.5", "300M"]);
 	writeFileSync(gate, "");
 	for (const job of [small, large]) assert.equal(await endedWith(home, job.id), "finished", "CPU over its cap is slowed, not stopped");
+});
+
+test("arthur continue sets the ticket's slice to the caps in force now, not to those kept at the job's spawn", needsManager, async () => {
+	const gate = join(temporaryFolder(), "gate");
+	let answer: Caps = { feature: { name: "AC0001", cpu: 1, memory: "300M" } };
+	const { home, jobs } = setup(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }), jobSlice, () => [answer]);
+	const job = await jobs.spawn({ task: "Go." });
+	const slice = `${jobSlice.slice}-AC0001.slice`;
+	assert.deepEqual(["CPUQuotaPerSecUSec", "MemoryMax"].map((property) => show(slice, property)), ["1s", String(300 * 2 ** 20)]);
+	writeFileSync(gate, "");
+	assert.equal(await endedWith(home, job.id), "finished");
+	rmSync(gate);
+	answer = { memory: "400M", feature: { name: "AC0001", memory: "1G" } };
+	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
+	assert.deepEqual(["CPUQuotaPerSecUSec", "MemoryMax"].map((property) => show(slice, property)), ["infinity", String(2 ** 30)]);
+	assert.equal(show(`arthur-job-${job.id}.scope`, "MemoryMax"), String(400 * 2 ** 20));
+	assert.deepEqual(["cpu", "memory", "feature", "feature-cpu", "feature-memory"].map((name) => read(join(home, "jobs", job.id, name)) ?? ""), ["", "400M", "AC0001", "", "1G"]);
+	writeFileSync(gate, "");
+	assert.equal(await endedWith(home, job.id), "finished");
 });
 
 test("with no plugin providing jobs.limits a job's scope has no cap of its own: the joint slice is its only limit", needsManager, async () => {
@@ -293,7 +326,7 @@ test("without a user manager a job over its memory cap is stopped within one 10 
 	assert.equal(await endedWith(home, next.id), "finished");
 	const notices = readEvents(home, 1).filter((event) => event.name === "notice").map((event) => event.data);
 	assert.equal(notices.length, 1, JSON.stringify(notices));
-	assert.match(JSON.stringify(notices[0]), /^\{"text":"machine local runs jobs without a systemd scope \(.+\): a job's memory cap there is held by sampling its processes every 10 s, and its CPU is not capped"\}$/);
+	assert.match(JSON.stringify(notices[0]), /^\{"text":"machine local runs jobs without a systemd scope \(.+\): a job's memory cap there is held by sampling its processes every 10 s, its CPU is not capped, and a ticket's CPU and memory caps, shared by all its jobs, are not held"\}$/);
 });
 
 test("a systemd older than 253, which takes no OOMPolicy on a scope, gets the memory cap without it", async (t) => {
@@ -303,4 +336,29 @@ test("a systemd older than 253, which takes no OOMPolicy on a scope, gets the me
 	await jobs.spawn({ task: "Go." });
 	const given = readFileSync(args, "utf8").split("\n");
 	assert.deepEqual(given.slice(given.indexOf("-p"), given.indexOf("--")), ["-p", "MemoryMax=300M", "-p", "MemorySwapMax=0"]);
+});
+
+test("a job with its ticket's memory cap and none of its own gets OOMPolicy continue from systemd 253 on, so a kill over the ticket's cap leaves its wrapper", async (t) => {
+	const args = join(temporaryFolder(), "args");
+	onPath(t, { systemctl: '[ "$1" = --version ] && echo "systemd 255 (255.4-1ubuntu8)"; exit 0', "systemd-run": `printf '%s\\n' "$@" > '${args}'; exit 1` });
+	const { jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }), jobSlice, () => [{ feature: { name: "AC0001", memory: "300M" } }]);
+	await jobs.spawn({ task: "Go." });
+	const given = readFileSync(args, "utf8").split("\n");
+	assert.deepEqual(given.slice(given.indexOf("-p"), given.indexOf("--")), ["-p", "OOMPolicy=continue"]);
+});
+
+test("a job over its ticket's memory cap ends limit: memory naming the ticket, and the ticket's other job, whose process was not killed, runs on", needsManager, async () => {
+	const gate = join(temporaryFolder(), "gate");
+	const { agent, on, starts } = hogging(640, { steps: [{ waitFor: gate }, { message: "Done." }] });
+	const { home, jobs } = setup(agent, jobSlice, () => [{ memory: "1G", feature: { name: "AC0001", memory: "400M" } }]);
+	const other = await jobs.spawn({ task: "Go." });
+	const started = await until("the other job's agent", () => read(starts));
+	// The other job's agent is no candidate before the hog's job: the hog and its agent score 1000, it scores this process's own.
+	assert.equal(read(`/proc/${(JSON.parse(started) as { readonly pid: number }).pid}/oom_score_adj`), read("/proc/self/oom_score_adj"));
+	writeFileSync(on, "");
+	const hog = await jobs.spawn({ task: "Hog." });
+	assert.equal(await endedWith(home, hog.id), "limit: memory: the jobs of ticket AC0001 went over their memory cap of 400M");
+	// Its end says it ran on: a job of the ticket that the slice's cap ended would end limit: memory.
+	writeFileSync(gate, "");
+	assert.equal(await endedWith(home, other.id), "finished");
 });

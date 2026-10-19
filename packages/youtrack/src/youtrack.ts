@@ -13,6 +13,8 @@ export type YoutrackOptions = { readonly enabled?: boolean; readonly instances: 
 
 // A YouTrack project's id, its issues' prefix: a letter, then letters, digits and underscores.
 const SHORT_NAME = /^[A-Za-z][A-Za-z0-9_]*$/;
+// How long a request may wait for its answer when `timeoutSeconds` is left out.
+export const TIMEOUT_SECONDS = 30;
 
 export function youtrack(options: YoutrackOptions): Plugin {
 	return {
@@ -22,7 +24,7 @@ export function youtrack(options: YoutrackOptions): Plugin {
 		requires: ["projects"],
 		check: checkOptions,
 		setup(host) {
-			const { instances, timeoutSeconds = 30 } = host.options as YoutrackOptions;
+			const { instances, timeoutSeconds = TIMEOUT_SECONDS } = host.options as YoutrackOptions;
 			const servers = instances.map((each, index) => server(host.env, each, index, timeoutSeconds));
 			const [list] = host.collect<readonly { readonly name: string; readonly tracker?: { readonly plugin: string; readonly instance?: string; readonly project: string } }[]>("projects");
 			const projects: Tracked[] = (list ?? []).map(({ name, tracker }) => {

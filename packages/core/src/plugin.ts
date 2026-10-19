@@ -16,8 +16,9 @@ export type OptionProblem = { readonly path: string; readonly problem: string };
 // Any function: a provider's arguments are whatever its callers pass.
 export type Provider = (...args: never[]) => unknown;
 
-// One thing a plugin needs to work, which it provides in a list through `provide("doctor", ...)` (spec/roadmap.md, entry 80):
-// `check` answers `ok`, `ok (<detail>)` or `missing: <reason>`; `fix` is read after it, so it may name that reason's fix.
+// One thing a plugin needs to work (spec/roadmap.md, entry 80), in a list: its `doctor` gives those it checks from its options
+// alone, `provide("doctor", ...)` those that need its setup. `check` answers `ok`, `ok (<detail>)` or `missing: <reason>`;
+// `fix` is read after it, so it may name that reason's fix.
 export type Requirement = { readonly name: string; check(): string | Promise<string>; readonly costs: string; readonly fix: string; readonly critical?: boolean };
 
 export type Plugin = {
@@ -32,6 +33,9 @@ export type Plugin = {
 	readonly after?: readonly string[];
 	// Its own options, `enabled` left out, and the core's as loaded (its defaults applied); every problem refuses the start.
 	readonly check?: (options: Options, core: LoadedConfig["core"]) => readonly OptionProblem[];
+	// Its requirements read from the same, without its setup or its env values, so `arthur doctor` and `arthur setup` check them
+	// even while the load refuses (a variable missing).
+	readonly doctor?: (options: Options, core: LoadedConfig["core"]) => readonly Requirement[] | Promise<readonly Requirement[]>;
 	readonly setup: (host: Host) => void | Promise<void>;
 	readonly start?: () => void | Promise<void>;
 	readonly stop?: () => void | Promise<void>;
@@ -93,7 +97,7 @@ export function asPlugin(entry: unknown): Plugin | string {
 		if (list !== undefined && !(Array.isArray(list) && list.every((item) => typeof item === "string"))) return `${name}: expected ${key} as a list of plugin names, got ${describe(list)}`;
 	if (module !== undefined && !(typeof module === "string" && module.startsWith("file:///"))) return `${name}: expected module as its own import.meta.url, a file: URL, got ${describe(module)}`;
 	if (typeof plugin.setup !== "function") return `${name}: expected a setup function, got ${describe(plugin.setup)}`;
-	for (const key of ["check", "start", "stop"])
+	for (const key of ["check", "doctor", "start", "stop"])
 		if (plugin[key] !== undefined && typeof plugin[key] !== "function") return `${name}: expected ${key} as a function, got ${describe(plugin[key])}`;
 	return entry as Plugin;
 }

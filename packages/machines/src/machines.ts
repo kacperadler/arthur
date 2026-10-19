@@ -14,6 +14,8 @@ export type { MachineEntry, MachinesOptions };
 
 // Each check is cut here, its ssh killed; checks run in parallel, so a round costs no more than one check.
 const LIMIT_SECONDS = 10;
+// Seconds between two rounds of checks when `check.everySeconds` is left out.
+export const EVERY_SECONDS = 60;
 
 // `work`'s answer, or `late` once LIMIT_SECONDS passed (a name lookup that hangs).
 function within<T>(work: Promise<T>, late: T): Promise<T> {
@@ -24,7 +26,7 @@ function within<T>(work: Promise<T>, late: T): Promise<T> {
 
 export function machines(options: MachinesOptions = {}): Plugin {
 	let round: (() => Promise<ReadonlyMap<string, Report>>) | undefined;
-	let [following, everySeconds] = [false, 60];
+	let [following, everySeconds] = [false, EVERY_SECONDS];
 	let timer: NodeJS.Timeout | undefined;
 	return {
 		name: "machines",
@@ -33,7 +35,7 @@ export function machines(options: MachinesOptions = {}): Plugin {
 		check: checkOptions,
 		async setup(host) {
 			const { local = {}, list = [], check = {} } = host.options as MachinesOptions;
-			everySeconds = check.everySeconds ?? 60;
+			everySeconds = check.everySeconds ?? EVERY_SECONDS;
 			// A public address refuses the load; a name not found now is the machine's check to report, as offline.
 			const addresses = await Promise.all(list.map((machine) => within(publicAddress(host, machine.ssh).catch(() => undefined), undefined)));
 			const refused = list.flatMap((machine, index) => (addresses[index] === undefined ? [] : [`machine ${machine.name}: ssh ${machine.ssh} resolves to ${addresses[index]}, a public address`]));

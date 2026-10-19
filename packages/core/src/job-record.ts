@@ -21,13 +21,17 @@ export function writeRecord(home: string, job: Job, prompt: string, resumeOnBudg
 	mkdirSync(temporary, { recursive: true });
 	const record = {
 		task: job.task, kind: job.kind, project: job.project, model: job.model ?? "", "model-why": job.modelWhy ?? "", thinking: job.thinking ?? "", quick: job.quick ?? "", prompt,
-		timeout: String(job.timeoutMinutes), budget: String(job.budgetUsd), free: String(job.free), "resume-on-budget": String(resumeOnBudget), cpu: String(job.cpu ?? ""), memory: job.memory ?? "", cost: "0.0000",
-		feature: job.feature?.name ?? "", "feature-cpu": String(job.feature?.cpu ?? ""), "feature-memory": job.feature?.memory ?? "",
+		timeout: String(job.timeoutMinutes), budget: String(job.budgetUsd), free: String(job.free), "resume-on-budget": String(resumeOnBudget), ...capFields(job), cost: "0.0000",
 		"idle-minutes": String(idleMinutes), branch: job.branch ?? "", root: job.root, base: job.base, worktree: job.worktree, machine: job.machine, projects,
 		reason: "", since: since.toISOString(), state: "working",
 	};
 	for (const [name, value] of Object.entries(record)) writeFileSync(join(temporary, name), value);
 	renameSync(temporary, join(folder, job.id));
+}
+
+// The record's files of a job's caps, `arthur continue` writing them anew from what `jobs.limits` answers then.
+export function capFields(caps: Caps): Readonly<Record<string, string>> {
+	return { cpu: String(caps.cpu ?? ""), memory: caps.memory ?? "", feature: caps.feature?.name ?? "", "feature-cpu": String(caps.feature?.cpu ?? ""), "feature-memory": caps.feature?.memory ?? "" };
 }
 
 // The job as its record `field` reads it, for `arthur continue` (job-control.ts): the `beforeSpawn` checks and the prepares.

@@ -42,10 +42,8 @@ export function commitRules(options: { readonly enabled?: boolean } = {}): Plugi
 				const at = `${rule.file} at ${job.base.slice(0, 7)}`;
 				const read = spawnSync("git", ["-C", job.root, "cat-file", "blob", `${job.base}:${rule.file}`], { encoding: "utf8" });
 				const text = read.status === 0 ? read.stdout.trim() : undefined;
-				if (text === undefined || text === "") {
-					console.error(`warning: commit-rules: project ${job.project}: rule file ${at} is ${text === undefined ? "missing or not a file" : "empty"}; the ${role} goes without it`);
-					return undefined;
-				}
+				if (text === undefined || text === "")
+					return { warnings: [`commit-rules: project ${job.project}: rule file ${at} is ${text === undefined ? "missing or not a file" : "empty"}; the ${role} goes without it`] };
 				return `## Commit messages\n\n${lead} (${at}):\n\n${text}`;
 			});
 		},

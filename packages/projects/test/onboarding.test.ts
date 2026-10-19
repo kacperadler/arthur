@@ -4,7 +4,9 @@ import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
+import { everyOption } from "@arthur/core/option-table";
 import { type FakeHost, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { table } from "../src/project-options.ts";
 import { type ProjectEntry, projects } from "../src/projects.ts";
 
 const PATH = process.env.PATH ?? "";
@@ -54,6 +56,21 @@ test("the kind onboarding has its own branch and role, and its prompt names the 
 	assert.match(prompt, /^# Onboarding\n/);
 	assert.ok(prompt.endsWith(`${section}\n`), prompt);
 	assert.match(readFileSync(join(home, "jobs", id, "branch"), "utf8"), /^arthur\/\d{4}-\d\d-\d\d-onboarding-[0-9a-f]{8}$/);
+});
+
+test("the prompts the option table names as the default are the files the roles read and the onboarding drafts with prompts left out", async (t) => {
+	const values = everyOption(table).filter(({ path, entry }) => entry.default !== undefined && !["list.*.title", "list.*.install"].includes(path));
+	assert.deepEqual(values.map(({ path }) => path), ["list.*.prompts"], "every other default is words for a person");
+	const [vision, criteriaDir, rolesDir] = (values[0]?.entry.default ?? "").split(", ");
+	const { fake, shop, home } = await load();
+	mkdirSync(join(shop, ".agents/arthur/roles"), { recursive: true });
+	writeFileSync(join(shop, ".agents/arthur/roles/onboarding.md"), "Ask about the shop's customers.\n");
+	git(shop, "add", "--all");
+	git(shop, "commit", "--quiet", "-m", "override");
+	const id = await onboard(t, fake, home, "## Repository\nA shop.\n");
+	const prompt = readFileSync(join(home, "jobs", id, "prompt"), "utf8");
+	for (const part of [`## Project override, which wins over the role above (${rolesDir}/onboarding.md)`, `## Styleguide (${criteriaDir}/styleguide.md)`, `- The vision: \`${vision}\``, `- The criteria: \`${criteriaDir}/styleguide.md\``])
+		assert.ok(prompt.includes(part), `${part}\n---\n${prompt}`);
 });
 
 test("an onboarding asking more than 10 questions is cut at 10, the same however often its wake is built, and later questions at 0", async (t) => {

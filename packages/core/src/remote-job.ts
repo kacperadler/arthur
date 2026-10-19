@@ -7,7 +7,7 @@ import { eventBus } from "./events.ts";
 import { addWorktree, removeWorktree } from "./git.ts";
 import { continueJob, steerJob, stopJob } from "./job-control.ts";
 import { writeRecord } from "./job-record.ts";
-import { jobEnv, launch, UNCAPPED } from "./job-scope.ts";
+import { jobCaps, jobEnv, launch, UNCAPPED } from "./job-scope.ts";
 import { current, field, ID, inRun, told } from "./job-state.ts";
 import type { Job } from "./jobs.ts";
 import { withLock } from "./lock.ts";
@@ -58,10 +58,11 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 	steer(home, [id = ""]) {
 		console.log(steerJob(home, id, readFileSync(0, "utf8")));
 	},
-	// Reads `{ instruction, env }` on stdin, `env` the variables the prepares returned on the main Arthur; prints why the wrapper did not start, as `launch`.
-	async continue(home, [id = "", agent = "", slice = "", budget]) {
+	// Reads `{ instruction, env }` on stdin, `env` the variables the prepares returned on the main Arthur; `caps`, the caps in force
+	// (JSON of what `jobs.limits` answered), replace the record's; prints why the wrapper did not start, as `launch`.
+	async continue(home, [id = "", agent = "", slice = "", caps = "{}", budget]) {
 		const { instruction, env } = JSON.parse(readFileSync(0, "utf8")) as { readonly instruction: string; readonly env?: unknown };
-		const steps = { check: async () => () => {}, prepare: async () => jobEnv("core", env) };
+		const steps = { check: async () => ({ release: () => {}, caps: await jobCaps([JSON.parse(caps)]) }), prepare: async () => jobEnv("core", env) };
 		const failed = await continueJob(home, id, instruction, budget === undefined ? undefined : Number(budget), agent, { slice, ...machineLimit() }, eventBus(home), (why) => console.log(`${UNCAPPED}${why}`), steps);
 		if (failed !== undefined) console.log(failed);
 	},

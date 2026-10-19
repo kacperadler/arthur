@@ -1,6 +1,6 @@
 // A credential an agent's error may carry, never repeated in a notice (spec/roadmap.md, entry 38): the value of every variable
 // whose name says it holds one, a bearer token, a key with a vendor's prefix, and any run of 20 or more letters, digits, `_` and
-// `-` that mixes letters and digits, as tokens and keys are.
+// `-` that mixes letters and digits, as tokens and keys are. Orchestration's inbox keeps a copy: change both together.
 
 const NAME = /KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|AUTH/i;
 const REDACTED = "[redacted]";

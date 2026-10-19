@@ -135,7 +135,8 @@ import { checkStructure } from "./structure.ts";
 // reading it, a block that is not JSON refused.
 // AR0168: a plugin's `after`, set up after those plugins when they are loaded, none refused when not; core 3 more (5451) for
 // its check beside `requires` and the setup order; orchestration 2 more (1255) for its `after: ["schedule"]`.
-const BUDGETS = { core: 5451, "core/testing": 346, projects: 475, orchestration: 1255, machines: 415, resources: 458, session: 867, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84 };
+// AR0175: a `/restart` that throws in the tick tells the owner; session 6 more (873) for that notice.
+const BUDGETS = { core: 5451, "core/testing": 346, projects: 475, orchestration: 1255, machines: 415, resources: 458, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

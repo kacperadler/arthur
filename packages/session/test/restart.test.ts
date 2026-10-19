@@ -450,10 +450,25 @@ test("a night's restart that throws is told, and the next night tries again", as
 	await box.start();
 	box.at("2026-10-18T23:00:00+02:00");
 	await until("the error", () => box.err.length > 0);
-	assert.deepEqual([box.err, box.restarts, box.out], [[`session: restart failed: EISDIR: illegal operation on a directory, open '${blocked}'`], [], []]);
+	assert.deepEqual([box.err, box.restarts, box.out, box.notices()], [[`session: restart failed: EISDIR: illegal operation on a directory, open '${blocked}'`], [], [], []], "the night's is only logged");
 	rmdirSync(blocked);
 	box.at("2026-10-19T23:00:00+02:00");
 	await until("the next night's restart", () => box.restarts.length === 1);
+});
+
+test("a /restart that throws in the tick tells the owner on his channel, each time, and is logged once", async (t) => {
+	const box = await load(t, {}, "2026-10-18T12:00:00+02:00");
+	const blocked = join(box.folder, `restarted.json.${process.pid}`);
+	mkdirSync(blocked);
+	const first = box.coordinator({ steps: [{ prompt: true }, { message: "", stopReason: "error", error: "529 overloaded" }, { end: true }, { prompt: true }, { message: "", stopReason: "error", error: "529 overloaded" }, { end: true }, { waitFor: box.gate("never") }] });
+	await first.up();
+	await box.start();
+	const failed = `restart: not done: EISDIR: illegal operation on a directory, open '${blocked}'`;
+	assert.match(await box.route("/restart"), /Restarted\. follows$/);
+	await until("the notice", () => box.notices().length === 1);
+	assert.match(await box.route("/restart"), /Restarted\. follows$/);
+	await until("the second notice", () => box.notices().length === 2);
+	assert.deepEqual([box.notices(), box.restarts, box.err], [[failed, failed], [], [`session: restart failed: EISDIR: illegal operation on a directory, open '${blocked}'`]]);
 });
 
 test("while a restart is due under the service, /restart ends arthur run after the handoff and the coordinator's restart, and Restarted. after its next start says so", async (t) => {

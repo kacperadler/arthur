@@ -1436,8 +1436,15 @@
   {
     "id": "AR0181",
     "title": "Roadmap 42: Onboarding a repository",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0181-roadmap-42-onboarding-a-repository/ticket.md",
-    "updated": "2026-10-19T11:00:50.927Z"
+    "updated": "2026-10-19T11:00:53.437Z"
+  },
+  {
+    "id": "AR0182",
+    "title": "Plugins move to their own repository once the roadmap is built",
+    "status": "planning",
+    "path": "spec/features/AR0182-plugins-move-to-their-own-repository-once-the-roadmap-is-built/ticket.md",
+    "updated": "2026-10-19T11:05:52.662Z"
   }
 ]

@@ -1415,9 +1415,9 @@
   {
     "id": "AR0178",
     "title": "`roles.quick.model` has its meaning only in the `about` of `roles`",
-    "status": "planned",
+    "status": "dropped",
     "path": "spec/features/AR0178-roles-quick-model-has-its-meaning-only-in-the-about-of-roles/ticket.md",
-    "updated": "2026-10-19T15:52:39.751Z"
+    "updated": "2026-10-19T19:20:02.307Z"
   },
   {
     "id": "AR0179",
@@ -1450,9 +1450,9 @@
   {
     "id": "AR0183",
     "title": "`arthur merge` (54) must ask `merge.check` before it merges an onboarding's branch",
-    "status": "planned",
+    "status": "dropped",
     "path": "spec/features/AR0183-arthur-merge-54-must-ask-merge-check-before-it-merges-an-onboarding-s-branch/ticket.md",
-    "updated": "2026-10-19T16:14:26.076Z"
+    "updated": "2026-10-19T19:20:02.507Z"
   },
   {
     "id": "AR0184",

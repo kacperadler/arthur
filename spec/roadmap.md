@@ -612,7 +612,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 
 - Package: core; `docs/plugin-api.md`.
 - Delivers: the host API as schedule, youtrack and telegram use it, written down: the plugin shape, every host member, every core event and its fields, the `provide` names in use; the published types in `@arthur/core`'s exports, the option table's type included (93); each plugin package's `./options` export (93): its option table, `summary` and `tools`; whatever no plugin uses removed. From here a change to the API is a decision recorded in its ticket.
-- Done means: the three plugins and the fake host use only what the doc lists (a test lists the core's exports and fails on one the doc does not name); `npm run check` passes with the types tightened.
+- Done means: the three plugins and the fake host use only what the doc lists (a test lists the core's exports and fails on one the doc does not name); `npm run check` passes with the types tightened. Also (AR0178, folded in on 2026-10-19 on the owner's word): the frozen option table decides whether an entry may name keys of its own beside `each`, and `roles.quick.model` gets its own line in orchestration's table, with a test, so its meaning is not only in the `about` of `roles`.
 - Depends on: 40, 46, 50.
 - Size: half a day.
 - Covers: the vision's decision to derive the API from three plugins.
@@ -641,7 +641,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 
 - Package: delivery.
 - Delivers: files the reviews, merges the branch into main, runs install and the project's checks, resets main when a check fails; open findings go to the `findings` plugin's `onMerge` (83), which by default makes each a planning ticket; writes `outcome.md`; sets merged; names the tickets the merge unblocks; `--unreviewed` on the owner's word; the procedure sent after a merge.
-- Done means: refused: a branch without a PASS on its tip (unless `--unreviewed`), a dirty main. Edge cases: a merge conflict leaves main as it was; a failed check resets main and says which check; findings with no open entry make no ticket; a finding's ticket gets the next id.
+- Done means: refused: a branch without a PASS on its tip (unless `--unreviewed`), a dirty main. Edge cases: a merge conflict leaves main as it was; a failed check resets main and says which check; findings with no open entry make no ticket; a finding's ticket gets the next id. Also (AR0183, folded in on 2026-10-19 on the owner's word): before `git merge`, `collect("merge.check", job)`, and any text answer refuses the merge with every answer, main unchanged; tested with a fake plugin that provides `merge.check`, and with the projects plugin refusing an onboarding's branch that changes a file other than the vision and the criteria.
 - Depends on: 53, 18.
 - Size: a day.
 - Covers: D3 (merge), O5.

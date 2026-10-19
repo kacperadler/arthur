@@ -1432,5 +1432,12 @@
     "status": "planning",
     "path": "spec/features/AR0180-while-an-env-variable-is-missing-neither-arthur-doctor-nor-arthur-setup-checks-the-plugins-requirements/ticket.md",
     "updated": "2026-10-19T10:59:58.291Z"
+  },
+  {
+    "id": "AR0181",
+    "title": "Roadmap 42: Onboarding a repository",
+    "status": "planned",
+    "path": "spec/features/AR0181-roadmap-42-onboarding-a-repository/ticket.md",
+    "updated": "2026-10-19T11:00:50.927Z"
   }
 ]

@@ -1,25 +1,25 @@
-import { basename, isAbsolute, normalize, sep } from "node:path";
+import { isAbsolute, normalize, sep } from "node:path";
 import { describe } from "@arthur/core";
 import { type Entry, isObject } from "./entry.ts";
 import { entryProblems } from "./schedule-options.ts";
 
-// The entries another plugin registers from its options (spec/roadmap.md, entry 40), through
-// `host.call("schedule.register", host.name, entries)`: each in the config's shape plus `option`, the path of the plugin's option
-// that makes it, or with `run` in place of an action or a job: the plugin's own code, which neither the config nor the file
-// holds; its id becomes `<plugin>.<id>`. They live in memory for one load, so a plugin turned off leaves none behind.
-// A procedure is the absolute path of a .md file in the registering plugin's own package folder (`Host.code`), never the
+// The entries another plugin registers from its options (spec/roadmap.md, entry 40), through `host.call("schedule.register",
+// host.name, entries, host.package)`: each in the config's shape plus `option`, the path of the plugin's option that makes it, or
+// with `run` in place of an action or a job: the plugin's own code, which neither the config nor the file holds; its id becomes
+// `<plugin>.<id>`. They live in memory for one load, so a plugin turned off leaves none behind. A procedure is the absolute path
+// of a .md file in the registering plugin's own package folder (`Host.package`, one of the plugins' in `Host.code`), never the
 // relative path the config and the file take, so neither check widens the other: docs/commands/schedule.md.
 export type Registered = Entry & { readonly plugin: string; readonly option: string; readonly code: string; readonly run?: () => Promise<void> };
 
 const PLUGIN = /^[a-z]+(-[a-z]+)*$/;
 
-// Adds the `entries` of `plugin` to `registered`, or throws every problem and adds none; `code` is `Host.code`.
-export function register(registered: Registered[], configured: readonly Entry[], code: readonly string[], plugin: unknown, entries: unknown): void {
+// Adds the `entries` of `plugin`, whose package folder is `own`, to `registered`, or throws every problem and adds none.
+export function register(registered: Registered[], configured: readonly Entry[], code: readonly string[], plugin: unknown, entries: unknown, own: unknown): void {
 	if (typeof plugin !== "string" || !PLUGIN.test(plugin)) throw new Error(`schedule.register: expected the registering plugin's name, then its entries, got ${describe(plugin)}`);
 	const refused = (problems: readonly string[]) => new Error(`schedule.register from plugin ${plugin}: ${problems.join("; ")}`);
 	if (!Array.isArray(entries)) throw refused([`expected a list of entries, got ${describe(entries)}`]);
-	// The core's package folder comes first, then each plugin's, named after it.
-	const folder = code.slice(1).find((each) => basename(each) === plugin);
+	const folder = typeof own === "string" && code.slice(1).includes(own) ? own : undefined;
+	if (own !== undefined && folder === undefined) throw refused([`expected its own package folder (host.package) after its entries, one of the plugins' in host.code, got ${describe(own)}`]);
 	const problems: string[] = [];
 	const added: Registered[] = [];
 	for (const [index, entry] of entries.entries()) {

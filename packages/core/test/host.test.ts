@@ -215,7 +215,7 @@ test("a disabled plugin is not loaded: not checked, no setup, no folder, its env
 	assert.equal(existsSync(join(loaded.core.home, "signal")), false);
 });
 
-test("host.code holds the core's package folder, then the package folder around each enabled plugin's own module, once; none for a disabled one or one that names no module", async () => {
+test("host.code holds the core's package folder, then the package folder around each enabled plugin's own module, once; none for a disabled one or one that names no module; host.package is each plugin's own", async () => {
 	const hosts: Host[] = [];
 	const keep = (host: Host) => void hosts.push(host);
 	const packages = join(import.meta.dirname, "..", "..");
@@ -233,6 +233,11 @@ test("host.code holds the core's package folder, then the package folder around 
 	await loadPlugins(loaded, {});
 	assert.deepEqual(hosts[0]?.code, [join(packages, "core"), join(packages, "session"), other], "the core, then the plugins' packages in setup order; orchestration written in the config has none");
 	assert.ok(hosts.every((host) => host.code === hosts[0]?.code), "one list for every plugin");
+	assert.deepEqual(
+		hosts.map((host) => [host.name, host.package]),
+		[["session", join(packages, "session")], ["orchestration", undefined], ["discord", other], ["discord-voice", other]],
+		"each plugin's own, whatever the package folder is named",
+	);
 	assert.match(await refusal(config([fake([], "orchestration", { module: "../src/orchestration.ts" })])), /: plugins\[0\]: orchestration: expected module as its own import\.meta\.url, a file: URL, got "\.\.\/src\/orchestration\.ts"$/);
 });
 

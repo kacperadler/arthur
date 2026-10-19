@@ -18,10 +18,11 @@ async function until(what: string, holds: () => boolean, ms = 20_000): Promise<v
 
 // The schedule plugin set up on a fake host in Warsaw at `now`, as `arthur run` and the `arthur` binary set it up. Its file is
 // `<root>/spec/schedule.json`, given by its absolute path, so nothing reads the folder the tests run in; `manage` is the
-// package folder of a plugin manage, in the host's `code` after the core's. What it prints, and emits, caught.
+// package folder of a plugin manage, in the host's `code` after the core's, named unlike the plugin as a scoped package may be.
+// What it prints, and emits, caught.
 async function load(t: TestContext, entries: readonly Entry[], now: string, { root = temporaryFolder(), file = true } = {}) {
 	const code = temporaryFolder();
-	const manage = join(code, "manage");
+	const manage = join(code, "arthur-manage");
 	mkdirSync(join(manage, "roles"), { recursive: true });
 	const path = join(root, "spec", "schedule.json");
 	const plugin = schedule({ entries, ...(file ? { file: path } : {}) });
@@ -42,7 +43,7 @@ async function load(t: TestContext, entries: readonly Entry[], now: string, { ro
 		errors,
 		messages: () => said("coordinator-message"),
 		notices: () => said("notice"),
-		register: (name: unknown, list: unknown) => fake.call("schedule.register", name, list),
+		register: (name: unknown, list: unknown, own?: unknown) => fake.call("schedule.register", name, list, own),
 		run: (...args: string[]) => command?.run({ args, project: undefined }),
 		runFor: (project: string, ...args: string[]) => command?.run({ args, project }),
 		write(text: unknown) {
@@ -63,10 +64,14 @@ test("a plugin registers its entries from its options: ids namespaced by the plu
 	const box = await load(t, [STANDUP], "2026-10-20T07:59:00+02:00");
 	const procedure = join(box.manage, "roles", "morning-report.md");
 	writeFileSync(procedure, "# Morning report\n\nWhat was built overnight.\n");
-	box.register("manage", [
-		{ ...REPORT, action: { ...REPORT.action, procedure } },
-		{ id: "audit", at: "02:00", days: ["tue", "fri"], option: "audit.at", job: { task: "Audit the code.", kind: "audit" } },
-	]);
+	box.register(
+		"manage",
+		[
+			{ ...REPORT, action: { ...REPORT.action, procedure } },
+			{ id: "audit", at: "02:00", days: ["tue", "fri"], option: "audit.at", job: { task: "Audit the code.", kind: "audit" } },
+		],
+		box.manage,
+	);
 	box.register("voice", [{ id: "tidy", at: "2026-10-21T04:00", option: "tidy.at", action: { message: "Tidy the models." } }]);
 	await box.sweep("2026-10-20T08:00:00+02:00");
 	await until("the report", () => box.messages().length === 1);
@@ -88,15 +93,18 @@ test("a plugin registers its entries from its options: ids namespaced by the plu
 
 test("a registration that clashes or is wrong is refused whole, naming the plugin; a procedure only as an absolute .md path in its own package folder", async (t) => {
 	const box = await load(t, [{ id: "manage.report", at: "09:00", action: { message: "Mine." } }], "2026-10-20T07:00:00+02:00");
-	const refused = (name: unknown, list: unknown, message: string) => assert.throws(() => box.register(name, list), { message });
+	const refused = (name: unknown, list: unknown, message: string, own?: unknown) => assert.throws(() => box.register(name, list, own), { message });
 	refused("manage", [REPORT], "schedule.register from plugin manage: entries[0].id: manage.report is the id of an entry of the config too");
 	box.register("manage", [{ ...REPORT, id: "audit" }]);
 	refused("manage", [{ ...REPORT, id: "audit", option: "audit.at" }], "schedule.register from plugin manage: entries[0].id: manage.audit is registered already, from option morningReport.at");
 	refused("manage", [{ ...REPORT, id: "retro" }, { ...REPORT, id: "retro" }], "schedule.register from plugin manage: entries[1].id: manage.retro is registered already, from option morningReport.at");
 	const at = (procedure: string) => [{ ...REPORT, id: "steps", action: { message: "Report.", procedure } }];
 	for (const path of ["roles/report.md", "/etc/passwd.md", `${box.manage}/roles/../report.md`, `${box.manage}-other/report.md`, join(box.manage, ".env"), join(box.manage, "roles")])
-		refused("manage", at(path), `schedule.register from plugin manage: entries[0].action.procedure: expected the absolute path of a .md file in the package folder of plugin manage, ${box.manage}, got ${JSON.stringify(path)}`);
+		refused("manage", at(path), `schedule.register from plugin manage: entries[0].action.procedure: expected the absolute path of a .md file in the package folder of plugin manage, ${box.manage}, got ${JSON.stringify(path)}`, box.manage);
 	refused("voice", at(join(box.manage, "roles", "report.md")), "schedule.register from plugin voice: entries[0].action.procedure: plugin voice has no package folder, so its entries take no procedure");
+	refused("manage", at(join(box.manage, "roles", "report.md")), "schedule.register from plugin manage: entries[0].action.procedure: plugin manage has no package folder, so its entries take no procedure");
+	for (const own of [join(dirname(box.manage), "core"), `${box.manage}-other`, join(box.manage, "roles"), ""])
+		refused("manage", [{ ...REPORT, id: "other" }], `schedule.register from plugin manage: expected its own package folder (host.package) after its entries, one of the plugins' in host.code, got ${JSON.stringify(own)}`, own);
 	refused(undefined, [REPORT], "schedule.register: expected the registering plugin's name, then its entries, got nothing");
 	refused("Manage", [REPORT], 'schedule.register: expected the registering plugin\'s name, then its entries, got "Manage"');
 	refused("manage", REPORT, "schedule.register from plugin manage: expected a list of entries, got an object");
@@ -143,7 +151,7 @@ test("the config and the file keep the relative path; a registered procedure beh
 	writeFileSync(inside, "# Report");
 	writeFileSync(join(box.root, "secret.md"), "not for the coordinator");
 	symlinkSync(join(box.root, "secret.md"), join(box.manage, "roles", "linked.md"));
-	box.register("manage", [{ ...REPORT, id: "linked", action: { message: "Report.", procedure: join(box.manage, "roles", "linked.md") } }]);
+	box.register("manage", [{ ...REPORT, id: "linked", action: { message: "Report.", procedure: join(box.manage, "roles", "linked.md") } }], box.manage);
 	box.write([{ id: "steal", at: "08:00", action: { message: "Read it.", procedure: inside } }, { id: "after", at: "08:00", action: { message: "After." } }]);
 	await box.sweep("2026-10-20T08:00:00+02:00");
 	await until("the file's entry", () => box.messages().includes("[scheduled after] After."));

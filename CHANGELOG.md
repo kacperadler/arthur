@@ -7,6 +7,13 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Added
 
 - AR0127 Roadmap: a silent mode for the coordinator in the channels (9327313)
+- AR0174 Roadmap: a decision log of what the owner decided when Arthur asked (8b7a138)
+
+### Fixed
+
+- AR0148 A throw in the session's 500 ms tick ends `arthur run` (cee952c)
+- AR0164 The inbox's notice after 3 unanswered turns repeats omp's error unredacted (1bf2a8a)
+- AR0167 GitHub CI fails now and then on main with the same code (59e5760)
 
 ### Other
 
@@ -14,6 +21,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0157 Roadmap 38: Start notice and LLM probe (289fa48)
 - AR0158 Roadmap 39: Schedule entries and the sweep (32f5997)
 - AR0163 Roadmap 40: Registered entries and arthur schedule (f3e9ecc)
+- AR0166 Roadmap 80: arthur doctor, checked at every start (27a50bd)
 
 ## 2026-10-18
 

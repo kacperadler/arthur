@@ -1196,9 +1196,9 @@
   {
     "id": "AR0148",
     "title": "A throw in the session's 500 ms tick ends `arthur run`",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0148-a-throw-in-the-session-s-500-ms-tick-ends-arthur-run/ticket.md",
-    "updated": "2026-10-18T21:18:39.474Z"
+    "updated": "2026-10-19T06:56:25.159Z"
   },
   {
     "id": "AR0149",
@@ -1276,9 +1276,9 @@
   {
     "id": "AR0159",
     "title": "packages/session/test/restart.test.ts:204 fails now and then with \"Unexpected end of JSON input\"",
-    "status": "in-progress",
+    "status": "dropped",
     "path": "spec/features/AR0159-packages-session-test-restart-test-ts-204-fails-now-and-then-with-unexpected-end-of-json-input/ticket.md",
-    "updated": "2026-10-18T23:45:29.956Z",
+    "updated": "2026-10-19T05:47:18.815Z",
     "after": [
       "AR0153"
     ]
@@ -1286,9 +1286,12 @@
   {
     "id": "AR0160",
     "title": "`/restart` cannot clear a restart due, since it restarts only the coordinator's agent",
-    "status": "planning",
+    "status": "in-progress",
     "path": "spec/features/AR0160-restart-cannot-clear-a-restart-due-since-it-restarts-only-the-coordinator-s-agent/ticket.md",
-    "updated": "2026-10-18T22:45:18.421Z"
+    "updated": "2026-10-19T06:56:44.607Z",
+    "after": [
+      "AR0148"
+    ]
   },
   {
     "id": "AR0161",
@@ -1314,9 +1317,9 @@
   {
     "id": "AR0164",
     "title": "The inbox's notice after 3 unanswered turns repeats omp's error unredacted",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0164-the-inbox-s-notice-after-3-unanswered-turns-repeats-omp-s-error-unredacted/ticket.md",
-    "updated": "2026-10-18T23:36:58.635Z"
+    "updated": "2026-10-19T06:29:24.516Z"
   },
   {
     "id": "AR0165",
@@ -1328,16 +1331,16 @@
   {
     "id": "AR0166",
     "title": "Roadmap 80: arthur doctor, checked at every start",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0166-roadmap-80-arthur-doctor-checked-at-every-start/ticket.md",
-    "updated": "2026-10-19T00:25:10.204Z"
+    "updated": "2026-10-19T06:14:11.556Z"
   },
   {
     "id": "AR0167",
     "title": "GitHub CI fails now and then on main with the same code",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0167-github-ci-fails-now-and-then-on-main-with-the-same-code/ticket.md",
-    "updated": "2026-10-19T00:26:49.090Z"
+    "updated": "2026-10-19T05:46:50.637Z"
   },
   {
     "id": "AR0168",
@@ -1356,8 +1359,50 @@
   {
     "id": "AR0170",
     "title": "Roadmap 93: Option tables, every option with its meaning, and the tools each plugin runs",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0170-roadmap-93-option-tables-every-option-with-its-meaning-and-the-tools-each-plugin-runs/ticket.md",
-    "updated": "2026-10-19T00:29:27.192Z"
+    "updated": "2026-10-19T01:04:42.363Z"
+  },
+  {
+    "id": "AR0171",
+    "title": "The resources scope test assumes a machine of 2 cores or more",
+    "status": "planning",
+    "path": "spec/features/AR0171-the-resources-scope-test-assumes-a-machine-of-2-cores-or-more/ticket.md",
+    "updated": "2026-10-19T05:46:50.634Z"
+  },
+  {
+    "id": "AR0172",
+    "title": "The tools labels of local are not checked by arthur doctor",
+    "status": "planning",
+    "path": "spec/features/AR0172-the-tools-labels-of-local-are-not-checked-by-arthur-doctor/ticket.md",
+    "updated": "2026-10-19T06:14:11.553Z"
+  },
+  {
+    "id": "AR0173",
+    "title": "GitHub CI names each failed test and stays green on main",
+    "status": "in-progress",
+    "path": "spec/features/AR0173-github-ci-names-each-failed-test-and-stays-green-on-main/ticket.md",
+    "updated": "2026-10-19T06:17:44.794Z"
+  },
+  {
+    "id": "AR0174",
+    "title": "Roadmap: a decision log of what the owner decided when Arthur asked",
+    "status": "merged",
+    "path": "spec/features/AR0174-roadmap-a-decision-log-of-what-the-owner-decided-when-arthur-asked/ticket.md",
+    "updated": "2026-10-19T07:00:45.570Z"
+  },
+  {
+    "id": "AR0175",
+    "title": "A `/restart` whose restart throws in the tick tells the owner nothing",
+    "status": "planning",
+    "path": "spec/features/AR0175-a-restart-whose-restart-throws-in-the-tick-tells-the-owner-nothing/ticket.md",
+    "updated": "2026-10-19T06:56:25.156Z"
+  },
+  {
+    "id": "AR0176",
+    "title": "The roadmap has no entry yet for decisions pre-approved from the decision log",
+    "status": "planning",
+    "path": "spec/features/AR0176-the-roadmap-has-no-entry-yet-for-decisions-pre-approved-from-the-decision-log/ticket.md",
+    "updated": "2026-10-19T07:00:45.567Z"
   }
 ]

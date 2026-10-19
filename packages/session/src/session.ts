@@ -7,6 +7,7 @@ import { alive, put, REQUEST, type Request, readRequest } from "./request.ts";
 import { registerRestart, restarts } from "./restart.ts";
 import { noteLoaded, registerGuard } from "./restart-guard.ts";
 import { table, time } from "./session-options.ts";
+import { serviceRequirements } from "./service.ts";
 import { startNotice, turnFailures } from "./start-notice.ts";
 
 // The session plugin (spec/roadmap.md, entries 35 to 38): the coordinator's conversation compacted at each `compactAt`, new at
@@ -14,7 +15,8 @@ import { startNotice, turnFailures } from "./start-notice.ts";
 // reads first. `arthur run` asks for each in `<home>/session/request.json` and acts on its outcome (restart.ts for restarts);
 // the handoff extension, which orchestration loads into the coordinator's agent, does the agent's part; the restart guard
 // (restart-guard.ts) holds spawns once a commit changed the code `arthur run` loaded; at each start the model is probed and
-// the start notice sent, and a turn that fails before any text is told (start-notice.ts): docs/session.md.
+// the start notice sent, opening with the lines `arthur doctor` found missing, and a turn that fails before any text is told
+// (start-notice.ts); the user service and linger as its `arthur doctor` requirements (service.ts): docs/session.md.
 
 export type SessionOptions = {
 	readonly enabled?: boolean;
@@ -34,6 +36,8 @@ export function session(options: SessionOptions = {}): Plugin {
 	let host: Host | undefined;
 	let timer: NodeJS.Timeout | undefined;
 	let stopProbe: (() => void) | undefined;
+	// The missing lines of `arthur doctor` this start sends, from the core's `doctor` event before any plugin's start.
+	let missing: readonly string[] = [];
 	return {
 		name: "session",
 		options,
@@ -42,6 +46,11 @@ export function session(options: SessionOptions = {}): Plugin {
 		setup(given) {
 			host = given;
 			for (const file of EXTENSIONS) given.provide("coordinator.extension", () => ({ file, env: { ARTHUR_SESSION_FOLDER: given.folder } }));
+			given.provide("doctor", serviceRequirements);
+			given.events.on("doctor", ({ data }) => {
+				const lines = typeof data === "object" && data !== null && "lines" in data ? data.lines : undefined;
+				missing = Array.isArray(lines) ? lines.filter((line) => typeof line === "string") : [];
+			});
 			registerRestart(given);
 			if (options.restartGuard !== false) registerGuard(given);
 		},
@@ -50,12 +59,19 @@ export function session(options: SessionOptions = {}): Plugin {
 			// One left by an `arthur run` before this one is not done late.
 			rmSync(join(host.folder, REQUEST), { force: true });
 			if (options.restartGuard !== false) noteLoaded(host);
-			stopProbe = startNotice(host, options.probeLlm !== false);
-			const [compact, restart, failures] = [compactions(host), restarts(host), turnFailures(host)];
+			stopProbe = startNotice(host, options.probeLlm !== false, missing);
+			const ticks = [["compaction", compactions(host)], ["restart", restarts(host)], ["turn notice", turnFailures(host)]] as const;
+			// A tick that throws (a folder made read-only, a disk full) is told once per distinct error and runs again at the next.
+			const told = new Set<string>();
 			timer = setInterval(() => {
-				compact();
-				restart();
-				failures();
+				for (const [what, tick] of ticks)
+					try {
+						tick();
+					} catch (error) {
+						const line = `session: ${what} failed: ${String((error as Error)?.message ?? error).split("\n")[0]}`;
+						if (!told.has(line)) console.error(line);
+						told.add(line);
+					}
 			}, TICK_MS);
 		},
 		stop() {
@@ -74,9 +90,9 @@ function compactions(host: Host): () => void {
 	let next = upcoming();
 	return () => {
 		const request = readRequest(host.folder);
-		if (request?.then === "compact") {
+		if (request?.then === "compact" && (request.line !== undefined || (request.pid === undefined ? Date.now() - request.asked >= request.waitSeconds * 1000 : !alive(request.pid)))) {
+			rmSync(file, { force: true });
 			if (request.line !== undefined) console.log(`session: ${request.line}`);
-			if (request.line !== undefined || (request.pid === undefined ? Date.now() - request.asked >= request.waitSeconds * 1000 : !alive(request.pid))) rmSync(file, { force: true });
 		}
 		if (next === undefined || host.clock.now() < next.at) return;
 		// Slots passed together, or one while a compaction or a restart is still asked for, ask for one, never queue a second.

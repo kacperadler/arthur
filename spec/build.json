@@ -1576,8 +1576,8 @@
   {
     "id": "AR0201",
     "title": "wrapper.test.ts failed once on a cleanup race",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0201-wrapper-test-ts-failed-once-on-a-cleanup-race/ticket.md",
-    "updated": "2026-10-19T13:27:47.681Z"
+    "updated": "2026-10-19T13:27:54.069Z"
   }
 ]

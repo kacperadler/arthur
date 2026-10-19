@@ -40,3 +40,4 @@ Out:
 ## Decisions
 
 - 2026-10-19: The owner told the coordinator to run several workers at once, under the 80% usage ceiling, and to build finding tickets alongside the roadmap entry that touches the same files.
+- 2026-10-19: The coordinator accepts the youtrack budget raise from 251 to 361 (7 lines cut first) and the article version as a plain argument.

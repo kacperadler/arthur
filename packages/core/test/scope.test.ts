@@ -268,8 +268,10 @@ test("over a memory cap the kernel takes the agent and what it started first, ne
 	const pid = await until("the daemon", daemon);
 	const wrapper = Number(read(join(home, "jobs", job.id, "pid")));
 	const score = (pid: number | "self") => read(`/proc/${pid}/oom_score_adj`);
-	assert.deepEqual([score(pid), score(wrapper)], ["1000", score("self")]);
 	assert.notEqual(score("self"), "1000");
+	// The agent may fork the daemon before the wrapper, starved of CPU, has put its own score back.
+	await until("the wrapper's own score back", () => score(wrapper) === score("self"));
+	assert.equal(score(pid), "1000");
 	writeFileSync(gate, "");
 	assert.equal(await endedWith(home, job.id), "finished");
 });

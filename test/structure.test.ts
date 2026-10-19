@@ -134,16 +134,17 @@ const lines = (count: number) => "export const a = 1;\n".repeat(count);
 
 // A tree that keeps every rule: the core publishes "." and "./testing", one plugin uses both.
 const BASE: Readonly<Record<string, string>> = {
-	"package.json": JSON.stringify({ name: "arthur", devDependencies: { typescript: "^7.0.2" } }),
+	"package.json": JSON.stringify({ name: "arthur", license: "Apache-2.0", devDependencies: { typescript: "^7.0.2" } }),
 	"packages/core/package.json": JSON.stringify({
 		name: "@arthur/core",
+		license: "Apache-2.0",
 		dependencies: {},
 		exports: { ".": "./src/host.ts", "./testing": "./src/testing.ts" },
 	}),
 	"packages/core/src/host.ts": "export type Host = { name: string };\n",
 	"packages/core/src/testing.ts": 'import type { Host } from "./host.ts";\nexport const fakeHost: Host = { name: "fake" };\n',
 	"packages/core/test/host.test.ts": 'import { fakeHost } from "../src/testing.ts";\n',
-	"packages/telegram/package.json": JSON.stringify({ name: "@arthur/telegram" }),
+	"packages/telegram/package.json": JSON.stringify({ name: "@arthur/telegram", license: "Apache-2.0" }),
 	"packages/telegram/src/telegram.ts": 'import type { Host } from "@arthur/core";\nimport { readFileSync } from "node:fs";\n',
 	"packages/telegram/test/telegram.test.ts": 'import { fakeHost } from "@arthur/core/testing";\nimport "../src/telegram.ts";\n',
 };
@@ -200,13 +201,29 @@ test("a dev dependency beyond typescript and @types/node fails, in any package.j
 		check({
 			"package.json": JSON.stringify({
 				name: "arthur",
+				license: "Apache-2.0",
 				devDependencies: { typescript: "^7.0.2", "@types/node": "^24.19.2", vitest: "3" },
 			}),
-			"packages/telegram/package.json": JSON.stringify({ name: "@arthur/telegram", devDependencies: { "@types/node": "24", sinon: "1" } }),
+			"packages/telegram/package.json": JSON.stringify({ name: "@arthur/telegram", license: "Apache-2.0", devDependencies: { "@types/node": "24", sinon: "1" } }),
 		}),
 		[
 			"package.json: has devDependency vitest; dev dependencies are the toolchain only (typescript, @types/node)",
 			"packages/telegram/package.json: has devDependency sinon; dev dependencies are the toolchain only (typescript, @types/node)",
+		],
+	);
+});
+
+test("a licence other than Apache-2.0 fails, in the root and in any package.json", () => {
+	assert.deepEqual(
+		check({
+			"package.json": JSON.stringify({ name: "arthur", license: "MIT", devDependencies: { typescript: "^7.0.2" } }),
+			"packages/core/package.json": JSON.stringify({ name: "@arthur/core", exports: { ".": "./src/host.ts", "./testing": "./src/testing.ts" } }),
+			"packages/telegram/package.json": JSON.stringify({ name: "@arthur/telegram", license: "SEE LICENSE IN ../../LICENSE" }),
+		}),
+		[
+			'package.json: has license "MIT"; every Arthur package is Apache-2.0',
+			"packages/core/package.json: has license null; every Arthur package is Apache-2.0",
+			'packages/telegram/package.json: has license "SEE LICENSE IN ../../LICENSE"; every Arthur package is Apache-2.0',
 		],
 	);
 });

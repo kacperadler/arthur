@@ -178,7 +178,7 @@ printf '[Service]\nDelegate=cpu cpuset io memory pids\n' | sudo install -D -m 64
 sudo systemctl daemon-reload
 ```
 
-`systemctl --user status arthur-jobs.slice` shows the jobs running and what they use. With the `resources` plugin, each job's scope also gets its own `perJob` caps. Without a user manager (macOS, a container) a job runs bare, with no joint limit, and the first line of its log says so; a job with caps there has its memory sampled every 10 seconds instead, and its CPU is not capped.
+`systemctl --user status arthur-jobs.slice` shows the jobs running and what they use. With the `resources` plugin, each job's scope also gets its own `perJob` caps. Without a user manager (macOS, a container) a job runs bare, with no joint limit, and the first line of its log says so; a job with caps there has its memory sampled every 10 seconds instead, its CPU is not capped, and a ticket's CPU and memory caps are not held; a `notice` says so once per machine.
 
 **Check:** this prints a line with `cpu` and `memory`, such as `cpu memory pids`:
 

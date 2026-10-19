@@ -119,7 +119,11 @@ import { checkStructure } from "./structure.ts";
 // one call, each refusal), its doctor line per machine and its refusal to load after projects; a new package, so nothing was
 // cut elsewhere; core unchanged in lines: a prepare's second argument, the variables of the prepares before it, took no new
 // line. projects 2 more (475), by the ticket's decision, for its install run with the PATH the prepares before it returned.
-const BUDGETS = { core: 5448, "core/testing": 344, projects: 475, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 363, "commit-rules": 168, nvm: 84 };
+// AR0206 (roadmap 46, with AR0204): youtrack 101 more (464) for comment list, add, edit and soft delete (youtrack-comments.ts,
+// 38), attachments saved under safe names (youtrack-attachments.ts, 34), a file's bytes from the API (`request`), `issue
+// update`'s version, the verbs' wiring, the jobs' rules in the prompt and a write refused inside a job (3); cut first: four
+// copies of `field` to one export of youtrack-api.ts (11 lines), and `update`'s article-only branch made the one path for both kinds.
+const BUDGETS = { core: 5448, "core/testing": 344, projects: 475, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

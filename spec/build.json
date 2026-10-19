@@ -1352,5 +1352,12 @@
     "status": "planning",
     "path": "spec/features/AR0169-a-registered-entry-can-send-a-message-or-spawn-a-job-not-run-its-plugin-s-own-code/ticket.md",
     "updated": "2026-10-19T00:28:58.149Z"
+  },
+  {
+    "id": "AR0170",
+    "title": "Roadmap 93: Option tables, every option with its meaning, and the tools each plugin runs",
+    "status": "planned",
+    "path": "spec/features/AR0170-roadmap-93-option-tables-every-option-with-its-meaning-and-the-tools-each-plugin-runs/ticket.md",
+    "updated": "2026-10-19T00:29:27.192Z"
   }
 ]

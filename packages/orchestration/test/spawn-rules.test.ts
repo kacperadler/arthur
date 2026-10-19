@@ -37,7 +37,7 @@ async function load(t: TestContext, options: OrchestrationOptions, steps: AgentR
 	// The arguments of each start of the agent, in order.
 	const starts = (): string[][] => {
 		const file = join(dirname(agent), "starts.jsonl");
-		return existsSync(file) ? readFileSync(file, "utf8").trim().split("\n").map((line) => JSON.parse(line).args) : [];
+		return existsSync(file) ? readFileSync(file, "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line).args) : []; // whole lines only
 	};
 	return { jobs: fake.host.jobs, home, release, records, starts, worktrees: join(dirname(root), ".arthur-worktrees") };
 }

@@ -25,7 +25,8 @@ function gates() {
 	return { at: (name: string) => join(folder, name), open: (name: string) => writeFileSync(join(folder, name), "") };
 }
 
-const lines = (file: string): Record<string, unknown>[] => (existsSync(file) ? readFileSync(file, "utf8").trim().split("\n").map((line) => JSON.parse(line)) : []);
+// Whole lines only: a line the agent is still appending has no line break yet.
+const lines = (file: string): Record<string, unknown>[] => (existsSync(file) ? readFileSync(file, "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line)) : []);
 const sorted = (folder: string) => (existsSync(folder) ? readdirSync(folder).sort() : []);
 
 // The plugin on a fake host with `projects` provided, if given, and its coordinator the fake agent playing `run` in a tmux

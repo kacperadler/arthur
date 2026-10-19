@@ -39,7 +39,7 @@ export type SpawnRequest = {
 	readonly ignoreRestart?: boolean;
 };
 
-// A spawn as `beforeSpawn` checks it: `tickets` holds every `Ticket:` file the task names, as written; `quick` is omp's `--smol`; `ignoreRestart` its `--ignore-restart` (session's restart guard); `modelWhy` why its model was picked (job-model.ts).
+// A spawn as `beforeSpawn` checks it: `tickets` holds every `Ticket:` file the task names, as written; `quick` is omp's `--smol`; `ignoreRestart` its `--ignore-restart` (session's restart guard); `modelWhy` why its model was picked (job-model.ts), `free` whether it costs nothing, its budget then 0.
 export type Spawn = {
 	readonly task: string;
 	readonly kind: string;
@@ -50,6 +50,7 @@ export type Spawn = {
 	readonly quick: string | undefined;
 	readonly timeoutMinutes: number;
 	readonly budgetUsd: number;
+	readonly free: boolean;
 	readonly tickets: readonly string[];
 	readonly machine: string;
 	readonly ignoreRestart: boolean;
@@ -145,8 +146,8 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 			const { timeoutMinutes, budgetUsd } = spawnLimits(request, kind, limits);
 			const asked = { task, kind: name, project, thinking, quick: preset.quick, timeoutMinutes, budgetUsd, tickets };
 			const machine = await machines.pick(request.machine, request.requires, () => collect("jobs.place", [{ ...asked, model: wanted, machine: request.machine, requires: request.requires }]));
-			const { free, ...picked } = await pickModel(collect, wanted, machine.name);
-			const spawn: Spawn = { ...asked, ...picked, budgetUsd: free ? 0 : budgetUsd, machine: machine.name, ignoreRestart: request.ignoreRestart === true };
+			const picked = await pickModel(collect, wanted, machine.name);
+			const spawn: Spawn = { ...asked, ...picked, budgetUsd: picked.free ? 0 : budgetUsd, machine: machine.name, ignoreRestart: request.ignoreRestart === true };
 			const caps = await jobCaps(collect("jobs.limits", [spawn]));
 			const release = await checks.pass(spawn);
 			try {

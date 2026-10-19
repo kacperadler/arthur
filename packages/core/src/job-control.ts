@@ -78,7 +78,7 @@ export async function continueJob(home: string, id: string, instruction: string,
 		if (worktree === undefined || (there === undefined && !existsSync(worktree))) throw new Error(`${id}: its worktree was pruned; spawn a new job on its branch ${branch}`);
 		checkLimits("continue", { budgetUsd });
 		const machine = field("machine") || "local";
-		release = await check({ task, kind, project, model, thinking, quick, machine, timeoutMinutes: Number(field("timeout")), budgetUsd: budgetUsd ?? Number(field("budget")) });
+		release = await check({ task, kind, project, model, thinking, quick, machine, timeoutMinutes: Number(field("timeout")), budgetUsd: budgetUsd ?? Number(field("budget")), free: field("free") === "true" });
 		const budget = budgetUsd === undefined ? [] : [String(budgetUsd)];
 		// A new scope of the job's name cannot start while a wrapper of the job still runs in it, and two wrappers never run for a
 		// job: one that runs on past the grace refuses the continue. Its `pid` goes, so `launch` waits for the new one's.

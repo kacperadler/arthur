@@ -1196,9 +1196,9 @@
   {
     "id": "AR0148",
     "title": "A throw in the session's 500 ms tick ends `arthur run`",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0148-a-throw-in-the-session-s-500-ms-tick-ends-arthur-run/ticket.md",
-    "updated": "2026-10-19T05:41:42.352Z"
+    "updated": "2026-10-19T06:02:04.911Z"
   },
   {
     "id": "AR0149",
@@ -1331,9 +1331,9 @@
   {
     "id": "AR0166",
     "title": "Roadmap 80: arthur doctor, checked at every start",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0166-roadmap-80-arthur-doctor-checked-at-every-start/ticket.md",
-    "updated": "2026-10-19T05:55:59.428Z"
+    "updated": "2026-10-19T06:09:56.755Z"
   },
   {
     "id": "AR0167",

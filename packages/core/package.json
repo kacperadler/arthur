@@ -12,6 +12,8 @@
     "./clock": "./src/clock.ts",
     "./env-guard": "./src/env-guard.ts",
     "./lock": "./src/lock.ts",
+    "./option-table": "./src/option-table.ts",
+    "./options": "./src/core-options.ts",
     "./plugin": "./src/plugin.ts",
     "./testing": "./src/testing.ts"
   }

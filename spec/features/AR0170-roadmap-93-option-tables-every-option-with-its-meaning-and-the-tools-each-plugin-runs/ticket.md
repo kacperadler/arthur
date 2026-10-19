@@ -32,3 +32,4 @@ Out:
 ## Decisions
 
 - 2026-10-19: The owner asked for a night plan for Arthur with Claude 7 Day usage up to 75%; entry 93 is next in order (depends on 23 and 41, built).
+- 2026-10-19: Worker: the Goal's "each plugin built so far" covers machines, resources, session and schedule too, built before this entry although its Package line names only orchestration and projects; each gets its table and `./options` here. Line budgets in `test/structure.test.ts` rise: core 4873 -> 4939 (+66), orchestration 1146 -> 1174 (+28), projects 320 -> 325 (+5), machines 375 -> 399 (+24), resources 401 -> 458 (+57), session 691 -> 722 (+31), schedule 497 -> 552 (+55), mostly the one-line meanings and defaults.

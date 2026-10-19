@@ -1,6 +1,7 @@
 import { basename, isAbsolute, normalize, sep } from "node:path";
 import { describe } from "@arthur/core";
-import { type Entry, entryProblems, isObject } from "./entry.ts";
+import { type Entry, isObject } from "./entry.ts";
+import { entryProblems } from "./schedule-options.ts";
 
 // The entries another plugin registers from its options (spec/roadmap.md, entry 40), through
 // `host.call("schedule.register", host.name, entries)`: each in the config's shape plus `option`, the path of the plugin's option

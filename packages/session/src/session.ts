@@ -6,6 +6,7 @@ import type { Host, OptionProblem, Options, Plugin } from "@arthur/core/plugin";
 import { alive, put, REQUEST, type Request, readRequest } from "./request.ts";
 import { registerRestart, restarts } from "./restart.ts";
 import { noteLoaded, registerGuard } from "./restart-guard.ts";
+import { table, time } from "./session-options.ts";
 import { startNotice, turnFailures } from "./start-notice.ts";
 
 // The session plugin (spec/roadmap.md, entries 35 to 38): the coordinator's conversation compacted at each `compactAt`, new at
@@ -27,8 +28,6 @@ export type SessionOptions = {
 };
 
 const EXTENSIONS = ["handoff-extension.ts", "turn-extension.ts"].map((file) => fileURLToPath(new URL(file, import.meta.url)));
-const OPTIONS = ["compactAt", "compactWaitSeconds", "freshAt", "freshRetryMinutes", "freshUntil", "restartGuard", "probeLlm"];
-const HH_MM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const TICK_MS = 500;
 
 export function session(options: SessionOptions = {}): Plugin {
@@ -89,18 +88,20 @@ function compactions(host: Host): () => void {
 	};
 }
 
+// Each unknown option, then each one given, in the order given, by `table` (session-options.ts); each item of `compactAt` at
+// its own path.
 export function checkOptions(options: Options): OptionProblem[] {
 	const problems: OptionProblem[] = Object.keys(options)
-		.filter((key) => !OPTIONS.includes(key))
-		.map((key) => ({ path: key, problem: `unknown option; options: ${OPTIONS.join(", ")}` }));
-	const { compactAt, compactWaitSeconds, freshRetryMinutes, restartGuard, probeLlm } = options;
-	if (compactAt !== undefined && !Array.isArray(compactAt)) problems.push({ path: "compactAt", problem: `expected a list of times "HH:MM", got ${describe(compactAt)}` });
-	const times = [...(Array.isArray(compactAt) ? compactAt : []).entries()].map(([index, time]) => [`compactAt[${index}]`, time] as const);
-	for (const [path, time] of [...times, ["freshAt", options.freshAt], ["freshUntil", options.freshUntil]] as const)
-		if ((path.startsWith("compactAt") || time !== undefined) && (typeof time !== "string" || !HH_MM.test(time))) problems.push({ path, problem: `expected a time "HH:MM" from 00:00 to 23:59, got ${describe(time)}` });
-	for (const [path, value, unit] of [["compactWaitSeconds", compactWaitSeconds, "seconds"], ["freshRetryMinutes", freshRetryMinutes, "minutes"]] as const)
-		if (value !== undefined && !(Number.isInteger(value) && (value as number) >= 1)) problems.push({ path, problem: `expected a whole number of ${unit} of at least 1, got ${describe(value)}` });
-	for (const [path, value] of [["restartGuard", restartGuard], ["probeLlm", probeLlm]] as const)
-		if (value !== undefined && typeof value !== "boolean") problems.push({ path, problem: `expected true or false, got ${describe(value)}` });
+		.filter((key) => !Object.hasOwn(table, key))
+		.map((key) => ({ path: key, problem: `unknown option; options: ${Object.keys(table).join(", ")}` }));
+	const wrong = (path: string, expected: string | undefined, value: unknown) => {
+		if (expected !== undefined) problems.push({ path, problem: `expected ${expected}, got ${describe(value)}` });
+	};
+	for (const [key, value] of Object.entries(options)) {
+		const entry = Object.hasOwn(table, key) ? table[key] : undefined;
+		if (entry === undefined || "fields" in entry || value === undefined) continue;
+		if (key === "compactAt" && Array.isArray(value)) value.forEach((each, index) => wrong(`compactAt[${index}]`, time(each), each));
+		else wrong(key, entry.check(value), value);
+	}
 	return problems;
 }

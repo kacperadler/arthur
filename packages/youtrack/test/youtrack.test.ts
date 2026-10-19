@@ -88,7 +88,10 @@ async function server(t: TestContext, issues = 3) {
 			const skip = Number(url.searchParams.get("$skip") ?? 0);
 			return all.slice(skip, skip + Number(url.searchParams.get("$top") ?? 42));
 		};
-		if (path === "/api/issues" && url.searchParams.get("query") === `project: ${project}`) return send(response, 200, page(Array.from({ length: acme ? 1 : issues }, (_, index) => issue(project, index + 1))));
+		// `#Unresolved` after the project leaves out the resolved issues, the even-numbered ones here.
+		const all = Array.from({ length: acme ? 1 : issues }, (_, index) => issue(project, index + 1));
+		if (path === "/api/issues" && url.searchParams.get("query") === `project: ${project}`) return send(response, 200, page(all));
+		if (path === "/api/issues" && url.searchParams.get("query") === `project: ${project} #Unresolved`) return send(response, 200, page(all.filter(({ resolved }) => resolved === null)));
 		if (path === "/api/issues/SHOP-1" && !acme && request.method === "POST") {
 			const [field] = body?.customFields ?? [];
 			if (field?.name === "Priority" && !PRIORITIES.includes(field.value.name ?? ""))
@@ -167,7 +170,7 @@ async function refusal(run: Promise<unknown>): Promise<string> {
 test("an unnamed and a named instance side by side: each project reads its own server with its own token", async (t) => {
 	const { url, seen } = await server(t);
 	const run = await load(t, envFor(url));
-	assert.deepEqual(await run(undefined, "issue", "list"), { code: 0, out: "SHOP-1 Issue 1\nSHOP-2 Issue 2 (resolved)\nSHOP-3 Issue 3", err: "" });
+	assert.deepEqual(await run(undefined, "issue", "list", "--all"), { code: 0, out: "SHOP-1 Issue 1\nSHOP-2 Issue 2 (resolved)\nSHOP-3 Issue 3", err: "" });
 	assert.deepEqual(await run("site", "issue", "list"), { code: 0, out: "SITE-1 Issue 1", err: "" });
 	assert.deepEqual(await run("site", "article", "list"), { code: 0, out: "no articles in YouTrack project SITE", err: "" });
 	assert.deepEqual(
@@ -181,16 +184,33 @@ test("an unnamed and a named instance side by side: each project reads its own s
 	assert.deepEqual(Object.fromEntries(seen[0]?.params ?? []), { fields: "idReadable,summary,resolved", query: "project: SHOP", $top: "100", $skip: "0" });
 });
 
+test("issue list shows the unresolved issues by default, and every issue with --all, which no other verb takes", async (t) => {
+	const { url, seen } = await server(t);
+	const run = await load(t, envFor(url));
+	assert.deepEqual(await run(undefined, "issue", "list"), { code: 0, out: "SHOP-1 Issue 1\nSHOP-3 Issue 3", err: "" });
+	assert.deepEqual(await run(undefined, "issue", "list", "--all"), { code: 0, out: "SHOP-1 Issue 1\nSHOP-2 Issue 2 (resolved)\nSHOP-3 Issue 3", err: "" });
+	assert.deepEqual(seen.map(({ params }) => params.get("query")), ["project: SHOP #Unresolved", "project: SHOP"]);
+	seen.length = 0;
+	for (const args of [["article", "list", "--all"], ["issue", "get", "SHOP-1", "--all"], ["issue", "work", "SHOP-1", "30", "--all"]]) {
+		const { code, err } = await run(undefined, ...args);
+		assert.deepEqual([code, err.startsWith("usage: arthur youtrack issue list [--all]|get <id>")], [2, true], args.join(" "));
+	}
+	assert.deepEqual(seen, []);
+	const none = await load(t, envFor((await server(t, 0)).url));
+	assert.deepEqual(await none(undefined, "issue", "list"), { code: 0, out: "no unresolved issues in YouTrack project SHOP", err: "" });
+	assert.deepEqual(await none(undefined, "issue", "list", "--all"), { code: 0, out: "no issues in YouTrack project SHOP", err: "" });
+});
+
 test("a list is read past its first page, page by page, until a page holds fewer than 100", async (t) => {
 	const { url, seen } = await server(t, 230);
 	const run = await load(t, envFor(url));
-	const { out } = await run(undefined, "issue", "list");
+	const { out } = await run(undefined, "issue", "list", "--all");
 	const lines = out.split("\n");
 	assert.equal(lines.length, 230);
 	assert.deepEqual([lines[0], lines[100], lines[229]], ["SHOP-1 Issue 1", "SHOP-101 Issue 101", "SHOP-230 Issue 230 (resolved)"]);
 	assert.deepEqual(seen.map(({ params }) => params.get("$skip")), ["0", "100", "200"]);
 	const exact = await server(t, 100);
-	await (await load(t, envFor(exact.url)))(undefined, "issue", "list");
+	await (await load(t, envFor(exact.url)))(undefined, "issue", "list", "--all");
 	assert.deepEqual(exact.seen.map(({ params }) => params.get("$skip")), ["0", "100"], "a full last page asks once more");
 });
 
@@ -275,6 +295,7 @@ test("wrong usage prints the usage line and exits 2", async (t) => {
 		["issue"],
 		["issue", "get"],
 		["issue", "list", "SHOP-1"],
+		["issue", "list", "--all", "SHOP-1"],
 		["issue", "get", "SHOP-1", "more"],
 		["comment", "list"],
 		["issue", "delete", "SHOP-1"],
@@ -292,7 +313,7 @@ test("wrong usage prints the usage line and exits 2", async (t) => {
 	];
 	for (const args of wrong) {
 		const { code, err } = await run(undefined, ...args);
-		assert.deepEqual([code, err.startsWith("usage: arthur youtrack issue list|get <id>")], [2, true], args.join(" "));
+		assert.deepEqual([code, err.startsWith("usage: arthur youtrack issue list [--all]|get <id>")], [2, true], args.join(" "));
 	}
 	assert.deepEqual(seen, []);
 });

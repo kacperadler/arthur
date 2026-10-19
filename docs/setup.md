@@ -99,11 +99,9 @@ arthur config check
 
 ## 7. Each project's board
 
-Arthur reads a project's tickets from its board, `spec/build.json` in the project's repository. A missing board reads as an empty one, and the first `arthur ticket new <title>` writes it (see `arthur ticket --help`).
+Arthur reads a project's tickets from its board, `spec/build.json` in the project's repository, and its roles read the project's vision and criteria files. For a repository without a board, `arthur init <project>` writes them: the vision and criteria skeletons, an `.nvmrc` and an empty board, each only where nothing is there yet (see `arthur init --help`); `arthur doctor` lists every project without a board, with that fix. Commit what it wrote, then `arthur spawn --kind onboarding --project <project> 'Onboard <project>.'` starts the onboarding: it reads the repository, asks the owner up to 10 questions through the coordinator, and drafts the vision and criteria on its branch. A repository with tickets already has its board: `arthur init` refuses it.
 
-Not built yet (roadmap entry 42): `arthur init <project>`, which gives a repository the `spec/` skeleton, the criteria files and an empty board, and an onboarding job that drafts the project's vision and criteria. Until then, nothing else is needed: the board starts empty.
-
-**Check:** `arthur board` prints `the board is empty` for a new project, or its tickets; `arthur board --project <name>` for another project.
+**Check:** `arthur doctor` prints `projects <project> board: ok` for each project, and `arthur board` prints `the board is empty` for a new project, or its tickets; `arthur board --project <name>` for another project.
 
 ## 8. Tell systemd where node and omp are
 

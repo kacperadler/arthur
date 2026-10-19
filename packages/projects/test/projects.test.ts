@@ -190,14 +190,17 @@ test("arthur projects and /projects: each line, folder, open tickets and install
 	assert.equal(await command?.run({ args: ["all"], project: undefined }), 2);
 });
 
-test("doctor: a project with an about is ok; one without is a non-critical miss, with its costs and fix", async () => {
-	const fake = await load({ list: [{ name: "web-shop", prefix: "SH", path: repository(), about: "Online shop." }, { name: "blog", prefix: "BL", path: repository() }] });
+test("doctor: a project with an about and a board is ok; one without either is a non-critical miss each, with its costs and fix", async () => {
+	const fake = await load({ list: [{ name: "web-shop", prefix: "SH", path: repository({ "spec/build.json": "[]\n" }), about: "Online shop." }, { name: "blog", prefix: "BL", path: repository() }] });
 	const [requirements] = fake.collect<readonly { name: string; check: () => string; costs: string; fix: string; critical: boolean }[]>("doctor");
+	const about = "the coordinator knows it only by prefix, name and title";
 	assert.deepEqual(
 		requirements?.map((each) => [each.name, each.check(), each.costs, each.fix, each.critical]),
 		[
-			["web-shop about", "ok", "the coordinator knows it only by prefix, name and title", "add about to project web-shop in arthur.config.ts", false],
-			["blog about", "missing: no about", "the coordinator knows it only by prefix, name and title", "add about to project blog in arthur.config.ts", false],
+			["web-shop about", "ok", about, "add about to project web-shop in arthur.config.ts", false],
+			["web-shop board", "ok", "no tickets for web-shop", "arthur init web-shop", false],
+			["blog about", "missing: no about", about, "add about to project blog in arthur.config.ts", false],
+			["blog board", "missing: no spec/build.json", "no tickets for blog", "arthur init blog", false],
 		],
 	);
 });

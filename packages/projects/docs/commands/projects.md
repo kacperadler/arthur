@@ -42,6 +42,8 @@ Refused at load, each refusal naming the project: a missing `name` or `prefix`; 
 
 A missing clone is made at load: into a temporary name, renamed when whole, so a clone that fails names the project and leaves no folder. A folder there already that is a clone of another `origin` is refused and left as it is; one of the same `origin` is used as it is.
 
+A project's repository without a board, `spec/build.json`, gets what Arthur reads from `arthur init <project>`: the vision and criteria skeletons, an `.nvmrc` and an empty board; then an onboarding job drafts its vision and criteria (`arthur init --help`). `arthur doctor` names each project without a board (`projects <name> board: missing: no spec/build.json`, not critical).
+
 Each load that succeeds keeps the list's names and folders in `<home>/projects/checkouts`, a line `<name> <folder>` each, rewritten whole only when they changed. Every running job's worktree guard reads it on each tool call, so a project added to the list (and loaded, as by `arthur projects`) is refused to every other project's job at once, not from its next spawn.
 
 ## The coordinator's context

@@ -1203,9 +1203,9 @@
   {
     "id": "AR0149",
     "title": "The free-resources check runs on its own 60 s timer, not at each machines check",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0149-the-free-resources-check-runs-on-its-own-60-s-timer-not-at-each-machines-check/ticket.md",
-    "updated": "2026-10-19T16:14:24.718Z"
+    "updated": "2026-10-19T18:46:33.726Z"
   },
   {
     "id": "AR0150",
@@ -1688,8 +1688,15 @@
   {
     "id": "AR0217",
     "title": "A ticket's memory cap can be stretched by swap",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0217-a-ticket-s-memory-cap-can-be-stretched-by-swap/ticket.md",
-    "updated": "2026-10-19T17:47:56.816Z"
+    "updated": "2026-10-19T18:46:41.614Z"
+  },
+  {
+    "id": "AR0218",
+    "title": "With check.everySeconds above 120 a spawn between rounds still checks a listed machine over ssh itself",
+    "status": "planned",
+    "path": "spec/features/AR0218-with-check-everyseconds-above-120-a-spawn-between-rounds-still-checks-a-listed-machine-over-ssh-itself/ticket.md",
+    "updated": "2026-10-19T18:46:41.815Z"
   }
 ]

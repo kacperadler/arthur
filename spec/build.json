@@ -1541,9 +1541,9 @@
   {
     "id": "AR0196",
     "title": "Roadmap 84: nvm, each project's Node version",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0196-roadmap-84-nvm-each-project-s-node-version/ticket.md",
-    "updated": "2026-10-19T14:00:49.838Z"
+    "updated": "2026-10-19T14:13:25.479Z"
   },
   {
     "id": "AR0197",
@@ -1590,9 +1590,9 @@
   {
     "id": "AR0203",
     "title": "Arthur is Apache-2.0, with NOTICE, trademark and DCO",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0203-arthur-is-apache-2-0-with-notice-trademark-and-dco/ticket.md",
-    "updated": "2026-10-19T13:59:33.381Z"
+    "updated": "2026-10-19T14:07:20.014Z"
   },
   {
     "id": "AR0204",

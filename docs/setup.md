@@ -113,7 +113,7 @@ printf 'PATH=%s:%s/.local/bin:/usr/local/bin:/usr/bin:/bin\n' "$(dirname "$(whic
 cat ~/.config/arthur.env
 ```
 
-It prints something like `PATH=/home/<user>/.nvm/versions/node/v24.21.0/bin:/home/<user>/.local/bin:/usr/local/bin:/usr/bin:/bin`. Run the `printf` again after `nvm install` switches Node to a new version, then restart the service. A tool a project's jobs need, such as `bun` for a project's install, goes on this `PATH` (`~/.local/bin` is on it), and at the top of `~/.bashrc` on another machine (step 3 of [Another machine for jobs](deploy.md#another-machine-for-jobs)); a project's Node version comes from its `.nvmrc` once the nvm plugin (roadmap 84) is on.
+It prints something like `PATH=/home/<user>/.nvm/versions/node/v24.21.0/bin:/home/<user>/.local/bin:/usr/local/bin:/usr/bin:/bin`. Run the `printf` again after `nvm install` switches Node to a new version, then restart the service. A tool a project's jobs need, such as `bun` for a project's install, goes on this `PATH` (`~/.local/bin` is on it), and at the top of `~/.bashrc` on another machine (step 3 of [Another machine for jobs](deploy.md#another-machine-for-jobs)); a project's Node version comes from its `.nvmrc` when the nvm plugin is on (`nvm()` in the plugin list, before `projects`; `packages/nvm/docs/nvm.md`), which runs each of its jobs on the Node nvm has installed for that version, on each machine.
 
 **Check:** with nothing but that file's `PATH`, both are found:
 

@@ -66,14 +66,15 @@ export function machineRegistry(home: string) {
 			return found.machine;
 		},
 		others: (): Machine[] => [...machines.values()].map((entry) => entry.machine).filter((machine) => machine.name !== LOCAL),
-		// `host.jobs.run`: `argv` on the machine, here for `local`, else over SSH with each word quoted for the shell there.
-		// ssh's own failure is its exit code 255 and its line on stderr; past `limitSeconds` it is killed (`execute`).
-		async run(name: string, argv: readonly string[], limitSeconds?: number): Promise<Ran> {
+		// `host.jobs.run`: `argv` on the machine, here for `local`, else over SSH with each word quoted for the shell there; `input`
+		// on its stdin, which keeps a secret out of every process list. ssh's own failure is its exit code 255 and its line on
+		// stderr; past `limitSeconds` it is killed (`execute`).
+		async run(name: string, argv: readonly string[], limitSeconds?: number, input = ""): Promise<Ran> {
 			if (typeof name !== "string") throw new Error(`run: a machine name, got ${JSON.stringify(name)}`);
 			if (!Array.isArray(argv) || argv.length === 0 || !argv.every((word) => typeof word === "string")) throw new Error("run: argv must be a non-empty list of words");
 			if (limitSeconds !== undefined && !(limitSeconds > 0)) throw new Error(`run: limitSeconds must be above 0, got ${JSON.stringify(limitSeconds)}`);
 			const machine = await this.pick(name, undefined, () => []);
-			return execute(machine.name === LOCAL ? argv : ["ssh", ...OPTIONS, machine.ssh, argv.map(quote).join(" ")], "", limitSeconds);
+			return execute(machine.name === LOCAL ? argv : ["ssh", ...OPTIONS, machine.ssh, argv.map(quote).join(" ")], input, limitSeconds);
 		},
 	};
 }

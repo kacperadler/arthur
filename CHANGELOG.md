@@ -11,6 +11,8 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0174 Roadmap: a decision log of what the owner decided when Arthur asked (8b7a138)
 - AR0179 Roadmap 94: arthur setup, what is there, what is set, what is missing (f3f1b88)
 - AR0181 Roadmap 42: Onboarding a repository (9239fdd)
+- AR0187 Roadmap 82: models on other machines, and a fallback chain (bb71f18)
+- AR0189 Roadmap 44: YouTrack instances and reading (2bda2a3)
 
 ### Fixed
 

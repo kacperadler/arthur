@@ -32,9 +32,19 @@ export async function jobCaps(answers: readonly unknown[]): Promise<Caps> {
 	return { cpu, memory, ...(feature === undefined ? {} : { feature: { name: feature.name, cpu: feature.cpu, memory: feature.memory } }) };
 }
 
-// Starts the wrapper of `job` (`agent`: `core.agent.command`); returns why it did not start, which ended the job `failed`.
-// A job with caps that runs bare tells `uncapped` why.
-export async function launch(home: string, job: Pick<Job, "id" | "kind" | "project">, agent: string, jobs: Slice, bus: Bus, uncapped: (why: string) => void): Promise<string | undefined> {
+// What a prepare of plugin `owner` returned: nothing, or the variables it adds to the job's environment, each a name and a text;
+// a value is never named in a refusal. `ARTHUR_AGENT_MODEL` is the model the agent is given in place of the record's (wrapper.ts).
+export function jobEnv(owner: string, value: unknown): Readonly<Record<string, string>> {
+	if (value === undefined) return {};
+	const entries: [string, unknown][] = typeof value === "object" && value !== null && !Array.isArray(value) ? Object.entries(value) : [["", value]];
+	if (entries.some(([name, text]) => !/^[A-Za-z_][A-Za-z0-9_]*$/.test(name) || typeof text !== "string"))
+		throw new Error(`plugin ${owner}: prepare must return nothing or the job's variables, each a name of letters, digits and _ with a text`);
+	return value as Readonly<Record<string, string>>;
+}
+
+// Starts the wrapper of `job` (`agent`: `core.agent.command`) with `env`, the variables the prepares returned, over Arthur's
+// own environment; returns why it did not start, which ended the job `failed`. A job with caps that runs bare tells `uncapped` why.
+export async function launch(home: string, job: Pick<Job, "id" | "kind" | "project">, agent: string, jobs: Slice, bus: Bus, uncapped: (why: string) => void, env: Readonly<Record<string, string>> = {}): Promise<string | undefined> {
 	const { id } = job;
 	const wrapper = [process.execPath, join(import.meta.dirname, "wrapper.ts"), home, id, agent];
 	const [cpu = "", memory = "", feature = "", featureCpu = "", featureMemory = ""] = ["cpu", "memory", "feature", "feature-cpu", "feature-memory"].map(field(home, id));
@@ -53,7 +63,7 @@ export async function launch(home: string, job: Pick<Job, "id" | "kind" | "proje
 	const output = openSync(log, "a");
 	let child: ChildProcess;
 	try {
-		child = spawn(command, args, { detached: true, stdio: ["ignore", output, bare === undefined ? "pipe" : output] });
+		child = spawn(command, args, { detached: true, env: { ...process.env, ARTHUR_AGENT_MODEL: undefined, ...env }, stdio: ["ignore", output, bare === undefined ? "pipe" : output] });
 	} finally {
 		closeSync(output);
 	}

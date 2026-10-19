@@ -215,3 +215,16 @@ test("an option but enabled is refused", () => {
 	assert.deepEqual(checkOptions({}), []);
 	assert.deepEqual(checkOptions({ version: "24" }), [{ path: "version", problem: "unknown option; nvm has no options but enabled" }]);
 });
+
+test("listed after projects, whose project list is there before its setup, nvm refuses the load; listed before, it loads", async () => {
+	const after = fakeHost({ name: "nvm" });
+	after.provide("projects", () => []);
+	await assert.rejects(after.setup(nvm()), {
+		message: "nvm is listed after projects, whose install would then run before nvm's PATH exists; list nvm() before projects in the plugins of arthur.config.ts",
+	});
+	assert.deepEqual(after.provided, [], "nothing of nvm is registered");
+	const before = fakeHost({ name: "nvm" });
+	await before.setup(nvm());
+	before.provide("projects", () => []);
+	assert.deepEqual(before.provided, ["doctor"]);
+});

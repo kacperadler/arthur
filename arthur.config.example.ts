@@ -114,6 +114,9 @@ export default defineConfig({
 				mac: { kind: "ollama", url: "http://mac-mini.tail1234.ts.net:11434" },
 			},
 			probeSeconds: 3, // a server that has not listed its models by then is unavailable; default 3
+			// `arthur usage` (`/usage`): each account's windows from `omp usage --json`. A built-in model whose provider's window is at
+			// `stopAt` % is skipped in a list; a window at `warnAt` % is named on the spawn line and in the coordinator's context
+			limits: { warnAt: 80, stopAt: 95 },
 		}),
 
 		// The machines jobs run on. `local` is the one Arthur and the coordinator run on; its os and arch are detected. The others

@@ -29,3 +29,4 @@ Since AR0161, `host.code` takes each plugin's package from its own module, but `
 ## Decisions
 
 - 2026-10-19: Source: F1 of AR0161. Approved under the owner's word of the same day: findings are built in batches; built with AR0218.
+- 2026-10-19: The owner: finish what is in progress today, on the usage there is now (85%).

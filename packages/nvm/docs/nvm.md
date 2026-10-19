@@ -14,7 +14,7 @@ Its `prepare` runs one command on the job's machine through `host.jobs.run` (ove
 
 1. No `.nvmrc` in the worktree: nothing more; the job gets no variable and runs on the machine's default Node.
 2. The version is the file's first line that is neither blank nor a `#` comment, its spaces trimmed: `24`, `v24.21.0`, `lts/iron`.
-3. `. "$NVM_DIR/nvm.sh" && nvm which <version>`, with `~/.nvm` when `NVM_DIR` is not set (a command over SSH and a systemd service see none). nvm only looks: nothing is downloaded during a spawn.
+3. `. "$NVM_DIR/nvm.sh" && nvm which <version>`, `NVM_DIR` set to `~/.nvm`, nvm's default, when it is not set: a command over SSH and a systemd service see none, and nvm sourced by `sh` cannot guess it. nvm only looks: nothing is downloaded during a spawn.
 4. The folder of the node it names goes first on the job's `PATH`: `PATH=<that folder>:<the PATH before>`, the PATH before being the one a prepare before nvm's returned, else the machine's own as a command there sees it. The variable goes into the environment the wrapper and the agent run with, never the record. Each prepare after nvm's gets it as `env.PATH`; prepares run in setup order, which is the config's (required plugins first), so list `nvm()` before a plugin whose prepare must run under that Node.
 
 Refused, the spawn ending with `plugin nvm: prepare failed: <reason>; the job's worktree and record were removed`:

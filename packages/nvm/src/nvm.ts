@@ -9,8 +9,9 @@ import { checkOptions } from "./nvm-options.ts";
 // One call on a machine: nvm.sh sourced and asked, nothing downloaded.
 const LIMIT_SECONDS = 30;
 
-// nvm from `$NVM_DIR`, else nvm's own default `~/.nvm`: a command over ssh and a systemd service have no NVM_DIR. Exit 5 without it.
-const NVM = 'dir=${NVM_DIR:-$HOME/.nvm}; [ -s "$dir/nvm.sh" ] || { echo "no $dir/nvm.sh" >&2; exit 5; }; . "$dir/nvm.sh" >/dev/null; command -v nvm >/dev/null || { echo "$dir/nvm.sh defines no nvm" >&2; exit 5; }';
+// nvm from `$NVM_DIR`, else nvm's own default `~/.nvm`: a command over ssh and a systemd service have no NVM_DIR, and nvm.sh
+// sourced by dash finds none of its versions without it. Exit 5 without nvm.
+const NVM = 'export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"; [ -s "$NVM_DIR/nvm.sh" ] || { echo "no $NVM_DIR/nvm.sh" >&2; exit 5; }; . "$NVM_DIR/nvm.sh" >/dev/null; command -v nvm >/dev/null || { echo "$NVM_DIR/nvm.sh defines no nvm" >&2; exit 5; }';
 
 // In the worktree `$1`: nothing without `.nvmrc`; else the version, its first line that is neither blank nor a comment, then the
 // PATH before nvm's, then what `nvm which` prints, the node last. Exit 3: unreadable, 4: no version, 5: no nvm, 6: not installed.

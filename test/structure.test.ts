@@ -108,7 +108,10 @@ import { checkStructure } from "./structure.ts";
 // AR0189 (roadmap 44): youtrack: 251, set for its instances and their variables checked at load, each project's tracker
 // checked against them, the REST reading with its one-line errors and paging, and `arthur youtrack issue|article list|get`;
 // a new package, so nothing was cut elsewhere; core unchanged.
-const BUDGETS = { core: 5448, "core/testing": 344, projects: 473, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 251 };
+// AR0196 (roadmap 84): nvm: 81, set for its prepare (the worktree's .nvmrc read and `nvm which` asked on the job's machine, in
+// one call, each refusal) and its doctor line per machine; a new package, so nothing was cut elsewhere; core unchanged in
+// lines: a prepare's second argument, the variables of the prepares before it, took no new line.
+const BUDGETS = { core: 5448, "core/testing": 344, projects: 473, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 251, nvm: 81 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

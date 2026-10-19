@@ -156,8 +156,15 @@ import { checkStructure } from "./structure.ts";
 // AR0186: `arthur init` writes a criteria skeleton per name the registered roles read; core 4 more (5452 alone) for
 // `host.jobs.criteria()` (roles.ts, plugin.ts), projects 5 more (480) for the title-only skeleton of a name it ships none for.
 // Merged with main: core 5451 + 4 (AR0186) = 5455, projects 480, machines 446.
+// The resources batch (AR0145, AR0146, AR0147, AR0150, AR0171): core 31 more (5479): AR0145 10 for `arthur continue` asking
+// `jobs.limits` again and writing the caps into the record here and there (`capFields`, the check's answer, the caps argument
+// of `remote-job continue`), AR0146 1 for the notice of a job with only its ticket's caps, AR0147 20 for the ticket slice's
+// `memory.events.local` read beside the scope's `oom_kill`, the reason naming the ticket, and `OOMPolicy=continue` for a job
+// with the ticket's memory cap alone; cut first: the wrapper's two reads of the record's caps folded into one line. resources
+// 9 more (467), AR0150, for the busy cores sampled over a second from `cpus()`, here and in the `node -e` script there.
+// Merged with main: core 5455 + 31 = 5486, resources 458 + 9 = 467.
 // Merged with AR0212: telegram 401 as above; the rest as main has them.
-const BUDGETS = { core: 5455, "core/testing": 349, projects: 480, orchestration: 1381, machines: 446, resources: 458, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 401 };
+const BUDGETS = { core: 5486, "core/testing": 349, projects: 480, orchestration: 1381, machines: 446, resources: 467, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 401 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

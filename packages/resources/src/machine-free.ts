@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { availableParallelism, freemem, loadavg, totalmem } from "node:os";
+import { availableParallelism, cpus, freemem, totalmem } from "node:os";
+import { setTimeout as sleep } from "node:timers/promises";
 import { join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
 
@@ -7,20 +8,28 @@ import type { Host } from "@arthur/core/plugin";
 // the core's SSH on another machine. Each check is kept in `<folder>/machines/<name>.json`, so every process (`arthur run`,
 // `arthur spawn`, the coordinator's context) reads the same one: docs/resources.md, "How many jobs run".
 
-// What one check found: the machine's cores, its 1-minute load average, its free and total memory in bytes; or why it failed.
-// `jobs` are the jobs in a run on it as the check began: what the numbers already hold.
+// What one check found: the machine's cores, the cores its processes kept busy over one second (`load`), its free and total
+// memory in bytes; or why it failed. `jobs` are the jobs in a run on it as the check began: what the numbers already hold.
 export type Measured = { readonly cores: number; readonly load: number; readonly free: number; readonly total: number };
 export type Sample = { readonly at: string; readonly jobs: readonly string[] } & (Measured | { readonly error: string });
 
 // A check is cut after this, its ssh killed.
 const LIMIT_SECONDS = 10;
-const SCRIPT = 'const os = require("node:os"); console.log(JSON.stringify({ cores: os.availableParallelism(), load: os.loadavg()[0], free: os.freemem(), total: os.totalmem() }))';
+// The busy cores are the CPU time all cores spent running (user, nice, sys, irq) over this long, per millisecond: idle time
+// and, on Linux, a wait on disk are not in it, though the load average counts such a wait.
+const SAMPLE_MS = 1000;
+const SCRIPT = `const os = require("node:os"); const busy = () => os.cpus().reduce((sum, { times: t }) => sum + t.user + t.nice + t.sys + t.irq, 0); const [before, start] = [busy(), performance.now()]; setTimeout(() => console.log(JSON.stringify({ cores: os.availableParallelism(), load: Math.max(0, (busy() - before) / (performance.now() - start)), free: os.freemem(), total: os.totalmem() })), ${SAMPLE_MS})`;
+const busy = () => cpus().reduce((sum, { times: t }) => sum + t.user + t.nice + t.sys + t.irq, 0);
 
 const number = (value: unknown, least: number) => typeof value === "number" && Number.isFinite(value) && value >= least;
 const measured = (value: Readonly<Record<string, unknown>>): value is Measured => number(value.cores, 1) && number(value.load, 0) && number(value.free, 0) && number(value.total, 1);
 
 async function measure(host: Host, name: string): Promise<Measured | { readonly error: string }> {
-	if (name === "local") return { cores: availableParallelism(), load: loadavg()[0] ?? 0, free: freemem(), total: totalmem() };
+	if (name === "local") {
+		const [before, start] = [busy(), performance.now()];
+		await sleep(SAMPLE_MS);
+		return { cores: availableParallelism(), load: Math.max(0, (busy() - before) / (performance.now() - start)), free: freemem(), total: totalmem() };
+	}
 	const ran = await host.jobs.run(name, ["node", "-e", SCRIPT], LIMIT_SECONDS);
 	const said = ran.stderr.trim().split("\n").at(-1) || `exit code ${ran.code}`;
 	if (ran.code === null) return { error: `check timed out after ${LIMIT_SECONDS} s` };

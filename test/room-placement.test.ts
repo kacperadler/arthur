@@ -46,7 +46,7 @@ async function load(t: TestContext, maxAgents: number) {
 	const gate = join(temporaryFolder(), "gate");
 	process.env.PATH = [bin, dirname(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] })), saved].join(delimiter);
 	let localFree = 0;
-	t.mock.method(os, "loadavg", () => [os.availableParallelism() - 1, 0, 0]);
+	t.mock.method(os, "cpus", () => [{ model: "fake", speed: 1000, times: { user: (os.availableParallelism() - 1) * performance.now(), nice: 0, sys: 0, idle: 0, irq: 0 } }]);
 	t.mock.method(os, "freemem", () => localFree);
 	syncBuiltinESMExports();
 	t.after(() => {

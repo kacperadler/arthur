@@ -115,7 +115,11 @@ import { checkStructure } from "./structure.ts";
 // version check, a custom field set in the shape its type takes, a work item, and the POST in the API call; cut first: the
 // usage line to one, and the article's version a word instead of a `--version` flag with its own parsing (7 lines).
 // AR0195: youtrack 2 more (363) for `issue list` unresolved by default and `--all`; its query inlined first (1 line).
-const BUDGETS = { core: 5448, "core/testing": 344, projects: 473, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 363, "commit-rules": 168 };
+// AR0196 (roadmap 84): nvm: 84, set for its prepare (the worktree's .nvmrc read and `nvm which` asked on the job's machine, in
+// one call, each refusal), its doctor line per machine and its refusal to load after projects; a new package, so nothing was
+// cut elsewhere; core unchanged in lines: a prepare's second argument, the variables of the prepares before it, took no new
+// line. projects 2 more (475), by the ticket's decision, for its install run with the PATH the prepares before it returned.
+const BUDGETS = { core: 5448, "core/testing": 344, projects: 475, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 363, "commit-rules": 168, nvm: 84 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

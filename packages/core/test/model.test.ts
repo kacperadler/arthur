@@ -91,12 +91,14 @@ test("a pick that refuses, answers a model outside the list, or is provided twic
 	assert.deepEqual(records(home), [none.id]);
 });
 
-test("a prepare's variables reach the agent's environment, never the record; ARTHUR_AGENT_MODEL is the agent's --model; a bad answer refuses", async () => {
+test("a prepare's variables reach the agent's environment and each later prepare, never the record; ARTHUR_AGENT_MODEL is the agent's --model; a bad answer refuses", async () => {
 	const { root, home, agent, env, args } = setup();
 	const jobs = runner(home, root, agent);
+	const seen: Readonly<Record<string, string>>[] = [];
+	jobs.prepare("first", (_job, before) => void seen.push(before));
 	jobs.prepare("models", (() => ({ OLLAMA_BASE_URL: "http://127.0.0.1:11434", OLLAMA_API_KEY: "s3cr3t-key", ARTHUR_AGENT_MODEL: "ollama/qwen3" })) as Prepare);
-	jobs.prepare("other", () => ({ OLLAMA_BASE_URL: "http://10.0.0.7:11434" }));
-	jobs.prepare("none", () => undefined);
+	jobs.prepare("other", (_job, before) => (seen.push(before), { OLLAMA_BASE_URL: "http://10.0.0.7:11434" }));
+	jobs.prepare("none", (_job, before) => void seen.push(before));
 	const job = await jobs.spawn({ task: "Go.", model: "mac/qwen3" });
 	assert.equal(await ended(home, job.id), "finished");
 	assert.equal(modelOf(args()[0] ?? []), "ollama/qwen3");
@@ -105,6 +107,11 @@ test("a prepare's variables reach the agent's environment, never the record; ART
 	assert.equal(read(home, job.id, "model"), "mac/qwen3");
 	const files = readdirSync(join(home, "jobs", job.id), { withFileTypes: true }).filter((entry) => entry.isFile());
 	assert.deepEqual(files.filter((entry) => read(home, job.id, entry.name).includes("s3cr3t-key")).map((entry) => entry.name), []);
+	assert.deepEqual(seen, [
+		{},
+		{ OLLAMA_BASE_URL: "http://127.0.0.1:11434", OLLAMA_API_KEY: "s3cr3t-key", ARTHUR_AGENT_MODEL: "ollama/qwen3" },
+		{ OLLAMA_BASE_URL: "http://10.0.0.7:11434", OLLAMA_API_KEY: "s3cr3t-key", ARTHUR_AGENT_MODEL: "ollama/qwen3" },
+	], "each prepare gets what the ones before it returned, a later name replacing an earlier");
 
 	for (const answer of [{ "1BAD": "s3cr3t-key" }, { GOOD: 7 }, "s3cr3t-key", ["s3cr3t-key"]]) {
 		const bad = runner(home, root, agent);

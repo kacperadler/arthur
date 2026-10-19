@@ -26,14 +26,16 @@ export function installCommand(project: Installs, root: string, commit: string):
 	return found[0] === undefined ? "" : (LOCKFILES[found[0]] ?? "");
 }
 
-// The `prepare` of every kind: the install runs in the job's worktree, on the job's machine; one that fails refuses the spawn.
+// The `prepare` of every kind: the install runs in the job's worktree, on the job's machine, with the PATH a prepare before it
+// returned (the nvm plugin's Node first); one that fails refuses the spawn.
 export function installStep(host: Host, list: readonly Installs[]): Prepare {
-	return async (job) => {
+	return async (job, env) => {
 		const project = list.find((each) => each.name === job.project);
 		if (project === undefined) return;
 		const command = installCommand(project, job.root, job.base);
 		if (command === "") return;
-		const ran = await host.jobs.run(job.machine, ["sh", "-c", 'cd "$1" && exec sh -c "$2"', "install", job.worktree, command]);
+		const script = 'cd "$1" || exit; if [ -n "$3" ]; then export PATH="$3"; fi; exec sh -c "$2"';
+		const ran = await host.jobs.run(job.machine, ["sh", "-c", script, "install", job.worktree, command, env.PATH ?? ""]);
 		if (ran.code === 0) return;
 		const last = (ran.stderr.trim() || ran.stdout.trim()).split("\n").at(-1);
 		throw new Error(`project ${project.name}: install \`${command}\` exited ${ran.code ?? "on a signal"}${last ? `: ${last}` : ""}`);

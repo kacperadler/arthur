@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/resources/src/room.ts` (`fresh`, `2 * CHECK_SECONDS`)
 - What: a listed machine's free CPU and memory now come with each `machines` round (`machines.round`), but `fresh` still counts a check older than 120 s as stale. With `machines`' `check.everySeconds: 300`, a spawn, placement or `arthur resources` 2 to 5 minutes after a round runs the resources plugin's own `node -e` over ssh to that machine, a second ssh call between rounds.
 - Suggestion: carry the round's cadence in `machines.round` (or keep it with the sample), so a sample a round kept counts fresh until twice `check.everySeconds`; the on-demand check stays for a missing sample and for processes without rounds (`arthur spawn`, `arthur resources` from a shell). Out: how the room is computed.
-- Status: open
+- Status: ticket AR0218

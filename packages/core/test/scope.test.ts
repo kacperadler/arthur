@@ -136,6 +136,15 @@ test("without a user manager the job runs bare, its log saying so in one line, a
 	assert.deepEqual(readEvents(home, 1).filter((event) => event.name === "notice"), []);
 });
 
+test("without a user manager a job with only its ticket's caps runs bare, and the machine is told once that they are not held", async (t) => {
+	noManager(t);
+	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }), jobSlice, () => [{ feature: { name: "AC0001", cpu: 1, memory: "1G" } }]);
+	for (const task of ["One.", "Two."]) assert.equal(await endedWith(home, (await jobs.spawn({ task })).id), "finished");
+	const notices = readEvents(home, 1).filter((event) => event.name === "notice").map((event) => JSON.stringify(event.data));
+	assert.equal(notices.length, 1, notices.join("\n"));
+	assert.match(notices[0] ?? "", /^\{"text":"machine local runs jobs without a systemd scope \(.+\): .*, and a ticket's CPU and memory caps, shared by all its jobs, are not held"\}$/);
+});
+
 // A folder on `PATH` until the test ends, first, or `alone`: a `systemctl` that sets any slice, and each script of `scripts`
 // under its name.
 function onPath(t: TestContext, scripts: Readonly<Record<string, string>>, alone = false): void {
@@ -312,7 +321,7 @@ test("without a user manager a job over its memory cap is stopped within one 10 
 	assert.equal(await endedWith(home, next.id), "finished");
 	const notices = readEvents(home, 1).filter((event) => event.name === "notice").map((event) => event.data);
 	assert.equal(notices.length, 1, JSON.stringify(notices));
-	assert.match(JSON.stringify(notices[0]), /^\{"text":"machine local runs jobs without a systemd scope \(.+\): a job's memory cap there is held by sampling its processes every 10 s, and its CPU is not capped"\}$/);
+	assert.match(JSON.stringify(notices[0]), /^\{"text":"machine local runs jobs without a systemd scope \(.+\): a job's memory cap there is held by sampling its processes every 10 s, its CPU is not capped, and a ticket's CPU and memory caps, shared by all its jobs, are not held"\}$/);
 });
 
 test("a systemd older than 253, which takes no OOMPolicy on a scope, gets the memory cap without it", async (t) => {

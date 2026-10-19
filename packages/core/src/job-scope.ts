@@ -54,7 +54,7 @@ export async function launch(home: string, job: Pick<Job, "id" | "kind" | "proje
 	if (bare !== undefined) {
 		const line = `no systemd scope: ${bare}; the job runs bare, without the joint limit of core.jobs.cpu and core.jobs.memory, and what it leaves behind is not killed at its end`;
 		appendFileSync(join(home, "jobs", id, "log"), `[arthur ${new Date().toISOString()}] ${line}\n`);
-		if (cpu !== "" || memory !== "") uncapped(bare);
+		if (cpu !== "" || memory !== "" || feature !== "") uncapped(bare);
 	}
 	const log = join(home, "wrapper.log");
 	// `systemd-run` execs `sh`, which execs the wrapper with its stderr on the log: what reaches the pipe is systemd-run's own.
@@ -132,12 +132,13 @@ function ownLimits(cpu: string, memory: string): string[] {
 	return limits.flatMap((limit) => ["-p", limit]);
 }
 
-// Tells once per machine, in a `notice`, that a job with caps runs bare there (`<home>/uncapped` lists the machines told).
+// Tells once per machine, in a `notice`, that a job with caps, its own or its ticket's, runs bare there (`<home>/uncapped` lists
+// the machines told).
 export function sayUncapped(home: string, machine: string, why: string, bus: Bus): void {
 	const told = join(home, "uncapped");
 	if (existsSync(told) && readFileSync(told, "utf8").split("\n").includes(machine)) return;
 	appendFileSync(told, `${machine}\n`);
-	bus.emit("core", "notice", { text: `machine ${machine} runs jobs without a systemd scope (${why}): a job's memory cap there is held by sampling its processes every 10 s, and its CPU is not capped` });
+	bus.emit("core", "notice", { text: `machine ${machine} runs jobs without a systemd scope (${why}): a job's memory cap there is held by sampling its processes every 10 s, its CPU is not capped, and a ticket's CPU and memory caps, shared by all its jobs, are not held` });
 }
 
 // How `arthur remote-job launch` and `continue` print, for this side to tell, why a job with caps runs bare there.

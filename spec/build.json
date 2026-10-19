@@ -1217,16 +1217,16 @@
   {
     "id": "AR0151",
     "title": "The example config and two diagrams still call Discord later",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0151-the-example-config-and-two-diagrams-still-call-discord-later/ticket.md",
-    "updated": "2026-10-18T21:53:09.201Z"
+    "updated": "2026-10-19T15:52:38.948Z"
   },
   {
     "id": "AR0152",
     "title": "Roadmap entry 93 depends on 41 but sits before it",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0152-roadmap-entry-93-depends-on-41-but-sits-before-it/ticket.md",
-    "updated": "2026-10-18T21:53:09.203Z"
+    "updated": "2026-10-19T15:52:39.150Z"
   },
   {
     "id": "AR0153",
@@ -1373,9 +1373,9 @@
   {
     "id": "AR0172",
     "title": "The tools labels of local are not checked by arthur doctor",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0172-the-tools-labels-of-local-are-not-checked-by-arthur-doctor/ticket.md",
-    "updated": "2026-10-19T06:14:11.553Z"
+    "updated": "2026-10-19T15:52:39.352Z"
   },
   {
     "id": "AR0173",
@@ -1408,16 +1408,16 @@
   {
     "id": "AR0177",
     "title": "An option's `default` is text beside the code's own default, and nothing checks they agree",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0177-an-option-s-default-is-text-beside-the-code-s-own-default-and-nothing-checks-they-agree/ticket.md",
-    "updated": "2026-10-19T07:18:00.744Z"
+    "updated": "2026-10-19T15:52:39.553Z"
   },
   {
     "id": "AR0178",
     "title": "`roles.quick.model` has its meaning only in the `about` of `roles`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0178-roles-quick-model-has-its-meaning-only-in-the-about-of-roles/ticket.md",
-    "updated": "2026-10-19T07:18:00.748Z"
+    "updated": "2026-10-19T15:52:39.751Z"
   },
   {
     "id": "AR0179",
@@ -1429,9 +1429,9 @@
   {
     "id": "AR0180",
     "title": "While an env variable is missing, neither `arthur doctor` nor `arthur setup` checks the plugins' requirements",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0180-while-an-env-variable-is-missing-neither-arthur-doctor-nor-arthur-setup-checks-the-plugins-requirements/ticket.md",
-    "updated": "2026-10-19T10:59:58.291Z"
+    "updated": "2026-10-19T15:52:39.952Z"
   },
   {
     "id": "AR0181",
@@ -1471,9 +1471,9 @@
   {
     "id": "AR0186",
     "title": "`arthur init` writes the criteria skeletons of today's roles only",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0186-arthur-init-writes-the-criteria-skeletons-of-today-s-roles-only/ticket.md",
-    "updated": "2026-10-19T11:35:29.759Z"
+    "updated": "2026-10-19T15:52:40.152Z"
   },
   {
     "id": "AR0187",
@@ -1569,9 +1569,9 @@
   {
     "id": "AR0200",
     "title": "The example's Conventional Commits regex allows subjects over 72 characters",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0200-the-example-s-conventional-commits-regex-allows-subjects-over-72-characters/ticket.md",
-    "updated": "2026-10-19T13:27:26.733Z"
+    "updated": "2026-10-19T15:52:40.355Z"
   },
   {
     "id": "AR0201",
@@ -1639,9 +1639,9 @@
   {
     "id": "AR0210",
     "title": "The nvm package still names the old licence",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0210-the-nvm-package-still-names-the-old-licence/ticket.md",
-    "updated": "2026-10-19T15:46:49.959Z"
+    "updated": "2026-10-19T15:52:29.885Z"
   },
   {
     "id": "AR0211",

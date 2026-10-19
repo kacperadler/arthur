@@ -24,7 +24,7 @@ import { defineConfig } from "@arthur/core";
 import { commitRules } from "@arthur/commit-rules"; // first, named
 import { delivery } from "@arthur/delivery"; // first, derived
 import { develop } from "@arthur/develop"; // first, named
-import { discord } from "@arthur/discord"; // later, named
+import { discord } from "@arthur/discord"; // first, named
 import { docker } from "@arthur/docker"; // first, named
 import { github } from "@arthur/github"; // first, derived
 import { machines } from "@arthur/machines"; // first, named

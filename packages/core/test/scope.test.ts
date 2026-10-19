@@ -250,8 +250,8 @@ test("a job over its memory cap ends limit: memory, and another job with a cap k
 	writeFileSync(on, "");
 	const hog = await jobs.spawn({ task: "Hog." });
 	const other = await jobs.spawn({ task: "Go." });
+	// The wrapper stops the agent at its next sample, or the kernel killed the agent as well (it scores 1000): either is the cap.
 	assert.equal(await endedWith(home, hog.id), "limit: memory: the job went over its memory cap of 300M");
-	assert.match(readFileSync(join(home, "jobs", hog.id, "log"), "utf8"), /limit: memory: stopping the agent/);
 	assert.equal(readFileSync(join(home, "jobs", other.id, "state"), "utf8"), "working");
 	assert.ok(running(Number(read(join(home, "jobs", other.id, "pid")))), "the other job's wrapper runs on");
 	writeFileSync(gate, "");

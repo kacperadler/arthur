@@ -72,7 +72,10 @@ import { checkStructure } from "./structure.ts";
 // Merged: core 5112 + 4 (AR0167) = 5116.
 // AR0164: the inbox's notice after 3 unanswered turns redacts omp's error as the session plugin does, with a copy of its
 // credential.ts (a plugin cannot import another's), orchestration 17 more (1163 alone; 1162 + 17 = 1179 merged with AR0166).
-const BUDGETS = { core: 5116, "core/testing": 344, projects: 320, orchestration: 1179, machines: 391, resources: 401, session: 755, schedule: 497 };
+// AR0148: a throw in the session's 500 ms tick no longer ends `arthur run`; session 9 more (700 alone; 755 + 9 = 764 merged
+// with AR0166) for the catch around each tick, told once per distinct error, and the fresh start's try noted only once its
+// request is written.
+const BUDGETS = { core: 5116, "core/testing": 344, projects: 320, orchestration: 1179, machines: 391, resources: 401, session: 764, schedule: 497 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

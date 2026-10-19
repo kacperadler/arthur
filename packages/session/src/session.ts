@@ -61,11 +61,18 @@ export function session(options: SessionOptions = {}): Plugin {
 			rmSync(join(host.folder, REQUEST), { force: true });
 			if (options.restartGuard !== false) noteLoaded(host);
 			stopProbe = startNotice(host, options.probeLlm !== false, missing);
-			const [compact, restart, failures] = [compactions(host), restarts(host), turnFailures(host)];
+			const ticks = [["compaction", compactions(host)], ["restart", restarts(host)], ["turn notice", turnFailures(host)]] as const;
+			// A tick that throws (a folder made read-only, a disk full) is told once per distinct error and runs again at the next.
+			const told = new Set<string>();
 			timer = setInterval(() => {
-				compact();
-				restart();
-				failures();
+				for (const [what, tick] of ticks)
+					try {
+						tick();
+					} catch (error) {
+						const line = `session: ${what} failed: ${String((error as Error)?.message ?? error).split("\n")[0]}`;
+						if (!told.has(line)) console.error(line);
+						told.add(line);
+					}
 			}, TICK_MS);
 		},
 		stop() {
@@ -84,9 +91,9 @@ function compactions(host: Host): () => void {
 	let next = upcoming();
 	return () => {
 		const request = readRequest(host.folder);
-		if (request?.then === "compact") {
+		if (request?.then === "compact" && (request.line !== undefined || (request.pid === undefined ? Date.now() - request.asked >= request.waitSeconds * 1000 : !alive(request.pid)))) {
+			rmSync(file, { force: true });
 			if (request.line !== undefined) console.log(`session: ${request.line}`);
-			if (request.line !== undefined || (request.pid === undefined ? Date.now() - request.asked >= request.waitSeconds * 1000 : !alive(request.pid))) rmSync(file, { force: true });
 		}
 		if (next === undefined || host.clock.now() < next.at) return;
 		// Slots passed together, or one while a compaction or a restart is still asked for, ask for one, never queue a second.

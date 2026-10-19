@@ -171,9 +171,9 @@ test("wrong usage prints the usage line and exits 2", () => {
 test("--requires reaches jobs.place as labels, tools once per tool, with the machine the spawn names", () => {
 	const place = 'host.provide("jobs.place", (asked) => (writeFileSync(import.meta.dirname + "/asked.json", JSON.stringify([asked.requires, asked.machine ?? null])), "local"));\n';
 	const root = repository(CONFIG.replace("\thost.provide(", `\t${place}\thost.provide(`));
-	const run = arthur(root, "spawn", "--kind", "review", "Go.", "--requires", "tools=xcode,os=macos,tools=docker,arch=arm64");
+	const run = arthur(root, "spawn", "--kind", "review", "Go.", "--requires", "tools=xcodebuild,os=macos,tools=docker,arch=arm64");
 	assert.equal(run.status, 0, run.stderr);
-	assert.deepEqual(JSON.parse(readFileSync(join(root, "asked.json"), "utf8")), [{ os: "macos", arch: "arm64", tools: ["xcode", "docker"] }, null]);
+	assert.deepEqual(JSON.parse(readFileSync(join(root, "asked.json"), "utf8")), [{ os: "macos", arch: "arm64", tools: ["xcodebuild", "docker"] }, null]);
 	assert.equal(arthur(root, "spawn", "--kind", "review", "Go.", "--machine", "local").status, 0);
 	assert.deepEqual(JSON.parse(readFileSync(join(root, "asked.json"), "utf8")), [null, "local"], "a named machine is asked about too");
 });

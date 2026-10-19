@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, linkSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
@@ -15,7 +15,18 @@ import type { AgentRun } from "./testing.ts";
 
 const [file = "", ...args] = process.argv.slice(2);
 const run = JSON.parse(readFileSync(file, "utf8")) as AgentRun;
-const note = (name: string, entry: object) => appendFileSync(join(dirname(file), name), `${JSON.stringify(entry)}\n`);
+// A file a test reads while the agent runs is never seen empty: it is made whole with its first line, by a link.
+const note = (name: string, entry: object) => {
+	const [path, line, whole] = [join(dirname(file), name), `${JSON.stringify(entry)}\n`, join(dirname(file), `.${name}.${process.pid}`)];
+	if (existsSync(path)) return appendFileSync(path, line);
+	writeFileSync(whole, line);
+	try {
+		linkSync(whole, path);
+	} catch {
+		appendFileSync(path, line); // another start of this agent made it first
+	}
+	rmSync(whole);
+};
 note("starts.jsonl", { pid: process.pid, cwd: process.cwd(), args });
 
 // The step being played; whether no turn runs; the sends still to throw and to drop; the messages sent while idle, for the next

@@ -1196,9 +1196,9 @@
   {
     "id": "AR0148",
     "title": "A throw in the session's 500 ms tick ends `arthur run`",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0148-a-throw-in-the-session-s-500-ms-tick-ends-arthur-run/ticket.md",
-    "updated": "2026-10-19T05:41:39.263Z"
+    "updated": "2026-10-19T06:02:04.911Z"
   },
   {
     "id": "AR0149",
@@ -1276,9 +1276,9 @@
   {
     "id": "AR0159",
     "title": "packages/session/test/restart.test.ts:204 fails now and then with \"Unexpected end of JSON input\"",
-    "status": "in-progress",
+    "status": "dropped",
     "path": "spec/features/AR0159-packages-session-test-restart-test-ts-204-fails-now-and-then-with-unexpected-end-of-json-input/ticket.md",
-    "updated": "2026-10-18T23:45:29.956Z",
+    "updated": "2026-10-19T05:47:18.815Z",
     "after": [
       "AR0153"
     ]
@@ -1317,9 +1317,9 @@
   {
     "id": "AR0164",
     "title": "The inbox's notice after 3 unanswered turns repeats omp's error unredacted",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0164-the-inbox-s-notice-after-3-unanswered-turns-repeats-omp-s-error-unredacted/ticket.md",
-    "updated": "2026-10-19T05:41:39.681Z"
+    "updated": "2026-10-19T05:57:09.818Z"
   },
   {
     "id": "AR0165",
@@ -1331,16 +1331,16 @@
   {
     "id": "AR0166",
     "title": "Roadmap 80: arthur doctor, checked at every start",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0166-roadmap-80-arthur-doctor-checked-at-every-start/ticket.md",
-    "updated": "2026-10-19T00:25:10.204Z"
+    "updated": "2026-10-19T06:14:11.556Z"
   },
   {
     "id": "AR0167",
     "title": "GitHub CI fails now and then on main with the same code",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0167-github-ci-fails-now-and-then-on-main-with-the-same-code/ticket.md",
-    "updated": "2026-10-19T05:41:23.858Z"
+    "updated": "2026-10-19T05:46:50.637Z"
   },
   {
     "id": "AR0168",
@@ -1362,5 +1362,19 @@
     "status": "done",
     "path": "spec/features/AR0170-roadmap-93-option-tables-every-option-with-its-meaning-and-the-tools-each-plugin-runs/ticket.md",
     "updated": "2026-10-19T01:04:42.363Z"
+  },
+  {
+    "id": "AR0171",
+    "title": "The resources scope test assumes a machine of 2 cores or more",
+    "status": "planning",
+    "path": "spec/features/AR0171-the-resources-scope-test-assumes-a-machine-of-2-cores-or-more/ticket.md",
+    "updated": "2026-10-19T05:46:50.634Z"
+  },
+  {
+    "id": "AR0172",
+    "title": "The tools labels of local are not checked by arthur doctor",
+    "status": "planning",
+    "path": "spec/features/AR0172-the-tools-labels-of-local-are-not-checked-by-arthur-doctor/ticket.md",
+    "updated": "2026-10-19T06:14:11.553Z"
   }
 ]

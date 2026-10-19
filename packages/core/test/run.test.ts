@@ -9,6 +9,10 @@ import { temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const BOOT_ID = "/proc/sys/kernel/random/boot_id";
+// A user manager with the CPU and memory controllers delegated, as systemd answers, so `arthur run`'s doctor misses nothing.
+const BIN = temporaryFolder();
+writeFileSync(join(BIN, "systemctl"), `#!/bin/sh\n[ "$1" = --user ] && exit 0\necho 'cpu memory pids'\n`, { mode: 0o755 });
+const ENV = { PATH: `${BIN}:${process.env.PATH ?? ""}` };
 
 // Each plugin logs its `start` and `stop` to `log.txt` beside the config; `more` replaces any of its parts.
 const HEAD = `import { appendFileSync, existsSync } from "node:fs";
@@ -28,7 +32,7 @@ type Ended = { readonly status: number | null; readonly stdout: string; readonly
 
 // `arthur run` in the background; killed at the end of the test if it still runs.
 function start(t: TestContext, folder: string): { readonly child: ChildProcess; readonly output: () => string; readonly ended: Promise<Ended> } {
-	const child = spawn(process.execPath, [CLI, "run"], { cwd: folder, env: { PATH: process.env.PATH ?? "" } });
+	const child = spawn(process.execPath, [CLI, "run"], { cwd: folder, env: ENV });
 	let stdout = "";
 	let stderr = "";
 	child.stdout.on("data", (chunk) => (stdout += chunk));
@@ -39,7 +43,7 @@ function start(t: TestContext, folder: string): { readonly child: ChildProcess; 
 }
 
 function runOnce(folder: string, ...args: string[]): Ended {
-	return spawnSync(process.execPath, [CLI, "run", ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+	return spawnSync(process.execPath, [CLI, "run", ...args], { cwd: folder, encoding: "utf8", env: ENV });
 }
 
 async function until(holds: () => boolean, what: string): Promise<void> {

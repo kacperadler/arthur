@@ -59,8 +59,9 @@ export function probe(agent: string, model: string | undefined, ms: number, sign
 	return promise;
 }
 
-// At `arthur run`'s start: the probe unless `probeLlm` is false, then the start notice. Returns what stops the probe.
-export function startNotice(host: Host, probeLlm: boolean): () => void {
+// At `arthur run`'s start: the probe unless `probeLlm` is false, then the start notice, opening with the lines `arthur doctor`
+// found missing that this start sends. Returns what stops the probe.
+export function startNotice(host: Host, probeLlm: boolean, missing: readonly string[]): () => void {
 	const here = hostname();
 	const quit = new AbortController();
 	const asked = async () => {
@@ -72,7 +73,8 @@ export function startNotice(host: Host, probeLlm: boolean): () => void {
 		.catch((error: Error) => line(error.message))
 		.then((reason) => {
 			if (quit.signal.aborted) return;
-			host.events.emit("notice", { text: reason === undefined ? `coordinator up on ${here}` : `no LLM access on ${here}: ${reason}; run omp login` });
+			const text = reason === undefined ? `coordinator up on ${here}` : `no LLM access on ${here}: ${reason}; run omp login`;
+			host.events.emit("notice", { text: [...missing, text].join("\n") });
 		});
 	return () => quit.abort();
 }

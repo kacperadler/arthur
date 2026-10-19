@@ -129,8 +129,9 @@ export default defineConfig({
 					ssh: "mac-mini", // a Host in ~/.ssh/config, or a Tailscale name such as mac-mini.tail1234.ts.net
 					home: "/Users/arthur/.arthur", // the machine's own home folder for jobs and repositories
 					// Each optional; `os` is "linux" or "macos", `arch` Node's word ("x64", "arm64"). A label that disagrees with
-					// what the machine says keeps it offline, both named.
-					labels: { os: "macos", arch: "arm64", tools: ["xcode"] },
+					// what the machine says keeps it offline, both named. Each of `tools` is a command name; `arthur doctor` names
+					// one `command -v` does not find there.
+					labels: { os: "macos", arch: "arm64", tools: ["xcodebuild"] },
 					maxJobs: 2, // left out: no limit of its own; orchestration's maxAgents still counts every job
 				},
 				{
@@ -268,7 +269,7 @@ export default defineConfig({
 					autoMerge: false,
 					tracker: { plugin: "youtrack", instance: "acme", project: "IOS" },
 					ci: { workflow: "ios.yml" },
-					requires: { os: "macos", tools: ["xcode"] }, // every job of this project runs on a machine with these labels
+					requires: { os: "macos", tools: ["xcodebuild"] }, // every job of this project runs on a machine with these labels
 				},
 			],
 		}),

@@ -36,10 +36,10 @@ function tickets(root: string, prefix: string, specs: readonly (readonly [status
 	writeFileSync(join(root, "spec", "build.json"), JSON.stringify(board));
 }
 
-test("the board's four commands are phone commands, each in a channel's menu", async () => {
+test("the board's four commands and /silent are phone commands, each in a channel's menu", async () => {
 	assert.deepEqual(
 		(await setup()).commands.phone().map((command) => command.name),
-		["board", "findings", "plan", "task"],
+		["board", "findings", "plan", "silent", "task"],
 	);
 });
 

@@ -2,6 +2,7 @@ import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, renameSync,
 import { join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
 import { byState } from "./context.ts";
+import { held } from "./silent.ts";
 
 // The coordinator's inbox, the plugin's side (spec/roadmap.md, entry 24): every message for the coordinator becomes one file
 // `<folder>/inbox/queued/<event's number>`, which the inbox extension (inbox-extension.ts) hands to the coordinator's agent;
@@ -91,15 +92,17 @@ function footer(host: Host): void {
 	renameSync(join(host.folder, "footer.new"), join(host.folder, "footer"));
 }
 
-// Each reply or notice the extension wrote, oldest first, emitted and then moved to `outbox/sent/`.
+// Each reply or notice the extension wrote, oldest first, emitted and then moved to `outbox/sent/`; while silent is on, a reply
+// of a turn holding no owner message is not emitted but moved to `outbox/held/` (silent.ts).
 function sweep(host: Host): void {
 	const outbox = join(host.folder, "outbox");
 	if (!existsSync(outbox)) return;
 	for (const name of readdirSync(outbox).filter((each) => each.endsWith(".json")).sort()) {
 		const file = JSON.parse(readFileSync(join(outbox, name), "utf8")) as { text: string; answers: number[]; channels: string[] } | { notice: string };
+		const box = "notice" in file || file.channels.length > 0 || !held(host.folder, name) ? "sent" : "held";
 		if ("notice" in file) host.events.emit("notice", { text: file.notice });
-		else host.events.emit("coordinator-replied", { text: file.text, answers: file.answers, channels: file.channels });
-		mkdirSync(join(outbox, "sent"), { recursive: true });
-		renameSync(join(outbox, name), join(outbox, "sent", name));
+		else if (box === "sent") host.events.emit("coordinator-replied", { text: file.text, answers: file.answers, channels: file.channels });
+		mkdirSync(join(outbox, box), { recursive: true });
+		renameSync(join(outbox, name), join(outbox, box, name));
 	}
 }

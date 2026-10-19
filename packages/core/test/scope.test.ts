@@ -209,13 +209,17 @@ function noManager(t: TestContext): void {
 }
 
 // An agent that, while the file `on()` names exists, removes it and starts `node` holding `mb` MB in its own process group,
-// which notes its pid in `hog` once it holds them; then it plays `run` as the fake agent, which notes each start in `starts`.
+// which notes its pid in `hog` once it holds them; else it takes back the `oom_score_adj` of this process, which its wrapper
+// keeps, so over a cap two jobs share the kernel takes the hog's job, the hog and its agent at 1000, never this one. Then it
+// plays `run` as the fake agent, which notes each start in `starts`.
 function hogging(mb: number, run: AgentRun): { readonly agent: string; readonly on: string; readonly hog: string; readonly starts: string } {
 	const folder = temporaryFolder();
 	const [on, hog] = [join(folder, "on"), join(folder, "hog")];
 	const code = `const a = []; for (let i = 0; i < ${mb}; i += 16) a.push(Buffer.alloc(16 << 20, 1)); require("fs").writeFileSync("${hog}", String(process.pid)); setInterval(() => a.length, 1000);`;
 	const played = fakeAgent(run);
-	const script = ["#!/bin/sh", `if [ -e '${on}' ]; then rm '${on}'; '${process.execPath}' -e '${code}' & fi`, `exec '${played}' "$@"`];
+	const own = existsSync("/proc/self/oom_score_adj") ? readFileSync("/proc/self/oom_score_adj", "utf8").trim() : "";
+	const restore = own === "" ? ":" : `echo ${own} > /proc/self/oom_score_adj`;
+	const script = ["#!/bin/sh", `if [ -e '${on}' ]; then rm '${on}'; '${process.execPath}' -e '${code}' & else ${restore}; fi`, `exec '${played}' "$@"`];
 	writeFileSync(join(folder, "omp"), `${script.join("\n")}\n`, { mode: 0o755 });
 	return { agent: join(folder, "omp"), on, hog, starts: join(dirname(played), "starts.jsonl") };
 }
@@ -348,11 +352,13 @@ test("a job over its ticket's memory cap ends limit: memory naming the ticket, a
 	const { agent, on, starts } = hogging(640, { steps: [{ waitFor: gate }, { message: "Done." }] });
 	const { home, jobs } = setup(agent, jobSlice, () => [{ memory: "1G", feature: { name: "AC0001", memory: "400M" } }]);
 	const other = await jobs.spawn({ task: "Go." });
-	await until("the other job's agent", () => read(starts));
+	const started = await until("the other job's agent", () => read(starts));
+	// The other job's agent is no candidate before the hog's job: the hog and its agent score 1000, it scores this process's own.
+	assert.equal(read(`/proc/${(JSON.parse(started) as { readonly pid: number }).pid}/oom_score_adj`), read("/proc/self/oom_score_adj"));
 	writeFileSync(on, "");
 	const hog = await jobs.spawn({ task: "Hog." });
 	assert.equal(await endedWith(home, hog.id), "limit: memory: the jobs of ticket AC0001 went over their memory cap of 400M");
-	assert.equal(readFileSync(join(home, "jobs", other.id, "state"), "utf8"), "working");
+	// Its end says it ran on: a job of the ticket that the slice's cap ended would end limit: memory.
 	writeFileSync(gate, "");
 	assert.equal(await endedWith(home, other.id), "finished");
 });

@@ -1576,8 +1576,15 @@
   {
     "id": "AR0201",
     "title": "wrapper.test.ts failed once on a cleanup race",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0201-wrapper-test-ts-failed-once-on-a-cleanup-race/ticket.md",
-    "updated": "2026-10-19T13:52:13.908Z"
+    "updated": "2026-10-19T13:56:15.938Z"
+  },
+  {
+    "id": "AR0202",
+    "title": "A record removed file by file crashes the wrapper instead of ending it with its one line",
+    "status": "planning",
+    "path": "spec/features/AR0202-a-record-removed-file-by-file-crashes-the-wrapper-instead-of-ending-it-with-its-one-line/ticket.md",
+    "updated": "2026-10-19T13:56:15.935Z"
   }
 ]

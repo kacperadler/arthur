@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/wrapper.ts:40-47`
 - What: `guard` calls `leave()` only once the record's folder is gone; a use that fails while the folder still exists but its files are not (a `rm -r` in progress, which unlinks the files before the folder) rethrows, and the wrapper dies on the uncaught error with a stack trace in `wrapper.log`, no `leave()`: the agent is not sent SIGTERM by it and the one line is not written. Seen with a throwaway probe in `wrapper.test.ts` (the record's files unlinked, the folder kept for 1 s while the agent wrote to stderr): `wrapper.log` held `Error: ENOENT: no such file or directory, utime '<record>/active'` thrown from `wrapper.ts:44`. Its `appendFileSync` of the agent's output into `log` in that window also recreates `log`, so a human's `rm -r` of a running job's record can fail with `ENOTEMPTY`.
 - Suggestion: treat a failed use whose record lacks a file the wrapper itself wrote at its start (`pid`) as the record being deleted, and `leave()`; out: any retry of the use.
-- Status: open
+- Status: ticket AR0202

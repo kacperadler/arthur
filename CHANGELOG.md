@@ -21,6 +21,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0164 The inbox's notice after 3 unanswered turns repeats omp's error unredacted (1bf2a8a)
 - AR0167 GitHub CI fails now and then on main with the same code (59e5760)
 - AR0173 GitHub CI names each failed test and stays green on main (a1fbecb)
+- AR0201 wrapper.test.ts failed once on a cleanup race (244a725)
 
 ### Other
 

@@ -1,0 +1,188 @@
+import assert from "node:assert/strict";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { test } from "node:test";
+import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { checkOptions, table } from "../src/commit-rules-options.ts";
+import { commitRules, type Rule } from "../src/commit-rules.ts";
+
+const REGEX = "^(feat|fix|docs)(\\([\\w-]+\\))?!?: .{1,72}$";
+const RULE = "commit refused: the subject \"Fixed it\" does not match this project's commit rule, the regex ^(feat|fix|docs)(\\([\\w-]+\\))?!?: .{1,72}$";
+const WORDS = "Start with the ticket id, then a verb in the imperative.";
+
+const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+// A commit as an agent makes it: hooks run; its exit code and what it said.
+const commit = (cwd: string, message: string, ...more: string[]) => {
+	const ran = spawnSync("git", ["-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "--allow-empty", "-m", message, ...more], { cwd, encoding: "utf8" });
+	return { code: ran.status, said: ran.stderr.trim() };
+};
+
+function repository(files: Readonly<Record<string, string>> = {}): string {
+	const root = temporaryFolder();
+	git(root, "init", "--quiet", "--initial-branch=main");
+	for (const [path, text] of Object.entries({ "README.md": "# demo\n", ...files })) {
+		mkdirSync(dirname(join(root, path)), { recursive: true });
+		writeFileSync(join(root, path), text, { mode: path.includes("hooks/") ? 0o755 : 0o644 });
+	}
+	git(root, "add", "--all");
+	assert.equal(commit(root, "start").code, 0);
+	return root;
+}
+
+async function load(root: string, commitRules_?: Rule, other?: string): Promise<FakeHost> {
+	const fake = fakeHost({ name: "commit-rules", root });
+	const project = { name: "acme", prefix: "AC", path: root, ...(commitRules_ === undefined ? {} : { commitRules: commitRules_ }) };
+	fake.provide("projects", () => (other === undefined ? [project] : [project, { name: "other", prefix: "OT", path: other }]));
+	await fake.setup(commitRules());
+	const reviewer = join(temporaryFolder(), "reviewer.md");
+	writeFileSync(reviewer, "# Reviewer\n");
+	fake.host.jobs.registerRole({ name: "reviewer", file: pathToFileURL(reviewer), criteria: [] });
+	fake.host.jobs.registerKind({ name: "review", readOnly: true, role: "reviewer" });
+	fake.host.jobs.registerRole({ name: "planner", file: pathToFileURL(reviewer), criteria: [] });
+	fake.host.jobs.registerKind({ name: "plan", readOnly: true, role: "planner" });
+	return fake;
+}
+
+const promptOf = (fake: FakeHost, id: string) => readFileSync(join(dirname(fake.host.folder), "jobs", id, "prompt"), "utf8");
+// The main checkout's Git configuration as Git reads it there, every scope with where it comes from, and its hooks folder.
+const gitSetup = (root: string) => ({ config: git(root, "config", "--list", "--show-scope", "--show-origin").split("\n"), hooks: readdirSync(join(root, ".git", "hooks")).sort() });
+
+test("a regex is a commit-msg hook in the job's worktree: a subject that does not match is refused and the rule said", async () => {
+	const root = repository();
+	const before = gitSetup(root);
+	const fake = await load(root, { regex: REGEX });
+	const job = await fake.host.jobs.spawn({ task: "Build it." });
+	assert.deepEqual(commit(job.worktree, "Fixed it"), { code: 1, said: RULE });
+	assert.deepEqual(commit(job.worktree, "\n# a comment\nFixed it\n\nWhy."), { code: 1, said: RULE }, "the subject is the first line neither blank nor a comment");
+	assert.deepEqual(commit(job.worktree, "fix(AC1): the parser keeps blank lines"), { code: 0, said: "" });
+	assert.equal(git(job.worktree, "log", "-1", "--format=%s"), "fix(AC1): the parser keeps blank lines");
+	assert.equal(promptOf(fake, job.id).includes("Commit messages"), false, "a regex adds no prompt text");
+	// Outside the job's worktree nothing changed but the switch that lets Git read a worktree's own configuration.
+	const after = gitSetup(root);
+	assert.deepEqual(after.hooks, before.hooks);
+	assert.deepEqual(after.config.filter((line) => !before.config.includes(line)), ["local\tfile:.git/config\textensions.worktreeconfig=true"]);
+	assert.deepEqual(before.config.filter((line) => !after.config.includes(line)), []);
+	assert.deepEqual(commit(root, "Fixed it"), { code: 0, said: "" }, "the main checkout has no hook");
+	const other = await fake.host.jobs.spawn({ task: "Read it.", kind: "review" });
+	assert.deepEqual(commit(other.worktree, "Fixed it").code, 1, "a read-only kind's checkout gets it too");
+});
+
+test("a merge commit's subject is Git's, so it passes, also after a conflict; the next commit is checked again", async () => {
+	const root = repository();
+	const fake = await load(root, { regex: REGEX });
+	const job = await fake.host.jobs.spawn({ task: "Build it." });
+	const merge = () => spawnSync("git", ["-c", "user.name=test", "-c", "user.email=test@example.com", "merge", "--no-ff", "--no-edit", "main"], { cwd: job.worktree, encoding: "utf8" });
+	assert.equal(commit(job.worktree, "feat: one").code, 0);
+	assert.equal(commit(root, "docs: on main").code, 0);
+	const merged = merge();
+	assert.equal(merged.status, 0, merged.stderr);
+	assert.equal(git(job.worktree, "log", "-1", "--format=%s"), `Merge branch 'main' into arthur/${job.id}`);
+	for (const [cwd, text] of [[job.worktree, "# ours\n"], [root, "# theirs\n"]] as const) {
+		writeFileSync(join(cwd, "README.md"), text);
+		assert.equal(commit(cwd, "docs: the title", "--all").code, 0);
+	}
+	assert.equal(merge().status, 1, "a conflict");
+	writeFileSync(join(job.worktree, "README.md"), "# both\n");
+	git(job.worktree, "add", "README.md");
+	assert.deepEqual(commit(job.worktree, "Merged by hand"), { code: 0, said: "" });
+	assert.deepEqual(commit(job.worktree, "Fixed it"), { code: 1, said: RULE });
+});
+
+test("the project's own hooks still run in the job's worktree: its hooks folder, or its relative core.hooksPath", async () => {
+	const log = join(temporaryFolder(), "log");
+	const hook = (name: string, refuse = "") => `#!/bin/sh\necho "${name} $(basename "$PWD")" >> '${log}'\n${refuse}`;
+	const plain = repository();
+	writeFileSync(join(plain, ".git", "hooks", "pre-commit"), hook("pre-commit"), { mode: 0o755 });
+	writeFileSync(join(plain, ".git", "hooks", "commit-msg"), hook("commit-msg", 'grep -q WIP "$1" && { echo "no WIP" >&2; exit 1; }\nexit 0\n'), { mode: 0o755 });
+	const job = await (await load(plain, { regex: REGEX })).host.jobs.spawn({ task: "Build it." });
+	assert.deepEqual(commit(job.worktree, "feat: WIP"), { code: 1, said: "no WIP" }, "its commit-msg runs after the rule");
+	assert.deepEqual(commit(job.worktree, "Fixed it"), { code: 1, said: RULE });
+	assert.deepEqual(commit(job.worktree, "feat: done"), { code: 0, said: "" });
+	assert.deepEqual(readFileSync(log, "utf8").trim().split("\n"), [`pre-commit ${job.id}`, `commit-msg ${job.id}`, `pre-commit ${job.id}`, `pre-commit ${job.id}`, `commit-msg ${job.id}`]);
+	const husky = repository({ "githooks/pre-commit": hook("own pre-commit") });
+	git(husky, "config", "core.hooksPath", "githooks");
+	const second = await (await load(husky, { regex: REGEX })).host.jobs.spawn({ task: "Build it." });
+	assert.deepEqual(commit(second.worktree, "feat: done"), { code: 0, said: "" });
+	assert.equal(readFileSync(log, "utf8").trim().split("\n").at(-1), `own pre-commit ${second.id}`, "the worktree's own githooks folder");
+	assert.equal(git(husky, "config", "core.hooksPath"), "githooks");
+});
+
+test("a project without commitRules gets no hook and no text; its Git configuration is untouched", async () => {
+	const [root, other] = [repository(), repository()];
+	const before = [gitSetup(root), gitSetup(other)];
+	const fake = await load(root, { regex: REGEX }, other);
+	for (const kind of ["worker", "review"]) {
+		const job = await fake.host.jobs.spawn({ task: "Build it.", kind, project: "other" });
+		assert.equal(spawnSync("git", ["config", "--get", "core.hooksPath"], { cwd: job.worktree }).status, 1);
+		assert.deepEqual(commit(job.worktree, "Fixed it").code, 0);
+		assert.equal(promptOf(fake, job.id).includes("Commit messages"), false);
+	}
+	assert.deepEqual([gitSetup(root), gitSetup(other)], before, "no job of acme ran, and other has no rule");
+});
+
+test("words go into the worker's and the reviewer's prompt, and no other role's", async () => {
+	const fake = await load(repository(), { words: `  ${WORDS}\n` });
+	const worker = await fake.host.jobs.spawn({ task: "Build it." });
+	assert.ok(promptOf(fake, worker.id).endsWith(`\n\n## Commit messages\n\nThis project's rule for every commit message you write (commitRules.words in arthur.config.ts):\n\n${WORDS}\n`));
+	const review = await fake.host.jobs.spawn({ task: "Review it.", kind: "review" });
+	const judge = "This project's rule for commit messages; judge each commit of the branch by it, and a message that breaks it is a finding";
+	assert.equal(promptOf(fake, review.id), `# Reviewer\n\n## Commit messages\n\n${judge} (commitRules.words in arthur.config.ts):\n\n${WORDS}\n`);
+	const plan = await fake.host.jobs.spawn({ task: "Plan it.", kind: "plan" });
+	assert.equal(promptOf(fake, plan.id), "# Reviewer\n");
+	assert.deepEqual(commit(worker.worktree, "Fixed it").code, 0, "words are no hook");
+});
+
+test("a file is read from the project's repository at the job's commit, not from the working tree", async (t) => {
+	const root = repository({ "docs/commit-rules.md": `# Commits\n\n${WORDS}\n` });
+	const base = git(root, "rev-parse", "HEAD").slice(0, 7);
+	writeFileSync(join(root, "docs/commit-rules.md"), "Anything goes.\n");
+	const warned = t.mock.method(console, "error", () => {});
+	const fake = await load(root, { file: "docs/commit-rules.md" });
+	const job = await fake.host.jobs.spawn({ task: "Build it." });
+	assert.ok(promptOf(fake, job.id).endsWith(`## Commit messages\n\nThis project's rule for every commit message you write (docs/commit-rules.md at ${base}):\n\n# Commits\n\n${WORDS}\n`));
+	assert.equal(warned.mock.callCount(), 0);
+});
+
+test("a missing, empty or folder rule file warns and the job starts without it", async (t) => {
+	const root = repository({ "docs/empty.md": " \n\n", "docs/rules/a.md": "A\n" });
+	const base = git(root, "rev-parse", "HEAD").slice(0, 7);
+	const warned = t.mock.method(console, "error", () => {});
+	for (const [file, problem, kind, role] of [
+		["docs/missing.md", "missing or not a file", "worker", "worker"],
+		["docs/rules", "missing or not a file", "review", "reviewer"],
+		["docs/empty.md", "empty", "worker", "worker"],
+	] as const) {
+		warned.mock.resetCalls();
+		const fake = await load(root, { file });
+		const job = await fake.host.jobs.spawn({ task: "Build it.", kind });
+		assert.equal(job.failed, undefined);
+		assert.equal(promptOf(fake, job.id).includes("Commit messages"), false, file);
+		assert.deepEqual(warned.mock.calls.map((call) => call.arguments[0]), [`warning: commit-rules: project acme: rule file ${file} at ${base} is ${problem}; the ${role} goes without it`]);
+	}
+});
+
+test("refused at load: a regex that does not compile, naming the project", async () => {
+	const fake = fakeHost({ name: "commit-rules" });
+	fake.provide("projects", () => [{ name: "acme", prefix: "AC", path: repository(), commitRules: { regex: "^(feat: .+$" } }]);
+	await assert.rejects(fake.setup(commitRules()), { message: "project acme: commitRules.regex does not compile: Invalid regular expression: /^(feat: .+$/: Unterminated group" });
+});
+
+test("a hook that cannot be installed refuses the spawn, naming the project; no worktree or branch is left", async () => {
+	const root = repository();
+	const fake = await load(root, { regex: REGEX });
+	writeFileSync(join(root, ".git", "config.lock"), "");
+	await assert.rejects(fake.host.jobs.spawn({ task: "Build it." }), (error: Error) => {
+		assert.match(error.message, /^plugin commit-rules: prepare failed: project acme: the commit-msg hook was not installed: exit 255: error: could not lock config file .*; the job's worktree and record were removed$/);
+		return true;
+	});
+	assert.equal(git(root, "branch", "--list"), "* main");
+	assert.equal(git(root, "worktree", "list").split("\n").length, 1);
+});
+
+test("the plugin takes no option: a project's rule is its commitRules", () => {
+	assert.deepEqual(table, {});
+	assert.deepEqual(checkOptions({}), []);
+	assert.deepEqual(checkOptions({ installHook: true }), [{ path: "installHook", problem: "unknown option; commit-rules takes none: a project's rule is its commitRules in the projects list" }]);
+});

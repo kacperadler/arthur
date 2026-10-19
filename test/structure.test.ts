@@ -97,7 +97,9 @@ import { checkStructure } from "./structure.ts";
 // (10 lines) became `requirements`, 8 lines for it and the new board requirement. The rest: init.ts (63: the command, its
 // refusals, the skeleton written once per file) and onboarding.ts (83: kind and role, its prompt's paths, the questions cut at
 // 10 across runs, `merge.check`).
-const BUDGETS = { core: 5403, "core/testing": 344, projects: 473, orchestration: 1207, machines: 415, resources: 458, session: 849, schedule: 552 };
+// AR0188 (roadmap 43): commit-rules: 155, for the regex checked at load and its commit-msg hook in each job's worktree, the
+// project's own hooks forwarded (hook.ts), words or a file in the worker's and reviewer's prompt, and its empty options file.
+const BUDGETS = { core: 5403, "core/testing": 344, projects: 473, orchestration: 1207, machines: 415, resources: 458, session: 849, schedule: 552, "commit-rules": 155 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

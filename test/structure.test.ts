@@ -97,7 +97,10 @@ import { checkStructure } from "./structure.ts";
 // (10 lines) became `requirements`, 8 lines for it and the new board requirement. The rest: init.ts (63: the command, its
 // refusals, the skeleton written once per file) and onboarding.ts (83: kind and role, its prompt's paths, the questions cut at
 // 10 across runs, `merge.check`).
-const BUDGETS = { core: 5403, "core/testing": 344, projects: 473, orchestration: 1207, machines: 415, resources: 458, session: 849, schedule: 552 };
+// AR0189 (roadmap 44): youtrack: 251, set for its instances and their variables checked at load, each project's tracker
+// checked against them, the REST reading with its one-line errors and paging, and `arthur youtrack issue|article list|get`;
+// a new package, so nothing was cut elsewhere; core unchanged.
+const BUDGETS = { core: 5403, "core/testing": 344, projects: 473, orchestration: 1207, machines: 415, resources: 458, session: 849, schedule: 552, youtrack: 251 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -123,7 +123,11 @@ import { checkStructure } from "./structure.ts";
 // 38), attachments saved under safe names (youtrack-attachments.ts, 34), a file's bytes from the API (`request`), `issue
 // update`'s version, the verbs' wiring, the jobs' rules in the prompt and a write refused inside a job (3); cut first: four
 // copies of `field` to one export of youtrack-api.ts (11 lines), and `update`'s article-only branch made the one path for both kinds.
-const BUDGETS = { core: 5448, "core/testing": 344, projects: 475, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84 };
+// AR0154: a worker, or a continue, on a pre-approved ticket held to the budget its `Pre-approved by policy` line records, until
+// the owner's own approval after it; orchestration 19 more (1232) for that `beforeSpawn` refusal (plans.ts: the record and the
+// approval read under Decisions, the per-ticket refusals split in two); core/testing 2 more (346) for `continue` on the fake
+// host, which no plugin test could reach.
+const BUDGETS = { core: 5448, "core/testing": 346, projects: 475, orchestration: 1232, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

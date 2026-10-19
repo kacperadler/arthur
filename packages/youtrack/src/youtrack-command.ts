@@ -1,12 +1,20 @@
-import { get, getAll, type Instance } from "./youtrack-api.ts";
+import { call, getAll, type Instance } from "./youtrack-api.ts";
+import { addWork, create, setField, update } from "./youtrack-write.ts";
 
-// `arthur youtrack issue|article list|get` (spec/roadmap.md, entry 44): a project's issues and articles, read from the instance
-// its `tracker` picks: docs/commands/youtrack.md. An id outside the project's YouTrack project is refused before any call.
+// `arthur youtrack issue|article ...` (spec/roadmap.md, entries 44 and 45): a project's issues and articles, read from and
+// written to the instance its `tracker` picks: docs/commands/youtrack.md. An id outside the project's YouTrack project is
+// refused before any call. No verb deletes.
 
 // A project of the list, and what its `tracker` names when that is youtrack: the instance and the YouTrack project's id.
 export type Tracked = { readonly name: string; readonly tracker: { readonly instance: Instance; readonly project: string } | undefined };
 
-const USAGE = "usage: arthur youtrack issue list|get <id>; arthur youtrack article list|get <id>; --project <name> for another project than the main one";
+const USAGE = "usage: arthur youtrack issue list [--all]|get <id>|create <file>|update <id> <file>|set <id> <field> <value>|work <id> <minutes> [<text>]; arthur youtrack article list|get <id>|create <file>|update <id> <file> <version>; --project <name> for another project than the main one";
+
+// The words each verb takes after it; a `?` marks an optional last one.
+const VERBS: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = {
+	issue: { list: [], get: ["id"], create: ["file"], update: ["id", "file"], set: ["id", "field", "value"], work: ["id", "minutes", "text?"] },
+	article: { list: [], get: ["id"], create: ["file"], update: ["id", "file", "version"] },
+};
 
 const FIELDS = {
 	issues: "idReadable,summary,resolved",
@@ -17,8 +25,11 @@ const FIELDS = {
 
 // Writes its output; a refusal throws, wrong usage is exit code 2.
 export async function youtrackCommand(projects: readonly Tracked[], args: readonly string[], name: string | undefined): Promise<number> {
-	const [kind = "", verb = "", id, ...extra] = args;
-	if (!["issue", "article"].includes(kind) || !["list", "get"].includes(verb) || (verb === "get") !== (id !== undefined) || extra.length > 0) {
+	// `--all`: `issue list` with the resolved issues too (AR0195); by default only the unresolved ones.
+	const all = args.includes("--all");
+	const [kind = "", verb = "", ...words] = args.filter((each) => each !== "--all");
+	const shape = Object.hasOwn(VERBS, kind) && Object.hasOwn(VERBS[kind]!, verb) ? VERBS[kind]![verb]! : undefined;
+	if (shape === undefined || words.length < shape.filter((each) => !each.endsWith("?")).length || words.length > shape.length || (all && `${kind} ${verb}` !== "issue list")) {
 		console.error(USAGE);
 		return 2;
 	}
@@ -29,21 +40,28 @@ export async function youtrackCommand(projects: readonly Tracked[], args: readon
 		throw new Error(`project ${project.name} has no youtrack tracker; ${others.length > 0 ? `projects with one: ${others.join(", ")}` : "no project has one"}`);
 	}
 	const { instance, project: short } = project.tracker;
-	if (id === undefined) {
+	if (verb === "list") {
 		const path = kind === "issue" ? "issues" : `admin/projects/${short}/articles`;
-		const items = await getAll(instance, path, { fields: kind === "issue" ? FIELDS.issues : FIELDS.articles, ...(kind === "issue" ? { query: `project: ${short}` } : {}) }, `project ${short}`);
+		const items = await getAll(instance, path, { fields: kind === "issue" ? FIELDS.issues : FIELDS.articles, ...(kind === "issue" ? { query: `project: ${short}${all ? "" : " #Unresolved"}` } : {}) }, `project ${short}`);
 		// `SHOP-12 Summary`, ` (resolved)` after a resolved issue.
 		const lines = items.map((item) => `${text(field(item, "idReadable"))} ${text(field(item, "summary"))}${typeof field(item, "resolved") === "number" ? " (resolved)" : ""}`);
-		console.log(lines.length === 0 ? `no ${kind}s in YouTrack project ${short}` : lines.join("\n"));
+		console.log(lines.length === 0 ? `no ${kind === "issue" && !all ? "unresolved " : ""}${kind}s in YouTrack project ${short}` : lines.join("\n"));
 		return 0;
 	}
+	if (verb === "create") {
+		console.log(text(await create(instance, short, kind as "issue" | "article", words[0] ?? "")));
+		return 0;
+	}
+	const [id = "", first = "", second] = words;
 	const form = kind === "issue" ? /^([A-Za-z][A-Za-z0-9_]*)-\d+$/ : /^([A-Za-z][A-Za-z0-9_]*)-A-\d+$/i;
 	const prefix = form.exec(id)?.[1];
 	if (prefix === undefined) throw new Error(`${id} is not ${kind === "issue" ? `an issue id such as ${short}-12` : `an article id such as ${short}-A-3`}`);
 	if (prefix.toUpperCase() !== short.toUpperCase()) throw new Error(`${id} is outside YouTrack project ${short}, the tracker of project ${project.name}; nothing was asked of YouTrack`);
 	const asked = `${short}${id.slice(prefix.length).toUpperCase()}`;
-	const item = await get(instance, `${kind === "issue" ? "issues" : "articles"}/${asked}`, { fields: kind === "issue" ? FIELDS.issue : FIELDS.article }, `${kind} ${asked}`);
-	console.log(kind === "issue" ? issueText(item) : articleText(item));
+	if (verb === "update") console.log(text(await update(instance, kind as "issue" | "article", asked, first, second)));
+	else if (verb === "set") console.log(text(await setField(instance, asked, first, second ?? "")));
+	else if (verb === "work") console.log(text(await addWork(instance, asked, first, second)));
+	else console.log(kind === "issue" ? issueText(await call(instance, `issues/${asked}`, { fields: FIELDS.issue }, `issue ${asked}`)) : articleText(await call(instance, `articles/${asked}`, { fields: FIELDS.article }, `article ${asked}`)));
 	return 0;
 }
 
@@ -54,9 +72,10 @@ function issueText(item: unknown): string {
 	return [heading(item), `resolved: ${typeof resolved === "number" ? day(resolved) : "no"}`, ...values, "", text(field(item, "description"))].join("\n");
 }
 
+// `version:` is the `updated` that `article update` is given, so a change made since is not overwritten.
 function articleText(item: unknown): string {
 	const parent = field(field(item, "parentArticle"), "idReadable");
-	return [heading(item), ...(typeof parent === "string" ? [`parent: ${text(parent)}`] : []), "", text(field(item, "content"))].join("\n");
+	return [heading(item), `version: ${text(field(item, "updated"))}`, ...(typeof parent === "string" ? [`parent: ${text(parent)}`] : []), "", text(field(item, "content"))].join("\n");
 }
 
 // `SHOP-12: Summary`, then who wrote it and when.

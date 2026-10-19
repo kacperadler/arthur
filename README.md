@@ -82,7 +82,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | voice: local transcription of voice notes | planned | 81 |
 | delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | planned | 52 to 56, 59 |
 | github: CI runs, reruns, pushes, pull request reviews | planned | 57, 58 |
-| youtrack: issues, articles, comments | in progress, 1 of 3 entries | 44 built; 45, 46 |
+| youtrack: issues, articles, comments | in progress, 2 of 3 entries | 44, 45 built; 46 |
 | manage: health, stats, audit, retro, prune on a schedule | planned | 60 to 64 |
 | develop: `arthur plugin new`, evals | planned | 66 to 68 |
 | Later: signal, slack and whatsapp channels; server, web panel and the owner's mobile app (Expo) by the VPS's Tailscale name; knowledge base; company edition | planned | 73 to 79, 91, 92, 95 |
@@ -116,7 +116,7 @@ The commands that exist today, one line each; `arthur <command> --help` prints i
 - `arthur restart [fresh]` (`/restart`, session): restarts the coordinator after its handoff, with `--continue` or, with `fresh`, in a new conversation, and `arthur run` too under its service while a restart is due; refused while a job runs.
 - `arthur resources [<ticket>]` (`/resources`, resources): each machine's room for more jobs from its free CPU and memory; with a ticket, what all its jobs spent against its caps per feature.
 - `arthur usage [--email]` (`/usage`, models): each account's limit windows from the agent's report, used % and when each resets.
-- `arthur youtrack issue|article list|get` (youtrack): a project's YouTrack issues and articles, read from the instance its `tracker` picks.
+- `arthur youtrack issue|article list|get|create|update`, `issue set|work` (youtrack): a project's YouTrack issues and articles, read and written on the instance its `tracker` picks; custom fields and work items.
 
 ## Try it
 
@@ -152,7 +152,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-19.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; youtrack has entry 44 of 44-46; commit-rules has entry 43 of 43; no other plugin exists yet.
+%% Core entries 1-22, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; youtrack has entries 44 and 45 of 44-46; commit-rules has entry 43 of 43; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale; from AR0174: the decision log in orchestration.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -224,7 +224,7 @@ flowchart TD
       subgraph DELIV[Delivery and trackers]
         delivery[delivery<br/>review, merge, changelog]
         github[github<br/>polls CI and PRs]
-        youtrack[youtrack<br/>reads issues, articles<br/>1 of 3 entries; planned: writing, comments]
+        youtrack[youtrack<br/>reads and writes issues, articles<br/>2 of 3 entries; planned: comments]
         delivery ~~~ github ~~~ youtrack
       end
       subgraph SELF[Arthur itself]

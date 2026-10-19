@@ -32,3 +32,4 @@ Out:
 ## Decisions
 
 - 2026-10-19: The owner asked for a night plan for Arthur with Claude 7 Day usage up to 75%; entry 93 is next in order (depends on 23 and 41, built).
+- 2026-10-19: Coordinator (owner delegated Arthur calls): tables for every built plugin (not only orchestration and projects) confirmed, as the Goal says; the each shape for list and record items accepted; any line budget raise in test/structure.test.ts for these tables accepted, the review checks it buys only them.

@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/job-scope.ts` (`setSlice`, `ownLimits`)
 - What: `setSlice` gives a ticket's slice `CPUQuota` and `MemoryMax` only, no `MemorySwapMax`; a job's own scope gets `MemorySwapMax=0` only with its own `memory` cap. So the jobs of a ticket with `perFeature.memory` and no `perJob.memory` may swap past the ticket's cap before the kernel kills one, on a machine with swap. [INFERENCE] from the lines; not run: the AR0147 test gives its jobs their own `memory` of 1G so that their scopes take no swap and the slice's cap is reached at once.
 - Suggestion: set `MemorySwapMax=0` on the ticket's slice when it has a memory cap (`infinity` when it has none), as the own scope does; out: the joint slice.
-- Status: open
+- Status: ticket AR0217

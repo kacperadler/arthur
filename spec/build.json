@@ -1485,9 +1485,9 @@
   {
     "id": "AR0188",
     "title": "Roadmap 43: commit rules per project",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0188-roadmap-43-commit-rules-per-project/ticket.md",
-    "updated": "2026-10-19T13:22:29.127Z"
+    "updated": "2026-10-19T13:27:26.736Z"
   },
   {
     "id": "AR0189",
@@ -1551,5 +1551,33 @@
     "status": "in-progress",
     "path": "spec/features/AR0197-roadmap-45-youtrack-writing-issues-articles-fields-and-work-items/ticket.md",
     "updated": "2026-10-19T13:10:26.747Z"
+  },
+  {
+    "id": "AR0198",
+    "title": "A plugin's prompt section cannot add to the spawn's warnings",
+    "status": "planning",
+    "path": "spec/features/AR0198-a-plugin-s-prompt-section-cannot-add-to-the-spawn-s-warnings/ticket.md",
+    "updated": "2026-10-19T13:27:26.729Z"
+  },
+  {
+    "id": "AR0199",
+    "title": "The option-tables test cannot list a plugin without options",
+    "status": "planning",
+    "path": "spec/features/AR0199-the-option-tables-test-cannot-list-a-plugin-without-options/ticket.md",
+    "updated": "2026-10-19T13:27:26.732Z"
+  },
+  {
+    "id": "AR0200",
+    "title": "The example's Conventional Commits regex allows subjects over 72 characters",
+    "status": "planning",
+    "path": "spec/features/AR0200-the-example-s-conventional-commits-regex-allows-subjects-over-72-characters/ticket.md",
+    "updated": "2026-10-19T13:27:26.733Z"
+  },
+  {
+    "id": "AR0201",
+    "title": "wrapper.test.ts failed once on a cleanup race",
+    "status": "planning",
+    "path": "spec/features/AR0201-wrapper-test-ts-failed-once-on-a-cleanup-race/ticket.md",
+    "updated": "2026-10-19T13:27:26.734Z"
   }
 ]

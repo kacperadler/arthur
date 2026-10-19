@@ -13,7 +13,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/roles.ts:125` (`prompt`), `packages/commit-rules/src/commit-rules.ts:45`
 - What: a provider of `prompt` returns text or undefined only, so commit-rules says a missing or empty rule file with `console.error("warning: ...")`. In `arthur spawn` that reaches stderr beside the core's own `warning:` lines, but a spawn through `host.jobs.spawn` (a schedule entry in `arthur run`, later delivery) gets it only in the run's log, not in the job's `warnings` as a missing criteria file is.
 - Suggestion: let a `prompt` provider return `{ text, warnings }` and join those warnings to `Started.warnings`; commit-rules then returns its warning instead of printing it. Out: any change to how `arthur spawn` prints warnings.
-- Status: open
+- Status: ticket AR0198
 
 ## F2. The option-tables test cannot list a plugin without options
 
@@ -22,7 +22,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `test/option-tables.test.ts:54` and `:114`
 - What: the test asserts every listed plugin has at least one option, and that its unknown-option refusal ends with its option names, so commit-rules (only `enabled`, an empty table) is left out of `PLUGINS`; its summary and table are checked by its own test only.
 - Suggestion: allow an empty table there (assert the summary and tools as for the others) and list commit-rules.
-- Status: open
+- Status: ticket AR0199
 
 ## F3. The example's Conventional Commits regex allows subjects over 72 characters
 
@@ -31,7 +31,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `arthur.config.example.ts:235`
 - What: `^(feat|...)(\([\w-]+\))?!?: .{1,72}$` counts 72 after the `type(scope): ` prefix, so a subject of up to about 90 characters passes, while the worker role of this repository says a subject is at most 72. Of the last 200 non-merge subjects on this branch all match it and 5 are over 72 (`git log --format=%s -200 --no-merges`).
 - Suggestion: `^(?=.{1,72}$)(feat|fix|refactor|perf|test|docs|build|ci|chore|revert)(\([\w-]+\))?!?: .+$`, if the owner wants the 72 to be the whole subject.
-- Status: open
+- Status: ticket AR0200
 
 ## F4. The hook broke every worktree of a bare repository, as on another machine
 
@@ -49,4 +49,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/test/wrapper.test.ts:206`
 - What: one full `npm test` run of the review failed there with `ENOTEMPTY` from `rmSync`, with no change under `packages/core/test/wrapper.test.ts` or the wrapper on this branch; not reproduced by the worker.
 - Suggestion: find what still writes into the folder when the test removes it, and wait for that state before `rmSync`.
-- Status: open
+- Status: ticket AR0201

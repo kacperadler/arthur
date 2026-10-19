@@ -4,6 +4,7 @@
   "type": "module",
   "license": "SEE LICENSE IN ../../LICENSE",
   "exports": {
-    ".": "./src/projects.ts"
+    ".": "./src/projects.ts",
+    "./options": "./src/project-options.ts"
   }
 }

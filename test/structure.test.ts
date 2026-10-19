@@ -61,7 +61,12 @@ import { checkStructure } from "./structure.ts";
 // AR0163 (roadmap 40): registered entries and `arthur schedule`, schedule 220 more (497), for `schedule.register` with its own
 // procedure rule (register.ts), the file's entries read and changed under a lock (entry-file.ts) and `arthur schedule
 // add|list|remove` (schedule-command.ts); core unchanged but for `@arthur/core/lock` in its exports.
-const BUDGETS = { core: 4873, "core/testing": 340, projects: 320, orchestration: 1146, machines: 375, resources: 401, session: 691, schedule: 497 };
+// AR0170 (roadmap 93): every option in one table with its meaning and default, which each package's check walks, and each
+// package's options file (`./options`: table, summary, tools). Core 66 more (4939) for the table's type and walker
+// (option-table.ts) and the core's table (core-options.ts); the meanings are most of the rest: orchestration 28 more (1174),
+// projects 5 more (325), machines 24 more (399), resources 57 more (458), session 31 more (722), schedule 55 more (552), the
+// last three each with its check moved into its options file (resource-options.ts, schedule-options.ts) or beside it.
+const BUDGETS = { core: 4939, "core/testing": 340, projects: 325, orchestration: 1174, machines: 399, resources: 458, session: 722, schedule: 552 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -1,8 +1,8 @@
-import { describe } from "@arthur/core";
-import type { OptionProblem, Options, Plugin } from "@arthur/core/plugin";
-import { type Entry, entryProblems } from "./entry.ts";
+import type { Plugin } from "@arthur/core/plugin";
+import type { Entry } from "./entry.ts";
 import { type Registered, register } from "./register.ts";
 import { scheduleCommand } from "./schedule-command.ts";
+import { checkOptions } from "./schedule-options.ts";
 import { sweeper } from "./sweep.ts";
 
 // The schedule plugin (spec/roadmap.md, entries 39 and 40): actions and jobs at set times, from the config's `entries`, from the
@@ -41,21 +41,4 @@ export function schedule(options: ScheduleOptions = {}): Plugin {
 			clearInterval(timer);
 		},
 	};
-}
-
-export function checkOptions(options: Options): OptionProblem[] {
-	const problems: OptionProblem[] = Object.keys(options)
-		.filter((key) => key !== "file" && key !== "entries")
-		.map((key) => ({ path: key, problem: "unknown option; options: file, entries" }));
-	const { file, entries } = options;
-	if (file !== undefined && !(typeof file === "string" && file.trim() !== "")) problems.push({ path: "file", problem: `expected the path of a JSON file, got ${describe(file)}` });
-	if (entries === undefined) return problems;
-	if (!Array.isArray(entries)) return [...problems, { path: "entries", problem: `expected a list of entries, got ${describe(entries)}` }];
-	const ids: unknown[] = entries.map((entry: { readonly id?: unknown } | null) => entry?.id);
-	for (const [index, entry] of entries.entries()) {
-		problems.push(...entryProblems(entry, `entries[${index}]`));
-		const first = ids.indexOf(ids[index]);
-		if (typeof ids[index] === "string" && first < index) problems.push({ path: `entries[${index}].id`, problem: `${ids[index]} is the id of entries[${first}] too` });
-	}
-	return problems;
 }

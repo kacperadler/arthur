@@ -1,11 +1,14 @@
 import { lookup } from "node:dns/promises";
+import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { isIP } from "node:net";
+import { join } from "node:path";
+import { queueLock, withLock } from "@arthur/core/lock";
 import type { Host } from "@arthur/core/plugin";
 import { hostOf, isPrivate, type Kind, type Provider } from "./model-options.ts";
 
 // A provider's model list (spec/roadmap.md, entry 82), asked with curl on the job's machine through `host.jobs.run`, the key
-// on curl's stdin, never in an argument; one probe per provider and machine at a time, its answer reused for 30 s:
-// docs/models.md, "Probes".
+// on curl's stdin, never in an argument; one probe per provider and machine at a time, its answer reused for 30 s by every
+// process: docs/models.md, "Probes".
 
 export type Probe = { readonly models: readonly string[] } | { readonly reason: string };
 
@@ -73,23 +76,35 @@ async function probe(host: Host, provider: Provider, key: string | undefined, ma
 	return models === undefined ? { reason: "its model list answered something that is not a model list" } : { models };
 }
 
-// The prober of one load: the answer of provider `name` from `machine`, a probe running shared by every caller, an answer
-// kept for 30 s on the host's clock.
+// The prober of one load: the answer of provider `name` from `machine`, kept for 30 s on the host's clock in
+// `<folder>/probes.json`, which every process reads. One probe per provider and machine at a time, in this process and across
+// processes: a caller takes the pair's lock, and one that waited for it reads the answer the holder wrote.
 export function probes(host: Host, providers: Readonly<Record<string, Provider>>, seconds: number): (machine: string, name: string) => Promise<Probe> {
-	const kept = new Map<string, { at?: number; readonly answer: Promise<Probe> }>();
-	return (machine, name) => {
-		const [key, now] = [`${machine} ${name}`, host.clock.now().getTime()];
-		const last = kept.get(key);
-		if (last !== undefined && (last.at === undefined || now - last.at < REUSE_MS)) return last.answer;
-		const provider = providers[name] as Provider;
-		const secret = provider.keyEnv === undefined ? undefined : host.env[provider.keyEnv];
-		const entry: { at?: number; readonly answer: Promise<Probe> } = {
-			answer: probe(host, provider, secret, machine, seconds).then((answer) => {
-				entry.at = host.clock.now().getTime();
-				return answer;
-			}),
-		};
-		kept.set(key, entry);
-		return entry.answer;
+	const file = join(host.folder, "probes.json");
+	// A missing or broken file keeps nothing.
+	const kept = (): Readonly<Record<string, unknown>> => {
+		try {
+			return { ...JSON.parse(readFileSync(file, "utf8")) };
+		} catch {
+			return {};
+		}
+	};
+	return async (machine, name) => {
+		const key = `${machine} ${name}`;
+		const release = await queueLock(join(host.folder, `probe.${machine}.${name}.lock`));
+		try {
+			// The pair's answer while it is under 30 s old; an entry edited into another shape is none.
+			const { at, answer } = (kept()[key] ?? {}) as { readonly at?: unknown; readonly answer?: { readonly models?: unknown; readonly reason?: unknown } | null };
+			if (typeof at === "number" && (Array.isArray(answer?.models) || typeof answer?.reason === "string") && host.clock.now().getTime() - at < REUSE_MS) return answer as Probe;
+			const provider = providers[name] as Provider;
+			const fresh = await probe(host, provider, provider.keyEnv === undefined ? undefined : host.env[provider.keyEnv], machine, seconds);
+			withLock(`${file}.lock`, () => {
+				writeFileSync(`${file}.${process.pid}`, JSON.stringify({ ...kept(), [key]: { at: host.clock.now().getTime(), answer: fresh } }));
+				renameSync(`${file}.${process.pid}`, file);
+			});
+			return fresh;
+		} finally {
+			release();
+		}
 	};
 }

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import dns from "node:dns/promises";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingHttpHeaders } from "node:http";
@@ -8,6 +8,7 @@ import type { AddressInfo } from "node:net";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
+import { promisify } from "node:util";
 import type { Requirement } from "@arthur/core/plugin";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { checkOptions } from "../src/model-options.ts";
@@ -179,7 +180,7 @@ test("a list skips a model whose server is unreachable, slow, lacks it, answers 
 	}
 });
 
-test("two picks at once make one request to the server; it is reused for 30 s on the host's clock, then asked again", async () => {
+test("two picks at once make one request to the server; it is reused for 30 s on the host's clock, then asked again; a broken probes.json keeps nothing", async () => {
 	const mac = await ollama();
 	try {
 		const { fake, pick } = await load({ providers: { mac: { kind: "ollama", url: mac.url } } });
@@ -191,8 +192,51 @@ test("two picks at once make one request to the server; it is reused for 30 s on
 		fake.setNow(new Date(NOW.getTime() + 30_000));
 		await pick(["mac/qwen3-coder"]);
 		assert.equal(mac.seen.length, 2, "30 s later");
+		for (const [kept, seen] of [["{ not json", 3], [JSON.stringify({ "local mac": { at: NOW.getTime() + 30_000, answer: { models: "qwen3-coder" } } }), 4]] as const) {
+			writeFileSync(join(fake.host.folder, "probes.json"), kept);
+			await pick(["mac/qwen3-coder"]);
+			assert.equal(mac.seen.length, seen, kept);
+		}
+		await pick(["mac/qwen3-coder"]);
+		assert.equal(mac.seen.length, 4, "the answer written again is reused");
 	} finally {
 		mac.close();
+	}
+});
+
+test("two processes probing at once make one request: the second waits for the first's answer in probes.json", async () => {
+	const [folder, asking] = [temporaryFolder(), temporaryFolder()];
+	// The server holds its answer until both processes are asking, so the second asks while the first one's request runs.
+	const requests: string[] = [];
+	const http = createServer(async (request, response) => {
+		requests.push(request.url ?? "");
+		while (readdirSync(asking).length < 2) await sleep(10);
+		response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(TAGS));
+	});
+	await new Promise<void>((resolve) => http.listen(0, "127.0.0.1", resolve));
+	const src = (path: string) => JSON.stringify(join(import.meta.dirname, "..", "..", path));
+	const script = [
+		`import { writeFileSync } from "node:fs";`,
+		`import { join } from "node:path";`,
+		`import { fakeHost } from ${src("core/src/testing.ts")};`,
+		`import { probes } from ${src("models/src/probe.ts")};`,
+		"const [folder, url, asking] = process.argv.slice(1);",
+		`const { host } = fakeHost({ name: "models" });`,
+		`const ask = probes({ ...host, folder }, { mac: { kind: "ollama", url } }, 3);`,
+		`writeFileSync(join(asking, String(process.pid)), "");`,
+		`const answer = await ask("local", "mac");`,
+		"process.stdout.write(JSON.stringify(answer), () => process.exit(0));",
+	].join("\n");
+	try {
+		const url = `http://127.0.0.1:${(http.address() as AddressInfo).port}`;
+		const run = () => promisify(execFile)(process.execPath, ["--input-type=module", "--eval", script, folder, url, asking]);
+		const answers = await Promise.all([run(), run()]);
+		assert.deepEqual(answers.map(({ stdout }) => JSON.parse(stdout)), [{ models: ["qwen3-coder:latest"] }, { models: ["qwen3-coder:latest"] }]);
+		assert.deepEqual(requests, ["/api/tags"]);
+		assert.deepEqual(JSON.parse(readFileSync(join(folder, "probes.json"), "utf8")), { "local mac": { at: NOW.getTime(), answer: { models: ["qwen3-coder:latest"] } } });
+	} finally {
+		http.closeAllConnections();
+		http.close();
 	}
 });
 

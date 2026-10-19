@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
+import { pathToFileURL } from "node:url";
 import type { LoadedConfig } from "../src/config.ts";
 import type { Shell } from "../src/env.ts";
 import { loadPlugins } from "../src/host.ts";
@@ -214,19 +215,25 @@ test("a disabled plugin is not loaded: not checked, no setup, no folder, its env
 	assert.equal(existsSync(join(loaded.core.home, "signal")), false);
 });
 
-test("host.code holds the core's package folder, then each enabled plugin's package folder beside it; none for a disabled one or one without a package", async () => {
+test("host.code holds the core's package folder, then the package folder around each enabled plugin's own module, once; none for a disabled one or one that names no module", async () => {
 	const hosts: Host[] = [];
 	const keep = (host: Host) => void hosts.push(host);
+	const packages = join(import.meta.dirname, "..", "..");
+	// A plugin from a package of another name, installed outside Arthur's packages, its module two folders below its package.json.
+	const other = join(temporaryFolder(), "arthur-discord");
+	mkdirSync(join(other, "dist", "lib"), { recursive: true });
+	writeFileSync(join(other, "package.json"), JSON.stringify({ name: "@acme/arthur-discord" }));
 	const loaded = config([
-		fake([], "session", { setup: keep }),
+		fake([], "session", { module: pathToFileURL(join(packages, "session", "src", "session.ts")).href, setup: keep }),
 		fake([], "orchestration", { setup: keep }),
-		fake([], "resources", { options: { enabled: false } }),
-		fake([], "discord", { setup: keep }),
+		fake([], "resources", { module: pathToFileURL(join(packages, "resources", "src", "resources.ts")).href, options: { enabled: false } }),
+		fake([], "discord", { module: pathToFileURL(join(other, "dist", "lib", "discord.js")).href, setup: keep }),
+		fake([], "discord-voice", { module: pathToFileURL(join(other, "dist", "voice.js")).href, setup: keep }),
 	]);
 	await loadPlugins(loaded, {});
-	const packages = join(import.meta.dirname, "..", "..");
-	assert.deepEqual(hosts[0]?.code, ["core", "session", "orchestration"].map((name) => join(packages, name)), "the core, then the plugins in setup order");
+	assert.deepEqual(hosts[0]?.code, [join(packages, "core"), join(packages, "session"), other], "the core, then the plugins' packages in setup order; orchestration written in the config has none");
 	assert.ok(hosts.every((host) => host.code === hosts[0]?.code), "one list for every plugin");
+	assert.match(await refusal(config([fake([], "orchestration", { module: "../src/orchestration.ts" })])), /: plugins\[0\]: orchestration: expected module as its own import\.meta\.url, a file: URL, got "\.\.\/src\/orchestration\.ts"$/);
 });
 
 test("a missing env variable of an enabled plugin refuses the start before any setup", async () => {

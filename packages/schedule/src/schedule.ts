@@ -18,6 +18,7 @@ export function schedule(options: ScheduleOptions = {}): Plugin {
 	let timer: NodeJS.Timeout | undefined;
 	return {
 		name: "schedule",
+		module: import.meta.url,
 		options,
 		check: checkOptions,
 		setup(host) {

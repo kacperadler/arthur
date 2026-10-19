@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { type Board, board } from "./board.ts";
 import { moveStartedTickets, refuseUnstartableTickets } from "./board-jobs.ts";
 import { clock } from "./clock.ts";
@@ -40,9 +41,9 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const bus = eventBus(config.core.home);
 	const jobs = jobRunner(config.core.home, dirname(config.path), { ...config.core.jobs, slice: SLICE }, config.core.agent.command, time, bus, names.collect);
 	let loading = true;
-	// `Host.code`: the core's package folder, then each plugin's package folder beside it (`packages/<name>` in Arthur's checkout,
-	// `node_modules/@arthur/<name>` in an install); a plugin the config writes itself has none.
-	const code = [CORE, ...sorted.map((plugin) => join(dirname(CORE), plugin.name)).filter((folder) => existsSync(join(folder, "package.json")))];
+	// `Host.code`: the core's package folder, then the package folder of each plugin's own `module`, the nearest folder above it
+	// with a package.json, once each; a plugin that names no module has none.
+	const code = [...new Set([CORE, ...sorted.flatMap((plugin) => (plugin.module === undefined ? [] : (packageOf(fileURLToPath(plugin.module)) ?? [])))])];
 	for (const plugin of sorted) {
 		const { enabled: _, ...options } = plugin.options ?? {};
 		const folder = join(config.core.home, plugin.name);
@@ -124,4 +125,9 @@ function setupOrder(plugins: readonly Plugin[], byName: ReadonlyMap<string, Plug
 		if (cycle) return cycle;
 	}
 	return sorted;
+}
+
+function packageOf(file: string): string | undefined {
+	for (let folder = dirname(file); folder !== dirname(folder); folder = dirname(folder)) if (existsSync(join(folder, "package.json"))) return folder;
+	return undefined;
 }

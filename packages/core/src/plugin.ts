@@ -22,6 +22,8 @@ export type Requirement = { readonly name: string; check(): string | Promise<str
 
 export type Plugin = {
 	readonly name: string;
+	// Its own module's URL, `import.meta.url`: the host's `code` holds the package folder around it.
+	readonly module?: string;
 	// As written in the config. `enabled: false` means the host neither loads the plugin nor reads its env variables.
 	readonly options?: Options;
 	// The plugins this one needs; each must be in the list and enabled, and its `setup` runs first.
@@ -46,8 +48,8 @@ export type Host = {
 	readonly clock: Clock;
 	// The core's `agent.command`, the agent a plugin starts outside a job (orchestration's coordinator).
 	readonly agent: string;
-	// The package folders of the code this load runs: the core's, then each enabled plugin's beside it, named after the plugin (a
-	// plugin the config writes itself has none). The session plugin's restart guard watches their `src/`.
+	// The package folders of the code this load runs: the core's, then each enabled plugin's, the one around the module it names
+	// (`Plugin.module`; a plugin that names none has none). The session plugin's restart guard watches their `src/`.
 	readonly code: readonly string[];
 	// Events go to every subscriber in this process and to the log `<home>/events.jsonl`, named by this plugin.
 	readonly events: Events;
@@ -83,12 +85,13 @@ const PLUGIN_NAME = /^[a-z]+(-[a-z]+)*$/;
 export function asPlugin(entry: unknown): Plugin | string {
 	if (typeof entry !== "object" || entry === null || Array.isArray(entry)) return `expected a plugin such as youtrack({ ... }), got ${describe(entry)}`;
 	const plugin = entry as Readonly<Record<string, unknown>>;
-	const { name, options, requires, after } = plugin;
+	const { name, options, requires, after, module } = plugin;
 	if (typeof name !== "string" || !PLUGIN_NAME.test(name)) return `expected a plugin name of lowercase letters and dashes, got ${describe(name)}`;
 	if (options !== undefined && (typeof options !== "object" || options === null || Array.isArray(options)))
 		return `${name}: expected options as an object, got ${describe(options)}`;
 	for (const [key, list] of [["requires", requires], ["after", after]] as const)
 		if (list !== undefined && !(Array.isArray(list) && list.every((item) => typeof item === "string"))) return `${name}: expected ${key} as a list of plugin names, got ${describe(list)}`;
+	if (module !== undefined && !(typeof module === "string" && module.startsWith("file:///"))) return `${name}: expected module as its own import.meta.url, a file: URL, got ${describe(module)}`;
 	if (typeof plugin.setup !== "function") return `${name}: expected a setup function, got ${describe(plugin.setup)}`;
 	for (const key of ["check", "start", "stop"])
 		if (plugin[key] !== undefined && typeof plugin[key] !== "function") return `${name}: expected ${key} as a function, got ${describe(plugin[key])}`;

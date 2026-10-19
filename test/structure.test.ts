@@ -162,7 +162,10 @@ import { checkStructure } from "./structure.ts";
 // `arthur continue` runs the prepares again, told it is a continue: core 26 more (5481) for the job read back from its record
 // (`recordedJob`, 12), the prepares' loop shared by spawn and continue (5), the variables to the wrapper here and on `remote-job
 // continue`'s stdin there, and `continued` on `Prepare`; commit-rules and projects each return at once on a continue (0 more).
-const BUDGETS = { core: 5481, "core/testing": 349, projects: 480, orchestration: 1381, machines: 446, resources: 458, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 401 };
+// AR0161: `host.code` holds the package folder around the module a plugin names as its own (`module: import.meta.url`), not
+// the folder beside the core's named after the plugin; core 9 more (5490) for `Plugin.module`, its refusal and the walk up to
+// the nearest package.json (host.ts); each of the 11 plugins 1 more for its `module` line.
+const BUDGETS = { core: 5490, "core/testing": 349, projects: 481, orchestration: 1382, machines: 447, resources: 459, session: 874, schedule: 553, models: 486, youtrack: 465, "commit-rules": 169, nvm: 85, telegram: 402 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

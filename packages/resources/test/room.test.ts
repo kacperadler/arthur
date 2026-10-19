@@ -213,7 +213,7 @@ test("free cores are the cores less the CPU time in use over a second, not the l
 	assert.deepEqual([there.cores, there.total, typeof there.load], [CORES, os.totalmem(), "number"], JSON.stringify(there));
 });
 
-test("the coordinator's context, arthur resources and /resources show one line per machine; arthur run checks each at its start", async (t) => {
+test("the coordinator's context, arthur resources and /resources show one line per machine; arthur run checks local at its start, another machine at each machines round, with no ssh call of its own", async (t) => {
 	local(t, 1, 3 * GB);
 	gpu(2, 1 * GB);
 	const { fake, plugin } = await load(t);
@@ -221,7 +221,10 @@ test("the coordinator's context, arthur resources and /resources show one line p
 	assert.equal(sshCalls(), 0);
 	await plugin.start?.();
 	t.after(() => plugin.stop?.());
-	await until("both checked", () => existsSync(join(fake.host.folder, "machines", "local.json")) && existsSync(join(fake.host.folder, "machines", "gpu.json")));
+	await until("local checked", () => existsSync(join(fake.host.folder, "machines", "local.json")));
+	fake.collect("machines.round", new Map([["gpu", Promise.resolve({ free: readFileSync(join(machines, "gpu", "free.json"), "utf8") })]]));
+	await until("gpu checked", () => existsSync(join(fake.host.folder, "machines", "gpu.json")));
+	assert.equal(sshCalls(), 0, "gpu's numbers came with the round");
 	const lines = "local: room for 1 more job (3.0 GB, 1.0 cores free)\ngpu: no room, short of 1.0 GB memory (1.0 GB, 2.0 cores free; keepFree 1.0 GB, 0.5 cores; a job reserves 1.0 GB, 0.5 cores)";
 	assert.deepEqual(fake.collect<string>("coordinator.context"), [lines]);
 	assert.equal(await fake.host.commands.route("/resources"), lines);
@@ -233,4 +236,26 @@ test("the coordinator's context, arthur resources and /resources show one line p
 	assert.deepEqual(log.mock.calls.map((call) => call.arguments), [[lines]]);
 	assert.equal(await command?.run({ args: ["AC0001", "more"], project: undefined }), 2);
 	assert.deepEqual(error.mock.calls.map((call) => call.arguments), [["usage: arthur resources [<ticket id>]"]]);
+});
+
+test("a machines round is each listed machine's check: a spawn's check asked while it runs waits for it, not ssh nor the check before, and reads its numbers, or its reason", async (t) => {
+	gpu(1, 2 * GB);
+	const { fake, notices } = await load(t);
+	const free = (name: string) => fake.call<Promise<number>>("resources.free", name);
+	const said = Promise.withResolvers<{ readonly free: string } | { readonly error: string }>();
+	fake.collect("machines.round", new Map([["gpu", said.promise]]));
+	const asked = free("gpu");
+	said.resolve({ free: JSON.stringify({ cores: 8, load: 4, free: 8 * GB, total: 16 * GB }) });
+	assert.equal(await asked, 7, "the round's 8 GB and 4 cores free, less 1 GB and 0.5 cores kept, hold 7 reservations");
+	// A minute on, the check above is fresh, but a round runs: the room waits for it.
+	fake.setNow(new Date(NOW.getTime() + 60_000));
+	const refused = "ssh gpu: arthur@gpu: Permission denied (publickey).";
+	const next = Promise.withResolvers<{ readonly free: string } | { readonly error: string }>();
+	fake.collect("machines.round", new Map([["gpu", next.promise]]));
+	const during = free("gpu");
+	next.resolve({ error: refused });
+	assert.equal(await during, 0);
+	assert.equal(fake.collect<string>("coordinator.context")[0]?.split("\n")[1], `gpu: no room, its check failed: ${refused}`);
+	assert.deepEqual(notices(), [`machine gpu: its free CPU and memory are unknown (${refused}); no job starts there until a check answers`]);
+	assert.equal(sshCalls(), 0, "no check of its own over ssh");
 });

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { availableParallelism, totalmem } from "node:os";
 import { arch, platform } from "node:process";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
@@ -44,12 +45,17 @@ cd "$there" && PATH="$there/bin:${machinePath}" exec sh -c "$*"
 process.env.PATH = [bin, process.env.PATH].join(delimiter);
 const calls = () => (existsSync(sshLog) ? readFileSync(sshLog, "utf8").split("\n").filter((line) => line !== "") : []);
 
-// A machine reached as `ssh <host>`, whose `uname -sm` says `system` and whose `arthur version` prints `version`; no `arthur` when null.
+// The line of free CPU and memory a machine's `node -e` prints in its check.
+const FREE_LINE = JSON.stringify({ cores: 8, load: 1.5, free: 6 * 2 ** 30, total: 16 * 2 ** 30 });
+
+// A machine reached as `ssh <host>`, whose `uname -sm` says `system` and whose `arthur version` prints `version`; no `arthur`
+// when null. Its `node -e` prints FREE_LINE.
 function machine(host: string, system = "Linux x86_64", version: string | null = coreVersion()): string {
 	const there = join(root, host);
 	rmSync(there, { recursive: true, force: true });
 	mkdirSync(join(there, "bin"), { recursive: true });
 	writeFileSync(join(there, "bin/uname"), `#!/bin/sh\necho '${system}'\n`, { mode: 0o755 });
+	writeFileSync(join(there, "bin/node"), `#!/bin/sh\n[ "$1" = -e ] && echo '${FREE_LINE}'\n`, { mode: 0o755 });
 	if (version !== null) writeFileSync(join(there, "bin/arthur"), `#!/bin/sh\n[ "$1" = version ] && echo '${version}'\n`, { mode: 0o755 });
 	return there;
 }
@@ -75,8 +81,9 @@ const BUILD = { name: "build", ssh: "build-box", home: "/home/arthur/.arthur", l
 type Requirement = { readonly name: string; check(): Promise<string>; readonly costs: string; readonly fix: string; readonly critical: boolean };
 const requirements = (fake: FakeHost) => fake.collect<Requirement[]>("doctor").flat();
 const events = (fake: FakeHost) => fake.emitted.map((event) => [event.name, event.data]);
-// The one command of a machine's check over ssh, as the core quotes it, before its tools labels.
-const CHECK = `'sh' '-c' 'uname -sm && arthur version && for tool do command -v "$tool" >/dev/null || echo "missing $tool"; done'`;
+// The one command of a machine's check over ssh, as the core quotes it, before its `node -e` script (`FREE`) and its tools labels.
+const CHECK = `'sh' '-c' 'uname -sm && arthur version && node -e "$1" && shift && for tool do command -v "$tool" >/dev/null || echo "missing $tool"; done'`;
+const FREE = "'[^']+'";
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 async function until<T>(what: string, predicate: () => T | undefined | false): Promise<T> {
@@ -106,7 +113,7 @@ test("at start every machine is checked and told once; a key refused stays offli
 		const offline = { machine: "build", reason: "ssh build-box: arthur@build-box: Permission denied (publickey)." };
 		const told = [["machine-online", { machine: "mac", os: "macos", arch: "arm64", version: coreVersion() }], ["machine-offline", offline]];
 		assert.deepEqual(events(fake), told);
-		for (const call of calls()) assert.match(call, new RegExp(`^-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 (mac-mini ${escape(CHECK)} 'sh' 'xcodebuild'|build-box ${escape(CHECK)} 'sh')$`));
+		for (const call of calls()) assert.match(call, new RegExp(`^-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 (mac-mini ${escape(CHECK)} 'sh' ${FREE} 'xcodebuild'|build-box ${escape(CHECK)} 'sh' ${FREE})$`));
 		// Two more rounds, as the doctor and the command ask for them: nothing changed, nothing told.
 		await Promise.all(requirements(fake).map((requirement) => requirement.check()));
 		assert.equal((await fake.host.commands.route("/machines")).split("\n").length, 6);
@@ -138,6 +145,37 @@ test("a check outside arthur run (the command, the doctor) tells nothing; arthur
 	} finally {
 		await plugin.stop?.();
 	}
+});
+
+test("each round hands machines.round every listed machine's check as it begins: its free CPU and memory, or why it is offline, from its one ssh call", async () => {
+	// The real node there, so the line is what the check's own script measures.
+	writeFileSync(join(machine("mac-mini", "Darwin arm64"), "bin/node"), `#!/bin/sh\nexec '${process.execPath}' "$@"\n`, { mode: 0o755 });
+	writeFileSync(join(machine("build-box"), "fail"), KEY_REFUSED.replace("mac-mini", "build-box"));
+	const { fake } = await load({ list: [MAC, BUILD] });
+	const rounds: ReadonlyMap<string, Promise<{ readonly free?: string; readonly error?: string }>>[] = [];
+	const begun: Promise<unknown>[] = [];
+	fake.provide("machines.round", (checks: (typeof rounds)[number]) => {
+		rounds.push(checks);
+		begun.push(Promise.race([...checks.values(), Promise.resolve("pending")]));
+	});
+	await fake.host.commands.route("/machines");
+	assert.equal(rounds.length, 1, "one hook per round");
+	assert.equal(await begun[0], "pending", "handed over before any check ended");
+	assert.deepEqual([...(rounds[0]?.keys() ?? [])], ["mac", "build"]);
+	assert.deepEqual(await rounds[0]?.get("build"), { error: "ssh build-box: arthur@build-box: Permission denied (publickey)." });
+	const free = JSON.parse((await rounds[0]?.get("mac"))?.free ?? "");
+	assert.deepEqual([free.cores, free.total, typeof free.load, typeof free.free], [availableParallelism(), totalmem(), "number", "number"]);
+	assert.equal(calls().length, 2, "one ssh call per machine and round serves both");
+	await Promise.all(requirements(fake).map((requirement) => requirement.check()));
+	assert.equal(rounds.length, 2, "the doctor's round is handed over too");
+});
+
+test("a machine whose node -e fails in the check is offline with its line, so it takes no job without its free CPU and memory", async () => {
+	writeFileSync(join(machine("build-box"), "bin/node"), "#!/bin/sh\necho 'node: bad option: -e' >&2\nexit 9\n", { mode: 0o755 });
+	const { fake } = await load({ list: [BUILD] });
+	const [requirement] = requirements(fake);
+	assert.equal(await requirement?.check(), "missing: uname -sm && arthur version && node -e failed there: node: bad option: -e");
+	assert.equal(requirement?.fix, "ssh build-box 'uname -sm && arthur version && node -v', by hand");
 });
 
 test("each way a machine is offline, with its reason and its fix, and each tools label command -v does not find there, as the doctor says it", async () => {
@@ -184,7 +222,7 @@ test("each way a machine is offline, with its reason and its fix, and each tools
 		],
 	]);
 	assert.ok(calls().every((call) => call.startsWith("-o BatchMode=yes -o StrictHostKeyChecking=yes ")), "a host key is never accepted on its own");
-	assert.ok(calls().some((call) => call.endsWith(`gpu-box ${CHECK} 'sh' 'docker' 'nvidia-smi' 'xcodebuild'`)), "each tool label is asked of command -v, in the one check over ssh");
+	assert.ok(calls().some((call) => new RegExp(`gpu-box ${escape(CHECK)} 'sh' ${FREE} 'docker' 'nvidia-smi' 'xcodebuild'$`).test(call)), "each tool label is asked of command -v, in the one check over ssh");
 });
 
 test("a machine whose ssh resolves to a public address is refused at load; one that turns public later is offline", async () => {

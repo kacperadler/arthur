@@ -164,7 +164,11 @@ import { checkStructure } from "./structure.ts";
 // 9 more (467), AR0150, for the busy cores sampled over a second from `cpus()`, here and in the `node -e` script there.
 // Merged with main: core 5455 + 31 = 5486, resources 458 + 9 = 467.
 // Merged with AR0212: telegram 401 as above; the rest as main has them.
-const BUDGETS = { core: 5486, "core/testing": 349, projects: 480, orchestration: 1381, machines: 446, resources: 467, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 401 };
+// AR0149: one ssh call per machine and round serves the machines check and the free CPU and memory: machines 10 more (456) for
+// the `node -e` script in the check's command, its line in the report and the `machines.round` hook as each round begins;
+// resources 16 more (483) for the hook kept as each listed machine's check, a check in flight waited for, and `local` alone on
+// the 60 s timer; cut first: the round's numbers go through the same parse as this side's own `node -e`, no second parser.
+const BUDGETS = { core: 5486, "core/testing": 349, projects: 480, orchestration: 1381, machines: 456, resources: 483, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 401 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

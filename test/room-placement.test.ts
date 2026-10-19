@@ -19,8 +19,8 @@ import { resources } from "@arthur/resources";
 const GB = 2 ** 30;
 const NOW = new Date("2026-10-18T10:00:00Z");
 
-// The fake `ssh` on PATH: `-G` prints a private address; on `gpu` the machines plugin's check gets Linux and this core's
-// version, and the resources plugin's `node -e` the numbers in `<machines>/gpu/free.json`.
+// The fake `ssh` on PATH: `-G` prints a private address; on `gpu` the machines plugin's check gets Linux, this core's version
+// and, as its `node -e` there, the numbers in `<machines>/gpu/free.json`; the resources plugin's own `node -e` gets them too.
 const bin = temporaryFolder();
 const there = join(temporaryFolder(), "gpu");
 mkdirSync(there);
@@ -29,7 +29,7 @@ writeFileSync(
 	`#!/bin/sh
 if [ "$1" = -G ]; then printf 'host %s\\nhostname 127.0.0.1\\n' "$2"; exit 0; fi
 case "$*" in
-  *uname*) printf 'Linux x86_64\\n%s\\n' '${coreVersion()}';;
+  *uname*) printf 'Linux x86_64\\n%s\\n' '${coreVersion()}'; cat '${there}/free.json';;
   *node*) cat '${there}/free.json';;
   *) echo "unexpected: $*" >&2; exit 1;;
 esac
@@ -85,10 +85,10 @@ test("placement takes the machine with the most room as resources.free answers i
 	assert.deepEqual([await at.free("local"), await at.free("gpu")], [3, 1]);
 	const job = await at.fake.host.jobs.spawn({ task: "Go." });
 	assert.equal(job.machine, "local", "local's 3 jobs of room over gpu's 1, though gpu has fewer jobs in a run");
-	at.forget("gpu");
+	// gpu's numbers change, its check kept still fresh: placement's own machines check carries the new ones to resources.free.
 	gpu(8 * GB);
-	assert.deepEqual([await at.free("local"), await at.free("gpu")], [2, 7], "local: the job started since the check counts at its reservation");
 	assert.equal(await at.place(), "gpu");
+	assert.deepEqual([await at.free("local"), await at.free("gpu")], [2, 7], "local: the job started since the check counts at its reservation");
 	at.forget("local", "gpu");
 	at.setLocal(1 * GB);
 	gpu(1 * GB);

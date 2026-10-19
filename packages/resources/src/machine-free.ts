@@ -5,13 +5,17 @@ import { join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
 
 // Each machine's free CPU and memory (spec/roadmap.md, entry 34): Node's `os` on `local`, the same calls through `node -e` over
-// the core's SSH on another machine. Each check is kept in `<folder>/machines/<name>.json`, so every process (`arthur run`,
-// `arthur spawn`, the coordinator's context) reads the same one: docs/resources.md, "How many jobs run".
+// the core's SSH on another machine, which the `machines` plugin's check carries at each of its rounds. Each check is kept in
+// `<folder>/machines/<name>.json`, so every process (`arthur run`, `arthur spawn`, the coordinator's context) reads the same one:
+// docs/resources.md, "How many jobs run".
 
 // What one check found: the machine's cores, the cores its processes kept busy over one second (`load`), its free and total
 // memory in bytes; or why it failed. `jobs` are the jobs in a run on it as the check began: what the numbers already hold.
 export type Measured = { readonly cores: number; readonly load: number; readonly free: number; readonly total: number };
 export type Sample = { readonly at: string; readonly jobs: readonly string[] } & (Measured | { readonly error: string });
+// What a round of the `machines` plugin says of a listed machine (`machines.round`): the line its check's `node -e` printed,
+// the same SCRIPT as here, or why the machine is offline.
+export type Said = { readonly free: string } | { readonly error: string };
 
 // A check is cut after this, its ssh killed.
 const LIMIT_SECONDS = 10;
@@ -24,13 +28,16 @@ const busy = () => cpus().reduce((sum, { times: t }) => sum + t.user + t.nice + 
 const number = (value: unknown, least: number) => typeof value === "number" && Number.isFinite(value) && value >= least;
 const measured = (value: Readonly<Record<string, unknown>>): value is Measured => number(value.cores, 1) && number(value.load, 0) && number(value.free, 0) && number(value.total, 1);
 
-async function measure(host: Host, name: string): Promise<Measured | { readonly error: string }> {
-	if (name === "local") {
+// `inRound`, the machine's check in a round of the `machines` plugin, stands for this side's own `node -e` over ssh.
+async function measure(host: Host, name: string, inRound: Promise<Said> | undefined): Promise<Measured | { readonly error: string }> {
+	const round = await inRound;
+	if (round !== undefined && "error" in round) return { error: round.error };
+	if (round === undefined && name === "local") {
 		const [before, start] = [busy(), performance.now()];
 		await sleep(SAMPLE_MS);
 		return { cores: availableParallelism(), load: Math.max(0, (busy() - before) / (performance.now() - start)), free: freemem(), total: totalmem() };
 	}
-	const ran = await host.jobs.run(name, ["node", "-e", SCRIPT], LIMIT_SECONDS);
+	const ran = round === undefined ? await host.jobs.run(name, ["node", "-e", SCRIPT], LIMIT_SECONDS) : { code: 0, stdout: round.free, stderr: "" };
 	const said = ran.stderr.trim().split("\n").at(-1) || `exit code ${ran.code}`;
 	if (ran.code === null) return { error: `check timed out after ${LIMIT_SECONDS} s` };
 	if (ran.code === 255) return { error: `ssh failed: ${said}` };
@@ -59,12 +66,13 @@ export function readSample(folder: string, name: string): Sample | undefined {
 	return kept && (typeof sample.error === "string" || measured(sample)) ? (sample as Sample) : undefined;
 }
 
-// Checks machine `name` now and keeps the result. A check that fails after one that answered (or none) is said once, as a
-// `notice`; the next ones that fail too are not. Never throws for the machine's own failure.
-export async function checkSample(host: Host, folder: string, name: string): Promise<Sample> {
+// Checks machine `name` now, or reads `said`, its check in a round of the `machines` plugin begun now, and keeps the result. A
+// check that fails after one that answered (or none) is said once, as a `notice`; the next ones that fail too are not. Never
+// throws for the machine's own failure.
+export async function checkSample(host: Host, folder: string, name: string, said?: Promise<Said>): Promise<Sample> {
 	const running = new Set(host.jobs.running());
 	const jobs = host.jobs.list().filter((job) => job.machine === name && running.has(job.id)).map((job) => job.id);
-	const found = await measure(host, name).catch((error: Error) => ({ error: error.message }));
+	const found = await measure(host, name, said).catch((error: Error) => ({ error: error.message }));
 	const sample: Sample = { at: host.clock.now().toISOString(), jobs, ...found };
 	const before = readSample(folder, name);
 	const file = join(folder, "machines", `${name}.json`);

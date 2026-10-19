@@ -10,7 +10,7 @@ A job can run on another machine, such as a Mac for an iOS build (`arthur spawn 
 
 1. Node 24, git and OMP, logged in with its own credential (`omp login` there), as in steps 2 and 3 of [`setup.md`](setup.md). With the nvm plugin on, nvm in `~/.nvm` there (or `NVM_DIR` set for a command over SSH) and each Node version the projects' `.nvmrc` name, `nvm install <version>` there: a spawn downloads none (`packages/nvm/docs/nvm.md`).
 2. Arthur's core of the same version as here: clone and `npm ci` as in step 4 of [`setup.md`](setup.md), at the same commit, without a config. `arthur version` prints the version; both machines must print the same, or every spawn there is refused naming both. Update it there with every update here.
-3. `node`, `omp`, `git` and `arthur` on the `PATH` of a command run over SSH, which reads no profile and returns early from Ubuntu's `~/.bashrc`: put the `PATH` line at the top of `~/.bashrc` there, before its `case $- in` line, not at its end. The `resources` plugin reads the machine's free CPU and memory with `node -e` over SSH.
+3. `node`, `omp`, `git` and `arthur` on the `PATH` of a command run over SSH, which reads no profile and returns early from Ubuntu's `~/.bashrc`: put the `PATH` line at the top of `~/.bashrc` there, before its `case $- in` line, not at its end. The `machines` plugin's check runs `node -e` there for the machine's free CPU and memory, which the `resources` plugin reads; a machine where it fails is offline.
 4. From this host, as Arthur's user: a key the machine accepts (`ssh-copy-id <host>`), and its host key known, accepted once by hand. Then this prints the same version as `arthur version` here, without asking anything:
 
 ```sh

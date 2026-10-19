@@ -111,7 +111,11 @@ import { checkStructure } from "./structure.ts";
 // AR0188 (roadmap 43): commit-rules: 168, for the regex checked at load and its commit-msg hook in each job's worktree, the
 // project's own hooks forwarded and a shared `core.bare` or `core.worktree` moved into the main one's `config.worktree` first
 // (hook.ts, 13 of the 168, after review 1), words or a file in the worker's and reviewer's prompt, and its empty options file.
-const BUDGETS = { core: 5448, "core/testing": 344, projects: 473, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 251, "commit-rules": 168 };
+// AR0197 (roadmap 45): youtrack 110 more (361) for writing: issue and article create and update from a file, the article's
+// version check, a custom field set in the shape its type takes, a work item, and the POST in the API call; cut first: the
+// usage line to one, and the article's version a word instead of a `--version` flag with its own parsing (7 lines).
+// AR0195: youtrack 2 more (363) for `issue list` unresolved by default and `--all`; its query inlined first (1 line).
+const BUDGETS = { core: 5448, "core/testing": 344, projects: 473, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 363, "commit-rules": 168 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -1,12 +1,12 @@
 # arthur youtrack
 
-Usage: `arthur youtrack issue list`; `arthur youtrack issue get <id>`; `arthur youtrack issue create <file>`; `arthur youtrack issue update <id> <file>`; `arthur youtrack issue set <id> <field> <value>`; `arthur youtrack issue work <id> <minutes> [<text>]`; `arthur youtrack article list`; `arthur youtrack article get <id>`; `arthur youtrack article create <file>`; `arthur youtrack article update <id> <file> <version>`; each with `--project <name>` for another project than the main one. Comes with the `youtrack` plugin.
+Usage: `arthur youtrack issue list [--all]`; `arthur youtrack issue get <id>`; `arthur youtrack issue create <file>`; `arthur youtrack issue update <id> <file>`; `arthur youtrack issue set <id> <field> <value>`; `arthur youtrack issue work <id> <minutes> [<text>]`; `arthur youtrack article list`; `arthur youtrack article get <id>`; `arthur youtrack article create <file>`; `arthur youtrack article update <id> <file> <version>`; each with `--project <name>` for another project than the main one. Comes with the `youtrack` plugin.
 
 The `youtrack` plugin reads and writes each project's YouTrack (roadmap entries 44 and 45): its issues and its knowledge base articles, on the server its `tracker` picks. No verb deletes an issue or an article.
 
 Reading:
 
-- `issue list`: every issue of the project's YouTrack project, newest update first, one line each: `SHOP-12 Summary`, with ` (resolved)` after a resolved one; `no issues in YouTrack project SHOP` when there is none.
+- `issue list [--all]`: the unresolved issues of the project's YouTrack project (`project: SHOP #Unresolved`), newest update first, one line each: `SHOP-12 Summary`; `no unresolved issues in YouTrack project SHOP` when there is none. With `--all`, every issue, resolved ones too, with ` (resolved)` after a resolved one; `no issues in YouTrack project SHOP` when there is none. No other verb takes `--all`.
 - `issue get <id>`: one issue: `SHOP-12: Summary`, its reporter and the days it was created and updated, when it was resolved (or `no`), each custom field as `Name: value` (`none` when empty, a list joined by commas), then its description.
 - `article list`: every article of the project, one line each: `SHOP-A-3 Title`.
 - `article get <id>`: one article: `SHOP-A-3: Title`, its reporter and days, `version: <n>` (its last update in milliseconds, which `article update` is given), its parent article when it has one, then its content.
@@ -33,7 +33,7 @@ In `youtrack({ ... })` in `arthur.config.ts`; it needs the `projects` plugin, wh
 | `instances` | Required, a list of at least one YouTrack server, each `{ name?, urlEnv, tokenEnv }`. |
 | `instances[].name` | The instance's name, which a project's `tracker.instance` gives: lowercase letters, digits and single dashes, from a letter. At most one instance has no name: the unnamed one, which a tracker without `instance` uses. |
 | `instances[].urlEnv` | The variable holding the server's URL: `https://example.youtrack.cloud`, or the URL of a server under a path (`https://host/youtrack`). The unnamed instance's is `ARTHUR_YOUTRACK_URL`, a named one's `ARTHUR_YOUTRACK_<NAME>_URL`. |
-| `instances[].tokenEnv` | The variable holding a permanent token of the YouTrack user Arthur reads as (`ARTHUR_YOUTRACK_TOKEN`, `ARTHUR_YOUTRACK_<NAME>_TOKEN`), sent as `Authorization: Bearer <token>`. |
+| `instances[].tokenEnv` | The variable holding a permanent token of the YouTrack user Arthur reads and writes as (`ARTHUR_YOUTRACK_TOKEN`, `ARTHUR_YOUTRACK_<NAME>_TOKEN`), sent as `Authorization: Bearer <token>`. |
 | `timeoutSeconds` | How long one call may take before it is given up: above 0, at most 300. Default 30. |
 
 ```ts

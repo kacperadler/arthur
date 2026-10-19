@@ -8,7 +8,7 @@ import { addWork, create, setField, update } from "./youtrack-write.ts";
 // A project of the list, and what its `tracker` names when that is youtrack: the instance and the YouTrack project's id.
 export type Tracked = { readonly name: string; readonly tracker: { readonly instance: Instance; readonly project: string } | undefined };
 
-const USAGE = "usage: arthur youtrack issue list|get <id>|create <file>|update <id> <file>|set <id> <field> <value>|work <id> <minutes> [<text>]; arthur youtrack article list|get <id>|create <file>|update <id> <file> <version>; --project <name> for another project than the main one";
+const USAGE = "usage: arthur youtrack issue list [--all]|get <id>|create <file>|update <id> <file>|set <id> <field> <value>|work <id> <minutes> [<text>]; arthur youtrack article list|get <id>|create <file>|update <id> <file> <version>; --project <name> for another project than the main one";
 
 // The words each verb takes after it; a `?` marks an optional last one.
 const VERBS: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = {
@@ -25,9 +25,11 @@ const FIELDS = {
 
 // Writes its output; a refusal throws, wrong usage is exit code 2.
 export async function youtrackCommand(projects: readonly Tracked[], args: readonly string[], name: string | undefined): Promise<number> {
-	const [kind = "", verb = "", ...words] = args;
+	// `--all`: `issue list` with the resolved issues too (AR0195); by default only the unresolved ones.
+	const all = args.includes("--all");
+	const [kind = "", verb = "", ...words] = args.filter((each) => each !== "--all");
 	const shape = Object.hasOwn(VERBS, kind) && Object.hasOwn(VERBS[kind]!, verb) ? VERBS[kind]![verb]! : undefined;
-	if (shape === undefined || words.length < shape.filter((each) => !each.endsWith("?")).length || words.length > shape.length) {
+	if (shape === undefined || words.length < shape.filter((each) => !each.endsWith("?")).length || words.length > shape.length || (all && `${kind} ${verb}` !== "issue list")) {
 		console.error(USAGE);
 		return 2;
 	}
@@ -40,10 +42,10 @@ export async function youtrackCommand(projects: readonly Tracked[], args: readon
 	const { instance, project: short } = project.tracker;
 	if (verb === "list") {
 		const path = kind === "issue" ? "issues" : `admin/projects/${short}/articles`;
-		const items = await getAll(instance, path, { fields: kind === "issue" ? FIELDS.issues : FIELDS.articles, ...(kind === "issue" ? { query: `project: ${short}` } : {}) }, `project ${short}`);
+		const items = await getAll(instance, path, { fields: kind === "issue" ? FIELDS.issues : FIELDS.articles, ...(kind === "issue" ? { query: `project: ${short}${all ? "" : " #Unresolved"}` } : {}) }, `project ${short}`);
 		// `SHOP-12 Summary`, ` (resolved)` after a resolved issue.
 		const lines = items.map((item) => `${text(field(item, "idReadable"))} ${text(field(item, "summary"))}${typeof field(item, "resolved") === "number" ? " (resolved)" : ""}`);
-		console.log(lines.length === 0 ? `no ${kind}s in YouTrack project ${short}` : lines.join("\n"));
+		console.log(lines.length === 0 ? `no ${kind === "issue" && !all ? "unresolved " : ""}${kind}s in YouTrack project ${short}` : lines.join("\n"));
 		return 0;
 	}
 	if (verb === "create") {

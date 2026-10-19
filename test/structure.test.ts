@@ -114,7 +114,8 @@ import { checkStructure } from "./structure.ts";
 // AR0197 (roadmap 45): youtrack 110 more (361) for writing: issue and article create and update from a file, the article's
 // version check, a custom field set in the shape its type takes, a work item, and the POST in the API call; cut first: the
 // usage line to one, and the article's version a word instead of a `--version` flag with its own parsing (7 lines).
-const BUDGETS = { core: 5448, "core/testing": 344, projects: 473, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 361, "commit-rules": 168 };
+// AR0195: youtrack 2 more (363) for `issue list` unresolved by default and `--all`; its query inlined first (1 line).
+const BUDGETS = { core: 5448, "core/testing": 344, projects: 473, orchestration: 1213, machines: 415, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 363, "commit-rules": 168 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -508,6 +508,9 @@ test("an arthur run that is not the service's, or a service without Restart=alwa
 		const only = "a restart is due (AR0002 changed Arthur's code), but arthur run runs without its service, so only the coordinator restarts and the restart stays due";
 		assert.equal(await box.route("/restart"), `no coordinator is running, so no handoff is asked; its next start goes on with --continue; ${only}`);
 		assert.deepEqual(box.restarts, [false]);
+		// A request asking arthur run to end, as one from before its start or by hand: still only the coordinator restarts.
+		writeFileSync(join(box.folder, "request.json"), JSON.stringify({ then: "restart", slot: "/restart", asked: Date.now(), waitSeconds: 120, run: true }));
+		await until("the second restart", () => box.restarts.length === 2);
 		await box.coordinator({ steps: [{ waitFor: box.gate("never") }] }).up();
 		await until("the notice", () => box.notices().length === 1);
 		assert.deepEqual([box.notices(), box.ended], [["Restarted. (handoff not written)"], []]);

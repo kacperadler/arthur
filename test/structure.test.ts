@@ -138,7 +138,9 @@ import { checkStructure } from "./structure.ts";
 // AR0175: a `/restart` that throws in the tick tells the owner; session 6 more (873) for that notice.
 // AR0135: inbox files named `<event number>-<time in ms>`, so a log cut by hand never drops a new message; orchestration 5 more
 // (1260) for the name, the order by number and the replies' answers given as event numbers.
-const BUDGETS = { core: 5451, "core/testing": 346, projects: 475, orchestration: 1260, machines: 415, resources: 458, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84 };
+// AR0137: the burst test moves the agent's clock instead of sleeping; core/testing 3 more (349) for the fake agent's `clock`,
+// its doc reflowed by a line to keep testing.ts at 200.
+const BUDGETS = { core: 5451, "core/testing": 349, projects: 475, orchestration: 1260, machines: 415, resources: 458, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -258,6 +258,22 @@ test("a job over its memory cap ends limit: memory, and another job with a cap k
 	assert.equal(await endedWith(home, other.id), "finished");
 });
 
+// The kernel kills the process of the highest score in a scope over its cap, and once killed a second one before the first one's
+// memory was freed: the wrapper, so the job never ended. The agent's tree scores 1000, the most, and the wrapper its own.
+test("over a memory cap the kernel takes the agent and what it started first, never the wrapper: their oom_score_adj is 1000, the wrapper's its own", needsManager, async () => {
+	const gate = join(temporaryFolder(), "gate");
+	const { agent, daemon } = forking({ steps: [{ waitFor: gate }, { message: "Done." }] });
+	const { home, jobs } = setup(agent, jobSlice, () => [{ memory: "300M" }]);
+	const job = await jobs.spawn({ task: "Go." });
+	const pid = await until("the daemon", daemon);
+	const wrapper = Number(read(join(home, "jobs", job.id, "pid")));
+	const score = (pid: number | "self") => read(`/proc/${pid}/oom_score_adj`);
+	assert.deepEqual([score(pid), score(wrapper)], ["1000", score("self")]);
+	assert.notEqual(score("self"), "1000");
+	writeFileSync(gate, "");
+	assert.equal(await endedWith(home, job.id), "finished");
+});
+
 test("without a user manager a job over its memory cap is stopped within one 10 s sample, and the machine is told once", async (t) => {
 	noManager(t);
 	const gate = join(temporaryFolder(), "gate");

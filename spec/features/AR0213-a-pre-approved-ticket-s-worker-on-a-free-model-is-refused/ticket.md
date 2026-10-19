@@ -36,3 +36,5 @@ In:
 
 - 2026-10-19: Source: F1 of AR0154
 - 2026-10-19: Approved under the owner's word of the same day: findings are built in batches or with the roadmap entry that touches the same files.
+- 2026-10-19: The owner: close what is open today. Built in the core and orchestration batch hosted by AR0190.
+- 2026-10-19: Core batch 2: the coordinator accepts the budget raises (core 5490, schedule 570, +1 each for the other plugins), AR0169's third entry kind `run`, and AR0161 built before entry 51 with the optional Plugin.module field, which entry 51 freezes.

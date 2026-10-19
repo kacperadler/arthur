@@ -1217,16 +1217,16 @@
   {
     "id": "AR0151",
     "title": "The example config and two diagrams still call Discord later",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0151-the-example-config-and-two-diagrams-still-call-discord-later/ticket.md",
-    "updated": "2026-10-19T15:52:38.948Z"
+    "updated": "2026-10-19T16:58:26.913Z"
   },
   {
     "id": "AR0152",
     "title": "Roadmap entry 93 depends on 41 but sits before it",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0152-roadmap-entry-93-depends-on-41-but-sits-before-it/ticket.md",
-    "updated": "2026-10-19T15:52:39.150Z"
+    "updated": "2026-10-19T16:58:42.963Z"
   },
   {
     "id": "AR0153",
@@ -1373,9 +1373,9 @@
   {
     "id": "AR0172",
     "title": "The tools labels of local are not checked by arthur doctor",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0172-the-tools-labels-of-local-are-not-checked-by-arthur-doctor/ticket.md",
-    "updated": "2026-10-19T15:52:39.352Z"
+    "updated": "2026-10-19T16:58:43.171Z"
   },
   {
     "id": "AR0173",
@@ -1471,9 +1471,9 @@
   {
     "id": "AR0186",
     "title": "`arthur init` writes the criteria skeletons of today's roles only",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0186-arthur-init-writes-the-criteria-skeletons-of-today-s-roles-only/ticket.md",
-    "updated": "2026-10-19T15:52:40.152Z"
+    "updated": "2026-10-19T16:58:43.385Z"
   },
   {
     "id": "AR0187",
@@ -1569,9 +1569,9 @@
   {
     "id": "AR0200",
     "title": "The example's Conventional Commits regex allows subjects over 72 characters",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0200-the-example-s-conventional-commits-regex-allows-subjects-over-72-characters/ticket.md",
-    "updated": "2026-10-19T15:52:40.355Z"
+    "updated": "2026-10-19T16:58:43.618Z"
   },
   {
     "id": "AR0201",
@@ -1646,16 +1646,16 @@
   {
     "id": "AR0211",
     "title": "A message to a named bot is answered by the unnamed one",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0211-a-message-to-a-named-bot-is-answered-by-the-unnamed-one/ticket.md",
-    "updated": "2026-10-19T15:47:02.086Z"
+    "updated": "2026-10-19T17:15:43.993Z"
   },
   {
     "id": "AR0212",
     "title": "Roadmap 48: Telegram outbox and retries",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0212-roadmap-48-telegram-outbox-and-retries/ticket.md",
-    "updated": "2026-10-19T16:53:29.161Z"
+    "updated": "2026-10-19T17:15:35.274Z"
   },
   {
     "id": "AR0213",
@@ -1670,5 +1670,19 @@
     "status": "planning",
     "path": "spec/features/AR0214-plan-role-agents-talk-to-each-other-each-with-its-own-chat-place/ticket.md",
     "updated": "2026-10-19T16:43:16.510Z"
+  },
+  {
+    "id": "AR0215",
+    "title": "The commit-rules doc shows the regex that counts 72 after the prefix",
+    "status": "planned",
+    "path": "spec/features/AR0215-the-commit-rules-doc-shows-the-regex-that-counts-72-after-the-prefix/ticket.md",
+    "updated": "2026-10-19T16:58:54.010Z"
+  },
+  {
+    "id": "AR0216",
+    "title": "Plan: stimuli and reactions, Sentry, uptime and server load start a chain",
+    "status": "planning",
+    "path": "spec/features/AR0216-plan-stimuli-and-reactions-sentry-uptime-and-server-load-start-a-chain/ticket.md",
+    "updated": "2026-10-19T17:34:43.750Z"
   }
 ]

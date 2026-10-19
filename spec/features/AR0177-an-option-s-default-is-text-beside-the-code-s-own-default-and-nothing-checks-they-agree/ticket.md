@@ -36,3 +36,5 @@ In:
 
 - 2026-10-19: Source: F1 of AR0170
 - 2026-10-19: The owner approved this. The coordinator builds it alongside the roadmap entry that touches the same files.
+- 2026-10-19: The owner: close what is open today. Host of the last options and doctor batch: AR0177, AR0180, AR0176, AR0215.
+- 2026-10-19: The coordinator accepts the budget raises (machines 448, models 487, session 877, telegram 403, youtrack 466, core 5477) and AR0180's limit: machines, projects, models and nvm need their setup for their checks, so while the load refuses they are not checked; F1 of AR0180 records it.

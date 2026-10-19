@@ -21,7 +21,7 @@ const botList: Check = (value) => (Array.isArray(value) && value.length > 0 ? un
 const address: Check = (value) => (typeof value === "string" && /^https?:$/.test(URL.parse(value)?.protocol ?? "") ? undefined : "an http or https URL");
 
 export const table: OptionTable = {
-	bots: { about: "The bots, each { name?, botTokenEnv, chatIdEnv }; at most one without a name; the unnamed one, else the first, sends", check: botList, each: BOT },
+	bots: { about: "The bots, each { name?, botTokenEnv, chatIdEnv }; at most one without a name; a reply goes by the bot its messages came through, the rest by the unnamed one, else the first", check: botList, each: BOT },
 	apiUrl: { about: "The Bot API's address; a test points it at its fake", default: "https://api.telegram.org", check: address },
 };
 

@@ -13,3 +13,8 @@ export function slices(text: string, limit: number): string[] {
 	}
 	return [...parts, rest].filter((part) => part.trim() !== "");
 }
+
+// A text that must go as one message (entry 48), cut as its first slice is, with `note` after it, all within `limit`.
+export function cut(text: string, limit: number, note: string): string {
+	return text.length <= limit ? text : `${slices(text, limit - note.length)[0] ?? ""}${note}`;
+}

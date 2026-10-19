@@ -8,6 +8,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0127 Roadmap: a silent mode for the coordinator in the channels (9327313)
 
+### Fixed
+
+- AR0167 GitHub CI fails now and then on main with the same code (59e5760)
+
 ### Other
 
 - AR0153 Roadmap 37: Restart guard (2799aaa)

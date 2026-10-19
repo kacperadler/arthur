@@ -6,6 +6,8 @@ Runs Arthur as a process: loads `arthur.config.ts` from the working folder, sets
 
 It prints one line when every plugin has started, `arthur run: pid <pid> started <plugins>`, one when it begins to stop, `arthur run: SIGTERM: stopping <plugins>`, and `arthur run: stopped` at the end.
 
+First, before the lock and any plugin's `start`, it checks what Arthur needs, as `arthur doctor` does, and prints each missing line, `arthur run: <line>`. A critical one refuses the start; the others go first in the start notice, each sent at most once a day (`arthur doctor --help`).
+
 One process per home folder (`core.home`, default `.arthur/`): `<home>/run.pid` holds the pid of the process that runs it. The file is removed at a clean exit; after a crash the next `arthur run` takes it over, since its pid is dead. On Linux the file also names the boot, so a pid reused by another process after a reboot does not hold it.
 
 While it runs, it follows the event log `<home>/events.jsonl`: every 500 ms it delivers to the plugins' subscribers the events another process appended since the last one it delivered, such as `ticket-moved` from `arthur ticket` or `job-started` from `arthur spawn`. An event emitted inside `arthur run` reaches them at once, and only once. A log cut or deleted by hand is followed again from its new end.
@@ -16,6 +18,7 @@ A handler's promise is not awaited: an event counts as delivered once every hand
 
 Refused, starting nothing:
 
+- A critical requirement missing (`arthur doctor --help`): its lines, then `arthur run: refused: a critical requirement is missing; fix each line above, then run arthur doctor`. Checked before the lock, so the home folder's own line comes before any write there.
 - A second `arthur run` on the same home folder while the first lives: `arthur run: <home> is already run by pid <pid>; one arthur run per home folder`.
 - A config or a plugin that does not load: `arthur run: arthur.config.ts did not load:`, then the reasons.
 - Any argument: `usage: arthur run`.
@@ -31,4 +34,4 @@ Warnings, and it goes on from the log's end:
 - `<home>/events.delivered` holding no whole number (edited by hand): `arthur run: <home>/events.delivered holds no whole number; following the event log from its end`.
 - A number past the log's last event (the log cut by hand): `arthur run: <home>/events.delivered holds <number>, past the log's last event <last>; following the event log from its end`.
 
-Exit code: 0 after a clean stop, 1 when a start or a stop failed or the home folder is taken, 2 on wrong usage.
+Exit code: 0 after a clean stop, 1 when a critical requirement is missing, a start or a stop failed or the home folder is taken, 2 on wrong usage.

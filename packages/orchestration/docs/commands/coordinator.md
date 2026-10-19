@@ -22,6 +22,8 @@ Lines it prints in `arthur run`'s output:
 - `orchestration: coordinator start refused: the previous <agent> (pid <pid>) is still running <s> s later; trying again in <n> s`: the start is not made, and is tried again after the delay, waiting again, until the previous agent is gone.
 - `orchestration: coordinator start failed: tmux new-session: <tmux's last line>; trying again in <n> s`, for tmux missing or refusing (the session name taken by another tmux server on that socket, for example).
 
+Without tmux there is no coordinator, so the plugin gives `arthur doctor` one critical requirement, `orchestration tmux`: `tmux -V` runs, or `missing: tmux not found on PATH` (or `tmux -V: <its error>`), whose fix is `sudo apt-get install -y tmux`. It refuses the start of `arthur run` before any plugin's start (`arthur doctor --help`).
+
 ## The coordinator's inbox
 
 Every message for the coordinator becomes a turn of its conversation, and every turn's last reply goes back out:

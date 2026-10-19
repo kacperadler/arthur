@@ -36,3 +36,4 @@ In:
 
 - 2026-10-19: Source: F2 of AR0188
 - 2026-10-19: Approved under the owner's word of the same day: findings are built alongside the roadmap entry that touches the same files.
+- 2026-10-19: Built together with AR0207 in one job: one change to test/option-tables.test.ts.

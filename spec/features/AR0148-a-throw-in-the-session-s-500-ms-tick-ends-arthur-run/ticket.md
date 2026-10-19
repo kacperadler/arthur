@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-18: Source: F1 of AR0144
+- 2026-10-19: The owner (Telegram, 07:2x): 'nie czekaj tylko rób' on the night's findings and the /restart question; the coordinator recommended /restart ends arthur run while a restart is due, approved with the rest.

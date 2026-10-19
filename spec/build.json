@@ -1506,23 +1506,23 @@
   {
     "id": "AR0191",
     "title": "The 30 s reuse of a probe holds in one process only, so two `arthur spawn` commands each probe",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0191-the-30-s-reuse-of-a-probe-holds-in-one-process-only-so-two-arthur-spawn-commands-each-probe/ticket.md",
-    "updated": "2026-10-19T16:14:26.734Z"
+    "updated": "2026-10-19T18:08:56.245Z"
   },
   {
     "id": "AR0192",
     "title": "The roadmap's Tailscale IPv6 range and the machines plugin's disagree",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0192-the-roadmap-s-tailscale-ipv6-range-and-the-machines-plugin-s-disagree/ticket.md",
-    "updated": "2026-10-19T16:14:27.079Z"
+    "updated": "2026-10-19T18:09:04.865Z"
   },
   {
     "id": "AR0193",
     "title": "The doctor checks omp's `models.yml` on this machine only",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0193-the-doctor-checks-omp-s-models-yml-on-this-machine-only/ticket.md",
-    "updated": "2026-10-19T16:14:27.414Z"
+    "updated": "2026-10-19T18:09:05.073Z"
   },
   {
     "id": "AR0194",
@@ -1555,9 +1555,9 @@
   {
     "id": "AR0198",
     "title": "A plugin's prompt section cannot add to the spawn's warnings",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0198-a-plugin-s-prompt-section-cannot-add-to-the-spawn-s-warnings/ticket.md",
-    "updated": "2026-10-19T16:14:27.735Z"
+    "updated": "2026-10-19T18:09:05.276Z"
   },
   {
     "id": "AR0199",
@@ -1583,9 +1583,9 @@
   {
     "id": "AR0202",
     "title": "A record removed file by file crashes the wrapper instead of ending it with its one line",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0202-a-record-removed-file-by-file-crashes-the-wrapper-instead-of-ending-it-with-its-one-line/ticket.md",
-    "updated": "2026-10-19T16:14:28.052Z"
+    "updated": "2026-10-19T18:09:05.477Z"
   },
   {
     "id": "AR0203",

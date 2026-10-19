@@ -44,3 +44,4 @@ Out:
 - 2026-10-18: The owner named more candidates: the 12B and 11B models of the same line, and a small open encoder-based decision model line (CPU-sized); the plan compares them.
 - 2026-10-18: The owner: the VPS runs on a NAS with 64 GB RAM and can get up to 48 GB; no GPU. The plan says which candidate runs on CPU in that memory, at what speed per decision.
 - 2026-10-19: The owner: this plan stays at planning until the roadmap reaches it; nothing is built before.
+- 2026-10-19: The owner: planned after the switch, together (AR0129 and AR0216), when they are built.

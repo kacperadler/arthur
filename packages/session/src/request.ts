@@ -36,8 +36,8 @@ export function readRequest(folder: string): Request | undefined {
 		const request = JSON.parse(text) as Request;
 		if (THEN.includes(request.then) && typeof request.slot === "string" && Number.isFinite(request.asked) && Number.isFinite(request.waitSeconds)) return request;
 	} catch {}
-	console.error(`session: ${file} is not a request, so it is dropped: ${text.slice(0, 200)}`);
 	rmSync(file, { force: true });
+	console.error(`session: ${file} is not a request, so it is dropped: ${text.slice(0, 200)}`);
 	return undefined;
 }
 

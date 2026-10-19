@@ -61,7 +61,9 @@ import { checkStructure } from "./structure.ts";
 // AR0163 (roadmap 40): registered entries and `arthur schedule`, schedule 220 more (497), for `schedule.register` with its own
 // procedure rule (register.ts), the file's entries read and changed under a lock (entry-file.ts) and `arthur schedule
 // add|list|remove` (schedule-command.ts); core unchanged but for `@arthur/core/lock` in its exports.
-const BUDGETS = { core: 4873, "core/testing": 340, projects: 320, orchestration: 1146, machines: 375, resources: 401, session: 691, schedule: 497 };
+// AR0148: a throw in the session's 500 ms tick no longer ends `arthur run`; session 9 more (700) for the catch around each tick,
+// told once per distinct error, and the fresh start's try noted only once its request is written.
+const BUDGETS = { core: 4873, "core/testing": 340, projects: 320, orchestration: 1146, machines: 375, resources: 401, session: 700, schedule: 497 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

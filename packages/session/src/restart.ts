@@ -101,10 +101,11 @@ export function restarts(host: Host): () => void {
 			host.events.emit("notice", { text: `restart: not done, ${running(ids)}; run /stopall first` });
 			return;
 		}
+		// The night is over before the restart is asked, so one that throws never holds the next night's tries.
+		if (byNight) [night, tried] = [plan(), undefined];
 		restart(host, fresh, written);
 		const how = written ? "which starts by reading the handoff" : none ? "with no handoff: no coordinator was running" : `with no handoff (${why})`;
 		console.log(`session: ${byNight ? "fresh: done" : "restart: done"}; the coordinator restarts${fresh ? " in a fresh conversation" : ""}, ${how}`);
-		if (byNight) [night, tried] = [plan(), undefined];
 	};
 
 	const notice = () => {
@@ -117,8 +118,8 @@ export function restarts(host: Host): () => void {
 		} catch {}
 		const { fresh, written, before } = left;
 		if (typeof fresh !== "boolean" || typeof written !== "boolean" || typeof before !== "number") {
-			console.error(`session: ${marked} is not a restart's mark, so it is dropped: ${text.slice(0, 200)}`);
 			rmSync(marked, { force: true });
+			console.error(`session: ${marked} is not a restart's mark, so it is dropped: ${text.slice(0, 200)}`);
 			return;
 		}
 		const pid = agentUp(host.folder);
@@ -144,12 +145,13 @@ export function restarts(host: Host): () => void {
 			night = plan();
 			return;
 		}
-		tried = night.at;
 		const ids = host.jobs.running();
 		if (ids.length > 0) return again(running(ids, false), false);
 		const pending = readRequest(host.folder);
 		if (pending !== undefined && pending.then !== "compact") return again("a restart already asked", false);
 		const asked: Request = { then: "fresh", slot: freshAt, asked: Date.now(), waitSeconds: freshRetryMinutes * 60 };
 		put(file, JSON.stringify(asked));
+		// Noted once the request is out: one whose write threw is tried again at the next tick.
+		tried = night.at;
 	};
 }

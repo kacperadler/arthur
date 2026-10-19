@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { once } from "node:events";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
 import { type AgentRun, type FakeHost, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
@@ -213,6 +215,74 @@ test("a request whose agent is gone, or a file that is not a request, is dropped
 	writeFileSync(box.file, "{ torn");
 	await until("the torn file dropped", () => !existsSync(box.file));
 	assert.deepEqual(box.err, [`session: ${box.file} is not a request, so it is dropped: { torn`]);
+});
+
+test("a file that is not a request, in a folder it cannot be removed from, is named once it is dropped, not at every tick", async (t) => {
+	const box = await load(t, { compactAt: [] }, "2026-10-18T12:00:00+02:00");
+	await box.start();
+	// One that stays (its agent, this process, is alive) until the folder is read-only, then rewritten in place.
+	writeFileSync(box.file, JSON.stringify({ then: "compact", slot: "13:00", asked: Date.now(), waitSeconds: 600, pid: process.pid }));
+	chmodSync(dirname(box.file), 0o555);
+	t.after(() => chmodSync(dirname(box.file), 0o755));
+	writeFileSync(box.file, "{ torn");
+	await until("the errors", () => box.err.length >= 2);
+	await sleep(1200);
+	assert.deepEqual(box.err.map((line) => line.split(": EACCES")[0]), ["session: compaction failed", "session: restart failed"]);
+	chmodSync(dirname(box.file), 0o755);
+	await until("the file dropped", () => !existsSync(box.file));
+	assert.deepEqual(box.err.slice(2), [`session: ${box.file} is not a request, so it is dropped: { torn`]);
+});
+
+test("in arthur run a tick that throws in an unwritable session folder is told once per error, the plugins go on, and the next tick works", async (t) => {
+	const [folder, cli, plugin] = [temporaryFolder(), fileURLToPath(import.meta.resolve("@arthur/core/cli")), fileURLToPath(new URL("../src/session.ts", import.meta.url))];
+	const [beats, sessionFolder] = [join(folder, "beats.txt"), join(folder, ".arthur", "session")];
+	// No slot and no fresh start within the test: freshAt two hours ago is next tried in about 22 hours.
+	const freshAt = new Date(Date.now() - 2 * 3600_000).toISOString().slice(11, 16);
+	const beat = `{ name: "beat", setup() {}, start() { timer = setInterval(() => appendFileSync(${JSON.stringify(beats)}, "beat\\n"), 100); }, stop() { clearInterval(timer); } }`;
+	const options = JSON.stringify({ compactAt: [], freshAt, restartGuard: false, probeLlm: false });
+	writeFileSync(
+		join(folder, "arthur.config.ts"),
+		`import { appendFileSync } from "node:fs";\nimport { session } from ${JSON.stringify(plugin)};\nlet timer;\nexport default { core: { timeZone: "UTC" }, plugins: [{ name: "orchestration", setup() {} }, session(${options}), ${beat}] };\n`,
+	);
+	const run = spawn(process.execPath, [cli, "run"], { cwd: folder, env: { PATH: process.env.PATH ?? "" } });
+	const [out, err] = [[] as string[], [] as string[]];
+	run.stdout.on("data", (chunk) => void out.push(String(chunk)));
+	run.stderr.on("data", (chunk) => void err.push(String(chunk)));
+	const [mark, request, failed, staged] = [join(sessionFolder, "restarted.json"), join(sessionFolder, "request.json"), join(sessionFolder, "turn-failed"), join(sessionFolder, "staged")];
+	t.after(() => {
+		for (const path of [sessionFolder, failed, mark]) if (existsSync(path)) chmodSync(path, 0o755);
+		run.kill("SIGKILL");
+	});
+	const count = () => (existsSync(beats) ? readFileSync(beats, "utf8").split("\n").length - 1 : 0);
+	await until("the start", () => out.join("").includes("started"));
+	// Each tick throws: the restart's mark cannot be read, the compaction's outcome and the turn failure cannot be removed.
+	writeFileSync(mark, "not a mark");
+	chmodSync(mark, 0o000);
+	writeFileSync(request, JSON.stringify({ then: "compact", slot: "13:00", asked: Date.now(), waitSeconds: 60, pid: process.pid }));
+	const turn = join(failed, `${Date.now()}-1-1.txt`);
+	mkdirSync(staged);
+	writeFileSync(join(staged, basename(turn)), "529 overloaded");
+	chmodSync(staged, 0o555);
+	renameSync(staged, failed);
+	chmodSync(sessionFolder, 0o555);
+	writeFileSync(request, JSON.stringify({ then: "compact", slot: "13:00", asked: Date.now(), waitSeconds: 60, line: "compact: done; the handoff is empty, so nothing is read back" }));
+	const told = () => err.join("").split("\n").filter((line) => line.startsWith("session: "));
+	await until("each tick's error", () => told().length >= 3 || run.exitCode !== null);
+	// Five ticks of 500 ms more, counted on the event loop the session's ticks run on; then each error is still told once.
+	const after = count();
+	await until("five more ticks", () => count() >= after + 25 || run.exitCode !== null);
+	assert.equal(run.exitCode, null, err.join(""));
+	const expected = [["compaction", request], ["restart", mark], ["turn notice", turn]] as const;
+	assert.equal(told().length, 3, told().join("\n"));
+	for (const [what, path] of expected) assert.ok(told().some((line) => line.startsWith(`session: ${what} failed: EACCES`) && line.includes(path)), `${what}: ${told().join("\n")}`);
+	chmodSync(sessionFolder, 0o755);
+	chmodSync(failed, 0o755);
+	chmodSync(mark, 0o644);
+	await until("the next ticks done", () => !existsSync(request) && !existsSync(mark) && readdirSync(failed).length === 0);
+	assert.equal(out.join("").split("session: compact: done; the handoff is empty, so nothing is read back\n").length, 2, out.join(""));
+	run.kill("SIGTERM");
+	const [code] = await once(run, "exit");
+	assert.equal(code, 0);
 });
 
 test("the options: compactAt times, compactWaitSeconds, the fresh start's, restartGuard and probeLlm, each refused naming its path, and no unknown option", () => {

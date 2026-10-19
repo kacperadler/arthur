@@ -54,11 +54,11 @@ export async function launch(home: string, job: Pick<Job, "id" | "kind" | "proje
 	if (bare !== undefined) {
 		const line = `no systemd scope: ${bare}; the job runs bare, without the joint limit of core.jobs.cpu and core.jobs.memory, and what it leaves behind is not killed at its end`;
 		appendFileSync(join(home, "jobs", id, "log"), `[arthur ${new Date().toISOString()}] ${line}\n`);
-		if (cpu !== "" || memory !== "") uncapped(bare);
+		if (cpu !== "" || memory !== "" || feature !== "") uncapped(bare);
 	}
 	const log = join(home, "wrapper.log");
 	// `systemd-run` execs `sh`, which execs the wrapper with its stderr on the log: what reaches the pipe is systemd-run's own.
-	const scoped = ["systemd-run", "--user", "--scope", "--quiet", "--collect", `--slice=${slice}.slice`, `--unit=${scope(id)}`, ...ownLimits(cpu, memory), "--"];
+	const scoped = ["systemd-run", "--user", "--scope", "--quiet", "--collect", `--slice=${slice}.slice`, `--unit=${scope(id)}`, ...ownLimits(cpu, memory, featureMemory), "--"];
 	const [command = "", ...args] = bare === undefined ? [...scoped, "/bin/sh", "-c", 'exec "$@" 2>>"$0"', log, ...wrapper] : wrapper;
 	const output = openSync(log, "a");
 	let child: ChildProcess;
@@ -122,22 +122,25 @@ function setSlice(slice: string, cpu: string, memory: string): string | undefine
 
 // The scope's own `-p` properties from the job's caps, read from its record (empty for none): its cores, at most this machine's;
 // its memory, with no swap beyond it, so the cap holds; and from systemd 253 on, which takes `OOMPolicy` on a scope and else
-// stops the whole scope at a kill, a process the kernel kills over the cap ends only itself, so the wrapper lives to end the job.
-function ownLimits(cpu: string, memory: string): string[] {
+// stops the whole scope at a kill, a process the kernel kills over the cap, or over its ticket's `ticketMemory`, ends only
+// itself, so the wrapper lives to end the job.
+function ownLimits(cpu: string, memory: string, ticketMemory: string): string[] {
 	const limits = cpu === "" ? [] : [`CPUQuota=${Math.max(1, Math.round(Math.min(Number(cpu), availableParallelism()) * 100))}%`];
-	if (memory !== "") {
+	if (memory !== "") limits.push(`MemoryMax=${memory}`, "MemorySwapMax=0");
+	if (memory !== "" || ticketMemory !== "") {
 		const systemd = Number(/^systemd (\d+)/.exec(spawnSync("systemctl", ["--version"], { encoding: "utf8" }).stdout ?? "")?.[1] ?? 0);
-		limits.push(`MemoryMax=${memory}`, "MemorySwapMax=0", ...(systemd >= 253 ? ["OOMPolicy=continue"] : []));
+		if (systemd >= 253) limits.push("OOMPolicy=continue");
 	}
 	return limits.flatMap((limit) => ["-p", limit]);
 }
 
-// Tells once per machine, in a `notice`, that a job with caps runs bare there (`<home>/uncapped` lists the machines told).
+// Tells once per machine, in a `notice`, that a job with caps, its own or its ticket's, runs bare there (`<home>/uncapped` lists
+// the machines told).
 export function sayUncapped(home: string, machine: string, why: string, bus: Bus): void {
 	const told = join(home, "uncapped");
 	if (existsSync(told) && readFileSync(told, "utf8").split("\n").includes(machine)) return;
 	appendFileSync(told, `${machine}\n`);
-	bus.emit("core", "notice", { text: `machine ${machine} runs jobs without a systemd scope (${why}): a job's memory cap there is held by sampling its processes every 10 s, and its CPU is not capped` });
+	bus.emit("core", "notice", { text: `machine ${machine} runs jobs without a systemd scope (${why}): a job's memory cap there is held by sampling its processes every 10 s, its CPU is not capped, and a ticket's CPU and memory caps, shared by all its jobs, are not held` });
 }
 
 // How `arthur remote-job launch` and `continue` print, for this side to tell, why a job with caps runs bare there.

@@ -29,12 +29,14 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0205 The coordinator's role does not say when it may write to YouTrack
 - AR0206 Roadmap 46: YouTrack comments, attachments, and the rules for jobs (00b089f)
 - AR0208 Roadmap 47: Telegram receive and send text, and the silent mode (16c2dc6)
+- AR0211 A message to a named bot is answered by the unnamed one
 - AR0212 Roadmap 48: Telegram outbox and retries (8de5935)
 
 ### Fixed
 
 - AR0135 The inbox drops a new message whose event number an old one had, after the event log is cut by hand
 - AR0137 The burst test still relies on the test's 300 ms timers staying under a second
+- AR0145 A continued job sets its ticket's slice from the caps kept at its spawn (b4ab6a6)
 - AR0148 A throw in the session's 500 ms tick ends `arthur run` (cee952c)
 - AR0154 A pre-approved ticket's budget is recorded, not held at its worker's spawn (3ff3338)
 - AR0155 Two `--autopilot` runs on one ticket at once can both record it

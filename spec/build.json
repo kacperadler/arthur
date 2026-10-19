@@ -1621,5 +1621,12 @@
     "status": "planning",
     "path": "spec/features/AR0207-the-option-tables-test-cannot-hold-a-plugin-without-options-so-nvm-s-options-file-is-not-checked-there/ticket.md",
     "updated": "2026-10-19T14:17:45.436Z"
+  },
+  {
+    "id": "AR0208",
+    "title": "Roadmap 47: Telegram receive and send text, and the silent mode",
+    "status": "planned",
+    "path": "spec/features/AR0208-roadmap-47-telegram-receive-and-send-text-and-the-silent-mode/ticket.md",
+    "updated": "2026-10-19T14:19:16.024Z"
   }
 ]

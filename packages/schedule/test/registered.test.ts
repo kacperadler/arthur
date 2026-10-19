@@ -113,6 +113,30 @@ test("a registration that clashes or is wrong is refused whole, naming the plugi
 	);
 });
 
+test("a registered entry may run its plugin's own code at its time: claimed once per slot like the others, a failure said as a notice", async (t) => {
+	const box = await load(t, [], "2026-10-20T03:59:00+02:00");
+	const ran: string[] = [];
+	box.register("sweep", [
+		{ id: "docker", at: "04:00", option: "sweep.at", run: async () => void ran.push("docker") },
+		{ id: "prune", at: "04:00", option: "prune.keepJobsDays", run: () => Promise.reject(new Error("rm: Permission denied")) },
+	]);
+	await box.sweep("2026-10-20T04:00:00+02:00");
+	await box.sweep("2026-10-20T04:00:30+02:00");
+	await until("the failure's notice", () => box.notices().length === 1);
+	assert.deepEqual(ran, ["docker"], "two sweeps of one slot run it once");
+	assert.deepEqual(box.notices(), ["schedule: sweep.prune: its run failed: rm: Permission denied"]);
+	assert.deepEqual(box.messages(), [], "no message to the coordinator, no job");
+	await box.sweep("2026-10-21T04:07:00+02:00");
+	await until("the next day's failure", () => box.notices().length === 2);
+	assert.deepEqual([ran, box.notices()[1]], [["docker", "docker"], "schedule: sweep.prune (late: due 2026-10-21 04:00): its run failed: rm: Permission denied"]);
+	box.run("list");
+	assert.equal(box.logs.at(-1)?.split("\n").slice(0, 2).join("\n"), "sweep.docker (plugin sweep, option sweep.at): every day at 04:00, next 2026-10-22 04:00\n  run: the plugin's own code");
+	const refused = (entry: object, message: string) => assert.throws(() => box.register("sweep", [{ id: "other", at: "05:00", option: "sweep.at", ...entry }]), { message: `schedule.register from plugin sweep: entries[0].${message}` });
+	refused({ run: "docker system prune" }, 'run: expected the plugin\'s own code, an async function, got "docker system prune"');
+	refused({ run: async () => {}, action: { message: "Sweep." } }, "run: expected either action, job or run");
+	refused({}, "action: expected either action or job");
+});
+
 test("the config and the file keep the relative path; a registered procedure behind a symlink in the package folder is never read", async (t) => {
 	const box = await load(t, [], "2026-10-20T07:00:00+02:00");
 	const inside = join(box.manage, "roles", "report.md");

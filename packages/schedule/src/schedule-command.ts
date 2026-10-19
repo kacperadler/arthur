@@ -86,7 +86,9 @@ function line(host: Host, entry: Entry, source: string): string {
 	const what =
 		action !== undefined
 			? `message: ${action.message}${action.procedure === undefined ? "" : ` (procedure ${action.procedure})`}`
-			: `job (kind ${job?.kind ?? "worker"}${job?.project === undefined ? "" : `, project ${job.project}`}): ${job?.task}`;
+			: job !== undefined
+				? `job (kind ${job.kind ?? "worker"}${job.project === undefined ? "" : `, project ${job.project}`}): ${job.task}`
+				: "run: the plugin's own code";
 	return `${entry.id} (${source}): ${when}, ${next}\n  ${what}`;
 }
 

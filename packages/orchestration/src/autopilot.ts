@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { queueLock } from "@arthur/core/lock";
 import type { Host } from "@arthur/core/plugin";
 import { section } from "./plans.ts";
 
@@ -21,43 +22,53 @@ export function autopilot(host: Host): void {
 	const options = (host.options.autopilot ?? {}) as { readonly budgetUsd?: number; readonly budgetMaxUsd?: number };
 	const cap = options.budgetMaxUsd ?? AUTOPILOT_CAP;
 	host.provide("ticket.autopilot", async ({ id, budgetUsd = options.budgetUsd ?? AUTOPILOT_BUDGET }: { readonly id: string; readonly budgetUsd?: number }) => {
-		const ticket = host.board.get(id);
-		if (ticket === undefined) throw new Error(`${id} is not on the board`);
-		const at = host.board.projects().find((each) => each.name === ticket.project)?.path ?? "";
-		const file = join(at, ticket.path);
-		const text = readFileSync(file, "utf8");
-		const problems: string[] = [];
-		if (ticket.status !== "planning") problems.push(`it is ${ticket.status}; autopilot pre-approves a ticket in planning`);
-		const source = section(text, "Decisions").flatMap((line) => sourceOf(host, at, line) ?? []);
-		if (source.length === 0) problems.push('it is not from a finding or an audit: no "- YYYY-MM-DD: Source: F<n> of <id>" or "Source: audit spec/quality/<file>.md" under its Decisions names one that exists');
-		const kind = section(text, "Goal").flatMap((line) => /^- Kind:(.*)$/.exec(line)?.[1]?.trim() || [])[0];
-		if (!KINDS.includes(kind ?? "")) problems.push(`its kind is ${kind ?? "missing (- Kind: under its Goal)"}; autopilot pre-approves only ${KINDS.join(" or ")}`);
-		// A guidance comment of the template names no file the ticket changes.
-		const scope = section(text.replace(/<!--[\s\S]*?-->/g, ""), "Scope");
-		const out = scope.findIndex((line) => line.trim() === "Out:");
-		const spans = scope.slice(0, out < 0 ? undefined : out).flatMap((line) => Array.from(line.matchAll(/`([^`]+)`/g), (match) => (match[1] ?? "").replace(LINE, "")));
-		// A file is a backticked path without spaces that has a `/` or ends in `.<ext>`, each once.
-		const files = [...new Set(spans.filter((span) => !/\s/.test(span) && (span.includes("/") || /\.[A-Za-z0-9]+$/.test(span))))];
-		const loose = files.filter((path) => /[*?[{]/.test(path) || path.endsWith("/") || (existsSync(join(at, path)) && statSync(join(at, path)).isDirectory()));
-		if (files.length === 0) problems.push("its Scope names no file (a backticked path before Out:)");
-		if (files.length > SCOPE_FILES) problems.push(`its Scope names ${files.length} files, at most ${SCOPE_FILES}: ${files.join(", ")}`);
-		if (loose.length > 0) problems.push(`its Scope names a folder or a pattern, not one file: ${loose.join(", ")}`);
-		if (files.length > 0) problems.push(...(await alwaysReview(host, ticket.project, files)));
-		if (!(typeof budgetUsd === "number" && Number.isFinite(budgetUsd) && budgetUsd > 0)) problems.push(`budget $${budgetUsd}; a pre-approved ticket needs a budget above 0 (--budget, or autopilot.budgetUsd)`);
-		else if (budgetUsd > cap) problems.push(`budget $${budgetUsd} is over the cap of $${cap} (autopilot.budgetMaxUsd)`);
-		if (problems.length > 0) throw new Error(`${id}: not pre-approved: ${problems.join("; ")}`);
-		const plural = files.length === 1 ? "" : "s";
-		const record = `Pre-approved by policy: ${kind} from ${source[0]}, ${files.length} Scope file${plural}, budget $${budgetUsd} of the $${cap} cap`;
-		write(file, withDecision(text, `- ${host.clock.local().date}: ${record}`));
+		// One pre-approval of a ticket at a time, across processes: the check, the record and the move are one step.
+		const release = await queueLock(join(host.folder, `autopilot-${id.replace(/[^\w-]/g, "_")}.lock`));
 		try {
-			host.board.move(id, "planned");
-		} catch (error) {
-			// The record goes only with the move: the ticket is as it was.
-			write(file, text);
-			throw error;
+			return await preApprove(host, id, budgetUsd, cap);
+		} finally {
+			release();
 		}
-		return `${id} planned: ${record}; spawn its worker with --budget ${budgetUsd}`;
 	});
+}
+
+async function preApprove(host: Host, id: string, budgetUsd: number, cap: number): Promise<string> {
+	const ticket = host.board.get(id);
+	if (ticket === undefined) throw new Error(`${id} is not on the board`);
+	const at = host.board.projects().find((each) => each.name === ticket.project)?.path ?? "";
+	const file = join(at, ticket.path);
+	const text = readFileSync(file, "utf8");
+	const problems: string[] = [];
+	if (ticket.status !== "planning") problems.push(`it is ${ticket.status}; autopilot pre-approves a ticket in planning`);
+	const source = section(text, "Decisions").flatMap((line) => sourceOf(host, at, line) ?? []);
+	if (source.length === 0) problems.push('it is not from a finding or an audit: no "- YYYY-MM-DD: Source: F<n> of <id>" or "Source: audit spec/quality/<file>.md" under its Decisions names one that exists');
+	const kind = section(text, "Goal").flatMap((line) => /^- Kind:(.*)$/.exec(line)?.[1]?.trim() || [])[0];
+	if (!KINDS.includes(kind ?? "")) problems.push(`its kind is ${kind ?? "missing (- Kind: under its Goal)"}; autopilot pre-approves only ${KINDS.join(" or ")}`);
+	// A guidance comment of the template names no file the ticket changes.
+	const scope = section(text.replace(/<!--[\s\S]*?-->/g, ""), "Scope");
+	const out = scope.findIndex((line) => line.trim() === "Out:");
+	const spans = scope.slice(0, out < 0 ? undefined : out).flatMap((line) => Array.from(line.matchAll(/`([^`]+)`/g), (match) => (match[1] ?? "").replace(LINE, "")));
+	// A file is a backticked path without spaces that has a `/` or ends in `.<ext>`, each once.
+	const files = [...new Set(spans.filter((span) => !/\s/.test(span) && (span.includes("/") || /\.[A-Za-z0-9]+$/.test(span))))];
+	const loose = files.filter((path) => /[*?[{]/.test(path) || path.endsWith("/") || (existsSync(join(at, path)) && statSync(join(at, path)).isDirectory()));
+	if (files.length === 0) problems.push("its Scope names no file (a backticked path before Out:)");
+	if (files.length > SCOPE_FILES) problems.push(`its Scope names ${files.length} files, at most ${SCOPE_FILES}: ${files.join(", ")}`);
+	if (loose.length > 0) problems.push(`its Scope names a folder or a pattern, not one file: ${loose.join(", ")}`);
+	if (files.length > 0) problems.push(...(await alwaysReview(host, ticket.project, files)));
+	if (!(typeof budgetUsd === "number" && Number.isFinite(budgetUsd) && budgetUsd > 0)) problems.push(`budget $${budgetUsd}; a pre-approved ticket needs a budget above 0 (--budget, or autopilot.budgetUsd)`);
+	else if (budgetUsd > cap) problems.push(`budget $${budgetUsd} is over the cap of $${cap} (autopilot.budgetMaxUsd)`);
+	if (problems.length > 0) throw new Error(`${id}: not pre-approved: ${problems.join("; ")}`);
+	const plural = files.length === 1 ? "" : "s";
+	const record = `Pre-approved by policy: ${kind} from ${source[0]}, ${files.length} Scope file${plural}, budget $${budgetUsd} of the $${cap} cap`;
+	write(file, withDecision(text, `- ${host.clock.local().date}: ${record}`));
+	try {
+		host.board.move(id, "planned");
+	} catch (error) {
+		// The record goes only with the move: the ticket is as it was.
+		write(file, text);
+		throw error;
+	}
+	return `${id} planned: ${record}; spawn its worker with --budget ${budgetUsd}`;
 }
 
 // The source a Decisions line names, when what it names exists: the finding's `## F<n>.` heading in that ticket's findings.md,

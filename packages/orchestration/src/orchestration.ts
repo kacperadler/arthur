@@ -47,6 +47,21 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 		// Set up after schedule when it is loaded, so the morning report (entry 65) can register with it; schedule stays optional.
 		after: ["schedule"],
 		check: checkOptions,
+		// One requirement of `arthur doctor` (entry 80), checked also while the load refuses: there is no coordinator without tmux.
+		doctor: () => [
+			{
+				name: "tmux",
+				check: () => {
+					const shown = spawnSync("tmux", ["-V"], { encoding: "utf8", timeout: 10_000 });
+					if (shown.status === 0) return "ok";
+					const code = (shown.error as NodeJS.ErrnoException | undefined)?.code;
+					return `missing: ${code === "ENOENT" ? "tmux not found on PATH" : `tmux -V: ${shown.error?.message ?? (shown.stderr.trim() || `exit code ${shown.status}`)}`}`;
+				},
+				costs: "no coordinator",
+				fix: "sudo apt-get install -y tmux (docs/setup.md, step 2)",
+				critical: true,
+			},
+		],
 		setup(host) {
 			const coordinator = coordinatorOptions(host.options);
 			const { folder, agent } = host;
@@ -59,21 +74,6 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			silentMode(host);
 			// Read like every role, with the project's override and criteria; no kind spawns it, `arthur run` starts it.
 			host.jobs.registerRole({ name: "coordinator", file: new URL("../roles/coordinator.md", import.meta.url), criteria: ["styleguide", "autopilot"] });
-			// One requirement of `arthur doctor` (entry 80): there is no coordinator without tmux.
-			host.provide("doctor", () => [
-				{
-					name: "tmux",
-					check: () => {
-						const shown = spawnSync("tmux", ["-V"], { encoding: "utf8", timeout: 10_000 });
-						if (shown.status === 0) return "ok";
-						const code = (shown.error as NodeJS.ErrnoException | undefined)?.code;
-						return `missing: ${code === "ENOENT" ? "tmux not found on PATH" : `tmux -V: ${shown.error?.message ?? (shown.stderr.trim() || `exit code ${shown.status}`)}`}`;
-					},
-					costs: "no coordinator",
-					fix: "sudo apt-get install -y tmux (docs/setup.md, step 2)",
-					critical: true,
-				},
-			]);
 			const where = `tmux session ${coordinator.session} (socket ${coordinator.socket})`;
 			host.commands.register({
 				name: "attach",

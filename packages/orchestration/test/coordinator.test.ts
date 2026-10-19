@@ -6,7 +6,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { type TestContext, test } from "node:test";
 import { type AgentRun, type FakeHost, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
-import type { Requirement } from "@arthur/core/plugin";
+import type { LoadedConfig } from "@arthur/core";
 import { type OrchestrationOptions, orchestration } from "../src/orchestration.ts";
 
 const ENV_GUARD = fileURLToPath(import.meta.resolve("@arthur/core/env-guard"));
@@ -266,9 +266,11 @@ test("arthur attach puts the terminal in the coordinator's session until it deta
 	assert.equal(tmux(socket, "has-session", "-t", "=coord").status, 0, "the session goes on after the detach");
 });
 
-test("doctor: tmux, critical: ok where tmux -V runs; missing, with its fix, where it is not on PATH or fails", async (t) => {
+test("doctor: tmux, critical, the plugin's own, without its setup: ok where tmux -V runs; missing, with its fix, where it is not on PATH or fails", async (t) => {
 	const { fake } = await load(t, fakeAgent({ steps: [] }));
-	const [tmuxNeeded, ...more] = fake.collect<readonly Requirement[]>("doctor").flat();
+	assert.deepEqual(fake.collect("doctor"), [], "its setup provides none, so arthur doctor lists tmux once");
+	// Its doctor reads neither its options nor the core's.
+	const [tmuxNeeded, ...more] = (await orchestration().doctor?.({}, {} as LoadedConfig["core"])) ?? [];
 	assert.ok(tmuxNeeded);
 	assert.deepEqual([tmuxNeeded.name, await tmuxNeeded.check(), tmuxNeeded.costs, tmuxNeeded.fix, tmuxNeeded.critical, more], ["tmux", "ok", "no coordinator", "sudo apt-get install -y tmux (docs/setup.md, step 2)", true, []]);
 	const bin = temporaryFolder();

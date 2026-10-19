@@ -33,20 +33,19 @@ const said = (name) => (existsSync(file(name)) ? readFileSync(file(name), "utf8"
 const log = (line) => appendFileSync(file("log.txt"), line + "\\n");
 const need = (name, critical) => ({ name, check: () => said(name), costs: "no " + name, fix: "fix " + name, critical });
 export default { core: { home: HOME }, plugins: [
-	{ name: "orchestration", setup(host) {
-		host.provide("doctor", () => [need("tmux", true)]);
+	{ name: "orchestration", doctor: () => [need("tmux", true)], setup(host) {
 		host.events.on("doctor", (event) => log("doctor " + JSON.stringify(event.data)));
 		host.events.on("notice", (event) => log("notice " + JSON.stringify(event.data.text)));
 	}, start() { log("start orchestration"); } },
-	{ name: "channel", setup(host) {
-		host.provide("doctor", async () => [need("token", false), need("socket", true), { name: "bot", check: async () => "ok (@arthur_bot)", costs: "-", fix: "-" }]);
+	{ name: "channel", doctor: async () => [need("token", false)], setup(host) {
+		host.provide("doctor", async () => [need("socket", true), { name: "bot", check: async () => "ok (@arthur_bot)", costs: "-", fix: "-" }]);
 	}, start() { log("start channel"); } },
 	{ name: "broken", setup(host) {
 		host.provide("doctor", () => [{ name: "throws", check() { throw new Error("boom\\nat line 2"); }, costs: "c", fix: "f" }, { name: "odd", check: () => "fine", costs: "c", fix: "f" }]);
 	} },
 	{ name: "noisy", setup(host) { host.provide("doctor", () => { throw new Error("no list today"); }); } },
 	{ name: "shapeless", setup(host) { host.provide("doctor", () => "a string"); } },
-	{ name: "off", options: { enabled: false }, setup(host) { host.provide("doctor", () => [need("never", true)]); } },
+	{ name: "off", options: { enabled: false }, doctor: () => [need("never", true)], setup(host) { host.provide("doctor", () => [need("never", true)]); } },
 ] };
 `;
 
@@ -80,7 +79,7 @@ const TMUX = "orchestration tmux: missing: tmux not found on PATH; without it: n
 const SOCKET = "channel socket: missing: no socket; without it: no socket; fix: fix socket";
 const TOKEN = "channel token: missing: no TOKEN set; without it: no token; fix: fix token";
 
-test("arthur doctor: one line per requirement, the core's then each enabled plugin's in setup order; a throw costs its line only; exit 1 only on a critical miss", () => {
+test("arthur doctor: one line per requirement, the core's then each enabled plugin's in setup order, its own doctor's first; a throw costs its line only; exit 1 only on a critical miss", () => {
 	const { say, arthur, home } = project();
 	const all = arthur("doctor");
 	assert.deepEqual([all.status, all.stdout, all.stderr], [0, [...CORE, ...REST, ""].join("\n"), ""], "a throwing check is not critical: its line is missing, the exit code 0");
@@ -95,12 +94,41 @@ test("arthur doctor: one line per requirement, the core's then each enabled plug
 	assert.deepEqual([arthur("doctor", "now").status, arthur("doctor", "now").stderr], [2, "usage: arthur doctor\n"]);
 });
 
-test("arthur doctor without the plugins: the core's own lines, then why the plugins' are not checked; a config that does not load, the reason alone", () => {
+test("arthur doctor while the load refuses, a variable missing: the core's lines and each enabled plugin's own doctor, then why the rest is not checked", () => {
+	const { folder, arthur, log } = project();
+	writeFileSync(
+		join(folder, "arthur.config.ts"),
+		`import { appendFileSync } from "node:fs";
+const need = (name, critical) => ({ name, check: () => "missing: no " + name, costs: "no " + name, fix: "install " + name, critical });
+export default { plugins: [
+	{ name: "orchestration", doctor: () => [need("tmux", true)], setup(host) { appendFileSync(new URL("./log.txt", import.meta.url), "setup\\n"); host.provide("doctor", () => [need("socket", true)]); } },
+	{ name: "telegram", options: { enabled: true, botTokenEnv: "ARTHUR_DOCTOR_TEST_TOKEN" }, doctor: async (options, core) => [need(\`ffmpeg \${Object.keys(options)} \${core.agent.command}\`, false)], setup() {} },
+	{ name: "broken", doctor() { throw new Error("no list today"); }, setup() {} },
+	{ name: "off", options: { enabled: false }, doctor: () => [need("never", true)], setup() {} },
+] };
+`,
+	);
+	const missing = arthur("doctor");
+	assert.deepEqual([missing.status, missing.stdout], [
+		1,
+		[
+			...CORE,
+			"orchestration tmux: missing: no tmux; without it: no tmux; fix: install tmux",
+			"telegram ffmpeg botTokenEnv omp: missing: no ffmpeg botTokenEnv omp; without it: no ffmpeg botTokenEnv omp; fix: install ffmpeg botTokenEnv omp",
+			"broken requirements: missing: check failed: no list today; without it: what broken needs is not checked; fix: plugin broken's doctor answer",
+			"",
+		].join("\n"),
+	]);
+	assert.match(missing.stderr, /^arthur doctor: the requirements a plugin checks in its setup are not checked: arthur\.config\.ts did not load:\n.*ARTHUR_DOCTOR_TEST_TOKEN/);
+	assert.equal(log(), "", "no plugin's setup ran");
+});
+
+test("arthur doctor when a plugin's setup fails: the core's lines, then why the rest is not checked; a config that does not load, the reason alone", () => {
 	const { folder, arthur } = project();
 	writeFileSync(join(folder, "arthur.config.ts"), 'export default { plugins: [{ name: "orchestration", setup() { throw new Error("no socket"); } }] };\n');
 	const failed = arthur("doctor");
 	assert.deepEqual([failed.status, failed.stdout], [1, [...CORE, ""].join("\n")]);
-	assert.equal(failed.stderr, "arthur doctor: the plugins' requirements are not checked: arthur.config.ts did not load:\nplugin orchestration: setup failed: no socket\n");
+	assert.equal(failed.stderr, "arthur doctor: the requirements a plugin checks in its setup are not checked: arthur.config.ts did not load:\nplugin orchestration: setup failed: no socket\n");
 	writeFileSync(join(folder, "arthur.config.ts"), "export default {\n");
 	const broken = arthur("doctor");
 	assert.deepEqual([broken.status, broken.stdout], [1, ""]);

@@ -161,7 +161,11 @@ import { checkStructure } from "./structure.ts";
 // where the code applied a literal inside its setup, the literal became an exported constant the test reads: machines 2 more
 // (448, `EVERY_SECONDS`), models 2 more (487, `DEFAULTS`), session 4 more (877, `DEFAULTS` and its import in restart.ts),
 // telegram 2 more (403, `API_URL`), youtrack 2 more (466, `TIMEOUT_SECONDS`), each a comment and the constant.
-const BUDGETS = { core: 5455, "core/testing": 349, projects: 480, orchestration: 1381, machines: 448, resources: 458, session: 877, schedule: 552, models: 487, youtrack: 466, "commit-rules": 168, nvm: 84, telegram: 403 };
+// AR0180: a plugin's own `doctor`, read from its options without its setup or env values, so `arthur doctor`, `arthur setup` and
+// a refused `arthur run` check it while the load refuses; core 22 more (5477) for `Plugin.doctor` and its check (plugin.ts),
+// `ownAnswers` (doctor.ts), each plugin's own answers before its provided ones (host.ts), and the config kept for the fallback
+// (cli.ts, setup.ts); orchestration's tmux and session's service and linger moved into theirs, no line more.
+const BUDGETS = { core: 5477, "core/testing": 349, projects: 480, orchestration: 1381, machines: 448, resources: 458, session: 877, schedule: 552, models: 487, youtrack: 466, "commit-rules": 168, nvm: 84, telegram: 403 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

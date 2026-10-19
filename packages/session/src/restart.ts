@@ -5,6 +5,7 @@ import type { Host } from "@arthur/core/plugin";
 import { agentUp, alive, put, REQUEST, type Request, readRequest } from "./request.ts";
 import { restartDue } from "./restart-guard.ts";
 import { servicePid } from "./service.ts";
+import { DEFAULTS } from "./session-options.ts";
 import type { SessionOptions } from "./session.ts";
 
 // The fresh start and `/restart` (spec/roadmap.md, entry 36): a restart only once no job runs, after the handoff the
@@ -29,7 +30,7 @@ function restart(host: Host, fresh: boolean, written: boolean, run = false): voi
 
 // While the guard is on, why a restart of `arthur run` is due: the commits that changed its code, or why its note is broken.
 function due(host: Host): string | undefined {
-	if ((host.options as SessionOptions).restartGuard === false) return undefined;
+	if (!((host.options as SessionOptions).restartGuard ?? DEFAULTS.restartGuard)) return undefined;
 	try {
 		const state = restartDue(host.folder);
 		return state === undefined || state.due.length === 0 ? undefined : `${state.due.join(", ")} changed Arthur's code`;
@@ -82,7 +83,7 @@ export function registerRestart(host: Host): void {
 // Every 500 ms in `arthur run`: the outcome of a restart asked for, acted on; the `Restarted.` notice once the next coordinator
 // is up; and tonight's tries of the fresh start.
 export function restarts(host: Host): () => void {
-	const { freshAt = "23:00", freshRetryMinutes = 15, freshUntil = "03:00" } = host.options as SessionOptions;
+	const { freshAt = DEFAULTS.freshAt, freshRetryMinutes = DEFAULTS.freshRetryMinutes, freshUntil = DEFAULTS.freshUntil } = host.options as SessionOptions;
 	const [file, step, clock] = [join(host.folder, REQUEST), freshRetryMinutes * 60_000, host.clock];
 	const say = (text: string) => console.log(`session: fresh: ${text}`);
 	// The next night's window: tries from `start`, every `step`, the last at `end`, the first `freshUntil` after `start`; `at` the

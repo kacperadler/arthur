@@ -1,10 +1,12 @@
 import { loadConfig } from "@arthur/core";
+import { everyOption, type OptionTable } from "@arthur/core/option-table";
+import { table } from "@arthur/core/options";
 import { jobSlice } from "@arthur/core/testing";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { availableParallelism, tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { after, test } from "node:test";
 
 const root = mkdtempSync(join(tmpdir(), "arthur-config-test-"));
@@ -45,6 +47,35 @@ test("a config without core options loads with every default filled", async () =
 			jobs: { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, cpu: Math.max(1, availableParallelism() - 1), memory: "70%" },
 		},
 		plugins: [],
+	});
+});
+
+// Each default `table` writes as a value, by its path, parsed as JSON when it parses; `words` are the paths of those written as
+// words for a person (a computed one), left out.
+function valueDefaults(table: OptionTable, words: readonly string[]): Record<string, unknown> {
+	const value = (text: string): unknown => {
+		try {
+			return JSON.parse(text);
+		} catch {
+			return text;
+		}
+	};
+	return Object.fromEntries(everyOption(table).flatMap(({ path, entry }) => (entry.default === undefined || words.includes(path) ? [] : [[path, value(entry.default)]])));
+}
+
+test("each default the core's option table writes as a value is the one loadConfig applies to an empty config", async () => {
+	const file = configFile("export default {};\n");
+	const { core } = await loadConfig(file);
+	const { jobs } = core;
+	assert.deepEqual(valueDefaults(table, ["timeZone", "quietHours", "jobs.cpu"]), {
+		home: relative(dirname(file), core.home),
+		envFile: relative(dirname(file), core.envFile),
+		"agent.command": core.agent.command,
+		"jobs.timeoutMinutes": jobs.timeoutMinutes,
+		"jobs.budgetUsd": jobs.budgetUsd,
+		"jobs.idleMinutes": jobs.idleMinutes,
+		"jobs.memory": jobs.memory,
+		"jobs.offlineGraceMinutes": jobs.offlineGraceMinutes,
 	});
 });
 

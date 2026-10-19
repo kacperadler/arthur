@@ -157,7 +157,11 @@ import { checkStructure } from "./structure.ts";
 // `host.jobs.criteria()` (roles.ts, plugin.ts), projects 5 more (480) for the title-only skeleton of a name it ships none for.
 // Merged with main: core 5451 + 4 (AR0186) = 5455, projects 480, machines 446.
 // Merged with AR0212: telegram 401 as above; the rest as main has them.
-const BUDGETS = { core: 5455, "core/testing": 349, projects: 480, orchestration: 1381, machines: 446, resources: 458, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 401 };
+// AR0177: every default an option table writes as a value is checked against the one the code applies, by a test per package;
+// where the code applied a literal inside its setup, the literal became an exported constant the test reads: machines 2 more
+// (448, `EVERY_SECONDS`), models 2 more (487, `DEFAULTS`), session 4 more (877, `DEFAULTS` and its import in restart.ts),
+// telegram 2 more (403, `API_URL`), youtrack 2 more (466, `TIMEOUT_SECONDS`), each a comment and the constant.
+const BUDGETS = { core: 5455, "core/testing": 349, projects: 480, orchestration: 1381, machines: 448, resources: 458, session: 877, schedule: 552, models: 487, youtrack: 466, "commit-rules": 168, nvm: 84, telegram: 403 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -14,6 +14,8 @@ export type { ModelsOptions };
 
 // How often `arthur run` asks for the usage report, which is fetched again only once it is 10 minutes old.
 const USAGE_CHECK_MS = 60_000;
+// What `probeSeconds` and `limits` hold when they are left out.
+export const DEFAULTS = { probeSeconds: 3, warnAt: 80, stopAt: 95 };
 
 export function models(options: ModelsOptions = {}): Plugin {
 	let timer: NodeJS.Timeout | undefined;
@@ -23,8 +25,8 @@ export function models(options: ModelsOptions = {}): Plugin {
 		options,
 		check: checkOptions,
 		async setup(host) {
-			const { providers = {}, probeSeconds = 3, limits = {} } = host.options as ModelsOptions;
-			const [warnAt, stopAt] = [limits.warnAt ?? 80, limits.stopAt ?? 95];
+			const { providers = {}, probeSeconds = DEFAULTS.probeSeconds, limits = {} } = host.options as ModelsOptions;
+			const [warnAt, stopAt] = [limits.warnAt ?? DEFAULTS.warnAt, limits.stopAt ?? DEFAULTS.stopAt];
 			// A name is resolved at load: one that resolves outside the private network refuses it; one not found now is the probe's to report.
 			const refused = await Promise.all(
 				Object.entries(providers).map(async ([name, provider]) => {

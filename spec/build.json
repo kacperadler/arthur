@@ -1436,9 +1436,9 @@
   {
     "id": "AR0181",
     "title": "Roadmap 42: Onboarding a repository",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0181-roadmap-42-onboarding-a-repository/ticket.md",
-    "updated": "2026-10-19T11:31:31.353Z"
+    "updated": "2026-10-19T11:35:29.760Z"
   },
   {
     "id": "AR0182",
@@ -1446,5 +1446,33 @@
     "status": "planning",
     "path": "spec/features/AR0182-plugins-move-to-their-own-repository-once-the-roadmap-is-built/ticket.md",
     "updated": "2026-10-19T11:05:52.662Z"
+  },
+  {
+    "id": "AR0183",
+    "title": "`arthur merge` (54) must ask `merge.check` before it merges an onboarding's branch",
+    "status": "planning",
+    "path": "spec/features/AR0183-arthur-merge-54-must-ask-merge-check-before-it-merges-an-onboarding-s-branch/ticket.md",
+    "updated": "2026-10-19T11:35:29.754Z"
+  },
+  {
+    "id": "AR0184",
+    "title": "The `.nvmrc` that `arthur init` writes is read by nothing until the nvm plugin (84)",
+    "status": "planning",
+    "path": "spec/features/AR0184-the-nvmrc-that-arthur-init-writes-is-read-by-nothing-until-the-nvm-plugin-84/ticket.md",
+    "updated": "2026-10-19T11:35:29.756Z"
+  },
+  {
+    "id": "AR0185",
+    "title": "The coordinator's role does not say when to run `arthur init` and start an onboarding",
+    "status": "planning",
+    "path": "spec/features/AR0185-the-coordinator-s-role-does-not-say-when-to-run-arthur-init-and-start-an-onboarding/ticket.md",
+    "updated": "2026-10-19T11:35:29.758Z"
+  },
+  {
+    "id": "AR0186",
+    "title": "`arthur init` writes the criteria skeletons of today's roles only",
+    "status": "planning",
+    "path": "spec/features/AR0186-arthur-init-writes-the-criteria-skeletons-of-today-s-roles-only/ticket.md",
+    "updated": "2026-10-19T11:35:29.759Z"
   }
 ]

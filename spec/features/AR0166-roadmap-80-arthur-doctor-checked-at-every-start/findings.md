@@ -11,4 +11,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/machines/src/machines.ts:58`
 - What: the owner's decision checks each `tools` label with `command -v` over SSH, so only listed machines get it. `local: { labels: { tools: ["docker"] } }` is placed by that label too, yet a `docker` missing on the machine Arthur runs on gives no `arthur doctor` line; a job that needs it is placed there and fails later.
 - Suggestion: a `machines local` requirement, only when `local.labels.tools` is set, running the same `for tool do command -v ...` loop through `host.jobs.run("local", ...)` on the PATH of `arthur run`, its line in the same shape as a listed machine's. Out: changing placement by what is found.
-- Status: open
+- Status: ticket AR0172

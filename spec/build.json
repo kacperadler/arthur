@@ -1331,9 +1331,9 @@
   {
     "id": "AR0166",
     "title": "Roadmap 80: arthur doctor, checked at every start",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0166-roadmap-80-arthur-doctor-checked-at-every-start/ticket.md",
-    "updated": "2026-10-19T06:09:56.755Z"
+    "updated": "2026-10-19T06:14:11.556Z"
   },
   {
     "id": "AR0167",
@@ -1369,5 +1369,12 @@
     "status": "planning",
     "path": "spec/features/AR0171-the-resources-scope-test-assumes-a-machine-of-2-cores-or-more/ticket.md",
     "updated": "2026-10-19T05:46:50.634Z"
+  },
+  {
+    "id": "AR0172",
+    "title": "The tools labels of local are not checked by arthur doctor",
+    "status": "planning",
+    "path": "spec/features/AR0172-the-tools-labels-of-local-are-not-checked-by-arthur-doctor/ticket.md",
+    "updated": "2026-10-19T06:14:11.553Z"
   }
 ]

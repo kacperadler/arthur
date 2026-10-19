@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { availableParallelism, totalmem } from "node:os";
-import { delimiter, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { clock } from "../src/clock.ts";
@@ -121,6 +121,26 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	const second = await jobs.spawn({ task: "Again.", machine: "gpu", kind: "worker" });
 	assert.equal(second.failed, undefined);
 	assert.equal(calls().filter((call) => call.includes("git-receive-pack")).length, 1, "the base commit there is not pushed twice");
+});
+
+test("a prepare's variables reach the agent there through the launch's stdin, never an argument nor the record there or here", async () => {
+	const omp = fakeAgent({ steps: [{ message: "Done." }] });
+	const agent = join(dirname(omp), "env-omp");
+	writeFileSync(agent, `#!/bin/sh\nenv > '${join(dirname(omp), "env")}'\nexec '${omp}' "$@"\n`, { mode: 0o755 });
+	const { home, there, jobs } = setup({ agent });
+	jobs.prepare("models", () => ({ OLLAMA_BASE_URL: "http://100.101.102.103:11434", OLLAMA_API_KEY: "remote-s3cr3t", ARTHUR_AGENT_MODEL: "ollama/qwen3" }));
+	const job = await jobs.spawn({ task: "Build it.", machine: "gpu", model: "mac/qwen3" });
+	assert.equal(job.failed, undefined);
+	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
+	const env = readFileSync(join(dirname(omp), "env"), "utf8");
+	assert.match(env, /^OLLAMA_API_KEY=remote-s3cr3t$/m);
+	assert.match(env, /^OLLAMA_BASE_URL=http:\/\/100\.101\.102\.103:11434$/m);
+	const [start] = readFileSync(join(dirname(omp), "starts.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line).args as string[]);
+	assert.equal(start?.[start.indexOf("--model") + 1], "ollama/qwen3");
+	jobs.sweep();
+	assert.equal(read(home, job.id, "model"), "mac/qwen3");
+	const secret = (folder: string) => readdirSync(folder, { withFileTypes: true }).filter((entry) => entry.isFile() && readFileSync(join(folder, entry.name), "utf8").includes("remote-s3cr3t")).map((entry) => entry.name);
+	assert.deepEqual([secret(join(there, "jobs", job.id)), secret(join(home, "jobs", job.id)), calls().filter((call) => call.includes("remote-s3cr3t"))], [[], [], []]);
 });
 
 test("an unknown machine, a refused key, arthur missing there or of another version refuse the spawn before any record", async () => {

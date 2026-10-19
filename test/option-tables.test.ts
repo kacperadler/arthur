@@ -9,6 +9,8 @@ import type { Plugin } from "@arthur/core/plugin";
 import { temporaryFolder } from "@arthur/core/testing";
 import { machines } from "@arthur/machines";
 import * as machinesFile from "@arthur/machines/options";
+import { models } from "@arthur/models";
+import * as modelsFile from "@arthur/models/options";
 import { orchestration } from "@arthur/orchestration";
 import * as orchestrationFile from "@arthur/orchestration/options";
 import { projects } from "@arthur/projects";
@@ -32,6 +34,7 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	resources: [resourcesFile, resources({})],
 	session: [sessionFile, session()],
 	schedule: [scheduleFile, schedule()],
+	models: [modelsFile, models()],
 };
 
 // What is wrong with `file`: an option, at any depth, whose meaning or default is not one line; a summary that is not one
@@ -59,7 +62,7 @@ test("every option of the core and of each plugin has its meaning in one line, e
 	);
 	assert.deepEqual(
 		Object.values(PLUGINS).flatMap(([file]) => file.tools.map((tool) => tool.name)),
-		["tmux"],
+		["tmux", "curl"],
 	);
 });
 

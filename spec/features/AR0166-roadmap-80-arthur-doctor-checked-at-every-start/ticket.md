@@ -32,3 +32,4 @@ Out:
 ## Decisions
 
 - 2026-10-19: The owner asked for a night plan for Arthur with Claude 7 Day usage up to 75%; entry 80 is next (depends on 38 and 4, merged).
+- 2026-10-19: Coordinator (owner delegated Arthur calls): option (a): each tools label is a command name, checked with command -v over SSH and documented; the example becomes tools: ["xcodebuild"]. No label-to-command map (an option nobody asked for).

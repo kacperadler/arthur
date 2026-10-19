@@ -359,7 +359,7 @@ test("a job with caps on a machine without a user manager runs bare there with i
 	assert.deepEqual([first.failed, second.failed], [undefined, undefined]);
 	assert.deepEqual(["cpu", "memory"].map((name) => read(there, second.id, name)), ["2", "1G"]);
 	assert.match(read(there, second.id, "log"), /no systemd scope: Failed to connect to bus: No medium found; the job runs bare/);
-	const text = "machine gpu runs jobs without a systemd scope (Failed to connect to bus: No medium found): a job's memory cap there is held by sampling its processes every 10 s, and its CPU is not capped";
+	const text = "machine gpu runs jobs without a systemd scope (Failed to connect to bus: No medium found): a job's memory cap there is held by sampling its processes every 10 s, its CPU is not capped, and a ticket's CPU and memory caps, shared by all its jobs, are not held";
 	assert.deepEqual(events(home, "notice"), [{ text }]);
 });
 
@@ -426,10 +426,10 @@ test("a plugin's hold on a job there stands at each copy while it runs there and
 	assert.equal(calls().length, copies, "a job no longer held nor in a run is not copied again");
 });
 
-test("a block with stop on a job there stops its run there and holds it blocked on the user here; the feature slice goes there", async () => {
+test("a block with stop on a job there stops its run there and holds it blocked on the user here; the feature slice goes there, a continue's caps too", async () => {
 	const gate = join(temporaryFolder(), "go");
-	const caps = () => [{ feature: { name: "AC0001", cpu: 1, memory: "1G" } }];
-	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }), caps });
+	let answer: unknown = { feature: { name: "AC0001", cpu: 1, memory: "1G" } };
+	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }), caps: () => [answer] });
 	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
 	assert.deepEqual(["feature", "feature-cpu", "feature-memory"].map((name) => read(there, job.id, name)), ["AC0001", "1", "1G"]);
 	await jobs.block(job.id, "feature cap hours reached: 8.00 h of 8 h", true);
@@ -438,7 +438,14 @@ test("a block with stop on a job there stops its run there and holds it blocked 
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason"), existsSync(join(home, "jobs", job.id, "hold"))], ["blocked", reason, false]);
 	assert.deepEqual([read(there, job.id, "state"), read(there, job.id, "reason")], ["ended", "stopped"]);
 	assert.deepEqual(events(home, "job-ended"), [{ id: job.id, kind: "worker", project: "acme", state: "blocked", reason }]);
+	// The human raised the ticket's caps: the continue there runs with those in force now.
+	answer = { memory: "2G", feature: { name: "AC0001", memory: "4G" } };
 	writeFileSync(gate, "");
+	assert.equal(await jobs.continue(job.id, "The cap was raised; go on."), undefined);
+	const names = ["cpu", "memory", "feature", "feature-cpu", "feature-memory"];
+	assert.deepEqual(names.map((name) => read(there, job.id, name)), ["", "2G", "AC0001", "", "4G"]);
+	assert.deepEqual(names.map((name) => read(home, job.id, name)), ["", "2G", "AC0001", "", "4G"]);
+	await endedThere(there, job.id);
 });
 
 test("jobs.limits' feature must name its slice in letters and digits, or the spawn is refused before anything exists", async () => {

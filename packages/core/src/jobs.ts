@@ -140,7 +140,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 		run: (machine, argv, limitSeconds, input) => machines.run(machine, argv, limitSeconds, input),
 		machines: () => [LOCAL, ...machines.others().map((machine) => machine.name)],
 		roles: (project) => describeRoles(roles, kinds.all(), where(project), collect),
-		continue: (id, instruction, budgetUsd, ignoreRestart = false) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), (spawn) => checks.pass({ ...spawn, tickets: taskTickets(spawn.task), ignoreRestart }), machines.of(id)),
+		continue: (id, instruction, budgetUsd, ignoreRestart = false) => continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), async (asked) => { const spawn = { ...asked, tickets: taskTickets(asked.task), ignoreRestart }; const caps = await jobCaps(collect("jobs.limits", [spawn])); return { caps, release: await checks.pass(spawn) }; }, machines.of(id)),
 		file: (board, id, job) => fileJob(home, board, (name) => kinds.get(name)?.file, id, job),
 		async spawn(request) {
 			const name = request.kind ?? "worker";

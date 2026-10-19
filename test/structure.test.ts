@@ -128,27 +128,46 @@ import { checkStructure } from "./structure.ts";
 // quiet hours; a new package. Orchestration 121 more (1334) for the silent mode: `arthur silent` and `/silent`, its state
 // file, the summary built from the event log, `coordinator.silent`, the held replies and the `## Silent` context line; cut
 // first: the `whole` check onto one line and the state's write inlined (5 lines).
+// AR0154: a worker, or a continue, on a pre-approved ticket held to the budget its `Pre-approved by policy` line records, until
+// the owner's own approval after it; orchestration 19 more (1232) for that `beforeSpawn` refusal (plans.ts: the record and the
+// approval read under Decisions, the per-ticket refusals split in two); core/testing 2 more (346) for `continue` on the fake
+// host, which no plugin test could reach.
+// AR0155: two pre-approvals of one ticket at once record it once; orchestration 11 more (1243) for the lock per ticket around
+// autopilot's check, record and move, its body moved into `preApprove`.
+// AR0165: a provider outage tells its turn failure once per reason, and once when turns work again; session 18 more (867) for
+// the turn extension's last reason told and its working-again mark, and that notice.
+// AR0156: autopilot takes the `budget` of the ticket's JSON block when `--budget` is left out; orchestration 10 more (1253) for
+// reading it, a block that is not JSON refused.
+// AR0168: a plugin's `after`, set up after those plugins when they are loaded, none refused when not; core 3 more (5451) for
+// its check beside `requires` and the setup order; orchestration 2 more (1255) for its `after: ["schedule"]`.
+// AR0175: a `/restart` that throws in the tick tells the owner; session 6 more (873) for that notice.
+// AR0135: inbox files named `<event number>-<time in ms>`, so a log cut by hand never drops a new message; orchestration 5 more
+// (1260) for the name, the order by number and the replies' answers given as event numbers.
+// AR0137: the burst test moves the agent's clock instead of sleeping; core/testing 3 more (349) for the fake agent's `clock`,
+// its doc reflowed by a line to keep testing.ts at 200.
+// Merged with AR0208: orchestration 1334 + 47 (AR0135, AR0154 to AR0156, AR0168) = 1381; core, core/testing and session as above.
 // AR0191, AR0193, AR0198, AR0202 (findings batch): models 21 more (506): probe answers kept in probes.json under a lock per
 // provider and machine across processes (probe.ts, 15), omp's models.yml read on each registered machine (model-doctor.ts, 6);
 // cut first: the probes' in-process map of running probes, which the lock replaces, and the local models.yml line now read
-// through `host.jobs.run` as the others are. Core 6 more (5454): a record whose `pid` is gone ends the wrapper (wrapper.ts, 3),
-// a prompt section's `{ text, warnings }` checked and its warnings joined to the spawn's (roles.ts, 3).
-const BUDGETS = { core: 5454, "core/testing": 344, projects: 475, orchestration: 1334, machines: 415, resources: 458, session: 849, schedule: 552, models: 506, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 243 };
+// through `host.jobs.run` as the others are. Core 6 more (5457, after AR0168's 5451): a record whose `pid` is gone ends the
+// wrapper (wrapper.ts, 3), a prompt section's `{ text, warnings }` checked and its warnings joined to the spawn's (roles.ts, 3).
+const BUDGETS = { core: 5457, "core/testing": 349, projects: 475, orchestration: 1381, machines: 415, resources: 458, session: 873, schedule: 552, models: 506, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 243 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 
 // A tree that keeps every rule: the core publishes "." and "./testing", one plugin uses both.
 const BASE: Readonly<Record<string, string>> = {
-	"package.json": JSON.stringify({ name: "arthur", devDependencies: { typescript: "^7.0.2" } }),
+	"package.json": JSON.stringify({ name: "arthur", license: "Apache-2.0", devDependencies: { typescript: "^7.0.2" } }),
 	"packages/core/package.json": JSON.stringify({
 		name: "@arthur/core",
+		license: "Apache-2.0",
 		dependencies: {},
 		exports: { ".": "./src/host.ts", "./testing": "./src/testing.ts" },
 	}),
 	"packages/core/src/host.ts": "export type Host = { name: string };\n",
 	"packages/core/src/testing.ts": 'import type { Host } from "./host.ts";\nexport const fakeHost: Host = { name: "fake" };\n',
 	"packages/core/test/host.test.ts": 'import { fakeHost } from "../src/testing.ts";\n',
-	"packages/telegram/package.json": JSON.stringify({ name: "@arthur/telegram" }),
+	"packages/telegram/package.json": JSON.stringify({ name: "@arthur/telegram", license: "Apache-2.0" }),
 	"packages/telegram/src/telegram.ts": 'import type { Host } from "@arthur/core";\nimport { readFileSync } from "node:fs";\n',
 	"packages/telegram/test/telegram.test.ts": 'import { fakeHost } from "@arthur/core/testing";\nimport "../src/telegram.ts";\n',
 };
@@ -205,13 +224,29 @@ test("a dev dependency beyond typescript and @types/node fails, in any package.j
 		check({
 			"package.json": JSON.stringify({
 				name: "arthur",
+				license: "Apache-2.0",
 				devDependencies: { typescript: "^7.0.2", "@types/node": "^24.19.2", vitest: "3" },
 			}),
-			"packages/telegram/package.json": JSON.stringify({ name: "@arthur/telegram", devDependencies: { "@types/node": "24", sinon: "1" } }),
+			"packages/telegram/package.json": JSON.stringify({ name: "@arthur/telegram", license: "Apache-2.0", devDependencies: { "@types/node": "24", sinon: "1" } }),
 		}),
 		[
 			"package.json: has devDependency vitest; dev dependencies are the toolchain only (typescript, @types/node)",
 			"packages/telegram/package.json: has devDependency sinon; dev dependencies are the toolchain only (typescript, @types/node)",
+		],
+	);
+});
+
+test("a licence other than Apache-2.0 fails, in the root and in any package.json", () => {
+	assert.deepEqual(
+		check({
+			"package.json": JSON.stringify({ name: "arthur", license: "MIT", devDependencies: { typescript: "^7.0.2" } }),
+			"packages/core/package.json": JSON.stringify({ name: "@arthur/core", exports: { ".": "./src/host.ts", "./testing": "./src/testing.ts" } }),
+			"packages/telegram/package.json": JSON.stringify({ name: "@arthur/telegram", license: "SEE LICENSE IN ../../LICENSE" }),
+		}),
+		[
+			'package.json: has license "MIT"; every Arthur package is Apache-2.0',
+			"packages/core/package.json: has license null; every Arthur package is Apache-2.0",
+			'packages/telegram/package.json: has license "SEE LICENSE IN ../../LICENSE"; every Arthur package is Apache-2.0',
 		],
 	);
 });

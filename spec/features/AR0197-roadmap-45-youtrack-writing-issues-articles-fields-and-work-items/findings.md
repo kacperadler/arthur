@@ -13,7 +13,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/youtrack/src/youtrack-write.ts`, `update`
 - What: roadmap 45 asks only an article's update to refuse a change made meanwhile, so `arthur youtrack issue update <id> <file>` replaces the summary and description whatever happened since the issue was read: an edit the owner made in YouTrack in between is lost without a word.
 - Suggestion: the same check as the article's: `issue get` prints `version: <updated>` and `issue update` takes it, refusing when the issue's `updated` moved. Out: comments and fields, which are not replaced whole.
-- Status: open
+- Status: ticket AR0204
 
 ## F2. The coordinator's role does not say when it may write to YouTrack
 
@@ -22,4 +22,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/orchestration/roles/coordinator.md`, "Commands"
 - What: AR0194 gave the role one line for reading (`arthur youtrack issue get <id>`), and "Nothing more". Roadmap 45 adds `create`, `update`, `set` and `work`, which change the owner's tracker; the role neither names them nor says whether the coordinator writes only when the owner asks.
 - Suggestion: one line in the role: write to YouTrack (`arthur youtrack --help`) only when the owner asks, and say in the reply what was written. A product decision for the owner: whether the coordinator may log work items or set fields on its own.
-- Status: open
+- Status: ticket AR0205

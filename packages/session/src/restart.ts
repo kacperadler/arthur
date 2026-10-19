@@ -129,7 +129,13 @@ export function restarts(host: Host): () => void {
 		// `arthur run` ends only when it is the service's, as it noted at its start; SIGTERM, as the service's own stop, stops every
 		// plugin, the coordinator included, and the service starts it again.
 		const run = request.run === true && servicePid(host.folder) === process.pid;
-		restart(host, fresh, written, run);
+		try {
+			restart(host, fresh, written, run);
+		} catch (error) {
+			// The owner who asked hears it; the night's is only logged, and the next night tries again.
+			if (!byNight) host.events.emit("notice", { text: `restart: not done: ${String((error as Error).message).split("\n")[0]}` });
+			throw error;
+		}
 		const how = written ? "which starts by reading the handoff" : none ? "with no handoff: no coordinator was running" : `with no handoff (${why})`;
 		console.log(`session: ${byNight ? "fresh: done" : "restart: done"}; the coordinator restarts${fresh ? " in a fresh conversation" : ""}, ${how}${run ? "; arthur run ends, and its service starts it again on the new code" : ""}`);
 		if (run) process.kill(process.pid, "SIGTERM");

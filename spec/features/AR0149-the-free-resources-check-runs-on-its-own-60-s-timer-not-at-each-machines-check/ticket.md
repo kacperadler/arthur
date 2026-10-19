@@ -36,3 +36,4 @@ In:
 
 - 2026-10-18: Source: F1 of AR0142
 - 2026-10-19: The owner approved this. The coordinator builds it alongside the roadmap entry that touches the same files.
+- 2026-10-19: Left out of the resources batch: carrying the numbers in the machines check changes two plugins' protocol. Built with the next roadmap entry that changes machines or resources.

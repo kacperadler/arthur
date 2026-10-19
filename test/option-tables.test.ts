@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
+import { commitRules } from "@arthur/commit-rules";
+import * as commitRulesFile from "@arthur/commit-rules/options";
 import { loadConfig } from "@arthur/core";
 import { everyOption, type OptionEntry, type OptionTable, type Tool } from "@arthur/core/option-table";
 import * as core from "@arthur/core/options";
@@ -11,6 +13,8 @@ import { machines } from "@arthur/machines";
 import * as machinesFile from "@arthur/machines/options";
 import { models } from "@arthur/models";
 import * as modelsFile from "@arthur/models/options";
+import { nvm } from "@arthur/nvm";
+import * as nvmFile from "@arthur/nvm/options";
 import { orchestration } from "@arthur/orchestration";
 import * as orchestrationFile from "@arthur/orchestration/options";
 import { projects } from "@arthur/projects";
@@ -21,6 +25,8 @@ import { schedule } from "@arthur/schedule";
 import * as scheduleFile from "@arthur/schedule/options";
 import { session } from "@arthur/session";
 import * as sessionFile from "@arthur/session/options";
+import { telegram } from "@arthur/telegram";
+import * as telegramFile from "@arthur/telegram/options";
 import { youtrack } from "@arthur/youtrack";
 import * as youtrackFile from "@arthur/youtrack/options";
 
@@ -38,6 +44,9 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	schedule: [scheduleFile, schedule()],
 	models: [modelsFile, models()],
 	youtrack: [youtrackFile, youtrack({ instances: [] })],
+	telegram: [telegramFile, telegram({ bots: [] })],
+	nvm: [nvmFile, nvm()],
+	"commit-rules": [commitRulesFile, commitRules()],
 };
 
 // What is wrong with `file`: an option, at any depth, whose meaning or default is not one line; a summary that is not one
@@ -57,8 +66,12 @@ function problems(name: string, file: OptionsFile): string[] {
 test("every option of the core and of each plugin has its meaning in one line, each summary is one line, each tool its version command", () => {
 	for (const [name, file] of [["core", core] as const, ...Object.entries(PLUGINS).map(([plugin, [options]]) => [plugin, options] as const)]) {
 		assert.deepEqual(problems(name, file), [], name);
-		assert.ok(everyOption(file.table).length > 0, `${name} has options`);
 	}
+	assert.deepEqual(
+		Object.entries(PLUGINS).flatMap(([name, [file]]) => (everyOption(file.table).length === 0 ? [name] : [])),
+		["nvm", "commit-rules"],
+		"the plugins without options are checked here too, and only they have an empty table",
+	);
 	assert.deepEqual(
 		core.tools.map((tool) => tool.name),
 		["git", "node", "omp", "ssh", "systemd-run", "tailscale"],
@@ -105,7 +118,7 @@ test("an option two levels deep has its meaning like a top-level one, after its 
 	assert.ok(paths(core.table).includes("jobs.memory"), "the core's jobs.memory");
 });
 
-test("each package's check refuses an unknown option, naming its path and exactly the options of its table", async () => {
+test("each package's check refuses an unknown option, naming its path and exactly the options of its table, or that it has none", async () => {
 	const folder = temporaryFolder();
 	writeFileSync(join(folder, "arthur.config.ts"), "export default { core: { jobs: { nope: 1 } } };\n");
 	await assert.rejects(loadConfig(join(folder, "arthur.config.ts")), (error: Error) => {
@@ -117,6 +130,8 @@ test("each package's check refuses an unknown option, naming its path and exactl
 	const loaded = (await loadConfig(join(folder, "empty.config.ts"))).core;
 	for (const [name, [file, plugin]] of Object.entries(PLUGINS)) {
 		const refused = plugin.check?.({ nope: 1 }, loaded).find((each) => each.path === "nope");
-		assert.ok(refused?.problem.endsWith(`: ${Object.keys(file.table).join(", ")}`), `${name}: ${refused?.problem}`);
+		const names = Object.keys(file.table);
+		const expected = names.length > 0 ? refused?.problem.endsWith(`: ${names.join(", ")}`) : refused?.problem.startsWith("unknown option; ");
+		assert.ok(expected, `${name}: ${refused?.problem}`);
 	}
 });

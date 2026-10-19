@@ -123,13 +123,18 @@ import { checkStructure } from "./structure.ts";
 // 38), attachments saved under safe names (youtrack-attachments.ts, 34), a file's bytes from the API (`request`), `issue
 // update`'s version, the verbs' wiring, the jobs' rules in the prompt and a write refused inside a job (3); cut first: four
 // copies of `field` to one export of youtrack-api.ts (11 lines), and `update`'s article-only branch made the one path for both kinds.
+// AR0208 (roadmap 47): telegram: 243, set for its bots checked at load, the long polling with its one-time 409 notice and a 429's wait, the
+// owner's text as message-received with its topic's place, the replies and notices sent in slices without a notification in
+// quiet hours; a new package. Orchestration 121 more (1334) for the silent mode: `arthur silent` and `/silent`, its state
+// file, the summary built from the event log, `coordinator.silent`, the held replies and the `## Silent` context line; cut
+// first: the `whole` check onto one line and the state's write inlined (5 lines).
 // The resources batch (AR0145, AR0146, AR0147, AR0150, AR0171): core 31 more (5479): AR0145 10 for `arthur continue` asking
 // `jobs.limits` again and writing the caps into the record here and there (`capFields`, the check's answer, the caps argument
 // of `remote-job continue`), AR0146 1 for the notice of a job with only its ticket's caps, AR0147 20 for the ticket slice's
 // `memory.events.local` read beside the scope's `oom_kill`, the reason naming the ticket, and `OOMPolicy=continue` for a job
 // with the ticket's memory cap alone; cut first: the wrapper's two reads of the record's caps folded into one line. resources
 // 9 more (467), AR0150, for the busy cores sampled over a second from `cpus()`, here and in the `node -e` script there.
-const BUDGETS = { core: 5479, "core/testing": 344, projects: 475, orchestration: 1213, machines: 415, resources: 467, session: 849, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84 };
+const BUDGETS = { core: 5479, "core/testing": 344, projects: 475, orchestration: 1334, machines: 415, resources: 467, session: 849, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 243 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

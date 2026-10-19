@@ -1,0 +1,10 @@
+{
+  "name": "@arthur/youtrack",
+  "private": true,
+  "type": "module",
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "exports": {
+    ".": "./src/youtrack.ts",
+    "./options": "./src/youtrack-options.ts"
+  }
+}

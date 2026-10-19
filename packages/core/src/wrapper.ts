@@ -36,12 +36,14 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		process.stderr.write(`[arthur ${new Date().toISOString()}] job ${id}: its record ${folder} was deleted while it ran; the agent was stopped and nothing more is written\n`);
 		process.exit(1);
 	};
-	// A use of the record that finds it gone ends the wrapper.
+	// A use of the record that finds it gone ends the wrapper, and so does one that finds the `pid` it wrote gone (a `rm -r` midway).
+	let started = false;
+	const gone = () => !existsSync(folder) || (started && !existsSync(join(folder, "pid")));
 	const guard = <T>(use: () => T): T => {
 		try {
 			return use();
 		} catch (error) {
-			if (existsSync(folder)) throw error;
+			if (!gone()) throw error;
 			return leave();
 		}
 	};
@@ -67,8 +69,8 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		quiet();
 		quiet = deadline(Number(idle), () => move("working", "idle"));
 	};
-	// `quick` and `memory` are missing from a record an older Arthur wrote.
-	const [instruction, spent, quick, memory = ""] = ["continue", "cost", "quick", "memory"].map((name) => (existsSync(join(folder, name)) ? field(name) : undefined));
+	// `quick`, `memory`, `feature` and `feature-memory` are missing from a record an older Arthur wrote.
+	const [instruction, spent, quick, memory = "", feature = "", featureMemory = ""] = ["continue", "cost", "quick", "memory", "feature", "feature-memory"].map((name) => (existsSync(join(folder, name)) ? field(name) : undefined));
 	// A resumed run continues the agent's last session in the worktree, which is the job's own, with `resume` as its message.
 	const args = (resume: string | undefined) => [
 		...(resume === undefined ? [] : ["--continue"]),
@@ -99,13 +101,19 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	};
 	process.on("SIGTERM", () => halt("stop"));
 	save("pid", String(process.pid));
+	started = true;
 	save("active", "");
 	active();
 	rmSync(join(folder, "continuing"), { recursive: true, force: true });
 	let budgetUsd = Number(budget);
 	const cancel = deadline(Number(timeout), () => halt("time"));
 	const record = runRecord(save, Number(spent ?? 0) || 0, (cost) => reached(cost, budgetUsd) && halt("budget"));
-	const watching = watchMemory(id, memory, () => halt("memory"));
+	// What went over a memory cap, the job's own or its ticket's.
+	let overCap = "";
+	const watching = watchMemory(id, memory, feature, featureMemory, (what) => {
+		overCap = what;
+		halt("memory");
+	});
 
 	let failure = undefined as Error | undefined;
 	// One run of the agent, until it exits, its output is read and its stop, if any, is over.
@@ -144,10 +152,11 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	cancel();
 	quiet();
 	// A kill over the cap that ended the agent before a sample saw it ends the job at the cap all the same.
-	if (watching() && why === undefined) why = "memory";
+	const went = watching();
+	if (went !== undefined && why === undefined) [why, overCap] = ["memory", went];
 	endScope(id);
 	const undelivered = guard(() => {
-		if (!existsSync(folder)) return leave();
+		if (gone()) return leave();
 		mkdirSync(join(folder, "steer"), { recursive: true });
 		return closeSteers(join(folder, "steer"), String(process.pid), note);
 	});
@@ -162,7 +171,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		why === "stop" ? "stopped"
 		: why === "time" ? `limit: time: the job ran past its timeout of ${timeout} minutes`
 		: why === "budget" ? `limit: budget: its cost $${record.cost().toFixed(4)} reached its budget of $${budgetUsd}`
-		: why === "memory" ? `limit: memory: the job went over its memory cap of ${memory}`
+		: why === "memory" ? `limit: memory: ${overCap}`
 		: failure !== undefined ? `failed: the agent did not start: ${failure.message}`
 		: killed !== null ? `failed: the agent was killed by ${killed}`
 		: record.stopped() !== "" ? `failed: the agent stopped on ${record.stopped()}`

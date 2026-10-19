@@ -18,7 +18,7 @@ and in orchestration's `roles`, a role's model as an ordered list: `worker: { mo
 ## Providers
 
 - `providers`: named, each `{ kind, url, keyEnv? }`. `kind` is `ollama` or `openai-compatible` (LM Studio, llama.cpp's server, vLLM). `url` is Ollama's root, or an OpenAI-compatible server's `/v1`. `keyEnv` names the variable that holds its API key (`ARTHUR_MODELS_<WHAT>`, in the shell or the env file).
-- A url's host must be loopback (`localhost`, 127.0.0.0/8, `::1`), private (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7, which holds Tailscale's fd7a:115c:a1e5::/48) or Tailscale (100.64.0.0/10, a `*.ts.net` name); any other host, and a url that is not `http` or `https`, refuses the start. A name is resolved at load, which a name resolving to any other address refuses, and again at each probe, which then refuses the provider (`refused: <name> resolves to <address>, not a private address`); a name that does not resolve at load is the probe's to report.
+- A url's host must be loopback (`localhost`, 127.0.0.0/8, `::1`), private (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7, which holds Tailscale's fd7a:115c:a1e0::/48) or Tailscale (100.64.0.0/10, a `*.ts.net` name); any other host, and a url that is not `http` or `https`, refuses the start. A name is resolved at load, which a name resolving to any other address refuses, and again at each probe, which then refuses the provider (`refused: <name> resolves to <address>, not a private address`); a name that does not resolve at load is the probe's to report.
 - A model is `<provider>/<model>`: one whose provider is in `providers` is a provider model, any other (`anthropic/claude-haiku-5-5`) a built-in one, the agent's own.
 
 ## Probes
@@ -27,7 +27,7 @@ The core asks `models.pick` at every spawn with a model, a single one too: the l
 
 - A provider model is available when its server answers its model list within `probeSeconds` and lists the model: Ollama's `GET <url>/api/tags`, where a name without a tag matches its `:latest`; an OpenAI-compatible server's `GET <url>/models`, with `Authorization: Bearer <key>` when `keyEnv` is set. Its reasons: `unreachable: <curl's or ssh's line>` (`timed out after 3 s` past `probeSeconds`), `its model list answered HTTP 401`, `its model list answered something that is not a model list`, `not in its model list`.
 - A probe is `curl --config -` on the job's machine through `host.jobs.run`, so a job on another machine is probed from there: a loopback or private url may not reach the same server from here. The url, the key's header and the address the name resolved to here (curl's `resolve`) go on curl's stdin, never in an argument.
-- One probe per provider and machine runs at a time, shared by every spawn that asks meanwhile; its answer is reused for 30 s. The answers live in the process that asked: two `arthur spawn` commands each probe once.
+- One probe per provider and machine runs at a time, across every `arthur` process: a probe holds the lock `<home>/models/probe.<machine>.<provider>.lock`, and a process that waited for it takes the answer the first one wrote. Each answer is kept with its time in `<home>/models/probes.json`, written whole (a temporary name, then renamed), and reused for 30 s by every process, so two `arthur spawn` commands at once make one request. A `probes.json` that is not JSON, or an entry of another shape, keeps nothing.
 - A built-in model is available unless its provider's window is at its limit (below).
 - A job never changes model mid-run: a model lost while the job runs (the Mac goes to sleep) fails the job with the reason the agent gave.
 
@@ -52,5 +52,6 @@ A provider model costs 0: its job keeps its time limit, its budget is 0 (no limi
 - `provider <name>`: its model list answers from here, `ok (<n> models)`.
 - `model <provider>/<model>`, for each provider model a list names (orchestration's `roles`, through `models.lists`): its server lists it; the fix is `ollama pull <model>` there, or loading it in the server.
 - `omp models.yml`: omp's own `models.yml` configures neither `ollama` nor `lm-studio` of the kinds in `providers`, since its provider would replace the one the job's environment sets; critical.
+- `omp models.yml on <machine>`, for each machine registered with the core (the machines plugin's `list`): the same check of the `models.yml` omp reads there (`$PI_CODING_AGENT_DIR/models.yml`, else `~/.omp/agent/models.yml`), read with `cat` over SSH through `host.jobs.run`; none there is `ok (no models.yml)`; critical. A machine that does not answer is not checked, `ok (not reached: <ssh's line>)`: its own `machines <name>` line says why, and an offline machine never refuses the start.
 
 A provider or a model line is critical only when a list names it with no later model on another provider or built in; `curl` when a provider is.

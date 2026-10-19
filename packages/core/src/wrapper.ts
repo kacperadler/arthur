@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { agentStream } from "./agent-stream.ts";
 import { eventBus } from "./events.ts";
 import { deadline, reached } from "./job-limits.ts";
-import { watchMemory } from "./job-memory.ts";
+import { oomFirst, watchMemory } from "./job-memory.ts";
 import { endScope } from "./job-scope.ts";
 import { signal, stopGroup } from "./job-stop.ts";
 import { blockedBy, current, kept, moveJob, type State } from "./job-state.ts";
@@ -112,7 +112,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		note(`agent: ${agent} ${argv.join(" ")}`);
 		const stream = agentStream();
 		const closed = Promise.withResolvers<[number | null, NodeJS.Signals | null]>();
-		const running = spawn(agent, argv, { cwd: worktree, env: { ...process.env, ARTHUR_JOB: folder }, stdio: ["ignore", "pipe", "pipe"], detached: true });
+		const running = oomFirst(() => spawn(agent, argv, { cwd: worktree, env: { ...process.env, ARTHUR_JOB: folder }, stdio: ["ignore", "pipe", "pipe"], detached: true }));
 		child = running;
 		running.stdout.setEncoding("utf8");
 		running.stdout.on("data", (chunk: string) => {

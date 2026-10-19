@@ -160,7 +160,8 @@ test("a check that hangs is cut after 10 s, every check at once, and the others 
 			["slow quick: ok", false],
 		],
 	);
-	assert.ok(took >= 10_000 && took < 15_000, `took ${took} ms`);
+	// The cut runs on Node's timer clock, `took` on the wall clock, which can run a little slow (GitHub measured 9999 ms).
+	assert.ok(took >= 9_950 && took < 15_000, `took ${took} ms`);
 });
 
 // `arthur run` in the background, until the test ends.

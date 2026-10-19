@@ -1380,9 +1380,9 @@
   {
     "id": "AR0173",
     "title": "GitHub CI names each failed test and stays green on main",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0173-github-ci-names-each-failed-test-and-stays-green-on-main/ticket.md",
-    "updated": "2026-10-19T08:41:19.559Z"
+    "updated": "2026-10-19T10:34:01.413Z"
   },
   {
     "id": "AR0174",
@@ -1422,8 +1422,8 @@
   {
     "id": "AR0179",
     "title": "Roadmap 94: arthur setup, what is there, what is set, what is missing",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0179-roadmap-94-arthur-setup-what-is-there-what-is-set-what-is-missing/ticket.md",
-    "updated": "2026-10-19T09:16:00.214Z"
+    "updated": "2026-10-19T09:53:12.214Z"
   }
 ]

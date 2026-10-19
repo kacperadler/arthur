@@ -51,10 +51,11 @@ async function ended(home: string, id: string): Promise<{ readonly data: unknown
 	return { data: event.data, record };
 }
 
+// Whole lines only: a line the agent is still appending has no line break yet.
 const starts = (agent: string) =>
 	readFileSync(join(dirname(agent), "starts.jsonl"), "utf8")
-		.trim()
 		.split("\n")
+		.slice(0, -1)
 		.map((line) => JSON.parse(line) as { readonly pid: number; readonly cwd: string; readonly args: readonly string[] });
 
 const alive = (pid: number) => {

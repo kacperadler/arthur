@@ -60,7 +60,8 @@ const ended = (home: string, id: string, count = 1) =>
 		return data.length >= count ? data : undefined;
 	});
 const running = (home: string, id: string) => until("the job working", () => field(home, id, "state") === "working");
-const starts = (agent: string) => (read(join(agent, "..", "starts.jsonl")) ?? "").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line) as { readonly pid: number; readonly args: readonly string[]; readonly cwd: string });
+// Whole lines only: a line the agent is still appending has no line break yet.
+const starts = (agent: string) => (read(join(agent, "..", "starts.jsonl")) ?? "").split("\n").slice(0, -1).map((line) => JSON.parse(line) as { readonly pid: number; readonly args: readonly string[]; readonly cwd: string });
 const alive = (pid: number) => {
 	try {
 		process.kill(pid, 0);

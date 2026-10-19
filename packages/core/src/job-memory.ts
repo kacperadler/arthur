@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { totalmem } from "node:os";
 import { join } from "node:path";
 import { memoryBytes } from "./config.ts";
@@ -36,4 +36,15 @@ export function watchMemory(id: string, cap: string, over: () => void): () => bo
 		clearInterval(timer);
 		return went || (kernel && sample());
 	};
+}
+
+// `start`, which forks the agent, runs with this process's `oom_score_adj` at 1000: the agent and all it starts inherit it, so over
+// the cap the kernel kills them before the wrapper, which must live to end the job. Without the file (macOS) `start` just runs.
+export function oomFirst<T>(start: () => T): T {
+	const file = "/proc/self/oom_score_adj";
+	const own = existsSync(file) ? readFileSync(file, "utf8") : undefined;
+	if (own !== undefined) writeFileSync(file, "1000");
+	const started = start();
+	if (own !== undefined) writeFileSync(file, own);
+	return started;
 }

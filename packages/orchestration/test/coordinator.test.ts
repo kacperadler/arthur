@@ -43,10 +43,10 @@ function tmux(socket: string, ...args: string[]) {
 	return spawnSync("tmux", [socket.includes("/") ? "-S" : "-L", socket, ...args], { encoding: "utf8" });
 }
 
-// The fake agent's starts, from `starts.jsonl` beside it.
+// The fake agent's starts, from `starts.jsonl` beside it: whole lines only, as `>>` makes the file before `echo` writes its line.
 function starts(agent: string): { pid: number; cwd: string; args: string[] }[] {
 	const file = join(dirname(agent), "starts.jsonl");
-	return existsSync(file) ? readFileSync(file, "utf8").trim().split("\n").map((line) => JSON.parse(line)) : [];
+	return existsSync(file) ? readFileSync(file, "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line)) : [];
 }
 
 async function until(what: string, holds: () => boolean, ms = 15_000): Promise<void> {

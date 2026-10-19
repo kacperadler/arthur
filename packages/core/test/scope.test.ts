@@ -250,12 +250,30 @@ test("a job over its memory cap ends limit: memory, and another job with a cap k
 	writeFileSync(on, "");
 	const hog = await jobs.spawn({ task: "Hog." });
 	const other = await jobs.spawn({ task: "Go." });
+	// The wrapper stops the agent at its next sample, or the kernel killed the agent as well (it scores 1000): either is the cap.
 	assert.equal(await endedWith(home, hog.id), "limit: memory: the job went over its memory cap of 300M");
-	assert.match(readFileSync(join(home, "jobs", hog.id, "log"), "utf8"), /limit: memory: stopping the agent/);
 	assert.equal(readFileSync(join(home, "jobs", other.id, "state"), "utf8"), "working");
 	assert.ok(running(Number(read(join(home, "jobs", other.id, "pid")))), "the other job's wrapper runs on");
 	writeFileSync(gate, "");
 	assert.equal(await endedWith(home, other.id), "finished");
+});
+
+// The kernel kills the process of the highest score in a scope over its cap, and once killed a second one before the first one's
+// memory was freed: the wrapper, so the job never ended. The agent's tree scores 1000, the most, and the wrapper its own.
+test("over a memory cap the kernel takes the agent and what it started first, never the wrapper: their oom_score_adj is 1000, the wrapper's its own", needsManager, async () => {
+	const gate = join(temporaryFolder(), "gate");
+	const { agent, daemon } = forking({ steps: [{ waitFor: gate }, { message: "Done." }] });
+	const { home, jobs } = setup(agent, jobSlice, () => [{ memory: "300M" }]);
+	const job = await jobs.spawn({ task: "Go." });
+	const pid = await until("the daemon", daemon);
+	const wrapper = Number(read(join(home, "jobs", job.id, "pid")));
+	const score = (pid: number | "self") => read(`/proc/${pid}/oom_score_adj`);
+	assert.notEqual(score("self"), "1000");
+	// The agent may fork the daemon before the wrapper, starved of CPU, has put its own score back.
+	await until("the wrapper's own score back", () => score(wrapper) === score("self"));
+	assert.equal(score(pid), "1000");
+	writeFileSync(gate, "");
+	assert.equal(await endedWith(home, job.id), "finished");
 });
 
 test("without a user manager a job over its memory cap is stopped within one 10 s sample, and the machine is told once", async (t) => {

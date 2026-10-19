@@ -32,3 +32,21 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - What: `^(feat|...)(\([\w-]+\))?!?: .{1,72}$` counts 72 after the `type(scope): ` prefix, so a subject of up to about 90 characters passes, while the worker role of this repository says a subject is at most 72. Of the last 200 non-merge subjects on this branch all match it and 5 are over 72 (`git log --format=%s -200 --no-merges`).
 - Suggestion: `^(?=.{1,72}$)(feat|fix|refactor|perf|test|docs|build|ci|chore|revert)(\([\w-]+\))?!?: .+$`, if the owner wants the 72 to be the whole subject.
 - Status: open
+
+## F4. The hook broke every worktree of a bare repository, as on another machine
+
+- Kind: bug
+- Found by: review 1 of AR0188, 2026-10-19
+- Where: `packages/commit-rules/src/hook.ts` (`INSTALL`), `packages/core/src/remote-job.ts:32`
+- What: turning on `extensions.worktreeConfig` makes a `core.bare = true` (or a `core.worktree`) in the shared config hold for every linked worktree, so in `<home>/repos/<project>.git` on another machine every `git status`, `add` and `commit` in a job's worktree failed with `fatal: this operation must be run in a work tree`. `arthur remote-job repo` also ran `git init --bare` on every spawn, which writes `core.bare` back into the shared config.
+- Suggestion: move both keys into the main one's `config.worktree` before turning the extension on, as `git sparse-checkout init` does, and create the remote repository only once.
+- Status: fixed in 9d93a9e
+
+## F5. wrapper.test.ts failed once on a cleanup race
+
+- Kind: bug
+- Found by: review 1 of AR0188, 2026-10-19
+- Where: `packages/core/test/wrapper.test.ts:206`
+- What: one full `npm test` run of the review failed there with `ENOTEMPTY` from `rmSync`, with no change under `packages/core/test/wrapper.test.ts` or the wrapper on this branch; not reproduced by the worker.
+- Suggestion: find what still writes into the folder when the test removes it, and wait for that state before `rmSync`.
+- Status: open

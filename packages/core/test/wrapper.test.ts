@@ -202,6 +202,8 @@ test("a record deleted while the job runs: the agent is stopped, the wrapper end
 	const job = await jobs.spawn({ task: "Go." });
 	const folder = join(home, "jobs", job.id);
 	const wrapper = Number(await until("the wrapper's pid", () => (existsSync(join(folder, "pid")) ? readFileSync(join(folder, "pid"), "utf8") : undefined)));
+	// Past its start the agent has loaded its extensions, which read the record: deleted earlier, the agent fails on it, and the
+	// wrapper appends that error to the record's `log`, which may land while `rmSync` empties the folder (ENOTEMPTY).
 	const [start] = await until("the agent's start", () => (existsSync(join(dirname(agent), "starts.jsonl")) ? starts(agent) : undefined));
 	rmSync(folder, { recursive: true });
 	writeFileSync(join(gates, "deleted"), "");

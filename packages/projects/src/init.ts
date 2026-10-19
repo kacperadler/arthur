@@ -6,16 +6,21 @@ import type { Project, ProjectEntry } from "./projects.ts";
 // where it is missing; it commits nothing: docs/commands/init.md.
 
 export const BOARD = "spec/build.json";
-// The criteria files the roles read: `styleguide` every job and the coordinator, `autopilot` the coordinator.
-export const CRITERIA = ["styleguide", "autopilot"];
 const SKELETON = new URL("../skeleton/", import.meta.url);
+
+// The skeleton of criteria file `name`: the one shipped here, else its title alone (`code-review` is `# Code review`).
+function criterion(name: string): string {
+	const shipped = new URL(`criteria/${name}.md`, SKELETON);
+	return existsSync(shipped) ? readFileSync(shipped, "utf8") : `# ${name[0]?.toUpperCase()}${name.slice(1).replaceAll("-", " ")}\n`;
+}
 
 // Where the project's `prompts` keeps its vision and criteria, the files an onboarding drafts; `criteriaDir` without a final `/`.
 export function drafted(project: ProjectEntry): { readonly vision: string; readonly criteriaDir: string } {
 	return { vision: join(project.prompts?.vision ?? "spec/vision.md"), criteriaDir: join(project.prompts?.criteriaDir ?? ".agents/arthur/criteria", ".") };
 }
 
-export function init(all: readonly Project[], args: readonly string[], flag: string | undefined): number | void {
+// `criteria`: the names of the criteria files the registered roles read (`host.jobs.criteria()`), one skeleton each.
+export function init(all: readonly Project[], args: readonly string[], flag: string | undefined, criteria: readonly string[]): number | void {
 	if (args.length !== 1 || flag !== undefined) {
 		console.error("usage: arthur init <project>");
 		return 2;
@@ -34,7 +39,7 @@ export function init(all: readonly Project[], args: readonly string[], flag: str
 	// The board last: once it is there the repository counts as given, so an init cut short can run again.
 	const files: [string, string][] = [
 		[vision, readFileSync(new URL("vision.md", SKELETON), "utf8")],
-		...CRITERIA.map((name): [string, string] => [join(criteriaDir, `${name}.md`), readFileSync(new URL(`criteria/${name}.md`, SKELETON), "utf8")]),
+		...criteria.map((name): [string, string] => [join(criteriaDir, `${name}.md`), criterion(name)]),
 		[".nvmrc", `${process.versions.node.split(".")[0]}\n`],
 		[BOARD, "[]\n"],
 	];

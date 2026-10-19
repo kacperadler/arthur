@@ -42,6 +42,8 @@ export type ProjectCheckout = { readonly root: string; readonly project: string;
 export type RoleReads = {
 	prompt(role: string, project?: string): { readonly prompt: string; readonly warnings: string[] };
 	vision(project?: string): { readonly project: string; readonly path: string; readonly text?: string; readonly problem?: Source["problem"] };
+	// The names of the criteria files the registered roles read, each once, in the order of registration.
+	criteria(): string[];
 };
 
 export function roleReads(registry: RoleRegistry, where: (project: string | undefined) => ProjectCheckout): RoleReads {
@@ -54,6 +56,7 @@ export function roleReads(registry: RoleRegistry, where: (project: string | unde
 			const { root, project: name, files } = where(project);
 			return { project: name, path: files.vision, ...projectFile(root, files.vision) };
 		},
+		criteria: () => [...new Set(registry.list().flatMap(({ role }) => role.criteria))],
 	};
 }
 

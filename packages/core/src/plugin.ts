@@ -26,6 +26,8 @@ export type Plugin = {
 	readonly options?: Options;
 	// The plugins this one needs; each must be in the list and enabled, and its `setup` runs first.
 	readonly requires?: readonly string[];
+	// The plugins whose `setup` runs first when they are loaded; one missing or disabled is no refusal.
+	readonly after?: readonly string[];
 	// Its own options, `enabled` left out, and the core's as loaded (its defaults applied); every problem refuses the start.
 	readonly check?: (options: Options, core: LoadedConfig["core"]) => readonly OptionProblem[];
 	readonly setup: (host: Host) => void | Promise<void>;
@@ -81,12 +83,12 @@ const PLUGIN_NAME = /^[a-z]+(-[a-z]+)*$/;
 export function asPlugin(entry: unknown): Plugin | string {
 	if (typeof entry !== "object" || entry === null || Array.isArray(entry)) return `expected a plugin such as youtrack({ ... }), got ${describe(entry)}`;
 	const plugin = entry as Readonly<Record<string, unknown>>;
-	const { name, options, requires } = plugin;
+	const { name, options, requires, after } = plugin;
 	if (typeof name !== "string" || !PLUGIN_NAME.test(name)) return `expected a plugin name of lowercase letters and dashes, got ${describe(name)}`;
 	if (options !== undefined && (typeof options !== "object" || options === null || Array.isArray(options)))
 		return `${name}: expected options as an object, got ${describe(options)}`;
-	if (requires !== undefined && !(Array.isArray(requires) && requires.every((item) => typeof item === "string")))
-		return `${name}: expected requires as a list of plugin names, got ${describe(requires)}`;
+	for (const [key, list] of [["requires", requires], ["after", after]] as const)
+		if (list !== undefined && !(Array.isArray(list) && list.every((item) => typeof item === "string"))) return `${name}: expected ${key} as a list of plugin names, got ${describe(list)}`;
 	if (typeof plugin.setup !== "function") return `${name}: expected a setup function, got ${describe(plugin.setup)}`;
 	for (const key of ["check", "start", "stop"])
 		if (plugin[key] !== undefined && typeof plugin[key] !== "function") return `${name}: expected ${key} as a function, got ${describe(plugin[key])}`;
@@ -176,6 +178,7 @@ export function pluginHost(
 			file: (id, job) => runner.file(tickets, id, job),
 			prompt: (role, project) => runner.prompt(role, project),
 			vision: (project) => runner.vision(project),
+			criteria: () => runner.criteria(),
 		},
 		board: tickets,
 	};

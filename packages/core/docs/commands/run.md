@@ -2,7 +2,7 @@
 
 Usage: `arthur run`
 
-Runs Arthur as a process: loads `arthur.config.ts` from the working folder, sets up every enabled plugin, calls each plugin's `start` in dependency order (a plugin after the plugins it `requires`, otherwise in the config's order), and stays until it gets SIGTERM (or SIGINT, Ctrl-C). Then it calls each started plugin's `stop`, in reverse order, and exits. A systemd user service keeps it running on a server: `docs/setup.md`.
+Runs Arthur as a process: loads `arthur.config.ts` from the working folder, sets up every enabled plugin, calls each plugin's `start` in dependency order (a plugin after the plugins it `requires`, and after those of its `after` that are loaded, otherwise in the config's order), and stays until it gets SIGTERM (or SIGINT, Ctrl-C). Then it calls each started plugin's `stop`, in reverse order, and exits. A systemd user service keeps it running on a server: `docs/setup.md`.
 
 It prints one line when every plugin has started, `arthur run: pid <pid> started <plugins>`, one when it begins to stop, `arthur run: SIGTERM: stopping <plugins>`, and `arthur run: stopped` at the end.
 

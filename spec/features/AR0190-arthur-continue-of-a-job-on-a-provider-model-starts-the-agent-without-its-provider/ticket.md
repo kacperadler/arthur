@@ -36,3 +36,5 @@ In:
 
 - 2026-10-19: Source: F1 of AR0187
 - 2026-10-19: Approved under the owner's word of the same day: findings are built alongside the roadmap entry that touches the same files.
+- 2026-10-19: Host of the models and jobs core findings batch: AR0190, AR0191, AR0192, AR0193, AR0198, AR0202, built and merged together.
+- 2026-10-19: Batch built AR0191, AR0192, AR0193, AR0198, AR0202. AR0190 left out: the coordinator chooses (a), a prepare is told it is a continue and commit-rules and projects return early; built later on its own, with the jobs.ts split it needs. AR0193: an unreachable remote machine shows ok (not reached), never a critical missing, so an offline machine never blocks the start. The coordinator accepts the batch's core and models budget raises.

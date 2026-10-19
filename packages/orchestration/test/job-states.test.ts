@@ -114,7 +114,7 @@ test("a run that ends blocked on the owner: one notice with its question, the wa
 	assert.deepEqual(notices(), [{ text: `${job.id} asks: ${question}` }]);
 	assert.deepEqual(fake.emitted.find((event) => event.name === "notice")?.data, { text: `${job.id} asks: ${question}`, blocked: job.id }, "marked as the notice silent mode lets through");
 	const ended = delivered.find((event) => event.name === "job-ended");
-	const wake = JSON.parse(readFileSync(join(fake.host.folder, "inbox", "queued", String(ended?.seq)), "utf8")) as { text: string };
+	const wake = JSON.parse(readFileSync(join(fake.host.folder, "inbox", "queued", `${ended?.seq}-${Date.parse(ended?.time ?? "")}`), "utf8")) as { text: string };
 	assert.deepEqual(wake.text.split("\n").slice(0, 3), [`Job ${job.id} ended its run blocked on the owner; its question, also sent as a notice: ${question}`, "Its final message:", `Blocked: user ${question}`]);
 	assert.match((await jobs()) ?? "", new RegExp(`^blocked:\\n- ${job.id}, for 0h0\\dm: user: ${question.replace("?", "\\?")}$`));
 	assert.equal(footer(), "", "a run that ended blocked is not in a run");

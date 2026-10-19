@@ -1,14 +1,14 @@
 import { arch, platform } from "node:process";
 import { coreVersion } from "@arthur/core";
 import type { Plugin } from "@arthur/core/plugin";
-import { checkMachine, publicAddress, type Report } from "./machine-check.ts";
+import { checkMachine, missingHere, publicAddress, type Report } from "./machine-check.ts";
 import { checkOptions, type Labels, type MachineEntry, type MachinesOptions } from "./machine-options.ts";
 import { labelsText, placement } from "./machine-place.ts";
 
 // The machines plugin (spec/roadmap.md, entries 30 and 31): the machines of the `list` option, each registered with the core's
 // job runner; `local`'s labels; each machine checked at start and every `check.everySeconds` (machine-check.ts), its changes
 // emitted as `machine-online` and `machine-offline`; each job placed by labels (machine-place.ts); `arthur machines` and
-// `/machines`; a doctor requirement per machine. docs/commands/machines.md.
+// `/machines`; a doctor requirement per machine, `local` only with tools labels. docs/commands/machines.md.
 
 export type { MachineEntry, MachinesOptions };
 
@@ -54,11 +54,33 @@ export function machines(options: MachinesOptions = {}): Plugin {
 					return new Map(reports);
 				}));
 			const checked = round;
+			const localLabels = { os: platform === "darwin" ? "macos" : platform, arch, ...(local.labels?.tools === undefined ? {} : { tools: local.labels.tools }) };
+			// `local`'s line, only with tools labels, in the shape of a listed machine's; `local` itself is always there.
+			const here = (tools: readonly string[]) => {
+				let lacking: readonly string[] | string = [];
+				const found = `${localLabels.os} ${localLabels.arch}, arthur ${coreVersion()}`;
+				const named = () => (typeof lacking === "string" ? tools : lacking).join(", ");
+				return {
+					name: "local",
+					check: async () => {
+						lacking = await missingHere(host, tools, LIMIT_SECONDS);
+						if (typeof lacking === "string") return `missing: ${lacking} (${found})`;
+						return lacking.length === 0 ? `ok (${found})` : `missing: command -v finds no ${named()} here (${found})`;
+					},
+					get costs() {
+						return `no job that needs ${named()} runs on local`;
+					},
+					get fix() {
+						return `install ${named()} on the PATH of arthur run, or drop what it does not need from local's tools label`;
+					},
+					critical: false,
+				};
+			};
 			// One doctor run, one round: its first check starts every machine's, so checks asked one after another still cost one.
 			host.provide("doctor", () => {
 				let shared: Promise<ReadonlyMap<string, Report>> | undefined;
 				let reports: ReadonlyMap<string, Report> | undefined;
-				return list.map((machine) => {
+				const listed = list.map((machine) => {
 					// The tools labels this run's check did not find there, once it answered.
 					const lacking = () => {
 						const report = reports?.get(machine.name);
@@ -84,8 +106,8 @@ export function machines(options: MachinesOptions = {}): Plugin {
 						critical: false,
 					};
 				});
+				return local.labels?.tools === undefined ? listed : [here(local.labels.tools), ...listed];
 			});
-			const localLabels = { os: platform === "darwin" ? "macos" : platform, arch, ...(local.labels?.tools === undefined ? {} : { tools: local.labels.tools }) };
 			const seats = [{ name: "local", labels: localLabels, maxJobs: local.maxJobs }, ...list.map(({ name, labels = {}, maxJobs }) => ({ name, labels, maxJobs }))];
 			host.provide("jobs.place", placement(host, seats, checked));
 			const overview = async () => {

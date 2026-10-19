@@ -40,6 +40,7 @@ const FULL_ISSUE = {
 		custom("Story points", 5, "SimpleIssueCustomField", "integer", "SimpleProjectCustomField"),
 		custom("Notes", { text: "See the wiki.", $type: "TextFieldValue" }, "TextIssueCustomField", "text", "TextProjectCustomField"),
 		custom("Due Date", null, "DateIssueCustomField", "date", "SimpleProjectCustomField"),
+		custom("Deployed", null, "SimpleIssueCustomField", "date and time", "SimpleProjectCustomField"),
 		custom("Requester", "555", "SimpleIssueCustomField", "string", "SimpleProjectCustomField"),
 	],
 	id: "2-1",
@@ -209,6 +210,7 @@ test("issue get and article get print the item: who and when, custom fields of e
 			"Story points: 5",
 			"Notes: See the wiki.",
 			"Due Date: none",
+			"Deployed: none",
 			"Requester: 555",
 			"",
 			"Steps:\n1. Pay.\n2. See the error.",
@@ -350,6 +352,7 @@ test("issue set sends the value in the shape the field's type takes, under the f
 		["Story points", "8", "Story points", "SimpleIssueCustomField", 8],
 		["Notes", "See **this**", "Notes", "TextIssueCustomField", { text: "See **this**" }],
 		["due date", "2026-10-19", "Due Date", "DateIssueCustomField", Date.UTC(2026, 9, 19)],
+		["Deployed", "2026-10-19T14:30:00Z", "Deployed", "SimpleIssueCustomField", Date.UTC(2026, 9, 19, 14, 30)],
 		["Requester", "555", "Requester", "SimpleIssueCustomField", "555"],
 	];
 	for (const [given, value, name, $type, sent] of cases) {
@@ -369,7 +372,7 @@ test("a field value the project does not allow is YouTrack's error in one line; 
 	seen.length = 0;
 	assert.equal(
 		await refusal(run(undefined, "issue", "set", "SHOP-1", "Prio", "Major")),
-		"issue SHOP-1 has no field Prio; its fields: Priority, Assignee, Fix versions, Estimation, Story points, Notes, Due Date, Requester; nothing was written",
+		"issue SHOP-1 has no field Prio; its fields: Priority, Assignee, Fix versions, Estimation, Story points, Notes, Due Date, Deployed, Requester; nothing was written",
 	);
 	assert.deepEqual(seen.map(({ method }) => method), ["GET"]);
 });

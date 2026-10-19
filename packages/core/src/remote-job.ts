@@ -27,8 +27,8 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 	repo(home, [project = "", commit = ""]) {
 		if (basename(project) !== project || project.startsWith(".")) throw new Error(`a project name, got ${JSON.stringify(project)}`);
 		const root = join(home, "repos", `${project}.git`);
-		// `git init` on a repository there already leaves it as it is.
-		git(["init", "--quiet", "--bare", root]);
+		// Created once: `git init` again writes `core.bare` back into the shared config, after a `prepare` may have moved it out.
+		if (!existsSync(join(root, "HEAD"))) git(["init", "--quiet", "--bare", root]);
 		console.log(spawnSync("git", ["-C", root, "cat-file", "-e", `${commit}^{commit}`], { stdio: "ignore" }).status === 0 ? "present" : "missing");
 	},
 	add(home) {

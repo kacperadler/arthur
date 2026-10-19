@@ -1485,9 +1485,9 @@
   {
     "id": "AR0188",
     "title": "Roadmap 43: commit rules per project",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0188-roadmap-43-commit-rules-per-project/ticket.md",
-    "updated": "2026-10-19T13:10:10.944Z"
+    "updated": "2026-10-19T13:27:26.736Z"
   },
   {
     "id": "AR0189",
@@ -1527,22 +1527,92 @@
   {
     "id": "AR0194",
     "title": "The coordinator's role does not name `arthur youtrack`",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0194-the-coordinator-s-role-does-not-name-arthur-youtrack/ticket.md",
-    "updated": "2026-10-19T13:09:54.912Z"
+    "updated": "2026-10-19T14:00:34.977Z"
   },
   {
     "id": "AR0195",
     "title": "`arthur youtrack issue list` reads every issue of a project, resolved ones too",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0195-arthur-youtrack-issue-list-reads-every-issue-of-a-project-resolved-ones-too/ticket.md",
-    "updated": "2026-10-19T13:09:54.914Z"
+    "updated": "2026-10-19T14:00:35.350Z"
   },
   {
     "id": "AR0196",
     "title": "Roadmap 84: nvm, each project's Node version",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0196-roadmap-84-nvm-each-project-s-node-version/ticket.md",
-    "updated": "2026-10-19T13:10:20.909Z"
+    "updated": "2026-10-19T14:00:49.838Z"
+  },
+  {
+    "id": "AR0197",
+    "title": "Roadmap 45: YouTrack writing issues, articles, fields and work items",
+    "status": "merged",
+    "path": "spec/features/AR0197-roadmap-45-youtrack-writing-issues-articles-fields-and-work-items/ticket.md",
+    "updated": "2026-10-19T14:00:26.120Z"
+  },
+  {
+    "id": "AR0198",
+    "title": "A plugin's prompt section cannot add to the spawn's warnings",
+    "status": "planning",
+    "path": "spec/features/AR0198-a-plugin-s-prompt-section-cannot-add-to-the-spawn-s-warnings/ticket.md",
+    "updated": "2026-10-19T13:27:26.729Z"
+  },
+  {
+    "id": "AR0199",
+    "title": "The option-tables test cannot list a plugin without options",
+    "status": "planning",
+    "path": "spec/features/AR0199-the-option-tables-test-cannot-list-a-plugin-without-options/ticket.md",
+    "updated": "2026-10-19T13:27:26.732Z"
+  },
+  {
+    "id": "AR0200",
+    "title": "The example's Conventional Commits regex allows subjects over 72 characters",
+    "status": "planning",
+    "path": "spec/features/AR0200-the-example-s-conventional-commits-regex-allows-subjects-over-72-characters/ticket.md",
+    "updated": "2026-10-19T13:27:26.733Z"
+  },
+  {
+    "id": "AR0201",
+    "title": "wrapper.test.ts failed once on a cleanup race",
+    "status": "merged",
+    "path": "spec/features/AR0201-wrapper-test-ts-failed-once-on-a-cleanup-race/ticket.md",
+    "updated": "2026-10-19T13:56:15.938Z"
+  },
+  {
+    "id": "AR0202",
+    "title": "A record removed file by file crashes the wrapper instead of ending it with its one line",
+    "status": "planning",
+    "path": "spec/features/AR0202-a-record-removed-file-by-file-crashes-the-wrapper-instead-of-ending-it-with-its-one-line/ticket.md",
+    "updated": "2026-10-19T13:56:15.935Z"
+  },
+  {
+    "id": "AR0203",
+    "title": "Arthur is Apache-2.0, with NOTICE, trademark and DCO",
+    "status": "in-progress",
+    "path": "spec/features/AR0203-arthur-is-apache-2-0-with-notice-trademark-and-dco/ticket.md",
+    "updated": "2026-10-19T13:59:33.381Z"
+  },
+  {
+    "id": "AR0204",
+    "title": "`issue update` overwrites a description changed since it was read",
+    "status": "planning",
+    "path": "spec/features/AR0204-issue-update-overwrites-a-description-changed-since-it-was-read/ticket.md",
+    "updated": "2026-10-19T14:00:26.116Z"
+  },
+  {
+    "id": "AR0205",
+    "title": "The coordinator's role does not say when it may write to YouTrack",
+    "status": "planning",
+    "path": "spec/features/AR0205-the-coordinator-s-role-does-not-say-when-it-may-write-to-youtrack/ticket.md",
+    "updated": "2026-10-19T14:00:26.118Z"
+  },
+  {
+    "id": "AR0206",
+    "title": "Roadmap 46: YouTrack comments, attachments, and the rules for jobs",
+    "status": "planned",
+    "path": "spec/features/AR0206-roadmap-46-youtrack-comments-attachments-and-the-rules-for-jobs/ticket.md",
+    "updated": "2026-10-19T14:00:50.957Z"
   }
 ]

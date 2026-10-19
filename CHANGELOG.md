@@ -12,7 +12,9 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0179 Roadmap 94: arthur setup, what is there, what is set, what is missing (f3f1b88)
 - AR0181 Roadmap 42: Onboarding a repository (9239fdd)
 - AR0187 Roadmap 82: models on other machines, and a fallback chain (bb71f18)
+- AR0188 Roadmap 43: commit rules per project (72692ea)
 - AR0189 Roadmap 44: YouTrack instances and reading (2bda2a3)
+- AR0197 Roadmap 45: YouTrack writing issues, articles, fields and work items (4919c0a)
 
 ### Fixed
 
@@ -20,6 +22,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0164 The inbox's notice after 3 unanswered turns repeats omp's error unredacted (1bf2a8a)
 - AR0167 GitHub CI fails now and then on main with the same code (59e5760)
 - AR0173 GitHub CI names each failed test and stays green on main (a1fbecb)
+- AR0201 wrapper.test.ts failed once on a cleanup race (244a725)
 
 ### Other
 

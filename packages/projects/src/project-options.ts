@@ -7,7 +7,7 @@ import type { OptionProblem, Options } from "@arthur/core/plugin";
 // docs/commands/projects.md, "The list". A key a later plugin reads (`tracker`, `ci`, `commitRules`, `autoMerge`, `requires`,
 // `docker`) is checked for its shape only; whether its value makes sense is that plugin's to say.
 
-export const summary = "the project list, each project's folder or clone, and each new worktree's install";
+export const summary = "the project list, each project's folder or clone, each new worktree's install, and arthur init with the onboarding of a new repository";
 
 export const tools: readonly Tool[] = [];
 

@@ -93,7 +93,11 @@ import { checkStructure } from "./structure.ts";
 // options files read by path and each tool's version cut after 5 s (installed.ts), the config's reading shared with `arthur
 // config check` (config-check.ts), a missing line's `fix` (doctor.ts), the command (cli.ts) and the core's tool `tailscale`;
 // no line cut elsewhere: a scan of the core's exports used by no other file found only public types.
-const BUDGETS = { core: 5403, "core/testing": 344, projects: 325, orchestration: 1207, machines: 415, resources: 458, session: 849, schedule: 552 };
+// AR0181 (roadmap 42): `arthur init` and the kind `onboarding`; projects 148 more (473). Cut first: the doctor's `requirement`
+// (10 lines) became `requirements`, 8 lines for it and the new board requirement. The rest: init.ts (63: the command, its
+// refusals, the skeleton written once per file) and onboarding.ts (83: kind and role, its prompt's paths, the questions cut at
+// 10 across runs, `merge.check`).
+const BUDGETS = { core: 5403, "core/testing": 344, projects: 473, orchestration: 1207, machines: 415, resources: 458, session: 849, schedule: 552 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -1,14 +1,16 @@
-import { readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
 import { projectFolder } from "./clone.ts";
+import { BOARD, init } from "./init.ts";
 import { installCommand, installStep } from "./install.ts";
+import { onboarding } from "./onboarding.ts";
 import { checkOptions } from "./project-options.ts";
 
-// The projects plugin (spec/roadmap.md, entry 41): the project list in `arthur.config.ts` and nowhere else, served as
+// The projects plugin (spec/roadmap.md, entries 41 and 42): the project list in `arthur.config.ts` and nowhere else, served as
 // `projects` and kept in `<home>/projects/checkouts` for the worktree guard; one line per project in the coordinator's context;
-// `arthur projects` and `/projects`; a doctor requirement per project; and the install of every new worktree.
-// docs/commands/projects.md.
+// `arthur projects` and `/projects`; doctor requirements per project; the install of every new worktree; `arthur init` and the
+// kind `onboarding`. docs/commands/projects.md, docs/commands/init.md.
 
 export type ProjectEntry = {
 	readonly name: string;
@@ -49,7 +51,7 @@ export function projects(options: ProjectsOptions): Plugin {
 			keepCheckouts(host.folder, all);
 			host.provide("projects", () => all);
 			host.provide("coordinator.context", () => [HEADER, ...all.map(projectLine)].join("\n"));
-			host.provide("doctor", () => all.map(requirement));
+			host.provide("doctor", () => all.flatMap(requirements));
 			host.commands.register({
 				name: "projects",
 				doc: new URL("../docs/commands/projects.md", import.meta.url),
@@ -62,7 +64,9 @@ export function projects(options: ProjectsOptions): Plugin {
 					console.log(overview(host, all));
 				},
 			});
+			host.commands.register({ name: "init", doc: new URL("../docs/commands/init.md", import.meta.url), run: ({ args, project }) => init(all, args, project) });
 			host.jobs.prepare(installStep(host, all));
+			onboarding(host, all);
 		},
 	};
 }
@@ -102,13 +106,11 @@ function overview(host: Host, all: readonly Project[]): string {
 		.join("\n");
 }
 
-// One requirement of `arthur doctor` (entry 80): `check` answers `ok` or `missing: <reason>`.
-function requirement(project: Project) {
-	return {
-		name: `${project.name} about`,
-		check: () => (project.about === undefined ? "missing: no about" : "ok"),
-		costs: "the coordinator knows it only by prefix, name and title",
-		fix: `add about to project ${project.name} in arthur.config.ts`,
-		critical: false,
-	};
+// The requirements of `arthur doctor` (entry 80), none critical: `check` answers `ok` or `missing: <reason>`. The board's fix walks
+// a new owner, through `arthur setup`, to `arthur init`.
+function requirements({ name, about, path }: Project) {
+	return [
+		{ name: `${name} about`, check: () => (about === undefined ? "missing: no about" : "ok"), costs: "the coordinator knows it only by prefix, name and title", fix: `add about to project ${name} in arthur.config.ts`, critical: false },
+		{ name: `${name} board`, check: () => (existsSync(join(path, BOARD)) ? "ok" : `missing: no ${BOARD}`), costs: `no tickets for ${name}`, fix: `arthur init ${name}`, critical: false },
+	];
 }

@@ -189,12 +189,13 @@ export default defineConfig({
 			// refused while any job runs; after the handoff, one `Restarted.` notice with `.arthur/session/after-restart.md`.
 		}),
 
-		// Actions and jobs at set times (packages/schedule/docs/schedule.md). An entry is a daily "HH:MM" (optionally on some
-		// `days`) or a one-off "YYYY-MM-DDTHH:MM", in core.timeZone, and does one of: an action (a message for the coordinator,
+		// Actions and jobs at set times (packages/schedule/docs/commands/schedule.md). An entry is a daily "HH:MM" (optionally on
+		// some `days`) or a one-off "YYYY-MM-DDTHH:MM", in core.timeZone, and does one of: an action (a message for the coordinator,
 		// `[scheduled <id>] ...`, with the text of a `procedure` file under it) or a job (spawn one of a given kind). `arthur run`
 		// sweeps every 10 s and runs each due slot once; a slot missed while it was down runs once, saying it is late.
 		// Plugins register their own entries from their options (orchestration: the morning report; manage: the audit and the
-		// retro); `file` holds the ones added by hand with the `schedule` command (both roadmap entry 40).
+		// retro), named `<plugin>.<id>`; `file` holds the ones added by hand or with `arthur schedule add`, and `arthur schedule`
+		// lists every entry with where it comes from and its next run.
 		schedule({
 			file: "spec/schedule.json", // a JSON list of entries like those below, read at every sweep; a broken one is skipped, named
 			entries: [

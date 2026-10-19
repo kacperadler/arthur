@@ -35,7 +35,7 @@ What works today:
 - The project list (`@arthur/projects`, entry 41): every project in `arthur.config.ts`, `--project <name>` on any command, and each new worktree's dependencies installed.
 - The coordinator's conversation (`@arthur/session`, entries 35 to 37): compacted at each `compactAt` time once the coordinator is idle, and started fresh at `freshAt` once no job runs (tried every `freshRetryMinutes` until `freshUntil`), each after a handoff it writes and the next conversation reads first; `/restart` and `/restart fresh`, refused while a job runs, and one `Restarted.` notice after; the restart guard: once a commit changed the code `arthur run` loaded, every spawn and continue is refused (unless `--ignore-restart`) until `arthur run` starts again, and the coordinator's context says so.
 - The machines (`@arthur/machines`, entries 30 and 31): the other machines jobs run on, with their labels, each checked over SSH at start and every `check.everySeconds` (private address, `arthur version`, os and arch against its labels), `machine-online` and `machine-offline` on each change, and `arthur machines`; each job placed on a machine with the labels it needs (`arthur spawn --requires`, else its ticket's, else its project's), online and under its `maxJobs`, with the fewest jobs.
-- The schedule (`@arthur/schedule`, entry 39): entries in `arthur.config.ts` and in a JSON file, each a daily time (on some days) or a one-off date and time, that send the coordinator a message, with a procedure's text under it, or spawn a job; `arthur run` runs each due slot once, a slot missed while it was down once and saying it is late, and names a hand-broken entry while the others still run.
+- The schedule (`@arthur/schedule`, entries 39 and 40): entries in `arthur.config.ts`, in a JSON file and registered by other plugins from their options (ids `<plugin>.<id>`), each a daily time (on some days) or a one-off date and time, that send the coordinator a message, with a procedure's text under it, or spawn a job; `arthur run` runs each due slot once, a slot missed while it was down once and saying it is late, and names a hand-broken entry while the others still run; `arthur schedule` lists every entry with its source and next run, and `add` and `remove` change the file's.
 
 What is next:
 
@@ -67,7 +67,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | orchestration: an agent per project, with its own chat | planned | 85 to 88 |
 | projects: the project list and each worktree's install; onboarding a repository | in progress, 1 of 2 entries | 41 built; 42 |
 | session: compaction, fresh start, `/restart`, restart guard, start notice and LLM probe | built | 35 to 38 |
-| schedule: actions and jobs at set times | in progress, 1 of 2 entries | 39 built; 40 |
+| schedule: actions and jobs at set times, registered entries, `arthur schedule` | built | 39, 40 |
 | machines: the list, labels and SSH checks, `arthur machines`; placing each job by labels | built | 30, 31 |
 | resources: caps per job and per feature, free CPU, memory and disk | in progress, 3 of 4 entries | 32 to 34 built; 69 |
 | models: providers on other machines, a fallback chain | planned | 82 |
@@ -147,7 +147,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-19.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22 are merged; orchestration has entries 23 to 29 of 23-29 and 65; projects has entry 41 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entry 39 of 39-40; no other plugin exists yet.
+%% Core entries 1-22 are merged; orchestration has entries 23 to 29 of 23-29 and 65; projects has entry 41 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -198,7 +198,7 @@ flowchart TD
       subgraph COORD[Coordinator]
         orchestration[orchestration<br/>coordinator, arthur attach<br/>context, jobs by state, planning, autopilot<br/>7 of 8 entries]
         session[session<br/>compaction, fresh start, restart guard<br/>start notice, LLM probe]
-        schedule[schedule<br/>actions, jobs at set times<br/>1 of 2 entries]
+        schedule[schedule<br/>actions, jobs at set times<br/>registered entries, arthur schedule]
         orchestration ~~~ session ~~~ schedule
       end
       subgraph PROJ[Projects]
@@ -286,8 +286,8 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,machines,session built;
-  class lpartial,orchestration,projects,resources,schedule partial;
+  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,machines,session,schedule built;
+  class lpartial,orchestration,projects,resources partial;
   class lplanned,telegram,discord,voice,corelater,agents,nvm,commit,findings,models,docker,delivery,github,youtrack,manage,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl outside;
   style larrows fill:#fff,stroke:#999,color:#000

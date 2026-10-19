@@ -3,7 +3,8 @@
 // token, which is part of the URL.
 
 export type Bot = {
-	// The name, or `(unnamed)`, as errors say it.
+	// The name, absent for the unnamed bot; `label` is how errors say it: the name, or `(unnamed)`.
+	readonly name?: string;
 	readonly label: string;
 	readonly token: string;
 	readonly chat: number;

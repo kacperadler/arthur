@@ -43,3 +43,4 @@ Out: decision models (AR0129).
 ## Decisions
 
 - 2026-10-19: The coordinator starts this under the owner's 80% usage ceiling. 82 is the first unbuilt roadmap entry in roadmap order.
+- 2026-10-19: The coordinator accepts the budget raises (core 5448, orchestration 1213, models 485) and the split: core asks models.pick at spawn, so arthur roles probes nothing.

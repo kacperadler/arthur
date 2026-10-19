@@ -18,6 +18,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0157 Roadmap 38: Start notice and LLM probe (289fa48)
 - AR0158 Roadmap 39: Schedule entries and the sweep (32f5997)
 - AR0163 Roadmap 40: Registered entries and arthur schedule (f3e9ecc)
+- AR0166 Roadmap 80: arthur doctor, checked at every start (27a50bd)
 
 ## 2026-10-18
 

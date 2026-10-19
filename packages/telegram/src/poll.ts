@@ -2,11 +2,12 @@ import { setTimeout as sleep } from "node:timers/promises";
 import type { Host } from "@arthur/core/plugin";
 import { type ApiError, type Bot, call } from "./bot-api.ts";
 
-// One bot's long polling (spec/roadmap.md, entry 47): `getUpdates` waiting up to 30 s, each update confirmed by the next call's
-// `offset`. A message of the bot's own chat, at most 10 minutes old, is the owner's: its text becomes `message-received`
-// `{ channel: "telegram", text, place? }`, any other kind of message gets a line back. A message of any other chat is
-// dropped unanswered. A failed call is said once until a call answers, and polling goes on after 2 s (a 429: its retry_after):
-// packages/telegram/docs/telegram.md, "Receiving".
+// One bot's long polling (spec/roadmap.md, entries 47 and 48): `getUpdates` waiting up to 30 s, each update confirmed by the
+// next call's `offset`. A message of the bot's own chat, at most 10 minutes old, is the owner's: its text becomes
+// `message-received` `{ channel: "telegram", text, place?, instance? }`, `instance` the name of a named bot (AR0211); any other
+// kind of message gets a line back. A message of any other chat is dropped unanswered. A failed call is said once until a call
+// answers, and polling goes on after 2 s (a 429: its retry_after); a call that answers sends the outbox (`answered`), so what
+// waits there goes once Telegram is back: packages/telegram/docs/telegram.md, "Receiving".
 
 export type Send = (bot: Bot, text: string, place: string | undefined) => void;
 
@@ -23,7 +24,7 @@ type Message = {
 	readonly is_topic_message?: unknown;
 };
 
-export async function poll(host: Host, bot: Bot, signal: AbortSignal, send: Send): Promise<void> {
+export async function poll(host: Host, bot: Bot, signal: AbortSignal, send: Send, answered: () => void): Promise<void> {
 	let offset = 0;
 	let said = "";
 	while (!signal.aborted) {
@@ -43,6 +44,7 @@ export async function poll(host: Host, bot: Bot, signal: AbortSignal, send: Send
 			continue;
 		}
 		said = "";
+		answered();
 		for (const update of Array.isArray(updates) ? (updates as readonly { readonly update_id?: unknown; readonly message?: Message }[]) : []) {
 			if (typeof update.update_id === "number") offset = Math.max(offset, update.update_id + 1);
 			if (update.message !== undefined) receive(host, bot, update.message, send);
@@ -54,6 +56,6 @@ function receive(host: Host, bot: Bot, message: Message, send: Send): void {
 	if (message.chat?.id !== bot.chat) return;
 	if (typeof message.date !== "number" || host.clock.now().getTime() / 1000 - message.date > OLDEST_S) return;
 	const place = message.is_topic_message === true && typeof message.message_thread_id === "number" ? String(message.message_thread_id) : undefined;
-	if (typeof message.text === "string") host.events.emit("message-received", { channel: "telegram", text: message.text, ...(place === undefined ? {} : { place }) });
+	if (typeof message.text === "string") host.events.emit("message-received", { channel: "telegram", text: message.text, ...(place === undefined ? {} : { place }), ...(bot.name === undefined ? {} : { instance: bot.name }) });
 	else send(bot, OTHER, place);
 }

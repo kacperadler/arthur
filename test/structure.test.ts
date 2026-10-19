@@ -128,6 +128,11 @@ import { checkStructure } from "./structure.ts";
 // quiet hours; a new package. Orchestration 121 more (1334) for the silent mode: `arthur silent` and `/silent`, its state
 // file, the summary built from the event log, `coordinator.silent`, the held replies and the `## Silent` context line; cut
 // first: the `whole` check onto one line and the state's write inlined (5 lines).
+// AR0212 (roadmap 48, with AR0211): telegram 158 more (401) for the outbox (outbox.ts): a file per slice, one retry, a 429's
+// wait, the slice that fails queued first for next time, the refused one set aside and told once in a notice cut to one
+// message, the lock between processes, the flush after an answered poll; and a reply sent by the bot its messages came
+// through (`instance`, 7). Cut first: telegram.ts's own send loop, its start gate and its `polling` closure, which the
+// outbox's `flush` and one `begin` replace (29 lines out, 36 in with AR0211's 7), and the sender's five variables on two lines.
 // AR0154: a worker, or a continue, on a pre-approved ticket held to the budget its `Pre-approved by policy` line records, until
 // the owner's own approval after it; orchestration 19 more (1232) for that `beforeSpawn` refusal (plans.ts: the record and the
 // approval read under Decisions, the per-ticket refusals split in two); core/testing 2 more (346) for `continue` on the fake
@@ -151,7 +156,8 @@ import { checkStructure } from "./structure.ts";
 // AR0186: `arthur init` writes a criteria skeleton per name the registered roles read; core 4 more (5452 alone) for
 // `host.jobs.criteria()` (roles.ts, plugin.ts), projects 5 more (480) for the title-only skeleton of a name it ships none for.
 // Merged with main: core 5451 + 4 (AR0186) = 5455, projects 480, machines 446.
-const BUDGETS = { core: 5455, "core/testing": 349, projects: 480, orchestration: 1381, machines: 446, resources: 458, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 243 };
+// Merged with AR0212: telegram 401 as above; the rest as main has them.
+const BUDGETS = { core: 5455, "core/testing": 349, projects: 480, orchestration: 1381, machines: 446, resources: 458, session: 873, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 401 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

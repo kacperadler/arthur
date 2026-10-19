@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { hostname } from "node:os";
 import { delimiter, dirname, join } from "node:path";
@@ -27,6 +27,9 @@ const alive = (pid: number) => {
 		return false;
 	}
 };
+
+// Whether a process whose arguments name `folder` runs, as `ps` lists it.
+const running = (folder: string) => spawnSync("ps", ["-eo", "args="], { encoding: "utf8" }).stdout.split("\n").some((args) => args.includes(folder));
 
 // `omp` on PATH plays `run` for this test; its starts, as the fake agent notes them.
 function agent(t: TestContext, run: AgentRun) {
@@ -88,14 +91,14 @@ test("the probe times out: cut after its time, the agent killed; stopped meanwhi
 	const never = join(temporaryFolder(), "never");
 	const omp = agent(t, { steps: [{ waitFor: never }] });
 	assert.equal(await probe("omp", undefined, 300), "no answer within 0.3 s");
-	const [first] = omp.starts();
-	assert.ok(first);
-	await until("the probe killed", () => !alive(first.pid));
+	// A slow runner may kill it before it noted its start, so its process is looked for by the fake agent's folder.
+	await until("the probe killed", () => !running(dirname(omp.file)));
+	const before = omp.starts().length;
 	const box = await load(t);
 	await box.plugin.start?.();
-	await until("the second probe", () => omp.starts().length === 2);
+	await until("the second probe", () => omp.starts().length === before + 1);
 	await box.plugin.stop?.();
-	await until("the probe stopped", () => !alive(omp.starts()[1]?.pid ?? 0));
+	await until("the probe stopped", () => !alive(omp.starts()[before]?.pid ?? 0));
 	await sleep(300);
 	assert.deepEqual(box.notices(), []);
 });

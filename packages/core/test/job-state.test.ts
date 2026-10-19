@@ -218,6 +218,8 @@ test("a block with stop stops the run and holds the job blocked on the user once
 	await jobs.block(job.id, "feature cap budgetUsd reached: $2.0000 of $2", true);
 	const reason = "user: feature cap budgetUsd reached: $2.0000 of $2";
 	assert.deepEqual([field(home, job.id, "state"), field(home, job.id, "reason"), existsSync(join(home, "jobs", job.id, "hold"))], ["blocked", reason, false]);
+	// The block resolves once the state is final; the wrapper emits job-ended after it.
+	await until("job-ended", () => ends(home, job.id).length > 0);
 	assert.deepEqual(ends(home, job.id).map(({ data }) => data), [{ id: job.id, kind: "worker", project: "acme", state: "blocked", reason }]);
 	assert.deepEqual(jobs.running(), []);
 	assert.match(field(home, job.id, "log"), /arthur stop: stopping the agent\n.*blocked: user: feature cap/);

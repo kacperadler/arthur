@@ -61,7 +61,10 @@ import { checkStructure } from "./structure.ts";
 // AR0163 (roadmap 40): registered entries and `arthur schedule`, schedule 220 more (497), for `schedule.register` with its own
 // procedure rule (register.ts), the file's entries read and changed under a lock (entry-file.ts) and `arthur schedule
 // add|list|remove` (schedule-command.ts); core unchanged but for `@arthur/core/lock` in its exports.
-const BUDGETS = { core: 4873, "core/testing": 340, projects: 320, orchestration: 1146, machines: 375, resources: 401, session: 691, schedule: 497 };
+// AR0167 (CI flakes): the fake agent makes each file it notes with its first line, by a link, so a test that reads it while
+// the agent runs never sees it empty; core/testing 4 more (344). A record's file removed between the check and the read
+// (`hold`, as `arthur stop` polls a job's end) reads empty instead of throwing: core 4 more (4877).
+const BUDGETS = { core: 4877, "core/testing": 344, projects: 320, orchestration: 1146, machines: 375, resources: 401, session: 691, schedule: 497 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

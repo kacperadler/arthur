@@ -1418,5 +1418,12 @@
     "status": "planning",
     "path": "spec/features/AR0178-roles-quick-model-has-its-meaning-only-in-the-about-of-roles/ticket.md",
     "updated": "2026-10-19T07:18:00.748Z"
+  },
+  {
+    "id": "AR0179",
+    "title": "Roadmap 94: arthur setup, what is there, what is set, what is missing",
+    "status": "planned",
+    "path": "spec/features/AR0179-roadmap-94-arthur-setup-what-is-there-what-is-set-what-is-missing/ticket.md",
+    "updated": "2026-10-19T09:16:00.214Z"
   }
 ]

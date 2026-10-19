@@ -54,7 +54,8 @@ async function setup(t: TestContext, now = "2026-10-18T10:00:00Z") {
 			assert.match(text, /\n\n## Time\n\n/);
 			return text.split("\n\n## Jobs not ended\n\n")[1]?.split("\n\n## Time\n\n")[0];
 		},
-		notices: () => fake.emitted.filter((event) => event.name === "notice").map((event) => event.data),
+		// Their text; the first test below asserts the whole notice.
+		notices: () => fake.emitted.filter((event) => event.name === "notice").map((event) => ({ text: (event.data as { text: string }).text })),
 		footer: () => readFileSync(join(fake.host.folder, "footer"), "utf8"),
 		// A record as the spawn and the wrapper leave it, spawned `age` minutes after the first, in its state since `since`.
 		record(id: string, age: number, keys: Readonly<Record<string, string>>) {
@@ -111,6 +112,7 @@ test("a run that ends blocked on the owner: one notice with its question, the wa
 	const delivered = logged().map((event) => fake.emit(event.name, event.data));
 	const question = "May I drop the old orders table?";
 	assert.deepEqual(notices(), [{ text: `${job.id} asks: ${question}` }]);
+	assert.deepEqual(fake.emitted.find((event) => event.name === "notice")?.data, { text: `${job.id} asks: ${question}`, blocked: job.id }, "marked as the notice silent mode lets through");
 	const ended = delivered.find((event) => event.name === "job-ended");
 	const wake = JSON.parse(readFileSync(join(fake.host.folder, "inbox", "queued", String(ended?.seq)), "utf8")) as { text: string };
 	assert.deepEqual(wake.text.split("\n").slice(0, 3), [`Job ${job.id} ended its run blocked on the owner; its question, also sent as a notice: ${question}`, "Its final message:", `Blocked: user ${question}`]);

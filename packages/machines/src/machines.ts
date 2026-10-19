@@ -58,20 +58,32 @@ export function machines(options: MachinesOptions = {}): Plugin {
 			host.provide("doctor", () => {
 				let shared: Promise<ReadonlyMap<string, Report>> | undefined;
 				let reports: ReadonlyMap<string, Report> | undefined;
-				return list.map((machine) => ({
-					name: machine.name,
-					check: async () => {
-						const report = (reports = await (shared ??= checked())).get(machine.name);
-						return report?.online === true ? `ok (${report.os} ${report.arch}, arthur ${report.version})` : `missing: ${report?.reason}`;
-					},
-					costs: `no job runs on ${machine.name}`,
-					// The fix of this run's reason.
-					get fix() {
+				return list.map((machine) => {
+					// The tools labels this run's check did not find there, once it answered.
+					const lacking = () => {
 						const report = reports?.get(machine.name);
-						return report?.online === false ? report.fix : `ssh ${machine.ssh} true, by hand`;
-					},
-					critical: false,
-				}));
+						return report?.online === true ? report.missing.join(", ") : "";
+					};
+					return {
+						name: machine.name,
+						check: async () => {
+							const report = (reports = await (shared ??= checked())).get(machine.name);
+							if (report?.online !== true) return `missing: ${report?.reason}`;
+							const found = `${report.os} ${report.arch}, arthur ${report.version}`;
+							return lacking() === "" ? `ok (${found})` : `missing: command -v finds no ${lacking()} there (${found})`;
+						},
+						get costs() {
+							return lacking() === "" ? `no job runs on ${machine.name}` : `no job that needs ${lacking()} runs on ${machine.name}`;
+						},
+						// The fix of this run's reason.
+						get fix() {
+							const report = reports?.get(machine.name);
+							if (report?.online === false) return report.fix;
+							return lacking() === "" ? `ssh ${machine.ssh} true, by hand` : `install ${lacking()} on ${machine.name}, on the PATH of a command over ssh (docs/deploy.md), or drop what it does not need from its tools label`;
+						},
+						critical: false,
+					};
+				});
 			});
 			const localLabels = { os: platform === "darwin" ? "macos" : platform, arch, ...(local.labels?.tools === undefined ? {} : { tools: local.labels.tools }) };
 			const seats = [{ name: "local", labels: localLabels, maxJobs: local.maxJobs }, ...list.map(({ name, labels = {}, maxJobs }) => ({ name, labels, maxJobs }))];

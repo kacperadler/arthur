@@ -1541,16 +1541,16 @@
   {
     "id": "AR0196",
     "title": "Roadmap 84: nvm, each project's Node version",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0196-roadmap-84-nvm-each-project-s-node-version/ticket.md",
-    "updated": "2026-10-19T13:10:23.532Z"
+    "updated": "2026-10-19T13:36:47.679Z"
   },
   {
     "id": "AR0197",
     "title": "Roadmap 45: YouTrack writing issues, articles, fields and work items",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0197-roadmap-45-youtrack-writing-issues-articles-fields-and-work-items/ticket.md",
-    "updated": "2026-10-19T13:28:11.597Z"
+    "updated": "2026-10-19T13:41:27.274Z"
   },
   {
     "id": "AR0198",

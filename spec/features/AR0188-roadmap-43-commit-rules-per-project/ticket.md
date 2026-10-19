@@ -40,3 +40,4 @@ Out: anything in another plugin. Another job (AR0187) is changing the core's spa
 
 - 2026-10-19: The owner told the coordinator to run several workers at once ("lec"), under the 80% usage ceiling.
 - 2026-10-19: The coordinator accepts setting extensions.worktreeConfig=true in the project's .git/config, the only shared key changed, so that a job worktree's hook needs no core spawn change while AR0187 changes spawn. Workers do not push; the coordinator pushes the branch.
+- 2026-10-19: The coordinator, under the owner's delegation of Arthur decisions, accepts moving a shared core.bare or core.worktree into config.worktree (Git's documented procedure for worktreeConfig), and the one-line remote-job.ts guard that runs git init --bare only without HEAD.

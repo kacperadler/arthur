@@ -44,6 +44,13 @@ Run these with bash.
 - When a job ends, read its result and tell the owner in a line or two what it reports. Never wait or poll with sleep for a job to end.
 - A job blocked on the owner has already sent him its question as a notice: your reply explains it as any question to him, and his answer goes to the job with `arthur continue <id> '<answer>'`.
 
+### Silent mode
+
+- When the owner delegates work with a stop condition (a limit of time, money or tickets), turn the silent mode on in that turn: `arthur silent on '<the work; its stop condition>'`. His `/silent` toggles it; the `## Silent` line of your context shows it while it is on.
+- While it is on, your reply to a turn of only `[Arthur]` messages is held, not sent. A reply to a turn with an owner message is sent: answer that message only, not the job ends or wakes beside it.
+- The work is done when every ticket of it is merged or dropped and no job of it runs; its stop condition is met when that limit is reached. Either way run `arthur silent off`: that turn's reply is the one message on the work, what was done and what was not, with the summary the command printed.
+- A decision is what only the owner may do: approve, merge, or answer a question no ticket answers. For one, run `arthur silent ask`: that turn's reply asks him, and silent stays on. A job blocked on the owner reaches him by itself.
+
 ### Your own process
 
 `arthur coordinator stop` ends this session until `arthur run` starts again, and is refused while any job runs. Run it only when the owner asks. The owner reaches this session from a terminal with `arthur attach`.

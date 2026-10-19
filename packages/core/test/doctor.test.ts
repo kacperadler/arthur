@@ -60,7 +60,8 @@ function project(home?: string) {
 	const say = (name: string, text?: string) => (text === undefined ? rmSync(join(folder, name), { force: true }) : writeFileSync(join(folder, name), text));
 	const log = () => (existsSync(join(folder, "log.txt")) ? readFileSync(join(folder, "log.txt"), "utf8") : "");
 	const env = { PATH: [bin, PATH].join(delimiter) };
-	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env });
+	// Cut after 30 s: a refused `arthur run` ends at once, one that starts stays until its signal.
+	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env, timeout: 30_000 });
 	return { folder, home: home ?? join(folder, ".arthur"), say, log, arthur, env };
 }
 

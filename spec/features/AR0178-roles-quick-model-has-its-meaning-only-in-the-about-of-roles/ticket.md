@@ -36,3 +36,4 @@ In:
 
 - 2026-10-19: Source: F2 of AR0170
 - 2026-10-19: The owner approved this. The coordinator builds it alongside the roadmap entry that touches the same files.
+- 2026-10-19: The owner: folded into roadmap entry 51's Done means and taken off the board; built with entry 51.

@@ -36,3 +36,4 @@ In:
 
 - 2026-10-19: Source: F1 of AR0181
 - 2026-10-19: Approved under the owner's word of the same day: findings are built alongside the roadmap entry that touches the same files.
+- 2026-10-19: The owner: folded into roadmap entry 54's Done means and taken off the board; built with entry 54.

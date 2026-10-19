@@ -8,7 +8,7 @@ import { checkout, checkouts } from "./job-checkout.ts";
 import { type Limits, spawnLimits } from "./job-limits.ts";
 import { continueJob } from "./job-control.ts";
 import { addThere, LOCAL, type Machine, machineRegistry, type Ran, reach, removeThere, type Requires } from "./job-machine.ts";
-import { kindRegistry } from "./job-kinds.ts";
+import { type Kind, kindRegistry } from "./job-kinds.ts";
 import { newJob, writeRecord } from "./job-record.ts";
 import { type JobRecord, jobUpkeep } from "./job-records.ts";
 import { launchThere, syncMachines } from "./machine-sync.ts";
@@ -18,26 +18,11 @@ import { type Collect, describeRoles, prompt, type Role, type RoleReads, roleMod
 import { type Caps, jobCaps, jobEnv, launch, type Slice, sayUncapped } from "./job-scope.ts";
 import { pickModel } from "./job-model.ts";
 import type { Board } from "./board.ts";
-import { type File, fileJob } from "./ticket-file.ts";
+import { fileJob } from "./ticket-file.ts";
 
 // The job runner's spawn and the job record (spec/roadmap.md, entries 9 and 11). A worker gets its own branch and worktree from
 // HEAD, a read-only kind a detached checkout of HEAD; both live in `.arthur-worktrees/<id>` beside the repository, outside the main
 // checkout and the home folder. The record is `<home>/jobs/<id>/`, one file per key, appearing whole; then the wrapper starts.
-
-// A kind of job, owned by the plugin that registers it (job-kinds.ts); the core owns `worker`.
-export type Kind = {
-	readonly name: string;
-	// No branch of its own: a detached checkout of HEAD.
-	readonly readOnly: boolean;
-	// The role whose prompt the job's agent gets; a plugin registers it with `registerRole`.
-	readonly role: string;
-	// Its own default limits, else the core's `jobs` options; `resumeOnBudget`: one resume at the budget, the budget doubled.
-	readonly budgetUsd?: number;
-	readonly timeoutMinutes?: number;
-	readonly resumeOnBudget?: boolean;
-	// How `arthur ticket file` files a finished job of this kind in its ticket's folder (ticket-file.ts); without it, nothing is filed.
-	readonly file?: File;
-};
 
 // `kind` defaults to `worker`, `project` to the main one; left undefined, `model` and `thinking` are the role's, a limit the kind's.
 export type SpawnRequest = {

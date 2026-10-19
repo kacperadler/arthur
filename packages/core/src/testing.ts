@@ -11,7 +11,8 @@ import type { QuietHours } from "./config.ts";
 import type { Event } from "./event-log.ts";
 import { eventBus } from "./events.ts";
 import type { Slice } from "./job-scope.ts";
-import { jobRunner, type Kind } from "./jobs.ts";
+import type { Kind } from "./job-kinds.ts";
+import { jobRunner } from "./jobs.ts";
 import type { Role } from "./roles.ts";
 import { type Host, type Options, type Plugin, type Provider, pluginHost, registry } from "./plugin.ts";
 
@@ -193,8 +194,6 @@ export function fakeHost(plugin: {
 		collect: <T>(name: string, ...args: readonly unknown[]) => names.collect(name, args) as T[],
 		provide: (name, fn) => names.provide("test", name, fn),
 		emit: (name, data) => bus.emit("test", name, data),
-		setNow: (at) => {
-			now = at.getTime();
-		},
+		setNow: (at) => void (now = at.getTime()),
 	};
 }

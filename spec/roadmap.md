@@ -776,7 +776,7 @@ The channel the owner uses (AR0134, 2026-10-18); Telegram stays in the first ver
 ### 65. The morning report
 
 - Package: orchestration.
-- Delivers: `morningReport.at` registers a schedule action with its procedure: built overnight, merged without the owner, waiting for approval, waiting for a decision, needs attention (from health).
+- Delivers: `morningReport.at` registers a schedule action with its procedure: built overnight, merged without the owner, waiting for approval, waiting for a decision, needs attention (from health). Orchestration sets up `after: ["schedule"]` (AR0168: set up after schedule when it is loaded, no refusal when it is not), so its `setup` registers the action through `schedule.register` only when schedule provides it; schedule stays optional.
 - Done means: edge cases: a night with nothing done says so in one line; schedule disabled refuses the option at load. The report's procedure carries the rule of the coordinator's role file (23, AR0090): every ticket, finding, job, or project the report names gets at least one plain sentence on what it is and what the owner will see change (never file names); an id never stands alone. Every decision it waits for is a question that says what is being decided, why it came up, the options with what each means in practice, and the coordinator's recommendation, so the report alone answers it. This outranks any limit on the report's length: a report that needs it runs longer, short per item.
 - Depends on: 40, 60, 54.
 - Size: half a day.

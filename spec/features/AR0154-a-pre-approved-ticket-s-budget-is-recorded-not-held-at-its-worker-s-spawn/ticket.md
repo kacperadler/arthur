@@ -38,3 +38,4 @@ In:
 - 2026-10-19: The owner approved this. The coordinator builds it alongside the roadmap entry that touches the same files.
 - 2026-10-19: Host of the orchestration findings batch (the owner: small findings in batches): AR0154, AR0155, AR0156, AR0165, AR0168, AR0175, AR0185, AR0135, AR0137, built and merged together.
 - 2026-10-19: The coordinator accepts the AR0155 lock in <home>/orchestration/autopilot-<id>.lock, the AR0154 owner-approval line wording, the core plugin field after (AR0168), and the AR0165 fix in session.
+- 2026-10-19: The coordinator accepts the batch's budget raises: core 5451, core/testing 349, orchestration 1260, session 873.

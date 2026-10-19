@@ -43,3 +43,4 @@ Out:
 
 - 2026-10-18: The owner asked about mail and calendar plugins and how Arthur reaches the company edition; the coordinator proposes a plan first.
 - 2026-10-18: The owner approved it as a plan only. He sees the company edition as more plugins on the same Arthur, since standing agents (one per project) already come; mail and calendar must plan for other providers too, not only Google and Apple.
+- 2026-10-19: The owner: this plan stays at planning until the roadmap reaches it; nothing is built before.

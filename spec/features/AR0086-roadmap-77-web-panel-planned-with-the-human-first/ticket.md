@@ -35,3 +35,4 @@ Out:
 ## Decisions
 
 - 2026-10-16: The human wants to work through entry 77 in detail with the coordinator before anything is built, since it will likely use outside libraries. No plan job until that talk.
+- 2026-10-19: The owner: this plan stays at planning until the roadmap reaches it; nothing is built before.

@@ -1,24 +1,27 @@
 import { readFileSync, realpathSync } from "node:fs";
-import { normalize, relative, resolve } from "node:path";
-import { describe } from "@arthur/core";
+import { relative, resolve } from "node:path";
 import type { Host } from "@arthur/core/plugin";
-import { type Entry, entryProblems, isOneOff, type JobEntry, lastSlot } from "./entry.ts";
+import { type Entry, isOneOff, type JobEntry, lastSlot } from "./entry.ts";
+import { owners, readEntries } from "./entry-file.ts";
+import type { Registered } from "./register.ts";
 import { claim, lastClaimed, seen } from "./run-state.ts";
 
-// The sweep (spec/roadmap.md, entry 39): every entry of the config and of the file whose slot has come and is not claimed yet
-// is claimed once and run; a hand-broken entry or file is skipped and named, the others still run: docs/schedule.md.
+// The sweep (spec/roadmap.md, entries 39 and 40): every entry of the config, of the plugins and of the file whose slot has come
+// and is not claimed yet is claimed once and run; a hand-broken entry or file is skipped and named, the others still run:
+// docs/commands/schedule.md.
 
 // A slot run more than this after its time says it is late; a daily entry's first sweep still runs a slot this close before it.
 const LATE_MS = 5 * 60_000;
 
-// `file` as the option has it; it and each procedure are read from `root`, the folder `arthur run` runs in.
-export function sweeper(host: Host, configured: readonly Entry[], file: string | undefined, root: string): () => Promise<void> {
+// `file` as the option has it; it and each procedure of the config and the file are read from `root`, the folder `arthur run`
+// runs in; a registered entry's procedure from its plugin's package folder. `registered` is read anew at every sweep.
+export function sweeper(host: Host, configured: readonly Entry[], registered: readonly Registered[], file: string | undefined, root: string): () => Promise<void> {
 	let said: readonly string[] = [];
 	return async () => {
 		const now = host.clock.now();
-		const { entries, problems } = fromFile(file, root, configured);
+		const { entries, problems } = readEntries(file, root, owners(configured, registered));
 		const jobs: { readonly id: string; readonly job: JobEntry; readonly late: string }[] = [];
-		for (const entry of [...configured, ...entries]) {
+		for (const entry of [...configured, ...registered, ...entries]) {
 			const slot = lastSlot(entry, host.clock.timeZone, now);
 			if (slot === undefined) continue;
 			const last = lastClaimed(host.folder, entry.id);
@@ -26,7 +29,7 @@ export function sweeper(host: Host, configured: readonly Entry[], file: string |
 			if (last !== undefined ? slot.getTime() <= last : !isOneOff(entry) && slot.getTime() < seen(host.folder, entry.id, now) - LATE_MS) continue;
 			const due = host.clock.local(slot);
 			const late = now.getTime() - slot.getTime() > LATE_MS ? ` (late: due ${due.date} ${due.time})` : "";
-			const procedure = entry.action?.procedure === undefined ? undefined : procedureText(root, entry.action.procedure);
+			const procedure = entry.action?.procedure === undefined ? undefined : procedureText("code" in entry ? (entry as Registered).code : root, entry.action.procedure);
 			if (procedure !== undefined && "problem" in procedure) {
 				problems.push(`${entry.id}: skipped until its procedure can be read: ${procedure.problem}`);
 				continue;
@@ -45,38 +48,11 @@ export function sweeper(host: Host, configured: readonly Entry[], file: string |
 	};
 }
 
-function fromFile(file: string | undefined, root: string, configured: readonly Entry[]): { entries: Entry[]; problems: string[] } {
-	const entries: Entry[] = [];
-	const problems: string[] = [];
-	if (file === undefined) return { entries, problems };
-	let list: unknown;
+// A procedure's text as it reads now; a symlink anywhere below `folder` on its path (its real path differs) is never read.
+function procedureText(folder: string, path: string): { readonly text: string } | { readonly problem: string } {
+	const file = resolve(folder, path);
 	try {
-		list = JSON.parse(readFileSync(resolve(root, file), "utf8"));
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code !== "ENOENT") problems.push(`${file}: none of its entries run: ${(error as Error).message}`);
-		return { entries, problems };
-	}
-	if (!Array.isArray(list)) return { entries, problems: [`${file}: none of its entries run: expected a JSON list of entries, got ${describe(list)}`] };
-	const ids = new Set(configured.map((entry) => entry.id));
-	for (const [index, entry] of list.entries()) {
-		const id = (entry as { readonly id?: unknown } | null)?.id;
-		const name = `${file}[${index}]${typeof id === "string" ? ` ${JSON.stringify(id)}` : ""}: skipped`;
-		const wrong = entryProblems(entry, "");
-		if (wrong.length > 0) problems.push(`${name}, ${wrong.map(({ path, problem }) => (path === "" ? problem : `${path}: ${problem}`)).join("; ")}`);
-		else if (ids.has(id as string)) problems.push(`${name}, its id is taken by ${configured.some((each) => each.id === id) ? "an entry of the config" : "an earlier entry of the file"}`);
-		else {
-			ids.add(id as string);
-			entries.push(entry as Entry);
-		}
-	}
-	return { entries, problems };
-}
-
-// A procedure's text as it reads now; a symlink anywhere below `root` on its path (its real path differs) is never read.
-function procedureText(root: string, path: string): { readonly text: string } | { readonly problem: string } {
-	const file = resolve(root, path);
-	try {
-		if (relative(realpathSync(root), realpathSync(file)) !== normalize(path)) return { problem: `${path} is or goes through a symlink, which is never read` };
+		if (relative(realpathSync(folder), realpathSync(file)) !== relative(folder, file)) return { problem: `${path} is or goes through a symlink, which is never read` };
 		return { text: readFileSync(file, "utf8").trim() };
 	} catch (error) {
 		return { problem: `${path}: ${(error as Error).message}` };

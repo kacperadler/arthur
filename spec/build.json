@@ -1646,16 +1646,16 @@
   {
     "id": "AR0211",
     "title": "A message to a named bot is answered by the unnamed one",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0211-a-message-to-a-named-bot-is-answered-by-the-unnamed-one/ticket.md",
-    "updated": "2026-10-19T15:47:02.086Z"
+    "updated": "2026-10-19T17:15:43.993Z"
   },
   {
     "id": "AR0212",
     "title": "Roadmap 48: Telegram outbox and retries",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0212-roadmap-48-telegram-outbox-and-retries/ticket.md",
-    "updated": "2026-10-19T17:11:29.624Z"
+    "updated": "2026-10-19T17:15:35.274Z"
   },
   {
     "id": "AR0213",

@@ -1196,9 +1196,9 @@
   {
     "id": "AR0148",
     "title": "A throw in the session's 500 ms tick ends `arthur run`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0148-a-throw-in-the-session-s-500-ms-tick-ends-arthur-run/ticket.md",
-    "updated": "2026-10-18T21:18:39.474Z"
+    "updated": "2026-10-19T05:41:39.263Z"
   },
   {
     "id": "AR0149",
@@ -1286,9 +1286,12 @@
   {
     "id": "AR0160",
     "title": "`/restart` cannot clear a restart due, since it restarts only the coordinator's agent",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0160-restart-cannot-clear-a-restart-due-since-it-restarts-only-the-coordinator-s-agent/ticket.md",
-    "updated": "2026-10-18T22:45:18.421Z"
+    "updated": "2026-10-19T05:41:39.883Z",
+    "after": [
+      "AR0148"
+    ]
   },
   {
     "id": "AR0161",
@@ -1314,9 +1317,9 @@
   {
     "id": "AR0164",
     "title": "The inbox's notice after 3 unanswered turns repeats omp's error unredacted",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0164-the-inbox-s-notice-after-3-unanswered-turns-repeats-omp-s-error-unredacted/ticket.md",
-    "updated": "2026-10-18T23:36:58.635Z"
+    "updated": "2026-10-19T05:41:39.681Z"
   },
   {
     "id": "AR0165",
@@ -1335,9 +1338,9 @@
   {
     "id": "AR0167",
     "title": "GitHub CI fails now and then on main with the same code",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0167-github-ci-fails-now-and-then-on-main-with-the-same-code/ticket.md",
-    "updated": "2026-10-19T03:04:39.774Z"
+    "updated": "2026-10-19T05:41:23.858Z"
   },
   {
     "id": "AR0168",

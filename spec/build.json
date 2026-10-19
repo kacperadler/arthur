@@ -1175,23 +1175,23 @@
   {
     "id": "AR0145",
     "title": "A continued job sets its ticket's slice from the caps kept at its spawn",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0145-a-continued-job-sets-its-ticket-s-slice-from-the-caps-kept-at-its-spawn/ticket.md",
-    "updated": "2026-10-19T14:52:11.178Z"
+    "updated": "2026-10-19T17:47:28.493Z"
   },
   {
     "id": "AR0146",
     "title": "Caps per feature on CPU and memory are not held, and not said, on a machine without a user manager",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0146-caps-per-feature-on-cpu-and-memory-are-not-held-and-not-said-on-a-machine-without-a-user-manager/ticket.md",
-    "updated": "2026-10-19T14:52:11.382Z"
+    "updated": "2026-10-19T17:47:35.932Z"
   },
   {
     "id": "AR0147",
     "title": "A ticket over its memory cap ends a job `failed: the agent was killed by ...`, not `limit: memory`",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0147-a-ticket-over-its-memory-cap-ends-a-job-failed-the-agent-was-killed-by-not-limit-memory/ticket.md",
-    "updated": "2026-10-19T14:52:11.588Z"
+    "updated": "2026-10-19T17:47:36.252Z"
   },
   {
     "id": "AR0148",
@@ -1210,9 +1210,9 @@
   {
     "id": "AR0150",
     "title": "Free cores come from the 1-minute load average, which on Linux also counts processes waiting on disk",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0150-free-cores-come-from-the-1-minute-load-average-which-on-linux-also-counts-processes-waiting-on-disk/ticket.md",
-    "updated": "2026-10-19T14:52:11.991Z"
+    "updated": "2026-10-19T17:47:36.577Z"
   },
   {
     "id": "AR0151",
@@ -1366,9 +1366,9 @@
   {
     "id": "AR0171",
     "title": "The resources scope test assumes a machine of 2 cores or more",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0171-the-resources-scope-test-assumes-a-machine-of-2-cores-or-more/ticket.md",
-    "updated": "2026-10-19T14:52:12.194Z"
+    "updated": "2026-10-19T17:47:36.891Z"
   },
   {
     "id": "AR0172",

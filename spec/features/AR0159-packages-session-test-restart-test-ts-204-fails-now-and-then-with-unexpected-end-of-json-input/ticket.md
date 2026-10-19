@@ -40,3 +40,4 @@ In:
 
 - 2026-10-19: Source: F1 of AR0127
 - 2026-10-19: Pre-approved by policy (h ticket status --autopilot)
+- 2026-10-19: Coordinator: superseded by AR0167, merged: the fake agent now writes each notes file with its first line at once (ba75b20, the cause at its source) and main's restart.test.ts has the same waits; the branch's remaining lines() change is no longer needed. Dropped; branch not merged.

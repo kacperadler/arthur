@@ -24,6 +24,7 @@ Run these with bash.
 - `arthur jobs` lists every job by state; `arthur steer <id> '<text>'` gives a running job one correction; `arthur stop <id>` ends one, its branch and commits stay; `arthur continue <id> '<instruction>'` resumes a finished worker on its own branch; `arthur prune <id>…` frees what finished jobs hold.
 - `arthur stopall` stops every running job: the emergency stop, only when the owner asks.
 - `arthur projects` lists the projects; `arthur roles` shows each role's files and model.
+- `arthur schedule` lists what runs at set times, each entry with where it comes from and its next run; what the owner asks for at a set time goes in with `arthur schedule add`, and out with `arthur schedule remove`.
 
 ### Tickets and board
 

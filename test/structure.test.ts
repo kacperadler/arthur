@@ -63,7 +63,14 @@ import { checkStructure } from "./structure.ts";
 // record (doctor.ts, requirements.ts); orchestration 16 more (1162) for tmux; session 64 more (755) for the user service and
 // linger, and the missing lines that open the start notice; machines 16 more (391) for each tools label checked with
 // `command -v` in the machine's check over ssh, named in its doctor line (the owner's decision: a tools label is a command name).
-const BUDGETS = { core: 5112, "core/testing": 340, projects: 320, orchestration: 1162, machines: 391, resources: 401, session: 755, schedule: 277 };
+// AR0163 (roadmap 40): registered entries and `arthur schedule`, schedule 220 more (497), for `schedule.register` with its own
+// procedure rule (register.ts), the file's entries read and changed under a lock (entry-file.ts) and `arthur schedule
+// add|list|remove` (schedule-command.ts); core unchanged but for `@arthur/core/lock` in its exports.
+// AR0167 (CI flakes): the fake agent makes each file it notes with its first line, by a link, so a test that reads it while
+// the agent runs never sees it empty; core/testing 4 more (344). A record's file removed between the check and the read
+// (`hold`, as `arthur stop` polls a job's end) reads empty instead of throwing: core 4 more (4877).
+// Merged: core 5112 + 4 (AR0167) = 5116.
+const BUDGETS = { core: 5116, "core/testing": 344, projects: 320, orchestration: 1162, machines: 391, resources: 401, session: 755, schedule: 497 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

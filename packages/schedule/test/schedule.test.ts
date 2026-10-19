@@ -30,7 +30,7 @@ function load(t: TestContext, entries: readonly Entry[], now: string, root = tem
 		root,
 		logs,
 		errors,
-		sweep: sweeper(fake.host, entries, FILE, root),
+		sweep: sweeper(fake.host, entries, [], FILE, root),
 		at: (when: string) => fake.setNow(new Date(when)),
 		messages: () => said("coordinator-message"),
 		notices: () => said("notice"),
@@ -88,7 +88,7 @@ test("a one-off in the past runs once at start, late; never again after a restar
 	await plugin.start?.();
 	await until("the one-off", () => box.messages().length === 1);
 	await plugin.stop?.();
-	const restarted = sweeper(box.fake.host, entries, undefined, box.root);
+	const restarted = sweeper(box.fake.host, entries, [], undefined, box.root);
 	await restarted();
 	box.at("2026-10-20T09:00:00+02:00");
 	await restarted();
@@ -136,7 +136,7 @@ test("a hand-broken entry of the file is skipped and named once while it lasts; 
 
 test("two sweeps at once claim a slot once, also from separate processes", async (t) => {
 	const box = load(t, [STANDUP], "2026-10-19T09:00:00+02:00");
-	await Promise.all([box.sweep(), sweeper(box.fake.host, [STANDUP], FILE, box.root)()]);
+	await Promise.all([box.sweep(), sweeper(box.fake.host, [STANDUP], [], FILE, box.root)()]);
 	assert.deepEqual(box.messages(), ["[scheduled standup] Plan the day."]);
 
 	const slot = new Date("2026-10-19T07:00:00Z");

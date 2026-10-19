@@ -1331,5 +1331,12 @@
     "status": "done",
     "path": "spec/features/AR0166-roadmap-80-arthur-doctor-checked-at-every-start/ticket.md",
     "updated": "2026-10-19T00:25:10.204Z"
+  },
+  {
+    "id": "AR0167",
+    "title": "GitHub CI fails now and then on main with the same code",
+    "status": "planned",
+    "path": "spec/features/AR0167-github-ci-fails-now-and-then-on-main-with-the-same-code/ticket.md",
+    "updated": "2026-10-19T00:26:46.619Z"
   }
 ]

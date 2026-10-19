@@ -130,7 +130,9 @@ import { checkStructure } from "./structure.ts";
 // first: the `whole` check onto one line and the state's write inlined (5 lines).
 // AR0172: machines 31 more (446) for the doctor line of `local`'s tools labels, the `command -v` loop of a listed machine's
 // check run here through `host.jobs.run("local", ...)` (machine-check.ts), its line, costs and fix (machines.ts).
-const BUDGETS = { core: 5448, "core/testing": 344, projects: 475, orchestration: 1334, machines: 446, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 243 };
+// AR0186: `arthur init` writes a criteria skeleton per name the registered roles read; core 4 more (5452) for
+// `host.jobs.criteria()` (roles.ts, plugin.ts), projects 5 more (480) for the title-only skeleton of a name it ships none for.
+const BUDGETS = { core: 5452, "core/testing": 344, projects: 480, orchestration: 1334, machines: 446, resources: 458, session: 849, schedule: 552, models: 485, youtrack: 464, "commit-rules": 168, nvm: 84, telegram: 243 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

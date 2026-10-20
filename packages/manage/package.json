@@ -1,0 +1,10 @@
+{
+  "name": "@arthur/manage",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/manage.ts",
+    "./options": "./src/manage-options.ts"
+  }
+}

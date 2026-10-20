@@ -179,7 +179,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `merge.check` | projects | delivery (`arthur merge`) | A check of a job's branch before its merge: a text answer refuses it. |
 | `findings.onMerge` | none yet (findings) | delivery (`arthur merge`) | `{ project, ticket, path, root }`, `path` the merged ticket's `findings.md`: the lines of its outcome's `## Left open`. |
 | `delivery.alwaysReview` | delivery | orchestration | `{ project, paths }`: the paths on the always-review list. |
-| `health` | none yet (manage) | session | Lines of what should have happened and has not. |
+| `health` | manage | manage (`arthur health`, its rounds), session | Lines of what should have happened and has not: a line or a list of lines. |
 
 ## Option tables and `./options`
 

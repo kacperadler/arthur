@@ -2,6 +2,7 @@ import { everyOption, type OptionTable } from "@arthur/core/option-table";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { AUTOPILOT_BUDGET, AUTOPILOT_CAP } from "../src/autopilot.ts";
+import { mcpServers } from "../src/mcp.ts";
 import { checkOptions, coordinatorOptions, MAX_AGENTS, roleOptions, table } from "../src/orchestration-options.ts";
 import { PLAN_BUDGET } from "../src/plans.ts";
 
@@ -17,6 +18,14 @@ test("the options of arthur.config.example.ts pass, and none at all pass with th
 			planner: { model: undefined, thinking: undefined },
 			project: { model: "anthropic/claude-opus-5-5", thinking: "high" },
 			quick: { model: "anthropic/claude-haiku-5-5" },
+		},
+		mcp: {
+			servers: {
+				docs: { command: "npx", args: ["-y", "@upstash/context7-mcp"] },
+				github: { url: "https://api.githubcopilot.com/mcp/", headers: { Authorization: { valueEnv: "ARTHUR_ORCHESTRATION_GITHUB_TOKEN" } } },
+			},
+			all: ["docs"],
+			roles: { reviewer: ["docs", "github"], planner: [] },
 		},
 		plan: { budgetUsd: 5 },
 		autopilot: { budgetUsd: 1, budgetMaxUsd: 3 },
@@ -45,7 +54,7 @@ function valueDefaults(table: OptionTable, words: readonly string[]): Record<str
 
 test("each default the option table writes as a value is the one the code applies with nothing set", () => {
 	const coordinator = coordinatorOptions({});
-	assert.deepEqual(valueDefaults(table, ["coordinator.model", "coordinator.thinking", "roles.*.model", "roles.*.thinking", "roles.quick.model"]), {
+	assert.deepEqual(valueDefaults(table, ["coordinator.model", "coordinator.thinking", "roles.*.model", "roles.*.thinking", "roles.quick.model", "mcp.all", "mcp.roles"]), {
 		maxAgents: MAX_AGENTS,
 		"coordinator.tmux.session": coordinator.session,
 		"coordinator.tmux.socket": coordinator.socket,
@@ -70,7 +79,7 @@ test("each wrong option is refused, naming its path", () => {
 			morningReport: { at: "24:00" },
 		}),
 		[
-			"maxAgent: unknown option; options: maxAgents, coordinator, roles, plan, autopilot, morningReport",
+			"maxAgent: unknown option; options: maxAgents, coordinator, roles, mcp, plan, autopilot, morningReport",
 			"maxAgents: expected a whole number of at least 1, got 0",
 			"coordinator.thinking: expected one of off, minimal, low, medium, high, xhigh, max, auto, got \"huge\"",
 			'coordinator.tmux.session: expected letters, digits, _ and -, got "a:b"',
@@ -94,6 +103,73 @@ test("each wrong option is refused, naming its path", () => {
 	assert.deepEqual(paths({ roles: { coordinator: { model: "anthropic/opus" } } }), [
 		"roles.coordinator: the coordinator's model and thinking are coordinator.model and coordinator.thinking",
 	]);
+});
+
+test("mcp: a list naming an unknown server, a server without or with both command and url, and each wrong key or value are refused, naming the path", () => {
+	const servers = { docs: { command: "docs-mcp", env: { TOKEN: { valueEnv: "ARTHUR_ORCHESTRATION_DOCS_TOKEN" }, MODE: "read" } }, web: { url: "http://10.0.0.5:3000/mcp" } };
+	assert.deepEqual(paths({ mcp: { servers, all: ["docs"], roles: { reviewer: ["web"], worker: [] } } }), []);
+	assert.deepEqual(
+		paths({
+			mcp: {
+				servers: {
+					...servers,
+					none: { args: ["x"] },
+					both: { command: "x", url: "https://example.com/mcp" },
+					"bad name": { command: "x" },
+					list: ["x"],
+					local: { command: "", args: "x", env: { A: 1, B: { valueEnv: "ARTHUR_ORCHESTRATION_B", other: 1 } }, headers: {} },
+					remote: { url: "ftp://example.com", headers: { Authorization: { name: "x" } }, env: {} },
+				},
+				all: ["docs", "gone"],
+				roles: { reviewer: ["web", "missing"], Worker: [], quick: ["docs"] },
+				extra: true,
+			},
+		}),
+		[
+			"mcp.extra: unknown key; keys: servers, all, roles",
+			"mcp.servers.none: expected { command, args, env } (a local server) or { url, headers } (a remote one), got neither command and url",
+			"mcp.servers.both: expected { command, args, env } (a local server) or { url, headers } (a remote one), got both command and url",
+			"mcp.servers.bad name: expected a server name of letters, digits, _ and -",
+			"mcp.servers.list: expected { command, args, env } (a local server) or { url, headers } (a remote one), got a list",
+			'mcp.servers.local.command: expected a non-empty string, got ""',
+			'mcp.servers.local.args: expected a list of strings, got "x"',
+			'mcp.servers.local.env.A: expected text, or { valueEnv: "ARTHUR_ORCHESTRATION_<WHAT>" } for a secret, got 1',
+			'mcp.servers.local.env.B: expected text, or { valueEnv: "ARTHUR_ORCHESTRATION_<WHAT>" } for a secret, got an object',
+			"mcp.servers.local.headers: unknown key; keys: command, args, env",
+			'mcp.servers.remote.url: expected an http or https URL, got "ftp://example.com"',
+			'mcp.servers.remote.headers.Authorization: expected text, or { valueEnv: "ARTHUR_ORCHESTRATION_<WHAT>" } for a secret, got an object',
+			"mcp.servers.remote.env: unknown key; keys: url, headers",
+			"mcp.roles.Worker: expected a role name of lowercase letters, digits and dashes",
+			"mcp.roles.quick: quick is not a role: it names omp's quick model",
+			'mcp.all: unknown server "gone"; servers: docs, web, none, both, bad name, list, local, remote',
+			'mcp.roles.reviewer: unknown server "missing"; servers: docs, web, none, both, bad name, list, local, remote',
+		],
+	);
+	assert.deepEqual(paths({ mcp: { all: ["docs"] } }), ['mcp.all: unknown server "docs"; servers: none']);
+	assert.deepEqual(paths({ mcp: { servers: [], all: "docs", roles: { reviewer: "docs" } } }), [
+		'mcp.servers: expected servers by name, e.g. { docs: { command: "docs-mcp" } }, got a list',
+		'mcp.all: expected a list of server names, got "docs"',
+		'mcp.roles: expected a list of server names by role, e.g. { reviewer: ["docs"] }, got an object',
+	]);
+	assert.deepEqual(paths({ mcp: 3 }), ["mcp: expected an object with servers, all, roles, got 3"]);
+});
+
+test("mcp: all reaches a role without its own list, a role's own list replaces it, [] gives none, no option none at all", () => {
+	const options = {
+		mcp: {
+			servers: { docs: { command: "docs-mcp", args: ["--read-only"], env: { TOKEN: { valueEnv: "ARTHUR_ORCHESTRATION_DOCS_TOKEN" }, MODE: "read" } }, web: { url: "https://example.com/mcp", headers: { "X-Key": { valueEnv: "ARTHUR_ORCHESTRATION_WEB_KEY" } } } },
+			all: ["docs"],
+			roles: { reviewer: ["web"], planner: [] },
+		},
+	};
+	const env = { ARTHUR_ORCHESTRATION_DOCS_TOKEN: "t0ken", ARTHUR_ORCHESTRATION_WEB_KEY: "k3y" };
+	const docs = { command: "docs-mcp", args: ["--read-only"], env: { TOKEN: "t0ken", MODE: "read" } };
+	assert.deepEqual(mcpServers(options, env, "worker"), { docs });
+	assert.deepEqual(mcpServers(options, env, "coordinator"), { docs });
+	assert.deepEqual(mcpServers(options, env, "reviewer"), { web: { type: "http", url: "https://example.com/mcp", headers: { "X-Key": "k3y" } } });
+	assert.equal(mcpServers(options, env, "planner"), undefined);
+	assert.equal(mcpServers({ mcp: { servers: options.mcp.servers, roles: { reviewer: ["web"] } } }, env, "worker"), undefined, "no all: a role without its own list gets none");
+	assert.equal(mcpServers({}, env, "worker"), undefined);
 });
 
 test("the limits pass at their edge: no wait for the previous agent, a delay of one second, the last minute of the day", () => {

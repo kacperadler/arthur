@@ -8,6 +8,7 @@ import { boardCommands } from "./board-commands.ts";
 import { coordinatorContext } from "./context.ts";
 import { extensions, FRESH, pane, STOPPED, supervise, tmux } from "./coordinator.ts";
 import { inbox } from "./inbox.ts";
+import { type McpOptions, mcpServers } from "./mcp.ts";
 import { checkOptions, type Coordinator, coordinatorOptions } from "./orchestration-options.ts";
 import { plans } from "./plans.ts";
 import { silentMode } from "./silent.ts";
@@ -32,6 +33,8 @@ export type OrchestrationOptions = {
 	};
 	// A role's `model` and `thinking`; `quick` takes only a `model`, omp's quick model (`--smol`) for every job and the coordinator.
 	readonly roles?: Readonly<Record<string, { readonly model?: string | readonly string[]; readonly thinking?: string }>>;
+	// MCP servers by name, and which go to every role and which to a given role (mcp.ts).
+	readonly mcp?: McpOptions;
 	readonly plan?: { readonly budgetUsd?: number };
 	readonly autopilot?: { readonly budgetUsd?: number; readonly budgetMaxUsd?: number };
 	readonly morningReport?: { readonly at?: string };
@@ -127,7 +130,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 		},
 		start() {
 			messages?.start();
-			if (place !== undefined) supervisor = supervise(place.coordinator, place.folder, place.agent, extensions(place.host.collectEach("coordinator.extension")));
+			if (place !== undefined) supervisor = supervise(place.coordinator, place.folder, place.agent, extensions(place.host.collectEach("coordinator.extension")), mcpServers(place.host.options, place.host.env, "coordinator"));
 		},
 		async stop() {
 			await supervisor?.stop();

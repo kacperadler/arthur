@@ -236,7 +236,9 @@ import { checkStructure } from "./structure.ts";
 // 72), the HTTP check and the words of each failure (site-check.ts, 41), what is down kept across a restart (uptime-state.ts,
 // 34), and down after 2 failed checks with this machine's offline told apart, the notices and the events (uptime.ts, 141); a
 // new package, so nothing was cut elsewhere; core unchanged.
-const BUDGETS = { core: 5684, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 288 };
+// AR0232 (roadmap 98): uptime 4 more (292): a url on a port of the Fetch standard's bad-port list, which fetch never reaches,
+// refused at load (uptime-options.ts: the list with its comment, 2, and the refusal, 2); nothing was cut elsewhere.
+const BUDGETS = { core: 5684, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

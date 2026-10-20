@@ -7,8 +7,8 @@ import { failsSincePass, LIMIT, type Review, readReview, saveReview, settle } fr
 
 // The delivery plugin (spec/roadmap.md, entry 52): the kind `review`, a read-only job on the reviewer role in a detached checkout
 // of a worker's branch, on `roles.reviewer`'s model in a session of its own. It moves its ticket to review as it starts, and its
-// verdict, `PASS` or `FAIL` alone on the last line, moves it to done or back to in-progress; with neither the review failed and
-// is never filed. A branch gets at most 2 FAILs since its last PASS; the next review needs `Round: <n>` (`arthur review --round`)
+// verdict, `PASS` or `FAIL` alone on the last line, moves it to done or back to in-progress; with neither its run ends failed (the
+// kind's `verdicts`) and is never filed. A branch gets at most 2 FAILs since its last PASS; the next review needs `Round: <n>` (`arthur review --round`)
 // on the owner's word, and the wake of the second FAIL carries the procedure. docs/commands/review.md.
 
 const REVIEW = "review";
@@ -25,7 +25,7 @@ export function delivery(options: { readonly enabled?: boolean } = {}): Plugin {
 		setup(host) {
 			const procedure = new URL("../roles/coordinator/review-limit.md", import.meta.url);
 			host.jobs.registerRole({ name: "reviewer", file: new URL("../roles/reviewer.md", import.meta.url), criteria: ["styleguide", "review"] });
-			host.jobs.registerKind({ name: REVIEW, readOnly: true, role: "reviewer", file: reviewFiler(host) });
+			host.jobs.registerKind({ name: REVIEW, readOnly: true, role: "reviewer", verdicts: ["PASS", "FAIL"], file: reviewFiler(host) });
 			host.jobs.beforeSpawn(({ kind, task, tickets }) => (kind === REVIEW ? refusal(host, task, tickets) : undefined));
 			host.jobs.prepare(async (job, _env, continued) => {
 				if (job.kind !== REVIEW || continued) return;

@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
+import { coreVersion } from "@arthur/core";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { delivery } from "../src/delivery.ts";
 import { verdictOf } from "../src/review-records.ts";
@@ -108,13 +109,15 @@ test("a PASS review runs on the branch's tip with its ticket, moves the ticket t
 	assert.deepEqual(readdirSync(join(root, FOLDER)).sort(), ["review-2.md", "review-3.md", "ticket.md"]);
 });
 
-test("PASS not on the last line is no verdict: the ticket stays at review, the wake says so, and it is never filed", async (t) => {
-	const { root, fake, worker, review, status } = await load(t);
+test("PASS not on the last line is no verdict: the run ends failed, the ticket stays at review, the wake says so, and it is never filed", async (t) => {
+	const { root, fake, worker, review, status, home } = await load(t);
 	const job = await worker();
 	const none = await review("PASS\n\nThe branch holds.", job.id);
+	const reason = "failed: no verdict: the last line of its final message is not PASS or FAIL alone";
+	assert.equal(readFileSync(join(home, "jobs", none.id, "reason"), "utf8"), reason, "the core's record says the review failed");
 	assert.equal(status("AC0001"), "review");
 	assert.match(String(fake.collect("coordinator.wake", { id: none.id, kind: "review" })[0]), new RegExp(`^Review ${none.id}: no verdict, so the review failed: .* Review again with arthur review ${job.id}, then arthur prune ${none.id}\\.$`));
-	assert.throws(() => fake.host.jobs.file("AC0001", none.id), { message: new RegExp(`^${none.id} has no verdict: .*the review failed and is never filed`) });
+	assert.throws(() => fake.host.jobs.file("AC0001", none.id), { message: `${none.id} ended ended (${reason}), not finished: its result is unfinished and is never filed; prune it` });
 	assert.deepEqual(readdirSync(join(root, FOLDER)), ["ticket.md"]);
 	assert.deepEqual(fake.collect("coordinator.wake", { id: job.id, kind: "worker" }), [undefined], "a worker's wake gets nothing");
 });
@@ -149,8 +152,9 @@ test("a review carries its ticket, so placement reads the ticket's labels and th
 	const job = await worker();
 	const bin = temporaryFolder();
 	const log = join(bin, "ssh.log");
-	// A fake ssh that notes where it was sent and fails, as an unreachable machine does.
-	writeFileSync(join(bin, "ssh"), `#!/bin/sh\necho "$@" >> '${log}'\necho 'ssh: no route' >&2\nexit 255\n`, { mode: 0o755 });
+	// A fake ssh that notes where it was sent: there is this core's arthur, which holds every commit asked of it, then the
+	// worktree's step fails as an unreachable machine does.
+	writeFileSync(join(bin, "ssh"), `#!/bin/sh\necho "$@" >> '${log}'\ncase "$*" in *"'version'"*) echo '${coreVersion()}';; *"'repo'"*) echo present;; *) echo 'ssh: no route' >&2; exit 255;; esac\n`, { mode: 0o755 });
 	process.env.PATH = `${bin}${delimiter}${process.env.PATH}`;
 	fake.host.jobs.registerMachine({ name: "mac", ssh: "mac-mini", home: "/Users/test/.arthur", labels: { os: "macos" } });
 	const asked: unknown[] = [];
@@ -164,7 +168,9 @@ test("a review carries its ticket, so placement reads the ticket's labels and th
 	const placed = await review("PASS", job.id);
 	assert.equal(placed.code, 1);
 	assert.deepEqual(asked, [[TICKET]]);
-	assert.match(readFileSync(log, "utf8"), / mac-mini 'arthur' 'version'\n/);
+	const said = readFileSync(log, "utf8");
+	assert.match(said, / mac-mini 'arthur' 'version'\n/);
+	assert.match(said, new RegExp(` mac-mini 'arthur' 'remote-job' 'repo' '/Users/test/.arthur' 'acme' '${job.commit}'\n`), "the branch's tip is asked for there, to be pushed when missing");
 });
 
 test("refused before any job: not a worker, in a run, no ticket, nothing to review, no head lines, a ticket not started", async (t) => {

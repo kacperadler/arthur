@@ -240,7 +240,13 @@ import { checkStructure } from "./structure.ts";
 // tip, the ticket's moves and the wake (delivery.ts, 94), `arthur review` and its task (review-command.ts, 93), the review
 // records, the verdict and the FAILs since the last PASS (review-records.ts, 72), filing as review-N.md (review-file.ts, 37),
 // and its empty options file (16); a new package, so nothing was cut elsewhere; core unchanged.
-const BUDGETS = { core: 5684, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 288, delivery: 312 };
+// AR0235 F1 and F2 (the owner on 2026-10-20: two host API additions, docs/plugin-api.md "Changes since entry 51"). Cut first:
+// the record's header comment folded back to its lines (job-record.ts, 1), and in delivery the filing's own refusal of a
+// review with no verdict, which the core now refuses (2, delivery stays 312). Core 16 more (5700): `Kind.verdicts`, checked
+// at registration (job-kinds.ts, 6), kept in the record as `verdicts` with the kind's `Own` keys sent to `remote-job add`
+// (job-record.ts, remote-job.ts, 3), and a finished run whose last line is none of them ends `failed: no verdict` (wrapper.ts, 1);
+// `SpawnRequest.fetch`, checked as a commit here (jobs.ts, 4) and pushed to `refs/arthur/fetch` there when missing (job-machine.ts, 2).
+const BUDGETS = { core: 5700, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 288, delivery: 312 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

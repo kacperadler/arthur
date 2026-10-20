@@ -21,10 +21,11 @@ export function reviewCommand(host: Host, procedure: URL): Command {
 				return 2;
 			}
 			const job = worker(host, parsed.job);
-			const task = reviewTask(host, job, parsed.round);
+			const { task, commit } = reviewTask(host, job, parsed.round);
 			let started;
 			try {
-				started = await host.jobs.spawn({ task, kind: "review", project: job.project });
+				// The tip goes to the review's machine with its base, so the review checks it out there wherever the worker ran.
+				started = await host.jobs.spawn({ task, kind: "review", project: job.project, fetch: commit });
 			} catch (error) {
 				console.error(`arthur review: ${error instanceof Error ? error.message : String(error)}`);
 				if (parsed.round === undefined && failsSincePass(host, job.branch).length >= LIMIT) console.error(`\n${readFileSync(procedure, "utf8").trim()}`);
@@ -73,7 +74,7 @@ function worker(host: Host, name: string): JobRecord {
 // The review's task: its head, the lines the plugin and placement read (the one `Ticket:`, `Branch:`, `Commit:`, `Round:` past
 // the limit), then the range to judge and the worker's final message, whose own `Ticket:` words are escaped so the core and
 // placement read the review's ticket alone.
-function reviewTask(host: Host, job: JobRecord, round: number | undefined): string {
+function reviewTask(host: Host, job: JobRecord, round: number | undefined): { readonly task: string; readonly commit: string } {
 	const folders = [...new Set(job.tickets.flatMap((path) => FEATURE.exec(path)?.[1] ?? []))];
 	const [folder] = folders;
 	if (folder === undefined || folders.length > 1) throw new Error(`${job.id}'s task names ${folders.length === 0 ? "no ticket" : `${folders.length} tickets (${folders.join(", ")})`}; a review is of one ticket's branch`);
@@ -85,9 +86,10 @@ function reviewTask(host: Host, job: JobRecord, round: number | undefined): stri
 	const [head, base] = [git("rev-parse", "HEAD"), git("merge-base", "HEAD", commit)];
 	if (base === commit) throw new Error(`${job.branch} at ${commit.slice(0, 7)} adds nothing to HEAD (${head.slice(0, 7)}): nothing to review`);
 	const result = host.jobs.result(job.id).trim().replaceAll(/\bTicket:/g, "Ticket\\:");
-	return [
+	const task = [
 		[`Ticket: ${folder}/ticket.md`, `Branch: ${job.branch}`, `Commit: ${commit}`, ...(round === undefined ? [] : [`Round: ${round}`])].join("\n"),
 		`Review the branch ${job.branch} at ${commit}: your worktree is a detached checkout of that commit. The range to judge is ${base}..${commit}: \`git diff ${base}..${commit}\` and \`git log --oneline ${base}..${commit}\`. Read the ticket as main holds it: \`git show ${head}:${folder}/ticket.md\`.`,
 		`## The worker's final message (job ${job.id})\n\n${result === "" ? "None." : result}`,
 	].join("\n\n");
+	return { task, commit };
 }

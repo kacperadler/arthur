@@ -37,6 +37,8 @@ export type SpawnRequest = {
 	readonly machine?: string;
 	readonly requires?: Requires;
 	readonly ignoreRestart?: boolean;
+	// A commit of the repository besides HEAD that the job needs on its machine (a review's branch tip): pushed there with the base.
+	readonly fetch?: string;
 };
 
 // A spawn as `beforeSpawn` checks it: `tickets` holds every `Ticket:` file the task names, as written; `quick` is omp's `--smol`; `ignoreRestart` its `--ignore-restart` (session's restart guard); `modelWhy` why its model was picked (job-model.ts), `free` whether it costs nothing, its budget then 0.
@@ -143,6 +145,8 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 			const { root, project, files } = where(request.project);
 			const commit = head(root);
 			if (commit === undefined) throw new Error(`${root} has no commit yet; a job starts from HEAD`);
+			const fetch = request.fetch === undefined ? undefined : /^[0-9a-f]{7,40}$/.test(request.fetch) ? head(root, request.fetch) : undefined;
+			if (request.fetch !== undefined && fetch === undefined) throw new Error(`fetch: ${JSON.stringify(request.fetch)} is no commit of ${root}; give its hex id`);
 			if (!kind.readOnly && branchExists(root, "arthur")) throw new Error(`${root} has a branch named arthur, so Git cannot create a worker's branch arthur/<id> beside it; rename it: git branch -m arthur <new-name>`);
 			const tickets = taskTickets(request.task);
 			const missing = tickets.filter((path) => !fileAt(root, commit, path));
@@ -158,7 +162,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 			const release = await checks.pass(spawn);
 			try {
 				// The project's repository on another machine, where every step after this one runs over SSH; undefined on `local`.
-				const there = machine.name === LOCAL ? undefined : reach(machine, project, root, commit);
+				const there = machine.name === LOCAL ? undefined : reach(machine, project, root, commit, fetch);
 				const job = newJob(home, time.local().date, { ...spawn, ...caps }, root, commit, kind.readOnly, there ?? root);
 				if (there === undefined) addWorktree(root, job.worktree, commit, job.branch);
 				let [warnings, added, env] = [[] as string[], false, {} as Readonly<Record<string, string>>];
@@ -166,10 +170,10 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 					// A worktree on another machine: the project's files the prompt reads come from the main checkout.
 					const built = prompt(role, there === undefined ? job.worktree : root, files, () => collect("prompt", [role.name, job]));
 					warnings = built.warnings;
-					const [resumeOnBudget, since] = [kind.resumeOnBudget === true, time.now()];
-					if (there !== undefined) addThere(machine, { job: { ...job, root: there }, prompt: built.prompt, resumeOnBudget, idleMinutes: limits.idleMinutes, since: since.toISOString() });
+					const [own, since] = [{ resumeOnBudget: kind.resumeOnBudget === true, verdicts: kind.verdicts ?? [] }, time.now()];
+					if (there !== undefined) addThere(machine, { job: { ...job, root: there }, prompt: built.prompt, kind: own, idleMinutes: limits.idleMinutes, since: since.toISOString() });
 					added = true;
-					writeRecord(home, job, built.prompt, resumeOnBudget, limits.idleMinutes, since, checkouts(collect("projects", [])));
+					writeRecord(home, job, built.prompt, own, limits.idleMinutes, since, checkouts(collect("projects", [])));
 					release();
 					env = await prepared(job, false);
 				} catch (error) {

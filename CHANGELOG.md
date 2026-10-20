@@ -2,6 +2,12 @@
 
 Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-20
+
+### Added
+
+- AR0220 YouTrack: open issues grouped by state, and full create, edit, delete of issues and articles (e037b36)
+
 ## 2026-10-19
 
 ### Added
@@ -65,6 +71,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0204 `issue update` overwrites a description changed since it was read
 - AR0213 A pre-approved ticket's worker on a free model is refused (bd3400d)
 - AR0217 A ticket's memory cap can be stretched by swap
+- AR0219 schedule.register still finds a plugin's package folder by its name
 
 ### Changed
 

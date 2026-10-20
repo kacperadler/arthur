@@ -42,7 +42,7 @@ test("/name text runs the phone command with its channel and place, the reply go
 
 test("/name@botname: this bot's name, in any case, is the command; another bot's is dropped; getMe asked once it answers", async (t) => {
 	const api = await botApi(t);
-	const { fake, plugin, received } = await load(t, { apiUrl: api.url });
+	const { fake, plugin, received, queued } = await load(t, { apiUrl: api.url });
 	phone(fake.host, "jobs", (text) => `jobs ${text}`);
 	await plugin.start?.();
 	api.fail("getMe", 502, "Bad Gateway");
@@ -51,7 +51,8 @@ test("/name@botname: this bot's name, in any case, is the command; another bot's
 	api.push(command("/jobs@Arthur_Bot two"));
 	api.push(command("/jobs@shop_bot three"));
 	api.push({ text: "After them." });
-	await until("the text after them", () => received().length === 1);
+	// In order: once the text after them is received, every reply is queued; once the outbox is empty, each went.
+	await until("the text after them, and the replies sent", () => received().length === 1 && queued().length === 0 && api.took().length >= 3);
 	assert.deepEqual(
 		api.took().map((sent) => sent.text),
 		["jobs unknown name", "jobs one", "jobs two"],
@@ -76,7 +77,7 @@ test("a named bot's command is answered by that bot, its own name after the @", 
 
 test("an unknown command gets the registry's line; a slash that is no command is a message to the coordinator", async (t) => {
 	const api = await botApi(t);
-	const { fake, plugin, received } = await load(t, { apiUrl: api.url });
+	const { fake, plugin, received, queued } = await load(t, { apiUrl: api.url });
 	phone(fake.host, "jobs", () => "none");
 	phone(fake.host, "board", () => "empty");
 	await plugin.start?.();
@@ -84,7 +85,7 @@ test("an unknown command gets the registry's line; a slash that is no command is
 	api.push(command("/Jobs"));
 	const texts = ["/tmp/x is full", "/ hi", `/${"a".repeat(33)}`, "see /jobs"];
 	for (const text of texts) api.push({ text });
-	await until("the messages", () => received().length === texts.length);
+	await until("the messages, and the replies sent", () => received().length === texts.length && queued().length === 0 && api.took().length >= 2);
 	assert.deepEqual(
 		api.took().map((sent) => sent.text),
 		["unknown command /nope; phone commands: /board, /jobs", "unknown command /Jobs; phone commands: /board, /jobs"],

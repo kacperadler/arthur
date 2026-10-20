@@ -14,3 +14,12 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - What: `route` passes `{ channel, place }` to a phone command, as roadmap entry 50 says, but not the `instance` (the named bot) that `message-received` carries (AR0211). A project's `chat` key (entry 85) is `{ plugin, instance?, place }`, so `/restart` from a topic of a named bot (entries 36, 88) cannot tell that chat from the same topic number of another bot. The reply itself already goes back by the right bot.
 - Suggestion: before the host API freezes (entry 51), add an optional `instance` to `PhoneFrom` and pass the bot's name from telegram's `receive`, as `message-received` does; nothing else changes.
 - Status: open
+
+## F2. The outbox's retry test failed once in a full test run
+
+- Kind: risk
+- Found by: review of 2026-10-20-ar0224-roadmap-50-phone-f10cd1df (review), 2026-10-20
+- Where: `packages/telegram/test/telegram.test.ts:262`
+- What: "one retry per send, after 2 s; ..." (from AR0212, untouched here) failed once in the reviewer's full `npm test` of this branch and passed 3 of 3 alone; the failure's message was not kept. Six concurrent runs of it alone here passed 6 of 6, so the cause is not known. One candidate [INFERENCE]: its `retried.at - failed.at >= 2000` compares two `Date.now()` stamps around a 2 s `setTimeout`, which Node's monotonic timer can end a millisecond short of on the wall clock.
+- Suggestion: rerun the full suite until it fails to keep the message, then fix the wait it shows; for the candidate, assert at least 1990 ms.
+- Status: open

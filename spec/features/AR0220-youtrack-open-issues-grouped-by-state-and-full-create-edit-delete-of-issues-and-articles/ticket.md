@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-20: The owner: `issue list` shows only open issues, grouped by their state; the plugin gives full create, read, update, delete of issues and articles, and their management.
+- 2026-10-20: The owner approved it with AR0221 under the 90% usage ceiling.

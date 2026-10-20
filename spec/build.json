@@ -1873,5 +1873,12 @@
     "status": "planning",
     "path": "spec/features/AR0243-the-onboarding-procedure-does-not-name-the-command-that-merges-an-onboarding/ticket.md",
     "updated": "2026-10-20T22:41:01.446Z"
+  },
+  {
+    "id": "AR0244",
+    "title": "Roadmap 61: arthur stats",
+    "status": "planned",
+    "path": "spec/features/AR0244-roadmap-61-arthur-stats/ticket.md",
+    "updated": "2026-10-20T22:41:43.798Z"
   }
 ]

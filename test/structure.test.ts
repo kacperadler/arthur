@@ -277,7 +277,10 @@ import { checkStructure } from "./structure.ts";
 // main not pushed, the board uncommitted, the temporary folder and the inodes (health-checks.ts, 116), and its options file
 // (manage-options.ts, 36); a new package, so nothing was cut elsewhere; core unchanged.
 // Merged AR0239 with AR0240: main's budgets plus AR0239's raise, delivery 770, manage 257.
-const BUDGETS = { core: 5727, "core/testing": 349, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 770, github: 310, manage: 257 };
+// AR0244 (roadmap 61): manage 112 more (369) for `arthur stats`: the merged tickets' rounds, verdicts, cost and days, the
+// means and shares, the most expensive and the first line of each FAIL finding (stats.ts, 99), and the command registered with
+// its header (manage.ts, 13); nothing in manage did this before, so nothing was cut; core unchanged.
+const BUDGETS = { core: 5727, "core/testing": 349, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 770, github: 310, manage: 369 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

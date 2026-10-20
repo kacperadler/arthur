@@ -2,12 +2,13 @@ import { describe } from "@arthur/core";
 import type { Check, OptionTable, Tool } from "@arthur/core/option-table";
 import type { OptionProblem, Options } from "@arthur/core/plugin";
 import { AUTOPILOT_BUDGET, AUTOPILOT_CAP } from "./autopilot.ts";
+import { checkMcp, mcpOption } from "./mcp.ts";
 import { PLAN_BUDGET } from "./plans.ts";
 
 // The orchestration plugin's options file (spec/roadmap.md, entries 23, 26 and 93), checked before any setup by walking `table`:
 // docs/commands/coordinator.md, "Options". `plan` is entry 28's (plans.ts), `autopilot` entry 29's (autopilot.ts);
 // `morningReport` is read by a later entry (65) and checked here for its shape only; `coordinator` is entry 23's, with its
-// defaults applied by `coordinatorOptions`; `maxAgents` and `roles` are entry 26's.
+// defaults applied by `coordinatorOptions`; `maxAgents` and `roles` are entry 26's; `mcp` is AR0234's (mcp.ts).
 
 export const summary = "the coordinator: one omp in its own tmux session, its inbox and context, planning and autopilot";
 
@@ -57,6 +58,7 @@ export const table: OptionTable = {
 		each: role,
 		keys: { [QUICK]: { about: "Not a role: omp's quick model for every job and the coordinator", fields: quick } },
 	},
+	mcp: mcpOption,
 	plan: { about: "Plan jobs (arthur spawn --kind plan)", fields: { budgetUsd: { about: "A plan job's budget in USD; it resumes once at it, doubled", default: String(PLAN_BUDGET), check: usd } } },
 	autopilot: {
 		about: "Tickets set planned by policy (arthur ticket status <id> planned --autopilot)",
@@ -84,7 +86,7 @@ export function checkOptions(options: Options): OptionProblem[] {
 			else if (name === "coordinator") problems.push({ path: "roles.coordinator", problem: "the coordinator's model and thinking are coordinator.model and coordinator.thinking" });
 			else checkObject(`roles.${name}.`, value, name === QUICK ? quick : role, problems);
 		}
-	return problems;
+	return [...problems, ...checkMcp(options.mcp)];
 }
 
 // `path` ends with a dot unless it is the top level, where an unknown key is an option.

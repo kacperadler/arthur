@@ -161,7 +161,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `jobs.limits` | resources | the core, each spawn | The job's own caps. |
 | `jobs.keep` | none yet | the core (`arthur prune`) | Whether an ended job's record is kept. |
 | `models.pick` | models | the core, each spawn with a model | `{ model, why, free }` for `(list, machine)`. |
-| `roles.model` | orchestration | the core, session | `{ model, thinking, quick }` of a role. |
+| `roles.model` | orchestration | the core, session | `{ model, thinking, quick, mcp }` of a role; `mcp` its MCP servers in omp's `mcpServers` shape (AR0234). |
 | `message.part` | none yet (voice) | the core (`turnText`) | A `Claim` for a part it handles. |
 | `channel.send` | telegram | the core (`arthur send`) | A check of `{ files, caption?, place? }` that throws every refusal, or a function that sends. |
 | `ticket.autopilot` | orchestration | the core (`arthur ticket status --autopilot`) | The pre-approval. |

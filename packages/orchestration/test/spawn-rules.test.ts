@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { delimiter, dirname, join } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { delimiter, dirname, join, relative } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
+import { pathToFileURL } from "node:url";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { type OrchestrationOptions, orchestration } from "../src/orchestration.ts";
 
@@ -11,8 +12,9 @@ const PATH = process.env.PATH ?? "";
 const LEVELS = "off, minimal, low, medium, high, xhigh, max, auto";
 
 // The plugin set up alone on a fake host over a repository of one commit, with `omp` on `PATH` the fake agent that plays
-// `steps`, then waits until the test releases it; the coordinator is not started. `PATH` is restored when the test ends.
-async function load(t: TestContext, options: OrchestrationOptions, steps: AgentRun["steps"] = []) {
+// `steps`, then waits until the test releases it; the coordinator is not started. `env` is the plugin's set variables. `PATH`
+// is restored when the test ends.
+async function load(t: TestContext, options: OrchestrationOptions, steps: AgentRun["steps"] = [], env: Readonly<Record<string, string>> = {}) {
 	// In a folder of its own, beside which the jobs' worktrees go.
 	const root = join(temporaryFolder(), "acme");
 	mkdirSync(root);
@@ -29,7 +31,7 @@ async function load(t: TestContext, options: OrchestrationOptions, steps: AgentR
 		release();
 		process.env.PATH = PATH;
 	});
-	const fake = fakeHost({ name: "orchestration", root });
+	const fake = fakeHost({ name: "orchestration", root, env });
 	const plugin = orchestration(options);
 	await fake.setup({ setup: (host) => plugin.setup({ ...host, options }) });
 	const home = dirname(fake.host.folder);
@@ -39,7 +41,7 @@ async function load(t: TestContext, options: OrchestrationOptions, steps: AgentR
 		const file = join(dirname(agent), "starts.jsonl");
 		return existsSync(file) ? readFileSync(file, "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line).args) : []; // whole lines only
 	};
-	return { jobs: fake.host.jobs, collect: fake.collect, home, release, records, starts, worktrees: join(dirname(root), ".arthur-worktrees") };
+	return { jobs: fake.host.jobs, collect: fake.collect, home, release, records, starts, worktrees: join(dirname(root), ".arthur-worktrees"), folder: dirname(root) };
 }
 
 // The model flags among an agent's arguments, each with its value.
@@ -132,4 +134,57 @@ test("a role's model list goes to the core as written, which refuses it before a
 	await assert.rejects(jobs.spawn({ task: "Go." }), { message: "a model list needs the models plugin" });
 	assert.deepEqual(records(), []);
 	assert.deepEqual(collect("models.lists"), [[["mac/qwen3-coder", "anthropic/haiku"], ["anthropic/sonnet"]]], "the quick model and a role without a model are no list");
+});
+
+test("each job gets its role's MCP servers, all or its own, read-only tools unchanged; the secret is only in .mcp.json; [] and no option give none", async (t) => {
+	const mcp = {
+		servers: {
+			docs: { command: "docs-mcp", args: ["--stdio"], env: { DOCS_TOKEN: { valueEnv: "ARTHUR_ORCHESTRATION_DOCS_TOKEN" }, MODE: "read" } },
+			web: { url: "https://example.com/mcp", headers: { Authorization: { valueEnv: "ARTHUR_ORCHESTRATION_WEB_TOKEN" } } },
+		},
+		all: ["docs"],
+		roles: { reviewer: ["web"], auditor: [] },
+	};
+	const env = { ARTHUR_ORCHESTRATION_DOCS_TOKEN: "s3cret-docs", ARTHUR_ORCHESTRATION_WEB_TOKEN: "Bearer s3cret-web" };
+	const { jobs, starts, home, release, folder, collect } = await load(t, { maxAgents: 5, mcp }, [], env);
+	writeFileSync(join(folder, "role.md"), "# Role\n");
+	for (const [kind, role] of [["review", "reviewer"], ["audit", "auditor"]] as const) {
+		jobs.registerRole({ name: role, file: pathToFileURL(join(folder, "role.md")), criteria: [] });
+		jobs.registerKind({ name: kind, readOnly: true, role });
+	}
+	assert.deepEqual(collect("roles.model", "coordinator"), [{ model: undefined, thinking: undefined, quick: undefined }], "the coordinator's servers are never in the answer");
+	const ids: string[] = [];
+	for (const [index, kind] of ["worker", "review", "audit"].entries()) {
+		ids.push((await jobs.spawn({ task: "Go.", kind })).id);
+		await until(`start ${index + 1}`, () => starts().length === index + 1);
+	}
+	const record = (id: string, name: string) => join(home, "jobs", id, name);
+	// From `--tools` up to the prompt: the tools and, with servers, the plugin folder and the overlay.
+	const flags = (args: readonly string[]) => args.slice(args.indexOf("--tools"), args.indexOf("--append-system-prompt"));
+	const [worker = "", review = "", audit = ""] = ids;
+	assert.deepEqual(starts().map(flags), [
+		["--tools", "read,edit,write,bash,grep,glob", "--plugin-dir", record(worker, "mcp"), "--config", record(worker, "mcp.yml")],
+		["--tools", "read,bash,grep,glob", "--plugin-dir", record(review, "mcp"), "--config", record(review, "mcp.yml")],
+		["--tools", "read,bash,grep,glob"],
+	]);
+	const servers = (id: string) => JSON.parse(readFileSync(record(id, "mcp/.mcp.json"), "utf8"));
+	assert.deepEqual(servers(worker), { mcpServers: { docs: { command: "docs-mcp", args: ["--stdio"], env: { DOCS_TOKEN: "s3cret-docs", MODE: "read" } } } });
+	assert.deepEqual(servers(review), { mcpServers: { web: { type: "http", url: "https://example.com/mcp", headers: { Authorization: "Bearer s3cret-web" } } } });
+	assert.deepEqual([readFileSync(record(review, "mcp/.claude-plugin/plugin.json"), "utf8"), readFileSync(record(review, "mcp.yml"), "utf8")], ['{ "name": "arthur" }\n', "tools:\n  xdev: false\n"]);
+	assert.equal(statSync(record(review, "mcp/.mcp.json")).mode & 0o777, 0o600);
+	assert.deepEqual([existsSync(record(audit, "mcp")), existsSync(record(audit, "mcp.yml"))], [false, false]);
+	release();
+	await until("every job's end", () => ids.every((id) => existsSync(record(id, "state")) && readFileSync(record(id, "state"), "utf8") === "ended"));
+	// Every file of each record, at any depth, that holds a secret.
+	const holding = (id: string, at = join(home, "jobs", id)): string[] =>
+		readdirSync(at, { withFileTypes: true }).flatMap((entry) => {
+			const path = join(at, entry.name);
+			if (entry.isDirectory()) return holding(id, path);
+			return /s3cret/.test(readFileSync(path, "utf8")) ? [relative(join(home, "jobs", id), path)] : [];
+		});
+	assert.deepEqual(ids.map((id) => holding(id)), [["mcp/.mcp.json"], ["mcp/.mcp.json"], []]);
+	const bare = await load(t, {});
+	const plain = await bare.jobs.spawn({ task: "Go." });
+	await until("the start", () => bare.starts().length === 1);
+	assert.deepEqual([flags(bare.starts()[0] ?? []), existsSync(join(bare.home, "jobs", plain.id, "mcp")), bare.collect("roles.model", "worker")], [["--tools", "read,edit,write,bash,grep,glob"], false, [{ model: undefined, thinking: undefined, quick: undefined }]]);
 });

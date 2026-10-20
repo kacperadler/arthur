@@ -3,11 +3,13 @@ import { join } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
 import { ownHealth } from "./health-checks.ts";
 import { checkOptions, type ManageOptions } from "./manage-options.ts";
+import { stats } from "./stats.ts";
 
-// The manage plugin (spec/roadmap.md, entry 60): `arthur health` and `/health`, one line per thing that should have happened by
-// now and has not, from every plugin's answer to `health`, manage's own checks among them (health-checks.ts); read only. With
-// `health.everyMinutes`, `arthur run` runs the same round that often and sends its new lines as one `notice`; a problem the
-// round before saw too is not sent again, across a restart too. docs/manage.md.
+// The manage plugin (spec/roadmap.md, entries 60 and 61): `arthur health` and `/health`, one line per thing that should have
+// happened by now and has not, from every plugin's answer to `health`, manage's own checks among them (health-checks.ts); read
+// only. With `health.everyMinutes`, `arthur run` runs the same round that often and sends its new lines as one `notice`; a
+// problem the round before saw too is not sent again, across a restart too. `arthur stats`: the merged tickets' reviews, costs
+// and days (stats.ts). docs/manage.md.
 
 export type { ManageOptions };
 
@@ -67,6 +69,17 @@ export function manage(options: ManageOptions = {}): Plugin {
 						return 2;
 					}
 					console.log(report());
+				},
+			});
+			host.commands.register({
+				name: "stats",
+				doc: new URL("../docs/commands/stats.md", import.meta.url),
+				run({ args, project }) {
+					if (args.length > 0) {
+						console.error("usage: arthur stats [--project <name>]");
+						return 2;
+					}
+					console.log(stats(host, project));
 				},
 			});
 			round = () => {

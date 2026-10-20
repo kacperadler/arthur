@@ -211,9 +211,16 @@ import { checkStructure } from "./structure.ts";
 // resolved in order, a restart's left over at the start; telegram 185 more (589) for the files saved and the albums (media-in.ts,
 // poll.ts), `channel.send` with its checks before any send and the photo header read (media-out.ts), and multipart calls and
 // downloads (bot-api.ts).
+// AR0222 (roadmap 45, the owner on 2026-10-20): youtrack 141 more (659) for the rest of full management: `--query` on
+// `issue list` and `article list` with the project's own query around it and other projects' items dropped, and the flag
+// parsing with `--parent` (command, 36 more with the id check shared by every id a verb takes and the job's reading verbs as
+// an allow list), links (youtrack-links.ts, 32), tags and `issue move` and `article move` (write, 30 more with
+// `databaseId`), work items listed, edited and deleted (youtrack-work.ts, 35, `addWork` moved there from write), and an
+// article's comments and attachments (8 more); cut first: the article list's two reads to one call, and create's project
+// lookup to `databaseId`.
 // AR0223: a claim's reply the log holds already is not sent again when a restart cut the message's pass before the queue, none
 // matched in a log cut by hand; orchestration 6 more (1433) in inbox.ts's pass over `inbox/received/`.
-const BUDGETS = { core: 5668, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 518, "commit-rules": 169, nvm: 85, telegram: 589 };
+const BUDGETS = { core: 5668, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 589 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

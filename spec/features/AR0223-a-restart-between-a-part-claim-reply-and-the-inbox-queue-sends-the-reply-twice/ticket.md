@@ -35,3 +35,5 @@ Out:
 
 - 2026-10-20: Source: F1 of AR0221
 - 2026-10-20: The owner approved it (87% usage, under the 90% ceiling).
+- 2026-10-20: The coordinator accepts the orchestration line budget raise 1427 -> 1433 (+6) for the fix.
+- 2026-10-20: The owner: merge, and go on with Arthur as the coordinator recommends.

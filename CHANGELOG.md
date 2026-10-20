@@ -6,6 +6,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ### Other
 
+- AR0239 Roadmap 54: arthur merge (2b0d0b4)
 - AR0240 Roadmap 60: arthur health (aaf9d45)
 
 ## 2026-10-20

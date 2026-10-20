@@ -256,7 +256,17 @@ import { checkStructure } from "./structure.ts";
 // rules (review-needed.ts, 96), the extension that records each job's checks (checks-extension.ts, 61), `review.alwaysReview`
 // with its default and check (delivery-options.ts, 22 more), the shared lookup (review-command.ts, 7 more), and the command,
 // the extension and `delivery.alwaysReview` registered (delivery.ts, 10 more).
-const BUDGETS = { core: 5713, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 508 };
+// AR0234 (the owner on 2026-10-20, plan Option 1): MCP servers for the coordinator and each role; orchestration 111 more
+// (1542) for the `mcp` option with its checks, each role's servers with their secrets filled in, and the coordinator's
+// `<home>/orchestration/mcp/` and `--plugin-dir` (mcp.ts, 99); core 14 more (5698 alone; 5700 + 14 = 5714 merged with AR0235)
+// for `mcp` in the `roles.model` answer, checked and kept out of `arthur roles` (roles.ts), the record's `mcp/` and `mcp.yml`
+// (job-record.ts), the warning of a job on another machine (jobs.ts) and `--plugin-dir`/`--config` (wrapper.ts).
+// AR0236 (roadmap 57): github: 310, set for its options checked at load (github-options.ts, 70), the workflow runs asked of
+// GitHub with each refusal's words and the rate limit's wait (github-api.ts, 79), the runs told kept across a restart
+// (github-state.ts, 26), and the branches in play with each one's nearest run, ci-finished once per run and a refusal said
+// once (github.ts, 135); a new package, so nothing was cut elsewhere; core unchanged.
+// Merged AR0237 with AR0234 and AR0236: main's budgets plus AR0237's raises, core 5714 + 13 = 5727, delivery 508.
+const BUDGETS = { core: 5727, "core/testing": 349, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 508, github: 310 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

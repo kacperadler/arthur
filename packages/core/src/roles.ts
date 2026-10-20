@@ -109,7 +109,7 @@ export async function describeRoles(registry: RoleRegistry, kinds: readonly { re
 		name: role.name,
 		owner,
 		kinds: kinds.filter((kind) => kind.role === role.name).map((kind) => kind.name),
-		...(await roleModel(collect, role.name)),
+		...(({ mcp, ...shown }) => shown)(await roleModel(collect, role.name)),
 		sources: sources(role, at.root, at.files),
 	})));
 }
@@ -152,16 +152,20 @@ export function prompt(role: Role, folder: string, files: PromptFiles, sections:
 }
 
 // The role's model, or an ordered list of models, as written (the models plugin picks from a list at spawn, entry 82), its
-// thinking level and quick model (omp's `--smol`), from the one plugin that provides `roles.model` (orchestration's `roles`
-// option), its answer awaited; left out, the agent's own default.
-export async function roleModel(collect: Collect, role: string): Promise<{ readonly model?: string | readonly string[]; readonly thinking?: string; readonly quick?: string }> {
+// thinking level and quick model (omp's `--smol`), and its MCP servers by name in omp's `mcpServers` shape (AR0234), from the
+// one plugin that provides `roles.model` (orchestration's `roles` and `mcp` options), its answer awaited; left out, the agent's
+// own default. `arthur roles` shows no `mcp`: a server's secrets are filled in.
+export type McpServers = Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+export async function roleModel(collect: Collect, role: string): Promise<{ readonly model?: string | readonly string[]; readonly thinking?: string; readonly quick?: string; readonly mcp?: McpServers }> {
 	const found = collect("roles.model", [role]);
 	if (found.length > 1) throw new Error(`roles.model is provided ${found.length} times; one plugin provides it`);
-	const { model, thinking, quick } = ((await found[0]) ?? {}) as Record<string, unknown>;
+	const { model, thinking, quick, mcp } = ((await found[0]) ?? {}) as Record<string, unknown>;
 	if (model !== undefined && !isModelList(model)) throw new Error(`roles.model: the model of role ${role} must be a non-empty string, a non-empty list of them, or undefined`);
 	for (const [key, value] of Object.entries({ thinking, "quick model": quick }))
 		if (value !== undefined && (typeof value !== "string" || value === "")) throw new Error(`roles.model: the ${key} of role ${role} must be a non-empty string or undefined`);
-	return { model: model as string | readonly string[] | undefined, thinking: thinking as string | undefined, quick: quick as string | undefined };
+	const object = (value: unknown) => typeof value === "object" && value !== null && !Array.isArray(value);
+	if (mcp !== undefined && !(object(mcp) && Object.values(mcp as object).every(object))) throw new Error(`roles.model: the mcp of role ${role} must be an object of MCP servers by name, each an object, or undefined`);
+	return { model: model as string | readonly string[] | undefined, thinking: thinking as string | undefined, quick: quick as string | undefined, mcp: mcp as McpServers | undefined };
 }
 
 // A project's own file, never through a symlink: one on the way to it would read whatever it points at.

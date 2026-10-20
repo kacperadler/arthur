@@ -21,6 +21,8 @@ Outside a spawn a plugin reads a role through `host.jobs.prompt(role, project?)`
 
 Model, thinking level and quick model: from the one plugin that provides `roles.model` (orchestration's `roles` option; for the role `coordinator`, its `coordinator.model` and `coordinator.thinking`), called with the role's name and answering `{ model, thinking, quick }`, or a promise of it, awaited, each a string or undefined, `model` also an ordered list; without one, the agent's own default. A list is shown as written, `model mac/qwen3-coder, anthropic/claude-haiku-5-5`, and nothing is probed: a spawn has the models plugin pick from it (`arthur spawn --help`, "The model"). The quick model goes to the agent as `--smol`. `arthur spawn --model` and `--thinking` win over the role's.
 
+MCP servers: the same answer's `mcp`, the role's servers by name in omp's `mcpServers` shape with their secrets filled in (orchestration's `mcp` option, `arthur coordinator --help`, "MCP servers"), or undefined for none; the spawn writes them into the job record (`arthur spawn --help`). orchestration answers none for `coordinator`, whose servers it hands its agent itself. `arthur roles` never shows them, nor gives them to `host.jobs.roles()`: a secret is in them. An `mcp` that is not an object of objects refuses the spawn: `roles.model: the mcp of role <role> must be an object of MCP servers by name, each an object, or undefined`.
+
 ## The spawn
 
 - A role whose file is missing refuses the spawn, before any worktree or record exists: `role <role>: its role file <path> is missing`. So does a kind whose role no plugin registered: `role <role> is not registered; roles: <roles>`.

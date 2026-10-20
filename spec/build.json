@@ -1807,9 +1807,9 @@
   {
     "id": "AR0234",
     "title": "MCP servers for the coordinator and every role, set globally or per role",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0234-mcp-servers-for-the-coordinator-and-every-role-set-globally-or-per-role/ticket.md",
-    "updated": "2026-10-20T20:42:48.915Z"
+    "updated": "2026-10-20T20:59:02.861Z"
   },
   {
     "id": "AR0235",
@@ -1821,15 +1821,22 @@
   {
     "id": "AR0236",
     "title": "Roadmap 57: GitHub polling CI runs",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0236-roadmap-57-github-polling-ci-runs/ticket.md",
-    "updated": "2026-10-20T20:40:13.586Z"
+    "updated": "2026-10-20T21:16:41.808Z"
   },
   {
     "id": "AR0237",
     "title": "Roadmap 53: arthur review-needed",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0237-roadmap-53-arthur-review-needed/ticket.md",
-    "updated": "2026-10-20T20:43:00.691Z"
+    "updated": "2026-10-20T21:16:39.444Z"
+  },
+  {
+    "id": "AR0238",
+    "title": "A rerun keeps its run id, so its end is never told as `ci-finished`",
+    "status": "planning",
+    "path": "spec/features/AR0238-a-rerun-keeps-its-run-id-so-its-end-is-never-told-as-ci-finished/ticket.md",
+    "updated": "2026-10-20T21:16:41.805Z"
   }
 ]

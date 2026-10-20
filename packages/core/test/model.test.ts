@@ -173,6 +173,17 @@ test("arthur roles shows a role's list as written and asks models.pick nothing",
 	await assert.rejects(wrong.roles(), { message: "roles.model: the model of role worker must be a non-empty string, a non-empty list of them, or undefined" });
 });
 
+test("a role's MCP servers are checked at spawn, and arthur roles never shows them: their secrets are filled in", async () => {
+	const { root, home, agent } = setup();
+	const mcp = { docs: { command: "docs-mcp", env: { TOKEN: "s3cret" } } };
+	const [worker] = await runner(home, root, agent, { "roles.model": [() => ({ thinking: "high", mcp })] }).roles();
+	assert.deepEqual([worker?.thinking, worker !== undefined && "mcp" in worker], ["high", false]);
+	const refusal = "roles.model: the mcp of role worker must be an object of MCP servers by name, each an object, or undefined";
+	for (const wrong of [[mcp], { docs: "docs-mcp" }, "docs", null])
+		await assert.rejects(runner(home, root, agent, { "roles.model": [() => ({ mcp: wrong })] }).spawn({ task: "Go." }), { message: refusal });
+	assert.equal(existsSync(join(home, "jobs")), false, "refused before any record");
+});
+
 test("arthur spawn --model a,b gives the list and prints why the model was picked; arthur roles prints a role's list as written", () => {
 	const { root } = setup();
 	writeFileSync(

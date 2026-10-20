@@ -1,5 +1,5 @@
 import { call, field, getAll, type Instance } from "./youtrack-api.ts";
-import { readText } from "./youtrack-write.ts";
+import { readBytes } from "./youtrack-write.ts";
 
 // An issue's comments (spec/roadmap.md, entry 46): listed, added and edited from a file, and deleted the way YouTrack's own
 // delete does it, `deleted: true`, which YouTrack can restore; never an HTTP DELETE. docs/commands/youtrack.md. Returns the
@@ -32,7 +32,7 @@ export async function comments(instance: Instance, verb: string, id: string, wor
 
 // The whole file, trimmed, is the comment's text.
 function fromFile(file: string): string {
-	const text = readText(file).trim();
+	const text = readBytes(file).toString("utf8").trim();
 	if (text === "") throw new Error(`${file} is empty; the whole file is the comment's text; nothing was asked of YouTrack`);
 	return text;
 }

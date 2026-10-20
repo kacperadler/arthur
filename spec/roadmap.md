@@ -549,7 +549,7 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 ### 45. YouTrack: writing issues, articles, fields and work items
 
 - Package: youtrack.
-- Delivers: create or update an issue or an article from a file, set a custom field, add a work item; no verb deletes an issue.
+- Delivers: create or update an issue or an article from a file, set a custom field, add a work item; delete an issue or an article (AR0220, the owner on 2026-10-20), for the coordinator, never for a job.
 - Done means: edge cases: a field value the project does not allow (YouTrack's error in one line); updating an article that changed meanwhile; an empty file; a work item of 0 minutes is refused.
 - Depends on: 44.
 - Size: a day.
@@ -1085,7 +1085,7 @@ Each row is one capability of the harness Arthur replaces, as it was inventoried
 | P2 | The list of projects every command reaches | 41 |
 | P3 | Onboarding of a new repository | 42 |
 | P4 | A project names its tracker instance | 41, 44 |
-| Y1 | YouTrack: issues, articles, fields, work items, comments, attachments; no delete; ids checked; token hidden | 44, 45, 46 |
+| Y1 | YouTrack: issues, articles, fields, work items, comments, attachments; delete by the coordinator, never by a job; ids checked; token hidden | 44, 45, 46 |
 | Y2 | Rules for a job working on an issue | 46 |
 | E1 | Evals of coordinator turns | 67 |
 | E2 | The test kit: fake agent, fake host, safety net, temporary folders | 4, 11 |

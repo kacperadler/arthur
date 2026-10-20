@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Spawn, SpawnCheck } from "./jobs.ts";
 import { queueLock } from "./lock.ts";
-import { pluginStep } from "./plugin.ts";
+import { pluginStep } from "./plugin-host.ts";
 
 // The `beforeSpawn` checks of one load (spec/roadmap.md, entries 9 and 26), in the order the plugins registered them.
 

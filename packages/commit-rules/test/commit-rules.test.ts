@@ -4,7 +4,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
-import type { Host } from "@arthur/core/plugin";
+import type { Job } from "@arthur/core/plugin";
 import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { checkOptions, table } from "../src/commit-rules-options.ts";
 import { commitRules, type Rule } from "../src/commit-rules.ts";
@@ -191,7 +191,7 @@ test("the plugin takes no option: a project's rule is its commitRules", () => {
 // The hook as `prepare` installs it in a worktree the test made, as `arthur remote-job add` makes one on another machine;
 // `continued` as `arthur continue` runs the prepares again.
 const install = (worktree: string, continued = false) => {
-	const job = { project: "acme", machine: "local", worktree } as Parameters<Parameters<Host["jobs"]["prepare"]>[0]>[0];
+	const job = { project: "acme", machine: "local", worktree } as Job;
 	return hookStep(fakeHost({ name: "commit-rules" }).host, [{ name: "acme", commitRules: { regex: REGEX } }])(job, {}, continued);
 };
 

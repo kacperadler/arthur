@@ -1,11 +1,9 @@
-import type { Host } from "@arthur/core/plugin";
+import type { Host, Prepare } from "@arthur/core/plugin";
 import type { Project } from "./commit-rules.ts";
 
 // The `commit-msg` hook of a project's `commitRules.regex` (spec/roadmap.md, entry 43): docs/commit-rules.md, "The hook". It goes
 // into the job's own worktree only: a hooks folder in the worktree's Git folder, named by `core.hooksPath` in that worktree's
 // `config.worktree`, which Git reads once `extensions.worktreeConfig` is on, and which goes with the worktree.
-
-type Prepare = Parameters<Host["jobs"]["prepare"]>[0];
 
 // The client-side hooks Git runs in a worktree, beside `commit-msg`: each forwards to the project's own, so a job keeps them.
 const FORWARDED = [

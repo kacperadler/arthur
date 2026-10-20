@@ -28,7 +28,7 @@ const role: OptionTable = {
 };
 // `roles.quick` is not a role: its one model is omp's quick model (`--smol`) for every job and the coordinator.
 export const QUICK = "quick";
-const quick: OptionTable = { model: { about: "omp's quick model (--smol) for every job and the coordinator", check: text } };
+const quick: OptionTable = { model: { about: "omp's quick model (--smol) for every job and the coordinator", default: "the agent's own", check: text } };
 // The most jobs in a run at once, across every project and machine, when `maxAgents` is left out: the harness Arthur replaces held 3.
 export const MAX_AGENTS = 3;
 
@@ -52,9 +52,10 @@ export const table: OptionTable = {
 		},
 	},
 	roles: {
-		about: `Each role's model and thinking by role name (worker, reviewer, planner, ...); ${QUICK} takes only model, omp's quick model`,
+		about: `Each role's model and thinking by role name (worker, reviewer, planner, ...); ${QUICK} is not a role`,
 		check: (value) => (typeof value === "object" && value !== null && !Array.isArray(value) ? undefined : "one entry per role, e.g. { worker: { model, thinking } }"),
 		each: role,
+		keys: { [QUICK]: { about: "Not a role: omp's quick model for every job and the coordinator", fields: quick } },
 	},
 	plan: { about: "Plan jobs (arthur spawn --kind plan)", fields: { budgetUsd: { about: "A plan job's budget in USD; it resumes once at it, doubled", default: String(PLAN_BUDGET), check: usd } } },
 	autopilot: {

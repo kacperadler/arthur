@@ -2,7 +2,8 @@ import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { hostname } from "node:os";
 import { join } from "node:path";
 import type { LoadedConfig } from "./config.ts";
-import { type Answer, asPlugin, type Requirement } from "./plugin.ts";
+import { asPlugin } from "./plugin-host.ts";
+import type { Answer, Requirement } from "./plugin.ts";
 
 // `arthur doctor` (spec/roadmap.md, entry 80): the core's own requirements (requirements.ts), then each enabled plugin's, its
 // own `doctor` (without its setup, so also while the load refuses) and what it provides as `doctor`, all checked at once, each

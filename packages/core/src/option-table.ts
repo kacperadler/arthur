@@ -7,8 +7,9 @@
 export type Check = (value: unknown) => string | undefined;
 
 // One option: `about` is its meaning, `default` what holds when it is left out, each one line as a person reads it. A value has
-// its `check`, and a list or record of objects the table of their keys in `each`; a nested object has its `fields`.
-export type ValueOption = { readonly about: string; readonly default?: string; readonly check: Check; readonly each?: OptionTable };
+// its `check`, and a list or record of objects the table of their keys in `each`; a record may name keys of its own in `keys`
+// (AR0178), each checked by its own entry instead of `each`. A nested object has its `fields`.
+export type ValueOption = { readonly about: string; readonly default?: string; readonly check: Check; readonly each?: OptionTable; readonly keys?: OptionTable };
 export type ObjectOption = { readonly about: string; readonly default?: string; readonly fields: OptionTable };
 export type OptionEntry = ValueOption | ObjectOption;
 export type OptionTable = { readonly [key: string]: OptionEntry };
@@ -17,11 +18,11 @@ export type OptionTable = { readonly [key: string]: OptionEntry };
 export type Tool = { readonly name: string; readonly version: readonly string[] };
 
 // Every option of `table` at any depth, by its dotted path from `at`, a nested one after its parent; `*` stands for each item
-// of a list or record.
+// of a list or record, and a record's own `keys` follow it by name.
 export function everyOption(table: OptionTable, at = ""): { readonly path: string; readonly entry: OptionEntry }[] {
 	return Object.entries(table).flatMap(([key, entry]) => {
 		const path = at === "" ? key : `${at}.${key}`;
-		const inner = "fields" in entry ? everyOption(entry.fields, path) : entry.each === undefined ? [] : everyOption(entry.each, `${path}.*`);
+		const inner = "fields" in entry ? everyOption(entry.fields, path) : [...everyOption(entry.each ?? {}, `${path}.*`), ...everyOption(entry.keys ?? {}, path)];
 		return [{ path, entry }, ...inner];
 	});
 }

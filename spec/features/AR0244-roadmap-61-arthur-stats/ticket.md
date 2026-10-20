@@ -37,3 +37,4 @@ Out:
 ## Decisions
 
 - 2026-10-21: Started by the coordinator under the owner's free hand (99% usage until 08:00; 98% at 00:41); the last entry of the night, small, so usage stays under 99%.
+- 2026-10-21: Coordinator: cost read from outcome.md`s `- Cost:` line (survives prune); missing or n/a counts unknown. Accepted.

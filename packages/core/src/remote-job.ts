@@ -5,7 +5,7 @@ import type { Command } from "./commands.ts";
 import { eventBus } from "./events.ts";
 import { addWorktree, removeWorktree } from "./git.ts";
 import { continueJob, steerJob, stopJob } from "./job-control.ts";
-import { writeRecord } from "./job-record.ts";
+import { type Own, writeRecord } from "./job-record.ts";
 import { jobCaps, jobEnv, launch, machineLimit, UNCAPPED } from "./job-scope.ts";
 import { current, field, ID, inRun, told } from "./job-state.ts";
 import type { Job } from "./jobs.ts";
@@ -19,7 +19,7 @@ import type { Copy } from "./machine-sync.ts";
 const USAGE = "usage: arthur remote-job repo|add|launch|stop|steer|continue|prune|remove|records <home> [args]";
 
 // What `add` reads on stdin: the job with the repository there as its `root`, its prompt, and the record's other keys.
-export type Added = { readonly job: Job; readonly prompt: string; readonly resumeOnBudget: boolean; readonly idleMinutes: number; readonly since: string };
+export type Added = { readonly job: Job; readonly prompt: string; readonly kind: Own; readonly idleMinutes: number; readonly since: string };
 
 const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => void | Promise<void>>> = {
 	// Prints `present` when the repository of the project holds the commit, else `missing`, creating the repository bare.
@@ -31,11 +31,11 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 		console.log(spawnSync("git", ["-C", root, "cat-file", "-e", `${commit}^{commit}`], { stdio: "ignore" }).status === 0 ? "present" : "missing");
 	},
 	add(home) {
-		const { job, prompt, resumeOnBudget, idleMinutes, since } = JSON.parse(readFileSync(0, "utf8")) as Added;
+		const { job, prompt, kind, idleMinutes, since } = JSON.parse(readFileSync(0, "utf8")) as Added;
 		addWorktree(job.root, job.worktree, job.base, job.branch);
 		try {
 			// Every project's repository there is `<home>/repos/<project>.git`, with its jobs' worktrees, in the home folder the guard refuses.
-			writeRecord(home, job, prompt, resumeOnBudget, idleMinutes, new Date(since), "");
+			writeRecord(home, job, prompt, kind, idleMinutes, new Date(since), "");
 		} catch (error) {
 			removeWorktree(job.root, job.worktree, job.branch);
 			throw error;

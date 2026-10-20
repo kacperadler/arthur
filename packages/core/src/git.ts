@@ -20,9 +20,9 @@ export function topLevel(folder: string): string | undefined {
 	return yes(folder, ["rev-parse", "--show-toplevel"]) ? git(folder, ["rev-parse", "--show-toplevel"]) : undefined;
 }
 
-// The commit HEAD names; undefined in a repository with no commit yet.
-export function head(root: string): string | undefined {
-	return yes(root, ["rev-parse", "--verify", "--quiet", "HEAD^{commit}"]) ? git(root, ["rev-parse", "HEAD"]) : undefined;
+// The commit `name` names, HEAD when left out; undefined when it names none (a repository with no commit yet).
+export function head(root: string, name = "HEAD"): string | undefined {
+	return yes(root, ["rev-parse", "--verify", "--quiet", `${name}^{commit}`]) ? git(root, ["rev-parse", `${name}^{commit}`]) : undefined;
 }
 
 // A file, not a folder, at `path` from the top of the repository, in `commit`.

@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-20: Started by the coordinator under the owner's free hand in Arthur and the 90% usage ceiling (88% used), next in the approved order after 50.
+- 2026-10-20: The coordinator raised the budget to $12 after the first run ran out at $10.03 with 41 files uncommitted and npm test passing (778).

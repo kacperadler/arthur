@@ -17,6 +17,7 @@ The owner, 2026-10-20: a client's site went down and he learnt it only from the 
 The owner hears of a down site before the client calls. The check is plain HTTP in the plugin, with no model call, so it costs no usage. Later AR0216 hangs its chain (triage, fix, review) on the same `uptime` events.
 
 - Kind: improvement
+- Budget: 7
 
 ## Done means
 
@@ -38,3 +39,4 @@ Out:
 ## Decisions
 
 - 2026-10-20: Source: the owner's question about stimuli after a client's site went down unnoticed.
+- 2026-10-20: The owner approved it ("brzmi sensownie") after the coordinator recommended building it now; 88% usage, under the 90% ceiling.

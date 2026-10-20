@@ -43,6 +43,7 @@ What works today:
 - Review jobs (`@arthur/delivery`, entry 52): `arthur review <worker job>` starts a read-only review of a worker's branch at its tip, on the reviewer role and the review criteria, in a fresh session on `roles.reviewer`'s model; its task names the ticket, so placement reads the ticket's labels; the verdict, `PASS` or `FAIL` alone on the last line, moves the ticket to done or back to in-progress, and no verdict fails the review; `arthur ticket file` writes the next `review-N.md`, never twice; a branch gets at most 2 FAILs since its last PASS, then a review needs `--round N` on the owner's word, and the coordinator gets the procedure for his choice.
 - Review or no review (`@arthur/delivery`, entry 53): `arthur review-needed <worker job>` decides whether a branch needs a review: always for a file on the always-review list (`review.alwaysReview`, by default what reads secrets, the CI-failure handling and the review rules), a deleted file or `.env` in the diff; never for docs only; for 30 lines or fewer, by the job's own `npm run check` and `npm test` runs, which delivery's extension records while the agent works (`host.jobs.registerExtension`), `stale` after a later edit; `no review` moves the ticket to done, and autopilot asks the same list.
 - GitHub CI runs (`@arthur/github`, entry 57): every `poll.everySeconds` the newest runs of each project's `ci.workflow`, read with the token of the instance named after the repository's owner (else the unnamed one); each branch in play (the checkout's own and every job's) gets the run of its nearest commit that has one, so a commit outside the workflow's paths counts the run before it; `ci-finished` once per run id, across a restart too; a refused token said once, not every poll; a rate limit waits as GitHub says.
+- Health (`@arthur/manage`, entry 60): `arthur health` and `/health`, one line per thing that should have happened by now and has not, from every plugin's answer to `health` and manage's own checks (a ticket in progress or review with no job for an hour, main not pushed for an hour, the board uncommitted for an hour, the temporary folder or a filesystem's inodes under 10% free), a provider that throws costing its own line only; reads only; with `health.everyMinutes`, `arthur run` sends each round's new lines as one notice, a problem the round before saw never twice in a row, across a restart too.
 
 What is next:
 
@@ -89,7 +90,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | in progress, 2 of 6 entries | 52 and 53 built; 54 to 56, 59 |
 | github: CI runs, reruns, pushes, pull request reviews | in progress, 1 of 2 entries | 57 built; 58 |
 | youtrack: issues, articles, comments, attachments, the rules for jobs on an issue | built | 44 to 46 |
-| manage: health, stats, audit, retro, prune on a schedule | planned | 60 to 64 |
+| manage: health, stats, audit, retro, prune on a schedule | in progress, 1 of 5 entries | 60 built; 61 to 64 |
 | develop: `arthur plugin new`, evals | planned | 66 to 68 |
 | Later: signal, slack and whatsapp channels; server, web panel and the owner's mobile app (Expo) by the VPS's Tailscale name; knowledge base; company edition | planned | 73 to 79, 91, 92, 95 |
 
@@ -125,6 +126,7 @@ The commands that exist today, one line each; `arthur <command> --help` prints i
 - `arthur usage [--email]` (`/usage`, models): each account's limit windows from the agent's report, used % and when each resets.
 - `arthur review <worker job> [--round <n>]` (delivery): a review of an ended worker's branch at its tip, its verdict moving the ticket; refused after 2 FAILs since the branch's last PASS until the owner's word gives `--round`.
 - `arthur review-needed <worker job>` (delivery): whether an ended worker's branch needs a review, by the first rule that holds (the always-review list, a deleted file, `.env`, docs only, 30 lines, the job's own checks); `no review` moves the ticket to done.
+- `arthur health` (`/health`, manage): one line per thing that should have happened by now and has not, from every plugin's health checks and manage's own, or one line saying nothing is wrong.
 - `arthur youtrack issue|article list|get|create|update|move|attachments|delete`, `issue set|tag|untag|links|link|unlink|work`, `issue work list|edit|delete`, `comment list|add|edit|delete`, `attachment add|delete` (youtrack): a project's YouTrack issues and articles with their comments and attachments, read, written and deleted on the instance its `tracker` picks; open issues grouped by state, searched with `--query`, custom fields, tags, links, work items, sub-articles, and attachments saved to `.arthur/youtrack/<id>/`.
 
 ## Try it
@@ -162,7 +164,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-20.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entries 52 and 53 of 52-56 and 59; github has entry 57 of 57-58; no other plugin exists yet.
+%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entries 52 and 53 of 52-56 and 59; github has entry 57 of 57-58; manage has entry 60 of 60-64; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale; from AR0174: the decision log in orchestration.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -241,7 +243,7 @@ flowchart TD
         delivery ~~~ github ~~~ youtrack
       end
       subgraph SELF[Arthur itself]
-        manage[manage<br/>audit, retro, health]
+        manage[manage<br/>arthur health, /health<br/>1 of 5 entries; planned: stats, audit, retro, prune]
         develop[develop<br/>plugin new, evals]
         manage ~~~ develop
       end
@@ -308,8 +310,8 @@ flowchart TD
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
   class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,parts,api,machines,session,schedule,projects,models,nvm,commit,youtrack,telegram,uptime built;
-  class lpartial,orchestration,resources,delivery,github partial;
-  class lplanned,discord,voice,corelater,agents,findings,docker,manage,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
+  class lpartial,orchestration,resources,delivery,github,manage partial;
+  class lplanned,discord,voice,corelater,agents,findings,docker,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl,sites outside;
   style larrows fill:#fff,stroke:#999,color:#000
   style LEGEND fill:#fff,stroke:#999

@@ -39,8 +39,14 @@ export function inbox(host: Host): { start(): void; stop(): void } {
 						console.error(`orchestration: ${file} ${message}; set aside as ${file}.broken`);
 						continue;
 					}
-					const said = await turnText(host, parseInt(name), message);
-					queue(folder, { seq: parseInt(name), time: new Date(Number(name.split("-")[1])).toISOString() }, { channel: message.channel, text: said });
+					const [seq, ms] = [parseInt(name), Number(name.split("-")[1])];
+					// The claims' replies the log holds after this message, from a pass a restart cut before the queue, are not emitted
+					// again; a log cut by hand, whose numbers start again, holds none.
+					const [own, ...after] = host.events.read(seq);
+					const logged = own?.seq === seq && Date.parse(own.time) === ms ? after.filter((event) => event.name === "coordinator-replied" && JSON.stringify(((event.data ?? {}) as Readonly<Record<string, unknown>>).answers) === `[${seq}]`) : [];
+					const events = { ...host.events, emit: (event: string, data: unknown) => (event === "coordinator-replied" ? logged.shift() : undefined) ?? host.events.emit(event, data) };
+					const said = await turnText({ collectEach: host.collectEach, events }, seq, message);
+					queue(folder, { seq, time: new Date(ms).toISOString() }, { channel: message.channel, text: said });
 					rmSync(file);
 				}
 			})

@@ -211,7 +211,9 @@ import { checkStructure } from "./structure.ts";
 // resolved in order, a restart's left over at the start; telegram 185 more (589) for the files saved and the albums (media-in.ts,
 // poll.ts), `channel.send` with its checks before any send and the photo header read (media-out.ts), and multipart calls and
 // downloads (bot-api.ts).
-const BUDGETS = { core: 5668, "core/testing": 349, projects: 481, orchestration: 1427, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 518, "commit-rules": 169, nvm: 85, telegram: 589 };
+// AR0223: a claim's reply the log holds already is not sent again when a restart cut the message's pass before the queue, none
+// matched in a log cut by hand; orchestration 6 more (1433) in inbox.ts's pass over `inbox/received/`.
+const BUDGETS = { core: 5668, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 518, "commit-rules": 169, nvm: 85, telegram: 589 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

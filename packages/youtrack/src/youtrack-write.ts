@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import { call, field, type Instance } from "./youtrack-api.ts";
 
 // Writing to YouTrack (spec/roadmap.md, entry 45): an issue or an article created or updated from a file, an issue's custom
-// field set, a work item added; docs/commands/youtrack.md. No verb deletes. Each returns the line to print; a refusal of
-// what was given (an empty file, 0 minutes) throws before any call, and an update is made only from the version read.
+// field set, a work item added; docs/commands/youtrack.md. Each returns the line to print; a refusal of what was given (an
+// empty file, 0 minutes) throws before any call, and an update is made only from the version read.
 
 type Kind = "issue" | "article";
 
@@ -60,16 +60,16 @@ export async function addWork(instance: Instance, id: string, minutes: string, t
 
 // The file's first line, a Markdown heading's `#` dropped, is the summary; the rest the description or content.
 function fromFile(kind: Kind, file: string): { readonly summary: string } & Partial<Record<(typeof TEXT)[Kind], string>> {
-	const [first = "", ...rest] = readText(file).trim().split("\n");
+	const [first = "", ...rest] = readBytes(file).toString("utf8").trim().split("\n");
 	const summary = first.replace(/^#+(\s+|$)/, "").trim();
 	if (summary === "") throw new Error(`${file} is empty or starts with an empty heading; its first line is the ${kind}'s summary, the rest its ${TEXT[kind]}; nothing was asked of YouTrack`);
 	return { summary, [TEXT[kind]]: rest.join("\n").trim() };
 }
 
-// A file a write sends, a comment's too.
-export function readText(file: string): string {
+// A file a write sends, a comment's and an attachment's too; one that cannot be read is refused before any call.
+export function readBytes(file: string): Buffer<ArrayBuffer> {
 	try {
-		return readFileSync(file, "utf8");
+		return readFileSync(file);
 	} catch (error) {
 		throw new Error(`cannot read ${file}: ${error instanceof Error && "code" in error ? String(error.code) : String(error)}; nothing was asked of YouTrack`);
 	}

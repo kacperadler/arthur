@@ -118,7 +118,7 @@ The commands that exist today, one line each; `arthur <command> --help` prints i
 - `arthur restart [fresh]` (`/restart`, session): restarts the coordinator after its handoff, with `--continue` or, with `fresh`, in a new conversation, and `arthur run` too under its service while a restart is due; refused while a job runs.
 - `arthur resources [<ticket>]` (`/resources`, resources): each machine's room for more jobs from its free CPU and memory; with a ticket, what all its jobs spent against its caps per feature.
 - `arthur usage [--email]` (`/usage`, models): each account's limit windows from the agent's report, used % and when each resets.
-- `arthur youtrack issue|article list|get|create|update`, `issue set|work|attachments`, `comment list|add|edit|delete` (youtrack): a project's YouTrack issues, articles and comments, read and written on the instance its `tracker` picks; custom fields, work items, and attachments saved to `.arthur/youtrack/<id>/`.
+- `arthur youtrack issue|article list|get|create|update|delete`, `issue set|work|attachments`, `comment list|add|edit|delete`, `attachment add|delete` (youtrack): a project's YouTrack issues, articles, comments and attachments, read, written and deleted on the instance its `tracker` picks; open issues grouped by state, custom fields, work items, and attachments saved to `.arthur/youtrack/<id>/`.
 
 ## Try it
 

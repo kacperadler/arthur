@@ -199,7 +199,12 @@ import { checkStructure } from "./structure.ts";
 // 552 + 18 = 570, each other plugin 1 more for its `module` line.
 // Merged with main (AR0149): main's budgets plus this batch's raises, machines 458 + 1 = 459, resources 483 + 1 = 484; the
 // rest as the merge before: core 5549, schedule 570, each other plugin 1 more for its `module` line.
-const BUDGETS = { core: 5549, "core/testing": 349, projects: 481, orchestration: 1382, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 467, "commit-rules": 169, nvm: 85, telegram: 404 };
+// AR0220 (roadmap 45, the owner on 2026-10-20): youtrack 51 more (518) for `issue list` grouped by State in the bundle's
+// order (`byState`, 20 with its comment, and the issue and article lists split), `issue delete` and `article delete`
+// (`remove`, an HTTP DELETE, and a method on `request`), `attachment add` as a form upload and `attachment delete`
+// (`changeAttachment`, 15 with its comment), and the attachment's id in `issue attachments`; cut first: `readText` folded
+// into `readBytes`, its one reader of a file.
+const BUDGETS = { core: 5549, "core/testing": 349, projects: 481, orchestration: 1382, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 518, "commit-rules": 169, nvm: 85, telegram: 404 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -236,7 +236,11 @@ import { checkStructure } from "./structure.ts";
 // 72), the HTTP check and the words of each failure (site-check.ts, 41), what is down kept across a restart (uptime-state.ts,
 // 34), and down after 2 failed checks with this machine's offline told apart, the notices and the events (uptime.ts, 141); a
 // new package, so nothing was cut elsewhere; core unchanged.
-const BUDGETS = { core: 5684, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 288 };
+// AR0235 (roadmap 52): delivery: 312, set for review jobs: the kind, its refusals and the prepare that checks out the branch's
+// tip, the ticket's moves and the wake (delivery.ts, 94), `arthur review` and its task (review-command.ts, 93), the review
+// records, the verdict and the FAILs since the last PASS (review-records.ts, 72), filing as review-N.md (review-file.ts, 37),
+// and its empty options file (16); a new package, so nothing was cut elsewhere; core unchanged.
+const BUDGETS = { core: 5684, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 288, delivery: 312 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

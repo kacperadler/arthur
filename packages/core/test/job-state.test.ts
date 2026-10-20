@@ -114,48 +114,15 @@ function held(idleMinutes = 10) {
 	return { home, jobs, id, now };
 }
 
-test("unblock returns a held job to working, or to idle once it was silent for exactly idleMinutes, by the runner's clock", () => {
-	const { home, jobs, id, now } = held();
-	const minutes = (count: number) => new Date(NOW.getTime() + count * 60_000);
-	jobs.block(id, "machine mac unreachable");
-	assert.deepEqual(["state", "reason", "hold"].map((key) => field(home, id, key)), ["blocked", "dependency: machine mac unreachable", "machine mac unreachable"]);
-	now.at = minutes(9);
-	jobs.unblock(id);
-	assert.deepEqual(["state", "reason", "since"].map((key) => field(home, id, key)), ["working", "", minutes(9).toISOString()]);
-	assert.equal(existsSync(join(home, "jobs", id, "hold")), false);
-	jobs.block(id, "machine mac unreachable");
-	now.at = minutes(10);
-	jobs.unblock(id);
-	assert.equal(field(home, id, "state"), "idle");
-	assert.deepEqual(moves(home, id), [
-		["working", "blocked", "dependency: machine mac unreachable"],
-		["blocked", "working", ""],
-		["working", "blocked", "dependency: machine mac unreachable"],
-		["blocked", "idle", ""],
-	]);
-});
-
-test("with idleMinutes 0 unblock returns a job to working however long it was silent", () => {
-	const { home, jobs, id, now } = held(0);
-	jobs.block(id, "cap reached");
-	now.at = new Date(NOW.getTime() + 86_400_000);
-	jobs.unblock(id);
-	assert.equal(field(home, id, "state"), "working");
-});
-
-test("a move to the state and reason a job is in emits nothing: a second block with the same reason, an unblock of a job not held", () => {
+test("a move to the state and reason a job is in emits nothing: a second block with the same reason", () => {
 	const { home, jobs, id } = held();
-	jobs.unblock(id);
 	jobs.block(id, "  machine mac\nunreachable ");
 	jobs.block(id, "machine mac unreachable");
 	assert.equal(moveJob(home, id, eventBus(home), () => ["blocked", "dependency: machine mac unreachable"]), false);
 	jobs.block(id, "cap reached");
-	jobs.unblock(id);
-	jobs.unblock(id);
 	assert.deepEqual(moves(home, id), [
 		["working", "blocked", "dependency: machine mac unreachable"],
 		["blocked", "blocked", "dependency: cap reached"],
-		["blocked", "working", ""],
 	]);
 });
 
@@ -164,7 +131,6 @@ test("block is refused for an empty reason, an unknown id, and a job not in a ru
 	for (const reason of ["", " \n "]) assert.throws(() => jobs.block(id, reason), { message: `block ${id}: the reason is empty` });
 	for (const unknown of ["2026-10-16-worker-00000000", "../../etc"]) {
 		assert.throws(() => jobs.block(unknown, "x"), { message: `${unknown}: no such job in ${join(home, "jobs")}` });
-		assert.throws(() => jobs.unblock(unknown), { message: `${unknown}: no such job in ${join(home, "jobs")}` });
 	}
 	moveJob(home, id, eventBus(home), () => ["blocked", "user: may I?"]);
 	assert.throws(() => jobs.block(id, "x"), { message: `block ${id}: it is blocked (user: may I?), not in a run; only a job in a run is held` });
@@ -173,7 +139,7 @@ test("block is refused for an empty reason, an unknown id, and a job not in a ru
 	assert.equal(existsSync(join(home, "jobs", id, "hold")), false);
 });
 
-test("a plugin's block wins over idle and over the agent's output, until unblock; the run's end ends the hold", async () => {
+test("a plugin's block wins over idle and over the agent's output; the run's end ends the hold", async () => {
 	const gates = temporaryFolder();
 	const agent = fakeAgent({ steps: [{ waitFor: join(gates, "one") }, { tool: "read", args: { path: "README.md" } }, { waitFor: join(gates, "two") }, { message: "Done." }] });
 	const { home, jobs } = setup(agent, 0.05);
@@ -183,15 +149,12 @@ test("a plugin's block wins over idle and over the agent's output, until unblock
 	writeFileSync(join(gates, "one"), "");
 	await until("the tool call", () => existsSync(join(home, "jobs", job.id, "tool-calls")) && field(home, job.id, "tool-calls") === "1");
 	assert.equal(field(home, job.id, "state"), "blocked");
-	jobs.unblock(job.id);
-	assert.equal(field(home, job.id, "state"), "working");
 	jobs.block(job.id, "cap reached");
 	writeFileSync(join(gates, "two"), "");
 	await until("job-ended", () => ends(home, job.id).length > 0);
 	assert.deepEqual(moves(home, job.id), [
 		["working", "blocked", "dependency: machine mac unreachable"],
-		["blocked", "working", ""],
-		["working", "blocked", "dependency: cap reached"],
+		["blocked", "blocked", "dependency: cap reached"],
 		["blocked", "ended", "finished"],
 	]);
 	assert.equal(existsSync(join(home, "jobs", job.id, "hold")), false);

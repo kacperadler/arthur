@@ -93,6 +93,7 @@ test("refused: an option without about, with an empty one or a line break, at an
 		empty: { about: " ", check },
 		deep: { about: "A section", fields: { inner: { about: "Inner", fields: { leaf: { about: "one\ntwo", check } } } } },
 		list: { about: "A list", check, each: { item: { about: "", check } } },
+		record: { about: "A record", check, each: { item: { about: "Item", check } }, keys: { own: { about: "Its own", fields: { leaf: { about: "", check } } } } },
 		fine: { about: "Fine", default: "two\nlines", check },
 	};
 	const tools = [{ name: "tmux" } as unknown as Tool, { name: "git", version: [] }, { name: "omp", version: ["omp", ""] }, { name: "node", version: ["node", "--version"] }];
@@ -102,6 +103,7 @@ test("refused: an option without about, with an empty one or a line break, at an
 		"x empty: about is not one line",
 		"x deep.inner.leaf: about is not one line",
 		"x list.*.item: about is not one line",
+		"x record.own.leaf: about is not one line",
 		"x fine: default is not one line",
 		"x tmux: no version command",
 		"x git: no version command",
@@ -110,13 +112,18 @@ test("refused: an option without about, with an empty one or a line break, at an
 	assert.deepEqual(problems("x", { summary: "one\ntwo", tools: [], table: {} }), ["x: summary is not one line"]);
 });
 
-test("an option two levels deep has its meaning like a top-level one, after its parent; a list's or record's items under *", () => {
+test("an option two levels deep has its meaning like a top-level one, after its parent; a list's or record's items under *, then a record's own keys", () => {
 	const paths = (table: OptionTable) => everyOption(table).map(({ path }) => path);
 	const about = (table: OptionTable, path: string) => everyOption(table).find((each) => each.path === path)?.entry.about;
 	const coordinator = paths(orchestrationFile.table);
 	assert.deepEqual(coordinator.slice(0, 7), ["maxAgents", "coordinator", "coordinator.model", "coordinator.thinking", "coordinator.tmux", "coordinator.tmux.session", "coordinator.tmux.socket"]);
 	assert.equal(about(orchestrationFile.table, "coordinator.tmux.session"), "The tmux session's name");
-	assert.ok(coordinator.includes("roles.*.model"), "a role's model");
+	assert.deepEqual(
+		coordinator.filter((path) => path.startsWith("roles")),
+		["roles", "roles.*.model", "roles.*.thinking", "roles.quick", "roles.quick.model"],
+		"roles.quick, no role, its own line after each role's (AR0178)",
+	);
+	assert.equal(about(orchestrationFile.table, "roles.quick.model"), "omp's quick model (--smol) for every job and the coordinator");
 	assert.ok(paths(projectsFile.table).includes("list.*.prefix"), "a project's prefix");
 	assert.ok(paths(machinesFile.table).includes("list.*.labels.os"), "a machine's os, three levels down");
 	assert.ok(paths(core.table).includes("jobs.memory"), "the core's jobs.memory");

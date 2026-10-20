@@ -77,6 +77,7 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | telegram (named) | first | A channel: receive, send text, send media. Follows the coordinator's silent mode (`/silent`, roadmap 47): while it is on, sends only the end of the work the owner delegated, its stop condition met, a decision, and the answer to his own message. |
 | discord (named) | first | A channel, through Discord's gateway: an outbound WebSocket, no Interactions Endpoint URL. One private server: a main channel for the coordinator and one channel per project; the bot answers only the owner. The channel the owner uses (decision 21). |
 | voice (named) | first | Local transcription of voice parts with whisper.cpp: claims every `voice` part from any channel, on the CPU, nothing sent to the cloud. |
+| uptime (named) | first | Checks each project's sites over HTTP while `arthur run` runs; one notice when a site goes down (2 failed checks in a row) and one when it is back, with `uptime-down` and `uptime-up` events; this machine offline is told apart from a site down. Roadmap 98. |
 | delivery (derived) | first | Review, always-review list, merge after PASS and green CI, the changelog. |
 | github (derived) | first | Polls CI runs and pull requests, wakes the coordinator. |
 | manage (named: managing Arthur) | first | The audit, the retro, health, prune, stats. Its options (`audit.days`, `retro.day`) make the schedule entries, not prose in one. |
@@ -122,7 +123,7 @@ Home: the core's job runner; shown by `orchestration` and the channels. Every jo
 | blocked | It cannot go on until something outside it happens: the user (a question its run ended with, its feature's cap reached) or a dependency (another ticket or job, its machine offline). |
 | ended | Nothing more will happen: finished, failed, stopped, a limit hit, process gone. |
 
-A run ends blocked when the first line of its final message is `Blocked: user <question>` or `Blocked: on <ticket or job id>`; `arthur continue` resumes it. Interface: the record's `state`, the `job-state` event on each change, `host.jobs.block(id, reason)` and `unblock(id)` for a plugin that holds a job, `arthur jobs` and `/jobs`. The coordinator's context lists the jobs that have not ended by state, its wake says the state a run ended in, and a job blocked on the user is a `notice` every channel sends.
+A run ends blocked when the first line of its final message is `Blocked: user <question>` or `Blocked: on <ticket or job id>`; `arthur continue` resumes it. Interface: the record's `state`, the `job-state` event on each change, `host.jobs.block(id, reason)` for a plugin that holds a job until its run ends, `arthur jobs` and `/jobs`. The coordinator's context lists the jobs that have not ended by state, its wake says the state a run ended in, and a job blocked on the user is a `notice` every channel sends.
 
 ### Several machines
 

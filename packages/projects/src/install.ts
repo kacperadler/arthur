@@ -1,9 +1,8 @@
 import { spawnSync } from "node:child_process";
-import type { Host } from "@arthur/core/plugin";
+import type { Host, Prepare } from "@arthur/core/plugin";
 
 // The install of each new worktree's dependencies (spec/roadmap.md, entry 41): docs/commands/projects.md, "Install".
 
-type Prepare = Parameters<Host["jobs"]["prepare"]>[0];
 type Installs = { readonly name: string; readonly install?: string };
 
 // The frozen install of each lockfile the plugin knows, found at the top of the repository.

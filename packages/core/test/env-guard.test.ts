@@ -3,7 +3,8 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import envGuard, { envRefusal } from "../src/env-guard.ts";
+import envGuard from "../src/env-guard.ts";
+import { envRefusal } from "../src/env-refusal.ts";
 import { temporaryFolder } from "../src/testing.ts";
 
 // A project with a secrets file, its example and a plain file, and beside it one whose `.env` is a folder (a virtualenv).

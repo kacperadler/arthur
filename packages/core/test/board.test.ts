@@ -5,16 +5,19 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { join } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
+import { board as ticketBoard } from "../src/board.ts";
 import { type FakeHost, fakeHost, temporaryFolder } from "../src/testing.ts";
 
 // 22:30 UTC is already the next day in Warsaw: the ticket's date is the core's time zone's.
 const NOW = new Date("2026-10-16T22:30:00Z");
 
+// The core's board, as `arthur ticket` has it, its events named by the plugin `delivery`; `host.board` is the same without `after`.
 function setup(projects: readonly unknown[] = [{ name: "demo", path: temporaryFolder(), prefix: "DM" }]) {
 	const fake = fakeHost({ name: "delivery", timeZone: "Europe/Warsaw", now: NOW });
 	fake.provide("projects", () => projects);
 	const root = (projects[0] as { path: string } | undefined)?.path ?? "";
-	return { fake, board: fake.host.board, root, file: join(root, "spec", "build.json") };
+	const board = ticketBoard(() => fake.collect("projects"), fake.host.clock, (name, data) => fake.host.events.emit(name, data));
+	return { fake, board, root, file: join(root, "spec", "build.json") };
 }
 
 const events = (fake: FakeHost) => fake.emitted.map(({ plugin, name, data }) => ({ plugin, name, data }));

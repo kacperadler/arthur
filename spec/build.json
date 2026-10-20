@@ -1758,15 +1758,36 @@
   {
     "id": "AR0227",
     "title": "An uptime plugin: Arthur checks client sites and tells the owner when one is down",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0227-an-uptime-plugin-arthur-checks-client-sites-and-tells-the-owner-when-one-is-down/ticket.md",
-    "updated": "2026-10-20T10:37:19.711Z"
+    "updated": "2026-10-20T11:01:14.220Z"
   },
   {
     "id": "AR0228",
     "title": "Roadmap 51: freeze the host API",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0228-roadmap-51-freeze-the-host-api/ticket.md",
-    "updated": "2026-10-20T10:17:04.160Z"
+    "updated": "2026-10-20T10:53:12.585Z"
+  },
+  {
+    "id": "AR0229",
+    "title": "`host.jobs.block` without `stop` is used by no plugin",
+    "status": "dropped",
+    "path": "spec/features/AR0229-host-jobs-block-without-stop-is-used-by-no-plugin/ticket.md",
+    "updated": "2026-10-20T10:53:21.162Z"
+  },
+  {
+    "id": "AR0230",
+    "title": "Two comments still name what AR0228 changed",
+    "status": "merged",
+    "path": "spec/features/AR0230-two-comments-still-name-what-ar0228-changed/ticket.md",
+    "updated": "2026-10-20T11:03:31.604Z"
+  },
+  {
+    "id": "AR0231",
+    "title": "Arthur starts without the coordinator",
+    "status": "planning",
+    "path": "spec/features/AR0231-arthur-starts-without-the-coordinator/ticket.md",
+    "updated": "2026-10-20T11:03:32.832Z"
   }
 ]

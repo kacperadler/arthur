@@ -13,7 +13,8 @@ import { knownProject } from "./job-checkout.ts";
 import { SLICE } from "./job-scope.ts";
 import { type JobRunner, jobRunner } from "./jobs.ts";
 import { coreRequirements } from "./requirements.ts";
-import { type Answer, asPlugin, type Plugin, pluginHost, pluginStep, registry } from "./plugin.ts";
+import type { Answer, Plugin } from "./plugin.ts";
+import { asPlugin, pluginHost, pluginStep, registry } from "./plugin-host.ts";
 import type { Outgoing } from "./send-command.ts";
 
 // The plugin host (spec/roadmap.md, entry 4): checks the config's plugin list, resolves the enabled plugins' env variables,

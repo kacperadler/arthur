@@ -204,7 +204,14 @@ import { checkStructure } from "./structure.ts";
 // (`remove`, an HTTP DELETE, and a method on `request`), `attachment add` as a form upload and `attachment delete`
 // (`changeAttachment`, 15 with its comment), and the attachment's id in `issue attachments`; cut first: `readText` folded
 // into `readBytes`, its one reader of a file.
-const BUDGETS = { core: 5549, "core/testing": 349, projects: 481, orchestration: 1382, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 518, "commit-rules": 169, nvm: 85, telegram: 404 };
+// AR0222 (roadmap 45, the owner on 2026-10-20): youtrack 141 more (659) for the rest of full management: `--query` on
+// `issue list` and `article list` with the project's own query around it and other projects' items dropped, and the flag
+// parsing with `--parent` (command, 36 more with the id check shared by every id a verb takes and the job's reading verbs as
+// an allow list), links (youtrack-links.ts, 32), tags and `issue move` and `article move` (write, 30 more with
+// `databaseId`), work items listed, edited and deleted (youtrack-work.ts, 35, `addWork` moved there from write), and an
+// article's comments and attachments (8 more); cut first: the article list's two reads to one call, and create's project
+// lookup to `databaseId`.
+const BUDGETS = { core: 5549, "core/testing": 349, projects: 481, orchestration: 1382, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 404 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

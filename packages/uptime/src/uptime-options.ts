@@ -19,6 +19,8 @@ const address: Check = (value) => {
 	const url = typeof value === "string" && URL.canParse(value) ? new URL(value) : undefined;
 	return url?.protocol === "http:" || url?.protocol === "https:" ? undefined : "an http or https URL";
 };
+// The Fetch standard's bad ports (fetch.spec.whatwg.org/#bad-port): Node's fetch refuses them without a connection (AR0232).
+const BLOCKED_PORTS: readonly string[] = "1 7 9 11 13 15 17 19 20 21 22 23 25 37 42 43 53 69 77 79 87 95 101 102 103 104 109 110 111 113 115 117 119 123 135 137 139 143 161 179 389 427 465 512 513 514 515 526 530 531 532 540 548 554 556 563 587 601 636 989 990 993 995 1719 1720 1723 2049 3659 4045 4190 5060 5061 6000 6566 6665 6666 6667 6668 6669 6679 6697 10080".split(" ");
 const SITE: Readonly<Record<string, ValueOption>> = {
 	url: { about: "The address checked, http or https; a redirect is followed", check: address },
 	expect: {
@@ -63,6 +65,8 @@ export function checkOptions(options: Options): OptionProblem[] {
 			}
 			if (site.url === undefined) problems.push({ path: `${where}.url`, problem: `project ${project}: url is required` });
 			if (typeof site.url !== "string") return;
+			const port = address(site.url) === undefined ? new URL(site.url).port : "";
+			if (BLOCKED_PORTS.includes(port)) problems.push({ path: `${where}.url`, problem: `project ${project}: ${site.url} is on port ${port}, which fetch never reaches: the Fetch standard blocks it; use another port` });
 			const twice = first.get(site.url);
 			if (twice !== undefined) problems.push({ path: `${where}.url`, problem: `project ${project}: ${site.url} is listed twice, at ${twice} and ${where}` });
 			else first.set(site.url, where);

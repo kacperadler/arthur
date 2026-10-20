@@ -22,8 +22,8 @@ export type Command = {
 	readonly phone?: { readonly about: string; readonly reply: (text: string, from: PhoneFrom) => string | Promise<string> };
 };
 
-// Where `/name text` came from: the channel (its plugin's name) and the place the message names (a topic, a channel id); the reply goes back there.
-export type PhoneFrom = { readonly channel?: string; readonly place?: string };
+// Where `/name text` came from: the channel (its plugin's name), the place the message names (a topic, a channel id) and the named instance (a bot); the reply goes back there.
+export type PhoneFrom = { readonly channel?: string; readonly place?: string; readonly instance?: string };
 
 // What a plugin sees as `host.commands`.
 export type Commands = {

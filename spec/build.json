@@ -1810,5 +1810,12 @@
     "status": "planning",
     "path": "spec/features/AR0234-mcp-servers-for-the-coordinator-and-every-role-set-globally-or-per-role/ticket.md",
     "updated": "2026-10-20T16:57:06.653Z"
+  },
+  {
+    "id": "AR0235",
+    "title": "Roadmap 52: review jobs",
+    "status": "planned",
+    "path": "spec/features/AR0235-roadmap-52-review-jobs/ticket.md",
+    "updated": "2026-10-20T19:36:53.245Z"
   }
 ]

@@ -36,3 +36,4 @@ In:
 
 - 2026-10-20: Source: F1 of AR0227
 - 2026-10-20: The coordinator picked the refusal at load over a second HTTP client: fewer lines, and such ports are almost never a site's.
+- 2026-10-20: Owner: usage ceiling raised to 99% until 08:00 on 2026-10-21; started now instead of at 10:15.

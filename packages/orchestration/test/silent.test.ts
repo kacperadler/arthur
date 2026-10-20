@@ -211,7 +211,7 @@ test("through the coordinator: while on, a turn of only a wake is held, a wake a
 	fake.emit("coordinator-message", { text: "Schedule: the nightly audit ran." });
 	await until("the held reply", () => existsSync(held) && readdirSync(held).length === 1);
 	const wake = fake.emit("coordinator-message", { text: "Schedule: the backup ran." }).seq;
-	const owner = fake.emit("message-received", { channel: "telegram", text: "How is it going?" }).seq;
+	const owner = fake.emit("message-received", { channel: "telegram", parts: [{ kind: "text", text: "How is it going?", mime: "text/plain" }] }).seq;
 	const replies = () => fake.emitted.filter((event) => event.name === "coordinator-replied").map((event) => event.data);
 	await until("the sent reply", () => replies().length === 1);
 	assert.deepEqual(replies(), [{ text: "Sent reply.", answers: [wake, owner], channels: ["telegram"] }]);

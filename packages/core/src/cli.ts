@@ -11,6 +11,7 @@ import { jobCommands } from "./job-commands.ts";
 import { coreVersion } from "./job-machine.ts";
 import { remoteJobCommand } from "./remote-job.ts";
 import { rolesCommand } from "./roles-command.ts";
+import { sendCommand } from "./send-command.ts";
 import { spawnCommand } from "./spawn-command.ts";
 import { ticketCommand } from "./ticket-command.ts";
 import type { Plugin } from "./plugin.ts";
@@ -45,8 +46,8 @@ async function main(argv: readonly string[]): Promise<number> {
 }
 
 // What `arthur run` starts: the plugins as loaded, in setup order, the home folder and how to follow the event log; `jobs` is
-// what `arthur spawn` uses, `board`, the core's, and `autopilot` what `arthur ticket` uses.
-type Loaded = Pick<LoadedPlugins, "plugins" | "follow" | "jobs" | "board" | "autopilot" | "doctor" | "emit"> & { readonly home: string };
+// what `arthur spawn` uses, `board`, the core's, and `autopilot` what `arthur ticket` uses; `channels` what `arthur send` uses.
+type Loaded = Pick<LoadedPlugins, "plugins" | "follow" | "jobs" | "board" | "autopilot" | "doctor" | "emit" | "channels"> & { readonly home: string };
 
 // Every command, the core's and the plugins'; when the config or a plugin does not load, the core's alone and the reason.
 async function load(): Promise<{ readonly commands: CommandRegistry; readonly problem?: string; readonly project?: LoadedPlugins["project"] }> {
@@ -56,8 +57,8 @@ async function load(): Promise<{ readonly commands: CommandRegistry; readonly pr
 	try {
 		const config = await loadConfig("arthur.config.ts");
 		read = config;
-		const { plugins, jobs, board, follow, project, autopilot, doctor: checks, emit } = await loadPlugins(config, process.env, commands);
-		loaded = { plugins, home: config.core.home, follow, jobs, board, autopilot, doctor: checks, emit };
+		const { plugins, jobs, board, follow, project, autopilot, doctor: checks, emit, channels } = await loadPlugins(config, process.env, commands);
+		loaded = { plugins, home: config.core.home, follow, jobs, board, autopilot, doctor: checks, emit, channels };
 		return { commands, project };
 	} catch (error) {
 		const problem = error instanceof Error ? error.message : String(error);
@@ -79,6 +80,7 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined, con
 	commands.register("core", ticketCommand(need("the board needs the project list, and ", (app) => app.board), jobs, need("", (app) => app.autopilot)));
 	commands.register("core", rolesCommand(need("the roles are what the plugins registered, and ", (app) => app.jobs)));
 	commands.register("core", spawnCommand(jobs));
+	commands.register("core", sendCommand(need("the channels are plugins, and ", (app) => app.channels)));
 	for (const command of jobCommands(need("the job records are in the configured home folder, and ", (app) => app.home), jobs)) commands.register("core", command);
 	commands.register("core", remoteJobCommand());
 	commands.register("core", { name: "version", doc: new URL("../docs/commands/version.md", import.meta.url), run: () => console.log(coreVersion()) });

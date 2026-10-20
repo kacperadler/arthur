@@ -337,13 +337,15 @@ export default defineConfig({
 			merge: { afterPassAndGreenCi: true },
 		}),
 
-		// Polls GitHub (CI runs, pull requests) and wakes the coordinator. Arthur has no endpoint for GitHub to call.
-		// The workflow to watch is each project's `ci.workflow`.
-		// Several accounts follow the same rule as YouTrack: `{ name: "acme", tokenEnv: "ARTHUR_GITHUB_ACME_TOKEN" }`.
+		// Polls GitHub for the CI runs of the branches in play (each checkout's own branch and every job's branch) and emits
+		// `ci-finished` once per run; Arthur has no endpoint for GitHub to call. The workflow to watch is each project's
+		// `ci.workflow`, its repository the checkout's `origin`. An instance named after a repository's owner reads it, the unnamed
+		// one every other: `{ name: "acme", tokenEnv: "ARTHUR_GITHUB_ACME_TOKEN" }`. GitHub Enterprise Server: `apiUrl:
+		// "https://<host>/api/v3"`. packages/github/docs/github.md.
 		github({
 			instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }], // fine-grained, Actions: read (write to rerun a run)
-			poll: { everySeconds: 120 },
-			wakeOn: ["ci-finished", "pull-request-review"],
+			poll: { everySeconds: 120 }, // one request per project with a ci.workflow per poll
+			// wakeOn: ["ci-finished", "pull-request-review"], // entry 58; until then refused as unknown
 		}),
 
 		// Channels: the same interface (receive, send text, send media), one plugin each. A channel only receives: it saves what came

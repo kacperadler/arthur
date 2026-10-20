@@ -253,7 +253,11 @@ import { checkStructure } from "./structure.ts";
 // `<home>/orchestration/mcp/` and `--plugin-dir` (mcp.ts, 99); core 14 more (5698 alone; 5700 + 14 = 5714 merged with AR0235)
 // for `mcp` in the `roles.model` answer, checked and kept out of `arthur roles` (roles.ts), the record's `mcp/` and `mcp.yml`
 // (job-record.ts), the warning of a job on another machine (jobs.ts) and `--plugin-dir`/`--config` (wrapper.ts).
-const BUDGETS = { core: 5714, "core/testing": 349, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 312 };
+// AR0236 (roadmap 57): github: 310, set for its options checked at load (github-options.ts, 70), the workflow runs asked of
+// GitHub with each refusal's words and the rate limit's wait (github-api.ts, 79), the runs told kept across a restart
+// (github-state.ts, 26), and the branches in play with each one's nearest run, ci-finished once per run and a refusal said
+// once (github.ts, 135); a new package, so nothing was cut elsewhere; core unchanged.
+const BUDGETS = { core: 5714, "core/testing": 349, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 312, github: 310 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

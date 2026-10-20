@@ -42,3 +42,5 @@ Out:
 ## Decisions
 
 - 2026-10-20: The owner approved it with AR0220 and raised the usage ceiling to 90% of Claude 7 Day (85% used at the start).
+- 2026-10-20: The coordinator raised the budget to $14 after the first run ran out at $10.04 with the work uncommitted and its tests passing (86% usage).
+- 2026-10-20: The coordinator accepts the line budget raises core 5668 (+119), orchestration 1427 (+45), telegram 589 (+185) for entry 49, after the cuts the worker named.

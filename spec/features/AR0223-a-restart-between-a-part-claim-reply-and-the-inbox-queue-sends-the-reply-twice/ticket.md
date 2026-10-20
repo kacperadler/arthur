@@ -34,3 +34,4 @@ Out:
 ## Decisions
 
 - 2026-10-20: Source: F1 of AR0221
+- 2026-10-20: The owner approved it (87% usage, under the 90% ceiling).

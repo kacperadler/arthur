@@ -1765,8 +1765,22 @@
   {
     "id": "AR0228",
     "title": "Roadmap 51: freeze the host API",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0228-roadmap-51-freeze-the-host-api/ticket.md",
-    "updated": "2026-10-20T10:37:22.051Z"
+    "updated": "2026-10-20T10:53:12.585Z"
+  },
+  {
+    "id": "AR0229",
+    "title": "`host.jobs.block` without `stop` is used by no plugin",
+    "status": "dropped",
+    "path": "spec/features/AR0229-host-jobs-block-without-stop-is-used-by-no-plugin/ticket.md",
+    "updated": "2026-10-20T10:53:21.162Z"
+  },
+  {
+    "id": "AR0230",
+    "title": "Two comments still name what AR0228 changed",
+    "status": "planned",
+    "path": "spec/features/AR0230-two-comments-still-name-what-ar0228-changed/ticket.md",
+    "updated": "2026-10-20T10:53:36.095Z"
   }
 ]

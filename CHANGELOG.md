@@ -10,6 +10,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0221 Roadmap 49: Telegram media in and out, arthur send (718a54a)
 - AR0222 YouTrack: the rest of full management, links, tags, search, articles like issues (a639c13)
 - AR0224 Roadmap 50: Telegram phone commands and the menu (a5028bd)
+- AR0228 Roadmap 51: freeze the host API (2e73ad8)
 
 ### Fixed
 

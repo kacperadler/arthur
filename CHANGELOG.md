@@ -10,6 +10,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0221 Roadmap 49: Telegram media in and out, arthur send (718a54a)
 - AR0222 YouTrack: the rest of full management, links, tags, search, articles like issues (a639c13)
 
+### Fixed
+
+- AR0223 A restart between a part claim reply and the inbox queue sends the reply twice (7f2c3b9)
+
 ## 2026-10-19
 
 ### Added

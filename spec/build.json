@@ -1709,15 +1709,15 @@
   {
     "id": "AR0220",
     "title": "YouTrack: open issues grouped by state, and full create, edit, delete of issues and articles",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0220-youtrack-open-issues-grouped-by-state-and-full-create-edit-delete-of-issues-and-articles/ticket.md",
-    "updated": "2026-10-20T06:42:34.960Z"
+    "updated": "2026-10-20T07:06:35.051Z"
   },
   {
     "id": "AR0221",
     "title": "Roadmap 49: Telegram media in and out, arthur send",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0221-roadmap-49-telegram-media-in-and-out-arthur-send/ticket.md",
-    "updated": "2026-10-20T06:42:35.158Z"
+    "updated": "2026-10-20T06:42:38.135Z"
   }
 ]

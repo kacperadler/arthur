@@ -1,12 +1,15 @@
 import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { type Received, received, turnText } from "@arthur/core/parts";
 import type { Host } from "@arthur/core/plugin";
 import { byState } from "./context.ts";
 import { held } from "./silent.ts";
 
-// The coordinator's inbox, the plugin's side (spec/roadmap.md, entry 24): every message for the coordinator becomes one file
-// `<folder>/inbox/queued/<event's number>-<its time in ms>`, which the inbox extension (inbox-extension.ts) hands to the coordinator's agent;
-// the replies it writes to `<folder>/outbox/` are emitted here: docs/commands/coordinator.md, "The coordinator's inbox".
+// The coordinator's inbox, the plugin's side (spec/roadmap.md, entries 24 and 49): every message for the coordinator becomes one
+// file `<folder>/inbox/queued/<event's number>-<its time in ms>`, which the inbox extension (inbox-extension.ts) hands to the
+// coordinator's agent; an owner's message waits in `inbox/received/` until its parts are resolved (`turnText`), one message at a
+// time in the order of their numbers, so none overtakes one before it and a restart resolves what it cut. The replies the
+// extension writes to `<folder>/outbox/` are emitted here: docs/commands/coordinator.md, "The coordinator's inbox".
 
 // A queued message: a human's from a channel, or Arthur's own (a job's end, a schedule action) without one.
 export type Message = { readonly channel?: string; readonly text: string };
@@ -18,10 +21,40 @@ const text = (value: unknown): value is string => typeof value === "string" && v
 
 export function inbox(host: Host): { start(): void; stop(): void } {
 	const { folder } = host;
+	const waiting = join(folder, "inbox", "received");
+	const next = () => (existsSync(waiting) ? readdirSync(waiting).filter((name) => /^\d+-\d+$/.test(name)).sort((a, b) => parseInt(a) - parseInt(b))[0] : undefined);
+	// `resolving` is the last pass over `received/`, `scheduled` whether one more waits behind it; passes run only once started.
+	let [resolving, scheduled, started] = [Promise.resolve(), false, false];
+	const resolve = () => {
+		if (scheduled || !started) return;
+		scheduled = true;
+		resolving = resolving
+			.then(async () => {
+				scheduled = false;
+				for (let name = next(); name !== undefined && started; name = next()) {
+					const file = join(waiting, name);
+					const message = parse(file);
+					if (typeof message === "string") {
+						renameSync(file, `${file}.broken`);
+						console.error(`orchestration: ${file} ${message}; set aside as ${file}.broken`);
+						continue;
+					}
+					const said = await turnText(host, parseInt(name), message);
+					queue(folder, { seq: parseInt(name), time: new Date(Number(name.split("-")[1])).toISOString() }, { channel: message.channel, text: said });
+					rmSync(file);
+				}
+			})
+			.catch((error: Error) => console.error(`orchestration: resolving the messages in ${waiting}: ${error.message}`));
+	};
 	host.events.on("message-received", (event) => {
-		const { channel, text: said } = (event.data ?? {}) as Readonly<Record<string, unknown>>;
-		if (text(channel) && text(said)) queue(folder, event, { channel, text: said });
-		else console.error(`orchestration: message-received (event ${event.seq}) ignored: expected { channel, text }, both non-empty text`);
+		const message = received(event.data);
+		if (typeof message === "string") return console.error(`orchestration: message-received (event ${event.seq}) ignored: ${message}`);
+		const name = `${event.seq}-${Date.parse(event.time)}`;
+		if (["inbox/received", "inbox/queued", "inbox/turn", "inbox/answered"].some((box) => existsSync(join(folder, box, name)))) return;
+		mkdirSync(waiting, { recursive: true });
+		writeFileSync(join(waiting, `.${name}`), JSON.stringify(message));
+		renameSync(join(waiting, `.${name}`), join(waiting, name));
+		resolve();
 	});
 	host.events.on("coordinator-message", (event) => {
 		const said = ((event.data ?? {}) as Readonly<Record<string, unknown>>).text;
@@ -35,12 +68,24 @@ export function inbox(host: Host): { start(): void; stop(): void } {
 		start() {
 			footer(host);
 			timer = setInterval(() => sweep(host), SWEEP_MS);
+			started = true;
+			resolve();
 		},
 		stop() {
+			started = false;
 			clearInterval(timer);
 			sweep(host);
 		},
 	};
+}
+
+// A message `received/` holds, else why it is not one: a file that does not parse, or was edited into another shape.
+function parse(file: string): Received | string {
+	try {
+		return received(JSON.parse(readFileSync(file, "utf8")));
+	} catch {
+		return "does not parse";
+	}
 }
 
 // One file per event, written whole and linked in; skipped when that event is queued, handed over or answered already, looked

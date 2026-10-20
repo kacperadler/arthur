@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, utimesSyn
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
+import { NOT_TRANSCRIBED } from "@arthur/core/parts";
 import { type AgentRun, type AgentStep, type FakeHost, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { pause } from "../src/inbox-extension.ts";
 import { queue } from "../src/inbox.ts";
@@ -61,9 +62,13 @@ async function load(t: TestContext, run: AgentRun, setup: { readonly root?: stri
 		ui: () => lines(join(dirname(agent), "ui.jsonl")),
 		starts: () => lines(join(dirname(agent), "starts.jsonl")),
 		emitted: (name: string) => fake.emitted.filter((event) => event.name === name).map((event) => event.data),
-		say: (text: string, channel = "telegram") => fake.emit("message-received", { channel, text }).seq,
+		say: (text: string, channel = "telegram") => fake.emit("message-received", { channel, parts: [{ kind: "text", text, mime: "text/plain" }] }).seq,
 		// The inbox file of event `seq`: `<number>-<time in ms>`.
 		file: (seq: number) => { const event = fake.host.events.read(seq).find((each) => each.seq === seq); return `${seq}-${Date.parse(event?.time ?? "")}`; },
+		// Whether the owner's message `seq` left `inbox/received/`, its parts resolved and the message queued.
+		resolved(seq: number) {
+			return !existsSync(join(folder, "inbox", "received", this.file(seq)));
+		},
 	};
 }
 
@@ -161,6 +166,7 @@ test("past omp's 8 continuations in a turn, a message is not answered by that tu
 	await until("the turn", () => box.messages().length === 1);
 	for (let index = 1; index <= 9; index++) {
 		numbers.push(box.say(`m${index}`));
+		await until(`m${index} queued`, () => box.resolved(numbers[index] ?? 0));
 		gate.open(String(index));
 		if (index < 9) await until(`continuation ${index}`, () => box.messages().length === 1 + index);
 	}
@@ -498,11 +504,64 @@ test("one event queued twice, and again after its file moved to turn/ and answer
 
 test("a malformed message-received or coordinator-message queues nothing and logs one line each", async (t) => {
 	const box = await load(t, { steps: [] });
-	for (const data of [{ text: "Hi." }, { channel: 5, text: "Hi." }, { channel: "telegram", text: "  " }, null]) box.fake.emit("message-received", data);
+	const text = { kind: "text", text: "Hi.", mime: "text/plain" };
+	for (const data of [{ parts: [text] }, { channel: "telegram", text: "Hi." }, { channel: "telegram", parts: [{ ...text, text: "  " }] }, null]) box.fake.emit("message-received", data);
 	for (const data of [{}, { text: 3 }]) box.fake.emit("coordinator-message", data);
 	assert.deepEqual(box.errors, [
-		...[1, 2, 3, 4].map((seq) => `orchestration: message-received (event ${seq}) ignored: expected { channel, text }, both non-empty text`),
+		"orchestration: message-received (event 1) ignored: expected channel, non-empty text, got nothing",
+		"orchestration: message-received (event 2) ignored: expected parts, a list of at least one part, got nothing",
+		"orchestration: message-received (event 3) ignored: parts[0]: expected { kind: text | photo | video | voice | audio | file, mime, text (a text part) or path (any other), seconds? }",
+		"orchestration: message-received (event 4) ignored: expected channel, non-empty text, got nothing",
 		...[5, 6].map((seq) => `orchestration: coordinator-message (event ${seq}) ignored: expected { text }, non-empty text`),
 	]);
 	assert.equal(existsSync(join(box.folder, "inbox")), false);
+});
+
+const PHOTO = { kind: "photo", path: "/home/arthur/.arthur/telegram/media/AQAD.jpg", mime: "image/jpeg" };
+const VOICE = { kind: "voice", path: "/home/arthur/.arthur/telegram/media/AwAD.oga", mime: "audio/ogg", seconds: 4 };
+const said = (text: string) => ({ kind: "text", text, mime: "text/plain" });
+
+test("a message's parts are one turn, each part's text in order; a voice note with no plugin is its line, also sent back where it came from", async (t) => {
+	const box = await load(t, { steps: [{ prompt: true }, { message: "Seen." }, { end: true }, { prompt: true }] });
+	await box.start();
+	const seq = box.fake.emit("message-received", { channel: "telegram", parts: [PHOTO, VOICE, said("What is it?")], place: "12" }).seq;
+	await until("the reply", () => box.emitted("coordinator-replied").length === 2);
+	assert.deepEqual(box.messages(), [{ content: `[via telegram] [photo, image/jpeg] (${PHOTO.path})\n${NOT_TRANSCRIBED}\nWhat is it?`, step: 0 }]);
+	assert.deepEqual(box.emitted("coordinator-replied"), [
+		{ text: NOT_TRANSCRIBED, answers: [seq], channels: ["telegram"], place: "12" },
+		{ text: "Seen.", answers: [seq], channels: ["telegram"] },
+	]);
+});
+
+test("a text right after a voice note whose claim is slow reaches the coordinator after it", async (t) => {
+	const box = await load(t, { steps: [{ prompt: true }, { message: "Both." }, { end: true }, { prompt: true }] });
+	const claim = Promise.withResolvers<{ text: string }>();
+	box.fake.provide("message.part", (part: { kind: string }) => (part.kind === "voice" ? claim.promise : undefined));
+	await box.start();
+	const voice = box.fake.emit("message-received", { channel: "telegram", parts: [VOICE] }).seq;
+	const text = box.say("And merge it.");
+	// Every step a text alone needs runs in microtasks: had it overtaken the voice note, it would be queued by now.
+	await new Promise(setImmediate);
+	assert.deepEqual([box.resolved(voice), box.resolved(text), existsSync(join(box.folder, "inbox", "queued"))], [false, false, false]);
+	claim.resolve({ text: "[voice 4 s] Start AR0081." });
+	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
+	assert.deepEqual(box.messages(), [{ content: "[via telegram] [voice 4 s] Start AR0081.\n\n[via telegram] And merge it.", step: 0 }]);
+});
+
+test("owner messages received before the start, as a restart leaves them, are resolved at the start in order; a broken one is set aside", async (t) => {
+	const box = await load(t, { steps: [{ prompt: true }, { message: "Both." }, { end: true }, { prompt: true }] });
+	const waiting = join(box.folder, "inbox", "received");
+	const first = box.say("Before the start.");
+	const second = box.say("Also before it.");
+	writeFileSync(join(waiting, "0-1000"), "{ not json");
+	writeFileSync(join(waiting, "3-1000"), JSON.stringify({ channel: "telegram", text: "the old shape" }));
+	assert.deepEqual([box.resolved(first), box.resolved(second), existsSync(join(box.folder, "inbox", "queued"))], [false, false, false]);
+	await box.start();
+	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
+	assert.deepEqual(box.messages(), [{ content: "[via telegram] Before the start.\n\n[via telegram] Also before it.", step: 0 }]);
+	assert.deepEqual(sorted(waiting), ["0-1000.broken", "3-1000.broken"]);
+	assert.deepEqual(box.errors, [
+		`orchestration: ${join(waiting, "0-1000")} does not parse; set aside as ${join(waiting, "0-1000")}.broken`,
+		`orchestration: ${join(waiting, "3-1000")} expected parts, a list of at least one part, got nothing; set aside as ${join(waiting, "3-1000")}.broken`,
+	]);
 });

@@ -1793,9 +1793,9 @@
   {
     "id": "AR0232",
     "title": "A site on a port that fetch blocks is reported down forever, as `bad port`",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0232-a-site-on-a-port-that-fetch-blocks-is-reported-down-forever-as-bad-port/ticket.md",
-    "updated": "2026-10-20T11:35:38.904Z"
+    "updated": "2026-10-20T19:37:00.015Z"
   },
   {
     "id": "AR0233",
@@ -1814,8 +1814,8 @@
   {
     "id": "AR0235",
     "title": "Roadmap 52: review jobs",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0235-roadmap-52-review-jobs/ticket.md",
-    "updated": "2026-10-20T19:36:53.245Z"
+    "updated": "2026-10-20T19:37:00.678Z"
   }
 ]

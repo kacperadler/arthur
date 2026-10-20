@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/github/src/github.ts` (`finished`, the ids told), `spec/roadmap.md` entry 58
 - What: entry 57 tells `ci-finished` once per run id, as its Delivers and the vision say. GitHub's rerun ("Re-run a workflow", entry 58's `--rerun`) keeps the run's `id` and raises its `run_attempt`, so once a run was told, the end of its rerun is taken as told and the coordinator never hears it [INFERENCE: from GitHub's documented `run_attempt` field; no rerun was exercised].
 - Suggestion: when entry 58 builds `--rerun`, key what is told by `<id>/<run_attempt>` (the state file's ids become those keys) and test a rerun's end told once; entry 57's "once per run id" then reads "once per run attempt".
-- Status: open
+- Status: ticket AR0238

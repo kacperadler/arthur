@@ -228,7 +228,7 @@ Detach with `Ctrl-b d`; the coordinator goes on.
 
 ## 13. A channel
 
-Telegram lets you talk to the coordinator from your phone (roadmap entry 47; photos, files and the command menu come with 48 to 50). Make a bot and give Arthur its token and your chat id, as `packages/telegram/docs/telegram.md`, "Setting it up", says:
+Telegram lets you talk to the coordinator from your phone, send it photos and files, and run the phone commands from the bot's command menu (roadmap entries 47 to 50). Make a bot and give Arthur its token and your chat id, as `packages/telegram/docs/telegram.md`, "Setting it up", says:
 
 ```ts
 import { telegram } from "@arthur/telegram";

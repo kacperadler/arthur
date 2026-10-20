@@ -1817,5 +1817,12 @@
     "status": "in-progress",
     "path": "spec/features/AR0235-roadmap-52-review-jobs/ticket.md",
     "updated": "2026-10-20T20:06:37.738Z"
+  },
+  {
+    "id": "AR0236",
+    "title": "Roadmap 57: GitHub polling CI runs",
+    "status": "planned",
+    "path": "spec/features/AR0236-roadmap-57-github-polling-ci-runs/ticket.md",
+    "updated": "2026-10-20T20:07:53.007Z"
   }
 ]

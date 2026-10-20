@@ -1716,15 +1716,22 @@
   {
     "id": "AR0221",
     "title": "Roadmap 49: Telegram media in and out, arthur send",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0221-roadmap-49-telegram-media-in-and-out-arthur-send/ticket.md",
-    "updated": "2026-10-20T07:15:54.559Z"
+    "updated": "2026-10-20T07:58:12.394Z"
   },
   {
     "id": "AR0222",
     "title": "YouTrack: the rest of full management, links, tags, search, articles like issues",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0222-youtrack-the-rest-of-full-management-links-tags-search-articles-like-issues/ticket.md",
-    "updated": "2026-10-20T07:19:45.934Z"
+    "updated": "2026-10-20T07:50:14.399Z"
+  },
+  {
+    "id": "AR0223",
+    "title": "A restart between a part claim reply and the inbox queue sends the reply twice",
+    "status": "planning",
+    "path": "spec/features/AR0223-a-restart-between-a-part-claim-reply-and-the-inbox-queue-sends-the-reply-twice/ticket.md",
+    "updated": "2026-10-20T07:58:15.220Z"
   }
 ]

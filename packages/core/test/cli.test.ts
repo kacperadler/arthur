@@ -6,7 +6,7 @@ import { test } from "node:test";
 import { temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
-const CORE_LIST = "commands: config, continue, doctor, help, jobs, prune, remote-job, roles, run, setup, spawn, steer, stop, stopall, ticket, version\n";
+const CORE_LIST = "commands: config, continue, doctor, help, jobs, prune, remote-job, roles, run, send, setup, spawn, steer, stop, stopall, ticket, version\n";
 
 // A plugin's commands as a config holds them, with the projects `acme` and `shop` in the config's folder: `echo` prints what it
 // got and exits 3, `boom` throws, `gone` loses its doc file right after it registered it, before any `--help`.
@@ -34,7 +34,7 @@ function arthur(folder: string, ...args: string[]): { readonly status: number | 
 	return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
 }
 
-const ALL = "commands: boom, config, continue, doctor, echo, gone, help, jobs, prune, quiet, remote-job, roles, run, setup, spawn, steer, stop, stopall, ticket, version\n";
+const ALL = "commands: boom, config, continue, doctor, echo, gone, help, jobs, prune, quiet, remote-job, roles, run, send, setup, spawn, steer, stop, stopall, ticket, version\n";
 
 test("a plugin's command runs with its arguments and exits with its code; --project goes to the command, not its arguments", () => {
 	const folder = project();
@@ -236,4 +236,48 @@ test("arthur ticket status <id> planned --autopilot asks ticket.autopilot with t
 		assert.deepEqual(run(...args), [2, "", `arthur ticket: ${problem}\n${usage}`], args.join(" "));
 	// --budget without --autopilot is no move's flag.
 	assert.deepEqual(run("DM0001", "planned", "--budget", "1"), [2, "", usage]);
+});
+
+// Two channels as plugins provide `channel.send`: each checks the message and answers its send, which writes what it sent in
+// `<channel>.json` beside the config; `phone` refuses a file whose name ends in `bad`, `pager` fails the send of one ending in `down`.
+const CHANNELS = `import { writeFileSync } from "node:fs";
+const channel = (name, refuse, fail) => ({ name, setup(host) {
+	host.provide("channel.send", (message) => {
+		if (message.files.some((file) => file.endsWith(refuse))) throw new Error("refused " + refuse + "\\nsecond line");
+		return async () => {
+			if (message.files.some((file) => file.endsWith(fail))) throw new Error("the send failed");
+			writeFileSync(new URL("./" + name + ".json", import.meta.url), JSON.stringify(message));
+			return "sent " + message.files.length;
+		};
+	});
+} });
+export default { plugins: [{ name: "orchestration", setup() {} }, channel("phone", "bad", "never"), channel("pager", "never", "down")] };
+`;
+
+test("arthur send asks every channel and sends only once all took the message: files from the working folder, the caption and the place", () => {
+	const folder = project(CHANNELS);
+	const sent = (name: string) => (existsSync(join(folder, `${name}.json`)) ? JSON.parse(readFileSync(join(folder, `${name}.json`), "utf8")) : undefined);
+	const run = arthur(folder, "send", "a.png", "/tmp/b.mp4", "--caption", "Screens.", "--place", "12");
+	assert.deepEqual([run.status, run.stdout, run.stderr], [0, "phone: sent 2\npager: sent 2\n", ""]);
+	for (const name of ["phone", "pager"]) assert.deepEqual(sent(name), { files: [join(folder, "a.png"), "/tmp/b.mp4"], caption: "Screens.", place: "12" }, name);
+	const refused = arthur(folder, "send", "c.png", "d.bad");
+	assert.deepEqual([refused.status, refused.stdout, refused.stderr], [1, "", "arthur send: nothing sent:\nphone: refused bad\nphone: second line\n"]);
+	assert.deepEqual(sent("pager").files, [join(folder, "a.png"), "/tmp/b.mp4"], "no channel sent, the one that took it included");
+	const failed = arthur(folder, "send", "e.down");
+	assert.deepEqual([failed.status, failed.stdout, failed.stderr], [1, "phone: sent 1\n", "arthur send: pager: the send failed\n"]);
+});
+
+test("arthur send: no channel enabled says so; no file or a flag without its value is wrong usage", () => {
+	const none = project(`export default { plugins: [{ name: "orchestration", setup() {} }] };\n`);
+	const run = arthur(none, "send", "a.png");
+	assert.deepEqual([run.status, run.stderr], [1, "arthur send: no channel is enabled: no plugin provides channel.send; enable one, such as telegram, in arthur.config.ts\n"]);
+	const usage = "usage: arthur send <file>... [--caption <text>] [--place <id>]";
+	for (const [args, problem] of [
+		[[], "no file"],
+		[["--caption", "Hi."], "no file"],
+		[["a.png", "--caption"], "--caption needs a value"],
+		[["a.png", "--place", "1", "--place", "2"], "--place given twice"],
+		[["a.png", "--album"], "unknown flag --album"],
+	] as const)
+		assert.deepEqual([arthur(none, "send", ...args).status, arthur(none, "send", ...args).stderr], [2, `arthur send: ${problem}\n${usage}\n`], args.join(" "));
 });

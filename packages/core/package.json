@@ -14,6 +14,7 @@
     "./lock": "./src/lock.ts",
     "./option-table": "./src/option-table.ts",
     "./options": "./src/core-options.ts",
+    "./parts": "./src/message-parts.ts",
     "./plugin": "./src/plugin.ts",
     "./testing": "./src/testing.ts"
   }

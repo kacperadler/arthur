@@ -204,6 +204,13 @@ import { checkStructure } from "./structure.ts";
 // (`remove`, an HTTP DELETE, and a method on `request`), `attachment add` as a form upload and `attachment delete`
 // (`changeAttachment`, 15 with its comment), and the attachment's id in `issue attachments`; cut first: `readText` folded
 // into `readBytes`, its one reader of a file.
+// AR0221 (roadmap 49): media in and out, `arthur send`. Cut first: telegram.ts's own `topic` and its misplaced comment (now
+// bot-api.ts's export, which media-out.ts shares), poll.ts's `receive` chat and age checks folded into the update loop. Core 119
+// more (5668) for the parts contract and `turnText` with its claims (message-parts.ts, 69) and `arthur send` (send-command.ts,
+// 47, and 3 in cli.ts and host.ts); orchestration 45 more (1427) for the owner's messages waiting in `inbox/received/` and
+// resolved in order, a restart's left over at the start; telegram 185 more (589) for the files saved and the albums (media-in.ts,
+// poll.ts), `channel.send` with its checks before any send and the photo header read (media-out.ts), and multipart calls and
+// downloads (bot-api.ts).
 // AR0222 (roadmap 45, the owner on 2026-10-20): youtrack 141 more (659) for the rest of full management: `--query` on
 // `issue list` and `article list` with the project's own query around it and other projects' items dropped, and the flag
 // parsing with `--parent` (command, 36 more with the id check shared by every id a verb takes and the job's reading verbs as
@@ -211,7 +218,7 @@ import { checkStructure } from "./structure.ts";
 // `databaseId`), work items listed, edited and deleted (youtrack-work.ts, 35, `addWork` moved there from write), and an
 // article's comments and attachments (8 more); cut first: the article list's two reads to one call, and create's project
 // lookup to `databaseId`.
-const BUDGETS = { core: 5549, "core/testing": 349, projects: 481, orchestration: 1382, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 404 };
+const BUDGETS = { core: 5668, "core/testing": 349, projects: 481, orchestration: 1427, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 589 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

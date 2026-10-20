@@ -133,7 +133,7 @@ test("no review moves the ticket to done and keeps the answer; review keeps it t
 	assert.equal(status(), "done", "a review's start moves it, not review-needed");
 	branch(() => {});
 	const short = git(root, "rev-parse", "--short", name);
-	assert.deepEqual(await decide(), { code: 1, out: "", err: `arthur review-needed: ${name} at ${short} adds nothing to HEAD (${short}): nothing to decide` });
+	assert.deepEqual(await decide(), { code: 1, out: "", err: `arthur review-needed: ${name} at ${short} adds nothing to HEAD (${short}): nothing to review` });
 	branch(edit("README.md", "# acme shop\n"));
 	fake.host.board.move("AC0001", "merged");
 	assert.deepEqual(await decide(), { code: 1, out: "", err: "arthur review-needed: AC0001: merged cannot move to done; from merged: none, it is final" });
@@ -147,7 +147,7 @@ test("refused: wrong usage, no such job, a job with no ticket", async (t) => {
 	assert.equal((await decide(undefined, "nope")).err, "arthur review-needed: no job nope; arthur jobs lists them");
 	const loose = await fake.host.jobs.spawn({ task: "No ticket here." });
 	await ended(loose.id);
-	assert.equal((await decide(undefined, loose.id)).err, `arthur review-needed: ${loose.id}'s task names no ticket; a branch is decided for one ticket`);
+	assert.equal((await decide(undefined, loose.id)).err, `arthur review-needed: ${loose.id}'s task names no ticket; a review is of one ticket's branch`);
 });
 
 test("the always-review list: review.alwaysReview replaces the default, and delivery.alwaysReview answers the paths on it", async (t) => {

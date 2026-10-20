@@ -248,7 +248,15 @@ import { checkStructure } from "./structure.ts";
 // at registration (job-kinds.ts, 6), kept in the record as `verdicts` with the kind's `Own` keys sent to `remote-job add`
 // (job-record.ts, remote-job.ts, 3), and a finished run whose last line is none of them ends `failed: no verdict` (wrapper.ts, 1);
 // `SpawnRequest.fetch`, checked as a commit here (jobs.ts, 4) and pushed to `refs/arthur/fetch` there when missing (job-machine.ts, 2).
-const BUDGETS = { core: 5700, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 312 };
+// AR0237 (roadmap 53, which names `host.jobs.registerExtension`). Cut first: the worker's ticket, project and branch lookup that
+// `arthur review` and `arthur review-needed` both need, kept once (review-command.ts `branchOf`, 8 lines fewer in
+// review-needed.ts). Core 13 more (5713): `jobs.registerExtension` on the host and in `Jobs` (jobs.ts, plugin-host.ts, 4), the
+// URL checked and kept as a path from the core's `src/` (job-record.ts `extensionPath` with its comment and import, 8), and the
+// wrapper's `-e` list reading the record's `extensions` (wrapper.ts, 1). Delivery 196 more (508): `arthur review-needed` and its
+// rules (review-needed.ts, 96), the extension that records each job's checks (checks-extension.ts, 61), `review.alwaysReview`
+// with its default and check (delivery-options.ts, 22 more), the shared lookup (review-command.ts, 7 more), and the command,
+// the extension and `delivery.alwaysReview` registered (delivery.ts, 10 more).
+const BUDGETS = { core: 5713, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 508 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -40,6 +40,7 @@ What works today:
 - The models (`@arthur/models`, entry 82): named providers, Ollama or OpenAI-compatible servers on loopback, private or Tailscale addresses; a role's or a spawn's model as an ordered list (`arthur spawn --model a,b`), of which each job gets the first available, probed from the job's machine, the record saying which and why; a job on a provider model gets it in its own environment only and costs 0; `arthur usage` and `/usage`, each account's limit windows, which skip a model at `limits.stopAt` and warn at `limits.warnAt`; `arthur doctor` lines for each provider and listed model.
 - Each project's Node (`@arthur/nvm`, entry 84): a job whose worktree has `.nvmrc` runs on the Node it names, which `nvm which` finds on the job's machine and which goes first on the job's `PATH`, its install's too (`nvm()` listed before `projects`, else the load is refused); a version not installed there refuses the spawn with its `nvm install`, nothing downloaded; `arthur doctor` says whether nvm is on each machine.
 - Uptime (`@arthur/uptime`, entry 98): each project's sites checked over plain HTTP while `arthur run` runs, no model called; a site is down after 2 failed checks in a row (no answer in time, refused, a TLS error, a wrong status, the text missing), told once in a notice with its URL, the reason and since when, and once more with how long when it answers; `uptime-down` and `uptime-up` on the event stream; no site answering is one notice that this machine looks offline, not one per site; what is down survives a restart.
+- Review jobs (`@arthur/delivery`, entry 52): `arthur review <worker job>` starts a read-only review of a worker's branch at its tip, on the reviewer role and the review criteria, in a fresh session on `roles.reviewer`'s model; its task names the ticket, so placement reads the ticket's labels; the verdict, `PASS` or `FAIL` alone on the last line, moves the ticket to done or back to in-progress, and no verdict fails the review; `arthur ticket file` writes the next `review-N.md`, never twice; a branch gets at most 2 FAILs since its last PASS, then a review needs `--round N` on the owner's word, and the coordinator gets the procedure for his choice.
 - GitHub CI runs (`@arthur/github`, entry 57): every `poll.everySeconds` the newest runs of each project's `ci.workflow`, read with the token of the instance named after the repository's owner (else the unnamed one); each branch in play (the checkout's own and every job's) gets the run of its nearest commit that has one, so a commit outside the workflow's paths counts the run before it; `ci-finished` once per run id, across a restart too; a refused token said once, not every poll; a rate limit waits as GitHub says.
 
 What is next:
@@ -84,7 +85,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | telegram: text, media and the phone menu; the coordinator's silent mode (`/silent`), which every channel follows | built | 47 to 50 |
 | discord: one private server, a main channel for the coordinator and one per project; text, media, phone commands | planned | 89, 90 |
 | voice: local transcription of voice notes | planned | 81 |
-| delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | planned | 52 to 56, 59 |
+| delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | in progress, 1 of 6 entries | 52 built; 53 to 56, 59 |
 | github: CI runs, reruns, pushes, pull request reviews | in progress, 1 of 2 entries | 57 built; 58 |
 | youtrack: issues, articles, comments, attachments, the rules for jobs on an issue | built | 44 to 46 |
 | manage: health, stats, audit, retro, prune on a schedule | planned | 60 to 64 |
@@ -121,6 +122,7 @@ The commands that exist today, one line each; `arthur <command> --help` prints i
 - `arthur restart [fresh]` (`/restart`, session): restarts the coordinator after its handoff, with `--continue` or, with `fresh`, in a new conversation, and `arthur run` too under its service while a restart is due; refused while a job runs.
 - `arthur resources [<ticket>]` (`/resources`, resources): each machine's room for more jobs from its free CPU and memory; with a ticket, what all its jobs spent against its caps per feature.
 - `arthur usage [--email]` (`/usage`, models): each account's limit windows from the agent's report, used % and when each resets.
+- `arthur review <worker job> [--round <n>]` (delivery): a review of an ended worker's branch at its tip, its verdict moving the ticket; refused after 2 FAILs since the branch's last PASS until the owner's word gives `--round`.
 - `arthur youtrack issue|article list|get|create|update|move|attachments|delete`, `issue set|tag|untag|links|link|unlink|work`, `issue work list|edit|delete`, `comment list|add|edit|delete`, `attachment add|delete` (youtrack): a project's YouTrack issues and articles with their comments and attachments, read, written and deleted on the instance its `tracker` picks; open issues grouped by state, searched with `--query`, custom fields, tags, links, work items, sub-articles, and attachments saved to `.arthur/youtrack/<id>/`.
 
 ## Try it
@@ -158,7 +160,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-20.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; github has entry 57 of 57-58; no other plugin exists yet.
+%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entry 52 of 52-56 and 59; github has entry 57 of 57-58; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale; from AR0174: the decision log in orchestration.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -231,7 +233,7 @@ flowchart TD
         machines ~~~ resources ~~~ models ~~~ docker ~~~ uptime
       end
       subgraph DELIV[Delivery and trackers]
-        delivery[delivery<br/>review, merge, changelog]
+        delivery[delivery<br/>review, merge, changelog<br/>1 of 6 entries]
         github[github<br/>polls CI runs<br/>1 of 2 entries; planned: arthur ci, reruns, pushes, PR reviews]
         youtrack[youtrack<br/>reads and writes issues, articles<br/>comments, attachments, rules for jobs]
         delivery ~~~ github ~~~ youtrack
@@ -304,8 +306,8 @@ flowchart TD
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
   class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,parts,api,machines,session,schedule,projects,models,nvm,commit,youtrack,telegram,uptime built;
-  class lpartial,orchestration,resources,github partial;
-  class lplanned,discord,voice,corelater,agents,findings,docker,delivery,manage,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
+  class lpartial,orchestration,resources,delivery,github partial;
+  class lplanned,discord,voice,corelater,agents,findings,docker,manage,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl,sites outside;
   style larrows fill:#fff,stroke:#999,color:#000
   style LEGEND fill:#fff,stroke:#999

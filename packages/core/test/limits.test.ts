@@ -103,6 +103,9 @@ test("a limit that is not a number of 0 or more is refused: a spawn's before any
 		[{ budgetUsd: -1 }, "kind plan: budgetUsd must be a number of 0 or more, got -1"],
 		[{ timeoutMinutes: "30" as unknown as number }, 'kind plan: timeoutMinutes must be a number of 0 or more, got "30"'],
 		[{ resumeOnBudget: "yes" as unknown as boolean }, "kind plan: resumeOnBudget must be true or false"],
+		[{ verdicts: [] }, "kind plan: verdicts must be a non-empty list of lines, each text without line breaks or spaces around it"],
+		[{ verdicts: ["PASS", " FAIL"] }, "kind plan: verdicts must be a non-empty list of lines, each text without line breaks or spaces around it"],
+		[{ verdicts: "PASS" as unknown as string[] }, "kind plan: verdicts must be a non-empty list of lines, each text without line breaks or spaces around it"],
 	] as const)
 		assert.throws(() => jobs.registerKind("delivery", { name: "plan", readOnly: true, role: "reviewer", ...kind }), { message });
 });
@@ -230,3 +233,22 @@ test("a resumed run that finishes ends finished, its cost the sum of both runs",
 	assert.deepEqual([starts(first).length, starts(resumed).length], [1, 1]);
 	assert.deepEqual(readdirSync(join(home, "jobs")), [job.id]);
 });
+
+// Roadmap 52 (AR0235 F1): a kind's `verdicts` judge a finished run by the last line of its final message; any other line ends it failed.
+for (const [message, reason] of [
+	["Clean.\n\nPASS\n", "finished"],
+	["  FAIL", "finished"],
+	["PASS\n\nThe branch holds.", "failed: no verdict: the last line of its final message is not PASS or FAIL alone"],
+	["**PASS**", "failed: no verdict: the last line of its final message is not PASS or FAIL alone"],
+] as const)
+	test(`verdicts: ${JSON.stringify(message)} ends ${reason}`, async () => {
+		const { home, jobs } = setup(fakeAgent({ steps: [{ message }] }));
+		jobs.registerKind("delivery", { name: "judged", readOnly: true, role: "reviewer", verdicts: ["PASS", "FAIL"] });
+		const job = await jobs.spawn({ task: "Judge.", kind: "judged" });
+		assert.deepEqual(await ended(home, job.id), { id: job.id, kind: "judged", project: "acme", state: "ended", reason });
+		assert.equal(field(home, job.id, "reason"), reason);
+		assert.equal(field(home, job.id, "verdicts"), "PASS\nFAIL");
+		assert.ok(jobs.list().includes(reason), `arthur jobs shows ${reason}:\n${jobs.list()}`);
+		const plain = await jobs.spawn({ task: "Judge.", kind: "review" });
+		assert.equal(((await ended(home, plain.id)) as { readonly reason: string }).reason, "finished", "a kind without verdicts finishes on any message");
+	});

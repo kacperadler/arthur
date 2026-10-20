@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { type TestContext, test } from "node:test";
 import { type AgentRun, type FakeHost, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import type { LoadedConfig } from "@arthur/core";
+import { supervise } from "../src/coordinator.ts";
+import { coordinatorOptions } from "../src/orchestration-options.ts";
 import { type OrchestrationOptions, orchestration } from "../src/orchestration.ts";
 
 const ENV_GUARD = fileURLToPath(import.meta.resolve("@arthur/core/env-guard"));
@@ -19,16 +21,18 @@ const PATH = process.env.PATH ?? "";
 type Line = { readonly at: number; readonly text: string };
 
 // The plugin set up on a fake host with its tmux server on a socket in the test's folder, the agent `omp` on `PATH` being
-// `agent` (a fake's path), and its output caught; its server is killed and `PATH` restored when the test ends.
-async function load(t: TestContext, agent: string, coordinator: NonNullable<OrchestrationOptions["coordinator"]> = {}, root?: string, roles?: OrchestrationOptions["roles"]) {
+// `agent` (a fake's path), and its output caught; `more` holds its `mcp` option and its set variables. Its server is killed
+// and `PATH` restored when the test ends.
+type More = { readonly mcp?: OrchestrationOptions["mcp"]; readonly env?: Readonly<Record<string, string>> };
+async function load(t: TestContext, agent: string, coordinator: NonNullable<OrchestrationOptions["coordinator"]> = {}, root?: string, roles?: OrchestrationOptions["roles"], more: More = {}) {
 	const socket = join(temporaryFolder(), "tmux.sock");
-	const options: OrchestrationOptions = { coordinator: { exitWaitSeconds: 1, restartDelaySeconds: 1, ...coordinator, tmux: { session: "coord", socket, ...coordinator.tmux } }, roles };
+	const options: OrchestrationOptions = { coordinator: { exitWaitSeconds: 1, restartDelaySeconds: 1, ...coordinator, tmux: { session: "coord", socket, ...coordinator.tmux } }, roles, mcp: more.mcp };
 	const tmuxSocket = options.coordinator?.tmux?.socket ?? socket;
 	process.env.PATH = `${dirname(agent)}${delimiter}${PATH}`;
 	const [out, err] = [[] as Line[], [] as Line[]];
 	t.mock.method(console, "log", (text: string) => out.push({ at: Date.now(), text }));
 	t.mock.method(console, "error", (text: string) => err.push({ at: Date.now(), text }));
-	const fake = fakeHost({ name: "orchestration", root });
+	const fake = fakeHost({ name: "orchestration", root, env: more.env });
 	const plugin = orchestration(options);
 	await fake.setup({ setup: (host) => plugin.setup({ ...host, options }) });
 	t.after(async () => {
@@ -70,13 +74,14 @@ function waiting(steps: AgentRun["steps"] = []): { agent: string; release: () =>
 test("the coordinator is one interactive omp in its tmux session, with --continue, its model, thinking and quick model, the env guard and its context", async (t) => {
 	const { agent, release } = waiting();
 	t.after(release);
-	const { plugin, socket, starts } = await load(t, agent, { model: "anthropic/claude-opus-5-5", thinking: "high" }, undefined, { quick: { model: "anthropic/claude-haiku-5-5" } });
+	const { fake, plugin, socket, starts } = await load(t, agent, { model: "anthropic/claude-opus-5-5", thinking: "high" }, undefined, { quick: { model: "anthropic/claude-haiku-5-5" } });
 	await plugin.start?.();
 	await until("the coordinator's start", () => starts().length === 1);
 	const [start] = starts();
 	const models = ["--model", "anthropic/claude-opus-5-5", "--thinking", "high", "--smol", "anthropic/claude-haiku-5-5"];
 	assert.deepEqual(start?.args, ["--continue", "--auto-approve", ...models, "-e", ENV_GUARD, "-e", INBOX, "-e", CONTEXT]);
 	assert.equal(start?.cwd, process.cwd());
+	assert.equal(existsSync(join(fake.host.folder, "mcp")), false, "no mcp option: no MCP folder");
 	// The context extension runs `arthur coordinator context` with this node, in the agent's folder, before each turn.
 	const command = tmux(socket, "show-environment", "-t", "=coord", "ARTHUR_ORCHESTRATION_CONTEXT").stdout.trim();
 	assert.equal(command, `ARTHUR_ORCHESTRATION_CONTEXT=${JSON.stringify([process.execPath, CLI, "coordinator", "context"])}`);
@@ -111,6 +116,26 @@ test("another plugin's coordinator.extension loads after orchestration's own, wi
 		err.map((line) => line.text),
 		[...Array.from({ length: 4 }, () => `orchestration: the coordinator.extension of test is left out: ${shape}`), "orchestration: the coordinator.extension of test is left out: no folder"],
 	);
+});
+
+test("the coordinator gets its MCP servers through --plugin-dir, its own list over all; with none its folder is removed and no flag is added", async (t) => {
+	const { agent, release } = waiting();
+	t.after(release);
+	const web = { url: "https://example.com/mcp", headers: { Authorization: { valueEnv: "ARTHUR_ORCHESTRATION_WEB_TOKEN" } } };
+	const mcp = { servers: { docs: { command: "docs-mcp" }, web }, all: ["docs"], roles: { coordinator: ["web"], worker: [] } };
+	const { fake, plugin, socket, starts } = await load(t, agent, {}, undefined, undefined, { mcp, env: { ARTHUR_ORCHESTRATION_WEB_TOKEN: "Bearer s3cret" } });
+	await plugin.start?.();
+	await until("the coordinator's start", () => starts().length === 1);
+	const folder = join(fake.host.folder, "mcp");
+	assert.deepEqual(starts()[0]?.args.slice(-8), ["-e", ENV_GUARD, "-e", INBOX, "-e", CONTEXT, "--plugin-dir", folder]);
+	assert.deepEqual(JSON.parse(readFileSync(join(folder, ".mcp.json"), "utf8")), { mcpServers: { web: { type: "http", url: "https://example.com/mcp", headers: { Authorization: "Bearer s3cret" } } } });
+	assert.deepEqual([readFileSync(join(folder, ".claude-plugin/plugin.json"), "utf8"), statSync(join(folder, ".mcp.json")).mode & 0o777], ['{ "name": "arthur" }\n', 0o600]);
+	await plugin.stop?.();
+	// The next `arthur run`, without the option.
+	const again = supervise(coordinatorOptions({ coordinator: { tmux: { session: "coord", socket }, exitWaitSeconds: 1, restartDelaySeconds: 1 } }), fake.host.folder, "omp");
+	await until("the next start", () => starts().length === 2);
+	await again.stop();
+	assert.deepEqual([existsSync(folder), starts()[1]?.args.includes("--plugin-dir")], [false, false]);
 });
 
 test("a coordinator that ends is started again after restartDelaySeconds, and one crashing in a loop never faster", async (t) => {

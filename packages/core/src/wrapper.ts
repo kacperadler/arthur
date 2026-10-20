@@ -69,12 +69,14 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		quiet();
 		quiet = deadline(Number(idle), () => move("working", "idle"));
 	};
-	// `quick`, `memory`, `feature` and `feature-memory` are missing from a record an older Arthur wrote.
-	const [instruction, spent, quick, memory = "", feature = "", featureMemory = ""] = ["continue", "cost", "quick", "memory", "feature", "feature-memory"].map((name) => (existsSync(join(folder, name)) ? field(name) : undefined));
+	// `quick`, `memory`, `feature`, `feature-memory` and `verdicts` are missing from a record an older Arthur wrote.
+	const [instruction, spent, quick, memory = "", feature = "", featureMemory = "", verdicts = ""] = ["continue", "cost", "quick", "memory", "feature", "feature-memory", "verdicts"].map((name) => (existsSync(join(folder, name)) ? field(name) : undefined));
 	// A resumed run continues the agent's last session in the worktree, which is the job's own, with `resume` as its message.
 	const args = (resume: string | undefined) => [
 		...(resume === undefined ? [] : ["--continue"]),
 		...["-p", "--mode", "json", "--auto-approve", "--tools", branch === "" ? READ_ONLY_TOOLS : WORKER_TOOLS],
+		// The role's MCP servers when the spawn wrote them (job-record.ts); the overlay keeps a read-only role without `write`.
+		...(existsSync(join(folder, "mcp")) ? ["--plugin-dir", join(folder, "mcp"), "--config", join(folder, "mcp.yml")] : []),
 		...["--append-system-prompt", join(folder, "prompt")],
 		...["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((extension) => ["-e", join(import.meta.dirname, extension)]),
 		// A provider model goes under the name of omp's provider that the job's environment sets (`ARTHUR_AGENT_MODEL`, job-scope.ts).
@@ -177,6 +179,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		: record.stopped() !== "" ? `failed: the agent stopped on ${record.stopped()}`
 		: code !== 0 ? `failed: the agent exited ${code}`
 		: record.result() === "" ? "failed: the agent ended without a final message"
+		: verdicts !== "" && !verdicts.split("\n").includes(record.result().trimEnd().split("\n").at(-1)?.trim() ?? "") ? `failed: no verdict: the last line of its final message is not ${verdicts.split("\n").join(" or ")} alone`
 		: "finished";
 	// A run that finished on a `Blocked:` line waits for what it names; a plugin's hold ends with the run, unless it stopped the run.
 	const blocked = kept(guard(() => current(home, id))) ?? (reason === "finished" ? blockedBy(record.result()) : undefined);

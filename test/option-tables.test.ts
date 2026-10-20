@@ -10,6 +10,8 @@ import { everyOption, type OptionEntry, type OptionTable, type Tool } from "@art
 import * as core from "@arthur/core/options";
 import type { Plugin } from "@arthur/core/plugin";
 import { temporaryFolder } from "@arthur/core/testing";
+import { delivery } from "@arthur/delivery";
+import * as deliveryFile from "@arthur/delivery/options";
 import { github } from "@arthur/github";
 import * as githubFile from "@arthur/github/options";
 import { machines } from "@arthur/machines";
@@ -53,6 +55,7 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	nvm: [nvmFile, nvm()],
 	"commit-rules": [commitRulesFile, commitRules()],
 	uptime: [uptimeFile, uptime()],
+	delivery: [deliveryFile, delivery()],
 	github: [githubFile, github({ instances: [] })],
 };
 
@@ -76,7 +79,7 @@ test("every option of the core and of each plugin has its meaning in one line, e
 	}
 	assert.deepEqual(
 		Object.entries(PLUGINS).flatMap(([name, [file]]) => (everyOption(file.table).length === 0 ? [name] : [])),
-		["nvm", "commit-rules"],
+		["nvm", "commit-rules", "delivery"],
 		"the plugins without options are checked here too, and only they have an empty table",
 	);
 	assert.deepEqual(

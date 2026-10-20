@@ -44,3 +44,5 @@ Out:
 - 2026-10-20: Owner: the coordinator and the workers must have MCP; the config lets him give everyone the same servers or each role (reviewer, worker, ...) its own.
 - 2026-10-20: Owner approved; it starts after AR0232, after the usage reset.
 - 2026-10-20: Plan approved by the human: plan.md at 4c8ada2. With it: Option 1 (the `roles.model` answer gains `mcp`; one row of docs/plugin-api.md; line budgets core about +15, orchestration about +90); Option A (accept `mcp.roles.project` now, entry 85 wires it); a job on another machine starts with no MCP server and its spawn warns, naming them.
+- 2026-10-20: Worker: line budgets raised as approved in the plan: core 14 more (5698), orchestration 111 more (1542, about 90 planned; mcp.ts holds 99: the option table, its checks, the servers per role and the coordinator's folder).
+- 2026-10-20: Coordinator accepted the orchestration budget raise of +111 (1542; plan said about +90): mcp.ts holds 99 of them, option checks named per path; core +14 (5698).

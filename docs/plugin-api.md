@@ -84,6 +84,13 @@ What `setup` gets, one host per plugin. `@arthur/core/testing`'s `fakeHost` give
 
 Removed by entry 51, since no plugin used them: `jobs.unblock(id)` (a hold now ends with its run, or with `stop`), and `board.after(id, ids)`, which only `arthur ticket after` sets.
 
+### Changes since entry 51
+
+Each decided in the ticket that made it.
+
+- AR0235 (roadmap 52, the owner on 2026-10-20): `Kind.verdicts`, the lines a finished run's final message may end on, exactly; a run whose last line is none of them ends `failed: no verdict: the last line of its final message is not <a> or <b> alone` in its record, `arthur jobs` and `job-ended`, instead of `finished`. A list of lines, not a function: the wrapper that writes the state runs apart from the plugins, on another machine too, so the kind's judgement goes into the record (`verdicts`) at the spawn. Delivery's `review` uses `["PASS", "FAIL"]`.
+- AR0235 (roadmap 52, the owner on 2026-10-20): `SpawnRequest.fetch`, the hex id of a commit of the project's repository besides HEAD that the job needs on its machine (a review's branch tip); on another machine it is pushed to `refs/arthur/fetch` with the base when the repository there lacks it. One that is no commit here refuses the spawn: `fetch: "<value>" is no commit of <repository>; give its hex id`.
+
 ## Types
 
 The types a plugin meets through the host, published by `@arthur/core/plugin`:
@@ -99,10 +106,10 @@ The types a plugin meets through the host, published by `@arthur/core/plugin`:
 | `Command` | `{ name, doc, run, phone? }`: `doc` the URL of the page `arthur <name> --help` prints, `run(input)` writes its output and returns the exit code, `phone: { about, reply(text, from) }`. |
 | `CommandInput` | `{ args, project }`: what `run` gets; `project` is `--project`, undefined for the main one. |
 | `PhoneFrom` | `{ channel?, place?, instance? }`: where a phone command came from, its channel's plugin, the place in it, and the named bot. |
-| `Kind` | `{ name, readOnly, role, budgetUsd?, timeoutMinutes?, resumeOnBudget?, file? }`: a kind of job; `file(filing)` files a finished one. |
+| `Kind` | `{ name, readOnly, role, budgetUsd?, timeoutMinutes?, resumeOnBudget?, verdicts?, file? }`: a kind of job; `verdicts` the lines its final message may end on (above, "Changes since entry 51"); `file(filing)` files a finished one. |
 | `Filing` | `{ ticket: { id, path, root }, job: { id, kind, base, result } }`: what a kind's `file` gets. |
 | `Role` | `{ name, file, criteria }`: a role, its file a URL the plugin ships, the criteria files it reads by name. |
-| `SpawnRequest` | `{ task, kind?, project?, model?, thinking?, timeoutMinutes?, budgetUsd?, machine?, requires?, ignoreRestart? }`. |
+| `SpawnRequest` | `{ task, kind?, project?, model?, thinking?, timeoutMinutes?, budgetUsd?, machine?, requires?, ignoreRestart?, fetch? }`; `fetch` a commit the job needs on its machine (above). |
 | `Spawn` | A spawn as `beforeSpawn` checks it: `task`, `kind`, `project`, `model`, `modelWhy?`, `thinking`, `quick`, `timeoutMinutes`, `budgetUsd`, `free`, `tickets`, `machine`, `ignoreRestart`. |
 | `SpawnCheck` | `(spawn) => reason | undefined`, or a promise of it. |
 | `Job` | A `Spawn` with its caps, `id`, `root`, `base`, `branch` (undefined for a read-only kind) and `worktree`: what a `Prepare` gets. |
@@ -154,12 +161,12 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `jobs.limits` | resources | the core, each spawn | The job's own caps. |
 | `jobs.keep` | none yet | the core (`arthur prune`) | Whether an ended job's record is kept. |
 | `models.pick` | models | the core, each spawn with a model | `{ model, why, free }` for `(list, machine)`. |
-| `roles.model` | orchestration | the core, session | `{ model, thinking, quick }` of a role. |
+| `roles.model` | orchestration | the core, session | `{ model, thinking, quick, mcp }` of a role; `mcp` its MCP servers in omp's `mcpServers` shape (AR0234). |
 | `message.part` | none yet (voice) | the core (`turnText`) | A `Claim` for a part it handles. |
 | `channel.send` | telegram | the core (`arthur send`) | A check of `{ files, caption?, place? }` that throws every refusal, or a function that sends. |
 | `ticket.autopilot` | orchestration | the core (`arthur ticket status --autopilot`) | The pre-approval. |
 | `coordinator.context` | models, projects, resources, session | orchestration | Lines of the coordinator's context. |
-| `coordinator.wake` | orchestration, projects | orchestration | Lines of the wake for an ended job. |
+| `coordinator.wake` | delivery, orchestration, projects | orchestration | Lines of the wake for an ended job. |
 | `coordinator.extension` | session | orchestration | `{ file, env }`: an OMP extension the coordinator loads. |
 | `coordinator.restart` | orchestration | session | Restarts the coordinator, `{ fresh }`. |
 | `coordinator.silent` | orchestration | telegram | Whether the silent mode holds a notice. |

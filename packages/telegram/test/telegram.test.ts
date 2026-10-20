@@ -265,9 +265,11 @@ test("one retry per send, after 2 s; a slice failing twice waits with the ones a
 	await plugin.start?.();
 	api.fail("sendMessage", 502, "Bad Gateway");
 	fake.emit("notice", { text: "once" });
-	await until("the retry", () => api.took().length === 1);
+	// The fake counts a send before the plugin has its answer; an empty outbox says the plugin has it and the drain ended.
+	await until("the retry", () => api.took().length === 1 && queued().length === 0);
 	const [failed, retried] = sends(api.calls);
-	assert.ok(failed !== undefined && retried !== undefined && retried.at - failed.at >= 2000, "the retry waits 2 s");
+	// 1990, not 2000: the stamps are the wall clock, the wait Node's monotonic clock in whole ms; the two drift a ms apart.
+	assert.ok(failed !== undefined && retried !== undefined && retried.at - failed.at >= 1990, `the retry waits 2 s: ${retried?.at} - ${failed?.at}`);
 	assert.deepEqual(errors, [], "a send the retry took is said nowhere");
 	for (let count = 0; count < 4; count++) api.fail("sendMessage", 502, "Bad Gateway");
 	const [a, b] = ["a".repeat(3000), "b".repeat(2000)];
@@ -278,13 +280,12 @@ test("one retry per send, after 2 s; a slice failing twice waits with the ones a
 	fake.emit("notice", { text: "next" });
 	await until("the next time, failed again", () => sends(api.calls).length === 6);
 	fake.emit("notice", { text: "last" });
-	await until("all of them", () => api.took().length === 5);
+	await until("all of them", () => api.took().length === 5 && queued().length === 0);
 	assert.deepEqual(
 		api.took().map((sent) => sent.text),
 		["once", a, b, "next", "last"],
 	);
 	assert.equal(errors.length, 1, "the same failure is said once until a slice goes");
-	assert.deepEqual(queued(), []);
 });
 
 test("Telegram unreachable: the slices wait in the outbox through a restart, then go first, in order, a topic's to its topic", async (t) => {
@@ -316,8 +317,7 @@ test("Telegram back while nothing new is sent: an answered poll sends what waits
 	fake.emit("notice", { text: "Waited." });
 	await until("the failure said", () => errors.some((line) => line.includes("sendMessage")));
 	api.push({ text: "A poll answers." });
-	await until("the waiting slice sent", () => api.took().length === 1);
-	assert.deepEqual(queued(), []);
+	await until("the waiting slice sent", () => api.took().length === 1 && queued().length === 0);
 });
 
 test("a 429 on a send waits the seconds Telegram says before the retry; a stop during that wait keeps the slice queued", async (t) => {
@@ -328,7 +328,7 @@ test("a 429 on a send waits the seconds Telegram says before the retry; a stop d
 	fake.emit("notice", { text: "After the wait." });
 	await until("the retry", () => api.took().length === 1);
 	const [limited, retried] = sends(api.calls);
-	assert.ok(limited !== undefined && retried !== undefined && retried.at - limited.at >= 3000, `${retried?.at} - ${limited?.at}`);
+	assert.ok(limited !== undefined && retried !== undefined && retried.at - limited.at >= 2990, `${retried?.at} - ${limited?.at}`);
 	api.fail("sendMessage", 429, "Too Many Requests: retry after 60", { retry_after: 60 });
 	fake.emit("notice", { text: "Held back." });
 	await until("the second 429", () => sends(api.calls).length === 3);
@@ -368,7 +368,7 @@ test("a refused (4xx) slice is set aside and told once until a slice goes, never
 	assert.equal(errors.length, 4, "each set aside is one line");
 	assert.equal(errors[1], `telegram bot (unnamed): sendMessage: 403: Forbidden: bot was blocked by the user bot[token]; the slice is set aside in ${join(folder, "outbox", "refused", second ?? "")}`);
 	assert.ok(errors.every((line) => !line.includes(TOKEN)));
-	assert.deepEqual(queued(), []);
+	await until("the outbox empty", () => queued().length === 0);
 });
 
 test("a file in the outbox that is no slice, broken or edited by hand, is set aside with a line; one of a bot gone goes by the unnamed one", async (t) => {

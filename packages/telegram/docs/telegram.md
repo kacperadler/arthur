@@ -1,6 +1,6 @@
 # The telegram plugin
 
-Roadmap entries 47 and 48: the owner talks to the coordinator from Telegram. Each bot polls the one chat it answers; the owner's text reaches the coordinator, and the coordinator's replies and Arthur's notices come back through an outbox that survives Telegram being away and a restart. Photos, files and voice notes (49) and phone commands such as `/silent` with the menu (50) are later entries: until 50, a `/name` text reaches the coordinator as any text. It has no command of its own.
+Roadmap entries 47 to 49: the owner talks to the coordinator from Telegram. Each bot polls the one chat it answers; what the owner sends, text and media, reaches the coordinator, and the coordinator's replies and Arthur's notices come back through an outbox that survives Telegram being away and a restart; `arthur send` sends files. Phone commands such as `/silent` with the menu (50) are a later entry: until then, a `/name` text reaches the coordinator as any text. It has no command of its own.
 
 ```ts
 plugins: [orchestration({}), telegram({ bots: [{ botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }] })],
@@ -15,7 +15,7 @@ In `telegram({ ... })` in `arthur.config.ts`, checked at load; any other option 
 
 At setup, a token that is not `<digits>:<letters, digits, _ and ->` refuses the load with `bots[<i>].botTokenEnv: <variable> does not hold a bot token as @BotFather gives it: ...`, and a chat id that is not a whole number with `bots[<i>].chatIdEnv: <variable> does not hold a chat id: a whole number, negative for a group`; neither prints the value.
 
-Only `arthur run` starts the plugin, so only it polls and sends; a command such as `arthur stop` loads it and neither sends nor writes the outbox. What reaches it before its start, the replay of the event log among it, is queued at the start, in order.
+Only `arthur run` starts the plugin, so only it polls and sends texts; a command such as `arthur stop` loads it and neither sends nor writes the outbox, and `arthur send` sends its files at once, by its own process (below). What reaches it before its start, the replay of the event log among it, is queued at the start, in order.
 
 ## Receiving
 
@@ -23,8 +23,11 @@ Each bot long-polls `getUpdates` (30 s, only `message` updates), each update con
 
 - A message of another chat than the bot's is dropped: it never reaches the coordinator and gets no answer.
 - A message older than 10 minutes (its `date` against Arthur's clock; 10 minutes exactly is kept) is dropped, so a backlog after Arthur was down does not replay.
-- A text becomes `message-received` `{ channel: "telegram", text }`, which the coordinator's inbox marks `[via telegram]` (`arthur coordinator --help`). A message in a topic (`is_topic_message`, in a private chat with topics on) adds `place`, its `message_thread_id` as text; a message to a named bot adds `instance`, the bot's name.
-- Any other kind of message (a photo, a sticker, a location, ...) gets `only text, photos and files reach the coordinator` back, in its topic, and nothing reaches the coordinator.
+- What the message holds becomes one `message-received` `{ channel: "telegram", parts }`, which the coordinator's inbox turns into one entry marked `[via telegram]` (`arthur send --help`, "Channels", and `arthur coordinator --help`). A message in a topic (`is_topic_message`, in a private chat with topics on) adds `place`, its `message_thread_id` as text; a message to a named bot adds `instance`, the bot's name.
+- The parts: the message's file first, then its text or caption as a `text` part. A photo (its largest size, `image/jpeg`), a video or a round video note (`video`), a voice note (`voice`), an audio file (`audio`) and any other document (`file`), each with Telegram's `mime_type` (else `video/mp4`, `audio/ogg`, `audio/mpeg`, `application/octet-stream`) and `seconds` for its `duration`. The file is saved, whole, as `.arthur/telegram/media/<file_unique_id><extension of Telegram's file_path>`, or `<file_unique_id>-<the sender's file name>` for a file sent with a name (its last segment, without control characters or leading dots, so it stays in the folder). The plugin reads nothing of it.
+- An album, several messages with one `media_group_id`, is one `message-received`: every file in the order the messages came, then the caption. While one is open, polling waits 1 s instead of 30, and the album goes once a poll brings no more of it; the messages after it wait for it, so they keep their order.
+- A file Telegram does not hand over is a `text` part saying why: `[<kind> not saved: <size> bytes is over the 20971520 (20 MB) a bot may download]`, not asked for, or `[<kind> not saved: <the getFile or download error>]`, never the token.
+- Any other kind of message (a sticker, a location, a poll, ...) gets `only text, photos, videos, voice notes, audio and files reach the coordinator` back, in its topic, and nothing reaches the coordinator.
 
 A failed call is said once until a call answers again, and polling goes on after 2 s, or after the seconds a `429 Too Many Requests` gives as `retry_after` when that is longer. A second process polling the same bot (`409 Conflict`, another Arthur or a forgotten script) emits one `notice` `{ text: "telegram bot <name or (unnamed)>: getUpdates: 409: <Telegram's description>; until it ends, nothing written to this bot reaches the coordinator; polling retries every 2 s" }`; any other failure is one line on stderr, `telegram bot <name>: getUpdates: <code>: <description>; polling retries in <seconds> s` (or `cannot reach the Bot API (<code>)` in place of the code and description), never the token. A poll that answers sends what waits in the outbox, so a reply queued while Telegram was away goes once it is back, with nothing new to send.
 
@@ -47,6 +50,12 @@ Every slice is first a file of `.arthur/telegram/outbox/`, `{ bot, text, place? 
 - A refused slice (any other 4xx: a chat not found, a bot blocked, a topic deleted, a 401) is never tried again: it moves to `outbox/refused/`, one line on stderr (`...; the slice is set aside in <path>`), and the next slices go. The first refusal since a slice last went is told in a `notice`, `<the error>; this slice was set aside in <path>:` and the slice, cut to one message at a line break with `… cut; whole in <path>` after it; a refusal of that notice is not told again.
 - A file of the outbox that is not such a slice (it does not parse, its text is blank, its `place` is no topic's number) is set aside the same way, with a line and no notice. A slice whose bot is no longer in `bots` goes by the unnamed bot, else the first.
 - A stop cuts a 2 s or `retry_after` wait short; what did not go waits for the next start.
+
+### Sending files
+
+`channel.send`, which `arthur send` asks (`arthur send --help`), sends files at once by the unnamed bot, else the first, to its chat or the topic its `place` names, without a notification in quiet hours, not through the outbox. `.jpg`, `.jpeg`, `.png` and `.webp` go as photos, `.mp4` and `.mov` as videos, any other file as a document, and so does a photo over 10 MB. Photos and videos go as one album (`sendMediaGroup`; one alone as `sendPhoto` or `sendVideo`), then the documents as one more (`sendDocument` for one), since Telegram puts a document in an album only with documents; the caption goes on the first message. It answers `sent <n> files in <m> messages`.
+
+Every file is checked before anything goes, and each problem is one line of the refusal: more than 10 files (`<n> files; Telegram takes at most 10 in one album`); a caption over 1024 characters; a missing file (`<path>: no such file`); an empty one; one over 50 MB (`<path>: <size> bytes; Telegram takes at most 52428800 (50 MB) from a bot`); a photo whose width plus height is over 10000 px or whose sides differ by more than 20 to 1, read from the PNG, JPEG or WebP header (`<path>: <w>x<h> px; ... slice it into viewport-high images (for example 1600 px tall) and send them as one album`): Telegram would reject it, and as a document it has no preview. A message Telegram refuses ends the send, naming it and what went before: `telegram bot <name>: <method>: <code>: <description>; nothing went` (or `; <k> of <m> messages went before it`), never the token; an upload is given 5 minutes.
 
 ## Setting it up
 

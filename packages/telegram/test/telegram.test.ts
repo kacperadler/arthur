@@ -1,142 +1,19 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import type { AddressInfo } from "node:net";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
+import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { everyOption, type OptionTable } from "@arthur/core/option-table";
 import { fakeHost } from "@arthur/core/testing";
 import { OTHER } from "../src/poll.ts";
 import { cut, slices } from "../src/slices.ts";
 import { checkOptions, table } from "../src/telegram-options.ts";
-import { API_URL, type TelegramOptions, telegram } from "../src/telegram.ts";
+import { API_URL, telegram } from "../src/telegram.ts";
+import { botApi, type Call, CHAT, load, message, nowhere, SECOND, said, TOKEN, until } from "./fake-bot-api.ts";
 
-// Built at run time, so no literal in the repository looks like a bot token to a secret scanner; Telegram answers both 401.
-const TOKEN = ["7012345678", `AAH-${"t".repeat(31)}`].join(":");
-const SECOND = ["7087654321", `AAG-${"s".repeat(31)}`].join(":");
-const CHAT = 4242;
-const NOW = new Date("2026-10-19T10:00:00Z");
 const CONFLICT = "Conflict: terminated by other getUpdates request; make sure that only one bot instance is running";
-
-async function until(what: string, holds: () => boolean, ms = 20_000): Promise<void> {
-	for (const deadline = Date.now() + ms; !holds(); await sleep(20)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-}
-
-// The address of a loopback port nothing listens on any more: the Bot API unreachable.
-async function nowhere(): Promise<string> {
-	const closed = createServer().listen(0, "127.0.0.1");
-	await once(closed, "listening");
-	const { port } = closed.address() as AddressInfo;
-	closed.close();
-	await once(closed, "close");
-	return `http://127.0.0.1:${port}`;
-}
-
-type Call = { readonly token: string; readonly method: string; readonly params: Readonly<Record<string, unknown>>; readonly at: number };
-
-// A message as the Bot API's documentation shows one in a private chat, every field a text message has; `fields` adds or
-// replaces some (`text: undefined` with a `sticker` is a sticker). `age` is how many seconds before NOW it was sent.
-const message = (id: number, fields: Readonly<Record<string, unknown>> = {}, age = 5) => ({
-	message_id: id,
-	from: { id: CHAT, is_bot: false, first_name: "Kacper", username: "kacper", language_code: "en" },
-	chat: { id: CHAT, first_name: "Kacper", username: "kacper", type: "private" },
-	date: Math.floor(NOW.getTime() / 1000) - age,
-	text: `message ${id}`,
-	...fields,
-});
-
-// A fake Bot API on a loopback port the OS picks. `getUpdates` answers the updates from `offset` on, or waits, as long polling
-// does, until one is pushed or its `timeout` passes; `sendMessage` answers the sent Message. `fail` scripts the next answers
-// of a method in the documented error shape (`ok: false`, `error_code`, `description`), with its HTTP status. `sent` is every
-// sendMessage call, `took` those it answered with a Message.
-async function botApi(t: TestContext) {
-	const calls: Call[] = [];
-	const taken: Call[] = [];
-	const updates = new Map<string, { update_id: number; message: unknown }[]>();
-	const failures: { method: string; code: number; description: string; parameters?: { retry_after: number } }[] = [];
-	const waiting = new Set<() => void>();
-	let next = 100;
-	const send = (response: ServerResponse, status: number, body: unknown) => response.writeHead(status, { "Content-Type": "application/json" }).end(JSON.stringify(body));
-	const server = createServer(async (request: IncomingMessage, response: ServerResponse) => {
-		let raw = "";
-		for await (const chunk of request) raw += String(chunk);
-		const [, token = "", method = ""] = /^\/bot([^/]+)\/(\w+)$/.exec(request.url ?? "") ?? [];
-		const params = JSON.parse(raw) as Record<string, unknown>;
-		calls.push({ token, method, params, at: Date.now() });
-		if (![TOKEN, SECOND].includes(token)) return send(response, 401, { ok: false, error_code: 401, description: "Unauthorized" });
-		const failure = failures.findIndex((each) => each.method === method);
-		const [scripted] = failure >= 0 ? failures.splice(failure, 1) : [];
-		if (scripted !== undefined) {
-			const { code, description, parameters } = scripted;
-			return send(response, code, { ok: false, error_code: code, description, ...(parameters === undefined ? {} : { parameters }) });
-		}
-		if (method === "sendMessage") {
-			const { chat_id, text, message_thread_id } = params;
-			taken.push({ token, method, params, at: Date.now() });
-			return send(response, 200, { ok: true, result: { message_id: next++, from: { id: 7012345678, is_bot: true, first_name: "Arthur", username: "arthur_bot" }, chat: { id: chat_id, type: "private" }, date: 1, text, ...(message_thread_id === undefined ? {} : { message_thread_id }) } });
-		}
-		if (method !== "getUpdates") return send(response, 404, { ok: false, error_code: 404, description: "Not Found" });
-		const ready = () => (updates.get(token) ?? []).filter((update) => update.update_id >= Number(params.offset ?? 0));
-		const answer = () => {
-			waiting.delete(answer);
-			clearTimeout(timer);
-			if (!response.writableEnded) send(response, 200, { ok: true, result: ready() });
-		};
-		const timer = setTimeout(answer, Number(params.timeout ?? 0) * 1000);
-		if (ready().length > 0) return answer();
-		waiting.add(answer);
-		response.on("close", () => {
-			waiting.delete(answer);
-			clearTimeout(timer);
-		});
-	});
-	server.listen(0, "127.0.0.1");
-	await once(server, "listening");
-	t.after(() => {
-		server.closeAllConnections();
-		server.close();
-	});
-	let id = 1;
-	return {
-		url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
-		calls,
-		sent: (token = TOKEN) => calls.filter((call) => call.method === "sendMessage" && call.token === token).map((call) => call.params),
-		took: (token = TOKEN) => taken.filter((call) => call.token === token).map((call) => call.params),
-		polls: (token = TOKEN) => calls.filter((call) => call.method === "getUpdates" && call.token === token).map((call) => call.params),
-		push(fields: Readonly<Record<string, unknown>> = {}, age = 5, token = TOKEN) {
-			const update = { update_id: id++, message: message(id, fields, age) };
-			updates.set(token, [...(updates.get(token) ?? []), update]);
-			for (const answer of [...waiting]) answer();
-			return update;
-		},
-		fail: (method: string, code: number, description: string, parameters?: { retry_after: number }) => void failures.push({ method, code, description, parameters }),
-	};
-}
-
-// The plugin on a fake host, with `coordinator.silent` holding what `held` says, its console.error lines kept; `folder` stands for
-// the plugin's folder, so a second load shares the first one's outbox, as a restart or a second process does.
-async function load(t: TestContext, options: Partial<TelegramOptions> & { readonly apiUrl: string }, setup: { readonly now?: Date; readonly held?: (notice: unknown) => boolean; readonly env?: Readonly<Record<string, string>>; readonly folder?: string } = {}) {
-	const errors: string[] = [];
-	t.mock.method(console, "error", (text: string) => void errors.push(text));
-	const full = { bots: [{ botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }], ...options };
-	const env = setup.env ?? { ARTHUR_TELEGRAM_BOT_TOKEN: TOKEN, ARTHUR_TELEGRAM_CHAT_ID: String(CHAT) };
-	const fake = fakeHost({ name: "telegram", options: full, env, timeZone: "Europe/Warsaw", quietHours: { from: "22:00", to: "07:30" }, now: setup.now ?? NOW });
-	const asked: unknown[] = [];
-	fake.provide("coordinator.silent", (notice: unknown) => {
-		asked.push(notice);
-		return setup.held?.(notice) ?? false;
-	});
-	const plugin = telegram(full as TelegramOptions);
-	const folder = setup.folder ?? fake.host.folder;
-	await (setup.folder === undefined ? fake.setup(plugin) : plugin.setup({ ...fake.host, folder }));
-	t.after(() => plugin.stop?.());
-	const queued = (box = "") => (existsSync(join(folder, "outbox", box)) ? readdirSync(join(folder, "outbox", box)).filter((name) => name.endsWith(".json")) : []);
-	return { fake, plugin, errors, asked, folder, queued, received: () => fake.emitted.filter((event) => event.name === "message-received").map((event) => event.data) };
-}
 
 test("options: bots is a list of at least one, each with its two variables, at most one unnamed, names unique; apiUrl an http URL", () => {
 	const bot = { botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" };
@@ -184,9 +61,9 @@ test("the owner's text becomes message-received; a topic's carries its place; ea
 	const second = api.push({ text: "A reply, no topic.", message_thread_id: 40, reply_to_message: message(1) });
 	await until("all three messages", () => received().length === 3);
 	assert.deepEqual(received(), [
-		{ channel: "telegram", text: "Start AR0081." },
-		{ channel: "telegram", text: "In the topic.", place: "12" },
-		{ channel: "telegram", text: "A reply, no topic." },
+		{ channel: "telegram", parts: said("Start AR0081.") },
+		{ channel: "telegram", parts: said("In the topic."), place: "12" },
+		{ channel: "telegram", parts: said("A reply, no topic.") },
 	]);
 	await until("the confirming poll", () => api.polls().some((poll) => poll.offset === second.update_id + 1));
 	assert.ok(first.update_id < second.update_id);
@@ -204,8 +81,8 @@ test("a message of another chat is ignored, unanswered; one older than 10 minute
 	const last = api.push({ text: "Now." });
 	await until("the poll after them", () => api.polls().some((poll) => poll.offset === last.update_id + 1));
 	assert.deepEqual(received(), [
-		{ channel: "telegram", text: "Just in time." },
-		{ channel: "telegram", text: "Now." },
+		{ channel: "telegram", parts: said("Just in time.") },
+		{ channel: "telegram", parts: said("Now.") },
 	]);
 	assert.deepEqual(api.sent(), [], "the stranger gets nothing back");
 });
@@ -344,9 +221,9 @@ test("every bot polls its own chat; a reply goes by each bot the messages it ans
 	api.push({ text: "To the second bot." }, 5, SECOND);
 	api.push({ text: "To the unnamed bot." }, 5, TOKEN);
 	await until("both messages", () => received().length === 2);
-	const seq = (text: string) => fake.emitted.find((event) => event.name === "message-received" && (event.data as { text: string }).text === text)?.seq;
+	const seq = (text: string) => fake.emitted.find((event) => event.name === "message-received" && JSON.stringify(event.data).includes(text))?.seq;
 	const [second, unnamed] = [seq("To the second bot."), seq("To the unnamed bot.")];
-	assert.deepEqual(new Set(received()), new Set([{ channel: "telegram", text: "To the second bot.", instance: "second" }, { channel: "telegram", text: "To the unnamed bot." }]));
+	assert.deepEqual(new Set(received()), new Set([{ channel: "telegram", parts: said("To the second bot."), instance: "second" }, { channel: "telegram", parts: said("To the unnamed bot.") }]));
 	fake.emit("coordinator-replied", { text: "To the second.", answers: [second], channels: ["telegram"] });
 	fake.emit("coordinator-replied", { text: "To the unnamed.", answers: [unnamed], channels: ["telegram"] });
 	fake.emit("coordinator-replied", { text: "To both.", answers: [unnamed, second], channels: ["telegram"] });

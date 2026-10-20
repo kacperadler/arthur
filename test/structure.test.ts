@@ -199,7 +199,14 @@ import { checkStructure } from "./structure.ts";
 // 552 + 18 = 570, each other plugin 1 more for its `module` line.
 // Merged with main (AR0149): main's budgets plus this batch's raises, machines 458 + 1 = 459, resources 483 + 1 = 484; the
 // rest as the merge before: core 5549, schedule 570, each other plugin 1 more for its `module` line.
-const BUDGETS = { core: 5549, "core/testing": 349, projects: 481, orchestration: 1382, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 467, "commit-rules": 169, nvm: 85, telegram: 404 };
+// AR0221 (roadmap 49): media in and out, `arthur send`. Cut first: telegram.ts's own `topic` and its misplaced comment (now
+// bot-api.ts's export, which media-out.ts shares), poll.ts's `receive` chat and age checks folded into the update loop. Core 119
+// more (5668) for the parts contract and `turnText` with its claims (message-parts.ts, 69) and `arthur send` (send-command.ts,
+// 47, and 3 in cli.ts and host.ts); orchestration 45 more (1427) for the owner's messages waiting in `inbox/received/` and
+// resolved in order, a restart's left over at the start; telegram 185 more (589) for the files saved and the albums (media-in.ts,
+// poll.ts), `channel.send` with its checks before any send and the photo header read (media-out.ts), and multipart calls and
+// downloads (bot-api.ts).
+const BUDGETS = { core: 5668, "core/testing": 349, projects: 481, orchestration: 1427, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 467, "commit-rules": 169, nvm: 85, telegram: 589 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

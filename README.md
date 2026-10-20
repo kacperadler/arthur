@@ -63,7 +63,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | Test kit: the fake host and the fake agent | built | 4, 11 |
 | Core: `arthur doctor`, checked at every start | built | 80 |
 | Core: `arthur setup`, and every option's meaning beside its check | built | 93, 94 |
-| Core: `arthur send` and the message parts every channel hands over | planned | 49 |
+| Core: `arthur send` and the message parts every channel hands over | built | 49 |
 | Core: cleanup hooks with each worktree | planned | 71 |
 | Core: the frozen plugin API | planned | 51 |
 | orchestration: the coordinator, `arthur attach`, `/board`, `/task`, `/findings`, `/plan`; its inbox, context, jobs by state, `maxAgents`, planning, autopilot, decision log, morning report | in progress, 7 of 9 entries | 23 to 29 built; 96, 65 |
@@ -78,7 +78,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | nvm: each project's Node version | built | 84 |
 | commit-rules: a regex hook, words or a file per project | built | 43 |
 | findings: what happens to them on a merge | planned | 83 |
-| telegram: text, media and the phone menu; the coordinator's silent mode (`/silent`), which every channel follows | in progress, 2 of 4 entries | 47, 48 built; 49, 50 |
+| telegram: text, media and the phone menu; the coordinator's silent mode (`/silent`), which every channel follows | in progress, 3 of 4 entries | 47 to 49 built; 50 |
 | discord: one private server, a main channel for the coordinator and one per project; text, media, phone commands | planned | 89, 90 |
 | voice: local transcription of voice notes | planned | 81 |
 | delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | planned | 52 to 56, 59 |
@@ -180,7 +180,8 @@ flowchart TD
     runner[job runner<br/>spawn, limits, stop, steer<br/>state, prune, other machines]
     kit[test kit<br/>fake host, fake agent]
     options[option tables, arthur setup<br/>every option's meaning, each package's tools]
-    corelater[later in the core<br/>arthur send<br/>cleanup hooks, frozen API]
+    parts[arthur send, message parts<br/>what every channel hands over]
+    corelater[later in the core<br/>cleanup hooks, frozen API]
     files -->|loads| loader
     terminal --> commands
     loader --> host
@@ -192,13 +193,13 @@ flowchart TD
     host --> runner
     prompts -->|role prompt| runner
     guards -->|in every job| runner
-    kit ~~~ options ~~~ corelater
+    kit ~~~ options ~~~ parts ~~~ corelater
   end
 
   subgraph PLUGINS[Plugins: each talks only to the core]
     subgraph FIRST[First-version plugins]
       subgraph CHAN[Channels and media]
-        telegram[telegram<br/>text, media, phone menu<br/>2 of 4 entries; planned: media, phone menu]
+        telegram[telegram<br/>text, media, phone menu<br/>3 of 4 entries; planned: phone menu]
         discord[discord<br/>main channel, one per project<br/>text, media, /name text]
         voice[voice<br/>whisper.cpp, on the CPU]
         telegram ~~~ discord ~~~ voice
@@ -294,7 +295,7 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,machines,session,schedule,projects,models,nvm,commit,youtrack built;
+  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,parts,machines,session,schedule,projects,models,nvm,commit,youtrack built;
   class lpartial,orchestration,resources,telegram partial;
   class lplanned,discord,voice,corelater,agents,findings,docker,delivery,github,manage,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl outside;

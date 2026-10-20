@@ -95,6 +95,18 @@ export default defineConfig({
 				project: { model: "anthropic/claude-opus-5-5", thinking: "high" }, // each project's own agent
 				quick: { model: "anthropic/claude-haiku-5-5" }, // not a role: omp's quick model (--smol) on every job and the coordinator
 			},
+			// MCP servers, defined once by name; omp runs them, Arthur never does. `all`: every role's, the coordinator's included;
+			// `roles.<role>`: that role's own list, which replaces `all` for it; [] gives it none. Global only is `all` without `roles`.
+			// A secret in `env` or `headers` is `{ valueEnv }`, a variable of the shell or `.env`. A job on another machine gets none
+			mcp: {
+				servers: {
+					docs: { command: "npx", args: ["-y", "@upstash/context7-mcp"] }, // local: { command, args?, env? }, over stdio
+					// remote: { url, headers? }, http or https; the variable holds the whole value, `Bearer <token>`
+					github: { url: "https://api.githubcopilot.com/mcp/", headers: { Authorization: { valueEnv: "ARTHUR_ORCHESTRATION_GITHUB_TOKEN" } } },
+				},
+				all: ["docs"],
+				roles: { reviewer: ["docs", "github"], planner: [] },
+			},
 			plan: { budgetUsd: 5 }, // a plan job's budget (`arthur spawn --kind plan`), one resume at it, doubled; default 5
 			// `arthur ticket status <id> planned --autopilot`: a bug or cleanup from a finding or an audit, at most 3 Scope files, none on
 			// delivery's always-review list, set planned by policy. `budgetUsd`: its worker's budget unless `--budget` gives one, above 0;
@@ -327,13 +339,15 @@ export default defineConfig({
 			merge: { afterPassAndGreenCi: true },
 		}),
 
-		// Polls GitHub (CI runs, pull requests) and wakes the coordinator. Arthur has no endpoint for GitHub to call.
-		// The workflow to watch is each project's `ci.workflow`.
-		// Several accounts follow the same rule as YouTrack: `{ name: "acme", tokenEnv: "ARTHUR_GITHUB_ACME_TOKEN" }`.
+		// Polls GitHub for the CI runs of the branches in play (each checkout's own branch and every job's branch) and emits
+		// `ci-finished` once per run; Arthur has no endpoint for GitHub to call. The workflow to watch is each project's
+		// `ci.workflow`, its repository the checkout's `origin`. An instance named after a repository's owner reads it, the unnamed
+		// one every other: `{ name: "acme", tokenEnv: "ARTHUR_GITHUB_ACME_TOKEN" }`. GitHub Enterprise Server: `apiUrl:
+		// "https://<host>/api/v3"`. packages/github/docs/github.md.
 		github({
 			instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }], // fine-grained, Actions: read (write to rerun a run)
-			poll: { everySeconds: 120 },
-			wakeOn: ["ci-finished", "pull-request-review"],
+			poll: { everySeconds: 120 }, // one request per project with a ci.workflow per poll
+			// wakeOn: ["ci-finished", "pull-request-review"], // entry 58; until then refused as unknown
 		}),
 
 		// Channels: the same interface (receive, send text, send media), one plugin each. A channel only receives: it saves what came

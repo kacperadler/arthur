@@ -75,6 +75,8 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	const args = (resume: string | undefined) => [
 		...(resume === undefined ? [] : ["--continue"]),
 		...["-p", "--mode", "json", "--auto-approve", "--tools", branch === "" ? READ_ONLY_TOOLS : WORKER_TOOLS],
+		// The role's MCP servers when the spawn wrote them (job-record.ts); the overlay keeps a read-only role without `write`.
+		...(existsSync(join(folder, "mcp")) ? ["--plugin-dir", join(folder, "mcp"), "--config", join(folder, "mcp.yml")] : []),
 		...["--append-system-prompt", join(folder, "prompt")],
 		// The core's extensions, then those the plugins registered (`extensions`, paths from this folder: job-record.ts).
 		...["env-guard.ts", "worktree-guard.ts", "steer.ts", ...extensions.split("\n").filter(Boolean)].flatMap((extension) => ["-e", resolve(import.meta.dirname, extension)]),

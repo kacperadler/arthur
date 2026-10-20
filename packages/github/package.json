@@ -1,0 +1,10 @@
+{
+  "name": "@arthur/github",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/github.ts",
+    "./options": "./src/github-options.ts"
+  }
+}

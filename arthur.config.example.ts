@@ -95,6 +95,18 @@ export default defineConfig({
 				project: { model: "anthropic/claude-opus-5-5", thinking: "high" }, // each project's own agent
 				quick: { model: "anthropic/claude-haiku-5-5" }, // not a role: omp's quick model (--smol) on every job and the coordinator
 			},
+			// MCP servers, defined once by name; omp runs them, Arthur never does. `all`: every role's, the coordinator's included;
+			// `roles.<role>`: that role's own list, which replaces `all` for it; [] gives it none. Global only is `all` without `roles`.
+			// A secret in `env` or `headers` is `{ valueEnv }`, a variable of the shell or `.env`. A job on another machine gets none
+			mcp: {
+				servers: {
+					docs: { command: "npx", args: ["-y", "@upstash/context7-mcp"] }, // local: { command, args?, env? }, over stdio
+					// remote: { url, headers? }, http or https; the variable holds the whole value, `Bearer <token>`
+					github: { url: "https://api.githubcopilot.com/mcp/", headers: { Authorization: { valueEnv: "ARTHUR_ORCHESTRATION_GITHUB_TOKEN" } } },
+				},
+				all: ["docs"],
+				roles: { reviewer: ["docs", "github"], planner: [] },
+			},
 			plan: { budgetUsd: 5 }, // a plan job's budget (`arthur spawn --kind plan`), one resume at it, doubled; default 5
 			// `arthur ticket status <id> planned --autopilot`: a bug or cleanup from a finding or an audit, at most 3 Scope files, none on
 			// delivery's always-review list, set planned by policy. `budgetUsd`: its worker's budget unless `--budget` gives one, above 0;

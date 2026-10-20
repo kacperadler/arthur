@@ -17,6 +17,7 @@ The owner wants the youtrack plugin to manage issues and articles to YouTrack's 
 Close the gap between `arthur youtrack` and what YouTrack's REST API lets a user do with issues and articles, so the coordinator never has to tell the owner "do it in the browser".
 
 - Kind: improvement
+- Budget: 8
 
 ## Done means
 
@@ -41,3 +42,4 @@ Out:
 ## Decisions
 
 - 2026-10-20: Source: the owner asked for full create, read, update, delete and management of issues and articles; AR0220 covered delete, this covers the rest.
+- 2026-10-20: The owner approved it, without boards and sprints, under the 90% usage ceiling (86% used).

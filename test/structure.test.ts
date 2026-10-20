@@ -236,7 +236,12 @@ import { checkStructure } from "./structure.ts";
 // 72), the HTTP check and the words of each failure (site-check.ts, 41), what is down kept across a restart (uptime-state.ts,
 // 34), and down after 2 failed checks with this machine's offline told apart, the notices and the events (uptime.ts, 141); a
 // new package, so nothing was cut elsewhere; core unchanged.
-const BUDGETS = { core: 5684, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 288 };
+// AR0234 (the owner on 2026-10-20, plan Option 1): MCP servers for the coordinator and each role; orchestration 111 more
+// (1542) for the `mcp` option with its checks, each role's servers with their secrets filled in, and the coordinator's
+// `<home>/orchestration/mcp/` and `--plugin-dir` (mcp.ts, 99); core 14 more (5698) for `mcp` in the `roles.model` answer,
+// checked and kept out of `arthur roles` (roles.ts), the record's `mcp/` and `mcp.yml` (job-record.ts), the warning of a job on
+// another machine (jobs.ts) and `--plugin-dir`/`--config` (wrapper.ts).
+const BUDGETS = { core: 5698, "core/testing": 349, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 288 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

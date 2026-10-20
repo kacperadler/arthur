@@ -165,11 +165,11 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 				try {
 					// A worktree on another machine: the project's files the prompt reads come from the main checkout.
 					const built = prompt(role, there === undefined ? job.worktree : root, files, () => collect("prompt", [role.name, job]));
-					warnings = built.warnings;
+					warnings = [...built.warnings, ...(there !== undefined && preset.mcp ? [`MCP servers left out on ${machine.name}, which Arthur sends no secret: ${Object.keys(preset.mcp).join(", ")}`] : [])];
 					const [resumeOnBudget, since] = [kind.resumeOnBudget === true, time.now()];
 					if (there !== undefined) addThere(machine, { job: { ...job, root: there }, prompt: built.prompt, resumeOnBudget, idleMinutes: limits.idleMinutes, since: since.toISOString() });
 					added = true;
-					writeRecord(home, job, built.prompt, resumeOnBudget, limits.idleMinutes, since, checkouts(collect("projects", [])));
+					writeRecord(home, job, built.prompt, resumeOnBudget, limits.idleMinutes, since, checkouts(collect("projects", [])), there === undefined ? preset.mcp : undefined);
 					release();
 					env = await prepared(job, false);
 				} catch (error) {

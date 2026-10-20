@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { FEATURE, taskTickets } from "./board-jobs.ts";
 import type { Bus } from "./events.ts";
@@ -76,7 +76,7 @@ export function moveJob(home: string, id: string, bus: Bus, decide: (now: Curren
 	return true;
 }
 
-// `host.jobs.block`: holds a job in a run `blocked` on `dependency: <reason>` until `unblock`, whatever its activity; with
+// `host.jobs.block`: holds a job in a run `blocked` on `dependency: <reason>` until its run ends, whatever its activity; with
 // `stop`, on `user: <reason>`, which the end of the run the caller stops keeps (`kept`).
 export function blockJob(home: string, id: string, reason: string, bus: Bus, at: Date, stop = false): void {
 	const what = typeof reason === "string" ? reason.replace(/\s+/g, " ").trim() : "";
@@ -85,17 +85,6 @@ export function blockJob(home: string, id: string, reason: string, bus: Bus, at:
 		if (!inRun(now)) throw new Error(`block ${id}: it is ${told(now)}, not in a run; only a job in a run is held`);
 		write(join(home, "jobs", id), "hold", what);
 		return ["blocked", `${stop ? "user" : "dependency"}: ${what}`];
-	}, at);
-}
-
-// `host.jobs.unblock`: a held job goes back to working, or idle when its agent did nothing for its `idle-minutes` by `at`.
-export function unblockJob(home: string, id: string, bus: Bus, at: Date): void {
-	const folder = join(home, "jobs", id);
-	moveJob(home, id, bus, (now) => {
-		if (now.hold === "") return undefined;
-		rmSync(join(folder, "hold"));
-		const active = statSync(join(folder, "active"), { throwIfNoEntry: false })?.mtimeMs ?? 0;
-		return [quiet(active, at.getTime(), Number(field(home, id)("idle-minutes"))) ? "idle" : "working", ""];
 	}, at);
 }
 

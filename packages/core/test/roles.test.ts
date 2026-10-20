@@ -8,7 +8,7 @@ import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
-import { type Registry, registry } from "../src/plugin.ts";
+import { type Registry, registry } from "../src/plugin-host.ts";
 import { jobSlice, temporaryFolder } from "../src/testing.ts";
 
 const WORKER_FILE = fileURLToPath(new URL("../roles/worker.md", import.meta.url));

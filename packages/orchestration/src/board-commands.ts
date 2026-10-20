@@ -1,12 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import type { Host } from "@arthur/core/plugin";
+import type { Command, Host } from "@arthur/core/plugin";
 
 // `/board`, `/task`, `/findings` and `/plan`, also as `arthur <name>`: docs/commands/board.md, task.md, findings.md and plan.md.
 
 type Board = Host["board"];
-type Command = Parameters<Host["commands"]["register"]>[0];
 
 // Telegram's limit for one message: a full board longer than that is sent as its digest, so no ticket is lost to a cut; a
 // blocked job's question longer than that is cut (blocked-notice.ts).

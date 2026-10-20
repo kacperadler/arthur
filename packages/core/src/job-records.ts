@@ -6,7 +6,7 @@ import type { Clock } from "./clock.ts";
 import type { Bus } from "./events.ts";
 import { steerJob, stopJob, wrappers } from "./job-control.ts";
 import { type Machine, ssh, sshAsync } from "./job-machine.ts";
-import { blockJob, current, field, ID, inRun, jobIds, moveJob, STATES, told, unblockJob } from "./job-state.ts";
+import { blockJob, current, field, ID, inRun, jobIds, moveJob, STATES, told } from "./job-state.ts";
 import { syncMachine } from "./machine-sync.ts";
 import { processTable } from "./process-table.ts";
 
@@ -55,7 +55,6 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 			blockJob(home, id, reason, bus, time.now(), halt);
 			return halt ? stop(id) : Promise.resolve();
 		},
-		unblock: (id: string) => unblockJob(home, id, bus, time.now()),
 		stop,
 		// Returns the steer's number.
 		steer(id: string, text: string): string {

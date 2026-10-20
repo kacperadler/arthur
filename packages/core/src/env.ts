@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import type { LoadedConfig } from "./config.ts";
-import { asPlugin } from "./plugin.ts";
+import { asPlugin } from "./plugin-host.ts";
 
 // The `...Env` options of the enabled plugins, their names and values: docs/commands/config.md. No value enters any output.
 

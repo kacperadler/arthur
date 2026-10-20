@@ -193,8 +193,11 @@ test("a failed poll is one line naming the bot and method, never the token; poll
 	assert.deepEqual(errors, ["telegram bot (unnamed): getUpdates: 502: Bad Gateway; polling retries in 2 s"]);
 	const gone = await load(t, { apiUrl: await nowhere() });
 	await gone.plugin.start?.();
-	await until("the unreachable line", () => gone.errors.length === 1);
-	assert.equal(gone.errors[0], "telegram bot (unnamed): getUpdates: cannot reach the Bot API (ECONNREFUSED); polling retries in 2 s");
+	await until("the unreachable lines", () => gone.errors.length === 2);
+	assert.deepEqual(gone.errors.toSorted(), [
+		"telegram bot (unnamed): deleteMyCommands: cannot reach the Bot API (ECONNREFUSED); the command menu is set again at the next start",
+		"telegram bot (unnamed): getUpdates: cannot reach the Bot API (ECONNREFUSED); polling retries in 2 s",
+	]);
 });
 
 test("a 429 while polling waits the seconds Telegram says, and says so once", async (t) => {

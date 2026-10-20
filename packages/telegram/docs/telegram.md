@@ -1,6 +1,6 @@
 # The telegram plugin
 
-Roadmap entries 47 to 49: the owner talks to the coordinator from Telegram. Each bot polls the one chat it answers; what the owner sends, text and media, reaches the coordinator, and the coordinator's replies and Arthur's notices come back through an outbox that survives Telegram being away and a restart; `arthur send` sends files. Phone commands such as `/silent` with the menu (50) are a later entry: until then, a `/name` text reaches the coordinator as any text. It has no command of its own.
+Roadmap entries 47 to 50: the owner talks to the coordinator from Telegram. Each bot polls the one chat it answers; what the owner sends, text and media, reaches the coordinator, and the coordinator's replies and Arthur's notices come back through an outbox that survives Telegram being away and a restart; `arthur send` sends files. A `/name` text runs a phone command without the model, and each bot's command menu lists them. It has no command of its own.
 
 ```ts
 plugins: [orchestration({}), telegram({ bots: [{ botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }] })],
@@ -56,6 +56,19 @@ Every slice is first a file of `.arthur/telegram/outbox/`, `{ bot, text, place? 
 `channel.send`, which `arthur send` asks (`arthur send --help`), sends files at once by the unnamed bot, else the first, to its chat or the topic its `place` names, without a notification in quiet hours, not through the outbox. `.jpg`, `.jpeg`, `.png` and `.webp` go as photos, `.mp4` and `.mov` as videos, any other file as a document, and so does a photo over 10 MB. Photos and videos go as one album (`sendMediaGroup`; one alone as `sendPhoto` or `sendVideo`), then the documents as one more (`sendDocument` for one), since Telegram puts a document in an album only with documents; the caption goes on the first message. It answers `sent <n> files in <m> messages`.
 
 Every file is checked before anything goes, and each problem is one line of the refusal: more than 10 files (`<n> files; Telegram takes at most 10 in one album`); a caption over 1024 characters; a missing file (`<path>: no such file`); an empty one; one over 50 MB (`<path>: <size> bytes; Telegram takes at most 52428800 (50 MB) from a bot`); a photo whose width plus height is over 10000 px or whose sides differ by more than 20 to 1, read from the PNG, JPEG or WebP header (`<path>: <w>x<h> px; ... slice it into viewport-high images (for example 1600 px tall) and send them as one album`): Telegram would reject it, and as a document it has no preview. A message Telegram refuses ends the send, naming it and what went before: `telegram bot <name>: <method>: <code>: <description>; nothing went` (or `; <k> of <m> messages went before it`), never the token; an upload is given 5 minutes.
+
+## Phone commands
+
+A text message that starts with `/name` (1 to 32 letters, digits and underscores, then a space, a line break or its end) is a phone command, not a message to the coordinator: the plugin hands `/name` and the rest of the text to the host's command registry (`arthur help --help`, "Phone commands"), with `channel: "telegram"` and, for a message in a topic, its `place`, and sends the reply back by the same bot to the same chat and topic, through the outbox like any reply, so a reply longer than one message goes in slices, in order. Nothing of it reaches the coordinator.
+
+- A name no phone command has gets the registry's line, `unknown command /<name>; phone commands: /a, /b`; the case counts, so `/Jobs` is unknown too. A command that throws answers `/<name> failed: <first line of the error>`.
+- `/name@<bot>` is `/name` when `<bot>` is this bot's username, in any case, from `getMe`, asked when a command first names a bot and kept once it answers; a command to another bot is dropped, unanswered. While `getMe` has not answered, every `@<bot>` counts as this bot.
+- A text where the slash starts no such name (`/tmp/x is full`, `/ hi`, a name over 32 characters) and a caption reach the coordinator as any text.
+- A command is handled in its turn among the messages: the messages after it wait for its reply, so a slow command holds them.
+
+At every start of `arthur run`, each bot's menu is set to the phone commands the enabled plugins registered, sorted by name, each with its `about` line (`setMyCommands`; `deleteMyCommands` when there is none), but only when they differ from what `.arthur/telegram/menu.json` records as set for that bot: a start with the same commands calls nothing. The record is keyed by the bot's id, the part of its token before the colon, never the token. A refused or failed call is one line on stderr, `telegram bot <name>: setMyCommands: <code>: <description>; the command menu is set again at the next start`, and the record stays as it was, so the next start tries again; a record that does not parse records nothing. Delete the file to set every menu again.
+
+The session's start notice (`coordinator up on <host>`, or `no LLM access on <host>: ...`, after the lines `arthur doctor` found missing) is a `notice`, sent as it comes, as one text, unless the silent mode holds it, as it holds every notice but a blocked job's.
 
 ## Setting it up
 

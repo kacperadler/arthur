@@ -120,6 +120,16 @@ test("route gives a phone command the text after its name, trimmed, and empty wh
 	assert.deepEqual(texts, ["AR1  stop\nnow", "", ""]);
 });
 
+test("route passes where the text came from, channel and place, to the phone command; nothing given is an empty one", async () => {
+	const commands = commandRegistry();
+	const from: unknown[] = [];
+	commands.register("core", command("restart", { about: "restart", reply: (_, where) => (from.push(where), "ok") }));
+	await commands.route("/restart fresh", { channel: "telegram", place: "12" });
+	await commands.route("/restart", { channel: "telegram" });
+	await commands.route("/restart");
+	assert.deepEqual(from, [{ channel: "telegram", place: "12" }, { channel: "telegram" }, {}]);
+});
+
 test("route names an unknown command in one line with the phone commands; case and a command without phone do not match", async () => {
 	const commands = commandRegistry();
 	assert.equal(await commands.route("/jobs"), "unknown command /jobs; no phone commands");

@@ -220,7 +220,13 @@ import { checkStructure } from "./structure.ts";
 // lookup to `databaseId`.
 // AR0223: a claim's reply the log holds already is not sent again when a restart cut the message's pass before the queue, none
 // matched in a log cut by hand; orchestration 6 more (1433) in inbox.ts's pass over `inbox/received/`.
-const BUDGETS = { core: 5668, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 589 };
+// AR0224 (roadmap 50): phone commands and the menu. Cut first: outbox.ts's `read` takes the slice apart once and checks its
+// place with bot-api.ts's `topic` instead of its own copy of the pattern (1), telegram.ts's two setup-time variables on one line
+// (1); core: `PhoneCommand` inlined into `phone()` and a refusal joined onto its line pay for `PhoneFrom` and `route`'s
+// `from`, so core stays 5668. Telegram 52 more (641): the menu set only when the commands changed, per bot, with its
+// record (menu.ts, 36), and `/name text` and `/name@<bot>` routed with the channel and place, the reply sent back there, and
+// getMe's username kept (poll.ts, 16 with its comment).
+const BUDGETS = { core: 5668, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

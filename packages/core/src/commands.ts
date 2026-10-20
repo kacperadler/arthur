@@ -19,18 +19,19 @@ export type Command = {
 	readonly run: (input: CommandInput) => number | void | Promise<number | void>;
 	// `about` is the line of a channel's menu, 1 to 256 characters, not only spaces; `reply` answers the text after `/name`, empty when there is none.
 	// Both limits are Telegram's for its command menu, so every phone command can be listed there.
-	readonly phone?: { readonly about: string; readonly reply: (text: string) => string | Promise<string> };
+	readonly phone?: { readonly about: string; readonly reply: (text: string, from: PhoneFrom) => string | Promise<string> };
 };
 
-export type PhoneCommand = { readonly name: string; readonly about: string };
+// Where `/name text` came from: the channel (its plugin's name) and the place the message names (a topic, a channel id); the reply goes back there.
+export type PhoneFrom = { readonly channel?: string; readonly place?: string };
 
 // What a plugin sees as `host.commands`.
 export type Commands = {
 	register(command: Command): void;
 	// A channel's `/name text`: the phone command's reply, or one line naming the unknown command or the error.
-	route(text: string): Promise<string>;
+	route(text: string, from?: PhoneFrom): Promise<string>;
 	// The phone commands, by name, for a channel's menu.
-	phone(): PhoneCommand[];
+	phone(): { readonly name: string; readonly about: string }[];
 };
 
 export type CommandRegistry = Omit<Commands, "register"> & {
@@ -54,8 +55,7 @@ export function commandRegistry(): CommandRegistry {
 			if (typeof name !== "string" || !NAME.test(name)) throw new Error(`command ${JSON.stringify(name)}: expected a name of lowercase letters, digits and dashes`);
 			const first = commands.get(name);
 			if (first) throw new Error(`command ${name}: registered by ${first.owner} and by ${owner}; a command belongs to one plugin`);
-			if (!(doc instanceof URL) || doc.protocol !== "file:")
-				throw new Error(`command ${name}: no doc file; register it with doc: new URL("../docs/commands/${name}.md", import.meta.url)`);
+			if (!(doc instanceof URL) || doc.protocol !== "file:") throw new Error(`command ${name}: no doc file; register it with doc: new URL("../docs/commands/${name}.md", import.meta.url)`);
 			if (!existsSync(doc)) throw new Error(`command ${name}: its doc file ${fileURLToPath(doc)} does not exist`);
 			if (command.phone) {
 				if (!PHONE_NAME.test(name)) throw new Error(`command ${name}: a phone command's name has no dash and at most 32 characters, as a channel's menu needs`);
@@ -68,7 +68,7 @@ export function commandRegistry(): CommandRegistry {
 		find: (name) => commands.get(name)?.command,
 		names: () => sorted().map((command) => command.name),
 		phone,
-		async route(text) {
+		async route(text, from = {}) {
 			const [, word = "", rest = ""] = /^(\S*)\s*([\s\S]*)$/.exec(text.trim()) ?? [];
 			const command = word.startsWith("/") ? commands.get(word.slice(1))?.command : undefined;
 			if (!command?.phone) {
@@ -76,7 +76,7 @@ export function commandRegistry(): CommandRegistry {
 				return `unknown command ${word}; ${known.length > 0 ? `phone commands: ${known.join(", ")}` : "no phone commands"}`;
 			}
 			try {
-				return await command.phone.reply(rest);
+				return await command.phone.reply(rest, from);
 			} catch (error) {
 				return `${word} failed: ${(error instanceof Error ? error.message : String(error)).split("\n")[0]}`;
 			}

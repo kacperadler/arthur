@@ -16,6 +16,8 @@ import { github } from "@arthur/github";
 import * as githubFile from "@arthur/github/options";
 import { machines } from "@arthur/machines";
 import * as machinesFile from "@arthur/machines/options";
+import { manage } from "@arthur/manage";
+import * as manageFile from "@arthur/manage/options";
 import { models } from "@arthur/models";
 import * as modelsFile from "@arthur/models/options";
 import { nvm } from "@arthur/nvm";
@@ -57,6 +59,7 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	uptime: [uptimeFile, uptime()],
 	delivery: [deliveryFile, delivery()],
 	github: [githubFile, github({ instances: [] })],
+	manage: [manageFile, manage()],
 };
 
 // What is wrong with `file`: an option, at any depth, whose meaning or default is not one line; a summary that is not one

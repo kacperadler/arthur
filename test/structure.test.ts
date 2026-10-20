@@ -266,7 +266,11 @@ import { checkStructure } from "./structure.ts";
 // (github-state.ts, 26), and the branches in play with each one's nearest run, ci-finished once per run and a refusal said
 // once (github.ts, 135); a new package, so nothing was cut elsewhere; core unchanged.
 // Merged AR0237 with AR0234 and AR0236: main's budgets plus AR0237's raises, core 5714 + 13 = 5727, delivery 508.
-const BUDGETS = { core: 5727, "core/testing": 349, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 508, github: 310 };
+// AR0240 (roadmap 60): manage: 257, set for `arthur health` and `/health` over every plugin's `health` answer, the rounds of
+// `health.everyMinutes` with what the last one saw kept across a restart (manage.ts, 105), its own checks of stalled tickets,
+// main not pushed, the board uncommitted, the temporary folder and the inodes (health-checks.ts, 116), and its options file
+// (manage-options.ts, 36); a new package, so nothing was cut elsewhere; core unchanged.
+const BUDGETS = { core: 5727, "core/testing": 349, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 508, github: 310, manage: 257 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

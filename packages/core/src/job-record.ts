@@ -4,6 +4,7 @@ import { taskTickets } from "./board-jobs.ts";
 import { branchExists } from "./git.ts";
 import type { Caps } from "./job-scope.ts";
 import type { Job, Spawn } from "./jobs.ts";
+import type { McpServers } from "./roles.ts";
 
 // The job record `<home>/jobs/<id>/` (spec/roadmap.md, entries 9 and 10) as the spawn writes it, one file per key; the
 // wrapper (entry 11) adds the files of the run.
@@ -17,11 +18,18 @@ export type Own = { readonly resumeOnBudget: boolean; readonly verdicts: readonl
 // `verdicts` the lines its final message may end on, empty for any; the caps are the job's own and its ticket's slice's (job-scope.ts);
 // `cost` starts at 0, so a missing one is a broken record; `free` is `true` for a model that costs nothing (job-model.ts).
 // A job starts `working` (job-state.ts) at `since`; `idle-minutes` is the core's `jobs.idleMinutes`; `projects` is every
-// project's main checkout, `checkouts` (job-checkout.ts), which the worktree guard refuses too.
-export function writeRecord(home: string, job: Job, prompt: string, kind: Own, idleMinutes: number, since: Date, projects: string): void {
+// project's main checkout, `checkouts` (job-checkout.ts), which the worktree guard refuses too. With `mcp`, the role's MCP
+// servers (AR0234): `mcp/` for omp's `--plugin-dir`, its `.mcp.json` readable by its owner only, and `mcp.yml`, the overlay
+// that makes their tools plain tools, so `--tools` keeps a read-only role without `write`.
+export function writeRecord(home: string, job: Job, prompt: string, kind: Own, idleMinutes: number, since: Date, projects: string, mcp?: McpServers): void {
 	const folder = join(home, "jobs");
 	const temporary = join(folder, `.${job.id}`);
-	mkdirSync(temporary, { recursive: true });
+	mkdirSync(join(temporary, ...(mcp ? ["mcp", ".claude-plugin"] : [])), { recursive: true });
+	if (mcp) {
+		writeFileSync(join(temporary, "mcp", ".claude-plugin", "plugin.json"), '{ "name": "arthur" }\n');
+		writeFileSync(join(temporary, "mcp", ".mcp.json"), `${JSON.stringify({ mcpServers: mcp }, null, "\t")}\n`, { mode: 0o600 });
+		writeFileSync(join(temporary, "mcp.yml"), "tools:\n  xdev: false\n");
+	}
 	const record = {
 		task: job.task, kind: job.kind, project: job.project, model: job.model ?? "", "model-why": job.modelWhy ?? "", thinking: job.thinking ?? "", quick: job.quick ?? "", prompt,
 		timeout: String(job.timeoutMinutes), budget: String(job.budgetUsd), free: String(job.free), "resume-on-budget": String(kind.resumeOnBudget), verdicts: kind.verdicts.join("\n"), ...capFields(job), cost: "0.0000",

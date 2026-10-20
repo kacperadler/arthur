@@ -11,6 +11,7 @@ The coordinator is one interactive agent (`core.agent.command`, `omp`) in its ow
 3. A start first waits, up to `coordinator.exitWaitSeconds` (default 60), until the agent of the previous start has exited, so two never refresh the agent's credential at once (a refresh token is used once; the loser's login is lost). The previous agent is the pid `<home>/orchestration/coordinator.pid` names, with its start time from `ps`, so a pid reused by another process does not count, after a reboot for example.
 4. Then `tmux new-session -d -s <session> -c <the folder arthur run runs in> -e ARTHUR_ORCHESTRATION_FOLDER=<home>/orchestration -e ARTHUR_ORCHESTRATION_CONTEXT=<the context command>` starts `<agent> [--continue] --auto-approve [--model <coordinator.model>] [--thinking <coordinator.thinking>] [--smol <roles.quick.model>] -e <@arthur/core/env-guard> -e <the inbox extension> -e <the context extension>`: the last conversation goes on (a new one when there is none; without `--continue`, a fresh conversation, once after `coordinator.restart` with `fresh: true`, below), nobody is there to approve tool calls, the env guard refuses a tool call naming a secrets file as it does in every job (see `arthur spawn --help`), the inbox extension (`packages/orchestration/src/inbox-extension.ts`) hands the coordinator its messages, and the context extension (`packages/orchestration/src/context-extension.ts`) gives it its role and context before every turn (both below). The context command is a JSON list: the `node` that runs `arthur run`, the core's CLI, `coordinator`, `context`.
    After its own three, the coordinator loads each OMP extension another plugin answers to `collect("coordinator.extension")` with `{ file, env }` (the session plugin's handoff and turn extensions, `packages/session/docs/session.md`): `-e <file>`, and each of its `env` variables as one more `-e <NAME>=<value>` of `tmux new-session`. They are collected once, at `arthur run`'s start. An answer that is not an absolute path to an existing file with `env` variables named `ARTHUR_*` holding text, or a provider that throws, is left out: `orchestration: the coordinator.extension of <plugin> is left out: <why>`.
+   Last, when the coordinator has MCP servers (see "MCP servers"), `--plugin-dir <home>/orchestration/mcp`: omp loads them from that folder's `.mcp.json`. That folder is written once at `arthur run`'s start, before the first start, and removed there when the coordinator has none.
 5. At `arthur run`'s `stop` the session is killed.
 6. Another plugin ends the coordinator through `call("coordinator.restart", { fresh })` (the session plugin's `/restart` and fresh start, `arthur restart --help`): its session is killed, so it is started again as in step 2; with `fresh: true` the mark `<home>/orchestration/fresh` is left first, and the next start is made without `--continue` and removes it. Anything but `{ fresh: true | false }` is refused: `coordinator.restart: expected { fresh: true | false }, got <value>`. It does not count running jobs: that is the caller's rule.
 
@@ -78,6 +79,7 @@ In `orchestration({ ... })` in `arthur.config.ts`, every key optional; an unknow
 - `maxAgents`: a whole number of at least 1, default 3.
 - `coordinator`: `model` (a non-empty string), `thinking` (one of `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, `auto`), `tmux: { session, socket }` (the session: letters, digits, `_` and `-`, since tmux reads `:` and `.` in a target; the socket: a non-empty string), `exitWaitSeconds` (a whole number of at least 0), `restartDelaySeconds` (a whole number of at least 1).
 - `roles`: one entry per role, its name lowercase letters, digits and dashes, each `{ model, thinking }`: `model` a model name or a non-empty list of them, `thinking` as above. The entry `quick` is not a role: `{ model }` only, a model name. An entry `coordinator` is refused: the coordinator's are `coordinator.model` and `coordinator.thinking`, which `arthur roles` shows for the role `coordinator`.
+- `mcp: { servers, all, roles }`: the MCP servers of the coordinator, each project agent and each job, as "MCP servers" below says.
 - `plan: { budgetUsd }`: the budget of a plan job, an amount in USD, 0 or more, default 5 (`arthur plan --help`).
 - `autopilot: { budgetUsd, budgetMaxUsd }`: amounts in USD, 0 or more: the budget a pre-approved ticket's worker gets when `--budget` and the ticket's own `budget` are left out, default 1, and the most it may get, default 3 (see "Autopilot"). A `budgetUsd` above `budgetMaxUsd`, either left out at its default, refuses the start: `autopilot.budgetUsd: expected at most autopilot.budgetMaxUsd (<cap>), got <budget>`.
 - `morningReport: { at }`: `"HH:MM"`, 00:00 to 23:59.
@@ -98,6 +100,36 @@ In `orchestration({ ... })` in `arthur.config.ts`, every key optional; an unknow
 When every rule holds, the line `- YYYY-MM-DD: Pre-approved by policy: <kind> from <source>, <n> Scope files, budget $<budget> of the $<cap> cap` (today in `core.timeZone`) goes last under its Decisions, written whole and renamed, and the ticket moves to `planned` as `arthur ticket status` moves it (`ticket-moved`, from this plugin). A move the board refuses (a guidance comment of the template left in `ticket.md`, for example) puts the `ticket.md` back as it was and prints the board's refusal. It prints `<id> planned: Pre-approved by policy: ...; spawn its worker with --budget <budget>`. A ticket not on the board: `<id> is not on the board`. Wrong usage, exit code 2: `--autopilot` with another status or more than one ticket (`--autopilot sets one ticket planned`), `--budget` without a value or with one that is not a number of 0 or more, given twice, or without `--autopilot`.
 
 Pre-approval changes who approved the ticket and holds its worker's budget: a worker, or an `arthur continue` of one, on a ticket whose `ticket.md` at HEAD holds a `Pre-approved by policy` line under its Decisions is refused with a budget of 0 (no limit) on a model that costs, or one above that line's (the last one); a free model's budget of 0 (the models plugin's provider models) spends nothing and passes: `refused by orchestration: <id> is pre-approved by policy with a budget of $<n>; its worker gets at most that, above 0, not $<budget>: --budget <n>, or the owner's approval under its Decisions ("- YYYY-MM-DD: The owner approved ...")`. A Decisions line after it that says `the owner approved` or `approved by the owner` lifts it. Its review and merge go as for any planned ticket. The judgement it leaves to the coordinator, beyond these rules (which tickets to try, what the owner hears in the morning), is the project's criteria file `autopilot`, `<criteriaDir>/autopilot.md` (`.agents/arthur/criteria/autopilot.md` by default), which the coordinator's role reads; `packages/orchestration/criteria/autopilot.md` is a starting text to copy there. Without it the coordinator's context warns that it is missing.
+
+## MCP servers
+
+The owner lists MCP servers once, under `mcp.servers`, and says which go to every role (`mcp.all`) and which to a given role (`mcp.roles.<role>`). A role is the coordinator (`coordinator`), a project's own agent (`project`, roadmap entry 85), or the role of a job's kind (`worker`, `reviewer`, `planner`, `plan-reviewer`, `auditor`, `retro`, `onboarding`, ...). A role with its own list gets exactly that list, `all` not added; `[]` gives it none; a role without one gets `all`, and with neither, none. Arthur never runs or proxies a server: omp does, each process its own.
+
+```ts
+// Global only: every role gets the same servers.
+mcp: {
+	servers: { docs: { command: "npx", args: ["-y", "@upstash/context7-mcp"] } },
+	all: ["docs"],
+},
+
+// Global plus a reviewer of its own: the reviewer gets docs and github, the planner none, every other role docs.
+mcp: {
+	servers: {
+		docs: { command: "npx", args: ["-y", "@upstash/context7-mcp"] },
+		github: { url: "https://api.githubcopilot.com/mcp/", headers: { Authorization: { valueEnv: "ARTHUR_ORCHESTRATION_GITHUB_TOKEN" } } },
+	},
+	all: ["docs"],
+	roles: { reviewer: ["docs", "github"], planner: [] },
+},
+```
+
+- A server is local, `{ command, args?, env? }`, which omp starts and talks to over stdio, or remote, `{ url, headers? }` with an http or https URL (omp's `type: "http"`). Its name is letters, digits, `_` and `-`; omp names its tools `mcp__arthur_<server>_<tool>`.
+- A value in `env` or `headers` is text, written as is, or `{ valueEnv: "ARTHUR_ORCHESTRATION_<WHAT>" }` for a secret: the variable is read from the shell or `core.envFile` as every `...Env` option is (`arthur config --help`), and a missing one refuses the start, naming it. Write the whole value in the variable (`Bearer <token>` for an `Authorization` header). omp reads a value starting with `!` as a shell command to run, and a text equal to the name of one of its environment variables as that variable's value (omp's MCP config docs), so neither is a safe literal.
+- Refused when Arthur loads, naming the path: a server with neither or both of `command` and `url`, a key the server's kind does not take (`headers` on a local server, `env` on a remote one, any other), a value of the wrong shape, a role name that is not lowercase letters, digits and dashes, `mcp.roles.quick` (not a role), and a name in `mcp.all` or a role's list that no server has: `mcp.roles.reviewer: unknown server "gihub"; servers: docs, github`.
+- The coordinator: its servers go into `<home>/orchestration/mcp/` (`.mcp.json`, readable by its owner only, and `.claude-plugin/plugin.json`, `{ "name": "arthur" }`) and its agent gets `--plugin-dir` to it (step 4 above). It keeps its `write`: it has no `--tools`.
+- A job: the role of its kind gets its servers through the `roles.model` answer (`arthur roles --help`), and the core writes them into the job record (`arthur spawn --help`). Its `--tools` stays as it is: a read-only role keeps `read,bash,grep,glob` and gets the servers' tools, never `write`. A job on another machine starts with none, since Arthur sends another machine no secret; its spawn warns, naming them.
+- A project agent (roadmap entry 85) gets `mcp.roles.project`, or `all`, when that entry builds it.
+- A server's secret stays out of every prompt, task, log and event: it is only in the `.mcp.json` the agent's omp reads, which the agent's own tools could read as they could its environment. Nothing is written into `~/.omp` or a project. With no `mcp` option, nothing is written and no flag is added.
 
 ## maxAgents and the models of each role
 

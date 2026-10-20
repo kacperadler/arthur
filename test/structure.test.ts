@@ -248,7 +248,12 @@ import { checkStructure } from "./structure.ts";
 // at registration (job-kinds.ts, 6), kept in the record as `verdicts` with the kind's `Own` keys sent to `remote-job add`
 // (job-record.ts, remote-job.ts, 3), and a finished run whose last line is none of them ends `failed: no verdict` (wrapper.ts, 1);
 // `SpawnRequest.fetch`, checked as a commit here (jobs.ts, 4) and pushed to `refs/arthur/fetch` there when missing (job-machine.ts, 2).
-const BUDGETS = { core: 5700, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 312 };
+// AR0234 (the owner on 2026-10-20, plan Option 1): MCP servers for the coordinator and each role; orchestration 111 more
+// (1542) for the `mcp` option with its checks, each role's servers with their secrets filled in, and the coordinator's
+// `<home>/orchestration/mcp/` and `--plugin-dir` (mcp.ts, 99); core 14 more (5698 alone; 5700 + 14 = 5714 merged with AR0235)
+// for `mcp` in the `roles.model` answer, checked and kept out of `arthur roles` (roles.ts), the record's `mcp/` and `mcp.yml`
+// (job-record.ts), the warning of a job on another machine (jobs.ts) and `--plugin-dir`/`--config` (wrapper.ts).
+const BUDGETS = { core: 5714, "core/testing": 349, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 312 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -1842,9 +1842,9 @@
   {
     "id": "AR0239",
     "title": "Roadmap 54: arthur merge",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0239-roadmap-54-arthur-merge/ticket.md",
-    "updated": "2026-10-20T22:09:03.292Z"
+    "updated": "2026-10-20T22:41:01.447Z"
   },
   {
     "id": "AR0240",
@@ -1852,5 +1852,26 @@
     "status": "merged",
     "path": "spec/features/AR0240-roadmap-60-arthur-health/ticket.md",
     "updated": "2026-10-20T22:17:58.523Z"
+  },
+  {
+    "id": "AR0241",
+    "title": "arthur merge installs from the lockfile and never reads a project's own install",
+    "status": "planning",
+    "path": "spec/features/AR0241-arthur-merge-installs-from-the-lockfile-and-never-reads-a-project-s-own-install/ticket.md",
+    "updated": "2026-10-20T22:41:01.442Z"
+  },
+  {
+    "id": "AR0242",
+    "title": "The checks on main run on the service's Node, not the project's .nvmrc",
+    "status": "planning",
+    "path": "spec/features/AR0242-the-checks-on-main-run-on-the-service-s-node-not-the-project-s-nvmrc/ticket.md",
+    "updated": "2026-10-20T22:41:01.444Z"
+  },
+  {
+    "id": "AR0243",
+    "title": "The onboarding procedure does not name the command that merges an onboarding",
+    "status": "planning",
+    "path": "spec/features/AR0243-the-onboarding-procedure-does-not-name-the-command-that-merges-an-onboarding/ticket.md",
+    "updated": "2026-10-20T22:41:01.446Z"
   }
 ]

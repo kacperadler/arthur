@@ -1877,8 +1877,15 @@
   {
     "id": "AR0244",
     "title": "Roadmap 61: arthur stats",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0244-roadmap-61-arthur-stats/ticket.md",
-    "updated": "2026-10-20T22:41:46.312Z"
+    "updated": "2026-10-20T23:07:11.726Z"
+  },
+  {
+    "id": "AR0245",
+    "title": "arthur stats: remove the unreachable unknown-project throw",
+    "status": "planning",
+    "path": "spec/features/AR0245-arthur-stats-remove-the-unreachable-unknown-project-throw/ticket.md",
+    "updated": "2026-10-20T23:07:25.158Z"
   }
 ]

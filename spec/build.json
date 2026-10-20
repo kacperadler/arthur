@@ -1807,15 +1807,15 @@
   {
     "id": "AR0234",
     "title": "MCP servers for the coordinator and every role, set globally or per role",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0234-mcp-servers-for-the-coordinator-and-every-role-set-globally-or-per-role/ticket.md",
-    "updated": "2026-10-20T19:50:33.196Z"
+    "updated": "2026-10-20T19:50:35.867Z"
   },
   {
     "id": "AR0235",
     "title": "Roadmap 52: review jobs",
     "status": "in-progress",
     "path": "spec/features/AR0235-roadmap-52-review-jobs/ticket.md",
-    "updated": "2026-10-20T19:37:00.678Z"
+    "updated": "2026-10-20T19:55:37.187Z"
   }
 ]

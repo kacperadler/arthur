@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-20: Owner: go on with Arthur and spend the weekly usage up to 99% until 08:00 on 2026-10-21 (94% at 21:36). Started by the coordinator under the owner's free hand in Arthur.
+- 2026-10-20: Coordinator approved the new delivery line budget, 312 (new package, nothing cut elsewhere).

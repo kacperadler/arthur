@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { matchesGlob } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
 import { ALWAYS_REVIEW, checkOptions } from "./delivery-options.ts";
+import { mergeCommand } from "./merge-command.ts";
 import { reviewCommand } from "./review-command.ts";
 import { reviewFiler } from "./review-file.ts";
 import { reviewNeededCommand } from "./review-needed.ts";
@@ -13,7 +14,7 @@ import { failsSincePass, LIMIT, type Review, readReview, saveReview, settle } fr
 // kind's `verdicts`) and is never filed. A branch gets at most 2 FAILs since its last PASS; the next review needs `Round: <n>` (`arthur review --round`)
 // on the owner's word, and the wake of the second FAIL carries the procedure. docs/commands/review.md. Entry 53: `arthur
 // review-needed`, the always-review list it and autopilot ask (`delivery.alwaysReview`), and the extension that records each
-// job's checks: docs/commands/review-needed.md.
+// job's checks: docs/commands/review-needed.md. Entry 54: `arthur merge`: docs/commands/merge.md.
 
 const REVIEW = "review";
 const TICKET = /^spec\/features\/([A-Z]+\d{4,})-[^/]+\/ticket\.md$/;
@@ -55,6 +56,7 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 			});
 			host.commands.register(reviewCommand(host, procedure));
 			host.commands.register(reviewNeededCommand(host, held));
+			host.commands.register(mergeCommand(host, new URL("../roles/coordinator/after-merge.md", import.meta.url)));
 			host.jobs.registerExtension(new URL("./checks-extension.ts", import.meta.url));
 			// Asked with a project and paths from its root (orchestration's autopilot): those on the list, the same in every project.
 			host.provide("delivery.alwaysReview", ({ paths }: { readonly paths: readonly string[] }) => paths.filter(held));

@@ -8,7 +8,7 @@ import { failsSincePass, LIMIT } from "./review-records.ts";
 // choice. docs/commands/review.md.
 
 const USAGE = "usage: arthur review <worker job> [--round <n>]";
-const FEATURE = /(?:^|\/)(spec\/features\/[A-Z]+\d{4,}-[^/]+)\//;
+export const FEATURE = /(?:^|\/)(spec\/features\/[A-Z]+\d{4,}-[^/]+)\//;
 
 export function reviewCommand(host: Host, procedure: URL): Command {
 	return {

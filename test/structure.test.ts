@@ -266,7 +266,13 @@ import { checkStructure } from "./structure.ts";
 // (github-state.ts, 26), and the branches in play with each one's nearest run, ci-finished once per run and a refusal said
 // once (github.ts, 135); a new package, so nothing was cut elsewhere; core unchanged.
 // Merged AR0237 with AR0234 and AR0236: main's budgets plus AR0237's raises, core 5714 + 13 = 5727, delivery 508.
-const BUDGETS = { core: 5727, "core/testing": 349, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 508, github: 310 };
+// AR0239 (roadmap 54): delivery 262 more (770) for `arthur merge`. Cut first: the review records' listing, which the FAILs
+// since the last PASS and the merge's PASS on the tip both read, kept once (review-records.ts `reviewsOf`), and the ticket
+// folder's pattern shared with `arthur review` (review-command.ts `FEATURE`). The rest: its refusals, the merge and its PASS
+// on the tip (merge-command.ts, 108), the install of a changed lockfile, the checks on main and the reinstall after a reset
+// (merge-checks.ts, 65), the filed reviews, `findings.onMerge`, outcome.md, merged and the tickets unblocked (merge-outcome.ts,
+// 82), the command registered (delivery.ts, 2), the summary (delivery-options.ts, 0) and `reviewsOf` (review-records.ts, 5).
+const BUDGETS = { core: 5727, "core/testing": 349, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 770, github: 310 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

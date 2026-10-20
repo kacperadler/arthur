@@ -45,3 +45,4 @@ Out:
 - 2026-10-20: The coordinator raised the budget to $14 after the first run ran out at $10.04 with the work uncommitted and its tests passing (86% usage).
 - 2026-10-20: The coordinator accepts the line budget raises core 5668 (+119), orchestration 1427 (+45), telegram 589 (+185) for entry 49, after the cuts the worker named.
 - 2026-10-20: The owner: merge.
+- 2026-10-20: The owner: the worker merges main and resolves the test/structure.test.ts BUDGETS conflict with AR0220, then a new review.

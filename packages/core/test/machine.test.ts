@@ -42,9 +42,9 @@ const calls = () => (existsSync(sshLog) ? readFileSync(sshLog, "utf8").split("\n
 
 // A repository `acme` with one commit, a home folder beside it, and a machine `gpu` in a folder of its own whose `arthur` is
 // this core (`arthur` there: the script of `<machine>/bin/arthur`); the runner's plugin `machines` registers it, and `place`
-// answers its `jobs.place`, `caps` its `jobs.limits`, one answer per plugin that provides it. The runner's clock stands at
-// `now.at`, which a test moves.
-function setup(options: { readonly agent?: string; readonly arthur?: string; readonly place?: () => readonly unknown[]; readonly caps?: () => readonly unknown[]; readonly slice?: Slice } = {}) {
+// answers its `jobs.place`, `caps` its `jobs.limits`, `roles` its `roles.model`, one answer per plugin that provides it. The
+// runner's clock stands at `now.at`, which a test moves.
+function setup(options: { readonly agent?: string; readonly arthur?: string; readonly place?: () => readonly unknown[]; readonly caps?: () => readonly unknown[]; readonly roles?: () => readonly unknown[]; readonly slice?: Slice } = {}) {
 	rmSync(sshLog, { force: true });
 	const folder = temporaryFolder();
 	const root = join(folder, "acme");
@@ -59,7 +59,8 @@ function setup(options: { readonly agent?: string; readonly arthur?: string; rea
 	const there = join(machine, "arthur-home");
 	const now = { at: new Date("2026-10-16T12:00:00Z") };
 	const time = clock("UTC", undefined, () => now.at);
-	const collect = (name: string) => (name === "jobs.place" ? [...(options.place?.() ?? [])] : name === "jobs.limits" ? [...(options.caps?.() ?? [])] : []);
+	const answers: Readonly<Record<string, (() => readonly unknown[]) | undefined>> = { "jobs.place": options.place, "jobs.limits": options.caps, "roles.model": options.roles };
+	const collect = (name: string) => [...(answers[name]?.() ?? [])];
 	const limits = { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...(options.slice ?? jobSlice) };
 	const jobs = jobRunner(home, root, limits, options.agent ?? "omp", time, eventBus(home), collect);
 	jobs.registerMachine("machines", { name: "gpu", ssh: "gpu", home: there, labels: { os: "linux" } });
@@ -123,6 +124,30 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	assert.equal(calls().filter((call) => call.includes("git-receive-pack")).length, 1, "the base commit there is not pushed twice");
 });
 
+// AR0235 F2: a review on another machine checks out a worker's tip that only this repository holds.
+test("a spawn's fetch goes to the machine with its base, to refs/arthur/fetch, once; a fetch that is no commit here is refused before any record", async () => {
+	const agent = fakeAgent({ steps: [{ message: "Done." }] });
+	const { root, home, there, jobs } = setup({ agent });
+	git(root, "checkout", "--quiet", "-b", "side");
+	commit(root, "the worker's change");
+	const tip = git(root, "rev-parse", "HEAD");
+	git(root, "checkout", "--quiet", "main");
+	for (const fetch of ["side", "f".repeat(40)])
+		await assert.rejects(jobs.spawn({ task: "Review it.", machine: "gpu", fetch }), { message: `fetch: "${fetch}" is no commit of ${root}; give its hex id` });
+	assert.equal(existsSync(join(home, "jobs")), false);
+	const job = await jobs.spawn({ task: "Review it.", machine: "gpu", fetch: tip });
+	assert.equal(job.failed, undefined);
+	const repository = join(there, "repos/acme.git");
+	assert.equal(git(repository, "rev-parse", "refs/arthur/fetch"), tip);
+	const worktree = join(there, "repos/.arthur-worktrees", job.id);
+	git(worktree, "checkout", "--quiet", "--detach", tip);
+	assert.equal(git(worktree, "rev-parse", "HEAD"), tip, "the tip checks out there");
+	const pushes = calls().filter((call) => call.includes("git-receive-pack")).length;
+	assert.equal(pushes, 2, "the base and the fetch");
+	await jobs.spawn({ task: "Again.", machine: "gpu", fetch: tip });
+	assert.equal(calls().filter((call) => call.includes("git-receive-pack")).length, pushes, "neither is pushed again");
+});
+
 test("a prepare's variables reach the agent there through the launch's stdin, and again through a continue's, never an argument nor the record there or here", async () => {
 	const omp = fakeAgent({ steps: [{ message: "Done." }] });
 	const agent = join(dirname(omp), "env-omp");
@@ -152,6 +177,22 @@ test("a prepare's variables reach the agent there through the launch's stdin, an
 	jobs.sweep();
 	const secret = (folder: string) => readdirSync(folder, { withFileTypes: true }).filter((entry) => entry.isFile() && readFileSync(join(folder, entry.name), "utf8").includes("remote-s3cr3t")).map((entry) => entry.name);
 	assert.deepEqual([secret(join(there, "jobs", job.id)), secret(join(home, "jobs", job.id)), calls().filter((call) => call.includes("remote-s3cr3t"))], [[], [], []]);
+});
+
+test("a job on another machine starts with none of its role's MCP servers, and its spawn warns, naming them", async () => {
+	const omp = fakeAgent({ steps: [{ message: "Done." }] });
+	const mcp = { docs: { command: "docs-mcp", env: { TOKEN: "mcp-s3cr3t" } }, web: { type: "http", url: "https://example.com/mcp" } };
+	const { home, there, jobs } = setup({ agent: omp, roles: () => [{ mcp }] });
+	const job = await jobs.spawn({ task: "Build it.", machine: "gpu" });
+	const told = (warnings: readonly string[]) => warnings.filter((warning) => warning.startsWith("MCP"));
+	assert.deepEqual([job.failed, told(job.warnings)], [undefined, ["MCP servers left out on gpu, which Arthur sends no secret: docs, web"]]);
+	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
+	const args = JSON.parse(readFileSync(join(dirname(omp), "starts.jsonl"), "utf8").split("\n")[0] ?? "").args as string[];
+	assert.deepEqual([args.includes("--plugin-dir"), args.includes("--config")], [false, false]);
+	jobs.sweep();
+	assert.deepEqual([existsSync(join(home, "jobs", job.id, "mcp")), existsSync(join(there, "jobs", job.id, "mcp")), calls().filter((call) => call.includes("mcp-s3cr3t"))], [false, false, []]);
+	const local = await jobs.spawn({ task: "Build it here." });
+	assert.deepEqual([told(local.warnings), existsSync(join(home, "jobs", local.id, "mcp", ".mcp.json"))], [[], true], "a local job gets them");
 });
 
 test("an unknown machine, a refused key, arthur missing there or of another version refuse the spawn before any record", async () => {

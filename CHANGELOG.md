@@ -24,6 +24,11 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0230 Two comments still name what AR0228 changed (7b930a4)
 
+### Other
+
+- AR0234 MCP servers for the coordinator and every role, set globally or per role (5bede8d)
+- AR0235 Roadmap 52: review jobs (7552dfc)
+
 ## 2026-10-19
 
 ### Added

@@ -178,7 +178,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `schedule.register` | schedule | orchestration | Registers another plugin's schedule entries. |
 | `merge.check` | projects | none yet (delivery) | A check of a job's branch before its merge. |
 | `delivery.alwaysReview` | delivery | orchestration | `{ project, paths }`: the paths on the always-review list. |
-| `health` | none yet (manage) | session | Lines of what should have happened and has not. |
+| `health` | manage | manage (`arthur health`, its rounds), session | Lines of what should have happened and has not: a line or a list of lines. |
 
 ## Option tables and `./options`
 

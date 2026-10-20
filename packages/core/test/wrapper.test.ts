@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -142,6 +142,28 @@ test("a read-only kind gets no edit or write, no model flag, and no commits", as
 	]);
 	assert.deepEqual(data, { id: job.id, kind: "review", project: "acme", state: "ended", reason: "finished" });
 	assert.deepEqual([record.result, record.commits, record["tool-calls"], record.cost], ["PASS", "", "0", "0.0000"]);
+});
+
+test("the extensions plugins register load after the core's own, in their order, kept in the record; a URL of no file is refused", async () => {
+	const agent = fakeAgent({ steps: [{ message: "PASS" }] });
+	const { home, jobs } = setup(agent);
+	const folder = temporaryFolder();
+	const paths = ["first.ts", "second.ts"].map((name) => {
+		writeFileSync(join(folder, name), `import { appendFileSync } from "node:fs";\nexport default () => appendFileSync(${JSON.stringify(join(folder, "loaded"))}, "${name}\\n");\n`);
+		return join(folder, name);
+	});
+	for (const url of [new URL("https://example.com/x.ts"), pathToFileURL(join(folder, "missing.ts")), "first.ts" as unknown as URL])
+		assert.throws(() => jobs.registerExtension(url), { message: `extension ${String(url)}: expected the file: URL of a module that exists, as new URL("./<file>.ts", import.meta.url) gives` });
+	for (const path of paths) jobs.registerExtension(pathToFileURL(path));
+	const job = await jobs.spawn({ task: "Review it.", kind: "review" });
+	await ended(home, job.id);
+	const record = join(home, "jobs", job.id);
+	assert.deepEqual(starts(agent)[0]?.args, [
+		...["-p", "--mode", "json", "--auto-approve", "--tools", "read,bash,grep,glob"],
+		...["--append-system-prompt", join(record, "prompt"), ...EXTENSIONS, ...paths.flatMap((path) => ["-e", path]), `@${join(record, "task")}`],
+	]);
+	assert.equal(readFileSync(join(folder, "loaded"), "utf8"), "first.ts\nsecond.ts\n", "the agent loaded each");
+	assert.equal(readFileSync(join(record, "extensions"), "utf8"), paths.map((path) => relative(join(import.meta.dirname, "..", "src"), path)).join("\n"));
 });
 
 // Each run, and the reason it ends `ended` with; every file of the record is there once the state is final.

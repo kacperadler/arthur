@@ -79,7 +79,7 @@ test("every option of the core and of each plugin has its meaning in one line, e
 	}
 	assert.deepEqual(
 		Object.entries(PLUGINS).flatMap(([name, [file]]) => (everyOption(file.table).length === 0 ? [name] : [])),
-		["nvm", "commit-rules", "delivery"],
+		["nvm", "commit-rules"],
 		"the plugins without options are checked here too, and only they have an empty table",
 	);
 	assert.deepEqual(

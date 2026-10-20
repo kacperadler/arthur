@@ -2,6 +2,12 @@
 
 Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-21
+
+### Other
+
+- AR0240 Roadmap 60: arthur health (aaf9d45)
+
 ## 2026-10-20
 
 ### Added

@@ -1,9 +1,11 @@
 import { mkdirSync, renameSync, writeFileSync } from "node:fs";
-import { extname, join } from "node:path";
-import { field, getAll, type Instance, request } from "./youtrack-api.ts";
+import { basename, extname, join } from "node:path";
+import { call, field, getAll, type Instance, remove, request } from "./youtrack-api.ts";
+import { readBytes } from "./youtrack-write.ts";
 
 // An issue's attachments (spec/roadmap.md, entry 46), on its description and its comments, saved into `<folder>/<id>/`
-// (`.arthur/youtrack/SHOP-12/`): docs/commands/youtrack.md. Returns one line per file: `<path> <bytes> B <mime>`.
+// (`.arthur/youtrack/SHOP-12/`), one added from a file, one deleted (AR0220): docs/commands/youtrack.md. A save returns one
+// line per file: `attachment <attachment id>: <path> <bytes> B <mime>`.
 
 export async function saveAttachments(instance: Instance, folder: string, id: string): Promise<string> {
 	const found = await getAll(instance, `issues/${id}/attachments`, { fields: "id,name,url,mimeType,comment(id)" }, `the attachments of issue ${id}`);
@@ -28,7 +30,23 @@ export async function saveAttachments(instance: Instance, folder: string, id: st
 		writeFileSync(join(into, `.${name}.part`), bytes);
 		renameSync(join(into, `.${name}.part`), join(into, name));
 		const comment = field(field(item, "comment"), "id");
-		lines.push(`${join(into, name)} ${bytes.length} B ${String(field(item, "mimeType") ?? "unknown")}${typeof comment === "string" ? ` (comment ${comment})` : ""}`);
+		lines.push(`attachment ${String(field(item, "id"))}: ${join(into, name)} ${bytes.length} B ${String(field(item, "mimeType") ?? "unknown")}${typeof comment === "string" ? ` (comment ${comment})` : ""}`);
 	}
 	return lines.join("\n");
+}
+
+// `attachment add`: the file under its own name, as the form upload YouTrack takes (`upload`); `attachment delete`: the
+// attachment of that id, which `issue attachments` prints, an id of another form refused before any call.
+export async function changeAttachment(instance: Instance, verb: string, id: string, [given = ""]: readonly string[]): Promise<string> {
+	const path = `issues/${id}/attachments`;
+	if (verb === "delete") {
+		if (!/^\d+-\d+$/.test(given)) throw new Error(`${given} is not an attachment id such as 74-1, which arthur youtrack issue attachments ${id} prints; nothing was asked of YouTrack`);
+		await remove(instance, `${path}/${given}`, `attachment ${given} of issue ${id}`);
+		return `${id}: deleted attachment ${given}`;
+	}
+	const form = new FormData();
+	form.append("upload", new Blob([readBytes(given)]), basename(given));
+	const made = await call(instance, path, { fields: "id,name" }, `the attachments of issue ${id}`, form);
+	const added = Array.isArray(made) ? made[0] : made;
+	return `${id}: added attachment ${String(field(added, "id"))} ${String(field(added, "name"))}`;
 }

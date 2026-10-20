@@ -1,0 +1,301 @@
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { delimiter, dirname, join } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
+import { type TestContext, test } from "node:test";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { delivery } from "../src/delivery.ts";
+
+const PATH = process.env.PATH ?? "";
+const FOLDER = "spec/features/AC0001-shop";
+const TICKET = `${FOLDER}/ticket.md`;
+const PROCEDURE = readFileSync(new URL("../roles/coordinator/after-merge.md", import.meta.url), "utf8").trim();
+const DONE = `nothing committed but the merge, nothing pushed or pruned\n\n${PROCEDURE}`;
+// The project's own checks: `npm test` prints node --test's summary and fails while a file `broken` exists.
+const TEST_JS = 'const broken = require("node:fs").existsSync("broken");\nconsole.log(`ℹ tests 2\\nℹ pass ${broken ? 1 : 2}`);\nprocess.exit(broken ? 1 : 0);\n';
+const PACKAGE = JSON.stringify({ scripts: { check: 'node -e ""', test: "node test.js" } });
+
+// The repository `acme` (prefix AC): AC0001 "Shop" planned, AC0002 waiting for it, AC0003 for it and AC0002, all on the
+// board; the project's checks in package.json; a `bun.lock`, whose install is a fake `bun` that notes each call in `bun.log`.
+// `worker(files)` runs a worker on AC0001 that commits `files`; `review(job, message)` runs a review ending on `message`;
+// `merge(...args)` runs `arthur merge` as the CLI does, a throw being `arthur merge: <message>` and exit code 1.
+async function load(t: TestContext) {
+	const root = join(temporaryFolder(), "acme");
+	const tickets = [["AC0001", "Shop"], ["AC0002", "Cart", ["AC0001"]], ["AC0003", "Pay", ["AC0001", "AC0002"]]] as const;
+	const files: Record<string, string> = { "package.json": PACKAGE, "test.js": TEST_JS, "bun.lock": "{}\n", "README.md": "# acme\n" };
+	for (const [id, title] of tickets) files[`spec/features/${id}-${title.toLowerCase()}/ticket.md`] = `# ${id} - ${title}\n\n\`\`\`json\n{ "id": "${id}" }\n\`\`\`\n`;
+	const board = tickets.map(([id, title, after]) => ({ id, title, status: "planned", path: `spec/features/${id}-${title.toLowerCase()}/ticket.md`, updated: "2026-01-01T00:00:00Z", ...(after && { after }) }));
+	files["spec/build.json"] = JSON.stringify(board);
+	for (const [path, text] of Object.entries(files)) {
+		mkdirSync(dirname(join(root, path)), { recursive: true });
+		writeFileSync(join(root, path), text);
+	}
+	const git = (at: string, ...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "-C", at, ...args], { encoding: "utf8" }).trim();
+	git(root, "init", "--quiet", "--initial-branch=main");
+	git(root, "config", "user.name", "t");
+	git(root, "config", "user.email", "t@example.com");
+	git(root, "add", "--all");
+	git(root, "commit", "--quiet", "-m", "first");
+	const bin = temporaryFolder();
+	writeFileSync(join(bin, "bun"), `#!/bin/sh\necho "$@" >> '${join(bin, "bun.log")}'\n[ ! -e '${join(bin, "fail")}' ] || { echo 'error: lockfile had changes' >&2; exit 1; }\n`, { mode: 0o755 });
+	const bun = () => (existsSync(join(bin, "bun.log")) ? readFileSync(join(bin, "bun.log"), "utf8") : "");
+	t.after(() => {
+		process.env.PATH = PATH;
+	});
+	const agent = (run: AgentRun) => {
+		process.env.PATH = [dirname(fakeAgent(run)), bin, PATH].join(delimiter);
+	};
+	const fake = fakeHost({ name: "delivery", root });
+	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC" }]);
+	await fake.setup(delivery());
+	const home = dirname(fake.host.folder);
+	const ended = async (id: string) => {
+		const state = join(home, "jobs", id, "state");
+		for (const deadline = Date.now() + 15_000; !existsSync(state) || readFileSync(state, "utf8") !== "ended"; await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${id} to end`);
+		fake.emit("job-ended", { id, state: "ended" });
+	};
+	const commit = (worktree: string, changes: Readonly<Record<string, string>>) => {
+		for (const [path, text] of Object.entries(changes)) {
+			mkdirSync(dirname(join(worktree, path)), { recursive: true });
+			writeFileSync(join(worktree, path), text);
+		}
+		git(worktree, "add", "--all");
+		if (Object.keys(changes).length > 0) git(worktree, "commit", "--quiet", "-m", `change ${Object.keys(changes).join(" ")}`);
+		return git(worktree, "rev-parse", "HEAD");
+	};
+	const worker = async (changes: Readonly<Record<string, string>> = { "shop.ts": "export const shop = 1;\n" }, task = `Ticket: ${TICKET}`) => {
+		agent({ steps: [{ message: "Done." }] });
+		const job = await fake.host.jobs.spawn({ task });
+		await ended(job.id);
+		return { id: job.id, branch: job.branch ?? "", worktree: job.worktree, tip: commit(job.worktree, changes) };
+	};
+	const run = async (name: string, args: readonly string[]) => {
+		const [out, err] = [[] as string[], [] as string[]];
+		t.mock.method(console, "log", (text: string) => out.push(text));
+		t.mock.method(console, "error", (text: string) => err.push(text));
+		const code = await Promise.try(() => fake.commands.find((each) => each.name === name)?.run({ args, project: undefined })).catch((error: Error) => (err.push(`arthur ${name}: ${error.message}`), 1));
+		t.mock.restoreAll();
+		return { code, out: out.join("\n"), err: err.join("\n") };
+	};
+	const review = async (job: string, message: string) => {
+		agent({ steps: [{ message }] });
+		const { out } = await run("review", [job]);
+		await ended(out);
+		return out;
+	};
+	const head = () => git(root, "rev-parse", "HEAD");
+	const status = (id: string) => fake.host.board.get(id)?.status;
+	return { root, fake, git, commit, worker, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, failBun: () => writeFileSync(join(bin, "fail"), ""), home };
+}
+
+test("a branch with a PASS on its tip goes in: checks pass, its review filed, outcome.md written, the ticket merged, the tickets it unblocks named", async (t) => {
+	const { root, fake, git, worker, review, merge, head, status, bun } = await load(t);
+	const job = await worker({ "shop.ts": "export const shop = 1;\n", "bun.lock": '{ "shop": 1 }\n' });
+	const passed = await review(job.id, "Clean.\n\nPASS");
+	const before = head();
+	const merged = await merge(job.id.slice(-8));
+	assert.equal(merged.code, undefined, merged.err);
+	const hash = git(root, "rev-parse", "--short", "HEAD");
+	assert.deepEqual(git(root, "log", "-1", "--format=%s%n%P"), `Merge AC0001: Shop\n${before} ${job.tip}`);
+	assert.equal(
+		merged.out,
+		[
+			`merged ${job.branch} into main: ${hash}`,
+			"bun install --frozen-lockfile: passed.",
+			"npm run check: passed.",
+			"npm test: 2/2 passed.",
+			`filed ${FOLDER}/review-1.md`,
+			"- Findings: none; no findings.md on this ticket.",
+			`wrote ${FOLDER}/outcome.md; rewrite What went in from the commit subjects listed there`,
+			"AC0001 merged",
+			"unblocked: AC0002",
+			DONE,
+		].join("\n"),
+	);
+	assert.equal(bun(), "install --frozen-lockfile\n", "the merge changed bun.lock, so its install ran once");
+	assert.match(readFileSync(join(root, FOLDER, "review-1.md"), "utf8"), new RegExp(`^- Job: ${passed}\n- Branch: ${job.branch}\n`, "m"));
+	const outcome = readFileSync(join(root, FOLDER, "outcome.md"), "utf8");
+	assert.match(outcome, new RegExp(`^# AC0001 - Outcome\n\n- Merged: \\d{4}-\\d{2}-\\d{2}, \`${hash}\`\n- Branch: ${job.branch}\n- Reviews: review-1.md PASS\n- Cost: worker \\$\\d+\\.\\d{2}, reviews \\$\\d+\\.\\d{2}; review rounds 1\n`));
+	assert.ok(
+		outcome.endsWith(
+			"\n## What went in\n\n- change shop.ts bun.lock\n\n## Checks on main\n\n- `bun install --frozen-lockfile`: passed.\n- `npm run check`: passed.\n- `npm test`: 2/2 passed.\n\n## Left open\n\n- Findings: none; no findings.md on this ticket.\n",
+		),
+		outcome,
+	);
+	assert.deepEqual([status("AC0001"), status("AC0002"), status("AC0003")], ["merged", "planned", "planned"]);
+	assert.deepEqual(fake.emitted.filter((event) => event.name === "ticket-moved").at(-1)?.data, { id: "AC0001", project: "acme", from: "done", to: "merged" });
+	assert.equal((await merge(job.id)).err, `arthur merge: AC0001 is merged; a merge is of a ticket in-progress, review or done`);
+});
+
+test("refused, main unchanged: no PASS on the tip, a FAIL on it, a PASS on an older commit; --unreviewed lets it in and outcome.md says so", async (t) => {
+	const { root, commit, worker, review, merge, head, status } = await load(t);
+	const job = await worker();
+	const start = head();
+	const unreviewed = (tip: string, why: string) =>
+		`arthur merge: no PASS on ${job.branch}'s tip ${tip.slice(0, 7)}: ${why}; review it with arthur review ${job.id}, or merge it with --unreviewed on the owner's word only; main is unchanged`;
+	assert.deepEqual(await merge(job.id), { code: 1, out: "", err: unreviewed(job.tip, "no review of it has a verdict (last PASS: none)") });
+	const failed = await review(job.id, "Missing a test.\n\nFAIL");
+	assert.equal((await merge(job.id)).err, unreviewed(job.tip, `its newest review, ${failed}, says FAIL (last PASS: none)`));
+	await review(job.id, "PASS");
+	const tip = commit(job.worktree, { "late.ts": "export const late = 1;\n" });
+	assert.equal((await merge(job.id)).err, unreviewed(tip, `no review of it has a verdict (last PASS: ${job.tip.slice(0, 7)})`));
+	assert.equal(head(), start);
+	const merged = await merge(job.id, "--unreviewed");
+	assert.equal(merged.code, undefined, merged.err);
+	assert.equal(status("AC0001"), "merged");
+	assert.match(readFileSync(join(root, FOLDER, "outcome.md"), "utf8"), new RegExp(`\n- Reviews: review-1.md FAIL, review-2.md PASS; merged unreviewed \\(--unreviewed\\): no PASS on ${job.branch}'s tip ${tip.slice(0, 7)}: `));
+});
+
+test("arthur review-needed's no review for the tip is a PASS; for an older tip it is none", async (t) => {
+	const { fake, commit, worker, run, merge } = await load(t);
+	const job = await worker({ "docs.md": "# Docs\n" });
+	assert.equal((await run("review-needed", [job.id])).out, "no review: 1 file, all docs (*.md)\nAC0001 moves to done.");
+	const tip = commit(job.worktree, { "more.md": "# More\n" });
+	const refused = new RegExp(`no PASS on ${job.branch}'s tip ${tip.slice(0, 7)}: no review of it has a verdict`);
+	assert.match((await merge(job.id)).err, refused);
+	await run("review-needed", [job.id]);
+	writeFileSync(join(fake.host.folder, job.id, "review-needed"), "{ broken");
+	assert.match((await merge(job.id)).err, refused, "a broken answer is no `no review`");
+	await run("review-needed", [job.id]);
+	const merged = await merge(job.id);
+	assert.equal(merged.code, undefined, merged.err);
+});
+
+test("a merge conflict leaves main as it was: no merge in progress, the ticket where it was", async (t) => {
+	const { root, git, worker, review, merge, head, status } = await load(t);
+	const job = await worker({ "README.md": "# acme, the branch's\n" });
+	await review(job.id, "PASS");
+	writeFileSync(join(root, "README.md"), "# acme, main's\n");
+	git(root, "commit", "--quiet", "-am", "main moves on");
+	const before = head();
+	assert.deepEqual(await merge(job.id), { code: 1, out: "", err: `arthur merge: ${job.branch} conflicts with main in README.md; merge aborted, main is unchanged` });
+	assert.equal(head(), before);
+	assert.equal(git(root, "status", "--porcelain", "--untracked-files=no"), "", "no merge left half done");
+	assert.equal(existsSync(join(root, ".git", "MERGE_HEAD")), false);
+	assert.equal(status("AC0001"), "done");
+});
+
+test("a failed check resets main and names it; the board's moves stay, main's own install is put back, nothing is written", async (t) => {
+	const { root, git, worker, review, merge, head, status, bun, failBun } = await load(t);
+	const job = await worker({ broken: "", "bun.lock": '{ "broken": 1 }\n' });
+	await review(job.id, "PASS");
+	const before = head();
+	const merged = await merge(job.id);
+	assert.equal(merged.code, 1);
+	assert.equal(merged.err, `arthur merge: check failed on main (npm test); main reset to ${before.slice(0, 7)}, branch kept`);
+	assert.match(merged.out, /\nnpm test: failed, 1\/2 passed\.\n[\s\S]*ℹ pass 1\nreinstall of main's dependencies, bun install --frozen-lockfile: passed\.$/);
+	assert.equal(bun(), "install --frozen-lockfile\ninstall --frozen-lockfile\n");
+	assert.equal(head(), before);
+	assert.equal(readFileSync(join(root, "bun.lock"), "utf8"), "{}\n");
+	assert.equal(git(root, "status", "--porcelain", "--untracked-files=no"), "M spec/build.json");
+	assert.equal(status("AC0001"), "done", "the review's move to done is kept");
+	assert.deepEqual(readdirSync(join(root, FOLDER)), ["ticket.md"], "no review filed, no outcome.md");
+	writeFileSync(join(root, "package.json"), "{ not json");
+	git(root, "commit", "--quiet", "-am", "a broken package.json");
+	assert.match((await merge(job.id)).err, /^arthur merge: check failed on main \(package\.json\); main reset to /);
+	failBun();
+	const install = await merge(job.id);
+	assert.equal(
+		install.err,
+		`arthur merge: check failed on main (bun install --frozen-lockfile); main reset to ${head().slice(0, 7)}, branch kept, but reinstalling main's dependencies failed (bun install --frozen-lockfile): they still hold the branch's install`,
+	);
+	assert.doesNotMatch(install.out, /npm/, "a failed install ends the steps");
+	assert.match(install.out, /error: lockfile had changes/);
+});
+
+test("refused before anything: wrong usage, no job, a read-only or running job, a gone branch, a detached or dirty main, nothing new, a ticket not mergeable", async (t) => {
+	const { root, fake, git, worker, review, merge, head, status } = await load(t);
+	assert.deepEqual(await merge(), { code: 2, out: "", err: "arthur merge: no job\nusage: arthur merge <job> [--unreviewed]" });
+	assert.equal((await merge("a", "b")).err, "arthur merge: one job; got 2\nusage: arthur merge <job> [--unreviewed]");
+	assert.equal((await merge("a", "--auto")).err, "arthur merge: unknown flag --auto\nusage: arthur merge <job> [--unreviewed]");
+	assert.equal((await merge("nope")).err, "arthur merge: no job nope; arthur jobs lists them");
+	const job = await worker();
+	const passed = await review(job.id, "PASS");
+	assert.equal((await merge(passed)).err, `arthur merge: ${passed} is a review job, read-only: it has no branch to merge`);
+	const start = head();
+	writeFileSync(join(root, "README.md"), "# acme, edited\n");
+	assert.equal((await merge(job.id)).err, "arthur merge: main has uncommitted changes in README.md; commit or stash them first; main is unchanged");
+	git(root, "checkout", "--quiet", "README.md");
+	git(root, "checkout", "--quiet", "--detach");
+	assert.equal((await merge(job.id)).err, `arthur merge: ${root} has no branch checked out (a detached HEAD); check out its main branch first`);
+	git(root, "checkout", "--quiet", "main");
+	writeFileSync(join(root, FOLDER, "outcome.md"), "# by hand\n");
+	assert.equal((await merge(job.id)).err, `arthur merge: ${FOLDER}/outcome.md already exists: AC0001 was merged before`);
+	git(root, "clean", "--quiet", "--force", FOLDER);
+	const two = await worker({ "two.ts": "export const two = 2;\n" }, `Ticket: ${TICKET}\nTicket: spec/features/AC0002-cart/ticket.md`);
+	assert.equal((await merge(two.id)).err, `arthur merge: ${two.id}'s task names 2 tickets (${FOLDER}, spec/features/AC0002-cart); a merge is of one ticket's branch`);
+	git(root, "update-ref", "-d", `refs/heads/${two.branch}`);
+	assert.equal((await merge(two.id)).err, `arthur merge: ${two.branch} is not in ${root}: pruned, or not brought back from its machine`);
+	fake.host.board.move("AC0001", "in-progress");
+	fake.host.board.move("AC0001", "planning");
+	assert.equal((await merge(job.id)).err, "arthur merge: AC0001 is planning; a merge is of a ticket in-progress, review or done");
+	const none = await worker({}, "No ticket here.");
+	assert.equal((await merge(none.id, "--unreviewed")).err, `arthur merge: ${none.branch} at ${start.slice(0, 7)} adds nothing to main (${start.slice(0, 7)}): nothing to merge`);
+	assert.equal(head(), start);
+	assert.equal(status("AC0001"), "planning");
+	const gate = join(temporaryFolder(), "gate");
+	process.env.PATH = `${dirname(fakeAgent({ steps: [{ waitFor: gate }, { message: "done" }] }))}${delimiter}${process.env.PATH}`;
+	const running = await fake.host.jobs.spawn({ task: "Still at it." });
+	t.after(() => writeFileSync(gate, ""));
+	assert.match((await merge(running.id)).err, new RegExp(`^arthur merge: ${running.id} is in a run \\((working|idle)\\); merge its branch once the run has ended$`));
+});
+
+test("merge.check: any text answer refuses with every answer, main unchanged; none lets the branch in, a job naming no ticket included", async (t) => {
+	const { fake, git, root, worker, merge, head } = await load(t);
+	const asked: unknown[] = [];
+	const answers: (string | undefined)[] = ["the branch changes .nvmrc", undefined, "the owner holds this path"];
+	for (const [at] of answers.entries()) fake.provide("merge.check", (job: unknown) => (asked.push(job), answers[at]));
+	const job = await worker({ "loose.ts": "export const loose = 1;\n" }, "No ticket here.");
+	const start = head();
+	assert.deepEqual(await merge(job.id, "--unreviewed"), { code: 1, out: "", err: "arthur merge: refused by merge.check: the branch changes .nvmrc; the owner holds this path; main is unchanged" });
+	assert.equal(head(), start);
+	const record = fake.host.jobs.list().find((each) => each.id === job.id);
+	assert.deepEqual(asked, [record, record, record], "asked with the job as arthur jobs holds it");
+	answers.fill(undefined);
+	const merged = await merge(job.id, "--unreviewed");
+	assert.equal(merged.code, undefined, merged.err);
+	assert.match(merged.out, new RegExp(`^merged ${job.branch} into main: [0-9a-f]+\nnpm run check: passed\\.\nnpm test: 2/2 passed\\.\nno ticket: no outcome\\.md, nothing moved\n`));
+	assert.equal(git(root, "log", "-1", "--format=%s"), `Merge ${job.branch}`);
+});
+
+test("findings go to findings.onMerge: none open makes no ticket, an open one's ticket gets the next id; without a provider they stay open, said once", async (t) => {
+	const { root, fake, worker, review, merge, status } = await load(t);
+	const findings = (folder: string, text: string) => writeFileSync(join(root, folder, "findings.md"), `# Findings\n\n${text}`);
+	const entry = (n: number, state: string) => `## F${n}. Finding ${n}\n\n- What: something.\n- Status: ${state}\n\n`;
+	const job = await worker({ [`${FOLDER}/findings.md`]: `# Findings\n\n${entry(1, "open")}` });
+	await review(job.id, "PASS");
+	const left = `- Findings: ${FOLDER}/findings.md left as it is, every open entry still open: no plugin provides findings.onMerge`;
+	const merged = await merge(job.id);
+	assert.equal(merged.out.split("\n").filter((line) => line.startsWith("- Findings:")).join("\n"), left, "said once");
+	assert.ok(readFileSync(join(root, FOLDER, "outcome.md"), "utf8").endsWith(`\n## Left open\n\n${left}\n`));
+	assert.match(readFileSync(join(root, FOLDER, "findings.md"), "utf8"), /- Status: open\n/);
+	// The test as the findings plugin with its default: each open entry a planning ticket.
+	const asked: unknown[] = [];
+	fake.provide("findings.onMerge", (request: { readonly project: string; readonly ticket: string; readonly path: string; readonly root: string }) => {
+		asked.push(request);
+		const text = readFileSync(join(request.root, request.path), "utf8");
+		const made = [...text.matchAll(/^## (F\d+)\. (.+)\n\n(?:- .+\n)*?- Status: open$/gm)].map(([, n, title]) => `${fake.host.board.create(title ?? "", request.project).id} (${n})`);
+		return made.length === 0 ? "- Findings: none open; no ticket made." : `- Tickets from findings: ${made.join(", ")}.`;
+	});
+	fake.provide("findings.onMerge", () => {
+		throw new Error("a second plugin broke");
+	});
+	const cart = "spec/features/AC0002-cart";
+	const second = await worker({ "cart.ts": "export const cart = 1;\n" }, `Ticket: ${cart}/ticket.md`);
+	findings(cart, entry(1, "fixed in abc1234") + entry(2, "dropped (not needed)"));
+	await review(second.id, "PASS");
+	const none = await merge(second.id);
+	assert.equal(none.code, undefined, none.err);
+	assert.match(none.out, /\n- Findings: none open; no ticket made\.\n- Findings: findings\.onMerge of test failed: a second plugin broke; spec\/features\/AC0002-cart\/findings\.md left as it is\n/);
+	assert.deepEqual(asked, [{ project: "acme", ticket: "AC0002", path: `${cart}/findings.md`, root }]);
+	assert.deepEqual(fake.host.board.list().map((ticket) => ticket.id), ["AC0001", "AC0002", "AC0003"], "no ticket made");
+	const pay = "spec/features/AC0003-pay";
+	const third = await worker({ "pay.ts": "export const pay = 1;\n" }, `Ticket: ${pay}/ticket.md`);
+	findings(pay, entry(1, "fixed in abc1234") + entry(2, "open"));
+	await review(third.id, "PASS");
+	const made = await merge(third.id);
+	assert.match(made.out, /\n- Tickets from findings: AC0004 \(F2\)\.\n/);
+	assert.deepEqual([status("AC0003"), status("AC0004")], ["merged", "planning"], "the finding's ticket gets the next id after the board's");
+	assert.match(readFileSync(join(root, pay, "outcome.md"), "utf8"), /\n## Left open\n\n- Tickets from findings: AC0004 \(F2\)\.\n- Findings: findings\.onMerge of test failed: /);
+});

@@ -1,6 +1,6 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, utimesSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { agentStream } from "./agent-stream.ts";
 import { eventBus } from "./events.ts";
 import { deadline, reached } from "./job-limits.ts";
@@ -69,14 +69,15 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		quiet();
 		quiet = deadline(Number(idle), () => move("working", "idle"));
 	};
-	// `quick`, `memory`, `feature`, `feature-memory` and `verdicts` are missing from a record an older Arthur wrote.
-	const [instruction, spent, quick, memory = "", feature = "", featureMemory = "", verdicts = ""] = ["continue", "cost", "quick", "memory", "feature", "feature-memory", "verdicts"].map((name) => (existsSync(join(folder, name)) ? field(name) : undefined));
+	// `quick`, `memory`, `feature`, `feature-memory`, `verdicts` and `extensions` are missing from a record an older Arthur wrote.
+	const [instruction, spent, quick, memory = "", feature = "", featureMemory = "", verdicts = "", extensions = ""] = ["continue", "cost", "quick", "memory", "feature", "feature-memory", "verdicts", "extensions"].map((name) => (existsSync(join(folder, name)) ? field(name) : undefined));
 	// A resumed run continues the agent's last session in the worktree, which is the job's own, with `resume` as its message.
 	const args = (resume: string | undefined) => [
 		...(resume === undefined ? [] : ["--continue"]),
 		...["-p", "--mode", "json", "--auto-approve", "--tools", branch === "" ? READ_ONLY_TOOLS : WORKER_TOOLS],
 		...["--append-system-prompt", join(folder, "prompt")],
-		...["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((extension) => ["-e", join(import.meta.dirname, extension)]),
+		// The core's extensions, then those the plugins registered (`extensions`, paths from this folder: job-record.ts).
+		...["env-guard.ts", "worktree-guard.ts", "steer.ts", ...extensions.split("\n").filter(Boolean)].flatMap((extension) => ["-e", resolve(import.meta.dirname, extension)]),
 		// A provider model goes under the name of omp's provider that the job's environment sets (`ARTHUR_AGENT_MODEL`, job-scope.ts).
 		...(model ? ["--model", process.env.ARTHUR_AGENT_MODEL || model] : []),
 		...(thinking ? ["--thinking", thinking] : []),

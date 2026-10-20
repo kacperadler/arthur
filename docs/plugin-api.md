@@ -55,6 +55,7 @@ What `setup` gets, one host per plugin. `@arthur/core/testing`'s `fakeHost` give
 | `commands.phone()` | The phone commands, `{ name, about }` each, for a channel's menu. |
 | `jobs.registerKind(kind)` | A `Kind` this plugin owns. |
 | `jobs.registerRole(role)` | A `Role` whose prompt this plugin ships; its kinds name it. |
+| `jobs.registerExtension(url)` | An OMP extension, its module's `file:` URL, that each job's agent loads with `-e` after the core's own, in the order registered (above, "Changes since entry 51"). |
 | `jobs.beforeSpawn(check)` | A `SpawnCheck` asked before any record exists; a reason refuses the spawn. |
 | `jobs.prepare(fn)` | A `Prepare` run after the worktree and record exist, before the agent starts, here, acting on another machine through `jobs.run`; a throw removes both and refuses the spawn. The variables it returns go into the job's environment only and reach the prepares after it; `arthur continue` runs it again with `continued` true. |
 | `jobs.registerMachine(machine)` | A `Machine` jobs run on over SSH; `local` is the core's. |
@@ -90,6 +91,7 @@ Each decided in the ticket that made it.
 
 - AR0235 (roadmap 52, the owner on 2026-10-20): `Kind.verdicts`, the lines a finished run's final message may end on, exactly; a run whose last line is none of them ends `failed: no verdict: the last line of its final message is not <a> or <b> alone` in its record, `arthur jobs` and `job-ended`, instead of `finished`. A list of lines, not a function: the wrapper that writes the state runs apart from the plugins, on another machine too, so the kind's judgement goes into the record (`verdicts`) at the spawn. Delivery's `review` uses `["PASS", "FAIL"]`.
 - AR0235 (roadmap 52, the owner on 2026-10-20): `SpawnRequest.fetch`, the hex id of a commit of the project's repository besides HEAD that the job needs on its machine (a review's branch tip); on another machine it is pushed to `refs/arthur/fetch` with the base when the repository there lacks it. One that is no commit here refuses the spawn: `fetch: "<value>" is no commit of <repository>; give its hex id`.
+- AR0237 (roadmap 53, which names it; approved with the roadmap): `jobs.registerExtension(url)`, an OMP extension each job's agent loads with `-e`, after the core's env guard, worktree guard and steer extension, in the order the plugins registered theirs. The spawn keeps them in the record as `extensions`, each a path from the core's `src/`, which the wrapper resolves where it runs: the wrapper runs apart from the plugins, on another machine too, whose Arthur is a checkout of the same commit (docs/deploy.md). A URL that is not `file:`, or names no file, is refused at registration: `extension <url>: expected the file: URL of a module that exists, as new URL("./<file>.ts", import.meta.url) gives`. Delivery's job checks use it (`arthur review-needed --help`).
 
 ## Types
 
@@ -175,7 +177,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `resources.free` | resources | machines | The jobs a machine has room for. |
 | `schedule.register` | schedule | orchestration | Registers another plugin's schedule entries. |
 | `merge.check` | projects | none yet (delivery) | A check of a job's branch before its merge. |
-| `delivery.alwaysReview` | none yet (delivery) | orchestration | The always-review list. |
+| `delivery.alwaysReview` | delivery | orchestration | `{ project, paths }`: the paths on the always-review list. |
 | `health` | none yet (manage) | session | Lines of what should have happened and has not. |
 
 ## Option tables and `./options`

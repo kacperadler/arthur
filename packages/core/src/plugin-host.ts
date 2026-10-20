@@ -103,6 +103,7 @@ export function pluginHost(
 		jobs: {
 			registerKind: (kind) => runner.registerKind(own.name, kind),
 			registerRole: (role) => runner.registerRole(own.name, role),
+			registerExtension: (url) => runner.registerExtension(url),
 			beforeSpawn: (check) => runner.beforeSpawn(own.name, check),
 			prepare: (fn) => runner.prepare(own.name, fn),
 			registerMachine: (machine) => runner.registerMachine(own.name, machine),

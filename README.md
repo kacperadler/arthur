@@ -41,6 +41,7 @@ What works today:
 - Each project's Node (`@arthur/nvm`, entry 84): a job whose worktree has `.nvmrc` runs on the Node it names, which `nvm which` finds on the job's machine and which goes first on the job's `PATH`, its install's too (`nvm()` listed before `projects`, else the load is refused); a version not installed there refuses the spawn with its `nvm install`, nothing downloaded; `arthur doctor` says whether nvm is on each machine.
 - Uptime (`@arthur/uptime`, entry 98): each project's sites checked over plain HTTP while `arthur run` runs, no model called; a site is down after 2 failed checks in a row (no answer in time, refused, a TLS error, a wrong status, the text missing), told once in a notice with its URL, the reason and since when, and once more with how long when it answers; `uptime-down` and `uptime-up` on the event stream; no site answering is one notice that this machine looks offline, not one per site; what is down survives a restart.
 - Review jobs (`@arthur/delivery`, entry 52): `arthur review <worker job>` starts a read-only review of a worker's branch at its tip, on the reviewer role and the review criteria, in a fresh session on `roles.reviewer`'s model; its task names the ticket, so placement reads the ticket's labels; the verdict, `PASS` or `FAIL` alone on the last line, moves the ticket to done or back to in-progress, and no verdict fails the review; `arthur ticket file` writes the next `review-N.md`, never twice; a branch gets at most 2 FAILs since its last PASS, then a review needs `--round N` on the owner's word, and the coordinator gets the procedure for his choice.
+- Review or no review (`@arthur/delivery`, entry 53): `arthur review-needed <worker job>` decides whether a branch needs a review: always for a file on the always-review list (`review.alwaysReview`, by default what reads secrets, the CI-failure handling and the review rules), a deleted file or `.env` in the diff; never for docs only; for 30 lines or fewer, by the job's own `npm run check` and `npm test` runs, which delivery's extension records while the agent works (`host.jobs.registerExtension`), `stale` after a later edit; `no review` moves the ticket to done, and autopilot asks the same list.
 
 What is next:
 
@@ -84,7 +85,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | telegram: text, media and the phone menu; the coordinator's silent mode (`/silent`), which every channel follows | built | 47 to 50 |
 | discord: one private server, a main channel for the coordinator and one per project; text, media, phone commands | planned | 89, 90 |
 | voice: local transcription of voice notes | planned | 81 |
-| delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | in progress, 1 of 6 entries | 52 built; 53 to 56, 59 |
+| delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | in progress, 2 of 6 entries | 52 and 53 built; 54 to 56, 59 |
 | github: CI runs, reruns, pushes, pull request reviews | planned | 57, 58 |
 | youtrack: issues, articles, comments, attachments, the rules for jobs on an issue | built | 44 to 46 |
 | manage: health, stats, audit, retro, prune on a schedule | planned | 60 to 64 |
@@ -122,6 +123,7 @@ The commands that exist today, one line each; `arthur <command> --help` prints i
 - `arthur resources [<ticket>]` (`/resources`, resources): each machine's room for more jobs from its free CPU and memory; with a ticket, what all its jobs spent against its caps per feature.
 - `arthur usage [--email]` (`/usage`, models): each account's limit windows from the agent's report, used % and when each resets.
 - `arthur review <worker job> [--round <n>]` (delivery): a review of an ended worker's branch at its tip, its verdict moving the ticket; refused after 2 FAILs since the branch's last PASS until the owner's word gives `--round`.
+- `arthur review-needed <worker job>` (delivery): whether an ended worker's branch needs a review, by the first rule that holds (the always-review list, a deleted file, `.env`, docs only, 30 lines, the job's own checks); `no review` moves the ticket to done.
 - `arthur youtrack issue|article list|get|create|update|move|attachments|delete`, `issue set|tag|untag|links|link|unlink|work`, `issue work list|edit|delete`, `comment list|add|edit|delete`, `attachment add|delete` (youtrack): a project's YouTrack issues and articles with their comments and attachments, read, written and deleted on the instance its `tracker` picks; open issues grouped by state, searched with `--query`, custom fields, tags, links, work items, sub-articles, and attachments saved to `.arthur/youtrack/<id>/`.
 
 ## Try it
@@ -159,7 +161,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-20.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entry 52 of 52-56 and 59; no other plugin exists yet.
+%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entries 52 and 53 of 52-56 and 59; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale; from AR0174: the decision log in orchestration.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -232,7 +234,7 @@ flowchart TD
         machines ~~~ resources ~~~ models ~~~ docker ~~~ uptime
       end
       subgraph DELIV[Delivery and trackers]
-        delivery[delivery<br/>review, merge, changelog<br/>1 of 6 entries]
+        delivery[delivery<br/>review, merge, changelog<br/>2 of 6 entries]
         github[github<br/>polls CI and PRs]
         youtrack[youtrack<br/>reads and writes issues, articles<br/>comments, attachments, rules for jobs]
         delivery ~~~ github ~~~ youtrack

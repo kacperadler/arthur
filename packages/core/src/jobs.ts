@@ -9,7 +9,7 @@ import { type Limits, spawnLimits } from "./job-limits.ts";
 import { continueJob } from "./job-control.ts";
 import { addThere, LOCAL, type Machine, machineRegistry, type Ran, reach, removeThere, type Requires } from "./job-machine.ts";
 import { type Kind, kindRegistry } from "./job-kinds.ts";
-import { newJob, writeRecord } from "./job-record.ts";
+import { extensionPath, newJob, writeRecord } from "./job-record.ts";
 import { type JobRecord, jobUpkeep } from "./job-records.ts";
 import { launchThere, syncMachines } from "./machine-sync.ts";
 import { pluginStep } from "./plugin-host.ts";
@@ -72,6 +72,8 @@ export type Jobs = RoleReads & {
 	registerKind(kind: Kind): void;
 	// A role whose prompt this plugin ships; its kinds name it.
 	registerRole(role: Role): void;
+	// An OMP extension, its module's `file:` URL, that each job's agent loads with `-e` after the core's own, in the order registered.
+	registerExtension(url: URL): void;
 	beforeSpawn(check: SpawnCheck): void;
 	// After the worktree and the record exist, before the agent starts; a throw removes both and refuses the spawn; it runs here, on another machine through `run`. Variables it returns go into the job's environment only (job-scope.ts), never its record, and reach the prepares after it, in setup order, as `env`.
 	// `arthur continue` runs it again on the job its record holds, `continued` true, for its variables only: a throw refuses the continue, and a step that sets up the worktree returns at once.
@@ -94,7 +96,7 @@ export type Jobs = RoleReads & {
 };
 
 // The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for.
-export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run" | "machines" | "prompt" | "vision" | "criteria"> & {
+export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run" | "machines" | "prompt" | "vision" | "criteria" | "registerExtension"> & {
 	registerKind(owner: string, kind: Kind): void;
 	registerRole(owner: string, role: Role): void;
 	beforeSpawn(owner: string, check: SpawnCheck): void;
@@ -112,7 +114,7 @@ export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run
 export function jobRunner(home: string, folder: string, limits: Limits & Slice & { readonly idleMinutes: number; readonly offlineGraceMinutes: number }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
 	const [kinds, roles] = [kindRegistry(), roleRegistry()];
 	const where = (project: string | undefined) => checkout(folder, collect("projects", []), project);
-	const [checks, prepares] = [spawnChecks(home), [] as { readonly owner: string; readonly fn: Prepare }[]];
+	const [checks, prepares, extensions] = [spawnChecks(home), [] as { readonly owner: string; readonly fn: Prepare }[], [] as string[]];
 	const machines = machineRegistry(home);
 	const upkeep = jobUpkeep(home, time, bus, (job) => collect("jobs.keep", [job]), machines.of);
 	const prepared = async (job: Job, continued: boolean) => {
@@ -127,6 +129,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 		sweep: () => void (upkeep.sweep(), syncMachines(home, machines.others(), bus, time.now(), limits.offlineGraceMinutes)),
 		registerKind: (owner, kind) => kinds.register(owner, kind),
 		registerRole: (owner, role) => roles.register(owner, role),
+		registerExtension: (url) => void extensions.push(extensionPath(url)),
 		beforeSpawn: (owner, check) => checks.add(owner, check),
 		prepare: (owner, fn) => void prepares.push({ owner, fn }),
 		registerMachine: (owner, machine) => machines.register(owner, machine),
@@ -170,7 +173,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 					// A worktree on another machine: the project's files the prompt reads come from the main checkout.
 					const built = prompt(role, there === undefined ? job.worktree : root, files, () => collect("prompt", [role.name, job]));
 					warnings = built.warnings;
-					const [own, since] = [{ resumeOnBudget: kind.resumeOnBudget === true, verdicts: kind.verdicts ?? [] }, time.now()];
+					const [own, since] = [{ resumeOnBudget: kind.resumeOnBudget === true, verdicts: kind.verdicts ?? [], extensions }, time.now()];
 					if (there !== undefined) addThere(machine, { job: { ...job, root: there }, prompt: built.prompt, kind: own, idleMinutes: limits.idleMinutes, since: since.toISOString() });
 					added = true;
 					writeRecord(home, job, built.prompt, own, limits.idleMinutes, since, checkouts(collect("projects", [])));

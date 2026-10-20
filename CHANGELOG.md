@@ -10,12 +10,17 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0221 Roadmap 49: Telegram media in and out, arthur send (718a54a)
 - AR0222 YouTrack: the rest of full management, links, tags, search, articles like issues (a639c13)
 - AR0224 Roadmap 50: Telegram phone commands and the menu (a5028bd)
+- AR0228 Roadmap 51: freeze the host API (2e73ad8)
 
 ### Fixed
 
 - AR0223 A restart between a part claim reply and the inbox queue sends the reply twice (7f2c3b9)
 - AR0225 A phone command does not learn which named bot it came through (8b4e8b0)
 - AR0226 The outbox's retry test failed once in a full test run (fe8699a)
+
+### Changed
+
+- AR0230 Two comments still name what AR0228 changed (7b930a4)
 
 ## 2026-10-19
 

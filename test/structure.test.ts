@@ -226,11 +226,17 @@ import { checkStructure } from "./structure.ts";
 // `from`, so core stays 5668. Telegram 52 more (641): the menu set only when the commands changed, per bot, with its
 // record (menu.ts, 36), and `/name text` and `/name@<bot>` routed with the channel and place, the reply sent back there, and
 // getMe's username kept (poll.ts, 16 with its comment).
+// AR0228 (roadmap 51): the host API frozen in docs/plugin-api.md, each published module of the core holding only what plugins
+// use. Cut first: `host.jobs.unblock` and its `unblockJob`, which no plugin called (13 lines), and `machineLimit` moved out of
+// config.ts into job-scope.ts (2). Core 16 more (5684): the host's own code moved out of plugin.ts into plugin-host.ts, with
+// the types a plugin meets through the host published by name (22); the env guard's refusal apart from its extension
+// (env-refusal.ts, 4); `memoryBytes` moved out of core-options.ts into job-memory.ts (1); the imports split between plugin.ts
+// and plugin-host.ts (3); an option table's own `keys` beside `each` (AR0178, 1).
 // AR0227 (the owner on 2026-10-20, roadmap 98): uptime: 288, set for each project's sites checked at load (uptime-options.ts,
 // 72), the HTTP check and the words of each failure (site-check.ts, 41), what is down kept across a restart (uptime-state.ts,
 // 34), and down after 2 failed checks with this machine's offline told apart, the notices and the events (uptime.ts, 141); a
 // new package, so nothing was cut elsewhere; core unchanged.
-const BUDGETS = { core: 5668, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 288 };
+const BUDGETS = { core: 5684, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 288 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

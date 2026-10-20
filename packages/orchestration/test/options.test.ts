@@ -45,7 +45,7 @@ function valueDefaults(table: OptionTable, words: readonly string[]): Record<str
 
 test("each default the option table writes as a value is the one the code applies with nothing set", () => {
 	const coordinator = coordinatorOptions({});
-	assert.deepEqual(valueDefaults(table, ["coordinator.model", "coordinator.thinking", "roles.*.model", "roles.*.thinking"]), {
+	assert.deepEqual(valueDefaults(table, ["coordinator.model", "coordinator.thinking", "roles.*.model", "roles.*.thinking", "roles.quick.model"]), {
 		maxAgents: MAX_AGENTS,
 		"coordinator.tmux.session": coordinator.session,
 		"coordinator.tmux.socket": coordinator.socket,

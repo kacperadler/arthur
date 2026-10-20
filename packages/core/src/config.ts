@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
-import { availableParallelism } from "node:os";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { table } from "./core-options.ts";
+import { machineLimit } from "./job-scope.ts";
 import type { OptionTable } from "./option-table.ts";
 
 // The config file and the core's own options (spec/roadmap.md, entries 2 and 93; their table: core-options.ts).
@@ -122,11 +122,8 @@ function withDefaults(config: ArthurConfig, file: string): LoadedConfig {
 	};
 }
 
-// The jobs' joint limit when the config sets none: here, and on another machine, where the config is not, from its own cores.
-export const machineLimit = () => ({ cpu: Math.max(1, availableParallelism() - 1), memory: "70%" });
-
 // What `arthur version` prints; a machine that runs jobs must print the same (job-machine.ts), which the machines plugin checks.
 export { coreVersion } from "./job-machine.ts";
 
-// systemd's MemoryMax in bytes (core-options.ts, the check of `jobs.memory`), for the plugins.
-export { memoryBytes } from "./core-options.ts";
+// systemd's MemoryMax in bytes (job-memory.ts; the check of `jobs.memory`), for the plugins.
+export { memoryBytes } from "./job-memory.ts";

@@ -7,7 +7,8 @@ import { type DoctorLine, doctor, ownAnswers } from "./doctor.ts";
 import type { Shell } from "./env.ts";
 import { installedPlugins, type OptionsFile, toolVersion } from "./installed.ts";
 import { everyOption, type OptionTable, type Tool } from "./option-table.ts";
-import { asPlugin, type Options } from "./plugin.ts";
+import type { Options } from "./plugin.ts";
+import { asPlugin } from "./plugin-host.ts";
 import { coreRequirements } from "./requirements.ts";
 
 // `arthur setup` (spec/roadmap.md, entry 94): what is installed, what the config sets, what `arthur doctor` finds missing,

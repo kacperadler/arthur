@@ -12,7 +12,7 @@ import { type Kind, kindRegistry } from "./job-kinds.ts";
 import { newJob, writeRecord } from "./job-record.ts";
 import { type JobRecord, jobUpkeep } from "./job-records.ts";
 import { launchThere, syncMachines } from "./machine-sync.ts";
-import { pluginStep } from "./plugin.ts";
+import { pluginStep } from "./plugin-host.ts";
 import { spawnChecks } from "./spawn-check.ts";
 import { type Collect, describeRoles, prompt, type Role, type RoleReads, roleModel, roleReads, roleRegistry, type RoleView } from "./roles.ts";
 import { type Caps, jobCaps, jobEnv, launch, type Slice, sayUncapped } from "./job-scope.ts";
@@ -79,9 +79,8 @@ export type Jobs = RoleReads & {
 	run(machine: string, argv: readonly string[], limitSeconds?: number, input?: string): Promise<Ran>;
 	machines(): string[];
 	spawn(request: SpawnRequest): Promise<Started>;
-	// Holds a job in a run `blocked` on `dependency: <reason>` until `unblock`; `stop`: stops it too, on `user: <reason>` (docs/commands/jobs.md).
+	// Holds a job in a run `blocked` on `dependency: <reason>` until its run ends; `stop`: stops it too, on `user: <reason>` (docs/commands/jobs.md).
 	block(id: string, reason: string, stop?: boolean): Promise<unknown>;
-	unblock(id: string): void;
 	// Every project's job records, in any state, the newest spawn first (docs/commands/jobs.md).
 	list(): JobRecord[];
 	// The ids of `list()`'s jobs in a run (working, idle, or held), as `arthur stopall` counts them.

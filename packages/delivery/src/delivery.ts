@@ -1,22 +1,26 @@
 import { readFileSync } from "node:fs";
+import { matchesGlob } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
-import { checkOptions } from "./delivery-options.ts";
+import { ALWAYS_REVIEW, checkOptions } from "./delivery-options.ts";
 import { reviewCommand } from "./review-command.ts";
 import { reviewFiler } from "./review-file.ts";
+import { reviewNeededCommand } from "./review-needed.ts";
 import { failsSincePass, LIMIT, type Review, readReview, saveReview, settle } from "./review-records.ts";
 
 // The delivery plugin (spec/roadmap.md, entry 52): the kind `review`, a read-only job on the reviewer role in a detached checkout
 // of a worker's branch, on `roles.reviewer`'s model in a session of its own. It moves its ticket to review as it starts, and its
 // verdict, `PASS` or `FAIL` alone on the last line, moves it to done or back to in-progress; with neither its run ends failed (the
 // kind's `verdicts`) and is never filed. A branch gets at most 2 FAILs since its last PASS; the next review needs `Round: <n>` (`arthur review --round`)
-// on the owner's word, and the wake of the second FAIL carries the procedure. docs/commands/review.md.
+// on the owner's word, and the wake of the second FAIL carries the procedure. docs/commands/review.md. Entry 53: `arthur
+// review-needed`, the always-review list it and autopilot ask (`delivery.alwaysReview`), and the extension that records each
+// job's checks: docs/commands/review-needed.md.
 
 const REVIEW = "review";
 const TICKET = /^spec\/features\/([A-Z]+\d{4,})-[^/]+\/ticket\.md$/;
 // The statuses a reviewed ticket may have: its worker started it, and a review moves it to review.
 const REVIEWED = ["in-progress", "review", "done"];
 
-export function delivery(options: { readonly enabled?: boolean } = {}): Plugin {
+export function delivery(options: { readonly enabled?: boolean; readonly review?: { readonly alwaysReview?: readonly string[] } } = {}): Plugin {
 	return {
 		name: "delivery",
 		module: import.meta.url,
@@ -24,6 +28,8 @@ export function delivery(options: { readonly enabled?: boolean } = {}): Plugin {
 		check: checkOptions,
 		setup(host) {
 			const procedure = new URL("../roles/coordinator/review-limit.md", import.meta.url);
+			const always = options.review?.alwaysReview ?? ALWAYS_REVIEW;
+			const held = (path: string) => always.some((glob) => matchesGlob(path, glob));
 			host.jobs.registerRole({ name: "reviewer", file: new URL("../roles/reviewer.md", import.meta.url), criteria: ["styleguide", "review"] });
 			host.jobs.registerKind({ name: REVIEW, readOnly: true, role: "reviewer", verdicts: ["PASS", "FAIL"], file: reviewFiler(host) });
 			host.jobs.beforeSpawn(({ kind, task, tickets }) => (kind === REVIEW ? refusal(host, task, tickets) : undefined));
@@ -48,6 +54,10 @@ export function delivery(options: { readonly enabled?: boolean } = {}): Plugin {
 				return review && wake(host, review, procedure);
 			});
 			host.commands.register(reviewCommand(host, procedure));
+			host.commands.register(reviewNeededCommand(host, held));
+			host.jobs.registerExtension(new URL("./checks-extension.ts", import.meta.url));
+			// Asked with a project and paths from its root (orchestration's autopilot): those on the list, the same in every project.
+			host.provide("delivery.alwaysReview", ({ paths }: { readonly paths: readonly string[] }) => paths.filter(held));
 		},
 	};
 }

@@ -62,8 +62,8 @@ function parse(args: readonly string[]): { readonly job: string; readonly round?
 	return { job, round };
 }
 
-// The ended worker job `name` names.
-function worker(host: Host, name: string): JobRecord {
+// The ended worker job `name` names, by its id or the 8 hex digits that end it; `arthur review-needed` asks it too.
+export function worker(host: Host, name: string): JobRecord {
 	const job = host.jobs.list().find((each) => each.id === name || each.id.endsWith(`-${name}`));
 	if (job === undefined) throw new Error(`no job ${name}; arthur jobs lists them`);
 	if (job.kind !== "worker" || job.branch === "") throw new Error(`${job.id} is a ${job.kind} job; a review is of a worker's branch`);
@@ -75,6 +75,19 @@ function worker(host: Host, name: string): JobRecord {
 // the limit), then the range to judge and the worker's final message, whose own `Ticket:` words are escaped so the core and
 // placement read the review's ticket alone.
 function reviewTask(host: Host, job: JobRecord, round: number | undefined): { readonly task: string; readonly commit: string } {
+	const { folder, commit, base, head } = branchOf(host, job);
+	const result = host.jobs.result(job.id).trim().replaceAll(/\bTicket:/g, "Ticket\\:");
+	const task = [
+		[`Ticket: ${folder}/ticket.md`, `Branch: ${job.branch}`, `Commit: ${commit}`, ...(round === undefined ? [] : [`Round: ${round}`])].join("\n"),
+		`Review the branch ${job.branch} at ${commit}: your worktree is a detached checkout of that commit. The range to judge is ${base}..${commit}: \`git diff ${base}..${commit}\` and \`git log --oneline ${base}..${commit}\`. Read the ticket as main holds it: \`git show ${head}:${folder}/ticket.md\`.`,
+		`## The worker's final message (job ${job.id})\n\n${result === "" ? "None." : result}`,
+	].join("\n\n");
+	return { task, commit };
+}
+
+// What a review and `arthur review-needed` judge of an ended worker: its one ticket's folder, its project's main checkout, its
+// branch's tip there, HEAD, and where the branch leaves HEAD; refused for a branch that adds nothing to HEAD.
+export function branchOf(host: Host, job: JobRecord): { readonly folder: string; readonly root: string; readonly commit: string; readonly head: string; readonly base: string } {
 	const folders = [...new Set(job.tickets.flatMap((path) => FEATURE.exec(path)?.[1] ?? []))];
 	const [folder] = folders;
 	if (folder === undefined || folders.length > 1) throw new Error(`${job.id}'s task names ${folders.length === 0 ? "no ticket" : `${folders.length} tickets (${folders.join(", ")})`}; a review is of one ticket's branch`);
@@ -85,11 +98,5 @@ function reviewTask(host: Host, job: JobRecord, round: number | undefined): { re
 	if (commit === "") throw new Error(`${job.branch} is not in ${root}: pruned, or not brought back from its machine`);
 	const [head, base] = [git("rev-parse", "HEAD"), git("merge-base", "HEAD", commit)];
 	if (base === commit) throw new Error(`${job.branch} at ${commit.slice(0, 7)} adds nothing to HEAD (${head.slice(0, 7)}): nothing to review`);
-	const result = host.jobs.result(job.id).trim().replaceAll(/\bTicket:/g, "Ticket\\:");
-	const task = [
-		[`Ticket: ${folder}/ticket.md`, `Branch: ${job.branch}`, `Commit: ${commit}`, ...(round === undefined ? [] : [`Round: ${round}`])].join("\n"),
-		`Review the branch ${job.branch} at ${commit}: your worktree is a detached checkout of that commit. The range to judge is ${base}..${commit}: \`git diff ${base}..${commit}\` and \`git log --oneline ${base}..${commit}\`. Read the ticket as main holds it: \`git show ${head}:${folder}/ticket.md\`.`,
-		`## The worker's final message (job ${job.id})\n\n${result === "" ? "None." : result}`,
-	].join("\n\n");
-	return { task, commit };
+	return { folder, root, commit, head, base };
 }

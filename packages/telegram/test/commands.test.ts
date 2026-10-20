@@ -62,17 +62,19 @@ test("/name@botname: this bot's name, in any case, is the command; another bot's
 	assert.equal(api.calls.filter((call) => call.method === "getMe").length, 2, "asked again after its failure, then kept");
 });
 
-test("a named bot's command is answered by that bot, its own name after the @", async (t) => {
+test("a named bot's command is answered by that bot, its own name after the @, and the command learns the bot's name", async (t) => {
 	const api = await botApi(t);
 	const bots = [{ name: "shop", botTokenEnv: "ARTHUR_TELEGRAM_SHOP_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_SHOP_CHAT_ID" }];
 	const env = { ARTHUR_TELEGRAM_SHOP_BOT_TOKEN: SECOND, ARTHUR_TELEGRAM_SHOP_CHAT_ID: String(CHAT) };
 	const { fake, plugin } = await load(t, { apiUrl: api.url, bots }, { env });
-	phone(fake.host, "jobs", () => "none");
+	const asked: unknown[] = [];
+	phone(fake.host, "jobs", (_, from) => (asked.push(from), "none"));
 	await plugin.start?.();
-	api.push(command("/jobs@arthur_bot"), 5, SECOND);
-	api.push(command("/jobs@shop_bot"), 5, SECOND);
+	api.push(command("/jobs@arthur_bot", { message_thread_id: 12, is_topic_message: true }), 5, SECOND);
+	api.push(command("/jobs@shop_bot", { message_thread_id: 12, is_topic_message: true }), 5, SECOND);
 	await until("the reply", () => api.took(SECOND).length === 1);
-	assert.deepEqual(api.took(SECOND), [{ chat_id: CHAT, text: "none", disable_notification: false }]);
+	assert.deepEqual(api.took(SECOND), [{ chat_id: CHAT, message_thread_id: 12, text: "none", disable_notification: false }]);
+	assert.deepEqual(asked, [{ channel: "telegram", place: "12", instance: "shop" }]);
 });
 
 test("an unknown command gets the registry's line; a slash that is no command is a message to the coordinator", async (t) => {

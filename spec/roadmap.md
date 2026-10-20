@@ -549,8 +549,8 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 ### 45. YouTrack: writing issues, articles, fields and work items
 
 - Package: youtrack.
-- Delivers: create or update an issue or an article from a file, set a custom field, add a work item; delete an issue or an article (AR0220, the owner on 2026-10-20), for the coordinator, never for a job.
-- Done means: edge cases: a field value the project does not allow (YouTrack's error in one line); updating an article that changed meanwhile; an empty file; a work item of 0 minutes is refused.
+- Delivers: create or update an issue or an article from a file, set a custom field, add a work item; delete an issue or an article (AR0220, the owner on 2026-10-20), for the coordinator, never for a job. The rest of full management (AR0222, the owner on 2026-10-20): `issue list --query` and `article list --query` in YouTrack's query language, kept inside the project; issue links (`links`, `link`, `unlink`, types as the instance names them), tags (`tag`, `untag`), `issue move` to another project of the instance, work items listed, edited and deleted; articles like issues: comments, attachments, a sub-article (`article create --parent`) and `article move --parent`. Project, board, sprint and user administration stay out.
+- Done means: edge cases: a field value the project does not allow (YouTrack's error in one line); updating an article that changed meanwhile; an empty file; a work item of 0 minutes is refused. For each AR0222 verb: an id outside the project's YouTrack project (a link's other issue and a parent article too) refused before any call; a job refused for every write; YouTrack's error in one line; the token never in an error; a search that closes its parenthesis never lists another project's item.
 - Depends on: 44.
 - Size: a day.
 - Covers: Y1 (writing).
@@ -1085,7 +1085,7 @@ Each row is one capability of the harness Arthur replaces, as it was inventoried
 | P2 | The list of projects every command reaches | 41 |
 | P3 | Onboarding of a new repository | 42 |
 | P4 | A project names its tracker instance | 41, 44 |
-| Y1 | YouTrack: issues, articles, fields, work items, comments, attachments; delete by the coordinator, never by a job; ids checked; token hidden | 44, 45, 46 |
+| Y1 | YouTrack: issues, articles, fields, work items, comments, attachments, links, tags, search, moves, sub-articles; delete by the coordinator, never by a job; ids checked; token hidden | 44, 45, 46 |
 | Y2 | Rules for a job working on an issue | 46 |
 | E1 | Evals of coordinator turns | 67 |
 | E2 | The test kit: fake agent, fake host, safety net, temporary folders | 4, 11 |

@@ -3,12 +3,14 @@ import { basename, extname, join } from "node:path";
 import { call, field, getAll, type Instance, remove, request } from "./youtrack-api.ts";
 import { readBytes } from "./youtrack-write.ts";
 
-// An issue's attachments (spec/roadmap.md, entry 46), on its description and its comments, saved into `<folder>/<id>/`
-// (`.arthur/youtrack/SHOP-12/`), one added from a file, one deleted (AR0220): docs/commands/youtrack.md. A save returns one
-// line per file: `attachment <attachment id>: <path> <bytes> B <mime>`.
+// An issue's or an article's attachments (spec/roadmap.md, entry 46; articles AR0222), on its text and its comments, saved
+// into `<folder>/<id>/` (`.arthur/youtrack/SHOP-12/`), one added from a file, one deleted (AR0220): docs/commands/youtrack.md.
+// A save returns one line per file: `attachment <attachment id>: <path> <bytes> B <mime>`.
 
-export async function saveAttachments(instance: Instance, folder: string, id: string): Promise<string> {
-	const found = await getAll(instance, `issues/${id}/attachments`, { fields: "id,name,url,mimeType,comment(id)" }, `the attachments of issue ${id}`);
+type Kind = "issue" | "article";
+
+export async function saveAttachments(instance: Instance, folder: string, kind: Kind, id: string): Promise<string> {
+	const found = await getAll(instance, `${kind}s/${id}/attachments`, { fields: "id,name,url,mimeType,comment(id)" }, `the attachments of ${kind} ${id}`);
 	if (found.length === 0) return `no attachments on ${id}`;
 	// The token goes with each download, so every one is checked to be on the instance's own server before the first.
 	const origin = new URL(instance.base).origin;
@@ -25,7 +27,7 @@ export async function saveAttachments(instance: Instance, folder: string, id: st
 		let name = clean;
 		for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${clean.slice(0, clean.length - extname(clean).length)}-${n}${extname(clean)}`;
 		taken.add(name.toLowerCase());
-		const bytes = await request(instance, url, `attachment ${String(field(item, "id"))} of issue ${id}`);
+		const bytes = await request(instance, url, `attachment ${String(field(item, "id"))} of ${kind} ${id}`);
 		// Written under a temporary name and renamed, so a reader never sees half a file.
 		writeFileSync(join(into, `.${name}.part`), bytes);
 		renameSync(join(into, `.${name}.part`), join(into, name));
@@ -36,17 +38,17 @@ export async function saveAttachments(instance: Instance, folder: string, id: st
 }
 
 // `attachment add`: the file under its own name, as the form upload YouTrack takes (`upload`); `attachment delete`: the
-// attachment of that id, which `issue attachments` prints, an id of another form refused before any call.
-export async function changeAttachment(instance: Instance, verb: string, id: string, [given = ""]: readonly string[]): Promise<string> {
-	const path = `issues/${id}/attachments`;
+// attachment of that id, which `issue attachments` or `article attachments` prints, an id of another form refused before any call.
+export async function changeAttachment(instance: Instance, verb: string, kind: Kind, id: string, [given = ""]: readonly string[]): Promise<string> {
+	const path = `${kind}s/${id}/attachments`;
 	if (verb === "delete") {
-		if (!/^\d+-\d+$/.test(given)) throw new Error(`${given} is not an attachment id such as 74-1, which arthur youtrack issue attachments ${id} prints; nothing was asked of YouTrack`);
-		await remove(instance, `${path}/${given}`, `attachment ${given} of issue ${id}`);
+		if (!/^\d+-\d+$/.test(given)) throw new Error(`${given} is not an attachment id such as 74-1, which arthur youtrack ${kind} attachments ${id} prints; nothing was asked of YouTrack`);
+		await remove(instance, `${path}/${given}`, `attachment ${given} of ${kind} ${id}`);
 		return `${id}: deleted attachment ${given}`;
 	}
 	const form = new FormData();
 	form.append("upload", new Blob([readBytes(given)]), basename(given));
-	const made = await call(instance, path, { fields: "id,name" }, `the attachments of issue ${id}`, form);
+	const made = await call(instance, path, { fields: "id,name" }, `the attachments of ${kind} ${id}`, form);
 	const added = Array.isArray(made) ? made[0] : made;
 	return `${id}: added attachment ${String(field(added, "id"))} ${String(field(added, "name"))}`;
 }

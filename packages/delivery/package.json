@@ -1,0 +1,10 @@
+{
+  "name": "@arthur/delivery",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/delivery.ts",
+    "./options": "./src/delivery-options.ts"
+  }
+}

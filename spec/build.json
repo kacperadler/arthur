@@ -1807,9 +1807,9 @@
   {
     "id": "AR0234",
     "title": "MCP servers for the coordinator and every role, set globally or per role",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0234-mcp-servers-for-the-coordinator-and-every-role-set-globally-or-per-role/ticket.md",
-    "updated": "2026-10-20T20:42:48.915Z"
+    "updated": "2026-10-20T20:59:02.861Z"
   },
   {
     "id": "AR0235",
@@ -1828,8 +1828,8 @@
   {
     "id": "AR0237",
     "title": "Roadmap 53: arthur review-needed",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0237-roadmap-53-arthur-review-needed/ticket.md",
-    "updated": "2026-10-20T20:43:00.691Z"
+    "updated": "2026-10-20T20:43:05.179Z"
   }
 ]

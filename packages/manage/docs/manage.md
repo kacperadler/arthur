@@ -1,6 +1,6 @@
 # The manage plugin
 
-Managing Arthur itself. Built so far: roadmap entry 60, health: `arthur health` and `/health`, one line per thing that should have happened by now and has not, and, while `arthur run` runs, the same checks every `health.everyMinutes` with their new lines sent as a `notice`. Stats, the audit, the retro and pruning on a schedule are entries 61 to 64.
+Managing Arthur itself. Built so far: roadmap entry 60, health: `arthur health` and `/health`, one line per thing that should have happened by now and has not, and, while `arthur run` runs, the same checks every `health.everyMinutes` with their new lines sent as a `notice`; entry 61, stats: `arthur stats`, how a project's merged tickets went, from their review files, `outcome.md` and board entries (`arthur stats --help`). The audit, the retro and pruning on a schedule are entries 62 to 64.
 
 ```ts
 plugins: [

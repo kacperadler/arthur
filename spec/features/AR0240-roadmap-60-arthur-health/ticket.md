@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-20: Started by the coordinator under the owner's free hand ("lec ze wszystkim śmiało", 99% usage until 08:00; 97% at 23:45).
+- 2026-10-21: Coordinator (owner asleep): the worker's picks accepted for review (1 h thresholds, <10% free space/inodes as constants; stalled = in-progress/review with no running job; no rounds by default; same problem when only numbers change); listed for the owner in the morning.

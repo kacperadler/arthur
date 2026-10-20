@@ -272,7 +272,12 @@ import { checkStructure } from "./structure.ts";
 // on the tip (merge-command.ts, 108), the install of a changed lockfile, the checks on main and the reinstall after a reset
 // (merge-checks.ts, 65), the filed reviews, `findings.onMerge`, outcome.md, merged and the tickets unblocked (merge-outcome.ts,
 // 82), the command registered (delivery.ts, 2), the summary (delivery-options.ts, 0) and `reviewsOf` (review-records.ts, 5).
-const BUDGETS = { core: 5727, "core/testing": 349, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 770, github: 310 };
+// AR0240 (roadmap 60): manage: 257, set for `arthur health` and `/health` over every plugin's `health` answer, the rounds of
+// `health.everyMinutes` with what the last one saw kept across a restart (manage.ts, 105), its own checks of stalled tickets,
+// main not pushed, the board uncommitted, the temporary folder and the inodes (health-checks.ts, 116), and its options file
+// (manage-options.ts, 36); a new package, so nothing was cut elsewhere; core unchanged.
+// Merged AR0239 with AR0240: main's budgets plus AR0239's raise, delivery 770, manage 257.
+const BUDGETS = { core: 5727, "core/testing": 349, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 770, github: 310, manage: 257 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

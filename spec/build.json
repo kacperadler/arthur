@@ -1716,15 +1716,15 @@
   {
     "id": "AR0221",
     "title": "Roadmap 49: Telegram media in and out, arthur send",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0221-roadmap-49-telegram-media-in-and-out-arthur-send/ticket.md",
-    "updated": "2026-10-20T07:26:57.260Z"
+    "updated": "2026-10-20T07:48:48.890Z"
   },
   {
     "id": "AR0222",
     "title": "YouTrack: the rest of full management, links, tags, search, articles like issues",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0222-youtrack-the-rest-of-full-management-links-tags-search-articles-like-issues/ticket.md",
-    "updated": "2026-10-20T07:41:17.320Z"
+    "updated": "2026-10-20T07:50:14.399Z"
   }
 ]

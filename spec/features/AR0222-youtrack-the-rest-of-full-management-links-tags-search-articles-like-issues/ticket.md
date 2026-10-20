@@ -45,3 +45,4 @@ Out:
 - 2026-10-20: The owner approved it, without boards and sprints, under the 90% usage ceiling (86% used).
 - 2026-10-20: The coordinator accepts the youtrack line budget raise 518 -> 659 (+141) after the cuts the worker named. Open to the owner: article comment delete is permanent (YouTrack has no restorable mark there); issue tag creates an unknown tag.
 - 2026-10-20: The owner: article comment delete stays a permanent delete (coordinator only); issue tag creates an unknown tag.
+- 2026-10-20: The owner: merge, after AR0221; the worker merges main, a short review, then the merge without asking again.

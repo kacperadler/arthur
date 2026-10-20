@@ -1,6 +1,6 @@
-// YouTrack's REST API (spec/roadmap.md, entries 44 to 46): one GET, or a POST of JSON, under `<url>/api/`, with the permanent
-// token as a `Bearer`, a list read page by page with `$top` and `$skip`, and a file's bytes. Every failure is one line naming
-// the instance and the variable, never the token or the URL a variable holds.
+// YouTrack's REST API (spec/roadmap.md, entries 44 to 46): one GET, a POST of JSON or of a form, or a DELETE under
+// `<url>/api/`, with the permanent token as a `Bearer`, a list read page by page with `$top` and `$skip`, and a file's bytes.
+// Every failure is one line naming the instance and the variable, never the token or the URL a variable holds.
 
 export type Instance = {
 	readonly name: string | undefined;
@@ -17,12 +17,12 @@ export type Instance = {
 // Items asked per page; a page with fewer is the last.
 export const PAGE = 100;
 
-// The JSON of `path` (e.g. `issues/SHOP-1`) with `params`, sent `body` as JSON in a POST when given; `what` names what was
-// asked, for a 404 and any other refusal.
+// The JSON of `path` (e.g. `issues/SHOP-1`) with `params`, sent `body` in a POST when given, as JSON or, a form, as
+// multipart; `what` names what was asked, for a 404 and any other refusal.
 export async function call(instance: Instance, path: string, params: Readonly<Record<string, string>>, what: string, body?: unknown): Promise<unknown> {
 	const url = new URL(`${instance.base}/api/${path}`);
 	for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
-	const bytes = await request(instance, url, what, body === undefined ? undefined : JSON.stringify(body));
+	const bytes = await request(instance, url, what, body === undefined ? "GET" : "POST", body === undefined || body instanceof FormData ? body : JSON.stringify(body));
 	try {
 		return JSON.parse(bytes.toString("utf8"));
 	} catch {
@@ -30,17 +30,22 @@ export async function call(instance: Instance, path: string, params: Readonly<Re
 	}
 }
 
-// The bytes `url` answers, a file's too, after a POST of the JSON `body` when given; the token goes along, so `url` is on the
-// instance's own server.
-export async function request(instance: Instance, url: URL, what: string, body?: string): Promise<Buffer> {
+// An HTTP DELETE of `path`; YouTrack answers it without a body.
+export async function remove(instance: Instance, path: string, what: string): Promise<void> {
+	await request(instance, new URL(`${instance.base}/api/${path}`), what, "DELETE");
+}
+
+// The bytes `url` answers to `method`, a file's too, sent `body` when given: JSON text or a form; the token goes along, so
+// `url` is on the instance's own server.
+export async function request(instance: Instance, url: URL, what: string, method = "GET", body?: string | FormData): Promise<Buffer> {
 	const { label, urlEnv, tokenEnv, token, timeoutSeconds } = instance;
 	const fail = (text: string) => new Error(`instance ${label}: ${text.replaceAll(token, "[token]").replaceAll(url.host, "[url]").replace(/\s+/g, " ").slice(0, 300)}`);
 	let response: Response;
 	let bytes: Buffer;
 	try {
-		// JSON first; a file answers in its own type.
-		const headers = { Authorization: `Bearer ${token}`, Accept: "application/json, */*;q=0.1", ...(body === undefined ? {} : { "Content-Type": "application/json" }) };
-		response = await fetch(url, { headers, ...(body === undefined ? {} : { method: "POST", body }), signal: AbortSignal.timeout(timeoutSeconds * 1000) });
+		// JSON first; a file answers in its own type. A form sets its own type, with its boundary.
+		const headers = { Authorization: `Bearer ${token}`, Accept: "application/json, */*;q=0.1", ...(typeof body === "string" ? { "Content-Type": "application/json" } : {}) };
+		response = await fetch(url, { method, headers, body, signal: AbortSignal.timeout(timeoutSeconds * 1000) });
 		bytes = Buffer.from(await response.arrayBuffer());
 	} catch (error) {
 		if (error instanceof DOMException && error.name === "TimeoutError") throw fail(`no answer in ${timeoutSeconds} s from the server in ${urlEnv}`);

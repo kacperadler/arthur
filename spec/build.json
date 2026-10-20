@@ -1744,16 +1744,16 @@
   {
     "id": "AR0225",
     "title": "A phone command does not learn which named bot it came through",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0225-a-phone-command-does-not-learn-which-named-bot-it-came-through/ticket.md",
-    "updated": "2026-10-20T09:39:20.077Z"
+    "updated": "2026-10-20T10:02:05.722Z"
   },
   {
     "id": "AR0226",
     "title": "The outbox's retry test failed once in a full test run",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0226-the-outbox-s-retry-test-failed-once-in-a-full-test-run/ticket.md",
-    "updated": "2026-10-20T09:39:20.279Z"
+    "updated": "2026-10-20T09:39:26.075Z"
   },
   {
     "id": "AR0227",

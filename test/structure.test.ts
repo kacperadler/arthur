@@ -238,7 +238,11 @@ import { checkStructure } from "./structure.ts";
 // new package, so nothing was cut elsewhere; core unchanged.
 // AR0232 (roadmap 98): uptime 4 more (292): a url on a port of the Fetch standard's bad-port list, which fetch never reaches,
 // refused at load (uptime-options.ts: the list with its comment, 2, and the refusal, 2); nothing was cut elsewhere.
-const BUDGETS = { core: 5684, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292 };
+// AR0236 (roadmap 57): github: 310, set for its options checked at load (github-options.ts, 70), the workflow runs asked of
+// GitHub with each refusal's words and the rate limit's wait (github-api.ts, 79), the runs told kept across a restart
+// (github-state.ts, 26), and the branches in play with each one's nearest run, ci-finished once per run and a refusal said
+// once (github.ts, 135); a new package, so nothing was cut elsewhere; core unchanged.
+const BUDGETS = { core: 5684, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, github: 310 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

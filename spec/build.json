@@ -1793,9 +1793,9 @@
   {
     "id": "AR0232",
     "title": "A site on a port that fetch blocks is reported down forever, as `bad port`",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0232-a-site-on-a-port-that-fetch-blocks-is-reported-down-forever-as-bad-port/ticket.md",
-    "updated": "2026-10-20T19:50:25.180Z"
+    "updated": "2026-10-20T20:07:26.348Z"
   },
   {
     "id": "AR0233",
@@ -1809,13 +1809,20 @@
     "title": "MCP servers for the coordinator and every role, set globally or per role",
     "status": "in-progress",
     "path": "spec/features/AR0234-mcp-servers-for-the-coordinator-and-every-role-set-globally-or-per-role/ticket.md",
-    "updated": "2026-10-20T19:50:35.867Z"
+    "updated": "2026-10-20T20:09:30.040Z"
   },
   {
     "id": "AR0235",
     "title": "Roadmap 52: review jobs",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0235-roadmap-52-review-jobs/ticket.md",
-    "updated": "2026-10-20T19:55:37.187Z"
+    "updated": "2026-10-20T20:12:03.237Z"
+  },
+  {
+    "id": "AR0236",
+    "title": "Roadmap 57: GitHub polling CI runs",
+    "status": "in-progress",
+    "path": "spec/features/AR0236-roadmap-57-github-polling-ci-runs/ticket.md",
+    "updated": "2026-10-20T20:07:56.164Z"
   }
 ]

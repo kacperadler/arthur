@@ -5,7 +5,7 @@ import type { OptionProblem, Options } from "@arthur/core/plugin";
 // The telegram plugin's options file (spec/roadmap.md, entries 47 and 93), checked before any setup by walking `table`:
 // packages/telegram/docs/telegram.md, "Options". The variables' values are checked at setup.
 
-export const summary = "Telegram bots, named and unnamed: the owner's text to the coordinator, its replies and the notices back";
+export const summary = "Telegram bots, named and unnamed: the owner's text and media to the coordinator, its replies, the notices and arthur send's files back";
 
 export const tools: readonly Tool[] = [];
 

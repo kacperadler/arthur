@@ -7,6 +7,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Added
 
 - AR0220 YouTrack: open issues grouped by state, and full create, edit, delete of issues and articles (e037b36)
+- AR0221 Roadmap 49: Telegram media in and out, arthur send (718a54a)
 
 ## 2026-10-19
 

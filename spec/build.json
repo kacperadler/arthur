@@ -1838,5 +1838,19 @@
     "status": "planning",
     "path": "spec/features/AR0238-a-rerun-keeps-its-run-id-so-its-end-is-never-told-as-ci-finished/ticket.md",
     "updated": "2026-10-20T21:16:41.805Z"
+  },
+  {
+    "id": "AR0239",
+    "title": "Roadmap 54: arthur merge",
+    "status": "planned",
+    "path": "spec/features/AR0239-roadmap-54-arthur-merge/ticket.md",
+    "updated": "2026-10-20T21:45:17.529Z"
+  },
+  {
+    "id": "AR0240",
+    "title": "Roadmap 60: arthur health",
+    "status": "planned",
+    "path": "spec/features/AR0240-roadmap-60-arthur-health/ticket.md",
+    "updated": "2026-10-20T21:45:17.944Z"
   }
 ]

@@ -13,8 +13,6 @@ export function reviewFiler(host: Host): (filing: Filing) => string {
 		const review = readReview(host, job.id);
 		if (review === undefined) throw new Error(`${job.id} has no record of delivery's, so it reviewed no branch; review one with arthur review <worker job>`);
 		const verdict = verdictOf(job.result);
-		if (verdict === "none")
-			throw new Error(`${job.id} has no verdict: the last line of its final message is not PASS or FAIL alone; the review failed and is never filed; review again with arthur review ${review.branch.slice("arthur/".length)}, and prune it`);
 		const folder = dirname(ticket.path);
 		const reviews = readdirSync(join(ticket.root, folder)).filter((name) => NAME.test(name));
 		const filed = reviews.find((name) => readFileSync(join(ticket.root, folder, name), "utf8").includes(`\n- Job: ${job.id}\n`));

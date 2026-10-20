@@ -123,6 +123,30 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	assert.equal(calls().filter((call) => call.includes("git-receive-pack")).length, 1, "the base commit there is not pushed twice");
 });
 
+// AR0235 F2: a review on another machine checks out a worker's tip that only this repository holds.
+test("a spawn's fetch goes to the machine with its base, to refs/arthur/fetch, once; a fetch that is no commit here is refused before any record", async () => {
+	const agent = fakeAgent({ steps: [{ message: "Done." }] });
+	const { root, home, there, jobs } = setup({ agent });
+	git(root, "checkout", "--quiet", "-b", "side");
+	commit(root, "the worker's change");
+	const tip = git(root, "rev-parse", "HEAD");
+	git(root, "checkout", "--quiet", "main");
+	for (const fetch of ["side", "f".repeat(40)])
+		await assert.rejects(jobs.spawn({ task: "Review it.", machine: "gpu", fetch }), { message: `fetch: "${fetch}" is no commit of ${root}; give its hex id` });
+	assert.equal(existsSync(join(home, "jobs")), false);
+	const job = await jobs.spawn({ task: "Review it.", machine: "gpu", fetch: tip });
+	assert.equal(job.failed, undefined);
+	const repository = join(there, "repos/acme.git");
+	assert.equal(git(repository, "rev-parse", "refs/arthur/fetch"), tip);
+	const worktree = join(there, "repos/.arthur-worktrees", job.id);
+	git(worktree, "checkout", "--quiet", "--detach", tip);
+	assert.equal(git(worktree, "rev-parse", "HEAD"), tip, "the tip checks out there");
+	const pushes = calls().filter((call) => call.includes("git-receive-pack")).length;
+	assert.equal(pushes, 2, "the base and the fetch");
+	await jobs.spawn({ task: "Again.", machine: "gpu", fetch: tip });
+	assert.equal(calls().filter((call) => call.includes("git-receive-pack")).length, pushes, "neither is pushed again");
+});
+
 test("a prepare's variables reach the agent there through the launch's stdin, and again through a continue's, never an argument nor the record there or here", async () => {
 	const omp = fakeAgent({ steps: [{ message: "Done." }] });
 	const agent = join(dirname(omp), "env-omp");

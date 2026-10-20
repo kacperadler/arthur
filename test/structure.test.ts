@@ -228,7 +228,7 @@ import { checkStructure } from "./structure.ts";
 // getMe's username kept (poll.ts, 16 with its comment).
 // AR0228 (roadmap 51): the host API frozen in docs/plugin-api.md, each published module of the core holding only what plugins
 // use. Cut first: `host.jobs.unblock` and its `unblockJob`, which no plugin called (13 lines), and `machineLimit` moved out of
-// config.ts into job-scope.ts (1). Core 16 more (5684): the host's own code moved out of plugin.ts into plugin-host.ts, with
+// config.ts into job-scope.ts (2). Core 16 more (5684): the host's own code moved out of plugin.ts into plugin-host.ts, with
 // the types a plugin meets through the host published by name (22); the env guard's refusal apart from its extension
 // (env-refusal.ts, 4); `memoryBytes` moved out of core-options.ts into job-memory.ts (1); the imports split between plugin.ts
 // and plugin-host.ts (3); an option table's own `keys` beside `each` (AR0178, 1).

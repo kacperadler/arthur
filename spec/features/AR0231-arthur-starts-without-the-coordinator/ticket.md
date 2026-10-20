@@ -36,3 +36,4 @@ In:
 ## Decisions
 
 - 2026-10-20: The owner wants a mode without the coordinator ("tak"), but not now: it goes at the very end of the roadmap, after AR0182, and is decided then.
+- 2026-10-20: Owner dropped it: without AI only uptime and notices remain; not worth the plugin commands it needs.

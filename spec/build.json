@@ -1758,9 +1758,9 @@
   {
     "id": "AR0227",
     "title": "An uptime plugin: Arthur checks client sites and tells the owner when one is down",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0227-an-uptime-plugin-arthur-checks-client-sites-and-tells-the-owner-when-one-is-down/ticket.md",
-    "updated": "2026-10-20T11:01:14.220Z"
+    "updated": "2026-10-20T11:35:16.458Z"
   },
   {
     "id": "AR0228",
@@ -1789,5 +1789,19 @@
     "status": "planning",
     "path": "spec/features/AR0231-arthur-starts-without-the-coordinator/ticket.md",
     "updated": "2026-10-20T11:03:32.832Z"
+  },
+  {
+    "id": "AR0232",
+    "title": "A site on a port that fetch blocks is reported down forever, as `bad port`",
+    "status": "planned",
+    "path": "spec/features/AR0232-a-site-on-a-port-that-fetch-blocks-is-reported-down-forever-as-bad-port/ticket.md",
+    "updated": "2026-10-20T11:35:38.904Z"
+  },
+  {
+    "id": "AR0233",
+    "title": "`sites` is the uptime plugin's own option, where every other per-project setting is a key of the project's entry",
+    "status": "dropped",
+    "path": "spec/features/AR0233-sites-is-the-uptime-plugin-s-own-option-where-every-other-per-project-setting-is-a-key-of-the-project-s-entry/ticket.md",
+    "updated": "2026-10-20T11:35:39.106Z"
   }
 ]

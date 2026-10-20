@@ -1723,15 +1723,15 @@
   {
     "id": "AR0222",
     "title": "YouTrack: the rest of full management, links, tags, search, articles like issues",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0222-youtrack-the-rest-of-full-management-links-tags-search-articles-like-issues/ticket.md",
-    "updated": "2026-10-20T08:03:37.986Z"
+    "updated": "2026-10-20T08:16:28.381Z"
   },
   {
     "id": "AR0223",
     "title": "A restart between a part claim reply and the inbox queue sends the reply twice",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0223-a-restart-between-a-part-claim-reply-and-the-inbox-queue-sends-the-reply-twice/ticket.md",
-    "updated": "2026-10-20T08:04:56.273Z"
+    "updated": "2026-10-20T08:04:59.045Z"
   }
 ]

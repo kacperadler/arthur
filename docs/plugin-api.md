@@ -176,7 +176,8 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `machines.round` | resources | machines | A round of machine checks as it begins. |
 | `resources.free` | resources | machines | The jobs a machine has room for. |
 | `schedule.register` | schedule | orchestration | Registers another plugin's schedule entries. |
-| `merge.check` | projects | none yet (delivery) | A check of a job's branch before its merge. |
+| `merge.check` | projects | delivery (`arthur merge`) | A check of a job's branch before its merge: a text answer refuses it. |
+| `findings.onMerge` | none yet (findings) | delivery (`arthur merge`) | `{ project, ticket, path, root }`, `path` the merged ticket's `findings.md`: the lines of its outcome's `## Left open`. |
 | `delivery.alwaysReview` | delivery | orchestration | `{ project, paths }`: the paths on the always-review list. |
 | `health` | manage | manage (`arthur health`, its rounds), session | Lines of what should have happened and has not: a line or a list of lines. |
 

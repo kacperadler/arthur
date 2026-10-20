@@ -59,14 +59,19 @@ export function settle(host: Host, review: Review): Verdict | undefined {
 	return verdict;
 }
 
-// The FAIL reviews of `branch` since its last PASS, oldest first; a review that runs, or has no verdict, is no round.
-export function failsSincePass(host: Host, branch: string): string[] {
+// The reviews of `branch` delivery prepared, oldest first, each with its verdict as `settle` gives it.
+export function reviewsOf(host: Host, branch: string): (readonly [Review, Verdict | undefined])[] {
 	const names = existsSync(folder(host)) ? readdirSync(folder(host)) : [];
 	const reviews = names.flatMap((name) => (name.endsWith(".json") ? (readReview(host, name.slice(0, -".json".length)) ?? []) : []));
-	const verdicts = reviews
+	return reviews
 		.filter((review) => review.branch === branch)
 		.sort((a, b) => a.at - b.at)
-		.map((review) => [review.id, settle(host, review)] as const);
+		.map((review) => [review, settle(host, review)] as const);
+}
+
+// The FAIL reviews of `branch` since its last PASS, oldest first; a review that runs, or has no verdict, is no round.
+export function failsSincePass(host: Host, branch: string): string[] {
+	const verdicts = reviewsOf(host, branch);
 	const pass = verdicts.findLastIndex(([, verdict]) => verdict === "PASS");
-	return verdicts.slice(pass + 1).flatMap(([id, verdict]) => (verdict === "FAIL" ? [id] : []));
+	return verdicts.slice(pass + 1).flatMap(([review, verdict]) => (verdict === "FAIL" ? [review.id] : []));
 }

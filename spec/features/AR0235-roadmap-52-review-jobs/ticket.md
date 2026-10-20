@@ -43,3 +43,4 @@ Out:
 - 2026-10-20: Owner: go on with Arthur and spend the weekly usage up to 99% until 08:00 on 2026-10-21 (94% at 21:36). Started by the coordinator under the owner's free hand in Arthur.
 - 2026-10-20: Coordinator approved the new delivery line budget, 312 (new package, nothing cut elsewhere).
 - 2026-10-20: Owner: fix F1 and F2 now, in this ticket, not later; approves the two host API additions they need (frozen API since 51) and the core line budget raise they cost.
+- 2026-10-20: Coordinator (owner asleep, free hand): F1 as `Kind.verdicts` (a list of allowed last lines the wrapper checks) instead of `Kind.outcome(result)`: the wrapper runs apart from the plugins, on another machine too; data, not code, crosses that boundary.

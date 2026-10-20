@@ -36,3 +36,4 @@ In:
 
 - 2026-10-20: Source: F2 of AR0224
 - 2026-10-20: Approved by the coordinator under the owner's free hand in Arthur.
+- 2026-10-20: Also F1 of AR0225: "Telegram back while nothing new is sent" failed once under load; check it the same way.

@@ -15,6 +15,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0223 A restart between a part claim reply and the inbox queue sends the reply twice (7f2c3b9)
 - AR0225 A phone command does not learn which named bot it came through (8b4e8b0)
+- AR0226 The outbox's retry test failed once in a full test run (fe8699a)
 
 ## 2026-10-19
 

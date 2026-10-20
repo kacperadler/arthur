@@ -28,6 +28,8 @@ import { session } from "@arthur/session";
 import * as sessionFile from "@arthur/session/options";
 import { telegram } from "@arthur/telegram";
 import * as telegramFile from "@arthur/telegram/options";
+import { uptime } from "@arthur/uptime";
+import * as uptimeFile from "@arthur/uptime/options";
 import { youtrack } from "@arthur/youtrack";
 import * as youtrackFile from "@arthur/youtrack/options";
 
@@ -48,6 +50,7 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	telegram: [telegramFile, telegram({ bots: [] })],
 	nvm: [nvmFile, nvm()],
 	"commit-rules": [commitRulesFile, commitRules()],
+	uptime: [uptimeFile, uptime()],
 };
 
 // What is wrong with `file`: an option, at any depth, whose meaning or default is not one line; a summary that is not one

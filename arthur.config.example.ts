@@ -40,6 +40,7 @@ import { session } from "@arthur/session"; // first, named
 import { signal } from "@arthur/signal"; // later, named
 import { slack } from "@arthur/slack"; // later, named
 import { telegram } from "@arthur/telegram"; // first, named
+import { uptime } from "@arthur/uptime"; // first, named
 import { voice } from "@arthur/voice"; // first, named
 import { whatsapp } from "@arthur/whatsapp"; // later, named
 import { youtrack } from "@arthur/youtrack"; // first, named
@@ -289,6 +290,21 @@ export default defineConfig({
 		// non-matching subject; words and a file are given to the worker and the reviewer, and the review judges them. It takes no
 		// option of its own (packages/commit-rules/docs/commit-rules.md).
 		commitRules(),
+
+		// Each project's sites, checked over plain HTTP while `arthur run` runs (no model, so no usage). A site is down after 2
+		// failed checks in a row (no answer in time, refused, a TLS error, a wrong status, the text missing): one notice with its
+		// URL, the reason and since when, and `uptime-down`; one more with how long when it answers, and `uptime-up`. When no
+		// site answers, one notice that this machine looks offline, none per site. A key that is not a project refuses the load.
+		// packages/uptime/docs/uptime.md.
+		uptime({
+			sites: {
+				"acme-shop": [
+					{ url: "https://shop.acme.example/" }, // any 2xx status, checked every 60 s
+					{ url: "https://shop.acme.example/health", expect: "ok", everySeconds: 30 }, // a 2xx page that holds "ok"
+					{ url: "https://admin.shop.acme.example/", expect: 401 }, // exactly this status
+				],
+			},
+		}),
 
 		// One entry per YouTrack server. The names are the variables, not their values. The unnamed one uses
 		// ARTHUR_YOUTRACK_URL and ARTHUR_YOUTRACK_TOKEN; `acme` uses ARTHUR_YOUTRACK_ACME_URL and ARTHUR_YOUTRACK_ACME_TOKEN.

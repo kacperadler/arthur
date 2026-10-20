@@ -232,7 +232,11 @@ import { checkStructure } from "./structure.ts";
 // the types a plugin meets through the host published by name (22); the env guard's refusal apart from its extension
 // (env-refusal.ts, 4); `memoryBytes` moved out of core-options.ts into job-memory.ts (1); the imports split between plugin.ts
 // and plugin-host.ts (3); an option table's own `keys` beside `each` (AR0178, 1).
-const BUDGETS = { core: 5684, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641 };
+// AR0227 (the owner on 2026-10-20, roadmap 98): uptime: 288, set for each project's sites checked at load (uptime-options.ts,
+// 72), the HTTP check and the words of each failure (site-check.ts, 41), what is down kept across a restart (uptime-state.ts,
+// 34), and down after 2 failed checks with this machine's offline told apart, the notices and the events (uptime.ts, 141); a
+// new package, so nothing was cut elsewhere; core unchanged.
+const BUDGETS = { core: 5684, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 288 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

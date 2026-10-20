@@ -77,6 +77,7 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | telegram (named) | first | A channel: receive, send text, send media. Follows the coordinator's silent mode (`/silent`, roadmap 47): while it is on, sends only the end of the work the owner delegated, its stop condition met, a decision, and the answer to his own message. |
 | discord (named) | first | A channel, through Discord's gateway: an outbound WebSocket, no Interactions Endpoint URL. One private server: a main channel for the coordinator and one channel per project; the bot answers only the owner. The channel the owner uses (decision 21). |
 | voice (named) | first | Local transcription of voice parts with whisper.cpp: claims every `voice` part from any channel, on the CPU, nothing sent to the cloud. |
+| uptime (named) | first | Checks each project's sites over HTTP while `arthur run` runs; one notice when a site goes down (2 failed checks in a row) and one when it is back, with `uptime-down` and `uptime-up` events; this machine offline is told apart from a site down. Roadmap 98. |
 | delivery (derived) | first | Review, always-review list, merge after PASS and green CI, the changelog. |
 | github (derived) | first | Polls CI runs and pull requests, wakes the coordinator. |
 | manage (named: managing Arthur) | first | The audit, the retro, health, prune, stats. Its options (`audit.days`, `retro.day`) make the schedule entries, not prose in one. |

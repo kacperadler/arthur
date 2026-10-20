@@ -1,0 +1,10 @@
+{
+  "name": "@arthur/uptime",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/uptime.ts",
+    "./options": "./src/uptime-options.ts"
+  }
+}

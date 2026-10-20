@@ -14,6 +14,8 @@ export const SLICE = "arthur-jobs";
 
 // The joint slice: its name, the cores (`cpu`) and the systemd `MemoryMax` (`memory`) all jobs in it share.
 export type Slice = { readonly slice: string; readonly cpu: number; readonly memory: string };
+// The joint limit when the config sets none: here, and on another machine, where the config is not, from its own cores.
+export const machineLimit = () => ({ cpu: Math.max(1, availableParallelism() - 1), memory: "70%" });
 
 // One job's own caps, which a plugin's `jobs.limits` answers (spec/roadmap.md, entries 32 and 33): cores, and systemd
 // `MemoryMax`; `feature`, the slice of its ticket inside the jobs' slice, `name` in letters and digits, and what all its jobs share.

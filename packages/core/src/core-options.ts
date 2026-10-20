@@ -1,3 +1,4 @@
+import { memoryBytes } from "./job-memory.ts";
 import type { Check, OptionTable, Tool } from "./option-table.ts";
 
 // The core's options file (spec/roadmap.md, entries 2 and 93): the options of `core` in arthur.config.ts, which config.ts
@@ -16,8 +17,6 @@ export const tools: readonly Tool[] = [
 ];
 
 const HH_MM = /^([01]\d|2[0-3]):[0-5]\d$/;
-const PERCENT = /^\d{1,3}(\.\d{1,2})?%$/;
-const SIZE = /^(\d+)(?:\.(\d{1,2}))?([KMGT]?)$/;
 
 const optional =
 	(check: Check): Check =>
@@ -71,18 +70,4 @@ function knownZone(name: string): boolean {
 	} catch {
 		return false;
 	}
-}
-
-// systemd's MemoryMax in bytes, a percentage of `total` (the machine's memory), Infinity for `infinity`; undefined for what
-// systemd refuses, as far as it does: a percentage above 0 and up to 100 with at most 2 decimals; or bytes with at most 2
-// decimals and an optional K, M, G or T (powers of 1024), at least 1 byte once the fraction is cut and below 2^63 (systemd
-// refuses some values below 2^64). The rest is refused, a few values systemd takes (P, E, more decimals) included.
-export function memoryBytes(text: string, total: number): number | undefined {
-	if (text === "infinity") return Infinity;
-	const percent = PERCENT.test(text) ? Number(text.slice(0, -1)) : undefined;
-	if (percent !== undefined) return percent > 0 && percent <= 100 ? (total * percent) / 100 : undefined;
-	const [, whole, fraction = "", unit = ""] = SIZE.exec(text) ?? [];
-	if (whole === undefined) return undefined;
-	const bytes = (BigInt(whole + fraction) * 1024n ** BigInt(["", "K", "M", "G", "T"].indexOf(unit))) / 10n ** BigInt(fraction.length);
-	return bytes >= 1n && bytes < 2n ** 63n ? Number(bytes) : undefined;
 }

@@ -14,7 +14,8 @@ import type { Slice } from "./job-scope.ts";
 import type { Kind } from "./job-kinds.ts";
 import { jobRunner } from "./jobs.ts";
 import type { Role } from "./roles.ts";
-import { type Host, type Options, type Plugin, type Provider, pluginHost, registry } from "./plugin.ts";
+import type { Host, Options, Plugin, Provider } from "./plugin.ts";
+import { pluginHost, registry } from "./plugin-host.ts";
 
 // The test kit (spec/roadmap.md, entries 4, 11 and 13), `@arthur/core/testing`, which `npm test` loads into every test process
 // (`--import`) as the safety net: every `ARTHUR_` variable and tmux's session variables are cleared and tmux's default socket
@@ -72,7 +73,7 @@ export function fakeAgent(run: AgentRun): string {
 }
 
 // One `call` or `collect` the plugin made.
-export type Use = { readonly kind: "call" | "collect"; readonly name: string; readonly args: readonly unknown[] };
+type Use = { readonly kind: "call" | "collect"; readonly name: string; readonly args: readonly unknown[] };
 
 export type FakeHost = {
 	// Given to the plugin's `setup`, which `setup(plugin)` runs: a spawn during it throws, as in a real load.
@@ -131,7 +132,7 @@ export function fakeHost(plugin: {
 	const time = clock(plugin.timeZone ?? "UTC", plugin.quietHours, () => new Date(now));
 	const jobs = jobRunner(home, plugin.root ?? home, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, "omp", time, bus, names.collect);
 	let loading = false, following = false;
-	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder, clock: time, agent: "omp", code: plugin.code ?? [] }, () => loading);
+	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder, clock: time, agent: "omp", code: plugin.code ?? [], package: undefined }, () => loading);
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));
 	const [provided, calls, commands, kinds, roles] = [[] as string[], [] as Use[], [] as Command[], [] as Kind[], [] as Role[]];
 	const host: Host = {

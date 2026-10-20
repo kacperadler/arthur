@@ -29,6 +29,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0234 MCP servers for the coordinator and every role, set globally or per role (5bede8d)
 - AR0235 Roadmap 52: review jobs (7552dfc)
 - AR0236 Roadmap 57: GitHub polling CI runs (c5ecd88)
+- AR0237 Roadmap 53: arthur review-needed (534f5c3)
 
 ## 2026-10-19
 

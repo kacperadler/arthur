@@ -41,3 +41,5 @@ Out:
 ## Decisions
 
 - 2026-10-20: The owner approved the plan 49, 50, 51 under the 90% usage ceiling and said to go on with Arthur as the coordinator recommends (87% used at the start).
+- 2026-10-20: The owner: /board and /findings replies longer than one Telegram message stay in slices (no cut); this settles the line AR0212 left for entry 50.
+- 2026-10-20: The owner: the coordinator acts on its own recommendation in Arthur and merges after PASS without asking; only strong decisions go to the owner.

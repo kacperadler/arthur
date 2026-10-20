@@ -1730,15 +1730,15 @@
   {
     "id": "AR0223",
     "title": "A restart between a part claim reply and the inbox queue sends the reply twice",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0223-a-restart-between-a-part-claim-reply-and-the-inbox-queue-sends-the-reply-twice/ticket.md",
-    "updated": "2026-10-20T08:38:01.892Z"
+    "updated": "2026-10-20T08:53:48.343Z"
   },
   {
     "id": "AR0224",
     "title": "Roadmap 50: Telegram phone commands and the menu",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0224-roadmap-50-telegram-phone-commands-and-the-menu/ticket.md",
-    "updated": "2026-10-20T08:38:20.873Z"
+    "updated": "2026-10-20T09:12:01.858Z"
   }
 ]

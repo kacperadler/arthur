@@ -1705,5 +1705,12 @@
     "status": "merged",
     "path": "spec/features/AR0219-schedule-register-still-finds-a-plugin-s-package-folder-by-its-name/ticket.md",
     "updated": "2026-10-19T19:48:48.366Z"
+  },
+  {
+    "id": "AR0220",
+    "title": "YouTrack: open issues grouped by state, and full create, edit, delete of issues and articles",
+    "status": "planning",
+    "path": "spec/features/AR0220-youtrack-open-issues-grouped-by-state-and-full-create-edit-delete-of-issues-and-articles/ticket.md",
+    "updated": "2026-10-20T06:38:23.970Z"
   }
 ]

@@ -1,10 +1,8 @@
 import { linkSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import type { Host } from "@arthur/core/plugin";
+import type { Filing } from "@arthur/core/plugin";
 
 // How `arthur ticket file <id> <job>` files a plan and a plan review (spec/roadmap.md, entry 28): docs/commands/plan.md, "Filing".
-
-type Filing = Parameters<NonNullable<Parameters<Host["jobs"]["registerKind"]>[0]["file"]>>[0];
 
 const REVIEW = /^plan-review-(\d+)\.md$/;
 

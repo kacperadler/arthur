@@ -122,7 +122,7 @@ Home: the core's job runner; shown by `orchestration` and the channels. Every jo
 | blocked | It cannot go on until something outside it happens: the user (a question its run ended with, its feature's cap reached) or a dependency (another ticket or job, its machine offline). |
 | ended | Nothing more will happen: finished, failed, stopped, a limit hit, process gone. |
 
-A run ends blocked when the first line of its final message is `Blocked: user <question>` or `Blocked: on <ticket or job id>`; `arthur continue` resumes it. Interface: the record's `state`, the `job-state` event on each change, `host.jobs.block(id, reason)` and `unblock(id)` for a plugin that holds a job, `arthur jobs` and `/jobs`. The coordinator's context lists the jobs that have not ended by state, its wake says the state a run ended in, and a job blocked on the user is a `notice` every channel sends.
+A run ends blocked when the first line of its final message is `Blocked: user <question>` or `Blocked: on <ticket or job id>`; `arthur continue` resumes it. Interface: the record's `state`, the `job-state` event on each change, `host.jobs.block(id, reason)` for a plugin that holds a job until its run ends, `arthur jobs` and `/jobs`. The coordinator's context lists the jobs that have not ended by state, its wake says the state a run ended in, and a job blocked on the user is a `notice` every channel sends.
 
 ### Several machines
 

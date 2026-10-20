@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
-import type { Host } from "@arthur/core/plugin";
+import type { Command, Host } from "@arthur/core/plugin";
 import { temporaryFolder } from "@arthur/core/testing";
 import { botApi, CHAT, load, SECOND, said, TOKEN, until } from "./fake-bot-api.ts";
 
@@ -11,7 +11,7 @@ import { botApi, CHAT, load, SECOND, said, TOKEN, until } from "./fake-bot-api.t
 
 const docs = temporaryFolder();
 
-type Reply = NonNullable<Parameters<Host["commands"]["register"]>[0]["phone"]>["reply"];
+type Reply = NonNullable<Command["phone"]>["reply"];
 
 // A phone command on the fake host, as a plugin registers one; `about` is its line in the menu.
 function phone(host: Host, name: string, reply: Reply, about = `the ${name}`): void {

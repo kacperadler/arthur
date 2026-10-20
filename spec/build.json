@@ -1821,15 +1821,15 @@
   {
     "id": "AR0236",
     "title": "Roadmap 57: GitHub polling CI runs",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0236-roadmap-57-github-polling-ci-runs/ticket.md",
-    "updated": "2026-10-20T20:40:13.586Z"
+    "updated": "2026-10-20T21:05:10.181Z"
   },
   {
     "id": "AR0237",
     "title": "Roadmap 53: arthur review-needed",
     "status": "in-progress",
     "path": "spec/features/AR0237-roadmap-53-arthur-review-needed/ticket.md",
-    "updated": "2026-10-20T20:43:05.179Z"
+    "updated": "2026-10-20T20:59:33.235Z"
   }
 ]

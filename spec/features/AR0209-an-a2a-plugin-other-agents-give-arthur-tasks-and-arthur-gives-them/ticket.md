@@ -36,3 +36,4 @@ In: the plugin, its options, docs and tests. Out: Arthur's own agents, which sta
 ## Decisions
 
 - 2026-10-19: The owner asked whether Arthur uses A2A. It does not; he decided to add it later. It waits, like AR0182, until the roadmap is built.
+- 2026-10-20: Owner asked whether A2A fits communication between Arthur instances on different servers; to cover at the plan (instance-to-instance as a named use case: auth between instances, who approves a task one instance gives another).

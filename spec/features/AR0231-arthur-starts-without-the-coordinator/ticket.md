@@ -26,6 +26,8 @@ To be decided when the ticket is taken up (the owner, 2026-10-20: "later, at the
 - `arthur doctor`, `arthur setup` and `arthur config check` say plainly that the coordinator is off.
 - `spec/vision.md` (line 9, decision 14, the plugin table) and roadmap entry 4 change only on the owner's word.
 
+- Open (2026-10-20): uptime and youtrack have no commands of their own today (youtrack works only through the coordinator); which commands this mode needs (e.g. `arthur youtrack issues|create`, `arthur uptime status`), in the terminal and on the phone, is the owner's call at the plan.
+
 ## Scope
 
 In:

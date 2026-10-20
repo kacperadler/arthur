@@ -1751,9 +1751,9 @@
   {
     "id": "AR0226",
     "title": "The outbox's retry test failed once in a full test run",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0226-the-outbox-s-retry-test-failed-once-in-a-full-test-run/ticket.md",
-    "updated": "2026-10-20T09:39:26.075Z"
+    "updated": "2026-10-20T10:16:31.811Z"
   },
   {
     "id": "AR0227",

@@ -1793,9 +1793,9 @@
   {
     "id": "AR0232",
     "title": "A site on a port that fetch blocks is reported down forever, as `bad port`",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0232-a-site-on-a-port-that-fetch-blocks-is-reported-down-forever-as-bad-port/ticket.md",
-    "updated": "2026-10-20T11:35:38.904Z"
+    "updated": "2026-10-20T19:50:25.180Z"
   },
   {
     "id": "AR0233",
@@ -1807,15 +1807,15 @@
   {
     "id": "AR0234",
     "title": "MCP servers for the coordinator and every role, set globally or per role",
-    "status": "planning",
+    "status": "in-progress",
     "path": "spec/features/AR0234-mcp-servers-for-the-coordinator-and-every-role-set-globally-or-per-role/ticket.md",
-    "updated": "2026-10-20T16:57:06.653Z"
+    "updated": "2026-10-20T19:50:35.867Z"
   },
   {
     "id": "AR0235",
     "title": "Roadmap 52: review jobs",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0235-roadmap-52-review-jobs/ticket.md",
-    "updated": "2026-10-20T19:36:53.245Z"
+    "updated": "2026-10-20T19:55:37.187Z"
   }
 ]

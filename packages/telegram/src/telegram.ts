@@ -1,16 +1,18 @@
 import type { Plugin } from "@arthur/core/plugin";
 import { type Bot, topic } from "./bot-api.ts";
 import { outgoing } from "./media-out.ts";
+import { menu } from "./menu.ts";
 import { enqueue, outbox } from "./outbox.ts";
 import { poll, type Send } from "./poll.ts";
 import { checkOptions } from "./telegram-options.ts";
 
-// The telegram plugin (spec/roadmap.md, entries 47 to 49): bots as instances, named and unnamed, each polling its one chat
-// (poll.ts); the coordinator's replies by the bot the messages they answer came through, the notices by the unnamed bot,
-// else the first, through the outbox (outbox.ts), without a notification in quiet hours, and a notice only when
-// `call("coordinator.silent", notice)` does not hold it; files by `channel.send` (media-out.ts), which `arthur send` asks:
-// packages/telegram/docs/telegram.md. Only `arthur run` starts the plugin, so only it polls and sends texts; what comes before
-// the start, as the replay of the event log, is queued at the start.
+// The telegram plugin (spec/roadmap.md, entries 47 to 50): bots as instances, named and unnamed, each polling its one chat
+// (poll.ts), where `/name text` is a phone command; the coordinator's replies by the bot the messages they answer came
+// through, the notices by the unnamed bot, else the first, through the outbox (outbox.ts), without a notification in quiet
+// hours, and a notice only when `call("coordinator.silent", notice)` does not hold it; files by `channel.send` (media-out.ts),
+// which `arthur send` asks; each bot's command menu at the start (menu.ts): packages/telegram/docs/telegram.md. Only `arthur
+// run` starts the plugin, so only it polls and sends texts; what comes before the start, as the replay of the event log, is
+// queued at the start.
 
 export type BotOptions = { readonly name?: string; readonly botTokenEnv: string; readonly chatIdEnv: string };
 
@@ -21,9 +23,8 @@ const asRecord = (value: unknown) => (typeof value === "object" && value !== nul
 export const API_URL = "https://api.telegram.org";
 
 export function telegram(options: TelegramOptions): Plugin {
-	// Set at setup: the start, which queues what came before it and starts the polls, and the end of the sends under way.
-	let begin = (): Promise<void>[] => [];
-	let idle = () => Promise.resolve();
+	// Set at setup: the start, which queues what came before it and starts the polls and the menu, and the end of the sends under way.
+	let [begin, idle] = [(): Promise<void>[] => [], () => Promise.resolve()];
 	let polls: Promise<void>[] = [];
 	const stopping = new AbortController();
 	return {
@@ -63,7 +64,7 @@ export function telegram(options: TelegramOptions): Plugin {
 				ready = true;
 				for (const each of early.splice(0)) send(...each);
 				box.flush();
-				return bots.map((each) => poll(host, each, stopping.signal, send, box.flush));
+				return [...bots.map((each) => poll(host, each, stopping.signal, send, box.flush)), menu(host, bots, stopping.signal)];
 			};
 			idle = box.idle;
 			host.provide("channel.send", (message: unknown) => outgoing(main, () => host.clock.isQuiet(), message));

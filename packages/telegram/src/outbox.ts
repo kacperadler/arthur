@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { takeLock } from "@arthur/core/lock";
 import type { Host } from "@arthur/core/plugin";
-import { type ApiError, type Bot, call } from "./bot-api.ts";
+import { type ApiError, type Bot, call, topic } from "./bot-api.ts";
 import { cut, slices } from "./slices.ts";
 
 // The outbox (spec/roadmap.md, entry 48): every slice to send is first a file of `<folder>/outbox/`, named so that a plain sort
@@ -135,9 +135,8 @@ export function outbox(host: Host, bots: readonly Bot[], main: Bot, signal: Abor
 // A slice as `enqueue` wrote it, else undefined: a file that does not parse, or was edited into another shape.
 function read(path: string): Slice | undefined {
 	try {
-		const slice = JSON.parse(readFileSync(path, "utf8")) as Readonly<Record<string, unknown>>;
-		const { bot = null, text, place } = slice;
-		if ((bot === null || typeof bot === "string") && typeof text === "string" && text.trim() !== "" && (place === undefined || (typeof place === "string" && /^[1-9]\d{0,15}$/.test(place)))) return slice as Slice;
+		const { bot = null, text, place } = JSON.parse(readFileSync(path, "utf8")) as Readonly<Record<string, unknown>>;
+		if ((bot === null || typeof bot === "string") && typeof text === "string" && text.trim() !== "" && (place === undefined || topic(place) !== undefined)) return { bot, text, ...(place === undefined ? {} : { place: String(place) }) };
 	} catch {}
 	return undefined;
 }

@@ -18,7 +18,24 @@ const ACME_TOKEN = "perm:YWNtZQ==.dGVzdA==.AcmeT0kenN3verPr1nted";
 const DAY = Date.UTC(2026, 9, 1);
 
 // Entities as YouTrack's REST documentation shows them: every field the plugin asks for, `id` and `$type` too.
-const issue = (project: string, number: number) => ({ idReadable: `${project}-${number}`, summary: `Issue ${number}`, resolved: number % 2 === 0 ? DAY : null, id: `2-${number}`, $type: "Issue" });
+const issue = (project: string, number: number) => ({
+	...{ idReadable: `${project}-${number}`, summary: `Issue ${number}`, resolved: number % 2 === 0 ? DAY : null, id: `2-${number}`, $type: "Issue" },
+	customFields: [{ name: "State", value: STATES[number % 8] === null ? null : { name: STATES[number % 8], $type: "StateBundleElement" }, id: "92-0", $type: "StateIssueCustomField" }],
+});
+// Each issue's State, by its number modulo 8: the even, resolved ones Fixed or Verified; of the odd ones, SHOP-5 and every
+// eighth after it has none, and SHOP-7's Submitted is a state the project's bundle does not hold.
+const STATES = ["Verified", "In Progress", "Fixed", "Open", "Verified", null, "Fixed", "Submitted"];
+// A value of a bundle as `bundle(values(name,ordinal))` asks for it; the server's order is not the ordinal's. SHOP's
+// Reopened and Won't fix hold no issue.
+const element = (name: string, ordinal: number, $type: string, isResolved?: boolean) => ({ name, ordinal, ...(isResolved === undefined ? {} : { isResolved }), id: `71-${ordinal}`, $type });
+// A project's custom field as `admin/projects/<id>/customFields` answers it with `field(name),bundle(values(name,ordinal))`.
+const projectField = (name: string, $type: string, values: readonly unknown[] | null) => ({ field: { name, id: `58-${name.length}`, $type: "CustomField" }, ...(values === null ? {} : { bundle: { values, id: "64-1", $type: "Bundle" } }), id: "102-1", $type });
+const PRIORITY_FIELD = projectField("Priority", "EnumProjectCustomField", [element("Critical", 0, "EnumBundleElement"), element("Normal", 1, "EnumBundleElement")]);
+const STATE_FIELD = projectField(
+	"State",
+	"StateProjectCustomField",
+	[["Fixed", 3, true], ["Open", 1, false], ["Reopened", 0, false], ["In Progress", 2, false], ["Won't fix", 5, true], ["Verified", 4, true]].map(([name, ordinal, resolved]) => element(name as string, ordinal as number, "StateBundleElement", resolved as boolean)),
+);
 // A custom field of the issue: its project field's type, as `customFields(projectCustomField(field(fieldType(id))))` asks.
 const custom = (name: string, value: unknown, $type: string, type: string, project: string) => ({
 	name,
@@ -101,22 +118,26 @@ type Written = {
 	readonly duration?: { readonly minutes: number };
 	readonly deleted?: boolean;
 };
-type Seen = { readonly method: string | undefined; readonly path: string; readonly params: URLSearchParams; readonly authorization: string | undefined; readonly body: Written | undefined };
+type Seen = { readonly method: string | undefined; readonly path: string; readonly params: URLSearchParams; readonly authorization: string | undefined; readonly body: Written | undefined; readonly form: FormData | undefined };
 
 // A fake YouTrack on a loopback port the OS picks: the unnamed instance at `/`, holding project SHOP with `issues` issues, and
 // `acme` under `/acme`, a server under a path, holding SITE. A wrong token gets YouTrack's 401, its reason echoing the token;
 // `/slow` never answers; `/broken` answers HTML. A write is answered as the documentation's samples show; a Priority outside
 // the project's values gets a 400 in the documented error shape (`error`, `error_description`), a change of jane's comment a
-// 403. SHOP-1 and SITE-1 have attachments, SHOP-2 none, and SHOP-3 one on another server.
+// 403. SHOP-1 and SITE-1 have attachments, SHOP-2 none, and SHOP-3 one on another server. SHOP's State field holds six states
+// in an order other than their ordinals; SITE has none. A delete of SHOP-3, or an attachment to SHOP-2, gets a 403.
 async function server(t: TestContext, issues = 3) {
 	const seen: Seen[] = [];
 	const send = (response: ServerResponse, status: number, body: unknown) => response.writeHead(status, { "Content-Type": "application/json" }).end(JSON.stringify(body));
 	const fake = createServer(async (request: IncomingMessage, response: ServerResponse) => {
 		const url = new URL(request.url ?? "/", "http://localhost");
-		let raw = "";
-		for await (const chunk of request) raw += String(chunk);
-		const body: Written | undefined = raw === "" ? undefined : JSON.parse(raw);
-		seen.push({ method: request.method, path: url.pathname, params: url.searchParams, authorization: request.headers.authorization, body });
+		const chunks: Buffer[] = [];
+		for await (const chunk of request) chunks.push(chunk);
+		const type = request.headers["content-type"] ?? "";
+		const raw = Buffer.concat(chunks);
+		const body: Written | undefined = type.startsWith("application/json") ? JSON.parse(raw.toString("utf8")) : undefined;
+		const form = type.startsWith("multipart/form-data") ? await new Request("http://localhost", { method: "POST", headers: { "Content-Type": type }, body: raw }).formData() : undefined;
+		seen.push({ method: request.method, path: url.pathname, params: url.searchParams, authorization: request.headers.authorization, body, form });
 		if (url.pathname.startsWith("/slow/")) return;
 		if (url.pathname.startsWith("/broken/")) return response.writeHead(200, { "Content-Type": "text/html" }).end("<html>Log in</html>");
 		const acme = url.pathname.startsWith("/acme/");
@@ -132,6 +153,15 @@ async function server(t: TestContext, issues = 3) {
 		const all = Array.from({ length: acme ? 1 : issues }, (_, index) => issue(project, index + 1));
 		if (path === "/api/issues" && url.searchParams.get("query") === `project: ${project}`) return send(response, 200, page(all));
 		if (path === "/api/issues" && url.searchParams.get("query") === `project: ${project} #Unresolved`) return send(response, 200, page(all.filter(({ resolved }) => resolved === null)));
+		if (path === `/api/admin/projects/${project}/customFields`) return send(response, 200, page(acme ? [PRIORITY_FIELD] : [PRIORITY_FIELD, projectField("Story points", "SimpleProjectCustomField", null), STATE_FIELD]));
+		// A delete is answered 200 without a body.
+		if (request.method === "DELETE" && !acme && ["/api/issues/SHOP-1", "/api/articles/SHOP-A-2", "/api/issues/SHOP-1/attachments/74-1"].includes(path)) return response.writeHead(200).end();
+		if (request.method === "DELETE" && path === "/api/issues/SHOP-3") return send(response, 403, { error: "Forbidden", error_description: "You have no permission\nto delete issue SHOP-3" });
+		if (request.method === "POST" && path === "/api/issues/SHOP-1/attachments" && !acme) {
+			const upload = form?.get("upload");
+			return send(response, 200, [{ name: upload instanceof File ? upload.name : "", id: "74-7", $type: "IssueAttachment" }]);
+		}
+		if (request.method === "POST" && path === "/api/issues/SHOP-2/attachments") return send(response, 403, { error: "Forbidden", error_description: `You may not attach\nfiles to SHOP-2: ${request.headers.authorization ?? ""}` });
 		if (path === "/api/issues/SHOP-1" && !acme && request.method === "POST") {
 			const [field] = body?.customFields ?? [];
 			if (field?.name === "Priority" && !PRIORITIES.includes(field.value.name ?? ""))
@@ -226,48 +256,70 @@ async function refusal(run: Promise<unknown>): Promise<string> {
 test("an unnamed and a named instance side by side: each project reads its own server with its own token", async (t) => {
 	const { url, seen } = await server(t);
 	const run = await load(t, envFor(url));
-	assert.deepEqual(await run(undefined, "issue", "list", "--all"), { code: 0, out: "SHOP-1 Issue 1\nSHOP-2 Issue 2 (resolved)\nSHOP-3 Issue 3", err: "" });
-	assert.deepEqual(await run("site", "issue", "list"), { code: 0, out: "SITE-1 Issue 1", err: "" });
+	const all = "Open (1)\n  SHOP-3 Issue 3\n\nIn Progress (1)\n  SHOP-1 Issue 1\n\nFixed (1)\n  SHOP-2 Issue 2 (resolved)";
+	assert.deepEqual(await run(undefined, "issue", "list", "--all"), { code: 0, out: all, err: "" });
+	// SITE's fields hold no State, so its issue's state is a heading of its own.
+	assert.deepEqual(await run("site", "issue", "list"), { code: 0, out: "In Progress (1)\n  SITE-1 Issue 1", err: "" });
 	assert.deepEqual(await run("site", "article", "list"), { code: 0, out: "no articles in YouTrack project SITE", err: "" });
 	assert.deepEqual(
 		seen.map(({ path, authorization }) => [path, authorization]),
 		[
 			["/api/issues", `Bearer ${TOKEN}`],
+			["/api/admin/projects/SHOP/customFields", `Bearer ${TOKEN}`],
 			["/acme/api/issues", `Bearer ${ACME_TOKEN}`],
+			["/acme/api/admin/projects/SITE/customFields", `Bearer ${ACME_TOKEN}`],
 			["/acme/api/admin/projects/SITE/articles", `Bearer ${ACME_TOKEN}`],
 		],
 	);
-	assert.deepEqual(Object.fromEntries(seen[0]?.params ?? []), { fields: "idReadable,summary,resolved", query: "project: SHOP", $top: "100", $skip: "0" });
+	const fields = "idReadable,summary,resolved,customFields(name,value(name))";
+	assert.deepEqual(Object.fromEntries(seen[0]?.params ?? []), { fields, customFields: "State", query: "project: SHOP", $top: "100", $skip: "0" });
+	assert.deepEqual(Object.fromEntries(seen[1]?.params ?? []), { fields: "field(name),bundle(values(name,ordinal))", $top: "100", $skip: "0" });
 });
 
-test("issue list shows the unresolved issues by default, and every issue with --all, which no other verb takes", async (t) => {
+test("issue list groups the unresolved issues under their State, in the State bundle's order with each count, a state it lacks next, no State last; --all adds the resolved states", async (t) => {
+	const { url, seen } = await server(t, 11);
+	const run = await load(t, envFor(url));
+	const open = ["Open (2)\n  SHOP-3 Issue 3\n  SHOP-11 Issue 11", "In Progress (2)\n  SHOP-1 Issue 1\n  SHOP-9 Issue 9"];
+	const resolved = ["Fixed (3)\n  SHOP-2 Issue 2 (resolved)\n  SHOP-6 Issue 6 (resolved)\n  SHOP-10 Issue 10 (resolved)", "Verified (2)\n  SHOP-4 Issue 4 (resolved)\n  SHOP-8 Issue 8 (resolved)"];
+	const last = ["Submitted (1)\n  SHOP-7 Issue 7", "(no state) (1)\n  SHOP-5 Issue 5"];
+	assert.deepEqual(await run(undefined, "issue", "list"), { code: 0, out: [...open, ...last].join("\n\n"), err: "" });
+	assert.deepEqual(await run(undefined, "issue", "list", "--all"), { code: 0, out: [...open, ...resolved, ...last].join("\n\n"), err: "" });
+	assert.deepEqual(seen.map(({ path, params }) => [path, params.get("query")]), [
+		["/api/issues", "project: SHOP #Unresolved"],
+		["/api/admin/projects/SHOP/customFields", null],
+		["/api/issues", "project: SHOP"],
+		["/api/admin/projects/SHOP/customFields", null],
+	]);
+});
+
+test("--all goes with issue list only, and an empty list says what it left out", async (t) => {
 	const { url, seen } = await server(t);
 	const run = await load(t, envFor(url));
-	assert.deepEqual(await run(undefined, "issue", "list"), { code: 0, out: "SHOP-1 Issue 1\nSHOP-3 Issue 3", err: "" });
-	assert.deepEqual(await run(undefined, "issue", "list", "--all"), { code: 0, out: "SHOP-1 Issue 1\nSHOP-2 Issue 2 (resolved)\nSHOP-3 Issue 3", err: "" });
-	assert.deepEqual(seen.map(({ params }) => params.get("query")), ["project: SHOP #Unresolved", "project: SHOP"]);
-	seen.length = 0;
 	for (const args of [["article", "list", "--all"], ["issue", "get", "SHOP-1", "--all"], ["issue", "work", "SHOP-1", "30", "--all"]]) {
 		const { code, err } = await run(undefined, ...args);
 		assert.deepEqual([code, err.startsWith("usage: arthur youtrack issue list [--all]|get <id>")], [2, true], args.join(" "));
 	}
 	assert.deepEqual(seen, []);
-	const none = await load(t, envFor((await server(t, 0)).url));
+	const empty = await server(t, 0);
+	const none = await load(t, envFor(empty.url));
 	assert.deepEqual(await none(undefined, "issue", "list"), { code: 0, out: "no unresolved issues in YouTrack project SHOP", err: "" });
 	assert.deepEqual(await none(undefined, "issue", "list", "--all"), { code: 0, out: "no issues in YouTrack project SHOP", err: "" });
+	assert.deepEqual(empty.seen.map(({ path }) => path), ["/api/issues", "/api/issues"], "no issue, so the State bundle is not read");
 });
 
 test("a list is read past its first page, page by page, until a page holds fewer than 100", async (t) => {
 	const { url, seen } = await server(t, 230);
 	const run = await load(t, envFor(url));
 	const { out } = await run(undefined, "issue", "list", "--all");
-	const lines = out.split("\n");
+	const lines = out.split("\n").filter((line) => line.startsWith("  "));
 	assert.equal(lines.length, 230);
-	assert.deepEqual([lines[0], lines[100], lines[229]], ["SHOP-1 Issue 1", "SHOP-101 Issue 101", "SHOP-230 Issue 230 (resolved)"]);
-	assert.deepEqual(seen.map(({ params }) => params.get("$skip")), ["0", "100", "200"]);
+	assert.deepEqual(new Set(lines.map((line) => line.trim().split(" ")[0])), new Set(Array.from({ length: 230 }, (_, index) => `SHOP-${index + 1}`)));
+	assert.match(out, /^In Progress \(29\)\n {2}SHOP-1 Issue 1\n {2}SHOP-9 Issue 9\n/m);
+	const issues = seen.filter(({ path }) => path === "/api/issues");
+	assert.deepEqual(issues.map(({ params }) => params.get("$skip")), ["0", "100", "200"]);
 	const exact = await server(t, 100);
 	await (await load(t, envFor(exact.url)))(undefined, "issue", "list", "--all");
-	assert.deepEqual(exact.seen.map(({ params }) => params.get("$skip")), ["0", "100"], "a full last page asks once more");
+	assert.deepEqual(exact.seen.filter(({ path }) => path === "/api/issues").map(({ params }) => params.get("$skip")), ["0", "100"], "a full last page asks once more");
 });
 
 test("issue get and article get print the item: who and when, custom fields of each shape, the text; control characters dropped", async (t) => {
@@ -316,6 +368,10 @@ test("an id outside the project's YouTrack project, or of another form, is refus
 	assert.equal(await refusal(run(undefined, "issue", "set", "SITE-1", "Priority", "Major")), outside);
 	assert.equal(await refusal(run(undefined, "issue", "work", "SITE-1", "30")), outside);
 	assert.equal(await refusal(run(undefined, "issue", "attachments", "SITE-1")), outside);
+	assert.equal(await refusal(run(undefined, "issue", "delete", "SITE-1")), outside);
+	assert.equal(await refusal(run("site", "article", "delete", "SHOP-A-2")), "SHOP-A-2 is outside YouTrack project SITE, the tracker of project site; nothing was asked of YouTrack");
+	assert.equal(await refusal(run(undefined, "article", "delete", "SHOP-2")), "SHOP-2 is not an article id such as SHOP-A-3");
+	for (const args of [["add", "SITE-1", "file.png"], ["delete", "SITE-1", "74-1"]]) assert.equal(await refusal(run(undefined, "attachment", ...args)), outside, args[0]);
 	for (const args of [["list", "SITE-1"], ["add", "SITE-1", "comment.md"], ["edit", "SITE-1", "4-17", "comment.md"], ["delete", "SITE-1", "4-17"]]) assert.equal(await refusal(run(undefined, "comment", ...args)), outside, args[0]);
 	assert.equal(await refusal(run(undefined, "comment", "list", "SHOP-A-2")), "SHOP-A-2 is not an issue id such as SHOP-12");
 	assert.equal(await refusal(run("site", "article", "update", "SHOP-A-2", "article.md", "1")), "SHOP-A-2 is outside YouTrack project SITE, the tracker of project site; nothing was asked of YouTrack");
@@ -358,8 +414,13 @@ test("wrong usage prints the usage line and exits 2", async (t) => {
 		["issue", "list", "--all", "SHOP-1"],
 		["issue", "get", "SHOP-1", "more"],
 		["comment", "list"],
-		["issue", "delete", "SHOP-1"],
-		["article", "delete", "SHOP-A-2"],
+		["issue", "delete"],
+		["issue", "delete", "SHOP-1", "SHOP-2"],
+		["article", "delete"],
+		["attachment", "add", "SHOP-1"],
+		["attachment", "add", "SHOP-1", "a.png", "b.png"],
+		["attachment", "delete", "SHOP-1"],
+		["attachment", "get", "SHOP-1", "74-1"],
 		["issue", "create"],
 		["issue", "create", "a.md", "b.md"],
 		["issue", "update", "SHOP-1"],
@@ -550,15 +611,59 @@ test("comment delete marks the comment deleted, never an HTTP DELETE; another au
 	assert.deepEqual(seen, []);
 });
 
+test("issue delete and article delete are YouTrack's DELETE; a missing id, or one the user may not delete, is YouTrack's error in one line", async (t) => {
+	const { url, seen } = await server(t);
+	const run = await load(t, envFor(url));
+	assert.deepEqual(await run(undefined, "issue", "delete", "shop-1"), { code: 0, out: "deleted SHOP-1", err: "" });
+	assert.deepEqual(await run(undefined, "article", "delete", "shop-a-2"), { code: 0, out: "deleted SHOP-A-2", err: "" });
+	assert.equal(await refusal(run(undefined, "issue", "delete", "SHOP-99")), "instance (unnamed): 404: issue SHOP-99 not found");
+	assert.equal(await refusal(run(undefined, "article", "delete", "SHOP-A-9")), "instance (unnamed): 404: article SHOP-A-9 not found");
+	assert.equal(await refusal(run(undefined, "issue", "delete", "SHOP-3")), "instance (unnamed): 403 for issue SHOP-3: You have no permission to delete issue SHOP-3");
+	assert.deepEqual(calls(seen), [
+		["DELETE", "/api/issues/SHOP-1", null, undefined],
+		["DELETE", "/api/articles/SHOP-A-2", null, undefined],
+		["DELETE", "/api/issues/SHOP-99", null, undefined],
+		["DELETE", "/api/articles/SHOP-A-9", null, undefined],
+		["DELETE", "/api/issues/SHOP-3", null, undefined],
+	]);
+});
+
+test("attachment add uploads the file under its name as YouTrack's form, attachment delete removes one by id; a missing file or an id of another form is refused before any call; no error holds the token", async (t) => {
+	const { url, seen } = await server(t);
+	const run = await load(t, envFor(url));
+	const at = files(t, {});
+	const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff]);
+	writeFileSync(at("screen shot.png"), png);
+	assert.deepEqual(await run(undefined, "attachment", "add", "shop-1", at("screen shot.png")), { code: 0, out: "SHOP-1: added attachment 74-7 screen shot.png", err: "" });
+	const upload = seen[0];
+	assert.deepEqual([upload?.method, upload?.path, upload?.params.get("fields")], ["POST", "/api/issues/SHOP-1/attachments", "id,name"]);
+	const file = upload?.form?.get("upload");
+	assert.ok(file instanceof File, "the file is the form's upload part");
+	assert.deepEqual([file.name, Buffer.from(await file.arrayBuffer())], ["screen shot.png", png]);
+	assert.deepEqual(await run(undefined, "attachment", "delete", "SHOP-1", "74-1"), { code: 0, out: "SHOP-1: deleted attachment 74-1", err: "" });
+	assert.deepEqual(calls(seen).at(-1), ["DELETE", "/api/issues/SHOP-1/attachments/74-1", null, undefined]);
+	assert.equal(await refusal(run(undefined, "attachment", "delete", "SHOP-1", "74-99")), "instance (unnamed): 404: attachment 74-99 of issue SHOP-1 not found");
+	// SHOP-2's refusal echoes the token, which the error never prints.
+	const echoed = "instance (unnamed): 403 for the attachments of issue SHOP-2: You may not attach files to SHOP-2: Bearer [token]";
+	assert.equal(await refusal(run(undefined, "attachment", "add", "SHOP-2", at("screen shot.png"))), echoed);
+	seen.length = 0;
+	assert.equal(await refusal(run(undefined, "attachment", "add", "SHOP-1", at("missing.png"))), `cannot read ${at("missing.png")}: ENOENT; nothing was asked of YouTrack`);
+	for (const id of ["74", "74-1/../../x", "a-1", "74-1?fields=name", ""]) {
+		const said = `${id} is not an attachment id such as 74-1, which arthur youtrack issue attachments SHOP-1 prints; nothing was asked of YouTrack`;
+		assert.equal(await refusal(run(undefined, "attachment", "delete", "SHOP-1", id)), said);
+	}
+	assert.deepEqual(seen, []);
+});
+
 test("issue attachments saves each file of the issue and its comments into the plugin's folder: a name that climbs out under a safe name, 0 bytes, a name taken twice", async (t) => {
 	const { url, seen } = await server(t);
 	const run = await load(t, envFor(url));
 	const into = join(run.folder, "SHOP-1");
 	const saved = [
-		`${join(into, "screen.png")} 8 B image/png`,
-		`${join(into, "___.._climb.sh")} 23 B application/x-sh (comment 4-18)`,
-		`${join(into, "empty.txt")} 0 B text/plain`,
-		`${join(into, "screen-2.png")} 5 B image/png (comment 4-18)`,
+		`attachment 74-1: ${join(into, "screen.png")} 8 B image/png`,
+		`attachment 74-2: ${join(into, "___.._climb.sh")} 23 B application/x-sh (comment 4-18)`,
+		`attachment 74-3: ${join(into, "empty.txt")} 0 B text/plain`,
+		`attachment 74-4: ${join(into, "screen-2.png")} 5 B image/png (comment 4-18)`,
 	];
 	assert.deepEqual(await run(undefined, "issue", "attachments", "shop-1"), { code: 0, out: saved.join("\n"), err: "" });
 	assert.deepEqual(readdirSync(into).sort(), ["___.._climb.sh", "empty.txt", "screen-2.png", "screen.png"]);
@@ -574,7 +679,7 @@ test("issue attachments saves each file of the issue and its comments into the p
 	]);
 	assert.deepEqual(await run(undefined, "issue", "attachments", "SHOP-1"), { code: 0, out: saved.join("\n"), err: "" }, "a second run saves the same names again");
 	assert.deepEqual(readdirSync(into).sort(), ["___.._climb.sh", "empty.txt", "screen-2.png", "screen.png"]);
-	assert.deepEqual(await run("site", "issue", "attachments", "SITE-1"), { code: 0, out: `${join(run.folder, "SITE-1", "notes.txt")} 10 B text/plain`, err: "" });
+	assert.deepEqual(await run("site", "issue", "attachments", "SITE-1"), { code: 0, out: `attachment 74-5: ${join(run.folder, "SITE-1", "notes.txt")} 10 B text/plain`, err: "" });
 	assert.deepEqual(seen.at(-1)?.path, "/acme/api/files/74-5", "a server under a path");
 	assert.deepEqual(await run(undefined, "issue", "attachments", "SHOP-2"), { code: 0, out: "no attachments on SHOP-2", err: "" });
 	assert.equal(existsSync(join(run.folder, "SHOP-2")), false);
@@ -596,7 +701,7 @@ test("an absolute attachment name and one with control characters are saved unde
 	const run = await load(t, envFor(url));
 	const into = join(run.folder, "SHOP-4");
 	const { code, out } = await run(undefined, "issue", "attachments", "SHOP-4");
-	assert.deepEqual([code, out], [0, `${join(into, "_etc_cron.d_evil")} 8 B text/plain\n${join(into, "line_break__[2J.txt")} 23 B text/plain`]);
+	assert.deepEqual([code, out], [0, `attachment 74-1: ${join(into, "_etc_cron.d_evil")} 8 B text/plain\nattachment 74-2: ${join(into, "line_break__[2J.txt")} 23 B text/plain`]);
 	assert.deepEqual(readdirSync(into).sort(), ["_etc_cron.d_evil", "line_break__[2J.txt"]);
 	assert.deepEqual([readFileSync(join(into, "_etc_cron.d_evil")), readFileSync(join(into, "line_break__[2J.txt"))], [FILES["74-1"], FILES["74-2"]]);
 	assert.equal(existsSync(join(run.folder, "SHOP-4", "etc")), false);
@@ -618,6 +723,10 @@ test("inside a job, every write to YouTrack is refused before any call; reading 
 		["comment", "add", "SHOP-1", at("text.md")],
 		["comment", "edit", "SHOP-1", "4-17", at("text.md")],
 		["comment", "delete", "SHOP-1", "4-17"],
+		["issue", "delete", "SHOP-1"],
+		["article", "delete", "SHOP-A-2"],
+		["attachment", "add", "SHOP-1", at("text.md")],
+		["attachment", "delete", "SHOP-1", "74-1"],
 	];
 	for (const args of writes) assert.equal(await refusal(run(undefined, ...args)), "a job never writes to YouTrack; put what should go there in your final message; nothing was asked of YouTrack", args.join(" "));
 	assert.deepEqual(seen, []);

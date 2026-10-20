@@ -1,27 +1,29 @@
-import { call, field, getAll, type Instance } from "./youtrack-api.ts";
-import { saveAttachments } from "./youtrack-attachments.ts";
+import { call, field, getAll, type Instance, remove } from "./youtrack-api.ts";
+import { changeAttachment, saveAttachments } from "./youtrack-attachments.ts";
 import { comments } from "./youtrack-comments.ts";
 import { addWork, create, setField, update } from "./youtrack-write.ts";
 
-// `arthur youtrack issue|article|comment ...` (spec/roadmap.md, entries 44 to 46): a project's issues, articles and comments,
-// read from and written to the instance its `tracker` picks, an issue's attachments saved: docs/commands/youtrack.md. An id
-// outside the project's YouTrack project is refused before any call. No verb deletes an issue or an article.
+// `arthur youtrack issue|article|comment|attachment ...` (spec/roadmap.md, entries 44 to 46): a project's issues, articles,
+// comments and attachments, read from and written to the instance its `tracker` picks: docs/commands/youtrack.md. An id
+// outside the project's YouTrack project is refused before any call. The coordinator may delete an issue, an article or an
+// attachment (AR0220); a job never writes, so never deletes.
 
 // A project of the list, and what its `tracker` names when that is youtrack: the instance and the YouTrack project's id.
 export type Tracked = { readonly name: string; readonly tracker: { readonly instance: Instance; readonly project: string } | undefined };
 
 const USAGE =
-	"usage: arthur youtrack issue list [--all]|get <id>|create <file>|update <id> <file> <version>|set <id> <field> <value>|work <id> <minutes> [<text>]|attachments <id>; arthur youtrack article list|get <id>|create <file>|update <id> <file> <version>; arthur youtrack comment list <id>|add <id> <file>|edit <id> <comment> <file>|delete <id> <comment>; --project <name> for another project than the main one";
+	"usage: arthur youtrack issue list [--all]|get <id>|create <file>|update <id> <file> <version>|set <id> <field> <value>|work <id> <minutes> [<text>]|attachments <id>|delete <id>; arthur youtrack article list|get <id>|create <file>|update <id> <file> <version>|delete <id>; arthur youtrack comment list <id>|add <id> <file>|edit <id> <comment> <file>|delete <id> <comment>; arthur youtrack attachment add <id> <file>|delete <id> <attachment>; --project <name> for another project than the main one";
 
 // The words each verb takes after it; a `?` marks an optional last one.
 const VERBS: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = {
-	issue: { list: [], get: ["id"], create: ["file"], update: ["id", "file", "version"], set: ["id", "field", "value"], work: ["id", "minutes", "text?"], attachments: ["id"] },
-	article: { list: [], get: ["id"], create: ["file"], update: ["id", "file", "version"] },
+	issue: { list: [], get: ["id"], create: ["file"], update: ["id", "file", "version"], set: ["id", "field", "value"], work: ["id", "minutes", "text?"], attachments: ["id"], delete: ["id"] },
+	article: { list: [], get: ["id"], create: ["file"], update: ["id", "file", "version"], delete: ["id"] },
 	comment: { list: ["id"], add: ["id", "file"], edit: ["id", "comment", "file"], delete: ["id", "comment"] },
+	attachment: { add: ["id", "file"], delete: ["id", "attachment"] },
 };
 
 const FIELDS = {
-	issues: "idReadable,summary,resolved",
+	issues: "idReadable,summary,resolved,customFields(name,value(name))",
 	issue: "idReadable,summary,description,created,updated,resolved,reporter(login,name),customFields(name,value(name,presentation,text))",
 	articles: "idReadable,summary,updated",
 	article: "idReadable,summary,content,created,updated,reporter(login,name),parentArticle(idReadable)",
@@ -47,12 +49,15 @@ export async function youtrackCommand(projects: readonly Tracked[], args: readon
 		throw new Error(`project ${project.name} has no youtrack tracker; ${others.length > 0 ? `projects with one: ${others.join(", ")}` : "no project has one"}`);
 	}
 	const { instance, project: short } = project.tracker;
-	if (verb === "list" && kind !== "comment") {
-		const path = kind === "issue" ? "issues" : `admin/projects/${short}/articles`;
-		const items = await getAll(instance, path, { fields: kind === "issue" ? FIELDS.issues : FIELDS.articles, ...(kind === "issue" ? { query: `project: ${short}${all ? "" : " #Unresolved"}` } : {}) }, `project ${short}`);
-		// `SHOP-12 Summary`, ` (resolved)` after a resolved issue.
-		const lines = items.map((item) => `${text(field(item, "idReadable"))} ${text(field(item, "summary"))}${typeof field(item, "resolved") === "number" ? " (resolved)" : ""}`);
-		console.log(lines.length === 0 ? `no ${kind === "issue" && !all ? "unresolved " : ""}${kind}s in YouTrack project ${short}` : lines.join("\n"));
+	if (verb === "list" && kind === "article") {
+		const items = await getAll(instance, `admin/projects/${short}/articles`, { fields: FIELDS.articles }, `project ${short}`);
+		console.log(items.length === 0 ? `no articles in YouTrack project ${short}` : items.map((item) => `${text(field(item, "idReadable"))} ${text(field(item, "summary"))}`).join("\n"));
+		return 0;
+	}
+	if (verb === "list" && kind === "issue") {
+		// Only the State field comes with each issue (`customFields=State`).
+		const items = await getAll(instance, "issues", { fields: FIELDS.issues, customFields: "State", query: `project: ${short}${all ? "" : " #Unresolved"}` }, `project ${short}`);
+		console.log(items.length === 0 ? `no ${all ? "" : "unresolved "}issues in YouTrack project ${short}` : await byState(instance, short, items));
 		return 0;
 	}
 	if (verb === "create") {
@@ -66,12 +71,35 @@ export async function youtrackCommand(projects: readonly Tracked[], args: readon
 	if (prefix.toUpperCase() !== short.toUpperCase()) throw new Error(`${id} is outside YouTrack project ${short}, the tracker of project ${project.name}; nothing was asked of YouTrack`);
 	const asked = `${short}${id.slice(prefix.length).toUpperCase()}`;
 	if (kind === "comment") console.log(text(await comments(instance, verb, asked, words.slice(1))));
+	else if (kind === "attachment") console.log(text(await changeAttachment(instance, verb, asked, words.slice(1))));
 	else if (verb === "attachments") console.log(text(await saveAttachments(instance, folder, asked)));
+	else if (verb === "delete") console.log(await remove(instance, `${kind}s/${asked}`, `${kind} ${asked}`).then(() => `deleted ${asked}`));
 	else if (verb === "update") console.log(text(await update(instance, kind as "issue" | "article", asked, first, second ?? "")));
 	else if (verb === "set") console.log(text(await setField(instance, asked, first, second ?? "")));
 	else if (verb === "work") console.log(text(await addWork(instance, asked, first, second)));
 	else console.log(kind === "issue" ? issueText(await call(instance, `issues/${asked}`, { fields: FIELDS.issue }, `issue ${asked}`)) : articleText(await call(instance, `articles/${asked}`, { fields: FIELDS.article }, `article ${asked}`)));
 	return 0;
+}
+
+// The issues under a heading per state, `Open (2)`, in the order of the project's State bundle (AR0220); a state the bundle
+// does not hold after those, in the order met, and the issues without one under `(no state)`, last. A line is
+// `  SHOP-12 Summary`, ` (resolved)` after a resolved issue.
+async function byState(instance: Instance, short: string, items: readonly unknown[]): Promise<string> {
+	const fields = await getAll(instance, `admin/projects/${short}/customFields`, { fields: "field(name),bundle(values(name,ordinal))" }, `the fields of project ${short}`);
+	const values = field(field(fields.find((each) => field(field(each, "field"), "name") === "State"), "bundle"), "values");
+	const order = (Array.isArray(values) ? values : []).toSorted((a, b) => Number(field(a, "ordinal")) - Number(field(b, "ordinal")));
+	const groups = new Map<string, string[]>(order.map((each) => [text(field(each, "name")), []]));
+	for (const item of items) {
+		const custom = field(item, "customFields");
+		const state = text(field(field((Array.isArray(custom) ? custom : []).find((each) => field(each, "name") === "State"), "value"), "name")) || "(no state)";
+		const line = `  ${text(field(item, "idReadable"))} ${text(field(item, "summary"))}${typeof field(item, "resolved") === "number" ? " (resolved)" : ""}`;
+		groups.set(state, [...(groups.get(state) ?? []), line]);
+	}
+	return [...groups]
+		.filter(([, lines]) => lines.length > 0)
+		.sort(([a], [b]) => Number(a === "(no state)") - Number(b === "(no state)"))
+		.map(([state, lines]) => `${state} (${lines.length})\n${lines.join("\n")}`)
+		.join("\n\n");
 }
 
 // `version:` is the `updated` that `issue update` and `article update` are given, so a change made since is not overwritten.

@@ -1807,9 +1807,9 @@
   {
     "id": "AR0234",
     "title": "MCP servers for the coordinator and every role, set globally or per role",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0234-mcp-servers-for-the-coordinator-and-every-role-set-globally-or-per-role/ticket.md",
-    "updated": "2026-10-20T20:26:24.402Z"
+    "updated": "2026-10-20T20:42:48.915Z"
   },
   {
     "id": "AR0235",
@@ -1824,5 +1824,12 @@
     "status": "done",
     "path": "spec/features/AR0236-roadmap-57-github-polling-ci-runs/ticket.md",
     "updated": "2026-10-20T20:40:13.586Z"
+  },
+  {
+    "id": "AR0237",
+    "title": "Roadmap 53: arthur review-needed",
+    "status": "planned",
+    "path": "spec/features/AR0237-roadmap-53-arthur-review-needed/ticket.md",
+    "updated": "2026-10-20T20:43:00.691Z"
   }
 ]

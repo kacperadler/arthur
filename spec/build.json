@@ -1786,9 +1786,9 @@
   {
     "id": "AR0231",
     "title": "Arthur starts without the coordinator",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0231-arthur-starts-without-the-coordinator/ticket.md",
-    "updated": "2026-10-20T11:03:32.832Z"
+    "updated": "2026-10-20T18:50:00.015Z"
   },
   {
     "id": "AR0232",

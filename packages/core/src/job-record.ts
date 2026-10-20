@@ -9,16 +9,19 @@ import type { McpServers } from "./roles.ts";
 // The job record `<home>/jobs/<id>/` (spec/roadmap.md, entries 9 and 10) as the spawn writes it, one file per key; the
 // wrapper (entry 11) adds the files of the run.
 
+// What the record keeps of the job's kind (job-kinds.ts), which the wrapper reads.
+export type Own = { readonly resumeOnBudget: boolean; readonly verdicts: readonly string[] };
+
 // Written into `.<id>` and renamed, so a reader sees all of it or nothing. An empty `branch`, `model`, `model-why`, `thinking`,
 // `quick`, `cpu`, `memory`, `feature`, `feature-cpu` or `feature-memory` is none; `model-why` says why the model was picked from
-// its list (job-model.ts); `prompt` is the role's, which the agent gets; `resume-on-budget`
-// is `true` when the kind asks for one resume at its budget; the caps are the job's own and its ticket's slice's (job-scope.ts);
+// its list (job-model.ts); `prompt` is the role's; `resume-on-budget` is `true` when the kind asks for one resume at its budget,
+// `verdicts` the lines its final message may end on, empty for any; the caps are the job's own and its ticket's slice's (job-scope.ts);
 // `cost` starts at 0, so a missing one is a broken record; `free` is `true` for a model that costs nothing (job-model.ts).
 // A job starts `working` (job-state.ts) at `since`; `idle-minutes` is the core's `jobs.idleMinutes`; `projects` is every
 // project's main checkout, `checkouts` (job-checkout.ts), which the worktree guard refuses too. With `mcp`, the role's MCP
 // servers (AR0234): `mcp/` for omp's `--plugin-dir`, its `.mcp.json` readable by its owner only, and `mcp.yml`, the overlay
 // that makes their tools plain tools, so `--tools` keeps a read-only role without `write`.
-export function writeRecord(home: string, job: Job, prompt: string, resumeOnBudget: boolean, idleMinutes: number, since: Date, projects: string, mcp?: McpServers): void {
+export function writeRecord(home: string, job: Job, prompt: string, kind: Own, idleMinutes: number, since: Date, projects: string, mcp?: McpServers): void {
 	const folder = join(home, "jobs");
 	const temporary = join(folder, `.${job.id}`);
 	mkdirSync(join(temporary, ...(mcp ? ["mcp", ".claude-plugin"] : [])), { recursive: true });
@@ -29,7 +32,7 @@ export function writeRecord(home: string, job: Job, prompt: string, resumeOnBudg
 	}
 	const record = {
 		task: job.task, kind: job.kind, project: job.project, model: job.model ?? "", "model-why": job.modelWhy ?? "", thinking: job.thinking ?? "", quick: job.quick ?? "", prompt,
-		timeout: String(job.timeoutMinutes), budget: String(job.budgetUsd), free: String(job.free), "resume-on-budget": String(resumeOnBudget), ...capFields(job), cost: "0.0000",
+		timeout: String(job.timeoutMinutes), budget: String(job.budgetUsd), free: String(job.free), "resume-on-budget": String(kind.resumeOnBudget), verdicts: kind.verdicts.join("\n"), ...capFields(job), cost: "0.0000",
 		"idle-minutes": String(idleMinutes), branch: job.branch ?? "", root: job.root, base: job.base, worktree: job.worktree, machine: job.machine, projects,
 		reason: "", since: since.toISOString(), state: "working",
 	};

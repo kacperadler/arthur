@@ -13,6 +13,9 @@ export type Kind = {
 	readonly budgetUsd?: number;
 	readonly timeoutMinutes?: number;
 	readonly resumeOnBudget?: boolean;
+	// The lines a finished run's final message may end on, exactly (`PASS`, `FAIL`); any other last line ends the run
+	// `failed: no verdict: ...` (wrapper.ts) instead of `finished`. Left out, any final message finishes.
+	readonly verdicts?: readonly string[];
 	// How `arthur ticket file` files a finished job of this kind in its ticket's folder (ticket-file.ts); without it, nothing is filed.
 	readonly file?: File;
 };
@@ -28,6 +31,9 @@ export function kindRegistry() {
 			const first = kinds.get(kind.name);
 			if (first) throw new Error(`kind ${kind.name}: registered by ${first.owner} and by ${owner}; a kind belongs to one plugin`);
 			if (typeof kind.readOnly !== "boolean") throw new Error(`kind ${kind.name}: readOnly must be true or false`);
+			const lines = kind.verdicts;
+			if (lines !== undefined && (!Array.isArray(lines) || lines.length === 0 || !lines.every((line) => typeof line === "string" && line !== "" && line.trim() === line && !line.includes("\n"))))
+				throw new Error(`kind ${kind.name}: verdicts must be a non-empty list of lines, each text without line breaks or spaces around it`);
 			checkLimits(`kind ${kind.name}`, kind);
 			kinds.set(kind.name, { owner, kind });
 		},

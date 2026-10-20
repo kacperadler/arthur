@@ -327,7 +327,11 @@ export default defineConfig({
 			],
 		}),
 
-		// Review, merge and CI gate of a worker branch. A plugin, not core.
+		// Review, merge and CI gate of a worker branch. A plugin, not core. Built so far (entry 52): review jobs, which take no
+		// option: `arthur review <worker job>` starts a read-only review of the branch's tip on the reviewer role, whose model is
+		// `roles.reviewer` above; its verdict, PASS or FAIL alone on the last line, moves the ticket to done or back to
+		// in-progress; after 2 FAILs since the branch's last PASS a review needs `--round N`, on the owner's word only
+		// (packages/delivery/docs/commands/review.md). The options below are planned: review-needed (53), the merge (54, 59).
 		delivery({
 			review: { alwaysReview: ["policy", "hooks", "merge", "stop", "deploy", "bin", "secrets", "roles", "criteria"] },
 			merge: { afterPassAndGreenCi: true },

@@ -1758,15 +1758,15 @@
   {
     "id": "AR0227",
     "title": "An uptime plugin: Arthur checks client sites and tells the owner when one is down",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0227-an-uptime-plugin-arthur-checks-client-sites-and-tells-the-owner-when-one-is-down/ticket.md",
-    "updated": "2026-10-20T10:37:19.711Z"
+    "updated": "2026-10-20T10:37:22.731Z"
   },
   {
     "id": "AR0228",
     "title": "Roadmap 51: freeze the host API",
     "status": "in-progress",
     "path": "spec/features/AR0228-roadmap-51-freeze-the-host-api/ticket.md",
-    "updated": "2026-10-20T10:17:04.160Z"
+    "updated": "2026-10-20T10:37:22.051Z"
   }
 ]

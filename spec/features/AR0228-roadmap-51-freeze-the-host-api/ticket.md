@@ -39,3 +39,4 @@ Out:
 
 - 2026-10-20: Started by the coordinator under the owner's free hand in Arthur and the 90% usage ceiling (88% used), next in the approved order after 50.
 - 2026-10-20: The coordinator raised the budget to $12 after the first run ran out at $10.03 with 41 files uncommitted and npm test passing (778).
+- 2026-10-20: The coordinator accepts the core line budget 5668 -> 5684 (+16) after the 14 lines cut, and the one-clause edits of spec/vision.md:125 and spec/roadmap.md:16 that drop the removed unblock(id). F1 (block without stop): keep the flag for now, decided at the merge.

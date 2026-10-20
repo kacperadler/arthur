@@ -1842,15 +1842,15 @@
   {
     "id": "AR0239",
     "title": "Roadmap 54: arthur merge",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0239-roadmap-54-arthur-merge/ticket.md",
-    "updated": "2026-10-20T21:45:17.529Z"
+    "updated": "2026-10-20T21:45:20.515Z"
   },
   {
     "id": "AR0240",
     "title": "Roadmap 60: arthur health",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0240-roadmap-60-arthur-health/ticket.md",
-    "updated": "2026-10-20T21:45:17.944Z"
+    "updated": "2026-10-20T21:45:21.166Z"
   }
 ]

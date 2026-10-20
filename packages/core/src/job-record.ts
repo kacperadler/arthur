@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import { taskTickets } from "./board-jobs.ts";
 import { branchExists } from "./git.ts";
 import type { Caps } from "./job-scope.ts";
@@ -8,13 +9,13 @@ import type { Job, Spawn } from "./jobs.ts";
 // The job record `<home>/jobs/<id>/` (spec/roadmap.md, entries 9 and 10) as the spawn writes it, one file per key; the
 // wrapper (entry 11) adds the files of the run.
 
-// What the record keeps of the job's kind (job-kinds.ts), which the wrapper reads.
-export type Own = { readonly resumeOnBudget: boolean; readonly verdicts: readonly string[] };
+// What the record keeps of the job's kind (job-kinds.ts) and of the extensions the plugins registered, which the wrapper reads.
+export type Own = { readonly resumeOnBudget: boolean; readonly verdicts: readonly string[]; readonly extensions: readonly string[] };
 
 // Written into `.<id>` and renamed, so a reader sees all of it or nothing. An empty `branch`, `model`, `model-why`, `thinking`,
 // `quick`, `cpu`, `memory`, `feature`, `feature-cpu` or `feature-memory` is none; `model-why` says why the model was picked from
 // its list (job-model.ts); `prompt` is the role's; `resume-on-budget` is `true` when the kind asks for one resume at its budget,
-// `verdicts` the lines its final message may end on, empty for any; the caps are the job's own and its ticket's slice's (job-scope.ts);
+// `verdicts` the lines its final message may end on, empty for any; `extensions` one `extensionPath` per line, empty for none; the caps are the job's own and its ticket's slice's (job-scope.ts);
 // `cost` starts at 0, so a missing one is a broken record; `free` is `true` for a model that costs nothing (job-model.ts).
 // A job starts `working` (job-state.ts) at `since`; `idle-minutes` is the core's `jobs.idleMinutes`; `projects` is every
 // project's main checkout, `checkouts` (job-checkout.ts), which the worktree guard refuses too.
@@ -25,7 +26,7 @@ export function writeRecord(home: string, job: Job, prompt: string, kind: Own, i
 	const record = {
 		task: job.task, kind: job.kind, project: job.project, model: job.model ?? "", "model-why": job.modelWhy ?? "", thinking: job.thinking ?? "", quick: job.quick ?? "", prompt,
 		timeout: String(job.timeoutMinutes), budget: String(job.budgetUsd), free: String(job.free), "resume-on-budget": String(kind.resumeOnBudget), verdicts: kind.verdicts.join("\n"), ...capFields(job), cost: "0.0000",
-		"idle-minutes": String(idleMinutes), branch: job.branch ?? "", root: job.root, base: job.base, worktree: job.worktree, machine: job.machine, projects,
+		"idle-minutes": String(idleMinutes), branch: job.branch ?? "", root: job.root, base: job.base, worktree: job.worktree, machine: job.machine, projects, extensions: kind.extensions.join("\n"),
 		reason: "", since: since.toISOString(), state: "working",
 	};
 	for (const [name, value] of Object.entries(record)) writeFileSync(join(temporary, name), value);
@@ -35,6 +36,13 @@ export function writeRecord(home: string, job: Job, prompt: string, kind: Own, i
 // The record's files of a job's caps, `arthur continue` writing them anew from what `jobs.limits` answers then.
 export function capFields(caps: Caps): Readonly<Record<string, string>> {
 	return { cpu: String(caps.cpu ?? ""), memory: caps.memory ?? "", feature: caps.feature?.name ?? "", "feature-cpu": String(caps.feature?.cpu ?? ""), "feature-memory": caps.feature?.memory ?? "" };
+}
+
+// A registered extension's module as the record keeps it, its path from the core's `src/`, where the wrapper resolves it: so it
+// holds on another machine, whose Arthur is a checkout of the same commit (docs/deploy.md). Refused unless a file exists there.
+export function extensionPath(url: URL): string {
+	if (!(url instanceof URL) || url.protocol !== "file:" || !existsSync(url)) throw new Error(`extension ${String(url)}: expected the file: URL of a module that exists, as new URL("./<file>.ts", import.meta.url) gives`);
+	return relative(import.meta.dirname, fileURLToPath(url));
 }
 
 // The job as its record `field` reads it, for `arthur continue` (job-control.ts): the `beforeSpawn` checks and the prepares.

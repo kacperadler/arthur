@@ -1,6 +1,6 @@
 # arthur review
 
-Usage: `arthur review <worker job> [--round <n>]`. Comes with the `delivery` plugin, `delivery()` in `arthur.config.ts`; it takes no option but `enabled`.
+Usage: `arthur review <worker job> [--round <n>]`. Comes with the `delivery` plugin, `delivery()` in `arthur.config.ts`; a review takes no option (delivery's `review.alwaysReview` is `arthur review-needed`'s, which says whether a branch needs a review at all).
 
 Starts a review of an ended worker's branch at its tip and prints the review job's id, as `arthur spawn` does (warnings and the model's line on stderr). The worker job is its full id or the 8 hex digits that end it. The review is a job of the kind `review`:
 

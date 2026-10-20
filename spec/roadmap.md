@@ -13,6 +13,8 @@ Order: the core first, piece by piece, then the first-version plugins in the vis
 
 The decision log (96, AR0174) sits in orchestration right after autopilot (29): it needs only the coordinator's context (25), job state (27), planning (28) and the notices' redaction (AR0164), all merged, and every answer it keeps before the evals (67) and the decision models (AR0129) is data they start from; it took the next free number. Decision classes (97, AR0176) follow the evals (67), whose agreement rate is a class's evidence, so they close the develop entries.
 
+Uptime (98, AR0227) was built early, on the owner's word of 2026-10-20 after a client's site went down unnoticed: the first stimulus source of the plan of AR0216, on its own and with no reaction chain, which that plan hangs on its events later. It needs only the event stream (5), the clock (7) and the project list (41), all merged, and took the next free number.
+
 The host API, as these entries build it (names are proposals; entry 51 fixes them): a plugin is a function from its options to `{ name, requires, setup(host), start?(), stop?() }`. `setup` registers; `start` runs long-lived work and is called only by `arthur run`. A `jobs.spawn` before every plugin's `setup` has run throws `<plugin>: spawn during setup; start jobs from start() or later`, so no job starts before the core follows the jobs. The host gives a plugin its options with every `...Env` name resolved, its own folder `.arthur/<plugin>/`, `events` (`on`, `emit`), `commands` (`register`), `jobs` (`registerKind`, `spawn`, `beforeSpawn`, `prepare`, `registerExtension`, `cleanup`, `block`, `unblock`, `registerMachine`, `run`, `list`, `running`, `result`: a job's final message), `board` (its `projects()` is the project list), `clock`, `code` (the package folders of the code the load runs: the core's and each enabled plugin's), and `provide(name, fn)` / `call(name, ...)` / `collect(name)`, through which plugins reach each other without importing each other.
 
 ## Core
@@ -616,6 +618,17 @@ The host API, as these entries build it (names are proposals; entry 51 fixes the
 - Depends on: 40, 46, 50.
 - Size: half a day.
 - Covers: the vision's decision to derive the API from three plugins.
+
+## Uptime
+
+### 98. Uptime: each project's sites checked, a notice when one is down and when it is back
+
+- Package: uptime; `packages/uptime/docs/uptime.md`.
+- Delivers: the option `sites`, each project's list of `{ url, expect?, everySeconds? }` by the project's name (`expect` a status code or a text the page holds; `everySeconds` default 60), each in the plugin's option table (93). While `arthur run` runs, each site is checked with a plain HTTP `GET`, redirects followed and no model called, cut after 10 s or `everySeconds` when shorter. A site is down after 2 failed checks in a row (no answer in time, connection refused, a TLS error, a wrong status, the text missing): one `notice` with its URL, the reason and since when, and the event `uptime-down`; when it answers again, one notice with how long it was down, and `uptime-up`. With 2 or more sites not down, a site about to go down for want of an answer makes the plugin ask every other site at once; when none answers, this machine is taken as offline: one notice that the checks cannot run, none per site, and one when a site answers again. What is down, and since when no site answers, is kept in `.arthur/uptime/state.json` across a restart. The notices go out as every notice does, so the channels send them without a sound in quiet hours and the silent mode holds them.
+- Done means: tested against the fake host and a local HTTP server on a port the OS picks. Refused at load: a key of `sites` that is not a project, a `url` that is not http or https, an `expect` or `everySeconds` out of range, the same `url` twice in one project. Edge cases: a slow answer past the timeout; a redirect (the page it leads to is judged); a 500 that answers at the second check (no notice); this machine offline (every site fails at once: one notice, not one per site); quiet hours; a restart while a site is down (no second down notice, its up notice counting from before the restart) or while offline; a state file broken or edited by hand.
+- Depends on: 5, 7, 41.
+- Size: half a day.
+- Covers: none of the harness Arthur replaces: a new capability, the first stimulus of AR0216.
 
 ## Delivery
 

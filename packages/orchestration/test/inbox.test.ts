@@ -7,7 +7,7 @@ import { type TestContext, test } from "node:test";
 import { NOT_TRANSCRIBED } from "@arthur/core/parts";
 import { type AgentRun, type AgentStep, type FakeHost, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { pause } from "../src/inbox-extension.ts";
-import { queue } from "../src/inbox.ts";
+import { inbox, queue } from "../src/inbox.ts";
 import { orchestration } from "../src/orchestration.ts";
 
 const PATH = process.env.PATH ?? "";
@@ -564,4 +564,55 @@ test("owner messages received before the start, as a restart leaves them, are re
 		`orchestration: ${join(waiting, "0-1000")} does not parse; set aside as ${join(waiting, "0-1000")}.broken`,
 		`orchestration: ${join(waiting, "3-1000")} expected parts, a list of at least one part, got nothing; set aside as ${join(waiting, "3-1000")}.broken`,
 	]);
+});
+
+// The inbox alone on a fake host, its owner's parts claimed by `claim`; each `start` stops the last run and starts another, as
+// `arthur run` restarted on the same folder.
+function restarts(t: TestContext, claim: (part: { kind: string }) => unknown) {
+	const fake = fakeHost({ name: "orchestration" });
+	fake.provide("message.part", claim);
+	let run: { start(): void; stop(): void } | undefined;
+	t.after(() => run?.stop());
+	return {
+		fake,
+		start() {
+			run?.stop();
+			run = inbox(fake.host);
+			run.start();
+		},
+		replies: () => fake.emitted.filter((event) => event.name === "coordinator-replied").map((event) => event.data),
+		queued: () => sorted(join(fake.host.folder, "inbox", "queued")).map((name) => [name, JSON.parse(readFileSync(join(fake.host.folder, "inbox", "queued", name), "utf8"))]),
+	};
+}
+
+test("a restart after a claim's reply went out and before its message was queued sends each reply once and queues the message once", async (t) => {
+	const AUDIO = { kind: "audio", path: "/home/arthur/.arthur/telegram/media/AwAE.mp3", mime: "audio/mpeg", seconds: 9 };
+	// The first run's pass never gets past the audio's claim, the voice note's reply already sent: as a restart cuts it.
+	let cut = true;
+	const box = restarts(t, (part) => (part.kind === "voice" ? { text: "[voice 4 s] Start AR0081.", reply: "Heard: Start AR0081." } : cut ? Promise.withResolvers<never>().promise : { text: "[audio 9 s] And merge it.", reply: "Heard: And merge it." }));
+	box.start();
+	const event = box.fake.emit("message-received", { channel: "telegram", parts: [VOICE, AUDIO], place: "12" });
+	await until("the voice note's reply", () => box.replies().length === 1);
+	cut = false;
+	box.start();
+	await until("the message queued", () => box.queued().length === 1);
+	assert.deepEqual(box.replies(), [
+		{ text: "Heard: Start AR0081.", answers: [event.seq], channels: ["telegram"], place: "12" },
+		{ text: "Heard: And merge it.", answers: [event.seq], channels: ["telegram"], place: "12" },
+	]);
+	assert.deepEqual(box.queued(), [[`${event.seq}-${Date.parse(event.time)}`, { channel: "telegram", text: "[voice 4 s] Start AR0081.\n[audio 9 s] And merge it." }]]);
+	assert.deepEqual(sorted(join(box.fake.host.folder, "inbox", "received")), []);
+});
+
+test("a message left in received/ from before a log cut by hand gets its claim's reply, though the new log holds one to its number", async (t) => {
+	const box = restarts(t, () => ({ text: "[voice 4 s] Start AR0081.", reply: "Heard." }));
+	// The new log's own event of that number, and a reply to it.
+	const seq = box.fake.emit("job-state", {}).seq;
+	box.fake.emit("coordinator-replied", { text: "To the new one.", answers: [seq], channels: ["telegram"] });
+	mkdirSync(join(box.fake.host.folder, "inbox", "received"), { recursive: true });
+	writeFileSync(join(box.fake.host.folder, "inbox", "received", `${seq}-1000`), JSON.stringify({ channel: "telegram", parts: [VOICE] }));
+	box.start();
+	await until("the message queued", () => box.queued().length === 1);
+	assert.deepEqual(box.replies(), [{ text: "Heard.", answers: [seq], channels: ["telegram"] }]);
+	assert.deepEqual(box.queued(), [[`${seq}-1000`, { channel: "telegram", text: "[voice 4 s] Start AR0081." }]]);
 });

@@ -3,13 +3,15 @@ import type { Host } from "@arthur/core/plugin";
 import { type ApiError, type Bot, call } from "./bot-api.ts";
 import { type Message, parts } from "./media-in.ts";
 
-// One bot's long polling (spec/roadmap.md, entries 47 to 49): `getUpdates` waiting up to 30 s, each update confirmed by the
-// next call's `offset`. A message of the bot's own chat, at most 10 minutes old, is the owner's: what it holds becomes the parts
-// of `message-received` `{ channel: "telegram", parts, place?, instance? }` (media-in.ts), `instance` the name of a named bot
-// (AR0211); an album, several messages, is one, sent once a poll of 1 s brings no more of it, and the messages after it wait for
-// it; any other kind of message gets a line back. A message of any other chat is dropped unanswered. A failed call is said once
-// until a call answers, and polling goes on after 2 s (a 429: its retry_after); a call that answers sends the outbox
-// (`answered`), so what waits there goes once Telegram is back: packages/telegram/docs/telegram.md, "Receiving".
+// One bot's long polling (spec/roadmap.md, entries 47 to 50): `getUpdates` waiting up to 30 s, each update confirmed by the
+// next call's `offset`. A message of the bot's own chat, at most 10 minutes old, is the owner's: a text `/name ...` or
+// `/name@<this bot> ...` is a phone command, routed to the host's registry with its channel and place and the reply sent back
+// there (one to another bot is dropped); what any other holds becomes the parts of `message-received` `{ channel:
+// "telegram", parts, place?, instance? }` (media-in.ts), `instance` the name of a named bot (AR0211); an album, several
+// messages, is one, sent once a poll of 1 s brings no more of it, and the messages after it wait for it; any other kind of
+// message gets a line back. A message of any other chat is dropped unanswered. A failed call is said once until a call
+// answers, and polling goes on after 2 s (a 429: its retry_after); a call that answers sends the outbox (`answered`), so what
+// waits there goes once Telegram is back: packages/telegram/docs/telegram.md, "Receiving" and "Phone commands".
 
 export type Send = (bot: Bot, text: string, place: string | undefined) => void;
 
@@ -18,10 +20,14 @@ const ALBUM_WAIT_S = 1;
 const RETRY_MS = 2000;
 const OLDEST_S = 600;
 export const OTHER = "only text, photos, videos, voice notes, audio and files reach the coordinator";
+// Telegram's command: 1 to 32 letters, digits and underscores after the slash, and the bot's username after an `@`.
+const COMMAND = /^\/(\w{1,32})(?:@(\w+))?(?=\s|$)/;
 
 export async function poll(host: Host, bot: Bot, signal: AbortSignal, send: Send, answered: () => void): Promise<void> {
 	let offset = 0;
 	let said = "";
+	// This bot's username, from getMe when a command first names one; asked again while it is unknown.
+	let me: unknown;
 	// The owner's messages not sent yet, in order, an album's together: the first album a poll still brought more of stops them.
 	const pending: { readonly album?: string; readonly messages: Message[] }[] = [];
 	while (!signal.aborted) {
@@ -57,16 +63,26 @@ export async function poll(host: Host, bot: Bot, signal: AbortSignal, send: Send
 		for (let first = pending[0]; first !== undefined && !grown.has(first.album ?? ""); first = pending[0]) {
 			pending.shift();
 			// A stop during a download drops the message; its update was not confirmed, so the next start gets it again.
-			await receive(host, bot, first.messages, send, signal).catch((error: unknown) => {
+			await receive(host, bot, first.messages, send, signal, async (to) => {
+				me ??= await call(bot, "getMe", {}, signal).then((user) => (user as { username?: unknown } | null)?.username, () => undefined);
+				return typeof me !== "string" || me.toLowerCase() === to.toLowerCase();
+			}).catch((error: unknown) => {
 				if (!signal.aborted) throw error;
 			});
 		}
 	}
 }
 
-async function receive(host: Host, bot: Bot, messages: readonly Message[], send: Send, signal: AbortSignal): Promise<void> {
-	const [{ message_thread_id: thread, is_topic_message: inTopic } = {}] = messages;
+// `ours` says whether a command's `@name` is this bot; a username getMe did not give counts as this bot.
+async function receive(host: Host, bot: Bot, messages: readonly Message[], send: Send, signal: AbortSignal, ours: (to: string) => Promise<boolean>): Promise<void> {
+	const [{ message_thread_id: thread, is_topic_message: inTopic, text } = {}] = messages;
 	const place = inTopic === true && typeof thread === "number" ? String(thread) : undefined;
+	const command = messages.length === 1 && typeof text === "string" ? COMMAND.exec(text) : null;
+	if (command !== null) {
+		const [word, name, to] = command;
+		if (to !== undefined && !(await ours(to))) return;
+		return send(bot, await host.commands.route(`/${name}${command.input.slice(word.length)}`, { channel: "telegram", ...(place === undefined ? {} : { place }) }), place);
+	}
 	const found = await parts(bot, host.folder, messages, signal);
 	if (found.length === 0) return send(bot, OTHER, place);
 	host.events.emit("message-received", { channel: "telegram", parts: found, ...(place === undefined ? {} : { place }), ...(bot.name === undefined ? {} : { instance: bot.name }) });

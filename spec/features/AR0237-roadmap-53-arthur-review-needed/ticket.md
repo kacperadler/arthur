@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-20: Started by the coordinator under the owner's free hand ("lec ze wszystkim śmiało", 99% usage until 08:00); 52 merged as 7552dfc. The roadmap entry itself names the new host member, so it counts as approved with the roadmap.
+- 2026-10-20: Coordinator (owner asleep, free hand): a worker on another machine has no checks here, so review-needed answers `review` for it; accepted as is (the safe side: more reviews, never fewer). The two known gaps (background test runs, bash edits not marking stale) also err toward review; to become findings at the merge.

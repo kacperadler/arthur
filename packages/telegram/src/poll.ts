@@ -76,15 +76,14 @@ export async function poll(host: Host, bot: Bot, signal: AbortSignal, send: Send
 // `ours` says whether a command's `@name` is this bot; a username getMe did not give counts as this bot.
 async function receive(host: Host, bot: Bot, messages: readonly Message[], send: Send, signal: AbortSignal, ours: (to: string) => Promise<boolean>): Promise<void> {
 	const [{ message_thread_id: thread, is_topic_message: inTopic, text } = {}] = messages;
-	const place = inTopic === true && typeof thread === "number" ? String(thread) : undefined;
+	const from = { channel: "telegram", ...(inTopic === true && typeof thread === "number" ? { place: String(thread) } : {}), ...(bot.name === undefined ? {} : { instance: bot.name }) };
 	const command = messages.length === 1 && typeof text === "string" ? COMMAND.exec(text) : null;
 	if (command !== null) {
 		const [word, name, to] = command;
 		if (to !== undefined && !(await ours(to))) return;
-		const from = { channel: "telegram", ...(place === undefined ? {} : { place }), ...(bot.name === undefined ? {} : { instance: bot.name }) };
-		return send(bot, await host.commands.route(`/${name}${command.input.slice(word.length)}`, from), place);
+		return send(bot, await host.commands.route(`/${name}${command.input.slice(word.length)}`, from), from.place);
 	}
 	const found = await parts(bot, host.folder, messages, signal);
-	if (found.length === 0) return send(bot, OTHER, place);
-	host.events.emit("message-received", { channel: "telegram", parts: found, ...(place === undefined ? {} : { place }), ...(bot.name === undefined ? {} : { instance: bot.name }) });
+	if (found.length === 0) return send(bot, OTHER, from.place);
+	host.events.emit("message-received", { ...from, parts: found });
 }

@@ -1,22 +1,60 @@
 import { readFileSync } from "node:fs";
-import { call, field, type Instance } from "./youtrack-api.ts";
+import { call, field, getAll, type Instance, remove } from "./youtrack-api.ts";
 
 // Writing to YouTrack (spec/roadmap.md, entry 45): an issue or an article created or updated from a file, an issue's custom
-// field set, a work item added; docs/commands/youtrack.md. Each returns the line to print; a refusal of what was given (an
-// empty file, 0 minutes) throws before any call, and an update is made only from the version read.
+// field set, its tags changed, an issue moved to another project, an article under another (AR0222);
+// docs/commands/youtrack.md. Each returns the line to print; a refusal of what was given (an empty file) throws before any
+// call, and an update is made only from the version read.
 
 type Kind = "issue" | "article";
 
 // The key of the text under the summary: an issue's description, an article's content.
 const TEXT = { issue: "description", article: "content" } as const;
 
-export async function create(instance: Instance, project: string, kind: Kind, file: string): Promise<string> {
+// `parent`: the article a new article goes under, a sub-article.
+export async function create(instance: Instance, project: string, kind: Kind, file: string, parent?: string): Promise<string> {
 	const item = fromFile(kind, file);
-	const found = await call(instance, `admin/projects/${project}`, { fields: "id,shortName" }, `YouTrack project ${project}`);
-	const id = field(found, "id");
-	if (typeof id !== "string") throw new Error(`instance ${instance.label}: the answer for YouTrack project ${project} has no id`);
-	const made = await call(instance, `${kind}s`, { fields: "idReadable" }, `a new ${kind} in project ${project}`, { project: { id }, ...item });
+	const under = parent === undefined ? {} : { parentArticle: { id: await databaseId(instance, `articles/${parent}`, `article ${parent}`) } };
+	const made = await call(instance, `${kind}s`, { fields: "idReadable" }, `a new ${kind} in project ${project}`, { project: { id: await databaseId(instance, `admin/projects/${project}`, `YouTrack project ${project}`) }, ...item, ...under });
 	return `created ${String(field(made, "idReadable"))}: ${item.summary}`;
+}
+
+// `issue move`: the issue into another YouTrack project of the instance, where it gets a new id; `article move`: the article
+// under another.
+export async function move(instance: Instance, kind: Kind, id: string, to: string): Promise<string> {
+	if (kind === "article") {
+		await call(instance, `articles/${id}`, { fields: "idReadable" }, `article ${id}`, { parentArticle: { id: await databaseId(instance, `articles/${to}`, `article ${to}`) } });
+		return `${id}: moved under ${to}`;
+	}
+	if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(to)) throw new Error(`${to} is not a YouTrack project id such as SHOP; nothing was asked of YouTrack`);
+	const moved = await call(instance, `issues/${id}`, { fields: "idReadable" }, `issue ${id}`, { project: { id: await databaseId(instance, `admin/projects/${to}`, `YouTrack project ${to}`) } });
+	return `moved ${id} to ${String(field(moved, "idReadable"))}`;
+}
+
+// `tag`: the tag of that name, any case, created first when the token's user sees none, as YouTrack's own tag box does;
+// `untag`: the issue's tag of that name.
+export async function tag(instance: Instance, verb: string, id: string, given: string): Promise<string> {
+	const name = given.trim();
+	if (name === "") throw new Error("a tag needs a name; nothing was asked of YouTrack");
+	const same = (each: unknown) => String(field(each, "name")).toLowerCase() === name.toLowerCase();
+	if (verb === "untag") {
+		const tags = await getAll(instance, `issues/${id}/tags`, { fields: "id,name" }, `the tags of issue ${id}`);
+		const found = tags.find(same);
+		if (found === undefined) throw new Error(`${id} has no tag ${name}; its tags: ${tags.map((each) => String(field(each, "name"))).join(", ") || "none"}; nothing was written`);
+		await remove(instance, `issues/${id}/tags/${String(field(found, "id"))}`, `tag ${name} of issue ${id}`);
+		return `${id}: untagged ${String(field(found, "name"))}`;
+	}
+	const found = (await getAll(instance, "tags", { fields: "id,name", query: name }, `tag ${name}`)).find(same);
+	const chosen = found ?? (await call(instance, "tags", { fields: "id,name" }, `a new tag ${name}`, { name }));
+	await call(instance, `issues/${id}/tags`, { fields: "id,name" }, `the tags of issue ${id}`, { id: field(chosen, "id") });
+	return `${id}: tagged ${String(field(chosen, "name"))}${found === undefined ? " (a new tag)" : ""}`;
+}
+
+// The database id YouTrack's JSON names an entity by in a body, read from `path`.
+async function databaseId(instance: Instance, path: string, what: string): Promise<string> {
+	const id = field(await call(instance, path, { fields: "id" }, what), "id");
+	if (typeof id !== "string") throw new Error(`instance ${instance.label}: the answer for ${what} has no id`);
+	return id;
 }
 
 // `version` is the `updated` the issue or article had when it was read (`get` prints it): one changed since is not
@@ -48,14 +86,6 @@ export async function setField(instance: Instance, id: string, name: string, val
 	const custom = { name: real, $type: field(found, "$type"), value: shaped(typeof type === "string" ? type : "string", value) };
 	await call(instance, `issues/${id}`, { fields: "idReadable" }, `field ${real} of issue ${id}`, { customFields: [custom] });
 	return `${id}: ${real} set to ${value}`;
-}
-
-export async function addWork(instance: Instance, id: string, minutes: string, text: string | undefined): Promise<string> {
-	if (!/^\d+$/.test(minutes) || Number(minutes) === 0) throw new Error(`a work item takes a whole number of minutes above 0, got ${minutes || "nothing"}; nothing was asked of YouTrack`);
-	const body = { duration: { minutes: Number(minutes) }, ...(text ? { text } : {}) };
-	const made = await call(instance, `issues/${id}/timeTracking/workItems`, { fields: "duration(minutes,presentation)" }, `the work items of issue ${id}`, body);
-	const presentation = field(field(made, "duration"), "presentation");
-	return `${id}: added ${typeof presentation === "string" ? presentation : `${minutes}m`} of work`;
 }
 
 // The file's first line, a Markdown heading's `#` dropped, is the summary; the rest the description or content.

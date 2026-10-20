@@ -16,6 +16,7 @@ import { TIMEOUT_SECONDS, type YoutrackOptions, youtrack } from "../src/youtrack
 const TOKEN = "perm:YXJ0aHVy.dGVzdA==.Kn0wnT0kenN3verPr1nted";
 const ACME_TOKEN = "perm:YWNtZQ==.dGVzdA==.AcmeT0kenN3verPr1nted";
 const DAY = Date.UTC(2026, 9, 1);
+const USAGE = "usage: arthur youtrack issue list [--all] [--query <query>]|get <id>";
 
 // Entities as YouTrack's REST documentation shows them: every field the plugin asks for, `id` and `$type` too.
 const issue = (project: string, number: number) => ({
@@ -64,6 +65,7 @@ const FULL_ISSUE = {
 		custom("Deployed", null, "SimpleIssueCustomField", "date and time", "SimpleProjectCustomField"),
 		custom("Requester", "555", "SimpleIssueCustomField", "string", "SimpleProjectCustomField"),
 	],
+	tags: [{ name: "backend", id: "6-1", $type: "Tag" }],
 	id: "2-1",
 	$type: "Issue",
 };
@@ -104,6 +106,7 @@ const FILES: Readonly<Record<string, Buffer>> = {
 	"74-3": Buffer.alloc(0),
 	"74-4": Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00]),
 	"74-5": Buffer.from("SITE notes"),
+	"75-1": Buffer.from("Tag."),
 };
 const ATTACHMENTS = (prefix: string) => [
 	attachment("74-1", "screen.png", `${prefix}/api/files/74-1?sign=MTc2&updated=${DAY}`, 8, "image/png", null),
@@ -111,12 +114,38 @@ const ATTACHMENTS = (prefix: string) => [
 	attachment("74-3", "empty.txt", `${prefix}/api/files/74-3?sign=MTc4&updated=${DAY}`, 0, "text/plain", null),
 	attachment("74-4", "screen.png", `${prefix}/api/files/74-4?sign=MTc5&updated=${DAY}`, 5, "image/png", "4-18"),
 ];
+// The tags the token's user sees, as the documentation's Tag shows them.
+const TAGS = ["backend", "backend-old"].map((name, index) => ({ name, id: `6-${index + 1}`, owner: { login: "jane", name: "Jane Doe", $type: "User" }, visibleFor: null, $type: "Tag" }));
+// A link type as `linkType(name,sourceToTarget,targetToSource)` asks for it, from the documentation's sample.
+const linkType = (name: string, sourceToTarget: string, targetToSource: string, directed: boolean) => ({ name, sourceToTarget, targetToSource, directed, aggregation: name !== "Relates", localizedName: null, $type: "IssueLinkType" });
+const [RELATES, DEPEND, DUPLICATE, SUBTASK] = [linkType("Relates", "relates to", "", false), linkType("Depend", "is required for", "depends on", true), linkType("Duplicate", "is duplicated by", "duplicates", true), linkType("Subtask", "parent for", "subtask of", true)];
+// An issue's links: every link type in each direction, as YouTrack lists them; SHOP-1 relates to SHOP-3 and depends on SHOP-2.
+const LINKS = (relates: readonly unknown[], dependsOn: readonly unknown[]) => [
+	{ direction: "BOTH", linkType: RELATES, issues: relates, id: "80-0", $type: "IssueLink" },
+	{ direction: "OUTWARD", linkType: DEPEND, issues: [], id: "80-1s", $type: "IssueLink" },
+	{ direction: "INWARD", linkType: DEPEND, issues: dependsOn, id: "80-1t", $type: "IssueLink" },
+	{ direction: "OUTWARD", linkType: DUPLICATE, issues: [], id: "80-2s", $type: "IssueLink" },
+	{ direction: "INWARD", linkType: DUPLICATE, issues: [], id: "80-2t", $type: "IssueLink" },
+	{ direction: "OUTWARD", linkType: SUBTASK, issues: [], id: "80-3s", $type: "IssueLink" },
+	{ direction: "INWARD", linkType: SUBTASK, issues: [], id: "80-3t", $type: "IssueLink" },
+];
+// SHOP-1's work items as the documentation's IssueWorkItem shows them: 115-0 with a type and a text, 115-2 with neither.
+const workItem = (id: string, minutes: number, presentation: string, text: string | null, type: string | null) => ({
+	...{ date: DAY, duration: { id: String(minutes), minutes, presentation, $type: "DurationValue" }, type: type === null ? null : { name: type, id: "65-1", $type: "WorkItemType" }, text },
+	...{ creator: { login: "jane", name: "Jane Doe", $type: "User" }, author: { login: "jane", name: "Jane Doe", $type: "User" }, id, $type: "IssueWorkItem" },
+});
+const WORK = [workItem("115-0", 300, "5h", "almost there\nsee the wiki", "Testing"), workItem("115-2", 60, "1h", null, null)];
+// SHOP-A-2's comments as the documentation's ArticleComment shows them, which has no `deleted`: 251-0 by the token's user,
+// 251-1 by jane, which that user may not delete.
+const articleComment = (id: string, text: string, login: string, name: string) => ({ id, text, created: DAY, updated: null, pinned: false, reactions: [], attachments: [], visibility: null, author: { login, name, $type: "User" }, article: { idReadable: "SHOP-A-2", $type: "Article" }, $type: "ArticleComment" });
 
 // What the plugin writes, as the fake reads it.
 type Written = {
 	readonly customFields?: readonly { readonly name: string; readonly value: { readonly name?: string } }[];
 	readonly duration?: { readonly minutes: number };
 	readonly deleted?: boolean;
+	readonly name?: string;
+	readonly project?: { readonly id: string };
 };
 type Seen = { readonly method: string | undefined; readonly path: string; readonly params: URLSearchParams; readonly authorization: string | undefined; readonly body: Written | undefined; readonly form: FormData | undefined };
 
@@ -125,7 +154,9 @@ type Seen = { readonly method: string | undefined; readonly path: string; readon
 // `/slow` never answers; `/broken` answers HTML. A write is answered as the documentation's samples show; a Priority outside
 // the project's values gets a 400 in the documented error shape (`error`, `error_description`), a change of jane's comment a
 // 403. SHOP-1 and SITE-1 have attachments, SHOP-2 none, and SHOP-3 one on another server. SHOP's State field holds six states
-// in an order other than their ordinals; SITE has none. A delete of SHOP-3, or an attachment to SHOP-2, gets a 403.
+// in an order other than their ordinals; SITE has none. A delete of SHOP-3, or an attachment to SHOP-2, gets a 403. SHOP-1
+// has links, tags and work items; SHOP-2 none. SHOP-A-2 has comments, of which jane's 251-1 its delete gets a 403, and one
+// attachment. OPS is another project of the unnamed instance. A new tag named `forbidden` gets a 403 echoing the token.
 async function server(t: TestContext, issues = 3) {
 	const seen: Seen[] = [];
 	const send = (response: ServerResponse, status: number, body: unknown) => response.writeHead(status, { "Content-Type": "application/json" }).end(JSON.stringify(body));
@@ -153,6 +184,12 @@ async function server(t: TestContext, issues = 3) {
 		const all = Array.from({ length: acme ? 1 : issues }, (_, index) => issue(project, index + 1));
 		if (path === "/api/issues" && url.searchParams.get("query") === `project: ${project}`) return send(response, 200, page(all));
 		if (path === "/api/issues" && url.searchParams.get("query") === `project: ${project} #Unresolved`) return send(response, 200, page(all.filter(({ resolved }) => resolved === null)));
+		// A search: SHOP-1 and SHOP-3 hold a Critical priority; a query that closes the parenthesis gets another project's issue too.
+		if (path === "/api/issues" && url.searchParams.get("query") === "(project: SHOP #Unresolved) and (Priority: Critical)") return send(response, 200, page([issue("SHOP", 1), issue("SHOP", 3)]));
+		if (path === "/api/issues" && url.searchParams.get("query") === "(project: SHOP) and (x) or (project: SITE)") return send(response, 200, page([issue("SITE", 1), issue("SHOP", 2)]));
+		if (path === "/api/issues" && request.method === "GET") return send(response, 200, []);
+		if (path === "/api/articles" && url.searchParams.get("query") === "(project: SHOP) and (release)") return send(response, 200, page([ARTICLE, { ...ARTICLE, idReadable: "SITE-A-1", summary: "Release notes" }]));
+		if (path === "/api/articles" && request.method === "GET") return send(response, 200, []);
 		if (path === `/api/admin/projects/${project}/customFields`) return send(response, 200, page(acme ? [PRIORITY_FIELD] : [PRIORITY_FIELD, projectField("Story points", "SimpleProjectCustomField", null), STATE_FIELD]));
 		// A delete is answered 200 without a body.
 		if (request.method === "DELETE" && !acme && ["/api/issues/SHOP-1", "/api/articles/SHOP-A-2", "/api/issues/SHOP-1/attachments/74-1"].includes(path)) return response.writeHead(200).end();
@@ -163,6 +200,7 @@ async function server(t: TestContext, issues = 3) {
 		}
 		if (request.method === "POST" && path === "/api/issues/SHOP-2/attachments") return send(response, 403, { error: "Forbidden", error_description: `You may not attach\nfiles to SHOP-2: ${request.headers.authorization ?? ""}` });
 		if (path === "/api/issues/SHOP-1" && !acme && request.method === "POST") {
+			if (body?.project !== undefined) return send(response, 200, { idReadable: "OPS-1", $type: "Issue" });
 			const [field] = body?.customFields ?? [];
 			if (field?.name === "Priority" && !PRIORITIES.includes(field.value.name ?? ""))
 				return send(response, 400, { error: "bad_request", error_description: `Unknown value ${field.value.name ?? ""}\nfor field Priority` });
@@ -173,10 +211,23 @@ async function server(t: TestContext, issues = 3) {
 		if (path === `/api/admin/projects/${project}/articles`) return send(response, 200, page(acme ? [] : [{ ...ARTICLE, idReadable: "SHOP-A-1", summary: "Handbook", parentArticle: null }, ARTICLE]));
 		if (path === "/api/articles/SHOP-A-2" && !acme && request.method === "POST") return send(response, 200, { idReadable: "SHOP-A-2", updated: DAY + 7_200_000, $type: "Article" });
 		if (path === "/api/articles/SHOP-A-2" && !acme) return send(response, 200, ARTICLE);
-		if (path === `/api/admin/projects/${project}`) return send(response, 200, { id: acme ? "0-7" : "0-0", shortName: project, $type: "Project" });
+		if (path === `/api/admin/projects/${project}` || path === "/api/admin/projects/OPS") return send(response, 200, { id: acme ? "0-7" : path.endsWith("OPS") ? "0-3" : "0-0", shortName: path.split("/").at(-1), $type: "Project" });
+		if (path === "/api/issues/SHOP-2" && request.method === "GET") return send(response, 200, issue("SHOP", 2));
+		if (path === "/api/articles/SHOP-A-1" && request.method === "GET") return send(response, 200, { ...ARTICLE, idReadable: "SHOP-A-1", summary: "Handbook", parentArticle: null, id: "226-0" });
+		if (path === "/api/issues/SHOP-1/links" || path === "/api/issues/SHOP-2/links") return send(response, 200, page(path.includes("SHOP-1") ? LINKS([issue("SHOP", 3)], [issue("SHOP", 2)]) : LINKS([], [])));
+		if (request.method === "POST" && /^\/api\/issues\/SHOP-1\/links\/80-[0-3][st]?\/issues$/.test(path)) return send(response, 200, { ...issue("SHOP", 2), $type: "Issue" });
+		if (request.method === "DELETE" && path === "/api/issues/SHOP-1/links/80-1t/issues/2-2") return response.writeHead(200).end();
+		if (path === "/api/tags" && request.method === "GET") return send(response, 200, page(TAGS.filter(({ name }) => name.includes((url.searchParams.get("query") ?? "").toLowerCase()))));
+		if (path === "/api/tags" && body?.name === "forbidden") return send(response, 403, { error: "Forbidden", error_description: `You may not create\ntags: ${request.headers.authorization ?? ""}` });
+		if (path === "/api/tags") return send(response, 200, { name: body?.name, id: "6-9", owner: { login: "arthur", name: "Arthur", $type: "User" }, visibleFor: null, $type: "Tag" });
+		if (path === "/api/issues/SHOP-1/tags" && request.method === "POST") return send(response, 200, TAGS[0]);
+		if (path === "/api/issues/SHOP-1/tags") return send(response, 200, page([TAGS[0]]));
+		if (request.method === "DELETE" && path === "/api/issues/SHOP-1/tags/6-1") return response.writeHead(200).end();
+		if (path === "/api/issues/SHOP-1/timeTracking/workItems" && request.method === "GET") return send(response, 200, page(WORK));
+		if (request.method === "DELETE" && path === "/api/issues/SHOP-1/timeTracking/workItems/115-0") return response.writeHead(200).end();
 		if (request.method === "POST" && path === "/api/issues") return send(response, 200, { idReadable: `${project}-4`, $type: "Issue" });
 		if (request.method === "POST" && path === "/api/articles") return send(response, 200, { idReadable: `${project}-A-3`, $type: "Article" });
-		if (request.method === "POST" && path === "/api/issues/SHOP-1/timeTracking/workItems") {
+		if (request.method === "POST" && /^\/api\/issues\/SHOP-1\/timeTracking\/workItems(\/115-[02])?$/.test(path)) {
 			const minutes = body?.duration?.minutes ?? 0;
 			const duration = { presentation: `${Math.floor(minutes / 60)}h ${minutes % 60}m`, minutes, id: String(minutes), $type: "DurationValue" };
 			return send(response, 200, { duration, id: "117-3", $type: "IssueWorkItem" });
@@ -185,7 +236,15 @@ async function server(t: TestContext, issues = 3) {
 		if (path === "/api/issues/SHOP-1/comments" && !acme) return send(response, 200, page(COMMENTS));
 		if (path === "/api/issues/SHOP-1/comments/4-17") return send(response, 200, { id: "4-17", deleted: body?.deleted === true, $type: "IssueComment" });
 		if (path === "/api/issues/SHOP-1/comments/4-18") return send(response, 403, { error: "Forbidden", error_description: "You have no permission\nto update the comment of jane" });
-		if (path === "/api/issues/SHOP-2/comments" || path === "/api/issues/SHOP-2/attachments") return send(response, 200, []);
+		if (path === "/api/issues/SHOP-2/comments" || path === "/api/issues/SHOP-2/attachments" || path === "/api/issues/SHOP-2/timeTracking/workItems") return send(response, 200, []);
+		if (path === "/api/articles/SHOP-A-2/comments" && request.method === "POST") return send(response, 200, { id: "251-3", $type: "ArticleComment" });
+		if (path === "/api/articles/SHOP-A-2/comments") return send(response, 200, page([articleComment("251-0", "Check step 2.", "arthur", "Arthur"), articleComment("251-1", "Done.", "jane", "Jane Doe")]));
+		if (request.method === "DELETE" && path === "/api/articles/SHOP-A-2/comments/251-0") return response.writeHead(200).end();
+		if (request.method === "DELETE" && path === "/api/articles/SHOP-A-2/comments/251-1") return send(response, 403, { error: "Forbidden", error_description: "You have no permission\nto delete the comment of jane" });
+		if (path === "/api/articles/SHOP-A-2/comments/251-0") return send(response, 200, { id: "251-0", $type: "ArticleComment" });
+		if (path === "/api/articles/SHOP-A-2/attachments" && request.method === "POST") return send(response, 200, [{ name: (form?.get("upload") as File | null)?.name, id: "75-2", $type: "ArticleAttachment" }]);
+		if (path === "/api/articles/SHOP-A-2/attachments") return send(response, 200, page([{ ...attachment("75-1", "steps.txt", "/api/files/75-1?sign=MTgz", 4, "text/plain", null), issue: undefined, article: { idReadable: "SHOP-A-2", $type: "Article" }, $type: "ArticleAttachment" }]));
+		if (request.method === "DELETE" && path === "/api/articles/SHOP-A-2/attachments/75-1") return response.writeHead(200).end();
 		if (path === "/api/issues/SHOP-1/attachments" && !acme) return send(response, 200, page(ATTACHMENTS("")));
 		if (path === "/api/issues/SITE-1/attachments" && acme) return send(response, 200, page([attachment("74-5", "notes.txt", "/acme/api/files/74-5?sign=MTgw", 10, "text/plain", null)]));
 		if (path === "/api/issues/SHOP-3/attachments") return send(response, 200, page([ATTACHMENTS("")[0], attachment("74-6", "x.png", "http://youtrack.example/api/files/74-6?sign=MTgx", 3, "image/png", null)]));
@@ -297,7 +356,7 @@ test("--all goes with issue list only, and an empty list says what it left out",
 	const run = await load(t, envFor(url));
 	for (const args of [["article", "list", "--all"], ["issue", "get", "SHOP-1", "--all"], ["issue", "work", "SHOP-1", "30", "--all"]]) {
 		const { code, err } = await run(undefined, ...args);
-		assert.deepEqual([code, err.startsWith("usage: arthur youtrack issue list [--all]|get <id>")], [2, true], args.join(" "));
+		assert.deepEqual([code, err.startsWith(USAGE)], [2, true], args.join(" "));
 	}
 	assert.deepEqual(seen, []);
 	const empty = await server(t, 0);
@@ -332,6 +391,7 @@ test("issue get and article get print the item: who and when, custom fields of e
 			"reporter: Jane Doe (jane); created 2026-10-01; updated 2026-10-02",
 			`version: ${FULL_ISSUE.updated}`,
 			"resolved: no",
+			"tags: backend",
 			"Priority: Critical",
 			"Assignee: none",
 			"Fix versions: 1.0, 1.1",
@@ -373,8 +433,17 @@ test("an id outside the project's YouTrack project, or of another form, is refus
 	assert.equal(await refusal(run(undefined, "article", "delete", "SHOP-2")), "SHOP-2 is not an article id such as SHOP-A-3");
 	for (const args of [["add", "SITE-1", "file.png"], ["delete", "SITE-1", "74-1"]]) assert.equal(await refusal(run(undefined, "attachment", ...args)), outside, args[0]);
 	for (const args of [["list", "SITE-1"], ["add", "SITE-1", "comment.md"], ["edit", "SITE-1", "4-17", "comment.md"], ["delete", "SITE-1", "4-17"]]) assert.equal(await refusal(run(undefined, "comment", ...args)), outside, args[0]);
-	assert.equal(await refusal(run(undefined, "comment", "list", "SHOP-A-2")), "SHOP-A-2 is not an issue id such as SHOP-12");
+	assert.equal(await refusal(run(undefined, "comment", "list", "4-17")), "4-17 is not an issue id such as SHOP-12 or an article id such as SHOP-A-3");
 	assert.equal(await refusal(run("site", "article", "update", "SHOP-A-2", "article.md", "1")), "SHOP-A-2 is outside YouTrack project SITE, the tracker of project site; nothing was asked of YouTrack");
+	// AR0222's verbs: the issue or article, the other issue of a link, and the parent article.
+	const issueVerbs = [["move", "SITE-1", "OPS"], ["tag", "SITE-1", "backend"], ["untag", "SITE-1", "backend"], ["links", "SITE-1"], ["link", "SITE-1", "depends on", "SHOP-2"], ["unlink", "SITE-1", "depends on", "SHOP-2"]];
+	for (const args of [...issueVerbs, ["work", "list", "SITE-1"], ["work", "edit", "SITE-1", "115-0", "30"], ["work", "delete", "SITE-1", "115-0"]]) assert.equal(await refusal(run(undefined, "issue", ...args)), outside, args.join(" "));
+	for (const verb of ["link", "unlink"]) assert.equal(await refusal(run(undefined, "issue", verb, "SHOP-1", "depends on", "SITE-1")), outside, `${verb}'s other issue`);
+	assert.equal(await refusal(run(undefined, "issue", "link", "SHOP-1", "depends on", "SHOP-A-2")), "SHOP-A-2 is not an issue id such as SHOP-12");
+	const article = "SITE-A-1 is outside YouTrack project SHOP, the tracker of project web-shop; nothing was asked of YouTrack";
+	for (const args of [["create", "article.md", "--parent", "SITE-A-1"], ["move", "SHOP-A-2", "--parent", "SITE-A-1"], ["move", "SITE-A-1", "--parent", "SHOP-A-1"], ["attachments", "SITE-A-1"]]) assert.equal(await refusal(run(undefined, "article", ...args)), article, args.join(" "));
+	for (const args of [["comment", "list", "SITE-A-1"], ["comment", "delete", "SITE-A-1", "251-0"], ["attachment", "add", "SITE-A-1", "a.png"], ["attachment", "delete", "SITE-A-1", "75-1"]]) assert.equal(await refusal(run(undefined, ...args)), article, args.join(" "));
+	assert.equal(await refusal(run(undefined, "article", "create", "article.md", "--parent", "SHOP-1")), "SHOP-1 is not an article id such as SHOP-A-3");
 	assert.deepEqual(seen, []);
 	assert.equal((await run(undefined, "issue", "get", "shop-1")).code, 0, "the project's prefix in any case");
 });
@@ -442,10 +511,35 @@ test("wrong usage prints the usage line and exits 2", async (t) => {
 		["comment", "get", "SHOP-1"],
 		["attachment", "list", "SHOP-1"],
 		["toString", "list"],
+		["issue", "list", "--query"],
+		["issue", "list", "--query", "  "],
+		["article", "list", "--query"],
+		["issue", "get", "SHOP-1", "--query", "x"],
+		["comment", "list", "SHOP-1", "--query", "x"],
+		["issue", "create", "a.md", "--parent", "SHOP-A-1"],
+		["article", "update", "SHOP-A-2", "a.md", "1", "--parent", "SHOP-A-1"],
+		["article", "create", "a.md", "--parent"],
+		["article", "move", "SHOP-A-2"],
+		["article", "move", "SHOP-A-2", "SHOP-A-1"],
+		["issue", "move", "SHOP-1"],
+		["issue", "move", "SHOP-1", "--parent", "SHOP-A-1"],
+		["issue", "tag", "SHOP-1"],
+		["issue", "untag", "SHOP-1", "a", "b"],
+		["issue", "links"],
+		["issue", "link", "SHOP-1", "depends on"],
+		["issue", "unlink", "SHOP-1", "depends on", "SHOP-2", "SHOP-3"],
+		["issue", "work", "list"],
+		["issue", "work", "list", "SHOP-1", "115-0"],
+		["issue", "work", "edit", "SHOP-1", "115-0"],
+		["issue", "work", "edit", "SHOP-1", "115-0", "30", "text", "more"],
+		["issue", "work", "delete", "SHOP-1"],
+		["article", "work", "list", "SHOP-A-2"],
+		["article", "links", "SHOP-A-2"],
+		["article", "tag", "SHOP-A-2", "backend"],
 	];
 	for (const args of wrong) {
 		const { code, err } = await run(undefined, ...args);
-		assert.deepEqual([code, err.startsWith("usage: arthur youtrack issue list [--all]|get <id>")], [2, true], args.join(" "));
+		assert.deepEqual([code, err.startsWith(USAGE)], [2, true], args.join(" "));
 	}
 	assert.deepEqual(seen, []);
 });
@@ -468,9 +562,9 @@ test("issue and article create post the file's first line as the summary and the
 	assert.deepEqual(await run("site", "article", "create", at("article.md")), { code: 0, out: "created SITE-A-3: Release steps", err: "" });
 	assert.deepEqual(await run(undefined, "issue", "update", "shop-1", at("title.md"), String(FULL_ISSUE.updated)), { code: 0, out: `updated SHOP-1; version: ${DAY + 7_200_000}`, err: "" });
 	assert.deepEqual(calls(seen), [
-		["GET", "/api/admin/projects/SHOP", "id,shortName", undefined],
+		["GET", "/api/admin/projects/SHOP", "id", undefined],
 		["POST", "/api/issues", "idReadable", { project: { id: "0-0" }, summary: "Checkout fails on Safari", description: "Steps:\n1. Pay." }],
-		["GET", "/acme/api/admin/projects/SITE", "id,shortName", undefined],
+		["GET", "/acme/api/admin/projects/SITE", "id", undefined],
 		["POST", "/acme/api/articles", "idReadable", { project: { id: "0-7" }, summary: "Release steps", content: "Tag, then deploy." }],
 		["GET", "/api/issues/SHOP-1", "updated,updater(login,name)", undefined],
 		["POST", "/api/issues/SHOP-1", "idReadable,updated", { summary: "Only a title", description: "" }],
@@ -590,7 +684,7 @@ test("comment list shows each comment not deleted with its id, author and day; a
 	assert.deepEqual(await run(undefined, "comment", "edit", "shop-1", "4-17", at("comment.md")), { code: 0, out: "SHOP-1: edited comment 4-17", err: "" });
 	assert.deepEqual(calls(seen), [
 		["POST", "/api/issues/SHOP-1/comments", "id", { text: "# Fixed\n\nIn **1.2**." }],
-		["POST", "/api/issues/SHOP-1/comments/4-17", "id,deleted", { text: "# Fixed\n\nIn **1.2**." }],
+		["POST", "/api/issues/SHOP-1/comments/4-17", "id", { text: "# Fixed\n\nIn **1.2**." }],
 	]);
 });
 
@@ -598,7 +692,7 @@ test("comment delete marks the comment deleted, never an HTTP DELETE; another au
 	const { url, seen } = await server(t);
 	const run = await load(t, envFor(url));
 	assert.deepEqual(await run(undefined, "comment", "delete", "SHOP-1", "4-17"), { code: 0, out: "SHOP-1: deleted comment 4-17; YouTrack can restore it", err: "" });
-	assert.deepEqual(calls(seen), [["POST", "/api/issues/SHOP-1/comments/4-17", "id,deleted", { deleted: true }]]);
+	assert.deepEqual(calls(seen), [["POST", "/api/issues/SHOP-1/comments/4-17", "id", { deleted: true }]]);
 	const forbidden = "instance (unnamed): 403 for comment 4-18 of issue SHOP-1: You have no permission to update the comment of jane";
 	assert.equal(await refusal(run(undefined, "comment", "delete", "SHOP-1", "4-18")), forbidden);
 	assert.equal(await refusal(run(undefined, "comment", "delete", "SHOP-1", "4-99")), "instance (unnamed): 404: comment 4-99 of issue SHOP-1 not found");
@@ -727,10 +821,25 @@ test("inside a job, every write to YouTrack is refused before any call; reading 
 		["article", "delete", "SHOP-A-2"],
 		["attachment", "add", "SHOP-1", at("text.md")],
 		["attachment", "delete", "SHOP-1", "74-1"],
+		["issue", "move", "SHOP-1", "OPS"],
+		["issue", "tag", "SHOP-1", "backend"],
+		["issue", "untag", "SHOP-1", "backend"],
+		["issue", "link", "SHOP-1", "depends on", "SHOP-2"],
+		["issue", "unlink", "SHOP-1", "depends on", "SHOP-2"],
+		["issue", "work", "edit", "SHOP-1", "115-0", "30"],
+		["issue", "work", "delete", "SHOP-1", "115-0"],
+		["article", "create", at("text.md"), "--parent", "SHOP-A-1"],
+		["article", "move", "SHOP-A-2", "--parent", "SHOP-A-1"],
+		["comment", "add", "SHOP-A-2", at("text.md")],
+		["comment", "edit", "SHOP-A-2", "251-0", at("text.md")],
+		["comment", "delete", "SHOP-A-2", "251-0"],
+		["attachment", "add", "SHOP-A-2", at("text.md")],
+		["attachment", "delete", "SHOP-A-2", "75-1"],
 	];
 	for (const args of writes) assert.equal(await refusal(run(undefined, ...args)), "a job never writes to YouTrack; put what should go there in your final message; nothing was asked of YouTrack", args.join(" "));
 	assert.deepEqual(seen, []);
-	for (const args of [["issue", "get", "SHOP-1"], ["comment", "list", "SHOP-1"], ["issue", "attachments", "SHOP-2"]]) assert.equal((await run(undefined, ...args)).code, 0, args.join(" "));
+	const reads = [["issue", "get", "SHOP-1"], ["comment", "list", "SHOP-1"], ["issue", "attachments", "SHOP-2"], ["issue", "links", "SHOP-1"], ["issue", "work", "list", "SHOP-1"]];
+	for (const args of [...reads, ["issue", "list", "--query", "Priority: Critical"], ["article", "list", "--query", "release"], ["comment", "list", "SHOP-A-2"], ["article", "attachments", "SHOP-A-2"]]) assert.equal((await run(undefined, ...args)).code, 0, args.join(" "));
 });
 
 test("every job of a project on YouTrack gets the rules for its issues in its prompt, in any role; a job of another project gets none", async (t) => {
@@ -855,4 +964,173 @@ function valueDefaults(table: OptionTable, words: readonly string[]): Record<str
 
 test("each default the option table writes as a value is the one the code applies with nothing set", () => {
 	assert.deepEqual(valueDefaults(table, ["instances.*.name"]), { timeoutSeconds: TIMEOUT_SECONDS });
+});
+
+test("--query searches with YouTrack's query language inside the project, grouped as issue list is; an item of another project the query lets through is dropped", async (t) => {
+	const { url, seen } = await server(t);
+	const run = await load(t, envFor(url));
+	assert.deepEqual(await run(undefined, "issue", "list", "--query", "Priority: Critical"), { code: 0, out: "Open (1)\n  SHOP-3 Issue 3\n\nIn Progress (1)\n  SHOP-1 Issue 1", err: "" });
+	assert.deepEqual(await run(undefined, "issue", "list", "--all", "--query", "x) or (project: SITE"), { code: 0, out: "Fixed (1)\n  SHOP-2 Issue 2 (resolved)", err: "" });
+	assert.deepEqual(await run(undefined, "issue", "list", "--query", "Priority: Minor"), { code: 0, out: "no unresolved issues in YouTrack project SHOP match Priority: Minor", err: "" });
+	assert.deepEqual(await run(undefined, "article", "list", "--query", "release"), { code: 0, out: "SHOP-A-2 Release steps", err: "" });
+	assert.deepEqual(await run(undefined, "article", "list", "--query", "nothing"), { code: 0, out: "no articles in YouTrack project SHOP match nothing", err: "" });
+	assert.deepEqual(seen.filter(({ path }) => path === "/api/issues" || path === "/api/articles").map(({ path, params }) => [path, params.get("query")]), [
+		["/api/issues", "(project: SHOP #Unresolved) and (Priority: Critical)"],
+		["/api/issues", "(project: SHOP) and (x) or (project: SITE)"],
+		["/api/issues", "(project: SHOP #Unresolved) and (Priority: Minor)"],
+		["/api/articles", "(project: SHOP) and (release)"],
+		["/api/articles", "(project: SHOP) and (nothing)"],
+	]);
+	assert.equal(seen.find(({ path }) => path === "/api/articles")?.params.get("fields"), "idReadable,summary,updated");
+});
+
+test("issue links lists the links by type as the instance names them; link and unlink find the type from the issue's side; an unknown type or a missing link is refused before any write", async (t) => {
+	const { url, seen } = await server(t);
+	const run = await load(t, envFor(url));
+	assert.deepEqual(await run(undefined, "issue", "links", "shop-1"), { code: 0, out: "relates to (1)\n  SHOP-3 Issue 3\n\ndepends on (1)\n  SHOP-2 Issue 2", err: "" });
+	assert.equal(seen[0]?.params.get("fields"), "id,direction,linkType(name,sourceToTarget,targetToSource),issues(id,idReadable,summary)");
+	assert.deepEqual(await run(undefined, "issue", "links", "SHOP-2"), { code: 0, out: "no links on SHOP-2", err: "" });
+	seen.length = 0;
+	assert.deepEqual(await run(undefined, "issue", "link", "SHOP-1", " Depends  On ", "shop-2"), { code: 0, out: "linked: SHOP-1 depends on SHOP-2", err: "" });
+	assert.deepEqual(await run(undefined, "issue", "link", "SHOP-1", "subtask of", "SHOP-2"), { code: 0, out: "linked: SHOP-1 subtask of SHOP-2", err: "" });
+	assert.deepEqual(await run(undefined, "issue", "link", "SHOP-1", "relates to", "SHOP-2"), { code: 0, out: "linked: SHOP-1 relates to SHOP-2", err: "" });
+	assert.deepEqual(await run(undefined, "issue", "unlink", "SHOP-1", "depends on", "SHOP-2"), { code: 0, out: "unlinked: SHOP-1 depends on SHOP-2", err: "" });
+	const writes = calls(seen).filter(([method]) => method !== "GET");
+	assert.deepEqual(writes, [
+		["POST", "/api/issues/SHOP-1/links/80-1t/issues", "id", { id: "2-2" }],
+		["POST", "/api/issues/SHOP-1/links/80-3t/issues", "id", { id: "2-2" }],
+		["POST", "/api/issues/SHOP-1/links/80-0/issues", "id", { id: "2-2" }],
+		["DELETE", "/api/issues/SHOP-1/links/80-1t/issues/2-2", null, undefined],
+	]);
+	seen.length = 0;
+	const types = "relates to, is required for, depends on, is duplicated by, duplicates, parent for, subtask of";
+	assert.equal(await refusal(run(undefined, "issue", "link", "SHOP-1", "blocks", "SHOP-2")), `blocks is not a link type of this instance; its link types: ${types}; nothing was written`);
+	assert.equal(await refusal(run(undefined, "issue", "unlink", "SHOP-1", "duplicates", "SHOP-2")), "SHOP-1 has no link duplicates SHOP-2; arthur youtrack issue links SHOP-1 lists its links; nothing was written");
+	assert.equal(await refusal(run(undefined, "issue", "link", "SHOP-1", "depends on", "SHOP-9")), "instance (unnamed): 404: issue SHOP-9 not found");
+	assert.deepEqual(seen.map(({ method }) => method), ["GET", "GET", "GET", "GET"], "only reads");
+});
+
+test("issue tag adds the tag of that name in any case, creating it when there is none; untag removes the issue's; an empty name, or a tag the issue lacks, is refused before any write", async (t) => {
+	const { url, seen } = await server(t);
+	const run = await load(t, envFor(url));
+	assert.deepEqual(await run(undefined, "issue", "tag", "SHOP-1", "Backend"), { code: 0, out: "SHOP-1: tagged backend", err: "" });
+	assert.deepEqual(await run(undefined, "issue", "tag", "SHOP-1", "release-blocker"), { code: 0, out: "SHOP-1: tagged release-blocker (a new tag)", err: "" });
+	assert.deepEqual(await run(undefined, "issue", "untag", "shop-1", "BACKEND"), { code: 0, out: "SHOP-1: untagged backend", err: "" });
+	assert.deepEqual(calls(seen), [
+		["GET", "/api/tags", "id,name", undefined],
+		["POST", "/api/issues/SHOP-1/tags", "id,name", { id: "6-1" }],
+		["GET", "/api/tags", "id,name", undefined],
+		["POST", "/api/tags", "id,name", { name: "release-blocker" }],
+		["POST", "/api/issues/SHOP-1/tags", "id,name", { id: "6-9" }],
+		["GET", "/api/issues/SHOP-1/tags", "id,name", undefined],
+		["DELETE", "/api/issues/SHOP-1/tags/6-1", null, undefined],
+	]);
+	assert.deepEqual(seen.filter(({ method, path }) => method === "GET" && path === "/api/tags").map(({ params }) => params.get("query")), ["Backend", "release-blocker"]);
+	seen.length = 0;
+	assert.equal(await refusal(run(undefined, "issue", "untag", "SHOP-1", "frontend")), "SHOP-1 has no tag frontend; its tags: backend; nothing was written");
+	assert.deepEqual(seen.map(({ method }) => method), ["GET"]);
+	assert.equal(await refusal(run(undefined, "issue", "tag", "SHOP-1", "forbidden")), "instance (unnamed): 403 for a new tag forbidden: You may not create tags: Bearer [token]");
+	seen.length = 0;
+	for (const verb of ["tag", "untag"]) assert.equal(await refusal(run(undefined, "issue", verb, "SHOP-1", " ")), "a tag needs a name; nothing was asked of YouTrack");
+	assert.deepEqual(seen, []);
+});
+
+test("issue move puts the issue into another project of the instance and prints its new id; a project id of another form is refused before any call, a missing project before the write", async (t) => {
+	const { url, seen } = await server(t);
+	const run = await load(t, envFor(url));
+	assert.deepEqual(await run(undefined, "issue", "move", "SHOP-1", "OPS"), { code: 0, out: "moved SHOP-1 to OPS-1", err: "" });
+	assert.deepEqual(calls(seen), [
+		["GET", "/api/admin/projects/OPS", "id", undefined],
+		["POST", "/api/issues/SHOP-1", "idReadable", { project: { id: "0-3" } }],
+	]);
+	seen.length = 0;
+	assert.equal(await refusal(run(undefined, "issue", "move", "SHOP-1", "NOPE")), "instance (unnamed): 404: YouTrack project NOPE not found");
+	assert.deepEqual(seen.map(({ method }) => method), ["GET"]);
+	seen.length = 0;
+	for (const to of ["OPS/../x", "1OPS", ""]) assert.equal(await refusal(run(undefined, "issue", "move", "SHOP-1", to)), `${to} is not a YouTrack project id such as SHOP; nothing was asked of YouTrack`);
+	assert.deepEqual(seen, []);
+});
+
+test("issue work list shows each work item; work edit changes its minutes, and its text when given; work delete removes it; an item id of another form or 0 minutes is refused before any call", async (t) => {
+	const { url, seen } = await server(t);
+	const run = await load(t, envFor(url));
+	const listed = "work item 115-0: 5h by Jane Doe (jane) on 2026-10-01, Testing\nalmost there\nsee the wiki\n\nwork item 115-2: 1h by Jane Doe (jane) on 2026-10-01";
+	assert.deepEqual(await run(undefined, "issue", "work", "list", "shop-1"), { code: 0, out: listed, err: "" });
+	assert.deepEqual(await run(undefined, "issue", "work", "list", "SHOP-2"), { code: 0, out: "no work items on SHOP-2", err: "" });
+	seen.length = 0;
+	assert.deepEqual(await run(undefined, "issue", "work", "edit", "SHOP-1", "115-0", "90", "Fixed it"), { code: 0, out: "SHOP-1: work item 115-0 set to 1h 30m", err: "" });
+	assert.deepEqual(await run(undefined, "issue", "work", "edit", "SHOP-1", "115-2", "30"), { code: 0, out: "SHOP-1: work item 115-2 set to 0h 30m", err: "" });
+	assert.deepEqual(await run(undefined, "issue", "work", "delete", "SHOP-1", "115-0"), { code: 0, out: "SHOP-1: deleted work item 115-0", err: "" });
+	assert.deepEqual(calls(seen), [
+		["POST", "/api/issues/SHOP-1/timeTracking/workItems/115-0", "duration(minutes,presentation)", { duration: { minutes: 90 }, text: "Fixed it" }],
+		["POST", "/api/issues/SHOP-1/timeTracking/workItems/115-2", "duration(minutes,presentation)", { duration: { minutes: 30 } }],
+		["DELETE", "/api/issues/SHOP-1/timeTracking/workItems/115-0", null, undefined],
+	]);
+	assert.equal(await refusal(run(undefined, "issue", "work", "delete", "SHOP-1", "115-9")), "instance (unnamed): 404: work item 115-9 of issue SHOP-1 not found");
+	assert.equal(await refusal(run(undefined, "issue", "work", "edit", "SHOP-1", "115-9", "30")), "instance (unnamed): 404: work item 115-9 of issue SHOP-1 not found");
+	seen.length = 0;
+	for (const item of ["115", "115-0/../x", "a-1"]) {
+		const said = `${item} is not a work item id such as 115-0, which arthur youtrack issue work list SHOP-1 prints; nothing was asked of YouTrack`;
+		assert.equal(await refusal(run(undefined, "issue", "work", "delete", "SHOP-1", item)), said);
+		assert.equal(await refusal(run(undefined, "issue", "work", "edit", "SHOP-1", item, "30")), said);
+	}
+	assert.equal(await refusal(run(undefined, "issue", "work", "edit", "SHOP-1", "115-0", "0")), "a work item takes a whole number of minutes above 0, got 0; nothing was asked of YouTrack");
+	assert.deepEqual(seen, []);
+});
+
+test("an article's comments are listed, added, edited, and deleted with YouTrack's DELETE; another author's is refused by the server in one line", async (t) => {
+	const { url, seen } = await server(t);
+	const run = await load(t, envFor(url));
+	assert.deepEqual(await run(undefined, "comment", "list", "shop-a-2"), { code: 0, out: "comment 251-0 by Arthur (arthur) on 2026-10-01\nCheck step 2.\n\ncomment 251-1 by Jane Doe (jane) on 2026-10-01\nDone.", err: "" });
+	assert.equal(seen[0]?.params.get("fields"), "id,text,created,author(login,name)", "an article's comment has no deleted");
+	seen.length = 0;
+	const at = files(t, { "comment.md": "Step 2 is done.\n" });
+	assert.deepEqual(await run(undefined, "comment", "add", "SHOP-A-2", at("comment.md")), { code: 0, out: "SHOP-A-2: added comment 251-3", err: "" });
+	assert.deepEqual(await run(undefined, "comment", "edit", "SHOP-A-2", "251-0", at("comment.md")), { code: 0, out: "SHOP-A-2: edited comment 251-0", err: "" });
+	assert.deepEqual(await run(undefined, "comment", "delete", "SHOP-A-2", "251-0"), { code: 0, out: "SHOP-A-2: deleted comment 251-0", err: "" });
+	assert.deepEqual(calls(seen), [
+		["POST", "/api/articles/SHOP-A-2/comments", "id", { text: "Step 2 is done." }],
+		["POST", "/api/articles/SHOP-A-2/comments/251-0", "id", { text: "Step 2 is done." }],
+		["DELETE", "/api/articles/SHOP-A-2/comments/251-0", null, undefined],
+	]);
+	assert.equal(await refusal(run(undefined, "comment", "delete", "SHOP-A-2", "251-1")), "instance (unnamed): 403 for comment 251-1 of article SHOP-A-2: You have no permission to delete the comment of jane");
+	assert.equal(await refusal(run(undefined, "comment", "list", "SHOP-A-9")), "instance (unnamed): 404: the comments of article SHOP-A-9 not found");
+});
+
+test("an article's attachments are saved into the plugin's folder, one added as a form upload and one deleted by id", async (t) => {
+	const { url, seen } = await server(t);
+	const run = await load(t, envFor(url));
+	const saved = join(run.folder, "SHOP-A-2", "steps.txt");
+	assert.deepEqual(await run(undefined, "article", "attachments", "shop-a-2"), { code: 0, out: `attachment 75-1: ${saved} 4 B text/plain`, err: "" });
+	assert.deepEqual(readFileSync(saved), FILES["75-1"]);
+	const at = files(t, { "notes.txt": "Tag first." });
+	assert.deepEqual(await run(undefined, "attachment", "add", "SHOP-A-2", at("notes.txt")), { code: 0, out: "SHOP-A-2: added attachment 75-2 notes.txt", err: "" });
+	const file = seen.at(-1)?.form?.get("upload");
+	assert.ok(file instanceof File, "the file is the form's upload part");
+	assert.deepEqual([seen.at(-1)?.path, file.name, await file.text()], ["/api/articles/SHOP-A-2/attachments", "notes.txt", "Tag first."]);
+	assert.deepEqual(await run(undefined, "attachment", "delete", "SHOP-A-2", "75-1"), { code: 0, out: "SHOP-A-2: deleted attachment 75-1", err: "" });
+	assert.deepEqual(calls(seen).at(-1), ["DELETE", "/api/articles/SHOP-A-2/attachments/75-1", null, undefined]);
+	assert.equal(
+		await refusal(run(undefined, "attachment", "delete", "SHOP-A-2", "75")),
+		"75 is not an attachment id such as 74-1, which arthur youtrack article attachments SHOP-A-2 prints; nothing was asked of YouTrack",
+	);
+});
+
+test("article create --parent makes a sub-article, article move --parent puts an article under another; a missing parent is refused before the write", async (t) => {
+	const { url, seen } = await server(t);
+	const run = await load(t, envFor(url));
+	const at = files(t, { "article.md": "Hotfix steps\nBranch from the tag." });
+	assert.deepEqual(await run(undefined, "article", "create", at("article.md"), "--parent", "shop-a-1"), { code: 0, out: "created SHOP-A-3: Hotfix steps", err: "" });
+	assert.deepEqual(await run(undefined, "article", "move", "SHOP-A-2", "--parent", "SHOP-A-1"), { code: 0, out: "SHOP-A-2: moved under SHOP-A-1", err: "" });
+	assert.deepEqual(calls(seen), [
+		["GET", "/api/articles/SHOP-A-1", "id", undefined],
+		["GET", "/api/admin/projects/SHOP", "id", undefined],
+		["POST", "/api/articles", "idReadable", { project: { id: "0-0" }, summary: "Hotfix steps", content: "Branch from the tag.", parentArticle: { id: "226-0" } }],
+		["GET", "/api/articles/SHOP-A-1", "id", undefined],
+		["POST", "/api/articles/SHOP-A-2", "idReadable", { parentArticle: { id: "226-0" } }],
+	]);
+	seen.length = 0;
+	assert.equal(await refusal(run(undefined, "article", "move", "SHOP-A-2", "--parent", "SHOP-A-9")), "instance (unnamed): 404: article SHOP-A-9 not found");
+	assert.equal(await refusal(run(undefined, "article", "create", at("article.md"), "--parent", "SHOP-A-9")), "instance (unnamed): 404: article SHOP-A-9 not found");
+	assert.deepEqual(seen.map(({ method }) => method), ["GET", "GET"]);
 });

@@ -25,7 +25,7 @@ plugins: [
 - `expect`: a status code from 100 to 599, which the answer must have exactly; or non-empty text, which a page with a 2xx status must hold. Left out: any 2xx status.
 - `everySeconds`: a whole number of seconds, 1 or more, between two checks of the site; default 60. A check is cut after 10 s, or after `everySeconds` when that is shorter, so two checks of one site never overlap.
 
-Refused at load, with the option's path: an unknown option or key, `sites` not an object, a project's sites not a list, a site without a `url`, a `url` that is not http or https, an `expect` or `everySeconds` out of range, and the same `url` twice in one project.
+Refused at load, with the option's path: an unknown option or key, `sites` not an object, a project's sites not a list, a site without a `url`, a `url` that is not http or https, an `expect` or `everySeconds` out of range, and the same `url` twice in one project. A `url` on a port of the Fetch standard's bad-port list (9, 25, 6000, 6665 to 6669, 10080 and others), which fetch never reaches, is refused too: `project <project>: <url> is on port <port>, which fetch never reaches: the Fetch standard blocks it; use another port`.
 
 ## Down and up
 

@@ -44,3 +44,15 @@ test("refused: the same url twice in one project; in two projects it is two site
 	assert.deepEqual(checkOptions({ sites: { acme: [site, { ...site, expect: 200 }] } }), [{ path: "sites.acme[1].url", problem: "project acme: https://acme.example/ is listed twice, at sites.acme[0] and sites.acme[1]" }]);
 	assert.deepEqual(checkOptions({ sites: { acme: [site], beta: [site] } }), []);
 });
+
+test("refused: a url on a port fetch blocks, naming the port; fetch indeed never reaches each refused port", async () => {
+	const refused = (url: string) => checkOptions({ sites: { acme: [{ url }] } });
+	assert.deepEqual(refused("http://127.0.0.1:9/"), [
+		{ path: "sites.acme[0].url", problem: "project acme: http://127.0.0.1:9/ is on port 9, which fetch never reaches: the Fetch standard blocks it; use another port" },
+	]);
+	for (const port of [1, 25, 6000, 6665, 6669, 10080]) assert.equal(refused(`https://acme.example:${port}/`).length, 1, String(port));
+	for (const url of ["http://acme.example/", "https://acme.example:443/", "http://acme.example:80/", "http://acme.example:8/", "http://acme.example:10/", "http://acme.example:6664/", "http://acme.example:6670/", "http://acme.example:10081/", "http://acme.example:65535/"])
+		assert.deepEqual(refused(url), [], url);
+	const ports = Array.from({ length: 65535 }, (_, index) => index + 1).filter((port) => refused(`http://127.0.0.1:${port}/`).length > 0);
+	for (const port of ports) await assert.rejects(fetch(`http://127.0.0.1:${port}/`), (error: Error) => (error.cause as Error).message === "bad port", String(port));
+});

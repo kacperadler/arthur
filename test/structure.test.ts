@@ -236,6 +236,8 @@ import { checkStructure } from "./structure.ts";
 // 72), the HTTP check and the words of each failure (site-check.ts, 41), what is down kept across a restart (uptime-state.ts,
 // 34), and down after 2 failed checks with this machine's offline told apart, the notices and the events (uptime.ts, 141); a
 // new package, so nothing was cut elsewhere; core unchanged.
+// AR0232 (roadmap 98): uptime 4 more (292): a url on a port of the Fetch standard's bad-port list, which fetch never reaches,
+// refused at load (uptime-options.ts: the list with its comment, 2, and the refusal, 2); nothing was cut elsewhere.
 // AR0235 (roadmap 52): delivery: 312, set for review jobs: the kind, its refusals and the prepare that checks out the branch's
 // tip, the ticket's moves and the wake (delivery.ts, 94), `arthur review` and its task (review-command.ts, 93), the review
 // records, the verdict and the FAILs since the last PASS (review-records.ts, 72), filing as review-N.md (review-file.ts, 37),
@@ -246,7 +248,7 @@ import { checkStructure } from "./structure.ts";
 // at registration (job-kinds.ts, 6), kept in the record as `verdicts` with the kind's `Own` keys sent to `remote-job add`
 // (job-record.ts, remote-job.ts, 3), and a finished run whose last line is none of them ends `failed: no verdict` (wrapper.ts, 1);
 // `SpawnRequest.fetch`, checked as a commit here (jobs.ts, 4) and pushed to `refs/arthur/fetch` there when missing (job-machine.ts, 2).
-const BUDGETS = { core: 5700, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 288, delivery: 312 };
+const BUDGETS = { core: 5700, "core/testing": 349, projects: 481, orchestration: 1433, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 312 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

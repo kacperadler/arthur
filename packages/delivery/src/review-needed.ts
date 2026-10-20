@@ -2,14 +2,13 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import type { Command, Host } from "@arthur/core/plugin";
-import { worker } from "./review-command.ts";
+import { branchOf, worker } from "./review-command.ts";
 
 // `arthur review-needed <worker job>` (spec/roadmap.md, entry 53): whether an ended worker's branch needs a review, by the
 // first rule that holds, its answer kept in `<folder>/<job>/review-needed`, and on `no review` its ticket moved to done.
 // docs/commands/review-needed.md.
 
 const USAGE = "usage: arthur review-needed <worker job>";
-const FEATURE = /(?:^|\/)spec\/features\/([A-Z]+\d{4,})-[^/]+\//;
 // At most this many lines added and removed, a branch with passing checks needs no review.
 const SMALL = 30;
 // `.env` as text, a file's name: not `process.env`, `.envrc` or `.environment`.
@@ -27,20 +26,13 @@ export function reviewNeededCommand(host: Host, held: (path: string) => boolean)
 				return 2;
 			}
 			const job = worker(host, name);
-			const tickets = [...new Set(job.tickets.flatMap((path) => FEATURE.exec(path)?.[1] ?? []))];
-			const [ticket] = tickets;
-			if (ticket === undefined || tickets.length > 1) throw new Error(`${job.id}'s task names ${tickets.length === 0 ? "no ticket" : `${tickets.length} tickets (${tickets.join(", ")})`}; a branch is decided for one ticket`);
-			const root = host.board.projects().find((project) => project.name === job.project)?.path;
-			if (root === undefined) throw new Error(`${job.id}'s project ${job.project} is not in the project list`);
+			const { folder: feature, root, commit: tip, base } = branchOf(host, job);
+			const ticket = basename(feature).split("-")[0] ?? "";
 			const git = (...words: string[]) => {
 				const ran = spawnSync("git", ["-C", root, ...words], { encoding: "utf8" });
 				if (ran.status !== 0) throw new Error(`git ${words.join(" ")} in ${root}: ${ran.stderr.trim().split("\n").at(-1) ?? `exit ${ran.status}`}`);
 				return ran.stdout.trim();
 			};
-			const tip = spawnSync("git", ["-C", root, "rev-parse", "--verify", "--quiet", `${job.branch}^{commit}`], { encoding: "utf8" }).stdout.trim();
-			if (tip === "") throw new Error(`${job.branch} is not in ${root}: pruned, or not brought back from its machine`);
-			const base = git("merge-base", "HEAD", tip);
-			if (base === tip) throw new Error(`${job.branch} at ${tip.slice(0, 7)} adds nothing to HEAD (${git("rev-parse", "--short", "HEAD")}): nothing to decide`);
 			const folder = join(host.folder, job.id);
 			const checks = existsSync(join(folder, "checks")) ? readFileSync(join(folder, "checks"), "utf8") : "";
 			const answer = decide(git, base, tip, held, checks);

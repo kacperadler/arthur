@@ -9,6 +9,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0220 YouTrack: open issues grouped by state, and full create, edit, delete of issues and articles (e037b36)
 - AR0221 Roadmap 49: Telegram media in and out, arthur send (718a54a)
 - AR0222 YouTrack: the rest of full management, links, tags, search, articles like issues (a639c13)
+- AR0224 Roadmap 50: Telegram phone commands and the menu (a5028bd)
 
 ### Fixed
 

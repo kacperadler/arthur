@@ -13,7 +13,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/commands.ts:26`, `packages/telegram/src/poll.ts:84`
 - What: `route` passes `{ channel, place }` to a phone command, as roadmap entry 50 says, but not the `instance` (the named bot) that `message-received` carries (AR0211). A project's `chat` key (entry 85) is `{ plugin, instance?, place }`, so `/restart` from a topic of a named bot (entries 36, 88) cannot tell that chat from the same topic number of another bot. The reply itself already goes back by the right bot.
 - Suggestion: before the host API freezes (entry 51), add an optional `instance` to `PhoneFrom` and pass the bot's name from telegram's `receive`, as `message-received` does; nothing else changes.
-- Status: open
+- Status: ticket AR0225
 
 ## F2. The outbox's retry test failed once in a full test run
 
@@ -22,4 +22,13 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/telegram/test/telegram.test.ts:262`
 - What: "one retry per send, after 2 s; ..." (from AR0212, untouched here) failed once in the reviewer's full `npm test` of this branch and passed 3 of 3 alone; the failure's message was not kept. Six concurrent runs of it alone here passed 6 of 6, so the cause is not known. One candidate [INFERENCE]: its `retried.at - failed.at >= 2000` compares two `Date.now()` stamps around a 2 s `setTimeout`, which Node's monotonic timer can end a millisecond short of on the wall clock.
 - Suggestion: rerun the full suite until it fails to keep the message, then fix the wait it shows; for the candidate, assert at least 1990 ms.
-- Status: open
+- Status: ticket AR0226
+
+## F3. A command to another bot is checked with `>=` on the replies sent
+
+- Kind: risk
+- Found by: 2026-10-20-review-ar0224-roadmap-50-956c85dc (review), 2026-10-20
+- Where: `packages/telegram/test/commands.test.ts:55`, `:88`
+- What: the wait counts `api.took().length >= K`, which in theory leaves room for an extra reply to a command meant for another bot.
+- Suggestion: none; the outbox is empty at that point, so an extra reply would show.
+- Status: dropped (the reviewer judged the check sound)

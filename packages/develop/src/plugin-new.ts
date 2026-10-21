@@ -1,14 +1,14 @@
-import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
 import type { Command, Host } from "@arthur/core/plugin";
 import { pluginFiles } from "./plugin-template.ts";
 
 // `arthur plugin new <name> --budget <lines>` (spec/roadmap.md, entry 66): a new plugin package in Arthur's repository, the
-// project's checkout, that passes `npm run check`, `npm test` and the structure test as created. Every refusal comes before
-// the first write, so a refused call changes no file. docs/commands/plugin.md.
+// project's checkout, or in a job its own worktree, that passes `npm run check`, `npm test` and the structure test as created.
+// Every refusal comes before the first write, so a refused call changes no file. docs/commands/plugin.md.
 
-const USAGE = "usage: arthur plugin new <name> --budget <lines> [--project <name>]";
+const USAGE = "usage: arthur plugin new <name> --budget <lines> [--project <name> | --root <job's worktree>]";
 // A plugin's name, as the host checks it at load.
 const NAME = /^[a-z]+(-[a-z]+)*$/;
 const STRUCTURE = "test/structure.test.ts";
@@ -44,6 +44,16 @@ function refusal(root: string, name: string, budget: string | undefined, fn: str
 	return undefined;
 }
 
+// The folder the package goes into, and why it may not, if so: the project's checkout outside a job; in a job (`ARTHUR_JOB`
+// names its record) only its own worktree, given as `--root`, so the package is on the job's branch and goes through review.
+function target(checkout: string, root: string | undefined): [string, string | undefined] {
+	const record = process.env.ARTHUR_JOB;
+	if (record === undefined || record === "") return [checkout, root === undefined ? undefined : "--root is a job's own worktree; outside a job the package goes into the project's checkout"];
+	const worktree = readFileSync(join(record, "worktree"), "utf8").trim();
+	if (root === undefined) return [worktree, `a job writes only in its own worktree: add --root ${worktree}`];
+	return [worktree, existsSync(root) && realpathSync(root) === realpathSync(worktree) ? undefined : `--root ${root} is not this job's worktree ${worktree}`];
+}
+
 // The lockfile with the package as a workspace, as npm writes it, so `npm ci` installs the checkout as it is.
 function locked(text: string, name: string): string {
 	const lock = JSON.parse(text);
@@ -52,10 +62,10 @@ function locked(text: string, name: string): string {
 	return `${JSON.stringify(lock, null, 2)}\n`;
 }
 
-export function pluginNew(root: string, args: readonly string[]): number {
-	let [positionals, budget]: [string[], string | undefined] = [[], undefined];
+export function pluginNew(checkout: string, args: readonly string[]): number {
+	let [positionals, budget, at]: [string[], string | undefined, string | undefined] = [[], undefined, undefined];
 	try {
-		({ positionals, values: { budget } } = parseArgs({ args: [...args], options: { budget: { type: "string" } }, allowPositionals: true, strict: true }));
+		({ positionals, values: { budget, root: at } } = parseArgs({ args: [...args], options: { budget: { type: "string" }, root: { type: "string" } }, allowPositionals: true, strict: true }));
 	} catch (error) {
 		console.error(`${(error as Error).message}\n${USAGE}`);
 		return 2;
@@ -67,7 +77,8 @@ export function pluginNew(root: string, args: readonly string[]): number {
 	}
 	const fn = name.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
 	const files = pluginFiles(name, fn);
-	const refused = refusal(root, name, budget, fn, files);
+	const [root, misplaced] = target(checkout, at);
+	const refused = misplaced ?? refusal(root, name, budget, fn, files);
 	if (refused !== undefined) {
 		console.error(`refused: ${refused}; nothing was written`);
 		return 1;

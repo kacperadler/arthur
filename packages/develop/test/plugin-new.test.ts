@@ -108,7 +108,7 @@ test("refused, exit 1, before any write: a bad name, a missing or wrong budget, 
 	const root = copy();
 	const plugin = await load(t, root);
 	const refused = (why: string) => ({ code: 1, out: "", err: `refused: ${why}; nothing was written` });
-	const usage = "usage: arthur plugin new <name> --budget <lines> [--project <name>]";
+	const usage = "usage: arthur plugin new <name> --budget <lines> [--project <name> | --root <job's worktree>]";
 	for (const name of ["Acme", "acme_bot", "acme2", "acme-", "acme--bot", "é"])
 		assert.deepEqual(await plugin(["new", name, "--budget", "100"]), refused(`plugin name "${name}": lowercase letters and dashes, such as uptime or commit-rules`), name);
 	for (const [name, fn] of [["new", "new"], ["delete", "delete"], ["fake-host", "fakeHost"], ["check-options", "checkOptions"], ["summary", "summary"]] as const)
@@ -149,4 +149,30 @@ test("refused, exit 1, before any write: a bad name, a missing or wrong budget, 
 	assert.deepEqual(await plugin(["new", "acme", "--budget", "100"]), refused(`${root} has no package-lock.json`));
 	assert.equal(changed(root), "");
 	assert.ok(!existsSync(join(root, "node_modules", "@arthur", "acme")));
+});
+
+test("in a job only its own worktree, named by --root, is written; never the project's checkout; --root outside a job is refused", async (t) => {
+	const [checkout, worktree, record] = [copy(), copy(), temporaryFolder()];
+	writeFileSync(join(record, "worktree"), `${worktree}\n`);
+	const plugin = await load(t, checkout);
+	const refused = (why: string) => ({ code: 1, out: "", err: `refused: ${why}; nothing was written` });
+	assert.deepEqual(await plugin(["new", "acme", "--budget", "100", "--root", worktree]), refused("--root is a job's own worktree; outside a job the package goes into the project's checkout"));
+
+	// The test kit clears every ARTHUR_ variable; a job's wrapper sets this one to the job's record.
+	t.after(() => delete process.env.ARTHUR_JOB);
+	process.env.ARTHUR_JOB = record;
+	assert.deepEqual(await plugin(["new", "acme", "--budget", "100"]), refused(`a job writes only in its own worktree: add --root ${worktree}`));
+	for (const other of [checkout, join(worktree, "packages"), join(worktree, "missing")])
+		assert.deepEqual(await plugin(["new", "acme", "--budget", "100", "--root", other]), refused(`--root ${other} is not this job's worktree ${worktree}`), other);
+	assert.equal(changed(checkout), "");
+	assert.equal(changed(worktree), "");
+
+	const link = join(temporaryFolder(), "worktree");
+	symlinkSync(worktree, link);
+	assert.equal((await plugin(["new", "acme", "--budget", "100", "--root", link])).code, 0, "a link to the worktree is the worktree");
+	assert.equal(changed(checkout), "", "the project's checkout is untouched");
+	assert.match(changed(worktree), /^\?\? packages\/acme\/src\/acme\.ts$/m);
+	assert.match(budgets(worktree), /, acme: 100$/);
+	assert.equal(readlinkSync(join(worktree, "node_modules", "@arthur", "acme")), join("..", "..", "packages", "acme"));
+	assert.ok(!existsSync(join(checkout, "node_modules", "@arthur", "acme")));
 });

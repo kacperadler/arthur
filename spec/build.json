@@ -1908,9 +1908,9 @@
   {
     "id": "AR0248",
     "title": "A branch `arthur review-needed` waves through is never pushed, so CI never builds it before its merge",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0248-a-branch-arthur-review-needed-waves-through-is-never-pushed-so-ci-never-builds-it-before-its-merge/ticket.md",
-    "updated": "2026-10-21T11:51:04.463Z",
+    "updated": "2026-10-21T12:03:49.582Z",
     "after": [
       "AR0253"
     ]
@@ -1970,9 +1970,9 @@
   {
     "id": "AR0256",
     "title": "Roadmap 66: arthur plugin new",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0256-roadmap-66-arthur-plugin-new/ticket.md",
-    "updated": "2026-10-21T11:43:40.866Z"
+    "updated": "2026-10-21T12:00:40.147Z"
   },
   {
     "id": "AR0257",

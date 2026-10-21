@@ -90,7 +90,7 @@ test("a continue installs nothing again: the worktree keeps its spawn's install"
 	const job = await fake.host.jobs.spawn({ task: "Go." });
 	const state = join(record(fake, job.id), "state");
 	for (const end = Date.now() + 15_000; readFileSync(state, "utf8") !== "ended"; await setTimeout(50)) if (Date.now() > end) throw new Error(`${job.id} did not end`);
-	await fake.continue(job.id, "Go on.");
+	await fake.host.jobs.continue(job.id, "Go on.");
 	assert.equal(readFileSync(join(record(fake, job.id), "continue"), "utf8"), "Go on.", "the continue went through");
 	assert.deepEqual(called(), [`${job.worktree} npm ci`]);
 });

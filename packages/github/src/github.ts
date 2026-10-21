@@ -71,22 +71,27 @@ export function github(options: GithubOptions): Plugin {
 			const finished = (each: Watched, runs: readonly Run[]) => {
 				const key = (run: Run) => `${run.id}/${run.attempt}`;
 				const known = state.runs[each.project];
-				// A project's first poll tells nothing: what finished before it was watched is taken as told.
+				// A project's first poll tells nothing: what finished before it was watched is taken as told. Delivery is still asked
+				// of it, so a branch left waiting for CI is woken once.
 				const told = new Set(known ?? runs.flatMap((run) => (run.status === "completed" ? [key(run)] : [])));
-				const ended = new Map<Run, string[]>();
+				const ended = new Map<Run, { readonly branch: string; readonly below: number }[]>();
 				for (const branch of inPlay(each)) {
 					// A branch deleted since it was listed has no commits here, so no run.
-					const run = nearestRun(each.path, branch, runs)?.run;
-					if (run?.status === "completed" && !told.has(key(run))) ended.set(run, [...(ended.get(run) ?? []), branch]);
+					const found = nearestRun(each.path, branch, runs);
+					if (found?.run.status === "completed" && (known === undefined || !told.has(key(found.run)))) ended.set(found.run, [...(ended.get(found.run) ?? []), { branch, below: found.below }]);
 				}
-				for (const [run, branches] of ended) {
+				for (const [run, ends] of ended) {
+					const fresh = !told.has(key(run));
 					told.add(key(run));
 					const { project, repo, workflow } = each;
-					host.events.emit("ci-finished", { project, repo, workflow, run: run.id, attempt: run.attempt, sha: run.sha, branch: run.branch, branches, conclusion: run.conclusion, url: run.url });
-					if (!wakeOn.includes("ci-finished")) continue;
-					const ci = `arthur ci ${branches[0]} --project ${project}`;
+					// A branch whose CI wait delivery woke the coordinator for (`delivery.ciEnded`) is left out: one wake per run end.
+					const rest = ends.flatMap(({ branch, below }) => (host.collect<boolean>("delivery.ciEnded", { project, branch, below, run }).includes(true) ? [] : [branch]));
+					if (!fresh) continue;
+					host.events.emit("ci-finished", { project, repo, workflow, run: run.id, attempt: run.attempt, sha: run.sha, branch: run.branch, branches: ends.map((end) => end.branch), conclusion: run.conclusion, url: run.url });
+					if (!wakeOn.includes("ci-finished") || rest.length === 0) continue;
+					const ci = `arthur ci ${rest[0]} --project ${project}`;
 					const why = ["failure", "timed_out", "startup_failure", "cancelled"].includes(run.conclusion ?? "") ? `\nWhy: ${ci}; rerun it once: ${ci} --rerun` : "";
-					const text = `[github] CI run ${run.id}, attempt ${run.attempt}, of ${workflow} in ${project} ended ${run.conclusion} on ${branches.join(", ")} (${run.sha.slice(0, 7)}): ${run.url}${why}`;
+					const text = `[github] CI run ${run.id}, attempt ${run.attempt}, of ${workflow} in ${project} ended ${run.conclusion} on ${rest.join(", ")} (${run.sha.slice(0, 7)}): ${run.url}${why}`;
 					host.events.emit("coordinator-message", { text });
 				}
 				// Only the attempts GitHub still lists are kept: an older run, or an attempt before a rerun, never comes back.

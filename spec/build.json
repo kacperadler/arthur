@@ -2012,9 +2012,9 @@
   {
     "id": "AR0262",
     "title": "Roadmap 69: free disk space per machine",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0262-roadmap-69-free-disk-space-per-machine/ticket.md",
-    "updated": "2026-10-21T13:49:17.196Z"
+    "updated": "2026-10-21T14:00:33.664Z"
   },
   {
     "id": "AR0263",
@@ -2046,9 +2046,9 @@
   {
     "id": "AR0266",
     "title": "Roadmap 63: the retro",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0266-roadmap-63-the-retro/ticket.md",
-    "updated": "2026-10-21T13:47:43.270Z"
+    "updated": "2026-10-21T14:00:01.026Z"
   },
   {
     "id": "AR0267",
@@ -2066,5 +2066,26 @@
     "after": [
       "AR0258"
     ]
+  },
+  {
+    "id": "AR0269",
+    "title": "The disk check makes a second ssh call per machine and round",
+    "status": "planning",
+    "path": "spec/features/AR0269-the-disk-check-makes-a-second-ssh-call-per-machine-and-round/ticket.md",
+    "updated": "2026-10-21T14:00:33.651Z"
+  },
+  {
+    "id": "AR0270",
+    "title": "vision.md's disk refusal example differs from the roadmap and the code",
+    "status": "planning",
+    "path": "spec/features/AR0270-vision-md-s-disk-refusal-example-differs-from-the-roadmap-and-the-code/ticket.md",
+    "updated": "2026-10-21T14:00:33.657Z"
+  },
+  {
+    "id": "AR0271",
+    "title": "Two processes checking one machine at once can both say the same news",
+    "status": "planning",
+    "path": "spec/features/AR0271-two-processes-checking-one-machine-at-once-can-both-say-the-same-news/ticket.md",
+    "updated": "2026-10-21T14:00:33.660Z"
   }
 ]

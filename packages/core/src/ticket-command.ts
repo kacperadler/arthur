@@ -4,12 +4,13 @@ import { amount, parseFlags, text } from "./flags.ts";
 import type { AutopilotRequest } from "./host.ts";
 import type { JobRunner } from "./jobs.ts";
 
-// `arthur ticket` (spec/roadmap.md, entries 17, 18, 28 and 29): the one way a human or the coordinator changes the board, and files
-// a job's result in its ticket's folder. `board` and `jobs` throw when the config did not load, since the board needs the plugins'
-// project list and a filing the kinds they registered; `autopilot` asks the plugin that pre-approves a ticket (`ticket.autopilot`).
+// `arthur ticket` (spec/roadmap.md, entries 17, 18, 28, 29 and 62): the one way a human or the coordinator changes the board, and
+// files a job's result in its ticket's folder, or one of no ticket where its kind keeps it. `board` and `jobs` throw when the
+// config did not load, since the board needs the plugins' project list and a filing the kinds they registered; `autopilot` asks
+// the plugin that pre-approves a ticket (`ticket.autopilot`).
 
 const USAGE =
-	"usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file <id> <job>";
+	"usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file [<id>] <job>";
 
 export function ticketCommand(board: () => Board, jobs: () => JobRunner, autopilot: () => (request: AutopilotRequest) => unknown): Command {
 	return {
@@ -49,8 +50,8 @@ export function ticketCommand(board: () => Board, jobs: () => JobRunner, autopil
 				console.log(`${ticket.id} after ${ticket.after?.join(", ") ?? "nothing"}`);
 				return 0;
 			}
-			if (verb === "file" && id !== undefined && second !== undefined && rest.length === 2) {
-				console.log(jobs().file(board(), id, second));
+			if (verb === "file" && id !== undefined && rest.length <= 2) {
+				console.log(second === undefined ? jobs().file(board(), undefined, id) : jobs().file(board(), id, second));
 				return 0;
 			}
 			console.error(USAGE);

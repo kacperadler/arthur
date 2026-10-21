@@ -8,6 +8,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0243 The onboarding procedure does not name the command that merges an onboarding (9611adf)
 
+### Changed
+
+- AR0245 arthur stats: remove the unreachable unknown-project throw (4116eec)
+
 ### Other
 
 - AR0239 Roadmap 54: arthur merge (2b0d0b4)

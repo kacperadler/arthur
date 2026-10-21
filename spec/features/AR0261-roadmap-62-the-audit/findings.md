@@ -22,7 +22,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/projects/src/init.ts:11-15` (`criterion`), `packages/manage/criteria/audit.md`
 - What: with manage loaded, `host.jobs.criteria()` names `audit`, so `arthur init` writes `<criteriaDir>/audit.md`; `criterion` takes the skeleton only from `packages/projects/skeleton/criteria/`, which has no `audit.md`, so the file is `# Audit` alone and the auditor runs on no criteria until someone copies manage's by hand. Delivery's `review` criteria have the same gap.
 - Suggestion: let a role ship its criteria skeleton beside its role file (a `Role` key, or a file the role's package holds that `init` reads through the host), and have `init` write that one; or copy manage's `criteria/audit.md` into the projects skeleton. Out: drafting the files of projects onboarded earlier.
-- Status: open
+- Status: ticket AR0264
 
 ## F3. No health line for a finished audit that was never filed
 
@@ -31,4 +31,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/manage/src/health-checks.ts`, `packages/manage/src/audit-file.ts`
 - What: the harness's health named a finished audit whose report is not in `spec/quality/` after a grace (`/home/kacper/harness/src/health-jobs.ts:97-103`). Here an audit the coordinator never files leaves the next audit's commit list starting from the older report, and nothing says so; `arthur prune` of the unfiled job loses its proposals.
 - Suggestion: a manage health check: an `audit` job ended `finished` for an hour whose id no `- Job:` line of a report in `spec/quality/` names. Out: filing it automatically.
-- Status: open
+- Status: ticket AR0265

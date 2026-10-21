@@ -163,6 +163,15 @@ test("the always-review list: review.alwaysReview replaces the default, and deli
 	assert.deepEqual(plain.call("delivery.alwaysReview", { project: "acme", paths }), paths.slice(0, 5), "the default: what reads secrets, the CI-failure handling, the review rules");
 });
 
+test("the default always-review list holds every file of the CI-failure handling, entries 57 to 59, as this repository has them", async () => {
+	const repository = new URL("../../../", import.meta.url);
+	const paths = ["packages/github/src/github-ci.ts", "packages/delivery/src/auto-merge.ts", "packages/delivery/src/merge-command.ts", "packages/delivery/src/ci-wait.ts"];
+	assert.deepEqual(paths.filter((path) => !existsSync(new URL(path, repository))), [], "each file is where the list expects it");
+	const plain = fakeHost({ name: "delivery" });
+	await plain.setup(delivery());
+	assert.deepEqual(plain.call("delivery.alwaysReview", { project: "acme", paths }), paths);
+});
+
 test("the options: only review.alwaysReview, a list of glob patterns from a project's root", () => {
 	assert.deepEqual(checkOptions({ review: { alwaysReview: ["**/env.ts"] } }), []);
 	const expected = 'expected a list of glob patterns from a project\'s root, such as "**/env.ts", got';

@@ -16,6 +16,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0248 A branch `arthur review-needed` waves through is never pushed, so CI never builds it before its merge (beec2df)
 - AR0250 A pull request closed and reopened has its reviews told again (bad0ec0)
 - AR0251 A hand-back refused for good is retried at every run's end, silently (076ee29)
+- AR0259 The example config gives delivery an option it refuses (6d9aaf1)
 
 ### Changed
 

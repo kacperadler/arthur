@@ -7,6 +7,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Added
 
 - AR0243 The onboarding procedure does not name the command that merges an onboarding (9611adf)
+- AR0258 The coordinator's role names merges only on the owner's word (d5ba054)
 
 ### Fixed
 

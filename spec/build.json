@@ -2005,22 +2005,43 @@
   {
     "id": "AR0261",
     "title": "Roadmap 62: the audit",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0261-roadmap-62-the-audit/ticket.md",
-    "updated": "2026-10-21T12:47:22.975Z"
+    "updated": "2026-10-21T13:16:16.445Z"
   },
   {
     "id": "AR0262",
     "title": "Roadmap 69: free disk space per machine",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0262-roadmap-69-free-disk-space-per-machine/ticket.md",
-    "updated": "2026-10-21T12:52:46.293Z"
+    "updated": "2026-10-21T12:52:49.491Z"
   },
   {
     "id": "AR0263",
     "title": "Roadmap 83: findings, what happens to them per project",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0263-roadmap-83-findings-what-happens-to-them-per-project/ticket.md",
-    "updated": "2026-10-21T12:52:46.708Z"
+    "updated": "2026-10-21T13:14:34.799Z"
+  },
+  {
+    "id": "AR0264",
+    "title": "`arthur init` writes the audit criteria as a bare title, not the criteria manage ships",
+    "status": "planning",
+    "path": "spec/features/AR0264-arthur-init-writes-the-audit-criteria-as-a-bare-title-not-the-criteria-manage-ships/ticket.md",
+    "updated": "2026-10-21T13:16:16.440Z"
+  },
+  {
+    "id": "AR0265",
+    "title": "No health line for a finished audit that was never filed",
+    "status": "planning",
+    "path": "spec/features/AR0265-no-health-line-for-a-finished-audit-that-was-never-filed/ticket.md",
+    "updated": "2026-10-21T13:16:16.443Z"
+  },
+  {
+    "id": "AR0266",
+    "title": "Roadmap 63: the retro",
+    "status": "planned",
+    "path": "spec/features/AR0266-roadmap-63-the-retro/ticket.md",
+    "updated": "2026-10-21T13:16:37.634Z"
   }
 ]

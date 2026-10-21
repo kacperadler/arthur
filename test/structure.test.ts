@@ -333,8 +333,12 @@ import { checkStructure } from "./structure.ts";
 // (delivery-options.ts, 1 more); the list itself now holds github-ci.ts, auto-merge.ts and merge-command.ts.
 // Merged main (AR0250, AR0253) into AR0254: main's budgets plus AR0254's raises, core 5730, manage 452, delivery 1232, github
 // 621 (recounted with wc -l).
+// AR0251 (the ticket's Done means: a test that the hand-back ends on delivery's own refusal and still retries another
+// plugin's): core/testing 2 more (349) for `FakeHost.beforeSpawn`, the test as the plugin `test` refusing a spawn, since a
+// check through `host.jobs.beforeSpawn` refuses as the plugin under test; delivery unchanged (1232).
 // Merged main (AR0253, AR0254) into AR0256: main's budgets plus AR0256's develop 198 (recounted with wc -l).
-const BUDGETS = { core: 5730, "core/testing": 347, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1232, github: 621, manage: 452, develop: 198 };
+// Merged main (AR0254, AR0256) into AR0251: main's budgets plus AR0251's core/testing 349 (recounted with wc -l).
+const BUDGETS = { core: 5730, "core/testing": 349, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1232, github: 621, manage: 452, develop: 198 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

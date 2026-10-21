@@ -156,7 +156,9 @@ test("an audit is resumed once when its budget runs out, doubled, then stopped; 
 	const { night, jobs, read, root } = await load(t, { audit: { at: "02:00", budgetUsd: 1 } }, { steps: [{ message: "## 1. Half a proposal", cost: 1, stopReason: "toolUse" }, stuck] });
 	const job = await night();
 	assert.ok(job !== undefined);
-	for (const deadline = Date.now() + 20_000; !read(job.id, "reason").startsWith("limit: budget: its cost $2"); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out: ${read(job.id, "reason")}`);
+	// The state is written last, so the wait is for it, not for the reason before it.
+	for (const deadline = Date.now() + 20_000; read(job.id, "state") !== "ended" || !read(job.id, "reason").startsWith("limit: budget: its cost $2"); await sleep(50))
+		if (Date.now() > deadline) throw new Error(`timed out: ${read(job.id, "state")} ${read(job.id, "reason")}`);
 	assert.deepEqual([read(job.id, "state"), read(job.id, "reason"), read(job.id, "budget")], ["ended", "limit: budget: its cost $2.0000 reached its budget of $2", "2"]);
 	assert.equal(read(job.id, "log").match(/the kind resumes once, its budget doubled to \$2\n/g)?.length, 1, "resumed once, never twice");
 	assert.throws(() => jobs.file(undefined, job.id), { message: `${job.id} ended ended (limit: budget: its cost $2.0000 reached its budget of $2), not finished: its result is unfinished and is never filed; prune it` });

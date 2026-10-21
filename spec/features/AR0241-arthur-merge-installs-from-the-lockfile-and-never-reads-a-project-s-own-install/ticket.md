@@ -14,7 +14,7 @@ a project whose entry in `arthur.config.ts` sets `install` (a custom command, or
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+`arthur merge` installs on main with the project's own install command (custom or none), the same one its worktrees get, via a provided `projects.install`; the merge's own lockfile table goes.
 
 - Kind: bug
 

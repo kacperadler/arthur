@@ -1908,30 +1908,36 @@
   {
     "id": "AR0248",
     "title": "A branch `arthur review-needed` waves through is never pushed, so CI never builds it before its merge",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0248-a-branch-arthur-review-needed-waves-through-is-never-pushed-so-ci-never-builds-it-before-its-merge/ticket.md",
-    "updated": "2026-10-21T09:22:58.327Z"
+    "updated": "2026-10-21T10:33:16.167Z",
+    "after": [
+      "AR0253"
+    ]
   },
   {
     "id": "AR0249",
     "title": "The vision still says `ci-finished` is keyed by run id",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0249-the-vision-still-says-ci-finished-is-keyed-by-run-id/ticket.md",
-    "updated": "2026-10-21T09:22:58.330Z"
+    "updated": "2026-10-21T10:33:16.574Z"
   },
   {
     "id": "AR0250",
     "title": "A pull request closed and reopened has its reviews told again",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0250-a-pull-request-closed-and-reopened-has-its-reviews-told-again/ticket.md",
-    "updated": "2026-10-21T09:22:58.331Z"
+    "updated": "2026-10-21T10:33:15.761Z"
   },
   {
     "id": "AR0251",
     "title": "A hand-back refused for good is retried at every run's end, silently",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0251-a-hand-back-refused-for-good-is-retried-at-every-run-s-end-silently/ticket.md",
-    "updated": "2026-10-21T10:02:05.123Z"
+    "updated": "2026-10-21T10:33:16.371Z",
+    "after": [
+      "AR0253"
+    ]
   },
   {
     "id": "AR0252",
@@ -1943,15 +1949,15 @@
   {
     "id": "AR0253",
     "title": "Roadmap 59: auto-merge after PASS and green CI",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0253-roadmap-59-auto-merge-after-pass-and-green-ci/ticket.md",
-    "updated": "2026-10-21T10:29:50.184Z"
+    "updated": "2026-10-21T10:29:53.195Z"
   },
   {
     "id": "AR0254",
     "title": "Roadmap 64: prune and temporary folders on a schedule",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0254-roadmap-64-prune-and-temporary-folders-on-a-schedule/ticket.md",
-    "updated": "2026-10-21T10:29:50.598Z"
+    "updated": "2026-10-21T10:29:53.855Z"
   }
 ]

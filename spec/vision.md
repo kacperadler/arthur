@@ -106,7 +106,7 @@ A project with no `commitRules` has none. The plugin never edits a project's own
 
 ## GitHub without webhooks
 
-Arthur polls: the github plugin asks for the CI runs of the branches in play every `poll.everySeconds` (120 in the example) and emits `ci-finished` once per run, keyed by run id; the coordinator wakes on it. A project names the workflow to watch in its `ci` option. The cost is the interval's delay before the coordinator learns a run ended. Nothing listens for GitHub, so there is no secret to check and nothing to expose. If webhooks ever return, they come back as a decision of the owner, with the exposure explained first.
+Arthur polls: the github plugin asks for the CI runs of the branches in play every `poll.everySeconds` (120 in the example) and emits `ci-finished` once per run attempt (a rerun keeps the run's id); the coordinator wakes on it. A project names the workflow to watch in its `ci` option. The cost is the interval's delay before the coordinator learns a run ended. Nothing listens for GitHub, so there is no secret to check and nothing to expose. If webhooks ever return, they come back as a decision of the owner, with the exposure explained first.
 
 ## Job state, machines and resources
 

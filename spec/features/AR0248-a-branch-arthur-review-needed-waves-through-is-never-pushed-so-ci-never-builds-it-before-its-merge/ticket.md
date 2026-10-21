@@ -4,7 +4,10 @@
 {
   "id": "AR0248",
   "title": "A branch `arthur review-needed` waves through is never pushed, so CI never builds it before its merge",
-  "date": "2026-10-21"
+  "date": "2026-10-21",
+  "after": [
+    "AR0253"
+  ]
 }
 ```
 
@@ -14,7 +17,7 @@ entry 58 pushes "the reviewed branch": delivery asks `github.push` after a revie
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+A branch `arthur review-needed` waves through is pushed like a reviewed one, so CI builds it and `arthur merge --auto` (entry 59) has a run to count: delivery asks `github.push` when the answer is `no review`, with its test.
 
 - Kind: risk
 
@@ -35,3 +38,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F1 of AR0246
+- 2026-10-21: Approved by the owner (Telegram).

@@ -93,6 +93,7 @@ Each decided in the ticket that made it.
 - AR0235 (roadmap 52, the owner on 2026-10-20): `SpawnRequest.fetch`, the hex id of a commit of the project's repository besides HEAD that the job needs on its machine (a review's branch tip); on another machine it is pushed to `refs/arthur/fetch` with the base when the repository there lacks it. One that is no commit here refuses the spawn: `fetch: "<value>" is no commit of <repository>; give its hex id`.
 - AR0237 (roadmap 53, which names it; approved with the roadmap): `jobs.registerExtension(url)`, an OMP extension each job's agent loads with `-e`, after the core's env guard, worktree guard and steer extension, in the order the plugins registered theirs. The spawn keeps them in the record as `extensions`, each a path from the core's `src/`, which the wrapper resolves where it runs: the wrapper runs apart from the plugins, on another machine too, whose Arthur is a checkout of the same commit (docs/deploy.md). A URL that is not `file:`, or names no file, is refused at registration: `extension <url>: expected the file: URL of a module that exists, as new URL("./<file>.ts", import.meta.url) gives`. Delivery's job checks use it (`arthur review-needed --help`).
 - AR0241 (F1 of AR0239, the owner on 2026-10-21): the provided name `projects.install`, by projects, asked by delivery's `arthur merge`: `{ project, commit }`, a project's name and a commit of its repository, to the command that installs it there, the one a new worktree of that commit gets (its `install`, else its one known lockfile's frozen install), `""` for none; two known lockfiles and no `install`, or a project not in the list, throw. The merge runs it on main in place of its own lockfile table, which went.
+- AR0246 (roadmap 58, which names the pushes; built with AR0238): the provided name `github.push`, `{ project, branch }` to a promise of one line, which delivery asks with `collect` after a review's `PASS` and after `arthur merge` went in, so a load without github pushes nothing and delivery never imports github. No host member changed. The github plugin's `ci-finished` gained `attempt` (GitHub's `run_attempt`), told once per `<run id>/<attempt>`, and its new event `pull-request-review`; both wake the coordinator through `coordinator-message` when its `wakeOn` names them.
 
 ## Types
 
@@ -147,7 +148,7 @@ The events plugins share, which channels and the coordinator keep (`arthur send 
 | Event | Fields | Emitted by |
 | --- | --- | --- |
 | `message-received` | `channel`, `parts` (each `Part`), `place?`, `instance?` | A channel, once per owner's message. |
-| `coordinator-message` | `text` | A plugin with a message for the coordinator (schedule). |
+| `coordinator-message` | `text` | A plugin with a message for the coordinator (schedule, github). |
 | `coordinator-replied` | `text`, `answers` (the event numbers it answers), `channels`, `place?` | Orchestration, after a turn; a claimed part's `reply`. |
 | `notice` | `text`, `place?` | Any plugin; every channel sends it unless `coordinator.silent` holds it. |
 
@@ -181,6 +182,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `merge.check` | projects | delivery (`arthur merge`) | A check of a job's branch before its merge: a text answer refuses it. |
 | `findings.onMerge` | none yet (findings) | delivery (`arthur merge`) | `{ project, ticket, path, root }`, `path` the merged ticket's `findings.md`: the lines of its outcome's `## Left open`. |
 | `delivery.alwaysReview` | delivery | orchestration | `{ project, paths }`: the paths on the always-review list. |
+| `github.push` | github | delivery (a review's PASS, `arthur merge`) | A promise of one line: the branch pushed to origin, or why not. |
 | `health` | manage | manage (`arthur health`, its rounds), session | Lines of what should have happened and has not: a line or a list of lines. |
 
 ## Option tables and `./options`

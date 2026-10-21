@@ -309,7 +309,12 @@ import { checkStructure } from "./structure.ts";
 // merged tickets by day and kind, written whole, and the command (changelog.ts, 64), its call after a merge that went in with
 // CHANGELOG.md no dirt (merge-command.ts, 3 more), and the command registered (delivery.ts, 2 more); nothing in delivery wrote
 // a changelog before, so nothing was cut; core unchanged.
-const BUDGETS = { core: 5729, "core/testing": 347, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1019, github: 586, manage: 368 };
+// AR0254 (roadmap 64; its Done means allow a host member recorded in docs/plugin-api.md): manage 84 more (452) for the daily
+// cleanup of `prune.keepJobsDays`: the ended jobs past it freed by the core's prune, and the `arthur-*` temporary folders older
+// than a day removed, never one made since a running job's run began, another user's skipped (cleanup.ts, 61), the entry
+// registered with the schedule and its refusal without one (manage.ts, 10), the option and its check (manage-options.ts, 13);
+// core 1 more (5730) for `host.jobs.prune(ids)`, the CLI's prune given to plugins (plugin-host.ts; jobs.ts's comments joined).
+const BUDGETS = { core: 5730, "core/testing": 347, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1019, github: 586, manage: 452 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

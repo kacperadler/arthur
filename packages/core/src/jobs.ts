@@ -87,10 +87,10 @@ export type Jobs = RoleReads & {
 	continue(id: string, instruction: string, budgetUsd?: number): Promise<string | undefined>;
 	// Holds a job in a run `blocked` on `dependency: <reason>` until its run ends; `stop`: stops it too, on `user: <reason>` (docs/commands/jobs.md).
 	block(id: string, reason: string, stop?: boolean): Promise<unknown>;
-	// Every project's job records, in any state, the newest spawn first (docs/commands/jobs.md).
+	// `list`: every project's job records, in any state, the newest spawn first; `running`: the ids of those in a run (working, idle, or held), as `arthur stopall` counts them; `prune`: `arthur prune <id>...`, one line per job (docs/commands/jobs.md, prune.md).
 	list(): JobRecord[];
-	// The ids of `list()`'s jobs in a run (working, idle, or held), as `arthur stopall` counts them.
 	running(): string[];
+	prune(ids: readonly string[]): string[];
 	// The final message of job `id`, empty while it runs or when it wrote none; refused for anything but a job's id.
 	result(id: string): string;
 	// `arthur ticket file <id> <job>`: job `job`, finished on ticket `id`, filed by its kind's `file`; the path written (ticket-file.ts).

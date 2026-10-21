@@ -1932,9 +1932,9 @@
   {
     "id": "AR0251",
     "title": "A hand-back refused for good is retried at every run's end, silently",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0251-a-hand-back-refused-for-good-is-retried-at-every-run-s-end-silently/ticket.md",
-    "updated": "2026-10-21T10:33:16.371Z",
+    "updated": "2026-10-21T12:04:00.323Z",
     "after": [
       "AR0253"
     ]
@@ -1970,9 +1970,9 @@
   {
     "id": "AR0256",
     "title": "Roadmap 66: arthur plugin new",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0256-roadmap-66-arthur-plugin-new/ticket.md",
-    "updated": "2026-10-21T12:00:40.147Z"
+    "updated": "2026-10-21T12:11:14.295Z"
   },
   {
     "id": "AR0257",
@@ -1994,5 +1994,19 @@
     "status": "planning",
     "path": "spec/features/AR0259-the-example-config-gives-delivery-an-option-it-refuses/ticket.md",
     "updated": "2026-10-21T11:37:34.243Z"
+  },
+  {
+    "id": "AR0260",
+    "title": "`arthur plugin new` writes into the project's checkout, never a job's worktree",
+    "status": "planning",
+    "path": "spec/features/AR0260-arthur-plugin-new-writes-into-the-project-s-checkout-never-a-job-s-worktree/ticket.md",
+    "updated": "2026-10-21T12:11:14.292Z"
+  },
+  {
+    "id": "AR0261",
+    "title": "Roadmap 62: the audit",
+    "status": "planned",
+    "path": "spec/features/AR0261-roadmap-62-the-audit/ticket.md",
+    "updated": "2026-10-21T12:11:35.081Z"
   }
 ]

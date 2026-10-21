@@ -93,6 +93,9 @@ Each decided in the ticket that made it.
 - AR0235 (roadmap 52, the owner on 2026-10-20): `Kind.verdicts`, the lines a finished run's final message may end on, exactly; a run whose last line is none of them ends `failed: no verdict: the last line of its final message is not <a> or <b> alone` in its record, `arthur jobs` and `job-ended`, instead of `finished`. A list of lines, not a function: the wrapper that writes the state runs apart from the plugins, on another machine too, so the kind's judgement goes into the record (`verdicts`) at the spawn. Delivery's `review` uses `["PASS", "FAIL"]`.
 - AR0235 (roadmap 52, the owner on 2026-10-20): `SpawnRequest.fetch`, the hex id of a commit of the project's repository besides HEAD that the job needs on its machine (a review's branch tip); on another machine it is pushed to `refs/arthur/fetch` with the base when the repository there lacks it. One that is no commit here refuses the spawn: `fetch: "<value>" is no commit of <repository>; give its hex id`.
 - AR0237 (roadmap 53, which names it; approved with the roadmap): `jobs.registerExtension(url)`, an OMP extension each job's agent loads with `-e`, after the core's env guard, worktree guard and steer extension, in the order the plugins registered theirs. The spawn keeps them in the record as `extensions`, each a path from the core's `src/`, which the wrapper resolves where it runs: the wrapper runs apart from the plugins, on another machine too, whose Arthur is a checkout of the same commit (docs/deploy.md). A URL that is not `file:`, or names no file, is refused at registration: `extension <url>: expected the file: URL of a module that exists, as new URL("./<file>.ts", import.meta.url) gives`. Delivery's job checks use it (`arthur review-needed --help`).
+- AR0241 (F1 of AR0239, the owner on 2026-10-21): the provided name `projects.install`, by projects, asked by delivery's `arthur merge`: `{ project, commit }`, a project's name and a commit of its repository, to the command that installs it there, the one a new worktree of that commit gets (its `install`, else its one known lockfile's frozen install), `""` for none; two known lockfiles and no `install`, or a project not in the list, throw. The merge runs it on main in place of its own lockfile table, which went.
+- AR0242 (F2 of AR0239, the owner on 2026-10-21): the provided name `nvm.path`, by nvm, asked by delivery's `arthur merge`: `{ root }`, a project's checkout on this machine, to the PATH a worktree of it here gets, the bin of the Node its `.nvmrc` names (`nvm which`) before the PATH as it is, `""` without `.nvmrc`; each refusal of nvm's prepare throws, `machine local` in it. The merge asks it before its steps on main and again before the reinstall after a reset, and runs them with that PATH; without a provider, on the PATH as it is.
+- AR0246 (roadmap 58, which names the pushes; built with AR0238): the provided name `github.push`, `{ project, branch }` to a promise of one line, which delivery asks with `collect` after a review's `PASS` and after `arthur merge` went in, so a load without github pushes nothing and delivery never imports github. No host member changed. The github plugin's `ci-finished` gained `attempt` (GitHub's `run_attempt`), told once per `<run id>/<attempt>`, and its new event `pull-request-review`; both wake the coordinator through `coordinator-message` when its `wakeOn` names them.
 - AR0247 (roadmap 55, which names the hand-back's continue; the ticket's Done means allow a new member recorded here): `jobs.continue(id, instruction, budgetUsd?)`, the runner's `arthur continue` given to plugins, without `--ignore-restart`, which stays the CLI's: the same refusals, a `beforeSpawn` reason as `refused by <plugin>: <reason>`, so `maxAgents` holds for it. Delivery continues a worker with a FAIL review's findings (`arthur review --help`, "Hand-back"). The test kit's `FakeHost.continue`, which did the same for a test, is gone: a test calls `host.jobs.continue`.
 
 ## Types
@@ -148,7 +151,7 @@ The events plugins share, which channels and the coordinator keep (`arthur send 
 | Event | Fields | Emitted by |
 | --- | --- | --- |
 | `message-received` | `channel`, `parts` (each `Part`), `place?`, `instance?` | A channel, once per owner's message. |
-| `coordinator-message` | `text` | A plugin with a message for the coordinator (schedule). |
+| `coordinator-message` | `text` | A plugin with a message for the coordinator (schedule, github). |
 | `coordinator-replied` | `text`, `answers` (the event numbers it answers), `channels`, `place?` | Orchestration, after a turn; a claimed part's `reply`. |
 | `notice` | `text`, `place?` | Any plugin; every channel sends it unless `coordinator.silent` holds it. |
 
@@ -178,9 +181,12 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `machines.round` | resources | machines | A round of machine checks as it begins. |
 | `resources.free` | resources | machines | The jobs a machine has room for. |
 | `schedule.register` | schedule | orchestration | Registers another plugin's schedule entries. |
+| `projects.install` | projects | delivery (`arthur merge`) | `{ project, commit }`: the command that installs the project at that commit, as a new worktree gets it, `""` for none (above, "Changes since entry 51"). |
+| `nvm.path` | nvm | delivery (`arthur merge`) | `{ root }`, a project's checkout here: the PATH with its `.nvmrc`'s Node first, `""` without `.nvmrc` (above, "Changes since entry 51"). |
 | `merge.check` | projects | delivery (`arthur merge`) | A check of a job's branch before its merge: a text answer refuses it. |
 | `findings.onMerge` | none yet (findings) | delivery (`arthur merge`) | `{ project, ticket, path, root }`, `path` the merged ticket's `findings.md`: the lines of its outcome's `## Left open`. |
 | `delivery.alwaysReview` | delivery | orchestration | `{ project, paths }`: the paths on the always-review list. |
+| `github.push` | github | delivery (a review's PASS, `arthur merge`) | A promise of one line: the branch pushed to origin, or why not. |
 | `health` | manage | manage (`arthur health`, its rounds), session | Lines of what should have happened and has not: a line or a list of lines. |
 
 ## Option tables and `./options`

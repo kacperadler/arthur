@@ -8,6 +8,12 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0243 The onboarding procedure does not name the command that merges an onboarding (9611adf)
 
+### Fixed
+
+- AR0238 A rerun keeps its run id, so its end is never told as `ci-finished`
+- AR0241 arthur merge installs from the lockfile and never reads a project's own install (5d9c3fe)
+- AR0242 The checks on main run on the service's Node, not the project's .nvmrc (a81486a)
+
 ### Changed
 
 - AR0245 arthur stats: remove the unreachable unknown-project throw (4116eec)
@@ -17,6 +23,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0239 Roadmap 54: arthur merge (2b0d0b4)
 - AR0240 Roadmap 60: arthur health (aaf9d45)
 - AR0244 Roadmap 61: arthur stats (0baba9d)
+- AR0246 Roadmap 58: arthur ci, reruns, pushes, pull request reviews (1f039d3)
 
 ## 2026-10-20
 

@@ -1,6 +1,6 @@
-// GitHub's REST API (spec/roadmap.md, entry 57): a workflow's newest runs, `GET /repos/{owner}/{repo}/actions/workflows/
-// {workflow}/runs`, with the token as a `Bearer`. A refusal is one line naming the instance or the repository and the
-// variable, never the token; a rate limit answers when the next request may go, as GitHub's "Rate limits for the REST API" says.
+// GitHub's REST API (spec/roadmap.md, entries 57 and 58), with the token as a `Bearer`: one request, `ask`, and a workflow's
+// newest runs on it. A refusal is one line naming the instance or the repository and the variable, never the token; a rate
+// limit answers when the next request may go, as GitHub's "Rate limits for the REST API" says.
 
 export type Instance = {
 	readonly name: string | undefined;
@@ -11,12 +11,17 @@ export type Instance = {
 	readonly apiUrl: string;
 	readonly token: string;
 };
+// A project with a `ci.workflow`: its checkout, its repository (`owner/name`) and the instance that reads it.
+export type Watched = { readonly project: string; readonly path: string; readonly repo: string; readonly workflow: string; readonly instance: Instance };
 
-export type Run = { readonly id: number; readonly sha: string; readonly branch: string | null; readonly status: string; readonly conclusion: string | null; readonly url: string };
+// `attempt` is GitHub's `run_attempt`: a rerun keeps the run's `id` and raises it.
+export type Run = { readonly id: number; readonly attempt: number; readonly sha: string; readonly branch: string | null; readonly status: string; readonly conclusion: string | null; readonly url: string };
 // `loud` when the owner must act (a token refused, a workflow not found): a notice, else a line on stderr; `until` the time in
 // ms before which the instance asks nothing more.
 export type Failure = { readonly text: string; readonly loud: boolean; readonly until?: number };
 export type Runs = { readonly runs: readonly Run[]; readonly until?: number };
+// A 2xx answer: its text, and its JSON when it is some.
+export type Answer = { readonly body: unknown; readonly text: string; readonly until?: number };
 
 // Runs asked per poll: GitHub's largest page. A branch whose nearest run is older than these has none.
 export const PER_PAGE = 100;
@@ -24,17 +29,20 @@ const TIMEOUT_MS = 30_000;
 // A secondary rate limit that says no time: "wait for at least one minute before retrying".
 const MINUTE_MS = 60_000;
 
-// The newest runs of `workflow` (its file name or id) in `repo` (`owner/name`), newest first.
-export async function workflowRuns(instance: Instance, repo: string, workflow: string, signal: AbortSignal): Promise<Runs | Failure> {
+// A key of an answer's object, undefined when it is no object or lacks it.
+export const field = (item: unknown, key: string): unknown => (typeof item === "object" && item !== null && key in item ? (item as Readonly<Record<string, unknown>>)[key] : undefined);
+
+// One request of `path`, from the API's root; `what` is the thing asked and `needs` the token's permission on it, as a
+// refusal names them. A redirect is followed (a job's log).
+export async function ask(instance: Instance, path: string, what: string, needs: string, signal: AbortSignal, method = "GET"): Promise<Answer | Failure> {
 	const { label, tokenEnv, apiUrl, token } = instance;
-	const what = `workflow ${workflow} of ${repo}`;
-	const url = `${apiUrl}/repos/${repo}/actions/workflows/${encodeURIComponent(workflow)}/runs?per_page=${PER_PAGE}&exclude_pull_requests=true`;
 	let response: Response;
+	let text: string;
 	let body: unknown;
 	try {
 		const headers = { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "arthur" };
-		response = await fetch(url, { headers, signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]) });
-		const text = await response.text();
+		response = await fetch(`${apiUrl}${path}`, { method, headers, signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]) });
+		text = await response.text();
 		try {
 			body = JSON.parse(text);
 		} catch {}
@@ -43,19 +51,25 @@ export async function workflowRuns(instance: Instance, repo: string, workflow: s
 		const why = error instanceof DOMException && error.name === "TimeoutError" ? `no answer in ${TIMEOUT_MS / 1000} s` : `cannot reach it${typeof cause === "string" ? ` (${cause})` : ""}`;
 		return { text: `instance ${label}: ${apiUrl}: ${why}`, loud: false };
 	}
-	const message = typeof body === "object" && body !== null && "message" in body && typeof body.message === "string" ? body.message : response.statusText || "no reason given";
-	const said = message.replaceAll(token, "[token]").replace(/\s+/g, " ").slice(0, 300);
+	const message = field(body, "message");
+	const said = (typeof message === "string" ? message : response.statusText || "no reason given").replaceAll(token, "[token]").replace(/\s+/g, " ").slice(0, 300);
 	const until = waitUntil(response, said);
-	if (response.ok) {
-		const list = typeof body === "object" && body !== null && "workflow_runs" in body && Array.isArray(body.workflow_runs) ? (body.workflow_runs as unknown[]) : undefined;
-		if (list === undefined) return { text: `instance ${label}: the answer for ${what} holds no workflow_runs`, loud: false };
-		return { runs: list.flatMap((each) => run(each) ?? []), ...(until === undefined ? {} : { until }) };
-	}
+	if (response.ok) return { body, text, ...(until === undefined ? {} : { until }) };
 	if (until !== undefined) return { text: `instance ${label}: ${response.status}, rate limited: ${said}; no request until ${new Date(until).toISOString()}`, loud: false, until };
 	if (response.status === 401) return { text: `instance ${label}: 401: the token in ${tokenEnv} was refused: ${said}`, loud: true };
-	if (response.status === 403) return { text: `instance ${label}: 403 for ${what}: ${said}; the token in ${tokenEnv} needs Actions: read on it`, loud: true };
+	if (response.status === 403) return { text: `instance ${label}: 403 for ${what}: ${said}; the token in ${tokenEnv} needs ${needs} on it`, loud: true };
 	if (response.status === 404) return { text: `instance ${label}: 404: ${what} not found, or the token in ${tokenEnv} cannot see it`, loud: true };
 	return { text: `instance ${label}: ${response.status} for ${what}: ${said}`, loud: false };
+}
+
+// The newest runs of `workflow` (its file name or id) in `repo` (`owner/name`), newest first.
+export async function workflowRuns(instance: Instance, repo: string, workflow: string, signal: AbortSignal): Promise<Runs | Failure> {
+	const what = `workflow ${workflow} of ${repo}`;
+	const answer = await ask(instance, `/repos/${repo}/actions/workflows/${encodeURIComponent(workflow)}/runs?per_page=${PER_PAGE}&exclude_pull_requests=true`, what, "Actions: read", signal);
+	if (!("body" in answer)) return answer;
+	const list = field(answer.body, "workflow_runs");
+	if (!Array.isArray(list)) return { text: `instance ${instance.label}: the answer for ${what} holds no workflow_runs`, loud: false };
+	return { runs: list.flatMap((each) => run(each) ?? []), ...(answer.until === undefined ? {} : { until: answer.until }) };
 }
 
 // When the next request may go, in ms, when the answer says to wait: `retry-after` seconds; else, the requests left at 0,
@@ -70,10 +84,10 @@ function waitUntil(response: Response, said: string): number | undefined {
 	return undefined;
 }
 
-// One run of the answer's `workflow_runs`, undefined when it lacks a field the plugin reads.
+// One run of the answer's `workflow_runs`, undefined when it lacks a field the plugin reads; a server without `run_attempt`
+// (an older GitHub Enterprise Server) has first attempts only.
 function run(item: unknown): Run | undefined {
-	const field = (key: string) => (typeof item === "object" && item !== null && key in item ? (item as Readonly<Record<string, unknown>>)[key] : undefined);
-	const [id, sha, branch, status, conclusion, url] = ["id", "head_sha", "head_branch", "status", "conclusion", "html_url"].map(field);
+	const [id, attempt, sha, branch, status, conclusion, url] = ["id", "run_attempt", "head_sha", "head_branch", "status", "conclusion", "html_url"].map((key) => field(item, key));
 	if (typeof id !== "number" || typeof sha !== "string" || typeof status !== "string" || typeof url !== "string") return undefined;
-	return { id, sha, branch: typeof branch === "string" ? branch : null, status, conclusion: typeof conclusion === "string" ? conclusion : null, url };
+	return { id, attempt: typeof attempt === "number" ? attempt : 1, sha, branch: typeof branch === "string" ? branch : null, status, conclusion: typeof conclusion === "string" ? conclusion : null, url };
 }

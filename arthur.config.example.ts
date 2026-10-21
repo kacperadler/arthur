@@ -339,15 +339,16 @@ export default defineConfig({
 			merge: { afterPassAndGreenCi: true },
 		}),
 
-		// Polls GitHub for the CI runs of the branches in play (each checkout's own branch and every job's branch) and emits
-		// `ci-finished` once per run; Arthur has no endpoint for GitHub to call. The workflow to watch is each project's
-		// `ci.workflow`, its repository the checkout's `origin`. An instance named after a repository's owner reads it, the unnamed
-		// one every other: `{ name: "acme", tokenEnv: "ARTHUR_GITHUB_ACME_TOKEN" }`. GitHub Enterprise Server: `apiUrl:
-		// "https://<host>/api/v3"`. packages/github/docs/github.md.
+		// Polls GitHub for the CI runs of the branches in play (each checkout's own branch and every job's) and emits `ci-finished`
+		// once per run attempt; Arthur has no endpoint for GitHub to call. The workflow to watch is each project's `ci.workflow`,
+		// its repository the checkout's `origin`. An instance named after a repository's owner reads it, the unnamed one every
+		// other: `{ name: "acme", tokenEnv: "ARTHUR_GITHUB_ACME_TOKEN" }`. GitHub Enterprise Server: `apiUrl:
+		// "https://<host>/api/v3"`. `arthur ci <branch>` tells why a run failed, `--rerun` reruns it once; a branch a review
+		// passed and main after a merge are pushed to origin with git's own credentials, never a prompt. packages/github/docs/github.md.
 		github({
-			instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }], // fine-grained, Actions: read (write to rerun a run)
+			instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }], // fine-grained, Actions: read (and write to rerun a run); Pull requests: read for reviews
 			poll: { everySeconds: 120 }, // one request per project with a ci.workflow per poll
-			// wakeOn: ["ci-finished", "pull-request-review"], // entry 58; until then refused as unknown
+			wakeOn: ["ci-finished", "pull-request-review"], // what wakes the coordinator; pull-request-review also polls the reviews
 		}),
 
 		// Channels: the same interface (receive, send text, send media), one plugin each. A channel only receives: it saves what came

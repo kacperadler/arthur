@@ -55,8 +55,14 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 				const id = typeof data === "object" && data !== null && "id" in data ? data.id : undefined;
 				const review = readReview(host, id);
 				const verdict = review && settle(host, review);
-				if (review !== undefined && (verdict === "PASS" || verdict === "FAIL")) host.board.move(review.ticket, verdict === "PASS" ? "done" : "in-progress");
+				// Every run's end goes to the hand-back (queued, so it acts after the moves below); a PASS's branch is pushed.
 				if (typeof id === "string") back.ended(id, review, verdict);
+				if (review === undefined || (verdict !== "PASS" && verdict !== "FAIL")) return;
+				host.board.move(review.ticket, verdict === "PASS" ? "done" : "in-progress");
+				if (verdict === "FAIL") return;
+				// The plugin that provides `github.push` (entry 58), when one is loaded, pushes the reviewed branch: its line goes to the log.
+				const branch = { project: host.jobs.list().find((job) => job.id === review.id)?.project ?? "", branch: review.branch };
+				void Promise.all(host.collect<Promise<string>>("github.push", branch)).then((lines) => lines.forEach((line) => console.log(line)));
 			});
 			host.events.on("stop-all", () => back.cancel());
 			host.provide("coordinator.wake", (job: { readonly id?: unknown; readonly kind?: unknown }) => {

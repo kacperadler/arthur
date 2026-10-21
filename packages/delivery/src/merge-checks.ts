@@ -2,26 +2,21 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-// The steps `arthur merge` runs on main once the branch is in (spec/roadmap.md, entry 54): the install, when the merge changed a
-// known lockfile at the top of the repository, then the `check` and `test` scripts main's package.json declares, as
-// `npm run check` and `npm test`. docs/commands/merge.md, "Checks on main".
+// The steps `arthur merge` runs on main once the branch is in (spec/roadmap.md, entry 54): the project's install, as the
+// projects plugin answers `projects.install` for the merge commit, the one a new worktree gets, then the `check` and `test`
+// scripts main's package.json declares, as `npm run check` and `npm test`, each on the PATH the nvm plugin answers
+// `nvm.path` for main's checkout, the one a worktree there gets. docs/commands/merge.md, "Checks on main".
 
-export type Step = { readonly command: string; readonly result: string };
-
-// The frozen install of each lockfile, as the projects plugin installs a new worktree.
-const LOCKFILES: Readonly<Record<string, string>> = {
-	"bun.lock": "bun install --frozen-lockfile",
-	"package-lock.json": "npm ci",
-	"pnpm-lock.yaml": "pnpm install --frozen-lockfile",
-	"composer.lock": "composer install",
-	"uv.lock": "uv sync --frozen",
-};
+// A step's `install` marks an install that ran. `Ask` is what other plugins answer for the project: `install`, its install at a
+// commit (`projects.install`), "" none; `path`, the PATH of its checkout (`nvm.path`), "" the PATH as it is.
+export type Step = { readonly command: string; readonly result: string; readonly install?: true };
+type Ask = { readonly install: (commit: string) => string; readonly path: () => string };
 // Up to 64 MiB of a step's output is read, a whole test run's.
 const MAX_BUFFER = 64 * 2 ** 20;
 
-// Each step in order, its output's last 20 lines printed when it fails; a failed install or a broken package.json ends them.
-export function mainChecks(root: string, before: string, log: (line: string) => void): Step[] {
-	const steps = installs(root, ["diff", "--name-only", before, "HEAD", "--", ...Object.keys(LOCKFILES)]).map((command) => step(root, command, log));
+// Each step in order, its output's last 20 lines printed when it fails; no PATH, a failed install or a broken package.json ends them.
+export function mainChecks(root: string, ask: Ask, log: (line: string) => void): Step[] {
+	const { env, steps } = installed(root, ask, log);
 	if (steps.some(failed)) return steps;
 	const path = join(root, "package.json");
 	let parsed: unknown = {};
@@ -34,27 +29,38 @@ export function mainChecks(root: string, before: string, log: (line: string) => 
 	}
 	const scripts: Readonly<Record<string, unknown>> = typeof parsed === "object" && parsed !== null && "scripts" in parsed && typeof parsed.scripts === "object" && parsed.scripts !== null ? Object.fromEntries(Object.entries(parsed.scripts)) : {};
 	const checks = [typeof scripts.check === "string" ? "npm run check" : "", typeof scripts.test === "string" ? "npm test" : ""].filter(Boolean);
-	return [...steps, ...checks.map((command) => step(root, command, log))];
+	return [...steps, ...checks.map((command) => step(root, command, env, log))];
 }
 
 export const failed = (each: Step): boolean => each.result.startsWith("failed");
 
-// After main was reset: main's own lockfile installed again, when the failed run had installed the branch's.
-export function reinstall(root: string, steps: readonly Step[], log: (line: string) => void): string {
-	if (!steps.some((each) => Object.values(LOCKFILES).includes(each.command))) return "";
-	const again = installs(root, ["ls-files", "--", ...Object.keys(LOCKFILES)]).map((command) => step(root, command, log, "reinstall of main's dependencies, "));
+// After main was reset: main's own install run again, on main's own PATH, when the failed run had run the merge commit's.
+export function reinstall(root: string, ask: Ask, steps: readonly Step[], log: (line: string) => void): string {
+	if (!steps.some((each) => each.install)) return "";
+	const again = installed(root, ask, log, "reinstall of main's dependencies, ").steps;
 	return again.some(failed) ? `, but reinstalling main's dependencies failed (${again.filter(failed).map((each) => each.command).join(", ")}): they still hold the branch's install` : "";
 }
 
-// The installs of the lockfiles `git <words>` names, in the table's order.
-function installs(root: string, words: readonly string[]): string[] {
-	const named = spawnSync("git", ["-C", root, ...words], { encoding: "utf8" }).stdout.split("\n");
-	return Object.entries(LOCKFILES).flatMap(([lock, command]) => (named.includes(lock) ? [command] : []));
+// Main's environment, its PATH `ask.path` when not "", and the install of its HEAD as a step, none for ""; an answer that throws
+// (nvm's Node not installed, two lockfiles, no provider) is a failed step, `node` or `install`, that ran nothing.
+function installed(root: string, ask: Ask, log: (line: string) => void, prefix = ""): { readonly env: NodeJS.ProcessEnv; readonly steps: Step[] } {
+	let [env, command] = [process.env, "node"];
+	try {
+		const PATH = ask.path();
+		if (PATH !== "") env = { ...env, PATH };
+		command = "install";
+		const install = ask.install("HEAD");
+		return { env, steps: install === "" ? [] : [{ ...step(root, install, env, log, prefix), install: true }] };
+	} catch (error) {
+		const result = `failed, ${error instanceof Error ? error.message : String(error)}.`;
+		log(`${prefix}${command}: ${result}`);
+		return { env, steps: [{ command, result }] };
+	}
 }
 
 // `passed.`, `12/12 passed.` or `failed, 11/12 passed.`: the counts from node --test's last summary, when it printed one.
-function step(root: string, command: string, log: (line: string) => void, prefix = ""): Step {
-	const ran = spawnSync("sh", ["-c", command], { cwd: root, encoding: "utf8", maxBuffer: MAX_BUFFER });
+function step(root: string, command: string, env: NodeJS.ProcessEnv, log: (line: string) => void, prefix = ""): Step {
+	const ran = spawnSync("sh", ["-c", command], { cwd: root, env, encoding: "utf8", maxBuffer: MAX_BUFFER });
 	const out = [ran.stdout, ran.stderr, ran.error?.message].filter(Boolean).join("\n");
 	const [total, pass] = [/^\S+ tests (\d+)$/gm, /^\S+ pass (\d+)$/gm].map((pattern) => [...out.matchAll(pattern)].at(-1)?.[1]);
 	const count = total !== undefined && pass !== undefined ? `${pass}/${total} passed` : "";

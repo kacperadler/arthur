@@ -280,6 +280,8 @@ import { checkStructure } from "./structure.ts";
 // AR0244 (roadmap 61): manage 112 more (369) for `arthur stats`: the merged tickets' rounds, verdicts, cost and days, the
 // means and shares, the most expensive and the first line of each FAIL finding (stats.ts, 99), and the command registered with
 // its header (manage.ts, 13); nothing in manage did this before, so nothing was cut; core unchanged.
+// AR0241 (the ticket's Done means: projects provides `projects.install`): projects 5 more (486) for the provider and its
+// unknown-project refusal (projects.ts); delivery stays 770, its lockfile table cut for the ask and a refusal as a failed step.
 // AR0245: manage 1 less (368): the unknown-project throw in stats.ts was cut, since `host.board.list` refuses first.
 // AR0247 (roadmap 55; its Done means allow a host member recorded in docs/plugin-api.md): delivery 163 more (933) for the
 // hand-back after a FAIL: the FAIL filed, the worker continued, the next review at its end, a refusal kept for the next end of
@@ -288,7 +290,22 @@ import { checkStructure } from "./structure.ts";
 // review (findings.md F2, delivery.ts, 4); nothing in delivery handed a branch back before, so nothing was cut. Core 2 more
 // (5729): `jobs.continue` on the host (jobs.ts, 2, the runner's own comment folded into it, 1 less; plugin-host.ts, 1).
 // core/testing 2 less (347): `FakeHost.continue`, now `host.jobs.continue`.
-const BUDGETS = { core: 5729, "core/testing": 347, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 933, github: 310, manage: 368 };
+// Merged AR0241 with AR0245: main's budgets plus AR0241's raise, projects 486, delivery 770, manage 368.
+// AR0242 (the ticket's Done means: nvm provides the PATH of a project's checkout, which the merge asks): nvm 11 more (96) for
+// `nvm.path` (spawnSync of the same `nvm which` here, 5) and its refusals shared with the prepare (nodePath, 6); delivery 7
+// more (777) for asking it before the steps and the reinstall and running them on it, the ask folded into `installed`'s try.
+// AR0246 (roadmap 58, with AR0238): github 276 more (586): `arthur ci` and `--rerun`, why a run failed from its jobs and its
+// log's end, the reruns kept (github-ci.ts, 97); the push to origin that never prompts, with the nearest run and the git helper
+// moved out of github.ts (github-git.ts, 59); the pull request reviews polled (github-pulls.ts, 61); one request shared by
+// every endpoint (github-api.ts, 14 more), `wakeOn` (github-options.ts, 11 more), the state keyed by run attempt plus the pull
+// requests (github-state.ts, 14 more), and the wakes, the command and `github.push` registered (github.ts, 20 more); nothing in
+// github did this before, so nothing was cut. delivery 9 more (779) to ask `github.push` after a PASS and after a merge; core
+// unchanged.
+// Merged AR0246 with AR0241 and AR0245: main's budgets plus AR0246's raises, github 586, delivery 770 + 9 = 779 (recounted).
+// Merged AR0242 with AR0246: main's budgets plus AR0242's raises, nvm 96, delivery 770 + 7 + 9 = 786 (recounted).
+// Merged main (AR0241, AR0242, AR0246) into AR0247: main's budgets plus AR0247's, core 5729, core/testing 347, delivery
+// 786 + 163 + 1 = 950 (recounted: one comment line on the job-ended handler that now both hands back and pushes).
+const BUDGETS = { core: 5729, "core/testing": 347, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 950, github: 586, manage: 368 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

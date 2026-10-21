@@ -27,6 +27,10 @@ Refused, the spawn ending with `plugin nvm: prepare failed: <reason>; the job's 
 
 Bun has no nvm: it stays on the service's `PATH` (`docs/setup.md`, step 8), and on another machine on the `PATH` of a command over SSH.
 
+## At a merge
+
+`arthur merge` (`arthur merge --help`, "Checks on main") asks `nvm.path` with `{ root }`, the project's checkout here, before its install and checks on main and again before the reinstall after a reset. The plugin runs the same command in that checkout on this machine, cut after 30 s, and answers the PATH a worktree there gets, `<that folder>:<the PATH arthur merge has>`, or `""` without `.nvmrc`; each refusal above is thrown, `machine local` in it, and fails the merge's steps.
+
 ## `arthur doctor`
 
 One line per machine (`local` and each one another plugin registers), never critical, since a project without `.nvmrc` needs no nvm:

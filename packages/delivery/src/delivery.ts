@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { matchesGlob } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
 import { ALWAYS_REVIEW, checkOptions } from "./delivery-options.ts";
-import { type HandBack, handBack } from "./hand-back.ts";
+import { CANCELLED, type HandBack, handBack } from "./hand-back.ts";
 import { mergeCommand } from "./merge-command.ts";
 import { reviewCommand } from "./review-command.ts";
 import { reviewFiler } from "./review-file.ts";
@@ -106,6 +106,10 @@ function wake(host: Host, review: Review, procedure: URL): string {
 	const worker = review.branch.slice("arthur/".length);
 	const file = `File it: arthur ticket file ${review.ticket} ${review.id}, commit it, then arthur prune ${review.id}.`;
 	if (verdict === "PASS") return `Review verdict: PASS on ${review.branch} at ${review.commit.slice(0, 7)}; ${review.ticket} moves to done. ${file}`;
+	const reason = host.jobs.list().find((each) => each.id === review.id)?.reason;
+	// Stopped by `arthur stop` or `stopall`, or by the hand-back as `stop-all` came: started again only on the owner's word.
+	if (verdict !== "FAIL" && (reason === "stopped" || reason === `user: ${CANCELLED}`))
+		return `Review ${review.id} was stopped, so it has no verdict, is never filed, and ${review.ticket} stays at review. Review again only when the owner asks: arthur review ${worker}; arthur prune ${review.id} frees it.`;
 	if (verdict !== "FAIL")
 		return `Review ${review.id}: no verdict, so the review failed: the last line of its final message is not PASS or FAIL alone, or its run did not finish. It is never filed, and ${review.ticket} stays at review. Review again with arthur review ${worker}, then arthur prune ${review.id}.`;
 	// Its own place among the FAILs since the last PASS, so a wake built later says what it said at the end.

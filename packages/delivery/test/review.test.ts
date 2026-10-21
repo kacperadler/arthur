@@ -135,6 +135,9 @@ test("PASS not on the last line is no verdict: the run ends failed, the ticket s
 	assert.throws(() => fake.host.jobs.file("AC0001", none.id), { message: `${none.id} ended ended (${reason}), not finished: its result is unfinished and is never filed; prune it` });
 	assert.deepEqual(readdirSync(join(root, FOLDER)), ["ticket.md"]);
 	assert.deepEqual(fake.collect("coordinator.wake", { id: job.id, kind: "worker" }), [undefined], "a worker's wake gets nothing");
+	// One that `arthur stop` or `stopall` stopped is started again only on the owner's word.
+	writeFileSync(join(home, "jobs", none.id, "reason"), "stopped");
+	assert.match(String(fake.collect("coordinator.wake", { id: none.id, kind: "review" })[0]), new RegExp(`^Review ${none.id} was stopped, so it has no verdict, .* Review again only when the owner asks: arthur review ${job.id};`));
 });
 
 test("a FAIL moves the ticket back to in-progress; a third review after 2 FAILs is refused naming both, until --round 3", async (t) => {
@@ -339,6 +342,10 @@ test("stop-all cancels the hand-back: between the worker's end and its review, b
 	const [started = ""] = reviews(fake);
 	await until("its run stopped", () => !fake.host.jobs.running().includes(started));
 	assert.deepEqual([state(started), fake.host.jobs.list().find((each) => each.id === started)?.reason], ["blocked", "user: arthur stopall cancelled delivery's hand-back"]);
+	assert.equal(
+		fake.collect("coordinator.wake", { id: started, kind: "review" })[0],
+		`Review ${started} was stopped, so it has no verdict, is never filed, and AC0001 stays at review. Review again only when the owner asks: arthur review ${three.id}; arthur prune ${started} frees it.`,
+	);
 	assert.equal(step(three.id), undefined);
 });
 

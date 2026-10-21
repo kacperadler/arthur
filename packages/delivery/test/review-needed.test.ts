@@ -118,19 +118,23 @@ test("the table of branches: each decided by the first rule that holds", async (
 	}
 });
 
-test("no review moves the ticket to done and keeps the answer; review keeps it too and moves nothing; a branch with no commits is refused", async (t) => {
+test("no review moves the ticket to done, keeps the answer and asks github.push to push the branch; review keeps it too and moves and pushes nothing; a branch with no commits is refused", async (t) => {
 	const { root, fake, job, branch, decide, status, git } = await load(t);
 	const name = job.branch ?? "";
+	const pushes: unknown[] = [];
+	fake.provide("github.push", (asked: unknown) => (pushes.push(asked), Promise.resolve(`github: pushed ${name} to origin: [new branch]`)));
 	assert.equal(status(), "in-progress");
 	branch(edit("README.md", "# acme shop\n"));
 	const tip = git(root, "rev-parse", name);
-	assert.deepEqual(await decide(undefined, job.id.slice(-8)), { code: undefined, out: "no review: 1 file, all docs (*.md)\nAC0001 moves to done.", err: "" });
+	assert.deepEqual(await decide(undefined, job.id.slice(-8)), { code: undefined, out: `no review: 1 file, all docs (*.md)\nAC0001 moves to done.\ngithub: pushed ${name} to origin: [new branch]`, err: "" });
+	assert.deepEqual(pushes, [{ project: "acme", branch: name }]);
 	assert.equal(status(), "done");
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "ticket-moved").map((event) => event.data), [{ id: "AC0001", project: "acme", from: "in-progress", to: "done" }]);
 	const kept = () => JSON.parse(readFileSync(join(fake.host.folder, job.id, "review-needed"), "utf8")) as { readonly answer: string; readonly at: number };
 	assert.deepEqual({ ...kept(), at: 0 }, { answer: "no review: 1 file, all docs (*.md)", ticket: "AC0001", branch: name, commit: tip, at: 0 });
 	branch(small);
 	assert.deepEqual(await decide(), { code: undefined, out: "review: 2 lines changed; the job recorded no checks", err: "" });
+	assert.equal(pushes.length, 1, "review pushes nothing: the review's PASS does");
 	assert.equal(kept().answer, "review: 2 lines changed; the job recorded no checks", "the newest answer, for its tip");
 	assert.equal(status(), "done", "a review's start moves it, not review-needed");
 	branch(() => {});
@@ -140,6 +144,7 @@ test("no review moves the ticket to done and keeps the answer; review keeps it t
 	fake.host.board.move("AC0001", "merged");
 	assert.deepEqual(await decide(), { code: 1, out: "", err: "arthur review-needed: AC0001: merged cannot move to done; from merged: none, it is final" });
 	assert.equal(kept().answer, "review: 2 lines changed; the job recorded no checks", "a refused move keeps no answer");
+	assert.equal(pushes.length, 1, "a refused move pushes nothing");
 });
 
 test("refused: wrong usage, no such job, a job with no ticket", async (t) => {

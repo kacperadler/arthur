@@ -187,7 +187,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `merge.check` | projects | delivery (`arthur merge`) | A check of a job's branch before its merge: a text answer refuses it. |
 | `findings.onMerge` | none yet (findings) | delivery (`arthur merge`) | `{ project, ticket, path, root }`, `path` the merged ticket's `findings.md`: the lines of its outcome's `## Left open`. |
 | `delivery.alwaysReview` | delivery | orchestration | `{ project, paths }`: the paths on the always-review list. |
-| `github.push` | github | delivery (a review's PASS, `arthur merge`) | A promise of one line: the branch pushed to origin, or why not. |
+| `github.push` | github | delivery (a review's PASS, `arthur review-needed`'s `no review`, `arthur merge`) | A promise of one line: the branch pushed to origin, or why not. |
 | `github.ci` | github | delivery (`arthur merge --auto`, its CI waits) | `{ project, branch }`: a promise of the run that built the branch with `below`, or undefined (above, "Changes since entry 51"). |
 | `github.cancel` | github | delivery (its CI waits) | `{ project, run }`: a promise of one line once GitHub took the cancel (above, "Changes since entry 51"). |
 | `health` | manage | manage (`arthur health`, its rounds), session | Lines of what should have happened and has not: a line or a list of lines. |

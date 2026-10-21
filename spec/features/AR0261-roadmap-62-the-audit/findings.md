@@ -13,7 +13,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/manage/src/audit.ts` (`AUDITED_PATHS`), `packages/manage/roles/coordinator/audit-ended.md` step 5
 - What: "no commits since the last audit means no job" leaves out only commits that change files under `spec/quality/`, so a `NO PROPOSALS` night followed by an idle day starts no audit. An audit with proposals is committed with its tickets and the board (`spec/features/`, `spec/build.json`), and that commit counts: the next night audits the same code again at up to `audit.budgetUsd`, though nothing but the board changed.
 - Suggestion: the owner decides whether a commit that changes only the board (`spec/build.json`, `spec/features/**`) is a commit to audit; if not, add those paths to `AUDITED_PATHS`' exclusions and say so in docs/manage.md, "When it runs". Out: any other path.
-- Status: open
+- Status: fixed in the commit after 1a50815 (decided 2026-10-21, ticket Decisions: commits touching only `spec/build.json`, `spec/features/**` or `spec/quality/**` do not count)
 
 ## F2. `arthur init` writes the audit criteria as a bare title, not the criteria manage ships
 

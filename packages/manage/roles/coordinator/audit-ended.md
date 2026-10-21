@@ -8,7 +8,7 @@ An audit (kind `audit`) that finished:
 4. A bug or cleanup ticket the autopilot criteria let through: `arthur ticket status <id> planned --autopilot`. It either refuses with one `not pre-approved: …` line, leaving the ticket at `planning` for the owner, or records `Pre-approved by policy` under its Decisions, sets it `planned`, and prints the budget to spawn its worker with: spawn it after the commit of step 5, with `--budget` set to that number.
 5. In the same turn, commit the report, the tickets, the findings and the board together, `git push` if `git remote` lists a remote (if the push fails, tell the owner the error; do not retry), then `arthur prune <job id>`.
 
-On `NO PROPOSALS`: file and commit the report, create nothing, and prune. A commit of the report alone is no commit for the next audit, so a night with nothing new starts none.
+On `NO PROPOSALS`: file and commit the report, create nothing, and prune. A commit that changes only the reports and the board (`spec/quality/`, `spec/features/`, `spec/build.json`) is no commit for the next audit, so a night with nothing new starts none.
 
 An audit that did not finish (stopped, past its time limit, past its budget after its one resume at the budget, or failed) is never filed, however much of a result it has: `arthur ticket file` refuses it and says why. Create nothing, tell the owner in a line, and `arthur prune <job id>`.
 

@@ -121,17 +121,22 @@ test("filed as spec/quality/<date>.md with the commit audited; a second audit th
 	assert.equal(readFileSync(join(root, "spec/quality/2026-10-21.md"), "utf8"), report, "the first report is left as it was");
 });
 
-test("no commit since the last audit's, or only the reports', makes no job; a commit elsewhere, or an audited commit Git lacks, makes one", async (t) => {
+test("no commit since the last audit's, or only the reports' and the board's, makes no job; a commit with any other file, or an audited commit Git lacks, makes one", async (t) => {
 	const { night, printed, commit, root } = await load(t);
 	const audited = commit("audited");
 	mkdirSync(join(root, "spec/quality"));
 	commit("the report", "spec/quality/2026-10-20.md");
 	writeFileSync(join(root, "spec/quality/2026-10-20.md"), `# Audit 2026-10-20\n\n- Job: 2026-10-20-audit-0000000a\n- Commit audited: ${audited}\n\n## Final message\n\nNO PROPOSALS`);
 	commit("the report filed", "spec/quality/notes.txt");
+	writeFileSync(join(root, "spec/build.json"), "[]\n");
+	mkdirSync(join(root, "spec/features/AC0004-new"));
+	commit("the audit's tickets", "spec/features/AC0004-new/ticket.md");
+	commit("a finding", `${FOUND}/findings.md`);
 	assert.equal(await night(), undefined);
 	assert.deepEqual(printed, [`manage: audit: no job, no commit since the last audit's ${audited.slice(0, 12)}`]);
-	commit("new code");
-	assert.notEqual(await night(), undefined);
+	writeFileSync(join(root, "spec/vision.md"), "# Vision, changed\n");
+	commit("the vision and a ticket", "spec/features/AC0004-new/notes.md");
+	assert.notEqual(await night(), undefined, "spec/vision.md is neither a report nor the board");
 	writeFileSync(join(root, "spec/quality/2026-10-20.md"), "# Audit\n\n- Commit audited: 0123456789abcdef0123456789abcdef01234567\n");
 	commit("a commit Git lacks", "spec/quality/2026-10-20.md");
 	assert.notEqual(await night(), undefined, "taken as no audit before");

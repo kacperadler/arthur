@@ -14,8 +14,8 @@ import { stats } from "./stats.ts";
 const KIND = "audit";
 const ROLE = "auditor";
 export const AUDIT_TASK = "Audit the commits since the last audit, then the rest of the repository, as your role and the audit criteria say.";
-// A commit that changes only the reports, as the procedure's commit of a NO PROPOSALS report does, is no commit to audit.
-const AUDITED_PATHS = ["--", ".", `:(exclude)${QUALITY}`];
+// A commit that changes only the reports and the board, as the procedure's commit of an audit does, is no commit to audit.
+const AUDITED_PATHS = ["--", ".", `:(exclude)${QUALITY}`, ":(exclude)spec/build.json", ":(exclude)spec/features"];
 const FINDING = /^## (F\d+)\.[ \t]*(.*)$/m;
 
 // Git's output, or undefined when it exits with an error; Git missing throws.

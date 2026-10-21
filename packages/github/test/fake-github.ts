@@ -5,10 +5,11 @@ import type { TestContext } from "node:test";
 
 // A fake GitHub REST API on a loopback port the OS picks, answering in the shape of GitHub's documentation, every field of it:
 // "List workflow runs for a workflow", "List jobs for a workflow run attempt", "Download job logs for a workflow run" (a 302
-// to the log's text), "Re-run a workflow" (201, the run's next attempt queued), "List pull requests", "List reviews for a
-// pull request", and the headers of "Rate limits for the REST API".
+// to the log's text), "Re-run a workflow" (201, the run's next attempt queued), "Cancel a workflow run" (202, the run
+// cancelled; 409 for one completed), "List pull requests", "List reviews for a pull request", and the headers of "Rate limits
+// for the REST API".
 
-export type FakeRun = { readonly id: number; attempt?: number; readonly sha: string; readonly branch: string; status: "queued" | "in_progress" | "completed"; conclusion: "success" | "failure" | "cancelled" | null };
+export type FakeRun = { readonly id: number; attempt?: number; readonly sha: string; readonly branch: string; status: "queued" | "in_progress" | "completed"; conclusion: "success" | "failure" | "cancelled" | null; readonly started?: string };
 export type FakeStep = { readonly name: string; readonly conclusion: "success" | "failure" | "skipped" };
 export type FakeJob = { readonly id: number; readonly name: string; readonly conclusion: "success" | "failure"; readonly steps: readonly FakeStep[]; readonly log: string };
 // `submitted`, GitHub's `submitted_at` of a review not pending: 2026-01-01 when left out, none when null.
@@ -33,10 +34,10 @@ const repo = (full: string) => ({
 		["archive", "assignees", "blobs", "branches", "collaborators", "comments", "commits", "compare", "contents", "contributors", "deployments", "downloads", "events", "forks", "git_commits", "git_refs", "git_tags", "issue_comment", "issue_events", "issues", "keys", "labels", "languages", "merges", "milestones", "notifications", "pulls", "releases", "stargazers", "statuses", "subscribers", "subscription", "tags", "teams", "trees", "hooks"].map((each) => [`${each}_url`, `${API}/repos/${full}/${each}`]),
 	),
 });
-const shapedRun = (full: string, workflow: string, { id, attempt = 1, sha, branch, status, conclusion }: FakeRun) => ({
+const shapedRun = (full: string, workflow: string, { id, attempt = 1, sha, branch, status, conclusion, started = T }: FakeRun) => ({
 	...{ id, name: "CI", node_id: "MDEyOldvcmtmbG93IFJ1bjI2OTI4OQ==", check_suite_id: 42, check_suite_node_id: "MDEwOkNoZWNrU3VpdGU0Mg==", head_branch: branch, head_sha: sha, path: `.github/workflows/${workflow}@${branch}` },
 	...{ run_number: id % 1000, event: "push", display_title: `on ${branch}`, status, conclusion, workflow_id: 159038, url: `${API}/repos/${full}/actions/runs/${id}`, html_url: `https://github.com/${full}/actions/runs/${id}` },
-	...{ pull_requests: [], created_at: T, updated_at: "2026-01-01T00:01:00Z", actor: user("octocat", 1), run_attempt: attempt, referenced_workflows: [], run_started_at: T, triggering_actor: user("octocat", 1) },
+	...{ pull_requests: [], created_at: T, updated_at: "2026-01-01T00:01:00Z", actor: user("octocat", 1), run_attempt: attempt, referenced_workflows: [], run_started_at: started, triggering_actor: user("octocat", 1) },
 	...Object.fromEntries(["jobs", "logs", "artifacts", "cancel", "rerun"].map((each) => [`${each}_url`, `${API}/repos/${full}/actions/runs/${id}/${each}`])),
 	...{ check_suite_url: `${API}/repos/${full}/check-suites/414944374`, previous_attempt_url: attempt > 1 ? `${API}/repos/${full}/actions/runs/${id}/attempts/${attempt - 1}` : null, workflow_url: `${API}/repos/${full}/actions/workflows/159038` },
 	head_commit: { id: sha, tree_id: "d23f6eedb1e1b9610bbc754ddb5197bfe7271223", message: `on ${branch}`, timestamp: T, author: { name: "test", email: "test@example.com" }, committer: { name: "test", email: "test@example.com" } },
@@ -100,6 +101,13 @@ export async function fakeGithub(t: TestContext) {
 			if (again !== undefined) {
 				[again.attempt, again.status, again.conclusion] = [(again.attempt ?? 1) + 1, "queued", null];
 				return { status: 201, body: {} };
+			}
+			const [stop = ""] = match(/^\/repos\/[^/]+\/[^/]+\/actions\/runs\/(\d+)\/cancel$/) ?? [];
+			const cancelled = everyRun.find((each) => String(each.run.id) === stop && request.method === "POST")?.run;
+			if (cancelled?.status === "completed") return { status: 409, body: { message: "Cannot cancel a workflow run that is completed.", documentation_url: DOCS, status: "409" } };
+			if (cancelled !== undefined) {
+				[cancelled.status, cancelled.conclusion] = ["completed", "cancelled"];
+				return { status: 202, body: {} };
 			}
 			const [pullsOf = ""] = match(/^\/repos\/([^/]+\/[^/]+)\/pulls\?state=open&sort=updated&direction=desc&per_page=100$/) ?? [];
 			if (pulls[pullsOf] !== undefined) return { status: 200, body: pulls[pullsOf].map((pull) => shapedPull(pullsOf, pull)) };

@@ -45,9 +45,11 @@ What works today:
 - Merge (`@arthur/delivery`, entry 54): `arthur merge <job>` merges a branch whose tip has a PASS, or one `arthur review-needed` waved through, into main, `--unreviewed` only on the owner's word; refused, main untouched, for a dirty main, a ticket not in progress, or any `merge.check` answer (the projects plugin's for an onboarding); a conflict aborts it; the install of a changed lockfile and the project's `npm run check` and `npm test` run on main, and a failed one resets main, naming it; then the reviews are filed, the findings go to `findings.onMerge` (left open, said once, while no plugin provides it), `outcome.md` is written, the ticket is merged, and the procedure after a merge names what the coordinator does next.
 - Hand-back after a FAIL (`@arthur/delivery`, entry 55): while `arthur run` runs, a FAIL review is filed, its worker continued with the findings and a new budget (its budget again on top of what it spent) through `host.jobs.continue`, and the next review started when the worker's run finishes; each step goes through every `beforeSpawn`, so `maxAgents` holds, and one refused waits for the next end of a run instead of being dropped; the second FAIL since the last PASS stops at the review limit with its procedure; `/stopall` cancels every hand-back, and stops a continue or review starting as it comes.
 - Changelog (`@arthur/delivery`, entry 56): `arthur changelog` writes a project's `CHANGELOG.md` from its merged tickets, one section per merge day, newest first, and under it Added, Fixed, Changed and Other by each ticket's kind (a ticket without one under Other), each line its id, title and merge commit; the same board gives the same file byte for byte; `arthur merge` rebuilds it after every merge that went in, and the commit after the merge takes it along.
+- Auto-merge (`@arthur/delivery`, entry 59): `arthur merge <job> --auto` merges without the owner only in a project with `autoMerge: true`, with a PASS on the tip itself, no held path in the branch (a role, the vision, the CI workflows, any `package.json`, the always-review list; both names of a renamed file), and CI passed on a commit of the branch, asked of the github plugin through `github.ci`; each refusal names its rule, and `--no-ci` leaves CI out on the owner's word only. CI not passed yet leaves a wait: while `arthur run` runs, the run's end wakes the coordinator with its verdict once per run attempt, across a restart too, and a run still going 30 minutes after its start is cancelled through `github.cancel`.
 - GitHub CI runs (`@arthur/github`, entries 57 and 58): every `poll.everySeconds` the newest runs of each project's `ci.workflow`, read with the token of the instance named after the repository's owner (else the unnamed one); each branch in play (the checkout's own and every job's) gets the run of its nearest commit that has one, so a commit outside the workflow's paths counts the run before it; `ci-finished` once per run attempt, across a restart too, a rerun's end included, waking the coordinator when `wakeOn` names it; a refused token said once, not every poll; a rate limit waits as GitHub says. `arthur ci <branch>` tells why the run that built a branch failed (each failed job and step, the end of its log), `--rerun` reruns a failed or cancelled run once; a branch a review passed and main after `arthur merge` are pushed to origin, one warning line when that fails, never a prompt; with `pull-request-review` in `wakeOn`, the reviews of open pull requests are told once each.
 - Health (`@arthur/manage`, entry 60): `arthur health` and `/health`, one line per thing that should have happened by now and has not, from every plugin's answer to `health` and manage's own checks (a ticket in progress or review with no job for an hour, main not pushed for an hour, the board uncommitted for an hour, the temporary folder or a filesystem's inodes under 10% free), a provider that throws costing its own line only; reads only; with `health.everyMinutes`, `arthur run` sends each round's new lines as one notice, a problem the round before saw never twice in a row, across a restart too.
 - Stats (`@arthur/manage`, entry 61): `arthur stats`, per merged ticket of a project its review rounds and verdicts, its cost from `outcome.md` and its days from made to merged; the mean rounds over the reviewed tickets, the share of first-round PASS, the share pre-approved by autopilot, the 3 most expensive, and the first line of each finding of a FAIL review; a missing cost counts as unknown, never zero.
+- The daily prune (`@arthur/manage`, entry 64): with `prune.keepJobsDays`, the schedule plugin runs manage's entry `manage.prune` each day at 03:00, and once at the next start when `arthur run` was down then: every job that ended that many days ago is freed as `arthur prune` does it (`host.jobs.prune`), and each `arthur-*` folder of the temporary folder changed last more than a day ago is removed, never one made since a running job's run began, a link never followed, one another user owns kept with a line; without the schedule plugin the option refuses the load.
 - New plugins (`@arthur/develop`, entry 66): `arthur plugin new <name> --budget <lines>` makes `packages/<name>/` in Arthur's own checkout, its `package.json`, a plugin file that is its options file too, a test against the fake host and a doc page, adds its line budget to `test/structure.test.ts` and the workspace to `package-lock.json`, and the result passes `npm run check` and `npm test` as created; a bad or taken name, a budget missing, not a positive whole number or below the new source's lines is refused before any file is written.
 
 What is next:
@@ -92,10 +94,10 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | telegram: text, media and the phone menu; the coordinator's silent mode (`/silent`), which every channel follows | built | 47 to 50 |
 | discord: one private server, a main channel for the coordinator and one per project; text, media, phone commands | planned | 89, 90 |
 | voice: local transcription of voice notes | planned | 81 |
-| delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | in progress, 5 of 6 entries | 52 to 56 built; 59 |
+| delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | built | 52 to 56, 59 |
 | github: CI runs, reruns, pushes, pull request reviews | built | 57, 58 |
 | youtrack: issues, articles, comments, attachments, the rules for jobs on an issue | built | 44 to 46 |
-| manage: health, stats, audit, retro, prune on a schedule | in progress, 2 of 5 entries | 60, 61 built; 62 to 64 |
+| manage: health, stats, audit, retro, prune on a schedule | in progress, 3 of 5 entries | 60, 61, 64 built; 62, 63 |
 | develop: `arthur plugin new`, evals | in progress, 1 of 3 entries | 66 built; 67, 68 |
 | Later: signal, slack and whatsapp channels; server, web panel and the owner's mobile app (Expo) by the VPS's Tailscale name; knowledge base; company edition | planned | 73 to 79, 91, 92, 95 |
 
@@ -131,7 +133,7 @@ The commands that exist today, one line each; `arthur <command> --help` prints i
 - `arthur usage [--email]` (`/usage`, models): each account's limit windows from the agent's report, used % and when each resets.
 - `arthur review <worker job> [--round <n>]` (delivery): a review of an ended worker's branch at its tip, its verdict moving the ticket; in `arthur run` a FAIL is handed back to the worker and reviewed again at its end; refused after 2 FAILs since the branch's last PASS until the owner's word gives `--round`.
 - `arthur review-needed <worker job>` (delivery): whether an ended worker's branch needs a review, by the first rule that holds (the always-review list, a deleted file, `.env`, docs only, 30 lines, the job's own checks); `no review` moves the ticket to done.
-- `arthur merge <job> [--unreviewed]` (delivery): an ended job's branch merged into main once its tip has a PASS (or on the owner's word), every `merge.check` answer heard first; install and the project's checks on main, which a failed check resets; then its reviews filed, its findings handed to `findings.onMerge`, `outcome.md` written, the ticket merged and the tickets it unblocks named.
+- `arthur merge <job> [--unreviewed | --auto [--no-ci]]` (delivery): an ended job's branch merged into main once its tip has a PASS (or on the owner's word), every `merge.check` answer heard first; install and the project's checks on main, which a failed check resets; then its reviews filed, its findings handed to `findings.onMerge`, `outcome.md` written, the ticket merged and the tickets it unblocks named. `--auto`: only with `autoMerge` on, a PASS on the tip, no held path and CI passed.
 - `arthur ci <branch> [--rerun]` (github): the run that built a branch, as the poll finds it, and why it failed: each failed job and step and the end of its log; `--rerun` reruns a failed or cancelled run, once per run.
 - `arthur health` (`/health`, manage): one line per thing that should have happened by now and has not, from every plugin's health checks and manage's own, or one line saying nothing is wrong.
 - `arthur stats [--project <name>]` (manage): per merged ticket its review rounds, verdicts, cost and days, then the mean rounds, the share of first-round PASS and of autopilot, the 3 most expensive and the first line of each FAIL finding.
@@ -172,7 +174,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-21.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entries 52 to 56 of 52-56 and 59; github has entries 57 and 58 of 57-58; manage has entries 60 and 61 of 60-64; develop has entry 66 of 66-68; no other plugin exists yet.
+%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entries 52 to 56 and 59 of 52-56 and 59; github has entries 57 and 58 of 57-58; manage has entries 60, 61 and 64 of 60-64; develop has entry 66 of 66-68; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale; from AR0174: the decision log in orchestration.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -245,13 +247,13 @@ flowchart TD
         machines ~~~ resources ~~~ models ~~~ docker ~~~ uptime
       end
       subgraph DELIV[Delivery and trackers]
-        delivery[delivery<br/>review, merge, hand-back, changelog<br/>5 of 6 entries; planned: auto-merge]
+        delivery[delivery<br/>review, merge, hand-back, changelog<br/>auto-merge after a PASS and green CI]
         github[github<br/>polls CI runs, PR reviews<br/>arthur ci, reruns, pushes]
         youtrack[youtrack<br/>reads and writes issues, articles<br/>comments, attachments, rules for jobs]
         delivery ~~~ github ~~~ youtrack
       end
       subgraph SELF[Arthur itself]
-        manage[manage<br/>arthur health, /health, arthur stats<br/>2 of 5 entries; planned: audit, retro, prune]
+        manage[manage<br/>arthur health, /health, arthur stats, the daily prune<br/>3 of 5 entries; planned: audit, retro]
         develop[develop<br/>arthur plugin new<br/>1 of 3 entries; planned: evals]
         manage ~~~ develop
       end
@@ -285,7 +287,7 @@ flowchart TD
     sites[(client sites<br/>HTTP, HTTPS)]
   end
 
-  subgraph LEGEND["Legend: state of main on 2026-10-20"]
+  subgraph LEGEND["Legend: state of main on 2026-10-21"]
     direction LR
     lbuilt[green: built<br/>merged, in packages/]
     lpartial[light green: partly built<br/>N of M entries merged]
@@ -318,8 +320,8 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,parts,api,machines,session,schedule,projects,models,nvm,commit,youtrack,telegram,uptime,github built;
-  class lpartial,orchestration,resources,delivery,manage,develop partial;
+  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,parts,api,machines,session,schedule,projects,models,nvm,commit,youtrack,telegram,uptime,github,delivery built;
+  class lpartial,orchestration,resources,manage,develop partial;
   class lplanned,discord,voice,corelater,agents,findings,docker,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl,sites outside;
   style larrows fill:#fff,stroke:#999,color:#000

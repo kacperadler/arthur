@@ -342,6 +342,37 @@ test("arthur ci refuses: a rerun of a passed run or one not finished, a project 
 		assert.deepEqual(await refused(...args), [2, `arthur ci: ${why}\nusage: arthur ci <branch> [--rerun] [--project <name>]`]);
 });
 
+test("github.ci answers the run that built a branch as arthur ci finds it, how far below the tip, undefined for none, and rejects each refusal; github.cancel asks GitHub to cancel a run and rejects its refusal", async (t) => {
+	const api = await fakeGithub(t);
+	const shop = repository();
+	const built = shop.commit("arthur/one");
+	shop.commit("arthur/one");
+	const run: FakeRun = { id: 60, sha: built, branch: "arthur/one", status: "in_progress", conclusion: null, started: "2026-01-01T00:05:00Z" };
+	api.runs["acme/shop/ci.yml"] = [run];
+	const projects = [
+		{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } },
+		{ name: "plain", path: repository(null).path, prefix: "PL" },
+	];
+	const box = await started(t, projects, options(api.apiUrl));
+	const ci = (project: string, branch: string) => box.fake.call<Promise<unknown>>("github.ci", { project, branch });
+	const url = "https://github.com/acme/shop/actions/runs/60";
+	assert.deepEqual(await ci("shop", "arthur/one"), { id: 60, attempt: 1, sha: built, branch: "arthur/one", status: "in_progress", conclusion: null, url, startedAt: "2026-01-01T00:05:00Z", below: 1 });
+	assert.equal(await ci("shop", "main"), undefined, "no run built main");
+	await assert.rejects(ci("plain", "main"), { message: "project plain has no ci.workflow, so github watches no run of it" });
+	await assert.rejects(ci("shop", "arthur/none"), { message: `no branch arthur/none in ${shop.path}` });
+	const cancel = (project: string, id: number) => box.fake.call<Promise<string>>("github.cancel", { project, run: id });
+	assert.equal(await cancel("shop", 60), "github: cancel of run 60 of acme/shop asked");
+	assert.deepEqual([run.status, run.conclusion, api.seen.filter((each) => each.method === "POST").map((each) => each.path)], ["completed", "cancelled", ["/repos/acme/shop/actions/runs/60/cancel"]]);
+	await assert.rejects(cancel("shop", 60), { message: "instance (unnamed): 409 for run 60 of acme/shop: Cannot cancel a workflow run that is completed." });
+	await assert.rejects(cancel("plain", 60), { message: "project plain has no ci.workflow, so github watches no run of it" });
+	api.state.post = { status: 403, body: { message: "Resource not accessible by personal access token", documentation_url: DOCS, status: "403" } };
+	await assert.rejects(cancel("shop", 60), { message: "instance (unnamed): 403 for run 60 of acme/shop: Resource not accessible by personal access token; the token in ARTHUR_GITHUB_TOKEN needs Actions: read and write on it" });
+	api.state.always = { status: 401, body: { message: "Bad credentials", documentation_url: DOCS, status: "401" } };
+	await assert.rejects(ci("shop", "arthur/one"), { message: "instance (unnamed): 401: the token in ARTHUR_GITHUB_TOKEN was refused: Bad credentials" });
+	delete api.state.always;
+	assert.equal(JSON.stringify(box.errors).includes(TOKEN), false, "the token stays out");
+});
+
 test("github.push pushes a branch to origin, one line; a push rejected as non-fast-forward, no remote, or one that would ask for a credential is one warning line, never a prompt", async (t) => {
 	const api = await fakeGithub(t);
 	// An askpass program that notes it was asked, where git and ssh look for one, and git's terminal prompt left on: a push may

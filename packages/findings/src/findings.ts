@@ -4,9 +4,8 @@ import { findingsCommand } from "./findings-command.ts";
 import { checkOptions, type FindingsOptions, type Mode } from "./findings-options.ts";
 import { type Merged, onMerge } from "./on-merge.ts";
 
-// The findings plugin (spec/roadmap.md, entry 83): the `findings.md` format, its template given to every worker, and its reader,
-// out of the core; `findings.onMerge`, which `arthur merge` asks with the merged ticket's file, each open entry settled as the
-// project's `mode` says; `/findings`, moved here from orchestration, and its line in the coordinator's context. docs/findings.md.
+// The findings plugin (spec/roadmap.md, entry 83): the `findings.md` format, its template in every worker's prompt, and its reader;
+// `findings.onMerge`, each open entry settled as the project's `mode` says; `/findings` and its context line. docs/findings.md.
 
 const TEMPLATE = new URL("../templates/findings.md", import.meta.url);
 

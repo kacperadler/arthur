@@ -1863,9 +1863,9 @@
   {
     "id": "AR0242",
     "title": "The checks on main run on the service's Node, not the project's .nvmrc",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0242-the-checks-on-main-run-on-the-service-s-node-not-the-project-s-nvmrc/ticket.md",
-    "updated": "2026-10-21T09:19:21.673Z",
+    "updated": "2026-10-21T09:42:06.589Z",
     "after": [
       "AR0241"
     ]

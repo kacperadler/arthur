@@ -18,6 +18,7 @@ const PACKAGE = JSON.stringify({ scripts: { check: 'node -e ""', test: "node tes
 
 // The repository `acme` (prefix AC): AC0001 "Shop" planned, AC0002 waiting for it, AC0003 for it and AC0002, all on the
 // board; the project's checks in package.json; a `bun.lock`, whose install is a fake `bun` that notes each call in `bun.log`.
+// `projects.install` answers `answer` (`installAs` sets it, an Error thrown), each request noted in `installs` with main's HEAD.
 // `worker(files)` runs a worker on AC0001 that commits `files`; `review(job, message)` runs a review ending on `message`;
 // `merge(...args)` runs `arthur merge` as the CLI does, a throw being `arthur merge: <message>` and exit code 1.
 async function load(t: TestContext) {
@@ -48,6 +49,13 @@ async function load(t: TestContext) {
 	};
 	const fake = fakeHost({ name: "delivery", root });
 	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC" }]);
+	const installs: unknown[] = [];
+	let answer: string | Error = "bun install --frozen-lockfile";
+	fake.provide("projects.install", (request: { readonly project: string; readonly commit: string }) => {
+		installs.push({ ...request, head: git(root, "rev-parse", "HEAD") });
+		if (answer instanceof Error) throw answer;
+		return answer;
+	});
 	await fake.setup(delivery());
 	const home = dirname(fake.host.folder);
 	const ended = async (id: string) => {
@@ -86,11 +94,11 @@ async function load(t: TestContext) {
 	};
 	const head = () => git(root, "rev-parse", "HEAD");
 	const status = (id: string) => fake.host.board.get(id)?.status;
-	return { root, fake, git, commit, worker, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, failBun: () => writeFileSync(join(bin, "fail"), ""), home };
+	return { root, fake, git, commit, worker, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, installAs: (next: string | Error) => void (answer = next) };
 }
 
 test("a branch with a PASS on its tip goes in: checks pass, its review filed, outcome.md written, the ticket merged, the tickets it unblocks named", async (t) => {
-	const { root, fake, git, worker, review, merge, head, status, bun } = await load(t);
+	const { root, fake, git, worker, review, merge, head, status, bun, installs } = await load(t);
 	const job = await worker({ "shop.ts": "export const shop = 1;\n", "bun.lock": '{ "shop": 1 }\n' });
 	const passed = await review(job.id, "Clean.\n\nPASS");
 	const before = head();
@@ -113,7 +121,8 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 			DONE,
 		].join("\n"),
 	);
-	assert.equal(bun(), "install --frozen-lockfile\n", "the merge changed bun.lock, so its install ran once");
+	assert.equal(bun(), "install --frozen-lockfile\n", "the project's install ran once");
+	assert.deepEqual(installs, [{ project: "acme", commit: "HEAD", head: git(root, "rev-parse", "HEAD") }], "asked of projects.install for the merge commit");
 	assert.match(readFileSync(join(root, FOLDER, "review-1.md"), "utf8"), new RegExp(`^- Job: ${passed}\n- Branch: ${job.branch}\n`, "m"));
 	const outcome = readFileSync(join(root, FOLDER, "outcome.md"), "utf8");
 	assert.match(outcome, new RegExp(`^# AC0001 - Outcome\n\n- Merged: \\d{4}-\\d{2}-\\d{2}, \`${hash}\`\n- Branch: ${job.branch}\n- Reviews: review-1.md PASS\n- Cost: worker \\$\\d+\\.\\d{2}, reviews \\$\\d+\\.\\d{2}; review rounds 1\n`));
@@ -177,7 +186,7 @@ test("a merge conflict leaves main as it was: no merge in progress, the ticket w
 });
 
 test("a failed check resets main and names it; the board's moves stay, main's own install is put back, nothing is written", async (t) => {
-	const { root, git, worker, review, merge, head, status, bun, failBun } = await load(t);
+	const { root, git, worker, review, merge, head, status, bun, failBun, installs } = await load(t);
 	const job = await worker({ broken: "", "bun.lock": '{ "broken": 1 }\n' });
 	await review(job.id, "PASS");
 	const before = head();
@@ -186,6 +195,8 @@ test("a failed check resets main and names it; the board's moves stay, main's ow
 	assert.equal(merged.err, `arthur merge: check failed on main (npm test); main reset to ${before.slice(0, 7)}, branch kept`);
 	assert.match(merged.out, /\nnpm test: failed, 1\/2 passed\.\n[\s\S]*ℹ pass 1\nreinstall of main's dependencies, bun install --frozen-lockfile: passed\.$/);
 	assert.equal(bun(), "install --frozen-lockfile\ninstall --frozen-lockfile\n");
+	const mergeCommit = git(root, "rev-parse", "ORIG_HEAD");
+	assert.deepEqual(installs, [{ project: "acme", commit: "HEAD", head: mergeCommit }, { project: "acme", commit: "HEAD", head: before }], "asked again after the reset, for main's own");
 	assert.equal(head(), before);
 	assert.equal(readFileSync(join(root, "bun.lock"), "utf8"), "{}\n");
 	assert.equal(git(root, "status", "--porcelain", "--untracked-files=no"), "M spec/build.json");
@@ -202,6 +213,36 @@ test("a failed check resets main and names it; the board's moves stay, main's ow
 	);
 	assert.doesNotMatch(install.out, /npm/, "a failed install ends the steps");
 	assert.match(install.out, /error: lockfile had changes/);
+});
+
+test("the install is the project's own, as projects.install answers: a custom command runs, none runs nothing though bun.lock changed, a throw fails the merge", async (t) => {
+	const { root, worker, review, merge, head, status, bun, installAs } = await load(t);
+	installAs("");
+	const job = await worker({ "shop.ts": "export const shop = 1;\n", "bun.lock": '{ "shop": 1 }\n' });
+	await review(job.id, "PASS");
+	const none = await merge(job.id);
+	assert.equal(none.code, undefined, none.err);
+	assert.match(none.out, new RegExp(`^merged ${job.branch} into main: [0-9a-f]+\nnpm run check: passed\\.\nnpm test: 2/2 passed\\.\n`));
+	assert.equal(bun(), "", "no install, though the merge changed bun.lock");
+	installAs("bun run deps");
+	const cart = "spec/features/AC0002-cart";
+	const second = await worker({ "cart.ts": "export const cart = 1;\n" }, `Ticket: ${cart}/ticket.md`);
+	await review(second.id, "PASS");
+	const own = await merge(second.id);
+	assert.equal(own.code, undefined, own.err);
+	assert.match(own.out, new RegExp(`^merged ${second.branch} into main: [0-9a-f]+\nbun run deps: passed\\.\nnpm run check: passed\\.\n`));
+	assert.equal(bun(), "run deps\n", "the project's own command, though no lockfile changed");
+	assert.match(readFileSync(join(root, cart, "outcome.md"), "utf8"), /\n## Checks on main\n\n- `bun run deps`: passed\.\n/);
+	const refusal = "project acme: two known lockfiles (bun.lock, package-lock.json) and no install; set install in its entry of arthur.config.ts";
+	installAs(new Error(refusal));
+	const pay = "spec/features/AC0003-pay";
+	const third = await worker({ "pay.ts": "export const pay = 1;\n", "package-lock.json": "{}\n" }, `Ticket: ${pay}/ticket.md`);
+	await review(third.id, "PASS");
+	const before = head();
+	const thrown = await merge(third.id);
+	assert.equal(thrown.err, `arthur merge: check failed on main (install); main reset to ${before.slice(0, 7)}, branch kept`, "nothing ran, so nothing is reinstalled");
+	assert.match(thrown.out, new RegExp(`^merged ${third.branch} into main: [0-9a-f]+\ninstall: failed, ${refusal.replace(/[()]/g, "\\$&")}\\.$`));
+	assert.deepEqual([head(), bun(), status("AC0003")], [before, "run deps\n", "done"]);
 });
 
 test("refused before anything: wrong usage, no job, a read-only or running job, a gone branch, a detached or dirty main, nothing new, a ticket not mergeable", async (t) => {
@@ -255,7 +296,7 @@ test("merge.check: any text answer refuses with every answer, main unchanged; no
 	answers.fill(undefined);
 	const merged = await merge(job.id, "--unreviewed");
 	assert.equal(merged.code, undefined, merged.err);
-	assert.match(merged.out, new RegExp(`^merged ${job.branch} into main: [0-9a-f]+\nnpm run check: passed\\.\nnpm test: 2/2 passed\\.\nno ticket: no outcome\\.md, nothing moved\n`));
+	assert.match(merged.out, new RegExp(`^merged ${job.branch} into main: [0-9a-f]+\nbun install --frozen-lockfile: passed\\.\nnpm run check: passed\\.\nnpm test: 2/2 passed\\.\nno ticket: no outcome\\.md, nothing moved\n`));
 	assert.equal(git(root, "log", "-1", "--format=%s"), `Merge ${job.branch}`);
 });
 

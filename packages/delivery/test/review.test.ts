@@ -7,6 +7,7 @@ import { type TestContext, test } from "node:test";
 import { coreVersion } from "@arthur/core";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { delivery } from "../src/delivery.ts";
+import { handBack } from "../src/hand-back.ts";
 import { verdictOf } from "../src/review-records.ts";
 
 const PATH = process.env.PATH ?? "";
@@ -258,18 +259,19 @@ test("in arthur run a FAIL is filed, its worker continued with the findings and 
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "coordinator-message"), [], "the repeated end of the first review did nothing");
 });
 
-test("a continue or review refused at maxAgents waits for the next end of a run, then starts", async (t) => {
+test("a continue or review refused at maxAgents waits for the next end of a run, or arthur run's next start, then starts", async (t) => {
 	const { fake, worker, review, ended, field, step } = await load(t, { start: true });
 	const [full, asked] = [new Set<string>(), [] as string[]];
 	fake.host.jobs.beforeSpawn((spawn) => (asked.push(spawn.kind), full.has(spawn.kind) ? "maxAgents is 1 and 1 job is in a run: other; spawn again once one ends" : undefined));
 	const job = await worker();
 	full.add("worker");
 	await review("Missing test.\n\nFAIL", job.id);
-	await until("the continue refused", () => asked.includes("worker"));
+	await until("the continue refused", () => asked.filter((kind) => kind === "worker").length === 2);
 	assert.deepEqual([step(job.id), field(job.id, "continue")], ["continue", undefined]);
 	full.clear();
 	full.add("review");
-	fake.emit("job-ended", { id: "2026-01-01-worker-00000000", state: "ended" });
+	// `arthur run` started again: a new hand-back on the same folder goes on with the one kept.
+	handBack(fake.host).start();
 	await until("the worker continued", () => step(job.id) === "continued");
 	await until("the continued run's end", () => fake.host.jobs.result(job.id).startsWith("Missing test."));
 	await ended(job.id);
@@ -342,4 +344,47 @@ test("a hand-back that cannot go on stops and tells the coordinator: the worker'
 		},
 	]);
 	assert.equal(step(job.id), undefined);
+	// A record broken by hand: said, naming it, at each try.
+	writeFileSync(join(fake.host.folder, "hand-backs", "broken.json"), "{");
+	const said: string[] = [];
+	t.mock.method(console, "error", (text: string) => said.push(text));
+	fake.emit("job-ended", { id: "2026-01-01-worker-00000000", state: "ended" });
+	await until("the broken record named", () => said.length > 0);
+	assert.match(said[0] ?? "", new RegExp(`^delivery: hand-back: ${join(fake.host.folder, "hand-backs", "broken.json")}: not a hand-back record \\(.+\\); remove it$`));
+});
+
+test("a worker's run that ends blocked keeps its hand-back, one that fails ends it, and a review with no verdict ends it", async (t) => {
+	const { fake, worker, review, ended, agent, state, step } = await load(t, { start: true });
+	let hold = false;
+	fake.host.jobs.beforeSpawn((spawn) => (hold && spawn.kind === "worker" ? "maxAgents is 1 and 1 job is in a run: other; spawn again once one ends" : undefined));
+	// The FAIL's continue held at maxAgents, so the continued run plays `run`.
+	const handOver = async (job: { readonly id: string }, run: AgentRun) => {
+		hold = true;
+		await review("Missing test.\n\nFAIL", job.id);
+		await until("the continue held", () => step(job.id) === "continue");
+		agent(run);
+		hold = false;
+		fake.emit("job-ended", { id: "2026-01-01-worker-00000000", state: "ended" });
+		await until("the worker continued", () => step(job.id) === "continued");
+		await until("its run's end", () => !fake.host.jobs.running().includes(job.id));
+	};
+	const blocked = await worker();
+	await handOver(blocked, { steps: [{ message: "Blocked: user which table?" }] });
+	fake.emit("job-ended", { id: blocked.id, state: "blocked" });
+	assert.match(String(fake.collect("coordinator.wake", { id: blocked.id, kind: "worker" })[0]), /itself once its run ends; run no arthur review-needed/);
+	agent({ steps: [{ message: "Looks fine." }] });
+	assert.equal(await fake.host.jobs.continue(blocked.id, "The orders table."), undefined);
+	await until("the answered run's end", () => fake.host.jobs.result(blocked.id) === "Looks fine.");
+	await ended(blocked.id);
+	await until("the next review", () => step(blocked.id) === "reviewing");
+	const [next = ""] = reviews(fake);
+	await until("the review's end", () => state(next) === "ended");
+	fake.emit("job-ended", { id: next, state: "ended" });
+	await until("no verdict ended the hand-back", () => step(blocked.id) === undefined);
+	const failed = await worker();
+	await handOver(failed, { steps: [{ stderr: "boom" }], exitCode: 1 });
+	const count = reviews(fake).length;
+	await ended(failed.id);
+	await until("the failed run ended the hand-back", () => step(failed.id) === undefined);
+	assert.equal(reviews(fake).length, count, "no review of a run that failed");
 });

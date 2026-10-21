@@ -1865,7 +1865,10 @@
     "title": "The checks on main run on the service's Node, not the project's .nvmrc",
     "status": "planning",
     "path": "spec/features/AR0242-the-checks-on-main-run-on-the-service-s-node-not-the-project-s-nvmrc/ticket.md",
-    "updated": "2026-10-20T22:41:01.444Z"
+    "updated": "2026-10-21T06:50:40.934Z",
+    "after": [
+      "AR0241"
+    ]
   },
   {
     "id": "AR0243",
@@ -1884,8 +1887,8 @@
   {
     "id": "AR0245",
     "title": "arthur stats: remove the unreachable unknown-project throw",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0245-arthur-stats-remove-the-unreachable-unknown-project-throw/ticket.md",
-    "updated": "2026-10-20T23:07:25.158Z"
+    "updated": "2026-10-21T06:50:40.729Z"
   }
 ]

@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-20: Source: F1 of AR0236
+- 2026-10-21: Approved by the owner (Telegram, morning report).

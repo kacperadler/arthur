@@ -4,7 +4,10 @@
 {
   "id": "AR0242",
   "title": "The checks on main run on the service's Node, not the project's .nvmrc",
-  "date": "2026-10-21"
+  "date": "2026-10-21",
+  "after": [
+    "AR0241"
+  ]
 }
 ```
 
@@ -35,3 +38,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F2 of AR0239
+- 2026-10-21: Approved by the owner (Telegram, morning report).

@@ -1856,9 +1856,9 @@
   {
     "id": "AR0241",
     "title": "arthur merge installs from the lockfile and never reads a project's own install",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0241-arthur-merge-installs-from-the-lockfile-and-never-reads-a-project-s-own-install/ticket.md",
-    "updated": "2026-10-21T06:50:54.910Z"
+    "updated": "2026-10-21T08:15:29.914Z"
   },
   {
     "id": "AR0242",
@@ -1873,9 +1873,9 @@
   {
     "id": "AR0243",
     "title": "The onboarding procedure does not name the command that merges an onboarding",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0243-the-onboarding-procedure-does-not-name-the-command-that-merges-an-onboarding/ticket.md",
-    "updated": "2026-10-21T06:50:55.324Z"
+    "updated": "2026-10-21T08:23:02.221Z"
   },
   {
     "id": "AR0244",
@@ -1887,8 +1887,8 @@
   {
     "id": "AR0245",
     "title": "arthur stats: remove the unreachable unknown-project throw",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0245-arthur-stats-remove-the-unreachable-unknown-project-throw/ticket.md",
-    "updated": "2026-10-21T06:50:40.729Z"
+    "updated": "2026-10-21T08:13:09.778Z"
   }
 ]

@@ -4,6 +4,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ## 2026-10-21
 
+### Added
+
+- AR0243 The onboarding procedure does not name the command that merges an onboarding (9611adf)
+
 ### Other
 
 - AR0239 Roadmap 54: arthur merge (2b0d0b4)

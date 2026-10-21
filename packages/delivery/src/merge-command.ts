@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import type { Command, Host, JobRecord } from "@arthur/core/plugin";
+import { writeChangelog } from "./changelog.ts";
 import { failed, mainChecks, reinstall } from "./merge-checks.ts";
 import { settleTicket } from "./merge-outcome.ts";
 import { FEATURE } from "./review-command.ts";
@@ -13,8 +14,9 @@ import { reviewsOf } from "./review-records.ts";
 // the plugin that provides `github.push` (entry 58), when one is loaded. docs/commands/merge.md.
 
 const USAGE = "usage: arthur merge <job> [--unreviewed]";
-// The board's moves since the last commit are left uncommitted until the commit after a merge, so they are no dirt.
-const BOARD = "spec/build.json";
+// The board's moves since the last commit are left uncommitted until the commit after a merge, so they are no dirt; nor is the
+// changelog each merge rebuilds (changelog.ts).
+const DERIVED = ["spec/build.json", "CHANGELOG.md"];
 const MERGEABLE = ["in-progress", "review", "done"];
 
 export function mergeCommand(host: Host, procedure: URL): Command {
@@ -61,7 +63,7 @@ function merge(host: Host, name: string, unreviewed: boolean): { readonly projec
 		if (existsSync(join(root, folder, "outcome.md"))) throw new Error(`${folder}/outcome.md already exists: ${ticket.id} was merged before`);
 	}
 	const status = git("status", "--porcelain", "--untracked-files=no");
-	const dirty = status.stdout.split("\n").flatMap((line) => (line.length > 3 && line.slice(3) !== BOARD ? [line.slice(3)] : []));
+	const dirty = status.stdout.split("\n").flatMap((line) => (line.length > 3 && !DERIVED.includes(line.slice(3)) ? [line.slice(3)] : []));
 	if (status.status !== 0 || dirty.length > 0) throw new Error(`${main} has uncommitted changes in ${dirty.join(", ") || `?: ${last(status)}`}; commit or stash them first; main is unchanged`);
 	const before = git("rev-parse", "HEAD").stdout.trim();
 	const subjects = git("log", "--reverse", "--no-merges", "--format=%s", `${before}..${tip}`).stdout.trim();
@@ -92,6 +94,7 @@ function merge(host: Host, name: string, unreviewed: boolean): { readonly projec
 	}
 	if (ticket === undefined || folder === undefined) console.log("no ticket: no outcome.md, nothing moved");
 	else settleTicket(host, { job, ticket, folder, root, hash, subjects: subjects.split("\n"), steps, gap }, console.log);
+	console.log(writeChangelog(host, job.project));
 	return { project: job.project, branch: main };
 }
 

@@ -4,7 +4,10 @@
 {
   "id": "AR0251",
   "title": "A hand-back refused for good is retried at every run's end, silently",
-  "date": "2026-10-21"
+  "date": "2026-10-21",
+  "after": [
+    "AR0253"
+  ]
 }
 ```
 
@@ -14,7 +17,7 @@ every `beforeSpawn` refusal keeps the hand-back's step and tries it again at the
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+A hand-back refused by a rule no freed slot lifts (core's or delivery's own refusal) is not retried silently for ever: it ends and tells the coordinator once, with the reason; other plugins' refusals are still retried.
 
 - Kind: risk
 
@@ -35,3 +38,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F1 of AR0247
+- 2026-10-21: Approved by the owner (Telegram).

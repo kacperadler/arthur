@@ -1890,5 +1890,12 @@
     "status": "in-progress",
     "path": "spec/features/AR0245-arthur-stats-remove-the-unreachable-unknown-project-throw/ticket.md",
     "updated": "2026-10-21T08:13:09.778Z"
+  },
+  {
+    "id": "AR0246",
+    "title": "Roadmap 58: arthur ci, reruns, pushes, pull request reviews",
+    "status": "planned",
+    "path": "spec/features/AR0246-roadmap-58-arthur-ci-reruns-pushes-pull-request-reviews/ticket.md",
+    "updated": "2026-10-21T08:23:25.282Z"
   }
 ]

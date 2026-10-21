@@ -198,6 +198,49 @@ test("a branch deleted while in play leaves it: its run is not told, nothing is 
 	assert.deepEqual([box.notices(), box.errors], [[], []]);
 });
 
+test("a branch delivery.ciEnded answers true for is left out of the wake and the others stay; with none left, no wake; ci-finished still names every branch; a project's first poll asks it of a run already finished, and tells nothing", async (t) => {
+	const api = await fakeGithub(t);
+	const shop = repository();
+	const tip = shop.commit("arthur/waits");
+	git(shop.path, "branch", "arthur/also", "arthur/waits");
+	shop.commit("arthur/also");
+	const run: FakeRun = { id: 41, sha: tip, branch: "arthur/waits", status: "in_progress", conclusion: null };
+	api.runs["acme/shop/ci.yml"] = [run, { id: 40, sha: shop.commit("arthur/old"), branch: "arthur/old", status: "completed", conclusion: "success" }];
+	const project = { name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } };
+	const fake = fakeHost({ name: "github", options: options(api.apiUrl), env: { ARTHUR_GITHUB_TOKEN: TOKEN } });
+	fake.provide("projects", () => [project]);
+	// The test as delivery: the branches whose CI wait it says it woke the coordinator for.
+	let waits = ["arthur/waits", "arthur/old"];
+	const asked: (readonly unknown[])[] = [];
+	fake.provide("delivery.ciEnded", (end: { readonly project: string; readonly branch: string; readonly below: number; readonly run: { readonly id: number; readonly attempt: number } }) => {
+		asked.push([end.project, end.branch, end.below, end.run.id, end.run.attempt]);
+		return waits.includes(end.branch);
+	});
+	// The jobs written as the core does before the first poll, so it sees their branches in play.
+	for (const [id, branch] of [["10", "arthur/waits"], ["11", "arthur/also"], ["12", "arthur/old"]] as const) {
+		mkdirSync(join(dirname(fake.host.folder), "jobs", `2026-01-01-worker-000000${id}`), { recursive: true });
+		for (const [key, value] of Object.entries({ kind: "worker", project: "shop", branch, state: "working" })) writeFileSync(join(dirname(fake.host.folder), "jobs", `2026-01-01-worker-000000${id}`, key), value);
+	}
+	const box = await started(t, [project], options(api.apiUrl), undefined, fake);
+	await until("a poll", () => api.count(PATH) >= 2);
+	assert.deepEqual([asked, box.finished()], [[["shop", "arthur/old", 0, 40, 1]], []], "the first poll asks of run 40 and tells nothing");
+	[run.status, run.conclusion] = ["completed", "failure"];
+	await until("the run's end", () => box.finished().length === 1);
+	assert.deepEqual([...(box.finished()[0]?.branches ?? [])].sort(), ["arthur/also", "arthur/waits"]);
+	assert.deepEqual(asked.slice(1).sort(), [
+		["shop", "arthur/also", 1, 41, 1],
+		["shop", "arthur/waits", 0, 41, 1],
+	]);
+	const ci = "arthur ci arthur/also --project shop";
+	assert.deepEqual(box.messages(), [`[github] CI run 41, attempt 1, of ci.yml in shop ended failure on arthur/also (${tip.slice(0, 7)}): https://github.com/acme/shop/actions/runs/41\nWhy: ${ci}; rerun it once: ${ci} --rerun`]);
+	waits = ["arthur/waits", "arthur/also"];
+	[run.attempt, run.status, run.conclusion] = [2, "completed", "success"];
+	await until("the rerun's end", () => box.finished().length === 2);
+	const polls = api.count(PATH);
+	await until("two more polls", () => api.count(PATH) >= polls + 2);
+	assert.equal(box.messages().length, 1, "every branch woken by delivery: github says nothing");
+});
+
 test("a 401 is said once, not every poll, for every project of the instance; once GitHub answers, a new 401 is said again", async (t) => {
 	const api = await fakeGithub(t);
 	const [shop, site] = [repository(), repository("https://github.com/acme/site")];

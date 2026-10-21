@@ -248,6 +248,49 @@ test("the install is the project's own, as projects.install answers: a custom co
 	assert.deepEqual([head(), bun(), status("AC0003")], [before, "run deps\n", "done"]);
 });
 
+test("with nvm.path provided, the install and checks run on its PATH, asked for main's checkout before them and again for the reinstall; a throw fails the merge", async (t) => {
+	const { root, fake, git, worker, review, merge, head, status, installAs } = await load(t);
+	// nvm's Node: a `node` that notes its arguments, then runs this Node.
+	const node = temporaryFolder();
+	writeFileSync(join(node, "node"), `#!/bin/sh\necho "$*" >> '${join(node, "node.log")}'\nexec '${process.execPath}' "$@"\n`, { mode: 0o755 });
+	const ran = () => (existsSync(join(node, "node.log")) ? readFileSync(join(node, "node.log"), "utf8").split("\n") : []);
+	const asked: unknown[] = [];
+	let answer: string | Error = "";
+	fake.provide("nvm.path", (request: { readonly root: string }) => {
+		asked.push({ ...request, head: head() });
+		if (answer instanceof Error) throw answer;
+		return answer;
+	});
+	writeFileSync(join(root, "install.js"), 'console.log("installed");\n');
+	git(root, "add", "install.js");
+	git(root, "commit", "--quiet", "-m", "an install script");
+	installAs("node install.js");
+	answer = `${node}${delimiter}${process.env.PATH}`;
+	const job = await worker();
+	await review(job.id, "PASS");
+	const merged = await merge(job.id);
+	assert.equal(merged.code, undefined, merged.err);
+	assert.deepEqual(asked, [{ root, head: head() }], "asked once, for the merge commit, before the steps");
+	assert.deepEqual([ran().includes("install.js"), ran().includes("-e "), ran().includes("test.js")], [true, true, true], ran().join("\n"));
+
+	const cart = "spec/features/AC0002-cart";
+	const second = await worker({ broken: "" }, `Ticket: ${cart}/ticket.md`);
+	await review(second.id, "PASS");
+	const before = head();
+	const failing = await merge(second.id);
+	assert.equal(failing.err, `arthur merge: check failed on main (npm test); main reset to ${before.slice(0, 7)}, branch kept`);
+	assert.match(failing.out, /\nreinstall of main's dependencies, node install\.js: passed\.$/);
+	assert.deepEqual(asked.slice(1), [{ root, head: git(root, "rev-parse", "ORIG_HEAD") }, { root, head: before }], "asked again for main's own after the reset");
+
+	const refusal = `Node 99, which ${root}/.nvmrc names, is not installed on machine local; fix: nvm install 99 there`;
+	answer = new Error(refusal);
+	const calls = ran().length;
+	const thrown = await merge(second.id);
+	assert.equal(thrown.err, `arthur merge: check failed on main (node); main reset to ${before.slice(0, 7)}, branch kept`, "nothing ran, so nothing is reinstalled");
+	assert.equal(thrown.out, `merged ${second.branch} into main: ${git(root, "rev-parse", "--short", "ORIG_HEAD")}\nnode: failed, ${refusal}.`);
+	assert.deepEqual([head(), ran().length, status("AC0002")], [before, calls, "done"]);
+});
+
 test("refused before anything: wrong usage, no job, a read-only or running job, a gone branch, a detached or dirty main, nothing new, a ticket not mergeable", async (t) => {
 	const { root, fake, git, worker, review, merge, head, status } = await load(t);
 	assert.deepEqual(await merge(), { code: 2, out: "", err: "arthur merge: no job\nusage: arthur merge <job> [--unreviewed]" });

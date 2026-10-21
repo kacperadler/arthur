@@ -25,6 +25,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0245 arthur stats: remove the unreachable unknown-project throw (4116eec)
 - AR0249 The vision still says `ci-finished` is keyed by run id
+- AR0268 The coordinator's role names `arthur findings`, which a config without the findings plugin no longer has (2796ca0)
 
 ### Other
 

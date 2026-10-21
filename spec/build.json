@@ -2036,9 +2036,9 @@
   {
     "id": "AR0265",
     "title": "No health line for a finished audit that was never filed",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0265-no-health-line-for-a-finished-audit-that-was-never-filed/ticket.md",
-    "updated": "2026-10-21T13:54:34.977Z",
+    "updated": "2026-10-21T14:59:04.831Z",
     "after": [
       "AR0266"
     ]
@@ -2060,9 +2060,9 @@
   {
     "id": "AR0268",
     "title": "The coordinator's role names `arthur findings`, which a config without the findings plugin no longer has",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0268-the-coordinator-s-role-names-arthur-findings-which-a-config-without-the-findings-plugin-no-longer-has/ticket.md",
-    "updated": "2026-10-21T14:54:34.682Z",
+    "updated": "2026-10-21T15:02:48.482Z",
     "after": [
       "AR0258"
     ]

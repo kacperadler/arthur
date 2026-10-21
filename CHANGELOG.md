@@ -34,6 +34,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0254 Roadmap 64: prune and temporary folders on a schedule (bcce4ca)
 - AR0256 Roadmap 66: arthur plugin new (456975d)
 - AR0261 Roadmap 62: the audit (1212afc)
+- AR0262 Roadmap 69: free disk space per machine (92cfbeb)
 - AR0263 Roadmap 83: findings, what happens to them per project (e0d14fb)
 
 ## 2026-10-20

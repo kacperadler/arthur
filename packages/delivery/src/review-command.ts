@@ -73,8 +73,8 @@ export function worker(host: Host, name: string): JobRecord {
 
 // The review's task: its head, the lines the plugin and placement read (the one `Ticket:`, `Branch:`, `Commit:`, `Round:` past
 // the limit), then the range to judge and the worker's final message, whose own `Ticket:` words are escaped so the core and
-// placement read the review's ticket alone.
-function reviewTask(host: Host, job: JobRecord, round: number | undefined): { readonly task: string; readonly commit: string } {
+// placement read the review's ticket alone; the hand-back's next review is built the same way.
+export function reviewTask(host: Host, job: JobRecord, round: number | undefined): { readonly task: string; readonly commit: string } {
 	const { folder, commit, base, head } = branchOf(host, job);
 	const result = host.jobs.result(job.id).trim().replaceAll(/\bTicket:/g, "Ticket\\:");
 	const task = [

@@ -179,7 +179,7 @@ test("a worker or a continue on a pre-approved ticket needs a budget above 0 and
 	await assert.rejects(jobs.spawn({ task, budgetUsd: 0 }), over("0 (no limit)"));
 	const worker = await jobs.spawn({ task, budgetUsd: 1.5 });
 	await ended(worker.id);
-	await assert.rejects(fake.continue(worker.id, "Go on.", 10), over("10"));
+	await assert.rejects(fake.host.jobs.continue(worker.id, "Go on.", 10), over("10"));
 	// The owner's own approval after the record lifts it; one before it does not.
 	writeFileSync(join(root, small), `# AC0002\n\n## Goal\n\n- Kind: bug\n\n${decisions.replace("- 2026-01-02", "- 2026-01-01: The owner approved this.\n- 2026-01-02")}`);
 	commit("approved before");
@@ -199,7 +199,7 @@ test("a worker or a continue on a pre-approved ticket on a free model starts wit
 	const worker = await jobs.spawn({ task: `Ticket: ${small}`, model: "mac/qwen3", budgetUsd: 2 });
 	assert.deepEqual([worker.budgetUsd, worker.free, worker.failed], [0, true, undefined]);
 	await ended(worker.id);
-	assert.equal(await fake.continue(worker.id, "Go on."), undefined, "its record's budget of 0 on its free model");
+	assert.equal(await fake.host.jobs.continue(worker.id, "Go on."), undefined, "its record's budget of 0 on its free model");
 	await ended(worker.id);
 	const refused = /^refused by orchestration: AC0002 is pre-approved by policy with a budget of \$1\.5; its worker gets at most that, above 0, not \$0 \(no limit\)/;
 	await assert.rejects(jobs.spawn({ task: `Ticket: ${small}`, model: "anthropic/opus", budgetUsd: 0 }), { message: refused });

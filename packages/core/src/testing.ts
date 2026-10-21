@@ -85,10 +85,9 @@ export type FakeHost = {
 	// The commands it registered, in order; `host.commands.route` answers a channel's `/name text` with them.
 	readonly commands: readonly Command[];
 	// The kinds of job and the roles it registered, in order; `host.jobs.spawn` runs its checks and steps on a real worktree of
-	// `root` and builds the role's prompt there, with the sections the test provides as `prompt`; `continue` is `arthur continue`.
+	// `root` and builds the role's prompt there, with the sections the test provides as `prompt`; `host.jobs.continue` is `arthur continue`.
 	readonly kinds: readonly Kind[];
 	readonly roles: readonly Role[];
-	continue(id: string, instruction: string, budgetUsd?: number): Promise<string | undefined>;
 	// The events the plugin emitted, as logged, in the order of their sequence numbers.
 	readonly emitted: readonly Event[];
 	// The test as another plugin: drives what the plugin provides, or provides what it calls.
@@ -187,7 +186,6 @@ export function fakeHost(plugin: {
 		commands,
 		kinds,
 		roles,
-		continue: (id, instruction, budgetUsd) => jobs.continue(id, instruction, budgetUsd),
 		get emitted() {
 			return bus.read(1).filter((event) => event.plugin === plugin.name);
 		},

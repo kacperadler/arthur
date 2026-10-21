@@ -7,6 +7,7 @@ import { type TestContext, test } from "node:test";
 import { coreVersion } from "@arthur/core";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { delivery } from "../src/delivery.ts";
+import { handBack } from "../src/hand-back.ts";
 import { verdictOf } from "../src/review-records.ts";
 
 const PATH = process.env.PATH ?? "";
@@ -16,9 +17,10 @@ const OTHER = "spec/features/AC0002-other/ticket.md";
 const PROCEDURE = readFileSync(new URL("../roles/coordinator/review-limit.md", import.meta.url), "utf8").trim();
 
 // The repository `acme` (prefix AC): ticket AC0001, labelled os=macos, and AC0002, both planned; delivery set up on the fake
-// host with its project list. `worker()` runs a worker on AC0001 and commits a file on its branch, as a worker would;
-// `review(message, ...args)` runs `arthur review` with the fake agent playing a reviewer whose final message is `message`.
-async function load(t: TestContext) {
+// host with its project list, and with `start` started as `arthur run` starts it, so it hands a FAIL back. `worker()` runs a
+// worker on AC0001 and commits a file on its branch, as a worker would; `review(message, ...args)` runs `arthur review` with
+// the fake agent playing a reviewer whose final message is `message`.
+async function load(t: TestContext, { start = false } = {}) {
 	const root = join(temporaryFolder(), "acme");
 	for (const [path, json] of [[TICKET, '{ "id": "AC0001", "requires": { "os": "macos" } }'], [OTHER, '{ "id": "AC0002" }']] as const) {
 		mkdirSync(join(root, dirname(path)), { recursive: true });
@@ -39,7 +41,9 @@ async function load(t: TestContext) {
 	};
 	const fake = fakeHost({ name: "delivery", root });
 	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC" }]);
-	await fake.setup(delivery());
+	const plugin = delivery();
+	await fake.setup(plugin);
+	if (start) await plugin.start?.();
 	const home = dirname(fake.host.folder);
 	const state = (id: string) => (existsSync(join(home, "jobs", id, "state")) ? readFileSync(join(home, "jobs", id, "state"), "utf8") : "");
 	const ended = async (id: string) => {
@@ -69,7 +73,18 @@ async function load(t: TestContext) {
 		return { id, code, err: err.join("\n") };
 	};
 	const status = (id: string) => fake.host.board.get(id)?.status;
-	return { root, fake, git, worker, review, status, home };
+	// A job's record file, and the step of a worker's hand-back (none without one).
+	const field = (id: string, name: string) => (existsSync(join(home, "jobs", id, name)) ? readFileSync(join(home, "jobs", id, name), "utf8") : undefined);
+	const step = (id: string) => {
+		const path = join(fake.host.folder, "hand-backs", `${id}.json`);
+		const record: unknown = existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : undefined;
+		return typeof record === "object" && record !== null && "step" in record ? record.step : undefined;
+	};
+	return { root, fake, git, worker, review, status, home, state, ended, agent, field, step, plugin };
+}
+
+async function until(what: string, holds: () => boolean) {
+	for (const deadline = Date.now() + 15_000; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
 }
 
 test("the verdict is the last line, exactly PASS or FAIL; anything else is none", () => {
@@ -123,22 +138,29 @@ test("PASS not on the last line is no verdict: the run ends failed, the ticket s
 	assert.throws(() => fake.host.jobs.file("AC0001", none.id), { message: `${none.id} ended ended (${reason}), not finished: its result is unfinished and is never filed; prune it` });
 	assert.deepEqual(readdirSync(join(root, FOLDER)), ["ticket.md"]);
 	assert.deepEqual(fake.collect("coordinator.wake", { id: job.id, kind: "worker" }), [undefined], "a worker's wake gets nothing");
+	// One that `arthur stop` or `stopall` stopped is started again only on the owner's word.
+	writeFileSync(join(home, "jobs", none.id, "reason"), "stopped");
+	assert.match(String(fake.collect("coordinator.wake", { id: none.id, kind: "review" })[0]), new RegExp(`^Review ${none.id} was stopped, so it has no verdict, .* Review again only when the owner asks: arthur review ${job.id};`));
 });
 
 test("a FAIL moves the ticket back to in-progress and pushes nothing; a third review after 2 FAILs is refused naming both, until --round 3", async (t) => {
-	const { fake, worker, review, status, home } = await load(t);
+	const { root, fake, worker, review, status, home } = await load(t);
 	const pushes: unknown[] = [];
 	fake.provide("github.push", (branch: unknown) => (pushes.push(branch), Promise.resolve("github: pushed")));
 	const job = await worker();
 	const first = await review("Missing test.\n\nFAIL", job.id);
 	assert.equal(status("AC0001"), "in-progress");
 	assert.deepEqual(pushes, [], "a FAIL pushes nothing");
+	assert.deepEqual(readdirSync(join(root, FOLDER)), ["ticket.md"], "outside arthur run no hand-back: nothing filed");
 	const wake = (id: string) => String(fake.collect("coordinator.wake", { id, kind: "review" })[0]);
-	assert.equal(wake(first.id), `Review verdict: FAIL on ${job.branch} at ${job.commit.slice(0, 7)}, 1 since its last PASS; AC0001 moves back to in-progress. File it: arthur ticket file AC0001 ${first.id}, commit it, then arthur prune ${first.id}.`);
+	const filed = (id: string) => `Delivery files it as the next review-N.md in AC0001's folder; commit that, then arthur prune ${id}.`;
+	assert.equal(
+		wake(first.id),
+		`Review verdict: FAIL on ${job.branch} at ${job.commit.slice(0, 7)}, 1 since its last PASS; AC0001 moves back to in-progress. ${filed(first.id)} It hands the branch back: ${job.id} continues with the findings and a new budget, and the next review starts when it ends; arthur stopall cancels it.`,
+	);
 	assert.equal((await review("x\nFAIL", job.id, "--round", "3")).err, `arthur review: refused by delivery: round 3 is not the next one of ${job.branch}: it has 1 FAIL since its last PASS, so the next round is 2`);
 	const second = await review("Still missing.\n\nFAIL", job.id);
-	assert.ok(wake(second.id).endsWith(`2 since its last PASS; AC0001 moves back to in-progress. File it: arthur ticket file AC0001 ${second.id}, commit it, then arthur prune ${second.id}.\n\n${PROCEDURE}`), "the second FAIL's wake carries the procedure");
-	assert.ok(!wake(first.id).includes(PROCEDURE));
+	assert.ok(wake(second.id).endsWith(`2 since its last PASS; AC0001 moves back to in-progress. ${filed(second.id)} The hand-back stops at the limit.\n\n${PROCEDURE}`), "the second FAIL's wake carries the procedure");
 	const refused = await review("PASS", job.id);
 	assert.equal(refused.code, 1);
 	const reason = `refused by delivery: 2 FAILs on ${job.branch} since its last PASS: ${first.id}, ${second.id}; the owner decides what comes next, and only on his word: arthur review ${job.id} --round 3`;
@@ -215,4 +237,177 @@ test("refused before any job: not a worker, in a run, no ticket, nothing to revi
 	await assert.rejects(fake.host.jobs.spawn({ task: `Ticket: ${TICKET}\nBranch: ${job.branch}\nCommit: ${job.commit}`, kind: "review" }), {
 		message: new RegExp(`^plugin delivery: beforeSpawn failed: ${join(fake.host.folder, "reviews", "broken.json")}: not a review record \\(.+\\); restore it or remove it$`),
 	});
+});
+
+const reviews = (fake: { readonly host: { readonly jobs: { list(): readonly { readonly id: string; readonly kind: string }[] } } }) =>
+	fake.host.jobs.list().filter((each) => each.kind === "review").map((each) => each.id);
+
+test("in arthur run a FAIL is filed, its worker continued with the findings and a new budget, reviewed again at its end; the second FAIL stops at the limit", async (t) => {
+	const { root, fake, worker, review, home, ended, field, step } = await load(t, { start: true });
+	const job = await worker();
+	writeFileSync(join(home, "jobs", job.id, "cost"), "1.25");
+	// The reviewer's run plays for the continued worker and the next review too: each ends on FAIL.
+	const first = await review("Missing test.\n\nFAIL", job.id);
+	await until("the worker continued", () => step(job.id) === "continued");
+	assert.match(readFileSync(join(root, FOLDER, "review-1.md"), "utf8"), new RegExp(`^# AC0001 - Review 1\n\n- Job: ${first.id}\n.*- Verdict: FAIL\n`, "s"));
+	assert.equal(field(job.id, "continue"), `Review ${first.id} of your branch ${job.branch} says FAIL. Fix every finding below, run the project's checks, commit, and end: Arthur reviews the branch again when you end.\n\n## The review's final message\n\nMissing test.\n\nFAIL`);
+	assert.equal(field(job.id, "budget"), "3.25", "its budget of $2 again on top of the $1.25 it spent");
+	fake.emit("job-ended", { id: first.id, state: "ended" });
+	await until("the continued run's end", () => fake.host.jobs.result(job.id).startsWith("Missing test."));
+	await ended(job.id);
+	await until("the next review", () => step(job.id) === "reviewing");
+	assert.match(String(fake.collect("coordinator.wake", { id: job.id, kind: "worker" })[0]), new RegExp(`^${job.id} is in delivery's hand-back after FAIL ${first.id}: delivery starts the next review of ${job.branch} itself when a slot is free; run no arthur review-needed or arthur review for it\\.$`));
+	const [next = ""] = reviews(fake).filter((id) => id !== first.id);
+	assert.equal(readFileSync(join(home, "jobs", next, "task"), "utf8").split("\n\n")[0], `Ticket: ${TICKET}\nBranch: ${job.branch}\nCommit: ${job.commit}`);
+	await ended(next);
+	await until("the second FAIL filed and the hand-back ended", () => existsSync(join(root, FOLDER, "review-2.md")) && step(job.id) === undefined);
+	assert.equal(reviews(fake).length, 2, "no third review");
+	assert.equal(field(job.id, "budget"), "3.25", "not continued again");
+	assert.match(String(fake.collect("coordinator.wake", { id: next, kind: "review" })[0]), new RegExp(`2 since its last PASS; .* The hand-back stops at the limit\\.\n\n${PROCEDURE.slice(0, 20)}`));
+	assert.equal(fake.collect("coordinator.wake", { id: job.id, kind: "worker" })[0], undefined);
+	assert.deepEqual(fake.emitted.filter((event) => event.name === "coordinator-message"), [], "the repeated end of the first review did nothing");
+});
+
+test("a FAIL's end delivered before arthur run's start, as its replay of the log is, is handed back once it starts", async (t) => {
+	const { root, worker, review, step, plugin } = await load(t);
+	const job = await worker();
+	await review("Missing test.\n\nFAIL", job.id);
+	assert.deepEqual([readdirSync(join(root, FOLDER)), step(job.id)], [["ticket.md"], undefined]);
+	await plugin.start?.();
+	await until("the worker continued", () => step(job.id) === "continued");
+	assert.ok(existsSync(join(root, FOLDER, "review-1.md")));
+});
+
+test("a continue or review refused at maxAgents waits for the next end of a run, or arthur run's next start, then starts", async (t) => {
+	const { fake, worker, review, ended, field, step } = await load(t, { start: true });
+	const [full, asked] = [new Set<string>(), [] as string[]];
+	fake.host.jobs.beforeSpawn((spawn) => (asked.push(spawn.kind), full.has(spawn.kind) ? "maxAgents is 1 and 1 job is in a run: other; spawn again once one ends" : undefined));
+	const job = await worker();
+	full.add("worker");
+	await review("Missing test.\n\nFAIL", job.id);
+	await until("the continue refused", () => asked.filter((kind) => kind === "worker").length === 2);
+	assert.deepEqual([step(job.id), field(job.id, "continue")], ["continue", undefined]);
+	full.clear();
+	full.add("review");
+	// `arthur run` started again: a new hand-back on the same folder goes on with the one kept.
+	handBack(fake.host).start();
+	await until("the worker continued", () => step(job.id) === "continued");
+	await until("the continued run's end", () => fake.host.jobs.result(job.id).startsWith("Missing test."));
+	await ended(job.id);
+	await until("the review refused", () => asked.filter((kind) => kind === "review").length === 2);
+	assert.deepEqual([step(job.id), reviews(fake).length], ["review", 1]);
+	full.clear();
+	fake.emit("job-ended", { id: "2026-01-01-worker-00000000", state: "ended" });
+	await until("the next review", () => step(job.id) === "reviewing");
+	assert.equal(reviews(fake).length, 2);
+});
+
+test("stop-all cancels the hand-back: between the worker's end and its review, before a FAIL's end is acted on, and while a review starts", async (t) => {
+	const { root, fake, worker, review, ended, agent, state, step } = await load(t, { start: true });
+	let [refuse, stopIn, refused] = [false, "", 0];
+	fake.host.jobs.beforeSpawn((spawn) => {
+		// As `arthur stopall` would land while this spawn is under way.
+		if (spawn.kind === stopIn) {
+			stopIn = "";
+			fake.emit("stop-all", { ids: [] });
+		}
+		if (!refuse || spawn.kind !== "review") return undefined;
+		refused++;
+		return "maxAgents is 1 and 1 job is in a run: other; spawn again once one ends";
+	});
+	// Between the worker's end and its review, the review waiting for a slot.
+	const one = await worker();
+	await review("Missing test.\n\nFAIL", one.id);
+	refuse = true;
+	await until("the worker continued", () => step(one.id) === "continued");
+	await until("the continued run's end", () => fake.host.jobs.result(one.id).startsWith("Missing test."));
+	await ended(one.id);
+	await until("the review refused", () => refused === 1 && step(one.id) === "review");
+	fake.emit("stop-all", { ids: [] });
+	assert.equal(step(one.id), undefined);
+	refuse = false;
+	fake.emit("job-ended", { id: "2026-01-01-worker-00000000", state: "ended" });
+	// A FAIL ended just before a stop-all: filed, never handed back. Its handling comes after the end above, so once it filed,
+	// that end was acted on too.
+	const two = await worker();
+	agent({ steps: [{ message: "Wrong file.\n\nFAIL" }] });
+	const failed = await fake.host.jobs.spawn({ task: `Ticket: ${TICKET}\nBranch: ${two.branch}\nCommit: ${two.commit}`, kind: "review", fetch: two.commit });
+	await until("the review's end", () => state(failed.id) === "ended");
+	fake.emit("job-ended", { id: failed.id, state: "ended" });
+	fake.emit("stop-all", { ids: [] });
+	await until("the FAIL filed", () => readdirSync(join(root, FOLDER)).filter((name) => name.startsWith("review-")).length === 2);
+	assert.deepEqual([step(one.id), step(two.id), reviews(fake).length], [undefined, undefined, 2], "no review of the first, no hand-back of the second");
+	// A stop-all while the next review starts: the review is stopped.
+	const three = await worker();
+	await review("Missing test.\n\nFAIL", three.id);
+	await until("the worker continued", () => step(three.id) === "continued");
+	await until("the continued run's end", () => fake.host.jobs.result(three.id).startsWith("Missing test."));
+	stopIn = "review";
+	await ended(three.id);
+	await until("a fourth review", () => reviews(fake).length === 4);
+	const [started = ""] = reviews(fake);
+	await until("its run stopped", () => !fake.host.jobs.running().includes(started));
+	assert.deepEqual([state(started), fake.host.jobs.list().find((each) => each.id === started)?.reason], ["blocked", "user: arthur stopall cancelled delivery's hand-back"]);
+	assert.equal(
+		fake.collect("coordinator.wake", { id: started, kind: "review" })[0],
+		`Review ${started} was stopped, so it has no verdict, is never filed, and AC0001 stays at review. Review again only when the owner asks: arthur review ${three.id}; arthur prune ${started} frees it.`,
+	);
+	assert.equal(step(three.id), undefined);
+});
+
+test("a hand-back that cannot go on stops and tells the coordinator: the worker's worktree gone", async (t) => {
+	const { fake, worker, review, field, step } = await load(t, { start: true });
+	const job = await worker();
+	rmSync(field(job.id, "worktree") ?? "", { recursive: true });
+	const failed = await review("Missing test.\n\nFAIL", job.id);
+	await until("the coordinator told", () => fake.emitted.some((event) => event.name === "coordinator-message"));
+	assert.deepEqual(fake.emitted.filter((event) => event.name === "coordinator-message").map((event) => event.data), [
+		{
+			text: `Delivery's hand-back of ${job.branch} after FAIL ${failed.id} stopped: ${job.id}: its worktree was pruned; spawn a new job on its branch ${job.branch}. Hand it back yourself: arthur continue ${job.id} '<the findings of ${failed.id}>', then arthur review ${job.id} once it ends.`,
+		},
+	]);
+	assert.equal(step(job.id), undefined);
+	// A record broken by hand: said, naming it, at each try.
+	writeFileSync(join(fake.host.folder, "hand-backs", "broken.json"), "{");
+	const said: string[] = [];
+	t.mock.method(console, "error", (text: string) => said.push(text));
+	fake.emit("job-ended", { id: "2026-01-01-worker-00000000", state: "ended" });
+	await until("the broken record named", () => said.length > 0);
+	assert.match(said[0] ?? "", new RegExp(`^delivery: hand-back: ${join(fake.host.folder, "hand-backs", "broken.json")}: not a hand-back record \\(.+\\); remove it$`));
+});
+
+test("a worker's run that ends blocked keeps its hand-back, one that fails ends it, and a review with no verdict ends it", async (t) => {
+	const { fake, worker, review, ended, agent, state, step } = await load(t, { start: true });
+	let hold = false;
+	fake.host.jobs.beforeSpawn((spawn) => (hold && spawn.kind === "worker" ? "maxAgents is 1 and 1 job is in a run: other; spawn again once one ends" : undefined));
+	// The FAIL's continue held at maxAgents, so the continued run plays `run`.
+	const handOver = async (job: { readonly id: string }, run: AgentRun) => {
+		hold = true;
+		await review("Missing test.\n\nFAIL", job.id);
+		await until("the continue held", () => step(job.id) === "continue");
+		agent(run);
+		hold = false;
+		fake.emit("job-ended", { id: "2026-01-01-worker-00000000", state: "ended" });
+		await until("the worker continued", () => step(job.id) === "continued");
+		await until("its run's end", () => !fake.host.jobs.running().includes(job.id));
+	};
+	const blocked = await worker();
+	await handOver(blocked, { steps: [{ message: "Blocked: user which table?" }] });
+	fake.emit("job-ended", { id: blocked.id, state: "blocked" });
+	assert.match(String(fake.collect("coordinator.wake", { id: blocked.id, kind: "worker" })[0]), /itself once its run ends; run no arthur review-needed/);
+	agent({ steps: [{ message: "Looks fine." }] });
+	assert.equal(await fake.host.jobs.continue(blocked.id, "The orders table."), undefined);
+	await until("the answered run's end", () => fake.host.jobs.result(blocked.id) === "Looks fine.");
+	await ended(blocked.id);
+	await until("the next review", () => step(blocked.id) === "reviewing");
+	const [next = ""] = reviews(fake);
+	await until("the review's end", () => state(next) === "ended");
+	fake.emit("job-ended", { id: next, state: "ended" });
+	await until("no verdict ended the hand-back", () => step(blocked.id) === undefined);
+	const failed = await worker();
+	await handOver(failed, { steps: [{ stderr: "boom" }], exitCode: 1 });
+	const count = reviews(fake).length;
+	await ended(failed.id);
+	await until("the failed run ended the hand-back", () => step(failed.id) === undefined);
+	assert.equal(reviews(fake).length, count, "no review of a run that failed");
 });

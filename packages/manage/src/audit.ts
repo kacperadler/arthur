@@ -15,7 +15,7 @@ import { stats } from "./stats.ts";
 const KIND = "audit";
 const ROLE = "auditor";
 export const AUDIT_TASK = "Audit the commits since the last audit, then the rest of the repository, as your role and the audit criteria say.";
-const AUDITS: Reports = { folder: "spec/quality", title: "Audit", commit: "Commit audited" };
+export const AUDITS: Reports = { folder: "spec/quality", title: "Audit", commit: "Commit audited" };
 // A commit that changes only the reports and the board, as the procedure's commit of an audit does, is no commit to audit.
 const AUDITED_PATHS = ["--", ".", `:(exclude)${AUDITS.folder}`, ":(exclude)spec/build.json", ":(exclude)spec/features"];
 const FINDING = /^## (F\d+)\.[ \t]*(.*)$/m;

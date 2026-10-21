@@ -1977,9 +1977,9 @@
   {
     "id": "AR0257",
     "title": "A waiting branch's CI end wakes the coordinator twice",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0257-a-waiting-branch-s-ci-end-wakes-the-coordinator-twice/ticket.md",
-    "updated": "2026-10-21T15:20:46.839Z"
+    "updated": "2026-10-21T15:28:32.211Z"
   },
   {
     "id": "AR0258",
@@ -1998,9 +1998,9 @@
   {
     "id": "AR0260",
     "title": "`arthur plugin new` writes into the project's checkout, never a job's worktree",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0260-arthur-plugin-new-writes-into-the-project-s-checkout-never-a-job-s-worktree/ticket.md",
-    "updated": "2026-10-21T13:54:34.547Z"
+    "updated": "2026-10-21T15:48:07.015Z"
   },
   {
     "id": "AR0261",
@@ -2036,9 +2036,9 @@
   {
     "id": "AR0265",
     "title": "No health line for a finished audit that was never filed",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0265-no-health-line-for-a-finished-audit-that-was-never-filed/ticket.md",
-    "updated": "2026-10-21T15:22:50.706Z",
+    "updated": "2026-10-21T15:56:09.919Z",
     "after": [
       "AR0266"
     ]

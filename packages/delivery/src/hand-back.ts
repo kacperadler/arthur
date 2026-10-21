@@ -6,10 +6,10 @@ import { failsSincePass, LIMIT, type Review, type Verdict } from "./review-recor
 
 // The hand-back after a FAIL review (spec/roadmap.md, entry 55), in `arthur run` alone, so one process acts: the FAIL filed, its
 // worker continued with the findings and a new budget, the next review spawned when the worker's run finished, each through
-// the host, so every `beforeSpawn` (`maxAgents`) holds. A refusal (`refused by <plugin>: ...`) keeps the step for the next
-// `job-ended`, when a slot may be free; any other error drops the hand-back and tells the coordinator. `stop-all` drops every
-// hand-back, and a job a step started meanwhile is stopped. The second FAIL since the last PASS starts none: the limit's
-// procedure goes to the coordinator. docs/commands/review.md, "Hand-back".
+// the host, so every `beforeSpawn` (`maxAgents`) holds. Another plugin's refusal keeps the step for the next `job-ended`,
+// when a slot may be free; the core's or delivery's own, which no freed slot lifts, and any other error drop the hand-back
+// and tell the coordinator. `stop-all` drops every hand-back, and a job a step started meanwhile is stopped. The second FAIL
+// since the last PASS starts none: the limit's procedure goes to the coordinator. docs/commands/review.md, "Hand-back".
 
 // `continue`: the worker is to be continued; `continued`: its run goes on; `review`: the next review is to start; `reviewing`: it runs.
 type Step = "continue" | "continued" | "review" | "reviewing";
@@ -65,7 +65,7 @@ export function handBack(host: Host): HandBack {
 			id = await run();
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			if (!message.startsWith("refused by ")) tell(record, message);
+			if (!message.startsWith("refused by ") || ["core", host.name].some((owner) => message.startsWith(`refused by ${owner}: `))) tell(record, message);
 			return;
 		}
 		if (read(record.worker) === undefined) await host.jobs.block(id, CANCELLED, true);

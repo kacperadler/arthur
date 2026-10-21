@@ -58,43 +58,43 @@ test("a new package passes npm run check, its own test and the structure test as
 	const root = copy();
 	const plugin = await load(t, root);
 	const before = budgets(root);
-	assert.deepEqual(await plugin(["new", "acme-bot", "--budget", "40"]), {
+	assert.deepEqual(await plugin(["new", "acme-test-plugin", "--budget", "40"]), {
 		code: 0,
 		out: [
-			"created packages/acme-bot: package.json, src/acme-bot.ts, test/acme-bot.test.ts, docs/acme-bot.md",
-			'added "acme-bot": 40 to BUDGETS in test/structure.test.ts, and @arthur/acme-bot to package-lock.json',
-			"next: write what it does, and list acmeBot() in the plugins of arthur.config.ts to load it",
+			"created packages/acme-test-plugin: package.json, src/acme-test-plugin.ts, test/acme-test-plugin.test.ts, docs/acme-test-plugin.md",
+			'added "acme-test-plugin": 40 to BUDGETS in test/structure.test.ts, and @arthur/acme-test-plugin to package-lock.json',
+			"next: write what it does, and list acmeTestPlugin() in the plugins of arthur.config.ts to load it",
 		].join("\n"),
 		err: "",
 	});
-	assert.equal((await plugin(["new", "radio", "--budget=25"])).code, 0, "a budget of exactly the new src/ lines");
-	assert.equal(budgets(root), `${before}, "acme-bot": 40, radio: 25`);
+	assert.equal((await plugin(["new", "acmetest", "--budget=25"])).code, 0, "a budget of exactly the new src/ lines");
+	assert.equal(budgets(root), `${before}, "acme-test-plugin": 40, acmetest: 25`);
 	assert.deepEqual(changed(root).split("\n").filter(Boolean).sort(), [
 		" M package-lock.json",
 		" M test/structure.test.ts",
-		"?? packages/acme-bot/docs/acme-bot.md",
-		"?? packages/acme-bot/package.json",
-		"?? packages/acme-bot/src/acme-bot.ts",
-		"?? packages/acme-bot/test/acme-bot.test.ts",
-		"?? packages/radio/docs/radio.md",
-		"?? packages/radio/package.json",
-		"?? packages/radio/src/radio.ts",
-		"?? packages/radio/test/radio.test.ts",
+		"?? packages/acme-test-plugin/docs/acme-test-plugin.md",
+		"?? packages/acme-test-plugin/package.json",
+		"?? packages/acme-test-plugin/src/acme-test-plugin.ts",
+		"?? packages/acme-test-plugin/test/acme-test-plugin.test.ts",
+		"?? packages/acmetest/docs/acmetest.md",
+		"?? packages/acmetest/package.json",
+		"?? packages/acmetest/src/acmetest.ts",
+		"?? packages/acmetest/test/acmetest.test.ts",
 	]);
 	const lock = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8")).packages;
-	assert.deepEqual([lock["node_modules/@arthur/acme-bot"], lock["packages/acme-bot"]], [{ resolved: "packages/acme-bot", link: true }, { name: "@arthur/acme-bot", license: "Apache-2.0" }]);
+	assert.deepEqual([lock["node_modules/@arthur/acme-test-plugin"], lock["packages/acme-test-plugin"]], [{ resolved: "packages/acme-test-plugin", link: true }, { name: "@arthur/acme-test-plugin", license: "Apache-2.0" }]);
 	const keys = Object.keys(lock);
 	assert.deepEqual(keys, [...keys].sort(), "in npm's order");
-	assert.equal(readlinkSync(join(root, "node_modules", "@arthur", "acme-bot")), join("..", "..", "packages", "acme-bot"));
+	assert.equal(readlinkSync(join(root, "node_modules", "@arthur", "acme-test-plugin")), join("..", "..", "packages", "acme-test-plugin"));
 
 	const check = run(root, "npm", "run", "check");
 	assert.equal(check.status, 0, check.stdout + check.stderr);
-	const tests = run(root, process.execPath, "--import", "@arthur/core/testing", "--test", "packages/acme-bot/test/acme-bot.test.ts", "packages/radio/test/radio.test.ts", "test/structure.test.ts");
+	const tests = run(root, process.execPath, "--import", "@arthur/core/testing", "--test", "packages/acme-test-plugin/test/acme-test-plugin.test.ts", "packages/acmetest/test/acmetest.test.ts", "test/structure.test.ts");
 	assert.equal(tests.status, 0, tests.stdout + tests.stderr);
-	for (const ran of ["acme-bot sets up on the fake host", "radio sets up on the fake host", "the repository keeps every rule"]) assert.match(tests.stdout, new RegExp(`^✔ ${ran}`, "m"), ran);
+	for (const ran of ["acme-test-plugin sets up on the fake host", "acmetest sets up on the fake host", "the repository keeps every rule"]) assert.match(tests.stdout, new RegExp(`^✔ ${ran}`, "m"), ran);
 	// The specifier as an argument: written out here, the structure test would take it for this package's import.
-	const options = run(root, process.execPath, "--input-type=module", "-e", "const o = await import(process.argv[1]); console.log(o.summary, Object.keys(o.table).length, o.tools.length)", "@arthur/acme-bot/options");
-	assert.equal(options.stdout, "acme-bot: what the plugin does, in one line 0 0\n", "arthur setup reads its options file");
+	const options = run(root, process.execPath, "--input-type=module", "-e", "const o = await import(process.argv[1]); console.log(o.summary, Object.keys(o.table).length, o.tools.length)", "@arthur/acme-test-plugin/options");
+	assert.equal(options.stdout, "acme-test-plugin: what the plugin does, in one line 0 0\n", "arthur setup reads its options file");
 
 	mkdirSync(join(root, "packages", "stray", "test"), { recursive: true });
 	writeFileSync(join(root, "packages", "stray", "package.json"), '{ "name": "@arthur/stray", "license": "Apache-2.0" }\n');

@@ -338,7 +338,11 @@ import { checkStructure } from "./structure.ts";
 // check through `host.jobs.beforeSpawn` refuses as the plugin under test; delivery unchanged (1232).
 // Merged main (AR0253, AR0254) into AR0256: main's budgets plus AR0256's develop 198 (recounted with wc -l).
 // Merged main (AR0254, AR0256) into AR0251: main's budgets plus AR0251's core/testing 349 (recounted with wc -l).
-const BUDGETS = { core: 5730, "core/testing": 349, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1232, github: 621, manage: 452, develop: 198 };
+// AR0263 (roadmap 83): findings: 254, set for the findings.md reader (findings-file.ts, 48), `findings.onMerge` and its three
+// modes, the new tickets filled from their findings (on-merge.ts, 70), `/findings` moved from orchestration (findings-command.ts,
+// 65), `mode` and its check (findings-options.ts, 38), and the plugin, its template in the worker's prompt (findings.ts, 33);
+// orchestration 22 fewer (1520), `/findings` and its branch lookup gone from board-commands.ts; core unchanged.
+const BUDGETS = { core: 5730, "core/testing": 349, projects: 486, orchestration: 1520, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1232, github: 621, manage: 452, develop: 198, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

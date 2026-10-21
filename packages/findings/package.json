@@ -1,0 +1,10 @@
+{
+  "name": "@arthur/findings",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/findings.ts",
+    "./options": "./src/findings-options.ts"
+  }
+}

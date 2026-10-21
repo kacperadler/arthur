@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `.agents/arthur/criteria/` (missing); `packages/manage/criteria/retro.md`, `packages/manage/criteria/audit.md`
 - What: with a config whose project is this repository (`projects({ list: [{ name: "arthur", prefix: "AR", path: ".." }] })`), `arthur roles` prints `criteria .agents/arthur/criteria/retro.md  missing: a spawn warns and starts without it`; `ls .agents/arthur/criteria` says no such folder. Once Arthur runs itself, its retro and audit start without the criteria that say what is worth a proposal; the harness's own files sit in `.agents/harness/criteria/`, where `retro.md` is four bare headings.
 - Suggestion: before the switch, copy the criteria manage and orchestration ship (`audit.md`, `retro.md`, `autopilot.md`) and the styleguide and review criteria into `.agents/arthur/criteria/`, or point the project's `prompts.criteriaDir` at `.agents/harness/criteria/` and fill its `retro.md`. Out: changing what the roles read.
-- Status: open
+- Status: ticket AR0272

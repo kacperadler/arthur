@@ -51,6 +51,7 @@ What works today:
 - Health (`@arthur/manage`, entry 60): `arthur health` and `/health`, one line per thing that should have happened by now and has not, from every plugin's answer to `health` and manage's own checks (a ticket in progress or review with no job for an hour, main not pushed for an hour, the board uncommitted for an hour, the temporary folder or a filesystem's inodes under 10% free), a provider that throws costing its own line only; reads only; with `health.everyMinutes`, `arthur run` sends each round's new lines as one notice, a problem the round before saw never twice in a row, across a restart too.
 - Stats (`@arthur/manage`, entry 61): `arthur stats`, per merged ticket of a project its review rounds and verdicts, its cost from `outcome.md` and its days from made to merged; the mean rounds over the reviewed tickets, the share of first-round PASS, the share pre-approved by autopilot, the 3 most expensive, and the first line of each finding of a FAIL review; a missing cost counts as unknown, never zero.
 - The audit (`@arthur/manage`, entry 62): the kind `audit`, read-only on the auditor role and the audit criteria, its prompt the commits since the last audit (a commit of only the reports and the board left out), the board digest, the stats since then, the open findings and the vision's path; up to 5 proposals or `NO PROPOSALS`; `arthur ticket file <job>`, with no ticket, files it as `spec/quality/<date>.md` (`-2.md` for a second that day) with the commit audited, never a failed one; one resume at its budget, doubled; with `audit.at` and `audit.days` the schedule runs `manage.audit`, which starts no job on another day or with no commit since the last audit; the procedure its end brings.
+- The retro (`@arthur/manage`, entry 63): the kind `retro`, read-only on the retro role and the retro criteria, its prompt the merges since the last retro with each merged ticket's outcome, FAIL reviews and findings to read, the stats since then, the board digest, and the role files, procedures and criteria the plugins ship; `arthur retro-due`, due at 10 merges with 2 FAIL reviews or 5 findings, its line in the coordinator's context on every turn; `arthur ticket file <job>` files it as `spec/retro/<date>.md` with the commit it looked back from, and its phone page `spec/retro/<date>.html`; `/retro` sends the newest page through the channel it came from; with `retro.day` and `retro.at` the schedule runs `manage.retro` weekly, which starts no job while none is due; the procedure its end brings.
 - The daily prune (`@arthur/manage`, entry 64): with `prune.keepJobsDays`, the schedule plugin runs manage's entry `manage.prune` each day at 03:00, and once at the next start when `arthur run` was down then: every job that ended that many days ago is freed as `arthur prune` does it (`host.jobs.prune`), and each `arthur-*` folder of the temporary folder changed last more than a day ago is removed, never one made since a running job's run began, a link never followed, one another user owns kept with a line; without the schedule plugin the option refuses the load.
 - New plugins (`@arthur/develop`, entry 66): `arthur plugin new <name> --budget <lines>` makes `packages/<name>/` in Arthur's own checkout, its `package.json`, a plugin file that is its options file too, a test against the fake host and a doc page, adds its line budget to `test/structure.test.ts` and the workspace to `package-lock.json`, and the result passes `npm run check` and `npm test` as created; a bad or taken name, a budget missing, not a positive whole number or below the new source's lines is refused before any file is written.
 
@@ -86,7 +87,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | session: compaction, fresh start, `/restart`, restart guard, start notice and LLM probe | built | 35 to 38 |
 | schedule: actions and jobs at set times, registered entries, `arthur schedule` | built | 39, 40 |
 | machines: the list, labels and SSH checks, `arthur machines`; placing each job by labels | built | 30, 31 |
-| resources: caps per job and per feature, free CPU, memory and disk | in progress, 3 of 4 entries | 32 to 34 built; 69 |
+| resources: caps per job and per feature, free CPU, memory and disk | built | 32 to 34, 69 |
 | models: providers on other machines, a fallback chain, `arthur usage` | built | 82 |
 | docker: labels, cleanup with each worktree, the leftover sweep | planned | 70 to 72 |
 | nvm: each project's Node version | built | 84 |
@@ -99,7 +100,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | built | 52 to 56, 59 |
 | github: CI runs, reruns, pushes, pull request reviews | built | 57, 58 |
 | youtrack: issues, articles, comments, attachments, the rules for jobs on an issue | built | 44 to 46 |
-| manage: health, stats, audit, retro, prune on a schedule | in progress, 4 of 5 entries | 60, 61, 62, 64 built; 63 |
+| manage: health, stats, audit, retro, prune on a schedule | built | 60 to 64 |
 | develop: `arthur plugin new`, evals | in progress, 1 of 3 entries | 66 built; 67, 68 |
 | Later: signal, slack and whatsapp channels; server, web panel and the owner's mobile app (Expo) by the VPS's Tailscale name; knowledge base; company edition | planned | 73 to 79, 91, 92, 95 |
 
@@ -118,7 +119,7 @@ The commands that exist today, one line each; `arthur <command> --help` prints i
 - `arthur continue <id> <instruction>`: resumes an ended or blocked worker in place: same id, branch, worktree and session.
 - `arthur prune (<id>... | --all)`: frees the worktree, branch and record of ended jobs, as far as Git finds it safe.
 - `arthur roles`: every role, its model, and the files its prompt reads.
-- `arthur ticket new|status|after|file`: creates a ticket, moves it to another status, sets the tickets it waits for, or files a finished job's final message, in its ticket's folder or, for an audit, in `spec/quality/`.
+- `arthur ticket new|status|after|file`: creates a ticket, moves it to another status, sets the tickets it waits for, or files a finished job's final message, in its ticket's folder or, for an audit, in `spec/quality/`, and for a retro in `spec/retro/` with its phone page.
 - `arthur version`: the version of the core, which a machine that runs jobs must match.
 - `arthur remote-job`: the half of a job on another machine that runs there; Arthur runs it over SSH, a person has no reason to.
 - `arthur attach` (orchestration): attaches this terminal to the coordinator's tmux session.
@@ -139,6 +140,8 @@ The commands that exist today, one line each; `arthur <command> --help` prints i
 - `arthur ci <branch> [--rerun]` (github): the run that built a branch, as the poll finds it, and why it failed: each failed job and step and the end of its log; `--rerun` reruns a failed or cancelled run, once per run.
 - `arthur health` (`/health`, manage): one line per thing that should have happened by now and has not, from every plugin's health checks and manage's own, or one line saying nothing is wrong.
 - `arthur stats [--project <name>]` (manage): per merged ticket its review rounds, verdicts, cost and days, then the mean rounds, the share of first-round PASS and of autopilot, the 3 most expensive and the first line of each FAIL finding.
+- `arthur retro-due [--project <name>]` (manage): whether a retro is due, 10 merges since the last retro with 2 FAIL reviews or 5 findings in them, as one line naming the counts.
+- `arthur retro [--project <name>]` (`/retro`, manage): the newest retro's phone page, its path; `/retro` sends it as a file.
 - `arthur youtrack issue|article list|get|create|update|move|attachments|delete`, `issue set|tag|untag|links|link|unlink|work`, `issue work list|edit|delete`, `comment list|add|edit|delete`, `attachment add|delete` (youtrack): a project's YouTrack issues and articles with their comments and attachments, read, written and deleted on the instance its `tracker` picks; open issues grouped by state, searched with `--query`, custom fields, tags, links, work items, sub-articles, and attachments saved to `.arthur/youtrack/<id>/`.
 
 ## Try it
@@ -176,7 +179,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-21.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entries 52 to 56 and 59 of 52-56 and 59; github has entries 57 and 58 of 57-58; manage has entries 60 to 62 and 64 of 60-64; develop has entry 66 of 66-68; findings has entry 83 of 83; no other plugin exists yet.
+%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 and 69 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entries 52 to 56 and 59 of 52-56 and 59; github has entries 57 and 58 of 57-58; manage has entries 60 to 64 of 60-64; develop has entry 66 of 66-68; findings has entry 83 of 83; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale; from AR0174: the decision log in orchestration.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -242,7 +245,7 @@ flowchart TD
       end
       subgraph RES[Machines and resources]
         machines[machines<br/>list, labels, SSH checks<br/>places each job by labels]
-        resources[resources<br/>caps, free CPU, disk<br/>3 of 4 entries]
+        resources[resources<br/>caps per job and feature<br/>free CPU, memory, disk]
         models[models<br/>providers, fallback chain<br/>arthur usage]
         docker[docker<br/>labels, cleanup, sweep]
         uptime[uptime<br/>client sites over HTTP<br/>down and up notices]
@@ -255,7 +258,7 @@ flowchart TD
         delivery ~~~ github ~~~ youtrack
       end
       subgraph SELF[Arthur itself]
-        manage[manage<br/>arthur health, /health, arthur stats, the audit, the daily prune<br/>4 of 5 entries; planned: retro]
+        manage[manage<br/>arthur health, /health, arthur stats, the daily prune<br/>the audit, the retro, arthur retro-due, /retro]
         develop[develop<br/>arthur plugin new<br/>1 of 3 entries; planned: evals]
         manage ~~~ develop
       end
@@ -322,8 +325,8 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,parts,api,machines,session,schedule,projects,models,nvm,commit,youtrack,telegram,uptime,github,delivery,findings built;
-  class lpartial,orchestration,resources,manage,develop partial;
+  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,parts,api,machines,session,schedule,projects,models,nvm,commit,youtrack,telegram,uptime,github,delivery,findings,resources,manage built;
+  class lpartial,orchestration,develop partial;
   class lplanned,discord,voice,corelater,agents,docker,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl,sites outside;
   style larrows fill:#fff,stroke:#999,color:#000

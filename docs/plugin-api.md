@@ -61,6 +61,7 @@ What `setup` gets, one host per plugin. `@arthur/core/testing`'s `fakeHost` give
 | `jobs.registerMachine(machine)` | A `Machine` jobs run on over SSH; `local` is the core's. |
 | `jobs.run(machine, argv, limitSeconds?, input?)` | One command on a registered machine, `input` on its stdin; resolves to a `Ran`. |
 | `jobs.machines()` | The names of the registered machines. |
+| `jobs.home(machine)` | Arthur's home folder on a registered machine, the core's own on `local`; refused for a name no plugin registers (above, "Changes since entry 51"). |
 | `jobs.spawn(request)` | A job from a `SpawnRequest`; resolves to `Started` once its wrapper started. |
 | `jobs.continue(id, instruction, budgetUsd?)` | `arthur continue` of an ended job with a branch, `budgetUsd` replacing its budget, through every `beforeSpawn` and `prepare` as at the CLI; resolves to why its wrapper did not start, undefined once it started (above, "Changes since entry 51"). |
 | `jobs.block(id, reason, stop?)` | Holds a job in a run `blocked` on `dependency: <reason>` until its run ends; with `stop`, on `user: <reason>`, and stops the run, resolving once it is over. Refused for an empty reason and a job not in a run. |
@@ -102,6 +103,7 @@ Each decided in the ticket that made it.
 - AR0254 (roadmap 64, which runs the core's prune on a schedule; the ticket's Done means allow a new member recorded here): `jobs.prune(ids)`, the runner's `arthur prune <id>...` given to plugins, its lines and refusals the CLI's; `--all` stays the CLI's, so a plugin names each job it frees. Manage's daily prune of `prune.keepJobsDays` uses it (docs/manage.md in its package).
 - AR0261 (roadmap 62, which files an audit with `arthur ticket file`, by kind, in `spec/quality/`; the ticket's Done means allow a host change recorded here): `arthur ticket file <job>` and `jobs.file(undefined, job)` file a finished job whose task names no ticket by its kind's `file`, which then gets `Filing.ticket` undefined; a job whose task names a ticket is refused without it (`<job>'s task names <ids>; file it in its ticket: arthur ticket file <id> <job>`). `Filing.root`, the project's folder, replaces `Filing.ticket.root`, so a filing of no ticket has it too. Manage's `audit` uses it (docs/manage.md in its package); orchestration's and delivery's filers read `root`.
 - AR0251 (the ticket's Done means: a test that the hand-back ends on delivery's own refusal and still retries another plugin's): the test kit's `FakeHost.beforeSpawn(check)`, the test as the plugin `test` refusing a spawn (`refused by test: <reason>`), since a check through `host.jobs.beforeSpawn` refuses as the plugin itself. No host member changed.
+- AR0262 (roadmap 69, which counts each machine's `home`; the ticket's Done means allow a new member recorded here): `jobs.home(machine)`, the `home` a `Machine` was registered with, `<home>` itself on `local`, which no member gave a plugin; a name no plugin registers is refused as a spawn's `machine` is, `unknown machine <name>; machines: <names>`. The resources plugin reads the free disk of that folder's filesystem there. The provided name `resources.disk`, asked by resources with `collect` at each check of a machine with a disk floor: `(machine)` to an absolute path, or a list of them, on that machine that its jobs write (docker: its data root, entry 70), or a promise of either.
 
 ## Types
 
@@ -167,7 +169,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | Name | Provided by | Asked by | The answer |
 | --- | --- | --- | --- |
 | `projects` | projects | the core (`host.board`, a spawn's checkout), plugins | The project list. |
-| `prompt` | commit-rules, findings, projects, youtrack | the core, `collect` at a spawn | A section of the prompt for `(role, job)`. |
+| `prompt` | commit-rules, findings, manage, projects, youtrack | the core, `collect` at a spawn | A section of the prompt for `(role, job)`. |
 | `doctor` | machines, models, nvm, projects | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
 | `jobs.place` | machines | the core, each spawn | The machine a job runs on. |
 | `jobs.limits` | resources | the core, each spawn | The job's own caps. |
@@ -175,17 +177,18 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `models.pick` | models | the core, each spawn with a model | `{ model, why, free }` for `(list, machine)`. |
 | `roles.model` | orchestration | the core, session | `{ model, thinking, quick, mcp }` of a role; `mcp` its MCP servers in omp's `mcpServers` shape (AR0234). |
 | `message.part` | none yet (voice) | the core (`turnText`) | A `Claim` for a part it handles. |
-| `channel.send` | telegram | the core (`arthur send`) | A check of `{ files, caption?, place? }` that throws every refusal, or a function that sends. |
+| `channel.send` | telegram | the core (`arthur send`), manage (`/retro`, only the channel the command came from) | A check of `{ files, caption?, place? }` that throws every refusal, or a function that sends. |
 | `ticket.autopilot` | orchestration | the core (`arthur ticket status --autopilot`) | The pre-approval. |
-| `coordinator.context` | models, projects, resources, session | orchestration | Lines of the coordinator's context. |
-| `coordinator.wake` | delivery, orchestration, projects | orchestration | Lines of the wake for an ended job. |
+| `coordinator.context` | manage, models, projects, resources, session | orchestration | Lines of the coordinator's context. |
+| `coordinator.wake` | delivery, manage, orchestration, projects | orchestration | Lines of the wake for an ended job. |
 | `coordinator.extension` | session | orchestration | `{ file, env }`: an OMP extension the coordinator loads. |
 | `coordinator.restart` | orchestration | session | Restarts the coordinator, `{ fresh }`. |
 | `coordinator.silent` | orchestration | telegram | Whether the silent mode holds a notice. |
 | `models.lists` | orchestration | models | Every role's model list. |
 | `machines.round` | resources | machines | A round of machine checks as it begins. |
 | `resources.free` | resources | machines | The jobs a machine has room for. |
-| `schedule.register` | schedule | orchestration | Registers another plugin's schedule entries. |
+| `resources.disk` | none yet (docker) | resources, each check of a machine with `keepFree.disk` | `(machine)`: the absolute paths there its jobs write, besides its home (above, "Changes since entry 51"). |
+| `schedule.register` | schedule | orchestration, manage | Registers another plugin's schedule entries. |
 | `projects.install` | projects | delivery (`arthur merge`) | `{ project, commit }`: the command that installs the project at that commit, as a new worktree gets it, `""` for none (above, "Changes since entry 51"). |
 | `nvm.path` | nvm | delivery (`arthur merge`) | `{ root }`, a project's checkout here: the PATH with its `.nvmrc`'s Node first, `""` without `.nvmrc` (above, "Changes since entry 51"). |
 | `merge.check` | projects | delivery (`arthur merge`) | A check of a job's branch before its merge: a text answer refuses it. |

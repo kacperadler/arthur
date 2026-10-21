@@ -23,9 +23,8 @@ export type Reviews = { readonly reviews: readonly Review[]; readonly pulls: Pul
 const PER_PAGE = 100;
 
 // The reviews submitted since `known` (the project's pull requests at its last poll), and the pull requests now. Without
-// `known`, the project's first poll, every review is taken as told. A pull request `known` lacks (new, reopened, or back
-// among the 100 listed) has told only its reviews submitted since `known.polled`, as the ones before were told already
-// (AR0250). A failed request fails the round, so nothing is lost.
+// `known`, the project's first poll, every review is taken as told; a pull request `known` lacks (new, reopened) has told those
+// submitted since `known.polled`, or at no time GitHub says (AR0250). A failed request fails the round, so nothing is lost.
 export async function newReviews(each: Watched, known: Pulls | undefined, signal: AbortSignal): Promise<Reviews | Failure> {
 	const { instance, repo, project } = each;
 	// GitHub's `submitted_at` has whole seconds: one at the second this poll began is taken as after it.
@@ -57,7 +56,6 @@ export async function newReviews(each: Watched, known: Pulls | undefined, signal
 			if (typeof review !== "number" || typeof state !== "string" || state === "PENDING") continue;
 			told.push(review);
 			if (known === undefined || before?.told.includes(review)) continue;
-			// A review without a time it was submitted is told rather than lost.
 			if (before === undefined && Date.parse(text(submitted)) < Date.parse(known.polled)) continue;
 			reviews.push({ project, repo, pull: number, title: text(title), branch: text(branch), review, user: text(user), state, body: text(body), url: text(url) });
 		}

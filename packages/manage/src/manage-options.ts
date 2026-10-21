@@ -7,7 +7,7 @@ import type { OptionProblem, Options } from "@arthur/core/plugin";
 // `table`: docs/manage.md, "Options".
 
 export type AuditOptions = { readonly at: string; readonly days?: readonly Day[]; readonly budgetUsd?: number; readonly model?: string | readonly string[] };
-export type RetroOptions = { readonly day: Day; readonly at: string };
+export type RetroOptions = { readonly day: Day; readonly at: string; readonly budgetUsd?: number };
 export type ManageOptions = {
 	readonly enabled?: boolean;
 	readonly health?: { readonly everyMinutes?: number };
@@ -61,6 +61,7 @@ export const table: OptionTable = {
 		fields: {
 			day: { about: "The day of the week it runs on", check: weekday },
 			at: { about: "When it runs that day, in core.timeZone", check: at },
+			budgetUsd: { about: "Its budget in USD", default: "core's jobs.budgetUsd", check: usd },
 		},
 	},
 };
@@ -86,6 +87,6 @@ export function checkOptions(options: Options): OptionProblem[] {
 		...fields(options, "health", { everyMinutes: every }, []),
 		...fields(options, "prune", { keepJobsDays: days }, ["keepJobsDays"]),
 		...fields(options, "audit", { at, days: weekdays, budgetUsd: usd, model }, ["at"]),
-		...fields(options, "retro", { day: weekday, at }, ["day", "at"]),
+		...fields(options, "retro", { day: weekday, at, budgetUsd: usd }, ["day", "at"]),
 	];
 }

@@ -197,7 +197,7 @@ test("a retro is a read-only job, its prompt the period's files, stats, board, a
 });
 
 test("retro.day and retro.at register one weekly entry; it starts a retro only while one is due, and none on another day", async (t) => {
-	const env = await load(t, { retro: { day: "wed", at: "02:00" } });
+	const env = await load(t, { retro: { day: "wed", at: "02:00", budgetUsd: 5 } });
 	assert.deepEqual(env.entries.map(({ run, ...rest }) => ({ ...rest, run: typeof run })), [{ plugin: "manage", id: "retro", at: "02:00", days: ["wed"], option: "retro.at", run: "function" }]);
 	env.merges(10, 1, 1, 4);
 	const none = await env.scheduled();
@@ -206,7 +206,7 @@ test("retro.day and retro.at register one weekly entry; it starts a retro only w
 	const started = await env.scheduled();
 	assert.ok(started.job !== undefined);
 	assert.deepEqual(started.printed, [`manage: retro: started job ${started.job.id}`]);
-	assert.equal(env.read(started.job.id, "task"), RETRO_TASK);
+	assert.deepEqual([env.read(started.job.id, "task"), env.read(started.job.id, "budget")], [RETRO_TASK, "5"]);
 	env.fake.setNow(new Date("2026-10-22T02:00:00Z"));
 	assert.deepEqual((await env.scheduled()).printed, ["manage: retro: no job, thu is not in retro.day (wed)"], "a missed slot run late on a Thursday");
 	assert.deepEqual((await load(t)).entries, [], "no retro option, no entry");

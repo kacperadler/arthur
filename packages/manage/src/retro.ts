@@ -18,7 +18,7 @@ export const RETRO_TASK = "Look back on the merges since the last retro, as your
 
 export function retro(host: Host, options: RetroOptions | undefined): void {
 	host.jobs.registerRole({ name: KIND, file: new URL("../roles/retro.md", import.meta.url), criteria: ["retro"] });
-	host.jobs.registerKind({ name: KIND, readOnly: true, role: KIND, file: (filing) => fileReport(RETROS, filing) });
+	host.jobs.registerKind({ name: KIND, readOnly: true, role: KIND, ...(options?.budgetUsd === undefined ? {} : { budgetUsd: options.budgetUsd }), file: (filing) => fileReport(RETROS, filing) });
 	host.provide("prompt", (role: string, job: Job) => (role === KIND ? context(host, job) : undefined));
 	const procedure = new URL("../roles/coordinator/retro-ended.md", import.meta.url);
 	host.provide("coordinator.wake", (job: { readonly kind?: unknown }) => (job.kind === KIND ? readFileSync(procedure, "utf8").trim() : undefined));
@@ -70,7 +70,7 @@ async function sendPage(host: Host, from: PhoneFrom): Promise<string> {
 	if (page === undefined) return noPage(root);
 	const message = { files: [join(root, page)], ...(from.place === undefined ? {} : { place: from.place }) };
 	const answers = host.collectEach("channel.send", message).filter((answer) => from.channel === undefined || answer.plugin === from.channel);
-	if (answers.length === 0) return `${page} not sent: ${from.channel ?? "no channel"} provides no channel.send`;
+	if (answers.length === 0) return `${page} not sent: ${from.channel === undefined ? "no plugin provides" : `${from.channel} provides no`} channel.send`;
 	const lines = await Promise.all(
 		answers.map(async (answer) => {
 			if ("error" in answer) return `${page} not sent by ${answer.plugin}: ${answer.error.message.split("\n").join("; ")}`;

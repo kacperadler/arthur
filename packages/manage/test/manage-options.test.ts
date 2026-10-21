@@ -52,15 +52,16 @@ test("refused: audit not an object or without at, an unknown key, and each key's
 	for (const model of ["", " ", [], ["a/b", ""], 3]) assert.deepEqual(checkOptions({ audit: { at: "02:00", model } })[0]?.path, "audit.model", JSON.stringify(model));
 });
 
-test("retro.day and retro.at pass at their limits; refused: retro not an object, without day or at, an unknown key, a wrong day or time", () => {
+test("retro.day, retro.at and retro.budgetUsd pass at their limits; refused: retro not an object, without day or at, an unknown key, a wrong day, time or budget", () => {
 	assert.deepEqual(checkOptions({ retro: { day: "mon", at: "00:00" } }), []);
-	assert.deepEqual(checkOptions({ retro: { day: "sun", at: "23:59" } }), []);
-	assert.deepEqual(checkOptions({ retro: "fri" }), [{ path: "retro", problem: 'expected { day, at }, got "fri"' }]);
+	assert.deepEqual(checkOptions({ retro: { day: "sun", at: "23:59", budgetUsd: 0 } }), [], "budget 0, no limit");
+	assert.deepEqual(checkOptions({ retro: "fri" }), [{ path: "retro", problem: 'expected { day, at, budgetUsd }, got "fri"' }]);
 	assert.deepEqual(checkOptions({ retro: {} }), [
 		{ path: "retro.day", problem: "expected one of mon, tue, wed, thu, fri, sat, sun, got nothing" },
 		{ path: "retro.at", problem: 'expected "HH:MM", 00:00 to 23:59, got nothing' },
 	]);
-	assert.deepEqual(checkOptions({ retro: { day: "fri", at: "22:30", days: ["fri"] } }), [{ path: "retro.days", problem: "unknown key; keys: day, at" }]);
+	assert.deepEqual(checkOptions({ retro: { day: "fri", at: "22:30", days: ["fri"] } }), [{ path: "retro.days", problem: "unknown key; keys: day, at, budgetUsd" }]);
 	for (const day of ["Fri", "friday", ["fri"], 5]) assert.equal(checkOptions({ retro: { day, at: "22:30" } })[0]?.path, "retro.day", JSON.stringify(day));
 	for (const at of ["24:00", "9:00", 2230]) assert.equal(checkOptions({ retro: { day: "fri", at } })[0]?.path, "retro.at", String(at));
+	for (const budgetUsd of [-0.01, "5"]) assert.equal(checkOptions({ retro: { day: "fri", at: "22:30", budgetUsd } })[0]?.path, "retro.budgetUsd", String(budgetUsd));
 });

@@ -1856,9 +1856,9 @@
   {
     "id": "AR0241",
     "title": "arthur merge installs from the lockfile and never reads a project's own install",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0241-arthur-merge-installs-from-the-lockfile-and-never-reads-a-project-s-own-install/ticket.md",
-    "updated": "2026-10-21T08:15:29.914Z"
+    "updated": "2026-10-21T08:27:42.490Z"
   },
   {
     "id": "AR0242",
@@ -1887,9 +1887,9 @@
   {
     "id": "AR0245",
     "title": "arthur stats: remove the unreachable unknown-project throw",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0245-arthur-stats-remove-the-unreachable-unknown-project-throw/ticket.md",
-    "updated": "2026-10-21T08:13:09.778Z"
+    "updated": "2026-10-21T08:28:42.193Z"
   },
   {
     "id": "AR0246",

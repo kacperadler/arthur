@@ -337,6 +337,13 @@ import { checkStructure } from "./structure.ts";
 // plugin's): core/testing 2 more (349) for `FakeHost.beforeSpawn`, the test as the plugin `test` refusing a spawn, since a
 // check through `host.jobs.beforeSpawn` refuses as the plugin under test; delivery unchanged (1232).
 // Merged main (AR0253, AR0254) into AR0256: main's budgets plus AR0256's develop 198 (recounted with wc -l).
+// AR0261 (roadmap 62; its Done means allow a host change recorded in docs/plugin-api.md): manage 185 more (637) for the audit:
+// the kind, its role, its prompt's commits since the last audit, board, stats, open findings and vision, and the schedule
+// entry's run with no job on another day or with no commit since (audit.ts, 98), the filing in spec/quality/ and the last
+// audit read back (audit-file.ts, 53), the `audit` options and one check for every object option (manage-options.ts, 30
+// more), its setup and header (manage.ts, 3 more), stats since a time (stats.ts, 1 more); nothing in manage audited before,
+// so nothing was cut. core 7 more (5737) for `arthur ticket file <job>`, a filing of no ticket (ticket-file.ts, 6 more;
+// ticket-command.ts, 1 more); delivery 2 more (1234) and orchestration 3 more (1545), their filers reading `Filing.root`.
 // Merged main (AR0254, AR0256) into AR0251: main's budgets plus AR0251's core/testing 349 (recounted with wc -l).
 // AR0262 (roadmap 69): resources 93 more (577) for `keepFree.disk`: each machine's filesystems read with `df -Pk` there, its home
 // and each path `resources.disk` names, counted once per filesystem, a missing one skipped, df's refusals (machine-disk.ts, 62),
@@ -344,7 +351,17 @@ import { checkStructure } from "./structure.ts";
 // (room.ts, 12) and the option (resource-options.ts, 5); nothing did this before, so nothing was cut. core 5 more (5735) for
 // `host.jobs.home(machine)`, Arthur's home folder on a machine, which a plugin had no way to read (job-machine.ts, the lookup
 // shared with `pick`); jobs.ts kept at 200 by folding two comments.
-const BUDGETS = { core: 5735, "core/testing": 349, projects: 486, orchestration: 1542, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1232, github: 621, manage: 452, develop: 198 };
+// Merged main (AR0251) into AR0261: main's budgets plus AR0261's raises, core 5737, core/testing 349, orchestration 1545,
+// delivery 1234, manage 637 (recounted with wc -l).
+// AR0263 (roadmap 83): findings: 254, set for the findings.md reader (findings-file.ts, 48), `findings.onMerge` and its three
+// modes, the new tickets filled from their findings (on-merge.ts, 70), `/findings` moved from orchestration (findings-command.ts,
+// 65), `mode` and its check (findings-options.ts, 38), and the plugin, its template in the worker's prompt (findings.ts, 33);
+// orchestration 22 fewer (1520), `/findings` and its branch lookup gone from board-commands.ts; core unchanged.
+// Merged main (AR0261) into AR0263: main's budgets plus AR0263's, findings 254, orchestration 1545 - 22 = 1523 (recounted
+// with wc -l).
+// Merged main (AR0261, AR0263) into AR0262: main's budgets plus AR0262's raises, core 5737 + 5 = 5742, resources 577
+// (recounted with wc -l).
+const BUDGETS = { core: 5742, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1234, github: 621, manage: 637, develop: 198, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -26,6 +26,7 @@ import { delivery } from "@arthur/delivery"; // first, derived
 import { develop } from "@arthur/develop"; // first, named
 import { discord } from "@arthur/discord"; // first, named
 import { docker } from "@arthur/docker"; // first, named
+import { findings } from "@arthur/findings"; // first, named
 import { github } from "@arthur/github"; // first, derived
 import { machines } from "@arthur/machines"; // first, named
 import { manage } from "@arthur/manage"; // first, named
@@ -303,6 +304,14 @@ export default defineConfig({
 		// non-matching subject; words and a file are given to the worker and the reviewer, and the review judges them. It takes no
 		// option of its own (packages/commit-rules/docs/commit-rules.md).
 		commitRules(),
+
+		// What `arthur merge` makes of a merged ticket's open findings, per project, by its name: "ticket" (the default for a
+		// project not named: one planning ticket each), "grouped" (one planning ticket for them all) or "summary" (no ticket;
+		// each `deferred (client summary)`, listed in the outcome for the client). An unknown mode, or a key that is not a
+		// project, refuses the load. Also `/findings`. Without it, findings stay open. packages/findings/docs/findings.md.
+		findings({
+			mode: { "acme-site": "summary", "acme-ios": "grouped" },
+		}),
 
 		// Each project's sites, checked over plain HTTP while `arthur run` runs (no model, so no usage). A site is down after 2
 		// failed checks in a row (no answer in time, refused, a TLS error, a wrong status, the text missing): one notice with its

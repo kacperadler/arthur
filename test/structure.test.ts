@@ -309,7 +309,10 @@ import { checkStructure } from "./structure.ts";
 // merged tickets by day and kind, written whole, and the command (changelog.ts, 64), its call after a merge that went in with
 // CHANGELOG.md no dirt (merge-command.ts, 3 more), and the command registered (delivery.ts, 2 more); nothing in delivery wrote
 // a changelog before, so nothing was cut; core unchanged.
-const BUDGETS = { core: 5729, "core/testing": 347, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1019, github: 586, manage: 368 };
+// AR0250 (the ticket's Done means: a review of a pull request new to the state told only when submitted after the project's
+// previous poll, its time kept in the state): github 9 more (595), the poll's start and the `submitted_at` test (github-pulls.ts,
+// 4 more) and the state's `polled` with its check (github-state.ts, 5 more); the comments of both were cut to fit first.
+const BUDGETS = { core: 5729, "core/testing": 347, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1019, github: 595, manage: 368 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -1977,9 +1977,9 @@
   {
     "id": "AR0257",
     "title": "A waiting branch's CI end wakes the coordinator twice",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0257-a-waiting-branch-s-ci-end-wakes-the-coordinator-twice/ticket.md",
-    "updated": "2026-10-21T13:54:33.914Z"
+    "updated": "2026-10-21T14:47:03.215Z"
   },
   {
     "id": "AR0258",
@@ -2026,9 +2026,9 @@
   {
     "id": "AR0264",
     "title": "`arthur init` writes the audit criteria as a bare title, not the criteria manage ships",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0264-arthur-init-writes-the-audit-criteria-as-a-bare-title-not-the-criteria-manage-ships/ticket.md",
-    "updated": "2026-10-21T14:40:25.775Z",
+    "updated": "2026-10-21T14:57:55.269Z",
     "after": [
       "AR0266"
     ]
@@ -2060,9 +2060,9 @@
   {
     "id": "AR0268",
     "title": "The coordinator's role names `arthur findings`, which a config without the findings plugin no longer has",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0268-the-coordinator-s-role-names-arthur-findings-which-a-config-without-the-findings-plugin-no-longer-has/ticket.md",
-    "updated": "2026-10-21T14:36:58.908Z",
+    "updated": "2026-10-21T14:54:34.682Z",
     "after": [
       "AR0258"
     ]
@@ -2094,5 +2094,12 @@
     "status": "planning",
     "path": "spec/features/AR0272-arthur-s-own-repository-has-no-criteria-folder-so-its-audits-and-retros-run-without-their-criteria/ticket.md",
     "updated": "2026-10-21T14:25:32.982Z"
+  },
+  {
+    "id": "AR0273",
+    "title": "Delivery ships no review criteria, so `arthur init` still writes `review.md` as `# Review`",
+    "status": "planning",
+    "path": "spec/features/AR0273-delivery-ships-no-review-criteria-so-arthur-init-still-writes-review-md-as-review/ticket.md",
+    "updated": "2026-10-21T14:57:55.266Z"
   }
 ]

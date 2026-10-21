@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/delivery/src/delivery.ts:50` (the reviewer reads `review`), no `packages/delivery/criteria/`
 - What: `arthur init` now writes the `criteria/<name>.md` a loaded package ships, but delivery ships none for `review`; with delivery loaded, `arthur init shop` printed `.agents/arthur/criteria/review.md` among the created files and the file holds `# Review` alone, so a new project's reviewer has no review criteria until someone writes them. `packages/delivery/roles/reviewer.md` relies on them: "the review criteria say what fails a branch".
 - Suggestion: ship `packages/delivery/criteria/review.md` (what fails a branch, what does not), in the form of `packages/manage/criteria/audit.md`; `arthur init` then writes it with no code change. Its wording is the owner's to approve. Out: the files of projects given earlier.
-- Status: open
+- Status: ticket AR0273

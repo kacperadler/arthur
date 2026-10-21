@@ -170,12 +170,14 @@ test("arthur ticket creates, moves and lists tickets on the project's board, and
 test("arthur ticket: an empty board, wrong usage, and a config that does not load", () => {
 	const folder = project(BOARD);
 	assert.deepEqual([arthur(folder, "board", "all").stdout, existsSync(join(folder, "spec"))], ["the board is empty\n", false]);
-	for (const args of [[], ["new"], ["status", "DM0001"], ["all"], ["move", "DM0001", "done"], ["after"], ["file", "DM0001"], ["file", "DM0001", "a", "b"]]) {
+	for (const args of [[], ["new"], ["status", "DM0001"], ["all"], ["move", "DM0001", "done"], ["after"], ["file"], ["file", "DM0001", "a", "b"]]) {
 		const run = arthur(folder, "ticket", ...args);
-		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file <id> <job>\n"], args.join(" "));
+		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file [<id>] <job>\n"], args.join(" "));
 	}
 	const unknown = arthur(folder, "ticket", "file", "DM0001", "2026-01-01-plan-0000beef");
 	assert.deepEqual([unknown.status, unknown.stderr], [1, "arthur ticket: DM0001 is not on the board\n"], "file reads the board, then the job");
+	const alone = arthur(folder, "ticket", "file", "0000beef");
+	assert.deepEqual([alone.status, alone.stderr], [1, `arthur ticket: 0000beef: no such job in ${join(folder, ".arthur", "jobs")}\n`], "one word is the job, of no ticket");
 	const broken = project(BOARD.replace('"orchestration"', '"schedule"'));
 	const run = arthur(broken, "ticket", "new", "Lost");
 	assert.deepEqual([run.status, run.stderr.split("\n")[0]], [1, "arthur ticket: the board needs the project list, and arthur.config.ts did not load:"]);
@@ -189,7 +191,7 @@ test("arthur ticket with an empty word, in new, status or after, is refused with
 	const before = arthur(folder, "board", "all").stdout;
 	for (const args of [["status", "", "planned"], ["status", "DM0001", ""], ["new", ""], ["new", "Three", ""], ["after", "", "DM0001"], ["after", "DM0002", ""], ["after", "DM0002", "DM0001", ""], ["file", "DM0001", ""], ["file", "", "x"]]) {
 		const run = arthur(folder, "ticket", ...args);
-		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file <id> <job>\n"], args.join(" "));
+		assert.deepEqual([run.status, run.stderr], [2, "usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file [<id>] <job>\n"], args.join(" "));
 	}
 	assert.equal(arthur(folder, "board", "all").stdout, before);
 });
@@ -222,7 +224,7 @@ test("arthur ticket status <id> planned --autopilot asks ticket.autopilot with t
 	assert.deepEqual(run("DM0001", "planned", "--autopilot", "--budget", "0"), [0, 'asked {"id":"DM0001","budgetUsd":0}\n', ""], "budget 0 is the plugin's to refuse");
 	assert.deepEqual(run("DM0009", "planned", "--autopilot"), [1, "", "arthur ticket: DM0009: not pre-approved: its kind is feature\n"]);
 	const usage =
-		"usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file <id> <job>\n";
+		"usage: arthur ticket new <title>; arthur ticket status <id> <status>; arthur ticket status <id> planned --autopilot [--budget <usd>]; arthur ticket after <id> [<id>...]; arthur ticket file [<id>] <job>\n";
 	for (const [args, problem] of [
 		[["DM0001", "dropped", "--autopilot"], "--autopilot sets one ticket planned"],
 		[["DM0001", "--autopilot"], "--autopilot sets one ticket planned"],

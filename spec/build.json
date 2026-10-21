@@ -1897,5 +1897,12 @@
     "status": "in-progress",
     "path": "spec/features/AR0246-roadmap-58-arthur-ci-reruns-pushes-pull-request-reviews/ticket.md",
     "updated": "2026-10-21T08:23:28.267Z"
+  },
+  {
+    "id": "AR0247",
+    "title": "Roadmap 55: hand-back after a FAIL review",
+    "status": "planned",
+    "path": "spec/features/AR0247-roadmap-55-hand-back-after-a-fail-review/ticket.md",
+    "updated": "2026-10-21T08:29:00.211Z"
   }
 ]

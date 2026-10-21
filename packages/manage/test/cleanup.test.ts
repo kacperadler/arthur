@@ -24,15 +24,20 @@ function repository(): string {
 	return root;
 }
 
-// Manage set up with `options` at NOW; `entries` what it registered with the schedule, `printed` what its run printed.
+// Manage set up with `options` at NOW; `entries` what it registered with the schedule, `printed` what its run printed. The
+// run sweeps `os.tmpdir()`, so `TMPDIR` points at `temp`, a folder of the test's own, until the test ends: a run never
+// touches the system's temporary folder, where other processes' `arthur-*` folders are.
 async function load(t: TestContext, options: ManageOptions) {
+	const [temp, before] = [temporaryFolder(), process.env.TMPDIR];
+	process.env.TMPDIR = temp;
+	t.after(() => (before === undefined ? delete process.env.TMPDIR : (process.env.TMPDIR = before)));
 	const fake = fakeHost({ name: "manage", options, now: NOW });
 	const entries: Record<string, unknown>[] = [];
 	fake.provide("schedule.register", (plugin: unknown, list: Record<string, unknown>[]) => void entries.push(...list.map((entry) => ({ plugin, ...entry }))));
 	await fake.setup(manage(options));
 	const printed: string[] = [];
 	t.mock.method(console, "log", (line: string) => printed.push(line));
-	return { fake, entries, printed, home: dirname(fake.host.folder) };
+	return { fake, entries, printed, temp, home: dirname(fake.host.folder) };
 }
 
 // A job record as the core writes it, its state taken at `since`.
@@ -99,11 +104,7 @@ test("keepJobsDays 0 frees every ended job at the next run, never a running one"
 });
 
 test("the run removes the arthur-* folders of the temporary folder older than a day, with what is inside; any other, a file or a link stays", async (t) => {
-	const temp = temporaryFolder();
-	const before = process.env.TMPDIR;
-	process.env.TMPDIR = temp;
-	t.after(() => (before === undefined ? delete process.env.TMPDIR : (process.env.TMPDIR = before)));
-	const { entries, printed } = await load(t, { prune: { keepJobsDays: 7 } });
+	const { entries, printed, temp } = await load(t, { prune: { keepJobsDays: 7 } });
 	const outside = folder(temporaryFolder(), "kept", ago(3 * DAY));
 	const paths = {
 		old: folder(temp, "arthur-test-old", ago(DAY + 1000)),

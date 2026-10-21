@@ -21,8 +21,8 @@ export type Run = { readonly id: number; readonly attempt: number; readonly sha:
 // ms before which the instance asks nothing more.
 export type Failure = { readonly text: string; readonly loud: boolean; readonly until?: number };
 export type Runs = { readonly runs: readonly Run[]; readonly until?: number };
-// A 2xx answer: its text, and its JSON when it is some.
-export type Answer = { readonly body: unknown; readonly text: string; readonly until?: number };
+// A 2xx answer: its text, its JSON when it is some, and GitHub's `date` header (its clock, whole seconds) when it sent one.
+export type Answer = { readonly body: unknown; readonly text: string; readonly until?: number; readonly date?: string };
 
 // Runs asked per poll: GitHub's largest page. A branch whose nearest run is older than these has none.
 export const PER_PAGE = 100;
@@ -55,7 +55,8 @@ export async function ask(instance: Instance, path: string, what: string, needs:
 	const message = field(body, "message");
 	const said = (typeof message === "string" ? message : response.statusText || "no reason given").replaceAll(token, "[token]").replace(/\s+/g, " ").slice(0, 300);
 	const until = waitUntil(response, said);
-	if (response.ok) return { body, text, ...(until === undefined ? {} : { until }) };
+	const date = response.headers.get("date");
+	if (response.ok) return { body, text, ...(until === undefined ? {} : { until }), ...(date === null ? {} : { date }) };
 	if (until !== undefined) return { text: `instance ${label}: ${response.status}, rate limited: ${said}; no request until ${new Date(until).toISOString()}`, loud: false, until };
 	if (response.status === 401) return { text: `instance ${label}: 401: the token in ${tokenEnv} was refused: ${said}`, loud: true };
 	if (response.status === 403) return { text: `instance ${label}: 403 for ${what}: ${said}; the token in ${tokenEnv} needs ${needs} on it`, loud: true };

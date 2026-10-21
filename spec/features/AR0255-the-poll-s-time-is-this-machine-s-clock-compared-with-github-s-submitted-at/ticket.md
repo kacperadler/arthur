@@ -35,4 +35,5 @@ In:
 
 - 2026-10-21: Source: F1 of AR0250
 - 2026-10-21: Approved by the owner (Telegram).
+- 2026-10-21: Worker: github line budget 621 to 625 (+4), after the comment was cut to two lines first; each file's share in `test/structure.test.ts`.
 - 2026-10-21: Coordinator (free hand) accepted the worker pick: the poll time comes from GitHub date header minus the request time, instead of a fixed margin; github budget 621 to 625.

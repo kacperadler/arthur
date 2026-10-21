@@ -27,10 +27,13 @@ const PER_PAGE = 100;
 // submitted since `known.polled`, or at no time GitHub says (AR0250). A failed request fails the round, so nothing is lost.
 export async function newReviews(each: Watched, known: Pulls | undefined, signal: AbortSignal): Promise<Reviews | Failure> {
 	const { instance, repo, project } = each;
-	// GitHub's `submitted_at` has whole seconds: one at the second this poll began is taken as after it.
-	const polled = new Date(Math.floor(Date.now() / 1000) * 1000).toISOString();
+	const asked = Date.now();
 	const listed = await ask(instance, `/repos/${repo}/pulls?state=open&sort=updated&direction=desc&per_page=${PER_PAGE}`, `the pull requests of ${repo}`, "Pull requests: read", signal);
 	if (!("body" in listed)) return listed;
+	// When the poll began on GitHub's clock, as `submitted_at` (AR0255): the list's `date` less the time its answer took, else
+	// this machine's; both whole seconds, so a review submitted after the list was asked is at or after it.
+	const said = Date.parse(listed.date ?? "");
+	const polled = new Date(Math.floor((Number.isFinite(said) ? said - (Date.now() - asked) : asked) / 1000) * 1000).toISOString();
 	if (!Array.isArray(listed.body)) return { text: `instance ${instance.label}: the answer for the pull requests of ${repo} is no list`, loud: false };
 	let until = listed.until;
 	const open: Record<string, Pull> = {};

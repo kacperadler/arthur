@@ -15,6 +15,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0242 The checks on main run on the service's Node, not the project's .nvmrc (a81486a)
 - AR0248 A branch `arthur review-needed` waves through is never pushed, so CI never builds it before its merge (beec2df)
 - AR0250 A pull request closed and reopened has its reviews told again (bad0ec0)
+- AR0251 A hand-back refused for good is retried at every run's end, silently (076ee29)
 
 ### Changed
 

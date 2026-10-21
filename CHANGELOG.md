@@ -25,6 +25,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0244 Roadmap 61: arthur stats (0baba9d)
 - AR0246 Roadmap 58: arthur ci, reruns, pushes, pull request reviews (1f039d3)
 - AR0247 Roadmap 55: hand-back after a FAIL review (42cfa5b)
+- AR0252 Roadmap 56: arthur changelog (a5ed83a)
 
 ## 2026-10-20
 

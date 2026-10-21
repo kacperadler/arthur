@@ -280,8 +280,11 @@ import { checkStructure } from "./structure.ts";
 // AR0244 (roadmap 61): manage 112 more (369) for `arthur stats`: the merged tickets' rounds, verdicts, cost and days, the
 // means and shares, the most expensive and the first line of each FAIL finding (stats.ts, 99), and the command registered with
 // its header (manage.ts, 13); nothing in manage did this before, so nothing was cut; core unchanged.
+// AR0241 (the ticket's Done means: projects provides `projects.install`): projects 5 more (486) for the provider and its
+// unknown-project refusal (projects.ts); delivery stays 770, its lockfile table cut for the ask and a refusal as a failed step.
 // AR0245: manage 1 less (368): the unknown-project throw in stats.ts was cut, since `host.board.list` refuses first.
-const BUDGETS = { core: 5727, "core/testing": 349, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 770, github: 310, manage: 368 };
+// Merged AR0241 with AR0245: main's budgets plus AR0241's raise, projects 486, delivery 770, manage 368.
+const BUDGETS = { core: 5727, "core/testing": 349, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 770, github: 310, manage: 368 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

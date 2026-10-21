@@ -2012,16 +2012,16 @@
   {
     "id": "AR0262",
     "title": "Roadmap 69: free disk space per machine",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0262-roadmap-69-free-disk-space-per-machine/ticket.md",
-    "updated": "2026-10-21T12:52:49.491Z"
+    "updated": "2026-10-21T13:28:45.607Z"
   },
   {
     "id": "AR0263",
     "title": "Roadmap 83: findings, what happens to them per project",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0263-roadmap-83-findings-what-happens-to-them-per-project/ticket.md",
-    "updated": "2026-10-21T13:14:34.799Z"
+    "updated": "2026-10-21T13:42:47.630Z"
   },
   {
     "id": "AR0264",
@@ -2040,8 +2040,22 @@
   {
     "id": "AR0266",
     "title": "Roadmap 63: the retro",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0266-roadmap-63-the-retro/ticket.md",
-    "updated": "2026-10-21T13:16:37.634Z"
+    "updated": "2026-10-21T13:42:13.321Z"
+  },
+  {
+    "id": "AR0267",
+    "title": "The procedure after a merge settles review notes as tickets whatever the project's findings mode",
+    "status": "planning",
+    "path": "spec/features/AR0267-the-procedure-after-a-merge-settles-review-notes-as-tickets-whatever-the-project-s-findings-mode/ticket.md",
+    "updated": "2026-10-21T13:42:47.623Z"
+  },
+  {
+    "id": "AR0268",
+    "title": "The coordinator's role names `arthur findings`, which a config without the findings plugin no longer has",
+    "status": "planning",
+    "path": "spec/features/AR0268-the-coordinator-s-role-names-arthur-findings-which-a-config-without-the-findings-plugin-no-longer-has/ticket.md",
+    "updated": "2026-10-21T13:42:47.627Z"
   }
 ]

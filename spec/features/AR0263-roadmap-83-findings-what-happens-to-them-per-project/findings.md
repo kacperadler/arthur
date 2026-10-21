@@ -13,7 +13,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/delivery/roles/coordinator/after-merge.md:6`
 - What: step 2 tells the coordinator to copy the reviews' non-blocking notes into `findings.md` and settle each as a planning ticket or `dropped`. In a project whose `findings.mode` is `summary` (a client's) those notes become board tickets anyway, and in a `grouped` project one ticket each, so the mode only governs the entries a worker wrote before the merge.
 - Suggestion: step 2 names the mode: settle the notes as the merge settled the open entries (its `- Tickets from findings:` or `- Deferred (client summary):` lines say which), one more line in delivery's procedure; the findings plugin itself unchanged.
-- Status: open
+- Status: ticket AR0267
 
 ## F2. The coordinator's role names `arthur findings`, which a config without the findings plugin no longer has
 
@@ -22,4 +22,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/orchestration/roles/coordinator.md:21`
 - What: `/findings` moved from orchestration, which every config holds, to the optional findings plugin. The role still says `arthur board`, `arthur task <id>` and `arthur findings <id>` show the board; without the plugin the last answers `arthur: unknown command findings`.
 - Suggestion: either keep the line (Arthur's own config loads findings) and say so in a word, or let the findings plugin add its line to the coordinator's context through `coordinator.context`; nothing else changes.
-- Status: open
+- Status: ticket AR0268

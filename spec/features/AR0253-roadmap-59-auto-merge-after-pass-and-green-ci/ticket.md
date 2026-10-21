@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Started by the coordinator; owner: continue Arthur, at most 10% of the weekly limit today (2% at 12:29).
+- 2026-10-21: Coordinator (free hand) accepted the github package reach: `github.ci` and `github.cancel` provided names, recorded in docs/plugin-api.md; `--auto` needs a real PASS on the tip, `no review` does not count.

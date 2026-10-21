@@ -314,7 +314,11 @@ import { checkStructure } from "./structure.ts";
 // than a day removed, never one made since a running job's run began, another user's skipped (cleanup.ts, 61), the entry
 // registered with the schedule and its refusal without one (manage.ts, 10), the option and its check (manage-options.ts, 13);
 // core 1 more (5730) for `host.jobs.prune(ids)`, the CLI's prune given to plugins (plugin-host.ts; jobs.ts's comments joined).
-const BUDGETS = { core: 5730, "core/testing": 347, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1019, github: 586, manage: 452 };
+// AR0250 (the ticket's Done means: a review of a pull request new to the state told only when submitted after the project's
+// previous poll, its time kept in the state): github 9 more (595), the poll's start and the `submitted_at` test (github-pulls.ts,
+// 4 more) and the state's `polled` with its check (github-state.ts, 5 more); the comments of both were cut to fit first.
+// Merged main (AR0250) into AR0254: main's budgets plus AR0254's raises, core 5730, manage 452, github 595.
+const BUDGETS = { core: 5730, "core/testing": 347, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1019, github: 595, manage: 452 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

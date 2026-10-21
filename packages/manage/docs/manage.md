@@ -56,7 +56,7 @@ Manage registers the kind `audit`: read-only, a detached checkout of HEAD with n
 Every audit's prompt, after the role and the project's sections, gets `## This audit`, read from the project's checkout when the job starts:
 
 - The commit it audits, its worktree's.
-- `### Commits since the last audit, <commit> (<report>)`: one line each, `<short hash> <subject>`, newest first, from the last audit's commit to the one audited, leaving out a commit that changes only files under `spec/quality/`. The last audit is the newest report in `spec/quality/` by its name's date and number with a `- Commit audited:` line. With no such report, or one whose commit Git does not find in the repository, it is `### Commits of the last 24 hours (<why>)`.
+- `### Commits since the last audit, <commit> (<report>)`: one line each, `<short hash> <subject>`, newest first, from the last audit's commit to the one audited, leaving out a commit that changes only the reports and the board, files under `spec/quality/` or `spec/features/` and `spec/build.json`; a commit with any other file counts. The last audit is the newest report in `spec/quality/` by its name's date and number with a `- Commit audited:` line. With no such report, or one whose commit Git does not find in the repository, it is `### Commits of the last 24 hours (<why>)`.
 - `### Board`: the board digest (`arthur ticket --help`).
 - `### Stats`: `arthur stats` of the tickets merged since the last audited commit was made, every merged ticket when there is none.
 - `### Open findings`: every entry with `- Status: open` in the `findings.md` of a ticket on the project's board, `- <id> F<n>: <title>. Where: <where>`.
@@ -69,7 +69,7 @@ The auditor ends with at most 5 proposals, each in the form its role gives (`## 
 With `audit.at`, manage registers one entry with the schedule plugin, `manage.audit`, at that time on `audit.days`, running manage's own code (`arthur schedule list` shows it). Each run audits the main project, the first in the list, and starts no job, printing why, in two cases:
 
 - A day not in `audit.days`, the schedule's late run of a missed slot included: `manage: audit: no job, <day> is not in audit.days (<days>)`.
-- No commit since the last audit's, as above, so a commit of the report alone starts none: `manage: audit: no job, no commit since the last audit's <commit>`.
+- No commit since the last audit's, as above, so the commit of an audit's report, tickets and board starts none: `manage: audit: no job, no commit since the last audit's <commit>`.
 
 Otherwise it spawns the audit with `audit.model` and prints `manage: audit: started job <id>`. A spawn that is refused, `maxAgents` reached for one, fails the run, which the schedule prints and sends as one `notice` (`schedule: manage.audit: its run failed: ...`); the next try is the next slot. An audit by hand, `arthur spawn --kind audit '<focus>'`, runs whatever the commits, its task the focus note under the same prompt.
 

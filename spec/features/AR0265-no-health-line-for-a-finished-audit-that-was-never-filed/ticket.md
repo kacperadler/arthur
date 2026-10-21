@@ -17,8 +17,7 @@ the harness's health named a finished audit whose report is not in `spec/quality
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
-
+`arthur health` has a line for a finished audit (and retro) that was never filed, with a test.
 - Kind: improvement
 
 Evidence:

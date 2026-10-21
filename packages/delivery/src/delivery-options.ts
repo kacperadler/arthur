@@ -5,7 +5,7 @@ import type { OptionProblem, Options } from "@arthur/core/plugin";
 // The delivery plugin's options file (spec/roadmap.md, entries 52, 53, 54 and 93), checked before any setup by walking `table`;
 // the reviewer's model is orchestration's `roles.reviewer`. docs/commands/review.md, docs/commands/review-needed.md.
 
-export const summary = "review jobs of a worker's branch, their verdict moving the ticket, at most 2 FAILs before the owner decides; whether a branch needs one; its merge with the checks on main; CHANGELOG.md from the merged tickets";
+export const summary = "review jobs of a worker's branch, their verdict moving the ticket, at most 2 FAILs before the owner decides; whether a branch needs one; its merge with the checks on main, on its own after a PASS and green CI; CHANGELOG.md from the merged tickets";
 
 // Git, which the review's checkout and its range need, is the core's tool.
 export const tools: readonly Tool[] = [];

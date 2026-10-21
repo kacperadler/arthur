@@ -251,7 +251,7 @@ test("a waiting branch's CI end wakes the coordinator with its verdict once per 
 	assert.equal(asked.length, before, "no wait, nothing asked");
 });
 
-test("a run that hangs is cancelled 30 minutes after its start, once, across a restart; a refused cancel wakes the coordinator; a new commit ends the wait; a broken wait is said once", async (t) => {
+test("a run that hangs is cancelled 30 minutes after its start, once, across a restart; a refused cancel wakes the coordinator; a new commit or a pruned job ends the wait; a broken wait is said once", async (t) => {
 	const { fake, commit, worker, review, merge, answers, cancels, messages, waiting } = await load(t);
 	const job = await worker(1);
 	await review(job.id, "PASS");
@@ -278,11 +278,15 @@ test("a run that hangs is cancelled 30 minutes after its start, once, across a r
 	assert.equal(cancels.length, 2, "a refused cancel is not asked again");
 
 	commit(job.worktree, { "late.ts": "export const late = 1;\n" });
+	mkdirSync(join(fake.host.folder, "2026-01-01-worker-0000dead"));
+	const gone = { job: "2026-01-01-worker-0000dead", project: "acme", branch: job.branch, tip: job.tip, own: 1 };
+	writeFileSync(join(fake.host.folder, gone.job, "ci-wait"), JSON.stringify(gone));
 	const logged: string[] = [];
 	t.mock.method(console, "log", (text: string) => logged.push(text));
 	await waits.round();
 	t.mock.restoreAll();
-	assert.deepEqual([waiting(job.id), logged], [false, [`delivery: ${job.branch} waits for CI no more: its tip is no longer ${job.tip.slice(0, 7)}`]]);
+	assert.deepEqual([waiting(job.id), waiting(gone.job)], [false, false]);
+	assert.deepEqual(logged.sort(), [`delivery: ${job.branch} waits for CI no more: its job was pruned`, `delivery: ${job.branch} waits for CI no more: its tip is no longer ${job.tip.slice(0, 7)}`]);
 
 	mkdirSync(join(fake.host.folder, "broken"));
 	writeFileSync(join(fake.host.folder, "broken", "ci-wait"), "{ broken");

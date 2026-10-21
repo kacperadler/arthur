@@ -13,10 +13,12 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0238 A rerun keeps its run id, so its end is never told as `ci-finished`
 - AR0241 arthur merge installs from the lockfile and never reads a project's own install (5d9c3fe)
 - AR0242 The checks on main run on the service's Node, not the project's .nvmrc (a81486a)
+- AR0250 A pull request closed and reopened has its reviews told again (bad0ec0)
 
 ### Changed
 
 - AR0245 arthur stats: remove the unreachable unknown-project throw (4116eec)
+- AR0249 The vision still says `ci-finished` is keyed by run id
 
 ### Other
 

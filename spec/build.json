@@ -1963,9 +1963,9 @@
   {
     "id": "AR0255",
     "title": "The poll's time is this machine's clock, compared with GitHub's `submitted_at`",
-    "status": "planning",
+    "status": "in-progress",
     "path": "spec/features/AR0255-the-poll-s-time-is-this-machine-s-clock-compared-with-github-s-submitted-at/ticket.md",
-    "updated": "2026-10-21T11:08:47.824Z"
+    "updated": "2026-10-21T13:54:23.360Z"
   },
   {
     "id": "AR0256",
@@ -1977,30 +1977,30 @@
   {
     "id": "AR0257",
     "title": "A waiting branch's CI end wakes the coordinator twice",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0257-a-waiting-branch-s-ci-end-wakes-the-coordinator-twice/ticket.md",
-    "updated": "2026-10-21T11:37:34.238Z"
+    "updated": "2026-10-21T13:54:33.914Z"
   },
   {
     "id": "AR0258",
     "title": "The coordinator's role names merges only on the owner's word",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0258-the-coordinator-s-role-names-merges-only-on-the-owner-s-word/ticket.md",
-    "updated": "2026-10-21T11:37:34.241Z"
+    "updated": "2026-10-21T13:54:34.117Z"
   },
   {
     "id": "AR0259",
     "title": "The example config gives delivery an option it refuses",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0259-the-example-config-gives-delivery-an-option-it-refuses/ticket.md",
-    "updated": "2026-10-21T11:37:34.243Z"
+    "updated": "2026-10-21T13:54:34.339Z"
   },
   {
     "id": "AR0260",
     "title": "`arthur plugin new` writes into the project's checkout, never a job's worktree",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0260-arthur-plugin-new-writes-into-the-project-s-checkout-never-a-job-s-worktree/ticket.md",
-    "updated": "2026-10-21T12:11:14.292Z"
+    "updated": "2026-10-21T13:54:34.547Z"
   },
   {
     "id": "AR0261",
@@ -2012,36 +2012,80 @@
   {
     "id": "AR0262",
     "title": "Roadmap 69: free disk space per machine",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0262-roadmap-69-free-disk-space-per-machine/ticket.md",
-    "updated": "2026-10-21T12:52:49.491Z"
+    "updated": "2026-10-21T14:00:33.664Z"
   },
   {
     "id": "AR0263",
     "title": "Roadmap 83: findings, what happens to them per project",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0263-roadmap-83-findings-what-happens-to-them-per-project/ticket.md",
-    "updated": "2026-10-21T13:14:34.799Z"
+    "updated": "2026-10-21T13:42:47.630Z"
   },
   {
     "id": "AR0264",
     "title": "`arthur init` writes the audit criteria as a bare title, not the criteria manage ships",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0264-arthur-init-writes-the-audit-criteria-as-a-bare-title-not-the-criteria-manage-ships/ticket.md",
-    "updated": "2026-10-21T13:16:16.440Z"
+    "updated": "2026-10-21T13:54:34.769Z",
+    "after": [
+      "AR0266"
+    ]
   },
   {
     "id": "AR0265",
     "title": "No health line for a finished audit that was never filed",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0265-no-health-line-for-a-finished-audit-that-was-never-filed/ticket.md",
-    "updated": "2026-10-21T13:16:16.443Z"
+    "updated": "2026-10-21T13:54:34.977Z",
+    "after": [
+      "AR0266"
+    ]
   },
   {
     "id": "AR0266",
     "title": "Roadmap 63: the retro",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0266-roadmap-63-the-retro/ticket.md",
-    "updated": "2026-10-21T13:16:37.634Z"
+    "updated": "2026-10-21T14:00:01.026Z"
+  },
+  {
+    "id": "AR0267",
+    "title": "The procedure after a merge settles review notes as tickets whatever the project's findings mode",
+    "status": "planned",
+    "path": "spec/features/AR0267-the-procedure-after-a-merge-settles-review-notes-as-tickets-whatever-the-project-s-findings-mode/ticket.md",
+    "updated": "2026-10-21T13:54:35.188Z"
+  },
+  {
+    "id": "AR0268",
+    "title": "The coordinator's role names `arthur findings`, which a config without the findings plugin no longer has",
+    "status": "planned",
+    "path": "spec/features/AR0268-the-coordinator-s-role-names-arthur-findings-which-a-config-without-the-findings-plugin-no-longer-has/ticket.md",
+    "updated": "2026-10-21T13:54:35.394Z",
+    "after": [
+      "AR0258"
+    ]
+  },
+  {
+    "id": "AR0269",
+    "title": "The disk check makes a second ssh call per machine and round",
+    "status": "planning",
+    "path": "spec/features/AR0269-the-disk-check-makes-a-second-ssh-call-per-machine-and-round/ticket.md",
+    "updated": "2026-10-21T14:00:33.651Z"
+  },
+  {
+    "id": "AR0270",
+    "title": "vision.md's disk refusal example differs from the roadmap and the code",
+    "status": "planning",
+    "path": "spec/features/AR0270-vision-md-s-disk-refusal-example-differs-from-the-roadmap-and-the-code/ticket.md",
+    "updated": "2026-10-21T14:00:33.657Z"
+  },
+  {
+    "id": "AR0271",
+    "title": "Two processes checking one machine at once can both say the same news",
+    "status": "planning",
+    "path": "spec/features/AR0271-two-processes-checking-one-machine-at-once-can-both-say-the-same-news/ticket.md",
+    "updated": "2026-10-21T14:00:33.660Z"
   }
 ]

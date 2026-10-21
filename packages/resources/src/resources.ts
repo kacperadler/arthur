@@ -5,11 +5,11 @@ import type { Said } from "./machine-free.ts";
 import { checkOptions } from "./resource-options.ts";
 import { CHECK_SECONDS, type KeepFree, roomGuard } from "./room.ts";
 
-// The resources plugin (spec/roadmap.md, entries 32 to 34): each job's own CPU and memory, `perJob`, answered as `jobs.limits`,
+// The resources plugin (spec/roadmap.md, entries 32 to 34 and 69): each job's own CPU and memory, `perJob`, answered as `jobs.limits`,
 // which the core sets on the job's scope inside the joint slice of `core.jobs.cpu` and `core.jobs.memory`; the caps of all
 // jobs of one ticket together, `perFeature` and a ticket's own `caps`; and how many jobs each machine has room for, from its
-// free CPU and memory less `keepFree` and the jobs' `perJob` reservations (room.ts), each listed machine's read at each round
-// of the `machines` plugin (`machines.round`): docs/resources.md.
+// free CPU and memory less `keepFree` and the jobs' `perJob` reservations, none under its disk floor (room.ts), each listed
+// machine's read at each round of the `machines` plugin (`machines.round`): docs/resources.md.
 
 export type Caps = { readonly cpu?: number; readonly memory?: string };
 export type ResourcesOptions = { readonly enabled?: boolean; readonly perJob?: Caps; readonly perFeature?: FeatureCaps; readonly keepFree?: KeepFree };

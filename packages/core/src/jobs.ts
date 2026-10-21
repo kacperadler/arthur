@@ -75,13 +75,13 @@ export type Jobs = RoleReads & {
 	// An OMP extension, its module's `file:` URL, that each job's agent loads with `-e` after the core's own, in the order registered.
 	registerExtension(url: URL): void;
 	beforeSpawn(check: SpawnCheck): void;
-	// After the worktree and the record exist, before the agent starts; a throw removes both and refuses the spawn; it runs here, on another machine through `run`. Variables it returns go into the job's environment only (job-scope.ts), never its record, and reach the prepares after it, in setup order, as `env`.
-	// `arthur continue` runs it again on the job its record holds, `continued` true, for its variables only: a throw refuses the continue, and a step that sets up the worktree returns at once.
+	// After the worktree and the record exist, before the agent starts; a throw removes both and refuses the spawn; it runs here, on another machine through `run`. Variables it returns go into the job's environment only (job-scope.ts), never its record, and reach the prepares after it, in setup order, as `env`. `arthur continue` runs it again on the job its record holds, `continued` true, for its variables only: a throw refuses the continue, and a step that sets up the worktree returns at once.
 	prepare(fn: Prepare): void;
-	// Machines jobs run on over SSH, `local` the core's; `run`: one command on one, `input` on its stdin; `machines`: every name (docs/commands/spawn.md).
+	// Machines jobs run on over SSH, `local` the core's; `run`: one command on one, `input` on its stdin; `machines`: every name; `home`: Arthur's home folder on one (docs/commands/spawn.md).
 	registerMachine(machine: Machine): void;
 	run(machine: string, argv: readonly string[], limitSeconds?: number, input?: string): Promise<Ran>;
 	machines(): string[];
+	home(machine: string): string;
 	spawn(request: SpawnRequest): Promise<Started>;
 	// `arthur continue` of an ended job with a branch, `budgetUsd` replacing its budget; resolves to why its wrapper did not start (job-control.ts).
 	continue(id: string, instruction: string, budgetUsd?: number): Promise<string | undefined>;
@@ -97,8 +97,8 @@ export type Jobs = RoleReads & {
 	file(id: string | undefined, job: string): string;
 };
 
-// The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for.
-export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run" | "machines" | "prompt" | "vision" | "criteria" | "registerExtension"> & {
+// The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for; `sweep`: dead jobs here, then the copy from every other machine.
+export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run" | "machines" | "home" | "prompt" | "vision" | "criteria" | "registerExtension"> & {
 	registerKind(owner: string, kind: Kind): void;
 	registerRole(owner: string, role: Role): void;
 	beforeSpawn(owner: string, check: SpawnCheck): void;
@@ -126,7 +126,6 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 	const runner: JobRunner = {
 		...upkeep,
 		...roleReads(roles, where),
-		// Dead jobs here, then the copy from every other machine.
 		sweep: () => void (upkeep.sweep(), syncMachines(home, machines.others(), bus, time.now(), limits.offlineGraceMinutes)),
 		registerKind: (owner, kind) => kinds.register(owner, kind),
 		registerRole: (owner, role) => roles.register(owner, role),
@@ -136,6 +135,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 		registerMachine: (owner, machine) => machines.register(owner, machine),
 		run: (machine, argv, limitSeconds, input) => machines.run(machine, argv, limitSeconds, input),
 		machines: () => [LOCAL, ...machines.others().map((machine) => machine.name)],
+		home: (name) => machines.home(name),
 		roles: (project) => describeRoles(roles, kinds.all(), where(project), collect),
 		continue: (id, instruction, budgetUsd, ignoreRestart = false) =>
 			continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), { check: async (job) => ({ caps: await jobCaps(collect("jobs.limits", [{ ...job, ignoreRestart }])), release: await checks.pass({ ...job, ignoreRestart }) }), prepare: (job) => prepared({ ...job, ignoreRestart }, true) }, machines.of(id)),

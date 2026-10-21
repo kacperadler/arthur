@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Started by the coordinator; owner: continue Arthur, at most 10% of the weekly limit today (5% at 14:52).
+- 2026-10-21: Coordinator (free hand) accepted the worker picks: `keepFree.disk` defaults to 0 (no floor, no df); the failed-check notice says "its room is unknown"; a missing provider path shows its own skipped line; the host member `host.jobs.home(machine)` and the provided name `resources.disk`, recorded in docs/plugin-api.md.

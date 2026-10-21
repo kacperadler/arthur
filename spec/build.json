@@ -1835,9 +1835,9 @@
   {
     "id": "AR0238",
     "title": "A rerun keeps its run id, so its end is never told as `ci-finished`",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0238-a-rerun-keeps-its-run-id-so-its-end-is-never-told-as-ci-finished/ticket.md",
-    "updated": "2026-10-21T06:50:54.706Z"
+    "updated": "2026-10-21T08:23:28.906Z"
   },
   {
     "id": "AR0239",
@@ -1856,9 +1856,9 @@
   {
     "id": "AR0241",
     "title": "arthur merge installs from the lockfile and never reads a project's own install",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0241-arthur-merge-installs-from-the-lockfile-and-never-reads-a-project-s-own-install/ticket.md",
-    "updated": "2026-10-21T08:15:29.914Z"
+    "updated": "2026-10-21T08:53:09.694Z"
   },
   {
     "id": "AR0242",
@@ -1887,15 +1887,22 @@
   {
     "id": "AR0245",
     "title": "arthur stats: remove the unreachable unknown-project throw",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0245-arthur-stats-remove-the-unreachable-unknown-project-throw/ticket.md",
-    "updated": "2026-10-21T08:13:09.778Z"
+    "updated": "2026-10-21T08:28:42.193Z"
   },
   {
     "id": "AR0246",
     "title": "Roadmap 58: arthur ci, reruns, pushes, pull request reviews",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0246-roadmap-58-arthur-ci-reruns-pushes-pull-request-reviews/ticket.md",
-    "updated": "2026-10-21T08:23:25.282Z"
+    "updated": "2026-10-21T08:51:14.092Z"
+  },
+  {
+    "id": "AR0247",
+    "title": "Roadmap 55: hand-back after a FAIL review",
+    "status": "in-progress",
+    "path": "spec/features/AR0247-roadmap-55-hand-back-after-a-fail-review/ticket.md",
+    "updated": "2026-10-21T08:29:03.172Z"
   }
 ]

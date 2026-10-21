@@ -280,6 +280,10 @@ import { checkStructure } from "./structure.ts";
 // AR0244 (roadmap 61): manage 112 more (369) for `arthur stats`: the merged tickets' rounds, verdicts, cost and days, the
 // means and shares, the most expensive and the first line of each FAIL finding (stats.ts, 99), and the command registered with
 // its header (manage.ts, 13); nothing in manage did this before, so nothing was cut; core unchanged.
+// AR0241 (the ticket's Done means: projects provides `projects.install`): projects 5 more (486) for the provider and its
+// unknown-project refusal (projects.ts); delivery stays 770, its lockfile table cut for the ask and a refusal as a failed step.
+// AR0245: manage 1 less (368): the unknown-project throw in stats.ts was cut, since `host.board.list` refuses first.
+// Merged AR0241 with AR0245: main's budgets plus AR0241's raise, projects 486, delivery 770, manage 368.
 // AR0246 (roadmap 58, with AR0238): github 276 more (586): `arthur ci` and `--rerun`, why a run failed from its jobs and its
 // log's end, the reruns kept (github-ci.ts, 97); the push to origin that never prompts, with the nearest run and the git helper
 // moved out of github.ts (github-git.ts, 59); the pull request reviews polled (github-pulls.ts, 61); one request shared by
@@ -287,7 +291,8 @@ import { checkStructure } from "./structure.ts";
 // requests (github-state.ts, 14 more), and the wakes, the command and `github.push` registered (github.ts, 20 more); nothing in
 // github did this before, so nothing was cut. delivery 9 more (779) to ask `github.push` after a PASS and after a merge; core
 // unchanged.
-const BUDGETS = { core: 5727, "core/testing": 349, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 779, github: 586, manage: 369 };
+// Merged AR0246 with AR0241 and AR0245: main's budgets plus AR0246's raises, github 586, delivery 770 + 9 = 779 (recounted).
+const BUDGETS = { core: 5727, "core/testing": 349, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 779, github: 586, manage: 368 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -14,7 +14,7 @@ test("no options, health.everyMinutes from 1 up and prune.keepJobsDays from 0 up
 });
 
 test("refused: an unknown option, health not an object, an unknown key, everyMinutes below 1 or not whole", () => {
-	assert.deepEqual(checkOptions({ retro: {} }), [{ path: "retro", problem: "unknown option; options: health, prune, audit" }]);
+	assert.deepEqual(checkOptions({ backup: {} }), [{ path: "backup", problem: "unknown option; options: health, prune, audit, retro" }]);
 	for (const health of [30, [], null]) assert.equal(checkOptions({ health })[0]?.path, "health", String(health));
 	assert.deepEqual(checkOptions({ health: 30 }), [{ path: "health", problem: "expected { everyMinutes }, got 30" }]);
 	assert.deepEqual(checkOptions({ health: { every: 30 } }), [{ path: "health.every", problem: "unknown key; keys: everyMinutes" }]);
@@ -50,4 +50,17 @@ test("refused: audit not an object or without at, an unknown key, and each key's
 	for (const budgetUsd of [-0.01, "10", Number.POSITIVE_INFINITY])
 		assert.deepEqual(checkOptions({ audit: { at: "02:00", budgetUsd } })[0]?.path, "audit.budgetUsd", String(budgetUsd));
 	for (const model of ["", " ", [], ["a/b", ""], 3]) assert.deepEqual(checkOptions({ audit: { at: "02:00", model } })[0]?.path, "audit.model", JSON.stringify(model));
+});
+
+test("retro.day and retro.at pass at their limits; refused: retro not an object, without day or at, an unknown key, a wrong day or time", () => {
+	assert.deepEqual(checkOptions({ retro: { day: "mon", at: "00:00" } }), []);
+	assert.deepEqual(checkOptions({ retro: { day: "sun", at: "23:59" } }), []);
+	assert.deepEqual(checkOptions({ retro: "fri" }), [{ path: "retro", problem: 'expected { day, at }, got "fri"' }]);
+	assert.deepEqual(checkOptions({ retro: {} }), [
+		{ path: "retro.day", problem: "expected one of mon, tue, wed, thu, fri, sat, sun, got nothing" },
+		{ path: "retro.at", problem: 'expected "HH:MM", 00:00 to 23:59, got nothing' },
+	]);
+	assert.deepEqual(checkOptions({ retro: { day: "fri", at: "22:30", days: ["fri"] } }), [{ path: "retro.days", problem: "unknown key; keys: day, at" }]);
+	for (const day of ["Fri", "friday", ["fri"], 5]) assert.equal(checkOptions({ retro: { day, at: "22:30" } })[0]?.path, "retro.day", JSON.stringify(day));
+	for (const at of ["24:00", "9:00", 2230]) assert.equal(checkOptions({ retro: { day: "fri", at } })[0]?.path, "retro.at", String(at));
 });

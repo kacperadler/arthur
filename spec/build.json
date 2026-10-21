@@ -1966,5 +1966,12 @@
     "status": "planning",
     "path": "spec/features/AR0255-the-poll-s-time-is-this-machine-s-clock-compared-with-github-s-submitted-at/ticket.md",
     "updated": "2026-10-21T11:08:47.824Z"
+  },
+  {
+    "id": "AR0256",
+    "title": "Roadmap 66: arthur plugin new",
+    "status": "planned",
+    "path": "spec/features/AR0256-roadmap-66-arthur-plugin-new/ticket.md",
+    "updated": "2026-10-21T11:09:08.923Z"
   }
 ]

@@ -11,4 +11,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/roles/worker.md`, `packages/orchestration/roles/planner.md`, `packages/develop/docs/commands/plugin.md`
 - What: in its worktree a job's `arthur plugin --help` cannot answer, since the CLI loads `arthur.config.ts` from the folder it runs in and a worktree lacks it; the way in, `cd <checkout> && arthur plugin new <name> --budget <lines> --root <worktree>`, is written only in `plugin.md`. No role names it (`grep -n "arthur " packages/core/roles/worker.md` finds nothing), so a worker on a new plugin's ticket may hand-write the package instead.
 - Suggestion: the planner's role (or the roadmap entry template for a new plugin) puts that line into a new plugin's plan as its first step; where `arthur.config.ts` is read stays as it is.
-- Status: open
+- Status: ticket AR0274

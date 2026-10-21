@@ -9,6 +9,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0243 The onboarding procedure does not name the command that merges an onboarding (9611adf)
 - AR0257 A waiting branch's CI end wakes the coordinator twice (044d050)
 - AR0258 The coordinator's role names merges only on the owner's word (d5ba054)
+- AR0260 `arthur plugin new` writes into the project's checkout, never a job's worktree (ee75ab0)
 - AR0264 `arthur init` writes the audit criteria as a bare title, not the criteria manage ships (a185ca3)
 - AR0265 No health line for a finished audit that was never filed (18a2583)
 - AR0267 The procedure after a merge settles review notes as tickets whatever the project's findings mode (e82d8fd)

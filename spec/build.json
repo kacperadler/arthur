@@ -1963,9 +1963,9 @@
   {
     "id": "AR0255",
     "title": "The poll's time is this machine's clock, compared with GitHub's `submitted_at`",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0255-the-poll-s-time-is-this-machine-s-clock-compared-with-github-s-submitted-at/ticket.md",
-    "updated": "2026-10-21T13:54:23.360Z"
+    "updated": "2026-10-21T14:11:00.638Z"
   },
   {
     "id": "AR0256",
@@ -1991,9 +1991,9 @@
   {
     "id": "AR0259",
     "title": "The example config gives delivery an option it refuses",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0259-the-example-config-gives-delivery-an-option-it-refuses/ticket.md",
-    "updated": "2026-10-21T13:54:34.339Z"
+    "updated": "2026-10-21T14:12:55.291Z"
   },
   {
     "id": "AR0260",
@@ -2046,9 +2046,9 @@
   {
     "id": "AR0266",
     "title": "Roadmap 63: the retro",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0266-roadmap-63-the-retro/ticket.md",
-    "updated": "2026-10-21T14:00:01.026Z"
+    "updated": "2026-10-21T14:07:36.603Z"
   },
   {
     "id": "AR0267",

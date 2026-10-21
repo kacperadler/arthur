@@ -77,15 +77,16 @@ function merge(host: Host, name: string, unreviewed: boolean): void {
 	}
 	const hash = git("rev-parse", "--short", "HEAD").stdout.trim();
 	console.log(`merged ${job.branch} into ${main}: ${hash}`);
-	const install = (commit: string) => host.call<string>("projects.install", { project: job.project, commit });
-	const steps = mainChecks(root, install, console.log);
+	// The PATH of main's checkout with nvm's Node first when the nvm plugin is on, else none: the PATH as it is.
+	const ask = { install: (commit: string) => host.call<string>("projects.install", { project: job.project, commit }), path: () => host.collect<string>("nvm.path", { root })[0] ?? "" };
+	const steps = mainChecks(root, ask, console.log);
 	if (steps.length === 0) console.log("no checks: package.json declares no check or test script");
 	const failing = steps.filter(failed).map((each) => each.command);
 	if (failing.length > 0) {
 		// `--keep`, unlike `--hard`, keeps the board's uncommitted moves, which the merge never touches.
 		const reset = git("reset", "--quiet", "--keep", before);
 		if (reset.status !== 0) throw new Error(`check failed on main (${failing.join(", ")}), and main could not be reset to ${before.slice(0, 7)}: ${last(reset)}`);
-		throw new Error(`check failed on main (${failing.join(", ")}); main reset to ${before.slice(0, 7)}, branch kept${reinstall(root, install, steps, console.log)}`);
+		throw new Error(`check failed on main (${failing.join(", ")}); main reset to ${before.slice(0, 7)}, branch kept${reinstall(root, ask, steps, console.log)}`);
 	}
 	if (ticket === undefined || folder === undefined) console.log("no ticket: no outcome.md, nothing moved");
 	else settleTicket(host, { job, ticket, folder, root, hash, subjects: subjects.split("\n"), steps, gap }, console.log);

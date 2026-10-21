@@ -5,8 +5,8 @@ import type { Command, Host } from "@arthur/core/plugin";
 import { branchOf, worker } from "./review-command.ts";
 
 // `arthur review-needed <worker job>` (spec/roadmap.md, entry 53): whether an ended worker's branch needs a review, by the
-// first rule that holds, its answer kept in `<folder>/<job>/review-needed`, and on `no review` its ticket moved to done.
-// docs/commands/review-needed.md.
+// first rule that holds, its answer kept in `<folder>/<job>/review-needed`; on `no review` its ticket moved to done and its
+// branch pushed (`github.push`, entry 58, when a plugin provides it), as after a PASS. docs/commands/review-needed.md.
 
 const USAGE = "usage: arthur review-needed <worker job>";
 // At most this many lines added and removed, a branch with passing checks needs no review.
@@ -19,7 +19,7 @@ export function reviewNeededCommand(host: Host, held: (path: string) => boolean)
 	return {
 		name: "review-needed",
 		doc: new URL("../docs/commands/review-needed.md", import.meta.url),
-		run({ args }) {
+		async run({ args }) {
 			const [name, ...more] = args;
 			if (name === undefined || more.length > 0 || name.startsWith("-")) {
 				console.error(`arthur review-needed: ${name === undefined ? "no job" : name.startsWith("-") ? `unknown flag ${name}` : `one job; got ${args.length}`}\n${USAGE}`);
@@ -41,7 +41,7 @@ export function reviewNeededCommand(host: Host, held: (path: string) => boolean)
 			writeFileSync(join(folder, ".review-needed"), `${JSON.stringify({ answer, ticket, branch: job.branch, commit: tip, at: Date.now() })}\n`);
 			renameSync(join(folder, ".review-needed"), join(folder, "review-needed"));
 			console.log(answer);
-			if (answer.startsWith("no review")) console.log(`${ticket} moves to done.`);
+			if (answer.startsWith("no review")) for (const line of [`${ticket} moves to done.`, ...(await Promise.all(host.collect<Promise<string>>("github.push", { project: job.project, branch: job.branch })))]) console.log(line);
 		},
 	};
 }

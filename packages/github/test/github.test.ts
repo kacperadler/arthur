@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { once } from "node:events";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { type GithubOptions, github } from "../src/github.ts";
-import { DOCS, type FakeRun, fakeGithub } from "./fake-github.ts";
+import { DOCS, type FakePull, type FakeRun, fakeGithub } from "./fake-github.ts";
 
 // The github plugin against the fake host and a fake GitHub REST API (fake-github.ts). Each project is a real repository whose
 // origin names its GitHub repository; polls run every second.
@@ -141,7 +144,7 @@ test("a finished run is told once per run attempt, across polls and a restart, a
 	assert.ok(!JSON.stringify([first.errors, restarted.errors]).includes(TOKEN));
 });
 
-test("a commit with no run of its own has the run of the nearest commit before it; two branches on one run are one event", async (t) => {
+test("a commit with no run of its own has the run of the nearest commit before it, for the poll and arthur ci; two branches on one run are one event; wakeOn [] wakes nobody", async (t) => {
 	const api = await fakeGithub(t);
 	const shop = repository();
 	const built = shop.commit("arthur/two");
@@ -149,7 +152,7 @@ test("a commit with no run of its own has the run of the nearest commit before i
 	const run: FakeRun = { id: 21, sha: built, branch: "arthur/two", status: "in_progress", conclusion: null };
 	const main: FakeRun = { id: 20, sha: shop.head(), branch: "main", status: "queued", conclusion: null };
 	api.runs["acme/shop/ci.yml"] = [run, main];
-	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } }], options(api.apiUrl));
+	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } }], options(api.apiUrl, { wakeOn: [] }));
 	box.record("2026-01-01-worker-0000000b", "shop", "arthur/two");
 	box.record("2026-01-01-worker-0000000c", "shop", "arthur/fresh");
 	git(shop.path, "branch", "arthur/fresh", "main");
@@ -165,6 +168,12 @@ test("a commit with no run of its own has the run of the nearest commit before i
 		],
 	);
 	assert.notEqual(docs, built, "arthur/two's tip has no run");
+	assert.deepEqual(box.messages(), [], "wakeOn [] wakes the coordinator on nothing");
+	assert.deepEqual(await box.ci("arthur/two"), {
+		code: 0,
+		out: `run 21, attempt 1, of ci.yml on ${built.slice(0, 7)} (arthur/two, 1 commit below its tip): success\nhttps://github.com/acme/shop/actions/runs/21`,
+		err: "",
+	});
 });
 
 test("a branch deleted while in play leaves it: its run is not told, nothing is said, the others go on", async (t) => {
@@ -264,4 +273,151 @@ test("a project's instance is the one named after its repository's owner, else t
 	assert.equal(await refused([{ ...projects[0], path: repository("https://user:secret@example.com/shop").path } as Project], acme), "project shop: its origin remote names no <owner>/<repository>");
 	assert.equal(await refused(projects, [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }], {}), "instances[0].tokenEnv: ARTHUR_GITHUB_TOKEN is empty or holds a space or a character outside ASCII, which a header cannot carry");
 	assert.equal(await refused([{ name: "plain", path: repository(null).path, prefix: "PL" }], [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }]), "set up", "a project without ci is not watched");
+});
+
+test("arthur ci tells why a run failed: each failed job and its step, and the end of the first one's log up to its last error; a long log its end only", async (t) => {
+	const api = await fakeGithub(t);
+	const shop = repository();
+	const sha = shop.commit("arthur/red");
+	const red: FakeRun = { id: 41, sha, branch: "arthur/red", status: "completed", conclusion: "failure" };
+	api.runs["acme/shop/ci.yml"] = [red];
+	const stamp = (line: string) => `2026-01-01T00:00:01.1234567Z ${line}`;
+	const tests = Array.from({ length: 500 }, (_, index) => `test ${index + 1} ok`);
+	const long = `${[...tests, "##[error]Process completed with exit code 1.", "Post job cleanup.", "Cleaning up orphan processes"].map(stamp).join("\r\n")}\r\n`;
+	api.jobs[41] = [
+		{ id: 401, name: "build", conclusion: "success", steps: [{ name: "Run npm ci", conclusion: "success" }], log: "" },
+		{ id: 402, name: "test", conclusion: "failure", steps: ["Set up job", "Run npm test", "Post Run actions/checkout@v4"].map((name, index) => ({ name, conclusion: index === 1 ? "failure" : "success" })), log: long },
+		{ id: 403, name: "lint", conclusion: "failure", steps: [{ name: "Run npm run check", conclusion: "failure" }], log: stamp("x") },
+	];
+	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } }], options(api.apiUrl));
+	const why = await box.ci("arthur/red");
+	assert.deepEqual([why.code, why.err], [0, ""]);
+	assert.deepEqual(why.out.split("\n"), [
+		`run 41, attempt 1, of ci.yml on ${sha.slice(0, 7)} (arthur/red's tip): failure`,
+		"https://github.com/acme/shop/actions/runs/41",
+		"job test: failure, step 2, Run npm test, failed",
+		"job lint: failure, step 1, Run npm run check, failed",
+		"the log of job test, its 30 lines up to its last error of 503:",
+		...tests.slice(-29),
+		"##[error]Process completed with exit code 1.",
+	]);
+	assert.equal(api.count("/repos/acme/shop/actions/jobs/403/logs"), 0, "only the first failed job's log is asked");
+	api.jobs[41] = [{ id: 404, name: "test", conclusion: "failure", steps: [], log: ["one", "two"].map(stamp).join("\n") }];
+	assert.equal((await box.ci("arthur/red")).out.split("\n").slice(2).join("\n"), "job test: failure, no step failed\nthe log of job test:\none\ntwo", "a short log whole, with no error line");
+	assert.equal(api.count("/repos/acme/shop/pulls"), 0, "pull requests are not polled while wakeOn does not name pull-request-review");
+});
+
+test("arthur ci refuses: a rerun of a passed run or one not finished, a project without ci, a missing branch, a branch no run built, GitHub's refusal; wrong usage", async (t) => {
+	const api = await fakeGithub(t);
+	const shop = repository();
+	const main: FakeRun = { id: 50, sha: shop.head(), branch: "main", status: "completed", conclusion: "success" };
+	api.runs["acme/shop/ci.yml"] = [main];
+	const projects = [
+		{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } },
+		{ name: "plain", path: repository(null).path, prefix: "PL" },
+	];
+	const box = await started(t, projects, options(api.apiUrl));
+	const refused = async (...args: string[]) => {
+		const ran = await box.ci(...args);
+		return [ran.code, ran.err];
+	};
+	assert.deepEqual(await refused("main", "--rerun"), [1, "arthur ci: run 50 passed; only a run that failed or was cancelled is rerun"]);
+	[main.status, main.conclusion] = ["in_progress", null];
+	assert.deepEqual(await refused("main", "--rerun"), [1, "arthur ci: run 50 is in_progress, not finished; only a run that failed or was cancelled is rerun"]);
+	assert.deepEqual(await box.ci("main"), { code: 0, out: `run 50, attempt 1, of ci.yml on ${main.sha.slice(0, 7)} (main's tip): in_progress\nhttps://github.com/acme/shop/actions/runs/50`, err: "" });
+	[main.status, main.conclusion] = ["completed", "cancelled"];
+	api.state.post = { status: 403, body: { message: "Resource not accessible by personal access token", documentation_url: DOCS, status: "403" } };
+	assert.deepEqual(await refused("main", "--rerun"), [1, "arthur ci: instance (unnamed): 403 for run 50 of acme/shop: Resource not accessible by personal access token; the token in ARTHUR_GITHUB_TOKEN needs Actions: read and write on it"]);
+	assert.deepEqual(await refused("arthur/none"), [1, `arthur ci: no branch arthur/none in ${shop.path}`]);
+	api.runs["acme/shop/ci.yml"] = [];
+	assert.deepEqual(await refused("main"), [1, "arthur ci: no run built main: none of its last 1000 commits has one among the 0 newest runs of ci.yml"]);
+	const ci = box.fake.commands.find((command) => command.name === "ci");
+	assert.equal(await ci?.run({ args: ["main"], project: "plain" }), 1);
+	assert.equal(box.errors.at(-1), "arthur ci: project plain has no ci.workflow, so github watches no run of it");
+	for (const [args, why] of [
+		[[], "no branch"],
+		[["main", "arthur/x"], "one branch; got 2"],
+		[["main", "--force"], "unknown flag --force"],
+	] as const)
+		assert.deepEqual(await refused(...args), [2, `arthur ci: ${why}\nusage: arthur ci <branch> [--rerun] [--project <name>]`]);
+});
+
+test("github.push pushes a branch to origin, one line; a push rejected as non-fast-forward, no remote, or one that would ask for a credential is one warning line, never a prompt", async (t) => {
+	const api = await fakeGithub(t);
+	// An askpass program that notes it was asked, where git and ssh look for one, and git's terminal prompt left on: a push may
+	// still never ask.
+	const askpass = join(temporaryFolder(), "askpass");
+	writeFileSync(askpass, `#!/bin/sh\ntouch "${askpass}.asked"\necho arthur\n`, { mode: 0o755 });
+	const env: Readonly<Record<string, string | undefined>> = { GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1", GIT_ASKPASS: askpass, SSH_ASKPASS: askpass, GIT_TERMINAL_PROMPT: undefined };
+	for (const [name, value] of Object.entries(env)) {
+		const was = process.env[name];
+		if (value === undefined) delete process.env[name];
+		else process.env[name] = value;
+		t.after(() => (was === undefined ? delete process.env[name] : (process.env[name] = was)));
+	}
+	const origin = temporaryFolder();
+	git(origin, "init", "--quiet", "--bare", "--initial-branch=main");
+	const local = repository(origin);
+	const asks = createServer((_, response) => response.writeHead(401, { "www-authenticate": 'Basic realm="GitHub"' }).end());
+	await once(asks.listen(0, "127.0.0.1"), "listening");
+	t.after(() => asks.close());
+	const port = (asks.address() as AddressInfo).port;
+	const projects = [
+		{ name: "local", path: local.path, prefix: "LO" },
+		{ name: "alone", path: repository(null).path, prefix: "AL" },
+		{ name: "asks", path: repository(`http://127.0.0.1:${port}/acme/shop.git`).path, prefix: "AS" },
+		{ name: "secret", path: repository(`http://arthur:s3cr3t@127.0.0.1:${port}/acme/shop.git`).path, prefix: "SE" },
+	];
+	const box = await started(t, projects, options(api.apiUrl));
+	const push = (project: string, branch = "main") => box.fake.call<Promise<string>>("github.push", { project, branch });
+	assert.equal(await push("local"), "github: pushed main to origin: [new branch]");
+	const sha = local.commit("arthur/ok");
+	assert.equal(await push("local", "arthur/ok"), "github: pushed arthur/ok to origin: [new branch]");
+	assert.equal(git(origin, "rev-parse", "arthur/ok"), sha);
+	local.commit();
+	assert.match(await push("local"), /^github: pushed main to origin: [0-9a-f]{7,}\.\.[0-9a-f]{7,}$/);
+	assert.equal(await push("local"), "github: pushed main to origin: [up to date]");
+	const other = temporaryFolder();
+	execFileSync("git", ["clone", "--quiet", origin, other]);
+	git(other, "commit", "--quiet", "--allow-empty", "-m", "elsewhere");
+	git(other, "push", "--quiet", "origin", "main");
+	local.commit();
+	git(local.path, "fetch", "--quiet", "origin");
+	assert.equal(await push("local"), "github: main not pushed to origin: [rejected] (non-fast-forward)");
+	assert.equal(git(origin, "rev-parse", "main"), git(other, "rev-parse", "main"), "origin's main as the other clone left it");
+	assert.equal(await push("alone"), `github: main not pushed to origin: ${projects[1]?.path} has no origin remote`);
+	assert.equal(await push("nope"), "github: main not pushed to origin: no project nope");
+	assert.equal(await push("local", "arthur/missing"), "github: arthur/missing not pushed to origin: error: src refspec refs/heads/arthur/missing does not match any");
+	assert.equal(await push("asks"), "github: main not pushed to origin: fatal: could not read Username for origin: terminal prompts disabled");
+	assert.equal(await push("secret"), "github: main not pushed to origin: fatal: Authentication failed for origin", "the URL, and the credential in it, never said");
+	assert.equal(existsSync(`${askpass}.asked`), false, "no askpass was run");
+});
+
+test("pull request reviews, polled when wakeOn names them: each told once and woken on; the first poll tells none; a pull request not updated is not asked again", async (t) => {
+	const api = await fakeGithub(t);
+	const shop = repository();
+	api.runs["acme/shop/ci.yml"] = [];
+	const cart: FakePull = { number: 7, title: "Add the cart", branch: "arthur/cart", updated: "2026-01-01T00:00:00Z", reviews: [{ id: 70, user: "kacper", state: "COMMENTED", body: "Before Arthur watched." }] };
+	api.pulls["acme/shop"] = [cart];
+	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } }], options(api.apiUrl, { wakeOn: ["pull-request-review"] }));
+	const told = () => box.fake.emitted.filter((event) => event.name === "pull-request-review").map((event) => event.data);
+	const LIST = "/repos/acme/shop/pulls?";
+	await until("two polls", () => api.count(LIST) >= 2);
+	assert.deepEqual([told(), api.count("/repos/acme/shop/pulls/7/reviews")], [[], 1], "the first poll tells none; not updated since, not asked again");
+	cart.reviews.push({ id: 71, user: "kacper", state: "CHANGES_REQUESTED", body: "Test the empty cart." }, { id: 72, user: "kacper", state: "PENDING", body: "A draft." });
+	cart.updated = "2026-01-01T00:05:00Z";
+	await until("the review told", () => told().length === 1);
+	api.pulls["acme/shop"].push({ number: 8, title: "Fix the logo", branch: "fix-logo", updated: "2026-01-01T00:06:00Z", reviews: [{ id: 80, user: "octo", state: "APPROVED", body: "" }] });
+	await until("the new pull request's review", () => told().length === 2);
+	const polls = api.count(LIST);
+	await until("two more polls", () => api.count(LIST) >= polls + 2);
+	assert.deepEqual(told(), [
+		{ project: "shop", repo: "acme/shop", pull: 7, title: "Add the cart", branch: "arthur/cart", review: 71, user: "kacper", state: "CHANGES_REQUESTED", body: "Test the empty cart.", url: "https://github.com/acme/shop/pull/7#pullrequestreview-71" },
+		{ project: "shop", repo: "acme/shop", pull: 8, title: "Fix the logo", branch: "fix-logo", review: 80, user: "octo", state: "APPROVED", body: "", url: "https://github.com/acme/shop/pull/8#pullrequestreview-80" },
+	]);
+	assert.deepEqual(box.messages(), [
+		"[github] kacper reviewed pull request #7 of acme/shop, Add the cart (branch arthur/cart): CHANGES_REQUESTED: https://github.com/acme/shop/pull/7#pullrequestreview-71\nTest the empty cart.",
+		"[github] octo reviewed pull request #8 of acme/shop, Fix the logo (branch fix-logo): APPROVED: https://github.com/acme/shop/pull/8#pullrequestreview-80",
+	]);
+	assert.equal(api.count("/repos/acme/shop/pulls/7/reviews"), 2, "asked again only once it was updated");
 });

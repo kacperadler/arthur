@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Started by the coordinator; owner: continue Arthur, at most 10% of the weekly limit today (5% at 14:52).
+- 2026-10-21: Coordinator (free hand) accepted the worker picks: `findings.mode` is a map from project name to mode in the findings plugin options (default `ticket`); a ticket from a finding gets its Kind and `budget`; every worker prompt carries the findings.md template.

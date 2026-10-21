@@ -1,8 +1,11 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, type StatsFs, statfsSync, statSync } from "node:fs";
+import { existsSync, readFileSync, type StatsFs, statfsSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, normalize } from "node:path";
 import type { Host, JobRecord, Project, Ticket } from "@arthur/core/plugin";
+import { AUDITS } from "./audit.ts";
+import { newest, type Reports } from "./report-file.ts";
+import { RETROS } from "./retro-due.ts";
 
 // Manage's own answer to `health` (spec/roadmap.md, entry 60): a line for each thing that should have happened by now and has
 // not, read only, nothing fixed. Each check costs its own line when it throws. docs/manage.md, "The checks".
@@ -15,6 +18,8 @@ export const LOW = 0.1;
 const OPEN = ["in-progress", "review"];
 // What the board is in a project's checkout (the core's board.ts).
 const BOARD = ["spec/build.json", "spec/features"];
+// Where `arthur ticket file` files each kind's report (report-file.ts).
+const FILED: Readonly<Record<string, Reports>> = { audit: AUDITS, retro: RETROS };
 
 export type Space = Pick<StatsFs, "blocks" | "bavail" | "bsize" | "files" | "ffree">;
 
@@ -73,6 +78,17 @@ export function uncommittedBoard(project: Project, now: number): string[] {
 	return [`${project.name}: the board has changes not committed for ${hours(now - oldest.at)}: ${oldest.path}${more}`];
 }
 
+// An audit or retro of the project that ended finished an hour ago, whose id no `- Job:` line of a report in its kind's folder
+// names: the next one starts from the report before it, and a prune of the job loses its result. A broken time is no line.
+export function unfiledReports(project: Project, jobs: readonly JobRecord[], now: number): string[] {
+	return Object.entries(FILED).flatMap(([kind, reports]) => {
+		const ended = jobs.filter((job) => job.project === project.name && job.kind === kind && job.state === "ended" && job.reason === "finished" && now - Date.parse(job.since) >= HOUR_MS);
+		if (ended.length === 0) return [];
+		const filed = new Set(newest(project.path, reports, "md").flatMap((path) => [...readFileSync(join(project.path, path), "utf8").matchAll(/^- Job: (\S+)$/gm)].map((match) => match[1])));
+		return ended.filter((job) => !filed.has(job.id)).map((job) => `${project.name}: the ${kind} ${job.id} finished ${hours(now - Date.parse(job.since))} ago and is not filed in ${reports.folder}/: arthur ticket file ${job.id}`);
+	});
+}
+
 // The temporary folder with under LOW of its space free, and each filesystem of `temp` and `folders`, once, with under LOW of
 // its inodes free. A folder that does not exist is skipped; a filesystem that counts no inodes has none to run out of.
 export function diskLines(temp: string, folders: readonly string[], statfs: (path: string) => Space = statfsSync): string[] {
@@ -103,13 +119,12 @@ export function ownHealth(host: Pick<Host, "board" | "jobs" | "clock" | "folder"
 	let projects: readonly Project[] = [];
 	each("the projects", () => ((projects = host.board.projects()), []));
 	let jobs: { readonly list: readonly JobRecord[]; readonly running: readonly string[] } | undefined;
+	const list = () => (jobs ??= { list: host.jobs.list(), running: host.jobs.running() });
 	for (const project of projects) {
-		each(`the tickets of ${project.name}`, () => {
-			jobs ??= { list: host.jobs.list(), running: host.jobs.running() };
-			return stalledTickets(host.board.list(project.name), jobs.list, jobs.running, now);
-		});
+		each(`the tickets of ${project.name}`, () => stalledTickets(host.board.list(project.name), list().list, list().running, now));
 		each(`the commits of ${project.name}`, () => unpushed(project, now));
 		each(`the board of ${project.name}`, () => uncommittedBoard(project, now));
+		each(`the reports of ${project.name}`, () => unfiledReports(project, list().list, now));
 	}
 	each("the disk", () => diskLines(tmpdir(), [dirname(host.folder), ...projects.map((project) => project.path)]));
 	return lines;

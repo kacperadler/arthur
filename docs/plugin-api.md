@@ -169,7 +169,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | Name | Provided by | Asked by | The answer |
 | --- | --- | --- | --- |
 | `projects` | projects | the core (`host.board`, a spawn's checkout), plugins | The project list. |
-| `prompt` | commit-rules, findings, projects, youtrack | the core, `collect` at a spawn | A section of the prompt for `(role, job)`. |
+| `prompt` | commit-rules, findings, manage, projects, youtrack | the core, `collect` at a spawn | A section of the prompt for `(role, job)`. |
 | `doctor` | machines, models, nvm, projects | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
 | `jobs.place` | machines | the core, each spawn | The machine a job runs on. |
 | `jobs.limits` | resources | the core, each spawn | The job's own caps. |
@@ -177,10 +177,10 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `models.pick` | models | the core, each spawn with a model | `{ model, why, free }` for `(list, machine)`. |
 | `roles.model` | orchestration | the core, session | `{ model, thinking, quick, mcp }` of a role; `mcp` its MCP servers in omp's `mcpServers` shape (AR0234). |
 | `message.part` | none yet (voice) | the core (`turnText`) | A `Claim` for a part it handles. |
-| `channel.send` | telegram | the core (`arthur send`) | A check of `{ files, caption?, place? }` that throws every refusal, or a function that sends. |
+| `channel.send` | telegram | the core (`arthur send`), manage (`/retro`, only the channel the command came from) | A check of `{ files, caption?, place? }` that throws every refusal, or a function that sends. |
 | `ticket.autopilot` | orchestration | the core (`arthur ticket status --autopilot`) | The pre-approval. |
-| `coordinator.context` | models, projects, resources, session | orchestration | Lines of the coordinator's context. |
-| `coordinator.wake` | delivery, orchestration, projects | orchestration | Lines of the wake for an ended job. |
+| `coordinator.context` | manage, models, projects, resources, session | orchestration | Lines of the coordinator's context. |
+| `coordinator.wake` | delivery, manage, orchestration, projects | orchestration | Lines of the wake for an ended job. |
 | `coordinator.extension` | session | orchestration | `{ file, env }`: an OMP extension the coordinator loads. |
 | `coordinator.restart` | orchestration | session | Restarts the coordinator, `{ fresh }`. |
 | `coordinator.silent` | orchestration | telegram | Whether the silent mode holds a notice. |
@@ -188,7 +188,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `machines.round` | resources | machines | A round of machine checks as it begins. |
 | `resources.free` | resources | machines | The jobs a machine has room for. |
 | `resources.disk` | none yet (docker) | resources, each check of a machine with `keepFree.disk` | `(machine)`: the absolute paths there its jobs write, besides its home (above, "Changes since entry 51"). |
-| `schedule.register` | schedule | orchestration | Registers another plugin's schedule entries. |
+| `schedule.register` | schedule | orchestration, manage | Registers another plugin's schedule entries. |
 | `projects.install` | projects | delivery (`arthur merge`) | `{ project, commit }`: the command that installs the project at that commit, as a new worktree gets it, `""` for none (above, "Changes since entry 51"). |
 | `nvm.path` | nvm | delivery (`arthur merge`) | `{ root }`, a project's checkout here: the PATH with its `.nvmrc`'s Node first, `""` without `.nvmrc` (above, "Changes since entry 51"). |
 | `merge.check` | projects | delivery (`arthur merge`) | A check of a job's branch before its merge: a text answer refuses it. |

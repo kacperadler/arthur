@@ -6,14 +6,16 @@ import { audit } from "./audit.ts";
 import { cleanup } from "./cleanup.ts";
 import { ownHealth } from "./health-checks.ts";
 import { checkOptions, type ManageOptions } from "./manage-options.ts";
+import { retro } from "./retro.ts";
 import { stats } from "./stats.ts";
 
-// The manage plugin (spec/roadmap.md, entries 60, 61, 62 and 64): `arthur health` and `/health`, one line per thing that should
-// have happened by now and has not, from every plugin's answer to `health`, manage's own checks among them (health-checks.ts);
-// read only. With `health.everyMinutes`, `arthur run` runs the same round that often and sends its new lines as one `notice`; a
+// The manage plugin (spec/roadmap.md, entries 60 to 64): `arthur health` and `/health`, one line per thing that should have
+// happened by now and has not, from every plugin's answer to `health`, manage's own checks among them (health-checks.ts); read
+// only. With `health.everyMinutes`, `arthur run` runs the same round that often and sends its new lines as one `notice`; a
 // problem the round before saw too is not sent again, across a restart too. `arthur stats`: the merged tickets' reviews, costs
-// and days (stats.ts). The kind `audit`, and with `audit.at` its schedule entry (audit.ts). With `prune.keepJobsDays`, the
-// schedule plugin runs the daily cleanup (cleanup.ts). docs/manage.md.
+// and days (stats.ts). The kind `audit`, and with `audit.at` its schedule entry (audit.ts); the kind `retro`, `arthur
+// retro-due`, `/retro`, and with `retro.at` its schedule entry (retro.ts). With `prune.keepJobsDays`, the schedule plugin runs
+// the daily cleanup (cleanup.ts). docs/manage.md.
 
 export type { ManageOptions };
 
@@ -68,6 +70,7 @@ export function manage(options: ManageOptions = {}): Plugin {
 				if (host.collect("schedule.register", host.name, [entry]).length === 0) throw new Error("prune.keepJobsDays needs the schedule plugin, which runs the daily prune; add schedule() to the config's plugins, or leave prune out");
 			}
 			audit(host, (host.options as ManageOptions).audit);
+			retro(host, (host.options as ManageOptions).retro);
 			const report = () => {
 				const lines = healthLines(host);
 				return lines.length === 0 ? ALL_WELL : lines.join("\n");

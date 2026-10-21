@@ -361,7 +361,16 @@ import { checkStructure } from "./structure.ts";
 // with wc -l).
 // Merged main (AR0261, AR0263) into AR0262: main's budgets plus AR0262's raises, core 5737 + 5 = 5742, resources 577
 // (recounted with wc -l).
-const BUDGETS = { core: 5742, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1234, github: 621, manage: 637, develop: 198, findings: 254 };
+// AR0266 (roadmap 63): manage 273 more (910) for the retro: the kind, its role, its prompt's merges since the last retro with
+// each ticket's files to read, stats, board, and the role, procedure and criteria files the plugins ship, `arthur retro-due`,
+// the coordinator's context line, `/retro` sending the newest page through the channel it came from and `arthur retro` its
+// path (retro.ts, 118), the period of first-parent ticket merges since the last retro and the due rule (retro-due.ts, 71); the
+// audit's filing made one filer of both kinds' reports with the retro's phone page and the newest report read back
+// (audit-file.ts, 53, became report-file.ts, 92), the audit's schedule run made one for both kinds (scheduled-kind.ts, 36;
+// audit.ts 7 less), the `retro` options (manage-options.ts, 13 more), its setup and header (manage.ts, 3 more); nothing in
+// manage looked back on merges before, so nothing was cut.
+// Merged main (AR0262, AR0263) into AR0266: main's budgets plus AR0266's manage 910 (recounted with wc -l).
+const BUDGETS = { core: 5742, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1234, github: 621, manage: 910, develop: 198, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

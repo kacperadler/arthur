@@ -353,7 +353,10 @@ import { checkStructure } from "./structure.ts";
 // orchestration 22 fewer (1520), `/findings` and its branch lookup gone from board-commands.ts; core unchanged.
 // Merged main (AR0261) into AR0263: main's budgets plus AR0263's, findings 254, orchestration 1545 - 22 = 1523 (recounted
 // with wc -l).
-const BUDGETS = { core: 5737, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1234, github: 621, manage: 637, develop: 198, findings: 254 };
+// AR0255 (the ticket's Done means: the poll's time from the `date` header of GitHub's answer to the list): github 4 more
+// (625), that time less the answer's own, else this machine's clock (github-pulls.ts, 3 more, its comment cut to two lines
+// first), and the header returned by `ask` (github-api.ts, 1 more).
+const BUDGETS = { core: 5737, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1234, github: 625, manage: 637, develop: 198, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

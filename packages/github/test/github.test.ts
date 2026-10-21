@@ -457,14 +457,14 @@ test("a pull request closed and reopened, while polled or across a restart, has 
 	await polls("a poll with pull request 7 closed again");
 	await first.plugin.stop?.();
 	cart.updated = "2026-01-01T00:20:00Z";
-	cart.reviews.push({ id: 73, user: "octo", state: "APPROVED", body: "", submitted: now() });
+	cart.reviews.push({ id: 73, user: "octo", state: "APPROVED", body: "", submitted: now() }, { id: 74, user: "octo", state: "COMMENTED", body: "No time said.", submitted: null });
 	api.pulls["acme/shop"] = [cart];
 	// A restart is a new process: a new host on the state file the first one left.
 	const again = fakeHost({ name: "github", options: options(api.apiUrl, { wakeOn: ["pull-request-review"] }), env: { ARTHUR_GITHUB_TOKEN: TOKEN } });
 	again.provide("projects", () => [project]);
 	copyFileSync(join(first.fake.host.folder, "state.json"), join(again.host.folder, "state.json"));
 	const restarted = await started(t, [project], options(api.apiUrl, { wakeOn: ["pull-request-review"] }), undefined, again);
-	await until("review 73", () => told(restarted).length === 1);
+	await until("reviews 73 and 74", () => told(restarted).length >= 2);
 	await polls("a poll after the restart");
-	assert.deepEqual(told(restarted), [73], "reopened while stopped: only the review submitted since the last poll before the stop");
+	assert.deepEqual(told(restarted), [73, 74], "reopened while stopped: the review submitted since the last poll before the stop, and one GitHub gives no time, told rather than lost");
 });

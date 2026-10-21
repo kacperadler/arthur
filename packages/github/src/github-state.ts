@@ -13,8 +13,7 @@ export type State = { readonly runs: Readonly<Record<string, readonly string[]>>
 const ATTEMPT = /^\d+\/\d+$/;
 
 // A file that is not what `writeState` writes (missing, broken, edited by hand, or entry 57's list of run ids) is taken as no
-// project polled yet; a project's entry that is not what it should be (one written before AR0250 has no `polled`), as that
-// project not polled yet.
+// project polled yet; a project's entry that is not what it should be (before AR0250: without `polled`), as that one not yet.
 export function readState(folder: string): State {
 	let file: unknown;
 	try {
@@ -29,8 +28,8 @@ export function readState(folder: string): State {
 		return typeof updated === "string" && Array.isArray(told) && told.every((id) => Number.isInteger(id));
 	};
 	const pulled = ([, value]: [string, unknown]) => {
-		const { polled, open } = (typeof value === "object" && value !== null ? value : {}) as Partial<Pulls>;
-		return typeof polled === "string" && Number.isFinite(Date.parse(polled)) && typeof open === "object" && open !== null && !Array.isArray(open) && Object.values(open).every(pull);
+		const { polled, open } = (value ?? {}) as Partial<Pulls>;
+		return typeof polled === "string" && Number.isFinite(Date.parse(polled)) && open instanceof Object && !Array.isArray(open) && Object.values(open).every(pull);
 	};
 	const [runs, pulls] = [(file as Partial<State> | null)?.runs, (file as Partial<State> | null)?.pulls];
 	return {

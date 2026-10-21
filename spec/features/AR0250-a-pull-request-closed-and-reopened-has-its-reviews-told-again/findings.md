@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/github/src/github-pulls.ts:31` (`polled`)
 - What: `polled` is taken from `Date.now()` before the list of pull requests is asked, and a review of a pull request new to the state is told only when its `submitted_at` (GitHub's clock) is at or after it. With this machine's clock ahead of GitHub's by `s` seconds, a review submitted within `s` seconds after a poll began, on a pull request that poll did not list (opened just then), is never told. [INFERENCE: not reproduced; follows from the comparison in `newReviews`.]
 - Suggestion: take the poll's time from the `date` header of GitHub's answer to the list (`ask` would return it beside `until`), so both times are GitHub's; the rest of the rule stays.
-- Status: open
+- Status: ticket AR0255

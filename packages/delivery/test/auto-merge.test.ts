@@ -220,34 +220,35 @@ test("CI passed on the tip after a new commit: the run of the old tip no longer 
 	assert.equal(below.code, undefined, below.err);
 });
 
-test("a waiting branch's CI end wakes the coordinator with its verdict once per run end, across a restart, a rerun's end again; the merge ends the wait", async (t) => {
-	const { fake, plugin, worker, review, merge, answers, asked, messages, waiting } = await load(t);
+test("a waiting branch's CI end, as github's poll asks delivery.ciEnded, wakes the coordinator with its verdict once per run end, a rerun's end again, and answers true; the poll never wakes on an end; a run on main, another branch or project, or no wait answers false", async (t) => {
+	const { fake, worker, review, merge, answers, asked, messages, waiting } = await load(t);
 	const job = await worker(1);
 	await review(job.id, "PASS");
 	answers.ci = ciRun(job.tip, job.branch, { status: "in_progress", conclusion: null });
 	assert.equal((await merge(job.id, "--auto")).code, 1);
+	const url = "https://github.com/acme/shop/actions/runs/7";
+	// What github's poll passes: the project, the branch, how far below its tip the run is, and the run as GitHub listed it.
+	const end = (more: Record<string, unknown> = {}, run: Partial<CiRun> = {}) => fake.collect<boolean>("delivery.ciEnded", { project: "acme", branch: job.branch, below: 0, run: ciRun(job.tip, job.branch, { conclusion: "failure", ...run }), ...more });
+	assert.deepEqual([end({ below: 1 }), end({ branch: "arthur/other" }), end({ project: "other" })], [[false], [false], [false]], "a run on main, another branch, another project");
+	assert.deepEqual(messages(), []);
 	answers.ci = ciRun(job.tip, job.branch, { conclusion: "failure" });
-	await plugin.start?.();
-	for (const end = Date.now() + 10_000; messages().length === 0; await sleep(20)) if (Date.now() > end) throw new Error("no wake");
-	await plugin.stop?.();
+	await ciWaits(fake.host).round();
+	assert.deepEqual(messages(), [], "the poll leaves a run's end to github's");
+	assert.deepEqual(end(), [true]);
 	const ci = `arthur ci ${job.branch} --project acme`;
-	const where = `${job.branch} (run 7, attempt 1, on ${job.tip.slice(0, 7)}): https://github.com/acme/shop/actions/runs/7`;
+	const where = `${job.branch} (run 7, attempt 1, on ${job.tip.slice(0, 7)}): ${url}`;
 	assert.deepEqual(messages(), [`[delivery] CI ended failure on ${where}. Not merged; it waits on: the next end of a run on it wakes you again. Why: ${ci}; rerun it once: ${ci} --rerun`]);
-	await ciWaits(fake.host).round();
-	await ciWaits(fake.host).round();
-	assert.equal(messages().length, 1, "told once, a restart included");
-	const rerun = ciWaits(fake.host);
-	answers.ci = ciRun(job.tip, job.branch, { attempt: 2, status: "queued", conclusion: null });
-	await rerun.round();
-	answers.ci = ciRun(job.tip, job.branch, { attempt: 2 });
-	await rerun.round();
-	await rerun.round();
+	assert.deepEqual(end(), [true], "asked again, it still owns that end");
+	assert.equal(messages().length, 1, "told once");
+	assert.deepEqual(end({}, { attempt: 2, conclusion: "success" }), [true]);
 	assert.deepEqual(messages().slice(1), [`[delivery] CI passed on ${where.replace("attempt 1", "attempt 2")}. It waited for that: arthur merge --auto ${job.id}`]);
+	answers.ci = ciRun(job.tip, job.branch, { attempt: 2 });
 	const merged = await merge(job.id, "--auto");
 	assert.equal(merged.code, undefined, merged.err);
 	assert.equal(waiting(job.id), false);
+	assert.deepEqual(end({}, { attempt: 3 }), [false], "no wait: github's wake tells it");
 	const before = asked.length;
-	await rerun.round();
+	await ciWaits(fake.host).round();
 	assert.equal(asked.length, before, "no wait, nothing asked");
 });
 
@@ -266,8 +267,8 @@ test("a run that hangs is cancelled 30 minutes after its start, once, across a r
 	await waits.round();
 	await ciWaits(fake.host).round();
 	assert.deepEqual(cancels, [{ project: "acme", run: 7 }], "once, a restart included");
-	answers.ci = ciRun(job.tip, job.branch, { conclusion: "cancelled" });
-	await waits.round();
+	const end = (run: CiRun) => fake.collect<boolean>("delivery.ciEnded", { project: "acme", branch: job.branch, below: 0, run });
+	assert.deepEqual(end(ciRun(job.tip, job.branch, { conclusion: "cancelled" })), [true]);
 	assert.match(messages()[0] ?? "", /^\[delivery\] CI ended cancelled, cancelled by delivery after it ran 30 minutes on /);
 
 	answers.ci = ciRun(job.tip, job.branch, { id: 9, status: "queued", conclusion: null, startedAt: "2025-12-31T23:00:00Z", url: "https://github.com/acme/shop/actions/runs/9" });
@@ -278,6 +279,7 @@ test("a run that hangs is cancelled 30 minutes after its start, once, across a r
 	assert.equal(cancels.length, 2, "a refused cancel is not asked again");
 
 	commit(job.worktree, { "late.ts": "export const late = 1;\n" });
+	assert.deepEqual(end(ciRun(job.tip, job.branch, { id: 10 })), [false], "its tip moved: no longer delivery's to tell, even before a round ends the wait");
 	mkdirSync(join(fake.host.folder, "2026-01-01-worker-0000dead"));
 	const gone = { job: "2026-01-01-worker-0000dead", project: "acme", branch: job.branch, tip: job.tip, own: 1 };
 	writeFileSync(join(fake.host.folder, gone.job, "ci-wait"), JSON.stringify(gone));

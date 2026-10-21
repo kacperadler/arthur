@@ -35,3 +35,4 @@ In:
 
 - 2026-10-21: Source: F1 of AR0253
 - 2026-10-21: Approved by the owner (Telegram).
+- 2026-10-21: Coordinator (free hand) accepted the worker picks: delivery alone wakes on a waiting branch run end, github asks the new provided name `delivery.ciEnded` and leaves such a branch out of its wake; budgets delivery 1263, github 630.

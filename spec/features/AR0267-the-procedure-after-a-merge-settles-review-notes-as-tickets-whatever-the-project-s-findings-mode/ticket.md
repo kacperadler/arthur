@@ -35,3 +35,4 @@ In:
 
 - 2026-10-21: Source: F1 of AR0263
 - 2026-10-21: Approved by the owner (Telegram).
+- 2026-10-21: Coordinator (free hand) accepted the worker pick: when the merge shows no mode, the coordinator reads `findings({ mode })` in `arthur.config.ts`, `ticket` when the project is not named.

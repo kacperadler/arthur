@@ -3,7 +3,7 @@ import { matchesGlob } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
 import { entryOf } from "./auto-merge.ts";
 import { changelogCommand } from "./changelog.ts";
-import { type CiWaits, ciWaits } from "./ci-wait.ts";
+import { type CiEnd, type CiWaits, ciEnded, ciWaits } from "./ci-wait.ts";
 import { ALWAYS_REVIEW, checkOptions } from "./delivery-options.ts";
 import { CANCELLED, type HandBack, handBack } from "./hand-back.ts";
 import { mergeCommand } from "./merge-command.ts";
@@ -86,6 +86,8 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 			host.jobs.registerExtension(new URL("./checks-extension.ts", import.meta.url));
 			// Asked with a project and paths from its root (orchestration's autopilot): those on the list, the same in every project.
 			host.provide("delivery.alwaysReview", ({ paths }: { readonly paths: readonly string[] }) => paths.filter(held));
+			// Asked by github's poll as a run ends on a branch: true when a CI wait woke the coordinator for it (ci-wait.ts).
+			host.provide("delivery.ciEnded", (end: CiEnd) => ciEnded(host, end));
 		},
 	};
 }

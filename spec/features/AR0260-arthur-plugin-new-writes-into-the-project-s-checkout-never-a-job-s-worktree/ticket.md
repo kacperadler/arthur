@@ -35,3 +35,4 @@ In:
 
 - 2026-10-21: Source: F1 of AR0256
 - 2026-10-21: Approved by the owner (Telegram).
+- 2026-10-21: Coordinator (free hand) accepted the worker pick: in a job, `arthur plugin new --root <its worktree>` writes only into that worktree; develop budget 198 to 209.

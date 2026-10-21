@@ -14,7 +14,7 @@ the state keeps only the open pull requests; one that is closed drops out, and w
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+A reopened pull request does not wake the coordinator again for reviews it already had: a review of a pull request new to the state is told only when submitted after the project's previous poll (kept in the state), with a test that reopens one.
 
 - Kind: bug
 
@@ -35,3 +35,5 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F3 of AR0246
+- 2026-10-21: Approved by the owner (Telegram).
+- 2026-10-21: Coordinator (free hand): github line budget 586 to 595 (+9) accepted, after the worker cut comments first.

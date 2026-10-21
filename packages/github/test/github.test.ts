@@ -438,7 +438,8 @@ test("pull request reviews, polled when wakeOn names them: each told once and wo
 	cart.reviews.push({ id: 71, user: "kacper", state: "CHANGES_REQUESTED", body: "Test the empty cart." }, { id: 72, user: "kacper", state: "PENDING", body: "A draft." });
 	cart.updated = "2026-01-01T00:05:00Z";
 	await until("the review told", () => told().length === 1);
-	api.pulls["acme/shop"].push({ number: 8, title: "Fix the logo", branch: "fix-logo", updated: "2026-01-01T00:06:00Z", reviews: [{ id: 80, user: "octo", state: "APPROVED", body: "" }] });
+	const now = new Date().toISOString().replace(/\.\d+Z$/, "Z");
+	api.pulls["acme/shop"].push({ number: 8, title: "Fix the logo", branch: "fix-logo", updated: "2026-01-01T00:06:00Z", reviews: [{ id: 80, user: "octo", state: "APPROVED", body: "", submitted: now }] });
 	await until("the new pull request's review", () => told().length === 2);
 	const polls = api.count(LIST);
 	await until("two more polls", () => api.count(LIST) >= polls + 2);
@@ -451,4 +452,50 @@ test("pull request reviews, polled when wakeOn names them: each told once and wo
 		"[github] octo reviewed pull request #8 of acme/shop, Fix the logo (branch fix-logo): APPROVED: https://github.com/acme/shop/pull/8#pullrequestreview-80",
 	]);
 	assert.equal(api.count("/repos/acme/shop/pulls/7/reviews"), 2, "asked again only once it was updated");
+});
+
+test("a pull request closed and reopened, while polled or across a restart, has told only its reviews submitted since the poll before", async (t) => {
+	const api = await fakeGithub(t);
+	const shop = repository();
+	const project = { name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } };
+	api.runs["acme/shop/ci.yml"] = [];
+	// GitHub's `submitted_at`, in whole seconds.
+	const now = () => new Date().toISOString().replace(/\.\d+Z$/, "Z");
+	const cart: FakePull = { number: 7, title: "Add the cart", branch: "arthur/cart", updated: "2026-01-01T00:00:00Z", reviews: [{ id: 70, user: "kacper", state: "COMMENTED", body: "Before Arthur watched." }] };
+	api.pulls["acme/shop"] = [cart];
+	const first = await started(t, [project], options(api.apiUrl, { wakeOn: ["pull-request-review"] }));
+	const told = (box: { readonly fake: FakeHost }) => box.fake.emitted.filter((event) => event.name === "pull-request-review").map((event) => (event.data as { readonly review: number }).review);
+	const LIST = "/repos/acme/shop/pulls?";
+	const polls = async (what: string) => {
+		const before = api.count(LIST);
+		// The list asked twice more: the poll that asked it first has ended.
+		await until(what, () => api.count(LIST) >= before + 2);
+	};
+	await polls("the first poll");
+	cart.reviews.push({ id: 71, user: "kacper", state: "CHANGES_REQUESTED", body: "Test the empty cart.", submitted: now() });
+	cart.updated = "2026-01-01T00:05:00Z";
+	await until("review 71", () => told(first).length === 1);
+	api.pulls["acme/shop"] = [];
+	await polls("a poll with pull request 7 closed");
+	// Reopening updates the pull request; a review submitted while it was closed is new.
+	cart.updated = "2026-01-01T00:10:00Z";
+	cart.reviews.push({ id: 72, user: "octo", state: "COMMENTED", body: "Seen while closed.", submitted: now() });
+	api.pulls["acme/shop"] = [cart];
+	await until("review 72", () => told(first).length >= 2);
+	await polls("a poll after the reopen");
+	assert.deepEqual(told(first), [71, 72], "reviews 70 and 71 are not told again after the reopen");
+	api.pulls["acme/shop"] = [];
+	await polls("a poll with pull request 7 closed again");
+	await first.plugin.stop?.();
+	cart.updated = "2026-01-01T00:20:00Z";
+	cart.reviews.push({ id: 73, user: "octo", state: "APPROVED", body: "", submitted: now() }, { id: 74, user: "octo", state: "COMMENTED", body: "No time said.", submitted: null });
+	api.pulls["acme/shop"] = [cart];
+	// A restart is a new process: a new host on the state file the first one left.
+	const again = fakeHost({ name: "github", options: options(api.apiUrl, { wakeOn: ["pull-request-review"] }), env: { ARTHUR_GITHUB_TOKEN: TOKEN } });
+	again.provide("projects", () => [project]);
+	copyFileSync(join(first.fake.host.folder, "state.json"), join(again.host.folder, "state.json"));
+	const restarted = await started(t, [project], options(api.apiUrl, { wakeOn: ["pull-request-review"] }), undefined, again);
+	await until("reviews 73 and 74", () => told(restarted).length >= 2);
+	await polls("a poll after the restart");
+	assert.deepEqual(told(restarted), [73, 74], "reopened while stopped: the review submitted since the last poll before the stop, and one GitHub gives no time, told rather than lost");
 });

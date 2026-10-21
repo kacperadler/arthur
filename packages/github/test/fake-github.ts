@@ -12,7 +12,8 @@ import type { TestContext } from "node:test";
 export type FakeRun = { readonly id: number; attempt?: number; readonly sha: string; readonly branch: string; status: "queued" | "in_progress" | "completed"; conclusion: "success" | "failure" | "cancelled" | null; readonly started?: string };
 export type FakeStep = { readonly name: string; readonly conclusion: "success" | "failure" | "skipped" };
 export type FakeJob = { readonly id: number; readonly name: string; readonly conclusion: "success" | "failure"; readonly steps: readonly FakeStep[]; readonly log: string };
-export type FakeReview = { readonly id: number; readonly user: string; readonly state: "APPROVED" | "CHANGES_REQUESTED" | "COMMENTED" | "PENDING"; readonly body: string };
+// `submitted`, GitHub's `submitted_at` of a review not pending: 2026-01-01 when left out, none when null.
+export type FakeReview = { readonly id: number; readonly user: string; readonly state: "APPROVED" | "CHANGES_REQUESTED" | "COMMENTED" | "PENDING"; readonly body: string; readonly submitted?: string | null };
 export type FakePull = { readonly number: number; readonly title: string; readonly branch: string; updated: string; readonly reviews: FakeReview[] };
 export type Reply = { readonly status: number; readonly headers?: Readonly<Record<string, string>>; readonly body: unknown };
 
@@ -63,10 +64,10 @@ const shapedPull = (full: string, { number, title, branch, updated }: FakePull) 
 		...{ author_association: "OWNER", auto_merge: null, draft: false },
 	};
 };
-const shapedReview = (full: string, number: number, { id, user: login, state, body }: FakeReview) => ({
+const shapedReview = (full: string, number: number, { id, user: login, state, body, submitted = T }: FakeReview) => ({
 	...{ id, node_id: "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3ODA=", user: user(login, 2), body, state, html_url: `https://github.com/${full}/pull/${number}#pullrequestreview-${id}`, pull_request_url: `${API}/repos/${full}/pulls/${number}` },
 	_links: { html: { href: `https://github.com/${full}/pull/${number}#pullrequestreview-${id}` }, pull_request: { href: `${API}/repos/${full}/pulls/${number}` } },
-	...(state === "PENDING" ? {} : { submitted_at: T }),
+	...(state === "PENDING" || submitted === null ? {} : { submitted_at: submitted }),
 	...{ commit_id: "ecdd80bb57125d7ba9641ffaa4d7d2c19d3f3091", author_association: "COLLABORATOR" },
 });
 

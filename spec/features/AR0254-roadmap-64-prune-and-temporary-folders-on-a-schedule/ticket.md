@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Started by the coordinator; owner: continue Arthur, at most 10% of the weekly limit today (2% at 12:29).
+- 2026-10-21: Coordinator (free hand) accepted the worker picks: a fixed 03:00 in `core.timeZone`; temporary folders are `arthur-*` directly in `os.tmpdir()`, older than a day by mtime; without `prune.keepJobsDays` neither step runs.

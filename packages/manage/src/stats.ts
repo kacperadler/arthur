@@ -66,12 +66,11 @@ function row(host: Pick<Host, "clock">, ticket: Ticket, root: string): Row {
 	};
 }
 
-// The stats of `project`, the main one when undefined; an unknown project throws, as the board does.
+// The stats of `project`, the main one when undefined; `host.board.list` refuses an unknown project, so `where` is found.
 export function stats(host: Pick<Host, "board" | "clock">, project: string | undefined): string {
 	const merged = host.board.list(project).filter((ticket) => ticket.status === "merged");
 	const projects = host.board.projects();
-	const where = project === undefined ? projects[0] : projects.find((each) => each.name === project);
-	if (where === undefined) throw new Error(`unknown project ${project}`);
+	const where = (project === undefined ? projects[0] : projects.find((each) => each.name === project))!;
 	if (merged.length === 0) return `No merged ticket in ${where.name} yet.`;
 	const rows = merged.map((ticket) => row(host, ticket, where.path));
 	const reviewed = rows.filter((each) => each.verdicts.length > 0);

@@ -22,4 +22,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/delivery/src/delivery.ts` (`wake`, the no-verdict line)
 - What: a review that `arthur stopall` stopped (reason `stopped`), or that the hand-back stopped as `stop-all` came (`blocked` on `user: arthur stopall cancelled delivery's hand-back`), ends with no verdict, and its wake says `no verdict, so the review failed ... Review again with arthur review <worker>`: an instruction to start again what the owner just stopped. The no-verdict wake predates entry 55; the hand-back adds the second case.
 - Suggestion: for a review whose run was stopped (reason `stopped`, or held on `user:`), the wake says it was stopped and only names `arthur prune <id>`; the line for a run that did not finish otherwise stays.
-- Status: open
+- Status: fixed in 2600a1e

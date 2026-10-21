@@ -39,3 +39,4 @@ Out:
 ## Decisions
 
 - 2026-10-21: Started by the coordinator; owner: continue Arthur, at most 12% of the weekly limit today. Built with AR0238, which the owner approved the same morning.
+- 2026-10-21: Coordinator (free hand) accepted the worker picks: `wakeOn` defaults to `["ci-finished"]` (`[]` turns it off); pull request reviews polled only when `wakeOn` names them; `arthur merge` pushes main after the checks pass.

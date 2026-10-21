@@ -63,9 +63,10 @@ export function ciWaits(host: Host): CiWaits {
 		}
 		const root = host.board.projects().find((project) => project.name === wait.project)?.path;
 		const tip = root && spawnSync("git", ["-C", root, "rev-parse", "--verify", "--quiet", `${wait.branch}^{commit}`], { encoding: "utf8" }).stdout.trim();
-		if (!host.jobs.list().some((job) => job.id === id) || tip !== wait.tip) {
+		const pruned = !host.jobs.list().some((job) => job.id === id);
+		if (pruned || tip !== wait.tip) {
 			endWait(host, id);
-			return console.log(`delivery: ${wait.branch} waits for CI no more: ${tip === wait.tip ? "its job was pruned" : `its tip is no longer ${wait.tip.slice(0, 7)}`}`);
+			return console.log(`delivery: ${wait.branch} waits for CI no more: ${pruned ? "its job was pruned" : `its tip is no longer ${wait.tip.slice(0, 7)}`}`);
 		}
 		let run: CiRun | undefined;
 		try {
@@ -106,7 +107,8 @@ export function ciWaits(host: Host): CiWaits {
 				void round()
 					.catch((error: unknown) => console.error(`delivery: a round of the CI waits failed: ${(error as Error).message}`))
 					.finally(() => {
-						if (!stopped) timer = setTimeout(loop, POLL_MS);
+						// The poll never holds a process alive on its own: a command that ran `start` without `stop` still ends.
+						if (!stopped) timer = setTimeout(loop, POLL_MS).unref();
 					});
 			loop();
 		},

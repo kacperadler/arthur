@@ -309,7 +309,14 @@ import { checkStructure } from "./structure.ts";
 // merged tickets by day and kind, written whole, and the command (changelog.ts, 64), its call after a merge that went in with
 // CHANGELOG.md no dirt (merge-command.ts, 3 more), and the command registered (delivery.ts, 2 more); nothing in delivery wrote
 // a changelog before, so nothing was cut; core unchanged.
-const BUDGETS = { core: 5729, "core/testing": 347, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1019, github: 586, manage: 368 };
+// AR0253 (roadmap 59): delivery 212 more (1231) for `arthur merge --auto`: its refusals, autoMerge, a PASS on the tip itself,
+// the held paths and CI asked of github, and the wait CI not yet passed leaves (auto-merge.ts, 69); the waits polled while
+// `arthur run` runs, the wake once per run end across a restart, a hung run cancelled (ci-wait.ts, 120); the flags and the
+// refusal wired into the merge, the wait ended by it (merge-command.ts, 10 more), and the waits started and stopped with the
+// plugin, the PASS wake naming `--auto` (delivery.ts, 13 more); nothing in delivery merged on its own before, so nothing was
+// cut. github 26 more (612): `github.ci` and `github.cancel` provided (github.ts, 7 more), the lookup `arthur ci` and
+// `github.ci` share and the cancel (github-ci.ts, 17 more), a run's start time (github-api.ts, 2 more); core unchanged.
+const BUDGETS = { core: 5729, "core/testing": 347, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1231, github: 612, manage: 368 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

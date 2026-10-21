@@ -48,10 +48,12 @@ export function handBack(host: Host): HandBack {
 			text: `Delivery's hand-back of arthur/${record.worker} after FAIL ${record.review} stopped: ${why}. Hand it back yourself: arthur continue ${record.worker} '<the findings of ${record.review}>', then arthur review ${record.worker} once it ends.`,
 		});
 	};
-	// `generation` counts the `stop-all`s: a run's end queued before one acts on no hand-back.
-	let [started, generation, queue] = [false, 0, Promise.resolve()];
+	// Each step waits in `queue`, which `start` opens: `arthur run` replays the log's events from before it at its start, and
+	// another process never opens it. `generation` counts the `stop-all`s: a run's end queued before one acts on no hand-back.
+	let [open, generation] = [() => {}, 0];
+	let queue = new Promise<void>((resolve) => (open = resolve));
 	const later = (fn: () => void | Promise<void>) => {
-		if (started) queue = queue.then(fn).catch((error: Error) => console.error(`delivery: hand-back: ${error.message}`));
+		queue = queue.then(fn).catch((error: Error) => console.error(`delivery: hand-back: ${error.message}`));
 	};
 
 	// One step of one hand-back; `run` starts its job, which a `stop-all` while it started stops again.
@@ -86,7 +88,7 @@ export function handBack(host: Host): HandBack {
 
 	return {
 		start() {
-			started = true;
+			open();
 			later(advance);
 		},
 		// A run ended: a review's verdict starts, goes on with or ends its worker's hand-back; a worker in one that finished

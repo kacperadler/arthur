@@ -80,7 +80,7 @@ async function load(t: TestContext, { start = false } = {}) {
 		const record: unknown = existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : undefined;
 		return typeof record === "object" && record !== null && "step" in record ? record.step : undefined;
 	};
-	return { root, fake, git, worker, review, status, home, state, ended, agent, field, step };
+	return { root, fake, git, worker, review, status, home, state, ended, agent, field, step, plugin };
 }
 
 async function until(what: string, holds: () => boolean) {
@@ -257,6 +257,16 @@ test("in arthur run a FAIL is filed, its worker continued with the findings and 
 	assert.match(String(fake.collect("coordinator.wake", { id: next, kind: "review" })[0]), new RegExp(`2 since its last PASS; .* The hand-back stops at the limit\\.\n\n${PROCEDURE.slice(0, 20)}`));
 	assert.equal(fake.collect("coordinator.wake", { id: job.id, kind: "worker" })[0], undefined);
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "coordinator-message"), [], "the repeated end of the first review did nothing");
+});
+
+test("a FAIL's end delivered before arthur run's start, as its replay of the log is, is handed back once it starts", async (t) => {
+	const { root, worker, review, step, plugin } = await load(t);
+	const job = await worker();
+	await review("Missing test.\n\nFAIL", job.id);
+	assert.deepEqual([readdirSync(join(root, FOLDER)), step(job.id)], [["ticket.md"], undefined]);
+	await plugin.start?.();
+	await until("the worker continued", () => step(job.id) === "continued");
+	assert.ok(existsSync(join(root, FOLDER, "review-1.md")));
 });
 
 test("a continue or review refused at maxAgents waits for the next end of a run, or arthur run's next start, then starts", async (t) => {

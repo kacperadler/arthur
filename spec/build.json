@@ -1939,5 +1939,19 @@
     "status": "merged",
     "path": "spec/features/AR0252-roadmap-56-arthur-changelog/ticket.md",
     "updated": "2026-10-21T10:29:28.751Z"
+  },
+  {
+    "id": "AR0253",
+    "title": "Roadmap 59: auto-merge after PASS and green CI",
+    "status": "planned",
+    "path": "spec/features/AR0253-roadmap-59-auto-merge-after-pass-and-green-ci/ticket.md",
+    "updated": "2026-10-21T10:29:50.184Z"
+  },
+  {
+    "id": "AR0254",
+    "title": "Roadmap 64: prune and temporary folders on a schedule",
+    "status": "planned",
+    "path": "spec/features/AR0254-roadmap-64-prune-and-temporary-folders-on-a-schedule/ticket.md",
+    "updated": "2026-10-21T10:29:50.598Z"
   }
 ]

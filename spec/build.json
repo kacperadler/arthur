@@ -1835,9 +1835,9 @@
   {
     "id": "AR0238",
     "title": "A rerun keeps its run id, so its end is never told as `ci-finished`",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0238-a-rerun-keeps-its-run-id-so-its-end-is-never-told-as-ci-finished/ticket.md",
-    "updated": "2026-10-21T08:23:28.906Z"
+    "updated": "2026-10-21T09:23:05.373Z"
   },
   {
     "id": "AR0239",
@@ -1856,16 +1856,16 @@
   {
     "id": "AR0241",
     "title": "arthur merge installs from the lockfile and never reads a project's own install",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0241-arthur-merge-installs-from-the-lockfile-and-never-reads-a-project-s-own-install/ticket.md",
-    "updated": "2026-10-21T08:27:42.490Z"
+    "updated": "2026-10-21T08:53:09.694Z"
   },
   {
     "id": "AR0242",
     "title": "The checks on main run on the service's Node, not the project's .nvmrc",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0242-the-checks-on-main-run-on-the-service-s-node-not-the-project-s-nvmrc/ticket.md",
-    "updated": "2026-10-21T06:50:55.114Z",
+    "updated": "2026-10-21T09:42:06.589Z",
     "after": [
       "AR0241"
     ]
@@ -1894,15 +1894,36 @@
   {
     "id": "AR0246",
     "title": "Roadmap 58: arthur ci, reruns, pushes, pull request reviews",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0246-roadmap-58-arthur-ci-reruns-pushes-pull-request-reviews/ticket.md",
-    "updated": "2026-10-21T08:23:28.267Z"
+    "updated": "2026-10-21T09:22:58.333Z"
   },
   {
     "id": "AR0247",
     "title": "Roadmap 55: hand-back after a FAIL review",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0247-roadmap-55-hand-back-after-a-fail-review/ticket.md",
-    "updated": "2026-10-21T08:29:00.211Z"
+    "updated": "2026-10-21T09:19:59.910Z"
+  },
+  {
+    "id": "AR0248",
+    "title": "A branch `arthur review-needed` waves through is never pushed, so CI never builds it before its merge",
+    "status": "planning",
+    "path": "spec/features/AR0248-a-branch-arthur-review-needed-waves-through-is-never-pushed-so-ci-never-builds-it-before-its-merge/ticket.md",
+    "updated": "2026-10-21T09:22:58.327Z"
+  },
+  {
+    "id": "AR0249",
+    "title": "The vision still says `ci-finished` is keyed by run id",
+    "status": "planning",
+    "path": "spec/features/AR0249-the-vision-still-says-ci-finished-is-keyed-by-run-id/ticket.md",
+    "updated": "2026-10-21T09:22:58.330Z"
+  },
+  {
+    "id": "AR0250",
+    "title": "A pull request closed and reopened has its reviews told again",
+    "status": "planning",
+    "path": "spec/features/AR0250-a-pull-request-closed-and-reopened-has-its-reviews-told-again/ticket.md",
+    "updated": "2026-10-21T09:22:58.331Z"
   }
 ]

@@ -44,7 +44,7 @@ What works today:
 - Review or no review (`@arthur/delivery`, entry 53): `arthur review-needed <worker job>` decides whether a branch needs a review: always for a file on the always-review list (`review.alwaysReview`, by default what reads secrets, the CI-failure handling and the review rules), a deleted file or `.env` in the diff; never for docs only; for 30 lines or fewer, by the job's own `npm run check` and `npm test` runs, which delivery's extension records while the agent works (`host.jobs.registerExtension`), `stale` after a later edit; `no review` moves the ticket to done, and autopilot asks the same list.
 - Merge (`@arthur/delivery`, entry 54): `arthur merge <job>` merges a branch whose tip has a PASS, or one `arthur review-needed` waved through, into main, `--unreviewed` only on the owner's word; refused, main untouched, for a dirty main, a ticket not in progress, or any `merge.check` answer (the projects plugin's for an onboarding); a conflict aborts it; the install of a changed lockfile and the project's `npm run check` and `npm test` run on main, and a failed one resets main, naming it; then the reviews are filed, the findings go to `findings.onMerge` (left open, said once, while no plugin provides it), `outcome.md` is written, the ticket is merged, and the procedure after a merge names what the coordinator does next.
 - Hand-back after a FAIL (`@arthur/delivery`, entry 55): while `arthur run` runs, a FAIL review is filed, its worker continued with the findings and a new budget (its budget again on top of what it spent) through `host.jobs.continue`, and the next review started when the worker's run finishes; each step goes through every `beforeSpawn`, so `maxAgents` holds, and one refused waits for the next end of a run instead of being dropped; the second FAIL since the last PASS stops at the review limit with its procedure; `/stopall` cancels every hand-back, and stops a continue or review starting as it comes.
-- GitHub CI runs (`@arthur/github`, entry 57): every `poll.everySeconds` the newest runs of each project's `ci.workflow`, read with the token of the instance named after the repository's owner (else the unnamed one); each branch in play (the checkout's own and every job's) gets the run of its nearest commit that has one, so a commit outside the workflow's paths counts the run before it; `ci-finished` once per run id, across a restart too; a refused token said once, not every poll; a rate limit waits as GitHub says.
+- GitHub CI runs (`@arthur/github`, entries 57 and 58): every `poll.everySeconds` the newest runs of each project's `ci.workflow`, read with the token of the instance named after the repository's owner (else the unnamed one); each branch in play (the checkout's own and every job's) gets the run of its nearest commit that has one, so a commit outside the workflow's paths counts the run before it; `ci-finished` once per run attempt, across a restart too, a rerun's end included, waking the coordinator when `wakeOn` names it; a refused token said once, not every poll; a rate limit waits as GitHub says. `arthur ci <branch>` tells why the run that built a branch failed (each failed job and step, the end of its log), `--rerun` reruns a failed or cancelled run once; a branch a review passed and main after `arthur merge` are pushed to origin, one warning line when that fails, never a prompt; with `pull-request-review` in `wakeOn`, the reviews of open pull requests are told once each.
 - Health (`@arthur/manage`, entry 60): `arthur health` and `/health`, one line per thing that should have happened by now and has not, from every plugin's answer to `health` and manage's own checks (a ticket in progress or review with no job for an hour, main not pushed for an hour, the board uncommitted for an hour, the temporary folder or a filesystem's inodes under 10% free), a provider that throws costing its own line only; reads only; with `health.everyMinutes`, `arthur run` sends each round's new lines as one notice, a problem the round before saw never twice in a row, across a restart too.
 - Stats (`@arthur/manage`, entry 61): `arthur stats`, per merged ticket of a project its review rounds and verdicts, its cost from `outcome.md` and its days from made to merged; the mean rounds over the reviewed tickets, the share of first-round PASS, the share pre-approved by autopilot, the 3 most expensive, and the first line of each finding of a FAIL review; a missing cost counts as unknown, never zero.
 
@@ -91,7 +91,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | discord: one private server, a main channel for the coordinator and one per project; text, media, phone commands | planned | 89, 90 |
 | voice: local transcription of voice notes | planned | 81 |
 | delivery: review, merge, hand-back after a FAIL, changelog, auto-merge | in progress, 4 of 6 entries | 52 to 55 built; 56, 59 |
-| github: CI runs, reruns, pushes, pull request reviews | in progress, 1 of 2 entries | 57 built; 58 |
+| github: CI runs, reruns, pushes, pull request reviews | built | 57, 58 |
 | youtrack: issues, articles, comments, attachments, the rules for jobs on an issue | built | 44 to 46 |
 | manage: health, stats, audit, retro, prune on a schedule | in progress, 2 of 5 entries | 60, 61 built; 62 to 64 |
 | develop: `arthur plugin new`, evals | planned | 66 to 68 |
@@ -130,6 +130,7 @@ The commands that exist today, one line each; `arthur <command> --help` prints i
 - `arthur review <worker job> [--round <n>]` (delivery): a review of an ended worker's branch at its tip, its verdict moving the ticket; in `arthur run` a FAIL is handed back to the worker and reviewed again at its end; refused after 2 FAILs since the branch's last PASS until the owner's word gives `--round`.
 - `arthur review-needed <worker job>` (delivery): whether an ended worker's branch needs a review, by the first rule that holds (the always-review list, a deleted file, `.env`, docs only, 30 lines, the job's own checks); `no review` moves the ticket to done.
 - `arthur merge <job> [--unreviewed]` (delivery): an ended job's branch merged into main once its tip has a PASS (or on the owner's word), every `merge.check` answer heard first; install and the project's checks on main, which a failed check resets; then its reviews filed, its findings handed to `findings.onMerge`, `outcome.md` written, the ticket merged and the tickets it unblocks named.
+- `arthur ci <branch> [--rerun]` (github): the run that built a branch, as the poll finds it, and why it failed: each failed job and step and the end of its log; `--rerun` reruns a failed or cancelled run, once per run.
 - `arthur health` (`/health`, manage): one line per thing that should have happened by now and has not, from every plugin's health checks and manage's own, or one line saying nothing is wrong.
 - `arthur stats [--project <name>]` (manage): per merged ticket its review rounds, verdicts, cost and days, then the mean rounds, the share of first-round PASS and of autopilot, the 3 most expensive and the first line of each FAIL finding.
 - `arthur youtrack issue|article list|get|create|update|move|attachments|delete`, `issue set|tag|untag|links|link|unlink|work`, `issue work list|edit|delete`, `comment list|add|edit|delete`, `attachment add|delete` (youtrack): a project's YouTrack issues and articles with their comments and attachments, read, written and deleted on the instance its `tracker` picks; open issues grouped by state, searched with `--query`, custom fields, tags, links, work items, sub-articles, and attachments saved to `.arthur/youtrack/<id>/`.
@@ -169,7 +170,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-21.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entries 52 to 55 of 52-56 and 59; github has entry 57 of 57-58; manage has entries 60 and 61 of 60-64; no other plugin exists yet.
+%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entries 52 to 55 of 52-56 and 59; github has entries 57 and 58 of 57-58; manage has entries 60 and 61 of 60-64; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale; from AR0174: the decision log in orchestration.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -243,7 +244,7 @@ flowchart TD
       end
       subgraph DELIV[Delivery and trackers]
         delivery[delivery<br/>review, merge, hand-back, changelog<br/>4 of 6 entries]
-        github[github<br/>polls CI runs<br/>1 of 2 entries; planned: arthur ci, reruns, pushes, PR reviews]
+        github[github<br/>polls CI runs, PR reviews<br/>arthur ci, reruns, pushes]
         youtrack[youtrack<br/>reads and writes issues, articles<br/>comments, attachments, rules for jobs]
         delivery ~~~ github ~~~ youtrack
       end
@@ -303,7 +304,8 @@ flowchart TD
   projects -->|clones| repos
   models -->|probes| providers
   docker -.->|labels, sweeps| dockerd
-  github -->|polls CI runs| gh
+  github -->|polls CI runs, PR reviews; reruns| gh
+  github -->|pushes reviewed branches, main| repos
   youtrack -.->|reads, writes| yt
   telegram -.->|polls, sends| tg
   discord -.->|gateway| dc
@@ -314,8 +316,8 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,parts,api,machines,session,schedule,projects,models,nvm,commit,youtrack,telegram,uptime built;
-  class lpartial,orchestration,resources,delivery,github,manage partial;
+  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,parts,api,machines,session,schedule,projects,models,nvm,commit,youtrack,telegram,uptime,github built;
+  class lpartial,orchestration,resources,delivery,manage partial;
   class lplanned,discord,voice,corelater,agents,findings,docker,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl,sites outside;
   style larrows fill:#fff,stroke:#999,color:#000

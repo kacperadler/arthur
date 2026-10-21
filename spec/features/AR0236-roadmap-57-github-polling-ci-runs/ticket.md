@@ -39,3 +39,4 @@ Out:
 ## Decisions
 
 - 2026-10-20: Started by the coordinator under the owner's free hand ("lec ze wszystkim śmiało", 99% usage until 08:00); 53 waits for 52 (AR0235), and 57 depends only on 41 and 51, both built.
+- 2026-10-21: Owner: no `ci.instance`; the instance stays picked by the repo owner name, else the unnamed one.

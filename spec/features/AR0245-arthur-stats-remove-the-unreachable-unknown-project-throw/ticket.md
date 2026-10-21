@@ -31,3 +31,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: review-1 note of AR0244
+- 2026-10-21: Approved by the owner (Telegram, morning report).

@@ -9,15 +9,17 @@ import { readState, writeState } from "../src/github-state.ts";
 // The github plugin's option check, before any setup: every refusal names its path. And its state file read back, whatever
 // a hand or a crash left in it.
 
-test("instances as the example config has them pass: one unnamed, one named, an apiUrl, poll.everySeconds", () => {
+test("instances as the example config has them pass: one unnamed, one named, an apiUrl, poll.everySeconds, wakeOn", () => {
 	const instances = [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }, { name: "acme-2", tokenEnv: "ARTHUR_GITHUB_ACME_TOKEN", apiUrl: "https://ghe.acme.example/api/v3" }];
-	assert.deepEqual(checkOptions({ instances, poll: { everySeconds: 120 } }), []);
-	assert.deepEqual(checkOptions({ instances, poll: { everySeconds: 1 } }), [], "1 s, at the limit");
+	assert.deepEqual(checkOptions({ instances, poll: { everySeconds: 120 }, wakeOn: ["ci-finished", "pull-request-review"] }), []);
+	assert.deepEqual(checkOptions({ instances, poll: { everySeconds: 1 }, wakeOn: [] }), [], "1 s, at the limit; wakeOn empty wakes on nothing");
 });
 
 test("refused: an unknown option, no instances, an instance not an object, an unknown key, a missing tokenEnv", () => {
 	const one = [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }];
-	assert.deepEqual(checkOptions({ instances: one, wakeOn: ["ci-finished"] }), [{ path: "wakeOn", problem: "unknown option; options: instances, poll" }]);
+	assert.deepEqual(checkOptions({ instances: one, wake: ["ci-finished"] }), [{ path: "wake", problem: "unknown option; options: instances, poll, wakeOn" }]);
+	for (const wakeOn of ["ci-finished", ["ci-finished", "ci-finished"], ["pull-request"], [3]])
+		assert.deepEqual(checkOptions({ instances: one, wakeOn }), [{ path: "wakeOn", problem: `expected a list of distinct events among ci-finished, pull-request-review, got ${Array.isArray(wakeOn) ? "a list" : '"ci-finished"'}` }], JSON.stringify(wakeOn));
 	assert.deepEqual(checkOptions({}), [{ path: "instances", problem: "expected a list of at least one instance, got nothing" }]);
 	assert.deepEqual(checkOptions({ instances: [] }), [{ path: "instances", problem: "expected a list of at least one instance, got an empty list" }]);
 	assert.deepEqual(checkOptions({ instances: ["ARTHUR_GITHUB_TOKEN"] }), [{ path: "instances[0]", problem: 'expected an instance { name?, tokenEnv, apiUrl? }, got "ARTHUR_GITHUB_TOKEN"' }]);
@@ -42,15 +44,16 @@ test("refused: poll not an object, an unknown key in it, everySeconds below 1 or
 		assert.deepEqual(checkOptions({ instances, poll: { everySeconds } }), [{ path: "poll.everySeconds", problem: `expected a whole number of seconds, 1 or more, got ${JSON.stringify(everySeconds)}` }], String(everySeconds));
 });
 
-test("the state: written and read back; a broken file is no project polled yet, a project's wrong entry that project only", () => {
+test("the state: written and read back; a broken file, or entry 57's run ids, is no project polled yet, a project's wrong entry that project only", () => {
 	const folder = temporaryFolder();
-	assert.deepEqual(readState(folder), {}, "no file");
-	writeState(folder, { shop: [12, 11], site: [] });
-	assert.deepEqual(readState(folder), { shop: [12, 11], site: [] });
-	writeFileSync(join(folder, "state.json"), '{"shop": [12, 1.5], "site": [3], "tool": "4"}\n');
-	assert.deepEqual(readState(folder), { site: [3] });
-	for (const text of ["{", "[1]", "null", ""]) {
+	assert.deepEqual(readState(folder), { runs: {}, pulls: {} }, "no file");
+	const state = { runs: { shop: ["12/2", "11/1"], site: [] }, pulls: { shop: { "5": { updated: "2026-01-01T00:00:00Z", told: [80] } } } };
+	writeState(folder, state);
+	assert.deepEqual(readState(folder), state);
+	writeFileSync(join(folder, "state.json"), '{"runs": {"shop": ["12/1", "13"], "site": ["3/1"], "tool": "4/1"}, "pulls": {"shop": {"5": {"updated": 1, "told": []}}, "site": {"6": {"updated": "x", "told": [1]}}, "tool": [], "x": {"7": null}}}\n');
+	assert.deepEqual(readState(folder), { runs: { site: ["3/1"] }, pulls: { site: { "6": { updated: "x", told: [1] } } } });
+	for (const text of ["{", "[1]", "null", "", '{"shop": [12, 13]}']) {
 		writeFileSync(join(folder, "state.json"), text);
-		assert.deepEqual(readState(folder), {}, text);
+		assert.deepEqual(readState(folder), { runs: {}, pulls: {} }, text);
 	}
 });

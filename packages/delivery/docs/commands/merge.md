@@ -2,7 +2,7 @@
 
 Usage: `arthur merge <job> [--unreviewed]`. Comes with the `delivery` plugin, `delivery()` in `arthur.config.ts`; it takes no option.
 
-Merges an ended job's branch into the branch its project's checkout has checked out, main, then does the rest of a merge's mechanical part. The job is its full id or the 8 hex digits that end it: a worker, or any job with a branch, an onboarding included. It commits nothing but the merge, and pushes and prunes nothing: the procedure it prints last says what the coordinator does next.
+Merges an ended job's branch into the branch its project's checkout has checked out, main, then does the rest of a merge's mechanical part. The job is its full id or the 8 hex digits that end it: a worker, or any job with a branch, an onboarding included. It commits nothing but the merge and prunes nothing; main is pushed only by the plugin that provides `github.push`, when one is loaded. The procedure it prints last says what the coordinator does next.
 
 ## The PASS
 
@@ -33,7 +33,7 @@ Each printed as it is taken:
 5. Writes `outcome.md` in the ticket's folder, in the shape of the core's template: `- Merged: <date>, <hash>`, `- Branch:`, `- Reviews:` (the branch's `review-N.md` files with their verdicts), `- Cost: worker $x, reviews $y; review rounds N` (`n/a` when a job's record or its cost is gone), the commit subjects under `## What went in`, each step under `## Checks on main`, and step 4's lines under `## Left open`.
 6. Moves the ticket to `merged` (`ticket-moved`, named by delivery), `<id> merged`, and names the `planned` tickets whose `after` it completed: `unblocked: <id>, <id>`.
 
-Then `nothing committed but the merge, nothing pushed or pruned`, and the procedure after a merge, `packages/delivery/roles/coordinator/after-merge.md`. A merge that refuses or fails prints neither.
+Then, when a plugin provides `github.push` (the github plugin, `packages/github/docs/github.md`, "Pushes"), main is pushed to origin and that plugin's one line printed, `github: pushed main to origin: <old>..<new>` or the warning `github: main not pushed to origin: <why>` (a push rejected as non-fast-forward, no origin), which leaves the merge in: it is never retried and never asks for a password. Last, `nothing committed but the merge, nothing pruned` (`nothing committed but the merge, nothing pushed or pruned` without that plugin) and the procedure after a merge, `packages/delivery/roles/coordinator/after-merge.md`. A merge that refuses or fails prints none of these and pushes nothing.
 
 ## When a check fails
 
@@ -42,6 +42,7 @@ Main goes back to the commit before the merge with `git reset --keep`, which kee
 ## What the coordinator does with the result
 
 - A merge that went in ends with the procedure: follow it in the same turn.
+- `github: main not pushed to origin: …`: the merge is in; follow the procedure, whose push after the board's commit is the next try, and tell the owner the line if that push fails too.
 - `check failed on main (…)`: main is as it was. Tell the owner which check failed with its last lines, and recommend `arthur continue <job> '<what failed>'`, then a new review once it ends.
 - A conflict, or `refused by merge.check: …`: main is unchanged; tell the owner, in plain words.
 - `no PASS on …`: review the branch (`arthur review <job>`), or ask the owner for `--unreviewed`.

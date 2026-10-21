@@ -185,14 +185,17 @@ test("a merge conflict leaves main as it was: no merge in progress, the ticket w
 	assert.equal(status("AC0001"), "done");
 });
 
-test("a failed check resets main and names it; the board's moves stay, main's own install is put back, nothing is written", async (t) => {
-	const { root, git, worker, review, merge, head, status, bun, failBun, installs } = await load(t);
+test("a failed check resets main and names it, pushing nothing; the board's moves stay, main's own install is put back, nothing is written", async (t) => {
+	const { root, fake, git, worker, review, merge, head, status, bun, failBun, installs } = await load(t);
+	const pushes: unknown[] = [];
+	fake.provide("github.push", (branch: unknown) => (pushes.push(branch), Promise.resolve("github: pushed")));
 	const job = await worker({ broken: "", "bun.lock": '{ "broken": 1 }\n' });
 	await review(job.id, "PASS");
 	const before = head();
 	const merged = await merge(job.id);
 	assert.equal(merged.code, 1);
 	assert.equal(merged.err, `arthur merge: check failed on main (npm test); main reset to ${before.slice(0, 7)}, branch kept`);
+	assert.deepEqual(pushes, [{ project: "acme", branch: job.branch }], "the PASS pushed the branch; the failed merge pushed no main");
 	assert.match(merged.out, /\nnpm test: failed, 1\/2 passed\.\n[\s\S]*ℹ pass 1\nreinstall of main's dependencies, bun install --frozen-lockfile: passed\.$/);
 	assert.equal(bun(), "install --frozen-lockfile\ninstall --frozen-lockfile\n");
 	const mergeCommit = git(root, "rev-parse", "ORIG_HEAD");
@@ -325,21 +328,26 @@ test("refused before anything: wrong usage, no job, a read-only or running job, 
 	assert.match((await merge(running.id)).err, new RegExp(`^arthur merge: ${running.id} is in a run \\((working|idle)\\); merge its branch once the run has ended$`));
 });
 
-test("merge.check: any text answer refuses with every answer, main unchanged; none lets the branch in, a job naming no ticket included", async (t) => {
+test("merge.check: any text answer refuses with every answer, main unchanged and not pushed; none lets the branch in, a job naming no ticket included, and github.push pushes main", async (t) => {
 	const { fake, git, root, worker, merge, head } = await load(t);
 	const asked: unknown[] = [];
 	const answers: (string | undefined)[] = ["the branch changes .nvmrc", undefined, "the owner holds this path"];
 	for (const [at] of answers.entries()) fake.provide("merge.check", (job: unknown) => (asked.push(job), answers[at]));
+	const pushes: unknown[] = [];
+	fake.provide("github.push", (branch: unknown) => (pushes.push(branch), Promise.resolve("github: main not pushed to origin: [rejected] (non-fast-forward)")));
 	const job = await worker({ "loose.ts": "export const loose = 1;\n" }, "No ticket here.");
 	const start = head();
 	assert.deepEqual(await merge(job.id, "--unreviewed"), { code: 1, out: "", err: "arthur merge: refused by merge.check: the branch changes .nvmrc; the owner holds this path; main is unchanged" });
 	assert.equal(head(), start);
 	const record = fake.host.jobs.list().find((each) => each.id === job.id);
 	assert.deepEqual(asked, [record, record, record], "asked with the job as arthur jobs holds it");
+	assert.deepEqual(pushes, [], "a refused merge pushes nothing");
 	answers.fill(undefined);
 	const merged = await merge(job.id, "--unreviewed");
 	assert.equal(merged.code, undefined, merged.err);
 	assert.match(merged.out, new RegExp(`^merged ${job.branch} into main: [0-9a-f]+\nbun install --frozen-lockfile: passed\\.\nnpm run check: passed\\.\nnpm test: 2/2 passed\\.\nno ticket: no outcome\\.md, nothing moved\n`));
+	assert.ok(merged.out.endsWith(`no ticket: no outcome.md, nothing moved\ngithub: main not pushed to origin: [rejected] (non-fast-forward)\nnothing committed but the merge, nothing pruned\n\n${PROCEDURE}`), merged.out);
+	assert.deepEqual(pushes, [{ project: "acme", branch: "main" }]);
 	assert.equal(git(root, "log", "-1", "--format=%s"), `Merge ${job.branch}`);
 });
 

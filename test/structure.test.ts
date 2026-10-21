@@ -370,7 +370,11 @@ import { checkStructure } from "./structure.ts";
 // audit.ts 7 less), the `retro` options (manage-options.ts, 13 more), its setup and header (manage.ts, 3 more); nothing in
 // manage looked back on merges before, so nothing was cut.
 // Merged main (AR0262, AR0263) into AR0266: main's budgets plus AR0266's manage 910 (recounted with wc -l).
-const BUDGETS = { core: 5742, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1234, github: 621, manage: 910, develop: 198, findings: 254 };
+// AR0255 (the ticket's Done means: the poll's time from the `date` header of GitHub's answer to the list): github 4 more
+// (625), that time less the answer's own, else this machine's clock (github-pulls.ts, 3 more, its comment cut to two lines
+// first), and the header returned by `ask` (github-api.ts, 1 more).
+// Merged main (AR0259, AR0262, AR0266) into AR0255: main's budgets plus AR0255's github 625 (recounted with wc -l).
+const BUDGETS = { core: 5742, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1234, github: 625, manage: 910, develop: 198, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

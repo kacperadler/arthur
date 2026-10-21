@@ -320,7 +320,9 @@ import { checkStructure } from "./structure.ts";
 // cut. github 26 more (621 after main's AR0250): `github.ci` and `github.cancel` provided (github.ts, 7 more), the lookup
 // `arthur ci` and `github.ci` share and the cancel (github-ci.ts, 17 more), a run's start time (github-api.ts, 2 more); core
 // unchanged.
-const BUDGETS = { core: 5729, "core/testing": 347, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1231, github: 621, manage: 368 };
+// AR0253's review: delivery 1 more (1232), the always-review list's comment naming what of entries 57 to 59 it covers
+// (delivery-options.ts, 1 more); the list itself now holds github-ci.ts, auto-merge.ts and merge-command.ts.
+const BUDGETS = { core: 5729, "core/testing": 347, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1232, github: 621, manage: 368 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -23,3 +23,12 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - What: the role says `When the owner asks for a merge: arthur merge <job>`; `arthur merge --auto` is told to the coordinator only by delivery's wakes (a PASS in a project with `autoMerge` on, and a waiting branch's CI end). A coordinator that reads its role as the only rule for merges may wait for the owner anyway.
 - Suggestion: one line in that bullet: in a project with `autoMerge` on, after a PASS the wake names `arthur merge --auto <job>`; a refusal that says `it waits` needs nothing until CI's wake. Out of AR0253's Scope (orchestration), so left here.
 - Status: open
+
+## F3. The example config gives delivery an option it refuses
+
+- Kind: bug
+- Found by: 2026-10-21-ar0253-roadmap-59-auto-m-df78fc6b (worker), 2026-10-21
+- Where: `arthur.config.example.ts:338-339`
+- What: the example gives `delivery({ ..., merge: { afterPassAndGreenCi: true } })`; delivery's `checkOptions` answers `merge: unknown option; options: review` (the test "the options: only review.alwaysReview" asserts that answer), so a config copied from the example refuses the load. Auto-merge is the project's `autoMerge` instead. Its `review.alwaysReview` there also lacks `**/github-ci.ts` and `**/auto-merge.ts`, which the default list now holds (its `**/merge*.ts` covers merge-command.ts).
+- Suggestion: drop the `merge` line, and add the two patterns to the example's list; nothing else.
+- Status: open

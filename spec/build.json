@@ -1932,9 +1932,9 @@
   {
     "id": "AR0251",
     "title": "A hand-back refused for good is retried at every run's end, silently",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0251-a-hand-back-refused-for-good-is-retried-at-every-run-s-end-silently/ticket.md",
-    "updated": "2026-10-21T12:04:00.323Z",
+    "updated": "2026-10-21T12:52:11.367Z",
     "after": [
       "AR0253"
     ]
@@ -2005,8 +2005,8 @@
   {
     "id": "AR0261",
     "title": "Roadmap 62: the audit",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0261-roadmap-62-the-audit/ticket.md",
-    "updated": "2026-10-21T12:11:35.081Z"
+    "updated": "2026-10-21T12:47:22.975Z"
   }
 ]

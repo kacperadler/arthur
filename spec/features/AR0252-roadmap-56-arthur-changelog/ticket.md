@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-21: Started by the coordinator; owner: continue Arthur, at most 10% of the weekly limit today (2% at 12:02).
+- 2026-10-21: Coordinator (free hand) accepted the worker picks: feature and improvement under Added, bug and risk under Fixed, cleanup under Changed, else Other; CHANGELOG.md does not count as a dirty main for `arthur merge`, and the after-merge procedure commits it with the board.

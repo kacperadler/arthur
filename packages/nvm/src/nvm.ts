@@ -29,13 +29,12 @@ const INSTALL = "curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8
 
 const lastLine = (text: string) => text.trim().split("\n").at(-1)?.trim() ?? "";
 
-// What WHICH answered in `worktree` on `machine`: undefined without `.nvmrc`, else the PATH with the bin of the Node it names
-// first, before `before` when given, else before the PATH the command saw. Each refusal throws, naming its fix.
-function nodePath(ran: Ran, worktree: string, machine: string, before: string | undefined): string | undefined {
+// What WHICH answered in `worktree` on `machine`: "" without `.nvmrc`, else its Node's bin before `before` or the PATH it saw.
+function nodePath(ran: Ran, worktree: string, machine: string, before?: string): string {
 	const [file, where] = [`${worktree}/.nvmrc`, `machine ${machine}`];
 	const [version = "", path = "", ...which] = ran.stdout.trim().split("\n");
 	const said = lastLine(ran.stderr);
-	if (ran.code === 0 && version === "") return undefined;
+	if (ran.code === 0 && version === "") return "";
 	if (ran.code === 0) return `${posix.dirname(which.at(-1)?.trim() ?? "")}:${before ?? path}`;
 	if (ran.code === 3) throw new Error(`${file} on ${where} is unreadable: ${said}`);
 	if (ran.code === 4) throw new Error(`${file} on ${where} names no Node version; write the project's, such as 24`);
@@ -56,13 +55,12 @@ export function nvm(options: { readonly enabled?: boolean } = {}): Plugin {
 			if (host.collect("projects").length > 0) throw new Error("nvm is listed after projects, whose install would then run before nvm's PATH exists; list nvm() before projects in the plugins of arthur.config.ts");
 			host.jobs.prepare(async (job, env) => {
 				const PATH = nodePath(await host.jobs.run(job.machine, ["sh", "-c", WHICH, "nvm", job.worktree], LIMIT_SECONDS), job.worktree, job.machine, env.PATH);
-				return PATH === undefined ? undefined : { PATH };
+				return PATH === "" ? undefined : { PATH };
 			});
-			// The PATH of `root`, a project's checkout on this machine, as a worktree of it here gets it, "" without `.nvmrc`:
-			// `arthur merge` (delivery) runs its install and checks on main with it.
+			// The PATH of `root`, a project's checkout here, which `arthur merge` (delivery) runs its steps on main with.
 			host.provide("nvm.path", ({ root }: { readonly root: string }) => {
 				const ran = spawnSync("sh", ["-c", WHICH, "nvm", root], { encoding: "utf8", timeout: LIMIT_SECONDS * 1000 });
-				return nodePath({ code: ran.status, stdout: ran.stdout ?? "", stderr: ran.stderr ?? "" }, root, "local", undefined) ?? "";
+				return nodePath({ code: ran.status, stdout: ran.stdout ?? "", stderr: ran.stderr ?? "" }, root, "local");
 			});
 			// One line per machine, asked when the doctor runs, so every machine another plugin registered is there.
 			host.provide("doctor", () =>

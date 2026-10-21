@@ -77,7 +77,6 @@ function merge(host: Host, name: string, unreviewed: boolean): void {
 	}
 	const hash = git("rev-parse", "--short", "HEAD").stdout.trim();
 	console.log(`merged ${job.branch} into ${main}: ${hash}`);
-	// The PATH of main's checkout with nvm's Node first when the nvm plugin is on, else none: the PATH as it is.
 	const ask = { install: (commit: string) => host.call<string>("projects.install", { project: job.project, commit }), path: () => host.collect<string>("nvm.path", { root })[0] ?? "" };
 	const steps = mainChecks(root, ask, console.log);
 	if (steps.length === 0) console.log("no checks: package.json declares no check or test script");

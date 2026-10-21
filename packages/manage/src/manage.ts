@@ -1,20 +1,24 @@
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
+import { cleanup } from "./cleanup.ts";
 import { ownHealth } from "./health-checks.ts";
 import { checkOptions, type ManageOptions } from "./manage-options.ts";
 import { stats } from "./stats.ts";
 
-// The manage plugin (spec/roadmap.md, entries 60 and 61): `arthur health` and `/health`, one line per thing that should have
+// The manage plugin (spec/roadmap.md, entries 60, 61 and 64): `arthur health` and `/health`, one line per thing that should have
 // happened by now and has not, from every plugin's answer to `health`, manage's own checks among them (health-checks.ts); read
 // only. With `health.everyMinutes`, `arthur run` runs the same round that often and sends its new lines as one `notice`; a
 // problem the round before saw too is not sent again, across a restart too. `arthur stats`: the merged tickets' reviews, costs
-// and days (stats.ts). docs/manage.md.
+// and days (stats.ts). With `prune.keepJobsDays`, the schedule plugin runs the daily cleanup (cleanup.ts). docs/manage.md.
 
 export type { ManageOptions };
 
 // How often `arthur run` looks whether a round is due by the host's clock.
 const TICK_MS = 1000;
+// When the daily cleanup runs, in `core.timeZone`.
+const PRUNE_AT = "03:00";
 const ALL_WELL = "All well: nothing that should have happened by now is missing.";
 
 // Every provider's lines in setup order, trimmed, blank ones dropped; a provider that throws costs its own line only, named.
@@ -48,6 +52,7 @@ export function manage(options: ManageOptions = {}): Plugin {
 	return {
 		name: "manage",
 		module: import.meta.url,
+		after: ["schedule"],
 		options,
 		check: checkOptions,
 		setup(host) {
@@ -55,6 +60,11 @@ export function manage(options: ManageOptions = {}): Plugin {
 			every = minutes === undefined ? undefined : minutes * 60_000;
 			now = () => host.clock.now().getTime();
 			host.provide("health", () => ownHealth(host));
+			const keepDays = (host.options as ManageOptions).prune?.keepJobsDays;
+			if (keepDays !== undefined) {
+				const entry = { id: "prune", at: PRUNE_AT, option: "prune.keepJobsDays", run: () => cleanup(host, keepDays, tmpdir(), process.getuid?.() ?? -1) };
+				if (host.collect("schedule.register", host.name, [entry]).length === 0) throw new Error("prune.keepJobsDays needs the schedule plugin, which runs the daily prune; add schedule() to the config's plugins, or leave prune out");
+			}
 			const report = () => {
 				const lines = healthLines(host);
 				return lines.length === 0 ? ALL_WELL : lines.join("\n");

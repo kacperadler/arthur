@@ -117,6 +117,7 @@ export function pluginHost(
 			block: (id, reason, stop) => runner.block(id, reason, stop),
 			list: () => runner.records(),
 			running: () => runner.running(),
+			prune: (ids) => runner.prune(ids),
 			result: (id) => runner.result(id),
 			file: (id, job) => runner.file(tickets, id, job),
 			prompt: (role, project) => runner.prompt(role, project),

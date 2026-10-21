@@ -1,6 +1,6 @@
 import type { Plugin } from "@arthur/core/plugin";
 import { type Failure, type Instance, type Run, type Watched, workflowRuns } from "./github-api.ts";
-import { ciCommand } from "./github-ci.ts";
+import { built, cancel, ciCommand } from "./github-ci.ts";
 import { git, nearestRun, push } from "./github-git.ts";
 import { API_URL, checkOptions, EVERY_SECONDS, type GithubOptions, type InstanceOptions, WAKE_ON } from "./github-options.ts";
 import { newReviews } from "./github-pulls.ts";
@@ -12,7 +12,8 @@ import { readState, type State, writeState } from "./github-state.ts";
 // attempt as `ci-finished` (AR0238: a rerun keeps its id), across a restart too (github-state.ts), and wakes the coordinator when
 // `wakeOn` names it; with `pull-request-review` in `wakeOn`, the reviews of the open pull requests are told likewise. A refusal
 // is said once until GitHub answers again; a rate limit stops the instance's requests for as long as GitHub says. Also `arthur
-// ci` (github-ci.ts), and `github.push`, which delivery asks to push a reviewed branch and main. docs/github.md.
+// ci` (github-ci.ts), and `github.push`, which delivery asks to push a reviewed branch and main. Entry 59: `github.ci` and
+// `github.cancel`, which delivery's `arthur merge --auto` asks. docs/github.md.
 
 export type { GithubOptions };
 
@@ -41,6 +42,12 @@ export function github(options: GithubOptions): Plugin {
 				const path = list.find((each) => each.name === project)?.path;
 				return path === undefined ? Promise.resolve(`github: ${branch} not pushed to origin: no project ${project}`) : push(path, branch);
 			});
+			// Asked by delivery's `arthur merge --auto` and its CI waits: the run that built a branch, as `arthur ci` finds it, with
+			// how many commits below the tip it is, undefined for none; a refusal rejects. And a hung run cancelled.
+			host.provide("github.ci", ({ project, branch }: { readonly project: string; readonly branch: string }) =>
+				built(watched, project, branch).then(({ found }) => found && { ...found.run, below: found.below }),
+			);
+			host.provide("github.cancel", ({ project, run }: { readonly project: string; readonly run: number }) => cancel(watched, project, run));
 			let state = readState(host.folder);
 			const save = (next: State) => {
 				if (JSON.stringify(next) === JSON.stringify(state)) return;

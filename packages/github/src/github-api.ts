@@ -14,8 +14,9 @@ export type Instance = {
 // A project with a `ci.workflow`: its checkout, its repository (`owner/name`) and the instance that reads it.
 export type Watched = { readonly project: string; readonly path: string; readonly repo: string; readonly workflow: string; readonly instance: Instance };
 
-// `attempt` is GitHub's `run_attempt`: a rerun keeps the run's `id` and raises it.
-export type Run = { readonly id: number; readonly attempt: number; readonly sha: string; readonly branch: string | null; readonly status: string; readonly conclusion: string | null; readonly url: string };
+// `attempt` is GitHub's `run_attempt`: a rerun keeps the run's `id` and raises it. `startedAt` is the attempt's start,
+// `run_started_at` (else `created_at`), as GitHub writes it.
+export type Run = { readonly id: number; readonly attempt: number; readonly sha: string; readonly branch: string | null; readonly status: string; readonly conclusion: string | null; readonly url: string; readonly startedAt: string | null };
 // `loud` when the owner must act (a token refused, a workflow not found): a notice, else a line on stderr; `until` the time in
 // ms before which the instance asks nothing more.
 export type Failure = { readonly text: string; readonly loud: boolean; readonly until?: number };
@@ -87,7 +88,8 @@ function waitUntil(response: Response, said: string): number | undefined {
 // One run of the answer's `workflow_runs`, undefined when it lacks a field the plugin reads; a server without `run_attempt`
 // (an older GitHub Enterprise Server) has first attempts only.
 function run(item: unknown): Run | undefined {
-	const [id, attempt, sha, branch, status, conclusion, url] = ["id", "run_attempt", "head_sha", "head_branch", "status", "conclusion", "html_url"].map((key) => field(item, key));
+	const [id, attempt, sha, branch, status, conclusion, url, started, created] = ["id", "run_attempt", "head_sha", "head_branch", "status", "conclusion", "html_url", "run_started_at", "created_at"].map((key) => field(item, key));
 	if (typeof id !== "number" || typeof sha !== "string" || typeof status !== "string" || typeof url !== "string") return undefined;
-	return { id, attempt: typeof attempt === "number" ? attempt : 1, sha, branch: typeof branch === "string" ? branch : null, status, conclusion: typeof conclusion === "string" ? conclusion : null, url };
+	const startedAt = typeof started === "string" ? started : typeof created === "string" ? created : null;
+	return { id, attempt: typeof attempt === "number" ? attempt : 1, sha, branch: typeof branch === "string" ? branch : null, status, conclusion: typeof conclusion === "string" ? conclusion : null, url, startedAt };
 }

@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { matchesGlob } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
+import { entryOf } from "./auto-merge.ts";
 import { changelogCommand } from "./changelog.ts";
+import { type CiWaits, ciWaits } from "./ci-wait.ts";
 import { ALWAYS_REVIEW, checkOptions } from "./delivery-options.ts";
 import { CANCELLED, type HandBack, handBack } from "./hand-back.ts";
 import { mergeCommand } from "./merge-command.ts";
@@ -17,7 +19,8 @@ import { failsSincePass, LIMIT, type Review, readReview, saveReview, settle } fr
 // on the owner's word, and the wake of the second FAIL carries the procedure. docs/commands/review.md. Entry 53: `arthur
 // review-needed`, the always-review list it and autopilot ask (`delivery.alwaysReview`), and the extension that records each
 // job's checks: docs/commands/review-needed.md. Entry 54: `arthur merge`: docs/commands/merge.md. Entry 55: the hand-back after
-// a FAIL (hand-back.ts): docs/commands/review.md, "Hand-back". Entry 56: `arthur changelog`: docs/commands/changelog.md.
+// a FAIL (hand-back.ts): docs/commands/review.md, "Hand-back". Entry 56: `arthur changelog`: docs/commands/changelog.md. Entry
+// 59: `arthur merge --auto`, and the CI waits it leaves, polled while `arthur run` runs (ci-wait.ts).
 
 const REVIEW = "review";
 const TICKET = /^spec\/features\/([A-Z]+\d{4,})-[^/]+\/ticket\.md$/;
@@ -26,15 +29,21 @@ const REVIEWED = ["in-progress", "review", "done"];
 
 export function delivery(options: { readonly enabled?: boolean; readonly review?: { readonly alwaysReview?: readonly string[] } } = {}): Plugin {
 	let loop: HandBack | undefined;
+	let waits: CiWaits | undefined;
 	return {
 		name: "delivery",
 		module: import.meta.url,
 		options,
 		check: checkOptions,
-		start: () => loop?.start(),
+		start() {
+			loop?.start();
+			waits?.start();
+		},
+		stop: () => waits?.stop(),
 		setup(host) {
 			const back = handBack(host);
 			loop = back;
+			waits = ciWaits(host);
 			const procedure = new URL("../roles/coordinator/review-limit.md", import.meta.url);
 			const always = options.review?.alwaysReview ?? ALWAYS_REVIEW;
 			const held = (path: string) => always.some((glob) => matchesGlob(path, glob));
@@ -72,7 +81,7 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 			});
 			host.commands.register(reviewCommand(host, procedure));
 			host.commands.register(reviewNeededCommand(host, held));
-			host.commands.register(mergeCommand(host, new URL("../roles/coordinator/after-merge.md", import.meta.url)));
+			host.commands.register(mergeCommand(host, new URL("../roles/coordinator/after-merge.md", import.meta.url), held));
 			host.commands.register(changelogCommand(host));
 			host.jobs.registerExtension(new URL("./checks-extension.ts", import.meta.url));
 			// Asked with a project and paths from its root (orchestration's autopilot): those on the list, the same in every project.
@@ -113,7 +122,11 @@ function wake(host: Host, review: Review, procedure: URL): string {
 	const verdict = settle(host, review);
 	const worker = review.branch.slice("arthur/".length);
 	const file = `File it: arthur ticket file ${review.ticket} ${review.id}, commit it, then arthur prune ${review.id}.`;
-	if (verdict === "PASS") return `Review verdict: PASS on ${review.branch} at ${review.commit.slice(0, 7)}; ${review.ticket} moves to done. ${file}`;
+	if (verdict === "PASS") {
+		const project = host.jobs.list().find((each) => each.id === review.id)?.project ?? "";
+		const auto = entryOf(host, project)?.autoMerge === true ? ` ${project} merges on its own (autoMerge): after that commit, arthur merge --auto ${worker}.` : "";
+		return `Review verdict: PASS on ${review.branch} at ${review.commit.slice(0, 7)}; ${review.ticket} moves to done. ${file}${auto}`;
+	}
 	const reason = host.jobs.list().find((each) => each.id === review.id)?.reason;
 	// Stopped by `arthur stop` or `stopall`, or by the hand-back as `stop-all` came: started again only on the owner's word.
 	if (verdict !== "FAIL" && (reason === "stopped" || reason === `user: ${CANCELLED}`))

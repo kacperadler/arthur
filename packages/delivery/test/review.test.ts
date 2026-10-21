@@ -86,12 +86,15 @@ test("the verdict is the last line, exactly PASS or FAIL; anything else is none"
 		assert.equal(verdictOf(message), verdict, JSON.stringify(message));
 });
 
-test("a PASS review runs on the branch's tip with its ticket, moves the ticket to review and then done, and files once", async (t) => {
+test("a PASS review runs on the branch's tip with its ticket, moves the ticket to review and then done, asks github.push to push the branch, and files once", async (t) => {
 	const { root, fake, git, worker, review, status, home } = await load(t);
+	const pushes: unknown[] = [];
+	fake.provide("github.push", (branch: unknown) => (pushes.push(branch), Promise.resolve("github: pushed")));
 	const job = await worker();
 	assert.equal(status("AC0001"), "in-progress");
 	const passed = await review("Clean.\n\nPASS", job.id.slice(-8));
 	assert.equal(passed.code, undefined, passed.err);
+	assert.deepEqual(pushes, [{ project: "acme", branch: job.branch }]);
 	const task = readFileSync(join(home, "jobs", passed.id, "task"), "utf8");
 	assert.equal(task.split("\n\n")[0], `Ticket: ${TICKET}\nBranch: ${job.branch}\nCommit: ${job.commit}`);
 	assert.match(task, new RegExp(`## The worker's final message \\(job ${job.id}\\)\n\nDone.\nTicket\\\\: spec/features/AC0002`));
@@ -122,11 +125,14 @@ test("PASS not on the last line is no verdict: the run ends failed, the ticket s
 	assert.deepEqual(fake.collect("coordinator.wake", { id: job.id, kind: "worker" }), [undefined], "a worker's wake gets nothing");
 });
 
-test("a FAIL moves the ticket back to in-progress; a third review after 2 FAILs is refused naming both, until --round 3", async (t) => {
+test("a FAIL moves the ticket back to in-progress and pushes nothing; a third review after 2 FAILs is refused naming both, until --round 3", async (t) => {
 	const { fake, worker, review, status, home } = await load(t);
+	const pushes: unknown[] = [];
+	fake.provide("github.push", (branch: unknown) => (pushes.push(branch), Promise.resolve("github: pushed")));
 	const job = await worker();
 	const first = await review("Missing test.\n\nFAIL", job.id);
 	assert.equal(status("AC0001"), "in-progress");
+	assert.deepEqual(pushes, [], "a FAIL pushes nothing");
 	const wake = (id: string) => String(fake.collect("coordinator.wake", { id, kind: "review" })[0]);
 	assert.equal(wake(first.id), `Review verdict: FAIL on ${job.branch} at ${job.commit.slice(0, 7)}, 1 since its last PASS; AC0001 moves back to in-progress. File it: arthur ticket file AC0001 ${first.id}, commit it, then arthur prune ${first.id}.`);
 	assert.equal((await review("x\nFAIL", job.id, "--round", "3")).err, `arthur review: refused by delivery: round 3 is not the next one of ${job.branch}: it has 1 FAIL since its last PASS, so the next round is 2`);

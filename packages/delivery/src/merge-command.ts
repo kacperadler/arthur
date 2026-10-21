@@ -9,8 +9,8 @@ import { reviewsOf } from "./review-records.ts";
 
 // `arthur merge <job> [--unreviewed]` (spec/roadmap.md, entry 54): an ended job's branch merged into the branch its project's
 // checkout has, main, after every refusal; the checks run there, and main reset when one fails; then the ticket's side
-// (merge-outcome.ts) and the procedure after a merge. It commits nothing past the merge, and pushes and prunes nothing.
-// docs/commands/merge.md.
+// (merge-outcome.ts) and the procedure after a merge. It commits nothing past the merge and prunes nothing; main is pushed by
+// the plugin that provides `github.push` (entry 58), when one is loaded. docs/commands/merge.md.
 
 const USAGE = "usage: arthur merge <job> [--unreviewed]";
 // The board's moves since the last commit are left uncommitted until the commit after a merge, so they are no dirt.
@@ -21,7 +21,7 @@ export function mergeCommand(host: Host, procedure: URL): Command {
 	return {
 		name: "merge",
 		doc: new URL("../docs/commands/merge.md", import.meta.url),
-		run({ args }) {
+		async run({ args }) {
 			const words = args.filter((arg) => arg !== "--unreviewed");
 			const flag = words.find((word) => word.startsWith("-"));
 			const [name] = words;
@@ -29,13 +29,16 @@ export function mergeCommand(host: Host, procedure: URL): Command {
 				console.error(`arthur merge: ${flag !== undefined ? `unknown flag ${flag}` : name === undefined ? "no job" : `one job; got ${words.length}`}\n${USAGE}`);
 				return 2;
 			}
-			merge(host, name, args.includes("--unreviewed"));
-			console.log(`nothing committed but the merge, nothing pushed or pruned\n\n${readFileSync(procedure, "utf8").trim()}`);
+			const branch = merge(host, name, args.includes("--unreviewed"));
+			const pushed = await Promise.all(host.collect<Promise<string>>("github.push", branch));
+			for (const line of pushed) console.log(line);
+			console.log(`nothing committed but the merge, nothing ${pushed.length === 0 ? "pushed or " : ""}pruned\n\n${readFileSync(procedure, "utf8").trim()}`);
 		},
 	};
 }
 
-function merge(host: Host, name: string, unreviewed: boolean): void {
+// Merges, and returns main as `github.push` takes it.
+function merge(host: Host, name: string, unreviewed: boolean): { readonly project: string; readonly branch: string } {
 	const job = host.jobs.list().find((each) => each.id === name || each.id.endsWith(`-${name}`));
 	if (job === undefined) throw new Error(`no job ${name}; arthur jobs lists them`);
 	if (job.branch === "") throw new Error(`${job.id} is a ${job.kind} job, read-only: it has no branch to merge`);
@@ -89,6 +92,7 @@ function merge(host: Host, name: string, unreviewed: boolean): void {
 	}
 	if (ticket === undefined || folder === undefined) console.log("no ticket: no outcome.md, nothing moved");
 	else settleTicket(host, { job, ticket, folder, root, hash, subjects: subjects.split("\n"), steps, gap }, console.log);
+	return { project: job.project, branch: main };
 }
 
 // Why the branch's tip has no PASS, or "" when it has one: the newest review of that commit with a verdict says PASS, or

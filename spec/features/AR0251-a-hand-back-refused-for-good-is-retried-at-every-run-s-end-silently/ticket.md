@@ -39,3 +39,4 @@ In:
 
 - 2026-10-21: Source: F1 of AR0247
 - 2026-10-21: Approved by the owner (Telegram).
+- 2026-10-21: Coordinator (free hand) accepted the test-kit member `FakeHost.beforeSpawn(check)` (refuses as `refused by test`), recorded in docs/plugin-api.md, and the core/testing budget 347 to 349.

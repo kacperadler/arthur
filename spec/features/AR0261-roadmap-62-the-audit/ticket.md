@@ -34,3 +34,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Started by the coordinator; owner: continue Arthur, at most 10% of the weekly limit today (4% at 15:xx).
+- 2026-10-21: Coordinator (free hand) accepted the core change: `arthur ticket file <job>` files a job of no ticket, `Filing.root`. F1 decided: commits that touch only `spec/build.json`, `spec/features/**` or `spec/quality/**` do not count as commits since the last audit.

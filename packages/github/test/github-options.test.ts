@@ -47,11 +47,13 @@ test("refused: poll not an object, an unknown key in it, everySeconds below 1 or
 test("the state: written and read back; a broken file, or entry 57's run ids, is no project polled yet, a project's wrong entry that project only", () => {
 	const folder = temporaryFolder();
 	assert.deepEqual(readState(folder), { runs: {}, pulls: {} }, "no file");
-	const state = { runs: { shop: ["12/2", "11/1"], site: [] }, pulls: { shop: { "5": { updated: "2026-01-01T00:00:00Z", told: [80] } } } };
+	const state = { runs: { shop: ["12/2", "11/1"], site: [] }, pulls: { shop: { polled: "2026-01-01T00:01:00.000Z", open: { "5": { updated: "2026-01-01T00:00:00Z", told: [80] } } }, site: { polled: "2026-01-01T00:01:00.000Z", open: {} } } };
 	writeState(folder, state);
 	assert.deepEqual(readState(folder), state);
-	writeFileSync(join(folder, "state.json"), '{"runs": {"shop": ["12/1", "13"], "site": ["3/1"], "tool": "4/1"}, "pulls": {"shop": {"5": {"updated": 1, "told": []}}, "site": {"6": {"updated": "x", "told": [1]}}, "tool": [], "x": {"7": null}}}\n');
-	assert.deepEqual(readState(folder), { runs: { site: ["3/1"] }, pulls: { site: { "6": { updated: "x", told: [1] } } } });
+	const site = { polled: "2026-01-01T00:01:00.000Z", open: { "6": { updated: "x", told: [1] } } };
+	const pulls = { shop: { polled: site.polled, open: { "5": { updated: 1, told: [] } } }, site, tool: [], x: { polled: site.polled, open: { "7": null } }, y: { polled: "yesterday", open: {} }, z: { polled: site.polled }, old: { "5": { updated: "x", told: [1] } } };
+	writeFileSync(join(folder, "state.json"), `${JSON.stringify({ runs: { shop: ["12/1", "13"], site: ["3/1"], tool: "4/1" }, pulls })}\n`);
+	assert.deepEqual(readState(folder), { runs: { site: ["3/1"] }, pulls: { site } }, "an entry written before AR0250, without polled, is that project not polled yet");
 	for (const text of ["{", "[1]", "null", "", '{"shop": [12, 13]}']) {
 		writeFileSync(join(folder, "state.json"), text);
 		assert.deepEqual(readState(folder), { runs: {}, pulls: {} }, text);

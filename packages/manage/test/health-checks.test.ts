@@ -147,7 +147,7 @@ test("an unfiled check skips a job under an hour, not finished, of another kind 
 	const jobs = [
 		job("a1", 59, { kind: "audit" }),
 		job("a2", 300, { kind: "audit", reason: "failed" }),
-		job("a3", 300, { kind: "audit", state: "idle", reason: "" }),
+		job("a3", 300, { kind: "audit", state: "working" }),
 		job("a4", 300, { kind: "worker" }),
 		job("a5", 300, { kind: "audit", project: "shop" }),
 		job("a6", 300, { kind: "retro", since: "not a time" }),

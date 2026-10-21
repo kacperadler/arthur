@@ -343,10 +343,8 @@ export default defineConfig({
 		// PASS a review needs `--round N`, on the owner's word only (packages/delivery/docs/commands/review.md). `arthur review-needed
 		// <worker job>` says whether a branch needs a review at all; a branch that changes a file on `review.alwaysReview` (glob
 		// patterns from a project's root, replacing the default list) always does (packages/delivery/docs/commands/review-needed.md).
-		// The `merge` option is planned (54, 59).
 		delivery({
-			review: { alwaysReview: ["**/env.ts", "**/env-*.ts", "**/ci.ts", "**/ci-*.ts", ".github/workflows/**", "**/review-needed.ts", "**/checks-extension.ts", "**/roles/reviewer.md", "**/criteria/review.md", "**/merge*.ts", "deploy/**", "bin/**"] },
-			merge: { afterPassAndGreenCi: true },
+			review: { alwaysReview: ["**/env.ts", "**/env-*.ts", "**/ci.ts", "**/ci-*.ts", "**/github-ci.ts", "**/auto-merge.ts", ".github/workflows/**", "**/review-needed.ts", "**/checks-extension.ts", "**/roles/reviewer.md", "**/criteria/review.md", "**/merge*.ts", "deploy/**", "bin/**"] },
 		}),
 
 		// Polls GitHub for the CI runs of the branches in play (each checkout's own branch and every job's) and emits `ci-finished`

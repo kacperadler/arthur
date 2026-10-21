@@ -168,13 +168,25 @@ test("the always-review list: review.alwaysReview replaces the default, and deli
 	assert.deepEqual(plain.call("delivery.alwaysReview", { project: "acme", paths }), paths.slice(0, 5), "the default: what reads secrets, the CI-failure handling, the review rules");
 });
 
+const REPOSITORY = new URL("../../../", import.meta.url);
+const CI_FAILURE_FILES = ["packages/github/src/github-ci.ts", "packages/delivery/src/auto-merge.ts", "packages/delivery/src/merge-command.ts", "packages/delivery/src/ci-wait.ts"];
+
 test("the default always-review list holds every file of the CI-failure handling, entries 57 to 59, as this repository has them", async () => {
-	const repository = new URL("../../../", import.meta.url);
-	const paths = ["packages/github/src/github-ci.ts", "packages/delivery/src/auto-merge.ts", "packages/delivery/src/merge-command.ts", "packages/delivery/src/ci-wait.ts"];
-	assert.deepEqual(paths.filter((path) => !existsSync(new URL(path, repository))), [], "each file is where the list expects it");
+	assert.deepEqual(CI_FAILURE_FILES.filter((path) => !existsSync(new URL(path, REPOSITORY))), [], "each file is where the list expects it");
 	const plain = fakeHost({ name: "delivery" });
 	await plain.setup(delivery());
-	assert.deepEqual(plain.call("delivery.alwaysReview", { project: "acme", paths }), paths);
+	assert.deepEqual(plain.call("delivery.alwaysReview", { project: "acme", paths: CI_FAILURE_FILES }), CI_FAILURE_FILES);
+});
+
+test("arthur.config.example.ts gives delivery only options it accepts, its list holding every file of the CI-failure handling", async () => {
+	const example = readFileSync(new URL("arthur.config.example.ts", REPOSITORY), "utf8");
+	const call = /\n\t\tdelivery\((\{[\s\S]*?\n\t\t\})\),\n/.exec(example);
+	assert.ok(call, "the example calls delivery({ ... })");
+	const options = Function(`return (${call[1]});`)();
+	assert.deepEqual(checkOptions(options), []);
+	const plain = fakeHost({ name: "delivery" });
+	await plain.setup(delivery(options));
+	assert.deepEqual(plain.call("delivery.alwaysReview", { project: "acme", paths: CI_FAILURE_FILES }), CI_FAILURE_FILES);
 });
 
 test("the options: only review.alwaysReview, a list of glob patterns from a project's root", () => {

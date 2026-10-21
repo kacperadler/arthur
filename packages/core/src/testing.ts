@@ -14,7 +14,7 @@ import type { Slice } from "./job-scope.ts";
 import type { Kind } from "./job-kinds.ts";
 import { jobRunner } from "./jobs.ts";
 import type { Role } from "./roles.ts";
-import type { Host, Options, Plugin, Provider } from "./plugin.ts";
+import type { Host, Options, Plugin, Provider, SpawnCheck } from "./plugin.ts";
 import { pluginHost, registry } from "./plugin-host.ts";
 
 // The test kit (spec/roadmap.md, entries 4, 11 and 13), `@arthur/core/testing`, which `npm test` loads into every test process
@@ -90,10 +90,11 @@ export type FakeHost = {
 	readonly roles: readonly Role[];
 	// The events the plugin emitted, as logged, in the order of their sequence numbers.
 	readonly emitted: readonly Event[];
-	// The test as another plugin: drives what the plugin provides, or provides what it calls.
+	// The test as another plugin, `test`: drives what the plugin provides, provides what it calls, or refuses a spawn.
 	call<T = unknown>(name: string, ...args: readonly unknown[]): T;
 	collect<T = unknown>(name: string, ...args: readonly unknown[]): T[];
 	provide(name: string, fn: Provider): void;
+	beforeSpawn(check: SpawnCheck): void;
 	// An event from the plugin `test`, delivered to the plugin's subscribers and logged like any other.
 	emit(name: string, data: unknown): Event;
 	// Moves the host's clock to `at`, where it stays until the next call.
@@ -192,6 +193,7 @@ export function fakeHost(plugin: {
 		call: <T>(name: string, ...args: readonly unknown[]) => names.call("test", name, args) as T,
 		collect: <T>(name: string, ...args: readonly unknown[]) => names.collect(name, args) as T[],
 		provide: (name, fn) => names.provide("test", name, fn),
+		beforeSpawn: (check) => jobs.beforeSpawn("test", check),
 		emit: (name, data) => bus.emit("test", name, data),
 		setNow: (at) => void (now = at.getTime()),
 	};

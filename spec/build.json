@@ -1963,9 +1963,9 @@
   {
     "id": "AR0255",
     "title": "The poll's time is this machine's clock, compared with GitHub's `submitted_at`",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0255-the-poll-s-time-is-this-machine-s-clock-compared-with-github-s-submitted-at/ticket.md",
-    "updated": "2026-10-21T14:11:00.638Z"
+    "updated": "2026-10-21T14:21:10.809Z"
   },
   {
     "id": "AR0256",
@@ -1984,9 +1984,9 @@
   {
     "id": "AR0258",
     "title": "The coordinator's role names merges only on the owner's word",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0258-the-coordinator-s-role-names-merges-only-on-the-owner-s-word/ticket.md",
-    "updated": "2026-10-21T13:54:34.117Z"
+    "updated": "2026-10-21T14:19:53.028Z"
   },
   {
     "id": "AR0259",
@@ -2046,9 +2046,9 @@
   {
     "id": "AR0266",
     "title": "Roadmap 63: the retro",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0266-roadmap-63-the-retro/ticket.md",
-    "updated": "2026-10-21T14:07:36.603Z"
+    "updated": "2026-10-21T14:25:32.985Z"
   },
   {
     "id": "AR0267",
@@ -2087,5 +2087,12 @@
     "status": "planning",
     "path": "spec/features/AR0271-two-processes-checking-one-machine-at-once-can-both-say-the-same-news/ticket.md",
     "updated": "2026-10-21T14:00:33.660Z"
+  },
+  {
+    "id": "AR0272",
+    "title": "Arthur's own repository has no criteria folder, so its audits and retros run without their criteria",
+    "status": "planning",
+    "path": "spec/features/AR0272-arthur-s-own-repository-has-no-criteria-folder-so-its-audits-and-retros-run-without-their-criteria/ticket.md",
+    "updated": "2026-10-21T14:25:32.982Z"
   }
 ]

@@ -37,6 +37,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0261 Roadmap 62: the audit (1212afc)
 - AR0262 Roadmap 69: free disk space per machine (92cfbeb)
 - AR0263 Roadmap 83: findings, what happens to them per project (e0d14fb)
+- AR0266 Roadmap 63: the retro (fcf48c3)
 
 ## 2026-10-20
 

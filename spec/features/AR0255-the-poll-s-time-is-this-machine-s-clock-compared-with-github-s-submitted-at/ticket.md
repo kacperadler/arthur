@@ -35,3 +35,4 @@ In:
 
 - 2026-10-21: Source: F1 of AR0250
 - 2026-10-21: Approved by the owner (Telegram).
+- 2026-10-21: Coordinator (free hand) accepted the worker pick: the poll time comes from GitHub date header minus the request time, instead of a fixed margin; github budget 621 to 625.

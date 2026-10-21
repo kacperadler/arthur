@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F3 of AR0253
+- 2026-10-21: Approved by the owner (Telegram).

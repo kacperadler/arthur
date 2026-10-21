@@ -4,7 +4,10 @@
 {
   "id": "AR0265",
   "title": "No health line for a finished audit that was never filed",
-  "date": "2026-10-21"
+  "date": "2026-10-21",
+  "after": [
+    "AR0266"
+  ]
 }
 ```
 
@@ -35,3 +38,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F3 of AR0261
+- 2026-10-21: Approved by the owner (Telegram).

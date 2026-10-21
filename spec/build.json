@@ -2012,9 +2012,9 @@
   {
     "id": "AR0262",
     "title": "Roadmap 69: free disk space per machine",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0262-roadmap-69-free-disk-space-per-machine/ticket.md",
-    "updated": "2026-10-21T13:28:45.607Z"
+    "updated": "2026-10-21T13:49:17.196Z"
   },
   {
     "id": "AR0263",
@@ -2028,21 +2028,27 @@
     "title": "`arthur init` writes the audit criteria as a bare title, not the criteria manage ships",
     "status": "planning",
     "path": "spec/features/AR0264-arthur-init-writes-the-audit-criteria-as-a-bare-title-not-the-criteria-manage-ships/ticket.md",
-    "updated": "2026-10-21T13:16:16.440Z"
+    "updated": "2026-10-21T13:54:20.164Z",
+    "after": [
+      "AR0266"
+    ]
   },
   {
     "id": "AR0265",
     "title": "No health line for a finished audit that was never filed",
     "status": "planning",
     "path": "spec/features/AR0265-no-health-line-for-a-finished-audit-that-was-never-filed/ticket.md",
-    "updated": "2026-10-21T13:16:16.443Z"
+    "updated": "2026-10-21T13:54:19.742Z",
+    "after": [
+      "AR0266"
+    ]
   },
   {
     "id": "AR0266",
     "title": "Roadmap 63: the retro",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0266-roadmap-63-the-retro/ticket.md",
-    "updated": "2026-10-21T13:42:13.321Z"
+    "updated": "2026-10-21T13:47:43.270Z"
   },
   {
     "id": "AR0267",
@@ -2056,6 +2062,9 @@
     "title": "The coordinator's role names `arthur findings`, which a config without the findings plugin no longer has",
     "status": "planning",
     "path": "spec/features/AR0268-the-coordinator-s-role-names-arthur-findings-which-a-config-without-the-findings-plugin-no-longer-has/ticket.md",
-    "updated": "2026-10-21T13:42:47.627Z"
+    "updated": "2026-10-21T13:54:19.951Z",
+    "after": [
+      "AR0258"
+    ]
   }
 ]

@@ -32,3 +32,4 @@ In:
 
 - 2026-10-21: Source: review-1 note of AR0244
 - 2026-10-21: Approved by the owner (Telegram, morning report).
+- 2026-10-21: Owner: continue Arthur, up to 12% of the new weekly limit today.

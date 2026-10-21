@@ -24,6 +24,8 @@ export type HandBack = {
 };
 
 const ID = /^[\w-]+$/;
+// Why a job a step started as `stop-all` came is stopped again: its hold, `user: <this>`.
+export const CANCELLED = "arthur stopall cancelled delivery's hand-back";
 
 export function handBack(host: Host): HandBack {
 	const folder = join(host.folder, "hand-backs");
@@ -66,7 +68,7 @@ export function handBack(host: Host): HandBack {
 			if (!message.startsWith("refused by ")) tell(record, message);
 			return;
 		}
-		if (read(record.worker) === undefined) await host.jobs.block(id, "arthur stopall cancelled delivery's hand-back", true);
+		if (read(record.worker) === undefined) await host.jobs.block(id, CANCELLED, true);
 		else save({ ...record, step: next });
 	};
 	const advance = async () => {

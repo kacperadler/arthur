@@ -281,13 +281,14 @@ import { checkStructure } from "./structure.ts";
 // means and shares, the most expensive and the first line of each FAIL finding (stats.ts, 99), and the command registered with
 // its header (manage.ts, 13); nothing in manage did this before, so nothing was cut; core unchanged.
 // AR0245: manage 1 less (368): the unknown-project throw in stats.ts was cut, since `host.board.list` refuses first.
-// AR0247 (roadmap 55; its Done means allow a host member recorded in docs/plugin-api.md): delivery 157 more (927) for the
+// AR0247 (roadmap 55; its Done means allow a host member recorded in docs/plugin-api.md): delivery 163 more (933) for the
 // hand-back after a FAIL: the FAIL filed, the worker continued, the next review at its end, a refusal kept for the next end of
-// a run, `stop-all`'s cancel and the worker's wake line (hand-back.ts, 146), and the loop wired to `start`, `job-ended`,
-// `stop-all` and the wakes, whose FAIL line now says what delivery does (delivery.ts, 11 more); nothing in delivery handed a
-// branch back before, so nothing was cut. Core 2 more (5729): `jobs.continue` on the host (jobs.ts, 2, the runner's own
-// comment folded into it, 1 less; plugin-host.ts, 1). core/testing 2 less (347): `FakeHost.continue`, now `host.jobs.continue`.
-const BUDGETS = { core: 5729, "core/testing": 347, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 927, github: 310, manage: 368 };
+// a run, `stop-all`'s cancel and the worker's wake line (hand-back.ts, 148), and the loop wired to `start`, `job-ended`,
+// `stop-all` and the wakes, whose FAIL line now says what delivery does (delivery.ts, 11 more), and the wake of a stopped
+// review (findings.md F2, delivery.ts, 4); nothing in delivery handed a branch back before, so nothing was cut. Core 2 more
+// (5729): `jobs.continue` on the host (jobs.ts, 2, the runner's own comment folded into it, 1 less; plugin-host.ts, 1).
+// core/testing 2 less (347): `FakeHost.continue`, now `host.jobs.continue`.
+const BUDGETS = { core: 5729, "core/testing": 347, projects: 481, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 933, github: 310, manage: 368 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

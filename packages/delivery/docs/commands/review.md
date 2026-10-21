@@ -31,7 +31,7 @@ The last line of the review's final message, exactly `PASS` or `FAIL`, alone. An
 - At the review's start (`job-started`) its ticket moves to `review`.
 - At its end (`job-ended`): `PASS` moves the ticket to `done`, `FAIL` back to `in-progress`. No verdict, or a run that did not finish (failed, stopped, a limit, blocked), moves nothing: the review failed, its ticket stays at `review`, and it is never filed. The kind is registered with `verdicts: ["PASS", "FAIL"]`, so the core ends a run without one `failed: no verdict: the last line of its final message is not PASS or FAIL alone`, in its record, `arthur jobs` and `job-ended` (`arthur spawn --help`).
 - The verdict is kept in delivery's record of the review, `<home>/delivery/reviews/<job>.json` (its ticket, branch, commit, start), so a review still counts once `arthur prune` removed its job record.
-- The coordinator's wake for an ended review adds one line: the verdict and the ticket's move; for a PASS how to file it, for a FAIL that delivery files it and whether it hands the branch back (below); for no verdict, that the review failed and how to review again.
+- The coordinator's wake for an ended review adds one line: the verdict and the ticket's move; for a PASS how to file it, for a FAIL that delivery files it and whether it hands the branch back (below); for no verdict, that the review failed and how to review again; for a review that `arthur stop`, `arthur stopall` or the hand-back's cancel stopped, that it was stopped and is reviewed again only when the owner asks.
 
 ## The limit: 2 FAILs since the last PASS
 

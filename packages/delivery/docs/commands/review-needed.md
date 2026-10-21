@@ -4,7 +4,7 @@ Usage: `arthur review-needed <worker job>`. Comes with the `delivery` plugin, `d
 
 Decides whether an ended worker's branch needs a review and prints one line, `review: <why>` or `no review: <why>`, naming the rule that decided. The worker job is its full id or the 8 hex digits that end it. The branch is judged at its tip in the main checkout, from where it leaves HEAD (`git merge-base`), as `arthur review` judges it.
 
-- `no review` moves the job's ticket to `done` (`ticket-moved`, named by delivery) and prints `<id> moves to done.` as a second line. `review` moves nothing: the review's start moves the ticket to `review` (`arthur review --help`).
+- `no review` moves the job's ticket to `done` (`ticket-moved`, named by delivery) and prints `<id> moves to done.` as a second line. It then asks the plugin that provides `github.push` (the github plugin, `packages/github/docs/github.md`, "Pushes") to push the branch to origin, as after a review's `PASS`, so its CI runs; that plugin's one line, pushed or why not, is printed next. Without it, nothing is pushed. `review` moves and pushes nothing: the review's start moves the ticket to `review`, and its `PASS` pushes (`arthur review --help`).
 - Either answer is kept in `<home>/delivery/<job>/review-needed`, a JSON object `{ answer, ticket, branch, commit, at }`, `commit` the tip it judged; asked again, the newest answer replaces it.
 
 ## The rules

@@ -51,7 +51,7 @@ While `arthur run` runs, a FAIL hands the branch back to its worker, with no ste
 
 - Each continue and spawn goes through every plugin's `beforeSpawn`, so `maxAgents` holds. A refusal (`refused by <plugin>: ...`), at `maxAgents` or for want of room, keeps the step: it is tried again at the next end of any run, when a slot may be free, and at the next start of `arthur run`. Any other error ends the hand-back, and the coordinator gets `Delivery's hand-back of arthur/<id> after FAIL <review job> stopped: <error>. Hand it back yourself: arthur continue <id> '<the findings of <review job>>', then arthur review <id> once it ends.` A filing that fails says `Delivery could not file FAIL <review job>: <error>; file it with arthur ticket file <ticket> <review job>.`
 - `arthur stopall` (`/stopall`) cancels every hand-back: one waiting for its worker's end or for a slot starts nothing more, a FAIL that ended just before it is filed but not handed back, and a continue or review that was starting as it came is stopped again, `blocked` on `user: arthur stopall cancelled delivery's hand-back`.
-- Each hand-back is kept in `<home>/delivery/hand-backs/<worker job>.json`, so a restart of `arthur run` goes on with it.
+- Each hand-back is kept in `<home>/delivery/hand-backs/<worker job>.json`, so a restart of `arthur run` goes on with it; a review that ended while `arthur run` was down is acted on at its next start, when it delivers the events it missed.
 
 ## Refused
 

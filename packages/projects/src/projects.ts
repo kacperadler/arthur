@@ -9,8 +9,8 @@ import { checkOptions } from "./project-options.ts";
 
 // The projects plugin (spec/roadmap.md, entries 41 and 42): the project list in `arthur.config.ts` and nowhere else, served as
 // `projects` and kept in `<home>/projects/checkouts` for the worktree guard; one line per project in the coordinator's context;
-// `arthur projects` and `/projects`; doctor requirements per project; the install of every new worktree; `arthur init` and the
-// kind `onboarding`. docs/commands/projects.md, docs/commands/init.md.
+// `arthur projects` and `/projects`; doctor requirements per project; the install of every new worktree, also served as
+// `projects.install`; `arthur init` and the kind `onboarding`. docs/commands/projects.md, docs/commands/init.md.
 
 export type ProjectEntry = {
 	readonly name: string;
@@ -53,6 +53,12 @@ export function projects(options: ProjectsOptions): Plugin {
 			host.provide("projects", () => all);
 			host.provide("coordinator.context", () => [HEADER, ...all.map(projectLine)].join("\n"));
 			host.provide("doctor", () => all.flatMap(requirements));
+			// The install `arthur merge` runs on main (delivery): the project's at a commit of its repository, "" for none.
+			host.provide("projects.install", ({ project, commit }: { readonly project: string; readonly commit: string }) => {
+				const entry = all.find((each) => each.name === project);
+				if (entry === undefined) throw new Error(`no project ${project}`);
+				return installCommand(entry, entry.path, commit);
+			});
 			host.commands.register({
 				name: "projects",
 				doc: new URL("../docs/commands/projects.md", import.meta.url),

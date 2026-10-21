@@ -120,3 +120,16 @@ test("two lockfiles at the job's base refuse the spawn, though there was one at 
 	});
 	assert.equal(git(root, "branch", "--list"), "* main");
 });
+
+test("projects.install answers the install a worktree of that commit gets: own, none, the lockfile's; two lockfiles and an unknown project throw", async () => {
+	const locked = repository();
+	const first = git(locked, "rev-parse", "HEAD");
+	commit(locked, { "bun.lock": "{}" });
+	const list = [{ name: "own", prefix: "OW", path: repository(), install: "make deps" }, { name: "off", prefix: "OF", path: repository({ "package-lock.json": "{}" }), install: "" }, { name: "locked", prefix: "LO", path: locked }];
+	const fake = await load(list);
+	const install = (project: string, commit: string) => fake.collect<string>("projects.install", { project, commit })[0];
+	assert.deepEqual([install("own", "HEAD"), install("off", "HEAD"), install("locked", "HEAD"), install("locked", first)], ["make deps", "", "bun install --frozen-lockfile", ""]);
+	commit(locked, { "package-lock.json": "{}" });
+	assert.throws(() => install("locked", "HEAD"), { message: "project locked: two known lockfiles (bun.lock, package-lock.json) and no install; set install in its entry of arthur.config.ts" });
+	assert.throws(() => install("gone", "HEAD"), { message: "no project gone" });
+});

@@ -1835,9 +1835,9 @@
   {
     "id": "AR0238",
     "title": "A rerun keeps its run id, so its end is never told as `ci-finished`",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0238-a-rerun-keeps-its-run-id-so-its-end-is-never-told-as-ci-finished/ticket.md",
-    "updated": "2026-10-21T06:50:54.706Z"
+    "updated": "2026-10-21T08:23:28.906Z"
   },
   {
     "id": "AR0239",
@@ -1894,8 +1894,8 @@
   {
     "id": "AR0246",
     "title": "Roadmap 58: arthur ci, reruns, pushes, pull request reviews",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0246-roadmap-58-arthur-ci-reruns-pushes-pull-request-reviews/ticket.md",
-    "updated": "2026-10-21T08:23:25.282Z"
+    "updated": "2026-10-21T08:23:28.267Z"
   }
 ]

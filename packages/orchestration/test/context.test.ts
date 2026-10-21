@@ -76,6 +76,20 @@ test("the coordinator's role says it writes to YouTrack only when the owner asks
 	assert.match(line, /only when the owner asks, and say in the reply what was written/);
 });
 
+// AR0258: delivery's wakes tell the coordinator `arthur merge --auto` in a project with `autoMerge` on; the role must not
+// leave it waiting for the owner's word there.
+test("the coordinator's role runs a wake's arthur merge --auto without the owner, and waits on a refusal that says it waits", () => {
+	const lines = ROLE.split("\n");
+	const merge = lines.find((each) => each.startsWith("- When the owner asks for a merge:"));
+	assert.ok(merge, "the role says how to merge");
+	assert.match(merge, /In a project with `autoMerge` on, a wake that names `arthur merge --auto <job>` \(after a PASS, after CI passed\) is run without waiting for the owner/);
+	assert.match(merge, /a refusal that says `it waits` needs nothing until CI's wake/);
+	const never = lines.find((each) => each.startsWith("- Never merge a branch"));
+	assert.match(never ?? "", /but by `--autopilot` or a wake's `arthur merge --auto` as above/, "the Never rule leaves the wake's --auto merge out");
+	const decision = lines.find((each) => each.startsWith("- A decision is what only the owner may do"));
+	assert.match(decision ?? "", /merge \(a wake's `arthur merge --auto` aside\)/, "silent mode does not ask the owner for it");
+});
+
 test("the context: the role with the main project's override and criteria, each vision, a warning per missing file, each board, the time, then each plugin's lines", async (t) => {
 	const { fake, context } = await setup(t, "2026-10-18T10:00:00Z");
 	fake.provide("coordinator.context", () => "SH Shop: the shop.\n");

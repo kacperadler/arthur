@@ -104,13 +104,13 @@ test("keepFree takes cpu, 0 or more cores, and memory in bytes or a percentage; 
 	const check = (keepFree: unknown) => resources({}).check?.({ keepFree } as ResourcesOptions, core);
 	assert.deepEqual(check({ cpu: 0, memory: "512M" }), []);
 	assert.deepEqual(check({ cpu: 1.5, memory: "10%" }), []);
-	assert.deepEqual(check({ cpu: -1, memory: "infinity", disk: "20G" }), [
-		{ path: "keepFree.disk", problem: "unknown key; keys: cpu, memory" },
+	assert.deepEqual(check({ cpu: -1, memory: "infinity", swap: "20G" }), [
+		{ path: "keepFree.swap", problem: "unknown key; keys: cpu, memory, disk" },
 		{ path: "keepFree.cpu", problem: "expected a number of cores, 0 or more, got -1" },
 		{ path: "keepFree.memory", problem: 'expected bytes with K, M, G or T ("2G") or a percentage of the machine\'s memory ("10%"), got "infinity"' },
 	]);
 	assert.deepEqual(check({ memory: 2 }), [{ path: "keepFree.memory", problem: 'expected bytes with K, M, G or T ("2G") or a percentage of the machine\'s memory ("10%"), got 2' }]);
-	assert.deepEqual(check([]), [{ path: "keepFree", problem: "expected an object with cpu, memory, got a list" }]);
+	assert.deepEqual(check([]), [{ path: "keepFree", problem: "expected an object with cpu, memory, disk, got a list" }]);
 });
 
 test("the room: what is free less keepFree, in whole perJob reservations; one exactly equal to what is left fits, a byte or a thousandth of a core less does not", () => {
@@ -170,7 +170,7 @@ test("a machine whose check fails has no room, said once until a check answers; 
 	gpu(4, 8 * GB, "ssh: connect to host gpu port 22: Connection refused");
 	const { fake, notices } = await load(t);
 	const free = (name: string) => fake.call<Promise<number>>("resources.free", name);
-	const said = "machine gpu: its free CPU and memory are unknown (ssh failed: ssh: connect to host gpu port 22: Connection refused); no job starts there until a check answers";
+	const said = "machine gpu: its room is unknown (ssh failed: ssh: connect to host gpu port 22: Connection refused); no job starts there until a check answers";
 	assert.equal(await free("gpu"), 0);
 	assert.deepEqual(notices(), [said]);
 	fake.setNow(new Date(NOW.getTime() + 119_000));
@@ -187,7 +187,7 @@ test("a machine whose check fails has no room, said once until a check answers; 
 	gpu(4, 8 * GB, "Host key verification failed.");
 	fake.setNow(new Date(NOW.getTime() + 360_000));
 	assert.equal(await free("gpu"), 0);
-	assert.deepEqual(notices(), [said, "machine gpu: its free CPU and memory are unknown (ssh failed: Host key verification failed.); no job starts there until a check answers"]);
+	assert.deepEqual(notices(), [said, "machine gpu: its room is unknown (ssh failed: Host key verification failed.); no job starts there until a check answers"]);
 	writeFileSync(join(fake.host.folder, "machines", "gpu.json"), "{ broken");
 	gpu(1, 2 * GB, "\n");
 	rmSync(join(machines, "gpu", "fail"));
@@ -258,7 +258,7 @@ test("a machines round is each listed machine's check: a spawn's check asked whi
 	next.resolve({ error: refused });
 	assert.equal(await during, 0);
 	assert.equal(fake.collect<string>("coordinator.context")[0]?.split("\n")[1], `gpu: no room, its check failed: ${refused}`);
-	assert.deepEqual(notices(), [`machine gpu: its free CPU and memory are unknown (${refused}); no job starts there until a check answers`]);
+	assert.deepEqual(notices(), [`machine gpu: its room is unknown (${refused}); no job starts there until a check answers`]);
 	assert.equal(sshCalls(), 0, "no check of its own over ssh");
 });
 
@@ -303,8 +303,11 @@ function valueDefaults(table: OptionTable, words: readonly string[]): Record<str
 test("each default the option table writes as a value is the one the code applies with nothing set", () => {
 	const caps = ["perJob.cpu", "perJob.memory", "perFeature.budgetUsd", "perFeature.hours", "perFeature.cpu", "perFeature.memory"];
 	const defaults = valueDefaults(table, [...caps, "keepFree.memory"]);
-	assert.deepEqual(Object.keys(defaults), ["keepFree.cpu"]);
+	assert.deepEqual(Object.keys(defaults), ["keepFree.cpu", "keepFree.disk"]);
 	// Four free cores, a core per job: the room left out of keepFree is the room with its cpu at the table's default, and a core more kept free is one job less.
 	const room = (keepFree: { cpu?: number }) => roomOf("local", sample(4, 0, 8 * GB), 0, { cpu: 1 }, keepFree).jobs;
 	assert.deepEqual([room({}), room({ cpu: defaults["keepFree.cpu"] as number }), room({ cpu: 1 })], [4, 4, 3]);
+	// 1 KiB of disk free: the table's default disk is no floor, as left out, and a floor of 1 MiB refuses it.
+	const disk = (keepFree: { disk?: string | 0 }) => roomOf("local", { ...sample(4, 0, 8 * GB), disk: [{ path: "/", free: 1024 }] }, 0, {}, keepFree).jobs;
+	assert.deepEqual([disk({}), disk({ disk: defaults["keepFree.disk"] as 0 }), disk({ disk: "1M" })], [Infinity, Infinity, 0]);
 });

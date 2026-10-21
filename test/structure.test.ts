@@ -376,9 +376,10 @@ import { checkStructure } from "./structure.ts";
 // Merged main (AR0259, AR0262, AR0266) into AR0255: main's budgets plus AR0255's github 625 (recounted with wc -l).
 // AR0257 (the ticket's Done means: one wake per CI run end of a branch `arthur merge --auto` left waiting): delivery 29 more
 // (1263) for `delivery.ciEnded`, the wake of a waiting branch's run end moved from the poll to github's ask, with the wait's
-// read and its holding check shared by both (ci-wait.ts, 27 more) and the name provided (delivery.ts, 2 more); github 3 more
-// (628) for asking it per branch and leaving a branch delivery woke for out of its wake (github.ts).
-const BUDGETS = { core: 5742, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 628, manage: 910, develop: 198, findings: 254 };
+// read and its holding check shared by both (ci-wait.ts, 27 more) and the name provided (delivery.ts, 2 more); github 5 more
+// (630) for asking it per branch, on a project's first poll too (its F1), and leaving a branch delivery woke for out of its
+// wake (github.ts).
+const BUDGETS = { core: 5742, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 910, develop: 198, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

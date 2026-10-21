@@ -2001,5 +2001,12 @@
     "status": "planning",
     "path": "spec/features/AR0260-arthur-plugin-new-writes-into-the-project-s-checkout-never-a-job-s-worktree/ticket.md",
     "updated": "2026-10-21T12:11:14.292Z"
+  },
+  {
+    "id": "AR0261",
+    "title": "Roadmap 62: the audit",
+    "status": "planned",
+    "path": "spec/features/AR0261-roadmap-62-the-audit/ticket.md",
+    "updated": "2026-10-21T12:11:35.081Z"
   }
 ]

@@ -1932,5 +1932,12 @@
     "status": "planning",
     "path": "spec/features/AR0251-a-hand-back-refused-for-good-is-retried-at-every-run-s-end-silently/ticket.md",
     "updated": "2026-10-21T10:02:05.123Z"
+  },
+  {
+    "id": "AR0252",
+    "title": "Roadmap 56: arthur changelog",
+    "status": "planned",
+    "path": "spec/features/AR0252-roadmap-56-arthur-changelog/ticket.md",
+    "updated": "2026-10-21T10:02:23.162Z"
   }
 ]

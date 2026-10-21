@@ -16,6 +16,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0248 A branch `arthur review-needed` waves through is never pushed, so CI never builds it before its merge (beec2df)
 - AR0250 A pull request closed and reopened has its reviews told again (bad0ec0)
 - AR0251 A hand-back refused for good is retried at every run's end, silently (076ee29)
+- AR0259 The example config gives delivery an option it refuses (6d9aaf1)
 
 ### Changed
 
@@ -34,7 +35,9 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0254 Roadmap 64: prune and temporary folders on a schedule (bcce4ca)
 - AR0256 Roadmap 66: arthur plugin new (456975d)
 - AR0261 Roadmap 62: the audit (1212afc)
+- AR0262 Roadmap 69: free disk space per machine (92cfbeb)
 - AR0263 Roadmap 83: findings, what happens to them per project (e0d14fb)
+- AR0266 Roadmap 63: the retro (fcf48c3)
 
 ## 2026-10-20
 

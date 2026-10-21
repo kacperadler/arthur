@@ -34,6 +34,11 @@ export function coreVersion(): string {
 export function machineRegistry(home: string) {
 	const machines = new Map([[LOCAL, { owner: "core", machine: { name: LOCAL, ssh: "", home, labels: {} } as Machine }]]);
 	const names = () => [...machines.keys()].sort().join(", ");
+	const lookup = (name: unknown) => {
+		const found = typeof name === "string" ? machines.get(name) : undefined;
+		if (found === undefined) throw new Error(`unknown machine ${typeof name === "string" ? name : JSON.stringify(name)}; machines: ${names()}`);
+		return found.machine;
+	};
 	return {
 		register(owner: string, machine: Machine): void {
 			const { name, ssh, home: there, labels } = machine;
@@ -52,11 +57,10 @@ export function machineRegistry(home: string) {
 			if (answers.length > 1) throw new Error(`call("jobs.place"): provided by ${answers.length} plugins; call needs exactly one`);
 			if (answers.length === 0 && requires !== undefined) throw new Error("requires: no plugin places jobs by labels (jobs.place); the machines plugin does");
 			const placed: unknown = answers.length === 0 ? LOCAL : await answers[0];
-			const name = named ?? placed;
-			const found = typeof name === "string" ? machines.get(name) : undefined;
-			if (found === undefined) throw new Error(`unknown machine ${typeof name === "string" ? name : JSON.stringify(name)}; machines: ${names()}`);
-			return found.machine;
+			return lookup(named ?? placed);
 		},
+		// `host.jobs.home`: Arthur's home folder on machine `name`, the core's own on `local`.
+		home: (name: string) => lookup(name).home,
 		// The machine job `id` runs on when it is another one; undefined on `local`; refused when no plugin registers it now.
 		of(id: string): Machine | undefined {
 			const name = field(home, id)("machine");

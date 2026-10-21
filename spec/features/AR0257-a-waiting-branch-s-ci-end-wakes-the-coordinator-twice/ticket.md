@@ -14,8 +14,7 @@ with github's default `wakeOn: ["ci-finished"]`, the end of a run on a branch th
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
-
+The end of a CI run on a branch that `arthur merge --auto` left waiting wakes the coordinator once, not once from github and once from delivery, with a test of both plugins together.
 - Kind: improvement
 
 Evidence:

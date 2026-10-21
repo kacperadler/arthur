@@ -14,8 +14,7 @@
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
-
+A review submitted just after a poll began is never lost to this machine's clock running ahead of GitHub's: the comparison with `submitted_at` allows a margin, with a test.
 - Kind: risk
 
 Evidence:
@@ -37,3 +36,4 @@ In:
 - 2026-10-21: Source: F1 of AR0250
 - 2026-10-21: Approved by the owner (Telegram).
 - 2026-10-21: Worker: github line budget 621 to 625 (+4), after the comment was cut to two lines first; each file's share in `test/structure.test.ts`.
+- 2026-10-21: Coordinator (free hand) accepted the worker pick: the poll time comes from GitHub date header minus the request time, instead of a fixed margin; github budget 621 to 625.

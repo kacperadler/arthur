@@ -3,7 +3,7 @@ import { describe, type LoadedConfig, memoryBytes } from "@arthur/core";
 import type { OptionTable, Tool, ValueOption } from "@arthur/core/option-table";
 import type { OptionProblem, Options } from "@arthur/core/plugin";
 
-// The resources plugin's options file (spec/roadmap.md, entries 32 to 34 and 93), checked before any setup by walking `table`:
+// The resources plugin's options file (spec/roadmap.md, entries 32 to 34, 69 and 93), checked before any setup by walking `table`:
 // docs/resources.md. A percentage of memory is of this host's.
 
 export const summary = "each job's CPU and memory, the caps of all jobs of one ticket, and how many jobs each machine has room for";
@@ -47,6 +47,11 @@ const KEEP_FREE: Fields = {
 		default: "none",
 		check: (value) =>
 			value !== "infinity" && typeof value === "string" && memoryBytes(value, totalmem()) !== undefined ? undefined : 'bytes with K, M, G or T ("2G") or a percentage of the machine\'s memory ("10%")',
+	},
+	disk: {
+		about: "Disk left free on each filesystem a machine's jobs write, its home and each path a plugin names: bytes with K, M, G or T; under it no job starts there",
+		default: "0",
+		check: (value) => (value === 0 || (typeof value === "string" && value !== "infinity" && !value.endsWith("%") && memoryBytes(value, 0) !== undefined) ? undefined : 'bytes with K, M, G or T ("20G"), or 0 for no floor'),
 	},
 };
 

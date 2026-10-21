@@ -14,8 +14,7 @@ the example gives `delivery({ ..., merge: { afterPassAndGreenCi: true } })`; del
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
-
+The example config gives delivery only options it accepts; `npm run check` or a test loads the example and finds no refusal.
 - Kind: bug
 
 Evidence:

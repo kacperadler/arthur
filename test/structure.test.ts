@@ -345,6 +345,12 @@ import { checkStructure } from "./structure.ts";
 // so nothing was cut. core 7 more (5737) for `arthur ticket file <job>`, a filing of no ticket (ticket-file.ts, 6 more;
 // ticket-command.ts, 1 more); delivery 2 more (1234) and orchestration 3 more (1545), their filers reading `Filing.root`.
 // Merged main (AR0254, AR0256) into AR0251: main's budgets plus AR0251's core/testing 349 (recounted with wc -l).
+// AR0262 (roadmap 69): resources 93 more (577) for `keepFree.disk`: each machine's filesystems read with `df -Pk` there, its home
+// and each path `resources.disk` names, counted once per filesystem, a missing one skipped, df's refusals (machine-disk.ts, 62),
+// the disk in each check, its `disk-low` and notice once per fall (machine-free.ts, 14), the floor in the room and its lines
+// (room.ts, 12) and the option (resource-options.ts, 5); nothing did this before, so nothing was cut. core 5 more (5735) for
+// `host.jobs.home(machine)`, Arthur's home folder on a machine, which a plugin had no way to read (job-machine.ts, the lookup
+// shared with `pick`); jobs.ts kept at 200 by folding two comments.
 // Merged main (AR0251) into AR0261: main's budgets plus AR0261's raises, core 5737, core/testing 349, orchestration 1545,
 // delivery 1234, manage 637 (recounted with wc -l).
 // AR0263 (roadmap 83): findings: 254, set for the findings.md reader (findings-file.ts, 48), `findings.onMerge` and its three
@@ -353,10 +359,22 @@ import { checkStructure } from "./structure.ts";
 // orchestration 22 fewer (1520), `/findings` and its branch lookup gone from board-commands.ts; core unchanged.
 // Merged main (AR0261) into AR0263: main's budgets plus AR0263's, findings 254, orchestration 1545 - 22 = 1523 (recounted
 // with wc -l).
+// Merged main (AR0261, AR0263) into AR0262: main's budgets plus AR0262's raises, core 5737 + 5 = 5742, resources 577
+// (recounted with wc -l).
+// AR0266 (roadmap 63): manage 273 more (910) for the retro: the kind, its role, its prompt's merges since the last retro with
+// each ticket's files to read, stats, board, and the role, procedure and criteria files the plugins ship, `arthur retro-due`,
+// the coordinator's context line, `/retro` sending the newest page through the channel it came from and `arthur retro` its
+// path (retro.ts, 118), the period of first-parent ticket merges since the last retro and the due rule (retro-due.ts, 71); the
+// audit's filing made one filer of both kinds' reports with the retro's phone page and the newest report read back
+// (audit-file.ts, 53, became report-file.ts, 92), the audit's schedule run made one for both kinds (scheduled-kind.ts, 36;
+// audit.ts 7 less), the `retro` options (manage-options.ts, 13 more), its setup and header (manage.ts, 3 more); nothing in
+// manage looked back on merges before, so nothing was cut.
+// Merged main (AR0262, AR0263) into AR0266: main's budgets plus AR0266's manage 910 (recounted with wc -l).
 // AR0255 (the ticket's Done means: the poll's time from the `date` header of GitHub's answer to the list): github 4 more
 // (625), that time less the answer's own, else this machine's clock (github-pulls.ts, 3 more, its comment cut to two lines
 // first), and the header returned by `ask` (github-api.ts, 1 more).
-const BUDGETS = { core: 5737, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1234, github: 625, manage: 637, develop: 198, findings: 254 };
+// Merged main (AR0259, AR0262, AR0266) into AR0255: main's budgets plus AR0255's github 625 (recounted with wc -l).
+const BUDGETS = { core: 5742, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1234, github: 625, manage: 910, develop: 198, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

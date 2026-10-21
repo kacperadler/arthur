@@ -10,4 +10,4 @@ plugins: [
 ],
 ```
 
-It has no options but `enabled`; any other is refused at load (`develop.<key>: unknown option; develop has no options but enabled`). It needs the project list (the projects plugin): the command writes into a project's checkout.
+It has no options but `enabled`; any other is refused at load (`develop.<key>: unknown option; develop has no options but enabled`). It needs the project list (the projects plugin): the command writes into a project's checkout, or, run by a job, into that job's own worktree, named with `--root`, so a worker on a new plugin's ticket makes the package on its own branch.

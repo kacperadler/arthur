@@ -8,10 +8,10 @@ import type { Project, ProjectEntry } from "./projects.ts";
 export const BOARD = "spec/build.json";
 const SKELETON = new URL("../skeleton/", import.meta.url);
 
-// The skeleton of criteria file `name`: the one shipped here, else its title alone (`code-review` is `# Code review`).
-function criterion(name: string): string {
-	const shipped = new URL(`criteria/${name}.md`, SKELETON);
-	return existsSync(shipped) ? readFileSync(shipped, "utf8") : `# ${name[0]?.toUpperCase()}${name.slice(1).replaceAll("-", " ")}\n`;
+// The skeleton of criteria file `name`: the one shipped here, else the first a package of this load ships, else its title alone.
+function criterion(name: string, code: readonly string[]): string {
+	const shipped = [new URL(`criteria/${name}.md`, SKELETON), ...code.map((folder) => join(folder, "criteria", `${name}.md`))].find((file) => existsSync(file));
+	return shipped === undefined ? `# ${name[0]?.toUpperCase()}${name.slice(1).replaceAll("-", " ")}\n` : readFileSync(shipped, "utf8");
 }
 
 // Where the project's `prompts` keeps its vision and criteria, the files an onboarding drafts; `criteriaDir` without a final `/`.
@@ -19,8 +19,8 @@ export function drafted(project: ProjectEntry): { readonly vision: string; reado
 	return { vision: join(project.prompts?.vision ?? "spec/vision.md"), criteriaDir: join(project.prompts?.criteriaDir ?? ".agents/arthur/criteria", ".") };
 }
 
-// `criteria`: the names of the criteria files the registered roles read (`host.jobs.criteria()`), one skeleton each.
-export function init(all: readonly Project[], args: readonly string[], flag: string | undefined, criteria: readonly string[]): number | void {
+// `criteria`: the criteria files the registered roles read (`host.jobs.criteria()`); `code`: the load's package folders (`host.code`).
+export function init(all: readonly Project[], args: readonly string[], flag: string | undefined, criteria: readonly string[], code: readonly string[]): number | void {
 	if (args.length !== 1 || flag !== undefined) {
 		console.error("usage: arthur init <project>");
 		return 2;
@@ -39,7 +39,7 @@ export function init(all: readonly Project[], args: readonly string[], flag: str
 	// The board last: once it is there the repository counts as given, so an init cut short can run again.
 	const files: [string, string][] = [
 		[vision, readFileSync(new URL("vision.md", SKELETON), "utf8")],
-		...criteria.map((name): [string, string] => [join(criteriaDir, `${name}.md`), criterion(name)]),
+		...criteria.map((name): [string, string] => [join(criteriaDir, `${name}.md`), criterion(name, code)]),
 		[".nvmrc", `${process.versions.node.split(".")[0]}\n`],
 		[BOARD, "[]\n"],
 	];

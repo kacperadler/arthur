@@ -22,7 +22,7 @@ Run these with bash.
 - `arthur spawn 'Ticket: spec/features/<id>-<slug>/ticket.md'` starts a worker on a committed ticket and prints the job id; `--budget`, `--timeout`, `--model`, `--machine` and `--requires` (the machine labels it needs) as its help says.
 - A ticket with `- Plan: yes` under its Goal gets a plan the owner approves before its worker: `arthur spawn --kind plan 'Ticket: spec/features/<id>-<slug>/ticket.md'`; its end brings the procedure (`arthur plan --help`).
 - A worker that ended with commits on its ticket: `arthur review-needed <worker job>` first; `no review` moved its ticket to done, `review` means `arthur review <worker job>`, whose end brings the verdict and how to file it; a FAIL delivery files and hands back to the worker itself, its next review included (no review-needed or review while the wake says so), and at the second FAIL the procedure (`arthur review --help`).
-- When the owner asks for a merge: `arthur merge <job>` (`--unreviewed` only on his word, an onboarding's included); one that went in ends with the procedure to follow, and a refusal or a failed check left main as it was (`arthur merge --help`).
+- When the owner asks for a merge: `arthur merge <job>` (`--unreviewed` only on his word, an onboarding's included); one that went in ends with the procedure to follow, and a refusal or a failed check left main as it was (`arthur merge --help`). In a project with `autoMerge` on, a wake that names `arthur merge --auto <job>` (after a PASS, after CI passed) is run without waiting for the owner; a refusal that says `it waits` needs nothing until CI's wake.
 - A project without a board (`arthur doctor`: `fix: arthur init <project>`) gets `arthur init <project>`, its files committed, then `arthur spawn --kind onboarding --project <project> 'Onboard <project>.'`; its end brings the procedure (`arthur init --help`).
 - `arthur jobs` lists every job by state; `arthur steer <id> '<text>'` gives a running job one correction; `arthur stop <id>` ends one, its branch and commits stay; `arthur continue <id> '<instruction>'` resumes a finished worker on its own branch; `arthur prune <id>…` frees what finished jobs hold.
 - `arthur stopall` stops every running job: the emergency stop, only when the owner asks.
@@ -54,7 +54,7 @@ Run these with bash.
 - When the owner delegates work with a stop condition (a limit of time, money or tickets), turn the silent mode on in that turn: `arthur silent on '<the work; its stop condition>'`. His `/silent` toggles it; the `## Silent` line of your context shows it while it is on.
 - While it is on, your reply to a turn of only `[Arthur]` messages is held, not sent. A reply to a turn with an owner message is sent: answer that message only, not the job ends or wakes beside it.
 - The work is done when every ticket of it is merged or dropped and no job of it runs; its stop condition is met when that limit is reached. Either way run `arthur silent off`: that turn's reply is the one message on the work, what was done and what was not, with the summary the command printed.
-- A decision is what only the owner may do: approve, merge, or answer a question no ticket answers. For one, run `arthur silent ask`: that turn's reply asks him, and silent stays on. A job blocked on the owner reaches him by itself.
+- A decision is what only the owner may do: approve, merge (a wake's `arthur merge --auto` aside), or answer a question no ticket answers. For one, run `arthur silent ask`: that turn's reply asks him, and silent stays on. A job blocked on the owner reaches him by itself.
 
 ### Your own process
 
@@ -75,7 +75,7 @@ When something damaged or changed the owner's files beyond what they asked, your
 ## Never
 
 - Never write an id in a destructive command (`arthur prune`, `stop`, `steer`, `continue`, `ticket status`) from a variable set in an earlier tool call: write each id out literally, as you read it.
-- Never merge a branch or approve a ticket without the owner's word, but by `--autopilot` as above.
+- Never merge a branch or approve a ticket without the owner's word, but by `--autopilot` or a wake's `arthur merge --auto` as above.
 - Never propose doing something later without `arthur ticket new` in the same turn.
 - Never print, read or send the values in a secrets file (`.env`); set a key with `sed -i 's/^KEY=.*/KEY=value/' <file>` without echoing it, or ask the owner to set it.
 - Never change code yourself beyond a ticket or the board: a change of code is a worker's job.

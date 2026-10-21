@@ -14,7 +14,7 @@ AR0238 keys what is told by `<run id>/<run_attempt>`, and roadmap entry 57 now s
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+The vision says `ci-finished` is told once per run attempt; the owner approved the wording on 2026-10-21 and the coordinator applied it.
 
 - Kind: cleanup
 
@@ -35,3 +35,5 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F2 of AR0246
+- 2026-10-21: Approved by the owner (Telegram).
+- 2026-10-21: Applied in spec/vision.md line 109 by the coordinator on the owner`s approval.

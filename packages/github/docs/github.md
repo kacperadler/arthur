@@ -53,7 +53,7 @@ With `pull-request-review` in `wakeOn`, each poll also asks, per project with a 
 
 `{ project, repo, pull, title, branch, review, user, state, body, url }`
 
-with `pull` the pull request's number, `branch` its head branch, `review` the review's id, `state` GitHub's (`APPROVED`, `CHANGES_REQUESTED`, `COMMENTED`, `DISMISSED`) and `url` the review's page; and the coordinator gets `[github] <user> reviewed pull request #<n> of <repo>, <title> (branch <branch>): <state>: <url>`, then the review's text, its first 1000 characters, when it has one. A project's first poll of them tells none: what was reviewed before is taken as told. A pull request closed and reopened has its reviews told again.
+with `pull` the pull request's number, `branch` its head branch, `review` the review's id, `state` GitHub's (`APPROVED`, `CHANGES_REQUESTED`, `COMMENTED`, `DISMISSED`) and `url` the review's page; and the coordinator gets `[github] <user> reviewed pull request #<n> of <repo>, <title> (branch <branch>): <state>: <url>`, then the review's text, its first 1000 characters, when it has one. A project's first poll of them tells none: what was reviewed before is taken as told. A pull request the poll before did not list (new, closed and reopened, or back among the 100) has told only its reviews whose `submitted_at` is at or after the second that poll began, by this machine's clock, so a reopened one does not tell its reviews again; one without a `submitted_at` is told.
 
 ## Pushes
 
@@ -65,7 +65,7 @@ Roadmap entry 59. The plugin provides `github.ci` and `github.cancel`, which del
 
 ## Across a restart
 
-`.arthur/github/state.json` holds, for each project, the run attempts already told that GitHub still lists, each `<run id>/<run_attempt>`, and, when pull request reviews are polled, each open pull request's `updated_at` and the reviews told; written to a temporary name and renamed when they change. A run that finished while `arthur run` was down is told at the first poll after it; one told before is not. A project's first poll, with nothing in the file for it, tells nothing: what finished before Arthur watched it is taken as told. A file that is not what the plugin writes (broken, edited by hand, or entry 57's list of run ids) is taken as no project polled yet, so nothing is told twice. `.arthur/github/reruns` holds the ids of the runs `arthur ci --rerun` reran, one a line.
+`.arthur/github/state.json` holds, for each project, the run attempts already told that GitHub still lists, each `<run id>/<run_attempt>`, and, when pull request reviews are polled, when the last poll of them began and each open pull request's `updated_at` and the reviews told; written to a temporary name and renamed when they change. A run that finished while `arthur run` was down is told at the first poll after it; one told before is not; likewise a review. A project's first poll, with nothing in the file for it, tells nothing: what finished before Arthur watched it is taken as told. A file that is not what the plugin writes (broken, edited by hand, or entry 57's list of run ids) is taken as no project polled yet, so nothing is told twice; so are a project's pull requests written before AR0250, without the time of their poll. `.arthur/github/reruns` holds the ids of the runs `arthur ci --rerun` reran, one a line.
 
 ## Failures
 

@@ -1998,9 +1998,9 @@
   {
     "id": "AR0260",
     "title": "`arthur plugin new` writes into the project's checkout, never a job's worktree",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0260-arthur-plugin-new-writes-into-the-project-s-checkout-never-a-job-s-worktree/ticket.md",
-    "updated": "2026-10-21T15:25:07.872Z"
+    "updated": "2026-10-21T15:48:07.015Z"
   },
   {
     "id": "AR0261",
@@ -2036,9 +2036,9 @@
   {
     "id": "AR0265",
     "title": "No health line for a finished audit that was never filed",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0265-no-health-line-for-a-finished-audit-that-was-never-filed/ticket.md",
-    "updated": "2026-10-21T15:22:50.706Z",
+    "updated": "2026-10-21T15:56:09.919Z",
     "after": [
       "AR0266"
     ]

@@ -1908,9 +1908,9 @@
   {
     "id": "AR0248",
     "title": "A branch `arthur review-needed` waves through is never pushed, so CI never builds it before its merge",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0248-a-branch-arthur-review-needed-waves-through-is-never-pushed-so-ci-never-builds-it-before-its-merge/ticket.md",
-    "updated": "2026-10-21T10:33:16.167Z",
+    "updated": "2026-10-21T11:51:04.463Z",
     "after": [
       "AR0253"
     ]
@@ -1956,9 +1956,9 @@
   {
     "id": "AR0254",
     "title": "Roadmap 64: prune and temporary folders on a schedule",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0254-roadmap-64-prune-and-temporary-folders-on-a-schedule/ticket.md",
-    "updated": "2026-10-21T11:34:18.506Z"
+    "updated": "2026-10-21T11:53:46.848Z"
   },
   {
     "id": "AR0255",
@@ -1970,9 +1970,9 @@
   {
     "id": "AR0256",
     "title": "Roadmap 66: arthur plugin new",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0256-roadmap-66-arthur-plugin-new/ticket.md",
-    "updated": "2026-10-21T11:34:25.699Z"
+    "updated": "2026-10-21T11:43:40.866Z"
   },
   {
     "id": "AR0257",

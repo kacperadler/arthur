@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Started by the coordinator; owner: continue Arthur, at most 10% of the weekly limit today (3% at 13:2x).
+- 2026-10-21: Coordinator (free hand) accepted the worker additions: refusal of a budget under the 25 lines the template writes, of a reserved or clashing function name, and of a checkout that is not Arthur; the command also adds the workspace to package-lock.json.

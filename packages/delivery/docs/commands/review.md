@@ -32,7 +32,7 @@ The last line of the review's final message, exactly `PASS` or `FAIL`, alone. An
 - At its end (`job-ended`): `PASS` moves the ticket to `done`, `FAIL` back to `in-progress`. No verdict, or a run that did not finish (failed, stopped, a limit, blocked), moves nothing: the review failed, its ticket stays at `review`, and it is never filed. The kind is registered with `verdicts: ["PASS", "FAIL"]`, so the core ends a run without one `failed: no verdict: the last line of its final message is not PASS or FAIL alone`, in its record, `arthur jobs` and `job-ended` (`arthur spawn --help`).
 - A `PASS` then asks the plugin that provides `github.push` (the github plugin, `packages/github/docs/github.md`, "Pushes") to push the reviewed branch to origin, so its CI runs; that plugin's one line, pushed or why not, goes to `arthur run`'s log. Without it, nothing is pushed. A `FAIL` pushes nothing.
 - The verdict is kept in delivery's record of the review, `<home>/delivery/reviews/<job>.json` (its ticket, branch, commit, start), so a review still counts once `arthur prune` removed its job record.
-- The coordinator's wake for an ended review adds one line: the verdict, the ticket's move, and how to file it; for no verdict, that the review failed and how to review again.
+- The coordinator's wake for an ended review adds one line: the verdict and the ticket's move; for a PASS how to file it, for a FAIL that delivery files it and whether it hands the branch back (below); for no verdict, that the review failed and how to review again; for a review that `arthur stop`, `arthur stopall` or the hand-back's cancel stopped, that it was stopped and is reviewed again only when the owner asks.
 
 ## The limit: 2 FAILs since the last PASS
 
@@ -40,6 +40,19 @@ A branch gets at most 2 FAIL reviews since its last PASS, or since its first rev
 
 - The third review is refused: `refused by delivery: 2 FAILs on arthur/<id> since its last PASS: <review job>, <review job>; the owner decides what comes next, and only on his word: arthur review <id> --round 3`. `arthur review` prints the procedure `packages/delivery/roles/coordinator/review-limit.md` after it, and the wake of the review that made the second FAIL carries the same procedure.
 - `--round <n>` (the task's `Round: <n>`) starts it, on the owner's word only: `n` must be the FAILs plus one, else `round <n> is not the next one of arthur/<id>: it has <fails> FAILs since its last PASS, so the next round is <fails + 1>`.
+
+## Hand-back
+
+While `arthur run` runs, a FAIL hands the branch back to its worker, with no step of the coordinator's (other processes, such as an `arthur` command, never act on one):
+
+1. The FAIL is filed, as `arthur ticket file` does (below); the coordinator commits the file and prunes the review.
+2. Below the limit, the worker is continued, as `arthur continue` does, with the instruction `Review <review job> of your branch arthur/<id> says FAIL. Fix every finding below, run the project's checks, commit, and end: Arthur reviews the branch again when you end.`, then `## The review's final message` and that message; and a new budget: its budget again on top of what it spent (`$2` with `$1.25` spent is `$3.25`), a budget of 0 (no limit) left as it is.
+3. When the worker's run ends `finished`, the next review starts, as `arthur review <id>` does, at the branch's new tip. A run that ends otherwise (failed, stopped, a limit) ends the hand-back, and the coordinator deals with it as with any worker; one that ends `blocked` keeps it, and its next end counts. The worker's wake says while its hand-back goes on: `<id> is in delivery's hand-back after FAIL <review job>: delivery starts the next review of arthur/<id> itself when a slot is free; run no arthur review-needed or arthur review for it.`
+4. That review's verdict: a PASS ends the hand-back; a FAIL starts it again from step 1, and since it is the second FAIL since the last PASS, it stops after step 1: the wake carries the limit's procedure. No verdict ends it too.
+
+- Each continue and spawn goes through every plugin's `beforeSpawn`, so `maxAgents` holds. A refusal (`refused by <plugin>: ...`), at `maxAgents` or for want of room, keeps the step: it is tried again at the next end of any run, when a slot may be free, and at the next start of `arthur run`. Any other error ends the hand-back, and the coordinator gets `Delivery's hand-back of arthur/<id> after FAIL <review job> stopped: <error>. Hand it back yourself: arthur continue <id> '<the findings of <review job>>', then arthur review <id> once it ends.` A filing that fails says `Delivery could not file FAIL <review job>: <error>; file it with arthur ticket file <ticket> <review job>.`
+- `arthur stopall` (`/stopall`) cancels every hand-back: one waiting for its worker's end or for a slot starts nothing more, a FAIL that ended just before it is filed but not handed back, and a continue or review that was starting as it came is stopped again, `blocked` on `user: arthur stopall cancelled delivery's hand-back`.
+- Each hand-back is kept in `<home>/delivery/hand-backs/<worker job>.json`, so a restart of `arthur run` goes on with it; a review that ended while `arthur run` was down is acted on at its next start, when it delivers the events it missed.
 
 ## Refused
 

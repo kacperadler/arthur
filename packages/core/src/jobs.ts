@@ -83,6 +83,8 @@ export type Jobs = RoleReads & {
 	run(machine: string, argv: readonly string[], limitSeconds?: number, input?: string): Promise<Ran>;
 	machines(): string[];
 	spawn(request: SpawnRequest): Promise<Started>;
+	// `arthur continue` of an ended job with a branch, `budgetUsd` replacing its budget; resolves to why its wrapper did not start (job-control.ts).
+	continue(id: string, instruction: string, budgetUsd?: number): Promise<string | undefined>;
 	// Holds a job in a run `blocked` on `dependency: <reason>` until its run ends; `stop`: stops it too, on `user: <reason>` (docs/commands/jobs.md).
 	block(id: string, reason: string, stop?: boolean): Promise<unknown>;
 	// Every project's job records, in any state, the newest spawn first (docs/commands/jobs.md).
@@ -102,7 +104,6 @@ export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run
 	beforeSpawn(owner: string, check: SpawnCheck): void;
 	prepare(owner: string, fn: Prepare): void;
 	registerMachine(owner: string, machine: Machine): void;
-	// `arthur continue`: resumes an ended job with a branch in place (job-control.ts), `budgetUsd` replacing its budget; resolves to why its wrapper did not start.
 	continue(id: string, instruction: string, budgetUsd?: number, ignoreRestart?: boolean): Promise<string | undefined>;
 	file(board: Board, id: string, job: string): string;
 	// What `arthur roles` prints: each role, the files it reads in the project's main checkout, and its model.

@@ -283,6 +283,13 @@ import { checkStructure } from "./structure.ts";
 // AR0241 (the ticket's Done means: projects provides `projects.install`): projects 5 more (486) for the provider and its
 // unknown-project refusal (projects.ts); delivery stays 770, its lockfile table cut for the ask and a refusal as a failed step.
 // AR0245: manage 1 less (368): the unknown-project throw in stats.ts was cut, since `host.board.list` refuses first.
+// AR0247 (roadmap 55; its Done means allow a host member recorded in docs/plugin-api.md): delivery 163 more (933) for the
+// hand-back after a FAIL: the FAIL filed, the worker continued, the next review at its end, a refusal kept for the next end of
+// a run, `stop-all`'s cancel and the worker's wake line (hand-back.ts, 148), and the loop wired to `start`, `job-ended`,
+// `stop-all` and the wakes, whose FAIL line now says what delivery does (delivery.ts, 11 more), and the wake of a stopped
+// review (findings.md F2, delivery.ts, 4); nothing in delivery handed a branch back before, so nothing was cut. Core 2 more
+// (5729): `jobs.continue` on the host (jobs.ts, 2, the runner's own comment folded into it, 1 less; plugin-host.ts, 1).
+// core/testing 2 less (347): `FakeHost.continue`, now `host.jobs.continue`.
 // Merged AR0241 with AR0245: main's budgets plus AR0241's raise, projects 486, delivery 770, manage 368.
 // AR0242 (the ticket's Done means: nvm provides the PATH of a project's checkout, which the merge asks): nvm 11 more (96) for
 // `nvm.path` (spawnSync of the same `nvm which` here, 5) and its refusals shared with the prepare (nodePath, 6); delivery 7
@@ -296,7 +303,9 @@ import { checkStructure } from "./structure.ts";
 // unchanged.
 // Merged AR0246 with AR0241 and AR0245: main's budgets plus AR0246's raises, github 586, delivery 770 + 9 = 779 (recounted).
 // Merged AR0242 with AR0246: main's budgets plus AR0242's raises, nvm 96, delivery 770 + 7 + 9 = 786 (recounted).
-const BUDGETS = { core: 5727, "core/testing": 349, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 786, github: 586, manage: 368 };
+// Merged main (AR0241, AR0242, AR0246) into AR0247: main's budgets plus AR0247's, core 5729, core/testing 347, delivery
+// 786 + 163 + 1 = 950 (recounted: one comment line on the job-ended handler that now both hands back and pushes).
+const BUDGETS = { core: 5729, "core/testing": 347, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 950, github: 586, manage: 368 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

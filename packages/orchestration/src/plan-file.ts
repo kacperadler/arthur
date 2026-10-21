@@ -3,10 +3,9 @@ import { dirname, join } from "node:path";
 import type { Filing } from "@arthur/core/plugin";
 
 // How `arthur ticket file <id> <job>` files a plan and a plan review (spec/roadmap.md, entry 28): docs/commands/plan.md, "Filing".
+// Each one's task names its one ticket (plans.ts), so the core files it only with that ticket named.
 
 const REVIEW = /^plan-review-(\d+)\.md$/;
-
-// A plan's or a plan review's task names its one ticket (plans.ts), so the core files it only with that ticket named.
 
 // A plan replaces the ticket's `plan.md`, whose earlier versions stay in Git history; written whole and renamed, so a reader
 // never sees half of it.

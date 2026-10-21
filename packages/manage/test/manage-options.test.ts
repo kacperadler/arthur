@@ -14,7 +14,7 @@ test("no options, health.everyMinutes from 1 up and prune.keepJobsDays from 0 up
 });
 
 test("refused: an unknown option, health not an object, an unknown key, everyMinutes below 1 or not whole", () => {
-	assert.deepEqual(checkOptions({ audit: {} }), [{ path: "audit", problem: "unknown option; options: health, prune" }]);
+	assert.deepEqual(checkOptions({ retro: {} }), [{ path: "retro", problem: "unknown option; options: health, prune, audit" }]);
 	for (const health of [30, [], null]) assert.equal(checkOptions({ health })[0]?.path, "health", String(health));
 	assert.deepEqual(checkOptions({ health: 30 }), [{ path: "health", problem: "expected { everyMinutes }, got 30" }]);
 	assert.deepEqual(checkOptions({ health: { every: 30 } }), [{ path: "health.every", problem: "unknown key; keys: everyMinutes" }]);
@@ -29,4 +29,25 @@ test("refused: prune not an object, without keepJobsDays, an unknown key, keepJo
 	assert.deepEqual(checkOptions({ prune: { keepJobsDays: 7, days: 7 } }), [{ path: "prune.days", problem: "unknown key; keys: keepJobsDays" }]);
 	for (const [keepJobsDays, got] of [[-1, "-1"], [1.5, "1.5"], ["7", '"7"']] as const)
 		assert.deepEqual(checkOptions({ prune: { keepJobsDays } }), [{ path: "prune.keepJobsDays", problem: `expected a whole number of days, 0 or more, got ${got}` }], got);
+});
+
+test("audit.at alone, and with each of days, budgetUsd and model at its limits, passes", () => {
+	assert.deepEqual(checkOptions({ audit: { at: "00:00" } }), []);
+	assert.deepEqual(checkOptions({ audit: { at: "23:59", days: ["sun"], budgetUsd: 0, model: "anthropic/opus" } }), [], "one day, budget 0 (no limit)");
+	assert.deepEqual(checkOptions({ audit: { at: "02:00", days: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], budgetUsd: 12.5, model: ["a/b", "c/d"] } }), []);
+});
+
+test("refused: audit not an object or without at, an unknown key, and each key's wrong value", () => {
+	assert.deepEqual(checkOptions({ audit: "02:00" }), [{ path: "audit", problem: 'expected { at, days, budgetUsd, model }, got "02:00"' }]);
+	assert.deepEqual(checkOptions({ audit: { days: ["mon"] } }), [{ path: "audit.at", problem: 'expected "HH:MM", 00:00 to 23:59, got nothing' }]);
+	assert.deepEqual(checkOptions({ audit: { at: "02:00", focus: "x" } }), [{ path: "audit.focus", problem: "unknown key; keys: at, days, budgetUsd, model" }]);
+	for (const at of ["24:00", "2:00", 200]) assert.equal(checkOptions({ audit: { at } })[0]?.path, "audit.at", String(at));
+	const days = "expected a non-empty list of mon, tue, wed, thu, fri, sat, sun, each once";
+	assert.deepEqual(checkOptions({ audit: { at: "02:00", days: [] } }), [{ path: "audit.days", problem: `${days}, got a list` }]);
+	assert.deepEqual(checkOptions({ audit: { at: "02:00", days: ["mon", "Tue"] } }), [{ path: "audit.days", problem: `${days}, got a list` }]);
+	assert.deepEqual(checkOptions({ audit: { at: "02:00", days: ["mon", "mon"] } }), [{ path: "audit.days", problem: `${days}, got a list` }]);
+	assert.deepEqual(checkOptions({ audit: { at: "02:00", days: "mon" } }), [{ path: "audit.days", problem: `${days}, got "mon"` }]);
+	for (const budgetUsd of [-0.01, "10", Number.POSITIVE_INFINITY])
+		assert.deepEqual(checkOptions({ audit: { at: "02:00", budgetUsd } })[0]?.path, "audit.budgetUsd", String(budgetUsd));
+	for (const model of ["", " ", [], ["a/b", ""], 3]) assert.deepEqual(checkOptions({ audit: { at: "02:00", model } })[0]?.path, "audit.model", JSON.stringify(model));
 });

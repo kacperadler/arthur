@@ -334,7 +334,14 @@ import { checkStructure } from "./structure.ts";
 // Merged main (AR0250, AR0253) into AR0254: main's budgets plus AR0254's raises, core 5730, manage 452, delivery 1232, github
 // 621 (recounted with wc -l).
 // Merged main (AR0253, AR0254) into AR0256: main's budgets plus AR0256's develop 198 (recounted with wc -l).
-const BUDGETS = { core: 5730, "core/testing": 347, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1232, github: 621, manage: 452, develop: 198 };
+// AR0261 (roadmap 62; its Done means allow a host change recorded in docs/plugin-api.md): manage 185 more (637) for the audit:
+// the kind, its role, its prompt's commits since the last audit, board, stats, open findings and vision, and the schedule
+// entry's run with no job on another day or with no commit since (audit.ts, 98), the filing in spec/quality/ and the last
+// audit read back (audit-file.ts, 53), the `audit` options and one check for every object option (manage-options.ts, 30
+// more), its setup and header (manage.ts, 3 more), stats since a time (stats.ts, 1 more); nothing in manage audited before,
+// so nothing was cut. core 7 more (5737) for `arthur ticket file <job>`, a filing of no ticket (ticket-file.ts, 6 more;
+// ticket-command.ts, 1 more); delivery 2 more (1234) and orchestration 3 more (1545), their filers reading `Filing.root`.
+const BUDGETS = { core: 5737, "core/testing": 347, projects: 486, orchestration: 1545, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1234, github: 621, manage: 637, develop: 198 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

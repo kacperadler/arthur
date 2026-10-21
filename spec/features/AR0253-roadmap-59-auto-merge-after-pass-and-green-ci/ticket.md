@@ -35,4 +35,8 @@ In:
 ## Decisions
 
 - 2026-10-21: Started by the coordinator; owner: continue Arthur, at most 10% of the weekly limit today (2% at 12:29).
+- 2026-10-21: Worker: CI is asked through two new provided names of github, `github.ci` (the run that built a branch, as `arthur ci` finds it, with `below`) and `github.cancel`; no host member changed; recorded in `docs/plugin-api.md`, "Changes since entry 51".
+- 2026-10-21: Worker: `--auto` counts only a PASS review of the tip itself; `arthur review-needed`'s `no review` does not count as one for it.
+- 2026-10-21: Worker: a run further below the tip than the commits the branch adds ran on main, so it counts as no run of the branch: `--auto` waits for the branch's own run instead of merging on main's.
+- 2026-10-21: Worker: line budgets raised, delivery 212 more (1231) and github 26 more (621, over main's 595 from AR0250), each file's share in `test/structure.test.ts`.
 - 2026-10-21: Coordinator (free hand) accepted the github package reach: `github.ci` and `github.cancel` provided names, recorded in docs/plugin-api.md; `--auto` needs a real PASS on the tip, `no review` does not count.

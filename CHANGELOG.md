@@ -28,6 +28,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0246 Roadmap 58: arthur ci, reruns, pushes, pull request reviews (1f039d3)
 - AR0247 Roadmap 55: hand-back after a FAIL review (42cfa5b)
 - AR0252 Roadmap 56: arthur changelog (a5ed83a)
+- AR0253 Roadmap 59: auto-merge after PASS and green CI (98cfb0f)
 
 ## 2026-10-20
 

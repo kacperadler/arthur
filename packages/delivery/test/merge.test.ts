@@ -311,9 +311,12 @@ test("with nvm.path provided, the install and checks run on its PATH, asked for 
 
 test("refused before anything: wrong usage, no job, a read-only or running job, a gone branch, a detached or dirty main, nothing new, a ticket not mergeable", async (t) => {
 	const { root, fake, git, worker, review, merge, head, status } = await load(t);
-	assert.deepEqual(await merge(), { code: 2, out: "", err: "arthur merge: no job\nusage: arthur merge <job> [--unreviewed]" });
-	assert.equal((await merge("a", "b")).err, "arthur merge: one job; got 2\nusage: arthur merge <job> [--unreviewed]");
-	assert.equal((await merge("a", "--auto")).err, "arthur merge: unknown flag --auto\nusage: arthur merge <job> [--unreviewed]");
+	const usage = "usage: arthur merge <job> [--unreviewed | --auto [--no-ci]]";
+	assert.deepEqual(await merge(), { code: 2, out: "", err: `arthur merge: no job\n${usage}` });
+	assert.equal((await merge("a", "b")).err, `arthur merge: one job; got 2\n${usage}`);
+	assert.equal((await merge("a", "--force")).err, `arthur merge: unknown flag --force\n${usage}`);
+	assert.deepEqual(await merge("a", "--no-ci"), { code: 2, out: "", err: `arthur merge: --no-ci goes with --auto only\n${usage}` });
+	assert.deepEqual(await merge("a", "--auto", "--unreviewed"), { code: 2, out: "", err: `arthur merge: --auto merges only with a PASS, --unreviewed without one: one or the other\n${usage}` });
 	assert.equal((await merge("nope")).err, "arthur merge: no job nope; arthur jobs lists them");
 	const job = await worker();
 	const passed = await review(job.id, "PASS");

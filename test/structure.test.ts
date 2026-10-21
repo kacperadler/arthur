@@ -379,7 +379,10 @@ import { checkStructure } from "./structure.ts";
 // read and its holding check shared by both (ci-wait.ts, 27 more) and the name provided (delivery.ts, 2 more); github 5 more
 // (630) for asking it per branch, on a project's first poll too (its F1), and leaving a branch delivery woke for out of its
 // wake (github.ts).
-const BUDGETS = { core: 5742, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 910, develop: 198, findings: 254 };
+// AR0260 (the ticket's Done means: a `--root` limited to a job's own worktree, from `ARTHUR_JOB`'s record): develop 11 more
+// (209) for `arthur plugin new --root`: the worktree read from the record, a job without it, another folder, and `--root`
+// outside a job refused (plugin-new.ts, `target` with its comment, 10, and its call, 1); core unchanged.
+const BUDGETS = { core: 5742, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 910, develop: 209, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

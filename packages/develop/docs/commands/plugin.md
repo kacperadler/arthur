@@ -1,6 +1,6 @@
 # arthur plugin
 
-Usage: `arthur plugin new <name> --budget <lines> [--project <name>]`. Comes with the `develop` plugin (roadmap entry 66). Answered without the model.
+Usage: `arthur plugin new <name> --budget <lines> [--project <name> | --root <job's worktree>]`. Comes with the `develop` plugin (roadmap entry 66). Answered without the model.
 
 Makes a new plugin package in Arthur's repository: the checkout of the main project, or of the one `--project` names, the project Arthur develops itself in (`projects({ list: [{ name: "arthur", prefix: "AR", path: "." }] })`). It writes into that checkout as it is, on its current branch, and commits nothing.
 
@@ -9,6 +9,12 @@ $ arthur plugin new acme-bot --budget 120
 created packages/acme-bot: package.json, src/acme-bot.ts, test/acme-bot.test.ts, docs/acme-bot.md
 added "acme-bot": 120 to BUDGETS in test/structure.test.ts, and @arthur/acme-bot to package-lock.json
 next: write what it does, and list acmeBot() in the plugins of arthur.config.ts to load it
+```
+
+In a job (the wrapper sets `ARTHUR_JOB` to its record) it writes only into the job's own worktree, the one its record names, given as `--root`, so the new package goes in on the job's branch and through its review; `--project` then picks no folder. The CLI reads `arthur.config.ts` from the folder it runs in, which a worktree lacks, so a worker on a new plugin's ticket runs it from the project's checkout (the first line of `git worktree list`), which the worktree guard lets through:
+
+```
+$ cd ~/arthur && arthur plugin new acme-bot --budget 120 --root ~/.arthur-worktrees/2026-10-21-worker-0a1b2c3d
 ```
 
 What it writes:
@@ -27,6 +33,8 @@ Refused, exit 1, with `refused: <why>; nothing was written` on stderr, before an
 - a name that is not lowercase letters and dashes, a dash only between letters (`uptime`, `commit-rules`), as the host takes a plugin's name;
 - a name whose function would be a JavaScript reserved word (`new`, `delete`, `class`, ...) or a name the new files declare or import (`assert`, `test`, `fakeHost`, `checkOptions`, `summary`, `tools`, `table`);
 - `--budget` missing, not a positive whole number (`0`, `1.5`, `01`, `=-1`), or below the lines the new package's `src/` holds as created (25), which the structure test would refuse;
-- a name taken: `packages/<name>` exists, the core's included, or `BUDGETS` has a budget of that name.
+- a name taken: `packages/<name>` exists, the core's included, or `BUDGETS` has a budget of that name;
+- in a job, no `--root` (`a job writes only in its own worktree: add --root <worktree>`), or one that is not, through its links, the worktree the job's record names (`--root <path> is not this job's worktree <worktree>`);
+- outside a job, any `--root` (`--root is a job's own worktree; outside a job the package goes into the project's checkout`).
 
 Anything but `new <name>` and its flags, an unknown flag, or `--budget` with no value prints the usage and exits 2. An unknown `--project` exits 1 with `unknown project <name>; projects: ...`.

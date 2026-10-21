@@ -43,4 +43,4 @@ The rest of the template's guidance (Goal, Done means, Scope) is the coordinator
 
 ## `/findings`
 
-`arthur findings <id>` and `/findings <id>`, moved here from orchestration: `arthur findings --help` (docs/commands/findings.md).
+`arthur findings <id>` and `/findings <id>`, moved here from orchestration: `arthur findings --help` (docs/commands/findings.md). The coordinator's role does not name the command, which a config without the plugin lacks; the plugin adds a line naming it to the coordinator's context through `coordinator.context`.

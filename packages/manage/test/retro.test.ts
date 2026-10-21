@@ -107,7 +107,11 @@ test("retro-due counts only ticket merges on main's first-parent line; an empty 
 	assert.equal((await env.command("retro-due")).out, "no retro due: 0 merges, 0 FAIL reviews and 0 findings since the start (no retro yet); 10 merges needed");
 	env.merges(9, 1, 2, 0);
 	env.git("checkout", "--quiet", "-b", "side");
-	env.git("merge", "--quiet", "--no-ff", "-m", "Merge AC0099: Not on main", "AC0001");
+	env.commit("on the side");
+	env.git("checkout", "--quiet", "-b", "inner");
+	env.commit("further in");
+	env.git("checkout", "--quiet", "side");
+	env.git("merge", "--quiet", "--no-ff", "-m", "Merge AC0099: Not on main", "inner");
 	env.git("checkout", "--quiet", "main");
 	env.git("merge", "--quiet", "--no-ff", "-m", "Merge branch 'side'", "side");
 	assert.match((await env.command("retro-due")).out, /^no retro due: 9 merges, /, "neither a merge without a ticket id nor one off the first-parent line counts");

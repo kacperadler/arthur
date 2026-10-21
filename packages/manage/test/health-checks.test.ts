@@ -5,7 +5,10 @@ import { join } from "node:path";
 import { test } from "node:test";
 import type { JobRecord, Ticket } from "@arthur/core/plugin";
 import { temporaryFolder } from "@arthur/core/testing";
-import { diskLines, HOUR_MS, type Space, stalledTickets, uncommittedBoard, unpushed } from "../src/health-checks.ts";
+import { AUDITS } from "../src/audit.ts";
+import { diskLines, HOUR_MS, type Space, stalledTickets, uncommittedBoard, unfiledReports, unpushed } from "../src/health-checks.ts";
+import { fileReport } from "../src/report-file.ts";
+import { RETROS } from "../src/retro-due.ts";
 
 // Manage's own checks, each on its own: the tickets and jobs as the host lists them, real Git repositories in the kit's
 // folders, and the filesystem's numbers as statfs answers them.
@@ -118,6 +121,38 @@ test("the board's changes not committed for an hour, by its oldest file's time, 
 	rmSync(join(project.path, "spec/build.json"));
 	assert.deepEqual(uncommittedBoard(project, now), [], "a deletion alone");
 	assert.throws(() => uncommittedBoard({ ...project, path: temporaryFolder() }, now), { message: /^git status failed in / });
+});
+
+test("a finished audit or retro ended an hour ago that no report's `- Job:` line names is not filed; filed, it is", () => {
+	const project = { name: "acme", path: temporaryFolder(), prefix: "AC" };
+	const audit = job("2026-01-01-audit-0000000a", 125, { kind: "audit", tickets: [] });
+	const retro = job("2026-01-01-retro-0000000b", 60, { kind: "retro", tickets: [] });
+	const line = (kind: string, id: string, h: number, folder: string) => `acme: the ${kind} ${id} finished ${h} h ago and is not filed in ${folder}/: arthur ticket file ${id}`;
+	assert.deepEqual(unfiledReports(project, [audit, retro], NOW), [line("audit", audit.id, 2, "spec/quality"), line("retro", retro.id, 1, "spec/retro")], "no folder yet; exactly an hour");
+	const report = (folder: string, name: string, id: string) => {
+		mkdirSync(join(project.path, folder), { recursive: true });
+		writeFileSync(join(project.path, folder, name), `# Report\n\n- Job: ${id}\n- Commit audited: abc1234\n`);
+	};
+	report("spec/quality", "2026-01-01.md", "2026-01-01-audit-0000000c");
+	report("spec/quality", "notes.md", audit.id);
+	report("spec/retro", "2026-01-01.md", audit.id);
+	assert.deepEqual(unfiledReports(project, [audit], NOW), [line("audit", audit.id, 2, "spec/quality")], "named by another job's report, a file that is no report, another kind's folder");
+	// Filed as `arthur ticket file` files them.
+	for (const [reports, each] of [[AUDITS, audit], [RETROS, retro]] as const) fileReport(reports, { root: project.path, job: { id: each.id, kind: each.kind, base: "abc1234", result: "NO PROPOSALS" } });
+	assert.deepEqual(unfiledReports(project, [audit, retro], NOW), [], "both filed");
+});
+
+test("an unfiled check skips a job under an hour, not finished, of another kind or project, or with a broken time", () => {
+	const project = { name: "acme", path: temporaryFolder(), prefix: "AC" };
+	const jobs = [
+		job("a1", 59, { kind: "audit" }),
+		job("a2", 300, { kind: "audit", reason: "failed" }),
+		job("a3", 300, { kind: "audit", state: "working" }),
+		job("a4", 300, { kind: "worker" }),
+		job("a5", 300, { kind: "audit", project: "shop" }),
+		job("a6", 300, { kind: "retro", since: "not a time" }),
+	];
+	assert.deepEqual(unfiledReports(project, jobs, NOW), []);
 });
 
 const space = (more: Partial<Space> = {}): Space => ({ blocks: 1000, bavail: 500, bsize: 4_000_000, files: 1000, ffree: 500, ...more });

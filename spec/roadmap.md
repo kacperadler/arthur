@@ -682,7 +682,7 @@ The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.m
 ### 57. GitHub: polling CI runs
 
 - Package: github.
-- Delivers: `instances` (`tokenEnv`); every `poll.everySeconds` the CI runs of the branches in play, for each project's `ci.workflow`; `ci-finished` once per run id; for a commit that touches no watched path, the run of the nearest commit before it; tested against a fake API in the shape of GitHub's REST documentation.
+- Delivers: `instances` (`tokenEnv`); every `poll.everySeconds` the CI runs of the branches in play, for each project's `ci.workflow`; `ci-finished` once per run attempt (AR0238: a rerun keeps its run id); for a commit that touches no watched path, the run of the nearest commit before it; tested against a fake API in the shape of GitHub's REST documentation.
 - Done means: edge cases: the same run seen on two polls emits once (across a restart too); a rate-limit answer waits as GitHub says; a 401 is said once, not every poll; a branch deleted while in play.
 - Depends on: 41, 51.
 - Size: a day.

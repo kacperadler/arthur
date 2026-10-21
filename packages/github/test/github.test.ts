@@ -1,18 +1,15 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { once } from "node:events";
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { createServer } from "node:http";
-import type { AddressInfo } from "node:net";
+import { copyFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { type GithubOptions, github } from "../src/github.ts";
+import { DOCS, type FakeRun, fakeGithub } from "./fake-github.ts";
 
-// The github plugin against the fake host and a fake GitHub REST API on a loopback port the OS picks, answering in the shape
-// of GitHub's documentation ("List workflow runs for a workflow", "Rate limits for the REST API"). Each project is a real
-// repository whose origin names its GitHub repository; polls run every second.
+// The github plugin against the fake host and a fake GitHub REST API (fake-github.ts). Each project is a real repository whose
+// origin names its GitHub repository; polls run every second.
 
 const TOKEN = "github_pat_11ARTHUR0test0Never0Printed0abcdefghijklmnopqrstuvwxyz";
 const ACME_TOKEN = "ghp_AcmeT0kenNeverPrinted0123456789abcdef";
@@ -44,64 +41,15 @@ function repository(origin: string | null = "git@github.com:acme/shop.git") {
 	return { path, commit, head: () => git(path, "rev-parse", "main") };
 }
 
-const user = (login: string, id: number) => ({
-	...{ login, id, node_id: "MDQ6VXNlcjE=", avatar_url: `https://github.com/images/${login}.gif`, gravatar_id: "", url: `https://api.github.com/users/${login}`, html_url: `https://github.com/${login}` },
-	...Object.fromEntries(["followers", "following{/other_user}", "gists{/gist_id}", "starred{/owner}{/repo}", "subscriptions", "organizations", "repos", "events{/privacy}", "received_events"].map((each) => [`${each.split("{")[0]}_url`, `https://api.github.com/users/${login}/${each}`])),
-	...{ type: "User", site_admin: false },
-});
-const repo = (full: string) => ({
-	...{ id: 1296269, node_id: "MDEwOlJlcG9zaXRvcnkxMjk2MjY5", name: full.split("/")[1], full_name: full, owner: user(full.split("/")[0] ?? "", 1), private: false },
-	...{ html_url: `https://github.com/${full}`, description: "This your first repo!", fork: false, url: `https://api.github.com/repos/${full}` },
-	...Object.fromEntries(
-		["archive", "assignees", "blobs", "branches", "collaborators", "comments", "commits", "compare", "contents", "contributors", "deployments", "downloads", "events", "forks", "git_commits", "git_refs", "git_tags", "issue_comment", "issue_events", "issues", "keys", "labels", "languages", "merges", "milestones", "notifications", "pulls", "releases", "stargazers", "statuses", "subscribers", "subscription", "tags", "teams", "trees", "hooks"].map((each) => [`${each}_url`, `https://api.github.com/repos/${full}/${each}`]),
-	),
-});
-type FakeRun = { readonly id: number; readonly sha: string; readonly branch: string; status: "queued" | "in_progress" | "completed"; conclusion: "success" | "failure" | null };
-// A run as "List workflow runs for a workflow" shows it, every field.
-const shaped = (full: string, workflow: string, { id, sha, branch, status, conclusion }: FakeRun) => ({
-	...{ id, name: "CI", node_id: "MDEyOldvcmtmbG93IFJ1bjI2OTI4OQ==", check_suite_id: 42, check_suite_node_id: "MDEwOkNoZWNrU3VpdGU0Mg==", head_branch: branch, head_sha: sha, path: `.github/workflows/${workflow}@${branch}` },
-	...{ run_number: id % 1000, event: "push", display_title: `on ${branch}`, status, conclusion, workflow_id: 159038, url: `https://api.github.com/repos/${full}/actions/runs/${id}`, html_url: `https://github.com/${full}/actions/runs/${id}` },
-	...{ pull_requests: [], created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:01:00Z", actor: user("octocat", 1), run_attempt: 1, referenced_workflows: [], run_started_at: "2026-01-01T00:00:00Z", triggering_actor: user("octocat", 1) },
-	...Object.fromEntries(["jobs", "logs", "artifacts", "cancel", "rerun"].map((each) => [`${each}_url`, `https://api.github.com/repos/${full}/actions/runs/${id}/${each}`])),
-	...{ check_suite_url: `https://api.github.com/repos/${full}/check-suites/414944374`, previous_attempt_url: null, workflow_url: `https://api.github.com/repos/${full}/actions/workflows/159038` },
-	head_commit: { id: sha, tree_id: "d23f6eedb1e1b9610bbc754ddb5197bfe7271223", message: `on ${branch}`, timestamp: "2026-01-01T00:00:00Z", author: { name: "test", email: "test@example.com" }, committer: { name: "test", email: "test@example.com" } },
-	...{ repository: repo(full), head_repository: repo(full) },
-});
-type Reply = { readonly status: number; readonly headers?: Readonly<Record<string, string>>; readonly body: unknown };
-const RATE = { "x-ratelimit-limit": "5000", "x-ratelimit-used": "1", "x-ratelimit-resource": "core" };
-const DOCS = "https://docs.github.com/rest";
-
-// The fake API: `runs[<owner>/<repo>/<workflow>]` newest first; `next` replies once each, before anything else; `always` replies
-// to every request while set. `seen` holds each request: its path, its time and its Authorization.
-async function fakeGithub(t: TestContext) {
-	const runs: Record<string, FakeRun[]> = {};
-	const next: Reply[] = [];
-	const state: { always?: Reply } = {};
-	const seen: { readonly path: string; readonly at: number; readonly auth: string }[] = [];
-	const http = createServer((request, response) => {
-		seen.push({ path: request.url ?? "", at: Date.now(), auth: request.headers.authorization ?? "" });
-		const match = /^\/repos\/([^/]+\/[^/]+)\/actions\/workflows\/([^/]+)\/runs\?per_page=100&exclude_pull_requests=true$/.exec(request.url ?? "");
-		const list = match === null ? undefined : runs[`${match[1]}/${decodeURIComponent(match[2] ?? "")}`];
-		const found: Reply | undefined = list === undefined || match === null ? undefined : { status: 200, body: { total_count: list.length, workflow_runs: list.map((run) => shaped(match[1] ?? "", match[2] ?? "", run)) } };
-		const reply = next.shift() ?? state.always ?? found ?? { status: 404, body: { message: "Not Found", documentation_url: DOCS, status: "404" } };
-		response.writeHead(reply.status, { "content-type": "application/json; charset=utf-8", ...RATE, "x-ratelimit-remaining": "4999", "x-ratelimit-reset": "1767225600", ...reply.headers }).end(JSON.stringify(reply.body));
-	});
-	await once(http.listen(0, "127.0.0.1"), "listening");
-	t.after(() => {
-		http.closeAllConnections();
-		http.close();
-	});
-	const apiUrl = `http://127.0.0.1:${(http.address() as AddressInfo).port}/`;
-	return { runs, next, state, seen, apiUrl, count: (path: string) => seen.filter((each) => each.path.startsWith(path)).length };
-}
-
 type Project = { readonly name: string; readonly path: string; readonly prefix: string; readonly ci?: { readonly workflow: string } };
 
 // The plugin set up on a fake host with `projects` and started; stopped at the end. `record` writes a job's record as the core
-// does, which the plugin reads through `host.jobs.list()`.
+// does, which the plugin reads through `host.jobs.list()`; `ci` runs `arthur ci` and gives its exit code and output.
 async function started(t: TestContext, projects: readonly Project[], options: GithubOptions, env: Readonly<Record<string, string>> = { ARTHUR_GITHUB_TOKEN: TOKEN }, fake?: FakeHost) {
 	const errors: string[] = [];
+	const out: string[] = [];
 	t.mock.method(console, "error", (text: string) => void errors.push(text));
+	t.mock.method(console, "log", (text: string) => void out.push(text));
 	const host = fake ?? fakeHost({ name: "github", options, env });
 	if (fake === undefined) host.provide("projects", () => projects);
 	const plugin = github(options);
@@ -113,15 +61,21 @@ async function started(t: TestContext, projects: readonly Project[], options: Gi
 		mkdirSync(join(home, "jobs", id), { recursive: true });
 		for (const [key, value] of Object.entries({ kind: "worker", project, branch, state: "working" })) writeFileSync(join(home, "jobs", id, key), value);
 	};
-	const finished = () => host.emitted.filter((event) => event.name === "ci-finished").map((event) => event.data as { readonly run: number; readonly branches: readonly string[] });
+	const finished = () => host.emitted.filter((event) => event.name === "ci-finished").map((event) => event.data as { readonly run: number; readonly attempt: number; readonly branches: readonly string[] });
 	const notices = () => host.emitted.filter((event) => event.name === "notice").map((event) => (event.data as { readonly text: string }).text);
-	return { fake: host, plugin, record, finished, notices, errors, home };
+	const messages = () => host.emitted.filter((event) => event.name === "coordinator-message").map((event) => (event.data as { readonly text: string }).text);
+	const ci = async (...args: string[]) => {
+		const [said, failed] = [out.length, errors.length];
+		const code = await host.commands.find((command) => command.name === "ci")?.run({ args, project: undefined });
+		return { code: code ?? 0, out: out.slice(said).join("\n"), err: errors.slice(failed).join("\n") };
+	};
+	return { fake: host, plugin, record, finished, notices, messages, ci, errors, home };
 }
 
 const PATH = "/repos/acme/shop/actions/workflows/ci.yml/runs";
 const options = (apiUrl: string, more: Partial<GithubOptions> = {}): GithubOptions => ({ instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN", apiUrl }], poll: { everySeconds: 1 }, ...more });
 
-test("a finished run is told once by its id, across polls and a restart; what finished before the first poll is not told; the token stays out", async (t) => {
+test("a finished run is told once per run attempt, across polls and a restart, and wakes the coordinator; a rerun's end is told once; what finished before the first poll is not told; the token stays out", async (t) => {
 	const api = await fakeGithub(t);
 	const shop = repository();
 	const project = { name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } };
@@ -137,30 +91,54 @@ test("a finished run is told once by its id, across polls and a restart; what fi
 	[one.status, one.conclusion] = ["completed", "failure"];
 	await until("ci-finished", () => first.finished().length === 1);
 	assert.deepEqual(first.finished(), [
-		{ project: "shop", repo: "acme/shop", workflow: "ci.yml", run: 12, sha: branch, branch: "arthur/one", branches: ["arthur/one"], conclusion: "failure", url: "https://github.com/acme/shop/actions/runs/12" },
+		{ project: "shop", repo: "acme/shop", workflow: "ci.yml", run: 12, attempt: 1, sha: branch, branch: "arthur/one", branches: ["arthur/one"], conclusion: "failure", url: "https://github.com/acme/shop/actions/runs/12" },
 	]);
+	const ci = "arthur ci arthur/one --project shop";
+	assert.deepEqual(first.messages(), [`[github] CI run 12, attempt 1, of ci.yml in shop ended failure on arthur/one (${branch.slice(0, 7)}): https://github.com/acme/shop/actions/runs/12\nWhy: ${ci}; rerun it once: ${ci} --rerun`]);
 	const polls = api.count(PATH);
 	await until("two more polls", () => api.count(PATH) >= polls + 2);
 	assert.equal(first.finished().length, 1, "the same run seen on two more polls is not told again");
 	await first.plugin.stop?.();
 	const main = shop.commit();
 	api.runs["acme/shop/ci.yml"]?.unshift({ id: 13, sha: main, branch: "main", status: "completed", conclusion: "success" });
-	const restarted = await started(t, [project], options(api.apiUrl), undefined, first.fake);
+	// A restart is a new process: a new host on the state file the first one left.
+	const again = fakeHost({ name: "github", options: options(api.apiUrl), env: { ARTHUR_GITHUB_TOKEN: TOKEN } });
+	again.provide("projects", () => [project]);
+	copyFileSync(join(first.fake.host.folder, "state.json"), join(again.host.folder, "state.json"));
+	const restarted = await started(t, [project], options(api.apiUrl), undefined, again);
+	restarted.record("2026-01-01-worker-0000000a", "shop", "arthur/one");
 	const before = api.count(PATH);
-	await until("the run that finished while stopped", () => restarted.finished().length === 2);
+	await until("the run that finished while stopped", () => restarted.finished().length === 1);
 	await until("two polls after the restart", () => api.count(PATH) >= before + 2);
+	assert.deepEqual(restarted.finished().map((event) => [event.run, event.attempt, event.branches]), [[13, 1, ["main"]]], "run 12 is not told again after the restart");
+	assert.deepEqual(await restarted.ci("arthur/one", "--rerun"), {
+		code: 0,
+		out: `run 12, attempt 1, of ci.yml on ${branch.slice(0, 7)} (arthur/one's tip): failure\nhttps://github.com/acme/shop/actions/runs/12\nrerun of run 12 asked: its attempt 2 is told as ci-finished when it ends`,
+		err: "",
+	});
+	assert.deepEqual([one.attempt, one.status], [2, "queued"]);
+	const queued = api.count(PATH);
+	await until("a poll that sees the rerun queued", () => api.count(PATH) >= queued + 1);
+	[one.status, one.conclusion] = ["completed", "failure"];
+	await until("the rerun's end", () => restarted.finished().length === 2);
+	const after = api.count(PATH);
+	await until("two polls after the rerun's end", () => api.count(PATH) >= after + 2);
 	assert.deepEqual(
-		restarted.finished().map((event) => [event.run, event.branches]),
+		restarted.finished().map((event) => [event.run, event.attempt]),
 		[
-			[12, ["arthur/one"]],
-			[13, ["main"]],
+			[13, 1],
+			[12, 2],
 		],
-		"run 12 is not told again after the restart",
+		"the rerun's end is told once, with its attempt",
 	);
+	assert.deepEqual(JSON.parse(readFileSync(join(again.host.folder, "state.json"), "utf8")).runs, { shop: ["13/1", "12/2", "11/1"] });
+	const second = await restarted.ci("arthur/one", "--rerun");
+	assert.deepEqual([second.code, second.err], [1, "arthur ci: run 12 was rerun before (attempt 2); arthur ci reruns a run once, and a further rerun is the owner's, on GitHub"]);
+	assert.equal(api.seen.filter((each) => each.method === "POST").length, 1, "the second --rerun asks GitHub nothing");
 	assert.ok(api.seen.every((each) => each.auth === `Bearer ${TOKEN}`));
-	const files = [join(first.home, "events.jsonl"), ...readdirSync(first.fake.host.folder).map((name) => join(first.fake.host.folder, name))];
+	const files = [join(first.home, "events.jsonl"), ...[first.fake, again].flatMap(({ host }) => readdirSync(host.folder).map((name) => join(host.folder, name)))];
 	for (const file of files) assert.ok(!readFileSync(file, "utf8").includes(TOKEN), file);
-	assert.ok(!JSON.stringify(first.errors).includes(TOKEN));
+	assert.ok(!JSON.stringify([first.errors, restarted.errors]).includes(TOKEN));
 });
 
 test("a commit with no run of its own has the run of the nearest commit before it; two branches on one run are one event", async (t) => {

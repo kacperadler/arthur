@@ -93,8 +93,8 @@ export type Jobs = RoleReads & {
 	prune(ids: readonly string[]): string[];
 	// The final message of job `id`, empty while it runs or when it wrote none; refused for anything but a job's id.
 	result(id: string): string;
-	// `arthur ticket file <id> <job>`: job `job`, finished on ticket `id`, filed by its kind's `file`; the path written (ticket-file.ts).
-	file(id: string, job: string): string;
+	// `arthur ticket file [<id>] <job>`: job `job`, finished on ticket `id` or, undefined, on none, filed by its kind's `file`; the path written (ticket-file.ts).
+	file(id: string | undefined, job: string): string;
 };
 
 // The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for; `sweep`: dead jobs here, then the copy from every other machine.
@@ -105,7 +105,7 @@ export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run
 	prepare(owner: string, fn: Prepare): void;
 	registerMachine(owner: string, machine: Machine): void;
 	continue(id: string, instruction: string, budgetUsd?: number, ignoreRestart?: boolean): Promise<string | undefined>;
-	file(board: Board, id: string, job: string): string;
+	file(board: Board, id: string | undefined, job: string): string;
 	// What `arthur roles` prints: each role, the files it reads in the project's main checkout, and its model.
 	roles(project?: string): Promise<RoleView[]>;
 };

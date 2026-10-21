@@ -1,6 +1,6 @@
 # arthur findings
 
-Usage: `arthur findings <id>`; on a channel `/findings <id>`. Comes with the `orchestration` plugin, which every config holds.
+Usage: `arthur findings <id>`; on a channel `/findings <id>`. Comes with the `findings` plugin (`packages/findings/docs/findings.md`); a config without it has neither.
 
 A ticket's `findings.md`, whole, answered without the model; a channel sends a long reply in slices. A ticket without the file, or with an empty one, answers `<id>: no findings (<path> does not exist)` or `<id>: no findings (<path> is empty)`.
 

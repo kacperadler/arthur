@@ -16,8 +16,8 @@ import { spawnRules } from "./spawn-rules.ts";
 
 // The orchestration plugin (spec/roadmap.md, entry 23), required by the host: the coordinator's process, kept running by
 // `arthur run`; its inbox (entry 24, inbox.ts); its role and its context on every turn (entry 25, context.ts); `arthur attach`
-// and `arthur coordinator stop|context`, docs/commands/coordinator.md and attach.md; the board's phone commands `/board`, `/task`,
-// `/findings` and `/plan` (board-commands.ts); `maxAgents` and each role's model (entry 26, spawn-rules.ts); the notice of a job
+// and `arthur coordinator stop|context`, docs/commands/coordinator.md and attach.md; the board's phone commands `/board`, `/task`
+// and `/plan` (board-commands.ts); `maxAgents` and each role's model (entry 26, spawn-rules.ts); the notice of a job
 // blocked on the owner (entry 27, blocked-notice.ts); the planning of large tickets (entry 28, plans.ts); autopilot (entry 29,
 // autopilot.ts); the silent mode (entry 47, silent.ts); and tmux as its `arthur doctor` requirement (entry 80).
 

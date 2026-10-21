@@ -69,7 +69,7 @@ What `setup` gets, one host per plugin. `@arthur/core/testing`'s `fakeHost` give
 | `jobs.running()` | The ids of the jobs in a run: working, idle, or held. |
 | `jobs.prune(ids)` | `arthur prune <id>...` of those jobs: each ended one's worktree, branch and record freed as far as Git and `jobs.keep` allow, one line `<id>: <what was done>` each; any id that names no job refuses them all before anything is removed (above, "Changes since entry 51"). |
 | `jobs.result(id)` | Job `id`'s final message, empty while it runs or when it wrote none. |
-| `jobs.file(id, job)` | `arthur ticket file <id> <job>`: the finished job filed in ticket `id`'s folder by its kind's `file`; the path written. |
+| `jobs.file(id, job)` | `arthur ticket file [<id>] <job>`: the finished job filed by its kind's `file`, in ticket `id`'s folder, or, `id` undefined, where the kind keeps a job of no ticket; the path written (above, "Changes since entry 51"). |
 | `jobs.prompt(role, project?)` | The prompt a role's job gets in a project, `{ prompt, warnings }`. |
 | `jobs.vision(project?)` | A project's vision, `{ project, path, text?, problem? }`. |
 | `jobs.criteria()` | The names of the criteria files the registered roles read, each once. |
@@ -101,6 +101,7 @@ Each decided in the ticket that made it.
 - AR0247 (roadmap 55, which names the hand-back's continue; the ticket's Done means allow a new member recorded here): `jobs.continue(id, instruction, budgetUsd?)`, the runner's `arthur continue` given to plugins, without `--ignore-restart`, which stays the CLI's: the same refusals, a `beforeSpawn` reason as `refused by <plugin>: <reason>`, so `maxAgents` holds for it. Delivery continues a worker with a FAIL review's findings (`arthur review --help`, "Hand-back"). The test kit's `FakeHost.continue`, which did the same for a test, is gone: a test calls `host.jobs.continue`.
 - AR0253 (roadmap 59, which names CI "asked of github through `call`"): the provided names `github.ci` and `github.cancel`, by github, asked by delivery's `arthur merge --auto` and its CI waits. `github.ci`: `{ project, branch }` to a promise of the run that built the branch as `arthur ci` finds it, `{ id, attempt, sha, branch, status, conclusion, url, startedAt, below }` (`startedAt` GitHub's `run_started_at`, else `created_at`; `below` the commits from the tip to the one it ran on), undefined for none; a project without `ci.workflow`, a branch not in its checkout, and GitHub's refusal reject. `github.cancel`: `{ project, run }` to a promise of one line once GitHub took the cancel; its refusal rejects. Asked with `call`, so a load without github refuses `--auto` unless `--no-ci`, and delivery never imports github. No host member changed; delivery now has a `stop`.
 - AR0254 (roadmap 64, which runs the core's prune on a schedule; the ticket's Done means allow a new member recorded here): `jobs.prune(ids)`, the runner's `arthur prune <id>...` given to plugins, its lines and refusals the CLI's; `--all` stays the CLI's, so a plugin names each job it frees. Manage's daily prune of `prune.keepJobsDays` uses it (docs/manage.md in its package).
+- AR0261 (roadmap 62, which files an audit with `arthur ticket file`, by kind, in `spec/quality/`; the ticket's Done means allow a host change recorded here): `arthur ticket file <job>` and `jobs.file(undefined, job)` file a finished job whose task names no ticket by its kind's `file`, which then gets `Filing.ticket` undefined; a job whose task names a ticket is refused without it (`<job>'s task names <ids>; file it in its ticket: arthur ticket file <id> <job>`). `Filing.root`, the project's folder, replaces `Filing.ticket.root`, so a filing of no ticket has it too. Manage's `audit` uses it (docs/manage.md in its package); orchestration's and delivery's filers read `root`.
 - AR0251 (the ticket's Done means: a test that the hand-back ends on delivery's own refusal and still retries another plugin's): the test kit's `FakeHost.beforeSpawn(check)`, the test as the plugin `test` refusing a spawn (`refused by test: <reason>`), since a check through `host.jobs.beforeSpawn` refuses as the plugin itself. No host member changed.
 - AR0262 (roadmap 69, which counts each machine's `home`; the ticket's Done means allow a new member recorded here): `jobs.home(machine)`, the `home` a `Machine` was registered with, `<home>` itself on `local`, which no member gave a plugin; a name no plugin registers is refused as a spawn's `machine` is, `unknown machine <name>; machines: <names>`. The resources plugin reads the free disk of that folder's filesystem there. The provided name `resources.disk`, asked by resources with `collect` at each check of a machine with a disk floor: `(machine)` to an absolute path, or a list of them, on that machine that its jobs write (docker: its data root, entry 70), or a promise of either.
 
@@ -120,7 +121,7 @@ The types a plugin meets through the host, published by `@arthur/core/plugin`:
 | `CommandInput` | `{ args, project }`: what `run` gets; `project` is `--project`, undefined for the main one. |
 | `PhoneFrom` | `{ channel?, place?, instance? }`: where a phone command came from, its channel's plugin, the place in it, and the named bot. |
 | `Kind` | `{ name, readOnly, role, budgetUsd?, timeoutMinutes?, resumeOnBudget?, verdicts?, file? }`: a kind of job; `verdicts` the lines its final message may end on (above, "Changes since entry 51"); `file(filing)` files a finished one. |
-| `Filing` | `{ ticket: { id, path, root }, job: { id, kind, base, result } }`: what a kind's `file` gets. |
+| `Filing` | `{ root, ticket?: { id, path }, job: { id, kind, base, result } }`: what a kind's `file` gets; `root` the project's folder, `ticket` undefined for a job of no ticket (above, "Changes since entry 51"). |
 | `Role` | `{ name, file, criteria }`: a role, its file a URL the plugin ships, the criteria files it reads by name. |
 | `SpawnRequest` | `{ task, kind?, project?, model?, thinking?, timeoutMinutes?, budgetUsd?, machine?, requires?, ignoreRestart?, fetch? }`; `fetch` a commit the job needs on its machine (above). |
 | `Spawn` | A spawn as `beforeSpawn` checks it: `task`, `kind`, `project`, `model`, `modelWhy?`, `thinking`, `quick`, `timeoutMinutes`, `budgetUsd`, `free`, `tickets`, `machine`, `ignoreRestart`. |
@@ -168,7 +169,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | Name | Provided by | Asked by | The answer |
 | --- | --- | --- | --- |
 | `projects` | projects | the core (`host.board`, a spawn's checkout), plugins | The project list. |
-| `prompt` | commit-rules, projects, youtrack | the core, `collect` at a spawn | A section of the prompt for `(role, job)`. |
+| `prompt` | commit-rules, findings, projects, youtrack | the core, `collect` at a spawn | A section of the prompt for `(role, job)`. |
 | `doctor` | machines, models, nvm, projects | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
 | `jobs.place` | machines | the core, each spawn | The machine a job runs on. |
 | `jobs.limits` | resources | the core, each spawn | The job's own caps. |
@@ -191,7 +192,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `projects.install` | projects | delivery (`arthur merge`) | `{ project, commit }`: the command that installs the project at that commit, as a new worktree gets it, `""` for none (above, "Changes since entry 51"). |
 | `nvm.path` | nvm | delivery (`arthur merge`) | `{ root }`, a project's checkout here: the PATH with its `.nvmrc`'s Node first, `""` without `.nvmrc` (above, "Changes since entry 51"). |
 | `merge.check` | projects | delivery (`arthur merge`) | A check of a job's branch before its merge: a text answer refuses it. |
-| `findings.onMerge` | none yet (findings) | delivery (`arthur merge`) | `{ project, ticket, path, root }`, `path` the merged ticket's `findings.md`: the lines of its outcome's `## Left open`. |
+| `findings.onMerge` | findings | delivery (`arthur merge`) | `{ project, ticket, path, root }`, `path` the merged ticket's `findings.md`: the lines of its outcome's `## Left open`. |
 | `delivery.alwaysReview` | delivery | orchestration | `{ project, paths }`: the paths on the always-review list. |
 | `github.push` | github | delivery (a review's PASS, `arthur review-needed`'s `no review`, `arthur merge`) | A promise of one line: the branch pushed to origin, or why not. |
 | `github.ci` | github | delivery (`arthur merge --auto`, its CI waits) | `{ project, branch }`: a promise of the run that built the branch with `below`, or undefined (above, "Changes since entry 51"). |

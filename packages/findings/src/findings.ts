@@ -6,7 +6,7 @@ import { type Merged, onMerge } from "./on-merge.ts";
 
 // The findings plugin (spec/roadmap.md, entry 83): the `findings.md` format, its template given to every worker, and its reader,
 // out of the core; `findings.onMerge`, which `arthur merge` asks with the merged ticket's file, each open entry settled as the
-// project's `mode` says; `/findings`, moved here from orchestration. docs/findings.md.
+// project's `mode` says; `/findings`, moved here from orchestration, and its line in the coordinator's context. docs/findings.md.
 
 const TEMPLATE = new URL("../templates/findings.md", import.meta.url);
 
@@ -27,6 +27,7 @@ export function findings(options: FindingsOptions = {}): Plugin {
 			host.provide("prompt", (role: string) =>
 				role === "worker" ? `## The findings.md format\n\nA ticket's findings.md that does not exist yet starts from this template, {{id}} the ticket's id:\n\n\`\`\`markdown\n${template}\n\`\`\`` : undefined,
 			);
+			host.provide("coordinator.context", () => "`arthur findings <id>` shows a ticket's findings.md, from its worker's branch before the merge.");
 			host.commands.register(findingsCommand(host));
 		},
 	};

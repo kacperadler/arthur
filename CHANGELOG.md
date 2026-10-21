@@ -33,6 +33,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0253 Roadmap 59: auto-merge after PASS and green CI (98cfb0f)
 - AR0254 Roadmap 64: prune and temporary folders on a schedule (bcce4ca)
 - AR0256 Roadmap 66: arthur plugin new (456975d)
+- AR0261 Roadmap 62: the audit (1212afc)
 
 ## 2026-10-20
 

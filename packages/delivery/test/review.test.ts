@@ -281,7 +281,7 @@ test("a FAIL's end delivered before arthur run's start, as its replay of the log
 test("a continue or review refused at maxAgents waits for the next end of a run, or arthur run's next start, then starts", async (t) => {
 	const { fake, worker, review, ended, field, step } = await load(t, { start: true });
 	const [full, asked] = [new Set<string>(), [] as string[]];
-	fake.host.jobs.beforeSpawn((spawn) => (asked.push(spawn.kind), full.has(spawn.kind) ? "maxAgents is 1 and 1 job is in a run: other; spawn again once one ends" : undefined));
+	fake.beforeSpawn((spawn) => (asked.push(spawn.kind), full.has(spawn.kind) ? "maxAgents is 1 and 1 job is in a run: other; spawn again once one ends" : undefined));
 	const job = await worker();
 	full.add("worker");
 	await review("Missing test.\n\nFAIL", job.id);
@@ -302,10 +302,47 @@ test("a continue or review refused at maxAgents waits for the next end of a run,
 	assert.equal(reviews(fake).length, 2);
 });
 
+test("a refusal by the core or by delivery itself, which no freed slot lifts, ends the hand-back and tells the coordinator once", async (t) => {
+	const { fake, worker, review, ended, field, step } = await load(t, { start: true });
+	let [full, asked] = [false, 0];
+	fake.beforeSpawn((spawn) => (asked++, full && spawn.kind === "worker" ? "maxAgents is 1 and 1 job is in a run: other; spawn again once one ends" : undefined));
+	const told = () => fake.emitted.flatMap((event) => (event.name === "coordinator-message" && typeof event.data === "object" && event.data !== null && "text" in event.data ? [String(event.data.text)] : []));
+	const other = () => fake.emit("job-ended", { id: "2026-01-01-worker-00000000", state: "ended" });
+	// Another plugin's refusal is tried again at each run's end, silently.
+	const one = await worker(`Ticket: ${OTHER}`);
+	full = true;
+	const failed = await review("Missing test.\n\nFAIL", one.id);
+	await until("the continue refused", () => asked === 3);
+	other();
+	await until("the continue refused again", () => asked === 4);
+	assert.deepEqual([step(one.id), told()], ["continue", []]);
+	// The core's: its ticket dropped meanwhile.
+	full = false;
+	fake.host.board.move("AC0002", "dropped");
+	other();
+	await until("the hand-back ended", () => step(one.id) === undefined);
+	const core = `refused by core: AC0002 is dropped, which cannot move to in-progress; a worker starts on a ticket that is planned, in-progress, review, done`;
+	const stopped = `Delivery's hand-back of ${one.branch} after FAIL ${failed.id} stopped: ${core}. Hand it back yourself: arthur continue ${one.id} '<the findings of ${failed.id}>', then arthur review ${one.id} once it ends.`;
+	assert.deepEqual(told(), [stopped]);
+	// A later run's end is acted on before the next hand-back's (one queue): it neither continues the worker nor says it again.
+	other();
+	// Delivery's own: the review's ticket moved back to planning by hand while the worker ran.
+	const two = await worker();
+	const second = await review("Missing test.\n\nFAIL", two.id);
+	await until("the worker continued", () => step(two.id) === "continued");
+	await until("the continued run's end", () => fake.host.jobs.result(two.id).startsWith("Missing test."));
+	fake.host.board.move("AC0001", "planning");
+	await ended(two.id);
+	await until("the review refused", () => told().length === 2);
+	assert.match(told()[1] ?? "", new RegExp(`^Delivery's hand-back of ${two.branch} after FAIL ${second.id} stopped: refused by delivery: AC0001 is planning; a review is of a ticket in-progress, review or done\\. Hand it back yourself: `));
+	assert.deepEqual([step(two.id), reviews(fake).length], [undefined, 2]);
+	assert.equal(field(one.id, "continue"), undefined, "never continued");
+});
+
 test("stop-all cancels the hand-back: between the worker's end and its review, before a FAIL's end is acted on, and while a review starts", async (t) => {
 	const { root, fake, worker, review, ended, agent, state, step } = await load(t, { start: true });
 	let [refuse, stopIn, refused] = [false, "", 0];
-	fake.host.jobs.beforeSpawn((spawn) => {
+	fake.beforeSpawn((spawn) => {
 		// As `arthur stopall` would land while this spawn is under way.
 		if (spawn.kind === stopIn) {
 			stopIn = "";

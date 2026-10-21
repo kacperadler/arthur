@@ -14,7 +14,7 @@ entry 57 tells `ci-finished` once per run id, as its Delivers and the vision say
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+Rerun ends reach the coordinator: the github plugin tells `ci-finished` once per run attempt, so the owner hears a rerun's result (vision: the owner hears the end of every CI run). Built with or after roadmap entry 58 (`--rerun`).
 
 - Kind: risk
 

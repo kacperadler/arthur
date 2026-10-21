@@ -1835,9 +1835,9 @@
   {
     "id": "AR0238",
     "title": "A rerun keeps its run id, so its end is never told as `ci-finished`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0238-a-rerun-keeps-its-run-id-so-its-end-is-never-told-as-ci-finished/ticket.md",
-    "updated": "2026-10-20T21:16:41.805Z"
+    "updated": "2026-10-21T06:50:54.706Z"
   },
   {
     "id": "AR0239",
@@ -1856,16 +1856,16 @@
   {
     "id": "AR0241",
     "title": "arthur merge installs from the lockfile and never reads a project's own install",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0241-arthur-merge-installs-from-the-lockfile-and-never-reads-a-project-s-own-install/ticket.md",
-    "updated": "2026-10-20T22:41:01.442Z"
+    "updated": "2026-10-21T06:50:54.910Z"
   },
   {
     "id": "AR0242",
     "title": "The checks on main run on the service's Node, not the project's .nvmrc",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0242-the-checks-on-main-run-on-the-service-s-node-not-the-project-s-nvmrc/ticket.md",
-    "updated": "2026-10-21T06:50:40.934Z",
+    "updated": "2026-10-21T06:50:55.114Z",
     "after": [
       "AR0241"
     ]
@@ -1873,9 +1873,9 @@
   {
     "id": "AR0243",
     "title": "The onboarding procedure does not name the command that merges an onboarding",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0243-the-onboarding-procedure-does-not-name-the-command-that-merges-an-onboarding/ticket.md",
-    "updated": "2026-10-20T22:41:01.446Z"
+    "updated": "2026-10-21T06:50:55.324Z"
   },
   {
     "id": "AR0244",

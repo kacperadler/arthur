@@ -39,3 +39,4 @@ In:
 
 - 2026-10-21: Source: F2 of AR0239
 - 2026-10-21: Approved by the owner (Telegram, morning report).
+- 2026-10-21: Coordinator (free hand): line budgets raised, nvm 85 to 96 (+11) and delivery 770 to 777 (+7), after the worker cut 14 lines by sharing the error handling.

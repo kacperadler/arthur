@@ -35,3 +35,4 @@ In:
 
 - 2026-10-21: Source: F2 of AR0253
 - 2026-10-21: Approved by the owner (Telegram).
+- 2026-10-21: Coordinator (free hand) accepted the two extra role lines: the Never-merge rule and silent mode both except a wake's `arthur merge --auto`.

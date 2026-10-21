@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { matchesGlob } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
 import { ALWAYS_REVIEW, checkOptions } from "./delivery-options.ts";
+import { type HandBack, handBack } from "./hand-back.ts";
 import { mergeCommand } from "./merge-command.ts";
 import { reviewCommand } from "./review-command.ts";
 import { reviewFiler } from "./review-file.ts";
@@ -14,7 +15,8 @@ import { failsSincePass, LIMIT, type Review, readReview, saveReview, settle } fr
 // kind's `verdicts`) and is never filed. A branch gets at most 2 FAILs since its last PASS; the next review needs `Round: <n>` (`arthur review --round`)
 // on the owner's word, and the wake of the second FAIL carries the procedure. docs/commands/review.md. Entry 53: `arthur
 // review-needed`, the always-review list it and autopilot ask (`delivery.alwaysReview`), and the extension that records each
-// job's checks: docs/commands/review-needed.md. Entry 54: `arthur merge`: docs/commands/merge.md.
+// job's checks: docs/commands/review-needed.md. Entry 54: `arthur merge`: docs/commands/merge.md. Entry 55: the hand-back after
+// a FAIL (hand-back.ts): docs/commands/review.md, "Hand-back".
 
 const REVIEW = "review";
 const TICKET = /^spec\/features\/([A-Z]+\d{4,})-[^/]+\/ticket\.md$/;
@@ -22,12 +24,16 @@ const TICKET = /^spec\/features\/([A-Z]+\d{4,})-[^/]+\/ticket\.md$/;
 const REVIEWED = ["in-progress", "review", "done"];
 
 export function delivery(options: { readonly enabled?: boolean; readonly review?: { readonly alwaysReview?: readonly string[] } } = {}): Plugin {
+	let loop: HandBack | undefined;
 	return {
 		name: "delivery",
 		module: import.meta.url,
 		options,
 		check: checkOptions,
+		start: () => loop?.start(),
 		setup(host) {
+			const back = handBack(host);
+			loop = back;
 			const procedure = new URL("../roles/coordinator/review-limit.md", import.meta.url);
 			const always = options.review?.alwaysReview ?? ALWAYS_REVIEW;
 			const held = (path: string) => always.some((glob) => matchesGlob(path, glob));
@@ -46,13 +52,16 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 				if (review !== undefined) host.board.move(review.ticket, "review");
 			});
 			host.events.on("job-ended", ({ data }) => {
-				const review = readReview(host, typeof data === "object" && data !== null && "id" in data ? data.id : undefined);
+				const id = typeof data === "object" && data !== null && "id" in data ? data.id : undefined;
+				const review = readReview(host, id);
 				const verdict = review && settle(host, review);
 				if (review !== undefined && (verdict === "PASS" || verdict === "FAIL")) host.board.move(review.ticket, verdict === "PASS" ? "done" : "in-progress");
+				if (typeof id === "string") back.ended(id, review, verdict);
 			});
+			host.events.on("stop-all", () => back.cancel());
 			host.provide("coordinator.wake", (job: { readonly id?: unknown; readonly kind?: unknown }) => {
 				const review = job.kind === REVIEW ? readReview(host, job.id) : undefined;
-				return review && wake(host, review, procedure);
+				return review ? wake(host, review, procedure) : back.wake(job.id);
 			});
 			host.commands.register(reviewCommand(host, procedure));
 			host.commands.register(reviewNeededCommand(host, held));
@@ -90,8 +99,8 @@ function refusal(host: Host, task: string, tickets: readonly string[]): string |
 	return undefined;
 }
 
-// What the coordinator's wake adds for an ended review: its verdict and the ticket's move, how to file it, and at the limit the
-// procedure.
+// What the coordinator's wake adds for an ended review: its verdict and the ticket's move, how to file it, or for a FAIL that
+// delivery files it and below the limit hands the branch back (hand-back.ts), and at the limit the procedure.
 function wake(host: Host, review: Review, procedure: URL): string {
 	const verdict = settle(host, review);
 	const worker = review.branch.slice("arthur/".length);
@@ -101,6 +110,8 @@ function wake(host: Host, review: Review, procedure: URL): string {
 		return `Review ${review.id}: no verdict, so the review failed: the last line of its final message is not PASS or FAIL alone, or its run did not finish. It is never filed, and ${review.ticket} stays at review. Review again with arthur review ${worker}, then arthur prune ${review.id}.`;
 	// Its own place among the FAILs since the last PASS, so a wake built later says what it said at the end.
 	const fails = failsSincePass(host, review.branch).indexOf(review.id) + 1;
-	const line = `Review verdict: FAIL on ${review.branch} at ${review.commit.slice(0, 7)}, ${fails} since its last PASS; ${review.ticket} moves back to in-progress. ${file}`;
+	const filed = `Delivery files it as the next review-N.md in ${review.ticket}'s folder; commit that, then arthur prune ${review.id}.`;
+	const back = fails < LIMIT ? ` It hands the branch back: ${worker} continues with the findings and a new budget, and the next review starts when it ends; arthur stopall cancels it.` : " The hand-back stops at the limit.";
+	const line = `Review verdict: FAIL on ${review.branch} at ${review.commit.slice(0, 7)}, ${fails} since its last PASS; ${review.ticket} moves back to in-progress. ${filed}${back}`;
 	return fails >= LIMIT ? `${line}\n\n${readFileSync(procedure, "utf8").trim()}` : line;
 }

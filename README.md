@@ -48,6 +48,7 @@ What works today:
 - GitHub CI runs (`@arthur/github`, entries 57 and 58): every `poll.everySeconds` the newest runs of each project's `ci.workflow`, read with the token of the instance named after the repository's owner (else the unnamed one); each branch in play (the checkout's own and every job's) gets the run of its nearest commit that has one, so a commit outside the workflow's paths counts the run before it; `ci-finished` once per run attempt, across a restart too, a rerun's end included, waking the coordinator when `wakeOn` names it; a refused token said once, not every poll; a rate limit waits as GitHub says. `arthur ci <branch>` tells why the run that built a branch failed (each failed job and step, the end of its log), `--rerun` reruns a failed or cancelled run once; a branch a review passed and main after `arthur merge` are pushed to origin, one warning line when that fails, never a prompt; with `pull-request-review` in `wakeOn`, the reviews of open pull requests are told once each.
 - Health (`@arthur/manage`, entry 60): `arthur health` and `/health`, one line per thing that should have happened by now and has not, from every plugin's answer to `health` and manage's own checks (a ticket in progress or review with no job for an hour, main not pushed for an hour, the board uncommitted for an hour, the temporary folder or a filesystem's inodes under 10% free), a provider that throws costing its own line only; reads only; with `health.everyMinutes`, `arthur run` sends each round's new lines as one notice, a problem the round before saw never twice in a row, across a restart too.
 - Stats (`@arthur/manage`, entry 61): `arthur stats`, per merged ticket of a project its review rounds and verdicts, its cost from `outcome.md` and its days from made to merged; the mean rounds over the reviewed tickets, the share of first-round PASS, the share pre-approved by autopilot, the 3 most expensive, and the first line of each finding of a FAIL review; a missing cost counts as unknown, never zero.
+- New plugins (`@arthur/develop`, entry 66): `arthur plugin new <name> --budget <lines>` makes `packages/<name>/` in Arthur's own checkout, its `package.json`, a plugin file that is its options file too, a test against the fake host and a doc page, adds its line budget to `test/structure.test.ts` and the workspace to `package-lock.json`, and the result passes `npm run check` and `npm test` as created; a bad or taken name, a budget missing, not a positive whole number or below the new source's lines is refused before any file is written.
 
 What is next:
 
@@ -95,7 +96,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | github: CI runs, reruns, pushes, pull request reviews | built | 57, 58 |
 | youtrack: issues, articles, comments, attachments, the rules for jobs on an issue | built | 44 to 46 |
 | manage: health, stats, audit, retro, prune on a schedule | in progress, 2 of 5 entries | 60, 61 built; 62 to 64 |
-| develop: `arthur plugin new`, evals | planned | 66 to 68 |
+| develop: `arthur plugin new`, evals | in progress, 1 of 3 entries | 66 built; 67, 68 |
 | Later: signal, slack and whatsapp channels; server, web panel and the owner's mobile app (Expo) by the VPS's Tailscale name; knowledge base; company edition | planned | 73 to 79, 91, 92, 95 |
 
 ## Commands
@@ -171,7 +172,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-21.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entries 52 to 56 of 52-56 and 59; github has entries 57 and 58 of 57-58; manage has entries 60 and 61 of 60-64; no other plugin exists yet.
+%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entries 52 to 56 of 52-56 and 59; github has entries 57 and 58 of 57-58; manage has entries 60 and 61 of 60-64; develop has entry 66 of 66-68; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale; from AR0174: the decision log in orchestration.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -251,7 +252,7 @@ flowchart TD
       end
       subgraph SELF[Arthur itself]
         manage[manage<br/>arthur health, /health, arthur stats<br/>2 of 5 entries; planned: audit, retro, prune]
-        develop[develop<br/>plugin new, evals]
+        develop[develop<br/>arthur plugin new<br/>1 of 3 entries; planned: evals]
         manage ~~~ develop
       end
     end
@@ -318,8 +319,8 @@ flowchart TD
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
   class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,parts,api,machines,session,schedule,projects,models,nvm,commit,youtrack,telegram,uptime,github built;
-  class lpartial,orchestration,resources,delivery,manage partial;
-  class lplanned,discord,voice,corelater,agents,findings,docker,develop,signal,slack,whatsapp,server,apps,knowledge,company planned;
+  class lpartial,orchestration,resources,delivery,manage,develop partial;
+  class lplanned,discord,voice,corelater,agents,findings,docker,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl,sites outside;
   style larrows fill:#fff,stroke:#999,color:#000
   style LEGEND fill:#fff,stroke:#999

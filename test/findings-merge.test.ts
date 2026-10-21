@@ -17,9 +17,10 @@ import { projects } from "@arthur/projects";
 const FOLDER = "spec/features/SH0001-shop";
 const git = (cwd: string, ...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd, encoding: "utf8" }).trim();
 
-// The repository `shop` (SH) with SH0001 planned; projects, delivery and, with `withFindings`, findings set up on one fake host;
-// `merged()` runs a worker on SH0001 whose branch commits a findings.md with F1 open and F2 fixed, then `arthur merge --unreviewed`.
-async function load(t: TestContext, withFindings: boolean) {
+// The repository `shop` (SH) with SH0001 planned; projects, delivery and, with `withFindings`, findings set up on one fake host
+// with `settings`; `merged()` runs a worker on SH0001 whose branch commits a findings.md with F1 open and F2 fixed, then
+// `arthur merge --unreviewed`.
+async function load(t: TestContext, withFindings: boolean, settings: Readonly<Record<string, unknown>> = {}) {
 	const shop = temporaryFolder();
 	const board = [{ id: "SH0001", title: "Shop", status: "planned", path: `${FOLDER}/ticket.md`, updated: "2026-10-21T08:00:00Z" }];
 	for (const [path, text] of Object.entries({ "README.md": "# Shop\n", [`${FOLDER}/ticket.md`]: "# SH0001 - Shop\n", "spec/build.json": JSON.stringify(board) })) {
@@ -33,7 +34,7 @@ async function load(t: TestContext, withFindings: boolean) {
 	git(shop, "config", "user.email", "t@example.com");
 	const list = [{ name: "shop", prefix: "SH", path: shop }];
 	const fake = fakeHost({ name: "projects", now: new Date("2026-10-21T10:00:00Z") });
-	const plugins: [Plugin, Readonly<Record<string, unknown>>][] = [[projects({ list }), { list }], [delivery(), {}], ...(withFindings ? [[findings(), {}] as [Plugin, {}]] : [])];
+	const plugins: [Plugin, Readonly<Record<string, unknown>>][] = [[projects({ list }), { list }], [delivery(), {}], ...(withFindings ? [[findings(), settings] as [Plugin, {}]] : [])];
 	for (const [plugin, options] of plugins) await fake.setup({ setup: (host) => plugin.setup({ ...host, options }) });
 	const saved = process.env.PATH;
 	t.after(() => {
@@ -86,4 +87,22 @@ test("without the findings plugin, the merge leaves every finding open and says 
 	assert.equal(after, text);
 	assert.deepEqual(fake.host.board.list("shop").map((ticket) => ticket.id), ["SH0001"]);
 	assert.equal(fake.commands.some((command) => command.name === "findings"), false, "no /findings without the plugin");
+});
+
+// The procedure the merge prints after it tells the coordinator to settle the reviews' notes as the merge settled the open
+// entries, so it must name what the findings plugin settles them with in each mode: the outcome's line, the status, the title.
+test("the procedure after the merge names what each findings mode settles the open entries with", async (t) => {
+	for (const mode of ["ticket", "grouped", "summary"]) {
+		const { fake, merged } = await load(t, true, { mode: { shop: mode } });
+		const { code, out, err, outcome, findings: after } = await merged();
+		assert.equal(code, undefined, err);
+		const procedure = out.slice(out.indexOf("# After a merge that went in"));
+		const line = outcome.split("\n").at(-2) ?? "";
+		assert.ok(procedure.includes(`\`${line.slice(0, line.indexOf(":") + 1)}\``), `${mode}: the procedure names ${line}`);
+		const status = /^- Status: (.+)$/m.exec(after)?.[1] ?? "";
+		const made = fake.host.board.get("SH0002")?.title;
+		const named = { ticket: `\`${status.replace("SH0002", "<id>")}\``, grouped: `\`${made?.replace("SH0001", "<ticket>").replace("Shop", "<its title>")}\``, summary: `\`${status}\`` }[mode] ?? "";
+		assert.ok(procedure.includes(named), `${mode}: the procedure names ${named}, as ${status} and ${made} show`);
+		assert.ok(procedure.includes(`(\`${mode}\`)`), `${mode}: the procedure names the mode`);
+	}
 });

@@ -70,19 +70,20 @@ const shapedReview = (full: string, number: number, { id, user: login, state, bo
 });
 
 // `runs[<owner>/<repo>/<workflow>]` newest first; `jobs[<run id>]` the jobs of its attempt, each with its log; `pulls[<owner>/<repo>]`
-// the open pull requests; `next` replies once each, before anything else; `always` replies to every request while set. `seen`
-// holds each request: its method, path, time and Authorization.
+// the open pull requests; `next` replies once each, before anything else; `always` replies to every request while set, `post`
+// to every POST. `seen` holds each request: its method, path, time and Authorization.
 export async function fakeGithub(t: TestContext) {
 	const runs: Record<string, FakeRun[]> = {};
 	const jobs: Record<number, FakeJob[]> = {};
 	const pulls: Record<string, FakePull[]> = {};
 	const next: Reply[] = [];
-	const state: { always?: Reply } = {};
+	const state: { always?: Reply; post?: Reply } = {};
 	const seen: { readonly method: string; readonly path: string; readonly at: number; readonly auth: string }[] = [];
 	const http = createServer((request, response) => {
 		const path = request.url ?? "";
 		seen.push({ method: request.method ?? "", path, at: Date.now(), auth: request.headers.authorization ?? "" });
 		const found = ((): Reply | undefined => {
+			if (request.method === "POST" && state.post !== undefined) return state.post;
 			const match = (pattern: RegExp) => pattern.exec(path)?.slice(1).map(decodeURIComponent);
 			const [full = "", workflow = ""] = match(/^\/repos\/([^/]+\/[^/]+)\/actions\/workflows\/([^/]+)\/runs\?per_page=100&exclude_pull_requests=true$/) ?? [];
 			const list = runs[`${full}/${workflow}`];

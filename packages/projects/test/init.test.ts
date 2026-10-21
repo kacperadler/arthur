@@ -25,9 +25,10 @@ function repository(files: Readonly<Record<string, string>>, commit = true): str
 	return root;
 }
 
-// The plugin set up with `list`, beside a role registered as another plugin's, which reads `criteria` (the coordinator's by default).
-async function load(list: readonly ProjectEntry[], criteria = ["styleguide", "autopilot"]): Promise<FakeHost> {
-	const fake = fakeHost({ name: "projects" });
+// The plugin set up with `list`, beside a role registered as another plugin's, which reads `criteria` (the coordinator's by default);
+// `code`, the package folders of the load.
+async function load(list: readonly ProjectEntry[], criteria = ["styleguide", "autopilot"], code: readonly string[] = []): Promise<FakeHost> {
+	const fake = fakeHost({ name: "projects", code });
 	const other = { name: "coordinator", file: new URL("../roles/onboarding.md", import.meta.url), criteria };
 	await fake.setup({ setup: (host) => (host.jobs.registerRole(other), projects({ list }).setup({ ...host, options: { list } })) });
 	return fake;
@@ -87,6 +88,19 @@ test("init writes a skeleton for each criteria file a registered role reads, its
 	assert.equal((await init(t, fake, ["shop"])).out.split("\n")[0], "created: spec/vision.md, .agents/arthur/criteria/styleguide.md, .agents/arthur/criteria/code-review.md, .nvmrc, spec/build.json");
 	assert.equal(readFileSync(join(shop, ".agents/arthur/criteria/code-review.md"), "utf8"), "# Code review\n");
 	assert.equal(existsSync(join(shop, ".agents/arthur/criteria/autopilot.md")), false, "no registered role reads autopilot here");
+});
+
+test("a criteria file a package of the load ships is written as it ships it; this plugin's own skeleton and the first package win", async (t) => {
+	const shop = repository({ "README.md": "# Shop\n" });
+	const [bare, theirs, manage, later] = [temporaryFolder(), temporaryFolder(), temporaryFolder(), temporaryFolder()];
+	const ship = (folder: string, name: string, text: string) => (mkdirSync(join(folder, "criteria"), { recursive: true }), writeFileSync(join(folder, "criteria", `${name}.md`), text));
+	ship(theirs, "styleguide", "# Their styleguide\n");
+	ship(manage, "audit", "# Audit\n\n## The question\n\nWhat would the owner want fixed?\n");
+	ship(later, "audit", "# Later audit\n");
+	const fake = await load([{ name: "shop", prefix: "SH", path: shop }], ["styleguide", "audit", "code-review"], [bare, theirs, manage, later]);
+	assert.equal((await init(t, fake, ["shop"])).out.split("\n")[0], "created: spec/vision.md, .agents/arthur/criteria/styleguide.md, .agents/arthur/criteria/audit.md, .agents/arthur/criteria/code-review.md, .nvmrc, spec/build.json");
+	const read = (name: string) => readFileSync(join(shop, ".agents/arthur/criteria", `${name}.md`), "utf8");
+	assert.deepEqual(["styleguide", "audit", "code-review"].map(read), [SKELETON("criteria/styleguide.md"), "# Audit\n\n## The question\n\nWhat would the owner want fixed?\n", "# Code review\n"]);
 });
 
 // The board appearing while init runs, as a second init's does: a dangling symlink there passes the first look, as no board.

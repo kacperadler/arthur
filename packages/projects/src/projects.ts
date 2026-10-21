@@ -71,7 +71,7 @@ export function projects(options: ProjectsOptions): Plugin {
 					console.log(overview(host, all));
 				},
 			});
-			host.commands.register({ name: "init", doc: new URL("../docs/commands/init.md", import.meta.url), run: ({ args, project }) => init(all, args, project, host.jobs.criteria()) });
+			host.commands.register({ name: "init", doc: new URL("../docs/commands/init.md", import.meta.url), run: ({ args, project }) => init(all, args, project, host.jobs.criteria(), host.code) });
 			host.jobs.prepare(installStep(host, all));
 			onboarding(host, all);
 		},

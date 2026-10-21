@@ -305,7 +305,11 @@ import { checkStructure } from "./structure.ts";
 // Merged AR0242 with AR0246: main's budgets plus AR0242's raises, nvm 96, delivery 770 + 7 + 9 = 786 (recounted).
 // Merged main (AR0241, AR0242, AR0246) into AR0247: main's budgets plus AR0247's, core 5729, core/testing 347, delivery
 // 786 + 163 + 1 = 950 (recounted: one comment line on the job-ended handler that now both hands back and pushes).
-const BUDGETS = { core: 5729, "core/testing": 347, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 950, github: 586, manage: 368 };
+// AR0252 (roadmap 56): delivery 69 more (1019) for `arthur changelog` and its rebuild after each merge: CHANGELOG.md from the
+// merged tickets by day and kind, written whole, and the command (changelog.ts, 64), its call after a merge that went in with
+// CHANGELOG.md no dirt (merge-command.ts, 3 more), and the command registered (delivery.ts, 2 more); nothing in delivery wrote
+// a changelog before, so nothing was cut; core unchanged.
+const BUDGETS = { core: 5729, "core/testing": 347, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1019, github: 586, manage: 368 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

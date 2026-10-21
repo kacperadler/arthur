@@ -118,6 +118,7 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 			`wrote ${FOLDER}/outcome.md; rewrite What went in from the commit subjects listed there`,
 			"AC0001 merged",
 			"unblocked: AC0002",
+			"wrote CHANGELOG.md: 1 merged ticket",
 			DONE,
 		].join("\n"),
 	);
@@ -133,6 +134,7 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 		outcome,
 	);
 	assert.deepEqual([status("AC0001"), status("AC0002"), status("AC0003")], ["merged", "planned", "planned"]);
+	assert.match(readFileSync(join(root, "CHANGELOG.md"), "utf8"), new RegExp(`\n## \\d{4}-\\d{2}-\\d{2}\n\n### Other\n\n- AC0001 Shop \\(${hash}\\)\n$`), "rebuilt from outcome.md");
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "ticket-moved").at(-1)?.data, { id: "AC0001", project: "acme", from: "done", to: "merged" });
 	assert.equal((await merge(job.id)).err, `arthur merge: AC0001 is merged; a merge is of a ticket in-progress, review or done`);
 });
@@ -185,6 +187,21 @@ test("a merge conflict leaves main as it was: no merge in progress, the ticket w
 	assert.equal(status("AC0001"), "done");
 });
 
+test("each merge that went in rebuilds CHANGELOG.md; the rebuilt file left uncommitted is no dirt for the next merge", async (t) => {
+	const { root, git, worker, merge } = await load(t);
+	const first = await worker();
+	assert.equal((await merge(first.id, "--unreviewed")).err, "");
+	git(root, "add", "CHANGELOG.md");
+	git(root, "commit", "--quiet", "-m", "the changelog");
+	const cart = await worker({ "cart.ts": "export const cart = 1;\n" }, "Ticket: spec/features/AC0002-cart/ticket.md");
+	assert.match((await merge(cart.id, "--unreviewed")).out, /\nwrote CHANGELOG\.md: 2 merged tickets\n/);
+	assert.match(git(root, "status", "--porcelain", "--untracked-files=no"), /^ ?M CHANGELOG\.md$/m, "rebuilt, not committed");
+	const pay = await worker({ "pay.ts": "export const pay = 1;\n" }, "Ticket: spec/features/AC0003-pay/ticket.md");
+	const merged = await merge(pay.id, "--unreviewed");
+	assert.equal(merged.err, "");
+	assert.match(readFileSync(join(root, "CHANGELOG.md"), "utf8"), /\n- AC0001 Shop \([0-9a-f]+\)\n- AC0002 Cart \([0-9a-f]+\)\n- AC0003 Pay \([0-9a-f]+\)\n$/);
+});
+
 test("a failed check resets main and names it, pushing nothing; the board's moves stay, main's own install is put back, nothing is written", async (t) => {
 	const { root, fake, git, worker, review, merge, head, status, bun, failBun, installs } = await load(t);
 	const pushes: unknown[] = [];
@@ -205,6 +222,7 @@ test("a failed check resets main and names it, pushing nothing; the board's move
 	assert.equal(git(root, "status", "--porcelain", "--untracked-files=no"), "M spec/build.json");
 	assert.equal(status("AC0001"), "done", "the review's move to done is kept");
 	assert.deepEqual(readdirSync(join(root, FOLDER)), ["ticket.md"], "no review filed, no outcome.md");
+	assert.equal(existsSync(join(root, "CHANGELOG.md")), false, "no changelog for a merge that did not go in");
 	writeFileSync(join(root, "package.json"), "{ not json");
 	git(root, "commit", "--quiet", "-am", "a broken package.json");
 	assert.match((await merge(job.id)).err, /^arthur merge: check failed on main \(package\.json\); main reset to /);
@@ -345,8 +363,8 @@ test("merge.check: any text answer refuses with every answer, main unchanged and
 	answers.fill(undefined);
 	const merged = await merge(job.id, "--unreviewed");
 	assert.equal(merged.code, undefined, merged.err);
-	assert.match(merged.out, new RegExp(`^merged ${job.branch} into main: [0-9a-f]+\nbun install --frozen-lockfile: passed\\.\nnpm run check: passed\\.\nnpm test: 2/2 passed\\.\nno ticket: no outcome\\.md, nothing moved\n`));
-	assert.ok(merged.out.endsWith(`no ticket: no outcome.md, nothing moved\ngithub: main not pushed to origin: [rejected] (non-fast-forward)\nnothing committed but the merge, nothing pruned\n\n${PROCEDURE}`), merged.out);
+	assert.match(merged.out, new RegExp(`^merged ${job.branch} into main: [0-9a-f]+\nbun install --frozen-lockfile: passed\\.\nnpm run check: passed\\.\nnpm test: 2/2 passed\\.\nno ticket: no outcome\\.md, nothing moved\nwrote CHANGELOG\\.md: 0 merged tickets\n`));
+	assert.ok(merged.out.endsWith(`wrote CHANGELOG.md: 0 merged tickets\ngithub: main not pushed to origin: [rejected] (non-fast-forward)\nnothing committed but the merge, nothing pruned\n\n${PROCEDURE}`), merged.out);
 	assert.deepEqual(pushes, [{ project: "acme", branch: "main" }]);
 	assert.equal(git(root, "log", "-1", "--format=%s"), `Merge ${job.branch}`);
 });

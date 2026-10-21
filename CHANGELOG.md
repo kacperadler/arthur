@@ -7,8 +7,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Added
 
 - AR0243 The onboarding procedure does not name the command that merges an onboarding (9611adf)
+- AR0257 A waiting branch's CI end wakes the coordinator twice (044d050)
 - AR0258 The coordinator's role names merges only on the owner's word (d5ba054)
 - AR0264 `arthur init` writes the audit criteria as a bare title, not the criteria manage ships (a185ca3)
+- AR0267 The procedure after a merge settles review notes as tickets whatever the project's findings mode (e82d8fd)
 
 ### Fixed
 
@@ -25,6 +27,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0245 arthur stats: remove the unreachable unknown-project throw (4116eec)
 - AR0249 The vision still says `ci-finished` is keyed by run id
+- AR0268 The coordinator's role names `arthur findings`, which a config without the findings plugin no longer has (2796ca0)
 
 ### Other
 

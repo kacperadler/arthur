@@ -36,3 +36,4 @@ In:
 
 - 2026-10-21: Source: F1 of AR0239
 - 2026-10-21: Approved by the owner (Telegram, morning report).
+- 2026-10-21: Coordinator (free hand): accepted that the install now runs after every merge when the project has one, not only on a changed lockfile; slower merges, but main never runs checks on stale dependencies, and delivery keeps no lockfile table.

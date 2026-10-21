@@ -1835,9 +1835,9 @@
   {
     "id": "AR0238",
     "title": "A rerun keeps its run id, so its end is never told as `ci-finished`",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0238-a-rerun-keeps-its-run-id-so-its-end-is-never-told-as-ci-finished/ticket.md",
-    "updated": "2026-10-21T06:50:54.706Z"
+    "updated": "2026-10-21T08:23:28.906Z"
   },
   {
     "id": "AR0239",
@@ -1856,9 +1856,9 @@
   {
     "id": "AR0241",
     "title": "arthur merge installs from the lockfile and never reads a project's own install",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0241-arthur-merge-installs-from-the-lockfile-and-never-reads-a-project-s-own-install/ticket.md",
-    "updated": "2026-10-21T06:50:54.910Z"
+    "updated": "2026-10-21T08:27:42.490Z"
   },
   {
     "id": "AR0242",
@@ -1873,9 +1873,9 @@
   {
     "id": "AR0243",
     "title": "The onboarding procedure does not name the command that merges an onboarding",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0243-the-onboarding-procedure-does-not-name-the-command-that-merges-an-onboarding/ticket.md",
-    "updated": "2026-10-21T06:50:55.324Z"
+    "updated": "2026-10-21T08:23:02.221Z"
   },
   {
     "id": "AR0244",
@@ -1887,8 +1887,22 @@
   {
     "id": "AR0245",
     "title": "arthur stats: remove the unreachable unknown-project throw",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0245-arthur-stats-remove-the-unreachable-unknown-project-throw/ticket.md",
-    "updated": "2026-10-21T06:50:40.729Z"
+    "updated": "2026-10-21T08:28:42.193Z"
+  },
+  {
+    "id": "AR0246",
+    "title": "Roadmap 58: arthur ci, reruns, pushes, pull request reviews",
+    "status": "in-progress",
+    "path": "spec/features/AR0246-roadmap-58-arthur-ci-reruns-pushes-pull-request-reviews/ticket.md",
+    "updated": "2026-10-21T08:23:28.267Z"
+  },
+  {
+    "id": "AR0247",
+    "title": "Roadmap 55: hand-back after a FAIL review",
+    "status": "planned",
+    "path": "spec/features/AR0247-roadmap-55-hand-back-after-a-fail-review/ticket.md",
+    "updated": "2026-10-21T08:29:00.211Z"
   }
 ]

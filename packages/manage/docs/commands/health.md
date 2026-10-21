@@ -8,6 +8,7 @@ One line per thing that should have happened by now and has not, from every plug
 AR0012 is in-progress with no job in a run for 3 h: Health checks
 arthur: main has 2 commits not pushed to origin/main, the oldest made 5 h ago
 arthur: the board has changes not committed for 2 h: spec/build.json and 1 more
+arthur: the audit 2026-10-21-audit-7f8971f2 finished 3 h ago and is not filed in spec/quality/: arthur ticket file 2026-10-21-audit-7f8971f2
 the temporary folder /tmp has 6% of its space free: 7.5 GB
 /home: 4% of its filesystem's inodes free, 330112 of 8323072
 github: health failed: no answer from the API
@@ -20,6 +21,7 @@ Manage's own checks, each for every project of the project list:
 - A stalled ticket: `in-progress` or `review`, no job in a run (working, idle or held) names it on a `Ticket:` line, and an hour has passed since its last move and since the newest of its jobs took its state (a job that ended 20 minutes ago counts from then).
 - Main not pushed: the checkout's branch is ahead of its upstream, and the oldest of its own commits (its first-parent line, so a merged branch's older commits count as the merge) was made an hour ago or more. The upstream is the one Git fetched last; nothing is asked of the remote. A detached HEAD, or a branch with no upstream, has nothing to push to and no line.
 - A board uncommitted for an hour: `spec/build.json` or a file under `spec/features/` changed, or new and untracked, and the oldest such file was written an hour ago or more. A deletion alone has no time and no line.
+- A report not filed: an `audit` or `retro` job ended `finished` an hour ago or more, and no `- Job:` line of a report in its kind's folder (`spec/quality/` or `spec/retro/`, a file named `<date>.md` or `<date>-<n>.md`, as `arthur ticket file` writes it) names its id. Until it is filed, the next one starts from the report before it, and a prune loses its result. A job with a broken time has no line.
 - A temporary folder full: the system's temporary folder (`TMPDIR`, else `/tmp`) has under 10% of its space free.
 - Low inodes: the filesystem of the temporary folder, of Arthur's home or of a project's folder, each filesystem once, has under 10% of its inodes free; a filesystem that counts none has none to run out of.
 

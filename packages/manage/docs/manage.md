@@ -26,7 +26,7 @@ Refused at load, with the option's path: an unknown option or key, `health`, `pr
 
 ## The checks
 
-Manage answers `health` (docs/plugin-api.md, "Provided names") with its own checks: a stalled ticket, main not pushed, a board uncommitted for an hour, a temporary folder full, low inodes. What each one looks at, and the words of each line: `arthur health --help`. Every other plugin that answers `health` adds its lines; session's `Restarted.` notice lists the same lines (`arthur restart --help`).
+Manage answers `health` (docs/plugin-api.md, "Provided names") with its own checks: a stalled ticket, main not pushed, a board uncommitted for an hour, a finished audit or retro not filed for an hour, a temporary folder full, low inodes. What each one looks at, and the words of each line: `arthur health --help`. Every other plugin that answers `health` adds its lines; session's `Restarted.` notice lists the same lines (`arthur restart --help`).
 
 ## The rounds
 

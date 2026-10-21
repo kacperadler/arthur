@@ -347,7 +347,13 @@ import { checkStructure } from "./structure.ts";
 // Merged main (AR0254, AR0256) into AR0251: main's budgets plus AR0251's core/testing 349 (recounted with wc -l).
 // Merged main (AR0251) into AR0261: main's budgets plus AR0261's raises, core 5737, core/testing 349, orchestration 1545,
 // delivery 1234, manage 637 (recounted with wc -l).
-const BUDGETS = { core: 5737, "core/testing": 349, projects: 486, orchestration: 1545, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1234, github: 621, manage: 637, develop: 198 };
+// AR0263 (roadmap 83): findings: 254, set for the findings.md reader (findings-file.ts, 48), `findings.onMerge` and its three
+// modes, the new tickets filled from their findings (on-merge.ts, 70), `/findings` moved from orchestration (findings-command.ts,
+// 65), `mode` and its check (findings-options.ts, 38), and the plugin, its template in the worker's prompt (findings.ts, 33);
+// orchestration 22 fewer (1520), `/findings` and its branch lookup gone from board-commands.ts; core unchanged.
+// Merged main (AR0261) into AR0263: main's budgets plus AR0263's, findings 254, orchestration 1545 - 22 = 1523 (recounted
+// with wc -l).
+const BUDGETS = { core: 5737, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1234, github: 621, manage: 637, develop: 198, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

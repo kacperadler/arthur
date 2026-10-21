@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
-// The ticket templates that ship with the core (spec/roadmap.md, entry 17), in `packages/core/templates/`: `ticket.md`,
-// written when a ticket is created, and `findings.md`, `review.md`, `outcome.md` for the entries that write those files.
+// The ticket templates that ship with the core (spec/roadmap.md, entry 17), in `packages/core/templates/`: `ticket.md`, written
+// when a ticket is created, `review.md` and `outcome.md` for the entries that write them (`findings.md` is the findings plugin's).
 // Guidance is every `<!-- ... -->` comment of a template: the writer replaces it with the ticket's own text.
 
 const TICKET = new URL("../templates/ticket.md", import.meta.url);

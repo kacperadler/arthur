@@ -1,6 +1,5 @@
 import { existsSync, linkSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import type { Project, ProjectEntry } from "./projects.ts";
 
 // `arthur init <project>` (spec/roadmap.md, entry 42): what Arthur reads, given to a repository without a board, each file only
@@ -9,10 +8,9 @@ import type { Project, ProjectEntry } from "./projects.ts";
 export const BOARD = "spec/build.json";
 const SKELETON = new URL("../skeleton/", import.meta.url);
 
-// The skeleton of criteria file `name`: the one shipped here, else the first `criteria/<name>.md` a package of this load
-// ships (`host.code`, manage's `audit`), else its title alone (`code-review` is `# Code review`).
+// The skeleton of criteria file `name`: the one shipped here, else the first a package of this load ships, else its title alone.
 function criterion(name: string, code: readonly string[]): string {
-	const shipped = [fileURLToPath(new URL(`criteria/${name}.md`, SKELETON)), ...code.map((folder) => join(folder, "criteria", `${name}.md`))].find((file) => existsSync(file));
+	const shipped = [new URL(`criteria/${name}.md`, SKELETON), ...code.map((folder) => join(folder, "criteria", `${name}.md`))].find((file) => existsSync(file));
 	return shipped === undefined ? `# ${name[0]?.toUpperCase()}${name.slice(1).replaceAll("-", " ")}\n` : readFileSync(shipped, "utf8");
 }
 
@@ -21,8 +19,7 @@ export function drafted(project: ProjectEntry): { readonly vision: string; reado
 	return { vision: join(project.prompts?.vision ?? "spec/vision.md"), criteriaDir: join(project.prompts?.criteriaDir ?? ".agents/arthur/criteria", ".") };
 }
 
-// `criteria`: the names of the criteria files the registered roles read (`host.jobs.criteria()`), one skeleton each;
-// `code`: the package folders of this load (`host.code`), whose `criteria/` folders ship them.
+// `criteria`: the criteria files the registered roles read (`host.jobs.criteria()`); `code`: the load's package folders (`host.code`).
 export function init(all: readonly Project[], args: readonly string[], flag: string | undefined, criteria: readonly string[], code: readonly string[]): number | void {
 	if (args.length !== 1 || flag !== undefined) {
 		console.error("usage: arthur init <project>");

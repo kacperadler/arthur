@@ -374,7 +374,10 @@ import { checkStructure } from "./structure.ts";
 // (625), that time less the answer's own, else this machine's clock (github-pulls.ts, 3 more, its comment cut to two lines
 // first), and the header returned by `ask` (github-api.ts, 1 more).
 // Merged main (AR0259, AR0262, AR0266) into AR0255: main's budgets plus AR0255's github 625 (recounted with wc -l).
-const BUDGETS = { core: 5742, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1234, github: 625, manage: 910, develop: 198, findings: 254 };
+// AR0265 (the ticket's Done means: a manage health check for a finished audit never filed): manage 15 more (925) for a finished
+// audit or retro an hour old that no report's `- Job:` line names (health-checks.ts, 15 more: the check, its kinds' report
+// folders imported and the jobs read once for both checks that use them); nothing in manage checked a filing before.
+const BUDGETS = { core: 5742, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1234, github: 625, manage: 925, develop: 198, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

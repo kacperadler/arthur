@@ -1998,9 +1998,9 @@
   {
     "id": "AR0260",
     "title": "`arthur plugin new` writes into the project's checkout, never a job's worktree",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0260-arthur-plugin-new-writes-into-the-project-s-checkout-never-a-job-s-worktree/ticket.md",
-    "updated": "2026-10-21T15:48:07.015Z"
+    "updated": "2026-10-21T16:12:34.423Z"
   },
   {
     "id": "AR0261",
@@ -2101,5 +2101,12 @@
     "status": "planning",
     "path": "spec/features/AR0273-delivery-ships-no-review-criteria-so-arthur-init-still-writes-review-md-as-review/ticket.md",
     "updated": "2026-10-21T14:57:55.266Z"
+  },
+  {
+    "id": "AR0274",
+    "title": "A worker learns of `arthur plugin new --root` only if its ticket or plan names it",
+    "status": "planning",
+    "path": "spec/features/AR0274-a-worker-learns-of-arthur-plugin-new-root-only-if-its-ticket-or-plan-names-it/ticket.md",
+    "updated": "2026-10-21T16:12:34.420Z"
   }
 ]

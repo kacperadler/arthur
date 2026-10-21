@@ -19,7 +19,7 @@ async function setup() {
 		{ name: "shop", path: shop, prefix: "SH" },
 	]);
 	await fake.setup(findings());
-	return { route: fake.host.commands.route, commands: fake.host.commands, demo, home: dirname(fake.host.folder) };
+	return { route: fake.host.commands.route, commands: fake.host.commands, context: () => fake.collect("coordinator.context"), demo, home: dirname(fake.host.folder) };
 }
 
 // A board written by hand: `count` tickets of `status`, numbered from 1, each with a `ticket.md`.
@@ -36,6 +36,10 @@ function tickets(root: string, prefix: string, status: string, count: number): v
 
 test("/findings is a phone command, in a channel's menu", async () => {
 	assert.deepEqual((await setup()).commands.phone(), [{ name: "findings", about: "a ticket's findings.md: /findings 14, /findings AR14" }]);
+});
+
+test("the coordinator's context names arthur findings, which only this plugin provides", async () => {
+	assert.deepEqual((await setup()).context(), ["`arthur findings <id>` shows a ticket's findings.md, from its worker's branch before the merge."]);
 });
 
 test("/findings: the file as it is; a ticket without the file, or with an empty one, has no findings; refusals and usage", async () => {

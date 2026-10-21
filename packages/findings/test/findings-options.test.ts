@@ -28,5 +28,5 @@ test("refused at setup: a key of mode that is no project of the list", async () 
 	const fine = fakeHost({ name: "findings", options: { mode: { acme: "summary" } } });
 	fine.provide("projects", () => [{ name: "acme", path: temporaryFolder(), prefix: "AC" }]);
 	await fine.setup(findings({ mode: { acme: "summary" } }));
-	assert.deepEqual(fine.provided, ["findings.onMerge", "prompt"]);
+	assert.deepEqual(fine.provided, ["findings.onMerge", "prompt", "coordinator.context"]);
 });

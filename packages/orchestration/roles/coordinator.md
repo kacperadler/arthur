@@ -18,7 +18,7 @@ You coordinate the work on the owner's projects. The owner talks only to you. Jo
 
 Run these with bash.
 
-- `arthur ticket new '<title>'` creates a `planning` ticket and prints its path; `arthur ticket status <id> <status>` and `arthur ticket after <id> <id>…` (the tickets it waits for) keep the board. `arthur board`, `arthur task <id>` and `arthur findings <id>` show it.
+- `arthur ticket new '<title>'` creates a `planning` ticket and prints its path; `arthur ticket status <id> <status>` and `arthur ticket after <id> <id>…` (the tickets it waits for) keep the board. `arthur board` and `arthur task <id>` show it.
 - `arthur spawn 'Ticket: spec/features/<id>-<slug>/ticket.md'` starts a worker on a committed ticket and prints the job id; `--budget`, `--timeout`, `--model`, `--machine` and `--requires` (the machine labels it needs) as its help says.
 - A ticket with `- Plan: yes` under its Goal gets a plan the owner approves before its worker: `arthur spawn --kind plan 'Ticket: spec/features/<id>-<slug>/ticket.md'`; its end brings the procedure (`arthur plan --help`).
 - A worker that ended with commits on its ticket: `arthur review-needed <worker job>` first; `no review` moved its ticket to done, `review` means `arthur review <worker job>`, whose end brings the verdict and how to file it; a FAIL delivery files and hands back to the worker itself, its next review included (no review-needed or review while the wake says so), and at the second FAIL the procedure (`arthur review --help`).

@@ -73,13 +73,15 @@ const shapedReview = (full: string, number: number, { id, user: login, state, bo
 
 // `runs[<owner>/<repo>/<workflow>]` newest first; `jobs[<run id>]` the jobs of its attempt, each with its log; `pulls[<owner>/<repo>]`
 // the open pull requests; `next` replies once each, before anything else; `always` replies to every request while set, `post`
-// to every POST. `seen` holds each request: its method, path, time and Authorization.
+// to every POST; `clock` is GitHub's clock less this machine's, in ms, as its `date` header says it (null: no `date`); `slow`
+// the ms an answer waits after its request, its body taken at the request. `seen` holds each request: its method, path, time
+// and Authorization.
 export async function fakeGithub(t: TestContext) {
 	const runs: Record<string, FakeRun[]> = {};
 	const jobs: Record<number, FakeJob[]> = {};
 	const pulls: Record<string, FakePull[]> = {};
 	const next: Reply[] = [];
-	const state: { always?: Reply; post?: Reply } = {};
+	const state: { always?: Reply; post?: Reply; clock?: number | null; slow?: number } = {};
 	const seen: { readonly method: string; readonly path: string; readonly at: number; readonly auth: string }[] = [];
 	const http = createServer((request, response) => {
 		const path = request.url ?? "";
@@ -119,7 +121,13 @@ export async function fakeGithub(t: TestContext) {
 		const log = /^\/blob\/logs\/(\d+)$/.exec(path)?.[1];
 		if (log !== undefined) return void response.writeHead(200, { "content-type": "text/plain" }).end(Object.values(jobs).flat().find((each) => String(each.id) === log)?.log ?? "");
 		const reply = next.shift() ?? state.always ?? found ?? { status: 404, body: { message: "Not Found", documentation_url: DOCS, status: "404" } };
-		response.writeHead(reply.status, { "content-type": "application/json; charset=utf-8", ...RATE, "x-ratelimit-remaining": "4999", "x-ratelimit-reset": "1767225600", ...reply.headers }).end(JSON.stringify(reply.body));
+		const answer = () => {
+			response.sendDate = false;
+			const date = state.clock === null ? {} : { date: new Date(Date.now() + (state.clock ?? 0)).toUTCString() };
+			response.writeHead(reply.status, { "content-type": "application/json; charset=utf-8", ...date, ...RATE, "x-ratelimit-remaining": "4999", "x-ratelimit-reset": "1767225600", ...reply.headers }).end(JSON.stringify(reply.body));
+		};
+		if (state.slow === undefined) answer();
+		else setTimeout(answer, state.slow);
 	});
 	await once(http.listen(0, "127.0.0.1"), "listening");
 	t.after(() => {

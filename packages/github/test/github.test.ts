@@ -499,3 +499,40 @@ test("a pull request closed and reopened, while polled or across a restart, has 
 	await polls("a poll after the restart");
 	assert.deepEqual(told(restarted), [73, 74], "reopened while stopped: the review submitted since the last poll before the stop, and one GitHub gives no time, told rather than lost");
 });
+
+test("a poll's time is GitHub's, its list's date less the answer's time: a review on a new pull request is told with GitHub's clock an hour behind, or submitted while the list was answered; without a date, this machine's clock", async (t) => {
+	const api = await fakeGithub(t);
+	const shop = repository();
+	api.runs["acme/shop/ci.yml"] = [];
+	api.state.clock = -3_600_000;
+	// GitHub's `submitted_at`, on its clock, in whole seconds; `ago` seconds before now.
+	const now = (ago = 0) => new Date(Date.now() + (api.state.clock ?? 0) - ago * 1000).toISOString().replace(/\.\d+Z$/, "Z");
+	const pull = (number: number, ...reviews: readonly [number, string][]): FakePull => ({ number, title: `Pull ${number}`, branch: `arthur/${number}`, updated: now(), reviews: reviews.map(([id, submitted]) => ({ id, user: "octo", state: "COMMENTED", body: "", submitted })) });
+	api.pulls["acme/shop"] = [pull(7, [70, now()])];
+	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } }], options(api.apiUrl, { wakeOn: ["pull-request-review"] }));
+	const told = () => box.fake.emitted.filter((event) => event.name === "pull-request-review").map((event) => (event.data as { readonly review: number }).review);
+	const LIST = "/repos/acme/shop/pulls?";
+	const polls = async (what: string) => {
+		const before = api.count(LIST);
+		// The list asked twice more: the poll that asked it first has ended.
+		await until(what, () => api.count(LIST) >= before + 2);
+	};
+	await polls("the first poll");
+	api.pulls["acme/shop"].push(pull(8, [80, now()], [81, now(60)]));
+	await until("review 80, on GitHub's clock an hour behind this machine's", () => told().includes(80));
+	await polls("two more polls");
+	assert.deepEqual(told(), [80], "review 81, submitted before the poll before on GitHub's clock, is not told");
+	api.state.slow = 2000;
+	const asked = api.count(LIST);
+	await until("a list asked slowly", () => api.count(LIST) > asked);
+	// Submitted after the list was asked, on a pull request its answer, 2 s later, does not hold.
+	api.pulls["acme/shop"].push(pull(9, [90, now()]));
+	delete api.state.slow;
+	await until("review 90, submitted while the list was answered", () => told().includes(90));
+	api.state.clock = null;
+	await polls("a poll answered without a date");
+	api.pulls["acme/shop"].push(pull(10, [100, now()], [101, now(60)]));
+	await until("review 100, on this machine's clock", () => told().includes(100));
+	await polls("two more polls without a date");
+	assert.deepEqual([told(), box.errors], [[80, 90, 100], []]);
+});

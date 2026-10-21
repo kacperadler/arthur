@@ -1908,9 +1908,9 @@
   {
     "id": "AR0248",
     "title": "A branch `arthur review-needed` waves through is never pushed, so CI never builds it before its merge",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0248-a-branch-arthur-review-needed-waves-through-is-never-pushed-so-ci-never-builds-it-before-its-merge/ticket.md",
-    "updated": "2026-10-21T10:33:16.167Z",
+    "updated": "2026-10-21T11:51:04.463Z",
     "after": [
       "AR0253"
     ]
@@ -1949,16 +1949,16 @@
   {
     "id": "AR0253",
     "title": "Roadmap 59: auto-merge after PASS and green CI",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0253-roadmap-59-auto-merge-after-pass-and-green-ci/ticket.md",
-    "updated": "2026-10-21T11:05:49.568Z"
+    "updated": "2026-10-21T11:37:34.246Z"
   },
   {
     "id": "AR0254",
     "title": "Roadmap 64: prune and temporary folders on a schedule",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0254-roadmap-64-prune-and-temporary-folders-on-a-schedule/ticket.md",
-    "updated": "2026-10-21T11:06:50.160Z"
+    "updated": "2026-10-21T11:53:46.848Z"
   },
   {
     "id": "AR0255",
@@ -1970,8 +1970,29 @@
   {
     "id": "AR0256",
     "title": "Roadmap 66: arthur plugin new",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0256-roadmap-66-arthur-plugin-new/ticket.md",
-    "updated": "2026-10-21T11:09:08.923Z"
+    "updated": "2026-10-21T11:43:40.866Z"
+  },
+  {
+    "id": "AR0257",
+    "title": "A waiting branch's CI end wakes the coordinator twice",
+    "status": "planning",
+    "path": "spec/features/AR0257-a-waiting-branch-s-ci-end-wakes-the-coordinator-twice/ticket.md",
+    "updated": "2026-10-21T11:37:34.238Z"
+  },
+  {
+    "id": "AR0258",
+    "title": "The coordinator's role names merges only on the owner's word",
+    "status": "planning",
+    "path": "spec/features/AR0258-the-coordinator-s-role-names-merges-only-on-the-owner-s-word/ticket.md",
+    "updated": "2026-10-21T11:37:34.241Z"
+  },
+  {
+    "id": "AR0259",
+    "title": "The example config gives delivery an option it refuses",
+    "status": "planning",
+    "path": "spec/features/AR0259-the-example-config-gives-delivery-an-option-it-refuses/ticket.md",
+    "updated": "2026-10-21T11:37:34.243Z"
   }
 ]

@@ -1,6 +1,6 @@
 # arthur merge
 
-Usage: `arthur merge <job> [--unreviewed]`. Comes with the `delivery` plugin, `delivery()` in `arthur.config.ts`; it takes no option.
+Usage: `arthur merge <job> [--unreviewed | --auto [--no-ci]]`. Comes with the `delivery` plugin, `delivery()` in `arthur.config.ts`; it takes no option of its own, and `--auto` reads the project's `autoMerge` in the projects plugin's list (`arthur projects --help`).
 
 Merges an ended job's branch into the branch its project's checkout has checked out, main, then does the rest of a merge's mechanical part. The job is its full id or the 8 hex digits that end it: a worker, or any job with a branch, an onboarding included. It commits nothing but the merge and prunes nothing; main is pushed only by the plugin that provides `github.push`, when one is loaded. The procedure it prints last says what the coordinator does next.
 
@@ -20,7 +20,19 @@ Exit 1, main unchanged, nothing written or moved:
 - No PASS on the tip, without `--unreviewed`: `no PASS on arthur/<id>'s tip <commit>: <why> (last PASS: <commit>|none); review it with arthur review <id>, or merge it with --unreviewed on the owner's word only; main is unchanged`, `<why>` being `no review of it has a verdict` or `its newest review, <review job>, says FAIL`.
 - `collect("merge.check", job)`, asked last with the job as `arthur jobs` holds it (`id`, `kind`, `project`, `branch`, …): any text answer refuses, every answer named: `refused by merge.check: <answer>; <answer>; main is unchanged`. The projects plugin answers for an onboarding, whose branch may change only the vision and the criteria files (`arthur init --help`).
 
-Wrong usage (no job, two, an unknown flag) prints the usage line and exits 2.
+Wrong usage (no job, two, an unknown flag, `--auto` with `--unreviewed`, `--no-ci` without `--auto`) prints the usage line and exits 2.
+
+## --auto
+
+The merge without the owner, after a PASS and green CI. On top of the refusals above, and in place of the PASS above, each refusal naming its rule, exit 1, main unchanged:
+
+- The project's `autoMerge` not `true`: `--auto merges only in a project with autoMerge on; <project> has autoMerge false|unset, so its merges wait for the owner: arthur merge <job> on his word`.
+- No PASS on the tip itself (`arthur review-needed`'s `no review` does not count here): `--auto merges only with a PASS on the tip: arthur/<id>'s tip <commit>: <why>; review the tip: arthur review <job>`, `<why>` being `no review of it says PASS`, `its newest review, <review job>, says FAIL`, or `the last PASS, <review job>, is on an older commit, <commit>`.
+- A held path among the files the branch changes from where it left main (both names of a renamed file): a role (any `roles/` folder, and the project's `prompts.rolesDir`, default `.agents/arthur/roles`), the vision (`prompts.vision`, default `spec/vision.md`), CI (`.github/workflows/`), any `package.json`, or a file on the always-review list (`review.alwaysReview`, `arthur review-needed --help`): `--auto merges no held path: arthur/<id> changes <path> (a role|the vision|CI|package.json|the always-review list); its merge waits for the owner: arthur merge <job> on his word`.
+- No plugin provides `github.ci` (the github plugin not loaded, or disabled): `--auto asks CI of github, which is not loaded (…); without it, only the owner's word merges: arthur merge <job> --auto --no-ci`. `--no-ci`, on the owner's word only, leaves CI out and nothing else.
+- CI not passed, as `call("github.ci", { project, branch })` answers: the run that built the branch, as `arthur ci` finds it (`packages/github/docs/commands/ci.md`); a run further below the tip than the commits the branch adds ran on main and counts as none. Each `--auto merges only with CI passed on the branch: …`: `github could not tell: <github's refusal>`; `run <id>, attempt <n>, on <commit>, the tip|<k> below the tip, ended <conclusion>: <url>; why: arthur ci <branch> --project <project>`; or, for a run not finished or none yet, `…, is queued|in_progress` and `no run built a commit of it yet`, each ending `; it waits: when that run ends, the coordinator is woken with its verdict`.
+
+A wait is `<delivery folder>/<job>/ci-wait`. While `arthur run` runs, delivery asks `github.ci` for each wait every minute. When the run on the branch ends, the coordinator gets one `coordinator-message`, once per run attempt (a rerun's end again), across a restart too (`<job>/ci-told`): `[delivery] CI passed on arthur/<id> (run <id>, attempt <n>, on <commit>): <url>. It waited for that: arthur merge --auto <job>`, or `[delivery] CI ended <conclusion> on …. Not merged; it waits on: …` with `arthur ci` and its `--rerun`. A run not finished 30 minutes after its start is cancelled once through `call("github.cancel", { project, run })`; its end then says `cancelled by delivery after it ran 30 minutes`, and a cancel GitHub refuses wakes the coordinator with the refusal and the run's page. A wait ends when the branch is merged, its job is pruned, or its branch moves past the tip that waited; a broken wait file is said once on stderr.
 
 ## Steps
 
@@ -47,3 +59,4 @@ Main goes back to the commit before the merge with `git reset --keep`, which kee
 - `check failed on main (…)`: main is as it was. Tell the owner which check failed with its last lines, and recommend `arthur continue <job> '<what failed>'`, then a new review once it ends.
 - A conflict, or `refused by merge.check: …`: main is unchanged; tell the owner, in plain words.
 - `no PASS on …`: review the branch (`arthur review <job>`), or ask the owner for `--unreviewed`.
+- `--auto merges only with CI passed …; it waits`: nothing to do until the wake with CI's verdict; after `CI passed`, `arthur merge --auto <job>` again. Any other `--auto` refusal: the merge waits for the owner; tell him the rule it named.

@@ -1901,9 +1901,9 @@
   {
     "id": "AR0247",
     "title": "Roadmap 55: hand-back after a FAIL review",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0247-roadmap-55-hand-back-after-a-fail-review/ticket.md",
-    "updated": "2026-10-21T09:19:59.910Z"
+    "updated": "2026-10-21T10:02:05.125Z"
   },
   {
     "id": "AR0248",
@@ -1925,5 +1925,12 @@
     "status": "planning",
     "path": "spec/features/AR0250-a-pull-request-closed-and-reopened-has-its-reviews-told-again/ticket.md",
     "updated": "2026-10-21T09:22:58.331Z"
+  },
+  {
+    "id": "AR0251",
+    "title": "A hand-back refused for good is retried at every run's end, silently",
+    "status": "planning",
+    "path": "spec/features/AR0251-a-hand-back-refused-for-good-is-retried-at-every-run-s-end-silently/ticket.md",
+    "updated": "2026-10-21T10:02:05.123Z"
   }
 ]

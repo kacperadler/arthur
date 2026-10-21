@@ -6,7 +6,8 @@ import { DEPTH, git, nearestRun } from "./github-git.ts";
 
 // `arthur ci <branch> [--rerun]` (spec/roadmap.md, entry 58): the run that built the branch, as the poll finds it (the newest
 // run of its nearest commit that has one), and why it failed: each failed job, its failed step, and the end of the first one's
-// log; `--rerun` asks GitHub to rerun a failed or cancelled run, once per run. docs/commands/ci.md.
+// log; `--rerun` asks GitHub to rerun a failed or cancelled run, once per run. docs/commands/ci.md. Entry 59: the same run for
+// `github.ci`, and a run cancelled for `github.cancel`, which delivery's `arthur merge --auto` and its CI waits ask.
 
 const USAGE = "usage: arthur ci <branch> [--rerun] [--project <name>]";
 // The conclusions of a run that failed or was cancelled, and of a job or step that failed.
@@ -28,15 +29,11 @@ export function ciCommand(host: Host, watched: readonly Watched[]): Command {
 				return 2;
 			}
 			const name = project ?? host.board.projects()[0]?.name;
-			const each = watched.find((one) => one.project === name);
 			const refuse = (text: string) => (console.error(`arthur ci: ${text}`), 1);
-			if (each === undefined) return refuse(`project ${name} has no ci.workflow, so github watches no run of it`);
-			if (git(each.path, "rev-parse", "--verify", "--quiet", `refs/heads/${branch}`) === undefined) return refuse(`no branch ${branch} in ${each.path}`);
-			const signal = new AbortController().signal;
-			const answer = await workflowRuns(each.instance, each.repo, each.workflow, signal);
-			if (!("runs" in answer)) return refuse(answer.text);
-			const found = nearestRun(each.path, branch, answer.runs);
-			if (found === undefined) return refuse(`no run built ${branch}: none of its last ${DEPTH} commits has one among the ${answer.runs.length} newest runs of ${each.workflow}`);
+			const asked = await built(watched, name, branch).catch((error: Error) => error);
+			if (asked instanceof Error) return refuse(asked.message);
+			const { each, runs, found } = asked;
+			if (found === undefined) return refuse(`no run built ${branch}: none of its last ${DEPTH} commits has one among the ${runs} newest runs of ${each.workflow}`);
 			const { run, below } = found;
 			const where = below === 0 ? `${branch}'s tip` : `${branch}, ${below} commit${below === 1 ? "" : "s"} below its tip`;
 			console.log(`run ${run.id}, attempt ${run.attempt}, of ${each.workflow} on ${run.sha.slice(0, 7)} (${where}): ${run.status === "completed" ? run.conclusion : run.status}\n${run.url}`);
@@ -45,6 +42,26 @@ export function ciCommand(host: Host, watched: readonly Watched[]): Command {
 			return why(each, run, refuse);
 		},
 	};
+}
+
+// The run that built `branch` of `project` (github-git.ts `nearestRun`), with the project and how many runs GitHub listed; a
+// refusal throws: a project without `ci.workflow`, a branch not in its checkout, GitHub's own.
+export async function built(watched: readonly Watched[], project: string | undefined, branch: string) {
+	const each = watched.find((one) => one.project === project);
+	if (each === undefined) throw new Error(`project ${project} has no ci.workflow, so github watches no run of it`);
+	if (git(each.path, "rev-parse", "--verify", "--quiet", `refs/heads/${branch}`) === undefined) throw new Error(`no branch ${branch} in ${each.path}`);
+	const answer = await workflowRuns(each.instance, each.repo, each.workflow, new AbortController().signal);
+	if (!("runs" in answer)) throw new Error(answer.text);
+	return { each, runs: answer.runs.length, found: nearestRun(each.path, branch, answer.runs) };
+}
+
+// Asks GitHub to cancel run `id` of `project`'s workflow: one line once it took the request; a refusal throws.
+export async function cancel(watched: readonly Watched[], project: string, id: number): Promise<string> {
+	const each = watched.find((one) => one.project === project);
+	if (each === undefined) throw new Error(`project ${project} has no ci.workflow, so github watches no run of it`);
+	const answer = await ask(each.instance, `/repos/${each.repo}/actions/runs/${id}/cancel`, `run ${id} of ${each.repo}`, "Actions: read and write", new AbortController().signal, "POST");
+	if (!("body" in answer)) throw new Error(answer.text);
+	return `github: cancel of run ${id} of ${each.repo} asked`;
 }
 
 // Reruns the whole run, its failed and cancelled jobs with the rest; refused for a run not finished, one that did not fail or

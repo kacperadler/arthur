@@ -1,0 +1,10 @@
+{
+  "name": "@arthur/develop",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/develop.ts",
+    "./options": "./src/develop-options.ts"
+  }
+}

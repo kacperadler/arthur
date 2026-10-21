@@ -284,6 +284,9 @@ import { checkStructure } from "./structure.ts";
 // unknown-project refusal (projects.ts); delivery stays 770, its lockfile table cut for the ask and a refusal as a failed step.
 // AR0245: manage 1 less (368): the unknown-project throw in stats.ts was cut, since `host.board.list` refuses first.
 // Merged AR0241 with AR0245: main's budgets plus AR0241's raise, projects 486, delivery 770, manage 368.
+// AR0242 (the ticket's Done means: nvm provides the PATH of a project's checkout, which the merge asks): nvm 11 more (96) for
+// `nvm.path` (spawnSync of the same `nvm which` here, 5) and its refusals shared with the prepare (nodePath, 6); delivery 7
+// more (777) for asking it before the steps and the reinstall and running them on it, the ask folded into `installed`'s try.
 // AR0246 (roadmap 58, with AR0238): github 276 more (586): `arthur ci` and `--rerun`, why a run failed from its jobs and its
 // log's end, the reruns kept (github-ci.ts, 97); the push to origin that never prompts, with the nearest run and the git helper
 // moved out of github.ts (github-git.ts, 59); the pull request reviews polled (github-pulls.ts, 61); one request shared by
@@ -292,7 +295,8 @@ import { checkStructure } from "./structure.ts";
 // github did this before, so nothing was cut. delivery 9 more (779) to ask `github.push` after a PASS and after a merge; core
 // unchanged.
 // Merged AR0246 with AR0241 and AR0245: main's budgets plus AR0246's raises, github 586, delivery 770 + 9 = 779 (recounted).
-const BUDGETS = { core: 5727, "core/testing": 349, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 85, telegram: 641, uptime: 292, delivery: 779, github: 586, manage: 368 };
+// Merged AR0242 with AR0246: main's budgets plus AR0242's raises, nvm 96, delivery 770 + 7 + 9 = 786 (recounted).
+const BUDGETS = { core: 5727, "core/testing": 349, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 786, github: 586, manage: 368 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

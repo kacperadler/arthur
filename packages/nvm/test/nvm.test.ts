@@ -127,6 +127,19 @@ test("no .nvmrc: no variable, the job runs on the machine's default Node, and nv
 	assert.deepEqual([after, pathOf(job.worktree), existsSync(join(nvmDir, "calls"))], [[{}], process.env.PATH, false]);
 });
 
+test("nvm.path answers a project's checkout the PATH a worktree of it here gets, \"\" without .nvmrc, and throws each refusal", async () => {
+	const nvmDir = fakeNvm(temporaryFolder(), [`${MAJOR}.9.0`, `${MAJOR}.21.0`]);
+	const [pinned, plain, missing, empty] = [repository({ ".nvmrc": `# ours\n${MAJOR}\n` }), repository({}), repository({ ".nvmrc": "99\n" }), repository({ ".nvmrc": "\n" })];
+	const { fake } = await load(pinned, nvmDir);
+	const path = (root: string) => fake.collect<string>("nvm.path", { root });
+	assert.deepEqual([path(pinned), path(plain)], [[`${join(nvmDir, "versions/node", `v${MAJOR}.21.0`, "bin")}${delimiter}${process.env.PATH}`], [""]]);
+	assert.throws(() => path(missing), { message: `Node 99, which ${missing}/.nvmrc names, is not installed on machine local; fix: nvm install 99 there` });
+	assert.throws(() => path(empty), { message: `${empty}/.nvmrc on machine local names no Node version; write the project's, such as 24` });
+	assert.deepEqual(readFileSync(join(nvmDir, "calls"), "utf8").split("\n").filter(Boolean), [`which ${MAJOR}`, "which 99"], "nvm only looks, nothing installed");
+	process.env.NVM_DIR = temporaryFolder();
+	assert.throws(() => path(pinned), { message: new RegExp(`^nvm is missing on machine local \\(no ${process.env.NVM_DIR}/nvm\\.sh\\), which ${pinned}/\\.nvmrc needs; fix: curl `) });
+});
+
 // Each refusal of the spawn, its message after `plugin nvm: prepare failed: `; nothing of the job is left.
 async function refused(files: Readonly<Record<string, string>>, nvmDir: string): Promise<string> {
 	const { fake, home } = await load(repository(files), nvmDir);
@@ -226,5 +239,5 @@ test("listed after projects, whose project list is there before its setup, nvm r
 	const before = fakeHost({ name: "nvm" });
 	await before.setup(nvm());
 	before.provide("projects", () => []);
-	assert.deepEqual(before.provided, ["doctor"]);
+	assert.deepEqual(before.provided, ["nvm.path", "doctor"]);
 });

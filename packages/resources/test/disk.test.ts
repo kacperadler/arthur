@@ -161,6 +161,11 @@ test("free space hovering around the floor emits one disk-low per fall under it,
 	assert.equal(notices().length, 3);
 	assert.equal(logged(sshLog).length, rounds.length, "one df over ssh per round, the CPU and memory with the round");
 	assert.ok(logged(sshLog).every((call) => call.includes("df -Pk")));
+	writeFileSync(join(dir, "fail"), "df: /: Input/output error\n");
+	assert.equal(await round(), 0);
+	disks([gpu, "/dev/sdb1", FLOOR - 1, "/"]);
+	assert.equal(await round(), 0);
+	assert.equal(lows().length, 4, "under again after a failed check is told again");
 });
 
 test("each path a plugin names counts: two on one filesystem once, the least free named, one missing there skipped with one line while the home still counts", async (t) => {

@@ -14,8 +14,7 @@ the role says `When the owner asks for a merge: arthur merge <job>`; `arthur mer
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
-
+The coordinator's role names `arthur merge --auto` next to the owner's merge, so the coordinator acts on delivery's wakes instead of waiting for the owner.
 - Kind: improvement
 
 Evidence:

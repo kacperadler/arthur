@@ -1977,9 +1977,9 @@
   {
     "id": "AR0257",
     "title": "A waiting branch's CI end wakes the coordinator twice",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0257-a-waiting-branch-s-ci-end-wakes-the-coordinator-twice/ticket.md",
-    "updated": "2026-10-21T14:47:03.215Z"
+    "updated": "2026-10-21T15:20:46.839Z"
   },
   {
     "id": "AR0258",
@@ -2036,9 +2036,9 @@
   {
     "id": "AR0265",
     "title": "No health line for a finished audit that was never filed",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0265-no-health-line-for-a-finished-audit-that-was-never-filed/ticket.md",
-    "updated": "2026-10-21T14:59:04.831Z",
+    "updated": "2026-10-21T15:22:50.706Z",
     "after": [
       "AR0266"
     ]
@@ -2053,9 +2053,9 @@
   {
     "id": "AR0267",
     "title": "The procedure after a merge settles review notes as tickets whatever the project's findings mode",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0267-the-procedure-after-a-merge-settles-review-notes-as-tickets-whatever-the-project-s-findings-mode/ticket.md",
-    "updated": "2026-10-21T13:54:35.188Z"
+    "updated": "2026-10-21T15:23:57.042Z"
   },
   {
     "id": "AR0268",

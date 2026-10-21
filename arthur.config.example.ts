@@ -184,9 +184,10 @@ export default defineConfig({
 			// Left free on every machine, for the coordinator and the system: a job starts on a machine only while its free CPU
 			// and memory (local's checked every 60 s by `arthur run`, another machine's at each machines check) keep these after
 			// the job's perJob reservation; the refusal names each machine and what is short. `cpu`: cores, default 0; `memory`:
-			// bytes with K, M, G or T, or a percentage of the machine's memory, default none. `disk` comes with roadmap entry 69;
-			// until then the plugin refuses it as an unknown key. Each machine's room is in the coordinator's context,
-			// `arthur resources` and `/resources`.
+			// bytes with K, M, G or T, or a percentage of the machine's memory, default none; `disk`: bytes with K, M, G or T
+			// left free on each filesystem the machine's jobs write (its home, Docker's data root), 0 (the default) for no
+			// floor; under it no job starts there and `disk-low` is emitted once per fall. Each machine's room is in the
+			// coordinator's context, `arthur resources` and `/resources`.
 			keepFree: { cpu: 1, memory: "2G", disk: "20G" },
 		}),
 

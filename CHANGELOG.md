@@ -8,6 +8,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0243 The onboarding procedure does not name the command that merges an onboarding (9611adf)
 
+### Fixed
+
+- AR0241 arthur merge installs from the lockfile and never reads a project's own install (5d9c3fe)
+
 ### Changed
 
 - AR0245 arthur stats: remove the unreachable unknown-project throw (4116eec)

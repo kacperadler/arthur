@@ -10,7 +10,9 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ### Fixed
 
+- AR0238 A rerun keeps its run id, so its end is never told as `ci-finished`
 - AR0241 arthur merge installs from the lockfile and never reads a project's own install (5d9c3fe)
+- AR0242 The checks on main run on the service's Node, not the project's .nvmrc (a81486a)
 
 ### Changed
 

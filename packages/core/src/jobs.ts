@@ -104,7 +104,6 @@ export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run
 	beforeSpawn(owner: string, check: SpawnCheck): void;
 	prepare(owner: string, fn: Prepare): void;
 	registerMachine(owner: string, machine: Machine): void;
-	// `ignoreRestart`: `arthur continue --ignore-restart`, the CLI's alone.
 	continue(id: string, instruction: string, budgetUsd?: number, ignoreRestart?: boolean): Promise<string | undefined>;
 	file(board: Board, id: string, job: string): string;
 	// What `arthur roles` prints: each role, the files it reads in the project's main checkout, and its model.

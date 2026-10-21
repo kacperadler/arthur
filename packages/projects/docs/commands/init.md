@@ -4,7 +4,7 @@ Usage: `arthur init <project>`. Comes with the `projects` plugin.
 
 Gives the repository of `<project>`, a name in the plugin's list, what Arthur reads, in its folder (the main checkout), each file only where nothing is there yet:
 
-- its vision, `spec/vision.md` (the project's `prompts.vision` moves it), and its criteria files in `.agents/arthur/criteria/` (`prompts.criteriaDir`): one per criteria file a registered role reads (`host.jobs.criteria()`), today `styleguide.md`, which every job and the coordinator read, and `autopilot.md`, the coordinator's. Each is a skeleton, its headings and nothing under them, for the onboarding below to draft; a name this plugin ships no skeleton for gets its title alone (`code-review` is `# Code review`);
+- its vision, `spec/vision.md` (the project's `prompts.vision` moves it), and its criteria files in `.agents/arthur/criteria/` (`prompts.criteriaDir`): one per criteria file a registered role reads (`host.jobs.criteria()`), today `styleguide.md`, which every job and the coordinator read, and `autopilot.md`, the coordinator's. Each is a skeleton, its headings and nothing under them, for the onboarding below to draft. A name this plugin ships no skeleton for gets the `criteria/<name>.md` a package of this load ships (`host.code`, the first in load order), as that package wrote it (manage's `audit.md` and `retro.md`); else its title alone (`code-review` is `# Code review`);
 - `.nvmrc`, the major version of the Node Arthur runs on (`24` today), for the nvm plugin (roadmap entry 84), unless the repository has one, kept then as it is; a repository without `package.json` gets one too;
 - its board, `spec/build.json`, empty (`[]`), written last.
 

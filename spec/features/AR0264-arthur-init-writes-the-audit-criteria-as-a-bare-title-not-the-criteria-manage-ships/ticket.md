@@ -4,7 +4,10 @@
 {
   "id": "AR0264",
   "title": "`arthur init` writes the audit criteria as a bare title, not the criteria manage ships",
-  "date": "2026-10-21"
+  "date": "2026-10-21",
+  "after": [
+    "AR0266"
+  ]
 }
 ```
 
@@ -35,3 +38,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F2 of AR0261
+- 2026-10-21: Approved by the owner (Telegram).

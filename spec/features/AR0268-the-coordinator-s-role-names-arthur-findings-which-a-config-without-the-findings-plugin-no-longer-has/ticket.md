@@ -4,7 +4,10 @@
 {
   "id": "AR0268",
   "title": "The coordinator's role names `arthur findings`, which a config without the findings plugin no longer has",
-  "date": "2026-10-21"
+  "date": "2026-10-21",
+  "after": [
+    "AR0258"
+  ]
 }
 ```
 
@@ -35,3 +38,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F2 of AR0263
+- 2026-10-21: Approved by the owner (Telegram).

@@ -36,3 +36,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Started by the coordinator; owner: continue Arthur, at most 10% of the weekly limit today (5% at 15:2x).
+- 2026-10-21: Coordinator (free hand) accepted the worker picks: a retro is due at 10 merges or more and, within them, 2 FAIL reviews or 5 findings, as the harness does; optional `retro.budgetUsd` (default the core jobs.budgetUsd); manage line budget 910.

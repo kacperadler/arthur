@@ -4,7 +4,10 @@
 {
   "id": "AR0265",
   "title": "No health line for a finished audit that was never filed",
-  "date": "2026-10-21"
+  "date": "2026-10-21",
+  "after": [
+    "AR0266"
+  ]
 }
 ```
 
@@ -14,8 +17,7 @@ the harness's health named a finished audit whose report is not in `spec/quality
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
-
+`arthur health` has a line for a finished audit (and retro) that was never filed, with a test.
 - Kind: improvement
 
 Evidence:
@@ -35,3 +37,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F3 of AR0261
+- 2026-10-21: Approved by the owner (Telegram).

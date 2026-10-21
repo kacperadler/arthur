@@ -26,6 +26,7 @@ import { delivery } from "@arthur/delivery"; // first, derived
 import { develop } from "@arthur/develop"; // first, named
 import { discord } from "@arthur/discord"; // first, named
 import { docker } from "@arthur/docker"; // first, named
+import { findings } from "@arthur/findings"; // first, named
 import { github } from "@arthur/github"; // first, derived
 import { machines } from "@arthur/machines"; // first, named
 import { manage } from "@arthur/manage"; // first, named
@@ -183,9 +184,10 @@ export default defineConfig({
 			// Left free on every machine, for the coordinator and the system: a job starts on a machine only while its free CPU
 			// and memory (local's checked every 60 s by `arthur run`, another machine's at each machines check) keep these after
 			// the job's perJob reservation; the refusal names each machine and what is short. `cpu`: cores, default 0; `memory`:
-			// bytes with K, M, G or T, or a percentage of the machine's memory, default none. `disk` comes with roadmap entry 69;
-			// until then the plugin refuses it as an unknown key. Each machine's room is in the coordinator's context,
-			// `arthur resources` and `/resources`.
+			// bytes with K, M, G or T, or a percentage of the machine's memory, default none; `disk`: bytes with K, M, G or T
+			// left free on each filesystem the machine's jobs write (its home, Docker's data root), 0 (the default) for no
+			// floor; under it no job starts there and `disk-low` is emitted once per fall. Each machine's room is in the
+			// coordinator's context, `arthur resources` and `/resources`.
 			keepFree: { cpu: 1, memory: "2G", disk: "20G" },
 		}),
 
@@ -302,6 +304,14 @@ export default defineConfig({
 		// non-matching subject; words and a file are given to the worker and the reviewer, and the review judges them. It takes no
 		// option of its own (packages/commit-rules/docs/commit-rules.md).
 		commitRules(),
+
+		// What `arthur merge` makes of a merged ticket's open findings, per project, by its name: "ticket" (the default for a
+		// project not named: one planning ticket each), "grouped" (one planning ticket for them all) or "summary" (no ticket;
+		// each `deferred (client summary)`, listed in the outcome for the client). An unknown mode, or a key that is not a
+		// project, refuses the load. Also `/findings`. Without it, findings stay open. packages/findings/docs/findings.md.
+		findings({
+			mode: { "acme-site": "summary", "acme-ios": "grouped" },
+		}),
 
 		// Each project's sites, checked over plain HTTP while `arthur run` runs (no model, so no usage). A site is down after 2
 		// failed checks in a row (no answer in time, refused, a TLS error, a wrong status, the text missing): one notice with its

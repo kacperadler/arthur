@@ -4,7 +4,10 @@
 {
   "id": "AR0264",
   "title": "`arthur init` writes the audit criteria as a bare title, not the criteria manage ships",
-  "date": "2026-10-21"
+  "date": "2026-10-21",
+  "after": [
+    "AR0266"
+  ]
 }
 ```
 
@@ -14,8 +17,7 @@ with manage loaded, `host.jobs.criteria()` names `audit`, so `arthur init` write
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
-
+`arthur init` writes the audit criteria manage ships, not a bare title, with a test.
 - Kind: improvement
 
 Evidence:
@@ -35,3 +37,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F2 of AR0261
+- 2026-10-21: Approved by the owner (Telegram).

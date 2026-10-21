@@ -61,6 +61,7 @@ What `setup` gets, one host per plugin. `@arthur/core/testing`'s `fakeHost` give
 | `jobs.registerMachine(machine)` | A `Machine` jobs run on over SSH; `local` is the core's. |
 | `jobs.run(machine, argv, limitSeconds?, input?)` | One command on a registered machine, `input` on its stdin; resolves to a `Ran`. |
 | `jobs.machines()` | The names of the registered machines. |
+| `jobs.home(machine)` | Arthur's home folder on a registered machine, the core's own on `local`; refused for a name no plugin registers (above, "Changes since entry 51"). |
 | `jobs.spawn(request)` | A job from a `SpawnRequest`; resolves to `Started` once its wrapper started. |
 | `jobs.continue(id, instruction, budgetUsd?)` | `arthur continue` of an ended job with a branch, `budgetUsd` replacing its budget, through every `beforeSpawn` and `prepare` as at the CLI; resolves to why its wrapper did not start, undefined once it started (above, "Changes since entry 51"). |
 | `jobs.block(id, reason, stop?)` | Holds a job in a run `blocked` on `dependency: <reason>` until its run ends; with `stop`, on `user: <reason>`, and stops the run, resolving once it is over. Refused for an empty reason and a job not in a run. |
@@ -101,6 +102,7 @@ Each decided in the ticket that made it.
 - AR0253 (roadmap 59, which names CI "asked of github through `call`"): the provided names `github.ci` and `github.cancel`, by github, asked by delivery's `arthur merge --auto` and its CI waits. `github.ci`: `{ project, branch }` to a promise of the run that built the branch as `arthur ci` finds it, `{ id, attempt, sha, branch, status, conclusion, url, startedAt, below }` (`startedAt` GitHub's `run_started_at`, else `created_at`; `below` the commits from the tip to the one it ran on), undefined for none; a project without `ci.workflow`, a branch not in its checkout, and GitHub's refusal reject. `github.cancel`: `{ project, run }` to a promise of one line once GitHub took the cancel; its refusal rejects. Asked with `call`, so a load without github refuses `--auto` unless `--no-ci`, and delivery never imports github. No host member changed; delivery now has a `stop`.
 - AR0254 (roadmap 64, which runs the core's prune on a schedule; the ticket's Done means allow a new member recorded here): `jobs.prune(ids)`, the runner's `arthur prune <id>...` given to plugins, its lines and refusals the CLI's; `--all` stays the CLI's, so a plugin names each job it frees. Manage's daily prune of `prune.keepJobsDays` uses it (docs/manage.md in its package).
 - AR0251 (the ticket's Done means: a test that the hand-back ends on delivery's own refusal and still retries another plugin's): the test kit's `FakeHost.beforeSpawn(check)`, the test as the plugin `test` refusing a spawn (`refused by test: <reason>`), since a check through `host.jobs.beforeSpawn` refuses as the plugin itself. No host member changed.
+- AR0262 (roadmap 69, which counts each machine's `home`; the ticket's Done means allow a new member recorded here): `jobs.home(machine)`, the `home` a `Machine` was registered with, `<home>` itself on `local`, which no member gave a plugin; a name no plugin registers is refused as a spawn's `machine` is, `unknown machine <name>; machines: <names>`. The resources plugin reads the free disk of that folder's filesystem there. The provided name `resources.disk`, asked by resources with `collect` at each check of a machine with a disk floor: `(machine)` to an absolute path, or a list of them, on that machine that its jobs write (docker: its data root, entry 70), or a promise of either.
 
 ## Types
 
@@ -184,6 +186,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `models.lists` | orchestration | models | Every role's model list. |
 | `machines.round` | resources | machines | A round of machine checks as it begins. |
 | `resources.free` | resources | machines | The jobs a machine has room for. |
+| `resources.disk` | none yet (docker) | resources, each check of a machine with `keepFree.disk` | `(machine)`: the absolute paths there its jobs write, besides its home (above, "Changes since entry 51"). |
 | `schedule.register` | schedule | orchestration | Registers another plugin's schedule entries. |
 | `projects.install` | projects | delivery (`arthur merge`) | `{ project, commit }`: the command that installs the project at that commit, as a new worktree gets it, `""` for none (above, "Changes since entry 51"). |
 | `nvm.path` | nvm | delivery (`arthur merge`) | `{ root }`, a project's checkout here: the PATH with its `.nvmrc`'s Node first, `""` without `.nvmrc` (above, "Changes since entry 51"). |

@@ -338,7 +338,13 @@ import { checkStructure } from "./structure.ts";
 // check through `host.jobs.beforeSpawn` refuses as the plugin under test; delivery unchanged (1232).
 // Merged main (AR0253, AR0254) into AR0256: main's budgets plus AR0256's develop 198 (recounted with wc -l).
 // Merged main (AR0254, AR0256) into AR0251: main's budgets plus AR0251's core/testing 349 (recounted with wc -l).
-const BUDGETS = { core: 5730, "core/testing": 349, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1232, github: 621, manage: 452, develop: 198 };
+// AR0262 (roadmap 69): resources 93 more (577) for `keepFree.disk`: each machine's filesystems read with `df -Pk` there, its home
+// and each path `resources.disk` names, counted once per filesystem, a missing one skipped, df's refusals (machine-disk.ts, 62),
+// the disk in each check, its `disk-low` and notice once per fall (machine-free.ts, 14), the floor in the room and its lines
+// (room.ts, 12) and the option (resource-options.ts, 5); nothing did this before, so nothing was cut. core 5 more (5735) for
+// `host.jobs.home(machine)`, Arthur's home folder on a machine, which a plugin had no way to read (job-machine.ts, the lookup
+// shared with `pick`); jobs.ts kept at 200 by folding two comments.
+const BUDGETS = { core: 5735, "core/testing": 349, projects: 486, orchestration: 1542, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1232, github: 621, manage: 452, develop: 198 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

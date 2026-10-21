@@ -13,6 +13,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0238 A rerun keeps its run id, so its end is never told as `ci-finished`
 - AR0241 arthur merge installs from the lockfile and never reads a project's own install (5d9c3fe)
 - AR0242 The checks on main run on the service's Node, not the project's .nvmrc (a81486a)
+- AR0248 A branch `arthur review-needed` waves through is never pushed, so CI never builds it before its merge (beec2df)
 - AR0250 A pull request closed and reopened has its reviews told again (bad0ec0)
 
 ### Changed

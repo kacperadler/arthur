@@ -317,6 +317,10 @@ import { checkStructure } from "./structure.ts";
 // AR0250 (the ticket's Done means: a review of a pull request new to the state told only when submitted after the project's
 // previous poll, its time kept in the state): github 9 more (595), the poll's start and the `submitted_at` test (github-pulls.ts,
 // 4 more) and the state's `polled` with its check (github-state.ts, 5 more); the comments of both were cut to fit first.
+// AR0256 (roadmap 66): develop: 198, set for `arthur plugin new`: its refusals before any write, a budget below the new src/
+// included, the package written whole, the line budget and the lockfile's workspace added (plugin-new.ts, 107), the new
+// package's four files (plugin-template.ts, 58), the plugin (develop.ts, 18) and its empty options file (15); a new package,
+// so nothing was cut elsewhere; core unchanged.
 // AR0253 (roadmap 59): delivery 212 more (1231) for `arthur merge --auto`: its refusals, autoMerge, a PASS on the tip itself,
 // the held paths and CI asked of github, and the wait CI not yet passed leaves (auto-merge.ts, 69); the waits polled while
 // `arthur run` runs, the wake once per run end across a restart, a hung run cancelled (ci-wait.ts, 120); the flags and the
@@ -332,7 +336,9 @@ import { checkStructure } from "./structure.ts";
 // AR0251 (the ticket's Done means: a test that the hand-back ends on delivery's own refusal and still retries another
 // plugin's): core/testing 2 more (349) for `FakeHost.beforeSpawn`, the test as the plugin `test` refusing a spawn, since a
 // check through `host.jobs.beforeSpawn` refuses as the plugin under test; delivery unchanged (1232).
-const BUDGETS = { core: 5730, "core/testing": 349, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1232, github: 621, manage: 452 };
+// Merged main (AR0253, AR0254) into AR0256: main's budgets plus AR0256's develop 198 (recounted with wc -l).
+// Merged main (AR0254, AR0256) into AR0251: main's budgets plus AR0251's core/testing 349 (recounted with wc -l).
+const BUDGETS = { core: 5730, "core/testing": 349, projects: 486, orchestration: 1542, machines: 459, resources: 484, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1232, github: 621, manage: 452, develop: 198 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

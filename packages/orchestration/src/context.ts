@@ -20,14 +20,16 @@ export function byState<T extends { readonly state: string }>(jobs: readonly T[]
 	return groups;
 }
 
-export function coordinatorContext(host: Host): string {
+// `checkout`: the context in a copy of the main project's repository at `root` (an eval's fixture), at the instant `at`: its
+// vision and board read there; no jobs, open decisions or silent mode, which are the live Arthur's.
+export function coordinatorContext(host: Host, checkout?: { readonly root: string; readonly at: Date }): string {
 	const { prompt, warnings } = host.jobs.prompt("coordinator");
 	const parts = [prompt.trim()];
 	// Without a project list the only project is the repository Arthur runs in, which has no board.
-	const projects = host.collect("projects").length > 0 ? host.board.projects().map((project) => project.name) : [undefined];
+	const projects = checkout === undefined && host.collect("projects").length > 0 ? host.board.projects().map((project) => project.name) : [undefined];
 	for (const name of projects) {
 		try {
-			const { project, path, text = "", problem } = host.jobs.vision(name);
+			const { project, path, text = "", problem } = host.jobs.vision(name, checkout?.root);
 			if (problem !== undefined || text.trim() === "") warnings.push(`project ${project} has no vision: ${path} is ${problem ?? "empty"}; the coordinator goes without it`);
 			else parts.push(`## Vision of ${project} (${path})\n\n${text.trim()}`);
 		} catch (error) {
@@ -38,13 +40,13 @@ export function coordinatorContext(host: Host): string {
 	for (const name of projects) {
 		let digest: string;
 		try {
-			digest = host.board.digest(name);
+			digest = host.board.digest(name, checkout?.root);
 		} catch (error) {
 			digest = `the board was not read: ${firstLine(error)}`;
 		}
 		parts.push(`## Board${name === undefined ? "" : ` of ${name}`}\n\n${digest}`);
 	}
-	const jobs = byState(host.jobs.list().filter((job) => job.state !== "ended"));
+	const jobs = byState(checkout === undefined ? host.jobs.list().filter((job) => job.state !== "ended") : []);
 	if (jobs.size > 0) {
 		const now = host.clock.now().getTime();
 		const lines = [...jobs].flatMap(([state, each]) => [
@@ -58,12 +60,13 @@ export function coordinatorContext(host: Host): string {
 		]);
 		parts.push(`## Jobs not ended\n\n${lines.join("\n")}`);
 	}
-	const open = decisionContext(host);
+	const open = checkout === undefined ? decisionContext(host) : "";
 	if (open !== "") parts.push(`## Open decisions\n\n${open}`);
-	const { date, time, day } = host.clock.local();
-	const night = host.clock.isQuiet() ? "night: within the owner's quiet hours" : "day: outside the owner's quiet hours";
+	const at = checkout?.at ?? host.clock.now();
+	const { date, time, day } = host.clock.local(at);
+	const night = host.clock.isQuiet(at) ? "night: within the owner's quiet hours" : "day: outside the owner's quiet hours";
 	parts.push(`## Time\n\n${time} on ${day} ${date} (${host.clock.timeZone}), ${night}.`);
-	const silent = silentContext(host);
+	const silent = checkout === undefined ? silentContext(host) : "";
 	if (silent !== "") parts.push(`## Silent\n\n${silent}`);
 	for (const answer of host.collectEach("coordinator.context")) {
 		const said = "error" in answer ? `coordinator.context failed: ${firstLine(answer.error)}` : answer.value;

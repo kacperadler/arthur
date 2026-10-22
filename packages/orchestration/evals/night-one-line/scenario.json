@@ -1,7 +1,5 @@
 {
-	"needs": [
-		"AR0279: the context's `## Time` line, which says it is night (within the owner's quiet hours), is not in the turn"
-	],
+	"hour": 23,
 	"turn": {
 		"message": "how is it going?"
 	},

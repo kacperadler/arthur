@@ -440,12 +440,21 @@ import { checkStructure } from "./structure.ts";
 // 3; plugin-host.ts, 0); develop 13 more (628) for help in a run: `arthur <command> --help` and `arthur help <command>` print
 // the page, noted `help` (eval-stub.ts, 10), the pages read once per eval (eval-command.ts, 2) and left out of the scored calls
 // (eval-run.ts, 1); the stub had no help before, so nothing was cut.
+// AR0279 (F3 of AR0276; its Done means: orchestration provides the context for a given checkout, develop appends it, and a
+// scenario `hour`): core 2 more (5753) for `board.digest(project?, checkout?)` and `jobs.vision(project?, checkout?)`, a copy's
+// board and vision (board.ts and roles.ts, one comment line each; plugin-host.ts, 0); orchestration 8 more (2231) for the
+// context of a checkout at an instant, without the live jobs, decisions and silent mode (context.ts, 3) and
+// `coordinator.checkoutContext` provided with its refusal (orchestration.ts, 5); develop 22 more (650) for the context per run's
+// copy at the scenario's hour (eval-command.ts, 12, the instant on the owner's clock), the session's `TZ` (eval-run.ts, 7) and
+// `hour` read and checked (eval-scenario.ts, 3); nothing gave an eval the context before, so nothing was cut.
 // AR0288 (F3 of AR0280): develop 5 more (633), the stub answering every help call as the live CLI does, never from the
 // scenario's answers: an unknown command's `--help` and `help <command>`, `help` of two words and `help` alone, each with the
 // live CLI's text and exit code (eval-stub.ts, 5 net, its help comment kept at 2 lines and the branches put on one line).
 // Merged main (AR0278) into AR0269: main's budgets plus AR0269's machines 474 and resources 602 (recounted with wc -l).
 // Merged main (AR0269) into AR0288: main's budgets plus AR0288's develop 633 (recounted with wc -l).
-const BUDGETS = { core: 5751, "core/testing": 349, projects: 486, orchestration: 2223, machines: 474, resources: 602, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 633, findings: 254 };
+// Merged main (AR0269, AR0288) into AR0279: main's budgets plus AR0279's raises, core 5753, orchestration 2231, develop
+// 633 + 22 = 655 (recounted with wc -l).
+const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2231, machines: 474, resources: 602, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 655, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

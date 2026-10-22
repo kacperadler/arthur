@@ -38,3 +38,4 @@ In:
 ## Decisions
 
 - 2026-10-22: Started by the coordinator; owner: continue Arthur today up to 20% of the weekly limit (8% at 08:40).
+- 2026-10-22: Coordinator (free hand) accepted the worker picks: scenario = <package>/evals/<name>/ with scenario.json and fixture/; baseline evals/baseline.json (option evals.baseline); develop line budget 584, core 5748.

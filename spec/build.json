@@ -2129,9 +2129,9 @@
   {
     "id": "AR0277",
     "title": "The eval words a turn with a copy of orchestration's wake and inbox lines, which can drift",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0277-the-eval-words-a-turn-with-a-copy-of-orchestration-s-wake-and-inbox-lines-which-can-drift/ticket.md",
-    "updated": "2026-10-22T08:51:04.080Z"
+    "updated": "2026-10-22T08:51:15.850Z"
   },
   {
     "id": "AR0278",

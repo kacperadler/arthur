@@ -28,6 +28,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0294 An eval turn's plugin context lines are the live Arthur's, which a scenario cannot set (dae5a18)
 - AR0296 An orchestration test can leave its tmux server and fake agent running after `npm test` (5249d15)
 - AR0297 The styleguide and review criteria now live in two folders that will drift (bb00d85)
+- AR0298 On another machine the checkout a job reaches has no arthur.config.ts, so the line of `arthur plugin new` cannot run there (b9d649e)
 
 ### Changed
 

@@ -2291,23 +2291,23 @@
   {
     "id": "AR0298",
     "title": "On another machine the checkout a job reaches has no arthur.config.ts, so the line of `arthur plugin new` cannot run there",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0298-on-another-machine-the-checkout-a-job-reaches-has-no-arthur-config-ts-so-the-line-of-arthur-plugin-new-cannot-run-there/ticket.md",
-    "updated": "2026-10-22T21:30:04.074Z"
+    "updated": "2026-10-22T21:36:14.285Z"
   },
   {
     "id": "AR0299",
     "title": "A crash of `arthur run` while a job's question waits for the log's lock loses its notice",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0299-a-crash-of-arthur-run-while-a-job-s-question-waits-for-the-log-s-lock-loses-its-notice/ticket.md",
-    "updated": "2026-10-22T17:36:37.413Z"
+    "updated": "2026-10-22T21:34:07.204Z"
   },
   {
     "id": "AR0300",
     "title": "The wrapper's append to log can still recreate it while rm -r empties the record",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0300-the-wrapper-s-append-to-log-can-still-recreate-it-while-rm-r-empties-the-record/ticket.md",
-    "updated": "2026-10-22T19:22:29.827Z"
+    "updated": "2026-10-22T21:34:08.736Z"
   },
   {
     "id": "AR0301",
@@ -2329,5 +2329,12 @@
     "status": "planned",
     "path": "spec/features/AR0303-the-test-kit-s-exit-removes-the-sockets-of-tmux-servers-a-test-left-so-nothing-can-reach-them/ticket.md",
     "updated": "2026-10-22T21:11:15.437Z"
+  },
+  {
+    "id": "AR0304",
+    "title": "A new plugin's ticket without a plan can still be placed on another machine",
+    "status": "planned",
+    "path": "spec/features/AR0304-a-new-plugin-s-ticket-without-a-plan-can-still-be-placed-on-another-machine/ticket.md",
+    "updated": "2026-10-22T21:36:24.628Z"
   }
 ]

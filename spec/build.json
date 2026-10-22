@@ -2072,7 +2072,7 @@
     "title": "The disk check makes a second ssh call per machine and round",
     "status": "done",
     "path": "spec/features/AR0269-the-disk-check-makes-a-second-ssh-call-per-machine-and-round/ticket.md",
-    "updated": "2026-10-22T13:52:07.956Z"
+    "updated": "2026-10-22T14:08:15.398Z"
   },
   {
     "id": "AR0270",
@@ -2146,9 +2146,9 @@
   {
     "id": "AR0279",
     "title": "An eval turn gets the coordinator's role but not its context, nor a time of day",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0279-an-eval-turn-gets-the-coordinator-s-role-but-not-its-context-nor-a-time-of-day/ticket.md",
-    "updated": "2026-10-22T08:51:05.331Z",
+    "updated": "2026-10-22T14:07:29.162Z",
     "after": [
       "AR0278"
     ]
@@ -2215,9 +2215,9 @@
   {
     "id": "AR0288",
     "title": "The eval stub answers a command's --help with that command's scripted result",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0288-the-eval-stub-answers-a-command-s-help-with-that-command-s-scripted-result/ticket.md",
-    "updated": "2026-10-22T09:44:07.208Z",
+    "updated": "2026-10-22T13:55:35.899Z",
     "after": [
       "AR0278"
     ]

@@ -1,7 +1,4 @@
 {
-	"needs": [
-		"AR0277: the projects plugin's line of the wake, `Its questions to send the owner:` with the questions, is not in the turn, since the job's record is not in the eval's home; the questions are in its final message"
-	],
 	"turn": {
 		"ended": {
 			"id": "2026-10-22-onboarding-4e5f6a7b",

@@ -37,3 +37,4 @@ In:
 - 2026-10-23: Source: F1 of AR0300
 - 2026-10-23: Coordinator (free hand, finding ticket) approved.
 - 2026-10-23: Coordinator (free hand): line budget raise accepted, core 5755 to 5770, for appending the steer and worktree-guard log lines without creating `log`.
+- 2026-10-23: Coordinator (free hand): after merging main (AR0305, core 5772), core 5787 (5772 + this ticket's 15).

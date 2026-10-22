@@ -2340,15 +2340,15 @@
   {
     "id": "AR0305",
     "title": "A lock left by a crashed process whose pid the taker now has counts as held by a live process",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0305-a-lock-left-by-a-crashed-process-whose-pid-the-taker-now-has-counts-as-held-by-a-live-process/ticket.md",
-    "updated": "2026-10-22T22:52:41.625Z"
+    "updated": "2026-10-22T23:17:56.770Z"
   },
   {
     "id": "AR0306",
     "title": "The agent's extensions still append to `log` with a flag that creates it",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0306-the-agent-s-extensions-still-append-to-log-with-a-flag-that-creates-it/ticket.md",
-    "updated": "2026-10-22T22:59:01.824Z"
+    "updated": "2026-10-22T23:05:47.618Z"
   }
 ]

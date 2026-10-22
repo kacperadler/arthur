@@ -2177,9 +2177,9 @@
   {
     "id": "AR0283",
     "title": "A job's question and the plugin's closes take the log's lock synchronously inside `arthur run`",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0283-a-job-s-question-and-the-plugin-s-closes-take-the-log-s-lock-synchronously-inside-arthur-run/ticket.md",
-    "updated": "2026-10-22T16:25:45.575Z",
+    "updated": "2026-10-22T17:07:36.513Z",
     "after": [
       "AR0282"
     ]
@@ -2194,9 +2194,9 @@
   {
     "id": "AR0285",
     "title": "A job's question answered by policy still reaches the owner as a question",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0285-a-job-s-question-answered-by-policy-still-reaches-the-owner-as-a-question/ticket.md",
-    "updated": "2026-10-22T09:16:36.941Z"
+    "updated": "2026-10-22T17:09:46.610Z"
   },
   {
     "id": "AR0286",

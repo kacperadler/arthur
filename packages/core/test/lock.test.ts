@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { setImmediate } from "node:timers/promises";
 import { test } from "node:test";
@@ -20,20 +20,68 @@ test("the lock holds the holder's pid while it runs, and is gone after, also whe
 });
 
 test("a lock held by a live process is waited for, then refused naming its pid", () => {
+	// The test runner that started this file is alive while it runs.
 	const path = join(temporaryFolder(), "board.lock");
-	writeFileSync(path, String(process.pid));
+	writeFileSync(path, crashed(process.ppid));
 	const started = Date.now();
 	assert.throws(() => withLock(path, () => assert.fail("ran under another holder's lock"), 200), {
-		message: `${path}: held by pid ${process.pid} for over 0.2 s`,
+		message: `${path}: held by pid ${process.ppid} for over 0.2 s`,
 	});
 	assert.ok(Date.now() - started >= 200);
 	assert.ok(existsSync(path), "the live holder's lock is kept");
+	assert.deepEqual(takeLock(path), { heldBy: process.ppid });
+});
+
+test("withLock inside withLock of the same lock waits for this process's own holder, then refuses naming this pid", () => {
+	const path = join(temporaryFolder(), "board.lock");
+	const inner = () => withLock(path, () => assert.fail("ran under this process's own held lock"), 50);
+	assert.throws(() => withLock(path, inner), { message: `${path}: held by pid ${process.pid} for over 0.05 s` });
+});
+
+test("a lock naming this process's pid that an earlier process of the same pid left is taken over, also behind its guard", async () => {
+	// As `docker restart` leaves them: the same pid in the same boot. Last, the file a crash between linking and unlinking
+	// left: the lock and the earlier process's own file `<path>.<pid>` are one, which this process's own file overwrites.
+	for (const extra of ["", "run.pid.takeover", `run.pid.${process.pid}`]) {
+		const folder = temporaryFolder();
+		const path = join(folder, "run.pid");
+		const seed = () => {
+			writeFileSync(path, crashed(process.pid));
+			if (extra.endsWith(".takeover")) writeFileSync(join(folder, extra), crashed(process.pid));
+			else if (extra !== "") linkSync(path, join(folder, extra));
+		};
+		seed();
+		const lock = takeLock(path);
+		assert.ok("release" in lock, `takeLock past run.pid ${extra}`);
+		assert.deepEqual(takeLock(path), { heldBy: process.pid }, "the lock it took stays held");
+		assert.equal(await queueLock(path, 50).catch((error: Error) => error.message), `${path}: held by pid ${process.pid} for over 0.05 s`);
+		lock.release();
+		assert.deepEqual(readdirSync(folder), []);
+		seed();
+		assert.equal(withLock(path, () => readdirSync(folder).join(), 200), "run.pid", `withLock past run.pid ${extra}`);
+		assert.deepEqual(readdirSync(folder), []);
+	}
+});
+
+test("a lock this process released counts as a dead holder's, also a file of its inode left naming this pid", () => {
+	// The released lock's file stays linked as `kept`, then comes back at the lock's path, as an earlier process's would.
+	const folder = temporaryFolder();
+	const path = join(folder, "board.lock");
+	const kept = join(folder, "kept");
+	withLock(path, () => linkSync(path, kept));
+	renameSync(kept, path);
+	assert.equal(withLock(path, () => "ran", 200), "ran", "withLock");
+	const lock = takeLock(path);
+	assert.ok("release" in lock);
+	linkSync(path, kept);
+	lock.release();
+	renameSync(kept, path);
+	assert.ok("release" in takeLock(path), "takeLock");
 });
 
 test("a lock of a dead pid, one that names no pid, or one an earlier boot wrote is taken over", () => {
 	const dead = spawnSync(process.execPath, ["-e", ""]).pid;
-	// The test's own pid is alive: only the boot it names makes the lock stale, on a system that names its boot.
-	const earlierBoot = existsSync(BOOT_ID) ? [`${process.pid} 00000000-0000-0000-0000-000000000000`] : [];
+	// A live pid other than this one: only the boot it names makes the lock stale, on a system that names its boot.
+	const earlierBoot = existsSync(BOOT_ID) ? [`${process.ppid} 00000000-0000-0000-0000-000000000000`] : [];
 	for (const text of [String(dead), crashed(dead), "", "not a pid", ...earlierBoot]) {
 		const folder = temporaryFolder();
 		const path = join(folder, "board.lock");
@@ -95,6 +143,19 @@ test("takeLock refuses while its holder lives, naming it, and release removes on
 	writeFileSync(path, "1");
 	second.release();
 	assert.equal(readFileSync(path, "utf8"), "1");
+	// Removed by hand, then taken again by this process: the new lock is not the old one's to remove. The old one's file stays
+	// linked as `kept`, so the new one cannot get its inode.
+	rmSync(path);
+	const third = takeLock(path);
+	assert.ok("release" in third);
+	linkSync(path, join(folder, "kept"));
+	rmSync(path);
+	const fourth = takeLock(path);
+	assert.ok("release" in fourth);
+	third.release();
+	assert.deepEqual(readdirSync(folder).sort(), ["kept", "run.pid"]);
+	fourth.release();
+	assert.deepEqual(readdirSync(folder), ["kept"]);
 });
 
 test("a takeover guard left by a crashed taker is cleared, and the dead holder's lock is taken over", () => {

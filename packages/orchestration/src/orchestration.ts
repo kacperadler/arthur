@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Host, Plugin } from "@arthur/core/plugin";
 import { autopilot } from "./autopilot.ts";
 import { blockedNotice } from "./blocked-notice.ts";
@@ -19,7 +20,8 @@ import { spawnRules } from "./spawn-rules.ts";
 // and `arthur coordinator stop|context`, docs/commands/coordinator.md and attach.md; the board's phone commands `/board`, `/task`
 // and `/plan` (board-commands.ts); `maxAgents` and each role's model (entry 26, spawn-rules.ts); the notice of a job
 // blocked on the owner (entry 27, blocked-notice.ts); the planning of large tickets (entry 28, plans.ts); autopilot (entry 29,
-// autopilot.ts); the silent mode (entry 47, silent.ts); and tmux as its `arthur doctor` requirement (entry 80).
+// autopilot.ts); the silent mode (entry 47, silent.ts); tmux as its `arthur doctor` requirement (entry 80); and the morning
+// report (entry 65): with `morningReport.at`, an action schedule sends the coordinator with roles/coordinator/morning-report.md.
 
 export type OrchestrationOptions = {
 	readonly enabled?: boolean;
@@ -76,6 +78,10 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			plans(host);
 			autopilot(host);
 			silentMode(host);
+			const at = (host.options as OrchestrationOptions).morningReport?.at;
+			const report = { id: "report", at, option: "morningReport.at", action: { message: "Write the morning report.", procedure: fileURLToPath(new URL("../roles/coordinator/morning-report.md", import.meta.url)) } };
+			if (at !== undefined && host.collect("schedule.register", host.name, [report], host.package).length === 0)
+				throw new Error("morningReport.at needs the schedule plugin, which sends the morning report; add schedule() to the config's plugins, or leave morningReport out");
 			// Read like every role, with the project's override and criteria; no kind spawns it, `arthur run` starts it.
 			host.jobs.registerRole({ name: "coordinator", file: new URL("../roles/coordinator.md", import.meta.url), criteria: ["styleguide", "autopilot"] });
 			const where = `tmux session ${coordinator.session} (socket ${coordinator.socket})`;

@@ -6,8 +6,8 @@ import { checkMcp, mcpOption } from "./mcp.ts";
 import { PLAN_BUDGET } from "./plans.ts";
 
 // The orchestration plugin's options file (spec/roadmap.md, entries 23, 26 and 93), checked before any setup by walking `table`:
-// docs/commands/coordinator.md, "Options". `plan` is entry 28's (plans.ts), `autopilot` entry 29's (autopilot.ts);
-// `morningReport` is read by a later entry (65) and checked here for its shape only; `coordinator` is entry 23's, with its
+// docs/commands/coordinator.md, "Options". `plan` is entry 28's (plans.ts), `autopilot` entry 29's (autopilot.ts),
+// `morningReport` entry 65's (orchestration.ts registers it with schedule); `coordinator` is entry 23's, with its
 // defaults applied by `coordinatorOptions`; `maxAgents` and `roles` are entry 26's; `mcp` is AR0234's (mcp.ts).
 
 export const summary = "the coordinator: one omp in its own tmux session, its inbox and context, planning and autopilot";

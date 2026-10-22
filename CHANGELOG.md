@@ -32,6 +32,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0280 Roadmap 68: evals, the scenarios (1978fb0)
 - AR0281 Roadmap 96: the decision log (88ec6c6)
 - AR0284 Roadmap 97: decision classes (34bdce0)
+- AR0286 The coordinator's role has no rule for a night answer, which orchestration/night-one-line measures (8708aa9)
 
 ## 2026-10-21
 

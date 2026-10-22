@@ -2201,9 +2201,9 @@
   {
     "id": "AR0286",
     "title": "The coordinator's role has no rule for a night answer, which orchestration/night-one-line measures",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0286-the-coordinator-s-role-has-no-rule-for-a-night-answer-which-orchestration-night-one-line-measures/ticket.md",
-    "updated": "2026-10-22T17:18:02.293Z"
+    "updated": "2026-10-22T17:24:04.207Z"
   },
   {
     "id": "AR0287",

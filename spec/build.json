@@ -2156,9 +2156,9 @@
   {
     "id": "AR0280",
     "title": "Roadmap 68: evals, the scenarios",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0280-roadmap-68-evals-the-scenarios/ticket.md",
-    "updated": "2026-10-22T09:37:07.534Z"
+    "updated": "2026-10-22T09:43:47.099Z"
   },
   {
     "id": "AR0281",
@@ -2197,5 +2197,29 @@
     "status": "planned",
     "path": "spec/features/AR0285-a-job-s-question-answered-by-policy-still-reaches-the-owner-as-a-question/ticket.md",
     "updated": "2026-10-22T09:16:36.941Z"
+  },
+  {
+    "id": "AR0286",
+    "title": "The coordinator's role has no rule for a night answer, which orchestration/night-one-line measures",
+    "status": "planned",
+    "path": "spec/features/AR0286-the-coordinator-s-role-has-no-rule-for-a-night-answer-which-orchestration-night-one-line-measures/ticket.md",
+    "updated": "2026-10-22T09:44:06.152Z"
+  },
+  {
+    "id": "AR0287",
+    "title": "A plugin's wake lines for a review or an onboarding cannot reach an eval's turn, even once AR0277 words it",
+    "status": "planned",
+    "path": "spec/features/AR0287-a-plugin-s-wake-lines-for-a-review-or-an-onboarding-cannot-reach-an-eval-s-turn-even-once-ar0277-words-it/ticket.md",
+    "updated": "2026-10-22T09:44:06.501Z"
+  },
+  {
+    "id": "AR0288",
+    "title": "The eval stub answers a command's --help with that command's scripted result",
+    "status": "planned",
+    "path": "spec/features/AR0288-the-eval-stub-answers-a-command-s-help-with-that-command-s-scripted-result/ticket.md",
+    "updated": "2026-10-22T09:44:07.208Z",
+    "after": [
+      "AR0278"
+    ]
   }
 ]

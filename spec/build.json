@@ -2119,8 +2119,29 @@
   {
     "id": "AR0276",
     "title": "Roadmap 67: evals, the runner",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0276-roadmap-67-evals-the-runner/ticket.md",
-    "updated": "2026-10-22T07:22:23.671Z"
+    "updated": "2026-10-22T07:42:26.130Z"
+  },
+  {
+    "id": "AR0277",
+    "title": "The eval words a turn with a copy of orchestration's wake and inbox lines, which can drift",
+    "status": "planning",
+    "path": "spec/features/AR0277-the-eval-words-a-turn-with-a-copy-of-orchestration-s-wake-and-inbox-lines-which-can-drift/ticket.md",
+    "updated": "2026-10-22T07:42:26.123Z"
+  },
+  {
+    "id": "AR0278",
+    "title": "In an eval run, `arthur <command> --help` answers only what the scenario's stub says",
+    "status": "planning",
+    "path": "spec/features/AR0278-in-an-eval-run-arthur-command-help-answers-only-what-the-scenario-s-stub-says/ticket.md",
+    "updated": "2026-10-22T07:42:26.126Z"
+  },
+  {
+    "id": "AR0279",
+    "title": "An eval turn gets the coordinator's role but not its context, nor a time of day",
+    "status": "planning",
+    "path": "spec/features/AR0279-an-eval-turn-gets-the-coordinator-s-role-but-not-its-context-nor-a-time-of-day/ticket.md",
+    "updated": "2026-10-22T07:42:26.128Z"
   }
 ]

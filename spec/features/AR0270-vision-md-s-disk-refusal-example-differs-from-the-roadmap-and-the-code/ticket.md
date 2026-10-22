@@ -14,7 +14,7 @@ the vision gives the refusal as `build: 12.3 GB disk free, floor 20 GB`; roadmap
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+The vision, roadmap entry 69 and the plugin give one wording for the disk refusal, the code's, so the owner reads the same message everywhere.
 
 - Kind: cleanup
 
@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F2 of AR0262
+- 2026-10-22: Coordinator (free hand, finding ticket) approved.

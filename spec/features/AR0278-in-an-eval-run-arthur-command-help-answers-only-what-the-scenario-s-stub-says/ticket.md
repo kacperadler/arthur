@@ -4,7 +4,10 @@
 {
   "id": "AR0278",
   "title": "In an eval run, `arthur <command> --help` answers only what the scenario's stub says",
-  "date": "2026-10-22"
+  "date": "2026-10-22",
+  "after": [
+    "AR0277"
+  ]
 }
 ```
 
@@ -35,3 +38,4 @@ In:
 ## Decisions
 
 - 2026-10-22: Source: F2 of AR0276
+- 2026-10-22: Coordinator (free hand, finding ticket) approved.

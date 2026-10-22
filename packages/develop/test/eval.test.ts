@@ -39,6 +39,11 @@ arthur send report.png 2> send.txt
 ${quote(process.execPath)} ${quote(CLI)} version > real.txt 2>&1
 printf 'noted\\n' > notes.md
 git add --all && git commit --quiet --message notes
+echo '{"type":"tool_execution_start","toolCallId":"t1","toolName":"bash","args":{"command":"sleep 1"}}'
+echo '{"type":"tool_execution_start","toolCallId":"t2","toolName":"read","args":{"path":"notes.md"}}'
+printf '%s\\n' '{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"Noted.\\n\\nAR0002 is the ticket."}],"stopReason":"stop"}}'
+echo '{"type":"message_end","message":{"role":"assistant","content":[],"stopReason":"stop"}}'
+echo 'not json'
 echo '{"type":"agent_end"}'
 `;
 	writeFileSync(join(bin, "omp"), script, { mode: 0o755 });
@@ -47,7 +52,8 @@ echo '{"type":"agent_end"}'
 
 type Scenario = Readonly<Record<string, unknown>> & { readonly fixture?: false };
 
-// The answers the scenarios' stub gives, and what a run of the fake agent on "Note it." leaves behind.
+// The answers the scenarios' stub gives, and what a run of the fake agent on "Note it." leaves behind; its reply is the last
+// assistant message with text, its tool calls a bash command and a read.
 const STUB = [{ match: "^arthur ticket new ", output: "AR0002", files: { "spec/AR0002.md": "# Fix the login\n" } }];
 const PASSES = {
 	files: { "ticket.txt": ["^AR0002$"], "spec/AR0002.md": ["^# Fix the login$"], "notes.md": ["^noted$"], "real.txt": ["^arthur: refused inside an eval session \\(ARTHUR_EVAL is set\\)"] },
@@ -55,6 +61,8 @@ const PASSES = {
 	refs: { "refs/heads/main": "moved", "origin:refs/heads/main": "kept" },
 	calls: ["^arthur ticket new Fix the login$", "^arthur merge AR0001$"],
 	never: ["^arthur stop"],
+	reply: { lines: 2, match: ["^Noted\\.$", "^AR0002 is the ticket\\.$"], never: ["sorry"] },
+	tools: ["^bash rm ", '^read \\{"path":"README\\.md"\\}$'],
 };
 
 async function load(t: TestContext, list: Readonly<Record<string, Scenario>>, options: Readonly<Record<string, unknown>> = {}) {
@@ -118,6 +126,7 @@ test("each run is scored by what it left behind; a missing fixture and a turn pa
 		hang: { ...message("Then hang."), timeoutSeconds: 1, expect: { files: { "README.md": ["Shop"] } } },
 		failing: { ...message("Then fail.") },
 		odd: { ...message("Note it."), timeoutSeconds: 0 },
+		mute: { ...message("Note it."), expect: { reply: { lines: 0 } } },
 	});
 	const started = Date.now();
 	const answer = await eval_.eval("--runs", "2");
@@ -126,6 +135,7 @@ test("each run is scored by what it left behind; a missing fixture and a turn pa
 	assert.match(answer.header, /^arthur eval: model the agent's default, thinking the agent's default, 2 runs each; transcripts in .+\/develop\/evals\/[^/]+$/);
 	const lost = `no fixture: ${join(eval_.pkg, "evals", "lost", "fixture")} is not a folder`;
 	const odd = `${join(eval_.pkg, "evals", "odd", "scenario.json")}: timeoutSeconds: expected a whole number of seconds, 1 or more`;
+	const mute = `${join(eval_.pkg, "evals", "mute", "scenario.json")}: expect.reply: expected { lines?: 1 or more, match?, never? }`;
 	assert.deepEqual(answer, {
 		code: 0,
 		header: answer.header,
@@ -139,11 +149,14 @@ test("each run is scored by what it left behind; a missing fixture and a turn pa
 			"develop/lost: 0/2 (no baseline)",
 			`  run 1: ${lost}`,
 			`  run 2: ${lost}`,
+			"develop/mute: 0/2 (no baseline)",
+			`  run 1: ${mute}`,
+			`  run 2: ${mute}`,
 			"develop/odd: 0/2 (no baseline)",
 			`  run 1: ${odd}`,
 			`  run 2: ${odd}`,
 			"develop/one: 2/2 (no baseline)",
-			"passed 2/10 runs; moved against the baseline: none",
+			"passed 2/12 runs; moved against the baseline: none",
 		],
 		err: "",
 	});
@@ -161,7 +174,7 @@ test("each run is scored by what it left behind; a missing fixture and a turn pa
 	assert.equal(readdirSync(join(eval_.fake.host.folder, "evals")).length, 1);
 });
 
-test("a run fails on each expectation the files, the refs or the stub's log leave unmet, each named", async (t) => {
+test("a run fails on each expectation the files, the refs, the stub's log, the reply or the tool calls leave unmet, each named", async (t) => {
 	const eval_ = await load(t, {
 		wrong: {
 			turn: { message: "Note it." },
@@ -172,6 +185,8 @@ test("a run fails on each expectation the files, the refs or the stub's log leav
 				refs: { "refs/heads/main": "kept", "origin:refs/heads/main": "moved", "refs/heads/feature": "moved" },
 				calls: ["^arthur merge ", "^arthur ticket new "],
 				never: ["^arthur (merge|send) "],
+				reply: { lines: 1, match: ["^AR0009", "Noted"], never: ["\\bticket\\b", "^$"] },
+				tools: ["^bash [\\s\\S]*\\bsleep\\b", "notes\\.md", "^write "],
 			},
 		},
 	});
@@ -188,6 +203,12 @@ test("a run fails on each expectation the files, the refs or the stub's log leav
 		"no call matches /^arthur ticket new / after arthur merge AR0001",
 		"arthur merge AR0001 matches /^arthur (merge|send) /",
 		"arthur send report.png matches /^arthur (merge|send) /",
+		"the reply has 2 lines, at most 1",
+		"the reply does not match /^AR0009/",
+		"the reply matches /\\bticket\\b/",
+		"the reply matches /^$/",
+		"the agent's bash sleep 1 matches /^bash [\\s\\S]*\\bsleep\\b/",
+		'the agent\'s read {"path":"notes.md"} matches /notes\\.md/',
 	]);
 });
 
@@ -214,7 +235,7 @@ test("the stub never reaches Arthur's home: no variable names it, a file outside
 	assert.deepEqual(env.filter((line) => line.includes(eval_.home)), [], "no variable of the turn names the home");
 });
 
-test("the turn is the text orchestration's inbox hands over for its event (coordinator.turn); a refused one fails its scenario alone", async (t) => {
+test("the turn is the text orchestration's inbox hands over for its event (coordinator.turn), a plugin's message included; a refused one fails its scenario alone", async (t) => {
 	const ended = { id: "2026-10-22-worker-0a1b2c3d", kind: "worker", state: "ended", reason: "finished", project: "other" };
 	const asked = { id: "2026-10-22-worker-0a1b2c3e", kind: "worker", state: "blocked", reason: "user: may I?" };
 	const eval_ = await load(t, {
@@ -224,16 +245,27 @@ test("the turn is the text orchestration's inbox hands over for its event (coord
 		plain: { turn: { scheduled: "tea", message: "Tea." } },
 		said: { turn: { message: "Merge AR0001.", channel: "signal" } },
 		refused: { turn: { message: "Refuse it." } },
+		told: { turn: { arthur: "[github] CI run 7 ended cancelled on arthur/2026-10-22-worker-0a1b2c3d." } },
+		blank: { turn: { arthur: " " } },
 	});
 	writeFileSync(join(eval_.pkg, "evals", "due", "procedure.md"), "Procedure: name what was built.\n");
 	const answer = await eval_.eval("--runs", "1");
 	assert.equal(answer.code, 0);
-	assert.deepEqual(answer.out.slice(-4), ["develop/refused: 0/1 (no baseline)", `  run 1: ${join(eval_.pkg, "evals", "refused", "scenario.json")}: coordinator.turn: refused by the fake`, "develop/said: 1/1 (no baseline)", "passed 5/6 runs; moved against the baseline: none"]);
+	const failed = (name: string, why: string) => [`develop/${name}: 0/1 (no baseline)`, `  run 1: ${join(eval_.pkg, "evals", name, "scenario.json")}: ${why}`];
+	assert.deepEqual(answer.out, [
+		"develop/asked: 1/1 (no baseline)",
+		...failed("blank", "turn.arthur: expected a plugin's message, as text"),
+		...["due", "ended", "plain"].map((name) => `develop/${name}: 1/1 (no baseline)`),
+		...failed("refused", "coordinator.turn: refused by the fake"),
+		...["said", "told"].map((name) => `develop/${name}: 1/1 (no baseline)`),
+		"passed 6/8 runs; moved against the baseline: none",
+	]);
 	assert.equal(eval_.transcript("develop-ended-1", "turn.md"), JSON.stringify(["job-ended", ended, "line 1\nline 2"]));
 	assert.equal(eval_.transcript("develop-asked-1", "turn.md"), JSON.stringify(["job-ended", asked, null]));
 	assert.equal(eval_.transcript("develop-due-1", "turn.md"), JSON.stringify(["coordinator-message", { text: "[scheduled morning] Write the morning report.\n\nProcedure: name what was built." }]));
 	assert.equal(eval_.transcript("develop-plain-1", "turn.md"), JSON.stringify(["coordinator-message", { text: "[scheduled tea] Tea." }]));
 	assert.equal(eval_.transcript("develop-said-1", "turn.md"), said("Merge AR0001.", "signal"));
+	assert.equal(eval_.transcript("develop-told-1", "turn.md"), JSON.stringify(["coordinator-message", { text: "[github] CI run 7 ended cancelled on arthur/2026-10-22-worker-0a1b2c3d." }]));
 });
 
 test("pass rates against the stored baseline: --save-baseline keeps the scenarios left out, and the output names each one that moved", async (t) => {

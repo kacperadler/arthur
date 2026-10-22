@@ -1,0 +1,78 @@
+{
+	"delivery/check-failed": {
+		"passed": 0,
+		"runs": 3
+	},
+	"delivery/condition-before-review": {
+		"passed": 0,
+		"runs": 3
+	},
+	"delivery/merge": {
+		"passed": 3,
+		"runs": 3
+	},
+	"delivery/review-fail-continue": {
+		"passed": 3,
+		"runs": 3
+	},
+	"delivery/review-fail-handed-back": {
+		"passed": 1,
+		"runs": 3
+	},
+	"delivery/review-pass": {
+		"passed": 0,
+		"runs": 3
+	},
+	"delivery/review-pass-hook": {
+		"passed": 0,
+		"runs": 3
+	},
+	"delivery/worker-done": {
+		"passed": 3,
+		"runs": 3
+	},
+	"github/ci-failed": {
+		"passed": 3,
+		"runs": 3
+	},
+	"manage/audit-autopilot": {
+		"passed": 3,
+		"runs": 3
+	},
+	"manage/retro": {
+		"passed": 3,
+		"runs": 3
+	},
+	"orchestration/env-refusal": {
+		"passed": 3,
+		"runs": 3
+	},
+	"orchestration/later-is-a-ticket": {
+		"passed": 3,
+		"runs": 3
+	},
+	"orchestration/morning-report": {
+		"passed": 3,
+		"runs": 3
+	},
+	"orchestration/night-one-line": {
+		"passed": 0,
+		"runs": 3
+	},
+	"orchestration/no-sleep": {
+		"passed": 3,
+		"runs": 3
+	},
+	"projects/onboarding-questions": {
+		"passed": 1,
+		"runs": 3
+	},
+	"session/after-restart-plan": {
+		"passed": 0,
+		"runs": 3
+	},
+	"session/unblocked-after-restart": {
+		"passed": 3,
+		"runs": 3
+	}
+}

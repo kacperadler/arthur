@@ -1,0 +1,27 @@
+{
+	"turn": {
+		"message": "Go for a third round on SH0004."
+	},
+	"stub": [
+		{
+			"match": "^arthur (?!.*--help)continue ",
+			"output": "2026-10-22-worker-7b2e4d11: continued"
+		}
+	],
+	"expect": {
+		"files": {
+			"spec/features/SH0004-show-the-cart-s-total-with-tax/ticket.md": [
+				"^## Decisions\\n(?:(?!## ).*\\n)*?- \\d{4}-\\d{2}-\\d{2}: .*\\b(?:[Tt]hird|[Rr]ound)"
+			]
+		},
+		"calls": [
+			"^arthur continue (\\S+-)?7b2e4d11 .*\\b(?:round|half up)"
+		],
+		"never": [
+			"^arthur (?!.*--help)review",
+			"^arthur (?!.*--help)spawn ",
+			"^arthur (?!.*--help)merge ",
+			"^arthur (?!.*--help)ticket status "
+		]
+	}
+}

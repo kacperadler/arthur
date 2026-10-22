@@ -1,0 +1,23 @@
+[
+  {
+    "id": "SH0001",
+    "title": "List the products on the home page",
+    "status": "merged",
+    "path": "spec/features/SH0001-list-the-products-on-the-home-page/ticket.md",
+    "updated": "2026-10-21T16:00:00.000Z"
+  },
+  {
+    "id": "SH0002",
+    "title": "Add a product to the cart",
+    "status": "merged",
+    "path": "spec/features/SH0002-add-a-product-to-the-cart/ticket.md",
+    "updated": "2026-10-21T16:00:00.000Z"
+  },
+  {
+    "id": "SH0005",
+    "title": "Name the removed item in the cart's undo notice",
+    "status": "done",
+    "path": "spec/features/SH0005-name-the-removed-item-in-the-cart-s-undo-notice/ticket.md",
+    "updated": "2026-10-21T16:00:00.000Z"
+  }
+]

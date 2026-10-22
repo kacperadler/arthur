@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { availableParallelism } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { loadConfig } from "@arthur/core";
@@ -18,7 +19,8 @@ const FLOOR = 20 * 2 ** 20;
 // The fake `df` and `ssh` on PATH, for this file, each call noted in its log. `df -Pk <path>...` answers in POSIX `df -P`
 // output from `<table>`, one row `<path>|<filesystem>|<free KiB>|<mount point>` per path, and refuses a path without one as
 // df does; `<dir>/garbage` is printed instead when it exists, and `<dir>/fail` makes it fail with that line. `ssh <host>
-// <command>` runs the command here, the fake df included, or fails as ssh does when `<dir>/<host>.down` exists.
+// <command>` runs the command here, the fake df included, or fails as ssh does when `<dir>/<host>.down` exists; with
+// `<dir>/<host>.nonode`, on a PATH of `sh` alone, so node is not found.
 const bin = temporaryFolder();
 const dir = temporaryFolder();
 const [dfLog, sshLog, table] = [join(bin, "df.log"), join(bin, "ssh.log"), join(dir, "table")];
@@ -43,8 +45,9 @@ writeFileSync(
 printf '%s\\n' "$*" >> '${sshLog}'
 while [ $# -gt 0 ]; do case "$1" in -o) shift 2;; -*) shift;; *) break;; esac; done
 if [ -e '${dir}'/"$1.down" ]; then echo "ssh: connect to host $1 port 22: Connection refused" >&2; exit 255; fi
+if [ -e '${dir}'/"$1.nonode" ]; then PATH='${dir}/sh-only'; fi
 shift
-exec sh -c "$*"
+exec /bin/sh -c "$*"
 `,
 	{ mode: 0o755 },
 );
@@ -241,6 +244,37 @@ test("df output that cannot be read, a df or ssh that fails, or a home not there
 	assert.equal(await round("cold"), 0);
 	assert.equal(line("cold"), `cold: no room, its check failed: its home ${join(gpu, "nowhere")} is not there`);
 	assert.deepEqual(notices().slice(1), [`machine cold: its room is unknown (its home ${join(gpu, "nowhere")} is not there); no job starts there until a check answers`]);
+});
+
+test("a check of its own on another machine with a floor makes one ssh call: node -e's free line first, then df on each path named, its failures said as a round's", async (t) => {
+	const { fake, gpu, free, later, line, lows } = await load(t, { keepFree: { disk: "20G" } });
+	const docker = join(gpu, "docker");
+	mkdirSync(docker);
+	fake.provide("resources.disk", (machine: string) => (machine === "gpu" ? [docker] : []));
+	disks([gpu, "/dev/sda1", 3 * FLOOR, "/"], [docker, "/dev/sdb1", 2 * FLOOR, "/var/lib/docker"]);
+	assert.equal(await free("gpu"), Infinity);
+	const kept = JSON.parse(readFileSync(join(fake.host.folder, "machines", "gpu.json"), "utf8"));
+	assert.deepEqual([kept.cores, kept.disk], [availableParallelism(), [{ path: gpu, free: 3 * FLOOR * 1024 }, { path: docker, free: 2 * FLOOR * 1024 }]], "node -e's numbers and df's, from one answer");
+	assert.deepEqual([logged(sshLog).length, logged(dfLog)], [1, [`-Pk ${gpu}`, `-Pk ${docker}`]]);
+	disks([gpu, "/dev/sda1", 3 * FLOOR, "/"], [docker, "/dev/sdb1", FLOOR - 1, "/var/lib/docker"]);
+	later();
+	assert.equal(await free("gpu"), 0);
+	assert.deepEqual(lows(), [{ machine: "gpu", path: docker, free: (FLOOR - 1) * 1024, floor: 20 * GB }]);
+	writeFileSync(join(dir, "fail"), "df: /srv: Input/output error\n");
+	later();
+	assert.equal(await free("gpu"), 0);
+	assert.equal(line("gpu"), "gpu: no room, its check failed: df -Pk failed there: df: /srv: Input/output error");
+	fake.host.jobs.registerMachine({ name: "cold", ssh: "cold", home: join(gpu, "nowhere"), labels: {} });
+	assert.equal(await free("cold"), 0);
+	assert.equal(line("cold"), `cold: no room, its check failed: its home ${join(gpu, "nowhere")} is not there`);
+	mkdirSync(join(dir, "sh-only"));
+	symlinkSync("/bin/sh", join(dir, "sh-only", "sh"));
+	writeFileSync(join(dir, "gpu.nonode"), "");
+	t.after(() => rmSync(join(dir, "gpu.nonode"), { force: true }));
+	later();
+	assert.equal(await free("gpu"), 0);
+	assert.match(line("gpu") ?? "", /^gpu: no room, its check failed: node is not on the PATH of a command over ssh there \(.*node.*not found\)$/);
+	assert.equal(logged(sshLog).length, 5, "one ssh call per check");
 });
 
 test("two processes checking gpu at once say its fall under the floor and its failure once: the second reads the first's check under the machine file's lock, not the one before both", async (t) => {

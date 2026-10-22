@@ -507,6 +507,9 @@ import { checkStructure } from "./structure.ts";
 // replay never delivered such an event again, so nothing was cut.
 // Merged main (AR0299) into AR0300: main's budgets plus AR0300's core 5755, every budget set to its count (recounted with
 // wc -l): projects 486 to 485 and commit-rules 169 to 165, the slack main carried.
+// AR0306 (F1 of AR0300; its Done means: the agent's extensions append to `log` without creating it, skipping the line on
+// ENOENT): core 15 more (5770) for the open without O_CREAT, the write, the close and the skip, in steer.ts (git diff --numstat
+// +9 -2) and worktree-guard.ts (+10 -2), each with its comment. appendFileSync created `log` before, so nothing was cut.
 // AR0305 (F1 of AR0299; its Done means: a file naming this pid that this process did not take counts as a dead holder's, and
 // this process's own live locks stay held): core 17 more (5772) for the locks this process holds, kept by device and inode
 // (lock.ts, git diff --numstat +27 -10: the set and `hold` with its comment 8, each lock marked and forgotten 3, release
@@ -519,7 +522,8 @@ import { checkStructure } from "./structure.ts";
 // comment 2, a blank 1, the worker's line changed in place; develop.ts, +4 -2: provided 1, the header's comment 1). A new key,
 // so nothing was cut.
 // Merged main (AR0304) into AR0305: main's budgets plus AR0305's core 5772 (recounted with wc -l).
-const BUDGETS = { core: 5772, "core/testing": 349, projects: 485, orchestration: 2309, machines: 479, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 681, findings: 254 };
+// Merged main (AR0305) into AR0306: main's budgets plus AR0306's 15, core 5772 + 15 = 5787 (recounted with wc -l).
+const BUDGETS = { core: 5787, "core/testing": 349, projects: 485, orchestration: 2309, machines: 479, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 681, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

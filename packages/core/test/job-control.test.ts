@@ -14,6 +14,7 @@ import { type Bus, eventBus } from "../src/events.ts";
 import { steerJob, stopJob } from "../src/job-control.ts";
 import { GRACE_SECONDS } from "../src/job-stop.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
+import steerExtension from "../src/steer.ts";
 import { queueSteer } from "../src/steer-inbox.ts";
 import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
 
@@ -247,6 +248,22 @@ test("two steers before the next tool call both reach the agent after it, in ord
 	writeFileSync(join(gates, "two"), "");
 	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }]);
 	assert.equal(read(messages)?.trim().split("\n").length, 2, "each steer once");
+});
+
+test("a steer delivered after the record's log is gone, as while a rm -r empties it, never creates the log; another error is thrown", (t) => {
+	const record = temporaryFolder();
+	mkdirSync(join(record, "steer", "inbox"), { recursive: true });
+	writeFileSync(join(record, "steer", "inbox", "0001"), "Use the second file.\n");
+	t.after(() => delete process.env.ARTHUR_JOB);
+	process.env.ARTHUR_JOB = record;
+	const sent: string[] = [];
+	let handler = () => {};
+	steerExtension({ on: (_, registered) => (handler = registered), sendUserMessage: (text) => sent.push(text) });
+	handler();
+	assert.deepEqual([sent, readdirSync(join(record, "steer", "done")), existsSync(join(record, "log"))], [["Use the second file."], ["0001"], false]);
+	mkdirSync(join(record, "log"));
+	writeFileSync(join(record, "steer", "inbox", "0002"), "And keep the tests.\n");
+	assert.throws(handler, { code: "EISDIR" });
 });
 
 test("a steer still undelivered when the job ends is moved aside, logged, and named in job-ended", async () => {

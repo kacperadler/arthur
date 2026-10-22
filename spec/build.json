@@ -2094,9 +2094,9 @@
   {
     "id": "AR0272",
     "title": "Arthur's own repository has no criteria folder, so its audits and retros run without their criteria",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0272-arthur-s-own-repository-has-no-criteria-folder-so-its-audits-and-retros-run-without-their-criteria/ticket.md",
-    "updated": "2026-10-22T15:48:21.511Z"
+    "updated": "2026-10-22T15:56:13.380Z"
   },
   {
     "id": "AR0273",
@@ -2280,5 +2280,12 @@
     "status": "planned",
     "path": "spec/features/AR0296-an-orchestration-test-can-leave-its-tmux-server-and-fake-agent-running-after-npm-test/ticket.md",
     "updated": "2026-10-22T15:51:31.729Z"
+  },
+  {
+    "id": "AR0297",
+    "title": "The styleguide and review criteria now live in two folders that will drift",
+    "status": "planned",
+    "path": "spec/features/AR0297-the-styleguide-and-review-criteria-now-live-in-two-folders-that-will-drift/ticket.md",
+    "updated": "2026-10-22T15:56:26.407Z"
   }
 ]

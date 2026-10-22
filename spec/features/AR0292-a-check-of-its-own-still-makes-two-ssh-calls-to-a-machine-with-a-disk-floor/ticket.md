@@ -36,3 +36,4 @@ In:
 
 - 2026-10-22: Source: F1 of AR0269
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-22: Coordinator (free hand): line budget raise accepted, resources 607 to 616, for `ask` (one ssh call running node -e and df for a check of its own).

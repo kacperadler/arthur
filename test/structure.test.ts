@@ -500,7 +500,14 @@ import { checkStructure } from "./structure.ts";
 // AR0300 (F1 of AR0202; its Done means: a record removed while the wrapper appends to `log` is gone, never ENOTEMPTY): core
 // 2 more (5755) for `log` made once at the wrapper's start and then only appended to, opened without O_CREAT (wrapper.ts, 1
 // each). An append created `log` before, so nothing was cut.
-const BUDGETS = { core: 5755, "core/testing": 349, projects: 486, orchestration: 2285, machines: 474, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 672, findings: 254 };
+// AR0299 (F1 of AR0283; its Done means: a `.sent` mark after the notice, and a replay that finds the mark without it sends the
+// notice, asking only when the job has no open question): orchestration 24 more (2309) for the lock held from before the mark
+// until after `.sent` and the scan of the locks a crash left at `arthur run`'s start (blocked-notice.ts, git diff --numstat
+// +33 -16), and the job's open question looked up under the log's lock (decision-hooks.ts, +9 -4; orchestration.ts, +3 -1). The
+// replay never delivered such an event again, so nothing was cut.
+// Merged main (AR0299) into AR0300: main's budgets plus AR0300's core 5755, every budget set to its count (recounted with
+// wc -l): projects 486 to 485 and commit-rules 169 to 165, the slack main carried.
+const BUDGETS = { core: 5755, "core/testing": 349, projects: 485, orchestration: 2309, machines: 474, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 672, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { once } from "node:events";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
@@ -139,6 +140,9 @@ test("one notice per block: a second process given the same event sends none; th
 	assert.equal(notices().length, 1);
 	blocked(ID, "and now?");
 	assert.deepEqual(notices(), [{ text: `${ID} asks [DM-D1]: may I?` }, { text: `${ID} asks [DM-D2]: and now?` }]);
+	// Only a crash's notice takes the job's open question of the same words; a new block asks its own.
+	blocked(ID, "and now?");
+	assert.deepEqual(notices().at(-1), { text: `${ID} asks [DM-D3]: and now?` });
 });
 
 test("the marks of noticed events older than 7 days go at the next block, newer ones stay", async (t) => {
@@ -152,7 +156,66 @@ test("the marks of noticed events older than 7 days go at the next block, newer 
 	}
 	const event = blocked(ID, "may I?");
 	assert.deepEqual(notices(), [{ text: `${ID} asks [DM-D1]: may I?` }]);
-	assert.deepEqual(readdirSync(asked).sort(), ["900002-0", `${event.seq}-${Date.parse(event.time)}`].sort());
+	const mark = `${event.seq}-${Date.parse(event.time)}`;
+	assert.deepEqual(readdirSync(asked).sort(), ["900002-0", mark, `${mark}.sent`].sort());
+});
+
+test("a crash before the notice, its question waiting for the log's lock: the next start sends it once, with the question asked before, else asking it", async (t) => {
+	const { fake, home, notices } = await setup(t);
+	const asked = join(fake.host.folder, "asked");
+	mkdirSync(asked);
+	const dead = String(spawnSync(process.execPath, ["-e", ""]).pid);
+	const live = spawn("sleep", ["60"]);
+	t.after(() => live.kill());
+	// A job-state the crashed process got, as the event log holds it, and what it left: its lock of `holder`, its mark unless
+	// `before`, `.sent` if it got so far; `gone`, the mark of an event before the event log was cut, which another event of its
+	// number (`time`) or time (`seq`) took the place of.
+	const crashed = (id: string, question: string, holder: string, left: { readonly before?: true; readonly sent?: true; readonly gone?: "time" | "seq" } = {}) => {
+		const seq = (fake.host.events.read(1).at(-1)?.seq ?? 0) + 1;
+		const time = new Date().toISOString();
+		const data = { id, project: "demo", ticket: null, machine: "local", from: "working", to: "blocked", reason: `user: ${question}` };
+		appendFileSync(join(home, "events.jsonl"), `${JSON.stringify({ seq: seq + (left.gone === "seq" ? 1 : 0), time, plugin: "core", name: "job-state", data })}\n`);
+		const mark = join(asked, `${seq}-${Date.parse(time) - (left.gone === "time" ? 1 : 0)}`);
+		writeFileSync(`${mark}.lock`, holder);
+		if (!left.before) writeFileSync(mark, "");
+		if (left.sent) writeFileSync(`${mark}.sent`, "");
+	};
+	const demo = fake.host.board.projects().find((each) => each.name === "demo")?.path ?? "";
+	const asks = () => readFileSync(join(demo, "spec/decisions.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line)).filter((each) => each.record === "ask");
+	const decision = (...args: string[]) => fake.commands.find((command) => command.name === "decision")?.run({ args, project: "demo" });
+	const [a, b, c, d, e, f, g] = [..."abcdefg"].map((last) => `2026-10-18-worker-0000000${last}`) as [string, string, string, string, string, string, string];
+	// None of these is a's question of this block: another kind, other words, answered.
+	await decision("ask", "--kind", "question", "--question", "May I drop it?", "--job", a);
+	await decision("ask", "--kind", "job", "--question", "May I drop the rest?", "--job", a);
+	await decision("ask", "--kind", "job", "--question", "May I drop it?", "--job", a);
+	await decision("answer", "DM-D3", "--decided", "Drop it", "yes");
+	// b asked before its crash; the log holds its question trimmed and redacted.
+	const rename = "May I rename it to sk-live-4f9a8b7c? ";
+	await decision("ask", "--kind", "job", "--question", rename, "--job", b);
+	assert.deepEqual(asks().map((each) => each.question).at(-1), "May I rename it to [redacted]?");
+	crashed(a, "May I drop it?", dead);
+	crashed(b, rename, dead);
+	crashed(c, rename, String(live.pid));
+	crashed(d, "May I move it?", dead, { before: true });
+	// Its notice went, its lock not yet released; events the log no longer holds.
+	crashed(e, "May I keep it?", dead, { sent: true });
+	crashed(f, "May I copy it?", dead, { gone: "time" });
+	crashed(g, "May I paste it?", dead, { gone: "seq" });
+	// `arthur run` started again, after the replay.
+	const start = blockedNotice(fake.host);
+	start();
+	const idOf = (job: string) => asks().findLast((each) => each.job === job)?.id;
+	assert.deepEqual(asks().slice(4).map((each) => [each.kind, each.job, each.question]).toSorted(), [["job", a, "May I drop it?"], ["job", d, "May I move it?"]], "b's question not asked again");
+	const sent = [`${a} asks [${idOf(a)}]: May I drop it?`, `${b} asks [DM-D4]: ${rename}`, `${d} asks [${idOf(d)}]: May I move it?`];
+	assert.deepEqual(notices().map((each) => each.text).toSorted(), sent);
+	start();
+	assert.equal(notices().length, 3, "one notice per block");
+	live.kill();
+	await once(live, "exit");
+	start();
+	assert.deepEqual(notices().slice(3), [{ text: `${c} asks [${idOf(c)}]: ${rename}` }], "c's holder alive, then dead");
+	assert.deepEqual([idOf(c), asks().length], ["DM-D7", 7], "b's question is not c's");
+	assert.equal(readdirSync(asked).filter((name) => name.endsWith(".lock")).length, 2, "only f's and g's locks are left, their events gone");
 });
 
 test("after the event log is cut by hand, a block with a number noticed before is still a notice", async (t) => {

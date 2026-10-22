@@ -36,3 +36,4 @@ In:
 
 - 2026-10-22: Source: F1 of AR0283
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-23: Coordinator (free hand): line budget raise accepted, orchestration 2285 to 2309, for the block lock and `.sent` marks in `blocked-notice.ts`, the recovery at `arthur run`'s start and the reuse of an open question in `decision-hooks.ts`.

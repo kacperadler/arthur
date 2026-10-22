@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { board } from "./board.ts";
@@ -20,7 +20,7 @@ import { pluginHost, registry } from "./plugin-host.ts";
 // The test kit (spec/roadmap.md, entries 4, 11 and 13), `@arthur/core/testing`, which `npm test` loads into every test process
 // (`--import`) as the safety net: every `ARTHUR_` variable and tmux's session variables are cleared and tmux's default socket
 // moves into a temporary folder, so no test reaches a live bot, token or tmux server; `omp` on `PATH` is the fake agent with
-// no run (it fails), so no job reaches the real agent; at exit go the tmux servers on its sockets (tmux's default one included; a server outlives its removed socket, unreachable then), its slice `jobSlice`, and every folder the kit makes.
+// no run (it fails), so no job reaches the real agent; at exit go the tmux servers on its sockets (tmux's default one included; a server outlives its removed socket, unreachable then; `find` follows no link out), its slice `jobSlice`, and every folder the kit makes.
 
 for (const key of Object.keys(process.env)) if (key.startsWith("ARTHUR_") || key === "TMUX" || key === "TMUX_PANE") delete process.env[key];
 const root = mkdtempSync(join(tmpdir(), "arthur-test-"));
@@ -31,7 +31,7 @@ export const jobSlice: Slice = { slice: `arthur_test_${randomBytes(4).toString("
 
 process.on("exit", () => {
 	for (const verb of ["stop", "revert"]) spawnSync("systemctl", ["--user", verb, `${jobSlice.slice}.slice`], { stdio: "ignore" });
-	for (const entry of readdirSync(root, { recursive: true, withFileTypes: true })) if (entry.isSocket()) spawnSync("tmux", ["-S", join(entry.parentPath, entry.name), "kill-server"], { stdio: "ignore" });
+	for (const socket of (spawnSync("find", [root, "-type", "s", "-print0"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).stdout ?? "").split("\0").filter(Boolean)) spawnSync("tmux", ["-S", socket, "kill-server"], { stdio: "ignore" });
 	rmSync(root, { recursive: true, force: true });
 });
 process.env.PATH = [dirname(fakeAgent({ steps: [{ stderr: "fake agent: this test scripted no run" }], exitCode: 1 })), process.env.PATH].join(delimiter);

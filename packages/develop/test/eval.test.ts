@@ -11,9 +11,12 @@ import { checkOptions } from "../src/develop-options.ts";
 // `arthur eval` against the fake host, the scenarios in a package folder of the test's own, the main project's checkout a
 // temporary folder, and `omp` a fake of the test's: a shell script that acts on the turn's text as an agent would, through the
 // `arthur` its PATH finds (the eval's stub) and the real CLI by its path. It notes its arguments and environment in `spy`.
+// Orchestration's `coordinator.turn` is faked too: it answers what it was asked, as JSON, and refuses a turn that says so.
 
 const CLI = fileURLToPath(import.meta.resolve("@arthur/core/cli"));
 const quote = (text: string) => `'${text.replaceAll("'", `'\\''`)}'`;
+// The turn the fake `coordinator.turn` answers for an owner's message on `channel`.
+const said = (text: string, channel = "telegram") => JSON.stringify(["message-received", { channel, parts: [{ kind: "text", text, mime: "text/plain" }] }]);
 
 function fakeOmp(spy: string): string {
 	const bin = temporaryFolder();
@@ -70,6 +73,10 @@ async function load(t: TestContext, list: Readonly<Record<string, Scenario>>, op
 	writeFileSync(join(roles, "coordinator.md"), "# The coordinator\n");
 	const fake = fakeHost({ name: "develop", options, code: [pkg] });
 	fake.provide("projects", () => [{ name: "shop", path: root, prefix: "SH" }]);
+	fake.provide("coordinator.turn", async (...asked: unknown[]) => {
+		if (JSON.stringify(asked).includes("Refuse")) throw new Error("coordinator.turn: refused by the fake");
+		return JSON.stringify(asked);
+	});
 	fake.host.jobs.registerRole({ name: "coordinator", file: pathToFileURL(join(roles, "coordinator.md")), criteria: [] });
 	await fake.setup(develop(options));
 	// The runs' folders go into a temporary folder of the test's, a file the stub must not write beside them too.
@@ -140,7 +147,7 @@ test("each run is scored by what it left behind; a missing fixture and a turn pa
 		],
 		err: "",
 	});
-	assert.equal(eval_.transcript("develop-one-1", "turn.md"), "[via telegram] Note it.");
+	assert.equal(eval_.transcript("develop-one-1", "turn.md"), said("Note it."));
 	assert.deepEqual(
 		eval_.transcript("develop-one-2", "arthur.log").trim().split("\n").map((line) => JSON.parse(line)),
 		[{ call: "arthur ticket new Fix the login", answer: 0 }, { call: "arthur merge AR0001", answer: -1 }, { call: "arthur send report.png", answer: -1 }],
@@ -207,28 +214,26 @@ test("the stub never reaches Arthur's home: no variable names it, a file outside
 	assert.deepEqual(env.filter((line) => line.includes(eval_.home)), [], "no variable of the turn names the home");
 });
 
-test("the turn is built as the inbox hands it over: a job's end with the plugins' wake, a schedule entry with its procedure, a message", async (t) => {
-	const result = Array.from({ length: 17 }, (_, index) => `line ${index + 1}`).join("\n");
+test("the turn is the text orchestration's inbox hands over for its event (coordinator.turn); a refused one fails its scenario alone", async (t) => {
+	const ended = { id: "2026-10-22-worker-0a1b2c3d", kind: "worker", state: "ended", reason: "finished", project: "other" };
+	const asked = { id: "2026-10-22-worker-0a1b2c3e", kind: "worker", state: "blocked", reason: "user: may I?" };
 	const eval_ = await load(t, {
-		ended: { turn: { ended: { id: "2026-10-22-worker-0a1b2c3d", kind: "worker", state: "ended", reason: "finished", project: "other" }, result } },
-		asked: { turn: { ended: { id: "2026-10-22-worker-0a1b2c3e", kind: "worker", state: "blocked", reason: "user: may I?", project: "shop" } } },
+		ended: { turn: { ended, result: "line 1\nline 2" } },
+		asked: { turn: { ended: asked } },
 		due: { turn: { scheduled: "morning", message: "Write the morning report.", procedure: "procedure.md" } },
+		plain: { turn: { scheduled: "tea", message: "Tea." } },
 		said: { turn: { message: "Merge AR0001.", channel: "signal" } },
+		refused: { turn: { message: "Refuse it." } },
 	});
 	writeFileSync(join(eval_.pkg, "evals", "due", "procedure.md"), "Procedure: name what was built.\n");
-	eval_.fake.provide("coordinator.wake", (job: { readonly kind: string }) => (job.kind === "worker" ? "Procedure: review its branch." : undefined));
-	eval_.fake.provide("coordinator.wake", () => {
-		throw new Error("broken");
-	});
-	assert.equal((await eval_.eval("--runs", "1")).code, 0);
-	const marked = "\n\nThe lines marked [Arthur] come from Arthur (a job's end, a schedule), not from the owner.";
-	assert.equal(
-		eval_.transcript("develop-ended-1", "turn.md"),
-		`[Arthur] Job 2026-10-22-worker-0a1b2c3d ended its run: ended (finished).\nProject: other.\nIts final message (the first 15 of 17 lines):\n${result.split("\n").slice(0, 15).join("\n")}\nProcedure: review its branch.${marked}`,
-	);
-	assert.equal(eval_.transcript("develop-asked-1", "turn.md"), `[Arthur] Job 2026-10-22-worker-0a1b2c3e ended its run blocked on the owner; its question, also sent as a notice: may I?\nIts final message: none.\nProcedure: review its branch.${marked}`);
-	assert.equal(eval_.transcript("develop-due-1", "turn.md"), `[Arthur] [scheduled morning] Write the morning report.\n\nProcedure: name what was built.${marked}`);
-	assert.equal(eval_.transcript("develop-said-1", "turn.md"), "[via signal] Merge AR0001.");
+	const answer = await eval_.eval("--runs", "1");
+	assert.equal(answer.code, 0);
+	assert.deepEqual(answer.out.slice(-4), ["develop/refused: 0/1 (no baseline)", `  run 1: ${join(eval_.pkg, "evals", "refused", "scenario.json")}: coordinator.turn: refused by the fake`, "develop/said: 1/1 (no baseline)", "passed 5/6 runs; moved against the baseline: none"]);
+	assert.equal(eval_.transcript("develop-ended-1", "turn.md"), JSON.stringify(["job-ended", ended, "line 1\nline 2"]));
+	assert.equal(eval_.transcript("develop-asked-1", "turn.md"), JSON.stringify(["job-ended", asked, null]));
+	assert.equal(eval_.transcript("develop-due-1", "turn.md"), JSON.stringify(["coordinator-message", { text: "[scheduled morning] Write the morning report.\n\nProcedure: name what was built." }]));
+	assert.equal(eval_.transcript("develop-plain-1", "turn.md"), JSON.stringify(["coordinator-message", { text: "[scheduled tea] Tea." }]));
+	assert.equal(eval_.transcript("develop-said-1", "turn.md"), said("Merge AR0001.", "signal"));
 });
 
 test("pass rates against the stored baseline: --save-baseline keeps the scenarios left out, and the output names each one that moved", async (t) => {

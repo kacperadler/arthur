@@ -127,6 +127,14 @@ test("the room under a disk floor: the least free filesystem holds the floor exa
 	assert.equal(roomOf("gpu", sample([home], ["/var/lib/docker"]), 0, {}, keep).line, "gpu: room for any number of jobs, perJob reserving nothing (8.0 GB, 8.0 cores, 41 GB disk free)\ngpu: skipped /var/lib/docker, not there");
 });
 
+test("the vision and roadmap entry 69 give the disk refusal in the code's words", () => {
+	const line = roomOf("build", sample([{ path: "/var/lib/docker", free: 12.35 * GB }]), 0, {}, { disk: "20G" }).line;
+	for (const file of ["vision.md", "roadmap.md"]) {
+		const text = readFileSync(join(import.meta.dirname, "..", "..", "..", "spec", file), "utf8");
+		assert.ok(text.includes(`(\`${line}\`)`), `spec/${file} gives the refusal as the code says it: ${line}`);
+	}
+});
+
 test("a spawn exactly at the floor starts; the floor hit mid-job leaves the job running, emits one disk-low and one notice, refuses the next spawn there while another machine has room", async (t) => {
 	const { fake, home, gpu, release, free, round, later, line, lows, notices } = await load(t, { keepFree: { disk: "20G" } });
 	disks([home, "/dev/sda1", FLOOR, "/"], [gpu, "/dev/sdb1", 2 * FLOOR, "/srv"]);

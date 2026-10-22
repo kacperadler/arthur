@@ -1,15 +1,15 @@
 import { arch, platform } from "node:process";
 import { coreVersion } from "@arthur/core";
 import type { Plugin } from "@arthur/core/plugin";
-import { checkMachine, missingHere, publicAddress, type Report } from "./machine-check.ts";
+import { checkMachine, type Disk, missingHere, publicAddress, type Report } from "./machine-check.ts";
 import { checkOptions, type Labels, type MachineEntry, type MachinesOptions } from "./machine-options.ts";
 import { labelsText, placement } from "./machine-place.ts";
 
 // The machines plugin (spec/roadmap.md, entries 30 and 31): the machines of the `list` option, each registered with the core's
 // job runner; `local`'s labels; each machine checked at start and every `check.everySeconds` (machine-check.ts), its changes
-// emitted as `machine-online` and `machine-offline`, each round handed to `collect("machines.round")` as it begins; each job
-// placed by labels (machine-place.ts); `arthur machines` and `/machines`; a doctor requirement per machine, `local` only with
-// tools labels. docs/commands/machines.md.
+// emitted as `machine-online` and `machine-offline`, each round handed to `collect("machines.round")` as it begins, whose
+// answers name the paths each check's df reads; each job placed by labels (machine-place.ts); `arthur machines` and
+// `/machines`; a doctor requirement per machine, `local` only with tools labels. docs/commands/machines.md.
 
 export type { MachineEntry, MachinesOptions };
 
@@ -47,9 +47,15 @@ export function machines(options: MachinesOptions = {}): Plugin {
 			let running: Promise<ReadonlyMap<string, Report>> | undefined;
 			const timedOut = (machine: MachineEntry): Report => ({ online: false, reason: `check timed out after ${LIMIT_SECONDS} s`, fix: `ssh ${machine.ssh} true, by hand` });
 			const start = () => {
-				const checks = list.map((machine) => [machine.name, within(checkMachine(host, machine, coreVersion(), LIMIT_SECONDS), timedOut(machine))] as const);
-				// As the round begins, each listed machine's check to come (the line of its free CPU and memory, or why it is offline) and everySeconds.
-				host.collect("machines.round", new Map(checks.map(([name, check]) => [name, check.then((report) => (report.online ? { free: report.free } : { error: report.reason }))])), everySeconds);
+				// As the round begins, each listed machine's check to come (the lines of its free CPU and memory and of its df, or why it
+				// is offline) and everySeconds; the answers, a Map each, name the paths each machine's df reads in that check.
+				const said = new Map(list.map((machine) => [machine.name, Promise.withResolvers<{ readonly free: string; readonly disk?: Disk } | { readonly error: string }>()] as const));
+				const answers = host.collect<unknown>("machines.round", new Map([...said].map(([name, { promise }]) => [name, promise])), everySeconds);
+				// An answer that rejects or is no Map names no path, so the round still runs.
+				const asked = Promise.all(answers.map((answer) => Promise.resolve(answer).then((map) => (map instanceof Map ? map : undefined), () => undefined)));
+				const paths = async (name: string) => (await asked).flatMap((map) => [map?.get(name) ?? []].flat().filter((path): path is string => typeof path === "string"));
+				const checks = list.map((machine) => [machine.name, within(paths(machine.name).then((named) => checkMachine(host, machine, coreVersion(), LIMIT_SECONDS, named)), timedOut(machine))] as const);
+				for (const [name, check] of checks) void check.then((report) => said.get(name)?.resolve(report.online ? { free: report.free, disk: report.disk } : { error: report.reason }));
 				return Promise.all(checks.map(async ([name, check]) => [name, await check] as const)).then((reports) => {
 					running = undefined;
 					for (const [name, report] of reports) {

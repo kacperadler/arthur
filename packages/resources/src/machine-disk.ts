@@ -1,13 +1,15 @@
 import type { Host } from "@arthur/core/plugin";
 
 // Each machine's free disk (spec/roadmap.md, entry 69): every filesystem its jobs write, its `home` and each path another
-// plugin names for it through `collect("resources.disk", machine)`, read with `df -Pk` there, over the core's SSH on another
-// machine, `local` taking the same path: docs/resources.md, "Free disk".
+// plugin names for it through `collect("resources.disk", machine)`, read with `df -Pk` there: in the `machines` plugin's
+// check of a round, else over the core's SSH on another machine, `local` taking the same path: docs/resources.md, "Free disk".
 
 // One filesystem: the first path asked that lies on it, and its free bytes.
 export type Disk = { readonly path: string; readonly free: number };
 // What one check of the disk found: each filesystem once, and the paths not there.
 export type Disks = { readonly disk: readonly Disk[]; readonly skipped: readonly string[] };
+// A command's exit code (null when cut) and output, as `host.jobs.run` answers it.
+type Ran = { readonly code: number | null; readonly stdout: string; readonly stderr: string };
 
 const LIMIT_SECONDS = 10;
 const GB = 2 ** 30;
@@ -30,14 +32,23 @@ export function underFloor(disk: readonly Disk[] | undefined, floor: number): Di
 	return floor > 0 && least !== undefined && least.free < floor ? least : undefined;
 }
 
-// Machine `name`'s filesystems now; why not, when its home is not there, a provider answers what is no absolute path, or df
-// fails or answers what is no `df -P` output. Two paths on one filesystem count once.
-export async function measureDisk(host: Host, name: string): Promise<Disks | { readonly error: string }> {
+// The paths machine `name`'s df reads: its home first, then each one a provider names; why not, when a provider answers what
+// is no absolute path.
+export async function diskPaths(host: Host, name: string): Promise<readonly string[] | { readonly error: string }> {
 	const asked: unknown[] = (await Promise.all(host.collect<unknown>("resources.disk", name))).flat();
 	const wrong = asked.find((path) => typeof path !== "string" || !path.startsWith("/"));
 	if (wrong !== undefined) return { error: `resources.disk answered ${JSON.stringify(wrong)}, not an absolute path` };
-	const paths = [host.jobs.home(name), ...(asked as string[])];
-	const ran = await host.jobs.run(name, ["sh", "-c", SCRIPT, "sh", ...paths], LIMIT_SECONDS);
+	return [host.jobs.home(name), ...(asked as string[])];
+}
+
+// Machine `name`'s filesystems now, df run there on `paths` (diskPaths).
+export async function measureDisk(host: Host, name: string, paths: readonly string[]): Promise<Disks | { readonly error: string }> {
+	return readDisk(paths, await host.jobs.run(name, ["sh", "-c", SCRIPT, "sh", ...paths], LIMIT_SECONDS));
+}
+
+// The filesystems SCRIPT's answer on `paths` names; why not, when the home is not there, or df fails or answers what is no
+// `df -P` output. Two paths on one filesystem count once.
+export function readDisk(paths: readonly string[], ran: Ran): Disks | { readonly error: string } {
 	const said = ran.stderr.trim().split("\n").at(-1) || `exit code ${ran.code}`;
 	if (ran.code === null) return { error: `df -Pk timed out after ${LIMIT_SECONDS} s` };
 	if (ran.code === 255) return { error: `ssh failed: ${said}` };

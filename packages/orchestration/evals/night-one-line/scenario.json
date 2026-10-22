@@ -5,8 +5,8 @@
 	},
 	"expect": {
 		"never": [
-			"^arthur (?!.*--help)spawn ",
-			"^arthur (?!.*--help)merge "
+			"^arthur spawn ",
+			"^arthur merge "
 		],
 		"reply": {
 			"lines": 1

@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { once } from "node:events";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { loadConfig } from "@arthur/core";
 import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { type ResourcesOptions, resources } from "../src/resources.ts";
+import { checkSample } from "../src/machine-free.ts";
 import { roomOf } from "../src/room.ts";
 
 const GB = 2 ** 30;
@@ -240,6 +242,74 @@ test("df output that cannot be read, a df or ssh that fails, or a home not there
 	assert.equal(line("cold"), `cold: no room, its check failed: its home ${join(gpu, "nowhere")} is not there`);
 	assert.deepEqual(notices().slice(1), [`machine cold: its room is unknown (its home ${join(gpu, "nowhere")} is not there); no job starts there until a check answers`]);
 });
+
+test("two processes checking gpu at once say its fall under the floor and its failure once: the second reads the first's check under the machine file's lock, not the one before both", async (t) => {
+	const { fake, gpu, round, later, lows, notices } = await load(t, { keepFree: { disk: "20G" } });
+	const machines = join(fake.host.folder, "machines");
+	disks([gpu, "/dev/sdb1", FLOOR, "/"]);
+	assert.equal(await round(), Infinity);
+	const under = sample([{ path: gpu, free: (FLOOR - 1) * 1024 }]);
+	const gone = await otherCheck(join(machines, "gpu.json"), under);
+	disks([gpu, "/dev/sdb1", FLOOR - 1, "/"]);
+	later();
+	assert.equal(await round(), 0);
+	await gone();
+	assert.deepEqual(lows(), [], "the other process's check said this fall");
+	assert.equal(JSON.parse(readFileSync(join(machines, "gpu.json"), "utf8")).at, fake.host.clock.now().toISOString(), "this check is written after the other's");
+	const failed = { at: NOW.toISOString(), jobs: [], error: "df -Pk failed there: df: /srv: Input/output error" };
+	const goneAgain = await otherCheck(join(machines, "gpu.json"), failed);
+	writeFileSync(join(dir, "fail"), "df: /srv: Input/output error\n");
+	later();
+	assert.equal(await round(), 0);
+	await goneAgain();
+	assert.deepEqual(notices(), [], "the other process's check said this failure");
+	assert.deepEqual(readdirSync(machines), ["gpu.json"], "no lock left behind");
+});
+
+test("a check writes its own under the lock it read the one before under: another process that reads the write sees the lock held by this one", async () => {
+	const folder = temporaryFolder();
+	const file = join(folder, "machines", "gpu.json");
+	mkdirSync(dirname(file));
+	// The check's write goes to a FIFO, and its reason, longer than a pipe holds (64 KiB on Linux), keeps it there until the
+	// other process reads it; that process first looks at the lock as it stands during the write.
+	execFileSync("mkfifo", [`${file}.${process.pid}`]);
+	const code = `const { existsSync, openSync, readFileSync } = require("node:fs");
+		const fd = openSync(${JSON.stringify(`${file}.${process.pid}`)}, "r");
+		const holder = existsSync(${JSON.stringify(`${file}.lock`)}) ? readFileSync(${JSON.stringify(`${file}.lock`)}, "utf8").split(" ")[0] : "none";
+		process.send({ holder, written: readFileSync(fd, "utf8") }, () => process.disconnect());`;
+	const child = spawn(process.execPath, ["-e", code], { stdio: ["ignore", "inherit", "inherit", "ipc"] });
+	const seen = once(child, "message");
+	const said = Promise.resolve({ error: `ssh failed: ${"x".repeat(256 * 1024)}` });
+	const kept = await checkSample(fakeHost({ name: "resources", now: NOW }).host, folder, "gpu", 0, said);
+	const [{ holder, written }] = (await seen) as [{ holder: string; written: string }];
+	assert.equal(holder, String(process.pid), "the lock is this process's while it writes");
+	assert.equal(written, `${JSON.stringify(kept)}\n`);
+	assert.equal(existsSync(`${file}.lock`), false, "and let go after");
+	rmSync(folder, { recursive: true });
+});
+
+// Another process's check of the machine kept in `file`, as an `arthur spawn` makes it while `arthur run`'s is in flight: it
+// holds the file's lock once this resolves, and writes `kept`, its check, and lets go once this process's check waits for the
+// lock (its own lock file beside it) or has written the file without it. The function it resolves with waits until that
+// process is gone.
+async function otherCheck(file: string, kept: object): Promise<() => Promise<void>> {
+	const code = `const { takeLock } = await import(${JSON.stringify(import.meta.resolve("@arthur/core/lock"))});
+		const { existsSync, readFileSync, writeFileSync } = await import("node:fs");
+		const { release } = takeLock(${JSON.stringify(`${file}.lock`)});
+		const before = readFileSync(${JSON.stringify(file)}, "utf8");
+		process.send("held");
+		const wait = setInterval(() => {
+			if (!existsSync(${JSON.stringify(`${file}.lock.${process.pid}`)}) && readFileSync(${JSON.stringify(file)}, "utf8") === before) return;
+			clearInterval(wait);
+			writeFileSync(${JSON.stringify(file)}, ${JSON.stringify(`${JSON.stringify(kept)}\n`)});
+			release();
+			process.disconnect();
+		}, 2);`;
+	const child = spawn(process.execPath, ["--input-type=module", "-e", code], { stdio: ["ignore", "inherit", "inherit", "ipc"] });
+	const exited = once(child, "exit");
+	await Promise.race([once(child, "message"), exited.then(([status]) => assert.fail(`the other check exited with ${status} before it held the lock`))]);
+	return () => exited.then(([status]) => assert.equal(status, 0, "the other check exited cleanly"));
+}
 
 test("floor 0, or none, runs no df and keeps no disk: a machine with 1 KiB free still takes jobs", async (t) => {
 	for (const keepFree of [{ disk: 0 as const }, {}]) {

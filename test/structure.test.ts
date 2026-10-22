@@ -451,10 +451,14 @@ import { checkStructure } from "./structure.ts";
 // scenario's answers: an unknown command's `--help` and `help <command>`, `help` of two words and `help` alone, each with the
 // live CLI's text and exit code (eval-stub.ts, 5 net, its help comment kept at 2 lines and the branches put on one line).
 // Merged main (AR0278) into AR0269: main's budgets plus AR0269's machines 474 and resources 602 (recounted with wc -l).
+// AR0271 (F3 of AR0262; its Done means name the core's `withLock`): resources 5 more (607) for reading the check before and
+// writing this one under the machine file's lock, so two processes checking one machine at once say its news once
+// (machine-free.ts: the import 1, the lock around the read and the write 3, its comment 1); a new guard, so nothing was cut.
 // Merged main (AR0269) into AR0288: main's budgets plus AR0288's develop 633 (recounted with wc -l).
 // Merged main (AR0269, AR0288) into AR0279: main's budgets plus AR0279's raises, core 5753, orchestration 2231, develop
 // 633 + 22 = 655 (recounted with wc -l).
-const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2231, machines: 474, resources: 602, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 655, findings: 254 };
+// Merged main (AR0279, AR0288, AR0291) into AR0271: main's budgets plus AR0271's resources 607 (recounted with wc -l).
+const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2231, machines: 474, resources: 607, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 655, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

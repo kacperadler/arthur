@@ -1,9 +1,11 @@
 import type { Host, Project } from "@arthur/core/plugin";
-import { ask, close, decisions, readLog } from "./decision-log.ts";
+import { policyOf } from "./decision-classes.ts";
+import { ask, close, type Decision, decisions, readLog } from "./decision-log.ts";
 
 // What the plugin records in the decision log by itself (spec/roadmap.md, entry 96): the question of a job blocked on the
 // owner, asked as kind `job` (blocked-notice.ts names its id in the notice); a close once what an open question waits on is
-// gone, its job continued or ended, its ticket merged or dropped; and the wake's line naming the id to answer.
+// gone, its job continued or ended, its ticket merged or dropped; and the wake's line naming the id to answer, or the
+// decision of the class that answered it by policy (entry 97).
 
 // The project a job or a ticket of `name` belongs to; undefined without a project list, or for a name not in it.
 function eventProject(host: Host, name: unknown): Project | undefined {
@@ -34,14 +36,17 @@ export function decisionHooks(host: Host): void {
 	// A wake must not fail: a log broken by hand costs this line only.
 	host.provide("coordinator.wake", (job: Readonly<Record<string, unknown>>) => {
 		if (job.state !== "blocked" || typeof job.reason !== "string" || !job.reason.startsWith("user: ")) return undefined;
-		let open: string | undefined;
+		let last: Decision | undefined;
 		try {
 			const where = eventProject(host, job.project);
-			open = where === undefined ? undefined : decisions(readLog(where)).findLast((each) => each.state === "open" && each.ask.kind === "job" && each.ask.job === job.id)?.ask.id;
+			last = where === undefined ? undefined : decisions(readLog(where)).findLast((each) => each.ask.kind === "job" && each.ask.job === job.id);
 		} catch (error) {
 			return `Its question is not in the decision log: ${(error instanceof Error ? error.message : String(error)).split("\n")[0]}`;
 		}
-		if (open === undefined) return undefined;
-		return `Its question is decision ${open}: record the owner's answer first, arthur decision answer ${open} --decided '<the decision in one line>' '<his words>', then arthur continue ${String(job.id)} '<his answer>'.`;
+		const [open, answered] = [last?.state === "open" ? last.ask.id : undefined, last?.answers.at(-1)];
+		const policy = policyOf(answered);
+		if (open !== undefined) return `Its question is decision ${open}: record the owner's answer first, arthur decision answer ${open} --decided '<the decision in one line>' '<his words>', then arthur continue ${String(job.id)} '<his answer>'.`;
+		if (policy === undefined || answered === undefined) return undefined;
+		return `Its question is decision ${last?.ask.id}, answered by policy (${policy}): ${answered.decided}. Act on it as on the owner's answer, arthur continue ${String(job.id)} '<that decision>', and say so in your reply.`;
 	});
 }

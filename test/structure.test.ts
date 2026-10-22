@@ -411,7 +411,17 @@ import { checkStructure } from "./structure.ts";
 // context.ts (4), orchestration.ts (4) and autopilot.ts (1, the Decisions heading added when a ticket has none). A new
 // entry, so nothing was cut elsewhere.
 // Merged main (AR0281) into AR0280: main's budgets plus AR0280's develop 622.
-const BUDGETS = { core: 5748, "core/testing": 349, projects: 486, orchestration: 1991, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 622, findings: 254 };
+// AR0284 (roadmap 97, decision classes; its Done means name the package and this file): orchestration 203 more (2194) for a
+// class proposed from the owner's same answers with the agreement of the recommendations with his picks, and revoked on his
+// word (decision-class.ts, 67); the classes read from the log, a hand edit of their records refused, the one approved class
+// a question falls in, of its ticket's kind (decision-classes.ts, 75); the views of `arthur decisions` moved out of
+// decision-commands.ts with a class's lines and a policy answer's (decision-views.ts, 53, 34 of them moved); the answer by
+// policy in the ask's write, its ticket line found by its text, the owner's words never `by policy` and a proposal's pick
+// (decision-log.ts, 15 more, its ticketFile moved into the views); `class propose|revoke` and `--classes`
+// (decision-commands.ts, 12 fewer after the move); and the wake's line for a job's question answered by policy
+// (decision-hooks.ts, 5 more). A new entry, so nothing was cut elsewhere.
+// Merged main (AR0284) into AR0280: main's budgets plus AR0280's develop 622.
+const BUDGETS = { core: 5748, "core/testing": 349, projects: 486, orchestration: 2194, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 622, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

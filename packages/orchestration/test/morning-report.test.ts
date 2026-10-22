@@ -58,6 +58,10 @@ test("a night with nothing done says so in one line, the whole report when nothi
 	assert.match(text, /With the first two empty and something waiting, its first line is `Nothing was built or merged overnight\.`/);
 });
 
+test("while the silent mode is on, the procedure has the coordinator run arthur silent ask, so the report is not held", async () => {
+	assert.match(await procedure(), /^While the silent mode is on, run `arthur silent ask` before you reply: the report is the owner's, and silent would hold it\.$/m);
+});
+
 for (const [section, empty] of [
 	["Built overnight", "no job built anything"],
 	["Merged without the owner", "you merged nothing"],

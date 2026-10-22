@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { lstatSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { pathToFileURL } from "node:url";
@@ -307,7 +307,7 @@ function load() {
 	return loaded;
 }
 
-test("every scenario of the packages is acted here; its needs name an open ticket; the baseline holds a rate for each", () => {
+test("every scenario of the packages is acted here; its needs name an open ticket; its fixture has a vision; the baseline holds a rate for each", () => {
 	const found = scenarios(CODE);
 	assert.deepEqual([...found.keys()], Object.keys(ACTS).sort());
 	assert.equal(found.size, 19, "the scenarios of roadmap entry 68");
@@ -316,6 +316,9 @@ test("every scenario of the packages is acted here; its needs name an open ticke
 		const scenario = JSON.parse(readFileSync(join(folder, "scenario.json"), "utf8"));
 		for (const line of scenario.needs ?? []) assert.match(line, /^AR027[789]( F\d+)?: /, `${name}: needs names an open ticket of the evals, or a finding of one that becomes a ticket at its merge`);
 		for (const answer of scenario.stub ?? []) if (answer.output?.includes("# After a merge that went in")) assert.ok(answer.output.endsWith(`\n\n${afterMerge}`), `${name}: its merge prints delivery's after-merge.md as it is`);
+		// The context of a copy reads its vision at spec/vision.md (the default `prompts.vision`) and warns of one it lacks.
+		const vision = join(folder, "fixture", "spec", "vision.md");
+		assert.ok(lstatSync(vision, { throwIfNoEntry: false })?.isFile() && readFileSync(vision, "utf8").trim() !== "", `${name}: its fixture has a vision, a plain file at spec/vision.md`);
 	}
 	const baseline = JSON.parse(readFileSync(join(PACKAGES, "..", "evals", "baseline.json"), "utf8"));
 	assert.deepEqual(Object.keys(baseline), [...found.keys()]);

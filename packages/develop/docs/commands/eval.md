@@ -18,7 +18,7 @@ passed 4/6 runs; moved against the baseline: delivery/review-pass (up, 2/3 to 3/
 
 The scenarios Arthur ships (roadmap entry 68), run by `npm test` against a fake agent in `packages/develop/test/scenarios.test.ts`: in delivery, `worker-done`, `condition-before-review`, `review-pass`, `review-pass-hook`, `review-fail-handed-back`, `review-fail-continue`, `merge` and `check-failed`; in orchestration, `later-is-a-ticket`, `no-sleep`, `night-one-line`, `morning-report` and `env-refusal`; in manage, `audit-autopilot` and `retro`; in session, `after-restart-plan` and `unblocked-after-restart`; in github, `ci-failed`; in projects, `onboarding-questions`. A new scenario gets its right and wrong turn in that test.
 
-A scenario is a folder `evals/<name>/` in a package the load runs (the core's, each enabled plugin's), named `<package folder>/<name>`, kept in the package whose procedure it tests: its `fixture/`, the repository the turn runs on, and its `scenario.json`:
+A scenario is a folder `evals/<name>/` in a package the load runs (the core's, each enabled plugin's), named `<package folder>/<name>`, kept in the package whose procedure it tests: its `fixture/`, the repository the turn runs on, with its vision at `spec/vision.md` (else the turn's context warns `the copy has no vision`), and its `scenario.json`:
 
 ```json
 {

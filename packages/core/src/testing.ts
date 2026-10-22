@@ -45,7 +45,7 @@ export function temporaryFolder(): string {
 // are lost with no turn (omp's prompt failing after it returned), and `ctx.compact` throws `compactError`; with `clock`, a file, `Date.now()` in the agent and its extensions answers the
 // time in ms it holds while it exists, so a test moves time. A step: `tool`, a tool call, omp's start and end events of it, `output` the tool's text and `failed` its error flag.
 // `message`: an assistant message that ends a turn, with its `cost` in USD; `stopReason` `stop` (the default) ends the run, `toolUse` comes before a tool call, `error` or `aborted` a
-// failed one, with omp's `error` text. `prompt`: a turn starts (`agent_start`) once an extension sent a message while idle, busy `compactMs` first (omp's compaction before it), after its
+// failed one, with omp's `error` text. `prompt`: a turn starts (`agent_start`) once an extension sent a message while idle, busy `compactMs` by `Date.now()` first (omp's compaction before it), after its
 // `before_agent_start` handlers; `end`: it ends (`agent_end`) unless a `session_stop` handler continues it (8 in a row at most) or, with `continues`, says it goes on and starts none
 // (omp's compaction after it). `stdout`/`stderr`: one line. `waitFor`: until the file exists. `signal`: kills itself with it.
 export type AgentStep =
@@ -62,7 +62,7 @@ export type AgentRun = { readonly steps: readonly AgentStep[]; readonly exitCode
 
 // The fake agent: an executable `omp` in a new folder of the kit's, which plays `run` each time it starts, notes each start
 // (`pid`, `cwd`, `args`) in `starts.jsonl` beside it once its `-e` extensions are loaded, each message they send (`content`, `options`, `step`) in
-// `messages.jsonl`, their `ctx.ui` calls in `ui.jsonl`, their `ctx.compact` calls in `compactions.jsonl`, and each turn's system prompt in `system.jsonl`. Returns its path, for `PATH` or as `core.agent.command`.
+// `messages.jsonl`, their `ctx.ui` calls in `ui.jsonl`, their `ctx.compact` calls in `compactions.jsonl`, each turn's system prompt in `system.jsonl`, and each `agent_end` (`willContinue`, `step`) once its handlers ran in `ends.jsonl`. Returns its path, for `PATH` or as `core.agent.command`.
 export function fakeAgent(run: AgentRun): string {
 	const folder = temporaryFolder();
 	const quote = (text: string) => `'${text.replaceAll("'", `'\\''`)}'`;

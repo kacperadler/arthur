@@ -21,8 +21,9 @@ export function byState<T extends { readonly state: string }>(jobs: readonly T[]
 }
 
 // `checkout`: the context in a copy of the main project's repository at `root` (an eval's fixture), at the instant `at`: its
-// vision and board read there; no jobs, open decisions or silent mode, which are the live Arthur's; and each plugin's lines
-// those `context` gives it by name instead of its answer, none for a plugin left out, so no live answer reaches an eval.
+// vision and board read there, its lines naming no project; no jobs, open decisions or silent mode, which are the live
+// Arthur's; and each plugin's lines those `context` gives it by name instead of its answer, none for a plugin left out, so no
+// live answer reaches an eval.
 export function coordinatorContext(host: Host, checkout?: { readonly root: string; readonly at: Date; readonly context: Readonly<Record<string, string>> }): string {
 	const { prompt, warnings } = host.jobs.prompt("coordinator");
 	const parts = [prompt.trim()];
@@ -31,10 +32,10 @@ export function coordinatorContext(host: Host, checkout?: { readonly root: strin
 	for (const name of projects) {
 		try {
 			const { project, path, text = "", problem } = host.jobs.vision(name, checkout?.root);
-			if (problem !== undefined || text.trim() === "") warnings.push(`project ${project} has no vision: ${path} is ${problem ?? "empty"}; the coordinator goes without it`);
-			else parts.push(`## Vision of ${project} (${path})\n\n${text.trim()}`);
+			if (problem !== undefined || text.trim() === "") warnings.push(`${checkout === undefined ? `project ${project}` : "the copy"} has no vision: ${path} is ${problem ?? "empty"}; the coordinator goes without it`);
+			else parts.push(`## Vision${checkout === undefined ? ` of ${project}` : ""} (${path})\n\n${text.trim()}`);
 		} catch (error) {
-			warnings.push(`project ${name}: its vision was not read: ${firstLine(error)}`);
+			warnings.push(`${checkout === undefined ? `project ${name}` : "the copy"}: its vision was not read: ${firstLine(error)}`);
 		}
 	}
 	if (warnings.length > 0) parts.push(`## Warnings\n\n${warnings.map((warning) => `- ${warning}`).join("\n")}`);

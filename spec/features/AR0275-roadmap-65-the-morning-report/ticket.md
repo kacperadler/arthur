@@ -37,3 +37,4 @@ In:
 ## Decisions
 
 - 2026-10-22: Started by the coordinator; owner: continue Arthur today up to 20% of the weekly limit (8% at 08:40).
+- 2026-10-22: Coordinator (free hand) accepted the worker pick: under silent mode the coordinator runs `arthur silent ask` before replying, so the morning report still reaches the owner.

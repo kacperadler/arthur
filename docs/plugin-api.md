@@ -185,6 +185,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `coordinator.extension` | session | orchestration | `{ file, env }`: an OMP extension the coordinator loads. |
 | `coordinator.restart` | orchestration | session | Restarts the coordinator, `{ fresh }`. |
 | `coordinator.silent` | orchestration | telegram | Whether the silent mode holds a notice. |
+| `coordinator.turn` | orchestration | develop (`arthur eval`) | A promise of the text the coordinator's agent gets for `(event name, data, result)`, one event handed over alone. |
 | `models.lists` | orchestration | models | Every role's model list. |
 | `machines.round` | resources | machines | A round of machine checks as it begins. |
 | `resources.free` | resources | machines | The jobs a machine has room for. |

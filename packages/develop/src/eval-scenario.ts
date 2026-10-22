@@ -4,8 +4,8 @@ import type { Host } from "@arthur/core/plugin";
 import type { StubAnswer } from "./eval-stub.ts";
 
 // A scenario of `arthur eval` (spec/roadmap.md, entry 67): `<package>/evals/<name>/scenario.json` beside its `fixture/`, in
-// each package the load runs, named `<package folder>/<name>`. Its turn is built here as the coordinator gets it from its inbox:
-// a message of the owner's, a schedule entry due, or a job's end with the wake the plugins add for its kind. Docs:
+// each package the load runs, named `<package folder>/<name>`. Its turn is the text orchestration's inbox hands the coordinator
+// for its event (`coordinator.turn`): a message of the owner's, a schedule entry due, or a job's end. Docs:
 // docs/commands/eval.md.
 
 export type Expect = {
@@ -18,8 +18,6 @@ export type Expect = {
 export type Scenario = { readonly name: string; readonly folder: string; readonly turn: string; readonly timeoutSeconds: number; readonly stub: readonly StubAnswer[]; readonly expect: Expect };
 
 export const TIMEOUT_SECONDS = 900;
-const ARTHUR = "The lines marked [Arthur] come from Arthur (a job's end, a schedule), not from the owner.";
-const RESULT_LINES = 15;
 
 // Every scenario folder of the packages `code` names, by name.
 export function scenarios(code: readonly string[]): ReadonlyMap<string, string> {
@@ -44,7 +42,7 @@ function patterns(value: unknown, path: string): readonly string[] {
 }
 
 // The scenario in `folder`, checked, its turn built; or why it cannot run, which fails it alone.
-export function readScenario(host: Host, name: string, folder: string): Scenario | string {
+export async function readScenario(host: Host, name: string, folder: string): Promise<Scenario | string> {
 	const file = join(folder, "scenario.json");
 	try {
 		if (!existsSync(join(folder, "fixture")) || !statSync(join(folder, "fixture")).isDirectory()) return `no fixture: ${join(folder, "fixture")} is not a folder`;
@@ -67,7 +65,7 @@ export function readScenario(host: Host, name: string, folder: string): Scenario
 		const missing = expect.missing ?? [];
 		if (!Array.isArray(missing) || !missing.every(words)) throw new Error("expect.missing: expected a list of paths");
 		return {
-			...{ name, folder, turn: turnText(host, folder, turn), timeoutSeconds: timeoutSeconds as number, stub: stub as StubAnswer[] },
+			...{ name, folder, turn: await turnText(host, folder, turn), timeoutSeconds: timeoutSeconds as number, stub: stub as StubAnswer[] },
 			expect: {
 				...{ files: Object.fromEntries(Object.entries(files).map(([path, list]) => [path, patterns(list, `expect.files.${path}`)])), missing },
 				...{ refs: refs as Expect["refs"], calls: patterns(expect.calls, "expect.calls"), never: patterns(expect.never, "expect.never") },
@@ -78,28 +76,23 @@ export function readScenario(host: Host, name: string, folder: string): Scenario
 	}
 }
 
-// The turn as the inbox hands it over: `{ message, channel? }` the owner's; `{ scheduled, message, procedure? }` a schedule
-// entry due, as the schedule plugin words it, `procedure` a file beside the scenario; `{ ended, result? }` a job's end, as
-// orchestration's wake words it, with what the loaded plugins add for its kind (`coordinator.wake`).
-function turnText(host: Host, folder: string, turn: unknown): string {
+// The turn as the inbox hands it over, asked of orchestration (`coordinator.turn`): `{ message, channel? }` the owner's, a
+// `message-received`; `{ scheduled, message, procedure? }` a schedule entry due, a `coordinator-message` as the schedule plugin
+// words it, `procedure` a file beside the scenario; `{ ended, result? }` a job's end, a `job-ended` with its final message.
+async function turnText(host: Host, folder: string, turn: unknown): Promise<string> {
 	if (!object(turn)) throw new Error("turn: expected { message, channel? }, { scheduled, message, procedure? } or { ended, result? }");
 	if (turn.ended !== undefined) {
 		const job = turn.ended;
 		if (!object(job) || !words(job.id) || !words(job.kind) || (job.state !== "ended" && job.state !== "blocked")) throw new Error('turn.ended: expected { id, kind, state: "ended" | "blocked", reason?, project? }');
-		const reason = typeof job.reason === "string" ? job.reason : "";
-		const asks = job.state === "blocked" && reason.startsWith("user: ") ? reason.slice("user: ".length) : undefined;
-		const lines = [asks === undefined ? `Job ${job.id} ended its run: ${job.state}${reason === "" ? "" : ` (${reason})`}.` : `Job ${job.id} ended its run blocked on the owner; its question, also sent as a notice: ${asks}`];
-		if (words(job.project) && job.project !== host.board.projects()[0]?.name) lines.push(`Project: ${job.project}.`);
-		const result = typeof turn.result === "string" ? turn.result.trimEnd().split("\n") : [];
-		if (result.join("") === "") lines.push("Its final message: none.");
-		else lines.push(`Its final message${result.length > RESULT_LINES ? ` (the first ${RESULT_LINES} of ${result.length} lines)` : ""}:`, ...result.slice(0, RESULT_LINES));
-		for (const answer of host.collectEach("coordinator.wake", job)) if ("value" in answer && words(answer.value)) lines.push(answer.value);
-		return `[Arthur] ${lines.join("\n")}\n\n${ARTHUR}`;
+		return host.call<Promise<string>>("coordinator.turn", "job-ended", job, turn.result);
 	}
 	if (!words(turn.message)) throw new Error("turn.message: expected text");
-	if (turn.scheduled === undefined) return `[via ${words(turn.channel) ? turn.channel : "telegram"}] ${turn.message}`;
+	if (turn.scheduled === undefined) {
+		const parts = [{ kind: "text", text: turn.message, mime: "text/plain" }];
+		return host.call<Promise<string>>("coordinator.turn", "message-received", { channel: words(turn.channel) ? turn.channel : "telegram", parts });
+	}
 	if (!words(turn.scheduled)) throw new Error("turn.scheduled: expected the entry's id");
 	if (turn.procedure !== undefined && !words(turn.procedure)) throw new Error("turn.procedure: expected a file's path beside the scenario");
 	const procedure = turn.procedure === undefined ? "" : `\n\n${readFileSync(join(folder, turn.procedure as string), "utf8").trim()}`;
-	return `[Arthur] [scheduled ${turn.scheduled}] ${turn.message}${procedure}\n\n${ARTHUR}`;
+	return host.call<Promise<string>>("coordinator.turn", "coordinator-message", { text: `[scheduled ${turn.scheduled}] ${turn.message}${procedure}` });
 }

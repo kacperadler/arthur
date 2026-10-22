@@ -406,7 +406,11 @@ import { checkStructure } from "./structure.ts";
 // open questions with up to 5 like them in the context (decision-context.ts, 38); and their calls in blocked-notice.ts (12),
 // context.ts (4), orchestration.ts (4) and autopilot.ts (1, the Decisions heading added when a ticket has none). A new
 // entry, so nothing was cut elsewhere.
-const BUDGETS = { core: 5748, "core/testing": 349, projects: 486, orchestration: 1991, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 584, findings: 254 };
+// AR0277 (its Done means: orchestration answers `coordinator.turn`, develop drops its copy): orchestration 29 more (2020) for
+// `coordinator.turn` with its refusals and the wake's `final` (inbox.ts, 22), and the hand-over's wording moved out of the
+// extension so both use it (hand-over.ts, 12; inbox-extension.ts, 5 fewer); develop 7 fewer (577), its copy of the wake and
+// the marks gone from eval-scenario.ts.
+const BUDGETS = { core: 5748, "core/testing": 349, projects: 486, orchestration: 2020, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 577, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

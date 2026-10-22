@@ -20,6 +20,8 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0277 The eval words a turn with a copy of orchestration's wake and inbox lines, which can drift (c4047e0)
 - AR0283 A job's question and the plugin's closes take the log's lock synchronously inside `arthur run` (d50431a)
 - AR0288 The eval stub answers a command's --help with that command's scripted result (3b718b5)
+- AR0289 The eval still words a schedule entry with its own copy of the schedule plugin's `[scheduled <id>]` line (cee3d3f)
+- AR0290 The telegram menu test failed once in a full `npm test` and passes alone (4b8b178)
 
 ### Changed
 

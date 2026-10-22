@@ -1,7 +1,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import type { Host } from "@arthur/core/plugin";
-import { type Entry, isOneOff, type JobEntry, lastSlot } from "./entry.ts";
+import { type Entry, isId, isOneOff, type JobEntry, lastSlot } from "./entry.ts";
 import { owners, readEntries } from "./entry-file.ts";
 import type { Registered } from "./register.ts";
 import { claim, lastClaimed, seen } from "./run-state.ts";
@@ -36,7 +36,7 @@ export function sweeper(host: Host, configured: readonly Entry[], registered: re
 				continue;
 			}
 			if (!claim(host.folder, entry.id, slot, now)) continue;
-			if (entry.action !== undefined) host.events.emit("coordinator-message", { text: `[scheduled ${entry.id}]${late} ${entry.action.message}${procedure === undefined ? "" : `\n\n${procedure.text}`}` });
+			if (entry.action !== undefined) host.events.emit("coordinator-message", { text: scheduled(entry.id, entry.action.message, procedure?.text, late) });
 			if (entry.job !== undefined) jobs.push({ id: entry.id, job: entry.job, late });
 			const { run } = entry as Registered;
 			if (run !== undefined) runs.push({ id: entry.id, run, late });
@@ -58,12 +58,26 @@ export function sweeper(host: Host, configured: readonly Entry[], registered: re
 	};
 }
 
+// The text the coordinator gets for an action due: `[scheduled <id>]`, the late mark when late, its message and, after a blank
+// line, its procedure's text.
+function scheduled(id: string, message: string, procedure: string | undefined, late: string): string {
+	return `[scheduled ${id}]${late} ${message}${procedure === undefined ? "" : `\n\n${procedure.trim()}`}`;
+}
+
+// What `schedule.message` answers (`arthur eval` asks it): the text of an entry's action due on time, as the sweep words it.
+export function dueMessage(id: unknown, message: unknown, procedure: unknown): string {
+	if (!isId(id)) throw new Error(`schedule.message: expected an entry's id, got ${JSON.stringify(id)}`);
+	if (typeof message !== "string" || message.trim() === "") throw new Error(`schedule.message: expected the action's message, non-empty text, got ${JSON.stringify(message)}`);
+	if (procedure !== undefined && typeof procedure !== "string") throw new Error(`schedule.message: expected the procedure's text or nothing, got ${JSON.stringify(procedure)}`);
+	return scheduled(id, message, procedure, "");
+}
+
 // A procedure's text as it reads now; a symlink anywhere below `folder` on its path (its real path differs) is never read.
 function procedureText(folder: string, path: string): { readonly text: string } | { readonly problem: string } {
 	const file = resolve(folder, path);
 	try {
 		if (relative(realpathSync(folder), realpathSync(file)) !== relative(folder, file)) return { problem: `${path} is or goes through a symlink, which is never read` };
-		return { text: readFileSync(file, "utf8").trim() };
+		return { text: readFileSync(file, "utf8") };
 	} catch (error) {
 		return { problem: `${path}: ${(error as Error).message}` };
 	}
@@ -75,6 +89,6 @@ async function start(host: Host, id: string, { task, kind, project }: JobEntry, 
 		console.log(`schedule: ${id}${late}: started job ${started.id}${started.failed === undefined ? "" : `, which failed: ${started.failed}`}`);
 	} catch (error) {
 		const what = `kind ${kind ?? "worker"}${project === undefined ? "" : `, project ${project}`}`;
-		host.events.emit("coordinator-message", { text: `[scheduled ${id}]${late} Its job (${what}) did not start: ${(error as Error).message}\nIts task: ${task}` });
+		host.events.emit("coordinator-message", { text: scheduled(id, `Its job (${what}) did not start: ${(error as Error).message}\nIts task: ${task}`, undefined, late) });
 	}
 }

@@ -124,20 +124,29 @@ test("the menu is the phone commands, set at a start only when they changed sinc
 	];
 	const env = { ARTHUR_TELEGRAM_BOT_TOKEN: TOKEN, ARTHUR_TELEGRAM_CHAT_ID: String(CHAT), ARTHUR_TELEGRAM_SHOP_BOT_TOKEN: SECOND, ARTHUR_TELEGRAM_SHOP_CHAT_ID: String(CHAT) };
 	const folder = temporaryFolder();
-	// One start of `arthur run` with these commands, stopped once its menu calls and first polls are done.
-	const start = async (names: readonly string[], ready: () => boolean) => {
+	// One start of `arthur run` with these commands, stopped once `ready` holds (the menu record written, not only the call
+	// seen: a stop while a menu call is under way aborts it before its record) and its first polls are done.
+	const start = async (names: readonly string[], ready: (errors: readonly string[]) => boolean) => {
 		const box = await load(t, { apiUrl: api.url, bots }, { env, folder });
 		for (const name of names) phone(box.fake.host, name, () => "ok");
 		const before = api.polls().length;
 		await box.plugin.start?.();
-		await until("the menu and a poll", () => ready() && api.polls().length > before && api.polls(SECOND).length > 0);
+		await until("the menu record and a poll", () => ready(box.errors) && api.polls().length > before && api.polls(SECOND).length > 0);
 		await box.plugin.stop?.();
 		return box.errors;
 	};
 	const set = (...names: string[]) => ({ method: "setMyCommands", commands: names.map((name) => ({ command: name, description: `the ${name}` })) });
 	const record = () => JSON.parse(readFileSync(join(folder, "menu.json"), "utf8")) as Record<string, unknown>;
+	// Whether the record holds these commands as set for the bot of this token; a missing or broken record holds none.
+	const holds = (token: string, ...names: string[]) => {
+		try {
+			return record()[token.split(":")[0] ?? ""] === JSON.stringify(set(...names).commands);
+		} catch {
+			return false;
+		}
+	};
 
-	await start(["jobs", "board"], () => api.menus().length === 1 && api.menus(SECOND).length === 1);
+	await start(["jobs", "board"], () => holds(TOKEN, "board", "jobs") && holds(SECOND, "board", "jobs"));
 	assert.deepEqual([api.menus(), api.menus(SECOND)], [[set("board", "jobs")], [set("board", "jobs")]], "sorted by name, each bot its own");
 	assert.deepEqual(Object.keys(record()).sort(), [TOKEN, SECOND].map((token) => token.split(":")[0]).sort(), "keyed by the bot's id, never its token");
 	assert.ok(!readFileSync(join(folder, "menu.json"), "utf8").includes(TOKEN.split(":")[1] ?? "-"));
@@ -145,19 +154,19 @@ test("the menu is the phone commands, set at a start only when they changed sinc
 	await start(["board", "jobs"], () => true);
 	assert.equal(api.menus().length + api.menus(SECOND).length, 2, "the same commands: nothing set again");
 
-	await start(["board", "jobs", "plan"], () => api.menus().length === 2 && api.menus(SECOND).length === 2);
+	await start(["board", "jobs", "plan"], () => holds(TOKEN, "board", "jobs", "plan") && holds(SECOND, "board", "jobs", "plan"));
 	assert.deepEqual(api.menus()[1], set("board", "jobs", "plan"));
 
 	writeFileSync(join(folder, "menu.json"), "{ broken");
-	await start(["board", "jobs", "plan"], () => api.menus().length === 3 && api.menus(SECOND).length === 3);
+	await start(["board", "jobs", "plan"], () => holds(TOKEN, "board", "jobs", "plan") && holds(SECOND, "board", "jobs", "plan"));
 	assert.deepEqual(api.menus(SECOND)[2], set("board", "jobs", "plan"), "a record that does not parse records nothing");
 
 	api.fail("deleteMyCommands", 400, "Bad Request: not enough rights");
-	const errors = await start([], () => api.menus().length === 4 && api.menus(SECOND).length === 4);
+	const errors = await start([], (logged) => logged.length > 0 && holds(SECOND));
 	assert.deepEqual(api.menus()[3], { method: "deleteMyCommands" }, "no phone command: the menu deleted");
 	assert.deepEqual(errors, ["telegram bot (unnamed): deleteMyCommands: 400: Bad Request: not enough rights; the command menu is set again at the next start"]);
 	assert.equal(record()[TOKEN.split(":")[0] ?? ""], JSON.stringify(set("board", "jobs", "plan").commands), "a failed call keeps the record");
 
-	await start([], () => api.menus().length === 5);
+	await start([], () => holds(TOKEN));
 	assert.deepEqual([api.menus()[4], api.menus(SECOND).length], [{ method: "deleteMyCommands" }, 4], "tried again at the next start, only where it failed");
 });

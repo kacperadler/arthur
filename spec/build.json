@@ -2225,16 +2225,16 @@
   {
     "id": "AR0289",
     "title": "The eval still words a schedule entry with its own copy of the schedule plugin's `[scheduled <id>]` line",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0289-the-eval-still-words-a-schedule-entry-with-its-own-copy-of-the-schedule-plugin-s-scheduled-id-line/ticket.md",
-    "updated": "2026-10-22T19:33:16.200Z"
+    "updated": "2026-10-22T20:14:52.468Z"
   },
   {
     "id": "AR0290",
     "title": "The telegram menu test failed once in a full `npm test` and passes alone",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0290-the-telegram-menu-test-failed-once-in-a-full-npm-test-and-passes-alone/ticket.md",
-    "updated": "2026-10-22T19:32:14.902Z"
+    "updated": "2026-10-22T20:09:45.752Z"
   },
   {
     "id": "AR0291",
@@ -2249,16 +2249,16 @@
   {
     "id": "AR0292",
     "title": "A check of its own still makes two ssh calls to a machine with a disk floor",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0292-a-check-of-its-own-still-makes-two-ssh-calls-to-a-machine-with-a-disk-floor/ticket.md",
-    "updated": "2026-10-22T14:13:59.123Z"
+    "updated": "2026-10-22T20:13:18.032Z"
   },
   {
     "id": "AR0293",
     "title": "An orchestration inbox test overshoots its 30 s real-timer window under load",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0293-an-orchestration-inbox-test-overshoots-its-30-s-real-timer-window-under-load/ticket.md",
-    "updated": "2026-10-22T14:58:24.868Z"
+    "updated": "2026-10-22T20:09:59.369Z"
   },
   {
     "id": "AR0294",
@@ -2308,5 +2308,12 @@
     "status": "planned",
     "path": "spec/features/AR0300-the-wrapper-s-append-to-log-can-still-recreate-it-while-rm-r-empties-the-record/ticket.md",
     "updated": "2026-10-22T19:22:29.827Z"
+  },
+  {
+    "id": "AR0301",
+    "title": "core job-control test can fail with ENOENT unlinking continuing under load",
+    "status": "planned",
+    "path": "spec/features/AR0301-core-job-control-test-can-fail-with-enoent-unlinking-continuing-under-load/ticket.md",
+    "updated": "2026-10-22T20:15:18.068Z"
   }
 ]

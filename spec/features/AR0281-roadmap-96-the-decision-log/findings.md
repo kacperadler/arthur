@@ -13,7 +13,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/orchestration/test/decisions.test.ts` ("asks at once, from four processes asking five times each")
 - What: with `withLock` taken out of `change` in `packages/orchestration/src/decision-log.ts`, the test failed in 2 of 3 runs (a throwaway mutation run on this branch): four processes asking five times each collide only when two land inside one read-and-rename window. With the lock it passes every time.
 - Suggestion: a deterministic test: hold `<home>/orchestration/decisions-<project>.lock` from a child process with `takeLock`, start `arthur decision ask`, release, and assert the ask waited for the release (its record after a marker the holder wrote); leave the four-process test as it is.
-- Status: open
+- Status: ticket AR0282
 
 ## F2. A job's question and the plugin's closes take the log's lock synchronously inside `arthur run`
 
@@ -22,4 +22,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/orchestration/src/decision-log.ts` (`change`, `withLock`), called from the `job-state` and `ticket-moved` handlers in `decision-hooks.ts` and `blocked-notice.ts`
 - What: `withLock` waits by blocking the process, up to 10 s, then throws. While an `arthur decision` in another process holds the lock (milliseconds normally), `arthur run`'s event loop stalls in the handler; a holder that hangs stalls it 10 s and costs that question its record (the notice goes without its id). [INFERENCE] from the lock's code; not reproduced.
 - Suggestion: take the lock with `queueLock` in the plugin's own handlers (the notice emitted after the ask resolves), keeping `withLock` for the commands.
-- Status: open
+- Status: ticket AR0283

@@ -2154,8 +2154,22 @@
   {
     "id": "AR0281",
     "title": "Roadmap 96: the decision log",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0281-roadmap-96-the-decision-log/ticket.md",
-    "updated": "2026-10-22T07:43:16.032Z"
+    "updated": "2026-10-22T08:31:57.356Z"
+  },
+  {
+    "id": "AR0282",
+    "title": "The decision log's race test catches a missing lock only in most runs",
+    "status": "planning",
+    "path": "spec/features/AR0282-the-decision-log-s-race-test-catches-a-missing-lock-only-in-most-runs/ticket.md",
+    "updated": "2026-10-22T08:31:57.349Z"
+  },
+  {
+    "id": "AR0283",
+    "title": "A job's question and the plugin's closes take the log's lock synchronously inside `arthur run`",
+    "status": "planning",
+    "path": "spec/features/AR0283-a-job-s-question-and-the-plugin-s-closes-take-the-log-s-lock-synchronously-inside-arthur-run/ticket.md",
+    "updated": "2026-10-22T08:31:57.354Z"
   }
 ]

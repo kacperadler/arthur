@@ -2326,29 +2326,29 @@
   {
     "id": "AR0303",
     "title": "The test kit's exit removes the sockets of tmux servers a test left, so nothing can reach them",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0303-the-test-kit-s-exit-removes-the-sockets-of-tmux-servers-a-test-left-so-nothing-can-reach-them/ticket.md",
-    "updated": "2026-10-22T22:29:43.389Z"
+    "updated": "2026-10-22T22:40:23.643Z"
   },
   {
     "id": "AR0304",
     "title": "A new plugin's ticket without a plan can still be placed on another machine",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0304-a-new-plugin-s-ticket-without-a-plan-can-still-be-placed-on-another-machine/ticket.md",
-    "updated": "2026-10-22T22:32:36.972Z"
+    "updated": "2026-10-22T23:02:02.090Z"
   },
   {
     "id": "AR0305",
     "title": "A lock left by a crashed process whose pid the taker now has counts as held by a live process",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0305-a-lock-left-by-a-crashed-process-whose-pid-the-taker-now-has-counts-as-held-by-a-live-process/ticket.md",
-    "updated": "2026-10-22T22:17:03.359Z"
+    "updated": "2026-10-22T22:52:41.625Z"
   },
   {
     "id": "AR0306",
     "title": "The agent's extensions still append to `log` with a flag that creates it",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0306-the-agent-s-extensions-still-append-to-log-with-a-flag-that-creates-it/ticket.md",
-    "updated": "2026-10-22T22:35:27.929Z"
+    "updated": "2026-10-22T22:59:01.824Z"
   }
 ]

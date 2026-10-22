@@ -183,6 +183,22 @@ const CONFIG = `import { develop } from "@arthur/develop";
 export default { plugins: [{ name: "orchestration", setup: (host) => host.provide("projects", () => [{ name: "arthur", path: import.meta.dirname, prefix: "AR" }]) }, develop()] };
 `;
 
+test("the coordinator is told that a new plugin's ticket names the local machine, for each project that is Arthur's repository only", async () => {
+	const [arthur, fork, other] = [temporaryFolder(), temporaryFolder(), temporaryFolder()];
+	for (const root of [arthur, fork]) {
+		mkdirSync(join(root, "packages", "core"), { recursive: true });
+		writeFileSync(join(root, "packages", "core", "package.json"), "{}");
+	}
+	let projects = [{ name: "arthur", path: arthur, prefix: "AR" }, { name: "other", path: other, prefix: "OT" }, { name: "fork", path: fork, prefix: "FO" }];
+	const fake = fakeHost({ name: "develop" });
+	fake.provide("projects", () => projects);
+	await fake.setup(develop());
+	const line = (names: string) => `A ticket that makes a new plugin package in ${names} gets \`"machine": "local"\` in its JSON block before its first spawn: \`arthur plugin new\` runs only on the local machine, and every job of the ticket then goes there.`;
+	assert.deepEqual(fake.collect("coordinator.context"), [line("arthur, fork")]);
+	projects = [projects[1]!];
+	assert.deepEqual(fake.collect("coordinator.context"), [undefined], "no project is Arthur's repository");
+});
+
 test("the planner and the worker are told the line that makes a new plugin from a job, and it runs as written; no other role or repository", async () => {
 	const [checkout, worktree, record] = [copy(), join(temporaryFolder(), "worktree"), temporaryFolder()];
 	git(checkout, "worktree", "add", "--quiet", "--detach", worktree);
@@ -202,7 +218,7 @@ test("the planner and the worker are told the line that makes a new plugin from 
 	const away = { ...job, machine: "gpu", worktree: "/home/test/.arthur/repos/arthur.git.worktrees/x" };
 	assert.deepEqual(fake.collect("prompt", "planner", away), [planner]);
 	const [remote = ""] = fake.collect<string | undefined>("prompt", "worker", away);
-	assert.match(remote, /^## A new plugin\n\nThis job runs on machine gpu, where `arthur plugin new` cannot run: .* when your ticket makes one, change nothing and end, saying that its worker must run there, `arthur spawn --machine local` with this task\.$/);
+	assert.match(remote, /^## A new plugin\n\nThis job runs on machine gpu, where `arthur plugin new` cannot run: .* when your ticket makes one, change nothing and end, saying that its ticket's JSON block needs `"machine": "local"`, which places every job of it there, and its worker spawned again with this task\.$/);
 	assert.ok(!remote.includes("cd <checkout>"), remote);
 
 	// The worker's line as written, `<checkout>` the first line of `git worktree list`, run in the job's worktree by a shell

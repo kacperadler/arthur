@@ -1,0 +1,37 @@
+{
+	"needs": [
+		"AR0277: the projects plugin's line of the wake, `Its questions to send the owner:` with the questions, is not in the turn, since the job's record is not in the eval's home; the questions are in its final message"
+	],
+	"turn": {
+		"ended": {
+			"id": "2026-10-22-onboarding-4e5f6a7b",
+			"kind": "onboarding",
+			"state": "ended",
+			"reason": "finished",
+			"project": "blog"
+		},
+		"result": "I read blog's repository: an Astro site, its posts in src/content/posts/ (38 of them), no tests yet.\n\n## Questions\n\n1. Who reads the blog: customers of the shop, or developers? Proposed: customers, so posts explain products, not code.\n2. Is a post ever changed after it is published? Proposed: only typo fixes, each noted at its end.\n3. Which languages are posts written in? Proposed: English and Polish, one file each.\n4. Must every post have an image? Proposed: yes, one at the top, at most 200 KB.\n5. Who approves a post before it goes out? Proposed: the owner, always.\n6. Should old posts ever be removed? Proposed: no; a post out of date gets a line at its top."
+	},
+	"expect": {
+		"refs": {
+			"refs/heads/main": "kept"
+		},
+		"never": [
+			"^arthur spawn ",
+			"^arthur merge ",
+			"^arthur continue ",
+			"^arthur review",
+			"^arthur prune "
+		],
+		"reply": {
+			"match": [
+				"^\\W*1[.)]\\s",
+				"^\\W*2[.)]\\s",
+				"^\\W*3[.)]\\s",
+				"^\\W*4[.)]\\s",
+				"^\\W*5[.)]\\s",
+				"^\\W*6[.)]\\s"
+			]
+		}
+	}
+}

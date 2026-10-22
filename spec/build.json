@@ -2307,7 +2307,7 @@
     "title": "The wrapper's append to log can still recreate it while rm -r empties the record",
     "status": "done",
     "path": "spec/features/AR0300-the-wrapper-s-append-to-log-can-still-recreate-it-while-rm-r-empties-the-record/ticket.md",
-    "updated": "2026-10-22T22:14:16.449Z"
+    "updated": "2026-10-22T22:29:08.732Z"
   },
   {
     "id": "AR0301",
@@ -2319,16 +2319,16 @@
   {
     "id": "AR0302",
     "title": "The inbox's backoff tests still measure 5 s and 10 s windows in real time",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0302-the-inbox-s-backoff-tests-still-measure-5-s-and-10-s-windows-in-real-time/ticket.md",
-    "updated": "2026-10-22T22:03:31.701Z"
+    "updated": "2026-10-22T22:31:24.710Z"
   },
   {
     "id": "AR0303",
     "title": "The test kit's exit removes the sockets of tmux servers a test left, so nothing can reach them",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0303-the-test-kit-s-exit-removes-the-sockets-of-tmux-servers-a-test-left-so-nothing-can-reach-them/ticket.md",
-    "updated": "2026-10-22T21:11:15.437Z"
+    "updated": "2026-10-22T22:29:43.389Z"
   },
   {
     "id": "AR0304",

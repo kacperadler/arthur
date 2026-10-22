@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { once } from "node:events";
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -233,6 +233,58 @@ test("a job blocked on the owner asks in the log: the notice and the wake name t
 	blocked(JOB, "And the archive too?", "AC0099");
 	assert.deepEqual(notices().at(-1), `${JOB} asks [AC-D2]: And the archive too?`);
 	assert.deepEqual(log()?.map((each) => [each.record, each.id, each.ticket]), [["ask", "AC-D1", "AC0001"], ["close", "AC-D1", undefined], ["ask", "AC-D2", undefined]], "a ticket not on the board is left out");
+});
+
+test("while another process holds the log's lock, a job's question and the closes wait for it without stalling the process", async (t) => {
+	const { decision, fake, log, file, blocked, notices, printed } = await setup(t);
+	const holder = spawn("sleep", ["60"]);
+	t.after(() => holder.kill());
+	const lock = join(fake.host.folder, "decisions-acme.lock");
+	const until = async (what: string, done: () => boolean) => {
+		for (const end = Date.now() + 5000; !done(); await sleep(10)) if (Date.now() > end) assert.fail(`no ${what} within 5 s`);
+	};
+	// Each emit returns at once; `withLock` would wait 10 s for the live holder, then fail.
+	const held = (emit: () => void) => {
+		writeFileSync(lock, String(holder.pid));
+		const started = performance.now();
+		emit();
+		assert.ok(performance.now() - started < 1000, `the emit took ${performance.now() - started} ms`);
+	};
+	const wake = (question: string) => fake.collect("coordinator.wake", { id: JOB, kind: "worker", project: "acme", state: "blocked", reason: `user: ${question}` }).filter(Boolean);
+	blocked(JOB, "May I drop the table?");
+	await decision("answer", "AC-D1", "--decided", "Drop it", "yes");
+	held(() => blocked(JOB, "And the archive?"));
+	assert.deepEqual([notices(), log()?.length], [[`${JOB} asks [AC-D1]: May I drop the table?`], 2], "the notice waits for its question's id");
+	assert.deepEqual(wake("And the archive?"), [
+		`Its question was not in the decision log yet: arthur decisions --kind job --project acme shows its id. Open, record the owner's answer first, arthur decision answer <its id> --decided '<the decision in one line>' '<his words>', then arthur continue ${JOB} '<his answer>'; answered by policy, act on that decision as on the owner's answer, and say so in your reply.`,
+	], "the job's earlier question, answered, is not taken for this one");
+	rmSync(lock);
+	await until("notice", () => notices().length === 2);
+	assert.equal(notices()[1], `${JOB} asks [AC-D2]: And the archive?`);
+	assert.deepEqual(wake("And the archive?"), [`Its question is decision AC-D2: record the owner's answer first, arthur decision answer AC-D2 --decided '<the decision in one line>' '<his words>', then arthur continue ${JOB} '<his answer>'.`]);
+	await decision("ask", "--kind", "question", "--question", "Merge AC0002 first?", "--ticket", "AC0002");
+	const closes = () => (log() ?? []).filter((each) => each.record === "close").map((each) => [each.id, each.reason]);
+	held(() => {
+		fake.emit("job-state", { id: JOB, project: "acme", ticket: "AC0001", machine: "local", from: "blocked", to: "working", reason: "" });
+		fake.emit("ticket-moved", { id: "AC0002", project: "acme", from: "planning", to: "dropped" });
+	});
+	assert.deepEqual(closes(), []);
+	rmSync(lock);
+	await until("closes", () => closes().length === 2);
+	assert.deepEqual(closes().toSorted(), [["AC-D2", "job continued"], ["AC-D3", "ticket dropped"]]);
+	// A log broken by hand while they wait: the notice still goes, without an id, and each event fails, named.
+	await decision("ask", "--kind", "question", "--question", "Rename AC0001?", "--ticket", "AC0001");
+	const other = "2026-03-04-worker-0000ffff";
+	held(() => {
+		blocked(other, "May I?");
+		fake.emit("ticket-moved", { id: "AC0001", project: "acme", from: "in-progress", to: "merged" });
+	});
+	appendFileSync(file(), "not json\n");
+	printed.length = 0;
+	rmSync(lock);
+	await until("failures", () => printed.length === 2);
+	assert.equal(notices().at(-1), `${other} asks: May I?`);
+	assert.deepEqual(printed.map((line) => /^plugin orchestration: handler of (job-state|ticket-moved) \(event \d+\) failed: .* is not a decision record/.exec(line)?.[1]).toSorted(), ["job-state", "ticket-moved"]);
 });
 
 test("a log line that is not a record refuses every write, naming the line and leaving the file as it is; the notice still goes", async (t) => {
@@ -684,7 +736,7 @@ test("a job's question an approved class matches is answered by policy, and the 
 	assert.deepEqual(fake.collect("coordinator.wake", wake).filter(Boolean), [
 		`Its question is decision AC-D3, answered by policy (AC-D2): Drop the table. Act on it as on the owner's answer, arthur continue ${other} '<that decision>', and say so in your reply.`,
 	]);
-	assert.deepEqual(fake.collect("coordinator.wake", { ...wake, id: JOB }).filter(Boolean), [], "a question the owner answered needs no line");
+	assert.deepEqual(fake.collect("coordinator.wake", { ...wake, id: JOB, reason: "user: May I drop the old orders table?" }).filter(Boolean), [], "a question the owner answered needs no line");
 });
 
 test("the agreement rate scores a recommendation by number or by an option's words against the owner's pick", async (t) => {

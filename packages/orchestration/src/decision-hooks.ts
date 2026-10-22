@@ -1,5 +1,7 @@
 import type { Host, Project } from "@arthur/core/plugin";
+import { redact } from "./credential.ts";
 import { policyOf } from "./decision-classes.ts";
+import { queued } from "./decision-lock.ts";
 import { ask, close, type Decision, decisions, readLog } from "./decision-log.ts";
 
 // What the plugin records in the decision log by itself (spec/roadmap.md, entry 96): the question of a job blocked on the
@@ -12,12 +14,13 @@ function eventProject(host: Host, name: unknown): Project | undefined {
 	return host.collect("projects").length === 0 ? undefined : host.board.projects().find((each) => each.name === name);
 }
 
-// Records a job's question; its id, undefined when its project has no log to hold it.
-export function askOfJob(host: Host, data: Readonly<Record<string, unknown>>, question: string): string | undefined {
+// Records a job's question; its id, undefined when its project has no log to hold it. Under `queued`'s lock: at once when it
+// is free, else a promise of the id.
+export function askOfJob(host: Host, data: Readonly<Record<string, unknown>>, question: string): string | undefined | Promise<string> {
 	const project = eventProject(host, data.project);
 	if (project === undefined) return undefined;
 	const ticket = typeof data.ticket === "string" && host.board.get(data.ticket)?.project === project.name ? data.ticket : undefined;
-	return ask(host, project, { kind: "job", question, options: [], job: String(data.id), ...(ticket === undefined ? {} : { ticket }) }).id;
+	return queued(host, project, (lock) => ask(host, project, { kind: "job", question, options: [], job: String(data.id), ...(ticket === undefined ? {} : { ticket }) }, lock).id);
 }
 
 export function decisionHooks(host: Host): void {
@@ -26,23 +29,27 @@ export function decisionHooks(host: Host): void {
 		const where = to === "working" || to === "idle" || to === "ended" ? eventProject(host, project) : undefined;
 		// Read without the lock first: most jobs have no question open.
 		const open = (each: { readonly kind: string; readonly job?: string }) => each.kind === "job" && each.job === id;
-		if (where !== undefined && decisions(readLog(where)).some((each) => each.state === "open" && open(each.ask))) close(host, where, open, to === "ended" ? "job ended" : "job continued");
+		if (where !== undefined && decisions(readLog(where)).some((each) => each.state === "open" && open(each.ask))) return queued(host, where, (lock) => void close(host, where, open, to === "ended" ? "job ended" : "job continued", lock));
 	});
 	host.events.on("ticket-moved", (event) => {
 		const { id, project, to } = (event.data ?? {}) as Readonly<Record<string, unknown>>;
 		const where = to === "merged" || to === "dropped" ? eventProject(host, project) : undefined;
-		if (where !== undefined && decisions(readLog(where)).some((each) => each.state === "open" && each.ask.ticket === id)) close(host, where, (each) => each.ticket === id, `ticket ${String(to)}`);
+		if (where !== undefined && decisions(readLog(where)).some((each) => each.state === "open" && each.ask.ticket === id)) return queued(host, where, (lock) => void close(host, where, (each) => each.ticket === id, `ticket ${String(to)}`, lock));
 	});
 	// A wake must not fail: a log broken by hand costs this line only.
 	host.provide("coordinator.wake", (job: Readonly<Record<string, unknown>>) => {
 		if (job.state !== "blocked" || typeof job.reason !== "string" || !job.reason.startsWith("user: ")) return undefined;
-		let last: Decision | undefined;
+		let [where, last]: [Project | undefined, Decision | undefined] = [undefined, undefined];
 		try {
-			const where = eventProject(host, job.project);
-			last = where === undefined ? undefined : decisions(readLog(where)).findLast((each) => each.ask.kind === "job" && each.ask.job === job.id);
+			where = eventProject(host, job.project);
+			// This block's own question: an earlier one of the job is no answer to it.
+			const asked = redact(job.reason.slice("user: ".length).trim());
+			last = where === undefined ? undefined : decisions(readLog(where)).findLast((each) => each.ask.kind === "job" && each.ask.job === job.id && each.ask.question === asked);
 		} catch (error) {
 			return `Its question is not in the decision log: ${(error instanceof Error ? error.message : String(error)).split("\n")[0]}`;
 		}
+		// Recorded after this wake when another process held the log's lock (decision-lock.ts).
+		if (where !== undefined && last === undefined) return `Its question was not in the decision log yet: arthur decisions --kind job --project ${where.name} shows its id. Open, record the owner's answer first, arthur decision answer <its id> --decided '<the decision in one line>' '<his words>', then arthur continue ${String(job.id)} '<his answer>'; answered by policy, act on that decision as on the owner's answer, and say so in your reply.`;
 		const [open, answered] = [last?.state === "open" ? last.ask.id : undefined, last?.answers.at(-1)];
 		const policy = policyOf(answered);
 		if (open !== undefined) return `Its question is decision ${open}: record the owner's answer first, arthur decision answer ${open} --decided '<the decision in one line>' '<his words>', then arthur continue ${String(job.id)} '<his answer>'.`;

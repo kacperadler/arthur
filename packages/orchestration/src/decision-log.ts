@@ -5,6 +5,7 @@ import type { Host, Project } from "@arthur/core/plugin";
 import { withDecision, write } from "./autopilot.ts";
 import { byPolicy, CLASS, type Class, classProblem, policyOf, ticketKind } from "./decision-classes.ts";
 import { redact } from "./credential.ts";
+import { logLock } from "./decision-lock.ts";
 import { section } from "./plans.ts";
 
 // The decision log (spec/roadmap.md, entries 96 and 97): each project's `spec/decisions.jsonl`, one record a line, `ask`,
@@ -89,11 +90,10 @@ function stamp(host: Host): string {
 	return `${part.year}-${part.month}-${part.day}T${part.hour}:${part.minute}:${part.second}${offset}`;
 }
 
-// Under the log's lock: the log read and checked, `make`'s records appended to it, then every answer's ticket line missing
-// written, a crash's included. A ticket line that cannot be written never stops the log: `unwritten` says so, and the next
-// write tries again.
-export function change<T extends Entry>(host: Host, project: Project, make: (entries: readonly Entry[], time: string) => readonly T[]): { readonly added: T[]; readonly unwritten?: string } {
-	return withLock(join(host.folder, `decisions-${project.name.replace(/[^\w-]/g, "_")}.lock`), () => {
+// Under the log's lock, taken by `lock` (decision-lock.ts): the log read and checked, `make`'s records appended, then every
+// answer's ticket line missing written; one that cannot be written never stops the log: `unwritten` says so, the next tries.
+export function change<T extends Entry>(host: Host, project: Project, make: (entries: readonly Entry[], time: string) => readonly T[], lock = withLock): { readonly added: T[]; readonly unwritten?: string } {
+	return lock(logLock(host, project), () => {
 		const entries = readLog(project);
 		const added = [...make(entries, stamp(host))];
 		const file = join(project.path, FILE);
@@ -153,7 +153,7 @@ function repair(host: Host, project: Project, entries: readonly Entry[]): string
 
 // Records a question; its id. One approved class matching it answers it by policy in the same write, its answer returned;
 // two or more leave it to the owner, `classes` naming them.
-export function ask(host: Host, project: Project, asked: Omit<Ask, "record" | "id" | "time" | "project">): { readonly id: string; readonly unwritten?: string; readonly policy?: Answer; readonly classes: readonly string[] } {
+export function ask(host: Host, project: Project, asked: Omit<Ask, "record" | "id" | "time" | "project">, lock = withLock): { readonly id: string; readonly unwritten?: string; readonly policy?: Answer; readonly classes: readonly string[] } {
 	const question = asked.question.trim();
 	if (question === "") throw new Error("an empty question: --question <what the owner decides>");
 	if (!KINDS.includes(asked.kind) && !(asked.kind === CLASS && asked.class !== undefined)) throw new Error(`kind ${JSON.stringify(asked.kind)}: one of ${KINDS.join(", ")}`);
@@ -171,7 +171,7 @@ export function ask(host: Host, project: Project, asked: Omit<Ask, "record" | "i
 		const policy = byPolicy(entries, record, kind);
 		classes = policy.classes;
 		return [record, ...policy.answers];
-	});
+	}, lock);
 	const policy = added.find((each) => each.record === "answer");
 	return { id: added[0]?.id ?? "", unwritten, ...(policy === undefined ? {} : { policy }), classes };
 }
@@ -192,9 +192,9 @@ export function answer(host: Host, project: Project, id: string, given: { readon
 }
 
 // Closes the open questions `match` picks, with `reason`; the ids closed. A question answered or closed already is left.
-export function close(host: Host, project: Project, match: (ask: Ask) => boolean, reason: string): { readonly ids: readonly string[]; readonly unwritten?: string } {
+export function close(host: Host, project: Project, match: (ask: Ask) => boolean, reason: string, lock = withLock): { readonly ids: readonly string[]; readonly unwritten?: string } {
 	const { added, unwritten } = change(host, project, (entries, time) =>
 		decisions(entries).flatMap(({ ask, state }) => (state === "open" && match(ask) ? [{ record: "close", id: ask.id, time, reason: redact(reason) } satisfies Close] : [])),
-	);
+	lock);
 	return { ids: added.map((each) => each.id), unwritten };
 }

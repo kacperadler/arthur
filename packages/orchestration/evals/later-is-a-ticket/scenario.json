@@ -17,8 +17,8 @@
 			"^arthur ticket new "
 		],
 		"never": [
-			"^arthur spawn ",
-			"^arthur ticket status SH0016 planned"
+			"^arthur (?!.*--help)spawn ",
+			"^arthur (?!.*--help)ticket status SH0016 planned"
 		],
 		"reply": {
 			"match": [

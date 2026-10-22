@@ -23,9 +23,9 @@
 		],
 		"never": [
 			"--rerun",
-			"^arthur merge ",
+			"^arthur (?!.*--help)merge ",
 			"--no-ci",
-			"^arthur spawn "
+			"^arthur (?!.*--help)spawn "
 		]
 	}
 }

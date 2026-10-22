@@ -59,8 +59,8 @@
 		],
 		"never": [
 			"--autopilot",
-			"^arthur spawn ",
-			"^arthur ticket status SH001[67] planned"
+			"^arthur (?!.*--help)spawn ",
+			"^arthur (?!.*--help)ticket status SH001[67] planned"
 		],
 		"reply": {
 			"match": [

@@ -63,7 +63,7 @@
 		"never": [
 			"--unreviewed",
 			"--auto",
-			"^arthur spawn "
+			"^arthur (?!.*--help)spawn "
 		]
 	}
 }

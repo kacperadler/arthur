@@ -115,7 +115,7 @@ export async function evalRun(scenario: Scenario, agent: Agent, prompt: string, 
 		git(repo, "commit", "--quiet", "--no-verify", "--allow-empty", "--message", "fixture");
 		git(run, "init", "--quiet", "--bare", origin);
 		git(repo, "remote", "add", "origin", origin);
-		git(repo, "push", "--quiet", "--no-verify", "origin", "main");
+		git(repo, "push", "--quiet", "--no-verify", "--set-upstream", "origin", "main");
 		const before = refs(repo, origin);
 		mkdirSync(join(run, "bin"));
 		writeStub(stub, repo, log, scenario.stub);

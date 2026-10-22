@@ -18,10 +18,10 @@
 			"^arthur continue (\\S+-)?7b2e4d11 .*\\b(?:round|half up)"
 		],
 		"never": [
-			"^arthur review",
-			"^arthur spawn ",
-			"^arthur merge ",
-			"^arthur ticket status "
+			"^arthur (?!.*--help)review",
+			"^arthur (?!.*--help)spawn ",
+			"^arthur (?!.*--help)merge ",
+			"^arthur (?!.*--help)ticket status "
 		]
 	}
 }

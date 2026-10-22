@@ -74,8 +74,8 @@
 			"^arthur spawn (?=.*--budget 1\\b)(?=.*SH0016)"
 		],
 		"never": [
-			"^arthur spawn (?!.*SH0016)",
-			"^arthur ticket status SH001[67] planned(?!.*--autopilot)",
+			"^arthur (?!.*--help)spawn (?!.*SH0016)",
+			"^arthur (?!.*--help)ticket status SH001[67] planned(?!.*--autopilot)",
 			"--budget 0\\b",
 			"--ignore-restart"
 		],

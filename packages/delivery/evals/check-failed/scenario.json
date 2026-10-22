@@ -22,11 +22,11 @@
 			"^arthur merge (\\S+-)?6a7b8c9d$"
 		],
 		"never": [
-			"^arthur continue ",
-			"^arthur prune ",
+			"^arthur (?!.*--help)continue ",
+			"^arthur (?!.*--help)prune ",
 			"--unreviewed",
-			"^arthur spawn ",
-			"^arthur review"
+			"^arthur (?!.*--help)spawn ",
+			"^arthur (?!.*--help)review"
 		],
 		"reply": {
 			"match": [

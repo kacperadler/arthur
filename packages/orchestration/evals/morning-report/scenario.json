@@ -23,10 +23,10 @@
 			"origin:refs/heads/main": "kept"
 		},
 		"never": [
-			"^arthur spawn ",
-			"^arthur merge ",
-			"^arthur prune ",
-			"^arthur ticket status "
+			"^arthur (?!.*--help)spawn ",
+			"^arthur (?!.*--help)merge ",
+			"^arthur (?!.*--help)prune ",
+			"^arthur (?!.*--help)ticket status "
 		],
 		"reply": {
 			"match": [

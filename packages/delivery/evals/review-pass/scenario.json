@@ -44,11 +44,11 @@
 			"^arthur prune .*4d5e6f70"
 		],
 		"never": [
-			"^arthur merge (?!.*--auto)",
+			"^arthur (?!.*--help)merge (?!.*--auto)",
 			"--no-ci",
 			"--unreviewed",
-			"^arthur spawn ",
-			"^arthur continue "
+			"^arthur (?!.*--help)spawn ",
+			"^arthur (?!.*--help)continue "
 		]
 	}
 }

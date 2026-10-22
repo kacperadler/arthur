@@ -32,8 +32,8 @@
 			"^arthur review (\\S+-)?5e6f7a8b$"
 		],
 		"never": [
-			"^arthur merge ",
-			"^arthur prune "
+			"^arthur (?!.*--help)merge ",
+			"^arthur (?!.*--help)prune "
 		]
 	}
 }

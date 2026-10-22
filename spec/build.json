@@ -2108,5 +2108,19 @@
     "status": "planning",
     "path": "spec/features/AR0274-a-worker-learns-of-arthur-plugin-new-root-only-if-its-ticket-or-plan-names-it/ticket.md",
     "updated": "2026-10-21T16:12:34.420Z"
+  },
+  {
+    "id": "AR0275",
+    "title": "Roadmap 65: the morning report",
+    "status": "planned",
+    "path": "spec/features/AR0275-roadmap-65-the-morning-report/ticket.md",
+    "updated": "2026-10-22T06:34:45.055Z"
+  },
+  {
+    "id": "AR0276",
+    "title": "Roadmap 67: evals, the runner",
+    "status": "planned",
+    "path": "spec/features/AR0276-roadmap-67-evals-the-runner/ticket.md",
+    "updated": "2026-10-22T06:34:45.254Z"
   }
 ]

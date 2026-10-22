@@ -41,3 +41,4 @@ In:
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
 - 2026-10-22: Coordinator (free hand): plugin API change accepted, board.digest and jobs.vision take an optional checkout folder, orchestration provides coordinator.checkoutContext.
 - 2026-10-22: Coordinator (free hand): line budget raises accepted, core 5751 to 5753, orchestration 2223 to 2231, develop 628 to 650.
+- 2026-10-22: Coordinator: after merging AR0288, develop budget 655 (633 + 22) accepted.

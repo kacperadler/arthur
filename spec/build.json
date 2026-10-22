@@ -2284,16 +2284,16 @@
   {
     "id": "AR0297",
     "title": "The styleguide and review criteria now live in two folders that will drift",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0297-the-styleguide-and-review-criteria-now-live-in-two-folders-that-will-drift/ticket.md",
-    "updated": "2026-10-22T21:12:21.474Z"
+    "updated": "2026-10-22T21:32:56.740Z"
   },
   {
     "id": "AR0298",
     "title": "On another machine the checkout a job reaches has no arthur.config.ts, so the line of `arthur plugin new` cannot run there",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0298-on-another-machine-the-checkout-a-job-reaches-has-no-arthur-config-ts-so-the-line-of-arthur-plugin-new-cannot-run-there/ticket.md",
-    "updated": "2026-10-22T21:12:22.971Z"
+    "updated": "2026-10-22T21:30:04.074Z"
   },
   {
     "id": "AR0299",

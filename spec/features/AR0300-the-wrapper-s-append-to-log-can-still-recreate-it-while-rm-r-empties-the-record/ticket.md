@@ -40,3 +40,5 @@ Out:
 
 - 2026-10-22: Source: F1 of AR0202
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-22: Coordinator (free hand): line budget raise accepted, core 5753 to 5755, for creating `log` once and treating a missing `log` as removal in `wrapper.ts`.
+- 2026-10-22: Coordinator (free hand): option (a): the other record files keep write-to-temp-and-rename (styleguide); a removal racing their rename is a known limit, written in `spawn.md`. Scope stays `log`.

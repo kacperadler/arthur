@@ -401,29 +401,48 @@ test("a turn that ends in an error answers nothing; its message is delivered aga
 	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [said], channels: ["telegram"] }]);
 });
 
-// The times at which the fake agent got its first `count` messages, polled as `until` does.
-async function deliveries(box: { messages(): unknown[] }, count: number): Promise<number[]> {
-	const at: number[] = [];
-	while (at.length < count) {
-		await until(`delivery ${at.length + 1}`, () => box.messages().length > at.length);
-		at.push(Date.now());
+// What the backoff tests drive of a loaded plugin, its agent on `move`'s clock.
+type Driven = { readonly folder: string; messages(): unknown[]; ends(): unknown[]; ticked(): Promise<void>; say(text: string): number; resolved(seq: number): boolean };
+// Says `text` and sees it handed over once the queue settled a second on the agent's clock, which then stands still.
+async function handed(box: Driven, move: (ms: number) => void, text: string): Promise<number> {
+	const count = box.messages().length;
+	const seq = box.say(text);
+	await until(`${text} queued`, () => box.resolved(seq));
+	await box.ticked();
+	move(1000);
+	await until(`${text} handed over`, () => box.messages().length === count + 1);
+	return seq;
+}
+// Once the turn of the last delivery ended without a reply: no delivery 1 ms before `ms` on the agent's clock, and one at `ms`.
+async function goesAgain(box: Driven, move: (ms: number) => void, ms: number): Promise<void> {
+	const count = box.messages().length;
+	await until(`turn ${count}'s end`, () => box.ends().length === count);
+	if (ms > 0) {
+		move(ms - 1);
+		await box.ticked();
+		assert.equal(box.messages().length, count, `no delivery 1 ms before ${ms} ms on the agent's clock, however long in real time`);
+		move(1);
 	}
-	return at.slice(1).map((time, index) => time - (at[index] ?? 0));
+	await box.ticked();
+	assert.equal(box.messages().length, count + 1, `delivery ${count + 1} at ${ms} ms on the agent's clock`);
 }
 const FAILED: AgentStep[] = [{ prompt: true }, { message: "", stopReason: "error", error: "overloaded" }, { end: true }];
 const AGAIN_MARK = "[via telegram, sent before; its turn ended without a reply]";
 
 test("a turn that keeps ending without a reply has its messages go again at once, then after 5 s, then 10 s; only the third such turn is told", async (t) => {
-	const box = await load(t, { steps: [...FAILED, ...FAILED, ...FAILED, ...FAILED, { prompt: true }] });
+	const { file: clock, move } = agentClock();
+	const box = await load(t, { steps: [...FAILED, ...FAILED, ...FAILED, ...FAILED, { prompt: true }], clock });
 	await box.start();
-	box.say("Go.");
-	const [quick = 0, five = 0, ten = 0] = await deliveries(box, 4);
-	// Each wait apart from the one before and after it (0, 5, 10, 20 s), with room for a slow runner's lag either way.
-	assert.ok(quick < 4000, `the first redelivery is quick: ${quick}`);
-	assert.ok(five >= 4000 && five < 9000, `the second waits 5 s: ${five}`);
-	assert.ok(ten >= 9000 && ten < 19_000, `the third waits 10 s: ${ten}`);
+	await handed(box, move, "Go.");
+	await goesAgain(box, move, 0);
+	await until("the second turn's end", () => box.ends().length === 2);
+	await until("the outbox swept", () => sorted(join(box.folder, "outbox")).every((name) => !name.endsWith(".json")));
+	assert.deepEqual(box.emitted("notice"), [], "two turns without a reply tell nothing");
+	await goesAgain(box, move, 5000);
+	await goesAgain(box, move, 10_000);
 	// Past the fourth turn's end, which tells nothing more.
-	await sleep(1500);
+	await until("the fourth turn's end", () => box.ends().length === 4);
+	await until("the outbox swept", () => sorted(join(box.folder, "outbox")).every((name) => !name.endsWith(".json")));
 	assert.deepEqual(box.emitted("notice"), [
 		{ text: "the coordinator's last 3 turns ended without a reply (error: overloaded); their messages go again in 10 s, then after twice as long each time, at most 5 min" },
 	]);
@@ -449,15 +468,16 @@ test("the notice after 3 turns without a reply never repeats a credential in omp
 
 test("a reply ends the wait: the next turn that ends without a reply has its messages go again at once", async (t) => {
 	const steps: AgentStep[] = [...FAILED, ...FAILED, { prompt: true }, { message: "Done." }, { end: true }, ...FAILED, { prompt: true }, { message: "Again." }, { end: true }, { prompt: true }];
-	const box = await load(t, { steps });
+	const { file: clock, move } = agentClock();
+	const box = await load(t, { steps, clock });
 	await box.start();
-	const first = box.say("Go.");
-	await deliveries(box, 3);
+	const first = await handed(box, move, "Go.");
+	await goesAgain(box, move, 0);
+	await goesAgain(box, move, 5000);
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
-	const second = box.say("Again?");
-	// The first three are already in: only the gap between the fourth and the fifth is a wait.
-	const [, , , quick = 0] = await deliveries(box, 5);
-	assert.ok(quick < 4000, `the first redelivery after a reply is quick: ${quick}`);
+	const second = await handed(box, move, "Again?");
+	// Two turns without a reply before the reply: without it, this third would wait 10 s.
+	await goesAgain(box, move, 0);
 	await until("the second reply", () => box.emitted("coordinator-replied").length === 2);
 	assert.deepEqual(
 		box.messages().map((message) => message.content),
@@ -471,18 +491,23 @@ test("a reply ends the wait: the next turn that ends without a reply has its mes
 });
 
 test("a new owner message ends the wait: the waiting messages and the new one go at the next tick; a message from Arthur waits with them", async (t) => {
-	// Three failed turns: the wait is 10 s, far longer than the next tick even on a slow runner.
-	const box = await load(t, { steps: [...FAILED, ...FAILED, ...FAILED, { prompt: true }, { message: "Done." }, { end: true }, { prompt: true }] });
+	const { file: clock, move } = agentClock();
+	const box = await load(t, { steps: [...FAILED, ...FAILED, ...FAILED, { prompt: true }, { message: "Done." }, { end: true }, { prompt: true }], clock });
 	await box.start();
-	const first = box.say("Go.");
-	await deliveries(box, 3);
+	const first = await handed(box, move, "Go.");
+	await goesAgain(box, move, 0);
+	await goesAgain(box, move, 5000);
+	// Three failed turns: the wait is 10 s.
+	await until("the third turn's end", () => box.ends().length === 3);
 	const scheduled = box.fake.emit("coordinator-message", { text: "Write the morning report." }).seq;
-	await sleep(2000);
+	await until("the message from Arthur queued", () => existsSync(join(box.folder, "inbox", "queued", box.file(scheduled))));
+	move(9999);
+	await box.ticked();
 	assert.equal(box.messages().length, 3, "a message from Arthur does not end the wait");
-	const saidAt = Date.now();
 	const second = box.say("Now?");
-	await until("the fourth delivery", () => box.messages().length === 4);
-	assert.ok(Date.now() - saidAt < 5000, `the owner's message goes at the next tick, not in about 8 s at the wait's end: ${Date.now() - saidAt}`);
+	await until("Now? queued", () => box.resolved(second));
+	await box.ticked();
+	assert.equal(box.messages().length, 4, "the owner's message goes at the next tick, 1 ms before the wait's end on the agent's clock");
 	assert.equal(box.messages()[3]?.content, [`${AGAIN_MARK} Go.`, "[Arthur] Write the morning report.", "[via telegram] Now?", ARTHUR].join("\n\n"));
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
 	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [first, scheduled, second], channels: ["telegram"] }]);

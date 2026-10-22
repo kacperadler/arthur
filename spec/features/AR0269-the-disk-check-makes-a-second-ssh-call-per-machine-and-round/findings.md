@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/resources/src/machine-free.ts` (`checkSample`, `measure`), `packages/resources/src/machine-disk.ts` (`measureDisk`)
 - What: outside a round of the `machines` plugin (a sample missing or older than twice its round's `everySeconds`, `arthur spawn` or `arthur resources` from a shell), the resources plugin's own check of a listed machine runs `node -e` over ssh (`measure`, its `host.jobs.run(name, ["node", "-e", SCRIPT])`), then, with `keepFree.disk` above 0 and no round's df, `df -Pk` in a second ssh call (`measureDisk`, from `checkSample`). Read from the lines, not counted by a run.
 - Suggestion: run the `node -e` script and the df loop in one `sh -c` there, the free line first, and read both with the parsers there are (`measure`'s JSON, `readDisk`). Out: the round, which AR0269 already serves with one call.
-- Status: open
+- Status: ticket AR0292

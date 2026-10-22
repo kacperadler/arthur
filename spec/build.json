@@ -2077,16 +2077,16 @@
   {
     "id": "AR0270",
     "title": "vision.md's disk refusal example differs from the roadmap and the code",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0270-vision-md-s-disk-refusal-example-differs-from-the-roadmap-and-the-code/ticket.md",
-    "updated": "2026-10-22T08:51:03.068Z"
+    "updated": "2026-10-22T15:41:37.952Z"
   },
   {
     "id": "AR0271",
     "title": "Two processes checking one machine at once can both say the same news",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0271-two-processes-checking-one-machine-at-once-can-both-say-the-same-news/ticket.md",
-    "updated": "2026-10-22T15:12:04.603Z",
+    "updated": "2026-10-22T15:34:29.178Z",
     "after": [
       "AR0269"
     ]
@@ -2094,9 +2094,9 @@
   {
     "id": "AR0272",
     "title": "Arthur's own repository has no criteria folder, so its audits and retros run without their criteria",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0272-arthur-s-own-repository-has-no-criteria-folder-so-its-audits-and-retros-run-without-their-criteria/ticket.md",
-    "updated": "2026-10-22T08:51:03.479Z"
+    "updated": "2026-10-22T15:37:04.322Z"
   },
   {
     "id": "AR0273",

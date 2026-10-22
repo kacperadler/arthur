@@ -2143,5 +2143,19 @@
     "status": "planning",
     "path": "spec/features/AR0279-an-eval-turn-gets-the-coordinator-s-role-but-not-its-context-nor-a-time-of-day/ticket.md",
     "updated": "2026-10-22T07:42:26.128Z"
+  },
+  {
+    "id": "AR0280",
+    "title": "Roadmap 68: evals, the scenarios",
+    "status": "planned",
+    "path": "spec/features/AR0280-roadmap-68-evals-the-scenarios/ticket.md",
+    "updated": "2026-10-22T07:43:12.721Z"
+  },
+  {
+    "id": "AR0281",
+    "title": "Roadmap 96: the decision log",
+    "status": "planned",
+    "path": "spec/features/AR0281-roadmap-96-the-decision-log/ticket.md",
+    "updated": "2026-10-22T07:43:12.926Z"
   }
 ]

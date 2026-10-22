@@ -54,10 +54,11 @@ What works today:
 - The retro (`@arthur/manage`, entry 63): the kind `retro`, read-only on the retro role and the retro criteria, its prompt the merges since the last retro with each merged ticket's outcome, FAIL reviews and findings to read, the stats since then, the board digest, and the role files, procedures and criteria the plugins ship; `arthur retro-due`, due at 10 merges with 2 FAIL reviews or 5 findings, its line in the coordinator's context on every turn; `arthur ticket file <job>` files it as `spec/retro/<date>.md` with the commit it looked back from, and its phone page `spec/retro/<date>.html`; `/retro` sends the newest page through the channel it came from; with `retro.day` and `retro.at` the schedule runs `manage.retro` weekly, which starts no job while none is due; the procedure its end brings.
 - The daily prune (`@arthur/manage`, entry 64): with `prune.keepJobsDays`, the schedule plugin runs manage's entry `manage.prune` each day at 03:00, and once at the next start when `arthur run` was down then: every job that ended that many days ago is freed as `arthur prune` does it (`host.jobs.prune`), and each `arthur-*` folder of the temporary folder changed last more than a day ago is removed, never one made since a running job's run began, a link never followed, one another user owns kept with a line; without the schedule plugin the option refuses the load.
 - New plugins (`@arthur/develop`, entry 66): `arthur plugin new <name> --budget <lines>` makes `packages/<name>/` in Arthur's own checkout, or, run by a job, only in its own worktree given as `--root`, its `package.json`, a plugin file that is its options file too, a test against the fake host and a doc page, adds its line budget to `test/structure.test.ts` and the workspace to `package-lock.json`, and the result passes `npm run check` and `npm test` as created; a bad or taken name, a budget missing, not a positive whole number or below the new source's lines is refused before any file is written.
+- The morning report (`@arthur/orchestration`, entry 65): with `morningReport.at`, orchestration registers `orchestration.report` with the schedule plugin, an action that sends the coordinator its procedure each day at that time: built overnight, merged without the owner, waiting for approval, waiting for a decision, and needs attention from `arthur health`, each section left out when empty, a night with nothing done in one line; every ticket, job or finding named gets a plain sentence, every decision a self-contained question with options and a recommendation; without the schedule plugin the option refuses the load.
 
 What is next:
 
-- The rest of the coordinator (entries 96 and 65): the decision log of what the owner decided when Arthur asked, then the morning report.
+- The rest of the coordinator (entry 96): the decision log of what the owner decided when Arthur asked.
 - An agent per project, with its own chat (entries 85 to 88, the plan of AR0098); then the other plugins, in the roadmap's order.
 
 ## Features
@@ -81,7 +82,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | Core: `arthur send` and the message parts every channel hands over | built | 49 |
 | Core: cleanup hooks with each worktree | planned | 71 |
 | Core: the frozen plugin API, written down in [docs/plugin-api.md](docs/plugin-api.md) | built | 51 |
-| orchestration: the coordinator, `arthur attach`, `/board`, `/task`, `/plan`; its inbox, context, jobs by state, `maxAgents`, planning, autopilot, decision log, morning report | in progress, 7 of 9 entries | 23 to 29 built; 96, 65 |
+| orchestration: the coordinator, `arthur attach`, `/board`, `/task`, `/plan`; its inbox, context, jobs by state, `maxAgents`, planning, autopilot, decision log, morning report | in progress, 8 of 9 entries | 23 to 29, 65 built; 96 |
 | orchestration: an agent per project, with its own chat | planned | 85 to 88 |
 | projects: the project list and each worktree's install; `arthur init` and onboarding a repository | built | 41, 42 |
 | session: compaction, fresh start, `/restart`, restart guard, start notice and LLM probe | built | 35 to 38 |
@@ -177,9 +178,9 @@ Then `arthur config check`, `arthur projects` and `arthur board` answer at once.
 Which parts are built today and which are planned. The source is [`arthur.mmd`](arthur.mmd); a test keeps this copy equal to it.
 
 ```mermaid
-%% What Arthur is built from, and what of it is built: the state of main on 2026-10-21.
+%% What Arthur is built from, and what of it is built: the state of main on 2026-10-22.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 and 69 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entries 52 to 56 and 59 of 52-56 and 59; github has entries 57 and 58 of 57-58; manage has entries 60 to 64 of 60-64; develop has entry 66 of 66-68; findings has entry 83 of 83; no other plugin exists yet.
+%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 and 65 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 and 69 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entries 52 to 56 and 59 of 52-56 and 59; github has entries 57 and 58 of 57-58; manage has entries 60 to 64 of 60-64; develop has entry 66 of 66-68; findings has entry 83 of 83; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale; from AR0174: the decision log in orchestration.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -231,7 +232,7 @@ flowchart TD
         telegram ~~~ discord ~~~ voice
       end
       subgraph COORD[Coordinator]
-        orchestration[orchestration<br/>coordinator, arthur attach<br/>context, jobs by state, planning, autopilot<br/>7 of 9 entries; planned: decision log, morning report]
+        orchestration[orchestration<br/>coordinator, arthur attach<br/>context, jobs by state, planning, autopilot<br/>morning report<br/>8 of 9 entries; planned: decision log]
         session[session<br/>compaction, fresh start, restart guard<br/>start notice, LLM probe]
         schedule[schedule<br/>actions, jobs at set times<br/>registered entries, arthur schedule]
         orchestration ~~~ session ~~~ schedule

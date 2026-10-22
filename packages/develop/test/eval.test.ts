@@ -1,0 +1,309 @@
+import { execFileSync } from "node:child_process";
+import assert from "node:assert/strict";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { delimiter, join } from "node:path";
+import { type TestContext, test } from "node:test";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { develop } from "../src/develop.ts";
+import { checkOptions } from "../src/develop-options.ts";
+
+// `arthur eval` against the fake host, the scenarios in a package folder of the test's own, the main project's checkout a
+// temporary folder, and `omp` a fake of the test's: a shell script that acts on the turn's text as an agent would, through the
+// `arthur` its PATH finds (the eval's stub) and the real CLI by its path. It notes its arguments and environment in `spy`.
+
+const CLI = fileURLToPath(import.meta.resolve("@arthur/core/cli"));
+const quote = (text: string) => `'${text.replaceAll("'", `'\\''`)}'`;
+
+function fakeOmp(spy: string): string {
+	const bin = temporaryFolder();
+	const script = `#!/bin/sh
+previous=""
+for last; do
+	[ "$previous" = --append-system-prompt ] && cp "$last" ${quote(join(spy, "prompt"))}
+	previous=$last
+done
+turn=$(cat "\${last#@}")
+printf '%s\\n' "$@" > ${quote(join(spy, "args"))}
+env > ${quote(join(spy, "env"))}
+case "$turn" in
+*hang*) echo $$ >> ${quote(join(spy, "hanging"))} && exec sleep 600 ;;
+*fail*) exit 3 ;;
+esac
+arthur ticket new Fix the login > ticket.txt
+arthur merge AR0001 > /dev/null
+arthur send report.png 2> send.txt
+${quote(process.execPath)} ${quote(CLI)} version > real.txt 2>&1
+printf 'noted\\n' > notes.md
+git add --all && git commit --quiet --message notes
+echo '{"type":"agent_end"}'
+`;
+	writeFileSync(join(bin, "omp"), script, { mode: 0o755 });
+	return bin;
+}
+
+type Scenario = Readonly<Record<string, unknown>> & { readonly fixture?: false };
+
+// The answers the scenarios' stub gives, and what a run of the fake agent on "Note it." leaves behind.
+const STUB = [{ match: "^arthur ticket new ", output: "AR0002", files: { "spec/AR0002.md": "# Fix the login\n" } }];
+const PASSES = {
+	files: { "ticket.txt": ["^AR0002$"], "spec/AR0002.md": ["^# Fix the login$"], "notes.md": ["^noted$"], "real.txt": ["^arthur: refused inside an eval session \\(ARTHUR_EVAL is set\\)"] },
+	missing: ["nothing.md"],
+	refs: { "refs/heads/main": "moved", "origin:refs/heads/main": "kept" },
+	calls: ["^arthur ticket new Fix the login$", "^arthur merge AR0001$"],
+	never: ["^arthur stop"],
+};
+
+async function load(t: TestContext, list: Readonly<Record<string, Scenario>>, options: Readonly<Record<string, unknown>> = {}) {
+	const pkg = join(temporaryFolder(), "develop");
+	for (const [name, { fixture, ...scenario }] of Object.entries(list)) {
+		mkdirSync(join(pkg, "evals", name), { recursive: true });
+		writeFileSync(join(pkg, "evals", name, "scenario.json"), JSON.stringify(scenario));
+		if (fixture !== false) {
+			mkdirSync(join(pkg, "evals", name, "fixture"));
+			writeFileSync(join(pkg, "evals", name, "fixture", "README.md"), "# Shop\n");
+		}
+	}
+	const [root, spy, roles] = [temporaryFolder(), temporaryFolder(), temporaryFolder()];
+	execFileSync("git", ["init", "--quiet", "--initial-branch=main", root]);
+	execFileSync("git", ["-C", root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "--allow-empty", "-m", "first"]);
+	writeFileSync(join(roles, "coordinator.md"), "# The coordinator\n");
+	const fake = fakeHost({ name: "develop", options, code: [pkg] });
+	fake.provide("projects", () => [{ name: "shop", path: root, prefix: "SH" }]);
+	fake.host.jobs.registerRole({ name: "coordinator", file: pathToFileURL(join(roles, "coordinator.md")), criteria: [] });
+	await fake.setup(develop(options));
+	// The runs' folders go into a temporary folder of the test's, a file the stub must not write beside them too.
+	const [PATH, TMPDIR, temp] = [process.env.PATH, process.env.TMPDIR, temporaryFolder()];
+	process.env.PATH = `${fakeOmp(spy)}${delimiter}${PATH}`;
+	process.env.TMPDIR = temp;
+	t.after(() => {
+		process.env.PATH = PATH;
+		if (TMPDIR === undefined) delete process.env.TMPDIR;
+		else process.env.TMPDIR = TMPDIR;
+	});
+	const command = fake.commands.find((each) => each.name === "eval");
+	const evals = join(fake.host.folder, "evals");
+	return {
+		...{ fake, root, spy, pkg, temp, home: join(fake.host.folder, "..") },
+		// The one eval folder's transcripts of `run`, e.g. `develop-one-1`.
+		transcript: (run: string, file: string) => readFileSync(join(evals, readdirSync(evals)[0] ?? "", run, file), "utf8"),
+		async eval(...args: string[]) {
+			const [out, err] = [[] as string[], [] as string[]];
+			t.mock.method(console, "log", (text: string) => out.push(text));
+			t.mock.method(console, "error", (text: string) => err.push(text));
+			try {
+				const code = await command?.run({ args, project: undefined });
+				return { code, out: out.slice(1), header: out[0] ?? "", err: err.join("\n") };
+			} catch (error) {
+				return { code: 1, out: [], header: "", err: (error as Error).message };
+			} finally {
+				t.mock.restoreAll();
+			}
+		},
+	};
+}
+
+test("each run is scored by what it left behind; a missing fixture and a turn past its timeout fail alone while the others pass", async (t) => {
+	const message = (text: string) => ({ turn: { message: text } });
+	const eval_ = await load(t, {
+		one: { ...message("Note it."), stub: STUB, expect: PASSES },
+		lost: { ...message("Note it."), fixture: false },
+		hang: { ...message("Then hang."), timeoutSeconds: 1, expect: { files: { "README.md": ["Shop"] } } },
+		failing: { ...message("Then fail.") },
+		odd: { ...message("Note it."), timeoutSeconds: 0 },
+	});
+	const started = Date.now();
+	const answer = await eval_.eval("--runs", "2");
+	assert.ok(Date.now() - started < 20_000, "the hanging turn was stopped at its timeout");
+	for (const pid of readFileSync(join(eval_.spy, "hanging"), "utf8").trim().split("\n")) assert.throws(() => process.kill(Number(pid), 0), { code: "ESRCH" }, "its process is gone");
+	assert.match(answer.header, /^arthur eval: model the agent's default, thinking the agent's default, 2 runs each; transcripts in .+\/develop\/evals\/[^/]+$/);
+	const lost = `no fixture: ${join(eval_.pkg, "evals", "lost", "fixture")} is not a folder`;
+	const odd = `${join(eval_.pkg, "evals", "odd", "scenario.json")}: timeoutSeconds: expected a whole number of seconds, 1 or more`;
+	assert.deepEqual(answer, {
+		code: 0,
+		header: answer.header,
+		out: [
+			"develop/failing: 0/2 (no baseline)",
+			"  run 1: the agent ended with exit code 3",
+			"  run 2: the agent ended with exit code 3",
+			"develop/hang: 0/2 (no baseline)",
+			"  run 1: the turn ran past its timeout of 1 s and was stopped",
+			"  run 2: the turn ran past its timeout of 1 s and was stopped",
+			"develop/lost: 0/2 (no baseline)",
+			`  run 1: ${lost}`,
+			`  run 2: ${lost}`,
+			"develop/odd: 0/2 (no baseline)",
+			`  run 1: ${odd}`,
+			`  run 2: ${odd}`,
+			"develop/one: 2/2 (no baseline)",
+			"passed 2/10 runs; moved against the baseline: none",
+		],
+		err: "",
+	});
+	assert.equal(eval_.transcript("develop-one-1", "turn.md"), "[via telegram] Note it.");
+	assert.deepEqual(
+		eval_.transcript("develop-one-2", "arthur.log").trim().split("\n").map((line) => JSON.parse(line)),
+		[{ call: "arthur ticket new Fix the login", answer: 0 }, { call: "arthur merge AR0001", answer: -1 }, { call: "arthur send report.png", answer: -1 }],
+	);
+	assert.equal(eval_.transcript("develop-one-1", "failures"), "");
+	assert.match(eval_.transcript("develop-hang-1", "failures"), /^the turn ran past its timeout of 1 s/);
+	const args = readFileSync(join(eval_.spy, "args"), "utf8").split("\n");
+	assert.deepEqual(args.slice(0, 5), ["-p", "--mode", "json", "--no-session", "--auto-approve"]);
+	assert.match(readFileSync(join(eval_.spy, "prompt"), "utf8"), /^# The coordinator$/m, "the coordinator's role is the system prompt");
+	assert.equal(existsSync(args[args.indexOf("--append-system-prompt") + 1] ?? ""), false, "the run's folder is gone once scored");
+	assert.equal(readdirSync(join(eval_.fake.host.folder, "evals")).length, 1);
+});
+
+test("a run fails on each expectation the files, the refs or the stub's log leave unmet, each named", async (t) => {
+	const eval_ = await load(t, {
+		wrong: {
+			turn: { message: "Note it." },
+			stub: STUB,
+			expect: {
+				files: { "ticket.txt": ["^AR0009$", "^AR0002$"], "absent.md": ["x"] },
+				missing: ["notes.md"],
+				refs: { "refs/heads/main": "kept", "origin:refs/heads/main": "moved", "refs/heads/feature": "moved" },
+				calls: ["^arthur merge ", "^arthur ticket new "],
+				never: ["^arthur (merge|send) "],
+			},
+		},
+	});
+	const answer = await eval_.eval("--runs", "1");
+	assert.equal(answer.out[0], "develop/wrong: 0/1 (no baseline)");
+	const failures = answer.out.slice(1, -1).map((line) => line.replace(/^ {2}run 1: /, "").replace(/[0-9a-f]{7}/g, "<sha>"));
+	assert.deepEqual(failures, [
+		"ticket.txt does not match /^AR0009$/",
+		"absent.md is missing",
+		"notes.md exists",
+		"refs/heads/main moved: <sha> to <sha>",
+		"origin:refs/heads/main stayed at <sha>, expected to move",
+		"refs/heads/feature is gone, expected to move",
+		"no call matches /^arthur ticket new / after arthur merge AR0001",
+		"arthur merge AR0001 matches /^arthur (merge|send) /",
+		"arthur send report.png matches /^arthur (merge|send) /",
+	]);
+});
+
+test("the stub never reaches Arthur's home: no variable names it, a file outside the run's repository is refused, the home is as it was", async (t) => {
+	const eval_ = await load(t, { one: { turn: { message: "Note it." } } });
+	const sentinel = join(eval_.home, "sentinel");
+	writeFileSync(sentinel, "live\n");
+	const listing = () => readdirSync(eval_.home, { recursive: true }).map(String).filter((path) => !path.startsWith(join("develop", "evals"))).sort();
+	const before = listing();
+	const scenario = join(eval_.pkg, "evals", "one", "scenario.json");
+	const answers = [{ match: "^arthur send ", output: "sent", files: { "inside.md": "x", [sentinel]: "overwritten\n" } }, { match: "^arthur merge ", files: { "../../escaped.md": "x" } }];
+	writeFileSync(scenario, JSON.stringify({ turn: { message: "Note it." }, stub: answers, expect: { missing: ["inside.md"], files: { "send.txt": [`^arthur \\(eval stub\\): refused to write ${sentinel}, outside the run's repository$`] } } }));
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = join(eval_.home, "orchestration");
+	t.after(() => delete process.env.ARTHUR_ORCHESTRATION_FOLDER);
+	const answer = await eval_.eval("--runs", "1");
+	assert.deepEqual(answer.out, ["develop/one: 1/1 (no baseline)", "passed 1/1 runs; moved against the baseline: none"]);
+	assert.equal(readFileSync(sentinel, "utf8"), "live\n");
+	assert.deepEqual(listing(), before, "nothing else in the home changed");
+	const log = eval_.transcript("develop-one-1", "arthur.log").trim().split("\n").map((line) => JSON.parse(line));
+	assert.deepEqual(log.map((entry) => entry.refused ?? ""), ["", join(eval_.temp, "escaped.md"), sentinel]);
+	assert.deepEqual(readdirSync(eval_.temp), [], "nothing written beside the run's folder, which is gone");
+	const env = readFileSync(join(eval_.spy, "env"), "utf8").split("\n");
+	assert.deepEqual(env.filter((line) => line.startsWith("ARTHUR_")).map((line) => line.split("=")[0]), ["ARTHUR_EVAL"]);
+	assert.deepEqual(env.filter((line) => line.includes(eval_.home)), [], "no variable of the turn names the home");
+});
+
+test("the turn is built as the inbox hands it over: a job's end with the plugins' wake, a schedule entry with its procedure, a message", async (t) => {
+	const result = Array.from({ length: 17 }, (_, index) => `line ${index + 1}`).join("\n");
+	const eval_ = await load(t, {
+		ended: { turn: { ended: { id: "2026-10-22-worker-0a1b2c3d", kind: "worker", state: "ended", reason: "finished", project: "other" }, result } },
+		asked: { turn: { ended: { id: "2026-10-22-worker-0a1b2c3e", kind: "worker", state: "blocked", reason: "user: may I?", project: "shop" } } },
+		due: { turn: { scheduled: "morning", message: "Write the morning report.", procedure: "procedure.md" } },
+		said: { turn: { message: "Merge AR0001.", channel: "signal" } },
+	});
+	writeFileSync(join(eval_.pkg, "evals", "due", "procedure.md"), "Procedure: name what was built.\n");
+	eval_.fake.provide("coordinator.wake", (job: { readonly kind: string }) => (job.kind === "worker" ? "Procedure: review its branch." : undefined));
+	eval_.fake.provide("coordinator.wake", () => {
+		throw new Error("broken");
+	});
+	assert.equal((await eval_.eval("--runs", "1")).code, 0);
+	const marked = "\n\nThe lines marked [Arthur] come from Arthur (a job's end, a schedule), not from the owner.";
+	assert.equal(
+		eval_.transcript("develop-ended-1", "turn.md"),
+		`[Arthur] Job 2026-10-22-worker-0a1b2c3d ended its run: ended (finished).\nProject: other.\nIts final message (the first 15 of 17 lines):\n${result.split("\n").slice(0, 15).join("\n")}\nProcedure: review its branch.${marked}`,
+	);
+	assert.equal(eval_.transcript("develop-asked-1", "turn.md"), `[Arthur] Job 2026-10-22-worker-0a1b2c3e ended its run blocked on the owner; its question, also sent as a notice: may I?\nIts final message: none.\nProcedure: review its branch.${marked}`);
+	assert.equal(eval_.transcript("develop-due-1", "turn.md"), `[Arthur] [scheduled morning] Write the morning report.\n\nProcedure: name what was built.${marked}`);
+	assert.equal(eval_.transcript("develop-said-1", "turn.md"), "[via signal] Merge AR0001.");
+});
+
+test("pass rates against the stored baseline: --save-baseline keeps the scenarios left out, and the output names each one that moved", async (t) => {
+	const eval_ = await load(t, { one: { turn: { message: "Note it." }, stub: STUB, expect: PASSES }, two: { turn: { message: "Then fail." } } }, { evals: { runs: 2, baseline: "evals/rates.json" } });
+	const baseline = join(eval_.root, "evals", "rates.json");
+	mkdirSync(join(eval_.root, "evals"));
+	writeFileSync(baseline, JSON.stringify({ one: { passed: 1, runs: 2 }, two: { passed: 2, runs: 2 }, gone: { passed: 1, runs: 1 } }));
+	const answer = await eval_.eval("develop/one", "develop/two", "--save-baseline");
+	assert.deepEqual(answer.out, [
+		"develop/one: 2/2 (no baseline)",
+		"develop/two: 0/2 (no baseline)",
+		"  run 1: the agent ended with exit code 3",
+		"  run 2: the agent ended with exit code 3",
+		"passed 2/4 runs; moved against the baseline: none",
+		`baseline saved: ${baseline}`,
+	]);
+	writeFileSync(baseline, JSON.stringify({ "develop/one": { passed: 1, runs: 3 }, "develop/two": { passed: 1, runs: 1 }, gone: { passed: 1, runs: 1 } }));
+	const moved = await eval_.eval("--save-baseline", "--runs", "1");
+	assert.deepEqual(moved.out, [
+		"develop/one: 1/1 (baseline 1/3, up)",
+		"develop/two: 0/1 (baseline 1/1, down)",
+		"  run 1: the agent ended with exit code 3",
+		"passed 1/2 runs; moved against the baseline: develop/one (up, 1/3 to 1/1), develop/two (down, 1/1 to 0/1)",
+		`baseline saved: ${baseline}`,
+	]);
+	assert.deepEqual(JSON.parse(readFileSync(baseline, "utf8")), { "develop/one": { passed: 1, runs: 1 }, "develop/two": { passed: 0, runs: 1 }, gone: { passed: 1, runs: 1 } });
+	const same = await eval_.eval("develop/two");
+	assert.deepEqual([same.out[0], same.out.at(-1)], ["develop/two: 0/2 (baseline 0/1, same)", "passed 0/2 runs; moved against the baseline: none"], "the rate, not the count; runs from evals.runs");
+	const evals = join(eval_.fake.host.folder, "evals");
+	const runs = readdirSync(evals).length;
+	for (const [text, wrong] of [
+		[JSON.stringify({ "develop/one": { passed: 3, runs: 1 } }), "develop/one"],
+		[JSON.stringify({ "develop/one": { passed: 1, runs: 0 } }), "develop/one"],
+		[JSON.stringify({ "develop/two": { passed: 1 } }), "develop/two"],
+		["[]", "(the whole file)"],
+	] as const) {
+		writeFileSync(baseline, text);
+		assert.deepEqual(await eval_.eval(), { code: 1, out: [], header: "", err: `${baseline} is not a baseline: ${wrong} is not { passed, runs }, passed 0 to runs` }, text);
+	}
+	writeFileSync(baseline, "{");
+	assert.match((await eval_.eval()).err, /^Expected property name/);
+	assert.equal(readdirSync(evals).length, runs, "a refused eval ran nothing");
+});
+
+test("refused before any run: wrong usage exits 2; no scenario, an unknown one, no project, no coordinator role exit 1", async (t) => {
+	const eval_ = await load(t, { one: { turn: { message: "Note it." } } });
+	const usage = "usage: arthur eval [<scenario>...] [--runs <n>] [--save-baseline]";
+	for (const runs of ["0", "-1", "1.5", "x", ""]) assert.deepEqual(await eval_.eval(`--runs=${runs}`), { code: 2, out: [], header: "", err: `--runs "${runs}": a whole number of runs, 1 or more\n${usage}` }, runs);
+	for (const args of [["--nope"], ["--runs"], ["--save-baseline=yes"]]) assert.deepEqual([(await eval_.eval(...args)).code, (await eval_.eval(...args)).err.split("\n").at(-1)], [2, usage], args.join(" "));
+	assert.deepEqual((await eval_.eval("develop/one", "one", "develop/two")).err, "unknown scenario one, develop/two; scenarios: develop/one");
+	assert.equal(existsSync(join(eval_.fake.host.folder, "evals")), false, "nothing ran");
+
+	const empty = fakeHost({ name: "develop", code: [temporaryFolder()] });
+	await empty.setup(develop());
+	await assert.rejects(Promise.try(() => empty.commands.find((each) => each.name === "eval")?.run({ args: [], project: undefined })), /^Error: no scenario: no loaded package has evals\/<name>\/scenario.json$/);
+	const roleless = fakeHost({ name: "develop", code: [eval_.pkg] });
+	roleless.provide("projects", () => [{ name: "shop", path: eval_.root, prefix: "SH" }]);
+	await roleless.setup(develop());
+	await assert.rejects(Promise.try(() => roleless.commands.find((each) => each.name === "eval")?.run({ args: [], project: undefined })), /coordinator/);
+	const projectless = fakeHost({ name: "develop", code: [eval_.pkg] });
+	projectless.provide("projects", () => []);
+	await projectless.setup(develop());
+	await assert.rejects(Promise.try(() => projectless.commands.find((each) => each.name === "eval")?.run({ args: [], project: undefined })), /^Error: the project list is empty or not a list$/);
+});
+
+test("the options: evals.runs a whole number of 1 or more, evals.baseline a path inside the checkout; anything else refused", () => {
+	assert.deepEqual(checkOptions({}), []);
+	assert.deepEqual(checkOptions({ evals: { runs: 1, baseline: "evals/baseline.json" } }), []);
+	assert.deepEqual(checkOptions({ evals: { runs: 0, baseline: "/etc/rates.json", dir: "eval" }, other: 1 }), [
+		{ path: "other", problem: "unknown option; options: evals" },
+		{ path: "evals.runs", problem: "expected a whole number of runs, 1 or more, got 0" },
+		{ path: "evals.baseline", problem: 'expected a path inside the main project\'s checkout, such as evals/baseline.json, got "/etc/rates.json"' },
+		{ path: "evals.dir", problem: "unknown key; keys: runs, baseline" },
+	]);
+	for (const baseline of ["../rates.json", "evals/../../x.json", " ", 3]) assert.equal(checkOptions({ evals: { baseline } }).length, 1, String(baseline));
+	for (const runs of [1.5, "3", -1]) assert.equal(checkOptions({ evals: { runs } }).length, 1, String(runs));
+	assert.deepEqual(checkOptions({ evals: [] }), [{ path: "evals", problem: "expected { runs, baseline }, got a list" }]);
+});

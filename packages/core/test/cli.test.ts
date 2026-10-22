@@ -283,3 +283,18 @@ test("arthur send: no channel enabled says so; no file or a flag without its val
 	] as const)
 		assert.deepEqual([arthur(none, "send", ...args).status, arthur(none, "send", ...args).stderr], [2, `arthur send: ${problem}\n${usage}\n`], args.join(" "));
 });
+
+test("inside an eval session (ARTHUR_EVAL set) every command refuses, naming why, before it runs; set empty, it runs", () => {
+	const folder = project();
+	const stub = "/tmp/arthur-eval-x/bin/arthur";
+	const inEval = (value: string, ...args: string[]) => {
+		writeFileSync(join(folder, "gone.md"), "# arthur gone\n");
+		return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", ARTHUR_EVAL: value } });
+	};
+	for (const args of [["echo", "x"], ["boom"], ["help"], [], ["echo", "--help"], ["version"], ["ticket", "new", "A"], ["--project", "nope", "echo"]]) {
+		const run = inEval(stub, ...args);
+		assert.deepEqual([run.status, run.stdout, run.stderr], [1, "", `arthur: refused inside an eval session (ARTHUR_EVAL is set): arthur there is the eval's recording stub, ${stub}\n`], args.join(" "));
+	}
+	assert.equal(existsSync(join(folder, ".arthur")), false, "nothing was written in the home folder");
+	assert.deepEqual([inEval("", "echo", "x").status, inEval("", "echo", "x").stdout], [3, `${JSON.stringify({ args: ["x"] })}\n`]);
+});

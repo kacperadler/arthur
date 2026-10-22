@@ -104,7 +104,7 @@ export function score(expect: Expect, repo: string, before: ReadonlyMap<string, 
 	return failures;
 }
 
-export async function evalRun(scenario: Scenario, agent: Agent, prompt: string, out: string): Promise<string[]> {
+export async function evalRun(scenario: Scenario, agent: Agent, prompt: string, pages: Readonly<Record<string, string>>, out: string): Promise<string[]> {
 	const run = realpathSync(mkdtempSync(join(tmpdir(), "arthur-eval-")));
 	try {
 		const [repo, origin, stub, log] = [join(run, "repo"), join(run, "origin.git"), join(run, "bin", "arthur"), join(run, "arthur.log")];
@@ -118,13 +118,14 @@ export async function evalRun(scenario: Scenario, agent: Agent, prompt: string, 
 		git(repo, "push", "--quiet", "--no-verify", "--set-upstream", "origin", "main");
 		const before = refs(repo, origin);
 		mkdirSync(join(run, "bin"));
-		writeStub(stub, repo, log, scenario.stub);
+		writeStub(stub, repo, log, scenario.stub, pages);
 		writeFileSync(join(run, "prompt.md"), prompt);
 		writeFileSync(join(run, "turn.md"), scenario.turn);
 		// No ARTHUR_ variable of this process reaches the turn (a job's record, a plugin's folder).
 		const env = { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("ARTHUR_"))), PATH: `${join(run, "bin")}${delimiter}${process.env.PATH ?? ""}`, ARTHUR_EVAL: stub };
 		const ended = await session({ command: agent.command, args: [...agent.args, "--append-system-prompt", join(run, "prompt.md")] }, run, repo, env, scenario.timeoutSeconds);
-		const calls = existsSync(log) ? readFileSync(log, "utf8").split("\n").filter(Boolean).map((line) => String(JSON.parse(line).call)) : [];
+		// A help call (eval-stub.ts) only read a page: no expectation counts it.
+		const calls = existsSync(log) ? readFileSync(log, "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line)).filter((entry) => entry.help !== true).map((entry) => String(entry.call)) : [];
 		const failures = ended !== "" ? [ended] : score(scenario.expect, repo, before, refs(repo, origin), calls, readFileSync(join(run, "stream.jsonl"), "utf8"));
 		mkdirSync(out, { recursive: true });
 		for (const file of ["turn.md", "stream.jsonl", "stderr", "arthur.log"]) if (existsSync(join(run, file))) cpSync(join(run, file), join(out, file));

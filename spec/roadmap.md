@@ -824,7 +824,7 @@ The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.m
 
 After entry 83, Arthur switches its first project, itself: it runs on the VPS (`docs/setup.md`) and takes its own tickets, with Telegram as its channel. The other projects follow. The owner decided on 2026-10-19 that voice (81), Discord (89, 90) and Docker (70 to 72), which the harness Arthur replaces does not have, are built right after the switch, still in the first version, before the later entries.
 
-At the switch, `.agents/harness/` (its `criteria/` and `project.json`) is removed, and the `arthur` project of `arthur.config.example.ts` stops naming `.agents/harness/roles`, so `.agents/arthur/criteria/` holds the one copy of the styleguide and review criteria every role reads (AR0297). Until then an edit of `styleguide.md` or `review.md` in either folder is made in both.
+At the switch, `.agents/harness/` (its `criteria/` and `project.json`) is removed, the test in `test/arthur-criteria.test.ts` that compares the two copies is deleted, and the `arthur` project of `arthur.config.example.ts` stops naming `.agents/harness/roles`, so `.agents/arthur/criteria/` holds the one copy of the styleguide and review criteria every role reads (AR0297). Until then an edit of `styleguide.md` or `review.md` in either folder is made in both, which that test checks.
 
 ### 81. Voice: local transcription of voice notes
 

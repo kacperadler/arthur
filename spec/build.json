@@ -2077,16 +2077,16 @@
   {
     "id": "AR0270",
     "title": "vision.md's disk refusal example differs from the roadmap and the code",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0270-vision-md-s-disk-refusal-example-differs-from-the-roadmap-and-the-code/ticket.md",
-    "updated": "2026-10-22T15:41:37.952Z"
+    "updated": "2026-10-22T15:46:29.898Z"
   },
   {
     "id": "AR0271",
     "title": "Two processes checking one machine at once can both say the same news",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0271-two-processes-checking-one-machine-at-once-can-both-say-the-same-news/ticket.md",
-    "updated": "2026-10-22T15:34:29.178Z",
+    "updated": "2026-10-22T15:43:37.700Z",
     "after": [
       "AR0269"
     ]

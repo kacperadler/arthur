@@ -17,6 +17,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ### Changed
 
+- AR0270 vision.md's disk refusal example differs from the roadmap and the code (85a4d58)
 - AR0291 The scenarios' `(?!.*--help)` guards are dead weight once the stub prints help itself (fdf7054)
 
 ### Other

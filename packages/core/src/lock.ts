@@ -27,7 +27,7 @@ export function withLock<T>(path: string, run: () => T, waitMs = 10_000): T {
 	}
 }
 
-// Takes the lock now, or names the live process that holds it. `release` removes the lock only while it is still this one's.
+// Takes the lock now, or names the live process that holds it. `release` removes it while still this one's, and not if gone.
 export function takeLock(path: string): { readonly release: () => void } | { readonly heldBy: number } {
 	const mine = own(path);
 	try {
@@ -43,7 +43,7 @@ export function takeLock(path: string): { readonly release: () => void } | { rea
 	return {
 		release() {
 			const now = holder(path);
-			if (now?.pid === process.pid && now.ino === ino) unlinkSync(path);
+			if (now?.pid === process.pid && now.ino === ino) rmSync(path, { force: true });
 		},
 	};
 }

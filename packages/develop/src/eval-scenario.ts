@@ -17,9 +17,11 @@ export type Expect = {
 	readonly reply: { readonly lines?: number; readonly match: readonly string[]; readonly never: readonly string[] };
 	readonly tools: readonly string[];
 };
-export type Scenario = { readonly name: string; readonly folder: string; readonly turn: string; readonly timeoutSeconds: number; readonly stub: readonly StubAnswer[]; readonly expect: Expect };
+// `hour`: the hour of the owner's day the turn is played at, 0 to 23; noon when left out, so no scenario hangs on when it runs.
+export type Scenario = { readonly name: string; readonly folder: string; readonly turn: string; readonly hour: number; readonly timeoutSeconds: number; readonly stub: readonly StubAnswer[]; readonly expect: Expect };
 
 export const TIMEOUT_SECONDS = 900;
+const HOUR = 12;
 
 // Every scenario folder of the packages `code` names, by name.
 export function scenarios(code: readonly string[]): ReadonlyMap<string, string> {
@@ -50,7 +52,8 @@ export async function readScenario(host: Host, name: string, folder: string): Pr
 		if (!existsSync(join(folder, "fixture")) || !statSync(join(folder, "fixture")).isDirectory()) return `no fixture: ${join(folder, "fixture")} is not a folder`;
 		const json: unknown = JSON.parse(readFileSync(file, "utf8"));
 		if (!object(json)) throw new Error("expected an object");
-		const { turn, timeoutSeconds = TIMEOUT_SECONDS, stub = [], expect = {} } = json;
+		const { turn, hour = HOUR, timeoutSeconds = TIMEOUT_SECONDS, stub = [], expect = {} } = json;
+		if (!Number.isInteger(hour) || (hour as number) < 0 || (hour as number) > 23) throw new Error("hour: expected a whole hour, 0 to 23");
 		if (!Number.isInteger(timeoutSeconds) || (timeoutSeconds as number) < 1) throw new Error("timeoutSeconds: expected a whole number of seconds, 1 or more");
 		if (!Array.isArray(stub) || !stub.every((answer) => object(answer) && typeof answer.match === "string")) throw new Error("stub: expected a list of { match, output?, exit?, files? }");
 		for (const [index, answer] of (stub as Json[]).entries()) {
@@ -69,7 +72,7 @@ export async function readScenario(host: Host, name: string, folder: string): Pr
 		const reply = expect.reply ?? {};
 		if (!object(reply) || (reply.lines !== undefined && !(Number.isInteger(reply.lines) && (reply.lines as number) >= 1))) throw new Error("expect.reply: expected { lines?: 1 or more, match?, never? }");
 		return {
-			...{ name, folder, turn: await turnText(host, folder, turn), timeoutSeconds: timeoutSeconds as number, stub: stub as StubAnswer[] },
+			...{ name, folder, turn: await turnText(host, folder, turn), hour: hour as number, timeoutSeconds: timeoutSeconds as number, stub: stub as StubAnswer[] },
 			expect: {
 				...{ files: Object.fromEntries(Object.entries(files).map(([path, list]) => [path, patterns(list, `expect.files.${path}`)])), missing },
 				...{ refs: refs as Expect["refs"], calls: patterns(expect.calls, "expect.calls"), never: patterns(expect.never, "expect.never"), tools: patterns(expect.tools, "expect.tools") },

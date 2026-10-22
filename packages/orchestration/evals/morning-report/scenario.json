@@ -1,7 +1,5 @@
 {
-	"needs": [
-		"AR0279: the context (the boards, the jobs by state, the time) is not in the turn; the board is in the fixture, and arthur jobs answers"
-	],
+	"hour": 8,
 	"turn": {
 		"scheduled": "report",
 		"message": "Write the morning report.",

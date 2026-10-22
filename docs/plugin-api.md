@@ -72,14 +72,14 @@ What `setup` gets, one host per plugin. `@arthur/core/testing`'s `fakeHost` give
 | `jobs.result(id)` | Job `id`'s final message, empty while it runs or when it wrote none. |
 | `jobs.file(id, job)` | `arthur ticket file [<id>] <job>`: the finished job filed by its kind's `file`, in ticket `id`'s folder, or, `id` undefined, where the kind keeps a job of no ticket; the path written (above, "Changes since entry 51"). |
 | `jobs.prompt(role, project?)` | The prompt a role's job gets in a project, `{ prompt, warnings }`. |
-| `jobs.vision(project?)` | A project's vision, `{ project, path, text?, problem? }`. |
+| `jobs.vision(project?, checkout?)` | A project's vision, `{ project, path, text?, problem? }`; read in `checkout`, a folder holding a copy of the project's repository, when given (above, "Changes since entry 51"). |
 | `jobs.criteria()` | The names of the criteria files the registered roles read, each once. |
 | `board.projects()` | The checked project list, from the plugin that provides `projects`; the first is the main one. |
 | `board.list(project?)` | A project's tickets (`Ticket`), in the order they were created; the main one when left out. |
 | `board.get(id)` | A ticket by its full id, its prefix naming the project; undefined when none has it. |
 | `board.create(title, project?)` | A new ticket in planning, its `ticket.md` from the template; emits `ticket-created`, named by this plugin. |
 | `board.move(id, to)` | Moves a ticket as the board's transitions allow; emits `ticket-moved`, named by this plugin. |
-| `board.digest(project?)` | Every open ticket, the 10 newest merged, and one line counting the rest. |
+| `board.digest(project?, checkout?)` | Every open ticket, the 10 newest merged, and one line counting the rest; the board in `checkout`, a folder holding a copy of the project's repository, when given (above, "Changes since entry 51"). |
 | `board.full(project?)` | Every ticket. |
 | `clock.timeZone` | `core.timeZone`: one clock for every plugin, in that time zone with `core.quietHours`. |
 | `clock.now()` | Now, a `Date`. |
@@ -107,6 +107,7 @@ Each decided in the ticket that made it.
 - AR0262 (roadmap 69, which counts each machine's `home`; the ticket's Done means allow a new member recorded here): `jobs.home(machine)`, the `home` a `Machine` was registered with, `<home>` itself on `local`, which no member gave a plugin; a name no plugin registers is refused as a spawn's `machine` is, `unknown machine <name>; machines: <names>`. The resources plugin reads the free disk of that folder's filesystem there. The provided name `resources.disk`, asked by resources with `collect` at each check of a machine with a disk floor: `(machine)` to an absolute path, or a list of them, on that machine that its jobs write (docker: its data root, entry 70), or a promise of either.
 - AR0257 (F1 of AR0253: one wake per CI run end): the provided name `delivery.ciEnded`, by delivery, asked by github's poll with `collect` for each branch of a run that ended, before its own wake: `{ project, branch, below, run }` (`run` as `github.ci` gives it, without `below`), to `true` when a CI wait that `arthur merge --auto` left counts that run and delivery woke the coordinator with its verdict (once per run attempt), else `false`; github leaves a `true` branch out of its wake. Delivery's poll no longer tells a run's end. No host member changed.
 - AR0278 (F2 of AR0276; the ticket's Done means allow a new member recorded here): `commands.docs()`, every registered command with its doc page's URL, which no member gave a plugin (`commands.phone()` lists the phone commands only). Develop's `arthur eval` reads them so its stub answers `arthur <command> --help` and `arthur help <command>` with the page the live CLI prints (docs/commands/eval.md in its package).
+- AR0279 (F3 of AR0276; its Done means name orchestration's context for a given checkout, which reads the checkout's board and vision): `board.digest(project?, checkout?)` and `jobs.vision(project?, checkout?)`, a project's board and vision read in `checkout`, a folder holding a copy of its repository, where no member read anywhere but the project's own checkout; and the provided name `coordinator.checkoutContext`, by orchestration, asked by develop's `arthur eval` for each run's copy of its fixture at the scenario's hour.
 
 ## Types
 
@@ -188,6 +189,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `coordinator.restart` | orchestration | session | Restarts the coordinator, `{ fresh }`. |
 | `coordinator.silent` | orchestration | telegram | Whether the silent mode holds a notice. |
 | `coordinator.turn` | orchestration | develop (`arthur eval`) | A promise of the text the coordinator's agent gets for `(event name, data, result)`, one event handed over alone. |
+| `coordinator.checkoutContext` | orchestration | develop (`arthur eval`) | `{ root, at }`, a copy of the main project's repository and a `Date`: the coordinator's context there at that instant, without the live jobs, open decisions and silent mode (above, "Changes since entry 51"). |
 | `models.lists` | orchestration | models | Every role's model list. |
 | `machines.round` | resources | machines | A round of machine checks as it begins. |
 | `resources.free` | resources | machines | The jobs a machine has room for. |

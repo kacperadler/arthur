@@ -231,6 +231,10 @@ test("after refuses an unknown id, another project's, a dropped one, itself and 
 test("the digest: every open ticket by status with what it still waits for, the 10 newest merged, one line for the rest", () => {
 	const { board, root } = setup();
 	assert.equal(board.digest(), "the board is empty");
+	const copy = temporaryFolder();
+	handWritten(copy, [entry("DM0001", "planning")]);
+	assert.equal(board.digest(undefined, copy), "DM0001 planning    Ticket DM0001", "a copy of the repository is read where it is");
+	assert.equal(board.digest(), "the board is empty", "the project's own board is not the copy's");
 	const merged = Array.from({ length: 12 }, (_, index) =>
 		entry(`DM${String(index + 1).padStart(4, "0")}`, "merged", { updated: new Date(NOW.getTime() + index * 60_000).toISOString() }),
 	);

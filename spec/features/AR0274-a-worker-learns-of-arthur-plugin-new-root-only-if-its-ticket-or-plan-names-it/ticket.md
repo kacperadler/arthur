@@ -14,7 +14,7 @@ in its worktree a job's `arthur plugin --help` cannot answer, since the CLI load
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+A worker on a new plugin's ticket learns from its role how to run `arthur plugin new --root` from the checkout, without the ticket having to say it.
 
 - Kind: improvement
 
@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F1 of AR0260
+- 2026-10-22: Coordinator (free hand, finding ticket) approved.

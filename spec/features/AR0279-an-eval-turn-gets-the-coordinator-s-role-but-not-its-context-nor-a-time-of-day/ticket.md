@@ -4,7 +4,10 @@
 {
   "id": "AR0279",
   "title": "An eval turn gets the coordinator's role but not its context, nor a time of day",
-  "date": "2026-10-22"
+  "date": "2026-10-22",
+  "after": [
+    "AR0278"
+  ]
 }
 ```
 
@@ -35,3 +38,4 @@ In:
 ## Decisions
 
 - 2026-10-22: Source: F3 of AR0276
+- 2026-10-22: Coordinator (free hand, finding ticket) approved.

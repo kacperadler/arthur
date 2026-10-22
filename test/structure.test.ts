@@ -402,7 +402,16 @@ import { checkStructure } from "./structure.ts";
 // the agent's tool calls read from its JSON stream and scored (eval-run.ts, 28), and a plugin's message as a turn, with the
 // checks of `expect.reply` and `expect.tools` (eval-scenario.ts, 10): a one-line night answer, the onboarding's questions,
 // an env refusal and no sleeping leave no other trace, and a failed CI run reaches the coordinator as github's message.
-const BUDGETS = { core: 5748, "core/testing": 349, projects: 486, orchestration: 1529, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 622, findings: 254 };
+// AR0281 (roadmap 96, the decision log; its Done means name the package): orchestration 462 more (1991) for each project's
+// `spec/decisions.jsonl`: its records read and checked, a hand edit refused naming the line, the append under the lock with the
+// whole file renamed, the ticket's Decisions line with its cut and the repair after a crash (decision-log.ts, 185); `arthur
+// decision ask|answer|close`, refused inside a job, and `arthur decisions` with its search and whole view (decision-commands.ts,
+// 171); the job's question asked, the closes when a job or ticket moves on, and the wake's line (decision-hooks.ts, 47); the
+// open questions with up to 5 like them in the context (decision-context.ts, 38); and their calls in blocked-notice.ts (12),
+// context.ts (4), orchestration.ts (4) and autopilot.ts (1, the Decisions heading added when a ticket has none). A new
+// entry, so nothing was cut elsewhere.
+// Merged main (AR0281) into AR0280: main's budgets plus AR0280's develop 622.
+const BUDGETS = { core: 5748, "core/testing": 349, projects: 486, orchestration: 1991, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 622, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -147,6 +147,22 @@ test("a coordinator that ends is started again after restartDelaySeconds, and on
 	assert.ok(started.length >= 3);
 	for (const [index, line] of started.entries()) if (index > 0) assert.ok(line.at - (started[index - 1]?.at ?? 0) >= 1000, `starts ${index} and ${index + 1} came ${line.at - (started[index - 1]?.at ?? 0)} ms apart`);
 	assert.ok(out.some((line) => line.text === "orchestration: the coordinator ended; starting it again in 1 s"));
+});
+
+test("arthur run's start sends the notice of a job's question that a crash left unsent (job-states.test.ts has its cases)", async (t) => {
+	const { agent, release } = waiting();
+	t.after(release);
+	const { fake, plugin, starts } = await load(t, agent);
+	// A crash while the question waited: the event logged, its handler's lock left to a dead pid.
+	const id = "2026-10-22-worker-0000abcd";
+	const seq = (fake.host.events.read(1).at(-1)?.seq ?? 0) + 1;
+	const event = { seq, time: new Date().toISOString(), plugin: "core", name: "job-state", data: { id, project: "demo", ticket: null, machine: "local", from: "working", to: "blocked", reason: "user: May I?" } };
+	appendFileSync(join(dirname(fake.host.folder), "events.jsonl"), `${JSON.stringify(event)}\n`);
+	mkdirSync(join(fake.host.folder, "asked"));
+	writeFileSync(join(fake.host.folder, "asked", `${seq}-${Date.parse(event.time)}.lock`), String(spawnSync(process.execPath, ["-e", ""]).pid));
+	await plugin.start?.();
+	await until("the coordinator's start", () => starts().length === 1);
+	assert.deepEqual(fake.emitted.filter((each) => each.name === "notice").map((each) => each.data), [{ text: `${id} asks: May I?`, blocked: id }], "no project list: no decision");
 });
 
 test("coordinator.restart ends the session; the next start is a fresh conversation after fresh: true, once, and goes on with --continue after fresh: false", async (t) => {

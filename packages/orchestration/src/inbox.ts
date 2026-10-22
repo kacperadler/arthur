@@ -1,8 +1,10 @@
 import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { describe } from "@arthur/core";
 import { type Received, received, turnText } from "@arthur/core/parts";
 import type { Host } from "@arthur/core/plugin";
 import { byState } from "./context.ts";
+import { handOver } from "./hand-over.ts";
 import { held } from "./silent.ts";
 
 // The coordinator's inbox, the plugin's side (spec/roadmap.md, entries 24 and 49): every message for the coordinator becomes one
@@ -68,6 +70,7 @@ export function inbox(host: Host): { start(): void; stop(): void } {
 		else console.error(`orchestration: coordinator-message (event ${event.seq}) ignored: expected { text }, non-empty text`);
 	});
 	host.events.on("job-ended", (event) => queue(folder, event, { text: wake(host, event.data) }));
+	host.provide("coordinator.turn", (name: unknown, data: unknown, result: unknown) => turn(host, name, data, result));
 	for (const name of ["job-started", "job-state", "job-ended"]) host.events.on(name, () => footer(host));
 	let timer: NodeJS.Timeout | undefined;
 	return {
@@ -113,9 +116,10 @@ export function queue(folder: string, event: { readonly seq: number; readonly ti
 	}
 }
 
-// The wake: the state its run ended in (the question, when blocked on the owner), the first lines of its final message, its
-// project when not the main one, and what the plugins add for it (the procedure of its kind).
-function wake(host: Host, data: unknown): string {
+// The wake: the state its run ended in (the question, when blocked on the owner), the first lines of its final message (the
+// job's own unless `final` stands for it), its project when not the main one, and what the plugins add for it (the procedure
+// of its kind).
+function wake(host: Host, data: unknown, final?: string): string {
 	const job = (data ?? {}) as Readonly<Record<string, unknown>>;
 	const id = String(job.id);
 	const asks = job.state === "blocked" && typeof job.reason === "string" && job.reason.startsWith("user: ") ? job.reason.slice("user: ".length) : undefined;
@@ -123,7 +127,7 @@ function wake(host: Host, data: unknown): string {
 	const lines = [asks === undefined ? `Job ${id} ended its run: ${state}.` : `Job ${id} ended its run blocked on the owner; its question, also sent as a notice: ${asks}`];
 	const main = host.collect("projects").length > 0 ? host.board.projects()[0]?.name : undefined;
 	if (main !== undefined && job.project !== main) lines.push(`Project: ${String(job.project)}.`);
-	const result = host.jobs.result(id).trimEnd().split("\n");
+	const result = (final ?? host.jobs.result(id)).trimEnd().split("\n");
 	if (result.join("") === "") lines.push("Its final message: none.");
 	else {
 		const cut = result.length > RESULT_LINES ? ` (the first ${RESULT_LINES} of ${result.length} lines)` : "";
@@ -131,6 +135,24 @@ function wake(host: Host, data: unknown): string {
 	}
 	for (const line of host.collect("coordinator.wake", job)) if (text(line)) lines.push(line);
 	return lines.join("\n");
+}
+
+// What `coordinator.turn` answers (`arthur eval` asks it): the text the coordinator's agent gets for one event the inbox
+// queues, handed over alone while idle; `result` stands for the final message of the job a `job-ended` names. A message's
+// parts are text only, which no plugin is asked to resolve, so the answer acts on nothing.
+async function turn(host: Host, name: unknown, data: unknown, result: unknown): Promise<string> {
+	if (name === "job-ended") return handOver([{ text: wake(host, data, typeof result === "string" ? result : "") }]);
+	if (name === "coordinator-message") {
+		const said = ((data ?? {}) as Readonly<Record<string, unknown>>).text;
+		if (!text(said)) throw new Error("coordinator.turn: coordinator-message: expected { text }, non-empty text");
+		return handOver([{ text: said }]);
+	}
+	if (name !== "message-received") throw new Error(`coordinator.turn: expected message-received, coordinator-message or job-ended, got ${describe(name)}`);
+	const message = received(data);
+	if (typeof message === "string") throw new Error(`coordinator.turn: message-received: ${message}`);
+	const part = message.parts.find((each) => each.kind !== "text");
+	if (part !== undefined) throw new Error(`coordinator.turn: message-received: text parts only; a ${part.kind} part is resolved by the plugins that claim it`);
+	return handOver([{ channel: message.channel, text: await turnText(host, 0, message) }]);
 }
 
 // `arthur · <n> <state>, …: <short ids>` for the jobs in a run, by state, empty when none runs; the extension shows it in the

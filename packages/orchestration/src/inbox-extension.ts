@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { redact } from "./credential.ts";
+import { handOver } from "./hand-over.ts";
 import type { Message } from "./inbox.ts";
 
 // The coordinator's inbox, the agent's side (spec/roadmap.md, entry 24): an OMP extension the coordinator's `omp` loads with
@@ -37,7 +38,6 @@ const QUIET_MS = 30_000;
 const RESTART = "sent before a restart; no reply to it was sent";
 const UNANSWERED = "sent before; its turn ended without a reply";
 const AGAIN = "Your reply above has not been sent; write one reply that answers this together with everything your reply above answered.";
-const ARTHUR = "The lines marked [Arthur] come from Arthur (a job's end, a schedule), not from the owner.";
 
 // The wait before the messages of the `failed`th turn in a row without a reply go again: none, then 5 s doubling to 5 min; a new owner message ends it.
 export const pause = (failed: number) => (failed < 2 ? 0 : Math.min(5000 * 2 ** (failed - 2), 300_000));
@@ -79,15 +79,10 @@ export default function inbox(pi: ExtensionApi): void {
 			move(name, QUEUED, TURN);
 			return true;
 		});
-	// One paragraph per message, marked with where it came from and, unless it came while idle, when.
+	// The turn's messages, each marked with when it came unless it came while idle (hand-over.ts).
 	const compose = (names: readonly string[], mark: string) => {
-		const messages = names.map((name) => read(TURN, name));
-		const lines = messages.map(({ channel, text }, index) => {
-			const when = waiting.get(names[index] ?? "") || mark;
-			return `[${channel === undefined ? "Arthur" : `via ${channel}`}${when === "" ? "" : `, ${when}`}] ${text}`;
-		});
-		const human = messages.some((message) => message.channel !== undefined);
-		return { content: [...lines, ...(messages.every((message) => message.channel !== undefined) ? [] : [ARTHUR])].join("\n\n"), human };
+		const messages = names.map((name) => ({ ...read(TURN, name), when: waiting.get(name) || mark }));
+		return { content: handOver(messages), human: messages.some((message) => message.channel !== undefined) };
 	};
 	// The third hand-over in a row that fails, at once or with no turn, is told once.
 	const failed = (count: number, why: string) => {

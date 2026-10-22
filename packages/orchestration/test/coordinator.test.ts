@@ -10,6 +10,7 @@ import type { LoadedConfig } from "@arthur/core";
 import { supervise } from "../src/coordinator.ts";
 import { coordinatorOptions } from "../src/orchestration-options.ts";
 import { type OrchestrationOptions, orchestration } from "../src/orchestration.ts";
+import { endCoordinator } from "./coordinator-end.ts";
 
 const ENV_GUARD = fileURLToPath(import.meta.resolve("@arthur/core/env-guard"));
 const INBOX = fileURLToPath(new URL("../src/inbox-extension.ts", import.meta.url));
@@ -35,11 +36,8 @@ async function load(t: TestContext, agent: string, coordinator: NonNullable<Orch
 	const fake = fakeHost({ name: "orchestration", root, env: more.env });
 	const plugin = orchestration(options);
 	await fake.setup({ setup: (host) => plugin.setup({ ...host, options }) });
-	t.after(async () => {
-		await plugin.stop?.();
-		tmux(tmuxSocket, "kill-server");
-		process.env.PATH = PATH;
-	});
+	t.after(() => void (process.env.PATH = PATH));
+	endCoordinator(t, tmuxSocket, plugin);
 	return { fake, plugin, socket: tmuxSocket, out, err, starts: () => starts(agent) };
 }
 
@@ -133,6 +131,7 @@ test("the coordinator gets its MCP servers through --plugin-dir, its own list ov
 	await plugin.stop?.();
 	// The next `arthur run`, without the option.
 	const again = supervise(coordinatorOptions({ coordinator: { tmux: { session: "coord", socket }, exitWaitSeconds: 1, restartDelaySeconds: 1 } }), fake.host.folder, "omp");
+	endCoordinator(t, socket, again);
 	await until("the next start", () => starts().length === 2);
 	await again.stop();
 	assert.deepEqual([existsSync(folder), starts()[1]?.args.includes("--plugin-dir")], [false, false]);
@@ -289,6 +288,39 @@ test("arthur attach puts the terminal in the coordinator's session until it deta
 	tmux(socket, "detach-client", "-s", "=coord");
 	assert.equal(await exited, 0);
 	assert.equal(tmux(socket, "has-session", "-t", "=coord").status, 0, "the session goes on after the detach");
+});
+
+// AR0296: a coordinator test's end leaves no tmux server and no fake agent running after npm test, also when it failed.
+test("a test's end stops its supervisor before it kills the tmux server, and kills that server also when the stop failed", async (t) => {
+	const { agent, release } = waiting();
+	t.after(release);
+	process.env.PATH = `${dirname(agent)}${delimiter}${PATH}`;
+	t.after(() => void (process.env.PATH = PATH));
+	t.mock.method(console, "log", () => {});
+	const socket = join(temporaryFolder(), "tmux.sock");
+	// The hook endCoordinator registers, run as the test's end runs it.
+	const end = (supervisor: { stop(): Promise<void> }) => {
+		const hooks: (() => Promise<void>)[] = [];
+		endCoordinator({ after: (hook) => void hooks.push(hook) }, socket, supervisor);
+		return hooks[0]?.() ?? assert.fail("no hook registered");
+	};
+	const supervisor = supervise(coordinatorOptions({ coordinator: { tmux: { session: "coord", socket }, exitWaitSeconds: 1, restartDelaySeconds: 1 } }), temporaryFolder(), "omp");
+	// This test's own end, should a check below fail.
+	t.after(async () => {
+		await supervisor.stop();
+		tmux(socket, "kill-server");
+	});
+	await until("the start", () => starts(agent).length === 1);
+	const pid = String(starts(agent)[0]?.pid);
+	await end(supervisor);
+	// Past restartDelaySeconds and a poll: a supervisor still running would have started the session again.
+	await sleep(2500);
+	assert.notEqual(tmux(socket, "has-session", "-t", "=coord").status, 0, "the supervisor was stopped: nothing started the session again");
+	await until("the agent's exit", () => spawnSync("kill", ["-0", pid]).status !== 0);
+	// A stop that fails, its session still there: the server is killed all the same, and the failure is the test's.
+	assert.equal(tmux(socket, "new-session", "-d", "-s", "coord", "sleep", "60").status, 0);
+	await assert.rejects(end({ stop: () => Promise.reject(new Error("stop timed out")) }), { message: "stop timed out" });
+	assert.notEqual(tmux(socket, "list-sessions").status, 0, "no tmux server on the socket");
 });
 
 test("doctor: tmux, critical, the plugin's own, without its setup: ok where tmux -V runs; missing, with its fix, where it is not on PATH or fails", async (t) => {

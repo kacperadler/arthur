@@ -4,7 +4,10 @@
 {
   "id": "AR0283",
   "title": "A job's question and the plugin's closes take the log's lock synchronously inside `arthur run`",
-  "date": "2026-10-22"
+  "date": "2026-10-22",
+  "after": [
+    "AR0282"
+  ]
 }
 ```
 
@@ -35,3 +38,4 @@ In:
 ## Decisions
 
 - 2026-10-22: Source: F2 of AR0281
+- 2026-10-22: Coordinator (free hand, finding ticket) approved.

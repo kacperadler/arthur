@@ -4,7 +4,10 @@
 {
   "id": "AR0271",
   "title": "Two processes checking one machine at once can both say the same news",
-  "date": "2026-10-21"
+  "date": "2026-10-21",
+  "after": [
+    "AR0269"
+  ]
 }
 ```
 
@@ -14,7 +17,7 @@ whether a failure `notice` or a `disk-low` is new is read from the check kept in
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+Two processes checking one machine at once say a disk-low or failure news once, not twice.
 
 - Kind: risk
 
@@ -35,3 +38,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F3 of AR0262
+- 2026-10-22: Coordinator (free hand, finding ticket) approved.

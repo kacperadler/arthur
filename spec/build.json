@@ -2070,44 +2070,47 @@
   {
     "id": "AR0269",
     "title": "The disk check makes a second ssh call per machine and round",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0269-the-disk-check-makes-a-second-ssh-call-per-machine-and-round/ticket.md",
-    "updated": "2026-10-21T14:00:33.651Z"
+    "updated": "2026-10-22T08:51:02.866Z"
   },
   {
     "id": "AR0270",
     "title": "vision.md's disk refusal example differs from the roadmap and the code",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0270-vision-md-s-disk-refusal-example-differs-from-the-roadmap-and-the-code/ticket.md",
-    "updated": "2026-10-21T14:00:33.657Z"
+    "updated": "2026-10-22T08:51:03.068Z"
   },
   {
     "id": "AR0271",
     "title": "Two processes checking one machine at once can both say the same news",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0271-two-processes-checking-one-machine-at-once-can-both-say-the-same-news/ticket.md",
-    "updated": "2026-10-21T14:00:33.660Z"
+    "updated": "2026-10-22T08:51:05.737Z",
+    "after": [
+      "AR0269"
+    ]
   },
   {
     "id": "AR0272",
     "title": "Arthur's own repository has no criteria folder, so its audits and retros run without their criteria",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0272-arthur-s-own-repository-has-no-criteria-folder-so-its-audits-and-retros-run-without-their-criteria/ticket.md",
-    "updated": "2026-10-21T14:25:32.982Z"
+    "updated": "2026-10-22T08:51:03.479Z"
   },
   {
     "id": "AR0273",
     "title": "Delivery ships no review criteria, so `arthur init` still writes `review.md` as `# Review`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0273-delivery-ships-no-review-criteria-so-arthur-init-still-writes-review-md-as-review/ticket.md",
-    "updated": "2026-10-21T14:57:55.266Z"
+    "updated": "2026-10-22T08:51:03.678Z"
   },
   {
     "id": "AR0274",
     "title": "A worker learns of `arthur plugin new --root` only if its ticket or plan names it",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0274-a-worker-learns-of-arthur-plugin-new-root-only-if-its-ticket-or-plan-names-it/ticket.md",
-    "updated": "2026-10-21T16:12:34.420Z"
+    "updated": "2026-10-22T08:51:03.880Z"
   },
   {
     "id": "AR0275",
@@ -2126,30 +2129,36 @@
   {
     "id": "AR0277",
     "title": "The eval words a turn with a copy of orchestration's wake and inbox lines, which can drift",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0277-the-eval-words-a-turn-with-a-copy-of-orchestration-s-wake-and-inbox-lines-which-can-drift/ticket.md",
-    "updated": "2026-10-22T07:42:26.123Z"
+    "updated": "2026-10-22T08:51:04.080Z"
   },
   {
     "id": "AR0278",
     "title": "In an eval run, `arthur <command> --help` answers only what the scenario's stub says",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0278-in-an-eval-run-arthur-command-help-answers-only-what-the-scenario-s-stub-says/ticket.md",
-    "updated": "2026-10-22T07:42:26.126Z"
+    "updated": "2026-10-22T08:51:05.120Z",
+    "after": [
+      "AR0277"
+    ]
   },
   {
     "id": "AR0279",
     "title": "An eval turn gets the coordinator's role but not its context, nor a time of day",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0279-an-eval-turn-gets-the-coordinator-s-role-but-not-its-context-nor-a-time-of-day/ticket.md",
-    "updated": "2026-10-22T07:42:26.128Z"
+    "updated": "2026-10-22T08:51:05.331Z",
+    "after": [
+      "AR0278"
+    ]
   },
   {
     "id": "AR0280",
     "title": "Roadmap 68: evals, the scenarios",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0280-roadmap-68-evals-the-scenarios/ticket.md",
-    "updated": "2026-10-22T08:13:34.667Z"
+    "updated": "2026-10-22T08:46:22.494Z"
   },
   {
     "id": "AR0281",
@@ -2161,22 +2170,25 @@
   {
     "id": "AR0282",
     "title": "The decision log's race test catches a missing lock only in most runs",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0282-the-decision-log-s-race-test-catches-a-missing-lock-only-in-most-runs/ticket.md",
-    "updated": "2026-10-22T08:31:57.349Z"
+    "updated": "2026-10-22T08:51:04.697Z"
   },
   {
     "id": "AR0283",
     "title": "A job's question and the plugin's closes take the log's lock synchronously inside `arthur run`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0283-a-job-s-question-and-the-plugin-s-closes-take-the-log-s-lock-synchronously-inside-arthur-run/ticket.md",
-    "updated": "2026-10-22T08:31:57.354Z"
+    "updated": "2026-10-22T08:51:05.535Z",
+    "after": [
+      "AR0282"
+    ]
   },
   {
     "id": "AR0284",
     "title": "Roadmap 97: decision classes",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0284-roadmap-97-decision-classes/ticket.md",
-    "updated": "2026-10-22T08:32:27.387Z"
+    "updated": "2026-10-22T08:32:29.912Z"
   }
 ]

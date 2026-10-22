@@ -14,7 +14,7 @@
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+Delivery ships its review criteria, so `arthur init` gives a new project a real `review.md` and its reviewer has criteria from day one.
 
 - Kind: improvement
 
@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F1 of AR0264
+- 2026-10-22: Coordinator (free hand, finding ticket) approved.

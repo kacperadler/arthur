@@ -14,7 +14,7 @@ with `keepFree.disk` above 0, each round of the `machines` plugin makes its one 
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+One ssh call per machine and round: the disk check rides on the machines plugin's probe instead of a second call, so each check costs half the connections.
 
 - Kind: improvement
 
@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F1 of AR0262
+- 2026-10-22: Coordinator (free hand, finding ticket) approved.

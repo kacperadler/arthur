@@ -13,6 +13,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0282 The decision log's race test catches a missing lock only in most runs (d85fed6)
 - AR0285 A job's question answered by policy still reaches the owner as a question (cdc0ad1)
 - AR0292 A check of its own still makes two ssh calls to a machine with a disk floor (59b78a4)
+- AR0295 The fixtures have no vision, so every eval context warns the main project has none (689f6fb)
 
 ### Fixed
 
@@ -23,6 +24,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0288 The eval stub answers a command's --help with that command's scripted result (3b718b5)
 - AR0289 The eval still words a schedule entry with its own copy of the schedule plugin's `[scheduled <id>]` line (cee3d3f)
 - AR0290 The telegram menu test failed once in a full `npm test` and passes alone (4b8b178)
+- AR0293 An orchestration inbox test overshoots its 30 s real-timer window under load (fbf9607)
 
 ### Changed
 

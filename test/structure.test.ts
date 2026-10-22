@@ -492,7 +492,9 @@ import { checkStructure } from "./structure.ts";
 // orchestration 6 more (2284) for the plugins' lines taken from it, none for one left out, a name no plugin answers refused
 // (context.ts, 5 with its comment) and `context` checked in the provider (orchestration.ts, 1); develop 2 more (670) for
 // `context` read and checked (eval-scenario.ts, 1 and its comment 1). An eval took the live answers before, so nothing was cut.
-const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2284, machines: 474, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 670, findings: 254 };
+// Merged main (AR0295) into AR0294: main's budgets plus AR0294's raises, orchestration 2278 + 6 + 1 = 2285 (the checkout's
+// comment in context.ts carries both tickets' words on one more line), develop 670 (recounted with wc -l).
+const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2285, machines: 474, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 670, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

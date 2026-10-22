@@ -2256,30 +2256,30 @@
   {
     "id": "AR0293",
     "title": "An orchestration inbox test overshoots its 30 s real-timer window under load",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0293-an-orchestration-inbox-test-overshoots-its-30-s-real-timer-window-under-load/ticket.md",
-    "updated": "2026-10-22T20:29:39.266Z"
+    "updated": "2026-10-22T20:49:43.054Z"
   },
   {
     "id": "AR0294",
     "title": "An eval turn's plugin context lines are the live Arthur's, which a scenario cannot set",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0294-an-eval-turn-s-plugin-context-lines-are-the-live-arthur-s-which-a-scenario-cannot-set/ticket.md",
-    "updated": "2026-10-22T15:22:58.964Z"
+    "updated": "2026-10-22T20:59:16.307Z"
   },
   {
     "id": "AR0295",
     "title": "The fixtures have no vision, so every eval context warns the main project has none",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0295-the-fixtures-have-no-vision-so-every-eval-context-warns-the-main-project-has-none/ticket.md",
-    "updated": "2026-10-22T15:22:59.173Z"
+    "updated": "2026-10-22T21:00:09.983Z"
   },
   {
     "id": "AR0296",
     "title": "An orchestration test can leave its tmux server and fake agent running after `npm test`",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0296-an-orchestration-test-can-leave-its-tmux-server-and-fake-agent-running-after-npm-test/ticket.md",
-    "updated": "2026-10-22T15:51:31.729Z"
+    "updated": "2026-10-22T20:50:01.133Z"
   },
   {
     "id": "AR0297",
@@ -2315,5 +2315,12 @@
     "status": "planned",
     "path": "spec/features/AR0301-core-job-control-test-can-fail-with-enoent-unlinking-continuing-under-load/ticket.md",
     "updated": "2026-10-22T20:15:18.068Z"
+  },
+  {
+    "id": "AR0302",
+    "title": "The inbox's backoff tests still measure 5 s and 10 s windows in real time",
+    "status": "planned",
+    "path": "spec/features/AR0302-the-inbox-s-backoff-tests-still-measure-5-s-and-10-s-windows-in-real-time/ticket.md",
+    "updated": "2026-10-22T20:49:55.270Z"
   }
 ]

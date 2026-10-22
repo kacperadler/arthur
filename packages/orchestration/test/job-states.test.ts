@@ -52,7 +52,7 @@ async function setup(t: TestContext, now = "2026-10-18T10:00:00Z") {
 			assert.equal(await fake.commands.find((command) => command.name === "coordinator")?.run({ args: ["context"], project: undefined }), 0);
 			const text = printed.join("\n");
 			assert.match(text, /\n\n## Time\n\n/);
-			return text.split("\n\n## Jobs not ended\n\n")[1]?.split("\n\n## Time\n\n")[0];
+			return text.split("\n\n## Jobs not ended\n\n")[1]?.split(/\n\n## (?:Open decisions|Time)\n\n/)[0];
 		},
 		// Their text; the first test below asserts the whole notice.
 		notices: () => fake.emitted.filter((event) => event.name === "notice").map((event) => ({ text: (event.data as { text: string }).text })),
@@ -111,11 +111,12 @@ test("a run that ends blocked on the owner: one notice with its question, the wa
 	// As `arthur run` delivers what the job's wrapper logged.
 	const delivered = logged().map((event) => fake.emit(event.name, event.data));
 	const question = "May I drop the old orders table?";
-	assert.deepEqual(notices(), [{ text: `${job.id} asks: ${question}` }]);
-	assert.deepEqual(fake.emitted.find((event) => event.name === "notice")?.data, { text: `${job.id} asks: ${question}`, blocked: job.id }, "marked as the notice silent mode lets through");
+	assert.deepEqual(notices(), [{ text: `${job.id} asks [DM-D1]: ${question}` }], "asked in the decision log first");
+	assert.deepEqual(fake.emitted.find((event) => event.name === "notice")?.data, { text: `${job.id} asks [DM-D1]: ${question}`, blocked: job.id }, "marked as the notice silent mode lets through");
 	const ended = delivered.find((event) => event.name === "job-ended");
 	const wake = JSON.parse(readFileSync(join(fake.host.folder, "inbox", "queued", `${ended?.seq}-${Date.parse(ended?.time ?? "")}`), "utf8")) as { text: string };
 	assert.deepEqual(wake.text.split("\n").slice(0, 3), [`Job ${job.id} ended its run blocked on the owner; its question, also sent as a notice: ${question}`, "Its final message:", `Blocked: user ${question}`]);
+	assert.match(wake.text, new RegExp(`\nIts question is decision DM-D1: record the owner's answer first, arthur decision answer DM-D1 .*, then arthur continue ${job.id} '<his answer>'\.$`));
 	assert.match((await jobs()) ?? "", new RegExp(`^blocked:\\n- ${job.id}, for 0h0\\dm: user: ${question.replace("?", "\\?")}$`));
 	assert.equal(footer(), "", "a run that ended blocked is not in a run");
 	assert.deepEqual(notices().length, 1, "a turn's context emits no notice");
@@ -131,13 +132,13 @@ test("one notice per block: a second process given the same event sends none; th
 	// A second process that loads the plugin gets the same event, as does `arthur run` again after a crash.
 	blockedNotice(fake.host);
 	blocked(ID, "may I?");
-	assert.deepEqual(notices(), [{ text: `${ID} asks: may I?` }]);
+	assert.deepEqual(notices(), [{ text: `${ID} asks [DM-D1]: may I?` }]);
 	fake.emit("job-state", { id: ID, project: "demo", ticket: null, machine: "local", from: "blocked", to: "working", reason: "" });
 	fake.emit("job-state", { id: ID, project: "demo", ticket: null, machine: "local", from: "working", to: "blocked", reason: "dependency: machine mac unreachable" });
 	fake.emit("job-ended", { id: ID, kind: "worker", project: "demo", state: "blocked", reason: "dependency: AR0012" });
 	assert.equal(notices().length, 1);
 	blocked(ID, "and now?");
-	assert.deepEqual(notices(), [{ text: `${ID} asks: may I?` }, { text: `${ID} asks: and now?` }]);
+	assert.deepEqual(notices(), [{ text: `${ID} asks [DM-D1]: may I?` }, { text: `${ID} asks [DM-D2]: and now?` }]);
 });
 
 test("the marks of noticed events older than 7 days go at the next block, newer ones stay", async (t) => {
@@ -150,40 +151,41 @@ test("the marks of noticed events older than 7 days go at the next block, newer 
 		utimesSync(join(asked, name), at, at);
 	}
 	const event = blocked(ID, "may I?");
-	assert.deepEqual(notices(), [{ text: `${ID} asks: may I?` }]);
+	assert.deepEqual(notices(), [{ text: `${ID} asks [DM-D1]: may I?` }]);
 	assert.deepEqual(readdirSync(asked).sort(), ["900002-0", `${event.seq}-${Date.parse(event.time)}`].sort());
 });
 
 test("after the event log is cut by hand, a block with a number noticed before is still a notice", async (t) => {
 	const { home, notices, blocked } = await setup(t);
 	const first = blocked(ID, "may I?");
-	assert.deepEqual(notices(), [{ text: `${ID} asks: may I?` }]);
+	assert.deepEqual(notices(), [{ text: `${ID} asks [DM-D1]: may I?` }]);
 	rmSync(join(home, "events.jsonl"));
 	await sleep(5);
 	const again = blocked(ID, "and now?");
 	assert.equal(again.seq, first.seq, "the numbers start again");
-	assert.deepEqual(notices(), [{ text: `${ID} asks: and now?` }], "the cut log holds only what came after");
+	assert.deepEqual(notices(), [{ text: `${ID} asks [DM-D2]: and now?` }], "the cut log holds only what came after; the decision log, in the project, is not cut");
 });
 
 test("a question longer than one message is cut to 4096 characters with the job id to read it whole; 4096 exactly is sent whole", async (t) => {
 	const { notices, blocked } = await setup(t);
-	const head = `${ID} asks: `;
-	const whole = "q".repeat(4096 - head.length);
+	// Each block asks again: DM-D1 to DM-D3, heads of one length.
+	const head = (n: number) => `${ID} asks [DM-D${n}]: `;
+	const whole = "q".repeat(4096 - head(1).length);
 	blocked(ID, whole);
 	blocked(ID, `${whole}!`);
 	const tail = " … (cut; /jobs shows the whole question of job 0000abcd)";
 	// A character of two UTF-16 units across the cut is left out whole.
-	blocked(ID, `${"q".repeat(4096 - head.length - tail.length - 1)}😀${"q".repeat(100)}`);
-	const cut = `${head}${whole.slice(0, 4096 - head.length - tail.length)}${tail}`;
+	blocked(ID, `${"q".repeat(4096 - head(3).length - tail.length - 1)}😀${"q".repeat(100)}`);
+	const cut = `${head(2)}${whole.slice(0, 4096 - head(2).length - tail.length)}${tail}`;
 	assert.equal(cut.length, 4096);
-	assert.deepEqual(notices(), [{ text: `${head}${whole}` }, { text: cut }, { text: `${head}${"q".repeat(4096 - head.length - tail.length - 1)}${tail}` }]);
+	assert.deepEqual(notices(), [{ text: `${head(1)}${whole}` }, { text: cut }, { text: `${head(3)}${"q".repeat(4096 - head(3).length - tail.length - 1)}${tail}` }]);
 });
 
 test("in quiet hours the notice goes at once as any other, and the channel sends it without a notification", async (t) => {
 	const { fake, notices, blocked } = await setup(t, "2026-10-18T21:30:00Z");
 	assert.equal(fake.host.clock.isQuiet(), true, "23:30 in Warsaw is within the quiet hours");
 	blocked(ID, "may I?");
-	assert.deepEqual(notices(), [{ text: `${ID} asks: may I?` }]);
+	assert.deepEqual(notices(), [{ text: `${ID} asks [DM-D1]: may I?` }]);
 });
 
 test("the footer counts the jobs in a run by state, blocked first, with their short ids; none in a run is empty", async (t) => {

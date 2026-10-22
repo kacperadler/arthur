@@ -7,6 +7,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Fixed
 
 - AR0299 A crash of `arthur run` while a job's question waits for the log's lock loses its notice (c54a670)
+- AR0300 The wrapper's append to log can still recreate it while rm -r empties the record (e0a3aea)
 - AR0301 core job-control test can fail with ENOENT unlinking continuing under load (3691a8e)
 - AR0302 The inbox's backoff tests still measure 5 s and 10 s windows in real time (b0ff5ff)
 

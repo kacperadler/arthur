@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/steer.ts:29`, `packages/core/src/worktree-guard.ts:170`
 - What: AR0300 makes the wrapper append to `log` without creating it, but the steer extension (a steer delivered at a `tool_result`) and the worktree guard (its once-per-job fallback line) run in the agent's process and append with `appendFileSync`'s default flag `a`, which creates `log`; one that lands while a `rm -r` of the record is emptying it, after `log` was unlinked, leaves a new `log` and the `rm -r` fails with `ENOTEMPTY`. [INFERENCE: read from the lines; not reproduced.]
 - Suggestion: append there with `{ flag: constants.O_WRONLY | constants.O_APPEND }` as `wrapper.ts` does and skip the line on `ENOENT` (the wrapper ends the job at its next use); out: any retry of the append.
-- Status: open
+- Status: ticket AR0306

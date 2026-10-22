@@ -39,3 +39,4 @@ In:
 
 - 2026-10-22: Source: F3 of AR0280
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-22: Coordinator (free hand): line budget raise accepted, develop 628 to 633, for help answers of unregistered commands.

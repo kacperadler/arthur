@@ -39,3 +39,4 @@ In:
 
 - 2026-10-22: Source: F1 of AR0278
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-22: Coordinator: after AR0288 every help call is answered by the stub, so every `(?!.*--help)` guard goes, including those for another plugin's command.

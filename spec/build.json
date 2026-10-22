@@ -2084,9 +2084,9 @@
   {
     "id": "AR0271",
     "title": "Two processes checking one machine at once can both say the same news",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0271-two-processes-checking-one-machine-at-once-can-both-say-the-same-news/ticket.md",
-    "updated": "2026-10-22T14:46:55.498Z",
+    "updated": "2026-10-22T15:12:04.603Z",
     "after": [
       "AR0269"
     ]
@@ -2146,9 +2146,9 @@
   {
     "id": "AR0279",
     "title": "An eval turn gets the coordinator's role but not its context, nor a time of day",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0279-an-eval-turn-gets-the-coordinator-s-role-but-not-its-context-nor-a-time-of-day/ticket.md",
-    "updated": "2026-10-22T14:29:34.670Z",
+    "updated": "2026-10-22T15:05:04.102Z",
     "after": [
       "AR0278"
     ]
@@ -2239,9 +2239,9 @@
   {
     "id": "AR0291",
     "title": "The scenarios' `(?!.*--help)` guards are dead weight once the stub prints help itself",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0291-the-scenarios-help-guards-are-dead-weight-once-the-stub-prints-help-itself/ticket.md",
-    "updated": "2026-10-22T13:55:23.036Z",
+    "updated": "2026-10-22T15:08:26.993Z",
     "after": [
       "AR0288"
     ]

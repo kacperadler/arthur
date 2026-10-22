@@ -2070,9 +2070,9 @@
   {
     "id": "AR0269",
     "title": "The disk check makes a second ssh call per machine and round",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0269-the-disk-check-makes-a-second-ssh-call-per-machine-and-round/ticket.md",
-    "updated": "2026-10-22T14:08:15.398Z"
+    "updated": "2026-10-22T14:13:49.944Z"
   },
   {
     "id": "AR0270",
@@ -2215,9 +2215,9 @@
   {
     "id": "AR0288",
     "title": "The eval stub answers a command's --help with that command's scripted result",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0288-the-eval-stub-answers-a-command-s-help-with-that-command-s-scripted-result/ticket.md",
-    "updated": "2026-10-22T13:55:35.899Z",
+    "updated": "2026-10-22T14:11:03.132Z",
     "after": [
       "AR0278"
     ]
@@ -2245,5 +2245,12 @@
     "after": [
       "AR0288"
     ]
+  },
+  {
+    "id": "AR0292",
+    "title": "A check of its own still makes two ssh calls to a machine with a disk floor",
+    "status": "planned",
+    "path": "spec/features/AR0292-a-check-of-its-own-still-makes-two-ssh-calls-to-a-machine-with-a-disk-floor/ticket.md",
+    "updated": "2026-10-22T14:13:59.123Z"
   }
 ]

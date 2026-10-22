@@ -458,7 +458,10 @@ import { checkStructure } from "./structure.ts";
 // Merged main (AR0269, AR0288) into AR0279: main's budgets plus AR0279's raises, core 5753, orchestration 2231, develop
 // 633 + 22 = 655 (recounted with wc -l).
 // Merged main (AR0279, AR0288, AR0291) into AR0271: main's budgets plus AR0271's resources 607 (recounted with wc -l).
-const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2231, machines: 474, resources: 607, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 655, findings: 254 };
+// AR0274 (F1 of AR0260; its Done means: the planner puts the line of `arthur plugin new --root` into a new plugin's plan as its
+// first step): develop 12 more (667) for the planner's and the worker's prompt section with that line, in Arthur's repository
+// only (plugin-new.ts, 11; develop.ts, 1); a new section, so nothing was cut.
+const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2231, machines: 474, resources: 607, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 667, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

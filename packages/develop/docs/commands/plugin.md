@@ -19,6 +19,8 @@ $ cd ~/arthur && arthur plugin new acme-bot --budget 120 --root ~/.arthur-worktr
 
 In Arthur's repository (its checkout holds `packages/core`) the plugin puts this line, under `## A new plugin`, into the prompt of the planner, who makes it the first step of a new plugin's plan, and of the worker, with its own worktree as `--root`; `<checkout>`, `<name>` and `<lines>` are left for them to fill. Other projects' jobs and other roles get no such section.
 
+A new plugin's ticket runs on the local machine. On another machine the project's repository is bare (`arthur remote-job --help`), the first line of `git worktree list` there, and holds no `arthur.config.ts`, so the CLI there has no `plugin` command (`arthur: unknown command plugin`, exit 2). The planner's section says so: the plan says that its worker runs on the local machine, and the coordinator spawns it with `--machine local` (orchestration's `roles/coordinator/plan-ended.md`). A worker placed on another machine gets, in place of the line, that `arthur plugin new` cannot run there and that the package is made on the local machine, never by hand: it changes nothing and ends, saying its worker must run there, `arthur spawn --machine local` with its task.
+
 What it writes:
 
 - `packages/<name>/package.json`: `@arthur/<name>`, private, Apache-2.0, no dependency; its `.` and `./options` both the plugin file.

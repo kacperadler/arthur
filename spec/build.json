@@ -2129,9 +2129,9 @@
   {
     "id": "AR0277",
     "title": "The eval words a turn with a copy of orchestration's wake and inbox lines, which can drift",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0277-the-eval-words-a-turn-with-a-copy-of-orchestration-s-wake-and-inbox-lines-which-can-drift/ticket.md",
-    "updated": "2026-10-22T13:13:41.279Z"
+    "updated": "2026-10-22T13:19:13.779Z"
   },
   {
     "id": "AR0278",
@@ -2221,5 +2221,19 @@
     "after": [
       "AR0278"
     ]
+  },
+  {
+    "id": "AR0289",
+    "title": "The eval still words a schedule entry with its own copy of the schedule plugin's `[scheduled <id>]` line",
+    "status": "planned",
+    "path": "spec/features/AR0289-the-eval-still-words-a-schedule-entry-with-its-own-copy-of-the-schedule-plugin-s-scheduled-id-line/ticket.md",
+    "updated": "2026-10-22T13:19:24.148Z"
+  },
+  {
+    "id": "AR0290",
+    "title": "The telegram menu test failed once in a full `npm test` and passes alone",
+    "status": "planned",
+    "path": "spec/features/AR0290-the-telegram-menu-test-failed-once-in-a-full-npm-test-and-passes-alone/ticket.md",
+    "updated": "2026-10-22T13:19:24.351Z"
   }
 ]

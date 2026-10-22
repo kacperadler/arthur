@@ -4,6 +4,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ## 2026-10-22
 
+### Fixed
+
+- AR0277 The eval words a turn with a copy of orchestration's wake and inbox lines, which can drift (c4047e0)
+
 ### Other
 
 - AR0275 Roadmap 65: the morning report (7b872a1)

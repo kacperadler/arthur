@@ -2177,9 +2177,9 @@
   {
     "id": "AR0283",
     "title": "A job's question and the plugin's closes take the log's lock synchronously inside `arthur run`",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0283-a-job-s-question-and-the-plugin-s-closes-take-the-log-s-lock-synchronously-inside-arthur-run/ticket.md",
-    "updated": "2026-10-22T17:16:13.928Z",
+    "updated": "2026-10-22T17:36:25.304Z",
     "after": [
       "AR0282"
     ]
@@ -2208,9 +2208,9 @@
   {
     "id": "AR0287",
     "title": "A plugin's wake lines for a review or an onboarding cannot reach an eval's turn, even once AR0277 words it",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0287-a-plugin-s-wake-lines-for-a-review-or-an-onboarding-cannot-reach-an-eval-s-turn-even-once-ar0277-words-it/ticket.md",
-    "updated": "2026-10-22T09:44:06.501Z"
+    "updated": "2026-10-22T17:24:25.370Z"
   },
   {
     "id": "AR0288",
@@ -2294,5 +2294,12 @@
     "status": "planned",
     "path": "spec/features/AR0298-on-another-machine-the-checkout-a-job-reaches-has-no-arthur-config-ts-so-the-line-of-arthur-plugin-new-cannot-run-there/ticket.md",
     "updated": "2026-10-22T16:30:42.813Z"
+  },
+  {
+    "id": "AR0299",
+    "title": "A crash of `arthur run` while a job's question waits for the log's lock loses its notice",
+    "status": "planned",
+    "path": "spec/features/AR0299-a-crash-of-arthur-run-while-a-job-s-question-waits-for-the-log-s-lock-loses-its-notice/ticket.md",
+    "updated": "2026-10-22T17:36:37.413Z"
   }
 ]

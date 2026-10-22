@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/orchestration/src/blocked-notice.ts` (the `asked/` mark, then the notice after `askOfJob`)
 - What: the handler creates its mark `<home>/orchestration/asked/<event number>-<time>` before it asks in the decision log, and sends the notice after. Since AR0283, while another process holds the log's lock, the notice waits for the lock (up to 60 s) with the mark already made: a crash or restart of `arthur run` in that wait leaves the mark, so the replay after the restart sends no notice and the owner never hears the question. Before, the gap between the mark and the notice was one synchronous write. [INFERENCE] from the lines; not reproduced.
 - Suggestion: keep a second mark (`asked/<n>-<time>.sent`) written after the notice, and let a replay that finds the first mark without the second look up the job's open question in the log (asking again only when there is none) and send the notice; the one-notice-per-block rule stays.
-- Status: open
+- Status: ticket AR0299

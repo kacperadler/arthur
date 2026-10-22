@@ -146,9 +146,12 @@ test("a missing criteria file, an empty or symlinked vision, and a hand-broken b
 	assert.doesNotMatch(text, /## Vision of/);
 });
 
-test("coordinator.checkoutContext: the main project's role, the vision and board of a copy of its repository, the time at the instant asked, each plugin's lines; no jobs, open decisions or silent mode, which are the live Arthur's", async (t) => {
+test("coordinator.checkoutContext: the main project's role, the vision and board of a copy of its repository, the time at the instant asked, the plugins' lines the scenario sets; no jobs, open decisions or silent mode, which are the live Arthur's", async (t) => {
 	const { fake, demo, context } = await setup(t, "2026-10-18T10:00:00Z");
 	const copy = repository({ "spec/vision.md": "# Fixture\n\nThe fixture's shop.\n", "spec/build.json": board("Copied", "Second") });
+	assert.throws(() => fake.call("coordinator.checkoutContext", { root: copy, at: new Date(), context: { session: "Restart: due." } }), {
+		message: "coordinator.checkoutContext: context names session: no such plugin answers coordinator.context; those that do: none",
+	});
 	const job = join(dirname(fake.host.folder), "jobs", "2026-10-18-worker-0000000a");
 	mkdirSync(job, { recursive: true });
 	for (const [key, value] of Object.entries({ kind: "worker", project: "demo", task: "Go.", state: "working", since: "2026-10-18T09:55:00Z" })) writeFileSync(join(job, key), value);
@@ -158,21 +161,23 @@ test("coordinator.checkoutContext: the main project's role, the vision and board
 	const live = await context();
 	for (const section of ["Jobs not ended", "Open decisions", "Silent"]) assert.match(live, new RegExp(`^## ${section}$`, "m"), `the live context holds ${section}`);
 	const at = new Date("2026-10-18T21:30:00Z");
-	assert.equal(
-		fake.call("coordinator.checkoutContext", { root: copy, at }),
-		[
-			ROLE,
-			"## Project override, which wins over the role above (.agents/arthur/roles/coordinator.md)\n\nAnswer in Polish.",
-			"## Styleguide (.agents/arthur/criteria/styleguide.md)\n\n# Styleguide\n\nSmall files.",
-			"## Autopilot (.agents/arthur/criteria/autopilot.md)\n\n# Autopilot\n\nOnly typos.",
-			"## Vision of demo (spec/vision.md)\n\n# Fixture\n\nThe fixture's shop.",
-			"## Board\n\nDM0001 planning    Copied\nDM0002 planning    Second",
-			"## Time\n\n23:30 on sun 2026-10-18 (Europe/Warsaw), night: within the owner's quiet hours.",
-			"## test\n\nRetro due: no.",
-		].join("\n\n"),
-	);
-	for (const asked of [undefined, { root: copy }, { root: 3, at }, { root: copy, at: at.toISOString() }]) {
-		assert.throws(() => fake.call("coordinator.checkoutContext", asked), { message: `coordinator.checkoutContext: expected { root: a folder, at: a Date }, got ${JSON.stringify(asked ?? {})}` });
+	const expected = [
+		ROLE,
+		"## Project override, which wins over the role above (.agents/arthur/roles/coordinator.md)\n\nAnswer in Polish.",
+		"## Styleguide (.agents/arthur/criteria/styleguide.md)\n\n# Styleguide\n\nSmall files.",
+		"## Autopilot (.agents/arthur/criteria/autopilot.md)\n\n# Autopilot\n\nOnly typos.",
+		"## Vision of demo (spec/vision.md)\n\n# Fixture\n\nThe fixture's shop.",
+		"## Board\n\nDM0001 planning    Copied\nDM0002 planning    Second",
+		"## Time\n\n23:30 on sun 2026-10-18 (Europe/Warsaw), night: within the owner's quiet hours.",
+	];
+	assert.equal(fake.call("coordinator.checkoutContext", { root: copy, at, context: { test: "  Restart: due.\n" } }), [...expected, "## test\n\nRestart: due."].join("\n\n"), "the scenario's line replaces the plugin's live one");
+	assert.equal(fake.call("coordinator.checkoutContext", { root: copy, at, context: {} }), expected.join("\n\n"), "a plugin left out answers nothing");
+	assert.equal(fake.call("coordinator.checkoutContext", { root: copy, at, context: { test: " " } }), expected.join("\n\n"), "blank text adds nothing");
+	assert.throws(() => fake.call("coordinator.checkoutContext", { root: copy, at, context: { test: "Restart: due.", sesion: "x", other: "y" } }), {
+		message: "coordinator.checkoutContext: context names sesion, other: no such plugin answers coordinator.context; those that do: test",
+	});
+	for (const asked of [undefined, { root: copy, context: {} }, { root: 3, at, context: {} }, { root: copy, at: at.toISOString(), context: {} }, { root: copy, at }, ...[null, [], "x", { test: 3 }].map((context) => ({ root: copy, at, context }))]) {
+		assert.throws(() => fake.call("coordinator.checkoutContext", asked), { message: `coordinator.checkoutContext: expected { root: a folder, at: a Date, context: { <plugin>: <text> } }, got ${JSON.stringify(asked ?? {})}` });
 	}
 });
 

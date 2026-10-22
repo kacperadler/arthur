@@ -2086,7 +2086,7 @@
     "title": "Two processes checking one machine at once can both say the same news",
     "status": "in-progress",
     "path": "spec/features/AR0271-two-processes-checking-one-machine-at-once-can-both-say-the-same-news/ticket.md",
-    "updated": "2026-10-22T14:14:09.567Z",
+    "updated": "2026-10-22T14:46:55.498Z",
     "after": [
       "AR0269"
     ]
@@ -2215,9 +2215,9 @@
   {
     "id": "AR0288",
     "title": "The eval stub answers a command's --help with that command's scripted result",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0288-the-eval-stub-answers-a-command-s-help-with-that-command-s-scripted-result/ticket.md",
-    "updated": "2026-10-22T14:21:07.928Z",
+    "updated": "2026-10-22T14:53:05.827Z",
     "after": [
       "AR0278"
     ]

@@ -2112,15 +2112,15 @@
   {
     "id": "AR0275",
     "title": "Roadmap 65: the morning report",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0275-roadmap-65-the-morning-report/ticket.md",
-    "updated": "2026-10-22T06:34:45.055Z"
+    "updated": "2026-10-22T07:26:09.778Z"
   },
   {
     "id": "AR0276",
     "title": "Roadmap 67: evals, the runner",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0276-roadmap-67-evals-the-runner/ticket.md",
-    "updated": "2026-10-22T06:34:45.254Z"
+    "updated": "2026-10-22T07:22:23.671Z"
   }
 ]

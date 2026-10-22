@@ -8,6 +8,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0275 Roadmap 65: the morning report (7b872a1)
 - AR0276 Roadmap 67: evals, the runner (63e7408)
+- AR0281 Roadmap 96: the decision log (88ec6c6)
 
 ## 2026-10-21
 

@@ -2146,9 +2146,9 @@
   {
     "id": "AR0279",
     "title": "An eval turn gets the coordinator's role but not its context, nor a time of day",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0279-an-eval-turn-gets-the-coordinator-s-role-but-not-its-context-nor-a-time-of-day/ticket.md",
-    "updated": "2026-10-22T15:05:04.102Z",
+    "updated": "2026-10-22T15:18:02.272Z",
     "after": [
       "AR0278"
     ]

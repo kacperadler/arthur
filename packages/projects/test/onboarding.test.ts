@@ -44,6 +44,8 @@ async function onboard(t: TestContext, fake: FakeHost, home: string, message: st
 
 const asked = (count: number, from = 1) => Array.from({ length: count }, (_, index) => `${from + index}. Question ${from + index}?\n   Proposed: yes.`);
 const finished = (id: string) => ({ id, kind: "onboarding", project: "shop", state: "ended", reason: "finished" });
+// The wake's lines as orchestration asks them: with the job-ended data and the job's final message.
+const woken = (fake: FakeHost, job: Readonly<Record<"id" | "kind" | "project" | "state" | "reason", string>>, result = fake.host.jobs.result(job.id)) => fake.collect("coordinator.wake", job, result);
 
 test("the kind onboarding has its own branch and role, and its prompt names the files it drafts, where prompts puts them", async (t) => {
 	const { fake, home } = await load({ prompts: { vision: "docs/vision.md", criteriaDir: "docs/criteria/" } });
@@ -77,30 +79,40 @@ test("an onboarding asking more than 10 questions is cut at 10, the same however
 	const { fake, home } = await load();
 	const id = await onboard(t, fake, home, ["## Repository", "A shop.", "", "## Questions", ...asked(14), "", "## Notes", "13. Not a question."].join("\n"));
 	const wake = `${PROCEDURE}\n\nIts questions to send the owner, the first 10 of its 14: an onboarding asks at most 10 in all, the rest are cut:\n${asked(10).join("\n")}`;
-	assert.deepEqual(fake.collect("coordinator.wake", finished(id)), [wake]);
-	assert.deepEqual(fake.collect("coordinator.wake", finished(id)), [wake], "a wake built twice counts its questions once");
+	assert.deepEqual(woken(fake, finished(id)), [wake]);
+	assert.deepEqual(woken(fake, finished(id)), [wake], "a wake built twice counts its questions once");
 	// Its next run's final message, after the owner's answers.
 	writeFileSync(join(home, "jobs", id, "result"), ["## Questions", ...asked(2, 11)].join("\n"));
-	assert.deepEqual(fake.collect("coordinator.wake", finished(id)), [`${PROCEDURE}\n\nIts 2 new questions are cut: it asked 10 already, and an onboarding asks at most 10. Send none.`]);
+	assert.deepEqual(woken(fake, finished(id)), [`${PROCEDURE}\n\nIts 2 new questions are cut: it asked 10 already, and an onboarding asks at most 10. Send none.`]);
 });
 
 test("questions within 10 go whole; a later run gets what is left of the 10", async (t) => {
 	const { fake, home } = await load();
 	const id = await onboard(t, fake, home, ["## Questions", ...asked(7)].join("\n"));
-	assert.deepEqual(fake.collect("coordinator.wake", finished(id)), [`${PROCEDURE}\n\nIts questions to send the owner:\n${asked(7).join("\n")}`]);
+	assert.deepEqual(woken(fake, finished(id)), [`${PROCEDURE}\n\nIts questions to send the owner:\n${asked(7).join("\n")}`]);
 	writeFileSync(join(home, "jobs", id, "result"), ["## Questions", ...asked(5, 8)].join("\n"));
 	const rest = `${PROCEDURE}\n\nIts questions to send the owner, the first 3 of its 5: an onboarding asks at most 10 in all, the rest are cut:\n${asked(3, 8).join("\n")}`;
-	assert.deepEqual(fake.collect("coordinator.wake", finished(id)), [rest]);
+	assert.deepEqual(woken(fake, finished(id)), [rest]);
+});
+
+test("a job in no home, an eval's, gets the questions of the final message it is given, and its wake writes nothing", async () => {
+	const { fake } = await load();
+	const id = "2026-10-22-onboarding-4e5f6a7b";
+	const result = ["## Questions", ...asked(12)].join("\n");
+	const wake = `${PROCEDURE}\n\nIts questions to send the owner, the first 10 of its 12: an onboarding asks at most 10 in all, the rest are cut:\n${asked(10).join("\n")}`;
+	assert.deepEqual(woken(fake, finished(id), result), [wake]);
+	assert.deepEqual(woken(fake, finished(id), result), [wake], "no earlier run counted, however often it is built");
+	assert.equal(existsSync(join(fake.host.folder, "onboarding")), false, "nothing written in the home");
 });
 
 test("a run that ended without questions, or did not finish, brings the procedure alone; another kind brings nothing", async (t) => {
 	const { fake, home } = await load();
 	const id = await onboard(t, fake, home, "Drafted spec/vision.md.\nReview focus: the commands.");
-	assert.deepEqual(fake.collect("coordinator.wake", finished(id)), [PROCEDURE]);
+	assert.deepEqual(woken(fake, finished(id)), [PROCEDURE]);
 	writeFileSync(join(home, "jobs", id, "result"), ["## Questions", ...asked(2)].join("\n"));
-	assert.deepEqual(fake.collect("coordinator.wake", { ...finished(id), reason: "limit: budget: its cost $1.0000 reached its budget of $1" }), [PROCEDURE]);
-	assert.deepEqual(fake.collect("coordinator.wake", { ...finished(id), state: "blocked", reason: "user: which shop?" }), [PROCEDURE]);
-	assert.deepEqual(fake.collect("coordinator.wake", { ...finished(id), kind: "worker" }), [undefined]);
+	assert.deepEqual(woken(fake, { ...finished(id), reason: "limit: budget: its cost $1.0000 reached its budget of $1" }), [PROCEDURE]);
+	assert.deepEqual(woken(fake, { ...finished(id), state: "blocked", reason: "user: which shop?" }), [PROCEDURE]);
+	assert.deepEqual(woken(fake, { ...finished(id), kind: "worker" }), [undefined]);
 	assert.match(PROCEDURE, /arthur continue <job id> '<the answers, by number>'/);
 	assert.match(PROCEDURE, /arthur merge <job id> --unreviewed`, then the committed files/);
 });

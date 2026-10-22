@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
 import { drafted, writeOnce } from "./init.ts";
@@ -27,7 +27,8 @@ export function onboarding(host: Host, all: readonly Project[]): void {
 		return `## The files this onboarding drafts\n\n- The vision: \`${vision}\`\n- The criteria: ${criteria}\n\nIts merge accepts only \`${vision}\` and \`${criteriaDir}/*.md\`.`;
 	});
 	const procedure = new URL("../roles/coordinator/onboarding-ended.md", import.meta.url);
-	host.provide("coordinator.wake", (job: Ended) => (job.kind === KIND ? [readFileSync(procedure, "utf8").trim(), ...questions(host, job)].join("\n\n") : undefined));
+	// Asked with the job-ended data and the job's final message, which an eval gives for a job in no home.
+	host.provide("coordinator.wake", (job: Ended, result?: unknown) => (job.kind === KIND ? [readFileSync(procedure, "utf8").trim(), ...questions(host, job, typeof result === "string" ? result : "")].join("\n\n") : undefined));
 	// Asked by the merge with the job as `host.jobs.list()` has it: a reason to refuse its branch, undefined to let it in.
 	host.provide("merge.check", (job: Ended & { readonly branch?: unknown }) => {
 		if (job.kind !== KIND) return undefined;
@@ -38,10 +39,9 @@ export function onboarding(host: Host, all: readonly Project[]): void {
 
 // The numbered items under `## Questions` of a finished run's final message, cut so that one onboarding sends the owner at most
 // 10 in all. `<folder>/onboarding/<id>/<run>` keeps how many each run sent, `<run>` a hash of its message, written once however
-// often its wake is built.
-function questions(host: Host, job: Ended): string[] {
+// often its wake is built, and only for a job of this home: an eval's wake writes nothing.
+function questions(host: Host, job: Ended, result: string): string[] {
 	if (job.state !== "ended" || job.reason !== "finished") return [];
-	const result = host.jobs.result(String(job.id));
 	const lines = result.split("\n");
 	const items: string[] = [];
 	for (const line of lines.slice(lines.findIndex((each) => each.trim() === "## Questions") + 1 || lines.length)) {
@@ -51,12 +51,11 @@ function questions(host: Host, job: Ended): string[] {
 	}
 	if (items.length === 0) return [];
 	const folder = join(host.folder, "onboarding", String(job.id));
-	mkdirSync(folder, { recursive: true });
 	const run = createHash("sha256").update(result).digest("hex").slice(0, 16);
-	const runs = readdirSync(folder).filter((name) => RUN.test(name) && name !== run);
+	const runs = existsSync(folder) ? readdirSync(folder).filter((name) => RUN.test(name) && name !== run) : [];
 	const earlier = runs.reduce((sum, name) => sum + Number(readFileSync(join(folder, name), "utf8")), 0);
 	const sent = items.slice(0, Math.max(0, MAX_QUESTIONS - earlier));
-	writeOnce(join(folder, run), String(sent.length));
+	if (host.jobs.list().some((each) => each.id === job.id)) writeOnce(join(folder, run), String(sent.length));
 	if (sent.length === 0) return [`Its ${items.length} new questions are cut: it asked ${earlier} already, and an onboarding asks at most ${MAX_QUESTIONS}. Send none.`];
 	const cut = sent.length < items.length ? `, the first ${sent.length} of its ${items.length}: an onboarding asks at most ${MAX_QUESTIONS} in all, the rest are cut` : "";
 	return [`Its questions to send the owner${cut}:\n${sent.join("\n")}`];

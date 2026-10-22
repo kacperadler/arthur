@@ -165,7 +165,7 @@ test("coordinator.checkoutContext: the main project's role, the vision and board
 			"## Project override, which wins over the role above (.agents/arthur/roles/coordinator.md)\n\nAnswer in Polish.",
 			"## Styleguide (.agents/arthur/criteria/styleguide.md)\n\n# Styleguide\n\nSmall files.",
 			"## Autopilot (.agents/arthur/criteria/autopilot.md)\n\n# Autopilot\n\nOnly typos.",
-			"## Vision of demo (spec/vision.md)\n\n# Fixture\n\nThe fixture's shop.",
+			"## Vision (spec/vision.md)\n\n# Fixture\n\nThe fixture's shop.",
 			"## Board\n\nDM0001 planning    Copied\nDM0002 planning    Second",
 			"## Time\n\n23:30 on sun 2026-10-18 (Europe/Warsaw), night: within the owner's quiet hours.",
 			"## test\n\nRetro due: no.",
@@ -174,6 +174,20 @@ test("coordinator.checkoutContext: the main project's role, the vision and board
 	for (const asked of [undefined, { root: copy }, { root: 3, at }, { root: copy, at: at.toISOString() }]) {
 		assert.throws(() => fake.call("coordinator.checkoutContext", asked), { message: `coordinator.checkoutContext: expected { root: a folder, at: a Date }, got ${JSON.stringify(asked ?? {})}` });
 	}
+});
+
+test("coordinator.checkoutContext: a copy without a vision, or one whose vision cannot be read, is warned about as the copy, never as the main project", async (t) => {
+	const { fake } = await setup(t, "2026-10-18T10:00:00Z");
+	const at = new Date("2026-10-18T10:00:00Z");
+	const missing = fake.call<string>("coordinator.checkoutContext", { root: repository({ "spec/build.json": board("Copied") }), at });
+	assert.ok(missing.includes("\n\n## Warnings\n\n- the copy has no vision: spec/vision.md is missing; the coordinator goes without it\n\n## Board\n\nDM0001 planning    Copied\n\n"), missing);
+	const empty = fake.call<string>("coordinator.checkoutContext", { root: repository({ "spec/vision.md": " \n" }), at });
+	assert.ok(empty.includes("\n\n## Warnings\n\n- the copy has no vision: spec/vision.md is empty; the coordinator goes without it\n\n## Board\n\n"), empty);
+	const file = join(temporaryFolder(), "not-a-folder");
+	writeFileSync(file, "");
+	const broken = fake.call<string>("coordinator.checkoutContext", { root: file, at });
+	assert.match(broken, /\n\n## Warnings\n\n- the copy: its vision was not read: ENOTDIR[^\n]*\n\n## Board\n\n/);
+	for (const text of [missing, empty, broken]) assert.doesNotMatch(text, /## Vision|project demo|demo has no vision/);
 });
 
 test("night is the quiet hours, across midnight: 23:30 and 03:00 are night, 07:30 and 21:59 are day", async (t) => {

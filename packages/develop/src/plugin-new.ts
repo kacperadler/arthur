@@ -122,10 +122,17 @@ export function pluginCommand(host: Host): Command {
 // On another machine the project's repository is bare, without it too: a worker there is told to leave the ticket to local.
 export function pluginNewSection(role: string, job: { readonly root: string; readonly worktree: string; readonly machine: string }): string | undefined {
 	if ((role !== "planner" && role !== "worker") || !existsSync(join(job.root, "packages", "core", "package.json"))) return undefined;
-	if (role === "worker" && job.machine !== "local") return `## A new plugin\n\nThis job runs on machine ${job.machine}, where \`arthur plugin new\` cannot run: the project's repository there is bare and holds no \`arthur.config.ts\`, so the CLI has no \`plugin\` command. A new plugin's package is made on the local machine, never by hand: when your ticket makes one, change nothing and end, saying that its worker must run there, \`arthur spawn --machine local\` with this task.`;
+	if (role === "worker" && job.machine !== "local") return `## A new plugin\n\nThis job runs on machine ${job.machine}, where \`arthur plugin new\` cannot run: the project's repository there is bare and holds no \`arthur.config.ts\`, so the CLI has no \`plugin\` command. A new plugin's package is made on the local machine, never by hand: when your ticket makes one, change nothing and end, saying that its ticket's JSON block needs \`"machine": "local"\`, which places every job of it there, and its worker spawned again with this task.`;
 	const [lead, root, rest] = role === "planner"
 		? ["When the ticket makes a new plugin package, the plan says that its worker runs on the local machine, spawned with `--machine local`, and its first step is this line, so the worker makes the package with it, not by hand", "<worktree>", "`<worktree>` is the worker's own"]
 		: ["When your ticket makes a new plugin package, make it first with this line, not by hand", job.worktree, "from the checkout, `arthur plugin --help` prints the rest"];
 	const how = "`<checkout>` is the project's checkout, the first line of `git worktree list`: the CLI reads `arthur.config.ts` from the folder it runs in, and a worktree lacks it. `<name>` is the plugin's name, `<lines>` the line budget the ticket decides";
 	return `## A new plugin\n\n${lead}. ${how}; ${rest}.\n\n\`\`\`\ncd <checkout> && arthur plugin new <name> --budget <lines> --root ${root}\n\`\`\``;
+}
+
+// The coordinator's line, the author of tickets, when a project is Arthur's repository: a new plugin's ticket names the local
+// machine in its JSON block, which the machines plugin places every job of it on, with a plan or without one.
+export function pluginNewContext(host: Host): string | undefined {
+	const names = host.board.projects().filter((project) => existsSync(join(project.path, "packages", "core", "package.json"))).map((project) => project.name);
+	return names.length === 0 ? undefined : `A ticket that makes a new plugin package in ${names.join(", ")} gets \`"machine": "local"\` in its JSON block before its first spawn: \`arthur plugin new\` runs only on the local machine, and every job of the ticket then goes there.`;
 }

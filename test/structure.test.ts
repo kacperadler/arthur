@@ -512,7 +512,14 @@ import { checkStructure } from "./structure.ts";
 // (lock.ts, git diff --numstat +27 -10: the set and `hold` with its comment 8, each lock marked and forgotten 3, release
 // forgetting only a lock it removed 2, the header and `holder`'s comments 3, `holder`'s key 1). A lock naming this pid
 // counted as held before, so nothing was cut.
-const BUDGETS = { core: 5772, "core/testing": 349, projects: 485, orchestration: 2309, machines: 474, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 672, findings: 254 };
+// AR0304 (F1 of AR0298; its Done means: a ticket's JSON block pins its machine, read by `need` beside `requires`, and the
+// ticket's author is told to set it for a new plugin): machines 5 more (479) for `machine` read and checked beside `requires`,
+// also when `--requires` replaces the labels, and placed as `--machine` is (machine-place.ts, git diff --numstat +28 -23);
+// develop 9 more (681) for the coordinator's context line of a new plugin's ticket (plugin-new.ts, +8 -1: the function 4, its
+// comment 2, a blank 1, the worker's line changed in place; develop.ts, +4 -2: provided 1, the header's comment 1). A new key,
+// so nothing was cut.
+// Merged main (AR0304) into AR0305: main's budgets plus AR0305's core 5772 (recounted with wc -l).
+const BUDGETS = { core: 5772, "core/testing": 349, projects: 485, orchestration: 2309, machines: 479, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 681, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

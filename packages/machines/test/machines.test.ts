@@ -496,3 +496,30 @@ test("--machine with the labels goes there unchecked; a ticket's broken JSON blo
 	at.projects = [{ ...project, requires: ["macos"] }];
 	await assert.rejects(place(at), { message: `project acme: ${shape} a list` });
 });
+
+test("a ticket's machine places each job of it there, unchecked and when full, with its labels; --machine wins; one that is no name is refused", async () => {
+	const at = await placing();
+	const project = acme(undefined, '{ "id": "AC0001", "machine": "local" }');
+	at.projects = [project];
+	for (const id of ["0000000a", "0000000b", "0000000c"]) job(at, id, "local");
+	assert.equal(await place(at), "mac", "without the ticket: the fewest jobs");
+	assert.equal(await place(at, { tickets: [TICKET] }), "local", "the ticket's, full as it is");
+	assert.equal(await place(at, { tickets: [TICKET], machine: "build" }), "build", "--machine over the ticket's");
+	const file = join(String(project.path), TICKET);
+	writeFileSync(file, '# AC0001\n\n```json\n{ "id": "AC0001", "machine": "mac", "requires": { "os": "macos" } }\n```\n');
+	writeFileSync(join(root, "mac-mini", "fail"), KEY_REFUSED);
+	rmSync(sshLog, { force: true });
+	assert.equal(await place(at, { tickets: [TICKET] }), "mac", "offline as it is");
+	assert.deepEqual(calls(), [], "a ticket's machine with the labels is not checked");
+	await assert.rejects(place(at, { tickets: [TICKET], requires: { tools: ["docker"] } }), { message: /^machine mac, which its ticket names, lacks tools docker; the job needs tools docker \(--requires\); machines: / });
+	writeFileSync(file, '# AC0001\n\n```json\n{ "id": "AC0001", "machine": "build", "requires": { "os": "macos" } }\n```\n');
+	await assert.rejects(place(at, { tickets: [TICKET] }), { message: /^machine build, which its ticket names, lacks os macos; the job needs os macos \(ticket AC0001\); machines: / });
+	writeFileSync(file, '# AC0001\n\n```json\n{ "id": "AC0001", "machine": "gpu" }\n```\n');
+	await assert.rejects(at.fake.host.jobs.spawn({ task: `Ticket: ${TICKET}. Go.` }), { message: "unknown machine gpu; machines: build, local, mac" });
+	for (const [value, got] of [["5", "5"], ['""', '""'], ['" "', '" "'], ['["local"]', "a list"], ["null", "null"]]) {
+		writeFileSync(file, `# AC0001\n\n\`\`\`json\n{ "id": "AC0001", "machine": ${value} }\n\`\`\`\n`);
+		await assert.rejects(place(at, { tickets: [TICKET], machine: "local" }), { message: `ticket AC0001 (${file}): machine must be a machine's name, got ${got}` }, value);
+	}
+	writeFileSync(file, '# AC0001\n\n```json\n{ "id": "AC0001", }\n```\n');
+	await assert.rejects(place(at, { tickets: [TICKET], requires: { tools: ["docker"] } }), { message: /its JSON block is not JSON/ }, "read beside --requires too");
+});

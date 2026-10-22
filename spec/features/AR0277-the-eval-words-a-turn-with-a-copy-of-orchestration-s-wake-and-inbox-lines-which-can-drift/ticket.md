@@ -36,3 +36,4 @@ In:
 
 - 2026-10-22: Source: F1 of AR0276
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-22: Coordinator (free hand) accepted orchestration budget 1991 -> 2020 (coordinator.turn, hand-over.ts).

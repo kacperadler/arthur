@@ -410,6 +410,10 @@ import { checkStructure } from "./structure.ts";
 // open questions with up to 5 like them in the context (decision-context.ts, 38); and their calls in blocked-notice.ts (12),
 // context.ts (4), orchestration.ts (4) and autopilot.ts (1, the Decisions heading added when a ticket has none). A new
 // entry, so nothing was cut elsewhere.
+// AR0277 (its Done means: orchestration answers `coordinator.turn`, develop drops its copy): orchestration 29 more (2020) for
+// `coordinator.turn` with its refusals and the wake's `final` (inbox.ts, 22), and the hand-over's wording moved out of the
+// extension so both use it (hand-over.ts, 12; inbox-extension.ts, 5 fewer); develop 7 fewer (577), its copy of the wake and
+// the marks gone from eval-scenario.ts.
 // Merged main (AR0281) into AR0280: main's budgets plus AR0280's develop 622.
 // AR0284 (roadmap 97, decision classes; its Done means name the package and this file): orchestration 203 more (2194) for a
 // class proposed from the owner's same answers with the agreement of the recommendations with his picks, and revoked on his
@@ -420,8 +424,12 @@ import { checkStructure } from "./structure.ts";
 // (decision-log.ts, 15 more, its ticketFile moved into the views); `class propose|revoke` and `--classes`
 // (decision-commands.ts, 12 fewer after the move); and the wake's line for a job's question answered by policy
 // (decision-hooks.ts, 5 more). A new entry, so nothing was cut elsewhere.
+// Merged main (AR0281, AR0284) into AR0277: main's budgets plus AR0277's, orchestration 2194 + 29 = 2223, develop 577
+// (recounted with wc -l).
 // Merged main (AR0284) into AR0280: main's budgets plus AR0280's develop 622.
-const BUDGETS = { core: 5748, "core/testing": 349, projects: 486, orchestration: 2194, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 622, findings: 254 };
+// Merged main (AR0280) into AR0277: main's budgets plus AR0277's, orchestration 2223, develop 622 - 7 = 615 (recounted with
+// wc -l; AR0280's `{ arthur }` turn asks `coordinator.turn` too).
+const BUDGETS = { core: 5748, "core/testing": 349, projects: 486, orchestration: 2223, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 615, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

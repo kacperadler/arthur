@@ -252,6 +252,38 @@ test("job ends and a schedule message mid-turn wait for the next turn: one messa
 	]);
 });
 
+test("coordinator.turn answers the very text the idle inbox hands over for an event alone; another event, a malformed one, a part to claim are refused", async (t) => {
+	const root = repository();
+	const projects = [{ name: "acme", path: root, prefix: "AC" }, { name: "shop", path: join(root, "..", "shop"), prefix: "SH" }];
+	const steps: AgentStep[] = ["One.", "Two.", "Three."].flatMap((reply): AgentStep[] => [{ prompt: true }, { message: reply }, { end: true }]);
+	const box = await load(t, { steps: [...steps, { prompt: true }] }, { root, projects });
+	box.fake.provide("coordinator.wake", (job: { kind: string }) => (job.kind === "worker" ? "Procedure: review its branch against the ticket." : undefined));
+	const turn = (...asked: unknown[]) => box.fake.call<Promise<string>>("coordinator.turn", ...asked);
+	await box.start();
+	const text = (said: string) => ({ kind: "text", text: said, mime: "text/plain" });
+	const events = [
+		["message-received", { channel: "signal", parts: [text("Merge AR0081."), text("Then AR0085.")] }],
+		["coordinator-message", { text: "[scheduled morning] Write the morning report." }],
+		["job-ended", { id: "2026-10-17-worker-0000abcd", kind: "worker", project: "shop", state: "blocked", reason: "user: may I?" }],
+	] as const;
+	for (const [index, [name, data]] of events.entries()) {
+		box.fake.emit(name, data);
+		await until(`reply ${index + 1}`, () => box.emitted("coordinator-replied").length === index + 1);
+		assert.equal(await turn(name, data), box.messages()[index]?.content, name);
+	}
+	assert.equal(box.messages()[2]?.content, `[Arthur] Job 2026-10-17-worker-0000abcd ended its run blocked on the owner; its question, also sent as a notice: may I?\nProject: shop.\nIts final message: none.\nProcedure: review its branch against the ticket.\n\n${ARTHUR}`);
+	const job = { id: "2026-10-17-review-0000abce", kind: "review", project: "acme", state: "ended", reason: "finished" };
+	assert.equal(await turn("job-ended", job, "Done.\nPASS\n"), `[Arthur] Job ${job.id} ended its run: ended (finished).\nIts final message:\nDone.\nPASS\n\n${ARTHUR}`, "result stands for the job's final message");
+	const refused = (message: string) => ({ message: `coordinator.turn: ${message}` });
+	await assert.rejects(turn("job-started", {}), refused('expected message-received, coordinator-message or job-ended, got "job-started"'));
+	await assert.rejects(turn("coordinator-message", { text: " " }), refused("coordinator-message: expected { text }, non-empty text"));
+	await assert.rejects(turn("message-received", { parts: [text("Hi.")] }), refused("message-received: expected channel, non-empty text, got nothing"));
+	const voice = { kind: "voice", path: "/home/arthur/.arthur/telegram/media/AwAD.oga", mime: "audio/ogg", seconds: 4 };
+	await assert.rejects(turn("message-received", { channel: "telegram", parts: [text("Hear this."), voice] }), refused("message-received: text parts only; a voice part is resolved by the plugins that claim it"));
+	assert.equal(box.emitted("coordinator-replied").length, 3, "asking replies to no one, a voice note's line included");
+	assert.deepEqual([sorted(join(box.folder, "inbox", "queued")), sorted(join(box.folder, "inbox", "turn"))], [[], []], "asking queues nothing");
+});
+
 test("a hand-over that throws is retried each tick; the third failure in a row is told once, and the next try delivers once", async (t) => {
 	const box = await load(t, { steps: [{ prompt: true }, { message: "Done." }, { end: true }, { prompt: true }], failSends: 3 });
 	await box.start();

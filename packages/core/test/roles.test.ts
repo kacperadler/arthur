@@ -158,6 +158,10 @@ test("a project's prompts move the files the roles read; host.jobs reads a role'
 	assert.equal(prompt(home, worker.id), `${expected}\nCommit rules.\n`);
 	assert.deepEqual(jobs.prompt("worker"), { prompt: expected, warnings: [] }, "without the plugins' sections, which are a job's");
 	assert.deepEqual(jobs.vision(), { project: "acme", path: "docs/vision.md", text: "# Acme\n\nSell tools.\n" });
+	const copy = temporaryFolder();
+	mkdirSync(join(copy, "docs"));
+	writeFileSync(join(copy, "docs/vision.md"), "# Copy\n");
+	assert.deepEqual(jobs.vision("acme", copy), { project: "acme", path: "docs/vision.md", text: "# Copy\n" }, "a copy of the repository, at the project's path");
 	assert.throws(() => jobs.prompt("reviewer"), { message: "role reviewer is not registered; roles: worker" });
 	rmSync(join(root, "docs/vision.md"));
 	symlinkSync("../README.md", join(root, "docs/vision.md"));

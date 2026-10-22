@@ -275,8 +275,9 @@ function load() {
 		writeFileSync(join(bin, "omp"), FAKE_OMP, { mode: 0o755 });
 		const fake = fakeHost({ name: "develop", code: CODE });
 		fake.provide("projects", () => [{ name: "shop", path: root, prefix: "SH" }]);
-		// Orchestration's wording is its own test's; the fake agent here acts on its steps, not on the turn.
+		// Orchestration's wording and context are its own test's; the fake agent here acts on its steps, not on the turn.
 		fake.provide("coordinator.turn", async (...asked: unknown[]) => JSON.stringify(asked));
+		fake.provide("coordinator.checkoutContext", () => "# The coordinator\n");
 		fake.host.jobs.registerRole({ name: "coordinator", file: pathToFileURL(join(roles, "coordinator.md")), criteria: [] });
 		await fake.setup(develop());
 		const command = fake.commands.find((each) => each.name === "eval");
@@ -309,7 +310,7 @@ test("every scenario of the packages is acted here; its needs name an open ticke
 	const afterMerge = readFileSync(join(PACKAGES, "delivery", "roles", "coordinator", "after-merge.md"), "utf8").trim();
 	for (const [name, folder] of found) {
 		const scenario = JSON.parse(readFileSync(join(folder, "scenario.json"), "utf8"));
-		for (const line of scenario.needs ?? []) assert.match(line, /^AR027[789]: /, `${name}: needs names an open ticket of the evals`);
+		for (const line of scenario.needs ?? []) assert.match(line, /^AR027[789]( F\d+)?: /, `${name}: needs names an open ticket of the evals, or a finding of one that becomes a ticket at its merge`);
 		for (const answer of scenario.stub ?? []) if (answer.output?.includes("# After a merge that went in")) assert.ok(answer.output.endsWith(`\n\n${afterMerge}`), `${name}: its merge prints delivery's after-merge.md as it is`);
 	}
 	const baseline = JSON.parse(readFileSync(join(PACKAGES, "..", "evals", "baseline.json"), "utf8"));

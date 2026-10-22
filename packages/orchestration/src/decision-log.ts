@@ -91,7 +91,7 @@ function stamp(host: Host): string {
 }
 
 // Under the log's lock, taken by `lock` (decision-lock.ts): the log read and checked, `make`'s records appended, then every
-// answer's ticket line missing written; one that cannot be written never stops the log: `unwritten` says so, the next tries.
+// answer's ticket line missing written; one that cannot be written never stops the log: `unwritten` says so, the next write retries.
 export function change<T extends Entry>(host: Host, project: Project, make: (entries: readonly Entry[], time: string) => readonly T[], lock = withLock): { readonly added: T[]; readonly unwritten?: string } {
 	return lock(logLock(host, project), () => {
 		const entries = readLog(project);

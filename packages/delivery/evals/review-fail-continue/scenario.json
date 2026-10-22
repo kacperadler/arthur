@@ -4,7 +4,7 @@
 	},
 	"stub": [
 		{
-			"match": "^arthur (?!.*--help)continue ",
+			"match": "^arthur continue ",
 			"output": "2026-10-22-worker-7b2e4d11: continued"
 		}
 	],
@@ -18,10 +18,10 @@
 			"^arthur continue (\\S+-)?7b2e4d11 .*\\b(?:round|half up)"
 		],
 		"never": [
-			"^arthur (?!.*--help)review",
-			"^arthur (?!.*--help)spawn ",
-			"^arthur (?!.*--help)merge ",
-			"^arthur (?!.*--help)ticket status "
+			"^arthur review",
+			"^arthur spawn ",
+			"^arthur merge ",
+			"^arthur ticket status "
 		]
 	}
 }

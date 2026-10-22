@@ -2,6 +2,12 @@
 
 Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-22
+
+### Other
+
+- AR0275 Roadmap 65: the morning report (7b872a1)
+
 ## 2026-10-21
 
 ### Added

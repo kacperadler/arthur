@@ -113,7 +113,9 @@ export default defineConfig({
 			// delivery's always-review list, set planned by policy. `budgetUsd`: its worker's budget unless `--budget` gives one, above 0;
 			// default 1. `budgetMaxUsd`: the most `--budget` may give; default 3. budgetUsd above budgetMaxUsd refuses the start
 			autopilot: { budgetUsd: 1, budgetMaxUsd: 3 },
-			morningReport: { at: "08:00" }, // registers a schedule entry (an action: a message to the coordinator)
+			// The morning report, in core.timeZone: the schedule entry orchestration.report, an action that sends the coordinator its
+			// procedure (built overnight, merged without the owner, waiting for approval or a decision, health). Needs schedule()
+			morningReport: { at: "08:00" },
 		}),
 
 		// Models served on the owner's own machines (Ollama, or any OpenAI-compatible server), reached over Tailscale. A role's or

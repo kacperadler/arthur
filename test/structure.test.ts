@@ -458,6 +458,10 @@ import { checkStructure } from "./structure.ts";
 // Merged main (AR0269, AR0288) into AR0279: main's budgets plus AR0279's raises, core 5753, orchestration 2231, develop
 // 633 + 22 = 655 (recounted with wc -l).
 // Merged main (AR0279, AR0288, AR0291) into AR0271: main's budgets plus AR0271's resources 607 (recounted with wc -l).
+// AR0283 (F2 of AR0281; its Done means name `queueLock` in the plugin's handlers): orchestration 38 more (2269) for the decision
+// log's lock taken without blocking `arthur run` (decision-lock.ts, 24: the lock's path moved out of decision-log.ts and
+// `queued`, at once when free, else through `queueLock`), the notice sent once the ask resolves (blocked-notice.ts, 7), and
+// the wake matching this block's own question, saying when it is not recorded yet (decision-hooks.ts, 7); nothing cut.
 // AR0274 (F1 of AR0260; its Done means: the planner puts the line of `arthur plugin new --root` into a new plugin's plan as its
 // first step): develop 12 more (667) for the planner's and the worker's prompt section with that line, in Arthur's repository
 // only (plugin-new.ts, 11; develop.ts, 1); a new section, so nothing was cut.
@@ -465,7 +469,9 @@ import { checkStructure } from "./structure.ts";
 // more (2239) for askOfJob returning the answer by policy (decision-hooks.ts, its type and comment 2) and the notice's ending,
 // kept when the question is cut (blocked-notice.ts: the import 1, the comment 1, the ending 1, the head 1, the kept ending and
 // its comment 2); a new line on the phone, so nothing was cut.
-const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2239, machines: 474, resources: 607, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 667, findings: 254 };
+// Merged main (AR0274, AR0285) into AR0283: main's budgets plus AR0283's raise, orchestration 2239 + 38 = 2277, develop 667
+// (recounted with wc -l).
+const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2277, machines: 474, resources: 607, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 667, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

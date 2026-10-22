@@ -277,8 +277,10 @@ function load() {
 		writeFileSync(join(bin, "omp"), FAKE_OMP, { mode: 0o755 });
 		const fake = fakeHost({ name: "develop", code: CODE });
 		fake.provide("projects", () => [{ name: "shop", path: root, prefix: "SH" }]);
-		// Orchestration's wording and context are its own test's; the fake agent here acts on its steps, not on the turn.
+		// Orchestration's and schedule's wording and context are their own tests'; the fake agent here acts on its steps, not on
+		// the turn.
 		fake.provide("coordinator.turn", async (...asked: unknown[]) => JSON.stringify(asked));
+		fake.provide("schedule.message", (...asked: unknown[]) => JSON.stringify(asked));
 		fake.provide("coordinator.checkoutContext", () => "# The coordinator\n");
 		fake.host.jobs.registerRole({ name: "coordinator", file: pathToFileURL(join(roles, "coordinator.md")), criteria: [] });
 		await fake.setup(develop());

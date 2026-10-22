@@ -476,13 +476,19 @@ import { checkStructure } from "./structure.ts";
 // providers (inbox.ts); the wake took its review from the record alone before, so nothing was cut.
 // Merged main (AR0274, AR0285) into AR0283: main's budgets plus AR0283's raise, orchestration 2239 + 38 = 2277, develop 667
 // (recounted with wc -l).
+// AR0289 (F1 of AR0277; its Done means: schedule provides the text of an action due, develop asks it instead of its copy):
+// schedule 15 more (585) for `schedule.message` with its refusals (sweep.ts, `dueMessage`, 8) and the one wording of
+// `[scheduled <id>]` the sweep, a refused spawn and the answer share (sweep.ts, `scheduled`, 6), provided (schedule.ts, 1);
+// develop 1 fewer (666), its copy of the wording gone from eval-scenario.ts.
 // Merged main (AR0283) into AR0287: main's budgets plus AR0287's raises, orchestration 2277 + 1 = 2278, delivery 1285,
 // develop 669 (recounted with wc -l).
 // AR0292 (F1 of AR0269; its Done means: run the `node -e` script and the df loop in one `sh -c` there): resources 9 more (616)
 // for a check of its own over ssh carrying df in its one call (machine-free.ts, git diff --numstat +31 -22: `ask`, its comment
 // and a blank 12, the script both run and its comment 2, the call made in checkSample 1, less the 6 lines moved from `measure`
 // into `ask`); a check of its own made two ssh calls before, so nothing was cut.
-const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2278, machines: 474, resources: 616, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 669, findings: 254 };
+// Merged main (AR0287) into AR0289: main's budgets plus AR0289's, schedule 585, develop 669 - 1 = 668 (recounted with wc -l).
+// Merged main (AR0289) into AR0292: main's budgets plus AR0292's resources 616 (recounted with wc -l).
+const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2278, machines: 474, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 668, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

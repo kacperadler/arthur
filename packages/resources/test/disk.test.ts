@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
@@ -59,7 +59,8 @@ const FREE = JSON.stringify({ cores: 8, load: 0, free: 8 * GB, total: 16 * GB })
 
 // The plugin with `options` on a fake host over a repository of one commit, with the machine `gpu` registered (its home a
 // folder of the test's own, which the fake ssh reaches here), its clock at NOW, and `omp` the fake agent that waits until
-// the test releases it. `round` is a machines round of gpu, with its free CPU and memory, as the machines plugin begins it.
+// the test releases it. `round` is a machines round of a machine as the machines plugin runs it: its free CPU and memory, and
+// df run on the paths the plugin's answer names, as the check's one ssh call runs it there, its errors in its output.
 async function load(t: TestContext, options: ResourcesOptions) {
 	for (const file of [dfLog, sshLog]) rmSync(file, { force: true });
 	const root = temporaryFolder();
@@ -78,9 +79,13 @@ async function load(t: TestContext, options: ResourcesOptions) {
 	fake.host.jobs.registerMachine({ name: "gpu", ssh: "gpu", home: gpu, labels: {} });
 	await fake.setup(resources(options));
 	const free = (name: string) => fake.call<Promise<number>>("resources.free", name);
-	const round = () => {
-		fake.collect("machines.round", new Map([["gpu", Promise.resolve({ free: FREE })]]));
-		return free("gpu");
+	const round = async (name = "gpu") => {
+		const said = Promise.withResolvers<unknown>();
+		const [answer] = fake.collect<Promise<ReadonlyMap<string, readonly string[]>>>("machines.round", new Map([[name, said.promise]]));
+		const paths = (await answer)?.get(name) ?? [];
+		const df = spawnSync("sh", ["-c", 'for path do if [ -e "$path" ]; then df -Pk "$path" || exit; else echo missing; fi; done 2>&1', "sh", ...paths], { encoding: "utf8" });
+		said.resolve({ free: FREE, ...(paths.length === 0 ? {} : { disk: { code: df.status, output: df.stdout.trim() } }) });
+		return free(name);
 	};
 	let seconds = 0;
 	// Two minutes on, so the next ask checks again.
@@ -147,7 +152,7 @@ test("a spawn exactly at the floor starts; the floor hit mid-job leaves the job 
 	release();
 });
 
-test("free space hovering around the floor emits one disk-low per fall under it, not one per check; gpu's df runs over its ssh", async (t) => {
+test("free space hovering around the floor emits one disk-low per fall under it, not one per check; gpu's df runs in the round's own ssh call", async (t) => {
 	const { gpu, round, lows, notices, later } = await load(t, { keepFree: { disk: "20G" } });
 	const rounds = [FLOOR - 1, FLOOR - 1, FLOOR, FLOOR - 1, FLOOR + 1, FLOOR - 1024];
 	const answers: number[] = [];
@@ -159,8 +164,8 @@ test("free space hovering around the floor emits one disk-low per fall under it,
 	assert.deepEqual(answers, [0, 0, Infinity, 0, Infinity, 0]);
 	assert.deepEqual(lows(), [FLOOR - 1, FLOOR - 1, FLOOR - 1024].map((free) => ({ machine: "gpu", path: gpu, free: free * 1024, floor: 20 * GB })));
 	assert.equal(notices().length, 3);
-	assert.equal(logged(sshLog).length, rounds.length, "one df over ssh per round, the CPU and memory with the round");
-	assert.ok(logged(sshLog).every((call) => call.includes("df -Pk")));
+	assert.deepEqual(logged(sshLog), [], "no ssh call of its own: the round's check ran df on the paths its answer named");
+	assert.deepEqual(logged(dfLog), rounds.map(() => `-Pk ${gpu}`));
 	writeFileSync(join(dir, "fail"), "df: /: Input/output error\n");
 	assert.equal(await round(), 0);
 	disks([gpu, "/dev/sdb1", FLOOR - 1, "/"]);
@@ -223,8 +228,7 @@ test("df output that cannot be read, a df or ssh that fails, or a home not there
 	rmSync(join(dir, "gpu.down"));
 	assert.equal(await round(), Infinity);
 	fake.host.jobs.registerMachine({ name: "cold", ssh: "cold", home: join(gpu, "nowhere"), labels: {} });
-	fake.collect("machines.round", new Map([["cold", Promise.resolve({ free: FREE })]]));
-	assert.equal(await free("cold"), 0);
+	assert.equal(await round("cold"), 0);
 	assert.equal(line("cold"), `cold: no room, its check failed: its home ${join(gpu, "nowhere")} is not there`);
 	assert.deepEqual(notices().slice(1), [`machine cold: its room is unknown (its home ${join(gpu, "nowhere")} is not there); no job starts there until a check answers`]);
 });

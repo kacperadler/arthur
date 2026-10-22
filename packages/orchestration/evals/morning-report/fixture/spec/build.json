@@ -1,0 +1,37 @@
+[
+  {
+    "id": "SH0001",
+    "title": "List the products on the home page",
+    "status": "merged",
+    "path": "spec/features/SH0001-list-the-products-on-the-home-page/ticket.md",
+    "updated": "2026-10-21T16:00:00.000Z"
+  },
+  {
+    "id": "SH0002",
+    "title": "Add a product to the cart",
+    "status": "merged",
+    "path": "spec/features/SH0002-add-a-product-to-the-cart/ticket.md",
+    "updated": "2026-10-21T16:00:00.000Z"
+  },
+  {
+    "id": "SH0013",
+    "title": "Show delivery dates at checkout",
+    "status": "planning",
+    "path": "spec/features/SH0013-show-delivery-dates-at-checkout/ticket.md",
+    "updated": "2026-10-21T16:00:00.000Z"
+  },
+  {
+    "id": "SH0014",
+    "title": "Email a receipt after checkout",
+    "status": "planning",
+    "path": "spec/features/SH0014-email-a-receipt-after-checkout/ticket.md",
+    "updated": "2026-10-21T16:00:00.000Z"
+  },
+  {
+    "id": "SH0015",
+    "title": "Search the catalog by name",
+    "status": "done",
+    "path": "spec/features/SH0015-search-the-catalog-by-name/ticket.md",
+    "updated": "2026-10-21T16:00:00.000Z"
+  }
+]

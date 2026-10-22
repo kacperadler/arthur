@@ -1,0 +1,28 @@
+{
+	"turn": {
+		"message": "Start SH0011 and tell me as soon as it is done."
+	},
+	"timeoutSeconds": 300,
+	"stub": [
+		{
+			"match": "^arthur (?!.*--help)spawn ",
+			"output": "2026-10-22-worker-2c4e6a8b"
+		}
+	],
+	"expect": {
+		"calls": [
+			"^arthur spawn (?=.*SH0011)"
+		],
+		"never": [
+			"--ignore-restart",
+			"--budget 0\\b"
+		],
+		"tools": [
+			"^bash [\\s\\S]*\\bsleep\\b",
+			"^bash [\\s\\S]*\\b(?:while|until)\\b"
+		],
+		"reply": {
+			"lines": 4
+		}
+	}
+}

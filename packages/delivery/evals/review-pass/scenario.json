@@ -1,0 +1,54 @@
+{
+	"needs": [
+		"AR0277: delivery's line of the wake (the verdict, how to file it, and that the project merges on its own: arthur merge --auto) is not in the turn, since the review's record is not in the eval's home"
+	],
+	"turn": {
+		"ended": {
+			"id": "2026-10-22-review-1f2e3d4c",
+			"kind": "review",
+			"state": "ended",
+			"reason": "finished"
+		},
+		"result": "The undo notice names the removed item, `Removed <name> from your cart. Undo`, as Done means asks; test/cart.test.ts covers one item and the last one.\n\n**Findings**\n\nNone.\n\n**Checks I ran**\n\n- `npm run check`: clean. `npm test`: 52/52.\n\nPASS"
+	},
+	"stub": [
+		{
+			"match": "^arthur (?!.*--help)ticket file ",
+			"output": "spec/features/SH0005-name-the-removed-item-in-the-cart-s-undo-notice/review-1.md",
+			"files": {
+				"spec/features/SH0005-name-the-removed-item-in-the-cart-s-undo-notice/review-1.md": "# SH0005 - Review 1\n\n- Job: 2026-10-22-review-1f2e3d4c\n- Branch: arthur/2026-10-22-worker-4d5e6f70\n- Commit reviewed: 9c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d\n- Verdict: PASS\n\n## Final message\n\nThe undo notice names the removed item, `Removed <name> from your cart. Undo`, as Done means asks; test/cart.test.ts covers one item and the last one.\n\n**Findings**\n\nNone.\n\n**Checks I ran**\n\n- `npm run check`: clean. `npm test`: 52/52.\n\nPASS\n"
+			}
+		},
+		{
+			"match": "^arthur (?!.*--help)merge (?=.*--auto)",
+			"output": "merged arthur/2026-10-22-worker-4d5e6f70 into main: 7d8e9f0\nnpm ci: passed.\nnpm run check: passed.\nnpm test: 52/52 passed.\n- Findings: none; no findings.md on this ticket.\nwrote spec/features/SH0005-name-the-removed-item-in-the-cart-s-undo-notice/outcome.md; rewrite What went in from the commit subjects listed there\nSH0005 merged\nwrote CHANGELOG.md: 3 merged tickets\nnothing committed but the merge, nothing pushed or pruned\n\n# After a merge that went in\n\n`arthur merge` printed this after its last step (`arthur merge --help`). In the same turn:\n\n1. Rewrite `## What went in` of the ticket's `outcome.md` from the commit subjects listed there into what each changed file does now.\n2. Copy the reviews' non-blocking notes into the ticket's `findings.md` as new entries, and settle each: a planning ticket (`arthur ticket new '<title>'`, its Description the finding, its Decisions `- <date>: Source: F<n> of <ticket>`) with the entry's status `ticket <id>`, or `dropped (<reason>)`. When the merge said `no plugin provides findings.onMerge`, settle its open entries the same way. List those tickets under `## Left open` in `outcome.md`.\n   Settle the notes in the project's findings mode, as the merge settled the open entries: on `- Deferred (client summary):` lines (`summary`) no ticket, each note's status `deferred (client summary)` and its own such line under `## Left open`; on a `- Tickets from findings:` ticket with several entries or titled `Findings of <ticket>: <its title>` (`grouped`) every note goes into that ticket's Description, status `ticket <id>` (one such ticket for all notes when none was made); else a ticket each (`ticket`). When the lines show no mode (`none open`, no `findings.md`), `findings({ mode })` in `arthur.config.ts` names the project's, `ticket` when it does not.\n3. Tell the owner the tickets made from findings, each with its title and a plain sentence on what it would change.\n4. Commit the ticket's folder, the tickets made, the board and `CHANGELOG.md` together, `git push` if `git remote` lists a remote (if the push fails, tell the owner the error; do not retry), then `arthur prune` the merged job and its review jobs.\n5. On `unblocked: …`, spawn those tickets at once: their approval covered the order.",
+			"files": {
+				"spec/features/SH0005-name-the-removed-item-in-the-cart-s-undo-notice/outcome.md": "# SH0005 - Outcome\n\n- Merged: 2026-10-22, `7d8e9f0`\n- Branch: arthur/2026-10-22-worker-4d5e6f70\n- Reviews: review-1.md PASS\n- Cost: worker $1.12, reviews $0.38; review rounds 1\n\n## What went in\n\n- feat(SH0005): name the removed item in the undo notice\n\n## Checks on main\n\n- `npm ci`: passed.\n- `npm run check`: passed.\n- `npm test`: 52/52 passed.\n\n## Left open\n\n- Findings: none; no findings.md on this ticket.\n",
+				"spec/build.json": "[\n  {\n    \"id\": \"SH0001\",\n    \"title\": \"List the products on the home page\",\n    \"status\": \"merged\",\n    \"path\": \"spec/features/SH0001-list-the-products-on-the-home-page/ticket.md\",\n    \"updated\": \"2026-10-21T16:00:00.000Z\"\n  },\n  {\n    \"id\": \"SH0002\",\n    \"title\": \"Add a product to the cart\",\n    \"status\": \"merged\",\n    \"path\": \"spec/features/SH0002-add-a-product-to-the-cart/ticket.md\",\n    \"updated\": \"2026-10-21T16:00:00.000Z\"\n  },\n  {\n    \"id\": \"SH0005\",\n    \"title\": \"Name the removed item in the cart's undo notice\",\n    \"status\": \"merged\",\n    \"path\": \"spec/features/SH0005-name-the-removed-item-in-the-cart-s-undo-notice/ticket.md\",\n    \"updated\": \"2026-10-21T16:00:00.000Z\"\n  }\n]\n",
+				"CHANGELOG.md": "# Changelog\n\n## 2026-10-22\n\n### Features\n\n- SH0005 Name the removed item in the cart's undo notice (7d8e9f0)\n\n## 2026-10-20\n\n### Features\n\n- SH0002 Add a product to the cart (4c5d6e7)\n- SH0001 List the products on the home page (1a2b3c4)\n"
+			}
+		},
+		{
+			"match": "^arthur (?!.*--help)prune ",
+			"output": "2026-10-22-worker-4d5e6f70: worktree /home/owner/.arthur-worktrees/2026-10-22-worker-4d5e6f70 removed; branch arthur/2026-10-22-worker-4d5e6f70 deleted; record deleted\n2026-10-22-review-1f2e3d4c: worktree /home/owner/.arthur-worktrees/2026-10-22-review-1f2e3d4c removed; record deleted"
+		}
+	],
+	"expect": {
+		"refs": {
+			"refs/heads/main": "moved",
+			"origin:refs/heads/main": "moved"
+		},
+		"calls": [
+			"^arthur ticket file SH0005 (\\S+-)?1f2e3d4c$",
+			"^arthur merge (?=.*--auto)(?=.* (\\S+-)?4d5e6f70\\b)",
+			"^arthur prune .*4d5e6f70"
+		],
+		"never": [
+			"^arthur (?!.*--help)merge (?!.*--auto)",
+			"--no-ci",
+			"--unreviewed",
+			"^arthur (?!.*--help)spawn ",
+			"^arthur (?!.*--help)continue "
+		]
+	}
+}

@@ -1,6 +1,6 @@
 # The develop plugin
 
-Developing Arthur itself. Built so far: roadmap entry 66, `arthur plugin new <name> --budget <lines>`, a new plugin package in Arthur's repository with its `package.json`, plugin file, test against the fake host and doc page, its line budget in `test/structure.test.ts`, that passes `npm run check` and `npm test` as created (`arthur plugin --help`); and entry 67, `arthur eval`, coordinator turns replayed against the scenarios of the loaded packages, each run on a copy of its scenario's fixture with `arthur` a recording stub, scored by what it left behind, its pass rate against the baseline (`arthur eval --help`). The scenarios are entry 68.
+Developing Arthur itself: roadmap entry 66, `arthur plugin new <name> --budget <lines>`, a new plugin package in Arthur's repository with its `package.json`, plugin file, test against the fake host and doc page, its line budget in `test/structure.test.ts`, that passes `npm run check` and `npm test` as created (`arthur plugin --help`); entry 67, `arthur eval`, coordinator turns replayed against the scenarios of the loaded packages, each run on a copy of its scenario's fixture with `arthur` a recording stub, scored by what it left behind, its pass rate against the baseline (`arthur eval --help`); and entry 68, the scenarios, each in `evals/<name>/` of the package whose procedure it tests, replayed against a fake agent by `packages/develop/test/scenarios.test.ts`, their rates on the coordinator's model in `evals/baseline.json`.
 
 ```ts
 plugins: [

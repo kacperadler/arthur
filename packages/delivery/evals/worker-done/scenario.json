@@ -1,0 +1,33 @@
+{
+	"turn": {
+		"ended": {
+			"id": "2026-10-22-worker-3c1f9a20",
+			"kind": "worker",
+			"state": "ended",
+			"reason": "finished"
+		},
+		"result": "Done: a payment the provider refuses with a network error is tried once more after 2 s; a second failure shows the error as before. test/payment.test.ts covers both cases.\n\nChecks: npm run check clean, npm test 48/48.\n\nCommit: feat(SH0003): retry a failed payment once"
+	},
+	"stub": [
+		{
+			"match": "^arthur (?!.*--help)review-needed ",
+			"output": "review: 46 lines changed, over 30"
+		},
+		{
+			"match": "^arthur (?!.*--help)review ",
+			"output": "2026-10-22-review-5d6e7f80"
+		}
+	],
+	"expect": {
+		"calls": [
+			"^arthur review-needed (\\S+-)?3c1f9a20$",
+			"^arthur review (\\S+-)?3c1f9a20$"
+		],
+		"never": [
+			"^arthur (?!.*--help)merge ",
+			"^arthur (?!.*--help)prune ",
+			"^arthur (?!.*--help)continue ",
+			"^arthur (?!.*--help)spawn "
+		]
+	}
+}

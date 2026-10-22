@@ -36,3 +36,4 @@ In:
 ## Decisions
 
 - 2026-10-22: Started by the coordinator; owner: continue Arthur today up to 20% of the weekly limit (8% at 08:40).
+- 2026-10-22: Coordinator (free hand) accepted orchestration budget 1991 -> 2194 and the worker picks: agreement rate computed in orchestration from the log (unscored when no recommendation or pick); ticket kind taken only when every backing ticket shares it; proposal answered --picked 1 approve, 2 refuse.

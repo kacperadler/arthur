@@ -10,7 +10,7 @@
 	},
 	"stub": [
 		{
-			"match": "^arthur ticket file ",
+			"match": "^arthur (?!.*--help)ticket file ",
 			"output": "spec/retro/2026-10-22.md",
 			"files": {
 				"spec/retro/2026-10-22.md": "# Retro 2026-10-22\n\n- Job: 2026-10-22-retro-e5f6a7b8\n- Looked back from: 3e4f5a6\n\n## Period\n\nMerged SH0003 (retry a failed payment), SH0004 (the cart's total with tax) and SH0005 (the undo notice): 5 review rounds, 2 FAILs, both on SH0004's rounding; $6.10 in all.\n\n## 1. Name the receipt's total in the reviewer's checks\nKind: cleanup\nEvidence:\n- SH0004 review-1.md and review-2.md: both FAILs were the cart's total against the receipt's\nWhy it matters: a check named up front would have caught both in the worker's own run.\nScope: `.agents/arthur/criteria/review.md`, the paragraph on totals\n\n## 2. Ask the worker for the failing test before the fix\nKind: cleanup\nEvidence:\n- SH0004 review-1.md: no test covered several items until the reviewer asked\nWhy it matters: the reviewer found the gap the worker could have.\nScope: `.agents/arthur/roles/worker.md`, the paragraph on tests\n\n## Dead sentences\n\nnone\n",
@@ -18,7 +18,7 @@
 			}
 		},
 		{
-			"match": "^arthur ticket new ",
+			"match": "^arthur (?!.*--help)ticket new ",
 			"output": "SH0016 spec/features/SH0016-name-the-receipt-s-total-in-the-reviewer-s-checks/ticket.md",
 			"files": {
 				"spec/features/SH0016-name-the-receipt-s-total-in-the-reviewer-s-checks/ticket.md": "# SH0016 - Name the receipt's total in the reviewer's checks\n\n```json\n{\n  \"id\": \"SH0016\",\n  \"title\": \"Name the receipt's total in the reviewer's checks\",\n  \"date\": \"2026-10-22\"\n}\n```\n\n## Description\n\n<!-- Two or three sentences: what changes, and for whom. -->\n\n## Goal\n\n<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->\n\n- Kind: <!-- feature | bug | risk | cleanup | improvement -->\n\n## Done means\n\n<!-- Each observable result, and the test that proves it; the project's checks pass. -->\n\n## Scope\n\nIn:\n<!-- - `path/to/file.ts`: what changes there. -->\n\nOut:\n<!-- - What this ticket does not do, and which ticket does. -->\n\n## Decisions\n\n<!-- - YYYY-MM-DD: one decision the human made, in one line. -->\n",
@@ -26,7 +26,7 @@
 			}
 		},
 		{
-			"match": "^arthur ticket new ",
+			"match": "^arthur (?!.*--help)ticket new ",
 			"output": "SH0017 spec/features/SH0017-ask-the-worker-for-the-failing-test-before-the-fix/ticket.md",
 			"files": {
 				"spec/features/SH0017-ask-the-worker-for-the-failing-test-before-the-fix/ticket.md": "# SH0017 - Ask the worker for the failing test before the fix\n\n```json\n{\n  \"id\": \"SH0017\",\n  \"title\": \"Ask the worker for the failing test before the fix\",\n  \"date\": \"2026-10-22\"\n}\n```\n\n## Description\n\n<!-- Two or three sentences: what changes, and for whom. -->\n\n## Goal\n\n<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->\n\n- Kind: <!-- feature | bug | risk | cleanup | improvement -->\n\n## Done means\n\n<!-- Each observable result, and the test that proves it; the project's checks pass. -->\n\n## Scope\n\nIn:\n<!-- - `path/to/file.ts`: what changes there. -->\n\nOut:\n<!-- - What this ticket does not do, and which ticket does. -->\n\n## Decisions\n\n<!-- - YYYY-MM-DD: one decision the human made, in one line. -->\n",
@@ -34,7 +34,7 @@
 			}
 		},
 		{
-			"match": "^arthur prune ",
+			"match": "^arthur (?!.*--help)prune ",
 			"output": "2026-10-22-retro-e5f6a7b8: worktree /home/owner/.arthur-worktrees/2026-10-22-retro-e5f6a7b8 removed; record deleted"
 		}
 	],

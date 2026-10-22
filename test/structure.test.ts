@@ -398,7 +398,11 @@ import { checkStructure } from "./structure.ts";
 // 38) and the `evals` options (27 more); a new command, so nothing was cut elsewhere. Core 6 more (5748) for the refusal of
 // every command inside an eval session (cli.ts), which the core's CLI alone can make.
 // Merged main (AR0275) into AR0276: main's budgets plus AR0276's develop 584 and core 5748 (recounted with wc -l).
-const BUDGETS = { core: 5748, "core/testing": 349, projects: 486, orchestration: 1529, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 584, findings: 254 };
+// AR0280 (roadmap 68): develop 38 more (622) for what the scenarios of entry 68 are scored by and turned on: the reply and
+// the agent's tool calls read from its JSON stream and scored (eval-run.ts, 28), and a plugin's message as a turn, with the
+// checks of `expect.reply` and `expect.tools` (eval-scenario.ts, 10): a one-line night answer, the onboarding's questions,
+// an env refusal and no sleeping leave no other trace, and a failed CI run reaches the coordinator as github's message.
+const BUDGETS = { core: 5748, "core/testing": 349, projects: 486, orchestration: 1529, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 622, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

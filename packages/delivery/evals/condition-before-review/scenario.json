@@ -10,11 +10,11 @@
 	},
 	"stub": [
 		{
-			"match": "^arthur review-needed ",
+			"match": "^arthur (?!.*--help)review-needed ",
 			"output": "review: 71 lines changed, over 30"
 		},
 		{
-			"match": "^arthur review ",
+			"match": "^arthur (?!.*--help)review ",
 			"output": "2026-10-22-review-6f7a8b9c"
 		}
 	],

@@ -4,7 +4,7 @@
 	},
 	"stub": [
 		{
-			"match": "^arthur continue ",
+			"match": "^arthur (?!.*--help)continue ",
 			"output": "2026-10-22-worker-7b2e4d11: continued"
 		}
 	],

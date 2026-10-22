@@ -13,19 +13,19 @@
 	},
 	"stub": [
 		{
-			"match": "^arthur ticket file ",
+			"match": "^arthur (?!.*--help)ticket file ",
 			"output": "spec/features/SH0012-answer-a-refund-question-in-the-support-role/review-1.md",
 			"files": {
 				"spec/features/SH0012-answer-a-refund-question-in-the-support-role/review-1.md": "# SH0012 - Review 1\n\n- Job: 2026-10-22-review-3a4b5c6d\n- Branch: arthur/2026-10-22-worker-c9d0e1f2\n- Commit reviewed: 4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f\n- Verdict: PASS\n\n## Final message\n\nThe support role answers a refund question with the policy's three steps and links the form, as Done means asks; the role's examples cover a refund past 30 days.\n\n**Findings**\n\nNone.\n\n**Checks I ran**\n\n- `npm run check`: clean. `npm test`: 52/52.\n\nPASS\n"
 			}
 		},
 		{
-			"match": "^arthur merge ",
+			"match": "^arthur (?!.*--help)merge ",
 			"exit": 1,
 			"output": "arthur merge: --auto merges no held path: arthur/2026-10-22-worker-c9d0e1f2 changes roles/support.md (a role); its merge waits for the owner: arthur merge 2026-10-22-worker-c9d0e1f2 on his word"
 		},
 		{
-			"match": "^arthur prune ",
+			"match": "^arthur (?!.*--help)prune ",
 			"output": "2026-10-22-review-3a4b5c6d: worktree /home/owner/.arthur-worktrees/2026-10-22-review-3a4b5c6d removed; record deleted"
 		}
 	],

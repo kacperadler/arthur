@@ -5,16 +5,18 @@ Usage: `arthur eval [<scenario>...] [--runs <n>] [--save-baseline]`. Comes with 
 Measures the coordinator: replays one coordinator turn per run against each scenario of the loaded packages (or only those named), `--runs` times each (default `evals.runs`, 3), the runs of one scenario at once, the scenarios one after another. A run costs what a coordinator turn costs: it runs the real agent.
 
 ```
-$ arthur eval
+$ arthur eval delivery/review-pass delivery/worker-done
 arthur eval: model anthropic/claude-opus-5-5, thinking high, 3 runs each; transcripts in /home/arthur/arthur/.arthur/develop/evals/2026-10-22T08-00-00-000Z
 delivery/review-pass: 3/3 (baseline 2/3, up)
-orchestration/worker-done: 1/3 (baseline 3/3, down)
-  run 1: no call matches /^arthur review /
+delivery/worker-done: 1/3 (baseline 3/3, down)
+  run 1: no call matches /^arthur review (\S+-)?3c1f9a20$/
   run 3: the turn ran past its timeout of 900 s and was stopped
-passed 4/6 runs; moved against the baseline: delivery/review-pass (up, 2/3 to 3/3), orchestration/worker-done (down, 3/3 to 1/3)
+passed 4/6 runs; moved against the baseline: delivery/review-pass (up, 2/3 to 3/3), delivery/worker-done (down, 3/3 to 1/3)
 ```
 
 ## Scenarios
+
+The scenarios Arthur ships (roadmap entry 68), run by `npm test` against a fake agent in `packages/develop/test/scenarios.test.ts`: in delivery, `worker-done`, `condition-before-review`, `review-pass`, `review-pass-hook`, `review-fail-handed-back`, `review-fail-continue`, `merge` and `check-failed`; in orchestration, `later-is-a-ticket`, `no-sleep`, `night-one-line`, `morning-report` and `env-refusal`; in manage, `audit-autopilot` and `retro`; in session, `after-restart-plan` and `unblocked-after-restart`; in github, `ci-failed`; in projects, `onboarding-questions`. A new scenario gets its right and wrong turn in that test.
 
 A scenario is a folder `evals/<name>/` in a package the load runs (the core's, each enabled plugin's), named `<package folder>/<name>`, kept in the package whose procedure it tests: its `fixture/`, the repository the turn runs on, and its `scenario.json`:
 

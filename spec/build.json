@@ -2084,9 +2084,9 @@
   {
     "id": "AR0271",
     "title": "Two processes checking one machine at once can both say the same news",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0271-two-processes-checking-one-machine-at-once-can-both-say-the-same-news/ticket.md",
-    "updated": "2026-10-22T15:43:37.700Z",
+    "updated": "2026-10-22T15:51:20.639Z",
     "after": [
       "AR0269"
     ]
@@ -2094,9 +2094,9 @@
   {
     "id": "AR0272",
     "title": "Arthur's own repository has no criteria folder, so its audits and retros run without their criteria",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0272-arthur-s-own-repository-has-no-criteria-folder-so-its-audits-and-retros-run-without-their-criteria/ticket.md",
-    "updated": "2026-10-22T15:37:04.322Z"
+    "updated": "2026-10-22T15:48:21.511Z"
   },
   {
     "id": "AR0273",
@@ -2273,5 +2273,12 @@
     "status": "planned",
     "path": "spec/features/AR0295-the-fixtures-have-no-vision-so-every-eval-context-warns-the-main-project-has-none/ticket.md",
     "updated": "2026-10-22T15:22:59.173Z"
+  },
+  {
+    "id": "AR0296",
+    "title": "An orchestration test can leave its tmux server and fake agent running after `npm test`",
+    "status": "planned",
+    "path": "spec/features/AR0296-an-orchestration-test-can-leave-its-tmux-server-and-fake-agent-running-after-npm-test/ticket.md",
+    "updated": "2026-10-22T15:51:31.729Z"
   }
 ]

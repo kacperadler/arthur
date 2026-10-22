@@ -49,6 +49,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 	let place: { readonly coordinator: Coordinator; readonly folder: string; readonly agent: string; readonly host: Host } | undefined;
 	let supervisor: { stop(): Promise<void> } | undefined;
 	let messages: ReturnType<typeof inbox> | undefined;
+	let unsent: (() => void) | undefined;
 	return {
 		name: "orchestration",
 		module: import.meta.url,
@@ -76,7 +77,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			const { folder, agent } = host;
 			place = { coordinator, folder, agent, host };
 			messages = inbox(host);
-			blockedNotice(host);
+			unsent = blockedNotice(host);
 			spawnRules(host, coordinator);
 			plans(host);
 			autopilot(host);
@@ -145,6 +146,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			for (const command of [...boardCommands(host), ...decisionCommands(host)]) host.commands.register(command);
 		},
 		start() {
+			unsent?.();
 			messages?.start();
 			if (place !== undefined) supervisor = supervise(place.coordinator, place.folder, place.agent, extensions(place.host.collectEach("coordinator.extension")), mcpServers(place.host.options, place.host.env, "coordinator"));
 		},

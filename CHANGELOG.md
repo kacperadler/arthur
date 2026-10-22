@@ -12,6 +12,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Fixed
 
 - AR0277 The eval words a turn with a copy of orchestration's wake and inbox lines, which can drift (c4047e0)
+- AR0288 The eval stub answers a command's --help with that command's scripted result (3b718b5)
 
 ### Other
 

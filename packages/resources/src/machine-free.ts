@@ -3,7 +3,7 @@ import { availableParallelism, cpus, freemem, totalmem } from "node:os";
 import { setTimeout as sleep } from "node:timers/promises";
 import { join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
-import { type Disk, diskGB, measureDisk, underFloor } from "./machine-disk.ts";
+import { type Disk, diskGB, diskPaths, measureDisk, readDisk, underFloor } from "./machine-disk.ts";
 
 // Each machine's free CPU and memory (spec/roadmap.md, entry 34): Node's `os` on `local`, the same calls through `node -e` over
 // the core's SSH on another machine, which the `machines` plugin's check carries at each of its rounds. Each check is kept in
@@ -15,8 +15,9 @@ import { type Disk, diskGB, measureDisk, underFloor } from "./machine-disk.ts";
 export type Measured = { readonly cores: number; readonly load: number; readonly free: number; readonly total: number; readonly disk?: readonly Disk[]; readonly skipped?: readonly string[] };
 export type Sample = { readonly at: string; readonly jobs: readonly string[]; readonly everySeconds?: number } & (Measured | { readonly error: string });
 // What a round of the `machines` plugin says of a listed machine (`machines.round`): the line its check's `node -e` printed,
-// the same SCRIPT as here, or why the machine is offline.
-export type Said = { readonly free: string } | { readonly error: string };
+// the same SCRIPT as here, and with paths df's exit code and output (machine-disk.ts's SCRIPT, its errors in it); or why the
+// machine is offline.
+export type Said = { readonly free: string; readonly disk?: { readonly code: number; readonly output: string } } | { readonly error: string };
 
 // A check is cut after this, its ssh killed.
 const LIMIT_SECONDS = 10;
@@ -29,9 +30,8 @@ const busy = () => cpus().reduce((sum, { times: t }) => sum + t.user + t.nice + 
 const number = (value: unknown, least: number) => typeof value === "number" && Number.isFinite(value) && value >= least;
 const measured = (value: Readonly<Record<string, unknown>>): value is Measured => number(value.cores, 1) && number(value.load, 0) && number(value.free, 0) && number(value.total, 1);
 
-// `inRound`, the machine's check in a round of the `machines` plugin, stands for this side's own `node -e` over ssh.
-async function measure(host: Host, name: string, inRound: Promise<Said> | undefined): Promise<Measured | { readonly error: string }> {
-	const round = await inRound;
+// `round`, the machine's check in a round of the `machines` plugin, stands for this side's own `node -e` over ssh.
+async function measure(host: Host, name: string, round: Said | undefined): Promise<Measured | { readonly error: string }> {
 	if (round !== undefined && "error" in round) return { error: round.error };
 	if (round === undefined && name === "local") {
 		const [before, start] = [busy(), performance.now()];
@@ -70,16 +70,21 @@ export function readSample(folder: string, name: string): Sample | undefined {
 }
 
 // Checks machine `name` now, or reads `said`, its check in a round of the `machines` plugin begun now, every `everySeconds`, and
-// keeps the result; with a disk `floor` above 0 bytes, its filesystems too. A check that fails after one that answered (or none)
-// is said once, as a `notice`; the next ones that fail too are not. A check whose least free filesystem is under the floor,
-// after one that was not (or none), emits `disk-low` and a `notice`. Never throws for the machine's own failure.
-export async function checkSample(host: Host, folder: string, name: string, floor: number, said?: Promise<Said>, everySeconds?: number): Promise<Sample> {
+// keeps the result; with a disk `floor` above 0 bytes, its filesystems too, from the df the round's check ran on `paths` when
+// it carries one. A check that fails after one that answered (or none) is said once, as a `notice`; the next ones that fail
+// too are not. A check whose least free filesystem is under the floor, after one that was not (or none), emits `disk-low` and
+// a `notice`. Never throws for the machine's own failure.
+export async function checkSample(host: Host, folder: string, name: string, floor: number, said?: Promise<Said>, everySeconds?: number, paths?: Promise<readonly string[] | { readonly error: string }>): Promise<Sample> {
 	const running = new Set(host.jobs.running());
 	const jobs = host.jobs.list().filter((job) => job.machine === name && running.has(job.id)).map((job) => job.id);
-	const found = await measure(host, name, said)
-		.then(async (free) => {
+	const found = await Promise.resolve(said)
+		.then(async (round) => {
+			const free = await measure(host, name, round);
 			if ("error" in free || floor === 0) return free;
-			const disk = await measureDisk(host, name);
+			const named = await (paths ?? diskPaths(host, name));
+			if ("error" in named) return named;
+			const ran = round !== undefined && "disk" in round ? round.disk : undefined;
+			const disk = ran === undefined ? await measureDisk(host, name, named) : readDisk(named, { code: ran.code, stdout: ran.output, stderr: ran.output });
 			return "error" in disk ? disk : { ...free, ...disk };
 		})
 		.catch((error: Error) => ({ error: error.message }));

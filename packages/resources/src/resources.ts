@@ -34,12 +34,14 @@ export function resources(options: ResourcesOptions): Plugin {
 			const room = roomGuard(host, host.folder, perJob, keepFree);
 			host.provide("jobs.limits", (spawn: { readonly tickets: readonly string[] }) => ({ ...caps, ...guard.slice(spawn) }));
 			host.provide("resources.free", room.free);
-			host.provide("machines.round", (checks: ReadonlyMap<string, Promise<Said>>, everySeconds?: number) => void Promise.try(() => room.round(checks, everySeconds)).catch((error: Error) => console.error(`resources: the check of free CPU and memory failed: ${error.message}`)));
+			const failed = (error: Error) => console.error(`resources: the check of free CPU and memory failed: ${error.message}`);
+			// The answer names the paths each machine's df reads in its check of the round; none when the round fails here.
+			host.provide("machines.round", (checks: ReadonlyMap<string, Promise<Said>>, everySeconds?: number) => Promise.try(() => room.round(checks, everySeconds)).then(({ samples, paths }) => (void samples.catch(failed), paths)).catch((error: Error) => (failed(error), new Map())));
 			host.provide("coordinator.context", room.context);
 			host.jobs.beforeSpawn(guard.check);
 			host.jobs.beforeSpawn(room.check);
 			sweep = () => guard.sweep().catch((error: Error) => console.error(`resources: the sweep of the feature caps failed: ${error.message}`));
-			check = () => room.checkLocal().then(() => {}, (error: Error) => console.error(`resources: the check of free CPU and memory failed: ${error.message}`));
+			check = () => room.checkLocal().then(() => {}, failed);
 			host.commands.register({
 				name: "resources",
 				doc: new URL("../docs/commands/resources.md", import.meta.url),

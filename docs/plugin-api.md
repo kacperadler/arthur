@@ -191,7 +191,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `coordinator.turn` | orchestration | develop (`arthur eval`) | A promise of the text the coordinator's agent gets for `(event name, data, result)`, one event handed over alone. |
 | `coordinator.checkoutContext` | orchestration | develop (`arthur eval`) | `{ root, at }`, a copy of the main project's repository and a `Date`: the coordinator's context there at that instant, without the live jobs, open decisions and silent mode (above, "Changes since entry 51"). |
 | `models.lists` | orchestration | models | Every role's model list. |
-| `machines.round` | resources | machines | A round of machine checks as it begins. |
+| `machines.round` | resources | machines | A round of machine checks as it begins: a `Map` of each machine's name to the paths its check's df reads (AR0269). |
 | `resources.free` | resources | machines | The jobs a machine has room for. |
 | `resources.disk` | none yet (docker) | resources, each check of a machine with `keepFree.disk` | `(machine)`: the absolute paths there its jobs write, besides its home (above, "Changes since entry 51"). |
 | `schedule.register` | schedule | orchestration, manage | Registers another plugin's schedule entries. |

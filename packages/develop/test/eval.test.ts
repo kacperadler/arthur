@@ -36,12 +36,19 @@ case "$turn" in
 *hang*) echo $$ >> ${quote(join(spy, "hanging"))} && exec sleep 600 ;;
 *fail*) exit 3 ;;
 *help*)
-	arthur eval --help > ${quote(join(spy, "help-1"))}
-	arthur help eval > ${quote(join(spy, "help-2"))}
-	arthur --project shop eval --help > ${quote(join(spy, "help-3"))}
-	arthur help nosuch > ${quote(join(spy, "help-4"))}
-	arthur help eval twice > ${quote(join(spy, "help-5"))}
-	arthur nosuch eval > ${quote(join(spy, "help-6"))} ;;
+	n=0
+	said() { n=$((n + 1)); arthur "$@" > ${quote(spy)}/help-$n 2> ${quote(spy)}/help-$n.err; echo "exit $?" >> ${quote(spy)}/help-$n; }
+	said eval --help
+	said help eval
+	said --project shop eval --help
+	said help nosuch
+	said help eval twice
+	said nosuch eval
+	said nosuch --help
+	said constructor --help
+	said --help
+	said help
+	said ;;
 esac
 arthur ticket new Fix the login > ticket.txt
 arthur merge AR0001 > /dev/null
@@ -267,27 +274,34 @@ test("the stub never reaches Arthur's home: no variable names it, a file outside
 	assert.deepEqual(env.filter((line) => line.includes(eval_.home)), [], "no variable of the turn names the home");
 });
 
-test("help prints the page the live CLI prints: `--help` and `arthur help <command>` of a registered command take no answer and no expectation counts them; others are answered", async (t) => {
+test("a help call never takes an answer and no expectation counts it: it prints what the live CLI prints, a page, the list, or an unknown command or a wrong usage with exit code 2", async (t) => {
 	const page = readFileSync(new URL("../docs/commands/eval.md", import.meta.url), "utf8");
 	const eval_ = await load(t, {
 		one: {
 			turn: { message: "Read the help." },
-			stub: [{ match: "eval|nosuch", output: "stubbed", files: { "stubbed.md": "x\n" } }, ...STUB],
-			expect: { never: ["--help", "^arthur help eval$"], calls: ["^arthur help nosuch$", "^arthur help eval twice$", "^arthur ticket new "] },
+			stub: [{ match: "^arthur(?! ticket new )", output: "stubbed", files: { "stubbed.md": "x\n" } }, ...STUB],
+			expect: { never: ["--help", "^arthur help", "^arthur$"], calls: ["^arthur nosuch eval$", "^arthur ticket new "] },
 		},
 	});
 	const answer = await eval_.eval("--runs", "1");
 	assert.deepEqual(answer, { code: 0, header: answer.header, out: ["develop/one: 1/1 (no baseline)", "passed 1/1 runs; moved against the baseline: none"], err: "" });
-	const printed = [1, 2, 3, 4, 5, 6].map((index) => readFileSync(join(eval_.spy, `help-${index}`), "utf8"));
-	assert.deepEqual(printed, [page, page, page, "stubbed\n", "stubbed\n", "stubbed\n"], "a page for the registered command, `--project <name>` left out; an unknown one, `help` of two words and another command's word answered");
+	const usage = "usage: arthur <command> [args] [--project <name>]; arthur <command> --help; arthur help <command>\n";
+	const names = "commands: eval, plugin\n";
+	const [shown, list] = [[`${page}exit 0\n`, ""], [`${usage}${names}exit 0\n`, ""]];
+	const unknown = (name: string) => ["exit 2\n", `arthur: unknown command ${name}\n${names}`];
+	const printed = Array.from({ length: 11 }, (_, index) => [`help-${index + 1}`, `help-${index + 1}.err`].map((file) => readFileSync(join(eval_.spy, file), "utf8")));
+	assert.deepEqual(
+		printed,
+		[shown, shown, shown, unknown("nosuch"), ["exit 2\n", `arthur: help takes one command name\n${usage}`], ["stubbed\nexit 0\n", ""], unknown("nosuch"), unknown("constructor"), list, list, list],
+		"a page for a registered command, `--project <name>` left out; an unknown command refused; `help` of two words refused; the list for help alone; only a call that is no help answered",
+	);
 	const log = eval_.transcript("develop-one-1", "arthur.log").trim().split("\n").map((line) => JSON.parse(line));
-	assert.deepEqual(log.slice(0, 7), [
-		{ call: "arthur eval --help", help: true },
-		{ call: "arthur help eval", help: true },
-		{ call: "arthur --project shop eval --help", help: true },
-		{ call: "arthur help nosuch", answer: 0 },
-		{ call: "arthur help eval twice", answer: 0 },
+	const helps = ["arthur eval --help", "arthur help eval", "arthur --project shop eval --help", "arthur help nosuch", "arthur help eval twice"];
+	const after = ["arthur nosuch --help", "arthur constructor --help", "arthur --help", "arthur help", "arthur"];
+	assert.deepEqual(log.slice(0, 12), [
+		...helps.map((call) => ({ call, help: true })),
 		{ call: "arthur nosuch eval", answer: 0 },
+		...after.map((call) => ({ call, help: true })),
 		{ call: "arthur ticket new Fix the login", answer: 1 },
 	]);
 });

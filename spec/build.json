@@ -2171,5 +2171,12 @@
     "status": "planning",
     "path": "spec/features/AR0283-a-job-s-question-and-the-plugin-s-closes-take-the-log-s-lock-synchronously-inside-arthur-run/ticket.md",
     "updated": "2026-10-22T08:31:57.354Z"
+  },
+  {
+    "id": "AR0284",
+    "title": "Roadmap 97: decision classes",
+    "status": "planned",
+    "path": "spec/features/AR0284-roadmap-97-decision-classes/ticket.md",
+    "updated": "2026-10-22T08:32:27.387Z"
   }
 ]

@@ -1,6 +1,6 @@
 import type { Host, Project } from "@arthur/core/plugin";
 import { policyOf } from "./decision-classes.ts";
-import { ask, close, type Decision, decisions, readLog } from "./decision-log.ts";
+import { type Answer, ask, close, type Decision, decisions, readLog } from "./decision-log.ts";
 
 // What the plugin records in the decision log by itself (spec/roadmap.md, entry 96): the question of a job blocked on the
 // owner, asked as kind `job` (blocked-notice.ts names its id in the notice); a close once what an open question waits on is
@@ -12,12 +12,14 @@ function eventProject(host: Host, name: unknown): Project | undefined {
 	return host.collect("projects").length === 0 ? undefined : host.board.projects().find((each) => each.name === name);
 }
 
-// Records a job's question; its id, undefined when its project has no log to hold it.
-export function askOfJob(host: Host, data: Readonly<Record<string, unknown>>, question: string): string | undefined {
+// A job's question as askOfJob records it, with the answer of the class that answered it by policy, if one did.
+export type JobQuestion = { readonly id: string; readonly policy?: Answer };
+// Records a job's question; undefined when its project has no log to hold it.
+export function askOfJob(host: Host, data: Readonly<Record<string, unknown>>, question: string): JobQuestion | undefined {
 	const project = eventProject(host, data.project);
 	if (project === undefined) return undefined;
 	const ticket = typeof data.ticket === "string" && host.board.get(data.ticket)?.project === project.name ? data.ticket : undefined;
-	return ask(host, project, { kind: "job", question, options: [], job: String(data.id), ...(ticket === undefined ? {} : { ticket }) }).id;
+	return ask(host, project, { kind: "job", question, options: [], job: String(data.id), ...(ticket === undefined ? {} : { ticket }) });
 }
 
 export function decisionHooks(host: Host): void {

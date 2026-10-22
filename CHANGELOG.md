@@ -4,6 +4,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ## 2026-10-23
 
+### Added
+
+- AR0304 A new plugin's ticket without a plan can still be placed on another machine (7ac9b48)
+
 ### Fixed
 
 - AR0299 A crash of `arthur run` while a job's question waits for the log's lock loses its notice (c54a670)

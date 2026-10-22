@@ -14,7 +14,7 @@ type Ran = { readonly code: number | null; readonly stdout: string; readonly std
 const LIMIT_SECONDS = 10;
 const GB = 2 ** 30;
 // One answer per path, in order: `missing` for a path not there, else df's header and the line of its filesystem.
-const SCRIPT = 'for path do if [ -e "$path" ]; then df -Pk "$path" || exit; else echo missing; fi; done';
+export const DF = 'for path do if [ -e "$path" ]; then df -Pk "$path" || exit; else echo missing; fi; done';
 // A line of POSIX `df -P`: filesystem, 1024-blocks, used, available, capacity, mount point.
 const LINE = /^(.+?)\s+\d+\s+\d+\s+(\d+)\s+(?:\d+%|-)\s+(\/.*)$/;
 
@@ -43,10 +43,10 @@ export async function diskPaths(host: Host, name: string): Promise<readonly stri
 
 // Machine `name`'s filesystems now, df run there on `paths` (diskPaths).
 export async function measureDisk(host: Host, name: string, paths: readonly string[]): Promise<Disks | { readonly error: string }> {
-	return readDisk(paths, await host.jobs.run(name, ["sh", "-c", SCRIPT, "sh", ...paths], LIMIT_SECONDS));
+	return readDisk(paths, await host.jobs.run(name, ["sh", "-c", DF, "sh", ...paths], LIMIT_SECONDS));
 }
 
-// The filesystems SCRIPT's answer on `paths` names; why not, when the home is not there, or df fails or answers what is no
+// The filesystems DF's answer on `paths` names; why not, when the home is not there, or df fails or answers what is no
 // `df -P` output. Two paths on one filesystem count once.
 export function readDisk(paths: readonly string[], ran: Ran): Disks | { readonly error: string } {
 	const said = ran.stderr.trim().split("\n").at(-1) || `exit code ${ran.code}`;

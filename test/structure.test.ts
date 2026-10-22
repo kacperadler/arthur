@@ -488,7 +488,13 @@ import { checkStructure } from "./structure.ts";
 // into `ask`); a check of its own made two ssh calls before, so nothing was cut.
 // Merged main (AR0287) into AR0289: main's budgets plus AR0289's, schedule 585, develop 669 - 1 = 668 (recounted with wc -l).
 // Merged main (AR0289) into AR0292: main's budgets plus AR0292's resources 616 (recounted with wc -l).
-const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2278, machines: 474, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 668, findings: 254 };
+// AR0294 (F1 of AR0279; its Done means: a scenario's `context` replaces each plugin's answer in `coordinator.checkoutContext`):
+// orchestration 6 more (2284) for the plugins' lines taken from it, none for one left out, a name no plugin answers refused
+// (context.ts, 5 with its comment) and `context` checked in the provider (orchestration.ts, 1); develop 2 more (670) for
+// `context` read and checked (eval-scenario.ts, 1 and its comment 1). An eval took the live answers before, so nothing was cut.
+// Merged main (AR0295) into AR0294: main's budgets plus AR0294's raises, orchestration 2278 + 6 + 1 = 2285 (the checkout's
+// comment in context.ts carries both tickets' words on one more line), develop 670 (recounted with wc -l).
+const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2285, machines: 474, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 670, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

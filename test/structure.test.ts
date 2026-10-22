@@ -507,7 +507,10 @@ import { checkStructure } from "./structure.ts";
 // replay never delivered such an event again, so nothing was cut.
 // Merged main (AR0299) into AR0300: main's budgets plus AR0300's core 5755, every budget set to its count (recounted with
 // wc -l): projects 486 to 485 and commit-rules 169 to 165, the slack main carried.
-const BUDGETS = { core: 5755, "core/testing": 349, projects: 485, orchestration: 2309, machines: 474, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 672, findings: 254 };
+// AR0306 (F1 of AR0300; its Done means: the agent's extensions append to `log` without creating it, skipping the line on
+// ENOENT): core 15 more (5770) for the open without O_CREAT, the write, the close and the skip, in steer.ts (git diff --numstat
+// +9 -2) and worktree-guard.ts (+10 -2), each with its comment. appendFileSync created `log` before, so nothing was cut.
+const BUDGETS = { core: 5770, "core/testing": 349, projects: 485, orchestration: 2309, machines: 474, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 672, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

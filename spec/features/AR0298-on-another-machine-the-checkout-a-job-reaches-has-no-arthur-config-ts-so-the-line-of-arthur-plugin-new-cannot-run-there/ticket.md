@@ -36,3 +36,4 @@ In:
 
 - 2026-10-22: Source: F1 of AR0274
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-22: Coordinator (free hand): line budget raise accepted, develop 670 to 672, for the other-machine worker section in `plugin-new.ts`.

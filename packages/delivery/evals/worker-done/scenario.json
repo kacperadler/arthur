@@ -24,10 +24,10 @@
 			"^arthur review (\\S+-)?3c1f9a20$"
 		],
 		"never": [
-			"^arthur merge ",
-			"^arthur prune ",
-			"^arthur continue ",
-			"^arthur spawn "
+			"^arthur (?!.*--help)merge ",
+			"^arthur (?!.*--help)prune ",
+			"^arthur (?!.*--help)continue ",
+			"^arthur (?!.*--help)spawn "
 		]
 	}
 }

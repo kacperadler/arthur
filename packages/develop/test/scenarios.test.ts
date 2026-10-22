@@ -57,7 +57,7 @@ for (const [index, step] of steps.entries()) {
 say({ type: "agent_end", messages: [] });
 `;
 
-const commit = (message: string): Step => ({ bash: `git add -A && git commit -qm '${message}' && git push -q origin main` });
+const commit = (message: string): Step => ({ bash: `git add -A && git commit -qm '${message}' && git push -q` });
 const KIND = "- Kind: <!-- feature | bug | risk | cleanup | improvement -->";
 const DECISION = "<!-- - YYYY-MM-DD: one decision the human made, in one line. -->";
 const APPROVED = "- 2026-10-21: The owner approved it.\n";
@@ -115,7 +115,7 @@ const ACTS: Readonly<Record<string, Act>> = {
 	"delivery/worker-done": {
 		right: [{ bash: "arthur review-needed 3c1f9a20" }, { bash: "arthur review 3c1f9a20" }, { reply: "SH0003, a failed payment tried once more, is built and its checks pass; its review started." }],
 		wrong: [{ bash: "arthur merge 3c1f9a20" }, { reply: "SH0003 is merged." }],
-		fails: ["no call matches /^arthur review-needed (\\S+-)?3c1f9a20$/", "arthur merge 3c1f9a20 matches /^arthur merge /"],
+		fails: ["no call matches /^arthur review-needed (\\S+-)?3c1f9a20$/", "arthur merge 3c1f9a20 matches /^arthur (?!.*--help)merge /"],
 	},
 	"delivery/condition-before-review": {
 		right: [
@@ -152,12 +152,12 @@ const ACTS: Readonly<Record<string, Act>> = {
 			{ reply: "SH0012, the support role's answer to a refund question, passed its review; it changes a role, so its merge waits for your word: merge SH0012." },
 		],
 		wrong: [{ bash: "arthur merge --auto c9d0e1f2" }, { bash: "arthur merge c9d0e1f2" }, { reply: "Merged." }],
-		fails: ["arthur merge c9d0e1f2 matches /^arthur merge (?!.*--auto)/", "the reply does not match /SH0012/"],
+		fails: ["arthur merge c9d0e1f2 matches /^arthur (?!.*--help)merge (?!.*--auto)/", "the reply does not match /SH0012/"],
 	},
 	"delivery/review-fail-handed-back": {
 		right: [{ bash: "arthur prune 9a8c7e61" }, { reply: "SH0004's review failed: the cart rounds each line where the receipt rounds the total once. Its worker fixes it, and the next review starts by itself." }],
 		wrong: [{ bash: "arthur ticket file SH0004 9a8c7e61" }, { bash: "arthur continue 7b2e4d11 'Fix the findings of review 9a8c7e61.'" }, { reply: "SH0004's review failed; I sent the findings to its worker." }],
-		fails: ["no call matches /^arthur prune (\\S+-)?9a8c7e61$/", "arthur continue 7b2e4d11 Fix the findings of review 9a8c7e61. matches /^arthur continue /", "arthur ticket file SH0004 9a8c7e61 matches /^arthur ticket file /"],
+		fails: ["no call matches /^arthur prune (\\S+-)?9a8c7e61$/", "arthur continue 7b2e4d11 Fix the findings of review 9a8c7e61. matches /^arthur (?!.*--help)continue /", "arthur ticket file SH0004 9a8c7e61 matches /^arthur (?!.*--help)ticket file /"],
 	},
 	"delivery/review-fail-continue": {
 		right: [
@@ -167,7 +167,7 @@ const ACTS: Readonly<Record<string, Act>> = {
 			{ reply: "SH0004, the cart's total with tax, goes for a third round: its worker rounds the tax half up, then I review it again." },
 		],
 		wrong: [{ bash: "arthur review 7b2e4d11 --round 3" }, { reply: "SH0004's third review started." }],
-		fails: [`${SH0004} does not match /^## Decisions`, "no call matches /^arthur continue ", "arthur review 7b2e4d11 --round 3 matches /^arthur review/"],
+		fails: [`${SH0004} does not match /^## Decisions`, "no call matches /^arthur continue ", "arthur review 7b2e4d11 --round 3 matches /^arthur (?!.*--help)review/"],
 	},
 	"delivery/merge": {
 		right: [
@@ -191,7 +191,7 @@ const ACTS: Readonly<Record<string, Act>> = {
 			{ reply: "SH0007, product names trimmed, did not go in: npm test failed on main (test/catalog.test.ts:77, a name with spaces is not trimmed when listed), and main is as it was. I recommend continuing its worker with that test, then a new review: say yes." },
 		],
 		wrong: [{ bash: "arthur merge 6a7b8c9d" }, { bash: "arthur continue 6a7b8c9d 'A test fails on main: test/catalog.test.ts:77.'" }, { reply: "Sent back to its worker." }],
-		fails: ["arthur continue 6a7b8c9d A test fails on main: test/catalog.test.ts:77. matches /^arthur continue /", "the reply does not match /npm test/", "the reply does not match /[Cc]ontinu/"],
+		fails: ["arthur continue 6a7b8c9d A test fails on main: test/catalog.test.ts:77. matches /^arthur (?!.*--help)continue /", "the reply does not match /npm test/", "the reply does not match /[Cc]ontinu/"],
 	},
 	"github/ci-failed": {
 		right: [
@@ -244,12 +244,12 @@ const ACTS: Readonly<Record<string, Act>> = {
 	"manage/audit-autopilot": {
 		right: audit({ bash: "arthur ticket status SH0016 planned --autopilot" }, AUDIT[0]),
 		wrong: audit({ bash: "arthur ticket status SH0017 planned" }, AUDIT[1]),
-		fails: ["no call matches /^arthur ticket status SH0016 planned --autopilot\\b/", `arthur spawn --budget 1 Ticket: ${AUDIT[1]} matches /^arthur spawn (?!.*SH0016)/`, "arthur ticket status SH0017 planned matches "],
+		fails: ["no call matches /^arthur ticket status SH0016 planned --autopilot\\b/", `arthur spawn --budget 1 Ticket: ${AUDIT[1]} matches /^arthur (?!.*--help)spawn (?!.*SH0016)/`, "arthur ticket status SH0017 planned matches "],
 	},
 	"manage/retro": {
 		right: retro(),
 		wrong: retro({ bash: "arthur ticket status SH0016 planned --autopilot" }),
-		fails: ["arthur ticket status SH0016 planned --autopilot matches /--autopilot/", "arthur ticket status SH0016 planned --autopilot matches /^arthur ticket status SH001[67] planned/"],
+		fails: ["arthur ticket status SH0016 planned --autopilot matches /--autopilot/", "arthur ticket status SH0016 planned --autopilot matches /^arthur (?!.*--help)ticket status SH001[67] planned/"],
 	},
 	"session/after-restart-plan": {
 		right: restart({ write: ".arthur/session/after-restart.md", text: "- Tell me to start AR0091, sorting arthur jobs by machine: its spawn waits for this restart.\n" }),

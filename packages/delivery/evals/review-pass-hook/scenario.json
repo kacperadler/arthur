@@ -34,12 +34,12 @@
 			"^arthur merge (?=.*--auto)(?=.* (\\S+-)?c9d0e1f2\\b)"
 		],
 		"never": [
-			"^arthur merge (?!.*--auto)",
+			"^arthur (?!.*--help)merge (?!.*--auto)",
 			"--no-ci",
 			"--unreviewed",
-			"^arthur prune .*c9d0e1f2",
-			"^arthur spawn ",
-			"^arthur continue "
+			"^arthur (?!.*--help)prune .*c9d0e1f2",
+			"^arthur (?!.*--help)spawn ",
+			"^arthur (?!.*--help)continue "
 		],
 		"reply": {
 			"match": [

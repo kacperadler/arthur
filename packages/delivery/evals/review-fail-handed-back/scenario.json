@@ -22,11 +22,11 @@
 			"^arthur prune (\\S+-)?9a8c7e61$"
 		],
 		"never": [
-			"^arthur continue ",
-			"^arthur review",
-			"^arthur ticket file ",
-			"^arthur spawn ",
-			"^arthur merge "
+			"^arthur (?!.*--help)continue ",
+			"^arthur (?!.*--help)review",
+			"^arthur (?!.*--help)ticket file ",
+			"^arthur (?!.*--help)spawn ",
+			"^arthur (?!.*--help)merge "
 		],
 		"reply": {
 			"lines": 3

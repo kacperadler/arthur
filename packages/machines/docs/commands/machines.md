@@ -69,7 +69,9 @@ The plugin answers the core's `jobs.place` for every spawn, `arthur spawn` and a
 
 The ticket and the project come from the list the `projects` plugin provides; without it (projects off), neither requires anything. Every job of a ticket, worker, review or plan, whose task names the ticket, is placed by the same labels, so its checks run where it was built.
 
-A machine has the labels when its `os` and `arch` are the ones asked (a machine without that label has not) and its `tools` hold each tool asked. Without `--machine`, the job goes to one of the machines that have the labels, are online and are under their `maxJobs` (the jobs counted are those in a run on it: working, idle, or held; `local` is always online, the others are checked now as above, in parallel): the one with the most room. The room is what the resources plugin answers when it provides `resources.free` (called with the machine's name, the jobs it has room for, roadmap entry 34), else the fewest jobs in a run; on a tie `local`, then the list's order. With `--machine`, the named machine must have the labels and is not checked, so a job goes there as before; an unknown name is the core's to refuse.
+A ticket's JSON block may also name the machine every job of it runs on, `"machine": "local"`, read beside `requires` (also when `--requires` replaces its labels): a ticket that cannot run elsewhere, such as one that makes a new plugin with `arthur plugin new` (`arthur plugin --help`). It is placed as `--machine` is, below; `--machine` wins over it.
+
+A machine has the labels when its `os` and `arch` are the ones asked (a machine without that label has not) and its `tools` hold each tool asked. Without `--machine` or a ticket's `machine`, the job goes to one of the machines that have the labels, are online and are under their `maxJobs` (the jobs counted are those in a run on it: working, idle, or held; `local` is always online, the others are checked now as above, in parallel): the one with the most room. The room is what the resources plugin answers when it provides `resources.free` (called with the machine's name, the jobs it has room for, roadmap entry 34), else the fewest jobs in a run; on a tie `local`, then the list's order. With `--machine`, or else a ticket's `machine`, the named machine must have the labels and is neither checked nor held to its `maxJobs`, so a job goes there as before; an unknown name is the core's to refuse (`unknown machine <name>; machines: <names>`).
 
 Refused before any worktree or record exists, naming the labels, where they come from (`--requires`, `ticket <id>` or `project <name>`), and every machine with its labels and its state (`online, <n> jobs`, `online, full: <n> of <maxJobs> jobs`, or `offline: <reason>`):
 
@@ -77,9 +79,10 @@ Refused before any worktree or record exists, naming the labels, where they come
 no machine has the labels; the job needs tools gpu (--requires); machines: local (os linux, arch x64, tools docker): online, 0 of 3 jobs; mac (os macos, arch arm64, tools xcodebuild): online, 1 of 2 jobs
 every machine with the labels is offline or full; the job needs os macos, tools xcodebuild (ticket AR0003); machines: local (os linux, arch x64, tools docker): online, 0 of 3 jobs; mac (os macos, arch arm64, tools xcodebuild): offline: ssh mac-mini: arthur@mac-mini: Permission denied (publickey).
 machine local lacks os macos, tools xcodebuild; the job needs os macos, tools xcodebuild (project shop); machines: ...
+machine local, which its ticket names, lacks os macos; the job needs os macos (--requires); machines: ...
 ```
 
-Also refused, naming where: a `requires` that is not `{ os?, arch?, tools? }` with `os` and `arch` non-empty strings and `tools` a list of them (`<where>: requires must be ...`), and a ticket whose JSON block is not JSON (`<file>: its JSON block is not JSON (<error>); fix it by hand`).
+Also refused, naming where: a `requires` that is not `{ os?, arch?, tools? }` with `os` and `arch` non-empty strings and `tools` a list of them (`<where>: requires must be ...`), a ticket's `machine` that is not a non-empty string (`ticket <id> (<file>): machine must be a machine's name, got <value>`), and a ticket whose JSON block is not JSON (`<file>: its JSON block is not JSON (<error>); fix it by hand`), also when `--requires` is given.
 
 ## arthur doctor
 

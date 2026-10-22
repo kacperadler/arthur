@@ -36,3 +36,4 @@ In:
 
 - 2026-10-22: Source: F1 of AR0298
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-23: Coordinator (free hand): line budget raise accepted, machines 474 to 479, develop 672 to 681, for a ticket's `machine` pinning every job and the coordinator context line in Arthur's repository.

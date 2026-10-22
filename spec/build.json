@@ -2156,9 +2156,9 @@
   {
     "id": "AR0280",
     "title": "Roadmap 68: evals, the scenarios",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0280-roadmap-68-evals-the-scenarios/ticket.md",
-    "updated": "2026-10-22T08:46:22.494Z"
+    "updated": "2026-10-22T08:57:00.278Z"
   },
   {
     "id": "AR0281",
@@ -2187,8 +2187,8 @@
   {
     "id": "AR0284",
     "title": "Roadmap 97: decision classes",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0284-roadmap-97-decision-classes/ticket.md",
-    "updated": "2026-10-22T08:32:29.912Z"
+    "updated": "2026-10-22T08:56:14.122Z"
   }
 ]

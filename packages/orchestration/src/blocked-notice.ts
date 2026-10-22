@@ -32,23 +32,30 @@ export function blockedNotice(host: Host): void {
 		// Another process may remove one meanwhile.
 		for (const name of readdirSync(asked)) if (Date.now() - (statSync(join(asked, name), { throwIfNoEntry: false })?.mtimeMs ?? Date.now()) > KEEP_MS) rmSync(join(asked, name), { force: true });
 		const question = reason.slice("user: ".length);
-		let decision: JobQuestion | undefined;
-		let failed: unknown;
+		const notify = (decision?: JobQuestion) => {
+			const ending = decision?.policy === undefined ? "" : ` — answered by policy (${policyOf(decision.policy)}): ${decision.policy.decided}`;
+			const head = `${String(id)} asks${decision === undefined ? "" : ` [${decision.id}]`}: `;
+			const text = `${head}${question}${ending}`;
+			const tail = ` … (cut; /jobs shows the whole question of job ${String(id).split("-").at(-1)})`;
+			// The question is cut, never the ending, unless the ending leaves no room for the head.
+			const kept = MESSAGE - tail.length - ending.length >= head.length ? ending : "";
+			// Never half of a character that takes two UTF-16 units.
+			let end = MESSAGE - tail.length - kept.length;
+			if (/[\uD800-\uDBFF]/.test(text[end - 1] ?? "")) end--;
+			host.events.emit("notice", { text: text.length > MESSAGE ? `${text.slice(0, end)}${tail}${kept}` : text, blocked: String(id) });
+		};
+		const failed = (error: unknown) => {
+			notify();
+			throw error;
+		};
+		let decision: JobQuestion | undefined | Promise<JobQuestion>;
 		try {
 			decision = askOfJob(host, event.data as Readonly<Record<string, unknown>>, question);
 		} catch (error) {
-			failed = error;
+			return failed(error);
 		}
-		const ending = decision?.policy === undefined ? "" : ` — answered by policy (${policyOf(decision.policy)}): ${decision.policy.decided}`;
-		const head = `${String(id)} asks${decision === undefined ? "" : ` [${decision.id}]`}: `;
-		const text = `${head}${question}${ending}`;
-		const tail = ` … (cut; /jobs shows the whole question of job ${String(id).split("-").at(-1)})`;
-		// The question is cut, never the ending, unless the ending leaves no room for the head.
-		const kept = MESSAGE - tail.length - ending.length >= head.length ? ending : "";
-		// Never half of a character that takes two UTF-16 units.
-		let end = MESSAGE - tail.length - kept.length;
-		if (/[\uD800-\uDBFF]/.test(text[end - 1] ?? "")) end--;
-		host.events.emit("notice", { text: text.length > MESSAGE ? `${text.slice(0, end)}${tail}${kept}` : text, blocked: String(id) });
-		if (failed !== undefined) throw failed;
+		// While another process holds the log's lock, the notice waits for its id; `arthur run` goes on.
+		if (decision instanceof Promise) return decision.then(notify, failed);
+		notify(decision);
 	});
 }

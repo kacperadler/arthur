@@ -2177,9 +2177,9 @@
   {
     "id": "AR0283",
     "title": "A job's question and the plugin's closes take the log's lock synchronously inside `arthur run`",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0283-a-job-s-question-and-the-plugin-s-closes-take-the-log-s-lock-synchronously-inside-arthur-run/ticket.md",
-    "updated": "2026-10-22T17:07:36.513Z",
+    "updated": "2026-10-22T17:16:13.928Z",
     "after": [
       "AR0282"
     ]
@@ -2201,9 +2201,9 @@
   {
     "id": "AR0286",
     "title": "The coordinator's role has no rule for a night answer, which orchestration/night-one-line measures",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0286-the-coordinator-s-role-has-no-rule-for-a-night-answer-which-orchestration-night-one-line-measures/ticket.md",
-    "updated": "2026-10-22T09:44:06.152Z"
+    "updated": "2026-10-22T17:18:02.293Z"
   },
   {
     "id": "AR0287",

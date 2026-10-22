@@ -60,7 +60,7 @@ Parts are separated by a blank line. When the command fails (exit not 0, or 60 s
 
 `arthur coordinator context` exits 0 with the text, 1 when it cannot be built (`arthur coordinator: <error>`).
 
-For develop's `arthur eval`, `call("coordinator.checkoutContext", { root, at })` answers the same text for a copy of the main project's repository at `root` (an eval's fixture) at the instant `at`, a `Date`: the main project's role (1), the vision and the board read in `root` under `## Vision of <main project> (<path>)` and `## Board`, `## Time` at `at`, and each plugin's lines as they answer now (8); no `## Jobs not ended`, `## Open decisions` or `## Silent`, which are the live Arthur's. Anything but `{ root: <text>, at: <Date> }` is refused: `coordinator.checkoutContext: expected { root: a folder, at: a Date }, got <value>`.
+For develop's `arthur eval`, `call("coordinator.checkoutContext", { root, at })` answers the same text for a copy of the main project's repository at `root` (an eval's fixture) at the instant `at`, a `Date`: the main project's role (1), the vision and the board read in `root` under `## Vision (<path>)` and `## Board`, named after no project since the copy is not the main project, its vision's warnings likewise `- the copy has no vision: …` and `- the copy: its vision was not read: …` (each fixture ships a `spec/vision.md`, so it has none unless the main project's `prompts.vision` moves the path), `## Time` at `at`, and each plugin's lines as they answer now (8); no `## Jobs not ended`, `## Open decisions` or `## Silent`, which are the live Arthur's. Anything but `{ root: <text>, at: <Date> }` is refused: `coordinator.checkoutContext: expected { root: a folder, at: a Date }, got <value>`.
 
 ## Jobs blocked on the owner
 

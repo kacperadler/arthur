@@ -2215,9 +2215,9 @@
   {
     "id": "AR0288",
     "title": "The eval stub answers a command's --help with that command's scripted result",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0288-the-eval-stub-answers-a-command-s-help-with-that-command-s-scripted-result/ticket.md",
-    "updated": "2026-10-22T14:53:05.827Z",
+    "updated": "2026-10-22T14:58:02.566Z",
     "after": [
       "AR0278"
     ]
@@ -2252,5 +2252,12 @@
     "status": "planned",
     "path": "spec/features/AR0292-a-check-of-its-own-still-makes-two-ssh-calls-to-a-machine-with-a-disk-floor/ticket.md",
     "updated": "2026-10-22T14:13:59.123Z"
+  },
+  {
+    "id": "AR0293",
+    "title": "An orchestration inbox test overshoots its 30 s real-timer window under load",
+    "status": "planned",
+    "path": "spec/features/AR0293-an-orchestration-inbox-test-overshoots-its-30-s-real-timer-window-under-load/ticket.md",
+    "updated": "2026-10-22T14:58:24.868Z"
   }
 ]

@@ -2129,9 +2129,9 @@
   {
     "id": "AR0277",
     "title": "The eval words a turn with a copy of orchestration's wake and inbox lines, which can drift",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0277-the-eval-words-a-turn-with-a-copy-of-orchestration-s-wake-and-inbox-lines-which-can-drift/ticket.md",
-    "updated": "2026-10-22T08:51:15.850Z"
+    "updated": "2026-10-22T09:09:36.975Z"
   },
   {
     "id": "AR0278",
@@ -2187,8 +2187,8 @@
   {
     "id": "AR0284",
     "title": "Roadmap 97: decision classes",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0284-roadmap-97-decision-classes/ticket.md",
-    "updated": "2026-10-22T08:56:14.122Z"
+    "updated": "2026-10-22T09:11:45.745Z"
   }
 ]

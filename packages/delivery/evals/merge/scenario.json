@@ -4,11 +4,11 @@
 	},
 	"stub": [
 		{
-			"match": "^arthur jobs",
+			"match": "^arthur (?!.*--help)jobs",
 			"output": "ended\nSH0006  review  ended  10:03  $0.38/$2.00  2b3c4d5e  finished\nSH0006  worker  ended  09:12  $1.12/$2.00  8e9f0a1b  finished"
 		},
 		{
-			"match": "^arthur merge ",
+			"match": "^arthur (?!.*--help)merge ",
 			"output": "merged arthur/2026-10-22-worker-8e9f0a1b into main: 5f6a7b8\nnpm ci: passed.\nnpm run check: passed.\nnpm test: 52/52 passed.\n- Findings: none; no findings.md on this ticket.\nwrote spec/features/SH0006-count-the-items-per-order-in-the-sales-report/outcome.md; rewrite What went in from the commit subjects listed there\nSH0006 merged\nwrote CHANGELOG.md: 3 merged tickets\nnothing committed but the merge, nothing pushed or pruned\n\n# After a merge that went in\n\n`arthur merge` printed this after its last step (`arthur merge --help`). In the same turn:\n\n1. Rewrite `## What went in` of the ticket's `outcome.md` from the commit subjects listed there into what each changed file does now.\n2. Copy the reviews' non-blocking notes into the ticket's `findings.md` as new entries, and settle each: a planning ticket (`arthur ticket new '<title>'`, its Description the finding, its Decisions `- <date>: Source: F<n> of <ticket>`) with the entry's status `ticket <id>`, or `dropped (<reason>)`. When the merge said `no plugin provides findings.onMerge`, settle its open entries the same way. List those tickets under `## Left open` in `outcome.md`.\n   Settle the notes in the project's findings mode, as the merge settled the open entries: on `- Deferred (client summary):` lines (`summary`) no ticket, each note's status `deferred (client summary)` and its own such line under `## Left open`; on a `- Tickets from findings:` ticket with several entries or titled `Findings of <ticket>: <its title>` (`grouped`) every note goes into that ticket's Description, status `ticket <id>` (one such ticket for all notes when none was made); else a ticket each (`ticket`). When the lines show no mode (`none open`, no `findings.md`), `findings({ mode })` in `arthur.config.ts` names the project's, `ticket` when it does not.\n3. Tell the owner the tickets made from findings, each with its title and a plain sentence on what it would change.\n4. Commit the ticket's folder, the tickets made, the board and `CHANGELOG.md` together, `git push` if `git remote` lists a remote (if the push fails, tell the owner the error; do not retry), then `arthur prune` the merged job and its review jobs.\n5. On `unblocked: …`, spawn those tickets at once: their approval covered the order.",
 			"files": {
 				"spec/features/SH0006-count-the-items-per-order-in-the-sales-report/outcome.md": "# SH0006 - Outcome\n\n- Merged: 2026-10-22, `5f6a7b8`\n- Branch: arthur/2026-10-22-worker-8e9f0a1b\n- Reviews: review-1.md PASS\n- Cost: worker $1.12, reviews $0.38; review rounds 1\n\n## What went in\n\n- feat(SH0006): count the items per order in the sales report\n\n## Checks on main\n\n- `npm ci`: passed.\n- `npm run check`: passed.\n- `npm test`: 52/52 passed.\n\n## Left open\n\n- Findings: none; no findings.md on this ticket.\n",
@@ -17,7 +17,7 @@
 			}
 		},
 		{
-			"match": "^arthur ticket new ",
+			"match": "^arthur (?!.*--help)ticket new ",
 			"output": "SH0016 spec/features/SH0016-count-each-order-s-items-in-one-pass/ticket.md",
 			"files": {
 				"spec/features/SH0016-count-each-order-s-items-in-one-pass/ticket.md": "# SH0016 - Count each order's items in one pass\n\n```json\n{\n  \"id\": \"SH0016\",\n  \"title\": \"Count each order's items in one pass\",\n  \"date\": \"2026-10-22\"\n}\n```\n\n## Description\n\n<!-- Two or three sentences: what changes, and for whom. -->\n\n## Goal\n\n<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->\n\n- Kind: <!-- feature | bug | risk | cleanup | improvement -->\n\n## Done means\n\n<!-- Each observable result, and the test that proves it; the project's checks pass. -->\n\n## Scope\n\nIn:\n<!-- - `path/to/file.ts`: what changes there. -->\n\nOut:\n<!-- - What this ticket does not do, and which ticket does. -->\n\n## Decisions\n\n<!-- - YYYY-MM-DD: one decision the human made, in one line. -->\n",
@@ -25,7 +25,7 @@
 			}
 		},
 		{
-			"match": "^arthur ticket new ",
+			"match": "^arthur (?!.*--help)ticket new ",
 			"output": "SH0017 spec/features/SH0017-test-the-sales-report-on-an-order-with-no-items/ticket.md",
 			"files": {
 				"spec/features/SH0017-test-the-sales-report-on-an-order-with-no-items/ticket.md": "# SH0017 - Test the sales report on an order with no items\n\n```json\n{\n  \"id\": \"SH0017\",\n  \"title\": \"Test the sales report on an order with no items\",\n  \"date\": \"2026-10-22\"\n}\n```\n\n## Description\n\n<!-- Two or three sentences: what changes, and for whom. -->\n\n## Goal\n\n<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->\n\n- Kind: <!-- feature | bug | risk | cleanup | improvement -->\n\n## Done means\n\n<!-- Each observable result, and the test that proves it; the project's checks pass. -->\n\n## Scope\n\nIn:\n<!-- - `path/to/file.ts`: what changes there. -->\n\nOut:\n<!-- - What this ticket does not do, and which ticket does. -->\n\n## Decisions\n\n<!-- - YYYY-MM-DD: one decision the human made, in one line. -->\n",
@@ -33,7 +33,7 @@
 			}
 		},
 		{
-			"match": "^arthur prune ",
+			"match": "^arthur (?!.*--help)prune ",
 			"output": "2026-10-22-worker-8e9f0a1b: worktree /home/owner/.arthur-worktrees/2026-10-22-worker-8e9f0a1b removed; branch arthur/2026-10-22-worker-8e9f0a1b deleted; record deleted\n2026-10-22-review-2b3c4d5e: worktree /home/owner/.arthur-worktrees/2026-10-22-review-2b3c4d5e removed; record deleted"
 		}
 	],

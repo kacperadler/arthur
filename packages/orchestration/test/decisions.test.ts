@@ -4,6 +4,7 @@ import { once } from "node:events";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { orchestration } from "../src/orchestration.ts";
@@ -415,15 +416,21 @@ test("the context lists each open question with its age and up to 5 answered one
 	assert.match(printed.join("\n"), /\n## Open decisions\n\n- AC-D8, plan, ticket AC0001, open for 2h05m: Approve the plan of the menu\?\n/);
 });
 
-test("asks at once, from four processes asking five times each, get one id each and every line is kept", async (t) => {
-	const saved = process.env.ARTHUR_JOB;
-	delete process.env.ARTHUR_JOB;
-	t.after(() => (saved === undefined ? delete process.env.ARTHUR_JOB : (process.env.ARTHUR_JOB = saved)));
+// A project demo (DM) in a folder of its own whose config sets up the plugin in UTC, for `arthur` run as a process there.
+function demo(): string {
 	const folder = temporaryFolder();
 	mkdirSync(join(folder, "spec"));
 	writeFileSync(join(folder, "spec/build.json"), "[]");
 	const projects = `{ name: "projects", setup(host) { host.provide("projects", () => [{ name: "demo", path: ${JSON.stringify(folder)}, prefix: "DM" }]); } }`;
 	writeFileSync(join(folder, "arthur.config.ts"), `import { orchestration } from ${JSON.stringify(PLUGIN)};\nexport default { core: { timeZone: "UTC" }, plugins: [orchestration(), ${projects}] };\n`);
+	return folder;
+}
+
+test("asks at once, from four processes asking five times each, get one id each and every line is kept", async (t) => {
+	const saved = process.env.ARTHUR_JOB;
+	delete process.env.ARTHUR_JOB;
+	t.after(() => (saved === undefined ? delete process.env.ARTHUR_JOB : (process.env.ARTHUR_JOB = saved)));
+	const folder = demo();
 	const asks = async (writer: number) => {
 		const script = `for n in 1 2 3 4 5; do "$0" "$1" decision ask --kind question --question "${writer}.$n?" || exit 1; done`;
 		const child = spawn("sh", ["-c", script, process.execPath, CLI], { cwd: folder, env: { PATH: process.env.PATH ?? "" } });
@@ -441,6 +448,39 @@ test("asks at once, from four processes asking five times each, get one id each 
 	assert.deepEqual(log.map((each) => each.id), Array.from({ length: 20 }, (_, at) => `DM-D${at + 1}`), "every line kept, in the order asked");
 	assert.equal(new Set(log.map((each) => each.question)).size, 20);
 	assert.match(log[0].time, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\+00:00$/, "UTC's offset written out");
+});
+
+// Whatever the timing: another process holds the log's lock, the ask waits on it (its own lock file beside it), and only then
+// does the holder write a record and let go. An ask that wrote without the lock is before that record, or its id is the same.
+test("an ask waits for the log's lock another process holds, and writes after that process's record", async () => {
+	const folder = demo();
+	const lock = join(folder, ".arthur/orchestration/decisions-demo.lock");
+	const file = join(folder, "spec/decisions.jsonl");
+	mkdirSync(dirname(lock), { recursive: true });
+	const marker = { record: "ask", id: "DM-D1", time: "2026-03-04T05:00:00+00:00", project: "demo", kind: "question", question: "Held?", options: [] };
+	const code = `const { takeLock } = await import(${JSON.stringify(import.meta.resolve("@arthur/core/lock"))});
+		const { appendFileSync } = await import("node:fs");
+		const lock = takeLock(${JSON.stringify(lock)});
+		if (!("release" in lock)) process.exit(1);
+		process.send("held");
+		process.once("message", () => {
+			appendFileSync(${JSON.stringify(file)}, ${JSON.stringify(`${JSON.stringify(marker)}\n`)});
+			lock.release();
+			process.disconnect();
+		});`;
+	const holder = spawn(process.execPath, ["--input-type=module", "-e", code], { stdio: ["ignore", "inherit", "inherit", "ipc"] });
+	const held = once(holder, "exit");
+	await Promise.race([once(holder, "message"), held.then(([status]) => assert.fail(`the holder exited with ${status} before it held the lock`))]);
+	const asker = spawn(process.execPath, [CLI, "decision", "ask", "--kind", "question", "--question", "After?"], { cwd: folder, env: { PATH: process.env.PATH ?? "" } });
+	let out = "";
+	asker.stdout.on("data", (chunk) => (out += chunk));
+	asker.stderr.on("data", (chunk) => (out += chunk));
+	const asked = once(asker, "exit");
+	while (!existsSync(`${lock}.${asker.pid}`) && !existsSync(file) && asker.exitCode === null) await sleep(2);
+	holder.send("release");
+	assert.deepEqual([(await held)[0], (await asked)[0], out.trim()], [0, 0, "DM-D2"]);
+	const log = readFileSync(file, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+	assert.deepEqual(log.map((each) => [each.id, each.question]), [["DM-D1", "Held?"], ["DM-D2", "After?"]], "the ask's record after the holder's");
 });
 
 // Decision classes (spec/roadmap.md, entry 97): three budget questions the owner answered alike, AC-D1 to AC-D3; the

@@ -2208,9 +2208,9 @@
   {
     "id": "AR0287",
     "title": "A plugin's wake lines for a review or an onboarding cannot reach an eval's turn, even once AR0277 words it",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0287-a-plugin-s-wake-lines-for-a-review-or-an-onboarding-cannot-reach-an-eval-s-turn-even-once-ar0277-words-it/ticket.md",
-    "updated": "2026-10-22T19:22:06.349Z"
+    "updated": "2026-10-22T19:39:25.020Z"
   },
   {
     "id": "AR0288",
@@ -2225,16 +2225,16 @@
   {
     "id": "AR0289",
     "title": "The eval still words a schedule entry with its own copy of the schedule plugin's `[scheduled <id>]` line",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0289-the-eval-still-words-a-schedule-entry-with-its-own-copy-of-the-schedule-plugin-s-scheduled-id-line/ticket.md",
-    "updated": "2026-10-22T13:19:24.148Z"
+    "updated": "2026-10-22T19:33:16.200Z"
   },
   {
     "id": "AR0290",
     "title": "The telegram menu test failed once in a full `npm test` and passes alone",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0290-the-telegram-menu-test-failed-once-in-a-full-npm-test-and-passes-alone/ticket.md",
-    "updated": "2026-10-22T13:19:24.351Z"
+    "updated": "2026-10-22T19:32:14.902Z"
   },
   {
     "id": "AR0291",

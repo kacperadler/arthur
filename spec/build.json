@@ -2208,9 +2208,9 @@
   {
     "id": "AR0287",
     "title": "A plugin's wake lines for a review or an onboarding cannot reach an eval's turn, even once AR0277 words it",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0287-a-plugin-s-wake-lines-for-a-review-or-an-onboarding-cannot-reach-an-eval-s-turn-even-once-ar0277-words-it/ticket.md",
-    "updated": "2026-10-22T17:24:25.370Z"
+    "updated": "2026-10-22T19:22:06.349Z"
   },
   {
     "id": "AR0288",
@@ -2301,5 +2301,12 @@
     "status": "planned",
     "path": "spec/features/AR0299-a-crash-of-arthur-run-while-a-job-s-question-waits-for-the-log-s-lock-loses-its-notice/ticket.md",
     "updated": "2026-10-22T17:36:37.413Z"
+  },
+  {
+    "id": "AR0300",
+    "title": "The wrapper's append to log can still recreate it while rm -r empties the record",
+    "status": "planned",
+    "path": "spec/features/AR0300-the-wrapper-s-append-to-log-can-still-recreate-it-while-rm-r-empties-the-record/ticket.md",
+    "updated": "2026-10-22T19:22:29.827Z"
   }
 ]

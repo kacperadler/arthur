@@ -1,4 +1,4 @@
-import { appendFileSync, statSync } from "node:fs";
+import { closeSync, constants, openSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { gitCall } from "./git-writes.ts";
 import { declaredPlace, jobPlace, type Place, real } from "./job-place.ts";
@@ -166,9 +166,17 @@ export default function worktreeGuard(pi: ExtensionApi): void {
 	if (record === undefined || record === "") return;
 	const place = jobPlace(record);
 	let said = false;
+	// Said once, appended without creating `log`: a record a `rm -r` is emptying gets no new file, and the wrapper ends the job.
 	const fallback = (reason: string) => {
-		if (!said) appendFileSync(join(record, "log"), `[arthur ${new Date().toISOString()}] worktree guard: the project list is unreadable (${reason}); guarding the projects this job's record lists\n`);
+		if (said) return;
 		said = true;
+		try {
+			const fd = openSync(join(record, "log"), constants.O_WRONLY | constants.O_APPEND);
+			writeFileSync(fd, `[arthur ${new Date().toISOString()}] worktree guard: the project list is unreadable (${reason}); guarding the projects this job's record lists\n`);
+			closeSync(fd);
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+		}
 	};
 	pi.on("tool_call", (event) => {
 		const reason = worktreeRefusal(declaredPlace(place, fallback), event.toolName, event.input);

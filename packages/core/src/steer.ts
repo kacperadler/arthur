@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, readFileSync, renameSync } from "node:fs";
+import { closeSync, constants, mkdirSync, openSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { waiting } from "./steer-inbox.ts";
 
@@ -26,7 +26,14 @@ export default function steer(pi: ExtensionApi): void {
 				throw error;
 			}
 			pi.sendUserMessage(text, { deliverAs: "steer" });
-			appendFileSync(join(record, "log"), `[arthur ${new Date().toISOString()}] steered ${name}: ${text.split("\n")[0]}\n`);
+			// Appended without creating `log`: a record a `rm -r` is emptying gets no new file, and the wrapper ends the job.
+			try {
+				const fd = openSync(join(record, "log"), constants.O_WRONLY | constants.O_APPEND);
+				writeFileSync(fd, `[arthur ${new Date().toISOString()}] steered ${name}: ${text.split("\n")[0]}\n`);
+				closeSync(fd);
+			} catch (error) {
+				if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+			}
 		}
 	});
 }

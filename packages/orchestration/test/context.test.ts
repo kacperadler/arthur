@@ -90,6 +90,14 @@ test("the coordinator's role runs a wake's arthur merge --auto without the owner
 	assert.match(decision ?? "", /merge \(a wake's `arthur merge --auto` aside\)/, "silent mode does not ask the owner for it");
 });
 
+// AR0286: the context says whether it is night; the role must say what that changes, which orchestration/night-one-line measures.
+test("the coordinator's role keeps a reply to one line at night, as the context's ## Time says, under the question rule", () => {
+	const final = ROLE.split("\n## Final message\n\n")[1]?.split("\n## ")[0] ?? "";
+	const night = final.indexOf("At night (your context's `## Time` says `night`), the reply is one line.");
+	assert.ok(night >= 0, "the role's Final message has the night rule");
+	assert.ok(night < final.indexOf("This outranks any limit on a reply's length"), "a question to the owner still runs as long as it needs");
+});
+
 test("the context: the role with the main project's override and criteria, each vision, a warning per missing file, each board, the time, then each plugin's lines", async (t) => {
 	const { fake, context } = await setup(t, "2026-10-18T10:00:00Z");
 	fake.provide("coordinator.context", () => "SH Shop: the shop.\n");

@@ -2305,9 +2305,9 @@
   {
     "id": "AR0300",
     "title": "The wrapper's append to log can still recreate it while rm -r empties the record",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0300-the-wrapper-s-append-to-log-can-still-recreate-it-while-rm-r-empties-the-record/ticket.md",
-    "updated": "2026-10-22T22:29:08.732Z"
+    "updated": "2026-10-22T22:35:16.855Z"
   },
   {
     "id": "AR0301",
@@ -2333,9 +2333,9 @@
   {
     "id": "AR0304",
     "title": "A new plugin's ticket without a plan can still be placed on another machine",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0304-a-new-plugin-s-ticket-without-a-plan-can-still-be-placed-on-another-machine/ticket.md",
-    "updated": "2026-10-22T21:36:24.628Z"
+    "updated": "2026-10-22T22:32:36.972Z"
   },
   {
     "id": "AR0305",
@@ -2343,5 +2343,12 @@
     "status": "planned",
     "path": "spec/features/AR0305-a-lock-left-by-a-crashed-process-whose-pid-the-taker-now-has-counts-as-held-by-a-live-process/ticket.md",
     "updated": "2026-10-22T22:17:03.359Z"
+  },
+  {
+    "id": "AR0306",
+    "title": "The agent's extensions still append to `log` with a flag that creates it",
+    "status": "planned",
+    "path": "spec/features/AR0306-the-agent-s-extensions-still-append-to-log-with-a-flag-that-creates-it/ticket.md",
+    "updated": "2026-10-22T22:35:27.929Z"
   }
 ]

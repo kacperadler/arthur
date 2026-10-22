@@ -2084,9 +2084,9 @@
   {
     "id": "AR0271",
     "title": "Two processes checking one machine at once can both say the same news",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0271-two-processes-checking-one-machine-at-once-can-both-say-the-same-news/ticket.md",
-    "updated": "2026-10-22T08:51:05.737Z",
+    "updated": "2026-10-22T14:14:09.567Z",
     "after": [
       "AR0269"
     ]
@@ -2146,9 +2146,9 @@
   {
     "id": "AR0279",
     "title": "An eval turn gets the coordinator's role but not its context, nor a time of day",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0279-an-eval-turn-gets-the-coordinator-s-role-but-not-its-context-nor-a-time-of-day/ticket.md",
-    "updated": "2026-10-22T14:07:29.162Z",
+    "updated": "2026-10-22T14:16:52.074Z",
     "after": [
       "AR0278"
     ]
@@ -2215,9 +2215,9 @@
   {
     "id": "AR0288",
     "title": "The eval stub answers a command's --help with that command's scripted result",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0288-the-eval-stub-answers-a-command-s-help-with-that-command-s-scripted-result/ticket.md",
-    "updated": "2026-10-22T14:11:03.132Z",
+    "updated": "2026-10-22T14:20:58.508Z",
     "after": [
       "AR0278"
     ]

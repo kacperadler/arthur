@@ -1,6 +1,6 @@
 # arthur decisions
 
-Usage: `arthur decisions [<words>] [--open] [--kind <kind>] [--ticket <id>]`, or `arthur decisions <id>`. Comes with the `orchestration` plugin, which every config holds.
+Usage: `arthur decisions [<words>] [--open] [--kind <kind>] [--ticket <id>]`, `arthur decisions <id>`, or `arthur decisions --classes`. Comes with the `orchestration` plugin, which every config holds.
 
 Reads the project's decision log, `spec/decisions.jsonl` (`arthur decision --help`), and writes nothing: a project with no log says `no decisions yet`, and reading creates no file. The project is the main one, or `--project <name>`; an id's prefix picks its own project. It runs inside a job too.
 
@@ -19,6 +19,14 @@ The later answer counts. A line under the ticket's Decisions that differs from w
 
 None matching prints `no decision matches`.
 
-`arthur decisions <id>` prints one question whole: its kind, time, ticket and job; the question; the options, numbered; the recommendation; every answer with its time, decision, option picked and the owner's words; every close; where it stands now; and each line under its ticket's Decisions edited by hand, as it is.
+`arthur decisions <id>` prints one question whole: its kind, time, ticket and job; the question; the options, numbered; the recommendation; every answer with its time, decision, option picked and the owner's words, or `by policy (<class id>)`; every close; where it stands now; and each line under its ticket's Decisions edited by hand, as it is. A class's proposal adds its class and evidence, every revoke with the owner's words, and where the class stands with the questions it answered (`arthur decision --help`, "Classes").
 
-Refused, exit 1: a log with a line that is not a record (`arthur decision --help`), naming the line; an id the log does not hold, or whose prefix no project has; a `--kind` other than the five; an unknown `--project`. Wrong usage (an unknown flag, a flag without its value or given twice) prints the usage and exits 2.
+`arthur decisions --classes` lists each class of the project, one line each, in the order proposed:
+
+```
+<id> proposed | approved <date> | refused <date> | revoked <date> | closed: <kind> questions naming "<words>"[ (<ticket kind> tickets)] → <decided>; backed by <ids>; the recommendation agreed with the owner's pick on <n> of <scored>; answered by policy: <ids> | none
+```
+
+None says `no classes yet`.
+
+Refused, exit 1: a log with a line that is not a record (`arthur decision --help`), naming the line; an id the log does not hold, or whose prefix no project has; a `--kind` other than the five; an unknown `--project`. Wrong usage (an unknown flag, a flag without its value or given twice, `--classes` with words or another flag) prints the usage and exits 2.

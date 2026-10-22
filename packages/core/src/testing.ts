@@ -20,18 +20,18 @@ import { pluginHost, registry } from "./plugin-host.ts";
 // The test kit (spec/roadmap.md, entries 4, 11 and 13), `@arthur/core/testing`, which `npm test` loads into every test process
 // (`--import`) as the safety net: every `ARTHUR_` variable and tmux's session variables are cleared and tmux's default socket
 // moves into a temporary folder, so no test reaches a live bot, token or tmux server; `omp` on `PATH` is the fake agent with
-// no run (it fails), so no job reaches the real agent; every folder the kit makes, and its slice `jobSlice`, go at exit.
+// no run (it fails), so no job reaches the real agent; at exit go the tmux servers on its sockets (tmux's default one included; a server outlives its removed socket, unreachable then; `find` follows no link out), its slice `jobSlice`, and every folder the kit makes.
 
 for (const key of Object.keys(process.env)) if (key.startsWith("ARTHUR_") || key === "TMUX" || key === "TMUX_PANE") delete process.env[key];
 const root = mkdtempSync(join(tmpdir(), "arthur-test-"));
 process.env.TMUX_TMPDIR = root;
 
-// The joint slice of a test's jobs, never Arthur's own: `arthur_test_<8 hex digits>.slice` right under the user manager (a `-`
-// would nest it in another slice); at exit it is stopped, with any job still in it, and its limits are removed.
+// The joint slice of a test's jobs, never Arthur's own: `arthur_test_<8 hex digits>.slice` right under the user manager (a `-` would nest it in another slice); at exit it is stopped, with any job still in it, and its limits are removed.
 export const jobSlice: Slice = { slice: `arthur_test_${randomBytes(4).toString("hex")}`, cpu: 2, memory: "2G" };
 
 process.on("exit", () => {
 	for (const verb of ["stop", "revert"]) spawnSync("systemctl", ["--user", verb, `${jobSlice.slice}.slice`], { stdio: "ignore" });
+	for (const socket of (spawnSync("find", [root, "-type", "s", "-print0"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).stdout ?? "").split("\0").filter(Boolean)) spawnSync("tmux", ["-S", socket, "kill-server"], { stdio: "ignore" });
 	rmSync(root, { recursive: true, force: true });
 });
 process.env.PATH = [dirname(fakeAgent({ steps: [{ stderr: "fake agent: this test scripted no run" }], exitCode: 1 })), process.env.PATH].join(delimiter);

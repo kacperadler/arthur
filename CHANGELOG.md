@@ -23,6 +23,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0288 The eval stub answers a command's --help with that command's scripted result (3b718b5)
 - AR0289 The eval still words a schedule entry with its own copy of the schedule plugin's `[scheduled <id>]` line (cee3d3f)
 - AR0290 The telegram menu test failed once in a full `npm test` and passes alone (4b8b178)
+- AR0293 An orchestration inbox test overshoots its 30 s real-timer window under load (fbf9607)
 
 ### Changed
 

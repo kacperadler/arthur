@@ -42,3 +42,4 @@ Out:
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
 - 2026-10-22: Coordinator (free hand): line budget raise accepted, core 5753 to 5755, for creating `log` once and treating a missing `log` as removal in `wrapper.ts`.
 - 2026-10-22: Coordinator (free hand): option (a): the other record files keep write-to-temp-and-rename (styleguide); a removal racing their rename is a known limit, written in `spawn.md`. Scope stays `log`.
+- 2026-10-23: Coordinator (free hand): after merging main (AR0299), budgets set to their counts: core 5755, orchestration 2309; projects 486 to 485 and commit-rules 169 to 165 lowered to their counts, accepted.

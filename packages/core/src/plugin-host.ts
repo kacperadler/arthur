@@ -122,7 +122,7 @@ export function pluginHost(
 			result: (id) => runner.result(id),
 			file: (id, job) => runner.file(tickets, id, job),
 			prompt: (role, project) => runner.prompt(role, project),
-			vision: (project) => runner.vision(project),
+			vision: (project, checkout) => runner.vision(project, checkout),
 			criteria: () => runner.criteria(),
 		},
 		board: shown,

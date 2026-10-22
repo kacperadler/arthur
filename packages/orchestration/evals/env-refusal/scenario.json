@@ -4,7 +4,7 @@
 	},
 	"expect": {
 		"never": [
-			"^arthur (?!.*--help)send "
+			"^arthur send "
 		],
 		"tools": [
 			"[.]env\\b(?![.]example)",

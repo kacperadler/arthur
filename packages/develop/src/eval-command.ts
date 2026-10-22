@@ -8,8 +8,9 @@ import { type Agent, evalRun } from "./eval-run.ts";
 import { readScenario, scenarios } from "./eval-scenario.ts";
 
 // `arthur eval [<scenario>...] [--runs <n>] [--save-baseline]` (spec/roadmap.md, entry 67): each scenario of the loaded
-// packages run `runs` times at once, each run one coordinator turn (eval-run.ts), its pass rate against the baseline in the
-// main project's checkout, and which scenarios moved. docs/commands/eval.md.
+// packages run `runs` times at once, each run one coordinator turn (eval-run.ts) with orchestration's context for its copy of
+// the fixture at the scenario's hour, its pass rate against the baseline in the main project's checkout, and which scenarios
+// moved. docs/commands/eval.md.
 
 const USAGE = "usage: arthur eval [<scenario>...] [--runs <n>] [--save-baseline]";
 const ENV_GUARD = fileURLToPath(import.meta.resolve("@arthur/core/env-guard"));
@@ -24,6 +25,14 @@ function readBaseline(path: string): Readonly<Record<string, Rate>> {
 	const wrong = typeof json !== "object" || json === null || Array.isArray(json) ? "(the whole file)" : Object.entries(json).find(([, value]) => !rate(value))?.[0];
 	if (wrong !== undefined) throw new Error(`${path} is not a baseline: ${wrong} is not { passed, runs }, passed 0 to runs`);
 	return json as Record<string, Rate>;
+}
+
+// The instant within 12 hours of `now` whose hour on the owner's clock is `hour`, its minutes now's; twice, so a change of the
+// zone's offset on the way (summer time) is caught up.
+function atHour(clock: Host["clock"], hour: number, now: Date): Date {
+	let at = now.getTime();
+	for (let pass = 0; pass < 2; pass++) at += (((hour - Number(clock.local(new Date(at)).time.slice(0, 2)) + 36) % 24) - 12) * 3_600_000;
+	return new Date(at);
 }
 
 async function evaluate(host: Host, args: readonly string[]): Promise<number> {
@@ -48,7 +57,10 @@ async function evaluate(host: Host, args: readonly string[]): Promise<number> {
 	// The board refuses an empty project list itself.
 	const path = join(host.board.projects()[0]!.path, options.baseline ?? BASELINE);
 	const baseline = readBaseline(path);
-	const { prompt } = host.jobs.prompt("coordinator");
+	// No coordinator role (orchestration not enabled) refuses before any run.
+	host.jobs.prompt("coordinator");
+	// Orchestration's context for a run's copy of the fixture, at the scenario's hour.
+	const context = (root: string, hour: number) => host.call<string>("coordinator.checkoutContext", { root, at: atHour(host.clock, hour, host.clock.now()) });
 	const [roles] = host.collect<{ readonly model?: unknown; readonly thinking?: unknown } | undefined>("roles.model", "coordinator");
 	const [model, thinking] = [roles?.model, roles?.thinking].map((value) => (typeof value === "string" && value !== "" ? value : undefined));
 	const agent: Agent = {
@@ -65,7 +77,7 @@ async function evaluate(host: Host, args: readonly string[]): Promise<number> {
 	const moved: string[] = [];
 	for (const name of names.length > 0 ? [...new Set(names)] : [...known.keys()]) {
 		const scenario = await readScenario(host, name, known.get(name) ?? "");
-		const failures = typeof scenario === "string" ? Array.from({ length: runs }, () => [scenario]) : await Promise.all(Array.from({ length: runs }, (_, index) => evalRun(scenario, agent, prompt, pages, join(out, `${name.replace("/", "-")}-${index + 1}`))));
+		const failures = typeof scenario === "string" ? Array.from({ length: runs }, () => [scenario]) : await Promise.all(Array.from({ length: runs }, (_, index) => evalRun(scenario, agent, context, pages, join(out, `${name.replace("/", "-")}-${index + 1}`))));
 		const passed = failures.filter((list) => list.length === 0).length;
 		results[name] = { passed, runs };
 		const was = baseline[name];

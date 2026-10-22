@@ -2084,9 +2084,9 @@
   {
     "id": "AR0271",
     "title": "Two processes checking one machine at once can both say the same news",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0271-two-processes-checking-one-machine-at-once-can-both-say-the-same-news/ticket.md",
-    "updated": "2026-10-22T08:51:05.737Z",
+    "updated": "2026-10-22T15:12:04.603Z",
     "after": [
       "AR0269"
     ]
@@ -2146,9 +2146,9 @@
   {
     "id": "AR0279",
     "title": "An eval turn gets the coordinator's role but not its context, nor a time of day",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0279-an-eval-turn-gets-the-coordinator-s-role-but-not-its-context-nor-a-time-of-day/ticket.md",
-    "updated": "2026-10-22T14:07:29.162Z",
+    "updated": "2026-10-22T15:22:45.176Z",
     "after": [
       "AR0278"
     ]
@@ -2215,9 +2215,9 @@
   {
     "id": "AR0288",
     "title": "The eval stub answers a command's --help with that command's scripted result",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0288-the-eval-stub-answers-a-command-s-help-with-that-command-s-scripted-result/ticket.md",
-    "updated": "2026-10-22T14:11:03.132Z",
+    "updated": "2026-10-22T14:58:02.566Z",
     "after": [
       "AR0278"
     ]
@@ -2239,9 +2239,9 @@
   {
     "id": "AR0291",
     "title": "The scenarios' `(?!.*--help)` guards are dead weight once the stub prints help itself",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0291-the-scenarios-help-guards-are-dead-weight-once-the-stub-prints-help-itself/ticket.md",
-    "updated": "2026-10-22T13:55:23.036Z",
+    "updated": "2026-10-22T15:27:42.360Z",
     "after": [
       "AR0288"
     ]
@@ -2252,5 +2252,26 @@
     "status": "planned",
     "path": "spec/features/AR0292-a-check-of-its-own-still-makes-two-ssh-calls-to-a-machine-with-a-disk-floor/ticket.md",
     "updated": "2026-10-22T14:13:59.123Z"
+  },
+  {
+    "id": "AR0293",
+    "title": "An orchestration inbox test overshoots its 30 s real-timer window under load",
+    "status": "planned",
+    "path": "spec/features/AR0293-an-orchestration-inbox-test-overshoots-its-30-s-real-timer-window-under-load/ticket.md",
+    "updated": "2026-10-22T14:58:24.868Z"
+  },
+  {
+    "id": "AR0294",
+    "title": "An eval turn's plugin context lines are the live Arthur's, which a scenario cannot set",
+    "status": "planned",
+    "path": "spec/features/AR0294-an-eval-turn-s-plugin-context-lines-are-the-live-arthur-s-which-a-scenario-cannot-set/ticket.md",
+    "updated": "2026-10-22T15:22:58.964Z"
+  },
+  {
+    "id": "AR0295",
+    "title": "The fixtures have no vision, so every eval context warns the main project has none",
+    "status": "planned",
+    "path": "spec/features/AR0295-the-fixtures-have-no-vision-so-every-eval-context-warns-the-main-project-has-none/ticket.md",
+    "updated": "2026-10-22T15:22:59.173Z"
   }
 ]

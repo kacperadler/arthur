@@ -5,7 +5,7 @@
 	"timeoutSeconds": 300,
 	"stub": [
 		{
-			"match": "^arthur (?!.*--help)spawn ",
+			"match": "^arthur spawn ",
 			"output": "2026-10-22-worker-2c4e6a8b"
 		}
 	],

@@ -10,8 +10,10 @@ import { checkOptions } from "../src/develop-options.ts";
 
 // `arthur eval` against the fake host, the scenarios in a package folder of the test's own, the main project's checkout a
 // temporary folder, and `omp` a fake of the test's: a shell script that acts on the turn's text as an agent would, through the
-// `arthur` its PATH finds (the eval's stub) and the real CLI by its path. It notes its arguments and environment in `spy`.
-// Orchestration's `coordinator.turn` is faked too: it answers what it was asked, as JSON, and refuses a turn that says so.
+// `arthur` its PATH finds (the eval's stub) and the real CLI by its path. It notes its arguments and environment in `spy`, and
+// the hour `date` reads and its system prompt on stderr. Orchestration's `coordinator.turn` is faked too: it answers what it was
+// asked, as JSON, and refuses a turn that says so; and its `coordinator.checkoutContext`, which answers what it was asked and
+// the copy's README.
 
 const CLI = fileURLToPath(import.meta.resolve("@arthur/core/cli"));
 const quote = (text: string) => `'${text.replaceAll("'", `'\\''`)}'`;
@@ -23,22 +25,30 @@ function fakeOmp(spy: string): string {
 	const script = `#!/bin/sh
 previous=""
 for last; do
-	[ "$previous" = --append-system-prompt ] && cp "$last" ${quote(join(spy, "prompt"))}
+	[ "$previous" = --append-system-prompt ] && cp "$last" ${quote(join(spy, "prompt"))} && prompt=$last
 	previous=$last
 done
 turn=$(cat "\${last#@}")
 printf '%s\\n' "$@" > ${quote(join(spy, "args"))}
 env > ${quote(join(spy, "env"))}
+{ date +%H && cat "$prompt"; } >&2
 case "$turn" in
 *hang*) echo $$ >> ${quote(join(spy, "hanging"))} && exec sleep 600 ;;
 *fail*) exit 3 ;;
 *help*)
-	arthur eval --help > ${quote(join(spy, "help-1"))}
-	arthur help eval > ${quote(join(spy, "help-2"))}
-	arthur --project shop eval --help > ${quote(join(spy, "help-3"))}
-	arthur help nosuch > ${quote(join(spy, "help-4"))}
-	arthur help eval twice > ${quote(join(spy, "help-5"))}
-	arthur nosuch eval > ${quote(join(spy, "help-6"))} ;;
+	n=0
+	said() { n=$((n + 1)); arthur "$@" > ${quote(spy)}/help-$n 2> ${quote(spy)}/help-$n.err; echo "exit $?" >> ${quote(spy)}/help-$n; }
+	said eval --help
+	said help eval
+	said --project shop eval --help
+	said help nosuch
+	said help eval twice
+	said nosuch eval
+	said nosuch --help
+	said constructor --help
+	said --help
+	said help
+	said ;;
 esac
 arthur ticket new Fix the login > ticket.txt
 arthur merge AR0001 > /dev/null
@@ -92,6 +102,7 @@ async function load(t: TestContext, list: Readonly<Record<string, Scenario>>, op
 		if (JSON.stringify(asked).includes("Refuse")) throw new Error("coordinator.turn: refused by the fake");
 		return JSON.stringify(asked);
 	});
+	fake.provide("coordinator.checkoutContext", ({ root, at }: { readonly root: string; readonly at: Date }) => `# The coordinator\n\nContext of ${root} at ${at.toISOString()}: ${readFileSync(join(root, "README.md"), "utf8")}`);
 	fake.host.jobs.registerRole({ name: "coordinator", file: pathToFileURL(join(roles, "coordinator.md")), criteria: [] });
 	await fake.setup(develop(options));
 	// The runs' folders go into a temporary folder of the test's, a file the stub must not write beside them too.
@@ -176,9 +187,30 @@ test("each run is scored by what it left behind; a missing fixture and a turn pa
 	assert.match(eval_.transcript("develop-hang-1", "failures"), /^the turn ran past its timeout of 1 s/);
 	const args = readFileSync(join(eval_.spy, "args"), "utf8").split("\n");
 	assert.deepEqual(args.slice(0, 5), ["-p", "--mode", "json", "--no-session", "--auto-approve"]);
-	assert.match(readFileSync(join(eval_.spy, "prompt"), "utf8"), /^# The coordinator$/m, "the coordinator's role is the system prompt");
 	assert.equal(existsSync(args[args.indexOf("--append-system-prompt") + 1] ?? ""), false, "the run's folder is gone once scored");
 	assert.equal(readdirSync(join(eval_.fake.host.folder, "evals")).length, 1);
+});
+
+test("the system prompt is orchestration's context for the run's own copy of the fixture at the scenario's hour, noon when left out; `date` in the session reads that hour", async (t) => {
+	const note = { message: "Note it." };
+	const wrong = [-1, 24, 1.5, "3", null];
+	const eval_ = await load(t, {
+		noon: { turn: note },
+		late: { turn: note, hour: 23 },
+		midnight: { turn: note, hour: 0 },
+		...Object.fromEntries(wrong.map((hour, index) => [`wrong${index}`, { turn: note, hour }])),
+	});
+	const answer = await eval_.eval("--runs", "2");
+	const refused = (index: number) => `${join(eval_.pkg, "evals", `wrong${index}`, "scenario.json")}: hour: expected a whole hour, 0 to 23`;
+	assert.deepEqual(answer.out.slice(0, 3), ["develop/late: 2/2 (no baseline)", "develop/midnight: 2/2 (no baseline)", "develop/noon: 2/2 (no baseline)"]);
+	assert.deepEqual(answer.out.slice(3, -1), wrong.flatMap((_, index) => [`develop/wrong${index}: 0/2 (no baseline)`, `  run 1: ${refused(index)}`, `  run 2: ${refused(index)}`]));
+	// The fake host's clock is at 2026-01-01T00:00Z in UTC, the owner's zone: each hour within 12 hours of it.
+	for (const [name, hour, at] of [["noon", "12", "2025-12-31T12:00:00.000Z"], ["late", "23", "2025-12-31T23:00:00.000Z"], ["midnight", "00", "2026-01-01T00:00:00.000Z"]] as const) {
+		const runs = [1, 2].map((run) => /^(\d\d)\n# The coordinator\n\nContext of (.+) at (\S+): # Shop\n$/.exec(eval_.transcript(`develop-${name}-${run}`, "stderr"))?.slice(1));
+		for (const seen of runs) assert.deepEqual([seen?.[0], seen?.[2]], [hour, at], `${name}: the session's hour and the context's instant`);
+		for (const seen of runs) assert.match(seen?.[1] ?? "", /\/arthur-eval-[^/]+\/repo$/, `${name}: the context of the run's copy`);
+		assert.notEqual(runs[0]?.[1], runs[1]?.[1], `${name}: each run's own copy`);
+	}
 });
 
 test("a run fails on each expectation the files, the refs, the stub's log, the reply or the tool calls leave unmet, each named", async (t) => {
@@ -242,27 +274,34 @@ test("the stub never reaches Arthur's home: no variable names it, a file outside
 	assert.deepEqual(env.filter((line) => line.includes(eval_.home)), [], "no variable of the turn names the home");
 });
 
-test("help prints the page the live CLI prints: `--help` and `arthur help <command>` of a registered command take no answer and no expectation counts them; others are answered", async (t) => {
+test("a help call never takes an answer and no expectation counts it: it prints what the live CLI prints, a page, the list, or an unknown command or a wrong usage with exit code 2", async (t) => {
 	const page = readFileSync(new URL("../docs/commands/eval.md", import.meta.url), "utf8");
 	const eval_ = await load(t, {
 		one: {
 			turn: { message: "Read the help." },
-			stub: [{ match: "eval|nosuch", output: "stubbed", files: { "stubbed.md": "x\n" } }, ...STUB],
-			expect: { never: ["--help", "^arthur help eval$"], calls: ["^arthur help nosuch$", "^arthur help eval twice$", "^arthur ticket new "] },
+			stub: [{ match: "^arthur(?! ticket new )", output: "stubbed", files: { "stubbed.md": "x\n" } }, ...STUB],
+			expect: { never: ["--help", "^arthur help", "^arthur$"], calls: ["^arthur nosuch eval$", "^arthur ticket new "] },
 		},
 	});
 	const answer = await eval_.eval("--runs", "1");
 	assert.deepEqual(answer, { code: 0, header: answer.header, out: ["develop/one: 1/1 (no baseline)", "passed 1/1 runs; moved against the baseline: none"], err: "" });
-	const printed = [1, 2, 3, 4, 5, 6].map((index) => readFileSync(join(eval_.spy, `help-${index}`), "utf8"));
-	assert.deepEqual(printed, [page, page, page, "stubbed\n", "stubbed\n", "stubbed\n"], "a page for the registered command, `--project <name>` left out; an unknown one, `help` of two words and another command's word answered");
+	const usage = "usage: arthur <command> [args] [--project <name>]; arthur <command> --help; arthur help <command>\n";
+	const names = "commands: eval, plugin\n";
+	const [shown, list] = [[`${page}exit 0\n`, ""], [`${usage}${names}exit 0\n`, ""]];
+	const unknown = (name: string) => ["exit 2\n", `arthur: unknown command ${name}\n${names}`];
+	const printed = Array.from({ length: 11 }, (_, index) => [`help-${index + 1}`, `help-${index + 1}.err`].map((file) => readFileSync(join(eval_.spy, file), "utf8")));
+	assert.deepEqual(
+		printed,
+		[shown, shown, shown, unknown("nosuch"), ["exit 2\n", `arthur: help takes one command name\n${usage}`], ["stubbed\nexit 0\n", ""], unknown("nosuch"), unknown("constructor"), list, list, list],
+		"a page for a registered command, `--project <name>` left out; an unknown command refused; `help` of two words refused; the list for help alone; only a call that is no help answered",
+	);
 	const log = eval_.transcript("develop-one-1", "arthur.log").trim().split("\n").map((line) => JSON.parse(line));
-	assert.deepEqual(log.slice(0, 7), [
-		{ call: "arthur eval --help", help: true },
-		{ call: "arthur help eval", help: true },
-		{ call: "arthur --project shop eval --help", help: true },
-		{ call: "arthur help nosuch", answer: 0 },
-		{ call: "arthur help eval twice", answer: 0 },
+	const helps = ["arthur eval --help", "arthur help eval", "arthur --project shop eval --help", "arthur help nosuch", "arthur help eval twice"];
+	const after = ["arthur nosuch --help", "arthur constructor --help", "arthur --help", "arthur help", "arthur"];
+	assert.deepEqual(log.slice(0, 12), [
+		...helps.map((call) => ({ call, help: true })),
 		{ call: "arthur nosuch eval", answer: 0 },
+		...after.map((call) => ({ call, help: true })),
 		{ call: "arthur ticket new Fix the login", answer: 1 },
 	]);
 });

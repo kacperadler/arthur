@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import fs, { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import { delimiter, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
@@ -354,6 +355,46 @@ test("a continue moves the job to working before its wrapper starts, so a contin
 	writeFileSync(gate, "");
 	const [, second] = await ended(home, job.id, 2);
 	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
+});
+
+test("a continue refused while the job's new wrapper starts says why, though the wrapper removed its `continuing` meanwhile", { timeout: 30_000 }, async (t) => {
+	const gate = join(temporaryFolder(), "gate");
+	const { home, jobs } = setup(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }));
+	// A `systemd-run` that writes the wrapper's `pid` (its own, kept through `exec`), so `spawn` returns, and execs the wrapper
+	// only once `start` is there: its arguments after `--` are `sh -c <exec> <log> node wrapper.ts <home> <id> <agent>`.
+	const bin = temporaryFolder();
+	const start = join(bin, "start");
+	writeFileSync(join(bin, "systemctl"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+	writeFileSync(join(bin, "systemd-run"), `#!/bin/sh\nwhile [ "$1" != -- ]; do shift; done\nshift\npid="$7/jobs/$8/pid"\nprintf %s $$ > "$pid.early"\nmv "$pid.early" "$pid"\nwhile [ ! -e '${start}' ]; do sleep 0.05; done\nexec "$@"\n`, { mode: 0o755 });
+	const saved = process.env.PATH;
+	t.after(() => {
+		process.env.PATH = saved;
+		writeFileSync(start, "");
+		writeFileSync(gate, "");
+	});
+	process.env.PATH = [bin, saved].join(delimiter);
+	const job = await jobs.spawn({ task: "Go." });
+	const continuing = join(home, "jobs", job.id, "continuing");
+	// The gap held open: once the refused continue read its own `continuing` to release it, the wrapper starts and removes it.
+	const original = fs.readFileSync;
+	t.mock.method(fs, "readFileSync", (...args: Parameters<typeof original>) => {
+		const text = original(...args);
+		if (args[0] !== continuing) return text;
+		writeFileSync(start, "");
+		for (const end = Date.now() + 20_000; existsSync(continuing) && Date.now() < end; ) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
+		return text;
+	});
+	syncBuiltinESMExports();
+	try {
+		await assert.rejects(jobs.continue(job.id, "More."), { message: `${job.id} is working, in a run; a job in a run is not continued, arthur steer gives it a correction` });
+	} finally {
+		t.mock.restoreAll();
+		syncBuiltinESMExports();
+	}
+	assert.equal(existsSync(continuing), false, "the wrapper removed it in the gap");
+	writeFileSync(gate, "");
+	const [data] = await ended(home, job.id);
+	assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 });
 
 test("a continue waits for a wrapper of the job that wrote no pid yet and refuses to start a second one beside it", { timeout: 30_000 }, async (t) => {

@@ -73,7 +73,7 @@ Then each `ask` of the class's kind whose question names every word of `--match`
 - YYYY-MM-DD: <decided>; pre-approved by policy (AR-D7)
 ```
 
-The `ask` prints a second line, `<id> answered by policy (<class id>): <decided>; act on it as on the owner's answer, and say so in your reply`. A job's question answered so leaves the job blocked: the wake names the decision to continue it with. A question two or more approved classes match is left to the owner: its second line is `<id> goes to the owner: it matches classes <id> and <id>`. A class never answers a class's proposal.
+The `ask` prints a second line, `<id> answered by policy (<class id>): <decided>; act on it as on the owner's answer, and say so in your reply`. A job's question answered so leaves the job blocked: its notice ends ` — answered by policy (<class id>): <decided>`, so the owner's phone shows it decided, and the wake names the decision to continue it with. A question two or more approved classes match is left to the owner: its second line is `<id> goes to the owner: it matches classes <id> and <id>`. A class never answers a class's proposal.
 
 `class revoke` records the owner's revoke; from then the class's questions go to him again, and the answers given by policy before stay as recorded. A later answer approving the proposal again holds again. `arthur decisions --classes` lists each class, proposed, approved, refused, revoked or closed, with its evidence and the questions it answered.
 

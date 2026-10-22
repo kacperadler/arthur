@@ -733,12 +733,50 @@ test("a job's question an approved class matches is answered by policy, and the 
 	const other = "2026-03-04-worker-0000ffff";
 	blocked(other, "May I drop the archive table?");
 	assert.deepEqual(log()?.slice(-1), [{ record: "answer", id: "AC-D3", time: "2026-03-04T06:00:00+01:00", decided: "Drop the table", words: "by policy: AC-D2" }]);
-	assert.equal(notices().at(-1), `${other} asks [AC-D3]: May I drop the archive table?`);
+	assert.equal(notices().at(-1), `${other} asks [AC-D3]: May I drop the archive table? — answered by policy (AC-D2): Drop the table`);
 	const wake = { id: other, kind: "worker", project: "acme", state: "blocked", reason: "user: May I drop the archive table?" };
 	assert.deepEqual(fake.collect("coordinator.wake", wake).filter(Boolean), [
 		`Its question is decision AC-D3, answered by policy (AC-D2): Drop the table. Act on it as on the owner's answer, arthur continue ${other} '<that decision>', and say so in your reply.`,
 	]);
 	assert.deepEqual(fake.collect("coordinator.wake", { ...wake, id: JOB, reason: "user: May I drop the old orders table?" }).filter(Boolean), [], "a question the owner answered needs no line");
+});
+
+test("a job's question answered by policy and longer than one message is cut before what decided it; an ending that leaves no room is cut as any text", async (t) => {
+	const { decision, blocked, notices } = await setup(t);
+	blocked(JOB, "May I drop the old orders table?");
+	await decision("answer", "AC-D1", "--decided", "Drop the table", "yes, drop it");
+	await decision("class", "propose", "--kind", "job", "--match", "drop table", "--decided", "Drop the table", "--backed-by", "AC-D1");
+	await decision("answer", "AC-D2", "--picked", "1", "--decided", "Pre-approve dropping tables", "always");
+	const other = "2026-03-04-worker-0000ffff";
+	// AC-D3 and AC-D4: heads of one length.
+	const head = `${other} asks [AC-D3]: `;
+	const ending = " — answered by policy (AC-D2): Drop the table";
+	const tail = " … (cut; /jobs shows the whole question of job 0000ffff)";
+	const asked = "May I drop the archive table? ";
+	const whole = `${asked}${"q".repeat(4096 - head.length - asked.length - ending.length)}`;
+	blocked(other, whole);
+	assert.equal(notices().at(-1), `${head}${whole}${ending}`, "4096 exactly is sent whole");
+	blocked(other, `${whole}!`);
+	const cut = `${other} asks [AC-D4]: ${whole.slice(0, 4096 - head.length - tail.length - ending.length)}${tail}${ending}`;
+	assert.equal(cut.length, 4096);
+	assert.equal(notices().at(-1), cut);
+
+	// An ending that leaves the head exactly its room is kept, all of the question cut; one character more, the text is cut.
+	const room = async (subject: string, [backing, proposal, asked]: readonly string[], over: number) => {
+		const [head, opening] = [`${other} asks [${asked}]: `, ` — answered by policy (${proposal}): `];
+		const decided = subject.padEnd(4096 - tail.length - head.length - opening.length + over, "s");
+		blocked("2026-03-04-worker-0000eeee", `May I ${subject}?`);
+		await decision("answer", String(backing), "--decided", decided, "yes");
+		await decision("class", "propose", "--kind", "job", "--match", subject, "--decided", decided, "--backed-by", String(backing));
+		await decision("answer", String(proposal), "--picked", "1", "--decided", "Pre-approve it", "always");
+		const question = `May I ${subject} again? ${"q".repeat(100)}`;
+		blocked(other, question);
+		return { head, ending: `${opening}${decided}`, text: `${head}${question}${opening}${decided}` };
+	};
+	const fits = await room("purge logs", ["AC-D5", "AC-D6", "AC-D7"], 0);
+	assert.equal(notices().at(-1), `${fits.head}${tail}${fits.ending}`);
+	const over = await room("prune caches", ["AC-D8", "AC-D9", "AC-D10"], 1);
+	assert.equal(notices().at(-1), `${over.text.slice(0, 4096 - tail.length)}${tail}`);
 });
 
 test("the agreement rate scores a recommendation by number or by an option's words against the owner's pick", async (t) => {

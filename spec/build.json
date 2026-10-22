@@ -2239,9 +2239,9 @@
   {
     "id": "AR0291",
     "title": "The scenarios' `(?!.*--help)` guards are dead weight once the stub prints help itself",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0291-the-scenarios-help-guards-are-dead-weight-once-the-stub-prints-help-itself/ticket.md",
-    "updated": "2026-10-22T15:20:43.985Z",
+    "updated": "2026-10-22T15:27:42.360Z",
     "after": [
       "AR0288"
     ]

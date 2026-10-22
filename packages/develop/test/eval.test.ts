@@ -102,6 +102,10 @@ async function load(t: TestContext, list: Readonly<Record<string, Scenario>>, op
 		if (JSON.stringify(asked).includes("Refuse")) throw new Error("coordinator.turn: refused by the fake");
 		return JSON.stringify(asked);
 	});
+	fake.provide("schedule.message", (...asked: unknown[]) => {
+		if (asked[0] === "unknown") throw new Error("schedule.message: refused by the fake");
+		return `scheduled ${JSON.stringify(asked)}`;
+	});
 	fake.provide("coordinator.checkoutContext", ({ root, at }: { readonly root: string; readonly at: Date }) => `# The coordinator\n\nContext of ${root} at ${at.toISOString()}: ${readFileSync(join(root, "README.md"), "utf8")}`);
 	fake.host.jobs.registerRole({ name: "coordinator", file: pathToFileURL(join(roles, "coordinator.md")), criteria: [] });
 	await fake.setup(develop(options));
@@ -306,7 +310,7 @@ test("a help call never takes an answer and no expectation counts it: it prints 
 	]);
 });
 
-test("the turn is the text orchestration's inbox hands over for its event (coordinator.turn), a plugin's message included; a refused one fails its scenario alone", async (t) => {
+test("the turn is the text orchestration's inbox hands over for its event (coordinator.turn), a plugin's message and schedule's wording of an entry due (schedule.message) included; a refused one fails its scenario alone", async (t) => {
 	const ended = { id: "2026-10-22-worker-0a1b2c3d", kind: "worker", state: "ended", reason: "finished", project: "other" };
 	const asked = { id: "2026-10-22-worker-0a1b2c3e", kind: "worker", state: "blocked", reason: "user: may I?" };
 	const eval_ = await load(t, {
@@ -314,6 +318,7 @@ test("the turn is the text orchestration's inbox hands over for its event (coord
 		asked: { turn: { ended: asked } },
 		due: { turn: { scheduled: "morning", message: "Write the morning report.", procedure: "procedure.md" } },
 		plain: { turn: { scheduled: "tea", message: "Tea." } },
+		unknown: { turn: { scheduled: "unknown", message: "Tea." } },
 		said: { turn: { message: "Merge AR0001.", channel: "signal" } },
 		refused: { turn: { message: "Refuse it." } },
 		told: { turn: { arthur: "[github] CI run 7 ended cancelled on arthur/2026-10-22-worker-0a1b2c3d." } },
@@ -329,12 +334,13 @@ test("the turn is the text orchestration's inbox hands over for its event (coord
 		...["due", "ended", "plain"].map((name) => `develop/${name}: 1/1 (no baseline)`),
 		...failed("refused", "coordinator.turn: refused by the fake"),
 		...["said", "told"].map((name) => `develop/${name}: 1/1 (no baseline)`),
-		"passed 6/8 runs; moved against the baseline: none",
+		...failed("unknown", "schedule.message: refused by the fake"),
+		"passed 6/9 runs; moved against the baseline: none",
 	]);
 	assert.equal(eval_.transcript("develop-ended-1", "turn.md"), JSON.stringify(["job-ended", ended, "line 1\nline 2"]));
 	assert.equal(eval_.transcript("develop-asked-1", "turn.md"), JSON.stringify(["job-ended", asked, null]));
-	assert.equal(eval_.transcript("develop-due-1", "turn.md"), JSON.stringify(["coordinator-message", { text: "[scheduled morning] Write the morning report.\n\nProcedure: name what was built." }]));
-	assert.equal(eval_.transcript("develop-plain-1", "turn.md"), JSON.stringify(["coordinator-message", { text: "[scheduled tea] Tea." }]));
+	assert.equal(eval_.transcript("develop-due-1", "turn.md"), JSON.stringify(["coordinator-message", { text: `scheduled ${JSON.stringify(["morning", "Write the morning report.", "Procedure: name what was built.\n"])}` }]));
+	assert.equal(eval_.transcript("develop-plain-1", "turn.md"), JSON.stringify(["coordinator-message", { text: `scheduled ${JSON.stringify(["tea", "Tea.", null])}` }]));
 	assert.equal(eval_.transcript("develop-said-1", "turn.md"), said("Merge AR0001.", "signal"));
 	assert.equal(eval_.transcript("develop-told-1", "turn.md"), JSON.stringify(["coordinator-message", { text: "[github] CI run 7 ended cancelled on arthur/2026-10-22-worker-0a1b2c3d." }]));
 });

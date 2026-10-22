@@ -344,7 +344,9 @@ test("arthur decisions: no log says so and creates none; words, --open, --kind a
 	assert.deepEqual(await decisions("--kind", "question"), [0, lines.colour]);
 	assert.deepEqual(await decisions("--ticket", "ac0001"), [0, lines.plan]);
 	assert.deepEqual(await decisions("--kind", "vote"), [1, "arthur decisions: --kind vote: one of job, question, plan, review, budget"]);
-	assert.deepEqual(await decisions("--kind"), [2, "usage: arthur decisions [<words>] [--open] [--kind <kind>] [--ticket <id>], or arthur decisions <id>"]);
+	const usage = "usage: arthur decisions [<words>] [--open] [--kind <kind>] [--ticket <id>], arthur decisions <id>, or arthur decisions --classes";
+	for (const args of [["--kind"], ["--classes", "--open"], ["--classes", "budget"]]) assert.deepEqual(await decisions(...args), [2, usage], args.join(" "));
+	assert.deepEqual(await decisions("--classes"), [0, "no classes yet"]);
 	assert.deepEqual(await run("decisions", [], "shop"), [0, "SH-D1 2026-03-06 budget: Raise the budget of shop? — open"]);
 	assert.ok(existsSync(join(shop, "spec/decisions.jsonl")));
 	assert.deepEqual(await decisions("AC-D7"), [1, "arthur decisions: AC-D7 is not in the decision log of project acme"]);
@@ -439,4 +441,208 @@ test("asks at once, from four processes asking five times each, get one id each 
 	assert.deepEqual(log.map((each) => each.id), Array.from({ length: 20 }, (_, at) => `DM-D${at + 1}`), "every line kept, in the order asked");
 	assert.equal(new Set(log.map((each) => each.question)).size, 20);
 	assert.match(log[0].time, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\+00:00$/, "UTC's offset written out");
+});
+
+// Decision classes (spec/roadmap.md, entry 97): three budget questions the owner answered alike, AC-D1 to AC-D3; the
+// recommendation agreed with his pick on AC-D1, not on AC-D2, and AC-D3 had none to score.
+async function backed(decision: (...args: string[]) => Promise<Ran>) {
+	const said: Ran[] = [];
+	said.push(await decision("ask", "--kind", "budget", "--question", "Raise the line budget of orchestration by 40?", "--ticket", "AC0001", "--option", "Raise it", "--option", "Cut code", "--recommend", "1"));
+	said.push(await decision("answer", "AC-D1", "--decided", "Raise the line budget", "--picked", "1", "tak"));
+	said.push(await decision("ask", "--kind", "budget", "--question", "Raise the line budget of core by 6?", "--ticket", "AC0002", "--option", "Raise it", "--option", "Cut code", "--recommend", "Cut code"));
+	said.push(await decision("answer", "AC-D2", "--decided", "raise the line  budget", "--picked", "1", "yes"));
+	said.push(await decision("ask", "--kind", "budget", "--question", "Raise the line budget of develop by 9?"));
+	said.push(await decision("answer", "AC-D3", "--decided", "Raise the line budget", "sure"));
+	assert.deepEqual(said.map(([code]) => code), [0, 0, 0, 0, 0, 0]);
+}
+const PROPOSE = ["class", "propose", "--kind", "budget", "--match", "line budget", "--decided", "Raise the line budget", "--backed-by", "AC-D1", "AC-D2", "ac-d3"];
+const APPROVE = ["--picked", "1", "--decided", "Pre-approve raising a line budget"];
+const POLICY_SAID = (id: string, by: string) => `${id}\n${id} answered by policy (${by}): Raise the line budget; act on it as on the owner's answer, and say so in your reply`;
+
+test("a class is proposed from the owner's same answers with their agreement rate, holds only once he approves it, and then answers its questions by policy in the log and the ticket", async (t) => {
+	const { decision, decisions, log, ticket } = await setup(t);
+	await backed(decision);
+	assert.deepEqual(await decision(...PROPOSE), [
+		0,
+		[
+			"AC-D4",
+			'budget questions naming "line budget" → Raise the line budget; backed by AC-D1, AC-D2, AC-D3; the recommendation agreed with the owner\'s pick on 1 of 2 (1 with no recommendation or pick, not scored)',
+			"Ask the owner with AC-D4; his answer: arthur decision answer AC-D4 --picked 1 (approve) or 2 (refuse) --decided '<one line>' '<his words>'",
+		].join("\n"),
+	]);
+	assert.deepEqual(log()?.[6], {
+		record: "ask",
+		id: "AC-D4",
+		time: "2026-03-04T06:00:00+01:00",
+		project: "acme",
+		kind: "class",
+		question: 'Pre-approve a class: budget questions naming "line budget" → Raise the line budget, by policy, without asking you?',
+		options: ["Approve the class", "Refuse it"],
+		recommend: 1,
+		class: { kind: "budget", match: "line budget", decided: "Raise the line budget", backedBy: ["AC-D1", "AC-D2", "AC-D3"], agreed: 1, scored: 2 },
+	});
+	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Raise the line budget of delivery?"), [0, "AC-D5"], "a class only proposed answers nothing");
+	assert.deepEqual(await decision("answer", "AC-D4", ...APPROVE, "tak,", "zawsze"), [0, "AC-D4 answered: Pre-approve raising a line budget; the class is approved: its questions are answered by policy from now on"]);
+	assert.deepEqual(log()?.at(-1)?.words, "tak, zawsze", "approved in the owner's words");
+	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Raise the LINE budget of youtrack by 3?", "--ticket", "AC0002"), [0, POLICY_SAID("AC-D6", "AC-D4")]);
+	assert.deepEqual(log()?.slice(-2), [
+		{ record: "ask", id: "AC-D6", time: "2026-03-04T06:00:00+01:00", project: "acme", kind: "budget", question: "Raise the LINE budget of youtrack by 3?", options: [], ticket: "AC0002" },
+		{ record: "answer", id: "AC-D6", time: "2026-03-04T06:00:00+01:00", decided: "Raise the line budget", words: "by policy: AC-D4" },
+	]);
+	const line = "- 2026-03-04: Raise the line budget; pre-approved by policy (AC-D4)";
+	assert.equal(ticket(BARE).split("\n").filter((each) => each === line).length, 1, "the ticket's line names the class");
+	assert.ok(!ticket(BARE).split("\n").some((each) => each.includes("(AC-D6)")), "never the owner's words");
+	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Raise the line budget of nvm?", "--ticket", "AC0002"), [0, POLICY_SAID("AC-D7", "AC-D4")]);
+	assert.deepEqual(await decision("ask", "--kind", "question", "--question", "Raise the line budget?"), [0, "AC-D8"], "another kind goes to the owner");
+	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Raise the budget of the lines?"), [0, "AC-D9"], "a question that does not name every word as a word goes to the owner");
+	assert.equal(ticket(BARE).split("\n").filter((each) => each === line).length, 2, "two answers by policy, two lines, each written once");
+	assert.deepEqual(await decisions("--classes"), [0, 'AC-D4 approved 2026-03-04: budget questions naming "line budget" → Raise the line budget; backed by AC-D1, AC-D2, AC-D3; the recommendation agreed with the owner\'s pick on 1 of 2 (1 with no recommendation or pick, not scored); answered by policy: AC-D6, AC-D7']);
+	assert.deepEqual((await decisions())[1].split("\n")[5], "AC-D6 2026-03-04 budget AC0002: Raise the LINE budget of youtrack by 3? — answered 2026-03-04: Raise the line budget");
+	assert.deepEqual((await decisions("AC-D6"))[1].split("\n").slice(2), ["Answered 2026-03-04T06:00:00+01:00: Raise the line budget; by policy (AC-D4)", "Now: answered"]);
+	const whole = (await decisions("AC-D4"))[1].split("\n");
+	assert.equal(whole[2], 'Class: budget questions naming "line budget" → Raise the line budget; backed by AC-D1, AC-D2, AC-D3; the recommendation agreed with the owner\'s pick on 1 of 2 (1 with no recommendation or pick, not scored)');
+	assert.equal(whole.at(-1), "Now: the class is approved; answered by policy: AC-D6, AC-D7");
+});
+
+test("a proposal is refused, naming why and writing nothing: no backing decision, an unknown, unanswered or differing one, a class's own kind", async (t) => {
+	const { decision, file, run } = await setup(t);
+	await backed(decision);
+	await decision("ask", "--kind", "budget", "--question", "Raise the line budget of manage?");
+	await decision("ask", "--kind", "budget", "--question", "Raise the line budget of nvm?");
+	await decision("close", "AC-D5", "asked twice");
+	await decision("ask", "--kind", "question", "--question", "Raise the line budget or cut?");
+	await decision("answer", "AC-D6", "--decided", "Raise the line budget", "raise");
+	await decision("ask", "--kind", "budget", "--question", "Raise the budget of uptime?");
+	await decision("answer", "AC-D7", "--decided", "Raise the line budget", "raise");
+	await decision("ask", "--kind", "budget", "--question", "Raise the line budget of github?");
+	await decision("answer", "AC-D8", "--decided", "Cut code instead", "cut");
+	const before = readFileSync(file(), "utf8");
+	const refused = (why: string): Ran => [1, `arthur decision class propose: refused: ${why}`];
+	const propose = (...args: string[]) => decision("class", "propose", "--kind", "budget", "--match", "line budget", "--decided", "Raise the line budget", ...args);
+	assert.deepEqual(await propose(), refused("backed by no decision: --backed-by <id>... names the owner's answered decisions, each his same answer"));
+	assert.deepEqual(await propose("--backed-by", "AC-D1", "AC-D99"), refused("AC-D99 is not in the decision log of project acme"));
+	assert.deepEqual(await propose("--backed-by", "AC-D1", "AC-D4"), refused("AC-D4 is open, not answered by the owner"));
+	assert.deepEqual(await propose("--backed-by", "AC-D5"), refused("AC-D5 is closed, not answered by the owner"));
+	assert.deepEqual(await propose("--backed-by", "AC-D1", "AC-D8"), refused('AC-D8 decided "Cut code instead", not the class\'s "Raise the line budget"'));
+	assert.deepEqual(await propose("--backed-by", "AC-D6"), refused("AC-D6 is a question question, not budget"));
+	assert.deepEqual(await propose("--backed-by", "AC-D7"), refused('AC-D7 does not name every word of --match "line budget": Raise the budget of uptime?'));
+	assert.deepEqual(await decision("class", "propose", "--kind", "class", "--match", "line budget", "--decided", "Raise", "--backed-by", "AC-D1"), refused("--kind class: a class never approves a class; one of job, question, plan, review, budget"));
+	assert.deepEqual(await decision("class", "propose", "--kind", "vote", "--match", "line budget", "--decided", "Raise", "--backed-by", "AC-D1"), refused('kind "vote": one of job, question, plan, review, budget'));
+	assert.deepEqual(await decision("class", "propose", "--kind", "budget", "--match", " - ", "--decided", "Raise", "--backed-by", "AC-D1"), refused("--match names no word: the words every question of the class names"));
+	assert.deepEqual(await decision("class", "propose", "--kind", "budget", "--match", "line", "--backed-by", "AC-D1"), refused("no --decided: the class's decision in one English line"));
+	assert.deepEqual(await run("decision", ["class", "propose", "--kind", "budget", "--match", "line", "--decided", "Raise", "--backed-by", "AC-D1"], "nowhere"), refused("unknown project nowhere; projects: acme, shop"));
+	assert.equal(readFileSync(file(), "utf8"), before);
+	for (const args of [["class"], ["class", "vote"], ["class", "propose", "AC-D1"], ["class", "propose", "--color", "red"], ["class", "revoke"]]) {
+		const [code, said] = await decision(...args);
+		assert.deepEqual([code, said.split("\n").slice(3)], [2, ["       arthur decision class propose --kind <kind> --match <text> --decided <one line> --backed-by <id>...", "       arthur decision class revoke <id> <the owner's words>"]], args.join(" "));
+	}
+	assert.equal(readFileSync(file(), "utf8"), before);
+});
+
+test("a class is approved only on the owner's word: inside a job, by policy, or with no pick is refused; a question answered by policy never backs a class", async (t) => {
+	const { decision, file, log } = await setup(t);
+	await backed(decision);
+	await decision(...PROPOSE);
+	const before = readFileSync(file(), "utf8");
+	const refused = (why: string): Ran => [1, `arthur decision answer: refused: ${why}`];
+	assert.deepEqual(await decision("answer", "AC-D4", ...APPROVE, "by policy: AC-D4"), refused("an answer given by policy: only arthur decision ask answers by policy, and only a class the owner approved in his own words"));
+	assert.deepEqual(await decision("answer", "AC-D4", "--decided", "Approve", "yes"), refused("AC-D4 proposes a class: --picked 1 approves it, --picked 2 refuses it"));
+	process.env.ARTHUR_JOB = "/home/arthur/.arthur/jobs/2026-03-04-worker-0000abcd";
+	const inside = [1, "arthur decision: refused inside a job (ARTHUR_JOB is set): a job never records the owner's word; end your run with Blocked: user <question> instead"];
+	assert.deepEqual(await decision(...PROPOSE), inside);
+	assert.deepEqual(await decision("class", "revoke", "AC-D4", "stop"), inside);
+	assert.deepEqual(await decision("answer", "AC-D4", ...APPROVE, "yes"), inside);
+	delete process.env.ARTHUR_JOB;
+	assert.equal(readFileSync(file(), "utf8"), before);
+	await decision("answer", "AC-D4", ...APPROVE, "yes");
+	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Raise the line budget of nvm?"), [0, POLICY_SAID("AC-D5", "AC-D4")]);
+	assert.deepEqual(await decision("class", "propose", "--kind", "budget", "--match", "nvm", "--decided", "Raise the line budget", "--backed-by", "AC-D5"), [1, "arthur decision class propose: refused: AC-D5 was answered by policy (AC-D4), not by the owner"]);
+	assert.equal(log()?.length, 10);
+});
+
+test("a hand edit of a class's records refuses every write: an approval by policy, an answer by policy of no class, a revoke of no class, a class with no backing", async (t) => {
+	const { decision, decisions, file } = await setup(t);
+	await backed(decision);
+	await decision(...PROPOSE);
+	const time = "2026-03-04T06:00:00+01:00";
+	const good = readFileSync(file(), "utf8");
+	for (const [line, why] of [
+		[{ record: "answer", id: "AC-D4", time, decided: "Approved", picked: 1, words: "by policy: AC-D4" }, "AC-D4, a class, approved by policy: only the owner approves a class"],
+		[{ record: "answer", id: "AC-D3", time, decided: "Raise", words: "by policy: AC-D1" }, "an answer by policy of AC-D1, which is no class above it"],
+		[{ record: "revoke", id: "AC-D1", time, words: "stop" }, "a revoke of AC-D1, which is no class"],
+		[{ record: "revoke", id: "AC-D4", time, words: "" }, "no words"],
+		[{ record: "ask", id: "AC-D5", time, project: "acme", kind: "class", question: "Class?", options: [], class: { kind: "budget", match: "x", decided: "y", backedBy: [], agreed: 0, scored: 0 } }, "a class backed by no decision"],
+		[{ record: "ask", id: "AC-D5", time, project: "acme", kind: "class", question: "Class?", options: [], class: { kind: "class", match: "x", decided: "y", backedBy: ["AC-D1"], agreed: 0, scored: 0 } }, 'class kind "class"'],
+		[{ record: "ask", id: "AC-D5", time, project: "acme", kind: "budget", question: "Q?", options: [], class: { kind: "budget" } }, "a class on a question of no class"],
+	] as const) {
+		writeFileSync(file(), `${good}${JSON.stringify(line)}\n`);
+		const named = `${file()} line 8 is not a decision record (${why}); only arthur decision writes the log: undo the hand edit (git diff -- spec/decisions.jsonl); nothing was written`;
+		assert.deepEqual(await decision("class", "revoke", "AC-D4", "stop"), [1, `arthur decision class revoke: refused: ${named}`], why);
+		assert.deepEqual(await decisions("--classes"), [1, `arthur decisions: ${named}`]);
+	}
+});
+
+test("a refused class answers nothing; the later answer to a proposal counts; a revoke sends its questions to the owner again and keeps those answered by policy", async (t) => {
+	const { decision, decisions, fake, log } = await setup(t);
+	await backed(decision);
+	await decision(...PROPOSE);
+	assert.deepEqual(await decision("answer", "AC-D4", "--picked", "2", "--decided", "Keep asking about budgets", "nie"), [0, "AC-D4 answered: Keep asking about budgets; the class is refused: its questions go to the owner"]);
+	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Raise the line budget of nvm?"), [0, "AC-D5"], "a refused class: the question goes to the owner");
+	assert.deepEqual(await decision("answer", "AC-D4", ...APPROVE, "ok, jednak tak"), [0, "AC-D4 answered: Pre-approve raising a line budget; the class is approved: its questions are answered by policy from now on"]);
+	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Raise the line budget of uptime?"), [0, POLICY_SAID("AC-D6", "AC-D4")], "the later answer counts");
+	const refused = (why: string): Ran => [1, `arthur decision class revoke: refused: ${why}`];
+	assert.deepEqual(await decision("class", "revoke", "AC-D4"), refused("no words: arthur decision class revoke AC-D4 <the owner's words>"));
+	assert.deepEqual(await decision("class", "revoke", "AC-D1", "stop"), refused("AC-D1 is no class; arthur decisions --classes lists them"));
+	assert.deepEqual(await decision("class", "revoke", "AC-D99", "stop"), refused("AC-D99 is not in the decision log of project acme"));
+	fake.setNow(new Date("2026-03-06T09:00:00Z"));
+	assert.deepEqual(await decision("class", "revoke", "ac-d4", "pytaj", "znowu"), [0, "AC-D4 revoked: its questions go to the owner again"]);
+	assert.deepEqual(log()?.at(-1), { record: "revoke", id: "AC-D4", time: "2026-03-06T10:00:00+01:00", words: "pytaj znowu" });
+	assert.deepEqual(await decision("class", "revoke", "AC-D4", "again"), refused("AC-D4 is revoked already, on 2026-03-06"));
+	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Raise the line budget of manage?"), [0, "AC-D7"], "a question after the revoke goes to the owner");
+	assert.deepEqual((await decisions("--classes"))[1], 'AC-D4 revoked 2026-03-06: budget questions naming "line budget" → Raise the line budget; backed by AC-D1, AC-D2, AC-D3; the recommendation agreed with the owner\'s pick on 1 of 2 (1 with no recommendation or pick, not scored); answered by policy: AC-D6');
+	assert.match((await decisions("AC-D6"))[1], /\nAnswered .*; by policy \(AC-D4\)\nNow: answered$/, "an answer by policy before the revoke stays as recorded");
+	const whole = (await decisions("AC-D4"))[1].split("\n");
+	assert.deepEqual(whole.slice(-2), ['Revoked 2026-03-06T10:00:00+01:00: the owner: "pytaj znowu"', "Now: the class is revoked; answered by policy: AC-D6"]);
+	await decision("answer", "AC-D4", ...APPROVE, "jednak tak");
+	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Raise the line budget of nvm again?"), [0, POLICY_SAID("AC-D8", "AC-D4")], "approved again after the revoke, it holds again");
+});
+
+test("a question two approved classes match goes to the owner naming both; a class of tickets of one kind answers only questions of that kind", async (t) => {
+	const { decision, decisions, acme, log } = await setup(t);
+	for (const path of [PLAN, BARE]) writeFileSync(join(acme, path), readFileSync(join(acme, path), "utf8").replace("## Goal\n\n", "## Goal\n\n- Kind: feature\n\n"));
+	await backed(decision);
+	assert.equal((await decision(...PROPOSE))[0], 0);
+	assert.equal((await decision("class", "propose", "--kind", "budget", "--match", "orchestration", "--decided", "Raise the line budget", "--backed-by", "AC-D1"))[0], 0);
+	await decision("answer", "AC-D4", ...APPROVE, "yes");
+	await decision("answer", "AC-D5", ...APPROVE, "yes");
+	assert.deepEqual(log()?.find((each) => each.id === "AC-D5")?.class?.ticketKind, "feature", "every backing ticket is a feature");
+	assert.equal(log()?.find((each) => each.id === "AC-D4")?.class?.ticketKind, undefined, "AC-D3 has no ticket");
+	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Raise the line budget of orchestration again?", "--ticket", "AC0001"), [0, "AC-D6\nAC-D6 goes to the owner: it matches classes AC-D4 and AC-D5"]);
+	assert.equal(log()?.at(-1)?.record, "ask", "no answer recorded");
+	assert.deepEqual(await decisions("--classes"), [0, [
+		'AC-D4 approved 2026-03-04: budget questions naming "line budget" → Raise the line budget; backed by AC-D1, AC-D2, AC-D3; the recommendation agreed with the owner\'s pick on 1 of 2 (1 with no recommendation or pick, not scored); answered by policy: none',
+		'AC-D5 approved 2026-03-04: budget questions naming "orchestration" (feature tickets) → Raise the line budget; backed by AC-D1; the recommendation agreed with the owner\'s pick on 1 of 1; answered by policy: none',
+	].join("\n")]);
+	await decision("class", "revoke", "AC-D4", "no");
+	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Orchestration needs more?"), [0, "AC-D7"], "a question of no ticket is not of a feature ticket");
+	writeFileSync(join(acme, BARE), readFileSync(join(acme, BARE), "utf8").replace("- Kind: feature", "- Kind: bug"));
+	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Orchestration needs more?", "--ticket", "AC0002"), [0, "AC-D8"], "a bug ticket");
+	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Orchestration needs more?", "--ticket", "AC0001"), [0, "AC-D9\nAC-D9 answered by policy (AC-D5): Raise the line budget; act on it as on the owner's answer, and say so in your reply"]);
+});
+
+test("a job's question an approved class matches is answered by policy, and the wake says so with the decision to continue it with", async (t) => {
+	const { decision, fake, log, blocked, notices } = await setup(t);
+	blocked(JOB, "May I drop the old orders table?");
+	await decision("answer", "AC-D1", "--decided", "Drop the table", "yes, drop it");
+	assert.equal((await decision("class", "propose", "--kind", "job", "--match", "drop table", "--decided", "Drop the table", "--backed-by", "AC-D1"))[0], 0);
+	await decision("answer", "AC-D2", "--picked", "1", "--decided", "Pre-approve dropping tables", "always");
+	const other = "2026-03-04-worker-0000ffff";
+	blocked(other, "May I drop the archive table?");
+	assert.deepEqual(log()?.slice(-1), [{ record: "answer", id: "AC-D3", time: "2026-03-04T06:00:00+01:00", decided: "Drop the table", words: "by policy: AC-D2" }]);
+	assert.equal(notices().at(-1), `${other} asks [AC-D3]: May I drop the archive table?`);
+	const wake = { id: other, kind: "worker", project: "acme", state: "blocked", reason: "user: May I drop the archive table?" };
+	assert.deepEqual(fake.collect("coordinator.wake", wake).filter(Boolean), [
+		`Its question is decision AC-D3, answered by policy (AC-D2): Drop the table. Act on it as on the owner's answer, arthur continue ${other} '<that decision>', and say so in your reply.`,
+	]);
+	assert.deepEqual(fake.collect("coordinator.wake", { ...wake, id: JOB }).filter(Boolean), [], "a question the owner answered needs no line");
 });

@@ -1,11 +1,13 @@
 import type { Plugin } from "@arthur/core/plugin";
-import { checkOptions } from "./develop-options.ts";
+import { checkOptions, type EvalOptions } from "./develop-options.ts";
+import { evalCommand } from "./eval-command.ts";
 import { pluginCommand } from "./plugin-new.ts";
 
-// The develop plugin (spec/roadmap.md, entry 66): developing Arthur itself. `arthur plugin new` makes a new plugin package in
-// Arthur's repository that passes the checks as created (plugin-new.ts). docs/develop.md.
+// The develop plugin (spec/roadmap.md, entries 66 and 67): developing Arthur itself. `arthur plugin new` makes a new plugin
+// package in Arthur's repository that passes the checks as created (plugin-new.ts); `arthur eval` replays coordinator turns
+// against scenarios (eval-command.ts). docs/develop.md.
 
-export function develop(options: { readonly enabled?: boolean } = {}): Plugin {
+export function develop(options: { readonly enabled?: boolean; readonly evals?: EvalOptions } = {}): Plugin {
 	return {
 		name: "develop",
 		module: import.meta.url,
@@ -13,6 +15,7 @@ export function develop(options: { readonly enabled?: boolean } = {}): Plugin {
 		check: checkOptions,
 		setup(host) {
 			host.commands.register(pluginCommand(host));
+			host.commands.register(evalCommand(host));
 		},
 	};
 }

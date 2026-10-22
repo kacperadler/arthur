@@ -646,3 +646,13 @@ test("a job's question an approved class matches is answered by policy, and the 
 	]);
 	assert.deepEqual(fake.collect("coordinator.wake", { ...wake, id: JOB }).filter(Boolean), [], "a question the owner answered needs no line");
 });
+
+test("the agreement rate scores a recommendation by number or by an option's words against the owner's pick", async (t) => {
+	const { decision } = await setup(t);
+	await decision("ask", "--kind", "review", "--question", "Third round for AC0001?", "--option", "Another round", "--option", "Drop it", "--recommend", "2");
+	await decision("answer", "AC-D1", "--decided", "Another round", "--picked", "1", "again");
+	await decision("ask", "--kind", "review", "--question", "Third round for AC0002?", "--option", "Another round", "--option", "Drop it", "--recommend", "another  ROUND");
+	await decision("answer", "AC-D2", "--decided", "Another round", "--picked", "1", "again");
+	const [code, said] = await decision("class", "propose", "--kind", "review", "--match", "third round", "--decided", "Another round", "--backed-by", "AC-D1", "AC-D2");
+	assert.deepEqual([code, said.split("\n")[1]], [0, 'review questions naming "third round" → Another round; backed by AC-D1, AC-D2; the recommendation agreed with the owner\'s pick on 1 of 2']);
+});

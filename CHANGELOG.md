@@ -2,6 +2,12 @@
 
 Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-23
+
+### Fixed
+
+- AR0301 core job-control test can fail with ENOENT unlinking continuing under load (3691a8e)
+
 ## 2026-10-22
 
 ### Added

@@ -2307,14 +2307,14 @@
     "title": "The wrapper's append to log can still recreate it while rm -r empties the record",
     "status": "in-progress",
     "path": "spec/features/AR0300-the-wrapper-s-append-to-log-can-still-recreate-it-while-rm-r-empties-the-record/ticket.md",
-    "updated": "2026-10-22T21:34:08.736Z"
+    "updated": "2026-10-22T21:57:57.565Z"
   },
   {
     "id": "AR0301",
     "title": "core job-control test can fail with ENOENT unlinking continuing under load",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0301-core-job-control-test-can-fail-with-enoent-unlinking-continuing-under-load/ticket.md",
-    "updated": "2026-10-22T20:15:18.068Z"
+    "updated": "2026-10-22T22:03:14.613Z"
   },
   {
     "id": "AR0302",

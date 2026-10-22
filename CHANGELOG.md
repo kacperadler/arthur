@@ -12,6 +12,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ### Fixed
 
+- AR0271 Two processes checking one machine at once can both say the same news (92228a0)
 - AR0277 The eval words a turn with a copy of orchestration's wake and inbox lines, which can drift (c4047e0)
 - AR0288 The eval stub answers a command's --help with that command's scripted result (3b718b5)
 

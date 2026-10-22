@@ -13,7 +13,7 @@ import { checkOptions } from "../src/develop-options.ts";
 // `arthur` its PATH finds (the eval's stub) and the real CLI by its path. It notes its arguments and environment in `spy`, and
 // the hour `date` reads and its system prompt on stderr. Orchestration's `coordinator.turn` is faked too: it answers what it was
 // asked, as JSON, and refuses a turn that says so; and its `coordinator.checkoutContext`, which answers what it was asked and
-// the copy's README.
+// the copy's README, and refuses a plugin named `refused` as orchestration refuses one that answers no context.
 
 const CLI = fileURLToPath(import.meta.resolve("@arthur/core/cli"));
 const quote = (text: string) => `'${text.replaceAll("'", `'\\''`)}'`;
@@ -106,7 +106,10 @@ async function load(t: TestContext, list: Readonly<Record<string, Scenario>>, op
 		if (asked[0] === "unknown") throw new Error("schedule.message: refused by the fake");
 		return `scheduled ${JSON.stringify(asked)}`;
 	});
-	fake.provide("coordinator.checkoutContext", ({ root, at }: { readonly root: string; readonly at: Date }) => `# The coordinator\n\nContext of ${root} at ${at.toISOString()}: ${readFileSync(join(root, "README.md"), "utf8")}`);
+	fake.provide("coordinator.checkoutContext", ({ root, at, context }: { readonly root: string; readonly at: Date; readonly context: Readonly<Record<string, string>> }) => {
+		if ("refused" in context) throw new Error("coordinator.checkoutContext: context names refused: refused by the fake");
+		return `# The coordinator\n\nContext of ${root} at ${at.toISOString()} with ${JSON.stringify(context)}: ${readFileSync(join(root, "README.md"), "utf8")}`;
+	});
 	fake.host.jobs.registerRole({ name: "coordinator", file: pathToFileURL(join(roles, "coordinator.md")), criteria: [] });
 	await fake.setup(develop(options));
 	// The runs' folders go into a temporary folder of the test's, a file the stub must not write beside them too.
@@ -210,11 +213,30 @@ test("the system prompt is orchestration's context for the run's own copy of the
 	assert.deepEqual(answer.out.slice(3, -1), wrong.flatMap((_, index) => [`develop/wrong${index}: 0/2 (no baseline)`, `  run 1: ${refused(index)}`, `  run 2: ${refused(index)}`]));
 	// The fake host's clock is at 2026-01-01T00:00Z in UTC, the owner's zone: each hour within 12 hours of it.
 	for (const [name, hour, at] of [["noon", "12", "2025-12-31T12:00:00.000Z"], ["late", "23", "2025-12-31T23:00:00.000Z"], ["midnight", "00", "2026-01-01T00:00:00.000Z"]] as const) {
-		const runs = [1, 2].map((run) => /^(\d\d)\n# The coordinator\n\nContext of (.+) at (\S+): # Shop\n$/.exec(eval_.transcript(`develop-${name}-${run}`, "stderr"))?.slice(1));
+		const runs = [1, 2].map((run) => /^(\d\d)\n# The coordinator\n\nContext of (.+) at (\S+) with \{\}: # Shop\n$/.exec(eval_.transcript(`develop-${name}-${run}`, "stderr"))?.slice(1));
 		for (const seen of runs) assert.deepEqual([seen?.[0], seen?.[2]], [hour, at], `${name}: the session's hour and the context's instant`);
 		for (const seen of runs) assert.match(seen?.[1] ?? "", /\/arthur-eval-[^/]+\/repo$/, `${name}: the context of the run's copy`);
 		assert.notEqual(runs[0]?.[1], runs[1]?.[1], `${name}: each run's own copy`);
 	}
+});
+
+test("a scenario's context gives orchestration each plugin's lines for the run, none when left out; a context that is not { <plugin>: <text> } fails the scenario, and one orchestration refuses fails the run", async (t) => {
+	const note = { message: "Note it." };
+	const wrong = [[], "Restart: due.", null, { session: 3 }];
+	const eval_ = await load(t, {
+		set: { turn: note, context: { session: "Restart: due.", projects: "" } },
+		refused: { turn: note, context: { refused: "x" } },
+		...Object.fromEntries(wrong.map((context, index) => [`wrong${index}`, { turn: note, context }])),
+	});
+	const answer = await eval_.eval("--runs", "1");
+	const refused = (index: number) => `${join(eval_.pkg, "evals", `wrong${index}`, "scenario.json")}: context: expected { <plugin>: <text> }`;
+	assert.deepEqual(answer.out.slice(0, -1), [
+		"develop/refused: 0/1 (no baseline)",
+		"  run 1: the run failed: coordinator.checkoutContext: context names refused: refused by the fake",
+		"develop/set: 1/1 (no baseline)",
+		...wrong.flatMap((_, index) => [`develop/wrong${index}: 0/1 (no baseline)`, `  run 1: ${refused(index)}`]),
+	]);
+	assert.match(eval_.transcript("develop-set-1", "stderr"), /^12\n# The coordinator\n\nContext of \S+ at \S+ with \{"session":"Restart: due\.","projects":""\}: # Shop\n$/);
 });
 
 test("a run fails on each expectation the files, the refs, the stub's log, the reply or the tool calls leave unmet, each named", async (t) => {

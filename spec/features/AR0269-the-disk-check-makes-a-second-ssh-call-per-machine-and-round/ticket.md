@@ -36,3 +36,4 @@ In:
 
 - 2026-10-21: Source: F1 of AR0262
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-22: Coordinator (free hand): line budget raises accepted, machines 459 to 474, resources 577 to 602, for df riding in the machines check.

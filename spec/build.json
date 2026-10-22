@@ -2146,9 +2146,9 @@
   {
     "id": "AR0279",
     "title": "An eval turn gets the coordinator's role but not its context, nor a time of day",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0279-an-eval-turn-gets-the-coordinator-s-role-but-not-its-context-nor-a-time-of-day/ticket.md",
-    "updated": "2026-10-22T15:18:02.272Z",
+    "updated": "2026-10-22T15:22:45.176Z",
     "after": [
       "AR0278"
     ]
@@ -2259,5 +2259,19 @@
     "status": "planned",
     "path": "spec/features/AR0293-an-orchestration-inbox-test-overshoots-its-30-s-real-timer-window-under-load/ticket.md",
     "updated": "2026-10-22T14:58:24.868Z"
+  },
+  {
+    "id": "AR0294",
+    "title": "An eval turn's plugin context lines are the live Arthur's, which a scenario cannot set",
+    "status": "planned",
+    "path": "spec/features/AR0294-an-eval-turn-s-plugin-context-lines-are-the-live-arthur-s-which-a-scenario-cannot-set/ticket.md",
+    "updated": "2026-10-22T15:22:58.964Z"
+  },
+  {
+    "id": "AR0295",
+    "title": "The fixtures have no vision, so every eval context warns the main project has none",
+    "status": "planned",
+    "path": "spec/features/AR0295-the-fixtures-have-no-vision-so-every-eval-context-warns-the-main-project-has-none/ticket.md",
+    "updated": "2026-10-22T15:22:59.173Z"
   }
 ]

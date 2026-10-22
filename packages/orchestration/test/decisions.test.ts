@@ -258,6 +258,7 @@ test("while another process holds the log's lock, a job's question and the close
 	assert.deepEqual(wake("And the archive?"), [
 		`Its question was not in the decision log yet: arthur decisions --kind job --project acme shows its id. Open, record the owner's answer first, arthur decision answer <its id> --decided '<the decision in one line>' '<his words>', then arthur continue ${JOB} '<his answer>'; answered by policy, act on that decision as on the owner's answer, and say so in your reply.`,
 	], "the job's earlier question, answered, is not taken for this one");
+	assert.deepEqual(fake.collect("coordinator.wake", { id: JOB, kind: "worker", project: "elsewhere", state: "blocked", reason: "user: And the archive?" }).filter(Boolean), [], "a project not listed has no log to look in");
 	rmSync(lock);
 	await until("notice", () => notices().length === 2);
 	assert.equal(notices()[1], `${JOB} asks [AC-D2]: And the archive?`);
@@ -273,18 +274,19 @@ test("while another process holds the log's lock, a job's question and the close
 	await until("closes", () => closes().length === 2);
 	assert.deepEqual(closes().toSorted(), [["AC-D2", "job continued"], ["AC-D3", "ticket dropped"]]);
 	// A log broken by hand while they wait: the notice still goes, without an id, and each event fails, named.
-	await decision("ask", "--kind", "question", "--question", "Rename AC0001?", "--ticket", "AC0001");
-	const other = "2026-03-04-worker-0000ffff";
+	const [other, third] = ["2026-03-04-worker-0000ffff", "2026-03-04-worker-0000eeee"];
+	await decision("ask", "--kind", "job", "--question", "Rename AC0001?", "--ticket", "AC0001", "--job", third);
 	held(() => {
 		blocked(other, "May I?");
+		fake.emit("job-state", { id: third, project: "acme", ticket: "AC0001", machine: "local", from: "blocked", to: "ended", reason: "stopped" });
 		fake.emit("ticket-moved", { id: "AC0001", project: "acme", from: "in-progress", to: "merged" });
 	});
 	appendFileSync(file(), "not json\n");
 	printed.length = 0;
 	rmSync(lock);
-	await until("failures", () => printed.length === 2);
+	await until("failures", () => printed.length === 3);
 	assert.equal(notices().at(-1), `${other} asks: May I?`);
-	assert.deepEqual(printed.map((line) => /^plugin orchestration: handler of (job-state|ticket-moved) \(event \d+\) failed: .* is not a decision record/.exec(line)?.[1]).toSorted(), ["job-state", "ticket-moved"]);
+	assert.deepEqual(printed.map((line) => /^plugin orchestration: handler of (job-state|ticket-moved) \(event \d+\) failed: .* is not a decision record/.exec(line)?.[1]).toSorted(), ["job-state", "job-state", "ticket-moved"]);
 });
 
 test("a log line that is not a record refuses every write, naming the line and leaving the file as it is; the notice still goes", async (t) => {

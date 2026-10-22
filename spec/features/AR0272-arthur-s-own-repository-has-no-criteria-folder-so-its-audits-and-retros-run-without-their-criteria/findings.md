@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `.agents/arthur/criteria/styleguide.md`, `.agents/arthur/criteria/review.md`; `.agents/harness/criteria/styleguide.md`, `.agents/harness/criteria/review.md`
 - What: AR0272 copied the harness's styleguide and review criteria into `.agents/arthur/criteria/`, byte for byte, so Arthur's own roles read them. The harness still reads its own copies, and every job's prompt names `.agents/harness/criteria/styleguide.md`; a later edit of one copy leaves the other behind, and a worker of the harness and a worker of Arthur then judge the same branch by different rules. `cmp .agents/arthur/criteria/styleguide.md .agents/harness/criteria/styleguide.md` prints nothing today.
 - Suggestion: at the switch to Arthur running itself, remove `.agents/harness/criteria/` (and the harness's other files under `.agents/harness/`) so one copy is left; until then, an edit of either file is made in both. Out: a test pinning the two copies equal, which would outlive the switch.
-- Status: open
+- Status: ticket AR0297

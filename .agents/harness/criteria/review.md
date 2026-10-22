@@ -1,6 +1,8 @@
 # Review
 
 > Guide for review jobs on Arthur. The reviewer reads it with the styleguide, the instruction that produced the branch, the worker's final message, and the diff. It says what "mergeable" means here.
+>
+> Until the switch to Arthur running itself (`spec/roadmap.md`, "The switch"), this file is kept byte for byte in both `.agents/arthur/criteria/` and `.agents/harness/criteria/`: an edit of one is made in the other. The switch removes `.agents/harness/`.
 
 ## The question
 

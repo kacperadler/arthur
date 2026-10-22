@@ -36,3 +36,4 @@ In:
 
 - 2026-10-22: Source: F1 of AR0284
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-22: Worker: orchestration's line budget raised by 8 to 2239 (test/structure.test.ts) for the answer by policy and the notice's ending; the question is cut before that ending, so a long question still shows it was decided by policy.

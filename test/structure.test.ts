@@ -429,6 +429,12 @@ import { checkStructure } from "./structure.ts";
 // Merged main (AR0284) into AR0280: main's budgets plus AR0280's develop 622.
 // Merged main (AR0280) into AR0277: main's budgets plus AR0277's, orchestration 2223, develop 622 - 7 = 615 (recounted with
 // wc -l; AR0280's `{ arthur }` turn asks `coordinator.turn` too).
+// AR0269 (F1 of AR0262; its Done means carry the df in the machines check's one call): machines 15 more (474) for the round's
+// answers awaited before its checks, each check's paths passed to it, df on them in the same `sh -c` and its `disk` line
+// read from the report (machine-check.ts 9, machines.ts 6); resources 25 more (602) for the paths answered per machine
+// (room.ts 7), the round's df read with the same parser as its own (machine-disk.ts 11, split into diskPaths, measureDisk
+// and readDisk; machine-free.ts 5) and the provider's answer (resources.ts 2). Nothing cut: no second parser, no second script.
+// Merged main (AR0277) into AR0269: main's budgets plus AR0269's machines 474 and resources 602 (recounted with wc -l).
 // AR0278 (F2 of AR0276; its Done means allow a host member recorded in docs/plugin-api.md): core 3 more (5751) for
 // `commands.docs()`, every registered command with its doc page (commands.ts, the type with its comment and the registry's,
 // 3; plugin-host.ts, 0); develop 13 more (628) for help in a run: `arthur <command> --help` and `arthur help <command>` print
@@ -441,7 +447,14 @@ import { checkStructure } from "./structure.ts";
 // `coordinator.checkoutContext` provided with its refusal (orchestration.ts, 5); develop 22 more (650) for the context per run's
 // copy at the scenario's hour (eval-command.ts, 12, the instant on the owner's clock), the session's `TZ` (eval-run.ts, 7) and
 // `hour` read and checked (eval-scenario.ts, 3); nothing gave an eval the context before, so nothing was cut.
-const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2231, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 650, findings: 254 };
+// AR0288 (F3 of AR0280): develop 5 more (633), the stub answering every help call as the live CLI does, never from the
+// scenario's answers: an unknown command's `--help` and `help <command>`, `help` of two words and `help` alone, each with the
+// live CLI's text and exit code (eval-stub.ts, 5 net, its help comment kept at 2 lines and the branches put on one line).
+// Merged main (AR0278) into AR0269: main's budgets plus AR0269's machines 474 and resources 602 (recounted with wc -l).
+// Merged main (AR0269) into AR0288: main's budgets plus AR0288's develop 633 (recounted with wc -l).
+// Merged main (AR0269, AR0288) into AR0279: main's budgets plus AR0279's raises, core 5753, orchestration 2231, develop
+// 633 + 22 = 655 (recounted with wc -l).
+const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2231, machines: 474, resources: 602, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 655, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

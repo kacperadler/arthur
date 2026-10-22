@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/testing.ts:33`
 - What: at a test process's exit the kit removes its temporary root (`rmSync(root, { recursive: true, force: true })`), which holds every test's tmux socket (`TMUX_TMPDIR` and the `tmux.sock` the orchestration tests make under `temporaryFolder()`). A tmux server a test left running keeps running without its socket: `tmux -S <socket> kill-server` then fails with `error connecting to <socket> (No such file or directory)`, and only `kill` by pid ends it. Reproduced by hand: `tmux -S $d/s new-session -d -s probe sleep 300; rm -rf $d; tmux -S $d/s kill-server` exits 1 and the server stays in `ps`.
 - Suggestion: before the removal, the exit hook runs `tmux -S <socket> kill-server` for each socket under its root (and `tmux kill-server` under its `TMUX_TMPDIR`), so a server no test ended goes with its process. Out: the tests' own ends, which AR0296 made stop the server on every path.
-- Status: open
+- Status: ticket AR0303

@@ -2265,7 +2265,7 @@
     "title": "An eval turn's plugin context lines are the live Arthur's, which a scenario cannot set",
     "status": "done",
     "path": "spec/features/AR0294-an-eval-turn-s-plugin-context-lines-are-the-live-arthur-s-which-a-scenario-cannot-set/ticket.md",
-    "updated": "2026-10-22T20:59:16.307Z"
+    "updated": "2026-10-22T21:10:33.401Z"
   },
   {
     "id": "AR0295",
@@ -2277,9 +2277,9 @@
   {
     "id": "AR0296",
     "title": "An orchestration test can leave its tmux server and fake agent running after `npm test`",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0296-an-orchestration-test-can-leave-its-tmux-server-and-fake-agent-running-after-npm-test/ticket.md",
-    "updated": "2026-10-22T20:50:01.133Z"
+    "updated": "2026-10-22T21:11:05.195Z"
   },
   {
     "id": "AR0297",
@@ -2322,5 +2322,12 @@
     "status": "planned",
     "path": "spec/features/AR0302-the-inbox-s-backoff-tests-still-measure-5-s-and-10-s-windows-in-real-time/ticket.md",
     "updated": "2026-10-22T20:49:55.270Z"
+  },
+  {
+    "id": "AR0303",
+    "title": "The test kit's exit removes the sockets of tmux servers a test left, so nothing can reach them",
+    "status": "planned",
+    "path": "spec/features/AR0303-the-test-kit-s-exit-removes-the-sockets-of-tmux-servers-a-test-left-so-nothing-can-reach-them/ticket.md",
+    "updated": "2026-10-22T21:11:15.437Z"
   }
 ]

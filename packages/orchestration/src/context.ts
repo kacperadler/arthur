@@ -1,11 +1,13 @@
 import type { Host } from "@arthur/core/plugin";
+import { decisionContext } from "./decision-context.ts";
 import { silentContext } from "./silent.ts";
 
 // The coordinator's context (spec/roadmap.md, entry 25): what `arthur coordinator context` prints, which the context extension
 // (context-extension.ts) adds to the coordinator's system prompt before every turn. Its role, read as every role is; each
 // project's vision; a warning per file missing; each project's board digest; the jobs that have not ended, by state (entry 27);
-// the local time and whether it is night; the silent mode while it is on (entry 47); and each plugin's answer to
-// `collect("coordinator.context")`. A vision, a board or a plugin that fails costs its own lines: docs/commands/coordinator.md.
+// the open questions of the decision log (entry 96); the local time and whether it is night; the silent mode while it is on
+// (entry 47); and each plugin's answer to `collect("coordinator.context")`. A vision, a board or a plugin that fails costs its
+// own lines: docs/commands/coordinator.md.
 
 const firstLine = (error: unknown) => (error instanceof Error ? error.message : String(error)).split("\n")[0];
 const ORDER = ["blocked", "working", "idle"];
@@ -56,6 +58,8 @@ export function coordinatorContext(host: Host): string {
 		]);
 		parts.push(`## Jobs not ended\n\n${lines.join("\n")}`);
 	}
+	const open = decisionContext(host);
+	if (open !== "") parts.push(`## Open decisions\n\n${open}`);
 	const { date, time, day } = host.clock.local();
 	const night = host.clock.isQuiet() ? "night: within the owner's quiet hours" : "day: outside the owner's quiet hours";
 	parts.push(`## Time\n\n${time} on ${day} ${date} (${host.clock.timeZone}), ${night}.`);

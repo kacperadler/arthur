@@ -2263,9 +2263,9 @@
   {
     "id": "AR0294",
     "title": "An eval turn's plugin context lines are the live Arthur's, which a scenario cannot set",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0294-an-eval-turn-s-plugin-context-lines-are-the-live-arthur-s-which-a-scenario-cannot-set/ticket.md",
-    "updated": "2026-10-22T21:10:33.401Z"
+    "updated": "2026-10-22T21:14:26.477Z"
   },
   {
     "id": "AR0295",
@@ -2284,16 +2284,16 @@
   {
     "id": "AR0297",
     "title": "The styleguide and review criteria now live in two folders that will drift",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0297-the-styleguide-and-review-criteria-now-live-in-two-folders-that-will-drift/ticket.md",
-    "updated": "2026-10-22T15:56:26.407Z"
+    "updated": "2026-10-22T21:12:21.474Z"
   },
   {
     "id": "AR0298",
     "title": "On another machine the checkout a job reaches has no arthur.config.ts, so the line of `arthur plugin new` cannot run there",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0298-on-another-machine-the-checkout-a-job-reaches-has-no-arthur-config-ts-so-the-line-of-arthur-plugin-new-cannot-run-there/ticket.md",
-    "updated": "2026-10-22T16:30:42.813Z"
+    "updated": "2026-10-22T21:12:22.971Z"
   },
   {
     "id": "AR0299",

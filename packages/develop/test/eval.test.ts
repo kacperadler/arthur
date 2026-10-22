@@ -32,6 +32,13 @@ env > ${quote(join(spy, "env"))}
 case "$turn" in
 *hang*) echo $$ >> ${quote(join(spy, "hanging"))} && exec sleep 600 ;;
 *fail*) exit 3 ;;
+*help*)
+	arthur eval --help > ${quote(join(spy, "help-1"))}
+	arthur help eval > ${quote(join(spy, "help-2"))}
+	arthur --project shop eval --help > ${quote(join(spy, "help-3"))}
+	arthur help nosuch > ${quote(join(spy, "help-4"))}
+	arthur help eval twice > ${quote(join(spy, "help-5"))}
+	arthur nosuch eval > ${quote(join(spy, "help-6"))} ;;
 esac
 arthur ticket new Fix the login > ticket.txt
 arthur merge AR0001 > /dev/null
@@ -233,6 +240,31 @@ test("the stub never reaches Arthur's home: no variable names it, a file outside
 	const env = readFileSync(join(eval_.spy, "env"), "utf8").split("\n");
 	assert.deepEqual(env.filter((line) => line.startsWith("ARTHUR_")).map((line) => line.split("=")[0]), ["ARTHUR_EVAL"]);
 	assert.deepEqual(env.filter((line) => line.includes(eval_.home)), [], "no variable of the turn names the home");
+});
+
+test("help prints the page the live CLI prints: `--help` and `arthur help <command>` of a registered command take no answer and no expectation counts them; others are answered", async (t) => {
+	const page = readFileSync(new URL("../docs/commands/eval.md", import.meta.url), "utf8");
+	const eval_ = await load(t, {
+		one: {
+			turn: { message: "Read the help." },
+			stub: [{ match: "eval|nosuch", output: "stubbed", files: { "stubbed.md": "x\n" } }, ...STUB],
+			expect: { never: ["--help", "^arthur help eval$"], calls: ["^arthur help nosuch$", "^arthur help eval twice$", "^arthur ticket new "] },
+		},
+	});
+	const answer = await eval_.eval("--runs", "1");
+	assert.deepEqual(answer, { code: 0, header: answer.header, out: ["develop/one: 1/1 (no baseline)", "passed 1/1 runs; moved against the baseline: none"], err: "" });
+	const printed = [1, 2, 3, 4, 5, 6].map((index) => readFileSync(join(eval_.spy, `help-${index}`), "utf8"));
+	assert.deepEqual(printed, [page, page, page, "stubbed\n", "stubbed\n", "stubbed\n"], "a page for the registered command, `--project <name>` left out; an unknown one, `help` of two words and another command's word answered");
+	const log = eval_.transcript("develop-one-1", "arthur.log").trim().split("\n").map((line) => JSON.parse(line));
+	assert.deepEqual(log.slice(0, 7), [
+		{ call: "arthur eval --help", help: true },
+		{ call: "arthur help eval", help: true },
+		{ call: "arthur --project shop eval --help", help: true },
+		{ call: "arthur help nosuch", answer: 0 },
+		{ call: "arthur help eval twice", answer: 0 },
+		{ call: "arthur nosuch eval", answer: 0 },
+		{ call: "arthur ticket new Fix the login", answer: 1 },
+	]);
 });
 
 test("the turn is the text orchestration's inbox hands over for its event (coordinator.turn), a plugin's message included; a refused one fails its scenario alone", async (t) => {

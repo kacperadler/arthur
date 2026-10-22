@@ -16,13 +16,18 @@ function eventProject(host: Host, name: unknown): Project | undefined {
 
 // A job's question as askOfJob records it, with the answer of the class that answered it by policy, if one did.
 export type JobQuestion = { readonly id: string; readonly policy?: Answer };
-// Records a job's question; undefined when its project has no log to hold it. Under `queued`'s lock: at once when it is free,
-// else a promise of it.
-export function askOfJob(host: Host, data: Readonly<Record<string, unknown>>, question: string): JobQuestion | undefined | Promise<JobQuestion> {
+// Records a job's question; undefined when its project has no log to hold it. `again`, after a crash that may have asked it
+// already: the job's open question of these words, if there is one, is not asked twice. Under `queued`'s lock: at once when
+// it is free, else a promise of it.
+export function askOfJob(host: Host, data: Readonly<Record<string, unknown>>, question: string, again = false): JobQuestion | undefined | Promise<JobQuestion> {
 	const project = eventProject(host, data.project);
 	if (project === undefined) return undefined;
 	const ticket = typeof data.ticket === "string" && host.board.get(data.ticket)?.project === project.name ? data.ticket : undefined;
-	return queued(host, project, (lock) => ask(host, project, { kind: "job", question, options: [], job: String(data.id), ...(ticket === undefined ? {} : { ticket }) }, lock));
+	return queued(host, project, (lock) => {
+		const words = redact(question.trim());
+		const open = again ? decisions(readLog(project)).findLast((each) => each.state === "open" && each.ask.kind === "job" && each.ask.job === String(data.id) && each.ask.question === words) : undefined;
+		return open?.ask ?? ask(host, project, { kind: "job", question, options: [], job: String(data.id), ...(ticket === undefined ? {} : { ticket }) }, lock);
+	});
 }
 
 export function decisionHooks(host: Host): void {

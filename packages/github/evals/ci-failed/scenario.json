@@ -4,15 +4,15 @@
 	},
 	"stub": [
 		{
-			"match": "^arthur (?!.*--help)ci (?!.*--rerun)",
+			"match": "^arthur ci (?!.*--rerun)",
 			"output": "run 18140, attempt 1, of ci.yml on 0e1f2a3 (arthur/2026-10-22-worker-0e1f2a3b's tip): failure\nhttps://github.com/acme/shop/actions/runs/18140\njob test (ubuntu-latest): failure, step 4, npm test, failed\nthe log of job test (ubuntu-latest), its 30 lines up to its last error of 212:\nnot ok 12 - the catalog sorted by price puts the cheapest first\n  expected: [ 'Pen', 'Mug', 'Lamp' ]\n  actual: [ 'Lamp', 'Mug', 'Pen' ]\n  at test/catalog.test.ts:58\n# tests 53\n# pass 52\n# fail 1\n##[error]Process completed with exit code 1."
 		},
 		{
-			"match": "^arthur (?!.*--help)ci .*--rerun",
+			"match": "^arthur ci .*--rerun",
 			"output": "run 18140, attempt 1, of ci.yml on 0e1f2a3 (arthur/2026-10-22-worker-0e1f2a3b's tip): failure\nrerun of run 18140 asked: its attempt 2 is told as ci-finished when it ends"
 		},
 		{
-			"match": "^arthur (?!.*--help)continue ",
+			"match": "^arthur continue ",
 			"output": "2026-10-22-worker-0e1f2a3b: continued"
 		}
 	],
@@ -23,9 +23,9 @@
 		],
 		"never": [
 			"--rerun",
-			"^arthur (?!.*--help)merge ",
+			"^arthur merge ",
 			"--no-ci",
-			"^arthur (?!.*--help)spawn "
+			"^arthur spawn "
 		]
 	}
 }

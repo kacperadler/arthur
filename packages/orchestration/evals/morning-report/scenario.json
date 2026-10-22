@@ -9,11 +9,11 @@
 	},
 	"stub": [
 		{
-			"match": "^arthur (?!.*--help)jobs",
+			"match": "^arthur jobs",
 			"output": "ended\nSH0015  review  ended  02:40  $0.41/$2.00  7e8f9a0b  finished\nSH0015  worker  ended  01:55  $1.30/$2.00  6d7e8f9a  finished"
 		},
 		{
-			"match": "^arthur (?!.*--help)health",
+			"match": "^arthur health",
 			"output": "All well: nothing that should have happened by now is missing."
 		}
 	],
@@ -23,10 +23,10 @@
 			"origin:refs/heads/main": "kept"
 		},
 		"never": [
-			"^arthur (?!.*--help)spawn ",
-			"^arthur (?!.*--help)merge ",
-			"^arthur (?!.*--help)prune ",
-			"^arthur (?!.*--help)ticket status "
+			"^arthur spawn ",
+			"^arthur merge ",
+			"^arthur prune ",
+			"^arthur ticket status "
 		],
 		"reply": {
 			"match": [

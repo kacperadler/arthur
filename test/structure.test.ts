@@ -434,7 +434,10 @@ import { checkStructure } from "./structure.ts";
 // 3; plugin-host.ts, 0); develop 13 more (628) for help in a run: `arthur <command> --help` and `arthur help <command>` print
 // the page, noted `help` (eval-stub.ts, 10), the pages read once per eval (eval-command.ts, 2) and left out of the scored calls
 // (eval-run.ts, 1); the stub had no help before, so nothing was cut.
-const BUDGETS = { core: 5751, "core/testing": 349, projects: 486, orchestration: 2223, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 628, findings: 254 };
+// AR0288 (F3 of AR0280): develop 5 more (633), the stub answering every help call as the live CLI does, never from the
+// scenario's answers: an unknown command's `--help` and `help <command>`, `help` of two words and `help` alone, each with the
+// live CLI's text and exit code (eval-stub.ts, 5 net, its help comment kept at 2 lines and the branches put on one line).
+const BUDGETS = { core: 5751, "core/testing": 349, projects: 486, orchestration: 2223, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 633, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

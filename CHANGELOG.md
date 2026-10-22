@@ -15,6 +15,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0301 core job-control test can fail with ENOENT unlinking continuing under load (3691a8e)
 - AR0302 The inbox's backoff tests still measure 5 s and 10 s windows in real time (b0ff5ff)
 - AR0303 The test kit's exit removes the sockets of tmux servers a test left, so nothing can reach them (a8e6fe1)
+- AR0305 A lock left by a crashed process whose pid the taker now has counts as held by a live process (94846b2)
 
 ## 2026-10-22
 

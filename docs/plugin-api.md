@@ -173,7 +173,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | Name | Provided by | Asked by | The answer |
 | --- | --- | --- | --- |
 | `projects` | projects | the core (`host.board`, a spawn's checkout), plugins | The project list. |
-| `prompt` | commit-rules, findings, manage, projects, youtrack | the core, `collect` at a spawn | A section of the prompt for `(role, job)`. |
+| `prompt` | commit-rules, develop, findings, manage, projects, youtrack | the core, `collect` at a spawn | A section of the prompt for `(role, job)`. |
 | `doctor` | machines, models, nvm, projects | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
 | `jobs.place` | machines | the core, each spawn | The machine a job runs on. |
 | `jobs.limits` | resources | the core, each spawn | The job's own caps. |

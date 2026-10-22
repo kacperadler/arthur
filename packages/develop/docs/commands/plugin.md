@@ -17,6 +17,8 @@ In a job (the wrapper sets `ARTHUR_JOB` to its record) it writes only into the j
 $ cd ~/arthur && arthur plugin new acme-bot --budget 120 --root ~/.arthur-worktrees/2026-10-21-worker-0a1b2c3d
 ```
 
+In Arthur's repository (its checkout holds `packages/core`) the plugin puts this line, under `## A new plugin`, into the prompt of the planner, who makes it the first step of a new plugin's plan, and of the worker, with its own worktree as `--root`; `<checkout>`, `<name>` and `<lines>` are left for them to fill. Other projects' jobs and other roles get no such section.
+
 What it writes:
 
 - `packages/<name>/package.json`: `@arthur/<name>`, private, Apache-2.0, no dependency; its `.` and `./options` both the plugin file.

@@ -2108,9 +2108,9 @@
   {
     "id": "AR0274",
     "title": "A worker learns of `arthur plugin new --root` only if its ticket or plan names it",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0274-a-worker-learns-of-arthur-plugin-new-root-only-if-its-ticket-or-plan-names-it/ticket.md",
-    "updated": "2026-10-22T16:25:38.210Z"
+    "updated": "2026-10-22T16:30:29.847Z"
   },
   {
     "id": "AR0275",
@@ -2177,9 +2177,9 @@
   {
     "id": "AR0283",
     "title": "A job's question and the plugin's closes take the log's lock synchronously inside `arthur run`",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0283-a-job-s-question-and-the-plugin-s-closes-take-the-log-s-lock-synchronously-inside-arthur-run/ticket.md",
-    "updated": "2026-10-22T08:51:05.535Z",
+    "updated": "2026-10-22T17:07:36.513Z",
     "after": [
       "AR0282"
     ]
@@ -2194,9 +2194,9 @@
   {
     "id": "AR0285",
     "title": "A job's question answered by policy still reaches the owner as a question",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0285-a-job-s-question-answered-by-policy-still-reaches-the-owner-as-a-question/ticket.md",
-    "updated": "2026-10-22T09:16:36.941Z"
+    "updated": "2026-10-22T17:09:46.610Z"
   },
   {
     "id": "AR0286",
@@ -2287,5 +2287,12 @@
     "status": "planned",
     "path": "spec/features/AR0297-the-styleguide-and-review-criteria-now-live-in-two-folders-that-will-drift/ticket.md",
     "updated": "2026-10-22T15:56:26.407Z"
+  },
+  {
+    "id": "AR0298",
+    "title": "On another machine the checkout a job reaches has no arthur.config.ts, so the line of `arthur plugin new` cannot run there",
+    "status": "planned",
+    "path": "spec/features/AR0298-on-another-machine-the-checkout-a-job-reaches-has-no-arthur-config-ts-so-the-line-of-arthur-plugin-new-cannot-run-there/ticket.md",
+    "updated": "2026-10-22T16:30:42.813Z"
   }
 ]

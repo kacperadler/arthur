@@ -2298,16 +2298,16 @@
   {
     "id": "AR0299",
     "title": "A crash of `arthur run` while a job's question waits for the log's lock loses its notice",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0299-a-crash-of-arthur-run-while-a-job-s-question-waits-for-the-log-s-lock-loses-its-notice/ticket.md",
-    "updated": "2026-10-22T21:34:07.204Z"
+    "updated": "2026-10-22T22:16:50.296Z"
   },
   {
     "id": "AR0300",
     "title": "The wrapper's append to log can still recreate it while rm -r empties the record",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0300-the-wrapper-s-append-to-log-can-still-recreate-it-while-rm-r-empties-the-record/ticket.md",
-    "updated": "2026-10-22T21:57:57.565Z"
+    "updated": "2026-10-22T22:14:16.449Z"
   },
   {
     "id": "AR0301",
@@ -2319,9 +2319,9 @@
   {
     "id": "AR0302",
     "title": "The inbox's backoff tests still measure 5 s and 10 s windows in real time",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0302-the-inbox-s-backoff-tests-still-measure-5-s-and-10-s-windows-in-real-time/ticket.md",
-    "updated": "2026-10-22T20:49:55.270Z"
+    "updated": "2026-10-22T22:03:31.701Z"
   },
   {
     "id": "AR0303",
@@ -2336,5 +2336,12 @@
     "status": "planned",
     "path": "spec/features/AR0304-a-new-plugin-s-ticket-without-a-plan-can-still-be-placed-on-another-machine/ticket.md",
     "updated": "2026-10-22T21:36:24.628Z"
+  },
+  {
+    "id": "AR0305",
+    "title": "A lock left by a crashed process whose pid the taker now has counts as held by a live process",
+    "status": "planned",
+    "path": "spec/features/AR0305-a-lock-left-by-a-crashed-process-whose-pid-the-taker-now-has-counts-as-held-by-a-live-process/ticket.md",
+    "updated": "2026-10-22T22:17:03.359Z"
   }
 ]

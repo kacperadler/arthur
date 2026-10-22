@@ -6,6 +6,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ### Fixed
 
+- AR0299 A crash of `arthur run` while a job's question waits for the log's lock loses its notice (c54a670)
 - AR0301 core job-control test can fail with ENOENT unlinking continuing under load (3691a8e)
 
 ## 2026-10-22

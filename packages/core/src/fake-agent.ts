@@ -4,14 +4,13 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import type { AgentRun } from "./testing.ts";
 
-// The fake agent's player (spec/roadmap.md, entries 11, 14, 23, 24 and 35), started by the `omp` script `fakeAgent` writes, as
-// `node fake-agent.ts <run.json> <omp's arguments>`: it loads each `-e` extension as omp does (one may read the job's record) and
-// calls its `session_start` handlers, only then notes the start in `starts.jsonl` beside the run, plays the run, printing each event
-// in the shape `omp --mode json` prints it, asking the extensions' `tool_call` handlers before each tool call (a block fails the call with
-// its reason, as omp does), calling their `tool_result` handlers after it, noting each message they send (`sendUserMessage`)
-// in `messages.jsonl` beside the run with the step it came in, and the system prompt of each turn in `system.jsonl`, and exits with
-// the run's code. A handler's `ctx` has a UI (`hasUI`) unless omp runs with `--mode`; `ui` calls are noted in `ui.jsonl`; it is
-// idle outside a turn (`prompt` to `end`).
+// The fake agent's player (spec/roadmap.md, entries 11, 14, 23, 24 and 35), started by the `omp` script `fakeAgent` writes, as `node fake-agent.ts
+// <run.json> <omp's arguments>`: it loads each `-e` extension as omp does (one may read the job's record) and calls its `session_start` handlers, only
+// then notes the start in `starts.jsonl` beside the run, plays the run, printing each event in the shape `omp --mode json` prints it, asking the
+// extensions' `tool_call` handlers before each tool call (a block fails the call with its reason, as omp does), calling their `tool_result` handlers
+// after it, noting each message they send (`sendUserMessage`) in `messages.jsonl` beside the run with the step it came in, the system prompt of each
+// turn in `system.jsonl` and each `agent_end` in `ends.jsonl`, and exits with the run's code. A handler's `ctx` has a UI (`hasUI`) unless omp runs
+// with `--mode`; `ui` calls are noted in `ui.jsonl`; it is idle outside a turn (`prompt` to `end`).
 
 const [file = "", ...args] = process.argv.slice(2);
 const run = JSON.parse(readFileSync(file, "utf8")) as AgentRun;
@@ -122,7 +121,7 @@ for (const [index, step] of run.steps.entries()) {
 	} else if ("prompt" in step) {
 		while (prompts.length === 0) await sleep(10);
 		idle = false;
-		await sleep(step.compactMs ?? 0);
+		for (const until = Date.now() + (step.compactMs ?? 0); Date.now() < until; ) await sleep(10);
 		// As omp: the extensions' `before_agent_start` handlers first, the last system prompt one returns going to the model.
 		const turn = prompts.splice(0);
 		const answers = (await ask("before_agent_start", { prompt: turn.join("\n\n"), systemPrompt: [BASE] })) as ({ systemPrompt?: string[] } | undefined)[];
@@ -140,6 +139,7 @@ for (const [index, step] of run.steps.entries()) {
 		} else idle = true;
 		const goesOn = more !== undefined || step.continues === true;
 		await ask("agent_end", { messages: [...conversation], willContinue: goesOn ? true : undefined });
+		note("ends.jsonl", { willContinue: goesOn, step: index });
 	} else if ("stdout" in step) await print(process.stdout, step.stdout);
 	else if ("stderr" in step) await print(process.stderr, step.stderr);
 	// Waits for the test; a test whose folder is gone, as after its process exited, never comes.

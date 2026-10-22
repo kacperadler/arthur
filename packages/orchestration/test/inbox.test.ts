@@ -9,6 +9,7 @@ import { type AgentRun, type AgentStep, type FakeHost, fakeAgent, fakeHost, temp
 import { pause } from "../src/inbox-extension.ts";
 import { inbox, queue } from "../src/inbox.ts";
 import { orchestration } from "../src/orchestration.ts";
+import { endCoordinator } from "./coordinator-end.ts";
 
 const PATH = process.env.PATH ?? "";
 const AGAIN = "Your reply above has not been sent; write one reply that answers this together with everything your reply above answered.";
@@ -57,11 +58,8 @@ async function load(t: TestContext, run: AgentRun, setup: { readonly root?: stri
 	if (setup.projects !== undefined) fake.provide("projects", () => setup.projects);
 	const plugin = orchestration(options);
 	await fake.setup({ setup: (host) => plugin.setup({ ...host, options }) });
-	t.after(async () => {
-		await plugin.stop?.();
-		spawnSync("tmux", ["-S", socket, "kill-server"]);
-		process.env.PATH = PATH;
-	});
+	t.after(() => void (process.env.PATH = PATH));
+	endCoordinator(t, socket, plugin);
 	const folder = fake.host.folder;
 	const ui = () => lines(join(dirname(agent), "ui.jsonl"));
 	let ticks = 0;

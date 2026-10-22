@@ -4,6 +4,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ## 2026-10-22
 
+### Added
+
+- AR0278 In an eval run, `arthur <command> --help` answers only what the scenario's stub says (7732a3d)
+
 ### Fixed
 
 - AR0277 The eval words a turn with a copy of orchestration's wake and inbox lines, which can drift (c4047e0)

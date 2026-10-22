@@ -37,20 +37,27 @@ async function refusal(plugins: readonly Plugin[]): Promise<string> {
 	assert.fail("loadPlugins passed, expected a refusal");
 }
 
-test("plugins register their commands next to the core's, and each plugin sees every phone command", async () => {
+test("plugins register their commands next to the core's; each plugin sees every phone command, and every command with its doc page", async () => {
 	const commands = commandRegistry();
 	commands.register("core", command("config"));
 	let seen: unknown;
+	let host: Host | undefined;
 	await loadPlugins(
 		config([
-			plugin("orchestration", (host) => host.commands.register(command("jobs", { about: "running jobs", reply: () => "none" }))),
-			plugin("telegram", (host) => void (seen = host.commands.phone())),
+			plugin("develop", (own) => void (host = own)),
+			plugin("orchestration", (own) => own.commands.register(command("jobs", { about: "running jobs", reply: () => "none" }))),
+			plugin("telegram", (own) => void (seen = own.commands.phone())),
 		]),
 		{},
 		commands,
 	);
 	assert.deepEqual(commands.names(), ["config", "jobs"]);
 	assert.deepEqual(seen, [{ name: "jobs", about: "running jobs" }]);
+	// Asked after the load, a plugin set up before another sees its commands too, and the core's, phone or not.
+	assert.deepEqual(host?.commands.docs(), [
+		{ name: "config", doc: pathToFileURL(join(docs, "config.md")) },
+		{ name: "jobs", doc: pathToFileURL(join(docs, "jobs.md")) },
+	]);
 });
 
 test("two plugins registering one name are refused at load, naming both; the core's names count too", async () => {

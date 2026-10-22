@@ -31,8 +31,9 @@ export type Board = {
 	// The tickets `id` waits for, on its own board, replacing the ones before; none waits for nothing. Refused: an id not on the
 	// board, a dropped one, a cycle. Emits `ticket-after` (`id`, `project`, `after`) when it changes.
 	after(id: string, ids: readonly string[]): Ticket;
-	// Every open ticket, the 10 newest merged, and one line counting the rest; `project` undefined is the main one.
-	digest(project?: string): string;
+	// Every open ticket, the 10 newest merged, and one line counting the rest; `project` undefined is the main one; `checkout`, a
+	// folder holding a copy of the project's repository (an eval's fixture), reads the board there instead.
+	digest(project?: string, checkout?: string): string;
 	// Every ticket, the digest's lines and the rest of the merged and dropped ones; `project` undefined is the main one.
 	full(project?: string): string;
 };
@@ -85,7 +86,7 @@ export function board(lists: () => readonly unknown[], clock: Clock, emit: (name
 	return {
 		projects: () => projectList(lists()),
 		list: (name) => tickets(project(name)),
-		digest: (name) => boardText(tickets(project(name)), false),
+		digest: (name, checkout) => boardText(tickets(checkout === undefined ? project(name) : { ...project(name), path: checkout }), false),
 		full: (name) => boardText(tickets(project(name)), true),
 		get(id) {
 			const where = owner(id);

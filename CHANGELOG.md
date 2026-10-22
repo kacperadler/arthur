@@ -8,10 +8,16 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0269 The disk check makes a second ssh call per machine and round (2bb5ec1)
 - AR0278 In an eval run, `arthur <command> --help` answers only what the scenario's stub says (7732a3d)
+- AR0279 An eval turn gets the coordinator's role but not its context, nor a time of day (f582f7d)
 
 ### Fixed
 
 - AR0277 The eval words a turn with a copy of orchestration's wake and inbox lines, which can drift (c4047e0)
+- AR0288 The eval stub answers a command's --help with that command's scripted result (3b718b5)
+
+### Changed
+
+- AR0291 The scenarios' `(?!.*--help)` guards are dead weight once the stub prints help itself (fdf7054)
 
 ### Other
 

@@ -13,7 +13,7 @@
 	},
 	"stub": [
 		{
-			"match": "^arthur (?!.*--help)prune ",
+			"match": "^arthur prune ",
 			"output": "2026-10-22-review-9a8c7e61: worktree /home/owner/.arthur-worktrees/2026-10-22-review-9a8c7e61 removed; record deleted"
 		}
 	],
@@ -22,11 +22,11 @@
 			"^arthur prune (\\S+-)?9a8c7e61$"
 		],
 		"never": [
-			"^arthur (?!.*--help)continue ",
-			"^arthur (?!.*--help)review",
-			"^arthur (?!.*--help)ticket file ",
-			"^arthur (?!.*--help)spawn ",
-			"^arthur (?!.*--help)merge "
+			"^arthur continue ",
+			"^arthur review",
+			"^arthur ticket file ",
+			"^arthur spawn ",
+			"^arthur merge "
 		],
 		"reply": {
 			"lines": 3

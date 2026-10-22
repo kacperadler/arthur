@@ -36,3 +36,4 @@ In:
 
 - 2026-10-21: Source: F1 of AR0260
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-22: Coordinator (free hand): line budget raise accepted, develop 655 to 667, for the planner and worker section on `arthur plugin new`.

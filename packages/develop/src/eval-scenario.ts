@@ -86,8 +86,8 @@ export async function readScenario(host: Host, name: string, folder: string): Pr
 
 // The turn as the inbox hands it over, asked of orchestration (`coordinator.turn`): `{ message, channel? }` the owner's, a
 // `message-received`; `{ scheduled, message, procedure? }` a schedule entry due, a `coordinator-message` as the schedule plugin
-// words it, `procedure` a file beside the scenario; `{ arthur }` a plugin's `coordinator-message`, as it words it;
-// `{ ended, result? }` a job's end, a `job-ended` with its final message.
+// words it (`schedule.message`), `procedure` a file beside the scenario; `{ arthur }` a plugin's `coordinator-message`, as it
+// words it; `{ ended, result? }` a job's end, a `job-ended` with its final message.
 async function turnText(host: Host, folder: string, turn: unknown): Promise<string> {
 	if (!object(turn)) throw new Error("turn: expected { message, channel? }, { scheduled, message, procedure? }, { arthur } or { ended, result? }");
 	if (turn.ended !== undefined) {
@@ -104,8 +104,7 @@ async function turnText(host: Host, folder: string, turn: unknown): Promise<stri
 		const parts = [{ kind: "text", text: turn.message, mime: "text/plain" }];
 		return host.call<Promise<string>>("coordinator.turn", "message-received", { channel: words(turn.channel) ? turn.channel : "telegram", parts });
 	}
-	if (!words(turn.scheduled)) throw new Error("turn.scheduled: expected the entry's id");
 	if (turn.procedure !== undefined && !words(turn.procedure)) throw new Error("turn.procedure: expected a file's path beside the scenario");
-	const procedure = turn.procedure === undefined ? "" : `\n\n${readFileSync(join(folder, turn.procedure as string), "utf8").trim()}`;
-	return host.call<Promise<string>>("coordinator.turn", "coordinator-message", { text: `[scheduled ${turn.scheduled}] ${turn.message}${procedure}` });
+	const procedure = turn.procedure === undefined ? undefined : readFileSync(join(folder, turn.procedure as string), "utf8");
+	return host.call<Promise<string>>("coordinator.turn", "coordinator-message", { text: host.call<string>("schedule.message", turn.scheduled, turn.message, procedure) });
 }

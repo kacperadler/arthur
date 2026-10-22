@@ -471,7 +471,11 @@ import { checkStructure } from "./structure.ts";
 // its comment 2); a new line on the phone, so nothing was cut.
 // Merged main (AR0274, AR0285) into AR0283: main's budgets plus AR0283's raise, orchestration 2239 + 38 = 2277, develop 667
 // (recounted with wc -l).
-const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2277, machines: 474, resources: 607, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 667, findings: 254 };
+// AR0289 (F1 of AR0277; its Done means: schedule provides the text of an action due, develop asks it instead of its copy):
+// schedule 15 more (585) for `schedule.message` with its refusals (sweep.ts, `dueMessage`, 8) and the one wording of
+// `[scheduled <id>]` the sweep, a refused spawn and the answer share (sweep.ts, `scheduled`, 6), provided (schedule.ts, 1);
+// develop 1 fewer (666), its copy of the wording gone from eval-scenario.ts.
+const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2277, machines: 474, resources: 607, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 666, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

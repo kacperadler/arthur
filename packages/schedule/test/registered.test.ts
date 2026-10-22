@@ -91,6 +91,27 @@ test("a plugin registers its entries from its options: ids namespaced by the plu
 	]);
 });
 
+test("schedule.message answers the very text the sweep emits for an action due on time, its procedure's text trimmed under a blank line; a wrong id, message or procedure is refused", async (t) => {
+	const box = await load(t, [STANDUP], "2026-10-20T07:59:00+02:00");
+	const procedure = join(box.manage, "roles", "morning-report.md");
+	writeFileSync(procedure, "\n# Morning report\n\nWhat was built overnight.\n\n");
+	box.register("manage", [{ ...REPORT, action: { ...REPORT.action, procedure } }], box.manage);
+	await box.sweep("2026-10-20T08:00:00+02:00");
+	await box.sweep("2026-10-20T09:00:00+02:00");
+	await until("both actions", () => box.messages().length === 2);
+	const message = (...asked: unknown[]) => box.fake.call<string>("schedule.message", ...asked);
+	const text = readFileSync(procedure, "utf8");
+	assert.deepEqual(box.messages(), [message("manage.report", "Write the morning report.", text), message("standup", "Plan the day.")]);
+	assert.deepEqual(box.messages(), ["[scheduled manage.report] Write the morning report.\n\n# Morning report\n\nWhat was built overnight.", "[scheduled standup] Plan the day."]);
+	assert.equal(message("tea", "Tea.", ""), "[scheduled tea] Tea.\n\n", "an empty procedure file still goes under a blank line, as the sweep has it");
+	const refused = (why: string, ...asked: unknown[]) => assert.throws(() => message(...asked), { message: `schedule.message: ${why}` });
+	refused('expected an entry\'s id, got "bad/id"', "bad/id", "Tea.");
+	refused("expected an entry's id, got undefined");
+	refused('expected the action\'s message, non-empty text, got " "', "tea", " ");
+	refused("expected the action's message, non-empty text, got 7", "tea", 7);
+	refused("expected the procedure's text or nothing, got null", "tea", "Tea.", null);
+});
+
 test("a registration that clashes or is wrong is refused whole, naming the plugin; a procedure only as an absolute .md path in its own package folder", async (t) => {
 	const box = await load(t, [{ id: "manage.report", at: "09:00", action: { message: "Mine." } }], "2026-10-20T07:00:00+02:00");
 	const refused = (name: unknown, list: unknown, message: string, own?: unknown) => assert.throws(() => box.register(name, list, own), { message });

@@ -55,6 +55,8 @@ async function evaluate(host: Host, args: readonly string[]): Promise<number> {
 		command: host.agent,
 		args: ["-p", "--mode", "json", "--no-session", "--auto-approve", "-e", ENV_GUARD, ...(model ? ["--model", model] : []), ...(thinking ? ["--thinking", thinking] : [])],
 	};
+	// Each registered command's page, so the stub prints what `arthur <command> --help` prints live.
+	const pages = Object.fromEntries(host.commands.docs().map(({ name, doc }) => [name, readFileSync(doc, "utf8")]));
 	const out = join(host.folder, "evals", new Date().toISOString().replace(/[:.]/g, "-"));
 	const report: string[] = [];
 	const say = (line: string) => (report.push(line), console.log(line));
@@ -63,7 +65,7 @@ async function evaluate(host: Host, args: readonly string[]): Promise<number> {
 	const moved: string[] = [];
 	for (const name of names.length > 0 ? [...new Set(names)] : [...known.keys()]) {
 		const scenario = await readScenario(host, name, known.get(name) ?? "");
-		const failures = typeof scenario === "string" ? Array.from({ length: runs }, () => [scenario]) : await Promise.all(Array.from({ length: runs }, (_, index) => evalRun(scenario, agent, prompt, join(out, `${name.replace("/", "-")}-${index + 1}`))));
+		const failures = typeof scenario === "string" ? Array.from({ length: runs }, () => [scenario]) : await Promise.all(Array.from({ length: runs }, (_, index) => evalRun(scenario, agent, prompt, pages, join(out, `${name.replace("/", "-")}-${index + 1}`))));
 		const passed = failures.filter((list) => list.length === 0).length;
 		results[name] = { passed, runs };
 		const was = baseline[name];

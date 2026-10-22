@@ -21,8 +21,10 @@ export function byState<T extends { readonly state: string }>(jobs: readonly T[]
 }
 
 // `checkout`: the context in a copy of the main project's repository at `root` (an eval's fixture), at the instant `at`: its
-// vision and board read there, its lines naming no project; no jobs, open decisions or silent mode, which are the live Arthur's.
-export function coordinatorContext(host: Host, checkout?: { readonly root: string; readonly at: Date }): string {
+// vision and board read there, its lines naming no project; no jobs, open decisions or silent mode, which are the live
+// Arthur's; and each plugin's lines those `context` gives it by name instead of its answer, none for a plugin left out, so no
+// live answer reaches an eval.
+export function coordinatorContext(host: Host, checkout?: { readonly root: string; readonly at: Date; readonly context: Readonly<Record<string, string>> }): string {
 	const { prompt, warnings } = host.jobs.prompt("coordinator");
 	const parts = [prompt.trim()];
 	// Without a project list the only project is the repository Arthur runs in, which has no board.
@@ -68,7 +70,11 @@ export function coordinatorContext(host: Host, checkout?: { readonly root: strin
 	parts.push(`## Time\n\n${time} on ${day} ${date} (${host.clock.timeZone}), ${night}.`);
 	const silent = checkout === undefined ? silentContext(host) : "";
 	if (silent !== "") parts.push(`## Silent\n\n${silent}`);
-	for (const answer of host.collectEach("coordinator.context")) {
+	const answers = host.collectEach("coordinator.context");
+	const plugins = answers.map((answer) => answer.plugin);
+	const unknown = Object.keys(checkout?.context ?? {}).filter((name) => !plugins.includes(name));
+	if (unknown.length > 0) throw new Error(`coordinator.checkoutContext: context names ${unknown.join(", ")}: no such plugin answers coordinator.context; those that do: ${plugins.join(", ") || "none"}`);
+	for (const answer of checkout === undefined ? answers : plugins.map((plugin) => ({ plugin, value: checkout.context[plugin] }))) {
 		const said = "error" in answer ? `coordinator.context failed: ${firstLine(answer.error)}` : answer.value;
 		if (said !== undefined && typeof said !== "string") parts.push(`## ${answer.plugin}\n\ncoordinator.context answered ${typeof said}, not text`);
 		else if (said !== undefined && said.trim() !== "") parts.push(`## ${answer.plugin}\n\n${said.trim()}`);

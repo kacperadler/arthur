@@ -111,7 +111,7 @@ export function score(expect: Expect, repo: string, before: ReadonlyMap<string, 
 	return failures;
 }
 
-export async function evalRun(scenario: Scenario, agent: Agent, context: (root: string, hour: number) => string, pages: Readonly<Record<string, string>>, out: string): Promise<string[]> {
+export async function evalRun(scenario: Scenario, agent: Agent, context: (root: string, scenario: Scenario) => string, pages: Readonly<Record<string, string>>, out: string): Promise<string[]> {
 	const run = realpathSync(mkdtempSync(join(tmpdir(), "arthur-eval-")));
 	try {
 		const [repo, origin, stub, log] = [join(run, "repo"), join(run, "origin.git"), join(run, "bin", "arthur"), join(run, "arthur.log")];
@@ -126,7 +126,7 @@ export async function evalRun(scenario: Scenario, agent: Agent, context: (root: 
 		const before = refs(repo, origin);
 		mkdirSync(join(run, "bin"));
 		writeStub(stub, repo, log, scenario.stub, pages);
-		writeFileSync(join(run, "prompt.md"), context(repo, scenario.hour));
+		writeFileSync(join(run, "prompt.md"), context(repo, scenario));
 		writeFileSync(join(run, "turn.md"), scenario.turn);
 		// No ARTHUR_ variable of this process reaches the turn (a job's record, a plugin's folder).
 		const env = { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("ARTHUR_"))), PATH: `${join(run, "bin")}${delimiter}${process.env.PATH ?? ""}`, ARTHUR_EVAL: stub, TZ: zoneAt(scenario.hour) };

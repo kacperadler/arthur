@@ -2347,8 +2347,8 @@
   {
     "id": "AR0306",
     "title": "The agent's extensions still append to `log` with a flag that creates it",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0306-the-agent-s-extensions-still-append-to-log-with-a-flag-that-creates-it/ticket.md",
-    "updated": "2026-10-22T23:05:47.618Z"
+    "updated": "2026-10-22T23:30:08.491Z"
   }
 ]

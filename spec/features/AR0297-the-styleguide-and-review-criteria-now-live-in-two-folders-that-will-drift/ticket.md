@@ -36,3 +36,4 @@ In:
 
 - 2026-10-22: Source: F1 of AR0272
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-22: Coordinator (free hand): the Goal asks that a test fails when the two copies differ, so add the equality test of `styleguide.md` and `review.md`, run only while `.agents/harness/criteria/` exists; the roadmap's switch step also deletes that test.

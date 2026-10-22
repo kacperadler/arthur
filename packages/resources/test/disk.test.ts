@@ -7,6 +7,7 @@ import { type TestContext, test } from "node:test";
 import { loadConfig } from "@arthur/core";
 import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { type ResourcesOptions, resources } from "../src/resources.ts";
+import { checkSample } from "../src/machine-free.ts";
 import { roomOf } from "../src/room.ts";
 
 const GB = 2 ** 30;
@@ -255,6 +256,28 @@ test("two processes checking gpu at once say its fall under the floor and its fa
 	await goneAgain();
 	assert.deepEqual(notices(), [], "the other process's check said this failure");
 	assert.deepEqual(readdirSync(machines), ["gpu.json"], "no lock left behind");
+});
+
+test("a check writes its own under the lock it read the one before under: another process that reads the write sees the lock held by this one", async () => {
+	const folder = temporaryFolder();
+	const file = join(folder, "machines", "gpu.json");
+	mkdirSync(dirname(file));
+	// The check's write goes to a FIFO, and its reason, longer than a pipe holds (64 KiB on Linux), keeps it there until the
+	// other process reads it; that process first looks at the lock as it stands during the write.
+	execFileSync("mkfifo", [`${file}.${process.pid}`]);
+	const code = `const { existsSync, openSync, readFileSync } = require("node:fs");
+		const fd = openSync(${JSON.stringify(`${file}.${process.pid}`)}, "r");
+		const holder = existsSync(${JSON.stringify(`${file}.lock`)}) ? readFileSync(${JSON.stringify(`${file}.lock`)}, "utf8").split(" ")[0] : "none";
+		process.send({ holder, written: readFileSync(fd, "utf8") }, () => process.disconnect());`;
+	const child = spawn(process.execPath, ["-e", code], { stdio: ["ignore", "inherit", "inherit", "ipc"] });
+	const seen = once(child, "message");
+	const said = Promise.resolve({ error: `ssh failed: ${"x".repeat(256 * 1024)}` });
+	const kept = await checkSample(fakeHost({ name: "resources", now: NOW }).host, folder, "gpu", 0, said);
+	const [{ holder, written }] = (await seen) as [{ holder: string; written: string }];
+	assert.equal(holder, String(process.pid), "the lock is this process's while it writes");
+	assert.equal(written, `${JSON.stringify(kept)}\n`);
+	assert.equal(existsSync(`${file}.lock`), false, "and let go after");
+	rmSync(folder, { recursive: true });
 });
 
 // Another process's check of the machine kept in `file`, as an `arthur spawn` makes it while `arthur run`'s is in flight: it

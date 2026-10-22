@@ -39,3 +39,4 @@ In:
 
 - 2026-10-22: Source: F2 of AR0276
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-22: Coordinator (free hand): line budget raises accepted, core 5748 to 5751, develop 615 to 628, for help pages in the eval stub.

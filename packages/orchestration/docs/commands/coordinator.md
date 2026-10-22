@@ -82,9 +82,15 @@ In `orchestration({ ... })` in `arthur.config.ts`, every key optional; an unknow
 - `mcp: { servers, all, roles }`: the MCP servers of the coordinator, each project agent and each job, as "MCP servers" below says.
 - `plan: { budgetUsd }`: the budget of a plan job, an amount in USD, 0 or more, default 5 (`arthur plan --help`).
 - `autopilot: { budgetUsd, budgetMaxUsd }`: amounts in USD, 0 or more: the budget a pre-approved ticket's worker gets when `--budget` and the ticket's own `budget` are left out, default 1, and the most it may get, default 3 (see "Autopilot"). A `budgetUsd` above `budgetMaxUsd`, either left out at its default, refuses the start: `autopilot.budgetUsd: expected at most autopilot.budgetMaxUsd (<cap>), got <budget>`.
-- `morningReport: { at }`: `"HH:MM"`, 00:00 to 23:59.
+- `morningReport: { at }`: `"HH:MM"`, 00:00 to 23:59, in `core.timeZone`: when the morning report is sent (see "The morning report").
 
-`morningReport` is checked here for its shape; the entry that reads it says what it does.
+## The morning report
+
+With `morningReport.at`, the plugin's setup registers one entry with the schedule plugin through `schedule.register` (`arthur schedule --help`), `orchestration.report`, every day at that time: an action, so the coordinator gets `[Arthur] [scheduled orchestration.report] Write the morning report.` and under it the procedure `roles/coordinator/morning-report.md` of this package, as the file reads when the entry runs. `arthur schedule` lists it as `orchestration.report (plugin orchestration, option morningReport.at)`. Without `morningReport.at` nothing is registered.
+
+The coordinator's reply is the report, five sections in this order, each left out when it is empty: built overnight, merged without the owner (its `arthur merge --auto` runs), waiting for approval, waiting for a decision, and needs attention (the lines of `arthur health`, from the manage plugin). A night with nothing done says so in one line, the whole report when nothing waits either. As the coordinator's role says for every reply, each ticket, finding, job or project it names gets a plain sentence on what it is and what the owner will see change, never an id alone, and each decision waiting is a question the report alone answers, with the options and a recommendation; this outranks any limit on its length. While the silent mode is on, the coordinator runs `arthur silent ask` first, so the report is not held.
+
+Refused at load, the start failing: `morningReport.at` while the schedule plugin is not loaded or is disabled, the schedule being optional otherwise: `morningReport.at needs the schedule plugin, which sends the morning report; add schedule() to the config's plugins, or leave morningReport out`. Orchestration is set up after schedule when schedule is loaded (`after: ["schedule"]`), so the entry goes in at the same load.
 
 ## Autopilot
 

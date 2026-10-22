@@ -39,3 +39,4 @@ In:
 - 2026-10-22: Started by the coordinator; owner: continue Arthur today up to 20% of the weekly limit (8% at 08:40).
 - 2026-10-22: Coordinator (free hand) raised the budget by 5 after the worker hit 10 with the scenarios committed and docs/budget edits uncommitted.
 - 2026-10-22: Coordinator (free hand) approved the real-model baseline run (19 scenarios x 3 runs, about $9); total budget 25.
+- 2026-10-22: Coordinator (free hand) accepted develop budget 584 -> 622.

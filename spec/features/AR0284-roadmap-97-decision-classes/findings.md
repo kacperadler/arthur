@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/orchestration/src/blocked-notice.ts` (the notice text), `packages/orchestration/src/decision-hooks.ts` (`askOfJob` returns only the id)
 - What: when an approved class of kind `job` answers a blocked job's question by policy, the notice every channel sends still reads `<job> asks [AR-D3]: <question>` (asserted as it is in `packages/orchestration/test/decisions.test.ts`, "a job's question an approved class matches is answered by policy..."), so the owner's phone shows a question nobody waits on him for; only the coordinator's wake and its reply say it was decided by policy.
 - Suggestion: let `askOfJob` return the policy answer too, and have the notice end `— answered by policy (<class id>): <decided>`; the notice's cut at one message's length and its one-per-block mark stay as they are.
-- Status: open
+- Status: ticket AR0285

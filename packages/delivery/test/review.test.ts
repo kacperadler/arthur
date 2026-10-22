@@ -8,7 +8,7 @@ import { coreVersion } from "@arthur/core";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { delivery } from "../src/delivery.ts";
 import { handBack } from "../src/hand-back.ts";
-import { verdictOf } from "../src/review-records.ts";
+import { saveReview, verdictOf } from "../src/review-records.ts";
 
 const PATH = process.env.PATH ?? "";
 const FOLDER = "spec/features/AC0001-shop";
@@ -141,6 +141,32 @@ test("PASS not on the last line is no verdict: the run ends failed, the ticket s
 	// One that `arthur stop` or `stopall` stopped is started again only on the owner's word.
 	writeFileSync(join(home, "jobs", none.id, "reason"), "stopped");
 	assert.match(String(fake.collect("coordinator.wake", { id: none.id, kind: "review" })[0]), new RegExp(`^Review ${none.id} was stopped, so it has no verdict, .* Review again only when the owner asks: arthur review ${job.id};`));
+});
+
+test("a review in no home, an eval's, is worded from the record its data names and the final message it is given, and writes nothing", async (t) => {
+	const { fake } = await load(t);
+	const id = "2026-10-22-review-1f2e3d4c";
+	const [branch, commit] = ["arthur/2026-10-22-worker-4d5e6f70", "9c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d"];
+	const records = (delivery: unknown) => ({ delivery });
+	const given = { ticket: "AC0001", branch, commit };
+	const ended = { id, kind: "review", project: "acme", state: "ended", reason: "finished", records: records(given) };
+	const wake = (job: object, result: unknown) => fake.collect("coordinator.wake", job, result)[0];
+	const file = `File it: arthur ticket file AC0001 ${id}, commit it, then arthur prune ${id}.`;
+	assert.equal(wake(ended, "Clean.\n\nPASS"), `Review verdict: PASS on ${branch} at 9c1d2e3; AC0001 moves to done. ${file}`);
+	assert.equal(wake({ ...ended, records: records({ ...given, autoMerge: true }) }, "Clean.\n\nPASS"), `Review verdict: PASS on ${branch} at 9c1d2e3; AC0001 moves to done. ${file} acme merges on its own (autoMerge): after that commit, arthur merge --auto 2026-10-22-worker-4d5e6f70.`);
+	assert.match(String(wake(ended, "Rounds each line.\n\nFAIL")), new RegExp(`^Review verdict: FAIL on ${branch} at 9c1d2e3, 1 since its last PASS; AC0001 moves back to in-progress\\. .* It hands the branch back: `));
+	assert.match(String(wake(ended, "PASS\n\nAll good.")), new RegExp(`^Review ${id}: no verdict, so the review failed: `));
+	assert.match(String(wake({ ...ended, reason: "limit: budget" }, "Clean.\n\nPASS")), new RegExp(`^Review ${id}: no verdict, `), "a run that did not finish has none");
+	assert.match(String(wake({ ...ended, state: "blocked" }, "Clean.\n\nPASS")), new RegExp(`^Review ${id}: no verdict, `), "nor one blocked");
+	assert.match(String(wake({ ...ended, reason: "stopped" }, "")), new RegExp(`^Review ${id} was stopped, `));
+	assert.equal(wake({ ...ended, records: {} }, "PASS"), undefined, "no record named, no line");
+	assert.equal(wake({ ...ended, kind: "worker" }, "PASS"), undefined, "a worker's end gets no review line, whatever its data names");
+	assert.equal(existsSync(join(fake.host.folder, "reviews")), false, "no record written");
+	for (const wrong of [{ ...given, ticket: "shop" }, { ...given, branch: "main" }, { ...given, commit: "HEAD" }, { ...given, autoMerge: "yes" }, "AC0001", null])
+		assert.throws(() => wake({ ...ended, records: records(wrong) }, "PASS"), { message: `review ${id}: records.delivery: expected { ticket: <id>, branch: arthur/<worker job>, commit: <sha>, autoMerge?: true | false }, got ${JSON.stringify(wrong)}` });
+	// A review of this home is read from its own record, whatever the data names.
+	saveReview(fake.host, { id, ticket: "AC0002", branch, commit, at: 1 });
+	assert.match(String(wake(ended, "Clean.\n\nPASS")), /AC0002 stays at review/);
 });
 
 test("a FAIL moves the ticket back to in-progress and pushes nothing; a third review after 2 FAILs is refused naming both, until --round 3", async (t) => {

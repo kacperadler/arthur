@@ -218,7 +218,8 @@ test("job ends and a schedule message mid-turn wait for the next turn: one messa
 	const gate = gates();
 	const steps: AgentStep[] = [{ prompt: true }, { waitFor: gate.at("one") }, { tool: "bash" }, { message: "Answered." }, { end: true }, { prompt: true }, { message: "Read the ends." }, { end: true }, { prompt: true }];
 	const box = await load(t, { steps }, { root, projects });
-	box.fake.provide("coordinator.wake", (job: { kind: string }) => (job.kind === "worker" ? "Procedure: review its branch against the ticket." : undefined));
+	// Asked with the job-ended data and the final message whole, not only the lines the wake shows.
+	box.fake.provide("coordinator.wake", (job: { kind: string }, final: string) => (job.kind === "worker" ? `Procedure: review its branch against the ticket; its final message ends ${JSON.stringify(final.slice(-7))}.` : undefined));
 	const result = Array.from({ length: 20 }, (_, index) => `line ${index + 1}`).join("\n");
 	process.env.PATH = `${dirname(fakeAgent({ steps: [{ message: result }] }))}${delimiter}${PATH}`;
 	const job = await box.fake.host.jobs.spawn({ task: "Go." });
@@ -236,13 +237,13 @@ test("job ends and a schedule message mid-turn wait for the next turn: one messa
 		`[Arthur] Job ${job.id} ended its run: ended (finished).`,
 		"Its final message (the first 15 of 20 lines):",
 		...result.split("\n").slice(0, 15),
-		"Procedure: review its branch against the ticket.",
+		'Procedure: review its branch against the ticket; its final message ends "line 20".',
 		"",
 		"[Arthur] Job 2026-10-17-worker-0000abcd ended its run blocked on the owner; its question, also sent as a notice: may I?",
 		"Project: shop.",
 		"Its final message: none.",
 		NOT_YET,
-		"Procedure: review its branch against the ticket.",
+		'Procedure: review its branch against the ticket; its final message ends "".',
 		"",
 		"[Arthur] [scheduled morning] Write the morning report.",
 		"",
@@ -260,7 +261,7 @@ test("coordinator.turn answers the very text the idle inbox hands over for an ev
 	const projects = [{ name: "acme", path: root, prefix: "AC" }, { name: "shop", path: join(root, "..", "shop"), prefix: "SH" }];
 	const steps: AgentStep[] = ["One.", "Two.", "Three."].flatMap((reply): AgentStep[] => [{ prompt: true }, { message: reply }, { end: true }]);
 	const box = await load(t, { steps: [...steps, { prompt: true }] }, { root, projects });
-	box.fake.provide("coordinator.wake", (job: { kind: string }) => (job.kind === "worker" ? "Procedure: review its branch against the ticket." : undefined));
+	box.fake.provide("coordinator.wake", (job: { kind: string }, final: string) => (job.kind === "worker" ? "Procedure: review its branch against the ticket." : `It ends ${JSON.stringify(final.slice(-5))}.`));
 	const turn = (...asked: unknown[]) => box.fake.call<Promise<string>>("coordinator.turn", ...asked);
 	await box.start();
 	const text = (said: string) => ({ kind: "text", text: said, mime: "text/plain" });
@@ -276,7 +277,7 @@ test("coordinator.turn answers the very text the idle inbox hands over for an ev
 	}
 	assert.equal(box.messages()[2]?.content, `[Arthur] Job 2026-10-17-worker-0000abcd ended its run blocked on the owner; its question, also sent as a notice: may I?\nProject: shop.\nIts final message: none.\n${NOT_YET}\nProcedure: review its branch against the ticket.\n\n${ARTHUR}`);
 	const job = { id: "2026-10-17-review-0000abce", kind: "review", project: "acme", state: "ended", reason: "finished" };
-	assert.equal(await turn("job-ended", job, "Done.\nPASS\n"), `[Arthur] Job ${job.id} ended its run: ended (finished).\nIts final message:\nDone.\nPASS\n\n${ARTHUR}`, "result stands for the job's final message");
+	assert.equal(await turn("job-ended", job, "Done.\nPASS\n"), `[Arthur] Job ${job.id} ended its run: ended (finished).\nIts final message:\nDone.\nPASS\nIt ends "PASS\\n".\n\n${ARTHUR}`, "result stands for the job's final message, for the plugins too");
 	const refused = (message: string) => ({ message: `coordinator.turn: ${message}` });
 	await assert.rejects(turn("job-started", {}), refused('expected message-received, coordinator-message or job-ended, got "job-started"'));
 	await assert.rejects(turn("coordinator-message", { text: " " }), refused("coordinator-message: expected { text }, non-empty text"));

@@ -311,7 +311,7 @@ test("a help call never takes an answer and no expectation counts it: it prints 
 });
 
 test("the turn is the text orchestration's inbox hands over for its event (coordinator.turn), a plugin's message and schedule's wording of an entry due (schedule.message) included; a refused one fails its scenario alone", async (t) => {
-	const ended = { id: "2026-10-22-worker-0a1b2c3d", kind: "worker", state: "ended", reason: "finished", project: "other" };
+	const ended = { id: "2026-10-22-worker-0a1b2c3d", kind: "worker", state: "ended", reason: "finished", project: "other", records: { delivery: { ticket: "AC0001" } } };
 	const asked = { id: "2026-10-22-worker-0a1b2c3e", kind: "worker", state: "blocked", reason: "user: may I?" };
 	const eval_ = await load(t, {
 		ended: { turn: { ended, result: "line 1\nline 2" } },
@@ -323,6 +323,7 @@ test("the turn is the text orchestration's inbox hands over for its event (coord
 		refused: { turn: { message: "Refuse it." } },
 		told: { turn: { arthur: "[github] CI run 7 ended cancelled on arthur/2026-10-22-worker-0a1b2c3d." } },
 		blank: { turn: { arthur: " " } },
+		listed: { turn: { ended: { ...asked, records: ["delivery"] } } },
 	});
 	writeFileSync(join(eval_.pkg, "evals", "due", "procedure.md"), "Procedure: name what was built.\n");
 	const answer = await eval_.eval("--runs", "1");
@@ -331,14 +332,17 @@ test("the turn is the text orchestration's inbox hands over for its event (coord
 	assert.deepEqual(answer.out, [
 		"develop/asked: 1/1 (no baseline)",
 		...failed("blank", "turn.arthur: expected a plugin's message, as text"),
-		...["due", "ended", "plain"].map((name) => `develop/${name}: 1/1 (no baseline)`),
+		...["due", "ended"].map((name) => `develop/${name}: 1/1 (no baseline)`),
+		...failed("listed", 'turn.ended: expected { id, kind, state: "ended" | "blocked", reason?, project?, records?: { <plugin>: <its record> } }'),
+		"develop/plain: 1/1 (no baseline)",
 		...failed("refused", "coordinator.turn: refused by the fake"),
 		...["said", "told"].map((name) => `develop/${name}: 1/1 (no baseline)`),
 		...failed("unknown", "schedule.message: refused by the fake"),
-		"passed 6/9 runs; moved against the baseline: none",
+		"passed 6/10 runs; moved against the baseline: none",
 	]);
-	assert.equal(eval_.transcript("develop-ended-1", "turn.md"), JSON.stringify(["job-ended", ended, "line 1\nline 2"]));
-	assert.equal(eval_.transcript("develop-asked-1", "turn.md"), JSON.stringify(["job-ended", asked, null]));
+	// A job's end is of the main project unless it names one, its records passed on as they are.
+	assert.equal(eval_.transcript("develop-ended-1", "turn.md"), JSON.stringify(["job-ended", Object.assign({ project: "shop" }, ended), "line 1\nline 2"]));
+	assert.equal(eval_.transcript("develop-asked-1", "turn.md"), JSON.stringify(["job-ended", { project: "shop", ...asked }, null]));
 	assert.equal(eval_.transcript("develop-due-1", "turn.md"), JSON.stringify(["coordinator-message", { text: `scheduled ${JSON.stringify(["morning", "Write the morning report.", "Procedure: name what was built.\n"])}` }]));
 	assert.equal(eval_.transcript("develop-plain-1", "turn.md"), JSON.stringify(["coordinator-message", { text: `scheduled ${JSON.stringify(["tea", "Tea.", null])}` }]));
 	assert.equal(eval_.transcript("develop-said-1", "turn.md"), said("Merge AR0001.", "signal"));

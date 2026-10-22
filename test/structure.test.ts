@@ -469,13 +469,21 @@ import { checkStructure } from "./structure.ts";
 // more (2239) for askOfJob returning the answer by policy (decision-hooks.ts, its type and comment 2) and the notice's ending,
 // kept when the question is cut (blocked-notice.ts: the import 1, the comment 1, the ending 1, the head 1, the kept ending and
 // its comment 2); a new line on the phone, so nothing was cut.
+// AR0287 (F2 of AR0280; its Done means: the wake's providers take what they need from the wake's data and the final message):
+// delivery 22 more (1285) for a review's wake built from what it reads, its record or, for a review in no home (an eval's),
+// the record its data names, checked (delivery.ts, git diff --numstat +32 -10); develop 2 more (669) for a job's end of the
+// main project and its `records` checked (eval-scenario.ts); orchestration 1 more (2240) for the final message passed to the
+// providers (inbox.ts); the wake took its review from the record alone before, so nothing was cut.
 // Merged main (AR0274, AR0285) into AR0283: main's budgets plus AR0283's raise, orchestration 2239 + 38 = 2277, develop 667
 // (recounted with wc -l).
 // AR0289 (F1 of AR0277; its Done means: schedule provides the text of an action due, develop asks it instead of its copy):
 // schedule 15 more (585) for `schedule.message` with its refusals (sweep.ts, `dueMessage`, 8) and the one wording of
 // `[scheduled <id>]` the sweep, a refused spawn and the answer share (sweep.ts, `scheduled`, 6), provided (schedule.ts, 1);
 // develop 1 fewer (666), its copy of the wording gone from eval-scenario.ts.
-const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2277, machines: 474, resources: 607, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 666, findings: 254 };
+// Merged main (AR0283) into AR0287: main's budgets plus AR0287's raises, orchestration 2277 + 1 = 2278, delivery 1285,
+// develop 669 (recounted with wc -l).
+// Merged main (AR0287) into AR0289: main's budgets plus AR0289's, schedule 585, develop 669 - 1 = 668 (recounted with wc -l).
+const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2278, machines: 474, resources: 607, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 668, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -261,7 +261,7 @@ export default defineConfig({
 					tracker: { plugin: "youtrack", project: "ART" },
 					ci: { workflow: "ci.yml" },
 					commitRules: { regex: "^(?=.{1,72}$)(feat|fix|refactor|perf|test|docs|build|ci|chore|revert)(\\([\\w-]+\\))?!?: .+$" },
-					prompts: { criteriaDir: ".agents/harness/criteria", rolesDir: ".agents/harness/roles" }, // the vision stays spec/vision.md
+					prompts: { rolesDir: ".agents/harness/roles" }, // the vision and criteria stay spec/vision.md and .agents/arthur/criteria
 				},
 				{
 					name: "acme-shop",

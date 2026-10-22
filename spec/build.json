@@ -2070,9 +2070,9 @@
   {
     "id": "AR0269",
     "title": "The disk check makes a second ssh call per machine and round",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0269-the-disk-check-makes-a-second-ssh-call-per-machine-and-round/ticket.md",
-    "updated": "2026-10-22T13:33:10.917Z"
+    "updated": "2026-10-22T13:40:33.394Z"
   },
   {
     "id": "AR0270",
@@ -2136,9 +2136,9 @@
   {
     "id": "AR0278",
     "title": "In an eval run, `arthur <command> --help` answers only what the scenario's stub says",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0278-in-an-eval-run-arthur-command-help-answers-only-what-the-scenario-s-stub-says/ticket.md",
-    "updated": "2026-10-22T13:19:30.217Z",
+    "updated": "2026-10-22T13:50:31.491Z",
     "after": [
       "AR0277"
     ]

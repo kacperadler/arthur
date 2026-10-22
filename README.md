@@ -55,6 +55,7 @@ What works today:
 - The daily prune (`@arthur/manage`, entry 64): with `prune.keepJobsDays`, the schedule plugin runs manage's entry `manage.prune` each day at 03:00, and once at the next start when `arthur run` was down then: every job that ended that many days ago is freed as `arthur prune` does it (`host.jobs.prune`), and each `arthur-*` folder of the temporary folder changed last more than a day ago is removed, never one made since a running job's run began, a link never followed, one another user owns kept with a line; without the schedule plugin the option refuses the load.
 - New plugins (`@arthur/develop`, entry 66): `arthur plugin new <name> --budget <lines>` makes `packages/<name>/` in Arthur's own checkout, or, run by a job, only in its own worktree given as `--root`, its `package.json`, a plugin file that is its options file too, a test against the fake host and a doc page, adds its line budget to `test/structure.test.ts` and the workspace to `package-lock.json`, and the result passes `npm run check` and `npm test` as created; a bad or taken name, a budget missing, not a positive whole number or below the new source's lines is refused before any file is written.
 - The morning report (`@arthur/orchestration`, entry 65): with `morningReport.at`, orchestration registers `orchestration.report` with the schedule plugin, an action that sends the coordinator its procedure each day at that time: built overnight, merged without the owner, waiting for approval, waiting for a decision, and needs attention from `arthur health`, each section left out when empty, a night with nothing done in one line; every ticket, job or finding named gets a plain sentence, every decision a self-contained question with options and a recommendation; without the schedule plugin the option refuses the load.
+- Evals (`@arthur/develop`, entry 67): `arthur eval` replays one coordinator turn per run, an owner's message, a schedule entry due or a job's end with its wake, against the scenarios each package keeps in `evals/<name>/`, on a fresh Git copy of the scenario's fixture with `arthur` a recording stub that writes only in that copy; each run is scored only by the files, refs and stub calls it left behind, a turn past its timeout fails, a scenario without its fixture fails alone; pass rates are compared with the baseline in the checkout, the moved scenarios named. Every `arthur` command refuses inside an eval session (`ARTHUR_EVAL`). The scenarios themselves are entry 68.
 
 What is next:
 
@@ -102,7 +103,7 @@ Each feature and its state on main on 2026-10-18, read from `packages/` and `spe
 | github: CI runs, reruns, pushes, pull request reviews | built | 57, 58 |
 | youtrack: issues, articles, comments, attachments, the rules for jobs on an issue | built | 44 to 46 |
 | manage: health, stats, audit, retro, prune on a schedule | built | 60 to 64 |
-| develop: `arthur plugin new`, evals | in progress, 1 of 3 entries | 66 built; 67, 68 |
+| develop: `arthur plugin new`, evals | in progress, 2 of 3 entries | 66, 67 built; 68 |
 | Later: signal, slack and whatsapp channels; server, web panel and the owner's mobile app (Expo) by the VPS's Tailscale name; knowledge base; company edition | planned | 73 to 79, 91, 92, 95 |
 
 ## Commands
@@ -143,6 +144,8 @@ The commands that exist today, one line each; `arthur <command> --help` prints i
 - `arthur stats [--project <name>]` (manage): per merged ticket its review rounds, verdicts, cost and days, then the mean rounds, the share of first-round PASS and of autopilot, the 3 most expensive and the first line of each FAIL finding.
 - `arthur retro-due [--project <name>]` (manage): whether a retro is due, 10 merges since the last retro with 2 FAIL reviews or 5 findings in them, as one line naming the counts.
 - `arthur retro [--project <name>]` (`/retro`, manage): the newest retro's phone page, its path; `/retro` sends it as a file.
+- `arthur plugin new <name> --budget <lines>` (develop): a new plugin package in Arthur's checkout, or in a job its own worktree (`--root`), with its line budget and workspace added, that passes `npm run check` and `npm test` as created.
+- `arthur eval [<scenario>...] [--runs <n>] [--save-baseline]` (develop): replays coordinator turns against the scenarios of the loaded packages, each on a copy of its fixture with `arthur` a recording stub, scores each run by the files, refs and stub calls it left behind, and names the scenarios whose pass rate moved against the baseline.
 - `arthur youtrack issue|article list|get|create|update|move|attachments|delete`, `issue set|tag|untag|links|link|unlink|work`, `issue work list|edit|delete`, `comment list|add|edit|delete`, `attachment add|delete` (youtrack): a project's YouTrack issues and articles with their comments and attachments, read, written and deleted on the instance its `tracker` picks; open issues grouped by state, searched with `--query`, custom fields, tags, links, work items, sub-articles, and attachments saved to `.arthur/youtrack/<id>/`.
 
 ## Try it
@@ -180,7 +183,7 @@ Which parts are built today and which are planned. The source is [`arthur.mmd`](
 ```mermaid
 %% What Arthur is built from, and what of it is built: the state of main on 2026-10-22.
 %% Status read from packages/ and spec/build.json: a roadmap entry counts as built when its ticket is merged.
-%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 and 65 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 and 69 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entries 52 to 56 and 59 of 52-56 and 59; github has entries 57 and 58 of 57-58; manage has entries 60 to 64 of 60-64; develop has entry 66 of 66-68; findings has entry 83 of 83; no other plugin exists yet.
+%% Core entries 1-22, 51, 80, 93 and 94 are merged, of 1-22, 51, 71, 80, 93 and 94; orchestration has entries 23 to 29 and 65 of 23-29, 96 and 65; projects has entries 41 and 42 of 41-42; machines has entries 30 and 31 of 30-31; resources has entries 32 to 34 and 69 of 32-34 and 69; session has entries 35 to 38 of 35-38; schedule has entries 39 and 40 of 39-40; models has entry 82 of 82; nvm has entry 84 of 84; youtrack has entries 44 to 46 of 44-46; commit-rules has entry 43 of 43; telegram has entries 47 to 50 of 47-50; uptime has entry 98 of 98; delivery has entries 52 to 56 and 59 of 52-56 and 59; github has entries 57 and 58 of 57-58; manage has entries 60 to 64 of 60-64; develop has entries 66 and 67 of 66-68; findings has entry 83 of 83; no other plugin exists yet.
 %% Plugins never call each other: every plugin talks to the core (events, commands, provide/call), and the core to the outside.
 %% Also planned, from the approved plan of AR0098: project agents in orchestration, and the slack channel; from AR0134: discord in the first version, and the owner's own apps over Tailscale; from AR0174: the decision log in orchestration.
 %%{init: {"flowchart": {"wrappingWidth": 400, "nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -260,7 +263,7 @@ flowchart TD
       end
       subgraph SELF[Arthur itself]
         manage[manage<br/>arthur health, /health, arthur stats, the daily prune<br/>the audit, the retro, arthur retro-due, /retro]
-        develop[develop<br/>arthur plugin new<br/>1 of 3 entries; planned: evals]
+        develop[develop<br/>arthur plugin new, arthur eval<br/>2 of 3 entries; planned: the eval scenarios]
         manage ~~~ develop
       end
     end

@@ -391,7 +391,14 @@ import { checkStructure } from "./structure.ts";
 // without schedule): orchestration 6 more (1529) for the action with its procedure's path, registered or refused naming the
 // option (orchestration.ts, 4, and `fileURLToPath`'s import, 1), and the plugin's header naming the entry (1); nothing in
 // orchestration registered with schedule before, so nothing was cut.
-const BUDGETS = { core: 5742, "core/testing": 349, projects: 486, orchestration: 1529, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 209, findings: 254 };
+// AR0276 (roadmap 67): develop 375 more (584) for `arthur eval`: the command with its refusals, the baseline read, compared
+// and saved whole (eval-command.ts, 92), one run on a fixture's copy with its timeout, process group and scoring by the files,
+// refs and stub's log (eval-run.ts, 110), the scenarios found in the loaded packages, checked, and their three turns built as
+// the inbox words them (eval-scenario.ts, 105), the recording stub that writes only in its run's repository (eval-stub.ts,
+// 38) and the `evals` options (27 more); a new command, so nothing was cut elsewhere. Core 6 more (5748) for the refusal of
+// every command inside an eval session (cli.ts), which the core's CLI alone can make.
+// Merged main (AR0275) into AR0276: main's budgets plus AR0276's develop 584 and core 5748 (recounted with wc -l).
+const BUDGETS = { core: 5748, "core/testing": 349, projects: 486, orchestration: 1529, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 584, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

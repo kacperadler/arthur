@@ -395,9 +395,14 @@ export default defineConfig({
 			prune: { keepJobsDays: 14 },
 		}),
 
-		// Plugins for developing Arthur: `arthur plugin new` and evals. The test kit (fake host, fake agent) is core's
+		// Plugins for developing Arthur: `arthur plugin new` and `arthur eval`. The test kit (fake host, fake agent) is core's
 		// `@arthur/core/testing`, so a plugin tests against it without importing another plugin.
-		develop({ evals: { dir: "eval" } }),
+		develop({
+			evals: {
+				runs: 3, // arthur eval runs each scenario (a package's evals/<name>/) this often, all at once; --runs overrides it
+				baseline: "evals/baseline.json", // each scenario's pass rate, in the main project's checkout; --save-baseline writes it
+			},
+		}),
 
 		// Docker on every machine labelled `tools: docker`. What a job creates (containers, networks, volumes, images it builds) is
 		// labelled `arthur.job=<id>`, and compose stacks get the job's project name; all of it is removed on the job's machine

@@ -27,6 +27,12 @@ const USAGE = "usage: arthur <command> [args] [--project <name>]; arthur <comman
 process.exitCode = await main(process.argv.slice(2));
 
 async function main(argv: readonly string[]): Promise<number> {
+	// `arthur eval` (develop, entry 67) sets ARTHUR_EVAL in its agent's session, where `arthur` is its recording stub: the real
+	// one, reached by its path, acts on nothing there.
+	if ((process.env.ARTHUR_EVAL ?? "") !== "") {
+		console.error(`arthur: refused inside an eval session (ARTHUR_EVAL is set): arthur there is the eval's recording stub, ${process.env.ARTHUR_EVAL}`);
+		return 1;
+	}
 	const parsed = parseFlags(argv, { project: (value, before) => (value === undefined || value.startsWith("-") ? "needs a project name" : before === undefined ? undefined : `given twice: ${before}, ${value}`) }, true);
 	if (typeof parsed === "string") return usage(parsed);
 	const { words: rest, values: { project } } = parsed;

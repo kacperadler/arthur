@@ -10,6 +10,7 @@ Each plugin registers its commands when it is set up, each with its doc page. Re
 
 Said, without running anything:
 
+- Inside an eval session (`arthur eval --help`, of the develop plugin), where `ARTHUR_EVAL` names the eval's recording stub: every command, `help` and `--help` too, before anything else, `arthur: refused inside an eval session (ARTHUR_EVAL is set): arthur there is the eval's recording stub, <path>`; exit code 1.
 - An unknown command: `arthur: unknown command <name>`, then every command's name; exit code 2.
 - When `arthur.config.ts` or a plugin does not load, only the core's commands (`config`, `continue`, `help`, `roles`, `run`, `spawn`, `steer`, `stop`, `ticket`) exist; listing the commands then says why, and the core's commands still run (`arthur run`, `arthur spawn`, `arthur roles`, `arthur stop`, `arthur continue` and `arthur steer` then refuse, naming why; `arthur ticket` refuses, since the board needs the plugins' project list).
 - A doc file deleted after the command was registered: `arthur <command>: its doc file <path> was deleted after Arthur loaded`; exit code 1.

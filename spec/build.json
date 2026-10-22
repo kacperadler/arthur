@@ -2147,15 +2147,15 @@
   {
     "id": "AR0280",
     "title": "Roadmap 68: evals, the scenarios",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0280-roadmap-68-evals-the-scenarios/ticket.md",
-    "updated": "2026-10-22T07:43:12.721Z"
+    "updated": "2026-10-22T07:43:15.360Z"
   },
   {
     "id": "AR0281",
     "title": "Roadmap 96: the decision log",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0281-roadmap-96-the-decision-log/ticket.md",
-    "updated": "2026-10-22T07:43:12.926Z"
+    "updated": "2026-10-22T07:43:16.032Z"
   }
 ]

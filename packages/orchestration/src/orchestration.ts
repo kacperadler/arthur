@@ -8,6 +8,8 @@ import { blockedNotice } from "./blocked-notice.ts";
 import { boardCommands } from "./board-commands.ts";
 import { coordinatorContext } from "./context.ts";
 import { extensions, FRESH, pane, STOPPED, supervise, tmux } from "./coordinator.ts";
+import { decisionCommands } from "./decision-commands.ts";
+import { decisionHooks } from "./decision-hooks.ts";
 import { inbox } from "./inbox.ts";
 import { type McpOptions, mcpServers } from "./mcp.ts";
 import { checkOptions, type Coordinator, coordinatorOptions } from "./orchestration-options.ts";
@@ -20,8 +22,9 @@ import { spawnRules } from "./spawn-rules.ts";
 // and `arthur coordinator stop|context`, docs/commands/coordinator.md and attach.md; the board's phone commands `/board`, `/task`
 // and `/plan` (board-commands.ts); `maxAgents` and each role's model (entry 26, spawn-rules.ts); the notice of a job
 // blocked on the owner (entry 27, blocked-notice.ts); the planning of large tickets (entry 28, plans.ts); autopilot (entry 29,
-// autopilot.ts); the silent mode (entry 47, silent.ts); tmux as its `arthur doctor` requirement (entry 80); and the morning
-// report (entry 65): with `morningReport.at`, an action schedule sends the coordinator with roles/coordinator/morning-report.md.
+// autopilot.ts); the silent mode (entry 47, silent.ts); tmux as its `arthur doctor` requirement (entry 80); the morning
+// report (entry 65): with `morningReport.at`, an action schedule sends the coordinator with roles/coordinator/morning-report.md;
+// and the decision log (entry 96, decision-log.ts), `arthur decision` and `arthur decisions`.
 
 export type OrchestrationOptions = {
 	readonly enabled?: boolean;
@@ -78,6 +81,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			plans(host);
 			autopilot(host);
 			silentMode(host);
+			decisionHooks(host);
 			const at = (host.options as OrchestrationOptions).morningReport?.at;
 			const report = { id: "report", at, option: "morningReport.at", action: { message: "Write the morning report.", procedure: fileURLToPath(new URL("../roles/coordinator/morning-report.md", import.meta.url)) } };
 			if (at !== undefined && host.collect("schedule.register", host.name, [report], host.package).length === 0)
@@ -132,7 +136,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 				if (asked.fresh) writeFileSync(join(folder, FRESH), "");
 				tmux(coordinator, ["kill-session", "-t", `=${coordinator.session}`]);
 			});
-			for (const command of boardCommands(host)) host.commands.register(command);
+			for (const command of [...boardCommands(host), ...decisionCommands(host)]) host.commands.register(command);
 		},
 		start() {
 			messages?.start();

@@ -441,7 +441,10 @@ import { checkStructure } from "./structure.ts";
 // the page, noted `help` (eval-stub.ts, 10), the pages read once per eval (eval-command.ts, 2) and left out of the scored calls
 // (eval-run.ts, 1); the stub had no help before, so nothing was cut.
 // Merged main (AR0278) into AR0269: main's budgets plus AR0269's machines 474 and resources 602 (recounted with wc -l).
-const BUDGETS = { core: 5751, "core/testing": 349, projects: 486, orchestration: 2223, machines: 474, resources: 602, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 628, findings: 254 };
+// AR0271 (F3 of AR0262; its Done means name the core's `withLock`): resources 5 more (607) for reading the check before and
+// writing this one under the machine file's lock, so two processes checking one machine at once say its news once
+// (machine-free.ts: the import 1, the lock around the read and the write 3, its comment 1); a new guard, so nothing was cut.
+const BUDGETS = { core: 5751, "core/testing": 349, projects: 486, orchestration: 2223, machines: 474, resources: 607, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 628, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

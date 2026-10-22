@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/develop/src/plugin-new.ts` (`pluginNewSection`), `packages/core/src/job-machine.ts:147` (`reach`), `packages/develop/docs/commands/plugin.md`
 - What: the planner's and the worker's section, as `plugin.md` before it, says to run `cd <checkout> && arthur plugin new ... --root <worktree>` with `<checkout>` the first line of `git worktree list`. For a job on another machine that first line is the repository `arthur remote-job repo` made there (`reach`, `repositoryThere`), which holds the project's tracked files; `arthur.config.ts` is ignored by Git, so [INFERENCE] it is not there, and the CLI answers `unknown command plugin` (exit 2), as it does from a worktree (the AR0274 test's last assertion). Not run on a real second machine.
 - Suggestion: either the section and `plugin.md` say that a new plugin's ticket runs on the local machine (and orchestration places such a job there), or `arthur plugin new` reads its project list without the config when `ARTHUR_JOB` names a record. The local path stays as it is.
-- Status: open
+- Status: ticket AR0298

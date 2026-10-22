@@ -9,7 +9,7 @@ import { writeStub } from "./eval-stub.ts";
 // fixture, a Git repository of its own on `main` whose remote `origin` is a bare one beside it, with `arthur` on the agent's
 // PATH replaced by the recording stub (eval-stub.ts) and ARTHUR_EVAL naming it, so the real one refuses (the core's CLI). It
 // all lives in a temporary folder of its own, removed when the run ends; the turn, the agent's output and the stub's log are
-// copied to `out`. Scored only by what the run left behind: the files, the refs, the stub's log.
+// copied to `out`. Scored only by what the run left behind: the files, the refs, the stub's log, the agent's reply and tool calls.
 
 export type Agent = { readonly command: string; readonly args: readonly string[] };
 
@@ -49,9 +49,32 @@ async function session(agent: Agent, run: string, repo: string, env: NodeJS.Proc
 	}
 }
 
+type Event = { readonly type?: unknown; readonly toolName?: unknown; readonly args?: { readonly command?: unknown }; readonly message?: { readonly role?: unknown; readonly content?: unknown } };
+
+// From the agent's JSON stream: each tool call, `bash <command>` or `<tool> <its arguments as JSON>`, and the reply, the text
+// of its last assistant message that has any.
+function said(stream: string): { readonly tools: readonly string[]; readonly reply: string } {
+	const tools: string[] = [];
+	let reply = "";
+	for (const line of stream.split("\n")) {
+		let event: Event | undefined;
+		try {
+			event = JSON.parse(line) ?? undefined;
+		} catch {
+			continue;
+		}
+		if (event?.type === "tool_execution_start") tools.push(event.toolName === "bash" ? `bash ${String(event.args?.command ?? "")}` : `${String(event.toolName)} ${JSON.stringify(event.args ?? {})}`);
+		const content = event?.type === "message_end" && event.message?.role === "assistant" && Array.isArray(event.message.content) ? (event.message.content as readonly { readonly type?: unknown; readonly text?: unknown }[]) : [];
+		const text = content.map((part) => (part?.type === "text" && typeof part.text === "string" ? part.text : "")).join("").trim();
+		if (text !== "") reply = text;
+	}
+	return { tools, reply };
+}
+
 // Each expectation the run left unmet, as a line; none when it passed.
-export function score(expect: Expect, repo: string, before: ReadonlyMap<string, string>, after: ReadonlyMap<string, string>, calls: readonly string[]): string[] {
+export function score(expect: Expect, repo: string, before: ReadonlyMap<string, string>, after: ReadonlyMap<string, string>, calls: readonly string[], stream: string): string[] {
 	const failures: string[] = [];
+	const { tools, reply } = said(stream);
 	for (const [path, patterns] of Object.entries(expect.files)) {
 		const file = join(repo, path);
 		if (!existsSync(file)) failures.push(`${path} is missing`);
@@ -73,6 +96,11 @@ export function score(expect: Expect, repo: string, before: ReadonlyMap<string, 
 		from = at + 1;
 	}
 	for (const pattern of expect.never) for (const call of calls.filter((each) => new RegExp(pattern).test(each))) failures.push(`${call} matches /${pattern}/`);
+	const lines = reply.split("\n").filter((line) => line.trim() !== "").length;
+	if (expect.reply.lines !== undefined && lines > expect.reply.lines) failures.push(`the reply has ${lines} lines, at most ${expect.reply.lines}`);
+	for (const pattern of expect.reply.match) if (!new RegExp(pattern, "m").test(reply)) failures.push(`the reply does not match /${pattern}/`);
+	for (const pattern of expect.reply.never) if (new RegExp(pattern, "m").test(reply)) failures.push(`the reply matches /${pattern}/`);
+	for (const pattern of expect.tools) for (const tool of tools.filter((each) => new RegExp(pattern).test(each))) failures.push(`the agent's ${tool.split("\n")[0]?.slice(0, 200)} matches /${pattern}/`);
 	return failures;
 }
 
@@ -97,7 +125,7 @@ export async function evalRun(scenario: Scenario, agent: Agent, prompt: string, 
 		const env = { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("ARTHUR_"))), PATH: `${join(run, "bin")}${delimiter}${process.env.PATH ?? ""}`, ARTHUR_EVAL: stub };
 		const ended = await session({ command: agent.command, args: [...agent.args, "--append-system-prompt", join(run, "prompt.md")] }, run, repo, env, scenario.timeoutSeconds);
 		const calls = existsSync(log) ? readFileSync(log, "utf8").split("\n").filter(Boolean).map((line) => String(JSON.parse(line).call)) : [];
-		const failures = ended !== "" ? [ended] : score(scenario.expect, repo, before, refs(repo, origin), calls);
+		const failures = ended !== "" ? [ended] : score(scenario.expect, repo, before, refs(repo, origin), calls, readFileSync(join(run, "stream.jsonl"), "utf8"));
 		mkdirSync(out, { recursive: true });
 		for (const file of ["turn.md", "stream.jsonl", "stderr", "arthur.log"]) if (existsSync(join(run, file))) cpSync(join(run, file), join(out, file));
 		writeFileSync(join(out, "failures"), failures.map((line) => `${line}\n`).join(""));

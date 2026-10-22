@@ -1,0 +1,39 @@
+{
+	"turn": {
+		"ended": {
+			"id": "2026-10-22-worker-5e6f7a8b",
+			"kind": "worker",
+			"state": "ended",
+			"reason": "finished"
+		},
+		"result": "Done: a product without an image shows `no image` in the admin list and a warning on its page; test/catalog.test.ts covers it.\n\nThe owner's condition, sent as a steer after I started: a product whose image link is broken (its URL answers 404) warns too, `image link broken`. Done on the branch, with its own test.\n\nChecks: npm run check clean, npm test 52/52.\n\nCommit: feat(SH0011): warn when a product has no image"
+	},
+	"stub": [
+		{
+			"match": "^arthur review-needed ",
+			"output": "review: 71 lines changed, over 30"
+		},
+		{
+			"match": "^arthur review ",
+			"output": "2026-10-22-review-6f7a8b9c"
+		}
+	],
+	"expect": {
+		"files": {
+			"spec/features/SH0011-warn-when-a-product-has-no-image/ticket.md": [
+				"^## Done means\\n(?:(?!## ).*\\n)*?(?!## ).*\\b(?:broken|404)\\b",
+				"^## Decisions\\n(?:(?!## ).*\\n)*?- \\d{4}-\\d{2}-\\d{2}: .*\\b(?:broken|404)\\b"
+			]
+		},
+		"refs": {
+			"refs/heads/main": "moved"
+		},
+		"calls": [
+			"^arthur review (\\S+-)?5e6f7a8b$"
+		],
+		"never": [
+			"^arthur merge ",
+			"^arthur prune "
+		]
+	}
+}

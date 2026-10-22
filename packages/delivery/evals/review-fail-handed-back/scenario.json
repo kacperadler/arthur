@@ -1,0 +1,35 @@
+{
+	"needs": [
+		"AR0277: delivery's line of the wake (it files the FAIL and hands the branch back to its worker, which goes on by itself) is not in the turn, since the review's record is not in the eval's home"
+	],
+	"turn": {
+		"ended": {
+			"id": "2026-10-22-review-9a8c7e61",
+			"kind": "review",
+			"state": "ended",
+			"reason": "finished"
+		},
+		"result": "The total adds the tax per line and rounds each line, so a cart of three 0.10 items shows 0.33 where the receipt shows 0.32 (src/cart.ts:41).\n\n**Findings**\n\n1. `src/cart.ts:41`: round the total once, after the tax of all lines is added; Done means asks for the receipt's total.\n2. `test/cart.test.ts`: no test covers a cart of several items with tax.\n\n**Checks I ran**\n\n- `npm test`: 49/49, none of them on several items.\n\nFAIL"
+	},
+	"stub": [
+		{
+			"match": "^arthur prune ",
+			"output": "2026-10-22-review-9a8c7e61: worktree /home/owner/.arthur-worktrees/2026-10-22-review-9a8c7e61 removed; record deleted"
+		}
+	],
+	"expect": {
+		"calls": [
+			"^arthur prune (\\S+-)?9a8c7e61$"
+		],
+		"never": [
+			"^arthur continue ",
+			"^arthur review",
+			"^arthur ticket file ",
+			"^arthur spawn ",
+			"^arthur merge "
+		],
+		"reply": {
+			"lines": 3
+		}
+	}
+}

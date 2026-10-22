@@ -1,0 +1,33 @@
+[
+  {
+    "id": "AR0088",
+    "title": "Show the slice of a job in arthur jobs",
+    "status": "merged",
+    "path": "spec/features/AR0088-show-the-slice-of-a-job-in-arthur-jobs/ticket.md",
+    "updated": "2026-10-21T16:00:00.000Z"
+  },
+  {
+    "id": "AR0089",
+    "title": "Count the jobs per machine in arthur health",
+    "status": "merged",
+    "path": "spec/features/AR0089-count-the-jobs-per-machine-in-arthur-health/ticket.md",
+    "updated": "2026-10-21T16:00:00.000Z"
+  },
+  {
+    "id": "AR0090",
+    "title": "Name the machine in arthur jobs",
+    "status": "done",
+    "path": "spec/features/AR0090-name-the-machine-in-arthur-jobs/ticket.md",
+    "updated": "2026-10-21T16:00:00.000Z"
+  },
+  {
+    "id": "AR0091",
+    "title": "Sort arthur jobs by machine",
+    "status": "planned",
+    "path": "spec/features/AR0091-sort-arthur-jobs-by-machine/ticket.md",
+    "updated": "2026-10-21T16:00:00.000Z",
+    "after": [
+      "AR0090"
+    ]
+  }
+]

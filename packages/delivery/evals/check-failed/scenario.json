@@ -1,0 +1,38 @@
+{
+	"turn": {
+		"message": "merge SH0007"
+	},
+	"stub": [
+		{
+			"match": "^arthur jobs",
+			"output": "ended\nSH0007  review  ended  10:41  $0.35/$2.00  8f9e0d1c  finished\nSH0007  worker  ended  09:58  $0.90/$2.00  6a7b8c9d  finished"
+		},
+		{
+			"match": "^arthur merge ",
+			"exit": 1,
+			"output": "merged arthur/2026-10-22-worker-6a7b8c9d into main: 9b8a7c6\nnpm ci: passed.\nnpm run check: passed.\nnpm test: failed.\nnot ok 31 - a product named with spaces around it is listed trimmed\n  expected: 'Blue mug'\n  actual: ' Blue mug'\n  at test/catalog.test.ts:77\n# tests 52\n# pass 51\n# fail 1\narthur merge: check failed on main (npm test); main reset to 1a2b3c4, branch kept"
+		}
+	],
+	"expect": {
+		"refs": {
+			"refs/heads/main": "kept",
+			"origin:refs/heads/main": "kept"
+		},
+		"calls": [
+			"^arthur merge (\\S+-)?6a7b8c9d$"
+		],
+		"never": [
+			"^arthur continue ",
+			"^arthur prune ",
+			"--unreviewed",
+			"^arthur spawn ",
+			"^arthur review"
+		],
+		"reply": {
+			"match": [
+				"npm test",
+				"[Cc]ontinu"
+			]
+		}
+	}
+}

@@ -387,7 +387,11 @@ import { checkStructure } from "./structure.ts";
 // (209) for `arthur plugin new --root`: the worktree read from the record, a job without it, another folder, and `--root`
 // outside a job refused (plugin-new.ts, `target` with its comment, 10, and its call, 1); core unchanged.
 // Merged main (AR0257, AR0265) into AR0260: main's budgets plus AR0260's develop 209 (recounted with wc -l).
-const BUDGETS = { core: 5742, "core/testing": 349, projects: 486, orchestration: 1523, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 209, findings: 254 };
+// AR0275 (roadmap 65, the ticket's Done means: `morningReport.at` registered through `schedule.register`, refused at load
+// without schedule): orchestration 6 more (1529) for the action with its procedure's path, registered or refused naming the
+// option (orchestration.ts, 4, and `fileURLToPath`'s import, 1), and the plugin's header naming the entry (1); nothing in
+// orchestration registered with schedule before, so nothing was cut.
+const BUDGETS = { core: 5742, "core/testing": 349, projects: 486, orchestration: 1529, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 209, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

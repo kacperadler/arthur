@@ -81,10 +81,9 @@ const BUILD = { name: "build", ssh: "build-box", home: "/home/arthur/.arthur", l
 type Requirement = { readonly name: string; check(): Promise<string>; readonly costs: string; readonly fix: string; readonly critical: boolean };
 const requirements = (fake: FakeHost) => fake.collect<Requirement[]>("doctor").flat();
 const events = (fake: FakeHost) => fake.emitted.map((event) => [event.name, event.data]);
-// The one command of a machine's check over ssh, as the core quotes it, before its `node -e` script (`FREE`) and its tools labels.
-const CHECK = `'sh' '-c' 'uname -sm && arthur version && node -e "$1" && shift && for tool do command -v "$tool" >/dev/null || echo "missing $tool"; done'`;
-const FREE = "'[^']+'";
-const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+// The one command of a machine's check over ssh, as the core quotes it: its script and its `node -e` script, then the number
+// of paths its df reads, those paths and its tools labels.
+const CHECK = "'sh' '-c' '[^']+' 'sh' '[^']+'";
 
 async function until<T>(what: string, predicate: () => T | undefined | false): Promise<T> {
 	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
@@ -113,7 +112,7 @@ test("at start every machine is checked and told once; a key refused stays offli
 		const offline = { machine: "build", reason: "ssh build-box: arthur@build-box: Permission denied (publickey)." };
 		const told = [["machine-online", { machine: "mac", os: "macos", arch: "arm64", version: coreVersion() }], ["machine-offline", offline]];
 		assert.deepEqual(events(fake), told);
-		for (const call of calls()) assert.match(call, new RegExp(`^-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 (mac-mini ${escape(CHECK)} 'sh' ${FREE} 'xcodebuild'|build-box ${escape(CHECK)} 'sh' ${FREE})$`));
+		for (const call of calls()) assert.match(call, new RegExp(`^-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 (mac-mini ${CHECK} '0' 'xcodebuild'|build-box ${CHECK} '0')$`));
 		// Two more rounds, as the doctor and the command ask for them: nothing changed, nothing told.
 		await Promise.all(requirements(fake).map((requirement) => requirement.check()));
 		assert.equal((await fake.host.commands.route("/machines")).split("\n").length, 6);
@@ -173,6 +172,35 @@ test("each round hands machines.round every listed machine's check as it begins:
 	assert.equal(rounds.length, 2, "the doctor's round is handed over too");
 });
 
+test("each round's answers name the paths its checks' df reads, in the same one ssh call: a path not there is said missing, a df that fails with its line, the machine online all the same; an answer that rejects or is no Map names none", async () => {
+	const there = machine("build-box");
+	// df answers each path in POSIX `df -P` output, or fails as df does once `dffail` exists there.
+	writeFileSync(join(there, "bin/df"), `#!/bin/sh\n[ -e dffail ] && { echo "df: $2: Input/output error" >&2; exit 1; }\necho 'Filesystem 1024-blocks Used Available Capacity Mounted on'\necho "/dev/sda1 100 50 50 50% $2"\n`, { mode: 0o755 });
+	const { fake } = await load({ list: [{ ...BUILD, labels: { ...BUILD.labels, tools: ["no-such-tool"] } }] });
+	const gone = join(there, "gone");
+	const said: Promise<unknown>[] = [];
+	const answers: (() => unknown)[] = [() => new Map([["build", [there, gone]]]), () => new Map([["build", [there]]]), () => Promise.reject(new Error("refused")), () => "paths"];
+	fake.provide("machines.round", (checks: ReadonlyMap<string, Promise<unknown>>) => {
+		said.push(checks.get("build") ?? Promise.resolve());
+		return answers.shift()?.();
+	});
+	const round = () => requirements(fake)[0]?.check();
+	const missingTool = `missing: command -v finds no no-such-tool there (linux x64, arthur ${coreVersion()})`;
+	const header = "Filesystem 1024-blocks Used Available Capacity Mounted on";
+	assert.equal(await round(), missingTool, "the tools labels still read after the paths");
+	assert.deepEqual(await said[0], { free: FREE_LINE, disk: { code: 0, output: `${header}\n/dev/sda1 100 50 50 50% ${there}\nmissing` } });
+	assert.match(calls()[0] ?? "", new RegExp(`build-box ${CHECK} '2' '${there}' '${gone}' 'no-such-tool'$`));
+	writeFileSync(join(there, "dffail"), "");
+	assert.equal(await round(), missingTool, "a df that fails leaves the machine online");
+	assert.deepEqual(await said[1], { free: FREE_LINE, disk: { code: 1, output: `df: ${there}: Input/output error` } });
+	for (const index of [2, 3]) {
+		assert.equal(await round(), missingTool);
+		assert.deepEqual(await said[index], { free: FREE_LINE, disk: undefined }, "no path, no df");
+	}
+	assert.equal(calls().length, 4, "one ssh call per round");
+	assert.match(calls()[3] ?? "", new RegExp(`build-box ${CHECK} '0' 'no-such-tool'$`));
+});
+
 test("a machine whose node -e fails in the check is offline with its line, so it takes no job without its free CPU and memory", async () => {
 	writeFileSync(join(machine("build-box"), "bin/node"), "#!/bin/sh\necho 'node: bad option: -e' >&2\nexit 9\n", { mode: 0o755 });
 	const { fake } = await load({ list: [BUILD] });
@@ -225,7 +253,7 @@ test("each way a machine is offline, with its reason and its fix, and each tools
 		],
 	]);
 	assert.ok(calls().every((call) => call.startsWith("-o BatchMode=yes -o StrictHostKeyChecking=yes ")), "a host key is never accepted on its own");
-	assert.ok(calls().some((call) => new RegExp(`gpu-box ${escape(CHECK)} 'sh' ${FREE} 'docker' 'nvidia-smi' 'xcodebuild'$`).test(call)), "each tool label is asked of command -v, in the one check over ssh");
+	assert.ok(calls().some((call) => new RegExp(`gpu-box ${CHECK} '0' 'docker' 'nvidia-smi' 'xcodebuild'$`).test(call)), "each tool label is asked of command -v, in the one check over ssh");
 });
 
 test("a machine whose ssh resolves to a public address is refused at load; one that turns public later is offline", async () => {

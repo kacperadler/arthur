@@ -53,6 +53,7 @@ What `setup` gets, one host per plugin. `@arthur/core/testing`'s `fakeHost` give
 | `commands.register(command)` | A `Command`, run as `arthur <name>`, and with `phone` also as `/name text` on a channel. Two plugins registering one name is refused. |
 | `commands.route(text, from?)` | A channel's `/name text`: the phone command's reply, or one line naming the unknown command or the error. `from` is a `PhoneFrom`. |
 | `commands.phone()` | The phone commands, `{ name, about }` each, for a channel's menu. |
+| `commands.docs()` | Every registered command, the core's and each plugin's, `{ name, doc }` each by name, `doc` the URL of the page `arthur <name> --help` prints (above, "Changes since entry 51"). |
 | `jobs.registerKind(kind)` | A `Kind` this plugin owns. |
 | `jobs.registerRole(role)` | A `Role` whose prompt this plugin ships; its kinds name it. |
 | `jobs.registerExtension(url)` | An OMP extension, its module's `file:` URL, that each job's agent loads with `-e` after the core's own, in the order registered (above, "Changes since entry 51"). |
@@ -105,6 +106,7 @@ Each decided in the ticket that made it.
 - AR0251 (the ticket's Done means: a test that the hand-back ends on delivery's own refusal and still retries another plugin's): the test kit's `FakeHost.beforeSpawn(check)`, the test as the plugin `test` refusing a spawn (`refused by test: <reason>`), since a check through `host.jobs.beforeSpawn` refuses as the plugin itself. No host member changed.
 - AR0262 (roadmap 69, which counts each machine's `home`; the ticket's Done means allow a new member recorded here): `jobs.home(machine)`, the `home` a `Machine` was registered with, `<home>` itself on `local`, which no member gave a plugin; a name no plugin registers is refused as a spawn's `machine` is, `unknown machine <name>; machines: <names>`. The resources plugin reads the free disk of that folder's filesystem there. The provided name `resources.disk`, asked by resources with `collect` at each check of a machine with a disk floor: `(machine)` to an absolute path, or a list of them, on that machine that its jobs write (docker: its data root, entry 70), or a promise of either.
 - AR0257 (F1 of AR0253: one wake per CI run end): the provided name `delivery.ciEnded`, by delivery, asked by github's poll with `collect` for each branch of a run that ended, before its own wake: `{ project, branch, below, run }` (`run` as `github.ci` gives it, without `below`), to `true` when a CI wait that `arthur merge --auto` left counts that run and delivery woke the coordinator with its verdict (once per run attempt), else `false`; github leaves a `true` branch out of its wake. Delivery's poll no longer tells a run's end. No host member changed.
+- AR0278 (F2 of AR0276; the ticket's Done means allow a new member recorded here): `commands.docs()`, every registered command with its doc page's URL, which no member gave a plugin (`commands.phone()` lists the phone commands only). Develop's `arthur eval` reads them so its stub answers `arthur <command> --help` and `arthur help <command>` with the page the live CLI prints (docs/commands/eval.md in its package).
 
 ## Types
 

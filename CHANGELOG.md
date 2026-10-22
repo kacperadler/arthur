@@ -7,6 +7,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Added
 
 - AR0269 The disk check makes a second ssh call per machine and round (2bb5ec1)
+- AR0274 A worker learns of `arthur plugin new --root` only if its ticket or plan names it (aa8e03e)
 - AR0278 In an eval run, `arthur <command> --help` answers only what the scenario's stub says (7732a3d)
 - AR0279 An eval turn gets the coordinator's role but not its context, nor a time of day (f582f7d)
 - AR0282 The decision log's race test catches a missing lock only in most runs (d85fed6)

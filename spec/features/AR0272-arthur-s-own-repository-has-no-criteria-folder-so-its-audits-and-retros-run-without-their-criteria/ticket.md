@@ -14,7 +14,7 @@ with a config whose project is this repository (`projects({ list: [{ name: "arth
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+Arthur's own repository has its criteria folder, so its audits and retros run with the criteria that say what is worth a proposal.
 
 - Kind: risk
 
@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-21: Source: F1 of AR0266
+- 2026-10-22: Coordinator (free hand, finding ticket) approved.

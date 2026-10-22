@@ -1,6 +1,6 @@
 import { memoryBytes } from "@arthur/core";
 import type { Host } from "@arthur/core/plugin";
-import { diskGB, leastFree, underFloor } from "./machine-disk.ts";
+import { diskGB, diskPaths, leastFree, underFloor } from "./machine-disk.ts";
 import { checkSample, readSample, type Said, type Sample } from "./machine-free.ts";
 
 // How many jobs run (spec/roadmap.md, entries 34 and 69): each machine's room for more jobs, from its last check of free CPU and
@@ -79,8 +79,15 @@ export function roomGuard(host: Host, folder: string, perJob: Reserve, keepFree:
 	const lines = async () => (await Promise.all(host.jobs.machines().map(async (name) => room(name, await fresh(name)).line))).join("\n");
 	return {
 		checkLocal: () => check("local"),
-		// `machines.round`: each listed machine's check of a round begun now, every `everySeconds`, kept as its check: no other ssh call but the disk's `df -Pk`, with a floor.
-		round: (checks: ReadonlyMap<string, Promise<Said>>, everySeconds?: number) => Promise.all([...checks].map(([name, said]) => keep(name, checkSample(host, folder, name, floor, said, everySeconds)))),
+		// `machines.round`: each listed machine's check of a round begun now, every `everySeconds`, kept as its check (`samples`);
+		// with a floor, `paths` names the ones each check's df reads, so the round's one ssh call carries the disk too.
+		round: (checks: ReadonlyMap<string, Promise<Said>>, everySeconds?: number) => {
+			const asked = new Map([...checks.keys()].map((name) => [name, floor > 0 ? diskPaths(host, name) : undefined]));
+			const samples = Promise.all([...checks].map(([name, said]) => keep(name, checkSample(host, folder, name, floor, said, everySeconds, asked.get(name)))));
+			// A provider's refusal reaches the machine's sample; its check reads no path.
+			const answered = Promise.all([...asked].map(async ([name, paths]) => [name, (await paths?.catch(() => undefined)) ?? []] as const));
+			return { samples, paths: answered.then((entries) => new Map(entries.map(([name, paths]) => [name, "error" in paths ? [] : paths]))) };
+		},
 		// `resources.free`: the jobs machine `name` has room for, as placement reads it.
 		free: async (name: string) => room(name, await fresh(name)).jobs,
 		// `beforeSpawn`: a job starts only on a machine with room for it; the refusal names every machine and its room.

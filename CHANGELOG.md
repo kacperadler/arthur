@@ -12,6 +12,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0279 An eval turn gets the coordinator's role but not its context, nor a time of day (f582f7d)
 - AR0282 The decision log's race test catches a missing lock only in most runs (d85fed6)
 - AR0285 A job's question answered by policy still reaches the owner as a question (cdc0ad1)
+- AR0292 A check of its own still makes two ssh calls to a machine with a disk floor (59b78a4)
 
 ### Fixed
 

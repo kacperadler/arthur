@@ -10,7 +10,7 @@ plugins: [
 ],
 ```
 
-It needs the project list (the projects plugin): `arthur plugin new` writes into a project's checkout, or, run by a job, into that job's own worktree, named with `--root`, so a worker on a new plugin's ticket makes the package on its own branch; in Arthur's repository the planner's and the worker's prompt carry the line that runs it from a job (`arthur plugin --help`). `arthur eval` keeps its baseline in the main project's checkout. `arthur eval` also needs orchestration, whose coordinator role and model it runs.
+It needs the project list (the projects plugin): `arthur plugin new` writes into a project's checkout, or, run by a job, into that job's own worktree, named with `--root`, so a worker on a new plugin's ticket makes the package on its own branch; in Arthur's repository the planner's and the worker's prompt carry the line that runs it from a job, and the coordinator's context the line that has a new plugin's ticket name `"machine": "local"` in its JSON block, which the machines plugin places its jobs by (`arthur plugin --help`). `arthur eval` keeps its baseline in the main project's checkout. `arthur eval` also needs orchestration, whose coordinator role and model it runs.
 
 ## Options
 

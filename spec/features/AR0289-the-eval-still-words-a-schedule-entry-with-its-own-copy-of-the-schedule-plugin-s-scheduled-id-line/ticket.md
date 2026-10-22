@@ -37,3 +37,4 @@ In:
 - 2026-10-22: Source: F1 of AR0277
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
 - 2026-10-22: Coordinator (free hand): line budget raise accepted, schedule 570 to 585, for `schedule.message` and the shared `[scheduled <id>]` text in `sweep.ts`; develop down 667 to 666.
+- 2026-10-22: Coordinator (free hand): after merging main (AR0287, develop 669), develop 668 (669 minus this ticket's 1); schedule 585 stays.

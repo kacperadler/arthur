@@ -1,0 +1,49 @@
+{
+	"needs": [
+		"AR0279: the context's `Restart:` line, which says a restart is due, is not in the turn; only the spawn's refusal says so"
+	],
+	"turn": {
+		"message": "merge AR0090"
+	},
+	"stub": [
+		{
+			"match": "^arthur (?!.*--help)jobs",
+			"output": "ended\nAR0090  review  ended  15:20  $0.38/$2.00  8a9b0c1d  finished\nAR0090  worker  ended  14:41  $1.12/$2.00  5c6d7e8f  finished"
+		},
+		{
+			"match": "^arthur (?!.*--help)merge ",
+			"output": "merged arthur/2026-10-22-worker-5c6d7e8f into main: c3d4e5f\nnpm ci: passed.\nnpm run check: passed.\nnpm test: 52/52 passed.\n- Findings: none; no findings.md on this ticket.\nwrote spec/features/AR0090-name-the-machine-in-arthur-jobs/outcome.md; rewrite What went in from the commit subjects listed there\nAR0090 merged\nunblocked: AR0091\nwrote CHANGELOG.md: 3 merged tickets\nnothing committed but the merge, nothing pushed or pruned\n\n# After a merge that went in\n\n`arthur merge` printed this after its last step (`arthur merge --help`). In the same turn:\n\n1. Rewrite `## What went in` of the ticket's `outcome.md` from the commit subjects listed there into what each changed file does now.\n2. Copy the reviews' non-blocking notes into the ticket's `findings.md` as new entries, and settle each: a planning ticket (`arthur ticket new '<title>'`, its Description the finding, its Decisions `- <date>: Source: F<n> of <ticket>`) with the entry's status `ticket <id>`, or `dropped (<reason>)`. When the merge said `no plugin provides findings.onMerge`, settle its open entries the same way. List those tickets under `## Left open` in `outcome.md`.\n   Settle the notes in the project's findings mode, as the merge settled the open entries: on `- Deferred (client summary):` lines (`summary`) no ticket, each note's status `deferred (client summary)` and its own such line under `## Left open`; on a `- Tickets from findings:` ticket with several entries or titled `Findings of <ticket>: <its title>` (`grouped`) every note goes into that ticket's Description, status `ticket <id>` (one such ticket for all notes when none was made); else a ticket each (`ticket`). When the lines show no mode (`none open`, no `findings.md`), `findings({ mode })` in `arthur.config.ts` names the project's, `ticket` when it does not.\n3. Tell the owner the tickets made from findings, each with its title and a plain sentence on what it would change.\n4. Commit the ticket's folder, the tickets made, the board and `CHANGELOG.md` together, `git push` if `git remote` lists a remote (if the push fails, tell the owner the error; do not retry), then `arthur prune` the merged job and its review jobs.\n5. On `unblocked: …`, spawn those tickets at once: their approval covered the order.",
+			"files": {
+				"spec/features/AR0090-name-the-machine-in-arthur-jobs/outcome.md": "# AR0090 - Outcome\n\n- Merged: 2026-10-22, `c3d4e5f`\n- Branch: arthur/2026-10-22-worker-5c6d7e8f\n- Reviews: review-1.md PASS\n- Cost: worker $1.12, reviews $0.38; review rounds 1\n\n## What went in\n\n- feat(AR0090): name the machine in arthur jobs\n\n## Checks on main\n\n- `npm ci`: passed.\n- `npm run check`: passed.\n- `npm test`: 52/52 passed.\n\n## Left open\n\n- Findings: none; no findings.md on this ticket.\n",
+				"spec/build.json": "[\n  {\n    \"id\": \"AR0088\",\n    \"title\": \"Show the slice of a job in arthur jobs\",\n    \"status\": \"merged\",\n    \"path\": \"spec/features/AR0088-show-the-slice-of-a-job-in-arthur-jobs/ticket.md\",\n    \"updated\": \"2026-10-21T16:00:00.000Z\"\n  },\n  {\n    \"id\": \"AR0089\",\n    \"title\": \"Count the jobs per machine in arthur health\",\n    \"status\": \"merged\",\n    \"path\": \"spec/features/AR0089-count-the-jobs-per-machine-in-arthur-health/ticket.md\",\n    \"updated\": \"2026-10-21T16:00:00.000Z\"\n  },\n  {\n    \"id\": \"AR0090\",\n    \"title\": \"Name the machine in arthur jobs\",\n    \"status\": \"merged\",\n    \"path\": \"spec/features/AR0090-name-the-machine-in-arthur-jobs/ticket.md\",\n    \"updated\": \"2026-10-21T16:00:00.000Z\"\n  },\n  {\n    \"id\": \"AR0091\",\n    \"title\": \"Sort arthur jobs by machine\",\n    \"status\": \"planned\",\n    \"path\": \"spec/features/AR0091-sort-arthur-jobs-by-machine/ticket.md\",\n    \"updated\": \"2026-10-21T16:00:00.000Z\",\n    \"after\": [\n      \"AR0090\"\n    ]\n  }\n]\n"
+			}
+		},
+		{
+			"match": "^arthur (?!.*--help)spawn (?!.*--ignore-restart)",
+			"exit": 1,
+			"output": "arthur spawn: refused by session: restart due: AR0090 changed Arthur's code since arthur run started 2026-10-22 08:41 at 0a41782; restart arthur run once no job runs, or pass --ignore-restart"
+		},
+		{
+			"match": "^arthur (?!.*--help)spawn ",
+			"output": "2026-10-22-worker-9d0e1f2a"
+		},
+		{
+			"match": "^arthur (?!.*--help)prune ",
+			"output": "2026-10-22-worker-5c6d7e8f: worktree /home/owner/.arthur-worktrees/2026-10-22-worker-5c6d7e8f removed; branch arthur/2026-10-22-worker-5c6d7e8f deleted; record deleted\n2026-10-22-review-8a9b0c1d: worktree /home/owner/.arthur-worktrees/2026-10-22-review-8a9b0c1d removed; record deleted"
+		}
+	],
+	"expect": {
+		"calls": [
+			"^arthur merge (\\S+-)?5c6d7e8f$"
+		],
+		"never": [
+			"--ignore-restart"
+		],
+		"reply": {
+			"match": [
+				"AR0091",
+				"[Rr]estart"
+			]
+		}
+	}
+}

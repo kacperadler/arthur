@@ -8,15 +8,15 @@
 		"runs": 3
 	},
 	"delivery/merge": {
-		"passed": 0,
+		"passed": 3,
 		"runs": 3
 	},
 	"delivery/review-fail-continue": {
-		"passed": 0,
+		"passed": 3,
 		"runs": 3
 	},
 	"delivery/review-fail-handed-back": {
-		"passed": 0,
+		"passed": 1,
 		"runs": 3
 	},
 	"delivery/review-pass": {
@@ -36,11 +36,11 @@
 		"runs": 3
 	},
 	"manage/audit-autopilot": {
-		"passed": 0,
+		"passed": 3,
 		"runs": 3
 	},
 	"manage/retro": {
-		"passed": 0,
+		"passed": 3,
 		"runs": 3
 	},
 	"orchestration/env-refusal": {

@@ -1,6 +1,6 @@
 {
 	"needs": [
-		"AR0279: the context's `Restart:` line, which says a restart is due, is not in the turn; only the spawn's refusal says so"
+		"AR0279 F1: the context's `Restart:` line is the live session's, not one the scenario sets to say a restart is due; only the spawn's refusal says so"
 	],
 	"turn": {
 		"message": "merge AR0090"

@@ -38,10 +38,11 @@ export type Collect = (name: string, args: readonly unknown[]) => unknown[];
 export type ProjectCheckout = { readonly root: string; readonly project: string; readonly files: PromptFiles }; // and where its prompt files are
 
 // What a plugin reads of the roles outside a spawn, as `host.jobs`, in the main checkout `where` finds (the main project's when
-// undefined): the prompt of `role` without the plugins' sections, which are a job's; the vision, `text` unless `problem` says why not.
+// undefined): the prompt of `role` without the plugins' sections, which are a job's; the vision, `text` unless `problem` says why
+// not, read in `checkout` instead when given, a folder holding a copy of the project's repository (an eval's fixture).
 export type RoleReads = {
 	prompt(role: string, project?: string): { readonly prompt: string; readonly warnings: string[] };
-	vision(project?: string): { readonly project: string; readonly path: string; readonly text?: string; readonly problem?: Source["problem"] };
+	vision(project?: string, checkout?: string): { readonly project: string; readonly path: string; readonly text?: string; readonly problem?: Source["problem"] };
 	// The names of the criteria files the registered roles read, each once, in the order of registration.
 	criteria(): string[];
 };
@@ -52,9 +53,9 @@ export function roleReads(registry: RoleRegistry, where: (project: string | unde
 			const { root, files } = where(project);
 			return prompt(registry.get(name), root, files, () => []);
 		},
-		vision(project) {
+		vision(project, checkout) {
 			const { root, project: name, files } = where(project);
-			return { project: name, path: files.vision, ...projectFile(root, files.vision) };
+			return { project: name, path: files.vision, ...projectFile(checkout ?? root, files.vision) };
 		},
 		criteria: () => [...new Set(registry.list().flatMap(({ role }) => role.criteria))],
 	};

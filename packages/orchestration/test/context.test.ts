@@ -138,6 +138,36 @@ test("a missing criteria file, an empty or symlinked vision, and a hand-broken b
 	assert.doesNotMatch(text, /## Vision of/);
 });
 
+test("coordinator.checkoutContext: the main project's role, the vision and board of a copy of its repository, the time at the instant asked, each plugin's lines; no jobs, open decisions or silent mode, which are the live Arthur's", async (t) => {
+	const { fake, demo, context } = await setup(t, "2026-10-18T10:00:00Z");
+	const copy = repository({ "spec/vision.md": "# Fixture\n\nThe fixture's shop.\n", "spec/build.json": board("Copied", "Second") });
+	const job = join(dirname(fake.host.folder), "jobs", "2026-10-18-worker-0000000a");
+	mkdirSync(job, { recursive: true });
+	for (const [key, value] of Object.entries({ kind: "worker", project: "demo", task: "Go.", state: "working", since: "2026-10-18T09:55:00Z" })) writeFileSync(join(job, key), value);
+	writeFileSync(join(demo, "spec/decisions.jsonl"), `${JSON.stringify({ record: "ask", id: "DM-D1", time: "2026-10-18T09:00:00Z", project: "demo", kind: "question", question: "Ship it?", options: [] })}\n`);
+	writeFileSync(join(fake.host.folder, "silent.json"), JSON.stringify({ since: "2026-10-18T09:00:00Z", seq: 0, work: "AR0207 merged" }));
+	fake.provide("coordinator.context", () => "Retro due: no.");
+	const live = await context();
+	for (const section of ["Jobs not ended", "Open decisions", "Silent"]) assert.match(live, new RegExp(`^## ${section}$`, "m"), `the live context holds ${section}`);
+	const at = new Date("2026-10-18T21:30:00Z");
+	assert.equal(
+		fake.call("coordinator.checkoutContext", { root: copy, at }),
+		[
+			ROLE,
+			"## Project override, which wins over the role above (.agents/arthur/roles/coordinator.md)\n\nAnswer in Polish.",
+			"## Styleguide (.agents/arthur/criteria/styleguide.md)\n\n# Styleguide\n\nSmall files.",
+			"## Autopilot (.agents/arthur/criteria/autopilot.md)\n\n# Autopilot\n\nOnly typos.",
+			"## Vision of demo (spec/vision.md)\n\n# Fixture\n\nThe fixture's shop.",
+			"## Board\n\nDM0001 planning    Copied\nDM0002 planning    Second",
+			"## Time\n\n23:30 on sun 2026-10-18 (Europe/Warsaw), night: within the owner's quiet hours.",
+			"## test\n\nRetro due: no.",
+		].join("\n\n"),
+	);
+	for (const asked of [undefined, { root: copy }, { root: 3, at }, { root: copy, at: at.toISOString() }]) {
+		assert.throws(() => fake.call("coordinator.checkoutContext", asked), { message: `coordinator.checkoutContext: expected { root: a folder, at: a Date }, got ${JSON.stringify(asked ?? {})}` });
+	}
+});
+
 test("night is the quiet hours, across midnight: 23:30 and 03:00 are night, 07:30 and 21:59 are day", async (t) => {
 	const { fake, context } = await setup(t, "2026-10-18T21:30:00Z");
 	const time = async (at: string) => {

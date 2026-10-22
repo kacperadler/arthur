@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/lock.ts` (`takeLock`, `alive`)
 - What: a lock file names its holder's pid and boot; `takeLock` treats a holder whose pid is alive as live, also when that pid is the taker's own, which a new process in the same boot can have when the crashed holder had it (a container restarted with `docker restart` keeps the boot id and starts `arthur run` again as pid 1, [INFERENCE] from Docker's PID namespaces, not run). Then `run.pid` refuses the start (`is already run by pid <its own pid>`), and the `asked/<n>-<time>.lock` a crash left (AR0299) is never taken over. Seen with `node -e` writing `<own pid> <boot id>` into a file and calling `takeLock` on it: it answered `{"heldBy":<own pid>}`.
 - Suggestion: tell a lock this process took from one an earlier process of the same pid left, for example a per-process random token written beside the pid and kept in memory, so a file naming this pid without this process's token counts as a dead holder's; this process's own live locks stay held.
-- Status: open
+- Status: ticket AR0305

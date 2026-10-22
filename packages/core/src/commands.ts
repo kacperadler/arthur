@@ -32,6 +32,8 @@ export type Commands = {
 	route(text: string, from?: PhoneFrom): Promise<string>;
 	// The phone commands, by name, for a channel's menu.
 	phone(): { readonly name: string; readonly about: string }[];
+	// Every registered command, the core's and each plugin's, by name, with its doc page (what `arthur <name> --help` prints).
+	docs(): { readonly name: string; readonly doc: URL }[];
 };
 
 export type CommandRegistry = Omit<Commands, "register"> & {
@@ -68,6 +70,7 @@ export function commandRegistry(): CommandRegistry {
 		find: (name) => commands.get(name)?.command,
 		names: () => sorted().map((command) => command.name),
 		phone,
+		docs: () => sorted().map(({ name, doc }) => ({ name, doc })),
 		async route(text, from = {}) {
 			const [, word = "", rest = ""] = /^(\S*)\s*([\s\S]*)$/.exec(text.trim()) ?? [];
 			const command = word.startsWith("/") ? commands.get(word.slice(1))?.command : undefined;

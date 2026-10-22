@@ -99,7 +99,7 @@ export function pluginHost(
 		call: <T>(name: string, ...args: readonly unknown[]) => names.call(own.name, name, args) as T,
 		collect: <T>(name: string, ...args: readonly unknown[]) => names.collect(name, args) as T[],
 		collectEach: <T>(name: string, ...args: readonly unknown[]) => names.collectEach(name, args) as Answer<T>[],
-		commands: { register: (command) => commands.register(own.name, command), route: commands.route, phone: commands.phone },
+		commands: { register: (command) => commands.register(own.name, command), route: commands.route, phone: commands.phone, docs: commands.docs },
 		jobs: {
 			registerKind: (kind) => runner.registerKind(own.name, kind),
 			registerRole: (role) => runner.registerRole(own.name, role),

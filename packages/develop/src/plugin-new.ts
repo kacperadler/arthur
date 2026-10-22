@@ -116,3 +116,14 @@ export function pluginCommand(host: Host): Command {
 		},
 	};
 }
+
+// What the planner and the worker are told in Arthur's repository, the one this command writes in: the line that makes a
+// new plugin's package from a job, run from the project's checkout since a worktree lacks the arthur.config.ts the CLI reads.
+export function pluginNewSection(role: string, job: { readonly root: string; readonly worktree: string }): string | undefined {
+	if ((role !== "planner" && role !== "worker") || !existsSync(join(job.root, "packages", "core", "package.json"))) return undefined;
+	const [lead, root, rest] = role === "planner"
+		? ["When the ticket makes a new plugin package, the plan's first step is this line, so the worker makes the package with it, not by hand", "<worktree>", "`<worktree>` is the worker's own"]
+		: ["When your ticket makes a new plugin package, make it first with this line, not by hand", job.worktree, "from the checkout, `arthur plugin --help` prints the rest"];
+	const how = "`<checkout>` is the project's checkout, the first line of `git worktree list`: the CLI reads `arthur.config.ts` from the folder it runs in, and a worktree lacks it. `<name>` is the plugin's name, `<lines>` the line budget the ticket decides";
+	return `## A new plugin\n\n${lead}. ${how}; ${rest}.\n\n\`\`\`\ncd <checkout> && arthur plugin new <name> --budget <lines> --root ${root}\n\`\`\``;
+}

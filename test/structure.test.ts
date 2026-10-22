@@ -497,7 +497,10 @@ import { checkStructure } from "./structure.ts";
 // AR0298 (F1 of AR0274; its Done means: the section says a new plugin's ticket runs on the local machine): develop 2 more
 // (672) for the worker's section on another machine, whose bare repository has no arthur.config.ts (plugin-new.ts, 1 and its
 // comment 1). A new case, so nothing was cut.
-const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2285, machines: 474, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 672, findings: 254 };
+// AR0300 (F1 of AR0202; its Done means: a record removed while the wrapper appends to `log` is gone, never ENOTEMPTY): core
+// 2 more (5755) for `log` made once at the wrapper's start and then only appended to, opened without O_CREAT (wrapper.ts, 1
+// each). An append created `log` before, so nothing was cut.
+const BUDGETS = { core: 5755, "core/testing": 349, projects: 486, orchestration: 2285, machines: 474, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 672, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

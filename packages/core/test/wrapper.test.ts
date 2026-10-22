@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, rmSync, watch, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
@@ -253,6 +253,28 @@ test("a record removed file by file, its folder kept a while as `rm -r` does: th
 	const line = `job ${job.id}: its record ${folder} was deleted while it ran; the agent was stopped and nothing more is written`;
 	assert.match(readFileSync(join(home, "wrapper.log"), "utf8"), new RegExp(`^\\[arthur [^\\]]+\\] ${line.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}\\n$`));
 	assert.equal(existsSync(join(folder, "state")), false, "no state written into the record");
+});
+
+test("a record `rm -r` empties, its `log` unlinked first, while the agent writes to stderr: the wrapper ends with its one line and never recreates `log`", async () => {
+	const gates = temporaryFolder();
+	const agent = fakeAgent({ steps: [{ waitFor: join(gates, "log gone") }, { stderr: "still here" }, { waitFor: join(gates, "never") }] });
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	const folder = join(home, "jobs", job.id);
+	const wrapper = Number(await until("the wrapper's pid", () => (existsSync(join(folder, "pid")) ? readFileSync(join(folder, "pid"), "utf8") : undefined)));
+	const [start] = await until("the agent's start", () => (existsSync(join(dirname(agent), "starts.jsonl")) ? starts(agent) : undefined));
+	// `rm -r` as it goes: the folder listed once, its entries unlinked in that order (here `log` first, `pid` last), the folder then.
+	const listed = readdirSync(folder).sort((a, b) => Number(b === "log") - Number(a === "log") || Number(a === "pid") - Number(b === "pid"));
+	rmSync(join(folder, "log"));
+	writeFileSync(join(gates, "log gone"), "");
+	await until("the wrapper's end or a new `log`", () => !alive(wrapper) || existsSync(join(folder, "log")));
+	for (const name of listed.slice(1)) rmSync(join(folder, name), { recursive: true });
+	rmdirSync(folder);
+	await until("the wrapper's end", () => !alive(wrapper));
+	await until("the agent's end", () => !alive(start?.pid ?? 0));
+	assert.deepEqual(readdirSync(join(home, "jobs")), []);
+	const line = `job ${job.id}: its record ${folder} was deleted while it ran; the agent was stopped and nothing more is written`;
+	assert.match(readFileSync(join(home, "wrapper.log"), "utf8"), new RegExp(`^\\[arthur [^\\]]+\\] ${line.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}\\n$`));
 });
 
 test("a record deleted while the job runs stops every process the agent started, not only the agent", async () => {

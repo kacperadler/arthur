@@ -1,5 +1,5 @@
 import { type ChildProcess, spawn } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { appendFileSync, closeSync, constants, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { agentStream } from "./agent-stream.ts";
 import { eventBus } from "./events.ts";
@@ -36,9 +36,9 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		process.stderr.write(`[arthur ${new Date().toISOString()}] job ${id}: its record ${folder} was deleted while it ran; the agent was stopped and nothing more is written\n`);
 		process.exit(1);
 	};
-	// A use of the record that finds it gone ends the wrapper, and so does one that finds the `pid` it wrote gone (a `rm -r` midway).
+	// A use of the record that finds it, or the `pid` or `log` it made at its start, gone ends the wrapper (a `rm -r` midway).
 	let started = false;
-	const gone = () => !existsSync(folder) || (started && !existsSync(join(folder, "pid")));
+	const gone = () => !existsSync(folder) || (started && (!existsSync(join(folder, "pid")) || !existsSync(join(folder, "log"))));
 	const guard = <T>(use: () => T): T => {
 		try {
 			return use();
@@ -47,12 +47,13 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 			return leave();
 		}
 	};
-	// A file of the record written whole (under a temporary name, then renamed), or appended to.
+	// A file of the record written whole (under a temporary name, then renamed), or appended to without creating it (`rm -r`).
 	const save = (name: string, text: string | Uint8Array, append = false): void =>
 		guard(() => {
-			if (append) return appendFileSync(join(folder, name), text);
-			writeFileSync(join(folder, `.${name}`), text);
-			renameSync(join(folder, `.${name}`), join(folder, name));
+			const fd = openSync(join(folder, append ? name : `.${name}`), append ? constants.O_WRONLY | constants.O_APPEND : "w");
+			writeFileSync(fd, text);
+			closeSync(fd);
+			if (!append) renameSync(join(folder, `.${name}`), join(folder, name));
 		});
 	const field = (name: string): string => guard(() => readFileSync(join(folder, name), "utf8"));
 	const note = (line: string) => save("log", `[arthur ${new Date().toISOString()}] ${line}\n`, true);
@@ -103,6 +104,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		if (child?.pid !== undefined) stopping = stopGroup(child.pid, id, note);
 	};
 	process.on("SIGTERM", () => halt("stop"));
+	guard(() => appendFileSync(join(folder, "log"), "")); // The one use that creates `log`.
 	save("pid", String(process.pid));
 	started = true;
 	save("active", "");

@@ -2156,9 +2156,9 @@
   {
     "id": "AR0280",
     "title": "Roadmap 68: evals, the scenarios",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0280-roadmap-68-evals-the-scenarios/ticket.md",
-    "updated": "2026-10-22T09:05:10.376Z"
+    "updated": "2026-10-22T09:12:06.158Z"
   },
   {
     "id": "AR0281",
@@ -2187,8 +2187,15 @@
   {
     "id": "AR0284",
     "title": "Roadmap 97: decision classes",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0284-roadmap-97-decision-classes/ticket.md",
-    "updated": "2026-10-22T09:11:45.745Z"
+    "updated": "2026-10-22T09:16:27.391Z"
+  },
+  {
+    "id": "AR0285",
+    "title": "A job's question answered by policy still reaches the owner as a question",
+    "status": "planned",
+    "path": "spec/features/AR0285-a-job-s-question-answered-by-policy-still-reaches-the-owner-as-a-question/ticket.md",
+    "updated": "2026-10-22T09:16:36.941Z"
   }
 ]

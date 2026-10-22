@@ -36,3 +36,5 @@ In:
 
 - 2026-10-23: Source: F1 of AR0299
 - 2026-10-23: Coordinator (free hand, finding ticket) approved.
+- 2026-10-23: Coordinator (free hand): line budget raise accepted, core 5755 to 5772, for the set of locks this process holds in `lock.ts`.
+- 2026-10-23: Coordinator (free hand): the in-memory set of held locks (device and inode) instead of the ticket's example token is accepted: the file format stays, and an old process still running cannot take over a new lock.

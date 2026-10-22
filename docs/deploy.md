@@ -43,7 +43,7 @@ Arthur exposes nothing to the internet: no port, no webhook. Every plugin calls 
 - The coordinator's session: `arthur attach` (entry 23); detach with `Ctrl-b d`.
 - Stop: `systemctl --user stop arthur`. Start again: `systemctl --user start arthur`.
 - `arthur run` by hand while the service runs is refused, naming the service's pid: one `arthur run` per home folder.
-- After a crash the next start takes over `run.pid`, whose pid is dead; after a reboot as well, since the file names the boot it was written in.
+- After a crash the next start takes over `run.pid`, whose pid is dead; after a reboot as well, since the file names the boot it was written in; and when the new start has the crashed one's pid (a restarted container), since the file is not one it took.
 - Any other command, `arthur <command>`, runs in `~/arthur` beside the service; `arthur help` lists them.
 
 ## Updating

@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { availableParallelism, cpus, freemem, totalmem } from "node:os";
 import { setTimeout as sleep } from "node:timers/promises";
 import { join } from "node:path";
+import { withLock } from "@arthur/core/lock";
 import type { Host } from "@arthur/core/plugin";
 import { type Disk, diskGB, diskPaths, measureDisk, readDisk, underFloor } from "./machine-disk.ts";
 
@@ -73,7 +74,8 @@ export function readSample(folder: string, name: string): Sample | undefined {
 // keeps the result; with a disk `floor` above 0 bytes, its filesystems too, from the df the round's check ran on `paths` when
 // it carries one. A check that fails after one that answered (or none) is said once, as a `notice`; the next ones that fail
 // too are not. A check whose least free filesystem is under the floor, after one that was not (or none), emits `disk-low` and
-// a `notice`. Never throws for the machine's own failure.
+// a `notice`. Read and written under the machine file's lock, so of two processes checking at once one says it. Never throws
+// for the machine's own failure.
 export async function checkSample(host: Host, folder: string, name: string, floor: number, said?: Promise<Said>, everySeconds?: number, paths?: Promise<readonly string[] | { readonly error: string }>): Promise<Sample> {
 	const running = new Set(host.jobs.running());
 	const jobs = host.jobs.list().filter((job) => job.machine === name && running.has(job.id)).map((job) => job.id);
@@ -89,11 +91,14 @@ export async function checkSample(host: Host, folder: string, name: string, floo
 		})
 		.catch((error: Error) => ({ error: error.message }));
 	const sample: Sample = { at: host.clock.now().toISOString(), jobs, everySeconds, ...found };
-	const before = readSample(folder, name);
 	const file = join(folder, "machines", `${name}.json`);
 	mkdirSync(join(folder, "machines"), { recursive: true });
-	writeFileSync(`${file}.${process.pid}`, `${JSON.stringify(sample)}\n`);
-	renameSync(`${file}.${process.pid}`, file);
+	const before = withLock(`${file}.lock`, () => {
+		const kept = readSample(folder, name);
+		writeFileSync(`${file}.${process.pid}`, `${JSON.stringify(sample)}\n`);
+		renameSync(`${file}.${process.pid}`, file);
+		return kept;
+	});
 	if ("error" in sample && !(before !== undefined && "error" in before))
 		host.events.emit("notice", { text: `machine ${name}: its room is unknown (${sample.error}); no job starts there until a check answers` });
 	const low = "error" in sample ? undefined : underFloor(sample.disk, floor);

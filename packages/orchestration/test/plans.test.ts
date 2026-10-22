@@ -230,8 +230,10 @@ test("a plan job carries its ticket, so placement reads the ticket's labels and 
 test("the wake of a plan or plan review carries the procedure; another kind's carries none", async (t) => {
 	const { fake } = await load(t);
 	const procedure = readFileSync(new URL("../roles/coordinator/plan-ended.md", import.meta.url), "utf8").trim();
-	for (const kind of ["plan", "plan-review"]) assert.deepEqual(fake.collect("coordinator.wake", { id: "x", kind, state: "ended" }), [procedure], kind);
-	assert.deepEqual(fake.collect("coordinator.wake", { id: "x", kind: "worker", state: "ended" }), [undefined]);
+	// The decision log's line (decision-hooks.ts) is only for a run blocked on the owner.
+	const lines = (kind: string) => fake.collect("coordinator.wake", { id: "x", kind, state: "ended" }).filter((line) => line !== undefined);
+	for (const kind of ["plan", "plan-review"]) assert.deepEqual(lines(kind), [procedure], kind);
+	assert.deepEqual(lines("worker"), []);
 	assert.match(procedure, /arthur ticket file <ticket id> <job id>/);
 });
 

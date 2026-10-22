@@ -106,10 +106,11 @@ async function alwaysReview(host: Host, project: string, paths: readonly string[
 	return held.length > 0 ? [`on delivery's always-review list: ${held.join(", ")}`] : [];
 }
 
-// The ticket's text with `line` after the last line of its Decisions.
-function withDecision(text: string, line: string): string {
+// The ticket's text with `line` after the last line of its Decisions; without that section, the section added at the end.
+export function withDecision(text: string, line: string): string {
 	const lines = text.split("\n");
 	const start = lines.findIndex((each) => each.trimEnd() === "## Decisions");
+	if (start < 0) return `${text.trimEnd()}\n\n## Decisions\n\n${line}\n`;
 	const next = lines.findIndex((each, at) => at > start && each.startsWith("## "));
 	let end = next < 0 ? lines.length : next;
 	while (end > start + 1 && (lines[end - 1] ?? "").trim() === "") end--;
@@ -118,7 +119,7 @@ function withDecision(text: string, line: string): string {
 }
 
 // Written whole and renamed, so a reader never sees half of it.
-function write(file: string, text: string): void {
+export function write(file: string, text: string): void {
 	const draft = join(dirname(file), `.ticket.md.${process.pid}`);
 	writeFileSync(draft, text);
 	renameSync(draft, file);

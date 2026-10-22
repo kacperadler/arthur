@@ -5,7 +5,7 @@ import type { StubAnswer } from "./eval-stub.ts";
 
 // A scenario of `arthur eval` (spec/roadmap.md, entry 67): `<package>/evals/<name>/scenario.json` beside its `fixture/`, in
 // each package the load runs, named `<package folder>/<name>`. Its turn is the text orchestration's inbox hands the coordinator
-// for its event (`coordinator.turn`): a message of the owner's, a schedule entry due, or a job's end. Docs:
+// for its event (`coordinator.turn`): a message of the owner's, a schedule entry due, a plugin's message, or a job's end. Docs:
 // docs/commands/eval.md.
 
 export type Expect = {
@@ -14,6 +14,8 @@ export type Expect = {
 	readonly refs: Readonly<Record<string, "kept" | "moved">>;
 	readonly calls: readonly string[];
 	readonly never: readonly string[];
+	readonly reply: { readonly lines?: number; readonly match: readonly string[]; readonly never: readonly string[] };
+	readonly tools: readonly string[];
 };
 export type Scenario = { readonly name: string; readonly folder: string; readonly turn: string; readonly timeoutSeconds: number; readonly stub: readonly StubAnswer[]; readonly expect: Expect };
 
@@ -57,18 +59,21 @@ export async function readScenario(host: Host, name: string, folder: string): Pr
 			if (answer.exit !== undefined && !(Number.isInteger(answer.exit) && (answer.exit as number) >= 0 && (answer.exit as number) <= 255)) throw new Error(`stub[${index}].exit: expected 0 to 255`);
 			if (answer.files !== undefined && !(object(answer.files) && Object.values(answer.files).every((text) => typeof text === "string"))) throw new Error(`stub[${index}].files: expected { <path>: <text> }`);
 		}
-		if (!object(expect)) throw new Error("expect: expected { files?, missing?, refs?, calls?, never? }");
+		if (!object(expect)) throw new Error("expect: expected { files?, missing?, refs?, calls?, never?, reply?, tools? }");
 		const files = expect.files ?? {};
 		if (!object(files)) throw new Error("expect.files: expected { <path>: [<regex>...] }");
 		const refs = expect.refs ?? {};
 		if (!object(refs) || !Object.values(refs).every((value) => value === "kept" || value === "moved")) throw new Error('expect.refs: expected { <ref>: "kept" | "moved" }');
 		const missing = expect.missing ?? [];
 		if (!Array.isArray(missing) || !missing.every(words)) throw new Error("expect.missing: expected a list of paths");
+		const reply = expect.reply ?? {};
+		if (!object(reply) || (reply.lines !== undefined && !(Number.isInteger(reply.lines) && (reply.lines as number) >= 1))) throw new Error("expect.reply: expected { lines?: 1 or more, match?, never? }");
 		return {
 			...{ name, folder, turn: await turnText(host, folder, turn), timeoutSeconds: timeoutSeconds as number, stub: stub as StubAnswer[] },
 			expect: {
 				...{ files: Object.fromEntries(Object.entries(files).map(([path, list]) => [path, patterns(list, `expect.files.${path}`)])), missing },
-				...{ refs: refs as Expect["refs"], calls: patterns(expect.calls, "expect.calls"), never: patterns(expect.never, "expect.never") },
+				...{ refs: refs as Expect["refs"], calls: patterns(expect.calls, "expect.calls"), never: patterns(expect.never, "expect.never"), tools: patterns(expect.tools, "expect.tools") },
+				reply: { ...(reply.lines === undefined ? {} : { lines: reply.lines as number }), match: patterns(reply.match, "expect.reply.match"), never: patterns(reply.never, "expect.reply.never") },
 			},
 		};
 	} catch (error) {
@@ -78,13 +83,18 @@ export async function readScenario(host: Host, name: string, folder: string): Pr
 
 // The turn as the inbox hands it over, asked of orchestration (`coordinator.turn`): `{ message, channel? }` the owner's, a
 // `message-received`; `{ scheduled, message, procedure? }` a schedule entry due, a `coordinator-message` as the schedule plugin
-// words it, `procedure` a file beside the scenario; `{ ended, result? }` a job's end, a `job-ended` with its final message.
+// words it, `procedure` a file beside the scenario; `{ arthur }` a plugin's `coordinator-message`, as it words it;
+// `{ ended, result? }` a job's end, a `job-ended` with its final message.
 async function turnText(host: Host, folder: string, turn: unknown): Promise<string> {
-	if (!object(turn)) throw new Error("turn: expected { message, channel? }, { scheduled, message, procedure? } or { ended, result? }");
+	if (!object(turn)) throw new Error("turn: expected { message, channel? }, { scheduled, message, procedure? }, { arthur } or { ended, result? }");
 	if (turn.ended !== undefined) {
 		const job = turn.ended;
 		if (!object(job) || !words(job.id) || !words(job.kind) || (job.state !== "ended" && job.state !== "blocked")) throw new Error('turn.ended: expected { id, kind, state: "ended" | "blocked", reason?, project? }');
 		return host.call<Promise<string>>("coordinator.turn", "job-ended", job, turn.result);
+	}
+	if (turn.arthur !== undefined) {
+		if (!words(turn.arthur)) throw new Error("turn.arthur: expected a plugin's message, as text");
+		return host.call<Promise<string>>("coordinator.turn", "coordinator-message", { text: turn.arthur });
 	}
 	if (!words(turn.message)) throw new Error("turn.message: expected text");
 	if (turn.scheduled === undefined) {

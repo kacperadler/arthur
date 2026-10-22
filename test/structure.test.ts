@@ -398,6 +398,10 @@ import { checkStructure } from "./structure.ts";
 // 38) and the `evals` options (27 more); a new command, so nothing was cut elsewhere. Core 6 more (5748) for the refusal of
 // every command inside an eval session (cli.ts), which the core's CLI alone can make.
 // Merged main (AR0275) into AR0276: main's budgets plus AR0276's develop 584 and core 5748 (recounted with wc -l).
+// AR0280 (roadmap 68): develop 38 more (622) for what the scenarios of entry 68 are scored by and turned on: the reply and
+// the agent's tool calls read from its JSON stream and scored (eval-run.ts, 28), and a plugin's message as a turn, with the
+// checks of `expect.reply` and `expect.tools` (eval-scenario.ts, 10): a one-line night answer, the onboarding's questions,
+// an env refusal and no sleeping leave no other trace, and a failed CI run reaches the coordinator as github's message.
 // AR0281 (roadmap 96, the decision log; its Done means name the package): orchestration 462 more (1991) for each project's
 // `spec/decisions.jsonl`: its records read and checked, a hand edit refused naming the line, the append under the lock with the
 // whole file renamed, the ticket's Decisions line with its cut and the repair after a crash (decision-log.ts, 185); `arthur
@@ -410,6 +414,7 @@ import { checkStructure } from "./structure.ts";
 // `coordinator.turn` with its refusals and the wake's `final` (inbox.ts, 22), and the hand-over's wording moved out of the
 // extension so both use it (hand-over.ts, 12; inbox-extension.ts, 5 fewer); develop 7 fewer (577), its copy of the wake and
 // the marks gone from eval-scenario.ts.
+// Merged main (AR0281) into AR0280: main's budgets plus AR0280's develop 622.
 // AR0284 (roadmap 97, decision classes; its Done means name the package and this file): orchestration 203 more (2194) for a
 // class proposed from the owner's same answers with the agreement of the recommendations with his picks, and revoked on his
 // word (decision-class.ts, 67); the classes read from the log, a hand edit of their records refused, the one approved class
@@ -421,7 +426,10 @@ import { checkStructure } from "./structure.ts";
 // (decision-hooks.ts, 5 more). A new entry, so nothing was cut elsewhere.
 // Merged main (AR0281, AR0284) into AR0277: main's budgets plus AR0277's, orchestration 2194 + 29 = 2223, develop 577
 // (recounted with wc -l).
-const BUDGETS = { core: 5748, "core/testing": 349, projects: 486, orchestration: 2223, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 577, findings: 254 };
+// Merged main (AR0284) into AR0280: main's budgets plus AR0280's develop 622.
+// Merged main (AR0280) into AR0277: main's budgets plus AR0277's, orchestration 2223, develop 622 - 7 = 615 (recounted with
+// wc -l; AR0280's `{ arthur }` turn asks `coordinator.turn` too).
+const BUDGETS = { core: 5748, "core/testing": 349, projects: 486, orchestration: 2223, machines: 459, resources: 577, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 615, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

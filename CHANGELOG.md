@@ -10,6 +10,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0300 The wrapper's append to log can still recreate it while rm -r empties the record (e0a3aea)
 - AR0301 core job-control test can fail with ENOENT unlinking continuing under load (3691a8e)
 - AR0302 The inbox's backoff tests still measure 5 s and 10 s windows in real time (b0ff5ff)
+- AR0303 The test kit's exit removes the sockets of tmux servers a test left, so nothing can reach them (a8e6fe1)
 
 ## 2026-10-22
 

@@ -2129,9 +2129,9 @@
   {
     "id": "AR0277",
     "title": "The eval words a turn with a copy of orchestration's wake and inbox lines, which can drift",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0277-the-eval-words-a-turn-with-a-copy-of-orchestration-s-wake-and-inbox-lines-which-can-drift/ticket.md",
-    "updated": "2026-10-22T09:09:36.975Z"
+    "updated": "2026-10-22T09:25:42.957Z"
   },
   {
     "id": "AR0278",
@@ -2156,9 +2156,9 @@
   {
     "id": "AR0280",
     "title": "Roadmap 68: evals, the scenarios",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0280-roadmap-68-evals-the-scenarios/ticket.md",
-    "updated": "2026-10-22T09:12:06.158Z"
+    "updated": "2026-10-22T09:24:51.510Z"
   },
   {
     "id": "AR0281",

@@ -34,6 +34,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0281 Roadmap 96: the decision log (88ec6c6)
 - AR0284 Roadmap 97: decision classes (34bdce0)
 - AR0286 The coordinator's role has no rule for a night answer, which orchestration/night-one-line measures (8708aa9)
+- AR0287 A plugin's wake lines for a review or an onboarding cannot reach an eval's turn, even once AR0277 words it (fc89048)
 
 ## 2026-10-21
 

@@ -87,13 +87,15 @@ export async function readScenario(host: Host, name: string, folder: string): Pr
 // The turn as the inbox hands it over, asked of orchestration (`coordinator.turn`): `{ message, channel? }` the owner's, a
 // `message-received`; `{ scheduled, message, procedure? }` a schedule entry due, a `coordinator-message` as the schedule plugin
 // words it (`schedule.message`), `procedure` a file beside the scenario; `{ arthur }` a plugin's `coordinator-message`, as it
-// words it; `{ ended, result? }` a job's end, a `job-ended` with its final message.
+// words it; `{ ended, result? }` a job's end, a `job-ended` with its final message, of the main project unless it names one,
+// and with the `records` it names for the plugins, which have none of a job in no home.
 async function turnText(host: Host, folder: string, turn: unknown): Promise<string> {
 	if (!object(turn)) throw new Error("turn: expected { message, channel? }, { scheduled, message, procedure? }, { arthur } or { ended, result? }");
 	if (turn.ended !== undefined) {
 		const job = turn.ended;
-		if (!object(job) || !words(job.id) || !words(job.kind) || (job.state !== "ended" && job.state !== "blocked")) throw new Error('turn.ended: expected { id, kind, state: "ended" | "blocked", reason?, project? }');
-		return host.call<Promise<string>>("coordinator.turn", "job-ended", job, turn.result);
+		if (!object(job) || !words(job.id) || !words(job.kind) || (job.state !== "ended" && job.state !== "blocked") || (job.records !== undefined && !object(job.records)))
+			throw new Error('turn.ended: expected { id, kind, state: "ended" | "blocked", reason?, project?, records?: { <plugin>: <its record> } }');
+		return host.call<Promise<string>>("coordinator.turn", "job-ended", { project: host.board.projects()[0]?.name, ...job }, turn.result);
 	}
 	if (turn.arthur !== undefined) {
 		if (!words(turn.arthur)) throw new Error("turn.arthur: expected a plugin's message, as text");

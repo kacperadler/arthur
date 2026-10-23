@@ -55,3 +55,4 @@ Out:
 
 - 2026-10-23: Created by the coordinator when the human asked how much is left before moving from the harness to Arthur; waits for the human's approval.
 - 2026-10-23: The human: "AR0307 ok zaraz po tym jak wejdzie AR0273" — approved, starts right after AR0273 merges.
+- 2026-10-23: The human: focus on Arthur's development and on the switch as soon as possible; plan now, the switch right after the high-severity fixes, before the medium and low ones.

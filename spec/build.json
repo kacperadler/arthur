@@ -2393,22 +2393,25 @@
   {
     "id": "AR0312",
     "title": "The eval baseline of delivery/check-failed measures the old scenario",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0312-the-eval-baseline-of-delivery-check-failed-measures-the-old-scenario/ticket.md",
-    "updated": "2026-10-23T11:55:34.899Z"
+    "updated": "2026-10-23T11:55:41.798Z"
   },
   {
     "id": "AR0313",
     "title": "A scenario cannot say a call is made only once",
     "status": "planned",
     "path": "spec/features/AR0313-a-scenario-cannot-say-a-call-is-made-only-once/ticket.md",
-    "updated": "2026-10-23T11:55:35.222Z"
+    "updated": "2026-10-23T11:55:47.995Z",
+    "after": [
+      "AR0312"
+    ]
   },
   {
     "id": "AR0314",
     "title": "Delivery's wake after a failed CI run names only the rerun",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0314-delivery-s-wake-after-a-failed-ci-run-names-only-the-rerun/ticket.md",
-    "updated": "2026-10-23T11:55:35.577Z"
+    "updated": "2026-10-23T11:55:42.690Z"
   }
 ]

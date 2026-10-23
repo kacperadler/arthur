@@ -36,7 +36,7 @@ export function youtrack(options: YoutrackOptions): Plugin {
 				if (instance === undefined) throw new Error(`project ${name}: tracker.instance ${tracker.instance} is not an instance of youtrack; ${known}`);
 				return { name, tracker: { instance, project: tracker.project } };
 			});
-			host.commands.register({ name: "youtrack", doc: new URL("../docs/commands/youtrack.md", import.meta.url), run: ({ args, project }) => youtrackCommand(projects, args, project, host.folder) });
+			host.commands.register({ name: "youtrack", doc: new URL("../docs/commands/youtrack.md", import.meta.url), inJob: true, run: ({ args, project }) => youtrackCommand(projects, args, project, host.folder) });
 			// Any job of the project may be handed one of its issues, so each gets the rules, in every role.
 			host.provide("prompt", (_role: string, job: { readonly project: string }) => {
 				const short = projects.find((each) => each.name === job.project)?.tracker?.project;

@@ -38,7 +38,7 @@ export function jobCommands(home: () => string, jobs: () => JobRunner): Command[
 			console.error(`${id}: failed: ${failed}`);
 			return 1;
 		}),
-		command("jobs", 0, (_, { state }) => console.log(jobs().list(state)), { about: "every project's jobs by state, one line each, with the short id", reply: () => jobs().list() }),
+		{ ...command("jobs", 0, (_, { state }) => console.log(jobs().list(state)), { about: "every project's jobs by state, one line each, with the short id", reply: () => jobs().list() }), inJob: true },
 		command("prune", -1, (ids, { all }) => {
 			if (all === undefined && ids.length === 0) return usage("prune", "needs one or more ids, or --all for every finished job");
 			if (all !== undefined && ids.length > 0) return usage("prune", "--all takes no ids");

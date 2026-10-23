@@ -45,6 +45,7 @@ export function resources(options: ResourcesOptions): Plugin {
 			host.commands.register({
 				name: "resources",
 				doc: new URL("../docs/commands/resources.md", import.meta.url),
+				inJob: true,
 				phone: { about: "each machine's room for more jobs, from its free CPU and memory", reply: (text) => (text.trim() === "" ? room.lines() : "usage: /resources") },
 				run({ args }) {
 					const [id = ""] = args;

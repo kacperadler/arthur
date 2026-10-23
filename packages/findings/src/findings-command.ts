@@ -12,6 +12,7 @@ export function findingsCommand(host: Host): Command {
 	return {
 		name: "findings",
 		doc: new URL("../docs/commands/findings.md", import.meta.url),
+		inJob: true,
 		phone: { about: "a ticket's findings.md: /findings 14, /findings AR14", reply: (text) => reply(host, text.split(/\s+/).filter(Boolean), undefined) ?? `usage: /findings ${USAGE}` },
 		run({ args, project }) {
 			const answer = reply(host, args, project);

@@ -117,6 +117,19 @@ test("a phone command Telegram's menu cannot list is refused: a dash, over 32 ch
 	assert.deepEqual(commands.phone().map((entry) => entry.name), [long, "jobs"]);
 });
 
+test("a command whose inJob is anything but true or absent is refused at registration, by the core and at a plugin's load", async () => {
+	const commands = commandRegistry();
+	for (const [value, said] of [[false, "false"], ["true", '"true"'], [1, "1"], [null, "null"]] as const)
+		assert.throws(() => commands.register("core", { ...command("merge"), inJob: value as unknown as true }), { message: `command merge: inJob is true or absent; got ${said}` });
+	assert.equal(
+		await refusal([plugin("orchestration", (host) => host.commands.register({ ...command("review"), inJob: false as unknown as true }))]),
+		"plugin orchestration: setup failed: command review: inJob is true or absent; got false",
+	);
+	commands.register("core", { ...command("jobs"), inJob: true });
+	commands.register("core", command("merge"));
+	assert.deepEqual(commands.names(), ["jobs", "merge"]);
+});
+
 test("route gives a phone command the text after its name, trimmed, and empty when there is none", async () => {
 	const commands = commandRegistry();
 	const texts: string[] = [];

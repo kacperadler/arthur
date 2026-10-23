@@ -21,6 +21,10 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0306 The agent's extensions still append to `log` with a flag that creates it (7b2d80a)
 - AR0309 CI on GitHub fails since 2026-10-21: merge tests have no git identity on the runner (dc3a23c)
 
+### Changed
+
+- AR0312 The eval baseline of delivery/check-failed measures the old scenario (7ade4f3)
+
 ## 2026-10-22
 
 ### Added

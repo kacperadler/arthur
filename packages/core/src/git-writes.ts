@@ -14,7 +14,7 @@ const CONFIG_SUBCOMMANDS = ["set", "unset", "rename-section", "remove-section", 
 // `sub` and the words after it (`rest`); `chdirs`, the folders of its `-C` options in order; `trees`, the folders its
 // `--git-dir` and `--work-tree` name; whether it writes the checkout it runs in, and whether it changes its operands;
 // `config`, a `git config` that sets or unsets: its key, its `--global`, `--system` or `--worktree` (else ""), and the
-// `--file` it writes, if any.
+// `--file` it writes, if any; `points`, the ref it may point a checkout at though another worktree holds it ("" when any).
 export type GitCall = {
 	readonly sub: string;
 	readonly rest: readonly string[];
@@ -23,6 +23,7 @@ export type GitCall = {
 	readonly writesCheckout: boolean;
 	readonly writesOperands: boolean;
 	readonly config: { readonly key: string; readonly scope: "" | "--global" | "--system" | "--worktree"; readonly file: string | undefined } | undefined;
+	readonly points: string | undefined;
 };
 
 export function gitCall(args: readonly string[]): GitCall {
@@ -36,7 +37,24 @@ export function gitCall(args: readonly string[]): GitCall {
 	const chdirs = options.filter((_, at) => options[at - 1] === "-C");
 	const trees = options.flatMap((option, at) => (/^--(?:git-dir|work-tree)=/.test(option) ? [option.slice(option.indexOf("=") + 1)] : /^--(?:git-dir|work-tree)$/.test(options[at - 1] ?? "") ? [option] : []));
 	const worktree = sub === "worktree" && ["add", "remove", "move", "lock", "unlock", "repair"].includes(rest[0] ?? "");
-	return { sub, rest, chdirs, trees, writesCheckout: WRITES_CHECKOUT.includes(sub) || writesRef(sub, rest), writesOperands: WRITES_OPERANDS.includes(sub) || worktree, config: sub === "config" ? configWrite(rest) : undefined };
+	return { sub, rest, chdirs, trees, writesCheckout: WRITES_CHECKOUT.includes(sub) || writesRef(sub, rest), writesOperands: WRITES_OPERANDS.includes(sub) || worktree, config: sub === "config" ? configWrite(rest) : undefined, points: pointsAt(sub, rest) };
+}
+
+// The ref `git <sub> <rest>` may point a checkout at where Git does not refuse one another worktree has checked out, after
+// which a plain commit moves it: `switch` or `checkout` with `--ignore-other-worktrees` (Git takes any abbreviation of a long
+// option), `worktree add --force`, a branch forced by `checkout -B` or `switch -C` (Git before 2.44 allows those), and
+// `symbolic-ref <name> <ref>` (a branch made a link to another moves that one). "" when the words leave the ref open.
+function pointsAt(sub: string, rest: readonly string[]): string | undefined {
+	const options = rest.slice(0, rest.includes("--") ? rest.indexOf("--") : rest.length);
+	const long = (name: string) => options.some((word) => word.length > 1 && name.startsWith(word));
+	if (["switch", "checkout"].includes(sub) && long("--ignore-other-worktrees")) return "";
+	if (sub === "worktree" && rest[0] === "add" && (long("--force") || options.some((word) => /^-[a-zA-Z]*f/.test(word)))) return "";
+	const force = sub === "switch" ? /^-[a-zA-Z]*C|^--force-c/ : sub === "checkout" ? /^-[a-zA-Z]*B/ : undefined;
+	const at = force === undefined ? -1 : options.findIndex((word) => force.test(word));
+	if (at >= 0) return /^(?:-[BC]|--force-c[a-z]*)$/.test(options[at]!) ? `refs/heads/${rest[at + 1]}` : "";
+	if (sub !== "symbolic-ref") return undefined;
+	const operands = rest.filter((word, index) => !word.startsWith("-") && !/^-[a-zA-Z]*m$/.test(rest[index - 1] ?? ""));
+	return operands.length < 2 ? undefined : operands[0] === "HEAD" ? operands[1] : "";
 }
 
 // What `git config <rest>` writes, or undefined when it only reads: an action that reads (`--get*`, `--list`, `-l`, the `get`

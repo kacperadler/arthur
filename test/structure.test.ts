@@ -561,7 +561,12 @@ import { checkStructure } from "./structure.ts";
 // by the guard with its comment (worktree-guard.ts, +13 -9), and the flags with their comment (git.ts, +2); delivery 5 more
 // (1310) and github 2 more (635), a comment line beside each git helper given the flags, and github's flags kept once for
 // its helper and its push. Nothing read `git config` before, so nothing was cut.
-const BUDGETS = { core: 5845, "core/testing": 349, projects: 485, orchestration: 2309, machines: 487, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1310, github: 635, manage: 925, develop: 703, findings: 254 };
+// AR0331 (F3 of AR0320; its Done means: a job cannot point a checkout at main, by `--ignore-other-worktrees`, `symbolic-ref`
+// or a rewritten `.git` file): core 24 more (5869) for `pointsAt` in `gitCall`, with `checkout -B`, `switch -C` and `worktree
+// add --force` that also point a checkout at main, and its comment (git-writes.ts, git diff --numstat +20 -2), refused by the
+// guard, the worktree's `.git` guarded as the main checkout, and the limits named (worktree-guard.ts, +18 -12). Nothing read
+// these calls before, so nothing was cut.
+const BUDGETS = { core: 5869, "core/testing": 349, projects: 485, orchestration: 2309, machines: 487, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1310, github: 635, manage: 925, develop: 703, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

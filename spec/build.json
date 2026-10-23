@@ -2503,16 +2503,16 @@
   {
     "id": "AR0326",
     "title": "Security check: addresses Arthur fetches stay where the config says",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0326-security-check-addresses-arthur-fetches-stay-where-the-config-says/ticket.md",
-    "updated": "2026-10-23T14:35:06.618Z"
+    "updated": "2026-10-23T14:55:38.604Z"
   },
   {
     "id": "AR0327",
     "title": "Security check: file modes of Arthur's home, records, sockets and locks",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0327-security-check-file-modes-of-arthur-s-home-records-sockets-and-locks/ticket.md",
-    "updated": "2026-10-23T14:40:02.044Z"
+    "updated": "2026-10-23T14:53:34.258Z"
   },
   {
     "id": "AR0328",
@@ -2779,5 +2779,33 @@
     "status": "planned",
     "path": "spec/features/AR0365-a-message-the-owner-forwarded-runs-as-the-owner-s-own-words-a-phone-command-included/ticket.md",
     "updated": "2026-10-23T14:49:59.279Z"
+  },
+  {
+    "id": "AR0366",
+    "title": "The models plugin's private network holds two cloud metadata addresses (AR0311 F18, confirmed)",
+    "status": "planned",
+    "path": "spec/features/AR0366-the-models-plugin-s-private-network-holds-two-cloud-metadata-addresses-ar0311-f18-confirmed/ticket.md",
+    "updated": "2026-10-23T14:55:51.497Z"
+  },
+  {
+    "id": "AR0367",
+    "title": "A site check follows a redirect to any address, loopback and metadata included",
+    "status": "planned",
+    "path": "spec/features/AR0367-a-site-check-follows-a-redirect-to-any-address-loopback-and-metadata-included/ticket.md",
+    "updated": "2026-10-23T14:55:51.698Z"
+  },
+  {
+    "id": "AR0368",
+    "title": "The probe's curl reads the user's `.curlrc` and the proxy variables, so the request with the key goes where they say",
+    "status": "planned",
+    "path": "spec/features/AR0368-the-probe-s-curl-reads-the-user-s-curlrc-and-the-proxy-variables-so-the-request-with-the-key-goes-where-they-say/ticket.md",
+    "updated": "2026-10-23T14:55:51.898Z"
+  },
+  {
+    "id": "AR0369",
+    "title": "The agent's own request to a provider is never checked against the private network",
+    "status": "planned",
+    "path": "spec/features/AR0369-the-agent-s-own-request-to-a-provider-is-never-checked-against-the-private-network/ticket.md",
+    "updated": "2026-10-23T14:55:52.099Z"
   }
 ]

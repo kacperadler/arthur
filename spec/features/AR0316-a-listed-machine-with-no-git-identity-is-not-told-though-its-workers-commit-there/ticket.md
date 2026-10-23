@@ -36,3 +36,4 @@ In:
 
 - 2026-10-23: Source: F1 of AR0310
 - 2026-10-23: Coordinator (free hand, finding ticket) approved.
+- 2026-10-23: Coordinator accepted machines' line budget raise 479 -> 484 (+5: identity check in machine-check.ts and machines.ts doctor line).

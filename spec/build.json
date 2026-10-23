@@ -2489,9 +2489,9 @@
   {
     "id": "AR0324",
     "title": "Security check: only reviewed, green code reaches main",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0324-security-check-only-reviewed-green-code-reaches-main/ticket.md",
-    "updated": "2026-10-23T14:39:59.516Z"
+    "updated": "2026-10-23T14:45:42.572Z"
   },
   {
     "id": "AR0325",
@@ -2716,5 +2716,54 @@
     "status": "planned",
     "path": "spec/features/AR0356-the-job-s-path-under-the-service-has-no-arthur-so-the-line-the-develop-plugin-tells-a-worker-to-run-may-not-run-there/ticket.md",
     "updated": "2026-10-23T14:41:34.814Z"
+  },
+  {
+    "id": "AR0357",
+    "title": "The review kind takes any task with the three head lines, so a PASS can rest on a task nobody built from the branch (AR0311 F6, confirmed)",
+    "status": "planned",
+    "path": "spec/features/AR0357-the-review-kind-takes-any-task-with-the-three-head-lines-so-a-pass-can-rest-on-a-task-nobody-built-from-the-branch-ar0311-f6-confirmed/ticket.md",
+    "updated": "2026-10-23T14:45:57.880Z"
+  },
+  {
+    "id": "AR0358",
+    "title": "`review-needed` lets a small change to what the merge and each spawn run go in without a review (AR0311 F11, confirmed)",
+    "status": "planned",
+    "path": "spec/features/AR0358-review-needed-lets-a-small-change-to-what-the-merge-and-each-spawn-run-go-in-without-a-review-ar0311-f11-confirmed/ticket.md",
+    "updated": "2026-10-23T14:45:58.084Z"
+  },
+  {
+    "id": "AR0359",
+    "title": "`--auto` takes CI passed on an older commit of the branch (AR0311 F13, confirmed)",
+    "status": "planned",
+    "path": "spec/features/AR0359-auto-takes-ci-passed-on-an-older-commit-of-the-branch-ar0311-f13-confirmed/ticket.md",
+    "updated": "2026-10-23T14:45:58.284Z"
+  },
+  {
+    "id": "AR0360",
+    "title": "The job's record of its checks is its own word: written from inside the agent, not tied to the tip's tree, not stale after a change by bash",
+    "status": "planned",
+    "path": "spec/features/AR0360-the-job-s-record-of-its-checks-is-its-own-word-written-from-inside-the-agent-not-tied-to-the-tip-s-tree-not-stale-after-a-change-by-bash/ticket.md",
+    "updated": "2026-10-23T14:45:58.484Z"
+  },
+  {
+    "id": "AR0361",
+    "title": "A merge takes main as it is: a commit that reached main by another route is merged on and pushed with the next merge",
+    "status": "planned",
+    "path": "spec/features/AR0361-a-merge-takes-main-as-it-is-a-commit-that-reached-main-by-another-route-is-merged-on-and-pushed-with-the-next-merge/ticket.md",
+    "updated": "2026-10-23T14:45:58.690Z"
+  },
+  {
+    "id": "AR0362",
+    "title": "A plain `arthur merge` asks no CI, so a tip whose run ended `failure` goes in on the checks on main alone, unsaid",
+    "status": "planned",
+    "path": "spec/features/AR0362-a-plain-arthur-merge-asks-no-ci-so-a-tip-whose-run-ended-failure-goes-in-on-the-checks-on-main-alone-unsaid/ticket.md",
+    "updated": "2026-10-23T14:45:58.901Z"
+  },
+  {
+    "id": "AR0363",
+    "title": "A binary file counts no lines, so a branch of any binary content skips the review on its checks",
+    "status": "planned",
+    "path": "spec/features/AR0363-a-binary-file-counts-no-lines-so-a-branch-of-any-binary-content-skips-the-review-on-its-checks/ticket.md",
+    "updated": "2026-10-23T14:45:59.104Z"
   }
 ]

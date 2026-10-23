@@ -60,7 +60,7 @@ async function jobs(calls: readonly Call[] = []): Promise<{ readonly root: strin
 		writeFileSync(join(import.meta.dirname, basename(process.cwd()) + ".json"), JSON.stringify(refused));\n`,
 		{ mode: 0o755 },
 	);
-	const runner = jobRunner(home, root, { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), () => []);
+	const runner = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), () => []);
 	const own = await runner.spawn({ task: "own" });
 	const other = await runner.spawn({ task: "other" });
 	await until("both jobs ended", () => (readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2 ? true : undefined));
@@ -175,10 +175,9 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		if (user === undefined) delete process.env.HOME;
 		else process.env.HOME = user;
 	}
-	assert.equal(
-		worktreeRefusal(place, "bash", { command: `rm ${main}/README.md` }),
-		`arthur: refused: this call writes into the main checkout (${main}/README.md); a job writes only in its own worktree ${own.worktree} and outside Arthur's checkouts and home folder`,
-	);
+	// The refusal shows the path as the call gave it, and names the job's own worktree, where the write would go instead.
+	const reason = worktreeRefusal(place, "bash", { command: `rm ${main}/README.md` }) ?? "";
+	assert.ok(reason.includes(`(${main}/README.md)`) && reason.includes(` own worktree ${own.worktree}`), reason);
 });
 
 test("the wrapper loads the guard into the job's agent, which then refuses its writes outside its worktree and lets the rest through", async () => {
@@ -202,7 +201,7 @@ test("a job of one project refuses writes into another project's main checkout a
 	const agent = join(temporaryFolder(), "omp");
 	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
 	const collect = (name: string) => (name === "projects" ? [list] : []);
-	const runner = jobRunner(home, alpha, { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
+	const runner = jobRunner(home, alpha, join(alpha, "env"), { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
 	const own = await runner.spawn({ task: "own" });
 	const theirs = await runner.spawn({ task: "theirs", project: "beta" });
 	await until("both jobs ended", () => (readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2 ? true : undefined));
@@ -231,13 +230,92 @@ test("a job of one project refuses writes into another project's main checkout a
 	assert.equal(worktreeRefusal(jobPlace(record), "write", { path: join(beta, "README.md"), content: "x" }), undefined);
 });
 
+test("a job refuses writes into Arthur's install, config folder and env file, and the user's SSH folder, systemd units and Git config", async (t) => {
+	const alpha = repository("alpha");
+	// The config's folder apart from the project, and an env file outside it.
+	const [config, secrets, user, agent] = [temporaryFolder(), join(temporaryFolder(), "secrets"), temporaryFolder(), join(temporaryFolder(), "omp")];
+	// The user's home as the runner sees it is a link to the folder, as a home on another mount may be.
+	const linked = join(temporaryFolder(), "user");
+	symlinkSync(user, linked);
+	const saved = process.env.HOME;
+	t.after(() => (saved === undefined ? delete process.env.HOME : (process.env.HOME = saved)));
+	process.env.HOME = linked;
+	const home = join(config, ".arthur");
+	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
+	const collect = (name: string) => (name === "projects" ? [[{ name: "alpha", prefix: "AL", path: alpha }]] : []);
+	const runner = jobRunner(home, config, secrets, { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
+	const own = await runner.spawn({ task: "own" });
+	await until("the job ended", () => (readEvents(home, 1).some((event) => event.name === "job-ended") ? true : undefined));
+	const record = join(home, "jobs", own.id);
+	const place = jobPlace(record);
+	// The clone that holds the core under test, as `arthur` runs from it.
+	const install = join(import.meta.dirname, "..", "..", "..");
+	// A link in the worktree to the user's `~/.ssh`, which does not exist yet.
+	symlinkSync(join(user, ".ssh"), join(own.worktree, "keys"));
+	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
+		["write", { path: join(config, "arthur.config.ts"), content: "x" }, "Arthur's config folder"],
+		["bash", { command: `echo X=1 >> ${secrets}` }, "Arthur's env file"],
+		["bash", { command: `touch ${join(home, "x")}` }, "Arthur's home folder"],
+		["edit", { input: `[${join(install, "packages", "core", "src", "jobs.ts")}#1A2B]\nPUT 1.=1:\n+x` }, "Arthur's install"],
+		["bash", { command: `rm -rf ${join(install, "packages")}` }, "Arthur's install"],
+		["write", { path: join(install, "package.json"), content: "x" }, "Arthur's install"],
+		["bash", { command: "echo key >> ~/.ssh/authorized_keys" }, "the user's SSH folder"],
+		["bash", { command: "echo key > keys/authorized_keys" }, "the user's SSH folder"],
+		["write", { path: "~/.config/systemd/user/arthur.service", content: "x" }, "the user's systemd folder"],
+		["bash", { command: 'cp unit.service "$HOME/.config/systemd/user/"' }, "the user's systemd folder"],
+		["bash", { command: "echo '[user]' >> ~/.gitconfig" }, "the user's Git config"],
+		["bash", { command: "echo x > ~/notes.txt && touch ~/.config/other ~/.gitconfig.d" }, undefined],
+		["write", { path: join(dirname(secrets), "other"), content: "x" }, undefined],
+		["write", { path: "README.md", content: "x" }, undefined],
+	];
+	for (const [toolName, input, expected] of calls) {
+		const reason = worktreeRefusal(place, toolName, input);
+		assert.equal(/writes into (.+?) \(/.exec(reason ?? "")?.[1], expected, `${toolName} ${JSON.stringify(input)}: ${reason}`);
+	}
+	// A record written before `guarded` was, or a line a human broke (a relative path, taken from no folder; a key that is
+	// none, as an Object property is not), names no such place.
+	const ssh = { command: "echo key >> ~/.ssh/authorized_keys" };
+	writeFileSync(join(record, "guarded"), `ssh .ssh\nconstructor ${join(user, ".ssh")}\n`);
+	assert.equal(worktreeRefusal(jobPlace(record), "bash", ssh), undefined);
+	assert.equal(worktreeRefusal(jobPlace(record), "write", { path: join(process.cwd(), ".ssh", "x"), content: "x" }), undefined);
+	rmSync(join(record, "guarded"));
+	assert.equal(worktreeRefusal(jobPlace(record), "bash", ssh), undefined);
+});
+
+test("a job of Arthur's own repository still builds a plugin in its worktree, running arthur plugin new from the checkout", async () => {
+	// As in docs/setup.md: the clone is the project, Arthur's install and the config's folder, with the env file in it.
+	const arthur = repository("arthur");
+	const [home, secrets, agent] = [join(arthur, ".arthur"), join(arthur, "env"), join(temporaryFolder(), "omp")];
+	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
+	const runner = jobRunner(home, arthur, secrets, { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), () => []);
+	const own = await runner.spawn({ task: "own" });
+	await until("the job ended", () => (readEvents(home, 1).some((event) => event.name === "job-ended") ? true : undefined));
+	const record = join(home, "jobs", own.id);
+	writeFileSync(join(record, "guarded"), readFileSync(join(record, "guarded"), "utf8").replace(/^install .*$/m, `install ${arthur}`));
+	const place = jobPlace(record);
+	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
+		["bash", { command: `cd ${arthur} && arthur plugin new acme --budget 100 --root ${own.worktree}` }, undefined],
+		["write", { path: "packages/acme/src/acme.ts", content: "x" }, undefined],
+		["edit", { input: "[packages/acme/package.json#1A2B]\nPUT 1.=1:\n+x" }, undefined],
+		["bash", { command: "npm ci && npm test && git add -A && git commit -m 'feat(AR0001): the acme plugin'" }, undefined],
+		["write", { path: join(arthur, "arthur.config.ts"), content: "x" }, "the main checkout"],
+		["bash", { command: `rm -r ${join(arthur, "packages", "acme")}` }, "the main checkout"],
+		["bash", { command: `cd ${arthur} && git merge ${own.branch}` }, "the main checkout"],
+		["bash", { command: `echo X=1 >> ${secrets}` }, "Arthur's env file"],
+	];
+	for (const [toolName, input, expected] of calls) {
+		const reason = worktreeRefusal(place, toolName, input);
+		assert.equal(/writes into (.+?) \(/.exec(reason ?? "")?.[1], expected, `${toolName} ${JSON.stringify(input)}: ${reason}`);
+	}
+});
+
 test("a project declared while a job runs is refused to it at once; an unreadable list falls back to the record's, said once", async (t) => {
 	const [alpha, beta] = [repository("alpha"), repository("beta")];
 	const home = join(alpha, ".arthur");
 	const agent = join(temporaryFolder(), "omp");
 	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
 	const collect = (name: string) => (name === "projects" ? [[{ name: "alpha", prefix: "AL", path: alpha }]] : []);
-	const runner = jobRunner(home, alpha, { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
+	const runner = jobRunner(home, alpha, join(alpha, "env"), { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
 	const own = await runner.spawn({ task: "own" });
 	await until("the job ended", () => (readEvents(home, 1).some((event) => event.name === "job-ended") ? true : undefined));
 	const record = join(home, "jobs", own.id);

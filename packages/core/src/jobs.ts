@@ -110,9 +110,9 @@ export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run
 	roles(project?: string): Promise<RoleView[]>;
 };
 
-// `folder` is in the repository jobs start from while no plugin provides `projects` (job-checkout.ts); `limits` are the core's `jobs` options
-// and the jobs' slice, `agent` its `agent.command`; `collect` reads what the plugins provide, e.g. a prompt's sections and the project list.
-export function jobRunner(home: string, folder: string, limits: Limits & Slice & { readonly idleMinutes: number; readonly offlineGraceMinutes: number }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
+// `folder` is the config's, with its `envFile`, and in the repository jobs start from while no plugin provides `projects` (job-checkout.ts);
+// `limits` are the core's `jobs` options and the jobs' slice, `agent` its `agent.command`; `collect` reads what the plugins provide, e.g. a prompt's sections and the project list.
+export function jobRunner(home: string, folder: string, envFile: string, limits: Limits & Slice & { readonly idleMinutes: number; readonly offlineGraceMinutes: number }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
 	const [kinds, roles] = [kindRegistry(), roleRegistry()];
 	const where = (project: string | undefined) => checkout(folder, collect("projects", []), project);
 	const [checks, prepares, extensions] = [spawnChecks(home), [] as { readonly owner: string; readonly fn: Prepare }[], [] as string[]];
@@ -177,7 +177,7 @@ export function jobRunner(home: string, folder: string, limits: Limits & Slice &
 					const [own, since] = [{ resumeOnBudget: kind.resumeOnBudget === true, verdicts: kind.verdicts ?? [], extensions }, time.now()];
 					if (there !== undefined) addThere(machine, { job: { ...job, root: there }, prompt: built.prompt, kind: own, idleMinutes: limits.idleMinutes, since: since.toISOString() });
 					added = true;
-					writeRecord(home, job, built.prompt, own, limits.idleMinutes, since, checkouts(collect("projects", [])), there === undefined ? preset.mcp : undefined);
+					writeRecord(home, job, built.prompt, own, limits.idleMinutes, since, checkouts(collect("projects", [])), { folder, envFile }, there === undefined ? preset.mcp : undefined);
 					release();
 					env = await prepared(job, false);
 				} catch (error) {

@@ -42,7 +42,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const names = registry();
 	const time = clock(config.core.timeZone, config.core.quietHours);
 	const bus = eventBus(config.core.home);
-	const jobs = jobRunner(config.core.home, dirname(config.path), { ...config.core.jobs, slice: SLICE }, config.core.agent.command, time, bus, names.collect);
+	const jobs = jobRunner(config.core.home, dirname(config.path), config.core.envFile, { ...config.core.jobs, slice: SLICE }, config.core.agent.command, time, bus, names.collect);
 	let loading = true;
 	// `Host.package`: the nearest folder with a package.json above each plugin's own `module`; `Host.code`: the core's, then those, once each.
 	const packages = sorted.map((plugin) => (plugin.module === undefined ? undefined : packageOf(fileURLToPath(plugin.module))));

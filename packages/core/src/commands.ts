@@ -20,6 +20,8 @@ export type Command = {
 	// `about` is the line of a channel's menu, 1 to 256 characters, not only spaces; `reply` answers the text after `/name`, empty when there is none.
 	// Both limits are Telegram's for its command menu, so every phone command can be listed there.
 	readonly phone?: { readonly about: string; readonly reply: (text: string, from: PhoneFrom) => string | Promise<string> };
+	// `true`: it runs inside a job too (the wrapper sets `ARTHUR_JOB`); absent, the CLI refuses it there before it runs (`arthur help --help`).
+	readonly inJob?: true;
 };
 
 // Where `/name text` came from: the channel (its plugin's name), the place the message names (a topic, a channel id) and the named instance (a bot); the reply goes back there.
@@ -59,6 +61,7 @@ export function commandRegistry(): CommandRegistry {
 			if (first) throw new Error(`command ${name}: registered by ${first.owner} and by ${owner}; a command belongs to one plugin`);
 			if (!(doc instanceof URL) || doc.protocol !== "file:") throw new Error(`command ${name}: no doc file; register it with doc: new URL("../docs/commands/${name}.md", import.meta.url)`);
 			if (!existsSync(doc)) throw new Error(`command ${name}: its doc file ${fileURLToPath(doc)} does not exist`);
+			if (command.inJob !== undefined && command.inJob !== true) throw new Error(`command ${name}: inJob is true or absent; got ${JSON.stringify(command.inJob)}`);
 			if (command.phone) {
 				if (!PHONE_NAME.test(name)) throw new Error(`command ${name}: a phone command's name has no dash and at most 32 characters, as a channel's menu needs`);
 				const { about } = command.phone;

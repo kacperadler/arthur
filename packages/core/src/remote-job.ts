@@ -121,12 +121,19 @@ export function remoteJobCommand(): Command {
 	return {
 		name: "remote-job",
 		doc: new URL("../docs/commands/remote-job.md", import.meta.url),
+		// Inside a job only `records` runs (AR0353), which only reads the job records there.
+		inJob: true,
 		async run({ args }) {
 			const [step = "", home = "", ...rest] = args;
 			const run = Object.hasOwn(STEPS, step) ? STEPS[step] : undefined;
 			if (run === undefined || !isAbsolute(home)) {
 				console.error(`arthur remote-job: ${run === undefined ? `unknown step ${JSON.stringify(step)}` : "the home folder must be an absolute path"}\n${USAGE}`);
 				return 2;
+			}
+			const job = process.env.ARTHUR_JOB ?? "";
+			if (job !== "" && step !== "records") {
+				console.error(`arthur remote-job ${step}: refused inside a job ${basename(job)}: a job runs only the commands its role needs; put what the coordinator should do in your final message`);
+				return 1;
 			}
 			await run(home, rest);
 		},

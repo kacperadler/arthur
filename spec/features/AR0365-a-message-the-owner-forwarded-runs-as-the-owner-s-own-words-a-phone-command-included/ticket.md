@@ -10,7 +10,7 @@
 
 ## Description
 
-Two or three sentences: what changes, and for whom.
+A message the owner forwards from someone else runs as the owner's own words, a phone command such as `/stopall` included. After the fix a forwarded message is never a command and is marked as forwarded.
 
 ## Goal
 

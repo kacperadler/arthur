@@ -10,7 +10,7 @@
 
 ## Description
 
-Two or three sentences: what changes, and for whom.
+The Telegram plugin compares only the chat id, so with a group configured every member of it, or an anonymous admin, is taken as the owner. After the fix only the owner's own messages act, and a group id is refused at load.
 
 ## Goal
 

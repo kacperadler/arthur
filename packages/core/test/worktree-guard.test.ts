@@ -203,6 +203,9 @@ test("git config that changes the config every worktree shares, the user's or th
 		["git config --type bool core.bare false", MAIN, "git config core.bare"],
 		["git config --remove-section core", MAIN, "git config core"],
 		["git config unset core.hooksPath", MAIN, "git config core.hooksPath"],
+		["git config set core.fsmonitor /tmp/monitor", MAIN, "git config core.fsmonitor"],
+		["git config rename-section core old", MAIN, "git config core"],
+		["git config remove-section core", MAIN, "git config core"],
 		["git config -e", MAIN, "git config"],
 		["git config edit", MAIN, "git config"],
 		["git config --worktree --no-worktree core.hooksPath /tmp/hooks", MAIN, "git config core.hooksPath"],
@@ -217,7 +220,7 @@ test("git config that changes the config every worktree shares, the user's or th
 		assert.deepEqual([named, shown === undefined ? undefined : said], [name, shown], `${command}: ${reason}`);
 	}
 	// Each passing call; a read with each option that neither reads nor changes by itself, in the main checkout.
-	const plain = ["--global", "--system", "--local", "--worktree", `--file ${main}/.git/config`, `-f ${main}/.git/config`, "--blob HEAD:x", "--type bool", "--type=bool", "-t bool", "--bool", "--int"];
+	const plain = ["--global", "--system", "--local", "--worktree", "--file .git/config", "-f .git/config", "--blob HEAD:x", "--type bool", "--type=bool", "-t bool", "--bool", "--int"];
 	plain.push("--bool-or-int", "--bool-or-str", "--path", "--expiry-date", "--null", "-z", "--name-only", "--includes", "--show-origin", "--show-scope", "--default x", "--fixed-value", "--comment x", "--value x", "--all", "--regexp", "--url https://example.com");
 	const passing = [
 		"git config --get user.name",

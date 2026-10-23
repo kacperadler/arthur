@@ -46,7 +46,7 @@ function configWrite(rest: readonly string[]): GitCall["config"] {
 	const operands = rest.filter((word, at) => !word.startsWith("-") && !CONFIG_VALUES.includes(rest[at - 1] ?? ""));
 	const [negated, subcommand] = [rest.some((word) => word.startsWith("--no-")), CONFIG_SUBCOMMANDS.includes(operands[0] ?? "")];
 	if (!negated && (rest.some((word) => CONFIG_READS.test(word)) || ["get", "list"].includes(operands[0] ?? ""))) return undefined;
-	if (!negated && !subcommand && operands.length < 2 && rest.every((word) => !word.startsWith("-") || CONFIG_PLAIN.test(word))) return undefined;
+	if (!subcommand && operands.length < 2 && rest.every((word) => !word.startsWith("-") || CONFIG_PLAIN.test(word))) return undefined;
 	const files = rest.flatMap((word, at) => (word.startsWith("--file=") ? [word.slice(7)] : /^-f./.test(word) ? [word.slice(2)] : ["-f", "--file"].includes(rest[at - 1] ?? "") ? [word] : []));
 	const scope = negated ? "" : rest.includes("--global") ? "--global" : rest.includes("--system") ? "--system" : rest.includes("--worktree") ? "--worktree" : "";
 	return { key: operands[subcommand ? 1 : 0] ?? "", scope, file: negated ? undefined : files.at(-1) };

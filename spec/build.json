@@ -2866,9 +2866,9 @@
   },
   {
     "id": "AR0378",
-    "title": "A ticket names its area, and the board filters by it",
-    "status": "planning",
+    "title": "A ticket has a Conventional Commits kind, and the board filters by it",
+    "status": "planned",
     "path": "spec/features/AR0378-a-ticket-names-its-area-and-the-board-filters-by-it/ticket.md",
-    "updated": "2026-10-23T16:42:43.159Z"
+    "updated": "2026-10-23T16:48:26.340Z"
   }
 ]

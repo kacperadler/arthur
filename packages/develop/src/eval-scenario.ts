@@ -12,11 +12,13 @@ export type Expect = {
 	readonly files: Readonly<Record<string, readonly string[]>>;
 	readonly missing: readonly string[];
 	readonly refs: Readonly<Record<string, "kept" | "moved">>;
-	readonly calls: readonly string[];
+	readonly calls: readonly Call[];
 	readonly never: readonly string[];
 	readonly reply: { readonly lines?: number; readonly match: readonly string[]; readonly never: readonly string[] };
 	readonly tools: readonly string[];
 };
+// A call the stub's log must hold, after the one before it: `times`, when given, how many calls of the turn match it in all.
+export type Call = { readonly match: string; readonly times?: number };
 // `hour`: the hour of the owner's day the turn is played at, 0 to 23; noon when left out, so no scenario hangs on when it runs.
 // `context`: each plugin's lines of the coordinator's context by its name, none for a plugin left out.
 export type Scenario = { readonly name: string; readonly folder: string; readonly turn: string; readonly hour: number; readonly context: Readonly<Record<string, string>>; readonly timeoutSeconds: number; readonly stub: readonly StubAnswer[]; readonly expect: Expect };
@@ -44,6 +46,23 @@ function patterns(value: unknown, path: string): readonly string[] {
 	if (!Array.isArray(value) || !value.every((each) => typeof each === "string")) throw new Error(`${path}: expected a list of regexes`);
 	for (const each of value) new RegExp(each);
 	return value;
+}
+
+// Throws what is wrong with `expect.calls`: a list of regexes, each alone or `{ match, times }`.
+function callList(value: unknown): readonly Call[] {
+	if (value === undefined) return [];
+	const shape = "expect.calls: expected a list of regexes or { match, times }";
+	if (!Array.isArray(value)) throw new Error(shape);
+	return value.map((each: unknown, index) => {
+		if (typeof each === "string") {
+			new RegExp(each);
+			return { match: each };
+		}
+		if (!object(each) || typeof each.match !== "string") throw new Error(shape);
+		new RegExp(each.match);
+		if (!Number.isInteger(each.times) || (each.times as number) < 1) throw new Error(`expect.calls[${index}].times: expected a whole number, 1 or more`);
+		return { match: each.match, times: each.times as number };
+	});
 }
 
 // The scenario in `folder`, checked, its turn built; or why it cannot run, which fails it alone.
@@ -77,7 +96,7 @@ export async function readScenario(host: Host, name: string, folder: string): Pr
 			...{ name, folder, turn: await turnText(host, folder, turn), hour: hour as number, context: context as Record<string, string>, timeoutSeconds: timeoutSeconds as number, stub: stub as StubAnswer[] },
 			expect: {
 				...{ files: Object.fromEntries(Object.entries(files).map(([path, list]) => [path, patterns(list, `expect.files.${path}`)])), missing },
-				...{ refs: refs as Expect["refs"], calls: patterns(expect.calls, "expect.calls"), never: patterns(expect.never, "expect.never"), tools: patterns(expect.tools, "expect.tools") },
+				...{ refs: refs as Expect["refs"], calls: callList(expect.calls), never: patterns(expect.never, "expect.never"), tools: patterns(expect.tools, "expect.tools") },
 				reply: { ...(reply.lines === undefined ? {} : { lines: reply.lines as number }), match: patterns(reply.match, "expect.reply.match"), never: patterns(reply.never, "expect.reply.never") },
 			},
 		};

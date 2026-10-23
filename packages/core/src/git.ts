@@ -1,10 +1,12 @@
 import { spawnSync } from "node:child_process";
 
-// The Git a job runner needs (spec/roadmap.md, entries 9 and 11), each one `git` call on the repository at `root`.
+// The Git a job runner needs (spec/roadmap.md, entries 9 and 11), each one `git` call on the repository at `root`. `git` and
+// `yes` run no hook and no fsmonitor its config names: a program a job runs may have set them (AR0330).
+const GIT = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false"];
 
 // Runs `git -C <root> <args>`; its output with the last newline removed, or an error with what Git said.
 function git(root: string, args: readonly string[]): string {
-	const run = spawnSync("git", ["-C", root, ...args], { encoding: "utf8" });
+	const run = spawnSync("git", [...GIT, "-C", root, ...args], { encoding: "utf8" });
 	if (run.error) throw new Error(`git: ${run.error.message}`);
 	if (run.status !== 0) throw new Error(`git ${args[0]}: ${run.stderr.trim() || `exit code ${run.status}`}`);
 	return run.stdout.replace(/\n$/, "");
@@ -12,7 +14,7 @@ function git(root: string, args: readonly string[]): string {
 
 // True when the command exits 0; for questions Git answers by its exit code.
 function yes(root: string, args: readonly string[]): boolean {
-	return spawnSync("git", ["-C", root, ...args], { stdio: "ignore" }).status === 0;
+	return spawnSync("git", [...GIT, "-C", root, ...args], { stdio: "ignore" }).status === 0;
 }
 
 // The top folder of the repository `folder` is in; undefined outside Git.

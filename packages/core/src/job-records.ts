@@ -137,9 +137,9 @@ function prune(home: string, id: string, keep: (job: FinishedJob) => readonly un
 	if (now.state !== "ended") return `kept: it is ${told(now)}, not ended`;
 	if (read("offline") !== "") return `kept: it ended here while machine ${read("machine")} did not answer; the sweep follows its run there until its end arrives`;
 	if (root === "") return "kept: its record names no repository (root)";
-	// The first line of what Git said when it refused, else undefined.
+	// The first line of what Git said when it refused, else undefined; no hook or fsmonitor of the checkout's config runs.
 	const git = (...args: string[]) => {
-		const run = spawnSync("git", ["-C", root, ...args], { encoding: "utf8" });
+		const run = spawnSync("git", ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...args], { encoding: "utf8" });
 		return run.status === 0 ? undefined : `git ${args[0]}: ${(run.error?.message ?? run.stderr).trim().split("\n")[0]}`;
 	};
 	const tip = branch === "" ? "" : (spawnSync("git", ["-C", root, "rev-parse", "--verify", "--quiet", `refs/heads/${branch}`], { encoding: "utf8" }).stdout?.trim() ?? "");

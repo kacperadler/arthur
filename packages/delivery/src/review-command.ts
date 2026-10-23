@@ -93,7 +93,8 @@ export function branchOf(host: Host, job: JobRecord): { readonly folder: string;
 	if (folder === undefined || folders.length > 1) throw new Error(`${job.id}'s task names ${folders.length === 0 ? "no ticket" : `${folders.length} tickets (${folders.join(", ")})`}; a review is of one ticket's branch`);
 	const root = host.board.projects().find((project) => project.name === job.project)?.path;
 	if (root === undefined) throw new Error(`${job.id}'s project ${job.project} is not in the project list`);
-	const git = (...args: string[]) => spawnSync("git", ["-C", root, ...args], { encoding: "utf8" }).stdout.trim();
+	// No hook or fsmonitor the main checkout's config names runs: a program a job runs may have set them (AR0330).
+	const git = (...args: string[]) => spawnSync("git", ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...args], { encoding: "utf8" }).stdout.trim();
 	const commit = git("rev-parse", "--verify", "--quiet", `${job.branch}^{commit}`);
 	if (commit === "") throw new Error(`${job.branch} is not in ${root}: pruned, or not brought back from its machine`);
 	const [head, base] = [git("rev-parse", "HEAD"), git("merge-base", "HEAD", commit)];

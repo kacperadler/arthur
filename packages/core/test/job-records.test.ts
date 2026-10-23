@@ -168,6 +168,20 @@ test("arthur prune frees a merged worker's worktree, branch and record, and keep
 	assert.deepEqual(jobs.prune([unmerged.id.slice(-8)]), [`${unmerged.id}: branch arthur/${unmerged.id} deleted; record deleted`]);
 });
 
+test("a spawn and a prune run no hook and no fsmonitor that the repository's shared config names", async () => {
+	const { root, home, jobs } = setup();
+	// Each hook these steps could run, and an fsmonitor, noting its name in `ran`, as a job's program may have set them.
+	const [hooks, ran] = [temporaryFolder(), join(temporaryFolder(), "ran")];
+	for (const name of ["post-checkout", "reference-transaction", "fsmonitor"]) writeFileSync(join(hooks, name), `#!/bin/sh\necho ${name} >> '${ran}'\n`, { mode: 0o755 });
+	git(root, "config", "core.hooksPath", hooks);
+	git(root, "config", "core.fsmonitor", join(hooks, "fsmonitor"));
+	const job = await worker(jobs, home);
+	assert.deepEqual(jobs.prune([job.id]), [`${job.id}: worktree ${job.worktree} removed; branch arthur/${job.id} deleted; record deleted`]);
+	assert.equal(existsSync(ran) ? readFileSync(ran, "utf8") : "", "");
+	git(root, "worktree", "add", "--quiet", "-b", "control", join(temporaryFolder(), "control"));
+	assert.match(readFileSync(ran, "utf8"), /^reference-transaction$[^]*^post-checkout$/m, "a plain git call runs them");
+});
+
 test("arthur prune keeps a job that has not ended and a record a plugin's jobs.keep asks for; a read-only kind loses its checkout only", async () => {
 	const asked: unknown[] = [];
 	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }), (job) => {

@@ -2356,19 +2356,17 @@
     "title": "The switch: Arthur runs on the VPS and takes its own tickets",
     "status": "planning",
     "path": "spec/features/AR0307-the-switch-arthur-runs-on-the-vps-and-takes-its-own-tickets/ticket.md",
-    "updated": "2026-10-23T13:59:16.911Z",
+    "updated": "2026-10-23T20:36:14.637Z",
     "after": [
-      "AR0273",
-      "AR0319",
-      "AR0320",
-      "AR0321",
-      "AR0322",
-      "AR0323",
-      "AR0324",
-      "AR0325",
-      "AR0326",
-      "AR0327",
-      "AR0328"
+      "AR0329",
+      "AR0346",
+      "AR0330",
+      "AR0331",
+      "AR0347",
+      "AR0349",
+      "AR0353",
+      "AR0370",
+      "AR0378"
     ]
   },
   {

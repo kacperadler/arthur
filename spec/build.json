@@ -2531,9 +2531,9 @@
   {
     "id": "AR0330",
     "title": "`git config` from a job rewrites the shared repository's config and the user's (AR0311 F2, confirmed)",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0330-git-config-from-a-job-rewrites-the-shared-repository-s-config-and-the-user-s-ar0311-f2-confirmed/ticket.md",
-    "updated": "2026-10-23T14:19:05.664Z"
+    "updated": "2026-10-23T16:39:21.942Z"
   },
   {
     "id": "AR0331",
@@ -2863,5 +2863,12 @@
     "status": "planned",
     "path": "spec/features/AR0377-git-s-other-user-config-files-are-not-guarded-config-git-config-and-files-gitconfig-includes/ticket.md",
     "updated": "2026-10-23T15:55:09.484Z"
+  },
+  {
+    "id": "AR0378",
+    "title": "A ticket names its area, and the board filters by it",
+    "status": "planning",
+    "path": "spec/features/AR0378-a-ticket-names-its-area-and-the-board-filters-by-it/ticket.md",
+    "updated": "2026-10-23T16:42:43.159Z"
   }
 ]

@@ -50,3 +50,4 @@ Out:
 
 - 2026-10-23: The owner: a large security audit of Arthur before the switch, run on the Fable model.
 - 2026-10-23: The switch (AR0307) waits for this ticket.
+- 2026-10-23: The owner: "AR0311 ok bez limitu" — approved, no cost limit (--budget 0), model anthropic/claude-fable-5-1.

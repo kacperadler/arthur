@@ -30,6 +30,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0320 Security check: a job stays inside its worktree and its own record (c469aa5)
 - AR0321 Security check: jobs on another machine write only their own files back (4f4d878)
 - AR0322 Security check: text from outside is never taken as the owner's word (a847670)
+- AR0323 Security check: which Arthur commands a job itself may run (520ce25)
 
 ### Changed
 

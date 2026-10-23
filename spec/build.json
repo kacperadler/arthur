@@ -2482,16 +2482,16 @@
   {
     "id": "AR0323",
     "title": "Security check: which Arthur commands a job itself may run",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0323-security-check-which-arthur-commands-a-job-itself-may-run/ticket.md",
-    "updated": "2026-10-23T14:35:03.506Z"
+    "updated": "2026-10-23T14:41:19.724Z"
   },
   {
     "id": "AR0324",
     "title": "Security check: only reviewed, green code reaches main",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0324-security-check-only-reviewed-green-code-reaches-main/ticket.md",
-    "updated": "2026-10-23T14:21:17.607Z"
+    "updated": "2026-10-23T14:39:59.516Z"
   },
   {
     "id": "AR0325",
@@ -2510,9 +2510,9 @@
   {
     "id": "AR0327",
     "title": "Security check: file modes of Arthur's home, records, sockets and locks",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0327-security-check-file-modes-of-arthur-s-home-records-sockets-and-locks/ticket.md",
-    "updated": "2026-10-23T13:59:09.648Z"
+    "updated": "2026-10-23T14:40:02.044Z"
   },
   {
     "id": "AR0328",
@@ -2688,5 +2688,33 @@
     "status": "planned",
     "path": "spec/features/AR0352-the-always-review-list-never-matches-a-path-under-agents-does-not-enter-a-dot-folder/ticket.md",
     "updated": "2026-10-23T14:38:03.685Z"
+  },
+  {
+    "id": "AR0353",
+    "title": "No command but three asks whether it runs inside a job: a job merges, spawns, stops, sends and moves the board (AR0311 F5, confirmed)",
+    "status": "planned",
+    "path": "spec/features/AR0353-no-command-but-three-asks-whether-it-runs-inside-a-job-a-job-merges-spawns-stops-sends-and-moves-the-board-ar0311-f5-confirmed/ticket.md",
+    "updated": "2026-10-23T14:41:33.752Z"
+  },
+  {
+    "id": "AR0354",
+    "title": "The mark that tells a job from the coordinator is a variable the job's shell clears",
+    "status": "planned",
+    "path": "spec/features/AR0354-the-mark-that-tells-a-job-from-the-coordinator-is-a-variable-the-job-s-shell-clears/ticket.md",
+    "updated": "2026-10-23T14:41:34.062Z"
+  },
+  {
+    "id": "AR0355",
+    "title": "`--unreviewed` and `--budget 0` rest on a sentence in the coordinator's role, with no recorded decision behind them",
+    "status": "planned",
+    "path": "spec/features/AR0355-unreviewed-and-budget-0-rest-on-a-sentence-in-the-coordinator-s-role-with-no-recorded-decision-behind-them/ticket.md",
+    "updated": "2026-10-23T14:41:34.393Z"
+  },
+  {
+    "id": "AR0356",
+    "title": "The job's `PATH` under the service has no `arthur`, so the line the develop plugin tells a worker to run may not run there",
+    "status": "planned",
+    "path": "spec/features/AR0356-the-job-s-path-under-the-service-has-no-arthur-so-the-line-the-develop-plugin-tells-a-worker-to-run-may-not-run-there/ticket.md",
+    "updated": "2026-10-23T14:41:34.814Z"
   }
 ]

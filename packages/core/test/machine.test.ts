@@ -439,6 +439,29 @@ test("a copy brings only the log's new bytes, appended here; arthur remote-job r
 	writeFileSync(gate, "");
 });
 
+test("a copy refuses a record file whose name is not a plain record key, naming it, and writes nothing of that answer", async () => {
+	const gate = join(temporaryFolder(), "go");
+	const { home, machine, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
+	const [job, other] = [await jobs.spawn({ task: "Go.", machine: "gpu" }), await jobs.spawn({ task: "Go.", machine: "gpu" })];
+	jobs.sweep();
+	// From here `arthur remote-job records` there answers by hand what `answer` holds; every other step is this core's.
+	const answer = join(machine, "answer");
+	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\n[ "$2" = records ] && exec cat '${answer}'\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
+	const copy = (files: Record<string, string>) => writeFileSync(answer, JSON.stringify({ [job.id]: { state: "working", reason: "", since: "2026-10-16T12:00:00.000Z", at: 1, logFrom: 0, logSize: 0, files } }));
+	writeFileSync(join(home, "outside"), "mine\n");
+	const files = (folder: string) => readdirSync(folder, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile()).map((entry) => `${join(entry.parentPath, entry.name)}: ${readFileSync(join(entry.parentPath, entry.name), "utf8")}`).sort();
+	const before = files(home);
+	for (const key of [`sub/../../${other.id}/branch`, "../../outside", "state.lock"]) {
+		copy({ cost: "9.0000", [key]: "theirs\n" });
+		assert.throws(() => jobs.sweep(), { message: `machine gpu: job ${job.id} sent a record file ${JSON.stringify(key)}; expected a name of lowercase letters, digits and dashes` });
+		assert.deepEqual(files(home), before, `${key}: nothing of the answer is written, here or elsewhere`);
+	}
+	copy({ cost: "9.0000" });
+	jobs.sweep();
+	assert.equal(read(home, job.id, "cost"), "9.0000", "a plain key is still written");
+	writeFileSync(gate, "");
+});
+
 test("a wrapper that does not start there ends the job there, and here at once with job-ended", async () => {
 	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Done." }] }) });
 	// The record there loses a file between its add and the launch: the wrapper fails reading it, before its pid.

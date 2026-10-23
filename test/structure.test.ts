@@ -571,7 +571,16 @@ import { checkStructure } from "./structure.ts";
 // plugin's mark (hand-over.ts, git diff --numstat +10 -4) and the plugin carried and required (inbox.ts, +11 -9); session 2
 // more (880) for the handoff quoted the same way (handoff-extension.ts, +4 -2); develop 1 more (704) for a plugin's turn that
 // names its plugin (eval-scenario.ts, +7 -6). Nothing quoted a message's lines before, so nothing was cut.
-const BUDGETS = { core: 5869, "core/testing": 349, projects: 485, orchestration: 2317, machines: 487, resources: 616, session: 880, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1310, github: 635, manage: 925, develop: 704, findings: 254 };
+// AR0353 (F1 of AR0323; its Done means: one gate in cli.ts, `Command.inJob` declared by the commands a job may run): core 20
+// more (5889) for the gate, its comment and the basename import (cli.ts, 8), `inJob` on help and roles (2; version's and jobs'
+// went on their own lines), the field, its comment and its check at registration (commands.ts, 3), and remote-job's `inJob`
+// with its comment and its own refusal of every step but `records` (remote-job.ts, 7); schedule 9 more (594) for `add` and
+// `remove` refused inside a job, with the comment (schedule-command.ts, git diff --numstat +9 -2), and `inJob` with its comment
+// (schedule.ts, 2); one line each for `inJob` on develop's `plugin` (705), findings' `findings` (255), machines' `machines`
+// (488), projects' `projects` (486), resources' `resources` (617); manage 3 more (928, `health`, `stats`, `retro-due`);
+// orchestration 2 more (2319, `decisions` and the board's three). Only three commands' own checks refused a job before, so
+// nothing was cut.
+const BUDGETS = { core: 5889, "core/testing": 349, projects: 486, orchestration: 2319, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1310, github: 635, manage: 928, develop: 705, findings: 255 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

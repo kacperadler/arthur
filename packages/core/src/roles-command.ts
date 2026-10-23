@@ -9,6 +9,7 @@ export function rolesCommand(jobs: () => JobRunner): Command {
 	return {
 		name: "roles",
 		doc: new URL("../docs/commands/roles.md", import.meta.url),
+		inJob: true,
 		async run({ args, project }) {
 			if (args.length > 0) {
 				console.error("usage: arthur roles [--project <name>]");

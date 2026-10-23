@@ -14,7 +14,7 @@ for a branch with no delivery wait, github's wake ends `Why: arthur ci <branch> 
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+The github plugin's own wake after a failed CI run names both moves, as delivery's does since AR0314: `arthur continue` for a failure in the branch's own code, one rerun for a transient one.
 
 - Kind: improvement
 
@@ -35,3 +35,4 @@ In:
 ## Decisions
 
 - 2026-10-23: Source: F1 of AR0314
+- 2026-10-23: Coordinator (free hand, finding ticket) approved.

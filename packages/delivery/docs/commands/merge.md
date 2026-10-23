@@ -14,6 +14,7 @@ Exit 1, main unchanged, nothing written or moved:
 
 - No such job: `arthur merge: no job <name>; arthur jobs lists them`; a read-only one: `<id> is a <kind> job, read-only: it has no branch to merge`; one still in a run: `<id> is in a run (<state>); merge its branch once the run has ended`.
 - The job's project not in the list; its branch not in the project's checkout: `arthur/<id> is not in <folder>: pruned, or not brought back from its machine`; a checkout on a detached HEAD: `<folder> has no branch checked out (a detached HEAD); check out its main branch first`.
+- Git with no identity for the merge commit in the project's checkout, author or committer, as `git var GIT_AUTHOR_IDENT` and `git var GIT_COMMITTER_IDENT` there find it (`user.name`/`user.email` of the repository, the user or the system, or `GIT_AUTHOR_*`/`GIT_COMMITTER_*`): `git has no identity for the merge commit: git var <variable> in <folder>: <git's last line>; set one: git config --global user.name "<your name>" and git config --global user.email "<your email>", or both with git -C <folder> config for this project alone; main is unchanged`. Arthur never sets one of its own. `arthur doctor` and the start of `arthur run` tell it earlier, before a review is paid for (below).
 - A task naming several tickets: `<id>'s task names 2 tickets (…); a merge is of one ticket's branch`. Its one ticket not on the board; not `in-progress`, `review` or `done`: `AC0001 is merged; a merge is of a ticket in-progress, review or done`; or with an `outcome.md` already: `<folder>/outcome.md already exists: <id> was merged before`.
 - A dirty main: `main has uncommitted changes in <paths>; commit or stash them first; main is unchanged`. The board, `spec/build.json`, does not count: the moves since the last commit wait there for the commit after a merge. Nor does `CHANGELOG.md`, which every merge rebuilds whole (step 7). Untracked files do not count either, filed reviews among them; `git merge` refuses one it would overwrite (below).
 - A branch with nothing main lacks: `arthur/<id> at <commit> adds nothing to main (<commit>): nothing to merge`.
@@ -57,8 +58,12 @@ Main goes back to the commit before the merge with `git reset --keep`, which kee
 - A merge that went in ends with the procedure: follow it in the same turn.
 - `github: main not pushed to origin: …`: the merge is in; follow the procedure, whose push after the board's commit is the next try, and tell the owner the line if that push fails too.
 - `check failed on main (…)`: main is as it was. Tell the owner which check failed, its command written out as the brackets name it (`npm test`), with its last lines; run `arthur continue <job> '<what failed>'` without asking him, and start a new review once it ends.
-- A conflict, or `refused by merge.check: …`: main is unchanged; tell the owner, in plain words.
+- A conflict, `refused by merge.check: …` or `git has no identity …`: main is unchanged; tell the owner, in plain words, with the fix the line names.
 - `no PASS on …`: review the branch (`arthur review <job>`), or ask the owner for `--unreviewed`.
 - `--auto merges only with CI passed …; it waits`: nothing to do until the wake with CI's verdict; after `CI passed`, `arthur merge --auto <job>` again; after `CI ended <conclusion>`, as the next line.
 - `--auto merges only with CI passed on the branch: run …, ended <conclusion>`: run its `why:` command; a failure in the branch's own code is handled as a failed check above, `arthur continue` without asking included; one that looks transient is rerun once (`arthur ci --help`).
 - Any other `--auto` refusal: the merge waits for the owner; tell him the rule it named.
+
+## arthur doctor
+
+The plugin gives `arthur doctor` one requirement per project, never critical: `delivery <project> identity: ok`, or `delivery <project> identity: missing: git var <variable> in <folder>: <git's last line>; without it: arthur merge refuses every branch of <project>: git has no author for the merge commit; fix: <the fix above>`, the same check as the refusal above. So a machine with no identity hears it at `arthur doctor`, `arthur setup` and each start of `arthur run`, before the first merge.

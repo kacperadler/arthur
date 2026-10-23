@@ -1,7 +1,7 @@
-import { spawnSync } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import type { Command, Host, JobRecord } from "@arthur/core/plugin";
+import type { Command, Host, JobRecord, Requirement } from "@arthur/core/plugin";
 import { autoRefusal } from "./auto-merge.ts";
 import { writeChangelog } from "./changelog.ts";
 import { endWait } from "./ci-wait.ts";
@@ -60,6 +60,9 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 	if (tip === "") throw new Error(`${job.branch} is not in ${root}: pruned, or not brought back from its machine`);
 	const main = git("symbolic-ref", "--quiet", "--short", "HEAD").stdout.trim();
 	if (main === "") throw new Error(`${root} has no branch checked out (a detached HEAD); check out its main branch first`);
+	const identity = identityRequirement(job.project, root);
+	const said = await identity.check();
+	if (said !== "ok") throw new Error(`git has no identity for the merge commit: ${said.replace(/^missing: /, "")}; set one: ${identity.fix}; main is unchanged`);
 	const folders = [...new Set(job.tickets.flatMap((path) => FEATURE.exec(path)?.[1] ?? []))];
 	if (folders.length > 1) throw new Error(`${job.id}'s task names ${folders.length} tickets (${folders.join(", ")}); a merge is of one ticket's branch`);
 	const [folder] = folders;
@@ -106,6 +109,20 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 	else settleTicket(host, { job, ticket, folder, root, hash, subjects: subjects.split("\n"), steps, gap }, console.log);
 	console.log(writeChangelog(host, job.project));
 	return { project: job.project, branch: main };
+}
+
+// `arthur doctor`'s requirement, also asked before each merge: an author and a committer for the merge commit, as `git merge`
+// in `root` reads them (`user.name`/`user.email` of the repository, the user or the system, or `GIT_AUTHOR_*`/`GIT_COMMITTER_*`);
+// `git var` exits 128 on one it cannot find, as `git merge` does. Arthur never sets one: the owner's identity signs main.
+export function identityRequirement(project: string, root: string): Requirement {
+	const missing = (variable: string) =>
+		new Promise<string>((resolve) => execFile("git", ["-C", root, "var", variable], (error, _out, stderr) => resolve(error === null ? "" : `missing: git var ${variable} in ${root}: ${stderr.trim().split("\n").at(-1)}`)));
+	return {
+		name: `${project} identity`,
+		check: async () => (await missing("GIT_AUTHOR_IDENT")) || (await missing("GIT_COMMITTER_IDENT")) || "ok",
+		costs: `arthur merge refuses every branch of ${project}: git has no author for the merge commit`,
+		fix: `git config --global user.name "<your name>" and git config --global user.email "<your email>", or both with git -C ${root} config for this project alone`,
+	};
 }
 
 // Why the branch's tip has no PASS, or "" when it has one: the newest review of that commit with a verdict says PASS, or

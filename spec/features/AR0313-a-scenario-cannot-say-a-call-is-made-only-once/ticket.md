@@ -4,7 +4,10 @@
 {
   "id": "AR0313",
   "title": "A scenario cannot say a call is made only once",
-  "date": "2026-10-23"
+  "date": "2026-10-23",
+  "after": [
+    "AR0312"
+  ]
 }
 ```
 

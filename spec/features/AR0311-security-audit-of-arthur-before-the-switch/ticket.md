@@ -54,3 +54,4 @@ Out:
 - 2026-10-23: The first run on Fable ended with a model refusal (cyber) before writing anything; the ticket is reframed as a defensive review of our own code with no exploit code, same areas, and run once more on Fable.
 - 2026-10-23: Fable refused twice (cyber), ~$20, nothing written. The owner: run it on Opus ("Dobra to pusc na opus"), no cost limit.
 - 2026-10-23: The Opus run was refused (cyber) too, nothing written; no further run without the owner.
+- 2026-10-23: The owner: replaced by ten checklist checks AR0319 to AR0328, one per area, on Fable with no cost limit; this ticket is dropped, its notes F1-F18 (branch h/2026-10-23-ar0311-security-review-6b4a599c) are their input.

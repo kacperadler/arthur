@@ -2356,10 +2356,19 @@
     "title": "The switch: Arthur runs on the VPS and takes its own tickets",
     "status": "planning",
     "path": "spec/features/AR0307-the-switch-arthur-runs-on-the-vps-and-takes-its-own-tickets/ticket.md",
-    "updated": "2026-10-23T11:51:49.250Z",
+    "updated": "2026-10-23T13:59:16.911Z",
     "after": [
       "AR0273",
-      "AR0311"
+      "AR0319",
+      "AR0320",
+      "AR0321",
+      "AR0322",
+      "AR0323",
+      "AR0324",
+      "AR0325",
+      "AR0326",
+      "AR0327",
+      "AR0328"
     ]
   },
   {
@@ -2386,9 +2395,9 @@
   {
     "id": "AR0311",
     "title": "Security audit of Arthur before the switch",
-    "status": "in-progress",
+    "status": "dropped",
     "path": "spec/features/AR0311-security-audit-of-arthur-before-the-switch/ticket.md",
-    "updated": "2026-10-23T12:40:39.763Z"
+    "updated": "2026-10-23T13:59:16.701Z"
   },
   {
     "id": "AR0312",
@@ -2441,5 +2450,75 @@
     "status": "merged",
     "path": "spec/features/AR0318-a-listed-machine-without-git-is-told-to-set-a-git-identity-and-stays-online/ticket.md",
     "updated": "2026-10-23T13:57:22.354Z"
+  },
+  {
+    "id": "AR0319",
+    "title": "Security check: secrets stay out of jobs, records, logs and messages",
+    "status": "planned",
+    "path": "spec/features/AR0319-security-check-secrets-stay-out-of-jobs-records-logs-and-messages/ticket.md",
+    "updated": "2026-10-23T13:59:06.870Z"
+  },
+  {
+    "id": "AR0320",
+    "title": "Security check: a job stays inside its worktree and its own record",
+    "status": "planned",
+    "path": "spec/features/AR0320-security-check-a-job-stays-inside-its-worktree-and-its-own-record/ticket.md",
+    "updated": "2026-10-23T13:59:07.212Z"
+  },
+  {
+    "id": "AR0321",
+    "title": "Security check: jobs on another machine write only their own files back",
+    "status": "planned",
+    "path": "spec/features/AR0321-security-check-jobs-on-another-machine-write-only-their-own-files-back/ticket.md",
+    "updated": "2026-10-23T13:59:07.557Z"
+  },
+  {
+    "id": "AR0322",
+    "title": "Security check: text from outside is never taken as the owner's word",
+    "status": "planned",
+    "path": "spec/features/AR0322-security-check-text-from-outside-is-never-taken-as-the-owner-s-word/ticket.md",
+    "updated": "2026-10-23T13:59:07.905Z"
+  },
+  {
+    "id": "AR0323",
+    "title": "Security check: which Arthur commands a job itself may run",
+    "status": "planned",
+    "path": "spec/features/AR0323-security-check-which-arthur-commands-a-job-itself-may-run/ticket.md",
+    "updated": "2026-10-23T13:59:08.255Z"
+  },
+  {
+    "id": "AR0324",
+    "title": "Security check: only reviewed, green code reaches main",
+    "status": "planned",
+    "path": "spec/features/AR0324-security-check-only-reviewed-green-code-reaches-main/ticket.md",
+    "updated": "2026-10-23T13:59:08.602Z"
+  },
+  {
+    "id": "AR0325",
+    "title": "Security check: the Telegram channel answers the owner alone",
+    "status": "planned",
+    "path": "spec/features/AR0325-security-check-the-telegram-channel-answers-the-owner-alone/ticket.md",
+    "updated": "2026-10-23T13:59:08.952Z"
+  },
+  {
+    "id": "AR0326",
+    "title": "Security check: addresses Arthur fetches stay where the config says",
+    "status": "planned",
+    "path": "spec/features/AR0326-security-check-addresses-arthur-fetches-stay-where-the-config-says/ticket.md",
+    "updated": "2026-10-23T13:59:09.304Z"
+  },
+  {
+    "id": "AR0327",
+    "title": "Security check: file modes of Arthur's home, records, sockets and locks",
+    "status": "planned",
+    "path": "spec/features/AR0327-security-check-file-modes-of-arthur-s-home-records-sockets-and-locks/ticket.md",
+    "updated": "2026-10-23T13:59:09.648Z"
+  },
+  {
+    "id": "AR0328",
+    "title": "Security check: dependencies, installs and the CI workflows",
+    "status": "planned",
+    "path": "spec/features/AR0328-security-check-dependencies-installs-and-the-ci-workflows/ticket.md",
+    "updated": "2026-10-23T13:59:10.000Z"
   }
 ]

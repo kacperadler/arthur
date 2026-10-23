@@ -11,6 +11,10 @@
 			"match": "^arthur merge ",
 			"exit": 1,
 			"output": "merged arthur/2026-10-22-worker-6a7b8c9d into main: 9b8a7c6\nnpm ci: passed.\nnpm run check: passed.\nnpm test: failed.\nnot ok 31 - a product named with spaces around it is listed trimmed\n  expected: 'Blue mug'\n  actual: ' Blue mug'\n  at test/catalog.test.ts:77\n# tests 52\n# pass 51\n# fail 1\narthur merge: check failed on main (npm test); main reset to 1a2b3c4, branch kept"
+		},
+		{
+			"match": "^arthur continue ",
+			"output": "2026-10-22-worker-6a7b8c9d: continued"
 		}
 	],
 	"expect": {
@@ -19,10 +23,10 @@
 			"origin:refs/heads/main": "kept"
 		},
 		"calls": [
-			"^arthur merge (\\S+-)?6a7b8c9d$"
+			"^arthur merge (\\S+-)?6a7b8c9d$",
+			"^arthur continue (\\S+-)?6a7b8c9d .*(?:catalog\\.test\\.ts|listed trimmed)"
 		],
 		"never": [
-			"^arthur continue ",
 			"^arthur prune ",
 			"--unreviewed",
 			"^arthur spawn ",
@@ -30,8 +34,7 @@
 		],
 		"reply": {
 			"match": [
-				"npm test",
-				"[Cc]ontinu"
+				"npm test"
 			]
 		}
 	}

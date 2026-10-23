@@ -19,7 +19,7 @@ the core moves a worker's tickets to in-progress on `job-started`, which only a 
 
 The board says what is happening: a worker continued on a ticket in review or done moves it back to in-progress, as the harness does.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/core/src/job-control.ts` (`continueJob`), `packages/core/src/board-jobs.ts` (`moveStartedTickets`)

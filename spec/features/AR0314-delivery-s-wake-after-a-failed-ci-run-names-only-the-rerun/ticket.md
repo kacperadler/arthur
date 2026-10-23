@@ -16,7 +16,7 @@
 
 Delivery's wake after a failed CI run names both outcomes merge.md now asks for: continue the worker when the branch's own code fails, rerun once when it looks transient.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/delivery/src/ci-wait.ts:67`

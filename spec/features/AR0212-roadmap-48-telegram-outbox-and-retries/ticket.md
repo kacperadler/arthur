@@ -16,7 +16,7 @@ This ticket builds roadmap entry 48 in `spec/roadmap.md`, the telegram outbox an
 
 The specification is roadmap entry 48: its Delivers and Done means with every edge case, plus AR0211's Goal. No reply or notice to the owner is lost when Telegram is briefly unreachable.
 
-- Kind: improvement
+- Kind: feat
 - Budget: 10
 
 ## Done means

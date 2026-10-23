@@ -16,7 +16,7 @@ Removing an item from the cart shows a notice with Undo; it names the item, so a
 
 Fewer support mails about items that vanished from a cart (3 last week).
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

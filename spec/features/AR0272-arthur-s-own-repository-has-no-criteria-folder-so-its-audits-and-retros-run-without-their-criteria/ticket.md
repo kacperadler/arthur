@@ -16,7 +16,7 @@ with a config whose project is this repository (`projects({ list: [{ name: "arth
 
 Arthur's own repository has its criteria folder, so its audits and retros run with the criteria that say what is worth a proposal.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `.agents/arthur/criteria/` (missing); `packages/manage/criteria/retro.md`, `packages/manage/criteria/audit.md`

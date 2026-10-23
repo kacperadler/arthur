@@ -19,7 +19,7 @@ every `beforeSpawn` refusal keeps the hand-back's step and tries it again at the
 
 A hand-back refused by a rule no freed slot lifts (core's or delivery's own refusal) is not retried silently for ever: it ends and tells the coordinator once, with the reason; other plugins' refusals are still retried.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/delivery/src/hand-back.ts` (`step`, the `refused by ` test)

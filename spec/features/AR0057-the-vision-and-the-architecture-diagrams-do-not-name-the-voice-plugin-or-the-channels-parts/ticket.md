@@ -17,7 +17,7 @@ roadmap entry 81 adds a first-version plugin `voice`, and entry 49 makes every c
 The vision and the diagrams describe the plugins the roadmap plans: the `voice` plugin and the channels' typed parts.
 
 - Model: haiku
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `spec/vision.md:73` (plugin table), `spec/vision.md:163` (channels share one interface: receive text, send text, send media), `docs/architecture/versions.mmd:8`, `docs/architecture/core-and-plugins.mmd:81`

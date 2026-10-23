@@ -19,7 +19,7 @@
 
 Recording a job's question and closing questions no longer block `arthur run` on the log's lock, so a held lock cannot stall the running daemon.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/orchestration/src/decision-log.ts` (`change`, `withLock`), called from the `job-state` and `ticket-moved` handlers in `decision-hooks.ts` and `blocked-notice.ts`

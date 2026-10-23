@@ -16,7 +16,7 @@ the one lock outside the home lies in the project's checkout, so F1's fix, the h
 
 The board's lock and temporary files in each project's checkout are created for Arthur's user alone; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/board.ts:43-45`, `:62`, `:167-172` (`spec/.board/` made with `mkdirSync(folder, { recursive: true })`, its `.gitignore` of `*`, `build.json.lock`, `build.json.tmp` and `ticket.md.tmp` written with default modes)

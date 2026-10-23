@@ -19,7 +19,7 @@
 
 A pruned job never looks continuable: `arthur continue` on a job whose worktree prune removed says so in one line instead of failing to start.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/job-records.ts` (`prune`), `packages/core/src/job-control.ts` (`continueJob`)

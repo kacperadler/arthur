@@ -16,7 +16,7 @@ the status line and the feature table's intro still date the state "main on 2026
 
 What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `README.md:29`, `README.md:44` (and the `arthur.mmd` copy in the README block, its legend and its comment)

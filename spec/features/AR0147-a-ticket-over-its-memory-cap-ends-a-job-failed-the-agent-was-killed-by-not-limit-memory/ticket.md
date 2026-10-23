@@ -16,7 +16,7 @@ the wrapper watches only its own scope's `memory.events`; an OOM kill from the t
 
 A ticket that goes over its memory cap ends its job with `limit: memory`, so the owner sees why it stopped.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/core/src/job-memory.ts:15-40`

@@ -16,7 +16,7 @@ the planner's and the worker's section, as `plugin.md` before it, says to run `c
 
 A job on another machine that makes a new plugin gets a line it can run there, or is told plainly that the plugin must be made on the main machine, instead of `unknown command plugin`. First check on a real second machine whether `arthur.config.ts` is missing there.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/develop/src/plugin-new.ts` (`pluginNewSection`), `packages/core/src/job-machine.ts:147` (`reach`), `packages/develop/docs/commands/plugin.md`

@@ -16,7 +16,7 @@
 
 The dead lookup and throw are gone; an unknown project still gets the board's refusal.
 
-- Kind: cleanup
+- Kind: refactor
 
 ## Done means
 

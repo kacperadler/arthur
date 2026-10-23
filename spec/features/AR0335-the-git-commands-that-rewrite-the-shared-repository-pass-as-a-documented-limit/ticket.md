@@ -16,7 +16,7 @@
 
 The git commands that rewrite the shared repository (`gc`, `reflog expire`, `worktree prune`, `worktree add` outside the worktrees) are refused for a job, not left as a documented limit; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/git-writes.ts:4` (none of `gc`, `prune`, `repack`, `reflog`, `maintenance`, `worktree prune`, `worktree add` outside the worktrees folder), `packages/core/src/worktree-guard.ts:59`, `docs/deploy.md:34`

@@ -20,7 +20,7 @@ Roadmap entry 16 of `spec/roadmap.md`: Job state: working, idle, blocked, ended.
 
 Build entry 16 as `spec/roadmap.md` describes it, behind the interface it names, following `spec/vision.md` and `.agents/harness/criteria/styleguide.md`.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

@@ -16,7 +16,7 @@ This ticket builds roadmap entry 52 in `spec/roadmap.md`: the first piece of the
 
 The specification is roadmap entry 52: its Delivers and Done means, F1 of AR0125 (a review of a ticket with `os=macos` lands on that machine) included.
 
-- Kind: feature
+- Kind: feat
 - Budget: 8
 
 ## Done means

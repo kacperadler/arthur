@@ -16,7 +16,7 @@ the host takes a plugin's package folder as the folder beside the core's named a
 
 The restart guard watches the code the config actually loaded, even when a plugin comes from a module whose name differs from its package.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/host.ts` (`loadPlugins`, the `code` list)

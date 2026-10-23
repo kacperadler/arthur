@@ -16,7 +16,7 @@ On 2026-10-16 the harness coordinator ran `h prune` with ids held in shell varia
 
 The coordinator role runs prune often; a lost id must fail loudly, not free every finished job (vision: plain files are the truth, nothing lost).
 
-- Kind: bug
+- Kind: fix
 - Model: haiku
 
 ## Done means

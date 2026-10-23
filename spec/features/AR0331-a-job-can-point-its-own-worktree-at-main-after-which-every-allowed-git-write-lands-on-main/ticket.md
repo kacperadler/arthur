@@ -16,7 +16,7 @@ three calls pass the guard from the job's worktree: `git switch --ignore-other-w
 
 A job cannot point its worktree at `main` (`switch --ignore-other-worktrees`, `symbolic-ref HEAD`, a rewritten `.git` file); main moves only through `arthur merge`; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/git-writes.ts:4` (`switch`, `checkout`, `symbolic-ref` write "the checkout they run in"), `packages/core/src/worktree-guard.ts:135` (that checkout is the worktree, so it passes), `:134` (only `update-ref` looks at the ref), `:156` (the worktree's own `.git` file is inside the worktree)

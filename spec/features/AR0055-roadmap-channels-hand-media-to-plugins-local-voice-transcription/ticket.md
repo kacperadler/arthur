@@ -16,7 +16,7 @@ A channel (Telegram 47-49, Signal 73, WhatsApp 74) only receives: it saves what 
 
 The owner can talk to Arthur by voice from any channel, nothing leaves the server, and a new channel gets every media feature for free.
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

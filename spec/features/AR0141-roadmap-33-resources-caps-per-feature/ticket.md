@@ -16,7 +16,7 @@ Roadmap entry 33 (`spec/roadmap.md`), built as the entry says.
 
 All jobs of one ticket together never exceed the ticket's cost, time, CPU and memory caps.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

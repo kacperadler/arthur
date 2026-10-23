@@ -11,7 +11,7 @@ import { section } from "./plans.ts";
 export const AUTOPILOT_BUDGET = 1;
 export const AUTOPILOT_CAP = 3;
 const SCOPE_FILES = 3;
-const KINDS = ["bug", "cleanup"];
+const KINDS = ["fix", "refactor", "chore", "docs", "test"];
 // Under its Decisions, where the ticket came from: a finding of another ticket, or an audit's file.
 const FINDING = /^- \d{4}-\d\d-\d\d: Source: (F(\d+) of ([A-Z]+\d{4,}))\s*$/;
 const AUDIT = /^- \d{4}-\d\d-\d\d: Source: (audit (spec\/quality\/[\w.-]+\.md))\s*$/;

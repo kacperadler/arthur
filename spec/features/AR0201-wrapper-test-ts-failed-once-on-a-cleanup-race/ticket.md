@@ -16,7 +16,7 @@ one full `npm test` run of the review failed there with `ENOTEMPTY` from `rmSync
 
 `wrapper.test.ts` never fails on its cleanup: the folder is removed only after every process writing into it has ended, so CI stays green.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/core/test/wrapper.test.ts:206`

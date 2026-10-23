@@ -16,7 +16,7 @@ read from the docs, not run here (no VPS): under the unit of `docs/setup.md`, a 
 
 Under the systemd service a job's `PATH` has `arthur`, so the line the develop plugin gives a worker runs; tested or documented in setup.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `docs/setup.md:112` (the service's `PATH`: Node's bin, `~/.local/bin`, the system folders; `~/arthur/node_modules/.bin` goes into `~/.bashrc` only, `:53-54`), `packages/core/src/job-scope.ts:68` and `packages/core/src/wrapper.ts:129` (the job gets `arthur run`'s environment), `packages/develop/src/plugin-new.ts:130` (`cd <checkout> && arthur plugin new …` in the worker's prompt), `packages/develop/test/plugin-new.test.ts:231` (the test puts `<checkout>/node_modules/.bin` on `PATH` itself)

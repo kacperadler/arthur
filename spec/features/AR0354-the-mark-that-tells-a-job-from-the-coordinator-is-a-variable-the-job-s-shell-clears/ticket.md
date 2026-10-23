@@ -16,7 +16,7 @@ each refusal reads `process.env.ARTHUR_JOB`, and the job's `bash` sets the envir
 
 A job is told from the coordinator by something its shell cannot clear (not only `ARTHUR_JOB`), so the refusals of AR0353 hold; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/wrapper.ts:129` (`ARTHUR_JOB` set for the agent); read at `packages/orchestration/src/decision-commands.ts:62`, `packages/youtrack/src/youtrack-command.ts:63`, `packages/develop/src/plugin-new.ts:50`; the scope `packages/core/src/job-scope.ts:27`, `:63` and the bare run `:56-60`

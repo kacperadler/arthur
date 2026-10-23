@@ -16,7 +16,7 @@ Roadmap entry 37 (`spec/roadmap.md`), built as the entry says.
 
 After a merge that changed code the running session loaded, Arthur says a restart is due and holds new jobs until it happens, so nobody runs on stale code unknowingly.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

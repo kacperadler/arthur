@@ -16,7 +16,7 @@ both count an entry as built once its ticket is merged, so they were left as the
 
 What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `README.md` (Status, What is next, the orchestration row), `arthur.mmd` (orchestration "3 of 8 entries")

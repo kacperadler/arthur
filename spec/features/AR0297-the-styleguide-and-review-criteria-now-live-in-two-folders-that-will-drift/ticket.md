@@ -16,7 +16,7 @@ AR0272 copied the harness's styleguide and review criteria into `.agents/arthur/
 
 The styleguide and review criteria have one source, or a test fails when the two copies (`.agents/harness/criteria/` and `.agents/arthur/criteria/`) differ, so a rule changed in one place reaches every role.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `.agents/arthur/criteria/styleguide.md`, `.agents/arthur/criteria/review.md`; `.agents/harness/criteria/styleguide.md`, `.agents/harness/criteria/review.md`

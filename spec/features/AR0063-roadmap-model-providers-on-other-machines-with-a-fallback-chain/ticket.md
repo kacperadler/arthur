@@ -16,7 +16,7 @@ A new roadmap entry: Arthur uses models served elsewhere (Ollama or any OpenAI-c
 
 Cheap or private work runs on the owner's own hardware when it is on, and never stalls when it is off.
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

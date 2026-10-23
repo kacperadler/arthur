@@ -16,7 +16,7 @@ roadmap entry 94's example run shows `telegram ffmpeg: missing: ...` under Requi
 
 `arthur doctor` and `arthur setup` check the plugins' requirements even while an env variable is missing, so a first setup shows everything that is missing at once instead of one round per fix.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/core/src/host.ts:37` (`resolveEnv` throws before any plugin's `setup`, so no plugin provides `doctor`)

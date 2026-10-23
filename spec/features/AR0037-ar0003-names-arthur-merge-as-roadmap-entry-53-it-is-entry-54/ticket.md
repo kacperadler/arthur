@@ -16,7 +16,7 @@ AR0003's Evidence, Done means and Scope say "entry 53 (`arthur merge`)" and "Add
 
 What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `spec/features/AR0003-merge-checks-of-a-project-that-requires-another-os-run-on-local/ticket.md:22`, `:27`, `:33`

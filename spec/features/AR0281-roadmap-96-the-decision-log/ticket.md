@@ -16,7 +16,7 @@ This ticket builds roadmap entry 96 in `spec/roadmap.md` in the `orchestration` 
 
 The specification is roadmap entry 96: its Delivers and Done means.
 
-- Kind: feature
+- Kind: feat
 - Budget: 15
 
 ## Done means

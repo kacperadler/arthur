@@ -19,7 +19,7 @@ the structure test fails a package that has no entry in `BUDGETS` (`packages/<na
 
 A plugin made by `arthur plugin new` (roadmap entry 66) passes the structure test at once, getting its own line budget, so a new plugin never starts red.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `test/structure.test.ts` (`BUDGETS`), `spec/roadmap.md` entry 66

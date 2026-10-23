@@ -15,7 +15,7 @@ the role says `When the owner asks for a merge: arthur merge <job>`; `arthur mer
 ## Goal
 
 The coordinator's role names `arthur merge --auto` next to the owner's merge, so the coordinator acts on delivery's wakes instead of waiting for the owner.
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/orchestration/roles/coordinator.md:25`

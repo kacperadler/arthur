@@ -16,7 +16,7 @@ the nvm plugin's options file (`packages/nvm/src/nvm-options.ts`) has an empty `
 
 The option-tables test covers plugins without options (nvm, commit-rules), so their options files are checked like every other.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `test/option-tables.test.ts` (`PLUGINS` and the assertion `${name} has options`)

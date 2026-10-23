@@ -19,7 +19,7 @@ whether a failure `notice` or a `disk-low` is new is read from the check kept in
 
 Two processes checking one machine at once say a disk-low or failure news once, not twice.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/resources/src/machine-free.ts` (`checkSample`)

@@ -16,7 +16,7 @@ entry 38 sends one `turn failed on <host>: <reason>` per coordinator turn that f
 
 A provider outage sends one turn-failed notice, not one at every retry of the inbox.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/session/src/turn-extension.ts`, `packages/orchestration/src/inbox-extension.ts:117`

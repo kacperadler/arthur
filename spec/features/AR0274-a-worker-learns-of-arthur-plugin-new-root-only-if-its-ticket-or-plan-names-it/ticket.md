@@ -16,7 +16,7 @@ in its worktree a job's `arthur plugin --help` cannot answer, since the CLI load
 
 A worker on a new plugin's ticket learns from its role how to run `arthur plugin new --root` from the checkout, without the ticket having to say it.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/core/roles/worker.md`, `packages/orchestration/roles/planner.md`, `packages/develop/docs/commands/plugin.md`

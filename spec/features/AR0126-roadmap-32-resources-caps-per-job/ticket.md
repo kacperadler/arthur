@@ -16,7 +16,7 @@ Roadmap entry 32 (`spec/roadmap.md`, "Resources: caps per job"), built as the en
 
 One job can never take the whole machine's CPU or memory, so the coordinator and the other jobs keep running.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

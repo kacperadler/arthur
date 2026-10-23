@@ -16,7 +16,7 @@ Node's `fetch` refuses the ports of the Fetch standard's bad-port list (9, 25, 6
 
 A site whose port fetch never reaches is refused when Arthur loads, naming the port, instead of being reported down forever.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/uptime/src/site-check.ts:12`, `packages/uptime/src/uptime-options.ts:18`

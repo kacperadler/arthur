@@ -17,7 +17,7 @@ roadmap entry 82 and `arthur.config.example.ts` add a `models` plugin (marked `f
 The vision and the diagrams describe the plugins the roadmap plans: the `models` plugin (entry 82).
 
 - Model: haiku
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `spec/vision.md:74`, `docs/architecture/versions.mmd:9`, `docs/architecture/core-and-plugins.mmd:15`

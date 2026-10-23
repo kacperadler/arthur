@@ -17,7 +17,7 @@
 
 One mistake in the config gives the owner one line, not two.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `packages/core/src/env.ts:50-58`, `packages/core/test/config-check.test.ts:78-81`, `packages/core/test/env.test.ts:126-140`

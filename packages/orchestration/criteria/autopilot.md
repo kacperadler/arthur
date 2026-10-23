@@ -8,7 +8,7 @@ Would the owner, reading this ticket cold, approve it without asking anything? I
 
 ## Pre-approved when all hold
 
-`arthur ticket status <id> planned --autopilot` checks these and refuses otherwise: the ticket came from a finding or an audit, its kind is bug or cleanup, its Scope names at most 3 files and none on the always-review list, its budget is above 0 and within the cap.
+`arthur ticket status <id> planned --autopilot` checks these and refuses otherwise: the ticket came from a finding or an audit, its kind is fix, refactor, chore, docs or test, its Scope names at most 3 files and none on the always-review list, its budget is above 0 and within the cap.
 
 Before running it, the coordinator also checks what the command cannot:
 

@@ -14,7 +14,7 @@ The `ci` workflow (`.github/workflows/ci.yml`, ubuntu-24.04) fails on every push
 
 ## Goal
 
-- Kind: bug
+- Kind: fix
 
 Evidence (run 39943434586 annotations): `test/ci-wait-wake.test.ts:27`, `packages/delivery/test/auto-merge.test.ts:169,200,223`: `git merge ... failed: fatal: empty ident name (for <runner@...>) not allowed`. Locally the tests pass because this server's git has a user.name.
 

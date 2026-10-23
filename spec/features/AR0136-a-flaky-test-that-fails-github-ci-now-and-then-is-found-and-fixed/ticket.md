@@ -16,7 +16,7 @@ GitHub's `ci` workflow (`npm ci && npm run check && npm test` on ubuntu-latest) 
 
 `npm test` passes every time on a slow runner; no test depends on timing luck.
 
-- Kind: bug
+- Kind: fix
 
 ## Done means
 

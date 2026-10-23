@@ -14,7 +14,7 @@ When `arthur merge` ends with `check failed on main (…)` after a PASS, the coo
 
 ## Goal
 
-- Kind: improvement
+- Kind: feat
 
 Evidence: `packages/delivery/docs/commands/merge.md:59` says "recommend `arthur continue <job> '<what failed>'`"; `packages/delivery/evals/check-failed/scenario.json` lists `^arthur continue ` under `never`.
 

@@ -16,7 +16,7 @@
 
 In a guarded folder, a writing command whose operand is built at run time (a loop, a glob, a variable) is refused rather than passed; tested.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/core/src/worktree-guard.ts:104` (`theirs(args)` on a list that holds no path once `$f` became nothing)

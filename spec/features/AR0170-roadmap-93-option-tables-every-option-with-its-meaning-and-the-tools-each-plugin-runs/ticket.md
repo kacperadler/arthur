@@ -16,7 +16,7 @@ Roadmap entry 93 (`spec/roadmap.md`), built as the entry says.
 
 Every option of the core and of each plugin built so far has one table with its meaning, type and default, and each plugin names the tools it runs, so the owner and `arthur setup` (94) read them from one place.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

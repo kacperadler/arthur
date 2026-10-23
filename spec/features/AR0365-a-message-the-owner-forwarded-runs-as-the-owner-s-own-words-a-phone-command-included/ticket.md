@@ -16,7 +16,7 @@ A message the owner forwards from someone else runs as the owner's own words, a 
 
 A forwarded Telegram message is never run as a command, and its text reaches the coordinator marked as forwarded; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/telegram/src/poll.ts:78-84` (reads the message's `text` alone; `forward_origin`, `quote` and `reply_to_message` are not read), `packages/telegram/src/media-in.ts` (the text part carries no mark of a forward)

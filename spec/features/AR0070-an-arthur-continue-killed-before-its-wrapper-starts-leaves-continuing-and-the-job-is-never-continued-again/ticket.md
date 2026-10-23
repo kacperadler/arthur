@@ -20,7 +20,7 @@
 
 A killed `arthur continue` never blocks a job forever: its `continuing` folder is recognized as stale and taken over.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/job-control.ts` (`continueJob`, its `finally`)

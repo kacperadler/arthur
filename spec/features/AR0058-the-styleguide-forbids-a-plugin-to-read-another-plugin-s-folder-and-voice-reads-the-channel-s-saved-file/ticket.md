@@ -17,7 +17,7 @@ AR0055 requires the channel to save files under `.arthur/<channel>/` and the voi
 The rules let a media plugin read the file a channel saved for that part, which entry 49 hands to it, without opening any other plugin's state.
 
 - Model: haiku
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `.agents/harness/criteria/styleguide.md` ("Each plugin keeps its own state in its own folder under `.arthur/`; it does not read or write another plugin's folder."), `spec/roadmap.md` entry 81

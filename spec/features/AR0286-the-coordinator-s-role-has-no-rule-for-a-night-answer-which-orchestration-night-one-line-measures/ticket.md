@@ -16,7 +16,7 @@ the predecessor's role said "Keep night replies to one line"; Arthur's role says
 
 The coordinator's role says how to answer at night (one line), so the night-one-line eval measures a rule that exists.
 
-- Kind: gap
+- Kind: fix
 
 Evidence:
 - `packages/orchestration/roles/coordinator.md` ("Final message"); `arthur.config.example.ts` (`quietHours`: "the coordinator answers in one line")

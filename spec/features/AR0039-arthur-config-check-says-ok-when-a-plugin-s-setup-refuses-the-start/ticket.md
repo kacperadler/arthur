@@ -16,7 +16,7 @@
 
 `arthur config check` is the one place a human learns whether `arthur run` will start. The binary already runs every `setup` in `load()` before any command, so a setup refusal is already known as `problem`; config check prints it and exits 1 instead of saying ok.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/core/src/cli.ts:49` (`load`) and `packages/core/src/cli.ts:73`

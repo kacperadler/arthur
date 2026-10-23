@@ -566,7 +566,14 @@ import { checkStructure } from "./structure.ts";
 // add --force` that also point a checkout at main, and its comment (git-writes.ts, git diff --numstat +20 -2), refused by the
 // guard, the worktree's `.git` guarded as the main checkout, and the limits named (worktree-guard.ts, +18 -12). Nothing read
 // these calls before, so nothing was cut.
-const BUDGETS = { core: 5869, "core/testing": 349, projects: 485, orchestration: 2309, machines: 487, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1310, github: 635, manage: 925, develop: 703, findings: 254 };
+// AR0378 (the ticket's Done means: a Kind of the template's list, the board's Kind column and `/board <kind>`): core 34 more
+// (5903) for the kinds and a ticket's Kind read under its Goal, `planned` refusing another (ticket-template.ts, git diff
+// --numstat +14 -3), each line's Kind read from its ticket.md and the board of one Kind (board-text.ts, +25 -6), and
+// `host.board.kinds` with `full(project, kind)` (board.ts, +12 -8); orchestration 11 more (2320) for `/board KIND`, `PREFIX
+// KIND` and `--kind` with their refusals (board-commands.ts, +18 -7); delivery 1 more (1311) for the new kinds' changelog
+// headings; findings 1 fewer (253), its copy of the kinds gone for `host.board.kinds`. Nothing read a ticket's Kind for the
+// board before, so nothing was cut.
+const BUDGETS = { core: 5903, "core/testing": 349, projects: 485, orchestration: 2320, machines: 487, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1311, github: 635, manage: 925, develop: 703, findings: 253 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

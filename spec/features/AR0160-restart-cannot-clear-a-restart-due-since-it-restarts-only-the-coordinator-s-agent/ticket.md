@@ -19,7 +19,7 @@ the code a merge changes runs in `arthur run` (every plugin, loaded once at its 
 
 A restart due can be cleared from the phone: /restart restarts arthur run itself while one is due, so the new code really runs.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/session/src/restart.ts` (`restart`), `packages/orchestration/src/orchestration.ts` (`coordinator.restart`)

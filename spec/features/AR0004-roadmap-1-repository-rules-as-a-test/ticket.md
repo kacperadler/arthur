@@ -16,7 +16,7 @@ Roadmap entry 1 of `spec/roadmap.md`: Repository rules as a test. Its Package, D
 
 Build entry 1 as `spec/roadmap.md` describes it, behind the interface it names, following `spec/vision.md` and `.agents/harness/criteria/styleguide.md`.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

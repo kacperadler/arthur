@@ -16,7 +16,7 @@ The owner's idea (2026-10-17, Telegram): a landing page for Arthur with its road
 
 A public site that shows what Arthur is, its state and its roadmap, kept true by building from the files in the repository (`README.md`, `arthur.mmd`, `spec/roadmap.md`, `spec/build.json`, `packages/*/docs/commands/`), never by a second hand-written copy.
 
-- Kind: improvement
+- Kind: feat
 - Plan: tak
 
 ## Done means

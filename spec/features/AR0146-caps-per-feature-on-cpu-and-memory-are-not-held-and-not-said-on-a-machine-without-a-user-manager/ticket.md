@@ -16,7 +16,7 @@ a job that runs bare (macOS, a container) has no ticket slice; the once-per-mach
 
 On a machine without a user manager (macOS), a ticket's CPU and memory caps are either held another way or Arthur says plainly they are not held.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/core/src/job-scope.ts:44-48`

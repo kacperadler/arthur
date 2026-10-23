@@ -16,7 +16,7 @@ Roadmap entry 77 (`spec/roadmap.md`): the board, jobs, events and the coordinato
 
 The human sees and directs the work from a browser as well as from the phone (vision A, D).
 
-- Kind: feature
+- Kind: feat
 - Plan: tak
 
 ## Done means

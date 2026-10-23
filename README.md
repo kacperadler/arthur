@@ -129,7 +129,7 @@ The commands that exist today, one line each; `arthur <command> --help` prints i
 - `arthur silent [on '<work>' | off | ask]` (`/silent`, orchestration): the silent mode, for delegated work: while it is on, the owner hears only the end of the work, a decision and the answers to his own messages; `off` sums up what happened meanwhile.
 - `arthur decision ask|answer|close` (orchestration): records a decision the coordinator asks the owner for, his answer, or why it no longer applies, in the project's decision log; `class propose|revoke` proposes a class of decisions the owner answers the same way, which his approval lets answer by policy, or revokes it; refused inside a job.
 - `arthur decisions [<words>] [--open] [--kind <kind>] [--ticket <id>]` (orchestration): lists and searches the decision log; `arthur decisions <id>` prints one question whole; `--classes` lists the classes.
-- `arthur board [PREFIX] [all]` (`/board`, orchestration): a project's ticket board, one line per ticket.
+- `arthur board [PREFIX] [all | KIND | --kind KIND]` (`/board`, orchestration): a project's ticket board, one line per ticket with its Kind; a kind lists only its tickets.
 - `arthur task <id>` (`/task`, orchestration): a ticket's status and its `ticket.md`.
 - `arthur findings <id>` (`/findings`, findings): a ticket's `findings.md`, from its worker's branch before the merge.
 - `arthur projects` (`/projects`, projects): every project, its folder, its open tickets and its install.

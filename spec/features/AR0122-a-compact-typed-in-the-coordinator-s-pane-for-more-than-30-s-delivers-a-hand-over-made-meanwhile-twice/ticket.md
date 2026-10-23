@@ -16,7 +16,7 @@ measured against omp 18.3.0 with a fake OpenAI-compatible provider: during a man
 
 A `/compact` the owner types in the coordinator's pane never makes the coordinator answer one message twice.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/orchestration/src/inbox-extension.ts` (`tick`, `QUIET_MS`)

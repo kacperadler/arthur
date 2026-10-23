@@ -16,7 +16,7 @@ a branch whose last commits no run built (pushed with `[skip ci]`, skipped by a 
 
 `--auto` merges only on CI passed for the tip itself, or for a commit whose later changes CI does not build; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/delivery/src/auto-merge.ts:56-68` (a run counts when `below < own`), `packages/delivery/src/ci-wait.ts:75` (a wait wakes for the same), `packages/delivery/docs/commands/merge.md:34`, pinned by `packages/delivery/test/auto-merge.test.ts:203` rows 217-224

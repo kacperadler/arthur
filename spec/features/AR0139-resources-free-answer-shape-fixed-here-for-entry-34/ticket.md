@@ -16,7 +16,7 @@ entry 31 reads "the most room from `call("resources.free")`" without its shape. 
 
 What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/machines/src/machine-place.ts` (`placement`), `packages/machines/docs/commands/machines.md` ("Placing a job"), roadmap entry 34

@@ -16,7 +16,7 @@ the roles registered today read `styleguide` (worker, planner, plan reviewer, co
 
 `arthur init` writes a criteria skeleton for every role that reads one, including roles added later, not only today's.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/projects/src/init.ts` (`CRITERIA = ["styleguide", "autopilot"]`), `packages/projects/skeleton/criteria/`

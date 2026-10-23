@@ -16,7 +16,7 @@ three inputs the check does not cover. A line written by anything in the job but
 
 The record of a job's checks is tied to the tree it ran on and marked stale after any later change, so `review-needed` cannot rest on old results; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/delivery/src/checks-extension.ts:14-23` (appended inside the agent's process from the tool result's text), `:27-30` (`stale` from `edit`/`write` tool calls only; `docs/commands/review-needed.md:35` names the bash limit), `packages/delivery/src/review-needed.ts:37`, `:78-83` (the file believed as it is, its last fresh lines deciding `no review`)

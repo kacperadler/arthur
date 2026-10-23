@@ -16,7 +16,7 @@
 
 A user whose git has no identity learns it before the first merge, from `arthur doctor` (or `arthur init`), with the fix named, instead of `arthur merge` failing after the review and checks ran. Arthur never invents an identity.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/delivery/src/merge-command.ts:85`

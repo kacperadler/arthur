@@ -16,7 +16,7 @@ the coordinator gets its shipped role file only. A project override (`.agents/ar
 
 What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/orchestration/src/coordinator.ts` (`--append-system-prompt <role file>`)

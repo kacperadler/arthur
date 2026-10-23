@@ -5,7 +5,7 @@ import { type Entry, ID, NEXT, readBoard, STATUSES, type Status, writeBoard } fr
 import { boardText } from "./board-text.ts";
 import type { Clock } from "./clock.ts";
 import { withLock } from "./lock.ts";
-import { checkTitle, guidanceLeft, slug, ticketText } from "./ticket-template.ts";
+import { checkTitle, KINDS, notPlanned, slug, ticketText } from "./ticket-template.ts";
 
 // The ticket board (spec/roadmap.md, entries 17 and 18): each project's tickets as folders `spec/features/<id>-<slug>/` and its
 // board `spec/build.json`, changed only here, one writer at a time across processes. Ids are the project's prefix and a number,
@@ -26,7 +26,7 @@ export type Board = {
 	// A new ticket in planning, its `ticket.md` from the template; emits `ticket-created`.
 	create(title: string, project?: string): Ticket;
 	// Emits `ticket-moved` (`id`, `project`, `from`, `to`); a move to the status it has is no change and no event. A move
-	// `NEXT` does not allow is refused; `planned` is refused while the template's guidance is left in its `ticket.md`.
+	// `NEXT` does not allow is refused; `planned` while its `ticket.md` holds the template's guidance, or a Kind none of `kinds`.
 	move(id: string, to: string): Ticket;
 	// The tickets `id` waits for, on its own board, replacing the ones before; none waits for nothing. Refused: an id not on the
 	// board, a dropped one, a cycle. Emits `ticket-after` (`id`, `project`, `after`) when it changes.
@@ -34,8 +34,10 @@ export type Board = {
 	// Every open ticket, the 10 newest merged, and one line counting the rest; `project` undefined is the main one; `checkout`, a
 	// folder holding a copy of the project's repository (an eval's fixture), reads the board there instead.
 	digest(project?: string, checkout?: string): string;
-	// Every ticket, the digest's lines and the rest of the merged and dropped ones; `project` undefined is the main one.
-	full(project?: string): string;
+	// Every ticket, or with `kind` (one of `kinds`) every ticket of that Kind; `project` undefined is the main one.
+	full(project?: string, kind?: string): string;
+	// The kinds a ticket's `- Kind:` line under its Goal may name, the template's.
+	readonly kinds: readonly string[];
 };
 
 const FILE = "spec/build.json";
@@ -83,11 +85,13 @@ export function board(lists: () => readonly unknown[], clock: Clock, emit: (name
 		});
 		return { where, before, after, ticket: { ...after, project: where.name } };
 	};
+	const shown = (where: Project, all: boolean, kind?: string) => boardText(where.path, tickets(where), all, kind);
 	return {
 		projects: () => projectList(lists()),
 		list: (name) => tickets(project(name)),
-		digest: (name, checkout) => boardText(tickets(checkout === undefined ? project(name) : { ...project(name), path: checkout }), false),
-		full: (name) => boardText(tickets(project(name)), true),
+		digest: (name, checkout) => shown(checkout === undefined ? project(name) : { ...project(name), path: checkout }, false),
+		full: (name, kind) => shown(project(name), true, kind),
+		kinds: KINDS,
 		get(id) {
 			const where = owner(id);
 			return where && tickets(where).find((ticket) => ticket.id === id);
@@ -155,8 +159,8 @@ function refuseGuidance(where: Project, entry: Entry): void {
 	} catch (error) {
 		throw new Error(`${entry.id}: cannot read ${entry.path} to check it for template guidance: ${(error as Error).message}`);
 	}
-	const left = guidanceLeft(text);
-	if (left.length > 0) throw new Error(`${entry.id}: not planned: ${entry.path} still holds the template's guidance, replace it first:\n${left.join("\n")}`);
+	const problem = notPlanned(text);
+	if (problem !== undefined) throw new Error(`${entry.id}: not planned: ${entry.path} ${problem}`);
 }
 
 function writeWhole(path: string, text: string, temporary: string): void {

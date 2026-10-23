@@ -16,7 +16,7 @@ the wrapper reads the agent until its stdout and stderr close, not until it exit
 
 A job always ends when its agent exits: a background process that keeps the agent's stdout open cannot hold the job at running.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/wrapper.ts` (`play`, which waits for the agent's `close`)

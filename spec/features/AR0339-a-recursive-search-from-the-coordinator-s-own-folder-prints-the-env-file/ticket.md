@@ -16,7 +16,7 @@ the honest mistake the guard exists for, a search for a variable's name, puts it
 
 A recursive search from the coordinator's folder never prints the .env file: the guard catches recursive reads that reach it, or the file lives outside that folder; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/core-options.ts:33` (`.env` beside the config by default), `packages/orchestration/src/coordinator.ts:118` (the coordinator's agent runs in the folder `arthur run` runs in), `packages/core/src/env-refusal.ts:53-66` (a name in the call's text is the only thing looked for)

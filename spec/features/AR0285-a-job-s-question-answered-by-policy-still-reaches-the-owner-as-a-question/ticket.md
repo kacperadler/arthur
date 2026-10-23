@@ -16,7 +16,7 @@ when an approved class of kind `job` answers a blocked job's question by policy,
 
 When a class answers a job's question by policy, the owner's phone says it was decided by policy instead of showing it as a question waiting for him.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/orchestration/src/blocked-notice.ts` (the notice text), `packages/orchestration/src/decision-hooks.ts` (`askOfJob` returns only the id)

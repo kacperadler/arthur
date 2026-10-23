@@ -23,7 +23,7 @@ What the harness has (2026-10-16):
 
 The owner names a project as he likes and the coordinator finds it without asking; adding a project is a few lines (vision A).
 
-- Kind: feature
+- Kind: feat
 - Plan: tak
 
 ## Done means

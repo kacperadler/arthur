@@ -16,7 +16,7 @@ the roadmap says the coordinator starts an entry once everything in its "Depends
 
 Every roadmap entry sits after the entries it depends on, so building in order never needs something not yet built.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `spec/roadmap.md`, entry 93 (under `## Session`, after 80), `- Depends on:` naming 41, which sits later under `## Projects`.

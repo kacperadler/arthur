@@ -16,7 +16,7 @@ after a full `npm test` that passed (1018 of 1018), `ps -o pid,ppid,etime,args` 
 
 Every orchestration test stops the tmux server and fake agent it started, also when it fails, so `npm test` leaves no process running behind it.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/orchestration/test/` (a test whose tmux session is `coord`: `coordinator.test.ts`, `inbox.test.ts` or `silent.test.ts`)

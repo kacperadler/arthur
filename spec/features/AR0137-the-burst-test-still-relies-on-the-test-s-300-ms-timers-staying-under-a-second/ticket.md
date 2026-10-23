@@ -16,7 +16,7 @@ the test sends four messages 300 ms apart and expects one turn; the inbox extens
 
 The burst test proves several quick messages make one turn without depending on the test's 300 ms timers staying under a second, so a stalled CI runner cannot fail it.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/orchestration/test/inbox.test.ts:173` ("several messages while idle, each within a second of the last, are one turn, in order")

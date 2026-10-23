@@ -16,7 +16,7 @@ Add to `spec/vision.md`, the diagrams, the example config and `spec/roadmap.md` 
 
 The owner (2026-10-16): jobs that build and run containers again and again fill the disk; when it is full no agent can work. On the harness server today: Docker build cache 31.7 GB (21 GB reclaimable), images 9.5 GB (4 GB reclaimable), 127 volumes with 91% reclaimable; disk 66% used, 41 GB free.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

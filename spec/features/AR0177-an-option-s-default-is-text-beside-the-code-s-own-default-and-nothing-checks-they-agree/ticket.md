@@ -16,7 +16,7 @@ each table entry's `default` is one line for a person ("120", "arthur", "1800"),
 
 An option's documented default is checked against the default the code applies, so the table never tells the owner a wrong default.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/core-options.ts:31`, `packages/core/src/config.ts` (`withDefaults`), `packages/orchestration/src/orchestration-options.ts` (`coordinatorOptions`), `packages/session/src/session.ts:71`, `packages/session/src/restart.ts:62`

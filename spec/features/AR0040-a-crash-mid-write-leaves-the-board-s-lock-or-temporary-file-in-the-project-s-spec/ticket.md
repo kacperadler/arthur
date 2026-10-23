@@ -16,7 +16,7 @@ the lock `spec/build.json.lock` (and `spec/build.json.lock.<pid>` while it is ta
 
 No crash can put a board's lock or temporary file into a project's commit: the board's transient files never sit in a tracked folder.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/board.ts` (`withLock(`${file}.lock`)`), `packages/core/src/board-file.ts` (`writeBoard`)

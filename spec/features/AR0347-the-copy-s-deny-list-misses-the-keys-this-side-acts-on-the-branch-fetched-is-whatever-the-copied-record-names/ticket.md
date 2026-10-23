@@ -16,7 +16,7 @@ the rule: what comes back lands only in that job's record and branch (`spawn.md:
 
 The copy back from another machine takes only the files the run writes (an allow-list), and fetches only `arthur/<id>`, never a branch the copied record names; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/machine-sync.ts:25,62,68-69`, `packages/core/src/job-records.ts:145,159`, `packages/core/src/job-state.ts:74`

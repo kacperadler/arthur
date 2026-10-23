@@ -16,7 +16,7 @@ the follower sees a cut log only when the file is smaller than the bytes it has 
 
 What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/events.ts:66`

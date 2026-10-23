@@ -16,7 +16,7 @@ a turn that ends in an error or is aborted answers nothing, and its messages go 
 
 A coordinator whose turns keep failing waits longer between tries and tells the owner once, instead of retrying every second.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/orchestration/src/inbox-extension.ts` (`agent_end`, `tick`)

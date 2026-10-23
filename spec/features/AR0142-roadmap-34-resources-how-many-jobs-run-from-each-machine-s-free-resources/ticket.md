@@ -19,7 +19,7 @@ Roadmap entry 34 (`spec/roadmap.md`), built as the entry says.
 
 Arthur starts only as many jobs as each machine's free CPU and memory allow.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

@@ -16,7 +16,7 @@
 
 The inbox's backoff tests (5 s and 10 s windows, the reply and owner-message waits) run on the test's clock like AR0293's, so a stalled runner cannot fail them and the file runs about 20 s faster.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/orchestration/test/inbox.test.ts:418` (and `:452`, `:475`)

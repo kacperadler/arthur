@@ -19,7 +19,7 @@ The core's line budget was set at 4000 and has been raised four times on 2026-10
 
 The core stays small enough to understand (vision: small core, capability in plugins); the budget is a decision from evidence, not a number raised one ticket at a time.
 
-- Kind: cleanup
+- Kind: refactor
 
 ## Done means
 

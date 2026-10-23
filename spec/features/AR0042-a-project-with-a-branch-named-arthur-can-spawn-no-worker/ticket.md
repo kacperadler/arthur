@@ -16,7 +16,7 @@ a worker's branch is `arthur/<id>`. In a repository that has a branch named exac
 
 A project whose repository has a branch named `arthur` can still run workers: the spawn says what is wrong and what to do before Git does.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/jobs.ts` (`newJob`, the branch `arthur/<id>`)

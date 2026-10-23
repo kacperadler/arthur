@@ -20,7 +20,7 @@ From here the owner can talk to Arthur instead of the harness.
 
 The specification is roadmap entry 47: its Package, Delivers and Done means with every edge case. Its dependencies 24, 25, 27 and 7 are merged.
 
-- Kind: improvement
+- Kind: feat
 - Budget: 12
 
 ## Done means

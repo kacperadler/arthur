@@ -94,7 +94,7 @@ export function github(options: GithubOptions): Plugin {
 					const job = host.jobs.list().find((each) => each.branch === rest[0])?.id;
 					const own = job === undefined ? `goes to the owner: ${rest[0]} has no worker` : `goes back to its worker: arthur continue ${job} '<the failed step and its lines>'`;
 					const why = ["failure", "timed_out", "startup_failure", "cancelled"].includes(run.conclusion ?? "") ? `\nWhy: ${ci}; then a failure in the branch's own code ${own}; one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once: ${ci} --rerun` : "";
-					const text = `[github] CI run ${run.id}, attempt ${run.attempt}, of ${workflow} in ${project} ended ${run.conclusion} on ${rest.join(", ")} (${run.sha.slice(0, 7)}): ${run.url}${why}`;
+					const text = `CI run ${run.id}, attempt ${run.attempt}, of ${workflow} in ${project} ended ${run.conclusion} on ${rest.join(", ")} (${run.sha.slice(0, 7)}): ${run.url}${why}`;
 					host.events.emit("coordinator-message", { text });
 				}
 				// Only the attempts GitHub still lists are kept: an older run, or an attempt before a rerun, never comes back.
@@ -110,7 +110,7 @@ export function github(options: GithubOptions): Plugin {
 				for (const review of answer.reviews) {
 					host.events.emit("pull-request-review", review);
 					const body = review.body.trim() === "" ? "" : `\n${review.body.trim().slice(0, 1000)}`;
-					host.events.emit("coordinator-message", { text: `[github] ${review.user} reviewed pull request #${review.pull} of ${review.repo}, ${review.title} (branch ${review.branch}): ${review.state}: ${review.url}${body}` });
+					host.events.emit("coordinator-message", { text: `${review.user} reviewed pull request #${review.pull} of ${review.repo}, ${review.title} (branch ${review.branch}): ${review.state}: ${review.url}${body}` });
 				}
 				save({ ...state, pulls: { ...state.pulls, [each.project]: answer.pulls } });
 			};

@@ -56,11 +56,13 @@ export default function handoffs(pi: ExtensionApi): void {
 		if (same(found(), request)) put(file, JSON.stringify({ ...request, line }));
 		if (held !== undefined && same(held, request)) held = undefined;
 	};
-	// The handoff given to the conversation with `intro`, and its mtime noted as read; false when it holds only blanks.
+	// The handoff given to the conversation with `intro`, every line of it quoted, so none reads as a message's mark; and its
+	// mtime noted as read; false when it holds only blanks.
 	const readBack = (intro: string): boolean => {
 		const [mtime, text] = [changed(), existsSync(handoff) ? readFileSync(handoff, "utf8").trim() : ""];
 		if (text === "") return false;
-		pi.sendUserMessage(`[Arthur] ${intro} (${handoff}); go on from it:\n\n${text}\n\n${ARTHUR}`, { attribution: "agent" });
+		const quoted = text.split(/\r\n|[\n\r\v\f\u0085\u2028\u2029]/).map((line) => (line === "" ? ">" : `> ${line}`));
+		pi.sendUserMessage(`[Arthur] ${intro} (${handoff}); go on from it:\n\n${quoted.join("\n")}\n\n${ARTHUR}`, { attribution: "agent" });
 		put(read, String(mtime));
 		return true;
 	};

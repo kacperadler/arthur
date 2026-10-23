@@ -566,7 +566,12 @@ import { checkStructure } from "./structure.ts";
 // add --force` that also point a checkout at main, and its comment (git-writes.ts, git diff --numstat +20 -2), refused by the
 // guard, the worktree's `.git` guarded as the main checkout, and the limits named (worktree-guard.ts, +18 -12). Nothing read
 // these calls before, so nothing was cut.
-const BUDGETS = { core: 5869, "core/testing": 349, projects: 485, orchestration: 2309, machines: 487, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1310, github: 635, manage: 925, develop: 703, findings: 254 };
+// AR0349 (F4 of AR0311; its Done means: every line of a job's final message or a plugin's text quoted under its mark, and a
+// `coordinator-message` marked with its plugin): orchestration 8 more (2317) for the quoting at every line break and the
+// plugin's mark (hand-over.ts, git diff --numstat +10 -4) and the plugin carried and required (inbox.ts, +11 -9); session 2
+// more (880) for the handoff quoted the same way (handoff-extension.ts, +4 -2); develop 1 more (704) for a plugin's turn that
+// names its plugin (eval-scenario.ts, +7 -6). Nothing quoted a message's lines before, so nothing was cut.
+const BUDGETS = { core: 5869, "core/testing": 349, projects: 485, orchestration: 2317, machines: 487, resources: 616, session: 880, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1310, github: 635, manage: 925, develop: 704, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

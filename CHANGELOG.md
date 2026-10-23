@@ -33,6 +33,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0323 Security check: which Arthur commands a job itself may run (520ce25)
 - AR0324 Security check: only reviewed, green code reaches main (1a98a42)
 - AR0325 Security check: the Telegram channel answers the owner alone (9b12277)
+- AR0326 Security check: addresses Arthur fetches stay where the config says (77c97ec)
 
 ### Changed
 

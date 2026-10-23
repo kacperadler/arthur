@@ -26,7 +26,7 @@ function setup(agent: string, idleMinutes = 10, now?: () => Date): { readonly ho
 	git(root, "add", "--all");
 	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "first");
 	const home = join(folder, "home");
-	const jobs = jobRunner(home, root, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined, now), eventBus(home), () => []);
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined, now), eventBus(home), () => []);
 	return { home, jobs };
 }
 

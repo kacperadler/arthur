@@ -62,7 +62,7 @@ function setup(options: { readonly agent?: string; readonly arthur?: string; rea
 	const answers: Readonly<Record<string, (() => readonly unknown[]) | undefined>> = { "jobs.place": options.place, "jobs.limits": options.caps, "roles.model": options.roles };
 	const collect = (name: string) => [...(answers[name]?.() ?? [])];
 	const limits = { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...(options.slice ?? jobSlice) };
-	const jobs = jobRunner(home, root, limits, options.agent ?? "omp", time, eventBus(home), collect);
+	const jobs = jobRunner(home, root, join(root, "env"), limits, options.agent ?? "omp", time, eventBus(home), collect);
 	jobs.registerMachine("machines", { name: "gpu", ssh: "gpu", home: there, labels: { os: "linux" } });
 	return { root, home, machine, there, jobs, now };
 }
@@ -92,6 +92,9 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	assert.equal(git(worktree, "rev-parse", "HEAD"), git(root, "rev-parse", "HEAD"));
 	assert.equal(read(home, job.id, "machine"), "gpu");
 	assert.equal(read(there, job.id, "root"), repository);
+	// There no config exists: its record guards Arthur's install there and the user's own files only.
+	const keys = (folder: string) => read(folder, job.id, "guarded").split("\n").map((line) => line.split(" ")[0]);
+	assert.deepEqual([keys(home), keys(there)], [["config", "env", "install", "ssh", "systemd", "gitconfig"], ["install", "ssh", "systemd", "gitconfig"]]);
 	for (const call of calls()) assert.match(call, /^-o BatchMode=yes -o StrictHostKeyChecking=yes .*gpu /, "every step runs through ssh's batch mode, host key checked");
 	assert.equal(calls().filter((call) => call.includes("git-receive-pack")).length, 1);
 	assert.equal(events(home, "job-started")[0]?.machine, "gpu");
@@ -392,7 +395,7 @@ test("prune never deletes a worktree on a machine it cannot reach, nor one Git r
 		`${job.id}: kept its worktree, branch and record: machine gpu: arthur remote-job prune: git worktree: fatal: '${worktree}' contains modified or untracked files, use --force to delete it`,
 	]);
 	assert.deepEqual([existsSync(join(worktree, "notes.txt")), existsSync(join(there, "jobs", job.id)), existsSync(join(home, "jobs", job.id))], [true, true, true]);
-	const other = jobRunner(home, there, { timeoutMinutes: 1, budgetUsd: 1, idleMinutes: 1, offlineGraceMinutes: 1, ...jobSlice }, "omp", clock("UTC", undefined), eventBus(home), () => []);
+	const other = jobRunner(home, there, join(there, "env"), { timeoutMinutes: 1, budgetUsd: 1, idleMinutes: 1, offlineGraceMinutes: 1, ...jobSlice }, "omp", clock("UTC", undefined), eventBus(home), () => []);
 	await assert.rejects(other.stop(job.id), { message: `${job.id} runs on machine gpu, which no plugin registers; machines: local` });
 });
 

@@ -547,7 +547,12 @@ import { checkStructure } from "./structure.ts";
 // AR0318 (F1 of AR0316; its Done means: a machine whose `git var` exits 127 is offline, `git is not there`): machines 3 more
 // (487) for the exit code read in the identity loop, kept on its line, its comment 1 more, and the offline reason read from
 // the report before the identity (machine-check.ts 2). The identity's own line is unchanged; nothing else to cut.
-const BUDGETS = { core: 5787, "core/testing": 349, projects: 485, orchestration: 2309, machines: 487, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1305, github: 633, manage: 925, develop: 703, findings: 254 };
+// AR0329 (F1 of AR0320; its Done means: the runner writes a `guarded` file into the record and `jobPlace` adds its places):
+// core 28 more (5815) for the file written with Arthur's install, the user's `~/.ssh`, `~/.config/systemd` and `~/.gitconfig`,
+// the config's folder and its env file (job-place.ts `guardedPlaces`, 9 with its comment, and job-record.ts, 2), read back
+// with each place's name, a hand-broken line none (job-place.ts, 15: the names, the reader, `Place.guarded`, `optional`), and
+// refused by the worktree guard (worktree-guard.ts, 2). Nothing guarded these places before, so nothing was cut.
+const BUDGETS = { core: 5815, "core/testing": 349, projects: 485, orchestration: 2309, machines: 487, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1305, github: 633, manage: 925, develop: 703, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -5,9 +5,10 @@ import { declaredPlace, jobPlace, type Place, real } from "./job-place.ts";
 import { type Command, type Item, literal, shellCommands } from "./shell-words.ts";
 
 // The worktree guard (spec/roadmap.md, entry 20): an OMP extension the wrapper loads into every job with `-e`, beside the env
-// guard, that refuses a tool call writing into the main checkout, the home folder, another job's worktree, or any project's
-// checkout or job worktree before the tool runs. `ARTHUR_JOB` names the job's record, which says where they are, the other
-// projects as declared now (job-place.ts); the home folder holds the record, and a project's jobs' worktrees sit in
+// guard, that refuses a tool call writing into the main checkout, the home folder, another job's worktree, any project's
+// checkout or job worktree, Arthur's install, config folder and env file, or the user's `~/.ssh`, `~/.config/systemd` and
+// `~/.gitconfig`, before the tool runs. `ARTHUR_JOB` names the job's record, which says where they are, the other projects
+// as declared now (job-place.ts); the home folder holds the record, and a project's jobs' worktrees sit in
 // `.arthur-worktrees` beside its checkout. Reading passes everywhere; writing anywhere else (the job's own worktree, /tmp)
 // passes. Without `ARTHUR_JOB` (not in a job) it refuses nothing.
 
@@ -36,8 +37,9 @@ function refusal(place: Place, path: string, shown = path): string | undefined {
 	if (inside(path, place.worktree)) return undefined;
 	const places: (readonly [string, string])[] = [[place.home, "Arthur's home folder"], [place.worktrees, "another job's worktree"], [place.root, "the main checkout"]];
 	for (const other of place.others) places.push([other.worktrees, `a job worktree of project ${other.name}`], [other.root, `the main checkout of project ${other.name}`]);
+	for (const each of place.guarded) places.push([each.path, each.name]);
 	const name = places.filter(([folder]) => inside(path, folder)).sort(([a], [b]) => b.length - a.length)[0]?.[1];
-	return name && `arthur: refused: this call writes into ${name} (${shown}); a job writes only in its own worktree ${place.worktree} and outside Arthur's checkouts and home folder`;
+	return name && `arthur: refused: this call writes into ${name} (${shown}); a job writes only in its own worktree ${place.worktree}, outside Arthur's checkouts, home folder, install and config, and the user's own files`;
 }
 
 // The index in `words` of the command they run, after assignments, reserved words and wrappers with their options; -1 if none.

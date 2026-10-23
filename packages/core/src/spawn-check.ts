@@ -1,7 +1,7 @@
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Spawn, SpawnCheck } from "./jobs.ts";
 import { queueLock } from "./lock.ts";
+import { ownHome } from "./own-home.ts";
 import { pluginStep } from "./plugin-host.ts";
 
 // The `beforeSpawn` checks of one load (spec/roadmap.md, entries 9 and 26), in the order the plugins registered them.
@@ -15,7 +15,7 @@ export function spawnChecks(home: string) {
 		// its `working` state again). So a check that counts running jobs (orchestration's `maxAgents`) counts every job that
 		// passed before it, even one whose worktree is still being made.
 		async pass(spawn: Spawn): Promise<() => void> {
-			mkdirSync(home, { recursive: true });
+			ownHome(home);
 			const release = await queueLock(join(home, "spawn.lock"));
 			try {
 				for (const { owner, check } of checks) {

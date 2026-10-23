@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
@@ -56,6 +56,17 @@ test("setup runs in dependency order, then in the config's order; each plugin ge
 		assert.equal(host.folder, join(loaded.core.home, host.name));
 		assert.ok(existsSync(host.folder), host.folder);
 	}
+});
+
+test("under umask 022 the load leaves the home its user's alone: one made 0755 earlier is 0700 before any plugin's setup", async (t) => {
+	const mask = process.umask(0o022);
+	t.after(() => process.umask(mask));
+	const modes: number[] = [];
+	const loaded = config([fake([], "orchestration", { setup: (host) => void modes.push(statSync(dirname(host.folder)).mode & 0o777) })]);
+	mkdirSync(loaded.core.home);
+	assert.equal(statSync(loaded.core.home).mode & 0o777, 0o755, "the umask in force");
+	await loadPlugins(loaded, {});
+	assert.deepEqual(modes, [0o700]);
 });
 
 test("provide, call and collect between plugins; collect with no provider returns empty", async () => {

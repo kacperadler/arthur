@@ -11,6 +11,7 @@ import { current, field, ID, inRun, told } from "./job-state.ts";
 import type { Job } from "./jobs.ts";
 import { withLock } from "./lock.ts";
 import type { Copy } from "./machine-sync.ts";
+import { ownHome } from "./own-home.ts";
 
 // `arthur remote-job`, the half of a job on another machine that runs there (spec/roadmap.md, entries 21 and 22), called over
 // SSH by the main Arthur: docs/commands/remote-job.md. It needs no config there: the jobs' slice there gets the machine's own
@@ -25,6 +26,8 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 	// Prints `present` when the repository of the project holds the commit, else `missing`, creating the repository bare.
 	repo(home, [project = "", commit = ""]) {
 		if (basename(project) !== project || project.startsWith(".")) throw new Error(`a project name, got ${JSON.stringify(project)}`);
+		// The first step of a spawn there, so the home there is Arthur's user's alone before anything is written in it.
+		ownHome(home);
 		const root = join(home, "repos", `${project}.git`);
 		// Created once: `git init` again writes `core.bare` back into the shared config, after a `prepare` may have moved it out.
 		if (!existsSync(join(root, "HEAD"))) git(["init", "--quiet", "--bare", root]);

@@ -369,7 +369,8 @@ test("the turn is the text orchestration's inbox hands over for its event (coord
 		unknown: { turn: { scheduled: "unknown", message: "Tea." } },
 		said: { turn: { message: "Merge AR0001.", channel: "signal" } },
 		refused: { turn: { message: "Refuse it." } },
-		told: { turn: { arthur: "[github] CI run 7 ended cancelled on arthur/2026-10-22-worker-0a1b2c3d." } },
+		told: { turn: { arthur: "CI run 7 ended cancelled on arthur/2026-10-22-worker-0a1b2c3d.", plugin: "github" } },
+		unnamed: { turn: { arthur: "CI run 7 ended cancelled on arthur/2026-10-22-worker-0a1b2c3d." } },
 		blank: { turn: { arthur: " " } },
 		listed: { turn: { ended: { ...asked, records: ["delivery"] } } },
 	});
@@ -386,15 +387,16 @@ test("the turn is the text orchestration's inbox hands over for its event (coord
 		...failed("refused", "coordinator.turn: refused by the fake"),
 		...["said", "told"].map((name) => `develop/${name}: 1/1 (no baseline)`),
 		...failed("unknown", "schedule.message: refused by the fake"),
-		"passed 6/10 runs; moved against the baseline: none",
+		...failed("unnamed", "turn.plugin: expected the name of the plugin that emits turn.arthur"),
+		"passed 6/11 runs; moved against the baseline: none",
 	]);
 	// A job's end is of the main project unless it names one, its records passed on as they are.
 	assert.equal(eval_.transcript("develop-ended-1", "turn.md"), JSON.stringify(["job-ended", Object.assign({ project: "shop" }, ended), "line 1\nline 2"]));
 	assert.equal(eval_.transcript("develop-asked-1", "turn.md"), JSON.stringify(["job-ended", { project: "shop", ...asked }, null]));
-	assert.equal(eval_.transcript("develop-due-1", "turn.md"), JSON.stringify(["coordinator-message", { text: `scheduled ${JSON.stringify(["morning", "Write the morning report.", "Procedure: name what was built.\n"])}` }]));
-	assert.equal(eval_.transcript("develop-plain-1", "turn.md"), JSON.stringify(["coordinator-message", { text: `scheduled ${JSON.stringify(["tea", "Tea.", null])}` }]));
+	assert.equal(eval_.transcript("develop-due-1", "turn.md"), JSON.stringify(["coordinator-message", { text: `scheduled ${JSON.stringify(["morning", "Write the morning report.", "Procedure: name what was built.\n"])}` }, "schedule"]));
+	assert.equal(eval_.transcript("develop-plain-1", "turn.md"), JSON.stringify(["coordinator-message", { text: `scheduled ${JSON.stringify(["tea", "Tea.", null])}` }, "schedule"]));
 	assert.equal(eval_.transcript("develop-said-1", "turn.md"), said("Merge AR0001.", "signal"));
-	assert.equal(eval_.transcript("develop-told-1", "turn.md"), JSON.stringify(["coordinator-message", { text: "[github] CI run 7 ended cancelled on arthur/2026-10-22-worker-0a1b2c3d." }]));
+	assert.equal(eval_.transcript("develop-told-1", "turn.md"), JSON.stringify(["coordinator-message", { text: "CI run 7 ended cancelled on arthur/2026-10-22-worker-0a1b2c3d." }, "github"]));
 });
 
 test("pass rates against the stored baseline: --save-baseline keeps the scenarios left out, and the output names each one that moved", async (t) => {

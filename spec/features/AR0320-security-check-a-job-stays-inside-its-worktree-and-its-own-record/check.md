@@ -1,0 +1,70 @@
+# AR0320 - Check: a job stays inside its worktree and its own record
+
+The rule of this area: a job writes only inside its worktree and its own record: never main, the shared repository's config or hooks, another job's worktree or record, Arthur's code or config.
+
+What enforces it: one extension, the worktree guard (`packages/core/src/worktree-guard.ts`), which the wrapper loads into every job's agent with `-e` (`packages/core/src/wrapper.ts:83`) and which refuses a `bash`, `edit` or `write` tool call before it runs when the call names a path in a guarded place. The places come from the job's record (`packages/core/src/job-place.ts:37-40`): the home folder, the folder of all job worktrees, the main checkout, and every other declared project's checkout and worktrees folder, read anew on each call (`job-place.ts:47`). The guard parses the call's text (`packages/core/src/shell-words.ts`) and says itself that it is not a sandbox (`worktree-guard.ts:55-60`, `docs/deploy.md:34`): a path built at run time, a glob, a program that writes (`node -e`, `tar -C`), and a link made in the same call are not seen. The systemd scope a job runs in caps CPU and memory only (`packages/core/src/job-scope.ts:63-68`); nothing else bounds the job's process, which runs as Arthur's Linux user (`docs/deploy.md:30`).
+
+How each row was checked: by reading the lines named, by the tests named, and by a throwaway probe (not committed) that called `worktreeRefusal` from `worktree-guard.ts` in a temporary layout like `docs/setup.md`'s (config and home in `<user>/arthur`, project `<user>/shop`, worktrees `<user>/.arthur-worktrees`) and, for the git rows, plain git commands in that temporary repository to see which moves git itself refuses. Nothing ran against the VPS, a bot or a client repository.
+
+Verdicts: `holds`, `holds without a test`, `gap` (a `findings.md` entry each), or a pointer to the area whose ticket carries it.
+
+## Writes the guard refuses
+
+| Rule | Enforced at | Test | Verdict |
+| --- | --- | --- | --- |
+| A `bash` redirect (`>`, `>>`, `>\|`, `&>`, `<>`, `>&name`, `exec 3>`) into a guarded place is refused | `worktree-guard.ts:84` (`command.writes`); operators in `shell-words.ts:13-15` | `worktree-guard.test.ts:70` "in a job, each call that writes…", rows 86, 87 (`2>>`), 95 (`cat > … <<EOF`) | holds (`>\|`, `&>`, `exec 3>` refused in the probe, no test of their own) |
+| A writing command (`rm`, `mv`, `touch`, `mkdir`, `truncate`, `chmod`, `chown`, `tee`, `patch`, `sponge`, …; `sed -i`, `perl -i`) with an operand in a guarded place is refused, also after `--` | `worktree-guard.ts:27`, `:104` | same test, rows 88-90, 103, 127 | holds |
+| `cp`, `install`, `rsync`, `scp` into a guarded place (last operand, `-t`, `--target-directory`) are refused | `worktree-guard.ts:28`, `:105` | same test, rows 101, 143 (a copy out passes) | holds (`rsync -a . <main>/`, `install -D x <main>/y` refused in the probe) |
+| `dd of=` into a guarded place is refused | `worktree-guard.ts:106` | same test, row 134 | holds |
+| `ln`: a link in a guarded place, a link to a guarded place, a hard link of a file there, a relative target that reaches one from the link's folder, are refused | `worktree-guard.ts:107-111` | same test, rows 104-107 | holds (a hard link, `ln <main>/README.md hard`, refused in the probe; no test) |
+| `find <guarded> … -delete`, `-exec <writer> {}` are refused | `worktree-guard.ts:116-126` | same test, rows 128, 129 | holds |
+| A `cd`/`pushd`/`popd` before a command moves where paths resolve from, also by `cwd` of the call, also inside `$(…)`, `bash -c`, a heredoc, `eval`, a subshell; a `cd` in a pipeline or the background does not last | `worktree-guard.ts:91-101`, `:152` | same test, rows 91-98, 130-132, 145-147 | holds for the forms tested; **gap** for `cd -`, `pushd` with no operand, `$OLDPWD` (read as `cd $HOME`, so a later relative write in the main checkout passes; probe): F5 |
+| `~` and `$HOME` are the user's home; `$x`, `${x}` are nothing (a path built at run time is not seen) | `shell-words.ts:5-6`, `:81-100` | same test, rows 108-110 | holds as documented; `$ARTHUR_JOB`, the one variable every job's shell has that names a guarded place, is not expanded: **gap**, F6 |
+| A symlink in the worktree that points out of it, a dangling link whose target would be in a guarded place, is resolved before the check | `job-place.ts:13-25` (`real`), used at `worktree-guard.ts:67`, `:152`, `:156` | same test, rows 99, 100, 136 | holds; a link made in the same call is not seen (documented, `worktree-guard.ts:58`; probe: `ln -s / root; echo x > root/<main>/README.md` passes) |
+| `edit` and `write`: the `path`, each `[path#TAG]` header and each `MV` target of an `edit` input, resolved from the worktree, `~` expanded; a path with a URL scheme is no file | `worktree-guard.ts:142-157` | same test, rows 135-139, 159-161 | holds for `local://`; `file://<main>/README.md` passes the guard (probe) and whether omp's `write` takes a `file://` path is not verified here: [INFERENCE] its docs name no such form |
+| `read`, `grep`, `glob` and every other tool are never refused: reading passes everywhere | `worktree-guard.ts:153` | same test, rows 162, 163 | holds |
+| A read-only kind (review, plan) gets no `edit` or `write`; `bash` stays, with the same guard | `wrapper.ts:18-19`, `:78` | `wrapper.test.ts:133` "a read-only kind gets no edit or write…" | holds |
+| Without `ARTHUR_JOB` (the coordinator, omp by hand) the guard refuses nothing | `worktree-guard.ts:165-166` | `worktree-guard.test.ts:283` | holds |
+
+## The places
+
+| Rule | Enforced at | Test | Verdict |
+| --- | --- | --- | --- |
+| Never the main checkout of the job's project, `.git/` included (so `.git/config` and `.git/hooks/*` by path) | `job-place.ts:40` (`root`), `worktree-guard.ts:37` | `worktree-guard.test.ts:70` rows 86, 91-94, 135; `:184` "the wrapper loads the guard…" | holds (`echo > <main>/.git/config` and `> <main>/.git/hooks/pre-commit` refused in the probe; no test of `.git/` paths) |
+| Never Arthur's home folder: the event log, every plugin's folder, every job's record, the job's own record included (its record is written by the wrapper, `arthur steer` and the steer extension, never by a tool call) | `job-place.ts:40` (`home`), `worktree-guard.ts:37` | same test, rows 89, 90, 137 | holds, stricter than the rule |
+| Never another job's worktree, nor a new folder beside them: the whole worktrees folder but the job's own | `job-place.ts:40` (`worktrees: dirname(worktree)`), `worktree-guard.ts:36-37` | same test, rows 87, 88, 93, 112-114, 138, 141 | holds (`mkdir ../fresh`, `git worktree add ../fresh` refused in the probe) |
+| Never another project's main checkout or its jobs' worktrees, as declared now; a project declared while the job runs is guarded at once; an unreadable list falls back to the record's, said once without creating `log` | `job-place.ts:28-34`, `:47-54`; `worktree-guard.ts:38`, `:169-183` | `worktree-guard.test.ts:197`, `:234`, `:266` | holds |
+| Never Arthur's code or config: the folder of `arthur.config.ts` and `.env` (`~/arthur` in `docs/setup.md:77`), Arthur's install (`packages/`), the user's `~/.gitconfig`, `~/.ssh`, `~/.config/systemd/user` | nothing: the places are the four above (`job-place.ts:40`); the home folder is guarded only because it sits inside `~/arthur` | none | **gap**: F1 (AR0311 F1 confirmed). Only when Arthur's own repository is a declared project is `~/arthur` guarded as a main checkout |
+| A job's `arthur plugin new` writes only into the job's own worktree, given as `--root` | `packages/develop/src/plugin-new.ts:49-54` | `plugin-new.test.ts:154` | holds (an `ARTHUR_JOB` the job can unset: AR0323) |
+
+## Git on the shared repository
+
+Every worktree of a project shares `<root>/.git`: its refs, config, hooks, objects and stash. A git command run in the job's own worktree therefore reaches more than the worktree.
+
+| Rule | Enforced at | Test | Verdict |
+| --- | --- | --- | --- |
+| A git subcommand that writes a checkout (`commit`, `checkout`, `reset`, `push`, `fetch`, `apply`, …) or a ref (`branch`/`tag` with a changing flag or an operand, `remote`, `notes`) is refused when aimed at a guarded place by `-C`, `--git-dir`, `--work-tree` or a `cd` | `git-writes.ts:4`, `:19-45`; `worktree-guard.ts:128-137` | `worktree-guard.test.ts:70` rows 111-123, 149-153 | holds for the option forms; **gap** for the environment forms `GIT_DIR=`, `GIT_WORK_TREE=`, `GIT_INDEX_FILE=` before `git` or after `env`, which `commandIndex` skips as assignments (`worktree-guard.ts:45-51`): `GIT_WORK_TREE=<main> git checkout -- .` passes and, run in the temporary repository, rewrote the main checkout's `README.md`: F4 |
+| `git update-ref` of a ref the job does not own is refused (every worktree shares the refs) | `worktree-guard.ts:132-134` | same test, rows 124, 149 | holds |
+| `git stash` (any but `list`, `show`) is refused: one stack for every worktree | `worktree-guard.ts:29`, `:130` | same test, rows 125, 126, 150 | holds |
+| A ref moved from the job's own worktree other than by `update-ref` (`branch -f`, `tag -f`, `push .`, `fetch .`, `symbolic-ref HEAD`) is a documented limit (`worktree-guard.ts:60`, `docs/deploy.md:34`) | none | none | git itself refuses `branch -f main`, `push . HEAD:refs/heads/main`, `fetch . HEAD:refs/heads/main` for a branch checked out in a worktree, and `push .` into another job's branch (run in the temporary repository); `tag -f` and `symbolic-ref` it allows. **gap** for the ones that point the job's worktree at main: F3 |
+| Never main: `git switch --ignore-other-worktrees main`, `git checkout --ignore-other-worktrees main`, `git symbolic-ref HEAD refs/heads/main` from the job's worktree, and a rewrite of the worktree's own `.git` file (`gitdir: <root>/.git`), all pass the guard (`switch`, `checkout`, `symbolic-ref` write "the checkout they run in", `git-writes.ts:4`, which is the worktree, `worktree-guard.ts:135`; `.git` is inside the worktree, `:156`); after each, a plain `git commit` in the worktree moved `main` in the temporary repository, and the main checkout's index then disagreed with its tree | none | none | **gap**: F3 (high) |
+| Never the shared repository's config (`core.hooksPath`, `core.fsmonitor`, `receive.denyCurrentBranch` in `<root>/.git/config`), nor the user's `~/.gitconfig` | none: `config` is not among the writing subcommands (`git-writes.ts:4`); `git config …`, `git -C <main> config …`, `git config --file <root>/.git/config …`, `git config --global …` all pass (probe); a limit named in `worktree-guard.ts:60` and `docs/deploy.md:34` | none | **gap**: F2 (AR0311 F2 confirmed) |
+| Never the shared repository's hooks: `<root>/.git/hooks/*` by path is refused; `git -c core.hooksPath=<dir> commit` runs a program of the job's choice at its own commit (passes; the job can run any program anyway); a hooks path set for every later git call of Arthur is F2 | `worktree-guard.ts:37` (by path) | none | holds for the path; the config route is F2 |
+| The commands that rewrite the shared repository, `gc`, `prune`, `repack`, `reflog expire`, `maintenance run`, `worktree prune`, and `worktree add` to a folder outside the worktrees folder, pass as a documented limit (`worktree-guard.ts:59`, `docs/deploy.md:34`) | none | none | **gap**, low: F7 |
+| A writing command run after a `cd` into a guarded place with an operand built at run time (`cd <main>; for f in *; do rm $f; done`) passes: the operand is nothing, so the command has none | `worktree-guard.ts:104` (`theirs(args)` of an empty list) | none | **gap**, low: F8 |
+
+## Writes outside the guard's view
+
+| Rule | Enforced at | Test | Verdict |
+| --- | --- | --- | --- |
+| A program that writes (`node -e`, `python3 -c`, `tar -C`, `curl -o`, `git apply` of a patch with `../` paths and `--unsafe-paths`, `xargs` reading its operands, a glob or brace list over several folders) is not seen | none; documented at `worktree-guard.ts:55-60`, `docs/deploy.md:34` ("it is not a sandbox") | none | documented limit; the fix is the one of F1 (a sandbox, or a separate user), not a longer parser |
+| The agent process itself writes outside the record: the delivery plugin's `checks` extension writes `<home>/delivery/<id>/checks` from inside the job's agent | `packages/delivery/src/checks-extension.ts:14-17` | `packages/delivery/test/checks.test.ts` | AR0311 F6, area AR0324 (a job's own process writes what the merge reads) |
+| A job's `arthur steer <other>`, `arthur stop <other>`, `arthur continue <other>` write another job's record through Arthur's own commands, which never look at `ARTHUR_JOB` | none | none | AR0311 F5, area AR0323 |
+| The steer extension writes `steer/done` and `steer/undelivered` in the job's own record from the agent's process | `packages/core/src/steer.ts:13-16`, `wrapper.ts:163-166` | `job-control.test.ts:226` "two steers before the next tool call…" | holds: its own record, as the rule allows |
+| A job on another machine: what its copy writes back | `packages/core/src/machine-sync.ts` | | AR0311 F3, area AR0321 |
+| The job's process is bounded only by the scope's CPU and memory; it runs as Arthur's user and can reach every file that user can, `~/.ssh` and the user manager (`systemd-run --user`, which starts a process outside the job's scope) included | `job-scope.ts:63-68`; `docs/deploy.md:30` says so | `scope.test.ts:70`, `:98` (the caps and the end-of-run kill, not isolation) | **gap**: F1 |
+
+## AR0311's notes
+
+- F1 (a job is not isolated from Arthur's files and other jobs): confirmed. The probe shows writes into `~/arthur/arthur.config.ts`, `~/arthur/packages/core/src/worktree-guard.ts`, `~/arthur/.env`, `~/.gitconfig`, `~/.ssh/authorized_keys` and `~/.config/systemd/user/arthur.service` pass the guard in the `docs/setup.md` layout; `job-place.ts:40` names no such place. Entry F1 below.
+- F2 (`git config` is no write for the guard): confirmed, in every form (`git config`, `-C <main>`, `--file <root>/.git/config`, `--global`). Entry F2 below.

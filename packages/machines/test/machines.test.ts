@@ -64,6 +64,8 @@ function machine(host: string, system = "Linux x86_64", version: string | null =
 
 const KEY_REFUSED = "arthur@mac-mini: Permission denied (publickey).";
 const HOST_KEY = "No ED25519 host key is known for build-box and you have requested strict checking.\nHost key verification failed.";
+// A machine's `bin/git` that asks for git on a PATH with none, so the shell says what it says when git is not there (exit 127).
+const NO_GIT = "#!/bin/sh\nPATH=/nonexistent exec /bin/sh -c 'git \"$@\"' sh \"$@\"\n";
 
 type Loaded = { readonly fake: FakeHost; readonly plugin: Plugin };
 
@@ -216,6 +218,8 @@ test("each way a machine is offline, with its reason and its fix, and each tools
 	writeFileSync(join(machine("build-box"), "fail"), HOST_KEY);
 	machine("old-box", "Linux x86_64", "0123456789ab");
 	machine("bare-box", "Linux aarch64", null);
+	writeFileSync(join(machine("nogit-box"), "bin/git"), NO_GIT, { mode: 0o755 });
+	writeFileSync(join(machine("mute-box"), "bin/git"), "#!/bin/sh\nexit 127\n", { mode: 0o755 });
 	// The tools labels name commands: arm has its docker; gpu has docker and neither of the other two.
 	for (const host of ["arm-box", "gpu-box"]) writeFileSync(join(machine(host, host === "arm-box" ? "Linux aarch64" : "Linux x86_64"), "bin/docker"), "#!/bin/sh\n", { mode: 0o755 });
 	const list = [
@@ -223,6 +227,8 @@ test("each way a machine is offline, with its reason and its fix, and each tools
 		BUILD,
 		{ name: "old", ssh: "old-box", home: "/home/arthur/.arthur" },
 		{ name: "bare", ssh: "bare-box", home: "/home/arthur/.arthur" },
+		{ name: "nogit", ssh: "nogit-box", home: "/home/arthur/.arthur", labels: { tools: ["no-such-tool"] } },
+		{ name: "mute", ssh: "mute-box", home: "/home/arthur/.arthur" },
 		{ name: "arm", ssh: "arm-box", home: "/home/arthur/.arthur", labels: { arch: "arm64", tools: ["docker"] } },
 		{ name: "gpu", ssh: "gpu-box", home: "/home/arthur/.arthur", labels: { tools: ["docker", "nvidia-smi", "xcodebuild"] } },
 	];
@@ -245,6 +251,8 @@ test("each way a machine is offline, with its reason and its fix, and each tools
 			"no job runs on bare",
 			false,
 		],
+		["nogit", "missing: git is not there (sh: 1: git: not found)", "install git there, on the PATH of a command over ssh (docs/deploy.md)", "no job runs on nogit", false],
+		["mute", "missing: git is not there (exit code 127)", "install git there, on the PATH of a command over ssh (docs/deploy.md)", "no job runs on mute", false],
 		["arm", `ok (linux arm64, arthur ${coreVersion()})`, "ssh arm-box true, by hand", "no job runs on arm", false],
 		[
 			"gpu",
@@ -480,6 +488,9 @@ test("without a requirement any machine: the fewest jobs in a run, local and the
 	assert.equal(await place(at), "build", "an ended job and one blocked out of its run take no room");
 	writeFileSync(join(root, "build-box", ".gitconfig"), "[user]\n\tuseConfigOnly = true\n");
 	assert.equal(await place(at), "build", "a machine whose git has no identity is placed by its labels all the same");
+	writeFileSync(join(root, "build-box", "bin/git"), NO_GIT, { mode: 0o755 });
+	assert.equal(await place(at), "local", "a machine without git takes no job");
+	rmSync(join(root, "build-box", "bin/git"));
 	writeFileSync(join(root, "build-box", "fail"), "ssh: connect to host build-box port 22: Connection timed out");
 	assert.equal(await place(at), "local", "an offline machine takes no job");
 });

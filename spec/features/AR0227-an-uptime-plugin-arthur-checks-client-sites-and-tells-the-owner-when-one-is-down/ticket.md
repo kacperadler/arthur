@@ -3,7 +3,7 @@
 ```json
 {
   "id": "AR0227",
-  "title": "An uptime plugin: Arthur checks client sites and tells the owner when one is down",
+  "title": "Roadmap 98: uptime, each project's sites checked",
   "date": "2026-10-20"
 }
 ```

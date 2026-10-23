@@ -1757,7 +1757,7 @@
   },
   {
     "id": "AR0227",
-    "title": "An uptime plugin: Arthur checks client sites and tells the owner when one is down",
+    "title": "Roadmap 98: uptime, each project's sites checked",
     "status": "merged",
     "path": "spec/features/AR0227-an-uptime-plugin-arthur-checks-client-sites-and-tells-the-owner-when-one-is-down/ticket.md",
     "updated": "2026-10-20T11:35:16.458Z"
@@ -2103,7 +2103,7 @@
     "title": "Delivery ships no review criteria, so `arthur init` still writes `review.md` as `# Review`",
     "status": "done",
     "path": "spec/features/AR0273-delivery-ships-no-review-criteria-so-arthur-init-still-writes-review-md-as-review/ticket.md",
-    "updated": "2026-10-22T16:17:19.148Z"
+    "updated": "2026-10-23T11:13:25.710Z"
   },
   {
     "id": "AR0274",
@@ -2350,5 +2350,36 @@
     "status": "merged",
     "path": "spec/features/AR0306-the-agent-s-extensions-still-append-to-log-with-a-flag-that-creates-it/ticket.md",
     "updated": "2026-10-22T23:30:08.491Z"
+  },
+  {
+    "id": "AR0307",
+    "title": "The switch: Arthur runs on the VPS and takes its own tickets",
+    "status": "planning",
+    "path": "spec/features/AR0307-the-switch-arthur-runs-on-the-vps-and-takes-its-own-tickets/ticket.md",
+    "updated": "2026-10-23T11:10:15.319Z",
+    "after": [
+      "AR0273"
+    ]
+  },
+  {
+    "id": "AR0308",
+    "title": "After a check fails at merge, the coordinator continues the worker itself",
+    "status": "done",
+    "path": "spec/features/AR0308-after-a-check-fails-at-merge-the-coordinator-continues-the-worker-itself/ticket.md",
+    "updated": "2026-10-23T11:29:36.881Z"
+  },
+  {
+    "id": "AR0309",
+    "title": "CI on GitHub fails since 2026-10-21: merge tests have no git identity on the runner",
+    "status": "merged",
+    "path": "spec/features/AR0309-ci-on-github-fails-since-2026-10-21-merge-tests-have-no-git-identity-on-the-runner/ticket.md",
+    "updated": "2026-10-23T11:36:09.776Z"
+  },
+  {
+    "id": "AR0310",
+    "title": "`arthur merge` fails for a user with no git identity, only after its review and checks ran",
+    "status": "planned",
+    "path": "spec/features/AR0310-arthur-merge-fails-for-a-user-with-no-git-identity-only-after-its-review-and-checks-ran/ticket.md",
+    "updated": "2026-10-23T11:36:24.237Z"
   }
 ]

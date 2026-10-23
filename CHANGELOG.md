@@ -25,6 +25,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0309 CI on GitHub fails since 2026-10-21: merge tests have no git identity on the runner (dc3a23c)
 - AR0310 `arthur merge` fails for a user with no git identity, only after its review and checks ran (5aae50d)
 - AR0316 A listed machine with no git identity is not told, though its workers commit there (acd470e)
+- AR0318 A listed machine without git is told to set a git identity, and stays online (3ce46a6)
 
 ### Changed
 

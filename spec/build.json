@@ -2438,8 +2438,8 @@
   {
     "id": "AR0318",
     "title": "A listed machine without git is told to set a git identity, and stays online",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0318-a-listed-machine-without-git-is-told-to-set-a-git-identity-and-stays-online/ticket.md",
-    "updated": "2026-10-23T13:54:05.276Z"
+    "updated": "2026-10-23T13:57:22.354Z"
   }
 ]

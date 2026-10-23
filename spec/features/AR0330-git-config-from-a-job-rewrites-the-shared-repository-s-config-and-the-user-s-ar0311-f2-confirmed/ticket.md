@@ -37,3 +37,4 @@ In:
 - 2026-10-23: Source: F2 of AR0320
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; starts after the ten security checks AR0319-AR0328.
 - 2026-10-23: The owner: weekly cap raised to 40%; fixes one at a time to avoid conflicts, criticals first (AR0329, AR0346), then highs (AR0330, AR0331, AR0347, AR0349, AR0353, AR0370).
+- 2026-10-23: Coordinator accepted the line budget raises core 5817 -> 5845, delivery 1305 -> 1310, github 633 -> 635 (git config read and refused; hookless flags on Arthur's own git calls).

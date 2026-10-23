@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { availableParallelism, totalmem } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
@@ -131,6 +131,18 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	const second = await jobs.spawn({ task: "Again.", machine: "gpu", kind: "worker" });
 	assert.equal(second.failed, undefined);
 	assert.equal(calls().filter((call) => call.includes("git-receive-pack")).length, 1, "the base commit there is not pushed twice");
+});
+
+test("under umask 022 a spawn leaves the home here and the one there their user's alone: one made 0755 earlier and a new one are 0700", async (t) => {
+	const mask = process.umask(0o022);
+	t.after(() => process.umask(mask));
+	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Built it.", cost: 0 }] }) });
+	mkdirSync(home);
+	assert.equal(statSync(home).mode & 0o777, 0o755, "the umask in force");
+	assert.equal(existsSync(there), false);
+	const job = await jobs.spawn({ task: "Build it.", machine: "gpu" });
+	assert.equal(job.failed, undefined);
+	assert.deepEqual([statSync(home).mode & 0o777, statSync(there).mode & 0o777], [0o700, 0o700]);
 });
 
 // AR0235 F2: a review on another machine checks out a worker's tip that only this repository holds.

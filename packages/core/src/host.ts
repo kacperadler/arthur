@@ -12,6 +12,7 @@ import { type DoctorLine, doctor, ownAnswers } from "./doctor.ts";
 import { knownProject } from "./job-checkout.ts";
 import { SLICE } from "./job-scope.ts";
 import { type JobRunner, jobRunner } from "./jobs.ts";
+import { ownHome } from "./own-home.ts";
 import { coreRequirements } from "./requirements.ts";
 import type { Answer, Plugin } from "./plugin.ts";
 import { asPlugin, pluginHost, pluginStep, registry } from "./plugin-host.ts";
@@ -47,6 +48,8 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	// `Host.package`: the nearest folder with a package.json above each plugin's own `module`; `Host.code`: the core's, then those, once each.
 	const packages = sorted.map((plugin) => (plugin.module === undefined ? undefined : packageOf(fileURLToPath(plugin.module))));
 	const code = [...new Set([CORE, ...packages.filter((each) => each !== undefined)])];
+	// Every command that loads the plugins makes the home before writing in it, so it is Arthur's user's alone from the first one.
+	ownHome(config.core.home);
 	for (const [index, plugin] of sorted.entries()) {
 		const { enabled: _, ...options } = plugin.options ?? {};
 		const folder = join(config.core.home, plugin.name);

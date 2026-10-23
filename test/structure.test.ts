@@ -523,7 +523,11 @@ import { checkStructure } from "./structure.ts";
 // so nothing was cut.
 // Merged main (AR0304) into AR0305: main's budgets plus AR0305's core 5772 (recounted with wc -l).
 // Merged main (AR0305) into AR0306: main's budgets plus AR0306's 15, core 5772 + 15 = 5787 (recounted with wc -l).
-const BUDGETS = { core: 5787, "core/testing": 349, projects: 485, orchestration: 2309, machines: 479, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 681, findings: 254 };
+// AR0313 (F2 of AR0308; its Goal: a count on an `expect.calls` entry, so delivery/check-failed requires one `arthur continue`):
+// develop 22 more (703) for `{ match, times }` read with its refusals (eval-scenario.ts, git diff --numstat +21 -2: the
+// function with its comment and a blank 17, the `Call` type with its comment 2) and scored against every call of the turn
+// (eval-run.ts, +6 -3). `calls` counted nothing before, so nothing was cut.
+const BUDGETS = { core: 5787, "core/testing": 349, projects: 485, orchestration: 2309, machines: 479, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 703, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

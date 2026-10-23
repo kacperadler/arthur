@@ -28,8 +28,9 @@ export function reviewNeededCommand(host: Host, held: (path: string) => boolean)
 			const job = worker(host, name);
 			const { folder: feature, root, commit: tip, base } = branchOf(host, job);
 			const ticket = basename(feature).split("-")[0] ?? "";
+			// No hook or fsmonitor the main checkout's config names runs: a program a job runs may have set them (AR0330).
 			const git = (...words: string[]) => {
-				const ran = spawnSync("git", ["-C", root, ...words], { encoding: "utf8" });
+				const ran = spawnSync("git", ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...words], { encoding: "utf8" });
 				if (ran.status !== 0) throw new Error(`git ${words.join(" ")} in ${root}: ${ran.stderr.trim().split("\n").at(-1) ?? `exit ${ran.status}`}`);
 				return ran.stdout.trim();
 			};

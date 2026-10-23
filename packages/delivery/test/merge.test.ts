@@ -139,6 +139,23 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 	assert.equal((await merge(job.id)).err, `arthur merge: AC0001 is merged; a merge is of a ticket in-progress, review or done`);
 });
 
+test("the review's checkout and the merge run no hook and no fsmonitor that the repository's shared config names", async (t) => {
+	const { root, git, worker, review, merge } = await load(t);
+	const job = await worker();
+	// Each hook these steps could run, and an fsmonitor, noting its name in `ran`, as a job's program may have set them.
+	const [hooks, ran] = [temporaryFolder(), join(temporaryFolder(), "ran")];
+	for (const name of ["post-checkout", "reference-transaction", "pre-merge-commit", "prepare-commit-msg", "commit-msg", "post-merge", "post-commit", "pre-push", "fsmonitor"])
+		writeFileSync(join(hooks, name), `#!/bin/sh\necho ${name} >> '${ran}'\n`, { mode: 0o755 });
+	git(root, "config", "core.hooksPath", hooks);
+	git(root, "config", "core.fsmonitor", join(hooks, "fsmonitor"));
+	await review(job.id, "PASS");
+	const merged = await merge(job.id);
+	assert.equal(merged.code, undefined, merged.err);
+	assert.equal(existsSync(ran) ? readFileSync(ran, "utf8") : "", "");
+	git(root, "commit", "--quiet", "--allow-empty", "-m", "control");
+	assert.match(readFileSync(ran, "utf8"), /^fsmonitor$[^]*^commit-msg$/m, "a plain git call runs them");
+});
+
 test("refused, main unchanged: no PASS on the tip, a FAIL on it, a PASS on an older commit; --unreviewed lets it in and outcome.md says so", async (t) => {
 	const { root, commit, worker, review, merge, head, status } = await load(t);
 	const job = await worker();

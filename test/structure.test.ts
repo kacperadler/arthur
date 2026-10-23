@@ -523,7 +523,12 @@ import { checkStructure } from "./structure.ts";
 // so nothing was cut.
 // Merged main (AR0304) into AR0305: main's budgets plus AR0305's core 5772 (recounted with wc -l).
 // Merged main (AR0305) into AR0306: main's budgets plus AR0306's 15, core 5772 + 15 = 5787 (recounted with wc -l).
-const BUDGETS = { core: 5787, "core/testing": 349, projects: 485, orchestration: 2309, machines: 479, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 681, findings: 254 };
+// AR0310 (F1 of AR0309; its Done means: check for a git identity where Arthur first needs one, as a health line, and name the
+// fix): delivery 20 more (1305) for the identity requirement, `git var` of the author and the committer in each project's
+// checkout, served to `arthur doctor` and asked again before each merge (merge-command.ts, git diff --numstat +19 -2: the
+// requirement 10, its comment 3, a blank 1, the merge's refusal 3, two imports changed in place; delivery.ts, +4 -1: the
+// provider 1, its comment 2, an import changed in place). No identity was checked before, so nothing was cut.
+const BUDGETS = { core: 5787, "core/testing": 349, projects: 485, orchestration: 2309, machines: 479, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1305, github: 630, manage: 925, develop: 681, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

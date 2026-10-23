@@ -2692,9 +2692,9 @@
   {
     "id": "AR0353",
     "title": "No command but three asks whether it runs inside a job: a job merges, spawns, stops, sends and moves the board (AR0311 F5, confirmed)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0353-no-command-but-three-asks-whether-it-runs-inside-a-job-a-job-merges-spawns-stops-sends-and-moves-the-board-ar0311-f5-confirmed/ticket.md",
-    "updated": "2026-10-23T20:13:08.142Z"
+    "updated": "2026-10-23T20:16:39.515Z"
   },
   {
     "id": "AR0354",
@@ -2912,5 +2912,19 @@
     "status": "planned",
     "path": "spec/features/AR0384-git-replace-from-a-job-s-worktree-changes-what-every-worktree-reads-of-main-s-commits/ticket.md",
     "updated": "2026-10-23T17:34:07.667Z"
+  },
+  {
+    "id": "AR0385",
+    "title": "`arthur help --help` names nine of the core's seventeen commands as the ones left when the config does not load",
+    "status": "planned",
+    "path": "spec/features/AR0385-arthur-help-help-names-nine-of-the-core-s-seventeen-commands-as-the-ones-left-when-the-config-does-not-load/ticket.md",
+    "updated": "2026-10-23T20:16:54.237Z"
+  },
+  {
+    "id": "AR0386",
+    "title": "Inside a job the read-only `ci <branch>`, `config check`, `doctor`, `retro` and `usage` are refused with the commands that change state",
+    "status": "planned",
+    "path": "spec/features/AR0386-inside-a-job-the-read-only-ci-branch-config-check-doctor-retro-and-usage-are-refused-with-the-commands-that-change-state/ticket.md",
+    "updated": "2026-10-23T20:16:54.461Z"
   }
 ]

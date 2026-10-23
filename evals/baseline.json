@@ -1,6 +1,6 @@
 {
 	"delivery/check-failed": {
-		"passed": 2,
+		"passed": 3,
 		"runs": 3
 	},
 	"delivery/condition-before-review": {

@@ -2510,9 +2510,9 @@
   {
     "id": "AR0327",
     "title": "Security check: file modes of Arthur's home, records, sockets and locks",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0327-security-check-file-modes-of-arthur-s-home-records-sockets-and-locks/ticket.md",
-    "updated": "2026-10-23T14:53:34.258Z"
+    "updated": "2026-10-23T14:59:08.024Z"
   },
   {
     "id": "AR0328",
@@ -2807,5 +2807,26 @@
     "status": "planned",
     "path": "spec/features/AR0369-the-agent-s-own-request-to-a-provider-is-never-checked-against-the-private-network/ticket.md",
     "updated": "2026-10-23T14:55:52.099Z"
+  },
+  {
+    "id": "AR0370",
+    "title": "The home and everything under it take the process umask: records, logs, the event log and every lock are readable by other users of the host (AR0311 F15, confirmed)",
+    "status": "planned",
+    "path": "spec/features/AR0370-the-home-and-everything-under-it-take-the-process-umask-records-logs-the-event-log-and-every-lock-are-readable-by-other-users-of-the-host-ar0311-f15-confirmed/ticket.md",
+    "updated": "2026-10-23T14:59:24.224Z"
+  },
+  {
+    "id": "AR0371",
+    "title": "The board's lock and temporary files in each project's checkout take the umask too, outside the home's reach",
+    "status": "planned",
+    "path": "spec/features/AR0371-the-board-s-lock-and-temporary-files-in-each-project-s-checkout-take-the-umask-too-outside-the-home-s-reach/ticket.md",
+    "updated": "2026-10-23T14:59:24.611Z"
+  },
+  {
+    "id": "AR0372",
+    "title": "The stash refusal tells a job to write its patch to a fixed name in /tmp",
+    "status": "planned",
+    "path": "spec/features/AR0372-the-stash-refusal-tells-a-job-to-write-its-patch-to-a-fixed-name-in-tmp/ticket.md",
+    "updated": "2026-10-23T14:59:24.915Z"
   }
 ]

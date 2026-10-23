@@ -11,6 +11,7 @@ import { current, field, ID, inRun, told } from "./job-state.ts";
 import type { Job } from "./jobs.ts";
 import { withLock } from "./lock.ts";
 import type { Copy } from "./machine-sync.ts";
+import { ownHome } from "./own-home.ts";
 
 // `arthur remote-job`, the half of a job on another machine that runs there (spec/roadmap.md, entries 21 and 22), called over
 // SSH by the main Arthur: docs/commands/remote-job.md. It needs no config there: the jobs' slice there gets the machine's own
@@ -25,6 +26,8 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 	// Prints `present` when the repository of the project holds the commit, else `missing`, creating the repository bare.
 	repo(home, [project = "", commit = ""]) {
 		if (basename(project) !== project || project.startsWith(".")) throw new Error(`a project name, got ${JSON.stringify(project)}`);
+		// The first step of a spawn there, so the home there is Arthur's user's alone before anything is written in it.
+		ownHome(home);
 		const root = join(home, "repos", `${project}.git`);
 		// Created once: `git init` again writes `core.bare` back into the shared config, after a `prepare` may have moved it out.
 		if (!existsSync(join(root, "HEAD"))) git(["init", "--quiet", "--bare", root]);
@@ -121,12 +124,19 @@ export function remoteJobCommand(): Command {
 	return {
 		name: "remote-job",
 		doc: new URL("../docs/commands/remote-job.md", import.meta.url),
+		// Inside a job only `records` runs (AR0353), which only reads the job records there.
+		inJob: true,
 		async run({ args }) {
 			const [step = "", home = "", ...rest] = args;
 			const run = Object.hasOwn(STEPS, step) ? STEPS[step] : undefined;
 			if (run === undefined || !isAbsolute(home)) {
 				console.error(`arthur remote-job: ${run === undefined ? `unknown step ${JSON.stringify(step)}` : "the home folder must be an absolute path"}\n${USAGE}`);
 				return 2;
+			}
+			const job = process.env.ARTHUR_JOB ?? "";
+			if (job !== "" && step !== "records") {
+				console.error(`arthur remote-job ${step}: refused inside a job ${basename(job)}: a job runs only the commands its role needs; put what the coordinator should do in your final message`);
+				return 1;
 			}
 			await run(home, rest);
 		},

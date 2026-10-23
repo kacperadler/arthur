@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { test } from "node:test";
 import { temporaryFolder } from "../src/testing.ts";
@@ -297,4 +297,31 @@ test("inside an eval session (ARTHUR_EVAL set) every command refuses, naming why
 	}
 	assert.equal(existsSync(join(folder, ".arthur")), false, "nothing was written in the home folder");
 	assert.deepEqual([inEval("", "echo", "x").status, inEval("", "echo", "x").stdout], [3, `${JSON.stringify({ args: ["x"] })}\n`]);
+});
+
+test("inside a job (ARTHUR_JOB set) a command without inJob refuses before it runs and writes nothing; one with it, and --help, run; set empty, all run", () => {
+	const folder = project(CONFIG.replace('name: "quiet", doc: doc("quiet")', 'name: "quiet", doc: doc("quiet"), inJob: true'));
+	const record = "/home/arthur/.arthur/jobs/2026-10-23-worker-0a1b2c3d";
+	const inJob = (value: string, ...args: string[]) => {
+		writeFileSync(join(folder, "gone.md"), "# arthur gone\n");
+		return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", ARTHUR_JOB: value } });
+	};
+	assert.equal(arthur(folder, "quiet").status, 0, "the home folder as a live one has it");
+	const home = () => readdirSync(join(folder, ".arthur"), { recursive: true, encoding: "utf8" }).sort().map((path) => (statSync(join(folder, ".arthur", path)).isFile() ? `${path}: ${readFileSync(join(folder, ".arthur", path), "utf8")}` : path));
+	const before = home();
+	for (const args of [["echo", "x"], ["boom"], ["--project", "acme", "echo"], ["ticket", "new", "A"], ["spawn", "Fix it."], ["send", "a.png"], ["stop", "x"], ["stopall"], ["steer", "x", "y"], ["continue", "x", "y"], ["prune", "--all"], ["run"], ["setup"], ["config", "check"], ["doctor"], ["remote-job", "stop", "/home/arthur/.arthur", "x"]]) {
+		const run = inJob(record, ...args);
+		const name = args[0] === "--project" ? args[2] : args[0] === "remote-job" ? "remote-job stop" : args[0];
+		const refusal = `arthur ${name}: refused inside a job 2026-10-23-worker-0a1b2c3d: a job runs only the commands its role needs; put what the coordinator should do in your final message\n`;
+		assert.deepEqual([run.status, run.stdout, run.stderr], [1, "", refusal], args.join(" "));
+	}
+	assert.deepEqual([home(), existsSync(join(folder, "spec"))], [before, false], "nothing was written in the home folder or the board");
+	for (const [args, out] of [[["quiet"], ""], [["echo", "--help"], "# arthur echo\n"], [["help", "echo"], "# arthur echo\n"], [["version"], /^[0-9a-f]{12}\n$/], [["jobs"], "no jobs\n"], [["remote-job", "records", join(folder, ".arthur")], "{}\n"]] as const) {
+		const run = inJob(`${record}/`, ...args);
+		assert.deepEqual([run.status, run.stderr], [0, ""], args.join(" "));
+		if (typeof out === "string") assert.equal(run.stdout, out, args.join(" "));
+		else assert.match(run.stdout, out, args.join(" "));
+	}
+	assert.match(inJob(record, "help").stdout, /^usage: arthur /);
+	assert.deepEqual([inJob("", "echo", "x").status, inJob("", "echo", "x").stdout], [3, `${JSON.stringify({ args: ["x"] })}\n`]);
 });

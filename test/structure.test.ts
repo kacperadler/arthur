@@ -566,6 +566,25 @@ import { checkStructure } from "./structure.ts";
 // add --force` that also point a checkout at main, and its comment (git-writes.ts, git diff --numstat +20 -2), refused by the
 // guard, the worktree's `.git` guarded as the main checkout, and the limits named (worktree-guard.ts, +18 -12). Nothing read
 // these calls before, so nothing was cut.
+// AR0349 (F4 of AR0311; its Done means: every line of a job's final message or a plugin's text quoted under its mark, and a
+// `coordinator-message` marked with its plugin): orchestration 8 more (2317) for the quoting at every line break and the
+// plugin's mark (hand-over.ts, git diff --numstat +10 -4) and the plugin carried and required (inbox.ts, +11 -9); session 2
+// more (880) for the handoff quoted the same way (handoff-extension.ts, +4 -2); develop 1 more (704) for a plugin's turn that
+// names its plugin (eval-scenario.ts, +7 -6). Nothing quoted a message's lines before, so nothing was cut.
+// AR0353 (F1 of AR0323; its Done means: one gate in cli.ts, `Command.inJob` declared by the commands a job may run): core 20
+// more (5889) for the gate, its comment and the basename import (cli.ts, 8), `inJob` on help and roles (2; version's and jobs'
+// went on their own lines), the field, its comment and its check at registration (commands.ts, 3), and remote-job's `inJob`
+// with its comment and its own refusal of every step but `records` (remote-job.ts, 7); schedule 9 more (594) for `add` and
+// `remove` refused inside a job, with the comment (schedule-command.ts, git diff --numstat +9 -2), and `inJob` with its comment
+// (schedule.ts, 2); one line each for `inJob` on develop's `plugin` (705), findings' `findings` (255), machines' `machines`
+// (488), projects' `projects` (486), resources' `resources` (617); manage 3 more (928, `health`, `stats`, `retro-due`);
+// orchestration 2 more (2319, `decisions` and the board's three). Only three commands' own checks refused a job before, so
+// nothing was cut.
+// AR0370 (F1 of AR0327; its Done means: one `ownHome` in its own file, called where the home is made): core 16 more (5905) for
+// own-home.ts (9: the mkdir, the chmod that keeps the owner's bits only, so a read-only home is still refused, and why), its
+// call with a comment in host.ts (3, every command that loads the plugins) and in remote-job.ts's `repo` (3, the home there),
+// and the import in requirements.ts (1); run.ts and spawn-check.ts swap their `mkdirSync` for it. Nothing made the home its
+// user's alone before, so nothing was cut.
 // AR0378 (the ticket's Done means: a Kind of the template's list, the board's Kind column and `/board <kind>`): core 34 more
 // (5903) for the kinds and a ticket's Kind read under its Goal, `planned` refusing another (ticket-template.ts, git diff
 // --numstat +14 -3), each line's Kind read from its ticket.md and the board of one Kind (board-text.ts, +25 -6), and
@@ -573,7 +592,9 @@ import { checkStructure } from "./structure.ts";
 // KIND` and `--kind` with their refusals (board-commands.ts, +18 -7); delivery 1 more (1311) for the new kinds' changelog
 // headings; findings 1 fewer (253), its copy of the kinds gone for `host.board.kinds`. Nothing read a ticket's Kind for the
 // board before, so nothing was cut.
-const BUDGETS = { core: 5903, "core/testing": 349, projects: 485, orchestration: 2320, machines: 487, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1311, github: 635, manage: 925, develop: 703, findings: 253 };
+// Merged main (AR0349, AR0353, AR0370) into AR0378: main's budgets plus AR0378's raises, core 5905 + 34 = 5939, orchestration
+// 2319 + 11 = 2330, delivery 1311, findings 255 - 1 = 254 (recounted with wc -l).
+const BUDGETS = { core: 5939, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1311, github: 635, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

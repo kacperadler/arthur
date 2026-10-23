@@ -13,8 +13,8 @@ import { held } from "./silent.ts";
 // time in the order of their numbers, so none overtakes one before it and a restart resolves what it cut. The replies the
 // extension writes to `<folder>/outbox/` are emitted here: docs/commands/coordinator.md, "The coordinator's inbox".
 
-// A queued message: a human's from a channel, or Arthur's own (a job's end, a schedule action) without one.
-export type Message = { readonly channel?: string; readonly text: string };
+// A queued message: a human's from a channel, or Arthur's own without one: a job's end, or a plugin's, which names it.
+export type Message = { readonly channel?: string; readonly plugin?: string; readonly text: string };
 
 const SWEEP_MS = 500;
 const RESULT_LINES = 15;
@@ -66,11 +66,11 @@ export function inbox(host: Host): { start(): void; stop(): void } {
 	});
 	host.events.on("coordinator-message", (event) => {
 		const said = ((event.data ?? {}) as Readonly<Record<string, unknown>>).text;
-		if (text(said)) queue(folder, event, { text: said });
+		if (text(said)) queue(folder, event, { plugin: event.plugin, text: said });
 		else console.error(`orchestration: coordinator-message (event ${event.seq}) ignored: expected { text }, non-empty text`);
 	});
 	host.events.on("job-ended", (event) => queue(folder, event, { text: wake(host, event.data) }));
-	host.provide("coordinator.turn", (name: unknown, data: unknown, result: unknown) => turn(host, name, data, result));
+	host.provide("coordinator.turn", (name: unknown, data: unknown, more: unknown) => turn(host, name, data, more));
 	for (const name of ["job-started", "job-state", "job-ended"]) host.events.on(name, () => footer(host));
 	let timer: NodeJS.Timeout | undefined;
 	return {
@@ -139,14 +139,16 @@ function wake(host: Host, data: unknown, final?: string): string {
 }
 
 // What `coordinator.turn` answers (`arthur eval` asks it): the text the coordinator's agent gets for one event the inbox
-// queues, handed over alone while idle; `result` stands for the final message of the job a `job-ended` names. A message's
-// parts are text only, which no plugin is asked to resolve, so the answer acts on nothing.
-async function turn(host: Host, name: unknown, data: unknown, result: unknown): Promise<string> {
-	if (name === "job-ended") return handOver([{ text: wake(host, data, typeof result === "string" ? result : "") }]);
+// queues, handed over alone while idle; `more` stands for the final message of the job a `job-ended` names, and names the
+// plugin that emitted a `coordinator-message`. A message's parts are text only, which no plugin is asked to resolve, so the
+// answer acts on nothing.
+async function turn(host: Host, name: unknown, data: unknown, more: unknown): Promise<string> {
+	if (name === "job-ended") return handOver([{ text: wake(host, data, typeof more === "string" ? more : "") }]);
 	if (name === "coordinator-message") {
 		const said = ((data ?? {}) as Readonly<Record<string, unknown>>).text;
 		if (!text(said)) throw new Error("coordinator.turn: coordinator-message: expected { text }, non-empty text");
-		return handOver([{ text: said }]);
+		if (!text(more)) throw new Error("coordinator.turn: coordinator-message: expected the plugin that emitted it, as text");
+		return handOver([{ plugin: more, text: said }]);
 	}
 	if (name !== "message-received") throw new Error(`coordinator.turn: expected message-received, coordinator-message or job-ended, got ${describe(name)}`);
 	const message = received(data);

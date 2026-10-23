@@ -142,6 +142,7 @@ export function machines(options: MachinesOptions = {}): Plugin {
 			host.commands.register({
 				name: "machines",
 				doc: new URL("../docs/commands/machines.md", import.meta.url),
+				inJob: true,
 				phone: { about: "every machine: its labels, online or why not, its jobs", reply: (text) => (text.trim() === "" ? overview() : "usage: /machines") },
 				async run({ args }) {
 					if (args.length > 0) {

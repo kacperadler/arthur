@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
-import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { hostname, userInfo } from "node:os";
 import { delimiter, join } from "node:path";
 import { type TestContext, test } from "node:test";
@@ -173,6 +173,24 @@ test("a home that is not writable is a critical miss", { skip: ROOT && "root wri
 	const [, , , home] = await doctor(coreRequirements(join(parent, "home"), "omp"), []);
 	assert.equal(home?.text, `core home: missing: ${join(parent, "home")} is not writable (EACCES); without it: nothing is kept: no job record, no event log, no plugin's state; fix: sudo chown -R ${USER} ${join(parent, "home")}, or set core.home in arthur.config.ts to a folder ${USER} can write`);
 	assert.equal(home?.critical, true);
+});
+
+test("under umask 022 the home is its user's alone: a new one is made 0700, one made 0755 earlier is 0700 once the check or arthur doctor ran", async (t) => {
+	const mask = process.umask(0o022);
+	t.after(() => process.umask(mask));
+	const mode = (path: string) => statSync(path).mode & 0o777;
+	const made = join(temporaryFolder(), "home");
+	const earlier = join(temporaryFolder(), "home");
+	mkdirSync(earlier);
+	assert.equal(mode(earlier), 0o755, "the umask in force");
+	for (const home of [made, earlier]) {
+		const [, , , line] = await doctor(coreRequirements(home, "omp"), []);
+		assert.deepEqual([line?.text, mode(home)], ["core home: ok", 0o700], home);
+	}
+	const { home, arthur } = project();
+	mkdirSync(home);
+	assert.equal(arthur("doctor").status, 0);
+	assert.equal(mode(home), 0o700, "arthur doctor");
 });
 
 test("a check that hangs is cut after 10 s, every check at once, and the others answer", async () => {

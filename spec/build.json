@@ -2356,19 +2356,17 @@
     "title": "The switch: Arthur runs on the VPS and takes its own tickets",
     "status": "planning",
     "path": "spec/features/AR0307-the-switch-arthur-runs-on-the-vps-and-takes-its-own-tickets/ticket.md",
-    "updated": "2026-10-23T13:59:16.911Z",
+    "updated": "2026-10-23T20:36:14.637Z",
     "after": [
-      "AR0273",
-      "AR0319",
-      "AR0320",
-      "AR0321",
-      "AR0322",
-      "AR0323",
-      "AR0324",
-      "AR0325",
-      "AR0326",
-      "AR0327",
-      "AR0328"
+      "AR0329",
+      "AR0346",
+      "AR0330",
+      "AR0331",
+      "AR0347",
+      "AR0349",
+      "AR0353",
+      "AR0370",
+      "AR0378"
     ]
   },
   {
@@ -2650,9 +2648,9 @@
   {
     "id": "AR0347",
     "title": "The copy's deny-list misses the keys this side acts on: the branch fetched is whatever the copied record names",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0347-the-copy-s-deny-list-misses-the-keys-this-side-acts-on-the-branch-fetched-is-whatever-the-copied-record-names/ticket.md",
-    "updated": "2026-10-23T14:26:05.640Z"
+    "updated": "2026-10-23T18:52:00.749Z"
   },
   {
     "id": "AR0348",
@@ -2664,9 +2662,9 @@
   {
     "id": "AR0349",
     "title": "A line inside a job's final message or a GitHub review reads as a paragraph from the owner (AR0311 F4, confirmed)",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0349-a-line-inside-a-job-s-final-message-or-a-github-review-reads-as-a-paragraph-from-the-owner-ar0311-f4-confirmed/ticket.md",
-    "updated": "2026-10-23T14:38:03.008Z"
+    "updated": "2026-10-23T19:30:48.753Z"
   },
   {
     "id": "AR0350",
@@ -2692,9 +2690,9 @@
   {
     "id": "AR0353",
     "title": "No command but three asks whether it runs inside a job: a job merges, spawns, stops, sends and moves the board (AR0311 F5, confirmed)",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0353-no-command-but-three-asks-whether-it-runs-inside-a-job-a-job-merges-spawns-stops-sends-and-moves-the-board-ar0311-f5-confirmed/ticket.md",
-    "updated": "2026-10-23T14:41:33.752Z"
+    "updated": "2026-10-23T20:16:39.515Z"
   },
   {
     "id": "AR0354",
@@ -2811,9 +2809,9 @@
   {
     "id": "AR0370",
     "title": "The home and everything under it take the process umask: records, logs, the event log and every lock are readable by other users of the host (AR0311 F15, confirmed)",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0370-the-home-and-everything-under-it-take-the-process-umask-records-logs-the-event-log-and-every-lock-are-readable-by-other-users-of-the-host-ar0311-f15-confirmed/ticket.md",
-    "updated": "2026-10-23T14:59:24.224Z"
+    "updated": "2026-10-23T20:39:07.548Z"
   },
   {
     "id": "AR0371",
@@ -2867,9 +2865,9 @@
   {
     "id": "AR0378",
     "title": "A ticket has a Conventional Commits kind, and the board filters by it",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0378-a-ticket-names-its-area-and-the-board-filters-by-it/ticket.md",
-    "updated": "2026-10-23T16:48:26.340Z"
+    "updated": "2026-10-23T18:17:54.233Z"
   },
   {
     "id": "AR0379",
@@ -2912,5 +2910,19 @@
     "status": "planned",
     "path": "spec/features/AR0384-git-replace-from-a-job-s-worktree-changes-what-every-worktree-reads-of-main-s-commits/ticket.md",
     "updated": "2026-10-23T17:34:07.667Z"
+  },
+  {
+    "id": "AR0385",
+    "title": "`arthur help --help` names nine of the core's seventeen commands as the ones left when the config does not load",
+    "status": "planned",
+    "path": "spec/features/AR0385-arthur-help-help-names-nine-of-the-core-s-seventeen-commands-as-the-ones-left-when-the-config-does-not-load/ticket.md",
+    "updated": "2026-10-23T20:16:54.237Z"
+  },
+  {
+    "id": "AR0386",
+    "title": "Inside a job the read-only `ci <branch>`, `config check`, `doctor`, `retro` and `usage` are refused with the commands that change state",
+    "status": "planned",
+    "path": "spec/features/AR0386-inside-a-job-the-read-only-ci-branch-config-check-doctor-retro-and-usage-are-refused-with-the-commands-that-change-state/ticket.md",
+    "updated": "2026-10-23T20:16:54.461Z"
   }
 ]

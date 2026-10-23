@@ -36,6 +36,7 @@ When you stop because the task cannot go on without something outside you, the v
 
 - Never change a ticket's status; the coordinator does that.
 - Never merge, push, or switch branches.
+- Never run an `arthur` command a job may not run (`arthur help --help` lists those it may): the CLI refuses it, `arthur <name>: refused inside a job <id>: a job runs only the commands its role needs; put what the coordinator should do in your final message`. Do just that.
 - Never write outside your worktree, and never symlink another checkout into it.
 - Never read a secrets file (`.env`) or print a secret's value.
 - Never commit with `--no-verify`.

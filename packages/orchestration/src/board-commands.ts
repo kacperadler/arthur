@@ -26,6 +26,7 @@ function command(name: string, usage: string, about: string, reply: Reply): Comm
 	return {
 		name,
 		doc: new URL(`../docs/commands/${name}.md`, import.meta.url),
+		inJob: true,
 		phone: { about, reply: (text) => reply(text.split(/\s+/).filter(Boolean), undefined) ?? `usage: /${name} ${usage}` },
 		run({ args, project }) {
 			const answer = reply(args, project);

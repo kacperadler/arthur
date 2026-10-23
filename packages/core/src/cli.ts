@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync } from "node:fs";
+import { basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type Command, type CommandRegistry, commandRegistry } from "./commands.ts";
 import { configCheck } from "./config-check.ts";
@@ -41,6 +42,13 @@ async function main(argv: readonly string[]): Promise<number> {
 	const command = commands.find(name);
 	if (command === undefined) return unknown(name, commands, problem);
 	if (args.includes("--help")) return printDoc(command);
+	// The wrapper sets ARTHUR_JOB in a job's agent (spawn.md): there only a command that declares `inJob` runs (AR0353); the
+	// plugins' commands are known only once they loaded, which every command a job may run loads too.
+	const job = process.env.ARTHUR_JOB ?? "";
+	if (job !== "" && command.inJob !== true) {
+		console.error(`arthur ${name}: refused inside a job ${basename(job)}: a job runs only the commands its role needs; put what the coordinator should do in your final message`);
+		return 1;
+	}
 	try {
 		// No command runs for a project Arthur does not know; without a load the commands that read the list refuse anyway.
 		if (project !== undefined) known?.(project);
@@ -89,7 +97,7 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined, con
 	commands.register("core", sendCommand(need("the channels are plugins, and ", (app) => app.channels)));
 	for (const command of jobCommands(need("the job records are in the configured home folder, and ", (app) => app.home), jobs)) commands.register("core", command);
 	commands.register("core", remoteJobCommand());
-	commands.register("core", { name: "version", doc: new URL("../docs/commands/version.md", import.meta.url), run: () => console.log(coreVersion()) });
+	commands.register("core", { name: "version", doc: new URL("../docs/commands/version.md", import.meta.url), inJob: true, run: () => console.log(coreVersion()) });
 	commands.register("core", {
 		name: "config",
 		doc: new URL("../docs/commands/config.md", import.meta.url),
@@ -149,6 +157,7 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined, con
 	commands.register("core", {
 		name: "help",
 		doc: new URL("../docs/commands/help.md", import.meta.url),
+		inJob: true,
 		run({ args }) {
 			if (args.length > 1) return usage("help takes one command name");
 			const [name] = args;

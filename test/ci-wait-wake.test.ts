@@ -107,7 +107,7 @@ test("a waiting branch's CI end wakes the coordinator once, delivery's wake; the
 	const polls = api.count(RUNS);
 	await until("two more polls", () => api.count(RUNS) >= polls + 2);
 	const where = `${job.branch} (run 51, attempt 1, on ${tip.slice(0, 7)}): https://github.com/acme/shop/actions/runs/51`;
-	assert.deepEqual(messages().slice(before), [`[delivery] CI passed on ${where}. It waited for that: arthur merge --auto ${job.id}`], "one wake, delivery's");
+	assert.deepEqual(messages().slice(before), [`CI passed on ${where}. It waited for that: arthur merge --auto ${job.id}`], "one wake, delivery's");
 
 	const merged = await run("merge", job.id, "--auto");
 	assert.equal(merged.code, undefined, merged.err);

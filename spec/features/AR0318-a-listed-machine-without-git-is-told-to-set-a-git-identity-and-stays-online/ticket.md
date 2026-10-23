@@ -36,3 +36,4 @@ In:
 
 - 2026-10-23: Source: F1 of AR0316
 - 2026-10-23: Coordinator (free hand, finding ticket) approved.
+- 2026-10-23: Coordinator accepted machines' line budget raise 484 -> 487 (+3: exit 127 as 'git is not there' offline reason).

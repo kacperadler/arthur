@@ -2103,7 +2103,7 @@
     "title": "Delivery ships no review criteria, so `arthur init` still writes `review.md` as `# Review`",
     "status": "done",
     "path": "spec/features/AR0273-delivery-ships-no-review-criteria-so-arthur-init-still-writes-review-md-as-review/ticket.md",
-    "updated": "2026-10-23T11:13:25.710Z"
+    "updated": "2026-10-23T11:48:07.198Z"
   },
   {
     "id": "AR0274",
@@ -2364,9 +2364,9 @@
   {
     "id": "AR0308",
     "title": "After a check fails at merge, the coordinator continues the worker itself",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0308-after-a-check-fails-at-merge-the-coordinator-continues-the-worker-itself/ticket.md",
-    "updated": "2026-10-23T11:29:36.881Z"
+    "updated": "2026-10-23T11:42:13.552Z"
   },
   {
     "id": "AR0309",
@@ -2378,8 +2378,8 @@
   {
     "id": "AR0310",
     "title": "`arthur merge` fails for a user with no git identity, only after its review and checks ran",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0310-arthur-merge-fails-for-a-user-with-no-git-identity-only-after-its-review-and-checks-ran/ticket.md",
-    "updated": "2026-10-23T11:36:24.237Z"
+    "updated": "2026-10-23T11:36:47.381Z"
   }
 ]

@@ -35,6 +35,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0325 Security check: the Telegram channel answers the owner alone (9b12277)
 - AR0326 Security check: addresses Arthur fetches stay where the config says (77c97ec)
 - AR0327 Security check: file modes of Arthur's home, records, sockets and locks (45bdc3b)
+- AR0328 Security check: dependencies, installs and the CI workflows (4fa1b7e)
 
 ### Changed
 

@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
+import { runPlugins } from "../src/run.ts";
 import { temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
@@ -109,6 +110,28 @@ test("a start that throws stops the plugins started before it, in reverse, start
 	assert.equal(log(), "start orchestration\nstart a\nstart b\nstop a\nstop orchestration\n");
 	assert.equal(run.stdout, "arthur run: a start failed: stopping a, orchestration\narthur run: stopped\n");
 	assert.ok(!existsSync(join(home, "run.pid")));
+});
+
+test("under umask 022 arthur run leaves the home its user's alone: a new one 0700, one made 0755 earlier 0700", async (t) => {
+	const mask = process.umask(0o022);
+	t.after(() => process.umask(mask));
+	const fails = 'plugin("orchestration", { start() { throw new Error("no socket"); } })';
+	const made = project(fails);
+	const earlier = project(fails);
+	mkdirSync(earlier.home);
+	assert.equal(statSync(earlier.home).mode & 0o777, 0o755, "the umask in force");
+	for (const { folder, home } of [made, earlier]) {
+		assert.equal(runOnce(folder).status, 1);
+		assert.equal(statSync(home).mode & 0o777, 0o700, home);
+	}
+	// Without the load and the doctor's own check, which make it so too: the run's own step.
+	t.mock.method(console, "log", () => {});
+	t.mock.method(console, "error", () => {});
+	const { home } = project("");
+	mkdirSync(home);
+	const plugin = { name: "orchestration", setup() {}, start() { throw new Error("no socket"); } };
+	assert.equal(await runPlugins([plugin], home, () => () => {}, () => {}, async () => [], () => {}), 1);
+	assert.equal(statSync(home).mode & 0o777, 0o700, "runPlugins");
 });
 
 test("SIGINT stops like SIGTERM; a stop that throws is named, the other plugins still stop, and the exit code is 1", async (t) => {

@@ -17,6 +17,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0303 The test kit's exit removes the sockets of tmux servers a test left, so nothing can reach them (a8e6fe1)
 - AR0305 A lock left by a crashed process whose pid the taker now has counts as held by a live process (94846b2)
 - AR0306 The agent's extensions still append to `log` with a flag that creates it (7b2d80a)
+- AR0309 CI on GitHub fails since 2026-10-21: merge tests have no git identity on the runner (dc3a23c)
 
 ## 2026-10-22
 
@@ -114,7 +115,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0221 Roadmap 49: Telegram media in and out, arthur send (718a54a)
 - AR0222 YouTrack: the rest of full management, links, tags, search, articles like issues (a639c13)
 - AR0224 Roadmap 50: Telegram phone commands and the menu (a5028bd)
-- AR0227 An uptime plugin: Arthur checks client sites and tells the owner when one is down (4cf42d3)
+- AR0227 Roadmap 98: uptime, each project's sites checked (4cf42d3)
 - AR0228 Roadmap 51: freeze the host API (2e73ad8)
 
 ### Fixed

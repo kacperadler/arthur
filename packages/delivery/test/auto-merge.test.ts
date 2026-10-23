@@ -30,7 +30,7 @@ async function load(t: TestContext, github = true) {
 	const ids = Array.from({ length: TICKETS }, (_, at) => `AC000${at + 1}`);
 	for (const id of ids) files[`spec/features/${id}-t/ticket.md`] = `# ${id} - T\n\n\`\`\`json\n{ "id": "${id}" }\n\`\`\`\n`;
 	files["spec/build.json"] = JSON.stringify(ids.map((id) => ({ id, title: `T ${id}`, status: "planned", path: `spec/features/${id}-t/ticket.md`, updated: T0 })));
-	const git = (at: string, ...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "-C", at, ...args], { encoding: "utf8" }).trim();
+	const git = (at: string, ...args: string[]) => execFileSync("git", ["-C", at, ...args], { encoding: "utf8" }).trim();
 	const write = (at: string, changes: Readonly<Record<string, string>>) => {
 		for (const [path, text] of Object.entries(changes)) {
 			mkdirSync(dirname(join(at, path)), { recursive: true });
@@ -39,6 +39,9 @@ async function load(t: TestContext, github = true) {
 	};
 	write(root, files);
 	git(root, "init", "--quiet", "--initial-branch=main");
+	// Repo-local, so `arthur merge`'s own `git merge` has an identity on a runner with no global one.
+	git(root, "config", "user.name", "t");
+	git(root, "config", "user.email", "t@example.com");
 	git(root, "add", "--all");
 	git(root, "commit", "--quiet", "-m", "first");
 	t.after(() => {

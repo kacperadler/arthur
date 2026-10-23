@@ -18,7 +18,7 @@ import { type FakeRun, fakeGithub } from "../packages/github/test/fake-github.ts
 const FOLDER = "spec/features/SH0001-shop";
 const TOKEN = "github_pat_11ARTHUR0test0Never0Printed0abcdefghijklmnopqrstuvwxyz";
 const RUNS = "/repos/acme/shop/actions/workflows/ci.yml/runs";
-const git = (cwd: string, ...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd, encoding: "utf8" }).trim();
+const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 
 async function until(what: string, predicate: () => boolean) {
 	for (const end = Date.now() + 20_000; !predicate(); await sleep(20)) if (Date.now() > end) throw new Error(`timed out waiting for ${what}`);
@@ -39,6 +39,9 @@ test("a waiting branch's CI end wakes the coordinator once, delivery's wake; the
 		writeFileSync(join(shop, path), text);
 	}
 	git(shop, "init", "--quiet", "--initial-branch=main");
+	// Repo-local, so `arthur merge`'s own `git merge` has an identity on a runner with no global one.
+	git(shop, "config", "user.name", "t");
+	git(shop, "config", "user.email", "t@example.com");
 	git(shop, "add", "--all");
 	git(shop, "commit", "--quiet", "-m", "first");
 	git(shop, "remote", "add", "origin", origin);

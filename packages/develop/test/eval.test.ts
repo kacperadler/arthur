@@ -76,7 +76,7 @@ const PASSES = {
 	files: { "ticket.txt": ["^AR0002$"], "spec/AR0002.md": ["^# Fix the login$"], "notes.md": ["^noted$"], "real.txt": ["^arthur: refused inside an eval session \\(ARTHUR_EVAL is set\\)"] },
 	missing: ["nothing.md"],
 	refs: { "refs/heads/main": "moved", "origin:refs/heads/main": "kept" },
-	calls: ["^arthur ticket new Fix the login$", "^arthur merge AR0001$"],
+	calls: ["^arthur ticket new Fix the login$", { match: "^arthur merge AR0001$", times: 1 }],
 	never: ["^arthur stop"],
 	reply: { lines: 2, match: ["^Noted\\.$", "^AR0002 is the ticket\\.$"], never: ["sorry"] },
 	tools: ["^bash rm ", '^read \\{"path":"README\\.md"\\}$'],
@@ -248,7 +248,7 @@ test("a run fails on each expectation the files, the refs, the stub's log, the r
 				files: { "ticket.txt": ["^AR0009$", "^AR0002$"], "absent.md": ["x"] },
 				missing: ["notes.md"],
 				refs: { "refs/heads/main": "kept", "origin:refs/heads/main": "moved", "refs/heads/feature": "moved" },
-				calls: ["^arthur merge ", "^arthur ticket new "],
+				calls: [{ match: "^arthur (ticket|merge) ", times: 3 }, "^arthur merge ", { match: "^arthur (ticket new|send) ", times: 1 }, "^arthur ticket new "],
 				never: ["^arthur (merge|send) "],
 				reply: { lines: 1, match: ["^AR0009", "Noted"], never: ["\\bticket\\b", "^$"] },
 				tools: ["^bash [\\s\\S]*\\bsleep\\b", "notes\\.md", "^write "],
@@ -265,7 +265,9 @@ test("a run fails on each expectation the files, the refs, the stub's log, the r
 		"refs/heads/main moved: <sha> to <sha>",
 		"origin:refs/heads/main stayed at <sha>, expected to move",
 		"refs/heads/feature is gone, expected to move",
-		"no call matches /^arthur ticket new / after arthur merge AR0001",
+		"/^arthur (ticket|merge) / matches 2 calls, expected 3",
+		"/^arthur (ticket new|send) / matches 2 calls, expected 1",
+		"no call matches /^arthur ticket new / after arthur send report.png",
 		"arthur merge AR0001 matches /^arthur (merge|send) /",
 		"arthur send report.png matches /^arthur (merge|send) /",
 		"the reply has 2 lines, at most 1",
@@ -275,6 +277,30 @@ test("a run fails on each expectation the files, the refs, the stub's log, the r
 		"the agent's bash sleep 1 matches /^bash [\\s\\S]*\\bsleep\\b/",
 		'the agent\'s read {"path":"notes.md"} matches /notes\\.md/',
 	]);
+});
+
+test("expect.calls is a list of regexes or { match, times }, times a whole number 1 or more; any other fails the scenario, naming what is wrong", async (t) => {
+	const note = { message: "Note it." };
+	const shape = "expect.calls: expected a list of regexes or { match, times }";
+	const wrong: readonly (readonly [unknown, string])[] = [
+		["^arthur ", shape],
+		[[3], shape],
+		[[null], shape],
+		[[{ times: 1 }], shape],
+		[[{ match: 1, times: 1 }], shape],
+		[[{ match: "^arthur " }], "expect.calls[0].times: expected a whole number, 1 or more"],
+		[["^arthur ", { match: "^arthur ", times: 0 }], "expect.calls[1].times: expected a whole number, 1 or more"],
+		[[{ match: "^arthur ", times: 1.5 }], "expect.calls[0].times: expected a whole number, 1 or more"],
+		[[{ match: "^arthur ", times: "1" }], "expect.calls[0].times: expected a whole number, 1 or more"],
+		[[{ match: "(", times: 1 }], "Invalid regular expression: /(/: Unterminated group"],
+		[["("], "Invalid regular expression: /(/: Unterminated group"],
+	];
+	// Two digits, so the scenarios, which the eval lists by name, come in this order.
+	const name = (index: number) => `wrong${String(index).padStart(2, "0")}`;
+	const eval_ = await load(t, Object.fromEntries(wrong.map(([calls], index) => [name(index), { turn: note, expect: { calls } }])));
+	const answer = await eval_.eval("--runs", "1");
+	const refused = (index: number, why: string) => `${join(eval_.pkg, "evals", name(index), "scenario.json")}: ${why}`;
+	assert.deepEqual(answer.out.slice(0, -1), wrong.flatMap(([, why], index) => [`develop/${name(index)}: 0/1 (no baseline)`, `  run 1: ${refused(index, why)}`]));
 });
 
 test("the stub never reaches Arthur's home: no variable names it, a file outside the run's repository is refused, the home is as it was", async (t) => {

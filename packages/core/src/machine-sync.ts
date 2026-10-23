@@ -2,6 +2,7 @@ import { appendFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import type { Bus } from "./events.ts";
 import { gitOver, type Machine, ssh, url } from "./job-machine.ts";
+import { capFields } from "./job-record.ts";
 import { sayUncapped, UNCAPPED } from "./job-scope.ts";
 import { current, field, inRun, jobIds, kept, moveJob, type State, write } from "./job-state.ts";
 
@@ -21,8 +22,8 @@ export type Copy = {
 	readonly files: Readonly<Record<string, string>>;
 };
 
-// Files a copy never overwrites: the repository is the main checkout here; the state moves through `moveJob`, which keeps `ran`.
-const OWN = ["root", "machine", "state", "reason", "since", "ran"];
+// The files a copy brings besides `log`: the run's there, the wrapper's and those `remote-job continue` writes (as `continueJob` here); never the spawn's.
+const RUN = ["pid", "active", "cost", "tool-calls", "activity", "result", "commits", "budget", "continue", ...Object.keys(capFields({}))];
 const OFFLINE = "failed: machine offline";
 
 // The jobs of `machine` a copy follows: those in a run, and those its going offline held or failed, the record's `offline`
@@ -46,7 +47,7 @@ export function syncMachines(home: string, machines: readonly Machine[], bus: Bu
 	if (failed.length > 0) throw new Error(failed.join("\n"));
 }
 
-// With one SSH call, copies the changed files of the records of `machine`'s followed jobs, of the log only its new bytes; a
+// With one SSH call, copies the run's changed files of the records of `machine`'s followed jobs, of the log only its new bytes; a
 // run that ended there brings its branch into the job's `root` before its state moves here, then `job-ended`. A job failed
 // here while the machine was offline takes the state there only once that run ended.
 export function syncMachine(home: string, machine: Machine, bus: Bus): void {
@@ -54,21 +55,20 @@ export function syncMachine(home: string, machine: Machine, bus: Bus): void {
 	if (ids.length === 0) return;
 	const asked = ids.map((id) => `${id}=${field(home, id)("synced") || "0:0"}`);
 	const answer = JSON.parse(ssh(machine, ["arthur", "remote-job", "records", machine.home, ...asked])) as Record<string, Copy>;
-	// Before anything of the answer is written, each file's name is a record key: the name decides the path written here.
+	// Before anything of the answer is written, each file's name is a record key (it decides the path written here), and a branch is the job's own or none.
 	for (const id of ids) for (const name of Object.keys(answer[id]?.files ?? {})) if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error(`machine ${machine.name}: job ${id} sent a record file ${JSON.stringify(name)}; expected a name of lowercase letters, digits and dashes`);
+	for (const [id, branch] of ids.map((id) => [id, field(home, id)("branch")])) if (branch !== "" && branch !== `arthur/${id}`) throw new Error(`machine ${machine.name}: job ${id} names the branch ${JSON.stringify(branch)} in its record here; expected arthur/${id} or none`);
 	for (const id of ids) {
 		const copy = answer[id];
 		if (copy === undefined) continue;
 		const [folder, read] = [join(home, "jobs", id), field(home, id)];
-		const { log, ...files } = copy.files;
-		for (const [name, text] of Object.entries(files)) if (!OWN.includes(name) && read(name) !== text) write(folder, name, text);
-		if (log !== undefined && copy.logFrom > 0) appendFileSync(join(folder, "log"), log);
-		else if (log !== undefined) write(folder, "log", log);
+		for (const [name, text] of Object.entries(copy.files)) if (RUN.includes(name) && read(name) !== text) write(folder, name, text);
+		if (copy.files.log !== undefined && copy.logFrom > 0) appendFileSync(join(folder, "log"), copy.files.log);
+		else if (copy.files.log !== undefined) write(folder, "log", copy.files.log);
 		write(folder, "synced", `${copy.at}:${copy.logSize}`);
 		const ended = copy.state !== "working" && copy.state !== "idle";
 		if (read("state") === "ended" && !ended) continue;
-		const branch = read("branch");
-		if (ended && branch !== "") gitOver(read("root"), ["fetch", "--quiet", url(machine, read("project")), `+refs/heads/${branch}:refs/heads/${branch}`]);
+		if (ended && read("branch") !== "") gitOver(read("root"), ["fetch", "--quiet", url(machine, read("project")), `+refs/heads/arthur/${id}:refs/heads/arthur/${id}`]);
 		// A plugin's hold here stands while the run goes on there, and ends with it, as the wrapper's does, unless it stopped the run.
 		let [state, reason] = [copy.state, copy.reason];
 		moveJob(home, id, bus, (now) => {

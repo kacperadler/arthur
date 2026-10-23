@@ -2811,9 +2811,9 @@
   {
     "id": "AR0370",
     "title": "The home and everything under it take the process umask: records, logs, the event log and every lock are readable by other users of the host (AR0311 F15, confirmed)",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0370-the-home-and-everything-under-it-take-the-process-umask-records-logs-the-event-log-and-every-lock-are-readable-by-other-users-of-the-host-ar0311-f15-confirmed/ticket.md",
-    "updated": "2026-10-23T20:17:00.298Z"
+    "updated": "2026-10-23T20:32:50.528Z"
   },
   {
     "id": "AR0371",

@@ -26,6 +26,7 @@ export function retro(host: Host, options: RetroOptions | undefined): void {
 	host.commands.register({
 		name: "retro-due",
 		doc: new URL("../docs/commands/retro-due.md", import.meta.url),
+		inJob: true,
 		run({ args, project }) {
 			if (args.length > 0) {
 				console.error("usage: arthur retro-due [--project <name>]");

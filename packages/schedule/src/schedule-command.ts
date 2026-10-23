@@ -1,5 +1,5 @@
 import { rmSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
 import { type Entry, isId, isOneOff, lastSlot } from "./entry.ts";
 import { changeEntries, owners, readEntries } from "./entry-file.ts";
@@ -18,7 +18,8 @@ const FLAGS: readonly string[] = ["days", "message", "procedure", "task", "kind"
 
 type Flags = { readonly words: readonly string[]; readonly values: Readonly<Record<string, string>> };
 
-// Writes its output; a refusal throws, wrong usage is exit code 2. `project` is the core's `--project`, a job's project.
+// Writes its output; a refusal throws, wrong usage is exit code 2, a change inside a job exit code 1. `project` is the core's
+// `--project`, a job's project.
 export function scheduleCommand(schedule: Schedule, args: readonly string[], project: string | undefined): number {
 	const [verb = "list", ...rest] = args;
 	const parsed = verb === "add" ? flags(rest) : undefined;
@@ -37,6 +38,12 @@ export function scheduleCommand(schedule: Schedule, args: readonly string[], pro
 	if (wrong !== undefined) {
 		console.error(`arthur schedule: ${wrong}\n${USAGE}`);
 		return 2;
+	}
+	// The wrapper sets ARTHUR_JOB in a job's agent: there the CLI runs `schedule` for its list only (AR0353).
+	const job = process.env.ARTHUR_JOB ?? "";
+	if (job !== "" && verb !== "list") {
+		console.error(`arthur schedule ${verb}: refused inside a job ${basename(job)}: a job runs only the commands its role needs; put what the coordinator should do in your final message`);
+		return 1;
 	}
 	if (verb === "list") console.log(list(schedule));
 	else if (verb === "remove") remove(schedule, rest[0] as string);

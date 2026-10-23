@@ -108,6 +108,7 @@ export function pluginCommand(host: Host): Command {
 	return {
 		name: "plugin",
 		doc: new URL("../docs/commands/plugin.md", import.meta.url),
+		inJob: true,
 		run({ args, project }) {
 			const projects = host.board.projects();
 			const found = project === undefined ? projects[0] : projects.find((each) => each.name === project);

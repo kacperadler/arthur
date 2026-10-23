@@ -78,6 +78,7 @@ export function manage(options: ManageOptions = {}): Plugin {
 			host.commands.register({
 				name: "health",
 				doc: new URL("../docs/commands/health.md", import.meta.url),
+				inJob: true,
 				phone: { about: "what should have happened by now and has not, one line each", reply: (text) => (text.trim() === "" ? report() : "usage: /health") },
 				run({ args }) {
 					if (args.length > 0) {
@@ -90,6 +91,7 @@ export function manage(options: ManageOptions = {}): Plugin {
 			host.commands.register({
 				name: "stats",
 				doc: new URL("../docs/commands/stats.md", import.meta.url),
+				inJob: true,
 				run({ args, project }) {
 					if (args.length > 0) {
 						console.error("usage: arthur stats [--project <name>]");

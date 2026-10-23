@@ -2400,9 +2400,9 @@
   {
     "id": "AR0313",
     "title": "A scenario cannot say a call is made only once",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0313-a-scenario-cannot-say-a-call-is-made-only-once/ticket.md",
-    "updated": "2026-10-23T11:55:47.995Z",
+    "updated": "2026-10-23T12:15:23.906Z",
     "after": [
       "AR0312"
     ]
@@ -2410,8 +2410,15 @@
   {
     "id": "AR0314",
     "title": "Delivery's wake after a failed CI run names only the rerun",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0314-delivery-s-wake-after-a-failed-ci-run-names-only-the-rerun/ticket.md",
-    "updated": "2026-10-23T12:13:12.871Z"
+    "updated": "2026-10-23T12:18:37.594Z"
+  },
+  {
+    "id": "AR0315",
+    "title": "GitHub's own wake after a failed CI run names only the rerun",
+    "status": "planning",
+    "path": "spec/features/AR0315-github-s-own-wake-after-a-failed-ci-run-names-only-the-rerun/ticket.md",
+    "updated": "2026-10-23T12:18:37.591Z"
   }
 ]

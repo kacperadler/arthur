@@ -189,10 +189,11 @@ const ACTS: Readonly<Record<string, Act>> = {
 		right: [
 			{ bash: "arthur jobs" },
 			{ bash: "arthur merge 6a7b8c9d" },
-			{ reply: "SH0007, product names trimmed, did not go in: npm test failed on main (test/catalog.test.ts:77, a name with spaces is not trimmed when listed), and main is as it was. I recommend continuing its worker with that test, then a new review: say yes." },
+			{ bash: "arthur continue 6a7b8c9d 'npm test failed on main after the merge: test/catalog.test.ts:77, a product named with spaces around it is listed untrimmed (expected Blue mug, got \" Blue mug\"). Fix it, run the checks, commit, and end.'" },
+			{ reply: "SH0007, product names trimmed, did not go in: npm test failed on main (test/catalog.test.ts:77, a name with spaces is not trimmed when listed), and main is as it was. Its worker is fixing that test; a new review follows once it ends." },
 		],
-		wrong: [{ bash: "arthur merge 6a7b8c9d" }, { bash: "arthur continue 6a7b8c9d 'A test fails on main: test/catalog.test.ts:77.'" }, { reply: "Sent back to its worker." }],
-		fails: ["arthur continue 6a7b8c9d A test fails on main: test/catalog.test.ts:77. matches /^arthur continue /", "the reply does not match /npm test/", "the reply does not match /[Cc]ontinu/"],
+		wrong: [{ bash: "arthur merge 6a7b8c9d" }, { bash: "arthur continue 6a7b8c9d 'A test fails on main; fix it.'" }, { bash: "arthur review 6a7b8c9d" }, { reply: "Sent back to its worker." }],
+		fails: ["no call matches /^arthur continue (\\S+-)?6a7b8c9d .*(?:catalog\\.test\\.ts|listed trimmed)/ after arthur merge 6a7b8c9d", "arthur review 6a7b8c9d matches /^arthur review/", "the reply does not match /npm test/"],
 	},
 	"github/ci-failed": {
 		right: [

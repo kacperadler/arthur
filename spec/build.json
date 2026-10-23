@@ -2531,9 +2531,9 @@
   {
     "id": "AR0330",
     "title": "`git config` from a job rewrites the shared repository's config and the user's (AR0311 F2, confirmed)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0330-git-config-from-a-job-rewrites-the-shared-repository-s-config-and-the-user-s-ar0311-f2-confirmed/ticket.md",
-    "updated": "2026-10-23T16:54:42.874Z"
+    "updated": "2026-10-23T16:58:17.790Z"
   },
   {
     "id": "AR0331",
@@ -2870,5 +2870,33 @@
     "status": "planned",
     "path": "spec/features/AR0378-a-ticket-names-its-area-and-the-board-filters-by-it/ticket.md",
     "updated": "2026-10-23T16:48:26.340Z"
+  },
+  {
+    "id": "AR0379",
+    "title": "A project on Git LFS gets its main pushed without its LFS objects",
+    "status": "planned",
+    "path": "spec/features/AR0379-a-project-on-git-lfs-gets-its-main-pushed-without-its-lfs-objects/ticket.md",
+    "updated": "2026-10-23T16:58:37.316Z"
+  },
+  {
+    "id": "AR0380",
+    "title": "Arthur's git calls in a main checkout still run other programs its config names",
+    "status": "planned",
+    "path": "spec/features/AR0380-arthur-s-git-calls-in-a-main-checkout-still-run-other-programs-its-config-names/ticket.md",
+    "updated": "2026-10-23T16:58:37.687Z"
+  },
+  {
+    "id": "AR0381",
+    "title": "The worktree guard does not see a git alias or GIT_DIR",
+    "status": "planned",
+    "path": "spec/features/AR0381-the-worktree-guard-does-not-see-a-git-alias-or-git-dir/ticket.md",
+    "updated": "2026-10-23T16:58:38.048Z"
+  },
+  {
+    "id": "AR0382",
+    "title": "A job's repository on another machine runs its config's hooks in Arthur's git calls there",
+    "status": "planned",
+    "path": "spec/features/AR0382-a-job-s-repository-on-another-machine-runs-its-config-s-hooks-in-arthur-s-git-calls-there/ticket.md",
+    "updated": "2026-10-23T16:58:38.437Z"
   }
 ]

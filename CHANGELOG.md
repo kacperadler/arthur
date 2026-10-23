@@ -36,6 +36,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0326 Security check: addresses Arthur fetches stay where the config says (77c97ec)
 - AR0327 Security check: file modes of Arthur's home, records, sockets and locks (45bdc3b)
 - AR0328 Security check: dependencies, installs and the CI workflows (4fa1b7e)
+- AR0329 A job is not isolated from Arthur's code, config and the user's own files (AR0311 F1, confirmed) (03d7550)
 
 ### Changed
 

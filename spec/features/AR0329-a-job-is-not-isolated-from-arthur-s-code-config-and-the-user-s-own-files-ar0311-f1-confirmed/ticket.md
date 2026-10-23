@@ -38,3 +38,4 @@ In:
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; starts after the ten security checks AR0319-AR0328.
 - 2026-10-23: The owner: Arthur must keep developing itself (new plugins and fixes). The fix blocks a job writing straight into the running installation (live checkout, arthur.config.ts, the env file, ~/.ssh, systemd units); it must not block the path a job uses today: its own worktree and branch (`arthur plugin new --root <worktree>`), review, merge, then the coordinator (not a job) turns the plugin on in arthur.config.ts and restarts. A test proves that path still works.
 - 2026-10-23: The owner: weekly cap raised to 40%; fixes one at a time to avoid conflicts, criticals first (AR0329, AR0346), then highs (AR0330, AR0331, AR0347, AR0349, AR0353, AR0370).
+- 2026-10-23: Coordinator accepted core's line budget raise 5787 -> 5815 (+28: the guarded places in the record, jobPlace reading them, the env file as a place).

@@ -114,6 +114,11 @@ test("one word that is both a project's prefix and a kind is the prefix; PREFIX 
 	assert.equal(await route("/board CI ci"), "CI0002 planning    ci       Ticket CI0002");
 	assert.equal(await route("/board --kind ci"), "DM0001 planning    ci       Ticket DM0001");
 	assert.equal(await route("/board ux"), "no ticket of kind ux");
+	const all = await setup(["DM", "ALL"]);
+	tickets(all.demo, "DM", [["planning", 1]]);
+	tickets(all.shop, "ALL", [["planning", 1]]);
+	assert.equal(await all.route("/board all"), "DM0001 planning    -        Ticket DM0001", "all stays all, whatever a project's prefix");
+	assert.equal(await all.route("/board ALL all"), "ALL0001 planning    -        Ticket ALL0001");
 });
 
 test("/task: the id as 1, DM1, dm0001 or DM0001; another project's prefix answers from its board", async () => {

@@ -288,7 +288,7 @@ function boardOfKinds() {
 	return [
 		...merged,
 		entry("DM0013", "done", { kind: "fix" }),
-		entry("DM0014", "planning", { after: ["DM0001", "DM0015"], kind: "fix" }),
+		entry("DM0014", "planning", { after: ["DM0001", "DM0002", "DM0015"], kind: "fix" }),
 		entry("DM0015", "in-progress", { kind: "bug" }),
 		entry("DM0016", "dropped", { kind: "fix" }),
 		entry("DM0017", "dropped", { after: ["DM0015"] }),

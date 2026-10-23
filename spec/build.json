@@ -2531,9 +2531,9 @@
   {
     "id": "AR0330",
     "title": "`git config` from a job rewrites the shared repository's config and the user's (AR0311 F2, confirmed)",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0330-git-config-from-a-job-rewrites-the-shared-repository-s-config-and-the-user-s-ar0311-f2-confirmed/ticket.md",
-    "updated": "2026-10-23T16:39:21.942Z"
+    "updated": "2026-10-23T16:54:42.874Z"
   },
   {
     "id": "AR0331",

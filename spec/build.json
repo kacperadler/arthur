@@ -2101,9 +2101,9 @@
   {
     "id": "AR0273",
     "title": "Delivery ships no review criteria, so `arthur init` still writes `review.md` as `# Review`",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0273-delivery-ships-no-review-criteria-so-arthur-init-still-writes-review-md-as-review/ticket.md",
-    "updated": "2026-10-23T11:13:25.710Z"
+    "updated": "2026-10-23T11:51:34.911Z"
   },
   {
     "id": "AR0274",
@@ -2356,17 +2356,18 @@
     "title": "The switch: Arthur runs on the VPS and takes its own tickets",
     "status": "planning",
     "path": "spec/features/AR0307-the-switch-arthur-runs-on-the-vps-and-takes-its-own-tickets/ticket.md",
-    "updated": "2026-10-23T11:10:15.319Z",
+    "updated": "2026-10-23T11:51:49.250Z",
     "after": [
-      "AR0273"
+      "AR0273",
+      "AR0311"
     ]
   },
   {
     "id": "AR0308",
     "title": "After a check fails at merge, the coordinator continues the worker itself",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0308-after-a-check-fails-at-merge-the-coordinator-continues-the-worker-itself/ticket.md",
-    "updated": "2026-10-23T11:29:36.881Z"
+    "updated": "2026-10-23T11:55:18.662Z"
   },
   {
     "id": "AR0309",
@@ -2378,8 +2379,39 @@
   {
     "id": "AR0310",
     "title": "`arthur merge` fails for a user with no git identity, only after its review and checks ran",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0310-arthur-merge-fails-for-a-user-with-no-git-identity-only-after-its-review-and-checks-ran/ticket.md",
-    "updated": "2026-10-23T11:36:24.237Z"
+    "updated": "2026-10-23T11:59:58.392Z"
+  },
+  {
+    "id": "AR0311",
+    "title": "Security audit of Arthur before the switch",
+    "status": "planning",
+    "path": "spec/features/AR0311-security-audit-of-arthur-before-the-switch/ticket.md",
+    "updated": "2026-10-23T11:51:49.005Z"
+  },
+  {
+    "id": "AR0312",
+    "title": "The eval baseline of delivery/check-failed measures the old scenario",
+    "status": "in-progress",
+    "path": "spec/features/AR0312-the-eval-baseline-of-delivery-check-failed-measures-the-old-scenario/ticket.md",
+    "updated": "2026-10-23T11:55:41.798Z"
+  },
+  {
+    "id": "AR0313",
+    "title": "A scenario cannot say a call is made only once",
+    "status": "planned",
+    "path": "spec/features/AR0313-a-scenario-cannot-say-a-call-is-made-only-once/ticket.md",
+    "updated": "2026-10-23T11:55:47.995Z",
+    "after": [
+      "AR0312"
+    ]
+  },
+  {
+    "id": "AR0314",
+    "title": "Delivery's wake after a failed CI run names only the rerun",
+    "status": "in-progress",
+    "path": "spec/features/AR0314-delivery-s-wake-after-a-failed-ci-run-names-only-the-rerun/ticket.md",
+    "updated": "2026-10-23T11:55:42.690Z"
   }
 ]

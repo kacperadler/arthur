@@ -2101,9 +2101,9 @@
   {
     "id": "AR0273",
     "title": "Delivery ships no review criteria, so `arthur init` still writes `review.md` as `# Review`",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0273-delivery-ships-no-review-criteria-so-arthur-init-still-writes-review-md-as-review/ticket.md",
-    "updated": "2026-10-23T11:48:07.198Z"
+    "updated": "2026-10-23T11:51:34.911Z"
   },
   {
     "id": "AR0274",
@@ -2356,17 +2356,18 @@
     "title": "The switch: Arthur runs on the VPS and takes its own tickets",
     "status": "planning",
     "path": "spec/features/AR0307-the-switch-arthur-runs-on-the-vps-and-takes-its-own-tickets/ticket.md",
-    "updated": "2026-10-23T11:10:15.319Z",
+    "updated": "2026-10-23T11:51:49.250Z",
     "after": [
-      "AR0273"
+      "AR0273",
+      "AR0311"
     ]
   },
   {
     "id": "AR0308",
     "title": "After a check fails at merge, the coordinator continues the worker itself",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0308-after-a-check-fails-at-merge-the-coordinator-continues-the-worker-itself/ticket.md",
-    "updated": "2026-10-23T11:42:13.552Z"
+    "updated": "2026-10-23T11:48:51.549Z"
   },
   {
     "id": "AR0309",
@@ -2381,5 +2382,12 @@
     "status": "in-progress",
     "path": "spec/features/AR0310-arthur-merge-fails-for-a-user-with-no-git-identity-only-after-its-review-and-checks-ran/ticket.md",
     "updated": "2026-10-23T11:36:47.381Z"
+  },
+  {
+    "id": "AR0311",
+    "title": "Security audit of Arthur before the switch",
+    "status": "planning",
+    "path": "spec/features/AR0311-security-audit-of-arthur-before-the-switch/ticket.md",
+    "updated": "2026-10-23T11:51:49.005Z"
   }
 ]

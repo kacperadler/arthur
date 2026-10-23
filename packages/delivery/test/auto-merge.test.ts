@@ -241,11 +241,11 @@ test("a waiting branch's CI end, as github's poll asks delivery.ciEnded, wakes t
 	const ci = `arthur ci ${job.branch} --project acme`;
 	const where = `${job.branch} (run 7, attempt 1, on ${job.tip.slice(0, 7)}): ${url}`;
 	const what = `a failure in the branch's own code goes back to its worker: arthur continue ${job.id} '<the failed step and its lines>'; one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once: ${ci} --rerun`;
-	assert.deepEqual(messages(), [`[delivery] CI ended failure on ${where}. Not merged; it waits on: the next end of a run on it wakes you again. Why: ${ci}; then ${what}`]);
+	assert.deepEqual(messages(), [`CI ended failure on ${where}. Not merged; it waits on: the next end of a run on it wakes you again. Why: ${ci}; then ${what}`]);
 	assert.deepEqual(end(), [true], "asked again, it still owns that end");
 	assert.equal(messages().length, 1, "told once");
 	assert.deepEqual(end({}, { attempt: 2, conclusion: "success" }), [true]);
-	assert.deepEqual(messages().slice(1), [`[delivery] CI passed on ${where.replace("attempt 1", "attempt 2")}. It waited for that: arthur merge --auto ${job.id}`]);
+	assert.deepEqual(messages().slice(1), [`CI passed on ${where.replace("attempt 1", "attempt 2")}. It waited for that: arthur merge --auto ${job.id}`]);
 	answers.ci = ciRun(job.tip, job.branch, { attempt: 2 });
 	const merged = await merge(job.id, "--auto");
 	assert.equal(merged.code, undefined, merged.err);
@@ -273,12 +273,12 @@ test("a run that hangs is cancelled 30 minutes after its start, once, across a r
 	assert.deepEqual(cancels, [{ project: "acme", run: 7 }], "once, a restart included");
 	const end = (run: CiRun) => fake.collect<boolean>("delivery.ciEnded", { project: "acme", branch: job.branch, below: 0, run });
 	assert.deepEqual(end(ciRun(job.tip, job.branch, { conclusion: "cancelled" })), [true]);
-	assert.match(messages()[0] ?? "", /^\[delivery\] CI ended cancelled, cancelled by delivery after it ran 30 minutes on /);
+	assert.match(messages()[0] ?? "", /^CI ended cancelled, cancelled by delivery after it ran 30 minutes on /);
 
 	answers.ci = ciRun(job.tip, job.branch, { id: 9, status: "queued", conclusion: null, startedAt: "2025-12-31T23:00:00Z", url: "https://github.com/acme/shop/actions/runs/9" });
 	answers.cancelled = new Error("instance (unnamed): 403 for run 9 of acme/shop: Resource not accessible by personal access token");
 	await waits.round();
-	assert.equal(messages()[1], `[delivery] CI run 9, attempt 1, on ${job.branch} has run 30 minutes and was not cancelled: instance (unnamed): 403 for run 9 of acme/shop: Resource not accessible by personal access token. Cancel it on GitHub: https://github.com/acme/shop/actions/runs/9`);
+	assert.equal(messages()[1], `CI run 9, attempt 1, on ${job.branch} has run 30 minutes and was not cancelled: instance (unnamed): 403 for run 9 of acme/shop: Resource not accessible by personal access token. Cancel it on GitHub: https://github.com/acme/shop/actions/runs/9`);
 	await waits.round();
 	assert.equal(cancels.length, 2, "a refused cancel is not asked again");
 

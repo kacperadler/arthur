@@ -107,11 +107,11 @@ export async function readScenario(host: Host, name: string, folder: string): Pr
 
 // The turn as the inbox hands it over, asked of orchestration (`coordinator.turn`): `{ message, channel? }` the owner's, a
 // `message-received`; `{ scheduled, message, procedure? }` a schedule entry due, a `coordinator-message` as the schedule plugin
-// words it (`schedule.message`), `procedure` a file beside the scenario; `{ arthur }` a plugin's `coordinator-message`, as it
-// words it; `{ ended, result? }` a job's end, a `job-ended` with its final message, of the main project unless it names one,
-// and with the `records` it names for the plugins, which have none of a job in no home.
+// words it (`schedule.message`), `procedure` a file beside the scenario; `{ arthur, plugin }` a plugin's `coordinator-message`,
+// as that plugin words it; `{ ended, result? }` a job's end, a `job-ended` with its final message, of the main project unless
+// it names one, and with the `records` it names for the plugins, which have none of a job in no home.
 async function turnText(host: Host, folder: string, turn: unknown): Promise<string> {
-	if (!object(turn)) throw new Error("turn: expected { message, channel? }, { scheduled, message, procedure? }, { arthur } or { ended, result? }");
+	if (!object(turn)) throw new Error("turn: expected { message, channel? }, { scheduled, message, procedure? }, { arthur, plugin } or { ended, result? }");
 	if (turn.ended !== undefined) {
 		const job = turn.ended;
 		if (!object(job) || !words(job.id) || !words(job.kind) || (job.state !== "ended" && job.state !== "blocked") || (job.records !== undefined && !object(job.records)))
@@ -120,7 +120,8 @@ async function turnText(host: Host, folder: string, turn: unknown): Promise<stri
 	}
 	if (turn.arthur !== undefined) {
 		if (!words(turn.arthur)) throw new Error("turn.arthur: expected a plugin's message, as text");
-		return host.call<Promise<string>>("coordinator.turn", "coordinator-message", { text: turn.arthur });
+		if (!words(turn.plugin)) throw new Error("turn.plugin: expected the name of the plugin that emits turn.arthur");
+		return host.call<Promise<string>>("coordinator.turn", "coordinator-message", { text: turn.arthur }, turn.plugin);
 	}
 	if (!words(turn.message)) throw new Error("turn.message: expected text");
 	if (turn.scheduled === undefined) {
@@ -129,5 +130,5 @@ async function turnText(host: Host, folder: string, turn: unknown): Promise<stri
 	}
 	if (turn.procedure !== undefined && !words(turn.procedure)) throw new Error("turn.procedure: expected a file's path beside the scenario");
 	const procedure = turn.procedure === undefined ? undefined : readFileSync(join(folder, turn.procedure as string), "utf8");
-	return host.call<Promise<string>>("coordinator.turn", "coordinator-message", { text: host.call<string>("schedule.message", turn.scheduled, turn.message, procedure) });
+	return host.call<Promise<string>>("coordinator.turn", "coordinator-message", { text: host.call<string>("schedule.message", turn.scheduled, turn.message, procedure) }, "schedule");
 }

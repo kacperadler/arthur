@@ -2496,9 +2496,9 @@
   {
     "id": "AR0325",
     "title": "Security check: the Telegram channel answers the owner alone",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0325-security-check-the-telegram-channel-answers-the-owner-alone/ticket.md",
-    "updated": "2026-10-23T14:34:14.378Z"
+    "updated": "2026-10-23T14:49:30.175Z"
   },
   {
     "id": "AR0326",
@@ -2517,9 +2517,9 @@
   {
     "id": "AR0328",
     "title": "Security check: dependencies, installs and the CI workflows",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0328-security-check-dependencies-installs-and-the-ci-workflows/ticket.md",
-    "updated": "2026-10-23T13:59:10.000Z"
+    "updated": "2026-10-23T14:46:15.802Z"
   },
   {
     "id": "AR0329",
@@ -2765,5 +2765,19 @@
     "status": "planned",
     "path": "spec/features/AR0363-a-binary-file-counts-no-lines-so-a-branch-of-any-binary-content-skips-the-review-on-its-checks/ticket.md",
     "updated": "2026-10-23T14:45:59.104Z"
+  },
+  {
+    "id": "AR0364",
+    "title": "Telegram answers every member of the configured chat, not the owner alone (AR0311 F7, confirmed)",
+    "status": "planning",
+    "path": "spec/features/AR0364-telegram-answers-every-member-of-the-configured-chat-not-the-owner-alone-ar0311-f7-confirmed/ticket.md",
+    "updated": "2026-10-23T14:49:30.164Z"
+  },
+  {
+    "id": "AR0365",
+    "title": "A message the owner forwarded runs as the owner's own words, a phone command included",
+    "status": "planning",
+    "path": "spec/features/AR0365-a-message-the-owner-forwarded-runs-as-the-owner-s-own-words-a-phone-command-included/ticket.md",
+    "updated": "2026-10-23T14:49:30.171Z"
   }
 ]

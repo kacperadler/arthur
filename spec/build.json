@@ -2101,9 +2101,9 @@
   {
     "id": "AR0273",
     "title": "Delivery ships no review criteria, so `arthur init` still writes `review.md` as `# Review`",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0273-delivery-ships-no-review-criteria-so-arthur-init-still-writes-review-md-as-review/ticket.md",
-    "updated": "2026-10-23T11:07:40.511Z"
+    "updated": "2026-10-23T11:13:25.710Z"
   },
   {
     "id": "AR0274",

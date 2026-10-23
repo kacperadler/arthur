@@ -2419,7 +2419,7 @@
     "title": "GitHub's own wake after a failed CI run names only the rerun",
     "status": "done",
     "path": "spec/features/AR0315-github-s-own-wake-after-a-failed-ci-run-names-only-the-rerun/ticket.md",
-    "updated": "2026-10-23T12:50:53.409Z"
+    "updated": "2026-10-23T13:11:01.410Z"
   },
   {
     "id": "AR0316",
@@ -2431,8 +2431,8 @@
   {
     "id": "AR0317",
     "title": "The baseline of delivery/check-failed predates its stricter expectations",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0317-the-baseline-of-delivery-check-failed-predates-its-stricter-expectations/ticket.md",
-    "updated": "2026-10-23T12:59:11.640Z"
+    "updated": "2026-10-23T13:13:16.910Z"
   }
 ]

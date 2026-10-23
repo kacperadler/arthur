@@ -13,9 +13,9 @@ import { type MachinesOptions, machines } from "../src/machines.ts";
 
 // The fake `ssh` on PATH, for this file. `ssh -G <host>` prints its config as ssh does, `hostname` read from
 // `<machines>/<host>/hostname` (default a Tailscale address). Any other call is noted in `ssh.log`, one line, and runs its
-// command as ssh runs one in a login's home: in `<machines>/<host>`, `<host>/bin` first on PATH, where the test puts `uname`
-// and `arthur`. A file `fail` in that folder holds ssh's own line instead: ssh prints it and exits 255; `hang` makes it hang,
-// its pid in `pid` there.
+// command as ssh runs one in a login's home: in `<machines>/<host>`, its HOME, so git reads its `.gitconfig` there and no
+// other, `<host>/bin` first on PATH, where the test puts `uname` and `arthur`. A file `fail` in that folder holds ssh's own
+// line instead: ssh prints it and exits 255; `hang` makes it hang, its pid in `pid` there.
 const bin = temporaryFolder();
 const root = temporaryFolder();
 const sshLog = join(bin, "ssh.log");
@@ -38,7 +38,8 @@ while [ $# -gt 0 ]; do case "$1" in -o|-p|-l) shift 2;; -*) shift;; *) break;; e
 there='${root}'/"$1"; shift
 if [ -e "$there/hang" ]; then echo $$ > "$there/pid"; exec sleep 30; fi
 if [ -e "$there/fail" ]; then cat "$there/fail" >&2; exit 255; fi
-cd "$there" && PATH="$there/bin:${machinePath}" exec sh -c "$*"
+unset GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL EMAIL GIT_CONFIG_GLOBAL GIT_CONFIG_SYSTEM
+cd "$there" && HOME="$there" XDG_CONFIG_HOME="$there/.config" GIT_CONFIG_NOSYSTEM=1 LC_ALL=C PATH="$there/bin:${machinePath}" exec sh -c "$*"
 `,
 	{ mode: 0o755 },
 );
@@ -49,7 +50,7 @@ const calls = () => (existsSync(sshLog) ? readFileSync(sshLog, "utf8").split("\n
 const FREE_LINE = JSON.stringify({ cores: 8, load: 1.5, free: 6 * 2 ** 30, total: 16 * 2 ** 30 });
 
 // A machine reached as `ssh <host>`, whose `uname -sm` says `system` and whose `arthur version` prints `version`; no `arthur`
-// when null. Its `node -e` prints FREE_LINE.
+// when null. Its `node -e` prints FREE_LINE; its git has an identity in its `.gitconfig`.
 function machine(host: string, system = "Linux x86_64", version: string | null = coreVersion()): string {
 	const there = join(root, host);
 	rmSync(there, { recursive: true, force: true });
@@ -57,6 +58,7 @@ function machine(host: string, system = "Linux x86_64", version: string | null =
 	writeFileSync(join(there, "bin/uname"), `#!/bin/sh\necho '${system}'\n`, { mode: 0o755 });
 	writeFileSync(join(there, "bin/node"), `#!/bin/sh\n[ "$1" = -e ] && echo '${FREE_LINE}'\n`, { mode: 0o755 });
 	if (version !== null) writeFileSync(join(there, "bin/arthur"), `#!/bin/sh\n[ "$1" = version ] && echo '${version}'\n`, { mode: 0o755 });
+	writeFileSync(join(there, ".gitconfig"), "[user]\n\tname = Arthur Test\n\temail = arthur@example.com\n");
 	return there;
 }
 
@@ -256,6 +258,40 @@ test("each way a machine is offline, with its reason and its fix, and each tools
 	assert.ok(calls().some((call) => new RegExp(`gpu-box ${CHECK} '0' 'docker' 'nvidia-smi' 'xcodebuild'$`).test(call)), "each tool label is asked of command -v, in the one check over ssh");
 });
 
+test("a machine online whose git has no identity is said in its doctor line, with the fix of delivery's identity line, beside its missing tools", async () => {
+	const NO_IDENTITY = "[user]\n\tuseConfigOnly = true\n";
+	writeFileSync(join(machine("ident-box"), ".gitconfig"), NO_IDENTITY);
+	writeFileSync(join(machine("both-box"), ".gitconfig"), NO_IDENTITY);
+	// Its git has an author but no committer, as git says it when GIT_COMMITTER_IDENT has no email.
+	const git = "#!/bin/sh\n[ \"$2\" = GIT_COMMITTER_IDENT ] && { printf 'Committer identity unknown\\n\\nfatal: unable to auto-detect email address\\n' >&2; exit 128; }\nPATH=/usr/bin:/bin exec git \"$@\"\n";
+	writeFileSync(join(machine("committer-box"), "bin/git"), git, { mode: 0o755 });
+	const home = "/home/arthur/.arthur";
+	const list = [
+		{ name: "ident", ssh: "ident-box", home },
+		{ name: "committer", ssh: "committer-box", home },
+		{ name: "both", ssh: "both-box", home, labels: { tools: ["no-such-tool"] } },
+	];
+	const { fake } = await load({ list });
+	const lines = async () => Promise.all(requirements(fake).map(async (requirement) => [requirement.name, await requirement.check(), requirement.fix, requirement.costs, requirement.critical]));
+	const found = `linux x64, arthur ${coreVersion()}`;
+	const fix = (name: string) => `git config --global user.name "<your name>" and git config --global user.email "<your email>" on ${name} (ssh ${name}-box)`;
+	const costs = (name: string) => `a job placed on ${name} fails at its first commit: git has no author there`;
+	assert.deepEqual(await lines(), [
+		["ident", `missing: git var GIT_AUTHOR_IDENT there: fatal: no email was given and auto-detection is disabled (${found})`, fix("ident"), costs("ident"), false],
+		["committer", `missing: git var GIT_COMMITTER_IDENT there: fatal: unable to auto-detect email address (${found})`, fix("committer"), costs("committer"), false],
+		[
+			"both",
+			`missing: command -v finds no no-such-tool there; git var GIT_AUTHOR_IDENT there: fatal: no email was given and auto-detection is disabled (${found})`,
+			`install no-such-tool on both, on the PATH of a command over ssh (docs/deploy.md), or drop what it does not need from its tools label; ${fix("both")}`,
+			`no job that needs no-such-tool runs on both; ${costs("both")}`,
+			false,
+		],
+	]);
+	assert.equal(calls().length, 3, "the identity is asked in the one check over ssh");
+	writeFileSync(join(root, "ident-box", ".gitconfig"), "[user]\n\tname = Arthur Test\n\temail = arthur@example.com\n");
+	assert.deepEqual((await lines())[0], ["ident", `ok (${found})`, "ssh ident-box true, by hand", "no job runs on ident", false], "an identity set there is seen on the next check");
+});
+
 test("a machine whose ssh resolves to a public address is refused at load; one that turns public later is offline", async () => {
 	machine("mac-mini");
 	writeFileSync(join(root, "mac-mini", "hostname"), "8.8.8.8");
@@ -442,6 +478,8 @@ test("without a requirement any machine: the fewest jobs in a run, local and the
 	job(at, "0000000c", "build", "ended");
 	job(at, "0000000d", "build", "blocked");
 	assert.equal(await place(at), "build", "an ended job and one blocked out of its run take no room");
+	writeFileSync(join(root, "build-box", ".gitconfig"), "[user]\n\tuseConfigOnly = true\n");
+	assert.equal(await place(at), "build", "a machine whose git has no identity is placed by its labels all the same");
 	writeFileSync(join(root, "build-box", "fail"), "ssh: connect to host build-box port 22: Connection timed out");
 	assert.equal(await place(at), "local", "an offline machine takes no job");
 });

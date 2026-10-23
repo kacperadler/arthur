@@ -4,7 +4,10 @@
 {
   "id": "AR0307",
   "title": "The switch: Arthur runs on the VPS and takes its own tickets",
-  "date": "2026-10-23"
+  "date": "2026-10-23",
+  "after": [
+    "AR0273"
+  ]
 }
 ```
 
@@ -41,3 +44,4 @@ Out:
 ## Decisions
 
 - 2026-10-23: Created by the coordinator when the human asked how much is left before moving from the harness to Arthur; waits for the human's approval.
+- 2026-10-23: The human: "AR0307 ok zaraz po tym jak wejdzie AR0273" — approved, starts right after AR0273 merges.

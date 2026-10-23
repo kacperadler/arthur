@@ -2101,9 +2101,9 @@
   {
     "id": "AR0273",
     "title": "Delivery ships no review criteria, so `arthur init` still writes `review.md` as `# Review`",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0273-delivery-ships-no-review-criteria-so-arthur-init-still-writes-review-md-as-review/ticket.md",
-    "updated": "2026-10-23T11:03:17.031Z"
+    "updated": "2026-10-23T11:07:40.511Z"
   },
   {
     "id": "AR0274",
@@ -2356,6 +2356,16 @@
     "title": "The switch: Arthur runs on the VPS and takes its own tickets",
     "status": "planning",
     "path": "spec/features/AR0307-the-switch-arthur-runs-on-the-vps-and-takes-its-own-tickets/ticket.md",
-    "updated": "2026-10-23T11:03:29.126Z"
+    "updated": "2026-10-23T11:10:15.319Z",
+    "after": [
+      "AR0273"
+    ]
+  },
+  {
+    "id": "AR0308",
+    "title": "After a check fails at merge, the coordinator continues the worker itself",
+    "status": "planned",
+    "path": "spec/features/AR0308-after-a-check-fails-at-merge-the-coordinator-continues-the-worker-itself/ticket.md",
+    "updated": "2026-10-23T11:10:14.589Z"
   }
 ]

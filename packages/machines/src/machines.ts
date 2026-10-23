@@ -96,27 +96,28 @@ export function machines(options: MachinesOptions = {}): Plugin {
 				let shared: Promise<ReadonlyMap<string, Report>> | undefined;
 				let reports: ReadonlyMap<string, Report> | undefined;
 				const listed = list.map((machine) => {
-					// The tools labels this run's check did not find there, once it answered.
-					const lacking = () => {
-						const report = reports?.get(machine.name);
-						return report?.online === true ? report.missing.join(", ") : "";
-					};
+					// The tools labels this run's check did not find there and git's identity, "" when there; then the two parts of a line.
+					const online = () => [reports?.get(machine.name)].find((report) => report?.online === true) ?? { missing: [], identity: "" };
+					const lacking = () => online().missing.join(", ");
+					const either = (tools: string, identity: string) => [lacking() && tools, online().identity && identity].filter(Boolean).join("; ");
 					return {
 						name: machine.name,
 						check: async () => {
 							const report = (reports = await (shared ??= checked())).get(machine.name);
 							if (report?.online !== true) return `missing: ${report?.reason}`;
 							const found = `${report.os} ${report.arch}, arthur ${report.version}`;
-							return lacking() === "" ? `ok (${found})` : `missing: command -v finds no ${lacking()} there (${found})`;
+							const missing = either(`command -v finds no ${lacking()} there`, report.identity);
+							return missing === "" ? `ok (${found})` : `missing: ${missing} (${found})`;
 						},
 						get costs() {
-							return lacking() === "" ? `no job runs on ${machine.name}` : `no job that needs ${lacking()} runs on ${machine.name}`;
+							return either(`no job that needs ${lacking()} runs on ${machine.name}`, `a job placed on ${machine.name} fails at its first commit: git has no author there`) || `no job runs on ${machine.name}`;
 						},
-						// The fix of this run's reason.
+						// The fix of this run's reason; git's identity set as `delivery <project> identity` says it, on that machine.
 						get fix() {
 							const report = reports?.get(machine.name);
 							if (report?.online === false) return report.fix;
-							return lacking() === "" ? `ssh ${machine.ssh} true, by hand` : `install ${lacking()} on ${machine.name}, on the PATH of a command over ssh (docs/deploy.md), or drop what it does not need from its tools label`;
+							const identity = `git config --global user.name "<your name>" and git config --global user.email "<your email>" on ${machine.name} (ssh ${machine.ssh})`;
+							return either(`install ${lacking()} on ${machine.name}, on the PATH of a command over ssh (docs/deploy.md), or drop what it does not need from its tools label`, identity) || `ssh ${machine.ssh} true, by hand`;
 						},
 						critical: false,
 					};

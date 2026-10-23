@@ -2454,37 +2454,37 @@
   {
     "id": "AR0319",
     "title": "Security check: secrets stay out of jobs, records, logs and messages",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0319-security-check-secrets-stay-out-of-jobs-records-logs-and-messages/ticket.md",
-    "updated": "2026-10-23T13:59:06.870Z"
+    "updated": "2026-10-23T14:16:59.438Z"
   },
   {
     "id": "AR0320",
     "title": "Security check: a job stays inside its worktree and its own record",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0320-security-check-a-job-stays-inside-its-worktree-and-its-own-record/ticket.md",
-    "updated": "2026-10-23T13:59:07.212Z"
+    "updated": "2026-10-23T14:18:45.378Z"
   },
   {
     "id": "AR0321",
     "title": "Security check: jobs on another machine write only their own files back",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0321-security-check-jobs-on-another-machine-write-only-their-own-files-back/ticket.md",
-    "updated": "2026-10-23T13:59:07.557Z"
+    "updated": "2026-10-23T13:59:20.844Z"
   },
   {
     "id": "AR0322",
     "title": "Security check: text from outside is never taken as the owner's word",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0322-security-check-text-from-outside-is-never-taken-as-the-owner-s-word/ticket.md",
-    "updated": "2026-10-23T13:59:07.905Z"
+    "updated": "2026-10-23T14:15:17.603Z"
   },
   {
     "id": "AR0323",
     "title": "Security check: which Arthur commands a job itself may run",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0323-security-check-which-arthur-commands-a-job-itself-may-run/ticket.md",
-    "updated": "2026-10-23T13:59:08.255Z"
+    "updated": "2026-10-23T14:17:02.916Z"
   },
   {
     "id": "AR0324",
@@ -2520,5 +2520,61 @@
     "status": "planned",
     "path": "spec/features/AR0328-security-check-dependencies-installs-and-the-ci-workflows/ticket.md",
     "updated": "2026-10-23T13:59:10.000Z"
+  },
+  {
+    "id": "AR0329",
+    "title": "A job is not isolated from Arthur's code, config and the user's own files (AR0311 F1, confirmed)",
+    "status": "planned",
+    "path": "spec/features/AR0329-a-job-is-not-isolated-from-arthur-s-code-config-and-the-user-s-own-files-ar0311-f1-confirmed/ticket.md",
+    "updated": "2026-10-23T14:19:05.451Z"
+  },
+  {
+    "id": "AR0330",
+    "title": "`git config` from a job rewrites the shared repository's config and the user's (AR0311 F2, confirmed)",
+    "status": "planned",
+    "path": "spec/features/AR0330-git-config-from-a-job-rewrites-the-shared-repository-s-config-and-the-user-s-ar0311-f2-confirmed/ticket.md",
+    "updated": "2026-10-23T14:19:05.664Z"
+  },
+  {
+    "id": "AR0331",
+    "title": "A job can point its own worktree at `main`, after which every allowed git write lands on main",
+    "status": "planned",
+    "path": "spec/features/AR0331-a-job-can-point-its-own-worktree-at-main-after-which-every-allowed-git-write-lands-on-main/ticket.md",
+    "updated": "2026-10-23T14:19:05.869Z"
+  },
+  {
+    "id": "AR0332",
+    "title": "`GIT_DIR=`, `GIT_WORK_TREE=`, `GIT_INDEX_FILE=` before `git` are not read as `--git-dir`, `--work-tree`",
+    "status": "planned",
+    "path": "spec/features/AR0332-git-dir-git-work-tree-git-index-file-before-git-are-not-read-as-git-dir-work-tree/ticket.md",
+    "updated": "2026-10-23T14:19:06.089Z"
+  },
+  {
+    "id": "AR0333",
+    "title": "`cd -`, `pushd` with no operand and `$OLDPWD` are read as `cd $HOME`",
+    "status": "planned",
+    "path": "spec/features/AR0333-cd-pushd-with-no-operand-and-oldpwd-are-read-as-cd-home/ticket.md",
+    "updated": "2026-10-23T14:19:06.300Z"
+  },
+  {
+    "id": "AR0334",
+    "title": "`$ARTHUR_JOB`, the one variable every job's shell has that names a guarded place, is not expanded",
+    "status": "planned",
+    "path": "spec/features/AR0334-arthur-job-the-one-variable-every-job-s-shell-has-that-names-a-guarded-place-is-not-expanded/ticket.md",
+    "updated": "2026-10-23T14:19:06.504Z"
+  },
+  {
+    "id": "AR0335",
+    "title": "The git commands that rewrite the shared repository pass as a documented limit",
+    "status": "planned",
+    "path": "spec/features/AR0335-the-git-commands-that-rewrite-the-shared-repository-pass-as-a-documented-limit/ticket.md",
+    "updated": "2026-10-23T14:19:06.704Z"
+  },
+  {
+    "id": "AR0336",
+    "title": "A writing command after a `cd` into a guarded place with an operand built at run time passes",
+    "status": "planned",
+    "path": "spec/features/AR0336-a-writing-command-after-a-cd-into-a-guarded-place-with-an-operand-built-at-run-time-passes/ticket.md",
+    "updated": "2026-10-23T14:19:06.909Z"
   }
 ]

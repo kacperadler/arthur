@@ -28,6 +28,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0318 A listed machine without git is told to set a git identity, and stays online (3ce46a6)
 - AR0319 Security check: secrets stay out of jobs, records, logs and messages (3221ca7)
 - AR0320 Security check: a job stays inside its worktree and its own record (c469aa5)
+- AR0321 Security check: jobs on another machine write only their own files back (4f4d878)
 
 ### Changed
 

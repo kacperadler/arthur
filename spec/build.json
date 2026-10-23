@@ -2468,9 +2468,9 @@
   {
     "id": "AR0321",
     "title": "Security check: jobs on another machine write only their own files back",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0321-security-check-jobs-on-another-machine-write-only-their-own-files-back/ticket.md",
-    "updated": "2026-10-23T14:21:15.197Z"
+    "updated": "2026-10-23T14:25:54.521Z"
   },
   {
     "id": "AR0322",
@@ -2639,5 +2639,26 @@
     "status": "planned",
     "path": "spec/features/AR0345-two-docs-disagree-on-what-arthur-sends-another-machine/ticket.md",
     "updated": "2026-10-23T14:22:40.676Z"
+  },
+  {
+    "id": "AR0346",
+    "title": "A copy from another machine writes a file under the name the answer gives, which may be a path",
+    "status": "planned",
+    "path": "spec/features/AR0346-a-copy-from-another-machine-writes-a-file-under-the-name-the-answer-gives-which-may-be-a-path/ticket.md",
+    "updated": "2026-10-23T14:26:05.430Z"
+  },
+  {
+    "id": "AR0347",
+    "title": "The copy's deny-list misses the keys this side acts on: the branch fetched is whatever the copied record names",
+    "status": "planned",
+    "path": "spec/features/AR0347-the-copy-s-deny-list-misses-the-keys-this-side-acts-on-the-branch-fetched-is-whatever-the-copied-record-names/ticket.md",
+    "updated": "2026-10-23T14:26:05.640Z"
+  },
+  {
+    "id": "AR0348",
+    "title": "The answer of `records` is not checked, and one job's bad answer stops the copy of the machine's other jobs",
+    "status": "planned",
+    "path": "spec/features/AR0348-the-answer-of-records-is-not-checked-and-one-job-s-bad-answer-stops-the-copy-of-the-machine-s-other-jobs/ticket.md",
+    "updated": "2026-10-23T14:26:05.841Z"
   }
 ]

@@ -1,0 +1,37 @@
+# AR0321 - Findings
+
+What was discovered while doing this ticket but is not part of it: bugs, risks, gaps, and suggested changes. Workers add entries on their branch; the coordinator adds the non-blocking notes from reviews. One entry per finding, numbered, never deleted: only its Status changes.
+
+A finding ends in one of three statuses: `fixed` (the branch fixed it; name the commit), `ticket K0000` (a planning ticket carries it), or `dropped (reason)`. `open` lives only until the merge: `h merge` turns every `Status: open` entry into a planning ticket and rewrites its status to `ticket K0000`.
+
+`- Budget:` is optional: set it, in USD, only when the ticket this finding becomes is expected to cost more than the autopilot default, and leave the line out otherwise. `h merge` copies it into the ticket's JSON block as `budget`, which `h ticket status --autopilot` passes to `--budget`, capped at `H_AUTOPILOT_BUDGET_MAX`.
+
+## F1. A copy from another machine writes a file under the name the answer gives, which may be a path
+
+- Kind: risk
+- Severity: critical
+- Found by: 2026-10-23-ar0321-security-check-c2599b95 (worker), 2026-10-23
+- Where: `packages/core/src/machine-sync.ts:62`, `packages/core/src/job-state.ts:91-93`
+- What: the rule: a copied file lands only in that job's record, `<home>/jobs/<id>/`. The check missing: the key of `files` in the `arthur remote-job records` answer is passed to `write(folder, name, text)` as it came, and `write` joins it to the folder; a name with path segments resolves elsewhere (`node -e` on `path.join`: `sub/../../<other-id>/branch` resolves to another job's record, `x/../../../tmp/y` outside `jobs/`), so the answer of a machine decides the path and the content of a file written as Arthur's user here, with nothing but the user's permissions as the bound. A name containing `.lock` or starting with `.` is not refused either, though `records` there never sends one (`remote-job.ts:102`). Confirms AR0311's F3 (`:62`). The precondition is a machine whose record folder is not this Arthur's: a job there that writes its own record beside its worktree, or a machine that is not what it was.
+- Suggestion: at `machine-sync.ts:62`, refuse a key that is not a plain record key (one segment, no `/`, not starting with `.`, no `.lock`; the keys `writeRecord` and the wrapper write are `[a-z][a-z0-9-]*`), naming the machine and the key in the error, so nothing of that answer is written; with F2, the allow-list makes this the second check, not the only one. Tests, in `machine.test.ts` with the fake `ssh` answering a `records` JSON by hand: a `files` key with `/`, with `..` and one ending `.lock` leave every file outside the record as it was, and the copy is refused naming the key; a plain key is still written. Out: the `log` key, which stays its own branch of the code.
+- Status: open
+
+## F2. The copy's deny-list misses the keys this side acts on: the branch fetched is whatever the copied record names
+
+- Kind: risk
+- Severity: high
+- Found by: 2026-10-23-ar0321-security-check-c2599b95 (worker), 2026-10-23
+- Where: `packages/core/src/machine-sync.ts:25,62,68-69`, `packages/core/src/job-records.ts:145,159`, `packages/core/src/job-state.ts:74`
+- What: the rule: what comes back lands only in that job's record and branch (`spawn.md:61`: "its branch is fetched into the main checkout, `+refs/heads/arthur/<id>`"). The check missing: `OWN` (`:25`) keeps only `root`, `machine`, `state`, `reason`, `since` and `ran`; `arthur remote-job records` sends every other file of the record there changed since the time asked (`remote-job.ts:100-106`), so `branch`, `project`, `kind`, `task`, `worktree`, `base`, `prompt`, `timeout`, `idle-minutes`, `hold`, `pid` arrive from the machine and overwrite the spawn's values here (`:62`). Then `:68-69` reads `branch` and `project` from that record and builds `git fetch <ssh>:<home>/repos/<project>.git +refs/heads/<branch>:refs/heads/<branch>`: `branch` may name any branch of `root`, and `+` force-updates it from whatever the repository there holds when no worktree has it checked out (git 2.43.0 in a temporary repository: a forced fetch into a free branch moved it; into a branch checked out in a worktree, and `+refs/heads/*:refs/heads/*` with `main` checked out, it refused whole) — an ended worker's `arthur/<id>` waiting for its merge, a branch kept after its prune, any branch of the project no job holds; `project` chooses which repository there. `prune` deletes the `branch` the record names (`job-records.ts:145,159`), `job-state` names the ticket of the copied `task` (`job-state.ts:74`), `job-ended` carries the copied `kind` and `project` (`:79`) to the plugins that act on them. Confirms AR0311's F3 (`:25`, `:69`).
+- Suggestion: turn `OWN` into an allow-list of the run's files, those the wrapper and the steps there write (`pid`, `active`, `log`, `cost`, `tool-calls`, `activity`, `result`, `commits`, `budget`, `continue`; the caps written by `remote-job continue` are written here too by `job-control.ts:97-98`), and copy nothing else; at `:68-69`, fetch `arthur/<id>` only, refusing the copy when the record's `branch` is neither empty nor that. Update `spawn.md:61`, which lists the deny-list. Tests: a `records` answer whose `files` carry a `branch`, `project`, `task` and `kind` that differ from the record's leaves the record's values and fetches `+refs/heads/arthur/<id>` only (the fake `ssh` log shows the refspec); a record whose `branch` names another branch of `root` is refused and that branch's tip is unchanged; the honest end (:81) still brings `result`, `cost`, `commits`.
+- Status: open
+
+## F3. The answer of `records` is not checked, and one job's bad answer stops the copy of the machine's other jobs
+
+- Kind: risk
+- Severity: medium
+- Found by: 2026-10-23-ar0321-security-check-c2599b95 (worker), 2026-10-23
+- Where: `packages/core/src/machine-sync.ts:56-80`
+- What: the rule: a copy moves the job here as there, and a failure of one copy leaves the others alone (`spawn.md:61`, "the other machines still copy"). The check missing: the parsed JSON is cast to `Record<string, Copy>` (`:56`) and read as typed: `copy.state` of any text is written as the job's state (`:71-77`; `moveJob` checks `to` against nothing), and counts as an end (`:66`) with a `job-ended` of that state; `copy.since` that is no date throws `RangeError` in `toISOString` under the record's lock (`:77`, `job-state.ts:69`); `copy.files` that is no object of strings throws in `write`; and any throw at `:62-79` leaves the `for` of `:57`, so the machine's other jobs are not copied that sweep, and not on any sweep while the record there stays so (`syncMachines` isolates machines, `:38-44`, not jobs). This is the availability side of the own-record rule: one job's record there decides whether the machine's other jobs move here.
+- Suggestion: check `copy` before anything is written (`state` in `STATES`, `since` parses, `at`, `logFrom`, `logSize` finite numbers, `files` an object whose values are strings), and copy each job in its own try, gathering the failures naming the job as `syncMachines` gathers machines, so the other jobs of the machine still move. Tests: an answer with a bad `since` for one job still copies the other job of that machine, and the sweep's error names the first; a `state` outside `STATES` is refused and the record's state is unchanged.
+- Status: open

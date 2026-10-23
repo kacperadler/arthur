@@ -38,6 +38,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0328 Security check: dependencies, installs and the CI workflows (4fa1b7e)
 - AR0329 A job is not isolated from Arthur's code, config and the user's own files (AR0311 F1, confirmed) (03d7550)
 - AR0330 `git config` from a job rewrites the shared repository's config and the user's (AR0311 F2, confirmed) (8702f7e)
+- AR0331 A job can point its own worktree at `main`, after which every allowed git write lands on main (3043c2a)
 - AR0346 A copy from another machine writes a file under the name the answer gives, which may be a path (3864b01)
 
 ### Changed

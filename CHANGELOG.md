@@ -9,7 +9,9 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0273 Delivery ships no review criteria, so `arthur init` still writes `review.md` as `# Review` (823864e)
 - AR0304 A new plugin's ticket without a plan can still be placed on another machine (7ac9b48)
 - AR0308 After a check fails at merge, the coordinator continues the worker itself (d977720)
+- AR0313 A scenario cannot say a call is made only once (9abe66f)
 - AR0314 Delivery's wake after a failed CI run names only the rerun (eb0ddc5)
+- AR0315 GitHub's own wake after a failed CI run names only the rerun (34adc87)
 
 ### Fixed
 
@@ -26,6 +28,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Changed
 
 - AR0312 The eval baseline of delivery/check-failed measures the old scenario (7ade4f3)
+- AR0317 The baseline of delivery/check-failed predates its stricter expectations (c05de11)
 
 ## 2026-10-22
 

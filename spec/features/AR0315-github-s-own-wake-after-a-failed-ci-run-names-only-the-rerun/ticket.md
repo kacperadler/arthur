@@ -36,3 +36,4 @@ In:
 
 - 2026-10-23: Source: F1 of AR0314
 - 2026-10-23: Coordinator (free hand, finding ticket) approved.
+- 2026-10-23: github's line budget raised 630 → 633 (`test/structure.test.ts`) for the job looked up by its branch and the worker-or-owner clause in github.ts.

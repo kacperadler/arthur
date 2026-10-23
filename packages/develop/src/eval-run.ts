@@ -94,12 +94,15 @@ export function score(expect: Expect, repo: string, before: ReadonlyMap<string, 
 		if (wanted === "moved" && (is === undefined || was === is)) failures.push(`${ref} ${is === undefined ? "is gone" : `stayed at ${is.slice(0, 7)}`}, expected to move`);
 	}
 	let from = 0;
-	for (const pattern of expect.calls) {
-		const at = calls.findIndex((call, index) => index >= from && new RegExp(pattern).test(call));
+	for (const { match, times } of expect.calls) {
+		const regex = new RegExp(match);
+		const at = calls.findIndex((call, index) => index >= from && regex.test(call));
 		if (at < 0) {
-			failures.push(`no call matches /${pattern}/${from > 0 ? ` after ${calls[from - 1]}` : ""}`);
+			failures.push(`no call matches /${match}/${from > 0 ? ` after ${calls[from - 1]}` : ""}`);
 			break;
 		}
+		const count = calls.filter((call) => regex.test(call)).length;
+		if (times !== undefined && count !== times) failures.push(`/${match}/ matches ${count} calls, expected ${times}`);
 		from = at + 1;
 	}
 	for (const pattern of expect.never) for (const call of calls.filter((each) => new RegExp(pattern).test(each))) failures.push(`${call} matches /${pattern}/`);

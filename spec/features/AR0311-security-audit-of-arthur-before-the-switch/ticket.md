@@ -15,7 +15,7 @@ Before Arthur replaces the harness and runs unattended on the VPS with shell, SS
 ## Goal
 
 - Kind: risk
-- Model: anthropic/claude-fable-5-1 (the owner, 2026-10-23); its review stays on the reviewer's default model.
+- Model: anthropic/claude-opus-5-5 (the owner, 2026-10-23, after two Fable refusals); its review stays on the reviewer's default model.
 
 Arthur at the switch (AR0307) runs agents that execute shell commands, merge to main, reach other machines over SSH, read `.env` secrets and take instructions from Telegram, tickets, YouTrack and GitHub. A hole there is a hole on the VPS and in every client repository Arthur will work on.
 
@@ -52,3 +52,5 @@ Out:
 - 2026-10-23: The switch (AR0307) waits for this ticket.
 - 2026-10-23: The owner: "AR0311 ok bez limitu" — approved, no cost limit (--budget 0), model anthropic/claude-fable-5-1.
 - 2026-10-23: The first run on Fable ended with a model refusal (cyber) before writing anything; the ticket is reframed as a defensive review of our own code with no exploit code, same areas, and run once more on Fable.
+- 2026-10-23: Fable refused twice (cyber), ~$20, nothing written. The owner: run it on Opus ("Dobra to pusc na opus"), no cost limit.
+- 2026-10-23: The Opus run was refused (cyber) too, nothing written; no further run without the owner.

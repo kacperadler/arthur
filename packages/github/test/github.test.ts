@@ -97,13 +97,16 @@ test("a finished run is told once per run attempt, across polls and a restart, a
 		{ project: "shop", repo: "acme/shop", workflow: "ci.yml", run: 12, attempt: 1, sha: branch, branch: "arthur/one", branches: ["arthur/one"], conclusion: "failure", url: "https://github.com/acme/shop/actions/runs/12" },
 	]);
 	const ci = "arthur ci arthur/one --project shop";
-	assert.deepEqual(first.messages(), [`[github] CI run 12, attempt 1, of ci.yml in shop ended failure on arthur/one (${branch.slice(0, 7)}): https://github.com/acme/shop/actions/runs/12\nWhy: ${ci}; rerun it once: ${ci} --rerun`]);
+	const transient = "one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once";
+	const worker = `then a failure in the branch's own code goes back to its worker: arthur continue 2026-01-01-worker-0000000a '<the failed step and its lines>'; ${transient}: ${ci} --rerun`;
+	const wake = `[github] CI run 12, attempt 1, of ci.yml in shop ended failure on arthur/one (${branch.slice(0, 7)}): https://github.com/acme/shop/actions/runs/12\nWhy: ${ci}; ${worker}`;
+	assert.deepEqual(first.messages(), [wake]);
 	const polls = api.count(PATH);
 	await until("two more polls", () => api.count(PATH) >= polls + 2);
 	assert.equal(first.finished().length, 1, "the same run seen on two more polls is not told again");
 	await first.plugin.stop?.();
 	const main = shop.commit();
-	api.runs["acme/shop/ci.yml"]?.unshift({ id: 13, sha: main, branch: "main", status: "completed", conclusion: "success" });
+	api.runs["acme/shop/ci.yml"]?.unshift({ id: 13, sha: main, branch: "main", status: "completed", conclusion: "failure" });
 	// A restart is a new process: a new host on the state file the first one left.
 	const again = fakeHost({ name: "github", options: options(api.apiUrl), env: { ARTHUR_GITHUB_TOKEN: TOKEN } });
 	again.provide("projects", () => [project]);
@@ -133,6 +136,12 @@ test("a finished run is told once per run attempt, across polls and a restart, a
 			[12, 2],
 		],
 		"the rerun's end is told once, with its attempt",
+	);
+	const owner = `then a failure in the branch's own code goes to the owner: main has no worker; ${transient}: arthur ci main --project shop --rerun`;
+	assert.deepEqual(
+		restarted.messages(),
+		[`[github] CI run 13, attempt 1, of ci.yml in shop ended failure on main (${main.slice(0, 7)}): https://github.com/acme/shop/actions/runs/13\nWhy: arthur ci main --project shop; ${owner}`, wake.replace("attempt 1", "attempt 2")],
+		"main, which has no job, is the owner's; the rerun's failed end goes back to the worker again",
 	);
 	assert.deepEqual(JSON.parse(readFileSync(join(again.host.folder, "state.json"), "utf8")).runs, { shop: ["13/1", "12/2", "11/1"] });
 	const second = await restarted.ci("arthur/one", "--rerun");
@@ -232,7 +241,8 @@ test("a branch delivery.ciEnded answers true for is left out of the wake and the
 		["shop", "arthur/waits", 0, 41, 1],
 	]);
 	const ci = "arthur ci arthur/also --project shop";
-	assert.deepEqual(box.messages(), [`[github] CI run 41, attempt 1, of ci.yml in shop ended failure on arthur/also (${tip.slice(0, 7)}): https://github.com/acme/shop/actions/runs/41\nWhy: ${ci}; rerun it once: ${ci} --rerun`]);
+	const then = `then a failure in the branch's own code goes back to its worker: arthur continue 2026-01-01-worker-00000011 '<the failed step and its lines>'; one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once: ${ci} --rerun`;
+	assert.deepEqual(box.messages(), [`[github] CI run 41, attempt 1, of ci.yml in shop ended failure on arthur/also (${tip.slice(0, 7)}): https://github.com/acme/shop/actions/runs/41\nWhy: ${ci}; ${then}`]);
 	waits = ["arthur/waits", "arthur/also"];
 	[run.attempt, run.status, run.conclusion] = [2, "completed", "success"];
 	await until("the rerun's end", () => box.finished().length === 2);

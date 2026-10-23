@@ -523,6 +523,10 @@ import { checkStructure } from "./structure.ts";
 // so nothing was cut.
 // Merged main (AR0304) into AR0305: main's budgets plus AR0305's core 5772 (recounted with wc -l).
 // Merged main (AR0305) into AR0306: main's budgets plus AR0306's 15, core 5772 + 15 = 5787 (recounted with wc -l).
+// AR0313 (F2 of AR0308; its Goal: a count on an `expect.calls` entry, so delivery/check-failed requires one `arthur continue`):
+// develop 22 more (703) for `{ match, times }` read with its refusals (eval-scenario.ts, git diff --numstat +21 -2: the
+// function with its comment and a blank 17, the `Call` type with its comment 2) and scored against every call of the turn
+// (eval-run.ts, +6 -3). `calls` counted nothing before, so nothing was cut.
 // AR0310 (F1 of AR0309; its Done means: check for a git identity where Arthur first needs one, as a health line, and name the
 // fix): delivery 20 more (1305) for the identity requirement, `git var` of the author and the committer in each project's
 // checkout, served to `arthur doctor` and asked again before each merge (merge-command.ts, git diff --numstat +19 -2: the
@@ -532,7 +536,15 @@ import { checkStructure } from "./structure.ts";
 // named in that machine's doctor line): machines 5 more (484) for the loop in the script and its comment (machine-check.ts,
 // git diff --numstat +9 -5: the loop 2, its line read from the report 2, the rest changed in place; machines.ts, +10 -9: the
 // identity beside the tools in the line, its costs and its fix). Comments shortened to make room; nothing else to cut.
-const BUDGETS = { core: 5787, "core/testing": 349, projects: 485, orchestration: 2309, machines: 484, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1305, github: 630, manage: 925, develop: 681, findings: 254 };
+// Merged main (AR0310, AR0312, AR0314) into AR0313: main's budgets plus AR0313's develop 703, delivery 1305 (recounted with
+// wc -l).
+// AR0315 (the ticket's Done means: github's failed-CI wake names `arthur continue <job>` for a job's branch and the owner for
+// main, as delivery's does since AR0314): github 3 more (633), the job looked up by its branch and the worker-or-owner clause
+// with its comment (github.ts, +4 -1, the old `why` line rewritten in place); nothing in github named a job before, so nothing
+// was cut.
+// Merged main (AR0310, AR0313) into AR0315: main's budgets plus AR0315's github 633 (recounted with wc -l).
+// Merged main (AR0313, AR0315, AR0317) into AR0316: main's budgets plus AR0316's machines 484 (recounted with wc -l).
+const BUDGETS = { core: 5787, "core/testing": 349, projects: 485, orchestration: 2309, machines: 484, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1305, github: 633, manage: 925, develop: 703, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

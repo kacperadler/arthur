@@ -552,7 +552,10 @@ import { checkStructure } from "./structure.ts";
 // the config's folder and its env file (job-place.ts `guardedPlaces`, 9 with its comment, and job-record.ts, 2), read back
 // with each place's name, a hand-broken line none (job-place.ts, 15: the names, the reader, `Place.guarded`, `optional`), and
 // refused by the worktree guard (worktree-guard.ts, 2). Nothing guarded these places before, so nothing was cut.
-const BUDGETS = { core: 5815, "core/testing": 349, projects: 485, orchestration: 2309, machines: 487, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1305, github: 633, manage: 925, develop: 703, findings: 254 };
+// AR0346 (F1 of AR0321; its Done means: a copy refuses a record file whose name is not a plain record key, nothing of the
+// answer written): core 2 more (5817) for the check before the copy's first write and its comment (machine-sync.ts, +2).
+// Nothing checked these names before, so nothing was cut.
+const BUDGETS = { core: 5817, "core/testing": 349, projects: 485, orchestration: 2309, machines: 487, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1305, github: 633, manage: 925, develop: 703, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

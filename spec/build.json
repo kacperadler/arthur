@@ -2424,9 +2424,9 @@
   {
     "id": "AR0316",
     "title": "A listed machine with no git identity is not told, though its workers commit there",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0316-a-listed-machine-with-no-git-identity-is-not-told-though-its-workers-commit-there/ticket.md",
-    "updated": "2026-10-23T13:27:05.193Z"
+    "updated": "2026-10-23T13:30:17.184Z"
   },
   {
     "id": "AR0317",
@@ -2434,5 +2434,12 @@
     "status": "merged",
     "path": "spec/features/AR0317-the-baseline-of-delivery-check-failed-predates-its-stricter-expectations/ticket.md",
     "updated": "2026-10-23T13:13:16.910Z"
+  },
+  {
+    "id": "AR0318",
+    "title": "A listed machine without git is told to set a git identity, and stays online",
+    "status": "planned",
+    "path": "spec/features/AR0318-a-listed-machine-without-git-is-told-to-set-a-git-identity-and-stays-online/ticket.md",
+    "updated": "2026-10-23T13:30:29.431Z"
   }
 ]

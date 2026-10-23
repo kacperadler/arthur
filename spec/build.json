@@ -2388,7 +2388,7 @@
     "title": "Security audit of Arthur before the switch",
     "status": "in-progress",
     "path": "spec/features/AR0311-security-audit-of-arthur-before-the-switch/ticket.md",
-    "updated": "2026-10-23T12:19:54.399Z"
+    "updated": "2026-10-23T12:40:39.763Z"
   },
   {
     "id": "AR0312",
@@ -2400,9 +2400,9 @@
   {
     "id": "AR0313",
     "title": "A scenario cannot say a call is made only once",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0313-a-scenario-cannot-say-a-call-is-made-only-once/ticket.md",
-    "updated": "2026-10-23T12:40:32.124Z",
+    "updated": "2026-10-23T12:49:23.762Z",
     "after": [
       "AR0312"
     ]
@@ -2417,9 +2417,9 @@
   {
     "id": "AR0315",
     "title": "GitHub's own wake after a failed CI run names only the rerun",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0315-github-s-own-wake-after-a-failed-ci-run-names-only-the-rerun/ticket.md",
-    "updated": "2026-10-23T12:19:13.021Z"
+    "updated": "2026-10-23T12:50:53.409Z"
   },
   {
     "id": "AR0316",

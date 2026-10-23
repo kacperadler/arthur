@@ -41,6 +41,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0331 A job can point its own worktree at `main`, after which every allowed git write lands on main (3043c2a)
 - AR0346 A copy from another machine writes a file under the name the answer gives, which may be a path (3864b01)
 - AR0347 The copy's deny-list misses the keys this side acts on: the branch fetched is whatever the copied record names (cc48b903)
+- AR0349 A line inside a job's final message or a GitHub review reads as a paragraph from the owner (AR0311 F4, confirmed) (587442ae)
 
 ### Changed
 

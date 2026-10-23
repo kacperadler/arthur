@@ -24,7 +24,7 @@ Evidence:
 
 ## Done means
 
-- The fix, with a test that proves it: in the guard's `git`: refuse `--ignore-other-worktrees` on `switch` and `checkout`; refuse `symbolic-ref HEAD <ref>` when `<ref>` is not `refs/heads/<place.branch>` (as `update-ref` is handled at `:134`); and in `refusal`, treat `<worktree>/.git` (a file, the worktree's link to the repository) as the main checkout for `edit`, `write` and any bash write. Tests in `worktree-guard.test.ts`: each of the four refused naming the main checkout; `git switch -c topic`, `git checkout -- .`, `git symbolic-ref HEAD refs/heads/<own branch>` passing. Defence in depth, AR0324: before a merge, refuse when `main`'s tip is not the commit Arthur last left there.
+- The fix, with a test that proves it: in the guard's `git`: refuse `--ignore-other-worktrees` on `switch` and `checkout`; refuse `symbolic-ref HEAD <ref>` when `<ref>` is not `refs/heads/<place.branch>` (as `update-ref` is handled at `:134`); and in `refusal`, treat `<worktree>/.git` (a file, the worktree's link to the repository) as the main checkout for `edit`, `write` and any bash write. Tests in `worktree-guard.test.ts`: each of the four refused naming the main checkout; `git switch -c topic`, `git checkout -- .`, `git symbolic-ref HEAD refs/heads/<own branch>` passing. The merge-time check of main's tip is AR0361's, not this ticket's.
 - `npm test` and `npm run check` pass.
 
 ## Scope
@@ -37,3 +37,4 @@ In:
 - 2026-10-23: Source: F3 of AR0320
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; starts after the ten security checks AR0319-AR0328.
 - 2026-10-23: The owner: weekly cap raised to 40%; fixes one at a time to avoid conflicts, criticals first (AR0329, AR0346), then highs (AR0330, AR0331, AR0347, AR0349, AR0353, AR0370).
+- 2026-10-23: Coordinator: the merge-time defence in depth (main's tip check) is left to AR0361, which owns that check; Done means changed accordingly. Core budget raise 5845 -> 5869 (+24) accepted.

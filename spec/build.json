@@ -2400,9 +2400,9 @@
   {
     "id": "AR0313",
     "title": "A scenario cannot say a call is made only once",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0313-a-scenario-cannot-say-a-call-is-made-only-once/ticket.md",
-    "updated": "2026-10-23T12:15:23.906Z",
+    "updated": "2026-10-23T12:40:32.124Z",
     "after": [
       "AR0312"
     ]
@@ -2424,8 +2424,8 @@
   {
     "id": "AR0316",
     "title": "A listed machine with no git identity is not told, though its workers commit there",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0316-a-listed-machine-with-no-git-identity-is-not-told-though-its-workers-commit-there/ticket.md",
-    "updated": "2026-10-23T12:22:51.788Z"
+    "updated": "2026-10-23T12:33:29.214Z"
   }
 ]

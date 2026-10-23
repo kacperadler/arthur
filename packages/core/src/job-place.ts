@@ -1,12 +1,35 @@
 import { existsSync, readFileSync, readlinkSync, realpathSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { homedir } from "node:os";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
 // Where a job may not write, as the worktree guard (worktree-guard.ts) sees it: from the job's record, and the other
 // projects from the list the projects plugin keeps in the home folder.
 
 // Absolute paths with their symlinks resolved; `branch` is empty for a read-only kind's detached checkout; `others` are the
-// other projects, each with its main checkout and the folder of its jobs' worktrees.
-export type Place = { readonly worktree: string; readonly branch: string; readonly home: string; readonly root: string; readonly worktrees: string; readonly others: readonly { readonly name: string; readonly root: string; readonly worktrees: string }[] };
+// other projects, each with its main checkout and the folder of its jobs' worktrees; `guarded` the places outside every
+// checkout, each with the name a refusal gives it.
+export type Place = { readonly worktree: string; readonly branch: string; readonly home: string; readonly root: string; readonly worktrees: string; readonly others: readonly { readonly name: string; readonly root: string; readonly worktrees: string }[]; readonly guarded: readonly { readonly name: string; readonly path: string }[] };
+
+// The keys of the record's `guarded` file, and the name each place has in a refusal.
+const GUARDED: Readonly<Record<string, string>> = { config: "Arthur's config folder", env: "Arthur's env file", install: "Arthur's install", ssh: "the user's SSH folder", systemd: "the user's systemd folder", gitconfig: "the user's Git config" };
+
+// The record's `guarded` file, a line `<key> <absolute path>` each: Arthur's install, the folder that holds the core's
+// package (the clone of docs/setup.md, so every plugin's package too; `node_modules` of an install from npm), the user's
+// `~/.ssh`, `~/.config/systemd` and `~/.gitconfig`, and with `config` (none on another machine) the config's folder and the
+// env file, which may lie outside it.
+export function guardedPlaces(config?: { readonly folder: string; readonly envFile: string }): string {
+	const user = homedir();
+	const places = { ...(config && { config: config.folder, env: config.envFile }), install: resolve(import.meta.dirname, "..", "..", ".."), ssh: join(user, ".ssh"), systemd: join(user, ".config", "systemd"), gitconfig: join(user, ".gitconfig") };
+	return Object.entries(places).map(([key, path]) => `${key} ${path}`).join("\n");
+}
+
+// The places `text` names as `guardedPlaces` writes them; a line with another key or a relative path is none.
+function guarded(text: string): Place["guarded"] {
+	return text.split("\n").flatMap((line) => {
+		const [key, path] = [line.slice(0, line.indexOf(" ")), line.slice(line.indexOf(" ") + 1)];
+		return Object.hasOwn(GUARDED, key) && isAbsolute(path) ? [{ name: GUARDED[key]!, path: real(path) }] : [];
+	});
+}
 
 // `path` with its nearest existing ancestor resolved through symlinks, and a link whose target does not exist yet followed,
 // so a link cannot name a place its target is not.
@@ -33,11 +56,12 @@ function others(text: string, root: string): Place["others"] {
 }
 
 // The places of the job whose record is `record` (`<home>/jobs/<id>`), as the runner wrote them. A record from before
-// `projects` was written names no other project.
+// `projects` or `guarded` was written names no other project or no guarded place.
 export function jobPlace(record: string): Place {
 	const field = (name: string) => readFileSync(join(record, name), "utf8").trim();
+	const optional = (name: string) => (existsSync(join(record, name)) ? field(name) : "");
 	const [worktree, root] = [real(field("worktree")), real(field("root"))];
-	return { worktree, branch: field("branch"), home: real(dirname(dirname(record))), root, worktrees: dirname(worktree), others: others(existsSync(join(record, "projects")) ? field("projects") : "", root) };
+	return { worktree, branch: field("branch"), home: real(dirname(dirname(record))), root, worktrees: dirname(worktree), others: others(optional("projects"), root), guarded: guarded(optional("guarded")) };
 }
 
 // `place` with the other projects as declared now: the list the projects plugin rewrites in its folder whenever the config

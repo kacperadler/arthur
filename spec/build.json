@@ -2692,9 +2692,9 @@
   {
     "id": "AR0353",
     "title": "No command but three asks whether it runs inside a job: a job merges, spawns, stops, sends and moves the board (AR0311 F5, confirmed)",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0353-no-command-but-three-asks-whether-it-runs-inside-a-job-a-job-merges-spawns-stops-sends-and-moves-the-board-ar0311-f5-confirmed/ticket.md",
-    "updated": "2026-10-23T14:41:33.752Z"
+    "updated": "2026-10-23T20:13:08.142Z"
   },
   {
     "id": "AR0354",

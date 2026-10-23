@@ -37,3 +37,4 @@ Out:
 ## Decisions
 
 - 2026-10-23: The human asked for areas on tickets in every project the harness and Arthur run; options sent (keep as is, an Area line with a filter, a fifth Kind), Area line recommended; waiting for the human's choice.
+- 2026-10-23: The human: not a separate Area; extend Kind instead, following Conventional Commits plus a few more; the coordinator sends a proposed list first (feat, fix, security, perf, refactor, test, docs, build, ci, chore, ux; autopilot keeps fix, refactor, chore, docs, test; old bug->fix, cleanup->refactor, improvement->feat, risk->security or fix). Ticket rewritten once the human picks the list.

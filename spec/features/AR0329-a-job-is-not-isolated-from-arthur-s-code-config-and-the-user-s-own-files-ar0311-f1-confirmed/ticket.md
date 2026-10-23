@@ -36,3 +36,4 @@ In:
 
 - 2026-10-23: Source: F1 of AR0320
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; starts after the ten security checks AR0319-AR0328.
+- 2026-10-23: The owner: Arthur must keep developing itself (new plugins and fixes). The fix blocks a job writing straight into the running installation (live checkout, arthur.config.ts, the env file, ~/.ssh, systemd units); it must not block the path a job uses today: its own worktree and branch (`arthur plugin new --root <worktree>`), review, merge, then the coordinator (not a job) turns the plugin on in arthur.config.ts and restarts. A test proves that path still works.

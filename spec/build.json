@@ -2650,9 +2650,9 @@
   {
     "id": "AR0347",
     "title": "The copy's deny-list misses the keys this side acts on: the branch fetched is whatever the copied record names",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0347-the-copy-s-deny-list-misses-the-keys-this-side-acts-on-the-branch-fetched-is-whatever-the-copied-record-names/ticket.md",
-    "updated": "2026-10-23T18:48:47.143Z"
+    "updated": "2026-10-23T18:52:00.749Z"
   },
   {
     "id": "AR0348",

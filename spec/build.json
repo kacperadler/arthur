@@ -2769,15 +2769,15 @@
   {
     "id": "AR0364",
     "title": "Telegram answers every member of the configured chat, not the owner alone (AR0311 F7, confirmed)",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0364-telegram-answers-every-member-of-the-configured-chat-not-the-owner-alone-ar0311-f7-confirmed/ticket.md",
-    "updated": "2026-10-23T14:49:30.164Z"
+    "updated": "2026-10-23T14:49:58.882Z"
   },
   {
     "id": "AR0365",
     "title": "A message the owner forwarded runs as the owner's own words, a phone command included",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0365-a-message-the-owner-forwarded-runs-as-the-owner-s-own-words-a-phone-command-included/ticket.md",
-    "updated": "2026-10-23T14:49:30.171Z"
+    "updated": "2026-10-23T14:49:59.279Z"
   }
 ]

@@ -2475,16 +2475,16 @@
   {
     "id": "AR0322",
     "title": "Security check: text from outside is never taken as the owner's word",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0322-security-check-text-from-outside-is-never-taken-as-the-owner-s-word/ticket.md",
-    "updated": "2026-10-23T14:15:17.603Z"
+    "updated": "2026-10-23T14:37:50.963Z"
   },
   {
     "id": "AR0323",
     "title": "Security check: which Arthur commands a job itself may run",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0323-security-check-which-arthur-commands-a-job-itself-may-run/ticket.md",
-    "updated": "2026-10-23T14:17:02.916Z"
+    "updated": "2026-10-23T14:35:03.506Z"
   },
   {
     "id": "AR0324",
@@ -2496,16 +2496,16 @@
   {
     "id": "AR0325",
     "title": "Security check: the Telegram channel answers the owner alone",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0325-security-check-the-telegram-channel-answers-the-owner-alone/ticket.md",
-    "updated": "2026-10-23T13:59:08.952Z"
+    "updated": "2026-10-23T14:34:14.378Z"
   },
   {
     "id": "AR0326",
     "title": "Security check: addresses Arthur fetches stay where the config says",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0326-security-check-addresses-arthur-fetches-stay-where-the-config-says/ticket.md",
-    "updated": "2026-10-23T13:59:09.304Z"
+    "updated": "2026-10-23T14:35:06.618Z"
   },
   {
     "id": "AR0327",
@@ -2660,5 +2660,33 @@
     "status": "planned",
     "path": "spec/features/AR0348-the-answer-of-records-is-not-checked-and-one-job-s-bad-answer-stops-the-copy-of-the-machine-s-other-jobs/ticket.md",
     "updated": "2026-10-23T14:26:05.841Z"
+  },
+  {
+    "id": "AR0349",
+    "title": "A line inside a job's final message or a GitHub review reads as a paragraph from the owner (AR0311 F4, confirmed)",
+    "status": "planned",
+    "path": "spec/features/AR0349-a-line-inside-a-job-s-final-message-or-a-github-review-reads-as-a-paragraph-from-the-owner-ar0311-f4-confirmed/ticket.md",
+    "updated": "2026-10-23T14:38:03.008Z"
+  },
+  {
+    "id": "AR0350",
+    "title": "Only YouTrack text is named as data; every other outside text reaches the roles with no rule (AR0311 F12, confirmed)",
+    "status": "planned",
+    "path": "spec/features/AR0350-only-youtrack-text-is-named-as-data-every-other-outside-text-reaches-the-roles-with-no-rule-ar0311-f12-confirmed/ticket.md",
+    "updated": "2026-10-23T14:38:03.229Z"
+  },
+  {
+    "id": "AR0351",
+    "title": "A docs-only branch that rewrites the prompt files every later job reads gets `no review`",
+    "status": "planned",
+    "path": "spec/features/AR0351-a-docs-only-branch-that-rewrites-the-prompt-files-every-later-job-reads-gets-no-review/ticket.md",
+    "updated": "2026-10-23T14:38:03.455Z"
+  },
+  {
+    "id": "AR0352",
+    "title": "The always-review list never matches a path under `.agents/`: `**` does not enter a dot folder",
+    "status": "planned",
+    "path": "spec/features/AR0352-the-always-review-list-never-matches-a-path-under-agents-does-not-enter-a-dot-folder/ticket.md",
+    "updated": "2026-10-23T14:38:03.685Z"
   }
 ]

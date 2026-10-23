@@ -67,6 +67,7 @@ const SH0006 = "spec/features/SH0006-count-the-items-per-order-in-the-sales-repo
 const SH0011 = "spec/features/SH0011-warn-when-a-product-has-no-image/ticket.md";
 const AR0090 = "spec/features/AR0090-name-the-machine-in-arthur-jobs/outcome.md";
 const AR0091 = "'Ticket: spec/features/AR0091-sort-arthur-jobs-by-machine/ticket.md'";
+const CHECK_FAILED = `'npm test failed on main after the merge: test/catalog.test.ts:77, a product named with spaces around it is listed untrimmed (expected Blue mug, got " Blue mug"). Fix it, run the checks, commit, and end.'`;
 // A ticket `arthur ticket new` made, filled as a procedure asks: its kind under the Goal and its source under the Decisions.
 const fill = (path: string, kind: string, source: string): Step[] => [
 	{ edit: path, find: KIND, replace: `- Kind: ${kind}` },
@@ -189,20 +190,23 @@ const ACTS: Readonly<Record<string, Act>> = {
 		right: [
 			{ bash: "arthur jobs" },
 			{ bash: "arthur merge 6a7b8c9d" },
-			{ bash: "arthur continue 6a7b8c9d 'npm test failed on main after the merge: test/catalog.test.ts:77, a product named with spaces around it is listed untrimmed (expected Blue mug, got \" Blue mug\"). Fix it, run the checks, commit, and end.'" },
+			{ bash: `arthur continue 6a7b8c9d ${CHECK_FAILED}` },
 			{ reply: "SH0007, product names trimmed, did not go in: npm test failed on main (test/catalog.test.ts:77, a name with spaces is not trimmed when listed), and main is as it was. Its worker is fixing that test; a new review follows once it ends." },
 		],
 		wrong: [
 			{ bash: "arthur merge 6a7b8c9d" },
 			{ bash: "arthur merge 6a7b8c9d --unreviewed" },
 			{ bash: "arthur continue 6a7b8c9d 'A test fails on main; fix it.'" },
+			{ bash: `arthur continue 6a7b8c9d ${CHECK_FAILED}` },
+			{ bash: `arthur continue 6a7b8c9d ${CHECK_FAILED}` },
 			{ bash: "arthur review 6a7b8c9d" },
 			{ bash: "arthur prune 8f9e0d1c" },
 			{ bash: "arthur spawn 'Ticket: spec/features/SH0007-trim-spaces-around-product-names/ticket.md'" },
 			{ reply: "Sent back to its worker." },
 		],
 		fails: [
-			"no call matches /^arthur continue (\\S+-)?6a7b8c9d .*(?:catalog\\.test\\.ts|listed trimmed)/ after arthur merge 6a7b8c9d",
+			"/^arthur continue (\\S+-)?6a7b8c9d .*(?:catalog\\.test\\.ts|listed trimmed)/ matches 2 calls, expected 1",
+			"arthur continue 6a7b8c9d A test fails on main; fix it. matches /^arthur continue (?!",
 			"arthur prune 8f9e0d1c matches /^arthur prune /",
 			"arthur merge 6a7b8c9d --unreviewed matches /--unreviewed/",
 			"arthur spawn Ticket: spec/features/SH0007-trim-spaces-around-product-names/ticket.md matches /^arthur spawn /",

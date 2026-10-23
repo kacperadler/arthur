@@ -2379,16 +2379,16 @@
   {
     "id": "AR0310",
     "title": "`arthur merge` fails for a user with no git identity, only after its review and checks ran",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0310-arthur-merge-fails-for-a-user-with-no-git-identity-only-after-its-review-and-checks-ran/ticket.md",
-    "updated": "2026-10-23T12:11:38.545Z"
+    "updated": "2026-10-23T12:22:39.131Z"
   },
   {
     "id": "AR0311",
     "title": "Security audit of Arthur before the switch",
     "status": "in-progress",
     "path": "spec/features/AR0311-security-audit-of-arthur-before-the-switch/ticket.md",
-    "updated": "2026-10-23T12:05:41.173Z"
+    "updated": "2026-10-23T12:19:54.399Z"
   },
   {
     "id": "AR0312",
@@ -2400,9 +2400,9 @@
   {
     "id": "AR0313",
     "title": "A scenario cannot say a call is made only once",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0313-a-scenario-cannot-say-a-call-is-made-only-once/ticket.md",
-    "updated": "2026-10-23T11:55:47.995Z",
+    "updated": "2026-10-23T12:40:32.124Z",
     "after": [
       "AR0312"
     ]
@@ -2410,8 +2410,22 @@
   {
     "id": "AR0314",
     "title": "Delivery's wake after a failed CI run names only the rerun",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0314-delivery-s-wake-after-a-failed-ci-run-names-only-the-rerun/ticket.md",
-    "updated": "2026-10-23T12:13:12.871Z"
+    "updated": "2026-10-23T12:18:37.594Z"
+  },
+  {
+    "id": "AR0315",
+    "title": "GitHub's own wake after a failed CI run names only the rerun",
+    "status": "in-progress",
+    "path": "spec/features/AR0315-github-s-own-wake-after-a-failed-ci-run-names-only-the-rerun/ticket.md",
+    "updated": "2026-10-23T12:19:13.021Z"
+  },
+  {
+    "id": "AR0316",
+    "title": "A listed machine with no git identity is not told, though its workers commit there",
+    "status": "in-progress",
+    "path": "spec/features/AR0316-a-listed-machine-with-no-git-identity-is-not-told-though-its-workers-commit-there/ticket.md",
+    "updated": "2026-10-23T12:33:29.214Z"
   }
 ]

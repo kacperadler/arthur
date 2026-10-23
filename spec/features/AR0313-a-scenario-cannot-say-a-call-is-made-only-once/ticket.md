@@ -39,3 +39,4 @@ In:
 
 - 2026-10-23: Source: F2 of AR0308
 - 2026-10-23: Coordinator (free hand, finding ticket) approved.
+- 2026-10-23: Coordinator accepted develop's line budget raise 681 -> 703 (+22: counted calls in eval-scenario.ts and eval-run.ts).

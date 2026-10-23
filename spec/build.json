@@ -2101,9 +2101,9 @@
   {
     "id": "AR0273",
     "title": "Delivery ships no review criteria, so `arthur init` still writes `review.md` as `# Review`",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0273-delivery-ships-no-review-criteria-so-arthur-init-still-writes-review-md-as-review/ticket.md",
-    "updated": "2026-10-22T16:17:19.148Z"
+    "updated": "2026-10-23T11:03:17.031Z"
   },
   {
     "id": "AR0274",
@@ -2350,5 +2350,12 @@
     "status": "merged",
     "path": "spec/features/AR0306-the-agent-s-extensions-still-append-to-log-with-a-flag-that-creates-it/ticket.md",
     "updated": "2026-10-22T23:30:08.491Z"
+  },
+  {
+    "id": "AR0307",
+    "title": "The switch: Arthur runs on the VPS and takes its own tickets",
+    "status": "planning",
+    "path": "spec/features/AR0307-the-switch-arthur-runs-on-the-vps-and-takes-its-own-tickets/ticket.md",
+    "updated": "2026-10-23T11:03:29.126Z"
   }
 ]

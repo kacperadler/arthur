@@ -7,7 +7,7 @@
 
 ## What went in
 
-- feat(AR0273): ship delivery's review criteria for arthur init
+- `packages/delivery/criteria/review.md`: delivery ships a generic review criteria page; `arthur init` writes it into a new project's `<criteriaDir>/review.md` instead of a bare `# Review`, for the project to adapt (test in `test/arthur-criteria.test.ts`).
 
 ## Checks on main
 

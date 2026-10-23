@@ -6,6 +6,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 ### Added
 
+- AR0273 Delivery ships no review criteria, so `arthur init` still writes `review.md` as `# Review` (823864e)
 - AR0304 A new plugin's ticket without a plan can still be placed on another machine (7ac9b48)
 
 ### Fixed

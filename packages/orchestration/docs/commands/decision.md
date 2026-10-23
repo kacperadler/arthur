@@ -12,7 +12,7 @@ Comes with the `orchestration` plugin, which every config holds. It records ever
 
 ## The log
 
-Each project keeps one append-only file, `spec/decisions.jsonl`, next to its board and in Git: the coordinator commits it with the board. Only this command and the plugin itself write it, never a hand: under a lock in `.arthur/orchestration/` (`decisions-<project>.lock`), the whole file written to `spec/.decisions.jsonl.<pid>` and renamed, so a reader never sees half of it. Each line is one JSON record with its id:
+Each project keeps one append-only file, `spec/decisions.jsonl`, next to its board and in Git: the coordinator commits it with the board. Only this command and the plugin itself write it, never a hand: under a lock in `.arthur/orchestration/` (`decisions-<project>.lock`), which this command waits for up to 10 s and the plugin's own records without holding up `arthur run` (up to 60 s, its other work going on meanwhile), the whole file written to `spec/.decisions.jsonl.<pid>` and renamed, so a reader never sees half of it. Each line is one JSON record with its id:
 
 - `ask`: `{ record, id, time, project, kind, question, options, recommend?, ticket?, job?, class? }`, `class` only on a class's proposal (kind `class`, below);
 - `answer`: `{ record, id, time, decided, picked?, words }`, `words` `by policy: <class id>` for an answer given by policy;
@@ -27,7 +27,7 @@ Each project keeps one append-only file, `spec/decisions.jsonl`, next to its boa
 
 The kinds:
 
-- `job`: a job blocked on the owner. The plugin records it by itself when the job turns `blocked: user <question>`, with the job and its ticket, and the notice names it: `<job> asks [AR-D12]: <question>`; a job blocked twice asks twice. The wake of its run names the id and the command to answer it.
+- `job`: a job blocked on the owner. The plugin records it by itself when the job turns `blocked: user <question>`, with the job and its ticket, and the notice names it: `<job> asks [AR-D12]: <question>`; a job blocked twice asks twice. The wake of its run names the id and the command to answer it. While another process holds the log's lock, the question is recorded and the notice sent once the lock is free; a wake written before says `Its question was not in the decision log yet` and how to find its id (`arthur decisions --kind job`). Past 60 s the notice goes naming no decision and the event fails, logged with the plugin's name.
 - `question`: a question in the coordinator's reply.
 - `plan`: a planning ticket's plan waiting for the owner's approval (`arthur plan --help`).
 - `review`: what comes after a branch's second FAIL (`arthur review --help`).
@@ -73,7 +73,7 @@ Then each `ask` of the class's kind whose question names every word of `--match`
 - YYYY-MM-DD: <decided>; pre-approved by policy (AR-D7)
 ```
 
-The `ask` prints a second line, `<id> answered by policy (<class id>): <decided>; act on it as on the owner's answer, and say so in your reply`. A job's question answered so leaves the job blocked: the wake names the decision to continue it with. A question two or more approved classes match is left to the owner: its second line is `<id> goes to the owner: it matches classes <id> and <id>`. A class never answers a class's proposal.
+The `ask` prints a second line, `<id> answered by policy (<class id>): <decided>; act on it as on the owner's answer, and say so in your reply`. A job's question answered so leaves the job blocked: its notice ends ` — answered by policy (<class id>): <decided>`, so the owner's phone shows it decided, and the wake names the decision to continue it with. A question two or more approved classes match is left to the owner: its second line is `<id> goes to the owner: it matches classes <id> and <id>`. A class never answers a class's proposal.
 
 `class revoke` records the owner's revoke; from then the class's questions go to him again, and the answers given by policy before stay as recorded. A later answer approving the proposal again holds again. `arthur decisions --classes` lists each class, proposed, approved, refused, revoked or closed, with its evidence and the questions it answered.
 

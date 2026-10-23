@@ -12,8 +12,8 @@ import type { Labels } from "./machine-options.ts";
 export type Seat = { readonly name: string; readonly labels: Labels; readonly maxJobs?: number };
 // What the core asks with (packages/core/src/jobs.ts): the spawn, the machine it names, and the labels of `--requires`.
 type Asked = { readonly project: string; readonly tickets: readonly string[]; readonly machine?: string; readonly requires?: unknown };
-// The labels a job needs, and where they come from.
-type Need = { readonly labels: Labels; readonly from: string };
+// The labels a job needs, where they come from, and the machine its ticket names when it names one.
+type Need = { readonly labels: Labels; readonly from: string; readonly machine?: string };
 
 const NONE: Need = { labels: {}, from: "" };
 // A ticket's folder in a `Ticket:` path, and its id.
@@ -35,26 +35,29 @@ function labelsOf(value: unknown, where: string): Labels {
 	return record as Labels;
 }
 
-// `--requires`, else the `requires` of the JSON block of the first ticket the task names, else its project's, else none. A
-// ticket and a project are read from the list the projects plugin provides; without it, neither requires anything.
+// `--requires`, else the `requires` of the JSON block of the first ticket the task names, else its project's, else none; and
+// that block's `machine`, which places every job of the ticket. A ticket and a project are read from the list the projects
+// plugin provides; without it, neither requires anything.
 function need(host: Host, asked: Asked): Need {
-	if (asked.requires !== undefined) return { labels: labelsOf(asked.requires, "--requires"), from: "--requires" };
 	const [list] = host.collect<readonly { readonly name?: unknown; readonly path?: unknown; readonly requires?: unknown }[]>("projects");
 	const project = Array.isArray(list) ? list.find((each) => each?.name === asked.project) : undefined;
-	if (project === undefined || typeof project.path !== "string") return NONE;
+	if (project === undefined || typeof project.path !== "string") return asked.requires === undefined ? NONE : { labels: labelsOf(asked.requires, "--requires"), from: "--requires" };
 	const [, folder, id] = asked.tickets.map((path) => FEATURE.exec(path)).find((match) => match !== null) ?? [];
 	const file = folder === undefined ? "" : join(project.path, folder, "ticket.md");
 	const block = file !== "" && existsSync(file) ? /^```json\n([\s\S]*?)^```$/m.exec(readFileSync(file, "utf8"))?.[1] : undefined;
-	if (block !== undefined) {
-		let json: unknown;
-		try {
-			json = JSON.parse(block);
-		} catch (error) {
-			throw new Error(`${file}: its JSON block is not JSON (${(error as Error).message}); fix it by hand`);
-		}
-		if (typeof json === "object" && json !== null && "requires" in json) return { labels: labelsOf(json.requires, `ticket ${id} (${file})`), from: `ticket ${id}` };
+	let json: unknown;
+	try {
+		json = block === undefined ? {} : JSON.parse(block);
+	} catch (error) {
+		throw new Error(`${file}: its JSON block is not JSON (${(error as Error).message}); fix it by hand`);
 	}
-	return project.requires === undefined ? NONE : { labels: labelsOf(project.requires, `project ${asked.project}`), from: `project ${asked.project}` };
+	const ticket = (typeof json === "object" && json !== null ? json : {}) as Readonly<Record<string, unknown>>;
+	const machine = ticket.machine;
+	if (machine !== undefined && !(typeof machine === "string" && machine.trim() !== "")) throw new Error(`ticket ${id} (${file}): machine must be a machine's name, got ${describe(machine)}`);
+	const pin = machine === undefined ? {} : { machine };
+	if (asked.requires !== undefined) return { labels: labelsOf(asked.requires, "--requires"), from: "--requires", ...pin };
+	if ("requires" in ticket) return { labels: labelsOf(ticket.requires, `ticket ${id} (${file})`), from: `ticket ${id}`, ...pin };
+	return project.requires === undefined ? { ...NONE, ...pin } : { labels: labelsOf(project.requires, `project ${asked.project}`), from: `project ${asked.project}`, ...pin };
 }
 
 // The labels `seat` lacks of `labels`, as text; empty when it has each: the same os and arch, every tool listed.
@@ -66,12 +69,13 @@ function lacks(seat: Seat, labels: Labels): string {
 	return Object.keys(missing).length === 0 ? "" : labelsText(missing);
 }
 
-// `jobs.place`: the named machine once it has the labels (an unknown one is the core's to refuse); else, among the online
-// machines with the labels and under their `maxJobs`, the one with the most room, `local` and then the list's order on a tie.
-// `check` answers each listed machine's state; `local` is always online. A refusal names the labels and every machine.
+// `jobs.place`: the named machine once it has the labels (an unknown one is the core's to refuse), else the one the ticket's
+// JSON block names, the same way; else, among the online machines with the labels and under their `maxJobs`, the one with the
+// most room, `local` and then the list's order on a tie. `check` answers each listed machine's state; `local` is always
+// online. A refusal names the labels and every machine.
 export function placement(host: Host, seats: readonly Seat[], check: () => Promise<ReadonlyMap<string, Report>>) {
 	return async (asked: Asked): Promise<string> => {
-		const { labels, from } = need(host, asked);
+		const { labels, from, machine } = need(host, asked);
 		const running = new Set(host.jobs.running());
 		const counts = new Map<string, number>();
 		for (const job of host.jobs.list()) if (running.has(job.id)) counts.set(job.machine, (counts.get(job.machine) ?? 0) + 1);
@@ -83,10 +87,11 @@ export function placement(host: Host, seats: readonly Seat[], check: () => Promi
 			const needs = Object.keys(labels).length === 0 ? "the job needs no label" : `the job needs ${labelsText(labels)} (${from})`;
 			return new Error(`${why}; ${needs}; machines: ${seats.map((seat) => `${seat.name} (${labelsText(seat.labels)}): ${state(seat)}`).join("; ")}`);
 		};
-		if (asked.machine !== undefined) {
-			const seat = seats.find((each) => each.name === asked.machine);
-			if (seat === undefined || lacks(seat, labels) === "") return asked.machine;
-			throw refuse(`machine ${seat.name} lacks ${lacks(seat, labels)}`, await check());
+		const named = asked.machine ?? machine;
+		if (named !== undefined) {
+			const seat = seats.find((each) => each.name === named);
+			if (seat === undefined || lacks(seat, labels) === "") return named;
+			throw refuse(`machine ${seat.name}${asked.machine === undefined ? ", which its ticket names," : ""} lacks ${lacks(seat, labels)}`, await check());
 		}
 		const fitting = seats.filter((seat) => lacks(seat, labels) === "");
 		if (fitting.length === 0) throw refuse("no machine has the labels", await check());

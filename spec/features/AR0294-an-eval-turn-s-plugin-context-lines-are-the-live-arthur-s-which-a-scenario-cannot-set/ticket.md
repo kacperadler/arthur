@@ -36,3 +36,5 @@ In:
 
 - 2026-10-22: Source: F1 of AR0279
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-22: Coordinator (free hand): line budget raise accepted, orchestration 2278 to 2284, develop 668 to 670, for a scenario's `context` replacing each plugin's eval lines and its checks.
+- 2026-10-22: Coordinator (free hand): after merging main (AR0295), orchestration 2285 (2278 + 6 + 1 for the merged checkout comment), develop 670.

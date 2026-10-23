@@ -458,7 +458,72 @@ import { checkStructure } from "./structure.ts";
 // Merged main (AR0269, AR0288) into AR0279: main's budgets plus AR0279's raises, core 5753, orchestration 2231, develop
 // 633 + 22 = 655 (recounted with wc -l).
 // Merged main (AR0279, AR0288, AR0291) into AR0271: main's budgets plus AR0271's resources 607 (recounted with wc -l).
-const BUDGETS = { core: 5753, "core/testing": 349, projects: 486, orchestration: 2231, machines: 474, resources: 607, session: 878, schedule: 570, models: 509, youtrack: 659, "commit-rules": 169, nvm: 96, telegram: 641, uptime: 292, delivery: 1263, github: 630, manage: 925, develop: 655, findings: 254 };
+// AR0283 (F2 of AR0281; its Done means name `queueLock` in the plugin's handlers): orchestration 38 more (2269) for the decision
+// log's lock taken without blocking `arthur run` (decision-lock.ts, 24: the lock's path moved out of decision-log.ts and
+// `queued`, at once when free, else through `queueLock`), the notice sent once the ask resolves (blocked-notice.ts, 7), and
+// the wake matching this block's own question, saying when it is not recorded yet (decision-hooks.ts, 7); nothing cut.
+// AR0274 (F1 of AR0260; its Done means: the planner puts the line of `arthur plugin new --root` into a new plugin's plan as its
+// first step): develop 12 more (667) for the planner's and the worker's prompt section with that line, in Arthur's repository
+// only (plugin-new.ts, 11; develop.ts, 1); a new section, so nothing was cut.
+// AR0285 (F1 of AR0284; its Done means: a job's question answered by policy ends its notice with that answer): orchestration 8
+// more (2239) for askOfJob returning the answer by policy (decision-hooks.ts, its type and comment 2) and the notice's ending,
+// kept when the question is cut (blocked-notice.ts: the import 1, the comment 1, the ending 1, the head 1, the kept ending and
+// its comment 2); a new line on the phone, so nothing was cut.
+// AR0287 (F2 of AR0280; its Done means: the wake's providers take what they need from the wake's data and the final message):
+// delivery 22 more (1285) for a review's wake built from what it reads, its record or, for a review in no home (an eval's),
+// the record its data names, checked (delivery.ts, git diff --numstat +32 -10); develop 2 more (669) for a job's end of the
+// main project and its `records` checked (eval-scenario.ts); orchestration 1 more (2240) for the final message passed to the
+// providers (inbox.ts); the wake took its review from the record alone before, so nothing was cut.
+// Merged main (AR0274, AR0285) into AR0283: main's budgets plus AR0283's raise, orchestration 2239 + 38 = 2277, develop 667
+// (recounted with wc -l).
+// AR0289 (F1 of AR0277; its Done means: schedule provides the text of an action due, develop asks it instead of its copy):
+// schedule 15 more (585) for `schedule.message` with its refusals (sweep.ts, `dueMessage`, 8) and the one wording of
+// `[scheduled <id>]` the sweep, a refused spawn and the answer share (sweep.ts, `scheduled`, 6), provided (schedule.ts, 1);
+// develop 1 fewer (666), its copy of the wording gone from eval-scenario.ts.
+// Merged main (AR0283) into AR0287: main's budgets plus AR0287's raises, orchestration 2277 + 1 = 2278, delivery 1285,
+// develop 669 (recounted with wc -l).
+// AR0292 (F1 of AR0269; its Done means: run the `node -e` script and the df loop in one `sh -c` there): resources 9 more (616)
+// for a check of its own over ssh carrying df in its one call (machine-free.ts, git diff --numstat +31 -22: `ask`, its comment
+// and a blank 12, the script both run and its comment 2, the call made in checkSample 1, less the 6 lines moved from `measure`
+// into `ask`); a check of its own made two ssh calls before, so nothing was cut.
+// Merged main (AR0287) into AR0289: main's budgets plus AR0289's, schedule 585, develop 669 - 1 = 668 (recounted with wc -l).
+// Merged main (AR0289) into AR0292: main's budgets plus AR0292's resources 616 (recounted with wc -l).
+// AR0294 (F1 of AR0279; its Done means: a scenario's `context` replaces each plugin's answer in `coordinator.checkoutContext`):
+// orchestration 6 more (2284) for the plugins' lines taken from it, none for one left out, a name no plugin answers refused
+// (context.ts, 5 with its comment) and `context` checked in the provider (orchestration.ts, 1); develop 2 more (670) for
+// `context` read and checked (eval-scenario.ts, 1 and its comment 1). An eval took the live answers before, so nothing was cut.
+// Merged main (AR0295) into AR0294: main's budgets plus AR0294's raises, orchestration 2278 + 6 + 1 = 2285 (the checkout's
+// comment in context.ts carries both tickets' words on one more line), develop 670 (recounted with wc -l).
+// AR0298 (F1 of AR0274; its Done means: the section says a new plugin's ticket runs on the local machine): develop 2 more
+// (672) for the worker's section on another machine, whose bare repository has no arthur.config.ts (plugin-new.ts, 1 and its
+// comment 1). A new case, so nothing was cut.
+// AR0300 (F1 of AR0202; its Done means: a record removed while the wrapper appends to `log` is gone, never ENOTEMPTY): core
+// 2 more (5755) for `log` made once at the wrapper's start and then only appended to, opened without O_CREAT (wrapper.ts, 1
+// each). An append created `log` before, so nothing was cut.
+// AR0299 (F1 of AR0283; its Done means: a `.sent` mark after the notice, and a replay that finds the mark without it sends the
+// notice, asking only when the job has no open question): orchestration 24 more (2309) for the lock held from before the mark
+// until after `.sent` and the scan of the locks a crash left at `arthur run`'s start (blocked-notice.ts, git diff --numstat
+// +33 -16), and the job's open question looked up under the log's lock (decision-hooks.ts, +9 -4; orchestration.ts, +3 -1). The
+// replay never delivered such an event again, so nothing was cut.
+// Merged main (AR0299) into AR0300: main's budgets plus AR0300's core 5755, every budget set to its count (recounted with
+// wc -l): projects 486 to 485 and commit-rules 169 to 165, the slack main carried.
+// AR0306 (F1 of AR0300; its Done means: the agent's extensions append to `log` without creating it, skipping the line on
+// ENOENT): core 15 more (5770) for the open without O_CREAT, the write, the close and the skip, in steer.ts (git diff --numstat
+// +9 -2) and worktree-guard.ts (+10 -2), each with its comment. appendFileSync created `log` before, so nothing was cut.
+// AR0305 (F1 of AR0299; its Done means: a file naming this pid that this process did not take counts as a dead holder's, and
+// this process's own live locks stay held): core 17 more (5772) for the locks this process holds, kept by device and inode
+// (lock.ts, git diff --numstat +27 -10: the set and `hold` with its comment 8, each lock marked and forgotten 3, release
+// forgetting only a lock it removed 2, the header and `holder`'s comments 3, `holder`'s key 1). A lock naming this pid
+// counted as held before, so nothing was cut.
+// AR0304 (F1 of AR0298; its Done means: a ticket's JSON block pins its machine, read by `need` beside `requires`, and the
+// ticket's author is told to set it for a new plugin): machines 5 more (479) for `machine` read and checked beside `requires`,
+// also when `--requires` replaces the labels, and placed as `--machine` is (machine-place.ts, git diff --numstat +28 -23);
+// develop 9 more (681) for the coordinator's context line of a new plugin's ticket (plugin-new.ts, +8 -1: the function 4, its
+// comment 2, a blank 1, the worker's line changed in place; develop.ts, +4 -2: provided 1, the header's comment 1). A new key,
+// so nothing was cut.
+// Merged main (AR0304) into AR0305: main's budgets plus AR0305's core 5772 (recounted with wc -l).
+// Merged main (AR0305) into AR0306: main's budgets plus AR0306's 15, core 5772 + 15 = 5787 (recounted with wc -l).
+const BUDGETS = { core: 5787, "core/testing": 349, projects: 485, orchestration: 2309, machines: 479, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1285, github: 630, manage: 925, develop: 681, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

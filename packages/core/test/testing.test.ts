@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { test } from "node:test";
+import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import type { Plugin } from "@arthur/core/plugin";
 import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
@@ -238,6 +239,41 @@ test("a tmux command under the kit reaches no live server", { skip: !hasTmux() &
 	const run = spawnSync("tmux", ["list-sessions"], { encoding: "utf8" });
 	assert.notEqual(run.status, 0, `tmux listed live sessions: ${run.stdout}`);
 	assert.match(run.stderr, /no server running|error connecting/);
+});
+
+test("the kit ends, before it removes its folder, the tmux servers a test left on its sockets, tmux's default one included, and none a link leads out to", { skip: !hasTmux() && "tmux is not installed" }, async (t) => {
+	const kit = import.meta.resolve("@arthur/core/testing");
+	const outside = join(temporaryFolder(), "tmux.sock");
+	t.after(() => spawnSync("tmux", ["-S", outside, "kill-server"]));
+	execFileSync("tmux", ["-S", outside, "new-session", "-d", "-s", "outside", "sleep", "300"]);
+	// A child loads the kit, starts a server on a socket in its folder, one in a folder below, and one on tmux's default socket, and exits leaving all three;
+	// a link in its folder leads to a live server outside it, and a link to its own folder loops.
+	const code = `const { temporaryFolder } = await import(${JSON.stringify(kit)});
+		const { execFileSync } = await import("node:child_process");
+		const { mkdirSync, symlinkSync } = await import("node:fs");
+		const deeper = temporaryFolder() + "/deeper";
+		mkdirSync(deeper);
+		symlinkSync(${JSON.stringify(dirname(outside))}, deeper + "/out");
+		symlinkSync(".", deeper + "/self");
+		const sockets = [["-S", temporaryFolder() + "/tmux.sock"], ["-S", deeper + "/tmux.sock"], []];
+		for (const socket of sockets) execFileSync("tmux", [...socket, "new-session", "-d", "-s", "left", "sleep", "300"]);
+		console.log(JSON.stringify(sockets.map((socket) => Number(execFileSync("tmux", [...socket, "display-message", "-p", "#{pid}"], { encoding: "utf8" })))));`;
+	const run = spawnSync(process.execPath, ["--input-type=module", "-e", code], { encoding: "utf8" });
+	assert.equal(run.status, 0, run.stderr);
+	assert.equal(run.stderr, "");
+	const pids = JSON.parse(run.stdout) as number[];
+	const alive = (pid: number) => {
+		try {
+			return process.kill(pid, 0);
+		} catch {
+			return false;
+		}
+	};
+	t.after(() => pids.filter(alive).forEach((pid) => process.kill(pid, "SIGKILL")));
+	assert.equal(new Set(pids).size, 3, `three servers: ${pids}`);
+	for (let waited = 0; waited < 5000 && pids.some(alive); waited += 50) await sleep(50);
+	assert.deepEqual(pids.filter(alive), [], "a tmux server outlived the kit's exit");
+	assert.equal(spawnSync("tmux", ["-S", outside, "has-session", "-t", "outside"]).status, 0, "the kit ended a server outside its folder");
 });
 
 test("omp under the kit is the fake agent with no run scripted: it fails, and no job of a test reaches the real agent", () => {

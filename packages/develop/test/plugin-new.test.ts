@@ -176,3 +176,73 @@ test("in a job only its own worktree, named by --root, is written; never the pro
 	assert.equal(readlinkSync(join(worktree, "node_modules", "@arthur", "acme")), join("..", "..", "packages", "acme"));
 	assert.ok(!existsSync(join(checkout, "node_modules", "@arthur", "acme")));
 });
+
+// The checkout's config: develop, and in place of orchestration a test plugin that answers the project list.
+const CONFIG = `import { develop } from "@arthur/develop";
+
+export default { plugins: [{ name: "orchestration", setup: (host) => host.provide("projects", () => [{ name: "arthur", path: import.meta.dirname, prefix: "AR" }]) }, develop()] };
+`;
+
+test("the coordinator is told that a new plugin's ticket names the local machine, for each project that is Arthur's repository only", async () => {
+	const [arthur, fork, other] = [temporaryFolder(), temporaryFolder(), temporaryFolder()];
+	for (const root of [arthur, fork]) {
+		mkdirSync(join(root, "packages", "core"), { recursive: true });
+		writeFileSync(join(root, "packages", "core", "package.json"), "{}");
+	}
+	let projects = [{ name: "arthur", path: arthur, prefix: "AR" }, { name: "other", path: other, prefix: "OT" }, { name: "fork", path: fork, prefix: "FO" }];
+	const fake = fakeHost({ name: "develop" });
+	fake.provide("projects", () => projects);
+	await fake.setup(develop());
+	const line = (names: string) => `A ticket that makes a new plugin package in ${names} gets \`"machine": "local"\` in its JSON block before its first spawn: \`arthur plugin new\` runs only on the local machine, and every job of the ticket then goes there.`;
+	assert.deepEqual(fake.collect("coordinator.context"), [line("arthur, fork")]);
+	projects = [projects[1]!];
+	assert.deepEqual(fake.collect("coordinator.context"), [undefined], "no project is Arthur's repository");
+});
+
+test("the planner and the worker are told the line that makes a new plugin from a job, and it runs as written; no other role or repository", async () => {
+	const [checkout, worktree, record] = [copy(), join(temporaryFolder(), "worktree"), temporaryFolder()];
+	git(checkout, "worktree", "add", "--quiet", "--detach", worktree);
+	const fake = fakeHost({ name: "develop" });
+	await fake.setup(develop());
+	const job = { project: "arthur", root: checkout, worktree, base: git(checkout, "rev-parse", "HEAD").trim(), machine: "local" };
+	const fence = (root: string) => `\n\n\`\`\`\ncd <checkout> && arthur plugin new <name> --budget <lines> --root ${root}\n\`\`\``;
+	const [planner = ""] = fake.collect<string | undefined>("prompt", "planner", job);
+	assert.match(planner, /^## A new plugin\n\nWhen the ticket makes a new plugin package, the plan says that its worker runs on the local machine, spawned with `--machine local`, and its first step is this line, so the worker makes the package with it, not by hand\. /);
+	assert.ok(planner.endsWith(fence("<worktree>")), planner);
+	const [worker = ""] = fake.collect<string | undefined>("prompt", "worker", job);
+	assert.match(worker, /^## A new plugin\n\nWhen your ticket makes a new plugin package, make it first with this line, not by hand\. /);
+	assert.ok(worker.endsWith(fence(worktree)), worker);
+	for (const role of ["reviewer", "plan-reviewer", "coordinator"]) assert.deepEqual(fake.collect("prompt", role, job), [undefined], role);
+	for (const role of ["planner", "worker"]) assert.deepEqual(fake.collect("prompt", role, { ...job, root: temporaryFolder() }), [undefined], `${role} outside Arthur's repository`);
+	// On another machine the planner's section is the same; the worker gets no line, which cannot run there, and is told why.
+	const away = { ...job, machine: "gpu", worktree: "/home/test/.arthur/repos/arthur.git.worktrees/x" };
+	assert.deepEqual(fake.collect("prompt", "planner", away), [planner]);
+	const [remote = ""] = fake.collect<string | undefined>("prompt", "worker", away);
+	assert.match(remote, /^## A new plugin\n\nThis job runs on machine gpu, where `arthur plugin new` cannot run: .* when your ticket makes one, change nothing and end, saying that its ticket's JSON block needs `"machine": "local"`, which places every job of it there, and its worker spawned again with this task\.$/);
+	assert.ok(!remote.includes("cd <checkout>"), remote);
+
+	// The worker's line as written, `<checkout>` the first line of `git worktree list`, run in the job's worktree by a shell
+	// with the job's record; the checkout holds arthur.config.ts and `arthur` as `npm ci` links it.
+	writeFileSync(join(checkout, "arthur.config.ts"), CONFIG);
+	symlinkSync(join("..", "@arthur", "core", "src", "cli.ts"), join(checkout, "node_modules", ".bin", "arthur"));
+	writeFileSync(join(record, "worktree"), `${worktree}\n`);
+	const first = git(worktree, "worktree", "list").split(" ")[0] ?? "";
+	const line = worker.slice(worker.lastIndexOf("cd <checkout>"), -4).replace("<checkout>", first).replace("<name>", "acme").replace("<lines>", "100");
+	const env = { ...ENV, ARTHUR_JOB: record, PATH: `${join(checkout, "node_modules", ".bin")}:${ENV.PATH}` };
+	const ran = spawnSync("sh", ["-c", line], { cwd: worktree, env, encoding: "utf8" });
+	assert.equal(ran.status, 0, `${line}\n${ran.stdout}${ran.stderr}`);
+	assert.match(changed(worktree), /^\?\? packages\/acme\/src\/acme\.ts$/m);
+	assert.match(budgets(worktree), /, acme: 100$/);
+	assert.equal(changed(checkout), "", "the project's checkout is untouched");
+	assert.equal(spawnSync("sh", ["-c", line.replace(`cd ${first}`, `cd ${worktree}`)], { cwd: worktree, env, encoding: "utf8" }).status, 2, "from the worktree, without arthur.config.ts, the CLI has no plugin command");
+	// Another machine's repository, bare as `arthur remote-job repo` makes it, with the job's worktree in it: the first line of
+	// `git worktree list` there names the bare repository, which holds no arthur.config.ts either.
+	const [bare, there] = [join(temporaryFolder(), "arthur.git"), join(temporaryFolder(), "there")];
+	git(checkout, "clone", "--quiet", "--bare", checkout, bare);
+	git(bare, "worktree", "add", "--quiet", "--detach", there);
+	const repository = git(there, "worktree", "list").split(" ")[0] ?? "";
+	assert.equal(repository, bare);
+	writeFileSync(join(record, "worktree"), `${there}\n`);
+	const far = spawnSync("sh", ["-c", line.replace(`cd ${first}`, `cd ${repository}`).replace(worktree, there)], { cwd: there, env, encoding: "utf8" });
+	assert.deepEqual([far.status, far.stderr.split("\n")[0]], [2, "arthur: unknown command plugin"], "in the bare repository there the CLI has no plugin command");
+});

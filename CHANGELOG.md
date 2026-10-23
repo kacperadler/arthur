@@ -2,20 +2,49 @@
 
 Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-23
+
+### Added
+
+- AR0304 A new plugin's ticket without a plan can still be placed on another machine (7ac9b48)
+
+### Fixed
+
+- AR0299 A crash of `arthur run` while a job's question waits for the log's lock loses its notice (c54a670)
+- AR0300 The wrapper's append to log can still recreate it while rm -r empties the record (e0a3aea)
+- AR0301 core job-control test can fail with ENOENT unlinking continuing under load (3691a8e)
+- AR0302 The inbox's backoff tests still measure 5 s and 10 s windows in real time (b0ff5ff)
+- AR0303 The test kit's exit removes the sockets of tmux servers a test left, so nothing can reach them (a8e6fe1)
+- AR0305 A lock left by a crashed process whose pid the taker now has counts as held by a live process (94846b2)
+- AR0306 The agent's extensions still append to `log` with a flag that creates it (7b2d80a)
+
 ## 2026-10-22
 
 ### Added
 
 - AR0269 The disk check makes a second ssh call per machine and round (2bb5ec1)
+- AR0274 A worker learns of `arthur plugin new --root` only if its ticket or plan names it (aa8e03e)
 - AR0278 In an eval run, `arthur <command> --help` answers only what the scenario's stub says (7732a3d)
 - AR0279 An eval turn gets the coordinator's role but not its context, nor a time of day (f582f7d)
+- AR0282 The decision log's race test catches a missing lock only in most runs (d85fed6)
+- AR0285 A job's question answered by policy still reaches the owner as a question (cdc0ad1)
+- AR0292 A check of its own still makes two ssh calls to a machine with a disk floor (59b78a4)
+- AR0295 The fixtures have no vision, so every eval context warns the main project has none (689f6fb)
 
 ### Fixed
 
 - AR0271 Two processes checking one machine at once can both say the same news (92228a0)
 - AR0272 Arthur's own repository has no criteria folder, so its audits and retros run without their criteria (8d5d6bd)
 - AR0277 The eval words a turn with a copy of orchestration's wake and inbox lines, which can drift (c4047e0)
+- AR0283 A job's question and the plugin's closes take the log's lock synchronously inside `arthur run` (d50431a)
 - AR0288 The eval stub answers a command's --help with that command's scripted result (3b718b5)
+- AR0289 The eval still words a schedule entry with its own copy of the schedule plugin's `[scheduled <id>]` line (cee3d3f)
+- AR0290 The telegram menu test failed once in a full `npm test` and passes alone (4b8b178)
+- AR0293 An orchestration inbox test overshoots its 30 s real-timer window under load (fbf9607)
+- AR0294 An eval turn's plugin context lines are the live Arthur's, which a scenario cannot set (dae5a18)
+- AR0296 An orchestration test can leave its tmux server and fake agent running after `npm test` (5249d15)
+- AR0297 The styleguide and review criteria now live in two folders that will drift (bb00d85)
+- AR0298 On another machine the checkout a job reaches has no arthur.config.ts, so the line of `arthur plugin new` cannot run there (b9d649e)
 
 ### Changed
 
@@ -29,6 +58,8 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0280 Roadmap 68: evals, the scenarios (1978fb0)
 - AR0281 Roadmap 96: the decision log (88ec6c6)
 - AR0284 Roadmap 97: decision classes (34bdce0)
+- AR0286 The coordinator's role has no rule for a night answer, which orchestration/night-one-line measures (8708aa9)
+- AR0287 A plugin's wake lines for a review or an onboarding cannot reach an eval's turn, even once AR0277 words it (fc89048)
 
 ## 2026-10-21
 

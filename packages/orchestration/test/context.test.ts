@@ -90,6 +90,14 @@ test("the coordinator's role runs a wake's arthur merge --auto without the owner
 	assert.match(decision ?? "", /merge \(a wake's `arthur merge --auto` aside\)/, "silent mode does not ask the owner for it");
 });
 
+// AR0286: the context says whether it is night; the role must say what that changes, which orchestration/night-one-line measures.
+test("the coordinator's role keeps a reply to one line at night, as the context's ## Time says, under the question rule", () => {
+	const final = ROLE.split("\n## Final message\n\n")[1]?.split("\n## ")[0] ?? "";
+	const night = final.indexOf("At night (your context's `## Time` says `night`), the reply is one line.");
+	assert.ok(night >= 0, "the role's Final message has the night rule");
+	assert.ok(night < final.indexOf("This outranks any limit on a reply's length"), "a question to the owner still runs as long as it needs");
+});
+
 test("the context: the role with the main project's override and criteria, each vision, a warning per missing file, each board, the time, then each plugin's lines", async (t) => {
 	const { fake, context } = await setup(t, "2026-10-18T10:00:00Z");
 	fake.provide("coordinator.context", () => "SH Shop: the shop.\n");
@@ -138,9 +146,12 @@ test("a missing criteria file, an empty or symlinked vision, and a hand-broken b
 	assert.doesNotMatch(text, /## Vision of/);
 });
 
-test("coordinator.checkoutContext: the main project's role, the vision and board of a copy of its repository, the time at the instant asked, each plugin's lines; no jobs, open decisions or silent mode, which are the live Arthur's", async (t) => {
+test("coordinator.checkoutContext: the main project's role, the vision and board of a copy of its repository, the time at the instant asked, the plugins' lines the scenario sets; no jobs, open decisions or silent mode, which are the live Arthur's", async (t) => {
 	const { fake, demo, context } = await setup(t, "2026-10-18T10:00:00Z");
 	const copy = repository({ "spec/vision.md": "# Fixture\n\nThe fixture's shop.\n", "spec/build.json": board("Copied", "Second") });
+	assert.throws(() => fake.call("coordinator.checkoutContext", { root: copy, at: new Date(), context: { session: "Restart: due." } }), {
+		message: "coordinator.checkoutContext: context names session: no such plugin answers coordinator.context; those that do: none",
+	});
 	const job = join(dirname(fake.host.folder), "jobs", "2026-10-18-worker-0000000a");
 	mkdirSync(job, { recursive: true });
 	for (const [key, value] of Object.entries({ kind: "worker", project: "demo", task: "Go.", state: "working", since: "2026-10-18T09:55:00Z" })) writeFileSync(join(job, key), value);
@@ -150,22 +161,38 @@ test("coordinator.checkoutContext: the main project's role, the vision and board
 	const live = await context();
 	for (const section of ["Jobs not ended", "Open decisions", "Silent"]) assert.match(live, new RegExp(`^## ${section}$`, "m"), `the live context holds ${section}`);
 	const at = new Date("2026-10-18T21:30:00Z");
-	assert.equal(
-		fake.call("coordinator.checkoutContext", { root: copy, at }),
-		[
-			ROLE,
-			"## Project override, which wins over the role above (.agents/arthur/roles/coordinator.md)\n\nAnswer in Polish.",
-			"## Styleguide (.agents/arthur/criteria/styleguide.md)\n\n# Styleguide\n\nSmall files.",
-			"## Autopilot (.agents/arthur/criteria/autopilot.md)\n\n# Autopilot\n\nOnly typos.",
-			"## Vision of demo (spec/vision.md)\n\n# Fixture\n\nThe fixture's shop.",
-			"## Board\n\nDM0001 planning    Copied\nDM0002 planning    Second",
-			"## Time\n\n23:30 on sun 2026-10-18 (Europe/Warsaw), night: within the owner's quiet hours.",
-			"## test\n\nRetro due: no.",
-		].join("\n\n"),
-	);
-	for (const asked of [undefined, { root: copy }, { root: 3, at }, { root: copy, at: at.toISOString() }]) {
-		assert.throws(() => fake.call("coordinator.checkoutContext", asked), { message: `coordinator.checkoutContext: expected { root: a folder, at: a Date }, got ${JSON.stringify(asked ?? {})}` });
+	const expected = [
+		ROLE,
+		"## Project override, which wins over the role above (.agents/arthur/roles/coordinator.md)\n\nAnswer in Polish.",
+		"## Styleguide (.agents/arthur/criteria/styleguide.md)\n\n# Styleguide\n\nSmall files.",
+		"## Autopilot (.agents/arthur/criteria/autopilot.md)\n\n# Autopilot\n\nOnly typos.",
+		"## Vision (spec/vision.md)\n\n# Fixture\n\nThe fixture's shop.",
+		"## Board\n\nDM0001 planning    Copied\nDM0002 planning    Second",
+		"## Time\n\n23:30 on sun 2026-10-18 (Europe/Warsaw), night: within the owner's quiet hours.",
+	];
+	assert.equal(fake.call("coordinator.checkoutContext", { root: copy, at, context: { test: "  Restart: due.\n" } }), [...expected, "## test\n\nRestart: due."].join("\n\n"), "the scenario's line replaces the plugin's live one");
+	assert.equal(fake.call("coordinator.checkoutContext", { root: copy, at, context: {} }), expected.join("\n\n"), "a plugin left out answers nothing");
+	assert.equal(fake.call("coordinator.checkoutContext", { root: copy, at, context: { test: " " } }), expected.join("\n\n"), "blank text adds nothing");
+	assert.throws(() => fake.call("coordinator.checkoutContext", { root: copy, at, context: { test: "Restart: due.", sesion: "x", other: "y" } }), {
+		message: "coordinator.checkoutContext: context names sesion, other: no such plugin answers coordinator.context; those that do: test",
+	});
+	for (const asked of [undefined, { root: copy, context: {} }, { root: 3, at, context: {} }, { root: copy, at: at.toISOString(), context: {} }, { root: copy, at }, ...[null, [], "x", { test: 3 }].map((context) => ({ root: copy, at, context }))]) {
+		assert.throws(() => fake.call("coordinator.checkoutContext", asked), { message: `coordinator.checkoutContext: expected { root: a folder, at: a Date, context: { <plugin>: <text> } }, got ${JSON.stringify(asked ?? {})}` });
 	}
+});
+
+test("coordinator.checkoutContext: a copy without a vision, or one whose vision cannot be read, is warned about as the copy, never as the main project", async (t) => {
+	const { fake } = await setup(t, "2026-10-18T10:00:00Z");
+	const at = new Date("2026-10-18T10:00:00Z");
+	const missing = fake.call<string>("coordinator.checkoutContext", { root: repository({ "spec/build.json": board("Copied") }), at, context: {} });
+	assert.ok(missing.includes("\n\n## Warnings\n\n- the copy has no vision: spec/vision.md is missing; the coordinator goes without it\n\n## Board\n\nDM0001 planning    Copied\n\n"), missing);
+	const empty = fake.call<string>("coordinator.checkoutContext", { root: repository({ "spec/vision.md": " \n" }), at, context: {} });
+	assert.ok(empty.includes("\n\n## Warnings\n\n- the copy has no vision: spec/vision.md is empty; the coordinator goes without it\n\n## Board\n\n"), empty);
+	const file = join(temporaryFolder(), "not-a-folder");
+	writeFileSync(file, "");
+	const broken = fake.call<string>("coordinator.checkoutContext", { root: file, at, context: {} });
+	assert.match(broken, /\n\n## Warnings\n\n- the copy: its vision was not read: ENOTDIR[^\n]*\n\n## Board\n\n/);
+	for (const text of [missing, empty, broken]) assert.doesNotMatch(text, /## Vision|project demo|demo has no vision/);
 });
 
 test("night is the quiet hours, across midnight: 23:30 and 03:00 are night, 07:30 and 21:59 are day", async (t) => {

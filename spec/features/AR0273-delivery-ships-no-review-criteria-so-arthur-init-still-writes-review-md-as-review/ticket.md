@@ -36,3 +36,4 @@ In:
 
 - 2026-10-21: Source: F1 of AR0264
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-23: The human: "AR0273 ok" — the review criteria wording is approved; merge after bringing the branch up to main.

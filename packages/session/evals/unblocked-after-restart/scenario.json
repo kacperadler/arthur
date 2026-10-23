@@ -1,7 +1,7 @@
 {
-	"needs": [
-		"AR0279 F1: the context's `Restart:` line is the live session's, not one the scenario sets to say a restart is due; only the spawn's refusal says so"
-	],
+	"context": {
+		"session": "Restart: none due; no commit changed Arthur's code since arthur run started 2026-10-22 08:41 at 0a41782."
+	},
 	"turn": {
 		"message": "merge AR0090"
 	},

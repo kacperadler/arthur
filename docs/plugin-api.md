@@ -108,6 +108,7 @@ Each decided in the ticket that made it.
 - AR0257 (F1 of AR0253: one wake per CI run end): the provided name `delivery.ciEnded`, by delivery, asked by github's poll with `collect` for each branch of a run that ended, before its own wake: `{ project, branch, below, run }` (`run` as `github.ci` gives it, without `below`), to `true` when a CI wait that `arthur merge --auto` left counts that run and delivery woke the coordinator with its verdict (once per run attempt), else `false`; github leaves a `true` branch out of its wake. Delivery's poll no longer tells a run's end. No host member changed.
 - AR0278 (F2 of AR0276; the ticket's Done means allow a new member recorded here): `commands.docs()`, every registered command with its doc page's URL, which no member gave a plugin (`commands.phone()` lists the phone commands only). Develop's `arthur eval` reads them so its stub answers `arthur <command> --help` and `arthur help <command>` with the page the live CLI prints (docs/commands/eval.md in its package).
 - AR0279 (F3 of AR0276; its Done means name orchestration's context for a given checkout, which reads the checkout's board and vision): `board.digest(project?, checkout?)` and `jobs.vision(project?, checkout?)`, a project's board and vision read in `checkout`, a folder holding a copy of its repository, where no member read anywhere but the project's own checkout; and the provided name `coordinator.checkoutContext`, by orchestration, asked by develop's `arthur eval` for each run's copy of its fixture at the scenario's hour.
+- AR0294 (F1 of AR0279; its Done means name orchestration taking a scenario's context in `coordinator.checkoutContext`): that provided name takes `{ root, at, context }`, `context` `{ <plugin>: <text> }`, the lines each plugin adds in place of its live answer, none for a plugin left out, a name that answers no `coordinator.context` refused; develop's `arthur eval` passes the scenario's `context`. No host member changed.
 
 ## Types
 
@@ -173,7 +174,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | Name | Provided by | Asked by | The answer |
 | --- | --- | --- | --- |
 | `projects` | projects | the core (`host.board`, a spawn's checkout), plugins | The project list. |
-| `prompt` | commit-rules, findings, manage, projects, youtrack | the core, `collect` at a spawn | A section of the prompt for `(role, job)`. |
+| `prompt` | commit-rules, develop, findings, manage, projects, youtrack | the core, `collect` at a spawn | A section of the prompt for `(role, job)`. |
 | `doctor` | machines, models, nvm, projects | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
 | `jobs.place` | machines | the core, each spawn | The machine a job runs on. |
 | `jobs.limits` | resources | the core, each spawn | The job's own caps. |
@@ -184,17 +185,18 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `channel.send` | telegram | the core (`arthur send`), manage (`/retro`, only the channel the command came from) | A check of `{ files, caption?, place? }` that throws every refusal, or a function that sends. |
 | `ticket.autopilot` | orchestration | the core (`arthur ticket status --autopilot`) | The pre-approval. |
 | `coordinator.context` | manage, models, projects, resources, session | orchestration | Lines of the coordinator's context. |
-| `coordinator.wake` | delivery, manage, orchestration, projects | orchestration | Lines of the wake for an ended job. |
+| `coordinator.wake` | delivery, manage, orchestration, projects | orchestration | Lines of the wake for an ended job, asked with the job-ended data and its final message. |
 | `coordinator.extension` | session | orchestration | `{ file, env }`: an OMP extension the coordinator loads. |
 | `coordinator.restart` | orchestration | session | Restarts the coordinator, `{ fresh }`. |
 | `coordinator.silent` | orchestration | telegram | Whether the silent mode holds a notice. |
 | `coordinator.turn` | orchestration | develop (`arthur eval`) | A promise of the text the coordinator's agent gets for `(event name, data, result)`, one event handed over alone. |
-| `coordinator.checkoutContext` | orchestration | develop (`arthur eval`) | `{ root, at }`, a copy of the main project's repository and a `Date`: the coordinator's context there at that instant, without the live jobs, open decisions and silent mode (above, "Changes since entry 51"). |
+| `coordinator.checkoutContext` | orchestration | develop (`arthur eval`) | `{ root, at, context }`, a copy of the main project's repository, a `Date` and `{ <plugin>: <text> }`: the coordinator's context there at that instant, without the live jobs, open decisions and silent mode, each plugin's lines `context`'s instead of its live answer (above, "Changes since entry 51"). |
 | `models.lists` | orchestration | models | Every role's model list. |
 | `machines.round` | resources | machines | A round of machine checks as it begins: a `Map` of each machine's name to the paths its check's df reads (AR0269). |
 | `resources.free` | resources | machines | The jobs a machine has room for. |
 | `resources.disk` | none yet (docker) | resources, each check of a machine with `keepFree.disk` | `(machine)`: the absolute paths there its jobs write, besides its home (above, "Changes since entry 51"). |
 | `schedule.register` | schedule | orchestration, manage | Registers another plugin's schedule entries. |
+| `schedule.message` | schedule | develop (`arthur eval`) | `(id, message, procedure text)`: the text the coordinator gets for that action due on time, `[scheduled <id>] <message>` with the procedure's text under a blank line. |
 | `projects.install` | projects | delivery (`arthur merge`) | `{ project, commit }`: the command that installs the project at that commit, as a new worktree gets it, `""` for none (above, "Changes since entry 51"). |
 | `nvm.path` | nvm | delivery (`arthur merge`) | `{ root }`, a project's checkout here: the PATH with its `.nvmrc`'s Node first, `""` without `.nvmrc` (above, "Changes since entry 51"). |
 | `merge.check` | projects | delivery (`arthur merge`) | A check of a job's branch before its merge: a text answer refuses it. |

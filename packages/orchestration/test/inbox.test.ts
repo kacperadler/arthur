@@ -9,10 +9,13 @@ import { type AgentRun, type AgentStep, type FakeHost, fakeAgent, fakeHost, temp
 import { pause } from "../src/inbox-extension.ts";
 import { inbox, queue } from "../src/inbox.ts";
 import { orchestration } from "../src/orchestration.ts";
+import { endCoordinator } from "./coordinator-end.ts";
 
 const PATH = process.env.PATH ?? "";
 const AGAIN = "Your reply above has not been sent; write one reply that answers this together with everything your reply above answered.";
 const ARTHUR = "The lines marked [Arthur] come from Arthur (a job's end, a schedule), not from the owner.";
+// The decision log's line of a wake blocked on the owner whose question shop's log does not hold (decision-hooks.ts).
+const NOT_YET = "Its question was not in the decision log yet: arthur decisions --kind job --project shop shows its id. Open, record the owner's answer first, arthur decision answer <its id> --decided '<the decision in one line>' '<his words>', then arthur continue 2026-10-17-worker-0000abcd '<his answer>'; answered by policy, act on that decision as on the owner's answer, and say so in your reply.";
 const RESTART = "sent before a restart; no reply to it was sent";
 const DAY = 24 * 3_600_000;
 
@@ -24,6 +27,18 @@ async function until(what: string, holds: () => boolean, ms = 20_000): Promise<v
 function gates() {
 	const folder = temporaryFolder();
 	return { at: (name: string) => join(folder, name), open: (name: string) => writeFileSync(join(folder, name), "") };
+}
+
+// A clock file for the fake agent's `clock`: its `Date.now()` stands still where the test puts it, so no stalled runner moves it.
+function agentClock() {
+	const file = join(temporaryFolder(), "clock");
+	let now = Date.now();
+	const move = (ms: number) => {
+		writeFileSync(`${file}.new`, String((now += ms)));
+		renameSync(`${file}.new`, file);
+	};
+	move(0);
+	return { file, move };
 }
 
 // Whole lines only: a line the agent is still appending has no line break yet.
@@ -43,12 +58,11 @@ async function load(t: TestContext, run: AgentRun, setup: { readonly root?: stri
 	if (setup.projects !== undefined) fake.provide("projects", () => setup.projects);
 	const plugin = orchestration(options);
 	await fake.setup({ setup: (host) => plugin.setup({ ...host, options }) });
-	t.after(async () => {
-		await plugin.stop?.();
-		spawnSync("tmux", ["-S", socket, "kill-server"]);
-		process.env.PATH = PATH;
-	});
+	t.after(() => void (process.env.PATH = PATH));
+	endCoordinator(t, socket, plugin);
 	const folder = fake.host.folder;
+	const ui = () => lines(join(dirname(agent), "ui.jsonl"));
+	let ticks = 0;
 	return {
 		fake,
 		folder,
@@ -59,7 +73,16 @@ async function load(t: TestContext, run: AgentRun, setup: { readonly root?: stri
 			return plugin.start?.();
 		},
 		messages: () => lines(join(dirname(agent), "messages.jsonl")),
-		ui: () => lines(join(dirname(agent), "ui.jsonl")),
+		ui,
+		ends: () => lines(join(dirname(agent), "ends.jsonl")),
+		// Two ticks of the inbox extension, each seen by the footer it shows: by the second, the first ran whole, at the agent's clock as it is now.
+		async ticked() {
+			for (const _ of [1, 2]) {
+				const seen = ui().length;
+				writeFileSync(join(folder, "footer"), `arthur · tick ${++ticks}`);
+				await until("a tick", () => ui().length > seen);
+			}
+		},
 		starts: () => lines(join(dirname(agent), "starts.jsonl")),
 		emitted: (name: string) => fake.emitted.filter((event) => event.name === name).map((event) => event.data),
 		say: (text: string, channel = "telegram") => fake.emit("message-received", { channel, parts: [{ kind: "text", text, mime: "text/plain" }] }).seq,
@@ -181,13 +204,7 @@ test("past omp's 8 continuations in a turn, a message is not answered by that tu
 
 test("several messages while idle, each within a second of the last, are one turn, in order", async (t) => {
 	// The agent's clock stands still where the test puts it, so a stalled runner never splits the burst.
-	const clock = join(temporaryFolder(), "clock");
-	let now = Date.now();
-	const move = (ms: number) => {
-		writeFileSync(`${clock}.new`, String((now += ms)));
-		renameSync(`${clock}.new`, clock);
-	};
-	move(0);
+	const { file: clock, move } = agentClock();
 	const box = await load(t, { steps: [{ prompt: true }, { message: "All three." }, { end: true }, { prompt: true }], clock });
 	await box.start();
 	// The footer is the sign the extension ticks.
@@ -216,7 +233,8 @@ test("job ends and a schedule message mid-turn wait for the next turn: one messa
 	const gate = gates();
 	const steps: AgentStep[] = [{ prompt: true }, { waitFor: gate.at("one") }, { tool: "bash" }, { message: "Answered." }, { end: true }, { prompt: true }, { message: "Read the ends." }, { end: true }, { prompt: true }];
 	const box = await load(t, { steps }, { root, projects });
-	box.fake.provide("coordinator.wake", (job: { kind: string }) => (job.kind === "worker" ? "Procedure: review its branch against the ticket." : undefined));
+	// Asked with the job-ended data and the final message whole, not only the lines the wake shows.
+	box.fake.provide("coordinator.wake", (job: { kind: string }, final: string) => (job.kind === "worker" ? `Procedure: review its branch against the ticket; its final message ends ${JSON.stringify(final.slice(-7))}.` : undefined));
 	const result = Array.from({ length: 20 }, (_, index) => `line ${index + 1}`).join("\n");
 	process.env.PATH = `${dirname(fakeAgent({ steps: [{ message: result }] }))}${delimiter}${PATH}`;
 	const job = await box.fake.host.jobs.spawn({ task: "Go." });
@@ -234,12 +252,13 @@ test("job ends and a schedule message mid-turn wait for the next turn: one messa
 		`[Arthur] Job ${job.id} ended its run: ended (finished).`,
 		"Its final message (the first 15 of 20 lines):",
 		...result.split("\n").slice(0, 15),
-		"Procedure: review its branch against the ticket.",
+		'Procedure: review its branch against the ticket; its final message ends "line 20".',
 		"",
 		"[Arthur] Job 2026-10-17-worker-0000abcd ended its run blocked on the owner; its question, also sent as a notice: may I?",
 		"Project: shop.",
 		"Its final message: none.",
-		"Procedure: review its branch against the ticket.",
+		NOT_YET,
+		'Procedure: review its branch against the ticket; its final message ends "".',
 		"",
 		"[Arthur] [scheduled morning] Write the morning report.",
 		"",
@@ -257,7 +276,7 @@ test("coordinator.turn answers the very text the idle inbox hands over for an ev
 	const projects = [{ name: "acme", path: root, prefix: "AC" }, { name: "shop", path: join(root, "..", "shop"), prefix: "SH" }];
 	const steps: AgentStep[] = ["One.", "Two.", "Three."].flatMap((reply): AgentStep[] => [{ prompt: true }, { message: reply }, { end: true }]);
 	const box = await load(t, { steps: [...steps, { prompt: true }] }, { root, projects });
-	box.fake.provide("coordinator.wake", (job: { kind: string }) => (job.kind === "worker" ? "Procedure: review its branch against the ticket." : undefined));
+	box.fake.provide("coordinator.wake", (job: { kind: string }, final: string) => (job.kind === "worker" ? "Procedure: review its branch against the ticket." : `It ends ${JSON.stringify(final.slice(-5))}.`));
 	const turn = (...asked: unknown[]) => box.fake.call<Promise<string>>("coordinator.turn", ...asked);
 	await box.start();
 	const text = (said: string) => ({ kind: "text", text: said, mime: "text/plain" });
@@ -271,9 +290,9 @@ test("coordinator.turn answers the very text the idle inbox hands over for an ev
 		await until(`reply ${index + 1}`, () => box.emitted("coordinator-replied").length === index + 1);
 		assert.equal(await turn(name, data), box.messages()[index]?.content, name);
 	}
-	assert.equal(box.messages()[2]?.content, `[Arthur] Job 2026-10-17-worker-0000abcd ended its run blocked on the owner; its question, also sent as a notice: may I?\nProject: shop.\nIts final message: none.\nProcedure: review its branch against the ticket.\n\n${ARTHUR}`);
+	assert.equal(box.messages()[2]?.content, `[Arthur] Job 2026-10-17-worker-0000abcd ended its run blocked on the owner; its question, also sent as a notice: may I?\nProject: shop.\nIts final message: none.\n${NOT_YET}\nProcedure: review its branch against the ticket.\n\n${ARTHUR}`);
 	const job = { id: "2026-10-17-review-0000abce", kind: "review", project: "acme", state: "ended", reason: "finished" };
-	assert.equal(await turn("job-ended", job, "Done.\nPASS\n"), `[Arthur] Job ${job.id} ended its run: ended (finished).\nIts final message:\nDone.\nPASS\n\n${ARTHUR}`, "result stands for the job's final message");
+	assert.equal(await turn("job-ended", job, "Done.\nPASS\n"), `[Arthur] Job ${job.id} ended its run: ended (finished).\nIts final message:\nDone.\nPASS\nIt ends "PASS\\n".\n\n${ARTHUR}`, "result stands for the job's final message, for the plugins too");
 	const refused = (message: string) => ({ message: `coordinator.turn: ${message}` });
 	await assert.rejects(turn("job-started", {}), refused('expected message-received, coordinator-message or job-ended, got "job-started"'));
 	await assert.rejects(turn("coordinator-message", { text: " " }), refused("coordinator-message: expected { text }, non-empty text"));
@@ -299,13 +318,18 @@ test("a hand-over that throws is retried each tick; the third failure in a row i
 const WATCHDOG = "(no turn started within 30 s); it keeps trying";
 
 test("a hand-over omp takes and then loses goes again, with its mark, after 30 s idle with no turn; after two throws it is the third failure, told", async (t) => {
-	const box = await load(t, { steps: [{ prompt: true }, { message: "Redone." }, { end: true }, { prompt: true }], failSends: 2, dropSends: 1 });
+	const { file: clock, move } = agentClock();
+	const box = await load(t, { steps: [{ prompt: true }, { message: "Redone." }, { end: true }, { prompt: true }], failSends: 2, dropSends: 1, clock });
 	mkdirSync(join(box.folder, "inbox", "turn"), { recursive: true });
 	writeFileSync(join(box.folder, "inbox", "turn", "108"), JSON.stringify({ channel: "telegram", text: "Not answered." }));
-	const startedAt = Date.now();
 	await box.start();
-	await until("the delivery", () => box.messages().length === 1, 45_000);
-	assert.ok(Date.now() - startedAt >= 30_000, `the lost hand-over goes again only after 30 s: ${Date.now() - startedAt}`);
+	// Three ticks ran whole: two hand-overs that throw, then the one omp loses, at the agent's clock as it stands.
+	for (const _ of [1, 2]) await box.ticked();
+	move(29_999);
+	await box.ticked();
+	assert.deepEqual(box.messages(), [], "1 ms before 30 s on the agent's clock, however long in real time");
+	move(1);
+	await until("the delivery", () => box.messages().length === 1);
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
 	assert.deepEqual(box.messages(), [{ content: `[via telegram, ${RESTART}] Not answered.`, step: 0 }]);
 	assert.deepEqual(box.emitted("notice"), [{ text: `the coordinator's inbox could not hand 1 message(s) to the agent 3 times in a row ${WATCHDOG}` }]);
@@ -314,16 +338,24 @@ test("a hand-over omp takes and then loses goes again, with its mark, after 30 s
 
 test("a turn whose agent_end says it goes on and then starts none, as after omp's compaction, ends with it after 30 s idle; the next message goes", async (t) => {
 	const steps: AgentStep[] = [{ prompt: true }, { message: "Done." }, { end: true, continues: true }, { prompt: true }, { message: "Again." }, { end: true }, { prompt: true }];
-	const box = await load(t, { steps });
+	const { file: clock, move } = agentClock();
+	const box = await load(t, { steps, clock });
 	await box.start();
-	// Taken before the message: the turn's 30 s idle starts after it, however late the test sees the turn.
-	const saidAt = Date.now();
 	const first = box.say("Go.");
+	await until("Go. queued", () => box.resolved(first));
+	// A tick saw it queued; it goes once the queue settled a second on the agent's clock, which then stands still.
+	await box.ticked();
+	move(1000);
 	await until("the turn", () => box.messages().length === 1);
-	await sleep(1000);
+	await until("the agent_end that says the turn goes on", () => box.ends().length === 1);
+	// After that agent_end, so the turn's `session_stop` never takes it.
 	const second = box.say("Next.");
-	await until("the first reply", () => box.emitted("coordinator-replied").length === 1, 45_000);
-	assert.ok(Date.now() - saidAt >= 30_000, `the turn ends only after 30 s idle: ${Date.now() - saidAt}`);
+	move(29_999);
+	await box.ticked();
+	assert.deepEqual(sorted(join(box.folder, "inbox", "answered")), [], "the turn still runs 1 ms before 30 s idle on the agent's clock");
+	move(1);
+	await until("the first reply", () => box.emitted("coordinator-replied").length === 1);
+	await until("the next turn", () => box.messages().length === 2 || (move(500), false));
 	await until("the second reply", () => box.emitted("coordinator-replied").length === 2);
 	assert.deepEqual(
 		box.messages().map((message) => message.content),
@@ -337,11 +369,20 @@ test("a turn whose agent_end says it goes on and then starts none, as after omp'
 });
 
 test("omp busy past 30 s before the turn starts, as through its compaction before the prompt, gets the message once", async (t) => {
-	const box = await load(t, { steps: [{ prompt: true, compactMs: 32_000 }, { message: "Done." }, { end: true }, { prompt: true }] });
+	const { file: clock, move } = agentClock();
+	const box = await load(t, { steps: [{ prompt: true, compactMs: 32_000 }, { message: "Done." }, { end: true }, { prompt: true }], clock });
 	await box.start();
 	const said = box.say("Go.");
-	await until("the reply", () => box.emitted("coordinator-replied").length === 1, 45_000);
-	await sleep(1500);
+	await until("Go. queued", () => box.resolved(said));
+	await box.ticked();
+	move(1000);
+	await until("the hand-over", () => box.messages().length === 1);
+	// Idle 31 s after the hand-over on the agent's clock, but omp is busy compacting for 32 s of it.
+	move(31_000);
+	await box.ticked();
+	assert.equal(box.messages().length, 1, "no hand-over again while omp is busy");
+	await until("the reply", () => box.emitted("coordinator-replied").length === 1 || (move(500), false));
+	await box.ticked();
 	assert.deepEqual(box.messages(), [{ content: "[via telegram] Go.", step: 0 }]);
 	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [said], channels: ["telegram"] }]);
 	assert.deepEqual(box.emitted("notice"), []);
@@ -360,29 +401,48 @@ test("a turn that ends in an error answers nothing; its message is delivered aga
 	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [said], channels: ["telegram"] }]);
 });
 
-// The times at which the fake agent got its first `count` messages, polled as `until` does.
-async function deliveries(box: { messages(): unknown[] }, count: number): Promise<number[]> {
-	const at: number[] = [];
-	while (at.length < count) {
-		await until(`delivery ${at.length + 1}`, () => box.messages().length > at.length);
-		at.push(Date.now());
+// What the backoff tests drive of a loaded plugin, its agent on `move`'s clock.
+type Driven = { readonly folder: string; messages(): unknown[]; ends(): unknown[]; ticked(): Promise<void>; say(text: string): number; resolved(seq: number): boolean };
+// Says `text` and sees it handed over once the queue settled a second on the agent's clock, which then stands still.
+async function handed(box: Driven, move: (ms: number) => void, text: string): Promise<number> {
+	const count = box.messages().length;
+	const seq = box.say(text);
+	await until(`${text} queued`, () => box.resolved(seq));
+	await box.ticked();
+	move(1000);
+	await until(`${text} handed over`, () => box.messages().length === count + 1);
+	return seq;
+}
+// Once the turn of the last delivery ended without a reply: no delivery 1 ms before `ms` on the agent's clock, and one at `ms`.
+async function goesAgain(box: Driven, move: (ms: number) => void, ms: number): Promise<void> {
+	const count = box.messages().length;
+	await until(`turn ${count}'s end`, () => box.ends().length === count);
+	if (ms > 0) {
+		move(ms - 1);
+		await box.ticked();
+		assert.equal(box.messages().length, count, `no delivery 1 ms before ${ms} ms on the agent's clock, however long in real time`);
+		move(1);
 	}
-	return at.slice(1).map((time, index) => time - (at[index] ?? 0));
+	await box.ticked();
+	assert.equal(box.messages().length, count + 1, `delivery ${count + 1} at ${ms} ms on the agent's clock`);
 }
 const FAILED: AgentStep[] = [{ prompt: true }, { message: "", stopReason: "error", error: "overloaded" }, { end: true }];
 const AGAIN_MARK = "[via telegram, sent before; its turn ended without a reply]";
 
 test("a turn that keeps ending without a reply has its messages go again at once, then after 5 s, then 10 s; only the third such turn is told", async (t) => {
-	const box = await load(t, { steps: [...FAILED, ...FAILED, ...FAILED, ...FAILED, { prompt: true }] });
+	const { file: clock, move } = agentClock();
+	const box = await load(t, { steps: [...FAILED, ...FAILED, ...FAILED, ...FAILED, { prompt: true }], clock });
 	await box.start();
-	box.say("Go.");
-	const [quick = 0, five = 0, ten = 0] = await deliveries(box, 4);
-	// Each wait apart from the one before and after it (0, 5, 10, 20 s), with room for a slow runner's lag either way.
-	assert.ok(quick < 4000, `the first redelivery is quick: ${quick}`);
-	assert.ok(five >= 4000 && five < 9000, `the second waits 5 s: ${five}`);
-	assert.ok(ten >= 9000 && ten < 19_000, `the third waits 10 s: ${ten}`);
+	await handed(box, move, "Go.");
+	await goesAgain(box, move, 0);
+	await until("the second turn's end", () => box.ends().length === 2);
+	await until("the outbox swept", () => sorted(join(box.folder, "outbox")).every((name) => !name.endsWith(".json")));
+	assert.deepEqual(box.emitted("notice"), [], "two turns without a reply tell nothing");
+	await goesAgain(box, move, 5000);
+	await goesAgain(box, move, 10_000);
 	// Past the fourth turn's end, which tells nothing more.
-	await sleep(1500);
+	await until("the fourth turn's end", () => box.ends().length === 4);
+	await until("the outbox swept", () => sorted(join(box.folder, "outbox")).every((name) => !name.endsWith(".json")));
 	assert.deepEqual(box.emitted("notice"), [
 		{ text: "the coordinator's last 3 turns ended without a reply (error: overloaded); their messages go again in 10 s, then after twice as long each time, at most 5 min" },
 	]);
@@ -408,15 +468,16 @@ test("the notice after 3 turns without a reply never repeats a credential in omp
 
 test("a reply ends the wait: the next turn that ends without a reply has its messages go again at once", async (t) => {
 	const steps: AgentStep[] = [...FAILED, ...FAILED, { prompt: true }, { message: "Done." }, { end: true }, ...FAILED, { prompt: true }, { message: "Again." }, { end: true }, { prompt: true }];
-	const box = await load(t, { steps });
+	const { file: clock, move } = agentClock();
+	const box = await load(t, { steps, clock });
 	await box.start();
-	const first = box.say("Go.");
-	await deliveries(box, 3);
+	const first = await handed(box, move, "Go.");
+	await goesAgain(box, move, 0);
+	await goesAgain(box, move, 5000);
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
-	const second = box.say("Again?");
-	// The first three are already in: only the gap between the fourth and the fifth is a wait.
-	const [, , , quick = 0] = await deliveries(box, 5);
-	assert.ok(quick < 4000, `the first redelivery after a reply is quick: ${quick}`);
+	const second = await handed(box, move, "Again?");
+	// Two turns without a reply before the reply: without it, this third would wait 10 s.
+	await goesAgain(box, move, 0);
 	await until("the second reply", () => box.emitted("coordinator-replied").length === 2);
 	assert.deepEqual(
 		box.messages().map((message) => message.content),
@@ -430,18 +491,23 @@ test("a reply ends the wait: the next turn that ends without a reply has its mes
 });
 
 test("a new owner message ends the wait: the waiting messages and the new one go at the next tick; a message from Arthur waits with them", async (t) => {
-	// Three failed turns: the wait is 10 s, far longer than the next tick even on a slow runner.
-	const box = await load(t, { steps: [...FAILED, ...FAILED, ...FAILED, { prompt: true }, { message: "Done." }, { end: true }, { prompt: true }] });
+	const { file: clock, move } = agentClock();
+	const box = await load(t, { steps: [...FAILED, ...FAILED, ...FAILED, { prompt: true }, { message: "Done." }, { end: true }, { prompt: true }], clock });
 	await box.start();
-	const first = box.say("Go.");
-	await deliveries(box, 3);
+	const first = await handed(box, move, "Go.");
+	await goesAgain(box, move, 0);
+	await goesAgain(box, move, 5000);
+	// Three failed turns: the wait is 10 s.
+	await until("the third turn's end", () => box.ends().length === 3);
 	const scheduled = box.fake.emit("coordinator-message", { text: "Write the morning report." }).seq;
-	await sleep(2000);
+	await until("the message from Arthur queued", () => existsSync(join(box.folder, "inbox", "queued", box.file(scheduled))));
+	move(9999);
+	await box.ticked();
 	assert.equal(box.messages().length, 3, "a message from Arthur does not end the wait");
-	const saidAt = Date.now();
 	const second = box.say("Now?");
-	await until("the fourth delivery", () => box.messages().length === 4);
-	assert.ok(Date.now() - saidAt < 5000, `the owner's message goes at the next tick, not in about 8 s at the wait's end: ${Date.now() - saidAt}`);
+	await until("Now? queued", () => box.resolved(second));
+	await box.ticked();
+	assert.equal(box.messages().length, 4, "the owner's message goes at the next tick, 1 ms before the wait's end on the agent's clock");
 	assert.equal(box.messages()[3]?.content, [`${AGAIN_MARK} Go.`, "[Arthur] Write the morning report.", "[via telegram] Now?", ARTHUR].join("\n\n"));
 	await until("the reply", () => box.emitted("coordinator-replied").length === 1);
 	assert.deepEqual(box.emitted("coordinator-replied"), [{ text: "Done.", answers: [first, scheduled, second], channels: ["telegram"] }]);

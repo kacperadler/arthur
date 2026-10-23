@@ -2101,16 +2101,16 @@
   {
     "id": "AR0273",
     "title": "Delivery ships no review criteria, so `arthur init` still writes `review.md` as `# Review`",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0273-delivery-ships-no-review-criteria-so-arthur-init-still-writes-review-md-as-review/ticket.md",
-    "updated": "2026-10-22T08:51:03.678Z"
+    "updated": "2026-10-22T16:17:19.148Z"
   },
   {
     "id": "AR0274",
     "title": "A worker learns of `arthur plugin new --root` only if its ticket or plan names it",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0274-a-worker-learns-of-arthur-plugin-new-root-only-if-its-ticket-or-plan-names-it/ticket.md",
-    "updated": "2026-10-22T08:51:03.880Z"
+    "updated": "2026-10-22T16:30:29.847Z"
   },
   {
     "id": "AR0275",
@@ -2170,16 +2170,16 @@
   {
     "id": "AR0282",
     "title": "The decision log's race test catches a missing lock only in most runs",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0282-the-decision-log-s-race-test-catches-a-missing-lock-only-in-most-runs/ticket.md",
-    "updated": "2026-10-22T08:51:04.697Z"
+    "updated": "2026-10-22T16:25:29.651Z"
   },
   {
     "id": "AR0283",
     "title": "A job's question and the plugin's closes take the log's lock synchronously inside `arthur run`",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0283-a-job-s-question-and-the-plugin-s-closes-take-the-log-s-lock-synchronously-inside-arthur-run/ticket.md",
-    "updated": "2026-10-22T08:51:05.535Z",
+    "updated": "2026-10-22T17:36:25.304Z",
     "after": [
       "AR0282"
     ]
@@ -2194,23 +2194,23 @@
   {
     "id": "AR0285",
     "title": "A job's question answered by policy still reaches the owner as a question",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0285-a-job-s-question-answered-by-policy-still-reaches-the-owner-as-a-question/ticket.md",
-    "updated": "2026-10-22T09:16:36.941Z"
+    "updated": "2026-10-22T17:09:46.610Z"
   },
   {
     "id": "AR0286",
     "title": "The coordinator's role has no rule for a night answer, which orchestration/night-one-line measures",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0286-the-coordinator-s-role-has-no-rule-for-a-night-answer-which-orchestration-night-one-line-measures/ticket.md",
-    "updated": "2026-10-22T09:44:06.152Z"
+    "updated": "2026-10-22T17:24:04.207Z"
   },
   {
     "id": "AR0287",
     "title": "A plugin's wake lines for a review or an onboarding cannot reach an eval's turn, even once AR0277 words it",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0287-a-plugin-s-wake-lines-for-a-review-or-an-onboarding-cannot-reach-an-eval-s-turn-even-once-ar0277-words-it/ticket.md",
-    "updated": "2026-10-22T09:44:06.501Z"
+    "updated": "2026-10-22T19:39:25.020Z"
   },
   {
     "id": "AR0288",
@@ -2225,16 +2225,16 @@
   {
     "id": "AR0289",
     "title": "The eval still words a schedule entry with its own copy of the schedule plugin's `[scheduled <id>]` line",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0289-the-eval-still-words-a-schedule-entry-with-its-own-copy-of-the-schedule-plugin-s-scheduled-id-line/ticket.md",
-    "updated": "2026-10-22T13:19:24.148Z"
+    "updated": "2026-10-22T20:14:52.468Z"
   },
   {
     "id": "AR0290",
     "title": "The telegram menu test failed once in a full `npm test` and passes alone",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0290-the-telegram-menu-test-failed-once-in-a-full-npm-test-and-passes-alone/ticket.md",
-    "updated": "2026-10-22T13:19:24.351Z"
+    "updated": "2026-10-22T20:09:45.752Z"
   },
   {
     "id": "AR0291",
@@ -2249,43 +2249,106 @@
   {
     "id": "AR0292",
     "title": "A check of its own still makes two ssh calls to a machine with a disk floor",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0292-a-check-of-its-own-still-makes-two-ssh-calls-to-a-machine-with-a-disk-floor/ticket.md",
-    "updated": "2026-10-22T14:13:59.123Z"
+    "updated": "2026-10-22T20:33:12.381Z"
   },
   {
     "id": "AR0293",
     "title": "An orchestration inbox test overshoots its 30 s real-timer window under load",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0293-an-orchestration-inbox-test-overshoots-its-30-s-real-timer-window-under-load/ticket.md",
-    "updated": "2026-10-22T14:58:24.868Z"
+    "updated": "2026-10-22T20:49:43.054Z"
   },
   {
     "id": "AR0294",
     "title": "An eval turn's plugin context lines are the live Arthur's, which a scenario cannot set",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0294-an-eval-turn-s-plugin-context-lines-are-the-live-arthur-s-which-a-scenario-cannot-set/ticket.md",
-    "updated": "2026-10-22T15:22:58.964Z"
+    "updated": "2026-10-22T21:14:26.477Z"
   },
   {
     "id": "AR0295",
     "title": "The fixtures have no vision, so every eval context warns the main project has none",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0295-the-fixtures-have-no-vision-so-every-eval-context-warns-the-main-project-has-none/ticket.md",
-    "updated": "2026-10-22T15:22:59.173Z"
+    "updated": "2026-10-22T21:00:09.983Z"
   },
   {
     "id": "AR0296",
     "title": "An orchestration test can leave its tmux server and fake agent running after `npm test`",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0296-an-orchestration-test-can-leave-its-tmux-server-and-fake-agent-running-after-npm-test/ticket.md",
-    "updated": "2026-10-22T15:51:31.729Z"
+    "updated": "2026-10-22T21:11:05.195Z"
   },
   {
     "id": "AR0297",
     "title": "The styleguide and review criteria now live in two folders that will drift",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0297-the-styleguide-and-review-criteria-now-live-in-two-folders-that-will-drift/ticket.md",
-    "updated": "2026-10-22T15:56:26.407Z"
+    "updated": "2026-10-22T21:32:56.740Z"
+  },
+  {
+    "id": "AR0298",
+    "title": "On another machine the checkout a job reaches has no arthur.config.ts, so the line of `arthur plugin new` cannot run there",
+    "status": "merged",
+    "path": "spec/features/AR0298-on-another-machine-the-checkout-a-job-reaches-has-no-arthur-config-ts-so-the-line-of-arthur-plugin-new-cannot-run-there/ticket.md",
+    "updated": "2026-10-22T21:36:14.285Z"
+  },
+  {
+    "id": "AR0299",
+    "title": "A crash of `arthur run` while a job's question waits for the log's lock loses its notice",
+    "status": "merged",
+    "path": "spec/features/AR0299-a-crash-of-arthur-run-while-a-job-s-question-waits-for-the-log-s-lock-loses-its-notice/ticket.md",
+    "updated": "2026-10-22T22:16:50.296Z"
+  },
+  {
+    "id": "AR0300",
+    "title": "The wrapper's append to log can still recreate it while rm -r empties the record",
+    "status": "merged",
+    "path": "spec/features/AR0300-the-wrapper-s-append-to-log-can-still-recreate-it-while-rm-r-empties-the-record/ticket.md",
+    "updated": "2026-10-22T22:35:16.855Z"
+  },
+  {
+    "id": "AR0301",
+    "title": "core job-control test can fail with ENOENT unlinking continuing under load",
+    "status": "merged",
+    "path": "spec/features/AR0301-core-job-control-test-can-fail-with-enoent-unlinking-continuing-under-load/ticket.md",
+    "updated": "2026-10-22T22:03:14.613Z"
+  },
+  {
+    "id": "AR0302",
+    "title": "The inbox's backoff tests still measure 5 s and 10 s windows in real time",
+    "status": "merged",
+    "path": "spec/features/AR0302-the-inbox-s-backoff-tests-still-measure-5-s-and-10-s-windows-in-real-time/ticket.md",
+    "updated": "2026-10-22T22:31:24.710Z"
+  },
+  {
+    "id": "AR0303",
+    "title": "The test kit's exit removes the sockets of tmux servers a test left, so nothing can reach them",
+    "status": "merged",
+    "path": "spec/features/AR0303-the-test-kit-s-exit-removes-the-sockets-of-tmux-servers-a-test-left-so-nothing-can-reach-them/ticket.md",
+    "updated": "2026-10-22T22:40:23.643Z"
+  },
+  {
+    "id": "AR0304",
+    "title": "A new plugin's ticket without a plan can still be placed on another machine",
+    "status": "merged",
+    "path": "spec/features/AR0304-a-new-plugin-s-ticket-without-a-plan-can-still-be-placed-on-another-machine/ticket.md",
+    "updated": "2026-10-22T23:02:02.090Z"
+  },
+  {
+    "id": "AR0305",
+    "title": "A lock left by a crashed process whose pid the taker now has counts as held by a live process",
+    "status": "merged",
+    "path": "spec/features/AR0305-a-lock-left-by-a-crashed-process-whose-pid-the-taker-now-has-counts-as-held-by-a-live-process/ticket.md",
+    "updated": "2026-10-22T23:17:56.770Z"
+  },
+  {
+    "id": "AR0306",
+    "title": "The agent's extensions still append to `log` with a flag that creates it",
+    "status": "merged",
+    "path": "spec/features/AR0306-the-agent-s-extensions-still-append-to-log-with-a-flag-that-creates-it/ticket.md",
+    "updated": "2026-10-22T23:30:08.491Z"
   }
 ]

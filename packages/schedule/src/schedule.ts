@@ -3,7 +3,7 @@ import type { Entry } from "./entry.ts";
 import { type Registered, register } from "./register.ts";
 import { scheduleCommand } from "./schedule-command.ts";
 import { checkOptions } from "./schedule-options.ts";
-import { sweeper } from "./sweep.ts";
+import { dueMessage, sweeper } from "./sweep.ts";
 
 // The schedule plugin (spec/roadmap.md, entries 39 and 40): actions and jobs at set times, from the config's `entries`, from the
 // other plugins through `schedule.register`, and from the `file` option, which `arthur schedule add|remove` changes; swept by
@@ -26,6 +26,7 @@ export function schedule(options: ScheduleOptions = {}): Plugin {
 			const root = process.cwd();
 			const registered: Registered[] = [];
 			host.provide("schedule.register", (plugin: unknown, list: unknown, own: unknown) => register(registered, entries, host.code, plugin, list, own));
+			host.provide("schedule.message", dueMessage);
 			const run = sweeper(host, entries, registered, file, root);
 			sweep = () => run().catch((error: Error) => console.error(`schedule: the sweep failed: ${error.message}`));
 			host.commands.register({

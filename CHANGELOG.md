@@ -24,6 +24,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0306 The agent's extensions still append to `log` with a flag that creates it (7b2d80a)
 - AR0309 CI on GitHub fails since 2026-10-21: merge tests have no git identity on the runner (dc3a23c)
 - AR0310 `arthur merge` fails for a user with no git identity, only after its review and checks ran (5aae50d)
+- AR0316 A listed machine with no git identity is not told, though its workers commit there (acd470e)
 
 ### Changed
 

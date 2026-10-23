@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/machines/src/machine-check.ts:21` (the `IDENTITY` loop), `packages/machines/src/machines.ts:119` (its fix)
 - What: on a machine whose command over ssh finds no `git`, the identity loop prints `identity GIT_AUTHOR_IDENT /bin/sh: 1: git: not found` (run: `env -i PATH=/nonexistent /bin/sh -c '<the loop>'`), so its doctor line reads `missing: git var GIT_AUTHOR_IDENT there: sh: 1: git: not found` with the fix `git config --global user.name ...`, which cannot work without git; the machine stays online and takes jobs whose worktree cannot even be created there [INFERENCE: the core's remote job runner was not read].
 - Suggestion: when the loop's `git var` exits 127, say `git is not there` with the fix `install git there, on the PATH of a command over ssh (docs/deploy.md)`, or make no git an offline reason as no `arthur` is; out: any other change to the identity check.
-- Status: open
+- Status: ticket AR0318

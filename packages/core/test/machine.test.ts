@@ -5,6 +5,7 @@ import { availableParallelism, totalmem } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
+import { pathToFileURL } from "node:url";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
@@ -464,6 +465,72 @@ test("a copy refuses a record file whose name is not a plain record key, naming 
 	copy({ cost: "9.0000" });
 	jobs.sweep();
 	assert.equal(read(home, job.id, "cost"), "9.0000", "a plain key is still written");
+	writeFileSync(gate, "");
+});
+
+// AR0347: what a machine sends lands only in the run's files of the job's record, and the end fetches the job's own branch.
+// From the call, `arthur remote-job records` there answers by hand: each job of `ended` at its end, with those files.
+function byHand(machine: string, ended: Readonly<Record<string, Record<string, string>>>) {
+	const answer = join(machine, "answer");
+	const copy = (files: Record<string, string>) => ({ state: "ended", reason: "finished", since: "2026-10-16T12:00:00.000Z", at: 1, logFrom: 0, logSize: 0, files });
+	writeFileSync(answer, JSON.stringify(Object.fromEntries(Object.entries(ended).map(([id, files]) => [id, copy(files)]))));
+	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\n[ "$2" = records ] && exec cat '${answer}'\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
+}
+
+test("a copy writes only the run's files: a branch, project, task and kind sent keep the record's, and the end fetches arthur/<id> only", async () => {
+	const gate = join(temporaryFolder(), "go");
+	const { root, home, machine, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	jobs.sweep();
+	// There, the job's branch and a branch `side` hold a commit; here, `side` is free, at `main`.
+	const worktree = join(there, "repos/.arthur-worktrees", job.id);
+	commit(worktree, "the change");
+	const tip = git(worktree, "rev-parse", "HEAD");
+	git(worktree, "branch", "side", tip);
+	git(root, "branch", "side");
+	const refs = () => git(root, "for-each-ref", "--format=%(refname) %(objectname)");
+	const before = refs();
+	const kept = ["branch", "project", "task", "kind", "root", "worktree", "base", "prompt", "timeout", "idle-minutes", "machine"];
+	const spawned = kept.map((name) => read(home, job.id, name));
+	const sent = Object.fromEntries(kept.map((name) => [name, `theirs ${name}`]));
+	const run = ["pid", "active", "cost", "tool-calls", "activity", "result", "commits", "budget", "continue", "cpu", "memory", "feature", "feature-cpu", "feature-memory"];
+	const theirs = Object.fromEntries(run.map((name) => [name, `theirs ${name}\n`]));
+	byHand(machine, { [job.id]: { ...sent, ...theirs, branch: "side", project: "other", hold: "theirs" } });
+	jobs.sweep();
+	assert.deepEqual(kept.map((name) => read(home, job.id, name)), spawned, "the spawn's keys stay");
+	assert.equal(existsSync(join(home, "jobs", job.id, "hold")), false);
+	assert.deepEqual(Object.fromEntries(run.map((name) => [name, read(home, job.id, name)])), theirs, "every file of the run is copied");
+	assert.equal(read(home, job.id, "state"), "ended");
+	assert.equal(refs(), [...before.split("\n"), `refs/heads/${job.branch} ${tip}`].sort().join("\n"), "only arthur/<id> is fetched, side as it was");
+	assert.deepEqual(calls().filter((call) => call.includes("git-upload-pack")).map((call) => call.split(" ").at(-1)), [`'${there}/repos/acme.git'`]);
+	assert.deepEqual(events(home, "job-ended"), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }]);
+	writeFileSync(gate, "");
+});
+
+test("a record here whose branch is not arthur/<id> refuses the machine's copy, naming it, nothing written or fetched; a job without a branch fetches none", async () => {
+	const gate = join(temporaryFolder(), "go");
+	const { root, home, machine, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
+	const role = join(temporaryFolder(), "reviewer.md");
+	writeFileSync(role, "# Reviewer\n");
+	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(role), criteria: [] });
+	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
+	const [job, review] = [await jobs.spawn({ task: "Go.", machine: "gpu" }), await jobs.spawn({ task: "Review it.", kind: "review", machine: "gpu" })];
+	jobs.sweep();
+	assert.equal(read(home, review.id, "branch"), "");
+	byHand(machine, { [review.id]: { result: "PASS" } });
+	jobs.sweep();
+	assert.deepEqual(["state", "result"].map((name) => read(home, review.id, name)), ["ended", "PASS"]);
+	assert.equal(calls().filter((call) => call.includes("git-upload-pack")).length, 0, "nothing is fetched for a job without a branch");
+	const worktree = join(there, "repos/.arthur-worktrees", job.id);
+	commit(worktree, "the change");
+	git(worktree, "branch", "side", "HEAD");
+	git(root, "branch", "side");
+	writeFileSync(join(home, "jobs", job.id, "branch"), "side");
+	const refs = git(root, "for-each-ref", "--format=%(refname) %(objectname)");
+	byHand(machine, { [job.id]: { cost: "0.5000" } });
+	assert.throws(() => jobs.sweep(), { message: `machine gpu: job ${job.id} names the branch "side" in its record here; expected arthur/${job.id} or none` });
+	assert.equal(git(root, "for-each-ref", "--format=%(refname) %(objectname)"), refs, "side's tip is unchanged");
+	assert.deepEqual(["state", "cost"].map((name) => read(home, job.id, name)), ["working", "0.0000"]);
 	writeFileSync(gate, "");
 });
 

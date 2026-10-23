@@ -6,17 +6,15 @@
   "title": "The switch: Arthur runs on the VPS and takes its own tickets",
   "date": "2026-10-23",
   "after": [
-    "AR0273",
-    "AR0319",
-    "AR0320",
-    "AR0321",
-    "AR0322",
-    "AR0323",
-    "AR0324",
-    "AR0325",
-    "AR0326",
-    "AR0327",
-    "AR0328"
+    "AR0329",
+    "AR0346",
+    "AR0330",
+    "AR0331",
+    "AR0347",
+    "AR0349",
+    "AR0353",
+    "AR0370",
+    "AR0378"
   ]
 }
 ```
@@ -56,3 +54,5 @@ Out:
 - 2026-10-23: Created by the coordinator when the human asked how much is left before moving from the harness to Arthur; waits for the human's approval.
 - 2026-10-23: The human: "AR0307 ok zaraz po tym jak wejdzie AR0273" — approved, starts right after AR0273 merges.
 - 2026-10-23: The human: focus on Arthur's development and on the switch as soon as possible; plan now, the switch right after the high-severity fixes, before the medium and low ones.
+- 2026-10-23: Coordinator on the plan's open questions (owner's free hand on Arthur): only the test comparing the two criteria copies is removed, the AR0272/AR0273 tests stay; the high-severity fixes are AR0329, AR0346, AR0330, AR0331, AR0347, AR0349, AR0353, AR0370 (set in after, with AR0378); README's "not usable yet" line changes at the switch.
+- 2026-10-23: Not available directly: Option 1 (the coordinator runs the setup steps from its own session; the human creates the bot and fills the env file).

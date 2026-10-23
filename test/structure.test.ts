@@ -534,7 +534,12 @@ import { checkStructure } from "./structure.ts";
 // provider 1, its comment 2, an import changed in place). No identity was checked before, so nothing was cut.
 // Merged main (AR0310, AR0312, AR0314) into AR0313: main's budgets plus AR0313's develop 703, delivery 1305 (recounted with
 // wc -l).
-const BUDGETS = { core: 5787, "core/testing": 349, projects: 485, orchestration: 2309, machines: 479, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1305, github: 630, manage: 925, develop: 703, findings: 254 };
+// AR0315 (the ticket's Done means: github's failed-CI wake names `arthur continue <job>` for a job's branch and the owner for
+// main, as delivery's does since AR0314): github 3 more (633), the job looked up by its branch and the worker-or-owner clause
+// with its comment (github.ts, +4 -1, the old `why` line rewritten in place); nothing in github named a job before, so nothing
+// was cut.
+// Merged main (AR0310, AR0313) into AR0315: main's budgets plus AR0315's github 633 (recounted with wc -l).
+const BUDGETS = { core: 5787, "core/testing": 349, projects: 485, orchestration: 2309, machines: 479, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1305, github: 633, manage: 925, develop: 703, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -1,6 +1,6 @@
 {
 	"turn": {
-		"arthur": "[github] CI run 18140, attempt 1, of ci.yml in shop ended failure on arthur/2026-10-22-worker-0e1f2a3b (0e1f2a3): https://github.com/acme/shop/actions/runs/18140\nWhy: arthur ci arthur/2026-10-22-worker-0e1f2a3b --project shop; rerun it once: arthur ci arthur/2026-10-22-worker-0e1f2a3b --project shop --rerun"
+		"arthur": "[github] CI run 18140, attempt 1, of ci.yml in shop ended failure on arthur/2026-10-22-worker-0e1f2a3b (0e1f2a3): https://github.com/acme/shop/actions/runs/18140\nWhy: arthur ci arthur/2026-10-22-worker-0e1f2a3b --project shop; then a failure in the branch's own code goes back to its worker: arthur continue 2026-10-22-worker-0e1f2a3b '<the failed step and its lines>'; one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once: arthur ci arthur/2026-10-22-worker-0e1f2a3b --project shop --rerun"
 	},
 	"stub": [
 		{

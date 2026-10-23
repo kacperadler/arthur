@@ -2417,8 +2417,8 @@
   {
     "id": "AR0315",
     "title": "GitHub's own wake after a failed CI run names only the rerun",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0315-github-s-own-wake-after-a-failed-ci-run-names-only-the-rerun/ticket.md",
-    "updated": "2026-10-23T12:18:37.591Z"
+    "updated": "2026-10-23T12:18:55.415Z"
   }
 ]

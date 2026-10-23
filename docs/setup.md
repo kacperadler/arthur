@@ -143,6 +143,9 @@ RestartSec=5
 # SIGKILL, and so does everything once TimeoutStopSec has passed.
 KillMode=mixed
 TimeoutStopSec=60
+# What the service and its jobs write, the worktrees outside the home folder included, is readable by this user alone;
+# the home folder itself is made so by `arthur run` whatever the umask.
+UMask=0077
 
 [Install]
 WantedBy=default.target

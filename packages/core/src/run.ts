@@ -1,7 +1,7 @@
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { type DoctorLine, printAtStart, sendAtStart } from "./doctor.ts";
 import { takeLock } from "./lock.ts";
+import { ownHome } from "./own-home.ts";
 import type { Plugin } from "./plugin.ts";
 
 // `arthur run`, Arthur as a process: docs/commands/run.md. From the lock on until the stops it also sweeps for dead jobs
@@ -42,7 +42,7 @@ export async function runPlugins(
 			sendAtStart(home, lines, emit);
 			return 1;
 		}
-		mkdirSync(home, { recursive: true });
+		ownHome(home);
 		const lock = takeLock(join(home, "run.pid"));
 		if ("heldBy" in lock) throw new Error(`${home} is already run by pid ${lock.heldBy}; one arthur run per home folder`);
 		let unfollow = () => {};

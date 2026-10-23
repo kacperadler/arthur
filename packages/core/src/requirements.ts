@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
-import { accessSync, constants, mkdirSync } from "node:fs";
+import { accessSync, constants } from "node:fs";
 import { userInfo } from "node:os";
 import { basename } from "node:path";
+import { ownHome } from "./own-home.ts";
 import type { Requirement } from "./plugin.ts";
 
 // The core's own requirements for `arthur doctor` (spec/roadmap.md, entry 80): git, Node 24 or newer, the agent binary and a
@@ -54,7 +55,7 @@ export function coreRequirements(home: string, agent: string, node = process.ver
 			name: "home",
 			check: () => {
 				try {
-					mkdirSync(home, { recursive: true });
+					ownHome(home);
 					accessSync(home, constants.W_OK);
 					return "ok";
 				} catch (error) {

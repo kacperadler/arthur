@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/machines/docs/commands/machines.md:43` (the check's script)
 - What: AR0310 checks the identity of each project's checkout on the machine `arthur merge` runs on (`delivery <project> identity`). A worker on another machine (`arthur spawn --machine`) commits in a worktree there, with that machine's git config; the machines plugin's check runs `uname`, `arthur version`, `node`, `df` and `command -v`, never `git var GIT_AUTHOR_IDENT`/`GIT_COMMITTER_IDENT`, so a machine with no identity is reported online and its first worker's commit fails, or the worker makes up an identity with `git -c user.email=…` [INFERENCE: not run against a real remote machine].
 - Suggestion: add `git var GIT_AUTHOR_IDENT && git var GIT_COMMITTER_IDENT` to the one ssh command the check already runs, and name it in that machine's doctor line with the same fix wording as `delivery <project> identity`; placement stays by labels.
-- Status: open
+- Status: ticket AR0316

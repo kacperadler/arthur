@@ -2538,9 +2538,9 @@
   {
     "id": "AR0331",
     "title": "A job can point its own worktree at `main`, after which every allowed git write lands on main",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0331-a-job-can-point-its-own-worktree-at-main-after-which-every-allowed-git-write-lands-on-main/ticket.md",
-    "updated": "2026-10-23T14:19:05.869Z"
+    "updated": "2026-10-23T17:30:39.098Z"
   },
   {
     "id": "AR0332",

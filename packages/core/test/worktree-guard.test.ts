@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -178,6 +178,76 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	// The refusal shows the path as the call gave it, and names the job's own worktree, where the write would go instead.
 	const reason = worktreeRefusal(place, "bash", { command: `rm ${main}/README.md` }) ?? "";
 	assert.ok(reason.includes(`(${main}/README.md)`) && reason.includes(` own worktree ${own.worktree}`), reason);
+});
+
+test("git config that changes the config every worktree shares, the user's or the system's is refused naming its key; reads, a worktree's own and a file elsewhere pass", async () => {
+	const { root, home, own, other } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id));
+	const [main, otherJob, elsewhere] = ["../../acme", `../${other.id}`, join(temporaryFolder(), "x.cfg")];
+	const [MAIN, OTHER] = ["the main checkout", "another job's worktree"];
+	// Each refused call, the place its refusal names and what it shows; undefined to show for a path resolved there.
+	const refused: ReadonlyArray<readonly [string, string, string | undefined]> = [
+		["git config core.hooksPath /tmp/hooks", MAIN, "git config core.hooksPath"],
+		["git config core.fsmonitor /tmp/monitor", MAIN, "git config core.fsmonitor"],
+		[`git -C ${main} config receive.denyCurrentBranch ignore`, MAIN, "git config receive.denyCurrentBranch"],
+		[`git config --file ${main}/.git/config core.hooksPath /tmp/hooks`, MAIN, `${main}/.git/config`],
+		[`git config --file=${main}/.git/config core.hooksPath /tmp/hooks`, MAIN, `${main}/.git/config`],
+		[`git config -f${main}/.git/config core.fsmonitor /tmp/monitor`, MAIN, `${main}/.git/config`],
+		[`git config --file ${elsewhere} --file ${main}/.git/config core.hooksPath /tmp/hooks`, MAIN, `${main}/.git/config`],
+		[`git config --file ${otherJob}/x.cfg a.b c`, OTHER, `${otherJob}/x.cfg`],
+		["git config --global core.hooksPath /tmp/hooks", MAIN, "git config --global core.hooksPath"],
+		["git config --system core.fsmonitor /tmp/monitor", MAIN, "git config --system core.fsmonitor"],
+		["git config --local --unset core.hooksPath", MAIN, "git config core.hooksPath"],
+		["git config --unset-a core.hooksPath", MAIN, "git config core.hooksPath"],
+		["git config --bool core.bare false", MAIN, "git config core.bare"],
+		["git config --type bool core.bare false", MAIN, "git config core.bare"],
+		["git config --remove-section core", MAIN, "git config core"],
+		["git config unset core.hooksPath", MAIN, "git config core.hooksPath"],
+		["git config set core.fsmonitor /tmp/monitor", MAIN, "git config core.fsmonitor"],
+		["git config rename-section core old", MAIN, "git config core"],
+		["git config remove-section core", MAIN, "git config core"],
+		["git config -e", MAIN, "git config"],
+		["git config edit", MAIN, "git config"],
+		["git config --worktree --no-worktree core.hooksPath /tmp/hooks", MAIN, "git config core.hooksPath"],
+		[`git config --file ${elsewhere} --no-file core.hooksPath /tmp/hooks`, MAIN, "git config core.hooksPath"],
+		["git config --list --no-list --add core.hooksPath /tmp/hooks", MAIN, "git config core.hooksPath"],
+		[`git -C ${main} config --worktree core.hooksPath /tmp/hooks`, MAIN, undefined],
+		[`cd ${main} && git config --worktree core.hooksPath /tmp/hooks`, MAIN, undefined],
+	];
+	for (const [command, name, shown] of refused) {
+		const reason = worktreeRefusal(place, "bash", { command }) ?? "";
+		const [, named, said] = /writes into (.+?) \((.*?)\);/.exec(reason) ?? [];
+		assert.deepEqual([named, shown === undefined ? undefined : said], [name, shown], `${command}: ${reason}`);
+	}
+	// Each passing call; a read with each option that neither reads nor changes by itself, in the main checkout.
+	const plain = ["--global", "--system", "--local", "--worktree", "--file .git/config", "-f .git/config", "--blob HEAD:x", "--type bool", "--type=bool", "-t bool", "--bool", "--int"];
+	plain.push("--bool-or-int", "--bool-or-str", "--path", "--expiry-date", "--null", "-z", "--name-only", "--includes", "--show-origin", "--show-scope", "--default x", "--fixed-value", "--comment x", "--value x", "--all", "--regexp", "--url https://example.com");
+	const passing = [
+		"git config --get user.name",
+		"git config --get core.bare true",
+		"git config --get-all remote.origin.fetch x",
+		"git config --get-regexp core bare",
+		"git config --get-urlmatch http https://example.com",
+		"git config --get-color color.diff.old red",
+		"git config --get-colorbool color.ui true",
+		"git config -l",
+		"git config --list",
+		`git -C ${main} config --show-origin -l`,
+		"git config get user.name",
+		"git config list",
+		"git config user.name",
+		"git config --worktree core.hooksPath /tmp/hooks",
+		`git config --file ${elsewhere} core.hooksPath /tmp/hooks`,
+		"git config --file x.cfg core.hooksPath /tmp/hooks",
+		...plain.map((option) => `git -C ${main} config ${option} user.name`),
+	];
+	for (const command of passing) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
+	// Run in the job's worktree, the passing calls leave the shared config and the user's as they were.
+	git(root, "config", "extensions.worktreeConfig", "true");
+	const [shared, user] = [readFileSync(join(root, ".git", "config"), "utf8"), temporaryFolder()];
+	for (const command of passing) spawnSync("sh", ["-c", command], { cwd: own.worktree, env: { ...process.env, HOME: user, GIT_CONFIG_NOSYSTEM: "1" }, stdio: "ignore" });
+	assert.deepEqual([readFileSync(join(root, ".git", "config"), "utf8"), existsSync(join(user, ".gitconfig"))], [shared, false]);
+	assert.equal(git(own.worktree, "config", "--worktree", "core.hooksPath"), "/tmp/hooks", "the worktree's own config took it");
 });
 
 test("the wrapper loads the guard into the job's agent, which then refuses its writes outside its worktree and lets the rest through", async () => {

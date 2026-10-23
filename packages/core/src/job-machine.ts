@@ -136,9 +136,9 @@ function failure(machine: Machine, argv: readonly string[], code: number | strin
 	return new Error(`machine ${machine.name}: ${argv.slice(0, 3).join(" ")}: ${said}`);
 }
 
-// `git -C <root> <args>` with ssh's options for a remote there.
+// `git -C <root> <args>` with ssh's options for a remote there, and no hook or fsmonitor of the checkout's config.
 export function gitOver(root: string, args: readonly string[]): void {
-	const run = spawnSync("git", ["-C", root, ...args], { encoding: "utf8", env: { ...process.env, GIT_SSH_COMMAND: ["ssh", ...OPTIONS].join(" ") } });
+	const run = spawnSync("git", ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...args], { encoding: "utf8", env: { ...process.env, GIT_SSH_COMMAND: ["ssh", ...OPTIONS].join(" ") } });
 	if (run.status !== 0) throw new Error(`git ${args[0]}: ${run.error?.message ?? run.stderr.trim()}`);
 }
 

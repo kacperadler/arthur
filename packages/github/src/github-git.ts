@@ -8,8 +8,10 @@ import type { Run } from "./github-api.ts";
 export const DEPTH = 1000;
 const PUSH_MS = 60_000;
 
+// No hook or fsmonitor the checkout's config names runs, here or in the push: a program a job runs may have set them (AR0330).
+const UNHOOKED = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false"];
 export const git = (path: string, ...args: readonly string[]) => {
-	const ran = spawnSync("git", ["-C", path, ...args], { encoding: "utf8" });
+	const ran = spawnSync("git", [...UNHOOKED, "-C", path, ...args], { encoding: "utf8" });
 	return ran.status === 0 ? ran.stdout.trim() : undefined;
 };
 
@@ -33,7 +35,7 @@ export function push(path: string, branch: string): Promise<string> {
 	if (git(path, "remote", "get-url", "origin") === undefined) return Promise.resolve(failed(`${path} has no origin remote`));
 	const ref = `refs/heads/${branch}`;
 	const env = { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "", GCM_INTERACTIVE: "never", SSH_ASKPASS_REQUIRE: "never" };
-	const child = spawn("git", ["-C", path, "push", "--porcelain", "origin", `${ref}:${ref}`], { env, detached: true, stdio: ["ignore", "pipe", "pipe"] });
+	const child = spawn("git", [...UNHOOKED, "-C", path, "push", "--porcelain", "origin", `${ref}:${ref}`], { env, detached: true, stdio: ["ignore", "pipe", "pipe"] });
 	let [out, err] = ["", ""];
 	child.stdout.on("data", (chunk: Buffer) => void (out += chunk));
 	child.stderr.on("data", (chunk: Buffer) => void (err += chunk));

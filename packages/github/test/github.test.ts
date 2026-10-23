@@ -426,7 +426,7 @@ test("github.ci answers the run that built a branch as arthur ci finds it, how f
 	assert.equal(JSON.stringify(box.errors).includes(TOKEN), false, "the token stays out");
 });
 
-test("github.push pushes a branch to origin, one line; a push rejected as non-fast-forward, no remote, or one that would ask for a credential is one warning line, never a prompt", async (t) => {
+test("github.push pushes a branch to origin, one line, running no hook of the checkout's config; a push rejected as non-fast-forward, no remote, or one that would ask for a credential is one warning line, never a prompt", async (t) => {
 	const api = await fakeGithub(t);
 	// An askpass program that notes it was asked, where git and ssh look for one, and git's terminal prompt left on: a push may
 	// still never ask.
@@ -442,6 +442,10 @@ test("github.push pushes a branch to origin, one line; a push rejected as non-fa
 	const origin = temporaryFolder();
 	git(origin, "init", "--quiet", "--bare", "--initial-branch=main");
 	const local = repository(origin);
+	// A pre-push hook that refuses every push, named by the checkout's config as a job's program may have set it.
+	const hooks = temporaryFolder();
+	writeFileSync(join(hooks, "pre-push"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+	git(local.path, "config", "core.hooksPath", hooks);
 	const asks = createServer((_, response) => response.writeHead(401, { "www-authenticate": 'Basic realm="GitHub"' }).end());
 	await once(asks.listen(0, "127.0.0.1"), "listening");
 	t.after(() => asks.close());

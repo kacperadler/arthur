@@ -2426,7 +2426,7 @@
     "title": "A listed machine with no git identity is not told, though its workers commit there",
     "status": "done",
     "path": "spec/features/AR0316-a-listed-machine-with-no-git-identity-is-not-told-though-its-workers-commit-there/ticket.md",
-    "updated": "2026-10-23T12:58:05.497Z"
+    "updated": "2026-10-23T13:27:05.193Z"
   },
   {
     "id": "AR0317",

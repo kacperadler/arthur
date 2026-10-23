@@ -57,10 +57,12 @@ Main goes back to the commit before the merge with `git reset --keep`, which kee
 
 - A merge that went in ends with the procedure: follow it in the same turn.
 - `github: main not pushed to origin: …`: the merge is in; follow the procedure, whose push after the board's commit is the next try, and tell the owner the line if that push fails too.
-- `check failed on main (…)`: main is as it was. Tell the owner which check failed with its last lines, and recommend `arthur continue <job> '<what failed>'`, then a new review once it ends.
+- `check failed on main (…)`: main is as it was. Tell the owner which check failed, its command written out as the brackets name it (`npm test`), with its last lines; run `arthur continue <job> '<what failed>'` without asking him, and start a new review once it ends.
 - A conflict, `refused by merge.check: …` or `git has no identity …`: main is unchanged; tell the owner, in plain words, with the fix the line names.
 - `no PASS on …`: review the branch (`arthur review <job>`), or ask the owner for `--unreviewed`.
-- `--auto merges only with CI passed …; it waits`: nothing to do until the wake with CI's verdict; after `CI passed`, `arthur merge --auto <job>` again. Any other `--auto` refusal: the merge waits for the owner; tell him the rule it named.
+- `--auto merges only with CI passed …; it waits`: nothing to do until the wake with CI's verdict; after `CI passed`, `arthur merge --auto <job>` again; after `CI ended <conclusion>`, as the next line.
+- `--auto merges only with CI passed on the branch: run …, ended <conclusion>`: run its `why:` command; a failure in the branch's own code is handled as a failed check above, `arthur continue` without asking included; one that looks transient is rerun once (`arthur ci --help`).
+- Any other `--auto` refusal: the merge waits for the owner; tell him the rule it named.
 
 ## arthur doctor
 

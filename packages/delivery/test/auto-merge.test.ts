@@ -240,7 +240,8 @@ test("a waiting branch's CI end, as github's poll asks delivery.ciEnded, wakes t
 	assert.deepEqual(end(), [true]);
 	const ci = `arthur ci ${job.branch} --project acme`;
 	const where = `${job.branch} (run 7, attempt 1, on ${job.tip.slice(0, 7)}): ${url}`;
-	assert.deepEqual(messages(), [`[delivery] CI ended failure on ${where}. Not merged; it waits on: the next end of a run on it wakes you again. Why: ${ci}; rerun it once: ${ci} --rerun`]);
+	const what = `a failure in the branch's own code goes back to its worker: arthur continue ${job.id} '<the failed step and its lines>'; one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once: ${ci} --rerun`;
+	assert.deepEqual(messages(), [`[delivery] CI ended failure on ${where}. Not merged; it waits on: the next end of a run on it wakes you again. Why: ${ci}; then ${what}`]);
 	assert.deepEqual(end(), [true], "asked again, it still owns that end");
 	assert.equal(messages().length, 1, "told once");
 	assert.deepEqual(end({}, { attempt: 2, conclusion: "success" }), [true]);

@@ -24,9 +24,13 @@
 		},
 		"calls": [
 			"^arthur merge (\\S+-)?6a7b8c9d$",
-			"^arthur continue (\\S+-)?6a7b8c9d .*(?:catalog\\.test\\.ts|listed trimmed)"
+			{
+				"match": "^arthur continue (\\S+-)?6a7b8c9d .*(?:catalog\\.test\\.ts|listed trimmed)",
+				"times": 1
+			}
 		],
 		"never": [
+			"^arthur continue (?!(\\S+-)?6a7b8c9d .*(?:catalog\\.test\\.ts|listed trimmed))",
 			"^arthur prune ",
 			"--unreviewed",
 			"^arthur spawn ",

@@ -2379,16 +2379,16 @@
   {
     "id": "AR0310",
     "title": "`arthur merge` fails for a user with no git identity, only after its review and checks ran",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0310-arthur-merge-fails-for-a-user-with-no-git-identity-only-after-its-review-and-checks-ran/ticket.md",
-    "updated": "2026-10-23T12:19:06.203Z"
+    "updated": "2026-10-23T12:22:39.131Z"
   },
   {
     "id": "AR0311",
     "title": "Security audit of Arthur before the switch",
     "status": "in-progress",
     "path": "spec/features/AR0311-security-audit-of-arthur-before-the-switch/ticket.md",
-    "updated": "2026-10-23T12:05:41.173Z"
+    "updated": "2026-10-23T12:40:39.763Z"
   },
   {
     "id": "AR0312",
@@ -2400,9 +2400,9 @@
   {
     "id": "AR0313",
     "title": "A scenario cannot say a call is made only once",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0313-a-scenario-cannot-say-a-call-is-made-only-once/ticket.md",
-    "updated": "2026-10-23T12:15:23.906Z",
+    "updated": "2026-10-23T12:58:59.040Z",
     "after": [
       "AR0312"
     ]
@@ -2417,8 +2417,22 @@
   {
     "id": "AR0315",
     "title": "GitHub's own wake after a failed CI run names only the rerun",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0315-github-s-own-wake-after-a-failed-ci-run-names-only-the-rerun/ticket.md",
-    "updated": "2026-10-23T12:18:55.415Z"
+    "updated": "2026-10-23T12:50:53.409Z"
+  },
+  {
+    "id": "AR0316",
+    "title": "A listed machine with no git identity is not told, though its workers commit there",
+    "status": "done",
+    "path": "spec/features/AR0316-a-listed-machine-with-no-git-identity-is-not-told-though-its-workers-commit-there/ticket.md",
+    "updated": "2026-10-23T12:58:05.497Z"
+  },
+  {
+    "id": "AR0317",
+    "title": "The baseline of delivery/check-failed predates its stricter expectations",
+    "status": "planned",
+    "path": "spec/features/AR0317-the-baseline-of-delivery-check-failed-predates-its-stricter-expectations/ticket.md",
+    "updated": "2026-10-23T12:59:11.640Z"
   }
 ]

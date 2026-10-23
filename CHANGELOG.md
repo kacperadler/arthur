@@ -9,6 +9,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0273 Delivery ships no review criteria, so `arthur init` still writes `review.md` as `# Review` (823864e)
 - AR0304 A new plugin's ticket without a plan can still be placed on another machine (7ac9b48)
 - AR0308 After a check fails at merge, the coordinator continues the worker itself (d977720)
+- AR0313 A scenario cannot say a call is made only once (9abe66f)
 - AR0314 Delivery's wake after a failed CI run names only the rerun (eb0ddc5)
 
 ### Fixed
@@ -21,6 +22,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0305 A lock left by a crashed process whose pid the taker now has counts as held by a live process (94846b2)
 - AR0306 The agent's extensions still append to `log` with a flag that creates it (7b2d80a)
 - AR0309 CI on GitHub fails since 2026-10-21: merge tests have no git identity on the runner (dc3a23c)
+- AR0310 `arthur merge` fails for a user with no git identity, only after its review and checks ran (5aae50d)
 
 ### Changed
 

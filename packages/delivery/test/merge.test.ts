@@ -412,3 +412,47 @@ test("findings go to findings.onMerge: none open makes no ticket, an open one's 
 	assert.deepEqual([status("AC0003"), status("AC0004")], ["merged", "planning"], "the finding's ticket gets the next id after the board's");
 	assert.match(readFileSync(join(root, pay, "outcome.md"), "utf8"), /\n## Left open\n\n- Tickets from findings: AC0004 \(F2\)\.\n- Findings: findings\.onMerge of test failed: /);
 });
+
+// A git with no identity anywhere, as on a fresh machine or runner: a user config that forbids guessing one (so a host with a
+// full domain name makes up none), no system config, none in the environment; each variable put back after the test.
+function noIdentityAnywhere(t: TestContext) {
+	const names = ["GIT_CONFIG_GLOBAL", "GIT_CONFIG_NOSYSTEM", "GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL", "EMAIL"];
+	const saved = names.map((name) => process.env[name]);
+	t.after(() => names.forEach((name, at) => (saved[at] === undefined ? delete process.env[name] : (process.env[name] = saved[at]))));
+	for (const name of names) delete process.env[name];
+	const global = join(temporaryFolder(), "gitconfig");
+	writeFileSync(global, "[user]\n\tuseConfigOnly = true\n");
+	Object.assign(process.env, { GIT_CONFIG_GLOBAL: global, GIT_CONFIG_NOSYSTEM: "1" });
+}
+
+test("no git identity: arthur doctor's line per project says so and names the fix; arthur merge refuses before any check, main unchanged; Arthur sets none of its own", async (t) => {
+	const { root, fake, git, worker, review, merge, head, status, installs } = await load(t);
+	const doctor = async () => {
+		const lists = fake.collect<readonly { readonly name: string; check(): Promise<string>; readonly costs: string; readonly fix: string }[]>("doctor");
+		return Promise.all(lists.flat().map(async (each) => ({ name: each.name, said: await each.check(), costs: each.costs, fix: each.fix })));
+	};
+	const fix = `git config --global user.name "<your name>" and git config --global user.email "<your email>", or both with git -C ${root} config for this project alone`;
+	assert.deepEqual(await doctor(), [{ name: "acme identity", said: "ok", costs: "arthur merge refuses every branch of acme: git has no author for the merge commit", fix }], "the repository's own identity is one");
+	const job = await worker();
+	await review(job.id, "PASS");
+	noIdentityAnywhere(t);
+	git(root, "config", "--unset", "user.name");
+	git(root, "config", "--unset", "user.email");
+	const author = new RegExp(`^missing: git var GIT_AUTHOR_IDENT in ${root}: fatal: .+$`);
+	assert.match((await doctor())[0]?.said ?? "", author);
+	const before = head();
+	const refused = await merge(job.id);
+	assert.equal(refused.code, 1);
+	assert.match(refused.err, new RegExp(`^arthur merge: git has no identity for the merge commit: git var GIT_AUTHOR_IDENT in ${root}: fatal: .+; set one: ${fix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}; main is unchanged$`));
+	assert.deepEqual([head(), status("AC0001"), installs], [before, "done", []], "refused before the merge and its checks");
+	Object.assign(process.env, { GIT_AUTHOR_NAME: "a", GIT_AUTHOR_EMAIL: "a@example.com" });
+	assert.match((await doctor())[0]?.said ?? "", new RegExp(`^missing: git var GIT_COMMITTER_IDENT in ${root}: fatal: `), "an author without a committer is no identity");
+	delete process.env.GIT_AUTHOR_NAME;
+	delete process.env.GIT_AUTHOR_EMAIL;
+	execFileSync("git", ["-C", root, "config", "user.name", "Owner"]);
+	execFileSync("git", ["-C", root, "config", "user.email", "owner@example.com"]);
+	assert.equal((await doctor())[0]?.said, "ok", "a repository-local identity is one");
+	const merged = await merge(job.id);
+	assert.equal(merged.code, undefined, merged.err);
+	assert.equal(git(root, "log", "-1", "--format=%an <%ae> %cn <%ce>"), "Owner <owner@example.com> Owner <owner@example.com>", "the merge commit is the owner's, none Arthur made");
+});

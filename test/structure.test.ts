@@ -544,7 +544,10 @@ import { checkStructure } from "./structure.ts";
 // was cut.
 // Merged main (AR0310, AR0313) into AR0315: main's budgets plus AR0315's github 633 (recounted with wc -l).
 // Merged main (AR0313, AR0315, AR0317) into AR0316: main's budgets plus AR0316's machines 484 (recounted with wc -l).
-const BUDGETS = { core: 5787, "core/testing": 349, projects: 485, orchestration: 2309, machines: 484, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1305, github: 633, manage: 925, develop: 703, findings: 254 };
+// AR0318 (F1 of AR0316; its Done means: a machine whose `git var` exits 127 is offline, `git is not there`): machines 3 more
+// (487) for the exit code read in the identity loop, kept on its line, its comment 1 more, and the offline reason read from
+// the report before the identity (machine-check.ts 2). The identity's own line is unchanged; nothing else to cut.
+const BUDGETS = { core: 5787, "core/testing": 349, projects: 485, orchestration: 2309, machines: 487, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1305, github: 633, manage: 925, develop: 703, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

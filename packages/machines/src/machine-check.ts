@@ -17,8 +17,9 @@ export type Report =
 
 // Each tool label is a command name; one not found is said on a line of its own, after the free CPU and memory.
 const TOOLS = 'for tool do command -v "$tool" >/dev/null || echo "missing $tool"; done';
-// `git var GIT_AUTHOR_IDENT && git var GIT_COMMITTER_IDENT` as `arthur merge` asks them; the report's `identity` names the first that fails.
-const IDENTITY = 'for var in GIT_AUTHOR_IDENT GIT_COMMITTER_IDENT; do said=$(git var "$var" 2>&1 >/dev/null) || printf "identity %s %s\\n" "$var" "$(printf "%s\\n" "$said" | tail -n 1)"; done';
+// `git var GIT_AUTHOR_IDENT && git var GIT_COMMITTER_IDENT` as `arthur merge` asks them; the report's `identity` names the first
+// that fails, `git` in place of its variable when the shell finds no git (exit 127), which leaves the machine offline.
+const IDENTITY = 'for var in GIT_AUTHOR_IDENT GIT_COMMITTER_IDENT; do said=$(git var "$var" 2>&1 >/dev/null) && continue; [ $? -eq 127 ] && var=git; printf "identity %s %s\\n" "$var" "$(printf "%s\\n" "$said" | tail -n 1)"; done';
 // `$1` of SCRIPT, the machine's free CPU and memory as the resources plugin's own check measures them (its machine-free.ts): one
 // JSON line of its cores, the cores its processes kept busy over one second, and its free and total memory in bytes.
 const FREE = `const os = require("node:os"); const busy = () => os.cpus().reduce((sum, { times: t }) => sum + t.user + t.nice + t.sys + t.irq, 0); const [before, start] = [busy(), performance.now()]; setTimeout(() => console.log(JSON.stringify({ cores: os.availableParallelism(), load: Math.max(0, (busy() - before) / (performance.now() - start)), free: os.freemem(), total: os.totalmem() })), 1000)`;
@@ -88,6 +89,8 @@ export async function checkMachine(host: Host, machine: MachineEntry, ours: stri
 	const at = rest.findIndex((line) => /^disk \d+$/.test(line));
 	const disk = at === -1 ? {} : { disk: { code: Number(rest[at]?.slice("disk ".length)), output: rest.slice(at + 1).join("\n") } };
 	const lines = at === -1 ? rest : rest.slice(0, at);
+	const none = /^identity git ?(.*)$/m.exec(lines.join("\n"));
+	if (none !== null) return offline(`git is not there (${none[1] || "exit code 127"})`, "install git there, on the PATH of a command over ssh (docs/deploy.md)");
 	const identity = lines.find((line) => line.startsWith("identity "))?.replace(/^identity (\S+) ?/, "git var $1 there: ") ?? "";
 	return { online: true, os, arch, version: ours, free, ...disk, missing: missing(lines), identity };
 }

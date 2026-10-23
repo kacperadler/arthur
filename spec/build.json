@@ -2865,9 +2865,9 @@
   {
     "id": "AR0378",
     "title": "A ticket has a Conventional Commits kind, and the board filters by it",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0378-a-ticket-names-its-area-and-the-board-filters-by-it/ticket.md",
-    "updated": "2026-10-23T20:57:57.361Z"
+    "updated": "2026-10-23T21:01:20.765Z"
   },
   {
     "id": "AR0379",
@@ -2924,5 +2924,12 @@
     "status": "planned",
     "path": "spec/features/AR0386-inside-a-job-the-read-only-ci-branch-config-check-doctor-retro-and-usage-are-refused-with-the-commands-that-change-state/ticket.md",
     "updated": "2026-10-23T20:16:54.461Z"
+  },
+  {
+    "id": "AR0387",
+    "title": "The harness still reads the old kinds in this repository until the switch",
+    "status": "dropped",
+    "path": "spec/features/AR0387-the-harness-still-reads-the-old-kinds-in-this-repository-until-the-switch/ticket.md",
+    "updated": "2026-10-23T21:01:33.668Z"
   }
 ]

@@ -16,7 +16,7 @@ since AR0277 the eval asks orchestration for the turn (`coordinator.turn`), so t
 
 An eval words a schedule entry by asking the schedule plugin for its `[scheduled <id>]` line, so a scenario's scheduled turn cannot drift from what the coordinator really gets.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/develop/src/eval-scenario.ts` (`turnText`, the `coordinator-message` text), copying `packages/schedule/src/sweep.ts:39`

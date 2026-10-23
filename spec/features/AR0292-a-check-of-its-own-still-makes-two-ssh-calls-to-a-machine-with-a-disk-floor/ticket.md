@@ -16,7 +16,7 @@ outside a round of the `machines` plugin (a sample missing or older than twice i
 
 A check of its own (outside a round) on a machine with a disk floor makes one ssh call too, so every check costs one connection, not only a round's.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/resources/src/machine-free.ts` (`checkSample`, `measure`), `packages/resources/src/machine-disk.ts` (`measureDisk`)

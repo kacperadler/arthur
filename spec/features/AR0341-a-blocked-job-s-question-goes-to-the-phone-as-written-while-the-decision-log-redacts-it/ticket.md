@@ -16,7 +16,7 @@ a credential on the owner's phone and in the coordinator's transcript, with the 
 
 A blocked job's question is redacted before it reaches the phone, as the decision log already does; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/orchestration/src/blocked-notice.ts:40-51` (the `notice` text), `packages/orchestration/src/decision-hooks.ts:27` (the same question, redacted, for the log); the hand-over of a job's final message, `packages/orchestration/src/hand-over.ts`, the same way

@@ -6,21 +6,21 @@
 			"state": "ended",
 			"reason": "finished"
 		},
-		"result": "## 1. The cart's total ignores a removed item's quantity\nKind: bug\nEvidence:\n- src/cart.ts:63: `remove` drops the item but the total subtracts one unit, whatever its quantity\nWhy it matters: a customer who removes 3 mugs at once still pays for 2 of them at checkout.\nScope: `src/cart.ts`: subtract the item's quantity; `test/cart.test.ts`: a test removes an item of quantity 3.\n\n## 2. Let the owner pick the currency of the sales report\nKind: improvement\nEvidence:\n- src/report.ts:12: the report always prints euros\nWhy it matters: the owner sells in Poland too and converts the report by hand.\nScope: `src/report.ts`, `src/settings.ts`: a currency setting the report reads."
+		"result": "## 1. The cart's total ignores a removed item's quantity\nKind: fix\nEvidence:\n- src/cart.ts:63: `remove` drops the item but the total subtracts one unit, whatever its quantity\nWhy it matters: a customer who removes 3 mugs at once still pays for 2 of them at checkout.\nScope: `src/cart.ts`: subtract the item's quantity; `test/cart.test.ts`: a test removes an item of quantity 3.\n\n## 2. Let the owner pick the currency of the sales report\nKind: feat\nEvidence:\n- src/report.ts:12: the report always prints euros\nWhy it matters: the owner sells in Poland too and converts the report by hand.\nScope: `src/report.ts`, `src/settings.ts`: a currency setting the report reads."
 	},
 	"stub": [
 		{
 			"match": "^arthur ticket file ",
 			"output": "spec/quality/2026-10-22.md",
 			"files": {
-				"spec/quality/2026-10-22.md": "# Audit 2026-10-22\n\n- Job: 2026-10-22-audit-a1b2c3d4\n- Commit audited: 3e4f5a6\n\n## 1. The cart's total ignores a removed item's quantity\nKind: bug\nEvidence:\n- src/cart.ts:63: `remove` drops the item but the total subtracts one unit, whatever its quantity\nWhy it matters: a customer who removes 3 mugs at once still pays for 2 of them at checkout.\nScope: `src/cart.ts`: subtract the item's quantity; `test/cart.test.ts`: a test removes an item of quantity 3.\n\n## 2. Let the owner pick the currency of the sales report\nKind: improvement\nEvidence:\n- src/report.ts:12: the report always prints euros\nWhy it matters: the owner sells in Poland too and converts the report by hand.\nScope: `src/report.ts`, `src/settings.ts`: a currency setting the report reads.\n"
+				"spec/quality/2026-10-22.md": "# Audit 2026-10-22\n\n- Job: 2026-10-22-audit-a1b2c3d4\n- Commit audited: 3e4f5a6\n\n## 1. The cart's total ignores a removed item's quantity\nKind: fix\nEvidence:\n- src/cart.ts:63: `remove` drops the item but the total subtracts one unit, whatever its quantity\nWhy it matters: a customer who removes 3 mugs at once still pays for 2 of them at checkout.\nScope: `src/cart.ts`: subtract the item's quantity; `test/cart.test.ts`: a test removes an item of quantity 3.\n\n## 2. Let the owner pick the currency of the sales report\nKind: feat\nEvidence:\n- src/report.ts:12: the report always prints euros\nWhy it matters: the owner sells in Poland too and converts the report by hand.\nScope: `src/report.ts`, `src/settings.ts`: a currency setting the report reads.\n"
 			}
 		},
 		{
 			"match": "^arthur ticket new ",
 			"output": "SH0016 spec/features/SH0016-the-cart-s-total-ignores-a-removed-item-s-quantity/ticket.md",
 			"files": {
-				"spec/features/SH0016-the-cart-s-total-ignores-a-removed-item-s-quantity/ticket.md": "# SH0016 - The cart's total ignores a removed item's quantity\n\n```json\n{\n  \"id\": \"SH0016\",\n  \"title\": \"The cart's total ignores a removed item's quantity\",\n  \"date\": \"2026-10-22\"\n}\n```\n\n## Description\n\n<!-- Two or three sentences: what changes, and for whom. -->\n\n## Goal\n\n<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->\n\n- Kind: <!-- feature | bug | risk | cleanup | improvement -->\n\n## Done means\n\n<!-- Each observable result, and the test that proves it; the project's checks pass. -->\n\n## Scope\n\nIn:\n<!-- - `path/to/file.ts`: what changes there. -->\n\nOut:\n<!-- - What this ticket does not do, and which ticket does. -->\n\n## Decisions\n\n<!-- - YYYY-MM-DD: one decision the human made, in one line. -->\n",
+				"spec/features/SH0016-the-cart-s-total-ignores-a-removed-item-s-quantity/ticket.md": "# SH0016 - The cart's total ignores a removed item's quantity\n\n```json\n{\n  \"id\": \"SH0016\",\n  \"title\": \"The cart's total ignores a removed item's quantity\",\n  \"date\": \"2026-10-22\"\n}\n```\n\n## Description\n\n<!-- Two or three sentences: what changes, and for whom. -->\n\n## Goal\n\n<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->\n\n- Kind: <!-- feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux -->\n\n## Done means\n\n<!-- Each observable result, and the test that proves it; the project's checks pass. -->\n\n## Scope\n\nIn:\n<!-- - `path/to/file.ts`: what changes there. -->\n\nOut:\n<!-- - What this ticket does not do, and which ticket does. -->\n\n## Decisions\n\n<!-- - YYYY-MM-DD: one decision the human made, in one line. -->\n",
 				"spec/build.json": "[\n  {\n    \"id\": \"SH0001\",\n    \"title\": \"List the products on the home page\",\n    \"status\": \"merged\",\n    \"path\": \"spec/features/SH0001-list-the-products-on-the-home-page/ticket.md\",\n    \"updated\": \"2026-10-21T16:00:00.000Z\"\n  },\n  {\n    \"id\": \"SH0002\",\n    \"title\": \"Add a product to the cart\",\n    \"status\": \"merged\",\n    \"path\": \"spec/features/SH0002-add-a-product-to-the-cart/ticket.md\",\n    \"updated\": \"2026-10-21T16:00:00.000Z\"\n  },\n  {\n    \"id\": \"SH0016\",\n    \"title\": \"The cart's total ignores a removed item's quantity\",\n    \"status\": \"planning\",\n    \"path\": \"spec/features/SH0016-the-cart-s-total-ignores-a-removed-item-s-quantity/ticket.md\",\n    \"updated\": \"2026-10-21T16:00:00.000Z\"\n  }\n]\n"
 			}
 		},
@@ -28,7 +28,7 @@
 			"match": "^arthur ticket new ",
 			"output": "SH0017 spec/features/SH0017-let-the-owner-pick-the-currency-of-the-sales-report/ticket.md",
 			"files": {
-				"spec/features/SH0017-let-the-owner-pick-the-currency-of-the-sales-report/ticket.md": "# SH0017 - Let the owner pick the currency of the sales report\n\n```json\n{\n  \"id\": \"SH0017\",\n  \"title\": \"Let the owner pick the currency of the sales report\",\n  \"date\": \"2026-10-22\"\n}\n```\n\n## Description\n\n<!-- Two or three sentences: what changes, and for whom. -->\n\n## Goal\n\n<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->\n\n- Kind: <!-- feature | bug | risk | cleanup | improvement -->\n\n## Done means\n\n<!-- Each observable result, and the test that proves it; the project's checks pass. -->\n\n## Scope\n\nIn:\n<!-- - `path/to/file.ts`: what changes there. -->\n\nOut:\n<!-- - What this ticket does not do, and which ticket does. -->\n\n## Decisions\n\n<!-- - YYYY-MM-DD: one decision the human made, in one line. -->\n",
+				"spec/features/SH0017-let-the-owner-pick-the-currency-of-the-sales-report/ticket.md": "# SH0017 - Let the owner pick the currency of the sales report\n\n```json\n{\n  \"id\": \"SH0017\",\n  \"title\": \"Let the owner pick the currency of the sales report\",\n  \"date\": \"2026-10-22\"\n}\n```\n\n## Description\n\n<!-- Two or three sentences: what changes, and for whom. -->\n\n## Goal\n\n<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->\n\n- Kind: <!-- feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux -->\n\n## Done means\n\n<!-- Each observable result, and the test that proves it; the project's checks pass. -->\n\n## Scope\n\nIn:\n<!-- - `path/to/file.ts`: what changes there. -->\n\nOut:\n<!-- - What this ticket does not do, and which ticket does. -->\n\n## Decisions\n\n<!-- - YYYY-MM-DD: one decision the human made, in one line. -->\n",
 				"spec/build.json": "[\n  {\n    \"id\": \"SH0001\",\n    \"title\": \"List the products on the home page\",\n    \"status\": \"merged\",\n    \"path\": \"spec/features/SH0001-list-the-products-on-the-home-page/ticket.md\",\n    \"updated\": \"2026-10-21T16:00:00.000Z\"\n  },\n  {\n    \"id\": \"SH0002\",\n    \"title\": \"Add a product to the cart\",\n    \"status\": \"merged\",\n    \"path\": \"spec/features/SH0002-add-a-product-to-the-cart/ticket.md\",\n    \"updated\": \"2026-10-21T16:00:00.000Z\"\n  },\n  {\n    \"id\": \"SH0016\",\n    \"title\": \"The cart's total ignores a removed item's quantity\",\n    \"status\": \"planning\",\n    \"path\": \"spec/features/SH0016-the-cart-s-total-ignores-a-removed-item-s-quantity/ticket.md\",\n    \"updated\": \"2026-10-21T16:00:00.000Z\"\n  },\n  {\n    \"id\": \"SH0017\",\n    \"title\": \"Let the owner pick the currency of the sales report\",\n    \"status\": \"planning\",\n    \"path\": \"spec/features/SH0017-let-the-owner-pick-the-currency-of-the-sales-report/ticket.md\",\n    \"updated\": \"2026-10-21T16:00:00.000Z\"\n  }\n]\n"
 			}
 		},
@@ -42,7 +42,7 @@
 		{
 			"match": "^arthur ticket status SH0017 planned --autopilot",
 			"exit": 1,
-			"output": "arthur ticket: SH0017: not pre-approved: its kind is improvement; autopilot pre-approves only bug or cleanup"
+			"output": "arthur ticket: SH0017: not pre-approved: its kind is feat; autopilot pre-approves only fix or refactor or chore or docs or test"
 		},
 		{
 			"match": "^arthur spawn ",
@@ -56,7 +56,7 @@
 	"expect": {
 		"files": {
 			"spec/features/SH0016-the-cart-s-total-ignores-a-removed-item-s-quantity/ticket.md": [
-				"^- Kind: bug",
+				"^- Kind: fix",
 				"^- \\d{4}-\\d{2}-\\d{2}: Source: audit spec/quality/2026-10-22\\.md"
 			],
 			"spec/features/SH0017-let-the-owner-pick-the-currency-of-the-sales-report/ticket.md": [

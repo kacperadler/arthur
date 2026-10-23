@@ -17,7 +17,7 @@ entry 19 says the env guard is loaded "in every job and in the coordinator". AR0
 The coordinator, which holds the most context, never reads a secrets file: entry 23 says it loads the env guard like every job.
 
 - Model: haiku
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `spec/roadmap.md` entry 23; `packages/core/package.json` (`./env-guard`)

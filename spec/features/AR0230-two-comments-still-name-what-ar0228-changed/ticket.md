@@ -16,7 +16,7 @@ Two code comments describe the code as it was before AR0228 froze the host API. 
 
 Each comment says what the code does now.
 
-- Kind: cleanup
+- Kind: refactor
 - Model: haiku
 
 ## Done means

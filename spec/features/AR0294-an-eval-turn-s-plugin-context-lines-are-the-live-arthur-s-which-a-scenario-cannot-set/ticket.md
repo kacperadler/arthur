@@ -16,7 +16,7 @@
 
 A scenario can set the plugin context lines its eval turn gets, instead of inheriting the live Arthur's, so a run measures the fixture and not the machine it runs on.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/orchestration/src/context.ts:71` (`collectEach("coordinator.context")` with no argument)

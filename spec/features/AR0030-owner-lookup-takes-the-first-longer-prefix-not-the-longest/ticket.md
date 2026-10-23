@@ -16,7 +16,7 @@
 
 A variable name is always attributed to the owner with the longest matching prefix, so a refusal names the right plugin or instance at any nesting depth. Found by the AR0028 review (F1): with three or more nested levels the message could name the wrong owner.
 
-- Kind: bug
+- Kind: fix
 
 ## Done means
 

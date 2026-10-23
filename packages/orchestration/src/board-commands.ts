@@ -16,7 +16,7 @@ type Reply = (words: readonly string[], project: string | undefined) => string |
 export function boardCommands(host: Host): Command[] {
 	const { board } = host;
 	return [
-		command("board", "[PREFIX] [all]", "the board, or its digest when it does not fit one message; all: every ticket", (words, project) => boardReply(board, words, project)),
+		command("board", "[PREFIX] [all | KIND | --kind KIND]", "the board, or its digest when it does not fit one message; all: every ticket; a kind (fix, security...): its tickets", (words, project) => boardReply(board, words, project)),
 		command("task", "<id>", "a ticket's status and its ticket.md: /task 14, /task AR14", (words, project) => fileReply(board, words, project, "ticket.md")),
 		command("plan", "<id>", "a ticket's status and its plan.md: /plan 14, /plan AR14", (words, project) => fileReply(board, words, project, "plan.md")),
 	];
@@ -39,13 +39,24 @@ function command(name: string, usage: string, about: string, reply: Reply): Comm
 	};
 }
 
+// A single word that is a project's prefix is the prefix, else `all` or a kind; `--kind` always names a kind.
 function boardReply(board: Board, words: readonly string[], project: string | undefined): string | undefined {
-	const all = words.at(-1)?.toLowerCase() === "all";
-	const rest = all ? words.slice(0, -1) : words;
-	if (rest.length > 1 || (rest[0] !== undefined && !/^[a-z]+$/i.test(rest[0]))) return undefined;
-	const name = rest[0] === undefined ? project : byPrefix(board, rest[0].toUpperCase()).name;
-	const full = board.full(name);
-	return all || full.length <= MESSAGE ? full : board.digest(name);
+	const at = words.indexOf("--kind");
+	const flag = at < 0 ? undefined : (words[at + 1] ?? "");
+	const rest = at < 0 ? words : words.toSpliced(at, 2);
+	if (flag === "" || rest.length > (flag === undefined ? 2 : 1) || (rest[0] !== undefined && !/^[a-z]+$/i.test(rest[0]))) return undefined;
+	const [first, second] = rest;
+	const own = flag === undefined && second === undefined && first !== undefined && (first.toLowerCase() === "all" || !board.projects().some((each) => each.prefix === first.toUpperCase()));
+	const [prefix, word] = own ? [undefined, first] : [first, flag ?? second];
+	const name = prefix === undefined ? project : byPrefix(board, prefix.toUpperCase()).name;
+	if (word === undefined) {
+		const full = board.full(name);
+		return full.length <= MESSAGE ? full : board.digest(name);
+	}
+	if (flag === undefined && word.toLowerCase() === "all") return board.full(name);
+	const kind = word.toLowerCase();
+	if (own && !board.kinds.includes(kind)) throw new Error(`unknown prefix or kind ${word}; prefixes: ${board.projects().map((each) => each.prefix).join(", ")}; kinds: ${board.kinds.join(", ")}`);
+	return board.full(name, kind);
 }
 
 function fileReply(board: Board, words: readonly string[], project: string | undefined, file: "ticket.md" | "plan.md"): string | undefined {

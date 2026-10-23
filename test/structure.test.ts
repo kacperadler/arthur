@@ -585,7 +585,16 @@ import { checkStructure } from "./structure.ts";
 // call with a comment in host.ts (3, every command that loads the plugins) and in remote-job.ts's `repo` (3, the home there),
 // and the import in requirements.ts (1); run.ts and spawn-check.ts swap their `mkdirSync` for it. Nothing made the home its
 // user's alone before, so nothing was cut.
-const BUDGETS = { core: 5905, "core/testing": 349, projects: 486, orchestration: 2319, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1310, github: 635, manage: 928, develop: 705, findings: 255 };
+// AR0378 (the ticket's Done means: a Kind of the template's list, the board's Kind column and `/board <kind>`): core 34 more
+// (5903) for the kinds and a ticket's Kind read under its Goal, `planned` refusing another (ticket-template.ts, git diff
+// --numstat +14 -3), each line's Kind read from its ticket.md and the board of one Kind (board-text.ts, +25 -6), and
+// `host.board.kinds` with `full(project, kind)` (board.ts, +12 -8); orchestration 11 more (2320) for `/board KIND`, `PREFIX
+// KIND` and `--kind` with their refusals (board-commands.ts, +18 -7); delivery 1 more (1311) for the new kinds' changelog
+// headings; findings 1 fewer (253), its copy of the kinds gone for `host.board.kinds`. Nothing read a ticket's Kind for the
+// board before, so nothing was cut.
+// Merged main (AR0349, AR0353, AR0370) into AR0378: main's budgets plus AR0378's raises, core 5905 + 34 = 5939, orchestration
+// 2319 + 11 = 2330, delivery 1311, findings 255 - 1 = 254 (recounted with wc -l).
+const BUDGETS = { core: 5939, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1311, github: 635, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

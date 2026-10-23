@@ -16,7 +16,7 @@ AR0300 makes the wrapper append to `log` without creating it, but the steer exte
 
 The agent's extensions (`steer.ts`, `worktree-guard.ts`) append to `log` without creating it, like the wrapper since AR0300, so no writer recreates `log` in a record being removed.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/core/src/steer.ts:29`, `packages/core/src/worktree-guard.ts:170`

@@ -16,7 +16,7 @@
 
 The eval baseline of delivery/check-failed is measured again on the new scenario, so a regression from its pass rate is noticed instead of hidden behind the old 0/3.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `evals/baseline.json:2`

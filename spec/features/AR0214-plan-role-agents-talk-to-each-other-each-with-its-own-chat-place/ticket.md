@@ -26,7 +26,7 @@ A plan, written with the owner before anything is built, that settles the follow
 - what still needs the owner's approval: everything that leaves the company, per entry 79;
 - how one Discord server per agent and shared group servers map onto the `chat` places of entries 85–86 and Discord (89–90).
 
-- Kind: plan
+- Kind: feat
 - Plan: tak
 
 ## Done means

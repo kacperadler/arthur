@@ -16,7 +16,7 @@ This ticket builds roadmap entry 45 in `spec/roadmap.md`, in the `youtrack` plug
 
 The specification is roadmap entry 45: its Package, Delivers and Done means with every edge case, plus the Goal of the finding ticket named above.
 
-- Kind: improvement
+- Kind: feat
 - Budget: 12
 
 ## Done means

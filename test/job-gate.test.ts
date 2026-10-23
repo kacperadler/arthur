@@ -101,7 +101,7 @@ test("inside a job the commands a role needs run, each to its own answer; youtra
 		[["version"], 0, /^[0-9a-f]{12}\n$/],
 		[["jobs"], 0, /^no jobs\n$/],
 		[["decisions"], 0, /^no decisions yet\n$/],
-		[["board"], 0, /^SH0001 planned +Shop\n$/],
+		[["board"], 0, /^SH0001 planned +- +Shop\n$/],
 		[["task", "SH0001"], 0, /^SH0001 planned\n# SH0001 - Shop\n/],
 		[["plan", "SH0001"], 0, /^SH0001: no plan /],
 		[["findings", "SH0001"], 0, /^SH0001: no findings /],

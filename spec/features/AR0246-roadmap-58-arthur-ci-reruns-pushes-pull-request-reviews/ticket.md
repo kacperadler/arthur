@@ -16,7 +16,7 @@ This ticket builds roadmap entry 58 in `spec/roadmap.md` in the `github` plugin,
 
 The specification is roadmap entry 58: its Delivers and Done means, plus AR0238's Done means.
 
-- Kind: feature
+- Kind: feat
 - Budget: 10
 
 ## Done means

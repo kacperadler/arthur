@@ -16,7 +16,7 @@ Roadmap entry 39 (`spec/roadmap.md`), built as the entry says.
 
 Arthur runs approved work at set times, so jobs run while the owner is away (vision: background tasks).
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

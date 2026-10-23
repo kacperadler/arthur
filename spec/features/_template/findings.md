@@ -8,7 +8,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 
 ## F1. Short title
 
-- Kind: bug | risk | cleanup | improvement
+- Kind: feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux
 - Budget: <USD> (optional)
 - Found by: <job id> (worker | review | coordinator), YYYY-MM-DD
 - Where: `path/to/file.ts:42`

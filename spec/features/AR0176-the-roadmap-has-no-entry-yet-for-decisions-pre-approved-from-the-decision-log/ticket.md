@@ -16,7 +16,7 @@ AR0174's Done means asks for "a later step, its own entry" that lets a class of 
 
 A class of decisions the owner always answers the same way can be proposed, from the decision log (96), as pre-approved, and becomes so only on the owner's approval: the next step to a more autonomous Arthur.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `spec/roadmap.md`, entry 96

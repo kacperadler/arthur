@@ -16,7 +16,7 @@
 
 A new owner message is never dropped as a duplicate after the event log is cut by hand: the inbox tells a reused event number from the event it already took.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/orchestration/src/inbox.ts:49` (`queue`)

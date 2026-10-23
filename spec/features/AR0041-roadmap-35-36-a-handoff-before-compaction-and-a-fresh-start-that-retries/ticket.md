@@ -16,7 +16,7 @@ Changes the plan of roadmap entries 35 (compaction) and 36 (fresh start), in `sp
 
 The coordinator never loses work across a compaction or a fresh start, and a busy evening no longer skips the nightly fresh start. From the owner's experience with the harness: a compaction must not drop an unanswered question to the human, and a fresh start skipped once leaves a session running into the next day.
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

@@ -19,7 +19,7 @@
 
 A job is continued once at a time: two `arthur continue` at once never start two wrappers on one record.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/job-control.ts` (`continueJob`)

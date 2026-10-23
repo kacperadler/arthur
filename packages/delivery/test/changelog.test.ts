@@ -55,21 +55,21 @@ test("no merged ticket: the head and one line; wrong usage and an unknown projec
 	assert.equal(readFileSync(join(acme, "CHANGELOG.md"), "utf8"), `${HEAD}\nNo merged ticket yet.\n`);
 });
 
-test("by day, newest first, then by kind; a ticket without a kind, or with any other, or without its ticket.md is Other; two runs write the same bytes", async (t) => {
+test("by day, newest first, then by kind; a ticket without a kind, with an old one or any other, or without its ticket.md is Other; two runs write the same bytes", async (t) => {
 	// The board in no order: the changelog's comes from the ids and the days only.
 	const acme = project([
-		{ id: "AC10000", status: "merged", kind: "bug", merged: "2026-01-03, `aaa1111" },
-		{ id: "AC0005", status: "merged", kind: "cleanup", merged: "2026-01-02, `bbb2222" },
+		{ id: "AC10000", status: "merged", kind: "fix", merged: "2026-01-03, `aaa1111" },
+		{ id: "AC0005", status: "merged", kind: "refactor", merged: "2026-01-02, `bbb2222" },
 		{ id: "AC0002", status: "merged", merged: "2026-01-03, `ccc3333" },
-		{ id: "AC0009", status: "merged", kind: "feature", merged: "2026-01-03, `ddd4444" },
-		{ id: "AC9999", status: "merged", kind: "risk", merged: "2026-01-03, `eee5555" },
-		{ id: "AC0001", status: "merged", kind: "improvement", merged: "2026-01-02, `fff6666" },
+		{ id: "AC0009", status: "merged", kind: "feat", merged: "2026-01-03, `ddd4444" },
+		{ id: "AC9999", status: "merged", kind: "security", merged: "2026-01-03, `eee5555" },
+		{ id: "AC0001", status: "merged", kind: "docs", merged: "2026-01-02, `fff6666" },
 		// No outcome.md: the day of its last move on the board, 20:00 UTC being the next day in Auckland.
-		{ id: "AC0003", status: "merged", kind: "plan", updated: "2026-01-01T20:00:00Z" },
+		{ id: "AC0003", status: "merged", kind: "bug", updated: "2026-01-01T20:00:00Z" },
 		{ id: "AC0004", status: "merged", kind: "toString", merged: "2026-01-02, `abc0004" },
-		{ id: "AC0006", status: "merged", kind: "bug", merged: "2026-01-02, `abc0006", gone: true },
-		{ id: "AC0007", status: "done", kind: "feature" },
-		{ id: "AC0008", status: "dropped", kind: "feature" },
+		{ id: "AC0006", status: "merged", kind: "fix", merged: "2026-01-02, `abc0006", gone: true },
+		{ id: "AC0007", status: "done", kind: "feat" },
+		{ id: "AC0008", status: "dropped", kind: "feat" },
 	]);
 	const run = await load(t, acme);
 	writeFileSync(join(acme, "CHANGELOG.md"), "# Changelog\n\nEdited by hand.\n");
@@ -80,7 +80,7 @@ test("by day, newest first, then by kind; a ticket without a kind, or with any o
 		[
 			HEAD,
 			"## 2026-01-03\n\n### Added\n\n- AC0009 Title of AC0009 (ddd4444)\n\n### Fixed\n\n- AC9999 Title of AC9999 (eee5555)\n- AC10000 Title of AC10000 (aaa1111)\n\n### Other\n\n- AC0002 Title of AC0002 (ccc3333)\n",
-			"## 2026-01-02\n\n### Added\n\n- AC0001 Title of AC0001 (fff6666)\n\n### Changed\n\n- AC0005 Title of AC0005 (bbb2222)\n\n### Other\n\n- AC0003 Title of AC0003\n- AC0004 Title of AC0004 (abc0004)\n- AC0006 Title of AC0006 (abc0006)\n",
+			"## 2026-01-02\n\n### Changed\n\n- AC0001 Title of AC0001 (fff6666)\n- AC0005 Title of AC0005 (bbb2222)\n\n### Other\n\n- AC0003 Title of AC0003\n- AC0004 Title of AC0004 (abc0004)\n- AC0006 Title of AC0006 (abc0006)\n",
 		].join("\n"),
 	);
 	await run();
@@ -88,8 +88,8 @@ test("by day, newest first, then by kind; a ticket without a kind, or with any o
 });
 
 test("--project writes that project's CHANGELOG.md from its own board, the main one's left alone", async (t) => {
-	const acme = project([{ id: "AC0001", status: "merged", kind: "feature", merged: "2026-01-02, `aaa1111" }]);
-	const beta = project([{ id: "BE0001", status: "merged", kind: "bug", merged: "2026-01-04, `bbb2222" }]);
+	const acme = project([{ id: "AC0001", status: "merged", kind: "feat", merged: "2026-01-02, `aaa1111" }]);
+	const beta = project([{ id: "BE0001", status: "merged", kind: "fix", merged: "2026-01-04, `bbb2222" }]);
 	const run = await load(t, acme, beta);
 	assert.deepEqual(await run([], "beta"), { code: 0, out: "wrote CHANGELOG.md: 1 merged ticket", err: "" });
 	assert.equal(readFileSync(join(beta, "CHANGELOG.md"), "utf8"), `${HEAD}\n## 2026-01-04\n\n### Fixed\n\n- BE0001 Title of BE0001 (bbb2222)\n`);

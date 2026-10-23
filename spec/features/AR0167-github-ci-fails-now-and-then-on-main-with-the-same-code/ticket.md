@@ -16,7 +16,7 @@ Since about 23:30 on 2026-10-18 the `ci` workflow on GitHub fails on some commit
 
 `ci` passes on every commit whose code passes, so a red CI again means a real failure and merges stop waiting on reruns.
 
-- Kind: bug
+- Kind: fix
 
 ## Done means
 

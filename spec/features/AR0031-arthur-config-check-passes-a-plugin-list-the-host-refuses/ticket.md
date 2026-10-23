@@ -19,7 +19,7 @@
 
 `arthur config check` refuses every config the host would refuse at start (missing orchestration, cycles, duplicates, a plugin's own option errors), so a check that says ok means Arthur starts.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/core/src/config-check.ts:6`

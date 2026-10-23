@@ -16,7 +16,7 @@
 
 `GIT_DIR=`, `GIT_WORK_TREE=`, `GIT_INDEX_FILE=` before `git` (or through `env`) are judged as `--git-dir`/`--work-tree`, so they cannot reach main's checkout; tested.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/core/src/worktree-guard.ts:45-51` (`commandIndex` skips `NAME=value` words and the options of `env`), `packages/core/src/git-writes.ts:6` (`VALUE_OPTIONS` names the options only)

@@ -20,7 +20,7 @@ Roadmap entry 9 of `spec/roadmap.md`: Job runner: spawn and the job record. Its 
 
 Build entry 9 as `spec/roadmap.md` describes it, behind the interface it names, following `spec/vision.md` and `.agents/harness/criteria/styleguide.md`.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

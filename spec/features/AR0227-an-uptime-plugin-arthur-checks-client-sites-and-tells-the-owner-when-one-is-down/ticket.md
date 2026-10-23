@@ -16,7 +16,7 @@ The owner, 2026-10-20: a client's site went down and he learnt it only from the 
 
 The owner hears of a down site before the client calls. The check is plain HTTP in the plugin, with no model call, so it costs no usage. Later AR0216 hangs its chain (triage, fix, review) on the same `uptime` events.
 
-- Kind: improvement
+- Kind: feat
 - Budget: 7
 
 ## Done means

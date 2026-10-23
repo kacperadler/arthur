@@ -16,7 +16,7 @@ Roadmap entry 40 (`spec/roadmap.md`), built as the entry says.
 
 Plugins can register their own schedule entries, and the owner sees every entry with its next run through `arthur schedule`.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

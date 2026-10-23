@@ -16,7 +16,7 @@ on another machine the jobs' worktrees share a bare repository (`repos/<project>
 
 On another machine, Arthur's git calls in a job's repository run its config's hooks no more than on this one (hookless flags there too); tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/remote-job.ts:76`, `:78`, `:142`

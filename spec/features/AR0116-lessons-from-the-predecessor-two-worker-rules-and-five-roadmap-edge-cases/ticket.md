@@ -16,7 +16,7 @@ Five fixes recently made to the predecessor harness touch things Arthur has or p
 
 Arthur starts with the lessons its predecessor paid for, instead of finding them again.
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

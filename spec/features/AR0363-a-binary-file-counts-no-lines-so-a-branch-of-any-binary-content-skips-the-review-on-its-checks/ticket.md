@@ -16,7 +16,7 @@ a branch that adds or replaces a binary file of any size (a vendored `.wasm` or 
 
 A binary file counts as changed lines for `review-needed`, so a binary change is reviewed; tested.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/delivery/src/review-needed.ts:66-67` (numstat's `-` counts 0), `packages/delivery/docs/commands/review-needed.md:19`

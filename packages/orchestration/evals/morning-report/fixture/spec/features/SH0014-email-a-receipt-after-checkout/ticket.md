@@ -16,7 +16,7 @@ Each order sends its receipt by email, the same one the checkout's last page sho
 
 Customers ask for their receipt (4 mails in October).
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

@@ -16,7 +16,7 @@ after `[github] CI run … ended failure on arthur/<id>` the owner's `arthur mer
 
 A plain `arthur merge` reads the CI of the tip too and says a failed run before merging; tested.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/delivery/src/merge-command.ts:83` (`autoRefusal`, the only caller of `github.ci`, runs with `--auto` only), `packages/delivery/docs/commands/merge.md:7-9` (the PASS alone), `packages/orchestration/roles/coordinator.md:25`

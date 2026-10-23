@@ -16,7 +16,7 @@ The support agent's role tells it how to answer a refund question: the policy's 
 
 Refund questions answered right the first time: 4 of the last 10 got a second mail (support log, October).
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

@@ -16,7 +16,7 @@ the probe (`probe.ts:70`), with the provider's key as a `Bearer` header, and the
 
 The models plugin's private network excludes the cloud metadata addresses (`fd00:ec2::254`, `100.100.100.200`), so no provider can point there; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/models/src/model-options.ts:27-30` (`PRIVATE`), `:32` (`isPrivate`); `packages/machines/src/machine-check.ts:35` (the same 100.64.0.0/10 for an `ssh` address); `packages/models/docs/models.md:21`

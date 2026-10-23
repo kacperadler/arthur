@@ -19,7 +19,7 @@ The owner's idea (2026-10-17, Telegram): instead of one coordinator over every p
 
 A plan the owner approves before any code: whether a per-project agent replaces the coordinator, sits beside it, or is a config choice, and where Discord and Slack go in the roadmap. Vision decision 10 ("the coordinator is always there") and decision 3 ("one channel interface") are what it touches.
 
-- Kind: improvement
+- Kind: feat
 - Plan: tak
 
 ## Done means

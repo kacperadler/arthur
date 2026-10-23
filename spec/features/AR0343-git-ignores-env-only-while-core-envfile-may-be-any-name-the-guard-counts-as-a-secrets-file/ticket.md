@@ -16,7 +16,7 @@ the env file pushed to origin with the ticket and the board.
 
 Whatever name `core.envFile` has, git ignores that file, or the config refuses a name git would not ignore; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `.gitignore:2`, `packages/core/src/core-options.ts:33` (any path), `packages/orchestration/roles/coordinator/plan-ended.md:10` (the coordinator commits in the config's folder), `packages/core/src/env-refusal.ts:12` (`.env<suffix>` is a secrets file to the guard)

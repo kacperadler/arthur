@@ -16,7 +16,7 @@ an action's `procedure` must be a relative `.md` path inside the folder `arthur 
 
 A procedure registered by a plugin (entry 40) is accepted by the same check that guards hand-written entries, without opening that check to arbitrary paths.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/schedule/src/entry.ts:38-40`

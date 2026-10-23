@@ -16,7 +16,7 @@ AR0313 made `packages/delivery/evals/check-failed/scenario.json` stricter: the `
 
 `evals/baseline.json` holds `delivery/check-failed` measured on its current, stricter scenario, so a later eval run compares against a true rate.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `evals/baseline.json:2`

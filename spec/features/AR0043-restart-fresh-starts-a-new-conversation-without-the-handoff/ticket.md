@@ -16,7 +16,7 @@ after this ticket, compaction (35) and the nightly fresh start (36) write `.arth
 
 Every way the coordinator's conversation ends (compaction, the nightly fresh start, `/restart`, `/restart fresh`) keeps its work in progress and unanswered questions, so no question to the human is lost.
 
-- Kind: improvement
+- Kind: feat
 - Model: haiku
 
 Evidence:

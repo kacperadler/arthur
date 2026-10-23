@@ -16,7 +16,7 @@ the rule: a copied file lands only in that job's record, `<home>/jobs/<id>/`. Th
 
 A file copied back from another machine is written only under a plain record key in that job's own record; any other name is refused; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/machine-sync.ts:62`, `packages/core/src/job-state.ts:91-93`

@@ -16,7 +16,7 @@ This ticket builds roadmap entry 53 in `spec/roadmap.md`: `arthur review-needed`
 
 The specification is roadmap entry 53: its Delivers and Done means.
 
-- Kind: feature
+- Kind: feat
 - Budget: 8
 
 ## Done means

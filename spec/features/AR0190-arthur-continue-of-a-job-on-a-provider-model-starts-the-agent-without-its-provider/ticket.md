@@ -16,7 +16,7 @@ the variables a `prepare` returns (`OLLAMA_BASE_URL`, `OLLAMA_API_KEY`, `ARTHUR_
 
 A continued job on a provider model gets its provider again, exactly as at spawn.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/core/src/job-control.ts` (`continueJob`, which calls `launch` without variables), `packages/core/src/remote-job.ts` (`continue`)

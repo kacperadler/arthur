@@ -16,7 +16,7 @@ the harness Arthur replaces copies a finding's `- Budget:` into the ticket's JSO
 
 A pre-approved ticket's own budget, when it has one, is the one checked and recorded.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/orchestration/src/autopilot.ts`

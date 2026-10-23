@@ -19,7 +19,7 @@ the registry accepts command names of lowercase letters, digits and dashes (`rev
 
 Every phone command can appear in Telegram's command menu: a name Telegram cannot list (a dash) is refused or mapped, so no command is reachable by text but missing from the menu.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/commands.ts` (`NAME`, `phone()`)

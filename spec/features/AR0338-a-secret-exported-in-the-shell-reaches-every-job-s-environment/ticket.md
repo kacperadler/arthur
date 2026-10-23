@@ -16,7 +16,7 @@ the tokens of Telegram, GitHub, YouTrack, the MCP servers and the providers in e
 
 A job's environment carries only what Arthur passes it, not secrets exported in the shell that started Arthur; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/job-scope.ts:68` (`{ ...process.env, ARTHUR_AGENT_MODEL: undefined, ...env }`), `packages/core/src/wrapper.ts:129` (`{ ...process.env, ARTHUR_JOB: folder }`)

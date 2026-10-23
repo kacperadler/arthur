@@ -16,7 +16,7 @@ The owner asked (2026-10-17, Telegram), after the diagram went into the README (
 
 A visitor to github.com/kacperadler/arthur understands in under a minute what Arthur is, for whom, what works today and what does not, and where to read more; the diagram (AR0101) stays as the picture of it.
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

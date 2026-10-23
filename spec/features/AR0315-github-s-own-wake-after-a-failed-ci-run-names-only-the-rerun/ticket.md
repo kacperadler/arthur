@@ -16,7 +16,7 @@ for a branch with no delivery wait, github's wake ends `Why: arthur ci <branch> 
 
 The github plugin's own wake after a failed CI run names both moves, as delivery's does since AR0314: `arthur continue` for a failure in the branch's own code, one rerun for a transient one.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/github/src/github.ts:93`

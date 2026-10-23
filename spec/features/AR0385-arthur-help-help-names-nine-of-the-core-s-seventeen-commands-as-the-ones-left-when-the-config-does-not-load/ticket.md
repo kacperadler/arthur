@@ -16,7 +16,7 @@ the page says only `config`, `continue`, `help`, `roles`, `run`, `spawn`, `steer
 
 `arthur help --help` names exactly the commands left when the config does not load; tested.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `packages/core/docs/commands/help.md:18`; the list the CLI prints, `packages/core/test/cli.test.ts:9` (`CORE_LIST`)

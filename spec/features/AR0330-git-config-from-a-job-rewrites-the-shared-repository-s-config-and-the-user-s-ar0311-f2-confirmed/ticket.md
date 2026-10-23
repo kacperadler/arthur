@@ -16,7 +16,7 @@
 
 `git config` in every form (`-C <main>`, `--file`, `--global`) is refused for a job, so the shared repository's config and hooks stay as they are; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/git-writes.ts:4` (no `config` among the writing subcommands), `packages/core/src/worktree-guard.ts:128-137`, `:60` and `docs/deploy.md:34` (named as a limit)

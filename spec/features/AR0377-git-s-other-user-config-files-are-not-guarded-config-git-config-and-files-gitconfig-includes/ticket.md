@@ -16,7 +16,7 @@ a job's write to `~/.config/git/config` (git's XDG user config) or to a file `~/
 
 Git's other user config (`~/.config/git/`) is guarded like `~/.gitconfig`, and the threat model says includes elsewhere are not followed; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - the guarded places AR0329 adds (`~/.gitconfig` only); the worker's Known limit in `docs/deploy.md`

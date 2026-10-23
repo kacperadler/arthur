@@ -16,7 +16,7 @@ when a commit lands on main other than through `arthur merge` (AR0320 F3 / AR033
 
 A merge refuses when main moved by any route but `arthur merge`, so a stray commit is never merged on and pushed; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/delivery/src/merge-command.ts:78` (`before` is HEAD, whatever it is), `:41-44` and `packages/github/src/github-git.ts:31-36` (main pushed, fast-forward, after the merge)

@@ -19,7 +19,7 @@ Roadmap entry 10 of `spec/roadmap.md`: Prompt loader and `arthur roles`. Its Pac
 
 Build entry 10 as `spec/roadmap.md` describes it, behind the interface it names, following `spec/vision.md` and `.agents/harness/criteria/styleguide.md`.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

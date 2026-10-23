@@ -16,7 +16,7 @@ Since AR0161, `host.code` takes each plugin's package from its own module, but `
 
 `schedule.register` takes the registering plugin's package folder from the plugin itself (the folder the host took from its `module`), never from the list by name.
 
-- Kind: risk
+- Kind: security
 
 ## Done means
 

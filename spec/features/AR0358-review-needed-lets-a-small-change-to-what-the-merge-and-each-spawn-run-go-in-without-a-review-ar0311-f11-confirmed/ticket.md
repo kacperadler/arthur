@@ -16,7 +16,7 @@ a branch that changes at most 30 lines of a `package.json` script, a lockfile (`
 
 Changes to what the merge and each spawn run (package.json scripts, lockfiles, `.npmrc`, `.nvmrc`, hooks) are always reviewed, however small; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/delivery/src/delivery-options.ts:16` (the default always-review list: Arthur's own files and `.github/workflows/**`), `packages/delivery/src/review-needed.ts:53-83` (a branch of 30 lines or fewer with passing checks is `no review`), `packages/delivery/src/merge-checks.ts:46-63` and `packages/projects/src/install.ts` (the merge runs the tip's install, `check` and `test` scripts as `sh -c` in Arthur's process; each spawn runs the install)

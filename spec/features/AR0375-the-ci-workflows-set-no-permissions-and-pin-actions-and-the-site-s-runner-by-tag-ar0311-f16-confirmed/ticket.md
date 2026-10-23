@@ -16,7 +16,7 @@
 
 The CI workflows set least `permissions` for every job and pin actions and the runner by version or commit.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `.github/workflows/ci.yml:1-21` (no `permissions:` at any level; `actions/checkout@v4`, `actions/setup-node@v4` at `:11-12`), `.github/workflows/site.yml:9-25` (the `build` job: no `permissions:`, `ubuntu-latest` at `:10`, the same two actions at `:15-16`, `actions/upload-pages-artifact@v5` at `:23`; `npm ci` of the site's 466 packages at `:21`), `:30` (`ubuntu-latest` of `deploy`), `:42` (`actions/deploy-pages@v5`)

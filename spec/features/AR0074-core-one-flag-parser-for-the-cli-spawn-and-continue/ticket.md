@@ -19,7 +19,7 @@ A7 of the core line review: about 10 lines out, every usage line and refusal tex
 
 The core stays small enough to understand, with capability in plugins (vision); the plan is `spec/quality/core-lines-2026-10-16.md`, proposal A7.
 
-- Kind: cleanup
+- Kind: refactor
 
 ## Done means
 

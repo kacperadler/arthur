@@ -16,7 +16,7 @@
 
 A job continued after its ticket's caps changed is held to the caps in force now, not the ones from its spawn.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/job-scope.ts:40-43`

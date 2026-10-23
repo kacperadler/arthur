@@ -16,7 +16,7 @@ free cores are `availableParallelism() - loadavg()[0]`, as Node's `os` gives the
 
 Free CPU reflects processes that really use the CPU, so a machine busy only waiting on disk is not counted as full.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/resources/src/machine-free.ts` (`measure`)

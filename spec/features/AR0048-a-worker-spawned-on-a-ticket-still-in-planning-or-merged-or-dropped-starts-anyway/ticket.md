@@ -16,7 +16,7 @@ the move to in-progress happens after the job exists, so a ticket the table does
 
 A worker never runs on a ticket that is not approved or is already closed: the spawn refuses before anything is created.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/core/src/host.ts` (the `job-started` handler)

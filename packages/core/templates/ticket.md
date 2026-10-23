@@ -12,7 +12,7 @@
 
 <!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
 
-- Kind: <!-- feature | bug | risk | cleanup | improvement -->
+- Kind: <!-- feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux -->
 
 ## Done means
 

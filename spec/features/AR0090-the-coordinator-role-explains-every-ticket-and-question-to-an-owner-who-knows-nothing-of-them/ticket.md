@@ -16,7 +16,7 @@ Arthur's coordinator role and its morning report must write for an owner who doe
 
 The owner, 2026-10-17: the morning report is a wall of ids and shorthand ("AR0087 … LA i LB … pathPrepend") he cannot act on. Arthur's coordinator role file is delivered by roadmap entry 23 and the morning report by its own entry, so the rule must be in their Done means before they are built.
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

@@ -16,7 +16,7 @@ the vision gives the refusal as `build: 12.3 GB disk free, floor 20 GB`; roadmap
 
 The vision, roadmap entry 69 and the plugin give one wording for the disk refusal, the code's, so the owner reads the same message everywhere.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `spec/vision.md:160`

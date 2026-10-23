@@ -16,7 +16,7 @@ GitHub CI on main must always be green, and when a run fails we must be able to 
 
 After AR0167, 1 of the last 20 ci runs on main still failed: 6b1acdb at 2026-10-19 06:02. That commit changed only a ticket, so its code matched a green run. Reading the job log needs a token we do not have. Annotations are public, but this one says only "Process completed with exit code 1". GitHub is also moving `ubuntu-latest` to Ubuntu 26 from 2026-10-19, and the move may change timings. Vision: work runs unattended, so a red CI must name its cause.
 
-- Kind: bug
+- Kind: fix
 - Budget: 10
 
 ## Done means

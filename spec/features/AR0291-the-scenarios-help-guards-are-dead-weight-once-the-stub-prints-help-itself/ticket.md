@@ -19,7 +19,7 @@ every scenario writes `^arthur (?!.*--help)<command>` so a help call neither tak
 
 The scenarios drop their `(?!.*--help)` regex guards once the stub prints help itself, so each scenario's expected calls read as what the coordinator should do.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `packages/*/evals/*/scenario.json` (94 `match` and `never` regexes in 19 files, `git grep -c -F '(?!.*--help)' -- 'packages/*/evals'`), `packages/develop/test/scenarios.test.ts:118` and the other `fails` lines quoting them

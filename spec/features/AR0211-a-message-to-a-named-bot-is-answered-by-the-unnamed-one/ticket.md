@@ -16,7 +16,7 @@ with several bots, every bot's messages reach the coordinator as `{ channel: "te
 
 A message sent to a named bot is answered by that same bot.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/telegram/src/telegram.ts` (`main`), `packages/orchestration/src/inbox.ts` (`queue`)

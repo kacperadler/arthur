@@ -16,7 +16,7 @@ The plugins (`packages/*` except `core`) move out of the Arthur repository into 
 
 The core repository holds only the core. Plugins live, are versioned, and are installed apart from it, so that adding a plugin never touches the core's repository.
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

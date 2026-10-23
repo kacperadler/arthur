@@ -16,7 +16,7 @@ entry 57 tells `ci-finished` once per run id, as its Delivers and the vision say
 
 Rerun ends reach the coordinator: the github plugin tells `ci-finished` once per run attempt, so the owner hears a rerun's result (vision: the owner hears the end of every CI run). Built with or after roadmap entry 58 (`--rerun`).
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/github/src/github.ts` (`finished`, the ids told), `spec/roadmap.md` entry 58

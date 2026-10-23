@@ -16,7 +16,7 @@ AR0134 moves Discord (roadmap 89, 90) into the first version and adds the owner'
 
 Every place that describes channels says Discord is in the first version, so the example config and diagrams match the roadmap.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `arthur.config.example.ts:27` (`// later, named`), `docs/architecture/core-and-plugins.mmd:93` (`discord` in the `later` class), `docs/architecture/versions.mmd:20-25,33` (discord in the later chain `agents --> signal --> discord --> slack`).

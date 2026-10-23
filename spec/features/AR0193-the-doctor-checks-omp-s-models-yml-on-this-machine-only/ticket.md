@@ -16,7 +16,7 @@ a job on another machine runs that machine's omp, whose own `~/.omp/agent/models
 
 `arthur doctor` checks omp's `models.yml` on every machine a provider model can run on, not only this one.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/models/src/model-doctor.ts` (`omp models.yml`)

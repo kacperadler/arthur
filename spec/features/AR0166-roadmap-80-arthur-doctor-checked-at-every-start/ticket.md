@@ -16,7 +16,7 @@ Roadmap entry 80 (`spec/roadmap.md`), built as the entry says.
 
 At every start Arthur checks what it needs (tools, folders, plugins' own requirements) and says plainly what is missing and how to fix it, so a broken setup is found at start, not in the middle of work.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

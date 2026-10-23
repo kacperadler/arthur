@@ -16,7 +16,7 @@ a provider of `prompt` returns text or undefined only, so commit-rules says a mi
 
 A plugin's prompt section can add a warning to the spawn line, so the owner sees it when the job starts.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/core/src/roles.ts:125` (`prompt`), `packages/commit-rules/src/commit-rules.ts:45`

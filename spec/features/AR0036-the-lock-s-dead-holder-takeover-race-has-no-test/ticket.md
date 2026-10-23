@@ -16,7 +16,7 @@
 
 The board lock (entry 17) can rely on the lock: concurrent takers of a dead holder's lock and a stuck takeover guard are pinned by a test of real processes. Found by the AR0008 review (F2).
 
-- Kind: risk
+- Kind: security
 
 ## Done means
 

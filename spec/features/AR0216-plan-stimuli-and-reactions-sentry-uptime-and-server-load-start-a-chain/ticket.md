@@ -34,7 +34,7 @@ A plan, written with the owner, that adds roadmap entries for:
 - marking resolved after the deploy;
 - the limits that keep a flood of stimuli from burning usage or flooding the owner with approvals: deduplication, a rate cap, quiet hours.
 
-- Kind: plan
+- Kind: feat
 - Plan: tak
 
 ## Done means

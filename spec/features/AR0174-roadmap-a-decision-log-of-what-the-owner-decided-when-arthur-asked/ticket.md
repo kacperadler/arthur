@@ -16,7 +16,7 @@ A new roadmap entry: every time Arthur asks the owner for a decision and the own
 
 The owner (2026-10-19): "fajnie jak byśmy mieli jakiś decision log, jeśli Artur prosi o jakąś naszą decyzję, my to logujemy, to będzie potrzebne aby Artur stawał się coraz bardziej autonomiczny". The log is what moves the vision's own autonomy forward: what the owner decides once, Arthur can propose next time, then make by itself.
 
-- Kind: improvement
+- Kind: feat
 - Budget: 4
 
 ## Done means

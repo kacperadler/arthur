@@ -16,7 +16,7 @@ GitHub Actions (`.github/workflows/ci.yml`, ubuntu-latest) has failed on main si
 
 `npm ci && npm run check && npm test` passes on a clean ubuntu-latest runner, and on this VPS with an empty HOME and no user session, so CI is green and means something.
 
-- Kind: bug
+- Kind: fix
 
 ## Done means
 

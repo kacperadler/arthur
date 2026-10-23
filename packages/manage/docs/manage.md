@@ -93,7 +93,7 @@ Every retro's prompt, after the role and the project's sections, gets `## This r
 - `### Board`: the board digest, so a proposal does not repeat a ticket.
 - `### Roles and criteria`: the role files, coordinator procedures and criteria files the plugins of this load ship (`roles/*.md`, `roles/coordinator/*.md` and `criteria/*.md` of each package folder), from the project's folder when they are inside it, else as absolute paths; then the names of the criteria files the registered roles read in the project's criteria folder, the folder of the retro criteria above it in the prompt.
 
-The retro ends with `## Period`, at most 10 lines on what happened, at most 5 proposals, each in the form its role gives (`## <n>. <title>`, `Kind: cleanup`, `Evidence:`, `Why it matters:`, `Scope:` naming one file and one paragraph, `Before:` and `After:` quoting it), or `NO PROPOSALS`, then `## Dead sentences`.
+The retro ends with `## Period`, at most 10 lines on what happened, at most 5 proposals, each in the form its role gives (`## <n>. <title>`, `Kind: chore`, `Evidence:`, `Why it matters:`, `Scope:` naming one file and one paragraph, `Before:` and `After:` quoting it), or `NO PROPOSALS`, then `## Dead sentences`.
 
 ### When it runs
 

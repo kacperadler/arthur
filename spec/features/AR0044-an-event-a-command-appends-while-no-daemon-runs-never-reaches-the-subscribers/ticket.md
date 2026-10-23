@@ -16,7 +16,7 @@
 
 No event is lost across a daemon restart: an `arthur spawn` or `arthur ticket` run while `arthur run` is down still reaches every subscriber once the daemon is back, so the board (entry 18) never misses a `job-started`.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/events.ts:52` (`fromEnd`), `packages/core/src/run.ts:35`

@@ -19,7 +19,7 @@ one full-suite run failed there with `SyntaxError: Unexpected end of JSON input`
 
 The session restart test passes on every run, so CI and reviews stop failing on it by chance.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/session/test/restart.test.ts:204` (entry 36, AR0144)

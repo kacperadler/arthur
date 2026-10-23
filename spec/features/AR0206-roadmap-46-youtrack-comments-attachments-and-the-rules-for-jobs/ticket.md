@@ -16,7 +16,7 @@ This ticket builds roadmap entry 46 in `spec/roadmap.md`, the last youtrack entr
 
 The specification is roadmap entry 46: its Delivers and Done means with every edge case, plus the Goals of AR0204 and AR0205.
 
-- Kind: improvement
+- Kind: feat
 - Budget: 12
 
 ## Done means

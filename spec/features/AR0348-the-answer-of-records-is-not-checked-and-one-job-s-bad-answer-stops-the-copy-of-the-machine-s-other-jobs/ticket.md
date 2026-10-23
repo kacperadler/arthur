@@ -16,7 +16,7 @@ the rule: a copy moves the job here as there, and a failure of one copy leaves t
 
 The `records` answer is checked for its shape, and one job's bad answer is reported without stopping the copy of the machine's other jobs; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/machine-sync.ts:56-80`

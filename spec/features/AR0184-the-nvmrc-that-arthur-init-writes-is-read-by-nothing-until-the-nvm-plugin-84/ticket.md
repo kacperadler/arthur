@@ -16,7 +16,7 @@
 
 The Node version `arthur init` writes into a project is actually used when that project's jobs run, once the nvm plugin (84) is built.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/projects/src/init.ts` (`.nvmrc`, the major of `process.versions.node`)

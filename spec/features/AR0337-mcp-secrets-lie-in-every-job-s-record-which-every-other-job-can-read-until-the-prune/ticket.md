@@ -16,7 +16,7 @@ a token meant for one role (the reviewer's GitHub token of the example in `packa
 
 A job's MCP secrets are readable only by that job (its own record, or passed on stdin), never by another job before the prune; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/job-record.ts:31`, `packages/orchestration/src/mcp.ts:95`, `packages/core/src/env-refusal.ts:12` (the guard's names), `packages/core/src/job-records.ts:165` (the one removal, at `arthur prune`)

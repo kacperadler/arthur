@@ -80,7 +80,8 @@ What `setup` gets, one host per plugin. `@arthur/core/testing`'s `fakeHost` give
 | `board.create(title, project?)` | A new ticket in planning, its `ticket.md` from the template; emits `ticket-created`, named by this plugin. |
 | `board.move(id, to)` | Moves a ticket as the board's transitions allow; emits `ticket-moved`, named by this plugin. |
 | `board.digest(project?, checkout?)` | Every open ticket, the 10 newest merged, and one line counting the rest; the board in `checkout`, a folder holding a copy of the project's repository, when given (above, "Changes since entry 51"). |
-| `board.full(project?)` | Every ticket. |
+| `board.full(project?, kind?)` | Every ticket; with `kind`, every ticket of that Kind (above, "Changes since entry 51"). |
+| `board.kinds` | The kinds a ticket's `- Kind:` line may name, the ticket template's. |
 | `clock.timeZone` | `core.timeZone`: one clock for every plugin, in that time zone with `core.quietHours`. |
 | `clock.now()` | Now, a `Date`. |
 | `clock.local(at?)` | A `LocalTime`: the wall clock's `date`, `time` and `day` in the time zone. |
@@ -110,6 +111,7 @@ Each decided in the ticket that made it.
 - AR0279 (F3 of AR0276; its Done means name orchestration's context for a given checkout, which reads the checkout's board and vision): `board.digest(project?, checkout?)` and `jobs.vision(project?, checkout?)`, a project's board and vision read in `checkout`, a folder holding a copy of its repository, where no member read anywhere but the project's own checkout; and the provided name `coordinator.checkoutContext`, by orchestration, asked by develop's `arthur eval` for each run's copy of its fixture at the scenario's hour.
 - AR0294 (F1 of AR0279; its Done means name orchestration taking a scenario's context in `coordinator.checkoutContext`): that provided name takes `{ root, at, context }`, `context` `{ <plugin>: <text> }`, the lines each plugin adds in place of its live answer, none for a plugin left out, a name that answers no `coordinator.context` refused; develop's `arthur eval` passes the scenario's `context`. No host member changed.
 - AR0353 (F1 of AR0323; its Done means name the field): `Command.inJob`, `true` or absent, any other value refused at registration; inside a job (`ARTHUR_JOB` set) the CLI runs only a command registered with `inJob: true` and refuses the rest before it runs (`arthur help --help`). No host member changed.
+- AR0378 (the ticket's Done means: the board shows each ticket's Kind and filters by it): `board.full(project?, kind?)`, every ticket of that Kind when `kind` is given, a kind not in `board.kinds` refused (`unknown kind <kind>; kinds: <kinds>`); `board.kinds`, the kinds of the ticket template (`feat`, `fix`, `security`, `perf`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`, `ux`), which orchestration's `/board`, delivery's changelog and findings read. The lines of `board.digest` and `board.full` carry each ticket's Kind after its status.
 
 ## Types
 

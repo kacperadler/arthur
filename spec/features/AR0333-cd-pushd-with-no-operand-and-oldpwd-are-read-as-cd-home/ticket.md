@@ -16,7 +16,7 @@
 
 `cd -`, a bare `pushd` and `$OLDPWD` are read as the folder they name (or refused as unknown), not as `$HOME`; tested.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/core/src/worktree-guard.ts:91-94` (`operands` drops `-`, so `operands[0]` is undefined and the folder is `$HOME`; `pushd` alone is treated the same)

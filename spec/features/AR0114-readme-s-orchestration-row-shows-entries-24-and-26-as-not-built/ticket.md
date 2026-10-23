@@ -19,7 +19,7 @@ The README's status table still says orchestration has "1 of 8 entries" with "24
 
 The README tells a newcomer what is built today.
 
-- Kind: cleanup
+- Kind: refactor
 - Model: haiku
 
 Evidence:

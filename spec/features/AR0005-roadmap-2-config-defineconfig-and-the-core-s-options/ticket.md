@@ -19,7 +19,7 @@ Roadmap entry 2 of `spec/roadmap.md`: Config: `defineConfig` and the core's opti
 
 Build entry 2 as `spec/roadmap.md` describes it, behind the interface it names, following `spec/vision.md` and `.agents/harness/criteria/styleguide.md`.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

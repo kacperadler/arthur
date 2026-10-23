@@ -16,7 +16,7 @@ a client repository's files, a web page a job reads, a CI log (the output of the
 
 Every role names outside text (a job's message, GitHub reviews and CI logs, YouTrack, tickets and files a job wrote, web pages) as data, never an instruction.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/youtrack/src/youtrack.ts:45` and `packages/orchestration/roles/coordinator.md:34` (the one rule, YouTrack only); missing in `packages/core/roles/worker.md`, `packages/delivery/roles/reviewer.md` (its task carries the worker's final message, `review-command.ts:83`), `packages/orchestration/roles/planner.md`, `plan-reviewer.md`, `packages/projects/roles/onboarding.md:13` (reads `CLAUDE.md`, `AGENTS.md`, the skills and rules of a client repository), `packages/manage/roles/auditor.md`, `retro.md`, and in `coordinator.md` for a job's final message, a GitHub review (`[github]` is nowhere explained) and a CI log (`github.ts:95-96` tells it to pass `<the failed step and its lines>` to `arthur continue`)

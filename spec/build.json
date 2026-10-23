@@ -2517,9 +2517,9 @@
   {
     "id": "AR0328",
     "title": "Security check: dependencies, installs and the CI workflows",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0328-security-check-dependencies-installs-and-the-ci-workflows/ticket.md",
-    "updated": "2026-10-23T14:46:15.802Z"
+    "updated": "2026-10-23T15:05:51.557Z"
   },
   {
     "id": "AR0329",
@@ -2828,5 +2828,26 @@
     "status": "planned",
     "path": "spec/features/AR0372-the-stash-refusal-tells-a-job-to-write-its-patch-to-a-fixed-name-in-tmp/ticket.md",
     "updated": "2026-10-23T14:59:24.915Z"
+  },
+  {
+    "id": "AR0373",
+    "title": "The install of a new worktree and the merge's steps run outside every job scope, with lifecycle scripts on (AR0311 F14, confirmed)",
+    "status": "planned",
+    "path": "spec/features/AR0373-the-install-of-a-new-worktree-and-the-merge-s-steps-run-outside-every-job-scope-with-lifecycle-scripts-on-ar0311-f14-confirmed/ticket.md",
+    "updated": "2026-10-23T15:06:04.472Z"
+  },
+  {
+    "id": "AR0374",
+    "title": "The install at a spawn and each step of the merge have no time limit",
+    "status": "planned",
+    "path": "spec/features/AR0374-the-install-at-a-spawn-and-each-step-of-the-merge-have-no-time-limit/ticket.md",
+    "updated": "2026-10-23T15:06:04.675Z"
+  },
+  {
+    "id": "AR0375",
+    "title": "The CI workflows set no `permissions` and pin actions and the site's runner by tag (AR0311 F16, confirmed)",
+    "status": "planned",
+    "path": "spec/features/AR0375-the-ci-workflows-set-no-permissions-and-pin-actions-and-the-site-s-runner-by-tag-ar0311-f16-confirmed/ticket.md",
+    "updated": "2026-10-23T15:06:04.878Z"
   }
 ]

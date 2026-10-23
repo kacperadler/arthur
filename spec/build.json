@@ -2379,16 +2379,16 @@
   {
     "id": "AR0310",
     "title": "`arthur merge` fails for a user with no git identity, only after its review and checks ran",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0310-arthur-merge-fails-for-a-user-with-no-git-identity-only-after-its-review-and-checks-ran/ticket.md",
-    "updated": "2026-10-23T11:59:58.392Z"
+    "updated": "2026-10-23T12:00:14.136Z"
   },
   {
     "id": "AR0311",
     "title": "Security audit of Arthur before the switch",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0311-security-audit-of-arthur-before-the-switch/ticket.md",
-    "updated": "2026-10-23T11:51:49.005Z"
+    "updated": "2026-10-23T12:03:17.530Z"
   },
   {
     "id": "AR0312",

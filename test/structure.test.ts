@@ -580,7 +580,12 @@ import { checkStructure } from "./structure.ts";
 // (488), projects' `projects` (486), resources' `resources` (617); manage 3 more (928, `health`, `stats`, `retro-due`);
 // orchestration 2 more (2319, `decisions` and the board's three). Only three commands' own checks refused a job before, so
 // nothing was cut.
-const BUDGETS = { core: 5889, "core/testing": 349, projects: 486, orchestration: 2319, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1310, github: 635, manage: 928, develop: 705, findings: 255 };
+// AR0370 (F1 of AR0327; its Done means: one `ownHome` in its own file, called where the home is made): core 16 more (5905) for
+// own-home.ts (9: the mkdir, the chmod that keeps the owner's bits only, so a read-only home is still refused, and why), its
+// call with a comment in host.ts (3, every command that loads the plugins) and in remote-job.ts's `repo` (3, the home there),
+// and the import in requirements.ts (1); run.ts and spawn-check.ts swap their `mkdirSync` for it. Nothing made the home its
+// user's alone before, so nothing was cut.
+const BUDGETS = { core: 5905, "core/testing": 349, projects: 486, orchestration: 2319, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1310, github: 635, manage: 928, develop: 705, findings: 255 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

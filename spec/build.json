@@ -2379,9 +2379,9 @@
   {
     "id": "AR0310",
     "title": "`arthur merge` fails for a user with no git identity, only after its review and checks ran",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0310-arthur-merge-fails-for-a-user-with-no-git-identity-only-after-its-review-and-checks-ran/ticket.md",
-    "updated": "2026-10-23T12:11:38.545Z"
+    "updated": "2026-10-23T12:19:06.203Z"
   },
   {
     "id": "AR0311",

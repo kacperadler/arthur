@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `evals/baseline.json:2`
 - What: AR0313 made `packages/delivery/evals/check-failed/scenario.json` stricter: the `arthur continue` that names the failing test must be made exactly once (`"times": 1`), and any other `arthur continue` is in `never`. The baseline's 2/3 was measured by AR0312 on the scenario before that, so a run that continued twice counted as a pass there and fails now; a lower rate on the next eval would read as a regression of the coordinator when it is a change of the scenario. No real-model eval ran in AR0313.
 - Suggestion: run `arthur eval delivery/check-failed --save-baseline` with the coordinator's own model and commit the new rate, as AR0312 did; nothing else changes.
-- Status: open
+- Status: ticket AR0317

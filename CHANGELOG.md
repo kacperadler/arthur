@@ -11,6 +11,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0308 After a check fails at merge, the coordinator continues the worker itself (d977720)
 - AR0313 A scenario cannot say a call is made only once (9abe66f)
 - AR0314 Delivery's wake after a failed CI run names only the rerun (eb0ddc5)
+- AR0315 GitHub's own wake after a failed CI run names only the rerun (34adc87)
 
 ### Fixed
 

@@ -64,7 +64,7 @@ function ended(wait: Wait, run: CiEnd["run"], cancelled: boolean): string {
 	if (run.conclusion === "success") return `[delivery] CI passed on ${where}. It waited for that: arthur merge --auto ${wait.job}`;
 	const ci = `arthur ci ${wait.branch} --project ${wait.project}`;
 	const hung = cancelled ? `, cancelled by delivery after it ran ${HANG_MINUTES} minutes` : "";
-	return `[delivery] CI ended ${run.conclusion}${hung} on ${where}. Not merged; it waits on: the next end of a run on it wakes you again. Why: ${ci}; rerun it once: ${ci} --rerun`;
+	return `[delivery] CI ended ${run.conclusion}${hung} on ${where}. Not merged; it waits on: the next end of a run on it wakes you again. Why: ${ci}; then a failure in the branch's own code goes back to its worker: arthur continue ${wait.job} '<the failed step and its lines>'; one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once: ${ci} --rerun`;
 }
 
 // `delivery.ciEnded`: the end of a run on one of a waiting branch's own commits wakes the coordinator, once per run attempt,

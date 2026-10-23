@@ -2454,9 +2454,9 @@
   {
     "id": "AR0319",
     "title": "Security check: secrets stay out of jobs, records, logs and messages",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0319-security-check-secrets-stay-out-of-jobs-records-logs-and-messages/ticket.md",
-    "updated": "2026-10-23T14:16:59.438Z"
+    "updated": "2026-10-23T14:22:26.054Z"
   },
   {
     "id": "AR0320",
@@ -2468,9 +2468,9 @@
   {
     "id": "AR0321",
     "title": "Security check: jobs on another machine write only their own files back",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0321-security-check-jobs-on-another-machine-write-only-their-own-files-back/ticket.md",
-    "updated": "2026-10-23T13:59:20.844Z"
+    "updated": "2026-10-23T14:21:15.197Z"
   },
   {
     "id": "AR0322",
@@ -2489,9 +2489,9 @@
   {
     "id": "AR0324",
     "title": "Security check: only reviewed, green code reaches main",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0324-security-check-only-reviewed-green-code-reaches-main/ticket.md",
-    "updated": "2026-10-23T13:59:08.602Z"
+    "updated": "2026-10-23T14:21:17.607Z"
   },
   {
     "id": "AR0325",
@@ -2576,5 +2576,68 @@
     "status": "planned",
     "path": "spec/features/AR0336-a-writing-command-after-a-cd-into-a-guarded-place-with-an-operand-built-at-run-time-passes/ticket.md",
     "updated": "2026-10-23T14:19:06.909Z"
+  },
+  {
+    "id": "AR0337",
+    "title": "MCP secrets lie in every job's record, which every other job can read, until the prune",
+    "status": "planned",
+    "path": "spec/features/AR0337-mcp-secrets-lie-in-every-job-s-record-which-every-other-job-can-read-until-the-prune/ticket.md",
+    "updated": "2026-10-23T14:22:39.054Z"
+  },
+  {
+    "id": "AR0338",
+    "title": "A secret exported in the shell reaches every job's environment",
+    "status": "planned",
+    "path": "spec/features/AR0338-a-secret-exported-in-the-shell-reaches-every-job-s-environment/ticket.md",
+    "updated": "2026-10-23T14:22:39.261Z"
+  },
+  {
+    "id": "AR0339",
+    "title": "A recursive search from the coordinator's own folder prints the env file",
+    "status": "planned",
+    "path": "spec/features/AR0339-a-recursive-search-from-the-coordinator-s-own-folder-prints-the-env-file/ticket.md",
+    "updated": "2026-10-23T14:22:39.467Z"
+  },
+  {
+    "id": "AR0340",
+    "title": "The redaction of notices and the decision log reads secrets from an environment that holds none of the env file",
+    "status": "planned",
+    "path": "spec/features/AR0340-the-redaction-of-notices-and-the-decision-log-reads-secrets-from-an-environment-that-holds-none-of-the-env-file/ticket.md",
+    "updated": "2026-10-23T14:22:39.671Z"
+  },
+  {
+    "id": "AR0341",
+    "title": "A blocked job's question goes to the phone as written, while the decision log redacts it",
+    "status": "planned",
+    "path": "spec/features/AR0341-a-blocked-job-s-question-goes-to-the-phone-as-written-while-the-decision-log-redacts-it/ticket.md",
+    "updated": "2026-10-23T14:22:39.871Z"
+  },
+  {
+    "id": "AR0342",
+    "title": "A project's `repo` URL is printed by the clone's refusals, with any credential it holds",
+    "status": "planned",
+    "path": "spec/features/AR0342-a-project-s-repo-url-is-printed-by-the-clone-s-refusals-with-any-credential-it-holds/ticket.md",
+    "updated": "2026-10-23T14:22:40.071Z"
+  },
+  {
+    "id": "AR0343",
+    "title": "Git ignores `.env` only, while `core.envFile` may be any name the guard counts as a secrets file",
+    "status": "planned",
+    "path": "spec/features/AR0343-git-ignores-env-only-while-core-envfile-may-be-any-name-the-guard-counts-as-a-secrets-file/ticket.md",
+    "updated": "2026-10-23T14:22:40.271Z"
+  },
+  {
+    "id": "AR0344",
+    "title": "A pasted secret of capitals, digits and `_` in a `...Env` option is printed by the refusal",
+    "status": "planned",
+    "path": "spec/features/AR0344-a-pasted-secret-of-capitals-digits-and-in-a-env-option-is-printed-by-the-refusal/ticket.md",
+    "updated": "2026-10-23T14:22:40.472Z"
+  },
+  {
+    "id": "AR0345",
+    "title": "Two docs disagree on what Arthur sends another machine",
+    "status": "planned",
+    "path": "spec/features/AR0345-two-docs-disagree-on-what-arthur-sends-another-machine/ticket.md",
+    "updated": "2026-10-23T14:22:40.676Z"
   }
 ]

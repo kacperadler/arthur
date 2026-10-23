@@ -27,6 +27,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Changed
 
 - AR0312 The eval baseline of delivery/check-failed measures the old scenario (7ade4f3)
+- AR0317 The baseline of delivery/check-failed predates its stricter expectations (c05de11)
 
 ## 2026-10-22
 

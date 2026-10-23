@@ -37,3 +37,4 @@ In:
 - 2026-10-23: Source: F1 of AR0323
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; starts after the ten security checks AR0319-AR0328.
 - 2026-10-23: The owner: weekly cap raised to 40%; fixes one at a time to avoid conflicts, criticals first (AR0329, AR0346), then highs (AR0330, AR0331, AR0347, AR0349, AR0353, AR0370).
+- 2026-10-23: Coordinator accepted line budget raises core 5869 -> 5889, schedule 585 -> 594, manage 925 -> 928, orchestration 2317 -> 2319, develop, findings, machines, projects, resources +1 each (the inJob flag, the gate, the in-command checks). The gate runs after the plugins load and before the command runs, since inJob exists only once the plugins load: accepted in place of "before the config loads" (no state changes before it; tested).

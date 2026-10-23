@@ -120,6 +120,7 @@ export function decisionCommands(host: Host): Command[] {
 	const list: Command = {
 		name: "decisions",
 		doc: new URL("../docs/commands/decisions.md", import.meta.url),
+		inJob: true,
 		run({ args, project }) {
 			const read = parse(args, ["--kind", "--ticket"], [], ["--open", "--classes"]);
 			if (read === undefined || (read.flags["--classes"] !== undefined && (read.words.length > 0 || Object.keys(read.flags).length > 1))) {

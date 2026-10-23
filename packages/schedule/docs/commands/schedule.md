@@ -4,6 +4,8 @@ Usage: `arthur schedule [list]`; `arthur schedule add <id> <at> [--days <day,...
 
 The `schedule` plugin: actions and jobs at set times (roadmap entries 39 and 40), so Arthur works while the owner is away. An entry is a daily time or a one-off date and time, and does an action (a message to the coordinator) or a job (a spawn); an entry a plugin registers may instead run that plugin's own code. Entries come from the config, from other plugins, which register theirs from their own options, and from the `file` option, which `arthur schedule add` and `remove` change.
 
+Inside a job (`ARTHUR_JOB` set, `arthur help --help`) only the list runs: `add` and `remove`, once their usage is right, print `arthur schedule <add|remove>: refused inside a job <id>: a job runs only the commands its role needs; put what the coordinator should do in your final message` and exit 1, the file unchanged.
+
 ## Options
 
 In `schedule({ ... })` in `arthur.config.ts`; every key optional:
@@ -80,7 +82,7 @@ Wrong usage of `list`, `add` or `remove`: an unknown verb, an argument too many 
 
 `arthur run` sweeps at its start and every 10 seconds. For each entry it takes the slot that has come: a daily entry's latest time at or before now (on its `days`), a one-off's own time once it has passed. A slot runs when it is later than the entry's last claimed slot, and is claimed once: of any number of sweeps at once, in one process or several, exactly one runs it.
 
-- An action emits `coordinator-message` `{ text }`, which the coordinator gets marked `[Arthur]` (`arthur coordinator --help`): `[scheduled <id>] <message>`, and with a procedure, a blank line and the procedure file's text.
+- An action emits `coordinator-message` `{ text }`, which the coordinator gets marked `[Arthur: schedule]`, each line quoted (`arthur coordinator --help`): `[scheduled <id>] <message>`, and with a procedure, a blank line and the procedure file's text.
 - `call("schedule.message", <id>, <message>, <procedure text>)` answers that text for an action due on time, without the late mark: the procedure's text trimmed under a blank line, none without it. `arthur eval` asks it for a scenario's scheduled turn, so a change of this wording reaches every scenario. Refused, throwing: an id that is not an entry's (`schedule.message: expected an entry's id, got "bad/id"`), a message that is not non-empty text, a procedure that is not text.
 - A job is spawned like `arthur spawn` (`maxAgents`, the plugins' checks and placement included), and `arthur run` prints `schedule: <id>: started job <job id>`. A spawn that is refused goes to the coordinator instead: `[scheduled <id>] Its job (kind <kind>, project <project>) did not start: <reason>` (the project only when the entry names one), and `Its task: <task>` on the next line, so it can start the job itself later; the slot stays claimed.
 - A registered entry's `run` is called once its slot is claimed, after the jobs, each run awaited in turn. One that throws or rejects is printed and sent to every channel as one `notice`, `schedule: <id>: its run failed: <message>` (with `(late: due ...)` after the id when late); the slot stays claimed, so the next try is the next slot.

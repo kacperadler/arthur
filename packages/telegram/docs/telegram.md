@@ -35,7 +35,7 @@ A failed call is said once until a call answers again, and polling goes on after
 
 A reply goes by the bot each message it answers came through (its `answers`, the numbers of their `message-received` events, read in the event log; each bot once), to that bot's chat; a reply that answers no message of a bot, and every notice, goes by the unnamed bot, else the first in the list:
 
-- `coordinator-replied` whose `channels` hold `telegram`, and a reply with no `channels` (from a turn of only `[Arthur]` messages), as a notice is; a reply only for another channel is not sent.
+- `coordinator-replied` whose `channels` hold `telegram`, and a reply with no `channels` (from a turn of only messages from Arthur, `[Arthur]` or `[Arthur: <plugin>]`), as a notice is; a reply only for another channel is not sent.
 - `notice`, unless `call("coordinator.silent", notice)` answers `true`: the silent mode holds every notice but the one of a job blocked on the owner (`arthur silent --help`).
 - A `place` that is a topic's number goes as `message_thread_id`; without one, or with any other, the message goes to the chat itself.
 - A text longer than one message goes in slices of at most 4096 UTF-16 units, each cut at its last line break; a line longer than a slice is cut inside it, never through a character of two units. A blank text sends nothing.

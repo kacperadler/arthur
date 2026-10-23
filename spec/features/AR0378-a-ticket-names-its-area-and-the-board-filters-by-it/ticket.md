@@ -40,3 +40,6 @@ Out:
 - 2026-10-23: The human asked for categories on tickets in every project the harness and Arthur run.
 - 2026-10-23: The human: extend Kind along Conventional Commits rather than a separate Area; approved the list feat, fix, security, perf, refactor, test, docs, build, ci, chore, ux ("Lista wygląda OK"); autopilot keeps fix, refactor, chore, docs, test.
 - 2026-10-23: The human: change Arthur only, not the harness (K0271 dropped); AR0378 stands alone: Arthur's template, board command, autopilot rule if any, and its Telegram plugin; migrate every Arthur ticket. Runs next after AR0331.
+- 2026-10-23: Coordinator: first run hit its $8 budget with the work uncommitted (435 files: migration plus code); continued (budget is the total: $14) to commit, fix the core CLI tests and finish.
+- 2026-10-23: Coordinator accepted line budget raises core 5869 -> 5903, orchestration 2309 -> 2320, delivery 1310 -> 1311. F1 (h still reads the old kinds in this repository until the switch) goes to the human before the merge.
+- 2026-10-23: The human: "Artura leć zgodnie z poleceniami, nie zawracaj mi tym głowy": coordinator merges AR0378 now; h reads the old kinds here until the switch (F1 accepted, CHANGELOG under Other, finding tickets' Kind set by hand).

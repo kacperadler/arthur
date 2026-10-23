@@ -32,6 +32,8 @@ export function schedule(options: ScheduleOptions = {}): Plugin {
 			host.commands.register({
 				name: "schedule",
 				doc: new URL("../docs/commands/schedule.md", import.meta.url),
+				// `add` and `remove` refuse themselves inside a job (schedule-command.ts).
+				inJob: true,
 				run: ({ args, project }) => scheduleCommand({ host, configured: entries, registered, file, root }, args, project),
 			});
 		},

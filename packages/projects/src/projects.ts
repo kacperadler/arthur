@@ -62,6 +62,7 @@ export function projects(options: ProjectsOptions): Plugin {
 			host.commands.register({
 				name: "projects",
 				doc: new URL("../docs/commands/projects.md", import.meta.url),
+				inJob: true,
 				phone: { about: "every project: its line, folder, open tickets and install", reply: (text) => (text.trim() === "" ? overview(host, all) : "usage: /projects") },
 				run({ args }) {
 					if (args.length > 0) {

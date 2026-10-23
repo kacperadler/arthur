@@ -2524,9 +2524,9 @@
   {
     "id": "AR0329",
     "title": "A job is not isolated from Arthur's code, config and the user's own files (AR0311 F1, confirmed)",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0329-a-job-is-not-isolated-from-arthur-s-code-config-and-the-user-s-own-files-ar0311-f1-confirmed/ticket.md",
-    "updated": "2026-10-23T14:19:05.451Z"
+    "updated": "2026-10-23T15:51:02.187Z"
   },
   {
     "id": "AR0330",

@@ -8,6 +8,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0273 Delivery ships no review criteria, so `arthur init` still writes `review.md` as `# Review` (823864e)
 - AR0304 A new plugin's ticket without a plan can still be placed on another machine (7ac9b48)
+- AR0308 After a check fails at merge, the coordinator continues the worker itself (d977720)
 
 ### Fixed
 

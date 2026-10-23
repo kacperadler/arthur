@@ -2809,9 +2809,9 @@
   {
     "id": "AR0370",
     "title": "The home and everything under it take the process umask: records, logs, the event log and every lock are readable by other users of the host (AR0311 F15, confirmed)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0370-the-home-and-everything-under-it-take-the-process-umask-records-logs-the-event-log-and-every-lock-are-readable-by-other-users-of-the-host-ar0311-f15-confirmed/ticket.md",
-    "updated": "2026-10-23T20:39:07.548Z"
+    "updated": "2026-10-23T20:42:52.945Z"
   },
   {
     "id": "AR0371",
@@ -2865,9 +2865,9 @@
   {
     "id": "AR0378",
     "title": "A ticket has a Conventional Commits kind, and the board filters by it",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0378-a-ticket-names-its-area-and-the-board-filters-by-it/ticket.md",
-    "updated": "2026-10-23T18:17:54.233Z"
+    "updated": "2026-10-23T20:39:24.387Z"
   },
   {
     "id": "AR0379",

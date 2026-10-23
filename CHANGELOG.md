@@ -43,6 +43,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0347 The copy's deny-list misses the keys this side acts on: the branch fetched is whatever the copied record names (cc48b903)
 - AR0349 A line inside a job's final message or a GitHub review reads as a paragraph from the owner (AR0311 F4, confirmed) (587442ae)
 - AR0353 No command but three asks whether it runs inside a job: a job merges, spawns, stops, sends and moves the board (AR0311 F5, confirmed) (a1d953d2)
+- AR0370 The home and everything under it take the process umask: records, logs, the event log and every lock are readable by other users of the host (AR0311 F15, confirmed) (c7d9eab2)
 
 ### Changed
 

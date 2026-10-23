@@ -54,6 +54,8 @@ export function syncMachine(home: string, machine: Machine, bus: Bus): void {
 	if (ids.length === 0) return;
 	const asked = ids.map((id) => `${id}=${field(home, id)("synced") || "0:0"}`);
 	const answer = JSON.parse(ssh(machine, ["arthur", "remote-job", "records", machine.home, ...asked])) as Record<string, Copy>;
+	// Before anything of the answer is written, each file's name is a record key: the name decides the path written here.
+	for (const id of ids) for (const name of Object.keys(answer[id]?.files ?? {})) if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error(`machine ${machine.name}: job ${id} sent a record file ${JSON.stringify(name)}; expected a name of lowercase letters, digits and dashes`);
 	for (const id of ids) {
 		const copy = answer[id];
 		if (copy === undefined) continue;

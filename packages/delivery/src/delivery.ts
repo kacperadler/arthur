@@ -53,7 +53,8 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 			host.jobs.prepare(async (job, _env, continued) => {
 				if (job.kind !== REVIEW || continued) return;
 				const { branch = "", commit = "" } = head(job.task);
-				const ran = await host.jobs.run(job.machine, ["git", "-C", job.worktree, "checkout", "--quiet", "--detach", commit]);
+				// No hook or fsmonitor the repository's shared config names runs: a program a job runs may have set them (AR0330).
+				const ran = await host.jobs.run(job.machine, ["git", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", job.worktree, "checkout", "--quiet", "--detach", commit]);
 				if (ran.code !== 0) throw new Error(`${branch} at ${commit} cannot be checked out on machine ${job.machine}: ${ran.stderr.trim().split("\n").at(-1) ?? ""}`);
 				saveReview(host, { id: job.id, ticket: TICKET.exec(job.tickets[0] ?? "")?.[1] ?? "", branch, commit, at: Date.now() });
 			});

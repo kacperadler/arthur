@@ -78,10 +78,14 @@ async function until<T>(what: string, predicate: () => T | undefined | false): P
 const read = (home: string, id: string, name: string) => readFileSync(join(home, "jobs", id, name), "utf8");
 const events = (home: string, name: string) => readEvents(home, 1).filter((event) => event.name === name).map((event) => event.data as Record<string, unknown>);
 
-test("a worker on another machine runs there over SSH; the sweep copies its record and brings its branch back", async () => {
+test("a worker on another machine runs there over SSH; the sweep copies its record and brings its branch back, running no hook of the checkout's config", async () => {
 	const gate = join(temporaryFolder(), "go");
 	const agent = fakeAgent({ steps: [{ waitFor: gate }, { message: "Built it.", cost: 0.25 }] });
 	const { root, home, there, jobs } = setup({ agent });
+	// Hooks that refuse every push and every ref update, named by the checkout's config as a job's program may have set them.
+	const hooks = temporaryFolder();
+	writeFileSync(join(hooks, "pre-push"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+	git(root, "config", "core.hooksPath", hooks);
 	const job = await jobs.spawn({ task: "Build it.", machine: "gpu" });
 	assert.equal(job.failed, undefined);
 	const repository = join(there, "repos/acme.git");
@@ -110,6 +114,7 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	writeFileSync(gate, "");
 	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
 	assert.equal(events(home, "job-ended").length, 0);
+	writeFileSync(join(hooks, "reference-transaction"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
 	jobs.sweep();
 	assert.deepEqual(["state", "reason", "result", "cost"].map((name) => read(home, job.id, name)), ["ended", "finished", "Built it.", "0.2500"]);
 	assert.match(read(home, job.id, "commits"), /the change/);

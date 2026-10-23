@@ -555,7 +555,13 @@ import { checkStructure } from "./structure.ts";
 // AR0346 (F1 of AR0321; its Done means: a copy refuses a record file whose name is not a plain record key, nothing of the
 // answer written): core 2 more (5817) for the check before the copy's first write and its comment (machine-sync.ts, +2).
 // Nothing checked these names before, so nothing was cut.
-const BUDGETS = { core: 5817, "core/testing": 349, projects: 485, orchestration: 2309, machines: 487, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1305, github: 633, manage: 925, develop: 703, findings: 254 };
+// AR0330 (F2 of AR0320; its Done means: `git config` that sets or unsets refused for a job, and Arthur's own git calls on a
+// main checkout with `-c core.hooksPath=/dev/null -c core.fsmonitor=false`): core 28 more (5845) for `git config` read in
+// `gitCall`, its reads, plain options, subcommands, `--file` and scope (git-writes.ts, git diff --numstat +24 -2), refused
+// by the guard with its comment (worktree-guard.ts, +13 -9), and the flags with their comment (git.ts, +2); delivery 5 more
+// (1310) and github 2 more (635), a comment line beside each git helper given the flags, and github's flags kept once for
+// its helper and its push. Nothing read `git config` before, so nothing was cut.
+const BUDGETS = { core: 5845, "core/testing": 349, projects: 485, orchestration: 2309, machines: 487, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1310, github: 635, manage: 925, develop: 703, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

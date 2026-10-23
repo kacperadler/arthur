@@ -16,7 +16,7 @@ entry 42 says an onboarding's merge accepts only the vision and criteria files. 
 
 An onboarding's draft can never change files other than the vision and the criteria: `arthur merge` refuses it through `merge.check`.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/projects/src/onboarding.ts` (`host.provide("merge.check", ...)`)

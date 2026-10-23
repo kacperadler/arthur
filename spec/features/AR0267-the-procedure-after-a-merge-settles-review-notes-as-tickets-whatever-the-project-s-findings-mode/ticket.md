@@ -15,7 +15,7 @@ step 2 tells the coordinator to copy the reviews' non-blocking notes into `findi
 ## Goal
 
 The procedure after a merge settles review notes the way the project's findings mode says, not always as tickets.
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/delivery/roles/coordinator/after-merge.md:6`

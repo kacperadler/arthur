@@ -16,7 +16,7 @@ a window of seconds on a name the owner chose, under Tailscale's DNS; the only w
 
 The agent's own request to a provider is checked against the private network or the limit is documented where the provider is configured.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/models/src/models.ts:67-74` (the `prepare`: `OLLAMA_BASE_URL`/`LM_STUDIO_BASE_URL` as the url was written), `packages/models/docs/models.md:21,29`

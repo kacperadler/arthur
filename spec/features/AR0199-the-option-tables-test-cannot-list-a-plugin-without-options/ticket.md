@@ -16,7 +16,7 @@ the test asserts every listed plugin has at least one option, and that its unkno
 
 The option-tables test covers a plugin that has no options, so such a plugin is not left out of it.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `test/option-tables.test.ts:54` and `:114`

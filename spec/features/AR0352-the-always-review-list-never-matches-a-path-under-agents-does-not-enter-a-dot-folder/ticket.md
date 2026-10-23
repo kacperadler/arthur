@@ -16,7 +16,7 @@ with Node v24.21.0, `matchesGlob(".agents/arthur/roles/reviewer.md", "**/roles/r
 
 The always-review list matches paths under dot folders such as `.agents/`, so a project's own reviewer and criteria files are always reviewed; tested.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/delivery/src/delivery-options.ts:16` (`**/roles/reviewer.md`, `**/criteria/review.md`, written to hold "the review rules themselves", `:13-15`), `packages/delivery/src/delivery.ts:49` (`matchesGlob`), `packages/delivery/test/review-needed.test.ts:167` (tests `packages/delivery/roles/reviewer.md`, never a project's `.agents/…` path)

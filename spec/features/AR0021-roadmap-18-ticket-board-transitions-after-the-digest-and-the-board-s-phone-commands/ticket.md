@@ -20,7 +20,7 @@ Roadmap entry 18 of `spec/roadmap.md`: Ticket board: transitions, `after`, the d
 
 Build entry 18 as `spec/roadmap.md` describes it, behind the interface it names, following `spec/vision.md` and `.agents/harness/criteria/styleguide.md`.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

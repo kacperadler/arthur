@@ -17,7 +17,7 @@ entry 8's Done means lists as edge cases "events logged before the daemon starte
 The roadmap says what the code does: entry 8's edge cases match the replay AR0044 built.
 
 - Model: haiku
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `spec/roadmap.md:85`

@@ -16,7 +16,7 @@ a GET from Arthur's host, with `user-agent: arthur-uptime` and no credential, to
 
 A site check follows a redirect only to an address the config allows, never loopback, link-local or metadata; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/uptime/src/site-check.ts:12` (`fetch` with its default `redirect: "follow"`), `:16-26` (the landing page judged); `packages/uptime/docs/uptime.md:24`; `packages/uptime/src/uptime-options.ts:25`

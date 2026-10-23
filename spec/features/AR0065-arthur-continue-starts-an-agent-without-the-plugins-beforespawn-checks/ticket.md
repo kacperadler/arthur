@@ -16,7 +16,7 @@ a continued job runs an agent again, but only a spawn goes through `beforeSpawn`
 
 A continue is checked like a spawn: the plugins' refusals (resources, disk floor, the ticket check) apply before a finished worker runs again.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/job-control.ts` (`continueJob`)

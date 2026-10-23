@@ -16,7 +16,7 @@ The vision and roadmap reach other machines (entry 30), model providers (entry 8
 
 The setup guide covers every network piece the plan assumes, so a newcomer can prepare a VPS and a second machine in one pass.
 
-- Kind: improvement
+- Kind: feat
 - Model: haiku
 
 ## Done means

@@ -16,7 +16,7 @@ Arthur needs a logo for its site (AR0105) and README: a conductor with a baton, 
 
 The owner picks one of three variants; the chosen one is ready for the site and the README.
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

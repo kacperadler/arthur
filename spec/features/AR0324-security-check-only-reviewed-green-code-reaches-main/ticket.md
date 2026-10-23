@@ -14,7 +14,7 @@ One area of the security check of our own code before the switch (AR0307), as a 
 
 ## Goal
 
-- Kind: risk
+- Kind: security
 - Model: anthropic/claude-fable-5-1 (the owner, 2026-10-23), no cost limit; its review stays on the reviewer's default model.
 
 The rule this area must hold: Only a branch whose exact tip a review passed and whose CI passed reaches main; a review's PASS rests on what the coordinator wrote, small changes to what runs on the VPS are still reviewed.

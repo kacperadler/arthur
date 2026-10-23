@@ -16,7 +16,7 @@ at a test process's exit the kit removes its temporary root (`rmSync(root, { rec
 
 A tmux server a test leaves behind can still be ended: the test kit kills the servers on its sockets before it removes its temporary root, so no orphaned server outlives `npm test`.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/testing.ts:33`

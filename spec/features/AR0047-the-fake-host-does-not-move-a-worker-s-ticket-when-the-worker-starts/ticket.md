@@ -16,7 +16,7 @@ in a real load, a worker's `job-started` moves each ticket its task names to in-
 
 A plugin tested on the fake host sees what it would see in production: a worker's start moves its ticket to in-progress there too.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/host.ts` (`loadPlugins` subscribes the core's board to `job-started`), `packages/core/src/testing.ts` (`fakeHost` does not)

@@ -16,7 +16,7 @@ it says "merge only on the owner's word" but not how: an onboarding is never rev
 
 The onboarding-ended procedure names the merge command: end its merge sentence with "`arthur merge <job id> --unreviewed`, then the committed files", in `packages/projects/roles/coordinator/onboarding-ended.md`; nothing else.
 
-- Kind: improvement
+- Kind: feat
 - Model: haiku
 
 Evidence:

@@ -19,7 +19,7 @@ Roadmap entry 5 of `spec/roadmap.md`: Event stream. Its Package, Delivers, Done 
 
 Build entry 5 as `spec/roadmap.md` describes it, behind the interface it names, following `spec/vision.md` and `.agents/harness/criteria/styleguide.md`.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

@@ -20,7 +20,7 @@ Roadmap entry 14 of `spec/roadmap.md`: Stop, continue, steer. Its Package, Deliv
 
 Build entry 14 as `spec/roadmap.md` describes it, behind the interface it names, following `spec/vision.md` and `.agents/harness/criteria/styleguide.md`.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

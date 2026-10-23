@@ -16,7 +16,7 @@ This ticket builds roadmap entry 44 in `spec/roadmap.md`, the `youtrack` plugin.
 
 The specification is roadmap entry 44: its Package, Delivers and Done means with every edge case. Built in parallel with other entries, it stays inside its own plugin package wherever it can.
 
-- Kind: improvement
+- Kind: feat
 - Budget: 12
 
 ## Done means

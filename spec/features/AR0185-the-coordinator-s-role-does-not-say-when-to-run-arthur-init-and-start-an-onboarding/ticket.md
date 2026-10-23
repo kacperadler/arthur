@@ -16,7 +16,7 @@ the coordinator learns of `arthur init` only from `arthur doctor`'s fix line (`f
 
 The coordinator knows when to run `arthur init` and start an onboarding, so a new repository is taken on without the owner spelling out the steps.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/orchestration/roles/coordinator.md`, "Commands"

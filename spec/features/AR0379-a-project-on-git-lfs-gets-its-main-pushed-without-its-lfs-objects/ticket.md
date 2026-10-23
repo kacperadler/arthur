@@ -16,7 +16,7 @@ Arthur's own pushes now run with `-c core.hooksPath=/dev/null`, as this ticket's
 
 A project on Git LFS still gets its large files to origin when Arthur pushes main or a branch (Arthur runs `git lfs push` itself, not through a hook), or the docs say LFS is not supported; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/github/src/github-git.ts:38` (`push`), `packages/core/src/job-machine.ts:141` (`gitOver`)

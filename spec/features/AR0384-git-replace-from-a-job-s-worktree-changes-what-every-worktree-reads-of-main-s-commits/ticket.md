@@ -16,7 +16,7 @@ in a temporary repository, `git replace <main's tip> <a commit of the job>` run 
 
 `git replace` from a job's worktree is refused, so a job cannot change what every worktree reads of main's commits; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/git-writes.ts:4` (`replace` writes "the checkout it runs in", so from the job's worktree it passes), `packages/core/src/worktree-guard.ts:142-143` (only `update-ref` and a pointed checkout look at the ref)

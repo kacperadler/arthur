@@ -16,7 +16,7 @@
 
 When a `/restart` fails inside the session's tick, the owner is told on his channel, instead of only a line in the log he does not see.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/session/src/restart.ts:93-106` (`settle`), `packages/session/src/restart.ts:22-25` (`restart`)

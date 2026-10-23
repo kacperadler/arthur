@@ -16,7 +16,7 @@ a credential in the service's journal and on the terminal.
 
 A clone's refusal prints a project's `repo` URL without any credential it holds; tested.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/projects/src/clone.ts:34` (`holds ${url}, not ${repo}`), `packages/projects/src/clone.ts:43` (`git clone ${repo} failed: <git's last line>`)

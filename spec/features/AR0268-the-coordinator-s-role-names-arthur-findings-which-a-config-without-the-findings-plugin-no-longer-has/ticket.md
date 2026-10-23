@@ -18,7 +18,7 @@
 ## Goal
 
 The coordinator's role names `arthur findings` only where the findings plugin provides it.
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `packages/orchestration/roles/coordinator.md:21`

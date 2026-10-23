@@ -16,7 +16,7 @@ This ticket builds roadmap entry 50 in `spec/roadmap.md`: `/name text` from the 
 
 The specification is roadmap entry 50: its Delivers, Done means with every edge case, and Also delivers (`route` passes `channel` and `place`). The owner drives Arthur from the phone's command menu. Also the /board and /findings cuts AR0212 left for this entry (its Decisions, 2026-10-19).
 
-- Kind: improvement
+- Kind: feat
 - Budget: 10
 
 ## Done means

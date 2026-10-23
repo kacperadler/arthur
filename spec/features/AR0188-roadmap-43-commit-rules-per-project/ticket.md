@@ -16,7 +16,7 @@ This ticket builds roadmap entry 43 in `spec/roadmap.md`, the `commit-rules` plu
 
 The specification is roadmap entry 43: its Package, Delivers and Done means with every edge case. Built in parallel with other entries, it stays inside its own plugin package wherever it can.
 
-- Kind: improvement
+- Kind: feat
 - Budget: 12
 
 ## Done means

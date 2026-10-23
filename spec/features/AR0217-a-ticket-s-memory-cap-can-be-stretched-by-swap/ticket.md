@@ -16,7 +16,7 @@ A ticket's slice gets `CPUQuota` and `MemoryMax` only, so jobs of a ticket with 
 
 A ticket's slice with a memory cap also gets `MemorySwapMax=0` (`infinity` without one), as a job's own scope does, so the cap holds.
 
-- Kind: risk
+- Kind: security
 
 ## Done means
 

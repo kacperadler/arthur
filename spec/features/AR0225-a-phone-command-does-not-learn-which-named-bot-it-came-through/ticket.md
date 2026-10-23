@@ -16,7 +16,7 @@
 
 A phone command learns the named bot it came through, so `/restart` from a topic of one bot is never taken for the same topic number of another bot's chat. Done before the host API freezes in entry 51: an optional `instance` on `PhoneFrom`, passed from telegram's `receive` as `message-received` already does (`packages/core/src/commands.ts:26`, `packages/telegram/src/poll.ts:84`; F1 of AR0224).
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/commands.ts:26`, `packages/telegram/src/poll.ts:84`

@@ -16,7 +16,7 @@
 
 With 3 machines, the owner looks for a machine's jobs line by line.
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

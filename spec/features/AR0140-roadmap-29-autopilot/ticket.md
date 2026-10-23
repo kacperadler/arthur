@@ -19,7 +19,7 @@ Roadmap entry 29 (`spec/roadmap.md`), built as the entry says.
 
 An audit's or a finding's small bug or cleanup ticket can be pre-approved, so it runs overnight without waiting for the owner.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

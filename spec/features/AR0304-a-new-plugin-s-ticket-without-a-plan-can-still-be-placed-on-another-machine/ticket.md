@@ -16,7 +16,7 @@ AR0298 places a new plugin's worker on the local machine through the plan (the p
 
 A new plugin's ticket runs on the local machine even without a plan, so no worker is placed where `arthur plugin new` cannot run.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/machines/src/machine-place.ts:40` (`need`), `packages/develop/src/plugin-new.ts` (`pluginNewSection`)

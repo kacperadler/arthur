@@ -18,7 +18,7 @@ This ticket builds roadmap entry 42, onboarding a repository:
 
 The specification is roadmap entry 42 in `spec/roadmap.md`: its Delivers, its Done means with every edge case, and its `doctor` requirement. It depends on entries 41 (the project list) and 10 (roles), and both are merged. With this entry built, the projects plugin is complete, and Arthur can take on a new repository without the harness (vision, direction A).
 
-- Kind: improvement
+- Kind: feat
 - Budget: 10
 
 ## Done means

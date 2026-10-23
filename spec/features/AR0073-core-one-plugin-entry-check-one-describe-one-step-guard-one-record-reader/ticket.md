@@ -19,7 +19,7 @@ A1 to A5 of the core line review: about 38 lines out of the core, and `arthur co
 
 The core stays small enough to understand, with capability in plugins (vision); the plan is `spec/quality/core-lines-2026-10-16.md`, proposal A1-A5.
 
-- Kind: cleanup
+- Kind: refactor
 
 ## Done means
 

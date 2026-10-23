@@ -16,7 +16,7 @@ This ticket builds roadmap entry 49 in `spec/roadmap.md`: photos, videos, voice 
 
 The specification is roadmap entry 49: its Delivers, Done means with every refusal and edge case, and Also delivers (`place`). The owner can send Arthur media from the phone and Arthur can send media back.
 
-- Kind: improvement
+- Kind: feat
 - Budget: 10
 
 ## Done means

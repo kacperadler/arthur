@@ -16,7 +16,7 @@
 
 The example's Conventional Commits regex refuses a subject over 72 characters, as the rule it shows says.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `arthur.config.example.ts:235`

@@ -16,7 +16,7 @@ a listed machine's free CPU and memory now come with each `machines` round (`mac
 
 A spawn between machine check rounds uses the round's reading whatever `check.everySeconds` is, so no extra ssh check runs.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/resources/src/room.ts` (`fresh`, `2 * CHECK_SECONDS`)

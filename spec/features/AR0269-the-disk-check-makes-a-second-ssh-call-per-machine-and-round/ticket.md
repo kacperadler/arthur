@@ -16,7 +16,7 @@ with `keepFree.disk` above 0, each round of the `machines` plugin makes its one 
 
 One ssh call per machine and round: the disk check rides on the machines plugin's probe instead of a second call, so each check costs half the connections.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/resources/src/machine-disk.ts` (`measureDisk`), `packages/machines/src/machine-check.ts` (`SCRIPT`)

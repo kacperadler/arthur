@@ -16,7 +16,7 @@ The owner wants the youtrack plugin to manage issues and articles to YouTrack's 
 
 Close the gap between `arthur youtrack` and what YouTrack's REST API lets a user do with issues and articles, so the coordinator never has to tell the owner "do it in the browser".
 
-- Kind: improvement
+- Kind: feat
 - Budget: 8
 
 ## Done means

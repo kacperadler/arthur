@@ -19,7 +19,7 @@ the coordinator reads a command's page with `arthur <command> --help` before it 
 
 A coordinator turn in an eval sees the same command help pages as the live one, so a scenario that reads `arthur <command> --help` before acting is replayed faithfully.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/develop/src/eval-stub.ts`

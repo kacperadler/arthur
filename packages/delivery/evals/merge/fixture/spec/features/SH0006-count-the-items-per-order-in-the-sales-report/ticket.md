@@ -16,7 +16,7 @@ The sales report gets an Items column: how many items each order holds, so the o
 
 The owner counts items by hand each month from the order export.
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

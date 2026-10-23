@@ -16,7 +16,7 @@ the state keeps only the open pull requests; one that is closed drops out, and w
 
 A reopened pull request does not wake the coordinator again for reviews it already had: a review of a pull request new to the state is told only when submitted after the project's previous poll (kept in the state), with a test that reopens one.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/github/src/github-pulls.ts` (`newReviews`), `packages/github/src/github-state.ts`

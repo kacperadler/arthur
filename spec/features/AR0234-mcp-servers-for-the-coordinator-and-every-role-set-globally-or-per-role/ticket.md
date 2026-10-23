@@ -16,7 +16,7 @@ Arthur has no MCP of its own: every agent it runs is `omp`. The coordinator and 
 
 The owner lists MCP servers once in the config and says which go to everyone and which to a given role; the coordinator, each project agent, and each job get exactly those, and nothing else from Arthur.
 
-- Kind: feature
+- Kind: feat
 - Plan: tak
 
 ## Done means

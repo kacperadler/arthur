@@ -16,7 +16,7 @@ the owner's decision checks each `tools` label with `command -v` over SSH, so on
 
 `arthur doctor` checks the tools labels of the local machine too, so a missing tool here is reported at start like on any other machine.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/machines/src/machines.ts:58`

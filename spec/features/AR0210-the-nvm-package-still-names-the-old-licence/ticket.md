@@ -16,7 +16,7 @@ every package says `"license": "Apache-2.0"` since AR0203, but nvm, merged just 
 
 Every Arthur package says Apache-2.0, and the structure test refuses any other licence value, so a new package cannot drift.
 
-- Kind: cleanup
+- Kind: refactor
 - Model: haiku
 
 Evidence:

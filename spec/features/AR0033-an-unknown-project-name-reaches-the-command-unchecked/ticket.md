@@ -16,7 +16,7 @@
 
 A command never runs for a project Arthur does not know: `--project` is checked against the project list (entry 41) and an unknown name is refused naming the known ones.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/core/src/cli.ts` (`main`)

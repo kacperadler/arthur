@@ -19,7 +19,7 @@ in omp 18.3.0's interactive mode, `pi.sendUserMessage` returns nothing and catch
 
 The owner always gets a reply: a hand-over omp accepts and then fails is noticed and retried, not left until a restart.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/orchestration/src/inbox-extension.ts` (`hand`, `tick`)

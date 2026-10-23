@@ -19,7 +19,7 @@
 
 An event a short-lived command emits (`arthur ...`) reaches the running daemon's subscribers, not only the log, so plugins react to it as to any other event.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/core/src/events.ts:32`

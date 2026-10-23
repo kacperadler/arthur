@@ -158,7 +158,7 @@ test("arthur ticket creates, moves and lists tickets on the project's board, and
 	const moved = arthur(folder, "ticket", "status", "DM0001", "dropped");
 	assert.deepEqual([moved.status, moved.stdout], [0, "DM0001 dropped\n"]);
 	assert.equal(arthur(folder, "ticket", "new", "Next").stdout.split(" ")[0], "DM0002");
-	assert.deepEqual(arthur(folder, "board", "all").stdout, "DM0002 planning    Next\nDM0001 dropped     Board from the shell\n");
+	assert.deepEqual(arthur(folder, "board", "all").stdout, "DM0002 planning    -        Next\nDM0001 dropped     -        Board from the shell\n");
 	const log = readFileSync(join(folder, ".arthur", "events.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
 	assert.deepEqual(
 		log.map(({ plugin, name, data }) => [plugin, name, data.id]),
@@ -202,7 +202,7 @@ test("arthur ticket after: the board shows what a ticket waits for until it wait
 	assert.deepEqual(arthur(folder, "ticket", "after", "DM0002", "DM0001").stdout, "DM0002 after DM0001\n");
 	const cycle = arthur(folder, "ticket", "after", "DM0001", "DM0002");
 	assert.deepEqual([cycle.status, cycle.stderr], [1, "arthur ticket: DM0001 cannot wait for itself: DM0001 after DM0002 after DM0001\n"]);
-	assert.deepEqual(arthur(folder, "board").stdout, "DM0001 planning    One\nDM0002 planning    Two  after DM0001\n");
+	assert.deepEqual(arthur(folder, "board").stdout, "DM0001 planning    -        One\nDM0002 planning    -        Two  after DM0001\n");
 	assert.deepEqual(arthur(folder, "ticket", "after", "DM0002").stdout, "DM0002 after nothing\n");
 });
 

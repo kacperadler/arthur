@@ -15,7 +15,7 @@ the command writes into the checkout of the main project or the one `--project` 
 ## Goal
 
 `arthur plugin new` can be run for a new plugin's ticket on the worker's own branch, or the ticket names who runs it where; decided and tested.
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/develop/src/plugin-new.ts` (`pluginCommand`), `packages/core/src/cli.ts:58`

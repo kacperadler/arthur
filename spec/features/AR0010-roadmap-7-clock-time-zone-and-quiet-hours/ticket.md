@@ -19,7 +19,7 @@ Roadmap entry 7 of `spec/roadmap.md`: Clock: time zone and quiet hours. Its Pack
 
 Build entry 7 as `spec/roadmap.md` describes it, behind the interface it names, following `spec/vision.md` and `.agents/harness/criteria/styleguide.md`.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

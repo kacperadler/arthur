@@ -16,7 +16,7 @@ develop may not import orchestration, and no provided name gives the text the in
 
 Evals replay the very text the live coordinator gets: when orchestration's wake or inbox wording changes, the evals follow it instead of silently testing the old wording. Moves the vision's develop direction: evals that measure the coordinator as it really runs.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/develop/src/eval-scenario.ts` (`turnText`), copying `packages/orchestration/src/inbox.ts` (`wake`) and `packages/orchestration/src/inbox-extension.ts` (the `[Arthur]` / `[via <channel>]` marks and the `ARTHUR` line)

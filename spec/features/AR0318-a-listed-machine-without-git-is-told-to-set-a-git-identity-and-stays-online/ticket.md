@@ -16,7 +16,7 @@ on a machine whose command over ssh finds no `git`, the identity loop prints `id
 
 A listed machine with no `git` at all is reported as missing git (a missing tool, so no job is placed there), not told to set a git identity.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/machines/src/machine-check.ts:21` (the `IDENTITY` loop), `packages/machines/src/machines.ts:119` (its fix)

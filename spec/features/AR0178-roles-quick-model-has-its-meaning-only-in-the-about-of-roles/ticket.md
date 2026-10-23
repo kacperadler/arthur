@@ -16,7 +16,7 @@ the table's `roles` entry gives each role's keys in `each` (`roles.*.model`, `ro
 
 `roles.quick.model` gets its own line in the option table, so the owner finds its meaning where every other option's is.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `packages/orchestration/src/orchestration-options.ts:34`

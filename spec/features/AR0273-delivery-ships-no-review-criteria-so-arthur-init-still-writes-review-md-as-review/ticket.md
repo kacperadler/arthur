@@ -16,7 +16,7 @@
 
 Delivery ships its review criteria, so `arthur init` gives a new project a real `review.md` and its reviewer has criteria from day one.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/delivery/src/delivery.ts:50` (the reviewer reads `review`), no `packages/delivery/criteria/`

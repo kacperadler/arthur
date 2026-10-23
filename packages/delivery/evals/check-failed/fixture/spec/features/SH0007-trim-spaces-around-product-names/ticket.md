@@ -16,7 +16,7 @@ A product name typed with spaces around it is stored trimmed, so the catalog lis
 
 11 products sort first in the catalog because their name starts with a space (`npm run catalog:audit`).
 
-- Kind: bug
+- Kind: fix
 
 ## Done means
 

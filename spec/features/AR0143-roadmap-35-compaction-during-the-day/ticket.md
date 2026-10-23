@@ -16,7 +16,7 @@ Roadmap entry 35 (`spec/roadmap.md`), built as the entry says.
 
 The coordinator's conversation is compacted at set times with a handoff, so a long day never overflows its context.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

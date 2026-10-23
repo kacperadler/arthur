@@ -16,7 +16,7 @@
 
 `$ARTHUR_JOB` is expanded to the job's record before the guard judges a path, so a write through it is judged like the literal path; tested.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/core/src/shell-words.ts:81-100` (`$HOME` and `~` expand to `home`; any other variable is nothing), `packages/core/src/worktree-guard.ts:98`, `:101`, `:138` (the guard passes `process.env.HOME` only)

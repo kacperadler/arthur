@@ -16,7 +16,7 @@ Since AR0200 the example config's commit regex counts the whole subject, but the
 
 The regex example in `packages/commit-rules/docs/commit-rules.md:7` refuses a subject over 72 characters in all, prefix included: `^(?=.{1,72}$)(feat|fix|docs)(\([\w-]+\))?!?: .+$`, as `arthur.config.example.ts` has.
 
-- Kind: cleanup
+- Kind: refactor
 
 ## Done means
 

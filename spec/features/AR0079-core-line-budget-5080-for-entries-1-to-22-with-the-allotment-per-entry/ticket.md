@@ -19,7 +19,7 @@ Proposal 8 of the core line review: the budget set once in `test/structure.test.
 
 The core stays small enough to understand, with capability in plugins (vision); the plan is `spec/quality/core-lines-2026-10-16.md`, proposal 8.
 
-- Kind: cleanup
+- Kind: refactor
 
 ## Done means
 

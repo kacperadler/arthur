@@ -16,7 +16,7 @@ A new roadmap entry, `arthur doctor`: code, not the agent, checks that everythin
 
 After download and install, and after every restart, the owner learns at once what is missing for full function, from a deterministic check rather than the model's judgment.
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

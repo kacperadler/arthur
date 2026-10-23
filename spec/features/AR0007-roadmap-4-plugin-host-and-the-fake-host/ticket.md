@@ -19,7 +19,7 @@ Roadmap entry 4 of `spec/roadmap.md`: Plugin host, and the fake host. Its Packag
 
 Build entry 4 as `spec/roadmap.md` describes it, behind the interface it names, following `spec/vision.md` and `.agents/harness/criteria/styleguide.md`.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

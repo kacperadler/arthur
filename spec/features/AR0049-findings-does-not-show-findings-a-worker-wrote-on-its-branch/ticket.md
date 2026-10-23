@@ -16,7 +16,7 @@
 
 `/findings` shows what a worker found before its merge, as the harness did, so the human sees open findings while the work runs.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/core/src/board-commands.ts` (`fileReply`)

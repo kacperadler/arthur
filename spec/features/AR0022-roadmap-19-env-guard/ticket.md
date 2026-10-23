@@ -19,7 +19,7 @@ Roadmap entry 19 of `spec/roadmap.md`: Env guard. Its Package, Delivers, Done me
 
 Build entry 19 as `spec/roadmap.md` describes it, behind the interface it names, following `spec/vision.md` and `.agents/harness/criteria/styleguide.md`.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

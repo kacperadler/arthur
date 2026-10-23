@@ -19,7 +19,7 @@ A6 of the core line review: about 6 lines out, with the doc and test edits it na
 
 The core stays small enough to understand, with capability in plugins (vision); the plan is `spec/quality/core-lines-2026-10-16.md`, proposal A6.
 
-- Kind: cleanup
+- Kind: refactor
 
 ## Done means
 

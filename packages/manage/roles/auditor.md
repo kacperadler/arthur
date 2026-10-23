@@ -25,7 +25,7 @@ At most 5 proposals, most valuable first. Fewer good ones beat five weak ones. E
 ```
 ## <n>. <title>
 Takes F<n> of <id>
-Kind: bug | risk | cleanup | improvement
+Kind: feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux
 Budget: <USD>
 Evidence:
 - <file:line>: <what you saw there>

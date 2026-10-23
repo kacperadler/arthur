@@ -16,7 +16,7 @@ a job at its time or budget limit gets SIGTERM to its process group and nothing 
 
 A limit really ends a job: an agent or tool that ignores SIGTERM cannot run on and keep spending past its time or budget.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/wrapper.ts` (`stopAgent`)

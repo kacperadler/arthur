@@ -16,7 +16,7 @@ The Telegram plugin compares only the chat id, so with a group configured every 
 
 The Telegram bot acts only on messages its owner wrote (`from.id`, no `sender_chat`), and the config refuses a group chat id; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/telegram/src/poll.ts:56` (only `message.chat.id` and `date` are compared; `message.from` and `message.sender_chat` are never read), `packages/telegram/src/telegram.ts:89` (a negative chat id is accepted at load, its message calling it "negative for a group"), `packages/telegram/docs/telegram.md:13` (asks for "the owner's private chat with it") against `:16` ("negative for a group"), `packages/telegram/test/telegram.test.ts:50` (asserts that a group id is accepted), `packages/telegram/src/telegram-options.ts:17` (`chatIdEnv`, no owner id)

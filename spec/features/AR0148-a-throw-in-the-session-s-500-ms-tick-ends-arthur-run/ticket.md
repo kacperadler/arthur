@@ -16,7 +16,7 @@ the tick has no catch, and `arthur run` installs no `uncaughtException` handler 
 
 An error in one tick of the session's clock is logged and the next tick runs, so `arthur run` keeps going.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/session/src/session.ts` (the `setInterval` in `start`), and the ticks it calls in `restart.ts`

@@ -18,7 +18,7 @@ with manage loaded, `host.jobs.criteria()` names `audit`, so `arthur init` write
 ## Goal
 
 `arthur init` writes the audit criteria manage ships, not a bare title, with a test.
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/projects/src/init.ts:11-15` (`criterion`), `packages/manage/criteria/audit.md`

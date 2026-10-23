@@ -10,8 +10,7 @@ import type { Mode } from "./findings-options.ts";
 
 export type Merged = { readonly project: string; readonly ticket: string; readonly path: string; readonly root: string };
 
-// The template's kinds (`- Kind:` of a ticket.md), and an amount in USD as autopilot reads a ticket's `budget`.
-const KINDS: readonly string[] = ["feature", "bug", "risk", "cleanup", "improvement"];
+// An amount in USD, as autopilot reads a ticket's `budget`.
 const AMOUNT = /^\d+(\.\d+)?$/;
 
 export function onMerge(host: Host, mode: Mode, { project, ticket, path, root }: Merged): string {
@@ -39,7 +38,7 @@ export function onMerge(host: Host, mode: Mode, { project, ticket, path, root }:
 			mode === "grouped"
 				? [`The open findings of ${ticket} (${path}), made one ticket at its merge.`, ...group.map((finding) => `### F${finding.n}. ${finding.title}\n\n${finding.body}`)].join("\n\n")
 				: `F${first.n} of ${ticket} (${path}).\n\n${first.body}`;
-		const kind = group.every((finding) => finding.kind === first.kind) && KINDS.includes(first.kind ?? "") ? first.kind : undefined;
+		const kind = group.every((finding) => finding.kind === first.kind) && host.board.kinds.includes(first.kind ?? "") ? first.kind : undefined;
 		const budget = group.every((finding) => AMOUNT.test(finding.budget ?? "")) ? Math.round(group.reduce((sum, finding) => sum + Number(finding.budget), 0) * 100) / 100 : undefined;
 		let created: { readonly id: string; readonly path: string };
 		try {

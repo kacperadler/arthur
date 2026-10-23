@@ -16,7 +16,7 @@ the context of a fixture's copy reads the vision at the main project's `prompts.
 
 Each eval fixture has a vision (or the context stops warning when a copy has none), so no eval turn carries a false 'the main project has no vision' warning.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/*/evals/*/fixture/` (no `spec/vision.md`)

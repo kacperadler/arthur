@@ -16,7 +16,7 @@ AR0238 keys what is told by `<run id>/<run_attempt>`, and roadmap entry 57 now s
 
 The vision says `ci-finished` is told once per run attempt; the owner approved the wording on 2026-10-21 and the coordinator applied it.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `spec/vision.md:109` ("GitHub without webhooks")

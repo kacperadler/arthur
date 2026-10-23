@@ -16,7 +16,7 @@
 
 The owner asks where a job runs (3 times last week).
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

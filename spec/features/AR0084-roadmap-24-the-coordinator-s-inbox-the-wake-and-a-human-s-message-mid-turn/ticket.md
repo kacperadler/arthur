@@ -20,7 +20,7 @@ Roadmap entry 24 (`spec/roadmap.md`, "The coordinator's inbox and the wake on jo
 
 The human writes freely and gets one reply that answers everything since the last one (vision: one human directs many agents through one coordinator).
 
-- Kind: feature
+- Kind: feat
 - Plan: tak
 
 ## Done means

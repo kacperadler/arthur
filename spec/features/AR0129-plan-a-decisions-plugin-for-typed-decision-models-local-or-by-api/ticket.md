@@ -16,7 +16,7 @@ The owner wants Arthur to use typed decision models (System 1 style: a state plu
 
 Small, frequent yes/no and pick-one decisions are made fast, without spending the main model's limit, and with a confidence that says when to hand the decision to the coordinator's model or the owner.
 
-- Kind: improvement
+- Kind: feat
 - Plan: tak
 
 ## Done means

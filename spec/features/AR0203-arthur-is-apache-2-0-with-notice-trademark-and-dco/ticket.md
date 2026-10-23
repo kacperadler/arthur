@@ -16,7 +16,7 @@ The owner (urgent, 2026-10-19) changes Arthur's licence from FSL-1.1-ALv2 to Apa
 
 Every place that states the licence says Apache-2.0, the name and logo are reserved, and contributions are signed off under the DCO.
 
-- Kind: improvement
+- Kind: feat
 - Budget: 4
 
 ## Done means

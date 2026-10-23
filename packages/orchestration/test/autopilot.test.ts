@@ -12,7 +12,7 @@ const TICKET = `${FOLDER}/ticket.md`;
 type Parts = { readonly kind?: string; readonly scope?: string; readonly decisions?: string };
 type Loaded = { preApprove(budgetUsd?: number): Promise<string>; status(): string | undefined; text(): string };
 
-const ticketText = ({ kind = "bug", scope = "In:\n- `src/a.ts`: the fix.\n- `test/a.test.ts` (`fixIt`)\n\nOut:\n- `src/b.ts`, `src/c.ts`: another ticket.", decisions = "- 2026-01-01: Source: F1 of AC0001" }: Parts = {}) =>
+const ticketText = ({ kind = "fix", scope = "In:\n- `src/a.ts`: the fix.\n- `test/a.test.ts` (`fixIt`)\n\nOut:\n- `src/b.ts`, `src/c.ts`: another ticket.", decisions = "- 2026-01-01: Source: F1 of AC0001" }: Parts = {}) =>
 	`# AC0002 - Fix\n\n\`\`\`json\n{ "id": "AC0002" }\n\`\`\`\n\n## Goal\n\nA fix.\n\n- Kind: ${kind}\n\n## Scope\n\n${scope}\n\n## Decisions\n\n${decisions}\n`;
 
 // The project `acme` (prefix AC): AC0001, whose findings.md has F1, and AC0002 in planning, made from `parts`; the plugin set up on
@@ -48,9 +48,9 @@ async function refused(loaded: Loaded, problems: readonly string[], budgetUsd?: 
 	assert.equal(loaded.text(), before);
 }
 
-test("a bug from a finding, 2 Scope files, none held, is set planned with the budget default and its record under Decisions", async () => {
+test("a fix from a finding, 2 Scope files, none held, is set planned with the budget default and its record under Decisions", async () => {
 	const loaded = await load();
-	const record = "Pre-approved by policy: bug from F1 of AC0001, 2 Scope files, budget $1 of the $3 cap";
+	const record = "Pre-approved by policy: fix from F1 of AC0001, 2 Scope files, budget $1 of the $3 cap";
 	assert.equal(await loaded.preApprove(), `AC0002 planned: ${record}; spawn its worker with --budget 1`);
 	assert.equal(loaded.status(), "planned");
 	assert.equal(loaded.text(), ticketText().replace("- 2026-01-01: Source: F1 of AC0001\n", `- 2026-01-01: Source: F1 of AC0001\n- 2026-03-04: ${record}\n`));
@@ -74,15 +74,22 @@ test("two pre-approvals of one ticket at once record it once: the second waits, 
 	assert.equal(loaded.fake.emitted.filter((event) => event.name === "ticket-moved").length, 1);
 });
 
-test("exactly 3 Scope files pass, a path with a line number or named twice counted once; a cleanup from an audit at the cap passes", async () => {
+test("exactly 3 Scope files pass, a path with a line number or named twice counted once; a refactor from an audit at the cap passes", async () => {
 	const scope = "In:\n- `src/a.ts:12`, `src/a.ts:40-52`, `src/b.ts`\n- `README.md`: a line. `arthur ticket status` and `fixIt` are no files.";
-	const loaded = await load({ kind: "cleanup", scope, decisions: "- 2026-01-01: Source: audit spec/quality/2026-01-01.md" });
-	assert.match(await loaded.preApprove(3), /^AC0002 planned: Pre-approved by policy: cleanup from audit spec\/quality\/2026-01-01\.md, 3 Scope files, budget \$3 of the \$3 cap;/);
+	const loaded = await load({ kind: "refactor", scope, decisions: "- 2026-01-01: Source: audit spec/quality/2026-01-01.md" });
+	assert.match(await loaded.preApprove(3), /^AC0002 planned: Pre-approved by policy: refactor from audit spec\/quality\/2026-01-01\.md, 3 Scope files, budget \$3 of the \$3 cap;/);
 	assert.deepEqual(loaded.asked, [{ project: "acme", paths: ["src/a.ts", "src/b.ts", "README.md"] }]);
 });
 
-test("refused, each naming the rule broken: a feature, 4 Scope files, a file on the always-review list, budget 0, a budget over the cap", async () => {
-	await refused(await load({ kind: "feature" }), ["its kind is feature; autopilot pre-approves only bug or cleanup"]);
+test("autopilot takes a fix, refactor, chore, docs or test ticket and refuses every other kind, the old ones included", async () => {
+	for (const kind of ["fix", "refactor", "chore", "docs", "test"]) assert.match(await (await load({ kind })).preApprove(), new RegExp(`^AC0002 planned: Pre-approved by policy: ${kind} from F1`), kind);
+	for (const kind of ["feat", "security", "perf", "build", "ci", "ux", "bug", "cleanup"]) {
+		await refused(await load({ kind }), [`its kind is ${kind}; autopilot pre-approves only fix or refactor or chore or docs or test`]);
+	}
+});
+
+test("refused, each naming the rule broken: a feat, 4 Scope files, a file on the always-review list, budget 0, a budget over the cap", async () => {
+	await refused(await load({ kind: "feat" }), ["its kind is feat; autopilot pre-approves only fix or refactor or chore or docs or test"]);
 	const four = "In:\n- `src/a.ts`, `src/b.ts`, `src/c.ts`, `src/d.ts`";
 	await refused(await load({ scope: four }), ["its Scope names 4 files, at most 3: src/a.ts, src/b.ts, src/c.ts, src/d.ts"]);
 	await refused(await load({ scope: "In:\n- `src/a.ts`, `package.json`" }), ["on delivery's always-review list: package.json"]);
@@ -91,8 +98,8 @@ test("refused, each naming the rule broken: a feature, 4 Scope files, a file on 
 	await refused(await load(), ["budget $3.5 is over the cap of $3 (autopilot.budgetMaxUsd)"], 3.5);
 	await refused(await load({}, { autopilot: { budgetMaxUsd: 5 } }), ["budget $6 is over the cap of $5 (autopilot.budgetMaxUsd)"], 6);
 	// Every rule broken at once is named at once.
-	await refused(await load({ kind: "feature", scope: four.replace("src/d.ts", "package.json") }), [
-		"its kind is feature; autopilot pre-approves only bug or cleanup",
+	await refused(await load({ kind: "feat", scope: four.replace("src/d.ts", "package.json") }), [
+		"its kind is feat; autopilot pre-approves only fix or refactor or chore or docs or test",
 		"its Scope names 4 files, at most 3: src/a.ts, src/b.ts, src/c.ts, package.json",
 		"on delivery's always-review list: package.json",
 		"budget $0; a pre-approved ticket needs a budget above 0 (--budget, the budget of its JSON block, or autopilot.budgetUsd)",
@@ -129,10 +136,10 @@ test("a ticket from no finding or audit that exists, of no kind, or whose Scope 
 	const nowhere = 'it is not from a finding or an audit: no "- YYYY-MM-DD: Source: F<n> of <id>" or "Source: audit spec/quality/<file>.md" under its Decisions names one that exists';
 	for (const decisions of ["- 2026-01-01: The owner: fix it.", "- 2026-01-01: Source: F2 of AC0001", "- 2026-01-01: Source: F1 of AC0009", "- 2026-01-01: Source: audit spec/quality/2026-02-02.md"])
 		await refused(await load({ decisions }), [nowhere]);
-	await refused(await load({ kind: "" }), ["its kind is missing (- Kind: under its Goal); autopilot pre-approves only bug or cleanup"]);
+	await refused(await load({ kind: "" }), ["its kind is missing (- Kind: under its Goal); autopilot pre-approves only fix or refactor or chore or docs or test"]);
 	const loaded = await load();
-	writeFileSync(join(loaded.root, TICKET), loaded.text().replace("- Kind: bug\n", ""));
-	await refused(loaded, ["its kind is missing (- Kind: under its Goal); autopilot pre-approves only bug or cleanup"]);
+	writeFileSync(join(loaded.root, TICKET), loaded.text().replace("- Kind: fix\n", ""));
+	await refused(loaded, ["its kind is missing (- Kind: under its Goal); autopilot pre-approves only fix or refactor or chore or docs or test"]);
 	await refused(await load({ scope: "In:\n- the parser.\n\nOut:\n- `src/b.ts`" }), ["its Scope names no file (a backticked path before Out:)"]);
 	await refused(await load({ scope: "In:\n<!-- - `path/to/file.ts`: what changes there. -->\n- the parser." }), ["its Scope names no file (a backticked path before Out:)"]);
 	await refused(await load({ scope: "In:\n- `src/lib`, `test/`, `src/*.ts`" }), ["its Scope names a folder or a pattern, not one file: src/lib, test/, src/*.ts"]);

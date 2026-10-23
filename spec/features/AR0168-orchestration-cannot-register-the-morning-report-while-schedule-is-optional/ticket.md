@@ -16,7 +16,7 @@
 
 The morning report is registered by orchestration when the schedule plugin is enabled, and nothing breaks when it is not.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/host.ts:100-121` (`setupOrder`), `packages/schedule/src/schedule.ts` (`host.provide("schedule.register", ...)` in `setup`)

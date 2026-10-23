@@ -16,7 +16,7 @@ the second step of AR0329, which its Done means gives its own ticket. The guard 
 
 Each job's agent runs in an OS sandbox (its worktree and record writable, Arthur's install, config, secrets and the user's files not), so the bound holds for scripts the command guard cannot read (`node -e`, `python3 -c`); the self-development path through a branch still works; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/job-scope.ts:51` (the wrapper starts the agent as Arthur's Linux user, under a scope that caps CPU and memory only), `packages/core/src/worktree-guard.ts:53-61` (the guard's limits)

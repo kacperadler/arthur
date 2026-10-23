@@ -16,7 +16,7 @@ a lock file names its holder's pid and boot; `takeLock` treats a holder whose pi
 
 A lock whose recorded holder is the taker's own pid is taken over, so `arthur run` restarted as the same pid in the same boot (a `docker restart`) starts and recovers the notices a crash left.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/lock.ts` (`takeLock`, `alive`)

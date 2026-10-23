@@ -16,7 +16,7 @@ The owner wants to pick the channel he uses (Telegram, WhatsApp, Signal, Discord
 
 The first version ships the channel the owner will use, and the roadmap shows the way to his own apps.
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

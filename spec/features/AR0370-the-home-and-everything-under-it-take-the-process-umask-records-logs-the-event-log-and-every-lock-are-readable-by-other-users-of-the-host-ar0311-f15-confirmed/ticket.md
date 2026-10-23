@@ -16,7 +16,7 @@ no line sets a mode or the umask (`grep -rn umask packages/*/src`: 0; `grep -rn 
 
 Arthur's home and everything under it (records, logs, the event log, locks, Telegram media, YouTrack attachments) is readable and writable by Arthur's user alone (0700/0600) whatever the umask, with `UMask=0077` in the unit as a second layer; tested under umask 022.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/run.ts:45`, `packages/core/src/requirements.ts:57`, `packages/core/src/spawn-check.ts:18`, `packages/core/src/host.ts:53` (the home and the plugin folders, `mkdirSync(..., { recursive: true })` with no `mode`, an existing home's mode never changed); `packages/core/src/job-record.ts:27-28`, `:40` (the record); `packages/core/src/wrapper.ts:107`, `packages/core/src/job-scope.ts:65`, `packages/core/src/event-log.ts:21` (the logs); `packages/core/src/lock.ts:78` (every lock); `docs/setup.md:130-149` (the unit has no `UMask=`)

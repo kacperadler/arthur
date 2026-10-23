@@ -16,7 +16,7 @@ AR0194 gave the role one line for reading (`arthur youtrack issue get <id>`), an
 
 The coordinator's role says when it may write to YouTrack and when it asks the owner first.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/orchestration/roles/coordinator.md`, "Commands"

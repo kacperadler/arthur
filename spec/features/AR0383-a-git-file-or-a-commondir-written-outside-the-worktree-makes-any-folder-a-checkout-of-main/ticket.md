@@ -16,7 +16,7 @@ in a temporary repository, `mkdir /tmp/z && cd /tmp/z && echo "gitdir: <root>/.g
 
 A `.git` file or a `commondir` a job writes outside its worktree can no longer turn a folder into a checkout of main; the guard refuses it; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/worktree-guard.ts:36-45` (`refusal` guards the worktree's own `.git` only), `:63-67` (named as a limit), `docs/deploy.md:34`

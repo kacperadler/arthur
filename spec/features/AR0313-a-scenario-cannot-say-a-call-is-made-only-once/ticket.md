@@ -19,7 +19,7 @@
 
 A scenario can require that a call is made exactly once (a count on an `expect.calls` entry), and delivery/check-failed requires one `arthur continue`, so a coordinator that continues twice fails the eval.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/develop/src/eval-scenario.ts:15`

@@ -16,7 +16,7 @@
 
 A pre-approved ticket's worker cannot spend more than the budget recorded at approval.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/orchestration/src/autopilot.ts`

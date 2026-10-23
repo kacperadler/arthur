@@ -16,7 +16,7 @@ a worker's branch that changes only Markdown, among it `.agents/arthur/roles/wor
 
 A branch that changes the prompt files later jobs read (roles, criteria, the vision) is always reviewed, even when it changes docs only; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/delivery/src/review-needed.ts:65` (`no review: N files, all docs (*.md)`, whatever the size), `packages/delivery/src/delivery-options.ts:16` (the always-review list holds `**/roles/reviewer.md` and `**/criteria/review.md` only), `packages/delivery/src/merge-command.ts:140` (the merge takes that answer as the PASS), `packages/orchestration/src/autopilot.ts:67` (a ticket's Scope is held only by that list)

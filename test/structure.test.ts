@@ -532,6 +532,10 @@ import { checkStructure } from "./structure.ts";
 // checkout, served to `arthur doctor` and asked again before each merge (merge-command.ts, git diff --numstat +19 -2: the
 // requirement 10, its comment 3, a blank 1, the merge's refusal 3, two imports changed in place; delivery.ts, +4 -1: the
 // provider 1, its comment 2, an import changed in place). No identity was checked before, so nothing was cut.
+// AR0316 (F1 of AR0310; its Done means: `git var` of the author and the committer in the machines check's one ssh command,
+// named in that machine's doctor line): machines 5 more (484) for the loop in the script and its comment (machine-check.ts,
+// git diff --numstat +9 -5: the loop 2, its line read from the report 2, the rest changed in place; machines.ts, +10 -9: the
+// identity beside the tools in the line, its costs and its fix). Comments shortened to make room; nothing else to cut.
 // Merged main (AR0310, AR0312, AR0314) into AR0313: main's budgets plus AR0313's develop 703, delivery 1305 (recounted with
 // wc -l).
 // AR0315 (the ticket's Done means: github's failed-CI wake names `arthur continue <job>` for a job's branch and the owner for
@@ -539,7 +543,8 @@ import { checkStructure } from "./structure.ts";
 // with its comment (github.ts, +4 -1, the old `why` line rewritten in place); nothing in github named a job before, so nothing
 // was cut.
 // Merged main (AR0310, AR0313) into AR0315: main's budgets plus AR0315's github 633 (recounted with wc -l).
-const BUDGETS = { core: 5787, "core/testing": 349, projects: 485, orchestration: 2309, machines: 479, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1305, github: 633, manage: 925, develop: 703, findings: 254 };
+// Merged main (AR0313, AR0315, AR0317) into AR0316: main's budgets plus AR0316's machines 484 (recounted with wc -l).
+const BUDGETS = { core: 5787, "core/testing": 349, projects: 485, orchestration: 2309, machines: 484, resources: 616, session: 878, schedule: 585, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1305, github: 633, manage: 925, develop: 703, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

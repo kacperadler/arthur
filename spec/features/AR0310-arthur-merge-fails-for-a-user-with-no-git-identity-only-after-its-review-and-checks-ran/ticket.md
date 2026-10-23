@@ -36,3 +36,4 @@ In:
 
 - 2026-10-23: Source: F1 of AR0309
 - 2026-10-23: Coordinator (free hand, finding ticket) approved.
+- 2026-10-23: Coordinator accepted the delivery line budget raise 1285 -> 1305 (+20: merge-command.ts identity check, delivery.ts doctor line).

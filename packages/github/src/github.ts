@@ -90,7 +90,10 @@ export function github(options: GithubOptions): Plugin {
 					host.events.emit("ci-finished", { project, repo, workflow, run: run.id, attempt: run.attempt, sha: run.sha, branch: run.branch, branches: ends.map((end) => end.branch), conclusion: run.conclusion, url: run.url });
 					if (!wakeOn.includes("ci-finished") || rest.length === 0) continue;
 					const ci = `arthur ci ${rest[0]} --project ${project}`;
-					const why = ["failure", "timed_out", "startup_failure", "cancelled"].includes(run.conclusion ?? "") ? `\nWhy: ${ci}; rerun it once: ${ci} --rerun` : "";
+					// A job's branch goes back to its worker; main, or any branch no job has, is the owner's. A job id names one branch.
+					const job = host.jobs.list().find((each) => each.branch === rest[0])?.id;
+					const own = job === undefined ? `goes to the owner: ${rest[0]} has no worker` : `goes back to its worker: arthur continue ${job} '<the failed step and its lines>'`;
+					const why = ["failure", "timed_out", "startup_failure", "cancelled"].includes(run.conclusion ?? "") ? `\nWhy: ${ci}; then a failure in the branch's own code ${own}; one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once: ${ci} --rerun` : "";
 					const text = `[github] CI run ${run.id}, attempt ${run.attempt}, of ${workflow} in ${project} ended ${run.conclusion} on ${rest.join(", ")} (${run.sha.slice(0, 7)}): ${run.url}${why}`;
 					host.events.emit("coordinator-message", { text });
 				}

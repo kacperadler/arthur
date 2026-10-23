@@ -34,4 +34,4 @@ Wrong usage (no branch, two, an unknown flag) prints the usage line and exits 2.
 
 ## What the coordinator does with it
 
-The wake of a failed run names the two commands. Run `arthur ci <branch>` first: a failure in the branch's own code goes back to its worker (`arthur continue <job> '<the failed step and its lines>'`); one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is what `--rerun` is for, once. A rerun that fails again goes to the owner.
+The wake of a failed run names what to do for each case. Run `arthur ci <branch>` first: a failure in the branch's own code goes back to its worker (`arthur continue <job> '<the failed step and its lines>'`), or to the owner on main or a branch no job has, which has no worker; one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is what `--rerun` is for, once. A rerun that fails again goes to the owner.

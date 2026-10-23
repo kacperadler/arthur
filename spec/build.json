@@ -2538,9 +2538,9 @@
   {
     "id": "AR0331",
     "title": "A job can point its own worktree at `main`, after which every allowed git write lands on main",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0331-a-job-can-point-its-own-worktree-at-main-after-which-every-allowed-git-write-lands-on-main/ticket.md",
-    "updated": "2026-10-23T17:30:39.098Z"
+    "updated": "2026-10-23T17:33:53.249Z"
   },
   {
     "id": "AR0332",
@@ -2898,5 +2898,19 @@
     "status": "planned",
     "path": "spec/features/AR0382-a-job-s-repository-on-another-machine-runs-its-config-s-hooks-in-arthur-s-git-calls-there/ticket.md",
     "updated": "2026-10-23T16:58:38.437Z"
+  },
+  {
+    "id": "AR0383",
+    "title": "A `.git` file or a `commondir` written outside the worktree makes any folder a checkout of main",
+    "status": "planned",
+    "path": "spec/features/AR0383-a-git-file-or-a-commondir-written-outside-the-worktree-makes-any-folder-a-checkout-of-main/ticket.md",
+    "updated": "2026-10-23T17:34:07.457Z"
+  },
+  {
+    "id": "AR0384",
+    "title": "`git replace` from a job's worktree changes what every worktree reads of main's commits",
+    "status": "planned",
+    "path": "spec/features/AR0384-git-replace-from-a-job-s-worktree-changes-what-every-worktree-reads-of-main-s-commits/ticket.md",
+    "updated": "2026-10-23T17:34:07.667Z"
   }
 ]

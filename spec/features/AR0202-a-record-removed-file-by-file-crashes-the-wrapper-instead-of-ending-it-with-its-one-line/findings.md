@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/wrapper.ts` (`save` with `append`, `appendFileSync(join(folder, name), text)`)
 - What: AR0202 ends the wrapper at the first failed use once the record's `pid` is gone, but an append to `log` does not fail: it recreates `log` in the folder `rm -r` is emptying, so that `rm -r` can fail with `ENOTEMPTY` before the wrapper's next failing use ends it. [INFERENCE: read from the lines; not reproduced.]
 - Suggestion: before appending, end the wrapper when `pid` is gone (`gone()` in `wrapper.ts`), or append with a flag that does not create the file; out: any retry of the use.
-- Status: open
+- Status: ticket AR0300

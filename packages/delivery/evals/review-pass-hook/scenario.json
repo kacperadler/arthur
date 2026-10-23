@@ -1,13 +1,18 @@
 {
-	"needs": [
-		"AR0277: delivery's line of the wake (the verdict, how to file it, and that the project merges on its own: arthur merge --auto) is not in the turn, since the review's record is not in the eval's home"
-	],
 	"turn": {
 		"ended": {
 			"id": "2026-10-22-review-3a4b5c6d",
 			"kind": "review",
 			"state": "ended",
-			"reason": "finished"
+			"reason": "finished",
+			"records": {
+				"delivery": {
+					"ticket": "SH0012",
+					"branch": "arthur/2026-10-22-worker-c9d0e1f2",
+					"commit": "4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f",
+					"autoMerge": true
+				}
+			}
 		},
 		"result": "The support role answers a refund question with the policy's three steps and links the form, as Done means asks; the role's examples cover a refund past 30 days.\n\n**Findings**\n\nNone.\n\n**Checks I ran**\n\n- `npm run check`: clean. `npm test`: 52/52.\n\nPASS"
 	},

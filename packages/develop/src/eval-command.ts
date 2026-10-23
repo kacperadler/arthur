@@ -5,7 +5,7 @@ import { parseArgs } from "node:util";
 import type { Command, Host } from "@arthur/core/plugin";
 import { BASELINE, type EvalOptions, RUNS } from "./develop-options.ts";
 import { type Agent, evalRun } from "./eval-run.ts";
-import { readScenario, scenarios } from "./eval-scenario.ts";
+import { readScenario, type Scenario, scenarios } from "./eval-scenario.ts";
 
 // `arthur eval [<scenario>...] [--runs <n>] [--save-baseline]` (spec/roadmap.md, entry 67): each scenario of the loaded
 // packages run `runs` times at once, each run one coordinator turn (eval-run.ts) with orchestration's context for its copy of
@@ -59,8 +59,8 @@ async function evaluate(host: Host, args: readonly string[]): Promise<number> {
 	const baseline = readBaseline(path);
 	// No coordinator role (orchestration not enabled) refuses before any run.
 	host.jobs.prompt("coordinator");
-	// Orchestration's context for a run's copy of the fixture, at the scenario's hour.
-	const context = (root: string, hour: number) => host.call<string>("coordinator.checkoutContext", { root, at: atHour(host.clock, hour, host.clock.now()) });
+	// Orchestration's context for a run's copy of the fixture, at the scenario's hour, with the plugins' lines it sets.
+	const context = (root: string, { hour, context }: Scenario) => host.call<string>("coordinator.checkoutContext", { root, at: atHour(host.clock, hour, host.clock.now()), context });
 	const [roles] = host.collect<{ readonly model?: unknown; readonly thinking?: unknown } | undefined>("roles.model", "coordinator");
 	const [model, thinking] = [roles?.model, roles?.thinking].map((value) => (typeof value === "string" && value !== "" ? value : undefined));
 	const agent: Agent = {

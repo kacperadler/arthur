@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
 import { type AgentStep, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { orchestration } from "../src/orchestration.ts";
+import { endCoordinator } from "./coordinator-end.ts";
 
 // The silent mode (spec/roadmap.md, entry 47, AR0127): `arthur silent` and `/silent`, its state file, the replies and notices it
 // holds, and its line in the coordinator's context.
@@ -199,11 +200,8 @@ test("through the coordinator: while on, a turn of only a wake is held, a wake a
 	const fake = fakeHost({ name: "orchestration" });
 	const plugin = orchestration(options);
 	await fake.setup({ setup: (host) => plugin.setup({ ...host, options }) });
-	t.after(async () => {
-		await plugin.stop?.();
-		spawnSync("tmux", ["-S", socket, "kill-server"]);
-		process.env.PATH = PATH;
-	});
+	t.after(() => void (process.env.PATH = PATH));
+	endCoordinator(t, socket, plugin);
 	await fake.commands.find((command) => command.name === "silent")?.run({ args: ["on", WORK], project: undefined });
 	process.env.PATH = `${dirname(agent)}${delimiter}${PATH}`;
 	await plugin.start?.();

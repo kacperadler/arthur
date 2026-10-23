@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -261,6 +261,23 @@ test("a project declared while a job runs is refused to it at once; an unreadabl
 	writeFileSync(join(record, "projects"), `alpha ${alpha}\nbeta ${beta}\n`);
 	worktreeGuard({ on: (_, registered) => (handler = registered) });
 	assert.match(write() ?? "", /writes into the main checkout of project beta \(/);
+});
+
+test("the fallback line never creates the record's log, as while a rm -r empties it; another error of it blocks the call", (t) => {
+	const alpha = repository("alpha");
+	const record = join(temporaryFolder(), "home", "jobs", "2026-10-23-worker-00000000");
+	mkdirSync(record, { recursive: true });
+	const fields = { worktree: join(alpha, "..", ".arthur-worktrees", "job"), root: alpha, branch: "job" };
+	for (const [name, value] of Object.entries(fields)) writeFileSync(join(record, name), value);
+	t.after(() => delete process.env.ARTHUR_JOB);
+	process.env.ARTHUR_JOB = record;
+	let handler: ((event: { toolName: string; input: Record<string, unknown> }) => { reason: string } | undefined) | undefined;
+	worktreeGuard({ on: (_, registered) => (handler = registered) });
+	assert.match(handler?.({ toolName: "write", input: { path: join(alpha, "README.md"), content: "x" } })?.reason ?? "", /writes into the main checkout \(/);
+	assert.equal(existsSync(join(record, "log")), false);
+	mkdirSync(join(record, "log"));
+	worktreeGuard({ on: (_, registered) => (handler = registered) });
+	assert.throws(() => handler?.({ toolName: "write", input: { path: "/tmp/x", content: "x" } }), { code: "EISDIR" });
 });
 
 test("outside a job, without ARTHUR_JOB, the extension refuses nothing", () => {

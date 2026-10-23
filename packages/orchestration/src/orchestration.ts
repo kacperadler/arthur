@@ -49,6 +49,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 	let place: { readonly coordinator: Coordinator; readonly folder: string; readonly agent: string; readonly host: Host } | undefined;
 	let supervisor: { stop(): Promise<void> } | undefined;
 	let messages: ReturnType<typeof inbox> | undefined;
+	let unsent: (() => void) | undefined;
 	return {
 		name: "orchestration",
 		module: import.meta.url,
@@ -76,7 +77,7 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 			const { folder, agent } = host;
 			place = { coordinator, folder, agent, host };
 			messages = inbox(host);
-			blockedNotice(host);
+			unsent = blockedNotice(host);
 			spawnRules(host, coordinator);
 			plans(host);
 			autopilot(host);
@@ -136,14 +137,16 @@ export function orchestration(options: OrchestrationOptions = {}): Plugin {
 				if (asked.fresh) writeFileSync(join(folder, FRESH), "");
 				tmux(coordinator, ["kill-session", "-t", `=${coordinator.session}`]);
 			});
-			// For develop's `arthur eval`: the context in a copy of the main project's repository, at a given instant (context.ts).
-			host.provide("coordinator.checkoutContext", (asked: { readonly root?: unknown; readonly at?: unknown } = {}) => {
-				if (typeof asked.root !== "string" || !(asked.at instanceof Date)) throw new Error(`coordinator.checkoutContext: expected { root: a folder, at: a Date }, got ${JSON.stringify(asked)}`);
-				return coordinatorContext(host, { root: asked.root, at: asked.at });
+			// For develop's `arthur eval`: the context in a copy of the main project's repository, at an instant, with a scenario's plugin lines (context.ts).
+			host.provide("coordinator.checkoutContext", (asked: { readonly root?: unknown; readonly at?: unknown; readonly context?: unknown } = {}) => {
+				const { root, at, context } = asked, lines = typeof context === "object" && context !== null && !Array.isArray(context) && Object.values(context).every((text) => typeof text === "string");
+				if (typeof root !== "string" || !(at instanceof Date) || !lines) throw new Error(`coordinator.checkoutContext: expected { root: a folder, at: a Date, context: { <plugin>: <text> } }, got ${JSON.stringify(asked)}`);
+				return coordinatorContext(host, { root, at, context: context as Record<string, string> });
 			});
 			for (const command of [...boardCommands(host), ...decisionCommands(host)]) host.commands.register(command);
 		},
 		start() {
+			unsent?.();
 			messages?.start();
 			if (place !== undefined) supervisor = supervise(place.coordinator, place.folder, place.agent, extensions(place.host.collectEach("coordinator.extension")), mcpServers(place.host.options, place.host.env, "coordinator"));
 		},

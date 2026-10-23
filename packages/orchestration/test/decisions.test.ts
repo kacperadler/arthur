@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { once } from "node:events";
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { orchestration } from "../src/orchestration.ts";
@@ -234,6 +235,60 @@ test("a job blocked on the owner asks in the log: the notice and the wake name t
 	assert.deepEqual(log()?.map((each) => [each.record, each.id, each.ticket]), [["ask", "AC-D1", "AC0001"], ["close", "AC-D1", undefined], ["ask", "AC-D2", undefined]], "a ticket not on the board is left out");
 });
 
+test("while another process holds the log's lock, a job's question and the closes wait for it without stalling the process", async (t) => {
+	const { decision, fake, log, file, blocked, notices, printed } = await setup(t);
+	const holder = spawn("sleep", ["60"]);
+	t.after(() => holder.kill());
+	const lock = join(fake.host.folder, "decisions-acme.lock");
+	const until = async (what: string, done: () => boolean) => {
+		for (const end = Date.now() + 5000; !done(); await sleep(10)) if (Date.now() > end) assert.fail(`no ${what} within 5 s`);
+	};
+	// Each emit returns at once; `withLock` would wait 10 s for the live holder, then fail.
+	const held = (emit: () => void) => {
+		writeFileSync(lock, String(holder.pid));
+		const started = performance.now();
+		emit();
+		assert.ok(performance.now() - started < 1000, `the emit took ${performance.now() - started} ms`);
+	};
+	const wake = (question: string) => fake.collect("coordinator.wake", { id: JOB, kind: "worker", project: "acme", state: "blocked", reason: `user: ${question}` }).filter(Boolean);
+	blocked(JOB, "May I drop the table?");
+	await decision("answer", "AC-D1", "--decided", "Drop it", "yes");
+	held(() => blocked(JOB, "And the archive?"));
+	assert.deepEqual([notices(), log()?.length], [[`${JOB} asks [AC-D1]: May I drop the table?`], 2], "the notice waits for its question's id");
+	assert.deepEqual(wake("And the archive?"), [
+		`Its question was not in the decision log yet: arthur decisions --kind job --project acme shows its id. Open, record the owner's answer first, arthur decision answer <its id> --decided '<the decision in one line>' '<his words>', then arthur continue ${JOB} '<his answer>'; answered by policy, act on that decision as on the owner's answer, and say so in your reply.`,
+	], "the job's earlier question, answered, is not taken for this one");
+	assert.deepEqual(fake.collect("coordinator.wake", { id: JOB, kind: "worker", project: "elsewhere", state: "blocked", reason: "user: And the archive?" }).filter(Boolean), [], "a project not listed has no log to look in");
+	rmSync(lock);
+	await until("notice", () => notices().length === 2);
+	assert.equal(notices()[1], `${JOB} asks [AC-D2]: And the archive?`);
+	assert.deepEqual(wake("And the archive?"), [`Its question is decision AC-D2: record the owner's answer first, arthur decision answer AC-D2 --decided '<the decision in one line>' '<his words>', then arthur continue ${JOB} '<his answer>'.`]);
+	await decision("ask", "--kind", "question", "--question", "Merge AC0002 first?", "--ticket", "AC0002");
+	const closes = () => (log() ?? []).filter((each) => each.record === "close").map((each) => [each.id, each.reason]);
+	held(() => {
+		fake.emit("job-state", { id: JOB, project: "acme", ticket: "AC0001", machine: "local", from: "blocked", to: "working", reason: "" });
+		fake.emit("ticket-moved", { id: "AC0002", project: "acme", from: "planning", to: "dropped" });
+	});
+	assert.deepEqual(closes(), []);
+	rmSync(lock);
+	await until("closes", () => closes().length === 2);
+	assert.deepEqual(closes().toSorted(), [["AC-D2", "job continued"], ["AC-D3", "ticket dropped"]]);
+	// A log broken by hand while they wait: the notice still goes, without an id, and each event fails, named.
+	const [other, third] = ["2026-03-04-worker-0000ffff", "2026-03-04-worker-0000eeee"];
+	await decision("ask", "--kind", "job", "--question", "Rename AC0001?", "--ticket", "AC0001", "--job", third);
+	held(() => {
+		blocked(other, "May I?");
+		fake.emit("job-state", { id: third, project: "acme", ticket: "AC0001", machine: "local", from: "blocked", to: "ended", reason: "stopped" });
+		fake.emit("ticket-moved", { id: "AC0001", project: "acme", from: "in-progress", to: "merged" });
+	});
+	appendFileSync(file(), "not json\n");
+	printed.length = 0;
+	rmSync(lock);
+	await until("failures", () => printed.length === 3);
+	assert.equal(notices().at(-1), `${other} asks: May I?`);
+	assert.deepEqual(printed.map((line) => /^plugin orchestration: handler of (job-state|ticket-moved) \(event \d+\) failed: .* is not a decision record/.exec(line)?.[1]).toSorted(), ["job-state", "job-state", "ticket-moved"]);
+});
+
 test("a log line that is not a record refuses every write, naming the line and leaving the file as it is; the notice still goes", async (t) => {
 	const { decision, decisions, file, blocked, notices, context, printed } = await setup(t);
 	await decision(...PLAN_ASK);
@@ -415,15 +470,21 @@ test("the context lists each open question with its age and up to 5 answered one
 	assert.match(printed.join("\n"), /\n## Open decisions\n\n- AC-D8, plan, ticket AC0001, open for 2h05m: Approve the plan of the menu\?\n/);
 });
 
-test("asks at once, from four processes asking five times each, get one id each and every line is kept", async (t) => {
-	const saved = process.env.ARTHUR_JOB;
-	delete process.env.ARTHUR_JOB;
-	t.after(() => (saved === undefined ? delete process.env.ARTHUR_JOB : (process.env.ARTHUR_JOB = saved)));
+// A project demo (DM) in a folder of its own whose config sets up the plugin in UTC, for `arthur` run as a process there.
+function demo(): string {
 	const folder = temporaryFolder();
 	mkdirSync(join(folder, "spec"));
 	writeFileSync(join(folder, "spec/build.json"), "[]");
 	const projects = `{ name: "projects", setup(host) { host.provide("projects", () => [{ name: "demo", path: ${JSON.stringify(folder)}, prefix: "DM" }]); } }`;
 	writeFileSync(join(folder, "arthur.config.ts"), `import { orchestration } from ${JSON.stringify(PLUGIN)};\nexport default { core: { timeZone: "UTC" }, plugins: [orchestration(), ${projects}] };\n`);
+	return folder;
+}
+
+test("asks at once, from four processes asking five times each, get one id each and every line is kept", async (t) => {
+	const saved = process.env.ARTHUR_JOB;
+	delete process.env.ARTHUR_JOB;
+	t.after(() => (saved === undefined ? delete process.env.ARTHUR_JOB : (process.env.ARTHUR_JOB = saved)));
+	const folder = demo();
 	const asks = async (writer: number) => {
 		const script = `for n in 1 2 3 4 5; do "$0" "$1" decision ask --kind question --question "${writer}.$n?" || exit 1; done`;
 		const child = spawn("sh", ["-c", script, process.execPath, CLI], { cwd: folder, env: { PATH: process.env.PATH ?? "" } });
@@ -441,6 +502,39 @@ test("asks at once, from four processes asking five times each, get one id each 
 	assert.deepEqual(log.map((each) => each.id), Array.from({ length: 20 }, (_, at) => `DM-D${at + 1}`), "every line kept, in the order asked");
 	assert.equal(new Set(log.map((each) => each.question)).size, 20);
 	assert.match(log[0].time, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\+00:00$/, "UTC's offset written out");
+});
+
+// Whatever the timing: another process holds the log's lock, the ask waits on it (its own lock file beside it), and only then
+// does the holder write a record and let go. An ask that wrote without the lock is before that record, or its id is the same.
+test("an ask waits for the log's lock another process holds, and writes after that process's record", async () => {
+	const folder = demo();
+	const lock = join(folder, ".arthur/orchestration/decisions-demo.lock");
+	const file = join(folder, "spec/decisions.jsonl");
+	mkdirSync(dirname(lock), { recursive: true });
+	const marker = { record: "ask", id: "DM-D1", time: "2026-03-04T05:00:00+00:00", project: "demo", kind: "question", question: "Held?", options: [] };
+	const code = `const { takeLock } = await import(${JSON.stringify(import.meta.resolve("@arthur/core/lock"))});
+		const { appendFileSync } = await import("node:fs");
+		const lock = takeLock(${JSON.stringify(lock)});
+		if (!("release" in lock)) process.exit(1);
+		process.send("held");
+		process.once("message", () => {
+			appendFileSync(${JSON.stringify(file)}, ${JSON.stringify(`${JSON.stringify(marker)}\n`)});
+			lock.release();
+			process.disconnect();
+		});`;
+	const holder = spawn(process.execPath, ["--input-type=module", "-e", code], { stdio: ["ignore", "inherit", "inherit", "ipc"] });
+	const held = once(holder, "exit");
+	await Promise.race([once(holder, "message"), held.then(([status]) => assert.fail(`the holder exited with ${status} before it held the lock`))]);
+	const asker = spawn(process.execPath, [CLI, "decision", "ask", "--kind", "question", "--question", "After?"], { cwd: folder, env: { PATH: process.env.PATH ?? "" } });
+	let out = "";
+	asker.stdout.on("data", (chunk) => (out += chunk));
+	asker.stderr.on("data", (chunk) => (out += chunk));
+	const asked = once(asker, "exit");
+	while (!existsSync(`${lock}.${asker.pid}`) && !existsSync(file) && asker.exitCode === null) await sleep(2);
+	holder.send("release");
+	assert.deepEqual([(await held)[0], (await asked)[0], out.trim()], [0, 0, "DM-D2"]);
+	const log = readFileSync(file, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+	assert.deepEqual(log.map((each) => [each.id, each.question]), [["DM-D1", "Held?"], ["DM-D2", "After?"]], "the ask's record after the holder's");
 });
 
 // Decision classes (spec/roadmap.md, entry 97): three budget questions the owner answered alike, AC-D1 to AC-D3; the
@@ -639,12 +733,50 @@ test("a job's question an approved class matches is answered by policy, and the 
 	const other = "2026-03-04-worker-0000ffff";
 	blocked(other, "May I drop the archive table?");
 	assert.deepEqual(log()?.slice(-1), [{ record: "answer", id: "AC-D3", time: "2026-03-04T06:00:00+01:00", decided: "Drop the table", words: "by policy: AC-D2" }]);
-	assert.equal(notices().at(-1), `${other} asks [AC-D3]: May I drop the archive table?`);
+	assert.equal(notices().at(-1), `${other} asks [AC-D3]: May I drop the archive table? — answered by policy (AC-D2): Drop the table`);
 	const wake = { id: other, kind: "worker", project: "acme", state: "blocked", reason: "user: May I drop the archive table?" };
 	assert.deepEqual(fake.collect("coordinator.wake", wake).filter(Boolean), [
 		`Its question is decision AC-D3, answered by policy (AC-D2): Drop the table. Act on it as on the owner's answer, arthur continue ${other} '<that decision>', and say so in your reply.`,
 	]);
-	assert.deepEqual(fake.collect("coordinator.wake", { ...wake, id: JOB }).filter(Boolean), [], "a question the owner answered needs no line");
+	assert.deepEqual(fake.collect("coordinator.wake", { ...wake, id: JOB, reason: "user: May I drop the old orders table?" }).filter(Boolean), [], "a question the owner answered needs no line");
+});
+
+test("a job's question answered by policy and longer than one message is cut before what decided it; an ending that leaves no room is cut as any text", async (t) => {
+	const { decision, blocked, notices } = await setup(t);
+	blocked(JOB, "May I drop the old orders table?");
+	await decision("answer", "AC-D1", "--decided", "Drop the table", "yes, drop it");
+	await decision("class", "propose", "--kind", "job", "--match", "drop table", "--decided", "Drop the table", "--backed-by", "AC-D1");
+	await decision("answer", "AC-D2", "--picked", "1", "--decided", "Pre-approve dropping tables", "always");
+	const other = "2026-03-04-worker-0000ffff";
+	// AC-D3 and AC-D4: heads of one length.
+	const head = `${other} asks [AC-D3]: `;
+	const ending = " — answered by policy (AC-D2): Drop the table";
+	const tail = " … (cut; /jobs shows the whole question of job 0000ffff)";
+	const asked = "May I drop the archive table? ";
+	const whole = `${asked}${"q".repeat(4096 - head.length - asked.length - ending.length)}`;
+	blocked(other, whole);
+	assert.equal(notices().at(-1), `${head}${whole}${ending}`, "4096 exactly is sent whole");
+	blocked(other, `${whole}!`);
+	const cut = `${other} asks [AC-D4]: ${whole.slice(0, 4096 - head.length - tail.length - ending.length)}${tail}${ending}`;
+	assert.equal(cut.length, 4096);
+	assert.equal(notices().at(-1), cut);
+
+	// An ending that leaves the head exactly its room is kept, all of the question cut; one character more, the text is cut.
+	const room = async (subject: string, [backing, proposal, asked]: readonly string[], over: number) => {
+		const [head, opening] = [`${other} asks [${asked}]: `, ` — answered by policy (${proposal}): `];
+		const decided = subject.padEnd(4096 - tail.length - head.length - opening.length + over, "s");
+		blocked("2026-03-04-worker-0000eeee", `May I ${subject}?`);
+		await decision("answer", String(backing), "--decided", decided, "yes");
+		await decision("class", "propose", "--kind", "job", "--match", subject, "--decided", decided, "--backed-by", String(backing));
+		await decision("answer", String(proposal), "--picked", "1", "--decided", "Pre-approve it", "always");
+		const question = `May I ${subject} again? ${"q".repeat(100)}`;
+		blocked(other, question);
+		return { head, ending: `${opening}${decided}`, text: `${head}${question}${opening}${decided}` };
+	};
+	const fits = await room("purge logs", ["AC-D5", "AC-D6", "AC-D7"], 0);
+	assert.equal(notices().at(-1), `${fits.head}${tail}${fits.ending}`);
+	const over = await room("prune caches", ["AC-D8", "AC-D9", "AC-D10"], 1);
+	assert.equal(notices().at(-1), `${over.text.slice(0, 4096 - tail.length)}${tail}`);
 });
 
 test("the agreement rate scores a recommendation by number or by an option's words against the owner's pick", async (t) => {

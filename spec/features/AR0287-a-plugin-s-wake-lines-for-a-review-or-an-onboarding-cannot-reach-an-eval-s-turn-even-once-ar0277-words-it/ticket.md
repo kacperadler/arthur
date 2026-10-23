@@ -36,3 +36,4 @@ In:
 
 - 2026-10-22: Source: F2 of AR0280
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-22: Coordinator (free hand): line budget raises accepted, delivery 1263 to 1285, develop 667 to 669, orchestration 2277 to 2278 (after merging main), for passing a job's final message to the wake and wording a review's and an onboarding's wake from it in an eval.

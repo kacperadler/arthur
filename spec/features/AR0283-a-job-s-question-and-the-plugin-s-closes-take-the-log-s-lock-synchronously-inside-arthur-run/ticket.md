@@ -39,3 +39,5 @@ In:
 
 - 2026-10-22: Source: F2 of AR0281
 - 2026-10-22: Coordinator (free hand, finding ticket) approved.
+- 2026-10-22: Coordinator (free hand): line budget raise accepted, orchestration 2231 to 2269, for `decision-lock.ts` (queued writes to the decision log without blocking `arthur run`) and the wake line for a question not yet logged.
+- 2026-10-22: Coordinator (free hand): after merging main (AR0285, 2239), orchestration budget 2277 accepted (2239 + this ticket's 38).

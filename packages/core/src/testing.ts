@@ -20,18 +20,18 @@ import { pluginHost, registry } from "./plugin-host.ts";
 // The test kit (spec/roadmap.md, entries 4, 11 and 13), `@arthur/core/testing`, which `npm test` loads into every test process
 // (`--import`) as the safety net: every `ARTHUR_` variable and tmux's session variables are cleared and tmux's default socket
 // moves into a temporary folder, so no test reaches a live bot, token or tmux server; `omp` on `PATH` is the fake agent with
-// no run (it fails), so no job reaches the real agent; every folder the kit makes, and its slice `jobSlice`, go at exit.
+// no run (it fails), so no job reaches the real agent; at exit go the tmux servers on its sockets (tmux's default one included; a server outlives its removed socket, unreachable then; `find` follows no link out), its slice `jobSlice`, and every folder the kit makes.
 
 for (const key of Object.keys(process.env)) if (key.startsWith("ARTHUR_") || key === "TMUX" || key === "TMUX_PANE") delete process.env[key];
 const root = mkdtempSync(join(tmpdir(), "arthur-test-"));
 process.env.TMUX_TMPDIR = root;
 
-// The joint slice of a test's jobs, never Arthur's own: `arthur_test_<8 hex digits>.slice` right under the user manager (a `-`
-// would nest it in another slice); at exit it is stopped, with any job still in it, and its limits are removed.
+// The joint slice of a test's jobs, never Arthur's own: `arthur_test_<8 hex digits>.slice` right under the user manager (a `-` would nest it in another slice); at exit it is stopped, with any job still in it, and its limits are removed.
 export const jobSlice: Slice = { slice: `arthur_test_${randomBytes(4).toString("hex")}`, cpu: 2, memory: "2G" };
 
 process.on("exit", () => {
 	for (const verb of ["stop", "revert"]) spawnSync("systemctl", ["--user", verb, `${jobSlice.slice}.slice`], { stdio: "ignore" });
+	for (const socket of (spawnSync("find", [root, "-type", "s", "-print0"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).stdout ?? "").split("\0").filter(Boolean)) spawnSync("tmux", ["-S", socket, "kill-server"], { stdio: "ignore" });
 	rmSync(root, { recursive: true, force: true });
 });
 process.env.PATH = [dirname(fakeAgent({ steps: [{ stderr: "fake agent: this test scripted no run" }], exitCode: 1 })), process.env.PATH].join(delimiter);
@@ -45,7 +45,7 @@ export function temporaryFolder(): string {
 // are lost with no turn (omp's prompt failing after it returned), and `ctx.compact` throws `compactError`; with `clock`, a file, `Date.now()` in the agent and its extensions answers the
 // time in ms it holds while it exists, so a test moves time. A step: `tool`, a tool call, omp's start and end events of it, `output` the tool's text and `failed` its error flag.
 // `message`: an assistant message that ends a turn, with its `cost` in USD; `stopReason` `stop` (the default) ends the run, `toolUse` comes before a tool call, `error` or `aborted` a
-// failed one, with omp's `error` text. `prompt`: a turn starts (`agent_start`) once an extension sent a message while idle, busy `compactMs` first (omp's compaction before it), after its
+// failed one, with omp's `error` text. `prompt`: a turn starts (`agent_start`) once an extension sent a message while idle, busy `compactMs` by `Date.now()` first (omp's compaction before it), after its
 // `before_agent_start` handlers; `end`: it ends (`agent_end`) unless a `session_stop` handler continues it (8 in a row at most) or, with `continues`, says it goes on and starts none
 // (omp's compaction after it). `stdout`/`stderr`: one line. `waitFor`: until the file exists. `signal`: kills itself with it.
 export type AgentStep =
@@ -62,7 +62,7 @@ export type AgentRun = { readonly steps: readonly AgentStep[]; readonly exitCode
 
 // The fake agent: an executable `omp` in a new folder of the kit's, which plays `run` each time it starts, notes each start
 // (`pid`, `cwd`, `args`) in `starts.jsonl` beside it once its `-e` extensions are loaded, each message they send (`content`, `options`, `step`) in
-// `messages.jsonl`, their `ctx.ui` calls in `ui.jsonl`, their `ctx.compact` calls in `compactions.jsonl`, and each turn's system prompt in `system.jsonl`. Returns its path, for `PATH` or as `core.agent.command`.
+// `messages.jsonl`, their `ctx.ui` calls in `ui.jsonl`, their `ctx.compact` calls in `compactions.jsonl`, each turn's system prompt in `system.jsonl`, and each `agent_end` (`willContinue`, `step`) once its handlers ran in `ends.jsonl`. Returns its path, for `PATH` or as `core.agent.command`.
 export function fakeAgent(run: AgentRun): string {
 	const folder = temporaryFolder();
 	const quote = (text: string) => `'${text.replaceAll("'", `'\\''`)}'`;

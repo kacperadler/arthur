@@ -16,7 +16,7 @@ This ticket builds roadmap entry 51 in `spec/roadmap.md`: the host API as schedu
 
 The specification is roadmap entry 51: its Delivers and Done means, AR0178 folded in (an entry's own keys beside `each`, and `roles.quick.model` in orchestration's table with a test). It includes what entries 49 and 50 added: `message-received` `parts` and `place`, `channel.send`, `message.part`, `route(text, from)` with `PhoneFrom` (`channel`, `place`, `instance`).
 
-- Kind: improvement
+- Kind: feat
 - Budget: 10
 
 ## Done means

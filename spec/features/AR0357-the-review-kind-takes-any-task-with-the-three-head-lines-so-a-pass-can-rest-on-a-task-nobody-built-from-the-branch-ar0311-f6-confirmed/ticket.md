@@ -16,7 +16,7 @@
 
 A review spawn is accepted only for a worker's branch at its real tip, built by Arthur, so a PASS always rests on the code that will merge; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/delivery/src/delivery.ts:109-125` (`refusal`: one ticket on the board in-progress/review/done, `Branch: arthur/\S+`, `Commit: [0-9a-f]{7,40}`, the round; nothing else), `:53-59` (`prepare` checks out whatever `Commit:` names), `packages/delivery/src/merge-command.ts:130-133` and `packages/delivery/src/auto-merge.ts:24-29` (the record's commit and the final line `PASS` are the PASS)

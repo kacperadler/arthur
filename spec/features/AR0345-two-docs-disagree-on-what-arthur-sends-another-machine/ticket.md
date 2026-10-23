@@ -16,7 +16,7 @@ the reader of `coordinator.md`, or of the spawn's warning line, takes it that no
 
 The docs agree on exactly what Arthur sends another machine, matching the code.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `packages/orchestration/docs/commands/coordinator.md:139` ("A job on another machine starts with none, since Arthur sends another machine no secret"), `packages/core/docs/commands/spawn.md:61` ("a secret only as a `prepare`'s variable on the launch's stdin (a provider's key of the models plugin, for the job's agent)"), `packages/core/src/jobs.ts:176` (the spawn's warning says the same as `coordinator.md`)

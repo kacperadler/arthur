@@ -19,7 +19,7 @@ This ticket builds roadmap entry 82, the models plugin:
 
 The specification is roadmap entry 82 in `spec/roadmap.md`: its Package, Delivers, Also delivers and Done means, with every edge case. Its dependencies 26, 12, 21 and 80 are merged. The owner asked for this on 2026-10-16: a model on his Mac over the network and, when it is not there, another available model; and each provider's limits seen simply.
 
-- Kind: improvement
+- Kind: feat
 - Budget: 12
 
 ## Done means

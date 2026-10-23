@@ -16,7 +16,7 @@ AR0310 checks the identity of each project's checkout on the machine `arthur mer
 
 Each listed machine's check also says whether git there has an identity, so a worker placed on it does not fail at its first commit.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/machines/docs/commands/machines.md:43` (the check's script)

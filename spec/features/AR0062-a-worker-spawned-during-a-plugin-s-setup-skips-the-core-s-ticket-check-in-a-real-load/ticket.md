@@ -16,7 +16,7 @@
 
 A plugin cannot start a job before Arthur has finished loading, so no worker ever skips the core's ticket check.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/host.ts:36-45` (`loadPlugins` registers `refuseUnstartableTickets` and `moveStartedTickets` after every plugin's `setup`), `packages/core/src/testing.ts:167` (the fake host registers them at the first spawn)

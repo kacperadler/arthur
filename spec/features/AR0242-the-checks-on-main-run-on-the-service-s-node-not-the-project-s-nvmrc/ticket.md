@@ -19,7 +19,7 @@ a job's worktree gets the nvm plugin's Node first on PATH (its `prepare`), but t
 
 The install and checks `arthur merge` runs on main use the project's Node from `.nvmrc` when the nvm plugin is on, via a provided name the merge asks; without the plugin, PATH as it is.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/delivery/src/merge-checks.ts:56` (`step`, which runs with the `arthur merge` process's PATH)

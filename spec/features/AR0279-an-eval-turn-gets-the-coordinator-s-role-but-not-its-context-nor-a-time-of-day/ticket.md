@@ -19,7 +19,7 @@ the live coordinator reads `arthur coordinator context` before every turn: its r
 
 An eval turn sees the coordinator's context for the fixture (its board, the plugins' lines) and a scenario-set time of day, so scenarios that hang on the board or on night/quiet hours can be replayed as the coordinator sees them.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/develop/src/eval-command.ts` (`host.jobs.prompt("coordinator")`)

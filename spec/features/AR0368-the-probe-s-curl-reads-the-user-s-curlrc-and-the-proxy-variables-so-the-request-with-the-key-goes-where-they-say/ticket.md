@@ -16,7 +16,7 @@ the provider's key and the request leave the private network for whatever addres
 
 The model probe's curl ignores `.curlrc` and proxy variables (`-q`, `--noproxy`), so the request with the key goes only to the configured provider; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/models/src/probe.ts:62-70` (`curl --config -`, no `-q`, no `noproxy`); `packages/core/src/job-machine.ts:91` (`spawn` with the inherited environment); `packages/models/docs/models.md:29`

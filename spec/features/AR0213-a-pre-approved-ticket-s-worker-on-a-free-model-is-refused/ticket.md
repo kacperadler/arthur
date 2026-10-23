@@ -16,7 +16,7 @@ the core gives a job on a free model (`models.pick` answers `free: true`) the bu
 
 A pre-approved ticket's worker on a free model starts, its budget of 0 read as free, not as no limit.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/core/src/jobs.ts:164`, `packages/orchestration/src/plans.ts` (`overBudget`)

@@ -16,7 +16,7 @@ The owner asks for mail and calendar (Google, Apple, other mail providers) and w
 
 The owner sees what mail and calendar would do for him, where they land, and the concrete path from the coding edition to the company edition.
 
-- Kind: improvement
+- Kind: feat
 - Plan: tak
 
 ## Done means

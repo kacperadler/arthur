@@ -16,7 +16,7 @@ The owner's ideas for the far future, recorded in `spec/roadmap.md` under Later 
 
 The roadmap holds the owner's long-term direction, and the first version keeps one door open for it: the core does not assume a project is a Git repository, nor that one human approves everything.
 
-- Kind: improvement
+- Kind: feat
 - Model: haiku
 
 ## Done means

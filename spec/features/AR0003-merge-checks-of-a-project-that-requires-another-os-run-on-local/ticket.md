@@ -16,7 +16,7 @@ entry 31 places every job of a ticket by its labels, so an iOS project's worker 
 
 What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `spec/roadmap.md`, entry 53 (`arthur merge`) and entry 31 (placement by labels)

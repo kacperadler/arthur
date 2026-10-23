@@ -18,7 +18,7 @@ the harness's health named a finished audit whose report is not in `spec/quality
 ## Goal
 
 `arthur health` has a line for a finished audit (and retro) that was never filed, with a test.
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/manage/src/health-checks.ts`, `packages/manage/src/audit-file.ts`

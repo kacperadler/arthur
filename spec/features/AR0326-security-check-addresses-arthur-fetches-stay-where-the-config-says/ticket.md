@@ -14,7 +14,7 @@ One area of the security check of our own code before the switch (AR0307), as a 
 
 ## Goal
 
-- Kind: risk
+- Kind: security
 - Model: anthropic/claude-fable-5-1 (the owner, 2026-10-23), no cost limit; its review stays on the reviewer's default model.
 
 The rule this area must hold: Every URL Arthur fetches (uptime sites, model providers, GitHub, YouTrack) is checked: a model provider is never a public host or a cloud metadata address; a site check cannot be pointed at loopback or metadata services unless the config says so.

@@ -15,7 +15,7 @@ the example gives `delivery({ ..., merge: { afterPassAndGreenCi: true } })`; del
 ## Goal
 
 The example config gives delivery only options it accepts; `npm run check` or a test loads the example and finds no refusal.
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `arthur.config.example.ts:338-339`

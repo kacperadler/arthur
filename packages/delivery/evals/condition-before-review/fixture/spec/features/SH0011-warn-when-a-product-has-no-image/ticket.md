@@ -16,7 +16,7 @@ A product without an image is easy to miss in the admin and looks broken in the 
 
 Every product shown with an image: 6 of 212 products have none today (`npm run catalog:audit`).
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

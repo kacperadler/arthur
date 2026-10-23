@@ -16,7 +16,7 @@ entry 34 says free CPU and memory are read "at every machine check". The machine
 
 The free-resources reading follows each machine check, so placement never uses a reading older than the machines plugin's own.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/resources/src/room.ts` (`CHECK_SECONDS`), `packages/machines/src/machines.ts` (`round`)

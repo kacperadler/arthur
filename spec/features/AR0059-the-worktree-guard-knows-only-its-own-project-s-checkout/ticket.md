@@ -16,7 +16,7 @@ the guard reads its places from the job's record: that project's main checkout (
 
 With several projects (entry 41), a job of one project can never write into another project's main checkout or its jobs' worktrees.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/worktree-guard.ts` (`jobPlace`)

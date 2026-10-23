@@ -19,7 +19,7 @@ Roadmap entry 17 of `spec/roadmap.md`: Ticket board: tickets and the board file.
 
 Build entry 17 as `spec/roadmap.md` describes it, behind the interface it names, following `spec/vision.md` and `.agents/harness/criteria/styleguide.md`.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

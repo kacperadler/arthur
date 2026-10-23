@@ -16,7 +16,7 @@ the list asks `project: <ID>` and pages to the end, as entry 44 asks, so a proje
 
 `arthur youtrack issue list` does not flood the coordinator's context with a project's resolved issues.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/youtrack/src/youtrack-command.ts` (the `query` of `issue list`)

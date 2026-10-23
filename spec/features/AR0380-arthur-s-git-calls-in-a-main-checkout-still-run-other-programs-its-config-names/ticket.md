@@ -16,7 +16,7 @@ the flags of this ticket turn off hooks and `core.fsmonitor` only. A program a j
 
 Arthur's own git calls in a main checkout run no program the repository's config names (filters, diff and merge drivers, credential helpers beyond the user's), so a job cannot plant one; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/delivery/src/merge-command.ts:58`, `packages/github/src/github-git.ts:38`, `packages/core/src/git.ts:9`

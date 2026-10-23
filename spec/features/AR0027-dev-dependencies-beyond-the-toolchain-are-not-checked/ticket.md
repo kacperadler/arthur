@@ -16,7 +16,7 @@ the styleguide says dev dependencies are the toolchain only (`typescript`, `@typ
 
 The no-runtime-dependency rule also keeps dev dependencies to the toolchain (typescript, @types/node), so a test-only package cannot creep in unnoticed.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `test/structure.ts` (`checkManifest`)

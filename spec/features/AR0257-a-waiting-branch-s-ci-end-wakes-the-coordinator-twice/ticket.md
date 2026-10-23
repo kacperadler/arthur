@@ -15,7 +15,7 @@ with github's default `wakeOn: ["ci-finished"]`, the end of a run on a branch th
 ## Goal
 
 The end of a CI run on a branch that `arthur merge --auto` left waiting wakes the coordinator once, not once from github and once from delivery, with a test of both plugins together.
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/github/src/github.ts:90` (the `ci-finished` wake) and `packages/delivery/src/ci-wait.ts` (the CI wait's wake)

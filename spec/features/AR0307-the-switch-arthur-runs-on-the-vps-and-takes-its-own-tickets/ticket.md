@@ -26,7 +26,7 @@ Every roadmap entry before the switch (1 to 83, with 96 to 98) is merged. This t
 ## Goal
 
 - Plan: tak
-- Kind: improvement
+- Kind: feat
 
 Evidence: `h ticket --all` shows Roadmap 60 to 69, 80, 82, 83, 97 merged; `docs/setup.md:5` still says Arthur is in development and lists only seven commands as existing, though no step there says `Not built yet` any more.
 

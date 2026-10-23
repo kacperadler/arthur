@@ -16,7 +16,7 @@ entry 40 registers entries in the config's shape: an action (a message to the co
 
 A plugin's schedule entry can run that plugin's own code at its time, not only send a message or spawn a job.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/schedule/src/register.ts`, `packages/schedule/src/entry.ts:9-11`

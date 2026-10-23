@@ -16,7 +16,7 @@ an install that waits (a registry that never answers, a lifecycle script that re
 
 The install at a spawn and each merge step have a time limit, and a step past it is stopped and named; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/projects/src/install.ts:37` (`host.jobs.run(job.machine, [...])` with no `limitSeconds`), `packages/core/src/job-machine.ts:102` (the timer only when one is given; the nvm prepare beside it passes `LIMIT_SECONDS`, `packages/nvm/src/nvm.ts:11`, `:57`), `packages/delivery/src/merge-checks.ts:63` (`spawnSync` with `maxBuffer` but no `timeout`)

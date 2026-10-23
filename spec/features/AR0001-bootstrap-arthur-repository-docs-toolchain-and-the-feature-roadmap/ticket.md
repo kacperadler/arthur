@@ -16,7 +16,7 @@ Turn the drafts in `spec/draft/` into Arthur's first real files, set up the tool
 
 Arthur is a public, English-only rebuild of the harness the owner runs today: one core (job runner, board, config loader, plugin host, event stream, guards) and plugins behind interfaces (orchestration, session, schedule, projects, delivery, commit-rules, github, youtrack, telegram, then manage, develop, signal, whatsapp, server). `spec/draft/` holds the design: `vision.md`, three `.mmd` diagrams, `arthur.config.ts` (example), `inventory.md` (every capability of today's harness and its Arthur home), and today's styleguide and review criteria for reference. The drafts mention today's harness, its tickets (K0252…) and its file paths; the public repository must stand on its own.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

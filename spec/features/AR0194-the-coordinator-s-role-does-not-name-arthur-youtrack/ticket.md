@@ -16,7 +16,7 @@ roadmap 44 adds `arthur youtrack issue|article list|get`, but the coordinator's 
 
 The coordinator's role names `arthur youtrack`, so it reads a project's issues without the owner pointing it there.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/orchestration/roles/coordinator.md`

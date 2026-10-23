@@ -16,7 +16,7 @@ a token in a model's error text, a job's question or the owner's answer reaches 
 
 The redaction of notices and the decision log knows the values of the .env file, so a secret from it never reaches the phone or the log; tested.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/session/src/credential.ts:9`, `packages/orchestration/src/credential.ts:10` (`Object.entries(process.env)`), their callers `packages/session/src/start-notice.ts:20`, `packages/session/src/turn-extension.ts:44`, `packages/orchestration/src/decision-log.ts:170,190`, `packages/orchestration/src/decision-hooks.ts:27,53`, `packages/orchestration/src/inbox-extension.ts:116`

@@ -16,7 +16,7 @@ one probe per provider at a time and its 30 s reuse hold for the spawns of one p
 
 A provider is probed once per 30 s across all `arthur` commands, not once per process.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/models/src/probe.ts` (`probes`, a `Map` of the process)

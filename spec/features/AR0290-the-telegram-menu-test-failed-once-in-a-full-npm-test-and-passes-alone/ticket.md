@@ -16,7 +16,7 @@ one full `npm test` on this branch (986 tests) failed this test alone, in 37 ms;
 
 The telegram menu test passes in every full `npm test`, not only alone: its cause is found and fixed, so a merge is never refused by it.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/telegram/test/commands.test.ts:119` ("the menu is the phone commands, set at a start only when they changed since the last one set, per bot")

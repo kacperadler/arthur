@@ -19,7 +19,7 @@ Roadmap entry 27 (`spec/roadmap.md`, "Job state in the coordinator and the chann
 
 The owner hears at once when a job waits on him, and the coordinator sees which jobs are stuck (vision: work runs while the human is away).
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

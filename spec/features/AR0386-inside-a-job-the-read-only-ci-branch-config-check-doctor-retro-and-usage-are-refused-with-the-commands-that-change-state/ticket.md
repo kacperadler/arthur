@@ -16,7 +16,7 @@ AR0353's list of the commands a job may run leaves these out, so the gate refuse
 
 A job may run the read-only `ci <branch>`, `config check`, `doctor`, `retro` and `usage` (declared inJob), while their state-changing steps stay refused; tested.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/github/src/github-ci.ts:20-40` (`arthur ci`, `--rerun` its one write), `packages/core/src/cli.ts` (`config`, `doctor`), `packages/manage/src/retro.ts` (`retro`), `packages/models/src/models.ts` (`usage`)

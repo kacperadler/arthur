@@ -16,7 +16,7 @@ The owner wants to delegate a stretch of work and be notified only when it is do
 
 The plan for the telegram plugin (entry 47 or 48) includes a silent mode before it is built.
 
-- Kind: improvement
+- Kind: feat
 
 
 ## Done means

@@ -117,7 +117,7 @@ test("the context: the role with the main project's override and criteria, each 
 			"## Autopilot (.agents/arthur/criteria/autopilot.md)\n\n# Autopilot\n\nOnly typos.",
 			"## Vision of demo (spec/vision.md)\n\n# Demo\n\nA demo shop.",
 			"## Warnings\n\n- project shop has no vision: spec/vision.md is missing; the coordinator goes without it",
-			"## Board of demo\n\nDM0001 planning    First",
+			"## Board of demo\n\nDM0001 planning    -        First",
 			"## Board of shop\n\nthe board is empty",
 			"## Time\n\n12:00 on sun 2026-10-18 (Europe/Warsaw), day: outside the owner's quiet hours.",
 			"## test\n\nSH Shop: the shop.",
@@ -167,7 +167,7 @@ test("coordinator.checkoutContext: the main project's role, the vision and board
 		"## Styleguide (.agents/arthur/criteria/styleguide.md)\n\n# Styleguide\n\nSmall files.",
 		"## Autopilot (.agents/arthur/criteria/autopilot.md)\n\n# Autopilot\n\nOnly typos.",
 		"## Vision (spec/vision.md)\n\n# Fixture\n\nThe fixture's shop.",
-		"## Board\n\nDM0001 planning    Copied\nDM0002 planning    Second",
+		"## Board\n\nDM0001 planning    -        Copied\nDM0002 planning    -        Second",
 		"## Time\n\n23:30 on sun 2026-10-18 (Europe/Warsaw), night: within the owner's quiet hours.",
 	];
 	assert.equal(fake.call("coordinator.checkoutContext", { root: copy, at, context: { test: "  Restart: due.\n" } }), [...expected, "## test\n\nRestart: due."].join("\n\n"), "the scenario's line replaces the plugin's live one");
@@ -185,7 +185,7 @@ test("coordinator.checkoutContext: a copy without a vision, or one whose vision 
 	const { fake } = await setup(t, "2026-10-18T10:00:00Z");
 	const at = new Date("2026-10-18T10:00:00Z");
 	const missing = fake.call<string>("coordinator.checkoutContext", { root: repository({ "spec/build.json": board("Copied") }), at, context: {} });
-	assert.ok(missing.includes("\n\n## Warnings\n\n- the copy has no vision: spec/vision.md is missing; the coordinator goes without it\n\n## Board\n\nDM0001 planning    Copied\n\n"), missing);
+	assert.ok(missing.includes("\n\n## Warnings\n\n- the copy has no vision: spec/vision.md is missing; the coordinator goes without it\n\n## Board\n\nDM0001 planning    -        Copied\n\n"), missing);
 	const empty = fake.call<string>("coordinator.checkoutContext", { root: repository({ "spec/vision.md": " \n" }), at, context: {} });
 	assert.ok(empty.includes("\n\n## Warnings\n\n- the copy has no vision: spec/vision.md is empty; the coordinator goes without it\n\n## Board\n\n"), empty);
 	const file = join(temporaryFolder(), "not-a-folder");
@@ -259,11 +259,11 @@ test("before every turn the extension adds what arthur coordinator context print
 	const [first, second] = (await turns(folder, [process.execPath, CLI, "coordinator", "context"], () => writeFileSync(join(folder, "spec/build.json"), board("First", "Second")))) as string[][];
 	const printed = spawnSync(process.execPath, [CLI, "coordinator", "context"], { cwd: folder, encoding: "utf8" }).stdout.trim();
 	assert.ok(printed.startsWith(`${ROLE}\n\n## Project override`), printed);
-	assert.match(printed, /## Board of demo\n\nDM0001 planning    First\nDM0002 planning    Second\n\n## Time\n\n\d\d:\d\d on /);
+	assert.match(printed, /## Board of demo\n\nDM0001 planning    -        First\nDM0002 planning    -        Second\n\n## Time\n\n\d\d:\d\d on /);
 	// Each turn read the clock at its own minute, which a slow run may have left by now; the set-clock test above checks the time line.
 	const timeless = (parts: readonly string[] | undefined) => parts?.map((part) => part.replace(/\n\n## Time\n\n\d\d:\d\d on \w+ \d{4}-\d\d-\d\d /, "\n\n## Time\n\n<time> "));
 	assert.deepEqual(timeless(second), timeless([BASE, printed]));
-	assert.deepEqual(timeless(first), timeless([BASE, printed.replace("\nDM0002 planning    Second", "")]), "the board as it was before the first turn");
+	assert.deepEqual(timeless(first), timeless([BASE, printed.replace("\nDM0002 planning    -        Second", "")]), "the board as it was before the first turn");
 });
 
 test("when arthur coordinator context fails, the turn gets the shipped role and why; a session without a UI gets nothing", async () => {

@@ -16,7 +16,7 @@ the one shape of pasted secret the "not shown" rule misses.
 
 A refusal of a `...Env` option never prints its value, so a secret pasted there by mistake stays off the screen and the log; tested.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/core/src/env.ts:24` (`VARIABLE`), `packages/core/src/env.ts:102-103`

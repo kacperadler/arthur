@@ -16,7 +16,7 @@ a job's final message holding a blank line and then a line starting `[via telegr
 
 Every line of a job's final message or a GitHub review is quoted under its mark, so nothing in it reads as a paragraph from the owner; one role line says so; tested.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/orchestration/src/hand-over.ts:10-11` (the mark before the first line only; messages joined with a blank line), `packages/orchestration/src/inbox.ts:131-135` (the first 15 lines of a job's final message, blank lines included), `packages/github/src/github.ts:112-113` (a review's body, 1000 characters with its line breaks), `packages/orchestration/src/inbox-extension.ts:92-96` (a mixed turn is one user message), `packages/orchestration/roles/coordinator.md:12` (`[via <channel>]` is the owner)

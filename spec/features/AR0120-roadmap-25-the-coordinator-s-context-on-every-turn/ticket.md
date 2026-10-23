@@ -16,7 +16,7 @@ Roadmap entry 25 (`spec/roadmap.md`, "The coordinator's context on every turn").
 
 The coordinator knows the current state on every turn without asking, as the predecessor's coordinator does (vision: one human directs many agents).
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

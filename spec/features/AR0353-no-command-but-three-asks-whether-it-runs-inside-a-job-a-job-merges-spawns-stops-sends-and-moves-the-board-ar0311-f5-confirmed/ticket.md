@@ -16,7 +16,7 @@ a job's `bash` call `cd <config folder> && arthur <command> …` runs any regist
 
 Arthur's state-changing commands (merge, spawn, stop, steer, prune, send, the board, schedule) refuse to run inside a job unless its role needs them; tested per command.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/cli.ts:44-47` (any command found runs; the one place-of-run gate there is `ARTHUR_EVAL`, `:32-35`); `packages/delivery/src/merge-command.ts:31-45`; `packages/core/src/spawn-command.ts:18-31`; `packages/core/src/job-commands.ts:26-47` (`stop`, `steer`, `continue`, `prune`, `stopall`); `packages/core/src/send-command.ts:19-45`; `packages/core/src/ticket-command.ts:26-56`; `packages/delivery/src/review-command.ts:16-32`, `review-needed.ts:20-45`; `packages/orchestration/src/silent.ts:67-72`; `packages/schedule/src/schedule-command.ts:97-100`; `packages/core/src/remote-job.ts:128`

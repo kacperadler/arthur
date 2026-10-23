@@ -16,7 +16,7 @@ This ticket builds roadmap entry 69 in `spec/roadmap.md` in the `resources` plug
 
 The specification is roadmap entry 69: its Delivers and Done means.
 
-- Kind: feature
+- Kind: feat
 - Budget: 8
 
 ## Done means

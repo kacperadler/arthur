@@ -16,7 +16,7 @@ these providers build their line from the job's records in the live home (delive
 
 A plugin's wake lines for a review or an onboarding reach an eval's turn, so the review-pass, review-pass-hook and onboarding scenarios replay what the coordinator really sees.
 
-- Kind: gap
+- Kind: fix
 
 Evidence:
 - `packages/delivery/src/delivery.ts` (`coordinator.wake`, from `readReview`), `packages/projects/src/onboarding.ts` (`questions`, from `host.jobs.result`)

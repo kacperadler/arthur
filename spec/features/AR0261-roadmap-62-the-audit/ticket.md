@@ -16,7 +16,7 @@ This ticket builds roadmap entry 62 in `spec/roadmap.md` in the `manage` plugin.
 
 The specification is roadmap entry 62: its Delivers and Done means.
 
-- Kind: feature
+- Kind: feat
 - Budget: 10
 
 ## Done means

@@ -19,7 +19,7 @@ B1 of the core line review: 17 lines out of the core; roadmap entries 9, 21 and 
 
 The core stays small enough to understand, with capability in plugins (vision); the plan is `spec/quality/core-lines-2026-10-16.md`, proposal B1.
 
-- Kind: cleanup
+- Kind: refactor
 
 ## Done means
 

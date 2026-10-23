@@ -16,7 +16,7 @@ A payment the provider refuses with a network error is tried once more, so a cus
 
 Fewer failed checkouts: the payment log shows 1 in 40 payments refused with a network error that a second try passes (logs/payments-2026-10.txt).
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

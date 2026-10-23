@@ -6,9 +6,9 @@ import type { Command, Host } from "@arthur/core/plugin";
 // its merged tickets, a `## <day>` per merge day, newest first, and under it a heading per kind. docs/commands/changelog.md.
 
 const FILE = "CHANGELOG.md";
-// The heading of each ticket kind (`- Kind:` under the ticket's `## Goal`), in Keep a Changelog's words; any other kind, or
-// none, goes under Other. ORDER is the order they print.
-const HEADING: Readonly<Record<string, string>> = { feature: "Added", improvement: "Added", bug: "Fixed", risk: "Fixed", cleanup: "Changed" };
+// The heading of each ticket kind (`- Kind:` under the ticket's `## Goal`), in Keep a Changelog's words; any other of the
+// board's kinds goes under Changed, a kind the board does not know, or none, under Other. ORDER is the order they print.
+const HEADING: Readonly<Record<string, string>> = { feat: "Added", fix: "Fixed", security: "Fixed" };
 const ORDER = ["Added", "Fixed", "Changed", "Other"];
 const MERGED = /^- Merged: (\d{4}-\d{2}-\d{2}), `([0-9a-f]+)`/m;
 
@@ -29,7 +29,8 @@ export function writeChangelog(host: Pick<Host, "board" | "clock">, project: str
 		const goal = (existsSync(ticketPath) ? readFileSync(ticketPath, "utf8") : "").split(/^## Goal$/m)[1]?.split(/^## /m)[0] ?? "";
 		const kind = /^- Kind: *(\S+) *$/m.exec(goal)?.[1] ?? "";
 		const day = outcome?.[1] ?? host.clock.local(new Date(ticket.updated)).date;
-		return { day, heading: Object.hasOwn(HEADING, kind) ? HEADING[kind] : "Other", line: `- ${ticket.id} ${ticket.title}${outcome ? ` (${outcome[2]})` : ""}` };
+		const heading = Object.hasOwn(HEADING, kind) ? HEADING[kind] : host.board.kinds.includes(kind) ? "Changed" : "Other";
+		return { day, heading, line: `- ${ticket.id} ${ticket.title}${outcome ? ` (${outcome[2]})` : ""}` };
 	});
 	const sections = [...new Set(lines.map((each) => each.day))]
 		.sort()

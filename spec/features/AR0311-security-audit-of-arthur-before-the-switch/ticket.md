@@ -14,7 +14,7 @@ Before Arthur replaces the harness and runs unattended on the VPS with shell, SS
 
 ## Goal
 
-- Kind: risk
+- Kind: security
 - Model: anthropic/claude-opus-5-5 (the owner, 2026-10-23, after two Fable refusals); its review stays on the reviewer's default model.
 
 Arthur at the switch (AR0307) runs agents that execute shell commands, merge to main, reach other machines over SSH, read `.env` secrets and take instructions from Telegram, tickets, YouTrack and GitHub. A hole there is a hole on the VPS and in every client repository Arthur will work on.

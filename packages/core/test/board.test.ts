@@ -68,7 +68,7 @@ test("planned is refused while template guidance is left in ticket.md, and allow
 	const { path } = board.create("Guided");
 	const before = readFileSync(file, "utf8");
 	const ticket = join(root, path);
-	const filled = readFileSync(ticket, "utf8").replace(/<!--[\s\S]*?-->/g, "Written by the human.");
+	const filled = readFileSync(ticket, "utf8").replace(/<!--[\s\S]*?-->/g, "Written by the human.").replace("- Kind: Written by the human.", "- Kind: fix");
 	writeFileSync(ticket, filled.replace("Written by the human.", "<!-- Two or three sentences: what changes, and for whom. -->"));
 	assert.throws(() => board.move("DM0001", "planned"), {
 		message: `DM0001: not planned: ${path} still holds the template's guidance, replace it first:\n<!-- Two or three sentences: what changes, and for whom. -->`,
@@ -87,6 +87,27 @@ test("planned is refused for a ticket whose ticket.md is gone; other statuses ar
 		message: /^DM0001: cannot read spec\/features\/DM0001-gone\/ticket\.md to check it for template guidance: ENOENT/,
 	});
 	assert.equal(board.move("DM0001", "dropped").status, "dropped");
+});
+
+const KINDS = ["feat", "fix", "security", "perf", "refactor", "test", "docs", "build", "ci", "chore", "ux"];
+
+test("the template's Kind line lists the kinds; planned refuses a Kind under the Goal that is none of them, not a ticket without one", () => {
+	const { board, root } = setup();
+	const template = readFileSync(new URL("../templates/ticket.md", import.meta.url), "utf8");
+	assert.ok(template.includes(`\n- Kind: <!-- ${KINDS.join(" | ")} -->\n`), "the template's Kind line lists exactly the kinds");
+	assert.deepEqual(board.kinds, KINDS);
+	const write = (line: string) => {
+		const { id, path } = board.create("A ticket");
+		writeFileSync(join(root, path), `# A ticket\n\n## Description\n\n- Kind: bug\n\n## Goal\n\nWhy.\n\n${line}\n## Done means\n\n- Kind: bug\n`);
+		return { id, path };
+	};
+	for (const kind of ["bug", "risk", "cleanup", "improvement", "feature", "Fix", "fix, security", "fix fix", ""]) {
+		const { id, path } = write(`- Kind: ${kind}\n`);
+		assert.throws(() => board.move(id, "planned"), { message: `${id}: not planned: ${path} names Kind ${JSON.stringify(kind)}, none of the template's: ${KINDS.join(", ")}` }, kind);
+		assert.equal(board.get(id)?.status, "planning");
+	}
+	for (const kind of KINDS) assert.equal(board.move(write(`- Kind:  ${kind} \n`).id, "planned").status, "planned", kind);
+	assert.equal(board.move(write("").id, "planned").status, "planned", "no Kind line under the Goal, the ones elsewhere not read");
 });
 
 test("a move to the status a ticket has changes nothing: no write, no event", () => {
@@ -144,13 +165,14 @@ test("the main project is the first; --project picks another by name; each proje
 	assert.throws(() => board.list("blog"), { message: "unknown project blog; projects: arthur, shop" });
 });
 
-// A board written by hand, each ticket with a `ticket.md` free of the template's guidance.
+// A board written by hand, each ticket with a `ticket.md` free of the template's guidance; `kind` is the line under its Goal,
+// none without it, and `gone` leaves its ticket.md out. Neither goes on the board.
 function handWritten(root: string, entries: readonly Record<string, unknown>[]): void {
-	for (const { path } of entries) {
+	for (const { path, kind, gone } of entries) {
 		mkdirSync(join(root, String(path), ".."), { recursive: true });
-		writeFileSync(join(root, String(path)), "# filled in\n");
+		if (gone !== true) writeFileSync(join(root, String(path)), kind === undefined ? "# filled in\n" : `# filled in\n\n## Goal\n\n- Kind: ${kind}\n`);
 	}
-	writeFileSync(join(root, "spec", "build.json"), JSON.stringify(entries));
+	writeFileSync(join(root, "spec", "build.json"), JSON.stringify(entries.map(({ kind, gone, ...rest }) => rest)));
 }
 
 const entry = (id: string, status: string, more: Record<string, unknown> = {}) => ({
@@ -228,39 +250,66 @@ test("after refuses an unknown id, another project's, a dropped one, itself and 
 	assert.deepEqual([readFileSync(file, "utf8"), fake.emitted.length], [before, 0]);
 });
 
-test("the digest: every open ticket by status with what it still waits for, the 10 newest merged, one line for the rest", () => {
+test("the digest: every open ticket by status with its Kind and what it still waits for, the 10 newest merged, one line for the rest", () => {
 	const { board, root } = setup();
 	assert.equal(board.digest(), "the board is empty");
 	const copy = temporaryFolder();
-	handWritten(copy, [entry("DM0001", "planning")]);
-	assert.equal(board.digest(undefined, copy), "DM0001 planning    Ticket DM0001", "a copy of the repository is read where it is");
+	handWritten(copy, [entry("DM0001", "planning", { kind: "ux" })]);
+	assert.equal(board.digest(undefined, copy), "DM0001 planning    ux       Ticket DM0001", "a copy of the repository is read where it is, its tickets' Kinds too");
 	assert.equal(board.digest(), "the board is empty", "the project's own board is not the copy's");
-	const merged = Array.from({ length: 12 }, (_, index) =>
-		entry(`DM${String(index + 1).padStart(4, "0")}`, "merged", { updated: new Date(NOW.getTime() + index * 60_000).toISOString() }),
-	);
-	handWritten(root, [
-		...merged,
-		entry("DM0013", "done"),
-		entry("DM0014", "planning", { after: ["DM0001", "DM0015"] }),
-		entry("DM0015", "in-progress"),
-		entry("DM0016", "dropped"),
-		entry("DM0017", "dropped", { after: ["DM0015"] }),
-		entry("DM0018", "planned"),
-		entry("DM0019", "review"),
-	]);
-	const newest = Array.from({ length: 10 }, (_, index) => `DM${String(12 - index).padStart(4, "0")} merged      Ticket DM${String(12 - index).padStart(4, "0")}`);
+	board.create("Fresh");
+	assert.equal(board.digest(), "DM0001 planning    -        Fresh", "the template's Kind guidance is no Kind");
+	handWritten(root, boardOfKinds());
+	const newest = Array.from({ length: 9 }, (_, index) => `DM${String(11 - index).padStart(4, "0")} merged      -        Ticket DM${String(11 - index).padStart(4, "0")}`);
 	assert.equal(
 		board.digest(),
 		[
-			"DM0014 planning    Ticket DM0014  after DM0015",
-			"DM0018 planned     Ticket DM0018",
-			"DM0015 in-progress Ticket DM0015",
-			"DM0019 review      Ticket DM0019",
-			"DM0013 done        Ticket DM0013",
+			"DM0014 planning    fix      Ticket DM0014  after DM0015",
+			"DM0018 planned     -        Ticket DM0018",
+			"DM0015 in-progress bug      Ticket DM0015",
+			"DM0019 review      security Ticket DM0019",
+			"DM0013 done        fix      Ticket DM0013",
+			"DM0012 merged      security Ticket DM0012",
 			...newest,
 			"+ 2 older merged, 2 dropped: the full board is /board all",
 		].join("\n"),
+		"two words on the Kind line, or a ticket.md gone, show as -; a Kind outside the list as written",
 	);
+});
+
+// Twelve merged tickets, the oldest DM0001, and one of each open status and two dropped, with their Kinds.
+function boardOfKinds() {
+	const merged = Array.from({ length: 12 }, (_, index) =>
+		entry(`DM${String(index + 1).padStart(4, "0")}`, "merged", { updated: new Date(NOW.getTime() + index * 60_000).toISOString() }),
+	);
+	Object.assign(merged[0] ?? {}, { kind: "fix" });
+	Object.assign(merged[10] ?? {}, { kind: "feat fix" });
+	Object.assign(merged[11] ?? {}, { kind: "security" });
+	return [
+		...merged,
+		entry("DM0013", "done", { kind: "fix" }),
+		entry("DM0014", "planning", { after: ["DM0001", "DM0002", "DM0015"], kind: "fix" }),
+		entry("DM0015", "in-progress", { kind: "bug" }),
+		entry("DM0016", "dropped", { kind: "fix" }),
+		entry("DM0017", "dropped", { after: ["DM0015"] }),
+		entry("DM0018", "planned", { gone: true }),
+		entry("DM0019", "review", { kind: "security" }),
+	];
+}
+
+test("the full board of one Kind: its tickets of every status in the board's order, none, and a kind outside the list refused", () => {
+	const { board, root } = setup();
+	assert.equal(board.full(undefined, "fix"), "the board is empty");
+	handWritten(root, boardOfKinds());
+	assert.equal(
+		board.full(undefined, "fix"),
+		["DM0014 planning    fix      Ticket DM0014  after DM0015", "DM0013 done        fix      Ticket DM0013", "DM0001 merged      fix      Ticket DM0001", "DM0016 dropped     fix      Ticket DM0016"].join("\n"),
+		"the oldest merged and a dropped one included, and what it waits for read from the whole board",
+	);
+	assert.equal(board.full(undefined, "security"), ["DM0019 review      security Ticket DM0019", "DM0012 merged      security Ticket DM0012"].join("\n"));
+	assert.equal(board.full(undefined, "perf"), "no ticket of kind perf");
+	for (const kind of ["bug", "Fix", "", "feat fix"]) assert.throws(() => board.full(undefined, kind), { message: `unknown kind ${kind}; kinds: ${KINDS.join(", ")}` }, kind);
+	assert.equal(board.full().split("\n").length, 19, "without a kind, every ticket");
 });
 
 test("the project list is checked: none, twice, empty, a bad entry, a name or prefix twice", () => {

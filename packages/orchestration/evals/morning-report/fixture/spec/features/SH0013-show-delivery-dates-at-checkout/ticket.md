@@ -16,7 +16,7 @@ The checkout shows when the order arrives, from the carrier's dates, before the 
 
 Customers ask when an order arrives (7 mails in October).
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

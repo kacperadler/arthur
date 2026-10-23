@@ -19,7 +19,7 @@ Roadmap entry 31 (`spec/roadmap.md`, "Machines: placing a job by labels"), built
 
 Each job runs on a machine that has what its project needs, such as a Mac for an iOS build.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

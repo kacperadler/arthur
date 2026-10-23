@@ -16,7 +16,7 @@ The orchestration inbox tests that wait 30 s of real time fail when a full run i
 
 The 30 s waits in `packages/orchestration/test/inbox.test.ts` are driven by a controlled clock or an injected delay, so a full `npm test` under load passes them and they no longer cost half a minute each.
 
-- Kind: risk
+- Kind: security
 
 ## Done means
 

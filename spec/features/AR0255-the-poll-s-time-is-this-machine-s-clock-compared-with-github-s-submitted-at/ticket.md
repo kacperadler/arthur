@@ -15,7 +15,7 @@
 ## Goal
 
 A review submitted just after a poll began is never lost to this machine's clock running ahead of GitHub's: the comparison with `submitted_at` allows a margin, with a test.
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/github/src/github-pulls.ts:31` (`polled`)

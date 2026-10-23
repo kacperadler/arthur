@@ -6,7 +6,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 
 ## F1. Short title
 
-- Kind: bug | risk | cleanup | improvement
+- Kind: feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux
 - Found by: <job id> (worker | review | coordinator), YYYY-MM-DD
 - Where: `path/to/file.ts:42`
 - What: what was seen, and how to reproduce it.

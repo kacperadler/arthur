@@ -16,7 +16,7 @@ in the layout of `docs/setup.md` (config and `.env` in `~/arthur`, home `~/arthu
 
 A job's writes cannot reach Arthur's code, config, env file or the user's own files (`~/.gitconfig`, `~/.ssh`, systemd units): the guard names those places, with a test per place.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/job-place.ts:40` (the guarded places: the home folder, the worktrees folder, the main checkout, the other projects), `packages/core/src/job-scope.ts:63-68` (the scope caps CPU and memory only), `docs/deploy.md:30`

@@ -16,7 +16,7 @@ the roadmap now places project agents (85 to 88) first among the later entries, 
 
 The diagram and the README show a newcomer what is built and what comes later. It covers AR0114 too (the same README row), so AR0114 can be dropped.
 
-- Kind: cleanup
+- Kind: refactor
 - Model: haiku
 
 Evidence:

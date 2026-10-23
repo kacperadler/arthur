@@ -16,7 +16,7 @@ The catalog gets a sort by price, cheapest first, beside the sort by name.
 
 Customers ask for it (5 mails in October).
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

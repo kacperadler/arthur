@@ -16,7 +16,7 @@ entry 30 lists `npm i -g arthur` among the doctor fixes. Every `package.json` he
 
 What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `spec/roadmap.md:292` (entry 30, Also delivers); `docs/deploy.md:12`

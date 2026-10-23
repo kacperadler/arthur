@@ -16,7 +16,7 @@ When a plugin claims a part of an owner's message (a voice note transcribed, for
 
 Each claim's reply reaches the owner once, whatever moment `arthur run` stops. Evidence: `packages/orchestration/src/inbox.ts`, `turnText` emits `coordinator-replied` before the message leaves `inbox/received/` (AR0221 F1, review-1 of AR0221).
 
-- Kind: bug
+- Kind: fix
 
 ## Done means
 

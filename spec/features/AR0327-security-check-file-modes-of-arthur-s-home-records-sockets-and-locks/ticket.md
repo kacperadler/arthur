@@ -14,7 +14,7 @@ One area of the security check of our own code before the switch (AR0307), as a 
 
 ## Goal
 
-- Kind: risk
+- Kind: security
 - Model: anthropic/claude-fable-5-1 (the owner, 2026-10-23), no cost limit; its review stays on the reviewer's default model.
 
 The rule this area must hold: Arthur's home, job records, logs, tmux sockets and lock files are readable and writable by Arthur's user alone, whatever the process umask; no fixed shared path in /tmp.

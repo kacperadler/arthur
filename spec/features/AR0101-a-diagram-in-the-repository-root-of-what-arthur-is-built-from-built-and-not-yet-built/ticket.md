@@ -16,7 +16,7 @@ The owner asked (2026-10-17, Telegram) for one clear, good-looking Mermaid diagr
 
 The owner sees Arthur's shape and progress on one picture without reading code.
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

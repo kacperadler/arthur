@@ -16,7 +16,7 @@ a `youtrack` instance named `cloud` and a plugin named `youtrack-cloud` both own
 
 Two plugins can never claim the same env variable: an instance name that would make one plugin's prefix equal another's is refused at load, naming both.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/env.ts` (`nameProblem`, `prefix`, `part`)

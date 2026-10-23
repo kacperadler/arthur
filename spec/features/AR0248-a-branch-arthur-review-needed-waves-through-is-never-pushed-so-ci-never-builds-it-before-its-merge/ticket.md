@@ -19,7 +19,7 @@ entry 58 pushes "the reviewed branch": delivery asks `github.push` after a revie
 
 A branch `arthur review-needed` waves through is pushed like a reviewed one, so CI builds it and `arthur merge --auto` (entry 59) has a run to count: delivery asks `github.push` when the answer is `no review`, with its test.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/delivery/src/review-needed.ts`, `packages/delivery/src/delivery.ts` (the `job-ended` handler)

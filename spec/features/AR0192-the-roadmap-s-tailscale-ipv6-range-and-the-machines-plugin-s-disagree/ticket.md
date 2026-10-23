@@ -16,7 +16,7 @@ entry 82 names Tailscale's IPv6 range `fd7a:115c:a1e5::/48`, the machines plugin
 
 The roadmap and the machines plugin accept the same Tailscale IPv6 range, so an address is either allowed by both or by neither.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `spec/roadmap.md` entry 82 (`fd7a:115c:a1e5::/48`), `packages/machines/src/machine-check.ts` (`PRIVATE.addSubnet("fd7a:115c:a1e0::", 48, "ipv6")`, and `fd7a:115c:a1e1::1` counted public in `packages/machines/test/machines.test.ts`)

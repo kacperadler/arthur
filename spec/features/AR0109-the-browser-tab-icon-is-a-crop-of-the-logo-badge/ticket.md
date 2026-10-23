@@ -14,7 +14,7 @@ The owner does not like the traced silhouette favicon (`docs/logo/arthur-favicon
 
 ## Goal
 
-- Kind: improvement
+- Kind: feat
 
 The crop the owner approved is drawn by `approved-crop.html` (CSS on `docs/logo/arthur.png`): a circle of size s, a gold `#e0a526` ring of `max(1, s/24)` px, navy `#19233f` fill, the logo scaled to width `2.1 s`, shifted left by `0.55 s` and up by `0.16 s`. The top rim of the original badge must not show (the owner marked it on 2026-10-17).
 

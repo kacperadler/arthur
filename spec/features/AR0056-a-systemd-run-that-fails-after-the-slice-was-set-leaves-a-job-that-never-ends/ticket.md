@@ -16,7 +16,7 @@
 
 Every job ends in a final state: a scope that systemd refuses to start never leaves a record at `running` with nothing behind it.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/job-scope.ts`, `launch`

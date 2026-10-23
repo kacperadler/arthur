@@ -23,7 +23,7 @@ The owner (2026-10-16), after looking at herdr.dev:
 2. Several machines: Arthur runs on one machine and starts work on others reachable over SSH on a private network (Tailscale), e.g. Linux for most jobs and a Mac for what needs macOS (a macOS CI run, iOS builds). Each machine has labels (os, arch, tools); a project or a ticket can require a label, and the coordinator places the job on a machine that has it. Nothing is exposed to the internet.
 3. Resources: a plugin that caps what one agent job, or one feature (a ticket's jobs together), may use (CPU, memory, time, money), and in the end lets the coordinator decide how many jobs to run from the free resources of each machine instead of a fixed `maxAgents`, which stays as an upper bound.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

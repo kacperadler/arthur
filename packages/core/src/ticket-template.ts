@@ -30,8 +30,19 @@ export function ticketText(id: string, title: string, date: string): string {
 	return readFileSync(TICKET, "utf8").replace(/\{\{(id|title|json)\}\}/g, (_, key: string) => (key === "id" ? id : key === "title" ? title : json));
 }
 
-// The template's guidance still in `text`, each as written in the template.
-export function guidanceLeft(text: string): string[] {
+// The kinds a ticket's `- Kind:` line under its Goal may name, as the template lists them.
+export const KINDS: readonly string[] = ["feat", "fix", "security", "perf", "refactor", "test", "docs", "build", "ci", "chore", "ux"];
+
+// The `- Kind:` line under the ticket's `## Goal`, as written; undefined without one.
+export function ticketKind(text: string): string | undefined {
+	return /^- Kind:(.*)$/m.exec(text.split(/^## Goal$/m)[1]?.split(/^## /m)[0] ?? "")?.[1]?.trim();
+}
+
+// Why `text` may not be planned yet: the template's guidance left in it, as written there; else a Kind none of KINDS.
+export function notPlanned(text: string): string | undefined {
 	const guidance = new Set(readFileSync(TICKET, "utf8").match(GUIDANCE) ?? []);
-	return [...guidance].filter((comment) => text.includes(comment));
+	const left = [...guidance].filter((comment) => text.includes(comment));
+	if (left.length > 0) return `still holds the template's guidance, replace it first:\n${left.join("\n")}`;
+	const kind = ticketKind(text);
+	return kind === undefined || KINDS.includes(kind) ? undefined : `names Kind ${JSON.stringify(kind)}, none of the template's: ${KINDS.join(", ")}`;
 }

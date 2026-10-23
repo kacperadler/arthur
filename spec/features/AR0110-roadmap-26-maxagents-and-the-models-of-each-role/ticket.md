@@ -19,7 +19,7 @@ Roadmap entry 26 (`spec/roadmap.md`, "`maxAgents` and the models of each role").
 
 The owner keeps cost and load in hand from one config: `maxAgents` across all projects, and a model and thinking level per role (vision: one human directs many agents).
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

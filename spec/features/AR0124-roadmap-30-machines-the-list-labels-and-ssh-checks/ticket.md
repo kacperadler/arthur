@@ -16,7 +16,7 @@ Roadmap entry 30 (`spec/roadmap.md`, "Machines: the list, labels, and SSH checks
 
 Arthur knows the other machines it may run jobs on, checked at start (vision: runs on one machine, jobs on others over SSH).
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

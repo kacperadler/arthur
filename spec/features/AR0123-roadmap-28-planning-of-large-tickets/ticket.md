@@ -19,7 +19,7 @@ Roadmap entry 28 (`spec/roadmap.md`, "Planning of large tickets"), built as the 
 
 A large ticket gets a plan the owner approves before code, as in the predecessor (vision: one human directs many agents).
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

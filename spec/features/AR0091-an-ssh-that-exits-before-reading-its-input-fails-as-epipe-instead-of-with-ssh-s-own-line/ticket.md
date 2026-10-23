@@ -16,7 +16,7 @@ under `npm test`, the test "offline mid-job: stop, steer and continue are refuse
 
 When ssh to another machine is refused or the machine is unreachable, the owner sees ssh's own line ("Permission denied", "unreachable") instead of a bare EPIPE, even when ssh exits before reading its input; and the "offline mid-job" test in machine.test.ts stops failing under load, so the full suite is green again.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/core/src/job-machine.ts:99` (`ssh()`: `spawnSync` with `input`, and `run.error` thrown first at line 100); seen in `packages/core/test/machine.test.ts:224`

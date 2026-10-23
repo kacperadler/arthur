@@ -58,7 +58,7 @@ say({ type: "agent_end", messages: [] });
 `;
 
 const commit = (message: string): Step => ({ bash: `git add -A && git commit -qm '${message}' && git push -q` });
-const KIND = "- Kind: <!-- feature | bug | risk | cleanup | improvement -->";
+const KIND = "- Kind: <!-- feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux -->";
 const DECISION = "<!-- - YYYY-MM-DD: one decision the human made, in one line. -->";
 const APPROVED = "- 2026-10-21: The owner approved it.\n";
 const SH0004 = "spec/features/SH0004-show-the-cart-s-total-with-tax/ticket.md";
@@ -77,9 +77,9 @@ const AUDIT = ["spec/features/SH0016-the-cart-s-total-ignores-a-removed-item-s-q
 const audit = (status: Step, spawn: string): Step[] => [
 	{ bash: "arthur ticket file a1b2c3d4" },
 	{ bash: "arthur ticket new 'The total of the cart ignores the quantity of a removed item'" },
-	...fill(AUDIT[0], "bug", "audit spec/quality/2026-10-22.md"),
+	...fill(AUDIT[0], "fix", "audit spec/quality/2026-10-22.md"),
 	{ bash: "arthur ticket new 'Let the owner pick the currency of the sales report'" },
-	...fill(AUDIT[1], "improvement", "audit spec/quality/2026-10-22.md"),
+	...fill(AUDIT[1], "feat", "audit spec/quality/2026-10-22.md"),
 	status,
 	commit("audit 2026-10-22: 2 tickets"),
 	{ bash: `arthur spawn --budget 1 'Ticket: ${spawn}'` },
@@ -90,9 +90,9 @@ const RETRO = ["spec/features/SH0016-name-the-receipt-s-total-in-the-reviewer-s-
 const retro = (...extra: Step[]): Step[] => [
 	{ bash: "arthur ticket file e5f6a7b8" },
 	{ bash: "arthur ticket new 'Name the total of the receipt in the checks of the reviewer'" },
-	...fill(RETRO[0], "cleanup", "retro spec/retro/2026-10-22.md"),
+	...fill(RETRO[0], "chore", "retro spec/retro/2026-10-22.md"),
 	{ bash: "arthur ticket new 'Ask the worker for the failing test before the fix'" },
-	...fill(RETRO[1], "cleanup", "retro spec/retro/2026-10-22.md"),
+	...fill(RETRO[1], "chore", "retro spec/retro/2026-10-22.md"),
 	...extra,
 	commit("retro 2026-10-22: 2 tickets"),
 	{ bash: "arthur prune e5f6a7b8" },
@@ -110,7 +110,7 @@ const restart = (...extra: Step[]): Step[] => [
 ];
 const QUESTIONS = ["1. Who reads the blog?", "2. Is a post changed after it is published?", "3. Which languages?", "4. Must a post have an image?", "5. Who approves a post?", "6. Are old posts removed?"];
 const FINDINGS =
-	"# SH0006 - Findings\n\n## F1. The count reads each order's items twice\n\n- Kind: cleanup\n- Found by: 2026-10-22-review-2b3c4d5e (review), 2026-10-22\n- Where: `src/report.ts:88`\n- What: the count reads each order's items once for the total and once for the column.\n- Suggestion: one pass.\n- Status: ticket SH0016\n\n## F2. No test of an order with no items\n\n- Kind: risk\n- Found by: 2026-10-22-review-2b3c4d5e (review), 2026-10-22\n- Where: `test/report.test.ts:140`\n- What: the report shows 0 for an order with no items, and no test holds it.\n- Suggestion: a test of that order.\n- Status: ticket SH0017\n";
+	"# SH0006 - Findings\n\n## F1. The count reads each order's items twice\n\n- Kind: refactor\n- Found by: 2026-10-22-review-2b3c4d5e (review), 2026-10-22\n- Where: `src/report.ts:88`\n- What: the count reads each order's items once for the total and once for the column.\n- Suggestion: one pass.\n- Status: ticket SH0016\n\n## F2. No test of an order with no items\n\n- Kind: test\n- Found by: 2026-10-22-review-2b3c4d5e (review), 2026-10-22\n- Where: `test/report.test.ts:140`\n- What: the report shows 0 for an order with no items, and no test holds it.\n- Suggestion: a test of that order.\n- Status: ticket SH0017\n";
 
 const ACTS: Readonly<Record<string, Act>> = {
 	"delivery/worker-done": {

@@ -16,7 +16,7 @@
 
 The outbox's retry test (`packages/telegram/test/telegram.test.ts:262`) never fails by chance in a full run, so a red `npm test` always means a real break. It failed once in a reviewer's full run and passed alone; one candidate [INFERENCE] is comparing two `Date.now()` stamps around a 2 s `setTimeout` (F2 of AR0224).
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/telegram/test/telegram.test.ts:262`

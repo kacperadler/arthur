@@ -19,7 +19,7 @@ Roadmap entry 38 (`spec/roadmap.md`), built as the entry says.
 
 When Arthur starts, the owner is told it is up, and a failing model provider is found at start instead of at the first real turn.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

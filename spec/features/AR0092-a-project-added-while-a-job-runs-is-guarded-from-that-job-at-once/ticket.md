@@ -16,7 +16,7 @@ A job's guard learns the other projects' checkouts when the job is spawned. A pr
 
 Every declared project's checkout and worktrees are refused to every other project's job from the moment the project is declared, not from the next spawn.
 
-- Kind: risk
+- Kind: security
 
 ## Done means
 

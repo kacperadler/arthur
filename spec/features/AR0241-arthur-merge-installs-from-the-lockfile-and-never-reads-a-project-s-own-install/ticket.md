@@ -16,7 +16,7 @@ a project whose entry in `arthur.config.ts` sets `install` (a custom command, or
 
 `arthur merge` installs on main with the project's own install command (custom or none), the same one its worktrees get, via a provided `projects.install`; the merge's own lockfile table goes.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/delivery/src/merge-checks.ts:12` (the lockfile table) and `packages/projects/src/install.ts:19` (`installCommand`, which reads `install` first)

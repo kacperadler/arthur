@@ -16,7 +16,7 @@ the one place Arthur's code names a path in /tmp for anyone to write is a line a
 
 The stash refusal points a job at a patch path inside its own record, not a fixed name in /tmp; tested.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `packages/core/src/worktree-guard.ts:29` (`save a patch instead (git diff > /tmp/<name>.patch, then git apply /tmp/<name>.patch)`)

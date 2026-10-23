@@ -19,7 +19,7 @@ in the real run of `delivery/check-failed`, the coordinator ran `arthur merge --
 
 The eval stub never answers a `--help` call with a command's scripted result, in the stub itself, so scenarios no longer need a per-regex workaround.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/develop/src/eval-stub.ts`

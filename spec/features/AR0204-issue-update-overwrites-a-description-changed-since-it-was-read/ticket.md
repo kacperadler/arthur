@@ -16,7 +16,7 @@ roadmap 45 asks only an article's update to refuse a change made meanwhile, so `
 
 `issue update` refuses to overwrite a description someone changed since it was read, as `article update` already does.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/youtrack/src/youtrack-write.ts`, `update`

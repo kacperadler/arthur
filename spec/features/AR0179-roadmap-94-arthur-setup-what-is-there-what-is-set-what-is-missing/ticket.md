@@ -21,7 +21,7 @@ Builds roadmap entry 94, `arthur setup`: a report the owner runs on a new machin
 
 Roadmap entry 94 in `spec/roadmap.md` is the specification: its Delivers, its example run, its Done means with every edge case, and its Covers (S8). It depends on entries 93 (option tables, AR0170) and 80 (`arthur doctor`, AR0166), both merged. With it, Arthur can be installed without the harness's help (vision, direction A).
 
-- Kind: improvement
+- Kind: feat
 - Budget: 12
 
 ## Done means

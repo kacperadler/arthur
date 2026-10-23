@@ -16,7 +16,7 @@ after 3 coordinator turns in a row end without a reply, the inbox writes the not
 
 The inbox's notice after 3 unanswered turns removes credentials from omp's error the same way the turn-failed notice does.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/orchestration/src/inbox-extension.ts:118`

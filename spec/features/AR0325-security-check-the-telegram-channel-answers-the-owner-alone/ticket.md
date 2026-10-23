@@ -14,7 +14,7 @@ One area of the security check of our own code before the switch (AR0307), as a 
 
 ## Goal
 
-- Kind: risk
+- Kind: security
 - Model: anthropic/claude-fable-5-1 (the owner, 2026-10-23), no cost limit; its review stays on the reviewer's default model.
 
 The rule this area must hold: The Telegram channel acts only on the owner's own user id, in the configured chat; commands that stop, merge, restart or spend are the owner's alone.

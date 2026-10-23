@@ -35,7 +35,7 @@ Only an entry whose Status is exactly `open` is open. `fixed in <commit>`, `tick
 Each new ticket is in `planning`, its `ticket.md` the core's template with:
 
 - its Description the finding: `F<n> of <ticket> (<path>).` and the entry's lines but its Status; grouped, one line naming the merged ticket, then `### F<n>. <title>` and its lines for each entry;
-- its `- Kind:` the entry's kind when it is one of the template's (`feature`, `bug`, `risk`, `cleanup`, `improvement`) and, grouped, the same for every entry; else the template's guidance;
+- its `- Kind:` the entry's kind when it is one of the ticket template's (`host.board.kinds`: `feat`, `fix`, `security`, `perf`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`, `ux`) and, grouped, the same for every entry; else the template's guidance;
 - `budget` in its JSON block when the entry's `- Budget:` is a plain amount such as `1.5` (grouped: the sum, when every entry has one), which `arthur ticket status <id> planned --autopilot` takes when `--budget` is left out; a Budget that is no amount stays in the Description only;
 - its Decisions `- <today>: Source: F<n> of <ticket>`, one line per entry, today in `core.timeZone`, the line autopilot reads as the ticket's source.
 

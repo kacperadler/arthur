@@ -16,7 +16,7 @@ One full `npm test` failed in `packages/core/test/job-control.test.ts` with `ENO
 
 The job-control test passes in every full `npm test` under load: the race on unlinking `continuing` is found and closed, in the test or in `lock.ts` if the code is at fault.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/core/test/job-control.test.ts`, `packages/core/src/lock.ts`

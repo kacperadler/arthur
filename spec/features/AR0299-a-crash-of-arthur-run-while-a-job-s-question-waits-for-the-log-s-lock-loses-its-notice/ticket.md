@@ -16,7 +16,7 @@ the handler creates its mark `<home>/orchestration/asked/<event number>-<time>` 
 
 A job's question reaches the owner even when `arthur run` crashes or restarts while the question waits for the decision log's lock: the replay after the restart sends the notice that was never sent.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/orchestration/src/blocked-notice.ts` (the `asked/` mark, then the notice after `askOfJob`)

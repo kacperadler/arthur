@@ -16,7 +16,7 @@ AR0084's inbox is tested only against the fake agent. Three behaviours rest on o
 
 The owner's mid-turn messages are answered by the real coordinator, not only by the fake one.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - AR0084 plan.md, How to test (the live smoke); findings F3 of AR0084.

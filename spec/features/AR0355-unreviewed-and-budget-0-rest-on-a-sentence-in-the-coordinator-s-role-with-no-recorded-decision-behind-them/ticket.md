@@ -16,7 +16,7 @@
 
 `--unreviewed` and `--budget 0` need a recorded owner decision (its id), checked by the command, not only a sentence in the role; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/delivery/src/merge-command.ts:35`, `:82` (the flag taken as given; the message says "on the owner's word only"); `packages/core/src/flags.ts:6` and `packages/core/src/job-limits.ts:27-28` (`0` is no limit), `packages/core/src/spawn-command.ts:42`, `packages/core/src/job-commands.ts:34-36` (a continue's `--budget`); `packages/orchestration/roles/coordinator.md:25`, `:81`; the one check of its kind, `packages/orchestration/src/plans.ts:82-88`, holds a pre-approved ticket's worker to its recorded budget until an owner's line under its Decisions

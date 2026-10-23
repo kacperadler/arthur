@@ -16,7 +16,7 @@ The cart shows its total with the tax included, as the receipt does, so a custom
 
 No surprise at checkout: the cart shows the total before tax today (`src/cart.ts:41`).
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

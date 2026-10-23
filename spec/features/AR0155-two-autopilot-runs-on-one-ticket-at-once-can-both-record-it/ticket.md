@@ -16,7 +16,7 @@ the status check, the write of the `Pre-approved by policy` line and the move ar
 
 Two pre-approvals of one ticket at the same moment record it once.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/orchestration/src/autopilot.ts`

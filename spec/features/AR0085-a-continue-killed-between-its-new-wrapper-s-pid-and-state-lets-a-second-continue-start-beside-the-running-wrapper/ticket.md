@@ -20,7 +20,7 @@ the new wrapper writes `pid`, then `state` (`running`), then removes `continuing
 
 Two wrappers never run for one job, however a continue is killed.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/wrapper.ts:94-96`, `packages/core/src/job-control.ts` (`continueJob`)

@@ -16,7 +16,7 @@ AR0202 ends the wrapper at the first failed use once the record's `pid` is gone,
 
 Removing a job's record with `rm -r` while its wrapper runs always succeeds: the wrapper never recreates `log` in a record that is being removed.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/core/src/wrapper.ts` (`save` with `append`, `appendFileSync(join(folder, name), text)`)

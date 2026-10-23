@@ -16,7 +16,7 @@ the command refuses an empty list before the runner is called (`packages/core/sr
 
 No path, in the core or the shell, frees every finished job unless it asks for all by name: an empty list or an empty word is refused, never read as everything.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `packages/core/src/job-records.ts:51` (`jobUpkeep().prune`: `ids.length > 0 ? ... : jobIds(home)`)

@@ -20,7 +20,7 @@ Arthur's own agents keep talking through files, as now.
 
 Arthur works with agents in other systems through an open standard, without a custom integration for each one.
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

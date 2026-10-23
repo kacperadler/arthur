@@ -16,7 +16,7 @@
 
 README.md says what exists today (config loading, env check) instead of claiming no feature code exists.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `README.md:5`

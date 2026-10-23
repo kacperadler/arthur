@@ -16,7 +16,7 @@ in a real load, the core's `beforeSpawn` refuses a worker whose task names a tic
 
 The fake host refuses what production refuses: a plugin tested on it sees a worker on an unapproved or closed ticket refused, as in a real load. Both fake-host gaps (AR0047 F1 and F2) go in one change.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/host.ts:47` (`loadPlugins` registers the core's `beforeSpawn`), `packages/core/src/testing.ts:106` (`fakeHost` does not)

@@ -16,7 +16,7 @@
 
 A job whose record is removed while it runs ends with its one line, and the wrapper never crashes.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/core/src/wrapper.ts:40-47`

@@ -16,7 +16,7 @@
 
 The resources scope test passes on a machine of any core count, so a 1-core runner never fails it.
 
-- Kind: bug
+- Kind: fix
 
 Evidence:
 - `packages/resources/test/resources.test.ts:75`

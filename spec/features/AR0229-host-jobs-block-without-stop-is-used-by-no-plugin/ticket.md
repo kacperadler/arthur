@@ -16,7 +16,7 @@ the only plugin call of `host.jobs.block` is resources' `block(job.id, text, tru
 
 What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
 
-- Kind: cleanup
+- Kind: refactor
 
 Evidence:
 - `packages/core/src/job-state.ts:81`, `packages/core/src/machine-sync.ts:73`, `packages/resources/src/feature-guard.ts:41`

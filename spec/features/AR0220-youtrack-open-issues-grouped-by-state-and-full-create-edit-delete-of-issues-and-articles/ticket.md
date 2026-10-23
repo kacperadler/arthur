@@ -16,7 +16,7 @@ The owner wants the youtrack plugin to manage issues and articles fully, not onl
 
 Today `issue list` prints unresolved issues as one flat list (AR0195), and `packages/youtrack/src/youtrack-command.ts:8` says "No verb deletes an issue or an article"; roadmap entry 45 and row Y1 say "no delete". The owner overrode that on 2026-10-20: full create, read, update, delete of issues and articles.
 
-- Kind: improvement
+- Kind: feat
 
 ## Done means
 

@@ -19,7 +19,7 @@ Roadmap entry 36 (`spec/roadmap.md`), built as the entry says.
 
 The coordinator starts a fresh conversation at a set time or on /restart, only once no job runs.
 
-- Kind: feature
+- Kind: feat
 
 ## Done means
 

@@ -16,7 +16,7 @@ probed with git 2.43 in a temporary repository and worktree: `git -c alias.c=con
 
 The worktree guard also refuses a write reached through a git alias or GIT_DIR/GIT_WORK_TREE pointing outside the job's checkout; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/core/src/git-writes.ts:28` (`gitCall`), `packages/core/src/worktree-guard.ts:131` (`git`)

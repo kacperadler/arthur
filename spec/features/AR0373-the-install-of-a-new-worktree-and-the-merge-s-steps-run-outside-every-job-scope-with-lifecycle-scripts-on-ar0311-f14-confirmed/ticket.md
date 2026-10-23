@@ -16,7 +16,7 @@ a dependency's lifecycle script (`preinstall`, `postinstall`, `prepare`), at eve
 
 The install of a new worktree and the merge's steps run inside a job scope, with lifecycle scripts off unless a project turns them on; tested.
 
-- Kind: risk
+- Kind: security
 
 Evidence:
 - `packages/projects/src/install.ts:36-37` (the install through `host.jobs.run`), `packages/core/src/jobs.ts:182` and `:190` (the prepares run, then `launch` creates the scope), `packages/core/src/job-machine.ts:89-106` (`execute`: a plain `spawn` in Arthur's process, or `ssh` on another machine), `packages/delivery/src/merge-checks.ts:63` (`spawnSync("sh", ["-c", command])` in the process of `arthur merge`), `install.ts:10-14` (the lockfile commands, none with `--ignore-scripts`)

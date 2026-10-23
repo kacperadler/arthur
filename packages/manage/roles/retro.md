@@ -29,7 +29,7 @@ Then at most 5 proposals, most valuable first, each the answer to what would mak
 
 ```
 ## <n>. <title>
-Kind: cleanup
+Kind: chore
 Evidence:
 - <ticket> <review-N.md or F<n>>: <what went wrong there>
 Why it matters: <one or two sentences>

@@ -16,7 +16,7 @@ with `withLock` taken out of `change` in `packages/orchestration/src/decision-lo
 
 The decision log's concurrency test fails every time the lock is missing, not only in most runs, so a regression in the log's locking cannot slip through a lucky test run.
 
-- Kind: improvement
+- Kind: feat
 
 Evidence:
 - `packages/orchestration/test/decisions.test.ts` ("asks at once, from four processes asking five times each")

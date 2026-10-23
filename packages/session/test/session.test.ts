@@ -82,7 +82,7 @@ test("at a compactAt slot the coordinator writes its handoff, the conversation i
 	// Compacted after the handoff turn ended (step 3), while the agent waits for its next prompt (step 4), which reads the handoff.
 	assert.deepEqual(agent.compactions(), [{ instructions: null, step: 4 }]);
 	await until("the read-back turn", () => agent.messages().length === 2);
-	const read = `[Arthur] Your conversation was just compacted. Before that you wrote this handoff (${box.handoff}); go on from it:\n\n${HANDOFF}\n\n${ARTHUR}`;
+	const read = `[Arthur] Your conversation was just compacted. Before that you wrote this handoff (${box.handoff}); go on from it:\n\n> Work in progress: AR0143, its worker runs.\n> Next: review its branch.\n> Unanswered: merge AR0140? (asked at 12:40)\n\n${ARTHUR}`;
 	assert.deepEqual(agent.messages()[1], { content: read, options: { attribution: "agent" }, step: 4 });
 	await until("the request gone", () => box.request() === undefined);
 	assert.equal(readFileSync(join(box.fake.host.folder, "handoff-read"), "utf8"), String(statSync(box.handoff).mtimeMs), "noted as read, so no start reads it again");

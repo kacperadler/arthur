@@ -61,10 +61,10 @@ export function endWait(host: Host, id: string): void {
 // The verdict a run that built a waiting branch ended on, as the coordinator's wake says it.
 function ended(wait: Wait, run: CiEnd["run"], cancelled: boolean): string {
 	const where = `${wait.branch} (run ${run.id}, attempt ${run.attempt}, on ${run.sha.slice(0, 7)}): ${run.url}`;
-	if (run.conclusion === "success") return `[delivery] CI passed on ${where}. It waited for that: arthur merge --auto ${wait.job}`;
+	if (run.conclusion === "success") return `CI passed on ${where}. It waited for that: arthur merge --auto ${wait.job}`;
 	const ci = `arthur ci ${wait.branch} --project ${wait.project}`;
 	const hung = cancelled ? `, cancelled by delivery after it ran ${HANG_MINUTES} minutes` : "";
-	return `[delivery] CI ended ${run.conclusion}${hung} on ${where}. Not merged; it waits on: the next end of a run on it wakes you again. Why: ${ci}; then a failure in the branch's own code goes back to its worker: arthur continue ${wait.job} '<the failed step and its lines>'; one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once: ${ci} --rerun`;
+	return `CI ended ${run.conclusion}${hung} on ${where}. Not merged; it waits on: the next end of a run on it wakes you again. Why: ${ci}; then a failure in the branch's own code goes back to its worker: arthur continue ${wait.job} '<the failed step and its lines>'; one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once: ${ci} --rerun`;
 }
 
 // `delivery.ciEnded`: the end of a run on one of a waiting branch's own commits wakes the coordinator, once per run attempt,
@@ -119,7 +119,7 @@ export function ciWaits(host: Host): CiWaits {
 		try {
 			console.log(await host.call<Promise<string>>("github.cancel", { project: wait.project, run: run.id }));
 		} catch (error) {
-			const text = `[delivery] CI run ${run.id}, attempt ${run.attempt}, on ${wait.branch} has run ${HANG_MINUTES} minutes and was not cancelled: ${(error as Error).message}. Cancel it on GitHub: ${run.url}`;
+			const text = `CI run ${run.id}, attempt ${run.attempt}, on ${wait.branch} has run ${HANG_MINUTES} minutes and was not cancelled: ${(error as Error).message}. Cancel it on GitHub: ${run.url}`;
 			host.events.emit("coordinator-message", { text });
 		}
 	};

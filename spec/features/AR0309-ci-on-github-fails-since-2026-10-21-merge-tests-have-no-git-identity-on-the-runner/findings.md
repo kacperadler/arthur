@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/delivery/src/merge-command.ts:85`
 - What: `arthur merge` runs `git merge --no-ff -m …` in the project's checkout with whatever identity Git finds. A user whose git has no `user.name`/`user.email` (a fresh machine or container, as GitHub's ubuntu runner) gets `arthur merge: git merge arthur/<id> failed: fatal: unable to auto-detect email address (got '<user>@<host>.(none)'); main is unchanged`. Reproduced with `packages/delivery/test/auto-merge.test.ts` before AR0309's fix, under `HOME=<empty folder> GIT_CONFIG_NOSYSTEM=1`: 5 of 6 tests failed with that line. Nothing is lost (main is unchanged), but the refusal comes only at merge time, after a worker and a review were paid for, and its wording does not say what to set.
 - Suggestion: check for an identity where Arthur first needs one (`arthur init` or the host's start, as a health line) and name the fix (`git config --global user.name/user.email`, or repo-local); keep Arthur from inventing an identity of its own.
-- Status: open
+- Status: ticket AR0310

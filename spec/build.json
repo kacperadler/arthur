@@ -2865,9 +2865,9 @@
   {
     "id": "AR0378",
     "title": "A ticket has a Conventional Commits kind, and the board filters by it",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0378-a-ticket-names-its-area-and-the-board-filters-by-it/ticket.md",
-    "updated": "2026-10-23T20:39:24.387Z"
+    "updated": "2026-10-23T20:57:57.361Z"
   },
   {
     "id": "AR0379",

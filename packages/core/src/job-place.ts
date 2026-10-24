@@ -11,16 +11,16 @@ import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 export type Place = { readonly worktree: string; readonly branch: string; readonly home: string; readonly root: string; readonly worktrees: string; readonly others: readonly { readonly name: string; readonly root: string; readonly worktrees: string }[]; readonly guarded: readonly { readonly name: string; readonly path: string }[] };
 
 // The keys of the record's `guarded` file, and the name each place has in a refusal.
-const GUARDED: Readonly<Record<string, string>> = { config: "Arthur's config folder", env: "Arthur's env file", install: "Arthur's install", ssh: "the user's SSH folder", systemd: "the user's systemd folder", gitconfig: "the user's Git config" };
+const GUARDED: Readonly<Record<string, string>> = { config: "Arthur's config folder", env: "Arthur's env file", install: "Arthur's install", ssh: "the user's SSH folder", systemd: "the user's systemd folder", gitconfig: "the user's Git config", gitxdg: "the user's Git config" };
 
 // The record's `guarded` file, a line `<key> <absolute path>` each: Arthur's install, the folder that holds the core's
 // package (the clone of docs/setup.md, so every plugin's package too; `node_modules` of an install from npm), the user's
-// `~/.ssh`, `~/.config/systemd` and `~/.gitconfig`, and with `config` (none on another machine) the config's folder and the
-// env file, which may lie outside it.
+// `~/.ssh`, `~/.config/systemd`, `~/.gitconfig`, `~/.config/git/` and `$XDG_CONFIG_HOME/git/` (which Git reads instead), and
+// with `config` (none on another machine) the config's folder and env file. A file Git's config includes is not followed.
 export function guardedPlaces(config?: { readonly folder: string; readonly envFile: string }): string {
-	const user = homedir();
-	const places = { ...(config && { config: config.folder, env: config.envFile }), install: resolve(import.meta.dirname, "..", "..", ".."), ssh: join(user, ".ssh"), systemd: join(user, ".config", "systemd"), gitconfig: join(user, ".gitconfig") };
-	return Object.entries(places).map(([key, path]) => `${key} ${path}`).join("\n");
+	const [user, xdg] = [homedir(), process.env.XDG_CONFIG_HOME && join(process.env.XDG_CONFIG_HOME, "git")];
+	const places = [...(config ? [["config", config.folder], ["env", config.envFile]] : []), ["install", resolve(import.meta.dirname, "..", "..", "..")], ["ssh", join(user, ".ssh")], ["systemd", join(user, ".config", "systemd")], ["gitconfig", join(user, ".gitconfig")], ["gitxdg", join(user, ".config", "git")]];
+	return [...places, ...(xdg && xdg !== join(user, ".config", "git") ? [["gitxdg", xdg]] : [])].map(([key, path]) => `${key} ${path}`).join("\n");
 }
 
 // The places `text` names as `guardedPlaces` writes them; a line with another key or a relative path is none.

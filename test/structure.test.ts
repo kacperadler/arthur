@@ -609,7 +609,11 @@ import { checkStructure } from "./structure.ts";
 // `HOME`), `--config-env` and `--attr-source` as options with a value, `loads` and their comments (git-writes.ts, git diff
 // --numstat +35 -8), and the assignments passed, the refusal and the limits reworded (worktree-guard.ts, +17 -14). Nothing
 // read an alias before, so nothing was cut.
-const BUDGETS = { core: 6017, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1317, github: 651, manage: 928, develop: 705, findings: 254 };
+// AR0382 (F4 of AR0330; its Done means: `remote-job.ts`'s `git` helper and its `update-ref` get the two hookless `-c` flags):
+// core 4 more (6021) for those flags and their comment (remote-job.ts, git diff --numstat +5 -2), and the push's `git
+// receive-pack` on the other machine sent without hooks, which ran them there (job-machine.ts, +2 -1: its comment, the option
+// inlined into the push). Nothing turned the hooks off there before, so nothing was cut.
+const BUDGETS = { core: 6021, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1317, github: 651, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

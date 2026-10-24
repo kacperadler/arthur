@@ -148,12 +148,13 @@ export function gitOver(root: string, args: readonly string[]): void {
 
 // Before any record exists: `arthur` there of this version, the project's repository there, and `base` in it, pushed from
 // `root` to `refs/arthur/base` only when it is missing; so is a spawn's `fetch`, to `refs/arthur/fetch`. Returns the repository there.
+// The push's `git receive-pack` there runs no hook of that repository's config: a job's program there may have set them (AR0382).
 export function reach(machine: Machine, project: string, root: string, base: string, fetch?: string): string {
 	const [theirs, ours] = [ssh(machine, ["arthur", "version"]).trim(), coreVersion()];
 	if (theirs !== ours) throw new Error(`machine ${machine.name} runs arthur ${theirs}, this one is ${ours}; both need the same version`);
 	for (const [commit, ref] of fetch === undefined ? [[base, "base"]] : [[base, "base"], [fetch, "fetch"]]) {
 		const there = ssh(machine, ["arthur", "remote-job", "repo", machine.home, project, commit ?? ""]).trim();
-		if (there === "missing") gitOver(root, ["push", "--quiet", url(machine, project), `+${commit}:refs/arthur/${ref}`]);
+		if (there === "missing") gitOver(root, ["push", "--quiet", "--receive-pack=git -c core.hooksPath=/dev/null receive-pack", url(machine, project), `+${commit}:refs/arthur/${ref}`]);
 	}
 	return repositoryThere(machine, project);
 }

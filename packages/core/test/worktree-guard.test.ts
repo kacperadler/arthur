@@ -9,7 +9,7 @@ import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { type Job, jobRunner } from "../src/jobs.ts";
 import { jobSlice, temporaryFolder } from "../src/testing.ts";
-import { jobPlace } from "../src/job-place.ts";
+import { guardedPlaces, jobPlace } from "../src/job-place.ts";
 import worktreeGuard, { worktreeRefusal } from "../src/worktree-guard.ts";
 
 type Call = readonly [string, Record<string, unknown>];
@@ -331,13 +331,16 @@ test("a job of one project refuses writes into another project's main checkout a
 test("a job refuses writes into Arthur's install, config folder and env file, and the user's SSH folder, systemd units and Git config", async (t) => {
 	const alpha = repository("alpha");
 	// The config's folder apart from the project, and an env file outside it.
-	const [config, secrets, user, agent] = [temporaryFolder(), join(temporaryFolder(), "secrets"), temporaryFolder(), join(temporaryFolder(), "omp")];
+	const [config, secrets, user, agent, xdg] = [temporaryFolder(), join(temporaryFolder(), "secrets"), temporaryFolder(), join(temporaryFolder(), "omp"), temporaryFolder()];
 	// The user's home as the runner sees it is a link to the folder, as a home on another mount may be.
 	const linked = join(temporaryFolder(), "user");
 	symlinkSync(user, linked);
-	const saved = process.env.HOME;
-	t.after(() => (saved === undefined ? delete process.env.HOME : (process.env.HOME = saved)));
-	process.env.HOME = linked;
+	const saved = { HOME: process.env.HOME, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME };
+	t.after(() => {
+		for (const [name, value] of Object.entries(saved)) value === undefined ? delete process.env[name] : (process.env[name] = value);
+	});
+	// Git reads the user's config from `$XDG_CONFIG_HOME/git/` when it is set, and `~/.config/git/` when it is not.
+	Object.assign(process.env, { HOME: linked, XDG_CONFIG_HOME: xdg });
 	const home = join(config, ".arthur");
 	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
 	const collect = (name: string) => (name === "projects" ? [[{ name: "alpha", prefix: "AL", path: alpha }]] : []);
@@ -362,13 +365,22 @@ test("a job refuses writes into Arthur's install, config folder and env file, an
 		["write", { path: "~/.config/systemd/user/arthur.service", content: "x" }, "the user's systemd folder"],
 		["bash", { command: 'cp unit.service "$HOME/.config/systemd/user/"' }, "the user's systemd folder"],
 		["bash", { command: "echo '[user]' >> ~/.gitconfig" }, "the user's Git config"],
-		["bash", { command: "echo x > ~/notes.txt && touch ~/.config/other ~/.gitconfig.d" }, undefined],
+		["write", { path: "~/.config/git/config", content: "[core]\n\thooksPath = /tmp/hooks\n" }, "the user's Git config"],
+		["bash", { command: "git config --file ~/.config/git/config core.hooksPath /tmp/hooks" }, "the user's Git config"],
+		["bash", { command: `echo '*.log' > ${join(xdg, "git", "ignore")}` }, "the user's Git config"],
+		["bash", { command: `echo x > ~/notes.txt && touch ~/.config/other ~/.config/gitk ~/.gitconfig.d ${join(xdg, "other")} ${join(xdg, "gitk")}` }, undefined],
 		["write", { path: join(dirname(secrets), "other"), content: "x" }, undefined],
 		["write", { path: "README.md", content: "x" }, undefined],
 	];
 	for (const [toolName, input, expected] of calls) {
 		const reason = worktreeRefusal(place, toolName, input);
 		assert.equal(/writes into (.+?) \(/.exec(reason ?? "")?.[1], expected, `${toolName} ${JSON.stringify(input)}: ${reason}`);
+	}
+	// `~/.config/git/` is guarded always, `$XDG_CONFIG_HOME/git/` once more only when it is set and elsewhere.
+	const homeGit = `gitxdg ${join(linked, ".config", "git")}`;
+	for (const [value, expected] of [[xdg, [homeGit, `gitxdg ${join(xdg, "git")}`]], ["", [homeGit]], [join(linked, ".config"), [homeGit]], [undefined, [homeGit]]] as const) {
+		value === undefined ? delete process.env.XDG_CONFIG_HOME : (process.env.XDG_CONFIG_HOME = value);
+		assert.deepEqual(guardedPlaces().split("\n").filter((line) => line.startsWith("gitxdg ")), expected, `XDG_CONFIG_HOME=${value}`);
 	}
 	// A record written before `guarded` was, or a line a human broke (a relative path, taken from no folder; a key that is
 	// none, as an Object property is not), names no such place.

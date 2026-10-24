@@ -16,7 +16,7 @@ at base `8940bb85` the ticket's line 19 is `- Kind: feat | fix | security | perf
 
 `npm test` passes on main again: AR0387's ticket has one Kind (already done on main in d1877289).
 
-- Kind: feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux
+- Kind: test
 
 ## Done means
 

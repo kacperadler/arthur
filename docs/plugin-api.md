@@ -112,6 +112,7 @@ Each decided in the ticket that made it.
 - AR0294 (F1 of AR0279; its Done means name orchestration taking a scenario's context in `coordinator.checkoutContext`): that provided name takes `{ root, at, context }`, `context` `{ <plugin>: <text> }`, the lines each plugin adds in place of its live answer, none for a plugin left out, a name that answers no `coordinator.context` refused; develop's `arthur eval` passes the scenario's `context`. No host member changed.
 - AR0353 (F1 of AR0323; its Done means name the field): `Command.inJob`, `true` or absent, any other value refused at registration; inside a job (`ARTHUR_JOB` set) the CLI runs only a command registered with `inJob: true` and refuses the rest before it runs (`arthur help --help`). No host member changed.
 - AR0378 (the ticket's Done means: the board shows each ticket's Kind and filters by it): `board.full(project?, kind?)`, every ticket of that Kind when `kind` is given, a kind not in `board.kinds` refused (`unknown kind <kind>; kinds: <kinds>`); `board.kinds`, the kinds of the ticket template (`feat`, `fix`, `security`, `perf`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`, `ux`), which orchestration's `/board`, delivery's changelog and findings read. The lines of `board.digest` and `board.full` carry each ticket's Kind after its status.
+- AR0380 (its Done means: the repository's own Git config checked against an allowed set before `arthur merge` and a push, which delivery and github make): the module `@arthur/core/git-config`, `configRefusal(root)`, the one check the core's own checkout and push share with those plugins, so the allowed set is kept once. No host member changed.
 
 ## Types
 
@@ -242,6 +243,12 @@ Exports: `Clock`, `Day`, `LocalTime`, `clock`.
 Exports: `default`.
 
 The env guard, an OMP extension, which the coordinator loads with `-e` like every job.
+
+### `@arthur/core/git-config`
+
+Exports: `configRefusal`.
+
+`configRefusal(root)`: `""` when the Git config of the repository at `root` itself, its `.git/config`, the main checkout's `config.worktree` (read once `extensions.worktreeConfig` is on) and any file they include, sets only keys that name no program; else one line naming the file and the first key that may (a filter, a merge driver, a credential helper, `core.sshCommand`, `gpg.program`, an alias, an include, any key outside the set), or Git's own line when it cannot read that config. A job can write that config and not the user's own, so a git call of Arthur's in a checkout that may run a program (a checkout, a merge, a reset, a push or fetch) asks first and runs nothing on a refusal. The allowed set and why: [`deploy.md`](deploy.md), "Threat model".
 
 ### `@arthur/core/lock`
 

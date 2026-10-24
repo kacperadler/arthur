@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
+import { configRefusal } from "@arthur/core/git-config";
 import type { Run } from "./github-api.ts";
 
 // What the github plugin asks of a project's checkout (spec/roadmap.md, entries 57 and 58): the run that built a branch,
@@ -54,9 +55,12 @@ function gitAway(path: string, args: readonly string[], env: NodeJS.ProcessEnv):
 // No prompt: git's own is off, an empty GIT_ASKPASS keeps git from every askpass program (core.askPass and SSH_ASKPASS too),
 // Git Credential Manager is told never to ask, ssh may not use an askpass. No hook runs, so a branch whose `.gitattributes`
 // (any folder's) names `filter=lfs` gets `git lfs push origin <ref>` first, as Git LFS's pre-push hook would (AR0379); git-lfs
-// must be on PATH, as git would otherwise run a `lfs` alias of the config.
+// must be on PATH, as git would otherwise run a `lfs` alias of the config. Nor does a program the repository's own config may
+// name (`core.sshCommand`, a credential helper; @arthur/core/git-config): such a key refuses the push.
 export async function push(path: string, branch: string): Promise<string> {
 	const failed = (why: string) => `github: ${branch} not pushed to origin: ${why}`;
+	const planted = configRefusal(path);
+	if (planted !== "") return failed(planted);
 	if (git(path, "remote", "get-url", "origin") === undefined) return failed(`${path} has no origin remote`);
 	const ref = `refs/heads/${branch}`;
 	const env = { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "", GCM_INTERACTIVE: "never", SSH_ASKPASS_REQUIRE: "never" };

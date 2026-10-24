@@ -1,6 +1,7 @@
 import { execFile, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
+import { configRefusal } from "@arthur/core/git-config";
 import type { Command, Host, JobRecord, Requirement } from "@arthur/core/plugin";
 import { autoRefusal } from "./auto-merge.ts";
 import { writeChangelog } from "./changelog.ts";
@@ -54,7 +55,10 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 	if (host.jobs.running().includes(job.id)) throw new Error(`${job.id} is in a run (${job.state}); merge its branch once the run has ended`);
 	const root = host.board.projects().find((project) => project.name === job.project)?.path;
 	if (root === undefined) throw new Error(`${job.id}'s project ${job.project} is not in the project list`);
-	// No hook or fsmonitor the main checkout's config names runs: a program a job runs may have set them (AR0330).
+	// No hook or fsmonitor the main checkout's config names runs: a program a job runs may have set them (AR0330); nor any
+	// other program its own config may name, a filter's or a merge driver's (AR0380): refused before the first git call.
+	const planted = configRefusal(root);
+	if (planted !== "") throw new Error(`${planted}; main is unchanged`);
 	const git = (...words: string[]) => spawnSync("git", ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...words], { encoding: "utf8" });
 	const last = (ran: { readonly stdout: string; readonly stderr: string }) => (ran.stderr.trim() || ran.stdout.trim()).split("\n").at(-1) ?? "";
 	const tip = git("rev-parse", "--verify", "--quiet", `${job.branch}^{commit}`).stdout.trim();
@@ -100,8 +104,10 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 	if (steps.length === 0) console.log("no checks: package.json declares no check or test script");
 	const failing = steps.filter(failed).map((each) => each.command);
 	if (failing.length > 0) {
-		// `--keep`, unlike `--hard`, keeps the board's uncommitted moves, which the merge never touches.
-		const reset = git("reset", "--quiet", "--keep", before);
+		// `--keep`, unlike `--hard`, keeps the board's uncommitted moves, which the merge never touches. The checks ran a while: a
+		// job may have written the config since.
+		const refusal = configRefusal(root);
+		const reset = refusal === "" ? git("reset", "--quiet", "--keep", before) : { status: 1, stdout: "", stderr: refusal };
 		if (reset.status !== 0) throw new Error(`check failed on main (${failing.join(", ")}), and main could not be reset to ${before.slice(0, 7)}: ${last(reset)}`);
 		throw new Error(`check failed on main (${failing.join(", ")}); main reset to ${before.slice(0, 7)}, branch kept${reinstall(root, ask, steps, console.log)}`);
 	}

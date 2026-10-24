@@ -2872,9 +2872,9 @@
   {
     "id": "AR0379",
     "title": "A project on Git LFS gets its main pushed without its LFS objects",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0379-a-project-on-git-lfs-gets-its-main-pushed-without-its-lfs-objects/ticket.md",
-    "updated": "2026-10-23T16:58:37.316Z"
+    "updated": "2026-10-24T22:00:32.549Z"
   },
   {
     "id": "AR0380",

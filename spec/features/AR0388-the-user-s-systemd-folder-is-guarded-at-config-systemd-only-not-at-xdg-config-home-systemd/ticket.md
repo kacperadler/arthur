@@ -16,7 +16,7 @@
 
 A job cannot write systemd user units wherever systemd reads them: the guard covers `$XDG_CONFIG_HOME/systemd` as well as `~/.config/systemd`.
 
-- Kind: feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux
+- Kind: security
 
 ## Done means
 

@@ -9,7 +9,7 @@ import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { type Job, jobRunner } from "../src/jobs.ts";
 import { jobSlice, temporaryFolder } from "../src/testing.ts";
-import { jobPlace } from "../src/job-place.ts";
+import { guardedPlaces, jobPlace } from "../src/job-place.ts";
 import worktreeGuard, { worktreeRefusal } from "../src/worktree-guard.ts";
 
 type Call = readonly [string, Record<string, unknown>];
@@ -375,6 +375,12 @@ test("a job refuses writes into Arthur's install, config folder and env file, an
 	for (const [toolName, input, expected] of calls) {
 		const reason = worktreeRefusal(place, toolName, input);
 		assert.equal(/writes into (.+?) \(/.exec(reason ?? "")?.[1], expected, `${toolName} ${JSON.stringify(input)}: ${reason}`);
+	}
+	// `~/.config/git/` is guarded always, `$XDG_CONFIG_HOME/git/` once more only when it is set and elsewhere.
+	const homeGit = `gitxdg ${join(linked, ".config", "git")}`;
+	for (const [value, expected] of [[xdg, [homeGit, `gitxdg ${join(xdg, "git")}`]], ["", [homeGit]], [join(linked, ".config"), [homeGit]], [undefined, [homeGit]]] as const) {
+		value === undefined ? delete process.env.XDG_CONFIG_HOME : (process.env.XDG_CONFIG_HOME = value);
+		assert.deepEqual(guardedPlaces().split("\n").filter((line) => line.startsWith("gitxdg ")), expected, `XDG_CONFIG_HOME=${value}`);
 	}
 	// A record written before `guarded` was, or a line a human broke (a relative path, taken from no folder; a key that is
 	// none, as an Object property is not), names no such place.

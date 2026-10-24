@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { once } from "node:events";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
@@ -481,6 +481,30 @@ test("github.push pushes a branch to origin, one line, running no hook of the ch
 	assert.equal(existsSync(`${askpass}.asked`), false, "no askpass was run");
 });
 
+test("github.push refuses, running none, while the checkout's own config sets a key that may name a program: in .git/config, in config.worktree, or an include", async (t) => {
+	const api = await fakeGithub(t);
+	const origin = temporaryFolder();
+	git(origin, "init", "--quiet", "--bare", "--initial-branch=main");
+	const local = repository(origin);
+	const [ran, program] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "program")];
+	writeFileSync(program, `#!/bin/sh\necho program >> '${ran}'\nexit 1\n`, { mode: 0o755 });
+	const box = await started(t, [{ name: "local", path: local.path, prefix: "LO" }], options(api.apiUrl));
+	const push = () => box.fake.call<Promise<string>>("github.push", { project: "local", branch: "main" });
+	const said = (file: string, key: string) => `github: main not pushed to origin: ${join(local.path, ".git", file)} sets ${key}, which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig`;
+	// The program git runs for a push to a folder; `git lfs` as an alias; another file read as the checkout's config.
+	for (const [key, value] of [["remote.origin.receivePack", program], ["alias.lfs", `!${program}`], ["include.path", join(temporaryFolder(), "more")]] as const) {
+		git(local.path, "config", key, value);
+		assert.equal(await push(), said("config", key.toLowerCase()));
+		git(local.path, "config", "--unset", key);
+	}
+	git(local.path, "config", "extensions.worktreeConfig", "true");
+	git(local.path, "config", "--worktree", "core.sshCommand", program);
+	assert.equal(await push(), said("config.worktree", "core.sshcommand"));
+	git(local.path, "config", "--worktree", "--unset", "core.sshCommand");
+	assert.deepEqual([existsSync(ran), spawnSync("git", ["-C", origin, "rev-parse", "--verify", "--quiet", "main"]).status], [false, 1], "nothing run, nothing pushed");
+	assert.equal(await push(), "github: pushed main to origin: [new branch]");
+});
+
 test("github.push of a branch whose .gitattributes, in any folder, names filter=lfs runs git lfs push origin <ref> first; without git-lfs, or when it fails, nothing is pushed", async (t) => {
 	const api = await fakeGithub(t);
 	// PATH holds git and, once installed, a fake git-lfs that notes each push with origin's ref as it is then, or fails.
@@ -505,15 +529,13 @@ test("github.push of a branch whose .gitattributes, in any folder, names filter=
 		git(local.path, "commit", "--quiet", "-m", file);
 		git(local.path, "checkout", "--quiet", "main");
 	};
-	// What git would run for `git lfs` with no git-lfs on PATH: an alias, as a job's program may have set it.
-	git(local.path, "config", "alias.lfs", `!: > '${work}/alias'`);
 	const box = await started(t, [{ name: "local", path: local.path, prefix: "LO" }], options(api.apiUrl));
 	const push = (branch: string) => box.fake.call<Promise<string>>("github.push", { project: "local", branch });
 	const [log, fail] = [join(work, "log"), join(work, "fail")];
 	assert.equal(await push("main"), "github: pushed main to origin: [new branch]", "no LFS, no git-lfs needed");
 	commit("main", "main", ".gitattributes", "*.psd filter=lfs diff=lfs merge=lfs -text\n");
 	assert.equal(await push("main"), "github: main not pushed to origin: its .gitattributes names filter=lfs, and git-lfs is not installed");
-	assert.deepEqual([git(origin, "rev-parse", "main"), existsSync(join(work, "alias"))], [first, false]);
+	assert.equal(git(origin, "rev-parse", "main"), first);
 	process.env.PATH = `${lfsBin}:${gitOnly}`;
 	const unknown = "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393";
 	const fake = `case "$1" in
@@ -535,7 +557,6 @@ esac\n`;
 	commit("arthur/art", first, "art/.gitattributes", "*.png filter=lfs diff=lfs merge=lfs -text\n");
 	assert.equal(await push("arthur/art"), "github: pushed arthur/art to origin: [new branch]");
 	assert.deepEqual(readFileSync(log, "utf8").trim().split("\n").slice(1), [`${local.path} push origin refs/heads/arthur/art absent`], "the pushed branch's own .gitattributes, not main's");
-	assert.equal(existsSync(join(work, "alias")), false, "no alias was run");
 });
 
 test("pull request reviews, polled when wakeOn names them: each told once and woken on; the first poll tells none; a pull request not updated is not asked again", async (t) => {

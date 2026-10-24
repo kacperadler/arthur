@@ -156,6 +156,28 @@ test("the review's checkout and the merge run no hook and no fsmonitor that the 
 	assert.match(readFileSync(ran, "utf8"), /^fsmonitor$[^]*^commit-msg$/m, "a plain git call runs them");
 });
 
+test("refused, main unchanged: the repository's own config sets a key that may name a program; one a failing check sets keeps main from its reset", async (t) => {
+	const { root, git, worker, review, merge, head } = await load(t);
+	const [ran, program] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "program")];
+	writeFileSync(program, `#!/bin/sh\necho program >> '${ran}'\ncat\n`, { mode: 0o755 });
+	// The branch gives every file a filter and a merge driver; its test, run on main after the merge, sets a credential helper.
+	const plants = `require("node:child_process").execFileSync("git", ["config", "credential.helper", ${JSON.stringify(program)}]);\nprocess.exit(1);\n`;
+	const job = await worker({ ".gitattributes": "* filter=x merge=x\n", "README.md": "# acme, merged\n", "test.js": plants });
+	await review(job.id, "PASS");
+	const before = head();
+	const said = (key: string) => `${join(root, ".git", "config")} sets ${key}, which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig`;
+	git(root, "config", "filter.x.smudge", program);
+	assert.deepEqual(await merge(job.id), { code: 1, out: "", err: `arthur merge: ${said("filter.x.smudge")}; main is unchanged` });
+	git(root, "config", "--unset", "filter.x.smudge");
+	git(root, "config", "merge.x.driver", program);
+	assert.equal((await merge(job.id)).err, `arthur merge: ${said("merge.x.driver")}; main is unchanged`);
+	assert.deepEqual([head(), existsSync(ran)], [before, false]);
+	git(root, "config", "--unset", "merge.x.driver");
+	const merged = await merge(job.id);
+	assert.equal(merged.err, `arthur merge: check failed on main (npm test), and main could not be reset to ${before.slice(0, 7)}: ${said("credential.helper")}`);
+	assert.deepEqual([git(root, "rev-parse", "HEAD^2"), existsSync(ran)], [job.tip, false], "main keeps the merge");
+});
+
 test("refused, main unchanged: no PASS on the tip, a FAIL on it, a PASS on an older commit; --unreviewed lets it in and outcome.md says so", async (t) => {
 	const { root, commit, worker, review, merge, head, status } = await load(t);
 	const job = await worker();

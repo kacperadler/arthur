@@ -11,6 +11,7 @@
     "./cli": "./src/cli.ts",
     "./clock": "./src/clock.ts",
     "./env-guard": "./src/env-guard.ts",
+    "./git-config": "./src/git-config.ts",
     "./lock": "./src/lock.ts",
     "./option-table": "./src/option-table.ts",
     "./options": "./src/core-options.ts",

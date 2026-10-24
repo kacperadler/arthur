@@ -598,7 +598,12 @@ import { checkStructure } from "./structure.ts";
 // `filter=lfs`): github 12 more (647) for the LFS check, git-lfs looked up on PATH and its push with its refusals, the push's
 // spawn moved into `gitAway` so both run the same way (github-git.ts, 61 to 73 lines); the error line's own helper was folded
 // into `gitAway` and the push's comment cut to fit first.
-const BUDGETS = { core: 5939, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1311, github: 647, manage: 928, develop: 705, findings: 254 };
+// AR0380 (the ticket's Done means: the repository's own Git config checked against an allowed set before `arthur merge` and a
+// push): core 48 more (5987) for the check and its allowed set (git-config.ts, 41), asked before a worktree's checkout
+// (git.ts, +4 -1) and the push and fetch of a job on another machine (job-machine.ts, +5 -1); delivery 6 more (1317) for the
+// merge's refusal and the reset's check after the main checks ran (merge-command.ts, +9 -3); github 4 more (651) for the
+// push's refusal (github-git.ts, +5 -1). Nothing checked the repository's config before, so nothing was cut.
+const BUDGETS = { core: 5987, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1317, github: 651, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

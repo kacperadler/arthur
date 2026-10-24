@@ -64,7 +64,7 @@ function commandIndex(words: readonly string[]): number {
 // that writes (`node -e`, `tar -C`, `curl -o`), a git alias, a link the same call makes, a `.git` file or `commondir` written
 // outside the worktree that names the repository, and the git commands that rewrite the repository every worktree shares
 // (`gc`, `prune`, `repack`, `reflog expire`, `maintenance run`), or move a ref no worktree has checked out from the job's own
-// worktree. It is not a sandbox.
+// worktree. It is not a sandbox: that bound is job-sandbox.ts.
 function bashRefusal(place: Place, command: string, start: string): string | undefined {
 	let cwd = start;
 	const subshells: string[] = [];

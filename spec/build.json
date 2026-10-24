@@ -2851,16 +2851,16 @@
   {
     "id": "AR0376",
     "title": "Run each job's agent in a sandbox: the real bound the worktree guard is not",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0376-run-each-job-s-agent-in-a-sandbox-the-real-bound-the-worktree-guard-is-not/ticket.md",
-    "updated": "2026-10-23T15:55:09.285Z"
+    "updated": "2026-10-24T21:08:39.106Z"
   },
   {
     "id": "AR0377",
     "title": "Git's other user config files are not guarded: `~/.config/git/config` and files `~/.gitconfig` includes",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0377-git-s-other-user-config-files-are-not-guarded-config-git-config-and-files-gitconfig-includes/ticket.md",
-    "updated": "2026-10-23T15:55:09.484Z"
+    "updated": "2026-10-24T22:00:02.208Z"
   },
   {
     "id": "AR0378",
@@ -2931,5 +2931,19 @@
     "status": "dropped",
     "path": "spec/features/AR0387-the-harness-still-reads-the-old-kinds-in-this-repository-until-the-switch/ticket.md",
     "updated": "2026-10-23T21:01:33.668Z"
+  },
+  {
+    "id": "AR0388",
+    "title": "The user's systemd folder is guarded at `~/.config/systemd` only, not at `$XDG_CONFIG_HOME/systemd`",
+    "status": "planned",
+    "path": "spec/features/AR0388-the-user-s-systemd-folder-is-guarded-at-config-systemd-only-not-at-xdg-config-home-systemd/ticket.md",
+    "updated": "2026-10-24T22:00:22.709Z"
+  },
+  {
+    "id": "AR0389",
+    "title": "`test/ticket-kinds.test.ts` fails on main: AR0387's ticket keeps the template's Kind line",
+    "status": "dropped",
+    "path": "spec/features/AR0389-test-ticket-kinds-test-ts-fails-on-main-ar0387-s-ticket-keeps-the-template-s-kind-line/ticket.md",
+    "updated": "2026-10-24T22:00:22.496Z"
   }
 ]

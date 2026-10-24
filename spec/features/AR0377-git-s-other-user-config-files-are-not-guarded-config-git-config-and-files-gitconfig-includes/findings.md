@@ -13,7 +13,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/job-place.ts:24`
 - What: `guardedPlaces` writes `systemd <home>/.config/systemd` whatever `XDG_CONFIG_HOME` holds. systemd's user manager reads units from `$XDG_CONFIG_HOME/systemd/user` when that is set, so with `XDG_CONFIG_HOME=/srv/cfg` a job's `write` of `/srv/cfg/systemd/user/x.service` passes the worktree guard [INFERENCE: systemd's unit search path per systemd.unit(5); not run here].
 - Suggestion: add a second `systemd` line for `$XDG_CONFIG_HOME/systemd` when it differs, as AR0377 does for `gitxdg`, with a test that sets `XDG_CONFIG_HOME`.
-- Status: open
+- Status: ticket AR0388
 
 ## F2. `test/ticket-kinds.test.ts` fails on main: AR0387's ticket keeps the template's Kind line
 
@@ -22,4 +22,13 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `spec/features/AR0387-the-harness-still-reads-the-old-kinds-in-this-repository-until-the-switch/ticket.md:19`
 - What: at base `8940bb85` the ticket's line 19 is `- Kind: feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux` (`git show 8940bb85:<path> | grep -n 'Kind:'`), so `npm test` fails "every ticket's Kind under its Goal is one of the template's" on every branch cut from main.
 - Suggestion: give AR0387 its one Kind (its Goal reads as `fix` or `chore`), the test unchanged.
-- Status: open
+- Status: dropped (fixed on main in d1877289 by the coordinator)
+
+## F3. `places` in `guardedPlaces` lost its tuple type
+
+- Kind: refactor
+- Found by: 2026-10-24-review-ar0377-git-config-026900e2 (review), 2026-10-24
+- Where: `packages/core/src/job-place.ts:23`
+- What: the array of `[key, path]` literals has no `as const`, so TypeScript infers `string[][]`; `tsc` passes and destructuring works.
+- Suggestion: none needed.
+- Status: dropped (cosmetic, the reviewer called it not worth a change)

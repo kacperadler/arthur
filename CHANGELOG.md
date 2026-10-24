@@ -2,6 +2,12 @@
 
 Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-25
+
+### Other
+
+- AR0377 Git's other user config files are not guarded: `~/.config/git/config` and files `~/.gitconfig` includes (ac8bf33e)
+
 ## 2026-10-23
 
 ### Other

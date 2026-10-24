@@ -36,3 +36,4 @@ In:
 
 - 2026-10-23: Source: F1 of AR0330
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; runs one at a time after the high-severity security fixes.
+- 2026-10-25: Worker: github's line budget 635 to 647 (`test/structure.test.ts`) for the LFS push in `github-git.ts`.

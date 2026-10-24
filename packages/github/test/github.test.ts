@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { once } from "node:events";
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
@@ -479,6 +479,63 @@ test("github.push pushes a branch to origin, one line, running no hook of the ch
 	assert.equal(await push("asks"), "github: main not pushed to origin: fatal: could not read Username for origin: terminal prompts disabled");
 	assert.equal(await push("secret"), "github: main not pushed to origin: fatal: Authentication failed for origin", "the URL, and the credential in it, never said");
 	assert.equal(existsSync(`${askpass}.asked`), false, "no askpass was run");
+});
+
+test("github.push of a branch whose .gitattributes, in any folder, names filter=lfs runs git lfs push origin <ref> first; without git-lfs, or when it fails, nothing is pushed", async (t) => {
+	const api = await fakeGithub(t);
+	// PATH holds git and, once installed, a fake git-lfs that notes each push with origin's ref as it is then, or fails.
+	const real = (process.env.PATH ?? "").split(":").map((dir) => join(dir, "git")).find((file) => existsSync(file)) ?? "git";
+	const [gitOnly, lfsBin, work] = [temporaryFolder(), temporaryFolder(), temporaryFolder()];
+	writeFileSync(join(gitOnly, "git"), `#!/bin/sh\nexec '${real}' "$@"\n`, { mode: 0o755 });
+	const env: Readonly<Record<string, string>> = { PATH: gitOnly, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" };
+	for (const [name, value] of Object.entries(env)) {
+		const was = process.env[name];
+		process.env[name] = value;
+		t.after(() => (was === undefined ? delete process.env[name] : (process.env[name] = was)));
+	}
+	const origin = temporaryFolder();
+	git(origin, "init", "--quiet", "--bare", "--initial-branch=main");
+	const local = repository(origin);
+	const first = local.head();
+	const commit = (branch: string, from: string, file: string, text: string) => {
+		git(local.path, "checkout", "--quiet", "-B", branch, from);
+		mkdirSync(dirname(join(local.path, file)), { recursive: true });
+		writeFileSync(join(local.path, file), text);
+		git(local.path, "add", file);
+		git(local.path, "commit", "--quiet", "-m", file);
+		git(local.path, "checkout", "--quiet", "main");
+	};
+	// What git would run for `git lfs` with no git-lfs on PATH: an alias, as a job's program may have set it.
+	git(local.path, "config", "alias.lfs", `!: > '${work}/alias'`);
+	const box = await started(t, [{ name: "local", path: local.path, prefix: "LO" }], options(api.apiUrl));
+	const push = (branch: string) => box.fake.call<Promise<string>>("github.push", { project: "local", branch });
+	const [log, fail] = [join(work, "log"), join(work, "fail")];
+	assert.equal(await push("main"), "github: pushed main to origin: [new branch]", "no LFS, no git-lfs needed");
+	commit("main", "main", ".gitattributes", "*.psd filter=lfs diff=lfs merge=lfs -text\n");
+	assert.equal(await push("main"), "github: main not pushed to origin: its .gitattributes names filter=lfs, and git-lfs is not installed");
+	assert.deepEqual([git(origin, "rev-parse", "main"), existsSync(join(work, "alias"))], [first, false]);
+	process.env.PATH = `${lfsBin}:${gitOnly}`;
+	const unknown = "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393";
+	const fake = `case "$1" in
+version) echo 'git-lfs/3.4.1 (GitHub; linux amd64; go 1.22.2)' ;;
+push) if [ -e '${fail}' ]; then echo 'Unable to find source for object ${unknown} (try running git lfs fetch --all)' >&2; exit 2; fi
+	echo "$PWD $* $(git --git-dir='${origin}' rev-parse --verify --quiet "$3" || echo absent)" >> '${log}'
+	echo 'Uploading LFS objects: 100% (1/1), 6 B | 0 B/s, done.' >&2 ;;
+esac\n`;
+	writeFileSync(join(lfsBin, "git-lfs"), `#!/bin/sh\n${fake}`, { mode: 0o755 });
+	writeFileSync(fail, "");
+	assert.equal(await push("main"), `github: main not pushed to origin: its LFS objects were not pushed: Unable to find source for object ${unknown} (try running git lfs fetch --all)`);
+	assert.equal(git(origin, "rev-parse", "main"), first);
+	rmSync(fail);
+	assert.match(await push("main"), /^github: pushed main to origin: [0-9a-f]{7,}\.\.[0-9a-f]{7,}$/);
+	assert.deepEqual(readFileSync(log, "utf8").trim().split("\n"), [`${local.path} push origin refs/heads/main ${first}`], "git lfs push ran before the push");
+	assert.equal(git(origin, "rev-parse", "main"), local.head());
+	commit("arthur/plain", first, "README.md", "Large files would take filter=lfs in .gitattributes.\n");
+	assert.equal(await push("arthur/plain"), "github: pushed arthur/plain to origin: [new branch]");
+	commit("arthur/art", first, "art/.gitattributes", "*.png filter=lfs diff=lfs merge=lfs -text\n");
+	assert.equal(await push("arthur/art"), "github: pushed arthur/art to origin: [new branch]");
+	assert.deepEqual(readFileSync(log, "utf8").trim().split("\n").slice(1), [`${local.path} push origin refs/heads/arthur/art absent`], "the pushed branch's own .gitattributes, not main's");
+	assert.equal(existsSync(join(work, "alias")), false, "no alias was run");
 });
 
 test("pull request reviews, polled when wakeOn names them: each told once and woken on; the first poll tells none; a pull request not updated is not asked again", async (t) => {

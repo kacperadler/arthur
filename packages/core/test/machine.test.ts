@@ -102,7 +102,7 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	const keys = (folder: string) => [...new Set(read(folder, job.id, "guarded").split("\n").map((line) => line.split(" ")[0]))];
 	assert.deepEqual([keys(home), keys(there)], [["config", "env", "install", "ssh", "systemd", "gitconfig", "gitxdg"], ["install", "ssh", "systemd", "gitconfig", "gitxdg"]]);
 	for (const call of calls()) assert.match(call, /^-o BatchMode=yes -o StrictHostKeyChecking=yes .*gpu /, "every step runs through ssh's batch mode, host key checked");
-	assert.equal(calls().filter((call) => call.includes("git-receive-pack")).length, 1);
+	assert.equal(calls().filter((call) => call.includes("receive-pack")).length, 1);
 	assert.equal(events(home, "job-started")[0]?.machine, "gpu");
 
 	// The agent's commit there, made while it waits; the main checkout has the job's branch from an earlier run already.
@@ -131,7 +131,7 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 
 	const second = await jobs.spawn({ task: "Again.", machine: "gpu", kind: "worker" });
 	assert.equal(second.failed, undefined);
-	assert.equal(calls().filter((call) => call.includes("git-receive-pack")).length, 1, "the base commit there is not pushed twice");
+	assert.equal(calls().filter((call) => call.includes("receive-pack")).length, 1, "the base commit there is not pushed twice");
 });
 
 test("the push of a job's base to another machine and the fetch of its branch back are refused while the checkout's own config sets a key that may name a program", async () => {
@@ -140,7 +140,7 @@ test("the push of a job's base to another machine and the fetch of its branch ba
 	const said = (verb: string) => `git ${verb}: ${join(root, ".git", "config")} sets remote.gpu.receivepack, which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig`;
 	git(root, "config", "remote.gpu.receivepack", "program");
 	await assert.rejects(jobs.spawn({ task: "Build it.", machine: "gpu" }), { message: said("push") });
-	assert.equal(calls().filter((call) => call.includes("git-receive-pack")).length, 0, "nothing pushed");
+	assert.equal(calls().filter((call) => call.includes("receive-pack")).length, 0, "nothing pushed");
 	git(root, "config", "--unset", "remote.gpu.receivepack");
 	const job = await jobs.spawn({ task: "Build it.", machine: "gpu" });
 	git(root, "config", "remote.gpu.receivepack", "program");
@@ -180,10 +180,10 @@ test("a spawn's fetch goes to the machine with its base, to refs/arthur/fetch, o
 	const worktree = join(there, "repos/.arthur-worktrees", job.id);
 	git(worktree, "checkout", "--quiet", "--detach", tip);
 	assert.equal(git(worktree, "rev-parse", "HEAD"), tip, "the tip checks out there");
-	const pushes = calls().filter((call) => call.includes("git-receive-pack")).length;
+	const pushes = calls().filter((call) => call.includes("receive-pack")).length;
 	assert.equal(pushes, 2, "the base and the fetch");
 	await jobs.spawn({ task: "Again.", machine: "gpu", fetch: tip });
-	assert.equal(calls().filter((call) => call.includes("git-receive-pack")).length, pushes, "neither is pushed again");
+	assert.equal(calls().filter((call) => call.includes("receive-pack")).length, pushes, "neither is pushed again");
 });
 
 test("a prepare's variables reach the agent there through the launch's stdin, and again through a continue's, never an argument nor the record there or here", async () => {
@@ -331,6 +331,29 @@ test("arthur steer, stop, continue and prune of a job on another machine run the
 	assert.deepEqual([existsSync(worktree), existsSync(join(there, "jobs", job.id)), existsSync(join(home, "jobs", job.id))], [false, false, false]);
 	assert.deepEqual([git(join(there, "repos/acme.git"), "branch", "--list"), git(root, "branch", "--list", "arthur/*")], ["", ""]);
 	for (const step of ["steer", "stop", "continue", "prune"]) assert.ok(calls().some((call) => call.includes(`'remote-job' '${step}'`)), step);
+});
+
+test("a spawn's push to another machine and a prune there run no hook and no fsmonitor that the repository there names", async () => {
+	const { root, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Done." }] }) });
+	const first = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	await endedThere(there, first.id);
+	jobs.sweep();
+	// Each hook these steps could run there, and an fsmonitor, noting its name in `ran`, as a job's program there may have set them.
+	const [hooks, ran, repository] = [temporaryFolder(), join(temporaryFolder(), "ran"), join(there, "repos/acme.git")];
+	for (const name of ["pre-receive", "update", "post-receive", "post-update", "reference-transaction", "post-checkout", "fsmonitor"])
+		writeFileSync(join(hooks, name), `#!/bin/sh\necho ${name} >> '${ran}'\n`, { mode: 0o755 });
+	git(repository, "config", "core.hooksPath", hooks);
+	git(repository, "config", "core.fsmonitor", join(hooks, "fsmonitor"));
+	commit(root, "second");
+	const second = await jobs.spawn({ task: "Again.", machine: "gpu" });
+	assert.equal(git(repository, "rev-parse", "refs/arthur/base"), git(root, "rev-parse", "HEAD"), "the new base was pushed there");
+	await endedThere(there, second.id);
+	jobs.sweep();
+	const removed = (id: string, branch = "") => `${id}: worktree ${join(there, "repos/.arthur-worktrees", id)} removed there; branch ${branch} deleted there; branch ${branch} deleted; record deleted`;
+	assert.deepEqual(jobs.prune([first.id, second.id]), [removed(first.id, first.branch), removed(second.id, second.branch)]);
+	assert.equal(existsSync(ran) ? readFileSync(ran, "utf8") : "", "");
+	git(repository, "worktree", "add", "--quiet", "-b", "control", join(temporaryFolder(), "control"), "refs/arthur/base");
+	assert.match(readFileSync(ran, "utf8"), /^reference-transaction$[^]*^post-checkout$/m, "a plain git call there runs them");
 });
 
 test("offline mid-job: stop, steer and continue are refused naming the machine; back before the grace, the job goes on as there", async () => {

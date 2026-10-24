@@ -36,3 +36,4 @@ In:
 
 - 2026-10-23: Source: F2 of AR0330
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; runs one at a time after the high-severity security fixes.
+- 2026-10-25: Coordinator (free hand on Arthur, the human 2026-10-23): new core export `@arthur/core/git-config`, since delivery, github and core need one allowed set; line budgets core 5939->5987, delivery 1311->1317, github 647->651.

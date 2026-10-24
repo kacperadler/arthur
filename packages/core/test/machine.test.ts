@@ -134,6 +134,22 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	assert.equal(calls().filter((call) => call.includes("git-receive-pack")).length, 1, "the base commit there is not pushed twice");
 });
 
+test("the push of a job's base to another machine and the fetch of its branch back are refused while the checkout's own config sets a key that may name a program", async () => {
+	const gate = join(temporaryFolder(), "go");
+	const { root, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Built it.", cost: 0 }] }) });
+	const said = (verb: string) => `git ${verb}: ${join(root, ".git", "config")} sets remote.gpu.receivepack, which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig`;
+	git(root, "config", "remote.gpu.receivepack", "program");
+	await assert.rejects(jobs.spawn({ task: "Build it.", machine: "gpu" }), { message: said("push") });
+	assert.equal(calls().filter((call) => call.includes("git-receive-pack")).length, 0, "nothing pushed");
+	git(root, "config", "--unset", "remote.gpu.receivepack");
+	const job = await jobs.spawn({ task: "Build it.", machine: "gpu" });
+	git(root, "config", "remote.gpu.receivepack", "program");
+	writeFileSync(gate, "");
+	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
+	assert.throws(() => jobs.sweep(), { message: said("fetch") });
+	assert.equal(git(root, "branch", "--list", job.branch ?? ""), "", "its branch not brought back");
+});
+
 test("under umask 022 a spawn leaves the home here and the one there their user's alone: one made 0755 earlier and a new one are 0700", async (t) => {
 	const mask = process.umask(0o022);
 	t.after(() => process.umask(mask));

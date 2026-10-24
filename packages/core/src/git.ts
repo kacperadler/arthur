@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { configRefusal } from "./git-config.ts";
 
 // The Git a job runner needs (spec/roadmap.md, entries 9 and 11), each one `git` call on the repository at `root`. `git` and
 // `yes` run no hook and no fsmonitor its config names: a program a job runs may have set them (AR0330).
@@ -38,8 +39,10 @@ export function branchExists(root: string, branch: string): boolean {
 }
 
 // A new worktree at `path` from `commit`: on a new branch, or detached when `branch` is undefined. The checkout at `root`
-// keeps its own changes, staged or not.
+// keeps its own changes, staged or not. Refused when the repository's own config may name a program (git-config.ts).
 export function addWorktree(root: string, path: string, commit: string, branch: string | undefined): void {
+	const refusal = configRefusal(root);
+	if (refusal !== "") throw new Error(`no worktree: ${refusal}`);
 	git(root, ["worktree", "add", "--quiet", ...(branch === undefined ? ["--detach"] : ["-b", branch]), path, commit]);
 }
 

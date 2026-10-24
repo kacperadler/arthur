@@ -78,7 +78,7 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 		const present = existsSync(worktree);
 		git(present ? ["worktree", "remove", worktree] : ["worktree", "prune"], root);
 		const done = present ? [`worktree ${worktree} removed there`] : [];
-		const deleted = tip !== "" && spawnSync("git", ["update-ref", "-d", `refs/heads/${branch}`, tip], { cwd: root, stdio: "ignore" }).status === 0;
+		const deleted = tip !== "" && spawnSync("git", [...HOOKLESS, "update-ref", "-d", `refs/heads/${branch}`, tip], { cwd: root, stdio: "ignore" }).status === 0;
 		if (branch !== "") done.push(deleted ? `branch ${branch} deleted there` : `kept branch ${branch} there: it is not the one here`);
 		rmSync(join(home, "jobs", id), { recursive: true, force: true });
 		console.log(done.join("; "));
@@ -149,7 +149,10 @@ function record(home: string, id: string): (name: string) => string {
 	return field(home, id);
 }
 
+// No hook or fsmonitor the repository's config names runs: a program a job runs there may have set them (AR0382).
+const HOOKLESS = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false"];
+
 function git(args: readonly string[], cwd?: string): void {
-	const run = spawnSync("git", args, { encoding: "utf8", cwd });
+	const run = spawnSync("git", [...HOOKLESS, ...args], { encoding: "utf8", cwd });
 	if (run.status !== 0) throw new Error(`git ${args[0]}: ${run.error?.message ?? run.stderr.trim()}`);
 }

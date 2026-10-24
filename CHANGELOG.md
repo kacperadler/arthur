@@ -7,6 +7,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 ### Other
 
 - AR0377 Git's other user config files are not guarded: `~/.config/git/config` and files `~/.gitconfig` includes (ac8bf33e)
+- AR0379 A project on Git LFS gets its main pushed without its LFS objects (6df9b99b)
 
 ## 2026-10-23
 

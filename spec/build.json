@@ -2886,9 +2886,9 @@
   {
     "id": "AR0381",
     "title": "The worktree guard does not see a git alias or GIT_DIR",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0381-the-worktree-guard-does-not-see-a-git-alias-or-git-dir/ticket.md",
-    "updated": "2026-10-23T16:58:38.048Z"
+    "updated": "2026-10-24T23:35:22.311Z"
   },
   {
     "id": "AR0382",

@@ -2879,9 +2879,9 @@
   {
     "id": "AR0380",
     "title": "Arthur's git calls in a main checkout still run other programs its config names",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0380-arthur-s-git-calls-in-a-main-checkout-still-run-other-programs-its-config-names/ticket.md",
-    "updated": "2026-10-23T16:58:37.687Z"
+    "updated": "2026-10-24T23:08:59.544Z"
   },
   {
     "id": "AR0381",
@@ -2959,5 +2959,19 @@
     "status": "planned",
     "path": "spec/features/AR0391-the-60-s-limit-of-a-push-also-bounds-its-lfs-upload/ticket.md",
     "updated": "2026-10-24T22:31:23.007Z"
+  },
+  {
+    "id": "AR0392",
+    "title": "A job's program can still plant a key between the config check and the git call",
+    "status": "planned",
+    "path": "spec/features/AR0392-a-job-s-program-can-still-plant-a-key-between-the-config-check-and-the-git-call/ticket.md",
+    "updated": "2026-10-24T23:09:10.741Z"
+  },
+  {
+    "id": "AR0393",
+    "title": "A remote's `url` can name a transport whose helper runs from PATH",
+    "status": "planned",
+    "path": "spec/features/AR0393-a-remote-s-url-can-name-a-transport-whose-helper-runs-from-path/ticket.md",
+    "updated": "2026-10-24T23:09:10.943Z"
   }
 ]

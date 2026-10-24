@@ -13,7 +13,7 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/git-config.ts` (`configRefusal`), its callers in `git.ts`, `job-machine.ts`, `merge-command.ts`, `github-git.ts`
 - What: the check reads the repository's own config with one `git config --list`, then the git call reads it again. A running job's program that rewrites `.git/config` in a loop (a filter plus `.git/info/attributes`) can land its key in that gap, and the merge, checkout or push runs it. Named as a limit in `docs/deploy.md`, "Threat model". [INFERENCE] from the two reads; no race was run.
 - Suggestion: pass the values of the keys Git reads by a fixed name with `-c` as well (`credential.helper=` resets the list, `core.sshCommand`, `gpg.program`, `commit.gpgSign=false`, `protocol.allow=never` for `ext`), which closes the gap for them; drivers named by an attribute (`filter.<name>`, `merge.<name>`) stay behind the check.
-- Status: open
+- Status: ticket AR0392
 
 ## F2. A remote's `url` can name a transport whose helper runs from PATH
 
@@ -22,4 +22,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/core/src/git-config.ts` (`remote.<name>.url` is on the allowed set)
 - What: `remote.origin.url = <transport>::<address>` makes `github.push` run `git-remote-<transport>`, a program found on PATH, not one the config names; `ext::` stays off as long as `protocol.ext.allow` cannot be set in the repository's config (it is outside the set). Named as a limit in `docs/deploy.md`. [INFERENCE] from Git's gitremote-helpers documentation; not run here.
 - Suggestion: refuse a `remote.*.url` or `pushurl` of the form `<word>::` in `configRefusal`, or run the push with `GIT_PROTOCOL_FROM_USER=0`.
-- Status: open
+- Status: ticket AR0393

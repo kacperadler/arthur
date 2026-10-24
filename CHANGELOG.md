@@ -8,6 +8,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 
 - AR0377 Git's other user config files are not guarded: `~/.config/git/config` and files `~/.gitconfig` includes (ac8bf33e)
 - AR0379 A project on Git LFS gets its main pushed without its LFS objects (6df9b99b)
+- AR0380 Arthur's git calls in a main checkout still run other programs its config names (fa9078a5)
 
 ## 2026-10-23
 

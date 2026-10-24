@@ -15,15 +15,12 @@ const GUARDED: Readonly<Record<string, string>> = { config: "Arthur's config fol
 
 // The record's `guarded` file, a line `<key> <absolute path>` each: Arthur's install, the folder that holds the core's
 // package (the clone of docs/setup.md, so every plugin's package too; `node_modules` of an install from npm), the user's
-// `~/.ssh`, `~/.config/systemd`, and Git's user config, `~/.gitconfig` and `~/.config/git/` (with `$XDG_CONFIG_HOME/git/`
-// too when that is set elsewhere, as Git reads it then), and with `config` (none on another machine) the config's folder and
-// the env file, which may lie outside it. A file the user's Git config includes from elsewhere is not followed.
+// `~/.ssh`, `~/.config/systemd`, `~/.gitconfig`, `~/.config/git/` and `$XDG_CONFIG_HOME/git/` (which Git reads instead), and
+// with `config` (none on another machine) the config's folder and env file. A file Git's config includes is not followed.
 export function guardedPlaces(config?: { readonly folder: string; readonly envFile: string }): string {
-	const user = homedir();
-	const xdg = process.env.XDG_CONFIG_HOME ? join(process.env.XDG_CONFIG_HOME, "git") : join(user, ".config", "git");
+	const [user, xdg] = [homedir(), process.env.XDG_CONFIG_HOME && join(process.env.XDG_CONFIG_HOME, "git")];
 	const places = [...(config ? [["config", config.folder], ["env", config.envFile]] : []), ["install", resolve(import.meta.dirname, "..", "..", "..")], ["ssh", join(user, ".ssh")], ["systemd", join(user, ".config", "systemd")], ["gitconfig", join(user, ".gitconfig")], ["gitxdg", join(user, ".config", "git")]];
-	if (xdg !== join(user, ".config", "git")) places.push(["gitxdg", xdg]);
-	return places.map(([key, path]) => `${key} ${path}`).join("\n");
+	return [...places, ...(xdg && xdg !== join(user, ".config", "git") ? [["gitxdg", xdg]] : [])].map(([key, path]) => `${key} ${path}`).join("\n");
 }
 
 // The places `text` names as `guardedPlaces` writes them; a line with another key or a relative path is none.

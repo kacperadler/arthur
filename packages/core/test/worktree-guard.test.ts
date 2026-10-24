@@ -278,6 +278,86 @@ test("git config that changes the config every worktree shares, the user's or th
 	assert.equal(git(own.worktree, "config", "--worktree", "core.hooksPath"), "/tmp/hooks", "the worktree's own config took it");
 });
 
+test("a git write through an alias given by -c, or GIT_DIR or GIT_WORK_TREE set before git, is refused; config the guard does not read, or an alias or include written, refuses the call", async () => {
+	const { root, home, own, other } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id));
+	const [main, otherJob] = ["../../acme", `../${other.id}`];
+	const [MAIN, OTHER] = ["the main checkout", "another job's worktree"];
+	// Each call refused naming a place, and what the refusal shows; undefined to show for a path resolved there.
+	const refused: ReadonlyArray<readonly [string, string, string | undefined]> = [
+		["git -c alias.c=config c a.c d", MAIN, "git config a.c"],
+		["git -c alias.C=config c a.c d", MAIN, "git config a.c"],
+		["git -c alias.c=config C a.c d", MAIN, "git config a.c"],
+		["git -c alias.c=status -c alias.c=config c a.c d", MAIN, "git config a.c"],
+		["git -c alias.c=config -c alias.x=c x a.c d", MAIN, "git config a.c"],
+		["git -c alias.config=status config a.c d", MAIN, "git config a.c"],
+		[`git -c 'alias.k="checkout" -- .' -C ${main} k`, MAIN, undefined],
+		[`sh -c "git -c alias.k='checkout -- .' -C ${main} k"`, MAIN, undefined],
+		[`git --attr-source HEAD -C ${main} commit -m x`, MAIN, undefined],
+		[`GIT_DIR=${main}/.git git config --worktree a.c c`, MAIN, `${main}/.git`],
+		[`GIT_WORK_TREE=${main} git checkout -- .`, MAIN, main],
+		[`GIT_AUTHOR_NAME=x GIT_DIR=${main}/.git GIT_WORK_TREE=${main} git reset --hard`, MAIN, `${main}/.git`],
+		[`env GIT_WORK_TREE=${main} git checkout -- .`, MAIN, main],
+		[`GIT_WORK_TREE=${otherJob} git -c alias.co=checkout co -- .`, OTHER, otherJob],
+	];
+	for (const [command, name, shown] of refused) {
+		const reason = worktreeRefusal(place, "bash", { command }) ?? "";
+		const [, named, said] = /writes into (.+?) \((.*?)\);/.exec(reason) ?? [];
+		assert.deepEqual([named, shown === undefined ? undefined : said], [name, shown], `${command}: ${reason}`);
+	}
+	assert.match(worktreeRefusal(place, "bash", { command: "git -c alias.s=stash s" }) ?? "", /^arthur: refused: git stash/);
+	const unseen = [
+		"git -c 'alias.c=!echo x > ../../acme/README.md' c",
+		"git -c 'alias.d=!echo x' -c alias.c=d c",
+		"git -c INCLUDE.path=/tmp/x.cfg c a.c d",
+		"git -c include.path=/tmp/x.cfg c a.c d",
+		"git -c includeIf.onbranch:main.path=/tmp/x.cfg status",
+		"X=config git --config-env=alias.c=X c a.c d",
+		"X=config git --config-env alias.c=X c a.c d",
+		"X=/tmp/x.cfg git --config-env=include.path=X status",
+		"GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.c GIT_CONFIG_VALUE_0=config git c a.c d",
+		"GIT_CONFIG_PARAMETERS=\"'alias.c'='config'\" git c a.c d",
+		"GIT_CONFIG_GLOBAL=/tmp/x.cfg git c a.c d",
+		"GIT_CONFIG_SYSTEM=/tmp/x.cfg git c a.c d",
+		"HOME=/tmp/h git c a.c d",
+		"XDG_CONFIG_HOME=/tmp/h git c a.c d",
+		"git config --worktree alias.c config",
+		"git config --worktree Alias.c config",
+		"git config --worktree --add alias.c config",
+		"git config --worktree set alias.c config",
+		"git config --worktree include.path /tmp/x.cfg",
+		"git config --worktree includeIf.onbranch:main.path /tmp/x.cfg",
+		"git config --file /tmp/x.cfg alias.c config",
+		"git config --worktree --rename-section x alias",
+		"git config --worktree --rename x alias",
+		"git config --worktree rename-section x alias",
+		"git config --worktree -e",
+		"git config --worktree edit",
+	];
+	for (const command of unseen) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /^arthur: refused: this git call reads config the guard does not/, command);
+	const passing = [
+		"git -c alias.st=status st",
+		"git -c alias.c=config c --get user.name",
+		"git -c alias.c=config c --worktree a.c d",
+		"git -c 'alias.l=log --oneline -1' l",
+		"git -c 'alias.x=!echo x > ../../acme/README.md' status",
+		"git -c alias.a=b -c alias.b=a a",
+		"git -c alias.a=a a",
+		"GIT_WORK_TREE=. git checkout -- .",
+		"GIT_AUTHOR_NAME=x GIT_CONFIG_NOSYSTEM=1 git commit --allow-empty -m y",
+		"git --attr-source HEAD status",
+		"git config --worktree user.name Aliasing",
+		"git config --worktree core.editor include-me",
+	];
+	for (const command of passing) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
+	// Run in the job's worktree, the passing calls leave the main checkout and its shared config as they were.
+	git(root, "config", "extensions.worktreeConfig", "true");
+	const [shared, readme] = [readFileSync(join(root, ".git", "config"), "utf8"), readFileSync(join(root, "README.md"), "utf8")];
+	for (const command of passing) spawnSync("sh", ["-c", command], { cwd: own.worktree, env: { ...process.env, GIT_COMMITTER_NAME: "x", GIT_COMMITTER_EMAIL: "x@example.com", GIT_AUTHOR_EMAIL: "x@example.com" }, stdio: "ignore" });
+	assert.deepEqual([readFileSync(join(root, ".git", "config"), "utf8"), readFileSync(join(root, "README.md"), "utf8")], [shared, readme]);
+	assert.equal(git(own.worktree, "config", "--worktree", "a.c"), "d", "the alias ran git config in the worktree's own config");
+});
+
 test("the wrapper loads the guard into the job's agent, which then refuses its writes outside its worktree and lets the rest through", async () => {
 	const calls: Call[] = [
 		["bash", { command: "echo x > ../../acme/README.md" }],

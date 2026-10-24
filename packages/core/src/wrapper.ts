@@ -5,6 +5,7 @@ import { agentStream } from "./agent-stream.ts";
 import { eventBus } from "./events.ts";
 import { deadline, reached } from "./job-limits.ts";
 import { oomFirst, watchMemory } from "./job-memory.ts";
+import { sandboxed, writable } from "./job-sandbox.ts";
 import { endScope } from "./job-scope.ts";
 import { signal, stopGroup } from "./job-stop.ts";
 import { blockedBy, current, kept, moveJob, type State } from "./job-state.ts";
@@ -119,14 +120,13 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		overCap = what;
 		halt("memory");
 	});
-
 	let failure = undefined as Error | undefined;
 	// One run of the agent, until it exits, its output is read and its stop, if any, is over.
 	const play = async (argv: readonly string[]): Promise<[number | null, NodeJS.Signals | null]> => {
 		note(`agent: ${agent} ${argv.join(" ")}`);
 		const stream = agentStream();
 		const closed = Promise.withResolvers<[number | null, NodeJS.Signals | null]>();
-		const running = oomFirst(() => spawn(agent, argv, { cwd: worktree, env: { ...process.env, ARTHUR_JOB: folder }, stdio: ["ignore", "pipe", "pipe"], detached: true }));
+		const running = oomFirst(() => spawn(...sandboxed(writable(folder, worktree, extensions), agent, argv, note), { cwd: worktree, env: { ...process.env, ARTHUR_JOB: folder }, stdio: ["ignore", "pipe", "pipe"], detached: true }));
 		child = running;
 		running.stdout.setEncoding("utf8");
 		running.stdout.on("data", (chunk: string) => {

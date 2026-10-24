@@ -2872,9 +2872,9 @@
   {
     "id": "AR0379",
     "title": "A project on Git LFS gets its main pushed without its LFS objects",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0379-a-project-on-git-lfs-gets-its-main-pushed-without-its-lfs-objects/ticket.md",
-    "updated": "2026-10-24T22:00:32.549Z"
+    "updated": "2026-10-24T22:31:06.922Z"
   },
   {
     "id": "AR0380",
@@ -2945,5 +2945,19 @@
     "status": "dropped",
     "path": "spec/features/AR0389-test-ticket-kinds-test-ts-fails-on-main-ar0387-s-ticket-keeps-the-template-s-kind-line/ticket.md",
     "updated": "2026-10-24T22:00:22.496Z"
+  },
+  {
+    "id": "AR0390",
+    "title": "A job on another machine moves a Git LFS project's commits there and back without their LFS objects",
+    "status": "planned",
+    "path": "spec/features/AR0390-a-job-on-another-machine-moves-a-git-lfs-project-s-commits-there-and-back-without-their-lfs-objects/ticket.md",
+    "updated": "2026-10-24T22:31:22.807Z"
+  },
+  {
+    "id": "AR0391",
+    "title": "The 60 s limit of a push also bounds its LFS upload",
+    "status": "planned",
+    "path": "spec/features/AR0391-the-60-s-limit-of-a-push-also-bounds-its-lfs-upload/ticket.md",
+    "updated": "2026-10-24T22:31:23.007Z"
   }
 ]

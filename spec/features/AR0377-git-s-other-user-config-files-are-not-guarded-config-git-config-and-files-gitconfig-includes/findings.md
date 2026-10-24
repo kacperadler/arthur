@@ -14,3 +14,12 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - What: `guardedPlaces` writes `systemd <home>/.config/systemd` whatever `XDG_CONFIG_HOME` holds. systemd's user manager reads units from `$XDG_CONFIG_HOME/systemd/user` when that is set, so with `XDG_CONFIG_HOME=/srv/cfg` a job's `write` of `/srv/cfg/systemd/user/x.service` passes the worktree guard [INFERENCE: systemd's unit search path per systemd.unit(5); not run here].
 - Suggestion: add a second `systemd` line for `$XDG_CONFIG_HOME/systemd` when it differs, as AR0377 does for `gitxdg`, with a test that sets `XDG_CONFIG_HOME`.
 - Status: open
+
+## F2. `test/ticket-kinds.test.ts` fails on main: AR0387's ticket keeps the template's Kind line
+
+- Kind: test
+- Found by: 2026-10-24-ar0377-git-config-guard-55ed335e (worker), 2026-10-24
+- Where: `spec/features/AR0387-the-harness-still-reads-the-old-kinds-in-this-repository-until-the-switch/ticket.md:19`
+- What: at base `8940bb85` the ticket's line 19 is `- Kind: feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux` (`git show 8940bb85:<path> | grep -n 'Kind:'`), so `npm test` fails "every ticket's Kind under its Goal is one of the template's" on every branch cut from main.
+- Suggestion: give AR0387 its one Kind (its Goal reads as `fix` or `chore`), the test unchanged.
+- Status: open

@@ -36,3 +36,4 @@ In:
 
 - 2026-10-23: Source: F3 of AR0330
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; runs one at a time after the high-severity security fixes.
+- 2026-10-25: Coordinator (free hand on Arthur, the human 2026-10-23): core line budget 5987->6017; git calls whose config the guard cannot read (GIT_CONFIG_GLOBAL=, HOME=, shell aliases, include) stay refused, harmless ones included: safer over convenient.

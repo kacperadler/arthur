@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { mock, test } from "node:test";
@@ -180,6 +180,22 @@ test("a spawn and a prune run no hook and no fsmonitor that the repository's sha
 	assert.equal(existsSync(ran) ? readFileSync(ran, "utf8") : "", "");
 	git(root, "worktree", "add", "--quiet", "-b", "control", join(temporaryFolder(), "control"));
 	assert.match(readFileSync(ran, "utf8"), /^reference-transaction$[^]*^post-checkout$/m, "a plain git call runs them");
+});
+
+test("a spawn is refused before its checkout while the repository's own config sets a key that may name a program, and runs none", async () => {
+	const { root, home, jobs } = setup();
+	const [ran, smudge] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "smudge")];
+	writeFileSync(smudge, `#!/bin/sh\necho smudge >> '${ran}'\ncat\n`, { mode: 0o755 });
+	// The driver and the attribute that gives every file its filter, both in the shared Git folder a job's program can write.
+	writeFileSync(join(root, ".git", "info", "attributes"), "* filter=x\n");
+	git(root, "config", "filter.x.smudge", smudge);
+	const said = `${join(root, ".git", "config")} sets filter.x.smudge, which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig`;
+	await assert.rejects(jobs.spawn({ task: "Go." }), { message: `no worktree: ${said}` });
+	assert.deepEqual([existsSync(ran), git(root, "worktree", "list").split("\n").length, existsSync(join(home, "jobs")) ? readdirSync(join(home, "jobs")) : []], [false, 1, []]);
+	git(root, "worktree", "add", "--quiet", "-b", "control", join(temporaryFolder(), "control"));
+	assert.equal(readFileSync(ran, "utf8"), "smudge\n", "a plain git call runs it");
+	git(root, "config", "--unset", "filter.x.smudge");
+	await worker(jobs, home);
 });
 
 test("arthur prune keeps a job that has not ended and a record a plugin's jobs.keep asks for; a read-only kind loses its checkout only", async () => {

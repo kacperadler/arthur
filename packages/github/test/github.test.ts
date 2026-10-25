@@ -375,7 +375,7 @@ test("arthur ci tells why a run failed: each failed job and its step, and the en
 	assert.equal(api.count("/repos/acme/shop/pulls"), 0, "pull requests are not polled while wakeOn does not name pull-request-review");
 });
 
-test("arthur ci refuses: a rerun of a passed run or one not finished, a project without ci, a missing branch, a branch no run built, GitHub's refusal; wrong usage", async (t) => {
+test("arthur ci refuses: a rerun of a passed run or one not finished, a rerun inside a job (ARTHUR_JOB set, not empty), a project without ci, a missing branch, a branch no run built, GitHub's refusal; wrong usage", async (t) => {
 	const api = await fakeGithub(t);
 	const shop = repository();
 	const main: FakeRun = { id: 50, sha: shop.head(), branch: "main", status: "completed", conclusion: "success" };
@@ -392,8 +392,15 @@ test("arthur ci refuses: a rerun of a passed run or one not finished, a project 
 	assert.deepEqual(await refused("main", "--rerun"), [1, "arthur ci: run 50 passed; only a run that failed or was cancelled is rerun"]);
 	[main.status, main.conclusion] = ["in_progress", null];
 	assert.deepEqual(await refused("main", "--rerun"), [1, "arthur ci: run 50 is in_progress, not finished; only a run that failed or was cancelled is rerun"]);
+	// Inside a job (AR0386) `ci` reads a run, and `--rerun`, once its usage is right, refuses before anything is asked of GitHub.
+	withEnv(t, { ARTHUR_JOB: "/home/arthur/.arthur/jobs/2026-10-25-worker-0a1b2c3d" });
 	assert.deepEqual(await box.ci("main"), { code: 0, out: `run 50, attempt 1, of ci.yml on ${main.sha.slice(0, 7)} (main's tip): in_progress\nhttps://github.com/acme/shop/actions/runs/50`, err: "" });
 	[main.status, main.conclusion] = ["completed", "cancelled"];
+	const asked = api.seen.length;
+	assert.deepEqual(await refused("main", "--rerun"), [1, "arthur ci --rerun: refused inside a job 2026-10-25-worker-0a1b2c3d: a job runs only the commands its role needs; put what the coordinator should do in your final message"]);
+	assert.deepEqual(await refused("--rerun", "main", "arthur/x"), [2, "arthur ci: one branch; got 2\nusage: arthur ci <branch> [--rerun] [--project <name>]"]);
+	assert.equal(api.seen.length, asked, "a refused --rerun asks GitHub nothing");
+	process.env.ARTHUR_JOB = "";
 	api.state.post = { status: 403, body: { message: "Resource not accessible by personal access token", documentation_url: DOCS, status: "403" } };
 	assert.deepEqual(await refused("main", "--rerun"), [1, "arthur ci: instance (unnamed): 403 for run 50 of acme/shop: Resource not accessible by personal access token; the token in ARTHUR_GITHUB_TOKEN needs Actions: read and write on it"]);
 	assert.deepEqual(await refused("arthur/none"), [1, `arthur ci: no branch arthur/none in ${shop.path}`]);

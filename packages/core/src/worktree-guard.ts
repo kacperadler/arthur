@@ -50,7 +50,7 @@ function refusal(place: Place, path: string, shown = path, named = true): string
 function commandIndex(words: readonly string[]): number {
 	for (let index = 0; index < words.length; ) {
 		const values = Object.hasOwn(WRAPPERS, basename(words[index]!)) ? WRAPPERS[basename(words[index]!)]! : undefined;
-		if (values === undefined && !RESERVED.includes(words[index]!) && !/^[A-Za-z_]\w*=/.test(words[index]!)) return index;
+		if (values === undefined && !RESERVED.includes(words[index]!) && !/^[A-Za-z_]\w*\+?=/.test(words[index]!)) return index;
 		for (index++; values !== undefined && index < words.length && /^-|^[\d.]+[smhd]?$/.test(words[index]!); ) index += values.includes(words[index]!) ? 2 : 1;
 	}
 	return -1;
@@ -75,7 +75,7 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 	let previous = process.env.OLDPWD;
 	const subshells: [string, string | undefined, string[]][] = [];
 	let pushed: string[] = [];
-	const located = (base: string, path: string): string => real(resolve(base, path.replace(/^~-(?=\/|$)/, previous ?? "~-")));
+	const located = (base: string, path: string): string => real(resolve(base, path.replace(/^~-(?=\/|$)/, previous || "~-")));
 	const theirs = (words: readonly string[], base = cwd, named = true): string | undefined =>
 		words.flatMap((word) => [...(word.startsWith("-") ? [] : [word]), ...(word.includes("=") ? [word.slice(word.indexOf("=") + 1)] : [])]).map((path) => refusal(place, located(base, path), path, named)).find(Boolean);
 	const run = (items: readonly Item[]): string | undefined => {
@@ -88,16 +88,16 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 		return undefined;
 	};
 	const judge = (command: Command): string | undefined => {
-		if (previous === undefined && [...command.words, ...command.writes].some((word) => /^~-(\/|$)/.test(literal(word)))) return "arthur: refused: OLDPWD is unset, and the guard reads `~-` and `$OLDPWD` alike where bash does not; name the folder instead";
+		if (!previous && [...command.words, ...command.writes].some((word) => /(^|=)~-(\/|$)/.test(literal(word)))) return "arthur: refused: OLDPWD is unset, and the guard reads `~-` and `$OLDPWD` alike where bash does not; name the folder instead";
 		const redirected = theirs(command.writes.map(literal));
 		const words = command.words.map(literal);
 		const at = commandIndex(words);
 		const verb = basename(words[at] ?? "");
 		const moves = ["cd", "pushd", "popd"].includes(verb);
-		// An assignment alone, or by `export` or `declare`, sets OLDPWD and `unset` clears it; one before a `cd` sets it for that
-		// `cd`, which then sets it to the folder it leaves.
-		for (const word of command.alone && (at < 0 || moves || ["export", "declare", "typeset", "readonly", "local"].includes(verb)) ? words : []) if (word.startsWith("OLDPWD=")) previous = word.length > 7 ? located(cwd, word.slice(7)) : undefined;
-		if (command.alone && verb === "unset" && words.includes("OLDPWD")) previous = undefined;
+		// An assignment (`=`, `+=`) alone, or by `export` or `declare`, sets OLDPWD as written and an `unset` but `-f` clears it;
+		// one before a `cd` sets it for that `cd`, which then sets it to the folder it leaves.
+		for (const set of command.alone && (at < 0 || moves || ["export", "declare", "typeset", "readonly", "local"].includes(verb)) ? words.map((word) => /^OLDPWD(\+?)=([^]*)/.exec(word)) : []) if (set) previous = (set[1] ? (previous ?? "") : "") + set[2]!.replace(/^~-(?=\/|$)/, previous || "~-");
+		if (command.alone && verb === "unset" && words.includes("OLDPWD") && !words.some((word) => /^-\w*f/.test(word))) previous = undefined;
 		if (redirected !== undefined || at < 0) return redirected;
 		const args = words.slice(at + 1);
 		const operands = args.filter((word) => !word.startsWith("-"));

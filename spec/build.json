@@ -2354,9 +2354,9 @@
   {
     "id": "AR0307",
     "title": "The switch: Arthur runs on the VPS and takes its own tickets",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0307-the-switch-arthur-runs-on-the-vps-and-takes-its-own-tickets/ticket.md",
-    "updated": "2026-10-25T11:24:51.146Z",
+    "updated": "2026-10-25T13:22:07.440Z",
     "after": [
       "AR0406"
     ]

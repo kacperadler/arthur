@@ -2921,9 +2921,9 @@
   {
     "id": "AR0386",
     "title": "Inside a job the read-only `ci <branch>`, `config check`, `doctor`, `retro` and `usage` are refused with the commands that change state",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0386-inside-a-job-the-read-only-ci-branch-config-check-doctor-retro-and-usage-are-refused-with-the-commands-that-change-state/ticket.md",
-    "updated": "2026-10-23T20:16:54.461Z"
+    "updated": "2026-10-25T03:44:09.967Z"
   },
   {
     "id": "AR0387",

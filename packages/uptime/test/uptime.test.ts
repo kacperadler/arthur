@@ -137,6 +137,17 @@ test("a redirect to another host is followed only when no address of it is loopb
 	assert.deepEqual([inside.seen("/"), site.seen("/away") >= 2, site.seen("/home") >= 2, site.seen("/r21") >= 2], [0, true, true, true]);
 });
 
+test("a refused redirect is an answer: two sites refused at once are each down, not this machine offline", async (t) => {
+	const [site, inside] = [await server(t), await server(t)];
+	site.answers["/a"] = (response) => void response.writeHead(307, { location: inside.url("/") }).end();
+	site.answers["/b"] = (response) => void response.writeHead(301, { location: "http://169.254.169.254/" }).end();
+	const [a, b] = [`http://localhost:${site.port}/a`, `http://localhost:${site.port}/b`];
+	const { events } = await started(t, { acme: [{ url: a, everySeconds: 1 }], beta: [{ url: b, everySeconds: 1 }] });
+	await until("two sites down", () => events("uptime-down").length === 2);
+	const [refused, since] = [", a private address the config does not name", START.toISOString()];
+	assert.deepEqual(events("uptime-down"), [{ project: "acme", url: a, reason: `redirected to 127.0.0.1:${inside.port}${refused}`, since }, { project: "beta", url: b, reason: `redirected to 169.254.169.254${refused}`, since }]);
+});
+
 test("each failure has its reason: a wrong status, the text missing, connection refused, a TLS error", async (t) => {
 	const site = await server(t);
 	Object.assign(site.answers, { "/": ok, "/?text": ok });

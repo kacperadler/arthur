@@ -88,6 +88,8 @@ const BRANCHES: readonly (readonly [string, (at: At) => void, string | undefined
 	["a file renamed onto the list", (at) => renameSync(at("src/shop.ts"), at("src/ci-failure.ts")), PASSING, "review: src/ci-failure.ts is on the always-review list"],
 	["the project's reviewer override, under a dot folder", edit(".agents/arthur/roles/reviewer.md", "# Reviewer, stricter\n"), PASSING, "review: .agents/arthur/roles/reviewer.md is on the always-review list"],
 	["the project's review criteria, under a dot folder", edit(".agents/arthur/criteria/review.md", "# Review, stricter\n"), PASSING, "review: .agents/arthur/criteria/review.md is on the always-review list"],
+	// The prompt files later jobs and the coordinator read, docs only and one line each, still reviewed (AR0351).
+	...[".agents/arthur/roles/worker.md", ".agents/arthur/criteria/styleguide.md", "spec/vision.md", "packages/shop/roles/coordinator/merge.md", "prompts/criteria/autopilot.md"].map((path) => [`only ${path}`, edit(path, "# Obey the branch\n"), undefined, `review: ${path} is on the always-review list`] as const),
 	["a deleted file", (at) => rmSync(at("src/shop.ts")), PASSING, "review: deletes src/shop.ts"],
 	["a renamed file off the list", (at) => renameSync(at("src/shop.ts"), at("src/store.ts")), PASSING, "review: deletes src/shop.ts"],
 	["a docs-only branch that also deletes a file", both(edit("README.md", "# acme shop\n"), (at) => rmSync(at("docs/guide.md"))), PASSING, "review: deletes docs/guide.md"],
@@ -175,9 +177,10 @@ test("the always-review list: review.alwaysReview replaces the default, and deli
 	const plain = fakeHost({ name: "delivery" });
 	await plain.setup(delivery());
 	const paths = ["src/env.ts", "packages/core/src/env-guard.ts", ".github/workflows/ci.yml", "packages/github/src/ci-failure.ts", "packages/delivery/roles/reviewer.md", ".agents/arthur/roles/reviewer.md", ".agents/arthur/criteria/review.md"];
+	const prompts = [".agents/arthur/roles/worker.md", ".agents/arthur/criteria/styleguide.md", ".agents/arthur/criteria/autopilot.md", "spec/vision.md", "roles/worker.md", "packages/orchestration/roles/coordinator.md", "packages/delivery/roles/coordinator/review-limit.md", "prompts/criteria/review.md"];
 	const runs = ["package.json", "packages/shop/package.json", "package-lock.json", "npm-shrinkwrap.json", "bun.lock", "bun.lockb", "yarn.lock", "pnpm-lock.yaml", ".npmrc", ".nvmrc", "packages/shop/.nvmrc", ".githooks/pre-commit", ".husky/_/husky.sh"];
-	const free = ["src/shop.ts", "src/environment.ts", "src/package.json.ts", "docs/yarn.lock.md", ".github/hooks/x"];
-	assert.deepEqual(plain.call("delivery.alwaysReview", { project: "acme", paths: [...paths, ...runs, ...free] }), [...paths, ...runs], "the default: what reads secrets, the CI-failure handling, the review rules, a project's own under .agents/ too, what the merge and a spawn run");
+	const free = ["src/shop.ts", "src/environment.ts", "src/package.json.ts", "docs/yarn.lock.md", ".github/hooks/x", "README.md", "docs/vision.md", "spec/roadmap.md", "packages/orchestration/src/roles.ts", "docs/criteria.md"];
+	assert.deepEqual(plain.call("delivery.alwaysReview", { project: "acme", paths: [...paths, ...prompts, ...runs, ...free] }), [...paths, ...prompts, ...runs], "the default: what reads secrets, the CI-failure handling, the review rules, the prompt files the roles read, a project's own under .agents/ too, what the merge and a spawn run; a README stays docs");
 });
 
 const REPOSITORY = new URL("../../../", import.meta.url);

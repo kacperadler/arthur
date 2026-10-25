@@ -21,8 +21,9 @@ Prints the run's line, then asks GitHub to rerun the whole run ("Re-run a workfl
 
 ## Refused
 
-Exit 1, one line `arthur ci: <why>`, nothing asked of GitHub past the refusal:
+Exit 1, one line `arthur ci: <why>` (`arthur ci --rerun: <why>` for the first), nothing asked of GitHub past the refusal:
 
+- `--rerun` inside a job (`ARTHUR_JOB` set, `arthur help --help`), where `arthur ci <branch>` still reads the run: `arthur ci --rerun: refused inside a job <id>: a job runs only the commands its role needs; put what the coordinator should do in your final message`, before anything is asked of GitHub.
 - A project without `ci.workflow`: `project <name> has no ci.workflow, so github watches no run of it`.
 - A branch the checkout lacks: `no branch <branch> in <folder>`.
 - No run built it: `no run built <branch>: none of its last 1000 commits has one among the <n> newest runs of <workflow>`.

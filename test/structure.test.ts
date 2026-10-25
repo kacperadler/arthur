@@ -594,11 +594,52 @@ import { checkStructure } from "./structure.ts";
 // board before, so nothing was cut.
 // Merged main (AR0349, AR0353, AR0370) into AR0378: main's budgets plus AR0378's raises, core 5905 + 34 = 5939, orchestration
 // 2319 + 11 = 2330, delivery 1311, findings 255 - 1 = 254 (recounted with wc -l).
-// AR0376 (F1 of AR0329; its Done means: each job's agent in a sandbox): core 75 more (6014) for job-sandbox.ts, the
-// Landlock, seccomp and no_new_privs script python3 runs before it execs the agent (31), the paths the agent may write with
-// the Git folders of its branch and each extension's folder (9), the probe that falls back to the bare agent naming why (12),
-// comments, imports and blanks (23); wrapper.ts kept at 200 by a blank line. Nothing confined a job's writes before, so nothing was cut.
-const BUDGETS = { core: 6014, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1311, github: 635, manage: 928, develop: 705, findings: 254 };
+// AR0379 (the ticket's Done means: `git lfs push origin <ref>` before the push of a branch whose `.gitattributes` names
+// `filter=lfs`): github 12 more (647) for the LFS check, git-lfs looked up on PATH and its push with its refusals, the push's
+// spawn moved into `gitAway` so both run the same way (github-git.ts, 61 to 73 lines); the error line's own helper was folded
+// into `gitAway` and the push's comment cut to fit first.
+// AR0380 (the ticket's Done means: the repository's own Git config checked against an allowed set before `arthur merge` and a
+// push): core 48 more (5987) for the check and its allowed set (git-config.ts, 41), asked before a worktree's checkout
+// (git.ts, +4 -1) and the push and fetch of a job on another machine (job-machine.ts, +5 -1); delivery 6 more (1317) for the
+// merge's refusal and the reset's check after the main checks ran (merge-command.ts, +9 -3); github 4 more (651) for the
+// push's refusal (github-git.ts, +5 -1). Nothing checked the repository's config before, so nothing was cut.
+// AR0381 (F3 of AR0330; its Done means: a `-c alias.<sub>=` resolved, an alias or include written by `--worktree` or `--file`
+// refused, `GIT_DIR=`/`GIT_WORK_TREE=` before `git` taken as trees): core 30 more (6017) for the alias judged as what it runs
+// with Git's word split, the config the guard does not read (a shell alias, `-c include*`, `--config-env`, `GIT_CONFIG*`,
+// `HOME`), `--config-env` and `--attr-source` as options with a value, `loads` and their comments (git-writes.ts, git diff
+// --numstat +35 -8), and the assignments passed, the refusal and the limits reworded (worktree-guard.ts, +17 -14). Nothing
+// read an alias before, so nothing was cut.
+// AR0382 (F4 of AR0330; its Done means: `remote-job.ts`'s `git` helper and its `update-ref` get the two hookless `-c` flags):
+// core 4 more (6021) for those flags and their comment (remote-job.ts, git diff --numstat +5 -2), and the push's `git
+// receive-pack` on the other machine sent without hooks, which ran them there (job-machine.ts, +2 -1: its comment, the option
+// inlined into the push). Nothing turned the hooks off there before, so nothing was cut.
+// AR0383 (F1 of AR0331; its Done means: the guard refuses writing a path named `.git` or `commondir`): core 45 more (6066)
+// for that rule and, so a `.git` file of another name given to `--git-dir`, or one a program left, is no way around it, a
+// git write judged through the links its folders have, as Git finds them, a worktree Git made passing as it names its link
+// back (git-link.ts, 44), `init` and `GIT_COMMON_DIR=` read as writes (git-writes.ts, git diff --numstat +12 -11) and the
+// guard asking both (worktree-guard.ts, +23 -23: its own worktree a place without a name, comments folded to stay at 200
+// lines). Nothing read these links before, so nothing was cut.
+// AR0384 (F2 of AR0331; its Done means: the guard refuses `git replace` but a list, and Arthur's git calls in a main checkout
+// read past a replacement): core 5 more (6071) for `replaces`, its list forms and its comment (git-writes.ts, git diff
+// --numstat +10 -5); the guard asks it on the line that refuses a pointed checkout (worktree-guard.ts, +12 -12, its comment
+// refolded to stay at 200 lines), and `--no-replace-objects` joins the hookless flags in place. Nothing was cut.
+// AR0393 (F2 of AR0380; its Done means: run the push with `GIT_PROTOCOL_FROM_USER=0`): core 2 more (6073) for the push and
+// fetch of a job on another machine and its comment (job-machine.ts, git diff --numstat +4 -2); github 3 more (654) for the
+// push's env and its comment, and the transport name kept in the refusal (github-git.ts, +6 -3). Nothing was cut.
+// AR0394 (F1 of AR0382; its Done means: `arthur remote-job repo` refuses as `addWorktree` does, and the prune's `git worktree
+// remove` there checked for the same keys): core 8 more (6081) for the refusal before the push and its comment, the prune's
+// refusal of a worktree whose config may name a clean filter and its comment, their import (remote-job.ts, git diff
+// --numstat +8 -1) and the push's comment (job-machine.ts, +2 -1). Nothing was cut.
+// AR0386 (F2 of AR0353; its Done means: `ci` runs inside a job, `--rerun` refused there by the command itself): github 4 more
+// (658) for `inJob: true` and the refusal with its comment (github-ci.ts, git diff --numstat +5 -1, the import line rewritten
+// in place, the refusal kept on one line as the command's own `refuse`). Nothing in github read ARTHUR_JOB before, so nothing
+// was cut.
+// AR0376 (F1 of AR0329; its Done means: each job's agent in a sandbox): core 75 more (6156 merged on main's 6081) for
+// job-sandbox.ts, the Landlock, seccomp and no_new_privs script python3 runs before it execs the agent (31), the paths the
+// agent may write with the Git folders of its branch and each extension's folder (9), the probe that falls back to the bare
+// agent naming why (12), comments, imports and blanks (23); wrapper.ts kept at 200 by a blank line. Nothing confined a job's
+// writes before, so nothing was cut.
+const BUDGETS = { core: 6156, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1317, github: 658, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

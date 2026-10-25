@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { once } from "node:events";
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
@@ -42,6 +42,21 @@ function repository(origin: string | null = "git@github.com:acme/shop.git") {
 		return sha;
 	};
 	return { path, commit, head: () => git(path, "rev-parse", "main") };
+}
+
+// The owner's ~/.gitconfig for a push to an origin that is a folder: git refuses that transport to Arthur's push unless it
+// allows it (AR0393).
+const FOLDERS_ALLOWED = join(temporaryFolder(), "gitconfig");
+writeFileSync(FOLDERS_ALLOWED, '[protocol "file"]\n\tallow = always\n');
+
+// Each of `env` set in process.env for the test (deleted when undefined), and as it was at its end.
+function withEnv(t: TestContext, env: Readonly<Record<string, string | undefined>>) {
+	for (const [name, value] of Object.entries(env)) {
+		const was = process.env[name];
+		if (value === undefined) delete process.env[name];
+		else process.env[name] = value;
+		t.after(() => (was === undefined ? delete process.env[name] : (process.env[name] = was)));
+	}
 }
 
 type Project = { readonly name: string; readonly path: string; readonly prefix: string; readonly ci?: { readonly workflow: string } };
@@ -360,7 +375,7 @@ test("arthur ci tells why a run failed: each failed job and its step, and the en
 	assert.equal(api.count("/repos/acme/shop/pulls"), 0, "pull requests are not polled while wakeOn does not name pull-request-review");
 });
 
-test("arthur ci refuses: a rerun of a passed run or one not finished, a project without ci, a missing branch, a branch no run built, GitHub's refusal; wrong usage", async (t) => {
+test("arthur ci refuses: a rerun of a passed run or one not finished, a rerun inside a job (ARTHUR_JOB set, not empty), a project without ci, a missing branch, a branch no run built, GitHub's refusal; wrong usage", async (t) => {
 	const api = await fakeGithub(t);
 	const shop = repository();
 	const main: FakeRun = { id: 50, sha: shop.head(), branch: "main", status: "completed", conclusion: "success" };
@@ -377,8 +392,15 @@ test("arthur ci refuses: a rerun of a passed run or one not finished, a project 
 	assert.deepEqual(await refused("main", "--rerun"), [1, "arthur ci: run 50 passed; only a run that failed or was cancelled is rerun"]);
 	[main.status, main.conclusion] = ["in_progress", null];
 	assert.deepEqual(await refused("main", "--rerun"), [1, "arthur ci: run 50 is in_progress, not finished; only a run that failed or was cancelled is rerun"]);
+	// Inside a job (AR0386) `ci` reads a run, and `--rerun`, once its usage is right, refuses before anything is asked of GitHub.
+	withEnv(t, { ARTHUR_JOB: "/home/arthur/.arthur/jobs/2026-10-25-worker-0a1b2c3d" });
 	assert.deepEqual(await box.ci("main"), { code: 0, out: `run 50, attempt 1, of ci.yml on ${main.sha.slice(0, 7)} (main's tip): in_progress\nhttps://github.com/acme/shop/actions/runs/50`, err: "" });
 	[main.status, main.conclusion] = ["completed", "cancelled"];
+	const asked = api.seen.length;
+	assert.deepEqual(await refused("main", "--rerun"), [1, "arthur ci --rerun: refused inside a job 2026-10-25-worker-0a1b2c3d: a job runs only the commands its role needs; put what the coordinator should do in your final message"]);
+	assert.deepEqual(await refused("--rerun", "main", "arthur/x"), [2, "arthur ci: one branch; got 2\nusage: arthur ci <branch> [--rerun] [--project <name>]"]);
+	assert.equal(api.seen.length, asked, "a refused --rerun asks GitHub nothing");
+	process.env.ARTHUR_JOB = "";
 	api.state.post = { status: 403, body: { message: "Resource not accessible by personal access token", documentation_url: DOCS, status: "403" } };
 	assert.deepEqual(await refused("main", "--rerun"), [1, "arthur ci: instance (unnamed): 403 for run 50 of acme/shop: Resource not accessible by personal access token; the token in ARTHUR_GITHUB_TOKEN needs Actions: read and write on it"]);
 	assert.deepEqual(await refused("arthur/none"), [1, `arthur ci: no branch arthur/none in ${shop.path}`]);
@@ -432,13 +454,7 @@ test("github.push pushes a branch to origin, one line, running no hook of the ch
 	// still never ask.
 	const askpass = join(temporaryFolder(), "askpass");
 	writeFileSync(askpass, `#!/bin/sh\ntouch "${askpass}.asked"\necho arthur\n`, { mode: 0o755 });
-	const env: Readonly<Record<string, string | undefined>> = { GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1", GIT_ASKPASS: askpass, SSH_ASKPASS: askpass, GIT_TERMINAL_PROMPT: undefined };
-	for (const [name, value] of Object.entries(env)) {
-		const was = process.env[name];
-		if (value === undefined) delete process.env[name];
-		else process.env[name] = value;
-		t.after(() => (was === undefined ? delete process.env[name] : (process.env[name] = was)));
-	}
+	withEnv(t, { GIT_CONFIG_GLOBAL: FOLDERS_ALLOWED, GIT_CONFIG_NOSYSTEM: "1", GIT_ASKPASS: askpass, SSH_ASKPASS: askpass, GIT_TERMINAL_PROMPT: undefined });
 	const origin = temporaryFolder();
 	git(origin, "init", "--quiet", "--bare", "--initial-branch=main");
 	const local = repository(origin);
@@ -479,6 +495,120 @@ test("github.push pushes a branch to origin, one line, running no hook of the ch
 	assert.equal(await push("asks"), "github: main not pushed to origin: fatal: could not read Username for origin: terminal prompts disabled");
 	assert.equal(await push("secret"), "github: main not pushed to origin: fatal: Authentication failed for origin", "the URL, and the credential in it, never said");
 	assert.equal(existsSync(`${askpass}.asked`), false, "no askpass was run");
+});
+
+test("github.push refuses, running none, while the checkout's own config sets a key that may name a program: in .git/config, in config.worktree, or an include", async (t) => {
+	const api = await fakeGithub(t);
+	withEnv(t, { GIT_CONFIG_GLOBAL: FOLDERS_ALLOWED, GIT_CONFIG_NOSYSTEM: "1" });
+	const origin = temporaryFolder();
+	git(origin, "init", "--quiet", "--bare", "--initial-branch=main");
+	const local = repository(origin);
+	const [ran, program] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "program")];
+	writeFileSync(program, `#!/bin/sh\necho program >> '${ran}'\nexit 1\n`, { mode: 0o755 });
+	const box = await started(t, [{ name: "local", path: local.path, prefix: "LO" }], options(api.apiUrl));
+	const push = () => box.fake.call<Promise<string>>("github.push", { project: "local", branch: "main" });
+	const said = (file: string, key: string) => `github: main not pushed to origin: ${join(local.path, ".git", file)} sets ${key}, which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig`;
+	// The program git runs for a push to a folder; `git lfs` as an alias; another file read as the checkout's config.
+	for (const [key, value] of [["remote.origin.receivePack", program], ["alias.lfs", `!${program}`], ["include.path", join(temporaryFolder(), "more")]] as const) {
+		git(local.path, "config", key, value);
+		assert.equal(await push(), said("config", key.toLowerCase()));
+		git(local.path, "config", "--unset", key);
+	}
+	git(local.path, "config", "extensions.worktreeConfig", "true");
+	git(local.path, "config", "--worktree", "core.sshCommand", program);
+	assert.equal(await push(), said("config.worktree", "core.sshcommand"));
+	git(local.path, "config", "--worktree", "--unset", "core.sshCommand");
+	assert.deepEqual([existsSync(ran), spawnSync("git", ["-C", origin, "rev-parse", "--verify", "--quiet", "main"]).status], [false, 1], "nothing run, nothing pushed");
+	assert.equal(await push(), "github: pushed main to origin: [new branch]");
+});
+
+test("github.push runs no program origin's URL names: a transport helper (<name>:: or <name>://), ext::, or a folder whose receive-pack runs its hooks, unless the owner's ~/.gitconfig allows that transport", async (t) => {
+	const api = await fakeGithub(t);
+	const [ran, helpers, owner] = [join(temporaryFolder(), "ran"), temporaryFolder(), join(temporaryFolder(), "gitconfig")];
+	writeFileSync(join(helpers, "git-remote-evil"), `#!/bin/sh\necho helper "$@" >> '${ran}'\nexit 1\n`, { mode: 0o755 });
+	writeFileSync(owner, "");
+	withEnv(t, { PATH: `${helpers}:${process.env.PATH}`, GIT_CONFIG_GLOBAL: owner, GIT_CONFIG_NOSYSTEM: "1" });
+	const origin = temporaryFolder();
+	git(origin, "init", "--quiet", "--bare", "--initial-branch=main");
+	writeFileSync(join(origin, "hooks", "pre-receive"), `#!/bin/sh\necho hook >> '${ran}'\n`, { mode: 0o755 });
+	const local = repository(origin);
+	const box = await started(t, [{ name: "local", path: local.path, prefix: "LO" }], options(api.apiUrl));
+	const push = () => box.fake.call<Promise<string>>("github.push", { project: "local", branch: "main" });
+	const refused = (transport: string) => `github: main not pushed to origin: fatal: transport '${transport}' not allowed`;
+	assert.equal(await push(), refused("file"), "a folder");
+	git(local.path, "config", "remote.origin.url", `file://${origin}`);
+	assert.equal(await push(), refused("file"), "a file:// URL");
+	for (const [url, transport] of [["evil::https://github.com/acme/shop.git", "evil"], ["evil://github.com/acme/shop.git", "evil"], [`ext::sh -c echo% ext% >>${ran}`, "ext"]] as const) {
+		git(local.path, "config", "remote.origin.url", url);
+		assert.equal(await push(), refused(transport), url);
+	}
+	git(local.path, "config", "remote.origin.pushurl", "evil::x");
+	git(local.path, "config", "remote.origin.url", origin);
+	assert.equal(await push(), refused("evil"), "a pushurl");
+	git(local.path, "config", "--unset", "remote.origin.pushurl");
+	assert.deepEqual([existsSync(ran), spawnSync("git", ["-C", origin, "rev-parse", "--verify", "--quiet", "main"]).status], [false, 1], "nothing run, nothing pushed");
+	writeFileSync(owner, '[protocol "file"]\n\tallow = always\n[protocol "evil"]\n\tallow = always\n');
+	assert.equal(await push(), "github: pushed main to origin: [new branch]", "a folder the owner allows");
+	const pushed = local.head();
+	local.commit();
+	git(local.path, "config", "remote.origin.url", "evil::x");
+	assert.ok((await push()).startsWith("github: main not pushed to origin: "), "a helper the owner allows runs, and fails as it pushes nothing");
+	assert.equal(git(origin, "rev-parse", "main"), pushed, "origin's main as the folder push left it");
+	assert.deepEqual(readFileSync(ran, "utf8").split("\n"), ["hook", "helper origin x", ""], "git runs git-remote-<name> with the remote and the address");
+});
+
+test("github.push of a branch whose .gitattributes, in any folder, names filter=lfs runs git lfs push origin <ref> first; without git-lfs, or when it fails, nothing is pushed", async (t) => {
+	const api = await fakeGithub(t);
+	// PATH holds git and, once installed, a fake git-lfs that notes each push with origin's ref as it is then, or fails.
+	const real = (process.env.PATH ?? "").split(":").map((dir) => join(dir, "git")).find((file) => existsSync(file)) ?? "git";
+	const [gitOnly, lfsBin, work] = [temporaryFolder(), temporaryFolder(), temporaryFolder()];
+	writeFileSync(join(gitOnly, "git"), `#!/bin/sh\nexec '${real}' "$@"\n`, { mode: 0o755 });
+	withEnv(t, { PATH: gitOnly, GIT_CONFIG_GLOBAL: FOLDERS_ALLOWED, GIT_CONFIG_NOSYSTEM: "1" });
+	const origin = temporaryFolder();
+	git(origin, "init", "--quiet", "--bare", "--initial-branch=main");
+	const local = repository(origin);
+	const first = local.head();
+	const commit = (branch: string, from: string, file: string, text: string) => {
+		git(local.path, "checkout", "--quiet", "-B", branch, from);
+		mkdirSync(dirname(join(local.path, file)), { recursive: true });
+		writeFileSync(join(local.path, file), text);
+		git(local.path, "add", file);
+		git(local.path, "commit", "--quiet", "-m", file);
+		git(local.path, "checkout", "--quiet", "main");
+	};
+	const box = await started(t, [{ name: "local", path: local.path, prefix: "LO" }], options(api.apiUrl));
+	const push = (branch: string) => box.fake.call<Promise<string>>("github.push", { project: "local", branch });
+	const [log, fail] = [join(work, "log"), join(work, "fail")];
+	assert.equal(await push("main"), "github: pushed main to origin: [new branch]", "no LFS, no git-lfs needed");
+	commit("main", "main", ".gitattributes", "*.psd filter=lfs diff=lfs merge=lfs -text\n");
+	assert.equal(await push("main"), "github: main not pushed to origin: its .gitattributes names filter=lfs, and git-lfs is not installed");
+	assert.equal(git(origin, "rev-parse", "main"), first);
+	process.env.PATH = `${lfsBin}:${gitOnly}`;
+	const unknown = "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393";
+	const fake = `case "$1" in
+version) echo 'git-lfs/3.4.1 (GitHub; linux amd64; go 1.22.2)' ;;
+push) if [ -e '${fail}' ]; then echo 'Unable to find source for object ${unknown} (try running git lfs fetch --all)' >&2; exit 2; fi
+	echo "$PWD $* $(git --git-dir='${origin}' rev-parse --verify --quiet "$3" || echo absent)" >> '${log}'
+	echo 'Uploading LFS objects: 100% (1/1), 6 B | 0 B/s, done.' >&2 ;;
+esac\n`;
+	writeFileSync(join(lfsBin, "git-lfs"), `#!/bin/sh\n${fake}`, { mode: 0o755 });
+	writeFileSync(fail, "");
+	assert.equal(await push("main"), `github: main not pushed to origin: its LFS objects were not pushed: Unable to find source for object ${unknown} (try running git lfs fetch --all)`);
+	assert.equal(git(origin, "rev-parse", "main"), first);
+	rmSync(fail);
+	assert.match(await push("main"), /^github: pushed main to origin: [0-9a-f]{7,}\.\.[0-9a-f]{7,}$/);
+	assert.deepEqual(readFileSync(log, "utf8").trim().split("\n"), [`${local.path} push origin refs/heads/main ${first}`], "git lfs push ran before the push");
+	assert.equal(git(origin, "rev-parse", "main"), local.head());
+	commit("arthur/plain", first, "README.md", "Large files would take filter=lfs in .gitattributes.\n");
+	assert.equal(await push("arthur/plain"), "github: pushed arthur/plain to origin: [new branch]");
+	commit("arthur/art", first, "art/.gitattributes", "*.png filter=lfs diff=lfs merge=lfs -text\n");
+	assert.equal(await push("arthur/art"), "github: pushed arthur/art to origin: [new branch]");
+	assert.deepEqual(readFileSync(log, "utf8").trim().split("\n").slice(1), [`${local.path} push origin refs/heads/arthur/art absent`], "the pushed branch's own .gitattributes, not main's");
+	// The branch's tip replaced under refs/replace by a commit without its .gitattributes, as a job's git replace would write.
+	commit("arthur/hidden", first, "art/.gitattributes", "*.png filter=lfs diff=lfs merge=lfs -text\n");
+	git(local.path, "replace", git(local.path, "rev-parse", "arthur/hidden"), first);
+	assert.equal(await push("arthur/hidden"), "github: pushed arthur/hidden to origin: [new branch]");
+	assert.deepEqual(readFileSync(log, "utf8").trim().split("\n").slice(2), [`${local.path} push origin refs/heads/arthur/hidden absent`], "read past the replacement");
 });
 
 test("pull request reviews, polled when wakeOn names them: each told once and woken on; the first poll tells none; a pull request not updated is not asked again", async (t) => {

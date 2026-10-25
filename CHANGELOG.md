@@ -2,6 +2,22 @@
 
 Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-25
+
+### Other
+
+- AR0377 Git's other user config files are not guarded: `~/.config/git/config` and files `~/.gitconfig` includes (ac8bf33e)
+- AR0379 A project on Git LFS gets its main pushed without its LFS objects (6df9b99b)
+- AR0380 Arthur's git calls in a main checkout still run other programs its config names (fa9078a5)
+- AR0381 The worktree guard does not see a git alias or GIT_DIR (6e0f0a1d)
+- AR0382 A job's repository on another machine runs its config's hooks in Arthur's git calls there (559c77e0)
+- AR0383 A `.git` file or a `commondir` written outside the worktree makes any folder a checkout of main (cdec3c07)
+- AR0384 `git replace` from a job's worktree changes what every worktree reads of main's commits (185cc01f)
+- AR0385 `arthur help --help` names nine of the core's seventeen commands as the ones left when the config does not load (bd4169d0)
+- AR0386 Inside a job the read-only `ci <branch>`, `config check`, `doctor`, `retro` and `usage` are refused with the commands that change state (9609309c)
+- AR0393 A remote's `url` can name a transport whose helper runs from PATH (7c89d7fd)
+- AR0394 A spawn's push to another machine runs a program the repository's config there names, hooks off or not (d13732e2)
+
 ## 2026-10-23
 
 ### Other

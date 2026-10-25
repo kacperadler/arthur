@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs
 import { basename, isAbsolute, join } from "node:path";
 import type { Command } from "./commands.ts";
 import { eventBus } from "./events.ts";
+import { configRefusal } from "./git-config.ts";
 import { addWorktree, removeWorktree } from "./git.ts";
 import { continueJob, steerJob, stopJob } from "./job-control.ts";
 import { type Own, writeRecord } from "./job-record.ts";
@@ -23,7 +24,8 @@ const USAGE = "usage: arthur remote-job repo|add|launch|stop|steer|continue|prun
 export type Added = { readonly job: Job; readonly prompt: string; readonly kind: Own; readonly idleMinutes: number; readonly since: string };
 
 const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => void | Promise<void>>> = {
-	// Prints `present` when the repository of the project holds the commit, else `missing`, creating the repository bare.
+	// Prints `present` when the repository of the project holds the commit, else `missing`, creating the repository bare. Refused
+	// while its config may name a program, which the push's `git receive-pack` here would run (`core.alternateRefsCommand`, AR0394).
 	repo(home, [project = "", commit = ""]) {
 		if (basename(project) !== project || project.startsWith(".")) throw new Error(`a project name, got ${JSON.stringify(project)}`);
 		// The first step of a spawn there, so the home there is Arthur's user's alone before anything is written in it.
@@ -31,6 +33,8 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 		const root = join(home, "repos", `${project}.git`);
 		// Created once: `git init` again writes `core.bare` back into the shared config, after a `prepare` may have moved it out.
 		if (!existsSync(join(root, "HEAD"))) git(["init", "--quiet", "--bare", root]);
+		const refusal = configRefusal(root);
+		if (refusal !== "") throw new Error(`no push: ${refusal}`);
 		console.log(spawnSync("git", ["-C", root, "cat-file", "-e", `${commit}^{commit}`], { stdio: "ignore" }).status === 0 ? "present" : "missing");
 	},
 	add(home) {
@@ -76,9 +80,12 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 		if (inRun(now)) throw new Error(`${id} is ${told(now)} there, in a run`);
 		const [root, worktree, branch] = ["root", "worktree", "branch"].map(field(home, id)) as [string, string, string];
 		const present = existsSync(worktree);
+		// `git worktree remove` runs `git status` in the worktree, which runs a clean filter the shared config or the worktree's own names (AR0394).
+		const refusal = present ? configRefusal(worktree) : "";
+		if (refusal !== "") throw new Error(`git worktree: ${refusal}`);
 		git(present ? ["worktree", "remove", worktree] : ["worktree", "prune"], root);
 		const done = present ? [`worktree ${worktree} removed there`] : [];
-		const deleted = tip !== "" && spawnSync("git", ["update-ref", "-d", `refs/heads/${branch}`, tip], { cwd: root, stdio: "ignore" }).status === 0;
+		const deleted = tip !== "" && spawnSync("git", [...HOOKLESS, "update-ref", "-d", `refs/heads/${branch}`, tip], { cwd: root, stdio: "ignore" }).status === 0;
 		if (branch !== "") done.push(deleted ? `branch ${branch} deleted there` : `kept branch ${branch} there: it is not the one here`);
 		rmSync(join(home, "jobs", id), { recursive: true, force: true });
 		console.log(done.join("; "));
@@ -149,7 +156,10 @@ function record(home: string, id: string): (name: string) => string {
 	return field(home, id);
 }
 
+// No hook or fsmonitor the repository's config names runs, nor a replacement (refs/replace): a program a job runs there may have set them (AR0382, AR0384).
+const HOOKLESS = ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false"];
+
 function git(args: readonly string[], cwd?: string): void {
-	const run = spawnSync("git", args, { encoding: "utf8", cwd });
+	const run = spawnSync("git", [...HOOKLESS, ...args], { encoding: "utf8", cwd });
 	if (run.status !== 0) throw new Error(`git ${args[0]}: ${run.error?.message ?? run.stderr.trim()}`);
 }

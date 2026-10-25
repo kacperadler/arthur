@@ -2,6 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
+import { configRefusal } from "./git-config.ts";
 import { field } from "./job-state.ts";
 import type { Added } from "./remote-job.ts";
 
@@ -136,20 +137,27 @@ function failure(machine: Machine, argv: readonly string[], code: number | strin
 	return new Error(`machine ${machine.name}: ${argv.slice(0, 3).join(" ")}: ${said}`);
 }
 
-// `git -C <root> <args>` with ssh's options for a remote there, and no hook or fsmonitor of the checkout's config.
+// `git -C <root> <args>` with ssh's options for a remote there, no hook or fsmonitor of the checkout's config, no replacement (refs/replace), and none of
+// its keys that may name a program (git-config.ts). Git reads the URL first as a remote's name, whose `url` the config may set:
+// GIT_PROTOCOL_FROM_USER=0 refuses any transport but those allowed always (ssh among them), so no helper and no folder (AR0393).
 export function gitOver(root: string, args: readonly string[]): void {
-	const run = spawnSync("git", ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...args], { encoding: "utf8", env: { ...process.env, GIT_SSH_COMMAND: ["ssh", ...OPTIONS].join(" ") } });
+	const refusal = configRefusal(root);
+	if (refusal !== "") throw new Error(`git ${args[0]}: ${refusal}`);
+	const env = { ...process.env, GIT_SSH_COMMAND: ["ssh", ...OPTIONS].join(" "), GIT_PROTOCOL_FROM_USER: "0" };
+	const run = spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...args], { encoding: "utf8", env });
 	if (run.status !== 0) throw new Error(`git ${args[0]}: ${run.error?.message ?? run.stderr.trim()}`);
 }
 
 // Before any record exists: `arthur` there of this version, the project's repository there, and `base` in it, pushed from
 // `root` to `refs/arthur/base` only when it is missing; so is a spawn's `fetch`, to `refs/arthur/fetch`. Returns the repository there.
+// The push's `git receive-pack` there runs no hook of that repository's config: a job's program there may have set them (AR0382);
+// `remote-job repo` refuses, before any push, while that config sets a key that may name another program (AR0394).
 export function reach(machine: Machine, project: string, root: string, base: string, fetch?: string): string {
 	const [theirs, ours] = [ssh(machine, ["arthur", "version"]).trim(), coreVersion()];
 	if (theirs !== ours) throw new Error(`machine ${machine.name} runs arthur ${theirs}, this one is ${ours}; both need the same version`);
 	for (const [commit, ref] of fetch === undefined ? [[base, "base"]] : [[base, "base"], [fetch, "fetch"]]) {
 		const there = ssh(machine, ["arthur", "remote-job", "repo", machine.home, project, commit ?? ""]).trim();
-		if (there === "missing") gitOver(root, ["push", "--quiet", url(machine, project), `+${commit}:refs/arthur/${ref}`]);
+		if (there === "missing") gitOver(root, ["push", "--quiet", "--receive-pack=git -c core.hooksPath=/dev/null receive-pack", url(machine, project), `+${commit}:refs/arthur/${ref}`]);
 	}
 	return repositoryThere(machine, project);
 }

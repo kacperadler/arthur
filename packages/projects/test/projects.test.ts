@@ -124,10 +124,27 @@ test("a clone's refusals name a repo's host and path, never the credential its U
 		assert.doesNotMatch(error.message, /s3cret|arthur:/);
 		return true;
 	});
+	// A port out of range: new URL cannot parse it, and its userinfo is dropped all the same.
+	const unparsable = "https://u:s3cret@host:99999/x.git";
+	await assert.rejects(load({ reposDir, list: [{ name: "bad", prefix: "BD", repo: unparsable }] }), (error: Error) => {
+		assert.match(error.message, /^project bad: git clone https:\/\/host:99999\/x\.git failed: .+/);
+		assert.doesNotMatch(error.message, /s3cret/);
+		return true;
+	});
+	// A space in the password: git still reads all before the `@` as userinfo, and so does the mask.
+	await assert.rejects(load({ reposDir, list: [{ name: "spaced", prefix: "SP", repo: "https://u:my pass@host:99999/x.git" }] }), (error: Error) => {
+		assert.match(error.message, /^project spaced: git clone https:\/\/host:99999\/x\.git failed: .+/);
+		assert.doesNotMatch(error.message, /my pass/);
+		return true;
+	});
 	git(reposDir, "init", "--quiet", "other");
 	git(join(reposDir, "other"), "remote", "add", "origin", "https://token:t0ken@example.com/acme/other.git");
 	await assert.rejects(load({ reposDir, list: [{ name: "other", prefix: "OT", repo }] }), {
 		message: `project other: ${join(reposDir, "other")} holds https://example.com/acme/other.git, not git://127.0.0.1:1/acme/shop.git; it is left as it is`,
+	});
+	// `git@host:path` holds no secret, and new URL cannot parse it: its address is printed as it is.
+	await assert.rejects(load({ reposDir, list: [{ name: "other", prefix: "OT", repo: "git@example.com:acme/shop.git" }] }), {
+		message: `project other: ${join(reposDir, "other")} holds https://example.com/acme/other.git, not git@example.com:acme/shop.git; it is left as it is`,
 	});
 });
 

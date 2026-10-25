@@ -36,3 +36,4 @@ Out:
 ## Decisions
 
 - 2026-10-25: Source: F1 of AR0375
+- 2026-10-25: AR0419 approved as written; the owner: "AR0419 approved" (AR-D18)

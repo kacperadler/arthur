@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
@@ -372,6 +372,20 @@ test("the board's own folder gets its .gitignore back when a crash or a hand lef
 		writeFileSync(ignore, text);
 		board.create("One");
 		assert.equal(readFileSync(ignore, "utf8"), "*\n", JSON.stringify(text));
+	}
+});
+
+test("under umask 022 the board's own folder is its user's alone: a new one 0700, one made 0755 earlier 0700; spec/ stays the project's", (t) => {
+	const mask = process.umask(0o022);
+	t.after(() => process.umask(mask));
+	const mode = (path: string) => statSync(path).mode & 0o777;
+	for (const earlier of [false, true]) {
+		const { board, root } = setup();
+		const folder = join(root, "spec", ".board");
+		if (earlier) mkdirSync(folder, { recursive: true });
+		if (earlier) assert.equal(mode(folder), 0o755, "the umask in force");
+		board.create("One");
+		assert.deepEqual([mode(folder), mode(join(root, "spec"))], [0o700, 0o755], `made earlier: ${earlier}`);
 	}
 });
 

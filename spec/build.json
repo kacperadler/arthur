@@ -2695,9 +2695,9 @@
   {
     "id": "AR0351",
     "title": "A docs-only branch that rewrites the prompt files every later job reads gets `no review`",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0351-a-docs-only-branch-that-rewrites-the-prompt-files-every-later-job-reads-gets-no-review/ticket.md",
-    "updated": "2026-10-25T21:01:00.060Z",
+    "updated": "2026-10-25T21:11:24.122Z",
     "after": [
       "AR0358"
     ]
@@ -3364,9 +3364,9 @@
   {
     "id": "AR0424",
     "title": "A redirect's host is resolved twice, so DNS rebinding still reaches a private address",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0424-a-redirect-s-host-is-resolved-twice-so-dns-rebinding-still-reaches-a-private/ticket.md",
-    "updated": "2026-10-25T21:01:51.988Z"
+    "updated": "2026-10-25T21:14:08.965Z"
   },
   {
     "id": "AR0425",
@@ -3399,9 +3399,9 @@
   {
     "id": "AR0428",
     "title": "Redaction runs twice on two paths, so the extensions rewrite part of an env-file secret before the plugin can match it whole",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0428-redaction-runs-twice-on-two-paths-so-the-extensions-rewrite-part-of-an-env-file/ticket.md",
-    "updated": "2026-10-25T20:06:52.241Z",
+    "updated": "2026-10-25T21:11:05.430Z",
     "after": [
       "AR0341"
     ]

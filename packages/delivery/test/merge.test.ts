@@ -274,9 +274,10 @@ test("only a merge puts code on main: a code commit since the last merge refuses
 	assert.equal((await merge(cart.id, "--unreviewed")).err, "", "the commit after a merge, of spec/, CHANGELOG.md and *.md, is no code");
 	const hand = git(root, "rev-parse", "--short", commit(root, { "hand.ts": "export const hand = 1;\n" }));
 	commit(root, { "spec/notes.md": "# Notes\n" });
+	const again = git(root, "rev-parse", "--short", commit(root, { "hand.ts": "export const hand = 2;\n" }));
 	const pay = await worker({ "pay.ts": "export const pay = 1;\n" }, "Ticket: spec/features/AC0003-pay/ticket.md");
 	const before = head();
-	const refused = `arthur merge: main has 1 commits since its last merge that change code (${hand}); only a merge puts code on main; the owner decides: main is unchanged`;
+	const refused = `arthur merge: main has 2 commits since its last merge that change code (${again}, ${hand}); only a merge puts code on main; the owner decides: main is unchanged`;
 	assert.deepEqual(await merge(pay.id), { code: 1, out: "", err: refused });
 	assert.deepEqual(await merge(pay.id, "--unreviewed"), { code: 1, out: "", err: refused });
 	assert.deepEqual(await merge(pay.id, "--auto", "--no-ci"), { code: 1, out: "", err: refused });

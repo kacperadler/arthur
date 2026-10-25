@@ -24,7 +24,7 @@ import { fileJob } from "./ticket-file.ts";
 // HEAD, a read-only kind a detached checkout of HEAD; both live in `.arthur-worktrees/<id>` beside the repository, outside the main
 // checkout and the home folder. The record is `<home>/jobs/<id>/`, one file per key, appearing whole; then the wrapper starts.
 
-// `kind` defaults to `worker`, `project` to the main one; left undefined, `model` and `thinking` are the role's, a limit the kind's.
+// `kind` defaults to `worker`, `project` to the main one; left undefined, `model` and `thinking` are the role's, a limit the kind's; `decision`: the owner's decision id `arthur spawn --budget 0 --decision <id>` names, "" for none, which orchestration's check holds a paid job with no limit to (AR0355).
 export type SpawnRequest = {
 	readonly task: string;
 	readonly kind?: string;
@@ -37,11 +37,12 @@ export type SpawnRequest = {
 	readonly machine?: string;
 	readonly requires?: Requires;
 	readonly ignoreRestart?: boolean;
+	readonly decision?: string;
 	// A commit of the repository besides HEAD that the job needs on its machine (a review's branch tip): pushed there with the base.
 	readonly fetch?: string;
 };
 
-// A spawn as `beforeSpawn` checks it: `tickets` holds every `Ticket:` file the task names, as written; `quick` is omp's `--smol`; `ignoreRestart` its `--ignore-restart` (session's restart guard); `modelWhy` why its model was picked (job-model.ts), `free` whether it costs nothing, its budget then 0.
+// A spawn as `beforeSpawn` checks it: `tickets` holds every `Ticket:` file the task names, as written; `quick` is omp's `--smol`; `ignoreRestart` its `--ignore-restart` (session's restart guard); `modelWhy` why its model was picked (job-model.ts), `free` whether it costs nothing, its budget then 0; `decision` the request's, on a paid model only; `id` a continue's job. A check's reason refuses it; undefined lets it go on.
 export type Spawn = {
 	readonly task: string;
 	readonly kind: string;
@@ -56,6 +57,8 @@ export type Spawn = {
 	readonly tickets: readonly string[];
 	readonly machine: string;
 	readonly ignoreRestart: boolean;
+	readonly decision?: string;
+	readonly id?: string;
 };
 
 // A job as `prepare` gets it; `base` is the commit it starts from, `branch` undefined for a read-only kind; its caps are what a plugin's `jobs.limits` answers.
@@ -63,7 +66,6 @@ export type Job = Spawn & Caps & { readonly id: string; readonly root: string; r
 // A job as `spawn` returns it: `warnings` are the prompt's; `failed` why its wrapper did not start, the job ended `failed`.
 export type Started = Job & { readonly warnings: readonly string[]; readonly failed: string | undefined };
 
-// A reason refuses the spawn; undefined lets it go on.
 export type SpawnCheck = (spawn: Spawn) => string | undefined | Promise<string | undefined>;
 export type Prepare = (job: Job, env: Readonly<Record<string, string>>, continued: boolean) => void | Readonly<Record<string, string>> | Promise<void | Readonly<Record<string, string>>>;
 
@@ -83,8 +85,8 @@ export type Jobs = RoleReads & {
 	machines(): string[];
 	home(machine: string): string;
 	spawn(request: SpawnRequest): Promise<Started>;
-	// `arthur continue` of an ended job with a branch, `budgetUsd` replacing its budget; resolves to why its wrapper did not start (job-control.ts).
-	continue(id: string, instruction: string, budgetUsd?: number): Promise<string | undefined>;
+	// `arthur continue` of an ended job with a branch, `budgetUsd` replacing its budget, `decision` as its `--decision` (AR0355); resolves to why its wrapper did not start (job-control.ts).
+	continue(id: string, instruction: string, budgetUsd?: number, decision?: string): Promise<string | undefined>;
 	// Holds a job in a run `blocked` on `dependency: <reason>` until its run ends; `stop`: stops it too, on `user: <reason>` (docs/commands/jobs.md).
 	block(id: string, reason: string, stop?: boolean): Promise<unknown>;
 	// `list`: every project's job records, in any state, the newest spawn first; `running`: the ids of those in a run (working, idle, or held), as `arthur stopall` counts them; `prune`: `arthur prune <id>...`, one line per job (docs/commands/jobs.md, prune.md).
@@ -104,19 +106,17 @@ export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run
 	beforeSpawn(owner: string, check: SpawnCheck): void;
 	prepare(owner: string, fn: Prepare): void;
 	registerMachine(owner: string, machine: Machine): void;
-	continue(id: string, instruction: string, budgetUsd?: number, ignoreRestart?: boolean): Promise<string | undefined>;
+	continue(id: string, instruction: string, budgetUsd?: number, ignoreRestart?: boolean, decision?: string): Promise<string | undefined>;
 	file(board: Board, id: string | undefined, job: string): string;
 	// What `arthur roles` prints: each role, the files it reads in the project's main checkout, and its model.
 	roles(project?: string): Promise<RoleView[]>;
 };
 
-// `folder` is the config's, with its `envFile`, and in the repository jobs start from while no plugin provides `projects` (job-checkout.ts);
-// `limits` are the core's `jobs` options and the jobs' slice, `agent` its `agent.command`; `collect` reads what the plugins provide, e.g. a prompt's sections and the project list.
+// `folder` is the config's, with its `envFile`, and in the repository jobs start from while no plugin provides `projects` (job-checkout.ts); `limits` are the core's `jobs` options and the jobs' slice, `agent` its `agent.command`; `collect` reads what the plugins provide, e.g. a prompt's sections and the project list.
 export function jobRunner(home: string, folder: string, envFile: string, limits: Limits & Slice & { readonly idleMinutes: number; readonly offlineGraceMinutes: number }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
-	const [kinds, roles] = [kindRegistry(), roleRegistry()];
+	const [kinds, roles, machines] = [kindRegistry(), roleRegistry(), machineRegistry(home)];
 	const where = (project: string | undefined) => checkout(folder, collect("projects", []), project);
 	const [checks, prepares, extensions] = [spawnChecks(home), [] as { readonly owner: string; readonly fn: Prepare }[], [] as string[]];
-	const machines = machineRegistry(home);
 	const upkeep = jobUpkeep(home, time, bus, (job) => collect("jobs.keep", [job]), machines.of);
 	const prepared = async (job: Job, continued: boolean) => {
 		const env: Record<string, string> = {};
@@ -137,8 +137,8 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 		machines: () => [LOCAL, ...machines.others().map((machine) => machine.name)],
 		home: (name) => machines.home(name),
 		roles: (project) => describeRoles(roles, kinds.all(), where(project), collect),
-		continue: (id, instruction, budgetUsd, ignoreRestart = false) =>
-			continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), { check: async (job) => ({ mcp: kinds.get(job.kind) && (await roleModel(collect, kinds.get(job.kind)!.role)).mcp, caps: await jobCaps(collect("jobs.limits", [{ ...job, ignoreRestart }])), release: await checks.pass({ ...job, ignoreRestart }) }), prepare: (job) => prepared({ ...job, ignoreRestart }, true) }, machines.of(id)),
+		continue: (id, instruction, budgetUsd, ignoreRestart = false, decision) =>
+			continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), { check: async (job) => ({ mcp: kinds.get(job.kind) && (await roleModel(collect, kinds.get(job.kind)!.role)).mcp, caps: await jobCaps(collect("jobs.limits", [{ ...job, ignoreRestart }])), release: await checks.pass({ ...job, ignoreRestart, ...(job.free || decision === undefined ? {} : { decision }) }) }), prepare: (job) => prepared({ ...job, ignoreRestart }, true) }, machines.of(id)),
 		file: (board, id, job) => fileJob(home, board, (name) => kinds.get(name)?.file, id, job),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
@@ -161,7 +161,7 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 			const asked = { task, kind: name, project, thinking, quick: preset.quick, timeoutMinutes, budgetUsd, tickets };
 			const machine = await machines.pick(request.machine, request.requires, () => collect("jobs.place", [{ ...asked, model: wanted, machine: request.machine, requires: request.requires }]));
 			const picked = await pickModel(collect, wanted, machine.name);
-			const spawn: Spawn = { ...asked, ...picked, budgetUsd: picked.free ? 0 : budgetUsd, machine: machine.name, ignoreRestart: request.ignoreRestart === true };
+			const spawn: Spawn = { ...asked, ...picked, budgetUsd: picked.free ? 0 : budgetUsd, machine: machine.name, ignoreRestart: request.ignoreRestart === true, ...(picked.free || request.decision === undefined ? {} : { decision: request.decision }) };
 			const caps = await jobCaps(collect("jobs.limits", [spawn]));
 			const release = await checks.pass(spawn);
 			try {

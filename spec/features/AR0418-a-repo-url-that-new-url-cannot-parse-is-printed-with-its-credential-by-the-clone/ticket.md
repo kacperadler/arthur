@@ -22,7 +22,7 @@ A clone refusal never prints a credential from `repo`, parsed or not; tested.
 
 ## Done means
 
-- In `shown`, a URL that does not parse gets the same replacement as git's line (every word holding an `@` becomes `the repo`). Test in `packages/projects/test/projects.test.ts`: a `repo` of `https://u:s3cret@host:99999/x.git` that fails to clone; the refusal never holds `s3cret`. The test fails without the change.
+- In `shown`, a URL that does not parse has only its userinfo after `//` removed; `git@host:path`, which holds no secret, is printed as it is (coordinator, 2026-10-25: the first wording turned it into `the repo`). Test in `packages/projects/test/projects.test.ts`: a `repo` of `https://u:s3cret@host:99999/x.git` that fails to clone; the refusal shows its host and path and never holds `s3cret`; a `git@host:path` refusal names it. The test fails without the change.
 - `npm test` and `npm run check` pass.
 
 ## Scope

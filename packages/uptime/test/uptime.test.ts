@@ -180,7 +180,11 @@ test("a redirect to each refused range is refused before a connection, also a na
 	assert.deepEqual([inside.seen("/"), site.seen("/null")], [0, 0]);
 });
 
-test("a redirect to a name that answers a public address, then loopback, never reaches it: the connection's own lookup is checked too", async (t) => {
+// With family autoselection, Node 24's default, a socket asks its lookup for all addresses; without it, for one.
+for (const all of [true, false]) test(`a redirect to a name that answers a public address, then loopback, never reaches it: the connection's own lookup is checked too, asked for ${all ? "all addresses" : "one address"}`, async (t) => {
+	const autoSelect = net.getDefaultAutoSelectFamily();
+	net.setDefaultAutoSelectFamily(all);
+	t.after(() => net.setDefaultAutoSelectFamily(autoSelect));
 	const [site, inside] = [await server(t), await server(t)];
 	inside.answers["/"] = ok;
 	// Each check resolves the name twice, for the Location's check and for the connection: public at the first, loopback at the second.
@@ -208,15 +212,16 @@ test("a hop to another host is judged by its own answer: its status, a status wi
 		return real({ ...options, lookup: (name, each, done) => lookup(name, each, (error, address, family) => done(error, typeof address === "string" ? local(address) : address.map((one) => ({ ...one, address: local(one.address) })), family)) }, listener);
 	}) as typeof real;
 	t.after(() => void (net.createConnection = real));
-	const paths = ["/500", "/204", "/304", "/text", "/hang"];
-	Object.assign(inside.answers, { "/500": broken, "/204": (response) => void response.writeHead(204).end(), "/304": (response) => void response.writeHead(304).end(), "/text": ok, "/hang": hang } satisfies Record<string, Answer>);
+	const paths = ["/500", "/204", "/205", "/304", "/text", "/hang"];
+	Object.assign(inside.answers, { "/500": broken, "/204": (response) => void response.writeHead(204).end(), "/205": (response) => void response.writeHead(205).end(), "/304": (response) => void response.writeHead(304).end(), "/text": ok, "/hang": hang } satisfies Record<string, Answer>);
 	for (const path of paths) site.answers[path] = (response) => void response.writeHead(302, { location: `http://public.example:${inside.port}${path}` }).end();
 	site.answers["/port"] = (response) => void response.writeHead(302, { location: "http://public.example:25/" }).end();
 	const own = (path: string) => `http://localhost:${site.port}${path}`;
-	const expects: Record<string, number | string | undefined> = { "/204": 204, "/304": 304, "/text": "Welcome" };
+	const expects: Record<string, number | string | undefined> = { "/204": 204, "/205": 205, "/304": 304, "/text": "Welcome" };
 	const { events } = await started(t, { acme: [...paths, "/port"].map((path) => ({ url: own(path), expect: expects[path], everySeconds: 1 })) });
 	await until("three sites down", () => events("uptime-down").length === 3);
-	await until("two checks of each page that passes", () => ["/204", "/304", "/text"].every((path) => inside.seen(path) >= 2));
+	// A third request to each means its first two checks were judged, so a page wrongly judged down is down by now.
+	await until("two judged checks of each page that passes", () => ["/204", "/205", "/304", "/text"].every((path) => inside.seen(path) >= 3));
 	const down = Object.fromEntries((events("uptime-down") as { url: string; reason: string }[]).map(({ url, reason }) => [url, reason]));
 	assert.deepEqual(down, { [own("/500")]: "answered 500, expected a 2xx status", [own("/hang")]: "no answer within 1 s", [own("/port")]: "bad port" });
 	// Each request on a connection of its own (`agent: false`): no socket is kept, and none reused without its lookup.

@@ -85,6 +85,7 @@ const PROJECT: ReadonlyArray<readonly [string, Record<string, unknown>, string |
 	["read", { path: "notes.txt", i: "Reading .env" }, undefined],
 	["bash", { command: "ls", i: "Checking .env" }, undefined],
 	["bash", { command: "cat mcp.json src/servers.mcp.json .mcp.jsonc" }, undefined],
+	["bash", { command: "cat .mc?.yml" }, undefined],
 	["todo_write", { text: "read .env" }, undefined],
 ];
 

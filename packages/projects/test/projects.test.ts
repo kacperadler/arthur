@@ -114,6 +114,23 @@ test("a clone that fails names the project and leaves no folder", async () => {
 	assert.deepEqual(readdirSync(reposDir), []);
 });
 
+test("a clone's refusals name a repo's host and path, never the credential its URL holds", async () => {
+	const reposDir = join(temporaryFolder(), "repos");
+	// git:// takes no userinfo: git looks up `arthur:s3cret@127.0.0.1` as a host name, which fails at once without a query, and
+	// its line names that host whole, credential included.
+	const repo = "git://arthur:s3cret@127.0.0.1:1/acme/shop.git";
+	await assert.rejects(load({ reposDir, list: [{ name: "shop", prefix: "SH", repo }] }), (error: Error) => {
+		assert.match(error.message, /^project shop: git clone git:\/\/127\.0\.0\.1:1\/acme\/shop\.git failed: fatal: unable to look up the repo .+/);
+		assert.doesNotMatch(error.message, /s3cret|arthur:/);
+		return true;
+	});
+	git(reposDir, "init", "--quiet", "other");
+	git(join(reposDir, "other"), "remote", "add", "origin", "https://token:t0ken@example.com/acme/other.git");
+	await assert.rejects(load({ reposDir, list: [{ name: "other", prefix: "OT", repo }] }), {
+		message: `project other: ${join(reposDir, "other")} holds https://example.com/acme/other.git, not git://127.0.0.1:1/acme/shop.git; it is left as it is`,
+	});
+});
+
 test("reposDir inside Arthur's home folder is refused", async () => {
 	const origin = repository();
 	await assert.rejects(load((home) => ({ reposDir: join(home, "repos"), list: [{ name: "docs", prefix: "DOC", repo: origin }] })), (error: Error) => {

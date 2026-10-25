@@ -3228,8 +3228,11 @@
   {
     "id": "AR0428",
     "title": "Redaction runs twice on two paths, so the extensions rewrite part of an env-file secret before the plugin can match it whole",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0428-redaction-runs-twice-on-two-paths-so-the-extensions-rewrite-part-of-an-env-file/ticket.md",
-    "updated": "2026-10-25T20:03:51.433Z"
+    "updated": "2026-10-25T20:06:52.241Z",
+    "after": [
+      "AR0341"
+    ]
   }
 ]

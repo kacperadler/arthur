@@ -2575,7 +2575,7 @@
     "title": "MCP secrets lie in every job's record, which every other job can read, until the prune",
     "status": "in-progress",
     "path": "spec/features/AR0337-mcp-secrets-lie-in-every-job-s-record-which-every-other-job-can-read-until-the-prune/ticket.md",
-    "updated": "2026-10-25T21:32:04.756Z"
+    "updated": "2026-10-25T22:09:53.600Z"
   },
   {
     "id": "AR0338",
@@ -2763,9 +2763,9 @@
   {
     "id": "AR0359",
     "title": "`--auto` takes CI passed on an older commit of the branch (AR0311 F13, confirmed)",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0359-auto-takes-ci-passed-on-an-older-commit-of-the-branch-ar0311-f13-confirmed/ticket.md",
-    "updated": "2026-10-23T14:45:58.284Z",
+    "updated": "2026-10-25T22:12:50.231Z",
     "after": [
       "AR0362"
     ]
@@ -2793,9 +2793,9 @@
   {
     "id": "AR0362",
     "title": "A plain `arthur merge` asks no CI, so a tip whose run ended `failure` goes in on the checks on main alone, unsaid",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0362-a-plain-arthur-merge-asks-no-ci-so-a-tip-whose-run-ended-failure-goes-in-on-the-checks-on-main-alone-unsaid/ticket.md",
-    "updated": "2026-10-23T14:45:58.901Z",
+    "updated": "2026-10-25T22:12:31.232Z",
     "after": [
       "AR0360"
     ]

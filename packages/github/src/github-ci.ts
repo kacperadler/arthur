@@ -7,7 +7,7 @@ import { DEPTH, git, nearestRun } from "./github-git.ts";
 // `arthur ci <branch> [--rerun]` (spec/roadmap.md, entry 58): the run that built the branch, as the poll finds it (the newest
 // run of its nearest commit that has one), and why it failed: each failed job, its failed step, and the end of the first one's
 // log; `--rerun` asks GitHub to rerun a failed or cancelled run, once per run. docs/commands/ci.md. Entry 59: the same run for
-// `github.ci`, and a run cancelled for `github.cancel`, which delivery's `arthur merge --auto` and its CI waits ask.
+// `github.ci`, and a run cancelled for `github.cancel`, which delivery's `arthur merge` (AR0362) and its CI waits ask.
 
 const USAGE = "usage: arthur ci <branch> [--rerun] [--project <name>]";
 // The conclusions of a run that failed or was cancelled, and of a job or step that failed.

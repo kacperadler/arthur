@@ -16,9 +16,9 @@ const CONFIG_PLAIN = /^(?:--(?:global|system|local|worktree|file|blob|type|bool|
 const CONFIG_READS = /^(?:--get(?:-all|-regexp|-urlmatch|-color|-colorbool)?|--list|-l)$/;
 const CONFIG_SUBCOMMANDS = ["set", "unset", "rename-section", "remove-section", "edit"];
 
-// `sub` and the words after it (`rest`); `chdirs`, the folders of its `-C` options in order; `trees`, the folders its
-// `--git-dir` and `--work-tree` name, and the `GIT_DIR=`, `GIT_WORK_TREE=` and `GIT_COMMON_DIR=` among `assignments`, the
-// words before `git`; whether it writes the checkout it runs in, and whether it changes its operands; `config`, a `git
+// `sub` and the words after it (`rest`); `chdirs`, the folders of its `-C` options in order; `trees`, the paths its `--git-dir`
+// and `--work-tree` name, and the `GIT_DIR=`, `GIT_WORK_TREE=`, `GIT_INDEX_FILE=`, `GIT_OBJECT_DIRECTORY=` and `GIT_COMMON_DIR=`
+// among `assignments`, the words before `git`; whether it writes the checkout it runs in, and whether it changes its operands; `config`, a `git
 // config` that sets or unsets: its key, its `--global`, `--system` or `--worktree` (else ""), the `--file` it writes, if
 // any, and whether such a `--worktree` or `--file` write may add an alias or include (`loads`); `points`, the ref it may
 // point a checkout at though another worktree holds it ("" when any); `replaces`, whether it writes a replacement under
@@ -50,7 +50,7 @@ export function gitCall(args: readonly string[], assignments: readonly string[] 
 	const [sub = "", ...rest] = args.slice(index);
 	const chdirs = options.filter((_, at) => options[at - 1] === "-C");
 	const trees = options.flatMap((option, at) => (/^--(?:git-dir|work-tree)=/.test(option) ? [option.slice(option.indexOf("=") + 1)] : /^--(?:git-dir|work-tree)$/.test(options[at - 1] ?? "") ? [option] : []));
-	trees.push(...assignments.filter((word) => /^GIT_(?:DIR|WORK_TREE|COMMON_DIR)=/.test(word)).map((word) => word.slice(word.indexOf("=") + 1)));
+	trees.push(...assignments.filter((word) => /^GIT_(?:DIR|WORK_TREE|INDEX_FILE|OBJECT_DIRECTORY|COMMON_DIR)=/.test(word)).map((word) => word.slice(word.indexOf("=") + 1)));
 	const worktree = sub === "worktree" && ["add", "remove", "move", "lock", "unlock", "repair"].includes(rest[0] ?? "");
 	// The `-c` options that define `sub` as an alias (Git takes an alias's name in any case), the last one the one Git runs.
 	const defines = (at: number) => options[at - 1] === "-c" && options[at]!.toLowerCase().startsWith(`alias.${sub.toLowerCase()}=`);

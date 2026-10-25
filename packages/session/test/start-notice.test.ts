@@ -70,11 +70,12 @@ test("at the start one word is asked of the coordinator's model first; answered,
 test("no LLM access: the model's error or omp's own error line, a credential in it never repeated, and run omp login", async (t) => {
 	t.after(() => delete process.env.PROVIDER_API_KEY);
 	process.env.PROVIDER_API_KEY = "hunter-two-secret";
-	// A value under 8 characters is no secret: `401` stays.
-	const fromFile = { ARTHUR_SESSION_PASS: "correct-horse-battery", ARTHUR_SESSION_CODE: "401" };
+	// A value of 8 characters is a secret, one of 7 is not (`seventh`, `401` stay); a value that starts another is replaced after it.
+	const fromFile = { ARTHUR_SESSION_PASS: "correct-horse-battery", ARTHUR_SESSION_CODE: "401", ARTHUR_SESSION_SHORT: "abcdefgh", ARTHUR_SESSION_LONG: "abcdefgh-longer-tail", ARTHUR_SESSION_SEVEN: "seventh" };
 	const denied = '401 {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key sk-ant-api03-AbCdEf123456 (hunter-two-secret)"},"request_id":"req_011CgAWsav66AwnrHwNLjFA6"}';
 	for (const [run, reason] of [
 		[{ steps: [{ message: "", stopReason: "error", error: "401 invalid password correct-horse-battery" }], exitCode: 1 }, "401 invalid password [redacted]"],
+		[{ steps: [{ message: "", stopReason: "error", error: "401 denied abcdefgh-longer-tail, abcdefgh, seventh" }], exitCode: 1 }, "401 denied [redacted], [redacted], seventh"],
 		[{ steps: [{ message: "", stopReason: "error", error: denied }], exitCode: 1 }, '401 {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key [redacted] ([redacted])"},"request_id":"[redacted]"}'],
 		[{ steps: [{ stderr: "434585 |         throw new Error(`No API key found for ${this.model.provider}." }, { stderr: "error: No API key found for anthropic." }, { stderr: "" }, { stderr: "Use /login, set an API key environment variable" }], exitCode: 1 }, "No API key found for anthropic."],
 		[{ steps: [{ stderr: 'Model "anthropic/claude-opus-4-5" not found' }], exitCode: 1 }, 'Model "anthropic/claude-opus-4-5" not found'],

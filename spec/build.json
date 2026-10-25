@@ -2542,9 +2542,9 @@
   {
     "id": "AR0333",
     "title": "`cd -`, `pushd` with no operand and `$OLDPWD` are read as `cd $HOME`",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0333-cd-pushd-with-no-operand-and-oldpwd-are-read-as-cd-home/ticket.md",
-    "updated": "2026-10-25T18:35:23.445Z"
+    "updated": "2026-10-25T18:41:38.091Z"
   },
   {
     "id": "AR0334",
@@ -2703,9 +2703,9 @@
   {
     "id": "AR0356",
     "title": "The job's `PATH` under the service has no `arthur`, so the line the develop plugin tells a worker to run may not run there",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0356-the-job-s-path-under-the-service-has-no-arthur-so-the-line-the-develop-plugin-tells-a-worker-to-run-may-not-run-there/ticket.md",
-    "updated": "2026-10-25T18:34:11.220Z"
+    "updated": "2026-10-25T18:39:17.508Z"
   },
   {
     "id": "AR0357",
@@ -3160,5 +3160,19 @@
     "after": [
       "AR0333"
     ]
+  },
+  {
+    "id": "AR0421",
+    "title": "`cd $PWD` and `cd ~+` are read as `cd $HOME` or a folder named `~+`",
+    "status": "planning",
+    "path": "spec/features/AR0421-cd-pwd-and-cd-are-read-as-cd-home-or-a-folder-named/ticket.md",
+    "updated": "2026-10-25T18:41:38.077Z"
+  },
+  {
+    "id": "AR0422",
+    "title": "An `OLDPWD` set by `read`, `printf -v`, `mapfile` or a nameref, or taken away by `env -u`/`env -i`, is not seen",
+    "status": "planning",
+    "path": "spec/features/AR0422-an-oldpwd-set-by-read-printf-v-mapfile-or-a-nameref-or-taken-away-by-env-u-env-i/ticket.md",
+    "updated": "2026-10-25T18:41:38.086Z"
   }
 ]

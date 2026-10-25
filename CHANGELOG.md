@@ -12,6 +12,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Fixed
 
 - AR0332 `GIT_DIR=`, `GIT_WORK_TREE=`, `GIT_INDEX_FILE=` before `git` are not read as `--git-dir`, `--work-tree` (059696a4)
+- AR0333 `cd -`, `pushd` with no operand and `$OLDPWD` are read as `cd $HOME` (00a0c619)
 - AR0342 A project's `repo` URL is printed by the clone's refusals, with any credential it holds (8409266e)
 - AR0344 A pasted secret of capitals, digits and `_` in a `...Env` option is printed by the refusal (432245c4)
 - AR0352 The always-review list never matches a path under `.agents/`: `**` does not enter a dot folder (293b4ac4)

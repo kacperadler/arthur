@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/shell-words.ts:104`, `packages/core/src/worktree-guard.ts:108`
 - What: `shellCommands("cd $PWD; cd ~+; cd \"$PWD\"", "/h")` gives the words `["cd"]`, `["cd","~+"]`, `["cd"]` (seen with `node -e`): `$PWD` expands to nothing, so the guard moves to `$HOME` while bash stays. A bash call with `cwd` the main checkout and `cd $PWD; rm README.md` is judged in the home folder, so it passes [INFERENCE: from the parsed words and `bashRefusal`'s `cd` branch; not run].
 - Suggestion: read `$PWD` as `~+` in shell-words.ts, as this ticket reads `$OLDPWD` as `~-`, and have `located` in the guard take `~+` as `cwd`. Out: other variables.
-- Status: open
+- Status: ticket AR0421
 
 ## F2. An `OLDPWD` set by `read`, `printf -v`, `mapfile` or a nameref, or taken away by `env -u`/`env -i`, is not seen
 
@@ -24,4 +24,36 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
   - A prefix before `find … -exec bash -c`, `xargs bash -c` or a script file: the command `find` or `xargs` runs is judged without the prefix.
   - A quoted `'~-'` is read as OLDPWD's folder though bash takes it as a folder named `~-` (shell-words.ts gives `~-` for both).
 - Suggestion: treat a command that names `OLDPWD` as an operand of `read`, `printf -v`, `mapfile`/`readarray` or `declare -n` as making OLDPWD unknown (`previous = undefined`, which refuses a later `~-`/`$OLDPWD`), or refuse it outright; read `env -u OLDPWD`/`env -i` before a shell as an unset OLDPWD inside it; pass the prefix to the command `find -exec` judges.
-- Status: open
+- Status: ticket AR0422
+
+## F3. An `eval` in a pipeline is not read as a subshell
+
+- Kind: security
+- Found by: 2026-10-25-review-7e795c1f (reviewer, non-blocking note), 2026-10-25
+- Where: `packages/core/src/worktree-guard.ts`
+- What: `cd <main>; cd /tmp; eval 'cd /var' | cat; cd -; rm README.md` passes; `cd <main>; eval 'cd /tmp' | cat; rm README.md` passes too, older than this branch.
+- Status: ticket AR0422
+
+## F4. `export -n OLDPWD` before a shell is not seen
+
+- Kind: security
+- Found by: 2026-10-25-review-7e795c1f (reviewer, non-blocking note), 2026-10-25
+- Where: `packages/core/src/worktree-guard.ts`
+- What: `cd /var; cd <main>; export -n OLDPWD; bash -c 'cd -; rm README.md'` passes; the inner bash has no OLDPWD and stays in main.
+- Status: ticket AR0422
+
+## F5. Loops became `.map(...).find(Boolean)`
+
+- Kind: refactor
+- Found by: 2026-10-25-review-7e795c1f, 2026-10-25-review-9405a093 (reviewer, non-blocking notes), 2026-10-25
+- Where: `packages/core/src/worktree-guard.ts`
+- What: every item is judged instead of stopping at the first refusal; the result is the same.
+- Status: dropped (no behaviour change)
+
+## F6. Both guard files are at the 200-line limit
+
+- Kind: chore
+- Found by: 2026-10-25-review-9405a093 (reviewer, non-blocking note), 2026-10-25
+- Where: `packages/core/src/worktree-guard.ts`, `packages/core/src/shell-words.ts`
+- What: the next change needs lines taken out or a raise.
+- Status: dropped (the rule itself; AR0420's Done means says to ask for a raise if needed)

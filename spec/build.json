@@ -2729,9 +2729,9 @@
   {
     "id": "AR0355",
     "title": "`--unreviewed` and `--budget 0` rest on a sentence in the coordinator's role, with no recorded decision behind them",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0355-unreviewed-and-budget-0-rest-on-a-sentence-in-the-coordinator-s-role-with-no-recorded-decision-behind-them/ticket.md",
-    "updated": "2026-10-25T23:32:46.611Z",
+    "updated": "2026-10-25T23:45:54.736Z",
     "after": [
       "AR0361"
     ]

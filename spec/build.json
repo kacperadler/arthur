@@ -2573,9 +2573,9 @@
   {
     "id": "AR0337",
     "title": "MCP secrets lie in every job's record, which every other job can read, until the prune",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0337-mcp-secrets-lie-in-every-job-s-record-which-every-other-job-can-read-until-the-prune/ticket.md",
-    "updated": "2026-10-23T14:22:39.054Z"
+    "updated": "2026-10-25T21:32:04.756Z"
   },
   {
     "id": "AR0338",
@@ -3399,9 +3399,9 @@
   {
     "id": "AR0428",
     "title": "Redaction runs twice on two paths, so the extensions rewrite part of an env-file secret before the plugin can match it whole",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0428-redaction-runs-twice-on-two-paths-so-the-extensions-rewrite-part-of-an-env-file/ticket.md",
-    "updated": "2026-10-25T21:31:55.924Z",
+    "updated": "2026-10-25T21:36:18.550Z",
     "after": [
       "AR0341"
     ]
@@ -3464,6 +3464,19 @@
       "AR0404",
       "AR0405",
       "AR0428"
+    ]
+  },
+  {
+    "id": "AR0434",
+    "title": "A secret-named variable only the coordinator's omp holds is no longer redacted by name",
+    "status": "planned",
+    "path": "spec/features/AR0434-a-secret-named-variable-only-the-coordinator-s-omp-holds-is-no-longer-redacted/ticket.md",
+    "updated": "2026-10-25T21:36:35.832Z",
+    "after": [
+      "AR0402",
+      "AR0403",
+      "AR0404",
+      "AR0405"
     ]
   }
 ]

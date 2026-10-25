@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/orchestration/src/inbox-extension.ts:116`, `packages/session/src/turn-extension.ts:43`
 - What: the extensions no longer redact (AR0428), so the by-name rule (`KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|AUTH`) now reads `arthur run`'s environment, not omp's. omp runs in a tmux session whose environment is the tmux server's global one plus the `-e` variables (`packages/orchestration/src/coordinator.ts:116`); a variable set only there (a tmux server started earlier from another shell) is no longer matched by value. [INFERENCE] not reproduced; the shape rules (vendor prefix, 20+ mixed runs, `Bearer`) still apply, so only a short value of an unusual shape would pass.
 - Suggestion: start the coordinator's tmux session with `arthur run`'s environment only, so both sides hold the same values; not by writing omp's own secret-named values to disk next to the error. Out: the extensions' raw copies, which stay in the 0700 home.
-- Status: open
+- Status: ticket AR0434

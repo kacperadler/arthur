@@ -542,8 +542,11 @@ test("github.push runs no program origin's URL names: a transport helper (<name>
 	assert.deepEqual([existsSync(ran), spawnSync("git", ["-C", origin, "rev-parse", "--verify", "--quiet", "main"]).status], [false, 1], "nothing run, nothing pushed");
 	writeFileSync(owner, '[protocol "file"]\n\tallow = always\n[protocol "evil"]\n\tallow = always\n');
 	assert.equal(await push(), "github: pushed main to origin: [new branch]", "a folder the owner allows");
+	const pushed = local.head();
+	local.commit();
 	git(local.path, "config", "remote.origin.url", "evil::x");
-	assert.equal(await push(), "github: main not pushed to origin: git exited 128", "a helper the owner allows runs");
+	assert.ok((await push()).startsWith("github: main not pushed to origin: "), "a helper the owner allows runs, and fails as it pushes nothing");
+	assert.equal(git(origin, "rev-parse", "main"), pushed, "origin's main as the folder push left it");
 	assert.deepEqual(readFileSync(ran, "utf8").split("\n"), ["hook", "helper origin x", ""], "git runs git-remote-<name> with the remote and the address");
 });
 

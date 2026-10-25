@@ -205,7 +205,10 @@ test("an agent that cannot start: failed, naming why", async () => {
 // Every role's MCP servers as orchestration answers them in `roles.model`, a secret filled in from `token()` at each answer.
 const withMcp = (token: () => string): Collect => (name) => (name === "roles.model" ? [{ mcp: { docs: { command: "docs-mcp", env: { TOKEN: token() } } } }] : []);
 
-test("a job's MCP secrets lie in its record only during a run: gone once it is ended, written again from the role's answer by a continue", async () => {
+test("a job's MCP secrets lie in its record only during a run: gone once it is ended, written again from the role's answer by a continue", async (t) => {
+	// The usual umask, so a `.mcp.json` written without its own mode 600 shows as 644 on any machine.
+	const umask = process.umask(0o022);
+	t.after(() => void process.umask(umask));
 	const gate = join(temporaryFolder(), "go");
 	const agent = fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] });
 	let token = "first-s3cret";

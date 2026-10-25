@@ -66,6 +66,7 @@ const PROJECT: ReadonlyArray<readonly [string, Record<string, unknown>, string |
 	["bash", { command: "cat ~/.arthur/jobs/2026-10-25-worker-0000000a/mcp/.mcp.json" }, "~/.arthur/jobs/2026-10-25-worker-0000000a/mcp/.mcp.json"],
 	["bash", { command: "cp .MCP.JSON.bak /tmp/x" }, ".MCP.JSON.bak"],
 	["bash", { command: "cat mcp/.m*.json" }, ".mcp.json (through the glob .m*.json)"],
+	["bash", { command: "cat mcp/.mc?.json.bak" }, ".mcp.json.bak (through the glob .mc?.json.bak)"],
 	["read", { path: ".arthur/orchestration/mcp/.mcp.json" }, ".arthur/orchestration/mcp/.mcp.json"],
 	["eval", { code: "print(open('.mcp''.json').read())" }, ".mcp.json"],
 	["bash", { command: "cat .env.example" }, undefined],

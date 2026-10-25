@@ -48,9 +48,9 @@ export function reviewNeededCommand(host: Host, held: (path: string) => boolean)
 }
 
 // The answer for `base..tip`, `review: <why>` or `no review: <why>`, by the first rule that holds: a file on the always-review
-// list (both names of a renamed one), a deleted file, a `.env` file, `.env` in a changed line outside docs and tests; then only
-// docs (`*.md`); over SMALL lines; then the job's `checks` after their last `stale`, each script the tip's package.json declares
-// passing.
+// list (both names of a renamed one), a deleted file, a `.env` file, `.env` in a changed line outside docs and tests, a binary
+// file (numstat's `-` for its counts, a `*.md` too); then only docs (`*.md`); over SMALL lines; then the job's `checks` after
+// their last `stale`, each script the tip's package.json declares passing.
 function decide(git: (...words: string[]) => string, base: string, tip: string, held: (path: string) => boolean, checks: string): string {
 	const diff = (options: readonly string[], paths: readonly string[] = []) => git("diff", "--no-renames", ...options, base, tip, "--", ...paths);
 	const numstat = diff(["--numstat"]).split("\n").filter(Boolean).map((line) => line.split("\t"));
@@ -63,9 +63,9 @@ function decide(git: (...words: string[]) => string, base: string, tip: string, 
 	if (secrets !== undefined) return `review: changes ${secrets}`;
 	const mention = mentions(diff(["--unified=0"], [".", ":(exclude)*.md", ":(exclude,glob)**/test/**"]));
 	if (mention !== undefined) return `review: the diff mentions .env in ${mention}`;
+	for (const [added, , path] of numstat) if (added === "-") return `review: changes a binary file ${path}`;
 	if (files.length > 0 && files.every((path) => path.endsWith(".md"))) return `no review: ${files.length} file${files.length === 1 ? "" : "s"}, all docs (*.md)`;
-	// A binary file counts no lines; numstat shows it as `-`.
-	const size = numstat.reduce((sum, [added, removed]) => sum + (Number(added) || 0) + (Number(removed) || 0), 0);
+	const size = numstat.reduce((sum, [added, removed]) => sum + Number(added) + Number(removed), 0);
 	const lines = `${size} line${size === 1 ? "" : "s"} changed`;
 	if (size > SMALL) return `review: ${lines}, over ${SMALL}`;
 	let scripts: readonly string[] = [];

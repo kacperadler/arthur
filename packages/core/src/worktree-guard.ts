@@ -30,6 +30,7 @@ const WRITES = ["mv", "rm", "rmdir", "touch", "mkdir", "truncate", "chmod", "cho
 const COPIES = ["cp", "install", "rsync", "scp"];
 const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save a patch in your own worktree instead (git diff > .arthur-stash.patch, then git apply .arthur-stash.patch)";
 const UNSEEN = "arthur: refused: this git call reads config the guard does not (a shell alias, an include, --config-env, GIT_CONFIG*, HOME or XDG_CONFIG_HOME set for it), or writes an alias or include that later git calls would run unseen; run the command itself instead";
+const OLDPWD_UNKNOWN = "arthur: refused: the guard cannot tell where OLDPWD leads here: it is unset, where bash reads `~-` and `$OLDPWD` apart, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; name the folder instead";
 
 const inside = (path: string, folder: string): boolean => path === folder || path.startsWith(folder.endsWith(sep) ? folder : folder + sep);
 
@@ -50,7 +51,7 @@ function refusal(place: Place, path: string, shown = path, named = true): string
 function commandIndex(words: readonly string[]): number {
 	for (let index = 0; index < words.length; ) {
 		const values = Object.hasOwn(WRAPPERS, basename(words[index]!)) ? WRAPPERS[basename(words[index]!)]! : undefined;
-		if (values === undefined && !RESERVED.includes(words[index]!) && !/^[A-Za-z_]\w*\+?=/.test(words[index]!)) return index;
+		if (values === undefined && !RESERVED.includes(words[index]!) && !/^[A-Za-z_]\w*(\[[^\]]*\])?\+?=/.test(words[index]!)) return index;
 		for (index++; values !== undefined && index < words.length && /^-|^[\d.]+[smhd]?$/.test(words[index]!); ) index += values.includes(words[index]!) ? 2 : 1;
 	}
 	return -1;
@@ -72,50 +73,51 @@ function commandIndex(words: readonly string[]): number {
 function bashRefusal(place: Place, command: string, start: string): string | undefined {
 	let cwd = start;
 	// Where `cd -`, `~-` and `$OLDPWD` (shell-words.ts reads it as `~-`) go: bash's OLDPWD, from the agent's env; none when unset.
-	let previous = process.env.OLDPWD;
-	const subshells: [string, string | undefined, string[]][] = [];
-	let pushed: string[] = [];
+	let [previous, fixed, pushed] = [process.env.OLDPWD, false, [] as string[]];
+	const subshells: [string, string | undefined, string[], boolean][] = [];
 	const located = (base: string, path: string): string => real(resolve(base, path.replace(/^~-(?=\/|$)/, previous || "~-")));
 	const theirs = (words: readonly string[], base = cwd, named = true): string | undefined =>
 		words.flatMap((word) => [...(word.startsWith("-") ? [] : [word]), ...(word.includes("=") ? [word.slice(word.indexOf("=") + 1)] : [])]).map((path) => refusal(place, located(base, path), path, named)).find(Boolean);
 	const run = (items: readonly Item[]): string | undefined => {
 		for (const item of items) {
-			if (item === "(") subshells.push([cwd, previous, [...pushed]]);
-			else if (item === ")") [cwd, previous, pushed] = subshells.pop() ?? [cwd, previous, pushed];
+			if (item === "(") subshells.push([cwd, previous, [...pushed], fixed]);
+			else if (item === ")") [cwd, previous, pushed, fixed] = subshells.pop() ?? [cwd, previous, pushed, fixed];
 			const found = typeof item === "string" ? undefined : judge(item);
 			if (found !== undefined) return found;
 		}
-		return undefined;
 	};
 	const judge = (command: Command): string | undefined => {
-		if (!previous && [...command.words, ...command.writes].some((word) => /(^|=)~-(\/|$)/.test(literal(word)))) return "arthur: refused: OLDPWD is unset, and the guard reads `~-` and `$OLDPWD` alike where bash does not; name the folder instead";
-		const redirected = theirs(command.writes.map(literal));
 		const words = command.words.map(literal);
 		const at = commandIndex(words);
+		// `\0` is an operator on `${OLDPWD…}` (shell-words.ts); the refusal names the other forms the guard does not follow.
+		if ([...command.words, ...command.writes].some((word) => word.includes("\0") || (!previous && /(^|=)~-(\/|$)/.test(literal(word)))) || command.words.some((word, index) => /^OLDPWD(\[(?!\d+\])|\+=\(|=\(\[)/.test(word) || (index < at && /^OLDPWD(\[|=\()/.test(word)))) return OLDPWD_UNKNOWN;
+		const redirected = theirs(command.writes.map(literal));
 		const verb = basename(words[at] ?? "");
 		const moves = ["cd", "pushd", "popd"].includes(verb);
-		// An assignment (`=`, `+=`) alone or by `export`/`declare` sets OLDPWD as written, an `unset` but `-f` clears it; one
-		// before `cd` sets it for that `cd` (which then sets the folder it left), one before a shell or `eval` for what they run.
-		for (const set of command.alone && (at < 0 || moves || ["export", "declare", "typeset", "readonly", "local"].includes(verb)) ? words.map((word) => /^OLDPWD(\+?)=([^]*)/.exec(word)) : []) if (set) previous = (set[1] ? (previous ?? "") : "") + set[2]!.replace(/^~-(?=\/|$)/, previous || "~-");
-		if (command.alone && verb === "unset" && words.includes("OLDPWD") && !words.some((word) => /^-\w*f/.test(word))) previous = undefined;
-		if (redirected !== undefined || at < 0) return redirected;
 		const args = words.slice(at + 1);
+		// An assignment (`=`, `+=`, to `OLDPWD[0]`, or a list `OLDPWD=(a …)` for `a`) alone or by `export`, `declare` or `readonly`
+		// sets OLDPWD as written, an `unset` but `-f` clears it, neither once it is read-only; one before `cd` sets it for that `cd`
+		// (which then sets the folder it left), one before a shell or `eval` for what they run, a child shell's writable again.
+		for (const set of command.alone && !fixed && (at < 0 || moves || ["export", "declare", "typeset", "readonly"].includes(verb)) ? command.words.map((word) => /^OLDPWD(?:\[0+\])?(\+?)=\(?([^]*)/.exec(word)) : []) if (set) previous = (set[1] ? (previous ?? "") : "") + literal(set[2]!).replace(/^~-(?=\/|$)/, previous || "~-");
+		if (command.alone && !fixed && verb === "unset" && words.some((word) => /^OLDPWD(\[0+\])?$/.test(word)) && !words.some((word) => /^-\w*f/.test(word))) previous = undefined;
+		if (command.alone && (verb === "readonly" || (["declare", "typeset"].includes(verb) && args.some((word) => /^-\w*r/.test(word)))) && !args.some((word) => /^-\w*f/.test(word)) && args.some((word) => /^OLDPWD(?!\w)/.test(word))) fixed = true;
+		if (redirected !== undefined || at < 0 || (moves && !command.alone)) return redirected;
 		const operands = args.filter((word) => !word.startsWith("-"));
 		if (moves) {
-			if (!command.alone) return undefined;
-			// `cd -` goes back, a `pushd` alone swaps the folder with the stack's top; with nowhere to go it fails and stays.
+			// `cd -` goes back, a `pushd` alone swaps the folder with the stack's top; with nowhere to go it fails and stays. With
+			// `-n` only the stack changes: `pushd -n dir` puts `dir` under its top, `popd -n` drops the one there.
 			const dir = args.find((word) => word === "-" || !word.startsWith("-"));
+			if (verb !== "cd" && args.includes("-n")) return void (verb === "popd" ? pushed.pop() : dir === undefined || pushed.push(located(cwd, dir)));
 			const to = verb === "popd" || (verb === "pushd" && dir === undefined) ? pushed.pop() : dir === "-" ? previous : (dir ?? process.env.HOME);
 			if (to === undefined) return undefined;
 			if (verb === "pushd") pushed.push(cwd);
-			[previous, cwd] = [cwd, located(cwd, to)];
+			[previous, cwd] = [fixed ? previous : cwd, located(cwd, to)];
 		} else if (SHELLS.includes(verb)) {
 			const flag = args.findIndex((word) => /^-[a-z]*c[a-z]*$/.test(word));
-			return (flag >= 0 ? [args[flag + 1] ?? ""] : operands.length === 0 ? command.stdin : []).map((text) => run(["(", { ...command, words: command.words.slice(0, at), alone: true }, ...shellCommands(text, process.env.HOME), ")"])).find(Boolean);
+			return (flag >= 0 ? [args[flag + 1] ?? ""] : operands.length === 0 ? command.stdin : []).map((text) => run(["(", { ...command, words: command.words.slice(0, at), alone: true }]) ?? ((fixed = false), run([...shellCommands(text, process.env.HOME), ")"]))).find(Boolean);
 		} else if (verb === "eval") {
 			// Bash puts back the OLDPWD a prefix replaced once `eval` ends, whatever its `cd`s set.
-			const kept = previous;
-			const found = run([{ ...command, words: command.words.slice(0, at), alone: true }, ...shellCommands(args.join(" "), process.env.HOME)]);
+			const [kept, found] = [previous, run([{ ...command, words: command.words.slice(0, at), alone: true }, ...shellCommands(args.join(" "), process.env.HOME)])];
 			if (words.slice(0, at).some((word) => /^OLDPWD\+?=/.test(word))) previous = kept;
 			return found;
 		} else if (verb === "git") return git(args, words.slice(0, at));
@@ -129,13 +131,11 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 			const folder = statSync(link, { throwIfNoEntry: false })?.isDirectory() ? link : dirname(link);
 			return theirs(operands) ?? (args.some((word) => /^-[a-zA-Z]*s|^--symbolic$/.test(word)) ? theirs(operands.slice(0, Math.max(1, operands.length - 1)), folder) : undefined);
 		}
-		return undefined;
 	};
 	// `find <roots> … -delete`, and `-exec`/`-execdir`/`-ok`/`-okdir <command> {} ;`, that command with the roots for `{}`.
 	const find = (args: readonly string[]): string | undefined => {
 		const expression = args.findIndex((word) => word.startsWith("-") || word === "(" || word === "!");
-		const roots = args.slice(0, expression < 0 ? args.length : expression);
-		if (roots.length === 0) roots.push(".");
+		const roots = expression === 0 || args.length === 0 ? ["."] : args.slice(0, expression < 0 ? args.length : expression);
 		return args.map((word, index) => {
 			const close = args.findIndex((other, position) => position > index && (other === ";" || other === "+"));
 			const words = args.slice(index + 1, close < 0 ? args.length : close).flatMap((other) => (other.includes("{}") ? roots.map((root) => other.replaceAll("{}", root)) : [other]));

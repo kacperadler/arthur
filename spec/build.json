@@ -2605,9 +2605,9 @@
   {
     "id": "AR0342",
     "title": "A project's `repo` URL is printed by the clone's refusals, with any credential it holds",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0342-a-project-s-repo-url-is-printed-by-the-clone-s-refusals-with-any-credential-it-holds/ticket.md",
-    "updated": "2026-10-25T17:10:25.633Z"
+    "updated": "2026-10-25T17:19:35.993Z"
   },
   {
     "id": "AR0343",
@@ -2759,9 +2759,9 @@
   {
     "id": "AR0364",
     "title": "Telegram answers every member of the configured chat, not the owner alone (AR0311 F7, confirmed)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0364-telegram-answers-every-member-of-the-configured-chat-not-the-owner-alone-ar0311-f7-confirmed/ticket.md",
-    "updated": "2026-10-25T17:18:16.466Z"
+    "updated": "2026-10-25T17:21:51.762Z"
   },
   {
     "id": "AR0365",

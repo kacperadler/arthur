@@ -86,6 +86,6 @@ function bot(env: Readonly<Record<string, string>>, { name, botTokenEnv, chatIdE
 	const token = env[botTokenEnv] ?? "";
 	if (!/^\d+:[A-Za-z0-9_-]+$/.test(token)) throw new Error(`bots[${index}].botTokenEnv: ${botTokenEnv} does not hold a bot token as @BotFather gives it: digits, a colon, then letters, digits, _ and -`);
 	const id = env[chatIdEnv] ?? "";
-	if (!/^-?[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) throw new Error(`bots[${index}].chatIdEnv: ${chatIdEnv} does not hold a chat id: a whole number, negative for a group`);
+	if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) throw new Error(`bots[${index}].chatIdEnv: ${chatIdEnv} does not hold a chat id: the owner's private chat with the bot, a positive whole number`);
 	return { ...(name === undefined ? {} : { name }), label: name ?? "(unnamed)", token, chat: Number(id), apiUrl };
 }

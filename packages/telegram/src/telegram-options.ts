@@ -14,7 +14,7 @@ const variable: Check = (value) => (typeof value === "string" && value !== "" ? 
 const BOT: Readonly<Record<string, ValueOption>> = {
 	name: { about: "The bot's name, which a project's chat.instance gives", default: "none: the unnamed bot", check: (value) => (typeof value === "string" && /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(value) ? undefined : "lowercase letters, digits and single dashes, from a letter") },
 	botTokenEnv: { about: "The variable holding the bot's token, as @BotFather gives it", check: variable },
-	chatIdEnv: { about: "The variable holding the id of the one chat the bot answers", check: variable },
+	chatIdEnv: { about: "The variable holding the id of the one chat the bot answers: the owner's private chat with it, a positive whole number", check: variable },
 };
 
 const botList: Check = (value) => (Array.isArray(value) && value.length > 0 ? undefined : "a list of at least one bot");

@@ -20,22 +20,25 @@ F1 of AR0332 (spec/features/AR0332-git-dir-git-work-tree-git-index-file-before-g
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+`env -C <dir>`/`env --chdir=<dir>` and `sudo -D <dir>`/`sudo --chdir=<dir>` before a command are read as a move into `<dir>` for that command, so a write there is judged where it runs; tested.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- In `judge`, the folder of those options among the words before the command is resolved and the command judged from it, for git and the writing commands alike. Tests in `worktree-guard.test.ts`: `env -C <main> git checkout -- .`, `env --chdir=<main> rm README.md` and `sudo -D <main> rm README.md` refused naming the main checkout; each fails on main.
+- Both source files stay at 200 lines or under, or the worker raises the core budget by the lines needed (AR-D29) and says so.
+- `npm test` and `npm run check` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/worktree-guard.ts`, `packages/core/test/worktree-guard.test.ts`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Other wrappers that change folder.
 
 ## Decisions
 
 - 2026-10-25: Source: F1 of AR0332
+- 2026-10-25: AR0415 approved under the owner's standing word (AR-D31); the owner: "always go with recommendation till the 8 am morning" (AR-D33)

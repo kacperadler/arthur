@@ -2769,9 +2769,9 @@
   {
     "id": "AR0365",
     "title": "A message the owner forwarded runs as the owner's own words, a phone command included",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0365-a-message-the-owner-forwarded-runs-as-the-owner-s-own-words-a-phone-command-included/ticket.md",
-    "updated": "2026-10-25T19:21:02.305Z"
+    "updated": "2026-10-25T19:27:23.744Z"
   },
   {
     "id": "AR0366",
@@ -3201,5 +3201,12 @@
     "status": "planning",
     "path": "spec/features/AR0425-a-redirect-s-lookup-in-a-site-check-ignores-the-check-s-time-limit-and-a-308-hop/ticket.md",
     "updated": "2026-10-25T19:22:33.316Z"
+  },
+  {
+    "id": "AR0426",
+    "title": "A forwarded file without a caption reaches the coordinator unmarked",
+    "status": "planning",
+    "path": "spec/features/AR0426-a-forwarded-file-without-a-caption-reaches-the-coordinator-unmarked/ticket.md",
+    "updated": "2026-10-25T19:27:23.739Z"
   }
 ]

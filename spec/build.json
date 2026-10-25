@@ -3364,9 +3364,9 @@
   {
     "id": "AR0424",
     "title": "A redirect's host is resolved twice, so DNS rebinding still reaches a private address",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0424-a-redirect-s-host-is-resolved-twice-so-dns-rebinding-still-reaches-a-private/ticket.md",
-    "updated": "2026-10-25T21:15:40.747Z"
+    "updated": "2026-10-25T21:37:03.379Z"
   },
   {
     "id": "AR0425",

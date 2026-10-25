@@ -31,3 +31,4 @@ In:
 ## Decisions
 
 - 2026-10-25: Source: F1 of AR0382
+- 2026-10-25: Worker (the task asks to record any raise): core line budget 6073->6081 for `arthur remote-job repo`'s refusal before the push and `arthur remote-job prune`'s refusal of a worktree whose config may name a clean filter (remote-job.ts, +8 -1), and the push's comment in job-machine.ts (+2 -1). The fetch back (`git upload-pack` there) runs no `core.alternateRefsCommand` of the repository there, so it gets no check, only a test that holds it.

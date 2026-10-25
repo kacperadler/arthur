@@ -2780,9 +2780,9 @@
   {
     "id": "AR0367",
     "title": "A site check follows a redirect to any address, loopback and metadata included",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0367-a-site-check-follows-a-redirect-to-any-address-loopback-and-metadata-included/ticket.md",
-    "updated": "2026-10-23T14:55:51.698Z"
+    "updated": "2026-10-25T18:27:03.791Z"
   },
   {
     "id": "AR0368",

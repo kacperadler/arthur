@@ -13,4 +13,4 @@ A finding ends in one of three statuses: `fixed` (the branch fixed it; name the 
 - Where: `packages/orchestration/test/coordinator.test.ts:29`, `inbox.test.ts:53`, `silent.test.ts:196`; the filter in `packages/core/src/job-sandbox.ts`
 - What: the sandbox refuses every new Unix socket (so a job reaches neither the user manager's bus nor a tmux server outside it), and so tmux cannot make its own server's socket either. Run under the sandbox, `node --import @arthur/core/testing --test packages/orchestration/test/coordinator.test.ts` prints `orchestration: coordinator start failed: tmux new-session: error connecting to /tmp/arthur-test-…/tmux.sock (Permission denied)` again and again. A worker on Arthur itself that runs `npm test` will see these tests fail; `arthur merge` runs the checks outside the sandbox, where they pass.
 - Suggestion: those tests skip, naming why, where a Unix socket cannot be made (one `socket()` probe at load, as `doctor.test.ts` skips for root); the sandbox stays as it is. Out: allowing Unix sockets in the sandbox, which would give the job the user manager's bus again.
-- Status: open
+- Status: ticket AR0401

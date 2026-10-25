@@ -648,7 +648,11 @@ import { checkStructure } from "./structure.ts";
 // at its tip; AR-D29): delivery 4 more (1321) for the task built again and compared in `refusal`, the worker's refusals read
 // as the one refusal (delivery.ts, git diff --numstat +7 -3: the comment refolded to one line, the import changed in place).
 // Nothing compared a review's task before, so nothing was cut.
-const BUDGETS = { core: 6156, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1321, github: 658, manage: 928, develop: 705, findings: 254 };
+// AR0424 (F1 of AR0367; the owner's raise, AR-D29): uptime 6 more (298) for a redirect's hop past the config's host sent by
+// node:http(s), whose socket's own lookup refuses a private address (site-check.ts, 50 to 55 lines), and the Fetch standard's
+// bad ports refused before such a hop, as fetch did (site-check.ts, 2 more: the import and the refusal). Nothing was cut.
+// Merged AR0424 with main (AR0357): main's budgets plus AR0424's raise, delivery 1321, uptime 298.
+const BUDGETS = { core: 6156, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1321, github: 658, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

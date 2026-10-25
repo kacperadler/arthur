@@ -83,7 +83,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	// The whole refusal: its patch path is the job's own, never a name in the shared /tmp another job may pick too.
 	const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save a patch in your own worktree instead (git diff > .arthur-stash.patch, then git apply .arthur-stash.patch)";
 	const LINK = "a link to a repository";
-	const UNKNOWN = "arthur: refused: the guard cannot tell where OLDPWD leads here: it is unset, where bash reads `~-` and `$OLDPWD` apart, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; name the folder instead";
+	const UNKNOWN = "arthur: refused: the guard cannot tell where OLDPWD leads here: it is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; name the folder instead";
 	// Each call, and the place its refusal names: undefined when it passes.
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
 		["bash", { command: `echo x > ${main}/README.md` }, MAIN],
@@ -143,12 +143,26 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `readonly OLDPWD=/tmp; cd ${main}; bash -c 'cd /var; cd -; rm README.md'` }, MAIN],
 		["bash", { command: `(readonly OLDPWD=/tmp); cd ${main}; cd /var; cd -; rm README.md` }, MAIN],
 		["bash", { command: `readonly -f OLDPWD; cd ${main}; cd /tmp; cd -; rm README.md` }, MAIN],
-		["bash", { command: `cd ${main}; cd /tmp; local OLDPWD=/tmp; cd -; rm README.md` }, MAIN],
+		// A `local` naming OLDPWD makes it unknown wherever it stands (AR-D21), until a `cd` sets it again.
+		["bash", { command: `cd ${main}; cd /tmp; local OLDPWD=/tmp; cd -; rm README.md` }, UNKNOWN],
+		["bash", { command: `cd ${main}; cd /tmp; local OLDPWD; rm $OLDPWD/README.md` }, UNKNOWN],
+		["bash", { command: `cd ${main}; cd /tmp; { local OLDPWD=/tmp; }; cd -; rm README.md` }, UNKNOWN],
+		["bash", { command: `f() { :; }; cd ${main}; cd /tmp; local OLDPWD=/tmp; cd -; rm README.md` }, UNKNOWN],
+		["bash", { command: `\\}; f() { local OLDPWD=${main}; cd -; rm README.md; }; f` }, UNKNOWN],
+		["bash", { command: `"}"; f() { local OLDPWD=${main}; cd -; rm README.md; }; f` }, UNKNOWN],
+		["bash", { command: `true || \\}; f() { local OLDPWD=${main}; cd -; rm README.md; }; f` }, UNKNOWN],
+		["bash", { command: `f() if true; then local OLDPWD=${main}; cd -; rm README.md; fi; f` }, UNKNOWN],
+		["bash", { command: `f() for x in 1; do local OLDPWD=${main}; cd -; rm README.md; done; f` }, UNKNOWN],
+		["bash", { command: `f() while true; do local OLDPWD=${main}; cd -; rm README.md; break; done; f` }, UNKNOWN],
+		["bash", { command: `f() until false; do local OLDPWD=${main}; cd -; rm README.md; break; done; f` }, UNKNOWN],
+		["bash", { command: `f() case x in x) local OLDPWD=${main}; cd -; rm README.md;; esac; f` }, UNKNOWN],
+		["bash", { command: `local OLDPWD=/tmp; cd ${main}; cd /tmp; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; local OLDPWDX=1; cd -; rm README.md` }, MAIN],
 		["bash", { command: `readonly FOO=1; cd ${main}; cd /tmp; cd -; rm README.md` }, MAIN],
 		["bash", { command: `readonly OLDPWDX; cd ${main}; cd /tmp; cd -; rm README.md` }, MAIN],
 		["bash", { command: `cd /tmp; readonly OLDPWD | true; cd ${root}; cd /var; cd -; rm README.md` }, MAIN],
-		["bash", { command: `f() { local OLDPWD=${main}; cd -; rm README.md; }; f` }, MAIN],
-		["bash", { command: `f() ( local OLDPWD=${main}; cd -; rm README.md ); f` }, MAIN],
+		["bash", { command: `f() { local OLDPWD=${main}; cd -; rm README.md; }; f` }, UNKNOWN],
+		["bash", { command: `f() ( local OLDPWD=${main}; cd -; rm README.md ); f` }, UNKNOWN],
 		["bash", { command: `cd /tmp; cd \${OLDPWD:+${root}} && rm README.md` }, MAIN],
 		["bash", { command: `pushd ${main}; pushd -n; rm README.md` }, MAIN],
 		["bash", { command: `cd ${main}; pushd -n /tmp; rm README.md` }, MAIN],

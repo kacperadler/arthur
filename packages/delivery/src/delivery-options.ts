@@ -12,8 +12,9 @@ export const tools: readonly Tool[] = [];
 
 // The always-review list left out: the files that read secrets (the core's `.env` loading, entry 3, and the env guard), the
 // CI-failure handling (entries 57 to 59: `arthur ci` and its reruns, `arthur merge --auto` and its CI waits, which `ci-*.ts`
-// covers) and the CI's workflows, and the review rules themselves.
-export const ALWAYS_REVIEW = ["**/env.ts", "**/env-*.ts", "**/ci.ts", "**/ci-*.ts", "**/github-ci.ts", "**/auto-merge.ts", "**/merge-command.ts", ".github/workflows/**", "**/review-needed.ts", "**/checks-extension.ts", "**/roles/reviewer.md", "**/criteria/review.md"];
+// covers) and the CI's workflows, and the review rules themselves. `**` does not enter a dot folder, so a project's own
+// reviewer and review criteria under `.agents/` take entries that name it.
+export const ALWAYS_REVIEW = ["**/env.ts", "**/env-*.ts", "**/ci.ts", "**/ci-*.ts", "**/github-ci.ts", "**/auto-merge.ts", "**/merge-command.ts", ".github/workflows/**", "**/review-needed.ts", "**/checks-extension.ts", "**/roles/reviewer.md", "**/criteria/review.md", ".agents/**/roles/reviewer.md", ".agents/**/criteria/review.md"];
 
 const globs: Check = (value) => (Array.isArray(value) && value.every((each) => typeof each === "string" && each !== "" && !each.startsWith("/")) ? undefined : 'a list of glob patterns from a project\'s root, such as "**/env.ts"');
 

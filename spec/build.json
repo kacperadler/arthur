@@ -2580,9 +2580,9 @@
   {
     "id": "AR0338",
     "title": "A secret exported in the shell reaches every job's environment",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0338-a-secret-exported-in-the-shell-reaches-every-job-s-environment/ticket.md",
-    "updated": "2026-10-23T14:22:39.261Z",
+    "updated": "2026-10-25T22:25:56.127Z",
     "after": [
       "AR0337"
     ]

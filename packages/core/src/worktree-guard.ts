@@ -28,7 +28,7 @@ const SHELLS = ["bash", "sh", "zsh", "dash", "ksh"];
 // A command that may change every operand, and one that writes only its last operand or the folder after `-t`.
 const WRITES = ["mv", "rm", "rmdir", "touch", "mkdir", "truncate", "chmod", "chown", "chgrp", "unlink", "shred", "patch", "tee", "sponge"];
 const COPIES = ["cp", "install", "rsync", "scp"];
-const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save a patch instead (git diff > /tmp/<name>.patch, then git apply /tmp/<name>.patch)";
+const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save a patch in your own worktree instead (git diff > .arthur-stash.patch, then git apply .arthur-stash.patch)";
 const UNSEEN = "arthur: refused: this git call reads config the guard does not (a shell alias, an include, --config-env, GIT_CONFIG*, HOME or XDG_CONFIG_HOME set for it), or writes an alias or include that later git calls would run unseen; run the command itself instead";
 
 const inside = (path: string, folder: string): boolean => path === folder || path.startsWith(folder.endsWith(sep) ? folder : folder + sep);

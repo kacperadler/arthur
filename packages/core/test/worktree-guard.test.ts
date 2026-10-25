@@ -80,7 +80,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	const MAIN = "the main checkout";
 	const HOME = "Arthur's home folder";
 	const OTHER = "another job's worktree";
-	const STASH = "git stash";
+	// The whole refusal: its patch path is the job's own, never a name in the shared /tmp another job may pick too.
+	const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save a patch in your own worktree instead (git diff > .arthur-stash.patch, then git apply .arthur-stash.patch)";
 	const LINK = "a link to a repository";
 	// Each call, and the place its refusal names: undefined when it passes.
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
@@ -197,6 +198,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `git commit -m "cd ${main} && rm README.md"` }, undefined],
 		["bash", { command: `cat > notes.md <<'EOF'\nrm -rf ${main}\necho x > ${main}/f\nEOF\nrm notes.md` }, undefined],
 		["bash", { command: `echo hi # > ${main}/f` }, undefined],
+		["bash", { command: "git diff > .arthur-stash.patch && git checkout . && git apply .arthur-stash.patch" }, undefined],
 		["bash", { command: "echo x > /tmp/arthur-worktree-guard-test && rm /tmp/arthur-worktree-guard-test" }, undefined],
 		["write", { path: "notes.txt", content: "x" }, undefined],
 		["write", { path: "local://plan.md", content: "x" }, undefined],
@@ -210,7 +212,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	try {
 		for (const [toolName, input, expected] of calls) {
 			const reason = worktreeRefusal(place, toolName, input);
-			const named = reason === undefined ? undefined : reason.startsWith("arthur: refused: git stash") ? STASH : reason.includes("which Git reads as a link to a repository") ? LINK : /writes into (.+?) \(/.exec(reason)?.[1];
+			const named = reason === undefined ? undefined : reason === STASH ? STASH : reason.includes("which Git reads as a link to a repository") ? LINK : /writes into (.+?) \(/.exec(reason)?.[1];
 			assert.equal(named, expected, `${toolName} ${JSON.stringify(input)}: ${reason}`);
 		}
 	} finally {

@@ -11,10 +11,10 @@ added "acme-bot": 120 to BUDGETS in test/structure.test.ts, and @arthur/acme-bot
 next: write what it does, and list acmeBot() in the plugins of arthur.config.ts to load it
 ```
 
-In a job (the wrapper sets `ARTHUR_JOB` to its record) it writes only into the job's own worktree, the one its record names, given as `--root`, so the new package goes in on the job's branch and through its review; `--project` then picks no folder. The CLI reads `arthur.config.ts` from the folder it runs in, which a worktree lacks, so a worker on a new plugin's ticket runs it from the project's checkout (the first line of `git worktree list`), which the worktree guard lets through:
+In a job (the wrapper sets `ARTHUR_JOB` to its record) it writes only into the job's own worktree, the one its record names, given as `--root`, so the new package goes in on the job's branch and through its review; `--project` then picks no folder. The CLI reads `arthur.config.ts` from the folder it runs in, which a worktree lacks, so a worker on a new plugin's ticket runs it from the project's checkout (the first line of `git worktree list`), which the worktree guard lets through. It runs the CLI by its path there, `node_modules/.bin/arthur` as `npm ci` links it: a job gets the `PATH` of `arthur run`, and the systemd service's of `docs/setup.md` has no `node_modules/.bin`:
 
 ```
-$ cd ~/arthur && arthur plugin new acme-bot --budget 120 --root ~/.arthur-worktrees/2026-10-21-worker-0a1b2c3d
+$ cd ~/arthur && node_modules/.bin/arthur plugin new acme-bot --budget 120 --root ~/.arthur-worktrees/2026-10-21-worker-0a1b2c3d
 ```
 
 In Arthur's repository (its checkout holds `packages/core`) the plugin puts this line, under `## A new plugin`, into the prompt of the planner, who makes it the first step of a new plugin's plan, and of the worker, with its own worktree as `--root`; `<checkout>`, `<name>` and `<lines>` are left for them to fill. Other projects' jobs and other roles get no such section.

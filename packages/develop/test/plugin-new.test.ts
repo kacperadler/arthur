@@ -205,7 +205,7 @@ test("the planner and the worker are told the line that makes a new plugin from 
 	const fake = fakeHost({ name: "develop" });
 	await fake.setup(develop());
 	const job = { project: "arthur", root: checkout, worktree, base: git(checkout, "rev-parse", "HEAD").trim(), machine: "local" };
-	const fence = (root: string) => `\n\n\`\`\`\ncd <checkout> && arthur plugin new <name> --budget <lines> --root ${root}\n\`\`\``;
+	const fence = (root: string) => `\n\n\`\`\`\ncd <checkout> && node_modules/.bin/arthur plugin new <name> --budget <lines> --root ${root}\n\`\`\``;
 	const [planner = ""] = fake.collect<string | undefined>("prompt", "planner", job);
 	assert.match(planner, /^## A new plugin\n\nWhen the ticket makes a new plugin package, the plan says that its worker runs on the local machine, spawned with `--machine local`, and its first step is this line, so the worker makes the package with it, not by hand\. /);
 	assert.ok(planner.endsWith(fence("<worktree>")), planner);
@@ -222,19 +222,23 @@ test("the planner and the worker are told the line that makes a new plugin from 
 	assert.ok(!remote.includes("cd <checkout>"), remote);
 
 	// The worker's line as written, `<checkout>` the first line of `git worktree list`, run in the job's worktree by a shell
-	// with the job's record; the checkout holds arthur.config.ts and `arthur` as `npm ci` links it.
+	// with the job's record and the systemd service's `PATH` of docs/setup.md (Node's bin, `~/.local/bin`, the system folders),
+	// which has no `node_modules/.bin`; the checkout holds arthur.config.ts and `arthur` as `npm ci` links it.
 	writeFileSync(join(checkout, "arthur.config.ts"), CONFIG);
 	symlinkSync(join("..", "@arthur", "core", "src", "cli.ts"), join(checkout, "node_modules", ".bin", "arthur"));
 	writeFileSync(join(record, "worktree"), `${worktree}\n`);
 	const first = git(worktree, "worktree", "list").split(" ")[0] ?? "";
 	const line = worker.slice(worker.lastIndexOf("cd <checkout>"), -4).replace("<checkout>", first).replace("<name>", "acme").replace("<lines>", "100");
-	const env = { ...ENV, ARTHUR_JOB: record, PATH: `${join(checkout, "node_modules", ".bin")}:${ENV.PATH}` };
+	const env = { ...ENV, ARTHUR_JOB: record, PATH: `${join(process.execPath, "..")}:${join(temporaryFolder(), ".local", "bin")}:/usr/local/bin:/usr/bin:/bin` };
+	assert.notEqual(spawnSync("sh", ["-c", "command -v arthur"], { env }).status, 0, "the service's PATH has no arthur");
 	const ran = spawnSync("sh", ["-c", line], { cwd: worktree, env, encoding: "utf8" });
 	assert.equal(ran.status, 0, `${line}\n${ran.stdout}${ran.stderr}`);
 	assert.match(changed(worktree), /^\?\? packages\/acme\/src\/acme\.ts$/m);
 	assert.match(budgets(worktree), /, acme: 100$/);
 	assert.equal(changed(checkout), "", "the project's checkout is untouched");
-	assert.equal(spawnSync("sh", ["-c", line.replace(`cd ${first}`, `cd ${worktree}`)], { cwd: worktree, env, encoding: "utf8" }).status, 2, "from the worktree, without arthur.config.ts, the CLI has no plugin command");
+	// The same line in another folder, with the CLI the checkout links: there it reads no arthur.config.ts.
+	const elsewhere = (folder: string) => line.replace(`cd ${first} && node_modules`, `cd ${folder} && ${first}/node_modules`);
+	assert.equal(spawnSync("sh", ["-c", elsewhere(worktree)], { cwd: worktree, env, encoding: "utf8" }).status, 2, "from the worktree, without arthur.config.ts, the CLI has no plugin command");
 	// Another machine's repository, bare as `arthur remote-job repo` makes it, with the job's worktree in it: the first line of
 	// `git worktree list` there names the bare repository, which holds no arthur.config.ts either.
 	const [bare, there] = [join(temporaryFolder(), "arthur.git"), join(temporaryFolder(), "there")];
@@ -243,6 +247,6 @@ test("the planner and the worker are told the line that makes a new plugin from 
 	const repository = git(there, "worktree", "list").split(" ")[0] ?? "";
 	assert.equal(repository, bare);
 	writeFileSync(join(record, "worktree"), `${there}\n`);
-	const far = spawnSync("sh", ["-c", line.replace(`cd ${first}`, `cd ${repository}`).replace(worktree, there)], { cwd: there, env, encoding: "utf8" });
+	const far = spawnSync("sh", ["-c", elsewhere(repository).replace(worktree, there)], { cwd: there, env, encoding: "utf8" });
 	assert.deepEqual([far.status, far.stderr.split("\n")[0]], [2, "arthur: unknown command plugin"], "in the bare repository there the CLI has no plugin command");
 });

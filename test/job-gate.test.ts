@@ -72,7 +72,6 @@ test("inside a job every command that changes Arthur's state refuses with one li
 		["eval", "develop"],
 		["init", "shop"],
 		["ci", "main", "--rerun"],
-		["ci", "main"],
 		["run"],
 		["setup"],
 		["config", "check"],
@@ -86,7 +85,7 @@ test("inside a job every command that changes Arthur's state refuses with one li
 		["remote-job", "add", "/home/arthur/.arthur"],
 	] as const) {
 		const run = arthur(folder, RECORD, name, ...args);
-		const said = name === "schedule" || name === "remote-job" ? `${name} ${args[0]}` : name;
+		const said = name === "schedule" || name === "remote-job" ? `${name} ${args[0]}` : name === "ci" ? "ci --rerun" : name;
 		assert.deepEqual([run.status, run.stdout, run.stderr], [1, "", `arthur ${said}: ${REFUSAL}\n`], [name, ...args].join(" "));
 	}
 	assert.deepEqual(tree(folder), before, "nothing was written in the folder or its home");
@@ -114,6 +113,7 @@ test("inside a job the commands a role needs run, each to its own answer; youtra
 		[["health"], 0, /./],
 		[["schedule"], 0, /^no entries; /],
 		[["schedule", "list"], 0, /^no entries; /],
+		[["ci", "main"], 1, /^arthur ci: project shop has no ci\.workflow, so github watches no run of it\n$/],
 		[["youtrack"], 2, /^usage: arthur youtrack /],
 		[["youtrack", "issue", "tag", "SH-1", "x"], 1, /^arthur youtrack: a job never writes to YouTrack;/],
 		[["plugin"], 2, /^usage: arthur plugin new /],

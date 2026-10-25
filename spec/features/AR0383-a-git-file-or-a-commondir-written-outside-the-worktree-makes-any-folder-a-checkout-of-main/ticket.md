@@ -36,3 +36,4 @@ In:
 
 - 2026-10-23: Source: F1 of AR0331
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; runs one at a time after the high-severity security fixes.
+- 2026-10-25: Coordinator (free hand on Arthur, the human 2026-10-23): kept the wider rule (git-link.ts reads gitfile and commondir links of a git write, since a gitfile of any name moved main in a probe); core budget 6021->6066.

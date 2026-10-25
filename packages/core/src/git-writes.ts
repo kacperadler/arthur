@@ -1,8 +1,9 @@
 // What a `git` command line writes, for the worktree guard (spec/roadmap.md, entry 20). `args` are the words after `git`.
 
-// Subcommands that write a tree, the index or a ref of the checkout they run in, and those that change their file operands.
-const WRITES_CHECKOUT = ["commit", "checkout", "checkout-index", "read-tree", "update-index", "reset", "add", "restore", "clean", "rebase", "merge", "cherry-pick", "revert", "apply", "am", "rm", "mv", "switch", "pull", "fetch", "push", "bisect", "sparse-checkout", "submodule", "symbolic-ref", "replace", "filter-branch"];
-const WRITES_OPERANDS = ["add", "rm", "mv", "restore", "clean", "apply"];
+// Subcommands that write a tree, the index or a ref of the checkout they run in, and those that change their file operands
+// (`init` its folder and its `--separate-git-dir`, whose `.git` file it writes there).
+const WRITES_CHECKOUT = ["commit", "checkout", "checkout-index", "read-tree", "update-index", "reset", "add", "restore", "clean", "rebase", "merge", "cherry-pick", "revert", "apply", "am", "rm", "mv", "switch", "pull", "fetch", "push", "bisect", "sparse-checkout", "submodule", "symbolic-ref", "replace", "filter-branch", "init"];
+const WRITES_OPERANDS = ["add", "rm", "mv", "restore", "clean", "apply", "init"];
 const VALUE_OPTIONS = ["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--attr-source"];
 // Config the guard does not read, given with the call: an include by `-c`, an alias or include by `--config-env`, and the
 // variables that add config or move the user's (`GIT_CONFIG_NOSYSTEM` only drops the system's). An alias or include key.
@@ -16,13 +17,13 @@ const CONFIG_READS = /^(?:--get(?:-all|-regexp|-urlmatch|-color|-colorbool)?|--l
 const CONFIG_SUBCOMMANDS = ["set", "unset", "rename-section", "remove-section", "edit"];
 
 // `sub` and the words after it (`rest`); `chdirs`, the folders of its `-C` options in order; `trees`, the folders its
-// `--git-dir` and `--work-tree` name, and the `GIT_DIR=` and `GIT_WORK_TREE=` among `assignments`, the words before `git`;
-// whether it writes the checkout it runs in, and whether it changes its operands; `config`, a `git config` that sets or
-// unsets: its key, its `--global`, `--system` or `--worktree` (else ""), the `--file` it writes, if any, and whether such a
-// `--worktree` or `--file` write may add an alias or include (`loads`); `points`, the ref it may point a checkout at though
-// another worktree holds it ("" when any); `alias`, the words Git runs instead when `sub` is an alias given by `-c` (Git
-// runs a builtin of that name first, so both are judged); `unread`, whether it reads config the guard does not: a shell
-// alias for `sub`, or `UNREAD`.
+// `--git-dir` and `--work-tree` name, and the `GIT_DIR=`, `GIT_WORK_TREE=` and `GIT_COMMON_DIR=` among `assignments`, the
+// words before `git`; whether it writes the checkout it runs in, and whether it changes its operands; `config`, a `git
+// config` that sets or unsets: its key, its `--global`, `--system` or `--worktree` (else ""), the `--file` it writes, if
+// any, and whether such a `--worktree` or `--file` write may add an alias or include (`loads`); `points`, the ref it may
+// point a checkout at though another worktree holds it ("" when any); `alias`, the words Git runs instead when `sub` is an
+// alias given by `-c` (Git runs a builtin of that name first, so both are judged); `unread`, whether it reads config the
+// guard does not: a shell alias for `sub`, or `UNREAD`.
 export type GitCall = {
 	readonly sub: string;
 	readonly rest: readonly string[];
@@ -46,7 +47,7 @@ export function gitCall(args: readonly string[], assignments: readonly string[] 
 	const [sub = "", ...rest] = args.slice(index);
 	const chdirs = options.filter((_, at) => options[at - 1] === "-C");
 	const trees = options.flatMap((option, at) => (/^--(?:git-dir|work-tree)=/.test(option) ? [option.slice(option.indexOf("=") + 1)] : /^--(?:git-dir|work-tree)$/.test(options[at - 1] ?? "") ? [option] : []));
-	trees.push(...assignments.filter((word) => /^GIT_(?:DIR|WORK_TREE)=/.test(word)).map((word) => word.slice(word.indexOf("=") + 1)));
+	trees.push(...assignments.filter((word) => /^GIT_(?:DIR|WORK_TREE|COMMON_DIR)=/.test(word)).map((word) => word.slice(word.indexOf("=") + 1)));
 	const worktree = sub === "worktree" && ["add", "remove", "move", "lock", "unlock", "repair"].includes(rest[0] ?? "");
 	// The `-c` options that define `sub` as an alias (Git takes an alias's name in any case), the last one the one Git runs.
 	const defines = (at: number) => options[at - 1] === "-c" && options[at]!.toLowerCase().startsWith(`alias.${sub.toLowerCase()}=`);

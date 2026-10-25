@@ -613,7 +613,13 @@ import { checkStructure } from "./structure.ts";
 // core 4 more (6021) for those flags and their comment (remote-job.ts, git diff --numstat +5 -2), and the push's `git
 // receive-pack` on the other machine sent without hooks, which ran them there (job-machine.ts, +2 -1: its comment, the option
 // inlined into the push). Nothing turned the hooks off there before, so nothing was cut.
-const BUDGETS = { core: 6021, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1317, github: 651, manage: 928, develop: 705, findings: 254 };
+// AR0383 (F1 of AR0331; its Done means: the guard refuses writing a path named `.git` or `commondir`): core 45 more (6066)
+// for that rule and, so a `.git` file of another name given to `--git-dir`, or one a program left, is no way around it, a
+// git write judged through the links its folders have, as Git finds them, a worktree Git made passing as it names its link
+// back (git-link.ts, 44), `init` and `GIT_COMMON_DIR=` read as writes (git-writes.ts, git diff --numstat +12 -11) and the
+// guard asking both (worktree-guard.ts, +23 -23: its own worktree a place without a name, comments folded to stay at 200
+// lines). Nothing read these links before, so nothing was cut.
+const BUDGETS = { core: 6066, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1317, github: 651, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

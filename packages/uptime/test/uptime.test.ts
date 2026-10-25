@@ -116,6 +116,27 @@ test("a redirect is followed, and the page it leads to is judged", async (t) => 
 	assert.deepEqual(notices(), [`uptime: ${old} (project acme) is down since ${SINCE}: answered 500, expected a 2xx status`]);
 });
 
+test("a redirect to another host is followed only when no address of it is loopback, link-local or private, at each of at most 20 hops", async (t) => {
+	const [site, inside] = [await server(t), await server(t)];
+	const own = (path: string) => `http://localhost:${site.port}${path}`;
+	const to = (location: string): Answer => (response) => void response.writeHead(302, { location }).end();
+	inside.answers["/"] = ok;
+	// /r0 to /r21 is 21 redirects, one too many; /r1 to /r21, 20. 192.0.2.1 is public to the check (TEST-NET-1), so it is
+	// followed; nothing answers there, which fails the check another way. A label of 64 letters is no host name the resolver takes.
+	const targets = { "/away": inside.url("/"), "/meta": "http://169.254.169.254/latest/meta-data/", "/mapped": `http://[::ffff:127.0.0.1]:${inside.port}/`, "/self": own("/home"), "/nowhere": `http://${"a".repeat(64)}.example/`, "/public": "http://192.0.2.1:8080/" };
+	const chain = Array.from({ length: 21 }, (_, hop) => [`/r${hop}`, `/r${hop + 1}`]);
+	Object.assign(site.answers, { "/": to("/away"), "/home": ok, "/r21": ok }, Object.fromEntries([...Object.entries(targets), ...chain].map(([path, location]) => [path, to(location as string)])));
+	const sites = ["/", "/meta", "/mapped", "/self", "/r0", "/r1", "/nowhere", "/public"].map((path) => ({ url: own(path), expect: "Welcome", everySeconds: 1 }));
+	const { notices } = await started(t, { acme: sites });
+	await until("six down notices", () => notices().length === 6);
+	const reason = (path: string) => notices().find((text) => text.startsWith(`uptime: ${own(path)} `))?.replace(/^.*\(UTC\): /, "");
+	const refused = (host: string) => `redirected to ${host}, a private address the config does not name`;
+	const reasons = ["/", "/meta", "/mapped", "/self", "/r0", "/r1", "/nowhere"].map(reason);
+	assert.deepEqual(reasons, [refused(`127.0.0.1:${inside.port}`), refused("169.254.169.254"), refused(`[::ffff:7f00:1]:${inside.port}`), undefined, "answered 302, expected a 2xx status", undefined, "its host name is not found"]);
+	assert.match(reason("/public") ?? "", /^(?!redirected to)./);
+	assert.deepEqual([inside.seen("/"), site.seen("/away") >= 2, site.seen("/home") >= 2, site.seen("/r21") >= 2], [0, true, true, true]);
+});
+
 test("each failure has its reason: a wrong status, the text missing, connection refused, a TLS error", async (t) => {
 	const site = await server(t);
 	Object.assign(site.answers, { "/": ok, "/?text": ok });

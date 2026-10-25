@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { test } from "node:test";
 import { temporaryFolder } from "../src/testing.ts";
@@ -348,4 +348,22 @@ test("inside a job (ARTHUR_JOB set) a command without inJob refuses before it ru
 	}
 	assert.match(inJob(record, "help").stdout, /^usage: arthur /);
 	assert.deepEqual([inJob("", "echo", "x").status, inJob("", "echo", "x").stdout], [3, `${JSON.stringify({ args: ["x"] })}\n`]);
+});
+
+// The job whose systemd scope runs this test, when one does (a job's own `npm test`): the mark no process of it can change.
+const scope = /\/arthur-job-([^/]+)\.scope$/.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
+
+test("in a job's scope the CLI refuses with ARTHUR_JOB cleared once its home holds that job's record; a home without it is another Arthur's coordinator", { skip: scope === undefined && "not run in a job's systemd scope" }, () => {
+	const folder = project();
+	const run = (...args: string[]) => {
+		writeFileSync(join(folder, "gone.md"), "# arthur gone\n");
+		const ran = spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+		return [ran.status, ran.stdout, ran.stderr];
+	};
+	const refusal = (command: string) => `arthur ${command}: refused inside a job ${scope}: a job runs only the commands its role needs; put what the coordinator should do in your final message\n`;
+	assert.deepEqual(run("echo", "x"), [3, `${JSON.stringify({ args: ["x"] })}\n`, ""]);
+	assert.notEqual(run("remote-job", "stop", join(folder, ".arthur"), "x")[2], refusal("remote-job stop"));
+	mkdirSync(join(folder, ".arthur", "jobs", scope ?? ""), { recursive: true });
+	assert.deepEqual(run("echo", "x"), [1, "", refusal("echo")]);
+	assert.deepEqual(run("remote-job", "stop", join(folder, ".arthur"), "x"), [1, "", refusal("remote-job stop")]);
 });

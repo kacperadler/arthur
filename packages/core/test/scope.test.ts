@@ -9,6 +9,7 @@ import { clock } from "../src/clock.ts";
 import { loadConfig } from "../src/config.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
+import { insideJob } from "../src/inside-job.ts";
 import type { Caps, Slice } from "../src/job-scope.ts";
 import { oomFirst } from "../src/job-memory.ts";
 import { jobRunner, type Spawn } from "../src/jobs.ts";
@@ -80,6 +81,7 @@ test("a job runs, with its agent, in its own scope inside the joint slice, which
 	assert.ok(cgroup(wrapper)?.endsWith(scope), `the wrapper: ${cgroup(wrapper)}`);
 	const pid = (JSON.parse(started) as { readonly pid: number }).pid;
 	assert.ok(cgroup(pid)?.endsWith(scope), `the agent: ${cgroup(pid)}`);
+	assert.equal(insideJob(home, cgroup(pid) ?? "", {}), job.id, "the agent's cgroup names its job without ARTHUR_JOB");
 	assert.deepEqual([show(`${jobSlice.slice}.slice`, "CPUQuotaPerSecUSec"), show(`${jobSlice.slice}.slice`, "MemoryMax")], ["1.500000s", String(2 ** 30)]);
 	assert.doesNotMatch(read(join(record, "log")) ?? "", /no systemd scope/);
 	writeFileSync(gate, "");

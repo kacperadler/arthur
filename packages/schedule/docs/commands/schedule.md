@@ -4,7 +4,7 @@ Usage: `arthur schedule [list]`; `arthur schedule add <id> <at> [--days <day,...
 
 The `schedule` plugin: actions and jobs at set times (roadmap entries 39 and 40), so Arthur works while the owner is away. An entry is a daily time or a one-off date and time, and does an action (a message to the coordinator) or a job (a spawn); an entry a plugin registers may instead run that plugin's own code. Entries come from the config, from other plugins, which register theirs from their own options, and from the `file` option, which `arthur schedule add` and `remove` change.
 
-Inside a job (`ARTHUR_JOB` set, `arthur help --help`) only the list runs: `add` and `remove`, once their usage is right, print `arthur schedule <add|remove>: refused inside a job <id>: a job runs only the commands its role needs; put what the coordinator should do in your final message` and exit 1, the file unchanged.
+Inside a job (`arthur help --help`) only the list runs: `add` and `remove`, once their usage is right, print `arthur schedule <add|remove>: refused inside a job <id>: a job runs only the commands its role needs; put what the coordinator should do in your final message` and exit 1, the file unchanged.
 
 ## Options
 

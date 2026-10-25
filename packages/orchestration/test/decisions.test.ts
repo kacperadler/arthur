@@ -121,10 +121,22 @@ test("inside a job every arthur decision is refused and writes nothing; arthur d
 	assert.deepEqual(await decision(...PLAN_ASK), [0, "AC-D1"]);
 	const before = readFileSync(file(), "utf8");
 	process.env.ARTHUR_JOB = "/home/arthur/.arthur/jobs/2026-03-04-worker-0000abcd";
-	const refusal = "arthur decision: refused inside a job (ARTHUR_JOB is set): a job never records the owner's word; end your run with Blocked: user <question> instead";
+	const refusal = "arthur decision: refused inside a job 2026-03-04-worker-0000abcd: a job never records the owner's word; end your run with Blocked: user <question> instead";
 	for (const args of [PLAN_ASK, ["answer", "AC-D1", ...APPROVED, "ok"], ["close", "AC-D1", "gone"], ["vote"]]) assert.deepEqual(await decision(...args), [1, refusal], args[0]);
 	assert.equal(readFileSync(file(), "utf8"), before);
 	assert.deepEqual(await decisions(), [0, "AC-D1 2026-03-04 plan AC0001: Approve the plan of AC0001? — open"]);
+});
+
+// The job whose systemd scope runs this test, when one does (a job's own `npm test`).
+const scope = /\/arthur-job-([^/]+)\.scope$/.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
+
+test("in a job's scope arthur decision is refused with ARTHUR_JOB cleared once the home holds that job's record", { skip: scope === undefined && "not run in a job's systemd scope" }, async (t) => {
+	const { decision, fake, file } = await setup(t);
+	assert.deepEqual(await decision(...PLAN_ASK), [0, "AC-D1"], "the test's own home holds no record of the job");
+	const before = readFileSync(file(), "utf8");
+	mkdirSync(join(dirname(fake.host.folder), "jobs", scope ?? ""), { recursive: true });
+	assert.deepEqual(await decision(...PLAN_ASK), [1, `arthur decision: refused inside a job ${scope}: a job never records the owner's word; end your run with Blocked: user <question> instead`]);
+	assert.equal(readFileSync(file(), "utf8"), before);
 });
 
 test("an answer goes into the log, then under its ticket's Decisions in the form the plan check reads; a second answer adds a line and counts", async (t) => {
@@ -669,7 +681,7 @@ test("a class is approved only on the owner's word: inside a job, by policy, or 
 	assert.deepEqual(await decision("answer", "AC-D4", ...APPROVE, "by policy: AC-D4"), refused("an answer given by policy: only arthur decision ask answers by policy, and only a class the owner approved in his own words"));
 	assert.deepEqual(await decision("answer", "AC-D4", "--decided", "Approve", "yes"), refused("AC-D4 proposes a class: --picked 1 approves it, --picked 2 refuses it"));
 	process.env.ARTHUR_JOB = "/home/arthur/.arthur/jobs/2026-03-04-worker-0000abcd";
-	const inside = [1, "arthur decision: refused inside a job (ARTHUR_JOB is set): a job never records the owner's word; end your run with Blocked: user <question> instead"];
+	const inside = [1, "arthur decision: refused inside a job 2026-03-04-worker-0000abcd: a job never records the owner's word; end your run with Blocked: user <question> instead"];
 	assert.deepEqual(await decision(...PROPOSE), inside);
 	assert.deepEqual(await decision("class", "revoke", "AC-D4", "stop"), inside);
 	assert.deepEqual(await decision("answer", "AC-D4", ...APPROVE, "yes"), inside);

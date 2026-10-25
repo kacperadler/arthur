@@ -417,6 +417,21 @@ test("arthur ci refuses: a rerun of a passed run or one not finished, a rerun in
 		assert.deepEqual(await refused(...args), [2, `arthur ci: ${why}\nusage: arthur ci <branch> [--rerun] [--project <name>]`]);
 });
 
+// The job whose systemd scope runs this test, when one does (a job's own `npm test`).
+const scope = /\/arthur-job-([^/]+)\.scope$/.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
+
+test("in a job's scope arthur ci --rerun is refused with ARTHUR_JOB cleared once the home holds that job's record", { skip: scope === undefined && "not run in a job's systemd scope" }, async (t) => {
+	const api = await fakeGithub(t);
+	const shop = repository();
+	api.runs["acme/shop/ci.yml"] = [{ id: 50, sha: shop.head(), branch: "main", status: "completed", conclusion: "cancelled" }];
+	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } }], options(api.apiUrl));
+	mkdirSync(join(dirname(box.fake.host.folder), "jobs", scope ?? ""), { recursive: true });
+	const asked = api.seen.length;
+	const ran = await box.ci("main", "--rerun");
+	assert.deepEqual([ran.code, ran.err], [1, `arthur ci --rerun: refused inside a job ${scope}: a job runs only the commands its role needs; put what the coordinator should do in your final message`]);
+	assert.equal(api.seen.length, asked, "a refused --rerun asks GitHub nothing");
+});
+
 test("github.ci answers the run that built a branch as arthur ci finds it, how far below the tip, undefined for none, and rejects each refusal; github.cancel asks GitHub to cancel a run and rejects its refusal", async (t) => {
 	const api = await fakeGithub(t);
 	const shop = repository();

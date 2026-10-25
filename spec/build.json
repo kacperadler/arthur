@@ -3140,16 +3140,16 @@
   {
     "id": "AR0418",
     "title": "A repo URL that new URL cannot parse is printed with its credential by the clone's refusal",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0418-a-repo-url-that-new-url-cannot-parse-is-printed-with-its-credential-by-the-clone/ticket.md",
-    "updated": "2026-10-25T18:22:37.416Z"
+    "updated": "2026-10-25T18:26:09.011Z"
   },
   {
     "id": "AR0419",
     "title": "The workflow test checks neither what the top-level permissions grant nor a .yaml workflow",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0419-the-workflow-test-checks-neither-what-the-top-level-permissions-grant-nor-a-yaml/ticket.md",
-    "updated": "2026-10-25T18:13:02.311Z"
+    "updated": "2026-10-25T18:23:18.326Z"
   },
   {
     "id": "AR0420",

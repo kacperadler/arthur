@@ -2753,9 +2753,9 @@
   {
     "id": "AR0358",
     "title": "`review-needed` lets a small change to what the merge and each spawn run go in without a review (AR0311 F11, confirmed)",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0358-review-needed-lets-a-small-change-to-what-the-merge-and-each-spawn-run-go-in-without-a-review-ar0311-f11-confirmed/ticket.md",
-    "updated": "2026-10-23T14:45:58.084Z",
+    "updated": "2026-10-25T20:44:47.575Z",
     "after": [
       "AR0357"
     ]
@@ -3435,9 +3435,9 @@
   {
     "id": "AR0431",
     "title": "A review's project is not checked against its worker's",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0431-a-review-s-project-is-not-checked-against-its-worker-s/ticket.md",
-    "updated": "2026-10-25T20:44:10.612Z",
+    "updated": "2026-10-25T20:44:57.918Z",
     "after": [
       "AR0355"
     ]

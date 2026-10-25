@@ -20,21 +20,22 @@ F1 of AR0357 (spec/features/AR0357-the-review-kind-takes-any-task-with-the-three
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+A review spawn is accepted only in its worker's own project, so a PASS's push names the project the branch is in; tested.
 
 - Kind: fix
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- `beforeSpawn` passes the spawn's `project` into `refusal`, which refuses a review whose project is not its worker's, with the same refusal message. Test in `packages/delivery/test/review.test.ts` with a second project repository in `load`: the exact task spawned with `--project <other>` is refused and leaves no job record; the same task in the worker's project starts. It fails on main.
+- `npm test` and `npm run check` pass; delivery's line budget may be raised by the lines needed (AR-D29).
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/delivery/src/delivery.ts`, `packages/delivery/test/review.test.ts`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Who may spawn a review.
 
 ## Decisions
 

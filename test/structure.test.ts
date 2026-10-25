@@ -688,14 +688,14 @@ test("the README's mermaid block is arthur.mmd, unchanged", () => {
 	assert.equal(block, readFileSync(join(root, "arthur.mmd"), "utf8"), "copy arthur.mmd into the README's ```mermaid block");
 });
 
-// A workflow states its token's rights and runs each action at a commit: a tag is whatever the action's repository points it at.
-test("each CI workflow sets a top-level permissions block and pins every action to a commit", () => {
+// A workflow grants its token only contents: read at the top level and runs each action at a commit: a tag is whatever the action's repository points it at.
+test("each CI workflow, .yml or .yaml, grants only contents: read at the top level and pins every action to a commit", () => {
 	const folder = join(import.meta.dirname, "..", ".github", "workflows");
-	const files = readdirSync(folder).filter((name) => name.endsWith(".yml"));
+	const files = readdirSync(folder).filter((name) => /\.ya?ml$/.test(name));
 	assert.notDeepEqual(files, []);
 	for (const name of files) {
 		const text = readFileSync(join(folder, name), "utf8");
-		assert.match(text, /^permissions:/m, `${name}: no top-level permissions`);
+		assert.deepEqual(text.match(/^permissions:\n((?:(?:[ \t].*|#.*)?\n)*)/m)?.[1]?.split("\n").filter((line) => !/^\s*(#|$)/.test(line)), ["  contents: read"], `${name}: the top-level permissions are not exactly contents: read`);
 		for (const line of text.match(/\buses:.*/g) ?? []) assert.match(line, /^uses: [^@\s]+@[0-9a-f]{40}(\s|$)/, `${name}: ${line}`);
 	}
 });

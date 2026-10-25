@@ -2851,9 +2851,9 @@
   {
     "id": "AR0376",
     "title": "Run each job's agent in a sandbox: the real bound the worktree guard is not",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0376-run-each-job-s-agent-in-a-sandbox-the-real-bound-the-worktree-guard-is-not/ticket.md",
-    "updated": "2026-10-24T21:08:39.106Z"
+    "updated": "2026-10-25T09:42:59.091Z"
   },
   {
     "id": "AR0377",
@@ -3022,5 +3022,12 @@
     "status": "planned",
     "path": "spec/features/AR0400-arthur-prune-of-a-job-here-runs-a-clean-filter-the-main-checkout-s-config-or-the-job-worktree-s-own-names/ticket.md",
     "updated": "2026-10-25T02:48:15.795Z"
+  },
+  {
+    "id": "AR0401",
+    "title": "Inside a sandboxed job, the orchestration tests that start a tmux server fail",
+    "status": "planned",
+    "path": "spec/features/AR0401-inside-a-sandboxed-job-the-orchestration-tests-that-start-a-tmux-server-fail/ticket.md",
+    "updated": "2026-10-25T09:43:12.583Z"
   }
 ]

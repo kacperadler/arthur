@@ -3053,8 +3053,15 @@
   {
     "id": "AR0406",
     "title": "Every sandboxed job exits 1: omp cannot lock its session file under the sandbox, so a review with PASS gets no verdict",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0406-every-sandboxed-job-exits-1-omp-cannot-lock-its-session-file-under-the-sandbox/ticket.md",
-    "updated": "2026-10-25T12:02:52.583Z"
+    "updated": "2026-10-25T13:17:32.948Z"
+  },
+  {
+    "id": "AR0407",
+    "title": "A job's Unix datagram socket reaches any local daemon that listens on one",
+    "status": "planning",
+    "path": "spec/features/AR0407-a-job-s-unix-datagram-socket-reaches-any-local-daemon-that-listens-on-one/ticket.md",
+    "updated": "2026-10-25T13:17:32.945Z"
   }
 ]

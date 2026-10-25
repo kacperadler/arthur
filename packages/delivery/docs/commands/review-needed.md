@@ -15,9 +15,10 @@ In this order; the first that holds decides:
 2. `review: deletes <path>`: the branch deletes a file, a rename's old name included; a branch of docs that also deletes one is reviewed.
 3. `review: changes <path>`: a file whose name starts with `.env` (`.env.example` too).
 4. `review: the diff mentions .env in <path>`: `.env` in a changed line of a file outside docs (`*.md`) and tests (a `test/` folder at any depth), where it is only text; `process.env`, `.envrc` and `.environment` are not `.env`.
-5. `no review: <n> files, all docs (*.md)`: every changed file is Markdown.
-6. `review: <n> lines changed, over 30`: lines added and removed, a binary file counting none.
-7. With 30 lines or fewer, the job's checks (below) decide, for each script, `check` and `test`, that the tip's `package.json` declares: `no review: <n> lines changed; the job's checks: check pass, test pass 12/12` when the latest line of each passes, else `review: ...` with the same list (`no test` for a script with no line). Without them it is `review`: `the project's package.json declares no check or test script` (none at the tip, or a broken one), `the job recorded no checks`, or `a file changed after the job's checks (stale)`. With neither a check nor a reviewer nothing would have verified the code.
+5. `review: changes a binary file <path>`: a file Git counts no lines of (`-` in `git diff --numstat`), whatever its size: a `.wasm` or `.node` addon, an executable, an archive, an image, a binary `*.md` too.
+6. `no review: <n> files, all docs (*.md)`: every changed file is Markdown.
+7. `review: <n> lines changed, over 30`: lines added and removed.
+8. With 30 lines or fewer, the job's checks (below) decide, for each script, `check` and `test`, that the tip's `package.json` declares: `no review: <n> lines changed; the job's checks: check pass, test pass 12/12` when the latest line of each passes, else `review: ...` with the same list (`no test` for a script with no line). Without them it is `review`: `the project's package.json declares no check or test script` (none at the tip, or a broken one), `the job recorded no checks`, or `a file changed after the job's checks (stale)`. With neither a check nor a reviewer nothing would have verified the code.
 
 ## The always-review list
 

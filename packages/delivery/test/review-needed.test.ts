@@ -99,6 +99,8 @@ const BRANCHES: readonly (readonly [string, (at: At) => void, string | undefined
 		PASSING,
 		"no review: 6 lines changed; the job's checks: check pass, test pass 3/3",
 	],
+	["a binary file, small, with passing checks", edit("src/shop.wasm", "\0asm\x01\0\0\0"), PASSING, "review: changes a binary file src/shop.wasm"],
+	["a binary *.md beside docs", both(edit("README.md", "# acme shop\n"), edit("docs/logo.md", "\0PNG\n")), undefined, "review: changes a binary file docs/logo.md"],
 	["docs only", both(edit("README.md", "# acme shop\n"), edit("docs/guide.md", "# The guide\n")), undefined, "no review: 2 files, all docs (*.md)"],
 	["31 lines", edit("src/shop.ts", lines(30, "")), PASSING, "review: 31 lines changed, over 30"],
 	["30 lines with passing checks", edit("src/shop.ts", lines(30)), PASSING, "no review: 30 lines changed; the job's checks: check pass, test pass 3/3"],

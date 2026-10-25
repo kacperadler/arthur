@@ -124,6 +124,13 @@ test("a clone's refusals name a repo's host and path, never the credential its U
 		assert.doesNotMatch(error.message, /s3cret|arthur:/);
 		return true;
 	});
+	// A port out of range: new URL cannot parse it, so its userinfo cannot be dropped; the word holding the `@` is masked instead.
+	const unparsable = "https://u:s3cret@host:99999/x.git";
+	await assert.rejects(load({ reposDir, list: [{ name: "bad", prefix: "BD", repo: unparsable }] }), (error: Error) => {
+		assert.match(error.message, /^project bad: git clone the repo failed: .+/);
+		assert.doesNotMatch(error.message, /s3cret/);
+		return true;
+	});
 	git(reposDir, "init", "--quiet", "other");
 	git(join(reposDir, "other"), "remote", "add", "origin", "https://token:t0ken@example.com/acme/other.git");
 	await assert.rejects(load({ reposDir, list: [{ name: "other", prefix: "OT", repo }] }), {

@@ -21,22 +21,25 @@ F1 of AR0406 (spec/features/AR0406-every-sandboxed-job-exits-1-omp-cannot-lock-i
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+The sandbox's docs name what a job can reach through the Unix datagram socket AR0406 allowed, so the owner knows the bound. Evidence: AR0406 F1 and F4 (review 2026-10-25-review-6e19990f traced it): journald's `journal/socket`, `dev-log` and `syslog` take lines from a job, stamped with its `arthur-job-<id>.scope`; systemd's notify sockets refuse a scope; the only abstract names are omp's own locks; stream sockets (user bus, tmux, ssh/gpg agents) stay refused with `EPROTOTYPE`. Nothing can close it on this host: Landlock's `LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET` needs Linux 6.12 (this host: 6.8) and covers abstract names only, not journald's path sockets.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- `arthur spawn --help`, "The sandbox", and docs/deploy.md's sandbox entry list this limit: a job may write lines into the journal, traceable to its scope, and nothing beyond; the project's checks pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/docs/commands/spawn.md`: "The sandbox" names the limit.
+- `docs/deploy.md`: its sandbox entry (line 35) names it in one sentence.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Any change to the seccomp filter: refusing datagram sockets breaks every job (AR0406).
+- Landlock's abstract-socket scope: a later ticket once a host runs Linux 6.12 or later.
 
 ## Decisions
 
 - 2026-10-25: Source: F1 of AR0406
+- 2026-10-25: AR0407 approved by the owner; worker starts in turn; the owner: "ok, go with AR0407 now, and i approve the AR0408–AR0411 tasks, you can go to a 60% usage so when you complete this tasks take another one, always go with your recommendations and do not ask me about them, go to 60% usage and complete as many tasks as you can" (AR-D6)

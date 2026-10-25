@@ -94,6 +94,13 @@ test("python3 loads no module of the agent's folder before the sandbox is set", 
 	assert.equal(existsSync(join(folder, "loaded")), false);
 });
 
+test("an agent the sandbox's shell does not find starts bare, so it fails to start as it would without a sandbox", { skip: bare }, () => {
+	const lines: string[] = [];
+	const missing = join(temporaryFolder(), "omp");
+	assert.deepEqual(sandboxed(["/tmp"], missing, ["-p"], (line) => lines.push(line)), [missing, ["-p"]]);
+	assert.deepEqual(lines, [`no sandbox: the agent ${missing} is not there; the agent writes wherever Arthur's user can`]);
+});
+
 test("without python3, or where it cannot set up the sandbox, the agent runs as it is and the log says why", (t) => {
 	const bin = temporaryFolder();
 	const path = process.env.PATH;

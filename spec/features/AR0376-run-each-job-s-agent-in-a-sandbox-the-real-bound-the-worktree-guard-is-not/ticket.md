@@ -36,3 +36,4 @@ In:
 
 - 2026-10-23: Source: F1 of AR0329
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; runs one at a time after the high-severity security fixes.
+- 2026-10-25: Core's line budget raised 5939 -> 6014 (+75: job-sandbox.ts, the Landlock and seccomp script python3 runs before it execs the agent, the paths the agent may write, and the probe that falls back to the bare agent naming why). Landlock rather than bubblewrap: on this host `bwrap` is not installed and unprivileged user namespaces are restricted (`apparmor_restrict_unprivileged_userns=1`), so bubblewrap could not start; Landlock needs neither root nor a user namespace.

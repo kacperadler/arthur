@@ -59,11 +59,17 @@ export function writable(record: string, worktree: string, extensions: string): 
 }
 
 // The command and arguments that start `agent` with `argv` in the sandbox over `paths`, the log told which (`note`); on a
-// host where it cannot be set up (not Linux, no `python3`, a kernel without Landlock) the agent's own, the log told why.
+// host where it cannot be set up (not Linux, no `python3`, a kernel without Landlock), or for an agent the sandbox's shell
+// does not find, which then fails to start as it would bare, the agent's own, the log told why.
 export function sandboxed(paths: readonly string[], agent: string, argv: readonly string[], note: (line: string) => void): [string, string[]] {
 	const prefix = ["-I", "-c", SCRIPT, ...paths, "--"];
-	const probe = process.platform === "linux" ? spawnSync("python3", [...prefix, "true"], { encoding: "utf8" }) : undefined;
-	const why = probe === undefined ? `${process.platform} has no Landlock` : probe.error !== undefined ? `python3: ${probe.error.message}` : probe.status === 0 ? undefined : probe.stderr.trim().split("\n").at(-1) || `python3 exited ${probe.status ?? probe.signal}`;
+	const probe = process.platform === "linux" ? spawnSync("python3", [...prefix, "/bin/sh", "-c", 'command -v "$1" || exit 127', "sh", agent], { encoding: "utf8" }) : undefined;
+	const why =
+		probe === undefined ? `${process.platform} has no Landlock`
+		: probe.error !== undefined ? `python3: ${probe.error.message}`
+		: probe.status === 0 ? undefined
+		: probe.status === 127 ? `the agent ${agent} is not there`
+		: probe.stderr.trim().split("\n").at(-1) || `python3 exited ${probe.status ?? probe.signal}`;
 	note(why === undefined ? `sandbox: the agent writes only in ${paths.join(", ")}, and opens no Unix socket` : `no sandbox: ${why}; the agent writes wherever Arthur's user can`);
 	return why === undefined ? ["python3", [...prefix, agent, ...argv]] : [agent, [...argv]];
 }

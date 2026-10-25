@@ -43,3 +43,4 @@ Out:
 ## Decisions
 
 - 2026-10-25: Source: F1 of AR0401
+- 2026-10-25: Pre-approved by policy: test from F1 of AR0401, 2 Scope files, budget $1 of the $3 cap

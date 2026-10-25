@@ -2591,9 +2591,9 @@
   {
     "id": "AR0340",
     "title": "The redaction of notices and the decision log reads secrets from an environment that holds none of the env file",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0340-the-redaction-of-notices-and-the-decision-log-reads-secrets-from-an-environment-that-holds-none-of-the-env-file/ticket.md",
-    "updated": "2026-10-25T19:23:21.316Z"
+    "updated": "2026-10-25T19:38:40.276Z"
   },
   {
     "id": "AR0341",
@@ -2811,9 +2811,9 @@
   {
     "id": "AR0371",
     "title": "The board's lock and temporary files in each project's checkout take the umask too, outside the home's reach",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0371-the-board-s-lock-and-temporary-files-in-each-project-s-checkout-take-the-umask-too-outside-the-home-s-reach/ticket.md",
-    "updated": "2026-10-25T19:30:01.239Z"
+    "updated": "2026-10-25T19:39:56.471Z"
   },
   {
     "id": "AR0372",

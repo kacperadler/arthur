@@ -46,6 +46,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0418 A repo URL that new URL cannot parse is printed with its credential by the clone's refusal (458b3aaa)
 - AR0420 Forms of OLDPWD and pushd the guard still misreads: ${OLDPWD...} operators, readonly, local outside a function, pushd -n, OLDPWD+= before eval (ccecf8b7)
 - AR0426 A forwarded file without a caption reaches the coordinator unmarked (75127d83)
+- AR0428 Redaction runs twice on two paths, so the extensions rewrite part of an env-file secret before the plugin can match it whole (ae778efe)
 
 ### Changed
 

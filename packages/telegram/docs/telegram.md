@@ -10,10 +10,10 @@ plugins: [orchestration({}), telegram({ bots: [{ botTokenEnv: "ARTHUR_TELEGRAM_B
 
 In `telegram({ ... })` in `arthur.config.ts`, checked at load; any other option or key is refused, naming its path:
 
-- `bots`: at least one bot, each `{ name?, botTokenEnv, chatIdEnv }`. `botTokenEnv` names the variable holding the bot's token from @BotFather, `chatIdEnv` the one holding the id of the only chat the bot answers (the owner's private chat with it). At most one bot has no name; a name is lowercase letters, digits and single dashes, from a letter, and no two bots share one. A named bot's variables are `ARTHUR_TELEGRAM_<NAME>_...`, as for every named instance (`arthur config --help`).
+- `bots`: at least one bot, each `{ name?, botTokenEnv, chatIdEnv }`. `botTokenEnv` names the variable holding the bot's token from @BotFather, `chatIdEnv` the one holding the id of the only chat the bot answers: the owner's private chat with it, a positive whole number (a group's id is refused, since its other members are not the owner). At most one bot has no name; a name is lowercase letters, digits and single dashes, from a letter, and no two bots share one. A named bot's variables are `ARTHUR_TELEGRAM_<NAME>_...`, as for every named instance (`arthur config --help`).
 - `apiUrl`: the Bot API's address, default `https://api.telegram.org`; a test points it at its fake. The token is part of each call's URL, so it goes only there.
 
-At setup, a token that is not `<digits>:<letters, digits, _ and ->` refuses the load with `bots[<i>].botTokenEnv: <variable> does not hold a bot token as @BotFather gives it: ...`, and a chat id that is not a whole number with `bots[<i>].chatIdEnv: <variable> does not hold a chat id: a whole number, negative for a group`; neither prints the value.
+At setup, a token that is not `<digits>:<letters, digits, _ and ->` refuses the load with `bots[<i>].botTokenEnv: <variable> does not hold a bot token as @BotFather gives it: ...`, and a chat id that is not a positive whole number with `bots[<i>].chatIdEnv: <variable> does not hold a chat id: the owner's private chat with the bot, a positive whole number`; neither prints the value.
 
 Only `arthur run` starts the plugin, so only it polls and sends texts; a command such as `arthur stop` loads it and neither sends nor writes the outbox, and `arthur send` sends its files at once, by its own process (below). What reaches it before its start, the replay of the event log among it, is queued at the start, in order.
 
@@ -21,7 +21,7 @@ Only `arthur run` starts the plugin, so only it polls and sends texts; a command
 
 Each bot long-polls `getUpdates` (30 s, only `message` updates), each update confirmed by the next call's `offset`:
 
-- A message of another chat than the bot's is dropped: it never reaches the coordinator and gets no answer.
+- A message of another chat than the bot's is dropped, and so is one in it that the owner did not write (its `from.id` not the chat's id, or a `sender_chat`: an anonymous admin, a channel): it never reaches the coordinator and gets no answer, a phone command included.
 - A message older than 10 minutes (its `date` against Arthur's clock; 10 minutes exactly is kept) is dropped, so a backlog after Arthur was down does not replay.
 - What the message holds becomes one `message-received` `{ channel: "telegram", parts }`, which the coordinator's inbox turns into one entry marked `[via telegram]` (`arthur send --help`, "Channels", and `arthur coordinator --help`). A message in a topic (`is_topic_message`, in a private chat with topics on) adds `place`, its `message_thread_id` as text; a message to a named bot adds `instance`, the bot's name.
 - The parts: the message's file first, then its text or caption as a `text` part. A photo (its largest size, `image/jpeg`), a video or a round video note (`video`), a voice note (`voice`), an audio file (`audio`) and any other document (`file`), each with Telegram's `mime_type` (else `video/mp4`, `audio/ogg`, `audio/mpeg`, `application/octet-stream`) and `seconds` for its `duration`. The file is saved, whole, as `.arthur/telegram/media/<file_unique_id><extension of Telegram's file_path>`, or `<file_unique_id>-<the sender's file name>` for a file sent with a name (its last segment, without control characters or leading dots, so it stays in the folder). The plugin reads nothing of it.
@@ -73,5 +73,5 @@ The session's start notice (`coordinator up on <host>`, or `no LLM access on <ho
 ## Setting it up
 
 1. In Telegram, talk to @BotFather: `/newbot`, a name, then the token it gives goes to `ARTHUR_TELEGRAM_BOT_TOKEN` in `.env`.
-2. Write once to your bot, then read your chat id from `curl -s https://api.telegram.org/bot<token>/getUpdates` (`message.chat.id`) and put it in `ARTHUR_TELEGRAM_CHAT_ID`; stop anything else polling the bot first.
+2. Write once to your bot in its private chat, then read your chat id, a positive number, from `curl -s https://api.telegram.org/bot<token>/getUpdates` (`message.chat.id`) and put it in `ARTHUR_TELEGRAM_CHAT_ID`; stop anything else polling the bot first.
 3. Add `telegram({ bots: [...] })` as above and run `arthur config check`: both variables say `set`.

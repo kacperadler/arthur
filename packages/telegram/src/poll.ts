@@ -3,15 +3,15 @@ import type { Host } from "@arthur/core/plugin";
 import { type ApiError, type Bot, call } from "./bot-api.ts";
 import { type Message, parts } from "./media-in.ts";
 
-// One bot's long polling (spec/roadmap.md, entries 47 to 50): `getUpdates` waiting up to 30 s, each update confirmed by the
-// next call's `offset`. A message of the bot's own chat, at most 10 minutes old, is the owner's: a text `/name ...` or
-// `/name@<this bot> ...` is a phone command, routed to the host's registry with its channel, place and instance and the reply sent back
-// there (one to another bot is dropped); what any other holds becomes the parts of `message-received` `{ channel:
-// "telegram", parts, place?, instance? }` (media-in.ts), `instance` the name of a named bot (AR0211); an album, several
-// messages, is one, sent once a poll of 1 s brings no more of it, and the messages after it wait for it; any other kind of
-// message gets a line back. A message of any other chat is dropped unanswered. A failed call is said once until a call
-// answers, and polling goes on after 2 s (a 429: its retry_after); a call that answers sends the outbox (`answered`), so what
-// waits there goes once Telegram is back: packages/telegram/docs/telegram.md, "Receiving" and "Phone commands".
+// One bot's long polling (spec/roadmap.md, entries 47 to 50): `getUpdates` waiting up to 30 s, each update confirmed by the next
+// call's `offset`. A message the owner wrote in the bot's chat (`from.id`, no `sender_chat`), at most 10 minutes old: a text
+// `/name ...` or `/name@<this bot> ...` is a phone command, routed to the host's registry with its channel, place and instance and
+// the reply sent back there (one to another bot is dropped); what any other holds becomes the parts of `message-received` `{ channel:
+// "telegram", parts, place?, instance? }` (media-in.ts), `instance` the name of a named bot (AR0211); an album, several messages, is
+// one, sent once a poll of 1 s brings no more of it, and the messages after it wait for it; any other kind of message gets a line
+// back. A message of another chat or sender is dropped unanswered. A failed call is said once until a call answers, and polling goes
+// on after 2 s (a 429: its retry_after); a call that answers sends the outbox (`answered`), so what waits there goes once Telegram is
+// back: packages/telegram/docs/telegram.md, "Receiving" and "Phone commands".
 
 export type Send = (bot: Bot, text: string, place: string | undefined) => void;
 
@@ -53,7 +53,7 @@ export async function poll(host: Host, bot: Bot, signal: AbortSignal, send: Send
 		for (const update of Array.isArray(updates) ? (updates as readonly { readonly update_id?: unknown; readonly message?: Message }[]) : []) {
 			if (typeof update.update_id === "number") offset = Math.max(offset, update.update_id + 1);
 			const message = update.message;
-			if (message?.chat?.id !== bot.chat || typeof message.date !== "number" || host.clock.now().getTime() / 1000 - message.date > OLDEST_S) continue;
+			if (message?.chat?.id !== bot.chat || message.from?.id !== bot.chat || message.sender_chat !== undefined || typeof message.date !== "number" || host.clock.now().getTime() / 1000 - message.date > OLDEST_S) continue;
 			const album = typeof message.media_group_id === "string" ? message.media_group_id : undefined;
 			const group = album === undefined ? undefined : pending.find((each) => each.album === album);
 			if (group === undefined) pending.push({ ...(album === undefined ? {} : { album }), messages: [message] });

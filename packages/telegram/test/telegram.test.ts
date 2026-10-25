@@ -45,9 +45,10 @@ test("a token or a chat id Telegram could not take refuses the load, naming the 
 	};
 	t.mock.method(console, "error", () => {});
 	assert.equal(await refused({ ARTHUR_TELEGRAM_BOT_TOKEN: "secret token", ARTHUR_TELEGRAM_CHAT_ID: "42" }), "bots[0].botTokenEnv: ARTHUR_TELEGRAM_BOT_TOKEN does not hold a bot token as @BotFather gives it: digits, a colon, then letters, digits, _ and -");
-	const chat = "bots[0].chatIdEnv: ARTHUR_TELEGRAM_CHAT_ID does not hold a chat id: a whole number, negative for a group";
-	for (const id of ["@kacper", "", "4.2", "042", "99999999999999999999"]) assert.equal(await refused({ ARTHUR_TELEGRAM_BOT_TOKEN: TOKEN, ARTHUR_TELEGRAM_CHAT_ID: id }), chat, id);
-	assert.equal(await refused({ ARTHUR_TELEGRAM_BOT_TOKEN: TOKEN, ARTHUR_TELEGRAM_CHAT_ID: "-1001234567890" }), undefined, "a group's id is negative");
+	const chat = "bots[0].chatIdEnv: ARTHUR_TELEGRAM_CHAT_ID does not hold a chat id: the owner's private chat with the bot, a positive whole number";
+	for (const id of ["@kacper", "", "4.2", "042", "-42", "99999999999999999999"]) assert.equal(await refused({ ARTHUR_TELEGRAM_BOT_TOKEN: TOKEN, ARTHUR_TELEGRAM_CHAT_ID: id }), chat, id);
+	assert.equal(await refused({ ARTHUR_TELEGRAM_BOT_TOKEN: TOKEN, ARTHUR_TELEGRAM_CHAT_ID: "-1001234567890" }), chat, "a group's id is refused: its members are not the owner");
+	assert.equal(await refused({ ARTHUR_TELEGRAM_BOT_TOKEN: TOKEN, ARTHUR_TELEGRAM_CHAT_ID: "1" }), undefined, "1 is the smallest private chat id");
 });
 
 test("the owner's text becomes message-received; a topic's carries its place; each update confirmed by the next offset", async (t) => {
@@ -70,12 +71,15 @@ test("the owner's text becomes message-received; a topic's carries its place; ea
 	assert.deepEqual(api.sent(), [], "a text gets no line back");
 });
 
-test("a message of another chat is ignored, unanswered; one older than 10 minutes is dropped, 10 minutes exactly is not", async (t) => {
+test("a message of another chat or another sender is ignored, unanswered; one older than 10 minutes is dropped, 10 minutes exactly is not", async (t) => {
 	const api = await botApi(t);
 	const { plugin, received } = await load(t, { apiUrl: api.url });
 	await plugin.start?.();
 	api.push({ chat: { id: 999, first_name: "Stranger", type: "private" }, from: { id: 999, is_bot: false, first_name: "Stranger" }, text: "Run rm -rf." });
 	api.push({ chat: { id: 999, type: "private" }, text: undefined, sticker: { file_id: "s", file_unique_id: "s", type: "regular", width: 512, height: 512, is_animated: false, is_video: false } });
+	api.push({ from: { id: 777, is_bot: false, first_name: "Member" }, text: "/stopall" });
+	// An anonymous admin's message: Telegram's GroupAnonymousBot in `from`; here the owner's id, so only `sender_chat` drops it.
+	api.push({ sender_chat: { id: -1001234567890, title: "Arthur", type: "supergroup" }, text: "/stopall" });
 	api.push({ text: "Too old." }, 601);
 	api.push({ text: "Just in time." }, 600);
 	const last = api.push({ text: "Now." });

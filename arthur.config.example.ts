@@ -373,7 +373,7 @@ export default defineConfig({
 		// that project's agent, any other to the coordinator, and the reply goes back to it.
 		// Several bots: `{ name: "second", botTokenEnv: "ARTHUR_TELEGRAM_SECOND_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_SECOND_CHAT_ID" }`.
 		telegram({
-			bots: [{ botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }], // chat id: the only chat the bot answers
+			bots: [{ botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }], // chat id: the only chat the bot answers, the owner's private chat with it
 			// media: true, // entry 49: photos, files and voice notes in and out; until then refused as unknown
 		}),
 

@@ -20,22 +20,23 @@ F2 of AR0307 (spec/features/AR0307-the-switch-arthur-runs-on-the-vps-and-takes-i
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+The header of arthur.config.example.ts (lines 1-2) says "Nothing here runs yet, and the `@arthur/*` packages do not exist"; every plugin but discord, docker, voice, whatsapp, signal, slack and server exists under `packages/` today, and a copy fails only on the first missing one (`Cannot find package '@arthur/discord'`).
 
 - Kind: docs
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- The header says which plugins exist today and which are planned (the `first`/`later` marks on each import stay), and keeps the "Illustrative" warning for the planned ones; `npm run check` and the project's checks pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `arthur.config.example.ts`: its header comment only.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Any option or import in the file.
 
 ## Decisions
 
 - 2026-10-25: Source: F2 of AR0307
+- 2026-10-25: AR0409 approved by the owner; worker starts in turn; the owner: "ok, go with AR0407 now, and i approve the AR0408–AR0411 tasks, you can go to a 60% usage so when you complete this tasks take another one, always go with your recommendations and do not ask me about them, go to 60% usage and complete as many tasks as you can" (AR-D8)

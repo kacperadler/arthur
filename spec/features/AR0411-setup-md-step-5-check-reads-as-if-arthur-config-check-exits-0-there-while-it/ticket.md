@@ -33,3 +33,4 @@ Out:
 ## Decisions
 
 - 2026-10-25: Source: F4 of AR0307
+- 2026-10-25: AR0411 approved by the owner; worker starts in turn; the owner: "ok, go with AR0407 now, and i approve the AR0408–AR0411 tasks, you can go to a 60% usage so when you complete this tasks take another one, always go with your recommendations and do not ask me about them, go to 60% usage and complete as many tasks as you can" (AR-D10)

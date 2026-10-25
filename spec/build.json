@@ -3060,36 +3060,39 @@
   {
     "id": "AR0407",
     "title": "A job's Unix datagram socket reaches any local daemon that listens on one",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0407-a-job-s-unix-datagram-socket-reaches-any-local-daemon-that-listens-on-one/ticket.md",
-    "updated": "2026-10-25T13:17:32.945Z"
+    "updated": "2026-10-25T13:38:49.716Z"
   },
   {
     "id": "AR0408",
     "title": "versions.mmd still shows the harness in use today",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0408-versions-mmd-still-shows-the-harness-in-use-today/ticket.md",
-    "updated": "2026-10-25T13:26:52.901Z"
+    "updated": "2026-10-25T13:38:51.227Z"
   },
   {
     "id": "AR0409",
     "title": "arthur.config.example.ts says nothing in it runs yet",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0409-arthur-config-example-ts-says-nothing-in-it-runs-yet/ticket.md",
-    "updated": "2026-10-25T13:26:52.904Z"
+    "updated": "2026-10-25T13:38:52.738Z"
   },
   {
     "id": "AR0410",
     "title": "setup.md step 5 does not say `ci.workflow` needs an `origin` remote",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0410-setup-md-step-5-does-not-say-ci-workflow-needs-an-origin-remote/ticket.md",
-    "updated": "2026-10-25T13:27:15.841Z"
+    "updated": "2026-10-25T13:38:54.236Z"
   },
   {
     "id": "AR0411",
     "title": "setup.md step 5 check reads as if `arthur config check` exits 0 there, while it exits 1 until step 6",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0411-setup-md-step-5-check-reads-as-if-arthur-config-check-exits-0-there-while-it/ticket.md",
-    "updated": "2026-10-25T13:27:16.331Z"
+    "updated": "2026-10-25T13:38:55.742Z",
+    "after": [
+      "AR0410"
+    ]
   }
 ]

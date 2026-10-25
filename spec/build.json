@@ -3074,9 +3074,9 @@
   {
     "id": "AR0409",
     "title": "arthur.config.example.ts says nothing in it runs yet",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0409-arthur-config-example-ts-says-nothing-in-it-runs-yet/ticket.md",
-    "updated": "2026-10-25T13:38:52.738Z"
+    "updated": "2026-10-25T13:54:19.527Z"
   },
   {
     "id": "AR0410",

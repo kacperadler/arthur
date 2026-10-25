@@ -180,7 +180,7 @@ test("--auto reads past a replacement of main's tip under refs/replace: the held
 	assert.equal((await merge(job.id, "--auto")).err, `arthur merge: --auto merges no held path: ${job.branch} changes packages/shop/package.json (package.json); its merge waits for the owner: arthur merge ${job.id} on his word; main is unchanged`);
 });
 
-test("--auto CI: failed refused, pending or no run of the branch's own waits, GitHub's refusal named; github not loaded refused without --no-ci, merged with it", async (t) => {
+test("--auto CI: failed refused, pending or no run of the tip waits (one on main counts as none), GitHub's refusal named; github not loaded refused without --no-ci, merged with it", async (t) => {
 	const { worker, review, merge, head, answers, waiting } = await load(t);
 	const job = await worker(1);
 	await review(job.id, "PASS");
@@ -193,10 +193,10 @@ test("--auto CI: failed refused, pending or no run of the branch's own waits, Gi
 	answers.ci = new Error("instance (unnamed): 401: the token in ARTHUR_GITHUB_TOKEN was refused: Bad credentials");
 	assert.equal((await merge(job.id, "--auto")).err, rule("github could not tell: instance (unnamed): 401: the token in ARTHUR_GITHUB_TOKEN was refused: Bad credentials"));
 	answers.ci = ciRun(start, "main", { below: 1 });
-	assert.equal((await merge(job.id, "--auto")).err, rule(`no run built a commit of it yet (the nearest, 7, ran on ${start.slice(0, 7)}, on main)${waits}`));
+	assert.equal((await merge(job.id, "--auto")).err, rule(`no run built the tip yet (the nearest, 7, ran on ${start.slice(0, 7)}, 1 below the tip)${waits}`));
 	assert.equal(waiting(job.id), true);
 	answers.ci = undefined;
-	assert.equal((await merge(job.id, "--auto")).err, rule(`no run built a commit of it yet${waits}`));
+	assert.equal((await merge(job.id, "--auto")).err, rule(`no run built the tip yet${waits}`));
 	answers.ci = ciRun(job.tip, job.branch, { status: "queued", conclusion: null });
 	assert.equal((await merge(job.id, "--auto")).err, rule(`run 7, attempt 1, on ${job.tip.slice(0, 7)}, the tip, is queued${waits}`));
 	assert.equal(head(), start);
@@ -211,8 +211,8 @@ test("--auto CI: failed refused, pending or no run of the branch's own waits, Gi
 	assert.equal(bare.fake.host.board.get("AC0001")?.status, "merged");
 });
 
-test("CI passed on the tip after a new commit: the run of the old tip no longer counts; a commit with no run counts the run below it on the branch", async (t) => {
-	const { commit, worker, review, merge, answers, waiting } = await load(t);
+test("CI passed on the tip after a new commit: the run of the old tip no longer counts; a commit with no run waits, the run below it on the branch neither merges nor wakes", async (t) => {
+	const { fake, commit, worker, review, merge, answers, waiting, messages } = await load(t);
 	const job = await worker(1);
 	await review(job.id, "PASS");
 	const tip = commit(job.worktree, { "late.ts": "export const late = 1;\n" });
@@ -231,7 +231,11 @@ test("CI passed on the tip after a new commit: the run of the old tip no longer 
 	answers.ci = ciRun(docs.tip, docs.branch, { below: 1 });
 	assert.notEqual(late, docs.tip);
 	const below = await merge(docs.id, "--auto");
-	assert.equal(below.code, undefined, below.err);
+	assert.equal(below.err, `arthur merge: --auto merges only with CI passed on the branch: no run built the tip yet (the nearest, 7, ran on ${docs.tip.slice(0, 7)}, 1 below the tip); it waits: when that run ends, the coordinator is woken with its verdict; main is unchanged`);
+	assert.equal(waiting(docs.id), true);
+	const end = { project: "acme", branch: docs.branch, below: 1, run: ciRun(docs.tip, docs.branch) };
+	assert.deepEqual(fake.collect<boolean>("delivery.ciEnded", end), [false], "an end 1 below the tip, on the branch's own commit, wakes nobody");
+	assert.deepEqual(messages(), []);
 });
 
 test("a waiting branch's CI end, as github's poll asks delivery.ciEnded, wakes the coordinator with its verdict once per run end, a rerun's end again, and answers true; the poll never wakes on an end; a run on main, another branch or project, or no wait answers false", async (t) => {

@@ -15,6 +15,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0332 `GIT_DIR=`, `GIT_WORK_TREE=`, `GIT_INDEX_FILE=` before `git` are not read as `--git-dir`, `--work-tree` (059696a4)
 - AR0333 `cd -`, `pushd` with no operand and `$OLDPWD` are read as `cd $HOME` (00a0c619)
 - AR0337 MCP secrets lie in every job's record, which every other job can read, until the prune (b77e47e9)
+- AR0338 A secret exported in the shell reaches every job's environment (71fd8628)
 - AR0340 The redaction of notices and the decision log reads secrets from an environment that holds none of the env file (69b7aeca)
 - AR0341 A blocked job's question goes to the phone as written, while the decision log redacts it (6d780f86)
 - AR0342 A project's `repo` URL is printed by the clone's refusals, with any credential it holds (8409266e)

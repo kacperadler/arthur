@@ -12,6 +12,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Fixed
 
 - AR0332 `GIT_DIR=`, `GIT_WORK_TREE=`, `GIT_INDEX_FILE=` before `git` are not read as `--git-dir`, `--work-tree` (059696a4)
+- AR0342 A project's `repo` URL is printed by the clone's refusals, with any credential it holds (8409266e)
 - AR0352 The always-review list never matches a path under `.agents/`: `**` does not enter a dot folder (293b4ac4)
 - AR0363 A binary file counts no lines, so a branch of any binary content skips the review on its checks (36c70b5d)
 - AR0364 Telegram answers every member of the configured chat, not the owner alone (AR0311 F7, confirmed) (8a78e74d)

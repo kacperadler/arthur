@@ -2607,9 +2607,9 @@
   {
     "id": "AR0341",
     "title": "A blocked job's question goes to the phone as written, while the decision log redacts it",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0341-a-blocked-job-s-question-goes-to-the-phone-as-written-while-the-decision-log-redacts-it/ticket.md",
-    "updated": "2026-10-25T20:31:13.114Z",
+    "updated": "2026-10-25T20:36:28.046Z",
     "after": [
       "AR0340"
     ]
@@ -2746,9 +2746,9 @@
   {
     "id": "AR0357",
     "title": "The review kind takes any task with the three head lines, so a PASS can rest on a task nobody built from the branch (AR0311 F6, confirmed)",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0357-the-review-kind-takes-any-task-with-the-three-head-lines-so-a-pass-can-rest-on-a-task-nobody-built-from-the-branch-ar0311-f6-confirmed/ticket.md",
-    "updated": "2026-10-25T20:31:30.275Z"
+    "updated": "2026-10-25T20:39:26.629Z"
   },
   {
     "id": "AR0358",
@@ -3364,9 +3364,9 @@
   {
     "id": "AR0424",
     "title": "A redirect's host is resolved twice, so DNS rebinding still reaches a private address",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0424-a-redirect-s-host-is-resolved-twice-so-dns-rebinding-still-reaches-a-private/ticket.md",
-    "updated": "2026-10-25T20:25:03.285Z"
+    "updated": "2026-10-25T20:37:22.062Z"
   },
   {
     "id": "AR0425",

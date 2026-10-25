@@ -2591,9 +2591,9 @@
   {
     "id": "AR0340",
     "title": "The redaction of notices and the decision log reads secrets from an environment that holds none of the env file",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0340-the-redaction-of-notices-and-the-decision-log-reads-secrets-from-an-environment-that-holds-none-of-the-env-file/ticket.md",
-    "updated": "2026-10-25T20:00:01.327Z"
+    "updated": "2026-10-25T20:03:42.632Z"
   },
   {
     "id": "AR0341",
@@ -3217,5 +3217,19 @@
     "status": "planned",
     "path": "spec/features/AR0426-a-forwarded-file-without-a-caption-reaches-the-coordinator-unmarked/ticket.md",
     "updated": "2026-10-25T19:45:35.809Z"
+  },
+  {
+    "id": "AR0427",
+    "title": "A blocked job's notice sends its question unredacted",
+    "status": "dropped",
+    "path": "spec/features/AR0427-a-blocked-job-s-notice-sends-its-question-unredacted/ticket.md",
+    "updated": "2026-10-25T20:04:13.042Z"
+  },
+  {
+    "id": "AR0428",
+    "title": "Redaction runs twice on two paths, so the extensions rewrite part of an env-file secret before the plugin can match it whole",
+    "status": "planning",
+    "path": "spec/features/AR0428-redaction-runs-twice-on-two-paths-so-the-extensions-rewrite-part-of-an-env-file/ticket.md",
+    "updated": "2026-10-25T20:03:51.433Z"
   }
 ]

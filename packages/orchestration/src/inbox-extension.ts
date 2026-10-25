@@ -1,6 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { redact } from "./credential.ts";
 import { handOver } from "./hand-over.ts";
 import type { Message } from "./inbox.ts";
 
@@ -113,7 +112,8 @@ export default function inbox(pi: ExtensionApi): void {
 		if (last?.role !== "assistant" || ["error", "aborted", "toolUse"].includes(last.stopReason ?? "")) {
 			for (const name of turn) waiting.set(name, UNANSWERED);
 			resume = Date.now() + pause(++unanswered);
-			if (unanswered === 3) write({ notice: `the coordinator's last 3 turns ended without a reply (${[last?.stopReason, redact(last?.errorMessage ?? "", [])].filter(Boolean).join(": ") || "no reply"}); their messages go again in 10 s, then after twice as long each time, at most 5 min` });
+			// omp's error as it is: the plugin redacts it whole with the env file's values (inbox.ts), which a first pass here would cut.
+			if (unanswered === 3) write({ notice: `the coordinator's last 3 turns ended without a reply (${[last?.stopReason, last?.errorMessage].filter(Boolean).join(": ") || "no reply"}); their messages go again in 10 s, then after twice as long each time, at most 5 min` });
 			return;
 		}
 		[unanswered, resume] = [0, 0];

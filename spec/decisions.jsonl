@@ -76,3 +76,7 @@
 {"record":"answer","id":"AR-D38","time":"2026-10-25T22:00:53+01:00","decided":"AR0432 approved under AR-D31, after AR0431","picked":1,"words":"always go with recommendation till the 8 am morning"}
 {"record":"ask","id":"AR-D39","time":"2026-10-25T22:10:59+01:00","project":"arthur","kind":"question","question":"Approve AR0433 as written?","options":["Approve","Not now"],"recommend":1,"ticket":"AR0433"}
 {"record":"answer","id":"AR-D39","time":"2026-10-25T22:11:00+01:00","decided":"AR0433 approved under AR-D31, group 2","picked":1,"words":"always go with recommendation till the 8 am morning"}
+{"record":"ask","id":"AR-D40","time":"2026-10-25T22:36:36+01:00","project":"arthur","kind":"question","question":"Approve AR0434 as written?","options":["Approve","Not now"],"recommend":1,"ticket":"AR0434"}
+{"record":"answer","id":"AR-D40","time":"2026-10-25T22:36:36+01:00","decided":"AR0434 approved under AR-D31, group 2","picked":1,"words":"always go with recommendation till the 8 am morning"}
+{"record":"ask","id":"AR-D41","time":"2026-10-25T22:45:55+01:00","project":"arthur","kind":"question","question":"Approve AR0436 as written?","options":["Approve","Not now"],"recommend":1,"ticket":"AR0436"}
+{"record":"answer","id":"AR-D41","time":"2026-10-25T22:45:56+01:00","decided":"AR0436 approved under AR-D31, group 2","picked":1,"words":"always go with recommendation till the 8 am morning"}

@@ -2573,9 +2573,9 @@
   {
     "id": "AR0337",
     "title": "MCP secrets lie in every job's record, which every other job can read, until the prune",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0337-mcp-secrets-lie-in-every-job-s-record-which-every-other-job-can-read-until-the-prune/ticket.md",
-    "updated": "2026-10-23T14:22:39.054Z"
+    "updated": "2026-10-25T21:32:04.756Z"
   },
   {
     "id": "AR0338",
@@ -2773,9 +2773,9 @@
   {
     "id": "AR0360",
     "title": "The job's record of its checks is its own word: written from inside the agent, not tied to the tip's tree, not stale after a change by bash",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0360-the-job-s-record-of-its-checks-is-its-own-word-written-from-inside-the-agent-not-tied-to-the-tip-s-tree-not-stale-after-a-change-by-bash/ticket.md",
-    "updated": "2026-10-25T21:28:39.926Z",
+    "updated": "2026-10-25T21:45:30.956Z",
     "after": [
       "AR0351"
     ]
@@ -3353,7 +3353,7 @@
     "title": "packages/core/test/job-state.test.ts:142 fails now and then with ENOENT on the job record active file",
     "status": "planned",
     "path": "spec/features/AR0423-packages-core-test-job-state-test-ts-142-fails-now-and-then-with-enoent-on-the/ticket.md",
-    "updated": "2026-10-25T19:45:31.212Z",
+    "updated": "2026-10-25T21:41:35.521Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -3364,9 +3364,9 @@
   {
     "id": "AR0424",
     "title": "A redirect's host is resolved twice, so DNS rebinding still reaches a private address",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0424-a-redirect-s-host-is-resolved-twice-so-dns-rebinding-still-reaches-a-private/ticket.md",
-    "updated": "2026-10-25T21:15:40.747Z"
+    "updated": "2026-10-25T21:41:01.269Z"
   },
   {
     "id": "AR0425",
@@ -3399,9 +3399,9 @@
   {
     "id": "AR0428",
     "title": "Redaction runs twice on two paths, so the extensions rewrite part of an env-file secret before the plugin can match it whole",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0428-redaction-runs-twice-on-two-paths-so-the-extensions-rewrite-part-of-an-env-file/ticket.md",
-    "updated": "2026-10-25T21:31:55.924Z",
+    "updated": "2026-10-25T21:36:18.550Z",
     "after": [
       "AR0341"
     ]
@@ -3464,6 +3464,39 @@
       "AR0404",
       "AR0405",
       "AR0428"
+    ]
+  },
+  {
+    "id": "AR0434",
+    "title": "A secret-named variable only the coordinator's omp holds is no longer redacted by name",
+    "status": "planned",
+    "path": "spec/features/AR0434-a-secret-named-variable-only-the-coordinator-s-omp-holds-is-no-longer-redacted/ticket.md",
+    "updated": "2026-10-25T21:36:35.832Z",
+    "after": [
+      "AR0402",
+      "AR0403",
+      "AR0404",
+      "AR0405"
+    ]
+  },
+  {
+    "id": "AR0435",
+    "title": "Embedded-IPv4 IPv6 prefixes are not in the refused ranges",
+    "status": "dropped",
+    "path": "spec/features/AR0435-embedded-ipv4-ipv6-prefixes-are-not-in-the-refused-ranges/ticket.md",
+    "updated": "2026-10-25T21:41:15.454Z"
+  },
+  {
+    "id": "AR0436",
+    "title": "A bash call that changes the tree after its checks, before it ends, is recorded on the tree it ends on",
+    "status": "planned",
+    "path": "spec/features/AR0436-a-bash-call-that-changes-the-tree-after-its-checks-before-it-ends-is-recorded-on/ticket.md",
+    "updated": "2026-10-25T21:45:55.147Z",
+    "after": [
+      "AR0402",
+      "AR0403",
+      "AR0404",
+      "AR0405"
     ]
   }
 ]

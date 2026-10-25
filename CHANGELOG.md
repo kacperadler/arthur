@@ -20,6 +20,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0363 A binary file counts no lines, so a branch of any binary content skips the review on its checks (36c70b5d)
 - AR0364 Telegram answers every member of the configured chat, not the owner alone (AR0311 F7, confirmed) (8a78e74d)
 - AR0366 The models plugin's private network holds two cloud metadata addresses (AR0311 F18, confirmed) (8ee419e4)
+- AR0367 A site check follows a redirect to any address, loopback and metadata included (d89d43bc)
 - AR0368 The probe's curl reads the user's `.curlrc` and the proxy variables, so the request with the key goes where they say (a43f13dd)
 - AR0375 The CI workflows set no `permissions` and pin actions and the site's runner by tag (AR0311 F16, confirmed) (7671bc69)
 - AR0376 Run each job's agent in a sandbox: the real bound the worktree guard is not (75df243f)

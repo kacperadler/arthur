@@ -32,9 +32,10 @@ function repository(): string {
 
 // The plugin, set up only (no coordinator), on a fake host in Warsaw with quiet hours across midnight, at `now`, with the
 // projects `demo` (the main one, holding the jobs' repository) and `shop`.
-async function setup(t: TestContext, now = "2026-10-18T10:00:00Z") {
+// `env`, the env file's values: the host's `secrets`.
+async function setup(t: TestContext, now = "2026-10-18T10:00:00Z", env: Record<string, string> = {}) {
 	const [demo, shop] = [repository(), repository()];
-	const fake = fakeHost({ name: "orchestration", root: demo, timeZone: "Europe/Warsaw", quietHours: { from: "22:00", to: "07:30" }, now: new Date(now) });
+	const fake = fakeHost({ name: "orchestration", root: demo, timeZone: "Europe/Warsaw", quietHours: { from: "22:00", to: "07:30" }, now: new Date(now), env });
 	fake.provide("projects", () => [
 		{ name: "demo", path: demo, prefix: "DM" },
 		{ name: "shop", path: shop, prefix: "SH" },
@@ -161,7 +162,7 @@ test("the marks of noticed events older than 7 days go at the next block, newer 
 });
 
 test("a crash before the notice, its question waiting for the log's lock: the next start sends it once, with the question asked before, else asking it", async (t) => {
-	const { fake, home, notices } = await setup(t);
+	const { fake, home, notices } = await setup(t, undefined, { ARTHUR_ORCHESTRATION_PASS: "correct-horse-battery" });
 	const asked = join(fake.host.folder, "asked");
 	mkdirSync(asked);
 	const dead = String(spawnSync(process.execPath, ["-e", ""]).pid);
@@ -189,10 +190,10 @@ test("a crash before the notice, its question waiting for the log's lock: the ne
 	await decision("ask", "--kind", "job", "--question", "May I drop the rest?", "--job", a);
 	await decision("ask", "--kind", "job", "--question", "May I drop it?", "--job", a);
 	await decision("answer", "DM-D3", "--decided", "Drop it", "yes");
-	// b asked before its crash; the log holds its question trimmed and redacted.
-	const rename = "May I rename it to sk-live-4f9a8b7c? ";
+	// b asked before its crash; the log holds its question trimmed and redacted, a value of the env file too.
+	const rename = "May I rename it to sk-live-4f9a8b7c with correct-horse-battery? ";
 	await decision("ask", "--kind", "job", "--question", rename, "--job", b);
-	assert.deepEqual(asks().map((each) => each.question).at(-1), "May I rename it to [redacted]?");
+	assert.deepEqual(asks().map((each) => each.question).at(-1), "May I rename it to [redacted] with [redacted]?");
 	crashed(a, "May I drop it?", dead);
 	crashed(b, rename, dead);
 	crashed(c, rename, String(live.pid));

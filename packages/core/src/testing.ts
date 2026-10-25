@@ -101,7 +101,7 @@ export type FakeHost = {
 	setNow(at: Date): void;
 };
 
-// The host one plugin sees, alone: its options as given (`enabled` is the host's, left out), its env values, and its folder,
+// The host one plugin sees, alone: its options as given (`enabled` is the host's, left out), its env values (its `secrets` too), and its folder,
 // `<temporary folder>/<name>/`, whose parent is the home folder holding the event log and the job records. A `call` or a
 // command's registration refuses like the real host's, naming the plugin. Its clock stands still at `now` (default
 // 2026-01-01T00:00:00Z) in `timeZone` (default UTC) until `setNow` moves it. `host.board` reads the project list the test
@@ -132,7 +132,7 @@ export function fakeHost(plugin: {
 	const time = clock(plugin.timeZone ?? "UTC", plugin.quietHours, () => new Date(now));
 	const jobs = jobRunner(home, plugin.root ?? home, join(plugin.root ?? home, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, "omp", time, bus, names.collect);
 	let loading = false, following = false;
-	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, folder, clock: time, agent: "omp", code: plugin.code ?? [], package: undefined }, () => loading);
+	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, secrets: Object.values(plugin.env ?? {}), folder, clock: time, agent: "omp", code: plugin.code ?? [], package: undefined }, () => loading);
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));
 	const [provided, calls, commands, kinds, roles] = [[] as string[], [] as Use[], [] as Command[], [] as Kind[], [] as Role[]];
 	const host: Host = {

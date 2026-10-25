@@ -39,7 +39,7 @@ const CORE = dirname(import.meta.dirname);
 // `commands` holds what the core registered before; the plugins' commands join it, and a name registered twice refuses the load.
 export async function loadPlugins(config: LoadedConfig, shell: Shell = process.env, commands: CommandRegistry = commandRegistry()): Promise<LoadedPlugins> {
 	const sorted = await checkPlugins(config);
-	const { values, warnings } = resolveEnv(config, shell);
+	const { values, warnings } = resolveEnv(config, shell), secrets = Object.values(values).flatMap((each) => Object.values(each));
 	const names = registry();
 	const time = clock(config.core.timeZone, config.core.quietHours);
 	const bus = eventBus(config.core.home);
@@ -54,7 +54,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		const { enabled: _, ...options } = plugin.options ?? {};
 		const folder = join(config.core.home, plugin.name);
 		mkdirSync(folder, { recursive: true });
-		const host = pluginHost(names, commands, bus, jobs, { name: plugin.name, options, env: values[plugin.name] ?? {}, folder, clock: time, agent: config.core.agent.command, code, package: packages[index] }, () => loading);
+		const host = pluginHost(names, commands, bus, jobs, { name: plugin.name, options, env: values[plugin.name] ?? {}, secrets, folder, clock: time, agent: config.core.agent.command, code, package: packages[index] }, () => loading);
 		await pluginStep(plugin.name, "setup", () => plugin.setup(host));
 	}
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));

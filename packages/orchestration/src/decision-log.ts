@@ -166,8 +166,8 @@ export function ask(host: Host, project: Project, asked: Omit<Ask, "record" | "i
 	const { added, unwritten } = change(host, project, (entries, time) => {
 		const next = Math.max(0, ...entries.flatMap((each) => (each.record === "ask" ? [Number(DECISION_ID.exec(each.id)?.[2])] : []))) + 1;
 		const kept = { ...(asked.ticket === undefined ? {} : { ticket: asked.ticket }), ...(asked.job === undefined ? {} : { job: asked.job }), ...(asked.class === undefined ? {} : { class: asked.class }) };
-		const said = recommend === undefined ? {} : { recommend: typeof recommend === "number" ? recommend : redact(recommend) };
-		const record = { record: "ask", id: `${project.prefix}-D${next}`, time, project: project.name, kind: asked.kind, question: redact(question), options: options.map(redact), ...said, ...kept } satisfies Ask;
+		const said = recommend === undefined ? {} : { recommend: typeof recommend === "number" ? recommend : redact(recommend, host.secrets) };
+		const record = { record: "ask", id: `${project.prefix}-D${next}`, time, project: project.name, kind: asked.kind, question: redact(question, host.secrets), options: options.map((option) => redact(option, host.secrets)), ...said, ...kept } satisfies Ask;
 		const policy = byPolicy(entries, record, kind);
 		classes = policy.classes;
 		return [record, ...policy.answers];
@@ -187,14 +187,14 @@ export function answer(host: Host, project: Project, id: string, given: { readon
 	const picked = given.picked === undefined ? undefined : Number(given.picked);
 	if (picked !== undefined && !(Number.isInteger(picked) && picked >= 1 && picked <= found.options.length)) throw new Error(`--picked ${given.picked}: no such option; ${id} offered ${found.options.length}`);
 	if (found.class !== undefined && picked === undefined) throw new Error(`${id} proposes a class: --picked 1 approves it, --picked 2 refuses it`);
-	const record: Answer = { record: "answer", id, time: stamp(host), decided: redact(oneLine(given.decided)), ...(picked === undefined ? {} : { picked }), words: redact(given.words.trim()) };
+	const record: Answer = { record: "answer", id, time: stamp(host), decided: redact(oneLine(given.decided), host.secrets), ...(picked === undefined ? {} : { picked }), words: redact(given.words.trim(), host.secrets) };
 	return { answer: record, ask: found, unwritten: change(host, project, () => [record]).unwritten };
 }
 
 // Closes the open questions `match` picks, with `reason`; the ids closed. A question answered or closed already is left.
 export function close(host: Host, project: Project, match: (ask: Ask) => boolean, reason: string, lock = withLock): { readonly ids: readonly string[]; readonly unwritten?: string } {
 	const { added, unwritten } = change(host, project, (entries, time) =>
-		decisions(entries).flatMap(({ ask, state }) => (state === "open" && match(ask) ? [{ record: "close", id: ask.id, time, reason: redact(reason) } satisfies Close] : [])),
+		decisions(entries).flatMap(({ ask, state }) => (state === "open" && match(ask) ? [{ record: "close", id: ask.id, time, reason: redact(reason, host.secrets) } satisfies Close] : [])),
 	lock);
 	return { ids: added.map((each) => each.id), unwritten };
 }

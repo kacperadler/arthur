@@ -143,7 +143,7 @@ test("--auto merges with autoMerge on, a PASS on the tip and CI passed; refused,
 	assert.equal(fake.host.board.get("AC0001")?.status, "merged");
 });
 
-test("--auto refuses a held path: a role, the vision, CI, package.json, the always-review list, a held file renamed away; another path goes in", async (t) => {
+test("--auto refuses a held path: a role, the vision, CI, package.json, the always-review list (a lockfile too), a held file renamed away; another path goes in", async (t) => {
 	const { worker, review, merge, set, answers, git, root } = await load(t);
 	set({ autoMerge: true, prompts: { rolesDir: "agents/roles" } });
 	const cases: readonly [Readonly<Record<string, string>>, readonly string[], string, string][] = [
@@ -153,6 +153,7 @@ test("--auto refuses a held path: a role, the vision, CI, package.json, the alwa
 		[{ ".github/workflows/ci.yml": "on: pull_request\n" }, [], ".github/workflows/ci.yml", "CI"],
 		[{ "packages/shop/package.json": "{}\n" }, [], "packages/shop/package.json", "package.json"],
 		[{ "src/env.ts": "export const env = 1;\n" }, [], "src/env.ts", "the always-review list"],
+		[{ "packages/shop/pnpm-lock.yaml": "lockfileVersion: '9.0'\n" }, [], "packages/shop/pnpm-lock.yaml", "the always-review list"],
 		[{}, [".github/workflows/ci.yml", "ci-old.yml"], ".github/workflows/ci.yml", "CI"],
 	];
 	for (const [at, [changes, rename, path, rule]] of cases.entries()) {
@@ -161,12 +162,12 @@ test("--auto refuses a held path: a role, the vision, CI, package.json, the alwa
 		answers.ci = ciRun(job.tip, job.branch);
 		assert.equal((await merge(job.id, "--auto")).err, `arthur merge: --auto merges no held path: ${job.branch} changes ${path} (${rule}); its merge waits for the owner: arthur merge ${job.id} on his word; main is unchanged`, path);
 	}
-	const plain = await worker(8, { "docs/roles.md": "# Roles\n", "spec/vision.md.bak": "x\n" });
+	const plain = await worker(9, { "docs/roles.md": "# Roles\n", "spec/vision.md.bak": "x\n" });
 	await review(plain.id, "PASS");
 	answers.ci = ciRun(plain.tip, plain.branch);
 	const merged = await merge(plain.id, "--auto");
 	assert.equal(merged.code, undefined, merged.err);
-	assert.equal(git(root, "log", "-1", "--format=%s"), "Merge AC0008: T AC0008");
+	assert.equal(git(root, "log", "-1", "--format=%s"), "Merge AC0009: T AC0009");
 });
 
 test("--auto reads past a replacement of main's tip under refs/replace: the held path the branch changes still refuses it", async (t) => {

@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/src/ci-wait.ts:113`
 - What: since AR0359, `delivery.ciEnded` counts only a run on the tip (`below === 0`), but a wait's round still cancels a run on any of the branch's own commits (`run.below >= wait.own`) once it has run 30 minutes. When it cancels a run 1 below the tip, that run's end reaches the coordinator through github's wake only, without `cancelled by delivery after it ran 30 minutes`, so the coordinator sees a cancel it did not ask for and no word of who did it. Reading of the lines; no test runs it.
 - Suggestion: decide whether the wait should cancel only the tip's run (`run.below !== 0` in the round, and `own` then dropped from `Wait`), or keep cancelling a hung ancestor, which may hold the runner the tip's run waits for, and have `ciEnded` tell a run it cancelled at any depth. The plain merge's `own` reading stays as it is.
-- Status: open
+- Status: ticket AR0437

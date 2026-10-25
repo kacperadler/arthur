@@ -2763,9 +2763,9 @@
   {
     "id": "AR0359",
     "title": "`--auto` takes CI passed on an older commit of the branch (AR0311 F13, confirmed)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0359-auto-takes-ci-passed-on-an-older-commit-of-the-branch-ar0311-f13-confirmed/ticket.md",
-    "updated": "2026-10-25T22:24:09.902Z",
+    "updated": "2026-10-25T22:29:36.208Z",
     "after": [
       "AR0362"
     ]
@@ -3492,6 +3492,19 @@
     "status": "planned",
     "path": "spec/features/AR0436-a-bash-call-that-changes-the-tree-after-its-checks-before-it-ends-is-recorded-on/ticket.md",
     "updated": "2026-10-25T21:45:55.147Z",
+    "after": [
+      "AR0402",
+      "AR0403",
+      "AR0404",
+      "AR0405"
+    ]
+  },
+  {
+    "id": "AR0437",
+    "title": "A CI wait still cancels a hung run below the tip, whose end it no longer tells",
+    "status": "planned",
+    "path": "spec/features/AR0437-a-ci-wait-still-cancels-a-hung-run-below-the-tip-whose-end-it-no-longer-tells/ticket.md",
+    "updated": "2026-10-25T22:29:56.999Z",
     "after": [
       "AR0402",
       "AR0403",

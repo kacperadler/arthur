@@ -2695,9 +2695,9 @@
   {
     "id": "AR0351",
     "title": "A docs-only branch that rewrites the prompt files every later job reads gets `no review`",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0351-a-docs-only-branch-that-rewrites-the-prompt-files-every-later-job-reads-gets-no-review/ticket.md",
-    "updated": "2026-10-23T14:38:03.455Z",
+    "updated": "2026-10-25T21:01:00.060Z",
     "after": [
       "AR0358"
     ]

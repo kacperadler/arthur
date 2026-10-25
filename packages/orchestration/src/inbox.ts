@@ -4,7 +4,7 @@ import { describe } from "@arthur/core";
 import { type Received, received, turnText } from "@arthur/core/parts";
 import type { Host } from "@arthur/core/plugin";
 import { byState } from "./context.ts";
-import { redact } from "./credential.ts";
+import { redact, redactValues } from "./credential.ts";
 import { handOver } from "./hand-over.ts";
 import { held } from "./silent.ts";
 
@@ -119,7 +119,8 @@ export function queue(folder: string, event: { readonly seq: number; readonly ti
 
 // The wake: the state its run ended in (the question, when blocked on the owner), the first lines of its final message (the
 // job's own unless `final` stands for it), its project when not the main one, and what the plugins add for it (the procedure
-// of its kind), asked with the job-ended data and that final message whole; the question and those lines redacted.
+// of its kind), asked with the job-ended data and that final message whole; the question redacted, those lines of the env
+// file's values only, so their job ids, ticket folders and hashes stay readable, but for the line that holds the question.
 function wake(host: Host, data: unknown, final?: string): string {
 	const job = (data ?? {}) as Readonly<Record<string, unknown>>;
 	const id = String(job.id);
@@ -129,7 +130,9 @@ function wake(host: Host, data: unknown, final?: string): string {
 	const main = host.collect("projects").length > 0 ? host.board.projects()[0]?.name : undefined;
 	if (main !== undefined && job.project !== main) lines.push(`Project: ${String(job.project)}.`);
 	const message = final ?? host.jobs.result(id);
-	const result = redact(message, host.secrets).trimEnd().split("\n");
+	const result = redactValues(message, host.secrets).trimEnd().split("\n");
+	// Its first line, `Blocked: user <question>`, holds the question: redacted as the question is.
+	if (asks !== undefined) result[0] = redact(result[0] ?? "", host.secrets);
 	if (result.join("") === "") lines.push("Its final message: none.");
 	else {
 		const cut = result.length > RESULT_LINES ? ` (the first ${RESULT_LINES} of ${result.length} lines)` : "";

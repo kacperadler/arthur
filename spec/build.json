@@ -2619,9 +2619,9 @@
   {
     "id": "AR0344",
     "title": "A pasted secret of capitals, digits and `_` in a `...Env` option is printed by the refusal",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0344-a-pasted-secret-of-capitals-digits-and-in-a-env-option-is-printed-by-the-refusal/ticket.md",
-    "updated": "2026-10-23T14:22:40.472Z"
+    "updated": "2026-10-25T17:29:14.516Z"
   },
   {
     "id": "AR0345",
@@ -2773,9 +2773,9 @@
   {
     "id": "AR0366",
     "title": "The models plugin's private network holds two cloud metadata addresses (AR0311 F18, confirmed)",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0366-the-models-plugin-s-private-network-holds-two-cloud-metadata-addresses-ar0311-f18-confirmed/ticket.md",
-    "updated": "2026-10-25T17:23:58.021Z"
+    "updated": "2026-10-25T17:31:15.324Z"
   },
   {
     "id": "AR0367",
@@ -2836,9 +2836,9 @@
   {
     "id": "AR0375",
     "title": "The CI workflows set no `permissions` and pin actions and the site's runner by tag (AR0311 F16, confirmed)",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0375-the-ci-workflows-set-no-permissions-and-pin-actions-and-the-site-s-runner-by-tag-ar0311-f16-confirmed/ticket.md",
-    "updated": "2026-10-25T17:22:22.667Z"
+    "updated": "2026-10-25T17:26:59.752Z"
   },
   {
     "id": "AR0376",

@@ -2542,9 +2542,9 @@
   {
     "id": "AR0333",
     "title": "`cd -`, `pushd` with no operand and `$OLDPWD` are read as `cd $HOME`",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0333-cd-pushd-with-no-operand-and-oldpwd-are-read-as-cd-home/ticket.md",
-    "updated": "2026-10-25T17:38:07.806Z"
+    "updated": "2026-10-25T17:52:50.851Z"
   },
   {
     "id": "AR0334",
@@ -2836,9 +2836,9 @@
   {
     "id": "AR0375",
     "title": "The CI workflows set no `permissions` and pin actions and the site's runner by tag (AR0311 F16, confirmed)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0375-the-ci-workflows-set-no-permissions-and-pin-actions-and-the-site-s-runner-by-tag-ar0311-f16-confirmed/ticket.md",
-    "updated": "2026-10-25T17:51:12.609Z"
+    "updated": "2026-10-25T17:55:54.981Z"
   },
   {
     "id": "AR0376",
@@ -3133,9 +3133,9 @@
   {
     "id": "AR0417",
     "title": "The push's refusal prints a credential git names without `://`",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0417-the-push-s-refusal-prints-a-credential-git-names-without/ticket.md",
-    "updated": "2026-10-25T17:36:39.316Z"
+    "updated": "2026-10-25T17:51:27.391Z"
   },
   {
     "id": "AR0418",
@@ -3143,5 +3143,12 @@
     "status": "planned",
     "path": "spec/features/AR0418-a-repo-url-that-new-url-cannot-parse-is-printed-with-its-credential-by-the-clone/ticket.md",
     "updated": "2026-10-25T17:36:27.662Z"
+  },
+  {
+    "id": "AR0419",
+    "title": "The workflow test checks neither what the top-level permissions grant nor a .yaml workflow",
+    "status": "planning",
+    "path": "spec/features/AR0419-the-workflow-test-checks-neither-what-the-top-level-permissions-grant-nor-a-yaml/ticket.md",
+    "updated": "2026-10-25T17:56:05.408Z"
   }
 ]

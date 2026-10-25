@@ -14,7 +14,7 @@ import { section } from "./plans.ts";
 // crash between the two is repaired by the next write. A question an approved class matches is answered by policy in the
 // same write (decision-classes.ts). docs/commands/decision.md.
 
-export const KINDS = ["job", "question", "plan", "review", "budget"];
+export const KINDS = ["job", "question", "plan", "review", "budget", "merge"];
 export const FILE = "spec/decisions.jsonl";
 export const DECISION_ID = /^([A-Z]+)-D(\d+)$/;
 // The longest Decisions line; a longer one has the owner's words cut.

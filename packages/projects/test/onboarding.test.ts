@@ -114,7 +114,7 @@ test("a run that ended without questions, or did not finish, brings the procedur
 	assert.deepEqual(woken(fake, { ...finished(id), state: "blocked", reason: "user: which shop?" }), [PROCEDURE]);
 	assert.deepEqual(woken(fake, { ...finished(id), kind: "worker" }), [undefined]);
 	assert.match(PROCEDURE, /arthur continue <job id> '<the answers, by number>'/);
-	assert.match(PROCEDURE, /arthur merge <job id> --unreviewed`, then the committed files/);
+	assert.match(PROCEDURE, /arthur merge <job id> --unreviewed --decision <its id>`, then the committed files/);
 });
 
 // A branch `name` from `from` of `shop` with `change` committed on it; the checkout goes back to main.

@@ -14,7 +14,7 @@ The later answer counts. A line under the ticket's Decisions that differs from w
 
 - `<words>`: only the questions whose question, options, decisions or owner's words hold every word, in any case.
 - `--open`: only the questions with no answer and no close.
-- `--kind <kind>`: only that kind, one of `job`, `question`, `plan`, `review`, `budget`.
+- `--kind <kind>`: only that kind, one of `job`, `question`, `plan`, `review`, `budget`, `merge`.
 - `--ticket <id>`: only the questions of that ticket.
 
 None matching prints `no decision matches`.
@@ -29,4 +29,4 @@ None matching prints `no decision matches`.
 
 None says `no classes yet`.
 
-Refused, exit 1: a log with a line that is not a record (`arthur decision --help`), naming the line; an id the log does not hold, or whose prefix no project has; a `--kind` other than the five; an unknown `--project`. Wrong usage (an unknown flag, a flag without its value or given twice, `--classes` with words or another flag) prints the usage and exits 2.
+Refused, exit 1: a log with a line that is not a record (`arthur decision --help`), naming the line; an id the log does not hold, or whose prefix no project has; a `--kind` other than the six; an unknown `--project`. Wrong usage (an unknown flag, a flag without its value or given twice, `--classes` with words or another flag) prints the usage and exits 2.

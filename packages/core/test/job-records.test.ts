@@ -168,6 +168,17 @@ test("arthur prune frees a merged worker's worktree, branch and record, and keep
 	assert.deepEqual(jobs.prune([unmerged.id.slice(-8)]), [`${unmerged.id}: branch arthur/${unmerged.id} deleted; record deleted`]);
 });
 
+test("arthur prune keeps a branch that a replacement of main's tip under refs/replace makes look merged", async () => {
+	const { root, home, jobs } = setup();
+	const job = await worker(jobs, home);
+	git(job.worktree, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "--allow-empty", "-m", "work");
+	// Main's tip read as a child of the branch's tip, as a job's git replace would write: `git branch -d` would take it as merged.
+	const fake = git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit-tree", "-p", git(job.worktree, "rev-parse", "HEAD"), "-m", "fake", "main^{tree}");
+	git(root, "replace", git(root, "rev-parse", "main"), fake);
+	assert.match(jobs.prune([job.id]).join("\n"), new RegExp(`kept branch arthur/${job.id} and the record: git branch: error: the branch 'arthur/${job.id}' is not fully merged`));
+	assert.equal(git(root, "branch", "--list", `arthur/${job.id}`), `arthur/${job.id}`);
+});
+
 test("a spawn and a prune run no hook and no fsmonitor that the repository's shared config names", async () => {
 	const { root, home, jobs } = setup();
 	// Each hook these steps could run, and an fsmonitor, noting its name in `ran`, as a job's program may have set them.

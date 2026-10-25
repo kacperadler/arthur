@@ -140,6 +140,18 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `git switch --force-create=main ${own.branch}` }, MAIN],
 		["bash", { command: "git worktree add -f /tmp/arthur-worktree-guard-test main" }, MAIN],
 		["bash", { command: "git worktree add --forc /tmp/arthur-worktree-guard-test main" }, MAIN],
+		// A replacement under refs/replace, which every worktree reads main's commits through.
+		["bash", { command: "git replace main HEAD" }, MAIN],
+		["bash", { command: "git replace -f main HEAD" }, MAIN],
+		["bash", { command: "git replace -d main" }, MAIN],
+		["bash", { command: "git replace --delete main" }, MAIN],
+		["bash", { command: "git replace --edit main" }, MAIN],
+		["bash", { command: "git replace --graft main HEAD" }, MAIN],
+		["bash", { command: "git replace --convert-graft-file" }, MAIN],
+		["bash", { command: "git replace main -- -l" }, MAIN],
+		["bash", { command: "git replace - main" }, MAIN],
+		["bash", { command: `git -C ${main} replace main HEAD` }, MAIN],
+		["bash", { command: "git -c alias.r=replace r main HEAD" }, MAIN],
 		["bash", { command: `echo "gitdir: ${root}/.git" > .git` }, MAIN],
 		["bash", { command: "rm .git", cwd: "sub" }, LINK],
 		["bash", { command: "rm ../.git", cwd: "sub" }, MAIN],
@@ -180,6 +192,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `git checkout -B ${own.branch} HEAD~1 && git switch -C ${own.branch} && git switch --no-ignore-other-worktrees topic` }, undefined],
 		["bash", { command: "git worktree add /tmp/arthur-worktree-guard-test -b topic && git worktree remove --force /tmp/arthur-worktree-guard-test" }, undefined],
 		["bash", { command: "git remote add -f fork /tmp/fork.git && echo x > .gitignore && git checkout -- -B" }, undefined],
+		["bash", { command: `git replace && git replace -l && git replace --list 'v*' && git replace --li --format=medium && git -C ${main} replace -l` }, undefined],
 		["bash", { command: `echo 'rm ${main}/README.md' > notes.txt` }, undefined],
 		["bash", { command: `git commit -m "cd ${main} && rm README.md"` }, undefined],
 		["bash", { command: `cat > notes.md <<'EOF'\nrm -rf ${main}\necho x > ${main}/f\nEOF\nrm notes.md` }, undefined],
@@ -207,6 +220,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	// The refusal shows the path as the call gave it, and names the job's own worktree, where the write would go instead.
 	const reason = worktreeRefusal(place, "bash", { command: `rm ${main}/README.md` }) ?? "";
 	assert.ok(reason.includes(`(${main}/README.md)`) && reason.includes(` own worktree ${own.worktree}`), reason);
+	const replaced = worktreeRefusal(place, "bash", { command: "git replace -d main" }) ?? "";
+	assert.ok(replaced.includes("into the main checkout (git replace -d main)"), replaced);
 });
 
 test("git config that changes the config every worktree shares, the user's or the system's is refused naming its key; reads, a worktree's own and a file elsewhere pass", async () => {

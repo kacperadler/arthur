@@ -2,7 +2,7 @@
 
 // Subcommands that write a tree, the index or a ref of the checkout they run in, and those that change their file operands
 // (`init` its folder and its `--separate-git-dir`, whose `.git` file it writes there).
-const WRITES_CHECKOUT = ["commit", "checkout", "checkout-index", "read-tree", "update-index", "reset", "add", "restore", "clean", "rebase", "merge", "cherry-pick", "revert", "apply", "am", "rm", "mv", "switch", "pull", "fetch", "push", "bisect", "sparse-checkout", "submodule", "symbolic-ref", "replace", "filter-branch", "init"];
+const WRITES_CHECKOUT = ["commit", "checkout", "checkout-index", "read-tree", "update-index", "reset", "add", "restore", "clean", "rebase", "merge", "cherry-pick", "revert", "apply", "am", "rm", "mv", "switch", "pull", "fetch", "push", "bisect", "sparse-checkout", "submodule", "symbolic-ref", "filter-branch", "init"];
 const WRITES_OPERANDS = ["add", "rm", "mv", "restore", "clean", "apply", "init"];
 const VALUE_OPTIONS = ["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--attr-source"];
 // Config the guard does not read, given with the call: an include by `-c`, an alias or include by `--config-env`, and the
@@ -21,9 +21,11 @@ const CONFIG_SUBCOMMANDS = ["set", "unset", "rename-section", "remove-section", 
 // words before `git`; whether it writes the checkout it runs in, and whether it changes its operands; `config`, a `git
 // config` that sets or unsets: its key, its `--global`, `--system` or `--worktree` (else ""), the `--file` it writes, if
 // any, and whether such a `--worktree` or `--file` write may add an alias or include (`loads`); `points`, the ref it may
-// point a checkout at though another worktree holds it ("" when any); `alias`, the words Git runs instead when `sub` is an
-// alias given by `-c` (Git runs a builtin of that name first, so both are judged); `unread`, whether it reads config the
-// guard does not: a shell alias for `sub`, or `UNREAD`.
+// point a checkout at though another worktree holds it ("" when any); `replaces`, whether it writes a replacement under
+// `refs/replace` (`git replace` but a bare one, or one that lists: `-l`, a bundle with it, `--list` or an abbreviation,
+// before `--`; Git refuses any other word with those); `alias`, the words Git runs instead when `sub` is an alias given by
+// `-c` (Git runs a builtin of that name first, so both are judged); `unread`, whether it reads config the guard does not: a
+// shell alias for `sub`, or `UNREAD`.
 export type GitCall = {
 	readonly sub: string;
 	readonly rest: readonly string[];
@@ -33,6 +35,7 @@ export type GitCall = {
 	readonly writesOperands: boolean;
 	readonly config: { readonly key: string; readonly scope: "" | "--global" | "--system" | "--worktree"; readonly file: string | undefined; readonly loads: boolean } | undefined;
 	readonly points: string | undefined;
+	readonly replaces: boolean;
 	readonly alias: readonly string[] | undefined;
 	readonly unread: boolean;
 };
@@ -56,7 +59,9 @@ export function gitCall(args: readonly string[], assignments: readonly string[] 
 	const unread = value?.startsWith("!") || assignments.some((word) => UNREAD.test(word)) || options.some((option, at) => options[at - 1] === "-c" && /^include/i.test(option)) || configEnv.some((option) => LOADS.test(option));
 	// Without its definitions, so an alias that names itself, or a loop of them, ends as Git's own loop check does.
 	const alias = value === undefined ? undefined : [...options.filter((_, at) => !defines(at) && !defines(at + 1)), ...aliasWords(value), ...rest];
-	return { sub, rest, chdirs, trees, writesCheckout: WRITES_CHECKOUT.includes(sub) || writesRef(sub, rest), writesOperands: WRITES_OPERANDS.includes(sub) || worktree, config: sub === "config" ? configWrite(rest) : undefined, points: pointsAt(sub, rest), alias, unread };
+	const lists = rest.slice(0, rest.includes("--") ? rest.indexOf("--") : rest.length).some((word) => /^-[a-zA-Z]*l/.test(word) || (word.length > 2 && "--list".startsWith(word)));
+	const replaces = sub === "replace" && rest.length > 0 && !lists;
+	return { sub, rest, chdirs, trees, writesCheckout: WRITES_CHECKOUT.includes(sub) || writesRef(sub, rest), writesOperands: WRITES_OPERANDS.includes(sub) || worktree, config: sub === "config" ? configWrite(rest) : undefined, points: pointsAt(sub, rest), replaces, alias, unread };
 }
 
 // The words of an alias, split as Git splits one: at blanks outside quotes, with `'…'`, `"…"` and `\x` quoting.

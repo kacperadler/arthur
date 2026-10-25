@@ -619,7 +619,11 @@ import { checkStructure } from "./structure.ts";
 // back (git-link.ts, 44), `init` and `GIT_COMMON_DIR=` read as writes (git-writes.ts, git diff --numstat +12 -11) and the
 // guard asking both (worktree-guard.ts, +23 -23: its own worktree a place without a name, comments folded to stay at 200
 // lines). Nothing read these links before, so nothing was cut.
-const BUDGETS = { core: 6066, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1317, github: 651, manage: 928, develop: 705, findings: 254 };
+// AR0384 (F2 of AR0331; its Done means: the guard refuses `git replace` but a list, and Arthur's git calls in a main checkout
+// read past a replacement): core 5 more (6071) for `replaces`, its list forms and its comment (git-writes.ts, git diff
+// --numstat +10 -5); the guard asks it on the line that refuses a pointed checkout (worktree-guard.ts, +12 -12, its comment
+// refolded to stay at 200 lines), and `--no-replace-objects` joins the hookless flags in place. Nothing was cut.
+const BUDGETS = { core: 6071, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1317, github: 651, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

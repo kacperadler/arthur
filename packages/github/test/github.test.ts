@@ -557,6 +557,11 @@ esac\n`;
 	commit("arthur/art", first, "art/.gitattributes", "*.png filter=lfs diff=lfs merge=lfs -text\n");
 	assert.equal(await push("arthur/art"), "github: pushed arthur/art to origin: [new branch]");
 	assert.deepEqual(readFileSync(log, "utf8").trim().split("\n").slice(1), [`${local.path} push origin refs/heads/arthur/art absent`], "the pushed branch's own .gitattributes, not main's");
+	// The branch's tip replaced under refs/replace by a commit without its .gitattributes, as a job's git replace would write.
+	commit("arthur/hidden", first, "art/.gitattributes", "*.png filter=lfs diff=lfs merge=lfs -text\n");
+	git(local.path, "replace", git(local.path, "rev-parse", "arthur/hidden"), first);
+	assert.equal(await push("arthur/hidden"), "github: pushed arthur/hidden to origin: [new branch]");
+	assert.deepEqual(readFileSync(log, "utf8").trim().split("\n").slice(2), [`${local.path} push origin refs/heads/arthur/hidden absent`], "read past the replacement");
 });
 
 test("pull request reviews, polled when wakeOn names them: each told once and woken on; the first poll tells none; a pull request not updated is not asked again", async (t) => {

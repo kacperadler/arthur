@@ -36,3 +36,4 @@ In:
 
 - 2026-10-23: Source: F2 of AR0331
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; runs one at a time after the high-severity security fixes.
+- 2026-10-25: Coordinator (free hand on Arthur, the human 2026-10-23): core line budget 6066->6071 for the replace detection in git-writes.ts.

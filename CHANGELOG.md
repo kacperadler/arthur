@@ -45,6 +45,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0410 setup.md step 5 does not say `ci.workflow` needs an `origin` remote (8cd738c7)
 - AR0411 setup.md step 5 check reads as if `arthur config check` exits 0 there, while it exits 1 until step 6 (53d87690)
 - AR0412 Inside the job sandbox, a test's job wrapper dies writing /proc/self/oom_score_adj, so its agent never starts (c07f6da5)
+- AR0419 The workflow test checks neither what the top-level permissions grant nor a .yaml workflow (2095c967)
 
 ## 2026-10-23
 

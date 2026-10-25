@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
+import type { LookupOptions } from "node:dns";
+import dnsPromises from "node:dns/promises";
 import { once } from "node:events";
 import { writeFileSync } from "node:fs";
 import { createServer, type ServerResponse } from "node:http";
+import { syncBuiltinESMExports } from "node:module";
 import type { AddressInfo } from "node:net";
 import { join } from "node:path";
 import { type TestContext, test } from "node:test";
@@ -114,6 +117,57 @@ test("a redirect is followed, and the page it leads to is judged", async (t) => 
 	await until("the down notice", () => notices().length === 1);
 	await until("two checks of the page / leads to", () => site.seen("/home") >= 2);
 	assert.deepEqual(notices(), [`uptime: ${old} (project acme) is down since ${SINCE}: answered 500, expected a 2xx status`]);
+});
+
+test("a redirect to another host is followed only when no address of it is loopback, link-local or private, at each of at most 20 hops", async (t) => {
+	const [site, inside] = [await server(t), await server(t)];
+	const own = (path: string) => `http://localhost:${site.port}${path}`;
+	const to = (location: string): Answer => (response) => void response.writeHead(302, { location }).end();
+	inside.answers["/"] = ok;
+	// /r0 to /r21 is 21 redirects, one too many; /r1 to /r21, 20. 192.0.2.1 is public to the check (TEST-NET-1), so it is
+	// followed; nothing answers there, which fails the check another way. A label of 64 letters is no host name the resolver takes.
+	const targets = { "/away": inside.url("/"), "/meta": "http://169.254.169.254/latest/meta-data/", "/mapped": `http://[::ffff:127.0.0.1]:${inside.port}/`, "/self": own("/home"), "/nowhere": `http://${"a".repeat(64)}.example/`, "/public": "http://192.0.2.1:8080/" };
+	const chain = Array.from({ length: 21 }, (_, hop) => [`/r${hop}`, `/r${hop + 1}`]);
+	Object.assign(site.answers, { "/": to("/away"), "/home": ok, "/r21": ok }, Object.fromEntries([...Object.entries(targets), ...chain].map(([path, location]) => [path, to(location as string)])));
+	const sites = ["/", "/meta", "/mapped", "/self", "/r0", "/r1", "/nowhere", "/public"].map((path) => ({ url: own(path), expect: "Welcome", everySeconds: 1 }));
+	const { notices } = await started(t, { acme: sites });
+	await until("six down notices", () => notices().length === 6);
+	const reason = (path: string) => notices().find((text) => text.startsWith(`uptime: ${own(path)} `))?.replace(/^.*\(UTC\): /, "");
+	const refused = (host: string) => `redirected to ${host}, a private address the config does not name`;
+	const reasons = ["/", "/meta", "/mapped", "/self", "/r0", "/r1", "/nowhere"].map(reason);
+	assert.deepEqual(reasons, [refused(`127.0.0.1:${inside.port}`), refused("169.254.169.254"), refused(`[::ffff:7f00:1]:${inside.port}`), undefined, "answered 302, expected a 2xx status", undefined, "its host name is not found"]);
+	assert.match(reason("/public") ?? "", /^(?!redirected to)./);
+	assert.deepEqual([inside.seen("/"), site.seen("/away") >= 2, site.seen("/home") >= 2, site.seen("/r21") >= 2], [0, true, true, true]);
+});
+
+test("a refused redirect is an answer: two sites refused at once are each down, not this machine offline", async (t) => {
+	const [site, inside] = [await server(t), await server(t)];
+	site.answers["/a"] = (response) => void response.writeHead(307, { location: inside.url("/") }).end();
+	site.answers["/b"] = (response) => void response.writeHead(301, { location: "http://169.254.169.254/" }).end();
+	const [a, b] = [`http://localhost:${site.port}/a`, `http://localhost:${site.port}/b`];
+	const { events } = await started(t, { acme: [{ url: a, everySeconds: 1 }], beta: [{ url: b, everySeconds: 1 }] });
+	await until("two sites down", () => events("uptime-down").length === 2);
+	const [refused, since] = [", a private address the config does not name", START.toISOString()];
+	assert.deepEqual(events("uptime-down"), [{ project: "acme", url: a, reason: `redirected to 127.0.0.1:${inside.port}${refused}`, since }, { project: "beta", url: b, reason: `redirected to 169.254.169.254${refused}`, since }]);
+});
+
+test("a redirect to each refused range is refused before a connection, also a name with one private address among public ones; a 3xx without Location is judged", async (t) => {
+	const [site, inside] = [await server(t), await server(t)];
+	// mixed.example resolves to a public and a private address: dns.lookup is replaced in this process, the export the check reads.
+	const real = dnsPromises.lookup;
+	dnsPromises.lookup = (async (name: string, options: LookupOptions) => (name === "mixed.example" ? [{ address: "203.0.113.7", family: 4 }, { address: "10.1.2.3", family: 4 }] : real(name, options))) as typeof real;
+	syncBuiltinESMExports();
+	t.after(() => void ((dnsPromises.lookup = real), syncBuiltinESMExports()));
+	// One address in each range: unspecified, IPv6 loopback, RFC 1918, Tailscale's (its metadata address), link-local, unique local.
+	const hosts = ["0.0.0.0", "[::1]", "10.0.0.1", "172.31.255.254", "192.168.0.1", "100.100.100.200", "[fe80::1]", "[fd00:ec2::254]", "mixed.example"].map((host) => `${host}:${inside.port}`);
+	hosts.forEach((host, index) => void (site.answers[`/${index}`] = (response) => void response.writeHead(302, { location: `http://${host}/` }).end()));
+	site.answers["/bare"] = (response) => void response.writeHead(302).end();
+	const paths = [...hosts.map((_, index) => `/${index}`), "/bare"];
+	const { events } = await started(t, { acme: paths.map((path) => ({ url: `http://localhost:${site.port}${path}`, everySeconds: 1 })) });
+	await until("every site down", () => events("uptime-down").length === paths.length);
+	const reasons = [...hosts.map((host) => `redirected to ${host}, a private address the config does not name`), "answered 302, expected a 2xx status"];
+	assert.deepEqual(events("uptime-down"), paths.map((path, index) => ({ project: "acme", url: `http://localhost:${site.port}${path}`, reason: reasons[index], since: START.toISOString() })));
+	assert.deepEqual([inside.seen("/"), site.seen("/null")], [0, 0]);
 });
 
 test("each failure has its reason: a wrong status, the text missing, connection refused, a TLS error", async (t) => {

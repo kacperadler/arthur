@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/uptime/src/site-check.ts:18` (`get`), `packages/uptime/src/uptime-options.ts:23` (`BLOCKED_PORTS`)
 - What: before AR0424 every hop went through `fetch`, which refuses a bad port (25, 6667 and the others) without a connection. A hop to another host now goes through `node:http`/`node:https`, which has no such list, so a Location such as `http://mail.example:25/` is connected to and sent a GET. [INFERENCE] from the code: no test redirects to a bad port.
 - Suggestion: refuse a Location whose port is on `BLOCKED_PORTS` (exported from `uptime-options.ts`) before the hop, with its own reason; a test with a redirect to port 25 of a fake public name. Out: the config URL, already refused at load.
-- Status: open
+- Status: fixed in b045905b
 
 ## F2. No test reaches an allowed host through the node:http hop
 
@@ -20,7 +20,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/uptime/src/site-check.ts:18` (`get`), `packages/uptime/test/uptime.test.ts`
 - What: every test server listens on 127.0.0.1, which the check refuses past the config's host, so no test sees a hop through `get` answer: the `Response` built from it (status, headers, a 204/205/304 with no body), the text judged, `no answer within <n> s` for a node:http hop cut by the time limit (the `/public` case only asserts it is not a refusal, as 192.0.2.1 may be unreachable rather than silent), and `agent: false`, without which a pooled keep-alive socket kept a smoke process alive 10 s after its checks. Only a smoke run against `example.com` covered them.
 - Suggestion: a test seam for the connection, such as a `createConnection` the test can replace in this process the way it replaces `dns.lookup`, so a fake public address reaches a local server; then tests for those cases. Out: tests against a real outside host.
-- Status: open
+- Status: fixed in b045905b
 
 ## F3. Embedded-IPv4 IPv6 prefixes are not in the refused ranges
 

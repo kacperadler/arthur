@@ -151,6 +151,22 @@ test("the first available model: a provider model listed by its server, a name w
 	}
 });
 
+test("a probe ignores the user's .curlrc and the proxy variables: the request goes only to the provider", async () => {
+	const mac = await ollama();
+	const home = temporaryFolder();
+	writeFileSync(join(home, ".curlrc"), 'proxy = "http://127.0.0.1:1"\nheader = "X-Curlrc: read"\n');
+	const saved = { CURL_HOME: process.env.CURL_HOME, http_proxy: process.env.http_proxy };
+	Object.assign(process.env, { CURL_HOME: home, http_proxy: "http://127.0.0.1:1" });
+	try {
+		const { pick } = await load({ providers: { mac: { kind: "ollama", url: mac.url } } });
+		assert.deepEqual(await pick(["mac/qwen3-coder"]), { model: "mac/qwen3-coder", why: "using mac/qwen3-coder", free: true });
+		assert.deepEqual(mac.seen.map((each) => [each.path, each.headers["x-curlrc"]]), [["/api/tags", undefined]], "no .curlrc read, no proxy");
+	} finally {
+		for (const [name, value] of Object.entries(saved)) value === undefined ? delete process.env[name] : (process.env[name] = value);
+		mac.close();
+	}
+});
+
 test("a list skips a model whose server is unreachable, slow, lacks it, answers 401 or no model list; all unavailable refuses, naming each", async () => {
 	const closed = await ollama();
 	closed.close();
@@ -255,7 +271,7 @@ test("a job on another machine is probed from there, through host.jobs.run over 
 		fake.host.jobs.registerMachine({ name: "gpu", ssh: "gpu", home: temporaryFolder(), labels: {} });
 		assert.equal((await pick(["lab/qwen3-32b"], "gpu")).model, "lab/qwen3-32b");
 		const calls = readFileSync(log, "utf8");
-		assert.match(calls, /gpu 'curl' '--config' '-'/);
+		assert.match(calls, /gpu 'curl' '-q' '--config' '-'/);
 		assert.ok(!calls.includes("sk-lab-456"));
 		assert.equal(lab.seen[0]?.headers.authorization, "Bearer sk-lab-456");
 		await pick(["lab/qwen3-32b"], "local");

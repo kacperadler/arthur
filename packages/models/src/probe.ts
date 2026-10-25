@@ -60,14 +60,14 @@ async function probe(host: Host, provider: Provider, key: string | undefined, ma
 	if (outside !== undefined || found[0] === undefined) return { reason: `refused: ${name} resolves to ${outside ?? "nothing"}, not a private address` };
 	const port = url.port || (url.protocol === "https:" ? "443" : "80");
 	const config = [
-		"silent",
-		"show-error",
+		"silent", "show-error",
+		'noproxy = "*"',
 		`url = ${quoted(`${provider.url.replace(/\/+$/, "")}${provider.kind === "ollama" ? "/api/tags" : "/models"}`)}`,
 		...(isIP(name) === 0 ? [`resolve = ${quoted(`${name}:${port}:${isIP(found[0]) === 6 ? `[${found[0]}]` : found[0]}`)}`] : []),
 		...(key === undefined ? [] : [`header = ${quoted(`Authorization: Bearer ${key}`)}`]),
 		'write-out = "\\n%{http_code}"',
 	];
-	const ran = await host.jobs.run(machine, ["curl", "--config", "-"], seconds, `${config.join("\n")}\n`);
+	const ran = await host.jobs.run(machine, ["curl", "-q", "--config", "-"], seconds, `${config.join("\n")}\n`);
 	if (ran.code !== 0) return { reason: `unreachable: ${ran.stderr.trim().split("\n").at(-1) || `curl exited ${ran.code}`}` };
 	const cut = ran.stdout.lastIndexOf("\n");
 	const status = ran.stdout.slice(cut + 1);

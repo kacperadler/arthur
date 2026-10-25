@@ -2970,9 +2970,9 @@
   {
     "id": "AR0393",
     "title": "A remote's `url` can name a transport whose helper runs from PATH",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0393-a-remote-s-url-can-name-a-transport-whose-helper-runs-from-path/ticket.md",
-    "updated": "2026-10-24T23:09:10.943Z"
+    "updated": "2026-10-25T02:19:38.012Z"
   },
   {
     "id": "AR0394",
@@ -3001,5 +3001,19 @@
     "status": "planned",
     "path": "spec/features/AR0397-arthur-s-other-git-reads-in-a-main-checkout-still-read-through-a-replacement/ticket.md",
     "updated": "2026-10-25T01:38:49.655Z"
+  },
+  {
+    "id": "AR0398",
+    "title": "A remote named as a machine's URL sends a job's push and fetch to another repository",
+    "status": "planned",
+    "path": "spec/features/AR0398-a-remote-named-as-a-machine-s-url-sends-a-job-s-push-and-fetch-to-another-repository/ticket.md",
+    "updated": "2026-10-25T02:19:49.092Z"
+  },
+  {
+    "id": "AR0399",
+    "title": "`git lfs push origin` reads origin's URL outside Git's transport policy",
+    "status": "planned",
+    "path": "spec/features/AR0399-git-lfs-push-origin-reads-origin-s-url-outside-git-s-transport-policy/ticket.md",
+    "updated": "2026-10-25T02:19:49.297Z"
   }
 ]

@@ -2542,9 +2542,9 @@
   {
     "id": "AR0333",
     "title": "`cd -`, `pushd` with no operand and `$OLDPWD` are read as `cd $HOME`",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0333-cd-pushd-with-no-operand-and-oldpwd-are-read-as-cd-home/ticket.md",
-    "updated": "2026-10-25T18:16:15.786Z"
+    "updated": "2026-10-25T18:27:28.306Z"
   },
   {
     "id": "AR0334",
@@ -3147,9 +3147,9 @@
   {
     "id": "AR0419",
     "title": "The workflow test checks neither what the top-level permissions grant nor a .yaml workflow",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0419-the-workflow-test-checks-neither-what-the-top-level-permissions-grant-nor-a-yaml/ticket.md",
-    "updated": "2026-10-25T18:23:18.326Z"
+    "updated": "2026-10-25T18:34:03.331Z"
   },
   {
     "id": "AR0420",

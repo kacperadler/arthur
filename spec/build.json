@@ -2607,9 +2607,9 @@
   {
     "id": "AR0341",
     "title": "A blocked job's question goes to the phone as written, while the decision log redacts it",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0341-a-blocked-job-s-question-goes-to-the-phone-as-written-while-the-decision-log-redacts-it/ticket.md",
-    "updated": "2026-10-25T20:57:36.629Z",
+    "updated": "2026-10-25T21:10:35.866Z",
     "after": [
       "AR0340"
     ]
@@ -3364,9 +3364,9 @@
   {
     "id": "AR0424",
     "title": "A redirect's host is resolved twice, so DNS rebinding still reaches a private address",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0424-a-redirect-s-host-is-resolved-twice-so-dns-rebinding-still-reaches-a-private/ticket.md",
-    "updated": "2026-10-25T20:54:40.518Z"
+    "updated": "2026-10-25T21:01:51.988Z"
   },
   {
     "id": "AR0425",
@@ -3450,6 +3450,20 @@
     "updated": "2026-10-25T21:00:52.469Z",
     "after": [
       "AR0431"
+    ]
+  },
+  {
+    "id": "AR0433",
+    "title": "A plugin's wake line built from the final message is not redacted",
+    "status": "planned",
+    "path": "spec/features/AR0433-a-plugin-s-wake-line-built-from-the-final-message-is-not-redacted/ticket.md",
+    "updated": "2026-10-25T21:10:59.416Z",
+    "after": [
+      "AR0402",
+      "AR0403",
+      "AR0404",
+      "AR0405",
+      "AR0428"
     ]
   }
 ]

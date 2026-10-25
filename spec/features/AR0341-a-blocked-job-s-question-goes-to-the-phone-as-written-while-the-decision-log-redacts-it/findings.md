@@ -20,4 +20,20 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/orchestration/src/inbox.ts:138`, `packages/projects/src/onboarding.ts:31`
 - What: the wake redacts the job's question and the lines of its final message it shows, but hands each `coordinator.wake` provider the final message as the job wrote it (the providers parse it), and pushes their lines unredacted. projects' onboarding answers the questions it reads from the onboarding job's final message, so a credential in one reaches the coordinator's transcript through that line. Redacting every plugin line in the wake would also redact the job ids in their `arthur continue <id>` lines (F1).
 - Suggestion: each provider that quotes the final message redacts what it quotes with `host.secrets` and its own copy of the rules; or, after F1, the wake redacts the plugins' lines too.
-- Status: open
+- Status: ticket AR0433
+
+## F3. A `Blocked: on <text>` line reaches the wake as written
+
+- Kind: security
+- Found by: 2026-10-25-review-49ab00d3 (reviewer, non-blocking note), 2026-10-26
+- Where: `packages/orchestration/src/inbox.ts:129-133`
+- What: only the `Blocked: user` question is covered.
+- Status: ticket AR0433
+
+## F4. Secret-named process variables are not removed from the final message's lines
+
+- Kind: security
+- Found by: 2026-10-25-review-49ab00d3 (reviewer, non-blocking note), 2026-10-26
+- Where: `packages/orchestration/src/inbox.ts:133`
+- What: `redactValues` uses `host.secrets` only.
+- Status: dropped (AR0340 made `host.secrets` hold every loaded variable's value; the wake redacted nothing before)

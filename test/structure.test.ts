@@ -594,7 +594,11 @@ import { checkStructure } from "./structure.ts";
 // board before, so nothing was cut.
 // Merged main (AR0349, AR0353, AR0370) into AR0378: main's budgets plus AR0378's raises, core 5905 + 34 = 5939, orchestration
 // 2319 + 11 = 2330, delivery 1311, findings 255 - 1 = 254 (recounted with wc -l).
-const BUDGETS = { core: 5939, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1311, github: 635, manage: 928, develop: 705, findings: 254 };
+// AR0376 (F1 of AR0329; its Done means: each job's agent in a sandbox): core 75 more (6014) for job-sandbox.ts, the
+// Landlock, seccomp and no_new_privs script python3 runs before it execs the agent (31), the paths the agent may write with
+// the Git folders of its branch and each extension's folder (9), the probe that falls back to the bare agent naming why (12),
+// comments, imports and blanks (23); wrapper.ts kept at 200 by a blank line. Nothing confined a job's writes before, so nothing was cut.
+const BUDGETS = { core: 6014, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1311, github: 635, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

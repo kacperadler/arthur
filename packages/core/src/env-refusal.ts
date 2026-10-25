@@ -67,8 +67,8 @@ function namedFile(text: string, cwd: string): string | undefined {
 }
 
 // The glob in `word` that matches a secrets name, and the name: a part between slashes with an unescaped `*`, `?` or
-// `[…]` that starts with a dot, as bash needs to match a hidden file, tried on `.env` and on `.env` with the part's own
-// literal tail (`.e*.local` on `.env.local`). A bracket expression is taken as any one character.
+// `[…]` that starts with a dot, as bash needs to match a hidden file, tried on `.env` and `.mcp.json`, and on each with the
+// part's own literal tail (`.e*.local` on `.env.local`, `.mc?.json.bak` on `.mcp.json.bak`). A bracket is any one character.
 function namedGlob(word: string): string | undefined {
 	for (const part of word.split(/[\s/;'"=]/)) {
 		if (!part.startsWith(".") || !/(?<!\\)(?:\\\\)*[*?[]/.test(part)) continue;
@@ -76,7 +76,8 @@ function namedGlob(word: string): string | undefined {
 			token === "*" ? ".*" : token === "?" || (token.startsWith("[") && token.length > 1) ? "." : `\\u{${(escaped ?? token).codePointAt(0)!.toString(16)}}`,
 		);
 		const tail = literal(/[^*?\]]*$/.exec(part)![0]);
-		const names = [".env", ".mcp.json", ...(tail.startsWith(".") && tail.toLowerCase() !== ".example" ? [`.env${tail}`] : [])];
+		const suffixed = tail.startsWith(".") ? [`.mcp.json${tail}`, `.mcp${tail}`].filter((name) => /^\.mcp\.json(?!\w)/i.test(name)) : [];
+		const names = [".env", ".mcp.json", ...(tail.startsWith(".") && tail.toLowerCase() !== ".example" ? [`.env${tail}`] : []), ...suffixed];
 		const name = names.find((candidate) => new RegExp(`^${source}$`, "iu").test(candidate));
 		if (name !== undefined) return `${name} (through the glob ${literal(part)})`;
 	}

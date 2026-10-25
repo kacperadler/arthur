@@ -659,7 +659,9 @@ import { checkStructure } from "./structure.ts";
 // cut), at the end of a wrapper that does not start (job-scope.ts +2 -1) and at the sweep's (job-records.ts +1), and the name
 // with its comment (env-refusal.ts +6 -5). Nothing removed the secrets before the prune, so nothing was cut.
 // Merged main (AR0424) into AR0337: main's budgets plus AR0337's raise, core 6167, uptime 298.
-const BUDGETS = { core: 6167, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1321, github: 658, manage: 928, develop: 705, findings: 254 };
+// AR0337 review 1 (AR-D29): core 1 more (6168) for a suffixed `.mcp.json` reached through a glob, `.mc?.json.bak`, its candidates
+// beside the env file's suffixed one (env-refusal.ts, git diff --numstat +4 -3). Nothing tried such a name before, so nothing was cut.
+const BUDGETS = { core: 6168, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1321, github: 658, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

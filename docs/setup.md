@@ -63,7 +63,7 @@ export PATH="$HOME/arthur/node_modules/.bin:$PATH"
 Write `~/arthur/arthur.config.ts` with the plugins that take a ticket from a job to its merge, each documented on its page:
 
 - `orchestration`, which every config needs: the coordinator, jobs and `maxAgents`, planning (`arthur coordinator --help`);
-- `projects`, with your projects (`arthur projects --help`). Each project names its repository: `path`, a clone already on this machine, or `repo`, a Git URL Arthur clones into `reposDir`; `ci.workflow` names the workflow file the `github` plugin watches;
+- `projects`, with your projects (`arthur projects --help`). Each project names its repository: `path`, a clone already on this machine, or `repo`, a Git URL Arthur clones into `reposDir`; `ci.workflow` names the workflow file the `github` plugin watches, in the GitHub repository the checkout's `origin` remote names (`git@github.com:<owner>/<repository>.git` or `https://github.com/<owner>/<repository>`): the plugin refuses at setup a project with `ci.workflow` and no such `origin` (`packages/github/docs/github.md`);
 - `session`: the coordinator's conversation, compacted by day and fresh at night, `/restart`, and the restart guard (`packages/session/docs/session.md`);
 - `schedule`: actions and jobs at set times, and the entries other plugins register from their options, such as `manage`'s audit (`arthur schedule --help`);
 - `delivery`: the review of a worker's branch and `arthur merge` (`arthur review --help`, `arthur merge --help`);

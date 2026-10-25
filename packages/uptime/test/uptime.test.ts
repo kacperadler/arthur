@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import type { LookupOptions } from "node:dns";
+import dns, { type LookupAddress, type LookupOptions } from "node:dns";
 import dnsPromises from "node:dns/promises";
 import { once } from "node:events";
 import { writeFileSync } from "node:fs";
 import { createServer, type ServerResponse } from "node:http";
 import { syncBuiltinESMExports } from "node:module";
-import type { AddressInfo } from "node:net";
+import net, { type AddressInfo, type LookupFunction, type TcpNetConnectOpts } from "node:net";
 import { join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -46,6 +46,19 @@ async function server(t: TestContext) {
 	t.after(close);
 	const { port } = http.address() as AddressInfo;
 	return { answers, port, close, url: (path: string) => `http://127.0.0.1:${port}${path}`, seen: (path: string) => seen.filter((each) => each === path).length };
+}
+
+// `name` resolved to `answer()` in this process, by dns.lookup and by its promise both: the exports the check and a socket read.
+function resolving(t: TestContext, name: string, answer: () => LookupAddress[]): void {
+	const [real, promised] = [dns.lookup, dnsPromises.lookup];
+	dns.lookup = ((host: string, options: LookupOptions, done: (error: null, address: string | LookupAddress[], family?: number) => void) => {
+		if (host !== name) return real(host, options, done as never);
+		const all = answer();
+		return options.all ? done(null, all) : done(null, all[0]?.address ?? "", all[0]?.family);
+	}) as typeof real;
+	dnsPromises.lookup = (async (host: string, options: LookupOptions) => (host !== name ? promised(host, options) : options.all ? answer() : answer()[0])) as typeof promised;
+	syncBuiltinESMExports();
+	t.after(() => void ((dns.lookup = real), (dnsPromises.lookup = promised), syncBuiltinESMExports()));
 }
 
 // A fake host for `sites`, now at START unless given, where projects acme and beta are the project list.
@@ -153,11 +166,8 @@ test("a refused redirect is an answer: two sites refused at once are each down, 
 
 test("a redirect to each refused range is refused before a connection, also a name with one private address among public ones; a 3xx without Location is judged", async (t) => {
 	const [site, inside] = [await server(t), await server(t)];
-	// mixed.example resolves to a public and a private address: dns.lookup is replaced in this process, the export the check reads.
-	const real = dnsPromises.lookup;
-	dnsPromises.lookup = (async (name: string, options: LookupOptions) => (name === "mixed.example" ? [{ address: "203.0.113.7", family: 4 }, { address: "10.1.2.3", family: 4 }] : real(name, options))) as typeof real;
-	syncBuiltinESMExports();
-	t.after(() => void ((dnsPromises.lookup = real), syncBuiltinESMExports()));
+	// mixed.example resolves to a public and a private address.
+	resolving(t, "mixed.example", () => [{ address: "203.0.113.7", family: 4 }, { address: "10.1.2.3", family: 4 }]);
 	// One address in each range: unspecified, IPv6 loopback, RFC 1918, Tailscale's (its metadata address), link-local, unique local.
 	const hosts = ["0.0.0.0", "[::1]", "10.0.0.1", "172.31.255.254", "192.168.0.1", "100.100.100.200", "[fe80::1]", "[fd00:ec2::254]", "mixed.example"].map((host) => `${host}:${inside.port}`);
 	hosts.forEach((host, index) => void (site.answers[`/${index}`] = (response) => void response.writeHead(302, { location: `http://${host}/` }).end()));
@@ -168,6 +178,55 @@ test("a redirect to each refused range is refused before a connection, also a na
 	const reasons = [...hosts.map((host) => `redirected to ${host}, a private address the config does not name`), "answered 302, expected a 2xx status"];
 	assert.deepEqual(events("uptime-down"), paths.map((path, index) => ({ project: "acme", url: `http://localhost:${site.port}${path}`, reason: reasons[index], since: START.toISOString() })));
 	assert.deepEqual([inside.seen("/"), site.seen("/null")], [0, 0]);
+});
+
+// With family autoselection, Node 24's default, a socket asks its lookup for all addresses; without it, for one.
+for (const all of [true, false]) test(`a redirect to a name that answers a public address, then loopback, never reaches it: the connection's own lookup is checked too, asked for ${all ? "all addresses" : "one address"}`, async (t) => {
+	const autoSelect = net.getDefaultAutoSelectFamily();
+	net.setDefaultAutoSelectFamily(all);
+	t.after(() => net.setDefaultAutoSelectFamily(autoSelect));
+	const [site, inside] = [await server(t), await server(t)];
+	inside.answers["/"] = ok;
+	// Each check resolves the name twice, for the Location's check and for the connection: public at the first, loopback at the second.
+	let asked = 0;
+	resolving(t, "rebind.example", () => [{ address: asked++ % 2 === 0 ? "203.0.113.9" : "127.0.0.1", family: 4 }]);
+	site.answers["/"] = (response) => void response.writeHead(302, { location: `http://rebind.example:${inside.port}/` }).end();
+	const url = `http://localhost:${site.port}/`;
+	const { events } = await started(t, { acme: [{ url, everySeconds: 1 }] });
+	await until("the site down", () => events("uptime-down").length === 1);
+	assert.deepEqual(events("uptime-down"), [{ project: "acme", url, reason: `redirected to rebind.example:${inside.port}, a private address the config does not name`, since: START.toISOString() }]);
+	assert.deepEqual([inside.seen("/"), asked >= 4], [0, true]);
+});
+
+test("a hop to another host is judged by its own answer: its status, a status without a body, its text, the time limit; a bad port is refused before a connection", async (t) => {
+	const [site, inside] = [await server(t), await server(t)];
+	// public.example resolves to a public address, which net.createConnection, replaced in this process, connects to at
+	// 127.0.0.1 once the check's own lookup has allowed it: a hop to an outside host without one.
+	resolving(t, "public.example", () => [{ address: "203.0.113.5", family: 4 }]);
+	const [real, ports] = [net.createConnection, [] as number[]];
+	const local = (address: string) => (address === "203.0.113.5" ? "127.0.0.1" : address);
+	net.createConnection = ((options: TcpNetConnectOpts, listener?: () => void) => {
+		if (options.host !== "public.example") return real(options, listener);
+		ports.push(Number(options.port));
+		const lookup = options.lookup as LookupFunction;
+		return real({ ...options, lookup: (name, each, done) => lookup(name, each, (error, address, family) => done(error, typeof address === "string" ? local(address) : address.map((one) => ({ ...one, address: local(one.address) })), family)) }, listener);
+	}) as typeof real;
+	t.after(() => void (net.createConnection = real));
+	const paths = ["/500", "/204", "/205", "/304", "/text", "/hang"];
+	Object.assign(inside.answers, { "/500": broken, "/204": (response) => void response.writeHead(204).end(), "/205": (response) => void response.writeHead(205).end(), "/304": (response) => void response.writeHead(304).end(), "/text": ok, "/hang": hang } satisfies Record<string, Answer>);
+	for (const path of paths) site.answers[path] = (response) => void response.writeHead(302, { location: `http://public.example:${inside.port}${path}` }).end();
+	site.answers["/port"] = (response) => void response.writeHead(302, { location: "http://public.example:25/" }).end();
+	const own = (path: string) => `http://localhost:${site.port}${path}`;
+	const expects: Record<string, number | string | undefined> = { "/204": 204, "/205": 205, "/304": 304, "/text": "Welcome" };
+	const { events } = await started(t, { acme: [...paths, "/port"].map((path) => ({ url: own(path), expect: expects[path], everySeconds: 1 })) });
+	await until("three sites down", () => events("uptime-down").length === 3);
+	// A third request to each means its first two checks were judged, so a page wrongly judged down is down by now.
+	await until("two judged checks of each page that passes", () => ["/204", "/205", "/304", "/text"].every((path) => inside.seen(path) >= 3));
+	const down = Object.fromEntries((events("uptime-down") as { url: string; reason: string }[]).map(({ url, reason }) => [url, reason]));
+	assert.deepEqual(down, { [own("/500")]: "answered 500, expected a 2xx status", [own("/hang")]: "no answer within 1 s", [own("/port")]: "bad port" });
+	// Each request on a connection of its own (`agent: false`): no socket is kept, and none reused without its lookup.
+	const requests = paths.reduce((sum, path) => sum + inside.seen(path), 0);
+	assert.deepEqual([ports.includes(25), ports.filter((port) => port === inside.port).length >= requests], [false, true]);
 });
 
 test("each failure has its reason: a wrong status, the text missing, connection refused, a TLS error", async (t) => {

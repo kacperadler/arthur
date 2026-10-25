@@ -2753,9 +2753,9 @@
   {
     "id": "AR0358",
     "title": "`review-needed` lets a small change to what the merge and each spawn run go in without a review (AR0311 F11, confirmed)",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0358-review-needed-lets-a-small-change-to-what-the-merge-and-each-spawn-run-go-in-without-a-review-ar0311-f11-confirmed/ticket.md",
-    "updated": "2026-10-25T20:49:28.514Z",
+    "updated": "2026-10-25T20:56:56.176Z",
     "after": [
       "AR0357"
     ]

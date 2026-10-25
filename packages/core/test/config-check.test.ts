@@ -124,7 +124,7 @@ test("a known secret never appears in an error, a warning or the check's output"
 test("the arthur binary runs config check in the working folder: its lines, and the exit code", () => {
 	const folder = project(PLUGINS, "ARTHUR_YOUTRACK_URL=x\n");
 	const run = (args: string[], env: Record<string, string> = {}) =>
-		spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", ...env } });
+		spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ...env } });
 	const missing = run(["config", "check"]);
 	assert.deepEqual([missing.status, missing.stdout], [1, "set     ARTHUR_YOUTRACK_URL (youtrack.instances[0].urlEnv)\nmissing ARTHUR_YOUTRACK_ACME_TOKEN (youtrack.instances[1].tokenEnv)\n"]);
 	assert.equal(run(["config", "check"], { ARTHUR_YOUTRACK_ACME_TOKEN: SECRET }).status, 0);
@@ -137,7 +137,7 @@ test("the arthur binary runs config check in the working folder: its lines, and 
 test("the arthur binary's config check prints a refusal of a plugin's setup and fails; a refusal before setup is printed once", () => {
 	const check = (plugins: string) => {
 		const folder = project(plugins);
-		const result = spawnSync(process.execPath, [CLI, "config", "check"], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+		const result = spawnSync(process.execPath, [CLI, "config", "check"], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 		return [result.status, result.stdout.replaceAll(`${join(folder, "arthur.config.ts")}: `, "")];
 	};
 	const none = "no enabled plugin names an env variable\n";

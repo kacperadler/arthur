@@ -260,7 +260,7 @@ const CONFIG = `export default { plugins: [{ name: "orchestration", setup(host) 
 `;
 
 function arthur(root: string, ...args: string[]): { readonly status: number | null; readonly stdout: string; readonly stderr: string } {
-	return spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+	return spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 }
 
 test("arthur roles prints each role, its model, and the files it reads in the main checkout, each with its state", () => {

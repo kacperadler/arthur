@@ -666,7 +666,13 @@ import { checkStructure } from "./structure.ts";
 // AR0337 review 1 (AR-D29): core 1 more (6168) for a suffixed `.mcp.json` reached through a glob, `.mc?.json.bak`, its candidates
 // beside the env file's suffixed one (env-refusal.ts, git diff --numstat +4 -3). Nothing tried such a name before, so nothing was cut.
 // Merged main (AR0362) into AR0337: main's budgets plus AR0337's raises, core 6168, delivery 1327.
-const BUDGETS = { core: 6168, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1327, github: 658, manage: 928, develop: 705, findings: 254 };
+// AR0339 (F3 of AR0319; its Done means, the first of its two fixes: `core.envFile` by default outside every folder an agent
+// works in, and `arthur doctor` warning of one inside the config's folder or a project's checkout; AR-D29): core 12 more
+// (6180) for the requirement with its comment (requirements.ts, git diff --numstat +15 -5, the header folded by a line), the
+// default in `~/.config/arthur/` or `$XDG_CONFIG_HOME/arthur/` (config.ts, +3 -2), and the project folders it checks (host.ts,
+// +3 -2); the test kit's `XDG_CONFIG_HOME` joins its tmux folder on one line (testing.ts, +2 -2). Nothing checked where the env
+// file lies before, so nothing was cut.
+const BUDGETS = { core: 6180, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1327, github: 658, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

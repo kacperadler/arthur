@@ -197,7 +197,7 @@ test("an event a command emits reaches the daemon's subscribers once, from the d
 	const { folder, log } = project(orchestration);
 	writeFileSync(join(folder, "ping.md"), "# arthur ping\n");
 	const ping = (data: string) => {
-		const command = spawnSync(process.execPath, [CLI, "ping", data], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+		const command = spawnSync(process.execPath, [CLI, "ping", data], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 		assert.deepEqual([command.status, command.stderr], [0, ""]);
 		return command.pid;
 	};
@@ -256,7 +256,7 @@ test("the events appended while no daemon runs reach the next one once, a crash 
 	const { folder, home, log } = project(orchestration);
 	writeFileSync(join(folder, "ping.md"), "# arthur ping\n");
 	const emit = (name: string, data: string) => {
-		const command = spawnSync(process.execPath, [CLI, name, data], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+		const command = spawnSync(process.execPath, [CLI, name, data], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 		assert.deepEqual([command.status, command.stderr], [0, ""]);
 	};
 	const daemon = async () => {

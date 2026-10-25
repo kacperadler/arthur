@@ -44,6 +44,8 @@ test("a waiting branch's CI end wakes the coordinator once, delivery's wake; the
 	git(shop, "config", "user.email", "t@example.com");
 	git(shop, "add", "--all");
 	git(shop, "commit", "--quiet", "-m", "first");
+	// A merge, so no commit has code since one (`arthur merge --help`, AR0361).
+	git(shop, "merge", "--quiet", "--no-ff", "-m", "Take main as it is", git(shop, "commit-tree", "-p", "HEAD", "-m", "main as it is", "HEAD^{tree}"));
 	git(shop, "remote", "add", "origin", origin);
 	git(shop, "push", "--quiet", "origin", "main");
 	const list = [{ name: "shop", prefix: "SH", path: shop, autoMerge: true, ci: { workflow: "ci.yml" } }];

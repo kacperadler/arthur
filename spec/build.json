@@ -2893,9 +2893,9 @@
   {
     "id": "AR0382",
     "title": "A job's repository on another machine runs its config's hooks in Arthur's git calls there",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0382-a-job-s-repository-on-another-machine-runs-its-config-s-hooks-in-arthur-s-git-calls-there/ticket.md",
-    "updated": "2026-10-23T16:58:38.437Z"
+    "updated": "2026-10-25T00:00:09.773Z"
   },
   {
     "id": "AR0383",
@@ -2973,5 +2973,12 @@
     "status": "planned",
     "path": "spec/features/AR0393-a-remote-s-url-can-name-a-transport-whose-helper-runs-from-path/ticket.md",
     "updated": "2026-10-24T23:09:10.943Z"
+  },
+  {
+    "id": "AR0394",
+    "title": "A spawn's push to another machine runs a program the repository's config there names, hooks off or not",
+    "status": "planned",
+    "path": "spec/features/AR0394-a-spawn-s-push-to-another-machine-runs-a-program-the-repository-s-config-there-names-hooks-off-or-not/ticket.md",
+    "updated": "2026-10-25T00:00:19.351Z"
   }
 ]

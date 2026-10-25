@@ -127,7 +127,8 @@ test("without a user manager the job runs bare, its log saying so in one line, a
 	const { home, jobs } = setup(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }));
 	const job = await jobs.spawn({ task: "Go." });
 	const wrapper = Number(await until("the wrapper's pid", () => read(join(home, "jobs", job.id, "pid"))));
-	if (existsSync("/proc")) assert.doesNotMatch(cgroup(wrapper) ?? "", /arthur-job-/);
+	// Inside a job the test itself runs in that job's scope, which the wrapper inherits: only a scope of its own is wrong.
+	if (existsSync("/proc")) assert.doesNotMatch(cgroup(wrapper) ?? "", new RegExp(`arthur-job-${job.id}\\.scope`));
 	writeFileSync(gate, "");
 	assert.deepEqual((await ended(home)).data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 	const log = readFileSync(join(home, "jobs", job.id, "log"), "utf8");

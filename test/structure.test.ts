@@ -652,7 +652,11 @@ import { checkStructure } from "./structure.ts";
 // node:http(s), whose socket's own lookup refuses a private address (site-check.ts, 50 to 55 lines), and the Fetch standard's
 // bad ports refused before such a hop, as fetch did (site-check.ts, 2 more: the import and the refusal). Nothing was cut.
 // Merged AR0424 with main (AR0357): main's budgets plus AR0424's raise, delivery 1321, uptime 298.
-const BUDGETS = { core: 6156, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1321, github: 658, manage: 928, develop: 705, findings: 254 };
+// AR0362 (F6 of AR0324; its Done means: a plain merge asks `github.ci` as `--auto` does; AR-D29): delivery 6 more (1327) for
+// the CI refusal split out of `autoRefusal` into `ciRefusal`, which a plain merge asks too, refusing only a run on the branch's
+// own commits that ended other than success (auto-merge.ts, git diff --numstat +16 -10: the function's head, comment and close
+// 5, the plain merge's pass on no run or a pending one 1). Nothing asked CI of a plain merge before, so nothing was cut.
+const BUDGETS = { core: 6156, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1327, github: 658, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

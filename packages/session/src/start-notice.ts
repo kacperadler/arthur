@@ -16,12 +16,12 @@ const QUESTION = "Answer with one word: ready.";
 
 type Said = { readonly role?: string; readonly stopReason?: string; readonly errorMessage?: string; readonly content?: readonly { readonly type?: string; readonly text?: string }[] };
 
-// The first line of `text`, its credentials redacted, at most 300 characters.
-const line = (text: string) => redact(text.trim().split("\n")[0] ?? "").slice(0, 300);
+// The first line of `text`, its credentials and `secrets` redacted, at most 300 characters.
+const line = (text: string, secrets: readonly string[]) => redact(text.trim().split("\n")[0] ?? "", secrets).slice(0, 300);
 
 // One word asked of `model` (the agent's default when undefined) with `agent` in print mode, no session, tool, extension, skill
-// or rule; undefined when it answered with text, else why not. Cut after `ms`; `signal` kills it without an answer.
-export function probe(agent: string, model: string | undefined, ms: number, signal?: AbortSignal): Promise<string | undefined> {
+// or rule; undefined when it answered with text, else why not, `secrets` redacted. Cut after `ms`; `signal` kills it without an answer.
+export function probe(agent: string, model: string | undefined, ms: number, secrets: readonly string[], signal?: AbortSignal): Promise<string | undefined> {
 	const args = ["-p", "--no-session", "--no-title", "--no-tools", "--no-extensions", "--no-skills", "--no-rules", "--mode", "json", ...(model === undefined ? [] : ["--model", model]), QUESTION];
 	const { promise, resolve } = Promise.withResolvers<string | undefined>();
 	const child = spawn(agent, args, { stdio: ["ignore", "pipe", "pipe"], signal });
@@ -34,7 +34,7 @@ export function probe(agent: string, model: string | undefined, ms: number, sign
 	}, ms);
 	child.on("error", (error) => {
 		clearTimeout(timer);
-		resolve(line(error.message));
+		resolve(line(error.message, secrets));
 	});
 	child.on("close", (code, killed) => {
 		clearTimeout(timer);
@@ -50,11 +50,11 @@ export function probe(agent: string, model: string | undefined, ms: number, sign
 				}
 			});
 		const failed = said.find((message) => message.stopReason === "error" || message.stopReason === "aborted");
-		if (failed !== undefined) return resolve(line(failed.errorMessage || `the model's turn ended with ${failed.stopReason}`));
+		if (failed !== undefined) return resolve(line(failed.errorMessage || `the model's turn ended with ${failed.stopReason}`, secrets));
 		if (said.some((message) => (message.content ?? []).some((block) => block.type === "text" && (block.text ?? "").trim() !== ""))) return resolve(undefined);
 		const errors = Buffer.concat(err).toString("utf8").split("\n");
 		const shown = errors.find((text) => text.startsWith("error: "))?.slice("error: ".length) ?? errors.find((text) => text.trim() !== "");
-		resolve(line(shown ?? (killed ? `ended by ${killed}` : code === 0 ? "no answer" : `exit code ${code}`)));
+		resolve(line(shown ?? (killed ? `ended by ${killed}` : code === 0 ? "no answer" : `exit code ${code}`), secrets));
 	});
 	return promise;
 }
@@ -67,10 +67,10 @@ export function startNotice(host: Host, probeLlm: boolean, missing: readonly str
 	const asked = async () => {
 		if (!probeLlm) return undefined;
 		const [answer] = host.collect<{ readonly model?: unknown } | undefined>("roles.model", "coordinator");
-		return probe(host.agent, typeof answer?.model === "string" ? answer.model : undefined, PROBE_SECONDS * 1000, quit.signal);
+		return probe(host.agent, typeof answer?.model === "string" ? answer.model : undefined, PROBE_SECONDS * 1000, host.secrets, quit.signal);
 	};
 	asked()
-		.catch((error: Error) => line(error.message))
+		.catch((error: Error) => line(error.message, host.secrets))
 		.then((reason) => {
 			if (quit.signal.aborted) return;
 			const text = reason === undefined ? `coordinator up on ${here}` : `no LLM access on ${here}: ${reason}; run omp login`;
@@ -93,7 +93,7 @@ export function turnFailures(host: Host): () => void {
 			const reason = readFileSync(file, "utf8").trim();
 			rmSync(file, { force: true });
 			if (Number(name.split("-")[0]) < began) continue;
-			host.events.emit("notice", { text: name.endsWith(".ok") ? `turns work again on ${here}` : `turn failed on ${here}: ${line(reason) || "no reason given"}` });
+			host.events.emit("notice", { text: name.endsWith(".ok") ? `turns work again on ${here}` : `turn failed on ${here}: ${line(reason, host.secrets) || "no reason given"}` });
 		}
 	};
 }

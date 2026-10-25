@@ -500,6 +500,18 @@ test("the notice after 3 turns without a reply never repeats a credential in omp
 	]);
 });
 
+test("a notice the inbox extension left is sent with every value of the env file redacted, which the coordinator's environment never holds", (t) => {
+	const fake = fakeHost({ name: "orchestration", env: { ARTHUR_ORCHESTRATION_PASS: "correct-horse-battery" } });
+	const outbox = join(fake.host.folder, "outbox");
+	mkdirSync(outbox, { recursive: true });
+	writeFileSync(join(outbox, "1792363617800-000001.json"), JSON.stringify({ notice: "the coordinator's last 3 turns ended without a reply (error: 401 password correct-horse-battery)" }));
+	const run = inbox(fake.host);
+	t.after(() => run.stop());
+	run.start();
+	run.stop();
+	assert.deepEqual(fake.emitted.filter((event) => event.name === "notice").map((event) => event.data), [{ text: "the coordinator's last 3 turns ended without a reply (error: 401 password [redacted])" }]);
+});
+
 test("a reply ends the wait: the next turn that ends without a reply has its messages go again at once", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const steps: AgentStep[] = [...FAILED, ...FAILED, { prompt: true }, { message: "Done." }, { end: true }, ...FAILED, { prompt: true }, { message: "Again." }, { end: true }, { prompt: true }];
 	const { file: clock, move } = agentClock();

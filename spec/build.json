@@ -2607,9 +2607,9 @@
   {
     "id": "AR0341",
     "title": "A blocked job's question goes to the phone as written, while the decision log redacts it",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0341-a-blocked-job-s-question-goes-to-the-phone-as-written-while-the-decision-log-redacts-it/ticket.md",
-    "updated": "2026-10-25T20:47:25.230Z",
+    "updated": "2026-10-25T20:57:36.629Z",
     "after": [
       "AR0340"
     ]
@@ -2753,9 +2753,9 @@
   {
     "id": "AR0358",
     "title": "`review-needed` lets a small change to what the merge and each spawn run go in without a review (AR0311 F11, confirmed)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0358-review-needed-lets-a-small-change-to-what-the-merge-and-each-spawn-run-go-in-without-a-review-ar0311-f11-confirmed/ticket.md",
-    "updated": "2026-10-25T20:56:56.176Z",
+    "updated": "2026-10-25T21:00:28.799Z",
     "after": [
       "AR0357"
     ]
@@ -3164,7 +3164,7 @@
     "path": "spec/features/AR0402-security-review-of-our-own-code-part-1-secrets-file-permissions-and-processes/ticket.md",
     "updated": "2026-10-25T10:18:08.326Z",
     "after": [
-      "AR0431",
+      "AR0432",
       "AR0350",
       "AR0428"
     ]
@@ -3176,7 +3176,7 @@
     "path": "spec/features/AR0403-security-review-of-our-own-code-part-2-injection-into-shell-git-ssh-and-tmux-and-prompt-injection/ticket.md",
     "updated": "2026-10-25T10:18:08.525Z",
     "after": [
-      "AR0431",
+      "AR0432",
       "AR0350",
       "AR0428"
     ]
@@ -3188,7 +3188,7 @@
     "path": "spec/features/AR0404-security-review-of-our-own-code-part-3-channels-merge-and-delivery/ticket.md",
     "updated": "2026-10-25T10:18:08.725Z",
     "after": [
-      "AR0431",
+      "AR0432",
       "AR0350",
       "AR0428"
     ]
@@ -3200,7 +3200,7 @@
     "path": "spec/features/AR0405-security-review-of-our-own-code-part-4-other-machines-network-and-dependencies/ticket.md",
     "updated": "2026-10-25T10:18:08.925Z",
     "after": [
-      "AR0431",
+      "AR0432",
       "AR0350",
       "AR0428"
     ]
@@ -3440,6 +3440,16 @@
     "updated": "2026-10-25T20:44:57.918Z",
     "after": [
       "AR0355"
+    ]
+  },
+  {
+    "id": "AR0432",
+    "title": "The always-review list misses the other installs: composer, uv, yarnrc, pnpmfile and bunfig",
+    "status": "planned",
+    "path": "spec/features/AR0432-the-always-review-list-misses-the-other-installs-composer-uv-yarnrc-pnpmfile-and/ticket.md",
+    "updated": "2026-10-25T21:00:52.469Z",
+    "after": [
+      "AR0431"
     ]
   }
 ]

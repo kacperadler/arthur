@@ -29,4 +29,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/uptime/src/site-check.ts:16` (`PRIVATE`)
 - What: NAT64 `64:ff9b::/96` (and `64:ff9b:1::/48`) and 6to4 `2002::/16` carry an IPv4 address inside an IPv6 one; `64:ff9b::a9fe:a9fe` is `169.254.169.254` through a NAT64 gateway. `PRIVATE` refuses IPv4-mapped `::ffff:0:0/96` only, so on a host with NAT64 a redirect to such an address passes the check. [INFERENCE] from the ranges: no test, and no NAT64 here.
 - Suggestion: add those prefixes to `PRIVATE`, or extract the embedded IPv4 and check it, with a test per prefix as the refused-ranges test does.
-- Status: open
+- Status: ticket AR0435
+
+## F4. No test sends a redirect hop over https
+
+- Kind: test
+- Found by: 2026-10-25-review-d1076f4c (reviewer, non-blocking note), 2026-10-26
+- Where: `packages/uptime/src/site-check.ts`
+- What: `node:https` is chosen by the URL's scheme; the smoke runs of review 1 went over https.
+- Status: dropped (same code path as http but the module; seen working against real hosts)

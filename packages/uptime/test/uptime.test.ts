@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { LookupOptions } from "node:dns";
+import dns, { type LookupAddress, type LookupOptions } from "node:dns";
 import dnsPromises from "node:dns/promises";
 import { once } from "node:events";
 import { writeFileSync } from "node:fs";
@@ -46,6 +46,19 @@ async function server(t: TestContext) {
 	t.after(close);
 	const { port } = http.address() as AddressInfo;
 	return { answers, port, close, url: (path: string) => `http://127.0.0.1:${port}${path}`, seen: (path: string) => seen.filter((each) => each === path).length };
+}
+
+// `name` resolved to `answer()` in this process, by dns.lookup and by its promise both: the exports the check and a socket read.
+function resolving(t: TestContext, name: string, answer: () => LookupAddress[]): void {
+	const [real, promised] = [dns.lookup, dnsPromises.lookup];
+	dns.lookup = ((host: string, options: LookupOptions, done: (error: null, address: string | LookupAddress[], family?: number) => void) => {
+		if (host !== name) return real(host, options, done as never);
+		const all = answer();
+		return options.all ? done(null, all) : done(null, all[0]?.address ?? "", all[0]?.family);
+	}) as typeof real;
+	dnsPromises.lookup = (async (host: string, options: LookupOptions) => (host !== name ? promised(host, options) : options.all ? answer() : answer()[0])) as typeof promised;
+	syncBuiltinESMExports();
+	t.after(() => void ((dns.lookup = real), (dnsPromises.lookup = promised), syncBuiltinESMExports()));
 }
 
 // A fake host for `sites`, now at START unless given, where projects acme and beta are the project list.
@@ -153,11 +166,8 @@ test("a refused redirect is an answer: two sites refused at once are each down, 
 
 test("a redirect to each refused range is refused before a connection, also a name with one private address among public ones; a 3xx without Location is judged", async (t) => {
 	const [site, inside] = [await server(t), await server(t)];
-	// mixed.example resolves to a public and a private address: dns.lookup is replaced in this process, the export the check reads.
-	const real = dnsPromises.lookup;
-	dnsPromises.lookup = (async (name: string, options: LookupOptions) => (name === "mixed.example" ? [{ address: "203.0.113.7", family: 4 }, { address: "10.1.2.3", family: 4 }] : real(name, options))) as typeof real;
-	syncBuiltinESMExports();
-	t.after(() => void ((dnsPromises.lookup = real), syncBuiltinESMExports()));
+	// mixed.example resolves to a public and a private address.
+	resolving(t, "mixed.example", () => [{ address: "203.0.113.7", family: 4 }, { address: "10.1.2.3", family: 4 }]);
 	// One address in each range: unspecified, IPv6 loopback, RFC 1918, Tailscale's (its metadata address), link-local, unique local.
 	const hosts = ["0.0.0.0", "[::1]", "10.0.0.1", "172.31.255.254", "192.168.0.1", "100.100.100.200", "[fe80::1]", "[fd00:ec2::254]", "mixed.example"].map((host) => `${host}:${inside.port}`);
 	hosts.forEach((host, index) => void (site.answers[`/${index}`] = (response) => void response.writeHead(302, { location: `http://${host}/` }).end()));
@@ -168,6 +178,20 @@ test("a redirect to each refused range is refused before a connection, also a na
 	const reasons = [...hosts.map((host) => `redirected to ${host}, a private address the config does not name`), "answered 302, expected a 2xx status"];
 	assert.deepEqual(events("uptime-down"), paths.map((path, index) => ({ project: "acme", url: `http://localhost:${site.port}${path}`, reason: reasons[index], since: START.toISOString() })));
 	assert.deepEqual([inside.seen("/"), site.seen("/null")], [0, 0]);
+});
+
+test("a redirect to a name that answers a public address, then loopback, never reaches it: the connection's own lookup is checked too", async (t) => {
+	const [site, inside] = [await server(t), await server(t)];
+	inside.answers["/"] = ok;
+	// Each check resolves the name twice, for the Location's check and for the connection: public at the first, loopback at the second.
+	let asked = 0;
+	resolving(t, "rebind.example", () => [{ address: asked++ % 2 === 0 ? "203.0.113.9" : "127.0.0.1", family: 4 }]);
+	site.answers["/"] = (response) => void response.writeHead(302, { location: `http://rebind.example:${inside.port}/` }).end();
+	const url = `http://localhost:${site.port}/`;
+	const { events } = await started(t, { acme: [{ url, everySeconds: 1 }] });
+	await until("the site down", () => events("uptime-down").length === 1);
+	assert.deepEqual(events("uptime-down"), [{ project: "acme", url, reason: `redirected to rebind.example:${inside.port}, a private address the config does not name`, since: START.toISOString() }]);
+	assert.deepEqual([inside.seen("/"), asked >= 4], [0, true]);
 });
 
 test("each failure has its reason: a wrong status, the text missing, connection refused, a TLS error", async (t) => {

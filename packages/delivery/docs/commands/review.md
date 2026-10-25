@@ -22,7 +22,7 @@ Review the branch ... The range to judge is <base>..<commit> ... git show <HEAD>
 
 `<base>` is where the branch leaves the main checkout's HEAD (`git merge-base`). The `Ticket:` line names the worker's one ticket, so placement (`jobs.place`, the machines plugin) reads that ticket's `requires` labels and a review of a ticket with `os=macos` runs on a macOS machine, as its worker did. `Ticket:` in the worker's message is written `Ticket\:`, so it names no second ticket.
 
-`arthur spawn --kind review '<task>'` with the same head lines is the same review: every refusal below holds for it too.
+`arthur spawn --kind review '<task>'`, from the coordinator or a job, starts a review only when its task is byte for byte the one `arthur review` would write now: the worker its `Branch:` names exists, is a worker, has ended, and the branch's tip in the project's main checkout is its `Commit:` (the full sha), with that worker's one ticket and final message; any other task is refused (below). Every refusal below holds for it too. The hand-back's next review is built the same way, so it starts.
 
 ## The verdict
 
@@ -62,7 +62,7 @@ Before any job exists, exit 1:
 - Not a worker: `<id> is a <kind> job; a review is of a worker's branch`; still in a run: `<id> is in a run (<state>); review its branch once the run has ended`.
 - A worker whose task names no ticket, or several: `<id>'s task names no ticket; a review is of one ticket's branch`.
 - A branch gone from the main checkout: `arthur/<id> is not in <folder>: pruned, or not brought back from its machine`; a branch that adds nothing to HEAD: `arthur/<id> at <commit> adds nothing to HEAD (<commit>): nothing to review`.
-- As `refused by delivery: <reason>`, for `arthur review` and `arthur spawn --kind review` alike: a task without exactly one `Ticket: spec/features/<id>-<slug>/ticket.md`; a ticket not on the board; a ticket that is not `in-progress`, `review` or `done` (`<id> is planned; a review is of a ticket in-progress, review or done`); no `Branch: arthur/<worker job>` and `Commit: <sha>` lines before the task's first blank line; the limit above.
+- As `refused by delivery: <reason>`, for `arthur review` and `arthur spawn --kind review` alike: a task without exactly one `Ticket: spec/features/<id>-<slug>/ticket.md`; a ticket not on the board; a ticket that is not `in-progress`, `review` or `done` (`<id> is planned; a review is of a ticket in-progress, review or done`); no `Branch: arthur/<worker job>` and `Commit: <sha>` lines before the task's first blank line; the limit above; then any task that is not what `arthur review` writes now, a hand-written one, another commit, a worker in a run or a tip moved since: `a review's task is what arthur review writes; spawn it with arthur review <worker job>`.
 
 Wrong usage (no job, two, an unknown flag, `--round` twice or without a whole number of 1 or more) prints the usage line and exits 2.
 

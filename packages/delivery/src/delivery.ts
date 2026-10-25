@@ -7,7 +7,7 @@ import { type CiEnd, type CiWaits, ciEnded, ciWaits } from "./ci-wait.ts";
 import { ALWAYS_REVIEW, checkOptions } from "./delivery-options.ts";
 import { CANCELLED, type HandBack, handBack } from "./hand-back.ts";
 import { identityRequirement, mergeCommand } from "./merge-command.ts";
-import { reviewCommand } from "./review-command.ts";
+import { reviewCommand, reviewTask, worker } from "./review-command.ts";
 import { reviewFiler } from "./review-file.ts";
 import { reviewNeededCommand } from "./review-needed.ts";
 import { failsSincePass, LIMIT, type Review, readReview, saveReview, settle, type Verdict, verdictOf } from "./review-records.ts";
@@ -106,7 +106,7 @@ function head(task: string): { readonly branch?: string; readonly commit?: strin
 	return { branch: /^Branch: (arthur\/\S+)$/m.exec(lines)?.[1], commit: /^Commit: ([0-9a-f]{7,40})$/m.exec(lines)?.[1], round: round === undefined ? undefined : Number(round) };
 }
 
-// Why a review may not start, if it may not: its one ticket, on the board and started; its branch and commit; and its round.
+// Why a review may not start, if it may not: its one ticket, on the board and started; its branch and commit; its round; and its task, only what `reviewTask` builds now for the ended worker its branch names, at its tip (AR0357).
 function refusal(host: Host, task: string, tickets: readonly string[]): string | undefined {
 	const [path = ""] = tickets;
 	const id = TICKET.exec(path)?.[1];
@@ -122,7 +122,11 @@ function refusal(host: Host, task: string, tickets: readonly string[]): string |
 	if (round !== undefined && round !== next) return `round ${round} is not the next one of ${branch}: it has ${fails.length} FAIL${fails.length === 1 ? "" : "s"} since its last PASS, so the next round is ${next}`;
 	if (round === undefined && fails.length >= LIMIT)
 		return `${fails.length} FAILs on ${branch} since its last PASS: ${fails.join(", ")}; the owner decides what comes next, and only on his word: arthur review ${branch.slice("arthur/".length)} --round ${next}`;
-	return undefined;
+	let built: string | undefined;
+	try {
+		built = reviewTask(host, worker(host, branch.slice("arthur/".length)), round).task;
+	} catch {}
+	return built === task ? undefined : "a review's task is what arthur review writes; spawn it with arthur review <worker job>";
 }
 
 // What a review's wake reads: its record, its verdict, its project and whether that merges on its own, why its run ended,

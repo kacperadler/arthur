@@ -37,3 +37,4 @@ In:
 - 2026-10-23: Source: F1 of AR0329
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; runs one at a time after the high-severity security fixes.
 - 2026-10-25: The human: try a third time, after the weekly usage limit resets (2026-10-28 09:00); the task is framed as a review and hardening of our own code, continuing branch h/2026-10-24-ar0376-job-sandbox-retry-6b3fc3f2 (82e69751).
+- 2026-10-25: The human: start the third try now, not after the reset; weekly usage limit raised from 40% to 60%.

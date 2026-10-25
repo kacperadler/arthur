@@ -3,11 +3,12 @@
 // newlines, and `(` and `)` around a subshell, a `$(…)` or a backtick substitution, whose commands come before the command
 // they are in. A word has its quotes removed, a backslash-newline gone, the escapes of `$'…'` decoded; a comment is dropped.
 // An expansion known only when the command runs (`$x`, `${x}`, `$1`) is nothing, or the word it falls back to (`${x:-word}`,
-// also with `=`, `+`, `?` and without the colon); `~` and `$HOME` are `home` when it is given, `$OLDPWD` is `~-`. A quoted
-// or escaped character brace or pathname expansion would take as special (`\ * ? [ ] { } ,`) keeps a backslash before it, so
-// a glob is told apart from a quoted star; `literal` removes those. `shellWords` is every word, a heredoc's body as a line.
+// also with `=`, `+`, `?` and without the colon); `~` and `$HOME` are `home` when it is given. `$OLDPWD` is `~-`, also with
+// `-`, `=`, `?` (bash's value while it is set), and `\0`, in no bash word, with another operator but `+`. A quoted or escaped
+// `\ * ? [ ] { } , ( )`, special to a glob, a brace or a list, keeps a backslash, so a glob is told apart from a quoted star;
+// `literal` removes those. `shellWords` is every word, a heredoc's body as a line.
 
-const SPECIAL = "\\*?[]{},";
+const SPECIAL = "\\*?[]{},()";
 const ESCAPES: Readonly<Record<string, string>> = { a: "\x07", b: "\b", e: "\x1b", E: "\x1b", f: "\f", n: "\n", r: "\r", t: "\t", v: "\v" };
 // A redirect operator where the text starts; `&>` and `&>>` write stdout and stderr. Any operator not in TARGETS writes.
 const REDIRECT = /^(?:&>>?|>>|>\||>&|<>|<<<|<<-?|<&|>|<)/;
@@ -44,10 +45,8 @@ function closing(text: string, from: number, open: string, close: string): numbe
 	for (let at = from; at < text.length; at++) {
 		const char = text[at]!;
 		if (char === "\\") at++;
-		else if (char === "'" || char === '"') {
-			const end = text.indexOf(char, at + 1);
-			at = end < 0 ? text.length : end;
-		} else if (char === open) depth++;
+		else if (char === "'" || char === '"') at = text.indexOf(char, at + 1) < 0 ? text.length : text.indexOf(char, at + 1);
+		else if (char === open) depth++;
 		else if (char === close && --depth === 0) return at;
 	}
 	return text.length;
@@ -91,7 +90,7 @@ export function shellCommands(command: string, home?: string): Item[] {
 			const close = closing(command, at + 2, "{", "}");
 			const inner = command.slice(at + 2, close);
 			const fallback = /^[#!]?(?:[A-Za-z_]\w*|\d+|[@*#?$!-])(?:\[[^\]]*\])?:?[-=+?]([^]*)$/.exec(inner);
-			word += fallback !== null ? shellWords(fallback[1]!).join(" ") : inner === "HOME" ? homeWord : inner === "OLDPWD" ? "~-" : "";
+			word += /^OLDPWD(\[0\])?(:?[-=?]|$)/.test(inner) ? "~-" : /^!?OLDPWD\b/.test(inner) && fallback === null ? "\0" : fallback !== null ? shellWords(fallback[1]!).join(" ") : inner === "HOME" ? homeWord : "";
 			return close + 1;
 		}
 		if (next === "'" && !inDouble) {
@@ -149,20 +148,16 @@ export function shellCommands(command: string, home?: string): Item[] {
 	while (at < command.length) {
 		const char = command[at]!;
 		const redirect = REDIRECT.exec(command.slice(at, at + 3))?.[0];
-		if (char === "\\") {
-			if (command[at + 1] !== "\n") word += quoted(command[at + 1] ?? "\\");
-			at += 2;
-		} else if (char === "'") {
+		if (char === "\\") [word, at] = [word + (command[at + 1] === "\n" ? "" : quoted(command[at + 1] ?? "\\")), at + 2];
+		else if (char === "'") {
 			const close = command.indexOf("'", at + 1);
 			word += quoted(command.slice(at + 1, close < 0 ? undefined : close));
 			at = close < 0 ? command.length : close + 1;
 		} else if (char === '"') {
 			for (at++; at < command.length && command[at] !== '"'; ) {
 				const inner = command[at]!;
-				if (inner === "\\" && '$`"\\\n'.includes(command[at + 1] ?? "")) {
-					if (command[at + 1] !== "\n") word += quoted(command[at + 1]!);
-					at += 2;
-				} else if (inner === "$") at = dollar(at, true);
+				if (inner === "\\" && '$`"\\\n'.includes(command[at + 1] ?? "")) [word, at] = [word + (command[at + 1] === "\n" ? "" : quoted(command[at + 1]!)), at + 2];
+				else if (inner === "$") at = dollar(at, true);
 				else if (inner === "`") at = backtick(at);
 				else word += quoted(command[at++]!);
 			}
@@ -182,12 +177,17 @@ export function shellCommands(command: string, home?: string): Item[] {
 			finish(!pipe);
 			at += ["&&", "||", ";;", "|&"].includes(two) ? 2 : 1;
 			if (char === "\n") at = bodies(at);
+		} else if (char === "(" && /^[A-Za-z_]\w*(\[[^\]]*\])?\+?=$/.test(word)) {
+			// A list assigned, `name=(a b)`, is the word `name=(a`, its first element; the elements are a subshell's words before it.
+			const close = closing(command, at + 1, "(", ")");
+			const inner = shellCommands(command.slice(at + 1, close), home);
+			before.push("(", ...inner, ")");
+			[word, at] = [`${word}(${inner.flatMap((item) => (typeof item === "string" ? [] : item.words))[0] ?? ""}`, close + 1];
 		} else if (char === "(" || char === ")") {
 			finish(true);
 			items.push(command[at++] === "(" ? "(" : ")");
-		} else if (char === "#" && word === "" && (at === 0 || /[\s;&|()<>]/.test(command[at - 1]!))) {
-			at += /^[^\n]*/.exec(command.slice(at))![0].length;
-		} else if (/\s/.test(char)) {
+		} else if (char === "#" && word === "" && (at === 0 || /[\s;&|()<>]/.test(command[at - 1]!))) at += /^[^\n]*/.exec(command.slice(at))![0].length;
+		else if (/\s/.test(char)) {
 			end();
 			at++;
 		} else {

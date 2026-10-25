@@ -22,6 +22,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0356 The job's `PATH` under the service has no `arthur`, so the line the develop plugin tells a worker to run may not run there (a91c1308)
 - AR0357 The review kind takes any task with the three head lines, so a PASS can rest on a task nobody built from the branch (AR0311 F6, confirmed) (d2a58d77)
 - AR0358 `review-needed` lets a small change to what the merge and each spawn run go in without a review (AR0311 F11, confirmed) (6da5807e)
+- AR0360 The job's record of its checks is its own word: written from inside the agent, not tied to the tip's tree, not stale after a change by bash (694dcd74)
 - AR0363 A binary file counts no lines, so a branch of any binary content skips the review on its checks (36c70b5d)
 - AR0364 Telegram answers every member of the configured chat, not the owner alone (AR0311 F7, confirmed) (8a78e74d)
 - AR0365 A message the owner forwarded runs as the owner's own words, a phone command included (fc17e26e)

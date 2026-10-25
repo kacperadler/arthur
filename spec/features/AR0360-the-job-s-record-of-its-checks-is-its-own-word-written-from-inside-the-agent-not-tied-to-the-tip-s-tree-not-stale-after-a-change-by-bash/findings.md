@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/src/checks-extension.ts:22-27`
 - What: the commit and `clean`/`dirty` are read once, as the bash call ends (the ticket's "at the run's end"). A call that runs the checks on one tree and leaves another behind gets the second: `npm test; git stash` (tests run with uncommitted changes, the line says `clean`), `git checkout <old> -- . && npm test && git checkout HEAD -- .` (tests run on an older tree, the line names the tip, `clean`). A call that dirties the tree after its checks (`npm test && sed -i ...`) errs the safe way (`dirty`).
 - Suggestion: read the same two facts in a `tool_call` handler too, kept by `toolCallId`, and write `clean` only when both reads name the same commit and a clean tree, else `dirty`. Out: anything against a job that writes the file itself, which the ticket leaves to the sandbox (AR0329).
-- Status: open
+- Status: ticket AR0436

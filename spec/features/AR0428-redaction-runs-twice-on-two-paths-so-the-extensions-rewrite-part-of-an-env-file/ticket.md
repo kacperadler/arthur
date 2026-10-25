@@ -35,3 +35,4 @@ Out:
 ## Decisions
 
 - 2026-10-25: Source: F2 of AR0340
+- 2026-10-25: AR0428 approved under the owner standing word to take the coordinator recommendation without asking; the owner: "AR-D28 complete with your recommendations, and use them till the task is completed, so next time do not ask me, just do it by yourself" (AR-D30)

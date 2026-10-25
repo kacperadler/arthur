@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { test } from "node:test";
@@ -241,7 +242,13 @@ test("a tmux command under the kit reaches no live server", { skip: !hasTmux() &
 	assert.match(run.stderr, /no server running|error connecting/);
 });
 
-test("the kit ends, before it removes its folder, the tmux servers a test left on its sockets, tmux's default one included, and none a link leads out to", { skip: !hasTmux() && "tmux is not installed" }, async (t) => {
+// A host that refuses every new Unix socket, as the job sandbox does, gives tmux no socket for its server: one probe at load.
+const probe = Promise.withResolvers<string | false>();
+const server = createServer().once("error", (error: NodeJS.ErrnoException) => probe.resolve(`this host refuses a Unix socket (${error.code}), so tmux cannot start a server`));
+server.listen(join(temporaryFolder(), "probe.sock"), () => server.close(() => probe.resolve(false)));
+const NO_UNIX_SOCKET = await probe.promise;
+
+test("the kit ends, before it removes its folder, the tmux servers a test left on its sockets, tmux's default one included, and none a link leads out to", { skip: (!hasTmux() && "tmux is not installed") || NO_UNIX_SOCKET }, async (t) => {
 	const kit = import.meta.resolve("@arthur/core/testing");
 	const outside = join(temporaryFolder(), "tmux.sock");
 	t.after(() => spawnSync("tmux", ["-S", outside, "kill-server"]));

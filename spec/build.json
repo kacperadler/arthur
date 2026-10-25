@@ -2544,7 +2544,7 @@
     "title": "`cd -`, `pushd` with no operand and `$OLDPWD` are read as `cd $HOME`",
     "status": "in-progress",
     "path": "spec/features/AR0333-cd-pushd-with-no-operand-and-oldpwd-are-read-as-cd-home/ticket.md",
-    "updated": "2026-10-25T16:53:08.773Z"
+    "updated": "2026-10-25T17:14:43.244Z"
   },
   {
     "id": "AR0334",
@@ -2605,9 +2605,9 @@
   {
     "id": "AR0342",
     "title": "A project's `repo` URL is printed by the clone's refusals, with any credential it holds",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0342-a-project-s-repo-url-is-printed-by-the-clone-s-refusals-with-any-credential-it-holds/ticket.md",
-    "updated": "2026-10-23T14:22:40.071Z"
+    "updated": "2026-10-25T17:10:25.633Z"
   },
   {
     "id": "AR0343",
@@ -2759,9 +2759,9 @@
   {
     "id": "AR0364",
     "title": "Telegram answers every member of the configured chat, not the owner alone (AR0311 F7, confirmed)",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0364-telegram-answers-every-member-of-the-configured-chat-not-the-owner-alone-ar0311-f7-confirmed/ticket.md",
-    "updated": "2026-10-23T14:49:58.882Z"
+    "updated": "2026-10-25T17:13:17.767Z"
   },
   {
     "id": "AR0365",

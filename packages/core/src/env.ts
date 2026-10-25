@@ -98,8 +98,8 @@ function findEnv(value: unknown, path: string, instance: string | undefined, fou
 function nameProblem(name: unknown, own: string, taken: readonly Owner[]): string | undefined {
 	const expected = `expected ${own}<WHAT>`;
 	if (typeof name !== "string") return `${expected}, got ${kind(name)}`;
-	// Not shown: a text that is no variable name may be the secret itself, pasted by mistake.
-	if (!VARIABLE.test(name)) return `${expected} (capitals, digits and _); the text given is not shown`;
+	// Not shown: a text that is no variable name, or no ARTHUR_ one, may be the secret itself, pasted by mistake.
+	if (!VARIABLE.test(name) || !name.startsWith("ARTHUR_")) return `${expected} (capitals, digits and _); the text given is not shown`;
 	if (!name.startsWith(own) || name.length === own.length) return `${expected}, got ${name}`;
 	let other: Owner | undefined;
 	for (const entry of taken) if (entry.prefix.length > (other?.prefix ?? own).length && name.startsWith(entry.prefix)) other = entry;

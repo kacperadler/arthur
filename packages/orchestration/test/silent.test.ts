@@ -7,6 +7,7 @@ import { type TestContext, test } from "node:test";
 import { type AgentStep, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { orchestration } from "../src/orchestration.ts";
 import { endCoordinator } from "./coordinator-end.ts";
+import { NO_UNIX_SOCKET } from "./unix-socket.ts";
 
 // The silent mode (spec/roadmap.md, entry 47, AR0127): `arthur silent` and `/silent`, its state file, the replies and notices it
 // holds, and its line in the coordinator's context.
@@ -190,7 +191,7 @@ test("a state file that does not parse counts as on, its context line names it, 
 	}
 });
 
-test("through the coordinator: while on, a turn of only a wake is held, a wake and an owner message in one turn are answered", async (t) => {
+test("through the coordinator: while on, a turn of only a wake is held, a wake and an owner message in one turn are answered", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const steps: AgentStep[] = [{ prompt: true }, { message: "Held reply." }, { end: true }, { prompt: true }, { message: "Sent reply." }, { end: true }, { prompt: true }];
 	const agent = fakeAgent({ steps });
 	const socket = join(temporaryFolder(), "tmux.sock");

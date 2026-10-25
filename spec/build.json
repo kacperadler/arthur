@@ -2591,9 +2591,9 @@
   {
     "id": "AR0340",
     "title": "The redaction of notices and the decision log reads secrets from an environment that holds none of the env file",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0340-the-redaction-of-notices-and-the-decision-log-reads-secrets-from-an-environment-that-holds-none-of-the-env-file/ticket.md",
-    "updated": "2026-10-25T19:38:40.276Z"
+    "updated": "2026-10-25T19:48:03.590Z"
   },
   {
     "id": "AR0341",
@@ -3160,9 +3160,9 @@
   {
     "id": "AR0420",
     "title": "Forms of OLDPWD and pushd the guard still misreads: ${OLDPWD...} operators, readonly, local outside a function, pushd -n, OLDPWD+= before eval",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0420-forms-of-oldpwd-and-pushd-the-guard-still-misreads-oldpwd-operators-readonly/ticket.md",
-    "updated": "2026-10-25T19:35:01.829Z",
+    "updated": "2026-10-25T19:47:29.671Z",
     "after": [
       "AR0333"
     ]
@@ -3197,9 +3197,9 @@
   {
     "id": "AR0424",
     "title": "A redirect's host is resolved twice, so DNS rebinding still reaches a private address",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0424-a-redirect-s-host-is-resolved-twice-so-dns-rebinding-still-reaches-a-private/ticket.md",
-    "updated": "2026-10-25T19:45:32.719Z"
+    "updated": "2026-10-25T19:45:47.746Z"
   },
   {
     "id": "AR0425",

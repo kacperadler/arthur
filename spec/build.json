@@ -2719,9 +2719,9 @@
   {
     "id": "AR0354",
     "title": "The mark that tells a job from the coordinator is a variable the job's shell clears",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0354-the-mark-that-tells-a-job-from-the-coordinator-is-a-variable-the-job-s-shell-clears/ticket.md",
-    "updated": "2026-10-23T14:41:34.062Z",
+    "updated": "2026-10-25T23:32:58.401Z",
     "after": [
       "AR0338"
     ]

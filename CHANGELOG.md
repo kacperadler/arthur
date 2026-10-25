@@ -32,6 +32,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0406 Every sandboxed job exits 1: omp cannot lock its session file under the sandbox, so a review with PASS gets no verdict (a65274c5)
 - AR0407 A job's Unix datagram socket reaches any local daemon that listens on one (1256ab3a)
 - AR0417 The push's refusal prints a credential git names without `://` (9ffac56c)
+- AR0418 A repo URL that new URL cannot parse is printed with its credential by the clone's refusal (458b3aaa)
 
 ### Changed
 

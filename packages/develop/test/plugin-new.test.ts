@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, readlinkSync, symlinkSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { develop } from "../src/develop.ts";
@@ -34,19 +34,21 @@ function commit(root: string): void {
 
 const changed = (root: string) => git(root, "status", "--porcelain", "--untracked-files=all");
 
-// `arthur plugin <args> [--project <project>]` with Arthur's copy `root` as the main project, and an empty folder as `other`.
+// `arthur plugin <args> [--project <project>]` with Arthur's copy `root` as the main project, and an empty folder as `other`;
+// `home`, the fake host's home folder, where a job's record is.
 async function load(t: TestContext, root: string) {
 	const fake = fakeHost({ name: "develop" });
 	fake.provide("projects", () => [{ name: "arthur", path: root, prefix: "AR" }, { name: "other", path: temporaryFolder(), prefix: "OT" }]);
 	await fake.setup(develop());
 	const command = fake.commands.find((each) => each.name === "plugin");
-	return async (args: readonly string[], project?: string) => {
+	const run = async (args: readonly string[], project?: string) => {
 		const [out, err] = [[] as string[], [] as string[]];
 		t.mock.method(console, "log", (text: string) => out.push(text));
 		t.mock.method(console, "error", (text: string) => err.push(text));
 		const code = await Promise.try(() => command?.run({ args, project })).finally(() => t.mock.restoreAll());
 		return { code: code ?? 0, out: out.join("\n"), err: err.join("\n") };
 	};
+	return Object.assign(run, { home: dirname(fake.host.folder) });
 }
 
 const budgets = (root: string) => readFileSync(join(root, "test", "structure.test.ts"), "utf8").match(/^const BUDGETS = \{ (.*) \};$/m)?.[1] ?? "";
@@ -152,13 +154,15 @@ test("refused, exit 1, before any write: a bad name, a missing or wrong budget, 
 });
 
 test("in a job only its own worktree, named by --root, is written; never the project's checkout; --root outside a job is refused", async (t) => {
-	const [checkout, worktree, record] = [copy(), copy(), temporaryFolder()];
-	writeFileSync(join(record, "worktree"), `${worktree}\n`);
+	const [checkout, worktree] = [copy(), copy()];
 	const plugin = await load(t, checkout);
+	const record = join(plugin.home, "jobs", "2026-10-21-worker-0a1b2c3d");
+	mkdirSync(record, { recursive: true });
+	writeFileSync(join(record, "worktree"), `${worktree}\n`);
 	const refused = (why: string) => ({ code: 1, out: "", err: `refused: ${why}; nothing was written` });
 	assert.deepEqual(await plugin(["new", "acme", "--budget", "100", "--root", worktree]), refused("--root is a job's own worktree; outside a job the package goes into the project's checkout"));
 
-	// The test kit clears every ARTHUR_ variable; a job's wrapper sets this one to the job's record.
+	// The test kit clears every ARTHUR_ variable; a job's wrapper sets this one to the job's record, in the home the CLI reads.
 	t.after(() => delete process.env.ARTHUR_JOB);
 	process.env.ARTHUR_JOB = record;
 	assert.deepEqual(await plugin(["new", "acme", "--budget", "100"]), refused(`a job writes only in its own worktree: add --root ${worktree}`));
@@ -175,6 +179,20 @@ test("in a job only its own worktree, named by --root, is written; never the pro
 	assert.match(budgets(worktree), /, acme: 100$/);
 	assert.equal(readlinkSync(join(worktree, "node_modules", "@arthur", "acme")), join("..", "..", "packages", "acme"));
 	assert.ok(!existsSync(join(checkout, "node_modules", "@arthur", "acme")));
+});
+
+// The job whose systemd scope runs this test, when one does (a job's own `npm test`).
+const scope = /\/arthur-job-([^/]+)\.scope$/.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
+
+test("in a job's scope only its own worktree is written with ARTHUR_JOB cleared once the home holds that job's record", { skip: scope === undefined && "not run in a job's systemd scope" }, async (t) => {
+	const [checkout, worktree] = [temporaryFolder(), temporaryFolder()];
+	const plugin = await load(t, checkout);
+	const refused = (why: string) => ({ code: 1, out: "", err: `refused: ${why}; nothing was written` });
+	assert.deepEqual(await plugin(["new", "acme", "--budget", "100"]), refused(`${checkout} is not Arthur's repository: no packages/core`), "the test's own home holds no record of the job");
+	const record = join(plugin.home, "jobs", scope ?? "");
+	mkdirSync(record, { recursive: true });
+	writeFileSync(join(record, "worktree"), `${worktree}\n`);
+	assert.deepEqual(await plugin(["new", "acme", "--budget", "100"]), refused(`a job writes only in its own worktree: add --root ${worktree}`));
 });
 
 // The checkout's config: develop, and in place of orchestration a test plugin that answers the project list.
@@ -200,7 +218,8 @@ test("the coordinator is told that a new plugin's ticket names the local machine
 });
 
 test("the planner and the worker are told the line that makes a new plugin from a job, and it runs as written; no other role or repository", async () => {
-	const [checkout, worktree, record] = [copy(), join(temporaryFolder(), "worktree"), temporaryFolder()];
+	const [checkout, worktree] = [copy(), join(temporaryFolder(), "worktree")];
+	const record = join(checkout, ".arthur", "jobs", "2026-10-21-worker-0a1b2c3d");
 	git(checkout, "worktree", "add", "--quiet", "--detach", worktree);
 	const fake = fakeHost({ name: "develop" });
 	await fake.setup(develop());
@@ -222,10 +241,12 @@ test("the planner and the worker are told the line that makes a new plugin from 
 	assert.ok(!remote.includes("cd <checkout>"), remote);
 
 	// The worker's line as written, `<checkout>` the first line of `git worktree list`, run in the job's worktree by a shell
-	// with the job's record and the systemd service's `PATH` of docs/setup.md (Node's bin, `~/.local/bin`, the system folders),
-	// which has no `node_modules/.bin`; the checkout holds arthur.config.ts and `arthur` as `npm ci` links it.
+	// with the job's record, in the home of the checkout's arthur.config.ts, and the systemd service's `PATH` of docs/setup.md
+	// (Node's bin, `~/.local/bin`, the system folders), which has no `node_modules/.bin`; the checkout holds arthur.config.ts
+	// and `arthur` as `npm ci` links it.
 	writeFileSync(join(checkout, "arthur.config.ts"), CONFIG);
 	symlinkSync(join("..", "@arthur", "core", "src", "cli.ts"), join(checkout, "node_modules", ".bin", "arthur"));
+	mkdirSync(record, { recursive: true });
 	writeFileSync(join(record, "worktree"), `${worktree}\n`);
 	const first = git(worktree, "worktree", "list").split(" ")[0] ?? "";
 	const line = worker.slice(worker.lastIndexOf("cd <checkout>"), -4).replace("<checkout>", first).replace("<name>", "acme").replace("<lines>", "100");

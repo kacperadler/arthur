@@ -669,7 +669,11 @@ import { checkStructure } from "./structure.ts";
 // AR0361 (F5 of AR0324; its Done means: a merge refuses while main has a non-merge commit of code since its last merge; AR-D29):
 // delivery 5 more (1332) for the refusal and its comment (merge-command.ts, git diff --numstat +5). Nothing looked at main's own
 // commits before, so nothing was cut.
-const BUDGETS = { core: 6168, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1332, github: 658, manage: 928, develop: 705, findings: 254 };
+// AR0354 (F2 of AR0323; its Done means: one function in the core that the refusals read; AR-D29): core 14 more (6182) for
+// `insideJob` (inside-job.ts, 13) and its import in remote-job.ts; the import of `@arthur/core/inside-job` (and `dirname`
+// where the file lacked it) in each plugin's refusal: develop 1 (706), github 1 (659), orchestration 3 (2340, the job's id in
+// the refusal), schedule 1 (595), youtrack 2 (661). Each refusal had read `ARTHUR_JOB` in place, so nothing was cut.
+const BUDGETS = { core: 6182, "core/testing": 349, projects: 486, orchestration: 2340, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1332, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

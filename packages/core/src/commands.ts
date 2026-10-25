@@ -20,7 +20,7 @@ export type Command = {
 	// `about` is the line of a channel's menu, 1 to 256 characters, not only spaces; `reply` answers the text after `/name`, empty when there is none.
 	// Both limits are Telegram's for its command menu, so every phone command can be listed there.
 	readonly phone?: { readonly about: string; readonly reply: (text: string, from: PhoneFrom) => string | Promise<string> };
-	// `true`: it runs inside a job too (the wrapper sets `ARTHUR_JOB`); absent, the CLI refuses it there before it runs (`arthur help --help`).
+	// `true`: it runs inside a job too (inside-job.ts); absent, the CLI refuses it there before it runs (`arthur help --help`).
 	readonly inJob?: true;
 };
 

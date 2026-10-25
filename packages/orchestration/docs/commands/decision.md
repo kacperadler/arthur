@@ -81,7 +81,7 @@ The `ask` prints a second line, `<id> answered by policy (<class id>): <decided>
 
 Each refusal prints `arthur decision <verb>: refused: <why>`, writes nothing, and exits 1:
 
-- Inside a job (`ARTHUR_JOB` set), every verb, `class` included: a job never records the owner's word; it ends its run with `Blocked: user <question>`.
+- Inside a job (`arthur help --help`), every verb, `class` included: a job never records the owner's word; it ends its run with `Blocked: user <question>`.
 - `ask`: an empty or missing `--question`; a `--kind` other than the five; a `--ticket` not on the board of the project; a `--recommend` number with no such option; an unknown `--project`.
 - `answer`: an id the log does not hold, or whose prefix no project has; no owner's words; owner's words that begin `by policy` (only `ask` answers by policy, and a class is approved on the owner's word only); no `--decided`, or an empty one; a `--picked` that is no option's number; no `--picked` to a class's proposal.
 - `close`: an id the log does not hold; no reason; a question already answered or closed.

@@ -1,6 +1,7 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
+import { insideJob } from "@arthur/core/inside-job";
 import type { Command, Host } from "@arthur/core/plugin";
 import { pluginFiles } from "./plugin-template.ts";
 
@@ -44,12 +45,12 @@ function refusal(root: string, name: string, budget: string | undefined, fn: str
 	return undefined;
 }
 
-// The folder the package goes into, and why it may not, if so: the project's checkout outside a job; in a job (`ARTHUR_JOB`
-// names its record) only its own worktree, given as `--root`, so the package is on the job's branch and goes through review.
-function target(checkout: string, root: string | undefined): [string, string | undefined] {
-	const record = process.env.ARTHUR_JOB;
-	if (record === undefined || record === "") return [checkout, root === undefined ? undefined : "--root is a job's own worktree; outside a job the package goes into the project's checkout"];
-	const worktree = readFileSync(join(record, "worktree"), "utf8").trim();
+// The folder the package goes into, and why it may not, if so: the project's checkout outside a job; in a job (`insideJob`,
+// its record in `home`) only its own worktree, given as `--root`, so the package is on the job's branch and goes through review.
+function target(checkout: string, root: string | undefined, home: string): [string, string | undefined] {
+	const job = insideJob(home);
+	if (job === undefined) return [checkout, root === undefined ? undefined : "--root is a job's own worktree; outside a job the package goes into the project's checkout"];
+	const worktree = readFileSync(join(home, "jobs", job, "worktree"), "utf8").trim();
 	if (root === undefined) return [worktree, `a job writes only in its own worktree: add --root ${worktree}`];
 	return [worktree, existsSync(root) && realpathSync(root) === realpathSync(worktree) ? undefined : `--root ${root} is not this job's worktree ${worktree}`];
 }
@@ -62,7 +63,7 @@ function locked(text: string, name: string): string {
 	return `${JSON.stringify(lock, null, 2)}\n`;
 }
 
-export function pluginNew(checkout: string, args: readonly string[]): number {
+export function pluginNew(checkout: string, args: readonly string[], home: string): number {
 	let [positionals, budget, at]: [string[], string | undefined, string | undefined] = [[], undefined, undefined];
 	try {
 		({ positionals, values: { budget, root: at } } = parseArgs({ args: [...args], options: { budget: { type: "string" }, root: { type: "string" } }, allowPositionals: true, strict: true }));
@@ -77,7 +78,7 @@ export function pluginNew(checkout: string, args: readonly string[]): number {
 	}
 	const fn = name.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
 	const files = pluginFiles(name, fn);
-	const [root, misplaced] = target(checkout, at);
+	const [root, misplaced] = target(checkout, at, home);
 	const refused = misplaced ?? refusal(root, name, budget, fn, files);
 	if (refused !== undefined) {
 		console.error(`refused: ${refused}; nothing was written`);
@@ -113,7 +114,7 @@ export function pluginCommand(host: Host): Command {
 			const projects = host.board.projects();
 			const found = project === undefined ? projects[0] : projects.find((each) => each.name === project);
 			if (found === undefined) throw new Error(`unknown project ${project}; projects: ${projects.map((each) => each.name).join(", ")}`);
-			return pluginNew(found.path, args);
+			return pluginNew(found.path, args, dirname(host.folder));
 		},
 	};
 }

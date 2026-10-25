@@ -2,7 +2,7 @@
 
 Arthur is one process, `arthur run`, in the folder that holds `arthur.config.ts`, kept running by a systemd user service. The install, from a fresh VPS to that service, is [`setup.md`](setup.md), each step with the command that checks it. This page holds the rest: another machine for jobs, the threat model, daily use and updating.
 
-Arthur is in development. A line that names a roadmap entry describes what that entry builds; the order is [`spec/roadmap.md`](../spec/roadmap.md).
+A line that names a roadmap entry describes what that entry builds; the order is [`spec/roadmap.md`](../spec/roadmap.md).
 
 ## Another machine for jobs
 

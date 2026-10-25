@@ -3081,9 +3081,9 @@
   {
     "id": "AR0410",
     "title": "setup.md step 5 does not say `ci.workflow` needs an `origin` remote",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0410-setup-md-step-5-does-not-say-ci-workflow-needs-an-origin-remote/ticket.md",
-    "updated": "2026-10-25T13:38:54.236Z"
+    "updated": "2026-10-25T14:02:28.327Z"
   },
   {
     "id": "AR0411",

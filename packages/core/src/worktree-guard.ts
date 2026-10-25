@@ -72,8 +72,8 @@ function commandIndex(words: readonly string[]): number {
 // worktree. It is not a sandbox.
 function bashRefusal(place: Place, command: string, start: string): string | undefined {
 	let cwd = start;
-	// Where `cd -`, `~-` and `$OLDPWD` (shell-words.ts reads it as `~-`) go: bash's OLDPWD, from the agent's env; none when unset.
-	let [previous, fixed, pushed] = [process.env.OLDPWD, false, [] as string[]];
+	// Where `cd -`, `~-` and `$OLDPWD` (shell-words.ts reads it as `~-`, with another operator `\0`) go: bash's OLDPWD, from the agent's env; none when unset.
+	let [previous, fixed, pushed, depth] = [process.env.OLDPWD, false, [] as string[], 0];
 	const subshells: [string, string | undefined, string[], boolean][] = [];
 	const located = (base: string, path: string): string => real(resolve(base, path.replace(/^~-(?=\/|$)/, previous || "~-")));
 	const theirs = (words: readonly string[], base = cwd, named = true): string | undefined =>
@@ -89,16 +89,16 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 	const judge = (command: Command): string | undefined => {
 		const words = command.words.map(literal);
 		const at = commandIndex(words);
-		// `\0` is an operator on `${OLDPWD…}` (shell-words.ts); the refusal names the other forms the guard does not follow.
+		for (const word of at < 0 ? words : words.slice(0, at)) depth += word === "{" ? 1 : word === "}" ? -1 : 0;
 		if ([...command.words, ...command.writes].some((word) => word.includes("\0") || (!previous && /(^|=)~-(\/|$)/.test(literal(word)))) || command.words.some((word, index) => /^OLDPWD(\[(?!\d+\])|\+=\(|=\(\[)/.test(word) || (index < at && /^OLDPWD(\[|=\()/.test(word)))) return OLDPWD_UNKNOWN;
 		const redirected = theirs(command.writes.map(literal));
 		const verb = basename(words[at] ?? "");
 		const moves = ["cd", "pushd", "popd"].includes(verb);
 		const args = words.slice(at + 1);
-		// An assignment (`=`, `+=`, to `OLDPWD[0]`, or a list `OLDPWD=(a …)` for `a`) alone or by `export`, `declare` or `readonly`
-		// sets OLDPWD as written, an `unset` but `-f` clears it, neither once it is read-only; one before `cd` sets it for that `cd`
-		// (which then sets the folder it left), one before a shell or `eval` for what they run, a child shell's writable again.
-		for (const set of command.alone && !fixed && (at < 0 || moves || ["export", "declare", "typeset", "readonly"].includes(verb)) ? command.words.map((word) => /^OLDPWD(?:\[0+\])?(\+?)=\(?([^]*)/.exec(word)) : []) if (set) previous = (set[1] ? (previous ?? "") : "") + literal(set[2]!).replace(/^~-(?=\/|$)/, previous || "~-");
+		// An assignment (`=`, `+=`, to `OLDPWD[0]`, or a list `OLDPWD=(a …)` for `a`) alone or by `export`, `declare`, `readonly`, or
+		// `local` in a `{ }` group or a subshell (a function's body; bash refuses it at the top), sets OLDPWD as written, an `unset` but
+		// `-f` clears it, neither once read-only; one before `cd` sets it for that `cd` (which then sets the folder it left), one before a shell or `eval` for what they run, a child shell's writable again.
+		for (const set of command.alone && !fixed && (at < 0 || moves || ["export", "declare", "typeset", "readonly", ...(depth > 0 || subshells.length > 0 ? ["local"] : [])].includes(verb)) ? command.words.map((word) => /^OLDPWD(?:\[0+\])?(\+?)=\(?([^]*)/.exec(word)) : []) if (set) previous = (set[1] ? (previous ?? "") : "") + literal(set[2]!).replace(/^~-(?=\/|$)/, previous || "~-");
 		if (command.alone && !fixed && verb === "unset" && words.some((word) => /^OLDPWD(\[0+\])?$/.test(word)) && !words.some((word) => /^-\w*f/.test(word))) previous = undefined;
 		if (command.alone && (verb === "readonly" || (["declare", "typeset"].includes(verb) && args.some((word) => /^-\w*r/.test(word)))) && !args.some((word) => /^-\w*f/.test(word)) && args.some((word) => /^OLDPWD(?!\w)/.test(word))) fixed = true;
 		if (redirected !== undefined || at < 0 || (moves && !command.alone)) return redirected;

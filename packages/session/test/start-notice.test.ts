@@ -139,7 +139,7 @@ const said = (role: string, text: string, stopReason = "stop", errorMessage?: st
 	...(errorMessage === undefined ? {} : { errorStatus: 529, errorMessage }),
 });
 
-test("a coordinator turn that fails before any text is left for arthur run, its credential redacted; one with text, or not failed, is not", (t) => {
+test("a coordinator turn that fails before any text is left for arthur run as omp wrote it; one with text, or not failed, is not", (t) => {
 	const folder = temporaryFolder();
 	t.after(() => delete process.env.ARTHUR_SESSION_FOLDER);
 	process.env.ARTHUR_SESSION_FOLDER = folder;
@@ -161,7 +161,8 @@ test("a coordinator turn that fails before any text is left for arthur run, its 
 	const left = readdirSync(join(folder, "turn-failed"));
 	assert.equal(left.length, 1);
 	assert.match(left[0] ?? "", new RegExp(`^\\d+-${process.pid}-1\\.txt$`));
-	assert.equal(readFileSync(join(folder, "turn-failed", left[0] ?? ""), "utf8"), "529 overloaded; key [redacted]");
+	// Raw: arthur run redacts it in one pass with the env file's values, which a first pass here would cut short.
+	assert.equal(readFileSync(join(folder, "turn-failed", left[0] ?? ""), "utf8"), overloaded);
 	// While the provider is down the inbox hands the messages over again: the same first line is not left again, another is.
 	const files = () => readdirSync(join(folder, "turn-failed")).sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
 	end([user, said("assistant", "", "error", `${overloaded}\nsecond line differs`)]);
@@ -177,8 +178,9 @@ test("a coordinator turn that fails before any text is left for arthur run, its 
 	assert.match(files().at(-1) ?? "", /-4\.txt$/, "after it worked again, the first reason is told again");
 });
 
-test("arthur run sends each turn failure the coordinator's agent left as turn failed on <host>, the env file's values redacted; one left before its start is dropped", async (t) => {
-	const box = await load(t, { probeLlm: false }, { ARTHUR_SESSION_PASS: "correct-horse-battery" });
+test("arthur run sends each turn failure the coordinator's agent left as turn failed on <host>, each env file value redacted whole; one left before its start is dropped", async (t) => {
+	// A value whose tail has a vendor key's shape: redacted in two passes, its head would be sent.
+	const box = await load(t, { probeLlm: false }, { ARTHUR_SESSION_PASS: "pass-word-sk-live-4f9a8b7c" });
 	const failed = join(box.fake.host.folder, "turn-failed");
 	mkdirSync(failed, { recursive: true });
 	writeFileSync(join(failed, `${Math.floor(performance.timeOrigin) - 60_000}-1-1.txt`), "an old failure");
@@ -186,7 +188,7 @@ test("arthur run sends each turn failure the coordinator's agent left as turn fa
 	const extension = box.fake.collect<{ file: string; env: Record<string, string> }>("coordinator.extension").find(({ file }) => file.endsWith("turn-extension.ts"));
 	assert.ok(extension);
 	const gates = temporaryFolder();
-	const omp = fakeAgent({ steps: [{ message: "", stopReason: "error", error: "529 overloaded\nretry later" }, { end: true }, { waitFor: join(gates, "next") }, { message: "", stopReason: "error", error: "500 internal; password correct-horse-battery" }, { end: true }, { waitFor: join(gates, "again") }, { message: "Back." }, { end: true }, { waitFor: join(gates, "never") }] });
+	const omp = fakeAgent({ steps: [{ message: "", stopReason: "error", error: "529 overloaded\nretry later" }, { end: true }, { waitFor: join(gates, "next") }, { message: "", stopReason: "error", error: "500 internal; password pass-word-sk-live-4f9a8b7c" }, { end: true }, { waitFor: join(gates, "again") }, { message: "Back." }, { end: true }, { waitFor: join(gates, "never") }] });
 	const child = spawn(omp, ["--continue", "-e", extension.file], { env: { ...process.env, ...extension.env }, stdio: "ignore" });
 	t.after(() => child.kill());
 	await until("the first notice", () => box.notices().length === 2);

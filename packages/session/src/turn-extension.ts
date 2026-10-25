@@ -1,11 +1,10 @@
 import { mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { redact } from "./credential.ts";
 
 // A coordinator turn that failed before any text (spec/roadmap.md, entry 38): an OMP extension that orchestration loads into
 // the coordinator's agent for the session plugin (`coordinator.extension`). At the end of a turn whose last message is an
-// error and none of whose replies held text, it leaves omp's error, its credentials redacted, in `turn-failed/` of the folder
-// `ARTHUR_SESSION_FOLDER` names, as `<ms>-<pid>-<n>.txt`, which `arthur run` sends as a notice, `host.secrets` redacted (start-notice.ts). A failure
+// error and none of whose replies held text, it leaves omp's error as it is in `turn-failed/` of the folder `ARTHUR_SESSION_FOLDER`
+// names, as `<ms>-<pid>-<n>.txt`, which `arthur run` sends as a notice, redacted there in one pass with `host.secrets` (start-notice.ts). A failure
 // with the first line of the last one told is not left again, so the inbox's retries during an outage tell it once; the next
 // turn that ends without an error after one told leaves `<ms>-<pid>-<n>.ok`, told as working again: docs/session.md.
 
@@ -41,7 +40,7 @@ export default function turnFailures(pi: ExtensionApi): void {
 			return;
 		}
 		if (turn.some((message) => message.role === "assistant" && (message.content ?? []).some((block) => block.type === "text" && (block.text ?? "").trim() !== ""))) return;
-		const reason = redact(last.errorMessage ?? "", []);
+		const reason = last.errorMessage ?? "";
 		const first = reason.trim().split("\n")[0] ?? "";
 		if (first === told) return;
 		told = first;

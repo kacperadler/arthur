@@ -6,7 +6,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
 import { NOT_TRANSCRIBED } from "@arthur/core/parts";
 import { type AgentRun, type AgentStep, type FakeHost, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
-import { pause } from "../src/inbox-extension.ts";
+import extension, { pause } from "../src/inbox-extension.ts";
 import { handOver } from "../src/hand-over.ts";
 import { inbox, queue } from "../src/inbox.ts";
 import { orchestration } from "../src/orchestration.ts";
@@ -49,14 +49,14 @@ const sorted = (folder: string) => (existsSync(folder) ? readdirSync(folder).sor
 
 // The plugin on a fake host with `projects` provided, if given, and its coordinator the fake agent playing `run` in a tmux
 // server on a socket in the test's folder, killed when the test ends; `start` puts that agent on `PATH` and starts the plugin.
-async function load(t: TestContext, run: AgentRun, setup: { readonly root?: string; readonly projects?: readonly unknown[] } = {}) {
+async function load(t: TestContext, run: AgentRun, setup: { readonly root?: string; readonly projects?: readonly unknown[]; readonly env?: Record<string, string> } = {}) {
 	const agent = fakeAgent(run);
 	const socket = join(temporaryFolder(), "tmux.sock");
 	const options = { coordinator: { exitWaitSeconds: 1, restartDelaySeconds: 1, tmux: { session: "coord", socket } } };
 	const errors: string[] = [];
 	t.mock.method(console, "log", () => {});
 	t.mock.method(console, "error", (text: string) => void errors.push(text));
-	const fake = fakeHost({ name: "orchestration", root: setup.root });
+	const fake = fakeHost({ name: "orchestration", root: setup.root, env: setup.env });
 	if (setup.projects !== undefined) fake.provide("projects", () => setup.projects);
 	const plugin = orchestration(options);
 	await fake.setup({ setup: (host) => plugin.setup({ ...host, options }) });
@@ -487,29 +487,41 @@ test("a turn that keeps ending without a reply has its messages go again at once
 	assert.deepEqual(box.emitted("coordinator-replied"), []);
 });
 
-test("the notice after 3 turns without a reply never repeats a credential in omp's error", { skip: NO_UNIX_SOCKET }, async (t) => {
+test("the notice after 3 turns without a reply never repeats a credential in omp's error, nor any part of an env file value", { skip: NO_UNIX_SOCKET }, async (t) => {
 	t.after(() => delete process.env.ARTHUR_INBOX_TEST_API_KEY);
 	process.env.ARTHUR_INBOX_TEST_API_KEY = "hunter-two-secret";
-	const error = "401 invalid x-api-key sk-ant-api03-AbCdEf123456 (hunter-two-secret), request_id req_011CgAWsav66AwnrHwNLjFA6";
-	const box = await load(t, { steps: [...FAILED, ...FAILED, { prompt: true }, { message: "", stopReason: "error", error }, { end: true }, { prompt: true }] });
+	// An env file value whose tail has a vendor key's shape: redacted in two passes, its head would be sent.
+	const error = "401 invalid x-api-key sk-ant-api03-AbCdEf123456 (hunter-two-secret), password pass-word-sk-live-4f9a8b7c, request_id req_011CgAWsav66AwnrHwNLjFA6";
+	const box = await load(t, { steps: [...FAILED, ...FAILED, { prompt: true }, { message: "", stopReason: "error", error }, { end: true }, { prompt: true }] }, { env: { ARTHUR_ORCHESTRATION_PASS: "pass-word-sk-live-4f9a8b7c" } });
 	await box.start();
 	box.say("Go.");
 	await until("the notice", () => box.emitted("notice").length === 1);
 	assert.deepEqual(box.emitted("notice"), [
-		{ text: "the coordinator's last 3 turns ended without a reply (error: 401 invalid x-api-key [redacted] ([redacted]), request_id [redacted]); their messages go again in 10 s, then after twice as long each time, at most 5 min" },
+		{ text: "the coordinator's last 3 turns ended without a reply (error: 401 invalid x-api-key [redacted] ([redacted]), password [redacted], request_id [redacted]); their messages go again in 10 s, then after twice as long each time, at most 5 min" },
 	]);
 });
 
-test("a notice the inbox extension left is sent with every value of the env file redacted, which the coordinator's environment never holds", (t) => {
-	const fake = fakeHost({ name: "orchestration", env: { ARTHUR_ORCHESTRATION_PASS: "correct-horse-battery" } });
-	const outbox = join(fake.host.folder, "outbox");
-	mkdirSync(outbox, { recursive: true });
-	writeFileSync(join(outbox, "1792363617800-000001.json"), JSON.stringify({ notice: "the coordinator's last 3 turns ended without a reply (error: 401 password correct-horse-battery)" }));
+test("the extension's notice of omp's error reaches the phone with each env file value redacted whole, which the coordinator's environment never holds", (t) => {
+	const fake = fakeHost({ name: "orchestration", env: { ARTHUR_ORCHESTRATION_PASS: "pass-word-sk-live-4f9a8b7c" } });
+	t.after(() => delete process.env.ARTHUR_ORCHESTRATION_FOLDER);
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = fake.host.folder;
+	const handlers = new Map<string, (event: object, ctx: object) => void>();
+	extension({ on: (name: string, handler: (event: object, ctx: object) => void) => void handlers.set(name, handler), sendUserMessage: () => {} } as unknown as Parameters<typeof extension>[0]);
+	const error = { role: "assistant", content: [], stopReason: "error", errorMessage: "401 password pass-word-sk-live-4f9a8b7c" };
+	mkdirSync(join(fake.host.folder, "inbox", "queued"), { recursive: true });
+	// Three turns in a row, each an owner's message handed after a tool call, end in omp's error.
+	for (const seq of [1, 2, 3]) {
+		writeFileSync(join(fake.host.folder, "inbox", "queued", `${seq}-1792363617800`), JSON.stringify({ channel: "telegram", text: "Go." }));
+		handlers.get("tool_result")?.({}, { hasUI: true });
+		handlers.get("agent_end")?.({ messages: [error] }, { hasUI: true });
+	}
 	const run = inbox(fake.host);
 	t.after(() => run.stop());
 	run.start();
 	run.stop();
-	assert.deepEqual(fake.emitted.filter((event) => event.name === "notice").map((event) => event.data), [{ text: "the coordinator's last 3 turns ended without a reply (error: 401 password [redacted])" }]);
+	assert.deepEqual(fake.emitted.filter((event) => event.name === "notice").map((event) => event.data), [
+		{ text: "the coordinator's last 3 turns ended without a reply (error: 401 password [redacted]); their messages go again in 10 s, then after twice as long each time, at most 5 min" },
+	]);
 });
 
 test("a reply ends the wait: the next turn that ends without a reply has its messages go again at once", { skip: NO_UNIX_SOCKET }, async (t) => {

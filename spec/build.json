@@ -3170,43 +3170,52 @@
   {
     "id": "AR0421",
     "title": "`cd $PWD` and `cd ~+` are read as `cd $HOME` or a folder named `~+`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0421-cd-pwd-and-cd-are-read-as-cd-home-or-a-folder-named/ticket.md",
-    "updated": "2026-10-25T18:41:38.077Z"
+    "updated": "2026-10-25T19:45:28.165Z",
+    "after": [
+      "AR0420"
+    ]
   },
   {
     "id": "AR0422",
     "title": "An `OLDPWD` set by `read`, `printf -v`, `mapfile` or a nameref, or taken away by `env -u`/`env -i`, is not seen",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0422-an-oldpwd-set-by-read-printf-v-mapfile-or-a-nameref-or-taken-away-by-env-u-env-i/ticket.md",
-    "updated": "2026-10-25T18:41:38.086Z"
+    "updated": "2026-10-25T19:45:29.695Z",
+    "after": [
+      "AR0421"
+    ]
   },
   {
     "id": "AR0423",
     "title": "packages/core/test/job-state.test.ts:142 fails now and then with ENOENT on the job record active file",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0423-packages-core-test-job-state-test-ts-142-fails-now-and-then-with-enoent-on-the/ticket.md",
-    "updated": "2026-10-25T18:55:15.222Z"
+    "updated": "2026-10-25T19:45:31.212Z"
   },
   {
     "id": "AR0424",
     "title": "A redirect's host is resolved twice, so DNS rebinding still reaches a private address",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0424-a-redirect-s-host-is-resolved-twice-so-dns-rebinding-still-reaches-a-private/ticket.md",
-    "updated": "2026-10-25T19:22:23.036Z"
+    "updated": "2026-10-25T19:45:32.719Z"
   },
   {
     "id": "AR0425",
     "title": "A redirect's lookup in a site check ignores the check's time limit, and a 308 hop has no test",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0425-a-redirect-s-lookup-in-a-site-check-ignores-the-check-s-time-limit-and-a-308-hop/ticket.md",
-    "updated": "2026-10-25T19:22:33.316Z"
+    "updated": "2026-10-25T19:45:34.278Z",
+    "after": [
+      "AR0424"
+    ]
   },
   {
     "id": "AR0426",
     "title": "A forwarded file without a caption reaches the coordinator unmarked",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0426-a-forwarded-file-without-a-caption-reaches-the-coordinator-unmarked/ticket.md",
-    "updated": "2026-10-25T19:27:23.739Z"
+    "updated": "2026-10-25T19:45:35.809Z"
   }
 ]

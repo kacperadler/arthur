@@ -20,22 +20,26 @@ F1 of AR0367 (spec/features/AR0367-a-site-check-follows-a-redirect-to-any-addres
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+A site check's redirect reaches only the address it checked, so a host that answers differently on a second lookup never reaches loopback, link-local or private space; tested.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- Each hop to a host other than the config URL's goes through `node:http`/`node:https` with a `lookup` option that refuses a private address (one resolution, the one the socket uses), as the Description suggests; the time limit, the 20-hop cap and the reasons stay as they are.
+- Test in `packages/uptime/test/uptime.test.ts`: a `lookup` that answers a public address the first time and `127.0.0.1` the second (replaced as AR0367's mixed-name test does) never reaches the loopback server, and the site is down with the private-address reason; it fails on main.
+- The uptime line budget holds, or the worker ends `Blocked: user` asking for a raise.
+- `npm test` and `npm run check` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/uptime/src/site-check.ts`, `packages/uptime/test/uptime.test.ts`, `packages/uptime/docs/uptime.md`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The config URL's own host, which the config chose; the lookup time limit and 303/308 tests (AR0425).
 
 ## Decisions
 
 - 2026-10-25: Source: F1 of AR0367
+- 2026-10-25: AR0424 approved as written; the owner: "AR0421 to AR0426 - all" (AR-D25)

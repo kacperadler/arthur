@@ -647,7 +647,7 @@ test("a job of Arthur's own repository still builds a plugin in its worktree, ru
 	writeFileSync(join(record, "guarded"), readFileSync(join(record, "guarded"), "utf8").replace(/^install .*$/m, `install ${arthur}`));
 	const place = jobPlace(record);
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
-		["bash", { command: `cd ${arthur} && arthur plugin new acme --budget 100 --root ${own.worktree}` }, undefined],
+		["bash", { command: `cd ${arthur} && node_modules/.bin/arthur plugin new acme --budget 100 --root ${own.worktree}` }, undefined],
 		["write", { path: "packages/acme/src/acme.ts", content: "x" }, undefined],
 		["edit", { input: "[packages/acme/package.json#1A2B]\nPUT 1.=1:\n+x" }, undefined],
 		["bash", { command: "npm ci && npm test && git add -A && git commit -m 'feat(AR0001): the acme plugin'" }, undefined],

@@ -2746,9 +2746,9 @@
   {
     "id": "AR0357",
     "title": "The review kind takes any task with the three head lines, so a PASS can rest on a task nobody built from the branch (AR0311 F6, confirmed)",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0357-the-review-kind-takes-any-task-with-the-three-head-lines-so-a-pass-can-rest-on-a-task-nobody-built-from-the-branch-ar0311-f6-confirmed/ticket.md",
-    "updated": "2026-10-25T20:22:18.820Z"
+    "updated": "2026-10-25T20:31:30.275Z"
   },
   {
     "id": "AR0358",

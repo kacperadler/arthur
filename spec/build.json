@@ -3018,9 +3018,9 @@
   {
     "id": "AR0401",
     "title": "Inside a sandboxed job, the orchestration tests that start a tmux server fail",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0401-inside-a-sandboxed-job-the-orchestration-tests-that-start-a-tmux-server-fail/ticket.md",
-    "updated": "2026-10-25T14:21:34.021Z"
+    "updated": "2026-10-25T14:35:15.774Z"
   },
   {
     "id": "AR0402",

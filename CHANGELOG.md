@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Added
 
+- AR0307 The switch: Arthur runs on the VPS and takes its own tickets (15faf015)
 - AR0386 Inside a job the read-only `ci <branch>`, `config check`, `doctor`, `retro` and `usage` are refused with the commands that change state (9609309c)
 
 ### Fixed

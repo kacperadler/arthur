@@ -85,8 +85,8 @@ export type Jobs = RoleReads & {
 	machines(): string[];
 	home(machine: string): string;
 	spawn(request: SpawnRequest): Promise<Started>;
-	// `arthur continue` of an ended job with a branch, `budgetUsd` replacing its budget; resolves to why its wrapper did not start (job-control.ts).
-	continue(id: string, instruction: string, budgetUsd?: number): Promise<string | undefined>;
+	// `arthur continue` of an ended job with a branch, `budgetUsd` replacing its budget, `decision` as its `--decision` (AR0355); resolves to why its wrapper did not start (job-control.ts).
+	continue(id: string, instruction: string, budgetUsd?: number, decision?: string): Promise<string | undefined>;
 	// Holds a job in a run `blocked` on `dependency: <reason>` until its run ends; `stop`: stops it too, on `user: <reason>` (docs/commands/jobs.md).
 	block(id: string, reason: string, stop?: boolean): Promise<unknown>;
 	// `list`: every project's job records, in any state, the newest spawn first; `running`: the ids of those in a run (working, idle, or held), as `arthur stopall` counts them; `prune`: `arthur prune <id>...`, one line per job (docs/commands/jobs.md, prune.md).
@@ -138,7 +138,7 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 		home: (name) => machines.home(name),
 		roles: (project) => describeRoles(roles, kinds.all(), where(project), collect),
 		continue: (id, instruction, budgetUsd, ignoreRestart = false, decision) =>
-			continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), { check: async (job) => ({ mcp: kinds.get(job.kind) && (await roleModel(collect, kinds.get(job.kind)!.role)).mcp, caps: await jobCaps(collect("jobs.limits", [{ ...job, ignoreRestart }])), release: await checks.pass({ ...job, ignoreRestart, decision: job.free ? undefined : decision }) }), prepare: (job) => prepared({ ...job, ignoreRestart }, true) }, machines.of(id)),
+			continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), { check: async (job) => ({ mcp: kinds.get(job.kind) && (await roleModel(collect, kinds.get(job.kind)!.role)).mcp, caps: await jobCaps(collect("jobs.limits", [{ ...job, ignoreRestart }])), release: await checks.pass({ ...job, ignoreRestart, ...(job.free || decision === undefined ? {} : { decision }) }) }), prepare: (job) => prepared({ ...job, ignoreRestart }, true) }, machines.of(id)),
 		file: (board, id, job) => fileJob(home, board, (name) => kinds.get(name)?.file, id, job),
 		async spawn(request) {
 			const name = request.kind ?? "worker";
@@ -161,7 +161,7 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 			const asked = { task, kind: name, project, thinking, quick: preset.quick, timeoutMinutes, budgetUsd, tickets };
 			const machine = await machines.pick(request.machine, request.requires, () => collect("jobs.place", [{ ...asked, model: wanted, machine: request.machine, requires: request.requires }]));
 			const picked = await pickModel(collect, wanted, machine.name);
-			const spawn: Spawn = { ...asked, ...picked, budgetUsd: picked.free ? 0 : budgetUsd, machine: machine.name, ignoreRestart: request.ignoreRestart === true, decision: picked.free ? undefined : request.decision };
+			const spawn: Spawn = { ...asked, ...picked, budgetUsd: picked.free ? 0 : budgetUsd, machine: machine.name, ignoreRestart: request.ignoreRestart === true, ...(picked.free || request.decision === undefined ? {} : { decision: request.decision }) };
 			const caps = await jobCaps(collect("jobs.limits", [spawn]));
 			const release = await checks.pass(spawn);
 			try {

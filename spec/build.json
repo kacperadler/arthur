@@ -2977,9 +2977,9 @@
   {
     "id": "AR0394",
     "title": "A spawn's push to another machine runs a program the repository's config there names, hooks off or not",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0394-a-spawn-s-push-to-another-machine-runs-a-program-the-repository-s-config-there-names-hooks-off-or-not/ticket.md",
-    "updated": "2026-10-25T00:00:19.351Z"
+    "updated": "2026-10-25T02:48:04.943Z"
   },
   {
     "id": "AR0395",
@@ -3015,5 +3015,12 @@
     "status": "planned",
     "path": "spec/features/AR0399-git-lfs-push-origin-reads-origin-s-url-outside-git-s-transport-policy/ticket.md",
     "updated": "2026-10-25T02:19:49.297Z"
+  },
+  {
+    "id": "AR0400",
+    "title": "`arthur prune` of a job here runs a clean filter the main checkout's config or the job worktree's own names",
+    "status": "planned",
+    "path": "spec/features/AR0400-arthur-prune-of-a-job-here-runs-a-clean-filter-the-main-checkout-s-config-or-the-job-worktree-s-own-names/ticket.md",
+    "updated": "2026-10-25T02:48:15.795Z"
   }
 ]

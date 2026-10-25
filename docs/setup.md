@@ -107,7 +107,7 @@ Every option the core and each built plugin take, with its meaning and its defau
 
 The config stays in `~/arthur`, so its `@arthur/*` imports resolve from the clone's `node_modules`. Its `core.home` (default `.arthur/` beside it) holds Arthur's state: the event log, each plugin's folder, the job records, and `run.pid`. Job worktrees go to `.arthur-worktrees/` beside the repository they start from. Git ignores `arthur.config.ts` and `.arthur/` (`.gitignore`): the config holds your own project list, which never goes to the public repository; `git pull` leaves it as it is.
 
-**Check:** `arthur config check` refuses nothing and lists the one variable step 6 sets, which `github` names:
+**Check:** `arthur config check` refuses nothing and lists the one variable step 6 sets, which `github` names, as `missing`; until step 6 sets it, it exits 1, which here means that variable only, not a broken config:
 
 ```
 missing ARTHUR_GITHUB_TOKEN (github.instances[0].tokenEnv)

@@ -3,9 +3,9 @@
 // newlines, and `(` and `)` around a subshell, a `$(…)` or a backtick substitution, whose commands come before the command
 // they are in. A word has its quotes removed, a backslash-newline gone, the escapes of `$'…'` decoded; a comment is dropped.
 // An expansion known only when the command runs (`$x`, `${x}`, `$1`) is nothing, or the word it falls back to (`${x:-word}`,
-// also with `=`, `+`, `?` and without the colon); `~` and `$HOME` are `home` when it is given. A quoted or escaped character
-// that brace or pathname expansion would take as special (`\ * ? [ ] { } ,`) keeps a backslash before it, so a glob is told
-// apart from a quoted star; `literal` removes those backslashes. `shellWords` is every word, a heredoc's body split as a line.
+// also with `=`, `+`, `?` and without the colon); `~` and `$HOME` are `home` when it is given, `$OLDPWD` is `~-`. A quoted
+// or escaped character brace or pathname expansion would take as special (`\ * ? [ ] { } ,`) keeps a backslash before it, so
+// a glob is told apart from a quoted star; `literal` removes those. `shellWords` is every word, a heredoc's body as a line.
 
 const SPECIAL = "\\*?[]{},";
 const ESCAPES: Readonly<Record<string, string>> = { a: "\x07", b: "\b", e: "\x1b", E: "\x1b", f: "\f", n: "\n", r: "\r", t: "\t", v: "\v" };
@@ -91,7 +91,7 @@ export function shellCommands(command: string, home?: string): Item[] {
 			const close = closing(command, at + 2, "{", "}");
 			const inner = command.slice(at + 2, close);
 			const fallback = /^[#!]?(?:[A-Za-z_]\w*|\d+|[@*#?$!-])(?:\[[^\]]*\])?:?[-=+?]([^]*)$/.exec(inner);
-			word += fallback !== null ? shellWords(fallback[1]!).join(" ") : inner === "HOME" ? homeWord : "";
+			word += fallback !== null ? shellWords(fallback[1]!).join(" ") : inner === "HOME" ? homeWord : inner === "OLDPWD" ? "~-" : "";
 			return close + 1;
 		}
 		if (next === "'" && !inDouble) {
@@ -101,7 +101,7 @@ export function shellCommands(command: string, home?: string): Item[] {
 			return close + 1;
 		}
 		const name = /^(?:[A-Za-z_]\w*|[0-9@*#?$!-])/.exec(command.slice(at + 1))?.[0];
-		if (name !== undefined) word += name === "HOME" ? homeWord : "";
+		if (name !== undefined) word += name === "HOME" ? homeWord : name === "OLDPWD" ? "~-" : "";
 		else if (next !== '"' || inDouble) word += "$";
 		return at + 1 + (name?.length ?? 0);
 	};

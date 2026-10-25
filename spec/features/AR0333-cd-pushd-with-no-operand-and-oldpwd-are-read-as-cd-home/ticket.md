@@ -25,7 +25,7 @@ Evidence:
 ## Done means
 
 - The fix, with a test that proves it: keep `previous` beside `cwd`; `cd -` and `cd $OLDPWD`/`~-` go to it, `pushd` with no operand swaps `cwd` with the top of `pushed`; an assignment of `OLDPWD` sets it. Tests: the three commands refused naming the main checkout.
-- Also followed, as reviews 1 to 3 asked (each tested): `OLDPWD=`, `OLDPWD+=`, `export`/`declare`/`typeset` of OLDPWD, `unset OLDPWD` (not `unset -f`), an empty OLDPWD refused as unset, a subshell restoring it, a prefix `OLDPWD=` before `cd`, a shell (`bash -c`, `env … bash -c`) or `eval`, `$OLDPWD`/`${OLDPWD}`/`~-` inside paths and redirects.
+- Also followed, as reviews 1 to 3 asked (each tested): `OLDPWD=`, `OLDPWD+=`, `export`/`declare`/`typeset` of OLDPWD, `unset OLDPWD` (not `unset -f`, not one in a pipeline, which bash runs in a subshell), an empty OLDPWD refused as unset, a subshell restoring it, a prefix `OLDPWD=` before `cd`, a shell (`bash -c`, `env … bash -c`) or `eval`, `$OLDPWD`/`${OLDPWD}`/`~-` inside paths and redirects.
 - `npm test` and `npm run check` pass.
 
 ## Scope
@@ -34,7 +34,7 @@ In:
 - keep `previous` beside `cwd`; `cd -` and `cd $OLDPWD`/`~-` go to it, `pushd` with no operand swaps `cwd` with the top of `pushed`; an assignment of `OLDPWD` sets it. Tests: the three commands refused naming the main checkout.
 
 Out (split off by AR-D17 after review 3):
-- `${OLDPWD…}` with an operator (`:-`, `-`, `=`, `%`, `#`, `/`), `readonly`/`declare -r OLDPWD`, `local OLDPWD=` outside a function, a bare `pushd -n`, and a prefix `OLDPWD+=` before `eval`: AR0420. Each was missed before this ticket too.
+- `${OLDPWD…}` with an operator (`:-`, `-`, `=`, `%`, `#`, `/`), `readonly`/`declare -r OLDPWD`, `local OLDPWD=` outside a function, a bare `pushd -n`, and a prefix `OLDPWD+=` before `eval`, and OLDPWD array forms (`OLDPWD[0]=`, `OLDPWD=(…)`, `declare OLDPWD[0]=`; AR-D19 after review 4): AR0420. Each was missed before this ticket too.
 
 ## Decisions
 
@@ -42,3 +42,4 @@ Out (split off by AR-D17 after review 3):
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; starts after the ten security checks AR0319-AR0328.
 - 2026-10-25: AR0333 gets another round: the worker fixes review 2 findings, then review round 3; the owner: "AR-D14 - 1" (AR-D14)
 - 2026-10-25: AR0333 split: narrowed to what the branch fixes, a new ticket for the 5 forms review 3 found, the branch reviewed again (round 4); the owner: "AR-D17 - 2" (AR-D17)
+- 2026-10-25: AR0333 split again: OLDPWD array forms go to AR0420, the worker adds only the piped-unset test row, then review round 5; the owner: "AR-D19 - 2" (AR-D19)

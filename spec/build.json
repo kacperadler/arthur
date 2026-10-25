@@ -2766,9 +2766,9 @@
   {
     "id": "AR0365",
     "title": "A message the owner forwarded runs as the owner's own words, a phone command included",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0365-a-message-the-owner-forwarded-runs-as-the-owner-s-own-words-a-phone-command-included/ticket.md",
-    "updated": "2026-10-25T19:16:01.227Z"
+    "updated": "2026-10-25T19:21:02.305Z"
   },
   {
     "id": "AR0366",
@@ -2780,9 +2780,9 @@
   {
     "id": "AR0367",
     "title": "A site check follows a redirect to any address, loopback and metadata included",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0367-a-site-check-follows-a-redirect-to-any-address-loopback-and-metadata-included/ticket.md",
-    "updated": "2026-10-25T19:18:46.533Z"
+    "updated": "2026-10-25T19:22:23.039Z"
   },
   {
     "id": "AR0368",
@@ -3181,5 +3181,19 @@
     "status": "planning",
     "path": "spec/features/AR0423-packages-core-test-job-state-test-ts-142-fails-now-and-then-with-enoent-on-the/ticket.md",
     "updated": "2026-10-25T18:55:15.222Z"
+  },
+  {
+    "id": "AR0424",
+    "title": "A redirect's host is resolved twice, so DNS rebinding still reaches a private address",
+    "status": "planning",
+    "path": "spec/features/AR0424-a-redirect-s-host-is-resolved-twice-so-dns-rebinding-still-reaches-a-private/ticket.md",
+    "updated": "2026-10-25T19:22:23.036Z"
+  },
+  {
+    "id": "AR0425",
+    "title": "A redirect's lookup in a site check ignores the check's time limit, and a 308 hop has no test",
+    "status": "planning",
+    "path": "spec/features/AR0425-a-redirect-s-lookup-in-a-site-check-ignores-the-check-s-time-limit-and-a-308-hop/ticket.md",
+    "updated": "2026-10-25T19:22:33.316Z"
   }
 ]

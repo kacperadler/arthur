@@ -2773,9 +2773,9 @@
   {
     "id": "AR0360",
     "title": "The job's record of its checks is its own word: written from inside the agent, not tied to the tip's tree, not stale after a change by bash",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0360-the-job-s-record-of-its-checks-is-its-own-word-written-from-inside-the-agent-not-tied-to-the-tip-s-tree-not-stale-after-a-change-by-bash/ticket.md",
-    "updated": "2026-10-23T14:45:58.484Z",
+    "updated": "2026-10-25T21:28:39.926Z",
     "after": [
       "AR0351"
     ]
@@ -3399,9 +3399,9 @@
   {
     "id": "AR0428",
     "title": "Redaction runs twice on two paths, so the extensions rewrite part of an env-file secret before the plugin can match it whole",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0428-redaction-runs-twice-on-two-paths-so-the-extensions-rewrite-part-of-an-env-file/ticket.md",
-    "updated": "2026-10-25T21:11:05.430Z",
+    "updated": "2026-10-25T21:31:55.924Z",
     "after": [
       "AR0341"
     ]

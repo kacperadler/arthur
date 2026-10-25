@@ -3133,9 +3133,9 @@
   {
     "id": "AR0417",
     "title": "The push's refusal prints a credential git names without `://`",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0417-the-push-s-refusal-prints-a-credential-git-names-without/ticket.md",
-    "updated": "2026-10-25T18:08:19.392Z"
+    "updated": "2026-10-25T18:12:17.294Z"
   },
   {
     "id": "AR0418",
@@ -3147,9 +3147,9 @@
   {
     "id": "AR0419",
     "title": "The workflow test checks neither what the top-level permissions grant nor a .yaml workflow",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0419-the-workflow-test-checks-neither-what-the-top-level-permissions-grant-nor-a-yaml/ticket.md",
-    "updated": "2026-10-25T18:03:17.457Z"
+    "updated": "2026-10-25T18:08:29.585Z"
   },
   {
     "id": "AR0420",

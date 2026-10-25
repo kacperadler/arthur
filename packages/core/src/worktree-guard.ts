@@ -58,7 +58,7 @@ function commandIndex(words: readonly string[]): number {
 
 // Whether a bash command run in `start` writes into a guarded place, or a `.git` or `commondir`: a redirect, a writing
 // command (`rm`, `mv`, `sed -i`, `cp` into it, `ln` to or in it, `dd of=`, `find -delete` or `-exec`), a `git` write aimed at
-// it (also by `GIT_DIR=`, `GIT_WORK_TREE=` or `GIT_COMMON_DIR=` before it, an alias its `-c` gives, or a link of its
+// it (also by `GIT_DIR=`, `GIT_WORK_TREE=`, `GIT_INDEX_FILE=`, `GIT_OBJECT_DIRECTORY=` or `GIT_COMMON_DIR=` before it or after `env`, an alias its `-c` gives, or a link of its
 // folders), any `git stash`, a `git config` that changes the shared, the user's or the system's config, a git call that reads
 // config the guard does not or writes an alias or include, one that may point a checkout at a branch another worktree holds
 // (`--ignore-other-worktrees`, `checkout -B`, `symbolic-ref`), `git replace` but a list, or one of these after a `cd` there.

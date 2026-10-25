@@ -296,7 +296,7 @@ test("git config that changes the config every worktree shares, the user's or th
 	assert.equal(git(own.worktree, "config", "--worktree", "core.hooksPath"), "/tmp/hooks", "the worktree's own config took it");
 });
 
-test("a git write through an alias given by -c, or GIT_DIR or GIT_WORK_TREE set before git, is refused; config the guard does not read, or an alias or include written, refuses the call", async () => {
+test("a git write through an alias given by -c, or GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE or GIT_OBJECT_DIRECTORY set before git, is refused; config the guard does not read, or an alias or include written, refuses the call", async () => {
 	const { root, home, own, other } = await jobs();
 	const place = jobPlace(join(home, "jobs", own.id));
 	const [main, otherJob] = ["../../acme", `../${other.id}`];
@@ -316,6 +316,8 @@ test("a git write through an alias given by -c, or GIT_DIR or GIT_WORK_TREE set 
 		[`GIT_WORK_TREE=${main} git checkout -- .`, MAIN, main],
 		[`GIT_AUTHOR_NAME=x GIT_DIR=${main}/.git GIT_WORK_TREE=${main} git reset --hard`, MAIN, `${main}/.git`],
 		[`env GIT_WORK_TREE=${main} git checkout -- .`, MAIN, main],
+		[`GIT_INDEX_FILE=${main}/.git/index git add .`, MAIN, `${main}/.git/index`],
+		[`env -u X GIT_OBJECT_DIRECTORY=${main}/.git/objects git commit -m x`, MAIN, `${main}/.git/objects`],
 		[`GIT_WORK_TREE=${otherJob} git -c alias.co=checkout co -- .`, OTHER, otherJob],
 	];
 	for (const [command, name, shown] of refused) {
@@ -363,6 +365,7 @@ test("a git write through an alias given by -c, or GIT_DIR or GIT_WORK_TREE set 
 		"git -c alias.a=a a",
 		"GIT_WORK_TREE=. git checkout -- .",
 		"GIT_AUTHOR_NAME=x GIT_CONFIG_NOSYSTEM=1 git commit --allow-empty -m y",
+		"GIT_AUTHOR_NAME=x git commit -m y",
 		"git --attr-source HEAD status",
 		"git config --worktree user.name Aliasing",
 		"git config --worktree core.editor include-me",

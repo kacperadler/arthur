@@ -76,7 +76,7 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 }
 
 type At = (path: string) => string;
-const edit = (path: string, text: string) => (at: At) => writeFileSync(at(path), text);
+const edit = (path: string, text: string) => (at: At) => (mkdirSync(dirname(at(path)), { recursive: true }), writeFileSync(at(path), text));
 const both = (...changes: ((at: At) => void)[]) => (at: At) => changes.forEach((change) => change(at));
 const small = edit("src/shop.ts", "export const shop = 2;\n");
 const lines = (count: number, first = "export const shop = 1;\n") => first + Array.from({ length: count }, (_, n) => `export const a${n} = ${n};\n`).join("");
@@ -110,8 +110,8 @@ const BRANCHES: readonly (readonly [string, (at: At) => void, string | undefined
 	["small, the checks run again after a change", small, `check fail\nstale\n${PASSING}`, "no review: 2 lines changed; the job's checks: check pass, test pass 3/3"],
 	["small, a failing test", small, "check pass\ntest fail 2/3\n", "review: 2 lines changed; the job's checks: check pass, test fail 2/3"],
 	["small, only the check ran", small, "check pass\n", "review: 2 lines changed; the job's checks: check pass, no test"],
-	["small, the tip's package.json declares no script", edit("package.json", "{}\n"), PASSING, "review: 2 lines changed; the project's package.json declares no check or test script"],
-	["small, a broken package.json", edit("package.json", "{ broken\n"), PASSING, "review: 2 lines changed; the project's package.json declares no check or test script"],
+	// What the merge and each spawn run (the install, its lockfile and .npmrc, the scripts, the Node, the hooks): one line each.
+	...[["package.json", `${JSON.stringify({ scripts: { check: "tsc", test: "node --test && node run.js" } })}\n`] as const, ...["packages/shop/package-lock.json", "npm-shrinkwrap.json", "bun.lock", "bun.lockb", "yarn.lock", "pnpm-lock.yaml", ".npmrc", "packages/shop/.nvmrc", ".githooks/pre-commit", ".husky/pre-push"].map((path) => [path, "x\n"] as const)].map(([path, text]) => [`one line of ${path}`, edit(path, text), PASSING, `review: ${path} is on the always-review list`] as const),
 ];
 
 test("the table of branches: each decided by the first rule that holds", async (t) => {
@@ -167,11 +167,17 @@ test("the always-review list: review.alwaysReview replaces the default, and deli
 	const { fake, branch, decide } = await load(t, { review: { alwaysReview: ["docs/**"] } });
 	branch(edit("docs/guide.md", "# The guide\n"));
 	assert.equal((await decide()).out, "review: docs/guide.md is on the always-review list");
+	for (const text of ["{}\n", "{ broken\n"]) {
+		branch(edit("package.json", text));
+		assert.equal((await decide(PASSING)).out, "review: 2 lines changed; the project's package.json declares no check or test script", `off the list, a tip's package.json of ${text}`);
+	}
 	assert.deepEqual(fake.call("delivery.alwaysReview", { project: "acme", paths: ["docs/guide.md", "src/env.ts", "README.md"] }), ["docs/guide.md"]);
 	const plain = fakeHost({ name: "delivery" });
 	await plain.setup(delivery());
-	const paths = ["src/env.ts", "packages/core/src/env-guard.ts", ".github/workflows/ci.yml", "packages/github/src/ci-failure.ts", "packages/delivery/roles/reviewer.md", ".agents/arthur/roles/reviewer.md", ".agents/arthur/criteria/review.md", "src/shop.ts", "src/environment.ts"];
-	assert.deepEqual(plain.call("delivery.alwaysReview", { project: "acme", paths }), paths.slice(0, 7), "the default: what reads secrets, the CI-failure handling, the review rules, a project's own under .agents/ too");
+	const paths = ["src/env.ts", "packages/core/src/env-guard.ts", ".github/workflows/ci.yml", "packages/github/src/ci-failure.ts", "packages/delivery/roles/reviewer.md", ".agents/arthur/roles/reviewer.md", ".agents/arthur/criteria/review.md"];
+	const runs = ["package.json", "packages/shop/package.json", "package-lock.json", "npm-shrinkwrap.json", "bun.lock", "bun.lockb", "yarn.lock", "pnpm-lock.yaml", ".npmrc", ".nvmrc", "packages/shop/.nvmrc", ".githooks/pre-commit", ".husky/_/husky.sh"];
+	const free = ["src/shop.ts", "src/environment.ts", "src/package.json.ts", "docs/yarn.lock.md", ".github/hooks/x"];
+	assert.deepEqual(plain.call("delivery.alwaysReview", { project: "acme", paths: [...paths, ...runs, ...free] }), [...paths, ...runs], "the default: what reads secrets, the CI-failure handling, the review rules, a project's own under .agents/ too, what the merge and a spawn run");
 });
 
 const REPOSITORY = new URL("../../../", import.meta.url);

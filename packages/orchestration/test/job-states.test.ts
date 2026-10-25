@@ -129,6 +129,28 @@ test("a run that ends blocked on the owner: one notice with its question, the wa
 	assert.deepEqual(notices().length, 1);
 });
 
+test("a blocked question reaches the phone and the wake redacted; the final message's other lines lose only the env file's values", async (t) => {
+	const { fake, notices } = await setup(t, new Date().toISOString(), { ARTHUR_ORCHESTRATION_PASS: "correct-horse-battery" });
+	// What the coordinator reads to act on: a job id, a ticket folder and a full commit hash, none of them a secret.
+	const kept = "Blocked by 2026-10-23-ar0319-security-check-93862bb2 on spec/features/AR0341-a-blocked-job-s-question/ticket.md at 0123456789abcdef0123456789abcdef01234567";
+	const message = `Blocked: user the key is sk-live-4f9a8b7c6d5e4f3a2b1c with correct-horse-battery?\n${kept}; the env file holds correct-horse-battery.`;
+	process.env.PATH = `${dirname(fakeAgent({ steps: [{ message }] }))}${delimiter}${PATH}`;
+	const job = await fake.host.jobs.spawn({ task: "Rotate the key." });
+	const logged = () => fake.host.events.read(1).filter(({ name, data }) => ["job-state", "job-ended"].includes(name) && typeof data === "object" && data !== null && "id" in data && data.id === job.id);
+	await until("the run's end", () => logged().some((event) => event.name === "job-ended"));
+	const ended = logged().map((event) => fake.emit(event.name, event.data)).find((event) => event.name === "job-ended");
+	assert.deepEqual(notices(), [{ text: `${job.id} asks [DM-D1]: the key is [redacted] with [redacted]?` }]);
+	const wake = JSON.parse(readFileSync(join(fake.host.folder, "inbox", "queued", `${ended?.seq}-${Date.parse(ended?.time ?? "")}`), "utf8")) as { text: string };
+	assert.deepEqual(wake.text.split("\n").slice(0, 4), [
+		`Job ${job.id} ended its run blocked on the owner; its question, also sent as a notice: the key is [redacted] with [redacted]?`,
+		"Its final message:",
+		"Blocked: user the key is [redacted] with [redacted]?",
+		`${kept}; the env file holds [redacted].`,
+	]);
+	assert.match(wake.text, /\nIts question is decision DM-D1: /, "the wake still finds the question in the log");
+	assert.doesNotMatch(wake.text, /sk-live|correct-horse/);
+});
+
 test("one notice per block: a second process given the same event sends none; the job's next block is a new notice; a dependency is none", async (t) => {
 	const { fake, notices, blocked } = await setup(t);
 	// A second process that loads the plugin gets the same event, as does `arthur run` again after a crash.
@@ -207,14 +229,15 @@ test("a crash before the notice, its question waiting for the log's lock: the ne
 	start();
 	const idOf = (job: string) => asks().findLast((each) => each.job === job)?.id;
 	assert.deepEqual(asks().slice(4).map((each) => [each.kind, each.job, each.question]).toSorted(), [["job", a, "May I drop it?"], ["job", d, "May I move it?"]], "b's question not asked again");
-	const sent = [`${a} asks [${idOf(a)}]: May I drop it?`, `${b} asks [DM-D4]: ${rename}`, `${d} asks [${idOf(d)}]: May I move it?`];
+	const said = "May I rename it to [redacted] with [redacted]? ";
+	const sent = [`${a} asks [${idOf(a)}]: May I drop it?`, `${b} asks [DM-D4]: ${said}`, `${d} asks [${idOf(d)}]: May I move it?`];
 	assert.deepEqual(notices().map((each) => each.text).toSorted(), sent);
 	start();
 	assert.equal(notices().length, 3, "one notice per block");
 	live.kill();
 	await once(live, "exit");
 	start();
-	assert.deepEqual(notices().slice(3), [{ text: `${c} asks [${idOf(c)}]: ${rename}` }], "c's holder alive, then dead");
+	assert.deepEqual(notices().slice(3), [{ text: `${c} asks [${idOf(c)}]: ${said}` }], "c's holder alive, then dead");
 	assert.deepEqual([idOf(c), asks().length], ["DM-D7", 7], "b's question is not c's");
 	assert.equal(readdirSync(asked).filter((name) => name.endsWith(".lock")).length, 2, "only f's and g's locks are left, their events gone");
 });

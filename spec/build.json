@@ -2811,9 +2811,9 @@
   {
     "id": "AR0371",
     "title": "The board's lock and temporary files in each project's checkout take the umask too, outside the home's reach",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0371-the-board-s-lock-and-temporary-files-in-each-project-s-checkout-take-the-umask-too-outside-the-home-s-reach/ticket.md",
-    "updated": "2026-10-25T19:39:56.471Z"
+    "updated": "2026-10-25T19:44:31.341Z"
   },
   {
     "id": "AR0372",

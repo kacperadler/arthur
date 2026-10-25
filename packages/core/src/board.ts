@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { afterProblem } from "./board-after.ts";
 import { type Entry, ID, NEXT, readBoard, STATUSES, type Status, writeBoard } from "./board-file.ts";
@@ -44,6 +44,7 @@ const FILE = "spec/build.json";
 const FEATURES = "spec/features";
 // The board's lock and temporary files: a folder beside the board, so a rename from it stays on the board's filesystem and
 // is atomic, whose `.gitignore` ignores the folder whole, so a writer killed mid-write leaves nothing a commit could take.
+// Arthur's user's alone whatever the umask (AR0371): `chmodSync`, unmasked, since a recursive mkdir's mode would close `spec/` too.
 const TRANSIENT = "spec/.board";
 
 // `lists`: what every provider of `projects` returned; `emit`: an event, named by whoever holds this board.
@@ -65,9 +66,7 @@ export function board(lists: () => readonly unknown[], clock: Clock, emit: (name
 			const entries = readBoard(file);
 			const before = [...entries];
 			const result = change(entries, transient);
-			if (entries.length !== before.length || entries.some((entry, index) => entry !== before[index])) {
-				writeBoard(file, entries, join(transient, "build.json.tmp"));
-			}
+			if (entries.length !== before.length || entries.some((entry, index) => entry !== before[index])) writeBoard(file, entries, join(transient, "build.json.tmp"));
 			return result;
 		});
 	};
@@ -171,6 +170,7 @@ function writeWhole(path: string, text: string, temporary: string): void {
 function transientFolder(where: Project): string {
 	const folder = join(where.path, TRANSIENT);
 	mkdirSync(folder, { recursive: true });
+	chmodSync(folder, 0o700);
 	const ignore = join(folder, ".gitignore");
 	if (!existsSync(ignore) || readFileSync(ignore, "utf8") !== "*\n") writeFileSync(ignore, "*\n");
 	return folder;

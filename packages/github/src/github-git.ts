@@ -9,8 +9,8 @@ import type { Run } from "./github-api.ts";
 export const DEPTH = 1000;
 const PUSH_MS = 60_000;
 
-// No hook or fsmonitor the checkout's config names runs, here or in the push: a program a job runs may have set them (AR0330).
-const UNHOOKED = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false"];
+// No hook or fsmonitor the checkout's config names runs, here or in the push, nor a replacement (refs/replace): a program a job runs may have set them (AR0330, AR0384).
+const UNHOOKED = ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false"];
 export const git = (path: string, ...args: readonly string[]) => {
 	const ran = spawnSync("git", [...UNHOOKED, "-C", path, ...args], { encoding: "utf8" });
 	return ran.status === 0 ? ran.stdout.trim() : undefined;

@@ -149,8 +149,8 @@ function record(home: string, id: string): (name: string) => string {
 	return field(home, id);
 }
 
-// No hook or fsmonitor the repository's config names runs: a program a job runs there may have set them (AR0382).
-const HOOKLESS = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false"];
+// No hook or fsmonitor the repository's config names runs, nor a replacement (refs/replace): a program a job runs there may have set them (AR0382, AR0384).
+const HOOKLESS = ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false"];
 
 function git(args: readonly string[], cwd?: string): void {
 	const run = spawnSync("git", [...HOOKLESS, ...args], { encoding: "utf8", cwd });

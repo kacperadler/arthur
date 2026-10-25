@@ -156,6 +156,20 @@ test("the review's checkout and the merge run no hook and no fsmonitor that the 
 	assert.match(readFileSync(ran, "utf8"), /^fsmonitor$[^]*^commit-msg$/m, "a plain git call runs them");
 });
 
+test("a replacement of main's tip under refs/replace, as a job's git replace would write, changes nothing the review and the merge build on", async (t) => {
+	const { root, git, worker, review, merge } = await load(t);
+	const job = await worker();
+	// Main's tip read as a commit of no shared history and an empty tree: main's checkout looks staged, the branch unrelated.
+	const before = git(root, "rev-parse", "main");
+	const stranger = git(root, "commit-tree", "-m", "stranger", git(root, "hash-object", "-w", "-t", "tree", "/dev/null"));
+	git(root, "replace", before, stranger);
+	await review(job.id, "PASS");
+	const merged = await merge(job.id);
+	assert.equal(merged.code, undefined, merged.err);
+	assert.equal(git(root, "log", "-1", "--format=%s%n%P%n%T"), `Merge AC0001: Shop\n${before} ${job.tip}\n${git(root, "rev-parse", `${job.tip}^{tree}`)}`);
+	assert.equal(git(root, "replace", "-l"), before, "the replacement is still there, so the merge read past it");
+});
+
 test("refused, main unchanged: the repository's own config sets a key that may name a program; one a failing check sets keeps main from its reset", async (t) => {
 	const { root, git, worker, review, merge, head } = await load(t);
 	const [ran, program] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "program")];

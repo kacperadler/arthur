@@ -639,7 +639,9 @@ import { checkStructure } from "./structure.ts";
 // agent may write with the Git folders of its branch and each extension's folder (9), the probe that falls back to the bare
 // agent naming why (12), comments, imports and blanks (23); wrapper.ts kept at 200 by a blank line. Nothing confined a job's
 // writes before, so nothing was cut.
-const BUDGETS = { core: 6156, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1317, github: 658, manage: 928, develop: 705, findings: 254 };
+// AR0424 (F1 of AR0367; the owner's raise, AR-D29): uptime 4 more (296) for a redirect's hop past the config's host sent by
+// node:http(s), whose socket's own lookup refuses a private address (site-check.ts, 50 to 55 lines). Nothing was cut.
+const BUDGETS = { core: 6156, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 296, delivery: 1317, github: 658, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

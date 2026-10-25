@@ -2580,9 +2580,9 @@
   {
     "id": "AR0338",
     "title": "A secret exported in the shell reaches every job's environment",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0338-a-secret-exported-in-the-shell-reaches-every-job-s-environment/ticket.md",
-    "updated": "2026-10-25T22:40:15.507Z",
+    "updated": "2026-10-25T22:44:37.012Z",
     "after": [
       "AR0337"
     ]
@@ -3511,5 +3511,32 @@
       "AR0404",
       "AR0405"
     ]
+  },
+  {
+    "id": "AR0438",
+    "title": "A variable set in the shell alone passes `config check` but is missing for every `arthur` command a job runs",
+    "status": "planned",
+    "path": "spec/features/AR0438-a-variable-set-in-the-shell-alone-passes-config-check-but-is-missing-for-every/ticket.md",
+    "updated": "2026-10-25T22:45:06.442Z",
+    "after": [
+      "AR0402",
+      "AR0403",
+      "AR0404",
+      "AR0405"
+    ]
+  },
+  {
+    "id": "AR0439",
+    "title": "A provider's key exported in the shell still reaches every job",
+    "status": "planning",
+    "path": "spec/features/AR0439-a-provider-s-key-exported-in-the-shell-still-reaches-every-job/ticket.md",
+    "updated": "2026-10-25T22:44:37.009Z"
+  },
+  {
+    "id": "AR0440",
+    "title": "A job can read the running Arthur process's secrets from /proc/<pid>/environ",
+    "status": "planning",
+    "path": "spec/features/AR0440-a-job-can-read-the-running-arthur-process-s-secrets-from-proc-pid-environ/ticket.md",
+    "updated": "2026-10-25T22:44:48.231Z"
   }
 ]

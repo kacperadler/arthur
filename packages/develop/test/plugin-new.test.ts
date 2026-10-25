@@ -11,7 +11,7 @@ import { develop } from "../src/develop.ts";
 // copy is a Git repository, so "nothing was written" is `git status` clean.
 
 const REPOSITORY = join(import.meta.dirname, "..", "..", "..");
-const FILES = [".gitignore", "package.json", "package-lock.json", "tsconfig.json", "README.md", "arthur.mmd", "test", "packages"];
+const FILES = [".gitignore", ".github", "package.json", "package-lock.json", "tsconfig.json", "README.md", "arthur.mmd", "test", "packages"];
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8" });
 
 function copy(): string {

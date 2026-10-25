@@ -14,6 +14,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0383 A `.git` file or a `commondir` written outside the worktree makes any folder a checkout of main (cdec3c07)
 - AR0384 `git replace` from a job's worktree changes what every worktree reads of main's commits (185cc01f)
 - AR0393 A remote's `url` can name a transport whose helper runs from PATH (7c89d7fd)
+- AR0394 A spawn's push to another machine runs a program the repository's config there names, hooks off or not (d13732e2)
 
 ## 2026-10-23
 

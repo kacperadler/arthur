@@ -2703,9 +2703,9 @@
   {
     "id": "AR0356",
     "title": "The job's `PATH` under the service has no `arthur`, so the line the develop plugin tells a worker to run may not run there",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0356-the-job-s-path-under-the-service-has-no-arthur-so-the-line-the-develop-plugin-tells-a-worker-to-run-may-not-run-there/ticket.md",
-    "updated": "2026-10-25T18:53:58.697Z"
+    "updated": "2026-10-25T18:57:36.295Z"
   },
   {
     "id": "AR0357",
@@ -2780,9 +2780,9 @@
   {
     "id": "AR0367",
     "title": "A site check follows a redirect to any address, loopback and metadata included",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0367-a-site-check-follows-a-redirect-to-any-address-loopback-and-metadata-included/ticket.md",
-    "updated": "2026-10-25T18:42:57.033Z"
+    "updated": "2026-10-25T18:54:32.810Z"
   },
   {
     "id": "AR0368",
@@ -3174,5 +3174,12 @@
     "status": "planning",
     "path": "spec/features/AR0422-an-oldpwd-set-by-read-printf-v-mapfile-or-a-nameref-or-taken-away-by-env-u-env-i/ticket.md",
     "updated": "2026-10-25T18:41:38.086Z"
+  },
+  {
+    "id": "AR0423",
+    "title": "packages/core/test/job-state.test.ts:142 fails now and then with ENOENT on the job record active file",
+    "status": "planning",
+    "path": "spec/features/AR0423-packages-core-test-job-state-test-ts-142-fails-now-and-then-with-enoent-on-the/ticket.md",
+    "updated": "2026-10-25T18:55:15.222Z"
   }
 ]

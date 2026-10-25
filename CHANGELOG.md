@@ -16,6 +16,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0342 A project's `repo` URL is printed by the clone's refusals, with any credential it holds (8409266e)
 - AR0344 A pasted secret of capitals, digits and `_` in a `...Env` option is printed by the refusal (432245c4)
 - AR0352 The always-review list never matches a path under `.agents/`: `**` does not enter a dot folder (293b4ac4)
+- AR0356 The job's `PATH` under the service has no `arthur`, so the line the develop plugin tells a worker to run may not run there (a91c1308)
 - AR0363 A binary file counts no lines, so a branch of any binary content skips the review on its checks (36c70b5d)
 - AR0364 Telegram answers every member of the configured chat, not the owner alone (AR0311 F7, confirmed) (8a78e74d)
 - AR0366 The models plugin's private network holds two cloud metadata addresses (AR0311 F18, confirmed) (8ee419e4)

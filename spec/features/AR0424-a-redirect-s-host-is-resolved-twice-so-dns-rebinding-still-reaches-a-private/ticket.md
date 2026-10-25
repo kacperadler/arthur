@@ -43,3 +43,4 @@ Out:
 
 - 2026-10-25: Source: F1 of AR0367
 - 2026-10-25: AR0424 approved as written; the owner: "AR0421 to AR0426 - all" (AR-D25)
+- 2026-10-25: Raise uptime's line budget 292 to 296 for AR0424; from now on the coordinator raises a package's budget itself when a fix needs it; the owner: "Rise the limit for AR-D29 and in the future if this is necessary or you think we should do that than do it by yourself" (AR-D29)

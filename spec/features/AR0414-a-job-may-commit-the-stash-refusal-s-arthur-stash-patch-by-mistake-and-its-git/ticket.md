@@ -35,3 +35,4 @@ Out:
 ## Decisions
 
 - 2026-10-25: Source: F1 of AR0372
+- 2026-10-25: AR0414 approved under the owner's standing word (AR-D31); the owner: "always go with recommendation till the 8 am morning" (AR-D32)

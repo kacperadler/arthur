@@ -42,6 +42,7 @@ const PROJECT: ReadonlyArray<readonly [string, Record<string, unknown>, string |
 	["bash", { command: "cat .e{n,x}v" }, ".env"],
 	["bash", { command: "cat $(echo .e''nv)" }, ".env"],
 	["bash", { command: "cat `echo .e''nv`" }, ".env"],
+	["bash", { command: 'files=(.e*); cat "${files[@]}"' }, ".env (through the glob .e*)"],
 	["bash", { command: "cat .env.local" }, ".env.local"],
 	["bash", { command: "cat .ENV" }, ".ENV"],
 	["bash", { command: "cat .env/" }, ".env"],

@@ -52,14 +52,22 @@ export function watchMemory(id: string, cap: string, ticket: string, ticketCap: 
 	};
 }
 
-// `start`, which forks the agent, runs with this process's `oom_score_adj` at 1000: the agent and all it starts inherit it, so over
-// the cap the kernel kills them before the wrapper, which must live to end the job. Without the file (macOS) `start` just runs.
-export function oomFirst<T>(start: () => T): T {
-	const file = "/proc/self/oom_score_adj";
+// `start`, which forks the agent, runs with this process's `oom_score_adj` (`file`) at 1000: the agent and all it starts inherit
+// it, so over the cap the kernel kills them before the wrapper, which must live to end the job. Without the file (macOS), or
+// where its write is refused (EACCES, EPERM: a test run inside a job's sandbox, which lets nothing under /proc be written),
+// `start` just runs.
+export function oomFirst<T>(start: () => T, file = "/proc/self/oom_score_adj"): T {
 	const own = existsSync(file) ? readFileSync(file, "utf8") : undefined;
-	if (own !== undefined) writeFileSync(file, "1000");
+	let raised = false;
+	try {
+		if (own !== undefined) writeFileSync(file, "1000");
+		raised = own !== undefined;
+	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code;
+		if (code !== "EACCES" && code !== "EPERM") throw error;
+	}
 	const started = start();
-	if (own !== undefined) writeFileSync(file, own);
+	if (raised) writeFileSync(file, own ?? "");
 	return started;
 }
 

@@ -623,7 +623,10 @@ import { checkStructure } from "./structure.ts";
 // read past a replacement): core 5 more (6071) for `replaces`, its list forms and its comment (git-writes.ts, git diff
 // --numstat +10 -5); the guard asks it on the line that refuses a pointed checkout (worktree-guard.ts, +12 -12, its comment
 // refolded to stay at 200 lines), and `--no-replace-objects` joins the hookless flags in place. Nothing was cut.
-const BUDGETS = { core: 6071, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1317, github: 651, manage: 928, develop: 705, findings: 254 };
+// AR0393 (F2 of AR0380; its Done means: run the push with `GIT_PROTOCOL_FROM_USER=0`): core 2 more (6073) for the push and
+// fetch of a job on another machine and its comment (job-machine.ts, git diff --numstat +4 -2); github 3 more (654) for the
+// push's env and its comment, and the transport name kept in the refusal (github-git.ts, +6 -3). Nothing was cut.
+const BUDGETS = { core: 6073, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1317, github: 654, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

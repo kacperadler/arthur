@@ -31,3 +31,4 @@ In:
 ## Decisions
 
 - 2026-10-25: Source: F2 of AR0380
+- 2026-10-25: Worker (the task asks to record any raise): core line budget 6071->6073 and github 651->654 for `GIT_PROTOCOL_FROM_USER=0` on the push and fetch of a job on another machine (job-machine.ts) and on `github.push` (github-git.ts), with their comments.

@@ -46,7 +46,7 @@ function gitAway(path: string, args: readonly string[], env: NodeJS.ProcessEnv):
 		clearTimeout(timer);
 		const lines = err.split("\n").filter((line) => line.trim() !== "" && !line.includes("failed to push some refs"));
 		const why = signal !== null ? `no end in ${PUSH_MS / 1000} s` : (lines.find((line) => /^(fatal|error|remote: error|ERROR):/.test(line)) ?? lines.at(-1) ?? `git exited ${code}`);
-		resolve({ code, out, why: why.trim().replace(/'[^']*'/g, "origin").replace(/\S+:\/\/\S+/g, "origin") });
+		resolve({ code, out, why: why.trim().replace(/(?<!transport )'[^']*'/g, "origin").replace(/\S+:\/\/\S+/g, "origin") });
 	});
 	return promise;
 }
@@ -56,14 +56,17 @@ function gitAway(path: string, args: readonly string[], env: NodeJS.ProcessEnv):
 // Git Credential Manager is told never to ask, ssh may not use an askpass. No hook runs, so a branch whose `.gitattributes`
 // (any folder's) names `filter=lfs` gets `git lfs push origin <ref>` first, as Git LFS's pre-push hook would (AR0379); git-lfs
 // must be on PATH, as git would otherwise run a `lfs` alias of the config. Nor does a program the repository's own config may
-// name (`core.sshCommand`, a credential helper; @arthur/core/git-config): such a key refuses the push.
+// name (`core.sshCommand`, a credential helper; @arthur/core/git-config): such a key refuses the push. Nor does origin's URL
+// (AR0393): GIT_PROTOCOL_FROM_USER=0 leaves git only the transports allowed always (http, https, ssh, git, and those your
+// ~/.gitconfig allows with `protocol.<name>.allow`), so a helper `<name>::` or `<name>://` names, `ext::`, and a folder,
+// whose hooks its receive-pack would run, are refused: `fatal: transport '<name>' not allowed`.
 export async function push(path: string, branch: string): Promise<string> {
 	const failed = (why: string) => `github: ${branch} not pushed to origin: ${why}`;
 	const planted = configRefusal(path);
 	if (planted !== "") return failed(planted);
 	if (git(path, "remote", "get-url", "origin") === undefined) return failed(`${path} has no origin remote`);
 	const ref = `refs/heads/${branch}`;
-	const env = { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "", GCM_INTERACTIVE: "never", SSH_ASKPASS_REQUIRE: "never" };
+	const env = { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "", GCM_INTERACTIVE: "never", SSH_ASKPASS_REQUIRE: "never", GIT_PROTOCOL_FROM_USER: "0" };
 	if (git(path, "grep", "--quiet", "--fixed-strings", "-e", "filter=lfs", ref, "--", ":(glob)**/.gitattributes") !== undefined) {
 		if (spawnSync("git-lfs", ["version"]).status !== 0) return failed("its .gitattributes names filter=lfs, and git-lfs is not installed");
 		const lfs = await gitAway(path, ["lfs", "push", "origin", ref], env);

@@ -3100,6 +3100,6 @@
     "title": "Inside the job sandbox, a test's job wrapper dies writing /proc/self/oom_score_adj, so its agent never starts",
     "status": "done",
     "path": "spec/features/AR0412-inside-the-job-sandbox-a-test-s-job-wrapper-dies-writing-proc-self-oom-score-adj/ticket.md",
-    "updated": "2026-10-25T14:47:28.661Z"
+    "updated": "2026-10-25T15:01:04.775Z"
   }
 ]

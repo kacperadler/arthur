@@ -695,7 +695,7 @@ test("each CI workflow, .yml or .yaml, grants only contents: read at the top lev
 	assert.notDeepEqual(files, []);
 	for (const name of files) {
 		const text = readFileSync(join(folder, name), "utf8");
-		assert.match(text, /^permissions:\n {2}contents: read\n(?![ \t])/m, `${name}: the top-level permissions are not exactly contents: read`);
+		assert.deepEqual(text.match(/^permissions:\n((?:(?:[ \t].*|#.*)?\n)*)/m)?.[1]?.split("\n").filter((line) => !/^\s*(#|$)/.test(line)), ["  contents: read"], `${name}: the top-level permissions are not exactly contents: read`);
 		for (const line of text.match(/\buses:.*/g) ?? []) assert.match(line, /^uses: [^@\s]+@[0-9a-f]{40}(\s|$)/, `${name}: ${line}`);
 	}
 });

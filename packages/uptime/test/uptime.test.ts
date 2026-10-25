@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
+import type { LookupOptions } from "node:dns";
+import dnsPromises from "node:dns/promises";
 import { once } from "node:events";
 import { writeFileSync } from "node:fs";
 import { createServer, type ServerResponse } from "node:http";
+import { syncBuiltinESMExports } from "node:module";
 import type { AddressInfo } from "node:net";
 import { join } from "node:path";
 import { type TestContext, test } from "node:test";
@@ -146,6 +149,25 @@ test("a refused redirect is an answer: two sites refused at once are each down, 
 	await until("two sites down", () => events("uptime-down").length === 2);
 	const [refused, since] = [", a private address the config does not name", START.toISOString()];
 	assert.deepEqual(events("uptime-down"), [{ project: "acme", url: a, reason: `redirected to 127.0.0.1:${inside.port}${refused}`, since }, { project: "beta", url: b, reason: `redirected to 169.254.169.254${refused}`, since }]);
+});
+
+test("a redirect to each refused range is refused before a connection, also a name with one private address among public ones; a 3xx without Location is judged", async (t) => {
+	const [site, inside] = [await server(t), await server(t)];
+	// mixed.example resolves to a public and a private address: dns.lookup is replaced in this process, the export the check reads.
+	const real = dnsPromises.lookup;
+	dnsPromises.lookup = (async (name: string, options: LookupOptions) => (name === "mixed.example" ? [{ address: "203.0.113.7", family: 4 }, { address: "10.1.2.3", family: 4 }] : real(name, options))) as typeof real;
+	syncBuiltinESMExports();
+	t.after(() => void ((dnsPromises.lookup = real), syncBuiltinESMExports()));
+	// One address in each range: unspecified, IPv6 loopback, RFC 1918, Tailscale's (its metadata address), link-local, unique local.
+	const hosts = ["0.0.0.0", "[::1]", "10.0.0.1", "172.31.255.254", "192.168.0.1", "100.100.100.200", "[fe80::1]", "[fd00:ec2::254]", "mixed.example"].map((host) => `${host}:${inside.port}`);
+	hosts.forEach((host, index) => void (site.answers[`/${index}`] = (response) => void response.writeHead(302, { location: `http://${host}/` }).end()));
+	site.answers["/bare"] = (response) => void response.writeHead(302).end();
+	const paths = [...hosts.map((_, index) => `/${index}`), "/bare"];
+	const { events } = await started(t, { acme: paths.map((path) => ({ url: `http://localhost:${site.port}${path}`, everySeconds: 1 })) });
+	await until("every site down", () => events("uptime-down").length === paths.length);
+	const reasons = [...hosts.map((host) => `redirected to ${host}, a private address the config does not name`), "answered 302, expected a 2xx status"];
+	assert.deepEqual(events("uptime-down"), paths.map((path, index) => ({ project: "acme", url: `http://localhost:${site.port}${path}`, reason: reasons[index], since: START.toISOString() })));
+	assert.deepEqual([inside.seen("/"), site.seen("/null")], [0, 0]);
 });
 
 test("each failure has its reason: a wrong status, the text missing, connection refused, a TLS error", async (t) => {

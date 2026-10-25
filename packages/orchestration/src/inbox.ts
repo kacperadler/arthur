@@ -119,17 +119,17 @@ export function queue(folder: string, event: { readonly seq: number; readonly ti
 
 // The wake: the state its run ended in (the question, when blocked on the owner), the first lines of its final message (the
 // job's own unless `final` stands for it), its project when not the main one, and what the plugins add for it (the procedure
-// of its kind), asked with the job-ended data and that final message whole.
+// of its kind), asked with the job-ended data and that final message whole; the question and those lines redacted.
 function wake(host: Host, data: unknown, final?: string): string {
 	const job = (data ?? {}) as Readonly<Record<string, unknown>>;
 	const id = String(job.id);
-	const asks = job.state === "blocked" && typeof job.reason === "string" && job.reason.startsWith("user: ") ? job.reason.slice("user: ".length) : undefined;
+	const asks = job.state === "blocked" && typeof job.reason === "string" && job.reason.startsWith("user: ") ? redact(job.reason.slice("user: ".length), host.secrets) : undefined;
 	const state = `${String(job.state)}${text(job.reason) ? ` (${job.reason})` : ""}`;
 	const lines = [asks === undefined ? `Job ${id} ended its run: ${state}.` : `Job ${id} ended its run blocked on the owner; its question, also sent as a notice: ${asks}`];
 	const main = host.collect("projects").length > 0 ? host.board.projects()[0]?.name : undefined;
 	if (main !== undefined && job.project !== main) lines.push(`Project: ${String(job.project)}.`);
 	const message = final ?? host.jobs.result(id);
-	const result = message.trimEnd().split("\n");
+	const result = redact(message, host.secrets).trimEnd().split("\n");
 	if (result.join("") === "") lines.push("Its final message: none.");
 	else {
 		const cut = result.length > RESULT_LINES ? ` (the first ${RESULT_LINES} of ${result.length} lines)` : "";

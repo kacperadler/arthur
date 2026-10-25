@@ -126,9 +126,9 @@ export function pluginNewSection(role: string, job: { readonly root: string; rea
 	if (role === "worker" && job.machine !== "local") return `## A new plugin\n\nThis job runs on machine ${job.machine}, where \`arthur plugin new\` cannot run: the project's repository there is bare and holds no \`arthur.config.ts\`, so the CLI has no \`plugin\` command. A new plugin's package is made on the local machine, never by hand: when your ticket makes one, change nothing and end, saying that its ticket's JSON block needs \`"machine": "local"\`, which places every job of it there, and its worker spawned again with this task.`;
 	const [lead, root, rest] = role === "planner"
 		? ["When the ticket makes a new plugin package, the plan says that its worker runs on the local machine, spawned with `--machine local`, and its first step is this line, so the worker makes the package with it, not by hand", "<worktree>", "`<worktree>` is the worker's own"]
-		: ["When your ticket makes a new plugin package, make it first with this line, not by hand", job.worktree, "from the checkout, `arthur plugin --help` prints the rest"];
-	const how = "`<checkout>` is the project's checkout, the first line of `git worktree list`: the CLI reads `arthur.config.ts` from the folder it runs in, and a worktree lacks it. `<name>` is the plugin's name, `<lines>` the line budget the ticket decides";
-	return `## A new plugin\n\n${lead}. ${how}; ${rest}.\n\n\`\`\`\ncd <checkout> && arthur plugin new <name> --budget <lines> --root ${root}\n\`\`\``;
+		: ["When your ticket makes a new plugin package, make it first with this line, not by hand", job.worktree, "from the checkout, `node_modules/.bin/arthur plugin --help` prints the rest"];
+	const how = "`<checkout>` is the project's checkout, the first line of `git worktree list`: the CLI reads `arthur.config.ts` from the folder it runs in, and a worktree lacks it; `node_modules/.bin/arthur` is the CLI there, since a job's `PATH` may lack it. `<name>` is the plugin's name, `<lines>` the line budget the ticket decides";
+	return `## A new plugin\n\n${lead}. ${how}; ${rest}.\n\n\`\`\`\ncd <checkout> && node_modules/.bin/arthur plugin new <name> --budget <lines> --root ${root}\n\`\`\``;
 }
 
 // The coordinator's line, the author of tickets, when a project is Arthur's repository: a new plugin's ticket names the local

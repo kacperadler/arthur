@@ -8,9 +8,9 @@ import { basename, dirname, join, resolve } from "node:path";
 
 // Run by `python3 -I -c` (isolated: no module from the worktree, no PYTHON variable) with the writable paths, `--`, then the
 // agent's command line: a Landlock ruleset (Linux 5.13 on) under which the agent and every process it starts write only
-// beneath those paths (a missing one is skipped; a file takes only its own writes), a seccomp filter that refuses a new Unix
-// socket (the user manager's bus, a tmux server, any local daemon that would run a command outside the sandbox) and io_uring
-// (whose sockets seccomp does not see), and `no_new_privs`; then it execs the agent. Its own refusal is its last line on stderr.
+// beneath those paths (a missing one is skipped; a file takes only its own writes), a seccomp filter that refuses io_uring
+// (whose sockets seccomp does not see) and a new Unix socket but a datagram one (omp's session lock), so no user bus, tmux
+// server or other local daemon runs a command outside it, and `no_new_privs`; then it execs the agent. Its refusal ends stderr.
 const SCRIPT = `import ctypes, os, platform, stat, struct, sys
 libc = ctypes.CDLL(None, use_errno=True)
 libc.syscall.restype = libc.prctl.restype = ctypes.c_long
@@ -33,7 +33,7 @@ for path in paths:
 	os.close(fd)
 arch, socket = {"x86_64": (0xC000003E, 41), "aarch64": (0xC00000B7, 198)}.get(platform.machine(), (0, 0))
 if arch == 0: sys.exit(f"seccomp: no filter for {platform.machine()}")
-program = [(0x20, 0, 0, 4), (0x15, 0, 7, arch), (0x20, 0, 0, 0), (0x35, 5, 0, 0x40000000), (0x15, 4, 0, 425), (0x15, 0, 2, socket), (0x20, 0, 0, 16), (0x15, 1, 0, 1), (6, 0, 0, 0x7FFF0000), (6, 0, 0, 0x50000 | 13)]
+program = [(0x20, 0, 0, 4), (0x15, 0, 10, arch), (0x20, 0, 0, 0), (0x35, 8, 0, 0x40000000), (0x15, 7, 0, 425), (0x15, 0, 5, socket), (0x20, 0, 0, 16), (0x15, 0, 3, 1), (0x20, 0, 0, 24), (0x54, 0, 0, 0xF), (0x15, 0, 1, 2), (6, 0, 0, 0x7FFF0000), (6, 0, 0, 0x50000 | 13)]
 code = ctypes.create_string_buffer(b"".join(struct.pack("=HBBI", *op) for op in program))
 fprog = ctypes.create_string_buffer(struct.pack("=HxxxxxxQ", len(program), ctypes.addressof(code)))
 if libc.prctl(*wide(38, 1, 0, 0, 0)) != 0: fail("no_new_privs")
@@ -70,6 +70,6 @@ export function sandboxed(paths: readonly string[], agent: string, argv: readonl
 		: probe.status === 0 ? undefined
 		: probe.status === 127 ? `the agent ${agent} is not there`
 		: probe.stderr.trim().split("\n").at(-1) || `python3 exited ${probe.status ?? probe.signal}`;
-	note(why === undefined ? `sandbox: the agent writes only in ${paths.join(", ")}, and opens no Unix socket` : `no sandbox: ${why}; the agent writes wherever Arthur's user can`);
+	note(why === undefined ? `sandbox: the agent writes only in ${paths.join(", ")}, and opens no Unix socket but a datagram one` : `no sandbox: ${why}; the agent writes wherever Arthur's user can`);
 	return why === undefined ? ["python3", [...prefix, agent, ...argv]] : [agent, [...argv]];
 }

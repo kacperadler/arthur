@@ -471,6 +471,8 @@ test("github.push pushes a branch to origin, one line, running no hook of the ch
 		{ name: "alone", path: repository(null).path, prefix: "AL" },
 		{ name: "asks", path: repository(`http://127.0.0.1:${port}/acme/shop.git`).path, prefix: "AS" },
 		{ name: "secret", path: repository(`http://arthur:s3cr3t@127.0.0.1:${port}/acme/shop.git`).path, prefix: "SE" },
+		// git prints this one's host, userinfo included, with neither quotes nor `://` (AR0417); port 1 of this machine.
+		{ name: "userinfo", path: repository("git://arthur:s3cret@127.0.0.1:1/acme/shop.git").path, prefix: "UI" },
 	];
 	const box = await started(t, projects, options(api.apiUrl));
 	const push = (project: string, branch = "main") => box.fake.call<Promise<string>>("github.push", { project, branch });
@@ -494,6 +496,9 @@ test("github.push pushes a branch to origin, one line, running no hook of the ch
 	assert.equal(await push("local", "arthur/missing"), "github: arthur/missing not pushed to origin: error: src refspec refs/heads/arthur/missing does not match any");
 	assert.equal(await push("asks"), "github: main not pushed to origin: fatal: could not read Username for origin: terminal prompts disabled");
 	assert.equal(await push("secret"), "github: main not pushed to origin: fatal: Authentication failed for origin", "the URL, and the credential in it, never said");
+	const userinfo = await push("userinfo");
+	assert.match(userinfo, /^github: main not pushed to origin: fatal: unable to look up origin \(port 9418\)/);
+	assert.equal(userinfo.includes("s3cret"), false, "the credential in origin's host never said");
 	assert.equal(existsSync(`${askpass}.asked`), false, "no askpass was run");
 });
 

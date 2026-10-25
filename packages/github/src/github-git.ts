@@ -29,7 +29,7 @@ export function nearestRun(path: string, branch: string, runs: readonly Run[]): 
 
 type Ran = { readonly code: number | null; readonly out: string; readonly why: string };
 // `git <args>` in the checkout at `path`, in a session of its own, which has no terminal to ask on, killed after PUSH_MS. `why`
-// is a failure's: git's first error line, a quoted remote URL said as `origin`, as it may hold a credential.
+// is a failure's: git's first error line, a quoted word, a URL or a word holding an `@` said as `origin`, as each may hold a credential.
 function gitAway(path: string, args: readonly string[], env: NodeJS.ProcessEnv): Promise<Ran> {
 	const child = spawn("git", [...UNHOOKED, "-C", path, ...args], { env, detached: true, stdio: ["ignore", "pipe", "pipe"] });
 	let [out, err] = ["", ""];
@@ -46,7 +46,7 @@ function gitAway(path: string, args: readonly string[], env: NodeJS.ProcessEnv):
 		clearTimeout(timer);
 		const lines = err.split("\n").filter((line) => line.trim() !== "" && !line.includes("failed to push some refs"));
 		const why = signal !== null ? `no end in ${PUSH_MS / 1000} s` : (lines.find((line) => /^(fatal|error|remote: error|ERROR):/.test(line)) ?? lines.at(-1) ?? `git exited ${code}`);
-		resolve({ code, out, why: why.trim().replace(/(?<!transport )'[^']*'/g, "origin").replace(/\S+:\/\/\S+/g, "origin") });
+		resolve({ code, out, why: why.trim().replace(/(?<!transport )'[^']*'/g, "origin").replace(/\S+:\/\/\S+/g, "origin").replace(/\S*@\S+/g, "origin") });
 	});
 	return promise;
 }

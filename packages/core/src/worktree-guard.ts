@@ -94,8 +94,8 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 		const at = commandIndex(words);
 		const verb = basename(words[at] ?? "");
 		const moves = ["cd", "pushd", "popd"].includes(verb);
-		// An assignment (`=`, `+=`) alone, or by `export` or `declare`, sets OLDPWD as written and an `unset` but `-f` clears it;
-		// one before a `cd` sets it for that `cd`, which then sets it to the folder it leaves.
+		// An assignment (`=`, `+=`) alone or by `export`/`declare` sets OLDPWD as written, an `unset` but `-f` clears it; one
+		// before `cd` sets it for that `cd` (which then sets the folder it left), one before a shell or `eval` for what they run.
 		for (const set of command.alone && (at < 0 || moves || ["export", "declare", "typeset", "readonly", "local"].includes(verb)) ? words.map((word) => /^OLDPWD(\+?)=([^]*)/.exec(word)) : []) if (set) previous = (set[1] ? (previous ?? "") : "") + set[2]!.replace(/^~-(?=\/|$)/, previous || "~-");
 		if (command.alone && verb === "unset" && words.includes("OLDPWD") && !words.some((word) => /^-\w*f/.test(word))) previous = undefined;
 		if (redirected !== undefined || at < 0) return redirected;
@@ -111,12 +111,14 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 			[previous, cwd] = [cwd, located(cwd, to)];
 		} else if (SHELLS.includes(verb)) {
 			const flag = args.findIndex((word) => /^-[a-z]*c[a-z]*$/.test(word));
-			for (const text of flag >= 0 ? [args[flag + 1] ?? ""] : operands.length === 0 ? command.stdin : []) {
-				const found = run(["(", ...shellCommands(text, process.env.HOME), ")"]);
-				if (found !== undefined) return found;
-			}
-		} else if (verb === "eval") return run(shellCommands(args.join(" "), process.env.HOME));
-		else if (verb === "git") return git(args, words.slice(0, at));
+			return (flag >= 0 ? [args[flag + 1] ?? ""] : operands.length === 0 ? command.stdin : []).map((text) => run(["(", { ...command, words: command.words.slice(0, at), alone: true }, ...shellCommands(text, process.env.HOME), ")"])).find(Boolean);
+		} else if (verb === "eval") {
+			// Bash puts back the OLDPWD a prefix replaced once `eval` ends, whatever its `cd`s set.
+			const kept = previous;
+			const found = run([{ ...command, words: command.words.slice(0, at), alone: true }, ...shellCommands(args.join(" "), process.env.HOME)]);
+			if (words.slice(0, at).some((word) => /^OLDPWD\+?=/.test(word))) previous = kept;
+			return found;
+		} else if (verb === "git") return git(args, words.slice(0, at));
 		else if (verb === "find") return find(args);
 		else if (WRITES.includes(verb) || (["sed", "perl"].includes(verb) && args.some((word) => /^-[a-zA-Z]*i|^--in-place/.test(word)))) return theirs(args);
 		else if (COPIES.includes(verb)) return theirs([operands.at(-1) ?? "", ...args.filter((word) => word.startsWith("--target-directory")), ...args.filter((_, index) => args[index - 1] === "-t")]);
@@ -134,13 +136,11 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 		const expression = args.findIndex((word) => word.startsWith("-") || word === "(" || word === "!");
 		const roots = args.slice(0, expression < 0 ? args.length : expression);
 		if (roots.length === 0) roots.push(".");
-		for (const [index, word] of args.entries()) {
+		return args.map((word, index) => {
 			const close = args.findIndex((other, position) => position > index && (other === ";" || other === "+"));
 			const words = args.slice(index + 1, close < 0 ? args.length : close).flatMap((other) => (other.includes("{}") ? roots.map((root) => other.replaceAll("{}", root)) : [other]));
-			const found = word === "-delete" ? theirs(roots) : ["-exec", "-execdir", "-ok", "-okdir"].includes(word) ? judge({ words, writes: [], reads: [], stdin: [], alone: false }) : undefined;
-			if (found !== undefined) return found;
-		}
-		return undefined;
+			return word === "-delete" ? theirs(roots) : ["-exec", "-execdir", "-ok", "-okdir"].includes(word) ? judge({ words, writes: [], reads: [], stdin: [], alone: false }) : undefined;
+		}).find(Boolean);
 	};
 	const git = (args: readonly string[], assignments: readonly string[]): string | undefined => {
 		const { sub, rest, chdirs, trees, writesCheckout, writesOperands, config, points, replaces, alias, unread } = gitCall(args, assignments);

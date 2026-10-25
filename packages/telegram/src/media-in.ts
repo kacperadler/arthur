@@ -11,7 +11,7 @@ import { type Bot, call, download } from "./bot-api.ts";
 type File = { readonly file_id?: unknown; readonly file_unique_id?: unknown; readonly file_size?: unknown; readonly file_name?: unknown; readonly mime_type?: unknown; readonly duration?: unknown; readonly width?: unknown; readonly height?: unknown };
 
 export type Message = {
-	readonly chat?: { readonly id?: unknown };
+	readonly chat?: { readonly id?: unknown }; readonly from?: { readonly id?: unknown }; readonly sender_chat?: unknown;
 	readonly date?: unknown;
 	readonly text?: unknown;
 	readonly caption?: unknown;

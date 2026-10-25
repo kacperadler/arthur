@@ -3321,9 +3321,9 @@
   {
     "id": "AR0420",
     "title": "Forms of OLDPWD and pushd the guard still misreads: ${OLDPWD...} operators, readonly, local outside a function, pushd -n, OLDPWD+= before eval",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0420-forms-of-oldpwd-and-pushd-the-guard-still-misreads-oldpwd-operators-readonly/ticket.md",
-    "updated": "2026-10-25T20:20:54.883Z",
+    "updated": "2026-10-25T20:30:20.610Z",
     "after": [
       "AR0333"
     ]
@@ -3424,5 +3424,12 @@
       "AR0388",
       "AR0399"
     ]
+  },
+  {
+    "id": "AR0430",
+    "title": "`declare -n OLDPWD=name` and `pushd -n -` are not followed",
+    "status": "planning",
+    "path": "spec/features/AR0430-declare-n-oldpwd-name-and-pushd-n-are-not-followed/ticket.md",
+    "updated": "2026-10-25T20:30:20.606Z"
   }
 ]

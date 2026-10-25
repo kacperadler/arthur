@@ -20,4 +20,44 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/worktree-guard.ts:101`, `:111`
 - What: with real bash, `cd /tmp; cd /var; declare -n OLDPWD=HOME; cd -` goes to `$HOME`; the guard reads it as `OLDPWD=HOME`, a relative path. `pushd -n -` puts the literal `-` on the stack, and a later `popd` goes to OLDPWD as it is then; the guard puts `<cwd>/-` there. Both were seen with `env -u OLDPWD bash -c …`.
 - Suggestion: refuse `declare`/`typeset -n` naming OLDPWD as unknown, and keep `-` on the guard's stack as `-`, resolved at the `popd`.
-- Status: open
+- Status: ticket AR0430
+
+## F3. `function f { local OLDPWD=…; }` and `{ local OLDPWD=…; }` at top level are not seen
+
+- Kind: security
+- Found by: 2026-10-25-review-6f6cdb39, 2026-10-25-review-a6634d65, 2026-10-25-review-723f86d7 (reviewer, non-blocking notes), 2026-10-25
+- Where: `packages/core/src/worktree-guard.ts`
+- What: the verb is `function` or `{`, so the guard never sees the `local`; they passed before this ticket too.
+- Status: ticket AR0430
+
+## F4. `declare`/`typeset` inside a function act as `local` in bash
+
+- Kind: security
+- Found by: 2026-10-25-review-723f86d7 (reviewer, non-blocking note), 2026-10-25
+- Where: `packages/core/src/worktree-guard.ts`
+- What: the guard follows them as plain assignments; the same before this ticket.
+- Status: ticket AR0430
+
+## F5. Two mutations survive on the safe side
+
+- Kind: test
+- Found by: 2026-10-25-review-6f6cdb39 (reviewer, non-blocking note), 2026-10-25
+- Where: `packages/core/src/shell-words.ts:93`, `worktree-guard.ts:101`
+- What: dropping `(\[0\])?` refuses instead of following; `literal(set[2]!)` matters only for quoted special characters.
+- Status: dropped (fail safe or out of reach)
+
+## F6. A `local` in a pipeline: the alone check survives mutation
+
+- Kind: test
+- Found by: 2026-10-25-review-723f86d7 (reviewer, non-blocking note), 2026-10-25
+- Where: `packages/core/src/worktree-guard.ts`
+- What: bash runs it in a subshell, so it does not last; not a finding.
+- Status: dropped (matches bash)
+
+## F7. One full `npm test` run failed one unknown test
+
+- Kind: test
+- Found by: 2026-10-25-review-723f86d7 (reviewer, non-blocking note), 2026-10-25
+- Where: the suite
+- What: a rerun passed; the test is not known.
+- Status: dropped (AR0423 carries the one flaky test seen tonight)

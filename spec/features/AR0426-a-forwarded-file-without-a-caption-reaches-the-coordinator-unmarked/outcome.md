@@ -7,7 +7,9 @@
 
 ## What went in
 
-- fix(AR0426): mark a captionless forward; strip Zl, Zp, Cf from names
+- `packages/telegram/src/media-in.ts`: a forwarded message with no text or caption gets one text part holding the mark alone (`[forwarded from <sender>]`); sender names also lose Unicode line and paragraph separators and format characters (`\p{Zl}`, `\p{Zp}`, `\p{Cf}`).
+- `packages/telegram/docs/telegram.md`: "Phone commands" says so.
+- `packages/telegram/test/commands.test.ts`: a forwarded photo without caption arrives with the mark; a name with U+2028, U+202E and U+2029 comes out clean.
 
 ## Checks on main
 
@@ -17,4 +19,4 @@
 
 ## Left open
 
-- Findings: none; no findings.md on this ticket.
+- Findings: F1-F3, review notes, dropped (see findings.md).

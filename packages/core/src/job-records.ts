@@ -96,6 +96,7 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 				const moved = moveJob(home, id, bus, (now) => {
 					if (!["working", "idle"].includes(now.state)) return undefined;
 					appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] ended: ${reason}: its wrapper ${pid || "(no pid)"} and its agent were not running on two sweeps in a row\n`);
+					rmSync(join(folder, "mcp"), { recursive: true, force: true });
 					return ["ended", reason];
 				}, time.now());
 				if (!moved) continue;

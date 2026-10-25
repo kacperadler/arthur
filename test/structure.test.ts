@@ -656,7 +656,17 @@ import { checkStructure } from "./structure.ts";
 // the CI refusal split out of `autoRefusal` into `ciRefusal`, which a plain merge asks too, refusing only a run on the branch's
 // own commits that ended other than success (auto-merge.ts, git diff --numstat +16 -10: the function's head, comment and close
 // 5, the plain merge's pass on no run or a pending one 1). Nothing asked CI of a plain merge before, so nothing was cut.
-const BUDGETS = { core: 6156, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1327, github: 658, manage: 928, develop: 705, findings: 254 };
+// AR0337 (F1 of AR0319; its Done means: a job's `mcp/` removed at its run's end and written again at `arthur continue`, `.mcp.json`
+// a secrets name of the env guard; AR-D29): core 11 more (6167) for `writeMcp` out of `writeRecord`, called at the spawn and the
+// continue, with its comment (job-record.ts, git diff --numstat +14 -8), the role's servers asked by the continue's check, its
+// type and the call (job-control.ts +7 -5, jobs.ts +1 -1), `mcp/` removed at the wrapper's end (wrapper.ts +1 -1, a blank line
+// cut), at the end of a wrapper that does not start (job-scope.ts +2 -1) and at the sweep's (job-records.ts +1), and the name
+// with its comment (env-refusal.ts +6 -5). Nothing removed the secrets before the prune, so nothing was cut.
+// Merged main (AR0424) into AR0337: main's budgets plus AR0337's raise, core 6167, uptime 298.
+// AR0337 review 1 (AR-D29): core 1 more (6168) for a suffixed `.mcp.json` reached through a glob, `.mc?.json.bak`, its candidates
+// beside the env file's suffixed one (env-refusal.ts, git diff --numstat +4 -3). Nothing tried such a name before, so nothing was cut.
+// Merged main (AR0362) into AR0337: main's budgets plus AR0337's raises, core 6168, delivery 1327.
+const BUDGETS = { core: 6168, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1327, github: 658, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

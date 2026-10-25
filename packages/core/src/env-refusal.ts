@@ -5,11 +5,12 @@ import { decodeEscapes, literal, shellWords } from "./shell-words.ts";
 // The env guard's refusal (spec/roadmap.md, entry 19), which the extension env-guard.ts asks before a tool runs. A secrets
 // file is `.env` or `.env<suffix>` (`.env.local`, `.env-prod`, `dir/.env`, `.env:1-5`, a read selector), in any case, since
 // macOS folds it; not `.env.example` (it holds no secret, and a job edits it), `.envrc`, `.venv`, `src/env.ts`,
-// `process.env.X`, nor a path through a folder named `.env` (`.env/bin`, when `.env` is a folder where the call runs).
+// `process.env.X`, nor a path through a folder named `.env` (`.env/bin`, when `.env` is a folder where the call runs). So is
+// `.mcp.json` and `.mcp.json<suffix>`, which holds MCP servers' secrets, a job record's among them (job-record.ts, AR0337).
 
-// `.env` where a name starts: after a character that cannot be part of a name, after a variable (`$DIR.env`), or right
-// after an option's letters (`-f.env`, `--env-file=.env` already starts after `=`); then the rest of the name.
-const NAME = /(?:(?<![\w.])|(?<=\$\w+)|(?<=(?<![\w.-])-{1,2}[\w'"\\$-]*))\.env(?!\w)(?!\.example(?![\w.-]))[\w.-]*/gi;
+// `.env` or `.mcp.json` where a name starts: after a character that cannot be part of a name, after a variable (`$DIR.env`), or
+// right after an option's letters (`-f.env`, `--env-file=.env` already starts after `=`); then the rest of the name.
+const NAME = /(?:(?<![\w.])|(?<=\$\w+)|(?<=(?<![\w.-])-{1,2}[\w'"\\$-]*))\.(?:env(?!\w)(?!\.example(?![\w.-]))|mcp\.json(?!\w))[\w.-]*/gi;
 const GUARDED = ["read", "grep", "glob", "find", "edit", "write", "bash", "eval", "ast_grep", "ast_edit"];
 // What these arguments say rather than name: the intent line, a search pattern, the text a write puts into a file. Not
 // checked, so a grep for `\.env` goes through. A bash command or eval code is all text, and all of it is checked.
@@ -66,8 +67,8 @@ function namedFile(text: string, cwd: string): string | undefined {
 }
 
 // The glob in `word` that matches a secrets name, and the name: a part between slashes with an unescaped `*`, `?` or
-// `[…]` that starts with a dot, as bash needs to match a hidden file, tried on `.env` and on `.env` with the part's own
-// literal tail (`.e*.local` on `.env.local`). A bracket expression is taken as any one character.
+// `[…]` that starts with a dot, as bash needs to match a hidden file, tried on `.env` and `.mcp.json`, and on each with the
+// part's own literal tail (`.e*.local` on `.env.local`, `.mc?.json.bak` on `.mcp.json.bak`). A bracket is any one character.
 function namedGlob(word: string): string | undefined {
 	for (const part of word.split(/[\s/;'"=]/)) {
 		if (!part.startsWith(".") || !/(?<!\\)(?:\\\\)*[*?[]/.test(part)) continue;
@@ -75,7 +76,8 @@ function namedGlob(word: string): string | undefined {
 			token === "*" ? ".*" : token === "?" || (token.startsWith("[") && token.length > 1) ? "." : `\\u{${(escaped ?? token).codePointAt(0)!.toString(16)}}`,
 		);
 		const tail = literal(/[^*?\]]*$/.exec(part)![0]);
-		const names = [".env", ...(tail.startsWith(".") && tail.toLowerCase() !== ".example" ? [`.env${tail}`] : [])];
+		const suffixed = tail.startsWith(".") ? [`.mcp.json${tail}`, `.mcp${tail}`].filter((name) => /^\.mcp\.json(?!\w)/i.test(name)) : [];
+		const names = [".env", ".mcp.json", ...(tail.startsWith(".") && tail.toLowerCase() !== ".example" ? [`.env${tail}`] : []), ...suffixed];
 		const name = names.find((candidate) => new RegExp(`^${source}$`, "iu").test(candidate));
 		if (name !== undefined) return `${name} (through the glob ${literal(part)})`;
 	}

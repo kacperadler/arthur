@@ -5,13 +5,14 @@ import type { Bus } from "./events.ts";
 import type { Job } from "./jobs.ts";
 import { checkLimits } from "./job-limits.ts";
 import { type Machine, sshAsync } from "./job-machine.ts";
-import { capFields, recordedJob } from "./job-record.ts";
+import { capFields, recordedJob, writeMcp } from "./job-record.ts";
 import { type Caps, launch, type Slice } from "./job-scope.ts";
 import { GRACE_SECONDS } from "./job-stop.ts";
 import { current, field, ID, inRun, moveJob, told, write } from "./job-state.ts";
 import { takeLock } from "./lock.ts";
 import { launched, syncMachine } from "./machine-sync.ts";
 import { processTable } from "./process-table.ts";
+import type { McpServers } from "./roles.ts";
 import { queueSteer } from "./steer-inbox.ts";
 
 // Stop, steer and continue a job from its record `<home>/jobs/<id>/`: docs/commands/stop.md, steer.md and continue.md.
@@ -63,10 +64,10 @@ export function steerJob(home: string, id: string, text: string): string {
 // taken before the state is read and released here only when the continue fails; else the new wrapper removes it. A job on
 // another machine (`there`) is checked here, then continued there by `arthur remote-job continue`, which refuses it as here.
 // `check` runs the `beforeSpawn` checks and holds the spawn lock (spawn-check.ts) until the job is `working` again, and answers
-// the caps in force now (`jobs.limits`), which replace the record's before the launch; `prepare` runs the prepares told it is a
-// continue, their variables going to the wrapper here, else on the stdin of `remote-job continue` as at a spawn, never into the
-// record; `uncapped` hears why a job with caps runs bare here (job-scope.ts).
-export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, uncapped: (why: string) => void, steps: { readonly check: (job: Job) => Promise<{ readonly release: () => void; readonly caps: Caps }>; readonly prepare: (job: Job) => Promise<Readonly<Record<string, string>>> }, there?: Machine): Promise<string | undefined> {
+// the caps in force now (`jobs.limits`), which replace the record's before the launch, and the role's MCP servers (`writeMcp`);
+// `prepare` runs the prepares told it is a continue, their variables going to the wrapper here, else on the stdin of `remote-job
+// continue` as at a spawn, never into the record; `uncapped` hears why a job with caps runs bare here (job-scope.ts).
+export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, uncapped: (why: string) => void, steps: { readonly check: (job: Job) => Promise<{ readonly release: () => void; readonly caps: Caps; readonly mcp?: McpServers }>; readonly prepare: (job: Job) => Promise<Readonly<Record<string, string>>> }, there?: Machine): Promise<string | undefined> {
 	const { folder, field } = record(home, id);
 	if (instruction.trim() === "") throw new Error("the instruction is empty");
 	const lock = takeLock(join(folder, "continuing"));
@@ -99,6 +100,7 @@ export async function continueJob(home: string, id: string, instruction: string,
 		if (there === undefined) {
 			rmSync(join(folder, "pid"), { force: true });
 			write(folder, "continue", instruction.trim());
+			writeMcp(folder, passed.mcp);
 			appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] arthur continue: ${instruction.trim().split("\n")[0]}\n`);
 		}
 		moveJob(home, id, bus, () => ["working", ""]);

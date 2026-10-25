@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { mock, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -284,10 +284,13 @@ test("the sweep ends a working or idle job whose wrapper and agent are gone on t
 	assert.equal(events(home, "job-ended").length, 2, "an ended job is not swept again");
 });
 
-test("the sweep keeps a working job whose wrapper runs before it wrote its pid; a process that names the wrapper before the id is none", async (t) => {
+test("the sweep keeps a working job whose wrapper runs before it wrote its pid; a process that names the wrapper before the id is none; its end removes the MCP secrets", async (t) => {
 	const { home, jobs } = setup();
 	const id = `2026-10-16-worker-${randomBytes(4).toString("hex")}`;
 	record(home, id, { state: "working", log: "" }, NOW);
+	const secrets = join(home, "jobs", id, "mcp", ".mcp.json");
+	mkdirSync(dirname(secrets));
+	writeFileSync(secrets, '{ "mcpServers": { "docs": { "env": { "TOKEN": "s3cret" } } } }\n');
 	const wrapper = join(import.meta.dirname, "..", "src", "wrapper.ts");
 	const lone = (...args: string[]) => spawn(process.execPath, ["-e", "setTimeout(() => {}, 300_000)", ...args], { stdio: "ignore" });
 	// The wrapper's command line as `launch` starts it, and `arthur continue <id> <instruction>` whose instruction names it.
@@ -296,13 +299,14 @@ test("the sweep keeps a working job whose wrapper runs before it wrote its pid; 
 	await until("both in the process table", () => execFileSync("ps", ["-A", "-o", "pid="], { encoding: "utf8" }).split("\n").filter((pid) => [starting.pid, decoy.pid].includes(Number(pid))).length === 2);
 	jobs.sweep();
 	jobs.sweep();
-	assert.equal(field(home, id, "state"), "working", "its wrapper runs");
+	assert.deepEqual([field(home, id, "state"), existsSync(secrets)], ["working", true], "its wrapper runs");
 	starting.kill();
 	await until("the wrapper gone", () => starting.exitCode !== null || starting.signalCode !== null);
 	jobs.sweep();
 	jobs.sweep();
 	assert.deepEqual(["state", "reason"].map((name) => field(home, id, name)), ["ended", "failed: process gone"]);
 	assert.match(field(home, id, "log"), /its wrapper \(no pid\) and its agent were not running on two sweeps in a row\n$/);
+	assert.equal(existsSync(join(home, "jobs", id, "mcp")), false);
 });
 
 test("/stopall stops every running job, one line each, and emits stop-all; with nothing running it says so", async () => {

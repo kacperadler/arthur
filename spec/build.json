@@ -2773,9 +2773,9 @@
   {
     "id": "AR0360",
     "title": "The job's record of its checks is its own word: written from inside the agent, not tied to the tip's tree, not stale after a change by bash",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0360-the-job-s-record-of-its-checks-is-its-own-word-written-from-inside-the-agent-not-tied-to-the-tip-s-tree-not-stale-after-a-change-by-bash/ticket.md",
-    "updated": "2026-10-25T21:40:24.530Z",
+    "updated": "2026-10-25T21:45:30.956Z",
     "after": [
       "AR0351"
     ]
@@ -3485,5 +3485,18 @@
     "status": "dropped",
     "path": "spec/features/AR0435-embedded-ipv4-ipv6-prefixes-are-not-in-the-refused-ranges/ticket.md",
     "updated": "2026-10-25T21:41:15.454Z"
+  },
+  {
+    "id": "AR0436",
+    "title": "A bash call that changes the tree after its checks, before it ends, is recorded on the tree it ends on",
+    "status": "planned",
+    "path": "spec/features/AR0436-a-bash-call-that-changes-the-tree-after-its-checks-before-it-ends-is-recorded-on/ticket.md",
+    "updated": "2026-10-25T21:45:55.147Z",
+    "after": [
+      "AR0402",
+      "AR0403",
+      "AR0404",
+      "AR0405"
+    ]
   }
 ]

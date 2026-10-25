@@ -2900,9 +2900,9 @@
   {
     "id": "AR0383",
     "title": "A `.git` file or a `commondir` written outside the worktree makes any folder a checkout of main",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0383-a-git-file-or-a-commondir-written-outside-the-worktree-makes-any-folder-a-checkout-of-main/ticket.md",
-    "updated": "2026-10-23T17:34:07.457Z"
+    "updated": "2026-10-25T00:42:07.323Z"
   },
   {
     "id": "AR0384",
@@ -2980,5 +2980,12 @@
     "status": "planned",
     "path": "spec/features/AR0394-a-spawn-s-push-to-another-machine-runs-a-program-the-repository-s-config-there-names-hooks-off-or-not/ticket.md",
     "updated": "2026-10-25T00:00:19.351Z"
+  },
+  {
+    "id": "AR0395",
+    "title": "A link to the repository made and used in one bash call still moves main",
+    "status": "planned",
+    "path": "spec/features/AR0395-a-link-to-the-repository-made-and-used-in-one-bash-call-still-moves-main/ticket.md",
+    "updated": "2026-10-25T00:42:19.261Z"
   }
 ]

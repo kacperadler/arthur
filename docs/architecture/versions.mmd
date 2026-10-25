@@ -1,7 +1,6 @@
-%% From the harness in use today to Arthur's first version and after it. Green = first version, grey dashed = later.
+%% From the switch (Arthur runs on its own repository since 2026-10-25) to the rest of Arthur's first version and after it. Green = first version, grey dashed = later.
 flowchart TD
-  today[The harness in use today<br/>takes only fixes]
-  move[Move modules with their tests<br/>core first, then plugins]
+  today[Arthur runs on its own repository<br/>other projects to follow]
 
   subgraph V1[First version]
     core[core<br/>with job state and jobs over SSH]
@@ -11,8 +10,6 @@ flowchart TD
     core ~~~ p1 ~~~ p2 ~~~ p3
   end
 
-  start[Arthur starts with an empty board<br/>the old history is not carried over]
-  switch1[Switch one project first<br/>Arthur itself]
   switch2[Switch the other projects]
 
   subgraph V2[Later, in this order]
@@ -25,7 +22,7 @@ flowchart TD
     agents --> signal --> slack --> whatsapp --> server --> apps
   end
 
-  today --> move --> V1 --> start --> switch1 --> switch2 --> V2
+  today --> V1 --> switch2 --> V2
 
   classDef first fill:#d8f5d8,stroke:#2d7a2d,color:#000;
   classDef later fill:#eee,stroke:#888,stroke-dasharray:4 3,color:#555;

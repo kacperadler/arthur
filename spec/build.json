@@ -2542,9 +2542,9 @@
   {
     "id": "AR0333",
     "title": "`cd -`, `pushd` with no operand and `$OLDPWD` are read as `cd $HOME`",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0333-cd-pushd-with-no-operand-and-oldpwd-are-read-as-cd-home/ticket.md",
-    "updated": "2026-10-25T18:27:28.306Z"
+    "updated": "2026-10-25T18:35:23.445Z"
   },
   {
     "id": "AR0334",
@@ -2703,9 +2703,9 @@
   {
     "id": "AR0356",
     "title": "The job's `PATH` under the service has no `arthur`, so the line the develop plugin tells a worker to run may not run there",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0356-the-job-s-path-under-the-service-has-no-arthur-so-the-line-the-develop-plugin-tells-a-worker-to-run-may-not-run-there/ticket.md",
-    "updated": "2026-10-23T14:41:34.814Z"
+    "updated": "2026-10-25T18:34:11.220Z"
   },
   {
     "id": "AR0357",
@@ -3147,9 +3147,9 @@
   {
     "id": "AR0419",
     "title": "The workflow test checks neither what the top-level permissions grant nor a .yaml workflow",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0419-the-workflow-test-checks-neither-what-the-top-level-permissions-grant-nor-a-yaml/ticket.md",
-    "updated": "2026-10-25T18:34:03.331Z"
+    "updated": "2026-10-25T18:37:42.340Z"
   },
   {
     "id": "AR0420",

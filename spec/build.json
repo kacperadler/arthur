@@ -2619,9 +2619,9 @@
   {
     "id": "AR0344",
     "title": "A pasted secret of capitals, digits and `_` in a `...Env` option is printed by the refusal",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0344-a-pasted-secret-of-capitals-digits-and-in-a-env-option-is-printed-by-the-refusal/ticket.md",
-    "updated": "2026-10-25T17:41:09.632Z"
+    "updated": "2026-10-25T17:56:31.820Z"
   },
   {
     "id": "AR0345",

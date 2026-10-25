@@ -2626,9 +2626,9 @@
   {
     "id": "AR0345",
     "title": "Two docs disagree on what Arthur sends another machine",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0345-two-docs-disagree-on-what-arthur-sends-another-machine/ticket.md",
-    "updated": "2026-10-25T15:53:18.691Z"
+    "updated": "2026-10-25T15:56:47.610Z"
   },
   {
     "id": "AR0346",
@@ -3101,5 +3101,12 @@
     "status": "merged",
     "path": "spec/features/AR0412-inside-the-job-sandbox-a-test-s-job-wrapper-dies-writing-proc-self-oom-score-adj/ticket.md",
     "updated": "2026-10-25T15:04:35.625Z"
+  },
+  {
+    "id": "AR0413",
+    "title": "The vision still says Arthur sends another machine no secret",
+    "status": "planning",
+    "path": "spec/features/AR0413-the-vision-still-says-arthur-sends-another-machine-no-secret/ticket.md",
+    "updated": "2026-10-25T15:56:47.607Z"
   }
 ]

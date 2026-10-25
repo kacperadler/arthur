@@ -1,8 +1,6 @@
 # Styleguide
 
 > How code is written and organized in Arthur, for every role's turn. Product scope is in `spec/vision.md`; the order of the work is in `spec/roadmap.md`.
->
-> Until the switch to Arthur running itself (`spec/roadmap.md`, "The switch"), this file is kept byte for byte in both `.agents/arthur/criteria/` and `.agents/harness/criteria/`: an edit of one is made in the other. The switch removes `.agents/harness/`.
 
 ## Shape
 

@@ -2836,9 +2836,9 @@
   {
     "id": "AR0375",
     "title": "The CI workflows set no `permissions` and pin actions and the site's runner by tag (AR0311 F16, confirmed)",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0375-the-ci-workflows-set-no-permissions-and-pin-actions-and-the-site-s-runner-by-tag-ar0311-f16-confirmed/ticket.md",
-    "updated": "2026-10-23T15:06:04.878Z"
+    "updated": "2026-10-25T17:22:22.667Z"
   },
   {
     "id": "AR0376",

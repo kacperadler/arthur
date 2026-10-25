@@ -13,7 +13,7 @@ import { readState, type State, writeState } from "./github-state.ts";
 // `wakeOn` names it; with `pull-request-review` in `wakeOn`, the reviews of the open pull requests are told likewise. A refusal
 // is said once until GitHub answers again; a rate limit stops the instance's requests for as long as GitHub says. Also `arthur
 // ci` (github-ci.ts), and `github.push`, which delivery asks to push a reviewed branch and main. Entry 59: `github.ci` and
-// `github.cancel`, which delivery's `arthur merge --auto` asks. docs/github.md.
+// `github.cancel`, which delivery's `arthur merge` asks. docs/github.md.
 
 export type { GithubOptions };
 

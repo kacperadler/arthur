@@ -369,11 +369,11 @@ test("with nvm.path provided, the install and checks run on its PATH, asked for 
 
 test("refused before anything: wrong usage, no job, a read-only or running job, a gone branch, a detached or dirty main, nothing new, a ticket not mergeable", async (t) => {
 	const { root, fake, git, worker, review, merge, head, status } = await load(t);
-	const usage = "usage: arthur merge <job> [--unreviewed | --auto [--no-ci]]";
+	const usage = "usage: arthur merge <job> [--unreviewed | --auto] [--no-ci]";
 	assert.deepEqual(await merge(), { code: 2, out: "", err: `arthur merge: no job\n${usage}` });
 	assert.equal((await merge("a", "b")).err, `arthur merge: one job; got 2\n${usage}`);
 	assert.equal((await merge("a", "--force")).err, `arthur merge: unknown flag --force\n${usage}`);
-	assert.deepEqual(await merge("a", "--no-ci"), { code: 2, out: "", err: `arthur merge: --no-ci goes with --auto only\n${usage}` });
+	assert.deepEqual(await merge("a", "--no-ci"), { code: 1, out: "", err: "arthur merge: no job a; arthur jobs lists them" }, "--no-ci goes with a plain merge too");
 	assert.deepEqual(await merge("a", "--auto", "--unreviewed"), { code: 2, out: "", err: `arthur merge: --auto merges only with a PASS, --unreviewed without one: one or the other\n${usage}` });
 	assert.equal((await merge("nope")).err, "arthur merge: no job nope; arthur jobs lists them");
 	const job = await worker();
@@ -428,6 +428,49 @@ test("merge.check: any text answer refuses with every answer, main unchanged and
 	assert.ok(merged.out.endsWith(`wrote CHANGELOG.md: 0 merged tickets\ngithub: main not pushed to origin: [rejected] (non-fast-forward)\nnothing committed but the merge, nothing pruned\n\n${PROCEDURE}`), merged.out);
 	assert.deepEqual(pushes, [{ project: "acme", branch: "main" }]);
 	assert.equal(git(root, "log", "-1", "--format=%s"), `Merge ${job.branch}`);
+});
+
+// The run that built a branch as `github.ci` answers it (the github plugin's Run of GitHub's "List workflow runs for a
+// workflow", every field, with `below`).
+type CiRun = { id: number; attempt: number; sha: string; branch: string; status: string; conclusion: string | null; url: string; startedAt: string | null; below: number };
+const ciRun = (sha: string, branch: string, more: Partial<CiRun> = {}): CiRun => ({ id: 7, attempt: 1, sha, branch, status: "completed", conclusion: "success", url: "https://github.com/acme/shop/actions/runs/7", startedAt: "2026-01-01T00:00:00Z", below: 0, ...more });
+
+test("a plain merge asks github.ci: a run on the branch's own commits that ended other than success refuses, lifted by --no-ci; a pending run, none, one on main, or github failing to tell merges", async (t) => {
+	const { fake, worker, review, merge, head } = await load(t);
+	const asked: unknown[] = [];
+	let answer: CiRun | undefined | Error;
+	fake.provide("github.ci", async (request: unknown) => {
+		asked.push(request);
+		if (answer instanceof Error) throw answer;
+		return answer;
+	});
+	const job = await worker();
+	await review(job.id, "PASS");
+	const start = head();
+	answer = ciRun(job.tip, job.branch, { conclusion: "failure" });
+	const why = `run 7, attempt 1, on ${job.tip.slice(0, 7)}, the tip, ended failure: https://github.com/acme/shop/actions/runs/7; why: arthur ci ${job.branch} --project acme`;
+	assert.deepEqual(await merge(job.id), { code: 1, out: "", err: `arthur merge: arthur merge merges only with CI passed on the branch: ${why}; or merge it with --no-ci on the owner's word only; main is unchanged` });
+	assert.deepEqual(asked, [{ project: "acme", branch: job.branch }]);
+	assert.equal(head(), start);
+	answer = ciRun(job.tip, job.branch, { conclusion: "cancelled" });
+	assert.match((await merge(job.id)).err, /, the tip, ended cancelled: /, "any end other than success refuses");
+	const lifted = await merge(job.id, "--no-ci");
+	assert.equal(lifted.code, undefined, lifted.err);
+	assert.equal(asked.length, 2, "--no-ci asks no CI");
+	const runs: [string, (tip: string, branch: string) => CiRun | undefined | Error][] = [
+		["queued", (tip, branch) => ciRun(tip, branch, { status: "queued", conclusion: null })],
+		["in progress", (tip, branch) => ciRun(tip, branch, { status: "in_progress", conclusion: null })],
+		["none", () => undefined],
+		["failed on main", () => ciRun(start, "main", { conclusion: "failure", below: 1 })],
+		["github could not tell", () => new Error("instance (unnamed): 401: the token in ARTHUR_GITHUB_TOKEN was refused: Bad credentials")],
+	];
+	for (const [at, [name, run]] of runs.entries()) {
+		const each = await worker({ [`loose${at}.ts`]: `export const loose = ${at};\n` }, "No ticket here.");
+		answer = run(each.tip, each.branch);
+		const merged = await merge(each.id, "--unreviewed");
+		assert.equal(merged.code, undefined, `${name}: ${merged.err}`);
+		assert.deepEqual(asked.at(-1), { project: "acme", branch: each.branch }, name);
+	}
 });
 
 test("findings go to findings.onMerge: none open makes no ticket, an open one's ticket gets the next id; without a provider they stay open, said once", async (t) => {

@@ -1,6 +1,6 @@
 # arthur merge
 
-Usage: `arthur merge <job> [--unreviewed | --auto [--no-ci]]`. Comes with the `delivery` plugin, `delivery()` in `arthur.config.ts`; it takes no option of its own, and `--auto` reads the project's `autoMerge` in the projects plugin's list (`arthur projects --help`).
+Usage: `arthur merge <job> [--unreviewed | --auto] [--no-ci]`. Comes with the `delivery` plugin, `delivery()` in `arthur.config.ts`; it takes no option of its own, and `--auto` reads the project's `autoMerge` in the projects plugin's list (`arthur projects --help`).
 
 Merges an ended job's branch into the branch its project's checkout has checked out, main, then does the rest of a merge's mechanical part. The job is its full id or the 8 hex digits that end it: a worker, or any job with a branch, an onboarding included. It commits nothing but the merge and prunes nothing; main is pushed only by the plugin that provides `github.push`, when one is loaded. The procedure it prints last says what the coordinator does next.
 
@@ -20,9 +20,10 @@ Exit 1, main unchanged, nothing written or moved:
 - A dirty main: `main has uncommitted changes in <paths>; commit or stash them first; main is unchanged`. The board, `spec/build.json`, does not count: the moves since the last commit wait there for the commit after a merge. Nor does `CHANGELOG.md`, which every merge rebuilds whole (step 7). Untracked files do not count either, filed reviews among them; `git merge` refuses one it would overwrite (below).
 - A branch with nothing main lacks: `arthur/<id> at <commit> adds nothing to main (<commit>): nothing to merge`.
 - No PASS on the tip, without `--unreviewed`: `no PASS on arthur/<id>'s tip <commit>: <why> (last PASS: <commit>|none); review it with arthur review <id>, or merge it with --unreviewed on the owner's word only; main is unchanged`, `<why>` being `no review of it has a verdict` or `its newest review, <review job>, says FAIL`.
+- CI that failed, when a plugin provides `github.ci` (the github plugin) and without `--no-ci`: a run on the branch's own commits, as `--auto` reads it (below), that ended other than `success`: `arthur merge merges only with CI passed on the branch: run <id>, attempt <n>, on <commit>, the tip|<k> below the tip, ended <conclusion>: <url>; why: arthur ci <branch> --project <project>; or merge it with --no-ci on the owner's word only; main is unchanged`. No run on the branch's own commits, one not finished, github not loaded or unable to tell: the merge goes on as without CI, waiting for nothing. `--no-ci`, on the owner's word only, asks no CI.
 - `collect("merge.check", job)`, asked last with the job as `arthur jobs` holds it (`id`, `kind`, `project`, `branch`, …): any text answer refuses, every answer named: `refused by merge.check: <answer>; <answer>; main is unchanged`. The projects plugin answers for an onboarding, whose branch may change only the vision and the criteria files (`arthur init --help`).
 
-Wrong usage (no job, two, an unknown flag, `--auto` with `--unreviewed`, `--no-ci` without `--auto`) prints the usage line and exits 2.
+Wrong usage (no job, two, an unknown flag, `--auto` with `--unreviewed`) prints the usage line and exits 2.
 
 ## --auto
 
@@ -61,6 +62,7 @@ Main goes back to the commit before the merge with `git reset --keep`, which kee
 - `check failed on main (…)`: main is as it was. Tell the owner which check failed, its command written out as the brackets name it (`npm test`), with its last lines; run `arthur continue <job> '<what failed>'` without asking him, and start a new review once it ends.
 - A conflict, `refused by merge.check: …` or `git has no identity …`: main is unchanged; tell the owner, in plain words, with the fix the line names.
 - `no PASS on …`: review the branch (`arthur review <job>`), or ask the owner for `--unreviewed`.
+- `arthur merge merges only with CI passed on the branch: run …, ended <conclusion>`: tell the owner, with what its `why:` command says; the branch goes in only with `--no-ci` on his word.
 - `--auto merges only with CI passed …; it waits`: nothing to do until the wake with CI's verdict; after `CI passed`, `arthur merge --auto <job>` again; after `CI ended <conclusion>`, as the next line.
 - `--auto merges only with CI passed on the branch: run …, ended <conclusion>`: run its `why:` command; a failure in the branch's own code is handled as a failed check above, `arthur continue` without asking included; one that looks transient is rerun once (`arthur ci --help`).
 - Any other `--auto` refusal: the merge waits for the owner; tell him the rule it named.

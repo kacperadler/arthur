@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { configRefusal } from "@arthur/core/git-config";
 import type { Command, Host, JobRecord, Requirement } from "@arthur/core/plugin";
-import { autoRefusal } from "./auto-merge.ts";
+import { autoRefusal, ciRefusal } from "./auto-merge.ts";
 import { writeChangelog } from "./changelog.ts";
 import { endWait } from "./ci-wait.ts";
 import { failed, mainChecks, reinstall } from "./merge-checks.ts";
@@ -14,10 +14,10 @@ import { reviewsOf } from "./review-records.ts";
 // `arthur merge <job> [--unreviewed]` (spec/roadmap.md, entry 54): an ended job's branch merged into the branch its project's
 // checkout has, main, after every refusal; the checks run there, and main reset when one fails; then the ticket's side
 // (merge-outcome.ts) and the procedure after a merge. It commits nothing past the merge and prunes nothing; main is pushed by
-// the plugin that provides `github.push` (entry 58), when one is loaded. `--auto [--no-ci]` (entry 59): the merge without the
-// owner, after the refusals of auto-merge.ts. docs/commands/merge.md.
+// the plugin that provides `github.push` (entry 58), when one is loaded. `--auto` (entry 59): the merge without the owner,
+// after the refusals of auto-merge.ts; CI asked of github for every merge, `--no-ci` leaving it out (AR0362). docs/commands/merge.md.
 
-const USAGE = "usage: arthur merge <job> [--unreviewed | --auto [--no-ci]]";
+const USAGE = "usage: arthur merge <job> [--unreviewed | --auto] [--no-ci]";
 const FLAGS = ["--unreviewed", "--auto", "--no-ci"];
 // The board's moves since the last commit are left uncommitted until the commit after a merge, so they are no dirt; nor is the
 // changelog each merge rebuilds (changelog.ts).
@@ -34,7 +34,7 @@ export function mergeCommand(host: Host, procedure: URL, held: (path: string) =>
 			const flag = words.find((word) => word.startsWith("-"));
 			const [name] = words;
 			const [unreviewed = false, auto = false, noCi = false] = FLAGS.map((each) => args.includes(each));
-			const mixed = auto && unreviewed ? "--auto merges only with a PASS, --unreviewed without one: one or the other" : noCi && !auto ? "--no-ci goes with --auto only" : undefined;
+			const mixed = auto && unreviewed ? "--auto merges only with a PASS, --unreviewed without one: one or the other" : undefined;
 			if (name === undefined || words.length > 1 || flag !== undefined || mixed !== undefined) {
 				console.error(`arthur merge: ${flag !== undefined ? `unknown flag ${flag}` : (mixed ?? (name === undefined ? "no job" : `one job; got ${words.length}`))}\n${USAGE}`);
 				return 2;
@@ -85,8 +85,8 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 	if (subjects === "") throw new Error(`${job.branch} at ${tip.slice(0, 7)} adds nothing to ${main} (${before.slice(0, 7)}): nothing to merge`);
 	const gap = passGap(host, job, tip);
 	if (gap !== "" && !mode.unreviewed && !mode.auto) throw new Error(`${gap}; review it with arthur review ${job.id}, or merge it with --unreviewed on the owner's word only; main is unchanged`);
-	const auto = mode.auto ? await autoRefusal(host, mode.held, { job, root, tip, before, ci: mode.ci }) : "";
-	if (auto !== "") throw new Error(`${auto}; main is unchanged`);
+	const refusal = mode.auto ? await autoRefusal(host, mode.held, { job, root, tip, before, ci: mode.ci }) : mode.ci ? await ciRefusal(host, { job, root, tip, before }, false) : "";
+	if (refusal !== "") throw new Error(`${refusal}; main is unchanged`);
 	const refusals = host.collect("merge.check", job).filter((answer) => typeof answer === "string" && answer !== "");
 	if (refusals.length > 0) throw new Error(`refused by merge.check: ${refusals.join("; ")}; main is unchanged`);
 

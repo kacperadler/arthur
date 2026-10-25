@@ -149,6 +149,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: "git replace --graft main HEAD" }, MAIN],
 		["bash", { command: "git replace --convert-graft-file" }, MAIN],
 		["bash", { command: "git replace main -- -l" }, MAIN],
+		["bash", { command: "git replace - main" }, MAIN],
 		["bash", { command: `git -C ${main} replace main HEAD` }, MAIN],
 		["bash", { command: "git -c alias.r=replace r main HEAD" }, MAIN],
 		["bash", { command: `echo "gitdir: ${root}/.git" > .git` }, MAIN],

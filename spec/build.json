@@ -2815,9 +2815,9 @@
   {
     "id": "AR0372",
     "title": "The stash refusal tells a job to write its patch to a fixed name in /tmp",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0372-the-stash-refusal-tells-a-job-to-write-its-patch-to-a-fixed-name-in-tmp/ticket.md",
-    "updated": "2026-10-25T16:06:53.059Z"
+    "updated": "2026-10-25T16:10:27.827Z"
   },
   {
     "id": "AR0373",
@@ -3108,5 +3108,12 @@
     "status": "planning",
     "path": "spec/features/AR0413-the-vision-still-says-arthur-sends-another-machine-no-secret/ticket.md",
     "updated": "2026-10-25T15:56:47.607Z"
+  },
+  {
+    "id": "AR0414",
+    "title": "A job may commit the stash refusal's .arthur-stash.patch by mistake, and its git diff leaves staged changes out",
+    "status": "planning",
+    "path": "spec/features/AR0414-a-job-may-commit-the-stash-refusal-s-arthur-stash-patch-by-mistake-and-its-git/ticket.md",
+    "updated": "2026-10-25T16:10:33.253Z"
   }
 ]

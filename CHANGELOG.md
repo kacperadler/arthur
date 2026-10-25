@@ -28,6 +28,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Changed
 
 - AR0345 Two docs disagree on what Arthur sends another machine (d732ba4f)
+- AR0372 The stash refusal tells a job to write its patch to a fixed name in /tmp (4fbe9a47)
 - AR0385 `arthur help --help` names nine of the core's seventeen commands as the ones left when the config does not load (bd4169d0)
 - AR0401 Inside a sandboxed job, the orchestration tests that start a tmux server fail (a3642537)
 - AR0408 versions.mmd still shows the harness in use today (da58fccb)

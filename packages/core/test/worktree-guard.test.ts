@@ -105,6 +105,10 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `cd ${main}; cd /tmp; git -C $OLDPWD commit -m x` }, MAIN],
 		["bash", { command: `cd ${main}; cd /tmp; (cd /var); cd -; rm README.md` }, MAIN],
 		["bash", { command: `cd ${main}; pushd /tmp; popd; cd -; cd -; rm README.md` }, MAIN],
+		["bash", { command: `pushd ${main}; pushd /tmp; (popd); popd; rm README.md` }, MAIN],
+		["bash", { command: `export OLDPWD=${main}; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; cd -; unset -v OLDPWD; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; unset OLDPWD; rm $OLDPWD/f` }, UNSET],
 		["bash", { command: "cd $OLDPWD && rm README.md" }, UNSET],
 		["bash", { command: "rm ~-/README.md" }, UNSET],
 		["bash", { command: `cd ${main}; OLDPWD=; echo x > $OLDPWD/f` }, UNSET],
@@ -233,7 +237,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	try {
 		for (const [toolName, input, expected] of calls) {
 			const reason = worktreeRefusal(place, toolName, input);
-			const named = reason === undefined ? undefined : reason === STASH || reason === UNSET ? reason : reason.includes("which Git reads as a link to a repository") ? LINK : /writes into (.+?) \(/.exec(reason)?.[1];
+			const named = reason === undefined ? undefined : reason === STASH || reason === UNSET ? reason : reason.includes("which Git reads as a link to a repository") ? LINK : (/writes into (.+?) \(/.exec(reason)?.[1] ?? reason);
 			assert.equal(named, expected, `${toolName} ${JSON.stringify(input)}: ${reason}`);
 		}
 		// An OLDPWD the agent's env gives is where `cd -` goes first.

@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { setTimeout as sleep } from "node:timers/promises";
 import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { orchestration } from "../src/orchestration.ts";
 
@@ -116,4 +117,27 @@ test("--budget 0 on a paid spawn starts only with the owner's budget decision of
 	assert.equal((await spawn("Go.", loose)).budgetUsd, 0);
 	await assert.rejects(spawn("Go again.", loose), refused(`${loose} was used already (spawn); ask the owner again`));
 	assert.equal((await fake.host.jobs.spawn({ task: "Go cheaply.", budgetUsd: 0 })).budgetUsd, 0, "a plugin's own spawn names no decision: no check");
+});
+
+test("--budget 0 on a continue of a job of no ticket goes on only with the owner's budget decision of that job, used once", async (t) => {
+	const { fake, owners, used } = await setup(t);
+	const job = await fake.host.jobs.spawn({ task: "Go." });
+	const ended = async () => {
+		const state = join(dirname(fake.host.folder), "jobs", job.id, "state");
+		for (const deadline = Date.now() + 15_000; !existsSync(state) || readFileSync(state, "utf8") !== "ended"; await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${job.id} to end`);
+	};
+	await ended();
+	const go = (decision: string) => fake.host.jobs.continue(job.id, "Go on.", 0, decision);
+	const refused = (why: string) => ({ message: `refused by orchestration: ${why}` });
+	await assert.rejects(go(""), refused(`--budget 0 needs the owner's decision: arthur decision ask --kind budget --question '<what he decides>' --job ${job.id}, his answer recorded with arthur decision answer, then --budget 0 --decision <its id>`));
+	const loose = await owners("budget");
+	await assert.rejects(go(loose), refused(`${loose} is of no ticket and no job, not of job ${job.id}`));
+	const other = await owners("budget", "--job", "2026-03-04-worker-0000ffff");
+	await assert.rejects(go(other), refused(`${other} is of job 2026-03-04-worker-0000ffff, not of job ${job.id}`));
+	assert.deepEqual([used(loose), used(other)], [undefined, undefined]);
+	const mine = await owners("budget", "--job", job.id);
+	assert.equal(await go(mine), undefined);
+	assert.equal(used(mine), `continue ${job.id}`);
+	await ended();
+	await assert.rejects(go(mine), refused(`${mine} was used already (continue ${job.id}); ask the owner again`));
 });

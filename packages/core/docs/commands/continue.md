@@ -32,4 +32,4 @@ Refused (exit code 1, the reason after `arthur continue: `):
 
 Wrong usage (not one id and one instruction, an unknown flag, `--budget` without a plain decimal or given twice) prints the usage line and exits 2.
 
-`--budget 0` on a job whose record is not `free` hands the checks `--decision <id>` (`""` without it) with the job's `id`, as `arthur spawn --help` says under "--budget 0": the owner's `budget` decision for the job's ticket, or for this job (`--job <id>`) when it names none, used once. A continue without `--budget` keeps the job's budget.
+`--budget 0` on a job whose record is not `free` hands the checks `--decision <id>` (`""` without it) with the job's `id`, as `arthur spawn --help` says under "--budget 0": the owner's `budget` decision for the job's ticket, or for this job (`--job <id>`) when it names none, used once. A plugin's `host.jobs.continue(id, instruction, budgetUsd, decision)` hands its `decision` the same way; without one it is not checked. A continue without `--budget` keeps the job's budget.

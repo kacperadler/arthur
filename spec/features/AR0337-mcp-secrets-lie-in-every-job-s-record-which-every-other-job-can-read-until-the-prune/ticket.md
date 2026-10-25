@@ -36,3 +36,4 @@ In:
 
 - 2026-10-23: Source: F1 of AR0319
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; starts after the ten security checks AR0319-AR0328.
+- 2026-10-25: AR0337 round 3: one allowed test row, under AR-D31; the owner: "always go with recommendation till the 8 am morning" (AR-D42)

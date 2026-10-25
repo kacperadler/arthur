@@ -15,8 +15,10 @@ type Loaded = { preApprove(budgetUsd?: number): Promise<string>; status(): strin
 const ticketText = ({ kind = "fix", scope = "In:\n- `src/a.ts`: the fix.\n- `test/a.test.ts` (`fixIt`)\n\nOut:\n- `src/b.ts`, `src/c.ts`: another ticket.", decisions = "- 2026-01-01: Source: F1 of AC0001" }: Parts = {}) =>
 	`# AC0002 - Fix\n\n\`\`\`json\n{ "id": "AC0002" }\n\`\`\`\n\n## Goal\n\nA fix.\n\n- Kind: ${kind}\n\n## Scope\n\n${scope}\n\n## Decisions\n\n${decisions}\n`;
 
+// Prompt files later jobs and the coordinator read, which delivery's default list holds (AR0351).
+const HELD = [".agents/arthur/roles/worker.md", ".agents/arthur/criteria/styleguide.md", "spec/vision.md", "packages/orchestration/roles/coordinator.md"];
 // The project `acme` (prefix AC): AC0001, whose findings.md has F1, and AC0002 in planning, made from `parts`; the plugin set up on
-// the fake host with `options`, and delivery's always-review list (`package.json`) provided unless `delivery` is false.
+// the fake host with `options`, and delivery's always-review list (`package.json` and the prompt files `HELD`) provided unless `delivery` is false.
 async function load(parts: Parts = {}, options: OrchestrationOptions = {}, delivery = true) {
 	const root = join(temporaryFolder(), "acme");
 	for (const folder of [SOURCE, FOLDER, "src/lib", "spec/quality"]) mkdirSync(join(root, folder), { recursive: true });
@@ -31,7 +33,7 @@ async function load(parts: Parts = {}, options: OrchestrationOptions = {}, deliv
 	if (delivery)
 		fake.provide("delivery.alwaysReview", (request: { readonly paths: readonly string[] }) => {
 			asked.push(request);
-			return request.paths.filter((path) => path === "package.json");
+			return request.paths.filter((path) => path === "package.json" || HELD.includes(path));
 		});
 	await fake.setup(orchestration(options));
 	const preApprove = (budgetUsd?: number) => fake.call<Promise<string>>("ticket.autopilot", { id: "AC0002", ...(budgetUsd === undefined ? {} : { budgetUsd }) });
@@ -93,6 +95,7 @@ test("refused, each naming the rule broken: a feat, 4 Scope files, a file on the
 	const four = "In:\n- `src/a.ts`, `src/b.ts`, `src/c.ts`, `src/d.ts`";
 	await refused(await load({ scope: four }), ["its Scope names 4 files, at most 3: src/a.ts, src/b.ts, src/c.ts, src/d.ts"]);
 	await refused(await load({ scope: "In:\n- `src/a.ts`, `package.json`" }), ["on delivery's always-review list: package.json"]);
+	for (const path of HELD) await refused(await load({ scope: `In:\n- \`${path}\`: a line.` }), [`on delivery's always-review list: ${path}`]);
 	await refused(await load(), ["budget $0; a pre-approved ticket needs a budget above 0 (--budget, the budget of its JSON block, or autopilot.budgetUsd)"], 0);
 	await refused(await load({}, { autopilot: { budgetUsd: 0 } }), ["budget $0; a pre-approved ticket needs a budget above 0 (--budget, the budget of its JSON block, or autopilot.budgetUsd)"]);
 	await refused(await load(), ["budget $3.5 is over the cap of $3 (autopilot.budgetMaxUsd)"], 3.5);

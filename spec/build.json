@@ -2914,9 +2914,9 @@
   {
     "id": "AR0385",
     "title": "`arthur help --help` names nine of the core's seventeen commands as the ones left when the config does not load",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0385-arthur-help-help-names-nine-of-the-core-s-seventeen-commands-as-the-ones-left-when-the-config-does-not-load/ticket.md",
-    "updated": "2026-10-23T20:16:54.237Z"
+    "updated": "2026-10-25T03:00:46.481Z"
   },
   {
     "id": "AR0386",

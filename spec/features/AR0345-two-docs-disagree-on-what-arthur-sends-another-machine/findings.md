@@ -11,4 +11,28 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `spec/vision.md:134`
 - What: "A machine needs Node, git, OMP logged in with its own credential, and the same version of Arthur's core; Arthur sends it no secret." A `prepare`'s variables, a provider's key of the models plugin among them, go to the machine on the launch's stdin (`packages/core/docs/commands/spawn.md`, "On another machine"), as `docs/deploy.md:9` now says. The vision is the owner's product text, so this worker left it.
 - Suggestion: "Arthur sends it no MCP secret, only a `prepare`'s variables (a provider's key of the models plugin) on the launch's stdin", if the owner agrees.
-- Status: open
+- Status: ticket AR0413
+
+## F2. `docs/deploy.md:9` changed outside the ticket's three places
+
+- Kind: docs
+- Found by: 2026-10-25-review-ab9e2646 (reviewer, non-blocking note), 2026-10-25
+- Where: `docs/deploy.md:9`
+- What: It repeated the same "no secret" claim; the worker fixed it so the docs agree.
+- Status: dropped (needed for the Goal; matches `spawn.md:62`)
+
+## F3. The docs point to `arthur spawn --help` rather than `spawn.md`
+
+- Kind: docs
+- Found by: 2026-10-25-review-ab9e2646 (reviewer, non-blocking note), 2026-10-25
+- Where: `coordinator.md:139`, `jobs.ts:176`
+- What: The ticket said "point to `spawn.md`"; `arthur spawn --help` prints that file.
+- Status: dropped (the docs' own convention)
+
+## F4. One test in machine.test.ts skips without a systemd user manager
+
+- Kind: test
+- Found by: 2026-10-25-review-ab9e2646 (reviewer, non-blocking note), 2026-10-25
+- Where: `packages/core/test/machine.test.ts:572`
+- What: Explains the worker's 35 of 36.
+- Status: dropped (by design; the range does not touch it)

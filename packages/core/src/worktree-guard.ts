@@ -64,24 +64,24 @@ function commandIndex(words: readonly string[]): number {
 // (`--ignore-other-worktrees`, `checkout -B`, `symbolic-ref`), `git replace` but a list, or one of these after a `cd` there.
 // The command is the word after assignments and wrappers (`sudo`, `timeout 60`), also in `bash -c`, a shell's heredoc,
 // `eval`; each path is resolved from where the commands before it left (`cd`, `cd -`, `pushd`, `git -C`, a subshell undoing
-// them), through symlinks. Not seen: a path built at run time (`$x`, a glob, a brace list, what `xargs` reads, a `GIT_DIR` or
-// `OLDPWD` exported before), a program that writes (`node -e`, `tar -C`, `curl -o`), an alias in the user's Git config, a
-// link the same call makes and uses, the git commands that rewrite the repository every worktree shares (`gc`, `prune`,
-// `repack`, `reflog expire`, `maintenance run`), or move a ref no worktree has checked out from the job's own worktree. It is
-// not a sandbox.
+// them), through symlinks. Not seen: a path built at run time (`$x`, a glob, a brace list, what `xargs` reads, an `OLDPWD`
+// `read` sets, a `GIT_DIR` exported before), a program that writes (`node -e`, `tar -C`, `curl -o`), an alias in the user's
+// Git config, a link the same call makes and uses, the git commands that rewrite the repository every worktree shares (`gc`,
+// `prune`, `repack`, `reflog expire`, `maintenance run`), or move a ref no worktree has checked out from the job's own
+// worktree. It is not a sandbox.
 function bashRefusal(place: Place, command: string, start: string): string | undefined {
 	let cwd = start;
 	// Where `cd -`, `~-` and `$OLDPWD` (shell-words.ts reads it as `~-`) go: bash's OLDPWD, from the agent's env; none when unset.
 	let previous = process.env.OLDPWD;
-	const subshells: [string, string | undefined][] = [];
-	const pushed: string[] = [];
+	const subshells: [string, string | undefined, string[]][] = [];
+	let pushed: string[] = [];
 	const located = (base: string, path: string): string => real(resolve(base, path.replace(/^~-(?=\/|$)/, previous ?? "~-")));
 	const theirs = (words: readonly string[], base = cwd, named = true): string | undefined =>
 		words.flatMap((word) => [...(word.startsWith("-") ? [] : [word]), ...(word.includes("=") ? [word.slice(word.indexOf("=") + 1)] : [])]).map((path) => refusal(place, located(base, path), path, named)).find(Boolean);
 	const run = (items: readonly Item[]): string | undefined => {
 		for (const item of items) {
-			if (item === "(") subshells.push([cwd, previous]);
-			else if (item === ")") [cwd, previous] = subshells.pop() ?? [cwd, previous];
+			if (item === "(") subshells.push([cwd, previous, [...pushed]]);
+			else if (item === ")") [cwd, previous, pushed] = subshells.pop() ?? [cwd, previous, pushed];
 			const found = typeof item === "string" ? undefined : judge(item);
 			if (found !== undefined) return found;
 		}
@@ -94,8 +94,10 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 		const at = commandIndex(words);
 		const verb = basename(words[at] ?? "");
 		const moves = ["cd", "pushd", "popd"].includes(verb);
-		// An assignment alone sets OLDPWD; one before a `cd` sets it for that `cd`, which then sets it to the folder it leaves.
-		for (const word of command.alone && (at < 0 || moves) ? words.slice(0, at < 0 ? words.length : at) : []) if (word.startsWith("OLDPWD=")) previous = word.length > 7 ? located(cwd, word.slice(7)) : undefined;
+		// An assignment alone, or by `export` or `declare`, sets OLDPWD and `unset` clears it; one before a `cd` sets it for that
+		// `cd`, which then sets it to the folder it leaves.
+		for (const word of command.alone && (at < 0 || moves || ["export", "declare", "typeset", "readonly", "local"].includes(verb)) ? words : []) if (word.startsWith("OLDPWD=")) previous = word.length > 7 ? located(cwd, word.slice(7)) : undefined;
+		if (command.alone && verb === "unset" && words.includes("OLDPWD")) previous = undefined;
 		if (redirected !== undefined || at < 0) return redirected;
 		const args = words.slice(at + 1);
 		const operands = args.filter((word) => !word.startsWith("-"));

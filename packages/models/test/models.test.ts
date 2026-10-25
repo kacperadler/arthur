@@ -101,12 +101,12 @@ async function load(options: ModelsOptions, env: Readonly<Record<string, string>
 	return { fake, pick };
 }
 
-test("refused at load: a kind other than the two, a url not http or https or with a public host, probeSeconds not a positive whole number", () => {
+test("refused at load: a kind other than the two, a url not http or https or with a public host or a cloud metadata address, probeSeconds not a positive whole number", () => {
 	const problems = (options: Readonly<Record<string, unknown>>) => checkOptions(options).map((each) => `${each.path}: ${each.problem}`);
 	assert.deepEqual(problems({ providers: { mac: { kind: "vllm", url: "http://127.0.0.1:1" } } }), ['providers.mac.kind: expected ollama or openai-compatible, got "vllm"']);
-	for (const url of ["ftp://127.0.0.1/", "http://8.8.8.8:11434", "http://example.com:11434", "http://172.32.0.1", "http://100.128.0.1", "http://[2001:db8::1]:1234", "not a url"])
+	for (const url of ["ftp://127.0.0.1/", "http://8.8.8.8:11434", "http://example.com:11434", "http://172.32.0.1", "http://100.128.0.1", "http://[2001:db8::1]:1234", "not a url", "http://100.100.100.200/", "http://[fd00:ec2::254]/", "http://[::ffff:100.100.100.200]/"])
 		assert.match(problems({ providers: { mac: { kind: "ollama", url } } }).join("\n"), /^providers\.mac\.url: expected an http or https url whose host is loopback, private or Tailscale/, url);
-	for (const url of ["http://127.0.0.1:11434", "http://localhost:11434", "https://mac.tail1234.ts.net", "http://10.0.0.7", "http://172.31.0.1", "http://192.168.1.20", "http://100.64.0.1", "http://[::1]:1234/v1", "http://[fd7a:115c:a1e0::1]:11434"])
+	for (const url of ["http://127.0.0.1:11434", "http://localhost:11434", "https://mac.tail1234.ts.net", "http://10.0.0.7", "http://172.31.0.1", "http://192.168.1.20", "http://100.64.0.1", "http://100.100.100.201", "http://[::1]:1234/v1", "http://[fd7a:115c:a1e0::1]:11434", "http://[fd00:ec2::253]"])
 		assert.deepEqual(problems({ providers: { mac: { kind: "ollama", url } } }), [], url);
 	for (const probeSeconds of [0, -1, 1.5, "3"]) assert.equal(problems({ probeSeconds }).length, 1, String(probeSeconds));
 	assert.deepEqual(problems({ probeSeconds: 1, limits: { warnAt: 80, stopAt: 100 } }), []);
@@ -115,7 +115,7 @@ test("refused at load: a kind other than the two, a url not http or https or wit
 	assert.deepEqual(problems({ providers: { Mac: { kind: "ollama", url: "http://127.0.0.1" } } }), ["providers.Mac: expected a provider name of lowercase letters, digits and dashes"]);
 });
 
-test("a name is resolved at load and at each probe: one that resolves to a public address refuses the load, then the probe", async () => {
+test("a name is resolved at load and at each probe: one that resolves to a public or a cloud metadata address refuses the load, a public one then the probe", async () => {
 	const lookup = dns.lookup;
 	let answer = "100.101.102.103";
 	dns.lookup = (async () => [{ address: answer, family: 4 }]) as unknown as typeof dns.lookup;
@@ -124,6 +124,8 @@ test("a name is resolved at load and at each probe: one that resolves to a publi
 		answer = "8.8.8.8";
 		const options = { providers: { mac: { kind: "ollama" as const, url: "http://mac.tail1234.ts.net:11434" } } };
 		await assert.rejects(load(options), { message: /^provider mac: mac\.tail1234\.ts\.net resolves to 8\.8\.8\.8, a public address; Arthur reaches a model server only over a private network/ });
+		answer = "100.100.100.200";
+		await assert.rejects(load(options), { message: /^provider mac: mac\.tail1234\.ts\.net resolves to 100\.100\.100\.200, a public address;/ }, "the cloud metadata address");
 		answer = "100.101.102.103";
 		const { pick } = await load(options);
 		answer = "8.8.8.8";

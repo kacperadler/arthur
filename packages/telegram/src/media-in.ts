@@ -3,10 +3,9 @@ import { extname, join } from "node:path";
 import type { Kind, Part } from "@arthur/core/parts";
 import { type Bot, call, download } from "./bot-api.ts";
 
-// What the owner sent as the parts of one message (spec/roadmap.md, entry 49): each message's file saved under
-// `<folder>/media/`, in the order the messages came (an album is several), then each one's text or caption, one he forwarded
-// marked `[forwarded from <sender>] `. The channel reads nothing of a file; a file Telegram will not hand over is a text part
-// saying why: packages/telegram/docs/telegram.md, "Receiving".
+// What the owner sent as the parts of one message (spec/roadmap.md, entry 49): each message's file saved under `<folder>/media/`, in
+// the order the messages came (an album is several), then each one's text or caption, one he forwarded marked `[forwarded from <sender>] `
+// (the mark alone when it has neither). The channel reads no file; one Telegram will not hand over is a text part saying why: docs/telegram.md.
 
 type File = { readonly file_id?: unknown; readonly file_unique_id?: unknown; readonly file_size?: unknown; readonly file_name?: unknown; readonly mime_type?: unknown; readonly duration?: unknown; readonly width?: unknown; readonly height?: unknown };
 
@@ -33,15 +32,16 @@ export async function parts(bot: Bot, folder: string, messages: readonly Message
 		const other = FILES.find(([name]) => message[name] !== undefined);
 		const [file, kind, mime]: [File?, Kind?, string?] = photo !== undefined ? [photo, "photo", "image/jpeg"] : other === undefined ? [] : [message[other[0]], other[1], other[2]];
 		if (file !== undefined && kind !== undefined) files.push(await save(bot, folder, file, kind, typeof file.mime_type === "string" && file.mime_type !== "" ? file.mime_type : (mime ?? ""), signal));
-		for (const said of [message.text, message.caption]) if (typeof said === "string" && said.trim() !== "") texts.push({ kind: "text", text: forwarded(message) + said, mime: "text/plain" });
+		const said = [message.text, message.caption].filter((said) => typeof said === "string" && said.trim() !== "");
+		for (const text of said.length > 0 || message.forward_origin === undefined ? said : [""]) texts.push({ kind: "text", text: [forwarded(message), text].filter((part) => part !== "").join(" "), mime: "text/plain" });
 	}
 	return [...files, ...texts];
 }
 
 const area = (size: File | undefined) => (typeof size?.width === "number" && typeof size.height === "number" ? size.width * size.height : -1);
 
-// A forwarded message's mark (Bot API MessageOrigin): a user's first name, else a chat's or a channel's title, cut of what could close the mark or break its line.
-const forwarded = ({ forward_origin: origin }: Message) => (origin === undefined ? "" : `[forwarded from ${[origin?.sender_user?.first_name, origin?.sender_chat?.title, origin?.chat?.title].map((name) => (typeof name === "string" ? name.replace(/[\p{Cc}\]]/gu, "") : "")).find((name) => name !== "") ?? "a hidden sender"}] `);
+// A forwarded message's mark (Bot API MessageOrigin): a user's first name, else a chat's or a channel's title, cut of what could close the mark or break or reverse its line.
+const forwarded = ({ forward_origin: origin }: Message) => (origin === undefined ? "" : `[forwarded from ${[origin?.sender_user?.first_name, origin?.sender_chat?.title, origin?.chat?.title].map((name) => (typeof name === "string" ? name.replace(/[\p{Cc}\p{Zl}\p{Zp}\p{Cf}\]]/gu, "") : "")).find((name) => name !== "") ?? "a hidden sender"}]`);
 
 // The file at `<folder>/media/<its file_unique_id><extension>`, or `-<its name>` for one sent with a name; written whole.
 async function save(bot: Bot, folder: string, file: File, kind: Kind, mime: string, signal: AbortSignal): Promise<Part> {

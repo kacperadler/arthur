@@ -639,6 +639,11 @@ import { checkStructure } from "./structure.ts";
 // agent may write with the Git folders of its branch and each extension's folder (9), the probe that falls back to the bare
 // agent naming why (12), comments, imports and blanks (23); wrapper.ts kept at 200 by a blank line. Nothing confined a job's
 // writes before, so nothing was cut.
+// AR0341 (F1 of AR0340 and the ticket's own F1; the coordinator's AR-D29 and AR-D31): the blocked notice's question redacted,
+// its import paid by a comment line refolded (blocked-notice.ts, git diff --numstat +13 -13); orchestration 7 more (2337) for
+// the wake's final message redacted of the env file's values alone, so job ids, ticket folders and hashes stay, and its
+// `Blocked: user` line by every rule (inbox.ts, +7 -4), with `redactValues`, the exact values apart from the shape rules
+// (credential.ts, +7 -3). Nothing redacted the wake before, so nothing was cut.
 // AR0357 (F6 of AR0311; its Done means: a review's task only what `reviewTask` builds for the ended worker its branch names,
 // at its tip; AR-D29): delivery 4 more (1321) for the task built again and compared in `refusal`, the worker's refusals read
 // as the one refusal (delivery.ts, git diff --numstat +7 -3: the comment refolded to one line, the import changed in place).
@@ -647,7 +652,7 @@ import { checkStructure } from "./structure.ts";
 // node:http(s), whose socket's own lookup refuses a private address (site-check.ts, 50 to 55 lines), and the Fetch standard's
 // bad ports refused before such a hop, as fetch did (site-check.ts, 2 more: the import and the refusal). Nothing was cut.
 // Merged AR0424 with main (AR0357): main's budgets plus AR0424's raise, delivery 1321, uptime 298.
-const BUDGETS = { core: 6156, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1321, github: 658, manage: 928, develop: 705, findings: 254 };
+const BUDGETS = { core: 6156, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1321, github: 658, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

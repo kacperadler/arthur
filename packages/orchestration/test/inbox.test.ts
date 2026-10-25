@@ -717,7 +717,7 @@ function restarts(t: TestContext, claim: (part: { kind: string }) => unknown) {
 	};
 }
 
-test("a restart after a claim's reply went out and before its message was queued sends each reply once and queues the message once", { skip: NO_UNIX_SOCKET }, async (t) => {
+test("a restart after a claim's reply went out and before its message was queued sends each reply once and queues the message once", async (t) => {
 	const AUDIO = { kind: "audio", path: "/home/arthur/.arthur/telegram/media/AwAE.mp3", mime: "audio/mpeg", seconds: 9 };
 	// The first run's pass never gets past the audio's claim, the voice note's reply already sent: as a restart cuts it.
 	let cut = true;
@@ -736,7 +736,7 @@ test("a restart after a claim's reply went out and before its message was queued
 	assert.deepEqual(sorted(join(box.fake.host.folder, "inbox", "received")), []);
 });
 
-test("a message left in received/ from before a log cut by hand gets its claim's reply, though the new log holds one to its number", { skip: NO_UNIX_SOCKET }, async (t) => {
+test("a message left in received/ from before a log cut by hand gets its claim's reply, though the new log holds one to its number", async (t) => {
 	const box = restarts(t, () => ({ text: "[voice 4 s] Start AR0081.", reply: "Heard." }));
 	// The new log's own event of that number, and a reply to it.
 	const seq = box.fake.emit("job-state", {}).seq;

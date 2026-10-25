@@ -46,3 +46,4 @@ Out:
 
 - 2026-10-25: Source: review 3 of AR0333, split by AR-D17
 - 2026-10-25: AR0420 approved, with the OLDPWD array forms of AR-D19 added; the owner: "AR0420 approved" (AR-D20)
+- 2026-10-25: AR0420 gets a third round with a simpler rule: any local OLDPWD makes OLDPWD unknown, the brace counting goes; the owner: "AR-D21 1" (AR-D21)

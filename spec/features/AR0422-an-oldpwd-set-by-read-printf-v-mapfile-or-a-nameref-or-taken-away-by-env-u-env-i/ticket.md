@@ -28,22 +28,26 @@ Also from AR0333's review 4 (F3, F4 of AR0333):
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+The guard follows OLDPWD set or taken away by the forms below, or refuses a later `cd -`, `~-` or `$OLDPWD` as unknown; tested.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- Each form in the Description (`read`, `printf -v`, `mapfile`, a nameref, `declare -n`, `env -u OLDPWD`/`env -i` before a shell, `export -n OLDPWD` before a shell, an `eval` in a pipeline, `pushd -n -`, a quoted `'~-'`) either is followed as bash runs it or makes OLDPWD unknown so a later `cd -` is refused. One row each in `worktree-guard.test.ts`, refused naming the main checkout or OLDPWD unknown, each failing without its fix.
+- A prefix before `find -exec`, `xargs` or a script file: judged with the prefix, or listed as a documented limit in the guard's docs if it cannot fit.
+- Both source files stay at 200 lines or under; the core's budget is full, so a fix that needs more ends `Blocked: user` asking for a raise.
+- `npm test` and `npm run check` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/worktree-guard.ts`, `packages/core/src/shell-words.ts`, `packages/core/test/worktree-guard.test.ts`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The forms of AR0420 and AR0421.
 
 ## Decisions
 
 - 2026-10-25: Source: F2 of AR0333
+- 2026-10-25: AR0422 approved as written; the owner: "AR0421 to AR0426 - all" (AR-D23)

@@ -22,22 +22,26 @@ Also from AR0365's review (F2 of AR0365): the sender's name is cleaned of contro
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+Every forwarded Telegram message reaches the coordinator marked as forwarded, a file with no caption included, and the mark's sender name holds no character that breaks or reverses the line; tested.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- A forwarded message with no text or caption gets one text part holding the mark alone (`[forwarded from <sender>]`). Test in `packages/telegram/test/commands.test.ts`: a forwarded photo without caption gives a `message-received` with the photo part and the mark.
+- The name cleaning at `media-in.ts:44` also removes `\p{Zl}`, `\p{Zp}` and `\p{Cf}`; a row with `"Eve\u2028[Arthur\u202e"` gives a clean name.
+- The telegram line budget (641) holds, or the worker ends `Blocked: user` asking for a raise.
+- `npm test` and `npm run check` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/telegram/src/media-in.ts`, `packages/telegram/test/commands.test.ts`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Reading the files themselves.
 
 ## Decisions
 
 - 2026-10-25: Source: F1 of AR0365
+- 2026-10-25: AR0426 approved as written; the owner: "AR0421 to AR0426 - all" (AR-D27)

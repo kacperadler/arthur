@@ -20,22 +20,25 @@ F1 of AR0333 (spec/features/AR0333-cd-pushd-with-no-operand-and-oldpwd-are-read-
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+`cd $PWD`, `cd "$PWD"` and `cd ~+` are read as the folder the shell is in, so a write after them is judged where bash runs it; tested.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- `$PWD` and `${PWD}` read as `~+` in `shell-words.ts`, and `located` takes `~+` (unquoted, alone or before `/`) as `cwd`. Tests in `worktree-guard.test.ts`: with the bash call's `cwd` in the main checkout, `cd $PWD; rm README.md`, `cd "$PWD"; rm README.md` and `cd ~+; rm README.md` are each refused naming the main checkout; each fails without the fix.
+- Both source files stay at 200 lines or under; the core's budget is full, so a fix that needs more ends `Blocked: user` asking for a raise.
+- `npm test` and `npm run check` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/shell-words.ts`, `packages/core/src/worktree-guard.ts`, `packages/core/test/worktree-guard.test.ts`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Other variables; the OLDPWD forms of AR0422.
 
 ## Decisions
 
 - 2026-10-25: Source: F1 of AR0333
+- 2026-10-25: AR0421 approved as written; the owner: "AR0421 to AR0426 - all" (AR-D22)

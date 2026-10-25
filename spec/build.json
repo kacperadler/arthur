@@ -3353,7 +3353,7 @@
     "title": "packages/core/test/job-state.test.ts:142 fails now and then with ENOENT on the job record active file",
     "status": "planned",
     "path": "spec/features/AR0423-packages-core-test-job-state-test-ts-142-fails-now-and-then-with-enoent-on-the/ticket.md",
-    "updated": "2026-10-25T19:45:31.212Z",
+    "updated": "2026-10-25T21:41:35.521Z",
     "after": [
       "AR0402",
       "AR0403",

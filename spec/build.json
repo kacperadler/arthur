@@ -2626,9 +2626,9 @@
   {
     "id": "AR0345",
     "title": "Two docs disagree on what Arthur sends another machine",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0345-two-docs-disagree-on-what-arthur-sends-another-machine/ticket.md",
-    "updated": "2026-10-23T14:22:40.676Z"
+    "updated": "2026-10-25T15:53:18.691Z"
   },
   {
     "id": "AR0346",

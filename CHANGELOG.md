@@ -13,10 +13,12 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0332 `GIT_DIR=`, `GIT_WORK_TREE=`, `GIT_INDEX_FILE=` before `git` are not read as `--git-dir`, `--work-tree` (059696a4)
 - AR0333 `cd -`, `pushd` with no operand and `$OLDPWD` are read as `cd $HOME` (00a0c619)
+- AR0340 The redaction of notices and the decision log reads secrets from an environment that holds none of the env file (69b7aeca)
 - AR0342 A project's `repo` URL is printed by the clone's refusals, with any credential it holds (8409266e)
 - AR0344 A pasted secret of capitals, digits and `_` in a `...Env` option is printed by the refusal (432245c4)
 - AR0352 The always-review list never matches a path under `.agents/`: `**` does not enter a dot folder (293b4ac4)
 - AR0356 The job's `PATH` under the service has no `arthur`, so the line the develop plugin tells a worker to run may not run there (a91c1308)
+- AR0357 The review kind takes any task with the three head lines, so a PASS can rest on a task nobody built from the branch (AR0311 F6, confirmed) (d2a58d77)
 - AR0363 A binary file counts no lines, so a branch of any binary content skips the review on its checks (36c70b5d)
 - AR0364 Telegram answers every member of the configured chat, not the owner alone (AR0311 F7, confirmed) (8a78e74d)
 - AR0365 A message the owner forwarded runs as the owner's own words, a phone command included (fc17e26e)
@@ -39,6 +41,8 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0407 A job's Unix datagram socket reaches any local daemon that listens on one (1256ab3a)
 - AR0417 The push's refusal prints a credential git names without `://` (9ffac56c)
 - AR0418 A repo URL that new URL cannot parse is printed with its credential by the clone's refusal (458b3aaa)
+- AR0420 Forms of OLDPWD and pushd the guard still misreads: ${OLDPWD...} operators, readonly, local outside a function, pushd -n, OLDPWD+= before eval (ccecf8b7)
+- AR0426 A forwarded file without a caption reaches the coordinator unmarked (75127d83)
 
 ### Changed
 

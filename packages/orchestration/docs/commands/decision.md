@@ -19,7 +19,7 @@ Each project keeps one append-only file, `spec/decisions.jsonl`, next to its boa
 - `close`: `{ record, id, time, reason }`;
 - `revoke`: `{ record, id, time, words }`, the owner revoking a class.
 
-`time` is the local time in `core.timeZone` with its offset (`2026-10-22T08:40:00+02:00`). Before a record is written, every text it holds (the question, the options, a recommendation in words, the owner's words, the decision, a reason, a class's words and decision) is redacted with the notices' rules: the value of every variable whose name says it holds a secret, a bearer token, a key with a vendor's prefix, and any run of 20 or more letters, digits, `_` and `-` that mixes letters and digits, which takes a job id and a full commit hash too. The id, the ticket and the job are kept.
+`time` is the local time in `core.timeZone` with its offset (`2026-10-22T08:40:00+02:00`). Before a record is written, every text it holds (the question, the options, a recommendation in words, the owner's words, the decision, a reason, a class's words and decision) is redacted with the notices' rules: every value of an enabled plugin's `...Env` variable, from the shell or the env file, the value of every variable whose name says it holds a secret (either 8 characters or more), a bearer token, a key with a vendor's prefix, and any run of 20 or more letters, digits, `_` and `-` that mixes letters and digits, which takes a job id and a full commit hash too. The id, the ticket and the job are kept.
 
 ## Asking
 

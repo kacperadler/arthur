@@ -15,9 +15,10 @@ import { reviewsOf } from "./review-records.ts";
 // checkout has, main, after every refusal; the checks run there, and main reset when one fails; then the ticket's side
 // (merge-outcome.ts) and the procedure after a merge. It commits nothing past the merge and prunes nothing; main is pushed by
 // the plugin that provides `github.push` (entry 58), when one is loaded. `--auto` (entry 59): the merge without the owner,
-// after the refusals of auto-merge.ts; CI asked of github for every merge, `--no-ci` leaving it out (AR0362). docs/commands/merge.md.
+// after the refusals of auto-merge.ts; CI asked of github for every merge, `--no-ci` leaving it out (AR0362); `--unreviewed`
+// only with the owner's decision that orchestration's `decision.owner` holds (AR0355). docs/commands/merge.md.
 
-const USAGE = "usage: arthur merge <job> [--unreviewed | --auto] [--no-ci]";
+const USAGE = "usage: arthur merge <job> [--unreviewed --decision <id> | --auto] [--no-ci]";
 const FLAGS = ["--unreviewed", "--auto", "--no-ci"];
 // The board's moves since the last commit are left uncommitted until the commit after a merge, so they are no dirt; nor is the
 // changelog each merge rebuilds (changelog.ts).
@@ -30,16 +31,18 @@ export function mergeCommand(host: Host, procedure: URL, held: (path: string) =>
 		name: "merge",
 		doc: new URL("../docs/commands/merge.md", import.meta.url),
 		async run({ args }) {
-			const words = args.filter((arg) => !FLAGS.includes(arg));
+			const at = args.indexOf("--decision");
+			const decision = at < 0 ? undefined : (args[at + 1] ?? "");
+			const words = args.filter((arg, index) => !FLAGS.includes(arg) && (at < 0 || (index !== at && index !== at + 1)));
 			const flag = words.find((word) => word.startsWith("-"));
 			const [name] = words;
 			const [unreviewed = false, auto = false, noCi = false] = FLAGS.map((each) => args.includes(each));
-			const mixed = auto && unreviewed ? "--auto merges only with a PASS, --unreviewed without one: one or the other" : undefined;
+			const mixed = auto && unreviewed ? "--auto merges only with a PASS, --unreviewed without one: one or the other" : decision === "" || decision?.startsWith("-") ? "--decision needs a value" : decision !== undefined && !unreviewed ? "--decision goes with --unreviewed" : undefined;
 			if (name === undefined || words.length > 1 || flag !== undefined || mixed !== undefined) {
 				console.error(`arthur merge: ${flag !== undefined ? `unknown flag ${flag}` : (mixed ?? (name === undefined ? "no job" : `one job; got ${words.length}`))}\n${USAGE}`);
 				return 2;
 			}
-			const branch = await merge(host, name, { unreviewed, auto, ci: !noCi, held });
+			const branch = await merge(host, name, { unreviewed, decision, auto, ci: !noCi, held });
 			const pushed = await Promise.all(host.collect<Promise<string>>("github.push", branch));
 			for (const line of pushed) console.log(line);
 			console.log(`nothing committed but the merge, nothing ${pushed.length === 0 ? "pushed or " : ""}pruned\n\n${readFileSync(procedure, "utf8").trim()}`);
@@ -48,7 +51,7 @@ export function mergeCommand(host: Host, procedure: URL, held: (path: string) =>
 }
 
 // Merges, and returns main as `github.push` takes it.
-async function merge(host: Host, name: string, mode: { readonly unreviewed: boolean; readonly auto: boolean; readonly ci: boolean; readonly held: (path: string) => boolean }): Promise<{ readonly project: string; readonly branch: string }> {
+async function merge(host: Host, name: string, mode: { readonly unreviewed: boolean; readonly decision: string | undefined; readonly auto: boolean; readonly ci: boolean; readonly held: (path: string) => boolean }): Promise<{ readonly project: string; readonly branch: string }> {
 	const job = host.jobs.list().find((each) => each.id === name || each.id.endsWith(`-${name}`));
 	if (job === undefined) throw new Error(`no job ${name}; arthur jobs lists them`);
 	if (job.branch === "") throw new Error(`${job.id} is a ${job.kind} job, read-only: it has no branch to merge`);
@@ -89,7 +92,9 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 	const strays = git("log", "--first-parent", "--no-merges", "--format=%h", since === "" ? "HEAD" : `${since}..HEAD`, "--", ".", ":(exclude)spec", ":(exclude)CHANGELOG.md", ":(exclude)*.md").stdout.trim();
 	if (strays !== "") throw new Error(`${main} has ${strays.split("\n").length} commits since its last merge that change code (${strays.split("\n").join(", ")}); only a merge puts code on main; the owner decides: main is unchanged`);
 	const gap = passGap(host, job, tip);
-	if (gap !== "" && !mode.unreviewed && !mode.auto) throw new Error(`${gap}; review it with arthur review ${job.id}, or merge it with --unreviewed on the owner's word only; main is unchanged`);
+	if (gap !== "" && !mode.unreviewed && !mode.auto) throw new Error(`${gap}; review it with arthur review ${job.id}, or merge it with --unreviewed --decision <the owner's decision id>; main is unchanged`);
+	const owner = mode.unreviewed ? host.call<string>("decision.owner", { id: mode.decision ?? "", what: "--unreviewed", kind: "merge", ticket: ticket?.id, job: job.id, use: `merge ${job.id}` }) : "";
+	if (owner !== "") throw new Error(`${owner}; main is unchanged`);
 	const refusal = mode.auto ? await autoRefusal(host, mode.held, { job, root, tip, before, ci: mode.ci }) : mode.ci ? await ciRefusal(host, { job, root, tip, before }, false) : "";
 	if (refusal !== "") throw new Error(`${refusal}; main is unchanged`);
 	const refusals = host.collect("merge.check", job).filter((answer) => typeof answer === "string" && answer !== "");

@@ -46,8 +46,8 @@ function projectNamed(host: Host, name: string | undefined): Project {
 	return found;
 }
 
-// The project a decision id's prefix names.
-function projectOf(host: Host, id: string): Project {
+// The project a decision id's prefix names; decision-use.ts reads it too.
+export function projectOf(host: Host, id: string): Project {
 	const prefix = DECISION_ID.exec(id)?.[1];
 	if (prefix === undefined) throw new Error(`${id} is no decision id: <prefix>-D<number>, as arthur decision ask printed it`);
 	const projects = host.board.projects();

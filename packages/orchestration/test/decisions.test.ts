@@ -364,7 +364,8 @@ test("a key, a job id and a commit hash in the owner's answer are redacted in th
 
 test("a value of the env file, which the process's environment never holds, is redacted in every text the log keeps; the wake still finds the job's question", async (t) => {
 	const secret = "correct-horse-battery";
-	const { fake, decision, log, blocked, file } = await setup(t, { ARTHUR_ORCHESTRATION_PASS: secret });
+	// A value under 8 characters is no secret: `Drop` stays.
+	const { fake, decision, log, blocked, file } = await setup(t, { ARTHUR_ORCHESTRATION_PASS: secret, ARTHUR_ORCHESTRATION_WORD: "Drop" });
 	assert.ok(!Object.values(process.env).includes(secret));
 	await backed(decision);
 	await decision(...PROPOSE);

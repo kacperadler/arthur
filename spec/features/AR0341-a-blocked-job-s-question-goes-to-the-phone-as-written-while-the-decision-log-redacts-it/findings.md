@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/orchestration/src/credential.ts:14`, `packages/orchestration/src/inbox.ts:132`
 - What: `redact`'s rule for any run of 20 or more letters, digits, `_` and `-` that mixes letters and digits also takes a job id, a ticket folder's slug and a full commit hash. Now that the wake's final message goes through it, a worker's `Blocked: on 2026-10-23-ar0319-security-check-93862bb2` reaches the coordinator as `Blocked: on [redacted]`, and `spec/features/AR0341-a-blocked-job-s-question-goes/ticket.md` as `spec/features/[redacted]/ticket.md` (seen with `node -e` calling `redact` on those lines). The wake's first line keeps the job's reason unredacted, and `arthur jobs` keeps the record whole, so nothing is lost for good, but the coordinator reads less of the final message. The decision log had this already (decision.md says a full hash is redacted).
 - Suggestion: spare the shapes Arthur writes itself before the 20-character rule: a job id (`YYYY-MM-DD-<kind>-<8 hex>`) and a ticket folder (`<PREFIX><digits>-<slug>`), in both copies of credential.ts (orchestration and session). Out: the vendor-key and bearer rules.
-- Status: open
+- Status: fixed in 495ef650 (the coordinator's AR-D31: the wake's final message loses the env file's values alone, by `redactValues`, and its `Blocked: user <question>` line every rule, as the question; a vendor-shaped key elsewhere in the final message now reaches the coordinator as written, as decided. The decision log keeps the shape rules.)
 
 ## F2. A plugin's wake line built from the final message is not redacted
 

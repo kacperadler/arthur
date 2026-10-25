@@ -3067,9 +3067,9 @@
   {
     "id": "AR0408",
     "title": "versions.mmd still shows the harness in use today",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0408-versions-mmd-still-shows-the-harness-in-use-today/ticket.md",
-    "updated": "2026-10-25T13:45:44.828Z"
+    "updated": "2026-10-25T13:49:15.648Z"
   },
   {
     "id": "AR0409",

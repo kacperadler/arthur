@@ -2759,9 +2759,9 @@
   {
     "id": "AR0364",
     "title": "Telegram answers every member of the configured chat, not the owner alone (AR0311 F7, confirmed)",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0364-telegram-answers-every-member-of-the-configured-chat-not-the-owner-alone-ar0311-f7-confirmed/ticket.md",
-    "updated": "2026-10-25T17:13:17.767Z"
+    "updated": "2026-10-25T17:18:16.466Z"
   },
   {
     "id": "AR0365",
@@ -2773,9 +2773,9 @@
   {
     "id": "AR0366",
     "title": "The models plugin's private network holds two cloud metadata addresses (AR0311 F18, confirmed)",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0366-the-models-plugin-s-private-network-holds-two-cloud-metadata-addresses-ar0311-f18-confirmed/ticket.md",
-    "updated": "2026-10-23T14:55:51.497Z"
+    "updated": "2026-10-25T17:15:09.775Z"
   },
   {
     "id": "AR0367",

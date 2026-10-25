@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -686,6 +686,18 @@ test("the README's mermaid block is arthur.mmd, unchanged", () => {
 	const root = join(import.meta.dirname, "..");
 	const block = readFileSync(join(root, "README.md"), "utf8").match(/^```mermaid\n([\s\S]*?)^```$/m)?.[1];
 	assert.equal(block, readFileSync(join(root, "arthur.mmd"), "utf8"), "copy arthur.mmd into the README's ```mermaid block");
+});
+
+// A workflow states its token's rights and runs each action at a commit: a tag is whatever the action's repository points it at.
+test("each CI workflow sets a top-level permissions block and pins every action to a commit", () => {
+	const folder = join(import.meta.dirname, "..", ".github", "workflows");
+	const files = readdirSync(folder).filter((name) => name.endsWith(".yml"));
+	assert.notDeepEqual(files, []);
+	for (const name of files) {
+		const text = readFileSync(join(folder, name), "utf8");
+		assert.match(text, /^permissions:/m, `${name}: no top-level permissions`);
+		for (const line of text.match(/\buses:.*/g) ?? []) assert.match(line, /^uses: [^@\s]+@[0-9a-f]{40}(\s|$)/, `${name}: ${line}`);
+	}
 });
 
 test("a tree that keeps every rule passes, @arthur/core/testing and a type import of the core included", () => {

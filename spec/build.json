@@ -2815,9 +2815,9 @@
   {
     "id": "AR0372",
     "title": "The stash refusal tells a job to write its patch to a fixed name in /tmp",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0372-the-stash-refusal-tells-a-job-to-write-its-patch-to-a-fixed-name-in-tmp/ticket.md",
-    "updated": "2026-10-23T14:59:24.915Z"
+    "updated": "2026-10-25T16:06:53.059Z"
   },
   {
     "id": "AR0373",

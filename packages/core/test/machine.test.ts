@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { availableParallelism, totalmem } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
@@ -385,6 +385,72 @@ test("a spawn's push to another machine and a prune there run no hook and no fsm
 	assert.equal(existsSync(ran) ? readFileSync(ran, "utf8") : "", "");
 	git(repository, "worktree", "add", "--quiet", "-b", "control", join(temporaryFolder(), "control"), "refs/arthur/base");
 	assert.match(readFileSync(ran, "utf8"), /^reference-transaction$[^]*^post-checkout$/m, "a plain git call there runs them");
+});
+
+const MAY_RUN = "which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig";
+
+test("a spawn is refused before any push while the repository there sets a key that may name a program, which a hookless push there runs and the fetch back does not", async () => {
+	const { root, home, machine, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Done." }] }) });
+	const repository = join(there, "repos/acme.git");
+	assert.equal(spawnSync(process.execPath, [CLI, "remote-job", "repo", there, "acme", "HEAD"], { cwd: machine, encoding: "utf8" }).stdout, "missing\n");
+	// As a job's program there may write it: a command for the refs of the alternates, which `git receive-pack` runs.
+	const [other, ran, script] = [temporaryFolder(), join(temporaryFolder(), "ran"), join(temporaryFolder(), "alternate-refs")];
+	git(other, "init", "--quiet");
+	commit(other, "other");
+	writeFileSync(join(repository, "objects/info/alternates"), `${join(other, ".git/objects")}\n`);
+	writeFileSync(script, `#!/bin/sh\necho ran >> '${ran}'\n`, { mode: 0o755 });
+	git(repository, "config", "core.alternateRefsCommand", script);
+	await assert.rejects(jobs.spawn({ task: "Go.", machine: "gpu" }), { message: `machine gpu: arthur remote-job repo: no push: ${join(repository, "config")} sets core.alternaterefscommand, ${MAY_RUN}` });
+	assert.deepEqual([calls().filter((call) => call.includes("receive-pack")).length, existsSync(ran)], [0, false], "nothing pushed, nothing run");
+	assert.deepEqual([existsSync(join(home, "jobs")), existsSync(join(there, "jobs")), existsSync(join(there, "repos/.arthur-worktrees"))], [false, false, false]);
+	git(repository, "config", "--unset", "core.alternateRefsCommand");
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	assert.equal(git(repository, "rev-parse", "refs/arthur/base"), git(root, "rev-parse", "HEAD"), "pushed once the key is gone");
+	git(repository, "config", "core.alternateRefsCommand", script);
+	await endedThere(there, job.id);
+	jobs.sweep();
+	assert.deepEqual([git(root, "branch", "--list", job.branch ?? "").trim(), existsSync(ran)], [job.branch, false], "its branch fetched back, nothing run");
+	commit(root, "second");
+	git(root, "push", "--quiet", "--receive-pack=git -c core.hooksPath=/dev/null receive-pack", repository, "HEAD:refs/heads/control");
+	assert.match(readFileSync(ran, "utf8"), /^ran$/m, "the push Arthur sends runs it");
+});
+
+test("a prune there is refused, removing nothing, while the job's worktree there reads a key that may name a program, from the shared config or its own", async () => {
+	const gate = join(temporaryFolder(), "go");
+	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	const [repository, worktree] = [join(there, "repos/acme.git"), join(there, "repos/.arthur-worktrees", job.id)];
+	// A file a clean filter reads, as a job's commit leaves it; `git status` in the worktree runs the filter while its stat is stale.
+	writeFileSync(join(worktree, ".gitattributes"), "a filter=x\n");
+	writeFileSync(join(worktree, "a"), "a\n");
+	git(worktree, "add", ".gitattributes", "a");
+	commit(worktree, "a file");
+	writeFileSync(gate, "");
+	await endedThere(there, job.id);
+	jobs.sweep();
+	const [ran, filter] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "clean")];
+	writeFileSync(filter, `#!/bin/sh\necho clean >> '${ran}'\ncat\n`, { mode: 0o755 });
+	const [old, kept] = [new Date("2000-01-01"), `${job.id}: kept its worktree, branch and record: machine gpu: arthur remote-job prune: git worktree:`];
+	const all = () => [existsSync(worktree), existsSync(join(there, "jobs", job.id)), existsSync(join(home, "jobs", job.id)), existsSync(ran)];
+	git(repository, "config", "filter.x.clean", filter);
+	utimesSync(join(worktree, "a"), old, old);
+	assert.deepEqual(jobs.prune([job.id]), [`${kept} ${join(repository, "config")} sets filter.x.clean, ${MAY_RUN}`]);
+	assert.deepEqual(all(), [true, true, true, false], "the shared config's: everything kept, nothing run");
+	// The worktree's own config.worktree, which Git reads once `extensions.worktreeConfig` is on (core.bare moved, as commit-rules does).
+	git(repository, "config", "--unset", "filter.x.clean");
+	git(repository, "config", "--unset", "core.bare");
+	git(repository, "config", "extensions.worktreeConfig", "true");
+	git(repository, "config", "--worktree", "core.bare", "true");
+	git(worktree, "config", "--worktree", "filter.x.clean", filter);
+	assert.deepEqual(jobs.prune([job.id]), [`${kept} ${join(repository, "worktrees", job.id, "config.worktree")} sets filter.x.clean, ${MAY_RUN}`]);
+	assert.deepEqual(all(), [true, true, true, false], "the worktree's own: everything kept, nothing run");
+	git(worktree, "status", "--porcelain");
+	assert.match(readFileSync(ran, "utf8"), /^clean$/m, "git status in the worktree, which git worktree remove runs, runs it");
+	// A worktree gone there leaves no `git status` to run: `git worktree prune` takes its place, the key still set.
+	rmSync(ran);
+	rmSync(worktree, { recursive: true, force: true });
+	assert.match(jobs.prune([job.id])[0] ?? "", new RegExp(`^${job.id}: branch ${job.branch} deleted there; `));
+	assert.deepEqual(all(), [false, false, true, false], "pruned there, nothing run");
 });
 
 test("a prune there reads past a replacement under refs/replace in the repository there: the job's clean worktree is removed", async () => {

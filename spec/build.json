@@ -2542,9 +2542,9 @@
   {
     "id": "AR0333",
     "title": "`cd -`, `pushd` with no operand and `$OLDPWD` are read as `cd $HOME`",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0333-cd-pushd-with-no-operand-and-oldpwd-are-read-as-cd-home/ticket.md",
-    "updated": "2026-10-25T17:14:43.244Z"
+    "updated": "2026-10-25T17:38:07.806Z"
   },
   {
     "id": "AR0334",
@@ -2619,9 +2619,9 @@
   {
     "id": "AR0344",
     "title": "A pasted secret of capitals, digits and `_` in a `...Env` option is printed by the refusal",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0344-a-pasted-secret-of-capitals-digits-and-in-a-env-option-is-printed-by-the-refusal/ticket.md",
-    "updated": "2026-10-25T17:29:14.516Z"
+    "updated": "2026-10-25T17:40:02.240Z"
   },
   {
     "id": "AR0345",

@@ -111,6 +111,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `cd ${main}; cd /tmp; unset OLDPWD; rm $OLDPWD/f` }, UNSET],
 		["bash", { command: `cd ${main}; cd /tmp; unset -f OLDPWD; cd -; rm README.md` }, MAIN],
 		["bash", { command: `cd ${main}; cd /tmp; unset FOO; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; unset OLDPWD | true; cd -; rm README.md` }, MAIN],
 		["bash", { command: `OLDPWD=; OLDPWD+=${main}; cd -; rm README.md` }, MAIN],
 		["bash", { command: `OLDPWD=/; OLDPWD+=${root.slice(1)}; cd -; rm README.md` }, MAIN],
 		["bash", { command: `declare OLDPWD+=${main}; cd -; rm README.md` }, MAIN],

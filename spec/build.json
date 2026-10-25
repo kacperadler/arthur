@@ -2590,9 +2590,9 @@
   {
     "id": "AR0339",
     "title": "A recursive search from the coordinator's own folder prints the env file",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0339-a-recursive-search-from-the-coordinator-s-own-folder-prints-the-env-file/ticket.md",
-    "updated": "2026-10-23T14:22:39.467Z",
+    "updated": "2026-10-25T22:45:12.084Z",
     "after": [
       "AR0338"
     ]
@@ -2783,9 +2783,9 @@
   {
     "id": "AR0361",
     "title": "A merge takes main as it is: a commit that reached main by another route is merged on and pushed with the next merge",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0361-a-merge-takes-main-as-it-is-a-commit-that-reached-main-by-another-route-is-merged-on-and-pushed-with-the-next-merge/ticket.md",
-    "updated": "2026-10-25T22:40:17.327Z",
+    "updated": "2026-10-25T23:03:46.136Z",
     "after": [
       "AR0359"
     ]
@@ -3538,5 +3538,19 @@
     "status": "planning",
     "path": "spec/features/AR0440-a-job-can-read-the-running-arthur-process-s-secrets-from-proc-pid-environ/ticket.md",
     "updated": "2026-10-25T22:44:48.231Z"
+  },
+  {
+    "id": "AR0441",
+    "title": "Any merge commit on main resets the baseline, one a job made included",
+    "status": "planning",
+    "path": "spec/features/AR0441-any-merge-commit-on-main-resets-the-baseline-one-a-job-made-included/ticket.md",
+    "updated": "2026-10-25T23:03:46.128Z"
+  },
+  {
+    "id": "AR0442",
+    "title": "An existing project whose history ends in plain commits refuses its first merge, its onboarding's included",
+    "status": "planning",
+    "path": "spec/features/AR0442-an-existing-project-whose-history-ends-in-plain-commits-refuses-its-first-merge/ticket.md",
+    "updated": "2026-10-25T23:03:46.133Z"
   }
 ]

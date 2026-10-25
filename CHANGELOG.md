@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-26
+
+### Fixed
+
+- AR0361 A merge takes main as it is: a commit that reached main by another route is merged on and pushed with the next merge (e3164372)
+
 ## 2026-10-25
 
 ### Added

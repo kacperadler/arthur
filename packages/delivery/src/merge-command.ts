@@ -83,6 +83,11 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 	const before = git("rev-parse", "HEAD").stdout.trim();
 	const subjects = git("log", "--reverse", "--no-merges", "--format=%s", `${before}..${tip}`).stdout.trim();
 	if (subjects === "") throw new Error(`${job.branch} at ${tip.slice(0, 7)} adds nothing to ${main} (${before.slice(0, 7)}): nothing to merge`);
+	// Only a merge puts code on main (AR0361): a non-merge commit of its first-parent line since its last merge (since the root
+	// without one) that changes a file outside spec/, CHANGELOG.md and *.md reached main by another route.
+	const since = git("rev-list", "-1", "--merges", "--first-parent", "HEAD").stdout.trim();
+	const strays = git("log", "--first-parent", "--no-merges", "--format=%h", since === "" ? "HEAD" : `${since}..HEAD`, "--", ".", ":(exclude)spec", ":(exclude)CHANGELOG.md", ":(exclude)*.md").stdout.trim();
+	if (strays !== "") throw new Error(`${main} has ${strays.split("\n").length} commits since its last merge that change code (${strays.split("\n").join(", ")}); only a merge puts code on main; the owner decides: main is unchanged`);
 	const gap = passGap(host, job, tip);
 	if (gap !== "" && !mode.unreviewed && !mode.auto) throw new Error(`${gap}; review it with arthur review ${job.id}, or merge it with --unreviewed on the owner's word only; main is unchanged`);
 	const refusal = mode.auto ? await autoRefusal(host, mode.held, { job, root, tip, before, ci: mode.ci }) : mode.ci ? await ciRefusal(host, { job, root, tip, before }, false) : "";

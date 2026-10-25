@@ -38,6 +38,10 @@ async function load(t: TestContext) {
 	git(root, "config", "user.email", "t@example.com");
 	git(root, "add", "--all");
 	git(root, "commit", "--quiet", "-m", "first");
+	// `take()` takes main as it is, as docs/commands/merge.md tells the owner: a merge of his own, so no commit has code since
+	// one. Main as `arthur merge` finds it in a project it merged before.
+	const take = () => git(root, "merge", "--quiet", "--no-ff", "-m", "Take main as it is", git(root, "commit-tree", "-p", "HEAD", "-m", "main as it is", "HEAD^{tree}"));
+	take();
 	const bin = temporaryFolder();
 	writeFileSync(join(bin, "bun"), `#!/bin/sh\necho "$@" >> '${join(bin, "bun.log")}'\n[ ! -e '${join(bin, "fail")}' ] || { echo 'error: lockfile had changes' >&2; exit 1; }\n`, { mode: 0o755 });
 	const bun = () => (existsSync(join(bin, "bun.log")) ? readFileSync(join(bin, "bun.log"), "utf8") : "");
@@ -94,7 +98,7 @@ async function load(t: TestContext) {
 	};
 	const head = () => git(root, "rev-parse", "HEAD");
 	const status = (id: string) => fake.host.board.get(id)?.status;
-	return { root, fake, git, commit, worker, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, installAs: (next: string | Error) => void (answer = next) };
+	return { root, fake, git, commit, take, worker, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, installAs: (next: string | Error) => void (answer = next) };
 }
 
 test("a branch with a PASS on its tip goes in: checks pass, its review filed, outcome.md written, the ticket merged, the tickets it unblocks named", async (t) => {
@@ -260,8 +264,34 @@ test("each merge that went in rebuilds CHANGELOG.md; the rebuilt file left uncom
 	assert.match(readFileSync(join(root, "CHANGELOG.md"), "utf8"), /\n- AC0001 Shop \([0-9a-f]+\)\n- AC0002 Cart \([0-9a-f]+\)\n- AC0003 Pay \([0-9a-f]+\)\n$/);
 });
 
+test("only a merge puts code on main: a code commit since the last merge refuses the next, with --unreviewed, --auto or neither, naming it; spec/, CHANGELOG.md and *.md do not; with no merge, from the root", async (t) => {
+	const { root, git, commit, take, worker, merge, head } = await load(t);
+	const first = await worker();
+	assert.equal((await merge(first.id, "--unreviewed")).err, "");
+	commit(root, { "README.md": "# acme, a shop\n", "docs/guide.md": "# Guide\n" });
+	assert.match(git(root, "show", "--name-only", "--format=", "HEAD"), /^CHANGELOG\.md\nREADME\.md\ndocs\/guide\.md\nspec\/build\.json\nspec\/features\/AC0001-shop\/outcome\.md$/);
+	const cart = await worker({ "cart.ts": "export const cart = 1;\n" }, "Ticket: spec/features/AC0002-cart/ticket.md");
+	assert.equal((await merge(cart.id, "--unreviewed")).err, "", "the commit after a merge, of spec/, CHANGELOG.md and *.md, is no code");
+	const hand = git(root, "rev-parse", "--short", commit(root, { "hand.ts": "export const hand = 1;\n" }));
+	commit(root, { "spec/notes.md": "# Notes\n" });
+	const again = git(root, "rev-parse", "--short", commit(root, { "hand.ts": "export const hand = 2;\n" }));
+	const pay = await worker({ "pay.ts": "export const pay = 1;\n" }, "Ticket: spec/features/AC0003-pay/ticket.md");
+	const before = head();
+	const refused = `arthur merge: main has 2 commits since its last merge that change code (${again}, ${hand}); only a merge puts code on main; the owner decides: main is unchanged`;
+	assert.deepEqual(await merge(pay.id), { code: 1, out: "", err: refused });
+	assert.deepEqual(await merge(pay.id, "--unreviewed"), { code: 1, out: "", err: refused });
+	assert.deepEqual(await merge(pay.id, "--auto", "--no-ci"), { code: 1, out: "", err: refused });
+	assert.equal(head(), before);
+	take();
+	assert.equal((await merge(pay.id, "--unreviewed")).err, "");
+	const loose = await worker({ "loose.ts": "export const loose = 1;\n" }, "No ticket here.");
+	const start = git(root, "rev-list", "--max-parents=0", "HEAD");
+	git(root, "reset", "--quiet", "--hard", start);
+	assert.equal((await merge(loose.id, "--unreviewed")).err, `arthur merge: main has 1 commits since its last merge that change code (${git(root, "rev-parse", "--short", start)}); only a merge puts code on main; the owner decides: main is unchanged`);
+});
+
 test("a failed check resets main and names it, pushing nothing; the board's moves stay, main's own install is put back, nothing is written", async (t) => {
-	const { root, fake, git, worker, review, merge, head, status, bun, failBun, installs } = await load(t);
+	const { root, fake, git, take, worker, review, merge, head, status, bun, failBun, installs } = await load(t);
 	const pushes: unknown[] = [];
 	fake.provide("github.push", (branch: unknown) => (pushes.push(branch), Promise.resolve("github: pushed")));
 	const job = await worker({ broken: "", "bun.lock": '{ "broken": 1 }\n' });
@@ -283,6 +313,7 @@ test("a failed check resets main and names it, pushing nothing; the board's move
 	assert.equal(existsSync(join(root, "CHANGELOG.md")), false, "no changelog for a merge that did not go in");
 	writeFileSync(join(root, "package.json"), "{ not json");
 	git(root, "commit", "--quiet", "-am", "a broken package.json");
+	take();
 	assert.match((await merge(job.id)).err, /^arthur merge: check failed on main \(package\.json\); main reset to /);
 	failBun();
 	const install = await merge(job.id);
@@ -325,7 +356,7 @@ test("the install is the project's own, as projects.install answers: a custom co
 });
 
 test("with nvm.path provided, the install and checks run on its PATH, asked for main's checkout before them and again for the reinstall; a throw fails the merge", async (t) => {
-	const { root, fake, git, worker, review, merge, head, status, installAs } = await load(t);
+	const { root, fake, git, take, worker, review, merge, head, status, installAs } = await load(t);
 	// nvm's Node: a `node` that notes its arguments, then runs this Node.
 	const node = temporaryFolder();
 	writeFileSync(join(node, "node"), `#!/bin/sh\necho "$*" >> '${join(node, "node.log")}'\nexec '${process.execPath}' "$@"\n`, { mode: 0o755 });
@@ -340,6 +371,7 @@ test("with nvm.path provided, the install and checks run on its PATH, asked for 
 	writeFileSync(join(root, "install.js"), 'console.log("installed");\n');
 	git(root, "add", "install.js");
 	git(root, "commit", "--quiet", "-m", "an install script");
+	take();
 	installAs("node install.js");
 	answer = `${node}${delimiter}${process.env.PATH}`;
 	const job = await worker();

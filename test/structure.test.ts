@@ -672,7 +672,11 @@ import { checkStructure } from "./structure.ts";
 // default in `~/.config/arthur/` or `$XDG_CONFIG_HOME/arthur/` (config.ts, +3 -2), and the project folders it checks (host.ts,
 // +3 -2); the test kit's `XDG_CONFIG_HOME` joins its tmux folder on one line (testing.ts, +2 -2). Nothing checked where the env
 // file lies before, so nothing was cut.
-const BUDGETS = { core: 6180, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1327, github: 658, manage: 928, develop: 705, findings: 254 };
+// AR0361 (F5 of AR0324; its Done means: a merge refuses while main has a non-merge commit of code since its last merge; AR-D29):
+// delivery 5 more (1332) for the refusal and its comment (merge-command.ts, git diff --numstat +5). Nothing looked at main's own
+// commits before, so nothing was cut.
+// Merged main (AR0361) into AR0339: main's budgets plus AR0339's raise, core 6180, delivery 1332.
+const BUDGETS = { core: 6180, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1332, github: 658, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

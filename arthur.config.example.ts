@@ -349,7 +349,7 @@ export default defineConfig({
 		// <worker job>` says whether a branch needs a review at all; a branch that changes a file on `review.alwaysReview` (glob
 		// patterns from a project's root, replacing the default list) always does (packages/delivery/docs/commands/review-needed.md).
 		delivery({
-			review: { alwaysReview: ["**/env.ts", "**/env-*.ts", "**/ci.ts", "**/ci-*.ts", "**/github-ci.ts", "**/auto-merge.ts", ".github/workflows/**", "**/review-needed.ts", "**/checks-extension.ts", "**/roles/reviewer.md", "**/criteria/review.md", ".agents/**/roles/reviewer.md", ".agents/**/criteria/review.md", "**/package.json", "**/package-lock.json", "**/npm-shrinkwrap.json", "**/bun.lock", "**/bun.lockb", "**/yarn.lock", "**/pnpm-lock.yaml", "**/.npmrc", "**/.nvmrc", ".githooks/**", ".husky/**", "**/merge*.ts", "deploy/**", "bin/**"] },
+			review: { alwaysReview: ["**/env.ts", "**/env-*.ts", "**/ci.ts", "**/ci-*.ts", "**/github-ci.ts", "**/auto-merge.ts", ".github/workflows/**", "**/review-needed.ts", "**/checks-extension.ts", "**/roles/**", "**/criteria/**", ".agents/**", "spec/vision.md", "**/package.json", "**/package-lock.json", "**/npm-shrinkwrap.json", "**/bun.lock", "**/bun.lockb", "**/yarn.lock", "**/pnpm-lock.yaml", "**/.npmrc", "**/.nvmrc", ".githooks/**", ".husky/**", "**/merge*.ts", "deploy/**", "bin/**"] },
 		}),
 
 		// Polls GitHub for the CI runs of the branches in play (each checkout's own branch and every job's) and emits `ci-finished`

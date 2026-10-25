@@ -35,7 +35,7 @@ function shop(): string {
 }
 
 function arthur(folder: string, job: string, ...args: string[]) {
-	const env = { PATH: process.env.PATH ?? "", HOME: folder, ARTHUR_GITHUB_TOKEN: "t", ARTHUR_YOUTRACK_URL: "http://127.0.0.1:9", ARTHUR_YOUTRACK_TOKEN: "t", ARTHUR_JOB: job };
+	const env = { PATH: process.env.PATH ?? "", HOME: folder, XDG_CONFIG_HOME: join(folder, ".config"), ARTHUR_GITHUB_TOKEN: "t", ARTHUR_YOUTRACK_URL: "http://127.0.0.1:9", ARTHUR_YOUTRACK_TOKEN: "t", ARTHUR_JOB: job };
 	return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env });
 }
 

@@ -13,7 +13,7 @@ const BOOT_ID = "/proc/sys/kernel/random/boot_id";
 // A user manager with the CPU and memory controllers delegated, as systemd answers, so `arthur run`'s doctor misses nothing.
 const BIN = temporaryFolder();
 writeFileSync(join(BIN, "systemctl"), `#!/bin/sh\n[ "$1" = --user ] && exit 0\necho 'cpu memory pids'\n`, { mode: 0o755 });
-const ENV = { PATH: `${BIN}:${process.env.PATH ?? ""}` };
+const ENV = { PATH: `${BIN}:${process.env.PATH ?? ""}`, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME ?? "" };
 
 // Each plugin logs its `start` and `stop` to `log.txt` beside the config; `more` replaces any of its parts.
 const HEAD = `import { appendFileSync, existsSync } from "node:fs";

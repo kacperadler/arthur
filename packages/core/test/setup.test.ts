@@ -200,6 +200,15 @@ test("an env file set beside the config: its doctor line under Requirements and 
 	assert.deepEqual([run.status, section(run.stdout, "Next")], [0, ["Next", "1. move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)", "Run arthur setup again after each step."]]);
 });
 
+test("a config whose load refuses, a variable missing: the core's env line still warns of an env file beside the config, and its move is a step", () => {
+	const { folder, arthur } = project({ config: 'export default { core: { home: HOME, envFile: ".env" }, plugins: [{ name: "orchestration", setup() {} }, { name: "telegram", options: { botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN" }, setup() {} }] };\n' });
+	const run = arthur();
+	const requirements = section(run.stdout, "Requirements");
+	assert.match(requirements[6] ?? "", new RegExp(`^core env: missing: the env file ${join(folder, ".env")} lies inside ${folder}; `));
+	assert.equal(requirements.at(-1), "the requirements a plugin checks in its setup are not checked until what Config refuses is fixed");
+	assert.ok(section(run.stdout, "Next").some((step) => step.endsWith(". move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)")), run.stdout);
+});
+
 test("no config: Config says so, Requirements are skipped, every installed plugin can go in, and Next writes it first", () => {
 	const { arthur } = project({ packages: { docker: DOCKER } });
 	const run = arthur();

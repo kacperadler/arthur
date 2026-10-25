@@ -18,6 +18,8 @@ const FILES: Readonly<Record<string, string>> = {
 	"README.md": "# acme\n",
 	"docs/guide.md": "# Guide\n",
 	"test/shop.test.ts": "// shop\n",
+	".agents/arthur/roles/reviewer.md": "# Reviewer\n",
+	".agents/arthur/criteria/review.md": "# Review\n",
 	[TICKET]: '# AC0001\n\n```json\n{ "id": "AC0001" }\n```\n',
 	"spec/build.json": JSON.stringify([{ id: "AC0001", title: "Shop", status: "planned", path: TICKET, updated: "2026-01-01T00:00:00Z" }]),
 };
@@ -84,6 +86,8 @@ const BRANCHES: readonly (readonly [string, (at: At) => void, string | undefined
 	["a file on the always-review list", edit("src/env.ts", "export const env = 2;\n"), PASSING, "review: src/env.ts is on the always-review list"],
 	["a renamed file on the list", (at) => renameSync(at("src/env.ts"), at("src/settings.ts")), PASSING, "review: src/env.ts is on the always-review list"],
 	["a file renamed onto the list", (at) => renameSync(at("src/shop.ts"), at("src/ci-failure.ts")), PASSING, "review: src/ci-failure.ts is on the always-review list"],
+	["the project's reviewer override, under a dot folder", edit(".agents/arthur/roles/reviewer.md", "# Reviewer, stricter\n"), PASSING, "review: .agents/arthur/roles/reviewer.md is on the always-review list"],
+	["the project's review criteria, under a dot folder", edit(".agents/arthur/criteria/review.md", "# Review, stricter\n"), PASSING, "review: .agents/arthur/criteria/review.md is on the always-review list"],
 	["a deleted file", (at) => rmSync(at("src/shop.ts")), PASSING, "review: deletes src/shop.ts"],
 	["a renamed file off the list", (at) => renameSync(at("src/shop.ts"), at("src/store.ts")), PASSING, "review: deletes src/shop.ts"],
 	["a docs-only branch that also deletes a file", both(edit("README.md", "# acme shop\n"), (at) => rmSync(at("docs/guide.md"))), PASSING, "review: deletes docs/guide.md"],
@@ -164,8 +168,8 @@ test("the always-review list: review.alwaysReview replaces the default, and deli
 	assert.deepEqual(fake.call("delivery.alwaysReview", { project: "acme", paths: ["docs/guide.md", "src/env.ts", "README.md"] }), ["docs/guide.md"]);
 	const plain = fakeHost({ name: "delivery" });
 	await plain.setup(delivery());
-	const paths = ["src/env.ts", "packages/core/src/env-guard.ts", ".github/workflows/ci.yml", "packages/github/src/ci-failure.ts", "packages/delivery/roles/reviewer.md", "src/shop.ts", "src/environment.ts"];
-	assert.deepEqual(plain.call("delivery.alwaysReview", { project: "acme", paths }), paths.slice(0, 5), "the default: what reads secrets, the CI-failure handling, the review rules");
+	const paths = ["src/env.ts", "packages/core/src/env-guard.ts", ".github/workflows/ci.yml", "packages/github/src/ci-failure.ts", "packages/delivery/roles/reviewer.md", ".agents/arthur/roles/reviewer.md", ".agents/arthur/criteria/review.md", "src/shop.ts", "src/environment.ts"];
+	assert.deepEqual(plain.call("delivery.alwaysReview", { project: "acme", paths }), paths.slice(0, 7), "the default: what reads secrets, the CI-failure handling, the review rules, a project's own under .agents/ too");
 });
 
 const REPOSITORY = new URL("../../../", import.meta.url);

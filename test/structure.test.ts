@@ -634,7 +634,12 @@ import { checkStructure } from "./structure.ts";
 // (658) for `inJob: true` and the refusal with its comment (github-ci.ts, git diff --numstat +5 -1, the import line rewritten
 // in place, the refusal kept on one line as the command's own `refuse`). Nothing in github read ARTHUR_JOB before, so nothing
 // was cut.
-const BUDGETS = { core: 6081, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1317, github: 658, manage: 928, develop: 705, findings: 254 };
+// AR0376 (F1 of AR0329; its Done means: each job's agent in a sandbox): core 75 more (6156 merged on main's 6081) for
+// job-sandbox.ts, the Landlock, seccomp and no_new_privs script python3 runs before it execs the agent (31), the paths the
+// agent may write with the Git folders of its branch and each extension's folder (9), the probe that falls back to the bare
+// agent naming why (12), comments, imports and blanks (23); wrapper.ts kept at 200 by a blank line. Nothing confined a job's
+// writes before, so nothing was cut.
+const BUDGETS = { core: 6156, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1317, github: 658, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

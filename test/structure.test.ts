@@ -669,7 +669,13 @@ import { checkStructure } from "./structure.ts";
 // AR0361 (F5 of AR0324; its Done means: a merge refuses while main has a non-merge commit of code since its last merge; AR-D29):
 // delivery 5 more (1332) for the refusal and its comment (merge-command.ts, git diff --numstat +5). Nothing looked at main's own
 // commits before, so nothing was cut.
-const BUDGETS = { core: 6168, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1332, github: 658, manage: 928, develop: 705, findings: 254 };
+// AR0355 (F3 of AR0323; its Done means: `--unreviewed` and a paid `--budget 0` take `--decision <id>`, the owner's recorded
+// decision, checked by the command; AR-D29): orchestration 59 more (2396) for the check, its mark of a used id and the
+// `decision.owner` provider with the spawn check beside it (decision-use.ts, 57), its setup and import (orchestration.ts, 2);
+// core 2 more (6170) for `--decision` on spawn and continue carried to `beforeSpawn` with a continue's id (spawn-command.ts,
+// job-commands.ts, jobs.ts, which three comment and declaration lines folded keep at 200); delivery 5 more (1337) for the flag
+// read and the call before the merge (merge-command.ts). Nothing checked these flags before, so nothing was cut.
+const BUDGETS = { core: 6170, "core/testing": 349, projects: 486, orchestration: 2396, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1337, github: 658, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

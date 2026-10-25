@@ -1,6 +1,6 @@
 # arthur continue
 
-Usage: `arthur continue <id> <instruction> [--budget <usd>] [--ignore-restart]`
+Usage: `arthur continue <id> <instruction> [--budget <usd> [--decision <id>]] [--ignore-restart]`
 
 Resumes a job that has a branch of its own, a worker for example, and is `ended` or `blocked` at the end of its run (see `arthur jobs --help`), in place, with one more instruction as one quoted argument, and prints `<id>: continued`; the job is named by its full id or its short id, as `arthur jobs` shows it. It keeps the id, the record, the branch and the worktree, and the agent continues its last session there: the wrapper starts again (see `arthur spawn --help`) and runs `<agent> --continue ... <instruction>` in place of `@<record>/task`. The instruction is in the record as `continue`, and the log says `arthur continue: <first line>`. Before the wrapper starts, the job moves to `working` and its reason is cleared, emitting `job-state`. `arthur continue` returns once the wrapper wrote its `pid`; `job-ended` comes again at the new end. A wrapper that does not start ends the job `ended`, reason `failed: <reason>`, as at a spawn (see `arthur spawn --help`), and `arthur continue` prints `<id>: failed: <reason>` on stderr and exits 1.
 
@@ -31,3 +31,5 @@ Refused (exit code 1, the reason after `arthur continue: `):
 - A config or a plugin that does not load: `arthur.config.ts did not load:`, then the reasons.
 
 Wrong usage (not one id and one instruction, an unknown flag, `--budget` without a plain decimal or given twice) prints the usage line and exits 2.
+
+`--budget 0` on a job whose record is not `free` hands the checks `--decision <id>` (`""` without it) with the job's `id`, as `arthur spawn --help` says under "--budget 0": the owner's `budget` decision for the job's ticket, or for this job (`--job <id>`) when it names none, used once. A continue without `--budget` keeps the job's budget.

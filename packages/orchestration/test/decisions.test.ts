@@ -101,8 +101,8 @@ test("an ask is refused, naming why and writing nothing: an empty question, anot
 	const refused = (why: string): Ran => [1, `arthur decision ask: refused: ${why}`];
 	assert.deepEqual(await decision("ask", "--kind", "plan", "--question", "  "), refused("an empty question: --question <what the owner decides>"));
 	assert.deepEqual(await decision("ask", "--kind", "plan"), refused("an empty question: --question <what the owner decides>"));
-	assert.deepEqual(await decision("ask", "--kind", "vote", "--question", "Go?"), refused('kind "vote": one of job, question, plan, review, budget'));
-	assert.deepEqual(await decision("ask", "--question", "Go?"), refused('kind "": one of job, question, plan, review, budget'));
+	assert.deepEqual(await decision("ask", "--kind", "vote", "--question", "Go?"), refused('kind "vote": one of job, question, plan, review, budget, merge'));
+	assert.deepEqual(await decision("ask", "--question", "Go?"), refused('kind "": one of job, question, plan, review, budget, merge'));
 	assert.deepEqual(await decision("ask", "--kind", "plan", "--question", "Go?", "--ticket", "AC0099"), refused("--ticket AC0099 is not on the board of project acme"));
 	assert.deepEqual(await decision("ask", "--kind", "plan", "--question", "Go?", "--ticket", "SH0001"), refused("--ticket SH0001 is not on the board of project acme"));
 	assert.deepEqual(await decision("ask", "--kind", "plan", "--question", "Go?", "--option", "a", "--option", "b", "--recommend", "3"), refused("--recommend 3: no such option; 2 offered (--option)"));
@@ -425,7 +425,7 @@ test("arthur decisions: no log says so and creates none; words, --open, --kind a
 	assert.deepEqual(await decisions("--open"), [0, lines.plan]);
 	assert.deepEqual(await decisions("--kind", "question"), [0, lines.colour]);
 	assert.deepEqual(await decisions("--ticket", "ac0001"), [0, lines.plan]);
-	assert.deepEqual(await decisions("--kind", "vote"), [1, "arthur decisions: --kind vote: one of job, question, plan, review, budget"]);
+	assert.deepEqual(await decisions("--kind", "vote"), [1, "arthur decisions: --kind vote: one of job, question, plan, review, budget, merge"]);
 	const usage = "usage: arthur decisions [<words>] [--open] [--kind <kind>] [--ticket <id>], arthur decisions <id>, or arthur decisions --classes";
 	for (const args of [["--kind"], ["--classes", "--open"], ["--classes", "budget"]]) assert.deepEqual(await decisions(...args), [2, usage], args.join(" "));
 	assert.deepEqual(await decisions("--classes"), [0, "no classes yet"]);
@@ -647,8 +647,8 @@ test("a proposal is refused, naming why and writing nothing: no backing decision
 	assert.deepEqual(await propose("--backed-by", "AC-D1", "AC-D8"), refused('AC-D8 decided "Cut code instead", not the class\'s "Raise the line budget"'));
 	assert.deepEqual(await propose("--backed-by", "AC-D6"), refused("AC-D6 is a question question, not budget"));
 	assert.deepEqual(await propose("--backed-by", "AC-D7"), refused('AC-D7 does not name every word of --match "line budget": Raise the budget of uptime?'));
-	assert.deepEqual(await decision("class", "propose", "--kind", "class", "--match", "line budget", "--decided", "Raise", "--backed-by", "AC-D1"), refused("--kind class: a class never approves a class; one of job, question, plan, review, budget"));
-	assert.deepEqual(await decision("class", "propose", "--kind", "vote", "--match", "line budget", "--decided", "Raise", "--backed-by", "AC-D1"), refused('kind "vote": one of job, question, plan, review, budget'));
+	assert.deepEqual(await decision("class", "propose", "--kind", "class", "--match", "line budget", "--decided", "Raise", "--backed-by", "AC-D1"), refused("--kind class: a class never approves a class; one of job, question, plan, review, budget, merge"));
+	assert.deepEqual(await decision("class", "propose", "--kind", "vote", "--match", "line budget", "--decided", "Raise", "--backed-by", "AC-D1"), refused('kind "vote": one of job, question, plan, review, budget, merge'));
 	assert.deepEqual(await decision("class", "propose", "--kind", "budget", "--match", " - ", "--decided", "Raise", "--backed-by", "AC-D1"), refused("--match names no word: the words every question of the class names"));
 	assert.deepEqual(await decision("class", "propose", "--kind", "budget", "--match", "line", "--backed-by", "AC-D1"), refused("no --decided: the class's decision in one English line"));
 	assert.deepEqual(await run("decision", ["class", "propose", "--kind", "budget", "--match", "line", "--decided", "Raise", "--backed-by", "AC-D1"], "nowhere"), refused("unknown project nowhere; projects: acme, shop"));

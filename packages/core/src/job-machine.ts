@@ -138,11 +138,13 @@ function failure(machine: Machine, argv: readonly string[], code: number | strin
 }
 
 // `git -C <root> <args>` with ssh's options for a remote there, no hook or fsmonitor of the checkout's config, no replacement (refs/replace), and none of
-// its keys that may name a program (git-config.ts).
+// its keys that may name a program (git-config.ts). Git reads the URL first as a remote's name, whose `url` the config may set:
+// GIT_PROTOCOL_FROM_USER=0 refuses any transport but those allowed always (ssh among them), so no helper and no folder (AR0393).
 export function gitOver(root: string, args: readonly string[]): void {
 	const refusal = configRefusal(root);
 	if (refusal !== "") throw new Error(`git ${args[0]}: ${refusal}`);
-	const run = spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...args], { encoding: "utf8", env: { ...process.env, GIT_SSH_COMMAND: ["ssh", ...OPTIONS].join(" ") } });
+	const env = { ...process.env, GIT_SSH_COMMAND: ["ssh", ...OPTIONS].join(" "), GIT_PROTOCOL_FROM_USER: "0" };
+	const run = spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...args], { encoding: "utf8", env });
 	if (run.status !== 0) throw new Error(`git ${args[0]}: ${run.error?.message ?? run.stderr.trim()}`);
 }
 

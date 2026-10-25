@@ -43,8 +43,8 @@ export async function autoRefusal(host: Host, held: (path: string) => boolean, m
 	return merge.ci ? ciRefusal(host, merge, true) : "";
 }
 
-// Why CI keeps `tip` out, "" when it may go in: for `--auto` (`auto`) CI passed on the branch, a run not ended or none leaving a
-// wait; a plain merge only a run on the branch's own commits that ended other than `success`, and waits for nothing (AR0362).
+// Why CI keeps `tip` out, "" when it may go in: for `--auto` (`auto`) CI passed on the tip itself, a run not ended or none on
+// the tip leaving a wait (AR0359); a plain merge only a run on the branch's own commits that ended other than `success`, and waits for nothing (AR0362).
 export async function ciRefusal(host: Host, { job, root, tip, before }: { readonly job: JobRecord; readonly root: string; readonly tip: string; readonly before: string }, auto: boolean): Promise<string> {
 	let asked: Promise<CiRun | undefined>;
 	try {
@@ -62,9 +62,9 @@ export async function ciRefusal(host: Host, { job, root, tip, before }: { readon
 	const own = Number(git(root, "rev-list", "--first-parent", "--count", `${before}..${tip}`));
 	if (!auto && (run === undefined || run.below >= own || run.status !== "completed")) return "";
 	const waits = "; it waits: when that run ends, the coordinator is woken with its verdict";
-	if (run === undefined || run.below >= own) {
+	if (run === undefined || run.below !== 0) {
 		startWait(host, { job: job.id, project: job.project, branch: job.branch, tip, own });
-		return `${rule}: no run built a commit of it yet${run === undefined ? "" : ` (the nearest, ${run.id}, ran on ${run.sha.slice(0, 7)}, on main)`}${waits}`;
+		return `${rule}: no run built the tip yet${run === undefined ? "" : ` (the nearest, ${run.id}, ran on ${run.sha.slice(0, 7)}, ${run.below} below the tip)`}${waits}`;
 	}
 	const where = `run ${run.id}, attempt ${run.attempt}, on ${run.sha.slice(0, 7)}${run.below === 0 ? ", the tip" : `, ${run.below} below the tip`}`;
 	if (run.status !== "completed") {

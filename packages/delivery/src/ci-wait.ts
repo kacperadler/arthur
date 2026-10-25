@@ -67,12 +67,12 @@ function ended(wait: Wait, run: CiEnd["run"], cancelled: boolean): string {
 	return `CI ended ${run.conclusion}${hung} on ${where}. Not merged; it waits on: the next end of a run on it wakes you again. Why: ${ci}; then a failure in the branch's own code goes back to its worker: arthur continue ${wait.job} '<the failed step and its lines>'; one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once: ${ci} --rerun`;
 }
 
-// `delivery.ciEnded`: the end of a run on one of a waiting branch's own commits wakes the coordinator, once per run attempt,
-// and answers true; any other end answers false, and github's wake tells it. The wait itself ends only in a round.
+// `delivery.ciEnded`: the end of a run on a waiting branch's tip wakes the coordinator, once per run attempt, and answers true;
+// any other end, one below the tip included (AR0359), answers false, and github's wake tells it. The wait ends only in a round.
 export function ciEnded(host: Host, { project, branch, below, run }: CiEnd): boolean {
 	for (const id of waiting(host)) {
 		const wait = read(host, id);
-		if (wait instanceof Error || wait.project !== project || wait.branch !== branch || below >= wait.own || gone(host, id, wait) !== undefined) continue;
+		if (wait instanceof Error || wait.project !== project || wait.branch !== branch || below !== 0 || gone(host, id, wait) !== undefined) continue;
 		const { told: file } = paths(host, id);
 		const key = `${run.id}/${run.attempt}`;
 		const told = existsSync(file) ? readFileSync(file, "utf8").split("\n") : [];

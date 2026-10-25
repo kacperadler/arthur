@@ -22,9 +22,9 @@ function repository(project: Located, path: string): string {
 }
 
 // A clone into a temporary name, renamed when whole, so a failed clone leaves no folder; an existing one with another origin
-// is refused and left as it is. A URL is printed without its userinfo, which may hold a credential; `git@host:path` has none.
+// is refused and left as it is. A URL is printed without its userinfo, parsed or not, which may hold a credential; `git@host:path` has none.
 function cloned(project: Located, repo: string, folder: string, home: string): string {
-	const shown = (url: string) => (URL.canParse(url) ? Object.assign(new URL(url), { username: "", password: "" }).href : url);
+	const shown = (url: string) => (URL.canParse(url) ? Object.assign(new URL(url), { username: "", password: "" }).href : url.replace(/\/\/[^/]*@/, "//"));
 	const fromHome = relative(home, dirname(folder));
 	if (fromHome === "" || (fromHome.split(sep)[0] !== ".." && !isAbsolute(fromHome)))
 		throw new Error(`project ${project.name}: reposDir ${dirname(folder)} is inside Arthur's home folder ${home}; put it outside`);

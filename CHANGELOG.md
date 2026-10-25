@@ -19,6 +19,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0356 The job's `PATH` under the service has no `arthur`, so the line the develop plugin tells a worker to run may not run there (a91c1308)
 - AR0363 A binary file counts no lines, so a branch of any binary content skips the review on its checks (36c70b5d)
 - AR0364 Telegram answers every member of the configured chat, not the owner alone (AR0311 F7, confirmed) (8a78e74d)
+- AR0365 A message the owner forwarded runs as the owner's own words, a phone command included (fc17e26e)
 - AR0366 The models plugin's private network holds two cloud metadata addresses (AR0311 F18, confirmed) (8ee419e4)
 - AR0367 A site check follows a redirect to any address, loopback and metadata included (d89d43bc)
 - AR0368 The probe's curl reads the user's `.curlrc` and the proxy variables, so the request with the key goes where they say (a43f13dd)

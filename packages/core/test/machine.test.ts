@@ -150,6 +150,37 @@ test("the push of a job's base to another machine and the fetch of its branch ba
 	assert.equal(git(root, "branch", "--list", job.branch ?? ""), "", "its branch not brought back");
 });
 
+test("the push of a job's base and the fetch of its branch run no transport helper nor a folder's hooks that a remote named as the machine's URL names", async () => {
+	const gate = join(temporaryFolder(), "go");
+	const { root, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Built it.", cost: 0 }] }) });
+	const ran = join(temporaryFolder(), "ran");
+	const helpers = temporaryFolder();
+	writeFileSync(join(helpers, "git-remote-evil"), `#!/bin/sh\necho helper "$@" >> '${ran}'\nexit 1\n`, { mode: 0o755 });
+	const folder = temporaryFolder();
+	git(folder, "init", "--quiet", "--bare");
+	writeFileSync(join(folder, "hooks", "pre-receive"), `#!/bin/sh\necho hook >> '${ran}'\n`, { mode: 0o755 });
+	const path = process.env.PATH;
+	process.env.PATH = `${helpers}${delimiter}${path}`;
+	try {
+		// Git reads `gpu:<there>/repos/acme.git` first as the name of a remote, which a job may add to the checkout's config.
+		const named = `remote.gpu:${join(there, "repos", "acme.git")}.url`;
+		for (const [url, transport] of [["evil::x", "evil"], ["evil://x", "evil"], [folder, "file"]] as const) {
+			git(root, "config", named, url);
+			await assert.rejects(jobs.spawn({ task: "Build it.", machine: "gpu" }), { message: `git push: fatal: transport '${transport}' not allowed` }, url);
+		}
+		git(root, "config", "--unset", named);
+		const job = await jobs.spawn({ task: "Build it.", machine: "gpu" });
+		git(root, "config", named, "evil::x");
+		writeFileSync(gate, "");
+		await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
+		assert.throws(() => jobs.sweep(), { message: "git fetch: fatal: transport 'evil' not allowed" });
+		assert.equal(git(root, "branch", "--list", job.branch ?? ""), "", "its branch not brought back");
+		assert.equal(existsSync(ran), false, "nothing run");
+	} finally {
+		process.env.PATH = path;
+	}
+});
+
 test("under umask 022 a spawn leaves the home here and the one there their user's alone: one made 0755 earlier and a new one are 0700", async (t) => {
 	const mask = process.umask(0o022);
 	t.after(() => process.umask(mask));

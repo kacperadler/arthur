@@ -2600,7 +2600,10 @@
     "title": "A blocked job's question goes to the phone as written, while the decision log redacts it",
     "status": "planned",
     "path": "spec/features/AR0341-a-blocked-job-s-question-goes-to-the-phone-as-written-while-the-decision-log-redacts-it/ticket.md",
-    "updated": "2026-10-23T14:22:39.871Z"
+    "updated": "2026-10-23T14:22:39.871Z",
+    "after": [
+      "AR0340"
+    ]
   },
   {
     "id": "AR0342",
@@ -2929,7 +2932,10 @@
     "title": "The user's systemd folder is guarded at `~/.config/systemd` only, not at `$XDG_CONFIG_HOME/systemd`",
     "status": "planned",
     "path": "spec/features/AR0388-the-user-s-systemd-folder-is-guarded-at-config-systemd-only-not-at-xdg-config-home-systemd/ticket.md",
-    "updated": "2026-10-24T22:00:22.709Z"
+    "updated": "2026-10-24T22:00:22.709Z",
+    "after": [
+      "AR0420"
+    ]
   },
   {
     "id": "AR0389",

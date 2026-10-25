@@ -21,7 +21,7 @@ plugins: [
 ## Options
 
 - `sites`: each project's sites, by the project's name, each a list of `{ url, expect?, everySeconds? }`. A key that is not a project of the projects list refuses the load: `plugin uptime: setup failed: sites names <keys>, not a project of the projects list; each key of sites is a project's name`.
-- `url`: required, an `http://` or `https://` address. A redirect is followed (at most 20), and the page it leads to is judged.
+- `url`: required, an `http://` or `https://` address. A redirect is followed (at most 20; the answer to a 21st is judged as it is), and the page it leads to is judged. A redirect to another host (a host and port other than the `url`'s) is followed only when none of its addresses (`dns.lookup`, all of them) is unspecified (`0.0.0.0/8`, `::`), loopback (`127.0.0.0/8`, `::1`), link-local (`169.254.0.0/16` with the cloud metadata address, `fe80::/10`) or private (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, Tailscale's `100.64.0.0/10`, `fc00::/7`), IPv4-mapped IPv6 included; the `url`'s own host is followed to whatever its address.
 - `expect`: a status code from 100 to 599, which the answer must have exactly; or non-empty text, which a page with a 2xx status must hold. Left out: any 2xx status.
 - `everySeconds`: a whole number of seconds, 1 or more, between two checks of the site; default 60. A check is cut after 10 s, or after `everySeconds` when that is shorter, so two checks of one site never overlap.
 
@@ -35,6 +35,7 @@ Each site is checked at the start of `arthur run`, then every `everySeconds`. A 
 - the connection refused: `connection refused`; a host name not found: `its host name is not found`;
 - a TLS error: `TLS error (<code>)`, such as an expired or self-signed certificate;
 - a wrong status: `answered <status>, expected <expect>` (`a 2xx status` when `expect` is left out or is text);
+- a redirect to another host with a loopback, link-local or private address: `redirected to <host>, a private address the config does not name`; the site answered, so this is never taken as this machine offline;
 - the text missing: `answered <status> without the text "<expect>"`;
 - any other network error: its message and code.
 

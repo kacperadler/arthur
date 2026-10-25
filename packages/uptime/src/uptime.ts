@@ -25,8 +25,7 @@ const failed = (check: Check) => (check.ok ? undefined : check);
 export function uptime(options: UptimeOptions = {}): Plugin {
 	let [running, busy] = [false, false];
 	let timer: NodeJS.Timeout | undefined;
-	let begin = () => {};
-	let round = async () => {};
+	let [begin, round] = [() => {}, async () => {}];
 	return {
 		name: "uptime",
 		module: import.meta.url,
@@ -44,10 +43,7 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 			const key = (site: Site) => `${site.project} ${site.url}`;
 			let offline: Date | undefined;
 			const notice = (text: string) => host.events.emit("notice", { text: `uptime: ${text}` });
-			const when = (at: Date) => {
-				const { date, time, day } = host.clock.local(at);
-				return `${time} on ${day} ${date} (${host.clock.timeZone})`;
-			};
+			const when = (at: Date) => { const { date, time, day } = host.clock.local(at); return `${time} on ${day} ${date} (${host.clock.timeZone})`; };
 			const lasted = (from: Date, to: Date) => {
 				const seconds = Math.max(0, Math.round((to.getTime() - from.getTime()) / 1000));
 				const minutes = Math.floor(seconds / 60);
@@ -116,10 +112,7 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 			begin = () => {
 				const state = readState(host.folder);
 				offline = state.offline === undefined ? undefined : new Date(state.offline);
-				for (const site of sites) {
-					const down = state.down[key(site)];
-					if (down !== undefined) [site.down, site.reason, site.fails] = [new Date(down.since), down.reason, FAILS];
-				}
+				for (const site of sites) { const down = state.down[key(site)]; if (down !== undefined) [site.down, site.reason, site.fails] = [new Date(down.since), down.reason, FAILS]; }
 			};
 		},
 		start() {
@@ -133,9 +126,6 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 			look();
 			timer = setInterval(look, TICK_MS);
 		},
-		stop() {
-			running = false;
-			clearInterval(timer);
-		},
+		stop() { running = false; clearInterval(timer); },
 	};
 }

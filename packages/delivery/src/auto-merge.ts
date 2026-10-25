@@ -27,8 +27,8 @@ export async function autoRefusal(host: Host, held: (path: string) => boolean, m
 		const why = onTip !== undefined ? `its newest review, ${onTip[0].id}, says FAIL` : pass !== undefined ? `the last PASS, ${pass.id}, is on an older commit, ${pass.commit.slice(0, 7)}` : "no review of it says PASS";
 		return `--auto merges only with a PASS on the tip: ${job.branch}'s tip ${tip.slice(0, 7)}: ${why}; review the tip: arthur review ${job.id}`;
 	}
-	// No hook or fsmonitor the main checkout's config names runs: a program a job runs may have set them (AR0330).
-	const git = (...words: string[]) => spawnSync("git", ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...words], { encoding: "utf8" }).stdout.trim();
+	// No hook or fsmonitor the main checkout's config names runs, nor a replacement (refs/replace): a program a job runs may have set them (AR0330, AR0384).
+	const git = (...words: string[]) => spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...words], { encoding: "utf8" }).stdout.trim();
 	const rules: readonly (readonly [string, readonly string[]])[] = [
 		["a role", ["**/roles/**", `${entry?.prompts?.rolesDir ?? ROLES_DIR}/**`]],
 		["the vision", [host.jobs.vision(job.project).path]],

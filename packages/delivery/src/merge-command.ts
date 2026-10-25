@@ -55,11 +55,11 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 	if (host.jobs.running().includes(job.id)) throw new Error(`${job.id} is in a run (${job.state}); merge its branch once the run has ended`);
 	const root = host.board.projects().find((project) => project.name === job.project)?.path;
 	if (root === undefined) throw new Error(`${job.id}'s project ${job.project} is not in the project list`);
-	// No hook or fsmonitor the main checkout's config names runs: a program a job runs may have set them (AR0330); nor any
+	// No hook or fsmonitor the main checkout's config names runs, nor a replacement (refs/replace): a program a job runs may have set them (AR0330, AR0384); nor any
 	// other program its own config may name, a filter's or a merge driver's (AR0380): refused before the first git call.
 	const planted = configRefusal(root);
 	if (planted !== "") throw new Error(`${planted}; main is unchanged`);
-	const git = (...words: string[]) => spawnSync("git", ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...words], { encoding: "utf8" });
+	const git = (...words: string[]) => spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...words], { encoding: "utf8" });
 	const last = (ran: { readonly stdout: string; readonly stderr: string }) => (ran.stderr.trim() || ran.stdout.trim()).split("\n").at(-1) ?? "";
 	const tip = git("rev-parse", "--verify", "--quiet", `${job.branch}^{commit}`).stdout.trim();
 	if (tip === "") throw new Error(`${job.branch} is not in ${root}: pruned, or not brought back from its machine`);

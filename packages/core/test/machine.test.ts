@@ -356,6 +356,21 @@ test("a spawn's push to another machine and a prune there run no hook and no fsm
 	assert.match(readFileSync(ran, "utf8"), /^reference-transaction$[^]*^post-checkout$/m, "a plain git call there runs them");
 });
 
+test("a prune there reads past a replacement under refs/replace in the repository there: the job's clean worktree is removed", async () => {
+	const { there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Done." }] }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	await endedThere(there, job.id);
+	jobs.sweep();
+	// The worktree's commit (of no file) read as one with a file, as a job's git replace there would write: its deletion would
+	// look staged, so a plain `git worktree remove` refuses the clean worktree.
+	const repository = join(there, "repos/acme.git");
+	const blob = execFileSync("git", ["-C", repository, "hash-object", "-w", "--stdin"], { input: "x\n", encoding: "utf8" }).trim();
+	const tree = execFileSync("git", ["-C", repository, "mktree"], { input: `100644 blob ${blob}\tx\n`, encoding: "utf8" }).trim();
+	git(repository, "replace", git(repository, "rev-parse", "refs/arthur/base"), git(repository, "-c", "user.name=t", "-c", "user.email=t@example.com", "commit-tree", "-m", "fake", tree));
+	const removed = `${job.id}: worktree ${join(there, "repos/.arthur-worktrees", job.id)} removed there; branch ${job.branch} deleted there; branch ${job.branch} deleted; record deleted`;
+	assert.deepEqual(jobs.prune([job.id]), [removed]);
+});
+
 test("offline mid-job: stop, steer and continue are refused naming the machine; back before the grace, the job goes on as there", async () => {
 	const gate = join(temporaryFolder(), "go");
 	const agent = fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] });

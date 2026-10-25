@@ -2,8 +2,8 @@ import { spawnSync } from "node:child_process";
 import { configRefusal } from "./git-config.ts";
 
 // The Git a job runner needs (spec/roadmap.md, entries 9 and 11), each one `git` call on the repository at `root`. `git` and
-// `yes` run no hook and no fsmonitor its config names: a program a job runs may have set them (AR0330).
-const GIT = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false"];
+// `yes` (and `fileAt`) run no hook and no fsmonitor its config names, nor read a replacement (refs/replace): a program a job runs may have set them (AR0330, AR0384).
+const GIT = ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false"];
 
 // Runs `git -C <root> <args>`; its output with the last newline removed, or an error with what Git said.
 function git(root: string, args: readonly string[]): string {
@@ -30,7 +30,7 @@ export function head(root: string, name = "HEAD"): string | undefined {
 
 // A file, not a folder, at `path` from the top of the repository, in `commit`.
 export function fileAt(root: string, commit: string, path: string): boolean {
-	const type = spawnSync("git", ["-C", root, "cat-file", "-t", `${commit}:${path}`], { encoding: "utf8" });
+	const type = spawnSync("git", [...GIT, "-C", root, "cat-file", "-t", `${commit}:${path}`], { encoding: "utf8" });
 	return type.status === 0 && type.stdout.trim() === "blob";
 }
 

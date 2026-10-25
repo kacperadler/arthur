@@ -1,0 +1,2 @@
+{"record":"ask","id":"AR-D1","time":"2026-10-25T12:15:23+01:00","project":"arthur","kind":"plan","question":"Start AR0307 (the switch) on its plan: a worker fixes setup and deploy docs from the real run and removes the harness copies.","options":[],"ticket":"AR0307"}
+{"record":"answer","id":"AR-D1","time":"2026-10-25T12:15:27+01:00","decided":"Plan approved by the owner: plan.md at b6a82cef","words":"Start the AR0307 ticket please"}

@@ -3088,9 +3088,9 @@
   {
     "id": "AR0411",
     "title": "setup.md step 5 check reads as if `arthur config check` exits 0 there, while it exits 1 until step 6",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0411-setup-md-step-5-check-reads-as-if-arthur-config-check-exits-0-there-while-it/ticket.md",
-    "updated": "2026-10-25T13:38:55.742Z",
+    "updated": "2026-10-25T14:07:13.417Z",
     "after": [
       "AR0410"
     ]

@@ -27,6 +27,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Changed
 
 - AR0385 `arthur help --help` names nine of the core's seventeen commands as the ones left when the config does not load (bd4169d0)
+- AR0408 versions.mmd still shows the harness in use today (da58fccb)
 
 ## 2026-10-23
 

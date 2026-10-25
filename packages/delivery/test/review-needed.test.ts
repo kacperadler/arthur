@@ -9,7 +9,9 @@ import { checkOptions } from "../src/delivery-options.ts";
 import { delivery } from "../src/delivery.ts";
 
 const TICKET = "spec/features/AC0001-shop/ticket.md";
-const PASSING = "check pass\ntest pass 3/3\n";
+// The job's checks as the extension writes them, TIP the branch's tip when `decide` writes them; OLD an older commit.
+const PASSING = "check pass TIP clean\ntest pass 3/3 TIP clean\n";
+const OLD = "0123456789abcdef0123456789abcdef01234567";
 const SUMMARY = "✔ shop\nℹ tests 3\nℹ suites 0\nℹ pass 3\nℹ fail 0\nℹ duration_ms 5\n";
 const FILES: Readonly<Record<string, string>> = {
 	"package.json": `${JSON.stringify({ scripts: { check: "tsc", test: "node --test" } })}\n`,
@@ -64,7 +66,7 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 	const command = fake.commands.find((each) => each.name === "review-needed");
 	const decide = async (written?: string, ...args: string[]) => {
 		if (written === undefined) rmSync(checks, { force: true });
-		else writeFileSync(checks, written);
+		else writeFileSync(checks, written.replaceAll("TIP", git(job.worktree, "rev-parse", "HEAD")));
 		const [out, err] = [[] as string[], [] as string[]];
 		t.mock.method(console, "log", (text: string) => out.push(text));
 		t.mock.method(console, "error", (text: string) => err.push(text));
@@ -107,18 +109,21 @@ const BRANCHES: readonly (readonly [string, (at: At) => void, string | undefined
 	["31 lines", edit("src/shop.ts", lines(30, "")), PASSING, "review: 31 lines changed, over 30"],
 	["30 lines with passing checks", edit("src/shop.ts", lines(30)), PASSING, "no review: 30 lines changed; the job's checks: check pass, test pass 3/3"],
 	["small, no checks recorded", small, undefined, "review: 2 lines changed; the job recorded no checks"],
-	["small, a file changed after the checks", small, `${PASSING}stale\n`, "review: 2 lines changed; a file changed after the job's checks (stale)"],
-	["small, two runs each made stale by a later edit", small, `${PASSING}stale\ncheck fail\ntest fail 1/3\nstale\n`, "review: 2 lines changed; a file changed after the job's checks (stale)"],
-	["small, the checks run again after a change", small, `check fail\nstale\n${PASSING}`, "no review: 2 lines changed; the job's checks: check pass, test pass 3/3"],
-	["small, a failing test", small, "check pass\ntest fail 2/3\n", "review: 2 lines changed; the job's checks: check pass, test fail 2/3"],
-	["small, only the check ran", small, "check pass\n", "review: 2 lines changed; the job's checks: check pass, no test"],
+	["small, passing checks on an older commit", small, PASSING.replaceAll("TIP", OLD), `review: 2 lines changed; the job's checks ran on ${OLD}, not the tip`],
+	["small, passing checks on a dirty tree", small, PASSING.replaceAll("clean", "dirty"), "review: 2 lines changed; the job's checks ran on a dirty tree"],
+	["small, the check on the tip, the test only on an older commit", small, `check pass TIP clean\ntest pass 3/3 ${OLD} clean\n`, `review: 2 lines changed; the job's checks ran on ${OLD}, not the tip`],
+	["small, the checks run again on the tip after a change", small, `check fail ${OLD} clean\ncheck fail TIP dirty\n${PASSING}`, "no review: 2 lines changed; the job's checks: check pass, test pass 3/3"],
+	["small, a failing run on a dirty tree after the tip's", small, `${PASSING}test fail 2/3 TIP dirty\n`, "no review: 2 lines changed; the job's checks: check pass, test pass 3/3"],
+	["small, lines without their commit and tree", small, "check pass\ntest pass 3/3\n", "review: 2 lines changed; the job recorded no checks"],
+	["small, a failing test", small, "check pass TIP clean\ntest fail 2/3 TIP clean\n", "review: 2 lines changed; the job's checks: check pass, test fail 2/3"],
+	["small, only the check ran", small, "check pass TIP clean\n", "review: 2 lines changed; the job's checks: check pass, no test"],
 	// What the merge and each spawn run (the install, its lockfile and .npmrc, the scripts, the Node, the hooks): one line each.
 	...[["package.json", `${JSON.stringify({ scripts: { check: "tsc", test: "node --test && node run.js" } })}\n`] as const, ...["packages/shop/package-lock.json", "npm-shrinkwrap.json", "bun.lock", "bun.lockb", "yarn.lock", "pnpm-lock.yaml", ".npmrc", "packages/shop/.nvmrc", ".githooks/pre-commit", ".husky/pre-push"].map((path) => [path, "x\n"] as const)].map(([path, text]) => [`one line of ${path}`, edit(path, text), PASSING, `review: ${path} is on the always-review list`] as const),
 ];
 
 test("the table of branches: each decided by the first rule that holds", async (t) => {
-	const { branch, decide, recorded } = await load(t);
-	assert.equal(recorded, PASSING, "delivery's extension recorded the worker's own run of the checks");
+	const { branch, decide, recorded, base } = await load(t);
+	assert.equal(recorded, PASSING.replaceAll("TIP", base), "delivery's extension recorded the worker's own run of the checks, on the clean tree of its start");
 	for (const [what, change, checks, answer] of BRANCHES) {
 		branch(change);
 		const decided = await decide(checks);

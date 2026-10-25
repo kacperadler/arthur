@@ -49,8 +49,8 @@ export function reviewNeededCommand(host: Host, held: (path: string) => boolean)
 
 // The answer for `base..tip`, `review: <why>` or `no review: <why>`, by the first rule that holds: a file on the always-review
 // list (both names of a renamed one), a deleted file, a `.env` file, `.env` in a changed line outside docs and tests, a binary
-// file (numstat's `-` for its counts, a `*.md` too); then only docs (`*.md`); over SMALL lines; then the job's `checks` after
-// their last `stale`, each script the tip's package.json declares passing.
+// file (numstat's `-` for its counts, a `*.md` too); then only docs (`*.md`); over SMALL lines; then the job's `checks`, for each
+// script the tip's package.json declares its latest line (`<script> <result> <commit> clean|dirty`) on the tip's clean tree passing.
 function decide(git: (...words: string[]) => string, base: string, tip: string, held: (path: string) => boolean, checks: string): string {
 	const diff = (options: readonly string[], paths: readonly string[] = []) => git("diff", "--no-renames", ...options, base, tip, "--", ...paths);
 	const numstat = diff(["--numstat"]).split("\n").filter(Boolean).map((line) => line.split("\t"));
@@ -76,12 +76,13 @@ function decide(git: (...words: string[]) => string, base: string, tip: string, 
 		// No package.json at the tip, or a broken one: no checks.
 	}
 	if (scripts.length === 0) return `review: ${lines}; the project's package.json declares no check or test script`;
-	const recorded = checks.split("\n").filter(Boolean);
-	const fresh = recorded.slice(recorded.lastIndexOf("stale") + 1);
-	if (fresh.length === 0) return `review: ${lines}; ${recorded.length === 0 ? "the job recorded no checks" : "a file changed after the job's checks (stale)"}`;
-	const results = scripts.map((script) => fresh.findLast((line) => line.startsWith(`${script} `)) ?? `no ${script}`);
-	const pass = results.every((line, at) => line.startsWith(`${scripts[at]} pass`));
-	return `${pass ? "no review" : "review"}: ${lines}; the job's checks: ${results.join(", ")}`;
+	const recorded = checks.split("\n").map((line) => line.split(" ")).filter((words) => words.length >= 4);
+	if (recorded.length === 0) return `review: ${lines}; the job recorded no checks`;
+	const latest = scripts.map((script) => recorded.findLast((words) => words[0] === script && words.at(-2) === tip && words.at(-1) === "clean") ?? recorded.findLast(([name]) => name === script));
+	const off = latest.find((words) => words !== undefined && `${words.at(-2)} ${words.at(-1)}` !== `${tip} clean`);
+	if (off !== undefined) return `review: ${lines}; the job's checks ran on ${off.at(-2) === tip ? "a dirty tree" : `${off.at(-2)}, not the tip`}`;
+	const results = latest.map((words, at) => words?.slice(0, -2).join(" ") ?? `no ${scripts[at]}`);
+	return `${latest.every((words) => words?.[1] === "pass") ? "no review" : "review"}: ${lines}; the job's checks: ${results.join(", ")}`;
 }
 
 // The first file of a `git diff --unified=0` with `.env` in a changed line.

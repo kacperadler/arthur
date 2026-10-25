@@ -114,6 +114,7 @@ const BRANCHES: readonly (readonly [string, (at: At) => void, string | undefined
 	["small, the check on the tip, the test only on an older commit", small, `check pass TIP clean\ntest pass 3/3 ${OLD} clean\n`, `review: 2 lines changed; the job's checks ran on ${OLD}, not the tip`],
 	["small, the checks run again on the tip after a change", small, `check fail ${OLD} clean\ncheck fail TIP dirty\n${PASSING}`, "no review: 2 lines changed; the job's checks: check pass, test pass 3/3"],
 	["small, a failing run on a dirty tree after the tip's", small, `${PASSING}test fail 2/3 TIP dirty\n`, "no review: 2 lines changed; the job's checks: check pass, test pass 3/3"],
+	["small, a failing run on an older commit after the tip's", small, `${PASSING}check fail ${OLD} clean\n`, "no review: 2 lines changed; the job's checks: check pass, test pass 3/3"],
 	["small, lines without their commit and tree", small, "check pass\ntest pass 3/3\n", "review: 2 lines changed; the job recorded no checks"],
 	["small, a failing test", small, "check pass TIP clean\ntest fail 2/3 TIP clean\n", "review: 2 lines changed; the job's checks: check pass, test fail 2/3"],
 	["small, only the check ran", small, "check pass TIP clean\n", "review: 2 lines changed; the job's checks: check pass, no test"],

@@ -196,6 +196,14 @@ test("arthur doctor: the env file by default lies outside; set beside the config
 	assert.match(env() ?? "", new RegExp(`^core env: missing: the env file ${join(shop, ".env")} lies inside ${shop}; `));
 });
 
+test("arthur doctor while the load refuses, a variable missing: the core's own lines still warn of an env file beside the config", () => {
+	const { folder, arthur } = project();
+	writeFileSync(join(folder, "arthur.config.ts"), 'export default { core: { envFile: ".env" }, plugins: [{ name: "orchestration", setup() {} }, { name: "telegram", options: { botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN" }, setup() {} }] };\n');
+	const run = arthur("doctor");
+	assert.match(run.stdout, new RegExp(`^core env: missing: the env file ${join(folder, ".env")} lies inside ${folder}; `, "m"));
+	assert.match(run.stderr, /^arthur doctor: the requirements a plugin checks in its setup are not checked: .*\n[\s\S]*ARTHUR_TELEGRAM_BOT_TOKEN/);
+});
+
 test("a home that is not writable is a critical miss", { skip: ROOT && "root writes anywhere" }, async (t) => {
 	const parent = temporaryFolder();
 	chmodSync(parent, 0o555);

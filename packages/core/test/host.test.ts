@@ -58,6 +58,24 @@ test("setup runs in dependency order, then in the config's order; each plugin ge
 	}
 });
 
+test("host.secrets hands every plugin each enabled plugin's set values, from the env file or the shell, never their names nor a disabled plugin's", async () => {
+	const hosts: Host[] = [];
+	const keep = (host: Host) => void hosts.push(host);
+	const loaded = config([
+		fake([], "schedule", { options: { tokenEnv: "ARTHUR_SCHEDULE_TOKEN" }, setup: keep }),
+		fake([], "telegram", { options: { botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN" }, setup: keep }),
+		fake([], "orchestration", { setup: keep }),
+		fake([], "signal", { options: { enabled: false, accountEnv: "ARTHUR_SIGNAL_ACCOUNT" } }),
+	]);
+	writeFileSync(loaded.core.envFile, "ARTHUR_SCHEDULE_TOKEN=from-the-file\nARTHUR_TELEGRAM_BOT_TOKEN=overridden\nARTHUR_SIGNAL_ACCOUNT=disabled-one\n");
+	await loadPlugins(loaded, { ARTHUR_TELEGRAM_BOT_TOKEN: "from-the-shell" });
+	assert.deepEqual(hosts.map((host) => [host.name, host.secrets]), [
+		["schedule", ["from-the-file", "from-the-shell"]],
+		["telegram", ["from-the-file", "from-the-shell"]],
+		["orchestration", ["from-the-file", "from-the-shell"]],
+	]);
+});
+
 test("under umask 022 the load leaves the home its user's alone: one made 0755 earlier is 0700 before any plugin's setup", async (t) => {
 	const mask = process.umask(0o022);
 	t.after(() => process.umask(mask));

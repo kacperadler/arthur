@@ -39,6 +39,7 @@ What `setup` gets, one host per plugin. `@arthur/core/testing`'s `fakeHost` give
 | `name` | The plugin's name. |
 | `options` | Its options as written, `enabled` left out. |
 | `env` | Its own `...Env` variables that are set, by variable name. A value never goes into an error or a log line. |
+| `secrets` | The values, never the names, of every enabled plugin's `...Env` variables that are set, from the shell or the env file, for redacting a text that may carry one (above, "Changes since entry 51"). |
 | `folder` | `<home>/<plugin>/`, created before `setup`; no other plugin reads or writes it. |
 | `agent` | `core.agent.command`, the agent a plugin starts outside a job (the coordinator). |
 | `code` | The package folders this load runs: the core's, then each enabled plugin's around its `module`. |
@@ -113,6 +114,7 @@ Each decided in the ticket that made it.
 - AR0353 (F1 of AR0323; its Done means name the field): `Command.inJob`, `true` or absent, any other value refused at registration; inside a job (`ARTHUR_JOB` set) the CLI runs only a command registered with `inJob: true` and refuses the rest before it runs (`arthur help --help`). No host member changed.
 - AR0378 (the ticket's Done means: the board shows each ticket's Kind and filters by it): `board.full(project?, kind?)`, every ticket of that Kind when `kind` is given, a kind not in `board.kinds` refused (`unknown kind <kind>; kinds: <kinds>`); `board.kinds`, the kinds of the ticket template (`feat`, `fix`, `security`, `perf`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`, `ux`), which orchestration's `/board`, delivery's changelog and findings read. The lines of `board.digest` and `board.full` carry each ticket's Kind after its status.
 - AR0380 (its Done means: the repository's own Git config checked against an allowed set before `arthur merge` and a push, which delivery and github make): the module `@arthur/core/git-config`, `configRefusal(root)`, the one check the core's own checkout and push share with those plugins, so the allowed set is kept once. No host member changed.
+- AR0340 (F4 of AR0319; its Done means name `host.secrets`): `secrets`, every enabled plugin's set `...Env` values, so a plugin redacts a value of the env file, which Arthur's own environment never holds. The session plugin's notices and orchestration's inbox notice and decision log redact them, besides their own shape rules. The test kit's host gives its own `env` values as `secrets`.
 
 ## Types
 
@@ -284,4 +286,4 @@ The plugin shape, the host and their types: "A plugin", "The host" and "Types" a
 
 Exports: `AgentRun`, `AgentStep`, `FakeHost`, `fakeAgent`, `fakeHost`, `jobSlice`, `temporaryFolder`.
 
-The test kit, which `npm test` loads into every test process as its safety net. `fakeHost({ name, options?, env?, timeZone?, quietHours?, now?, root?, code? })` is one plugin's host alone, with what the plugin registered, called and emitted, and the test as another plugin, `test` (`call`, `collect`, `provide`, `emit`, and `beforeSpawn`, whose reason refuses as `refused by test: <reason>`), and `setNow` for its clock. `fakeAgent(run)` is an `omp` that plays an `AgentRun` of `AgentStep`s; `temporaryFolder()` a folder removed at exit; `jobSlice` the test's own systemd slice.
+The test kit, which `npm test` loads into every test process as its safety net. `fakeHost({ name, options?, env?, timeZone?, quietHours?, now?, root?, code? })` is one plugin's host alone, its `secrets` the values of `env`, with what the plugin registered, called and emitted, and the test as another plugin, `test` (`call`, `collect`, `provide`, `emit`, and `beforeSpawn`, whose reason refuses as `refused by test: <reason>`), and `setNow` for its clock. `fakeAgent(run)` is an `omp` that plays an `AgentRun` of `AgentStep`s; `temporaryFolder()` a folder removed at exit; `jobSlice` the test's own systemd slice.

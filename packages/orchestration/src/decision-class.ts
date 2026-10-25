@@ -39,7 +39,7 @@ export function propose(host: Host, project: Project, given: { readonly kind: st
 	});
 	const kinds = new Set(backing.map((each) => ticketKind(host, project, each.ask.ticket)));
 	const [shared] = kinds;
-	const made: Class = { kind, match: redact(match), decided: redact(decided), backedBy: backing.map((each) => each.ask.id), ...(kinds.size === 1 && shared !== undefined ? { ticketKind: shared } : {}), agreed: scored.filter(Boolean).length, scored: scored.length };
+	const made: Class = { kind, match: redact(match, host.secrets), decided: redact(decided, host.secrets), backedBy: backing.map((each) => each.ask.id), ...(kinds.size === 1 && shared !== undefined ? { ticketKind: shared } : {}), agreed: scored.filter(Boolean).length, scored: scored.length };
 	const asked = ask(host, project, { kind: CLASS, question: `Pre-approve a class: ${described(made)}, by policy, without asking you?`, options: OPTIONS, recommend: 1, class: made });
 	return { id: asked.id, class: made, ...(asked.unwritten === undefined ? {} : { unwritten: asked.unwritten }) };
 }
@@ -55,7 +55,7 @@ export function revoke(host: Host, project: Project, id: string, said: string): 
 		const found = classStates(entries).find((each) => each.ask.id === id);
 		if (found === undefined) throw new Error(`${id} is no class; arthur decisions --classes lists them`);
 		if (found.state === "revoked") throw new Error(`${id} is revoked already, on ${found.since?.slice(0, 10)}`);
-		return [{ record: "revoke", id, time, words: redact(said.trim()) } satisfies Revoke];
+		return [{ record: "revoke", id, time, words: redact(said.trim(), host.secrets) } satisfies Revoke];
 	});
 }
 

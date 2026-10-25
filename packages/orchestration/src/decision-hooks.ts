@@ -24,7 +24,7 @@ export function askOfJob(host: Host, data: Readonly<Record<string, unknown>>, qu
 	if (project === undefined) return undefined;
 	const ticket = typeof data.ticket === "string" && host.board.get(data.ticket)?.project === project.name ? data.ticket : undefined;
 	return queued(host, project, (lock) => {
-		const words = redact(question.trim());
+		const words = redact(question.trim(), host.secrets);
 		const open = again ? decisions(readLog(project)).findLast((each) => each.state === "open" && each.ask.kind === "job" && each.ask.job === String(data.id) && each.ask.question === words) : undefined;
 		return open?.ask ?? ask(host, project, { kind: "job", question, options: [], job: String(data.id), ...(ticket === undefined ? {} : { ticket }) }, lock);
 	});
@@ -50,7 +50,7 @@ export function decisionHooks(host: Host): void {
 		try {
 			where = eventProject(host, job.project);
 			// This block's own question: an earlier one of the job is no answer to it.
-			const asked = redact(job.reason.slice("user: ".length).trim());
+			const asked = redact(job.reason.slice("user: ".length).trim(), host.secrets);
 			last = where === undefined ? undefined : decisions(readLog(where)).findLast((each) => each.ask.kind === "job" && each.ask.job === job.id && each.ask.question === asked);
 		} catch (error) {
 			return `Its question is not in the decision log: ${(error instanceof Error ? error.message : String(error)).split("\n")[0]}`;

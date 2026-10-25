@@ -20,7 +20,6 @@ export function ciCommand(host: Host, watched: readonly Watched[]): Command {
 	return {
 		name: "ci",
 		doc: new URL("../docs/commands/ci.md", import.meta.url),
-		// `--rerun` refuses itself inside a job (below).
 		inJob: true,
 		async run({ args, project }) {
 			const words = args.filter((arg) => arg !== "--rerun");
@@ -30,12 +29,9 @@ export function ciCommand(host: Host, watched: readonly Watched[]): Command {
 				console.error(`arthur ci: ${flag !== undefined ? `unknown flag ${flag}` : branch === undefined ? "no branch" : `one branch; got ${words.length}`}\n${USAGE}`);
 				return 2;
 			}
-			// The wrapper sets ARTHUR_JOB in a job's agent: there the CLI runs `ci` to read a run only (AR0386).
+			// Inside a job (the wrapper sets ARTHUR_JOB) `ci` reads a run only: `--rerun` refuses itself there (AR0386).
 			const job = process.env.ARTHUR_JOB ?? "";
-			if (job !== "" && args.includes("--rerun")) {
-				console.error(`arthur ci --rerun: refused inside a job ${basename(job)}: a job runs only the commands its role needs; put what the coordinator should do in your final message`);
-				return 1;
-			}
+			if (job !== "" && args.includes("--rerun")) return (console.error(`arthur ci --rerun: refused inside a job ${basename(job)}: a job runs only the commands its role needs; put what the coordinator should do in your final message`), 1);
 			const name = project ?? host.board.projects()[0]?.name;
 			const refuse = (text: string) => (console.error(`arthur ci: ${text}`), 1);
 			const asked = await built(watched, name, branch).catch((error: Error) => error);

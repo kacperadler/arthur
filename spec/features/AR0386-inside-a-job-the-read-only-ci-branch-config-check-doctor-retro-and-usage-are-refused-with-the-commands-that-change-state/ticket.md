@@ -36,3 +36,4 @@ In:
 
 - 2026-10-23: Source: F2 of AR0353
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; runs one at a time after the high-severity security fixes.
+- 2026-10-25: Worker: of the five, only `ci` gets `inJob: true`: a worker handed a failed CI step reads the run itself; no job role names `config check`, `doctor`, `retro` or `usage`, so they stay refused. `ci --rerun` refuses itself inside a job after its usage check, before anything is asked of GitHub, as `schedule add` does. github's line budget 654 to 658 (test/structure.test.ts) for `inJob: true` and the refusal with its comment.

@@ -2675,9 +2675,9 @@
   {
     "id": "AR0352",
     "title": "The always-review list never matches a path under `.agents/`: `**` does not enter a dot folder",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0352-the-always-review-list-never-matches-a-path-under-agents-does-not-enter-a-dot-folder/ticket.md",
-    "updated": "2026-10-23T14:38:03.685Z"
+    "updated": "2026-10-25T15:33:58.242Z"
   },
   {
     "id": "AR0353",

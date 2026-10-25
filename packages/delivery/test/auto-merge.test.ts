@@ -44,6 +44,8 @@ async function load(t: TestContext, github = true) {
 	git(root, "config", "user.email", "t@example.com");
 	git(root, "add", "--all");
 	git(root, "commit", "--quiet", "-m", "first");
+	// A merge, so no commit has code since one (`arthur merge --help`, AR0361).
+	git(root, "merge", "--quiet", "--no-ff", "-m", "Take main as it is", git(root, "commit-tree", "-p", "HEAD", "-m", "main as it is", "HEAD^{tree}"));
 	t.after(() => {
 		process.env.PATH = PATH;
 	});

@@ -2590,9 +2590,9 @@
   {
     "id": "AR0339",
     "title": "A recursive search from the coordinator's own folder prints the env file",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0339-a-recursive-search-from-the-coordinator-s-own-folder-prints-the-env-file/ticket.md",
-    "updated": "2026-10-23T14:22:39.467Z",
+    "updated": "2026-10-25T22:45:12.084Z",
     "after": [
       "AR0338"
     ]
@@ -2783,9 +2783,9 @@
   {
     "id": "AR0361",
     "title": "A merge takes main as it is: a commit that reached main by another route is merged on and pushed with the next merge",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0361-a-merge-takes-main-as-it-is-a-commit-that-reached-main-by-another-route-is-merged-on-and-pushed-with-the-next-merge/ticket.md",
-    "updated": "2026-10-25T22:40:17.327Z",
+    "updated": "2026-10-25T22:46:23.952Z",
     "after": [
       "AR0359"
     ]

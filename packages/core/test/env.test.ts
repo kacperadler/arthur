@@ -86,14 +86,14 @@ test("a disabled plugin's variables are not read and not listed, and its names a
 	assert.deepEqual(reads, ["ARTHUR_YOUTRACK_TOKEN"]);
 });
 
-test("a name without the plugin's ARTHUR_ prefix, or with another plugin's name, is refused", () => {
+test("a name without the plugin's ARTHUR_ prefix, or with another plugin's name, is refused; one without ARTHUR_ is not shown", () => {
 	const loaded = config([
 		youtrack({ aEnv: "YOUTRACK_TOKEN", bEnv: "ARTHUR_GITHUB_TOKEN", cEnv: "ARTHUR_YOUTRACK_", dEnv: "ARTHUR_YOUTRACK_CLOUD_TOKEN" }),
 		{ name: "youtrack-cloud", options: { enabled: false } },
 	]);
 	const expected = "expected ARTHUR_YOUTRACK_<WHAT>, got";
 	assert.deepEqual(checkEnv(loaded, {}).problems, [
-		`${loaded.path}: youtrack.aEnv: ${expected} YOUTRACK_TOKEN`,
+		`${loaded.path}: youtrack.aEnv: expected ARTHUR_YOUTRACK_<WHAT> (capitals, digits and _); the text given is not shown`,
 		`${loaded.path}: youtrack.bEnv: ${expected} ARTHUR_GITHUB_TOKEN`,
 		`${loaded.path}: youtrack.cEnv: ${expected} ARTHUR_YOUTRACK_`,
 		`${loaded.path}: youtrack.dEnv: ${expected} ARTHUR_YOUTRACK_CLOUD_TOKEN, a name of plugin youtrack-cloud`,
@@ -191,12 +191,16 @@ test("with three nested owners a name belongs to the deepest, whatever order the
 });
 
 test("an option that is not a name is refused without showing it; one left undefined needs nothing", () => {
-	const loaded = config([youtrack({ aEnv: 5, bEnv: null, cEnv: "ghp_pasted-secret", dEnv: undefined })]);
-	assert.deepEqual(checkEnv(loaded, {}).problems, [
+	const pasted = { cEnv: "ghp_pasted-secret", dEnv: undefined, eEnv: "DEADBEEF0123", fEnv: "ARTHUR_YOUTRACK_ghp-secret", gEnv: "ARTHURTOKEN123" };
+	const loaded = config([youtrack({ aEnv: 5, bEnv: null, ...pasted })]);
+	const problems = checkEnv(loaded, {}).problems;
+	const hidden = "expected ARTHUR_YOUTRACK_<WHAT> (capitals, digits and _); the text given is not shown";
+	assert.deepEqual(problems, [
 		`${loaded.path}: youtrack.aEnv: expected ARTHUR_YOUTRACK_<WHAT>, got a number`,
 		`${loaded.path}: youtrack.bEnv: expected ARTHUR_YOUTRACK_<WHAT>, got null`,
-		`${loaded.path}: youtrack.cEnv: expected ARTHUR_YOUTRACK_<WHAT> (capitals, digits and _); the text given is not shown`,
+		...["cEnv", "eEnv", "fEnv", "gEnv"].map((option) => `${loaded.path}: youtrack.${option}: ${hidden}`),
 	]);
+	for (const line of problems) assert.doesNotMatch(line, /DEADBEEF0123|ghp_pasted-secret|ghp-secret|ARTHURTOKEN123/);
 });
 
 test("a plugin entry the host refuses is skipped: its refusal is the host's alone", () => {

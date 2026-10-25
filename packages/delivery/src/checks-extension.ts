@@ -1,10 +1,11 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
 // Delivery's OMP extension (spec/roadmap.md, entry 53), which each job's agent loads with `-e` after the core's own
-// (`host.jobs.registerExtension`): after each tool call it adds to the job's `checks`, `<home>/delivery/<job>/checks`, what a run
-// of the project's own checks said, and `stale` at the first edit or write after them. `arthur review-needed` reads it:
-// docs/commands/review-needed.md, "The job's checks".
+// (`host.jobs.registerExtension`): after each bash call it adds to the job's `checks`, `<home>/delivery/<job>/checks`, what a run
+// of the project's own checks said, each line ending with the commit and the tree (`clean`, `dirty`) the call ended on.
+// `arthur review-needed` reads it: docs/commands/review-needed.md, "The job's checks".
 
 type Script = "check" | "test";
 type ToolResult = { readonly toolName?: unknown; readonly input?: { readonly command?: unknown }; readonly content?: unknown; readonly details?: { readonly async?: unknown }; readonly isError?: unknown };
@@ -16,17 +17,15 @@ export default function checks(pi: ExtensionApi): void {
 	// The job's record is `<home>/jobs/<id>`, and delivery's folder `<home>/delivery`.
 	const file = join(dirname(dirname(record)), "delivery", basename(record), "checks");
 	pi.on("tool_result", (event, ctx) => {
-		const lines = event.toolName === "edit" || event.toolName === "write" ? stale(file) : event.toolName === "bash" ? ran(event, ctx.cwd) : [];
+		const lines = event.toolName === "bash" ? ran(event, ctx.cwd) : [];
 		if (lines.length === 0) return;
+		// The worktree's HEAD and whether a tracked file differs from it (an untracked one is on no branch); outside Git, no line.
+		const git = (...words: string[]) => spawnSync("git", ["--no-optional-locks", "-C", ctx.cwd, ...words], { encoding: "utf8" });
+		const [head, status] = [git("rev-parse", "HEAD"), git("status", "--porcelain", "--untracked-files=no")];
+		if (head.status !== 0 || status.status !== 0) return;
 		mkdirSync(dirname(file), { recursive: true });
-		appendFileSync(file, lines.map((line) => `${line}\n`).join(""));
+		appendFileSync(file, lines.map((line) => `${line} ${head.stdout.trim()} ${status.stdout === "" ? "clean" : "dirty"}\n`).join(""));
 	});
-}
-
-// One `stale` after a run's lines: a file changed since, so they no longer describe the code.
-function stale(file: string): string[] {
-	const last = existsSync(file) ? readFileSync(file, "utf8").trimEnd().split("\n").at(-1) : undefined;
-	return last === undefined || last === "" || last === "stale" ? [] : ["stale"];
 }
 
 // The lines of one bash call: `check pass|fail` per `npm run check`, `test pass|fail <passed>/<total>` per `npm test` (`npm t`,

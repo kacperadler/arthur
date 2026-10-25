@@ -30,11 +30,11 @@ const DF = 'for path do [ "$n" -gt 0 ] || break; n=$((n - 1)); if [ -e "$path" ]
 const SCRIPT = `uname -sm && arthur version && node -e "$1" || exit; n=$2; shift 2; disk=$(${DF} 2>&1); code=$?; shift "$n"; ${TOOLS}; ${IDENTITY}; [ "$n" -eq 0 ] || printf "disk %s\\n%s\\n" "$code" "$disk"`;
 const missing = (lines: readonly string[]) => lines.flatMap((line) => (line.startsWith("missing ") ? [line.slice("missing ".length)] : []));
 
-// The private network Arthur reaches its machines on: loopback, RFC 1918, and Tailscale's.
-const PRIVATE = new BlockList();
+// The private network Arthur reaches its machines on: loopback, RFC 1918, and Tailscale's, less the metadata address in it.
+const [PRIVATE, METADATA] = [new BlockList(), new BlockList()];
 for (const [address, prefix] of [["127.0.0.0", 8], ["10.0.0.0", 8], ["172.16.0.0", 12], ["192.168.0.0", 16], ["100.64.0.0", 10]] as const) PRIVATE.addSubnet(address, prefix, "ipv4");
-PRIVATE.addAddress("::1", "ipv6");
-PRIVATE.addSubnet("fd7a:115c:a1e0::", 48, "ipv6");
+PRIVATE.addAddress("::1", "ipv6"); PRIVATE.addSubnet("fd7a:115c:a1e0::", 48, "ipv6");
+METADATA.addAddress("100.100.100.200");
 
 // `uname -s` and `uname -m` as the labels name them, which are Node's `process.platform` and `process.arch` words.
 const OS: Readonly<Record<string, string>> = { Linux: "linux", Darwin: "macos" };
@@ -48,7 +48,7 @@ export async function publicAddress(host: Host, ssh: string): Promise<string | u
 	const name = /^hostname (\S+)$/m.exec(ran.stdout)?.[1];
 	if (ran.code !== 0 || name === undefined) throw new Error(`ssh -G ${ssh}: ${lastLine(ran.stderr) || `exit code ${ran.code}`}`);
 	const addresses = isIP(name) === 0 ? (await lookup(name, { all: true })).map((found) => found.address) : [name];
-	return addresses.find((address) => !PRIVATE.check(address, isIP(address) === 6 ? "ipv6" : "ipv4"));
+	return addresses.find((address) => { const type = isIP(address) === 6 ? "ipv6" : "ipv4"; return METADATA.check(address, type) || !PRIVATE.check(address, type); });
 }
 
 // The fix of ssh's own failure, by its line: a refused key, a host key not known or changed, or a machine that does not answer.

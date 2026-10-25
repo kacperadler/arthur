@@ -311,7 +311,7 @@ test("a machine whose ssh resolves to a public address is refused at load; one t
 	});
 	await assert.rejects(fake.host.jobs.run("mac", ["true"]), { message: "unknown machine mac; machines: local" }, "nothing registered");
 
-	const verdicts = [["192.168.1.20", "ok"], ["10.0.0.7", "ok"], ["172.31.0.1", "ok"], ["fd7a:115c:a1e0::1", "ok"], ["::1", "ok"], ["172.32.0.1", "public"], ["100.128.0.1", "public"], ["fd7a:115c:a1e1::1", "public"]] as const;
+	const verdicts = [["192.168.1.20", "ok"], ["10.0.0.7", "ok"], ["172.31.0.1", "ok"], ["fd7a:115c:a1e0::1", "ok"], ["::1", "ok"], ["100.100.100.201", "ok"], ["172.32.0.1", "public"], ["100.128.0.1", "public"], ["fd7a:115c:a1e1::1", "public"], ["100.100.100.200", "public"], ["::ffff:100.100.100.200", "public"]] as const;
 	for (const [address, verdict] of verdicts) {
 		writeFileSync(join(root, "mac-mini", "hostname"), address);
 		const loaded = await load({ list: [{ ...MAC, labels: {} }] }).then(

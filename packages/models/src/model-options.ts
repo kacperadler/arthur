@@ -23,13 +23,13 @@ export const KINDS: readonly Kind[] = ["ollama", "openai-compatible"];
 const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 
 // The private network a provider is reached on: loopback, RFC 1918, unique local IPv6 (which holds Tailscale's
-// fd7a:115c:a1e0::/48) and Tailscale's 100.64.0.0/10.
-const PRIVATE = new BlockList();
+// fd7a:115c:a1e0::/48) and Tailscale's 100.64.0.0/10; less the cloud metadata addresses inside them, checked first.
+const [PRIVATE, METADATA] = [new BlockList(), new BlockList()];
 for (const [address, prefix] of [["127.0.0.0", 8], ["10.0.0.0", 8], ["172.16.0.0", 12], ["192.168.0.0", 16], ["100.64.0.0", 10]] as const) PRIVATE.addSubnet(address, prefix, "ipv4");
 PRIVATE.addAddress("::1", "ipv6");
 PRIVATE.addSubnet("fc00::", 7, "ipv6");
-
-export const isPrivate = (address: string) => PRIVATE.check(address, isIP(address) === 6 ? "ipv6" : "ipv4");
+for (const [address, type] of [["100.100.100.200", "ipv4"], ["fd00:ec2::254", "ipv6"]] as const) METADATA.addAddress(address, type);
+export const isPrivate = (address: string) => { const type = isIP(address) === 6 ? "ipv6" : "ipv4"; return !METADATA.check(address, type) && PRIVATE.check(address, type); };
 
 // A url's host without the brackets of an IPv6 address.
 export const hostOf = (url: URL) => url.hostname.replace(/^\[(.*)\]$/, "$1");

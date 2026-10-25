@@ -2535,9 +2535,9 @@
   {
     "id": "AR0332",
     "title": "`GIT_DIR=`, `GIT_WORK_TREE=`, `GIT_INDEX_FILE=` before `git` are not read as `--git-dir`, `--work-tree`",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0332-git-dir-git-work-tree-git-index-file-before-git-are-not-read-as-git-dir-work-tree/ticket.md",
-    "updated": "2026-10-25T16:30:22.617Z"
+    "updated": "2026-10-25T16:33:53.636Z"
   },
   {
     "id": "AR0333",
@@ -3115,5 +3115,19 @@
     "status": "planning",
     "path": "spec/features/AR0414-a-job-may-commit-the-stash-refusal-s-arthur-stash-patch-by-mistake-and-its-git/ticket.md",
     "updated": "2026-10-25T16:10:33.253Z"
+  },
+  {
+    "id": "AR0415",
+    "title": "`env -C <dir>` and `sudo -D <dir>` before a command are not read as a `cd`",
+    "status": "planning",
+    "path": "spec/features/AR0415-env-c-dir-and-sudo-d-dir-before-a-command-are-not-read-as-a-cd/ticket.md",
+    "updated": "2026-10-25T16:33:53.633Z"
+  },
+  {
+    "id": "AR0416",
+    "title": "A `~` after the `=` of an assignment before git is not expanded, so `GIT_WORK_TREE=~/<main>` passes the guard",
+    "status": "planning",
+    "path": "spec/features/AR0416-a-after-the-of-an-assignment-before-git-is-not-expanded-so-git-work-tree-main/ticket.md",
+    "updated": "2026-10-25T16:34:02.911Z"
   }
 ]

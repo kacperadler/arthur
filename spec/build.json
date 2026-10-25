@@ -2766,9 +2766,9 @@
   {
     "id": "AR0365",
     "title": "A message the owner forwarded runs as the owner's own words, a phone command included",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0365-a-message-the-owner-forwarded-runs-as-the-owner-s-own-words-a-phone-command-included/ticket.md",
-    "updated": "2026-10-23T14:49:59.279Z"
+    "updated": "2026-10-25T19:16:01.227Z"
   },
   {
     "id": "AR0366",
@@ -3154,9 +3154,9 @@
   {
     "id": "AR0420",
     "title": "Forms of OLDPWD and pushd the guard still misreads: ${OLDPWD...} operators, readonly, local outside a function, pushd -n, OLDPWD+= before eval",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0420-forms-of-oldpwd-and-pushd-the-guard-still-misreads-oldpwd-operators-readonly/ticket.md",
-    "updated": "2026-10-25T19:05:18.668Z",
+    "updated": "2026-10-25T19:18:15.138Z",
     "after": [
       "AR0333"
     ]

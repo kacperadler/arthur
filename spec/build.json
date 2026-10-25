@@ -2752,9 +2752,9 @@
   {
     "id": "AR0363",
     "title": "A binary file counts no lines, so a branch of any binary content skips the review on its checks",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0363-a-binary-file-counts-no-lines-so-a-branch-of-any-binary-content-skips-the-review-on-its-checks/ticket.md",
-    "updated": "2026-10-23T14:45:59.104Z"
+    "updated": "2026-10-25T16:19:39.403Z"
   },
   {
     "id": "AR0364",

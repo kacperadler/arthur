@@ -2783,9 +2783,9 @@
   {
     "id": "AR0361",
     "title": "A merge takes main as it is: a commit that reached main by another route is merged on and pushed with the next merge",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0361-a-merge-takes-main-as-it-is-a-commit-that-reached-main-by-another-route-is-merged-on-and-pushed-with-the-next-merge/ticket.md",
-    "updated": "2026-10-25T22:46:23.952Z",
+    "updated": "2026-10-25T23:00:09.541Z",
     "after": [
       "AR0359"
     ]

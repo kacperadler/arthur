@@ -43,9 +43,10 @@ function agent(t: TestContext, run: AgentRun) {
 	return { file, starts: () => lines(join(dirname(file), "starts.jsonl")) as { pid: number; args: string[] }[] };
 }
 
-// The plugin on a fake host whose orchestration answers the coordinator's model, started as `arthur run` starts it.
-async function load(t: TestContext, options: SessionOptions = {}) {
-	const fake = fakeHost({ name: "session", options: { compactAt: [], ...options } });
+// The plugin on a fake host whose orchestration answers the coordinator's model, started as `arthur run` starts it; `env` stands
+// for the env file's values, which the host hands on as `host.secrets` and which never reach `process.env`.
+async function load(t: TestContext, options: SessionOptions = {}, env: Record<string, string> = {}) {
+	const fake = fakeHost({ name: "session", options: { compactAt: [], ...options }, env });
 	fake.provide("roles.model", (role: string) => (role === "coordinator" ? { model: "anthropic/claude-opus-4-5", thinking: "high" } : undefined));
 	const plugin = session(options);
 	await fake.setup(plugin);
@@ -69,8 +70,12 @@ test("at the start one word is asked of the coordinator's model first; answered,
 test("no LLM access: the model's error or omp's own error line, a credential in it never repeated, and run omp login", async (t) => {
 	t.after(() => delete process.env.PROVIDER_API_KEY);
 	process.env.PROVIDER_API_KEY = "hunter-two-secret";
+	// A value of 8 characters is a secret, one of 7 is not (`seventh`, `401` stay); a value that starts another is replaced after it.
+	const fromFile = { ARTHUR_SESSION_PASS: "correct-horse-battery", ARTHUR_SESSION_CODE: "401", ARTHUR_SESSION_SHORT: "abcdefgh", ARTHUR_SESSION_LONG: "abcdefgh-longer-tail", ARTHUR_SESSION_SEVEN: "seventh" };
 	const denied = '401 {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key sk-ant-api03-AbCdEf123456 (hunter-two-secret)"},"request_id":"req_011CgAWsav66AwnrHwNLjFA6"}';
 	for (const [run, reason] of [
+		[{ steps: [{ message: "", stopReason: "error", error: "401 invalid password correct-horse-battery" }], exitCode: 1 }, "401 invalid password [redacted]"],
+		[{ steps: [{ message: "", stopReason: "error", error: "401 denied abcdefgh-longer-tail, abcdefgh, seventh" }], exitCode: 1 }, "401 denied [redacted], [redacted], seventh"],
 		[{ steps: [{ message: "", stopReason: "error", error: denied }], exitCode: 1 }, '401 {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key [redacted] ([redacted])"},"request_id":"[redacted]"}'],
 		[{ steps: [{ stderr: "434585 |         throw new Error(`No API key found for ${this.model.provider}." }, { stderr: "error: No API key found for anthropic." }, { stderr: "" }, { stderr: "Use /login, set an API key environment variable" }], exitCode: 1 }, "No API key found for anthropic."],
 		[{ steps: [{ stderr: 'Model "anthropic/claude-opus-4-5" not found' }], exitCode: 1 }, 'Model "anthropic/claude-opus-4-5" not found'],
@@ -80,7 +85,7 @@ test("no LLM access: the model's error or omp's own error line, a credential in 
 		[{ steps: [], exitCode: 3 }, "exit code 3"],
 	] as const) {
 		agent(t, run as AgentRun);
-		const box = await load(t);
+		const box = await load(t, {}, fromFile);
 		await box.plugin.start?.();
 		await until("the notice", () => box.notices().length === 1);
 		assert.deepEqual(box.notices(), [`no LLM access on ${HOST}: ${reason}; run omp login`]);
@@ -91,7 +96,7 @@ test("no LLM access: the model's error or omp's own error line, a credential in 
 test("the probe times out: cut after its time, the agent killed; stopped meanwhile, no notice at all", async (t) => {
 	const never = join(temporaryFolder(), "never");
 	const omp = agent(t, { steps: [{ waitFor: never }] });
-	assert.equal(await probe("omp", undefined, 300), "no answer within 0.3 s");
+	assert.equal(await probe("omp", undefined, 300, []), "no answer within 0.3 s");
 	// A slow runner may kill it before it noted its start, so its process is looked for by the fake agent's folder.
 	await until("the probe killed", () => !running(dirname(omp.file)));
 	const before = omp.starts().length;
@@ -172,8 +177,8 @@ test("a coordinator turn that fails before any text is left for arthur run, its 
 	assert.match(files().at(-1) ?? "", /-4\.txt$/, "after it worked again, the first reason is told again");
 });
 
-test("arthur run sends each turn failure the coordinator's agent left as turn failed on <host>; one left before its start is dropped", async (t) => {
-	const box = await load(t, { probeLlm: false });
+test("arthur run sends each turn failure the coordinator's agent left as turn failed on <host>, the env file's values redacted; one left before its start is dropped", async (t) => {
+	const box = await load(t, { probeLlm: false }, { ARTHUR_SESSION_PASS: "correct-horse-battery" });
 	const failed = join(box.fake.host.folder, "turn-failed");
 	mkdirSync(failed, { recursive: true });
 	writeFileSync(join(failed, `${Math.floor(performance.timeOrigin) - 60_000}-1-1.txt`), "an old failure");
@@ -181,7 +186,7 @@ test("arthur run sends each turn failure the coordinator's agent left as turn fa
 	const extension = box.fake.collect<{ file: string; env: Record<string, string> }>("coordinator.extension").find(({ file }) => file.endsWith("turn-extension.ts"));
 	assert.ok(extension);
 	const gates = temporaryFolder();
-	const omp = fakeAgent({ steps: [{ message: "", stopReason: "error", error: "529 overloaded\nretry later" }, { end: true }, { waitFor: join(gates, "next") }, { message: "", stopReason: "error", error: "500 internal" }, { end: true }, { waitFor: join(gates, "again") }, { message: "Back." }, { end: true }, { waitFor: join(gates, "never") }] });
+	const omp = fakeAgent({ steps: [{ message: "", stopReason: "error", error: "529 overloaded\nretry later" }, { end: true }, { waitFor: join(gates, "next") }, { message: "", stopReason: "error", error: "500 internal; password correct-horse-battery" }, { end: true }, { waitFor: join(gates, "again") }, { message: "Back." }, { end: true }, { waitFor: join(gates, "never") }] });
 	const child = spawn(omp, ["--continue", "-e", extension.file], { env: { ...process.env, ...extension.env }, stdio: "ignore" });
 	t.after(() => child.kill());
 	await until("the first notice", () => box.notices().length === 2);
@@ -189,6 +194,6 @@ test("arthur run sends each turn failure the coordinator's agent left as turn fa
 	await until("the second notice", () => box.notices().length === 3);
 	writeFileSync(join(gates, "again"), "");
 	await until("the working-again notice", () => box.notices().length === 4);
-	assert.deepEqual(box.notices(), [`coordinator up on ${HOST}`, `turn failed on ${HOST}: 529 overloaded`, `turn failed on ${HOST}: 500 internal`, `turns work again on ${HOST}`]);
+	assert.deepEqual(box.notices(), [`coordinator up on ${HOST}`, `turn failed on ${HOST}: 529 overloaded`, `turn failed on ${HOST}: 500 internal; password [redacted]`, `turns work again on ${HOST}`]);
 	assert.deepEqual(readdirSync(failed), [], "each sent once, the old one dropped");
 });

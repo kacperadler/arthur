@@ -2773,9 +2773,9 @@
   {
     "id": "AR0360",
     "title": "The job's record of its checks is its own word: written from inside the agent, not tied to the tip's tree, not stale after a change by bash",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0360-the-job-s-record-of-its-checks-is-its-own-word-written-from-inside-the-agent-not-tied-to-the-tip-s-tree-not-stale-after-a-change-by-bash/ticket.md",
-    "updated": "2026-10-25T21:28:39.926Z",
+    "updated": "2026-10-25T21:40:24.530Z",
     "after": [
       "AR0351"
     ]
@@ -3364,9 +3364,9 @@
   {
     "id": "AR0424",
     "title": "A redirect's host is resolved twice, so DNS rebinding still reaches a private address",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0424-a-redirect-s-host-is-resolved-twice-so-dns-rebinding-still-reaches-a-private/ticket.md",
-    "updated": "2026-10-25T21:37:03.379Z"
+    "updated": "2026-10-25T21:41:01.269Z"
   },
   {
     "id": "AR0425",
@@ -3478,5 +3478,12 @@
       "AR0404",
       "AR0405"
     ]
+  },
+  {
+    "id": "AR0435",
+    "title": "Embedded-IPv4 IPv6 prefixes are not in the refused ranges",
+    "status": "dropped",
+    "path": "spec/features/AR0435-embedded-ipv4-ipv6-prefixes-are-not-in-the-refused-ranges/ticket.md",
+    "updated": "2026-10-25T21:41:15.454Z"
   }
 ]

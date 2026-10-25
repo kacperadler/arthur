@@ -3435,9 +3435,9 @@
   {
     "id": "AR0431",
     "title": "A review's project is not checked against its worker's",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0431-a-review-s-project-is-not-checked-against-its-worker-s/ticket.md",
-    "updated": "2026-10-25T20:44:57.918Z",
+    "updated": "2026-10-25T23:54:11.335Z",
     "after": [
       "AR0355"
     ]

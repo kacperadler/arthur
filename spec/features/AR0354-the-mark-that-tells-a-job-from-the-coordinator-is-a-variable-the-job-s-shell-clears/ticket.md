@@ -36,3 +36,4 @@ In:
 
 - 2026-10-23: Source: F2 of AR0323
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; starts after the ten security checks AR0319-AR0328.
+- 2026-10-26: AR0354 home check accepted under AR-D31; F1 settled as a ticket at merge; the owner: "always go with recommendation till the 8 am morning" (AR-D46)

@@ -2607,9 +2607,9 @@
   {
     "id": "AR0341",
     "title": "A blocked job's question goes to the phone as written, while the decision log redacts it",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0341-a-blocked-job-s-question-goes-to-the-phone-as-written-while-the-decision-log-redacts-it/ticket.md",
-    "updated": "2026-10-25T20:44:18.842Z",
+    "updated": "2026-10-25T20:47:25.230Z",
     "after": [
       "AR0340"
     ]
@@ -2753,9 +2753,9 @@
   {
     "id": "AR0358",
     "title": "`review-needed` lets a small change to what the merge and each spawn run go in without a review (AR0311 F11, confirmed)",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0358-review-needed-lets-a-small-change-to-what-the-merge-and-each-spawn-run-go-in-without-a-review-ar0311-f11-confirmed/ticket.md",
-    "updated": "2026-10-25T20:44:47.575Z",
+    "updated": "2026-10-25T20:49:28.514Z",
     "after": [
       "AR0357"
     ]
@@ -3364,9 +3364,9 @@
   {
     "id": "AR0424",
     "title": "A redirect's host is resolved twice, so DNS rebinding still reaches a private address",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0424-a-redirect-s-host-is-resolved-twice-so-dns-rebinding-still-reaches-a-private/ticket.md",
-    "updated": "2026-10-25T20:37:22.062Z"
+    "updated": "2026-10-25T20:54:40.518Z"
   },
   {
     "id": "AR0425",

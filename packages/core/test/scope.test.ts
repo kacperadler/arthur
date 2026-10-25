@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
@@ -10,6 +10,7 @@ import { loadConfig } from "../src/config.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import type { Caps, Slice } from "../src/job-scope.ts";
+import { oomFirst } from "../src/job-memory.ts";
 import { jobRunner, type Spawn } from "../src/jobs.ts";
 import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
 
@@ -126,7 +127,8 @@ test("without a user manager the job runs bare, its log saying so in one line, a
 	const { home, jobs } = setup(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }));
 	const job = await jobs.spawn({ task: "Go." });
 	const wrapper = Number(await until("the wrapper's pid", () => read(join(home, "jobs", job.id, "pid"))));
-	if (existsSync("/proc")) assert.doesNotMatch(cgroup(wrapper) ?? "", /arthur-job-/);
+	// Inside a job the test itself runs in that job's scope, which the wrapper inherits: only a scope of its own is wrong.
+	if (existsSync("/proc")) assert.doesNotMatch(cgroup(wrapper) ?? "", new RegExp(`arthur-job-${job.id}\\.scope`));
 	writeFileSync(gate, "");
 	assert.deepEqual((await ended(home)).data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 	const log = readFileSync(join(home, "jobs", job.id, "log"), "utf8");
@@ -306,6 +308,36 @@ test("over a memory cap the kernel takes the agent and what it started first, ne
 	assert.equal(score(pid), "1000");
 	writeFileSync(gate, "");
 	assert.equal(await endedWith(home, job.id), "finished");
+});
+
+// Inside a job's sandbox nothing under /proc can be written (job-sandbox.ts), and a test there spawns jobs all the same: their
+// agents start with the score as it is.
+test("oomFirst runs start at oom_score_adj 1000 and puts the score back, runs it as it is where the write is refused, and throws any other error", () => {
+	const folder = temporaryFolder();
+	const [file, other] = [join(folder, "oom_score_adj"), join(folder, "other")];
+	writeFileSync(file, "0\n");
+	assert.equal(oomFirst(() => readFileSync(file, "utf8"), file), "1000");
+	assert.equal(readFileSync(file, "utf8"), "0\n");
+	// The real file where this process may not write it (inside a job), else one made unwritable.
+	const refuses = (path: string) => {
+		try {
+			writeFileSync(path, readFileSync(path, "utf8"));
+			return false;
+		} catch {
+			return true;
+		}
+	};
+	const real = "/proc/self/oom_score_adj";
+	const refused = existsSync(real) && refuses(real) ? real : file;
+	chmodSync(file, 0o444);
+	assert.ok(refuses(refused), `${refused} refuses a write`);
+	assert.equal(oomFirst(() => "started", refused), "started");
+	// With no file size allowed the write fails with EFBIG, which is no refusal.
+	writeFileSync(other, "0\n");
+	const script = `import { oomFirst } from ${JSON.stringify(join(import.meta.dirname, "../src/job-memory.ts"))};
+try { oomFirst(() => process.stdout.write("started"), ${JSON.stringify(other)}); } catch (error) { process.stdout.write(error.code); }`;
+	const run = spawnSync("bash", ["-c", 'ulimit -f 0; exec "$0" --input-type=module -e "$1"', process.execPath, script], { encoding: "utf8" });
+	assert.equal(run.stdout, "EFBIG", run.stderr);
 });
 
 test("without a user manager a job over its memory cap is stopped within one 10 s sample, and the machine is told once", async (t) => {

@@ -10,6 +10,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0379 A project on Git LFS gets its main pushed without its LFS objects (6df9b99b)
 - AR0380 Arthur's git calls in a main checkout still run other programs its config names (fa9078a5)
 - AR0381 The worktree guard does not see a git alias or GIT_DIR (6e0f0a1d)
+- AR0382 A job's repository on another machine runs its config's hooks in Arthur's git calls there (559c77e0)
 
 ## 2026-10-23
 

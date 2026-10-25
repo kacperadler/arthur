@@ -2,7 +2,7 @@
 
 From a fresh VPS to a running Arthur, step by step. Arthur is one process, `arthur run`, in the folder that holds `arthur.config.ts`; a systemd user service keeps it running: it starts it at boot and again whenever it ends. Commands are for Ubuntu or Debian. Each step ends with **Check:**, the command that proves the step is done and what it prints; run it before the next step.
 
-Arthur is in development. Of what this page sets up, `arthur run`, `arthur config check`, `arthur doctor`, `arthur setup`, `arthur projects`, `arthur board` and `arthur attach` exist today; a step that needs something not built yet says `Not built yet (roadmap entry N)` and gives the way to do it by hand until then. The rest comes in the order of [`spec/roadmap.md`](../spec/roadmap.md).
+Every command this page runs exists. A line that names a roadmap entry describes what that entry builds; the order is [`spec/roadmap.md`](../spec/roadmap.md).
 
 Jobs on another machine, the threat model, daily use and updating are in [`deploy.md`](deploy.md).
 
@@ -46,11 +46,13 @@ omp login
 
 ## 4. Get Arthur, and `arthur` on your `PATH`
 
+Each line checks first, as in step 2: a clone already in `~/arthur` is kept as it is (update it as [`deploy.md`](deploy.md#updating) says), and the `PATH` line goes into `~/.bashrc` once.
+
 ```sh
-git clone https://github.com/kacperadler/arthur.git ~/arthur
+[ -d ~/arthur/.git ] || git clone https://github.com/kacperadler/arthur.git ~/arthur
 cd ~/arthur
 npm ci
-printf 'export PATH="$HOME/arthur/node_modules/.bin:$PATH"\n' >> ~/.bashrc
+grep -qs 'arthur/node_modules/.bin' ~/.bashrc || printf 'export PATH="$HOME/arthur/node_modules/.bin:$PATH"\n' >> ~/.bashrc
 export PATH="$HOME/arthur/node_modules/.bin:$PATH"
 ```
 
@@ -58,29 +60,58 @@ export PATH="$HOME/arthur/node_modules/.bin:$PATH"
 
 ## 5. `arthur.config.ts`
 
-Write `~/arthur/arthur.config.ts` with two plugins: `orchestration`, which every config needs, and `projects`, with your projects; other machines for jobs come with the `machines` plugin of step 11. Each project names its repository: `path`, a clone already on this machine, or `repo`, a Git URL Arthur clones into `reposDir` (see `arthur projects --help`):
+Write `~/arthur/arthur.config.ts` with the plugins that take a ticket from a job to its merge, each documented on its page:
+
+- `orchestration`, which every config needs: the coordinator, jobs and `maxAgents`, planning (`arthur coordinator --help`);
+- `projects`, with your projects (`arthur projects --help`). Each project names its repository: `path`, a clone already on this machine, or `repo`, a Git URL Arthur clones into `reposDir`; `ci.workflow` names the workflow file the `github` plugin watches;
+- `session`: the coordinator's conversation, compacted by day and fresh at night, `/restart`, and the restart guard (`packages/session/docs/session.md`);
+- `schedule`: actions and jobs at set times, and the entries other plugins register from their options, such as `manage`'s audit (`arthur schedule --help`);
+- `delivery`: the review of a worker's branch and `arthur merge` (`arthur review --help`, `arthur merge --help`);
+- `github`: the CI runs of the branches in play, and the push of a branch a review passed and of main after a merge (`packages/github/docs/github.md`);
+- `commit-rules`: each project's `commitRules` (`packages/commit-rules/docs/commit-rules.md`);
+- `findings`: what `arthur merge` makes of a ticket's open findings (`packages/findings/docs/findings.md`);
+- `manage`: health, stats, the audit, the retro and pruning (`packages/manage/docs/manage.md`).
+
+The channel, `telegram`, comes in step 13, and other machines for jobs with the `machines` plugin of step 11.
 
 ```ts
 import { defineConfig } from "@arthur/core";
+import { commitRules } from "@arthur/commit-rules";
+import { delivery } from "@arthur/delivery";
+import { findings } from "@arthur/findings";
+import { github } from "@arthur/github";
+import { manage } from "@arthur/manage";
 import { orchestration } from "@arthur/orchestration";
 import { projects } from "@arthur/projects";
+import { schedule } from "@arthur/schedule";
+import { session } from "@arthur/session";
 
 export default defineConfig({
-	plugins: [orchestration({}), projects({ list: [{ name: "shop", prefix: "SH", path: "/home/<user>/shop" }] })],
+	plugins: [
+		orchestration({}),
+		session({}),
+		schedule({}),
+		projects({ list: [{ name: "shop", prefix: "SH", path: "/home/<user>/shop", ci: { workflow: "ci.yml" } }] }),
+		commitRules(),
+		findings({}),
+		delivery({}),
+		github({ instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }] }),
+		manage({}),
+	],
 });
 ```
 
-Do not copy `arthur.config.example.ts`: it lists every plugin, planned ones included, and the packages of those do not exist yet, so it does not load (`Cannot find package '@arthur/develop'`). Take a plugin from it once its roadmap entry is merged.
+Do not copy `arthur.config.example.ts`: it lists every plugin, planned ones included, and the packages of those do not exist yet, so it does not load (`Cannot find package '@arthur/discord'`). Take a plugin from it once its roadmap entry is merged.
 
 Every option the core and each built plugin take, with its meaning and its default, is in one table per package, the same one its check walks: the core's in `packages/core/src/core-options.ts`, each plugin's in the file its `package.json` exports as `./options` (for example `packages/orchestration/src/orchestration-options.ts`), with the plugin's one-line summary and the tools it runs.
 
 The config stays in `~/arthur`, so its `@arthur/*` imports resolve from the clone's `node_modules`. Its `core.home` (default `.arthur/` beside it) holds Arthur's state: the event log, each plugin's folder, the job records, and `run.pid`. Job worktrees go to `.arthur-worktrees/` beside the repository they start from. Git ignores `arthur.config.ts` and `.arthur/` (`.gitignore`): the config holds your own project list, which never goes to the public repository; `git pull` leaves it as it is.
 
-**Check:** `arthur config check` exits 0, and `arthur projects` lists each project with its folder, such as:
+**Check:** `arthur config check` refuses nothing and lists the one variable step 6 sets, which `github` names:
 
 ```
-SH shop
-  /home/<user>/shop; 0 open tickets; install: none
+missing ARTHUR_GITHUB_TOKEN (github.instances[0].tokenEnv)
+/home/<user>/arthur/.env does not exist; a missing variable must come from the shell
 ```
 
 ## 6. `.env`
@@ -93,9 +124,14 @@ chmod 600 .env
 arthur config check
 ```
 
-`arthur config check` lists every variable the enabled plugins need, `set` or `missing`, never a value. Add each missing one to `.env` as `KEY=value` and run it again until every line says `set`. The two plugins of step 5 need none, so today it prints `no enabled plugin names an env variable`.
+`arthur config check` lists every variable the enabled plugins need, `set` or `missing`, never a value. Add each missing one to `.env` as `KEY=value` and run it again until every line says `set`. For the plugins of step 5 that is `ARTHUR_GITHUB_TOKEN`, a token as `packages/github/docs/github.md`, "Options", says. A variable's name is the plugin's, `ARTHUR_<PLUGIN>_<WHAT>`, or `ARTHUR_<PLUGIN>_<INSTANCE>_<WHAT>` for a named instance: a token you already have under another name, such as `GITHUB_TOKEN`, goes into `.env` under the plugin's name, since the config refuses any other (`github.instances[0].tokenEnv: expected ARTHUR_GITHUB_<WHAT>, got GITHUB_TOKEN`). Until every variable is set, the config does not load: a plugin's command, such as `arthur projects`, is unknown, and the missing variable is named.
 
-**Check:** every line of `arthur config check` says `set` (or it prints `no enabled plugin names an env variable`), and `stat -c %a .env` prints `600`.
+**Check:** every line of `arthur config check` says `set`, it exits 0, and `stat -c %a .env` prints `600`. `arthur projects` lists each project with its folder, such as:
+
+```
+SH shop
+  /home/<user>/shop; 0 open tickets; install: none
+```
 
 ## 7. Each project's board
 

@@ -26,7 +26,7 @@ From [`spec/vision.md`](spec/vision.md):
 
 ## Status
 
-**Status: in development, not usable yet** (main on 2026-10-18). The core runs, from `arthur config check` to jobs in their own worktrees, and the coordinator starts in its tmux session, reads its context on every turn (the boards, the visions, the jobs not ended by state), hears through its inbox when a job ends, and answers in one reply everything since its last one, a message that arrives mid-turn included; but no channel reaches it yet, and nothing reviews or merges. The order of the rest is [`spec/roadmap.md`](spec/roadmap.md).
+**Status: in use on its own repository** (main on 2026-10-25). Arthur takes its own tickets: it runs on its owner's VPS as a systemd service, with Telegram as its channel, and each ticket goes from its worker through a review and CI to its merge. [`docs/setup.md`](docs/setup.md) sets one up, each step with the command that checks it, such as `arthur config check`. Other projects follow; the order of the rest is [`spec/roadmap.md`](spec/roadmap.md).
 
 What works today:
 

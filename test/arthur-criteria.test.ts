@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import type { Plugin } from "@arthur/core/plugin";
@@ -51,14 +51,5 @@ test("arthur init writes the criteria files the loaded packages ship, delivery's
 	for (const name of fake.host.jobs.criteria()) {
 		const text = read(join(shop, ".agents/arthur/criteria", `${name}.md`));
 		assert.notEqual(text.trim().split("\n").length, 1, `${name}.md holds its title alone`);
-	}
-});
-
-// AR0297: until the switch the harness reads its own copies; the switch removes `.agents/harness/` and deletes this test.
-const HARNESS = join(ROOT, ".agents/harness/criteria");
-test("the styleguide and review criteria are the same in .agents/arthur/criteria and .agents/harness/criteria", { skip: !existsSync(HARNESS) && "no .agents/harness/criteria" }, () => {
-	for (const name of ["styleguide.md", "review.md"]) {
-		const arthur = readFileSync(join(ROOT, ".agents/arthur/criteria", name), "utf8");
-		assert.equal(readFileSync(join(HARNESS, name), "utf8"), arthur, `${name}: make the same edit in both copies`);
 	}
 });

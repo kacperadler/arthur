@@ -2780,16 +2780,16 @@
   {
     "id": "AR0367",
     "title": "A site check follows a redirect to any address, loopback and metadata included",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0367-a-site-check-follows-a-redirect-to-any-address-loopback-and-metadata-included/ticket.md",
-    "updated": "2026-10-25T18:54:32.810Z"
+    "updated": "2026-10-25T19:03:03.293Z"
   },
   {
     "id": "AR0368",
     "title": "The probe's curl reads the user's `.curlrc` and the proxy variables, so the request with the key goes where they say",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0368-the-probe-s-curl-reads-the-user-s-curlrc-and-the-proxy-variables-so-the-request-with-the-key-goes-where-they-say/ticket.md",
-    "updated": "2026-10-23T14:55:51.898Z"
+    "updated": "2026-10-25T19:06:43.404Z"
   },
   {
     "id": "AR0369",
@@ -3154,9 +3154,9 @@
   {
     "id": "AR0420",
     "title": "Forms of OLDPWD and pushd the guard still misreads: ${OLDPWD...} operators, readonly, local outside a function, pushd -n, OLDPWD+= before eval",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0420-forms-of-oldpwd-and-pushd-the-guard-still-misreads-oldpwd-operators-readonly/ticket.md",
-    "updated": "2026-10-25T18:42:07.409Z",
+    "updated": "2026-10-25T19:05:18.668Z",
     "after": [
       "AR0333"
     ]

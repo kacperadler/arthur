@@ -8,7 +8,7 @@ import { readEvents } from "../src/event-log.ts";
 import { fakeAgent, temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
-const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>[,<model>...]] [--thinking <level>] [--timeout <minutes>] [--budget <usd>] [--machine <name>] [--requires <labels>] [--ignore-restart]";
+const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>[,<model>...]] [--thinking <level>] [--timeout <minutes>] [--budget <usd> [--decision <id>]] [--machine <name>] [--requires <labels>] [--ignore-restart]";
 
 // A plugin as a config holds it: it owns the kind `review` and its role, refuses a task that says "refuse", and one that says
 // "stale" unless `--ignore-restart`, places a file in every new worktree, failing on a task that says "break", and provides the
@@ -122,6 +122,24 @@ test("--timeout and --budget replace the kind's limits, 0 included", () => {
 	assert.deepEqual(["timeout", "budget"].map((name) => readFileSync(join(root, ".arthur/jobs", id, name), "utf8")), ["0.5", "0"]);
 });
 
+test("--budget 0 on a paid model reaches the beforeSpawn checks with its --decision, \"\" for none; another budget or a free model with none", () => {
+	const check = 'host.jobs.beforeSpawn((spawn) => (spawn.decision === undefined ? undefined : `decision ${JSON.stringify(spawn.decision)}`));\n\thost.provide("models.pick", (list) => ({ model: list[0], why: "picked", free: list[0] === "mac/qwen3" }));\n';
+	const root = repository(CONFIG.replace("\thost.provide(", `\t${check}\thost.provide(`));
+	for (const [args, decision] of [
+		[["--budget", "0"], '""'],
+		[["--budget", "0.0", "--decision", "AC-D1"], '"AC-D1"'],
+		[["--decision", "AC-D1", "--model", "anthropic/opus", "--budget", "0"], '"AC-D1"'],
+	] as const) {
+		const run = arthur(root, "spawn", "--kind", "review", "Go.", ...args);
+		assert.deepEqual([run.status, run.stderr.split("\n").at(-2)], [1, `arthur spawn: refused by orchestration: decision ${decision}`], args.join(" "));
+	}
+	assert.deepEqual(jobs(root), []);
+	for (const args of [[], ["--budget", "1"], ["--budget", "0", "--model", "mac/qwen3"], ["--budget", "0", "--decision", "AC-D1", "--model", "mac/qwen3"]]) {
+		const run = arthur(root, "spawn", "--kind", "review", "Go.", ...args);
+		assert.equal(run.status, 0, `${args.join(" ")}: ${run.stderr}`);
+	}
+});
+
 test("refusals print the reason, exit 1 and leave no record, worktree or branch", () => {
 	const root = repository();
 	writeFileSync(join(root, "spec/features/AC0001-one/new.md"), "not committed\n");
@@ -170,6 +188,10 @@ test("wrong usage prints the usage line and exits 2", () => {
 		[["Go.", "--model", "a", "--model", "b"], "--model given twice"],
 		...["a,", ",a", "a,,b", "a, ,b"].map((models) => [["Go.", "--model", models], `--model needs model names separated by commas, got ${models}`] as const),
 		...["os=macos,os=linux", "arch=x64,arch=arm64", "gpu=yes", "os=", "os=mac os", "os=macos,", "tools"].map((labels) => [["Go.", "--requires", labels], `--requires needs os=<os>,arch=<arch>,tools=<tool>, each label once but tools, got ${labels}`] as const),
+		[["Go.", "--decision", "AC-D1"], "--decision goes with --budget 0"],
+		[["Go.", "--budget", "1", "--decision", "AC-D1"], "--decision goes with --budget 0"],
+		[["Go.", "--budget", "0", "--decision"], "--decision needs a value"],
+		[["Go.", "--budget", "0", "--decision", "AC-D1", "--decision", "AC-D2"], "--decision given twice"],
 	] as const) {
 		const run = arthur(root, "spawn", ...args);
 		assert.deepEqual([run.status, run.stdout, run.stderr], [2, "", `arthur spawn: ${problem}\n${USAGE}\n`], args.join(" "));

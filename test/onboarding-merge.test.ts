@@ -30,6 +30,8 @@ async function load(t: TestContext) {
 	const fake = fakeHost({ name: "projects" });
 	const plugins: [Plugin, Readonly<Record<string, unknown>>][] = [[projects({ list }), { list }], [delivery(), {}]];
 	for (const [plugin, options] of plugins) await fake.setup({ setup: (host) => plugin.setup({ ...host, options }) });
+	// orchestration's check of the owner's decision is its own tests' (AR0355): here every id is the owner's.
+	fake.provide("decision.owner", () => "");
 	const saved = process.env.PATH;
 	t.after(() => {
 		process.env.PATH = saved;
@@ -61,7 +63,7 @@ test("an onboarding's branch that changes a file besides the vision and criteria
 	const { shop, onboard, merge } = await load(t);
 	const wide = await onboard({ "spec/vision.md": "# Vision\n\nSell tools.\n", "README.md": "# Shop, rewritten\n" });
 	const start = git(shop, "rev-parse", "HEAD");
-	assert.deepEqual(await merge(wide.id, "--unreviewed"), {
+	assert.deepEqual(await merge(wide.id, "--unreviewed", "--decision", "SH-D1"), {
 		code: 1,
 		out: "",
 		err: `arthur merge: refused by merge.check: ${wide.branch} changes README.md; an onboarding's merge accepts only spec/vision.md and .agents/arthur/criteria/*.md; main is unchanged`,
@@ -69,7 +71,7 @@ test("an onboarding's branch that changes a file besides the vision and criteria
 	assert.equal(git(shop, "rev-parse", "HEAD"), start);
 	assert.match((await merge(wide.id)).err, new RegExp(`^arthur merge: no PASS on ${wide.branch}'s tip `), "an onboarding is merged only on the owner's word");
 	const drafts = await onboard({ "spec/vision.md": "# Vision\n\nSell garden tools.\n" });
-	const merged = await merge(drafts.id, "--unreviewed");
+	const merged = await merge(drafts.id, "--unreviewed", "--decision", "SH-D1");
 	assert.equal(merged.code, undefined, merged.err);
 	assert.match(merged.out, /\nno checks: package\.json declares no check or test script\nno ticket: no outcome\.md, nothing moved\n/);
 	assert.equal(readFileSync(join(shop, "spec/vision.md"), "utf8"), "# Vision\n\nSell garden tools.\n");

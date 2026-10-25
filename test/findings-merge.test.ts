@@ -36,6 +36,8 @@ async function load(t: TestContext, withFindings: boolean, settings: Readonly<Re
 	const fake = fakeHost({ name: "projects", now: new Date("2026-10-21T10:00:00Z") });
 	const plugins: [Plugin, Readonly<Record<string, unknown>>][] = [[projects({ list }), { list }], [delivery(), {}], ...(withFindings ? [[findings(), settings] as [Plugin, {}]] : [])];
 	for (const [plugin, options] of plugins) await fake.setup({ setup: (host) => plugin.setup({ ...host, options }) });
+	// orchestration's check of the owner's decision is its own tests' (AR0355): here every id is the owner's.
+	fake.provide("decision.owner", () => "");
 	const saved = process.env.PATH;
 	t.after(() => {
 		process.env.PATH = saved;
@@ -53,7 +55,7 @@ async function load(t: TestContext, withFindings: boolean, settings: Readonly<Re
 		const [out, err] = [[] as string[], [] as string[]];
 		t.mock.method(console, "log", (line: string) => out.push(line));
 		t.mock.method(console, "error", (line: string) => err.push(line));
-		const code = await Promise.try(() => fake.commands.find((each) => each.name === "merge")?.run({ args: [job.id, "--unreviewed"], project: undefined }));
+		const code = await Promise.try(() => fake.commands.find((each) => each.name === "merge")?.run({ args: [job.id, "--unreviewed", "--decision", "SH-D1"], project: undefined }));
 		t.mock.restoreAll();
 		return { code, out: out.join("\n"), err: err.join("\n"), text, outcome: readFileSync(join(shop, FOLDER, "outcome.md"), "utf8"), findings: readFileSync(join(shop, FOLDER, "findings.md"), "utf8") };
 	};

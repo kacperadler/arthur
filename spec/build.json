@@ -3060,9 +3060,9 @@
   {
     "id": "AR0407",
     "title": "A job's Unix datagram socket reaches any local daemon that listens on one",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0407-a-job-s-unix-datagram-socket-reaches-any-local-daemon-that-listens-on-one/ticket.md",
-    "updated": "2026-10-25T13:38:49.716Z"
+    "updated": "2026-10-25T13:43:54.308Z"
   },
   {
     "id": "AR0408",

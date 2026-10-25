@@ -17,18 +17,19 @@ Split from AR0333 by AR-D17: review 3 of AR0333's branch (spec/features/AR0333-c
 3. `worktree-guard.ts:99`: `local OLDPWD=x` outside a function is taken as an assignment; bash refuses it there and keeps OLDPWD. E.g. `cd <main>; cd <other>; local OLDPWD=/tmp; cd -; rm README.md`. Removing `"local"` from the list fails no test.
 4. `worktree-guard.ts:107-108`: a bare `pushd -n` is read as a swap; bash does not change folder. E.g. `pushd <main>; pushd -n; rm README.md`.
 5. `worktree-guard.ts:119`: the `eval` restore checks `/^OLDPWD\+?=/`; changing it to `/^OLDPWD=/` fails no test and lets `cd <main>; cd <other>; OLDPWD+=/ eval 'cd /var'; cd -; rm README.md` through.
+6. `worktree-guard.ts:99` (review 4 of AR0333, added by AR-D19): OLDPWD array assignments are not followed; in bash `OLDPWD[0]` is `$OLDPWD`. `cd /tmp; cd /var; OLDPWD[0]=<main>; cd -; rm README.md`, `cd /tmp; OLDPWD=(<main>); cd -; rm README.md` (the `(` is read as a subshell), `cd /tmp; declare OLDPWD[0]=<main>; cd -; rm README.md`.
 
 Also seen, not added by AR0333: `f() { cd -; rm README.md; }; OLDPWD=<main> f`, `OLDPWD=<main> source /dev/stdin <<< 'cd -; rm README.md'`, `cd <main>; pushd -n <other>; rm README.md`.
 
 ## Goal
 
-Each of the five forms is read as bash runs it, or refused as unknown; tested.
+Each of the six forms is read as bash runs it, or refused as unknown; tested.
 
 - Kind: security
 
 ## Done means
 
-- One test row per form above (the example commands), each refused naming the main checkout, each failing without its fix; a row pins `local` and the `+=` of the `eval` restore.
+- One test row per form above (each command of 6) (the example commands), each refused naming the main checkout, each failing without its fix; a row pins `local` and the `+=` of the `eval` restore.
 - `worktree-guard.ts` and `shell-words.ts` stay at 200 lines or under; the core's line budget is full, so a fix that needs more lines ends `Blocked: user` asking for a raise.
 - `npm test` and `npm run check` pass.
 
@@ -44,3 +45,4 @@ Out:
 ## Decisions
 
 - 2026-10-25: Source: review 3 of AR0333, split by AR-D17
+- 2026-10-25: AR0420 approved, with the OLDPWD array forms of AR-D19 added; the owner: "AR0420 approved" (AR-D20)

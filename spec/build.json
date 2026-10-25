@@ -3154,9 +3154,9 @@
   {
     "id": "AR0420",
     "title": "Forms of OLDPWD and pushd the guard still misreads: ${OLDPWD...} operators, readonly, local outside a function, pushd -n, OLDPWD+= before eval",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0420-forms-of-oldpwd-and-pushd-the-guard-still-misreads-oldpwd-operators-readonly/ticket.md",
-    "updated": "2026-10-25T18:03:21.505Z",
+    "updated": "2026-10-25T18:26:28.026Z",
     "after": [
       "AR0333"
     ]

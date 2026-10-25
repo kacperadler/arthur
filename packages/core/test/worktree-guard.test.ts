@@ -146,6 +146,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		// A `local` naming OLDPWD makes it unknown wherever it stands (AR-D21), until a `cd` sets it again.
 		["bash", { command: `cd ${main}; cd /tmp; local OLDPWD=/tmp; cd -; rm README.md` }, UNKNOWN],
 		["bash", { command: `cd ${main}; cd /tmp; local OLDPWD; rm $OLDPWD/README.md` }, UNKNOWN],
+		["bash", { command: `cd ${main}; cd /tmp; local OLDPWD=/tmp; pushd -; rm README.md` }, UNKNOWN],
+		["bash", { command: `f() { local x=1 OLDPWD=${main}; cd -; rm README.md; }; f` }, UNKNOWN],
 		["bash", { command: `cd ${main}; cd /tmp; { local OLDPWD=/tmp; }; cd -; rm README.md` }, UNKNOWN],
 		["bash", { command: `f() { :; }; cd ${main}; cd /tmp; local OLDPWD=/tmp; cd -; rm README.md` }, UNKNOWN],
 		["bash", { command: `\\}; f() { local OLDPWD=${main}; cd -; rm README.md; }; f` }, UNKNOWN],

@@ -2811,9 +2811,9 @@
   {
     "id": "AR0371",
     "title": "The board's lock and temporary files in each project's checkout take the umask too, outside the home's reach",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0371-the-board-s-lock-and-temporary-files-in-each-project-s-checkout-take-the-umask-too-outside-the-home-s-reach/ticket.md",
-    "updated": "2026-10-23T14:59:24.611Z"
+    "updated": "2026-10-25T19:30:01.239Z"
   },
   {
     "id": "AR0372",
@@ -3160,9 +3160,9 @@
   {
     "id": "AR0420",
     "title": "Forms of OLDPWD and pushd the guard still misreads: ${OLDPWD...} operators, readonly, local outside a function, pushd -n, OLDPWD+= before eval",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0420-forms-of-oldpwd-and-pushd-the-guard-still-misreads-oldpwd-operators-readonly/ticket.md",
-    "updated": "2026-10-25T19:23:45.004Z",
+    "updated": "2026-10-25T19:35:01.829Z",
     "after": [
       "AR0333"
     ]

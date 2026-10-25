@@ -129,20 +129,23 @@ test("a run that ends blocked on the owner: one notice with its question, the wa
 	assert.deepEqual(notices().length, 1);
 });
 
-test("a question holding a key, and a final message holding a value of the env file, reach the phone and the wake redacted", async (t) => {
+test("a blocked question reaches the phone and the wake redacted; the final message's other lines lose only the env file's values", async (t) => {
 	const { fake, notices } = await setup(t, new Date().toISOString(), { ARTHUR_ORCHESTRATION_PASS: "correct-horse-battery" });
-	process.env.PATH = `${dirname(fakeAgent({ steps: [{ message: "Blocked: user the key is sk-live-4f9a8b7c6d5e4f3a2b1c?\nThe env file holds correct-horse-battery." }] }))}${delimiter}${PATH}`;
+	// What the coordinator reads to act on: a job id, a ticket folder and a full commit hash, none of them a secret.
+	const kept = "Blocked by 2026-10-23-ar0319-security-check-93862bb2 on spec/features/AR0341-a-blocked-job-s-question/ticket.md at 0123456789abcdef0123456789abcdef01234567";
+	const message = `Blocked: user the key is sk-live-4f9a8b7c6d5e4f3a2b1c with correct-horse-battery?\n${kept}; the env file holds correct-horse-battery.`;
+	process.env.PATH = `${dirname(fakeAgent({ steps: [{ message }] }))}${delimiter}${PATH}`;
 	const job = await fake.host.jobs.spawn({ task: "Rotate the key." });
 	const logged = () => fake.host.events.read(1).filter(({ name, data }) => ["job-state", "job-ended"].includes(name) && typeof data === "object" && data !== null && "id" in data && data.id === job.id);
 	await until("the run's end", () => logged().some((event) => event.name === "job-ended"));
 	const ended = logged().map((event) => fake.emit(event.name, event.data)).find((event) => event.name === "job-ended");
-	assert.deepEqual(notices(), [{ text: `${job.id} asks [DM-D1]: the key is [redacted]?` }]);
+	assert.deepEqual(notices(), [{ text: `${job.id} asks [DM-D1]: the key is [redacted] with [redacted]?` }]);
 	const wake = JSON.parse(readFileSync(join(fake.host.folder, "inbox", "queued", `${ended?.seq}-${Date.parse(ended?.time ?? "")}`), "utf8")) as { text: string };
 	assert.deepEqual(wake.text.split("\n").slice(0, 4), [
-		`Job ${job.id} ended its run blocked on the owner; its question, also sent as a notice: the key is [redacted]?`,
+		`Job ${job.id} ended its run blocked on the owner; its question, also sent as a notice: the key is [redacted] with [redacted]?`,
 		"Its final message:",
-		"Blocked: user the key is [redacted]?",
-		"The env file holds [redacted].",
+		"Blocked: user the key is [redacted] with [redacted]?",
+		`${kept}; the env file holds [redacted].`,
 	]);
 	assert.match(wake.text, /\nIts question is decision DM-D1: /, "the wake still finds the question in the log");
 	assert.doesNotMatch(wake.text, /sk-live|correct-horse/);

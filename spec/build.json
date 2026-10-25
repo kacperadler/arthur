@@ -2590,9 +2590,9 @@
   {
     "id": "AR0339",
     "title": "A recursive search from the coordinator's own folder prints the env file",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0339-a-recursive-search-from-the-coordinator-s-own-folder-prints-the-env-file/ticket.md",
-    "updated": "2026-10-25T23:15:42.724Z",
+    "updated": "2026-10-25T23:32:17.777Z",
     "after": [
       "AR0338"
     ]
@@ -2719,11 +2719,11 @@
   {
     "id": "AR0354",
     "title": "The mark that tells a job from the coordinator is a variable the job's shell clears",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0354-the-mark-that-tells-a-job-from-the-coordinator-is-a-variable-the-job-s-shell-clears/ticket.md",
-    "updated": "2026-10-23T14:41:34.062Z",
+    "updated": "2026-10-25T23:32:58.401Z",
     "after": [
-      "AR0339"
+      "AR0338"
     ]
   },
   {
@@ -2731,7 +2731,7 @@
     "title": "`--unreviewed` and `--budget 0` rest on a sentence in the coordinator's role, with no recorded decision behind them",
     "status": "in-progress",
     "path": "spec/features/AR0355-unreviewed-and-budget-0-rest-on-a-sentence-in-the-coordinator-s-role-with-no-recorded-decision-behind-them/ticket.md",
-    "updated": "2026-10-25T23:04:07.545Z",
+    "updated": "2026-10-25T23:32:46.611Z",
     "after": [
       "AR0361"
     ]

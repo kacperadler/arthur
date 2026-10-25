@@ -31,7 +31,7 @@ function project(config: string = CONFIG): string {
 
 function arthur(folder: string, ...args: string[]): { readonly status: number | null; readonly stdout: string; readonly stderr: string } {
 	writeFileSync(join(folder, "gone.md"), "# arthur gone\n");
-	return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+	return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 }
 
 const ALL = "commands: boom, config, continue, doctor, echo, gone, help, jobs, prune, quiet, remote-job, roles, run, send, setup, spawn, steer, stop, stopall, ticket, version\n";
@@ -313,7 +313,7 @@ test("inside an eval session (ARTHUR_EVAL set) every command refuses, naming why
 	const stub = "/tmp/arthur-eval-x/bin/arthur";
 	const inEval = (value: string, ...args: string[]) => {
 		writeFileSync(join(folder, "gone.md"), "# arthur gone\n");
-		return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", ARTHUR_EVAL: value } });
+		return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_EVAL: value } });
 	};
 	for (const args of [["echo", "x"], ["boom"], ["help"], [], ["echo", "--help"], ["version"], ["ticket", "new", "A"], ["--project", "nope", "echo"]]) {
 		const run = inEval(stub, ...args);
@@ -328,7 +328,7 @@ test("inside a job (ARTHUR_JOB set) a command without inJob refuses before it ru
 	const record = "/home/arthur/.arthur/jobs/2026-10-23-worker-0a1b2c3d";
 	const inJob = (value: string, ...args: string[]) => {
 		writeFileSync(join(folder, "gone.md"), "# arthur gone\n");
-		return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", ARTHUR_JOB: value } });
+		return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_JOB: value } });
 	};
 	assert.equal(arthur(folder, "quiet").status, 0, "the home folder as a live one has it");
 	const home = () => readdirSync(join(folder, ".arthur"), { recursive: true, encoding: "utf8" }).sort().map((path) => (statSync(join(folder, ".arthur", path)).isFile() ? `${path}: ${readFileSync(join(folder, ".arthur", path), "utf8")}` : path));

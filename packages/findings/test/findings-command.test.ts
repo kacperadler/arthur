@@ -125,7 +125,7 @@ test("in the shell: arthur findings, its usage, an unknown --project, and --help
 			`import { findings } from ${JSON.stringify(plugin)};\nexport default { plugins: [${plugins}{ name: "projects", setup(host) {\n\thost.provide("projects", () => [{ name: "demo", path: import.meta.dirname, prefix: "DM" }]);\n} }, { name: "orchestration", setup() {} }] };\n`,
 		);
 	config("findings(), ");
-	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 	arthur("ticket", "new", "One");
 	assert.equal(arthur("findings", "DM1").stdout, "DM0001: no findings (spec/features/DM0001-one/findings.md does not exist)\n");
 	const wrong = arthur("findings", "1", "2");

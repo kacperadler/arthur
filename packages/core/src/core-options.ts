@@ -30,7 +30,7 @@ const atLeastZero: Check = (value) =>
 // A check is called for a key left out too; a nested object left out is not walked.
 export const table: OptionTable = {
 	home: { about: "Arthur's home folder: job records, the event log, each plugin's state; relative to the config's folder", default: ".arthur", check: optional(text) },
-	envFile: { about: "The file of env values the config's ...Env options name; relative to the config's folder", default: ".env", check: optional(text) },
+	envFile: { about: "The file of env values the config's ...Env options name, outside every folder an agent works in; relative to the config's folder", default: "~/.config/arthur/.env ($XDG_CONFIG_HOME/arthur/.env when that is set)", check: optional(text) },
 	agent: { about: "The coding agent every job and the coordinator run", fields: { command: { about: "The agent's binary", default: "omp", check: optional(text) } } },
 	timeZone: {
 		about: "The time zone of every time of day in the config and of the clock every plugin shares",

@@ -197,7 +197,7 @@ test("arthur spawn --model a,b gives the list and prints why the model was picke
 } }] };
 `,
 	);
-	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 	const run = arthur("spawn", "Go.", "--model", "mac/qwen3,anthropic/opus");
 	assert.equal(run.status, 0, run.stderr);
 	assert.match(run.stderr, /^model: mac\/qwen3 unreachable; using anthropic\/opus$/m);

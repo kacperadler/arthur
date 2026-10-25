@@ -5,7 +5,7 @@ import { jobSlice } from "@arthur/core/testing";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { availableParallelism, tmpdir } from "node:os";
+import { availableParallelism, homedir, tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { after, test } from "node:test";
 
@@ -33,14 +33,14 @@ async function refusal(file: string): Promise<string> {
 	assert.fail(`${file} loaded, expected a refusal`);
 }
 
-test("a config without core options loads with every default filled", async () => {
+test("a config without core options loads with every default filled, the env file in the user's config folder, never beside the config", async (t) => {
 	const file = configFile("export default { plugins: [] };\n");
 	const config = await loadConfig(file);
 	assert.deepEqual(config, {
 		path: file,
 		core: {
 			home: join(dirname(file), ".arthur"),
-			envFile: join(dirname(file), ".env"),
+			envFile: join(process.env.XDG_CONFIG_HOME ?? "", "arthur", ".env"),
 			agent: { command: "omp" },
 			timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 			quietHours: undefined,
@@ -48,6 +48,13 @@ test("a config without core options loads with every default filled", async () =
 		},
 		plugins: [],
 	});
+	// Without XDG_CONFIG_HOME, set empty or not at all, it is the user's ~/.config.
+	const xdg = process.env.XDG_CONFIG_HOME ?? "";
+	t.after(() => void (process.env.XDG_CONFIG_HOME = xdg));
+	for (const unset of ["", undefined]) {
+		unset === undefined ? delete process.env.XDG_CONFIG_HOME : (process.env.XDG_CONFIG_HOME = unset);
+		assert.equal((await loadConfig(file)).core.envFile, join(homedir(), ".config", "arthur", ".env"), `XDG_CONFIG_HOME=${unset}`);
+	}
 });
 
 // Each default `table` writes as a value, by its path, parsed as JSON when it parses; `words` are the paths of those written as
@@ -67,9 +74,8 @@ test("each default the core's option table writes as a value is the one loadConf
 	const file = configFile("export default {};\n");
 	const { core } = await loadConfig(file);
 	const { jobs } = core;
-	assert.deepEqual(valueDefaults(table, ["timeZone", "quietHours", "jobs.cpu"]), {
+	assert.deepEqual(valueDefaults(table, ["envFile", "timeZone", "quietHours", "jobs.cpu"]), {
 		home: relative(dirname(file), core.home),
-		envFile: relative(dirname(file), core.envFile),
 		"agent.command": core.agent.command,
 		"jobs.timeoutMinutes": jobs.timeoutMinutes,
 		"jobs.budgetUsd": jobs.budgetUsd,

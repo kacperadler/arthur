@@ -4,8 +4,8 @@ import { type ApiError, type Bot, call } from "./bot-api.ts";
 import { type Message, parts } from "./media-in.ts";
 
 // One bot's long polling (spec/roadmap.md, entries 47 to 50): `getUpdates` waiting up to 30 s, each update confirmed by the next
-// call's `offset`. A message the owner wrote in the bot's chat (`from.id`, no `sender_chat`), at most 10 minutes old: a text
-// `/name ...` or `/name@<this bot> ...` is a phone command, routed to the host's registry with its channel, place and instance and
+// call's `offset`. A message the owner wrote in the bot's chat (`from.id`, no `sender_chat`), at most 10 minutes old: a text he did not
+// forward, `/name ...` or `/name@<this bot> ...`, is a phone command, routed to the host's registry with its channel, place and instance and
 // the reply sent back there (one to another bot is dropped); what any other holds becomes the parts of `message-received` `{ channel:
 // "telegram", parts, place?, instance? }` (media-in.ts), `instance` the name of a named bot (AR0211); an album, several messages, is
 // one, sent once a poll of 1 s brings no more of it, and the messages after it wait for it; any other kind of message gets a line
@@ -75,9 +75,9 @@ export async function poll(host: Host, bot: Bot, signal: AbortSignal, send: Send
 
 // `ours` says whether a command's `@name` is this bot; a username getMe did not give counts as this bot.
 async function receive(host: Host, bot: Bot, messages: readonly Message[], send: Send, signal: AbortSignal, ours: (to: string) => Promise<boolean>): Promise<void> {
-	const [{ message_thread_id: thread, is_topic_message: inTopic, text } = {}] = messages;
+	const [{ message_thread_id: thread, is_topic_message: inTopic, text, forward_origin: forwarded } = {}] = messages;
 	const from = { channel: "telegram", ...(inTopic === true && typeof thread === "number" ? { place: String(thread) } : {}), ...(bot.name === undefined ? {} : { instance: bot.name }) };
-	const command = messages.length === 1 && typeof text === "string" ? COMMAND.exec(text) : null;
+	const command = messages.length === 1 && typeof text === "string" && forwarded === undefined ? COMMAND.exec(text) : null;
 	if (command !== null) {
 		const [word, name, to] = command;
 		if (to !== undefined && !(await ours(to))) return;

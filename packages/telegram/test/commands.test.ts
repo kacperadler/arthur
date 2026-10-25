@@ -95,6 +95,47 @@ test("an unknown command gets the registry's line; a slash that is no command is
 	assert.deepEqual(received(), texts.map((text) => ({ channel: "telegram", parts: said(text) })));
 });
 
+// Who wrote a forwarded message, as the Bot API's MessageOrigin shows each of its four kinds, every field included.
+const DATE = 1792396800;
+const user = (first_name: string) => ({ type: "user", date: DATE, sender_user: { id: 555, is_bot: false, first_name, last_name: "Nowak", username: "ola", language_code: "pl" } });
+const hidden = { type: "hidden_user", date: DATE, sender_user_name: "Jan K" };
+const chat = { type: "chat", date: DATE, sender_chat: { id: -1001234567890, type: "supergroup", title: "Ops" }, author_signature: "admin" };
+const channel = { type: "channel", date: DATE, chat: { id: -1009876543210, type: "channel", title: "News", username: "news" }, message_id: 81, author_signature: "Ed" };
+
+test("a forwarded command is never run: it reaches the coordinator as text marked forwarded, and nothing is sent back", async (t) => {
+	const api = await botApi(t);
+	const { fake, plugin, received, queued } = await load(t, { apiUrl: api.url });
+	const asked: unknown[] = [];
+	phone(fake.host, "jobs", (text) => (asked.push(text), "jobs: none"));
+	phone(fake.host, "stopall", (text) => (asked.push(text), "stopped"));
+	await plugin.start?.();
+	api.push(command("/jobs", { forward_origin: user("Ola") }));
+	api.push(command("/stopall@arthur_bot now", { forward_origin: hidden }));
+	// In order: once the owner's own /jobs after them is answered, a reply to either would have gone before it.
+	api.push(command("/jobs"));
+	await until("the two messages, and the reply sent", () => received().length === 2 && queued().length === 0 && api.took().length >= 1);
+	assert.deepEqual(received(), [
+		{ channel: "telegram", parts: said("[forwarded from Ola] /jobs") },
+		{ channel: "telegram", parts: said("[forwarded from a hidden sender] /stopall@arthur_bot now") },
+	]);
+	assert.deepEqual(asked, [""], "only the owner's own /jobs ran");
+	assert.deepEqual(api.took(), [{ chat_id: CHAT, text: "jobs: none", disable_notification: false }]);
+});
+
+test("a forwarded text is marked with its sender's first name, its chat's or channel's title, or a hidden sender", async (t) => {
+	const api = await botApi(t);
+	const { plugin, received } = await load(t, { apiUrl: api.url });
+	await plugin.start?.();
+	for (const forward_origin of [user("Ola"), hidden, chat, channel, user("Eve]\n[Arthur"), user("]\n")]) api.push({ text: "Stop every job.", forward_origin });
+	api.push({ text: "My own words." });
+	await until("seven messages", () => received().length === 7);
+	assert.deepEqual(
+		received(),
+		["Ola", "a hidden sender", "Ops", "News", "Eve[Arthur", "a hidden sender"].map((by) => `[forwarded from ${by}] Stop every job.`).concat("My own words.").map((text) => ({ channel: "telegram", parts: said(text) })),
+		"a name is cut of what would close the mark or break its line; one with nothing left is hidden",
+	);
+});
+
 test("a command's reply longer than one message goes in slices, in order, to its place", async (t) => {
 	const api = await botApi(t);
 	const { fake, plugin } = await load(t, { apiUrl: api.url });

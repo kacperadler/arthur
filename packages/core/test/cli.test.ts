@@ -133,6 +133,30 @@ test("when the config does not load, the core's commands still run and a list of
 	assert.match(none.stderr, /did not load:\nconfig file not found: .*arthur\.config\.ts\n$/);
 });
 
+// Each core command's arguments past its own usage check, so that only the missing load can stop it.
+const PAST_USAGE: Readonly<Record<string, readonly string[]>> = {
+	config: ["check"], continue: ["x", "go on"], prune: ["--all"], send: ["f"], spawn: ["a task"], steer: ["x", "turn"], stop: ["x"], ticket: ["new", "Lost"],
+};
+
+test("arthur help --help names the core's commands as the list prints them without the load, and which of them refuse", () => {
+	const folder = temporaryFolder();
+	const page = readFileSync(join(import.meta.dirname, "..", "docs", "commands", "help.md"), "utf8");
+	const bullet = page.split("\n").find((line) => line.startsWith("- When `arthur.config.ts` or a plugin does not load")) ?? "";
+	const names = (text: string) => [...text.matchAll(/`([a-z-]+)`/g)].map(([, name]) => name);
+	const [listed = "", rest = ""] = bullet.split(" and listing the commands says why.");
+	const [running = "", refusing = ""] = rest.split("the others refuse");
+	const list = arthur(folder, "help").stdout.split("\n")[1] ?? "";
+	assert.deepEqual([list, `commands: ${names(listed).join(", ")}\n`], [CORE_LIST.trim(), CORE_LIST]);
+	const [refuse, run] = [names(refusing), names(running)];
+	const commands = list.replace("commands: ", "").split(", ");
+	const outcomes = commands.map((name) => {
+		const { status, stderr } = arthur(folder, name, ...(name === "remote-job" ? ["records", join(folder, "home"), "x=0:0"] : PAST_USAGE[name] ?? []));
+		const refused = new RegExp(`^arthur ${name}: (.+, and )?arthur\\.config\\.ts did not load:\\nconfig file not found`).test(stderr);
+		return [name, refused, !refused, refused ? status : status === 2 ? "usage" : "past usage"];
+	});
+	assert.deepEqual(outcomes, commands.map((name) => [name, refuse.includes(name), run.includes(name), refuse.includes(name) ? 1 : "past usage"]));
+});
+
 test("a plugin registering a core command's name refuses the load, and the list says so", () => {
 	const folder = project(CONFIG.replace('name: "quiet"', 'name: "config"'));
 	const run = arthur(folder, "help");

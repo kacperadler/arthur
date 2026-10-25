@@ -5,7 +5,7 @@ import { once } from "node:events";
 import { writeFileSync } from "node:fs";
 import { createServer, type ServerResponse } from "node:http";
 import { syncBuiltinESMExports } from "node:module";
-import type { AddressInfo } from "node:net";
+import net, { type AddressInfo, type LookupFunction, type TcpNetConnectOpts } from "node:net";
 import { join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -192,6 +192,36 @@ test("a redirect to a name that answers a public address, then loopback, never r
 	await until("the site down", () => events("uptime-down").length === 1);
 	assert.deepEqual(events("uptime-down"), [{ project: "acme", url, reason: `redirected to rebind.example:${inside.port}, a private address the config does not name`, since: START.toISOString() }]);
 	assert.deepEqual([inside.seen("/"), asked >= 4], [0, true]);
+});
+
+test("a hop to another host is judged by its own answer: its status, a status without a body, its text, the time limit; a bad port is refused before a connection", async (t) => {
+	const [site, inside] = [await server(t), await server(t)];
+	// public.example resolves to a public address, which net.createConnection, replaced in this process, connects to at
+	// 127.0.0.1 once the check's own lookup has allowed it: a hop to an outside host without one.
+	resolving(t, "public.example", () => [{ address: "203.0.113.5", family: 4 }]);
+	const [real, ports] = [net.createConnection, [] as number[]];
+	const local = (address: string) => (address === "203.0.113.5" ? "127.0.0.1" : address);
+	net.createConnection = ((options: TcpNetConnectOpts, listener?: () => void) => {
+		if (options.host !== "public.example") return real(options, listener);
+		ports.push(Number(options.port));
+		const lookup = options.lookup as LookupFunction;
+		return real({ ...options, lookup: (name, each, done) => lookup(name, each, (error, address, family) => done(error, typeof address === "string" ? local(address) : address.map((one) => ({ ...one, address: local(one.address) })), family)) }, listener);
+	}) as typeof real;
+	t.after(() => void (net.createConnection = real));
+	const paths = ["/500", "/204", "/304", "/text", "/hang"];
+	Object.assign(inside.answers, { "/500": broken, "/204": (response) => void response.writeHead(204).end(), "/304": (response) => void response.writeHead(304).end(), "/text": ok, "/hang": hang } satisfies Record<string, Answer>);
+	for (const path of paths) site.answers[path] = (response) => void response.writeHead(302, { location: `http://public.example:${inside.port}${path}` }).end();
+	site.answers["/port"] = (response) => void response.writeHead(302, { location: "http://public.example:25/" }).end();
+	const own = (path: string) => `http://localhost:${site.port}${path}`;
+	const expects: Record<string, number | string | undefined> = { "/204": 204, "/304": 304, "/text": "Welcome" };
+	const { events } = await started(t, { acme: [...paths, "/port"].map((path) => ({ url: own(path), expect: expects[path], everySeconds: 1 })) });
+	await until("three sites down", () => events("uptime-down").length === 3);
+	await until("two checks of each page that passes", () => ["/204", "/304", "/text"].every((path) => inside.seen(path) >= 2));
+	const down = Object.fromEntries((events("uptime-down") as { url: string; reason: string }[]).map(({ url, reason }) => [url, reason]));
+	assert.deepEqual(down, { [own("/500")]: "answered 500, expected a 2xx status", [own("/hang")]: "no answer within 1 s", [own("/port")]: "bad port" });
+	// Each request on a connection of its own (`agent: false`): no socket is kept, and none reused without its lookup.
+	const requests = paths.reduce((sum, path) => sum + inside.seen(path), 0);
+	assert.deepEqual([ports.includes(25), ports.filter((port) => port === inside.port).length >= requests], [false, true]);
 });
 
 test("each failure has its reason: a wrong status, the text missing, connection refused, a TLS error", async (t) => {

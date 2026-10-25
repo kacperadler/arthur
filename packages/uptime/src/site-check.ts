@@ -2,6 +2,7 @@ import { lookup } from "node:dns";
 import { get as plain, type IncomingMessage } from "node:http";
 import { get as secure } from "node:https";
 import { BlockList, type LookupFunction } from "node:net";
+import { BLOCKED_PORTS } from "./uptime-options.ts";
 
 // One check of one site (spec/roadmap.md, entry 98): a plain HTTP GET, at most 20 redirects followed, no model. `answered` says
 // whether the site gave an HTTP answer at all, which tells a site that is down from a machine that cannot reach anything.
@@ -27,6 +28,7 @@ export async function checkSite(url: string, expect: number | string | undefined
 			await response.body?.cancel();
 			at = new URL(response.headers.get("location") as string, at);
 			if (at.host !== named) await new Promise((ok, no) => guarded(at.hostname.replace(/^\[(.*)\]$/, "$1"), { all: true }, (error) => (error ? no(error) : ok(at))));
+			if (BLOCKED_PORTS.includes(at.port)) throw new Error("bad port"); // as fetch, which judged every hop before AR0424
 		}
 	} catch (error) {
 		return error === REFUSED ? { ok: false, reason: `redirected to ${at.host}, ${REFUSED.message}`, answered: true } : { ok: false, reason: failure(error, limitSeconds, signal.aborted), answered: false };

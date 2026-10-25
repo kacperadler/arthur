@@ -630,7 +630,11 @@ import { checkStructure } from "./structure.ts";
 // remove` there checked for the same keys): core 8 more (6081) for the refusal before the push and its comment, the prune's
 // refusal of a worktree whose config may name a clean filter and its comment, their import (remote-job.ts, git diff
 // --numstat +8 -1) and the push's comment (job-machine.ts, +2 -1). Nothing was cut.
-const BUDGETS = { core: 6081, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1317, github: 654, manage: 928, develop: 705, findings: 254 };
+// AR0386 (F2 of AR0353; its Done means: `ci` runs inside a job, `--rerun` refused there by the command itself): github 4 more
+// (658) for `inJob: true` and the refusal with its comment (github-ci.ts, git diff --numstat +5 -1, the import line rewritten
+// in place, the refusal kept on one line as the command's own `refuse`). Nothing in github read ARTHUR_JOB before, so nothing
+// was cut.
+const BUDGETS = { core: 6081, "core/testing": 349, projects: 486, orchestration: 2330, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1317, github: 658, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

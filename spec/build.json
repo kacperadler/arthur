@@ -3160,9 +3160,9 @@
   {
     "id": "AR0420",
     "title": "Forms of OLDPWD and pushd the guard still misreads: ${OLDPWD...} operators, readonly, local outside a function, pushd -n, OLDPWD+= before eval",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0420-forms-of-oldpwd-and-pushd-the-guard-still-misreads-oldpwd-operators-readonly/ticket.md",
-    "updated": "2026-10-25T19:59:55.255Z",
+    "updated": "2026-10-25T20:09:30.655Z",
     "after": [
       "AR0333"
     ]
@@ -3197,9 +3197,9 @@
   {
     "id": "AR0424",
     "title": "A redirect's host is resolved twice, so DNS rebinding still reaches a private address",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0424-a-redirect-s-host-is-resolved-twice-so-dns-rebinding-still-reaches-a-private/ticket.md",
-    "updated": "2026-10-25T19:45:47.746Z"
+    "updated": "2026-10-25T20:08:44.261Z"
   },
   {
     "id": "AR0425",

@@ -43,3 +43,4 @@ Out:
 
 ## Decisions
 - 2026-10-25: AR0406 approved; start its worker now; the owner: "AE-D3 - 1" (AR-D3)
+- 2026-10-25: AR0406 reviewed again with no budget limit, targeted tests only; merged --unreviewed if its report ends PASS; the owner: "AR-D4 - 2 -> but with no limit on budget" (AR-D4)

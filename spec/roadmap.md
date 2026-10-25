@@ -195,7 +195,7 @@ The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.m
 ### 20. Worktree guard and its shell parser
 
 - Package: core; an OMP extension loaded in every job.
-- Delivers: in every job, a file tool or bash command that writes into the main checkout, the home folder `.arthur/`, or another job's worktree is refused: redirects, writing commands, `git` writes, `cd` there, symlinks, `git stash`. Reading passes. The shell parser is its own file, shared with the env guard.
+- Delivers: in every job, a file tool or bash command that writes into the main checkout, the home folder `.arthur/`, or another job's worktree is refused: redirects, writing commands, `git` writes, `cd` there, symlinks, `git stash`. Reading passes. The shell parser is its own file, shared with the env guard. Since AR0376 the job's agent also runs in an OS sandbox (Landlock and seccomp, `packages/core/src/job-sandbox.ts`): it writes only to its worktree, its record, the Git folders its branch needs and `$TMPDIR`, has no Unix sockets, and a job where the sandbox cannot be set up logs `no sandbox: <why>`; the guard stays the mistake guard, the sandbox is the bound.
 - Done means: a table of commands, each refused or allowed. Edge cases: a relative path that climbs out of the worktree; a symlink inside the worktree that points out of it; `cd` into the main checkout followed by a write; a heredoc; a write into the job's own worktree passes.
 - Depends on: 19.
 - Size: a day.

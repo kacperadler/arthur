@@ -24,7 +24,7 @@ flowchart TD
     board[ticket board]
     events[event stream]
     clock[clock<br/>time zone, quiet hours]
-    guards[env guard<br/>worktree guard]
+    guards[env guard<br/>worktree guard<br/>job sandbox]
     kit[test kit<br/>fake host, fake agent]
     loader --> host
     host ~~~ runner ~~~ board ~~~ events ~~~ clock ~~~ guards ~~~ kit

@@ -207,7 +207,7 @@ flowchart TD
     clock[clock<br/>time zone, quiet hours]
     board[ticket board<br/>spec/build.json]
     prompts[prompt loader<br/>arthur roles]
-    guards[env guard<br/>worktree guard]
+    guards[env guard<br/>worktree guard<br/>job sandbox]
     runner[job runner<br/>spawn, limits, stop, steer<br/>state, prune, other machines]
     kit[test kit<br/>fake host, fake agent]
     options[option tables, arthur setup<br/>every option's meaning, each package's tools]

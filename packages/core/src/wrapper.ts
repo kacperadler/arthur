@@ -165,7 +165,6 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		mkdirSync(join(folder, "steer"), { recursive: true });
 		return closeSteers(join(folder, "steer"), String(process.pid), note);
 	});
-
 	let commits = "";
 	try {
 		if (branch !== "") commits = commitsSince(root, base, branch);
@@ -189,6 +188,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	const [state, said] = blocked === undefined ? (["ended", reason] as const) : (["blocked", blocked] as const);
 	record.end();
 	save("commits", commits === "" ? "" : `${commits}\n`);
+	rmSync(join(folder, "mcp"), { recursive: true, force: true }); // The role's MCP secrets, before the state: job-record.ts `writeMcp`.
 	note(`${state}: ${said}`);
 	guard(() =>
 		moveJob(home, id, bus, () => {

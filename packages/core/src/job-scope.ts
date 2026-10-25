@@ -1,5 +1,5 @@
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
-import { appendFileSync, closeSync, existsSync, openSync, readFileSync } from "node:fs";
+import { appendFileSync, closeSync, existsSync, openSync, readFileSync, rmSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import { basename, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -108,6 +108,7 @@ function end(home: string, job: Pick<Job, "id" | "kind" | "project">, why: strin
 	appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] ended: ${reason}\n`);
 	const files = { result: "", cost: "0.0000", "tool-calls": "0", activity: "", commits: "" };
 	for (const [name, text] of Object.entries(files)) write(folder, name, text);
+	rmSync(join(folder, "mcp"), { recursive: true, force: true });
 	moveJob(home, job.id, bus, () => ["ended", reason]);
 	bus.emit("core", "job-ended", { id: job.id, kind: job.kind, project: job.project, state: "ended", reason });
 	return why;

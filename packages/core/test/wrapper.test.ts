@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, rmSync, watch, writeFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, rmSync, statSync, watch, writeFileSync } from "node:fs";
+import { delimiter, dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -9,6 +9,7 @@ import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
+import type { Collect } from "../src/roles.ts";
 import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
@@ -16,9 +17,9 @@ const commit = (root: string, message: string) => git(root, "-c", "user.name=tes
 const RECORD = ["state", "reason", "pid", "log", "result", "cost", "tool-calls", "activity", "commits"];
 const EXTENSIONS = ["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((file) => ["-e", join(import.meta.dirname, "..", "src", file)]);
 
-// A repository `acme`, a home folder beside it, and a runner whose agent is `agent`; the plugin `delivery` owns the
-// read-only kind `review`.
-function setup(agent: string): { readonly root: string; readonly home: string; readonly jobs: JobRunner } {
+// A repository `acme`, a home folder beside it, and a runner whose agent is `agent` and whose plugins provide `collect`; the
+// plugin `delivery` owns the read-only kind `review`.
+function setup(agent: string, collect: Collect = () => []): { readonly root: string; readonly home: string; readonly jobs: JobRunner } {
 	const folder = temporaryFolder();
 	const root = join(folder, "acme");
 	mkdirSync(root);
@@ -28,7 +29,7 @@ function setup(agent: string): { readonly root: string; readonly home: string; r
 	commit(root, "first");
 	const home = join(folder, "home");
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
-	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), () => []);
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), collect);
 	writeFileSync(join(folder, "reviewer.md"), "# Reviewer\n");
 	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(join(folder, "reviewer.md")), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
@@ -199,6 +200,64 @@ test("an agent that cannot start: failed, naming why", async () => {
 	const reason = `the agent did not start: spawn ${missing} ENOENT`;
 	assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: `failed: ${reason}` });
 	assert.deepEqual([record.result, record.cost, record["tool-calls"]], ["", "0.0000", "0"]);
+});
+
+// Every role's MCP servers as orchestration answers them in `roles.model`, a secret filled in from `token()` at each answer.
+const withMcp = (token: () => string): Collect => (name) => (name === "roles.model" ? [{ mcp: { docs: { command: "docs-mcp", env: { TOKEN: token() } } } }] : []);
+
+test("a job's MCP secrets lie in its record only during a run: gone once it is ended, written again from the role's answer by a continue", async (t) => {
+	// The usual umask, so a `.mcp.json` written without its own mode 600 shows as 644 on any machine.
+	const umask = process.umask(0o022);
+	t.after(() => void process.umask(umask));
+	const gate = join(temporaryFolder(), "go");
+	const agent = fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] });
+	let token = "first-s3cret";
+	const { home, jobs } = setup(agent, withMcp(() => token));
+	const job = await jobs.spawn({ task: "Go." });
+	const [folder, secrets] = [join(home, "jobs", job.id), join(home, "jobs", job.id, "mcp", ".mcp.json")];
+	await until("the agent started", () => existsSync(join(dirname(agent), "starts.jsonl")) && starts(agent).length === 1);
+	assert.match(readFileSync(secrets, "utf8"), /"TOKEN": "first-s3cret"/);
+	writeFileSync(gate, "");
+	await ended(home, job.id);
+	assert.deepEqual([readFileSync(join(folder, "state"), "utf8"), existsSync(join(folder, "mcp"))], ["ended", false]);
+	token = "second-s3cret";
+	rmSync(gate);
+	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
+	await until("the agent resumed", () => starts(agent).length === 2);
+	assert.match(readFileSync(secrets, "utf8"), /"TOKEN": "second-s3cret"/, "the role's answer at the continue, not the spawn's");
+	assert.equal(statSync(secrets).mode & 0o777, 0o600);
+	assert.deepEqual(starts(agent)[1]?.args.slice(7, 11), ["--plugin-dir", join(folder, "mcp"), "--config", join(folder, "mcp.yml")]);
+	writeFileSync(gate, "");
+	await until("the second job-ended", () => readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2);
+	assert.equal(existsSync(join(folder, "mcp")), false);
+});
+
+test("a continue of a job whose kind no plugin registers now starts without MCP servers", async () => {
+	const agent = fakeAgent({ steps: [{ message: "Done." }] });
+	const { root, home, jobs } = setup(agent, withMcp(() => "s3cret"));
+	jobs.registerKind("delivery", { name: "fixer", readOnly: false, role: "reviewer" });
+	const job = await jobs.spawn({ task: "Go.", kind: "fixer" });
+	await ended(home, job.id);
+	// The next load, without the plugin that registered the kind.
+	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
+	const next = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), withMcp(() => "s3cret"));
+	assert.equal(await next.continue(job.id, "Go on."), undefined);
+	await until("the second job-ended", () => readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2);
+	assert.deepEqual(starts(agent).map((start) => start.args.includes("--plugin-dir")), [true, false]);
+});
+
+test("a spawn whose wrapper does not start leaves no MCP secrets in the ended record", async (t) => {
+	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }), withMcp(() => "s3cret"));
+	// A `systemctl` that sets any slice and a `systemd-run` that refuses the scope, first on PATH.
+	const bin = temporaryFolder();
+	writeFileSync(join(bin, "systemctl"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+	writeFileSync(join(bin, "systemd-run"), "#!/bin/sh\necho 'Failed to start transient scope unit: Access denied' >&2\nexit 1\n", { mode: 0o755 });
+	const saved = process.env.PATH;
+	t.after(() => void (process.env.PATH = saved));
+	process.env.PATH = [bin, saved].join(delimiter);
+	const job = await jobs.spawn({ task: "Go." });
+	assert.equal(job.failed, "systemd-run: Failed to start transient scope unit: Access denied");
+	assert.deepEqual([readFileSync(join(home, "jobs", job.id, "state"), "utf8"), existsSync(join(home, "jobs", job.id, "mcp"))], ["ended", false]);
 });
 
 test("lines longer than a pipe buffer reach the log and the result whole", async () => {

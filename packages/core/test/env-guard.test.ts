@@ -62,6 +62,13 @@ const PROJECT: ReadonlyArray<readonly [string, Record<string, unknown>, string |
 	["edit", { input: "[notes.txt#1A2B]\nMV .env" }, ".env"],
 	["eval", { code: "print(open('.e''nv').read())" }, ".env"],
 	["eval", { code: "print(open('\\x2eenv').read())" }, ".env"],
+	// MCP servers' secrets: a job record's `mcp/.mcp.json` (AR0337), and the coordinator's.
+	["bash", { command: "cat ~/.arthur/jobs/2026-10-25-worker-0000000a/mcp/.mcp.json" }, "~/.arthur/jobs/2026-10-25-worker-0000000a/mcp/.mcp.json"],
+	["bash", { command: "cp .MCP.JSON.bak /tmp/x" }, ".MCP.JSON.bak"],
+	["bash", { command: "cat mcp/.m*.json" }, ".mcp.json (through the glob .m*.json)"],
+	["bash", { command: "cat mcp/.mc?.json.bak" }, ".mcp.json.bak (through the glob .mc?.json.bak)"],
+	["read", { path: ".arthur/orchestration/mcp/.mcp.json" }, ".arthur/orchestration/mcp/.mcp.json"],
+	["eval", { code: "print(open('.mcp''.json').read())" }, ".mcp.json"],
 	["bash", { command: "cat .env.example" }, undefined],
 	["bash", { command: "cat .envrc" }, undefined],
 	["bash", { command: "ls .venv src/env.ts" }, undefined],
@@ -77,6 +84,8 @@ const PROJECT: ReadonlyArray<readonly [string, Record<string, unknown>, string |
 	["edit", { input: "[notes.txt#1A2B]\nPUT 1.=1:\n+cat .env" }, undefined],
 	["read", { path: "notes.txt", i: "Reading .env" }, undefined],
 	["bash", { command: "ls", i: "Checking .env" }, undefined],
+	["bash", { command: "cat mcp.json src/servers.mcp.json .mcp.jsonc" }, undefined],
+	["bash", { command: "cat .mc?.yml" }, undefined],
 	["todo_write", { text: "read .env" }, undefined],
 ];
 

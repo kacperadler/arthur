@@ -42,3 +42,4 @@ Out:
 - Loosening the sandbox beyond what the lock needs.
 
 ## Decisions
+- 2026-10-25: AR0406 approved; start its worker now; the owner: "AE-D3 - 1" (AR-D3)

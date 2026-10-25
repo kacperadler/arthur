@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/worktree-guard.ts:101`
 - What: the guard reads a function's body where it is defined, not where it is called. Before this ticket `local` counted as an assignment there, so `f() { local OLDPWD=<main>; cd -; rm README.md; }; f` was refused by chance. Now `local` is dropped, as bash refuses it outside a function, and that command passes [INFERENCE: from the lines, not run]. The ticket's Scope leaves functions to a later ticket.
 - Suggestion: the functions ticket follows a body at its call, with `local` and `declare` scoped to it; until then, refusing `local OLDPWD` inside `{ … }` as unknown would be enough.
-- Status: fixed in d1914e85
+- Status: fixed in af1f4838 (AR-D21: a `local` naming OLDPWD makes it unknown wherever it stands; d1914e85's `{ }` count was undone by review 2)
 
 ## F2. `declare -n OLDPWD=name` and `pushd -n -` are not followed
 

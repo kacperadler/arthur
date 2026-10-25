@@ -11,4 +11,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/src/delivery.ts:52` (`refusal` gets no project), `:75` (the PASS push takes the review job's project)
 - What: `refusal` now requires the task `reviewTask` builds for the worker, but not the spawn's project. `arthur spawn --kind review --project <other> '<that exact task>'` passes delivery's check when the other project's HEAD holds the ticket file [INFERENCE: read from the lines, not run]. Its prepare checks out the same sha, so the PASS still rests on the code that merges; but the PASS's `github.push` names the other project, where the branch is not.
 - Suggestion: pass `project` from `beforeSpawn` into `refusal` and refuse a project other than the worker's, with a test that needs a second project repository in `review.test.ts`'s `load`. Out: anything about who may spawn a review.
-- Status: open
+- Status: ticket AR0431
+
+## F2. Every reason of `worker()` and `branchOf` becomes the one refusal
+
+- Kind: ux
+- Found by: 2026-10-25-review-d6ecda42 (reviewer, non-blocking note), 2026-10-25
+- Where: `packages/delivery/src/delivery.ts:125-129`
+- What: the empty `catch {}` hides "in a run" and "not in <root>"; `arthur review` still prints them.
+- Status: dropped (the ticket asked for one message; `arthur review` keeps the reasons)

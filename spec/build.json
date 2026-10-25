@@ -2607,9 +2607,9 @@
   {
     "id": "AR0341",
     "title": "A blocked job's question goes to the phone as written, while the decision log redacts it",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0341-a-blocked-job-s-question-goes-to-the-phone-as-written-while-the-decision-log-redacts-it/ticket.md",
-    "updated": "2026-10-25T20:36:28.046Z",
+    "updated": "2026-10-25T20:44:18.842Z",
     "after": [
       "AR0340"
     ]
@@ -2746,9 +2746,9 @@
   {
     "id": "AR0357",
     "title": "The review kind takes any task with the three head lines, so a PASS can rest on a task nobody built from the branch (AR0311 F6, confirmed)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0357-the-review-kind-takes-any-task-with-the-three-head-lines-so-a-pass-can-rest-on-a-task-nobody-built-from-the-branch-ar0311-f6-confirmed/ticket.md",
-    "updated": "2026-10-25T20:39:26.629Z"
+    "updated": "2026-10-25T20:44:10.626Z"
   },
   {
     "id": "AR0358",
@@ -3164,7 +3164,7 @@
     "path": "spec/features/AR0402-security-review-of-our-own-code-part-1-secrets-file-permissions-and-processes/ticket.md",
     "updated": "2026-10-25T10:18:08.326Z",
     "after": [
-      "AR0355",
+      "AR0431",
       "AR0350",
       "AR0428"
     ]
@@ -3176,7 +3176,7 @@
     "path": "spec/features/AR0403-security-review-of-our-own-code-part-2-injection-into-shell-git-ssh-and-tmux-and-prompt-injection/ticket.md",
     "updated": "2026-10-25T10:18:08.525Z",
     "after": [
-      "AR0355",
+      "AR0431",
       "AR0350",
       "AR0428"
     ]
@@ -3188,7 +3188,7 @@
     "path": "spec/features/AR0404-security-review-of-our-own-code-part-3-channels-merge-and-delivery/ticket.md",
     "updated": "2026-10-25T10:18:08.725Z",
     "after": [
-      "AR0355",
+      "AR0431",
       "AR0350",
       "AR0428"
     ]
@@ -3200,7 +3200,7 @@
     "path": "spec/features/AR0405-security-review-of-our-own-code-part-4-other-machines-network-and-dependencies/ticket.md",
     "updated": "2026-10-25T10:18:08.925Z",
     "after": [
-      "AR0355",
+      "AR0431",
       "AR0350",
       "AR0428"
     ]
@@ -3431,5 +3431,15 @@
     "status": "planning",
     "path": "spec/features/AR0430-declare-n-oldpwd-name-and-pushd-n-are-not-followed/ticket.md",
     "updated": "2026-10-25T20:30:20.606Z"
+  },
+  {
+    "id": "AR0431",
+    "title": "A review's project is not checked against its worker's",
+    "status": "planning",
+    "path": "spec/features/AR0431-a-review-s-project-is-not-checked-against-its-worker-s/ticket.md",
+    "updated": "2026-10-25T20:44:10.612Z",
+    "after": [
+      "AR0355"
+    ]
   }
 ]

@@ -5,7 +5,7 @@ const NAME = /KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|AUTH/i;
 const REDACTED = "[redacted]";
 
 export function redact(text: string, secrets: readonly string[]): string {
-	const values = Object.entries(process.env).flatMap(([name, value]) => (NAME.test(name) && value !== undefined ? [value] : [])).concat(secrets).filter((value) => value.length >= 8);
+	const values = Object.entries(process.env).flatMap(([name, value]) => (NAME.test(name) && value !== undefined ? [value] : [])).concat(secrets).filter((value) => value.length >= 8).sort((a, b) => b.length - a.length);
 	return values
 		.reduce((said, value) => said.replaceAll(value, REDACTED), text)
 		.replace(/\bBearer\s+\S+/gi, `Bearer ${REDACTED}`)

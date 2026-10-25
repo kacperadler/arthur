@@ -364,15 +364,15 @@ test("a key, a job id and a commit hash in the owner's answer are redacted in th
 
 test("a value of the env file, which the process's environment never holds, is redacted in every text the log keeps; the wake still finds the job's question", async (t) => {
 	const secret = "correct-horse-battery";
-	// A value under 8 characters is no secret: `Drop` stays.
-	const { fake, decision, log, blocked, file } = await setup(t, { ARTHUR_ORCHESTRATION_PASS: secret, ARTHUR_ORCHESTRATION_WORD: "Drop" });
+	// A value of 8 characters is a secret, one of 7 is not (`seventh`, `Drop` stay); a value that starts another is replaced after it.
+	const { fake, decision, log, blocked, file } = await setup(t, { ARTHUR_ORCHESTRATION_PASS: secret, ARTHUR_ORCHESTRATION_WORD: "Drop", ARTHUR_ORCHESTRATION_SHORT: "abcdefgh", ARTHUR_ORCHESTRATION_LONG: "abcdefgh-longer-tail", ARTHUR_ORCHESTRATION_SEVEN: "seventh" });
 	assert.ok(!Object.values(process.env).includes(secret));
 	await backed(decision);
 	await decision(...PROPOSE);
 	await decision("answer", "AC-D4", ...APPROVE, "yes");
 	await decision("ask", "--kind", "question", "--question", `Use ${secret}?`, "--option", `keep ${secret}`, "--recommend", `rotate ${secret}`);
 	await decision("answer", "AC-D5", "--decided", `Rotate ${secret}`, `yes, ${secret}`);
-	await decision("ask", "--kind", "question", "--question", "Drop it?");
+	await decision("ask", "--kind", "question", "--question", "Drop abcdefgh-longer-tail, abcdefgh, seventh?");
 	await decision("close", "AC-D6", `moot, ${secret}`);
 	blocked(JOB, `May I print ${secret}?`);
 	assert.deepEqual(await decision("class", "revoke", "AC-D4", `stop, ${secret}`), [0, "AC-D4 revoked: its questions go to the owner again"]);
@@ -381,7 +381,7 @@ test("a value of the env file, which the process's environment never holds, is r
 	assert.deepEqual(JSON.parse(JSON.stringify(texts)), [
 		{ record: "ask", question: "Use [redacted]?", options: ["keep [redacted]"], recommend: "rotate [redacted]" },
 		{ record: "answer", decided: "Rotate [redacted]", words: "yes, [redacted]" },
-		{ record: "ask", question: "Drop it?", options: [] },
+		{ record: "ask", question: "Drop [redacted], [redacted], seventh?", options: [] },
 		{ record: "close", reason: "moot, [redacted]" },
 		{ record: "ask", question: "May I print [redacted]?", options: [] },
 		{ record: "revoke", words: "stop, [redacted]" },

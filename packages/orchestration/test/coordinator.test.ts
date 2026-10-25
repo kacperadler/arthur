@@ -11,6 +11,7 @@ import { supervise } from "../src/coordinator.ts";
 import { coordinatorOptions } from "../src/orchestration-options.ts";
 import { type OrchestrationOptions, orchestration } from "../src/orchestration.ts";
 import { endCoordinator } from "./coordinator-end.ts";
+import { NO_UNIX_SOCKET } from "./unix-socket.ts";
 
 const ENV_GUARD = fileURLToPath(import.meta.resolve("@arthur/core/env-guard"));
 const INBOX = fileURLToPath(new URL("../src/inbox-extension.ts", import.meta.url));
@@ -69,7 +70,7 @@ function waiting(steps: AgentRun["steps"] = []): { agent: string; release: () =>
 	return { agent, release: () => writeFileSync(join(folder, "release"), "") };
 }
 
-test("the coordinator is one interactive omp in its tmux session, with --continue, its model, thinking and quick model, the env guard and its context", async (t) => {
+test("the coordinator is one interactive omp in its tmux session, with --continue, its model, thinking and quick model, the env guard and its context", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const { agent, release } = waiting();
 	t.after(release);
 	const { fake, plugin, socket, starts } = await load(t, agent, { model: "anthropic/claude-opus-5-5", thinking: "high" }, undefined, { quick: { model: "anthropic/claude-haiku-5-5" } });
@@ -93,7 +94,7 @@ test("the coordinator is one interactive omp in its tmux session, with --continu
 	assert.equal(starts().length, 1, "nothing starts it after arthur run stopped");
 });
 
-test("another plugin's coordinator.extension loads after orchestration's own, with its variables; an answer of another shape is left out, named", async (t) => {
+test("another plugin's coordinator.extension loads after orchestration's own, with its variables; an answer of another shape is left out, named", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const { agent, release } = waiting();
 	t.after(release);
 	const extension = join(temporaryFolder(), "session-extension.ts");
@@ -116,7 +117,7 @@ test("another plugin's coordinator.extension loads after orchestration's own, wi
 	);
 });
 
-test("the coordinator gets its MCP servers through --plugin-dir, its own list over all; with none its folder is removed and no flag is added", async (t) => {
+test("the coordinator gets its MCP servers through --plugin-dir, its own list over all; with none its folder is removed and no flag is added", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const { agent, release } = waiting();
 	t.after(release);
 	const web = { url: "https://example.com/mcp", headers: { Authorization: { valueEnv: "ARTHUR_ORCHESTRATION_WEB_TOKEN" } } };
@@ -137,7 +138,7 @@ test("the coordinator gets its MCP servers through --plugin-dir, its own list ov
 	assert.deepEqual([existsSync(folder), starts()[1]?.args.includes("--plugin-dir")], [false, false]);
 });
 
-test("a coordinator that ends is started again after restartDelaySeconds, and one crashing in a loop never faster", async (t) => {
+test("a coordinator that ends is started again after restartDelaySeconds, and one crashing in a loop never faster", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const agent = fakeAgent({ steps: [{ stderr: "crash" }], exitCode: 1 });
 	const { plugin, out, starts } = await load(t, agent, { restartDelaySeconds: 1 });
 	await plugin.start?.();
@@ -149,7 +150,7 @@ test("a coordinator that ends is started again after restartDelaySeconds, and on
 	assert.ok(out.some((line) => line.text === "orchestration: the coordinator ended; starting it again in 1 s"));
 });
 
-test("arthur run's start sends the notice of a job's question that a crash left unsent (job-states.test.ts has its cases)", async (t) => {
+test("arthur run's start sends the notice of a job's question that a crash left unsent (job-states.test.ts has its cases)", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const { agent, release } = waiting();
 	t.after(release);
 	const { fake, plugin, starts } = await load(t, agent);
@@ -165,7 +166,7 @@ test("arthur run's start sends the notice of a job's question that a crash left 
 	assert.deepEqual(fake.emitted.filter((each) => each.name === "notice").map((each) => each.data), [{ text: `${id} asks: May I?`, blocked: id }], "no project list: no decision");
 });
 
-test("coordinator.restart ends the session; the next start is a fresh conversation after fresh: true, once, and goes on with --continue after fresh: false", async (t) => {
+test("coordinator.restart ends the session; the next start is a fresh conversation after fresh: true, once, and goes on with --continue after fresh: false", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const { agent, release } = waiting();
 	t.after(release);
 	const { fake, plugin, out, starts } = await load(t, agent);
@@ -184,7 +185,7 @@ test("coordinator.restart ends the session; the next start is a fresh conversati
 	assert.equal(starts().length, 3, "a refused call ends nothing");
 });
 
-test("a previous omp still alive after exitWaitSeconds refuses the start, logged, and the start is tried again until it exits", async (t) => {
+test("a previous omp still alive after exitWaitSeconds refuses the start, logged, and the start is tried again until it exits", { skip: NO_UNIX_SOCKET }, async (t) => {
 	// The first start ignores the hangup tmux sends when its session is killed, and stays until `release`.
 	const folder = temporaryFolder();
 	const agent = join(folder, "omp");
@@ -211,7 +212,7 @@ test("a previous omp still alive after exitWaitSeconds refuses the start, logged
 	assert.equal(spawnSync("kill", ["-0", String(first?.pid)]).status, 1, "the previous omp had exited");
 });
 
-test("arthur coordinator stop ends the session and keeps it stopped until arthur run starts again; attach then says so", async (t) => {
+test("arthur coordinator stop ends the session and keeps it stopped until arthur run starts again; attach then says so", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const { agent, release } = waiting();
 	t.after(release);
 	const { fake, plugin, socket, out, err, starts } = await load(t, agent, { tmux: { socket: `arthur-test-${process.pid}` } });
@@ -249,7 +250,7 @@ test("arthur attach with no session says so; wrong usage of either command exits
 		assert.deepEqual(await command(fake, "coordinator", args, lines), { code: 2, out: [], err: ["usage: arthur coordinator stop|context"] });
 });
 
-test("arthur coordinator stop is refused while a job runs, naming it, and the coordinator goes on", async (t) => {
+test("arthur coordinator stop is refused while a job runs, naming it, and the coordinator goes on", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const root = temporaryFolder();
 	const git = (...args: string[]) => execFileSync("git", ["-c", "user.name=test", "-c", "user.email=test@example.com", ...args], { cwd: root });
 	git("init", "--quiet", "--initial-branch=main");
@@ -275,7 +276,7 @@ test("arthur coordinator stop is refused while a job runs, naming it, and the co
 	assert.equal((await command(fake, "coordinator", ["stop"], { out, err })).code, 0);
 });
 
-test("a coordinator tool call naming a secrets file is refused with the env guard's line", async (t) => {
+test("a coordinator tool call naming a secrets file is refused with the env guard's line", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const { agent, release } = waiting([{ tool: "bash", args: { command: "cat .env" }, output: "SECRET=1" }]);
 	t.after(release);
 	const { plugin, socket, starts } = await load(t, agent);
@@ -289,7 +290,7 @@ test("a coordinator tool call naming a secrets file is refused with the env guar
 	assert.deepEqual([end.result?.content?.[0]?.text, end.isError], [refusal, true]);
 });
 
-test("arthur attach puts the terminal in the coordinator's session until it detaches", async (t) => {
+test("arthur attach puts the terminal in the coordinator's session until it detaches", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const folder = temporaryFolder();
 	const socket = join(folder, "tmux.sock");
 	t.after(() => tmux(socket, "kill-server"));
@@ -307,7 +308,7 @@ test("arthur attach puts the terminal in the coordinator's session until it deta
 });
 
 // AR0296: a coordinator test's end leaves no tmux server and no fake agent running after npm test, also when it failed.
-test("a test's end stops its supervisor before it kills the tmux server, and kills that server also when the stop failed", async (t) => {
+test("a test's end stops its supervisor before it kills the tmux server, and kills that server also when the stop failed", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const { agent, release } = waiting();
 	t.after(release);
 	process.env.PATH = `${dirname(agent)}${delimiter}${PATH}`;

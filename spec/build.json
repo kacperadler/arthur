@@ -2395,7 +2395,7 @@
     "title": "Security audit of Arthur before the switch",
     "status": "dropped",
     "path": "spec/features/AR0311-security-audit-of-arthur-before-the-switch/ticket.md",
-    "updated": "2026-10-23T13:59:16.701Z"
+    "updated": "2026-10-25T10:18:09.129Z"
   },
   {
     "id": "AR0312",
@@ -3029,5 +3029,33 @@
     "status": "planned",
     "path": "spec/features/AR0401-inside-a-sandboxed-job-the-orchestration-tests-that-start-a-tmux-server-fail/ticket.md",
     "updated": "2026-10-25T09:43:12.583Z"
+  },
+  {
+    "id": "AR0402",
+    "title": "Security review of our own code, part 1: secrets, file permissions and processes",
+    "status": "planned",
+    "path": "spec/features/AR0402-security-review-of-our-own-code-part-1-secrets-file-permissions-and-processes/ticket.md",
+    "updated": "2026-10-25T10:18:08.326Z"
+  },
+  {
+    "id": "AR0403",
+    "title": "Security review of our own code, part 2: injection into shell, git, ssh and tmux, and prompt injection",
+    "status": "planned",
+    "path": "spec/features/AR0403-security-review-of-our-own-code-part-2-injection-into-shell-git-ssh-and-tmux-and-prompt-injection/ticket.md",
+    "updated": "2026-10-25T10:18:08.525Z"
+  },
+  {
+    "id": "AR0404",
+    "title": "Security review of our own code, part 3: channels, merge and delivery",
+    "status": "planned",
+    "path": "spec/features/AR0404-security-review-of-our-own-code-part-3-channels-merge-and-delivery/ticket.md",
+    "updated": "2026-10-25T10:18:08.725Z"
+  },
+  {
+    "id": "AR0405",
+    "title": "Security review of our own code, part 4: other machines, network and dependencies",
+    "status": "planned",
+    "path": "spec/features/AR0405-security-review-of-our-own-code-part-4-other-machines-network-and-dependencies/ticket.md",
+    "updated": "2026-10-25T10:18:08.925Z"
   }
 ]

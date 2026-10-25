@@ -17,10 +17,11 @@ const TICKET = `${FOLDER}/ticket.md`;
 const OTHER = "spec/features/AC0002-other/ticket.md";
 const PROCEDURE = readFileSync(new URL("../roles/coordinator/review-limit.md", import.meta.url), "utf8").trim();
 
-// The repository `acme` (prefix AC): ticket AC0001, labelled os=macos, and AC0002, both planned; delivery set up on the fake
-// host with its project list, and with `start` started as `arthur run` starts it, so it hands a FAIL back. `worker()` runs a
-// worker on AC0001 and commits a file on its branch, as a worker would; `review(message, ...args)` runs `arthur review` with
-// the fake agent playing a reviewer whose final message is `message`.
+// The repository `acme` (prefix AC): ticket AC0001, labelled os=macos, and AC0002, both planned; the repository `beta` (prefix
+// BE), whose HEAD holds AC0001's ticket file and no board entry; delivery set up on the fake host with its project list, and
+// with `start` started as `arthur run` starts it, so it hands a FAIL back. `worker()` runs a worker on AC0001 and commits a
+// file on its branch, as a worker would; `review(message, ...args)` runs `arthur review` with the fake agent playing a
+// reviewer whose final message is `message`.
 async function load(t: TestContext, { start = false } = {}) {
 	const root = join(temporaryFolder(), "acme");
 	for (const [path, json] of [[TICKET, '{ "id": "AC0001", "requires": { "os": "macos" } }'], [OTHER, '{ "id": "AC0002" }']] as const) {
@@ -33,6 +34,13 @@ async function load(t: TestContext, { start = false } = {}) {
 	git(root, "init", "--quiet", "--initial-branch=main");
 	git(root, "add", "--all");
 	git(root, "commit", "--quiet", "-m", "first");
+	const other = join(dirname(root), "beta");
+	mkdirSync(join(other, FOLDER), { recursive: true });
+	writeFileSync(join(other, TICKET), readFileSync(join(root, TICKET)));
+	writeFileSync(join(other, "spec/build.json"), "[]");
+	git(other, "init", "--quiet", "--initial-branch=main");
+	git(other, "add", "--all");
+	git(other, "commit", "--quiet", "-m", "first");
 	t.after(() => {
 		process.env.PATH = PATH;
 	});
@@ -41,7 +49,7 @@ async function load(t: TestContext, { start = false } = {}) {
 		process.env.PATH = `${dirname(fakeAgent(run))}${delimiter}${process.env.PATH}`;
 	};
 	const fake = fakeHost({ name: "delivery", root });
-	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC" }]);
+	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC" }, { name: "beta", path: other, prefix: "BE" }]);
 	const plugin = delivery();
 	await fake.setup(plugin);
 	if (start) await plugin.start?.();
@@ -81,7 +89,7 @@ async function load(t: TestContext, { start = false } = {}) {
 		const record: unknown = existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : undefined;
 		return typeof record === "object" && record !== null && "step" in record ? record.step : undefined;
 	};
-	return { root, fake, git, worker, review, status, home, state, ended, agent, field, step, plugin };
+	return { root, other, fake, git, worker, review, status, home, state, ended, agent, field, step, plugin };
 }
 
 async function until(what: string, holds: () => boolean) {
@@ -299,6 +307,22 @@ test("a review's task is only what arthur review builds for an ended worker at i
 	const started = await fake.host.jobs.spawn({ task: built(), kind: "review" });
 	await until("the review's end", () => state(started.id) === "ended");
 	assert.equal(git(readFileSync(join(home, "jobs", started.id, "worktree"), "utf8"), "rev-parse", "HEAD"), tip, "the review's checkout is the new tip");
+});
+
+test("a review is refused in a project other than its worker's, though that project's HEAD holds the ticket and the tip, and starts in the worker's", async (t) => {
+	const { fake, git, root, other, worker, agent, state, home, field } = await load(t);
+	const job = await worker();
+	git(other, "fetch", "--quiet", root, job.branch);
+	const { task } = reviewTask(fake.host, workerOf(fake.host, job.id), undefined);
+	const jobs = readdirSync(join(home, "jobs")).length;
+	await assert.rejects(fake.host.jobs.spawn({ task, kind: "review", project: "beta" }), {
+		message: "refused by delivery: a review's task is what arthur review writes; spawn it with arthur review <worker job>",
+	});
+	assert.equal(readdirSync(join(home, "jobs")).length, jobs, "no record for a refused review");
+	agent({ steps: [{ message: "Clean.\n\nPASS" }] });
+	const started = await fake.host.jobs.spawn({ task, kind: "review", project: "acme" });
+	await until("the review's end", () => state(started.id) === "ended");
+	assert.equal(field(started.id, "project"), "acme");
 });
 
 const reviews = (fake: { readonly host: { readonly jobs: { list(): readonly { readonly id: string; readonly kind: string }[] } } }) =>

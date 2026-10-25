@@ -1,16 +1,17 @@
 import { closeSync, constants, openSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve, sep } from "node:path";
+import { linkedFolders, linkName } from "./git-link.ts";
 import { gitCall } from "./git-writes.ts";
 import { declaredPlace, jobPlace, type Place, real } from "./job-place.ts";
 import { type Command, type Item, literal, shellCommands } from "./shell-words.ts";
 
 // The worktree guard (spec/roadmap.md, entry 20): an OMP extension the wrapper loads into every job with `-e`, beside the env
 // guard, that refuses a tool call writing into the main checkout, the home folder, another job's worktree, any project's
-// checkout or job worktree, Arthur's install, config folder and env file, or the user's `~/.ssh`, `~/.config/systemd` and
-// `~/.gitconfig`, before the tool runs. `ARTHUR_JOB` names the job's record, which says where they are, the other projects
-// as declared now (job-place.ts); the home folder holds the record, and a project's jobs' worktrees sit in
-// `.arthur-worktrees` beside its checkout. Reading passes everywhere; writing anywhere else (the job's own worktree, /tmp)
-// passes. Without `ARTHUR_JOB` (not in a job) it refuses nothing.
+// checkout or job worktree, Arthur's install, config folder and env file, or the user's `~/.ssh`, `~/.config/systemd` and Git
+// config (job-place.ts), before the tool runs. `ARTHUR_JOB` names the job's record, which says where they are, the other
+// projects as declared now; the home folder holds the record, and a project's jobs' worktrees sit in `.arthur-worktrees`
+// beside its checkout. Reading passes everywhere; writing anywhere else (the job's own worktree, /tmp) passes. Without
+// `ARTHUR_JOB` (not in a job) it refuses nothing.
 
 type Verdict = { block: true; reason: string } | undefined;
 type ExtensionApi = { on(event: "tool_call", handler: (event: { readonly toolName: string; readonly input: Readonly<Record<string, unknown>> }) => Verdict): void };
@@ -28,20 +29,21 @@ const SHELLS = ["bash", "sh", "zsh", "dash", "ksh"];
 const WRITES = ["mv", "rm", "rmdir", "touch", "mkdir", "truncate", "chmod", "chown", "chgrp", "unlink", "shred", "patch", "tee", "sponge"];
 const COPIES = ["cp", "install", "rsync", "scp"];
 const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save a patch instead (git diff > /tmp/<name>.patch, then git apply /tmp/<name>.patch)";
+const UNSEEN = "arthur: refused: this git call reads config the guard does not (a shell alias, an include, --config-env, GIT_CONFIG*, HOME or XDG_CONFIG_HOME set for it), or writes an alias or include that later git calls would run unseen; run the command itself instead";
 
 const inside = (path: string, folder: string): boolean => path === folder || path.startsWith(folder.endsWith(sep) ? folder : folder + sep);
 
 // The line that refuses writing `path` (absolute, resolved), or undefined when it is not a guarded place. Of nested places
-// (a project's checkout inside another's, the home folder inside the main checkout) the innermost names it. The worktree's
-// `.git` file is its link to the repository: rewritten, it makes the worktree the main checkout's.
-function refusal(place: Place, path: string, shown = path): string | undefined {
+// (a project's checkout inside another's, the job's own worktree, no place, in the jobs' folder) the innermost names it.
+// The worktree's `.git` file is its link to the repository, as is any path `named` `.git` or `commondir` (git-link.ts).
+function refusal(place: Place, path: string, shown = path, named = true): string | undefined {
 	const link = join(place.worktree, ".git");
-	if (inside(path, place.worktree) && !inside(path, link)) return undefined;
-	const places: (readonly [string, string])[] = [[place.home, "Arthur's home folder"], [place.worktrees, "another job's worktree"], [place.root, "the main checkout"], [link, "the main checkout"]];
+	const linking = named && (linkName(path) || linkName(shown)) ? `arthur: refused: this call writes ${shown}, which Git reads as a link to a repository (a .git or commondir) and so may make its folder a checkout of main; make or remove a repository's folder with git init, git clone or rm -r instead` : undefined;
+	const places: (readonly [string, string])[] = [[place.worktree, ""], [place.home, "Arthur's home folder"], [place.worktrees, "another job's worktree"], [place.root, "the main checkout"], [link, "the main checkout"]];
 	for (const other of place.others) places.push([other.worktrees, `a job worktree of project ${other.name}`], [other.root, `the main checkout of project ${other.name}`]);
 	for (const each of place.guarded) places.push([each.path, each.name]);
 	const name = places.filter(([folder]) => inside(path, folder)).sort(([a], [b]) => b.length - a.length)[0]?.[1];
-	return name && `arthur: refused: this call writes into ${name} (${shown}); a job writes only in its own worktree ${place.worktree}, outside Arthur's checkouts, home folder, install and config, and the user's own files`;
+	return name ? `arthur: refused: this call writes into ${name} (${shown}); a job writes only in its own worktree ${place.worktree}, outside Arthur's checkouts, home folder, install and config, and the user's own files` : linking;
 }
 
 // The index in `words` of the command they run, after assignments, reserved words and wrappers with their options; -1 if none.
@@ -54,25 +56,26 @@ function commandIndex(words: readonly string[]): number {
 	return -1;
 }
 
-// Whether a bash command run in `start` writes into a guarded place: a redirect, a writing command (`rm`, `mv`, `sed -i`,
-// `cp` into it, `ln` to or in it, `dd of=`, `find -delete` or `-exec`), a `git` write aimed at it, any `git stash`, a `git
-// config` that changes the shared, the user's or the system's config, a git call that may point a checkout at a branch
-// another worktree holds (`--ignore-other-worktrees`, `checkout -B`, `symbolic-ref`), or one of these after a `cd` there.
+// Whether a bash command run in `start` writes into a guarded place, or a `.git` or `commondir`: a redirect, a writing
+// command (`rm`, `mv`, `sed -i`, `cp` into it, `ln` to or in it, `dd of=`, `find -delete` or `-exec`), a `git` write aimed at
+// it (also by `GIT_DIR=`, `GIT_WORK_TREE=` or `GIT_COMMON_DIR=` before it, an alias its `-c` gives, or a link of its
+// folders), any `git stash`, a `git config` that changes the shared, the user's or the system's config, a git call that reads
+// config the guard does not or writes an alias or include, one that may point a checkout at a branch another worktree holds
+// (`--ignore-other-worktrees`, `checkout -B`, `symbolic-ref`), `git replace` but a list, or one of these after a `cd` there.
 // The command is the word after assignments and wrappers (`sudo`, `timeout 60`), also in `bash -c`, a shell's heredoc,
 // `eval`; each path is resolved from where the commands before it left (`cd`, `pushd`, `git -C`, a subshell undoing them),
-// through symlinks. Not seen: a path built at run time (`$x`, a glob, a brace list, what `xargs` reads, `GIT_DIR`), a program
-// that writes (`node -e`, `tar -C`, `curl -o`), a git alias, a link the same call makes, a `.git` file or `commondir` written
-// outside the worktree that names the repository, and the git commands that rewrite the repository every worktree shares
-// (`gc`, `prune`, `repack`, `reflog expire`, `maintenance run`), or move a ref no worktree has checked out from the job's own
-// worktree. It is not a sandbox: that bound is job-sandbox.ts.
+// through symlinks. Not seen: a path built at run time (`$x`, a glob, a brace list, what `xargs` reads, a `GIT_DIR` exported
+// before), a program that writes (`node -e`, `tar -C`, `curl -o`), an alias in the user's Git config, a link the same call
+// makes and uses, the git commands that rewrite the repository every worktree shares (`gc`, `prune`, `repack`, `reflog
+// expire`, `maintenance run`), or move a ref no worktree has checked out from the job's own worktree. It is not a sandbox.
 function bashRefusal(place: Place, command: string, start: string): string | undefined {
 	let cwd = start;
 	const subshells: string[] = [];
 	const pushed: string[] = [];
-	const theirs = (words: readonly string[], base = cwd): string | undefined => {
+	const theirs = (words: readonly string[], base = cwd, named = true): string | undefined => {
 		for (const word of words) {
 			for (const path of [...(word.startsWith("-") ? [] : [word]), ...(word.includes("=") ? [word.slice(word.indexOf("=") + 1)] : [])]) {
-				const found = refusal(place, real(resolve(base, path)), path);
+				const found = refusal(place, real(resolve(base, path)), path, named);
 				if (found !== undefined) return found;
 			}
 		}
@@ -106,7 +109,7 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 				if (found !== undefined) return found;
 			}
 		} else if (verb === "eval") return run(shellCommands(args.join(" "), process.env.HOME));
-		else if (verb === "git") return git(args);
+		else if (verb === "git") return git(args, words.slice(0, at));
 		else if (verb === "find") return find(args);
 		else if (WRITES.includes(verb) || (["sed", "perl"].includes(verb) && args.some((word) => /^-[a-zA-Z]*i|^--in-place/.test(word)))) return theirs(args);
 		else if (COPIES.includes(verb)) return theirs([operands.at(-1) ?? "", ...args.filter((word) => word.startsWith("--target-directory")), ...args.filter((_, index) => args[index - 1] === "-t")]);
@@ -132,20 +135,20 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 		}
 		return undefined;
 	};
-	const git = (args: readonly string[]): string | undefined => {
-		const { sub, rest, chdirs, trees, writesCheckout, writesOperands, config, points } = gitCall(args);
+	const git = (args: readonly string[], assignments: readonly string[]): string | undefined => {
+		const { sub, rest, chdirs, trees, writesCheckout, writesOperands, config, points, replaces, alias, unread } = gitCall(args, assignments);
+		if (unread || config?.loads) return UNSEEN;
 		if (sub === "stash" && !["list", "show"].includes(rest[0] ?? "")) return STASH;
 		const dir = chdirs.reduce((base, folder) => real(resolve(base, folder)), cwd);
-		// Every worktree shares the repository's refs: one the job does not own, or a checkout pointed at it, moves under the
-		// main checkout.
+		// Every worktree shares the repository's refs: one the job does not own, a checkout pointed at it, or a replacement is main's.
 		const ref = rest.filter((word, at) => !word.startsWith("-") && rest[at - 1] !== "-m")[0] ?? "--stdin";
 		if (sub === "update-ref" && ref !== "HEAD" && (place.branch === "" || ref !== `refs/heads/${place.branch}`)) return refusal(place, place.root, `git update-ref ${ref}`);
-		if (points !== undefined && points !== `refs/heads/${place.branch}`) return refusal(place, place.root, ["git", sub, ...rest].join(" "));
+		if ((points !== undefined && points !== `refs/heads/${place.branch}`) || replaces) return refusal(place, place.root, ["git", sub, ...rest].join(" "));
 		// Config the worktrees share runs hooks and programs in the main checkout; a worktree's own, or a file elsewhere, does not.
 		if (config?.file !== undefined) return theirs([config.file], dir);
 		if (config !== undefined && config.scope !== "--worktree") return refusal(place, place.root, ["git config", config.scope, config.key].filter(Boolean).join(" "));
-		const tree = writesCheckout || config !== undefined ? (theirs([dir]) ?? theirs(trees, dir)) : undefined;
-		return tree ?? (writesOperands ? theirs(rest, dir) : undefined);
+		const tree = writesCheckout || config !== undefined ? (theirs([dir], dir, false) ?? theirs(trees, dir, false) ?? [dir, ...trees].flatMap((path) => linkedFolders(real(resolve(dir, path))).map((folder) => refusal(place, real(folder), `${path}, a link to ${folder}`, false))).find(Boolean)) : undefined;
+		return tree ?? (writesOperands ? theirs(rest, dir) : undefined) ?? (alias === undefined ? undefined : git(alias, assignments));
 	};
 	return run(shellCommands(command, process.env.HOME));
 }

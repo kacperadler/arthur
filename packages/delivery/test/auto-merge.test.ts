@@ -169,6 +169,16 @@ test("--auto refuses a held path: a role, the vision, CI, package.json, the alwa
 	assert.equal(git(root, "log", "-1", "--format=%s"), "Merge AC0008: T AC0008");
 });
 
+test("--auto reads past a replacement of main's tip under refs/replace: the held path the branch changes still refuses it", async (t) => {
+	const { worker, review, merge, answers, git, root } = await load(t);
+	const job = await worker(1, { "packages/shop/package.json": "{}\n" });
+	await review(job.id, "PASS");
+	answers.ci = ciRun(job.tip, job.branch);
+	// Main's tip read as a child of the branch's tip, as a job's git replace would write: read through it, the branch changes nothing.
+	git(root, "replace", git(root, "rev-parse", "main"), git(root, "commit-tree", "-p", job.tip, "-m", "fake", "main^{tree}"));
+	assert.equal((await merge(job.id, "--auto")).err, `arthur merge: --auto merges no held path: ${job.branch} changes packages/shop/package.json (package.json); its merge waits for the owner: arthur merge ${job.id} on his word; main is unchanged`);
+});
+
 test("--auto CI: failed refused, pending or no run of the branch's own waits, GitHub's refusal named; github not loaded refused without --no-ci, merged with it", async (t) => {
 	const { worker, review, merge, head, answers, waiting } = await load(t);
 	const job = await worker(1);

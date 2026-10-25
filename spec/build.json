@@ -2851,16 +2851,16 @@
   {
     "id": "AR0376",
     "title": "Run each job's agent in a sandbox: the real bound the worktree guard is not",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0376-run-each-job-s-agent-in-a-sandbox-the-real-bound-the-worktree-guard-is-not/ticket.md",
-    "updated": "2026-10-23T15:55:09.285Z"
+    "updated": "2026-10-24T21:08:39.106Z"
   },
   {
     "id": "AR0377",
     "title": "Git's other user config files are not guarded: `~/.config/git/config` and files `~/.gitconfig` includes",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0377-git-s-other-user-config-files-are-not-guarded-config-git-config-and-files-gitconfig-includes/ticket.md",
-    "updated": "2026-10-23T15:55:09.484Z"
+    "updated": "2026-10-24T22:00:02.208Z"
   },
   {
     "id": "AR0378",
@@ -2872,58 +2872,58 @@
   {
     "id": "AR0379",
     "title": "A project on Git LFS gets its main pushed without its LFS objects",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0379-a-project-on-git-lfs-gets-its-main-pushed-without-its-lfs-objects/ticket.md",
-    "updated": "2026-10-23T16:58:37.316Z"
+    "updated": "2026-10-24T22:31:06.922Z"
   },
   {
     "id": "AR0380",
     "title": "Arthur's git calls in a main checkout still run other programs its config names",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0380-arthur-s-git-calls-in-a-main-checkout-still-run-other-programs-its-config-names/ticket.md",
-    "updated": "2026-10-23T16:58:37.687Z"
+    "updated": "2026-10-24T23:08:59.544Z"
   },
   {
     "id": "AR0381",
     "title": "The worktree guard does not see a git alias or GIT_DIR",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0381-the-worktree-guard-does-not-see-a-git-alias-or-git-dir/ticket.md",
-    "updated": "2026-10-23T16:58:38.048Z"
+    "updated": "2026-10-24T23:35:22.311Z"
   },
   {
     "id": "AR0382",
     "title": "A job's repository on another machine runs its config's hooks in Arthur's git calls there",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0382-a-job-s-repository-on-another-machine-runs-its-config-s-hooks-in-arthur-s-git-calls-there/ticket.md",
-    "updated": "2026-10-23T16:58:38.437Z"
+    "updated": "2026-10-25T00:00:09.773Z"
   },
   {
     "id": "AR0383",
     "title": "A `.git` file or a `commondir` written outside the worktree makes any folder a checkout of main",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0383-a-git-file-or-a-commondir-written-outside-the-worktree-makes-any-folder-a-checkout-of-main/ticket.md",
-    "updated": "2026-10-23T17:34:07.457Z"
+    "updated": "2026-10-25T00:42:07.323Z"
   },
   {
     "id": "AR0384",
     "title": "`git replace` from a job's worktree changes what every worktree reads of main's commits",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0384-git-replace-from-a-job-s-worktree-changes-what-every-worktree-reads-of-main-s-commits/ticket.md",
-    "updated": "2026-10-23T17:34:07.667Z"
+    "updated": "2026-10-25T01:38:33.735Z"
   },
   {
     "id": "AR0385",
     "title": "`arthur help --help` names nine of the core's seventeen commands as the ones left when the config does not load",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0385-arthur-help-help-names-nine-of-the-core-s-seventeen-commands-as-the-ones-left-when-the-config-does-not-load/ticket.md",
-    "updated": "2026-10-23T20:16:54.237Z"
+    "updated": "2026-10-25T03:00:46.481Z"
   },
   {
     "id": "AR0386",
     "title": "Inside a job the read-only `ci <branch>`, `config check`, `doctor`, `retro` and `usage` are refused with the commands that change state",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0386-inside-a-job-the-read-only-ci-branch-config-check-doctor-retro-and-usage-are-refused-with-the-commands-that-change-state/ticket.md",
-    "updated": "2026-10-23T20:16:54.461Z"
+    "updated": "2026-10-25T03:44:09.967Z"
   },
   {
     "id": "AR0387",
@@ -2931,5 +2931,96 @@
     "status": "dropped",
     "path": "spec/features/AR0387-the-harness-still-reads-the-old-kinds-in-this-repository-until-the-switch/ticket.md",
     "updated": "2026-10-23T21:01:33.668Z"
+  },
+  {
+    "id": "AR0388",
+    "title": "The user's systemd folder is guarded at `~/.config/systemd` only, not at `$XDG_CONFIG_HOME/systemd`",
+    "status": "planned",
+    "path": "spec/features/AR0388-the-user-s-systemd-folder-is-guarded-at-config-systemd-only-not-at-xdg-config-home-systemd/ticket.md",
+    "updated": "2026-10-24T22:00:22.709Z"
+  },
+  {
+    "id": "AR0389",
+    "title": "`test/ticket-kinds.test.ts` fails on main: AR0387's ticket keeps the template's Kind line",
+    "status": "dropped",
+    "path": "spec/features/AR0389-test-ticket-kinds-test-ts-fails-on-main-ar0387-s-ticket-keeps-the-template-s-kind-line/ticket.md",
+    "updated": "2026-10-24T22:00:22.496Z"
+  },
+  {
+    "id": "AR0390",
+    "title": "A job on another machine moves a Git LFS project's commits there and back without their LFS objects",
+    "status": "planned",
+    "path": "spec/features/AR0390-a-job-on-another-machine-moves-a-git-lfs-project-s-commits-there-and-back-without-their-lfs-objects/ticket.md",
+    "updated": "2026-10-24T22:31:22.807Z"
+  },
+  {
+    "id": "AR0391",
+    "title": "The 60 s limit of a push also bounds its LFS upload",
+    "status": "planned",
+    "path": "spec/features/AR0391-the-60-s-limit-of-a-push-also-bounds-its-lfs-upload/ticket.md",
+    "updated": "2026-10-24T22:31:23.007Z"
+  },
+  {
+    "id": "AR0392",
+    "title": "A job's program can still plant a key between the config check and the git call",
+    "status": "planned",
+    "path": "spec/features/AR0392-a-job-s-program-can-still-plant-a-key-between-the-config-check-and-the-git-call/ticket.md",
+    "updated": "2026-10-24T23:09:10.741Z"
+  },
+  {
+    "id": "AR0393",
+    "title": "A remote's `url` can name a transport whose helper runs from PATH",
+    "status": "merged",
+    "path": "spec/features/AR0393-a-remote-s-url-can-name-a-transport-whose-helper-runs-from-path/ticket.md",
+    "updated": "2026-10-25T02:19:38.012Z"
+  },
+  {
+    "id": "AR0394",
+    "title": "A spawn's push to another machine runs a program the repository's config there names, hooks off or not",
+    "status": "merged",
+    "path": "spec/features/AR0394-a-spawn-s-push-to-another-machine-runs-a-program-the-repository-s-config-there-names-hooks-off-or-not/ticket.md",
+    "updated": "2026-10-25T02:48:04.943Z"
+  },
+  {
+    "id": "AR0395",
+    "title": "A link to the repository made and used in one bash call still moves main",
+    "status": "planned",
+    "path": "spec/features/AR0395-a-link-to-the-repository-made-and-used-in-one-bash-call-still-moves-main/ticket.md",
+    "updated": "2026-10-25T00:42:19.261Z"
+  },
+  {
+    "id": "AR0396",
+    "title": "A `git fetch` or `git push` from a job's worktree into `refs/replace` still writes a replacement every worktree reads",
+    "status": "planned",
+    "path": "spec/features/AR0396-a-git-fetch-or-git-push-from-a-job-s-worktree-into-refs-replace-still-writes-a-replacement-every-worktree-reads/ticket.md",
+    "updated": "2026-10-25T01:38:49.453Z"
+  },
+  {
+    "id": "AR0397",
+    "title": "Arthur's other git reads in a main checkout still read through a replacement",
+    "status": "planned",
+    "path": "spec/features/AR0397-arthur-s-other-git-reads-in-a-main-checkout-still-read-through-a-replacement/ticket.md",
+    "updated": "2026-10-25T01:38:49.655Z"
+  },
+  {
+    "id": "AR0398",
+    "title": "A remote named as a machine's URL sends a job's push and fetch to another repository",
+    "status": "planned",
+    "path": "spec/features/AR0398-a-remote-named-as-a-machine-s-url-sends-a-job-s-push-and-fetch-to-another-repository/ticket.md",
+    "updated": "2026-10-25T02:19:49.092Z"
+  },
+  {
+    "id": "AR0399",
+    "title": "`git lfs push origin` reads origin's URL outside Git's transport policy",
+    "status": "planned",
+    "path": "spec/features/AR0399-git-lfs-push-origin-reads-origin-s-url-outside-git-s-transport-policy/ticket.md",
+    "updated": "2026-10-25T02:19:49.297Z"
+  },
+  {
+    "id": "AR0400",
+    "title": "`arthur prune` of a job here runs a clean filter the main checkout's config or the job worktree's own names",
+    "status": "planned",
+    "path": "spec/features/AR0400-arthur-prune-of-a-job-here-runs-a-clean-filter-the-main-checkout-s-config-or-the-job-worktree-s-own-names/ticket.md",
+    "updated": "2026-10-25T02:48:15.795Z"
   }
 ]

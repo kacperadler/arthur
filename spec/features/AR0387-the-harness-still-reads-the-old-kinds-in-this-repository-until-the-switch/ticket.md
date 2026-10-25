@@ -14,9 +14,9 @@
 
 ## Goal
 
-What we are after, what it moves in `spec/vision.md`, and the evidence (file:line, a command and its output). A mechanical, fully specified change (a rename, a moved section, a list of exact edits) adds `- Model: haiku` under Kind; anything with behaviour to judge has no Model line.
+The harness reads this repository's ticket kinds correctly until the switch, or the gap is accepted (it was, 2026-10-23).
 
-- Kind: feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux
+- Kind: chore
 
 ## Done means
 

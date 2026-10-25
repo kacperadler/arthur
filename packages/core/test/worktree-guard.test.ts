@@ -9,7 +9,7 @@ import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { type Job, jobRunner } from "../src/jobs.ts";
 import { jobSlice, temporaryFolder } from "../src/testing.ts";
-import { jobPlace } from "../src/job-place.ts";
+import { guardedPlaces, jobPlace } from "../src/job-place.ts";
 import worktreeGuard, { worktreeRefusal } from "../src/worktree-guard.ts";
 
 type Call = readonly [string, Record<string, unknown>];
@@ -81,6 +81,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	const HOME = "Arthur's home folder";
 	const OTHER = "another job's worktree";
 	const STASH = "git stash";
+	const LINK = "a link to a repository";
 	// Each call, and the place its refusal names: undefined when it passes.
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
 		["bash", { command: `echo x > ${main}/README.md` }, MAIN],
@@ -139,8 +140,20 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `git switch --force-create=main ${own.branch}` }, MAIN],
 		["bash", { command: "git worktree add -f /tmp/arthur-worktree-guard-test main" }, MAIN],
 		["bash", { command: "git worktree add --forc /tmp/arthur-worktree-guard-test main" }, MAIN],
+		// A replacement under refs/replace, which every worktree reads main's commits through.
+		["bash", { command: "git replace main HEAD" }, MAIN],
+		["bash", { command: "git replace -f main HEAD" }, MAIN],
+		["bash", { command: "git replace -d main" }, MAIN],
+		["bash", { command: "git replace --delete main" }, MAIN],
+		["bash", { command: "git replace --edit main" }, MAIN],
+		["bash", { command: "git replace --graft main HEAD" }, MAIN],
+		["bash", { command: "git replace --convert-graft-file" }, MAIN],
+		["bash", { command: "git replace main -- -l" }, MAIN],
+		["bash", { command: "git replace - main" }, MAIN],
+		["bash", { command: `git -C ${main} replace main HEAD` }, MAIN],
+		["bash", { command: "git -c alias.r=replace r main HEAD" }, MAIN],
 		["bash", { command: `echo "gitdir: ${root}/.git" > .git` }, MAIN],
-		["bash", { command: "rm .git", cwd: "sub" }, undefined],
+		["bash", { command: "rm .git", cwd: "sub" }, LINK],
 		["bash", { command: "rm ../.git", cwd: "sub" }, MAIN],
 		["write", { path: ".git", content: `gitdir: ${root}/.git` }, MAIN],
 		["edit", { input: "[out/../.git#1A2B]\nPUT 1.=1:\n+x" }, MAIN],
@@ -179,6 +192,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `git checkout -B ${own.branch} HEAD~1 && git switch -C ${own.branch} && git switch --no-ignore-other-worktrees topic` }, undefined],
 		["bash", { command: "git worktree add /tmp/arthur-worktree-guard-test -b topic && git worktree remove --force /tmp/arthur-worktree-guard-test" }, undefined],
 		["bash", { command: "git remote add -f fork /tmp/fork.git && echo x > .gitignore && git checkout -- -B" }, undefined],
+		["bash", { command: `git replace && git replace -l && git replace --list 'v*' && git replace --li --format=medium && git -C ${main} replace -l` }, undefined],
 		["bash", { command: `echo 'rm ${main}/README.md' > notes.txt` }, undefined],
 		["bash", { command: `git commit -m "cd ${main} && rm README.md"` }, undefined],
 		["bash", { command: `cat > notes.md <<'EOF'\nrm -rf ${main}\necho x > ${main}/f\nEOF\nrm notes.md` }, undefined],
@@ -196,7 +210,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	try {
 		for (const [toolName, input, expected] of calls) {
 			const reason = worktreeRefusal(place, toolName, input);
-			const named = reason === undefined ? undefined : reason.startsWith("arthur: refused: git stash") ? STASH : /writes into (.+?) \(/.exec(reason)?.[1];
+			const named = reason === undefined ? undefined : reason.startsWith("arthur: refused: git stash") ? STASH : reason.includes("which Git reads as a link to a repository") ? LINK : /writes into (.+?) \(/.exec(reason)?.[1];
 			assert.equal(named, expected, `${toolName} ${JSON.stringify(input)}: ${reason}`);
 		}
 	} finally {
@@ -206,6 +220,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	// The refusal shows the path as the call gave it, and names the job's own worktree, where the write would go instead.
 	const reason = worktreeRefusal(place, "bash", { command: `rm ${main}/README.md` }) ?? "";
 	assert.ok(reason.includes(`(${main}/README.md)`) && reason.includes(` own worktree ${own.worktree}`), reason);
+	const replaced = worktreeRefusal(place, "bash", { command: "git replace -d main" }) ?? "";
+	assert.ok(replaced.includes("into the main checkout (git replace -d main)"), replaced);
 });
 
 test("git config that changes the config every worktree shares, the user's or the system's is refused naming its key; reads, a worktree's own and a file elsewhere pass", async () => {
@@ -278,6 +294,180 @@ test("git config that changes the config every worktree shares, the user's or th
 	assert.equal(git(own.worktree, "config", "--worktree", "core.hooksPath"), "/tmp/hooks", "the worktree's own config took it");
 });
 
+test("a git write through an alias given by -c, or GIT_DIR or GIT_WORK_TREE set before git, is refused; config the guard does not read, or an alias or include written, refuses the call", async () => {
+	const { root, home, own, other } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id));
+	const [main, otherJob] = ["../../acme", `../${other.id}`];
+	const [MAIN, OTHER] = ["the main checkout", "another job's worktree"];
+	// Each call refused naming a place, and what the refusal shows; undefined to show for a path resolved there.
+	const refused: ReadonlyArray<readonly [string, string, string | undefined]> = [
+		["git -c alias.c=config c a.c d", MAIN, "git config a.c"],
+		["git -c alias.C=config c a.c d", MAIN, "git config a.c"],
+		["git -c alias.c=config C a.c d", MAIN, "git config a.c"],
+		["git -c alias.c=status -c alias.c=config c a.c d", MAIN, "git config a.c"],
+		["git -c alias.c=config -c alias.x=c x a.c d", MAIN, "git config a.c"],
+		["git -c alias.config=status config a.c d", MAIN, "git config a.c"],
+		[`git -c 'alias.k="checkout" -- .' -C ${main} k`, MAIN, undefined],
+		[`sh -c "git -c alias.k='checkout -- .' -C ${main} k"`, MAIN, undefined],
+		[`git --attr-source HEAD -C ${main} commit -m x`, MAIN, undefined],
+		[`GIT_DIR=${main}/.git git config --worktree a.c c`, MAIN, `${main}/.git`],
+		[`GIT_WORK_TREE=${main} git checkout -- .`, MAIN, main],
+		[`GIT_AUTHOR_NAME=x GIT_DIR=${main}/.git GIT_WORK_TREE=${main} git reset --hard`, MAIN, `${main}/.git`],
+		[`env GIT_WORK_TREE=${main} git checkout -- .`, MAIN, main],
+		[`GIT_WORK_TREE=${otherJob} git -c alias.co=checkout co -- .`, OTHER, otherJob],
+	];
+	for (const [command, name, shown] of refused) {
+		const reason = worktreeRefusal(place, "bash", { command }) ?? "";
+		const [, named, said] = /writes into (.+?) \((.*?)\);/.exec(reason) ?? [];
+		assert.deepEqual([named, shown === undefined ? undefined : said], [name, shown], `${command}: ${reason}`);
+	}
+	assert.match(worktreeRefusal(place, "bash", { command: "git -c alias.s=stash s" }) ?? "", /^arthur: refused: git stash/);
+	const unseen = [
+		"git -c 'alias.c=!echo x > ../../acme/README.md' c",
+		"git -c 'alias.d=!echo x' -c alias.c=d c",
+		"git -c INCLUDE.path=/tmp/x.cfg c a.c d",
+		"git -c include.path=/tmp/x.cfg c a.c d",
+		"git -c includeIf.onbranch:main.path=/tmp/x.cfg status",
+		"X=config git --config-env=alias.c=X c a.c d",
+		"X=config git --config-env alias.c=X c a.c d",
+		"X=/tmp/x.cfg git --config-env=include.path=X status",
+		"GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.c GIT_CONFIG_VALUE_0=config git c a.c d",
+		"GIT_CONFIG_PARAMETERS=\"'alias.c'='config'\" git c a.c d",
+		"GIT_CONFIG_GLOBAL=/tmp/x.cfg git c a.c d",
+		"GIT_CONFIG_SYSTEM=/tmp/x.cfg git c a.c d",
+		"HOME=/tmp/h git c a.c d",
+		"XDG_CONFIG_HOME=/tmp/h git c a.c d",
+		"git config --worktree alias.c config",
+		"git config --worktree Alias.c config",
+		"git config --worktree --add alias.c config",
+		"git config --worktree set alias.c config",
+		"git config --worktree include.path /tmp/x.cfg",
+		"git config --worktree includeIf.onbranch:main.path /tmp/x.cfg",
+		"git config --file /tmp/x.cfg alias.c config",
+		"git config --worktree --rename-section x alias",
+		"git config --worktree --rename x alias",
+		"git config --worktree rename-section x alias",
+		"git config --worktree -e",
+		"git config --worktree edit",
+	];
+	for (const command of unseen) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /^arthur: refused: this git call reads config the guard does not/, command);
+	const passing = [
+		"git -c alias.st=status st",
+		"git -c alias.c=config c --get user.name",
+		"git -c alias.c=config c --worktree a.c d",
+		"git -c 'alias.l=log --oneline -1' l",
+		"git -c 'alias.x=!echo x > ../../acme/README.md' status",
+		"git -c alias.a=b -c alias.b=a a",
+		"git -c alias.a=a a",
+		"GIT_WORK_TREE=. git checkout -- .",
+		"GIT_AUTHOR_NAME=x GIT_CONFIG_NOSYSTEM=1 git commit --allow-empty -m y",
+		"git --attr-source HEAD status",
+		"git config --worktree user.name Aliasing",
+		"git config --worktree core.editor include-me",
+	];
+	for (const command of passing) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
+	// Run in the job's worktree, the passing calls leave the main checkout and its shared config as they were.
+	git(root, "config", "extensions.worktreeConfig", "true");
+	const [shared, readme] = [readFileSync(join(root, ".git", "config"), "utf8"), readFileSync(join(root, "README.md"), "utf8")];
+	for (const command of passing) spawnSync("sh", ["-c", command], { cwd: own.worktree, env: { ...process.env, GIT_COMMITTER_NAME: "x", GIT_COMMITTER_EMAIL: "x@example.com", GIT_AUTHOR_EMAIL: "x@example.com" }, stdio: "ignore" });
+	assert.deepEqual([readFileSync(join(root, ".git", "config"), "utf8"), readFileSync(join(root, "README.md"), "utf8")], [shared, readme]);
+	assert.equal(git(own.worktree, "config", "--worktree", "a.c"), "d", "the alias ran git config in the worktree's own config");
+});
+
+test("a call writing a .git or commondir is refused, and a git write through one that links to the main checkout's repository; a worktree's own link and other repositories pass", async () => {
+	const { root, home, own } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id));
+	const [MAIN, LINK] = ["the main checkout", "a link"];
+	const elsewhere = temporaryFolder();
+	const plain = repository("plain");
+	const [z, file, g, gdir, viaG, twin, made, odd] = [join(elsewhere, "z"), join(elsewhere, "link"), join(elsewhere, "g"), join(elsewhere, "gdir"), join(elsewhere, "via-g"), join(elsewhere, "twin"), join(elsewhere, "made"), join(elsewhere, "odd")];
+	// As a program the guard does not see may leave them: a folder whose `.git` file names the repository, with a repository
+	// of its own inside, such a file under another name, a repository folder whose `commondir` names it, a `.git` folder
+	// holding one, a `.git` file naming such a folder, one naming the folder of a worktree Git made, which does not name it
+	// back, and a `.git` file that is no link.
+	mkdirSync(join(z, "sub"), { recursive: true });
+	writeFileSync(join(z, ".git"), `gitdir: ${root}/.git\n`);
+	mkdirSync(join(z, "inner"));
+	git(join(z, "inner"), "init", "--quiet");
+	writeFileSync(file, `gitdir: ${root}/.git\n`);
+	for (const folder of [g, join(gdir, ".git")]) {
+		for (const each of ["refs", "objects"]) mkdirSync(join(folder, each), { recursive: true });
+		writeFileSync(join(folder, "commondir"), `${root}/.git\n`);
+		writeFileSync(join(folder, "HEAD"), "ref: refs/heads/main\n");
+	}
+	mkdirSync(viaG);
+	writeFileSync(join(viaG, ".git"), `gitdir: ${g}\n`);
+	git(root, "worktree", "add", "--quiet", "-b", "made", made);
+	mkdirSync(twin);
+	writeFileSync(join(twin, ".git"), `gitdir: ${root}/.git/worktrees/made\n`);
+	mkdirSync(odd);
+	writeFileSync(join(odd, ".git"), `gitdur: ${root}/.git\n`);
+	// A link named otherwise to a `.git` not there yet, and a `.git` that is a link to a file named otherwise.
+	symlinkSync(join(elsewhere, ".git"), join(elsewhere, "alias"));
+	mkdirSync(join(elsewhere, "shown"));
+	writeFileSync(join(elsewhere, "x.txt"), "");
+	symlinkSync(join(elsewhere, "x.txt"), join(elsewhere, "shown", ".git"));
+	mkdirSync(join(own.worktree, "sub"));
+	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string]> = [
+		["bash", { command: "git commit --allow-empty -m x", cwd: z }, MAIN],
+		["bash", { command: `cd ${z}/sub && git add -A` }, MAIN],
+		["bash", { command: `git -C ${z} init` }, MAIN],
+		["bash", { command: `git -C ${z} config --worktree user.name x` }, MAIN],
+		["bash", { command: `git --git-dir=${file} --work-tree=. commit -m x` }, MAIN],
+		["bash", { command: `GIT_DIR=${file} git reset --hard` }, MAIN],
+		["bash", { command: `git --git-dir=${g} --work-tree=. commit -m x` }, MAIN],
+		["bash", { command: `git --git-dir=${g} branch -f main HEAD` }, MAIN],
+		["bash", { command: `git -C ${gdir} commit -m x` }, MAIN],
+		["bash", { command: `git -C ${viaG} commit -m x` }, MAIN],
+		["bash", { command: `git -C ${twin} commit -m x` }, MAIN],
+		["bash", { command: `GIT_COMMON_DIR=${root}/.git GIT_DIR=${elsewhere}/h git commit -m x` }, MAIN],
+		["bash", { command: `git init --separate-git-dir=${root}/.git ${elsewhere}/new` }, MAIN],
+		["bash", { command: `git init --separate-git-dir ${root}/.git ${elsewhere}/new` }, MAIN],
+		["bash", { command: `mkdir ${elsewhere}/y && cd ${elsewhere}/y && echo "gitdir: ${root}/.git" > .git && git commit --allow-empty -m x` }, LINK],
+		["bash", { command: `echo ${root}/.git > ${g}/commondir` }, LINK],
+		["bash", { command: `printf x | tee ${elsewhere}/commondir` }, LINK],
+		["bash", { command: `cp ${file} ${elsewhere}/y/.git` }, LINK],
+		["bash", { command: `mv ${file} ${elsewhere}/y/commondir` }, LINK],
+		["bash", { command: `ln -s ${file} ${elsewhere}/y/.git` }, LINK],
+		["bash", { command: `echo x > ${elsewhere}/alias` }, LINK],
+		["bash", { command: `echo x > ${elsewhere}/shown/.git` }, LINK],
+		["bash", { command: `rm -rf ${plain}/.git` }, LINK],
+		["write", { path: `${elsewhere}/y/.git`, content: `gitdir: ${root}/.git` }, LINK],
+		["write", { path: "sub/.git", content: `gitdir: ${root}/.git` }, LINK],
+		["edit", { input: `[${g}/commondir#1A2B]\nPUT 1.=1:\n+${root}/.git` }, LINK],
+	];
+	for (const [toolName, input, expected] of calls) {
+		const reason = worktreeRefusal(place, toolName, input) ?? "";
+		const named = reason.includes("which Git reads as a link to a repository") ? LINK : /writes into (.+?) \(/.exec(reason)?.[1];
+		assert.equal(named, expected, `${toolName} ${JSON.stringify(input)}: ${reason}`);
+	}
+	// The refusal shows the folder of the call and the repository folder it links to.
+	const shown = worktreeRefusal(place, "bash", { command: `git -C ${z} commit -m x` }) ?? "";
+	assert.ok(shown.includes(`(${z}, a link to ${root}/.git);`), shown);
+	const passing: readonly { readonly command: string; readonly cwd?: string }[] = [
+		{ command: "git commit --allow-empty -m x && git add -A && echo x > .gitignore" },
+		{ command: "git commit --allow-empty -m x", cwd: "sub" },
+		{ command: `git -C ${made} commit --allow-empty -m x` },
+		{ command: `git -C ${z}/inner commit --allow-empty -m x` },
+		{ command: `git -C ${plain} commit --allow-empty -m x && git --git-dir=${plain}/.git --work-tree=${plain} commit --allow-empty -m y` },
+		{ command: `git -C ${plain}/.git branch tmp` },
+		{ command: `git -C ${odd} commit --allow-empty -m x` },
+		{ command: `git -C ${z} log --oneline && git -C ${z} status` },
+		{ command: `git init --quiet ${elsewhere}/fresh && git clone --quiet ${root} ${elsewhere}/clone && echo x > ${elsewhere}/.github` },
+		{ command: `git init --quiet --separate-git-dir=${elsewhere}/separate ${elsewhere}/apart && rm -rf ${elsewhere}/apart` },
+	];
+	for (const input of passing) assert.equal(worktreeRefusal(place, "bash", input), undefined, input.command);
+	// Run, the passing calls leave main where it was; a plain commit through each kind of link the guard refuses moves it.
+	const env = { ...process.env, GIT_AUTHOR_NAME: "x", GIT_AUTHOR_EMAIL: "x@example.com", GIT_COMMITTER_NAME: "x", GIT_COMMITTER_EMAIL: "x@example.com" };
+	const tip = git(root, "rev-parse", "main");
+	for (const { command, cwd } of passing) spawnSync("sh", ["-c", command], { cwd: join(own.worktree, cwd ?? "."), env, stdio: "ignore" });
+	assert.deepEqual([git(root, "rev-parse", "main"), git(made, "log", "-1", "--format=%s")], [tip, "x"]);
+	for (const command of [`git -C ${z} commit --allow-empty -m z`, `git --git-dir=${file} --work-tree=. commit --allow-empty -m file`, `git --git-dir=${g} --work-tree=. commit --allow-empty -m g`, `git -C ${gdir} commit --allow-empty -m gdir`, `git -C ${viaG} commit --allow-empty -m via-g`]) {
+		spawnSync("sh", ["-c", command], { cwd: own.worktree, env, stdio: "ignore" });
+		assert.equal(git(root, "log", "-1", "--format=%s", "main"), command.split(" ").at(-1), command);
+	}
+});
+
 test("the wrapper loads the guard into the job's agent, which then refuses its writes outside its worktree and lets the rest through", async () => {
 	const calls: Call[] = [
 		["bash", { command: "echo x > ../../acme/README.md" }],
@@ -331,13 +521,16 @@ test("a job of one project refuses writes into another project's main checkout a
 test("a job refuses writes into Arthur's install, config folder and env file, and the user's SSH folder, systemd units and Git config", async (t) => {
 	const alpha = repository("alpha");
 	// The config's folder apart from the project, and an env file outside it.
-	const [config, secrets, user, agent] = [temporaryFolder(), join(temporaryFolder(), "secrets"), temporaryFolder(), join(temporaryFolder(), "omp")];
+	const [config, secrets, user, agent, xdg] = [temporaryFolder(), join(temporaryFolder(), "secrets"), temporaryFolder(), join(temporaryFolder(), "omp"), temporaryFolder()];
 	// The user's home as the runner sees it is a link to the folder, as a home on another mount may be.
 	const linked = join(temporaryFolder(), "user");
 	symlinkSync(user, linked);
-	const saved = process.env.HOME;
-	t.after(() => (saved === undefined ? delete process.env.HOME : (process.env.HOME = saved)));
-	process.env.HOME = linked;
+	const saved = { HOME: process.env.HOME, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME };
+	t.after(() => {
+		for (const [name, value] of Object.entries(saved)) value === undefined ? delete process.env[name] : (process.env[name] = value);
+	});
+	// Git reads the user's config from `$XDG_CONFIG_HOME/git/` when it is set, and `~/.config/git/` when it is not.
+	Object.assign(process.env, { HOME: linked, XDG_CONFIG_HOME: xdg });
 	const home = join(config, ".arthur");
 	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
 	const collect = (name: string) => (name === "projects" ? [[{ name: "alpha", prefix: "AL", path: alpha }]] : []);
@@ -362,13 +555,22 @@ test("a job refuses writes into Arthur's install, config folder and env file, an
 		["write", { path: "~/.config/systemd/user/arthur.service", content: "x" }, "the user's systemd folder"],
 		["bash", { command: 'cp unit.service "$HOME/.config/systemd/user/"' }, "the user's systemd folder"],
 		["bash", { command: "echo '[user]' >> ~/.gitconfig" }, "the user's Git config"],
-		["bash", { command: "echo x > ~/notes.txt && touch ~/.config/other ~/.gitconfig.d" }, undefined],
+		["write", { path: "~/.config/git/config", content: "[core]\n\thooksPath = /tmp/hooks\n" }, "the user's Git config"],
+		["bash", { command: "git config --file ~/.config/git/config core.hooksPath /tmp/hooks" }, "the user's Git config"],
+		["bash", { command: `echo '*.log' > ${join(xdg, "git", "ignore")}` }, "the user's Git config"],
+		["bash", { command: `echo x > ~/notes.txt && touch ~/.config/other ~/.config/gitk ~/.gitconfig.d ${join(xdg, "other")} ${join(xdg, "gitk")}` }, undefined],
 		["write", { path: join(dirname(secrets), "other"), content: "x" }, undefined],
 		["write", { path: "README.md", content: "x" }, undefined],
 	];
 	for (const [toolName, input, expected] of calls) {
 		const reason = worktreeRefusal(place, toolName, input);
 		assert.equal(/writes into (.+?) \(/.exec(reason ?? "")?.[1], expected, `${toolName} ${JSON.stringify(input)}: ${reason}`);
+	}
+	// `~/.config/git/` is guarded always, `$XDG_CONFIG_HOME/git/` once more only when it is set and elsewhere.
+	const homeGit = `gitxdg ${join(linked, ".config", "git")}`;
+	for (const [value, expected] of [[xdg, [homeGit, `gitxdg ${join(xdg, "git")}`]], ["", [homeGit]], [join(linked, ".config"), [homeGit]], [undefined, [homeGit]]] as const) {
+		value === undefined ? delete process.env.XDG_CONFIG_HOME : (process.env.XDG_CONFIG_HOME = value);
+		assert.deepEqual(guardedPlaces().split("\n").filter((line) => line.startsWith("gitxdg ")), expected, `XDG_CONFIG_HOME=${value}`);
 	}
 	// A record written before `guarded` was, or a line a human broke (a relative path, taken from no folder; a key that is
 	// none, as an Object property is not), names no such place.

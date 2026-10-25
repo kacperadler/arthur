@@ -3053,8 +3053,8 @@
   {
     "id": "AR0406",
     "title": "Every sandboxed job exits 1: omp cannot lock its session file under the sandbox, so a review with PASS gets no verdict",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0406-every-sandboxed-job-exits-1-omp-cannot-lock-its-session-file-under-the-sandbox/ticket.md",
-    "updated": "2026-10-25T11:49:07.316Z"
+    "updated": "2026-10-25T12:02:52.583Z"
   }
 ]

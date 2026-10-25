@@ -3118,23 +3118,29 @@
   {
     "id": "AR0414",
     "title": "A job may commit the stash refusal's .arthur-stash.patch by mistake, and its git diff leaves staged changes out",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0414-a-job-may-commit-the-stash-refusal-s-arthur-stash-patch-by-mistake-and-its-git/ticket.md",
-    "updated": "2026-10-25T16:10:33.253Z"
+    "updated": "2026-10-25T20:14:02.752Z"
   },
   {
     "id": "AR0415",
     "title": "`env -C <dir>` and `sudo -D <dir>` before a command are not read as a `cd`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0415-env-c-dir-and-sudo-d-dir-before-a-command-are-not-read-as-a-cd/ticket.md",
-    "updated": "2026-10-25T16:33:53.633Z"
+    "updated": "2026-10-25T20:14:05.472Z",
+    "after": [
+      "AR0422"
+    ]
   },
   {
     "id": "AR0416",
     "title": "A `~` after the `=` of an assignment before git is not expanded, so `GIT_WORK_TREE=~/<main>` passes the guard",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0416-a-after-the-of-an-assignment-before-git-is-not-expanded-so-git-work-tree-main/ticket.md",
-    "updated": "2026-10-25T16:34:02.911Z"
+    "updated": "2026-10-25T20:14:08.381Z",
+    "after": [
+      "AR0415"
+    ]
   },
   {
     "id": "AR0417",
@@ -3214,9 +3220,9 @@
   {
     "id": "AR0426",
     "title": "A forwarded file without a caption reaches the coordinator unmarked",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0426-a-forwarded-file-without-a-caption-reaches-the-coordinator-unmarked/ticket.md",
-    "updated": "2026-10-25T20:04:23.116Z"
+    "updated": "2026-10-25T20:11:25.814Z"
   },
   {
     "id": "AR0427",

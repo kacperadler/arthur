@@ -20,22 +20,25 @@ F1 of AR0342 (spec/features/AR0342-a-project-s-repo-url-is-printed-by-the-clone-
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+A push's refusal never prints a credential from origin's URL, whatever form git prints it in; tested. Evidence: `packages/github/src/github-git.ts:49` replaces only quoted words and `\S+://\S+`; git 2.43 prints `fatal: unable to look up arthur:s3cret@127.0.0.1:1 (port 9418) …` for a `git://` URL with userinfo (seen in AR0342).
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- `github-git.ts:49` also replaces every word holding an `@` (`\S*@\S+`) with `origin`, as the clone's refusal does (AR0342). Test in `packages/github/test/github.test.ts`, beside the push refusals at `:490-495`: a project whose origin is `git://arthur:s3cret@127.0.0.1:1/acme/shop.git` (offline: no lookup leaves the machine); the push's line never holds `s3cret`. It fails without the change.
+- `npm test` and `npm run check` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/github/src/github-git.ts`: the `@` replacement in the push's `why`.
+- `packages/github/test/github.test.ts`: the test above.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The clone's refusal: AR0342 (merged), AR0418.
 
 ## Decisions
 
 - 2026-10-25: Source: F1 of AR0342
+- 2026-10-25: AR0417 approved as written; the owner: "Approved" (AR-D15)

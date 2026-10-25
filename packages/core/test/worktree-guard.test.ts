@@ -83,6 +83,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	// The whole refusal: its patch path is the job's own, never a name in the shared /tmp another job may pick too.
 	const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save a patch in your own worktree instead (git diff > .arthur-stash.patch, then git apply .arthur-stash.patch)";
 	const LINK = "a link to a repository";
+	const UNSET = "arthur: refused: OLDPWD is unset, and the guard reads `~-` and `$OLDPWD` alike where bash does not; name the folder instead";
 	// Each call, and the place its refusal names: undefined when it passes.
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
 		["bash", { command: `echo x > ${main}/README.md` }, MAIN],
@@ -93,6 +94,43 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `cd ${main} && rm README.md` }, MAIN],
 		["bash", { command: `cd ${main}\necho x > f` }, MAIN],
 		["bash", { command: `pushd ${otherJob} && touch y` }, OTHER],
+		["bash", { command: `cd ${main}; cd -; cd -; rm README.md` }, MAIN],
+		["bash", { command: `pushd ${main}; pushd; pushd; rm README.md` }, MAIN],
+		["bash", { command: `OLDPWD=${main}; cd -; rm README.md` }, MAIN],
+		["bash", { command: `OLDPWD=${main} cd - && rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; cd $OLDPWD && rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; cd "\${OLDPWD}" && rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; cd ~- && rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; rm ~-/README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; git -C $OLDPWD commit -m x` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; (cd /var); cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; pushd /tmp; popd; cd -; cd -; rm README.md` }, MAIN],
+		["bash", { command: `pushd ${main}; pushd /tmp; (popd); popd; rm README.md` }, MAIN],
+		["bash", { command: `export OLDPWD=${main}; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; cd -; unset -v OLDPWD; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; unset OLDPWD; rm $OLDPWD/f` }, UNSET],
+		["bash", { command: `cd ${main}; cd /tmp; unset -f OLDPWD; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; unset FOO; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; unset OLDPWD | true; cd -; rm README.md` }, MAIN],
+		["bash", { command: `OLDPWD=; OLDPWD+=${main}; cd -; rm README.md` }, MAIN],
+		["bash", { command: `OLDPWD=/; OLDPWD+=${root.slice(1)}; cd -; rm README.md` }, MAIN],
+		["bash", { command: `declare OLDPWD+=${main}; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; echo x > ~-/README.md` }, MAIN],
+		["bash", { command: "cd sub; cd /tmp; ln -s ../../../acme ~-/link" }, MAIN],
+		["bash", { command: `X+=1 rm ${main}/README.md` }, MAIN],
+		["bash", { command: `OLDPWD=${main} bash -c 'cd -; rm README.md'` }, MAIN],
+		["bash", { command: `OLDPWD=${main} eval 'cd -; rm README.md'` }, MAIN],
+		["bash", { command: `env OLDPWD=${main} bash -c 'cd - && rm README.md'` }, MAIN],
+		["bash", { command: `OLDPWD=${main} bash -c 'cd -; rm README.md' | cat` }, MAIN],
+		["bash", { command: `OLDPWD=${main} eval 'cd -; rm README.md' | cat` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; OLDPWD=$OLDPWD/; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; OLDPWD=/var eval true; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; OLDPWD=/var eval 'cd /usr'; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; eval 'cd /tmp'; cd -; rm README.md` }, MAIN],
+		["bash", { command: "OLDPWD=$OLDPWD/x; cd -; rm notes.txt" }, UNSET],
+		["bash", { command: "cd $OLDPWD && rm README.md" }, UNSET],
+		["bash", { command: "rm ~-/README.md" }, UNSET],
+		["bash", { command: `cd ${main}; OLDPWD=; echo x > $OLDPWD/f` }, UNSET],
 		["bash", { command: "rm README.md", cwd: main }, MAIN],
 		["bash", { command: `cat > ${main}/notes.md <<'EOF'\nhello\nEOF` }, MAIN],
 		["bash", { command: `bash <<EOF\nrm ${main}/README.md\nEOF` }, MAIN],
@@ -181,6 +219,12 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `(cd ${main} && ls) && rm notes.txt` }, undefined],
 		["bash", { command: `cd ${main} | true; rm notes.txt` }, undefined],
 		["bash", { command: `cd ${main}; cd -P ../.arthur-worktrees/${own.id} && rm notes.txt` }, undefined],
+		["bash", { command: `cd -; pushd; popd; rm notes.txt` }, undefined],
+		["bash", { command: `OLDPWD=${main} true; cd -; rm notes.txt` }, undefined],
+		["bash", { command: `OLDPWD=${main} bash -c true; cd -; rm notes.txt` }, undefined],
+		["bash", { command: `OLDPWD=${main} | true; cd -; rm notes.txt` }, undefined],
+		["bash", { command: `(OLDPWD=${main}); cd -; rm notes.txt` }, undefined],
+		["bash", { command: `pushd ${main}; pushd /tmp; pushd; pushd; popd; popd; rm notes.txt` }, undefined],
 		["bash", { command: `ls`, cwd: main }, undefined],
 		["bash", { command: "git commit -am x && git update-ref refs/heads/" + own.branch + " HEAD" }, undefined],
 		["bash", { command: `git -C ${main} log && git stash list` }, undefined],
@@ -206,18 +250,21 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["read", { path: `${main}/README.md` }, undefined],
 		["grep", { pattern: "acme", path: main }, undefined],
 	];
-	// `~` and `$HOME` are the user's home; here the folder that holds the main checkout.
-	const user = process.env.HOME;
+	// `~` and `$HOME` are the user's home; here the folder that holds the main checkout. OLDPWD starts unset, as in a job's shell.
+	const saved = { HOME: process.env.HOME, OLDPWD: process.env.OLDPWD };
 	process.env.HOME = dirname(root);
+	delete process.env.OLDPWD;
 	try {
 		for (const [toolName, input, expected] of calls) {
 			const reason = worktreeRefusal(place, toolName, input);
-			const named = reason === undefined ? undefined : reason === STASH ? STASH : reason.includes("which Git reads as a link to a repository") ? LINK : /writes into (.+?) \(/.exec(reason)?.[1];
+			const named = reason === undefined ? undefined : reason === STASH || reason === UNSET ? reason : reason.includes("which Git reads as a link to a repository") ? LINK : (/writes into (.+?) \(/.exec(reason)?.[1] ?? reason);
 			assert.equal(named, expected, `${toolName} ${JSON.stringify(input)}: ${reason}`);
 		}
+		// An OLDPWD the agent's env gives is where `cd -` goes first.
+		process.env.OLDPWD = root;
+		assert.ok(worktreeRefusal(place, "bash", { command: "cd - && rm README.md" })?.includes("into the main checkout"));
 	} finally {
-		if (user === undefined) delete process.env.HOME;
-		else process.env.HOME = user;
+		for (const [name, value] of Object.entries(saved)) value === undefined ? delete process.env[name] : (process.env[name] = value);
 	}
 	// The refusal shows the path as the call gave it, and names the job's own worktree, where the write would go instead.
 	const reason = worktreeRefusal(place, "bash", { command: `rm ${main}/README.md` }) ?? "";
@@ -416,6 +463,7 @@ test("a call writing a .git or commondir is refused, and a git write through one
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string]> = [
 		["bash", { command: "git commit --allow-empty -m x", cwd: z }, MAIN],
 		["bash", { command: `cd ${z}/sub && git add -A` }, MAIN],
+		["bash", { command: `cd ${z}; cd /tmp; git --git-dir=~-/.git --work-tree=~- commit -m x` }, MAIN],
 		["bash", { command: `git -C ${z} init` }, MAIN],
 		["bash", { command: `git -C ${z} config --worktree user.name x` }, MAIN],
 		["bash", { command: `git --git-dir=${file} --work-tree=. commit -m x` }, MAIN],

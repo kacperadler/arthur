@@ -50,7 +50,7 @@ function refusal(place: Place, path: string, shown = path, named = true): string
 function commandIndex(words: readonly string[]): number {
 	for (let index = 0; index < words.length; ) {
 		const values = Object.hasOwn(WRAPPERS, basename(words[index]!)) ? WRAPPERS[basename(words[index]!)]! : undefined;
-		if (values === undefined && !RESERVED.includes(words[index]!) && !/^[A-Za-z_]\w*=/.test(words[index]!)) return index;
+		if (values === undefined && !RESERVED.includes(words[index]!) && !/^[A-Za-z_]\w*\+?=/.test(words[index]!)) return index;
 		for (index++; values !== undefined && index < words.length && /^-|^[\d.]+[smhd]?$/.test(words[index]!); ) index += values.includes(words[index]!) ? 2 : 1;
 	}
 	return -1;
@@ -63,60 +63,69 @@ function commandIndex(words: readonly string[]): number {
 // config the guard does not or writes an alias or include, one that may point a checkout at a branch another worktree holds
 // (`--ignore-other-worktrees`, `checkout -B`, `symbolic-ref`), `git replace` but a list, or one of these after a `cd` there.
 // The command is the word after assignments and wrappers (`sudo`, `timeout 60`), also in `bash -c`, a shell's heredoc,
-// `eval`; each path is resolved from where the commands before it left (`cd`, `pushd`, `git -C`, a subshell undoing them),
-// through symlinks. Not seen: a path built at run time (`$x`, a glob, a brace list, what `xargs` reads, a `GIT_DIR` exported
-// before), a program that writes (`node -e`, `tar -C`, `curl -o`), an alias in the user's Git config, a link the same call
-// makes and uses, the git commands that rewrite the repository every worktree shares (`gc`, `prune`, `repack`, `reflog
-// expire`, `maintenance run`), or move a ref no worktree has checked out from the job's own worktree. It is not a sandbox.
+// `eval`; each path is resolved from where the commands before it left (`cd`, `cd -`, `pushd`, `git -C`, a subshell undoing
+// them), through symlinks. Not seen: a path built at run time (`$x`, a glob, a brace list, what `xargs` reads, an `OLDPWD`
+// `read` sets, a `GIT_DIR` exported before), a program that writes (`node -e`, `tar -C`, `curl -o`), an alias in the user's
+// Git config, a link the same call makes and uses, the git commands that rewrite the repository every worktree shares (`gc`,
+// `prune`, `repack`, `reflog expire`, `maintenance run`), or move a ref no worktree has checked out from the job's own
+// worktree. It is not a sandbox.
 function bashRefusal(place: Place, command: string, start: string): string | undefined {
 	let cwd = start;
-	const subshells: string[] = [];
-	const pushed: string[] = [];
-	const theirs = (words: readonly string[], base = cwd, named = true): string | undefined => {
-		for (const word of words) {
-			for (const path of [...(word.startsWith("-") ? [] : [word]), ...(word.includes("=") ? [word.slice(word.indexOf("=") + 1)] : [])]) {
-				const found = refusal(place, real(resolve(base, path)), path, named);
-				if (found !== undefined) return found;
-			}
-		}
-		return undefined;
-	};
+	// Where `cd -`, `~-` and `$OLDPWD` (shell-words.ts reads it as `~-`) go: bash's OLDPWD, from the agent's env; none when unset.
+	let previous = process.env.OLDPWD;
+	const subshells: [string, string | undefined, string[]][] = [];
+	let pushed: string[] = [];
+	const located = (base: string, path: string): string => real(resolve(base, path.replace(/^~-(?=\/|$)/, previous || "~-")));
+	const theirs = (words: readonly string[], base = cwd, named = true): string | undefined =>
+		words.flatMap((word) => [...(word.startsWith("-") ? [] : [word]), ...(word.includes("=") ? [word.slice(word.indexOf("=") + 1)] : [])]).map((path) => refusal(place, located(base, path), path, named)).find(Boolean);
 	const run = (items: readonly Item[]): string | undefined => {
 		for (const item of items) {
-			if (item === "(") subshells.push(cwd);
-			else if (item === ")") cwd = subshells.pop() ?? cwd;
+			if (item === "(") subshells.push([cwd, previous, [...pushed]]);
+			else if (item === ")") [cwd, previous, pushed] = subshells.pop() ?? [cwd, previous, pushed];
 			const found = typeof item === "string" ? undefined : judge(item);
 			if (found !== undefined) return found;
 		}
 		return undefined;
 	};
 	const judge = (command: Command): string | undefined => {
+		if (!previous && [...command.words, ...command.writes].some((word) => /(^|=)~-(\/|$)/.test(literal(word)))) return "arthur: refused: OLDPWD is unset, and the guard reads `~-` and `$OLDPWD` alike where bash does not; name the folder instead";
 		const redirected = theirs(command.writes.map(literal));
 		const words = command.words.map(literal);
 		const at = commandIndex(words);
+		const verb = basename(words[at] ?? "");
+		const moves = ["cd", "pushd", "popd"].includes(verb);
+		// An assignment (`=`, `+=`) alone or by `export`/`declare` sets OLDPWD as written, an `unset` but `-f` clears it; one
+		// before `cd` sets it for that `cd` (which then sets the folder it left), one before a shell or `eval` for what they run.
+		for (const set of command.alone && (at < 0 || moves || ["export", "declare", "typeset", "readonly", "local"].includes(verb)) ? words.map((word) => /^OLDPWD(\+?)=([^]*)/.exec(word)) : []) if (set) previous = (set[1] ? (previous ?? "") : "") + set[2]!.replace(/^~-(?=\/|$)/, previous || "~-");
+		if (command.alone && verb === "unset" && words.includes("OLDPWD") && !words.some((word) => /^-\w*f/.test(word))) previous = undefined;
 		if (redirected !== undefined || at < 0) return redirected;
-		const verb = basename(words[at]!);
 		const args = words.slice(at + 1);
 		const operands = args.filter((word) => !word.startsWith("-"));
-		if (["cd", "pushd", "popd"].includes(verb)) {
+		if (moves) {
 			if (!command.alone) return undefined;
+			// `cd -` goes back, a `pushd` alone swaps the folder with the stack's top; with nowhere to go it fails and stays.
+			const dir = args.find((word) => word === "-" || !word.startsWith("-"));
+			const to = verb === "popd" || (verb === "pushd" && dir === undefined) ? pushed.pop() : dir === "-" ? previous : (dir ?? process.env.HOME);
+			if (to === undefined) return undefined;
 			if (verb === "pushd") pushed.push(cwd);
-			cwd = verb === "popd" ? (pushed.pop() ?? cwd) : real(resolve(cwd, operands[0] ?? process.env.HOME ?? cwd));
+			[previous, cwd] = [cwd, located(cwd, to)];
 		} else if (SHELLS.includes(verb)) {
 			const flag = args.findIndex((word) => /^-[a-z]*c[a-z]*$/.test(word));
-			for (const text of flag >= 0 ? [args[flag + 1] ?? ""] : operands.length === 0 ? command.stdin : []) {
-				const found = run(["(", ...shellCommands(text, process.env.HOME), ")"]);
-				if (found !== undefined) return found;
-			}
-		} else if (verb === "eval") return run(shellCommands(args.join(" "), process.env.HOME));
-		else if (verb === "git") return git(args, words.slice(0, at));
+			return (flag >= 0 ? [args[flag + 1] ?? ""] : operands.length === 0 ? command.stdin : []).map((text) => run(["(", { ...command, words: command.words.slice(0, at), alone: true }, ...shellCommands(text, process.env.HOME), ")"])).find(Boolean);
+		} else if (verb === "eval") {
+			// Bash puts back the OLDPWD a prefix replaced once `eval` ends, whatever its `cd`s set.
+			const kept = previous;
+			const found = run([{ ...command, words: command.words.slice(0, at), alone: true }, ...shellCommands(args.join(" "), process.env.HOME)]);
+			if (words.slice(0, at).some((word) => /^OLDPWD\+?=/.test(word))) previous = kept;
+			return found;
+		} else if (verb === "git") return git(args, words.slice(0, at));
 		else if (verb === "find") return find(args);
 		else if (WRITES.includes(verb) || (["sed", "perl"].includes(verb) && args.some((word) => /^-[a-zA-Z]*i|^--in-place/.test(word)))) return theirs(args);
 		else if (COPIES.includes(verb)) return theirs([operands.at(-1) ?? "", ...args.filter((word) => word.startsWith("--target-directory")), ...args.filter((_, index) => args[index - 1] === "-t")]);
 		else if (verb === "dd") return theirs(args.filter((word) => word.startsWith("of=")));
 		else if (verb === "ln") {
 			// A link's target is read from the link's folder: the last operand, or where it is made when it names a folder.
-			const link = operands.length > 1 ? real(resolve(cwd, operands.at(-1)!)) : cwd;
+			const link = operands.length > 1 ? located(cwd, operands.at(-1)!) : cwd;
 			const folder = statSync(link, { throwIfNoEntry: false })?.isDirectory() ? link : dirname(link);
 			return theirs(operands) ?? (args.some((word) => /^-[a-zA-Z]*s|^--symbolic$/.test(word)) ? theirs(operands.slice(0, Math.max(1, operands.length - 1)), folder) : undefined);
 		}
@@ -127,19 +136,17 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 		const expression = args.findIndex((word) => word.startsWith("-") || word === "(" || word === "!");
 		const roots = args.slice(0, expression < 0 ? args.length : expression);
 		if (roots.length === 0) roots.push(".");
-		for (const [index, word] of args.entries()) {
+		return args.map((word, index) => {
 			const close = args.findIndex((other, position) => position > index && (other === ";" || other === "+"));
 			const words = args.slice(index + 1, close < 0 ? args.length : close).flatMap((other) => (other.includes("{}") ? roots.map((root) => other.replaceAll("{}", root)) : [other]));
-			const found = word === "-delete" ? theirs(roots) : ["-exec", "-execdir", "-ok", "-okdir"].includes(word) ? judge({ words, writes: [], reads: [], stdin: [], alone: false }) : undefined;
-			if (found !== undefined) return found;
-		}
-		return undefined;
+			return word === "-delete" ? theirs(roots) : ["-exec", "-execdir", "-ok", "-okdir"].includes(word) ? judge({ words, writes: [], reads: [], stdin: [], alone: false }) : undefined;
+		}).find(Boolean);
 	};
 	const git = (args: readonly string[], assignments: readonly string[]): string | undefined => {
 		const { sub, rest, chdirs, trees, writesCheckout, writesOperands, config, points, replaces, alias, unread } = gitCall(args, assignments);
 		if (unread || config?.loads) return UNSEEN;
 		if (sub === "stash" && !["list", "show"].includes(rest[0] ?? "")) return STASH;
-		const dir = chdirs.reduce((base, folder) => real(resolve(base, folder)), cwd);
+		const dir = chdirs.reduce(located, cwd);
 		// Every worktree shares the repository's refs: one the job does not own, a checkout pointed at it, or a replacement is main's.
 		const ref = rest.filter((word, at) => !word.startsWith("-") && rest[at - 1] !== "-m")[0] ?? "--stdin";
 		if (sub === "update-ref" && ref !== "HEAD" && (place.branch === "" || ref !== `refs/heads/${place.branch}`)) return refusal(place, place.root, `git update-ref ${ref}`);
@@ -147,7 +154,7 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 		// Config the worktrees share runs hooks and programs in the main checkout; a worktree's own, or a file elsewhere, does not.
 		if (config?.file !== undefined) return theirs([config.file], dir);
 		if (config !== undefined && config.scope !== "--worktree") return refusal(place, place.root, ["git config", config.scope, config.key].filter(Boolean).join(" "));
-		const tree = writesCheckout || config !== undefined ? (theirs([dir], dir, false) ?? theirs(trees, dir, false) ?? [dir, ...trees].flatMap((path) => linkedFolders(real(resolve(dir, path))).map((folder) => refusal(place, real(folder), `${path}, a link to ${folder}`, false))).find(Boolean)) : undefined;
+		const tree = writesCheckout || config !== undefined ? (theirs([dir], dir, false) ?? theirs(trees, dir, false) ?? [dir, ...trees].flatMap((path) => linkedFolders(located(dir, path)).map((folder) => refusal(place, real(folder), `${path}, a link to ${folder}`, false))).find(Boolean)) : undefined;
 		return tree ?? (writesOperands ? theirs(rest, dir) : undefined) ?? (alias === undefined ? undefined : git(alias, assignments));
 	};
 	return run(shellCommands(command, process.env.HOME));
@@ -155,10 +162,7 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 
 // The files an `edit` input names: each `[path#TAG]` header and each `MV` target; `+` body lines are text.
 function editPaths(input: string): string[] {
-	return input.split("\n").flatMap((line) => {
-		const named = line.startsWith("+") ? undefined : (/^\[(.+)#[0-9A-Fa-f]{4}\]\s*$/.exec(line) ?? /^MV\s+["']?(.+?)["']?\s*$/.exec(line));
-		return named?.[1] === undefined ? [] : [named[1]];
-	});
+	return input.split("\n").flatMap((line) => (line.startsWith("+") ? [] : ((/^\[(.+)#[0-9A-Fa-f]{4}\]\s*$/.exec(line) ?? /^MV\s+["']?(.+?)["']?\s*$/.exec(line))?.slice(1, 2) ?? [])));
 }
 
 // The line that refuses a call writing into a guarded place, or undefined: an `edit` or `write` of a path there (one with
@@ -167,11 +171,7 @@ export function worktreeRefusal(place: Place, toolName: string, input: Readonly<
 	if (toolName === "bash") return typeof input.command === "string" ? bashRefusal(place, input.command, real(resolve(place.worktree, typeof input.cwd === "string" ? input.cwd : "."))) : undefined;
 	if (toolName !== "edit" && toolName !== "write") return undefined;
 	const paths = [...(typeof input.path === "string" ? [input.path] : []), ...(typeof input.input === "string" ? editPaths(input.input) : [])];
-	for (const path of paths.filter((path) => !/^[a-z][a-z0-9+.-]*:\/\//i.test(path))) {
-		const found = refusal(place, real(resolve(place.worktree, path.replace(/^~(?=$|\/)/, process.env.HOME ?? "~"))), path);
-		if (found !== undefined) return found;
-	}
-	return undefined;
+	return paths.filter((path) => !/^[a-z][a-z0-9+.-]*:\/\//i.test(path)).map((path) => refusal(place, real(resolve(place.worktree, path.replace(/^~(?=$|\/)/, process.env.HOME ?? "~"))), path)).find(Boolean);
 }
 
 // `tool_call` fires before the tool runs, and a handler that throws blocks the call too. The other projects are read anew on

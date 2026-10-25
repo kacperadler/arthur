@@ -25,8 +25,8 @@ const JOB = "2026-03-04-worker-0000abcd";
 type Ran = readonly [number, string];
 
 // Two projects, acme (AC: AC0001 with Decisions and a section after it, AC0002 without) and shop (SH: SH0001), the plugin set
-// up on the fake host in Warsaw, outside any job.
-async function setup(t: TestContext) {
+// up on the fake host in Warsaw, outside any job; `env` stands for the env file's values, the host's `secrets`.
+async function setup(t: TestContext, env: Record<string, string> = {}) {
 	const saved = process.env.ARTHUR_JOB;
 	delete process.env.ARTHUR_JOB;
 	t.after(() => (saved === undefined ? delete process.env.ARTHUR_JOB : (process.env.ARTHUR_JOB = saved)));
@@ -46,7 +46,7 @@ async function setup(t: TestContext) {
 	// The coordinator's context reads each project's prompt, which needs its repository.
 	for (const root of [acme, shop]) execFileSync("git", ["init", "--quiet", root]);
 	const projects = [{ name: "acme", path: acme, prefix: "AC" }, { name: "shop", path: shop, prefix: "SH" }];
-	const fake = fakeHost({ name: "orchestration", timeZone: "Europe/Warsaw", now: NOW });
+	const fake = fakeHost({ name: "orchestration", timeZone: "Europe/Warsaw", now: NOW, env });
 	fake.provide("projects", () => projects);
 	await fake.setup(orchestration());
 	const printed: string[] = [];
@@ -360,6 +360,33 @@ test("a key, a job id and a commit hash in the owner's answer are redacted in th
 	assert.deepEqual(log()?.[0], { record: "ask", id: "AC-D1", time: "2026-03-04T06:00:00+01:00", project: "acme", kind: "question", question: "Use [redacted]?", options: ["key [redacted]"], ticket: "AC0001", job: JOB });
 	assert.equal(log()?.[1].words, "yes, [redacted], see [redacted] at [redacted]");
 	assert.match(ticket(PLAN), /^- 2026-03-04: Use the key \[redacted\]; the owner: "yes, \[redacted\], see \[redacted\] at \[redacted\]" \(AC-D1\)$/m);
+});
+
+test("a value of the env file, which the process's environment never holds, is redacted in every text the log keeps; the wake still finds the job's question", async (t) => {
+	const secret = "correct-horse-battery";
+	// A value of 8 characters is a secret, one of 7 is not (`seventh`, `Drop` stay); a value that starts another is replaced after it.
+	const { fake, decision, log, blocked, file } = await setup(t, { ARTHUR_ORCHESTRATION_PASS: secret, ARTHUR_ORCHESTRATION_WORD: "Drop", ARTHUR_ORCHESTRATION_SHORT: "abcdefgh", ARTHUR_ORCHESTRATION_LONG: "abcdefgh-longer-tail", ARTHUR_ORCHESTRATION_SEVEN: "seventh" });
+	assert.ok(!Object.values(process.env).includes(secret));
+	await backed(decision);
+	await decision(...PROPOSE);
+	await decision("answer", "AC-D4", ...APPROVE, "yes");
+	await decision("ask", "--kind", "question", "--question", `Use ${secret}?`, "--option", `keep ${secret}`, "--recommend", `rotate ${secret}`);
+	await decision("answer", "AC-D5", "--decided", `Rotate ${secret}`, `yes, ${secret}`);
+	await decision("ask", "--kind", "question", "--question", "Drop abcdefgh-longer-tail, abcdefgh, seventh?");
+	await decision("close", "AC-D6", `moot, ${secret}`);
+	blocked(JOB, `May I print ${secret}?`);
+	assert.deepEqual(await decision("class", "revoke", "AC-D4", `stop, ${secret}`), [0, "AC-D4 revoked: its questions go to the owner again"]);
+	assert.ok(!readFileSync(file(), "utf8").includes(secret));
+	const texts = (log() ?? []).slice(8).map(({ record, question, options, recommend, decided, words, reason }) => ({ record, question, options, recommend, decided, words, reason }));
+	assert.deepEqual(JSON.parse(JSON.stringify(texts)), [
+		{ record: "ask", question: "Use [redacted]?", options: ["keep [redacted]"], recommend: "rotate [redacted]" },
+		{ record: "answer", decided: "Rotate [redacted]", words: "yes, [redacted]" },
+		{ record: "ask", question: "Drop [redacted], [redacted], seventh?", options: [] },
+		{ record: "close", reason: "moot, [redacted]" },
+		{ record: "ask", question: "May I print [redacted]?", options: [] },
+		{ record: "revoke", words: "stop, [redacted]" },
+	]);
+	assert.match(fake.collect<string>("coordinator.wake", { id: JOB, kind: "worker", project: "acme", state: "blocked", reason: `user: May I print ${secret}?` }).filter(Boolean)[0] ?? "", /^Its question is decision AC-D7:/);
 });
 
 test("a long answer cuts the ticket's line, naming arthur decisions <id>, which prints it whole", async (t) => {

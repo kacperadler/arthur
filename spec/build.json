@@ -2542,9 +2542,9 @@
   {
     "id": "AR0333",
     "title": "`cd -`, `pushd` with no operand and `$OLDPWD` are read as `cd $HOME`",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0333-cd-pushd-with-no-operand-and-oldpwd-are-read-as-cd-home/ticket.md",
-    "updated": "2026-10-25T18:03:47.759Z"
+    "updated": "2026-10-25T18:16:15.786Z"
   },
   {
     "id": "AR0334",

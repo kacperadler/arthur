@@ -3018,9 +3018,9 @@
   {
     "id": "AR0401",
     "title": "Inside a sandboxed job, the orchestration tests that start a tmux server fail",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0401-inside-a-sandboxed-job-the-orchestration-tests-that-start-a-tmux-server-fail/ticket.md",
-    "updated": "2026-10-25T14:35:15.774Z"
+    "updated": "2026-10-25T14:38:45.990Z"
   },
   {
     "id": "AR0402",
@@ -3094,5 +3094,12 @@
     "after": [
       "AR0410"
     ]
+  },
+  {
+    "id": "AR0412",
+    "title": "Inside the job sandbox, a test's job wrapper dies writing /proc/self/oom_score_adj, so its agent never starts",
+    "status": "planning",
+    "path": "spec/features/AR0412-inside-the-job-sandbox-a-test-s-job-wrapper-dies-writing-proc-self-oom-score-adj/ticket.md",
+    "updated": "2026-10-25T14:38:45.987Z"
   }
 ]

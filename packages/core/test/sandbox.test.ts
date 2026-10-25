@@ -11,7 +11,7 @@ import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { sandboxed, writable } from "../src/job-sandbox.ts";
 import { jobRunner } from "../src/jobs.ts";
-import { jobSlice, temporaryFolder } from "../src/testing.ts";
+import { fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 
@@ -24,6 +24,17 @@ function inside(paths: readonly string[], script: string, cwd?: string): { reado
 
 // Why this host runs a job's agent bare (not Linux, no python3, a kernel without Landlock); the tests of the sandbox skip there.
 const bare = inside([], "true").log[0]?.match(/^no sandbox: (.*?);/)?.[1];
+
+// omp's session lock (AR0406) as `python3 <file> <name>` takes it: a Unix datagram socket bound to an abstract name; refused, it
+// fails as omp does, `Session persistence failed`, and exits 1. A test's names are its own, never omp's `omp-file-lock-<hash>`.
+const lock = join(temporaryFolder(), "lock.py");
+writeFileSync(lock, `import socket, sys\ntry: socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM | socket.SOCK_CLOEXEC).bind("\\0arthur-test-" + sys.argv[1])\nexcept OSError as error: sys.exit(f"Session persistence failed: Failed to acquire native file lock for {sys.argv[1]}: {error.strerror}")\n`);
+
+// Which Unix socket kinds `sh -c` opens, a line each, and why the tests that need a Unix socket of this process (the lock, a
+// server, systemd-run's bus) skip where the sandbox is set up: this process cannot open one itself, as in a job's own sandbox.
+const sockets = `for kind in stream seqpacket; do python3 -c "import socket; socket.socket(socket.AF_UNIX, socket.SOCK_$(echo $kind | tr a-z A-Z))" 2>/dev/null && echo "$kind opened" || echo "$kind refused"; done`;
+const unconfined = spawnSync("sh", ["-c", `python3 '${lock}' probe-${process.pid} && ${sockets}`], { encoding: "utf8" }).stdout === "stream opened\nseqpacket opened\n";
+const locked = bare ?? (unconfined ? undefined : "this process cannot make a Unix socket itself (it runs in a job's sandbox)");
 
 // Each `write` is a shell command; the line says whether it wrote.
 const tries = (writes: Readonly<Record<string, string>>) =>
@@ -67,10 +78,10 @@ test("a write beneath a writable path passes; beside it, above it, through a lin
 		"a file next to the writable file refused",
 	]);
 	assert.equal(readFileSync(join(shut, "kept"), "utf8"), "kept\n");
-	assert.deepEqual(log, [`sandbox: the agent writes only in ${open}, ${join(folder, "single")}, ${join(folder, "missing")}, /dev, and opens no Unix socket`]);
+	assert.deepEqual(log, [`sandbox: the agent writes only in ${open}, ${join(folder, "single")}, ${join(folder, "missing")}, /dev, and opens no Unix socket but a datagram one`]);
 });
 
-test("in the sandbox a Unix socket is refused, a server's that listens as well; TCP still connects", { skip: bare }, async (t) => {
+test("in the sandbox a Unix socket is refused, a server's that listens as well; TCP still connects", { skip: locked }, async (t) => {
 	const folder = temporaryFolder();
 	const socket = join(folder, "server.sock");
 	const [unix, tcp] = [createServer(), createServer()];
@@ -83,6 +94,10 @@ test("in the sandbox a Unix socket is refused, a server's that listens as well; 
 	const script = `${connect(JSON.stringify(socket))}; ${connect(`${port}, "127.0.0.1"`)}`;
 	assert.deepEqual(spawnSync("sh", ["-c", script], { encoding: "utf8" }).stdout.split("\n"), ["connected", "connected", ""], "outside the sandbox both connect");
 	assert.deepEqual(inside([folder], script).out.split("\n"), ["EACCES", "connected", ""]);
+});
+
+test("in the sandbox omp's session lock binds its Unix datagram socket; a Unix stream or seqpacket socket is still refused", { skip: locked }, () => {
+	assert.deepEqual(inside([], `python3 '${lock}' inside-${process.pid} && echo locked; ${sockets}`).out.split("\n"), ["locked", "stream refused", "seqpacket refused", ""]);
 });
 
 test("python3 loads no module of the agent's folder before the sandbox is set", { skip: bare }, () => {
@@ -150,7 +165,7 @@ async function until<T>(what: string, predicate: () => T | undefined): Promise<T
 	throw new Error(`timed out waiting for ${what}`);
 }
 
-test("a job's agent writes its worktree, a commit on its branch, its record and the temporary folder; never the main checkout, the shared Git config or hooks, nor the home folder", { skip: bare }, async () => {
+test("a job's agent writes its worktree, a commit on its branch, its record and the temporary folder; never the main checkout, the shared Git config or hooks, nor the home folder", { skip: locked }, async () => {
 	const { folder, root, home } = repository();
 	const temporary = join(folder, "tmp");
 	mkdirSync(temporary);
@@ -189,4 +204,19 @@ test("a job's agent writes its worktree, a commit on its branch, its record and 
 	assert.equal(readFileSync(join(record, "note"), "utf8"), "x\n");
 	assert.equal(readFileSync(join(root, "README.md"), "utf8"), "acme\n");
 	assert.match(readFileSync(join(record, "log"), "utf8"), new RegExp(`\\] sandbox: the agent writes only in ${worktree}, ${record}, .*${temporary}, /dev, `));
+});
+
+test("a sandboxed job's agent takes omp's session lock, so a review whose final message ends PASS ends finished with that verdict", { skip: locked }, async () => {
+	const { folder, root, home } = repository();
+	const agent = join(folder, "agent");
+	writeFileSync(agent, `#!/bin/sh\npython3 '${lock}' job-${process.pid} || exit 1\nexec '${fakeAgent({ steps: [{ message: "Clean.\n\nPASS\n" }] })}' "$@"\n`, { mode: 0o755 });
+	const time = clock("UTC", undefined, () => new Date("2026-10-24T08:00:00Z"));
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), () => []);
+	jobs.registerKind("delivery", { name: "judged", readOnly: true, role: "worker", verdicts: ["PASS", "FAIL"] });
+	const job = await jobs.spawn({ task: "Judge.", kind: "judged" });
+	const ended = await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
+	const log = readFileSync(join(home, "jobs", job.id, "log"), "utf8");
+	assert.match(log, /\] sandbox: the agent writes only in /);
+	assert.doesNotMatch(log, /Session persistence failed/);
+	assert.deepEqual(ended.data, { id: job.id, kind: "judged", project: "acme", state: "ended", reason: "finished" });
 });

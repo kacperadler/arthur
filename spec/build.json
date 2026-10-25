@@ -2598,9 +2598,9 @@
   {
     "id": "AR0341",
     "title": "A blocked job's question goes to the phone as written, while the decision log redacts it",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0341-a-blocked-job-s-question-goes-to-the-phone-as-written-while-the-decision-log-redacts-it/ticket.md",
-    "updated": "2026-10-23T14:22:39.871Z",
+    "updated": "2026-10-25T20:04:21.573Z",
     "after": [
       "AR0340"
     ]
@@ -3214,9 +3214,9 @@
   {
     "id": "AR0426",
     "title": "A forwarded file without a caption reaches the coordinator unmarked",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0426-a-forwarded-file-without-a-caption-reaches-the-coordinator-unmarked/ticket.md",
-    "updated": "2026-10-25T19:45:35.809Z"
+    "updated": "2026-10-25T20:04:23.116Z"
   },
   {
     "id": "AR0427",

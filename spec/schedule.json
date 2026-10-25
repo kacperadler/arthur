@@ -1,0 +1,10 @@
+[
+  {
+    "id": "night-report-0830",
+    "at": "2026-10-26T08:30",
+    "action": {
+      "message": "Write and send the owner the HTML night report with a link, as he asked at 02:00.",
+      "procedure": ".arthur/report-0830.md"
+    }
+  }
+]

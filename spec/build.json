@@ -2907,9 +2907,9 @@
   {
     "id": "AR0384",
     "title": "`git replace` from a job's worktree changes what every worktree reads of main's commits",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0384-git-replace-from-a-job-s-worktree-changes-what-every-worktree-reads-of-main-s-commits/ticket.md",
-    "updated": "2026-10-23T17:34:07.667Z"
+    "updated": "2026-10-25T01:38:33.735Z"
   },
   {
     "id": "AR0385",
@@ -2987,5 +2987,19 @@
     "status": "planned",
     "path": "spec/features/AR0395-a-link-to-the-repository-made-and-used-in-one-bash-call-still-moves-main/ticket.md",
     "updated": "2026-10-25T00:42:19.261Z"
+  },
+  {
+    "id": "AR0396",
+    "title": "A `git fetch` or `git push` from a job's worktree into `refs/replace` still writes a replacement every worktree reads",
+    "status": "planned",
+    "path": "spec/features/AR0396-a-git-fetch-or-git-push-from-a-job-s-worktree-into-refs-replace-still-writes-a-replacement-every-worktree-reads/ticket.md",
+    "updated": "2026-10-25T01:38:49.453Z"
+  },
+  {
+    "id": "AR0397",
+    "title": "Arthur's other git reads in a main checkout still read through a replacement",
+    "status": "planned",
+    "path": "spec/features/AR0397-arthur-s-other-git-reads-in-a-main-checkout-still-read-through-a-replacement/ticket.md",
+    "updated": "2026-10-25T01:38:49.655Z"
   }
 ]

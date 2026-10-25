@@ -12,6 +12,7 @@ Generated from `spec/features/` by `h changelog`; a hand edit is overwritten at 
 - AR0381 The worktree guard does not see a git alias or GIT_DIR (6e0f0a1d)
 - AR0382 A job's repository on another machine runs its config's hooks in Arthur's git calls there (559c77e0)
 - AR0383 A `.git` file or a `commondir` written outside the worktree makes any folder a checkout of main (cdec3c07)
+- AR0384 `git replace` from a job's worktree changes what every worktree reads of main's commits (185cc01f)
 
 ## 2026-10-23
 

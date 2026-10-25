@@ -2703,9 +2703,9 @@
   {
     "id": "AR0356",
     "title": "The job's `PATH` under the service has no `arthur`, so the line the develop plugin tells a worker to run may not run there",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0356-the-job-s-path-under-the-service-has-no-arthur-so-the-line-the-develop-plugin-tells-a-worker-to-run-may-not-run-there/ticket.md",
-    "updated": "2026-10-25T18:39:17.508Z"
+    "updated": "2026-10-25T18:53:58.697Z"
   },
   {
     "id": "AR0357",
@@ -2780,9 +2780,9 @@
   {
     "id": "AR0367",
     "title": "A site check follows a redirect to any address, loopback and metadata included",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0367-a-site-check-follows-a-redirect-to-any-address-loopback-and-metadata-included/ticket.md",
-    "updated": "2026-10-25T18:27:03.791Z"
+    "updated": "2026-10-25T18:42:57.033Z"
   },
   {
     "id": "AR0368",
@@ -3154,9 +3154,9 @@
   {
     "id": "AR0420",
     "title": "Forms of OLDPWD and pushd the guard still misreads: ${OLDPWD...} operators, readonly, local outside a function, pushd -n, OLDPWD+= before eval",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0420-forms-of-oldpwd-and-pushd-the-guard-still-misreads-oldpwd-operators-readonly/ticket.md",
-    "updated": "2026-10-25T18:26:28.026Z",
+    "updated": "2026-10-25T18:42:07.409Z",
     "after": [
       "AR0333"
     ]

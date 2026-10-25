@@ -40,6 +40,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0407 A job's Unix datagram socket reaches any local daemon that listens on one (1256ab3a)
 - AR0417 The push's refusal prints a credential git names without `://` (9ffac56c)
 - AR0418 A repo URL that new URL cannot parse is printed with its credential by the clone's refusal (458b3aaa)
+- AR0420 Forms of OLDPWD and pushd the guard still misreads: ${OLDPWD...} operators, readonly, local outside a function, pushd -n, OLDPWD+= before eval (ccecf8b7)
 - AR0426 A forwarded file without a caption reaches the coordinator unmarked (75127d83)
 
 ### Changed

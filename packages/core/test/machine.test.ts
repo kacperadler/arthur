@@ -261,7 +261,9 @@ test("a job on another machine starts with none of its role's MCP servers, and i
 	jobs.sweep();
 	assert.deepEqual([existsSync(join(home, "jobs", job.id, "mcp")), existsSync(join(there, "jobs", job.id, "mcp")), calls().filter((call) => call.includes("mcp-s3cr3t"))], [false, false, []]);
 	const local = await jobs.spawn({ task: "Build it here." });
-	assert.deepEqual([told(local.warnings), existsSync(join(home, "jobs", local.id, "mcp", ".mcp.json"))], [[], true], "a local job gets them");
+	// Its record's `mcp/` lies there only during its run (AR0337): the flag of its start says it got them.
+	const start = await until("the local job's start", () => readFileSync(join(dirname(omp), "starts.jsonl"), "utf8").split("\n").slice(0, -1)[1]);
+	assert.deepEqual([told(local.warnings), (JSON.parse(start).args as string[]).includes("--plugin-dir")], [[], true], "a local job gets them");
 });
 
 test("an unknown machine, a refused key, arthur missing there or of another version refuse the spawn before any record", async () => {

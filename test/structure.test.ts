@@ -648,7 +648,13 @@ import { checkStructure } from "./structure.ts";
 // at its tip; AR-D29): delivery 4 more (1321) for the task built again and compared in `refusal`, the worker's refusals read
 // as the one refusal (delivery.ts, git diff --numstat +7 -3: the comment refolded to one line, the import changed in place).
 // Nothing compared a review's task before, so nothing was cut.
-const BUDGETS = { core: 6156, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1321, github: 658, manage: 928, develop: 705, findings: 254 };
+// AR0337 (F1 of AR0319; its Done means: a job's `mcp/` removed at its run's end and written again at `arthur continue`, `.mcp.json`
+// a secrets name of the env guard; AR-D29): core 11 more (6167) for `writeMcp` out of `writeRecord`, called at the spawn and the
+// continue, with its comment (job-record.ts, git diff --numstat +14 -8), the role's servers asked by the continue's check, its
+// type and the call (job-control.ts +7 -5, jobs.ts +1 -1), `mcp/` removed at the wrapper's end (wrapper.ts +1 -1, a blank line
+// cut), at the end of a wrapper that does not start (job-scope.ts +2 -1) and at the sweep's (job-records.ts +1), and the name
+// with its comment (env-refusal.ts +6 -5). Nothing removed the secrets before the prune, so nothing was cut.
+const BUDGETS = { core: 6167, "core/testing": 349, projects: 486, orchestration: 2337, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 292, delivery: 1321, github: 658, manage: 928, develop: 705, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

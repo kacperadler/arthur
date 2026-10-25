@@ -22,17 +22,12 @@ export type Own = { readonly resumeOnBudget: boolean; readonly verdicts: readonl
 // A job starts `working` (job-state.ts) at `since`; `idle-minutes` is the core's `jobs.idleMinutes`; `projects` is every
 // project's main checkout, `checkouts` (job-checkout.ts), and `guarded` the places outside them (job-place.ts): Arthur's
 // install, the user's own files and, with `config`, the config's folder and env file; the worktree guard refuses them too.
-// With `mcp`, the role's MCP servers (AR0234): `mcp/` for omp's `--plugin-dir`, its `.mcp.json` readable by its owner only,
-// and `mcp.yml`, the overlay that makes their tools plain tools, so `--tools` keeps a read-only role without `write`.
+// With `mcp`, the role's MCP servers (`writeMcp`).
 export function writeRecord(home: string, job: Job, prompt: string, kind: Own, idleMinutes: number, since: Date, projects: string, config: Parameters<typeof guardedPlaces>[0], mcp?: McpServers): void {
 	const folder = join(home, "jobs");
 	const temporary = join(folder, `.${job.id}`);
-	mkdirSync(join(temporary, ...(mcp ? ["mcp", ".claude-plugin"] : [])), { recursive: true });
-	if (mcp) {
-		writeFileSync(join(temporary, "mcp", ".claude-plugin", "plugin.json"), '{ "name": "arthur" }\n');
-		writeFileSync(join(temporary, "mcp", ".mcp.json"), `${JSON.stringify({ mcpServers: mcp }, null, "\t")}\n`, { mode: 0o600 });
-		writeFileSync(join(temporary, "mcp.yml"), "tools:\n  xdev: false\n");
-	}
+	mkdirSync(temporary, { recursive: true });
+	writeMcp(temporary, mcp);
 	const record = {
 		task: job.task, kind: job.kind, project: job.project, model: job.model ?? "", "model-why": job.modelWhy ?? "", thinking: job.thinking ?? "", quick: job.quick ?? "", prompt,
 		timeout: String(job.timeoutMinutes), budget: String(job.budgetUsd), free: String(job.free), "resume-on-budget": String(kind.resumeOnBudget), verdicts: kind.verdicts.join("\n"), ...capFields(job), cost: "0.0000",
@@ -41,6 +36,17 @@ export function writeRecord(home: string, job: Job, prompt: string, kind: Own, i
 	};
 	for (const [name, value] of Object.entries(record)) writeFileSync(join(temporary, name), value);
 	renameSync(temporary, join(folder, job.id));
+}
+
+// The role's MCP servers (AR0234), if any, in the record `folder` at the spawn and each `arthur continue`: `mcp/` for omp's
+// `--plugin-dir`, its `.mcp.json` readable by its owner only, and `mcp.yml`, the overlay that keeps a read-only role's `--tools`
+// without `write`. Any job of the user can read `mcp/`, so each end of a run removes it before `state` (AR0337).
+export function writeMcp(folder: string, mcp: McpServers | undefined): void {
+	if (!mcp) return;
+	mkdirSync(join(folder, "mcp", ".claude-plugin"), { recursive: true });
+	writeFileSync(join(folder, "mcp", ".claude-plugin", "plugin.json"), '{ "name": "arthur" }\n');
+	writeFileSync(join(folder, "mcp", ".mcp.json"), `${JSON.stringify({ mcpServers: mcp }, null, "\t")}\n`, { mode: 0o600 });
+	writeFileSync(join(folder, "mcp.yml"), "tools:\n  xdev: false\n");
 }
 
 // The record's files of a job's caps, `arthur continue` writing them anew from what `jobs.limits` answers then.

@@ -175,14 +175,14 @@ test("each job gets its role's MCP servers, all or its own, read-only tools unch
 	assert.deepEqual([existsSync(record(audit, "mcp")), existsSync(record(audit, "mcp.yml"))], [false, false]);
 	release();
 	await until("every job's end", () => ids.every((id) => existsSync(record(id, "state")) && readFileSync(record(id, "state"), "utf8") === "ended"));
-	// Every file of each record, at any depth, that holds a secret.
+	// Every file of each record, at any depth, that holds a secret: none once the run ended, `mcp/` gone with it (AR0337).
 	const holding = (id: string, at = join(home, "jobs", id)): string[] =>
 		readdirSync(at, { withFileTypes: true }).flatMap((entry) => {
 			const path = join(at, entry.name);
 			if (entry.isDirectory()) return holding(id, path);
 			return /s3cret/.test(readFileSync(path, "utf8")) ? [relative(join(home, "jobs", id), path)] : [];
 		});
-	assert.deepEqual(ids.map((id) => holding(id)), [["mcp/.mcp.json"], ["mcp/.mcp.json"], []]);
+	assert.deepEqual(ids.map((id) => holding(id)), [[], [], []]);
 	const bare = await load(t, {});
 	const plain = await bare.jobs.spawn({ task: "Go." });
 	await until("the start", () => bare.starts().length === 1);

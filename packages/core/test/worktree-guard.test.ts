@@ -83,7 +83,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	// The whole refusal: its patch path is the job's own, never a name in the shared /tmp another job may pick too.
 	const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save a patch in your own worktree instead (git diff > .arthur-stash.patch, then git apply .arthur-stash.patch)";
 	const LINK = "a link to a repository";
-	const UNSET = "arthur: refused: OLDPWD is unset, and the guard reads `~-` and `$OLDPWD` alike where bash does not; name the folder instead";
+	const UNKNOWN = "arthur: refused: the guard cannot tell where OLDPWD leads here: it is unset, where bash reads `~-` and `$OLDPWD` apart, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; name the folder instead";
 	// Each call, and the place its refusal names: undefined when it passes.
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
 		["bash", { command: `echo x > ${main}/README.md` }, MAIN],
@@ -108,7 +108,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `pushd ${main}; pushd /tmp; (popd); popd; rm README.md` }, MAIN],
 		["bash", { command: `export OLDPWD=${main}; cd -; rm README.md` }, MAIN],
 		["bash", { command: `cd ${main}; cd /tmp; cd -; unset -v OLDPWD; cd -; rm README.md` }, MAIN],
-		["bash", { command: `cd ${main}; cd /tmp; unset OLDPWD; rm $OLDPWD/f` }, UNSET],
+		["bash", { command: `cd ${main}; cd /tmp; unset OLDPWD; rm $OLDPWD/f` }, UNKNOWN],
 		["bash", { command: `cd ${main}; cd /tmp; unset -f OLDPWD; cd -; rm README.md` }, MAIN],
 		["bash", { command: `cd ${main}; cd /tmp; unset FOO; cd -; rm README.md` }, MAIN],
 		["bash", { command: `cd ${main}; cd /tmp; unset OLDPWD | true; cd -; rm README.md` }, MAIN],
@@ -127,10 +127,42 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `cd ${main}; cd /tmp; OLDPWD=/var eval true; cd -; rm README.md` }, MAIN],
 		["bash", { command: `cd ${main}; cd /tmp; OLDPWD=/var eval 'cd /usr'; cd -; rm README.md` }, MAIN],
 		["bash", { command: `cd ${main}; eval 'cd /tmp'; cd -; rm README.md` }, MAIN],
-		["bash", { command: "OLDPWD=$OLDPWD/x; cd -; rm notes.txt" }, UNSET],
-		["bash", { command: "cd $OLDPWD && rm README.md" }, UNSET],
-		["bash", { command: "rm ~-/README.md" }, UNSET],
-		["bash", { command: `cd ${main}; OLDPWD=; echo x > $OLDPWD/f` }, UNSET],
+		["bash", { command: "OLDPWD=$OLDPWD/x; cd -; rm notes.txt" }, UNKNOWN],
+		["bash", { command: "cd $OLDPWD && rm README.md" }, UNKNOWN],
+		["bash", { command: "rm ~-/README.md" }, UNKNOWN],
+		["bash", { command: `cd ${main}; OLDPWD=; echo x > $OLDPWD/f` }, UNKNOWN],
+		// AR0420: an operator of `${OLDPWD…}`, a read-only OLDPWD, `local` outside a function, `pushd -n`, the `+=` of an
+		// eval's prefix, and OLDPWD's array; what the guard cannot follow is refused as unknown.
+		["bash", { command: `cd ${main}; cd /tmp; cd \${OLDPWD:-/tmp} && rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; cd \${OLDPWD%/} && rm README.md` }, UNKNOWN],
+		["bash", { command: `readonly OLDPWD=${root}; cd /tmp; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; declare -r OLDPWD; cd /var; cd -; rm README.md` }, MAIN],
+		["bash", { command: `readonly OLDPWD=${root}; OLDPWD=/tmp cd -; rm README.md` }, MAIN],
+		["bash", { command: `readonly OLDPWD=${root}; cd /tmp; unset OLDPWD; cd -; rm README.md` }, MAIN],
+		["bash", { command: `readonly OLDPWD=${root}; OLDPWD=/tmp bash -c 'cd -; rm README.md'` }, MAIN],
+		["bash", { command: `readonly OLDPWD=/tmp; cd ${main}; bash -c 'cd /var; cd -; rm README.md'` }, MAIN],
+		["bash", { command: `(readonly OLDPWD=/tmp); cd ${main}; cd /var; cd -; rm README.md` }, MAIN],
+		["bash", { command: `readonly -f OLDPWD; cd ${main}; cd /tmp; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; local OLDPWD=/tmp; cd -; rm README.md` }, MAIN],
+		["bash", { command: `readonly FOO=1; cd ${main}; cd /tmp; cd -; rm README.md` }, MAIN],
+		["bash", { command: `pushd ${main}; pushd -n; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; pushd -n /tmp; rm README.md` }, MAIN],
+		["bash", { command: `pushd -n ${main}; popd; rm README.md` }, MAIN],
+		["bash", { command: `cd /tmp; pushd ${root}; popd -n; rm README.md` }, MAIN],
+		["bash", { command: `cd /tmp; pushd ${root}; popd -n; popd; rm README.md` }, MAIN],
+		["bash", { command: `cd ${root}; pushd /tmp; pushd -n; popd; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; OLDPWD+=/ eval 'cd /var'; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd /tmp; cd /var; OLDPWD[0]=${root}; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd /tmp; OLDPWD=(${root}); cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd /tmp; declare OLDPWD[0]=${root}; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; cd /tmp; OLDPWD[1]=/var; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd /tmp; cd ${root}; unset OLDPWD[0]; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd ${main}; OLDPWD='(/tmp'; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd /tmp; OLDPWD[i]=${root}; cd -; rm README.md` }, UNKNOWN],
+		["bash", { command: `OLDPWD+=(${root}); cd -; rm README.md` }, UNKNOWN],
+		["bash", { command: `OLDPWD=([0]=${root}); cd -; rm README.md` }, UNKNOWN],
+		["bash", { command: `cd ${main}; cd /tmp; OLDPWD[0]=/var cd -; rm README.md` }, UNKNOWN],
+		["bash", { command: `cd ${main}; OLDPWD=(/tmp) cd -; rm README.md` }, UNKNOWN],
 		["bash", { command: "rm README.md", cwd: main }, MAIN],
 		["bash", { command: `cat > ${main}/notes.md <<'EOF'\nhello\nEOF` }, MAIN],
 		["bash", { command: `bash <<EOF\nrm ${main}/README.md\nEOF` }, MAIN],
@@ -257,7 +289,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	try {
 		for (const [toolName, input, expected] of calls) {
 			const reason = worktreeRefusal(place, toolName, input);
-			const named = reason === undefined ? undefined : reason === STASH || reason === UNSET ? reason : reason.includes("which Git reads as a link to a repository") ? LINK : (/writes into (.+?) \(/.exec(reason)?.[1] ?? reason);
+			const named = reason === undefined ? undefined : reason === STASH || reason === UNKNOWN ? reason : reason.includes("which Git reads as a link to a repository") ? LINK : (/writes into (.+?) \(/.exec(reason)?.[1] ?? reason);
 			assert.equal(named, expected, `${toolName} ${JSON.stringify(input)}: ${reason}`);
 		}
 		// An OLDPWD the agent's env gives is where `cd -` goes first.

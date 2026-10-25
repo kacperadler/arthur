@@ -22,7 +22,7 @@ Said, without failing the check:
 
 Refused, one line each (the same lines refuse the start):
 
-- A name without the plugin's prefix, with another plugin's or another instance's name, or with nothing after the prefix: `<config>: <plugin>.<option>: expected ARTHUR_<PLUGIN>_<WHAT>, got <name>`. A text that is not a variable name is not shown, since it may be a pasted secret.
+- A name without the plugin's prefix, with another plugin's or another instance's name, or with nothing after the prefix: `<config>: <plugin>.<option>: expected ARTHUR_<PLUGIN>_<WHAT>, got <name>`. A text that is not a variable name, or not one starting with `ARTHUR_`, is not shown, since it may be a pasted secret.
 - An `...Env` option that is not a string.
 - An env-file line without `=`, with a key that is not letters, digits and `_`, or with an unclosed quote: named by its line number, never shown.
 - An env file that exists but cannot be read.

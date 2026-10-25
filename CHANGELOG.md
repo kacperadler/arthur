@@ -17,6 +17,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0341 A blocked job's question goes to the phone as written, while the decision log redacts it (6d780f86)
 - AR0342 A project's `repo` URL is printed by the clone's refusals, with any credential it holds (8409266e)
 - AR0344 A pasted secret of capitals, digits and `_` in a `...Env` option is printed by the refusal (432245c4)
+- AR0351 A docs-only branch that rewrites the prompt files every later job reads gets `no review` (57f325fd)
 - AR0352 The always-review list never matches a path under `.agents/`: `**` does not enter a dot folder (293b4ac4)
 - AR0356 The job's `PATH` under the service has no `arthur`, so the line the develop plugin tells a worker to run may not run there (a91c1308)
 - AR0357 The review kind takes any task with the three head lines, so a PASS can rest on a task nobody built from the branch (AR0311 F6, confirmed) (d2a58d77)

@@ -30,6 +30,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0408 versions.mmd still shows the harness in use today (da58fccb)
 - AR0409 arthur.config.example.ts says nothing in it runs yet (963c71df)
 - AR0410 setup.md step 5 does not say `ci.workflow` needs an `origin` remote (8cd738c7)
+- AR0411 setup.md step 5 check reads as if `arthur config check` exits 0 there, while it exits 1 until step 6 (53d87690)
 
 ## 2026-10-23
 

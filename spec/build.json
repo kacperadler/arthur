@@ -3693,9 +3693,9 @@
   {
     "id": "AR0459",
     "title": "The site draws each diagram at its own size in a small scrolling box, so a reader sees mostly empty space",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0459-the-site-draws-each-diagram-at-its-own-size-in-a-small-scrolling-box-so-a-reader/ticket.md",
-    "updated": "2026-10-26T18:44:23.708Z"
+    "updated": "2026-10-26T18:48:40.593Z"
   },
   {
     "id": "AR0460",

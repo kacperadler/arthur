@@ -6,10 +6,10 @@ No page here is written by hand. `scripts/generate.ts` runs before every `npm ru
 
 - the landing page from `README.md`: its first paragraph under the H1 is the tagline, the rest from its first `##` is the body, and the logo in `docs/logo/` (`arthur.svg`, else `arthur.png`), when there is one, is the hero image; the favicon is the small icon `arthur-favicon.png` when it exists, else the logo;
 - the roadmap page from `spec/roadmap.md` and the board, `spec/build.json`;
-- the diagram page from `arthur.mmd`;
+- the diagram page from `arthur.mmd`, without the outline on its right, to give the diagram the width;
 - the setup page from `docs/setup.md`, when it exists.
 
-Relative links point to the files on GitHub, and a `mermaid` block is drawn in the browser. A broken input (a README without its H1 or first paragraph, a roadmap entry number used twice, a `Roadmap <N>:` ticket for an entry the roadmap does not have) fails the build.
+Relative links point to the files on GitHub, and a `mermaid` block is drawn in the browser, fitted whole to its column, with a link under it that opens the diagram alone at its own size in a new tab. A broken input (a README without its H1 or first paragraph, a roadmap entry number used twice, a `Roadmap <N>:` ticket for an entry the roadmap does not have) fails the build.
 
 Inside `site/`: `npm ci`, then `npm test`, `npm run dev` (http://localhost:4321/arthur/) or `npm run build` (into `dist/`, `npm run preview` serves it).
 

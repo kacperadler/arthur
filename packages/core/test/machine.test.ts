@@ -740,7 +740,8 @@ test("a plugin's hold on a job there stands at each copy while it runs there and
 	assert.deepEqual([read(home, held.id, "reason"), existsSync(join(home, "jobs", held.id, "hold"))], ["failed: machine offline", false]);
 	rmSync(join(machine, "refuse"));
 	writeFileSync(gate, "");
-	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
+	// The held job's run there went on through the offline spell, and a copy follows it until that run ends: wait for both.
+	for (const id of [job.id, held.id]) await until("the job's end there", () => existsSync(join(there, "jobs", id, "state")) && read(there, id, "state") === "ended");
 	jobs.sweep();
 	assert.deepEqual([read(home, job.id, "state"), existsSync(join(home, "jobs", job.id, "hold"))], ["ended", false]);
 	const copies = calls().length;

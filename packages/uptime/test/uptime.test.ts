@@ -191,7 +191,8 @@ for (const all of [true, false]) test(`a redirect to a name that answers a publi
 	let asked = 0;
 	resolving(t, "rebind.example", () => [{ address: asked++ % 2 === 0 ? "203.0.113.9" : "127.0.0.1", family: 4 }]);
 	site.answers["/"] = (response) => void response.writeHead(302, { location: `http://rebind.example:${inside.port}/` }).end();
-	const url = `http://localhost:${site.port}/`;
+	// The site by its address: a localhost that resolves ::1 first, as on GitHub's runner, is refused when asked for one address.
+	const url = site.url("/");
 	const { events } = await started(t, { acme: [{ url, everySeconds: 1 }] });
 	await until("the site down", () => events("uptime-down").length === 1);
 	assert.deepEqual(events("uptime-down"), [{ project: "acme", url, reason: `redirected to rebind.example:${inside.port}, a private address the config does not name`, since: START.toISOString() }]);

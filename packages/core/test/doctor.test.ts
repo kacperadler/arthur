@@ -142,7 +142,7 @@ test("the core's requirements: git, Node 24, the agent, a writable home, critica
 	systemctl(bin, { controllers: "memory pids" });
 	process.env.PATH = bin;
 	const home = join(temporaryFolder(), "home");
-	const lines = await doctor(coreRequirements({ home, envFile: "/elsewhere/.env", agent: { command: "omp" } }, () => [home], "22.11.0"), []);
+	const lines = await doctor(coreRequirements({ home, envFile: "/elsewhere/.env", agent: { command: "omp" } }, () => [home], "22.11.0", {}), []);
 	assert.deepEqual(
 		lines.map((line) => [line.text, line.critical]),
 		[
@@ -202,6 +202,24 @@ test("arthur doctor while the load refuses, a variable missing: the core's own l
 	const run = arthur("doctor");
 	assert.match(run.stdout, new RegExp(`^core env: missing: the env file ${join(folder, ".env")} lies inside ${folder}; `, "m"));
 	assert.match(run.stderr, /^arthur doctor: the requirements a plugin checks in its setup are not checked: .*\n[\s\S]*ARTHUR_TELEGRAM_BOT_TOKEN/);
+});
+
+test("arthur doctor: a model provider's key in Arthur's environment is one miss each, not critical, naming the variable, never its value; none set, or set empty, no line", () => {
+	const { folder, env } = project();
+	const doctorWith = (extra: Readonly<Record<string, string>>) => spawnSync(process.execPath, [CLI, "doctor"], { cwd: folder, encoding: "utf8", env: { ...env, ...extra }, timeout: 30_000 });
+	const secret = "sk-ant-api03-not-a-real-key";
+	const one = doctorWith({ ANTHROPIC_API_KEY: secret, ARTHUR_UNRELATED_KEY: secret });
+	assert.deepEqual([one.status, one.stdout.split("\n").slice(0, CORE.length + 1)], [
+		0,
+		[
+			...CORE,
+			"core provider key ANTHROPIC_API_KEY: missing: ANTHROPIC_API_KEY is set in Arthur's environment, which every job and each of its tool calls inherits; without it: a program a job runs, or text from outside that steers it, can read the key and send it anywhere; fix: unset ANTHROPIC_API_KEY where arthur run starts; log omp in with its own login instead (omp login, kept in ~/.omp), or give a job its key through the models plugin's prepare (keyEnv, packages/models/docs/models.md)",
+		],
+	]);
+	assert.ok(!one.stdout.includes(secret) && !one.stderr.includes(secret), "the key's value is never printed");
+	const two = doctorWith({ OPENAI_API_KEY: secret, GEMINI_API_KEY: secret });
+	assert.deepEqual(two.stdout.split("\n").filter((line) => line.startsWith("core provider key ")).map((line) => line.split(":")[0]), ["core provider key OPENAI_API_KEY", "core provider key GEMINI_API_KEY"]);
+	for (const extra of [{}, { ANTHROPIC_API_KEY: "" }] as Record<string, string>[]) assert.deepEqual(doctorWith(extra).stdout.split("\n").filter((line) => line.includes("provider key")), [], JSON.stringify(extra));
 });
 
 test("a home that is not writable is a critical miss", { skip: ROOT && "root writes anywhere" }, async (t) => {

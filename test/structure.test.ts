@@ -733,10 +733,12 @@ import { checkStructure } from "./structure.ts";
 // main's checkout: each entry but `.git` and Arthur's home, config and env file, walked down to each kept path, and of `.git` its
 // objects, refs, logs and index (job-sandbox.ts, git diff --numstat +30 -6), and the home and config the host passes on
 // (plugin.ts +2 -1, plugin-host.ts +4 -4). Nothing kept a step from `.git/hooks` or `.git/config` before, so nothing was cut.
+// AR0434 (AR-D104): orchestration 14 more (2413): the coordinator gets arthur run's environment only, and pane() checks its session's name (coordinator.ts).
 // AR0400 (F1 of AR0394, a security ticket; its Done means: the prune here keeps the worktree, branch and record as
 // `arthur remote-job prune` does): core 4 more (6325) for that refusal, its comment and its import (job-records.ts, git diff
 // --numstat +4 -0). Nothing was cut.
-const BUDGETS = { core: 6325, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1436, github: 659, manage: 928, develop: 706, findings: 254 };
+// Merged main (AR0400, AR0433) into AR0434: main's budgets plus AR0434's orchestration 2413 (recounted with wc -l).
+const BUDGETS = { core: 6325, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1436, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -6,8 +6,11 @@ import { ownHome } from "./own-home.ts";
 import type { Requirement } from "./plugin.ts";
 
 // The core's own requirements for `arthur doctor` (spec/roadmap.md, entry 80): git, Node 24 or newer, the agent binary and a
-// writable home, each critical; the CPU and memory controllers delegated to the user manager (entry 13) and the env file outside
-// the config's folder and every project's checkout (AR0339), not critical. docs/commands/doctor.md.
+// writable home, each critical; the CPU and memory controllers delegated to the user manager (entry 13), the env file outside
+// the config's folder and every project's checkout (AR0339) and each model provider's key omp reads set in Arthur's environment,
+// which a job's launch keeps (job-scope.ts drops only `ARTHUR_` ones; AR0439), not critical. docs/commands/doctor.md.
+
+const PROVIDER_KEYS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "AZURE_OPENAI_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY", "MISTRAL_API_KEY", "GROQ_API_KEY", "DEEPSEEK_API_KEY", "CEREBRAS_API_KEY", "TOGETHER_API_KEY", "FIREWORKS_API_KEY", "PERPLEXITY_API_KEY", "MOONSHOT_API_KEY", "ZAI_API_KEY", "MINIMAX_API_KEY", "OLLAMA_API_KEY", "LM_STUDIO_API_KEY"];
 
 type Ran = { readonly ok: boolean; readonly stdout: string; readonly said: string };
 
@@ -21,8 +24,8 @@ function ran(command: string, args: readonly string[]): Promise<Ran> {
 	return promise;
 }
 
-// `core` as the config holds it; `folders`: the config's and each project's checkout; `node`, the version that runs this.
-export function coreRequirements({ home, envFile, agent: { command: agent } }: { readonly home: string; readonly envFile: string; readonly agent: { readonly command: string } }, folders: () => readonly string[], node = process.versions.node): Requirement[] {
+// `core` as the config holds it; `folders`: the config's and each project's checkout; `node`, the version that runs this; `env`, Arthur's environment.
+export function coreRequirements({ home, envFile, agent: { command: agent } }: { readonly home: string; readonly envFile: string; readonly agent: { readonly command: string } }, folders: () => readonly string[], node = process.versions.node, env: Readonly<Record<string, string | undefined>> = process.env): Requirement[] {
 	const user = userInfo().username;
 	let manager = true;
 	return [
@@ -93,5 +96,12 @@ export function coreRequirements({ home, envFile, agent: { command: agent } }: {
 			costs: "a recursive search the coordinator or a job runs there prints its values into the agent's transcript, which the model provider keeps",
 			fix: "move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)",
 		},
+		// Named, never its value.
+		...PROVIDER_KEYS.filter((key) => (env[key] ?? "") !== "").map((key) => ({
+			name: `provider key ${key}`,
+			check: () => `missing: ${key} is set in Arthur's environment, which every job and each of its tool calls inherits`,
+			costs: "a program a job runs, or text from outside that steers it, can read the key and send it anywhere",
+			fix: `unset ${key} where arthur run starts; log omp in with its own login instead (omp login, kept in ~/.omp), or give a job its key through the models plugin's prepare (keyEnv, packages/models/docs/models.md)`,
+		})),
 	];
 }

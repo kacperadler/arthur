@@ -699,7 +699,14 @@ import { checkStructure } from "./structure.ts";
 // Merged main (AR0354, AR0355) into AR0339: main's budgets plus AR0339's 12, and 1 for cli.ts's `node:path` import, which
 // main dropped with `basename` and AR0339's `dirname` keeps: core 6184 + 13 = 6197 (recounted with wc -l).
 // Merged main (AR0339) into AR0335: main's budgets plus AR0335's raises, core 6197 + 9 = 6206.
-const BUDGETS = { core: 6206, "core/testing": 349, projects: 486, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1337, github: 659, manage: 928, develop: 706, findings: 254 };
+// AR0373 (AR0311 F14; its Done means: the install of a new worktree and the merge's steps run inside a job scope): core 22 more
+// (6228) for the wrapper's first step, the install a prepare's `ARTHUR_INSTALL` names, run in the job's scope with its output in
+// the log, stopped as the agent is (job-install.ts, 21), its call (wrapper.ts, git diff --numstat +5 -5: the import and a
+// comment paid by the header and a blank folded) and `jobs.slice` (jobs.ts +5 -5, its header folded to one line; plugin-host.ts
+// 1); delivery 24 more (1361) for each step of the merge in a transient scope under that slice, stopped after it, and the
+// probe with its one `uncapped:` line (merge-checks.ts +33 -10, merge-command.ts +4 -3); projects 4 fewer (482), its install
+// handed to the wrapper instead of run through `jobs.run` (install.ts +7 -11). Nothing ran these in a scope before.
+const BUDGETS = { core: 6228, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1361, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

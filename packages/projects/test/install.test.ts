@@ -36,15 +36,24 @@ async function load(list: readonly ProjectEntry[]): Promise<FakeHost> {
 }
 
 const record = (fake: FakeHost, id: string) => join(dirname(fake.host.folder), "jobs", id);
+// The reason job `id` ended with, once its record says it ended: the wrapper runs the install first, then the agent, which
+// fails here (the fake host's `omp` has no run).
+async function ended(fake: FakeHost, id: string): Promise<string> {
+	const file = (name: string) => (existsSync(join(record(fake, id), name)) ? readFileSync(join(record(fake, id), name), "utf8") : "");
+	for (const end = Date.now() + 15_000; file("state") !== "ended"; await setTimeout(50)) if (Date.now() > end) throw new Error(`${id} did not end`);
+	return file("reason");
+}
 
 test("install runs in the new worktree: the project's own command, else the lockfile's frozen install", async () => {
 	writeFileSync(calls, "");
 	const [own, locked] = [repository(), repository({ "bun.lock": "{}" })];
 	const fake = await load([{ name: "own", prefix: "OW", path: own, install: "touch installed" }, { name: "locked", prefix: "LO", path: locked }]);
 	const first = await fake.host.jobs.spawn({ task: "Build it." });
+	await ended(fake, first.id);
 	assert.equal(existsSync(join(first.worktree, "installed")), true);
 	assert.equal(existsSync(join(own, "installed")), false, "not in the main checkout");
 	const second = await fake.host.jobs.spawn({ task: "Build it.", project: "locked" });
+	await ended(fake, second.id);
 	assert.deepEqual([second.project, called()], ["locked", [`${second.worktree} bun install --frozen-lockfile`]]);
 	assert.equal(git(second.worktree, "rev-parse", "HEAD"), git(locked, "rev-parse", "HEAD"), "it starts from that project's HEAD");
 });
@@ -52,12 +61,15 @@ test("install runs in the new worktree: the project's own command, else the lock
 test('install: "" and no lockfile run nothing', async () => {
 	writeFileSync(calls, "");
 	const fake = await load([{ name: "off", prefix: "OF", path: repository({ "package-lock.json": "{}" }), install: "" }, { name: "bare", prefix: "BA", path: repository() }]);
-	await fake.host.jobs.spawn({ task: "Go." });
-	await fake.host.jobs.spawn({ task: "Go.", project: "bare" });
+	for (const project of ["off", "bare"]) {
+		const job = await fake.host.jobs.spawn({ task: "Go.", project });
+		assert.match(await ended(fake, job.id), /^failed: the agent /, "the agent started");
+		assert.doesNotMatch(readFileSync(join(record(fake, job.id), "log"), "utf8"), /install/);
+	}
 	assert.deepEqual(called(), []);
 });
 
-test("the install runs with the PATH a prepare before it returned, as the nvm plugin's Node first; without one, Arthur's own", async () => {
+test("the install runs with the PATH the prepares returned, as the nvm plugin's Node first; without one, Arthur's own", async () => {
 	writeFileSync(calls, "");
 	// The bin folder nvm would name: a `node` that says its version, and an `npm` that notes which node it runs on.
 	const nvmBin = temporaryFolder();
@@ -71,8 +83,10 @@ test("the install runs with the PATH a prepare before it returned, as the nvm pl
 	await fake.setup(projects({ list }));
 	path = [nvmBin, process.env.PATH].join(delimiter);
 	const job = await fake.host.jobs.spawn({ task: "Go." });
+	await ended(fake, job.id);
 	path = undefined;
 	const plain = await fake.host.jobs.spawn({ task: "Go." });
+	await ended(fake, plain.id);
 	assert.deepEqual(called(), [`${job.worktree} npm ci on v22.1.0`, `${plain.worktree} npm ci`]);
 });
 
@@ -81,6 +95,7 @@ test("a read-only kind installs too, in its detached checkout", async () => {
 	const fake = await load([{ name: "shop", prefix: "SH", path: repository({ "package-lock.json": "{}" }) }]);
 	fake.host.jobs.registerKind({ name: "review", readOnly: true, role: "worker" });
 	const job = await fake.host.jobs.spawn({ task: "Review it.", kind: "review" });
+	await ended(fake, job.id);
 	assert.deepEqual([job.branch, called()], [undefined, [`${job.worktree} npm ci`]]);
 });
 
@@ -88,27 +103,28 @@ test("a continue installs nothing again: the worktree keeps its spawn's install"
 	writeFileSync(calls, "");
 	const fake = await load([{ name: "shop", prefix: "SH", path: repository({ "package-lock.json": "{}" }) }]);
 	const job = await fake.host.jobs.spawn({ task: "Go." });
-	const state = join(record(fake, job.id), "state");
-	for (const end = Date.now() + 15_000; readFileSync(state, "utf8") !== "ended"; await setTimeout(50)) if (Date.now() > end) throw new Error(`${job.id} did not end`);
+	await ended(fake, job.id);
 	await fake.host.jobs.continue(job.id, "Go on.");
 	assert.equal(readFileSync(join(record(fake, job.id), "continue"), "utf8"), "Go on.", "the continue went through");
+	await ended(fake, job.id);
 	assert.deepEqual(called(), [`${job.worktree} npm ci`]);
 });
 
-test("a failing install refuses the spawn, naming the project and the command; no worktree or record is left", async (t) => {
+test("a failing install ends the job failed with the command and its last line, before any agent; its worktree, branch and output stay", async (t) => {
 	writeFileSync(calls, "");
 	writeFileSync(join(bin, "fail"), "");
 	t.after(() => rmSync(join(bin, "fail"), { force: true }));
 	const root = repository({ "bun.lock": "{}" });
 	const fake = await load([{ name: "shop", prefix: "SH", path: root }]);
-	await assert.rejects(fake.host.jobs.spawn({ task: "Go." }), {
-		message: "plugin projects: prepare failed: project shop: install `bun install --frozen-lockfile` exited 1: lockfile is out of date; the job's worktree and record were removed",
-	});
-	const [line = ""] = called();
-	const worktree = line.split(" ")[0] ?? "";
-	assert.equal(existsSync(worktree), false);
-	assert.equal(existsSync(record(fake, worktree.split("/").at(-1) ?? "")), false);
-	assert.equal(git(root, "branch", "--list"), "* main");
+	const job = await fake.host.jobs.spawn({ task: "Go." });
+	assert.equal(job.failed, undefined, "the wrapper started");
+	assert.equal(await ended(fake, job.id), "failed: the agent did not start: install `bun install --frozen-lockfile` exited 1: lockfile is out of date");
+	assert.deepEqual(called(), [`${job.worktree} bun install --frozen-lockfile`]);
+	const log = readFileSync(join(record(fake, job.id), "log"), "utf8");
+	assert.match(log, /\] install: bun install --frozen-lockfile\nlockfile is out of date\n/);
+	assert.doesNotMatch(log, /\] agent: /, "no agent started");
+	assert.equal(existsSync(job.worktree), true);
+	assert.equal(git(root, "branch", "--list", `arthur/${job.id}`).replace(/^[*+]?\s*/, ""), `arthur/${job.id}`);
 });
 
 test("two lockfiles at the job's base refuse the spawn, though there was one at load", async () => {

@@ -22,6 +22,7 @@ Evidence: AR0440's plan (`spec/features/AR0440-*/plan.md`, Risks and Open questi
 
 - The install at a job start runs inside the job's sandbox (`sandboxed` in `packages/core/src/job-sandbox.ts`), with the package managers' caches it needs writable (`~/.npm` and the like, named in `spawn.md`); a test like AR0440's shows an install script reading `/proc/<runner pid>/environ` gets `Permission denied`, and fails when the sandbox is removed from the install.
 - Each merge check step runs in a sandbox of its own, writable only in the merge's worktree and those caches; a test shows a step cannot read the environment of the process running the merge, and fails without the sandbox.
+- Both sandboxes hide the env file as AR0443's plan does for the agent (the same hidden path, `hidden(record)` in `job-sandbox.ts`): an install script or a merge check reading it gets `Permission denied` (AR-D77).
 - Where the sandbox cannot be set up, both steps run as today and say so in one line, as the agent's `no sandbox: <why>` does.
 - Docs: `spawn.md` (The sandbox), `merge.md`, `docs/deploy.md` (threat model) say so. `npm run check` and the changed test files pass.
 

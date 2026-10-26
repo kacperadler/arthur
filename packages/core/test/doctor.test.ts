@@ -135,7 +135,7 @@ test("arthur doctor when a plugin's setup fails: the core's lines, then why the 
 	assert.match(broken.stderr, /^arthur doctor: arthur\.config\.ts did not load:\n/);
 });
 
-test("the core's requirements: git, Node 24, the agent, a writable home, critical; the controllers delegated and the env file's place, not; each missing with its reason and fix", async (t) => {
+test("the core's requirements: git, Node 24, the agent, a writable home, critical; the controllers delegated and the env file outside the agents' folders, not; each missing with its reason and fix", async (t) => {
 	t.after(() => void (process.env.PATH = PATH));
 	const bin = temporaryFolder();
 	symlinkSync("/bin/sh", join(bin, "sh"));
@@ -222,6 +222,21 @@ test("arthur doctor: an env file in a Git checkout that does not ignore it is a 
 	assert.match(String(line()[1]), new RegExp(`^core env ignored: missing: the env file ${join(folder, "secrets", "vars")} lies in the Git checkout ${folder}, `), "in a folder below the checkout's top");
 	writeFileSync(join(folder, ".gitignore"), "/secrets/\n");
 	assert.deepEqual(line(), [0, "core env ignored: ok"], "a pattern at the checkout's top that ignores its folder");
+});
+
+test("the env file's own folder decides whether it lies in a Git checkout, not the folder arthur runs in", async (t) => {
+	const cwd = process.cwd();
+	t.after(() => process.chdir(cwd));
+	const [repository, plain] = [temporaryFolder(), temporaryFolder()];
+	assert.equal(spawnSync("git", ["-C", repository, "init", "-q"]).status, 0);
+	const line = async (envFile: string) => {
+		const ignored = coreRequirements({ home: "/unused", envFile, agent: { command: "omp" } }, () => []).filter((requirement) => requirement.name === "env ignored");
+		return (await doctor(ignored, []))[0]?.text;
+	};
+	process.chdir(plain);
+	assert.match((await line(join(repository, "env"))) ?? "", new RegExp(`^core env ignored: missing: the env file ${join(repository, "env")} lies in the Git checkout ${repository}, `), "run outside any checkout, the file in one");
+	process.chdir(repository);
+	assert.equal(await line(join(plain, "env")), "core env ignored: ok", "run in a checkout, the file outside every one");
 });
 
 test("arthur doctor while the load refuses, a variable missing: the core's own lines still warn of an env file beside the config", () => {

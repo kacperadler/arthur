@@ -675,7 +675,13 @@ import { checkStructure } from "./structure.ts";
 // core 2 more (6170) for `--decision` on spawn and continue carried to `beforeSpawn` with a continue's id (spawn-command.ts,
 // job-commands.ts, jobs.ts, which three comment and declaration lines folded keep at 200); delivery 5 more (1337) for the flag
 // read and the call before the merge (merge-command.ts). Nothing checked these flags before, so nothing was cut.
-const BUDGETS = { core: 6170, "core/testing": 349, projects: 486, orchestration: 2396, machines: 488, resources: 617, session: 880, schedule: 594, models: 509, youtrack: 659, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1337, github: 658, manage: 928, develop: 705, findings: 254 };
+// AR0354 (F2 of AR0323; its Done means: one function in the core that the refusals read; AR-D29): core 14 more (6182) for
+// `insideJob` (inside-job.ts, 13) and its import in remote-job.ts; the import of `@arthur/core/inside-job` (and `dirname`
+// where the file lacked it) in each plugin's refusal: develop 1 (706), github 1 (659), orchestration 3 (2340, the job's id in
+// the refusal), schedule 1 (595), youtrack 2 (661). Each refusal had read `ARTHUR_JOB` in place, so nothing was cut.
+// Merged main (AR0355) into AR0354: main's budgets plus AR0354's raises, core 6170 + 14 = 6184, orchestration 2396 + 3 = 2399,
+// develop 706, github 659, schedule 595, youtrack 661.
+const BUDGETS = { core: 6184, "core/testing": 349, projects: 486, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1337, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

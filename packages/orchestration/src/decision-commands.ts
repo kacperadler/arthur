@@ -1,3 +1,5 @@
+import { dirname } from "node:path";
+import { insideJob } from "@arthur/core/inside-job";
 import type { Command, Host, Project } from "@arthur/core/plugin";
 import { classList, evidence, propose, revoke } from "./decision-class.ts";
 import { described, policyOf } from "./decision-classes.ts";
@@ -59,8 +61,9 @@ export function decisionCommands(host: Host): Command[] {
 		name: "decision",
 		doc: new URL("../docs/commands/decision.md", import.meta.url),
 		run({ args, project }) {
-			if (process.env.ARTHUR_JOB) {
-				console.error("arthur decision: refused inside a job (ARTHUR_JOB is set): a job never records the owner's word; end your run with Blocked: user <question> instead");
+			const job = insideJob(dirname(host.folder));
+			if (job !== undefined) {
+				console.error(`arthur decision: refused inside a job ${job}: a job never records the owner's word; end your run with Blocked: user <question> instead`);
 				return 1;
 			}
 			const [verb = "", ...rest] = args;

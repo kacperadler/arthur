@@ -1,5 +1,6 @@
 import { appendFileSync, readFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { dirname, join } from "node:path";
+import { insideJob } from "@arthur/core/inside-job";
 import type { Command, Host } from "@arthur/core/plugin";
 import { ask, field, type Run, type Watched, workflowRuns } from "./github-api.ts";
 import { DEPTH, git, nearestRun } from "./github-git.ts";
@@ -29,9 +30,9 @@ export function ciCommand(host: Host, watched: readonly Watched[]): Command {
 				console.error(`arthur ci: ${flag !== undefined ? `unknown flag ${flag}` : branch === undefined ? "no branch" : `one branch; got ${words.length}`}\n${USAGE}`);
 				return 2;
 			}
-			// Inside a job (the wrapper sets ARTHUR_JOB) `ci` reads a run only: `--rerun` refuses itself there (AR0386).
-			const job = process.env.ARTHUR_JOB ?? "";
-			if (job !== "" && args.includes("--rerun")) return (console.error(`arthur ci --rerun: refused inside a job ${basename(job)}: a job runs only the commands its role needs; put what the coordinator should do in your final message`), 1);
+			// Inside a job (`insideJob`) `ci` reads a run only: `--rerun` refuses itself there (AR0386).
+			const job = insideJob(dirname(host.folder));
+			if (job !== undefined && args.includes("--rerun")) return (console.error(`arthur ci --rerun: refused inside a job ${job}: a job runs only the commands its role needs; put what the coordinator should do in your final message`), 1);
 			const name = project ?? host.board.projects()[0]?.name;
 			const refuse = (text: string) => (console.error(`arthur ci: ${text}`), 1);
 			const asked = await built(watched, name, branch).catch((error: Error) => error);

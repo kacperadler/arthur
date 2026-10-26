@@ -1,5 +1,6 @@
 import { rmSync } from "node:fs";
-import { basename, join } from "node:path";
+import { dirname, join } from "node:path";
+import { insideJob } from "@arthur/core/inside-job";
 import type { Host } from "@arthur/core/plugin";
 import { type Entry, isId, isOneOff, lastSlot } from "./entry.ts";
 import { changeEntries, owners, readEntries } from "./entry-file.ts";
@@ -39,10 +40,10 @@ export function scheduleCommand(schedule: Schedule, args: readonly string[], pro
 		console.error(`arthur schedule: ${wrong}\n${USAGE}`);
 		return 2;
 	}
-	// The wrapper sets ARTHUR_JOB in a job's agent: there the CLI runs `schedule` for its list only (AR0353).
-	const job = process.env.ARTHUR_JOB ?? "";
-	if (job !== "" && verb !== "list") {
-		console.error(`arthur schedule ${verb}: refused inside a job ${basename(job)}: a job runs only the commands its role needs; put what the coordinator should do in your final message`);
+	// Inside a job (`insideJob`) the CLI runs `schedule` for its list only (AR0353).
+	const job = insideJob(dirname(schedule.host.folder));
+	if (job !== undefined && verb !== "list") {
+		console.error(`arthur schedule ${verb}: refused inside a job ${job}: a job runs only the commands its role needs; put what the coordinator should do in your final message`);
 		return 1;
 	}
 	if (verb === "list") console.log(list(schedule));

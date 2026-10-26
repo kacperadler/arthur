@@ -28,7 +28,8 @@ dirs = files | sum(1 << bit for bit in range(4, 13)) | (1 << 13 if abi >= 2 else
 handled = ctypes.c_uint64(dirs | (1 << 2 if hidden else 0))
 ruleset = libc.syscall(*wide(444, ctypes.byref(handled), 8, 0))
 if ruleset < 0: fail("Landlock")
-grant = lambda fd, mask: libc.syscall(*wide(445, ruleset, 1, ctypes.create_string_buffer(struct.pack("=Qi", mask, fd)), 0))
+rule = ctypes.create_string_buffer(12)
+grant = lambda fd, mask: struct.pack_into("=Qi", rule, 0, mask, fd) or libc.syscall(*wide(445, ruleset, 1, rule, 0))
 for path in paths:
 	try: fd = os.open(path, os.O_PATH | os.O_CLOEXEC)
 	except FileNotFoundError: continue
@@ -39,12 +40,12 @@ for path in hidden:
 	parts = os.path.realpath(path).split("/")
 	for at in range(1, len(parts)): walk.setdefault("/".join(parts[:at]) or "/", set()).add(parts[at])
 for folder, skip in walk.items():
-	try: names = set(os.listdir(folder)) - skip
+	try: entries = [entry for entry in os.scandir(folder) if entry.name not in skip and not entry.is_symlink()]
 	except OSError: continue
-	for name in names:
-		try: fd = os.open(os.path.join(folder, name), os.O_PATH | os.O_NOFOLLOW | os.O_CLOEXEC)
+	for entry in entries:
+		try: fd = os.open(entry.path, os.O_PATH | os.O_NOFOLLOW | os.O_CLOEXEC)
 		except OSError: continue
-		if not stat.S_ISLNK(os.fstat(fd).st_mode): grant(fd, 1 << 2)
+		grant(fd, 1 << 2)
 		os.close(fd)
 arch, socket = {"x86_64": (0xC000003E, 41), "aarch64": (0xC00000B7, 198)}.get(platform.machine(), (0, 0))
 if arch == 0: sys.exit(f"seccomp: no filter for {platform.machine()}")
@@ -82,10 +83,11 @@ export function hidden(record: string): string[] {
 
 // The command and arguments that start `agent` with `argv` in the sandbox over `paths`, reading every file but `hidden`, the log
 // told which (`note`); on a host where it cannot be set up (not Linux, no `python3`, a kernel without Landlock), or for an agent
-// the sandbox's shell does not find, which then fails to start as it would bare, the agent's own, the log told why.
+// the sandbox's shell does not find, which then fails to start as it would bare, the agent's own, the log told why. The probe
+// that tells which hides nothing: it only finds the agent, and the walk of a crowded folder above `hidden` costs.
 export function sandboxed(paths: readonly string[], hidden: readonly string[], agent: string, argv: readonly string[], note: (line: string) => void): [string, string[]] {
-	const prefix = ["-I", "-c", SCRIPT, ...paths, "--", ...hidden, "--"];
-	const probe = process.platform === "linux" ? spawnSync("python3", [...prefix, "/bin/sh", "-c", 'command -v "$1" || exit 127', "sh", agent], { encoding: "utf8" }) : undefined;
+	const prefix = ["-I", "-c", SCRIPT, ...paths, "--"];
+	const probe = process.platform === "linux" ? spawnSync("python3", [...prefix, "--", "/bin/sh", "-c", 'command -v "$1" || exit 127', "sh", agent], { encoding: "utf8" }) : undefined;
 	const why =
 		probe === undefined ? `${process.platform} has no Landlock`
 		: probe.error !== undefined ? `python3: ${probe.error.message}`
@@ -94,5 +96,5 @@ export function sandboxed(paths: readonly string[], hidden: readonly string[], a
 		: probe.stderr.trim().split("\n").at(-1) || `python3 exited ${probe.status ?? probe.signal}`;
 	const reads = hidden.length === 0 ? "" : `, reads every file but ${hidden.join(", ")}`;
 	note(why === undefined ? `sandbox: the agent writes only in ${paths.join(", ")}${reads}, and opens no Unix socket but a datagram one` : `no sandbox: ${why}; the agent writes wherever Arthur's user can`);
-	return why === undefined ? ["python3", [...prefix, agent, ...argv]] : [agent, [...argv]];
+	return why === undefined ? ["python3", [...prefix, ...hidden, "--", agent, ...argv]] : [agent, [...argv]];
 }

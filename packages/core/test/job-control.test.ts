@@ -633,6 +633,8 @@ test("the arthur binary stops, steers and continues a job by its id; wrong usage
 	const home = join(root, ".arthur");
 	const id = arthur("spawn", "Go.").stdout.trim();
 	await running(home, id);
+	// The sandbox's walk to hide the env file (AR0443) can outlast `running`: the agent's start is what the count below asserts.
+	await until("the agent's first start", () => (starts(agent).length === 1 ? true : undefined));
 	assert.deepEqual([arthur("steer", id, "Mind the tests.").stdout, arthur("stop", id).stdout], [`${id}: steer 0001 queued for after its next tool call\n`, `${id}: stopped\n`]);
 	assert.deepEqual(await ended(home, id), [{ id, kind: "worker", project: "acme", state: "ended", reason: "stopped", undelivered: ["0001"] }]);
 	writeFileSync(full, "");

@@ -113,12 +113,13 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 		const command = [agent, ...(fresh ? [] : ["--continue"]), "--auto-approve", ...(model ? ["--model", model] : []), ...(thinking ? ["--thinking", thinking] : []), ...(quick ? ["--smol", quick] : [])];
 		command.push("-e", ENV_GUARD, "-e", INBOX, "-e", CONTEXT, ...added.flatMap((extension) => ["-e", extension.file]));
 		if (servers !== undefined) command.push("--plugin-dir", join(folder, "mcp"));
-		const variables = [`ARTHUR_ORCHESTRATION_FOLDER=${folder}`, `ARTHUR_ORCHESTRATION_CONTEXT=${CONTEXT_COMMAND}`, ...added.flatMap((extension) => Object.entries(extension.env).map(([key, value]) => `${key}=${value}`))];
+		const { given, refused } = own(coordinator);
+		const variables = [...given, `ARTHUR_ORCHESTRATION_FOLDER=${folder}`, `ARTHUR_ORCHESTRATION_CONTEXT=${CONTEXT_COMMAND}`, ...added.flatMap((extension) => Object.entries(extension.env).map(([key, value]) => `${key}=${value}`))];
 		const env = variables.flatMap((variable) => ["-e", variable]);
-		const made = tmux(coordinator, ["new-session", "-d", "-P", "-F", "#{pane_pid}", "-s", session, "-c", process.cwd(), ...env, ...command]);
+		const made = refused ?? tmux(coordinator, ["new-session", "-d", "-P", "-F", "#{pane_pid}", "-s", session, "-c", process.cwd(), ...env, ...command]);
 		if (made.status !== 0) {
 			const why = made.error?.message ?? String(made.stderr).trim().split("\n").at(-1);
-			console.error(`orchestration: coordinator start failed: tmux new-session: ${why}; trying again in ${delay} s`);
+			console.error(`orchestration: coordinator start failed: tmux ${refused ? "set-environment" : "new-session"}: ${why}; trying again in ${delay} s`);
 			return false;
 		}
 		const started = String(made.stdout).trim();
@@ -128,4 +129,17 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 		console.log(`orchestration: coordinator started: ${agent} (pid ${started}) in tmux session ${session}${fresh ? ", a fresh conversation" : ""}`);
 		return true;
 	}
+}
+
+// The coordinator's agent holds `arthur run`'s environment only, so the redaction by name reads the values it sees (AR0434).
+// A server this start makes copies it; one started earlier (from another shell) holds its own global environment, so a name
+// `arthur run` does not hold is cleared there (`refused`: that tmux call, when it failed), and one it holds with another value
+// is `given` again with `-e`.
+function own(coordinator: Coordinator) {
+	const shown = tmux(coordinator, ["show-environment", "-g"]);
+	const global = (shown.status === 0 ? String(shown.stdout).split("\n") : []).filter((line) => line.indexOf("=") > 0).map((line) => [line.slice(0, line.indexOf("=")), line.slice(line.indexOf("=") + 1)] as const);
+	const clear = global.flatMap(([name]) => (process.env[name] === undefined ? [";", "set-environment", "-g", "-u", name] : []));
+	const cleared = clear.length > 0 ? tmux(coordinator, clear.slice(1)) : undefined;
+	const given = global.flatMap(([name, value]) => (process.env[name] === undefined || process.env[name] === value ? [] : [`${name}=${process.env[name]}`]));
+	return { given, refused: cleared?.status === 0 ? undefined : cleared };
 }

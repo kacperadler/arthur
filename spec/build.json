@@ -2556,9 +2556,9 @@
   {
     "id": "AR0335",
     "title": "The git commands that rewrite the shared repository pass as a documented limit",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0335-the-git-commands-that-rewrite-the-shared-repository-pass-as-a-documented-limit/ticket.md",
-    "updated": "2026-10-26T10:14:27.538Z",
+    "updated": "2026-10-26T10:29:04.159Z",
     "after": [
       "AR0354"
     ]
@@ -3578,8 +3578,8 @@
   {
     "id": "AR0444",
     "title": "An uptime redirect test fails on GitHub CI: the runner refuses the connection before the private-address check",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0444-an-uptime-redirect-test-fails-on-github-ci-the-runner-refuses-the-connection/ticket.md",
-    "updated": "2026-10-26T10:28:29.637Z"
+    "updated": "2026-10-26T10:29:41.803Z"
   }
 ]

@@ -706,10 +706,17 @@ import { checkStructure } from "./structure.ts";
 // 1); delivery 24 more (1361) for each step of the merge in a transient scope under that slice, stopped after it, and the
 // probe with its one `uncapped:` line (merge-checks.ts +33 -10, merge-command.ts +4 -3); projects 4 fewer (482), its install
 // handed to the wrapper instead of run through `jobs.run` (install.ts +7 -11). Nothing ran these in a scope before.
+// AR0441 (F1 of AR0361; its Done means allow the raise, AR-D29): delivery 68 more (1429) for the stray-commit check listing from
+// the last merge `arthur merge` made, recorded after each merge that went in, and `arthur take-main` writing it on the owner's
+// decision (take-main.ts, 59; merge-command.ts, git diff --numstat +12 -5; delivery.ts +2). Nothing recorded a merge before.
+// AR0441's F1 (the owner, AR-D67: a record that names no ancestor of main's HEAD refuses until `arthur take-main`; AR-D29):
+// delivery 5 more (1434) for that refusal beside the one off the first-parent line, their shared tail naming take-main
+// (merge-command.ts, git diff --numstat +6 -3), and the record's three places told apart (take-main.ts, +7 -5).
 // AR0439 (F2 of AR0338; its Done means: `arthur doctor` warns of each known model provider's key in Arthur's environment, which
 // every job inherits): core 10 more (6238) for the list of keys and one requirement per key set (requirements.ts, git diff
 // --numstat +14 -4, its header refolded to pay the list's comment; AR-D61). Nothing warned of such a key before, so nothing was cut.
-const BUDGETS = { core: 6238, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1361, github: 659, manage: 928, develop: 706, findings: 254 };
+// Merged main (AR0439) into AR0441: main's budgets plus AR0441's raises, core 6238, delivery 1361 + 68 + 5 = 1434 (recounted with wc -l).
+const BUDGETS = { core: 6238, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1434, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

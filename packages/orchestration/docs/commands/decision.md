@@ -82,6 +82,8 @@ The `ask` prints a second line, `<id> answered by policy (<class id>): <decided>
 
 `arthur merge <job> --unreviewed` and `--budget 0` of `arthur spawn` or `arthur continue` on a paid model go on only with `--decision <id>` (AR0355). The plugin checks it, `call("decision.owner", …)` for the merge and its `beforeSpawn` for the spawns, and refuses, naming why: no id (naming the ask to make, `arthur decision ask --kind merge|budget --question '<what he decides>' --ticket <id>`); an id the log does not hold; a question of another kind (`merge` for the merge, `budget` for the spawns); one open or closed; one whose later answer is by policy; one of another ticket than the job's (the first its task names), or, for a job naming none, of another job, or, for a spawn naming none, one with a ticket or a job; one used already. A pass marks it used in `<home>/orchestration/used/<id>`, created whole or not at all, holding what used it (`merge <job>`, `spawn`, `continue <job>`): only the same job's merge tried again (after a conflict or a failed check) passes it again, since a branch goes in once. A spawn or continue refused by a later plugin's check has used it too: ask again.
 
+`arthur take-main` (the delivery plugin, AR0441) asks `decision.owner` the same way, kind `merge`, for no ticket and no job: an ask with neither (`arthur decision ask --kind merge --question '<what he decides>'`), used once.
+
 ## Refused
 
 Each refusal prints `arthur decision <verb>: refused: <why>`, writes nothing, and exits 1:

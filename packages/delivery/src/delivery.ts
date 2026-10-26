@@ -11,6 +11,7 @@ import { reviewCommand, reviewTask, worker } from "./review-command.ts";
 import { reviewFiler } from "./review-file.ts";
 import { reviewNeededCommand } from "./review-needed.ts";
 import { failsSincePass, LIMIT, type Review, readReview, saveReview, settle, type Verdict, verdictOf } from "./review-records.ts";
+import { takeMainCommand } from "./take-main.ts";
 
 // The delivery plugin (spec/roadmap.md, entry 52): the kind `review`, a read-only job on the reviewer role in a detached checkout
 // of a worker's branch, on `roles.reviewer`'s model in a session of its own. It moves its ticket to review as it starts, and its
@@ -86,6 +87,7 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 			host.commands.register(reviewCommand(host, procedure));
 			host.commands.register(reviewNeededCommand(host, held));
 			host.commands.register(mergeCommand(host, new URL("../roles/coordinator/after-merge.md", import.meta.url), held));
+			host.commands.register(takeMainCommand(host));
 			host.commands.register(changelogCommand(host));
 			host.jobs.registerExtension(new URL("./checks-extension.ts", import.meta.url));
 			// Asked with a project and paths from its root (orchestration's autopilot): those on the list, the same in every project.

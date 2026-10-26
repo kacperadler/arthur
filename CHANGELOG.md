@@ -15,6 +15,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0373 The install of a new worktree and the merge's steps run outside every job scope, with lifecycle scripts on (AR0311 F14, confirmed) (6e75ab11)
 - AR0431 A review's project is not checked against its worker's (7c8205b5)
 - AR0432 The always-review list misses the other installs: composer, uv, yarnrc, pnpmfile and bunfig (eea54efb)
+- AR0439 A provider's key exported in the shell still reaches every job (fa0bdf8c)
 
 ### Changed
 

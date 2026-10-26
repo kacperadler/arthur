@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import type { Host, Prepare } from "@arthur/core/plugin";
+import type { Prepare } from "@arthur/core/plugin";
 
 // The install of each new worktree's dependencies (spec/roadmap.md, entry 41): docs/commands/projects.md, "Install".
 
@@ -25,18 +25,14 @@ export function installCommand(project: Installs, root: string, commit: string):
 	return found[0] === undefined ? "" : (LOCKFILES[found[0]] ?? "");
 }
 
-// The `prepare` of every kind: the install runs in the job's worktree, on the job's machine, with the PATH a prepare before it
-// returned (the nvm plugin's Node first); one that fails refuses the spawn. A continue's worktree keeps its spawn's install.
-export function installStep(host: Host, list: readonly Installs[]): Prepare {
-	return async (job, env, continued) => {
+// The `prepare` of every kind: the install, as the variable `ARTHUR_INSTALL`, which the job's wrapper runs first, in the job's
+// worktree and scope on its machine, with the PATH the prepares returned (the nvm plugin's Node first); one that fails ends the
+// job `failed`, its worktree kept. A continue's worktree keeps its spawn's install.
+export function installStep(list: readonly Installs[]): Prepare {
+	return (job, _env, continued) => {
 		const project = list.find((each) => each.name === job.project);
 		if (continued || project === undefined) return;
 		const command = installCommand(project, job.root, job.base);
-		if (command === "") return;
-		const script = 'cd "$1" || exit; if [ -n "$3" ]; then export PATH="$3"; fi; exec sh -c "$2"';
-		const ran = await host.jobs.run(job.machine, ["sh", "-c", script, "install", job.worktree, command, env.PATH ?? ""]);
-		if (ran.code === 0) return;
-		const last = (ran.stderr.trim() || ran.stdout.trim()).split("\n").at(-1);
-		throw new Error(`project ${project.name}: install \`${command}\` exited ${ran.code ?? "on a signal"}${last ? `: ${last}` : ""}`);
+		return command === "" ? undefined : { ARTHUR_INSTALL: command };
 	};
 }

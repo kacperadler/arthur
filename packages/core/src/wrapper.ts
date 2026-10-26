@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { agentStream } from "./agent-stream.ts";
 import { eventBus } from "./events.ts";
 import { deadline, reached } from "./job-limits.ts";
+import { install } from "./job-install.ts";
 import { oomFirst, watchMemory } from "./job-memory.ts";
 import { sandboxed, writable } from "./job-sandbox.ts";
 import { endScope } from "./job-scope.ts";
@@ -13,12 +14,10 @@ import { commitsSince } from "./git.ts";
 import { runRecord } from "./run-record.ts";
 import { closeSteers } from "./steer-inbox.ts";
 
-// One background process per job, `node wrapper.ts <home> <id> <agent>`, started in the job's scope by `launch` (job-scope.ts);
-// what it writes and when: docs/commands/spawn.md. A pipe a process the agent left holds open is read 2 s past its exit, then closed.
+// One background process per job, `node wrapper.ts <home> <id> <agent>`, started in the job's scope by `launch` (job-scope.ts); what it writes and when: docs/commands/spawn.md. A pipe a process the agent left holds open is read 2 s past its exit, then closed.
 
 const WORKER_TOOLS = "read,edit,write,bash,grep,glob";
 const READ_ONLY_TOOLS = "read,bash,grep,glob";
-
 if (import.meta.main) {
 	const [home, id, agent] = process.argv.slice(2);
 	if (home === undefined || id === undefined || agent === undefined) {
@@ -120,7 +119,8 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		overCap = what;
 		halt("memory");
 	});
-	let failure = undefined as Error | undefined;
+	// The install a prepare asked for runs first (job-install.ts); one that fails, or a stop or a limit during it, starts no agent.
+	let failure = await install(process.env.ARTHUR_INSTALL, worktree, note, (chunk) => save("log", chunk, true), (running) => (child = running));
 	// One run of the agent, until it exits, its output is read and its stop, if any, is over.
 	const play = async (argv: readonly string[]): Promise<[number | null, NodeJS.Signals | null]> => {
 		note(`agent: ${agent} ${argv.join(" ")}`);
@@ -145,7 +145,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		await stopping;
 		return ending;
 	};
-	let [code, killed] = await play(args(instruction));
+	let [code, killed] = failure === undefined && why === undefined ? await play(args(instruction)) : ([null, null] as const);
 	if (why === "budget" && !final && resumes === "true") {
 		const doubled = budgetUsd * 2;
 		note(`limit: budget: $${record.cost().toFixed(4)} reached $${budgetUsd}; the kind resumes once, its budget doubled to $${doubled}`);

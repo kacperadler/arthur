@@ -52,7 +52,7 @@ On every turn the coordinator reads one block: a line saying how it matches a wo
 
 ## Install
 
-Every new worktree, of every kind of job, gets its dependencies before its agent starts, on the job's machine: the project's `install` when set, else the frozen install of the one known lockfile at the top of the commit the job starts from:
+Every new worktree, of every kind of job, gets its dependencies before its agent starts, on the job's machine: the project's `install` when set, else the frozen install of the one known lockfile at the top of the commit the job starts from. The plugin hands the command to the job as its variable `ARTHUR_INSTALL`, and the job's wrapper runs it as its first step, in the worktree and inside the job's scope (`arthur spawn --help`), so the job's caps hold the install and the lifecycle scripts its dependencies run (`preinstall`, `postinstall`, `prepare`; they stay on, since a project's build needs them), and what they leave running is killed at the job's end:
 
 - `bun.lock`: `bun install --frozen-lockfile`
 - `package-lock.json`: `npm ci`
@@ -60,6 +60,6 @@ Every new worktree, of every kind of job, gets its dependencies before its agent
 - `composer.lock`: `composer install`
 - `uv.lock`: `uv sync --frozen`
 
-No lockfile and no `install`, or `install: ""`: nothing runs. `arthur continue` runs no install: the worktree keeps its spawn's. Two known lockfiles and no `install` refuse the spawn; an install that exits with another code than 0 refuses it too, naming the project, the command and its last line of output. A refused spawn leaves no worktree and no record. A tool an install needs must be on the `PATH` of Arthur's service (see `docs/setup.md`). The install runs with the `PATH` a prepare before it returned, when one did: with the nvm plugin listed before projects, the Node the project's `.nvmrc` names comes first on it (`packages/nvm/docs/nvm.md`).
+No lockfile and no `install`, or `install: ""`: nothing runs. `arthur continue` runs no install: the worktree keeps its spawn's. Two known lockfiles and no `install` refuse the spawn, which leaves no worktree and no record. An install that exits with another code than 0 ends the job at once, before any agent starts, ``failed: the agent did not start: install `<command>` exited <code>: <its last line of output>``; its worktree and branch are kept, and its output is in the job's `log`, after the line `install: <command>`. An `arthur stop`, or the job's time or memory limit, during the install stops it and starts no agent. A tool an install needs must be on the `PATH` of Arthur's service (see `docs/setup.md`). The install runs with the `PATH` the prepares returned: with the nvm plugin loaded, the Node the project's `.nvmrc` names comes first on it (`packages/nvm/docs/nvm.md`).
 
 The same install, of a project at a commit, is provided to other plugins as `projects.install`: `arthur merge` runs it on main after a merge (`arthur merge --help`).

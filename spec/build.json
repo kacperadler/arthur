@@ -3120,9 +3120,9 @@
   {
     "id": "AR0400",
     "title": "`arthur prune` of a job here runs a clean filter the main checkout's config or the job worktree's own names",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0400-arthur-prune-of-a-job-here-runs-a-clean-filter-the-main-checkout-s-config-or-the-job-worktree-s-own-names/ticket.md",
-    "updated": "2026-10-26T21:55:34.616Z"
+    "updated": "2026-10-26T22:03:26.519Z"
   },
   {
     "id": "AR0401",

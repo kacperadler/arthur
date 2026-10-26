@@ -115,6 +115,7 @@ Each decided in the ticket that made it.
 - AR0378 (the ticket's Done means: the board shows each ticket's Kind and filters by it): `board.full(project?, kind?)`, every ticket of that Kind when `kind` is given, a kind not in `board.kinds` refused (`unknown kind <kind>; kinds: <kinds>`); `board.kinds`, the kinds of the ticket template (`feat`, `fix`, `security`, `perf`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`, `ux`), which orchestration's `/board`, delivery's changelog and findings read. The lines of `board.digest` and `board.full` carry each ticket's Kind after its status.
 - AR0380 (its Done means: the repository's own Git config checked against an allowed set before `arthur merge` and a push, which delivery and github make): the module `@arthur/core/git-config`, `configRefusal(root)`, the one check the core's own checkout and push share with those plugins, so the allowed set is kept once. No host member changed.
 - AR0340 (F4 of AR0319; its Done means name `host.secrets`): `secrets`, every enabled plugin's set `...Env` values, so a plugin redacts a value of the env file, which Arthur's own environment never holds. The session plugin's notices and orchestration's inbox notice and decision log redact them, besides their own shape rules. The test kit's host gives its own `env` values as `secrets`.
+- AR0354 (F2 of AR0323; its Done means name one function in the core): the module `@arthur/core/inside-job`, `insideJob(home)`, the mark of a job that its shell cannot clear under systemd; the CLI's `inJob` gate and the refusals of `decision`, `youtrack`, `plugin new`, `schedule`, `ci --rerun` and `remote-job` ask it in place of `ARTHUR_JOB`. No host member changed.
 
 ## Types
 
@@ -251,6 +252,12 @@ The env guard, an OMP extension, which the coordinator loads with `-e` like ever
 Exports: `configRefusal`.
 
 `configRefusal(root)`: `""` when the Git config of the repository at `root` itself, its `.git/config`, the main checkout's `config.worktree` (read once `extensions.worktreeConfig` is on) and any file they include, sets only keys that name no program; else one line naming the file and the first key that may (a filter, a merge driver, a credential helper, `core.sshCommand`, `gpg.program`, an alias, an include, any key outside the set), or Git's own line when it cannot read that config. A job can write that config and not the user's own, so a git call of Arthur's in a checkout that may run a program (a checkout, a merge, a reset, a push or fetch) asks first and runs nothing on a refusal. The allowed set and why: [`deploy.md`](deploy.md), "Threat model".
+
+### `@arthur/core/inside-job`
+
+Exports: `insideJob`.
+
+`insideJob(home, cgroup?, env?)`: the id of the job of Arthur's home `home` this process runs in, undefined outside one. Under systemd it is the job's scope, `arthur-job-<id>.scope` on the last line of `/proc/self/cgroup` (`cgroup`), which no process of the job can change, when `<home>/jobs/<id>` exists; else, a job run bare, the folder name of the record `ARTHUR_JOB` names (`env`, default `process.env`), which a job's shell can clear. Each refusal of a command inside a job asks it, a plugin with its home as `dirname(host.folder)`. Why the scope: [`deploy.md`](deploy.md), "Threat model".
 
 ### `@arthur/core/lock`
 

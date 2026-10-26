@@ -20,21 +20,23 @@ F2 of AR0338 (spec/features/AR0338-a-secret-exported-in-the-shell-reaches-every-
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+The owner learns when a model provider's key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY` and the like) sits in Arthur's own environment, where every job and its tool calls inherit it. Evidence: `packages/core/src/job-scope.ts:68` drops only `ARTHUR_` variables at a job's launch.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- `arthur doctor` warns, naming the variable and never its value, for each known provider key set in Arthur's environment, and says where it belongs: omp's own login, or the models plugin's `prepare`. Test in the doctor's tests: one key set, one warning without the value; none set, no line; fails on main.
+- `docs/deploy.md` (threat model) says the same.
+- `npm test` and `npm run check` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/doctor.ts`, its test, `docs/deploy.md`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Dropping such keys at a job's launch: it can break a setup that logs omp in through the shell; only on a separate owner decision.
 
 ## Decisions
 

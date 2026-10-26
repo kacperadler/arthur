@@ -15,10 +15,13 @@ const DONE = `nothing committed but the merge, nothing pushed or pruned\n\n${PRO
 // The project's own checks: `npm test` prints node --test's summary and fails while a file `broken` exists.
 const TEST_JS = 'const broken = require("node:fs").existsSync("broken");\nconsole.log(`ℹ tests 2\\nℹ pass ${broken ? 1 : 2}`);\nprocess.exit(broken ? 1 : 0);\n';
 const PACKAGE = JSON.stringify({ scripts: { check: 'node -e ""', test: "node test.js" } });
+// The decision the fake `decision.owner` takes as the owner's; orchestration's own checks are its tests' (AR0355).
+const OWNER = "AC-D1";
 
 // The repository `acme` (prefix AC): AC0001 "Shop" planned, AC0002 waiting for it, AC0003 for it and AC0002, all on the
 // board; the project's checks in package.json; a `bun.lock`, whose install is a fake `bun` that notes each call in `bun.log`.
-// `projects.install` answers `answer` (`installAs` sets it, an Error thrown), each request noted in `installs` with main's HEAD.
+// `projects.install` answers `answer` (`installAs` sets it, an Error thrown), each request noted in `installs` with main's HEAD;
+// `decision.owner` answers as orchestration does, "" for OWNER, each request noted in `owner`.
 // `worker(files)` runs a worker on AC0001 that commits `files`; `review(job, message)` runs a review ending on `message`;
 // `merge(...args)` runs `arthur merge` as the CLI does, a throw being `arthur merge: <message>` and exit code 1.
 async function load(t: TestContext) {
@@ -60,6 +63,12 @@ async function load(t: TestContext) {
 		if (answer instanceof Error) throw answer;
 		return answer;
 	});
+	const owner: unknown[] = [];
+	fake.provide("decision.owner", (asked: { readonly id: string; readonly what: string }) => {
+		owner.push(asked);
+		if (asked.id === "") return `${asked.what} needs the owner's decision: arthur decision ask --kind merge --question '<what he decides>' --ticket AC0001, his answer recorded with arthur decision answer, then ${asked.what} --decision <its id>`;
+		return asked.id === OWNER ? "" : `${asked.id} is not in the decision log of project acme`;
+	});
 	await fake.setup(delivery());
 	const home = dirname(fake.host.folder);
 	const ended = async (id: string) => {
@@ -98,7 +107,7 @@ async function load(t: TestContext) {
 	};
 	const head = () => git(root, "rev-parse", "HEAD");
 	const status = (id: string) => fake.host.board.get(id)?.status;
-	return { root, fake, git, commit, take, worker, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, installAs: (next: string | Error) => void (answer = next) };
+	return { root, fake, git, commit, take, worker, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, owner, installAs: (next: string | Error) => void (answer = next) };
 }
 
 test("a branch with a PASS on its tip goes in: checks pass, its review filed, outcome.md written, the ticket merged, the tickets it unblocks named", async (t) => {
@@ -201,12 +210,12 @@ test("refused, main unchanged: the repository's own config sets a key that may n
 	assert.deepEqual([git(root, "rev-parse", "HEAD^2"), existsSync(ran)], [job.tip, false], "main keeps the merge");
 });
 
-test("refused, main unchanged: no PASS on the tip, a FAIL on it, a PASS on an older commit; --unreviewed lets it in and outcome.md says so", async (t) => {
-	const { root, commit, worker, review, merge, head, status } = await load(t);
+test("refused, main unchanged: no PASS on the tip, a FAIL on it, a PASS on an older commit; --unreviewed lets it in with the owner's decision, and outcome.md says so", async (t) => {
+	const { root, commit, worker, review, merge, head, status, owner } = await load(t);
 	const job = await worker();
 	const start = head();
 	const unreviewed = (tip: string, why: string) =>
-		`arthur merge: no PASS on ${job.branch}'s tip ${tip.slice(0, 7)}: ${why}; review it with arthur review ${job.id}, or merge it with --unreviewed on the owner's word only; main is unchanged`;
+		`arthur merge: no PASS on ${job.branch}'s tip ${tip.slice(0, 7)}: ${why}; review it with arthur review ${job.id}, or merge it with --unreviewed --decision <the owner's decision id>; main is unchanged`;
 	assert.deepEqual(await merge(job.id), { code: 1, out: "", err: unreviewed(job.tip, "no review of it has a verdict (last PASS: none)") });
 	const failed = await review(job.id, "Missing a test.\n\nFAIL");
 	assert.equal((await merge(job.id)).err, unreviewed(job.tip, `its newest review, ${failed}, says FAIL (last PASS: none)`));
@@ -214,10 +223,16 @@ test("refused, main unchanged: no PASS on the tip, a FAIL on it, a PASS on an ol
 	const tip = commit(job.worktree, { "late.ts": "export const late = 1;\n" });
 	assert.equal((await merge(job.id)).err, unreviewed(tip, `no review of it has a verdict (last PASS: ${job.tip.slice(0, 7)})`));
 	assert.equal(head(), start);
-	const merged = await merge(job.id, "--unreviewed");
+	// `decision.owner` holds --unreviewed: its refusal refuses the merge, main unchanged.
+	assert.deepEqual(await merge(job.id, "--unreviewed"), { code: 1, out: "", err: "arthur merge: --unreviewed needs the owner's decision: arthur decision ask --kind merge --question '<what he decides>' --ticket AC0001, his answer recorded with arthur decision answer, then --unreviewed --decision <its id>; main is unchanged" });
+	assert.deepEqual(await merge(job.id, "--decision", "AC-D9", "--unreviewed"), { code: 1, out: "", err: "arthur merge: AC-D9 is not in the decision log of project acme; main is unchanged" });
+	assert.equal(head(), start);
+	const merged = await merge(job.id, "--unreviewed", "--decision", OWNER);
 	assert.equal(merged.code, undefined, merged.err);
 	assert.equal(status("AC0001"), "merged");
 	assert.match(readFileSync(join(root, FOLDER, "outcome.md"), "utf8"), new RegExp(`\n- Reviews: review-1.md FAIL, review-2.md PASS; merged unreviewed \\(--unreviewed\\): no PASS on ${job.branch}'s tip ${tip.slice(0, 7)}: `));
+	const asked = { what: "--unreviewed", kind: "merge", ticket: "AC0001", job: job.id, use: `merge ${job.id}` };
+	assert.deepEqual(owner, [{ ...asked, id: "" }, { ...asked, id: "AC-D9" }, { ...asked, id: OWNER }], "asked only with --unreviewed, of the job's ticket, for this merge");
 });
 
 test("arthur review-needed's no review for the tip is a PASS; for an older tip it is none", async (t) => {
@@ -252,14 +267,14 @@ test("a merge conflict leaves main as it was: no merge in progress, the ticket w
 test("each merge that went in rebuilds CHANGELOG.md; the rebuilt file left uncommitted is no dirt for the next merge", async (t) => {
 	const { root, git, worker, merge } = await load(t);
 	const first = await worker();
-	assert.equal((await merge(first.id, "--unreviewed")).err, "");
+	assert.equal((await merge(first.id, "--unreviewed", "--decision", OWNER)).err, "");
 	git(root, "add", "CHANGELOG.md");
 	git(root, "commit", "--quiet", "-m", "the changelog");
 	const cart = await worker({ "cart.ts": "export const cart = 1;\n" }, "Ticket: spec/features/AC0002-cart/ticket.md");
-	assert.match((await merge(cart.id, "--unreviewed")).out, /\nwrote CHANGELOG\.md: 2 merged tickets\n/);
+	assert.match((await merge(cart.id, "--unreviewed", "--decision", OWNER)).out, /\nwrote CHANGELOG\.md: 2 merged tickets\n/);
 	assert.match(git(root, "status", "--porcelain", "--untracked-files=no"), /^ ?M CHANGELOG\.md$/m, "rebuilt, not committed");
 	const pay = await worker({ "pay.ts": "export const pay = 1;\n" }, "Ticket: spec/features/AC0003-pay/ticket.md");
-	const merged = await merge(pay.id, "--unreviewed");
+	const merged = await merge(pay.id, "--unreviewed", "--decision", OWNER);
 	assert.equal(merged.err, "");
 	assert.match(readFileSync(join(root, "CHANGELOG.md"), "utf8"), /\n- AC0001 Shop \([0-9a-f]+\)\n- AC0002 Cart \([0-9a-f]+\)\n- AC0003 Pay \([0-9a-f]+\)\n$/);
 });
@@ -267,11 +282,11 @@ test("each merge that went in rebuilds CHANGELOG.md; the rebuilt file left uncom
 test("only a merge puts code on main: a code commit since the last merge refuses the next, with --unreviewed, --auto or neither, naming it; spec/, CHANGELOG.md and *.md do not; with no merge, from the root", async (t) => {
 	const { root, git, commit, take, worker, merge, head } = await load(t);
 	const first = await worker();
-	assert.equal((await merge(first.id, "--unreviewed")).err, "");
+	assert.equal((await merge(first.id, "--unreviewed", "--decision", OWNER)).err, "");
 	commit(root, { "README.md": "# acme, a shop\n", "docs/guide.md": "# Guide\n" });
 	assert.match(git(root, "show", "--name-only", "--format=", "HEAD"), /^CHANGELOG\.md\nREADME\.md\ndocs\/guide\.md\nspec\/build\.json\nspec\/features\/AC0001-shop\/outcome\.md$/);
 	const cart = await worker({ "cart.ts": "export const cart = 1;\n" }, "Ticket: spec/features/AC0002-cart/ticket.md");
-	assert.equal((await merge(cart.id, "--unreviewed")).err, "", "the commit after a merge, of spec/, CHANGELOG.md and *.md, is no code");
+	assert.equal((await merge(cart.id, "--unreviewed", "--decision", OWNER)).err, "", "the commit after a merge, of spec/, CHANGELOG.md and *.md, is no code");
 	const hand = git(root, "rev-parse", "--short", commit(root, { "hand.ts": "export const hand = 1;\n" }));
 	commit(root, { "spec/notes.md": "# Notes\n" });
 	const again = git(root, "rev-parse", "--short", commit(root, { "hand.ts": "export const hand = 2;\n" }));
@@ -279,15 +294,15 @@ test("only a merge puts code on main: a code commit since the last merge refuses
 	const before = head();
 	const refused = `arthur merge: main has 2 commits since its last merge that change code (${again}, ${hand}); only a merge puts code on main; the owner decides: main is unchanged`;
 	assert.deepEqual(await merge(pay.id), { code: 1, out: "", err: refused });
-	assert.deepEqual(await merge(pay.id, "--unreviewed"), { code: 1, out: "", err: refused });
+	assert.deepEqual(await merge(pay.id, "--unreviewed", "--decision", OWNER), { code: 1, out: "", err: refused });
 	assert.deepEqual(await merge(pay.id, "--auto", "--no-ci"), { code: 1, out: "", err: refused });
 	assert.equal(head(), before);
 	take();
-	assert.equal((await merge(pay.id, "--unreviewed")).err, "");
+	assert.equal((await merge(pay.id, "--unreviewed", "--decision", OWNER)).err, "");
 	const loose = await worker({ "loose.ts": "export const loose = 1;\n" }, "No ticket here.");
 	const start = git(root, "rev-list", "--max-parents=0", "HEAD");
 	git(root, "reset", "--quiet", "--hard", start);
-	assert.equal((await merge(loose.id, "--unreviewed")).err, `arthur merge: main has 1 commits since its last merge that change code (${git(root, "rev-parse", "--short", start)}); only a merge puts code on main; the owner decides: main is unchanged`);
+	assert.equal((await merge(loose.id, "--unreviewed", "--decision", OWNER)).err, `arthur merge: main has 1 commits since its last merge that change code (${git(root, "rev-parse", "--short", start)}); only a merge puts code on main; the owner decides: main is unchanged`);
 });
 
 test("a failed check resets main and names it, pushing nothing; the board's moves stay, main's own install is put back, nothing is written", async (t) => {
@@ -401,12 +416,14 @@ test("with nvm.path provided, the install and checks run on its PATH, asked for 
 
 test("refused before anything: wrong usage, no job, a read-only or running job, a gone branch, a detached or dirty main, nothing new, a ticket not mergeable", async (t) => {
 	const { root, fake, git, worker, review, merge, head, status } = await load(t);
-	const usage = "usage: arthur merge <job> [--unreviewed | --auto] [--no-ci]";
+	const usage = "usage: arthur merge <job> [--unreviewed --decision <id> | --auto] [--no-ci]";
 	assert.deepEqual(await merge(), { code: 2, out: "", err: `arthur merge: no job\n${usage}` });
 	assert.equal((await merge("a", "b")).err, `arthur merge: one job; got 2\n${usage}`);
 	assert.equal((await merge("a", "--force")).err, `arthur merge: unknown flag --force\n${usage}`);
 	assert.deepEqual(await merge("a", "--no-ci"), { code: 1, out: "", err: "arthur merge: no job a; arthur jobs lists them" }, "--no-ci goes with a plain merge too");
 	assert.deepEqual(await merge("a", "--auto", "--unreviewed"), { code: 2, out: "", err: `arthur merge: --auto merges only with a PASS, --unreviewed without one: one or the other\n${usage}` });
+	for (const args of [["--decision", OWNER], ["--auto", "--decision", OWNER]]) assert.equal((await merge("a", ...args)).err, `arthur merge: --decision goes with --unreviewed\n${usage}`, args.join(" "));
+	for (const args of [["--unreviewed", "--decision"], ["--unreviewed", "--decision", "--no-ci"], ["--decision", "", "--unreviewed"]]) assert.equal((await merge("a", ...args)).err, `arthur merge: --decision needs a value\n${usage}`, args.join(" "));
 	assert.equal((await merge("nope")).err, "arthur merge: no job nope; arthur jobs lists them");
 	const job = await worker();
 	const passed = await review(job.id, "PASS");
@@ -429,7 +446,7 @@ test("refused before anything: wrong usage, no job, a read-only or running job, 
 	fake.host.board.move("AC0001", "planning");
 	assert.equal((await merge(job.id)).err, "arthur merge: AC0001 is planning; a merge is of a ticket in-progress, review or done");
 	const none = await worker({}, "No ticket here.");
-	assert.equal((await merge(none.id, "--unreviewed")).err, `arthur merge: ${none.branch} at ${start.slice(0, 7)} adds nothing to main (${start.slice(0, 7)}): nothing to merge`);
+	assert.equal((await merge(none.id, "--unreviewed", "--decision", OWNER)).err, `arthur merge: ${none.branch} at ${start.slice(0, 7)} adds nothing to main (${start.slice(0, 7)}): nothing to merge`);
 	assert.equal(head(), start);
 	assert.equal(status("AC0001"), "planning");
 	const gate = join(temporaryFolder(), "gate");
@@ -448,13 +465,13 @@ test("merge.check: any text answer refuses with every answer, main unchanged and
 	fake.provide("github.push", (branch: unknown) => (pushes.push(branch), Promise.resolve("github: main not pushed to origin: [rejected] (non-fast-forward)")));
 	const job = await worker({ "loose.ts": "export const loose = 1;\n" }, "No ticket here.");
 	const start = head();
-	assert.deepEqual(await merge(job.id, "--unreviewed"), { code: 1, out: "", err: "arthur merge: refused by merge.check: the branch changes .nvmrc; the owner holds this path; main is unchanged" });
+	assert.deepEqual(await merge(job.id, "--unreviewed", "--decision", OWNER), { code: 1, out: "", err: "arthur merge: refused by merge.check: the branch changes .nvmrc; the owner holds this path; main is unchanged" });
 	assert.equal(head(), start);
 	const record = fake.host.jobs.list().find((each) => each.id === job.id);
 	assert.deepEqual(asked, [record, record, record], "asked with the job as arthur jobs holds it");
 	assert.deepEqual(pushes, [], "a refused merge pushes nothing");
 	answers.fill(undefined);
-	const merged = await merge(job.id, "--unreviewed");
+	const merged = await merge(job.id, "--unreviewed", "--decision", OWNER);
 	assert.equal(merged.code, undefined, merged.err);
 	assert.match(merged.out, new RegExp(`^merged ${job.branch} into main: [0-9a-f]+\nbun install --frozen-lockfile: passed\\.\nnpm run check: passed\\.\nnpm test: 2/2 passed\\.\nno ticket: no outcome\\.md, nothing moved\nwrote CHANGELOG\\.md: 0 merged tickets\n`));
 	assert.ok(merged.out.endsWith(`wrote CHANGELOG.md: 0 merged tickets\ngithub: main not pushed to origin: [rejected] (non-fast-forward)\nnothing committed but the merge, nothing pruned\n\n${PROCEDURE}`), merged.out);
@@ -499,7 +516,7 @@ test("a plain merge asks github.ci: a run on the branch's own commits that ended
 	for (const [at, [name, run]] of runs.entries()) {
 		const each = await worker({ [`loose${at}.ts`]: `export const loose = ${at};\n` }, "No ticket here.");
 		answer = run(each.tip, each.branch);
-		const merged = await merge(each.id, "--unreviewed");
+		const merged = await merge(each.id, "--unreviewed", "--decision", OWNER);
 		assert.equal(merged.code, undefined, `${name}: ${merged.err}`);
 		assert.deepEqual(asked.at(-1), { project: "acme", branch: each.branch }, name);
 	}

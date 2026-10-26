@@ -17,6 +17,7 @@ From AR0338's review (2026-10-25-review-88629edb, a note outside its range): a j
 A job cannot read the environment of Arthur's own processes.
 
 - Kind: security
+- Plan: yes
 
 ## Done means
 

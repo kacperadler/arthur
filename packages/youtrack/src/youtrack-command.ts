@@ -1,3 +1,5 @@
+import { dirname } from "node:path";
+import { insideJob } from "@arthur/core/inside-job";
 import { call, field, getAll, type Instance, remove } from "./youtrack-api.ts";
 import { changeAttachment, saveAttachments } from "./youtrack-attachments.ts";
 import { comments } from "./youtrack-comments.ts";
@@ -59,8 +61,8 @@ export async function youtrackCommand(projects: readonly Tracked[], args: readon
 		console.error(USAGE);
 		return 2;
 	}
-	// A job never writes to YouTrack (entry 46): the wrapper starts its agent with `ARTHUR_JOB` set, which its commands inherit.
-	if (process.env.ARTHUR_JOB && !READS.includes(verb)) throw new Error("a job never writes to YouTrack; put what should go there in your final message; nothing was asked of YouTrack");
+	// A job never writes to YouTrack (entry 46), `insideJob` telling a job's process from the coordinator's (AR0354).
+	if (insideJob(dirname(folder)) !== undefined && !READS.includes(verb)) throw new Error("a job never writes to YouTrack; put what should go there in your final message; nothing was asked of YouTrack");
 	const project = name === undefined ? projects[0] : projects.find((each) => each.name === name);
 	if (project === undefined) throw new Error(`unknown project ${name ?? ""}; projects: ${projects.map((each) => each.name).join(", ") || "none"}`);
 	if (project.tracker === undefined) {

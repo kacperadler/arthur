@@ -36,3 +36,4 @@ In:
 
 - 2026-10-23: Source: F3 of AR0319
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; starts after the ten security checks AR0319-AR0328.
+- 2026-10-26: AR0339 goes in: the owner puts the env file in ~/.config/arthur first (a copy, so the running code still finds it), then the merge, then the restart, then he deletes the old file; the owner: "AR-D45 - 1" (AR-D45)

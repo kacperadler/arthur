@@ -284,6 +284,33 @@ test("arthur schedule remove takes an entry and its run state out of the file; a
 	assert.throws(() => none.run("remove", "x"), { message: "no entry x; arthur schedule list shows every entry" });
 });
 
+test("inside a job (ARTHUR_JOB set) arthur schedule add and remove refuse, the file unchanged, once their usage is right; the list runs", async (t) => {
+	const box = await load(t, [STANDUP], "2026-10-19T10:00:00+02:00");
+	box.write([{ id: "weekly", at: "09:00", action: { message: "Week." } }]);
+	t.after(() => delete process.env.ARTHUR_JOB);
+	process.env.ARTHUR_JOB = "/home/arthur/.arthur/jobs/2026-10-23-worker-0a1b2c3d";
+	const refusal = (verb: string) => `arthur schedule ${verb}: refused inside a job 2026-10-23-worker-0a1b2c3d: a job runs only the commands its role needs; put what the coordinator should do in your final message`;
+	assert.deepEqual([box.run("add", "x", "10:00", "--message", "x"), box.run("remove", "weekly"), box.run("remove")], [1, 1, 2]);
+	assert.deepEqual(box.errors.map((error) => error.split("\n")[0]), [refusal("add"), refusal("remove"), "arthur schedule: remove takes one id"]);
+	assert.deepEqual(box.read(), [{ id: "weekly", at: "09:00", action: { message: "Week." } }]);
+	assert.equal(box.run("list"), 0);
+	assert.match(box.logs.join("\n"), /^standup \(config\)/);
+	process.env.ARTHUR_JOB = "";
+	assert.equal(box.run("remove", "weekly"), 0, "set empty, no job");
+});
+
+// The job whose systemd scope runs this test, when one does (a job's own `npm test`).
+const scope = /\/arthur-job-([^/]+)\.scope$/.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
+
+test("in a job's scope arthur schedule remove is refused with ARTHUR_JOB cleared once the home holds that job's record", { skip: scope === undefined && "not run in a job's systemd scope" }, async (t) => {
+	const box = await load(t, [], "2026-10-19T10:00:00+02:00");
+	box.write([{ id: "weekly", at: "09:00", action: { message: "Week." } }]);
+	mkdirSync(join(dirname(box.fake.host.folder), "jobs", scope ?? ""), { recursive: true });
+	assert.equal(box.run("remove", "weekly"), 1);
+	assert.deepEqual(box.errors, [`arthur schedule remove: refused inside a job ${scope}: a job runs only the commands its role needs; put what the coordinator should do in your final message`]);
+	assert.deepEqual(box.read(), [{ id: "weekly", at: "09:00", action: { message: "Week." } }]);
+});
+
 test("a plugin disabled after registering leaves no entry behind: none in the file, the list or the sweep", async (t) => {
 	const root = temporaryFolder();
 	const first = await load(t, [], "2026-10-20T07:00:00+02:00", { root });

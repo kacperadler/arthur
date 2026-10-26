@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { once } from "node:events";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -841,6 +841,19 @@ test("inside a job, every write to YouTrack is refused before any call; reading 
 	assert.deepEqual(seen, []);
 	const reads = [["issue", "get", "SHOP-1"], ["comment", "list", "SHOP-1"], ["issue", "attachments", "SHOP-2"], ["issue", "links", "SHOP-1"], ["issue", "work", "list", "SHOP-1"]];
 	for (const args of [...reads, ["issue", "list", "--query", "Priority: Critical"], ["article", "list", "--query", "release"], ["comment", "list", "SHOP-A-2"], ["article", "attachments", "SHOP-A-2"]]) assert.equal((await run(undefined, ...args)).code, 0, args.join(" "));
+});
+
+// The job whose systemd scope runs this test, when one does (a job's own `npm test`).
+const scope = /\/arthur-job-([^/]+)\.scope$/.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
+
+test("in a job's scope a write to YouTrack is refused with ARTHUR_JOB cleared once the home holds that job's record", { skip: scope === undefined && "not run in a job's systemd scope" }, async (t) => {
+	const { url, seen } = await server(t);
+	const run = await load(t, envFor(url));
+	assert.equal((await run(undefined, "issue", "tag", "SHOP-1", "backend")).code, 0, "the test's own home holds no record of the job");
+	const asked = seen.length;
+	mkdirSync(join(dirname(run.folder), "jobs", scope ?? ""), { recursive: true });
+	assert.equal(await refusal(run(undefined, "issue", "tag", "SHOP-1", "backend")), "a job never writes to YouTrack; put what should go there in your final message; nothing was asked of YouTrack");
+	assert.equal(seen.length, asked);
 });
 
 test("every job of a project on YouTrack gets the rules for its issues in its prompt, in any role; a job of another project gets none", async (t) => {

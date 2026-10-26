@@ -16,6 +16,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0431 A review's project is not checked against its worker's (7c8205b5)
 - AR0432 The always-review list misses the other installs: composer, uv, yarnrc, pnpmfile and bunfig (eea54efb)
 - AR0439 A provider's key exported in the shell still reaches every job (fa0bdf8c)
+- AR0440 A job can read the running Arthur process's secrets from /proc/<pid>/environ (6ce62c51)
 
 ### Changed
 

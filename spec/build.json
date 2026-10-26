@@ -3535,9 +3535,9 @@
   {
     "id": "AR0440",
     "title": "A job can read the running Arthur process's secrets from /proc/<pid>/environ",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0440-a-job-can-read-the-running-arthur-process-s-secrets-from-proc-pid-environ/ticket.md",
-    "updated": "2026-10-26T13:38:34.004Z",
+    "updated": "2026-10-26T13:42:49.466Z",
     "after": [
       "AR0350"
     ]
@@ -3633,5 +3633,12 @@
       "AR0442",
       "AR0449"
     ]
+  },
+  {
+    "id": "AR0451",
+    "title": "Branch code run outside the sandbox can read Arthur's environment",
+    "status": "dropped",
+    "path": "spec/features/AR0451-branch-code-run-outside-the-sandbox-can-read-arthur-s-environment/ticket.md",
+    "updated": "2026-10-26T13:43:00.981Z"
   }
 ]

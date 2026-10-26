@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/job-install.ts:12`, `packages/delivery/src/merge-checks.ts` (`stepRunner`)
 - What: the wrapper's install step (`install`, run before `sandboxed` in `wrapper.ts`) and the merge checks (install, `npm run check`, `npm test` of the merged main) run a branch's code, its lifecycle scripts and tests included, outside any Landlock domain, so that code can read `/proc/<pid>/environ` of `arthur run` and the coordinator. Inferred from the plan's bare run (an unsandboxed child read its parent's and a sibling's environment), not tested on these two paths. The owner's question is AR-D65, unanswered when this was written.
 - Suggestion: run both steps through `sandboxed` with the package managers' caches (`~/.npm`, `~/.bun`) among the writable paths; the env file on disk stays out (AR0443).
-- Status: open
+- Status: dropped (the same gap as AR0449, approved under AR-D65; AR0451 dropped as its duplicate)

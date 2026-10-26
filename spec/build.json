@@ -3610,9 +3610,9 @@
   {
     "id": "AR0449",
     "title": "The install at a job start and the merge checks run branch code outside the sandbox, where it can read the environment of arthur run",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0449-the-install-at-a-job-start-and-the-merge-checks-run-branch-code-outside-the/ticket.md",
-    "updated": "2026-10-26T13:34:57.400Z",
+    "updated": "2026-10-26T16:49:07.423Z",
     "after": [
       "AR0441",
       "AR0440",

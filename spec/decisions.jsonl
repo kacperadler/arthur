@@ -165,3 +165,5 @@
 {"record":"answer","id":"AR-D82","time":"2026-10-26T16:48:59+01:00","decided":"AR0443 another round: the worker gives the limits test room for the slower start or makes the start cheaper, then review round 3","picked":1,"words":"AR-D82 - 1"}
 {"record":"ask","id":"AR-D83","time":"2026-10-26T16:57:36+01:00","project":"arthur","kind":"merge","question":"AR0443 passed review: merge it?","options":["Merge","Hold"],"recommend":1,"ticket":"AR0443"}
 {"record":"answer","id":"AR-D83","time":"2026-10-26T16:57:36+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}
+{"record":"ask","id":"AR-D84","time":"2026-10-26T18:03:46+01:00","project":"arthur","kind":"budget","question":"AR0449 needs the core line budget raised from 6269 to 6296 (+27): raise it?","options":["Raise","Keep"],"recommend":1,"ticket":"AR0449"}
+{"record":"answer","id":"AR-D84","time":"2026-10-26T18:03:46+01:00","decided":"Raise the core line budget by what the fix needs, without asking the owner","words":"by policy: AR-D63"}

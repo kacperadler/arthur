@@ -3567,7 +3567,7 @@
     "title": "A job's scope marks it only for a home that holds its record, so a config of the job's own is a coordinator's",
     "status": "done",
     "path": "spec/features/AR0443-a-job-s-scope-marks-it-only-for-a-home-that-holds-its-record-so-a-config-of-the/ticket.md",
-    "updated": "2026-10-26T15:57:30.081Z",
+    "updated": "2026-10-26T15:59:11.329Z",
     "after": [
       "AR0440"
     ]

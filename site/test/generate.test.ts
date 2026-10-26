@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, test } from "node:test";
-import { logoFiles } from "../scripts/generate.ts";
+import { diagramPage, logoFiles } from "../scripts/generate.ts";
 
 const root = mkdtempSync(join(tmpdir(), "arthur-site-logo-"));
 after(() => rmSync(root, { recursive: true, force: true }));
@@ -36,4 +36,13 @@ test("no logo, an icon alone, and a missing folder", () => {
 	assert.deepEqual(logoFiles(folder("empty", ["logo.png"])), { logo: undefined, favicon: undefined });
 	assert.deepEqual(logoFiles(folder("icon", ["arthur-favicon.png"])), { logo: undefined, favicon: "arthur-favicon.png" });
 	assert.deepEqual(logoFiles(join(root, "missing")), { logo: undefined, favicon: undefined });
+});
+
+test("the diagram page drops its outline and holds the diagram as a Mermaid block", () => {
+	const page = diagramPage("flowchart LR\n  a --> b\n");
+	const [, head, body] = page.split("---\n");
+	assert.match(head, /^tableOfContents: false$/m);
+	assert.match(head, /^title: "Diagram"$/m);
+	assert.ok(body.endsWith('<pre class="mermaid">\nflowchart LR\n  a --&gt; b\n</pre>'));
+	assert.match(body, /\(https:\/\/github\.com\/kacperadler\/arthur\/blob\/main\/arthur\.mmd\)/);
 });

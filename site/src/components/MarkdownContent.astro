@@ -7,10 +7,25 @@ import Default from "@astrojs/starlight/components/MarkdownContent.astro";
 <script>
 	// Mermaid is large: it loads only on a page that has a diagram.
 	if (document.querySelector("pre.mermaid")) {
-		import("mermaid").then(({ default: mermaid }) => {
-			// At its own size, scrolled inside its block: shrunk to the column, Arthur's diagram is unreadable.
-			mermaid.initialize({ startOnLoad: false, flowchart: { useMaxWidth: false } });
-			mermaid.run();
+		import("mermaid").then(async ({ default: mermaid }) => {
+			// Each diagram fits its column whole; a link under it opens it alone at its own size, for the browser's zoom and scroll.
+			mermaid.initialize({ startOnLoad: false });
+			await mermaid.run();
+			for (const svg of document.querySelectorAll<SVGSVGElement>("pre.mermaid svg")) {
+				const full = svg.cloneNode(true) as SVGSVGElement;
+				const { width, height } = svg.viewBox.baseVal;
+				full.setAttribute("width", String(width));
+				full.setAttribute("height", String(height));
+				full.setAttribute("style", "background: #fff");
+				const file = new Blob([new XMLSerializer().serializeToString(full)], { type: "image/svg+xml" });
+				const link = document.createElement("a");
+				link.href = URL.createObjectURL(file);
+				link.target = "_blank";
+				link.textContent = "Open the diagram at full size";
+				const line = document.createElement("p");
+				line.append(link);
+				svg.closest("pre")?.after(line);
+			}
 		});
 	}
 </script>
@@ -19,10 +34,5 @@ import Default from "@astrojs/starlight/components/MarkdownContent.astro";
 	/* The diagrams' labels are black: a white background keeps them readable in dark mode. */
 	.sl-markdown-content pre.mermaid {
 		background: #fff;
-		overflow: auto;
-		max-height: 80vh;
-	}
-	.sl-markdown-content pre.mermaid svg {
-		max-width: none;
 	}
 </style>

@@ -218,6 +218,13 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `env -C ${main} bash -c 'rm README.md'` }, MAIN],
 		["bash", { command: "env -C sub rm ../README.md", cwd: main }, MAIN],
 		["bash", { command: "env -C /tmp true > README.md", cwd: main }, MAIN],
+		["bash", { command: `env -C ${main} true > x` }, undefined],
+		["bash", { command: `env -iC ${main} rm README.md` }, MAIN],
+		["bash", { command: `sudo -nD ${main} rm README.md` }, MAIN],
+		["bash", { command: `env --c=${main} rm README.md` }, MAIN],
+		["bash", { command: `env --chd ${main} rm README.md` }, MAIN],
+		["bash", { command: `sudo --chd ${main} rm README.md` }, MAIN],
+		["bash", { command: `sudo -nu root rm ${main}/README.md` }, MAIN],
 		["bash", { command: `cd ${main}; env -C /tmp rm $PWD/README.md` }, MAIN],
 		["bash", { command: "GIT_WORK_TREE=~/acme git checkout -- ." }, MAIN],
 		["bash", { command: "GIT_INDEX_FILE=~/acme/.git/index git add ." }, MAIN],
@@ -233,6 +240,16 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `cd ${main}; env -C /tmp bash -c "rm \${PWD}/README.md"` }, MAIN],
 		["bash", { command: `cd ${main}; bash -c 'cd /tmp; rm $PWD/README.md'` }, undefined],
 		["bash", { command: `cd ${main}; git -C /tmp --work-tree=~+ checkout -- . && echo $constructor $toString` }, undefined],
+		// The known variables inside `bash -c` and `eval`, and `$PWD` in a here-string or an unquoted heredoc, which the outer shell expands.
+		["bash", { command: "bash -c 'echo x > $ARTHUR_JOB/result'" }, HOME],
+		["bash", { command: "eval 'echo x > $ARTHUR_JOB/result'" }, HOME],
+		["bash", { command: "bash -c 'rm $HOME/acme/README.md'" }, MAIN],
+		["bash", { command: "eval 'rm ${HOME}/acme/README.md'" }, MAIN],
+		["bash", { command: `cd ${main}; bash <<EOF\ncd /tmp; rm $PWD/README.md\nEOF` }, MAIN],
+		["bash", { command: `cd ${main}; bash <<< "cd /tmp; rm \${PWD}/README.md"` }, MAIN],
+		["bash", { command: `cd ${main}; env -C /tmp bash <<EOF\nrm $PWD/README.md\nEOF` }, MAIN],
+		["bash", { command: `cd ${main}; bash <<'EOF'\ncd /tmp; rm $PWD/README.md\nEOF\nbash <<EOF\ncd /tmp; rm \\$PWD/README.md\nEOF` }, undefined],
+		["bash", { command: `cd ${main}; bash <<< 'cd /tmp; rm $PWD/README.md' && bash <<< "cd /tmp; rm ~+/README.md"` }, undefined],
 		["bash", { command: `git -C ${main} commit -m x` }, MAIN],
 		["bash", { command: `git --work-tree=${otherJob} checkout -- .` }, OTHER],
 		["bash", { command: `cd ${otherJob} && git reset --hard` }, OTHER],
@@ -389,9 +406,10 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		// An OLDPWD the agent's env gives is where `cd -` goes first.
 		process.env.OLDPWD = root;
 		assert.ok(worktreeRefusal(place, "bash", { command: "cd - && rm README.md" })?.includes("into the main checkout"));
-		// Without `ARTHUR_JOB` in the agent's env, `$ARTHUR_JOB` is nothing, as in bash.
+		// Without `ARTHUR_JOB` in the agent's env, `$ARTHUR_JOB` is nothing and `${ARTHUR_JOB:-word}` the word, as in bash.
 		delete process.env.ARTHUR_JOB;
 		assert.equal(worktreeRefusal(place, "bash", { command: "echo x > $ARTHUR_JOB/result" }), undefined);
+		assert.ok(worktreeRefusal(place, "bash", { command: `echo x > \${ARTHUR_JOB:-${root}}/README.md` })?.includes("into the main checkout"));
 	} finally {
 		for (const [name, value] of Object.entries(saved)) value === undefined ? delete process.env[name] : (process.env[name] = value);
 	}

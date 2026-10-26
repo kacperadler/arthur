@@ -38,7 +38,7 @@ Can still go in arthur.config.ts
     ...
 
 Next
-  1. Set ARTHUR_TELEGRAM_CHAT_ID in .env (telegram.bots[0].chatIdEnv), then arthur config check. Refuses the start.
+  1. Set ARTHUR_TELEGRAM_CHAT_ID in /home/<user>/.config/arthur/.env (telegram.bots[0].chatIdEnv), then arthur config check. Refuses the start.
   2. delegate them (docs/setup.md, step 10), then reboot
 Run arthur setup again after each step.
 ```

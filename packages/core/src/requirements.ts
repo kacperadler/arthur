@@ -1,13 +1,13 @@
 import { execFile } from "node:child_process";
 import { accessSync, constants } from "node:fs";
 import { userInfo } from "node:os";
-import { basename } from "node:path";
+import { basename, relative, sep } from "node:path";
 import { ownHome } from "./own-home.ts";
 import type { Requirement } from "./plugin.ts";
 
 // The core's own requirements for `arthur doctor` (spec/roadmap.md, entry 80): git, Node 24 or newer, the agent binary and a
-// writable home, each critical; the CPU and memory controllers delegated to the user manager (entry 13), not critical.
-// docs/commands/doctor.md.
+// writable home, each critical; the CPU and memory controllers delegated to the user manager (entry 13) and the env file outside
+// the config's folder and every project's checkout (AR0339), not critical. docs/commands/doctor.md.
 
 type Ran = { readonly ok: boolean; readonly stdout: string; readonly said: string };
 
@@ -21,8 +21,8 @@ function ran(command: string, args: readonly string[]): Promise<Ran> {
 	return promise;
 }
 
-// `home` and `agent` as the config holds them (`core.home`, `core.agent.command`); `node`, the version that runs this.
-export function coreRequirements(home: string, agent: string, node = process.versions.node): Requirement[] {
+// `core` as the config holds it; `folders`: the config's and each project's checkout; `node`, the version that runs this.
+export function coreRequirements({ home, envFile, agent: { command: agent } }: { readonly home: string; readonly envFile: string; readonly agent: { readonly command: string } }, folders: () => readonly string[], node = process.versions.node): Requirement[] {
 	const user = userInfo().username;
 	let manager = true;
 	return [
@@ -82,6 +82,16 @@ export function coreRequirements(home: string, agent: string, node = process.ver
 			get fix() {
 				return manager ? "delegate them (docs/setup.md, step 10), then reboot" : `sudo loginctl enable-linger ${user}; none on macOS or in a container, where jobs run bare`;
 			},
+		},
+		{
+			// Where an agent works, a recursive search (`grep -r KEY .`) reaches the file, whose name the env guard never sees then.
+			name: "env",
+			check: () => {
+				const inside = folders().find((folder) => relative(folder, envFile).split(sep)[0] !== "..");
+				return inside === undefined ? "ok" : `missing: the env file ${envFile} lies inside ${inside}`;
+			},
+			costs: "a recursive search the coordinator or a job runs there prints its values into the agent's transcript, which the model provider keeps",
+			fix: "move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)",
 		},
 	];
 }

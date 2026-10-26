@@ -3,9 +3,10 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { homedir, tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
+import { pathToFileURL } from "node:url";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
@@ -15,15 +16,16 @@ import { fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 
-// `script` run by `sh -c` in the sandbox over `paths`, from `cwd`: its output, and the lines the log was told.
-function inside(paths: readonly string[], script: string, cwd?: string): { readonly out: string; readonly log: readonly string[] } {
+// `script` run by `sh -c` in the sandbox over `paths`, reading every file but `hidden`, from `cwd`: its output, and the lines the log was told.
+function inside(paths: readonly string[], script: string, cwd?: string, hidden: readonly string[] = []): { readonly out: string; readonly log: readonly string[] } {
 	const log: string[] = [];
-	const [command, args] = sandboxed(paths, "sh", ["-c", script], (line) => log.push(line));
+	const [command, args] = sandboxed(paths, hidden, "sh", ["-c", script], (line) => log.push(line));
 	return { out: spawnSync(command, args, { cwd, encoding: "utf8" }).stdout, log };
 }
 
-// Why this host runs a job's agent bare (not Linux, no python3, a kernel without Landlock); the tests of the sandbox skip there.
-const bare = inside([], "true").log[0]?.match(/^no sandbox: (.*?);/)?.[1];
+// Why this host runs a job's agent bare (not Linux, no python3, a kernel without Landlock or a seccomp filter); the tests of the
+// sandbox skip there, and only there: a sandbox that cannot start `sh` here is a failure.
+const bare = inside([], "true").log[0]?.match(/^no sandbox: ((?:\w+ has no Landlock|python3|Landlock|seccomp)\b.*?);/)?.[1];
 
 // omp's session lock (AR0406) as `python3 <file> <name>` takes it: a Unix datagram socket bound to an abstract name; refused, it
 // fails as omp does, `Session persistence failed`, and exits 1. A test's names are its own, never omp's `omp-file-lock-<hash>`.
@@ -81,6 +83,33 @@ test("a write beneath a writable path passes; beside it, above it, through a lin
 	assert.deepEqual(log, [`sandbox: the agent writes only in ${open}, ${join(folder, "single")}, ${join(folder, "missing")}, /dev, and opens no Unix socket but a datagram one`]);
 });
 
+test("a hidden path reads nowhere: not by its path, nor made later; a file beside it reads, a file made later in a folder above it does not", { skip: bare }, () => {
+	const folder = temporaryFolder();
+	const [open, shut] = [join(folder, "open"), join(folder, "shut")];
+	mkdirSync(join(open, "kept"), { recursive: true });
+	mkdirSync(shut);
+	writeFileSync(join(open, "kept", "file"), "kept\n");
+	writeFileSync(join(shut, "env"), "secret\n");
+	writeFileSync(join(shut, "other"), "other\n");
+	const reads = {
+		"the hidden file": `cat '${join(shut, "env")}'`,
+		"a file beside it": `cat '${join(shut, "other")}'`,
+		"a file in a folder beside the path": `cat '${join(open, "kept", "file")}'`,
+		"a hidden path made later": `mkdir '${join(open, "later")}' && echo x > '${join(open, "later", "env")}' && cat '${join(open, "later", "env")}'`,
+		"a file made later in a folder above it": `echo x > '${join(open, "new")}' && cat '${join(open, "new")}'`,
+	};
+	const script = Object.entries(reads).map(([name, command]) => `if (${command}) >/dev/null 2>&1; then echo '${name} read'; else echo '${name} refused'; fi`).join("\n");
+	const { out, log } = inside([open, "/dev"], script, folder, [join(shut, "env"), join(open, "later", "env")]);
+	assert.deepEqual(out.trim().split("\n"), [
+		"the hidden file refused",
+		"a file beside it read",
+		"a file in a folder beside the path read",
+		"a hidden path made later refused",
+		"a file made later in a folder above it refused",
+	]);
+	assert.deepEqual(log, [`sandbox: the agent writes only in ${open}, /dev, reads every file but ${join(shut, "env")}, ${join(open, "later", "env")}, and opens no Unix socket but a datagram one`]);
+});
+
 test("in the sandbox a Unix socket is refused, a server's that listens as well; TCP still connects", { skip: locked }, async (t) => {
 	const folder = temporaryFolder();
 	const socket = join(folder, "server.sock");
@@ -112,7 +141,7 @@ test("python3 loads no module of the agent's folder before the sandbox is set", 
 test("an agent the sandbox's shell does not find starts bare, so it fails to start as it would without a sandbox", { skip: bare }, () => {
 	const lines: string[] = [];
 	const missing = join(temporaryFolder(), "omp");
-	assert.deepEqual(sandboxed(["/tmp"], missing, ["-p"], (line) => lines.push(line)), [missing, ["-p"]]);
+	assert.deepEqual(sandboxed(["/tmp"], [], missing, ["-p"], (line) => lines.push(line)), [missing, ["-p"]]);
 	assert.deepEqual(lines, [`no sandbox: the agent ${missing} is not there; the agent writes wherever Arthur's user can`]);
 });
 
@@ -123,11 +152,11 @@ test("without python3, or where it cannot set up the sandbox, the agent runs as 
 	process.env.PATH = bin;
 	const lines: string[] = [];
 	const note = (line: string) => lines.push(line);
-	assert.deepEqual(sandboxed(["/tmp"], "omp", ["-p", "task"], note), ["omp", ["-p", "task"]]);
+	assert.deepEqual(sandboxed(["/tmp"], [], "omp", ["-p", "task"], note), ["omp", ["-p", "task"]]);
 	writeFileSync(join(bin, "python3"), "#!/bin/sh\necho 'Traceback (most recent call last):' >&2\necho 'Landlock: Operation not supported' >&2\nexit 1\n", { mode: 0o755 });
-	assert.deepEqual(sandboxed(["/tmp"], "omp", ["-p", "task"], note), ["omp", ["-p", "task"]]);
+	assert.deepEqual(sandboxed(["/tmp"], [], "omp", ["-p", "task"], note), ["omp", ["-p", "task"]]);
 	writeFileSync(join(bin, "python3"), "#!/bin/sh\nexit 3\n", { mode: 0o755 });
-	assert.deepEqual(sandboxed(["/tmp"], "omp", ["-p", "task"], note), ["omp", ["-p", "task"]]);
+	assert.deepEqual(sandboxed(["/tmp"], [], "omp", ["-p", "task"], note), ["omp", ["-p", "task"]]);
 	const why = process.platform === "linux" ? ["python3: spawnSync python3 ENOENT", "Landlock: Operation not supported", "python3 exited 3"] : Array(3).fill(`${process.platform} has no Landlock`);
 	assert.deepEqual(lines, why.map((reason) => `no sandbox: ${reason}; the agent writes wherever Arthur's user can`));
 });
@@ -250,4 +279,61 @@ test("a sandboxed job's command cannot read the environment of the arthur run th
 	assert.match(read, /refused/);
 	assert.doesNotMatch(read, /shell-t0ken/);
 	assert.match(readFileSync(join(record, "log"), "utf8"), /\] sandbox: the agent writes only in /);
+});
+
+// A config in `folder` with the env file `envFile` and the home `home`: orchestration, `secret`, whose `leak` prints its token,
+// and `plain`, whose `plain` needs none; both commands run inside a job.
+function tokenConfig(folder: string, envFile: string, home: string): string {
+	const doc = `new URL(${JSON.stringify(pathToFileURL(join(folder, "command.md")).href)})`;
+	const command = (name: string, run: string) => `host.commands.register({ name: "${name}", doc: ${doc}, inJob: true, run: () => console.log(${run}) })`;
+	return `export default { core: { home: ${JSON.stringify(home)}, envFile: ${JSON.stringify(envFile)}, timeZone: "UTC" }, plugins: [
+	{ name: "orchestration", setup() {} },
+	{ name: "secret", options: { tokenEnv: "ARTHUR_SECRET_TOKEN" }, setup(host) { ${command("leak", '"leaked " + host.env.ARTHUR_SECRET_TOKEN')}; } },
+	{ name: "plain", setup(host) { ${command("plain", '"plain ran"')}; } },
+] };
+`;
+}
+
+test("a sandboxed job reads no token of the env file: not by its path, a link, nor arthur with a config and home of its own and ARTHUR_JOB cleared", { skip: bare }, async () => {
+	const { folder, root, home } = repository();
+	const envFile = join(folder, "private", "arthur-env");
+	mkdirSync(dirname(envFile));
+	writeFileSync(envFile, "ARTHUR_SECRET_TOKEN=s3cret-t0ken\n");
+	writeFileSync(join(folder, "command.md"), "# arthur command\n");
+	writeFileSync(join(folder, "arthur.config.ts"), tokenConfig(folder, envFile, home));
+	writeFileSync(join(folder, "own.config.ts"), tokenConfig(folder, envFile, "./home"));
+	const cli = join(import.meta.dirname, "..", "src", "cli.ts");
+	const arthur = (cwd: string, name: string) => spawnSync(process.execPath, [cli, name], { cwd, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+	assert.equal(arthur(folder, "plain").stdout, "plain ran\n", "the plugins' folders made as arthur run makes them");
+	const temporary = join(folder, "tmp");
+	mkdirSync(temporary);
+	const node = `'${process.execPath}' '${cli}'`;
+	const reads = {
+		file: `cat '${envFile}'`,
+		link: `ln -s '${envFile}' "$TMPDIR/link" && cat "$TMPDIR/link"`,
+		hard: `ln '${envFile}' "$TMPDIR/hard" && cat "$TMPDIR/hard"`,
+		plain: `cd '${folder}' && ${node} plain`,
+		leak: `cd '${folder}' && ${node} leak`,
+		attack: `mkdir own && cp '${join(folder, "own.config.ts")}' own/arthur.config.ts && cd own && env -u ARTHUR_JOB ${node} leak`,
+	};
+	const agent = join(folder, "agent");
+	writeFileSync(agent, `#!/bin/sh\n${Object.entries(reads).map(([name, command]) => `(${command}) > "$ARTHUR_JOB/${name}" 2>&1`).join("\n")}\n`, { mode: 0o755 });
+	const time = clock("UTC", undefined, () => new Date("2026-10-24T08:00:00Z"));
+	const jobs = jobRunner(home, root, envFile, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), () => []);
+	jobs.prepare("test", () => ({ TMPDIR: temporary }));
+	const job = await jobs.spawn({ task: "Read." });
+	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
+	const record = join(home, "jobs", job.id);
+	const out = Object.fromEntries(Object.keys(reads).map((name) => [name, readFileSync(join(record, name), "utf8")]));
+	for (const [name, text] of Object.entries(out)) assert.doesNotMatch(text, /s3cret-t0ken/, name);
+	assert.match(out.file ?? "", /Permission denied/);
+	assert.match(out.link ?? "", /Permission denied/);
+	assert.match(out.hard ?? "", /^ln: /);
+	const skipped = "arthur: inside a job, not loaded: secret: each names an env variable, and a job's CLI reads no env file\n";
+	assert.equal(out.plain, `${skipped}plain ran\n`);
+	assert.match(out.leak ?? "", new RegExp(`^${skipped}arthur: unknown command leak\n`));
+	assert.match(out.attack ?? "", new RegExp(`^arthur: unknown command leak\n[\\s\\S]*${envFile}: cannot be read \\(EACCES\\)`));
+	assert.match(readFileSync(join(record, "log"), "utf8"), new RegExp(`\\] sandbox: the agent writes only in .*, reads every file but ${envFile}, `));
+	const worktree = readFileSync(join(record, "worktree"), "utf8");
+	assert.equal(arthur(join(worktree, "own"), "leak").stdout, "leaked s3cret-t0ken\n", "outside the sandbox the same command reads the token");
 });

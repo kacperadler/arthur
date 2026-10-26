@@ -139,10 +139,11 @@ test("a timeout during a long tool call stops the agent and the tool's process; 
 	const script = ["#!/bin/sh", `echo started >> '${dir}/starts'`, `echo '${JSON.stringify(start)}'`, `sleep 100 & echo $! > '${dir}/tool'`, "wait"];
 	writeFileSync(agent, `${script.join("\n")}\n`, { mode: 0o755 });
 	const { home, jobs } = setup(agent);
-	const job = await jobs.spawn({ task: "Audit.", kind: "audit", timeoutMinutes: 0.01 });
+	// 3 s: room for the sandbox's start, whose walk to hide the env file (AR0443) crosses the crowded temporary folder.
+	const job = await jobs.spawn({ task: "Audit.", kind: "audit", timeoutMinutes: 0.05 });
 	const tool = Number(await until("the tool's process", () => (existsSync(join(dir, "tool")) ? readFileSync(join(dir, "tool"), "utf8").trim() || undefined : undefined)));
 	const data = await ended(home, job.id);
-	assert.deepEqual(data, { id: job.id, kind: "audit", project: "acme", state: "ended", reason: "limit: time: the job ran past its timeout of 0.01 minutes" });
+	assert.deepEqual(data, { id: job.id, kind: "audit", project: "acme", state: "ended", reason: "limit: time: the job ran past its timeout of 0.05 minutes" });
 	assert.deepEqual(["state", "activity", "tool-calls"].map((name) => field(home, job.id, name)), ["ended", "tool", "1"]);
 	await until("the tool's process stopped", () => !alive(tool));
 	assert.equal(readFileSync(join(dir, "starts"), "utf8"), "started\n");
@@ -191,7 +192,8 @@ test("an agent that ignores SIGTERM at its limit gets SIGKILL after the grace; i
 	const script = ["#!/bin/sh", `echo $$ >> '${dir}/starts'`, "trap '' TERM", `echo '${JSON.stringify({ type: "message_end", message })}'`];
 	writeFileSync(agent, `${[...script, `while [ ! -e '${dir}/go' ] && [ -d '${dir}' ]; do sleep 0.02; done`].join("\n")}\n`, { mode: 0o755 });
 	const { home, jobs } = setup(agent);
-	const job = await jobs.spawn({ task: "Audit.", kind: "audit", timeoutMinutes: 0.005 });
+	// 3 s: past the sandbox's start and the stop at the budget, and inside the grace of GRACE_SECONDS after it.
+	const job = await jobs.spawn({ task: "Audit.", kind: "audit", timeoutMinutes: 0.05 });
 	const log = join(home, "jobs", job.id, "log");
 	// The grace counts from the wrapper's own time of the stop, which its log line gives, not from when the test saw that line.
 	const line = await until("the stop at the budget", () => (existsSync(log) && /\[arthur ([^\]]+)\] limit: budget: stopping the agent\n/.exec(readFileSync(log, "utf8"))) || undefined);

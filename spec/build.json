@@ -2556,9 +2556,9 @@
   {
     "id": "AR0335",
     "title": "The git commands that rewrite the shared repository pass as a documented limit",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0335-the-git-commands-that-rewrite-the-shared-repository-pass-as-a-documented-limit/ticket.md",
-    "updated": "2026-10-23T14:19:06.704Z",
+    "updated": "2026-10-26T00:16:20.217Z",
     "after": [
       "AR0354"
     ]
@@ -3435,9 +3435,9 @@
   {
     "id": "AR0431",
     "title": "A review's project is not checked against its worker's",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0431-a-review-s-project-is-not-checked-against-its-worker-s/ticket.md",
-    "updated": "2026-10-26T00:06:09.115Z",
+    "updated": "2026-10-26T00:17:33.891Z",
     "after": [
       "AR0355"
     ]

@@ -3535,9 +3535,9 @@
   {
     "id": "AR0440",
     "title": "A job can read the running Arthur process's secrets from /proc/<pid>/environ",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0440-a-job-can-read-the-running-arthur-process-s-secrets-from-proc-pid-environ/ticket.md",
-    "updated": "2026-10-26T13:24:58.251Z",
+    "updated": "2026-10-26T13:34:17.024Z",
     "after": [
       "AR0350"
     ]
@@ -3545,9 +3545,9 @@
   {
     "id": "AR0441",
     "title": "Any merge commit on main resets the baseline, one a job made included",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0441-any-merge-commit-on-main-resets-the-baseline-one-a-job-made-included/ticket.md",
-    "updated": "2026-10-26T13:08:31.652Z",
+    "updated": "2026-10-26T13:34:15.360Z",
     "after": [
       "AR0350"
     ]
@@ -3606,5 +3606,18 @@
     "status": "merged",
     "path": "spec/features/AR0448-packages-core-test-machine-test-ts-719-fails-now-and-then-on-github-ci-a-job-no/ticket.md",
     "updated": "2026-10-26T13:28:55.916Z"
+  },
+  {
+    "id": "AR0449",
+    "title": "The install at a job start and the merge checks run branch code outside the sandbox, where it can read the environment of arthur run",
+    "status": "planned",
+    "path": "spec/features/AR0449-the-install-at-a-job-start-and-the-merge-checks-run-branch-code-outside-the/ticket.md",
+    "updated": "2026-10-26T13:34:57.400Z",
+    "after": [
+      "AR0441",
+      "AR0440",
+      "AR0443",
+      "AR0442"
+    ]
   }
 ]

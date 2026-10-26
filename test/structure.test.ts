@@ -736,7 +736,7 @@ import { checkStructure } from "./structure.ts";
 // AR0434 (F1 of AR0428, a security ticket; its Done means allow the lines needed, AR-D29): orchestration 14 more (2413) for the
 // coordinator's agent holding `arthur run`'s environment only: the tmux server's global environment read, a name `arthur run`
 // does not hold cleared there and one with another value given again with `-e`, with its comment (coordinator.ts, git diff
-// --numstat +16 -2). Nothing compared the two environments before, so nothing was cut.
+// --numstat +17 -3). Nothing compared the two environments before, so nothing was cut.
 const BUDGETS = { core: 6321, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1436, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);

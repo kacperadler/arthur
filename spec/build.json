@@ -2883,9 +2883,9 @@
   {
     "id": "AR0374",
     "title": "The install at a spawn and each step of the merge have no time limit",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0374-the-install-at-a-spawn-and-each-step-of-the-merge-have-no-time-limit/ticket.md",
-    "updated": "2026-10-26T23:14:28.912Z"
+    "updated": "2026-10-26T23:18:32.403Z"
   },
   {
     "id": "AR0375",
@@ -3435,9 +3435,9 @@
   {
     "id": "AR0436",
     "title": "A bash call that changes the tree after its checks, before it ends, is recorded on the tree it ends on",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0436-a-bash-call-that-changes-the-tree-after-its-checks-before-it-ends-is-recorded-on/ticket.md",
-    "updated": "2026-10-26T21:41:06.440Z"
+    "updated": "2026-10-26T23:18:54.544Z"
   },
   {
     "id": "AR0437",

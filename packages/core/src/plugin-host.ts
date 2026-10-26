@@ -78,14 +78,14 @@ export function registry(): Registry {
 	};
 }
 
-// `loading` holds until every plugin's `setup` has run and the core follows the jobs; a spawn then throws. `envFile` is the
-// core's, which `sandbox` hides.
+// `loading` holds until every plugin's `setup` has run and the core follows the jobs; a spawn then throws. `arthur` is the
+// core's env file, which `sandbox` hides, its home and its config file, which `sandbox` keeps from writes.
 export function pluginHost(
 	names: Registry,
 	commands: CommandRegistry,
 	bus: Bus,
 	runner: JobRunner,
-	envFile: string,
+	arthur: { readonly envFile: string; readonly home: string; readonly config: string },
 	own: Pick<Host, "name" | "options" | "env" | "secrets" | "folder" | "clock" | "agent" | "code" | "package">,
 	loading: () => boolean,
 ): Host {
@@ -93,7 +93,7 @@ export function pluginHost(
 	const { after: _, ...shown } = tickets;
 	return {
 		...own,
-		sandbox: (folder, note) => stepSandbox(folder, envFile, note),
+		sandbox: (folder, note) => stepSandbox(folder, arthur, note),
 		events: {
 			on: (name, fn) => bus.on(own.name, name, fn),
 			emit: (name, data) => bus.emit(own.name, name, data),

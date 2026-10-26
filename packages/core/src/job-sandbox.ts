@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 // The sandbox a job's agent runs in (AR0376): what it may write, and the command that starts it there; docs/commands/spawn.md,
 // "The sandbox". The worktree guard (worktree-guard.ts) keeps honest mistakes apart; this is the bound for what it cannot read.
@@ -109,9 +109,33 @@ export function caches(): string[] {
 }
 
 // The sandbox of branch code a plugin runs outside a job (`Host.sandbox`, delivery's checks on main): `sh -c <command>` writing
-// only in `folder`, the caches, the temporary folder and `/dev`, reading every file but the env file `envFile`; `note` is told
-// only where it cannot be set up, once, and each command then runs bare.
-export function stepSandbox(folder: string, envFile: string, note: (line: string) => void): (command: string) => [string, string[]] {
-	const start = sandboxed([folder, ...caches(), tmpdir(), "/dev"], [envFile], "sh", (line) => void (line.startsWith("no sandbox: ") && note(line)), "each step");
+// only in the checkout `folder` as `checkout` says, the caches, the temporary folder and `/dev`, reading every file but the env
+// file `arthur.envFile`; `note` is told only where it cannot be set up, once, and each command then runs bare.
+export function stepSandbox(folder: string, arthur: { readonly envFile: string; readonly home: string; readonly config: string }, note: (line: string) => void): (command: string) => [string, string[]] {
+	const paths = [...checkout(folder, [arthur.home, arthur.config, arthur.envFile]), ...caches(), tmpdir(), "/dev"];
+	const start = sandboxed(paths, [arthur.envFile], "sh", (line) => void (line.startsWith("no sandbox: ") && note(line)), "each step");
 	return (command) => start(["-c", command]);
+}
+
+// What a step may write of the checkout `folder` (AR0457): of its Git folder only the objects, refs, logs and index, never its
+// config, hooks or info, where a step would plant what the owner's next git call runs outside any sandbox; of the rest each entry
+// but the Git folder and the `kept` paths inside it (Arthur's home, config and env file), and in each folder on the way to one,
+// each entry but the next part. So `folder` itself and those folders take no new entry; a symlink is none (the sandbox would grant its target).
+function checkout(folder: string, kept: readonly string[]): string[] {
+	const git = spawnSync("git", ["-C", folder, "rev-parse", "--path-format=absolute", "--git-dir", "--git-common-dir"], { encoding: "utf8" });
+	const [own = "", common = ""] = git.status === 0 ? git.stdout.trim().split("\n") : [];
+	const repository = common === "" ? [] : [...["objects", "refs", "logs"].map((name) => join(common, name)), join(own, "index")];
+	const real = (path: string): string => (existsSync(path) || dirname(path) === path ? realpathSync(path) : join(real(dirname(path)), basename(path)));
+	const top = real(folder);
+	const parts = [join(folder, ".git"), own, common, ...kept].filter(Boolean).map((path) => relative(top, real(path)));
+	if (parts.includes("")) return repository;
+	const walk = new Map<string, Set<string>>([[top, new Set()]]);
+	for (const names of parts.filter((path) => path !== ".." && !path.startsWith(`..${sep}`) && !isAbsolute(path)).map((path) => path.split(sep))) {
+		for (const [at, name] of names.entries()) {
+			const above = join(top, ...names.slice(0, at));
+			walk.set(above, (walk.get(above) ?? new Set()).add(name));
+		}
+	}
+	const entries = [...walk].flatMap(([path, skip]) => (existsSync(path) ? readdirSync(path, { withFileTypes: true }) : []).filter((entry) => !skip.has(entry.name) && !entry.isSymbolicLink()).map((entry) => join(path, entry.name)));
+	return [...entries, ...repository];
 }

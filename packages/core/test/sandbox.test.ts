@@ -168,7 +168,7 @@ test("without python3, the install and each step of a plugin's sandbox run bare 
 	const lines: string[] = [];
 	const note = (line: string) => lines.push(line);
 	assert.deepEqual(sandboxed(["/tmp"], [], "sh", note, "the install")(["-c", "npm ci"]), ["sh", ["-c", "npm ci"]]);
-	const step = stepSandbox("/tmp", "/nowhere/env", note);
+	const step = stepSandbox("/tmp", { envFile: "/nowhere/env", home: "/nowhere/home", config: "/nowhere/arthur.config.ts" }, note);
 	assert.deepEqual([step("npm ci"), step("npm test")], [["sh", ["-c", "npm ci"]], ["sh", ["-c", "npm test"]]]);
 	const why = process.platform === "linux" ? "python3: spawnSync python3 ENOENT" : `${process.platform} has no Landlock`;
 	assert.deepEqual(lines, [`no sandbox: ${why}; the install writes wherever Arthur's user can`, `no sandbox: ${why}; each step writes wherever Arthur's user can`]);
@@ -196,6 +196,54 @@ test("writable: the worktree, the record, the Git folders a commit writes, the t
 	assert.deepEqual(writable(record, worktree, `${extension}\n`), [worktree, record, join(dotGit, "worktrees", "2026-10-24-worker-0a1b2c3d"), join(dotGit, "objects"), join(dotGit, "refs"), join(dotGit, "logs"), tmpdir(), "/dev", join(homedir(), ".omp"), join(home, "delivery", "2026-10-24-worker-0a1b2c3d")]);
 	assert.equal(existsSync(join(home, "delivery", "2026-10-24-worker-0a1b2c3d")), true);
 	assert.deepEqual(writable(record, join(folder, "gone"), ""), [join(folder, "gone"), record, tmpdir(), "/dev", join(homedir(), ".omp")], "no Git folder for a worktree Git does not know");
+});
+
+test("a merge step writes main's checkout but not its Git config, hooks or info, Arthur's home, config or env file, a new top-level entry, nor through a link", { skip: bare }, (t) => {
+	const { folder, root } = repository();
+	const [home, config, envFile, gitConfig] = [join(root, "ops", ".arthur"), join(root, "arthur.config.ts"), join(root, "env"), join(root, ".git", "config")];
+	mkdirSync(join(root, "src"));
+	mkdirSync(join(root, "ops", "notes"), { recursive: true });
+	mkdirSync(home);
+	writeFileSync(config, "export default {};\n");
+	symlinkSync(".git", join(root, "linked"));
+	const before = readFileSync(gitConfig, "utf8");
+	// The temporary folder, which a step writes, moved beside the checkout, which the test's own temporary folder holds.
+	const temporary = process.env.TMPDIR;
+	t.after(() => (temporary === undefined ? delete process.env.TMPDIR : (process.env.TMPDIR = temporary)));
+	process.env.TMPDIR = join(folder, "tmp");
+	mkdirSync(process.env.TMPDIR);
+	const lines: string[] = [];
+	const step = stepSandbox(root, { envFile, home, config }, (line) => lines.push(line));
+	const writes = {
+		"a file in a folder": "echo x > src/made",
+		"a top-level file in place": "echo x >> README.md",
+		"beside the home": "echo x > ops/notes/made",
+		"a Git object": "echo x | git hash-object -w --stdin >/dev/null",
+		"a new top-level file": "echo x > made",
+		"a Git hook": "printf '#!/bin/sh\\ntouch planted\\n' > .git/hooks/post-commit && chmod +x .git/hooks/post-commit",
+		"the Git config": "git config core.fsmonitor 'touch planted'",
+		"the Git info": "echo '*' > .git/info/exclude",
+		"a hook through a link": "echo x > linked/hooks/post-commit",
+		"the home": "echo x > ops/.arthur/made",
+		"the config": `echo x >> '${config}'`,
+		"the env file": `echo X=1 > '${envFile}'`,
+		"a new folder beside the home": "mkdir ops/made",
+	};
+	const ran = spawnSync(...step(tries(writes)), { cwd: root, encoding: "utf8" });
+	assert.deepEqual(ran.stdout.trim().split("\n"), Object.keys(writes).map((name, at) => `${name} ${at < 4 ? "written" : "refused"}`));
+	const planted = spawnSync(...step("echo x > .git/hooks/post-commit; git config core.fsmonitor 'touch planted'"), { cwd: root, encoding: "utf8" });
+	assert.deepEqual([planted.status, planted.stderr.match(/Permission denied/g)?.length], [255, 2], planted.stderr);
+	assert.equal(readFileSync(gitConfig, "utf8"), before);
+	assert.deepEqual([existsSync(join(root, ".git", "hooks", "post-commit")), existsSync(join(root, "made")), existsSync(join(home, "made")), existsSync(envFile)], [false, false, false, false]);
+	assert.equal(readFileSync(config, "utf8"), "export default {};\n");
+	assert.equal(readFileSync(join(root, "src", "made"), "utf8"), "x\n");
+	assert.match(spawnSync("git", ["-C", root, "status", "--porcelain"], { encoding: "utf8" }).stdout, /^ M README\.md$/m);
+	// An env file in a folder not there leaves the rest writable; a home that is the checkout keeps all of it.
+	for (const [arthur, result] of [[{ envFile: join(root, "missing", "env"), home, config }, "written"], [{ envFile, home: root, config }, "refused"]] as const) {
+		const again = spawnSync(...stepSandbox(root, arthur, (line) => lines.push(line))(tries({ "a file in a folder": "echo y > src/made" })), { cwd: root, encoding: "utf8" });
+		assert.equal(again.stdout, `a file in a folder ${result}\n`, arthur.home);
+	}
+	assert.deepEqual(lines, []);
 });
 
 // Waits until `predicate` holds, at most 20 seconds.

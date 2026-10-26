@@ -20,21 +20,25 @@ F1 of AR0449 (spec/features/AR0449-the-install-at-a-job-start-and-the-merge-chec
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+Since AR0449 a job's install and each merge step run in the sandbox, but they may write the package caches every process of Arthur's user shares (`caches()` in `packages/core/src/job-sandbox.ts`): `~/.npm`, `~/.bun/install/cache`, pnpm's, uv's and composer's. Branch code can leave in them what a later process outside any sandbox runs, such as `~/.npm/_npx/<hash>/node_modules` for the next `npx <package>` the coordinator or the owner runs.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- The install and each merge step get a cache of their own instead of the shared ones: the package managers' cache variables (`npm_config_cache`, `BUN_INSTALL_CACHE_DIR`, `XDG_CACHE_HOME` for pnpm and uv, `COMPOSER_CACHE_DIR`) point into a folder of that job (beside its record) or of that merge (removed after it), and `caches()` no longer makes the shared folders writable. A cold cache per job is accepted.
+- A test in `packages/core/test/sandbox.test.ts`: an install that writes `~/.npm/_npx/x` (the test's own HOME) gets `EACCES` and leaves nothing there, while `npm_config_cache` points into the job's folder and is writable. It fails before the change; skipped where the sandbox cannot be set up, as the other Landlock tests.
+- `docs/commands/spawn.md` ("The sandbox") and `merge.md` say where the caches are. The checks pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/job-sandbox.ts`, `packages/core/src/wrapper.ts` (or `job-install.ts`): the cache variables and writable paths.
+- `packages/core/test/sandbox.test.ts`, and the merge's tests if the step's environment changes there.
+- `packages/core/docs/commands/spawn.md`, `packages/delivery/docs/commands/merge.md`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- What the agent itself may write (AR0456).
 
 ## Decisions
 

@@ -115,3 +115,4 @@
 {"record":"answer","id":"AR-D57","time":"2026-10-26T13:46:10+01:00","decided":"Raise the core line budget 6206 to 6228 and delivery 1337 to 1361 for AR0373","picked":1,"words":"AR-D57 - 1"}
 {"record":"answer","id":"AR-D58","time":"2026-10-26T13:46:44+01:00","decided":"Merge AR0373 now; restart after","picked":1,"words":"AR-D58 - 1"}
 {"record":"ask","id":"AR-D59","time":"2026-10-26T13:58:48+01:00","project":"arthur","kind":"merge","question":"AR0350 (every role treats outside text as data: only the ticket, the task and the owner instruct) passed review with no findings. Merge it (restart after)?","options":["Merge now","Hold it"],"recommend":1,"ticket":"AR0350"}
+{"record":"answer","id":"AR-D59","time":"2026-10-26T14:04:13+01:00","decided":"Merge AR0350 now; restart after","picked":1,"words":"AR-D59 - 1"}

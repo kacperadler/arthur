@@ -36,3 +36,4 @@ In:
 
 - 2026-10-23: Source: F2 of AR0322
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; starts after the ten security checks AR0319-AR0328.
+- 2026-10-26: Merge AR0350 now; restart after; the owner: "AR-D59 - 1" (AR-D59)

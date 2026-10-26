@@ -46,8 +46,9 @@ const moves = (home: string, id: string) =>
 		return name === "job-state" && of === id ? [[from, to, reason]] : [];
 	});
 const ends = (home: string, id: string) => readEvents(home, 1).filter(({ name, data }) => name === "job-ended" && (data as { id: string }).id === id);
-// How long ago the agent's last output was, in ms.
-const silent = (home: string, id: string) => Date.now() - statSync(join(home, "jobs", id, "active")).mtimeMs;
+// How long ago the agent's last output was, in ms; 0 until the wrapper writes `active`, which it does just after the `pid`
+// a spawn waits for (wrapper.ts), so a test may ask before it exists.
+const silent = (home: string, id: string) => Date.now() - (statSync(join(home, "jobs", id, "active"), { throwIfNoEntry: false })?.mtimeMs ?? Date.now());
 
 // Each fake-agent run, its `idleMinutes`, when the test opens its gate (the run's `waitFor`), and the states it passes through.
 type Row = readonly [string, (gate: string) => AgentRun, number, ((home: string, id: string) => boolean) | undefined, readonly (readonly string[])[]];

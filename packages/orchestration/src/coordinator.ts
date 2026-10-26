@@ -30,11 +30,13 @@ export function tmux(coordinator: Coordinator, args: readonly string[], inherit 
 	return spawnSync("tmux", [...socket, ...args], inherit ? { stdio: "inherit" } : { encoding: "utf8" });
 }
 
-// `none` without the session; `dead` when its agent exited and a `remain-on-exit` in the human's tmux.conf kept the pane.
+// `none` without the session; `dead` when its agent exited and a `remain-on-exit` in the human's tmux.conf kept the pane. The
+// session's name is checked, so another session on the same server (whose global environment AR0434 clears) is never taken for it.
 export function pane(coordinator: Coordinator): "none" | "alive" | "dead" {
-	const shown = tmux(coordinator, ["display-message", "-p", "-t", `=${coordinator.session}:`, "#{pane_dead}"]);
-	if (shown.status !== 0) return "none";
-	return String(shown.stdout).trim() === "1" ? "dead" : "alive";
+	const shown = tmux(coordinator, ["display-message", "-p", "-t", `=${coordinator.session}:`, "#{session_name} #{pane_dead}"]);
+	const [name, dead] = String(shown.stdout).trim().split(" ");
+	if (shown.status !== 0 || name !== coordinator.session) return "none";
+	return dead === "1" ? "dead" : "alive";
 }
 
 // The start time `ps` gives a live process, empty for a gone one: with the pid it names one process, whatever reuses the pid.
@@ -131,15 +133,13 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 	}
 }
 
-// The coordinator's agent holds `arthur run`'s environment only, so the redaction by name reads the values it sees (AR0434).
-// A server this start makes copies it; one started earlier (from another shell) holds its own global environment, so a name
-// `arthur run` does not hold is cleared there (`refused`: that tmux call, when it failed), and one it holds with another value
-// is `given` again with `-e`.
+// The agent holds `arthur run`'s environment only, so the redaction by name reads its values (AR0434). A server this start makes
+// copies it; one started earlier holds its own global environment, so a name `arthur run` lacks is cleared there (`refused`: that
+// call, when it failed), and one it holds with another value is `given` again with `-e`.
 function own(coordinator: Coordinator) {
 	const shown = tmux(coordinator, ["show-environment", "-g"]);
 	const global = (shown.status === 0 ? String(shown.stdout).split("\n") : []).filter((line) => line.indexOf("=") > 0).map((line) => [line.slice(0, line.indexOf("=")), line.slice(line.indexOf("=") + 1)] as const);
 	const clear = global.flatMap(([name]) => (process.env[name] === undefined ? [";", "set-environment", "-g", "-u", name] : []));
 	const cleared = clear.length > 0 ? tmux(coordinator, clear.slice(1)) : undefined;
-	const given = global.flatMap(([name, value]) => (process.env[name] === undefined || process.env[name] === value ? [] : [`${name}=${process.env[name]}`]));
-	return { given, refused: cleared?.status === 0 ? undefined : cleared };
+	return { given: global.flatMap(([name, value]) => (process.env[name] === undefined || process.env[name] === value ? [] : [`${name}=${process.env[name]}`])), refused: cleared?.status === 0 ? undefined : cleared };
 }

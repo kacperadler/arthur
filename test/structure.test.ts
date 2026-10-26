@@ -733,7 +733,11 @@ import { checkStructure } from "./structure.ts";
 // main's checkout: each entry but `.git` and Arthur's home, config and env file, walked down to each kept path, and of `.git` its
 // objects, refs, logs and index (job-sandbox.ts, git diff --numstat +30 -6), and the home and config the host passes on
 // (plugin.ts +2 -1, plugin-host.ts +4 -4). Nothing kept a step from `.git/hooks` or `.git/config` before, so nothing was cut.
-const BUDGETS = { core: 6321, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1436, github: 659, manage: 928, develop: 706, findings: 254 };
+// AR0463 (F2 of AR0457, a security ticket; the owner's raise, AR-D103): delivery 64 more (1500) for the sweep after each merge
+// step of every `.git` below the checkout's top that was not there, the same, before the first step, one line each, with the
+// walk that makes a folder a step hid readable and the removal that gives back a write a step took (merge-checks.ts, git diff
+// --numstat +68 -4). Nothing removed a step's nested repository before, so nothing was cut.
+const BUDGETS = { core: 6321, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1500, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

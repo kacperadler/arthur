@@ -374,6 +374,24 @@ test("a job's install runs in its sandbox: it writes its worktree and the caches
 	assert.match(log, /\] sandbox: the agent writes only in /);
 });
 
+test("an install that empties the record's guarded list does not unhide the env file: the agent still cannot read it", { skip: bare }, async (t) => {
+	const { folder, root, home } = repository();
+	writeFileSync(join(root, "env"), "ARTHUR_SECRET_TOKEN=s3cret-t0ken\n");
+	const env = { ARTHUR_INSTALL: `for guarded in '${join(home, "jobs")}'/*/guarded; do : > "$guarded"; done` };
+	const agent = join(folder, "agent");
+	writeFileSync(agent, `#!/bin/sh\n{ cat '${join(root, "env")}' || echo refused; } > "$ARTHUR_JOB/read" 2>&1\n`, { mode: 0o755 });
+	const child = spawn(process.execPath, ["--input-type=module", "-e", runner, JSON.stringify([home, root, agent, jobSlice, env])], { stdio: ["pipe", "inherit", "inherit"] });
+	t.after(() => child.kill("SIGKILL"));
+	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
+	const [id = ""] = readdirSync(join(home, "jobs"));
+	const record = join(home, "jobs", id);
+	assert.equal(readFileSync(join(record, "guarded"), "utf8"), "", "the install emptied the guarded list");
+	assert.match(readFileSync(join(record, "read"), "utf8"), /Permission denied\nrefused\n$/);
+	for (const name of readdirSync(record, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile())) {
+		assert.doesNotMatch(readFileSync(join(name.parentPath, name.name), "utf8"), /s3cret-t0ken/, name.name);
+	}
+});
+
 // A config in `folder` with the env file `envFile` and the home `home`: orchestration, `secret`, whose `leak` prints its token,
 // and `plain`, whose `plain` needs none; both commands run inside a job.
 function tokenConfig(folder: string, envFile: string, home: string): string {

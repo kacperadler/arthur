@@ -119,14 +119,14 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		overCap = what;
 		halt("memory");
 	});
-	// The install a prepare asked for runs first (job-install.ts), in the job's sandbox and the caches; one that fails, or a stop or a limit during it, starts no agent.
-	let failure = await install(process.env.ARTHUR_INSTALL, worktree, (command) => sandboxed([...writable(folder, worktree, extensions), ...caches()], hidden(folder), "sh", note, "the install")(["-c", command]), note, (chunk) => save("log", chunk, true), (running) => (child = running));
+	const secrets = hidden(folder); // Read once, before the install a prepare asked for (job-install.ts), so what it writes to the record unhides nothing from the agent. The install runs first, in the job's sandbox and the caches; one that fails, or a stop or a limit during it, starts no agent.
+	let failure = await install(process.env.ARTHUR_INSTALL, worktree, (command) => sandboxed([...writable(folder, worktree, extensions), ...caches()], secrets, "sh", note, "the install")(["-c", command]), note, (chunk) => save("log", chunk, true), (running) => (child = running));
 	// One run of the agent, until it exits, its output is read and its stop, if any, is over.
 	const play = async (argv: readonly string[]): Promise<[number | null, NodeJS.Signals | null]> => {
 		note(`agent: ${agent} ${argv.join(" ")}`);
 		const stream = agentStream();
 		const closed = Promise.withResolvers<[number | null, NodeJS.Signals | null]>();
-		const running = oomFirst(() => spawn(...sandboxed(writable(folder, worktree, extensions), hidden(folder), agent, note)(argv), { cwd: worktree, env: { ...process.env, ARTHUR_JOB: folder }, stdio: ["ignore", "pipe", "pipe"], detached: true }));
+		const running = oomFirst(() => spawn(...sandboxed(writable(folder, worktree, extensions), secrets, agent, note)(argv), { cwd: worktree, env: { ...process.env, ARTHUR_JOB: folder }, stdio: ["ignore", "pipe", "pipe"], detached: true }));
 		[child, playing] = [running, true];
 		running.stdout.setEncoding("utf8");
 		running.stdout.on("data", (chunk: string) => {

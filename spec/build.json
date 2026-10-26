@@ -3679,9 +3679,9 @@
   {
     "id": "AR0457",
     "title": "A merge check can leave a git hook or config in main's checkout, which runs outside the sandbox at the next git call",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0457-a-merge-check-can-leave-a-git-hook-or-config-in-main-s-checkout-which-runs/ticket.md",
-    "updated": "2026-10-26T21:01:59.091Z"
+    "updated": "2026-10-26T21:05:56.330Z"
   },
   {
     "id": "AR0458",
@@ -3716,5 +3716,19 @@
     "status": "merged",
     "path": "spec/features/AR0461-test-readme-test-ts-reads-the-real-env-file-and-fails-inside-a-job/ticket.md",
     "updated": "2026-10-26T20:49:03.620Z"
+  },
+  {
+    "id": "AR0462",
+    "title": "A merge check cannot make, rename or remove an entry at the top of main's checkout",
+    "status": "planning",
+    "path": "spec/features/AR0462-a-merge-check-cannot-make-rename-or-remove-an-entry-at-the-top-of-main-s/ticket.md",
+    "updated": "2026-10-26T21:05:56.324Z"
+  },
+  {
+    "id": "AR0463",
+    "title": "A merge step can plant a nested repository whose fsmonitor runs at the owner's next git call in that folder",
+    "status": "planning",
+    "path": "spec/features/AR0463-a-merge-step-can-plant-a-nested-repository-whose-fsmonitor-runs-at-the-owner-s/ticket.md",
+    "updated": "2026-10-26T21:06:04.181Z"
   }
 ]

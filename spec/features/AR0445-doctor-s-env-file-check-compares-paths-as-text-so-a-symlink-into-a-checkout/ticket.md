@@ -16,7 +16,7 @@
 
 <!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
 
-- Kind: <!-- feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux -->
+- Kind: fix
 
 ## Done means
 

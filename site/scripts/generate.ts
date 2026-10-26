@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
 import { frontmatter, mermaidHtml, repo, splitReadme, splitTitle, toPage } from "./markdown.ts";
+import { linkFeatures, writePlugins } from "./plugins.ts";
 import { parseBoard, parseRoadmap, roadmapPage } from "./roadmap.ts";
 
 /** The logo files in `docs/logo/` the site uses: the full logo for the hero, and for the favicon the small `arthur-favicon.png` when there is one, else the full logo. */
@@ -41,6 +42,7 @@ if (import.meta.main) {
 	}
 	const setup = existsSync(join(root, "docs/setup.md"));
 
+	const packages = writePlugins(root, pages);
 	const readme = splitReadme(read("README.md"));
 	const actions = [
 		{ text: "Roadmap", link: "roadmap/", variant: "primary" },
@@ -52,7 +54,7 @@ if (import.meta.main) {
 	const hero = { title: readme.title, tagline: readme.tagline, ...image, actions };
 	writeFileSync(
 		join(pages, "index.md"),
-		frontmatter({ title: readme.title, template: "splash", hero, sidebar: { order: 0 } }) + toPage(readme.body, "README.md"),
+		frontmatter({ title: readme.title, template: "splash", hero, sidebar: { order: 0 } }) + linkFeatures(toPage(readme.body, "README.md"), packages),
 	);
 
 	const board = parseBoard(read("spec/build.json"));

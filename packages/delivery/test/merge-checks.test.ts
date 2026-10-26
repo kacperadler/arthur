@@ -36,17 +36,18 @@ test("each step on main runs in a sandbox: it writes main's checkout and the cac
 	assert.deepEqual(lines, [], "set up, the sandbox adds no line to the merge's output");
 });
 
-// A checkout `acme` with a real submodule at `vendor/lib` and the owner's own clone at `tools/scratch`, both there before the
-// first step; `fsmonitor` a repository beside it whose `core.fsmonitor` writes `pwned`, as the reviewer of AR0457 planted one.
+// A checkout `acme` with a real submodule at `vendor/lib` and the owner's own clones at `tools/scratch` and `tools/other`, all
+// there before the first step; `fsmonitor` a repository beside it whose `core.fsmonitor` writes `pwned`, as the reviewer of
+// AR0457 planted one.
 function planted() {
 	const folder = temporaryFolder();
 	const [root, pwned] = [join(folder, "acme"), join(folder, "pwned")];
 	const git = (at: string, ...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "protocol.file.allow=always", "-C", at, ...args], { encoding: "utf8" }).trim();
-	for (const [path, text] of Object.entries({ "acme/src/shop.ts": "export const shop = 1;\n", "acme/lib/cart.ts": "export const cart = 1;\n", "acme/tools/scratch/notes.md": "# notes\n", "lib/lib.ts": "export const lib = 1;\n", "fsmonitor/a": "" })) {
+	for (const [path, text] of Object.entries({ "acme/src/shop.ts": "export const shop = 1;\n", "acme/lib/cart.ts": "export const cart = 1;\n", "acme/tools/scratch/notes.md": "# notes\n", "acme/tools/other/notes.md": "# notes\n", "lib/lib.ts": "export const lib = 1;\n", "fsmonitor/a": "" })) {
 		mkdirSync(join(folder, path, ".."), { recursive: true });
 		writeFileSync(join(folder, path), text);
 	}
-	for (const at of ["acme", "lib", "acme/tools/scratch", "fsmonitor"].map((name) => join(folder, name))) git(at, "init", "--quiet", "--initial-branch=main");
+	for (const at of ["acme", "lib", "acme/tools/scratch", "acme/tools/other", "fsmonitor"].map((name) => join(folder, name))) git(at, "init", "--quiet", "--initial-branch=main");
 	git(join(folder, "fsmonitor"), "config", "core.fsmonitor", `touch '${pwned}'`);
 	git(join(folder, "lib"), "add", "--all");
 	git(join(folder, "lib"), "commit", "--quiet", "-m", "lib");
@@ -56,7 +57,7 @@ function planted() {
 	git(root, "commit", "--quiet", "-m", "first");
 	const lines: string[] = [];
 	const run = stepRunner(root, jobSlice.slice, (command) => ["sh", ["-c", command]], (line) => void (line.startsWith("uncapped: ") || lines.push(line)));
-	const kept = () => ["vendor/lib/.git", "tools/scratch/.git"].map((path) => [lstatSync(join(root, path)).ino, existsSync(join(root, path))]);
+	const kept = () => ["vendor/lib/.git", "tools/scratch/.git", "tools/other/.git"].map((path) => [lstatSync(join(root, path)).ino, existsSync(join(root, path))]);
 	return { root, pwned, gitfile: `gitdir: ${join(folder, "fsmonitor", ".git")}`, git, run, lines, kept };
 }
 
@@ -71,7 +72,7 @@ test("a step's nested repository and .git file are removed after it, one line ea
 	assert.deepEqual(lines.sort(), said(command, "lib/.git", "src/.git"));
 	assert.deepEqual([existsSync(join(root, "src", ".git")), existsSync(join(root, "lib", ".git"))], [false, false]);
 	assert.equal(readFileSync(join(root, "src", "shop.ts"), "utf8"), "changed\n");
-	assert.deepEqual(kept(), before, "the submodule's .git file and the owner's clone are the same ones");
+	assert.deepEqual(kept(), before, "the submodule's .git file and the owner's clones are the same ones");
 	assert.equal(git(join(root, "vendor", "lib"), "rev-parse", "--show-toplevel"), join(root, "vendor", "lib"), "the submodule still works");
 	for (const folder of ["src", "lib", "vendor/lib"]) git(join(root, folder), "status", "--porcelain");
 	assert.equal(existsSync(pwned), false, "git status in each folder ran no planted fsmonitor");
@@ -88,4 +89,14 @@ test("a failed step is swept too: a submodule's .git file it rewrote, a reposito
 	assert.deepEqual(lines.sort(), said(command, "deep/x/.git", "hard/.git", "vendor/lib/.git"));
 	assert.deepEqual(["deep/x/.git", "hard/.git", "vendor/lib/.git"].map((path) => existsSync(join(root, path))), [false, false, false]);
 	assert.equal(git(root, "rev-parse", "HEAD"), head);
+});
+
+test("a .git folder there before the first step that a step wrote in, its config appended to in place and a folder in it closed, or replaced is removed, and a git call there runs no planted fsmonitor", () => {
+	const { root, pwned, git, run, lines } = planted();
+	const command = [`printf '[core]\\n\\tfsmonitor = touch %s\\n' '${pwned}' >> tools/scratch/.git/config`, "chmod 000 tools/scratch/.git/info", "rm -rf tools/other/.git", "git init -q tools/other", `git -C tools/other config core.fsmonitor "touch '${pwned}'"`].join(" && ");
+	const ran = run(command, process.env);
+	assert.equal(ran.status, 0, ran.stderr);
+	assert.deepEqual(lines.sort(), said(command, "tools/other/.git", "tools/scratch/.git"));
+	for (const folder of ["tools/scratch", "tools/other"]) git(join(root, folder), "status", "--porcelain");
+	assert.equal(existsSync(pwned), false, "git status in each clone ran no planted fsmonitor");
 });

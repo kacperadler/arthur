@@ -3421,9 +3421,9 @@
   {
     "id": "AR0434",
     "title": "A secret-named variable only the coordinator's omp holds is no longer redacted by name",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0434-a-secret-named-variable-only-the-coordinator-s-omp-holds-is-no-longer-redacted/ticket.md",
-    "updated": "2026-10-26T21:45:03.429Z"
+    "updated": "2026-10-26T22:28:22.481Z"
   },
   {
     "id": "AR0435",
@@ -3670,8 +3670,8 @@
   {
     "id": "AR0463",
     "title": "A merge step can plant a nested repository whose fsmonitor runs at the owner's next git call in that folder",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0463-a-merge-step-can-plant-a-nested-repository-whose-fsmonitor-runs-at-the-owner-s/ticket.md",
-    "updated": "2026-10-26T22:22:05.260Z"
+    "updated": "2026-10-26T22:26:40.906Z"
   }
 ]

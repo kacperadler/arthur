@@ -27,10 +27,18 @@ test("each step on main runs in a sandbox: it writes main's checkout and the cac
 	const writes = { checkout: "echo x > src/made", top: "echo x > made", cache: `echo x > '${join(folder, "cache", "uv", "made")}'`, beside: `echo x > '${join(folder, "planted")}'` };
 	const tries = Object.entries(writes).map(([name, command]) => `if (${command}) 2>/dev/null; then echo '${name} written'; else echo '${name} refused'; fi`);
 	const script = [`{ tr '\\0' '\\n' < /proc/${process.pid}/environ || echo refused; } 2>&1`, "{ cat env || echo refused; } 2>&1", ...tries].join("\n");
-	const ran = stepRunner(root, jobSlice.slice, sandbox, () => {})(script, process.env);
+	const ran = stepRunner(root, jobSlice.slice, sandbox, () => {}, 60)(script, process.env);
 	assert.equal(ran.status, 0, ran.stderr);
 	assert.match(ran.stdout, /^[^\n]*environ: Permission denied\nrefused\ncat: env: Permission denied\nrefused\ncheckout written\ntop refused\ncache written\nbeside refused\n$/);
 	assert.doesNotMatch(ran.stdout, /s3cret-t0ken/);
 	assert.equal(readFileSync(join(root, "src", "made"), "utf8"), "x\n");
 	assert.deepEqual(lines, [], "set up, the sandbox adds no line to the merge's output");
+});
+
+test("a step still running at its limit is killed with SIGKILL, though it ignores SIGTERM, and its error names the limit", () => {
+	const started = Date.now();
+	// 8 s that SIGTERM does not end: with SIGTERM as the kill, the step exits 0 once they passed.
+	const ran = stepRunner(root, jobSlice.slice, sandbox, () => {}, 1)("trap '' TERM; for second in 1 2 3 4 5 6 7 8; do sleep 1; done", process.env);
+	assert.deepEqual([ran.status, ran.signal, ran.error?.message], [null, "SIGKILL", "timed out after 1 s"]);
+	assert.ok(Date.now() - started < 10_000, `it took ${Date.now() - started} ms`);
 });

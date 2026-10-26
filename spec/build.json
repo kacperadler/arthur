@@ -2624,9 +2624,9 @@
   {
     "id": "AR0343",
     "title": "Git ignores `.env` only, while `core.envFile` may be any name the guard counts as a secrets file",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0343-git-ignores-env-only-while-core-envfile-may-be-any-name-the-guard-counts-as-a-secrets-file/ticket.md",
-    "updated": "2026-10-26T21:41:05.286Z"
+    "updated": "2026-10-26T23:13:12.817Z"
   },
   {
     "id": "AR0344",
@@ -2883,9 +2883,9 @@
   {
     "id": "AR0374",
     "title": "The install at a spawn and each step of the merge have no time limit",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0374-the-install-at-a-spawn-and-each-step-of-the-merge-have-no-time-limit/ticket.md",
-    "updated": "2026-10-26T23:10:40.772Z"
+    "updated": "2026-10-26T23:14:28.912Z"
   },
   {
     "id": "AR0375",
@@ -3380,9 +3380,9 @@
   {
     "id": "AR0429",
     "title": "The guard misreads four short forms: $ARTHUR_JOB, env -C and sudo -D, a ~ after =, cd $PWD and cd ~+",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0429-the-guard-misreads-four-short-forms-arthur-job-env-c-and-sudo-d-a-after-cd-pwd/ticket.md",
-    "updated": "2026-10-26T22:50:50.922Z"
+    "updated": "2026-10-26T23:15:03.419Z"
   },
   {
     "id": "AR0430",

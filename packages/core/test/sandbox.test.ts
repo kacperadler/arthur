@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
@@ -219,4 +219,35 @@ test("a sandboxed job's agent takes omp's session lock, so a review whose final 
 	assert.match(log, /\] sandbox: the agent writes only in /);
 	assert.doesNotMatch(log, /Session persistence failed/);
 	assert.deepEqual(ended.data, { id: job.id, kind: "judged", project: "acme", state: "ended", reason: "finished" });
+});
+
+// A runner process plays `arthur run`: started with a secret in its environment, as the daemon is with the env file's, it runs
+// the same `jobRunner`, wrapper and sandbox, spawns one job, and lives on while its stdin is open.
+const runner = `
+import { clock } from ${JSON.stringify(import.meta.resolve("../src/clock.ts"))};
+import { eventBus } from ${JSON.stringify(import.meta.resolve("../src/events.ts"))};
+import { jobRunner } from ${JSON.stringify(import.meta.resolve("../src/jobs.ts"))};
+const [home, root, agent, slice] = JSON.parse(process.argv[1]);
+const time = clock("UTC", undefined, () => new Date("2026-10-24T08:00:00Z"));
+const jobs = jobRunner(home, root, root + "/env", { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...slice }, agent, time, eventBus(home), () => []);
+jobs.prepare("test", () => ({ RUNNER_PID: String(process.pid) }));
+await jobs.spawn({ task: "Read." });
+process.stdin.resume();
+`;
+
+test("a sandboxed job's command cannot read the environment of the arthur run that spawned it, which holds a secret", { skip: bare }, async (t) => {
+	const { folder, root, home } = repository();
+	const agent = join(folder, "agent");
+	writeFileSync(agent, `#!/bin/sh\n{ tr '\\0' '\\n' < "/proc/$RUNNER_PID/environ" || echo refused; } > "$ARTHUR_JOB/read" 2>&1\n`, { mode: 0o755 });
+	const child = spawn(process.execPath, ["--input-type=module", "-e", runner, JSON.stringify([home, root, agent, jobSlice])], { env: { ...process.env, ARTHUR_TEST_TOKEN: "shell-t0ken" }, stdio: ["pipe", "inherit", "inherit"] });
+	t.after(() => child.kill("SIGKILL"));
+	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
+	assert.match(readFileSync(`/proc/${child.pid}/environ`, "utf8"), /(^|\0)ARTHUR_TEST_TOKEN=shell-t0ken\0/, "a process outside the sandbox reads the secret");
+	const [id = ""] = readdirSync(join(home, "jobs"));
+	const record = join(home, "jobs", id);
+	const read = readFileSync(join(record, "read"), "utf8");
+	assert.match(read, /Permission denied/);
+	assert.match(read, /refused/);
+	assert.doesNotMatch(read, /shell-t0ken/);
+	assert.match(readFileSync(join(record, "log"), "utf8"), /\] sandbox: the agent writes only in /);
 });

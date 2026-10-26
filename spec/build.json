@@ -2719,9 +2719,9 @@
   {
     "id": "AR0354",
     "title": "The mark that tells a job from the coordinator is a variable the job's shell clears",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0354-the-mark-that-tells-a-job-from-the-coordinator-is-a-variable-the-job-s-shell-clears/ticket.md",
-    "updated": "2026-10-25T23:55:44.848Z",
+    "updated": "2026-10-26T00:11:28.738Z",
     "after": [
       "AR0338"
     ]
@@ -3435,9 +3435,9 @@
   {
     "id": "AR0431",
     "title": "A review's project is not checked against its worker's",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0431-a-review-s-project-is-not-checked-against-its-worker-s/ticket.md",
-    "updated": "2026-10-26T00:03:58.218Z",
+    "updated": "2026-10-26T00:06:09.115Z",
     "after": [
       "AR0355"
     ]

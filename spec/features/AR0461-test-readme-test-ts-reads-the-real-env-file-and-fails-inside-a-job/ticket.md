@@ -41,3 +41,4 @@ Out:
 ## Decisions
 
 - 2026-10-26: Source: F1 of AR0460
+- 2026-10-26: Merge a ticket once its review passed, without asking the owner (AR-D73); the owner: "If there is something that you can merge, just merge, do not ask me abut it" (AR-D93)

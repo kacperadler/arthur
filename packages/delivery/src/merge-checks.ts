@@ -1,6 +1,6 @@
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { chmodSync, type Dirent, existsSync, lstatSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
 
 // The steps `arthur merge` runs on main once the branch is in (spec/roadmap.md, entry 54): the project's install, as the
 // projects plugin answers `projects.install` for the merge commit, the one a new worktree gets, then the `check` and `test`
@@ -18,14 +18,16 @@ const MAX_BUFFER = 64 * 2 ** 20;
 
 // How the steps of one merge run in `root` (AR0373): each in the sandbox `sandbox` starts it in (`host.sandbox`, AR0449) and a transient scope of its own
 // under the jobs' slice `slice`, as a job runs, stopped once the step ended, so what its scripts leave behind is killed; with no
-// user manager to make one (the probe's systemd-run fails), out of a scope, which one `uncapped:` line says.
+// user manager to make one (the probe's systemd-run fails), out of a scope, which one `uncapped:` line says. After each step,
+// passed or failed, every `.git` below the checkout's top that was not there, the same, before the first is removed, one line each (AR0463).
 export function stepRunner(root: string, slice: string, sandbox: (command: string) => [string, string[]], log: (line: string) => void): Run {
 	const scope = (unit: string) => ["--user", "--scope", "--quiet", "--collect", `--slice=${slice}.slice`, `--unit=${unit}`, "-p", "KillSignal=SIGKILL", "--"];
 	const probe = spawnSync("systemd-run", [...scope(`arthur-merge-${process.pid}-0.scope`), "true"], { encoding: "utf8" });
 	const bare = probe.error?.message ?? (probe.status === 0 ? undefined : probe.stderr.trim().split("\n")[0] || `systemd-run exited ${probe.status ?? probe.signal}`);
 	if (bare !== undefined) log(`uncapped: no systemd scope (${bare}); the steps run bare, outside the jobs' slice, and what they leave behind is not killed`);
+	const before = repositories(root);
 	let count = 0;
-	return (command, env) => {
+	const ran = (command: string, env: NodeJS.ProcessEnv) => {
 		const options = { cwd: root, env, encoding: "utf8", maxBuffer: MAX_BUFFER } as const;
 		if (bare !== undefined) return spawnSync(...sandbox(command), options);
 		const unit = `arthur-merge-${process.pid}-${++count}.scope`;
@@ -35,6 +37,68 @@ export function stepRunner(root: string, slice: string, sandbox: (command: strin
 			spawnSync("systemctl", ["--user", "stop", unit], { stdio: "ignore" });
 		}
 	};
+	return (command, env) => {
+		const result = ran(command, env);
+		for (const [path, seen] of repositories(root)) {
+			if (before.get(path) === seen) continue;
+			const failure = remove(join(root, path));
+			log(failure === "" ? `removed ${path}, which ${command} left: a git call in that folder would run its config outside any sandbox` : `${path}, which ${command} left, could not be removed (${failure}): a git call in that folder would run its config outside any sandbox`);
+		}
+		return result;
+	};
+}
+
+// Each `.git` below the checkout's top by its path from `root`, stamped; not walked: the checkout's own, a `.git`'s inside, a symlink's target.
+function repositories(root: string): Map<string, string> {
+	const found = new Map<string, string>();
+	const folders = [root];
+	for (let folder = folders.pop(); folder !== undefined; folder = folders.pop()) {
+		for (const entry of entries(folder)) {
+			const path = join(folder, entry.name);
+			if (entry.name !== ".git") {
+				if (entry.isDirectory()) folders.push(path);
+			} else if (folder !== root) found.set(relative(root, path), stamp(path));
+		}
+	}
+	return found;
+}
+
+// A `.git` by the inode and change time, which a write, a rename or a chmod sets and no step can set back, of itself and, in a
+// folder, of every entry below it, so a step's write in one there before (its `config`) counts too; "unreadable" for one a step closed.
+function stamp(path: string): string {
+	try {
+		const names = lstatSync(path).isDirectory() ? readdirSync(path, { recursive: true, encoding: "utf8" }).sort() : [];
+		return ["", ...names].map((name) => [name, lstatSync(join(path, name))] as const).map(([name, stat]) => `${name} ${stat.ino} ${stat.ctimeMs}`).join("\n");
+	} catch {
+		return "unreadable";
+	}
+}
+
+// A folder a step made unreadable is made readable for its owner first, so no `.git` hides in it; one that stays so a step never wrote.
+function entries(folder: string): Dirent[] {
+	try {
+		return readdirSync(folder, { withFileTypes: true });
+	} catch {
+		spawnSync("chmod", ["u+rwx", folder], { stdio: "ignore" });
+	}
+	try {
+		return readdirSync(folder, { withFileTypes: true });
+	} catch {
+		return [];
+	}
+}
+
+// "" once `path` is gone, its owner's write given back first, of the folder it is in and of each one in it (never through a
+// symlink), since a step may have taken it away; else why it stays.
+function remove(path: string): string {
+	spawnSync("chmod", ["u+rwx", dirname(path)], { stdio: "ignore" });
+	if (lstatSync(path, { throwIfNoEntry: false })?.isDirectory()) spawnSync("chmod", ["-R", "u+rwx", path], { stdio: "ignore" });
+	try {
+		rmSync(path, { recursive: true, force: true });
+		return "";
+	} catch (error) {
+		return error instanceof Error ? error.message : String(error);
+	}
 }
 
 // Each step in order, its output's last 20 lines printed when it fails; no PATH, a failed install or a broken package.json ends them.

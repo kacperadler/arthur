@@ -39,4 +39,5 @@ Out:
 ## Decisions
 - 2026-10-26: AR0449 approved, worked after the short queue (AR-D65); the owner: "AR-D65 - 1" (AR-D71)
 - 2026-10-26: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
+- 2026-10-26: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D74)
 

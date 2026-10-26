@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
@@ -242,6 +242,34 @@ test("a disabled plugin is not loaded: not checked, no setup, no folder, its env
 	assert.deepEqual(ran, ["orchestration"]);
 	assert.deepEqual(plugins.map((plugin) => plugin.name), ["orchestration"]);
 	assert.equal(existsSync(join(loaded.core.home, "signal")), false);
+});
+
+test("inside a job the env file is not read: a plugin whose variable is not in the shell is not set up, nor one that requires it, and one line names them", async (t) => {
+	const ran: string[] = [];
+	const hosts: Host[] = [];
+	const loaded = config([
+		fake(ran, "needy", { requires: ["secret"] }),
+		fake(ran, "orchestration"),
+		fake(ran, "secret", { options: { tokenEnv: "ARTHUR_SECRET_TOKEN" } }),
+		fake(ran, "shell", { options: { tokenEnv: "ARTHUR_SHELL_TOKEN" }, setup: (host) => void hosts.push(host) }),
+	]);
+	const shell = { ARTHUR_SHELL_TOKEN: "from-the-shell" };
+	writeFileSync(loaded.core.envFile, "ARTHUR_SECRET_TOKEN=from-the-file\nARTHUR_SHELL_TOKEN=from-the-file\n");
+	const errors = t.mock.method(console, "error", () => {});
+	await loadPlugins(loaded, shell);
+	assert.deepEqual(ran, ["secret", "needy", "orchestration", "shell"], "outside a job the file is read");
+	ran.length = hosts.length = 0;
+	const { plugins } = await loadPlugins(loaded, shell, undefined, true);
+	assert.deepEqual([ran, plugins.map((plugin) => plugin.name)], [["orchestration", "shell"], ["orchestration", "shell"]]);
+	assert.deepEqual([hosts[0]?.env, hosts[0]?.secrets], [{ ARTHUR_SHELL_TOKEN: "from-the-shell" }, ["from-the-shell"]]);
+	rmSync(loaded.core.envFile);
+	mkdirSync(loaded.core.envFile);
+	assert.match(await refusal(loaded, shell), /: cannot be read \(EISDIR\)$/m);
+	ran.length = 0;
+	await loadPlugins(loaded, shell, undefined, true);
+	assert.deepEqual(ran, ["orchestration", "shell"], "an env file that cannot be read is not read in a job");
+	const line = "arthur: inside a job, not loaded: secret, needy: each names an env variable, and a job's CLI reads no env file";
+	assert.deepEqual(errors.mock.calls.map((call) => call.arguments), [[line], [line]]);
 });
 
 test("host.code holds the core's package folder, then the package folder around each enabled plugin's own module, once; none for a disabled one or one that names no module; host.package is each plugin's own", async () => {

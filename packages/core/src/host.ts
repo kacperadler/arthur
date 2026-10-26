@@ -37,9 +37,14 @@ const REQUIRED = "orchestration";
 const CORE = dirname(import.meta.dirname);
 
 // `commands` holds what the core registered before; the plugins' commands join it, and a name registered twice refuses the load.
-export async function loadPlugins(config: LoadedConfig, shell: Shell = process.env, commands: CommandRegistry = commandRegistry()): Promise<LoadedPlugins> {
-	const sorted = await checkPlugins(config);
-	const { values, warnings } = resolveEnv(config, shell), secrets = Object.values(values).flatMap((each) => Object.values(each));
+// In a job (`inJob`, docs/commands/config.md) a plugin with a variable unset, and one that requires it, is left out.
+export async function loadPlugins(config: LoadedConfig, shell: Shell = process.env, commands: CommandRegistry = commandRegistry(), inJob = false): Promise<LoadedPlugins> {
+	const checked = await checkPlugins(config);
+	const { values, warnings, unset } = resolveEnv(config, shell, inJob), secrets = Object.values(values).flatMap((each) => Object.values(each));
+	const skipped = new Set<string>();
+	for (const plugin of checked) if (unset.has(plugin.name) || plugin.requires?.some((name) => skipped.has(name))) skipped.add(plugin.name);
+	const sorted = checked.filter((plugin) => !skipped.has(plugin.name));
+	if (skipped.size > 0) console.error(`arthur: inside a job, not loaded: ${[...skipped].join(", ")}: each names an env variable, and a job's CLI reads no env file`);
 	const names = registry();
 	const time = clock(config.core.timeZone, config.core.quietHours);
 	const bus = eventBus(config.core.home);

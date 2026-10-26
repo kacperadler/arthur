@@ -3545,9 +3545,9 @@
   {
     "id": "AR0441",
     "title": "Any merge commit on main resets the baseline, one a job made included",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0441-any-merge-commit-on-main-resets-the-baseline-one-a-job-made-included/ticket.md",
-    "updated": "2026-10-26T13:34:15.360Z",
+    "updated": "2026-10-26T13:46:42.008Z",
     "after": [
       "AR0350"
     ]

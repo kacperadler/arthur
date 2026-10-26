@@ -20,4 +20,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/src/merge-checks.ts`, `repositories`; `packages/core/src/job-sandbox.ts:120`
 - What: the sweep keeps a `.git` folder that was there, the same folder, before the first step (a submodule's from before Git 1.7.8 absorbed them, a clone of the owner's inside the checkout), and the step sandbox lets a step write below the checkout's top, that folder's `config` and `hooks` included. So a step can set `core.fsmonitor` in such a folder's `config` in place, and the owner's next git call there runs it. [INFERENCE] from the sandbox's rule (job-sandbox.ts:120-123: only the checkout's own Git folder is closed); not run.
 - Suggestion: close every `.git` folder below the top that is there before the first step as the checkout's own is closed (writable only in `objects`, `refs`, `logs` and `index`), in `checkout` of job-sandbox.ts, which reads its entries once before the first step anyway.
-- Status: open
+- Status: fixed in ff559ccc

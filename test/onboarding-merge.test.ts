@@ -15,15 +15,19 @@ import { projects } from "@arthur/projects";
 
 const git = (cwd: string, ...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd, encoding: "utf8" }).trim();
 
-async function load(t: TestContext) {
+// `shop` with its README, vision and styleguide in one commit, and `code` in a plain commit after it, as a squash merge leaves it.
+async function load(t: TestContext, code: Readonly<Record<string, string>> = {}) {
 	const shop = temporaryFolder();
 	git(shop, "init", "--quiet", "--initial-branch=main");
-	for (const [path, text] of Object.entries({ "README.md": "# Shop\n", "spec/vision.md": "# Vision\n", ".agents/arthur/criteria/styleguide.md": "# Styleguide\n" })) {
-		mkdirSync(dirname(join(shop, path)), { recursive: true });
-		writeFileSync(join(shop, path), text);
+	for (const [files, subject] of [[{ "README.md": "# Shop\n", "spec/vision.md": "# Vision\n", ".agents/arthur/criteria/styleguide.md": "# Styleguide\n" }, "first"], [code, "feat: the shop (#1)"]] as const) {
+		if (Object.keys(files).length === 0) continue;
+		for (const [path, text] of Object.entries(files)) {
+			mkdirSync(dirname(join(shop, path)), { recursive: true });
+			writeFileSync(join(shop, path), text);
+		}
+		git(shop, "add", "--all");
+		git(shop, "commit", "--quiet", "-m", subject);
 	}
-	git(shop, "add", "--all");
-	git(shop, "commit", "--quiet", "-m", "first");
 	git(shop, "config", "user.name", "t");
 	git(shop, "config", "user.email", "t@example.com");
 	const list = [{ name: "shop", prefix: "SH", path: shop }];
@@ -48,15 +52,15 @@ async function load(t: TestContext) {
 		git(job.worktree, "commit", "--quiet", "-m", "docs: draft the vision");
 		return job;
 	};
-	const merge = async (...args: string[]) => {
+	const run = async (name: string, args: readonly string[]) => {
 		const [out, err] = [[] as string[], [] as string[]];
 		t.mock.method(console, "log", (text: string) => out.push(text));
 		t.mock.method(console, "error", (text: string) => err.push(text));
-		const code = await Promise.try(() => fake.commands.find((each) => each.name === "merge")?.run({ args, project: undefined })).catch((error: Error) => (err.push(`arthur merge: ${error.message}`), 1));
+		const code = await Promise.try(() => fake.commands.find((each) => each.name === name)?.run({ args, project: undefined })).catch((error: Error) => (err.push(`arthur ${name}: ${error.message}`), 1));
 		t.mock.restoreAll();
 		return { code, out: out.join("\n"), err: err.join("\n") };
 	};
-	return { shop, onboard, merge };
+	return { shop, onboard, merge: (...args: string[]) => run("merge", args), take: () => run("take-main", ["--decision", "SH-D2"]) };
 }
 
 test("an onboarding's branch that changes a file besides the vision and criteria is refused by projects, main unchanged; its drafts alone go in", async (t) => {
@@ -74,5 +78,21 @@ test("an onboarding's branch that changes a file besides the vision and criteria
 	const merged = await merge(drafts.id, "--unreviewed", "--decision", "SH-D1");
 	assert.equal(merged.code, undefined, merged.err);
 	assert.match(merged.out, /\nno checks: package\.json declares no check or test script\nno ticket: no outcome\.md, nothing moved\n/);
+	assert.equal(readFileSync(join(shop, "spec/vision.md"), "utf8"), "# Vision\n\nSell garden tools.\n");
+});
+
+test("the first merge of a project whose code came in plain commits, its onboarding's, is refused naming arthur take-main; after the take it goes in", async (t) => {
+	const { shop, onboard, merge, take } = await load(t, { "shop.ts": "export const shop = 1;\n" });
+	const drafts = await onboard({ "spec/vision.md": "# Vision\n\nSell garden tools.\n" });
+	const start = git(shop, "rev-parse", "HEAD");
+	assert.deepEqual(await merge(drafts.id, "--unreviewed", "--decision", "SH-D1"), {
+		code: 1,
+		out: "",
+		err: `arthur merge: main has 1 commits since its last merge that change code (${start.slice(0, 7)}); only a merge puts code on main; the owner decides, and arthur take-main lifts it: main is unchanged`,
+	});
+	assert.equal(git(shop, "rev-parse", "HEAD"), start);
+	assert.match((await take()).out, new RegExp(`^took main of shop as it is at ${start.slice(0, 7)}`));
+	const merged = await merge(drafts.id, "--unreviewed", "--decision", "SH-D1");
+	assert.equal(merged.code, undefined, merged.err);
 	assert.equal(readFileSync(join(shop, "spec/vision.md"), "utf8"), "# Vision\n\nSell garden tools.\n");
 });

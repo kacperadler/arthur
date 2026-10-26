@@ -2558,7 +2558,7 @@
     "title": "The git commands that rewrite the shared repository pass as a documented limit",
     "status": "in-progress",
     "path": "spec/features/AR0335-the-git-commands-that-rewrite-the-shared-repository-pass-as-a-documented-limit/ticket.md",
-    "updated": "2026-10-26T00:35:20.057Z",
+    "updated": "2026-10-26T10:14:27.538Z",
     "after": [
       "AR0354"
     ]
@@ -2590,9 +2590,9 @@
   {
     "id": "AR0339",
     "title": "A recursive search from the coordinator's own folder prints the env file",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0339-a-recursive-search-from-the-coordinator-s-own-folder-prints-the-env-file/ticket.md",
-    "updated": "2026-10-25T23:32:17.777Z",
+    "updated": "2026-10-26T10:14:40.920Z",
     "after": [
       "AR0338"
     ]

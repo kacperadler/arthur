@@ -2624,9 +2624,9 @@
   {
     "id": "AR0343",
     "title": "Git ignores `.env` only, while `core.envFile` may be any name the guard counts as a secrets file",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0343-git-ignores-env-only-while-core-envfile-may-be-any-name-the-guard-counts-as-a-secrets-file/ticket.md",
-    "updated": "2026-10-26T23:54:53.191Z"
+    "updated": "2026-10-26T23:55:40.197Z"
   },
   {
     "id": "AR0344",
@@ -3380,9 +3380,9 @@
   {
     "id": "AR0429",
     "title": "The guard misreads four short forms: $ARTHUR_JOB, env -C and sudo -D, a ~ after =, cd $PWD and cd ~+",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0429-the-guard-misreads-four-short-forms-arthur-job-env-c-and-sudo-d-a-after-cd-pwd/ticket.md",
-    "updated": "2026-10-26T23:52:16.564Z"
+    "updated": "2026-10-26T23:57:58.323Z"
   },
   {
     "id": "AR0430",
@@ -3435,9 +3435,9 @@
   {
     "id": "AR0436",
     "title": "A bash call that changes the tree after its checks, before it ends, is recorded on the tree it ends on",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0436-a-bash-call-that-changes-the-tree-after-its-checks-before-it-ends-is-recorded-on/ticket.md",
-    "updated": "2026-10-26T23:18:54.544Z"
+    "updated": "2026-10-26T23:56:39.517Z"
   },
   {
     "id": "AR0437",

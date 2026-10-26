@@ -171,8 +171,8 @@ test("without python3, the install and each step of a plugin's sandbox run bare 
 	const cache = join(temporaryFolder(), "merge", "cache");
 	const step = stepSandbox("/tmp", cache, { envFile: "/nowhere/env", home: "/nowhere/home", config: "/nowhere/arthur.config.ts" }, note);
 	process.env.PATH = path;
-	const ran = spawnSync(...step('echo "$npm_config_cache $XDG_CACHE_HOME"'), { encoding: "utf8" });
-	assert.deepEqual([ran.stdout, existsSync(cache)], [`${join(cache, "npm")} ${cache}\n`, true]);
+	const ran = spawnSync(...step('echo "$npm_config_cache $BUN_INSTALL_CACHE_DIR $XDG_CACHE_HOME $PNPM_HOME $COMPOSER_CACHE_DIR"'), { encoding: "utf8" });
+	assert.deepEqual([ran.stdout, existsSync(cache)], [`${[join(cache, "npm"), join(cache, "bun"), cache, join(cache, "pnpm-home"), join(cache, "composer")].join(" ")}\n`, true]);
 	const why = process.platform === "linux" ? "python3: spawnSync python3 ENOENT" : `${process.platform} has no Landlock`;
 	assert.deepEqual(lines, [`no sandbox: ${why}; the install writes wherever Arthur's user can`, `no sandbox: ${why}; each step writes wherever Arthur's user can`]);
 });

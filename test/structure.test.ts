@@ -771,11 +771,14 @@ test("the repository keeps every rule", () => {
 	assert.deepEqual(checkStructure(join(import.meta.dirname, ".."), BUDGETS), []);
 });
 
-// GitHub draws the README's ```mermaid block on the repository page; arthur.mmd is its source, so the two must not drift apart.
-test("the README's mermaid block is arthur.mmd, unchanged", () => {
-	const root = join(import.meta.dirname, "..");
-	const block = readFileSync(join(root, "README.md"), "utf8").match(/^```mermaid\n([\s\S]*?)^```$/m)?.[1];
-	assert.equal(block, readFileSync(join(root, "arthur.mmd"), "utf8"), "copy arthur.mmd into the README's ```mermaid block");
+// The README is a front page (AR0450, AR-D87): at most 120 lines, with one small ```mermaid block GitHub draws; the full diagram is arthur.mmd.
+test("the README holds at most 120 lines and one closed mermaid flowchart of at most 40", () => {
+	const readme = readFileSync(join(import.meta.dirname, "..", "README.md"), "utf8");
+	assert.ok(readme.split("\n").length <= 121, "README.md holds at most 120 lines");
+	const blocks = [...readme.matchAll(/^```mermaid\n([\s\S]*?)^```$/gm)].map((match) => match[1] ?? "");
+	assert.equal(blocks.length, 1, "one ```mermaid block");
+	assert.match(blocks[0] ?? "", /^flowchart [^`]*$/, "a flowchart, closed before any other fence");
+	assert.ok((blocks[0] ?? "").split("\n").length <= 41, "at most 40 lines; the rest is arthur.mmd");
 });
 
 // A workflow grants its token only contents: read at the top level and runs each action at a commit: a tag is whatever the action's repository points it at.

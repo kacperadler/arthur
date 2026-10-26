@@ -3689,5 +3689,22 @@
     "status": "planning",
     "path": "spec/features/AR0458-an-install-can-remove-the-env-file-from-the-record-s-guarded-list-so-the-agent/ticket.md",
     "updated": "2026-10-26T17:18:27.959Z"
+  },
+  {
+    "id": "AR0459",
+    "title": "The site draws each diagram at its own size in a small scrolling box, so a reader sees mostly empty space",
+    "status": "planning",
+    "path": "spec/features/AR0459-the-site-draws-each-diagram-at-its-own-size-in-a-small-scrolling-box-so-a-reader/ticket.md",
+    "updated": "2026-10-26T18:35:59.459Z"
+  },
+  {
+    "id": "AR0460",
+    "title": "A plugins page on the site, with a page for each plugin",
+    "status": "planning",
+    "path": "spec/features/AR0460-a-plugins-page-on-the-site-with-a-page-for-each-plugin/ticket.md",
+    "updated": "2026-10-26T18:35:59.972Z",
+    "after": [
+      "AR0459"
+    ]
   }
 ]

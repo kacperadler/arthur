@@ -189,3 +189,5 @@
 {"record":"answer","id":"AR-D94","time":"2026-10-26T21:54:55+01:00","decided":"Raise the core line budget by what the fix needs, without asking the owner","words":"by policy: AR-D63"}
 {"record":"ask","id":"AR-D95","time":"2026-10-26T22:02:05+01:00","project":"arthur","kind":"merge","question":"AR0457 passed review: merge it?","options":["Merge","Hold"],"recommend":1,"ticket":"AR0457"}
 {"record":"answer","id":"AR-D95","time":"2026-10-26T22:02:05+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}
+{"record":"ask","id":"AR-D96","time":"2026-10-26T22:18:33+01:00","project":"arthur","kind":"merge","question":"AR0458 passed review: merge it?","options":["Merge","Hold"],"recommend":1,"ticket":"AR0458"}
+{"record":"answer","id":"AR-D96","time":"2026-10-26T22:18:33+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}

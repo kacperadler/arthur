@@ -186,16 +186,16 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | --- | --- | --- | --- |
 | `projects` | projects | the core (`host.board`, a spawn's checkout), plugins | The project list. |
 | `prompt` | commit-rules, develop, findings, manage, projects, youtrack | the core, `collect` at a spawn | A section of the prompt for `(role, job)`. |
-| `doctor` | machines, models, nvm, projects | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
+| `doctor` | delivery, machines, models, nvm, projects | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
 | `jobs.place` | machines | the core, each spawn | The machine a job runs on. |
 | `jobs.limits` | resources | the core, each spawn | The job's own caps. |
 | `jobs.keep` | none yet | the core (`arthur prune`) | Whether an ended job's record is kept. |
 | `models.pick` | models | the core, each spawn with a model | `{ model, why, free }` for `(list, machine)`. |
-| `roles.model` | orchestration | the core, session | `{ model, thinking, quick, mcp }` of a role; `mcp` its MCP servers in omp's `mcpServers` shape (AR0234). |
+| `roles.model` | orchestration | the core, session (its LLM probe), develop (`arthur eval`) | `{ model, thinking, quick, mcp }` of a role; `mcp` its MCP servers in omp's `mcpServers` shape (AR0234). |
 | `message.part` | none yet (voice) | the core (`turnText`) | A `Claim` for a part it handles. |
 | `channel.send` | telegram | the core (`arthur send`), manage (`/retro`, only the channel the command came from) | A check of `{ files, caption?, place? }` that throws every refusal, or a function that sends. |
 | `ticket.autopilot` | orchestration | the core (`arthur ticket status --autopilot`) | The pre-approval. |
-| `coordinator.context` | manage, models, projects, resources, session | orchestration | Lines of the coordinator's context. |
+| `coordinator.context` | develop, findings, manage, models, projects, resources, session | orchestration | Lines of the coordinator's context. |
 | `coordinator.wake` | delivery, manage, orchestration, projects | orchestration | Lines of the wake for an ended job, asked with the job-ended data and its final message. |
 | `coordinator.extension` | session | orchestration | `{ file, env }`: an OMP extension the coordinator loads. |
 | `coordinator.restart` | orchestration | session | Restarts the coordinator, `{ fresh }`. |
@@ -211,6 +211,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `projects.install` | projects | delivery (`arthur merge`) | `{ project, commit }`: the command that installs the project at that commit, as a new worktree gets it, `""` for none (above, "Changes since entry 51"). |
 | `nvm.path` | nvm | delivery (`arthur merge`) | `{ root }`, a project's checkout here: the PATH with its `.nvmrc`'s Node first, `""` without `.nvmrc` (above, "Changes since entry 51"). |
 | `merge.check` | projects | delivery (`arthur merge`) | A check of a job's branch before its merge: a text answer refuses it. |
+| `decision.owner` | orchestration | delivery (`arthur merge --unreviewed`, `arthur take-main`) | `{ id, what, kind, ticket?, job?, use }`: `""` when `id` is the owner's own answered decision of that kind, ticket or job, not used by another use, which it then marks used; else the refusal, one line. |
 | `findings.onMerge` | findings | delivery (`arthur merge`) | `{ project, ticket, path, root }`, `path` the merged ticket's `findings.md`: the lines of its outcome's `## Left open`. |
 | `delivery.alwaysReview` | delivery | orchestration | `{ project, paths }`: the paths on the always-review list. |
 | `github.push` | github | delivery (a review's PASS, `arthur review-needed`'s `no review`, `arthur merge`) | A promise of one line: the branch pushed to origin, or why not. |

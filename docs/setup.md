@@ -63,7 +63,7 @@ export PATH="$HOME/arthur/node_modules/.bin:$PATH"
 Write `~/arthur/arthur.config.ts` with the plugins that take a ticket from a job to its merge, each documented on its page:
 
 - `orchestration`, which every config needs: the coordinator, jobs and `maxAgents`, planning (`arthur coordinator --help`);
-- `projects`, with your projects (`arthur projects --help`). Each project names its repository: `path`, a clone already on this machine, or `repo`, a Git URL Arthur clones into `reposDir`; `ci.workflow` names the workflow file the `github` plugin watches, in the GitHub repository the checkout's `origin` remote names (`git@github.com:<owner>/<repository>.git` or `https://github.com/<owner>/<repository>`): the plugin refuses at setup a project with `ci.workflow` and no such `origin` (`packages/github/docs/github.md`);
+- `projects`, with your projects (`arthur projects --help`). Each project names its repository: `path`, a clone already on this machine, or `repo`, a Git URL Arthur clones into `reposDir`. Its `ci.workflow` names the workflow file the `github` plugin watches, in the GitHub repository of the checkout's `origin` remote (`git@github.com:<owner>/<repository>.git` or `https://github.com/<owner>/<repository>`); a project with `ci.workflow` and no such `origin` refuses the setup (`packages/github/docs/github.md`);
 - `session`: the coordinator's conversation, compacted by day and fresh at night, `/restart`, and the restart guard (`packages/session/docs/session.md`);
 - `schedule`: actions and jobs at set times, and the entries other plugins register from their options, such as `manage`'s audit (`arthur schedule --help`);
 - `delivery`: the review of a worker's branch and `arthur merge` (`arthur review --help`, `arthur merge --help`);
@@ -105,7 +105,7 @@ Do not copy `arthur.config.example.ts`: it lists every plugin, planned ones incl
 
 Every option the core and each built plugin take, with its meaning and its default, is in one table per package, the same one its check walks: the core's in `packages/core/src/core-options.ts`, each plugin's in the file its `package.json` exports as `./options` (for example `packages/orchestration/src/orchestration-options.ts`), with the plugin's one-line summary and the tools it runs.
 
-The config stays in `~/arthur`, so its `@arthur/*` imports resolve from the clone's `node_modules`. Its `core.home` (default `.arthur/` beside it) holds Arthur's state: the event log, each plugin's folder, the job records, and `run.pid`. Job worktrees go to `.arthur-worktrees/` beside the repository they start from. Git ignores `arthur.config.ts` and `.arthur/` (`.gitignore`): the config holds your own project list, which never goes to the public repository; `git pull` leaves it as it is.
+The config stays in `~/arthur`, so its `@arthur/*` imports resolve from the clone's `node_modules`. Its `core.home` (default `.arthur/` beside it) holds Arthur's state: the event log, each plugin's folder, the job records and `run.pid`. Job worktrees go to `.arthur-worktrees/` beside the repository they start from. Git ignores `arthur.config.ts` and `.arthur/` (`.gitignore`), so your project list never reaches the public repository, and `git pull` leaves both as they are.
 
 **Check:** `arthur config check` refuses nothing and lists the one variable step 6 sets, which `github` names, as `missing`; until step 6 sets it, it exits 1, which here means that variable only, not a broken config:
 
@@ -116,7 +116,7 @@ missing ARTHUR_GITHUB_TOKEN (github.instances[0].tokenEnv)
 
 ## 6. The env file
 
-The config holds no secret: an option ending in `Env` names a variable, and its value comes from the shell or from the env file, `~/.config/arthur/.env` (`core.envFile`; `$XDG_CONFIG_HOME/arthur/.env` when that is set), next to the `arthur.env` of step 8. It lies outside `~/arthur` on purpose: the coordinator works in the config's folder and each job in a project's checkout, and a recursive search there for a variable's name (`grep -r ARTHUR_ .`) would print its value into the agent's transcript, which the model provider keeps. `arthur doctor` warns of an env file inside the config's folder or a project's checkout (`core env`). Keep it readable by you alone:
+The config holds no secret: an option ending in `Env` names a variable, whose value comes from the shell or from the env file, `~/.config/arthur/.env` (`core.envFile`; `$XDG_CONFIG_HOME/arthur/.env` when that is set), next to the `arthur.env` of step 8. It lies outside `~/arthur` on purpose. The coordinator works in the config's folder and each job in a project's checkout, and a recursive search there for a variable's name (`grep -r ARTHUR_ .`) would print its value into the agent's transcript, which the model provider keeps. `arthur doctor` warns of an env file inside the config's folder or a project's checkout (`core env`). Keep it readable by you alone:
 
 ```sh
 mkdir -p ~/.config/arthur
@@ -125,9 +125,9 @@ chmod 600 ~/.config/arthur/.env
 arthur config check
 ```
 
-An install whose `.env` still lies beside the config, the default before, moves it there with `mv ~/arthur/.env ~/.config/arthur/.env` and leaves `core.envFile` out of `arthur.config.ts`; until then `arthur run` refuses to start, every variable missing.
+An install whose `.env` still lies beside the config, the old default, moves it with `mv ~/arthur/.env ~/.config/arthur/.env` and leaves `core.envFile` out of `arthur.config.ts`. Until then every variable it holds is missing, and `arthur run` refuses to start.
 
-`arthur config check` lists every variable the enabled plugins need, `set` or `missing`, never a value. Add each missing one to the env file as `KEY=value` and run it again until every line says `set`. For the plugins of step 5 that is `ARTHUR_GITHUB_TOKEN`, a token as `packages/github/docs/github.md`, "Options", says. A variable's name is the plugin's, `ARTHUR_<PLUGIN>_<WHAT>`, or `ARTHUR_<PLUGIN>_<INSTANCE>_<WHAT>` for a named instance: a token you already have under another name, such as `GITHUB_TOKEN`, goes into the env file under the plugin's name, since the config refuses any other (`github.instances[0].tokenEnv: expected ARTHUR_GITHUB_<WHAT>, got GITHUB_TOKEN`). Until every variable is set, the config does not load: a plugin's command, such as `arthur projects`, is unknown, and the missing variable is named.
+`arthur config check` lists every variable the enabled plugins need, `set` or `missing`, never a value. Add each missing one to the env file as `KEY=value`, and run it again until every line says `set`. For the plugins of step 5 that is `ARTHUR_GITHUB_TOKEN`, a token as `packages/github/docs/github.md`, "Options", says. A variable's name is the plugin's, `ARTHUR_<PLUGIN>_<WHAT>`, or `ARTHUR_<PLUGIN>_<INSTANCE>_<WHAT>` for a named instance. The config refuses any other name (`github.instances[0].tokenEnv: expected ARTHUR_GITHUB_<WHAT>, got GITHUB_TOKEN`), so a token you already have as `GITHUB_TOKEN` goes into the env file under the plugin's name. Until every variable is set, the config does not load: a plugin's command, such as `arthur projects`, is unknown, and the missing variable is named.
 
 **Check:** every line of `arthur config check` says `set`, it exits 0, and `stat -c %a ~/.config/arthur/.env` prints `600`. `arthur projects` lists each project with its folder, such as:
 
@@ -152,7 +152,9 @@ printf 'PATH=%s:%s/.local/bin:/usr/local/bin:/usr/bin:/bin\n' "$(dirname "$(whic
 cat ~/.config/arthur.env
 ```
 
-It prints something like `PATH=/home/<user>/.nvm/versions/node/v24.21.0/bin:/home/<user>/.local/bin:/usr/local/bin:/usr/bin:/bin`. Run the `printf` again after `nvm install` switches Node to a new version, then restart the service. A tool a project's jobs need, such as `bun` for a project's install, goes on this `PATH` (`~/.local/bin` is on it), and at the top of `~/.bashrc` on another machine (step 3 of [Another machine for jobs](deploy.md#another-machine-for-jobs)); a project's Node version comes from its `.nvmrc` when the nvm plugin is on (`nvm()` in the plugin list, before `projects`, else the load is refused; `packages/nvm/docs/nvm.md`), which runs each of its jobs and their install on the Node nvm has installed for that version, on each machine.
+It prints something like `PATH=/home/<user>/.nvm/versions/node/v24.21.0/bin:/home/<user>/.local/bin:/usr/local/bin:/usr/bin:/bin`. Run the `printf` again after `nvm install` switches Node to a new version, then restart the service.
+
+A tool a project's jobs need, such as `bun` for its install, goes on this `PATH` (`~/.local/bin` is on it); on another machine, at the top of `~/.bashrc` (step 3 of [Another machine for jobs](deploy.md#another-machine-for-jobs)). With the nvm plugin, a project's Node version comes from its `.nvmrc`: each of its jobs and their install run on the Node nvm installed for that version, on each machine (`nvm()` in the plugin list before `projects`, else the load is refused; `packages/nvm/docs/nvm.md`).
 
 **Check:** with nothing but that file's `PATH`, both are found:
 
@@ -213,7 +215,7 @@ sudo systemctl daemon-reload
 
 ## 10. CPU and memory for the jobs
 
-Each job runs under the same manager in a scope of its own, `arthur-job-<id>.scope`, inside `arthur-jobs.slice`, whose limits are `core.jobs.cpu` and `core.jobs.memory`, so all jobs together cannot starve the coordinator; whatever a job leaves running is killed when it ends. The manager holds jobs to those limits only when the system delegates the CPU and memory controllers to it, as systemd 255 of Ubuntu 24.04 does by default. When the check below misses either, delegate them, then reboot so the manager starts with them:
+Each job runs under the same manager in a scope of its own, `arthur-job-<id>.scope`, inside `arthur-jobs.slice`, whose limits are `core.jobs.cpu` and `core.jobs.memory`, so all jobs together cannot starve the coordinator. A job's install runs in its scope, and each check of `arthur merge` on main in a scope of its own in the same slice (`arthur merge --help`). Whatever a job or a check leaves running is killed when it ends. The manager holds jobs to those limits only when the system delegates the CPU and memory controllers to it, as systemd 255 of Ubuntu 24.04 does by default. When the check below misses either, delegate them, then reboot so the manager starts with them:
 
 ```sh
 printf '[Service]\nDelegate=cpu cpuset io memory pids\n' | sudo install -D -m 644 /dev/stdin /etc/systemd/system/user@.service.d/delegate.conf
@@ -290,7 +292,7 @@ The last step of the install, and the first thing to run after an update or a re
 arthur doctor
 ```
 
-It checks by code, without the model, what Arthur and the enabled plugins need: git, Node 24, `omp`, a writable home, the CPU and memory controllers delegated (step 10), `tmux`, the service enabled with `Restart=always` and linger on (step 9), SSH to each machine, an `about` for each project, the env file outside the config's folder and every project's checkout (step 6). It prints one line per requirement, `ok` or `missing: <reason>; without it: <what does not work>; fix: <fix>`, and exits 1 when something critical is missing (git, Node 24, `omp`, a writable home, `tmux`), which also refuses the start of `arthur run`. Run each fix and `arthur doctor` again until no line says `missing`. At every start the same check runs first, and the start notice begins with what is still missing, each line once a day unless it changes. The plugins still to come add their own: the Telegram token and bot, `ffmpeg` for the videos you send, Docker on each machine, the disk floor.
+It checks by code, without the model, what Arthur and the enabled plugins need: git, Node 24, `omp`, a writable home, the CPU and memory controllers delegated (step 10), the env file outside the config's folder and every project's checkout (step 6), no model provider's key in Arthur's environment, `tmux`, the service enabled with `Restart=always` and linger on (step 9), SSH to each machine, each project's `about` and board (step 7), and git's identity in each project's checkout for a merge commit. It prints one line per requirement, `ok` or `missing: <reason>; without it: <what does not work>; fix: <fix>`. It exits 1 when something critical is missing (git, Node 24, `omp`, a writable home, `tmux`), which also refuses the start of `arthur run`. Run each fix and `arthur doctor` again until no line says `missing`. At every start the same check runs first, and the start notice begins with what is still missing, each line once a day unless it changes.
 
 **Check:** no line of `arthur doctor` says `missing`, and it exits 0.
 

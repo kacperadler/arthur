@@ -2624,15 +2624,9 @@
   {
     "id": "AR0343",
     "title": "Git ignores `.env` only, while `core.envFile` may be any name the guard counts as a secrets file",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0343-git-ignores-env-only-while-core-envfile-may-be-any-name-the-guard-counts-as-a-secrets-file/ticket.md",
-    "updated": "2026-10-26T10:52:15.649Z",
-    "after": [
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405"
-    ]
+    "updated": "2026-10-26T21:41:05.286Z"
   },
   {
     "id": "AR0344",
@@ -2889,15 +2883,9 @@
   {
     "id": "AR0374",
     "title": "The install at a spawn and each step of the merge have no time limit",
-    "status": "planning",
+    "status": "in-progress",
     "path": "spec/features/AR0374-the-install-at-a-spawn-and-each-step-of-the-merge-have-no-time-limit/ticket.md",
-    "updated": "2026-10-26T10:52:17.156Z",
-    "after": [
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405"
-    ]
+    "updated": "2026-10-26T22:20:04.443Z"
   },
   {
     "id": "AR0375",
@@ -2993,16 +2981,9 @@
   {
     "id": "AR0388",
     "title": "The user's systemd folder is guarded at `~/.config/systemd` only, not at `$XDG_CONFIG_HOME/systemd`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0388-the-user-s-systemd-folder-is-guarded-at-config-systemd-only-not-at-xdg-config-home-systemd/ticket.md",
-    "updated": "2026-10-26T10:52:17.651Z",
-    "after": [
-      "AR0420",
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405"
-    ]
+    "updated": "2026-10-26T21:41:04.116Z"
   },
   {
     "id": "AR0389",
@@ -3139,16 +3120,9 @@
   {
     "id": "AR0400",
     "title": "`arthur prune` of a job here runs a clean filter the main checkout's config or the job worktree's own names",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0400-arthur-prune-of-a-job-here-runs-a-clean-filter-the-main-checkout-s-config-or-the-job-worktree-s-own-names/ticket.md",
-    "updated": "2026-10-26T10:52:22.147Z",
-    "after": [
-      "AR0397",
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405"
-    ]
+    "updated": "2026-10-26T22:03:26.519Z"
   },
   {
     "id": "AR0401",
@@ -3406,21 +3380,9 @@
   {
     "id": "AR0429",
     "title": "The guard misreads four short forms: $ARTHUR_JOB, env -C and sudo -D, a ~ after =, cd $PWD and cd ~+",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0429-the-guard-misreads-four-short-forms-arthur-job-env-c-and-sudo-d-a-after-cd-pwd/ticket.md",
-    "updated": "2026-10-26T10:52:23.644Z",
-    "after": [
-      "AR0420",
-      "AR0425",
-      "AR0343",
-      "AR0374",
-      "AR0423",
-      "AR0414",
-      "AR0400",
-      "AR0369",
-      "AR0388",
-      "AR0399"
-    ]
+    "updated": "2026-10-26T21:41:02.855Z"
   },
   {
     "id": "AR0430",
@@ -3452,29 +3414,16 @@
   {
     "id": "AR0433",
     "title": "A plugin's wake line built from the final message is not redacted",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0433-a-plugin-s-wake-line-built-from-the-final-message-is-not-redacted/ticket.md",
-    "updated": "2026-10-26T10:52:24.149Z",
-    "after": [
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405",
-      "AR0428"
-    ]
+    "updated": "2026-10-26T21:58:10.083Z"
   },
   {
     "id": "AR0434",
     "title": "A secret-named variable only the coordinator's omp holds is no longer redacted by name",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0434-a-secret-named-variable-only-the-coordinator-s-omp-holds-is-no-longer-redacted/ticket.md",
-    "updated": "2026-10-26T10:52:24.664Z",
-    "after": [
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405"
-    ]
+    "updated": "2026-10-26T22:46:57.513Z"
   },
   {
     "id": "AR0435",
@@ -3486,15 +3435,9 @@
   {
     "id": "AR0436",
     "title": "A bash call that changes the tree after its checks, before it ends, is recorded on the tree it ends on",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0436-a-bash-call-that-changes-the-tree-after-its-checks-before-it-ends-is-recorded-on/ticket.md",
-    "updated": "2026-10-26T10:52:25.171Z",
-    "after": [
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405"
-    ]
+    "updated": "2026-10-26T21:41:06.440Z"
   },
   {
     "id": "AR0437",
@@ -3658,9 +3601,9 @@
   {
     "id": "AR0454",
     "title": "The writable package caches carry branch code out of the sandbox",
-    "status": "planning",
+    "status": "in-progress",
     "path": "spec/features/AR0454-the-writable-package-caches-carry-branch-code-out-of-the-sandbox/ticket.md",
-    "updated": "2026-10-26T17:18:10.592Z"
+    "updated": "2026-10-26T22:14:56.818Z"
   },
   {
     "id": "AR0455",
@@ -3727,8 +3670,22 @@
   {
     "id": "AR0463",
     "title": "A merge step can plant a nested repository whose fsmonitor runs at the owner's next git call in that folder",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0463-a-merge-step-can-plant-a-nested-repository-whose-fsmonitor-runs-at-the-owner-s/ticket.md",
-    "updated": "2026-10-26T21:38:22.539Z"
+    "updated": "2026-10-26T22:36:35.715Z"
+  },
+  {
+    "id": "AR0464",
+    "title": "The stop test of a forked install process fails now and then under a merge step",
+    "status": "planning",
+    "path": "spec/features/AR0464-the-stop-test-of-a-forked-install-process-fails-now-and-then-under-a-merge-step/ticket.md",
+    "updated": "2026-10-26T22:41:16.485Z"
+  },
+  {
+    "id": "AR0465",
+    "title": "A value given again with `-e` sits in the tmux client's command line while it runs",
+    "status": "planning",
+    "path": "spec/features/AR0465-a-value-given-again-with-e-sits-in-the-tmux-client-s-command-line-while-it-runs/ticket.md",
+    "updated": "2026-10-26T22:46:57.509Z"
   }
 ]

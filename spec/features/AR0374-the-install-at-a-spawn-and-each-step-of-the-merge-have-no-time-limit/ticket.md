@@ -36,3 +36,5 @@ In:
 
 - 2026-10-23: Source: F2 of AR0328
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; starts after the ten security checks AR0319-AR0328.
+- 2026-10-26: Raise the delivery line budget to 1449 for AR0374 (AR-D61); the owner: "IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS" (AR-D110)
+- 2026-10-26: Accept merge.stepSeconds (default 3600 s) for merge steps and the job timeout as the install limit, for AR0374 (the coordinator's recommendation, under AR-D98); the owner: "always go with your recommendation" (AR-D111)

@@ -118,14 +118,14 @@ export function queue(folder: string, event: { readonly seq: number; readonly ti
 }
 
 // The wake: the state its run ended in (the question, when blocked on the owner), the first lines of its final message (the
-// job's own unless `final` stands for it), its project when not the main one, and what the plugins add for it (the procedure
-// of its kind), asked with the job-ended data and that final message whole; the question redacted, those lines of the env
+// job's own unless `final` stands for it), its project when not the main one, and what the plugins add for it, asked with the
+// job-ended data and that final message whole; the question redacted, the reason, those lines and the plugins' of the env
 // file's values only, so their job ids, ticket folders and hashes stay readable, but for the line that holds the question.
 function wake(host: Host, data: unknown, final?: string): string {
 	const job = (data ?? {}) as Readonly<Record<string, unknown>>;
 	const id = String(job.id);
 	const asks = job.state === "blocked" && typeof job.reason === "string" && job.reason.startsWith("user: ") ? redact(job.reason.slice("user: ".length), host.secrets) : undefined;
-	const state = `${String(job.state)}${text(job.reason) ? ` (${job.reason})` : ""}`;
+	const state = `${String(job.state)}${text(job.reason) ? ` (${redactValues(job.reason, host.secrets)})` : ""}`;
 	const lines = [asks === undefined ? `Job ${id} ended its run: ${state}.` : `Job ${id} ended its run blocked on the owner; its question, also sent as a notice: ${asks}`];
 	const main = host.collect("projects").length > 0 ? host.board.projects()[0]?.name : undefined;
 	if (main !== undefined && job.project !== main) lines.push(`Project: ${String(job.project)}.`);
@@ -138,7 +138,7 @@ function wake(host: Host, data: unknown, final?: string): string {
 		const cut = result.length > RESULT_LINES ? ` (the first ${RESULT_LINES} of ${result.length} lines)` : "";
 		lines.push(`Its final message${cut}:`, ...result.slice(0, RESULT_LINES));
 	}
-	for (const line of host.collect("coordinator.wake", job, message)) if (text(line)) lines.push(line);
+	for (const line of host.collect("coordinator.wake", job, message)) if (text(line)) lines.push(redactValues(line, host.secrets));
 	return lines.join("\n");
 }
 

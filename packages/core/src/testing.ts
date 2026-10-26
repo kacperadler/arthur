@@ -107,7 +107,7 @@ export type FakeHost = {
 // 2026-01-01T00:00:00Z) in `timeZone` (default UTC) until `setNow` moves it. `host.board` reads the project list the test
 // provides as `projects`. `host.jobs.spawn` starts from HEAD of the project's folder in that list, else of the repository
 // `root` (a test's own), with the core's default limits, in the kit's `jobSlice`, and runs the agent `omp` that `PATH` finds, as `host.agent` names it.
-// `host.code` is `code`, default none: the package folders a test's restart guard watches, in a repository of its own.
+// `host.code` is `code`, default none: the package folders a test's restart guard watches, in a repository of its own. `host.sandbox` hides `<root>/env` and keeps it, `<root>/arthur.config.ts` and the home from a step's writes.
 // As in a real load, the core follows the jobs after `setup`: at the first spawn, its `beforeSpawn` joins after the plugin's
 // checks and refuses a worker on a ticket of that list that cannot move to in-progress, and its move joins after the plugin's
 // `job-started` handlers, which still see the ticket `planned`. A plugin must not rely on that: a `job-started` from another
@@ -132,7 +132,7 @@ export function fakeHost(plugin: {
 	const time = clock(plugin.timeZone ?? "UTC", plugin.quietHours, () => new Date(now));
 	const jobs = jobRunner(home, plugin.root ?? home, join(plugin.root ?? home, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, "omp", time, bus, names.collect);
 	let loading = false, following = false;
-	const real = pluginHost(names, registered, bus, jobs, join(plugin.root ?? home, "env"), { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, secrets: Object.values(plugin.env ?? {}), folder, clock: time, agent: "omp", code: plugin.code ?? [], package: undefined }, () => loading);
+	const real = pluginHost(names, registered, bus, jobs, { envFile: join(plugin.root ?? home, "env"), home, config: join(plugin.root ?? home, "arthur.config.ts") }, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, secrets: Object.values(plugin.env ?? {}), folder, clock: time, agent: "omp", code: plugin.code ?? [], package: undefined }, () => loading);
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));
 	const [provided, calls, commands, kinds, roles] = [[] as string[], [] as Use[], [] as Command[], [] as Kind[], [] as Role[]];
 	const host: Host = {

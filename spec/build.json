@@ -3547,7 +3547,7 @@
     "title": "Any merge commit on main resets the baseline, one a job made included",
     "status": "done",
     "path": "spec/features/AR0441-any-merge-commit-on-main-resets-the-baseline-one-a-job-made-included/ticket.md",
-    "updated": "2026-10-26T13:46:42.008Z",
+    "updated": "2026-10-26T13:49:22.990Z",
     "after": [
       "AR0350"
     ]

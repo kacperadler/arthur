@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/src/merge-command.ts:59-111`
 - What: while one `arthur merge` runs its checks on main (now up to `merge.stepSeconds` per step, an hour by default), its merge commit is already HEAD and `last-merge` not yet written. A second `arthur merge` of another branch passes every refusal by reading those lines: main is on its branch and clean, the stray-commit check starts from main's last merge commit, which is the first merge's own, so nothing counts as a stray. It then merges on top of the unchecked commit, and a failing check of the first resets main under the second (`git reset --keep` to the first's `before`). Not run; read from the code, as the ticket's Description says.
 - Suggestion: a lock per project for the whole merge (an exclusive file in delivery's folder, created with `wx` before the first refusal and removed in a `finally`), a second merge refused with `a merge of <job> is in progress on <project>`; nothing else.
-- Status: open
+- Status: ticket AR0468

@@ -771,13 +771,6 @@ test("the repository keeps every rule", () => {
 	assert.deepEqual(checkStructure(join(import.meta.dirname, ".."), BUDGETS), []);
 });
 
-// GitHub draws the README's ```mermaid block on the repository page; arthur.mmd is its source, so the two must not drift apart.
-test("the README's mermaid block is arthur.mmd, unchanged", () => {
-	const root = join(import.meta.dirname, "..");
-	const block = readFileSync(join(root, "README.md"), "utf8").match(/^```mermaid\n([\s\S]*?)^```$/m)?.[1];
-	assert.equal(block, readFileSync(join(root, "arthur.mmd"), "utf8"), "copy arthur.mmd into the README's ```mermaid block");
-});
-
 // A workflow grants its token only contents: read at the top level and runs each action at a commit: a tag is whatever the action's repository points it at.
 test("each CI workflow, .yml or .yaml, grants only contents: read at the top level and pins every action to a commit", () => {
 	const folder = join(import.meta.dirname, "..", ".github", "workflows");

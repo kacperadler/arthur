@@ -108,3 +108,4 @@
 {"record":"answer","id":"AR-D54","time":"2026-10-26T12:15:14+01:00","decided":"Raise the core line budget from 6197 to 6206 for AR0335","picked":1,"words":"AR-D54 - 1"}
 {"record":"ask","id":"AR-D55","time":"2026-10-26T12:17:32+01:00","project":"arthur","kind":"merge","question":"AR0335 (guard against git clean-up commands on the shared repository) passed review 4 with no blocking findings. Merge it?","options":["Merge now","Hold it"],"recommend":1,"ticket":"AR0335"}
 {"record":"answer","id":"AR-D55","time":"2026-10-26T12:58:50+01:00","decided":"Merge AR0335 now","picked":1,"words":"AR-D55 - 1"}
+{"record":"ask","id":"AR-D56","time":"2026-10-26T13:31:44+01:00","project":"arthur","kind":"merge","question":"AR0423 (the job-state test that failed at random with file not found) passed review: the race was in the test, fixed there only. Merge it?","options":["Merge now","Hold it"],"recommend":1,"ticket":"AR0423"}

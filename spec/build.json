@@ -2879,9 +2879,9 @@
   {
     "id": "AR0373",
     "title": "The install of a new worktree and the merge's steps run outside every job scope, with lifecycle scripts on (AR0311 F14, confirmed)",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0373-the-install-of-a-new-worktree-and-the-merge-s-steps-run-outside-every-job-scope-with-lifecycle-scripts-on-ar0311-f14-confirmed/ticket.md",
-    "updated": "2026-10-23T15:06:04.472Z",
+    "updated": "2026-10-26T12:31:33.655Z",
     "after": [
       "AR0335"
     ]
@@ -3351,9 +3351,9 @@
   {
     "id": "AR0423",
     "title": "packages/core/test/job-state.test.ts:142 fails now and then with ENOENT on the job record active file",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0423-packages-core-test-job-state-test-ts-142-fails-now-and-then-with-enoent-on-the/ticket.md",
-    "updated": "2026-10-25T21:41:35.521Z",
+    "updated": "2026-10-26T12:30:58.904Z",
     "after": [
       "AR0335"
     ]

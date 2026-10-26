@@ -41,3 +41,6 @@ Out:
 ## Decisions
 
 - 2026-10-25: Source: F2 of AR0338
+- 2026-10-26: Raise the core line budget 6228 to 6238 for AR0439; from now on raise the core line budget when a fix needs it, without asking; the owner: "IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS" (AR-D61)
+- 2026-10-26: Raise the core line budget by what the fix needs, without asking the owner; the owner: "IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS" (AR-D61)
+- 2026-10-26: Merge AR0439 now; restart after; the owner: "AR-D64 - 1 AR-D67 - 1 AR-D68 - 1 AR-D69 - 1" (AR-D68)

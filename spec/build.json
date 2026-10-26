@@ -3525,9 +3525,9 @@
   {
     "id": "AR0439",
     "title": "A provider's key exported in the shell still reaches every job",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0439-a-provider-s-key-exported-in-the-shell-still-reaches-every-job/ticket.md",
-    "updated": "2026-10-26T06:23:07.573Z",
+    "updated": "2026-10-26T13:32:56.952Z",
     "after": [
       "AR0350"
     ]
@@ -3535,9 +3535,9 @@
   {
     "id": "AR0440",
     "title": "A job can read the running Arthur process's secrets from /proc/<pid>/environ",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0440-a-job-can-read-the-running-arthur-process-s-secrets-from-proc-pid-environ/ticket.md",
-    "updated": "2026-10-26T06:23:06.063Z",
+    "updated": "2026-10-26T13:42:49.466Z",
     "after": [
       "AR0350"
     ]
@@ -3545,9 +3545,9 @@
   {
     "id": "AR0441",
     "title": "Any merge commit on main resets the baseline, one a job made included",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0441-any-merge-commit-on-main-resets-the-baseline-one-a-job-made-included/ticket.md",
-    "updated": "2026-10-26T06:23:06.569Z",
+    "updated": "2026-10-26T13:46:42.008Z",
     "after": [
       "AR0350"
     ]
@@ -3599,5 +3599,46 @@
     "status": "dropped",
     "path": "spec/features/AR0447-an-arthur-merge-an-agent-runs-never-gets-a-scope-of-its-own/ticket.md",
     "updated": "2026-10-26T12:51:10.911Z"
+  },
+  {
+    "id": "AR0448",
+    "title": "packages/core/test/machine.test.ts:719 fails now and then on GitHub CI: a job no longer held is copied again (18 !== 16)",
+    "status": "merged",
+    "path": "spec/features/AR0448-packages-core-test-machine-test-ts-719-fails-now-and-then-on-github-ci-a-job-no/ticket.md",
+    "updated": "2026-10-26T13:28:55.916Z"
+  },
+  {
+    "id": "AR0449",
+    "title": "The install at a job start and the merge checks run branch code outside the sandbox, where it can read the environment of arthur run",
+    "status": "planned",
+    "path": "spec/features/AR0449-the-install-at-a-job-start-and-the-merge-checks-run-branch-code-outside-the/ticket.md",
+    "updated": "2026-10-26T13:34:57.400Z",
+    "after": [
+      "AR0441",
+      "AR0440",
+      "AR0443",
+      "AR0442"
+    ]
+  },
+  {
+    "id": "AR0450",
+    "title": "Polish the docs and make the README shorter",
+    "status": "planned",
+    "path": "spec/features/AR0450-polish-the-docs-and-make-the-readme-shorter/ticket.md",
+    "updated": "2026-10-26T13:40:04.267Z",
+    "after": [
+      "AR0441",
+      "AR0440",
+      "AR0443",
+      "AR0442",
+      "AR0449"
+    ]
+  },
+  {
+    "id": "AR0451",
+    "title": "Branch code run outside the sandbox can read Arthur's environment",
+    "status": "dropped",
+    "path": "spec/features/AR0451-branch-code-run-outside-the-sandbox-can-read-arthur-s-environment/ticket.md",
+    "updated": "2026-10-26T13:43:00.981Z"
   }
 ]

@@ -43,3 +43,8 @@ Out:
 ## Decisions
 
 - 2026-10-26: Source: F1 of AR0361
+- 2026-10-26: Raise the delivery line budget 1361 to 1429 for AR0441, under the owner standing word on line budgets (AR-D61); the owner: "IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS" (AR-D66)
+- 2026-10-26: Fix the AR0441 gap in AR0441 now: refuse when last-merge names no ancestor of main (arthur take-main lifts it), then review; the owner: "AR-D64 - 1 AR-D67 - 1 AR-D68 - 1 AR-D69 - 1" (AR-D67)
+- 2026-10-26: Raise the delivery line budget 1429 to 1434 for AR0441, under the owner standing word on line budgets (AR-D61); the owner: "IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS" (AR-D70)
+- 2026-10-26: Merge a ticket once its review passed, without asking the owner; the owner: "If there is something that you can merge, just merge, do not ask me abut it, how many tasks are left?" (AR-D73)
+- 2026-10-26: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D74)

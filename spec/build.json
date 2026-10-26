@@ -3525,9 +3525,9 @@
   {
     "id": "AR0439",
     "title": "A provider's key exported in the shell still reaches every job",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0439-a-provider-s-key-exported-in-the-shell-still-reaches-every-job/ticket.md",
-    "updated": "2026-10-26T06:23:07.573Z",
+    "updated": "2026-10-26T13:18:35.354Z",
     "after": [
       "AR0350"
     ]
@@ -3545,9 +3545,9 @@
   {
     "id": "AR0441",
     "title": "Any merge commit on main resets the baseline, one a job made included",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0441-any-merge-commit-on-main-resets-the-baseline-one-a-job-made-included/ticket.md",
-    "updated": "2026-10-26T06:23:06.569Z",
+    "updated": "2026-10-26T13:08:31.652Z",
     "after": [
       "AR0350"
     ]
@@ -3599,5 +3599,12 @@
     "status": "dropped",
     "path": "spec/features/AR0447-an-arthur-merge-an-agent-runs-never-gets-a-scope-of-its-own/ticket.md",
     "updated": "2026-10-26T12:51:10.911Z"
+  },
+  {
+    "id": "AR0448",
+    "title": "packages/core/test/machine.test.ts:719 fails now and then on GitHub CI: a job no longer held is copied again (18 !== 16)",
+    "status": "in-progress",
+    "path": "spec/features/AR0448-packages-core-test-machine-test-ts-719-fails-now-and-then-on-github-ci-a-job-no/ticket.md",
+    "updated": "2026-10-26T13:17:41.463Z"
   }
 ]

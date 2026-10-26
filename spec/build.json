@@ -2883,9 +2883,9 @@
   {
     "id": "AR0374",
     "title": "The install at a spawn and each step of the merge have no time limit",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0374-the-install-at-a-spawn-and-each-step-of-the-merge-have-no-time-limit/ticket.md",
-    "updated": "2026-10-26T22:55:05.091Z"
+    "updated": "2026-10-26T23:10:40.772Z"
   },
   {
     "id": "AR0375",
@@ -2981,9 +2981,9 @@
   {
     "id": "AR0388",
     "title": "The user's systemd folder is guarded at `~/.config/systemd` only, not at `$XDG_CONFIG_HOME/systemd`",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0388-the-user-s-systemd-folder-is-guarded-at-config-systemd-only-not-at-xdg-config-home-systemd/ticket.md",
-    "updated": "2026-10-26T21:41:04.116Z"
+    "updated": "2026-10-26T23:10:49.638Z"
   },
   {
     "id": "AR0389",
@@ -3601,9 +3601,9 @@
   {
     "id": "AR0454",
     "title": "The writable package caches carry branch code out of the sandbox",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0454-the-writable-package-caches-carry-branch-code-out-of-the-sandbox/ticket.md",
-    "updated": "2026-10-26T22:58:44.133Z"
+    "updated": "2026-10-26T23:12:53.408Z"
   },
   {
     "id": "AR0455",

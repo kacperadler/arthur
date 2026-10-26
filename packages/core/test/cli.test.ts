@@ -357,7 +357,7 @@ test("in a job's scope the CLI refuses with ARTHUR_JOB cleared once its home hol
 	const folder = project();
 	const run = (...args: string[]) => {
 		writeFileSync(join(folder, "gone.md"), "# arthur gone\n");
-		const ran = spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+		const ran = spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 		return [ran.status, ran.stdout, ran.stderr];
 	};
 	const refusal = (command: string) => `arthur ${command}: refused inside a job ${scope}: a job runs only the commands its role needs; put what the coordinator should do in your final message\n`;

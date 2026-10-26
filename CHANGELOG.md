@@ -13,6 +13,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0355 `--unreviewed` and `--budget 0` rest on a sentence in the coordinator's role, with no recorded decision behind them (f373a86c)
 - AR0361 A merge takes main as it is: a commit that reached main by another route is merged on and pushed with the next merge (e3164372)
 - AR0373 The install of a new worktree and the merge's steps run outside every job scope, with lifecycle scripts on (AR0311 F14, confirmed) (6e75ab11)
+- AR0400 `arthur prune` of a job here runs a clean filter the main checkout's config or the job worktree's own names (39aec933)
 - AR0431 A review's project is not checked against its worker's (7c8205b5)
 - AR0432 The always-review list misses the other installs: composer, uv, yarnrc, pnpmfile and bunfig (eea54efb)
 - AR0433 A plugin's wake line built from the final message is not redacted (e61ec246)

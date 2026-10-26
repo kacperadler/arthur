@@ -2590,9 +2590,9 @@
   {
     "id": "AR0339",
     "title": "A recursive search from the coordinator's own folder prints the env file",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0339-a-recursive-search-from-the-coordinator-s-own-folder-prints-the-env-file/ticket.md",
-    "updated": "2026-10-26T10:14:40.920Z",
+    "updated": "2026-10-26T10:22:51.863Z",
     "after": [
       "AR0338"
     ]

@@ -3679,9 +3679,9 @@
   {
     "id": "AR0457",
     "title": "A merge check can leave a git hook or config in main's checkout, which runs outside the sandbox at the next git call",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0457-a-merge-check-can-leave-a-git-hook-or-config-in-main-s-checkout-which-runs/ticket.md",
-    "updated": "2026-10-26T20:43:21.784Z"
+    "updated": "2026-10-26T20:43:29.519Z"
   },
   {
     "id": "AR0458",
@@ -3713,8 +3713,8 @@
   {
     "id": "AR0461",
     "title": "test/readme.test.ts reads the real env file, and fails inside a job",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0461-test-readme-test-ts-reads-the-real-env-file-and-fails-inside-a-job/ticket.md",
-    "updated": "2026-10-26T20:43:22.843Z"
+    "updated": "2026-10-26T20:45:03.615Z"
   }
 ]

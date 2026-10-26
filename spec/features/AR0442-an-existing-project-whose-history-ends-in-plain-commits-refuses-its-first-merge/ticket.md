@@ -20,21 +20,24 @@ F2 of AR0361 (spec/features/AR0361-a-merge-takes-main-as-it-is-a-commit-that-rea
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+The first `arthur merge` of an existing project whose history ends in plain commits (squash or rebase merges, a solo project), its onboarding's included, no longer stops on a refusal nobody told the coordinator about. Evidence: `packages/delivery/src/merge-command.ts:91` lists from the root when there is no merge; `packages/projects/roles/coordinator/onboarding-ended.md` does not say a take-main step is needed; `onboarding-merge.test.ts` passes only because its project holds no code.
 
 - Kind: ux
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- `onboarding-ended.md` and `arthur init --help` tell the coordinator to ask the owner for AR0441's "take main as it is" before the onboarding's merge, when main has no merge `arthur merge` made.
+- The stray-commit refusal names at most 10 commits and then `and <k> more`. Test in `packages/delivery/test/merge.test.ts` with 12 plain code commits: 10 named, `and 2 more`; fails on main.
+- A test where an onboarding of a project with code on main merges after the take; fails on main.
+- `npm test` and `npm run check` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/delivery/src/merge-command.ts`, `packages/delivery/test/merge.test.ts`, `packages/projects/roles/coordinator/onboarding-ended.md`, the `arthur init` doc page, `onboarding-merge.test.ts`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The take command itself (AR0441).
 
 ## Decisions
 

@@ -20,21 +20,23 @@ F1 of AR0354 (spec/features/AR0354-the-mark-that-tells-a-job-from-the-coordinato
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+A job cannot use the tokens of Arthur's env file by writing a config with a home of its own and running `arthur` as a coordinator there. Evidence: `packages/core/src/inside-job.ts:11` counts the job's scope as the mark only when `<home>/jobs/<id>` exists, and the sandbox leaves the env file readable (`docs/deploy.md`, threat model: "nothing confines reads").
 
 - Kind: security
+- Plan: yes
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- A plan first, together with AR0440's: both are a job reading what Arthur's processes and files hold, and one choice (jobs as another user, a read rule of the sandbox on the config folder and the env file) may close both. The owner picks before a worker starts.
+- Then: a test where a job's command, with a config and home of its own and `ARTHUR_JOB` cleared, cannot read a token of the real env file; `npm test` and `npm run check` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- To be set by the plan.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Refusing the scope's id in any home, which breaks every job's own `npm test`.
 
 ## Decisions
 

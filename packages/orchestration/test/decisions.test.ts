@@ -526,7 +526,7 @@ test("asks at once, from four processes asking five times each, get one id each 
 	const folder = demo();
 	const asks = async (writer: number) => {
 		const script = `for n in 1 2 3 4 5; do "$0" "$1" decision ask --kind question --question "${writer}.$n?" || exit 1; done`;
-		const child = spawn("sh", ["-c", script, process.execPath, CLI], { cwd: folder, env: { PATH: process.env.PATH ?? "" } });
+		const child = spawn("sh", ["-c", script, process.execPath, CLI], { cwd: folder, env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 		let out = "";
 		child.stdout.on("data", (chunk) => (out += chunk));
 		child.stderr.on("data", (chunk) => (out += chunk));
@@ -564,7 +564,7 @@ test("an ask waits for the log's lock another process holds, and writes after th
 	const holder = spawn(process.execPath, ["--input-type=module", "-e", code], { stdio: ["ignore", "inherit", "inherit", "ipc"] });
 	const held = once(holder, "exit");
 	await Promise.race([once(holder, "message"), held.then(([status]) => assert.fail(`the holder exited with ${status} before it held the lock`))]);
-	const asker = spawn(process.execPath, [CLI, "decision", "ask", "--kind", "question", "--question", "After?"], { cwd: folder, env: { PATH: process.env.PATH ?? "" } });
+	const asker = spawn(process.execPath, [CLI, "decision", "ask", "--kind", "question", "--question", "After?"], { cwd: folder, env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 	let out = "";
 	asker.stdout.on("data", (chunk) => (out += chunk));
 	asker.stderr.on("data", (chunk) => (out += chunk));

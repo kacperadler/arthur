@@ -3535,9 +3535,9 @@
   {
     "id": "AR0440",
     "title": "A job can read the running Arthur process's secrets from /proc/<pid>/environ",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0440-a-job-can-read-the-running-arthur-process-s-secrets-from-proc-pid-environ/ticket.md",
-    "updated": "2026-10-26T06:23:06.063Z",
+    "updated": "2026-10-26T13:24:58.251Z",
     "after": [
       "AR0350"
     ]
@@ -3603,8 +3603,8 @@
   {
     "id": "AR0448",
     "title": "packages/core/test/machine.test.ts:719 fails now and then on GitHub CI: a job no longer held is copied again (18 !== 16)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0448-packages-core-test-machine-test-ts-719-fails-now-and-then-on-github-ci-a-job-no/ticket.md",
-    "updated": "2026-10-26T13:23:26.640Z"
+    "updated": "2026-10-26T13:28:55.916Z"
   }
 ]

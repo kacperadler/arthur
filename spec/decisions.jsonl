@@ -203,3 +203,5 @@
 {"record":"answer","id":"AR-D101","time":"2026-10-26T22:53:54+01:00","decided":"AR0463: remove every .git a merge step made or changed, not every untracked one (the coordinator's recommendation, under AR-D98)","picked":1,"words":"always go with your recommendation"}
 {"record":"ask","id":"AR-D102","time":"2026-10-26T22:58:32+01:00","project":"arthur","kind":"merge","question":"AR0400 passed review: merge it?","options":["Merge","Hold"],"recommend":1,"ticket":"AR0400"}
 {"record":"answer","id":"AR-D102","time":"2026-10-26T22:58:32+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}
+{"record":"ask","id":"AR-D103","time":"2026-10-26T23:01:43+01:00","project":"arthur","kind":"budget","question":"AR0463 needs the delivery line budget raised from 1436 to 1500 (+64): raise it?","options":["Raise","Keep"],"recommend":1,"ticket":"AR0463"}
+{"record":"answer","id":"AR-D103","time":"2026-10-26T23:01:44+01:00","decided":"Raise the delivery line budget to 1500 for AR0463 (AR-D61)","picked":1,"words":"IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS"}

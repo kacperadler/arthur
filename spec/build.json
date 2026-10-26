@@ -3421,9 +3421,9 @@
   {
     "id": "AR0434",
     "title": "A secret-named variable only the coordinator's omp holds is no longer redacted by name",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0434-a-secret-named-variable-only-the-coordinator-s-omp-holds-is-no-longer-redacted/ticket.md",
-    "updated": "2026-10-26T22:28:22.481Z"
+    "updated": "2026-10-26T22:30:46.160Z"
   },
   {
     "id": "AR0435",

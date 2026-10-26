@@ -737,13 +737,18 @@ import { checkStructure } from "./structure.ts";
 // AR0400 (F1 of AR0394, a security ticket; its Done means: the prune here keeps the worktree, branch and record as
 // `arthur remote-job prune` does): core 4 more (6325) for that refusal, its comment and its import (job-records.ts, git diff
 // --numstat +4 -0). Nothing was cut.
+// AR0374 (F2 of AR0328, a security ticket; its Done means: a limit on each merge step, as one number in delivery's options):
+// delivery 13 more (1449) for `merge.stepSeconds`, its default and check, the option check walking the table's two options
+// (delivery-options.ts, git diff --numstat +20 -8), and the step killed at it, its result naming the limit (merge-checks.ts +8
+// -7). No step had a limit before, so nothing was cut; the install's limit is the job's timeout (wrapper.ts +2 -2, core unchanged).
 // Merged main (AR0400, AR0433) into AR0434: main's budgets plus AR0434's orchestration 2413 (recounted with wc -l).
 // AR0463 (F2 of AR0457, a security ticket; the owner's raise, AR-D103): delivery 64 more (1500) for the sweep after each merge
 // step of every `.git` below the checkout's top that was not there, the same, before the first step, one line each, with the
 // walk that makes a folder a step hid readable and the removal that gives back a write a step took (merge-checks.ts, git diff
 // --numstat +68 -4). Nothing removed a step's nested repository before, so nothing was cut.
 // Merged main (AR0434) into AR0463: main's budgets plus AR0463's delivery 1500 (recounted with wc -l).
-const BUDGETS = { core: 6325, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1500, github: 659, manage: 928, develop: 706, findings: 254 };
+// Merged main (AR0434, AR0463) into AR0374: main's budgets plus AR0374's delivery 1513 (recounted with wc -l).
+const BUDGETS = { core: 6325, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1513, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

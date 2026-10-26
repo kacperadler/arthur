@@ -42,3 +42,4 @@ Out:
 - 2026-10-25: Source: F1 of AR0428
 - 2026-10-25: AR0434 approved under AR-D31, group 2; the owner: "always go with recommendation till the 8 am morning" (AR-D40)
 - 2026-10-26: Raise the orchestration line budget to 2413 for AR0434 (AR-D61); the owner: "IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS" (AR-D104)
+- 2026-10-26: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D74)

@@ -3565,9 +3565,9 @@
   {
     "id": "AR0443",
     "title": "A job's scope marks it only for a home that holds its record, so a config of the job's own is a coordinator's",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0443-a-job-s-scope-marks-it-only-for-a-home-that-holds-its-record-so-a-config-of-the/ticket.md",
-    "updated": "2026-10-26T15:59:11.329Z",
+    "updated": "2026-10-26T16:03:31.466Z",
     "after": [
       "AR0440"
     ]
@@ -3647,5 +3647,12 @@
     "status": "dropped",
     "path": "spec/features/AR0452-arthur-take-main-takes-an-owner-s-decision-of-another-project/ticket.md",
     "updated": "2026-10-26T13:53:32.390Z"
+  },
+  {
+    "id": "AR0453",
+    "title": "A test's sandboxed job walks the whole temporary folder to hide its env file",
+    "status": "dropped",
+    "path": "spec/features/AR0453-a-test-s-sandboxed-job-walks-the-whole-temporary-folder-to-hide-its-env-file/ticket.md",
+    "updated": "2026-10-26T16:03:46.514Z"
   }
 ]

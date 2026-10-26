@@ -41,3 +41,4 @@ Out:
 ## Decisions
 
 - 2026-10-26: Source: F1 of AR0354
+- 2026-10-26: Plan approved by the owner: plan.md at 9aa33d40; the owner: "AR-D77 - 1" (AR-D77)

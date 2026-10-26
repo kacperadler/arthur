@@ -66,7 +66,8 @@ export type Host = {
 	// The core's `agent.command`, the agent a plugin starts outside a job (orchestration's coordinator).
 	readonly agent: string;
 	// The sandbox of branch code a plugin runs outside a job, as a job's install runs in (delivery's checks on main): a function
-	// from a shell command to the command and arguments that run it by `sh -c` writing only in `folder`, the package managers'
+	// from a shell command to the command and arguments that run it by `sh -c` writing only in the checkout `folder` (each
+	// entry but `.git`, Arthur's home, config and env file; of `.git` its objects, refs, logs and index), the package managers'
 	// caches, the temporary folder and `/dev`, reading every file but the env file, and no other process's environment; where it
 	// cannot be set up, `note` gets one line, `no sandbox: <why>; each step writes wherever Arthur's user can`, and it runs bare.
 	sandbox(folder: string, note: (line: string) => void): (command: string) => [string, string[]];

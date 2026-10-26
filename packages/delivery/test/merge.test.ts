@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, jobSlice, temporaryFolder } from "@arthur/core/testing";
 import { delivery } from "../src/delivery.ts";
 
 const PATH = process.env.PATH ?? "";
@@ -23,7 +23,8 @@ const OWNER = "AC-D1";
 // `projects.install` answers `answer` (`installAs` sets it, an Error thrown), each request noted in `installs` with main's HEAD;
 // `decision.owner` answers as orchestration does, "" for OWNER, each request noted in `owner`.
 // `worker(files)` runs a worker on AC0001 that commits `files`; `review(job, message)` runs a review ending on `message`;
-// `merge(...args)` runs `arthur merge` as the CLI does, a throw being `arthur merge: <message>` and exit code 1.
+// `merge(...args)` runs `arthur merge` as the CLI does, a throw being `arthur merge: <message>` and exit code 1; an `uncapped:`
+// line, there only on a host without a user manager, goes to `uncapped`, apart from its other lines.
 async function load(t: TestContext) {
 	const root = join(temporaryFolder(), "acme");
 	const tickets = [["AC0001", "Shop"], ["AC0002", "Cart", ["AC0001"]], ["AC0003", "Pay", ["AC0001", "AC0002"]]] as const;
@@ -91,9 +92,10 @@ async function load(t: TestContext) {
 		await ended(job.id);
 		return { id: job.id, branch: job.branch ?? "", worktree: job.worktree, tip: commit(job.worktree, changes) };
 	};
+	const uncapped: string[] = [];
 	const run = async (name: string, args: readonly string[]) => {
 		const [out, err] = [[] as string[], [] as string[]];
-		t.mock.method(console, "log", (text: string) => out.push(text));
+		t.mock.method(console, "log", (text: string) => (text.startsWith("uncapped: ") ? uncapped : out).push(text));
 		t.mock.method(console, "error", (text: string) => err.push(text));
 		const code = await Promise.try(() => fake.commands.find((each) => each.name === name)?.run({ args, project: undefined })).catch((error: Error) => (err.push(`arthur ${name}: ${error.message}`), 1));
 		t.mock.restoreAll();
@@ -107,7 +109,7 @@ async function load(t: TestContext) {
 	};
 	const head = () => git(root, "rev-parse", "HEAD");
 	const status = (id: string) => fake.host.board.get(id)?.status;
-	return { root, fake, git, commit, take, worker, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, owner, installAs: (next: string | Error) => void (answer = next) };
+	return { root, fake, git, commit, take, worker, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, owner, installAs: (next: string | Error) => void (answer = next), uncapped };
 }
 
 test("a branch with a PASS on its tip goes in: checks pass, its review filed, outcome.md written, the ticket merged, the tickets it unblocks named", async (t) => {
@@ -150,6 +152,41 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 	assert.match(readFileSync(join(root, "CHANGELOG.md"), "utf8"), new RegExp(`\n## \\d{4}-\\d{2}-\\d{2}\n\n### Other\n\n- AC0001 Shop \\(${hash}\\)\n$`), "rebuilt from outcome.md");
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "ticket-moved").at(-1)?.data, { id: "AC0001", project: "acme", from: "done", to: "merged" });
 	assert.equal((await merge(job.id)).err, `arthur merge: AC0001 is merged; a merge is of a ticket in-progress, review or done`);
+});
+
+// The checks on main, of a branch whose `test` script notes its cgroup and forks a sleeper out of its process group, noting its pid.
+async function forkingTest(t: TestContext) {
+	const loaded = await load(t);
+	const noted = temporaryFolder();
+	const fork = `cat /proc/self/cgroup > '${noted}/cgroup' 2>/dev/null\nsetsid sh -c 'echo $$ > "${noted}/sleeper"; exec sleep 300' </dev/null >/dev/null 2>&1 &\nwhile [ ! -s '${noted}/sleeper' ]; do sleep 0.02; done\n`;
+	const job = await loaded.worker({ "fork.sh": fork, "package.json": JSON.stringify({ scripts: { test: "sh fork.sh" } }) });
+	await loaded.review(job.id, "Clean.\n\nPASS");
+	const merged = await loaded.merge(job.id);
+	assert.equal(merged.code, undefined, merged.err);
+	const sleeper = Number(readFileSync(join(noted, "sleeper"), "utf8"));
+	t.after(() => void spawnSync("kill", ["-9", String(sleeper)]));
+	return { merged, uncapped: loaded.uncapped, sleeper, cgroup: readFileSync(join(noted, "cgroup"), "utf8") };
+}
+// A process that runs, not gone and no zombie.
+const running = (pid: number) => !/^\d+ \(.*\) Z /.test(existsSync(`/proc/${pid}/stat`) ? readFileSync(`/proc/${pid}/stat`, "utf8") : `${pid} (gone) Z `);
+const manager = spawnSync("systemctl", ["--user", "show-environment"]).status === 0;
+
+test("each step on main runs in a scope of its own under the jobs' slice, and what it leaves running is gone once the merge printed its last line", { skip: !manager && "no systemd user manager" }, async (t) => {
+	const { uncapped, sleeper, cgroup } = await forkingTest(t);
+	assert.deepEqual(uncapped, []);
+	assert.match(cgroup, new RegExp(`^0::/.*/${jobSlice.slice}\\.slice/arthur-merge-${process.pid}-\\d+\\.scope$`, "m"));
+	assert.equal(running(sleeper), false, `the sleeper ${sleeper} still runs`);
+});
+
+test("without a user manager the steps on main run bare, which one uncapped line says, and pass as usual", async (t) => {
+	const saved = { XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR, DBUS_SESSION_BUS_ADDRESS: process.env.DBUS_SESSION_BUS_ADDRESS };
+	t.after(() => Object.assign(process.env, saved));
+	process.env.XDG_RUNTIME_DIR = temporaryFolder();
+	delete process.env.DBUS_SESSION_BUS_ADDRESS;
+	const { merged, uncapped } = await forkingTest(t);
+	assert.match(merged.out, /\nbun install --frozen-lockfile: passed\.\nnpm test: passed\.\n/);
+	assert.equal(uncapped.length, 1, uncapped.join("\n"));
+	assert.match(uncapped[0] ?? "", /^uncapped: no systemd scope \(.+\); the steps run bare, outside the jobs' slice, and what they leave behind is not killed$/);
 });
 
 test("the review's checkout and the merge run no hook and no fsmonitor that the repository's shared config names", async (t) => {

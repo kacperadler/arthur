@@ -110,6 +110,18 @@ test("a job that forks a daemon leaves nothing running once its state is final, 
 	await until("the scope's end", () => show(`arthur-job-${job.id}.scope`, "ActiveState") === "inactive");
 });
 
+test("a prepare's install runs in the job's scope before the agent, and a daemon it forks is gone once the job ends", needsManager, async () => {
+	const folder = temporaryFolder();
+	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }));
+	const daemon = `setsid sh -c 'echo $$ > "${folder}/daemon"; exec sleep 300' </dev/null >/dev/null 2>&1 &`;
+	jobs.prepare("projects", () => ({ ARTHUR_INSTALL: `cat /proc/self/cgroup > '${folder}/cgroup'; ${daemon} while [ ! -s '${folder}/daemon' ]; do sleep 0.02; done` }));
+	const job = await jobs.spawn({ task: "Go." });
+	assert.deepEqual((await ended(home)).data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
+	assert.ok(read(join(folder, "cgroup"))?.endsWith(`/${jobSlice.slice}.slice/arthur-job-${job.id}.scope`), `the install: ${read(join(folder, "cgroup"))}`);
+	const pid = Number(read(join(folder, "daemon")));
+	assert.ok(!running(pid), `the daemon ${pid} still runs`);
+});
+
 test("a record deleted while the job runs kills the daemon its agent forked as well", needsManager, async () => {
 	const gate = join(temporaryFolder(), "gate");
 	const { agent, daemon } = forking({ steps: [{ waitFor: gate }, { message: "Still here.", stopReason: "toolUse" }, { waitFor: join(gate, "never") }] });

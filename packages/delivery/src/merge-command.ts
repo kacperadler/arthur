@@ -6,7 +6,7 @@ import type { Command, Host, JobRecord, Requirement } from "@arthur/core/plugin"
 import { autoRefusal, ciRefusal } from "./auto-merge.ts";
 import { writeChangelog } from "./changelog.ts";
 import { endWait } from "./ci-wait.ts";
-import { failed, mainChecks, reinstall } from "./merge-checks.ts";
+import { failed, mainChecks, reinstall, stepRunner } from "./merge-checks.ts";
 import { settleTicket } from "./merge-outcome.ts";
 import { FEATURE } from "./review-command.ts";
 import { reviewsOf } from "./review-records.ts";
@@ -110,7 +110,8 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 	const hash = git("rev-parse", "--short", "HEAD").stdout.trim();
 	console.log(`merged ${job.branch} into ${main}: ${hash}`);
 	const ask = { install: (commit: string) => host.call<string>("projects.install", { project: job.project, commit }), path: () => host.collect<string>("nvm.path", { root })[0] ?? "" };
-	const steps = mainChecks(root, ask, console.log);
+	const run = stepRunner(root, host.jobs.slice, console.log);
+	const steps = mainChecks(root, ask, run, console.log);
 	if (steps.length === 0) console.log("no checks: package.json declares no check or test script");
 	const failing = steps.filter(failed).map((each) => each.command);
 	if (failing.length > 0) {
@@ -119,7 +120,7 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 		const refusal = configRefusal(root);
 		const reset = refusal === "" ? git("reset", "--quiet", "--keep", before) : { status: 1, stdout: "", stderr: refusal };
 		if (reset.status !== 0) throw new Error(`check failed on main (${failing.join(", ")}), and main could not be reset to ${before.slice(0, 7)}: ${last(reset)}`);
-		throw new Error(`check failed on main (${failing.join(", ")}); main reset to ${before.slice(0, 7)}, branch kept${reinstall(root, ask, steps, console.log)}`);
+		throw new Error(`check failed on main (${failing.join(", ")}); main reset to ${before.slice(0, 7)}, branch kept${reinstall(ask, run, steps, console.log)}`);
 	}
 	endWait(host, job.id);
 	if (ticket === undefined || folder === undefined) console.log("no ticket: no outcome.md, nothing moved");

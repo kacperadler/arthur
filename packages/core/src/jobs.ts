@@ -20,9 +20,7 @@ import { pickModel } from "./job-model.ts";
 import type { Board } from "./board.ts";
 import { fileJob } from "./ticket-file.ts";
 
-// The job runner's spawn and the job record (spec/roadmap.md, entries 9 and 11). A worker gets its own branch and worktree from
-// HEAD, a read-only kind a detached checkout of HEAD; both live in `.arthur-worktrees/<id>` beside the repository, outside the main
-// checkout and the home folder. The record is `<home>/jobs/<id>/`, one file per key, appearing whole; then the wrapper starts.
+// The job runner's spawn and the job record (spec/roadmap.md, entries 9 and 11). A worker gets its own branch and worktree from HEAD, a read-only kind a detached checkout of HEAD; both live in `.arthur-worktrees/<id>` beside the repository, outside the main checkout and the home folder. The record is `<home>/jobs/<id>/`, one file per key, appearing whole; then the wrapper starts.
 
 // `kind` defaults to `worker`, `project` to the main one; left undefined, `model` and `thinking` are the role's, a limit the kind's; `decision`: the owner's decision id `arthur spawn --budget 0 --decision <id>` names, "" for none, which orchestration's check holds a paid job with no limit to (AR0355).
 export type SpawnRequest = {
@@ -79,11 +77,12 @@ export type Jobs = RoleReads & {
 	beforeSpawn(check: SpawnCheck): void;
 	// After the worktree and the record exist, before the agent starts; a throw removes both and refuses the spawn; it runs here, on another machine through `run`. Variables it returns go into the job's environment only (job-scope.ts), never its record, and reach the prepares after it, in setup order, as `env`. `arthur continue` runs it again on the job its record holds, `continued` true, for its variables only: a throw refuses the continue, and a step that sets up the worktree returns at once.
 	prepare(fn: Prepare): void;
-	// Machines jobs run on over SSH, `local` the core's; `run`: one command on one, `input` on its stdin; `machines`: every name; `home`: Arthur's home folder on one (docs/commands/spawn.md).
+	// Machines jobs run on over SSH, `local` the core's; `run`: one command on one, `input` on its stdin; `machines`: every name; `home`: Arthur's home folder on one (docs/commands/spawn.md); `slice`: the jobs' systemd slice without `.slice`, `arthur-jobs`, a test kit's own under the fake host.
 	registerMachine(machine: Machine): void;
 	run(machine: string, argv: readonly string[], limitSeconds?: number, input?: string): Promise<Ran>;
 	machines(): string[];
 	home(machine: string): string;
+	readonly slice: string;
 	spawn(request: SpawnRequest): Promise<Started>;
 	// `arthur continue` of an ended job with a branch, `budgetUsd` replacing its budget, `decision` as its `--decision` (AR0355); resolves to why its wrapper did not start (job-control.ts).
 	continue(id: string, instruction: string, budgetUsd?: number, decision?: string): Promise<string | undefined>;
@@ -100,7 +99,7 @@ export type Jobs = RoleReads & {
 };
 
 // The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for; `sweep`: dead jobs here, then the copy from every other machine.
-export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run" | "machines" | "home" | "prompt" | "vision" | "criteria" | "registerExtension"> & {
+export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run" | "machines" | "home" | "slice" | "prompt" | "vision" | "criteria" | "registerExtension"> & {
 	registerKind(owner: string, kind: Kind): void;
 	registerRole(owner: string, role: Role): void;
 	beforeSpawn(owner: string, check: SpawnCheck): void;
@@ -136,6 +135,7 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 		run: (machine, argv, limitSeconds, input) => machines.run(machine, argv, limitSeconds, input),
 		machines: () => [LOCAL, ...machines.others().map((machine) => machine.name)],
 		home: (name) => machines.home(name),
+		slice: limits.slice,
 		roles: (project) => describeRoles(roles, kinds.all(), where(project), collect),
 		continue: (id, instruction, budgetUsd, ignoreRestart = false, decision) =>
 			continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), { check: async (job) => ({ mcp: kinds.get(job.kind) && (await roleModel(collect, kinds.get(job.kind)!.role)).mcp, caps: await jobCaps(collect("jobs.limits", [{ ...job, ignoreRestart }])), release: await checks.pass({ ...job, ignoreRestart, ...(job.free || decision === undefined ? {} : { decision }) }) }), prepare: (job) => prepared({ ...job, ignoreRestart }, true) }, machines.of(id)),

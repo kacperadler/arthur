@@ -3120,9 +3120,9 @@
   {
     "id": "AR0400",
     "title": "`arthur prune` of a job here runs a clean filter the main checkout's config or the job worktree's own names",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0400-arthur-prune-of-a-job-here-runs-a-clean-filter-the-main-checkout-s-config-or-the-job-worktree-s-own-names/ticket.md",
-    "updated": "2026-10-26T21:40:58.224Z"
+    "updated": "2026-10-26T21:41:26.198Z"
   },
   {
     "id": "AR0401",
@@ -3414,16 +3414,16 @@
   {
     "id": "AR0433",
     "title": "A plugin's wake line built from the final message is not redacted",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0433-a-plugin-s-wake-line-built-from-the-final-message-is-not-redacted/ticket.md",
-    "updated": "2026-10-26T21:40:59.393Z"
+    "updated": "2026-10-26T21:49:11.638Z"
   },
   {
     "id": "AR0434",
     "title": "A secret-named variable only the coordinator's omp holds is no longer redacted by name",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0434-a-secret-named-variable-only-the-coordinator-s-omp-holds-is-no-longer-redacted/ticket.md",
-    "updated": "2026-10-26T21:41:00.612Z"
+    "updated": "2026-10-26T21:45:03.429Z"
   },
   {
     "id": "AR0435",

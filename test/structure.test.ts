@@ -706,7 +706,10 @@ import { checkStructure } from "./structure.ts";
 // 1); delivery 24 more (1361) for each step of the merge in a transient scope under that slice, stopped after it, and the
 // probe with its one `uncapped:` line (merge-checks.ts +33 -10, merge-command.ts +4 -3); projects 4 fewer (482), its install
 // handed to the wrapper instead of run through `jobs.run` (install.ts +7 -11). Nothing ran these in a scope before.
-const BUDGETS = { core: 6228, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1361, github: 659, manage: 928, develop: 706, findings: 254 };
+// AR0441 (F1 of AR0361; its Done means allow the raise, AR-D29): delivery 68 more (1429) for the stray-commit check listing from
+// the last merge `arthur merge` made, recorded after each merge that went in, and `arthur take-main` writing it on the owner's
+// decision (take-main.ts, 59; merge-command.ts, git diff --numstat +12 -5; delivery.ts +2). Nothing recorded a merge before.
+const BUDGETS = { core: 6228, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1429, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

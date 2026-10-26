@@ -2879,9 +2879,9 @@
   {
     "id": "AR0373",
     "title": "The install of a new worktree and the merge's steps run outside every job scope, with lifecycle scripts on (AR0311 F14, confirmed)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0373-the-install-of-a-new-worktree-and-the-merge-s-steps-run-outside-every-job-scope-with-lifecycle-scripts-on-ar0311-f14-confirmed/ticket.md",
-    "updated": "2026-10-26T12:45:19.604Z",
+    "updated": "2026-10-26T12:50:48.391Z",
     "after": [
       "AR0335"
     ]
@@ -3592,5 +3592,12 @@
     "status": "dropped",
     "path": "spec/features/AR0446-doctor-s-env-file-fix-text-names-the-default-place-even-when-xdg-config-home/ticket.md",
     "updated": "2026-10-26T10:52:13.149Z"
+  },
+  {
+    "id": "AR0447",
+    "title": "An `arthur merge` an agent runs never gets a scope of its own",
+    "status": "dropped",
+    "path": "spec/features/AR0447-an-arthur-merge-an-agent-runs-never-gets-a-scope-of-its-own/ticket.md",
+    "updated": "2026-10-26T12:51:10.911Z"
   }
 ]

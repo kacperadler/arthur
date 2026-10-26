@@ -3414,9 +3414,9 @@
   {
     "id": "AR0433",
     "title": "A plugin's wake line built from the final message is not redacted",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0433-a-plugin-s-wake-line-built-from-the-final-message-is-not-redacted/ticket.md",
-    "updated": "2026-10-26T21:49:11.638Z"
+    "updated": "2026-10-26T21:50:09.114Z"
   },
   {
     "id": "AR0434",

@@ -45,3 +45,4 @@ Out:
 ## Decisions
 
 - 2026-10-26: Source: F2 of AR0457
+- 2026-10-26: AR0463: remove every .git a merge step made or changed, not every untracked one (the coordinator's recommendation, under AR-D98); the owner: "always go with your recommendation" (AR-D101)

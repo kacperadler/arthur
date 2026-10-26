@@ -24,26 +24,27 @@ type Owner = { readonly prefix: string; readonly owner: string };
 const VARIABLE = /^[A-Z][A-Z0-9_]*$/;
 const KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-// Refuses the start: every problem and every missing variable, one line each, naming the option and the variable.
-export function resolveEnv(config: LoadedConfig, shell: Shell = process.env): Pick<EnvCheck, "values" | "warnings"> {
-	const check = checkEnv(config, shell);
+// Refuses the start: every problem and every missing variable, one line each, naming the option and the variable. In a job
+// (`inJob`) the env file is not read, and a missing variable is no refusal: `unset` names each plugin with one.
+export function resolveEnv(config: LoadedConfig, shell: Shell = process.env, inJob = false): Pick<EnvCheck, "values" | "warnings"> & { readonly unset: ReadonlySet<string> } {
+	const check = checkEnv(config, shell, inJob);
 	const where = `${config.core.envFile}${check.envFileFound ? "" : ", which does not exist"}`;
 	const missing = check.variables
 		.filter((variable) => !variable.set)
 		.map((variable) => `${config.path}: ${variable.option}: ${variable.name} is missing: not in the shell nor in ${where}`);
-	const problems = [...check.problems, ...missing];
+	const problems = [...check.problems, ...(inJob ? [] : missing)];
 	if (problems.length > 0) throw new Error(problems.join("\n"));
-	return { values: check.values, warnings: check.warnings };
+	return { values: check.values, warnings: check.warnings, unset: new Set(check.variables.filter((variable) => !variable.set).map((variable) => variable.plugin)) };
 }
 
 // An entry of the plugin list that the host refuses (`checkPlugins`) is skipped: its refusal is the host's. So is a second plugin of a name.
-export function checkEnv(config: LoadedConfig, shell: Shell = process.env): EnvCheck {
+export function checkEnv(config: LoadedConfig, shell: Shell = process.env, inJob = false): EnvCheck {
 	const problems: string[] = [];
 	const plugins = config.plugins
 		.map(asPlugin)
 		.filter((plugin) => typeof plugin !== "string")
 		.filter((plugin, index, all) => all.findIndex((other) => other.name === plugin.name) === index);
-	const file = readEnvFile(config.core.envFile);
+	const file = inJob ? { values: new Map<string, string>(), problems: [], warnings: [], found: false } : readEnvFile(config.core.envFile);
 	problems.push(...file.problems);
 	const enabled = plugins.filter((plugin) => plugin.options?.enabled !== false).map((plugin) => ({ plugin, found: [] as Found[] }));
 	for (const { plugin, found } of enabled) findEnv(plugin.options, "", undefined, found);

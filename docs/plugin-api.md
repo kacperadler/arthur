@@ -64,6 +64,7 @@ What `setup` gets, one host per plugin. `@arthur/core/testing`'s `fakeHost` give
 | `jobs.run(machine, argv, limitSeconds?, input?)` | One command on a registered machine, `input` on its stdin; resolves to a `Ran`. |
 | `jobs.machines()` | The names of the registered machines. |
 | `jobs.home(machine)` | Arthur's home folder on a registered machine, the core's own on `local`; refused for a name no plugin registers (above, "Changes since entry 51"). |
+| `jobs.slice` | The name of the jobs' systemd slice without `.slice`: `arthur-jobs`, the test kit's own (`jobSlice`) under `fakeHost` (above, "Changes since entry 51"). |
 | `jobs.spawn(request)` | A job from a `SpawnRequest`; resolves to `Started` once its wrapper started. |
 | `jobs.continue(id, instruction, budgetUsd?)` | `arthur continue` of an ended job with a branch, `budgetUsd` replacing its budget, through every `beforeSpawn` and `prepare` as at the CLI; resolves to why its wrapper did not start, undefined once it started (above, "Changes since entry 51"). |
 | `jobs.block(id, reason, stop?)` | Holds a job in a run `blocked` on `dependency: <reason>` until its run ends; with `stop`, on `user: <reason>`, and stops the run, resolving once it is over. Refused for an empty reason and a job not in a run. |
@@ -116,6 +117,7 @@ Each decided in the ticket that made it.
 - AR0380 (its Done means: the repository's own Git config checked against an allowed set before `arthur merge` and a push, which delivery and github make): the module `@arthur/core/git-config`, `configRefusal(root)`, the one check the core's own checkout and push share with those plugins, so the allowed set is kept once. No host member changed.
 - AR0340 (F4 of AR0319; its Done means name `host.secrets`): `secrets`, every enabled plugin's set `...Env` values, so a plugin redacts a value of the env file, which Arthur's own environment never holds. The session plugin's notices and orchestration's inbox notice and decision log redact them, besides their own shape rules. The test kit's host gives its own `env` values as `secrets`.
 - AR0354 (F2 of AR0323; its Done means name one function in the core): the module `@arthur/core/inside-job`, `insideJob(home)`, the mark of a job that its shell cannot clear under systemd; the CLI's `inJob` gate and the refusals of `decision`, `youtrack`, `plugin new`, `schedule`, `ci --rerun` and `remote-job` ask it in place of `ARTHUR_JOB`. No host member changed.
+- AR0373 (AR0311 F14; its Done means: the install of a new worktree and the merge's steps run inside a job scope): `jobs.slice`, the jobs' slice, which no member gave a plugin, so delivery runs each step of `arthur merge` in a transient scope under it (`systemd-run --user --scope --slice=<slice>.slice`) and a test's merge stays out of Arthur's own slice. A prepare's variable `ARTHUR_INSTALL` is a command the job's wrapper runs first, inside the job's scope; the projects plugin's install returns it instead of running through `jobs.run` (`arthur spawn --help`).
 
 ## Types
 

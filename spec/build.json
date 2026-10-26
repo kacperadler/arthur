@@ -3700,11 +3700,18 @@
   {
     "id": "AR0460",
     "title": "A plugins page on the site, with a page for each plugin",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0460-a-plugins-page-on-the-site-with-a-page-for-each-plugin/ticket.md",
-    "updated": "2026-10-26T19:06:26.682Z",
+    "updated": "2026-10-26T19:10:41.168Z",
     "after": [
       "AR0459"
     ]
+  },
+  {
+    "id": "AR0461",
+    "title": "test/readme.test.ts reads the real env file, and fails inside a job",
+    "status": "planning",
+    "path": "spec/features/AR0461-test-readme-test-ts-reads-the-real-env-file-and-fails-inside-a-job/ticket.md",
+    "updated": "2026-10-26T19:10:41.161Z"
   }
 ]

@@ -2983,7 +2983,7 @@
     "title": "The user's systemd folder is guarded at `~/.config/systemd` only, not at `$XDG_CONFIG_HOME/systemd`",
     "status": "done",
     "path": "spec/features/AR0388-the-user-s-systemd-folder-is-guarded-at-config-systemd-only-not-at-xdg-config-home-systemd/ticket.md",
-    "updated": "2026-10-26T23:35:06.422Z"
+    "updated": "2026-10-26T23:36:45.498Z"
   },
   {
     "id": "AR0389",

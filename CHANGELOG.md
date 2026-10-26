@@ -2,6 +2,13 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-27
+
+### Fixed
+
+- AR0374 The install at a spawn and each step of the merge have no time limit (a5779445)
+- AR0388 The user's systemd folder is guarded at `~/.config/systemd` only, not at `$XDG_CONFIG_HOME/systemd` (2bc30f66)
+
 ## 2026-10-26
 
 ### Fixed

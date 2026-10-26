@@ -98,7 +98,7 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	assert.equal(read(home, job.id, "machine"), "gpu");
 	assert.equal(read(there, job.id, "root"), repository);
 	// There no config exists: its record guards Arthur's install there and the user's own files only.
-	// A second `gitxdg` line, for an `XDG_CONFIG_HOME` the tests run with, is the same key.
+	// A second `systemd` and `gitxdg` line, for an `XDG_CONFIG_HOME` the tests run with, is the same key.
 	const keys = (folder: string) => [...new Set(read(folder, job.id, "guarded").split("\n").map((line) => line.split(" ")[0]))];
 	assert.deepEqual([keys(home), keys(there)], [["config", "env", "install", "ssh", "systemd", "gitconfig", "gitxdg"], ["install", "ssh", "systemd", "gitconfig", "gitxdg"]]);
 	for (const call of calls()) assert.match(call, /^-o BatchMode=yes -o StrictHostKeyChecking=yes .*gpu /, "every step runs through ssh's batch mode, host key checked");

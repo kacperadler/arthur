@@ -724,7 +724,12 @@ import { checkStructure } from "./structure.ts";
 // AR0442 (F2 of AR0361; AR-D78, under AR-D61): delivery 2 more (1436) for the stray-commit refusal naming at most 10 commits,
 // then `and <k> more`, with its comment (merge-command.ts, git diff --numstat +4 -2). Nothing capped the list before.
 // Merged main (AR0442) into AR0443: main's budgets plus AR0443's raise, core 6269, delivery 1436 (recounted with wc -l).
-const BUDGETS = { core: 6269, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1436, github: 659, manage: 928, develop: 706, findings: 254 };
+// AR0449 (AR0440's Risks and Open questions; AR-D63, a core raise by policy): core 27 more (6296) for branch code outside the
+// agent in a sandbox: the job's install (job-install.ts, git diff --numstat +6 -5) and each step of a merge through
+// `host.sandbox` (plugin.ts +5, plugin-host.ts +5 -1), the sandbox's start built once for several commands with its subject in
+// the log's line, the package managers' caches and the plugins' step sandbox (job-sandbox.ts +24 -7). Nothing ran them sandboxed
+// before, so nothing was cut; delivery takes `host.sandbox` within its budget (merge-checks.ts +6 -6).
+const BUDGETS = { core: 6296, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1436, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

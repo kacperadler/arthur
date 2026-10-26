@@ -16,10 +16,10 @@ type Run = (command: string, env: NodeJS.ProcessEnv) => SpawnSyncReturns<string>
 // Up to 64 MiB of a step's output is read, a whole test run's.
 const MAX_BUFFER = 64 * 2 ** 20;
 
-// How the steps of one merge run in `root` (AR0373): each in a transient scope of its own under the jobs' slice `slice`, as a
-// job runs, stopped once the step ended, so what its scripts leave behind is killed; with no user manager to make one (the
-// probe's systemd-run fails), bare, which one `uncapped:` line says.
-export function stepRunner(root: string, slice: string, log: (line: string) => void): Run {
+// How the steps of one merge run in `root` (AR0373): each in the sandbox `sandbox` starts it in (`host.sandbox`, AR0449) and a transient scope of its own
+// under the jobs' slice `slice`, as a job runs, stopped once the step ended, so what its scripts leave behind is killed; with no
+// user manager to make one (the probe's systemd-run fails), out of a scope, which one `uncapped:` line says.
+export function stepRunner(root: string, slice: string, sandbox: (command: string) => [string, string[]], log: (line: string) => void): Run {
 	const scope = (unit: string) => ["--user", "--scope", "--quiet", "--collect", `--slice=${slice}.slice`, `--unit=${unit}`, "-p", "KillSignal=SIGKILL", "--"];
 	const probe = spawnSync("systemd-run", [...scope(`arthur-merge-${process.pid}-0.scope`), "true"], { encoding: "utf8" });
 	const bare = probe.error?.message ?? (probe.status === 0 ? undefined : probe.stderr.trim().split("\n")[0] || `systemd-run exited ${probe.status ?? probe.signal}`);
@@ -27,10 +27,10 @@ export function stepRunner(root: string, slice: string, log: (line: string) => v
 	let count = 0;
 	return (command, env) => {
 		const options = { cwd: root, env, encoding: "utf8", maxBuffer: MAX_BUFFER } as const;
-		if (bare !== undefined) return spawnSync("sh", ["-c", command], options);
+		if (bare !== undefined) return spawnSync(...sandbox(command), options);
 		const unit = `arthur-merge-${process.pid}-${++count}.scope`;
 		try {
-			return spawnSync("systemd-run", [...scope(unit), "sh", "-c", command], options);
+			return spawnSync("systemd-run", [...scope(unit), ...sandbox(command).flat()], options);
 		} finally {
 			spawnSync("systemctl", ["--user", "stop", unit], { stdio: "ignore" });
 		}

@@ -132,7 +132,7 @@ export function fakeHost(plugin: {
 	const time = clock(plugin.timeZone ?? "UTC", plugin.quietHours, () => new Date(now));
 	const jobs = jobRunner(home, plugin.root ?? home, join(plugin.root ?? home, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, "omp", time, bus, names.collect);
 	let loading = false, following = false;
-	const real = pluginHost(names, registered, bus, jobs, { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, secrets: Object.values(plugin.env ?? {}), folder, clock: time, agent: "omp", code: plugin.code ?? [], package: undefined }, () => loading);
+	const real = pluginHost(names, registered, bus, jobs, join(plugin.root ?? home, "env"), { name: plugin.name, options: plugin.options ?? {}, env: plugin.env ?? {}, secrets: Object.values(plugin.env ?? {}), folder, clock: time, agent: "omp", code: plugin.code ?? [], package: undefined }, () => loading);
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));
 	const [provided, calls, commands, kinds, roles] = [[] as string[], [] as Use[], [] as Command[], [] as Kind[], [] as Role[]];
 	const host: Host = {

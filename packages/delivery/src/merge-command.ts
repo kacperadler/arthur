@@ -121,7 +121,7 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 	const hash = git("rev-parse", "--short", made).stdout.trim();
 	console.log(`merged ${job.branch} into ${main}: ${hash}`);
 	const ask = { install: (commit: string) => host.call<string>("projects.install", { project: job.project, commit }), path: () => host.collect<string>("nvm.path", { root })[0] ?? "" };
-	const run = stepRunner(root, host.jobs.slice, console.log);
+	const run = stepRunner(root, host.jobs.slice, host.sandbox(root, console.log), console.log);
 	const steps = mainChecks(root, ask, run, console.log);
 	if (steps.length === 0) console.log("no checks: package.json declares no check or test script");
 	const failing = steps.filter(failed).map((each) => each.command);

@@ -81,11 +81,12 @@ export function hidden(record: string): string[] {
 	return text.split("\n").filter((line) => line.startsWith("env /")).map((line) => line.slice(4));
 }
 
-// The command and arguments that start `agent` with `argv` in the sandbox over `paths`, reading every file but `hidden`, the log
-// told which (`note`); on a host where it cannot be set up (not Linux, no `python3`, a kernel without Landlock), or for an agent
-// the sandbox's shell does not find, which then fails to start as it would bare, the agent's own, the log told why. The probe
-// that tells which hides nothing: it only finds the agent, and the walk of a crowded folder above `hidden` costs.
-export function sandboxed(paths: readonly string[], hidden: readonly string[], agent: string, argv: readonly string[], note: (line: string) => void): [string, string[]] {
+// The sandbox over `paths`, reading every file but `hidden`, for `agent`, `who` in the log's line (`note`): a function from its
+// arguments to the command and arguments that start it there; on a host where it cannot be set up (not Linux, no `python3`, a
+// kernel without Landlock), or for an agent the sandbox's shell does not find, which then fails to start as it would bare, to
+// the agent's own, the log told why. The probe that tells which hides nothing: it only finds the agent, and the walk of a
+// crowded folder above `hidden` costs.
+export function sandboxed(paths: readonly string[], hidden: readonly string[], agent: string, note: (line: string) => void, who = "the agent"): (argv: readonly string[]) => [string, string[]] {
 	const prefix = ["-I", "-c", SCRIPT, ...paths, "--"];
 	const probe = process.platform === "linux" ? spawnSync("python3", [...prefix, "--", "/bin/sh", "-c", 'command -v "$1" || exit 127', "sh", agent], { encoding: "utf8" }) : undefined;
 	const why =
@@ -95,6 +96,22 @@ export function sandboxed(paths: readonly string[], hidden: readonly string[], a
 		: probe.status === 127 ? `the agent ${agent} is not there`
 		: probe.stderr.trim().split("\n").at(-1) || `python3 exited ${probe.status ?? probe.signal}`;
 	const reads = hidden.length === 0 ? "" : `, reads every file but ${hidden.join(", ")}`;
-	note(why === undefined ? `sandbox: the agent writes only in ${paths.join(", ")}${reads}, and opens no Unix socket but a datagram one` : `no sandbox: ${why}; the agent writes wherever Arthur's user can`);
-	return why === undefined ? ["python3", [...prefix, ...hidden, "--", agent, ...argv]] : [agent, [...argv]];
+	note(why === undefined ? `sandbox: ${who} writes only in ${paths.join(", ")}${reads}, and opens no Unix socket but a datagram one` : `no sandbox: ${why}; ${who} writes wherever Arthur's user can`);
+	return (argv) => (why === undefined ? ["python3", [...prefix, ...hidden, "--", agent, ...argv]] : [agent, [...argv]]);
+}
+
+// The package managers' caches an install writes besides its folder, where they are by default (docs/commands/spawn.md, "The
+// sandbox"); one not there is skipped, not made, so a first install of that manager outside a job, or `mkdir -p`, makes it.
+export function caches(): string[] {
+	const [home, { XDG_CACHE_HOME, XDG_DATA_HOME }] = [homedir(), process.env];
+	const cache = XDG_CACHE_HOME || join(home, ".cache");
+	return [join(home, ".npm"), join(home, ".bun", "install", "cache"), join(cache, "pnpm"), join(XDG_DATA_HOME || join(home, ".local", "share"), "pnpm"), join(cache, "uv"), join(cache, "composer"), join(home, ".composer", "cache")];
+}
+
+// The sandbox of branch code a plugin runs outside a job (`Host.sandbox`, delivery's checks on main): `sh -c <command>` writing
+// only in `folder`, the caches, the temporary folder and `/dev`, reading every file but the env file `envFile`; `note` is told
+// only where it cannot be set up, once, and each command then runs bare.
+export function stepSandbox(folder: string, envFile: string, note: (line: string) => void): (command: string) => [string, string[]] {
+	const start = sandboxed([folder, ...caches(), tmpdir(), "/dev"], [envFile], "sh", (line) => void (line.startsWith("no sandbox: ") && note(line)), "each step");
+	return (command) => start(["-c", command]);
 }

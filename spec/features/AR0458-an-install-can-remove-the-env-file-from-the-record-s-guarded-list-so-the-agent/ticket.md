@@ -20,21 +20,25 @@ F5 of AR0449 (spec/features/AR0449-the-install-at-a-job-start-and-the-merge-chec
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+Since AR0449 a job's install runs in the sandbox, with the job's record folder among its writable paths (`packages/core/src/wrapper.ts:123`), and the agent's sandbox reads the hidden list again after the install (`hidden(folder)`, `wrapper.ts:128`). An install script that removes the env file's line from the record's guarded list leaves the env file readable to the agent and every tool call of the job.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- The hidden list is read once, before the install, and the same list hides the env file from the install and from the agent; what the install writes to the record cannot change it.
+- A test in `packages/core/test/sandbox.test.ts`: an install that empties the record's guarded list, then an agent that reads the env file, gets `EACCES`, and the job's output holds no secret. It fails before the change. Skipped where the sandbox cannot be set up, as the other Landlock tests.
+- The ticket's checks pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/wrapper.ts`: read `hidden(folder)` once.
+- `packages/core/test/sandbox.test.ts`: the test.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The agent's own writes to its record across a `continue`.
+- A merge step's writes into `.git`: AR0457.
 
 ## Decisions
 

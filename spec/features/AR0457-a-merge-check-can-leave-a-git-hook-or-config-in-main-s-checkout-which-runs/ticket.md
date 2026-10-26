@@ -20,21 +20,26 @@ F4 of AR0449 (spec/features/AR0449-the-install-at-a-job-start-and-the-merge-chec
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+A merge's checks run branch code; since AR0449 they run in a sandbox, but `stepSandbox` (`packages/core/src/job-sandbox.ts:114`) makes all of main's checkout writable, `.git/hooks` and `.git/config` included. A step can plant a hook or a `core.fsmonitor` that the owner's next own git call in that checkout runs outside any sandbox, with the env file readable. The agent's sandbox already writes only `.git`'s objects, refs and logs (`writable` in the same file).
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- Each merge check step can write the checkout's files outside `.git`, and in `.git` only what a build or test needs (objects, refs, logs, index), never `.git/hooks`, `.git/config` or `.git/info`; Arthur's own home and `arthur.config.ts`, where they sit inside the checkout, are not writable either.
+- A test in the delivery or core suite: a step in a set-up sandbox that writes `.git/hooks/post-commit` and runs `git config core.fsmonitor ...` fails with a permission error, and neither file changed after; a step writing an ordinary file in the checkout still works. Skipped, as the other Landlock tests, where the sandbox cannot be set up.
+- The ticket's checks pass; `docs/commands/merge.md` and `docs/deploy.md` name what a step may write.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/job-sandbox.ts` (`stepSandbox`): the writable paths.
+- `packages/core/test/sandbox.test.ts` or `packages/delivery/test/merge-checks.test.ts`: the test.
+- `packages/delivery/docs/commands/merge.md`, `docs/deploy.md`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The shared package caches: AR0454.
+- The install's write to the job record: AR0458.
 
 ## Decisions
 

@@ -20,21 +20,23 @@ F1 of AR0460 (spec/features/AR0460-a-plugins-page-on-the-site-with-a-page-for-ea
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+`test/readme.test.ts:28` runs `arthur config check` with the caller's `XDG_CONFIG_HOME`; without it set, the CLI reads the owner's env file. Inside a job the sandbox hides that file, so the test fails in every job whatever the branch changed (seen by the AR0460 worker; `XDG_CONFIG_HOME=<a temporary folder>` makes it pass).
 
 - Kind: test
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- The test gives the CLI its own `XDG_CONFIG_HOME` under its temporary folder, never the caller's, so it never reads the owner's env file.
+- `node --test test/readme.test.ts` passes inside a job and on the host; it still fails when the README's config example stops passing `config check` (checked once by breaking it).
+- The ticket's checks pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `test/readme.test.ts`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Any other test.
 
 ## Decisions
 

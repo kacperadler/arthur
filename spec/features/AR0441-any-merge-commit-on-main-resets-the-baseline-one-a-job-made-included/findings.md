@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/src/take-main.ts:29`, `packages/delivery/src/merge-command.ts:96`
 - What: as the ticket's Done means asks, `lastMerge` answers undefined when `last-merge` names no ancestor of HEAD, and the check then lists from main's last merge commit, whoever made it. A job that can commit on main can reset main below the last merge `arthur merge` made, commit code and end with a merge of its own (`git merge --no-ff` of an empty commit, as `take()` in `merge.test.ts` makes); the record is then no ancestor, and the next `arthur merge` lists nothing and pushes it. Not run: read from the code path; the fallback itself is exercised by the last lines of the test "only a merge puts code on main".
 - Suggestion: refuse, as for a record off the first-parent line, when `last-merge` exists but names no ancestor of HEAD (`main no longer holds <commit>, the last merge arthur merge made; …`), leaving the fallback to a missing file only; the owner's `arthur take-main` lifts it. Out: projects that never had a record.
-- Status: open
+- Status: fixed in 07d4ed9f
 
 ## F2. `arthur take-main` takes an owner's decision of another project
 

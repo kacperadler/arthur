@@ -11,6 +11,12 @@ export function logoFiles(folder: string): { logo?: string; favicon?: string } {
 	return { logo, favicon: icon ?? logo };
 }
 
+/** The diagram page: no outline on its right, so the diagram gets the page's full width. */
+export function diagramPage(source: string): string {
+	const body = `The source is [\`arthur.mmd\`](${repo}/blob/main/arthur.mmd).\n\n${mermaidHtml(source)}`;
+	return frontmatter({ title: "Diagram", tableOfContents: false, sidebar: { order: 2 } }) + body;
+}
+
 /** Builds every page of the site from the repository's files into `src/content/docs/`, from scratch. */
 if (import.meta.main) {
 	const site = join(import.meta.dirname, "..");
@@ -58,8 +64,7 @@ if (import.meta.main) {
 	];
 	writeFileSync(join(pages, "roadmap.md"), frontmatter({ title: "Roadmap", sidebar: { order: 1 } }) + roadmap.join("\n\n"));
 
-	const diagram = `The source is [\`arthur.mmd\`](${repo}/blob/main/arthur.mmd).\n\n${mermaidHtml(read("arthur.mmd"))}`;
-	writeFileSync(join(pages, "diagram.md"), frontmatter({ title: "Diagram", sidebar: { order: 2 } }) + diagram);
+	writeFileSync(join(pages, "diagram.md"), diagramPage(read("arthur.mmd")));
 
 	if (setup) {
 		const { title, rest } = splitTitle(read("docs/setup.md"), "docs/setup.md");

@@ -168,6 +168,38 @@ test("arthur prune frees a merged worker's worktree, branch and record, and keep
 	assert.deepEqual(jobs.prune([unmerged.id.slice(-8)]), [`${unmerged.id}: branch arthur/${unmerged.id} deleted; record deleted`]);
 });
 
+test("arthur prune keeps a job's worktree, branch and record while the worktree reads a key that may name a program, from the shared config or its own", async () => {
+	const { root, home, jobs } = setup();
+	const job = await worker(jobs, home);
+	// A file a clean filter reads, as a job's commit leaves it; `git status` in the worktree runs the filter while its stat is stale.
+	writeFileSync(join(job.worktree, ".gitattributes"), "a filter=x\n");
+	writeFileSync(join(job.worktree, "a"), "a\n");
+	git(job.worktree, "add", ".gitattributes", "a");
+	git(job.worktree, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "a file");
+	const [ran, filter] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "clean")];
+	writeFileSync(filter, `#!/bin/sh\necho clean >> '${ran}'\ncat\n`, { mode: 0o755 });
+	const old = new Date("2000-01-01");
+	const kept = (file: string) => [`${job.id}: kept its worktree, branch and record: git worktree: ${file} sets filter.x.clean, which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig`];
+	const all = () => [existsSync(job.worktree), git(root, "branch", "--list", "--format=%(refname:short)", `arthur/${job.id}`), existsSync(join(home, "jobs", job.id)), existsSync(ran)];
+	git(root, "config", "filter.x.clean", filter);
+	utimesSync(join(job.worktree, "a"), old, old);
+	assert.deepEqual(jobs.prune([job.id]), kept(join(root, ".git", "config")));
+	assert.deepEqual(all(), [true, `arthur/${job.id}`, true, false], "the shared config's: everything kept, nothing run");
+	// The worktree's own config.worktree, which Git reads once `extensions.worktreeConfig` is on.
+	git(root, "config", "--unset", "filter.x.clean");
+	git(root, "config", "extensions.worktreeConfig", "true");
+	git(job.worktree, "config", "--worktree", "filter.x.clean", filter);
+	assert.deepEqual(jobs.prune([job.id]), kept(join(root, ".git", "worktrees", job.id, "config.worktree")));
+	assert.deepEqual(all(), [true, `arthur/${job.id}`, true, false], "the worktree's own: everything kept, nothing run");
+	git(job.worktree, "status", "--porcelain");
+	assert.match(readFileSync(ran, "utf8"), /^clean$/m, "git status in the worktree, which git worktree remove runs, runs it");
+	// A worktree gone leaves no `git status` to run: `git worktree prune` takes its place, the key still set.
+	rmSync(ran);
+	rmSync(job.worktree, { recursive: true, force: true });
+	assert.match(jobs.prune([job.id])[0] ?? "", new RegExp(`^${job.id}: kept branch arthur/${job.id} and the record: git branch: `));
+	assert.deepEqual(all(), [false, `arthur/${job.id}`, true, false], "the unmerged branch kept, nothing run");
+});
+
 test("arthur prune keeps a branch that a replacement of main's tip under refs/replace makes look merged", async () => {
 	const { root, home, jobs } = setup();
 	const job = await worker(jobs, home);

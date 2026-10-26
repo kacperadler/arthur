@@ -151,6 +151,35 @@ test("a blocked question reaches the phone and the wake redacted; the final mess
 	assert.doesNotMatch(wake.text, /sk-live|correct-horse/);
 });
 
+test("a Blocked: on reason and the lines plugins add to the wake lose the env file's values; their job ids stay readable", async (t) => {
+	const { fake } = await setup(t, new Date().toISOString(), { ARTHUR_ORCHESTRATION_PASS: "correct-horse-battery" });
+	// As projects' onboarding: a procedure naming the job, then the questions it reads from the final message.
+	fake.provide("coordinator.wake", (job: { id: string }, final: string) => `Procedure: arthur continue ${job.id} '<his answer>'.\n\nIts questions to send the owner:\n${final.split("## Questions\n")[1]}`);
+	const other = "2026-10-23-ar0319-security-check-93862bb2";
+	const message = `Blocked: on ${other} with correct-horse-battery\n\n## Questions\n1. Is correct-horse-battery the staging password?`;
+	process.env.PATH = `${dirname(fakeAgent({ steps: [{ message }] }))}${delimiter}${PATH}`;
+	const job = await fake.host.jobs.spawn({ task: "Onboard." });
+	const logged = () => fake.host.events.read(1).filter(({ name, data }) => ["job-state", "job-ended"].includes(name) && typeof data === "object" && data !== null && "id" in data && data.id === job.id);
+	await until("the run's end", () => logged().some((event) => event.name === "job-ended"));
+	const ended = logged().map((event) => fake.emit(event.name, event.data)).find((event) => event.name === "job-ended");
+	const queued: { text: string } = JSON.parse(readFileSync(join(fake.host.folder, "inbox", "queued", `${ended?.seq}-${Date.parse(ended?.time ?? "")}`), "utf8"));
+	assert.equal(
+		queued.text,
+		[
+			`Job ${job.id} ended its run: blocked (dependency: ${other} with [redacted]).`,
+			"Its final message:",
+			`Blocked: on ${other} with [redacted]`,
+			"",
+			"## Questions",
+			"1. Is [redacted] the staging password?",
+			`Procedure: arthur continue ${job.id} '<his answer>'.`,
+			"",
+			"Its questions to send the owner:",
+			"1. Is [redacted] the staging password?",
+		].join("\n"),
+	);
+});
+
 test("one notice per block: a second process given the same event sends none; the job's next block is a new notice; a dependency is none", async (t) => {
 	const { fake, notices, blocked } = await setup(t);
 	// A second process that loads the plugin gets the same event, as does `arthur run` again after a crash.

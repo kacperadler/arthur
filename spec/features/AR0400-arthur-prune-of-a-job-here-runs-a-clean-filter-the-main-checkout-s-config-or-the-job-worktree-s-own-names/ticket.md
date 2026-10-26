@@ -31,3 +31,5 @@ In:
 ## Decisions
 
 - 2026-10-25: Source: F1 of AR0394
+- 2026-10-26: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
+- 2026-10-26: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D74)

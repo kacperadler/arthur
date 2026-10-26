@@ -3686,9 +3686,9 @@
   {
     "id": "AR0458",
     "title": "An install can remove the env file from the record's guarded list, so the agent reads it",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0458-an-install-can-remove-the-env-file-from-the-record-s-guarded-list-so-the-agent/ticket.md",
-    "updated": "2026-10-26T21:18:25.852Z",
+    "updated": "2026-10-26T21:22:22.002Z",
     "after": [
       "AR0457"
     ]

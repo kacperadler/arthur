@@ -21,6 +21,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0443 A job's scope marks it only for a home that holds its record, so a config of the job's own is a coordinator's (319637bf)
 - AR0449 The install at a job start and the merge checks run branch code outside the sandbox, where it can read the environment of arthur run (bb0f1aef)
 - AR0457 A merge check can leave a git hook or config in main's checkout, which runs outside the sandbox at the next git call (23e91a87)
+- AR0458 An install can remove the env file from the record's guarded list, so the agent reads it (17100e1b)
 - AR0459 The site draws each diagram at its own size in a small scrolling box, so a reader sees mostly empty space (8113159f)
 
 ### Changed

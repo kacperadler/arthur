@@ -38,3 +38,4 @@ In:
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; starts after the ten security checks AR0319-AR0328.
 - 2026-10-27: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
 - 2026-10-27: AR0343: arthur run refuses to start while the env file lies in a Git checkout that does not ignore it (the coordinator's recommendation, under AR-D98); the owner: "always go with your recommendation" (AR-D116)
+- 2026-10-27: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D74)

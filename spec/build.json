@@ -3679,9 +3679,9 @@
   {
     "id": "AR0457",
     "title": "A merge check can leave a git hook or config in main's checkout, which runs outside the sandbox at the next git call",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0457-a-merge-check-can-leave-a-git-hook-or-config-in-main-s-checkout-which-runs/ticket.md",
-    "updated": "2026-10-26T20:43:29.519Z"
+    "updated": "2026-10-26T21:01:59.091Z"
   },
   {
     "id": "AR0458",

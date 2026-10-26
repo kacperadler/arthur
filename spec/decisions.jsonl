@@ -192,3 +192,4 @@
 {"record":"ask","id":"AR-D96","time":"2026-10-26T22:18:33+01:00","project":"arthur","kind":"merge","question":"AR0458 passed review: merge it?","options":["Merge","Hold"],"recommend":1,"ticket":"AR0458"}
 {"record":"answer","id":"AR-D96","time":"2026-10-26T22:18:33+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}
 {"record":"ask","id":"AR-D97","time":"2026-10-26T22:34:39+01:00","project":"arthur","kind":"question","question":"What to work on next: the few things that give most of the value?","options":["Move your other projects onto Arthur (config + onboarding per project)","Discord channel (roadmap 89-90)","AR0463 (last sandbox gap to your tokens)","Docker labels and cleanup (roadmap 70-72)"],"recommend":1}
+{"record":"answer","id":"AR-D97","time":"2026-10-26T22:38:07+01:00","decided":"Next: AR0463 (a merge step cannot leave a nested repository behind)","picked":3,"words":"AR-D97 3"}

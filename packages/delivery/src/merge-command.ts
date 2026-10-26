@@ -10,6 +10,7 @@ import { failed, mainChecks, reinstall, stepRunner } from "./merge-checks.ts";
 import { settleTicket } from "./merge-outcome.ts";
 import { FEATURE } from "./review-command.ts";
 import { reviewsOf } from "./review-records.ts";
+import { lastMerge, saveLastMerge } from "./take-main.ts";
 
 // `arthur merge <job> [--unreviewed]` (spec/roadmap.md, entry 54): an ended job's branch merged into the branch its project's
 // checkout has, main, after every refusal; the checks run there, and main reset when one fails; then the ticket's side
@@ -86,10 +87,14 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 	const before = git("rev-parse", "HEAD").stdout.trim();
 	const subjects = git("log", "--reverse", "--no-merges", "--format=%s", `${before}..${tip}`).stdout.trim();
 	if (subjects === "") throw new Error(`${job.branch} at ${tip.slice(0, 7)} adds nothing to ${main} (${before.slice(0, 7)}): nothing to merge`);
-	// Only a merge puts code on main (AR0361): a non-merge commit of its first-parent line since its last merge (since the root
-	// without one) that changes a file outside spec/, CHANGELOG.md and *.md reached main by another route.
-	const since = git("rev-list", "-1", "--merges", "--first-parent", "HEAD").stdout.trim();
-	const strays = git("log", "--first-parent", "--no-merges", "--format=%h", since === "" ? "HEAD" : `${since}..HEAD`, "--", ".", ":(exclude)spec", ":(exclude)CHANGELOG.md", ":(exclude)*.md").stdout.trim();
+	// Only a merge of `arthur merge` puts code on main (AR0361, AR0441): a commit of main's first-parent line since the last one,
+	// as delivery recorded it (take-main.ts), that changes a file outside spec/, CHANGELOG.md and *.md against its first parent,
+	// a merge another made included, reached main by another route. Without a record that HEAD descends from, from main's last
+	// merge commit (from the root without one), and no merge comes after that; one HEAD reaches only off its first-parent line refuses.
+	const recorded = lastMerge(host, job.project, git);
+	if (recorded?.on === false) throw new Error(`${main}'s first-parent line no longer passes ${recorded.hash.slice(0, 7)}, the last merge arthur merge made; only a merge puts code on main; the owner decides: main is unchanged`);
+	const since = recorded?.hash ?? git("rev-list", "-1", "--merges", "--first-parent", "HEAD").stdout.trim();
+	const strays = git("log", "--first-parent", "--format=%h", since === "" ? "HEAD" : `${since}..HEAD`, "--", ".", ":(exclude)spec", ":(exclude)CHANGELOG.md", ":(exclude)*.md").stdout.trim();
 	if (strays !== "") throw new Error(`${main} has ${strays.split("\n").length} commits since its last merge that change code (${strays.split("\n").join(", ")}); only a merge puts code on main; the owner decides: main is unchanged`);
 	const gap = passGap(host, job, tip);
 	if (gap !== "" && !mode.unreviewed && !mode.auto) throw new Error(`${gap}; review it with arthur review ${job.id}, or merge it with --unreviewed --decision <the owner's decision id>; main is unchanged`);
@@ -107,7 +112,8 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 		if (conflicts === "") throw new Error(`git merge ${job.branch} failed: ${last(merged)}; main is unchanged`);
 		throw new Error(`${job.branch} conflicts with ${main} in ${conflicts.split("\n").join(", ")}; merge aborted, main is unchanged`);
 	}
-	const hash = git("rev-parse", "--short", "HEAD").stdout.trim();
+	const made = git("rev-parse", "HEAD").stdout.trim();
+	const hash = git("rev-parse", "--short", made).stdout.trim();
 	console.log(`merged ${job.branch} into ${main}: ${hash}`);
 	const ask = { install: (commit: string) => host.call<string>("projects.install", { project: job.project, commit }), path: () => host.collect<string>("nvm.path", { root })[0] ?? "" };
 	const run = stepRunner(root, host.jobs.slice, console.log);
@@ -122,6 +128,7 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 		if (reset.status !== 0) throw new Error(`check failed on main (${failing.join(", ")}), and main could not be reset to ${before.slice(0, 7)}: ${last(reset)}`);
 		throw new Error(`check failed on main (${failing.join(", ")}); main reset to ${before.slice(0, 7)}, branch kept${reinstall(ask, run, steps, console.log)}`);
 	}
+	saveLastMerge(host, job.project, made);
 	endWait(host, job.id);
 	if (ticket === undefined || folder === undefined) console.log("no ticket: no outcome.md, nothing moved");
 	else settleTicket(host, { job, ticket, folder, root, hash, subjects: subjects.split("\n"), steps, gap }, console.log);

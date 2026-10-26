@@ -27,6 +27,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0442 An existing project whose history ends in plain commits refuses its first merge, its onboarding's included (8234e81f)
 - AR0444 An uptime redirect test fails on GitHub CI: the runner refuses the connection before the private-address check (3af222ae)
 - AR0448 packages/core/test/machine.test.ts:719 fails now and then on GitHub CI: a job no longer held is copied again (18 !== 16) (72d581d0)
+- AR0450 Polish the docs and make the README shorter (9eb39d8b)
 
 ## 2026-10-25
 

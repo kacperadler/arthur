@@ -3535,9 +3535,9 @@
   {
     "id": "AR0440",
     "title": "A job can read the running Arthur process's secrets from /proc/<pid>/environ",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0440-a-job-can-read-the-running-arthur-process-s-secrets-from-proc-pid-environ/ticket.md",
-    "updated": "2026-10-26T13:37:01.439Z",
+    "updated": "2026-10-26T13:38:34.004Z",
     "after": [
       "AR0350"
     ]

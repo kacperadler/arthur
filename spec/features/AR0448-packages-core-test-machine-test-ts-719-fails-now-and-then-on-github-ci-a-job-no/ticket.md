@@ -34,4 +34,5 @@ Out:
 - Any other test or behaviour.
 
 ## Decisions
+- 2026-10-26: AR0448 approved; start its worker now with the short queue; the owner: "AR-D60 - 1" (AR-D60)
 

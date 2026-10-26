@@ -26,7 +26,7 @@ const OWNER = "AC-D1";
 // `merge(...args)` runs `arthur merge` as the CLI does, a throw being `arthur merge: <message>` and exit code 1; an `uncapped:`
 // line, there only on a host without a user manager, goes to `uncapped`, apart from its other lines, and a `no sandbox:` line,
 // there only on a host without the sandbox (merge-checks.test.ts tests it), nowhere.
-async function load(t: TestContext) {
+async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}) {
 	const root = join(temporaryFolder(), "acme");
 	const tickets = [["AC0001", "Shop"], ["AC0002", "Cart", ["AC0001"]], ["AC0003", "Pay", ["AC0001", "AC0002"]]] as const;
 	const files: Record<string, string> = { "package.json": PACKAGE, "test.js": TEST_JS, "bun.lock": "{}\n", "README.md": "# acme\n" };
@@ -72,7 +72,7 @@ async function load(t: TestContext) {
 		if (asked.id === "") return `${asked.what} needs the owner's decision: arthur decision ask --kind merge --question '<what he decides>' --ticket AC0001, his answer recorded with arthur decision answer, then ${asked.what} --decision <its id>`;
 		return asked.id === OWNER ? "" : `${asked.id} is not in the decision log of project acme`;
 	});
-	await fake.setup(delivery());
+	await fake.setup(delivery(options));
 	const home = dirname(fake.host.folder);
 	const ended = async (id: string) => {
 		const state = join(home, "jobs", id, "state");
@@ -482,6 +482,23 @@ test("a failed check resets main and names it, pushing nothing; the board's move
 	);
 	assert.doesNotMatch(install.out, /npm/, "a failed install ends the steps");
 	assert.match(install.out, /error: lockfile had changes/);
+});
+
+test("a step still running at merge.stepSeconds is killed and fails, though it ignores SIGTERM: main reset, main's own install put back", async (t) => {
+	const { root, worker, review, merge, head, bun } = await load(t, { merge: { stepSeconds: 3 } });
+	const noted = temporaryFolder();
+	const slow = `require("node:fs").writeFileSync(${JSON.stringify(join(noted, "pid"))}, String(process.pid));\nprocess.on("SIGTERM", () => {});\nsetTimeout(() => {}, 60_000);\n`;
+	const job = await worker({ "test.js": slow, "bun.lock": '{ "slow": 1 }\n' });
+	await review(job.id, "PASS");
+	const before = head();
+	const merged = await merge(job.id);
+	const pid = Number(readFileSync(join(noted, "pid"), "utf8"));
+	t.after(() => void spawnSync("kill", ["-9", String(pid)]));
+	assert.equal(merged.err, `arthur merge: check failed on main (npm test); main reset to ${before.slice(0, 7)}, branch kept`);
+	assert.match(merged.out, /\nnpm run check: passed\.\nnpm test: failed, timed out after 3 s\.\n[\s\S]*\nreinstall of main's dependencies, bun install --frozen-lockfile: passed\.$/);
+	assert.equal(bun(), "install --frozen-lockfile\ninstall --frozen-lockfile\n");
+	assert.deepEqual([head(), readFileSync(join(root, "bun.lock"), "utf8")], [before, "{}\n"]);
+	if (manager) assert.equal(running(pid), false, `the test's process ${pid} still runs`);
 });
 
 test("the install is the project's own, as projects.install answers: a custom command runs, none runs nothing though bun.lock changed, a throw fails the merge", async (t) => {

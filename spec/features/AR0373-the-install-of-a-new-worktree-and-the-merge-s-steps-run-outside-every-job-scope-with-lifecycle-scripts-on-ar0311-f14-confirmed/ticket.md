@@ -37,3 +37,4 @@ In:
 - 2026-10-23: Source: F1 of AR0328
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; starts after the ten security checks AR0319-AR0328.
 - 2026-10-26: Raise the core line budget 6206 to 6228 and delivery 1337 to 1361 for AR0373; the owner: "AR-D57 - 1" (AR-D57)
+- 2026-10-26: Merge AR0373 now; restart after; the owner: "AR-D58 - 1" (AR-D58)

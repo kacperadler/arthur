@@ -2624,9 +2624,9 @@
   {
     "id": "AR0343",
     "title": "Git ignores `.env` only, while `core.envFile` may be any name the guard counts as a secrets file",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0343-git-ignores-env-only-while-core-envfile-may-be-any-name-the-guard-counts-as-a-secrets-file/ticket.md",
-    "updated": "2026-10-23T14:22:40.271Z",
+    "updated": "2026-10-26T10:52:15.649Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -2665,9 +2665,9 @@
   {
     "id": "AR0348",
     "title": "The answer of `records` is not checked, and one job's bad answer stops the copy of the machine's other jobs",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0348-the-answer-of-records-is-not-checked-and-one-job-s-bad-answer-stops-the-copy-of-the-machine-s-other-jobs/ticket.md",
-    "updated": "2026-10-23T14:26:05.841Z",
+    "updated": "2026-10-26T10:52:16.151Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -2845,9 +2845,9 @@
   {
     "id": "AR0369",
     "title": "The agent's own request to a provider is never checked against the private network",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0369-the-agent-s-own-request-to-a-provider-is-never-checked-against-the-private-network/ticket.md",
-    "updated": "2026-10-23T14:55:52.099Z",
+    "updated": "2026-10-26T10:52:16.666Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -2889,9 +2889,9 @@
   {
     "id": "AR0374",
     "title": "The install at a spawn and each step of the merge have no time limit",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0374-the-install-at-a-spawn-and-each-step-of-the-merge-have-no-time-limit/ticket.md",
-    "updated": "2026-10-23T15:06:04.675Z",
+    "updated": "2026-10-26T10:52:17.156Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -2993,9 +2993,9 @@
   {
     "id": "AR0388",
     "title": "The user's systemd folder is guarded at `~/.config/systemd` only, not at `$XDG_CONFIG_HOME/systemd`",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0388-the-user-s-systemd-folder-is-guarded-at-config-systemd-only-not-at-xdg-config-home-systemd/ticket.md",
-    "updated": "2026-10-24T22:00:22.709Z",
+    "updated": "2026-10-26T10:52:17.651Z",
     "after": [
       "AR0420",
       "AR0402",
@@ -3014,9 +3014,9 @@
   {
     "id": "AR0390",
     "title": "A job on another machine moves a Git LFS project's commits there and back without their LFS objects",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0390-a-job-on-another-machine-moves-a-git-lfs-project-s-commits-there-and-back-without-their-lfs-objects/ticket.md",
-    "updated": "2026-10-24T22:31:22.807Z",
+    "updated": "2026-10-26T10:52:18.148Z",
     "after": [
       "AR0398",
       "AR0402",
@@ -3028,9 +3028,9 @@
   {
     "id": "AR0391",
     "title": "The 60 s limit of a push also bounds its LFS upload",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0391-the-60-s-limit-of-a-push-also-bounds-its-lfs-upload/ticket.md",
-    "updated": "2026-10-24T22:31:23.007Z",
+    "updated": "2026-10-26T10:52:18.649Z",
     "after": [
       "AR0390",
       "AR0402",
@@ -3042,9 +3042,9 @@
   {
     "id": "AR0392",
     "title": "A job's program can still plant a key between the config check and the git call",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0392-a-job-s-program-can-still-plant-a-key-between-the-config-check-and-the-git-call/ticket.md",
-    "updated": "2026-10-24T23:09:10.741Z",
+    "updated": "2026-10-26T10:52:19.145Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -3069,9 +3069,9 @@
   {
     "id": "AR0395",
     "title": "A link to the repository made and used in one bash call still moves main",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0395-a-link-to-the-repository-made-and-used-in-one-bash-call-still-moves-main/ticket.md",
-    "updated": "2026-10-25T00:42:19.261Z",
+    "updated": "2026-10-26T10:52:19.645Z",
     "after": [
       "AR0392",
       "AR0402",
@@ -3083,9 +3083,9 @@
   {
     "id": "AR0396",
     "title": "A `git fetch` or `git push` from a job's worktree into `refs/replace` still writes a replacement every worktree reads",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0396-a-git-fetch-or-git-push-from-a-job-s-worktree-into-refs-replace-still-writes-a-replacement-every-worktree-reads/ticket.md",
-    "updated": "2026-10-25T01:38:49.453Z",
+    "updated": "2026-10-26T10:52:20.150Z",
     "after": [
       "AR0395",
       "AR0402",
@@ -3097,9 +3097,9 @@
   {
     "id": "AR0397",
     "title": "Arthur's other git reads in a main checkout still read through a replacement",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0397-arthur-s-other-git-reads-in-a-main-checkout-still-read-through-a-replacement/ticket.md",
-    "updated": "2026-10-25T01:38:49.655Z",
+    "updated": "2026-10-26T10:52:20.652Z",
     "after": [
       "AR0396",
       "AR0402",
@@ -3111,9 +3111,9 @@
   {
     "id": "AR0398",
     "title": "A remote named as a machine's URL sends a job's push and fetch to another repository",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0398-a-remote-named-as-a-machine-s-url-sends-a-job-s-push-and-fetch-to-another-repository/ticket.md",
-    "updated": "2026-10-25T02:19:49.092Z",
+    "updated": "2026-10-26T10:52:21.147Z",
     "after": [
       "AR0348",
       "AR0402",
@@ -3125,9 +3125,9 @@
   {
     "id": "AR0399",
     "title": "`git lfs push origin` reads origin's URL outside Git's transport policy",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0399-git-lfs-push-origin-reads-origin-s-url-outside-git-s-transport-policy/ticket.md",
-    "updated": "2026-10-25T02:19:49.297Z",
+    "updated": "2026-10-26T10:52:21.651Z",
     "after": [
       "AR0391",
       "AR0402",
@@ -3139,9 +3139,9 @@
   {
     "id": "AR0400",
     "title": "`arthur prune` of a job here runs a clean filter the main checkout's config or the job worktree's own names",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0400-arthur-prune-of-a-job-here-runs-a-clean-filter-the-main-checkout-s-config-or-the-job-worktree-s-own-names/ticket.md",
-    "updated": "2026-10-25T02:48:15.795Z",
+    "updated": "2026-10-26T10:52:22.147Z",
     "after": [
       "AR0397",
       "AR0402",
@@ -3160,9 +3160,9 @@
   {
     "id": "AR0402",
     "title": "Security review of our own code, part 1: secrets, file permissions and processes",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0402-security-review-of-our-own-code-part-1-secrets-file-permissions-and-processes/ticket.md",
-    "updated": "2026-10-25T10:18:08.326Z",
+    "updated": "2026-10-26T10:52:13.656Z",
     "after": [
       "AR0432",
       "AR0350",
@@ -3172,9 +3172,9 @@
   {
     "id": "AR0403",
     "title": "Security review of our own code, part 2: injection into shell, git, ssh and tmux, and prompt injection",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0403-security-review-of-our-own-code-part-2-injection-into-shell-git-ssh-and-tmux-and-prompt-injection/ticket.md",
-    "updated": "2026-10-25T10:18:08.525Z",
+    "updated": "2026-10-26T10:52:14.159Z",
     "after": [
       "AR0432",
       "AR0350",
@@ -3184,9 +3184,9 @@
   {
     "id": "AR0404",
     "title": "Security review of our own code, part 3: channels, merge and delivery",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0404-security-review-of-our-own-code-part-3-channels-merge-and-delivery/ticket.md",
-    "updated": "2026-10-25T10:18:08.725Z",
+    "updated": "2026-10-26T10:52:14.650Z",
     "after": [
       "AR0432",
       "AR0350",
@@ -3196,9 +3196,9 @@
   {
     "id": "AR0405",
     "title": "Security review of our own code, part 4: other machines, network and dependencies",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0405-security-review-of-our-own-code-part-4-other-machines-network-and-dependencies/ticket.md",
-    "updated": "2026-10-25T10:18:08.925Z",
+    "updated": "2026-10-26T10:52:15.149Z",
     "after": [
       "AR0432",
       "AR0350",
@@ -3267,9 +3267,9 @@
   {
     "id": "AR0414",
     "title": "A job may commit the stash refusal's .arthur-stash.patch by mistake, and its git diff leaves staged changes out",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0414-a-job-may-commit-the-stash-refusal-s-arthur-stash-patch-by-mistake-and-its-git/ticket.md",
-    "updated": "2026-10-25T20:14:02.752Z",
+    "updated": "2026-10-26T10:52:22.655Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -3355,10 +3355,7 @@
     "path": "spec/features/AR0423-packages-core-test-job-state-test-ts-142-fails-now-and-then-with-enoent-on-the/ticket.md",
     "updated": "2026-10-25T21:41:35.521Z",
     "after": [
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405"
+      "AR0335"
     ]
   },
   {
@@ -3371,9 +3368,9 @@
   {
     "id": "AR0425",
     "title": "A redirect's lookup in a site check ignores the check's time limit, and a 308 hop has no test",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0425-a-redirect-s-lookup-in-a-site-check-ignores-the-check-s-time-limit-and-a-308-hop/ticket.md",
-    "updated": "2026-10-25T19:45:34.278Z",
+    "updated": "2026-10-26T10:52:23.148Z",
     "after": [
       "AR0424",
       "AR0402",
@@ -3409,9 +3406,9 @@
   {
     "id": "AR0429",
     "title": "The guard misreads four short forms: $ARTHUR_JOB, env -C and sudo -D, a ~ after =, cd $PWD and cd ~+",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0429-the-guard-misreads-four-short-forms-arthur-job-env-c-and-sudo-d-a-after-cd-pwd/ticket.md",
-    "updated": "2026-10-25T20:21:40.228Z",
+    "updated": "2026-10-26T10:52:23.644Z",
     "after": [
       "AR0420",
       "AR0425",
@@ -3455,9 +3452,9 @@
   {
     "id": "AR0433",
     "title": "A plugin's wake line built from the final message is not redacted",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0433-a-plugin-s-wake-line-built-from-the-final-message-is-not-redacted/ticket.md",
-    "updated": "2026-10-25T21:10:59.416Z",
+    "updated": "2026-10-26T10:52:24.149Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -3469,9 +3466,9 @@
   {
     "id": "AR0434",
     "title": "A secret-named variable only the coordinator's omp holds is no longer redacted by name",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0434-a-secret-named-variable-only-the-coordinator-s-omp-holds-is-no-longer-redacted/ticket.md",
-    "updated": "2026-10-25T21:36:35.832Z",
+    "updated": "2026-10-26T10:52:24.664Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -3489,9 +3486,9 @@
   {
     "id": "AR0436",
     "title": "A bash call that changes the tree after its checks, before it ends, is recorded on the tree it ends on",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0436-a-bash-call-that-changes-the-tree-after-its-checks-before-it-ends-is-recorded-on/ticket.md",
-    "updated": "2026-10-25T21:45:55.147Z",
+    "updated": "2026-10-26T10:52:25.171Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -3502,9 +3499,9 @@
   {
     "id": "AR0437",
     "title": "A CI wait still cancels a hung run below the tip, whose end it no longer tells",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0437-a-ci-wait-still-cancels-a-hung-run-below-the-tip-whose-end-it-no-longer-tells/ticket.md",
-    "updated": "2026-10-25T22:29:56.999Z",
+    "updated": "2026-10-26T10:52:25.669Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -3515,9 +3512,9 @@
   {
     "id": "AR0438",
     "title": "A variable set in the shell alone passes `config check` but is missing for every `arthur` command a job runs",
-    "status": "planned",
+    "status": "planning",
     "path": "spec/features/AR0438-a-variable-set-in-the-shell-alone-passes-config-check-but-is-missing-for-every/ticket.md",
-    "updated": "2026-10-25T22:45:06.442Z",
+    "updated": "2026-10-26T10:52:26.185Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -3585,15 +3582,15 @@
   {
     "id": "AR0445",
     "title": "Doctor's env-file check compares paths as text, so a symlink into a checkout reads ok",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0445-doctor-s-env-file-check-compares-paths-as-text-so-a-symlink-into-a-checkout/ticket.md",
-    "updated": "2026-10-26T10:40:25.560Z"
+    "updated": "2026-10-26T10:52:12.656Z"
   },
   {
     "id": "AR0446",
     "title": "Doctor's env-file fix text names the default place even when XDG_CONFIG_HOME sets another",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0446-doctor-s-env-file-fix-text-names-the-default-place-even-when-xdg-config-home/ticket.md",
-    "updated": "2026-10-26T10:40:26.067Z"
+    "updated": "2026-10-26T10:52:13.149Z"
   }
 ]

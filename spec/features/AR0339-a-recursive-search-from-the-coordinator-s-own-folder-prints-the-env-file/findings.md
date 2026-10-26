@@ -10,7 +10,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Found by: reviews 1 to 4 (reviewer, non-blocking note), 2026-10-26
 - Where: `packages/core/src/requirements.ts:91`
 - What: `relative(...)` on the text of the paths; an env file reached through a symlink into a checkout, or a config folder that is a symlink, reads `ok`.
-- Status: ticket AR0445
+- Status: dropped (AR-D53: only real risks get a ticket; AR0445 dropped)
 
 ## F2. Doctor's fix text ignores XDG_CONFIG_HOME
 
@@ -18,7 +18,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Found by: reviews 2 and 4 (reviewer, non-blocking note), 2026-10-26
 - Where: `packages/core/src/requirements.ts:95`
 - What: the fix text always names the default under `~/.config/arthur`; with `XDG_CONFIG_HOME` set, the real default lies under it, and a relative one resolves inside the config's folder without the text naming that cause.
-- Status: ticket AR0446
+- Status: dropped (AR-D53: only real risks get a ticket; AR0446 dropped)
 
 ## F3. The file name is `.env`, the ticket said `env`
 

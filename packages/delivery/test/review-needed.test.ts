@@ -118,8 +118,8 @@ const BRANCHES: readonly (readonly [string, (at: At) => void, string | undefined
 	["small, lines without their commit and tree", small, "check pass\ntest pass 3/3\n", "review: 2 lines changed; the job recorded no checks"],
 	["small, a failing test", small, "check pass TIP clean\ntest fail 2/3 TIP clean\n", "review: 2 lines changed; the job's checks: check pass, test fail 2/3"],
 	["small, only the check ran", small, "check pass TIP clean\n", "review: 2 lines changed; the job's checks: check pass, no test"],
-	// What the merge and each spawn run (the install, its lockfile and .npmrc, the scripts, the Node, the hooks): one line each.
-	...[["package.json", `${JSON.stringify({ scripts: { check: "tsc", test: "node --test && node run.js" } })}\n`] as const, ...["packages/shop/package-lock.json", "npm-shrinkwrap.json", "bun.lock", "bun.lockb", "yarn.lock", "pnpm-lock.yaml", ".npmrc", "packages/shop/.nvmrc", ".githooks/pre-commit", ".husky/pre-push"].map((path) => [path, "x\n"] as const)].map(([path, text]) => [`one line of ${path}`, edit(path, text), PASSING, `review: ${path} is on the always-review list`] as const),
+	// What the merge and each spawn run (the install, its manifest, lockfile, .npmrc and settings, the scripts, the Node, the hooks): one line each.
+	...[["package.json", `${JSON.stringify({ scripts: { check: "tsc", test: "node --test && node run.js" } })}\n`] as const, ...["packages/shop/package-lock.json", "npm-shrinkwrap.json", "bun.lock", "bun.lockb", "yarn.lock", "pnpm-lock.yaml", ".npmrc", "packages/shop/.nvmrc", "composer.json", "packages/shop/composer.lock", "uv.lock", "packages/shop/pyproject.toml", ".yarnrc.yml", ".pnpmfile.cjs", "bunfig.toml", ".githooks/pre-commit", ".husky/pre-push"].map((path) => [path, "x\n"] as const)].map(([path, text]) => [`one line of ${path}`, edit(path, text), PASSING, `review: ${path} is on the always-review list`] as const),
 ];
 
 test("the table of branches: each decided by the first rule that holds", async (t) => {
@@ -184,7 +184,7 @@ test("the always-review list: review.alwaysReview replaces the default, and deli
 	await plain.setup(delivery());
 	const paths = ["src/env.ts", "packages/core/src/env-guard.ts", ".github/workflows/ci.yml", "packages/github/src/ci-failure.ts", "packages/delivery/roles/reviewer.md", ".agents/arthur/roles/reviewer.md", ".agents/arthur/criteria/review.md"];
 	const prompts = [".agents/arthur/roles/worker.md", ".agents/arthur/criteria/styleguide.md", ".agents/arthur/criteria/autopilot.md", "spec/vision.md", "roles/worker.md", "packages/orchestration/roles/coordinator.md", "packages/delivery/roles/coordinator/review-limit.md", "prompts/criteria/review.md"];
-	const runs = ["package.json", "packages/shop/package.json", "package-lock.json", "npm-shrinkwrap.json", "bun.lock", "bun.lockb", "yarn.lock", "pnpm-lock.yaml", ".npmrc", ".nvmrc", "packages/shop/.nvmrc", ".githooks/pre-commit", ".husky/_/husky.sh"];
+	const runs = ["package.json", "packages/shop/package.json", "package-lock.json", "npm-shrinkwrap.json", "bun.lock", "bun.lockb", "yarn.lock", "pnpm-lock.yaml", ".npmrc", ".nvmrc", "composer.json", "composer.lock", "uv.lock", "pyproject.toml", ".yarnrc.yml", ".pnpmfile.cjs", "bunfig.toml", "packages/shop/.nvmrc", ".githooks/pre-commit", ".husky/_/husky.sh"];
 	const free = ["src/shop.ts", "src/environment.ts", "src/package.json.ts", "docs/yarn.lock.md", ".github/hooks/x", "README.md", "docs/vision.md", "spec/roadmap.md", "packages/orchestration/src/roles.ts", "docs/criteria.md"];
 	assert.deepEqual(plain.call("delivery.alwaysReview", { project: "acme", paths: [...paths, ...prompts, ...runs, ...free] }), [...paths, ...prompts, ...runs], "the default: what reads secrets, the CI-failure handling, the review rules, the prompt files the roles read, a project's own under .agents/ too, what the merge and a spawn run; a README stays docs");
 });

@@ -2685,9 +2685,9 @@
   {
     "id": "AR0350",
     "title": "Only YouTrack text is named as data; every other outside text reaches the roles with no rule (AR0311 F12, confirmed)",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0350-only-youtrack-text-is-named-as-data-every-other-outside-text-reaches-the-roles-with-no-rule-ar0311-f12-confirmed/ticket.md",
-    "updated": "2026-10-26T12:58:41.842Z",
+    "updated": "2026-10-26T13:08:06.095Z",
     "after": [
       "AR0373"
     ]

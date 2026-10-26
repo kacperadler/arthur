@@ -3525,9 +3525,9 @@
   {
     "id": "AR0439",
     "title": "A provider's key exported in the shell still reaches every job",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0439-a-provider-s-key-exported-in-the-shell-still-reaches-every-job/ticket.md",
-    "updated": "2026-10-26T13:18:35.354Z",
+    "updated": "2026-10-26T13:19:45.633Z",
     "after": [
       "AR0350"
     ]

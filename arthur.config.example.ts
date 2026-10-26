@@ -350,8 +350,10 @@ export default defineConfig({
 		// PASS a review needs `--round N`, on the owner's word only (packages/delivery/docs/commands/review.md). `arthur review-needed
 		// <worker job>` says whether a branch needs a review at all; a branch that changes a file on `review.alwaysReview` (glob
 		// patterns from a project's root, replacing the default list) always does (packages/delivery/docs/commands/review-needed.md).
+		// `merge.stepSeconds`: how long each check `arthur merge` runs on main may take before it is killed and fails the merge.
 		delivery({
 			review: { alwaysReview: ["**/env.ts", "**/env-*.ts", "**/ci.ts", "**/ci-*.ts", "**/github-ci.ts", "**/auto-merge.ts", ".github/workflows/**", "**/review-needed.ts", "**/checks-extension.ts", "**/roles/**", "**/criteria/**", ".agents/**", "spec/vision.md", "**/package.json", "**/package-lock.json", "**/npm-shrinkwrap.json", "**/bun.lock", "**/bun.lockb", "**/yarn.lock", "**/pnpm-lock.yaml", "**/.npmrc", "**/.nvmrc", "**/composer.json", "**/composer.lock", "**/uv.lock", "**/pyproject.toml", "**/.yarnrc.yml", "**/.pnpmfile.cjs", "**/bunfig.toml", ".githooks/**", ".husky/**", "**/merge*.ts", "deploy/**", "bin/**"] },
+			merge: { stepSeconds: 3600 },
 		}),
 
 		// Polls GitHub for the CI runs of the branches in play (each checkout's own branch and every job's) and emits `ci-finished`

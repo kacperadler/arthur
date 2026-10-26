@@ -3421,9 +3421,9 @@
   {
     "id": "AR0434",
     "title": "A secret-named variable only the coordinator's omp holds is no longer redacted by name",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0434-a-secret-named-variable-only-the-coordinator-s-omp-holds-is-no-longer-redacted/ticket.md",
-    "updated": "2026-10-26T22:33:15.473Z"
+    "updated": "2026-10-26T22:46:57.513Z"
   },
   {
     "id": "AR0435",
@@ -3680,5 +3680,12 @@
     "status": "planning",
     "path": "spec/features/AR0464-the-stop-test-of-a-forked-install-process-fails-now-and-then-under-a-merge-step/ticket.md",
     "updated": "2026-10-26T22:41:16.485Z"
+  },
+  {
+    "id": "AR0465",
+    "title": "A value given again with `-e` sits in the tmux client's command line while it runs",
+    "status": "planning",
+    "path": "spec/features/AR0465-a-value-given-again-with-e-sits-in-the-tmux-client-s-command-line-while-it-runs/ticket.md",
+    "updated": "2026-10-26T22:46:57.509Z"
   }
 ]

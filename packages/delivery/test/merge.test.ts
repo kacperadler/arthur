@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
@@ -315,8 +315,8 @@ test("each merge that went in rebuilds CHANGELOG.md; the rebuilt file left uncom
 	assert.match(readFileSync(join(root, "CHANGELOG.md"), "utf8"), /\n- AC0001 Shop \([0-9a-f]+\)\n- AC0002 Cart \([0-9a-f]+\)\n- AC0003 Pay \([0-9a-f]+\)\n$/);
 });
 
-test("only a merge puts code on main: a code commit since the last merge refuses the next, with --unreviewed, --auto or neither, naming it; spec/, CHANGELOG.md and *.md do not; with a record HEAD does not descend from and no merge, from the root", async (t) => {
-	const { root, git, commit, take, worker, merge, head } = await load(t);
+test("only a merge puts code on main: a code commit since the last merge refuses the next, with --unreviewed, --auto or neither, naming it; spec/, CHANGELOG.md and *.md do not; with no record and no merge, from the root", async (t) => {
+	const { root, fake, git, commit, take, worker, merge, head } = await load(t);
 	const first = await worker();
 	assert.equal((await merge(first.id, "--unreviewed", "--decision", OWNER)).err, "");
 	commit(root, { "README.md": "# acme, a shop\n", "docs/guide.md": "# Guide\n" });
@@ -338,11 +338,12 @@ test("only a merge puts code on main: a code commit since the last merge refuses
 	const loose = await worker({ "loose.ts": "export const loose = 1;\n" }, "No ticket here.");
 	const start = git(root, "rev-list", "--max-parents=0", "HEAD");
 	git(root, "reset", "--quiet", "--hard", start);
+	rmSync(join(fake.host.folder, "acme", "last-merge"));
 	assert.equal((await merge(loose.id, "--unreviewed", "--decision", OWNER)).err, `arthur merge: main has 1 commits since its last merge that change code (${git(root, "rev-parse", "--short", start)}); only a merge puts code on main; the owner decides: main is unchanged`);
 });
 
-test("a merge commit made on main outside arthur merge hides nothing: code before it or in it refuses the next merge; each merge that went in is recorded; a record HEAD reaches only off its first-parent line refuses", async (t) => {
-	const { root, fake, git, worker, merge, head } = await load(t);
+test("a merge commit made on main outside arthur merge hides nothing: code before it or in it refuses the next merge; each merge that went in is recorded; a record HEAD no longer holds, or reaches only off its first-parent line, refuses until arthur take-main", async (t) => {
+	const { root, fake, git, take, worker, merge, head } = await load(t);
 	const record = join(fake.host.folder, "acme", "last-merge");
 	const first = await worker();
 	assert.equal((await merge(first.id, "--unreviewed", "--decision", OWNER)).err, "");
@@ -374,9 +375,25 @@ test("a merge commit made on main outside arthur merge hides nothing: code befor
 	code("off.ts");
 	git(root, "merge", "--quiet", "--no-ff", "-m", "a merge that takes the recorded one as its second parent", merged);
 	const before = head();
-	assert.deepEqual(await merge(cart.id, "--unreviewed", "--decision", OWNER), { code: 1, out: "", err: `arthur merge: main's first-parent line no longer passes ${merged.slice(0, 7)}, the last merge arthur merge made; only a merge puts code on main; the owner decides: main is unchanged` });
+	const lift = "only a merge puts code on main; the owner decides, and arthur take-main lifts it: main is unchanged";
+	assert.deepEqual(await merge(cart.id, "--unreviewed", "--decision", OWNER), { code: 1, out: "", err: `arthur merge: main's first-parent line no longer passes ${merged.slice(0, 7)}, the last merge arthur merge made; ${lift}` });
 	assert.equal(head(), before);
 	assert.equal(readFileSync(record, "utf8"), `${merged}\n`, "a refused merge records nothing");
+	// Main reset below the recorded merge, its code ended with a job's own merge: the record is no ancestor of HEAD any more.
+	git(root, "reset", "--quiet", "--keep", `${merged}^1`);
+	code("below.ts");
+	git(root, "merge", "--quiet", "--no-ff", "-m", "a job's own merge", git(root, "commit-tree", "-p", "HEAD", "-m", "empty", "HEAD^{tree}"));
+	const below = head();
+	assert.deepEqual(await merge(cart.id, "--unreviewed", "--decision", OWNER), { code: 1, out: "", err: `arthur merge: main no longer holds ${merged.slice(0, 7)}, the last merge arthur merge made; ${lift}` });
+	assert.equal(head(), below);
+	assert.equal(readFileSync(record, "utf8"), `${merged}\n`, "a refused merge records nothing");
+	writeFileSync(record, `${"a".repeat(40)}\n`);
+	assert.deepEqual(await merge(cart.id, "--unreviewed", "--decision", OWNER), { code: 1, out: "", err: `arthur merge: main no longer holds aaaaaaa, the last merge arthur merge made; ${lift}` }, "a full hash naming no commit here");
+	// The owner keeps main as it is: arthur take-main records HEAD, and the branch goes in.
+	assert.equal((await take()).code, undefined);
+	assert.equal(readFileSync(record, "utf8"), `${below}\n`);
+	assert.equal((await merge(cart.id, "--unreviewed", "--decision", OWNER)).err, "");
+	assert.equal(readFileSync(record, "utf8"), `${head()}\n`, "the merge that went in recorded");
 });
 
 test("arthur take-main records main's HEAD only on the owner's merge decision of no ticket and no job; refused, it writes nothing; then the next merge goes in", async (t) => {

@@ -89,10 +89,13 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 	if (subjects === "") throw new Error(`${job.branch} at ${tip.slice(0, 7)} adds nothing to ${main} (${before.slice(0, 7)}): nothing to merge`);
 	// Only a merge of `arthur merge` puts code on main (AR0361, AR0441): a commit of main's first-parent line since the last one,
 	// as delivery recorded it (take-main.ts), that changes a file outside spec/, CHANGELOG.md and *.md against its first parent,
-	// a merge another made included, reached main by another route. Without a record that HEAD descends from, from main's last
-	// merge commit (from the root without one), and no merge comes after that; one HEAD reaches only off its first-parent line refuses.
+	// a merge another made included, reached main by another route. Without a record (a missing file, or one holding no hash),
+	// from main's last merge commit (from the root without one), and no merge comes after that. A record HEAD no longer holds,
+	// or reaches only off its first-parent line, refuses until the owner's `arthur take-main` (AR-D67).
 	const recorded = lastMerge(host, job.project, git);
-	if (recorded?.on === false) throw new Error(`${main}'s first-parent line no longer passes ${recorded.hash.slice(0, 7)}, the last merge arthur merge made; only a merge puts code on main; the owner decides: main is unchanged`);
+	const lift = "only a merge puts code on main; the owner decides, and arthur take-main lifts it: main is unchanged";
+	if (recorded?.at === "gone") throw new Error(`${main} no longer holds ${recorded.hash.slice(0, 7)}, the last merge arthur merge made; ${lift}`);
+	if (recorded?.at === "off") throw new Error(`${main}'s first-parent line no longer passes ${recorded.hash.slice(0, 7)}, the last merge arthur merge made; ${lift}`);
 	const since = recorded?.hash ?? git("rev-list", "-1", "--merges", "--first-parent", "HEAD").stdout.trim();
 	const strays = git("log", "--first-parent", "--format=%h", since === "" ? "HEAD" : `${since}..HEAD`, "--", ".", ":(exclude)spec", ":(exclude)CHANGELOG.md", ":(exclude)*.md").stdout.trim();
 	if (strays !== "") throw new Error(`${main} has ${strays.split("\n").length} commits since its last merge that change code (${strays.split("\n").join(", ")}); only a merge puts code on main; the owner decides: main is unchanged`);

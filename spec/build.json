@@ -2556,9 +2556,9 @@
   {
     "id": "AR0335",
     "title": "The git commands that rewrite the shared repository pass as a documented limit",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0335-the-git-commands-that-rewrite-the-shared-repository-pass-as-a-documented-limit/ticket.md",
-    "updated": "2026-10-26T00:22:10.863Z",
+    "updated": "2026-10-26T00:35:20.057Z",
     "after": [
       "AR0354"
     ]
@@ -3445,9 +3445,9 @@
   {
     "id": "AR0432",
     "title": "The always-review list misses the other installs: composer, uv, yarnrc, pnpmfile and bunfig",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0432-the-always-review-list-misses-the-other-installs-composer-uv-yarnrc-pnpmfile-and/ticket.md",
-    "updated": "2026-10-26T00:35:02.245Z",
+    "updated": "2026-10-26T00:38:40.489Z",
     "after": [
       "AR0431"
     ]

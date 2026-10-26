@@ -3623,9 +3623,9 @@
   {
     "id": "AR0450",
     "title": "Polish the docs and make the README shorter",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0450-polish-the-docs-and-make-the-readme-shorter/ticket.md",
-    "updated": "2026-10-26T13:40:04.267Z",
+    "updated": "2026-10-26T17:27:58.624Z",
     "after": [
       "AR0441",
       "AR0440",

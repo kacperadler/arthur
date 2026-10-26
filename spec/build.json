@@ -3545,9 +3545,9 @@
   {
     "id": "AR0441",
     "title": "Any merge commit on main resets the baseline, one a job made included",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0441-any-merge-commit-on-main-resets-the-baseline-one-a-job-made-included/ticket.md",
-    "updated": "2026-10-26T13:49:22.990Z",
+    "updated": "2026-10-26T13:53:17.862Z",
     "after": [
       "AR0350"
     ]
@@ -3640,5 +3640,12 @@
     "status": "dropped",
     "path": "spec/features/AR0451-branch-code-run-outside-the-sandbox-can-read-arthur-s-environment/ticket.md",
     "updated": "2026-10-26T13:43:00.981Z"
+  },
+  {
+    "id": "AR0452",
+    "title": "`arthur take-main` takes an owner's decision of another project",
+    "status": "dropped",
+    "path": "spec/features/AR0452-arthur-take-main-takes-an-owner-s-decision-of-another-project/ticket.md",
+    "updated": "2026-10-26T13:53:32.390Z"
   }
 ]

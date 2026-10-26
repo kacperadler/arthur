@@ -20,4 +20,20 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/orchestration/src/decision-use.ts:43`, `packages/delivery/src/take-main.ts:53`
 - What: `decision.owner` matches a decision to its use by ticket, else by job; for an ask with neither, as `arthur take-main` sends, any answered `merge` decision of no ticket and no job passes, whatever project its id's prefix names. So `arthur take-main --project shop --decision AC-D3` records shop's main on a decision the owner took for acme. Read from the lines named; not run.
 - Suggestion: give `decision.owner` the project the use acts on (`project` in `Use`) and refuse a decision whose prefix names another, in orchestration's `refusal`; delivery passes `found.name`.
-- Status: open
+- Status: dropped (AR-D53: Arthur is the one project, so no other project's decision exists to take; AR0452 dropped)
+
+## F3. A missing last-merge record still falls back to main's last merge commit
+
+- Kind: security
+- Found by: AR0441 review 1 (reviewer, non-blocking note), 2026-10-26
+- Where: `packages/delivery/src/take-main.ts`
+- What: with no record, or one without a full hash, the check lists from main's last merge commit, which a job can make.
+- Status: dropped (AR-D67 keeps the fallback for a missing file only; erasing the record from the main checkout is the worktree guard's to refuse)
+
+## F4. take-main records a detached HEAD
+
+- Kind: fix
+- Found by: AR0441 review 1 (reviewer, non-blocking note), 2026-10-26
+- Where: `packages/delivery/src/take-main.ts`
+- What: on a detached HEAD it records that commit.
+- Status: dropped (arthur merge refuses a detached HEAD before reading the record)

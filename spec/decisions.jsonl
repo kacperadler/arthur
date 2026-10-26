@@ -215,3 +215,5 @@
 {"record":"answer","id":"AR-D107","time":"2026-10-26T23:29:06+01:00","decided":"Accept host.sandbox(folder, cache, note) for AR0454, recorded in docs/plugin-api.md (the coordinator's recommendation, under AR-D98)","picked":1,"words":"always go with your recommendation"}
 {"record":"ask","id":"AR-D108","time":"2026-10-26T23:31:03+01:00","project":"arthur","kind":"merge","question":"AR0434 passed review: merge it?","options":["Merge","Hold"],"recommend":1,"ticket":"AR0434"}
 {"record":"answer","id":"AR-D108","time":"2026-10-26T23:31:03+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}
+{"record":"ask","id":"AR-D109","time":"2026-10-26T23:39:49+01:00","project":"arthur","kind":"merge","question":"AR0463 passed review: merge it?","options":["Merge","Hold"],"recommend":1,"ticket":"AR0463"}
+{"record":"answer","id":"AR-D109","time":"2026-10-26T23:39:49+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}

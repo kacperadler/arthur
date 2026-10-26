@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Fixed
 
+- AR0339 A recursive search from the coordinator's own folder prints the env file (ff75b704)
 - AR0354 The mark that tells a job from the coordinator is a variable the job's shell clears (7231be19)
 - AR0355 `--unreviewed` and `--budget 0` rest on a sentence in the coordinator's role, with no recorded decision behind them (f373a86c)
 - AR0361 A merge takes main as it is: a commit that reached main by another route is merged on and pushed with the next merge (e3164372)

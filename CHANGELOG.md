@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-27
+
+### Fixed
+
+- AR0374 The install at a spawn and each step of the merge have no time limit (a5779445)
+
 ## 2026-10-26
 
 ### Fixed

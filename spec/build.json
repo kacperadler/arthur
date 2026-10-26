@@ -3380,9 +3380,9 @@
   {
     "id": "AR0429",
     "title": "The guard misreads four short forms: $ARTHUR_JOB, env -C and sudo -D, a ~ after =, cd $PWD and cd ~+",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0429-the-guard-misreads-four-short-forms-arthur-job-env-c-and-sudo-d-a-after-cd-pwd/ticket.md",
-    "updated": "2026-10-26T23:40:10.565Z"
+    "updated": "2026-10-26T23:52:16.564Z"
   },
   {
     "id": "AR0430",

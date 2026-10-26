@@ -1,31 +1,62 @@
 import { spawnSync } from "node:child_process";
-import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, lstatSync, mkdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
 // Delivery's OMP extension (spec/roadmap.md, entry 53), which each job's agent loads with `-e` after the core's own
 // (`host.jobs.registerExtension`): after each bash call it adds to the job's `checks`, `<home>/delivery/<job>/checks`, what a run
-// of the project's own checks said, each line ending with the commit and the tree (`clean`, `dirty`) the call ended on.
-// `arthur review-needed` reads it: docs/commands/review-needed.md, "The job's checks".
+// of the project's own checks said, each line ending with the commit the call began on and `clean` only when the tree was the
+// same clean one as the call began and as it ended, else `dirty` (AR0436). `arthur review-needed` reads it:
+// docs/commands/review-needed.md, "The job's checks".
 
 type Script = "check" | "test";
-type ToolResult = { readonly toolName?: unknown; readonly input?: { readonly command?: unknown }; readonly content?: unknown; readonly details?: { readonly async?: unknown }; readonly isError?: unknown };
-type ExtensionApi = { on(event: "tool_result", handler: (event: ToolResult, ctx: { readonly cwd: string }) => void): void };
+type ToolEvent = { readonly toolCallId?: unknown; readonly toolName?: unknown; readonly input?: { readonly command?: unknown }; readonly content?: unknown; readonly details?: { readonly async?: unknown }; readonly isError?: unknown };
+type ExtensionApi = { on(event: "tool_call" | "tool_result", handler: (event: ToolEvent, ctx: { readonly cwd: string }) => void): void };
+type Tree = { readonly head: string; readonly files: string; readonly clean: boolean };
 
 export default function checks(pi: ExtensionApi): void {
 	const record = process.env.ARTHUR_JOB;
 	if (record === undefined || record === "") return;
 	// The job's record is `<home>/jobs/<id>`, and delivery's folder `<home>/delivery`.
 	const file = join(dirname(dirname(record)), "delivery", basename(record), "checks");
-	pi.on("tool_result", (event, ctx) => {
-		const lines = event.toolName === "bash" ? ran(event, ctx.cwd) : [];
-		if (lines.length === 0) return;
-		// The worktree's HEAD and whether a tracked file differs from it (an untracked one is on no branch); outside Git, no line.
-		const git = (...words: string[]) => spawnSync("git", ["--no-optional-locks", "-C", ctx.cwd, ...words], { encoding: "utf8" });
-		const [head, status] = [git("rev-parse", "HEAD"), git("status", "--porcelain", "--untracked-files=no")];
-		if (head.status !== 0 || status.status !== 0) return;
-		mkdirSync(dirname(file), { recursive: true });
-		appendFileSync(file, lines.map((line) => `${line} ${head.stdout.trim()} ${status.stdout === "" ? "clean" : "dirty"}\n`).join(""));
+	// The tree each bash call that runs the checks began on, by its call's id, until its result. A handler that throws blocks
+	// the call; none of these does.
+	const began = new Map<unknown, Tree | undefined>();
+	pi.on("tool_call", (event, ctx) => {
+		if (event.toolName === "bash" && scripts(event.input?.command, ctx.cwd).length > 0) began.set(event.toolCallId, tree(ctx.cwd));
 	});
+	pi.on("tool_result", (event, ctx) => {
+		const before = began.get(event.toolCallId);
+		began.delete(event.toolCallId);
+		const lines = event.toolName === "bash" ? ran(event, ctx.cwd) : [];
+		const after = lines.length === 0 ? undefined : tree(ctx.cwd);
+		if (after === undefined) return;
+		// The same commit and the same untouched files: the tree the checks ran on is the one read as the call ended.
+		const clean = before !== undefined && before.head === after.head && before.files === after.files && after.clean;
+		mkdirSync(dirname(file), { recursive: true });
+		appendFileSync(file, lines.map((line) => `${line} ${(before ?? after).head} ${clean ? "clean" : "dirty"}\n`).join(""));
+	});
+}
+
+// The worktree's HEAD, each tracked file's inode, size and times (any write changes its ctime, so a file rewritten and put
+// back, by Git or not, changes them) and `clean` when no tracked file differs from HEAD and none is one Git is told not to look
+// at (`assume-unchanged`, `skip-worktree`: a tag other than `H` in `git ls-files -v`); an untracked file is on no branch.
+// Outside Git, undefined. No hook or fsmonitor the worktree's config names runs, nor a replacement (refs/replace) is read:
+// the job may have set them (AR0330, AR0384).
+function tree(cwd: string): Tree | undefined {
+	const git = (...words: string[]) => spawnSync("git", ["--no-optional-locks", "--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", cwd, ...words], { encoding: "utf8" });
+	const [head, status, tracked] = [git("rev-parse", "HEAD"), git("status", "--porcelain", "--untracked-files=no"), git("ls-files", "-v", "-z")];
+	if (head.status !== 0 || status.status !== 0 || tracked.status !== 0) return undefined;
+	const entries = tracked.stdout.split("\0").filter(Boolean);
+	const files = entries.map((entry) => {
+		// A path gone or unreachable (its folder now a file, ENOTDIR, or unreadable): its error, as a handler must not throw.
+		try {
+			const stat = lstatSync(join(cwd, entry.slice(2)), { bigint: true });
+			return `${stat.ino} ${stat.size} ${stat.mtimeNs} ${stat.ctimeNs}`;
+		} catch (error) {
+			return (error as NodeJS.ErrnoException).code ?? "unreadable";
+		}
+	});
+	return { head: head.stdout.trim(), files: files.join("\n"), clean: status.stdout === "" && entries.every((entry) => entry.startsWith("H ")) };
 }
 
 // The lines of one bash call: `check pass|fail` per `npm run check`, `test pass|fail <passed>/<total>` per `npm test` (`npm t`,
@@ -33,11 +64,9 @@ export default function checks(pi: ExtensionApi): void {
 // the bash tool moved to the background (it returned before the checks did), none. Commands joined by `;`, `&&` or `|` give one
 // exit status, so the output decides too: a check fails on a TypeScript error; a test takes pass or fail from node --test's
 // last summary (`fail 0` passes), and from the exit status without one.
-function ran(event: ToolResult, cwd: string): string[] {
-	const command = event.input?.command;
-	if (typeof command !== "string" || event.details?.async !== undefined) return [];
-	const scripts = declared(cwd);
-	const runs = Array.from(command.matchAll(/(?:^|[;&|(\n])\s*npm\s+(test|t|run\s+test|run\s+check)(?=$|[\s;&|)])/g), (match): Script => ((match[1] ?? "").endsWith("check") ? "check" : "test")).filter((name) => scripts.includes(name));
+function ran(event: ToolEvent, cwd: string): string[] {
+	if (event.details?.async !== undefined) return [];
+	const runs = scripts(event.input?.command, cwd);
 	const output = Array.isArray(event.content) ? event.content.map((part: { readonly text?: unknown }) => (typeof part?.text === "string" ? part.text : "")).join("\n") : "";
 	const failed = event.isError === true;
 	const count = (word: string) => Array.from(output.matchAll(new RegExp(`^\\S+ ${word} (\\d+)\\s*$`, "gm"))).at(-1)?.[1];
@@ -49,12 +78,16 @@ function ran(event: ToolResult, cwd: string): string[] {
 	});
 }
 
-// The `check` and `test` scripts the package.json in `worktree` declares; a missing or broken one declares none.
-function declared(worktree: string): Script[] {
+// The runs of the `check` and `test` scripts the package.json in `worktree` declares that `command` names, in its order; a
+// missing or broken package.json declares none.
+function scripts(command: unknown, worktree: string): Script[] {
+	if (typeof command !== "string") return [];
+	let declared: readonly Script[];
 	try {
 		const { scripts } = JSON.parse(readFileSync(join(worktree, "package.json"), "utf8")) as { readonly scripts?: Readonly<Record<string, unknown>> };
-		return (["check", "test"] as const).filter((name) => typeof scripts?.[name] === "string");
+		declared = (["check", "test"] as const).filter((name) => typeof scripts?.[name] === "string");
 	} catch {
 		return [];
 	}
+	return Array.from(command.matchAll(/(?:^|[;&|(\n])\s*npm\s+(test|t|run\s+test|run\s+check)(?=$|[\s;&|)])/g), (match): Script => ((match[1] ?? "").endsWith("check") ? "check" : "test")).filter((name) => declared.includes(name));
 }

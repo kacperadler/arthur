@@ -743,7 +743,12 @@ import { checkStructure } from "./structure.ts";
 // walk that makes a folder a step hid readable and the removal that gives back a write a step took (merge-checks.ts, git diff
 // --numstat +68 -4). Nothing removed a step's nested repository before, so nothing was cut.
 // Merged main (AR0434) into AR0463: main's budgets plus AR0463's delivery 1500 (recounted with wc -l).
-const BUDGETS = { core: 6325, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1500, github: 659, manage: 928, develop: 706, findings: 254 };
+// AR0436 (F1 of AR0360, a security ticket; its Done means allow the raise, AR-D29): delivery 33 more (1533) for the checks
+// extension's reading as a bash call begins (`tool_call`), kept by its call's id, and the line `clean` only when both readings
+// name the same commit and every tracked file unwritten, with `assume-unchanged` and `skip-worktree` counted as changes, a path
+// lstat cannot reach not thrown, and its git calls run with no hook, fsmonitor or replacement (checks-extension.ts, git diff
+// --numstat +52 -19). Nothing read the tree before a call, so nothing was cut.
+const BUDGETS = { core: 6325, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1533, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

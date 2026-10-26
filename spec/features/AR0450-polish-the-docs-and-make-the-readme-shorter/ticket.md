@@ -36,4 +36,5 @@ Out:
 ## Decisions
 - 2026-10-26: AR0450 approved: shorten the README and polish the docs, after AR0441, AR0440, AR0443, AR0442, AR0449; the owner: "ok so after this 5 tasks, prepare a task for polishing the docs and readme and to make the readme chorter bcs right now is too long" (AR-D75)
 - 2026-10-26: AR0450: short README with a small diagram (core and plugin groups, about 30 lines) on the front page, the full diagram by link; the owner: "AR-D87 3" (AR-D87)
+- 2026-10-26: Merge a ticket once its review passed, without asking the owner (AR-D73); the owner: "If there is something that you can merge, just merge, do not ask me abut it" (AR-D88)
 

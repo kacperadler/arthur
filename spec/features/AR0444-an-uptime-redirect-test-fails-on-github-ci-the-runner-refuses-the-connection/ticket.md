@@ -35,3 +35,4 @@ Out:
 ## Decisions
 
 - 2026-10-26: AR0444 approved; start its worker now despite usage at 60%; the owner: "AR-D50 - 1" (AR-D50)
+- 2026-10-26: Merge AR0444 now, then the owner restarts once for AR0339 and AR0444; the owner: "AR-D52 - 1" (AR-D52)

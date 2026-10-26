@@ -743,7 +743,8 @@ import { checkStructure } from "./structure.ts";
 // walk that makes a folder a step hid readable and the removal that gives back a write a step took (merge-checks.ts, git diff
 // --numstat +68 -4). Nothing removed a step's nested repository before, so nothing was cut.
 // Merged main (AR0434) into AR0463: main's budgets plus AR0463's delivery 1500 (recounted with wc -l).
-const BUDGETS = { core: 6325, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1500, github: 659, manage: 928, develop: 706, findings: 254 };
+// AR0388 (F1 of AR0377, a security ticket; AR-D117): core 3 more (6328) for the guard's `$XDG_CONFIG_HOME/systemd` line (job-place.ts, git diff --numstat +7 -4).
+const BUDGETS = { core: 6328, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1500, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

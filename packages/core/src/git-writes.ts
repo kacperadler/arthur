@@ -24,9 +24,10 @@ const CONFIG_SUBCOMMANDS = ["set", "unset", "rename-section", "remove-section", 
 // point a checkout at though another worktree holds it ("" when any); `replaces`, whether it writes a replacement under
 // `refs/replace` (`git replace` but a bare one, or one that lists: `-l`, a bundle with it, `--list` or an abbreviation,
 // before `--`; Git refuses any other word with those); `shared`, whether it rewrites the repository every worktree shares:
-// `gc`, `prune`, `repack`, `maintenance`, `filter-repo`, `reflog expire`, `delete` or `drop`, `worktree prune`; `adds`, the
-// words of `worktree add` or `move` but options; `alias`, the words Git runs instead when `sub` is an alias given by `-c` (Git runs
-// a builtin of that name first, so both are judged); `unread`, whether it reads config the guard does not: a shell alias for `sub`, or `UNREAD`.
+// `gc`, `prune`, `repack`, `maintenance`, `filter-repo`, `reflog expire`, `delete` or `drop`, `worktree prune`, or one given
+// or writing `gc.*` or `maintenance.*` config; `adds`, the words of `worktree add` or `move` but options; `alias`, the words
+// Git runs instead when `sub` is an alias given by `-c` (Git runs a builtin of that name first, so both are judged); `unread`,
+// whether it reads config the guard does not: a shell alias for `sub`, or `UNREAD`.
 export type GitCall = {
 	readonly sub: string;
 	readonly rest: readonly string[];
@@ -64,9 +65,12 @@ export function gitCall(args: readonly string[], assignments: readonly string[] 
 	const alias = value === undefined ? undefined : [...options.filter((_, at) => !defines(at) && !defines(at + 1)), ...aliasWords(value), ...rest];
 	const lists = rest.slice(0, rest.includes("--") ? rest.indexOf("--") : rest.length).some((word) => /^-[a-zA-Z]*l/.test(word) || (word.length > 2 && "--list".startsWith(word)));
 	const replaces = sub === "replace" && rest.length > 0 && !lists;
-	const shared = ["gc", "prune", "repack", "maintenance", "filter-repo"].includes(sub) || (sub === "reflog" && ["expire", "delete", "drop"].includes(rest[0] ?? "")) || (sub === "worktree" && rest[0] === "prune");
+	// Config the `gc` Git runs by itself after a commit, merge or fetch reads (`gc.pruneExpire=now` drops unreachable commits).
+	const config = sub === "config" ? configWrite(rest) : undefined;
+	const tunes = [...options.filter((_, at) => options[at - 1] === "-c"), ...configEnv, ...(config ? rest : [])].some((word) => /^(?:gc|maintenance)(?:\.|$)/i.test(word));
+	const shared = tunes || ["gc", "prune", "repack", "maintenance", "filter-repo"].includes(sub) || (sub === "reflog" && ["expire", "delete", "drop"].includes(rest[0] ?? "")) || (sub === "worktree" && rest[0] === "prune");
 	const adds = sub === "worktree" && ["add", "move"].includes(rest[0] ?? "") ? rest.slice(1).filter((word) => !word.startsWith("-")) : [];
-	return { sub, rest, chdirs, trees, writesCheckout: WRITES_CHECKOUT.includes(sub) || writesRef(sub, rest), writesOperands: WRITES_OPERANDS.includes(sub) || worktree, config: sub === "config" ? configWrite(rest) : undefined, points: pointsAt(sub, rest), replaces, shared, adds, alias, unread };
+	return { sub, rest, chdirs, trees, writesCheckout: WRITES_CHECKOUT.includes(sub) || writesRef(sub, rest), writesOperands: WRITES_OPERANDS.includes(sub) || worktree, config, points: pointsAt(sub, rest), replaces, shared, adds, alias, unread };
 }
 
 // The words of an alias, split as Git splits one: at blanks outside quotes, with `'…'`, `"…"` and `\x` quoting.

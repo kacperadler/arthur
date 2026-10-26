@@ -2556,9 +2556,9 @@
   {
     "id": "AR0335",
     "title": "The git commands that rewrite the shared repository pass as a documented limit",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0335-the-git-commands-that-rewrite-the-shared-repository-pass-as-a-documented-limit/ticket.md",
-    "updated": "2026-10-26T11:17:19.660Z",
+    "updated": "2026-10-26T12:02:26.221Z",
     "after": [
       "AR0354"
     ]

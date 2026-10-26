@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { dirname, relative, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { envLine, readConfig } from "./config-check.ts";
 import * as core from "./core-options.ts";
@@ -59,7 +59,7 @@ export async function setup(shell: Shell, problem: string | undefined, checks: (
 	out.push(...refusals.flatMap((refusal) => refusal.split("\n")).map((line) => `  refused: ${line}`), "");
 
 	out.push("Requirements (arthur doctor)");
-	const lines = config === undefined ? [] : await (checks?.() ?? doctor(coreRequirements(config.core.home, config.core.agent.command), ownAnswers(config.plugins, config.core)));
+	const lines = config === undefined ? [] : await (checks?.() ?? doctor(coreRequirements(config.core, () => [dirname(path)]), ownAnswers(config.plugins, config.core)));
 	if (config === undefined) out.push(`  skipped: ${found ? `${CONFIG} does not load` : `no ${CONFIG}`}`);
 	out.push(...lines.map((line) => `  ${line.text}`));
 	if (config !== undefined && checks === undefined) out.push(`  the requirements a plugin checks in its setup are not checked until what Config refuses is fixed`);
@@ -73,7 +73,7 @@ export async function setup(shell: Shell, problem: string | undefined, checks: (
 	if (!found) steps.push({ text: `Write ${CONFIG} (docs/setup.md, step 5), then arthur config check`, refuses: true });
 	if (refusals.length > 0) steps.push({ text: "Fix what Config refuses above, then arthur config check", refuses: true });
 	for (const variable of env?.variables ?? [])
-		if (!variable.set && config !== undefined) steps.push({ text: `Set ${variable.name} in ${relative(dirname(path), config.core.envFile)} (${variable.option}), then arthur config check`, refuses: true });
+		if (!variable.set && config !== undefined) steps.push({ text: `Set ${variable.name} in ${config.core.envFile} (${variable.option}), then arthur config check`, refuses: true });
 	const missing = lines.filter((line) => line.missing);
 	for (const line of [...missing.filter((each) => each.critical), ...missing.filter((each) => !each.critical)]) steps.push({ text: line.fix ?? line.text, refuses: line.critical });
 	const next = steps.filter((step, index) => steps.findIndex((other) => other.text === step.text) === index);

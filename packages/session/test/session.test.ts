@@ -247,7 +247,7 @@ test("in arthur run a tick that throws in an unwritable session folder is told o
 		join(folder, "arthur.config.ts"),
 		`import { appendFileSync } from "node:fs";\nimport { session } from ${JSON.stringify(plugin)};\nlet timer;\nexport default { core: { timeZone: "UTC" }, plugins: [{ name: "orchestration", setup() {} }, session(${options}), ${beat}] };\n`,
 	);
-	const run = spawn(process.execPath, [cli, "run"], { cwd: folder, env: { PATH: process.env.PATH ?? "" } });
+	const run = spawn(process.execPath, [cli, "run"], { cwd: folder, env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 	const [out, err] = [[] as string[], [] as string[]];
 	run.stdout.on("data", (chunk) => void out.push(String(chunk)));
 	run.stderr.on("data", (chunk) => void err.push(String(chunk)));

@@ -146,7 +146,7 @@ test("in the shell: arthur board and task, their usage, an unknown --project, an
 		join(folder, "arthur.config.ts"),
 		`import { orchestration } from ${JSON.stringify(plugin)};\nexport default { plugins: [orchestration(), { name: "projects", setup(host) {\n\thost.provide("projects", () => [{ name: "demo", path: import.meta.dirname, prefix: "DM" }]);\n} }] };\n`,
 	);
-	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 	for (const title of ["One", "Two"]) arthur("ticket", "new", title);
 	const both = "DM0001 planning    -        One\nDM0002 planning    -        Two\n";
 	assert.deepEqual([arthur("board").stdout, arthur("board", "all").stdout], [both, both], "the template's Kind guidance shows as -");

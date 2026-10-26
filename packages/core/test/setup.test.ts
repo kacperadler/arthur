@@ -24,11 +24,11 @@ const DOCKER = `export const summary = "labels and removes the Docker resources 
 export const tools = [{ name: "docker", version: ["docker", "--version"] }];
 export const table = { buildCache: { about: "The cap of the build cache", check: () => undefined }, sweep: { about: "The sweep", fields: { at: { about: 'The daily sweep, "HH:MM"', check: () => undefined } } } };`;
 
-// A config folder, `config` as its arthur.config.ts when given (HOME its home), `env` as its .env; the packages installed
+// A config folder, `config` as its arthur.config.ts when given (HOME its home), `env` as its env file in its own `xdg` folder; the packages installed
 // under node_modules/@arthur, each with its options file or none; and a bin first on PATH with each fake tool, systemctl
 // answering as a user manager with the controllers delegated, and omp.
 function project({ config, env, packages = {} }: { readonly config?: string; readonly env?: string; readonly packages?: Readonly<Record<string, string | undefined>> }) {
-	const folder = temporaryFolder();
+	const [folder, xdg] = [temporaryFolder(), temporaryFolder()];
 	const bin = join(folder, "bin");
 	mkdirSync(bin);
 	const tool = (name: string, script: string) => writeFileSync(join(bin, name), `#!/bin/sh\n${script}\n`, { mode: 0o755 });
@@ -38,7 +38,7 @@ function project({ config, env, packages = {} }: { readonly config?: string; rea
 	tool("ffmpeg", "echo 'ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers'");
 	tool("docker", "echo 'Docker version 27.3.1, build ce12230'");
 	if (config !== undefined) writeFileSync(join(folder, "arthur.config.ts"), config.replace("HOME", JSON.stringify(join(folder, ".arthur"))));
-	if (env !== undefined) writeFileSync(join(folder, ".env"), env);
+	if (env !== undefined) mkdirSync(join(xdg, "arthur")), writeFileSync(join(xdg, "arthur", ".env"), env);
 	for (const [name, options] of Object.entries(packages)) {
 		const dir = join(folder, "node_modules", "@arthur", name);
 		mkdirSync(dir, { recursive: true });
@@ -47,8 +47,8 @@ function project({ config, env, packages = {} }: { readonly config?: string; rea
 		if (options !== undefined) writeFileSync(join(dir, "options.js"), options);
 	}
 	const arthur = (args: readonly string[] = ["setup"], shell: Readonly<Record<string, string>> = {}) =>
-		spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: [bin, process.env.PATH ?? ""].join(delimiter), ...shell }, timeout: 30_000 });
-	return { folder, tool, arthur };
+		spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env: { PATH: [bin, process.env.PATH ?? ""].join(delimiter), XDG_CONFIG_HOME: xdg, ...shell }, timeout: 30_000 });
+	return { folder, xdg, tool, arthur };
 }
 
 // The lines of one section of the report, from its title to the blank line after it, each trimmed and its columns, two
@@ -97,7 +97,7 @@ test("arthur setup: the tools, the config, the requirements, what can still go i
 		"env set | ARTHUR_TELEGRAM_CHAT_ID (telegram.chatIdEnv)",
 		"voice | off (enabled: false)",
 	]);
-	assert.deepEqual(section(run.stdout, "Requirements").slice(6), [
+	assert.deepEqual(section(run.stdout, "Requirements").slice(7), [
 		"orchestration tmux: ok",
 		"telegram ffmpeg: missing: not found; without it: no ffmpeg; fix: fix ffmpeg",
 		"telegram bot: missing: unreachable; without it: no bot; fix: fix bot",
@@ -131,22 +131,22 @@ test("arthur setup writes nothing beyond what arthur doctor does, and takes no a
 });
 
 test("a missing variable is a step that refuses the start; each enabled plugin's own doctor is checked, what it checks in its setup waits; a disabled plugin's env is not read; the env file's warnings", () => {
-	const { folder, arthur } = project({ config: FULL, env: "# none yet\nARTHUR_OTHER=a-secret-1\nARTHUR_OTHER=a-secret-2\n", packages: INSTALLED });
+	const { xdg, arthur } = project({ config: FULL, env: "# none yet\nARTHUR_OTHER=a-secret-1\nARTHUR_OTHER=a-secret-2\n", packages: INSTALLED });
 	const run = arthur(["setup"], { ARTHUR_TELEGRAM_BOT_TOKEN: "shell-secret-123" });
 	assert.deepEqual(section(run.stdout, "Config").slice(4), [
 		"env set | ARTHUR_TELEGRAM_BOT_TOKEN (telegram.botTokenEnv)",
 		"env missing ARTHUR_TELEGRAM_CHAT_ID (telegram.chatIdEnv)",
 		"voice | off (enabled: false)",
-		`${join(folder, ".env")}: ARTHUR_OTHER is set on lines 2, 3; the last wins`,
+		`${join(xdg, "arthur", ".env")}: ARTHUR_OTHER is set on lines 2, 3; the last wins`,
 	]);
-	assert.deepEqual(section(run.stdout, "Requirements").slice(6), [
+	assert.deepEqual(section(run.stdout, "Requirements").slice(7), [
 		"orchestration tmux: ok",
 		"telegram ffmpeg: missing: not found; without it: no ffmpeg; fix: fix ffmpeg",
 		"the requirements a plugin checks in its setup are not checked until what Config refuses is fixed",
 	]);
 	assert.deepEqual(section(run.stdout, "Next"), [
 		"Next",
-		"1. Set ARTHUR_TELEGRAM_CHAT_ID in .env (telegram.chatIdEnv), then arthur config check. Refuses the start.",
+		`1. Set ARTHUR_TELEGRAM_CHAT_ID in ${join(xdg, "arthur", ".env")} (telegram.chatIdEnv), then arthur config check. Refuses the start.`,
 		"2. fix ffmpeg",
 		"Run arthur setup again after each step.",
 	]);
@@ -162,14 +162,14 @@ export default { core: { home: HOME, agent: { command: "arthur-test-no-agent" } 
 	{ name: "telegram", requires: ["ghost"], options: { chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }, setup() {} },
 ] };
 `;
-	const { arthur, tool } = project({ config });
+	const { xdg, arthur, tool } = project({ config });
 	tool("systemctl", `[ "$*" = "--user show-environment" ] && { echo HOME=/home/arthur; exit 0; }\necho pids`);
 	const run = arthur();
 	assert.match(section(run.stdout, "Config").at(-1) ?? "", /^refused: .*arthur\.config\.ts: telegram\.requires: telegram requires ghost, which is not in the plugin list$/);
 	assert.deepEqual(section(run.stdout, "Next"), [
 		"Next",
 		"1. Fix what Config refuses above, then arthur config check. Refuses the start.",
-		"2. Set ARTHUR_TELEGRAM_CHAT_ID in .env (telegram.chatIdEnv), then arthur config check. Refuses the start.",
+		`2. Set ARTHUR_TELEGRAM_CHAT_ID in ${join(xdg, "arthur", ".env")} (telegram.chatIdEnv), then arthur config check. Refuses the start.`,
 		"3. install arthur-test-no-agent on the PATH arthur run has (docs/setup.md, steps 2 and 8). Refuses the start.",
 		"4. delegate them (docs/setup.md, step 10), then reboot",
 		"Run arthur setup again after each step.",
@@ -191,6 +191,22 @@ test("nothing missing: Next says nothing, and exit 0", () => {
 	const run = arthur();
 	assert.deepEqual(section(run.stdout, "Can still go"), ["Can still go in arthur.config.ts", "nothing"]);
 	assert.deepEqual([run.status, run.stdout.split("\n").slice(-3)], [0, ["Next", "  nothing", ""]]);
+});
+
+test("an env file set beside the config: its doctor line under Requirements and its move a step of Next that does not refuse the start", () => {
+	const { folder, arthur } = project({ config: `${NEED}\nexport default { core: { home: HOME, envFile: ".env" }, plugins: [{ name: "orchestration", setup() {} }] };\n` });
+	const run = arthur();
+	assert.match(section(run.stdout, "Requirements")[6] ?? "", new RegExp(`^core env: missing: the env file ${join(folder, ".env")} lies inside ${folder}; `));
+	assert.deepEqual([run.status, section(run.stdout, "Next")], [0, ["Next", "1. move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)", "Run arthur setup again after each step."]]);
+});
+
+test("a config whose load refuses, a variable missing: the core's env line still warns of an env file beside the config, and its move is a step", () => {
+	const { folder, arthur } = project({ config: 'export default { core: { home: HOME, envFile: ".env" }, plugins: [{ name: "orchestration", setup() {} }, { name: "telegram", options: { botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN" }, setup() {} }] };\n' });
+	const run = arthur();
+	const requirements = section(run.stdout, "Requirements");
+	assert.match(requirements[6] ?? "", new RegExp(`^core env: missing: the env file ${join(folder, ".env")} lies inside ${folder}; `));
+	assert.equal(requirements.at(-1), "the requirements a plugin checks in its setup are not checked until what Config refuses is fixed");
+	assert.ok(section(run.stdout, "Next").some((step) => step.endsWith(". move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)")), run.stdout);
 });
 
 test("no config: Config says so, Requirements are skipped, every installed plugin can go in, and Next writes it first", () => {

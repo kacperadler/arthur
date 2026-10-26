@@ -666,6 +666,12 @@ import { checkStructure } from "./structure.ts";
 // AR0337 review 1 (AR-D29): core 1 more (6168) for a suffixed `.mcp.json` reached through a glob, `.mc?.json.bak`, its candidates
 // beside the env file's suffixed one (env-refusal.ts, git diff --numstat +4 -3). Nothing tried such a name before, so nothing was cut.
 // Merged main (AR0362) into AR0337: main's budgets plus AR0337's raises, core 6168, delivery 1327.
+// AR0339 (F3 of AR0319; its Done means, the first of its two fixes: `core.envFile` by default outside every folder an agent
+// works in, and `arthur doctor` warning of one inside the config's folder or a project's checkout; AR-D29): core 12 more
+// (6180) for the requirement with its comment (requirements.ts, git diff --numstat +15 -5, the header folded by a line), the
+// default in `~/.config/arthur/` or `$XDG_CONFIG_HOME/arthur/` (config.ts, +3 -2), and the project folders it checks (host.ts,
+// +3 -2); the test kit's `XDG_CONFIG_HOME` joins its tmux folder on one line (testing.ts, +2 -2). Nothing checked where the env
+// file lies before, so nothing was cut.
 // AR0361 (F5 of AR0324; its Done means: a merge refuses while main has a non-merge commit of code since its last merge; AR-D29):
 // delivery 5 more (1332) for the refusal and its comment (merge-command.ts, git diff --numstat +5). Nothing looked at main's own
 // commits before, so nothing was cut.
@@ -681,7 +687,10 @@ import { checkStructure } from "./structure.ts";
 // the refusal), schedule 1 (595), youtrack 2 (661). Each refusal had read `ARTHUR_JOB` in place, so nothing was cut.
 // Merged main (AR0355) into AR0354: main's budgets plus AR0354's raises, core 6170 + 14 = 6184, orchestration 2396 + 3 = 2399,
 // develop 706, github 659, schedule 595, youtrack 661.
-const BUDGETS = { core: 6184, "core/testing": 349, projects: 486, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1337, github: 659, manage: 928, develop: 706, findings: 254 };
+// Merged main (AR0361) into AR0339: main's budgets plus AR0339's raise, core 6180, delivery 1332.
+// Merged main (AR0354, AR0355) into AR0339: main's budgets plus AR0339's 12, and 1 for cli.ts's `node:path` import, which
+// main dropped with `basename` and AR0339's `dirname` keeps: core 6184 + 13 = 6197 (recounted with wc -l).
+const BUDGETS = { core: 6197, "core/testing": 349, projects: 486, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1337, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

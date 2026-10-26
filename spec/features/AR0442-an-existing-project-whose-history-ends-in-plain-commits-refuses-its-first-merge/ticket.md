@@ -42,3 +42,5 @@ Out:
 ## Decisions
 
 - 2026-10-26: Source: F2 of AR0361
+- 2026-10-26: Raise the delivery line budget 1434 to 1436 for AR0442, under the owner standing word on line budgets (AR-D61); the owner: "IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS" (AR-D78)
+- 2026-10-26: Merge a ticket once its review passed, without asking the owner (AR-D73); the owner: "If there is something that you can merge, just merge, do not ask me abut it" (AR-D80)

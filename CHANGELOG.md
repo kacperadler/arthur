@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-27
+
+### Fixed
+
+- AR0374 The install at a spawn and each step of the merge have no time limit (a5779445)
+
 ## 2026-10-26
 
 ### Fixed
@@ -17,6 +23,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0431 A review's project is not checked against its worker's (7c8205b5)
 - AR0432 The always-review list misses the other installs: composer, uv, yarnrc, pnpmfile and bunfig (eea54efb)
 - AR0433 A plugin's wake line built from the final message is not redacted (e61ec246)
+- AR0434 A secret-named variable only the coordinator's omp holds is no longer redacted by name (a63bd50d)
 - AR0439 A provider's key exported in the shell still reaches every job (fa0bdf8c)
 - AR0440 A job can read the running Arthur process's secrets from /proc/<pid>/environ (6ce62c51)
 - AR0441 Any merge commit on main resets the baseline, one a job made included (c661a81d)
@@ -25,6 +32,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0457 A merge check can leave a git hook or config in main's checkout, which runs outside the sandbox at the next git call (23e91a87)
 - AR0458 An install can remove the env file from the record's guarded list, so the agent reads it (17100e1b)
 - AR0459 The site draws each diagram at its own size in a small scrolling box, so a reader sees mostly empty space (8113159f)
+- AR0463 A merge step can plant a nested repository whose fsmonitor runs at the owner's next git call in that folder (b2f98242)
 
 ### Changed
 

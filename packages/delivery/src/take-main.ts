@@ -21,15 +21,17 @@ export function saveLastMerge(host: Host, project: string, hash: string): void {
 	renameSync(`${file}.${process.pid}`, file);
 }
 
-// The recorded hash, `on` when it is on HEAD's first-parent line (HEAD itself included); undefined when the file is missing,
-// holds no hash, or names no ancestor of HEAD. An ancestor off that line (a merge that made it a second parent) is not `on`.
-export function lastMerge(host: Host, project: string, git: Git): { readonly hash: string; readonly on: boolean } | undefined {
+// The recorded hash and where HEAD has it: `on` its first-parent line (HEAD itself included), `off` it (a merge made it a
+// second parent), or `gone` (no ancestor of HEAD, or no commit here: main was reset below it). Undefined when the file is
+// missing or holds no full hash.
+export function lastMerge(host: Host, project: string, git: Git): { readonly hash: string; readonly at: "on" | "off" | "gone" } | undefined {
 	const file = join(host.folder, project, "last-merge");
 	const hash = existsSync(file) ? readFileSync(file, "utf8").trim() : "";
-	if (!HASH.test(hash) || git("merge-base", "--is-ancestor", hash, "HEAD").status !== 0) return undefined;
+	if (!HASH.test(hash)) return undefined;
+	if (git("merge-base", "--is-ancestor", hash, "HEAD").status !== 0) return { hash, at: "gone" };
 	// From HEAD down its first parents to the first ancestor of `hash`: the last one's first parent is `hash` when on the line.
 	const below = git("log", "--first-parent", "--format=%P", `${hash}..HEAD`).stdout.trim().split("\n").at(-1) ?? "";
-	return { hash, on: below === "" || below.split(" ")[0] === hash };
+	return { hash, at: below === "" || below.split(" ")[0] === hash ? "on" : "off" };
 }
 
 export function takeMainCommand(host: Host): Command {

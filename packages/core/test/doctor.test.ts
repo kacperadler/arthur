@@ -58,13 +58,13 @@ function project(home?: string) {
 	writeFileSync(join(folder, "arthur.config.ts"), CONFIG.replace("HOME", JSON.stringify(home ?? join(folder, ".arthur"))));
 	const say = (name: string, text?: string) => (text === undefined ? rmSync(join(folder, name), { force: true }) : writeFileSync(join(folder, name), text));
 	const log = () => (existsSync(join(folder, "log.txt")) ? readFileSync(join(folder, "log.txt"), "utf8") : "");
-	const env = { PATH: [bin, PATH].join(delimiter) };
+	const env = { PATH: [bin, PATH].join(delimiter), XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME ?? "" };
 	// Cut after 30 s: a refused `arthur run` ends at once, one that starts stays until its signal.
 	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env, timeout: 30_000 });
 	return { folder, home: home ?? join(folder, ".arthur"), say, log, arthur, env };
 }
 
-const CORE = ["core git: ok", "core node: ok", "core omp: ok", "core home: ok", "core controllers: ok"];
+const CORE = ["core git: ok", "core node: ok", "core omp: ok", "core home: ok", "core controllers: ok", "core env: ok"];
 const REST = [
 	"orchestration tmux: ok",
 	"channel token: ok",
@@ -85,10 +85,10 @@ test("arthur doctor: one line per requirement, the core's then each enabled plug
 	assert.deepEqual([all.status, all.stdout, all.stderr], [0, [...CORE, ...REST, ""].join("\n"), ""], "a throwing check is not critical: its line is missing, the exit code 0");
 	say("token", "missing: no TOKEN set");
 	const token = arthur("doctor");
-	assert.deepEqual([token.status, token.stdout.split("\n")[6]], [0, TOKEN], "only a non-critical miss: exit 0");
+	assert.deepEqual([token.status, token.stdout.split("\n")[CORE.length + 1]], [0, TOKEN], "only a non-critical miss: exit 0");
 	say("tmux", "missing: tmux not found on PATH");
 	const tmux = arthur("doctor");
-	assert.deepEqual([tmux.status, tmux.stdout.split("\n")[5]], [1, TMUX], "one critical miss: exit 1");
+	assert.deepEqual([tmux.status, tmux.stdout.split("\n")[CORE.length]], [1, TMUX], "one critical miss: exit 1");
 	assert.equal(tmux.stdout.split("\n").length, CORE.length + REST.length + 1, "every line is still printed");
 	assert.ok(!existsSync(join(home, "events.jsonl")) && !existsSync(join(home, "doctor.json")), "arthur doctor sends nothing and records nothing");
 	assert.deepEqual([arthur("doctor", "now").status, arthur("doctor", "now").stderr], [2, "usage: arthur doctor\n"]);
@@ -135,14 +135,14 @@ test("arthur doctor when a plugin's setup fails: the core's lines, then why the 
 	assert.match(broken.stderr, /^arthur doctor: arthur\.config\.ts did not load:\n/);
 });
 
-test("the core's requirements: git, Node 24, the agent, a writable home, critical; the controllers delegated, not; each missing with its reason and fix", async (t) => {
+test("the core's requirements: git, Node 24, the agent, a writable home, critical; the controllers delegated and the env file's place, not; each missing with its reason and fix", async (t) => {
 	t.after(() => void (process.env.PATH = PATH));
 	const bin = temporaryFolder();
 	symlinkSync("/bin/sh", join(bin, "sh"));
 	systemctl(bin, { controllers: "memory pids" });
 	process.env.PATH = bin;
 	const home = join(temporaryFolder(), "home");
-	const lines = await doctor(coreRequirements(home, "omp", "22.11.0"), []);
+	const lines = await doctor(coreRequirements({ home, envFile: "/elsewhere/.env", agent: { command: "omp" } }, () => [home], "22.11.0"), []);
 	assert.deepEqual(
 		lines.map((line) => [line.text, line.critical]),
 		[
@@ -151,13 +151,14 @@ test("the core's requirements: git, Node 24, the agent, a writable home, critica
 			["core omp: missing: omp not found on PATH; without it: no coordinator and no job; fix: install omp on the PATH arthur run has (docs/setup.md, steps 2 and 8)", true],
 			["core home: ok", false],
 			['core controllers: missing: the user manager has the controllers "memory pids", not cpu and memory; without it: jobs run without the joint limit of core.jobs.cpu and core.jobs.memory, and what a job leaves behind is not killed at its end; fix: delegate them (docs/setup.md, step 10), then reboot', false],
+			["core env: ok", false],
 		],
 	);
 	assert.ok(existsSync(home), "a home that is not there yet is made");
 	systemctl(bin, { manager: false });
 	const agent = join(bin, "my-agent");
 	writeFileSync(agent, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
-	const [, node, found, , controllers] = await doctor(coreRequirements(home, agent, "24.0.0"), []);
+	const [, node, found, , controllers] = await doctor(coreRequirements({ home, envFile: "/elsewhere/.env", agent: { command: agent } }, () => [], "24.0.0"), []);
 	assert.deepEqual([node?.text, found?.text], ["core node: ok", "core my-agent: ok"], "Node 24.0.0 is enough; an agent by its path is found, never run");
 	assert.equal(
 		controllers?.text,
@@ -166,11 +167,48 @@ test("the core's requirements: git, Node 24, the agent, a writable home, critica
 	assert.equal(controllers?.critical, false);
 });
 
+test("the env file inside the config's folder or a project's checkout is a miss, not critical, naming that folder; outside every one it is ok", async () => {
+	const line = async (envFile: string, folders: readonly string[]) => {
+		const [env] = coreRequirements({ home: "/unused", envFile, agent: { command: "omp" } }, () => folders).filter((requirement) => requirement.name === "env");
+		const [found] = await doctor(env === undefined ? [] : [env], []);
+		return [found?.text, found?.critical];
+	};
+	const fix = "without it: a recursive search the coordinator or a job runs there prints its values into the agent's transcript, which the model provider keeps; fix: move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)";
+	assert.deepEqual(await line("/srv/arthur/.env", ["/srv/arthur", "/srv/shop"]), [`core env: missing: the env file /srv/arthur/.env lies inside /srv/arthur; ${fix}`, false]);
+	assert.deepEqual(await line("/srv/shop/deploy/.env", ["/srv/arthur", "/srv/shop"]), [`core env: missing: the env file /srv/shop/deploy/.env lies inside /srv/shop; ${fix}`, false]);
+	assert.deepEqual(await line("/srv/arthur/..env", ["/srv/arthur"]), [`core env: missing: the env file /srv/arthur/..env lies inside /srv/arthur; ${fix}`, false], "a name that starts with two dots is still inside");
+	assert.deepEqual(await line("/home/arthur/.config/arthur/.env", ["/home/arthur/arthur", "/srv/shop"]), ["core env: ok", false]);
+	assert.deepEqual(await line("/srv/arthur-env/.env", ["/srv/arthur"]), ["core env: ok", false], "a sibling folder whose name starts with the config folder's is outside it");
+	assert.deepEqual(await line("/srv/.env", ["/srv/arthur"]), ["core env: ok", false], "the folder above is outside");
+});
+
+test("arthur doctor: the env file by default lies outside; set beside the config, or in a project's checkout the projects provider lists, it is a miss", () => {
+	const { folder, arthur } = project();
+	const shop = temporaryFolder();
+	const config = (core: string) =>
+		writeFileSync(join(folder, "arthur.config.ts"), `export default { core: ${core}, plugins: [{ name: "orchestration", setup(host) { host.provide("projects", () => [{ name: "shop", path: ${JSON.stringify(shop)}, prefix: "SH" }]); } }] };\n`);
+	const env = () => arthur("doctor").stdout.split("\n").find((text) => text.startsWith("core env: "));
+	config("{}");
+	assert.equal(env(), "core env: ok");
+	config('{ envFile: ".env" }');
+	assert.match(env() ?? "", new RegExp(`^core env: missing: the env file ${join(folder, ".env")} lies inside ${folder}; `));
+	config(`{ envFile: ${JSON.stringify(join(shop, ".env"))} }`);
+	assert.match(env() ?? "", new RegExp(`^core env: missing: the env file ${join(shop, ".env")} lies inside ${shop}; `));
+});
+
+test("arthur doctor while the load refuses, a variable missing: the core's own lines still warn of an env file beside the config", () => {
+	const { folder, arthur } = project();
+	writeFileSync(join(folder, "arthur.config.ts"), 'export default { core: { envFile: ".env" }, plugins: [{ name: "orchestration", setup() {} }, { name: "telegram", options: { botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN" }, setup() {} }] };\n');
+	const run = arthur("doctor");
+	assert.match(run.stdout, new RegExp(`^core env: missing: the env file ${join(folder, ".env")} lies inside ${folder}; `, "m"));
+	assert.match(run.stderr, /^arthur doctor: the requirements a plugin checks in its setup are not checked: .*\n[\s\S]*ARTHUR_TELEGRAM_BOT_TOKEN/);
+});
+
 test("a home that is not writable is a critical miss", { skip: ROOT && "root writes anywhere" }, async (t) => {
 	const parent = temporaryFolder();
 	chmodSync(parent, 0o555);
 	t.after(() => chmodSync(parent, 0o755));
-	const [, , , home] = await doctor(coreRequirements(join(parent, "home"), "omp"), []);
+	const [, , , home] = await doctor(coreRequirements({ home: join(parent, "home"), envFile: "/elsewhere/.env", agent: { command: "omp" } }, () => []), []);
 	assert.equal(home?.text, `core home: missing: ${join(parent, "home")} is not writable (EACCES); without it: nothing is kept: no job record, no event log, no plugin's state; fix: sudo chown -R ${USER} ${join(parent, "home")}, or set core.home in arthur.config.ts to a folder ${USER} can write`);
 	assert.equal(home?.critical, true);
 });
@@ -184,7 +222,7 @@ test("under umask 022 the home is its user's alone: a new one is made 0700, one 
 	mkdirSync(earlier);
 	assert.equal(mode(earlier), 0o755, "the umask in force");
 	for (const home of [made, earlier]) {
-		const [, , , line] = await doctor(coreRequirements(home, "omp"), []);
+		const [, , , line] = await doctor(coreRequirements({ home, envFile: "/elsewhere/.env", agent: { command: "omp" } }, () => []), []);
 		assert.deepEqual([line?.text, mode(home)], ["core home: ok", 0o700], home);
 	}
 	const { home, arthur } = project();

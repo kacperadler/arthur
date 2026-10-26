@@ -218,7 +218,7 @@ function configured(): string {
 test("arthur roles lists the coordinator, the plugin it is from, its model and the files it reads", () => {
 	const folder = configured();
 	writeFileSync(join(folder, "arthur.config.ts"), readFileSync(join(folder, "arthur.config.ts"), "utf8").replace("orchestration()", 'orchestration({ coordinator: { model: "anthropic/opus", thinking: "high" } })'));
-	const run = spawnSync(process.execPath, [CLI, "roles"], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+	const run = spawnSync(process.execPath, [CLI, "roles"], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 	assert.deepEqual([run.status, run.stderr], [0, ""]);
 	assert.ok(
 		run.stdout.includes(

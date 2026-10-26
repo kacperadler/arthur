@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { homedir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { table } from "./core-options.ts";
 import { machineLimit } from "./job-scope.ts";
@@ -105,7 +106,7 @@ function withDefaults(config: ArthurConfig, file: string): LoadedConfig {
 		path: file,
 		core: {
 			home: resolve(folder, core.home ?? ".arthur"),
-			envFile: resolve(folder, core.envFile ?? ".env"),
+			envFile: resolve(folder, core.envFile ?? join(process.env.XDG_CONFIG_HOME || join(homedir(), ".config"), "arthur", ".env")),
 			agent: { command: core.agent?.command ?? "omp" },
 			timeZone: core.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
 			quietHours: core.quietHours && { from: core.quietHours.from, to: core.quietHours.to },

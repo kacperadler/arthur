@@ -338,7 +338,7 @@ test("the arthur binary lists, stops, steers, continues and prunes a job by its 
 	const agent = fakeAgent({ steps: [{ waitFor: join(temporaryFolder(), "never") }] });
 	writeFileSync(join(root, "arthur.config.ts"), `export default { core: { timeZone: "UTC", agent: { command: ${JSON.stringify(agent)} } }, plugins: [{ name: "orchestration", setup() {} }] };\n`);
 	const cli = join(import.meta.dirname, "..", "src", "cli.ts");
-	const arthur = (...args: string[]) => spawnSync(process.execPath, [cli, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "" } });
+	const arthur = (...args: string[]) => spawnSync(process.execPath, [cli, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 	const id = arthur("spawn", "Go.").stdout.trim();
 	const short = id.slice(-8);
 	await until("working", () => existsSync(join(root, ".arthur", "jobs", id, "state")) && field(join(root, ".arthur"), id, "state") === "working");

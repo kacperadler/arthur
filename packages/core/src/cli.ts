@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type Command, type CommandRegistry, commandRegistry } from "./commands.ts";
 import { configCheck } from "./config-check.ts";
@@ -112,7 +113,7 @@ function core(problem: string | undefined, loaded: () => Loaded | undefined, con
 		},
 	});
 	// Without the plugins' setup, the core's requirements and each plugin's `doctor`: a missing home, git or variable may be why.
-	const coreLines = (): Promise<DoctorLine[]> | undefined => config && doctor(coreRequirements(config.core.home, config.core.agent.command), ownAnswers(config.plugins, config.core));
+	const coreLines = (): Promise<DoctorLine[]> | undefined => config && doctor(coreRequirements(config.core, () => [dirname(config.path)]), ownAnswers(config.plugins, config.core));
 	commands.register("core", {
 		name: "doctor",
 		doc: new URL("../docs/commands/doctor.md", import.meta.url),

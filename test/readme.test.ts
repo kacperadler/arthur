@@ -25,7 +25,7 @@ test("the README status line names a command that runs and links an existing roa
 	const run = spawnSync(process.execPath, [CLI, ...command.split(" ").slice(1)], {
 		cwd: folder,
 		encoding: "utf8",
-		env: { PATH: process.env.PATH ?? "" },
+		env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME },
 	});
 	assert.deepEqual([run.status, run.stderr], [0, ""], `${command} exits 0 on the smallest config Arthur starts`);
 });

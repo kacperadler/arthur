@@ -12,7 +12,7 @@ missing ARTHUR_YOUTRACK_TOKEN (youtrack.instances[0].tokenEnv)
 Where a value comes from:
 
 - The shell first; a shell variable wins even when it is empty.
-- Else `core.envFile` (default `.env` next to the config): `KEY=value` lines, `#` comments and blank lines; a value may be in single or double quotes, taken as written; after an unquoted value, ` #` starts a comment. A missing file is fine when every variable is in the shell; but no `ARTHUR_` variable of the shell reaches a job (`arthur spawn --help`), so an `arthur` command a job runs finds only the env file's, and refuses as missing a variable set in the shell alone.
+- Else `core.envFile`, by default `~/.config/arthur/.env` (`$XDG_CONFIG_HOME/arthur/.env` when that is set), outside the config's folder and every project's checkout, where an agent's recursive search would print its values (`arthur doctor` warns of one inside either, `core env`): `KEY=value` lines, `#` comments and blank lines; a value may be in single or double quotes, taken as written; after an unquoted value, ` #` starts a comment. A missing file is fine when every variable is in the shell; but no `ARTHUR_` variable of the shell reaches a job (`arthur spawn --help`), so an `arthur` command a job runs finds only the env file's, and refuses as missing a variable set in the shell alone.
 
 Names: `ARTHUR_<PLUGIN>_<WHAT>`, or inside a named instance (an entry with a `name`, such as a YouTrack server or a Telegram bot) `ARTHUR_<PLUGIN>_<INSTANCE>_<WHAT>`; the plugin and instance names in capitals, a dash as `_`. A plugin with `enabled: false` is skipped: its variables are neither looked up nor listed.
 

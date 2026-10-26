@@ -9,7 +9,7 @@
 // - One file, one list: a plugin is a function call with its options.
 // - `enabled: false` is accepted by every plugin: the host does not load it and does not read its env variables.
 // - A secret is never a value here. An option ending in `Env` names the environment variable that holds it; the value
-//   comes from the shell or `.env` (a shell variable wins, even when empty). Everything else is plain, non-secret, and literal.
+//   comes from the shell or the env file, `core.envFile` (a shell variable wins, even when empty). Everything else is plain, non-secret, and literal.
 // - Env variable names: `ARTHUR_<PLUGIN>_<WHAT>` (ARTHUR_YOUTRACK_TOKEN). A plugin with several accounts (YouTrack servers, Telegram
 //   bots, GitHub accounts) lists named instances, each with its own variables: `ARTHUR_<PLUGIN>_<INSTANCE>_<WHAT>`
 //   (ARTHUR_YOUTRACK_ACME_TOKEN). One instance may omit its name and use the short form. A project names its instance.
@@ -56,7 +56,9 @@ export default defineConfig({
 	// otherwise. Relative paths are taken from this file's folder. An unknown option, a wrong type or value refuses the start.
 	core: {
 		home: ".arthur", // jobs, logs, the board's lock
-		envFile: ".env", // read for the `...Env` names below; the file is never committed
+		envFile: "/home/arthur/.config/arthur/.env", // read for the `...Env` names below, never committed; default: ~/.config/arthur/.env
+		// ($XDG_CONFIG_HOME/arthur/.env when set), outside this folder and every project's checkout, where an agent's recursive
+		// search would print its values; `arthur doctor` warns of one inside either
 		agent: { command: "omp" }, // the agent CLI; OMP only
 		timeZone: "Europe/Warsaw", // read by schedule, session, telegram and orchestration through the host; default: the host's
 		quietHours: { from: "22:00", to: "07:30" }, // channels send without a notification; the coordinator answers in one line;
@@ -102,7 +104,7 @@ export default defineConfig({
 			},
 			// MCP servers, defined once by name; omp runs them, Arthur never does. `all`: every role's, the coordinator's included;
 			// `roles.<role>`: that role's own list, which replaces `all` for it; [] gives it none. Global only is `all` without `roles`.
-			// A secret in `env` or `headers` is `{ valueEnv }`, a variable of the shell or `.env`. A job on another machine gets none
+			// A secret in `env` or `headers` is `{ valueEnv }`, a variable of the shell or the env file. A job on another machine gets none
 			mcp: {
 				servers: {
 					docs: { command: "npx", args: ["-y", "@upstash/context7-mcp"] }, // local: { command, args?, env? }, over stdio
@@ -349,7 +351,7 @@ export default defineConfig({
 		// <worker job>` says whether a branch needs a review at all; a branch that changes a file on `review.alwaysReview` (glob
 		// patterns from a project's root, replacing the default list) always does (packages/delivery/docs/commands/review-needed.md).
 		delivery({
-			review: { alwaysReview: ["**/env.ts", "**/env-*.ts", "**/ci.ts", "**/ci-*.ts", "**/github-ci.ts", "**/auto-merge.ts", ".github/workflows/**", "**/review-needed.ts", "**/checks-extension.ts", "**/roles/**", "**/criteria/**", ".agents/**", "spec/vision.md", "**/package.json", "**/package-lock.json", "**/npm-shrinkwrap.json", "**/bun.lock", "**/bun.lockb", "**/yarn.lock", "**/pnpm-lock.yaml", "**/.npmrc", "**/.nvmrc", ".githooks/**", ".husky/**", "**/merge*.ts", "deploy/**", "bin/**"] },
+			review: { alwaysReview: ["**/env.ts", "**/env-*.ts", "**/ci.ts", "**/ci-*.ts", "**/github-ci.ts", "**/auto-merge.ts", ".github/workflows/**", "**/review-needed.ts", "**/checks-extension.ts", "**/roles/**", "**/criteria/**", ".agents/**", "spec/vision.md", "**/package.json", "**/package-lock.json", "**/npm-shrinkwrap.json", "**/bun.lock", "**/bun.lockb", "**/yarn.lock", "**/pnpm-lock.yaml", "**/.npmrc", "**/.nvmrc", "**/composer.json", "**/composer.lock", "**/uv.lock", "**/pyproject.toml", "**/.yarnrc.yml", "**/.pnpmfile.cjs", "**/bunfig.toml", ".githooks/**", ".husky/**", "**/merge*.ts", "deploy/**", "bin/**"] },
 		}),
 
 		// Polls GitHub for the CI runs of the branches in play (each checkout's own branch and every job's) and emits `ci-finished`

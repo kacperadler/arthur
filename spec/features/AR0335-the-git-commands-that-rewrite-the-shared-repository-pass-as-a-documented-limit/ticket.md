@@ -36,3 +36,5 @@ In:
 
 - 2026-10-23: Source: F7 of AR0320
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; starts after the ten security checks AR0319-AR0328.
+- 2026-10-26: AR0335 another round: the worker fixes the worktree add target after -- that starts with -, adds its test row, then review round 3; the owner: "AR-D49 - 1" (AR-D49)
+- 2026-10-26: AR0335 another round: the worker treats --end-of-options like -- for worktree add/move targets, adds that row and an inside-target add from an outside folder, then review round 4; the owner: "AR-D51 - 1" (AR-D51)

@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { type Board, board } from "./board.ts";
+import { type Board, board, projectList } from "./board.ts";
 import { moveStartedTickets, refuseUnstartableTickets } from "./board-jobs.ts";
 import { clock } from "./clock.ts";
 import { type CommandRegistry, commandRegistry } from "./commands.ts";
@@ -66,7 +66,8 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const checks = () => {
 		const provided = names.collectEach("doctor", []);
 		const answers = sorted.flatMap((plugin) => [...ownAnswers([plugin], config.core), ...provided.filter((answer) => answer.plugin === plugin.name)]);
-		return doctor(coreRequirements(config.core.home, config.core.agent.command), answers);
+		const lists = names.collect("projects", []);
+		return doctor(coreRequirements(config.core, () => [dirname(config.path), ...(lists.length === 0 ? [] : projectList(lists).map((each) => each.path))]), answers);
 	};
 	return { plugins: sorted, warnings, jobs, board: core, follow: bus.follow, project, autopilot, doctor: checks, emit: (name, data) => void bus.emit("core", name, data), channels: (message) => names.collectEach("channel.send", [message]) };
 }

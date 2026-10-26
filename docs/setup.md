@@ -111,22 +111,25 @@ The config stays in `~/arthur`, so its `@arthur/*` imports resolve from the clon
 
 ```
 missing ARTHUR_GITHUB_TOKEN (github.instances[0].tokenEnv)
-/home/<user>/arthur/.env does not exist; a missing variable must come from the shell
+/home/<user>/.config/arthur/.env does not exist; a missing variable must come from the shell
 ```
 
-## 6. `.env`
+## 6. The env file
 
-The config holds no secret: an option ending in `Env` names a variable, and its value comes from the shell or from `.env` beside the config (`core.envFile`). Git ignores `.env`; keep it readable by you alone:
+The config holds no secret: an option ending in `Env` names a variable, and its value comes from the shell or from the env file, `~/.config/arthur/.env` (`core.envFile`; `$XDG_CONFIG_HOME/arthur/.env` when that is set), next to the `arthur.env` of step 8. It lies outside `~/arthur` on purpose: the coordinator works in the config's folder and each job in a project's checkout, and a recursive search there for a variable's name (`grep -r ARTHUR_ .`) would print its value into the agent's transcript, which the model provider keeps. `arthur doctor` warns of an env file inside the config's folder or a project's checkout (`core env`). Keep it readable by you alone:
 
 ```sh
-touch .env
-chmod 600 .env
+mkdir -p ~/.config/arthur
+touch ~/.config/arthur/.env
+chmod 600 ~/.config/arthur/.env
 arthur config check
 ```
 
-`arthur config check` lists every variable the enabled plugins need, `set` or `missing`, never a value. Add each missing one to `.env` as `KEY=value` and run it again until every line says `set`. For the plugins of step 5 that is `ARTHUR_GITHUB_TOKEN`, a token as `packages/github/docs/github.md`, "Options", says. A variable's name is the plugin's, `ARTHUR_<PLUGIN>_<WHAT>`, or `ARTHUR_<PLUGIN>_<INSTANCE>_<WHAT>` for a named instance: a token you already have under another name, such as `GITHUB_TOKEN`, goes into `.env` under the plugin's name, since the config refuses any other (`github.instances[0].tokenEnv: expected ARTHUR_GITHUB_<WHAT>, got GITHUB_TOKEN`). Until every variable is set, the config does not load: a plugin's command, such as `arthur projects`, is unknown, and the missing variable is named.
+An install whose `.env` still lies beside the config, the default before, moves it there with `mv ~/arthur/.env ~/.config/arthur/.env` and leaves `core.envFile` out of `arthur.config.ts`; until then `arthur run` refuses to start, every variable missing.
 
-**Check:** every line of `arthur config check` says `set`, it exits 0, and `stat -c %a .env` prints `600`. `arthur projects` lists each project with its folder, such as:
+`arthur config check` lists every variable the enabled plugins need, `set` or `missing`, never a value. Add each missing one to the env file as `KEY=value` and run it again until every line says `set`. For the plugins of step 5 that is `ARTHUR_GITHUB_TOKEN`, a token as `packages/github/docs/github.md`, "Options", says. A variable's name is the plugin's, `ARTHUR_<PLUGIN>_<WHAT>`, or `ARTHUR_<PLUGIN>_<INSTANCE>_<WHAT>` for a named instance: a token you already have under another name, such as `GITHUB_TOKEN`, goes into the env file under the plugin's name, since the config refuses any other (`github.instances[0].tokenEnv: expected ARTHUR_GITHUB_<WHAT>, got GITHUB_TOKEN`). Until every variable is set, the config does not load: a plugin's command, such as `arthur projects`, is unknown, and the missing variable is named.
+
+**Check:** every line of `arthur config check` says `set`, it exits 0, and `stat -c %a ~/.config/arthur/.env` prints `600`. `arthur projects` lists each project with its folder, such as:
 
 ```
 SH shop
@@ -287,7 +290,7 @@ The last step of the install, and the first thing to run after an update or a re
 arthur doctor
 ```
 
-It checks by code, without the model, what Arthur and the enabled plugins need: git, Node 24, `omp`, a writable home, the CPU and memory controllers delegated (step 10), `tmux`, the service enabled with `Restart=always` and linger on (step 9), SSH to each machine, an `about` for each project. It prints one line per requirement, `ok` or `missing: <reason>; without it: <what does not work>; fix: <fix>`, and exits 1 when something critical is missing (git, Node 24, `omp`, a writable home, `tmux`), which also refuses the start of `arthur run`. Run each fix and `arthur doctor` again until no line says `missing`. At every start the same check runs first, and the start notice begins with what is still missing, each line once a day unless it changes. The plugins still to come add their own: the Telegram token and bot, `ffmpeg` for the videos you send, Docker on each machine, the disk floor.
+It checks by code, without the model, what Arthur and the enabled plugins need: git, Node 24, `omp`, a writable home, the CPU and memory controllers delegated (step 10), `tmux`, the service enabled with `Restart=always` and linger on (step 9), SSH to each machine, an `about` for each project, the env file outside the config's folder and every project's checkout (step 6). It prints one line per requirement, `ok` or `missing: <reason>; without it: <what does not work>; fix: <fix>`, and exits 1 when something critical is missing (git, Node 24, `omp`, a writable home, `tmux`), which also refuses the start of `arthur run`. Run each fix and `arthur doctor` again until no line says `missing`. At every start the same check runs first, and the start notice begins with what is still missing, each line once a day unless it changes. The plugins still to come add their own: the Telegram token and bot, `ffmpeg` for the videos you send, Docker on each machine, the disk floor.
 
 **Check:** no line of `arthur doctor` says `missing`, and it exits 0.
 
@@ -299,6 +302,6 @@ Run it once `arthur` is on your `PATH` (step 4), and again after each fix:
 arthur setup
 ```
 
-One report of the steps above (`arthur setup --help`): the tools it finds (git, Node, omp, ssh, systemd-run, Tailscale, and each installed plugin's, such as tmux) with their versions or `not found`; the config, each plugin `on` or `off`, with its options set and not set and its env variables `set` or `missing`, never a value; `arthur doctor`'s lines; each installed plugin you could still add to `arthur.config.ts`, with each of its options, what it means and its default; and Next, the steps still to do, numbered, each with its fix: the config first, then `.env`, then what refuses the start, then the rest. It installs nothing, runs no model and writes nothing beyond what `arthur doctor` does. Without `arthur.config.ts` its first step is writing it (step 5). It exits 1 while a step in Next would refuse `arthur run`.
+One report of the steps above (`arthur setup --help`): the tools it finds (git, Node, omp, ssh, systemd-run, Tailscale, and each installed plugin's, such as tmux) with their versions or `not found`; the config, each plugin `on` or `off`, with its options set and not set and its env variables `set` or `missing`, never a value; `arthur doctor`'s lines; each installed plugin you could still add to `arthur.config.ts`, with each of its options, what it means and its default; and Next, the steps still to do, numbered, each with its fix: the config first, then the env file, then what refuses the start, then the rest. It installs nothing, runs no model and writes nothing beyond what `arthur doctor` does. Without `arthur.config.ts` its first step is writing it (step 5). It exits 1 while a step in Next would refuse `arthur run`.
 
 **Check:** `arthur setup` says `nothing` under Next, and exits 0.

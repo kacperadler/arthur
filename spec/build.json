@@ -2719,9 +2719,9 @@
   {
     "id": "AR0354",
     "title": "The mark that tells a job from the coordinator is a variable the job's shell clears",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0354-the-mark-that-tells-a-job-from-the-coordinator-is-a-variable-the-job-s-shell-clears/ticket.md",
-    "updated": "2026-10-26T00:11:28.738Z",
+    "updated": "2026-10-26T00:15:53.842Z",
     "after": [
       "AR0338"
     ]
@@ -3552,5 +3552,12 @@
     "status": "planning",
     "path": "spec/features/AR0442-an-existing-project-whose-history-ends-in-plain-commits-refuses-its-first-merge/ticket.md",
     "updated": "2026-10-25T23:03:46.133Z"
+  },
+  {
+    "id": "AR0443",
+    "title": "A job's scope marks it only for a home that holds its record, so a config of the job's own is a coordinator's",
+    "status": "planning",
+    "path": "spec/features/AR0443-a-job-s-scope-marks-it-only-for-a-home-that-holds-its-record-so-a-config-of-the/ticket.md",
+    "updated": "2026-10-26T00:15:53.836Z"
   }
 ]

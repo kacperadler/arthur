@@ -43,3 +43,4 @@ Out:
 - 2026-10-26: Source: F1 of AR0354
 - 2026-10-26: Plan approved by the owner: plan.md at 9aa33d40; the owner: "AR-D77 - 1" (AR-D77)
 - 2026-10-26: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
+- 2026-10-26: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)

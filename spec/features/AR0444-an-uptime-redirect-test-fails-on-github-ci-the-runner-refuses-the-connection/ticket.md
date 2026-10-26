@@ -34,4 +34,4 @@ Out:
 
 ## Decisions
 
-<!-- - YYYY-MM-DD: one decision the human made, in one line. -->
+- 2026-10-26: AR0444 approved; start its worker now despite usage at 60%; the owner: "AR-D50 - 1" (AR-D50)

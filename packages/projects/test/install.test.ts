@@ -121,7 +121,7 @@ test("a failing install ends the job failed with the command and its last line, 
 	assert.equal(await ended(fake, job.id), "failed: the agent did not start: install `bun install --frozen-lockfile` exited 1: lockfile is out of date");
 	assert.deepEqual(called(), [`${job.worktree} bun install --frozen-lockfile`]);
 	const log = readFileSync(join(record(fake, job.id), "log"), "utf8");
-	assert.match(log, /\] install: bun install --frozen-lockfile\nlockfile is out of date\n/);
+	assert.match(log, /\] install: bun install --frozen-lockfile\n(\[arthur [^\]]+\] (no )?sandbox: [^\n]*the install writes [^\n]*\n)?lockfile is out of date\n/, "the install's output follows its command, after the sandbox's line where there is one");
 	assert.doesNotMatch(log, /\] agent: /, "no agent started");
 	assert.equal(existsSync(job.worktree), true);
 	assert.equal(git(root, "branch", "--list", `arthur/${job.id}`).replace(/^[*+]?\s*/, ""), `arthur/${job.id}`);

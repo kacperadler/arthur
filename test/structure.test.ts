@@ -687,10 +687,19 @@ import { checkStructure } from "./structure.ts";
 // the refusal), schedule 1 (595), youtrack 2 (661). Each refusal had read `ARTHUR_JOB` in place, so nothing was cut.
 // Merged main (AR0355) into AR0354: main's budgets plus AR0354's raises, core 6170 + 14 = 6184, orchestration 2396 + 3 = 2399,
 // develop 706, github 659, schedule 595, youtrack 661.
+// AR0335 (F7 of AR0320; its Done means: the git commands that rewrite the repository every worktree shares refused; AR-D29):
+// core 5 more (6189) for `shared` and `adds` of `gitCall`, their type and comment (git-writes.ts, git diff --numstat +9 -4),
+// judged on the guard's existing refusal of main's refs (worktree-guard.ts +11 -11, its comment refolded to keep it at 200).
+// Nothing refused these commands before, so nothing was cut.
+// AR0335 review 1 (AR-D29): core 4 more (6193) for `gc.*` and `maintenance.*` config given with the call or written refused as
+// a rewrite of the shared repository, which the gc Git runs by itself reads (git-writes.ts, git diff --numstat +9 -5: `tunes`
+// with its comment, `config` taken out of the return to read it, the type's comment). Nothing judged such config before, so
+// nothing was cut; the guard's comment refolded keeps worktree-guard.ts at 200.
 // Merged main (AR0361) into AR0339: main's budgets plus AR0339's raise, core 6180, delivery 1332.
 // Merged main (AR0354, AR0355) into AR0339: main's budgets plus AR0339's 12, and 1 for cli.ts's `node:path` import, which
 // main dropped with `basename` and AR0339's `dirname` keeps: core 6184 + 13 = 6197 (recounted with wc -l).
-const BUDGETS = { core: 6197, "core/testing": 349, projects: 486, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1337, github: 659, manage: 928, develop: 706, findings: 254 };
+// Merged main (AR0339) into AR0335: main's budgets plus AR0335's raises, core 6197 + 9 = 6206.
+const BUDGETS = { core: 6206, "core/testing": 349, projects: 486, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1337, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

@@ -3713,8 +3713,8 @@
   {
     "id": "AR0461",
     "title": "test/readme.test.ts reads the real env file, and fails inside a job",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0461-test-readme-test-ts-reads-the-real-env-file-and-fails-inside-a-job/ticket.md",
-    "updated": "2026-10-26T20:45:03.615Z"
+    "updated": "2026-10-26T20:49:03.620Z"
   }
 ]

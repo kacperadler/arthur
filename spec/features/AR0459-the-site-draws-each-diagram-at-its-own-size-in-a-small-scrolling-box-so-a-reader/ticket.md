@@ -40,4 +40,5 @@ Out:
 - A plugins page: AR0460.
 
 ## Decisions
+- 2026-10-26: Approve AR0459 (site diagrams fit) and AR0460 (plugins pages), in that order; the owner: "A" (AR-D89)
 

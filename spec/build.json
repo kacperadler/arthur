@@ -3693,16 +3693,16 @@
   {
     "id": "AR0459",
     "title": "The site draws each diagram at its own size in a small scrolling box, so a reader sees mostly empty space",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0459-the-site-draws-each-diagram-at-its-own-size-in-a-small-scrolling-box-so-a-reader/ticket.md",
-    "updated": "2026-10-26T18:35:59.459Z"
+    "updated": "2026-10-26T18:37:22.056Z"
   },
   {
     "id": "AR0460",
     "title": "A plugins page on the site, with a page for each plugin",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0460-a-plugins-page-on-the-site-with-a-page-for-each-plugin/ticket.md",
-    "updated": "2026-10-26T18:35:59.972Z",
+    "updated": "2026-10-26T18:37:22.648Z",
     "after": [
       "AR0459"
     ]

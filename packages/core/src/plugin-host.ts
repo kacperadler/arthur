@@ -3,6 +3,7 @@ import type { CommandRegistry } from "./commands.ts";
 import { describe } from "./config.ts";
 import type { Bus } from "./events.ts";
 import type { JobRunner } from "./jobs.ts";
+import { stepSandbox } from "./job-sandbox.ts";
 import type { Answer, Host, Plugin, Provider } from "./plugin.ts";
 
 // The host's side of the plugin shape (plugin.ts): the config's entries read as plugins, the names they provide, and the host
@@ -77,12 +78,14 @@ export function registry(): Registry {
 	};
 }
 
-// `loading` holds until every plugin's `setup` has run and the core follows the jobs; a spawn then throws.
+// `loading` holds until every plugin's `setup` has run and the core follows the jobs; a spawn then throws. `envFile` is the
+// core's, which `sandbox` hides.
 export function pluginHost(
 	names: Registry,
 	commands: CommandRegistry,
 	bus: Bus,
 	runner: JobRunner,
+	envFile: string,
 	own: Pick<Host, "name" | "options" | "env" | "secrets" | "folder" | "clock" | "agent" | "code" | "package">,
 	loading: () => boolean,
 ): Host {
@@ -90,6 +93,7 @@ export function pluginHost(
 	const { after: _, ...shown } = tickets;
 	return {
 		...own,
+		sandbox: (folder, note) => stepSandbox(folder, envFile, note),
 		events: {
 			on: (name, fn) => bus.on(own.name, name, fn),
 			emit: (name, data) => bus.emit(own.name, name, data),

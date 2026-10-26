@@ -36,3 +36,5 @@ Out:
 
 - 2026-10-26: Source: AR0338's review note (outside its range)
 - 2026-10-26: Plan approved by the owner: plan.md at 9885a400; the owner: "AR-D64 - 1 AR-D67 - 1 AR-D68 - 1 AR-D69 - 1" (AR-D64)
+- 2026-10-26: New ticket: run the install at a job start and the merge checks inside the sandbox; worked after the short queue; the owner: "AR-D65 - 1" (AR-D65)
+- 2026-10-26: Merge AR0440 now; the owner: "AR-D72 - 1" (AR-D72)

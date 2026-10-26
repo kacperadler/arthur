@@ -29,7 +29,7 @@ if (import.meta.main) {
 
 async function run(home: string, id: string, agent: string): Promise<void> {
 	const folder = join(home, "jobs", id);
-	let child: ChildProcess | undefined;
+	let [child, playing] = [undefined as ChildProcess | undefined, false]; // `playing` once the agent, not the install, is `child`.
 	const leave = (): never => {
 		if (child?.pid !== undefined) signal(-child.pid, "SIGTERM");
 		endScope(id);
@@ -98,7 +98,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		final ||= which !== "budget";
 		const what = which === "stop" ? "arthur stop" : `limit: ${which}`;
 		if (why !== undefined) return which === "budget" || note(`${what}: ${which === "stop" ? "asked" : "reached"} as well`);
-		if (which === "stop" && (child?.exitCode !== null || child.signalCode !== null)) return note("arthur stop: the agent had ended already");
+		if (which === "stop" && playing && (child?.exitCode !== null || child.signalCode !== null)) return note("arthur stop: the agent had ended already");
 		why = which;
 		note(`${what}: stopping the agent`);
 		if (child?.pid !== undefined) stopping = stopGroup(child.pid, id, note);
@@ -127,7 +127,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		const stream = agentStream();
 		const closed = Promise.withResolvers<[number | null, NodeJS.Signals | null]>();
 		const running = oomFirst(() => spawn(...sandboxed(writable(folder, worktree, extensions), agent, argv, note), { cwd: worktree, env: { ...process.env, ARTHUR_JOB: folder }, stdio: ["ignore", "pipe", "pipe"], detached: true }));
-		child = running;
+		[child, playing] = [running, true];
 		running.stdout.setEncoding("utf8");
 		running.stdout.on("data", (chunk: string) => {
 			record.apply(stream.push(chunk));

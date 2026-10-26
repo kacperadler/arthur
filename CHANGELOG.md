@@ -19,6 +19,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0440 A job can read the running Arthur process's secrets from /proc/<pid>/environ (6ce62c51)
 - AR0441 Any merge commit on main resets the baseline, one a job made included (c661a81d)
 - AR0443 A job's scope marks it only for a home that holds its record, so a config of the job's own is a coordinator's (319637bf)
+- AR0449 The install at a job start and the merge checks run branch code outside the sandbox, where it can read the environment of arthur run (bb0f1aef)
 
 ### Changed
 

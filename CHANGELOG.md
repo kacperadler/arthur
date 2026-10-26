@@ -13,6 +13,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0431 A review's project is not checked against its worker's (7c8205b5)
 - AR0432 The always-review list misses the other installs: composer, uv, yarnrc, pnpmfile and bunfig (eea54efb)
 
+### Changed
+
+- AR0444 An uptime redirect test fails on GitHub CI: the runner refuses the connection before the private-address check (3af222ae)
+
 ## 2026-10-25
 
 ### Added

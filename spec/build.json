@@ -3578,9 +3578,9 @@
   {
     "id": "AR0444",
     "title": "An uptime redirect test fails on GitHub CI: the runner refuses the connection before the private-address check",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0444-an-uptime-redirect-test-fails-on-github-ci-the-runner-refuses-the-connection/ticket.md",
-    "updated": "2026-10-26T10:38:11.926Z"
+    "updated": "2026-10-26T10:49:24.555Z"
   },
   {
     "id": "AR0445",

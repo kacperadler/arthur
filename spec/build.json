@@ -3555,9 +3555,9 @@
   {
     "id": "AR0442",
     "title": "An existing project whose history ends in plain commits refuses its first merge, its onboarding's included",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0442-an-existing-project-whose-history-ends-in-plain-commits-refuses-its-first-merge/ticket.md",
-    "updated": "2026-10-26T14:12:53.624Z",
+    "updated": "2026-10-26T14:17:57.225Z",
     "after": [
       "AR0441"
     ]

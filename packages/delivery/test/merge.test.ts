@@ -328,7 +328,7 @@ test("only a merge puts code on main: a code commit since the last merge refuses
 	const again = git(root, "rev-parse", "--short", commit(root, { "hand.ts": "export const hand = 2;\n" }));
 	const pay = await worker({ "pay.ts": "export const pay = 1;\n" }, "Ticket: spec/features/AC0003-pay/ticket.md");
 	const before = head();
-	const refused = `arthur merge: main has 2 commits since its last merge that change code (${again}, ${hand}); only a merge puts code on main; the owner decides: main is unchanged`;
+	const refused = `arthur merge: main has 2 commits since its last merge that change code (${again}, ${hand}); only a merge puts code on main; the owner decides, and arthur take-main lifts it: main is unchanged`;
 	assert.deepEqual(await merge(pay.id), { code: 1, out: "", err: refused });
 	assert.deepEqual(await merge(pay.id, "--unreviewed", "--decision", OWNER), { code: 1, out: "", err: refused });
 	assert.deepEqual(await merge(pay.id, "--auto", "--no-ci"), { code: 1, out: "", err: refused });
@@ -339,7 +339,22 @@ test("only a merge puts code on main: a code commit since the last merge refuses
 	const start = git(root, "rev-list", "--max-parents=0", "HEAD");
 	git(root, "reset", "--quiet", "--hard", start);
 	rmSync(join(fake.host.folder, "acme", "last-merge"));
-	assert.equal((await merge(loose.id, "--unreviewed", "--decision", OWNER)).err, `arthur merge: main has 1 commits since its last merge that change code (${git(root, "rev-parse", "--short", start)}); only a merge puts code on main; the owner decides: main is unchanged`);
+	assert.equal((await merge(loose.id, "--unreviewed", "--decision", OWNER)).err, `arthur merge: main has 1 commits since its last merge that change code (${git(root, "rev-parse", "--short", start)}); only a merge puts code on main; the owner decides, and arthur take-main lifts it: main is unchanged`);
+});
+
+test("a history of plain code commits, as squash or rebase merges leave it, refuses naming the newest 10 and how many more; arthur take-main lifts it", async (t) => {
+	const { root, git, commit, take, worker, merge, head } = await load(t);
+	const plain = Array.from({ length: 12 }, (_, n) => git(root, "rev-parse", "--short", commit(root, { [`plain${n}.ts`]: `export const plain = ${n};\n` }))).reverse();
+	const job = await worker();
+	const before = head();
+	const refused = `arthur merge: main has 12 commits since its last merge that change code (${plain.slice(0, 10).join(", ")} and 2 more); only a merge puts code on main; the owner decides, and arthur take-main lifts it: main is unchanged`;
+	assert.deepEqual(await merge(job.id, "--unreviewed", "--decision", OWNER), { code: 1, out: "", err: refused });
+	assert.equal(head(), before);
+	git(root, "reset", "--quiet", "--keep", "HEAD~2");
+	const ten = `arthur merge: main has 10 commits since its last merge that change code (${plain.slice(2).join(", ")}); only a merge puts code on main; the owner decides, and arthur take-main lifts it: main is unchanged`;
+	assert.equal((await merge(job.id, "--unreviewed", "--decision", OWNER)).err, ten, "10 are named whole");
+	assert.equal((await take()).code, undefined);
+	assert.equal((await merge(job.id, "--unreviewed", "--decision", OWNER)).err, "");
 });
 
 test("a merge commit made on main outside arthur merge hides nothing: code before it or in it refuses the next merge; each merge that went in is recorded; a record HEAD no longer holds, or reaches only off its first-parent line, refuses until arthur take-main", async (t) => {
@@ -351,7 +366,7 @@ test("a merge commit made on main outside arthur merge hides nothing: code befor
 	assert.equal(readFileSync(record, "utf8"), `${merged}\n`, "the merge commit, written whole");
 	assert.deepEqual(readdirSync(dirname(record)), ["last-merge"], "no temporary file left");
 	const cart = await worker({ "cart.ts": "export const cart = 1;\n" }, "Ticket: spec/features/AC0002-cart/ticket.md");
-	const refused = (commits: string) => `arthur merge: main has 1 commits since its last merge that change code (${commits}); only a merge puts code on main; the owner decides: main is unchanged`;
+	const refused = (commits: string) => `arthur merge: main has 1 commits since its last merge that change code (${commits}); only a merge puts code on main; the owner decides, and arthur take-main lifts it: main is unchanged`;
 	// One code file committed alone, so `reset --keep` keeps the board's uncommitted moves (AC0002 in progress).
 	const code = (path: string) => {
 		writeFileSync(join(root, path), "export const code = 1;\n");
@@ -401,7 +416,7 @@ test("arthur take-main records main's HEAD only on the owner's merge decision of
 	const record = join(fake.host.folder, "acme", "last-merge");
 	const hand = git(root, "rev-parse", "--short", commit(root, { "hand.ts": "export const hand = 1;\n" }));
 	const job = await worker();
-	const refused = `arthur merge: main has 1 commits since its last merge that change code (${hand}); only a merge puts code on main; the owner decides: main is unchanged`;
+	const refused = `arthur merge: main has 1 commits since its last merge that change code (${hand}); only a merge puts code on main; the owner decides, and arthur take-main lifts it: main is unchanged`;
 	assert.deepEqual(await merge(job.id, "--unreviewed", "--decision", OWNER), { code: 1, out: "", err: refused });
 	owner.length = 0;
 	const none = await run("take-main", []);

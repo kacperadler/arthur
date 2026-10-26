@@ -4,7 +4,7 @@ import type { Host, Plugin } from "@arthur/core/plugin";
 import { entryOf } from "./auto-merge.ts";
 import { changelogCommand } from "./changelog.ts";
 import { type CiEnd, type CiWaits, ciEnded, ciWaits } from "./ci-wait.ts";
-import { ALWAYS_REVIEW, checkOptions } from "./delivery-options.ts";
+import { ALWAYS_REVIEW, checkOptions, STEP_SECONDS } from "./delivery-options.ts";
 import { CANCELLED, type HandBack, handBack } from "./hand-back.ts";
 import { identityRequirement, mergeCommand } from "./merge-command.ts";
 import { reviewCommand, reviewTask, worker } from "./review-command.ts";
@@ -28,7 +28,7 @@ const TICKET = /^spec\/features\/([A-Z]+\d{4,})-[^/]+\/ticket\.md$/;
 // The statuses a reviewed ticket may have: its worker started it, and a review moves it to review.
 const REVIEWED = ["in-progress", "review", "done"];
 
-export function delivery(options: { readonly enabled?: boolean; readonly review?: { readonly alwaysReview?: readonly string[] } } = {}): Plugin {
+export function delivery(options: { readonly enabled?: boolean; readonly review?: { readonly alwaysReview?: readonly string[] }; readonly merge?: { readonly stepSeconds?: number } } = {}): Plugin {
 	let loop: HandBack | undefined;
 	let waits: CiWaits | undefined;
 	return {
@@ -86,7 +86,7 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 			});
 			host.commands.register(reviewCommand(host, procedure));
 			host.commands.register(reviewNeededCommand(host, held));
-			host.commands.register(mergeCommand(host, new URL("../roles/coordinator/after-merge.md", import.meta.url), held));
+			host.commands.register(mergeCommand(host, new URL("../roles/coordinator/after-merge.md", import.meta.url), held, options.merge?.stepSeconds ?? STEP_SECONDS));
 			host.commands.register(takeMainCommand(host));
 			host.commands.register(changelogCommand(host));
 			host.jobs.registerExtension(new URL("./checks-extension.ts", import.meta.url));

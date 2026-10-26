@@ -674,7 +674,8 @@ test("a job refuses writes into Arthur's install, config folder and env file, an
 	t.after(() => {
 		for (const [name, value] of Object.entries(saved)) value === undefined ? delete process.env[name] : (process.env[name] = value);
 	});
-	// Git reads the user's config from `$XDG_CONFIG_HOME/git/` when it is set, and `~/.config/git/` when it is not.
+	// Git reads the user's config from `$XDG_CONFIG_HOME/git/` when it is set, and `~/.config/git/` when it is not; systemd's
+	// user manager its units from `$XDG_CONFIG_HOME/systemd/user` or `~/.config/systemd/user` alike.
 	Object.assign(process.env, { HOME: linked, XDG_CONFIG_HOME: xdg });
 	const home = join(config, ".arthur");
 	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
@@ -699,6 +700,8 @@ test("a job refuses writes into Arthur's install, config folder and env file, an
 		["bash", { command: "echo key > keys/authorized_keys" }, "the user's SSH folder"],
 		["write", { path: "~/.config/systemd/user/arthur.service", content: "x" }, "the user's systemd folder"],
 		["bash", { command: 'cp unit.service "$HOME/.config/systemd/user/"' }, "the user's systemd folder"],
+		["write", { path: join(xdg, "systemd", "user", "arthur.service"), content: "x" }, "the user's systemd folder"],
+		["bash", { command: `cp unit.service ${join(xdg, "systemd", "user")}/` }, "the user's systemd folder"],
 		["bash", { command: "echo '[user]' >> ~/.gitconfig" }, "the user's Git config"],
 		["write", { path: "~/.config/git/config", content: "[core]\n\thooksPath = /tmp/hooks\n" }, "the user's Git config"],
 		["bash", { command: "git config --file ~/.config/git/config core.hooksPath /tmp/hooks" }, "the user's Git config"],
@@ -711,11 +714,12 @@ test("a job refuses writes into Arthur's install, config folder and env file, an
 		const reason = worktreeRefusal(place, toolName, input);
 		assert.equal(/writes into (.+?) \(/.exec(reason ?? "")?.[1], expected, `${toolName} ${JSON.stringify(input)}: ${reason}`);
 	}
-	// `~/.config/git/` is guarded always, `$XDG_CONFIG_HOME/git/` once more only when it is set and elsewhere.
-	const homeGit = `gitxdg ${join(linked, ".config", "git")}`;
-	for (const [value, expected] of [[xdg, [homeGit, `gitxdg ${join(xdg, "git")}`]], ["", [homeGit]], [join(linked, ".config"), [homeGit]], [undefined, [homeGit]]] as const) {
+	// `~/.config/git/` and `~/.config/systemd` are guarded always, `$XDG_CONFIG_HOME/git/` and `$XDG_CONFIG_HOME/systemd` once
+	// more only when it is set and elsewhere.
+	const homeLines = [`systemd ${join(linked, ".config", "systemd")}`, `gitxdg ${join(linked, ".config", "git")}`];
+	for (const [value, expected] of [[xdg, [...homeLines, `systemd ${join(xdg, "systemd")}`, `gitxdg ${join(xdg, "git")}`]], ["", homeLines], [join(linked, ".config"), homeLines], [join(linked, ".config") + "/", homeLines], [undefined, homeLines]] as const) {
 		value === undefined ? delete process.env.XDG_CONFIG_HOME : (process.env.XDG_CONFIG_HOME = value);
-		assert.deepEqual(guardedPlaces().split("\n").filter((line) => line.startsWith("gitxdg ")), expected, `XDG_CONFIG_HOME=${value}`);
+		assert.deepEqual(guardedPlaces().split("\n").filter((line) => /^(?:systemd|gitxdg) /.test(line)), expected, `XDG_CONFIG_HOME=${value}`);
 	}
 	// A record written before `guarded` was, or a line a human broke (a relative path, taken from no folder; a key that is
 	// none, as an Object property is not), names no such place.

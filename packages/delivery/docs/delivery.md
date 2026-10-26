@@ -9,7 +9,8 @@ plugins: [orchestration({}), projects({ list: [...] }), delivery({ review: { alw
 ## Options
 
 - `review.alwaysReview`: the files a branch that changes one always gets a review for, in every project, as glob patterns from its root; a list replaces the default, which holds what reads secrets, the CI's workflows and its handling, the review rules, the prompt files every role reads, and what a merge and each spawn run (`arthur review-needed --help`, "The always-review list").
+- `merge.stepSeconds`: the seconds each step of `arthur merge`'s checks on main (the install, `npm run check`, `npm test`) may run before it is killed and fails the merge; default 3600, an hour (`arthur merge --help`, "Steps").
 
-An unknown option or key, or a pattern that is empty or starts with `/`, refuses the load.
+An unknown option or key, a pattern that is empty or starts with `/`, or a `stepSeconds` that is no whole number of 1 or more, refuses the load.
 
 Each command's page, what `arthur <command> --help` prints, is in [`commands/`](commands/).

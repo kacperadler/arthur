@@ -62,14 +62,14 @@ function commandIndex(words: readonly string[]): number {
 // it (also by `GIT_DIR=`, `GIT_WORK_TREE=`, `GIT_INDEX_FILE=`, `GIT_OBJECT_DIRECTORY=` or `GIT_COMMON_DIR=` before it or after `env`, an alias its `-c` gives, or a link of its
 // folders), any `git stash`, a `git config` that changes the shared, the user's or the system's config, a git call that reads
 // config the guard does not or writes an alias or include, one that may point a checkout at a branch another worktree holds
-// (`--ignore-other-worktrees`, `checkout -B`, `symbolic-ref`), `git replace` but a list, or one of these after a `cd` there.
-// The command is the word after assignments and wrappers (`sudo`, `timeout 60`), also in `bash -c`, a shell's heredoc,
-// `eval`; each path is resolved from where the commands before it left (`cd`, `cd -`, `pushd`, `git -C`, a subshell undoing
-// them), through symlinks. Not seen: a path built at run time (`$x`, a glob, a brace list, what `xargs` reads, an `OLDPWD`
-// `read` sets, a `GIT_DIR` exported before), a program that writes (`node -e`, `tar -C`, `curl -o`), an alias in the user's
-// Git config, a link the same call makes and uses, the git commands that rewrite the repository every worktree shares (`gc`,
-// `prune`, `repack`, `reflog expire`, `maintenance run`), or move a ref no worktree has checked out from the job's own
-// worktree. It is not a sandbox.
+// (`--ignore-other-worktrees`, `checkout -B`, `symbolic-ref`), `git replace` but a list, one that rewrites the repository
+// every worktree shares (`gc`, `prune`, `repack`, `reflog expire`, `maintenance`, `filter-repo`, `worktree prune`, `worktree
+// add` or `move` outside the worktrees folder), or one of these after a `cd` there. The command is the word after assignments and
+// wrappers (`sudo`, `timeout 60`), also in `bash -c`, a shell's heredoc, `eval`; each path is resolved from where the
+// commands before it left (`cd`, `cd -`, `pushd`, `git -C`, a subshell undoing them), through symlinks. Not seen: a path
+// built at run time (`$x`, a glob, a brace list, what `xargs` reads, an `OLDPWD` `read` sets, a `GIT_DIR` exported before),
+// a program that writes (`node -e`, `tar -C`, `curl -o`), an alias in the user's Git config, a link the same call makes and
+// uses, or a ref no worktree has checked out moved from the job's own worktree. It is not a sandbox.
 function bashRefusal(place: Place, command: string, start: string): string | undefined {
 	let cwd = start;
 	// Where `cd -`, `~-` and `$OLDPWD` (shell-words.ts reads it as `~-`, with another operator `\0`) go: bash's OLDPWD, from the agent's env; none when unset.
@@ -143,14 +143,14 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 		}).find(Boolean);
 	};
 	const git = (args: readonly string[], assignments: readonly string[]): string | undefined => {
-		const { sub, rest, chdirs, trees, writesCheckout, writesOperands, config, points, replaces, alias, unread } = gitCall(args, assignments);
+		const { sub, rest, chdirs, trees, writesCheckout, writesOperands, config, points, replaces, shared, adds, alias, unread } = gitCall(args, assignments);
 		if (unread || config?.loads) return UNSEEN;
 		if (sub === "stash" && !["list", "show"].includes(rest[0] ?? "")) return STASH;
 		const dir = chdirs.reduce(located, cwd);
-		// Every worktree shares the repository's refs: one the job does not own, a checkout pointed at it, or a replacement is main's.
+		// Every worktree shares the repository: a ref the job does not own, a checkout pointed at it, a replacement or a rewrite is main's.
 		const ref = rest.filter((word, at) => !word.startsWith("-") && rest[at - 1] !== "-m")[0] ?? "--stdin";
 		if (sub === "update-ref" && ref !== "HEAD" && (place.branch === "" || ref !== `refs/heads/${place.branch}`)) return refusal(place, place.root, `git update-ref ${ref}`);
-		if ((points !== undefined && points !== `refs/heads/${place.branch}`) || replaces) return refusal(place, place.root, ["git", sub, ...rest].join(" "));
+		if ((points !== undefined && points !== `refs/heads/${place.branch}`) || replaces || shared || adds.some((word) => !inside(located(dir, word), place.worktrees))) return refusal(place, place.root, ["git", sub, ...rest].join(" "));
 		// Config the worktrees share runs hooks and programs in the main checkout; a worktree's own, or a file elsewhere, does not.
 		if (config?.file !== undefined) return theirs([config.file], dir);
 		if (config !== undefined && config.scope !== "--worktree") return refusal(place, place.root, ["git config", config.scope, config.key].filter(Boolean).join(" "));

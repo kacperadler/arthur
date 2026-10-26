@@ -681,7 +681,11 @@ import { checkStructure } from "./structure.ts";
 // the refusal), schedule 1 (595), youtrack 2 (661). Each refusal had read `ARTHUR_JOB` in place, so nothing was cut.
 // Merged main (AR0355) into AR0354: main's budgets plus AR0354's raises, core 6170 + 14 = 6184, orchestration 2396 + 3 = 2399,
 // develop 706, github 659, schedule 595, youtrack 661.
-const BUDGETS = { core: 6184, "core/testing": 349, projects: 486, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1337, github: 659, manage: 928, develop: 706, findings: 254 };
+// AR0335 (F7 of AR0320; its Done means: the git commands that rewrite the repository every worktree shares refused; AR-D29):
+// core 5 more (6189) for `shared` and `adds` of `gitCall`, their type and comment (git-writes.ts, git diff --numstat +9 -4),
+// judged on the guard's existing refusal of main's refs (worktree-guard.ts +11 -11, its comment refolded to keep it at 200).
+// Nothing refused these commands before, so nothing was cut.
+const BUDGETS = { core: 6189, "core/testing": 349, projects: 486, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1337, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

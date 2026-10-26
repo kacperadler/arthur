@@ -736,7 +736,11 @@ import { checkStructure } from "./structure.ts";
 // AR0400 (F1 of AR0394, a security ticket; its Done means: the prune here keeps the worktree, branch and record as
 // `arthur remote-job prune` does): core 4 more (6325) for that refusal, its comment and its import (job-records.ts, git diff
 // --numstat +4 -0). Nothing was cut.
-const BUDGETS = { core: 6325, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1436, github: 659, manage: 928, develop: 706, findings: 254 };
+// AR0454 (F1 of AR0449, a security ticket; the task allows the raise): core 2 more (6327) for the install's and each step's own
+// package caches in place of the shared ones, the `env` arguments that point them there and the folder `host.sandbox` takes
+// (job-sandbox.ts, git diff --numstat +13 -12; plugin.ts +5 -4), and delivery 6 more (1442) for each merge's cache folder, made
+// before its steps and removed after them, the reinstall's included (merge-command.ts +24 -18). The shared caches' list was cut.
+const BUDGETS = { core: 6327, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1442, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

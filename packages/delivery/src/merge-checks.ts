@@ -48,9 +48,7 @@ export function stepRunner(root: string, slice: string, sandbox: (command: strin
 	};
 }
 
-// Each `.git` below the checkout's top, by its path from `root`: a folder by its inode and birth (Git's own writes in it change
-// its other times), anything else by its inode and change time, which a write, a rename or a chmod sets and no step can set back.
-// Neither the checkout's own `.git` nor what is in a `.git` is walked, nor where a symlink points.
+// Each `.git` below the checkout's top by its path from `root`, stamped; not walked: the checkout's own, a `.git`'s inside, a symlink's target.
 function repositories(root: string): Map<string, string> {
 	const found = new Map<string, string>();
 	const folders = [root];
@@ -59,17 +57,24 @@ function repositories(root: string): Map<string, string> {
 			const path = join(folder, entry.name);
 			if (entry.name !== ".git") {
 				if (entry.isDirectory()) folders.push(path);
-			} else if (folder !== root) {
-				const stat = lstatSync(path, { throwIfNoEntry: false });
-				if (stat !== undefined) found.set(relative(root, path), stat.isDirectory() ? `folder ${stat.ino} ${stat.birthtimeMs}` : `entry ${stat.ino} ${stat.ctimeMs}`);
-			}
+			} else if (folder !== root) found.set(relative(root, path), stamp(path));
 		}
 	}
 	return found;
 }
 
-// A folder a step made unreadable is made readable for its owner, so a `.git` cannot hide in it; one that stays so has none
-// a step made: it could not have written there.
+// A `.git` by the inode and change time, which a write, a rename or a chmod sets and no step can set back, of itself and, in a
+// folder, of every entry below it, so a step's write in one there before (its `config`) counts too; "unreadable" for one a step closed.
+function stamp(path: string): string {
+	try {
+		const names = lstatSync(path).isDirectory() ? readdirSync(path, { recursive: true, encoding: "utf8" }).sort() : [];
+		return ["", ...names].map((name) => [name, lstatSync(join(path, name))] as const).map(([name, stat]) => `${name} ${stat.ino} ${stat.ctimeMs}`).join("\n");
+	} catch {
+		return "unreadable";
+	}
+}
+
+// A folder a step made unreadable is made readable for its owner first, so no `.git` hides in it; one that stays so a step never wrote.
 function entries(folder: string): Dirent[] {
 	try {
 		return readdirSync(folder, { withFileTypes: true });
@@ -83,16 +88,11 @@ function entries(folder: string): Dirent[] {
 	}
 }
 
-// "" once `path` is gone; a step may have taken its owner's write away, of the folder it is in or of one in it, given back
-// first (never through a symlink); else why it stays.
+// "" once `path` is gone, its owner's write given back first, of the folder it is in and of each one in it (never through a
+// symlink), since a step may have taken it away; else why it stays.
 function remove(path: string): string {
-	try {
-		rmSync(path, { recursive: true, force: true });
-		return "";
-	} catch {
-		spawnSync("chmod", ["u+rwx", dirname(path)], { stdio: "ignore" });
-		if (lstatSync(path, { throwIfNoEntry: false })?.isDirectory()) spawnSync("chmod", ["-R", "u+rwx", path], { stdio: "ignore" });
-	}
+	spawnSync("chmod", ["u+rwx", dirname(path)], { stdio: "ignore" });
+	if (lstatSync(path, { throwIfNoEntry: false })?.isDirectory()) spawnSync("chmod", ["-R", "u+rwx", path], { stdio: "ignore" });
 	try {
 		rmSync(path, { recursive: true, force: true });
 		return "";

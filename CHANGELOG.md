@@ -16,6 +16,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Changed
 
+- AR0423 packages/core/test/job-state.test.ts:142 fails now and then with ENOENT on the job record active file (17d51ce6)
 - AR0444 An uptime redirect test fails on GitHub CI: the runner refuses the connection before the private-address check (3af222ae)
 
 ## 2026-10-25

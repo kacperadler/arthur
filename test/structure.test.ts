@@ -716,11 +716,12 @@ import { checkStructure } from "./structure.ts";
 // every job inherits): core 10 more (6238) for the list of keys and one requirement per key set (requirements.ts, git diff
 // --numstat +14 -4, its header refolded to pay the list's comment; AR-D61). Nothing warned of such a key before, so nothing was cut.
 // Merged main (AR0439) into AR0441: main's budgets plus AR0441's raises, core 6238, delivery 1361 + 68 + 5 = 1434 (recounted with wc -l).
-// AR0443 (F1 of AR0354; its plan, approved as AR-D77, raises core by the counted delta): core 29 more (6267) for the sandbox
-// that reads every file but the env file, the walk from `/` and `hidden(record)` (job-sandbox.ts, git diff --numstat +37 -14),
-// and the CLI's load inside a job without the env file, a plugin with an unset variable left out (host.ts +8 -3, env.ts +8 -7,
-// wrapper.ts and cli.ts on their own lines). Nothing read files under a rule before, so nothing was cut.
-const BUDGETS = { core: 6267, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1434, github: 659, manage: 928, develop: 706, findings: 254 };
+// AR0443 (F1 of AR0354; its plan, approved as AR-D77, raises core by the counted delta): core 31 more (6269) for the sandbox
+// that reads every file but the env file, the walk from `/` with its reused rule buffer, the probe that skips it, and
+// `hidden(record)` (job-sandbox.ts, git diff --numstat +40 -15), and the CLI's load inside a job without the env file, a plugin
+// with an unset variable left out (host.ts +8 -3, env.ts +8 -7, wrapper.ts and cli.ts on their own lines). Nothing read files
+// under a rule before, so nothing was cut.
+const BUDGETS = { core: 6269, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1434, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

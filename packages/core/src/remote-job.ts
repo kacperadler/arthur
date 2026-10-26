@@ -5,6 +5,7 @@ import type { Command } from "./commands.ts";
 import { eventBus } from "./events.ts";
 import { configRefusal } from "./git-config.ts";
 import { addWorktree, removeWorktree } from "./git.ts";
+import { insideJob } from "./inside-job.ts";
 import { continueJob, steerJob, stopJob } from "./job-control.ts";
 import { type Own, writeRecord } from "./job-record.ts";
 import { jobCaps, jobEnv, launch, machineLimit, UNCAPPED } from "./job-scope.ts";
@@ -140,9 +141,9 @@ export function remoteJobCommand(): Command {
 				console.error(`arthur remote-job: ${run === undefined ? `unknown step ${JSON.stringify(step)}` : "the home folder must be an absolute path"}\n${USAGE}`);
 				return 2;
 			}
-			const job = process.env.ARTHUR_JOB ?? "";
-			if (job !== "" && step !== "records") {
-				console.error(`arthur remote-job ${step}: refused inside a job ${basename(job)}: a job runs only the commands its role needs; put what the coordinator should do in your final message`);
+			const job = insideJob(home);
+			if (job !== undefined && step !== "records") {
+				console.error(`arthur remote-job ${step}: refused inside a job ${job}: a job runs only the commands its role needs; put what the coordinator should do in your final message`);
 				return 1;
 			}
 			await run(home, rest);

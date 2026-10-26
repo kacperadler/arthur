@@ -31,7 +31,8 @@ The kinds:
 - `question`: a question in the coordinator's reply.
 - `plan`: a planning ticket's plan waiting for the owner's approval (`arthur plan --help`).
 - `review`: what comes after a branch's second FAIL (`arthur review --help`).
-- `budget`: a raise of a package's line budget.
+- `budget`: a raise of a package's line budget, or a job with no money limit (`--budget 0`, below).
+- `merge`: a merge without a PASS (`arthur merge --unreviewed`, below).
 
 `--option` gives an option offered, once each, numbered from 1 in the order given; `--recommend` is the coordinator's recommendation, an option's number or words.
 
@@ -61,7 +62,7 @@ A question with no answer stays open and never expires: every turn's context lis
 
 ## Classes
 
-A class is a kind of question the owner always answers the same way, pre-approved on his word only, as autopilot pre-approves a ticket. It is a kind (one of the five), the words its questions name, and, when every backing decision's ticket says the same `- Kind:` under its Goal, that ticket kind; and the decision it gives.
+A class is a kind of question the owner always answers the same way, pre-approved on his word only, as autopilot pre-approves a ticket. It is a kind (one of the six), the words its questions name, and, when every backing decision's ticket says the same `- Kind:` under its Goal, that ticket kind; and the decision it gives.
 
 `class propose` records the proposal as a question of its own, kind `class`, and prints its id, then the class and its evidence: the backing decisions, each one the owner answered (the later answer counts) with the same decision (the words compared in any case and spacing), of the class's kind, whose question names every word of `--match`; and the agreement rate of the coordinator's recommendation with the owner's pick on them, the case the evals score. A decision with no recommendation or no pick is not scored, and says so. `--backed-by` takes the ids after it, or once per id. The proposal's options are `Approve the class` and `Refuse it`, recommended 1, and `arthur decisions <id>` prints it whole.
 
@@ -77,15 +78,19 @@ The `ask` prints a second line, `<id> answered by policy (<class id>): <decided>
 
 `class revoke` records the owner's revoke; from then the class's questions go to him again, and the answers given by policy before stay as recorded. A later answer approving the proposal again holds again. `arthur decisions --classes` lists each class, proposed, approved, refused, revoked or closed, with its evidence and the questions it answered.
 
+## What only the owner's decision lets through
+
+`arthur merge <job> --unreviewed` and `--budget 0` of `arthur spawn` or `arthur continue` on a paid model go on only with `--decision <id>` (AR0355). The plugin checks it, `call("decision.owner", …)` for the merge and its `beforeSpawn` for the spawns, and refuses, naming why: no id (naming the ask to make, `arthur decision ask --kind merge|budget --question '<what he decides>' --ticket <id>`); an id the log does not hold; a question of another kind (`merge` for the merge, `budget` for the spawns); one open or closed; one whose later answer is by policy; one of another ticket than the job's (the first its task names), or, for a job naming none, of another job, or, for a spawn naming none, one with a ticket or a job; one used already. A pass marks it used in `<home>/orchestration/used/<id>`, created whole or not at all, holding what used it (`merge <job>`, `spawn`, `continue <job>`): only the same job's merge tried again (after a conflict or a failed check) passes it again, since a branch goes in once. A spawn or continue refused by a later plugin's check has used it too: ask again.
+
 ## Refused
 
 Each refusal prints `arthur decision <verb>: refused: <why>`, writes nothing, and exits 1:
 
-- Inside a job (`ARTHUR_JOB` set), every verb, `class` included: a job never records the owner's word; it ends its run with `Blocked: user <question>`.
-- `ask`: an empty or missing `--question`; a `--kind` other than the five; a `--ticket` not on the board of the project; a `--recommend` number with no such option; an unknown `--project`.
+- Inside a job (`arthur help --help`), every verb, `class` included: a job never records the owner's word; it ends its run with `Blocked: user <question>`.
+- `ask`: an empty or missing `--question`; a `--kind` other than the six; a `--ticket` not on the board of the project; a `--recommend` number with no such option; an unknown `--project`.
 - `answer`: an id the log does not hold, or whose prefix no project has; no owner's words; owner's words that begin `by policy` (only `ask` answers by policy, and a class is approved on the owner's word only); no `--decided`, or an empty one; a `--picked` that is no option's number; no `--picked` to a class's proposal.
 - `close`: an id the log does not hold; no reason; a question already answered or closed.
-- `class propose` (`arthur decision class propose: refused: <why>`): `--kind class` (a class never approves a class) or another kind outside the five; a `--match` with no word; no `--decided`; no backing decision; a backing id the log does not hold, one not answered (open or closed), one answered by policy, one whose decision differs from `--decided`, one of another kind, or one whose question does not name every word of `--match`; an unknown `--project`.
+- `class propose` (`arthur decision class propose: refused: <why>`): `--kind class` (a class never approves a class) or another kind outside the six; a `--match` with no word; no `--decided`; no backing decision; a backing id the log does not hold, one not answered (open or closed), one answered by policy, one whose decision differs from `--decided`, one of another kind, or one whose question does not name every word of `--match`; an unknown `--project`.
 - `class revoke`: an id the log does not hold, or that is no class; a class already revoked; no owner's words.
 - Any verb, when a line of the log is not a record (a hand edit): `<file> line <n> is not a decision record (<why>); ...`, the file left as it is; for a class, an approval by policy, an answer by policy naming no class above it, or a revoke of no class too. Undo the edit (`git diff -- spec/decisions.jsonl`).
 

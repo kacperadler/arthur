@@ -2556,9 +2556,9 @@
   {
     "id": "AR0335",
     "title": "The git commands that rewrite the shared repository pass as a documented limit",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0335-the-git-commands-that-rewrite-the-shared-repository-pass-as-a-documented-limit/ticket.md",
-    "updated": "2026-10-23T14:19:06.704Z",
+    "updated": "2026-10-26T00:35:20.057Z",
     "after": [
       "AR0354"
     ]
@@ -2590,9 +2590,9 @@
   {
     "id": "AR0339",
     "title": "A recursive search from the coordinator's own folder prints the env file",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0339-a-recursive-search-from-the-coordinator-s-own-folder-prints-the-env-file/ticket.md",
-    "updated": "2026-10-25T22:45:12.084Z",
+    "updated": "2026-10-25T23:32:17.777Z",
     "after": [
       "AR0338"
     ]
@@ -2719,19 +2719,19 @@
   {
     "id": "AR0354",
     "title": "The mark that tells a job from the coordinator is a variable the job's shell clears",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0354-the-mark-that-tells-a-job-from-the-coordinator-is-a-variable-the-job-s-shell-clears/ticket.md",
-    "updated": "2026-10-23T14:41:34.062Z",
+    "updated": "2026-10-26T00:15:53.842Z",
     "after": [
-      "AR0339"
+      "AR0338"
     ]
   },
   {
     "id": "AR0355",
     "title": "`--unreviewed` and `--budget 0` rest on a sentence in the coordinator's role, with no recorded decision behind them",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0355-unreviewed-and-budget-0-rest-on-a-sentence-in-the-coordinator-s-role-with-no-recorded-decision-behind-them/ticket.md",
-    "updated": "2026-10-23T14:41:34.393Z",
+    "updated": "2026-10-25T23:49:36.299Z",
     "after": [
       "AR0361"
     ]
@@ -3260,9 +3260,9 @@
   {
     "id": "AR0413",
     "title": "The vision still says Arthur sends another machine no secret",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0413-the-vision-still-says-arthur-sends-another-machine-no-secret/ticket.md",
-    "updated": "2026-10-25T15:56:47.607Z"
+    "updated": "2026-10-26T06:23:09.059Z"
   },
   {
     "id": "AR0414",
@@ -3428,16 +3428,16 @@
   {
     "id": "AR0430",
     "title": "`declare -n OLDPWD=name` and `pushd -n -` are not followed",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0430-declare-n-oldpwd-name-and-pushd-n-are-not-followed/ticket.md",
-    "updated": "2026-10-25T20:30:20.606Z"
+    "updated": "2026-10-26T06:23:08.567Z"
   },
   {
     "id": "AR0431",
     "title": "A review's project is not checked against its worker's",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0431-a-review-s-project-is-not-checked-against-its-worker-s/ticket.md",
-    "updated": "2026-10-25T20:44:57.918Z",
+    "updated": "2026-10-26T00:21:13.525Z",
     "after": [
       "AR0355"
     ]
@@ -3445,9 +3445,9 @@
   {
     "id": "AR0432",
     "title": "The always-review list misses the other installs: composer, uv, yarnrc, pnpmfile and bunfig",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0432-the-always-review-list-misses-the-other-installs-composer-uv-yarnrc-pnpmfile-and/ticket.md",
-    "updated": "2026-10-25T21:00:52.469Z",
+    "updated": "2026-10-26T00:38:40.489Z",
     "after": [
       "AR0431"
     ]
@@ -3528,29 +3528,51 @@
   {
     "id": "AR0439",
     "title": "A provider's key exported in the shell still reaches every job",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0439-a-provider-s-key-exported-in-the-shell-still-reaches-every-job/ticket.md",
-    "updated": "2026-10-25T22:44:37.009Z"
+    "updated": "2026-10-26T06:23:07.573Z",
+    "after": [
+      "AR0350"
+    ]
   },
   {
     "id": "AR0440",
     "title": "A job can read the running Arthur process's secrets from /proc/<pid>/environ",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0440-a-job-can-read-the-running-arthur-process-s-secrets-from-proc-pid-environ/ticket.md",
-    "updated": "2026-10-25T22:44:48.231Z"
+    "updated": "2026-10-26T06:23:06.063Z",
+    "after": [
+      "AR0350"
+    ]
   },
   {
     "id": "AR0441",
     "title": "Any merge commit on main resets the baseline, one a job made included",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0441-any-merge-commit-on-main-resets-the-baseline-one-a-job-made-included/ticket.md",
-    "updated": "2026-10-25T23:03:46.128Z"
+    "updated": "2026-10-26T06:23:06.569Z",
+    "after": [
+      "AR0350"
+    ]
   },
   {
     "id": "AR0442",
     "title": "An existing project whose history ends in plain commits refuses its first merge, its onboarding's included",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0442-an-existing-project-whose-history-ends-in-plain-commits-refuses-its-first-merge/ticket.md",
-    "updated": "2026-10-25T23:03:46.133Z"
+    "updated": "2026-10-26T06:23:08.074Z",
+    "after": [
+      "AR0441"
+    ]
+  },
+  {
+    "id": "AR0443",
+    "title": "A job's scope marks it only for a home that holds its record, so a config of the job's own is a coordinator's",
+    "status": "planned",
+    "path": "spec/features/AR0443-a-job-s-scope-marks-it-only-for-a-home-that-holds-its-record-so-a-config-of-the/ticket.md",
+    "updated": "2026-10-26T06:23:07.071Z",
+    "after": [
+      "AR0440"
+    ]
   }
 ]

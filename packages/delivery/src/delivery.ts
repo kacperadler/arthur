@@ -49,7 +49,7 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 			const held = (path: string) => always.some((glob) => matchesGlob(path, glob));
 			host.jobs.registerRole({ name: "reviewer", file: new URL("../roles/reviewer.md", import.meta.url), criteria: ["styleguide", "review"] });
 			host.jobs.registerKind({ name: REVIEW, readOnly: true, role: "reviewer", verdicts: ["PASS", "FAIL"], file: reviewFiler(host) });
-			host.jobs.beforeSpawn(({ kind, task, tickets }) => (kind === REVIEW ? refusal(host, task, tickets) : undefined));
+			host.jobs.beforeSpawn(({ kind, task, tickets, project }) => (kind === REVIEW ? refusal(host, task, tickets, project) : undefined));
 			host.jobs.prepare(async (job, _env, continued) => {
 				if (job.kind !== REVIEW || continued) return;
 				const { branch = "", commit = "" } = head(job.task);
@@ -106,8 +106,8 @@ function head(task: string): { readonly branch?: string; readonly commit?: strin
 	return { branch: /^Branch: (arthur\/\S+)$/m.exec(lines)?.[1], commit: /^Commit: ([0-9a-f]{7,40})$/m.exec(lines)?.[1], round: round === undefined ? undefined : Number(round) };
 }
 
-// Why a review may not start, if it may not: its one ticket, on the board and started; its branch and commit; its round; and its task, only what `reviewTask` builds now for the ended worker its branch names, at its tip (AR0357).
-function refusal(host: Host, task: string, tickets: readonly string[]): string | undefined {
+// Why a review may not start, if it may not: its one ticket, on the board and started; its branch and commit; its round; and its task, only what `reviewTask` builds now for the ended worker its branch names, at its tip (AR0357), in that worker's project (AR0431).
+function refusal(host: Host, task: string, tickets: readonly string[], project: string): string | undefined {
 	const [path = ""] = tickets;
 	const id = TICKET.exec(path)?.[1];
 	if (tickets.length !== 1 || id === undefined) return `a review names its one ticket on a line Ticket: spec/features/<id>-<slug>/ticket.md; its task names ${tickets.length === 0 ? "none" : tickets.join(", ")}`;
@@ -122,11 +122,11 @@ function refusal(host: Host, task: string, tickets: readonly string[]): string |
 	if (round !== undefined && round !== next) return `round ${round} is not the next one of ${branch}: it has ${fails.length} FAIL${fails.length === 1 ? "" : "s"} since its last PASS, so the next round is ${next}`;
 	if (round === undefined && fails.length >= LIMIT)
 		return `${fails.length} FAILs on ${branch} since its last PASS: ${fails.join(", ")}; the owner decides what comes next, and only on his word: arthur review ${branch.slice("arthur/".length)} --round ${next}`;
-	let built: string | undefined;
 	try {
-		built = reviewTask(host, worker(host, branch.slice("arthur/".length)), round).task;
+		const job = worker(host, branch.slice("arthur/".length));
+		if (job.project === project && reviewTask(host, job, round).task === task) return undefined;
 	} catch {}
-	return built === task ? undefined : "a review's task is what arthur review writes; spawn it with arthur review <worker job>";
+	return "a review's task is what arthur review writes; spawn it with arthur review <worker job>";
 }
 
 // What a review's wake reads: its record, its verdict, its project and whether that merges on its own, why its run ended,

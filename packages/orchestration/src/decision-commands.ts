@@ -1,3 +1,5 @@
+import { dirname } from "node:path";
+import { insideJob } from "@arthur/core/inside-job";
 import type { Command, Host, Project } from "@arthur/core/plugin";
 import { classList, evidence, propose, revoke } from "./decision-class.ts";
 import { described, policyOf } from "./decision-classes.ts";
@@ -44,8 +46,8 @@ function projectNamed(host: Host, name: string | undefined): Project {
 	return found;
 }
 
-// The project a decision id's prefix names.
-function projectOf(host: Host, id: string): Project {
+// The project a decision id's prefix names; decision-use.ts reads it too.
+export function projectOf(host: Host, id: string): Project {
 	const prefix = DECISION_ID.exec(id)?.[1];
 	if (prefix === undefined) throw new Error(`${id} is no decision id: <prefix>-D<number>, as arthur decision ask printed it`);
 	const projects = host.board.projects();
@@ -59,8 +61,9 @@ export function decisionCommands(host: Host): Command[] {
 		name: "decision",
 		doc: new URL("../docs/commands/decision.md", import.meta.url),
 		run({ args, project }) {
-			if (process.env.ARTHUR_JOB) {
-				console.error("arthur decision: refused inside a job (ARTHUR_JOB is set): a job never records the owner's word; end your run with Blocked: user <question> instead");
+			const job = insideJob(dirname(host.folder));
+			if (job !== undefined) {
+				console.error(`arthur decision: refused inside a job ${job}: a job never records the owner's word; end your run with Blocked: user <question> instead`);
 				return 1;
 			}
 			const [verb = "", ...rest] = args;

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync } from "node:fs";
-import { basename, dirname } from "node:path";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type Command, type CommandRegistry, commandRegistry } from "./commands.ts";
 import { configCheck } from "./config-check.ts";
@@ -8,6 +8,7 @@ import { type LoadedConfig, loadConfig } from "./config.ts";
 import { type DoctorLine, doctor, ownAnswers, printAtStart } from "./doctor.ts";
 import { parseFlags } from "./flags.ts";
 import { type LoadedPlugins, loadPlugins } from "./host.ts";
+import { insideJob } from "./inside-job.ts";
 import { jobCommands } from "./job-commands.ts";
 import { coreVersion } from "./job-machine.ts";
 import { remoteJobCommand } from "./remote-job.ts";
@@ -38,15 +39,15 @@ async function main(argv: readonly string[]): Promise<number> {
 	if (typeof parsed === "string") return usage(parsed);
 	const { words: rest, values: { project } } = parsed;
 	const [name = "help", ...args] = rest[0] === "--help" ? [] : rest;
-	const { commands, problem, project: known } = await load();
+	const { commands, problem, project: known, home } = await load();
 	const command = commands.find(name);
 	if (command === undefined) return unknown(name, commands, problem);
 	if (args.includes("--help")) return printDoc(command);
-	// The wrapper sets ARTHUR_JOB in a job's agent (spawn.md): there only a command that declares `inJob` runs (AR0353); the
-	// plugins' commands are known only once they loaded, which every command a job may run loads too.
-	const job = process.env.ARTHUR_JOB ?? "";
-	if (job !== "" && command.inJob !== true) {
-		console.error(`arthur ${name}: refused inside a job ${basename(job)}: a job runs only the commands its role needs; put what the coordinator should do in your final message`);
+	// Inside a job (inside-job.ts, AR0354) only a command that declares `inJob` runs (AR0353); the plugins' commands are known
+	// only once they loaded, which every command a job may run loads too.
+	const job = insideJob(home);
+	if (job !== undefined && command.inJob !== true) {
+		console.error(`arthur ${name}: refused inside a job ${job}: a job runs only the commands its role needs; put what the coordinator should do in your final message`);
 		return 1;
 	}
 	try {
@@ -64,7 +65,7 @@ async function main(argv: readonly string[]): Promise<number> {
 type Loaded = Pick<LoadedPlugins, "plugins" | "follow" | "jobs" | "board" | "autopilot" | "doctor" | "emit" | "channels"> & { readonly home: string };
 
 // Every command, the core's and the plugins'; when the config or a plugin does not load, the core's alone and the reason.
-async function load(): Promise<{ readonly commands: CommandRegistry; readonly problem?: string; readonly project?: LoadedPlugins["project"] }> {
+async function load(): Promise<{ readonly commands: CommandRegistry; readonly problem?: string; readonly project?: LoadedPlugins["project"]; readonly home?: string }> {
 	let loaded: Loaded | undefined;
 	let read: LoadedConfig | undefined;
 	const commands = core(undefined, () => loaded);
@@ -73,10 +74,10 @@ async function load(): Promise<{ readonly commands: CommandRegistry; readonly pr
 		read = config;
 		const { plugins, jobs, board, follow, project, autopilot, doctor: checks, emit, channels } = await loadPlugins(config, process.env, commands);
 		loaded = { plugins, home: config.core.home, follow, jobs, board, autopilot, doctor: checks, emit, channels };
-		return { commands, project };
+		return { commands, project, home: config.core.home };
 	} catch (error) {
 		const problem = error instanceof Error ? error.message : String(error);
-		return { commands: core(problem, () => undefined, read), problem };
+		return { commands: core(problem, () => undefined, read), problem, home: read?.core.home };
 	}
 }
 

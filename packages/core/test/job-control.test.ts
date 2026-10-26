@@ -538,6 +538,19 @@ test("a continue goes through the plugins' beforeSpawn checks on its record: a r
 	assert.deepEqual([second, starts(resumed).length], [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }, 1]);
 });
 
+test("a continue hands the checks its decision on a paid model only: none once its record says free", async () => {
+	const { agent } = resuming({ steps: [{ message: "First." }] }, { steps: [{ message: "Second." }] });
+	const { home, jobs } = setup(agent);
+	const seen: (string | undefined)[] = [];
+	jobs.beforeSpawn("orchestration", (spawn) => (seen.push(spawn.decision), spawn.id === undefined ? undefined : "held"));
+	const job = await jobs.spawn({ task: "Go." });
+	await ended(home, job.id);
+	await assert.rejects(jobs.continue(job.id, "Go on.", 0, false, "AC-D1"), { message: "refused by orchestration: held" });
+	writeFileSync(join(home, "jobs", job.id, "free"), "true");
+	await assert.rejects(jobs.continue(job.id, "Go on.", 0, false, "AC-D1"), { message: "refused by orchestration: held" });
+	assert.deepEqual(seen, [undefined, "AC-D1", undefined]);
+});
+
 test("a continued worker moves its ticket from review back to in-progress with one ticket-moved; at in-progress nothing is written", async () => {
 	const { agent } = resuming({ steps: [{ message: "First." }] }, { steps: [{ message: "Again." }] });
 	const { root, home, jobs, bus } = setup(agent);
@@ -584,7 +597,7 @@ test("the arthur binary stops, steers and continues a job by its id; wrong usage
 	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "first");
 	const agent = fakeAgent({ steps: [stuck()] });
 	const full = join(root, "..", "full");
-	const check = `host.jobs.beforeSpawn((spawn) => (existsSync(${JSON.stringify(full)}) && !spawn.ignoreRestart ? "restart due: AC0001" : undefined))`;
+	const check = `host.jobs.beforeSpawn((spawn) => (spawn.decision !== undefined ? \`decision \${JSON.stringify(spawn.decision)} of \${spawn.id}\` : existsSync(${JSON.stringify(full)}) && !spawn.ignoreRestart ? "restart due: AC0001" : undefined))`;
 	writeFileSync(join(root, "arthur.config.ts"), `import { existsSync } from "node:fs";\nexport default { core: { timeZone: "UTC", agent: { command: ${JSON.stringify(agent)} } }, plugins: [{ name: "orchestration", setup(host) { ${check}; } }] };\n`);
 	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
 	const home = join(root, ".arthur");
@@ -595,12 +608,17 @@ test("the arthur binary stops, steers and continues a job by its id; wrong usage
 	writeFileSync(full, "");
 	const capped = arthur("continue", id, "Go on.");
 	assert.deepEqual([capped.status, capped.stdout, capped.stderr, starts(agent).length, field(home, id, "continue")], [1, "", "arthur continue: refused by orchestration: restart due: AC0001\n", 1, undefined]);
+	// `--budget 0` on its paid model hands the checks its `--decision`, "" for none, with the job's id (AR0355).
+	for (const [args, decision] of [[["--budget", "0"], '""'], [["--decision", "AC-D1", "--budget", "0.00"], '"AC-D1"']] as const) {
+		const asked = arthur("continue", id, "Go on.", "--ignore-restart", ...args);
+		assert.deepEqual([asked.status, asked.stderr], [1, `arthur continue: refused by orchestration: decision ${decision} of ${id}\n`], args.join(" "));
+	}
 	assert.equal(arthur("continue", id, "Go on.", "--ignore-restart", "--budget", "0.5").stdout, `${id}: continued\n`);
 	await running(home, id);
 	const [, second] = await until("the agent's second start", () => (starts(agent).length === 2 ? starts(agent) : undefined));
 	assert.deepEqual([field(home, id, "budget"), second?.args.slice(0, 1), second?.args.at(-1)], ["0.5", ["--continue"], "Go on."]);
 	assert.equal(arthur("stop", id).stdout, `${id}: stopped\n`);
-	const usage = { stop: "usage: arthur stop <id>", steer: "usage: arthur steer <id> <text>", continue: "usage: arthur continue <id> <instruction> [--budget <usd>] [--ignore-restart]" };
+	const usage = { stop: "usage: arthur stop <id>", steer: "usage: arthur steer <id> <text>", continue: "usage: arthur continue <id> <instruction> [--budget <usd> [--decision <id>]] [--ignore-restart]" };
 	for (const [args, problem] of [
 		[["stop"], "expected the id, got 0 arguments"],
 		[["stop", id, "--force"], "unknown flag --force"],
@@ -610,6 +628,9 @@ test("the arthur binary stops, steers and continues a job by its id; wrong usage
 		[["continue", id, "x", "--budget", "1e3"], "--budget needs a number of 0 or more, got 1e3"],
 		[["continue", id, "x", "--budget"], "--budget needs a number of 0 or more, got nothing"],
 		[["continue", id, "x", "--budget", "1", "--budget", "2"], "--budget given twice"],
+		[["continue", id, "x", "--decision", "AC-D1"], "--decision goes with --budget 0"],
+		[["continue", id, "x", "--budget", "1", "--decision", "AC-D1"], "--decision goes with --budget 0"],
+		[["continue", id, "x", "--budget", "0", "--decision"], "--decision needs a value"],
 	] as const) {
 		const run = arthur(...args);
 		assert.deepEqual([run.status, run.stderr], [2, `arthur ${args[0]}: ${problem}\n${usage[args[0]]}\n`], args.join(" "));

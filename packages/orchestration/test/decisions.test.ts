@@ -101,8 +101,8 @@ test("an ask is refused, naming why and writing nothing: an empty question, anot
 	const refused = (why: string): Ran => [1, `arthur decision ask: refused: ${why}`];
 	assert.deepEqual(await decision("ask", "--kind", "plan", "--question", "  "), refused("an empty question: --question <what the owner decides>"));
 	assert.deepEqual(await decision("ask", "--kind", "plan"), refused("an empty question: --question <what the owner decides>"));
-	assert.deepEqual(await decision("ask", "--kind", "vote", "--question", "Go?"), refused('kind "vote": one of job, question, plan, review, budget'));
-	assert.deepEqual(await decision("ask", "--question", "Go?"), refused('kind "": one of job, question, plan, review, budget'));
+	assert.deepEqual(await decision("ask", "--kind", "vote", "--question", "Go?"), refused('kind "vote": one of job, question, plan, review, budget, merge'));
+	assert.deepEqual(await decision("ask", "--question", "Go?"), refused('kind "": one of job, question, plan, review, budget, merge'));
 	assert.deepEqual(await decision("ask", "--kind", "plan", "--question", "Go?", "--ticket", "AC0099"), refused("--ticket AC0099 is not on the board of project acme"));
 	assert.deepEqual(await decision("ask", "--kind", "plan", "--question", "Go?", "--ticket", "SH0001"), refused("--ticket SH0001 is not on the board of project acme"));
 	assert.deepEqual(await decision("ask", "--kind", "plan", "--question", "Go?", "--option", "a", "--option", "b", "--recommend", "3"), refused("--recommend 3: no such option; 2 offered (--option)"));
@@ -121,10 +121,22 @@ test("inside a job every arthur decision is refused and writes nothing; arthur d
 	assert.deepEqual(await decision(...PLAN_ASK), [0, "AC-D1"]);
 	const before = readFileSync(file(), "utf8");
 	process.env.ARTHUR_JOB = "/home/arthur/.arthur/jobs/2026-03-04-worker-0000abcd";
-	const refusal = "arthur decision: refused inside a job (ARTHUR_JOB is set): a job never records the owner's word; end your run with Blocked: user <question> instead";
+	const refusal = "arthur decision: refused inside a job 2026-03-04-worker-0000abcd: a job never records the owner's word; end your run with Blocked: user <question> instead";
 	for (const args of [PLAN_ASK, ["answer", "AC-D1", ...APPROVED, "ok"], ["close", "AC-D1", "gone"], ["vote"]]) assert.deepEqual(await decision(...args), [1, refusal], args[0]);
 	assert.equal(readFileSync(file(), "utf8"), before);
 	assert.deepEqual(await decisions(), [0, "AC-D1 2026-03-04 plan AC0001: Approve the plan of AC0001? — open"]);
+});
+
+// The job whose systemd scope runs this test, when one does (a job's own `npm test`).
+const scope = /\/arthur-job-([^/]+)\.scope$/.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
+
+test("in a job's scope arthur decision is refused with ARTHUR_JOB cleared once the home holds that job's record", { skip: scope === undefined && "not run in a job's systemd scope" }, async (t) => {
+	const { decision, fake, file } = await setup(t);
+	assert.deepEqual(await decision(...PLAN_ASK), [0, "AC-D1"], "the test's own home holds no record of the job");
+	const before = readFileSync(file(), "utf8");
+	mkdirSync(join(dirname(fake.host.folder), "jobs", scope ?? ""), { recursive: true });
+	assert.deepEqual(await decision(...PLAN_ASK), [1, `arthur decision: refused inside a job ${scope}: a job never records the owner's word; end your run with Blocked: user <question> instead`]);
+	assert.equal(readFileSync(file(), "utf8"), before);
 });
 
 test("an answer goes into the log, then under its ticket's Decisions in the form the plan check reads; a second answer adds a line and counts", async (t) => {
@@ -425,7 +437,7 @@ test("arthur decisions: no log says so and creates none; words, --open, --kind a
 	assert.deepEqual(await decisions("--open"), [0, lines.plan]);
 	assert.deepEqual(await decisions("--kind", "question"), [0, lines.colour]);
 	assert.deepEqual(await decisions("--ticket", "ac0001"), [0, lines.plan]);
-	assert.deepEqual(await decisions("--kind", "vote"), [1, "arthur decisions: --kind vote: one of job, question, plan, review, budget"]);
+	assert.deepEqual(await decisions("--kind", "vote"), [1, "arthur decisions: --kind vote: one of job, question, plan, review, budget, merge"]);
 	const usage = "usage: arthur decisions [<words>] [--open] [--kind <kind>] [--ticket <id>], arthur decisions <id>, or arthur decisions --classes";
 	for (const args of [["--kind"], ["--classes", "--open"], ["--classes", "budget"]]) assert.deepEqual(await decisions(...args), [2, usage], args.join(" "));
 	assert.deepEqual(await decisions("--classes"), [0, "no classes yet"]);
@@ -647,8 +659,8 @@ test("a proposal is refused, naming why and writing nothing: no backing decision
 	assert.deepEqual(await propose("--backed-by", "AC-D1", "AC-D8"), refused('AC-D8 decided "Cut code instead", not the class\'s "Raise the line budget"'));
 	assert.deepEqual(await propose("--backed-by", "AC-D6"), refused("AC-D6 is a question question, not budget"));
 	assert.deepEqual(await propose("--backed-by", "AC-D7"), refused('AC-D7 does not name every word of --match "line budget": Raise the budget of uptime?'));
-	assert.deepEqual(await decision("class", "propose", "--kind", "class", "--match", "line budget", "--decided", "Raise", "--backed-by", "AC-D1"), refused("--kind class: a class never approves a class; one of job, question, plan, review, budget"));
-	assert.deepEqual(await decision("class", "propose", "--kind", "vote", "--match", "line budget", "--decided", "Raise", "--backed-by", "AC-D1"), refused('kind "vote": one of job, question, plan, review, budget'));
+	assert.deepEqual(await decision("class", "propose", "--kind", "class", "--match", "line budget", "--decided", "Raise", "--backed-by", "AC-D1"), refused("--kind class: a class never approves a class; one of job, question, plan, review, budget, merge"));
+	assert.deepEqual(await decision("class", "propose", "--kind", "vote", "--match", "line budget", "--decided", "Raise", "--backed-by", "AC-D1"), refused('kind "vote": one of job, question, plan, review, budget, merge'));
 	assert.deepEqual(await decision("class", "propose", "--kind", "budget", "--match", " - ", "--decided", "Raise", "--backed-by", "AC-D1"), refused("--match names no word: the words every question of the class names"));
 	assert.deepEqual(await decision("class", "propose", "--kind", "budget", "--match", "line", "--backed-by", "AC-D1"), refused("no --decided: the class's decision in one English line"));
 	assert.deepEqual(await run("decision", ["class", "propose", "--kind", "budget", "--match", "line", "--decided", "Raise", "--backed-by", "AC-D1"], "nowhere"), refused("unknown project nowhere; projects: acme, shop"));
@@ -669,7 +681,7 @@ test("a class is approved only on the owner's word: inside a job, by policy, or 
 	assert.deepEqual(await decision("answer", "AC-D4", ...APPROVE, "by policy: AC-D4"), refused("an answer given by policy: only arthur decision ask answers by policy, and only a class the owner approved in his own words"));
 	assert.deepEqual(await decision("answer", "AC-D4", "--decided", "Approve", "yes"), refused("AC-D4 proposes a class: --picked 1 approves it, --picked 2 refuses it"));
 	process.env.ARTHUR_JOB = "/home/arthur/.arthur/jobs/2026-03-04-worker-0000abcd";
-	const inside = [1, "arthur decision: refused inside a job (ARTHUR_JOB is set): a job never records the owner's word; end your run with Blocked: user <question> instead"];
+	const inside = [1, "arthur decision: refused inside a job 2026-03-04-worker-0000abcd: a job never records the owner's word; end your run with Blocked: user <question> instead"];
 	assert.deepEqual(await decision(...PROPOSE), inside);
 	assert.deepEqual(await decision("class", "revoke", "AC-D4", "stop"), inside);
 	assert.deepEqual(await decision("answer", "AC-D4", ...APPROVE, "yes"), inside);

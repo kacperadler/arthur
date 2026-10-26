@@ -3555,9 +3555,9 @@
   {
     "id": "AR0442",
     "title": "An existing project whose history ends in plain commits refuses its first merge, its onboarding's included",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0442-an-existing-project-whose-history-ends-in-plain-commits-refuses-its-first-merge/ticket.md",
-    "updated": "2026-10-26T14:10:54.645Z",
+    "updated": "2026-10-26T14:12:53.624Z",
     "after": [
       "AR0441"
     ]
@@ -3565,9 +3565,9 @@
   {
     "id": "AR0443",
     "title": "A job's scope marks it only for a home that holds its record, so a config of the job's own is a coordinator's",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0443-a-job-s-scope-marks-it-only-for-a-home-that-holds-its-record-so-a-config-of-the/ticket.md",
-    "updated": "2026-10-26T13:57:32.446Z",
+    "updated": "2026-10-26T14:11:35.941Z",
     "after": [
       "AR0440"
     ]

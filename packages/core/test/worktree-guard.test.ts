@@ -253,6 +253,14 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: "cd /tmp && git worktree add wt" }, MAIN],
 		["bash", { command: "git worktree add out/wt" }, MAIN],
 		["bash", { command: "git worktree move wt /tmp/arthur-worktree-guard-test" }, MAIN],
+		["bash", { command: "git -C /tmp worktree add x" }, MAIN],
+		// Config that tunes the gc Git runs by itself after a commit, merge or fetch, given with the call or written for later ones.
+		["bash", { command: "git -c gc.auto=1 -c gc.pruneExpire=now -c gc.reflogExpireUnreachable=now commit --allow-empty -m c" }, MAIN],
+		["bash", { command: "git --config-env=GC.pruneExpire=NOW fetch" }, MAIN],
+		["bash", { command: "git -c maintenance.auto=true merge topic" }, MAIN],
+		["bash", { command: "git -c alias.c='-c gc.pruneExpire=now commit' c -m x" }, MAIN],
+		["bash", { command: "git config --worktree gc.pruneExpire now" }, MAIN],
+		["bash", { command: "git config set --worktree maintenance.strategy incremental" }, MAIN],
 		// A replacement under refs/replace, which every worktree reads main's commits through.
 		["bash", { command: "git replace main HEAD" }, MAIN],
 		["bash", { command: "git replace -f main HEAD" }, MAIN],
@@ -311,6 +319,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `git checkout -B ${own.branch} HEAD~1 && git switch -C ${own.branch} && git switch --no-ignore-other-worktrees topic` }, undefined],
 		["bash", { command: "git worktree add wt -b topic && git worktree add --lock --reason=x sub/wt && git worktree move wt sub/moved && git worktree remove --force sub/moved" }, undefined],
 		["bash", { command: `git reflog && git reflog show && git reflog -n 3 HEAD && git reflog exists HEAD && git worktree list && git -C ${main} worktree list` }, undefined],
+		["bash", { command: "git config --get gc.auto; git config --worktree --get gc.pruneExpire; git -c user.name=x commit -m 'gc.auto'" }, undefined],
 		["bash", { command: "git remote add -f fork /tmp/fork.git && echo x > .gitignore && git checkout -- -B" }, undefined],
 		["bash", { command: `git replace && git replace -l && git replace --list 'v*' && git replace --li --format=medium && git -C ${main} replace -l` }, undefined],
 		["bash", { command: `echo 'rm ${main}/README.md' > notes.txt` }, undefined],

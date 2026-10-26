@@ -64,9 +64,9 @@ function commandIndex(words: readonly string[]): number {
 // config the guard does not or writes an alias or include, one that may point a checkout at a branch another worktree holds
 // (`--ignore-other-worktrees`, `checkout -B`, `symbolic-ref`), `git replace` but a list, one that rewrites the repository
 // every worktree shares (`gc`, `prune`, `repack`, `reflog expire`, `maintenance`, `filter-repo`, `worktree prune`, `worktree
-// add` or `move` outside the worktrees folder), or one of these after a `cd` there. The command is the word after assignments and
-// wrappers (`sudo`, `timeout 60`), also in `bash -c`, a shell's heredoc, `eval`; each path is resolved from where the
-// commands before it left (`cd`, `cd -`, `pushd`, `git -C`, a subshell undoing them), through symlinks. Not seen: a path
+// add` or `move` outside the worktrees folder, `gc.*` or `maintenance.*` config given or written), or one of these after a `cd`
+// there. The command is the word after assignments and wrappers (`sudo`, `timeout 60`), also in `bash -c`, a shell's heredoc,
+// `eval`; each path is resolved from where the commands before it left (`cd`, `cd -`, `pushd`, `git -C`, a subshell undoing them), through symlinks. Not seen: a path
 // built at run time (`$x`, a glob, a brace list, what `xargs` reads, an `OLDPWD` `read` sets, a `GIT_DIR` exported before),
 // a program that writes (`node -e`, `tar -C`, `curl -o`), an alias in the user's Git config, a link the same call makes and
 // uses, or a ref no worktree has checked out moved from the job's own worktree. It is not a sandbox.

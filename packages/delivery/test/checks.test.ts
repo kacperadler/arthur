@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { temporaryFolder } from "@arthur/core/testing";
@@ -9,11 +9,12 @@ import checks from "../src/checks-extension.ts";
 const SUMMARY = (passed: number, failed: number) => `✔ a\nℹ tests ${passed + failed}\nℹ suites 0\nℹ pass ${passed}\nℹ fail ${failed}\nℹ duration_ms 5\n`;
 const BOTH = JSON.stringify({ scripts: { check: "tsc", test: "node --test" } });
 
-type Call = { readonly toolName: string; readonly input?: object; readonly output?: string; readonly isError?: boolean; readonly details?: object };
+type Call = { readonly toolName: string; readonly input?: object; readonly output?: string; readonly isError?: boolean; readonly details?: object; readonly during?: () => void };
 
 // The extension loaded as omp loads it into job `2026-01-01-worker-00000001` of a home folder, the worktree a Git repository
-// whose one commit holds its package.json `packageJson` (none when null); `run(calls)` plays tool results as omp hands them
-// over and answers the job's `checks`, the worktree's HEAD in it written `<commit>`.
+// whose one commit holds its package.json `packageJson` (none when null); `run(calls)` plays each call as omp hands it over,
+// its `tool_call`, what the command does to the tree (`during`), then its `tool_result`, and answers the job's `checks`, the
+// worktree's HEAD in it written `<commit>`; `begin(id, call)` and `end(id, call)` play one half of a call.
 function load(t: TestContext, packageJson: string | null = BOTH) {
 	const [home, worktree] = [temporaryFolder(), temporaryFolder()];
 	const git = (...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "-C", worktree, ...args], { encoding: "utf8" }).trim();
@@ -24,15 +25,27 @@ function load(t: TestContext, packageJson: string | null = BOTH) {
 	const before = process.env.ARTHUR_JOB;
 	process.env.ARTHUR_JOB = join(home, "jobs", "2026-01-01-worker-00000001");
 	t.after(() => (before === undefined ? delete process.env.ARTHUR_JOB : (process.env.ARTHUR_JOB = before)));
-	const handlers: ((event: object, ctx: { readonly cwd: string }) => unknown)[] = [];
-	checks({ on: (_event, handler) => void handlers.push(handler as (typeof handlers)[number]) });
+	const handlers: { readonly event: string; readonly handler: (event: object, ctx: { readonly cwd: string }) => unknown }[] = [];
+	checks({ on: (event, handler) => void handlers.push({ event, handler: handler as (event: object, ctx: { readonly cwd: string }) => unknown }) });
 	const file = join(home, "delivery", "2026-01-01-worker-00000001", "checks");
-	const run = (...calls: readonly Call[]) => {
-		for (const { toolName, input = {}, output = "", isError = false, details = {} } of calls)
-			for (const handler of handlers) assert.equal(handler({ type: "tool_result", toolCallId: "toolu_1", toolName, input, content: [{ type: "text", text: output }], details, isError }, { cwd: worktree }), undefined, "the result is left as it is");
-		return existsSync(file) ? readFileSync(file, "utf8").replaceAll(git("rev-parse", "HEAD"), "<commit>") : "";
+	const emit = (type: string, event: object, why: string) => {
+		for (const { handler } of handlers.filter((each) => each.event === type)) assert.equal(handler({ type, ...event }, { cwd: worktree }), undefined, why);
 	};
-	return { run, file, worktree, git };
+	const begin = (toolCallId: string, { toolName, input = {} }: Call) => emit("tool_call", { toolCallId, toolName, input }, "the call is not blocked");
+	const end = (toolCallId: string, { toolName, input = {}, output = "", isError = false, details = {} }: Call) =>
+		emit("tool_result", { toolCallId, toolName, input, content: [{ type: "text", text: output }], details, isError }, "the result is left as it is");
+	const read = () => (existsSync(file) ? readFileSync(file, "utf8").replaceAll(git("rev-parse", "HEAD"), "<commit>") : "");
+	let calls = 0;
+	const run = (...each: readonly Call[]) => {
+		for (const call of each) {
+			const id = `toolu_${++calls}`;
+			begin(id, call);
+			call.during?.();
+			end(id, call);
+		}
+		return read();
+	};
+	return { run, begin, end, read, file, worktree, git };
 }
 
 const bash = (command: string, output = "", isError = false): Call => ({ toolName: "bash", input: { command }, output, isError });
@@ -81,6 +94,81 @@ test("each line ends with the worktree's HEAD and dirty when a tracked file diff
 	const outside = load(t);
 	rmSync(join(outside.worktree, ".git"), { recursive: true });
 	assert.equal(outside.run(bash("npm test", SUMMARY(3, 0))), "", "no commit to name");
+});
+
+test("a line is clean only when the call began and ended on the same clean tree, and names the commit it began on", (t) => {
+	const { run, worktree, git } = load(t);
+	const last = (text: string) => text.trimEnd().split("\n").at(-1);
+	const first = git("rev-parse", "HEAD");
+	writeFileSync(join(worktree, "package.json"), `${BOTH}\n`);
+	assert.equal(last(run({ ...bash("npm test; git stash", SUMMARY(3, 0)), during: () => git("stash", "--quiet") })), "test pass 3/3 <commit> dirty", "tested beside a change, stashed after");
+	writeFileSync(join(worktree, "package.json"), `${BOTH}\n`);
+	git("commit", "--quiet", "--all", "-m", "second");
+	const back = { ...bash(`git checkout ${first} -- . && npm test && git checkout HEAD -- .`, SUMMARY(3, 0)), during: () => void [git("checkout", first, "--", "."), git("checkout", "HEAD", "--", ".")] };
+	assert.equal(last(run(back)), "test pass 3/3 <commit> dirty", "an older tree checked out, tested and put back");
+	const detached = { ...bash(`git checkout -q ${first} && npm test && git checkout -q -`, SUMMARY(3, 0)), during: () => void [git("checkout", "--quiet", first), git("checkout", "--quiet", "-")] };
+	assert.equal(last(run(detached)), "test pass 3/3 <commit> dirty", "an older commit checked out, tested and put back");
+	assert.equal(last(run(bash("npm test", SUMMARY(3, 0)))), "test pass 3/3 <commit> clean", "the same clean tree again");
+	assert.equal(last(run({ ...bash("npm test && truncate -s -1 package.json", SUMMARY(3, 0)), during: () => writeFileSync(join(worktree, "package.json"), BOTH) })), "test pass 3/3 <commit> dirty", "changed after");
+	assert.equal(last(run({ ...bash("npm test; echo >> package.json", SUMMARY(3, 0)), during: () => writeFileSync(join(worktree, "package.json"), `${BOTH}\n`) })), "test pass 3/3 <commit> dirty", "tested beside a change, undone after");
+	const rewrite = () => void [writeFileSync(join(worktree, "package.json"), "{}"), writeFileSync(join(worktree, "package.json"), `${BOTH}\n`)];
+	assert.equal(last(run({ ...bash("cp old.json package.json && npm test && git show HEAD:package.json > package.json", SUMMARY(3, 0)), during: rewrite })), "test pass 3/3 <commit> dirty", "an older file put in, tested and put back without Git");
+	const second = git("rev-parse", "HEAD");
+	assert.equal(last(run({ ...bash("npm test; git commit -q --allow-empty -m empty", SUMMARY(3, 0)), during: () => git("commit", "--quiet", "--allow-empty", "-m", "empty") })), `test pass 3/3 ${second} dirty`, "the same tree, another commit");
+	const empty = git("rev-parse", "HEAD");
+	writeFileSync(join(worktree, "package.json"), BOTH);
+	assert.equal(last(run({ ...bash("npm test && git commit -qam third", SUMMARY(3, 0)), during: () => git("commit", "--quiet", "--all", "-m", "third") })), `test pass 3/3 ${empty} dirty`, "tested beside a change, then committed");
+});
+
+test("a file Git is told not to look at (assume-unchanged, skip-worktree) is a change", (t) => {
+	for (const flag of ["--assume-unchanged", "--skip-worktree"]) {
+		const { run, worktree, git } = load(t);
+		git("update-index", flag, "package.json");
+		writeFileSync(join(worktree, "package.json"), `${BOTH}\n`);
+		assert.equal(git("status", "--porcelain", "--untracked-files=no"), "", "hidden from git status");
+		assert.equal(run(bash("npm test", SUMMARY(3, 0))), "test pass 3/3 <commit> dirty\n", flag);
+	}
+});
+
+test("the reads run no fsmonitor the worktree's config names, nor read a replacement (refs/replace)", (t) => {
+	const { run, worktree, git } = load(t);
+	const [ran, monitor] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "fsmonitor")];
+	writeFileSync(monitor, `#!/bin/sh\necho fsmonitor >> '${ran}'\n`, { mode: 0o755 });
+	git("config", "core.fsmonitor", monitor);
+	assert.equal(run(bash("npm test", SUMMARY(3, 0))), "test pass 3/3 <commit> clean\n");
+	assert.equal(existsSync(ran), false, "the fsmonitor did not run");
+	git("config", "--unset", "core.fsmonitor");
+	// HEAD replaced by a commit of the staged change: git status, reading the replacement, sees none.
+	writeFileSync(join(worktree, "package.json"), `${BOTH}\n`);
+	git("add", "package.json");
+	git("replace", git("rev-parse", "HEAD"), git("commit-tree", git("write-tree"), "-m", "replacement"));
+	assert.equal(git("status", "--porcelain", "--untracked-files=no"), "", "hidden by the replacement");
+	assert.equal(run(bash("npm test", SUMMARY(3, 0))), "test pass 3/3 <commit> clean\ntest pass 3/3 <commit> dirty\n");
+});
+
+test("calls that overlap are each recorded on the tree they began on; a result whose call was not seen is dirty", (t) => {
+	const { begin, end, read, worktree, git } = load(t);
+	const [tests, check] = [bash("npm test", SUMMARY(3, 0)), bash("npm run check")];
+	writeFileSync(join(worktree, "package.json"), `${BOTH}\n`);
+	begin("toolu_a", tests);
+	git("checkout", "--", "package.json");
+	begin("toolu_b", check);
+	end("toolu_a", tests);
+	end("toolu_b", check);
+	assert.equal(read(), "test pass 3/3 <commit> dirty\ncheck pass <commit> clean\n");
+	end("toolu_c", tests);
+	assert.equal(read(), "test pass 3/3 <commit> dirty\ncheck pass <commit> clean\ntest pass 3/3 <commit> dirty\n");
+});
+
+test("a tracked file whose folder is now a file neither blocks the call nor throws at its end", (t) => {
+	const { run, worktree, git } = load(t);
+	mkdirSync(join(worktree, "src"));
+	writeFileSync(join(worktree, "src", "a.ts"), "export {};\n");
+	git("add", "--all");
+	git("commit", "--quiet", "-m", "second");
+	const flatten = () => void [rmSync(join(worktree, "src"), { recursive: true }), writeFileSync(join(worktree, "src"), "")];
+	assert.equal(run({ ...bash("rm -r src && touch src && npm test", SUMMARY(3, 0)), during: flatten }), "test pass 3/3 <commit> dirty\n", "ENOTDIR as the call ends");
+	assert.equal(run(bash("npm test", SUMMARY(3, 0))), "test pass 3/3 <commit> dirty\ntest pass 3/3 <commit> dirty\n", "ENOTDIR as the call begins");
 });
 
 test("a call the bash tool moved to the background, and a job without a record, give no line", (t) => {

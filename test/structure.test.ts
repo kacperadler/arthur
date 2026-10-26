@@ -716,7 +716,9 @@ import { checkStructure } from "./structure.ts";
 // every job inherits): core 10 more (6238) for the list of keys and one requirement per key set (requirements.ts, git diff
 // --numstat +14 -4, its header refolded to pay the list's comment; AR-D61). Nothing warned of such a key before, so nothing was cut.
 // Merged main (AR0439) into AR0441: main's budgets plus AR0441's raises, core 6238, delivery 1361 + 68 + 5 = 1434 (recounted with wc -l).
-const BUDGETS = { core: 6238, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1434, github: 659, manage: 928, develop: 706, findings: 254 };
+// AR0442 (F2 of AR0361; AR-D78, under AR-D61): delivery 2 more (1436) for the stray-commit refusal naming at most 10 commits,
+// then `and <k> more`, with its comment (merge-command.ts, git diff --numstat +4 -2). Nothing capped the list before.
+const BUDGETS = { core: 6238, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1436, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

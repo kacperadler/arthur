@@ -97,8 +97,10 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 	if (recorded?.at === "gone") throw new Error(`${main} no longer holds ${recorded.hash.slice(0, 7)}, the last merge arthur merge made; ${lift}`);
 	if (recorded?.at === "off") throw new Error(`${main}'s first-parent line no longer passes ${recorded.hash.slice(0, 7)}, the last merge arthur merge made; ${lift}`);
 	const since = recorded?.hash ?? git("rev-list", "-1", "--merges", "--first-parent", "HEAD").stdout.trim();
-	const strays = git("log", "--first-parent", "--format=%h", since === "" ? "HEAD" : `${since}..HEAD`, "--", ".", ":(exclude)spec", ":(exclude)CHANGELOG.md", ":(exclude)*.md").stdout.trim();
-	if (strays !== "") throw new Error(`${main} has ${strays.split("\n").length} commits since its last merge that change code (${strays.split("\n").join(", ")}); only a merge puts code on main; the owner decides: main is unchanged`);
+	const strays = git("log", "--first-parent", "--format=%h", since === "" ? "HEAD" : `${since}..HEAD`, "--", ".", ":(exclude)spec", ":(exclude)CHANGELOG.md", ":(exclude)*.md").stdout.trim().split("\n").filter(Boolean);
+	// A history of plain commits (squash or rebase merges, a solo project) lists up to all of it: the first 10 named (AR0442).
+	const named = strays.length > 10 ? `${strays.slice(0, 10).join(", ")} and ${strays.length - 10} more` : strays.join(", ");
+	if (strays.length > 0) throw new Error(`${main} has ${strays.length} commits since its last merge that change code (${named}); ${lift}`);
 	const gap = passGap(host, job, tip);
 	if (gap !== "" && !mode.unreviewed && !mode.auto) throw new Error(`${gap}; review it with arthur review ${job.id}, or merge it with --unreviewed --decision <the owner's decision id>; main is unchanged`);
 	const owner = mode.unreviewed ? host.call<string>("decision.owner", { id: mode.decision ?? "", what: "--unreviewed", kind: "merge", ticket: ticket?.id, job: job.id, use: `merge ${job.id}` }) : "";

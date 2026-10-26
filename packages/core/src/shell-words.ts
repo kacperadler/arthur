@@ -3,12 +3,12 @@
 // newlines, and `(` and `)` around a subshell, a `$(…)` or a backtick substitution, whose commands come before the command
 // they are in. A word has its quotes removed, a backslash-newline gone, the escapes of `$'…'` decoded; a comment is dropped.
 // An expansion known only when the command runs (`$x`, `${x}`, `$1`) is nothing, or the word it falls back to (`${x:-word}`,
-// also with `=`, `+`, `?` and without the colon); `~` and `$HOME` are `home` when it is given. `$OLDPWD` is `~-`, also with
-// `-`, `=`, `?` (bash's value while it is set), and `\0`, in no bash word, with another operator but `+`. A quoted or escaped
-// `\ * ? [ ] { } , ( )`, special to a glob, a brace or a list, keeps a backslash, so a glob is told apart from a quoted star;
-// `literal` removes those. `shellWords` is every word, a heredoc's body as a line.
+// also with `=`, `+`, `?` and without the colon); a variable in `known` (`HOME`, `ARTHUR_JOB`) is its value, also with `-`,
+// `=`, `?`; `known.HOME` is an unquoted `~` at a word's start or after an assignment's `=` (`~+` and `~-` there stay). `$PWD` is
+// `~+`; `$OLDPWD` `~-` (also with `-`, `=`, `?`), `\0`, in no bash word, with another operator but `+`. A quoted or escaped
+// `\*?[]{},()~`, or any other `~`, keeps a backslash, so a glob is told apart from a quoted star and a bare `~+` is `$PWD` or that prefix; `literal` removes it. `shellWords`: every word, a heredoc's body one.
 
-const SPECIAL = "\\*?[]{},()";
+const SPECIAL = "\\*?[]{},()~";
 const ESCAPES: Readonly<Record<string, string>> = { a: "\x07", b: "\b", e: "\x1b", E: "\x1b", f: "\f", n: "\n", r: "\r", t: "\t", v: "\v" };
 // A redirect operator where the text starts; `&>` and `&>>` write stdout and stderr. Any operator not in TARGETS writes.
 const REDIRECT = /^(?:&>>?|>>|>\||>&|<>|<<<|<<-?|<&|>|<)/;
@@ -56,7 +56,7 @@ export function shellWords(command: string): string[] {
 	return shellCommands(command).flatMap((item) => (typeof item === "string" ? [] : [...item.words, ...item.writes, ...item.reads, ...item.stdin.flatMap(shellWords)]));
 }
 
-export function shellCommands(command: string, home?: string): Item[] {
+export function shellCommands(command: string, known: Readonly<Record<string, string | undefined>> = {}): Item[] {
 	const items: Item[] = [];
 	let current: Command = { words: [], writes: [], reads: [], stdin: [], alone: true };
 	// The substitutions of the command being read, which run before it.
@@ -77,20 +77,20 @@ export function shellCommands(command: string, home?: string): Item[] {
 		if (Object.values(current).some((part) => Array.isArray(part) && part.length > 0)) items.push(current);
 		[before, current, target] = [[], { words: [], writes: [], reads: [], stdin: [], alone }, undefined];
 	};
-	const homeWord = home === undefined ? "" : quoted(home);
+	const value = (name: string): string | undefined => (Object.hasOwn(known, name) && known[name] !== undefined ? quoted(known[name]) : undefined);
 	// The expansion that starts with `$` at `at`, inside double quotes or not: adds its text to the word, returns where it ends.
 	const dollar = (at: number, inDouble: boolean): number => {
 		const next = command[at + 1];
 		if (next === "(") {
 			const close = closing(command, at + 2, "(", ")");
-			before.push("(", ...shellCommands(command.slice(at + 2, close), home), ")");
+			before.push("(", ...shellCommands(command.slice(at + 2, close), known), ")");
 			return close + 1;
 		}
 		if (next === "{") {
 			const close = closing(command, at + 2, "{", "}");
 			const inner = command.slice(at + 2, close);
-			const fallback = /^[#!]?(?:[A-Za-z_]\w*|\d+|[@*#?$!-])(?:\[[^\]]*\])?:?[-=+?]([^]*)$/.exec(inner);
-			word += /^OLDPWD(\[0\])?(:?[-=?]|$)/.test(inner) ? "~-" : /^!?OLDPWD\b/.test(inner) && fallback === null ? "\0" : fallback !== null ? shellWords(fallback[1]!).join(" ") : inner === "HOME" ? homeWord : "";
+			const [fallback, name] = [/^[#!]?(?:[A-Za-z_]\w*|\d+|[@*#?$!-])(?:\[[^\]]*\])?:?[-=+?]([^]*)$/.exec(inner), /^([A-Za-z_]\w*)(?:\[0\])?(?::?[-=?]|$)/.exec(inner)?.[1]];
+			word += name === "OLDPWD" ? "~-" : /^!?OLDPWD\b/.test(inner) && fallback === null ? "\0" : name === "PWD" ? "~+" : ((name && value(name)) ?? (fallback !== null ? shellWords(fallback[1]!).join(" ") : ""));
 			return close + 1;
 		}
 		if (next === "'" && !inDouble) {
@@ -100,7 +100,7 @@ export function shellCommands(command: string, home?: string): Item[] {
 			return close + 1;
 		}
 		const name = /^(?:[A-Za-z_]\w*|[0-9@*#?$!-])/.exec(command.slice(at + 1))?.[0];
-		if (name !== undefined) word += name === "HOME" ? homeWord : name === "OLDPWD" ? "~-" : "";
+		if (name !== undefined) word += name === "OLDPWD" ? "~-" : name === "PWD" ? "~+" : (value(name) ?? "");
 		else if (next !== '"' || inDouble) word += "$";
 		return at + 1 + (name?.length ?? 0);
 	};
@@ -108,7 +108,7 @@ export function shellCommands(command: string, home?: string): Item[] {
 	const backtick = (at: number): number => {
 		let close = at + 1;
 		while (close < command.length && command[close] !== "`") close += command[close] === "\\" ? 2 : 1;
-		before.push("(", ...shellCommands(command.slice(at + 1, close), home), ")");
+		before.push("(", ...shellCommands(command.slice(at + 1, close), known), ")");
 		return close + 1;
 	};
 	// The delimiter of a heredoc whose `<<` ends at `from`, noted for the body the next line starts; returns where it ends.
@@ -180,7 +180,7 @@ export function shellCommands(command: string, home?: string): Item[] {
 		} else if (char === "(" && /^[A-Za-z_]\w*(\[[^\]]*\])?\+?=$/.test(word)) {
 			// A list assigned, `name=(a b)`, is the word `name=(a`, its first element; the elements are a subshell's words before it.
 			const close = closing(command, at + 1, "(", ")");
-			const inner = shellCommands(command.slice(at + 1, close), home);
+			const inner = shellCommands(command.slice(at + 1, close), known);
 			before.push("(", ...inner, ")");
 			[word, at] = [`${word}(${inner.flatMap((item) => (typeof item === "string" ? [] : item.words))[0] ?? ""}`, close + 1];
 		} else if (char === "(" || char === ")") {
@@ -191,8 +191,8 @@ export function shellCommands(command: string, home?: string): Item[] {
 			end();
 			at++;
 		} else {
-			word += char === "~" && word === "" && /^[/\s;&|()<>]?$/.test(command[at + 1] ?? "") && home !== undefined ? homeWord : char;
-			at++;
+			const tilde = char === "~" && /^(?:[A-Za-z_]\w*(?:\[[^\]]*\])?\+?=)?$/.test(word) ? /^~([+-]?)(?=[/\s;&|()<>]|$)/.exec(command.slice(at))?.[1] : undefined;
+			[word, at] = [word + (char !== "~" ? char : tilde === "" ? (value("HOME") ?? char) : tilde === undefined ? "\\~" : char), at + 1];
 		}
 	}
 	finish(true);

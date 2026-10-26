@@ -2590,9 +2590,9 @@
   {
     "id": "AR0339",
     "title": "A recursive search from the coordinator's own folder prints the env file",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0339-a-recursive-search-from-the-coordinator-s-own-folder-prints-the-env-file/ticket.md",
-    "updated": "2026-10-26T10:36:18.321Z",
+    "updated": "2026-10-26T10:40:01.139Z",
     "after": [
       "AR0338"
     ]
@@ -3578,8 +3578,22 @@
   {
     "id": "AR0444",
     "title": "An uptime redirect test fails on GitHub CI: the runner refuses the connection before the private-address check",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0444-an-uptime-redirect-test-fails-on-github-ci-the-runner-refuses-the-connection/ticket.md",
-    "updated": "2026-10-26T10:36:02.343Z"
+    "updated": "2026-10-26T10:38:11.926Z"
+  },
+  {
+    "id": "AR0445",
+    "title": "Doctor's env-file check compares paths as text, so a symlink into a checkout reads ok",
+    "status": "planning",
+    "path": "spec/features/AR0445-doctor-s-env-file-check-compares-paths-as-text-so-a-symlink-into-a-checkout/ticket.md",
+    "updated": "2026-10-26T10:40:25.560Z"
+  },
+  {
+    "id": "AR0446",
+    "title": "Doctor's env-file fix text names the default place even when XDG_CONFIG_HOME sets another",
+    "status": "planning",
+    "path": "spec/features/AR0446-doctor-s-env-file-fix-text-names-the-default-place-even-when-xdg-config-home/ticket.md",
+    "updated": "2026-10-26T10:40:26.067Z"
   }
 ]

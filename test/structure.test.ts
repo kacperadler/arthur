@@ -743,7 +743,10 @@ import { checkStructure } from "./structure.ts";
 // walk that makes a folder a step hid readable and the removal that gives back a write a step took (merge-checks.ts, git diff
 // --numstat +68 -4). Nothing removed a step's nested repository before, so nothing was cut.
 // Merged main (AR0434) into AR0463: main's budgets plus AR0463's delivery 1500 (recounted with wc -l).
-const BUDGETS = { core: 6325, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1500, github: 659, manage: 928, develop: 706, findings: 254 };
+// AR0343 (F7 of AR0319, a security ticket; its Done means: `arthur doctor` warns, critical, of an env file Git would commit):
+// core 15 more (6340) for the `env ignored` requirement and its comment lines (requirements.ts, git diff --numstat +20 -5).
+// Nothing was cut.
+const BUDGETS = { core: 6340, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1500, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

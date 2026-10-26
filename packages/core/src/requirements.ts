@@ -1,14 +1,15 @@
 import { execFile } from "node:child_process";
 import { accessSync, constants } from "node:fs";
 import { userInfo } from "node:os";
-import { basename, relative, sep } from "node:path";
+import { basename, dirname, relative, sep } from "node:path";
 import { ownHome } from "./own-home.ts";
 import type { Requirement } from "./plugin.ts";
 
-// The core's own requirements for `arthur doctor` (spec/roadmap.md, entry 80): git, Node 24 or newer, the agent binary and a
-// writable home, each critical; the CPU and memory controllers delegated to the user manager (entry 13), the env file outside
-// the config's folder and every project's checkout (AR0339) and each model provider's key omp reads set in Arthur's environment,
-// which a job's launch keeps (job-scope.ts drops only `ARTHUR_` ones; AR0439), not critical. docs/commands/doctor.md.
+// The core's own requirements for `arthur doctor` (spec/roadmap.md, entry 80): git, Node 24 or newer, the agent binary, a
+// writable home and the env file ignored by the Git checkout it lies in (AR0343), each critical; the CPU and memory controllers
+// delegated to the user manager (entry 13), the env file outside the config's folder and every project's checkout (AR0339) and
+// each model provider's key omp reads set in Arthur's environment, which a job's launch keeps (job-scope.ts drops only `ARTHUR_`
+// ones; AR0439), not critical. docs/commands/doctor.md.
 
 const PROVIDER_KEYS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "AZURE_OPENAI_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY", "MISTRAL_API_KEY", "GROQ_API_KEY", "DEEPSEEK_API_KEY", "CEREBRAS_API_KEY", "TOGETHER_API_KEY", "FIREWORKS_API_KEY", "PERPLEXITY_API_KEY", "MOONSHOT_API_KEY", "ZAI_API_KEY", "MINIMAX_API_KEY", "OLLAMA_API_KEY", "LM_STUDIO_API_KEY"];
 
@@ -95,6 +96,20 @@ export function coreRequirements({ home, envFile, agent: { command: agent } }: {
 			},
 			costs: "a recursive search the coordinator or a job runs there prints its values into the agent's transcript, which the model provider keeps",
 			fix: "move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)",
+		},
+		{
+			// A commit of the checkout (`git add -A`, the coordinator's in the config's folder) takes in a file Git does not ignore.
+			name: "env ignored",
+			check: async () => {
+				const folder = dirname(envFile);
+				const checkout = await ran("git", ["-C", folder, "rev-parse", "--show-toplevel"]);
+				if (!checkout.ok) return "ok";
+				const ignored = await ran("git", ["-C", folder, "check-ignore", "-q", "--", basename(envFile)]);
+				return ignored.ok ? "ok" : `missing: the env file ${envFile} lies in the Git checkout ${checkout.stdout.trim()}, which does not ignore it`;
+			},
+			costs: "a commit there takes its values into the repository, and a push sends them to every clone",
+			fix: `add ${basename(envFile)} to the .gitignore beside it, or move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)`,
+			critical: true,
 		},
 		// Named, never its value.
 		...PROVIDER_KEYS.filter((key) => (env[key] ?? "") !== "").map((key) => ({

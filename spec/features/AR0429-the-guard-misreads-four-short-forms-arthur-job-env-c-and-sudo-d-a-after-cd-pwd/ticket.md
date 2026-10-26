@@ -44,3 +44,4 @@ Out:
 ## Decisions
 
 - 2026-10-26: Merged from AR0334, AR0415, AR0416 and AR0421 by AR-D35
+- 2026-10-27: AR0429: the guard refuses only writes that really land in a guarded place, so the two forms that write elsewhere pass (the coordinator's recommendation, under AR-D98); the owner: "always go with your recommendation" (AR-D113)

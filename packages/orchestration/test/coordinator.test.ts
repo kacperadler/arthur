@@ -117,6 +117,26 @@ test("another plugin's coordinator.extension loads after orchestration's own, wi
 	);
 });
 
+// AR0434: the redaction by name reads `arthur run`'s environment, so omp holds that one, not the global one of a tmux server
+// started earlier from another shell and kept by another session (`sleep`, so no shell of the host ends it).
+test("the coordinator's agent holds arthur run's environment only: a name only the server's global environment holds is not in it, one it holds with another value has arthur run's", { skip: NO_UNIX_SOCKET }, async (t) => {
+	const { agent, release } = waiting();
+	t.after(release);
+	t.after(() => void delete process.env.ARTHUR_TEST_SECRET);
+	process.env.ARTHUR_TEST_SECRET = "arthur-run";
+	const { plugin, socket, starts } = await load(t, agent);
+	tmux(socket, "new-session", "-d", "-s", "other", "sleep", "600");
+	tmux(socket, "set-environment", "-g", "ARTHUR_TEST_TOKEN", "short-val");
+	tmux(socket, "set-environment", "-g", "ARTHUR_TEST_SECRET", "stale");
+	assert.equal(tmux(socket, "show-environment", "-g", "ARTHUR_TEST_TOKEN").stdout.trim(), "ARTHUR_TEST_TOKEN=short-val", "the server runs before the start");
+	await plugin.start?.();
+	await until("the coordinator's start", () => starts().length === 1);
+	const environment = readFileSync(`/proc/${starts()[0]?.pid}/environ`, "utf8").split("\0");
+	assert.equal(environment.filter((variable) => variable.startsWith("ARTHUR_TEST_TOKEN=")).length, 0);
+	assert.deepEqual(environment.filter((variable) => variable.startsWith("ARTHUR_TEST_SECRET=")), ["ARTHUR_TEST_SECRET=arthur-run"]);
+	assert.match(tmux(socket, "show-environment", "-g").stdout, /^PATH=/m, "a name arthur run holds stays in the server's global environment");
+});
+
 test("the coordinator gets its MCP servers through --plugin-dir, its own list over all; with none its folder is removed and no flag is added", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const { agent, release } = waiting();
 	t.after(release);

@@ -45,3 +45,5 @@ Out:
 ## Decisions
 
 - 2026-10-26: Source: F2 of AR0457
+- 2026-10-26: AR0463: remove every .git a merge step made or changed, not every untracked one (the coordinator's recommendation, under AR-D98); the owner: "always go with your recommendation" (AR-D101)
+- 2026-10-26: Raise the delivery line budget to 1500 for AR0463 (AR-D61); the owner: "IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS" (AR-D103)

@@ -3673,5 +3673,12 @@
     "status": "done",
     "path": "spec/features/AR0463-a-merge-step-can-plant-a-nested-repository-whose-fsmonitor-runs-at-the-owner-s/ticket.md",
     "updated": "2026-10-26T22:36:35.715Z"
+  },
+  {
+    "id": "AR0464",
+    "title": "The stop test of a forked install process fails now and then under a merge step",
+    "status": "planning",
+    "path": "spec/features/AR0464-the-stop-test-of-a-forked-install-process-fails-now-and-then-under-a-merge-step/ticket.md",
+    "updated": "2026-10-26T22:41:16.485Z"
   }
 ]

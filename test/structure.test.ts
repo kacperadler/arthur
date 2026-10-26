@@ -729,7 +729,11 @@ import { checkStructure } from "./structure.ts";
 // `host.sandbox` (plugin.ts +5, plugin-host.ts +5 -1), the sandbox's start built once for several commands with its subject in
 // the log's line, the package managers' caches and the plugins' step sandbox (job-sandbox.ts +24 -7). Nothing ran them sandboxed
 // before, so nothing was cut; delivery takes `host.sandbox` within its budget (merge-checks.ts +6 -6).
-const BUDGETS = { core: 6296, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1436, github: 659, manage: 928, develop: 706, findings: 254 };
+// AR0457 (F4 of AR0449, a security ticket; AR-D63, a core raise by policy): core 25 more (6321) for what a merge step writes of
+// main's checkout: each entry but `.git` and Arthur's home, config and env file, walked down to each kept path, and of `.git` its
+// objects, refs, logs and index (job-sandbox.ts, git diff --numstat +30 -6), and the home and config the host passes on
+// (plugin.ts +2 -1, plugin-host.ts +4 -4). Nothing kept a step from `.git/hooks` or `.git/config` before, so nothing was cut.
+const BUDGETS = { core: 6321, "core/testing": 349, projects: 482, orchestration: 2399, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1436, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

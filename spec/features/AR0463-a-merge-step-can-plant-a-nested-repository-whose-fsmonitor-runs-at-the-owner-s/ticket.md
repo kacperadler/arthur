@@ -20,21 +20,27 @@ F2 of AR0457 (spec/features/AR0457-a-merge-check-can-leave-a-git-hook-or-config-
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+A merge's checks run branch code in the step sandbox (AR0449, AR0457). The step may write the checkout's subfolders, so it can run `git init` in one and set `core.fsmonitor` there, or write a `.git` file pointing to a repository elsewhere. The reviewer of AR0457 did both in a step (exit 0); a later `git status` from that subfolder, outside any sandbox, ran the planted command. The nested `.git` is untracked, so `git reset --keep` after a failed check leaves it. Landlock cannot refuse a write by file name.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- After every merge check step, whether it passed or failed, any `.git` folder or file below the checkout's top level that is not tracked by main (and is not a registered submodule) is removed, and the merge prints one line naming each removed path.
+- A test in `packages/delivery/test/merge-checks.test.ts` (or the core sandbox test): a step that runs `git init` in a subfolder and sets `core.fsmonitor` there, and one that writes a `.git` file in another subfolder, leave neither behind after the step; a step that changes an ordinary file keeps that change. It fails before the change.
+- A project's real submodules are left untouched (a test with one).
+- `packages/delivery/docs/commands/merge.md` and `docs/deploy.md` say it. The checks pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/delivery/src/merge-checks.ts`: the sweep after each step.
+- `packages/delivery/test/merge-checks.test.ts`: the tests.
+- `packages/delivery/docs/commands/merge.md`, `docs/deploy.md`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- New top-level entries in a step: AR0462.
+- The shared package caches: AR0454.
 
 ## Decisions
 

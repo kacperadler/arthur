@@ -3727,8 +3727,8 @@
   {
     "id": "AR0463",
     "title": "A merge step can plant a nested repository whose fsmonitor runs at the owner's next git call in that folder",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0463-a-merge-step-can-plant-a-nested-repository-whose-fsmonitor-runs-at-the-owner-s/ticket.md",
-    "updated": "2026-10-26T21:06:04.181Z"
+    "updated": "2026-10-26T21:38:22.539Z"
   }
 ]

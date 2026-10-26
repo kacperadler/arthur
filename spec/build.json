@@ -3120,9 +3120,9 @@
   {
     "id": "AR0400",
     "title": "`arthur prune` of a job here runs a clean filter the main checkout's config or the job worktree's own names",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0400-arthur-prune-of-a-job-here-runs-a-clean-filter-the-main-checkout-s-config-or-the-job-worktree-s-own-names/ticket.md",
-    "updated": "2026-10-26T21:41:26.198Z"
+    "updated": "2026-10-26T21:55:34.616Z"
   },
   {
     "id": "AR0401",
@@ -3414,9 +3414,9 @@
   {
     "id": "AR0433",
     "title": "A plugin's wake line built from the final message is not redacted",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0433-a-plugin-s-wake-line-built-from-the-final-message-is-not-redacted/ticket.md",
-    "updated": "2026-10-26T21:50:09.114Z"
+    "updated": "2026-10-26T21:58:10.083Z"
   },
   {
     "id": "AR0434",

@@ -6,5 +6,12 @@
       "message": "Write and send the owner the HTML night report with a link, as he asked at 02:00.",
       "procedure": ".arthur/report-0830.md"
     }
+  },
+  {
+    "id": "night-report-2026-10-27",
+    "at": "2026-10-27T07:30",
+    "action": {
+      "message": "Morning: finish the night (AR-D98): stop starting work, let running jobs end or stop them, run arthur silent off, build the night report /home/kacper/arthur-reports/2026-10-27.html in the style of /tmp/night-report.py (Before/Now/What you notice per merged ticket, Still open, Numbers incl. Claude 7-day usage), send it with arthur send, and reply with the summary."
+    }
   }
 ]

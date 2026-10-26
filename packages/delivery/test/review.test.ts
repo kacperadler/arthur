@@ -309,10 +309,14 @@ test("a review's task is only what arthur review builds for an ended worker at i
 	assert.equal(git(readFileSync(join(home, "jobs", started.id, "worktree"), "utf8"), "rev-parse", "HEAD"), tip, "the review's checkout is the new tip");
 });
 
-test("a review is refused in a project other than its worker's, though that project's HEAD holds the ticket and the tip, and starts in the worker's", async (t) => {
+test("a review is refused in a project other than its worker's, though that project has a job and its HEAD holds the ticket and the tip, and starts in the worker's", async (t) => {
 	const { fake, git, root, other, worker, agent, state, home, field } = await load(t);
 	const job = await worker();
 	git(other, "fetch", "--quiet", root, job.branch);
+	agent({ steps: [{ message: "Done." }] });
+	const own = await fake.host.jobs.spawn({ task: "Tidy beta.", project: "beta" });
+	await until("beta's worker's end", () => state(own.id) === "ended");
+	assert.equal(field(own.id, "project"), "beta");
 	const { task } = reviewTask(fake.host, workerOf(fake.host, job.id), undefined);
 	const jobs = readdirSync(join(home, "jobs")).length;
 	await assert.rejects(fake.host.jobs.spawn({ task, kind: "review", project: "beta" }), {

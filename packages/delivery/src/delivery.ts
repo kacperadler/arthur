@@ -122,11 +122,11 @@ function refusal(host: Host, task: string, tickets: readonly string[], project: 
 	if (round !== undefined && round !== next) return `round ${round} is not the next one of ${branch}: it has ${fails.length} FAIL${fails.length === 1 ? "" : "s"} since its last PASS, so the next round is ${next}`;
 	if (round === undefined && fails.length >= LIMIT)
 		return `${fails.length} FAILs on ${branch} since its last PASS: ${fails.join(", ")}; the owner decides what comes next, and only on his word: arthur review ${branch.slice("arthur/".length)} --round ${next}`;
-	let built: string | undefined;
 	try {
-		built = reviewTask(host, worker(host, branch.slice("arthur/".length)), round).task;
+		const job = worker(host, branch.slice("arthur/".length));
+		if (job.project === project && reviewTask(host, job, round).task === task) return undefined;
 	} catch {}
-	return built === task && host.jobs.list().some((job) => job.branch === branch && job.project === project) ? undefined : "a review's task is what arthur review writes; spawn it with arthur review <worker job>";
+	return "a review's task is what arthur review writes; spawn it with arthur review <worker job>";
 }
 
 // What a review's wake reads: its record, its verdict, its project and whether that merges on its own, why its run ended,

@@ -347,12 +347,13 @@ test("a history of plain code commits, as squash or rebase merges leave it, refu
 	const plain = Array.from({ length: 12 }, (_, n) => git(root, "rev-parse", "--short", commit(root, { [`plain${n}.ts`]: `export const plain = ${n};\n` }))).reverse();
 	const job = await worker();
 	const before = head();
-	const refused = `arthur merge: main has 12 commits since its last merge that change code (${plain.slice(0, 10).join(", ")} and 2 more); only a merge puts code on main; the owner decides, and arthur take-main lifts it: main is unchanged`;
-	assert.deepEqual(await merge(job.id, "--unreviewed", "--decision", OWNER), { code: 1, out: "", err: refused });
+	const refused = (named: string, n = 12) => `arthur merge: main has ${n} commits since its last merge that change code (${named}); only a merge puts code on main; the owner decides, and arthur take-main lifts it: main is unchanged`;
+	assert.deepEqual(await merge(job.id, "--unreviewed", "--decision", OWNER), { code: 1, out: "", err: refused(`${plain.slice(0, 10).join(", ")} and 2 more`) });
 	assert.equal(head(), before);
-	git(root, "reset", "--quiet", "--keep", "HEAD~2");
-	const ten = `arthur merge: main has 10 commits since its last merge that change code (${plain.slice(2).join(", ")}); only a merge puts code on main; the owner decides, and arthur take-main lifts it: main is unchanged`;
-	assert.equal((await merge(job.id, "--unreviewed", "--decision", OWNER)).err, ten, "10 are named whole");
+	git(root, "reset", "--quiet", "--keep", "HEAD~1");
+	assert.equal((await merge(job.id, "--unreviewed", "--decision", OWNER)).err, refused(`${plain.slice(1, 11).join(", ")} and 1 more`, 11), "11 name 10 and 1 more");
+	git(root, "reset", "--quiet", "--keep", "HEAD~1");
+	assert.equal((await merge(job.id, "--unreviewed", "--decision", OWNER)).err, refused(plain.slice(2).join(", "), 10), "10 are named whole");
 	assert.equal((await take()).code, undefined);
 	assert.equal((await merge(job.id, "--unreviewed", "--decision", OWNER)).err, "");
 });

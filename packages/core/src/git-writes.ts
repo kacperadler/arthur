@@ -69,7 +69,7 @@ export function gitCall(args: readonly string[], assignments: readonly string[] 
 	const config = sub === "config" ? configWrite(rest) : undefined;
 	const tunes = [...options.filter((_, at) => options[at - 1] === "-c"), ...configEnv, ...(config ? rest : [])].some((word) => /^(?:gc|maintenance)(?:\.|$)/i.test(word));
 	const shared = tunes || ["gc", "prune", "repack", "maintenance", "filter-repo"].includes(sub) || (sub === "reflog" && ["expire", "delete", "drop"].includes(rest[0] ?? "")) || (sub === "worktree" && rest[0] === "prune");
-	const adds = sub === "worktree" && ["add", "move"].includes(rest[0] ?? "") ? rest.slice(1).filter((word, at, words) => !word.startsWith("-") || words.slice(0, at).includes("--")) : [];
+	const adds = sub === "worktree" && ["add", "move"].includes(rest[0] ?? "") ? rest.slice(1).filter((word, at, words) => !word.startsWith("-") || words.slice(0, at).some((each) => each === "--" || each === "--end-of-options")) : [];
 	return { sub, rest, chdirs, trees, writesCheckout: WRITES_CHECKOUT.includes(sub) || writesRef(sub, rest), writesOperands: WRITES_OPERANDS.includes(sub) || worktree, config, points: pointsAt(sub, rest), replaces, shared, adds, alias, unread };
 }
 

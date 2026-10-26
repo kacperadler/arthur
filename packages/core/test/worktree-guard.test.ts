@@ -258,6 +258,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `cd /tmp && GIT_DIR=${own.worktree}/.git git worktree add --detach -- -x` }, MAIN],
 		["bash", { command: `git -C /tmp --git-dir=${own.worktree}/.git worktree add --detach -- -x` }, MAIN],
 		["bash", { command: `cd /tmp && git --git-dir=${own.worktree}/.git worktree move ${own.worktree}/wt -- -y` }, MAIN],
+		["bash", { command: `cd /tmp && git --git-dir=${own.worktree}/.git worktree add --detach --end-of-options -x` }, MAIN],
+		["bash", { command: `cd /tmp && git --git-dir=${own.worktree}/.git worktree move ${own.worktree}/wt --end-of-options -y` }, MAIN],
 		// Config that tunes the gc Git runs by itself after a commit, merge or fetch, given with the call or written for later ones.
 		["bash", { command: "git -c gc.auto=1 -c gc.pruneExpire=now -c gc.reflogExpireUnreachable=now commit --allow-empty -m c" }, MAIN],
 		["bash", { command: "git --config-env=GC.pruneExpire=NOW fetch" }, MAIN],
@@ -323,6 +325,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `git checkout -B ${own.branch} HEAD~1 && git switch -C ${own.branch} && git switch --no-ignore-other-worktrees topic` }, undefined],
 		["bash", { command: "git worktree add wt -b topic && git worktree add --lock --reason=x sub/wt && git worktree move wt sub/moved && git worktree remove --force sub/moved" }, undefined],
 		["bash", { command: "git worktree add --detach -- -x" }, undefined],
+		["bash", { command: `git -C /tmp --git-dir=${own.worktree}/.git worktree add --detach ${own.worktree}/wt2` }, undefined],
 		["bash", { command: `git reflog && git reflog show && git reflog -n 3 HEAD && git reflog exists HEAD && git worktree list && git -C ${main} worktree list` }, undefined],
 		["bash", { command: "git config --get gc.auto; git config --worktree --get gc.pruneExpire; git -c user.name=x commit -m 'gc.auto'" }, undefined],
 		["bash", { command: "git remote add -f fork /tmp/fork.git && echo x > .gitignore && git checkout -- -B" }, undefined],

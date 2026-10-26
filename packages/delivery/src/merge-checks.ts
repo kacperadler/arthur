@@ -18,9 +18,10 @@ const MAX_BUFFER = 64 * 2 ** 20;
 
 // How the steps of one merge run in `root` (AR0373): each in the sandbox `sandbox` starts it in (`host.sandbox`, AR0449) and a transient scope of its own
 // under the jobs' slice `slice`, as a job runs, stopped once the step ended, so what its scripts leave behind is killed; with no
-// user manager to make one (the probe's systemd-run fails), out of a scope, which one `uncapped:` line says. After each step,
+// user manager to make one (the probe's systemd-run fails), out of a scope, which one `uncapped:` line says. A step still running
+// `limitSeconds` after it started is killed (SIGKILL) and fails, `timed out after <n> s` its error (AR0374). After each step,
 // passed or failed, every `.git` below the checkout's top that was not there, the same, before the first is removed, one line each (AR0463).
-export function stepRunner(root: string, slice: string, sandbox: (command: string) => [string, string[]], log: (line: string) => void): Run {
+export function stepRunner(root: string, slice: string, sandbox: (command: string) => [string, string[]], log: (line: string) => void, limitSeconds: number): Run {
 	const scope = (unit: string) => ["--user", "--scope", "--quiet", "--collect", `--slice=${slice}.slice`, `--unit=${unit}`, "-p", "KillSignal=SIGKILL", "--"];
 	const probe = spawnSync("systemd-run", [...scope(`arthur-merge-${process.pid}-0.scope`), "true"], { encoding: "utf8" });
 	const bare = probe.error?.message ?? (probe.status === 0 ? undefined : probe.stderr.trim().split("\n")[0] || `systemd-run exited ${probe.status ?? probe.signal}`);
@@ -28,13 +29,13 @@ export function stepRunner(root: string, slice: string, sandbox: (command: strin
 	const before = repositories(root);
 	let count = 0;
 	const ran = (command: string, env: NodeJS.ProcessEnv) => {
-		const options = { cwd: root, env, encoding: "utf8", maxBuffer: MAX_BUFFER } as const;
-		if (bare !== undefined) return spawnSync(...sandbox(command), options);
+		const options = { cwd: root, env, encoding: "utf8", maxBuffer: MAX_BUFFER, timeout: limitSeconds * 1000, killSignal: "SIGKILL" } as const;
 		const unit = `arthur-merge-${process.pid}-${++count}.scope`;
 		try {
-			return spawnSync("systemd-run", [...scope(unit), ...sandbox(command).flat()], options);
+			const spawned = bare !== undefined ? spawnSync(...sandbox(command), options) : spawnSync("systemd-run", [...scope(unit), ...sandbox(command).flat()], options);
+			return (spawned.error as NodeJS.ErrnoException | undefined)?.code === "ETIMEDOUT" ? { ...spawned, error: new Error(`timed out after ${limitSeconds} s`) } : spawned;
 		} finally {
-			spawnSync("systemctl", ["--user", "stop", unit], { stdio: "ignore" });
+			if (bare === undefined) spawnSync("systemctl", ["--user", "stop", unit], { stdio: "ignore" });
 		}
 	};
 	return (command, env) => {
@@ -151,7 +152,7 @@ function step(run: Run, command: string, env: NodeJS.ProcessEnv, log: (line: str
 	const out = [ran.stdout, ran.stderr, ran.error?.message].filter(Boolean).join("\n");
 	const [total, pass] = [/^\S+ tests (\d+)$/gm, /^\S+ pass (\d+)$/gm].map((pattern) => [...out.matchAll(pattern)].at(-1)?.[1]);
 	const count = total !== undefined && pass !== undefined ? `${pass}/${total} passed` : "";
-	const result = ran.status === 0 ? `${count || "passed"}.` : `failed${count ? `, ${count}` : ""}.`;
+	const result = ran.status === 0 ? `${count || "passed"}.` : `failed${count ? `, ${count}` : ""}${ran.status === null && ran.error !== undefined ? `, ${ran.error.message}` : ""}.`;
 	log(`${prefix}${command}: ${result}`);
 	if (ran.status !== 0) log(out.trimEnd().split("\n").slice(-20).join("\n"));
 	return { command, result };

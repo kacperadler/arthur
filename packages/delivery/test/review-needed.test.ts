@@ -210,14 +210,20 @@ test("arthur.config.example.ts gives delivery only options it accepts, its list 
 	assert.deepEqual(plain.call("delivery.alwaysReview", { project: "acme", paths: CI_FAILURE_FILES }), CI_FAILURE_FILES);
 });
 
-test("the options: only review.alwaysReview, a list of glob patterns from a project's root", () => {
-	assert.deepEqual(checkOptions({ review: { alwaysReview: ["**/env.ts"] } }), []);
+test("the options: review.alwaysReview, a list of glob patterns from a project's root, and merge.stepSeconds, a whole number of seconds from 1", () => {
+	assert.deepEqual(checkOptions({ review: { alwaysReview: ["**/env.ts"] }, merge: { stepSeconds: 1 } }), []);
 	const expected = 'expected a list of glob patterns from a project\'s root, such as "**/env.ts", got';
-	assert.deepEqual(checkOptions({ merge: {}, review: { alwaysReview: ["", "/etc/x"], always: [] } }), [
-		{ path: "merge", problem: "unknown option; options: review" },
+	assert.deepEqual(checkOptions({ merging: {}, review: { alwaysReview: ["", "/etc/x"], always: [] } }), [
+		{ path: "merging", problem: "unknown option; options: review, merge" },
 		{ path: "review.alwaysReview", problem: `${expected} a list` },
 		{ path: "review.always", problem: "unknown key; keys: alwaysReview" },
 	]);
 	assert.deepEqual(checkOptions({ review: ["**"] }), [{ path: "review", problem: "expected an object { alwaysReview? }, got a list" }]);
 	assert.deepEqual(checkOptions({ review: { alwaysReview: "**/env.ts" } }), [{ path: "review.alwaysReview", problem: `${expected} "**/env.ts"` }]);
+	const seconds = (value: unknown) => ({ path: "merge.stepSeconds", problem: `expected a whole number of seconds, 1 or more, got ${typeof value === "string" ? JSON.stringify(value) : String(value)}` });
+	assert.deepEqual(checkOptions({ merge: { stepSeconds: 0 } }), [seconds(0)]);
+	assert.deepEqual(checkOptions({ merge: { stepSeconds: 1.5 } }), [seconds(1.5)]);
+	assert.deepEqual(checkOptions({ merge: { stepSeconds: "60" } }), [seconds("60")]);
+	assert.deepEqual(checkOptions({ merge: { stepSecond: 60 } }), [{ path: "merge.stepSecond", problem: "unknown key; keys: stepSeconds" }]);
+	assert.deepEqual(checkOptions({ merge: 60 }), [{ path: "merge", problem: "expected an object { stepSeconds? }, got 60" }]);
 });

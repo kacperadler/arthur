@@ -44,3 +44,4 @@ Out:
 - 2026-10-26: Plan approved by the owner: plan.md at 9aa33d40; the owner: "AR-D77 - 1" (AR-D77)
 - 2026-10-26: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
 - 2026-10-26: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
+- 2026-10-26: AR0443 another round: the worker gives the limits test room for the slower start or makes the start cheaper, then review round 3; the owner: "AR-D82 - 1" (AR-D82)

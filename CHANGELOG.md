@@ -15,11 +15,14 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0373 The install of a new worktree and the merge's steps run outside every job scope, with lifecycle scripts on (AR0311 F14, confirmed) (6e75ab11)
 - AR0431 A review's project is not checked against its worker's (7c8205b5)
 - AR0432 The always-review list misses the other installs: composer, uv, yarnrc, pnpmfile and bunfig (eea54efb)
+- AR0439 A provider's key exported in the shell still reaches every job (fa0bdf8c)
+- AR0440 A job can read the running Arthur process's secrets from /proc/<pid>/environ (6ce62c51)
 
 ### Changed
 
 - AR0423 packages/core/test/job-state.test.ts:142 fails now and then with ENOENT on the job record active file (17d51ce6)
 - AR0444 An uptime redirect test fails on GitHub CI: the runner refuses the connection before the private-address check (3af222ae)
+- AR0448 packages/core/test/machine.test.ts:719 fails now and then on GitHub CI: a job no longer held is copied again (18 !== 16) (72d581d0)
 
 ## 2026-10-25
 

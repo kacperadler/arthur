@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { FEATURE, taskTickets } from "./board-jobs.ts";
 import type { Clock } from "./clock.ts";
 import type { Bus } from "./events.ts";
+import { configRefusal } from "./git-config.ts";
 import { steerJob, stopJob, wrappers } from "./job-control.ts";
 import { type Machine, ssh, sshAsync } from "./job-machine.ts";
 import { blockJob, current, field, ID, inRun, jobIds, moveJob, STATES, told } from "./job-state.ts";
@@ -149,6 +150,9 @@ function prune(home: string, id: string, keep: (job: FinishedJob) => readonly un
 		const machine = there(id);
 		if (machine === undefined) {
 			const present = existsSync(worktree);
+			// `git worktree remove` runs `git status` in the worktree, which runs a clean filter the shared config or the worktree's own names (AR0400).
+			const planted = present ? configRefusal(worktree) : "";
+			if (planted !== "") return `kept its worktree, branch and record: git worktree: ${planted}`;
 			const refused = present ? git("worktree", "remove", worktree) : git("worktree", "prune");
 			if (refused !== undefined) return `kept its worktree, branch and record: ${refused}`;
 			done = present ? [`worktree ${worktree} removed`] : [];

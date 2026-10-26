@@ -52,7 +52,7 @@ On every turn the coordinator reads one block: a line saying how it matches a wo
 
 ## Install
 
-Every new worktree, of every kind of job, gets its dependencies before its agent starts, on the job's machine: the project's `install` when set, else the frozen install of the one known lockfile at the top of the commit the job starts from. The plugin hands the command to the job as its variable `ARTHUR_INSTALL`, and the job's wrapper runs it as its first step, in the worktree and inside the job's scope (`arthur spawn --help`), so the job's caps hold the install and the lifecycle scripts its dependencies run (`preinstall`, `postinstall`, `prepare`; they stay on, since a project's build needs them), and what they leave running is killed at the job's end:
+Every new worktree, of every kind of job, gets its dependencies before its agent starts, on the job's machine: the project's `install` when set, else the frozen install of the one known lockfile at the top of the commit the job starts from. The plugin hands the command to the job as its variable `ARTHUR_INSTALL`, and the job's wrapper runs it as its first step, in the worktree, inside the job's scope and the job's sandbox (`arthur spawn --help`, "The sandbox"), so the lifecycle scripts read neither the env file nor Arthur's environment, it writes only where the job's agent may and in the package managers' caches, and the job's caps hold the install and the lifecycle scripts its dependencies run (`preinstall`, `postinstall`, `prepare`; they stay on, since a project's build needs them), and what they leave running is killed at the job's end:
 
 - `bun.lock`: `bun install --frozen-lockfile`
 - `package-lock.json`: `npm ci`

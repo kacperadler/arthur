@@ -24,7 +24,8 @@ const OWNER = "AC-D1";
 // `decision.owner` answers as orchestration does, "" for OWNER, each request noted in `owner`.
 // `worker(files)` runs a worker on AC0001 that commits `files`; `review(job, message)` runs a review ending on `message`;
 // `merge(...args)` runs `arthur merge` as the CLI does, a throw being `arthur merge: <message>` and exit code 1; an `uncapped:`
-// line, there only on a host without a user manager, goes to `uncapped`, apart from its other lines.
+// line, there only on a host without a user manager, goes to `uncapped`, apart from its other lines, and a `no sandbox:` line,
+// there only on a host without the sandbox (merge-checks.test.ts tests it), nowhere.
 async function load(t: TestContext) {
 	const root = join(temporaryFolder(), "acme");
 	const tickets = [["AC0001", "Shop"], ["AC0002", "Cart", ["AC0001"]], ["AC0003", "Pay", ["AC0001", "AC0002"]]] as const;
@@ -94,7 +95,7 @@ async function load(t: TestContext) {
 	const uncapped: string[] = [];
 	const run = async (name: string, args: readonly string[]) => {
 		const [out, err] = [[] as string[], [] as string[]];
-		t.mock.method(console, "log", (text: string) => (text.startsWith("uncapped: ") ? uncapped : out).push(text));
+		t.mock.method(console, "log", (text: string) => (text.startsWith("uncapped: ") ? uncapped : text.startsWith("no sandbox: ") ? [] : out).push(text));
 		t.mock.method(console, "error", (text: string) => err.push(text));
 		const code = await Promise.try(() => fake.commands.find((each) => each.name === name)?.run({ args, project: undefined })).catch((error: Error) => (err.push(`arthur ${name}: ${error.message}`), 1));
 		t.mock.restoreAll();

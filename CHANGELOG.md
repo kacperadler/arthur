@@ -30,6 +30,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0448 packages/core/test/machine.test.ts:719 fails now and then on GitHub CI: a job no longer held is copied again (18 !== 16) (72d581d0)
 - AR0450 Polish the docs and make the README shorter (9eb39d8b)
 - AR0460 A plugins page on the site, with a page for each plugin (9aec1747)
+- AR0461 test/readme.test.ts reads the real env file, and fails inside a job (6fa45467)
 
 ## 2026-10-25
 

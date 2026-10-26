@@ -21,6 +21,5 @@
 
 ## Left open
 
-- F1: ticket AR0445 (doctor's env-file check compares paths as text).
-- F2: ticket AR0446 (doctor's fix text ignores XDG_CONFIG_HOME).
+- F1, F2: dropped under AR-D53 (AR0445, AR0446 dropped).
 - F3 to F7: dropped (see findings.md).

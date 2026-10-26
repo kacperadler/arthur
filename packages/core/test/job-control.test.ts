@@ -121,6 +121,23 @@ test("arthur stop during the install a prepare asked for ends the job stopped: t
 	assert.doesNotMatch(field(home, job.id, "log") ?? "", /\] agent: /);
 });
 
+test("arthur stop once the install exited, while a process it forked still holds its output, ends the job stopped and starts no agent", async () => {
+	const { agent, dir } = script((dir) => [`touch '${dir}/started'`]);
+	const { home, jobs } = setup(agent);
+	// The forked sleep keeps the install's stdout open after the install's own process exited.
+	jobs.prepare("projects", () => ({ ARTHUR_INSTALL: `sleep 3 & echo $! > '${dir}/forked'; echo $$ > '${dir}/install'` }));
+	const job = await jobs.spawn({ task: "Go." });
+	const install = Number(await until("the install's process", () => read(join(dir, "install"))?.trim() || undefined));
+	await until("the install's exit", () => !alive(install));
+	const forked = Number(read(join(dir, "forked"))?.trim());
+	assert.ok(alive(forked), "its forked process still holds the pipe");
+	assert.equal(await stopJob(home, job.id), `${job.id}: stopped`);
+	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "stopped" }]);
+	assert.equal(existsSync(join(dir, "started")), false, "no agent started");
+	assert.doesNotMatch(field(home, job.id, "log") ?? "", /\] agent: |had ended already/);
+	assert.equal(alive(forked), false, "the stop took what the install left too");
+});
+
 // Whether this host has a systemd user manager; where it has none (a container, a shell without a session), a test of the
 // job's scope itself is skipped.
 const manager = spawnSync("systemctl", ["--user", "show-environment"]).status === 0;

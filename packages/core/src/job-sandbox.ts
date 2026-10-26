@@ -1,14 +1,16 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 
 // The sandbox a job's agent runs in (AR0376): what it may write, and the command that starts it there; docs/commands/spawn.md,
 // "The sandbox". The worktree guard (worktree-guard.ts) keeps honest mistakes apart; this is the bound for what it cannot read.
 
-// Run by `python3 -I -c` (isolated: no module from the worktree, no PYTHON variable) with the writable paths, `--`, then the
-// agent's command line: a Landlock ruleset (Linux 5.13 on) under which the agent and every process it starts write only
-// beneath those paths (a missing one is skipped; a file takes only its own writes), a seccomp filter that refuses io_uring
+// Run by `python3 -I -c` (isolated: no module from the worktree, no PYTHON variable) with the writable paths, `--`, the hidden
+// paths, `--`, then the agent's command line: a Landlock ruleset (Linux 5.13 on) under which the agent and every process it
+// starts write only beneath the writable paths (a missing one is skipped; a file takes only its own writes) and, when a path is
+// hidden, read every file but it: Landlock only grants, so each folder from `/` to its real path grants reads on every entry but
+// the next part (a symlink or an entry that does not open gets none, nor does a part made later), a seccomp filter that refuses io_uring
 // (whose sockets seccomp does not see) and a new Unix socket but a datagram one (omp's session lock), so no user bus, tmux
 // server or other local daemon runs a command outside it, and `no_new_privs`; then it execs the agent. Its refusal ends stderr.
 const SCRIPT = `import ctypes, os, platform, stat, struct, sys
@@ -17,20 +19,34 @@ libc.syscall.restype = libc.prctl.restype = ctypes.c_long
 wide = lambda *args: [ctypes.c_long(arg) if isinstance(arg, int) else arg for arg in args]
 def fail(what): sys.exit(f"{what}: {os.strerror(ctypes.get_errno())}")
 cut = sys.argv.index("--")
-paths, argv = sys.argv[1:cut], sys.argv[cut + 1:]
+end = sys.argv.index("--", cut + 1)
+paths, hidden, argv = sys.argv[1:cut], sys.argv[cut + 1:end], sys.argv[end + 1:]
 abi = libc.syscall(*wide(444, 0, 0, 1))
 if abi < 1: fail("Landlock")
 files = 1 << 1 | (1 << 14 if abi >= 3 else 0)
 dirs = files | sum(1 << bit for bit in range(4, 13)) | (1 << 13 if abi >= 2 else 0)
-handled = ctypes.c_uint64(dirs)
+handled = ctypes.c_uint64(dirs | (1 << 2 if hidden else 0))
 ruleset = libc.syscall(*wide(444, ctypes.byref(handled), 8, 0))
 if ruleset < 0: fail("Landlock")
+rule = ctypes.create_string_buffer(12)
+grant = lambda fd, mask: struct.pack_into("=Qi", rule, 0, mask, fd) or libc.syscall(*wide(445, ruleset, 1, rule, 0))
 for path in paths:
 	try: fd = os.open(path, os.O_PATH | os.O_CLOEXEC)
 	except FileNotFoundError: continue
-	rule = ctypes.create_string_buffer(struct.pack("=Qi", dirs if stat.S_ISDIR(os.fstat(fd).st_mode) else files, fd))
-	if libc.syscall(*wide(445, ruleset, 1, rule, 0)) < 0: fail(f"Landlock: {path}")
+	if grant(fd, dirs if stat.S_ISDIR(os.fstat(fd).st_mode) else files) < 0: fail(f"Landlock: {path}")
 	os.close(fd)
+walk = {}
+for path in hidden:
+	parts = os.path.realpath(path).split("/")
+	for at in range(1, len(parts)): walk.setdefault("/".join(parts[:at]) or "/", set()).add(parts[at])
+for folder, skip in walk.items():
+	try: entries = [entry for entry in os.scandir(folder) if entry.name not in skip and not entry.is_symlink()]
+	except OSError: continue
+	for entry in entries:
+		try: fd = os.open(entry.path, os.O_PATH | os.O_NOFOLLOW | os.O_CLOEXEC)
+		except OSError: continue
+		grant(fd, 1 << 2)
+		os.close(fd)
 arch, socket = {"x86_64": (0xC000003E, 41), "aarch64": (0xC00000B7, 198)}.get(platform.machine(), (0, 0))
 if arch == 0: sys.exit(f"seccomp: no filter for {platform.machine()}")
 program = [(0x20, 0, 0, 4), (0x15, 0, 10, arch), (0x20, 0, 0, 0), (0x35, 8, 0, 0x40000000), (0x15, 7, 0, 425), (0x15, 0, 5, socket), (0x20, 0, 0, 16), (0x15, 0, 3, 1), (0x20, 0, 0, 24), (0x54, 0, 0, 0xF), (0x15, 0, 1, 2), (6, 0, 0, 0x7FFF0000), (6, 0, 0, 0x50000 | 13)]
@@ -58,18 +74,27 @@ export function writable(record: string, worktree: string, extensions: string): 
 	return [worktree, record, ...repository, tmpdir(), "/dev", join(homedir(), ".omp"), ...plugins];
 }
 
-// The command and arguments that start `agent` with `argv` in the sandbox over `paths`, the log told which (`note`); on a
-// host where it cannot be set up (not Linux, no `python3`, a kernel without Landlock), or for an agent the sandbox's shell
-// does not find, which then fails to start as it would bare, the agent's own, the log told why.
-export function sandboxed(paths: readonly string[], agent: string, argv: readonly string[], note: (line: string) => void): [string, string[]] {
+// The env file the `guarded` file of the job whose record is `record` names (job-place.ts), which its agent may not read; none
+// in a record without one (an old record, a job on another machine).
+export function hidden(record: string): string[] {
+	const text = existsSync(join(record, "guarded")) ? readFileSync(join(record, "guarded"), "utf8") : "";
+	return text.split("\n").filter((line) => line.startsWith("env /")).map((line) => line.slice(4));
+}
+
+// The command and arguments that start `agent` with `argv` in the sandbox over `paths`, reading every file but `hidden`, the log
+// told which (`note`); on a host where it cannot be set up (not Linux, no `python3`, a kernel without Landlock), or for an agent
+// the sandbox's shell does not find, which then fails to start as it would bare, the agent's own, the log told why. The probe
+// that tells which hides nothing: it only finds the agent, and the walk of a crowded folder above `hidden` costs.
+export function sandboxed(paths: readonly string[], hidden: readonly string[], agent: string, argv: readonly string[], note: (line: string) => void): [string, string[]] {
 	const prefix = ["-I", "-c", SCRIPT, ...paths, "--"];
-	const probe = process.platform === "linux" ? spawnSync("python3", [...prefix, "/bin/sh", "-c", 'command -v "$1" || exit 127', "sh", agent], { encoding: "utf8" }) : undefined;
+	const probe = process.platform === "linux" ? spawnSync("python3", [...prefix, "--", "/bin/sh", "-c", 'command -v "$1" || exit 127', "sh", agent], { encoding: "utf8" }) : undefined;
 	const why =
 		probe === undefined ? `${process.platform} has no Landlock`
 		: probe.error !== undefined ? `python3: ${probe.error.message}`
 		: probe.status === 0 ? undefined
 		: probe.status === 127 ? `the agent ${agent} is not there`
 		: probe.stderr.trim().split("\n").at(-1) || `python3 exited ${probe.status ?? probe.signal}`;
-	note(why === undefined ? `sandbox: the agent writes only in ${paths.join(", ")}, and opens no Unix socket but a datagram one` : `no sandbox: ${why}; the agent writes wherever Arthur's user can`);
-	return why === undefined ? ["python3", [...prefix, agent, ...argv]] : [agent, [...argv]];
+	const reads = hidden.length === 0 ? "" : `, reads every file but ${hidden.join(", ")}`;
+	note(why === undefined ? `sandbox: the agent writes only in ${paths.join(", ")}${reads}, and opens no Unix socket but a datagram one` : `no sandbox: ${why}; the agent writes wherever Arthur's user can`);
+	return why === undefined ? ["python3", [...prefix, ...hidden, "--", agent, ...argv]] : [agent, [...argv]];
 }

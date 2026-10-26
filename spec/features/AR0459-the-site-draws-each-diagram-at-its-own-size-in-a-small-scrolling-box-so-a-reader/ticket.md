@@ -41,4 +41,5 @@ Out:
 
 ## Decisions
 - 2026-10-26: Approve AR0459 (site diagrams fit) and AR0460 (plugins pages), in that order; the owner: "A" (AR-D89)
+- 2026-10-26: Merge a ticket once its review passed, without asking the owner (AR-D73); the owner: "If there is something that you can merge, just merge, do not ask me abut it" (AR-D90)
 

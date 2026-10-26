@@ -26,8 +26,8 @@ const FLAGS = ["--unreviewed", "--auto", "--no-ci"];
 const DERIVED = ["spec/build.json", "CHANGELOG.md"];
 const MERGEABLE = ["in-progress", "review", "done"];
 
-// `held`: whether a path is on the always-review list, which `--auto` refuses.
-export function mergeCommand(host: Host, procedure: URL, held: (path: string) => boolean): Command {
+// `held`: whether a path is on the always-review list, which `--auto` refuses; `stepSeconds`, each check's time on main.
+export function mergeCommand(host: Host, procedure: URL, held: (path: string) => boolean, stepSeconds: number): Command {
 	return {
 		name: "merge",
 		doc: new URL("../docs/commands/merge.md", import.meta.url),
@@ -43,7 +43,7 @@ export function mergeCommand(host: Host, procedure: URL, held: (path: string) =>
 				console.error(`arthur merge: ${flag !== undefined ? `unknown flag ${flag}` : (mixed ?? (name === undefined ? "no job" : `one job; got ${words.length}`))}\n${USAGE}`);
 				return 2;
 			}
-			const branch = await merge(host, name, { unreviewed, decision, auto, ci: !noCi, held });
+			const branch = await merge(host, name, { unreviewed, decision, auto, ci: !noCi, held, stepSeconds });
 			const pushed = await Promise.all(host.collect<Promise<string>>("github.push", branch));
 			for (const line of pushed) console.log(line);
 			console.log(`nothing committed but the merge, nothing ${pushed.length === 0 ? "pushed or " : ""}pruned\n\n${readFileSync(procedure, "utf8").trim()}`);
@@ -52,7 +52,7 @@ export function mergeCommand(host: Host, procedure: URL, held: (path: string) =>
 }
 
 // Merges, and returns main as `github.push` takes it.
-async function merge(host: Host, name: string, mode: { readonly unreviewed: boolean; readonly decision: string | undefined; readonly auto: boolean; readonly ci: boolean; readonly held: (path: string) => boolean }): Promise<{ readonly project: string; readonly branch: string }> {
+async function merge(host: Host, name: string, mode: { readonly unreviewed: boolean; readonly decision: string | undefined; readonly auto: boolean; readonly ci: boolean; readonly held: (path: string) => boolean; readonly stepSeconds: number }): Promise<{ readonly project: string; readonly branch: string }> {
 	const job = host.jobs.list().find((each) => each.id === name || each.id.endsWith(`-${name}`));
 	if (job === undefined) throw new Error(`no job ${name}; arthur jobs lists them`);
 	if (job.branch === "") throw new Error(`${job.id} is a ${job.kind} job, read-only: it has no branch to merge`);
@@ -121,7 +121,7 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 	const hash = git("rev-parse", "--short", made).stdout.trim();
 	console.log(`merged ${job.branch} into ${main}: ${hash}`);
 	const ask = { install: (commit: string) => host.call<string>("projects.install", { project: job.project, commit }), path: () => host.collect<string>("nvm.path", { root })[0] ?? "" };
-	const run = stepRunner(root, host.jobs.slice, host.sandbox(root, console.log), console.log);
+	const run = stepRunner(root, host.jobs.slice, host.sandbox(root, console.log), console.log, mode.stepSeconds);
 	const steps = mainChecks(root, ask, run, console.log);
 	if (steps.length === 0) console.log("no checks: package.json declares no check or test script");
 	const failing = steps.filter(failed).map((each) => each.command);

@@ -46,3 +46,4 @@ Out:
 - 2026-10-26: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
 - 2026-10-26: Raise the delivery line budget to 1442 for AR0454 (AR-D61); the owner: "IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS" (AR-D106)
 - 2026-10-26: Accept host.sandbox(folder, cache, note) for AR0454, recorded in docs/plugin-api.md (the coordinator's recommendation, under AR-D98); the owner: "always go with your recommendation" (AR-D107)
+- 2026-10-27: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D74)

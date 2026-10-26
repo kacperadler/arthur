@@ -2590,9 +2590,9 @@
   {
     "id": "AR0339",
     "title": "A recursive search from the coordinator's own folder prints the env file",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0339-a-recursive-search-from-the-coordinator-s-own-folder-prints-the-env-file/ticket.md",
-    "updated": "2026-10-26T10:22:51.863Z",
+    "updated": "2026-10-26T10:28:03.451Z",
     "after": [
       "AR0338"
     ]
@@ -3574,5 +3574,12 @@
     "after": [
       "AR0440"
     ]
+  },
+  {
+    "id": "AR0444",
+    "title": "An uptime redirect test fails on GitHub CI: the runner refuses the connection before the private-address check",
+    "status": "planning",
+    "path": "spec/features/AR0444-an-uptime-redirect-test-fails-on-github-ci-the-runner-refuses-the-connection/ticket.md",
+    "updated": "2026-10-26T10:28:29.637Z"
   }
 ]

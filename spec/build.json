@@ -2883,9 +2883,9 @@
   {
     "id": "AR0374",
     "title": "The install at a spawn and each step of the merge have no time limit",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0374-the-install-at-a-spawn-and-each-step-of-the-merge-have-no-time-limit/ticket.md",
-    "updated": "2026-10-26T22:20:04.443Z"
+    "updated": "2026-10-26T22:48:35.792Z"
   },
   {
     "id": "AR0375",
@@ -3601,9 +3601,9 @@
   {
     "id": "AR0454",
     "title": "The writable package caches carry branch code out of the sandbox",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0454-the-writable-package-caches-carry-branch-code-out-of-the-sandbox/ticket.md",
-    "updated": "2026-10-26T22:14:56.818Z"
+    "updated": "2026-10-26T22:48:34.756Z"
   },
   {
     "id": "AR0455",
@@ -3672,7 +3672,7 @@
     "title": "A merge step can plant a nested repository whose fsmonitor runs at the owner's next git call in that folder",
     "status": "done",
     "path": "spec/features/AR0463-a-merge-step-can-plant-a-nested-repository-whose-fsmonitor-runs-at-the-owner-s/ticket.md",
-    "updated": "2026-10-26T22:36:35.715Z"
+    "updated": "2026-10-26T22:50:30.195Z"
   },
   {
     "id": "AR0464",

@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `arthur.mmd:15` (`files[/arthur.config.ts<br/>.env: secret values/]`), `arthur.mmd:1` and its legend (`state of main on 2026-10-21`)
 - What: since AR0339 the env file is `~/.config/arthur/.env`, outside the config's folder, but the diagram's config node still draws `.env` beside `arthur.config.ts`; its header and legend dates predate today's merges (AR0441's `take-main`, the job sandbox's install and merge checks). The README now links this diagram (and the site's Diagram page draws it) instead of copying it. `arthur.mmd` was outside AR0450's Scope.
 - Suggestion: label the node `arthur.config.ts<br/>env file outside it: secret values`, and refresh the header and legend dates from `spec/build.json`; nothing else in the diagram changes.
-- Status: open
+- Status: fixed in c6db0fcf

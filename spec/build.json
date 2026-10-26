@@ -3525,9 +3525,9 @@
   {
     "id": "AR0439",
     "title": "A provider's key exported in the shell still reaches every job",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0439-a-provider-s-key-exported-in-the-shell-still-reaches-every-job/ticket.md",
-    "updated": "2026-10-26T13:19:45.633Z",
+    "updated": "2026-10-26T13:21:29.133Z",
     "after": [
       "AR0350"
     ]
@@ -3603,8 +3603,8 @@
   {
     "id": "AR0448",
     "title": "packages/core/test/machine.test.ts:719 fails now and then on GitHub CI: a job no longer held is copied again (18 !== 16)",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0448-packages-core-test-machine-test-ts-719-fails-now-and-then-on-github-ci-a-job-no/ticket.md",
-    "updated": "2026-10-26T13:17:41.463Z"
+    "updated": "2026-10-26T13:21:06.387Z"
   }
 ]

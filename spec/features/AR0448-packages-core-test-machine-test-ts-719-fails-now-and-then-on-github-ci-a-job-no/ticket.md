@@ -35,4 +35,5 @@ Out:
 
 ## Decisions
 - 2026-10-26: AR0448 approved; start its worker now with the short queue; the owner: "AR-D60 - 1" (AR-D60)
+- 2026-10-26: Merge AR0448 now; the owner: "AR-D64 - 1 AR-D67 - 1 AR-D68 - 1 AR-D69 - 1" (AR-D69)
 

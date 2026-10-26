@@ -3700,9 +3700,9 @@
   {
     "id": "AR0460",
     "title": "A plugins page on the site, with a page for each plugin",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0460-a-plugins-page-on-the-site-with-a-page-for-each-plugin/ticket.md",
-    "updated": "2026-10-26T18:37:22.648Z",
+    "updated": "2026-10-26T19:06:26.682Z",
     "after": [
       "AR0459"
     ]

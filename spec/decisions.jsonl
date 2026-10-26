@@ -179,3 +179,5 @@
 {"record":"answer","id":"AR-D89","time":"2026-10-26T19:37:21+01:00","decided":"Approve AR0459 (site diagrams fit) and AR0460 (plugins pages), in that order","picked":1,"words":"A"}
 {"record":"ask","id":"AR-D90","time":"2026-10-26T19:44:33+01:00","project":"arthur","kind":"merge","question":"AR0459 passed review: merge it?","options":["Merge","Hold"],"recommend":1,"ticket":"AR0459"}
 {"record":"answer","id":"AR-D90","time":"2026-10-26T19:44:33+01:00","decided":"Merge a ticket once its review passed, without asking the owner (AR-D73)","picked":1,"words":"If there is something that you can merge, just merge, do not ask me abut it"}
+{"record":"ask","id":"AR-D91","time":"2026-10-26T20:06:34+01:00","project":"arthur","kind":"merge","question":"AR0460 passed review: merge it?","options":["Merge","Hold"],"recommend":1,"ticket":"AR0460"}
+{"record":"answer","id":"AR-D91","time":"2026-10-26T20:06:35+01:00","decided":"Merge a ticket once its review passed, without asking the owner (AR-D73)","picked":1,"words":"If there is something that you can merge, just merge, do not ask me abut it"}

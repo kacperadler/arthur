@@ -3610,9 +3610,9 @@
   {
     "id": "AR0449",
     "title": "The install at a job start and the merge checks run branch code outside the sandbox, where it can read the environment of arthur run",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0449-the-install-at-a-job-start-and-the-merge-checks-run-branch-code-outside-the/ticket.md",
-    "updated": "2026-10-26T17:13:36.486Z",
+    "updated": "2026-10-26T17:18:10.604Z",
     "after": [
       "AR0441",
       "AR0440",
@@ -3654,5 +3654,40 @@
     "status": "dropped",
     "path": "spec/features/AR0453-a-test-s-sandboxed-job-walks-the-whole-temporary-folder-to-hide-its-env-file/ticket.md",
     "updated": "2026-10-26T16:03:46.514Z"
+  },
+  {
+    "id": "AR0454",
+    "title": "The writable package caches carry branch code out of the sandbox",
+    "status": "planning",
+    "path": "spec/features/AR0454-the-writable-package-caches-carry-branch-code-out-of-the-sandbox/ticket.md",
+    "updated": "2026-10-26T17:18:10.592Z"
+  },
+  {
+    "id": "AR0455",
+    "title": "A package cache that does not exist yet stays closed, so a fresh host's first install in a job fails",
+    "status": "planning",
+    "path": "spec/features/AR0455-a-package-cache-that-does-not-exist-yet-stays-closed-so-a-fresh-host-s-first/ticket.md",
+    "updated": "2026-10-26T17:18:10.599Z"
+  },
+  {
+    "id": "AR0456",
+    "title": "The agent's own `npm ci` cannot write `~/.npm`",
+    "status": "planning",
+    "path": "spec/features/AR0456-the-agent-s-own-npm-ci-cannot-write-npm/ticket.md",
+    "updated": "2026-10-26T17:18:10.602Z"
+  },
+  {
+    "id": "AR0457",
+    "title": "A merge check can leave a git hook or config in main's checkout, which runs outside the sandbox at the next git call",
+    "status": "planning",
+    "path": "spec/features/AR0457-a-merge-check-can-leave-a-git-hook-or-config-in-main-s-checkout-which-runs/ticket.md",
+    "updated": "2026-10-26T17:18:27.450Z"
+  },
+  {
+    "id": "AR0458",
+    "title": "An install can remove the env file from the record's guarded list, so the agent reads it",
+    "status": "planning",
+    "path": "spec/features/AR0458-an-install-can-remove-the-env-file-from-the-record-s-guarded-list-so-the-agent/ticket.md",
+    "updated": "2026-10-26T17:18:27.959Z"
   }
 ]

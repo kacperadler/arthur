@@ -3619,5 +3619,19 @@
       "AR0443",
       "AR0442"
     ]
+  },
+  {
+    "id": "AR0450",
+    "title": "Polish the docs and make the README shorter",
+    "status": "planned",
+    "path": "spec/features/AR0450-polish-the-docs-and-make-the-readme-shorter/ticket.md",
+    "updated": "2026-10-26T13:40:04.267Z",
+    "after": [
+      "AR0441",
+      "AR0440",
+      "AR0443",
+      "AR0442",
+      "AR0449"
+    ]
   }
 ]

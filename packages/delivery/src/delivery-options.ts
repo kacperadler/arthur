@@ -12,8 +12,8 @@ export const tools: readonly Tool[] = [];
 
 // The always-review list left out: what reads secrets (the `.env` loading, entry 3, the env guard), the CI-failure handling
 // (entries 57 to 59), the CI's workflows, the review rules, the prompt files every role reads (roles, criteria, the vision, the
-// overrides under `.agents/`, named as `**` enters no dot folder; AR0351), and what the merge and each spawn run (AR0358).
-export const ALWAYS_REVIEW = ["**/env.ts", "**/env-*.ts", "**/ci.ts", "**/ci-*.ts", "**/github-ci.ts", "**/auto-merge.ts", "**/merge-command.ts", ".github/workflows/**", "**/review-needed.ts", "**/checks-extension.ts", "**/roles/**", "**/criteria/**", ".agents/**", "spec/vision.md", "**/package.json", "**/package-lock.json", "**/npm-shrinkwrap.json", "**/bun.lock", "**/bun.lockb", "**/yarn.lock", "**/pnpm-lock.yaml", "**/.npmrc", "**/.nvmrc", ".githooks/**", ".husky/**"];
+// overrides under `.agents/`, named as `**` enters no dot folder; AR0351), and what the merge and each spawn run (AR0358, AR0432).
+export const ALWAYS_REVIEW = ["**/env.ts", "**/env-*.ts", "**/ci.ts", "**/ci-*.ts", "**/github-ci.ts", "**/auto-merge.ts", "**/merge-command.ts", ".github/workflows/**", "**/review-needed.ts", "**/checks-extension.ts", "**/roles/**", "**/criteria/**", ".agents/**", "spec/vision.md", "**/package.json", "**/package-lock.json", "**/npm-shrinkwrap.json", "**/bun.lock", "**/bun.lockb", "**/yarn.lock", "**/pnpm-lock.yaml", "**/.npmrc", "**/.nvmrc", "**/composer.json", "**/composer.lock", "**/uv.lock", "**/pyproject.toml", "**/.yarnrc.yml", "**/.pnpmfile.cjs", "**/bunfig.toml", ".githooks/**", ".husky/**"];
 
 const globs: Check = (value) => (Array.isArray(value) && value.every((each) => typeof each === "string" && each !== "" && !each.startsWith("/")) ? undefined : 'a list of glob patterns from a project\'s root, such as "**/env.ts"');
 

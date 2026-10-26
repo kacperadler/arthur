@@ -38,3 +38,5 @@ In:
 - 2026-10-23: Coordinator (free hand, finding ticket) approved; starts after the ten security checks AR0319-AR0328.
 - 2026-10-26 (worker): the install reaches the wrapper as the prepare's variable `ARTHUR_INSTALL` (the channel `ARTHUR_AGENT_MODEL` already uses), so it runs in the scope here and on another machine alike; a failed install ends the job `failed: the agent did not start: install ...`. The merge's slice comes from a new host member, `jobs.slice`, so a test's merge runs in the test kit's slice, never Arthur's own (docs/plugin-api.md).
 - 2026-10-26 (worker): line budgets raised, core 6206 to 6228 (job-install.ts and `jobs.slice`), delivery 1337 to 1361 (the merge's scoped steps); projects lowered 486 to 482. Recorded in `test/structure.test.ts`.
+- 2026-10-26: Raise the core line budget 6206 to 6228 and delivery 1337 to 1361 for AR0373; the owner: "AR-D57 - 1" (AR-D57)
+- 2026-10-26: Merge AR0373 now; restart after; the owner: "AR-D58 - 1" (AR-D58)

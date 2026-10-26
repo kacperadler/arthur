@@ -17,8 +17,7 @@ type ExtensionApi = { on(event: "tool_call", handler: (event: { readonly toolNam
 // Commands that run the command after them, with their options that take a value: `timeout 60 rm x` is `rm`.
 const WRAPPERS: Readonly<Record<string, readonly string[]>> = {
 	...Object.fromEntries(["command", "builtin", "exec", "nohup", "setsid", "unbuffer", "chrt"].map((name) => [name, []])),
-	...{ sudo: ["-u", "-g", "-h", "-p", "-C", "-D", "-R", "-T", "-U", "--chdir"], doas: ["-u", "-C"], env: ["-u", "-C", "-S", "--chdir"], time: ["-f", "-o"] },
-	...{ timeout: ["-s", "-k"], nice: ["-n"], ionice: ["-c", "-n", "-p", "-t"], stdbuf: ["-i", "-o", "-e"], xargs: ["-n", "-P", "-I", "-L", "-s", "-a", "-d", "-E", "-l", "-i"] },
+	...{ sudo: ["-u", "-g", "-h", "-p", "-C", "-D", "-R", "-T", "-U"], doas: ["-u", "-C"], env: ["-u", "-C", "-S"], time: ["-f", "-o"], timeout: ["-s", "-k"], nice: ["-n"], ionice: ["-c", "-n", "-p", "-t"], stdbuf: ["-i", "-o", "-e"], xargs: ["-n", "-P", "-I", "-L", "-s", "-a", "-d", "-E", "-l", "-i"] },
 };
 // Words that start a command without being one.
 const RESERVED = ["{", "}", "!", "if", "then", "else", "elif", "do", "while", "until"];
@@ -44,16 +43,18 @@ function refusal(place: Place, path: string, shown = path, named = true): string
 	return name ? `arthur: refused: this call writes into ${name} (${shown}); a job writes only in its own worktree ${place.worktree}, outside Arthur's checkouts, home folder, install and config, and the user's own files` : linking;
 }
 
-// The index in `words` of the command they run, after assignments, reserved words and wrappers with their options (-1 if none), and the folders `env -C` and `sudo -D` (or `--chdir`) run it in.
-function commandIndex(words: readonly string[]): [number, string[]] {
-	const dirs: string[] = [];
+// The index in `words` of the command they run, after assignments, reserved words and wrappers with their options (-1 if none), and the folders `env -C` and `sudo -D` run it in. A cluster takes a value after its first letter that does (`-iC dir`, `-iCdir`); `--chdir` is any prefix getopt_long tells apart (`env --c=dir`, `sudo --chd dir`).
+function commandIndex(words: readonly string[], dirs: string[] = []): [number, string[]] {
 	for (let index = 0; index < words.length; ) {
 		const name = basename(words[index]!);
-		const [values, flag] = [Object.hasOwn(WRAPPERS, name) ? WRAPPERS[name]! : undefined, name === "env" ? "-C" : name === "sudo" ? "-D" : undefined];
+		const [values, [flag, least] = ["", ""]] = [Object.hasOwn(WRAPPERS, name) ? WRAPPERS[name]! : undefined, name === "env" ? ["C", "--c"] : name === "sudo" ? ["D", "--chd"] : undefined];
 		if (values === undefined && !RESERVED.includes(words[index]!) && !/^[A-Za-z_]\w*(\[[^\]]*\])?\+?=/.test(words[index]!)) return [index, dirs];
-		for (index++; values !== undefined && index < words.length && /^-|^[\d.]+[smhd]?$/.test(words[index]!); index += values.includes(words[index]!) ? 2 : 1) {
-			const word = words[index]!;
-			if (flag !== undefined && (word.startsWith(flag) || word.startsWith("--chdir"))) dirs.push([flag, "--chdir"].includes(word) ? (words[index + 1] ?? "") : word.slice(word.startsWith("--") ? 8 : 2));
+		for (index++; values !== undefined && index < words.length && /^-|^[\d.]+[smhd]?$/.test(words[index]!); ) {
+			const [word, at, long] = [words[index]!, /^-[^-]/.test(words[index]!) ? [...words[index]!].findIndex((letter, position) => position > 0 && values.includes(`-${letter}`)) : -1, /^(--[^=]+)(=?)/.exec(words[index]!)];
+			const chdir = least !== "" && long !== null && long[1]!.length >= least.length && "--chdir".startsWith(long[1]!);
+			const takes = at > 0 ? at === word.length - 1 : chdir ? long[2] === "" : values.includes(word);
+			if (at > 0 ? word[at] === flag : chdir) dirs.push(takes ? (words[index + 1] ?? "") : word.slice(at > 0 ? at + 1 : word.indexOf("=") + 1));
+			index += takes ? 2 : 1;
 		}
 	}
 	return [-1, dirs];
@@ -68,15 +69,14 @@ function commandIndex(words: readonly string[]): [number, string[]] {
 // outside the worktrees folder, `gc.*` or `maintenance.*` config given or written), or one of these after a `cd` there. The command is the word after
 // assignments and wrappers (`sudo`, `timeout 60`), also in `bash -c`, a shell's heredoc, `eval`; each path is resolved from where the commands before it left
 // (`cd`, `cd -`, `pushd`, `git -C`, a subshell undoing them; `env -C` and `sudo -D` for the command alone, not the redirects the shell opens or its `$PWD`),
-// through symlinks, with `$HOME`, `$ARTHUR_JOB` and `$PWD` known. Not seen: a path built at run time (another `$x`, a glob, a brace list, what `xargs` reads, an
-// `OLDPWD` `read` sets, a `GIT_DIR` exported before), a program that writes (`node -e`, `tar -C`, `curl -o`), an alias in the user's Git config, a link the same call makes and uses, or a ref no worktree has checked out moved from the job's own worktree. It is not a sandbox.
+// through symlinks, with `$HOME`, `$ARTHUR_JOB` and `$PWD` known. Not seen: a path built at run time (another `$x`, a glob, a brace list, what `xargs` reads, an `OLDPWD` `read` sets, a `GIT_DIR` exported before), a program that writes (`node -e`, `tar -C`, `curl -o`), an alias in the user's Git config, a link the same call makes and uses, or a ref no worktree has checked out moved from the job's own worktree. It is not a sandbox.
 function bashRefusal(place: Place, command: string, start: string): string | undefined {
 	let cwd = start;
-	// Where `cd -`, `~-` and `$OLDPWD` (shell-words.ts reads it as `~-`, with another operator `\0`) go: bash's OLDPWD, from the agent's env; none when unset.
+	// Where `cd -`, `~-` and `$OLDPWD` (shell-words.ts reads it as `~-`, with another operator `\0-`) go: bash's OLDPWD, from the agent's env; none when unset.
 	let [previous, fixed, pushed] = [process.env.OLDPWD, false, [] as string[]];
 	const [known, subshells] = [{ HOME: process.env.HOME, ARTHUR_JOB: process.env.ARTHUR_JOB }, [] as [string, string | undefined, string[], boolean][]];
 	const located = (base: string, path: string): string => real(resolve(base, path.replace(/^~-(?=\/|$)/, previous || "~-")));
-	// A `~+` without a backslash (`$PWD`, or the prefix `~+` alone or before `/` at a word's start or after its `=`; shell-words.ts): where the shell is.
+	// A `~+` without a backslash (`$PWD`, or the prefix `~+` alone or before `/` at a word's start or after its `=`; shell-words.ts), and `\0+` in a here-string or a heredoc a shell reads: where the shell is.
 	const here = (word: string): string => word.replace(/(?<!\\)((?:\\\\)*)~\+/g, (_, slashes: string) => slashes + cwd.replaceAll("\\", "\\\\"));
 	const theirs = (words: readonly string[], base = cwd, named = true): string | undefined =>
 		words.flatMap((word) => [...(word.startsWith("-") ? [] : [word]), ...(word.includes("=") ? [word.slice(word.indexOf("=") + 1)] : [])]).map((path) => refusal(place, located(base, path), path, named)).find(Boolean);
@@ -93,7 +93,7 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 		const [at, dirs] = commandIndex(words);
 		if ([...command.words, ...command.writes].some((word) => word.includes("\0") || ((!previous || previous.includes("\0")) && /(^|=)~-(\/|$)/.test(literal(word)))) || command.words.some((word, index) => /^OLDPWD(\[(?!\d+\])|\+=\(|=\(\[)/.test(word) || (index < at && /^OLDPWD(\[|=\()/.test(word)))) return OLDPWD_UNKNOWN;
 		const redirected = theirs(command.writes.map((word) => literal(here(word))));
-		if (!moved && redirected === undefined && dirs.length > 0) return run(["("]) ?? ((cwd = dirs.reduce(located, cwd)), judge({ ...command, words: raw, writes: [] }, true)) ?? run([")"]);
+		if (!moved && redirected === undefined && dirs.length > 0) return run(["("]) ?? ((cwd = dirs.reduce(located, cwd)), judge({ ...command, words: raw, stdin: command.stdin.map((text) => text.replaceAll("\0+", subshells.at(-1)![0])), writes: [] }, true)) ?? run([")"]);
 		const verb = basename(words[at] ?? "");
 		const moves = ["cd", "pushd", "popd"].includes(verb);
 		const args = words.slice(at + 1);
@@ -116,7 +116,7 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 			[previous, cwd] = [fixed ? previous : cwd, located(cwd, to)];
 		} else if (SHELLS.includes(verb)) {
 			const flag = args.findIndex((word) => /^-[a-z]*c[a-z]*$/.test(word));
-			return (flag >= 0 ? [args[flag + 1] ?? ""] : operands.length === 0 ? command.stdin : []).map((text) => run(["(", { ...command, words: command.words.slice(0, at), alone: true }]) ?? ((fixed = false), run([...shellCommands(text, known), ")"]))).find(Boolean);
+			return (flag >= 0 ? [args[flag + 1] ?? ""] : operands.length === 0 ? command.stdin : []).map((text) => run(["(", { ...command, words: command.words.slice(0, at), alone: true }]) ?? ((fixed = false), run([...shellCommands(text.replaceAll("\0+", cwd), known), ")"]))).find(Boolean);
 		} else if (verb === "eval") {
 			// Bash puts back the OLDPWD a prefix replaced once `eval` ends, whatever its `cd`s set.
 			const [kept, found] = [previous, run([{ ...command, words: command.words.slice(0, at), alone: true }, ...shellCommands(args.join(" "), known)])];

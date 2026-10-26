@@ -5,7 +5,7 @@
 // An expansion known only when the command runs (`$x`, `${x}`, `$1`) is nothing, or the word it falls back to (`${x:-word}`,
 // also with `=`, `+`, `?` and without the colon); a variable in `known` (`HOME`, `ARTHUR_JOB`) is its value, also with `-`,
 // `=`, `?`; `known.HOME` is an unquoted `~` at a word's start or after an assignment's `=` (`~+` and `~-` there stay). `$PWD` is
-// `~+`; `$OLDPWD` `~-` (also with `-`, `=`, `?`), `\0`, in no bash word, with another operator but `+`. A quoted or escaped
+// `~+`; `$OLDPWD` `~-` (also with `-`, `=`, `?`), `\0-`, in no bash word, with another operator but `+`. A here-string's `~+` and an unquoted heredoc's `$PWD` or `${PWD}` are `\0+`, the folder of the shell that reads them. A quoted or escaped
 // `\*?[]{},()~`, or any other `~`, keeps a backslash, so a glob is told apart from a quoted star and a bare `~+` is `$PWD` or that prefix; `literal` removes it. `shellWords`: every word, a heredoc's body one.
 
 const SPECIAL = "\\*?[]{},()~";
@@ -67,7 +67,7 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 	const end = () => {
 		if (word === "") return;
 		if (target === undefined) current.words.push(word);
-		else if (target === "here") current.stdin.push(literal(word));
+		else if (target === "here") current.stdin.push(literal(word.replace(/(?<!\\)((?:\\\\)*)~\+/g, "$1\0+")));
 		else (target === "write" || (target === "duplicate" && !/^\d*-?$/.test(word)) ? current.writes : current.reads).push(word);
 		[word, target] = ["", undefined];
 	};
@@ -90,7 +90,7 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 			const close = closing(command, at + 2, "{", "}");
 			const inner = command.slice(at + 2, close);
 			const [fallback, name] = [/^[#!]?(?:[A-Za-z_]\w*|\d+|[@*#?$!-])(?:\[[^\]]*\])?:?[-=+?]([^]*)$/.exec(inner), /^([A-Za-z_]\w*)(?:\[0\])?(?::?[-=?]|$)/.exec(inner)?.[1]];
-			word += name === "OLDPWD" ? "~-" : /^!?OLDPWD\b/.test(inner) && fallback === null ? "\0" : name === "PWD" ? "~+" : ((name && value(name)) ?? (fallback !== null ? shellWords(fallback[1]!).join(" ") : ""));
+			word += name === "OLDPWD" ? "~-" : /^!?OLDPWD\b/.test(inner) && fallback === null ? "\0-" : name === "PWD" ? "~+" : ((name && value(name)) ?? (fallback !== null ? shellWords(fallback[1]!).join(" ") : ""));
 			return close + 1;
 		}
 		if (next === "'" && !inDouble) {
@@ -133,7 +133,7 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 				body += `${line}\n`;
 				last = at;
 			}
-			into.push(body);
+			into.push(expands ? body.replace(/(?<!\\)((?:\\\\)*)\$(?:PWD(?!\w)|\{PWD\})/g, "$1\0+") : body);
 			for (let index = from; expands && index < last; ) {
 				index = command[index] === "\\" ? index + 2 : command[index] === "$" ? dollar(index, true) : command[index] === "`" ? backtick(index) : index + 1;
 			}

@@ -3743,5 +3743,33 @@
     "status": "planning",
     "path": "spec/features/AR0473-a-long-option-of-sudo-or-env-followed-by-its-value-hides-the-command-from-the/ticket.md",
     "updated": "2026-10-27T00:09:58.232Z"
+  },
+  {
+    "id": "AR0474",
+    "title": "A review pruned before the merge makes the ticket cost unknown",
+    "status": "planning",
+    "path": "spec/features/AR0474-a-review-pruned-before-the-merge-makes-the-ticket-cost-unknown/ticket.md",
+    "updated": "2026-10-27T01:10:20.779Z"
+  },
+  {
+    "id": "AR0475",
+    "title": "Line budgets on one line, plus a comment log, conflict on most merges of main",
+    "status": "planning",
+    "path": "spec/features/AR0475-line-budgets-on-one-line-plus-a-comment-log-conflict-on-most-merges-of-main/ticket.md",
+    "updated": "2026-10-27T01:10:21.290Z"
+  },
+  {
+    "id": "AR0476",
+    "title": "arthur doctor tells the owner to fix a committed env file with a .gitignore line that cannot help",
+    "status": "planning",
+    "path": "spec/features/AR0476-arthur-doctor-tells-the-owner-to-fix-a-committed-env-file-with-a-gitignore-line/ticket.md",
+    "updated": "2026-10-27T01:10:21.797Z"
+  },
+  {
+    "id": "AR0477",
+    "title": "Nine exports nobody imports",
+    "status": "planning",
+    "path": "spec/features/AR0477-nine-exports-nobody-imports/ticket.md",
+    "updated": "2026-10-27T01:10:22.306Z"
   }
 ]

@@ -20,22 +20,23 @@ F1 of AR0374 (spec/features/AR0374-the-install-at-a-spawn-and-each-step-of-the-m
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+A second `arthur merge` started while the first runs its checks merges on top of the unchecked commit, and a failing check of the first then resets main under it (finding above, read from the code).
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- A second `arthur merge` of the same project while one runs is refused with `a merge of <job> is in progress on <project>`, main unchanged; the lock is removed after any end of the first; a test in `packages/delivery/test/merge.test.ts` that fails without the fix.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/delivery/src/merge-command.ts`, its test, `packages/delivery/docs/commands/merge.md`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Queueing the second merge.
 
 ## Decisions
 
 - 2026-10-27: Source: F1 of AR0374
+- 2026-10-27: AR0468 approved by the owner (morning of 2026-10-27, one list of 18); the owner: "apprvoed: AR0467, AR0466, AR0471-AR0473, AR0464, AR0465, AR0468-AR0470, AR0474-AR0477, AR0402-AR0405" (AR-D131)

@@ -20,22 +20,23 @@ F1 of AR0434 (spec/features/AR0434-a-secret-named-variable-only-the-coordinator-
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+A secret value the coordinator's start passes again to a stale tmux server sits for milliseconds in the tmux client's command line, readable by other local users (finding above).
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- A value that differs on a stale server reaches the coordinator without appearing in any process's argv; a test in `packages/orchestration/test/coordinator.test.ts` (host only, tmux) that fails without the fix.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/orchestration/src/coordinator.ts`, its test.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The `ARTHUR_*` variables, which hold no secret.
 
 ## Decisions
 
 - 2026-10-26: Source: F1 of AR0434
+- 2026-10-27: AR0465 approved by the owner (morning of 2026-10-27, one list of 18); the owner: "apprvoed: AR0467, AR0466, AR0471-AR0473, AR0464, AR0465, AR0468-AR0470, AR0474-AR0477, AR0402-AR0405" (AR-D130)

@@ -20,22 +20,23 @@ F1 of AR0454 (spec/features/AR0454-the-writable-package-caches-carry-branch-code
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+The reinstall of main's dependencies after a failed merge check runs in the cache the branch's own install wrote, so branch content can reach main's install (finding above).
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- The reinstall after a failed check runs with a fresh cache folder of its own, removed after it; a test in `packages/delivery/test/merge.test.ts` that fails without the fix.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/delivery/src/merge-command.ts`, `merge-checks.ts`, their test, `merge.md`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- A killed merge's leftover cache: AR0470.
 
 ## Decisions
 
 - 2026-10-27: Source: F1 of AR0454
+- 2026-10-27: AR0469 approved by the owner (morning of 2026-10-27, one list of 18); the owner: "apprvoed: AR0467, AR0466, AR0471-AR0473, AR0464, AR0465, AR0468-AR0470, AR0474-AR0477, AR0402-AR0405" (AR-D132)

@@ -3134,9 +3134,9 @@
   {
     "id": "AR0402",
     "title": "Security review of our own code, part 1: secrets, file permissions and processes",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0402-security-review-of-our-own-code-part-1-secrets-file-permissions-and-processes/ticket.md",
-    "updated": "2026-10-26T10:52:13.656Z",
+    "updated": "2026-10-27T06:52:45.636Z",
     "after": [
       "AR0432",
       "AR0350",
@@ -3146,9 +3146,9 @@
   {
     "id": "AR0403",
     "title": "Security review of our own code, part 2: injection into shell, git, ssh and tmux, and prompt injection",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0403-security-review-of-our-own-code-part-2-injection-into-shell-git-ssh-and-tmux-and-prompt-injection/ticket.md",
-    "updated": "2026-10-26T10:52:14.159Z",
+    "updated": "2026-10-27T06:52:47.174Z",
     "after": [
       "AR0432",
       "AR0350",
@@ -3158,9 +3158,9 @@
   {
     "id": "AR0404",
     "title": "Security review of our own code, part 3: channels, merge and delivery",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0404-security-review-of-our-own-code-part-3-channels-merge-and-delivery/ticket.md",
-    "updated": "2026-10-26T10:52:14.650Z",
+    "updated": "2026-10-27T06:52:48.763Z",
     "after": [
       "AR0432",
       "AR0350",
@@ -3170,9 +3170,9 @@
   {
     "id": "AR0405",
     "title": "Security review of our own code, part 4: other machines, network and dependencies",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0405-security-review-of-our-own-code-part-4-other-machines-network-and-dependencies/ticket.md",
-    "updated": "2026-10-26T10:52:15.149Z",
+    "updated": "2026-10-27T06:52:50.333Z",
     "after": [
       "AR0432",
       "AR0350",
@@ -3677,99 +3677,99 @@
   {
     "id": "AR0464",
     "title": "The stop test of a forked install process fails now and then under a merge step",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0464-the-stop-test-of-a-forked-install-process-fails-now-and-then-under-a-merge-step/ticket.md",
-    "updated": "2026-10-26T22:41:16.485Z"
+    "updated": "2026-10-27T06:52:31.593Z"
   },
   {
     "id": "AR0465",
     "title": "A value given again with `-e` sits in the tmux client's command line while it runs",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0465-a-value-given-again-with-e-sits-in-the-tmux-client-s-command-line-while-it-runs/ticket.md",
-    "updated": "2026-10-26T22:46:57.509Z"
+    "updated": "2026-10-27T06:53:19.065Z"
   },
   {
     "id": "AR0466",
     "title": "A step can plant a repository under a name other than `.git`, or a symlink to one, which the sweep does not see",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0466-a-step-can-plant-a-repository-under-a-name-other-than-git-or-a-symlink-to-one/ticket.md",
-    "updated": "2026-10-26T22:58:16.966Z"
+    "updated": "2026-10-27T06:53:18.046Z"
   },
   {
     "id": "AR0467",
     "title": "A merge check that runs git inside an owner clone in the checkout deletes that clone history",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0467-a-merge-check-that-runs-git-inside-an-owner-clone-in-the-checkout-deletes-that/ticket.md",
-    "updated": "2026-10-26T22:58:30.668Z"
+    "updated": "2026-10-27T06:52:23.775Z"
   },
   {
     "id": "AR0468",
     "title": "A second arthur merge during the first one's checks merges on top of the unchecked merge commit",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0468-a-second-arthur-merge-during-the-first-one-s-checks-merges-on-top-of-the/ticket.md",
-    "updated": "2026-10-26T23:26:49.579Z"
+    "updated": "2026-10-27T06:53:19.572Z"
   },
   {
     "id": "AR0469",
     "title": "The reinstall after a failed check uses the cache the branch's install wrote",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0469-the-reinstall-after-a-failed-check-uses-the-cache-the-branch-s-install-wrote/ticket.md",
-    "updated": "2026-10-27T00:05:38.915Z"
+    "updated": "2026-10-27T06:53:20.096Z"
   },
   {
     "id": "AR0470",
     "title": "A merge killed during its steps leaves its cache folder behind",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0470-a-merge-killed-during-its-steps-leaves-its-cache-folder-behind/ticket.md",
-    "updated": "2026-10-27T00:05:38.920Z"
+    "updated": "2026-10-27T06:53:20.601Z"
   },
   {
     "id": "AR0471",
     "title": "Other operators of `${PWD…}` and of the known variables read as nothing",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0471-other-operators-of-pwd-and-of-the-known-variables-read-as-nothing/ticket.md",
-    "updated": "2026-10-27T00:09:49.924Z"
+    "updated": "2026-10-27T06:53:18.556Z"
   },
   {
     "id": "AR0472",
     "title": "An escaped variable in an unquoted heredoc reaches the inner shell unread by the guard",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0472-an-escaped-variable-in-an-unquoted-heredoc-reaches-the-inner-shell-unread-by-the/ticket.md",
-    "updated": "2026-10-27T00:09:57.706Z"
+    "updated": "2026-10-27T06:52:28.467Z"
   },
   {
     "id": "AR0473",
     "title": "A long option of sudo or env followed by its value hides the command from the guard",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0473-a-long-option-of-sudo-or-env-followed-by-its-value-hides-the-command-from-the/ticket.md",
-    "updated": "2026-10-27T00:09:58.232Z"
+    "updated": "2026-10-27T06:52:30.023Z"
   },
   {
     "id": "AR0474",
     "title": "A review pruned before the merge makes the ticket cost unknown",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0474-a-review-pruned-before-the-merge-makes-the-ticket-cost-unknown/ticket.md",
-    "updated": "2026-10-27T01:10:20.779Z"
+    "updated": "2026-10-27T06:52:39.388Z"
   },
   {
     "id": "AR0475",
     "title": "Line budgets on one line, plus a comment log, conflict on most merges of main",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0475-line-budgets-on-one-line-plus-a-comment-log-conflict-on-most-merges-of-main/ticket.md",
-    "updated": "2026-10-27T01:10:21.290Z"
+    "updated": "2026-10-27T06:52:40.934Z"
   },
   {
     "id": "AR0476",
     "title": "arthur doctor tells the owner to fix a committed env file with a .gitignore line that cannot help",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0476-arthur-doctor-tells-the-owner-to-fix-a-committed-env-file-with-a-gitignore-line/ticket.md",
-    "updated": "2026-10-27T01:10:21.797Z"
+    "updated": "2026-10-27T06:52:42.486Z"
   },
   {
     "id": "AR0477",
     "title": "Nine exports nobody imports",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0477-nine-exports-nobody-imports/ticket.md",
-    "updated": "2026-10-27T01:10:22.306Z"
+    "updated": "2026-10-27T06:52:44.056Z"
   }
 ]

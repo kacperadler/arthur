@@ -25,6 +25,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0473 A long option of sudo or env followed by its value hides the command from the guard (e8f33db6)
 - AR0474 A review pruned before the merge makes the ticket cost unknown (deb8e6c7)
 - AR0508 A sandboxed job reads Arthur's SSH private key, and with it gets an unconfined shell on every other machine and a push to origin (ff9650e5)
+- AR0516 Since AR0508 hides ~/.ssh, a job and a merge step cannot sign a commit when Git signs with a key there (b2b1c1e4)
 
 ### Changed
 

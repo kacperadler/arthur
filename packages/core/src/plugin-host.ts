@@ -93,7 +93,7 @@ export function pluginHost(
 	const { after: _, ...shown } = tickets;
 	return {
 		...own,
-		sandbox: (folder, note) => stepSandbox(folder, arthur, note),
+		sandbox: (folder, cache, note) => stepSandbox(folder, cache, arthur, note),
 		events: {
 			on: (name, fn) => bus.on(own.name, name, fn),
 			emit: (name, data) => bus.emit(own.name, name, data),

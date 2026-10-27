@@ -20,7 +20,7 @@ None blocking.
   - It is not a regression. The parser never removes a backslash-newline right after `$`, even outside a fallback: `rm $\<newline>'..'/…` reads `$..` and `$\<newline>HOME` reads as plain text `$HOME`.
   - `findings.md` does not record it. It should get its own finding or ticket.
 - **An older gap, outside the range:** `closing()` (`shell-words.ts:39`) skips over quotes without honouring `\"` inside them. So `echo "${x:-"\""}"; rm X` hides the `rm X` from the guard, on the base and on the tip, and bash runs it. It needs a finding.
-- **F2 names the owner's real user:** it writes `~kacper/arthur`. That is not a client or another project, but `~acme` would be safer in a public repository.
+- **F2 names the owner's real user:** it writes an existing user's home. That is not a client or another project, but `~acme` would be safer in a public repository.
 - **Line counts:** `shell-words.ts` has 198 lines and `worktree-guard.ts` 200, as the worker said.
 - **The worker's claims hold:** the files, rows, refusal text, mutation results and the reasoning about `extquote` all match what I saw.
 

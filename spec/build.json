@@ -3985,29 +3985,29 @@
   {
     "id": "AR0508",
     "title": "A sandboxed job reads Arthur's SSH private key, and with it gets an unconfined shell on every other machine and a push to origin",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0508-a-sandboxed-job-reads-arthur-s-ssh-private-key-and-with-it-gets-an-unconfined/ticket.md",
-    "updated": "2026-10-27T12:38:07.780Z"
+    "updated": "2026-10-27T12:45:11.139Z"
   },
   {
     "id": "AR0509",
     "title": "The sweep's copy from another machine has no size or time bound, so one machine stalls every job on it, or all of `arthur run`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0509-the-sweep-s-copy-from-another-machine-has-no-size-or-time-bound-so-one-machine/ticket.md",
-    "updated": "2026-10-27T12:38:07.785Z"
+    "updated": "2026-10-27T12:45:11.658Z"
   },
   {
     "id": "AR0510",
     "title": "The GitHub, Telegram and YouTrack API addresses take `http://` for any host, sending the token in the clear",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0510-the-github-telegram-and-youtrack-api-addresses-take-http-for-any-host-sending/ticket.md",
-    "updated": "2026-10-27T12:38:07.789Z"
+    "updated": "2026-10-27T12:45:12.163Z"
   },
   {
     "id": "AR0511",
     "title": "The github plugin's docs offer a classic token with `repo`, which writes every repository of the account",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0511-the-github-plugin-s-docs-offer-a-classic-token-with-repo-which-writes-every/ticket.md",
-    "updated": "2026-10-27T12:38:07.793Z"
+    "updated": "2026-10-27T12:45:12.683Z"
   }
 ]

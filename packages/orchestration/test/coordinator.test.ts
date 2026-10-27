@@ -290,7 +290,7 @@ test("arthur attach with no session says so; wrong usage of either command exits
 });
 
 // AR0517: tmux makes its socket 0660, so whoever enters its folder in the socket's group reaches the coordinator.
-test("a socket path in a folder the group or others may enter refuses the coordinator's start, the folder left as it is and no server made; a name never", async (t) => {
+test("a socket path in a folder the group or others may enter refuses the coordinator's start, the folder left as it is and no server made; a missing folder and a name never", async (t) => {
 	const said: string[] = [];
 	for (const method of ["log", "error"] as const) t.mock.method(console, method, (text: string) => void said.push(text));
 	const folder = join(temporaryFolder(), "sockets");
@@ -303,11 +303,16 @@ test("a socket path in a folder the group or others may enter refuses the coordi
 		await supervisor.stop();
 		return said.splice(0);
 	};
-	for (const mode of [0o750, 0o711]) {
+	for (const mode of [0o750, 0o711, 0o705, 0o703]) {
 		chmodSync(folder, mode);
 		const line = `orchestration: coordinator start refused: the tmux socket's folder ${folder} is open to other users (mode ${mode.toString(8)}); chmod 700 ${folder}, or give coordinator.tmux.socket a name without a /; trying again in 1 s`;
 		assert.deepEqual([await start(socket), (statSync(folder).mode & 0o777).toString(8), existsSync(socket)], [[line], mode.toString(8), false]);
 	}
+	// A folder that is not there is not refused: tmux's own failure says so, and nothing makes the folder.
+	const missing = join(temporaryFolder(), "missing");
+	const failed = await start(join(missing, "tmux.sock"));
+	assert.deepEqual([failed.length, existsSync(missing)], [1, false]);
+	assert.match(failed[0] ?? "", /^orchestration: coordinator start failed: tmux new-session: .+; trying again in 1 s$/);
 	// A name's socket is in tmux's own folder, whatever folder arthur run runs in.
 	const [before, name] = [process.cwd(), `arthur-test-${process.pid}`];
 	process.chdir(folder);

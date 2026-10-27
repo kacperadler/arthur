@@ -3783,9 +3783,9 @@
   {
     "id": "AR0476",
     "title": "arthur doctor tells the owner to fix a committed env file with a .gitignore line that cannot help",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0476-arthur-doctor-tells-the-owner-to-fix-a-committed-env-file-with-a-gitignore-line/ticket.md",
-    "updated": "2026-10-27T06:52:42.486Z"
+    "updated": "2026-10-27T19:35:20.981Z"
   },
   {
     "id": "AR0477",
@@ -4042,16 +4042,16 @@
   {
     "id": "AR0505",
     "title": "The coordinator's role does not say that a `[forwarded from …]` text inside the owner's message is someone else's words",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0505-the-coordinator-s-role-does-not-say-that-a-forwarded-from-text-inside-the-owner/ticket.md",
-    "updated": "2026-10-27T19:34:49.789Z"
+    "updated": "2026-10-27T19:53:52.932Z"
   },
   {
     "id": "AR0506",
     "title": "The Discord plan names no rule for a forwarded message",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0506-the-discord-plan-names-no-rule-for-a-forwarded-message/ticket.md",
-    "updated": "2026-10-27T18:54:16.409Z"
+    "updated": "2026-10-27T19:55:34.221Z"
   },
   {
     "id": "AR0507",

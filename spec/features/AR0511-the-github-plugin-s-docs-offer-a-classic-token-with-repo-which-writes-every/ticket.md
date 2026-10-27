@@ -43,3 +43,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: F4 of AR0405
+- 2026-10-27: Merge AR0511 now; the owner: "AR-D202 1" (AR-D202)

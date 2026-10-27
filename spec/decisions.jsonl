@@ -406,3 +406,5 @@
 {"record":"ask","id":"AR-D204","time":"2026-10-27T20:35:16+01:00","project":"arthur","kind":"merge","question":"Merge AR0514 (spawn.md: the SSH line says keys are hidden from a job since AR0508)? Docs only, so no review ran; checks passed","options":["Merge","Wait"],"recommend":1,"ticket":"AR0514"}
 {"record":"ask","id":"AR-D205","time":"2026-10-27T20:55:41+01:00","project":"arthur","kind":"merge","question":"Merge AR0506 (Discord plan: a forwarded message is never a phone command and is marked; an edit is ignored)? Docs only, so no review ran; checks passed","options":["Merge","Wait"],"recommend":1,"ticket":"AR0506"}
 {"record":"answer","id":"AR-D205","time":"2026-10-27T20:55:41+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}
+{"record":"answer","id":"AR-D202","time":"2026-10-27T21:05:49+01:00","decided":"Merge AR0511 now","picked":1,"words":"AR-D202 1"}
+{"record":"answer","id":"AR-D203","time":"2026-10-27T21:05:50+01:00","decided":"Plan approved by the owner: plan.md at ddbaf77e; not built today","picked":1,"words":"AR-D203 1 - but do not build this today"}

@@ -3783,9 +3783,9 @@
   {
     "id": "AR0476",
     "title": "arthur doctor tells the owner to fix a committed env file with a .gitignore line that cannot help",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0476-arthur-doctor-tells-the-owner-to-fix-a-committed-env-file-with-a-gitignore-line/ticket.md",
-    "updated": "2026-10-27T19:35:20.981Z"
+    "updated": "2026-10-27T20:04:14.177Z"
   },
   {
     "id": "AR0477",
@@ -4220,5 +4220,32 @@
     "status": "planned",
     "path": "spec/features/AR0527-plan-an-activity-log-plugin-what-each-user-and-each-agent-or-the-harness-did-one/ticket.md",
     "updated": "2026-10-27T19:19:29.726Z"
+  },
+  {
+    "id": "AR0528",
+    "title": "Who did it: an actor stamp on every event, and events for commands, phone commands, schedule runs and restarts",
+    "status": "planning",
+    "path": "spec/features/AR0528-who-did-it-an-actor-stamp-on-every-event-and-events-for-commands-phone-commands/ticket.md",
+    "updated": "2026-10-27T20:06:08.949Z"
+  },
+  {
+    "id": "AR0529",
+    "title": "The activity plugin: one file per day of who did what, kept 90 days",
+    "status": "planning",
+    "path": "spec/features/AR0529-the-activity-plugin-one-file-per-day-of-who-did-what-kept-90-days/ticket.md",
+    "updated": "2026-10-27T20:06:09.854Z",
+    "after": [
+      "AR0528"
+    ]
+  },
+  {
+    "id": "AR0530",
+    "title": "`arthur log` and `/log`: read the activity log by day, user, actor, ticket or job",
+    "status": "planning",
+    "path": "spec/features/AR0530-arthur-log-and-log-read-the-activity-log-by-day-user-actor-ticket-or-job/ticket.md",
+    "updated": "2026-10-27T20:06:10.719Z",
+    "after": [
+      "AR0529"
+    ]
   }
 ]

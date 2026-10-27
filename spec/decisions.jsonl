@@ -241,3 +241,5 @@
 {"record":"answer","id":"AR-D120","time":"2026-10-27T00:55:23+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}
 {"record":"ask","id":"AR-D121","time":"2026-10-27T00:58:11+01:00","project":"arthur","kind":"merge","question":"AR0429 passed review: merge it?","options":["Merge","Hold"],"recommend":1,"ticket":"AR0429"}
 {"record":"answer","id":"AR-D121","time":"2026-10-27T00:58:11+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}
+{"record":"ask","id":"AR-D122","time":"2026-10-27T01:13:01+01:00","project":"arthur","kind":"merge","question":"AR0436 passed review: merge it?","options":["Merge","Hold"],"recommend":1,"ticket":"AR0436"}
+{"record":"answer","id":"AR-D122","time":"2026-10-27T01:13:01+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}

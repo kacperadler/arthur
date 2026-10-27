@@ -43,3 +43,4 @@ Out:
 
 - 2026-10-25: Source: F1 of AR0360
 - 2026-10-25: AR0436 approved under AR-D31, group 2; the owner: "always go with recommendation till the 8 am morning" (AR-D41)
+- 2026-10-27: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D74)

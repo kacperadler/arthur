@@ -3684,9 +3684,9 @@
   {
     "id": "AR0465",
     "title": "A value given again with `-e` sits in the tmux client's command line while it runs",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0465-a-value-given-again-with-e-sits-in-the-tmux-client-s-command-line-while-it-runs/ticket.md",
-    "updated": "2026-10-27T08:38:24.478Z"
+    "updated": "2026-10-27T08:47:34.953Z"
   },
   {
     "id": "AR0466",
@@ -3712,9 +3712,9 @@
   {
     "id": "AR0469",
     "title": "The reinstall after a failed check uses the cache the branch's install wrote",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0469-the-reinstall-after-a-failed-check-uses-the-cache-the-branch-s-install-wrote/ticket.md",
-    "updated": "2026-10-27T08:42:01.503Z"
+    "updated": "2026-10-27T08:44:40.586Z"
   },
   {
     "id": "AR0470",
@@ -3733,9 +3733,9 @@
   {
     "id": "AR0472",
     "title": "An escaped variable in an unquoted heredoc reaches the inner shell unread by the guard",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0472-an-escaped-variable-in-an-unquoted-heredoc-reaches-the-inner-shell-unread-by-the/ticket.md",
-    "updated": "2026-10-27T06:52:28.467Z"
+    "updated": "2026-10-27T08:44:49.977Z"
   },
   {
     "id": "AR0473",

@@ -3985,16 +3985,16 @@
   {
     "id": "AR0508",
     "title": "A sandboxed job reads Arthur's SSH private key, and with it gets an unconfined shell on every other machine and a push to origin",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0508-a-sandboxed-job-reads-arthur-s-ssh-private-key-and-with-it-gets-an-unconfined/ticket.md",
-    "updated": "2026-10-27T12:45:11.139Z"
+    "updated": "2026-10-27T13:11:28.377Z"
   },
   {
     "id": "AR0509",
     "title": "The sweep's copy from another machine has no size or time bound, so one machine stalls every job on it, or all of `arthur run`",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0509-the-sweep-s-copy-from-another-machine-has-no-size-or-time-bound-so-one-machine/ticket.md",
-    "updated": "2026-10-27T12:45:11.658Z"
+    "updated": "2026-10-27T12:45:22.237Z"
   },
   {
     "id": "AR0510",

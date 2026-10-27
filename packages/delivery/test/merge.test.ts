@@ -448,7 +448,7 @@ test("arthur take-main records main's HEAD only on the owner's merge decision of
 	assert.equal((await merge(job.id, "--unreviewed", "--decision", OWNER)).err, "");
 });
 
-test("a failed check resets main and names it, pushing nothing; the board's moves stay, main's own install is put back, nothing is written, the merge's cache removed", async (t) => {
+test("a failed check resets main and names it, pushing nothing; the board's moves stay, main's own install is put back over a fresh cache, nothing is written, both caches removed", async (t) => {
 	const { root, fake, git, take, worker, review, merge, head, status, bun, caches, failBun, installs } = await load(t);
 	const pushes: unknown[] = [];
 	fake.provide("github.push", (branch: unknown) => (pushes.push(branch), Promise.resolve("github: pushed")));
@@ -461,7 +461,8 @@ test("a failed check resets main and names it, pushing nothing; the board's move
 	assert.deepEqual(pushes, [{ project: "acme", branch: job.branch }], "the PASS pushed the branch; the failed merge pushed no main");
 	assert.match(merged.out, /\nnpm test: failed, 1\/2 passed\.\n[\s\S]*ℹ pass 1\nreinstall of main's dependencies, bun install --frozen-lockfile: passed\.$/);
 	assert.equal(bun(), "install --frozen-lockfile\ninstall --frozen-lockfile\n");
-	assert.deepEqual(caches().map((each) => [dirname(dirname(each)), existsSync(each)]), Array(2).fill([fake.host.folder, false]), "the reinstall's cache in the merge's folder, gone after the failed merge");
+	assert.deepEqual(caches().map((each) => [dirname(dirname(each)), existsSync(each)]), Array(2).fill([fake.host.folder, false]), "both caches in the plugin's folder, gone after the failed merge");
+	assert.notEqual(dirname(caches()[1] ?? ""), dirname(caches()[0] ?? ""), "the reinstall's cache a fresh folder, not the one the branch's install wrote");
 	const mergeCommit = git(root, "rev-parse", "ORIG_HEAD");
 	assert.deepEqual(installs, [{ project: "acme", commit: "HEAD", head: mergeCommit }, { project: "acme", commit: "HEAD", head: before }], "asked again after the reset, for main's own");
 	assert.equal(head(), before);

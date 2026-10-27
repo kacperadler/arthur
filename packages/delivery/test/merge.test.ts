@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { basename, delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
@@ -157,6 +157,22 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 	assert.match(readFileSync(join(root, "CHANGELOG.md"), "utf8"), new RegExp(`\n## \\d{4}-\\d{2}-\\d{2}\n\n### Other\n\n- AC0001 Shop \\(${hash}\\)\n$`), "rebuilt from outcome.md");
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "ticket-moved").at(-1)?.data, { id: "AC0001", project: "acme", from: "done", to: "merged" });
 	assert.equal((await merge(job.id)).err, `arthur merge: AC0001 is merged; a merge is of a ticket in-progress, review or done`);
+});
+
+test("a merge's start removes delivery's cache-* folders older than a day, as a killed merge leaves them, with what is in them; a younger one, maybe a running merge's, and another old folder stay", async (t) => {
+	const { fake, worker, merge } = await load(t);
+	const aged = (name: string, hours: number) => {
+		const path = join(fake.host.folder, name);
+		mkdirSync(join(path, "bun", "deep"), { recursive: true });
+		writeFileSync(join(path, "bun", "deep", "left"), "what the branch's install wrote\n");
+		const at = new Date(Date.now() - hours * 3_600_000);
+		utimesSync(path, at, at);
+		return path;
+	};
+	const [old, young, other] = [aged("cache-killed", 25), aged("cache-running", 23), aged("caches", 48)];
+	const merged = await merge((await worker()).id, "--unreviewed", "--decision", OWNER);
+	assert.equal(merged.code, undefined, merged.err);
+	assert.deepEqual([old, young, other].map((path) => existsSync(path)), [false, true, true]);
 });
 
 test("a review filed and pruned before the merge, as its wake tells the coordinator, still has its cost in outcome.md", async (t) => {

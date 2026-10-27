@@ -4037,5 +4037,12 @@
     "status": "planning",
     "path": "spec/features/AR0515-the-hidden-ssh-follows-home-while-openssh-finds-the-home-from-the-user-account/ticket.md",
     "updated": "2026-10-27T13:31:32.053Z"
+  },
+  {
+    "id": "AR0516",
+    "title": "Since AR0508 hides ~/.ssh, a job and a merge step cannot sign a commit when Git signs with a key there",
+    "status": "planning",
+    "path": "spec/features/AR0516-since-ar0508-hides-ssh-a-job-and-a-merge-step-cannot-sign-a-commit-when-git/ticket.md",
+    "updated": "2026-10-27T13:43:32.219Z"
   }
 ]

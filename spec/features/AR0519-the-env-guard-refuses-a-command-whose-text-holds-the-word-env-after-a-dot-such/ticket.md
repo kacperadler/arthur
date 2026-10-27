@@ -34,3 +34,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: F7 of AR0516
+- 2026-10-27: Merge AR0519 now; the owner: "AR-D211 1" (AR-D211)

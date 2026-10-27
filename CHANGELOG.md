@@ -17,6 +17,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Changed
 
+- AR0464 The stop test of a forked install process fails now and then under a merge step (93da6344)
 - AR0475 Line budgets on one line, plus a comment log, conflict on most merges of main (ae463a28)
 
 ## 2026-10-26

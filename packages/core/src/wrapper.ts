@@ -73,7 +73,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	};
 	// `quick`, `memory`, `feature`, `feature-memory`, `verdicts` and `extensions` are missing from a record an older Arthur wrote.
 	const [instruction, spent, quick, memory = "", feature = "", featureMemory = "", verdicts = "", extensions = ""] = ["continue", "cost", "quick", "memory", "feature", "feature-memory", "verdicts", "extensions"].map((name) => (existsSync(join(folder, name)) ? field(name) : undefined));
-	// A resumed run continues the agent's last session in the worktree, which is the job's own, with `resume` as its message.
+	// A resumed run continues the agent's last session in the worktree, which is the job's own, with `resume` as its message after `--`, text even when it starts with `-` or `@` (AR0487); the task `@<record>/task` goes before it, as omp includes a file only from there.
 	const args = (resume: string | undefined) => [
 		...(resume === undefined ? [] : ["--continue"]),
 		...["-p", "--mode", "json", "--auto-approve", "--tools", branch === "" ? READ_ONLY_TOOLS : WORKER_TOOLS],
@@ -86,7 +86,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		...(model ? ["--model", process.env.ARTHUR_AGENT_MODEL || model] : []),
 		...(thinking ? ["--thinking", thinking] : []),
 		...(quick ? ["--smol", quick] : []),
-		resume ?? `@${join(folder, "task")}`,
+		...(resume === undefined ? [`@${join(folder, "task")}`] : ["--", resume]),
 	];
 	// What stopped the job first, which its state says, whatever came after; `final` once nothing may resume it: its time
 	// is up, its memory went over its cap, or `arthur stop` asked. A stop that comes once the agent exited on its own leaves its

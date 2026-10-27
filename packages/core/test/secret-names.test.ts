@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { readEvents } from "../src/event-log.ts";
-import { secretNames } from "../src/secret-names.ts";
+import { namedChunks, secretNames } from "../src/secret-names.ts";
 import { fakeAgent, temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
@@ -25,7 +25,8 @@ export default { core: { timeZone: "UTC", envFile: ${JSON.stringify(envFile)}, a
 	{ name: "orchestration", options: { tokenEnv: "${NAME}" }, setup(host) {
 		const token = host.env.${NAME};
 		host.provide("projects", () => [{ name: "acme", path: import.meta.dirname, prefix: "AC" }]);
-		host.jobs.prepare(() => ({ ARTHUR_INSTALL: "echo installed for " + token }));
+		host.jobs.prepare(() => ({ ARTHUR_INSTALL: "echo installed for " + token + "; printf 'then %s' " + token.slice(0, 10) }));
+		host.provide("prompt", () => "Use the token " + token + " for the API.");
 		host.provide("token.check", () => { throw new Error("401 Unauthorized: the token " + token + " was refused"); });
 		host.commands.register({ name: "boom", doc, run: () => host.call("token.check"), phone: { about: "checks the token", reply: () => host.call("token.check") } });
 		host.commands.register({ name: "say", doc, run: () => void host.events.emit("notice", { text: "the token is " + token }) });
@@ -58,9 +59,12 @@ test("a token of the env file never lands under the home, in a line the CLI prin
 	const secrets = temporaryFolder();
 	writeFileSync(join(secrets, "env"), `${NAME}=${token}\n`);
 	const [gate, sent] = [join(secrets, "go"), join(secrets, "sent.jsonl")];
-	// An agent that came by the token (a prepare's variable it prints, a tool's output) says it on stdout, on stderr and in its
-	// final message, which blocks it on the owner with the token in the question.
-	const agent = fakeAgent({ steps: [{ stdout: `calling with ${token}` }, { stderr: `401 for ${token}` }, { waitFor: gate }, { message: `Blocked: user is ${token} still valid?` }] });
+	// An agent that came by the token (a prepare's variable it prints, a tool's output) says it on stdout, on stderr (once split
+	// across two writes) and in its final message, which blocks it on the owner with the token in the question.
+	const played = fakeAgent({ steps: [{ stdout: `calling with ${token}` }, { stderr: `401 for ${token}` }, { waitFor: gate }, { message: `Blocked: user is ${token} still valid?` }] });
+	const agent = join(secrets, "omp");
+	// Its stderr ends on the token's first characters, which wait for the pipe's end.
+	writeFileSync(agent, `#!/bin/sh\nprintf 'split ${token.slice(0, 10)}' >&2\nsleep 0.3\nprintf '${token.slice(10)} ends\\n' >&2\n'${played}' "$@"\ncode=$?\nprintf 'last ${token.slice(0, 10)}' >&2\nexit $code\n`, { mode: 0o755 });
 	const root = join(temporaryFolder(), "acme");
 	mkdirSync(root);
 	writeFileSync(join(root, ".gitignore"), ".arthur/\n");
@@ -75,7 +79,8 @@ test("a token of the env file never lands under the home, in a line the CLI prin
 	const id = runs[0]?.stdout.trim() ?? "";
 	assert.match(id, /^\d{4}-\d\d-\d\d-worker-[0-9a-f]{8}$/, runs[0]?.stderr);
 	const record = (name: string) => readFileSync(join(home, "jobs", id, name), "utf8");
-	await until("the agent's output in the log", () => existsSync(join(home, "jobs", id, "log")) && readFileSync(join(home, "jobs", id, "log"), "utf8").includes(`401 for ${NAME}`));
+	// Its stdout line: the last characters of stderr wait for more output or the pipe's end (`namedChunks`).
+	await until("the agent's output in the log", () => existsSync(join(home, "jobs", id, "log")) && readFileSync(join(home, "jobs", id, "log"), "utf8").includes(`calling with ${NAME}`));
 	runs.push(arthur(root, "steer", id, `Use ${token} only once.`), arthur(root, "hold", id));
 	// The hold's reason, which the run's end replaces.
 	assert.deepEqual([record("hold"), record("reason")], [`waits on ${NAME}`, `dependency: waits on ${NAME}`]);
@@ -85,7 +90,9 @@ test("a token of the env file never lands under the home, in a line the CLI prin
 	await until("the continued job's end", () => ended(2));
 	runs.push(arthur(root, "boom"), arthur(root, "poll"), arthur(root, "say"), arthur(root, "send", join(root, "doc.md"), "--caption", `the token ${token}`));
 	assert.deepEqual([record("task"), record("reason")], [`Call the API with the token ${NAME}.`, `user: is ${NAME} still valid?`]);
-	assert.match(record("log"), new RegExp(`install: echo installed for ${NAME}\n[\\s\\S]*installed for ${NAME}\n[\\s\\S]*calling with ${NAME}\n[\\s\\S]*401 for ${NAME}\n[\\s\\S]*arthur continue: Go on with ${NAME}\\.\n`));
+	assert.match(record("prompt"), new RegExp(`Use the token ${NAME} for the API\\.`));
+	const start = token.slice(0, 10);
+	assert.match(record("log"), new RegExp(`install: echo installed for ${NAME}[\\s\\S]*\ninstalled for ${NAME}\nthen ${start}\\[arthur [\\s\\S]*split ${NAME} ends\n[\\s\\S]*calling with ${NAME}\n[\\s\\S]*401 for ${NAME}\n[\\s\\S]*last ${start}[\\s\\S]*arthur continue: Go on with ${NAME}\\.\n`));
 	assert.deepEqual(files(join(home, "jobs", id, "steer")).map((file) => readFileSync(file, "utf8")).filter((text) => text.includes("only once")), [`Use ${NAME} only once.\n`]);
 	assert.match(runs[4]?.stderr ?? "", new RegExp(`^arthur boom: 401 Unauthorized: the token ${NAME} was refused\n$`));
 	assert.deepEqual(readFileSync(sent, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line)), [
@@ -99,8 +106,37 @@ test("a token of the env file never lands under the home, in a line the CLI prin
 	for (const file of written) assert.ok(!readFileSync(file, "utf8").includes(token), file);
 });
 
+test("a plugin's setup that fails with the token says its name in every command's line, the error and the list's reason", () => {
+	const secrets = temporaryFolder();
+	writeFileSync(join(secrets, "env"), `${NAME}=supersecret-value-123\n`);
+	const root = temporaryFolder();
+	writeFileSync(join(root, "arthur.config.ts"), `export default { core: { envFile: ${JSON.stringify(join(secrets, "env"))} }, plugins: [{ name: "orchestration", options: { tokenEnv: "${NAME}" }, setup(host) { throw new Error("setup failed with " + host.env.${NAME}); } }] };\n`);
+	const line = `plugin orchestration: setup failed: setup failed with ${NAME}`;
+	for (const args of [["spawn", "hello"], ["help"]]) {
+		const run = arthur(root, ...args);
+		assert.ok(run.stderr.includes(line), run.stderr);
+		assert.ok(!`${run.stdout}${run.stderr}`.includes("supersecret-value-123"), `${run.stdout}${run.stderr}`);
+	}
+});
+
 test("each value of 8 characters or more becomes its name, the longest first, whatever characters it holds; a shorter one stays", () => {
-	const hide = secretNames({ ARTHUR_A_KEY: "a+b.c*d?(e)$&", ARTHUR_A_LONG: "a+b.c*d?(e)$&-and-more", ARTHUR_A_PIN: "1234567" });
-	assert.equal(hide("x a+b.c*d?(e)$&-and-more y a+b.c*d?(e)$& z 1234567 abXcYd"), "x ARTHUR_A_LONG y ARTHUR_A_KEY z 1234567 abXcYd");
+	const hide = secretNames({ ARTHUR_A_KEY: "a+b.c*d?(e)$&", ARTHUR_A_LONG: "a+b.c*d?(e)$&-and-more", ARTHUR_A_PIN: "1234567", ARTHUR_A_CODE: "12345678" });
+	assert.equal(hide("x a+b.c*d?(e)$&-and-more y a+b.c*d?(e)$& z 1234567 12345678 abXcYd"), "x ARTHUR_A_LONG y ARTHUR_A_KEY z 1234567 ARTHUR_A_CODE abXcYd");
+	assert.deepEqual(hide.values, ["a+b.c*d?(e)$&-and-more", "a+b.c*d?(e)$&", "12345678"]);
 	assert.equal(secretNames({ ARTHUR_A_PIN: "1234567", ARTHUR_A_EMPTY: "" })("1234567"), "1234567");
+});
+
+test("a value a pipe splits across chunks is named whole; only an end that may start a value waits, for the next chunk or the end", () => {
+	const written: string[] = [];
+	const chunks = namedChunks(secretNames({ ARTHUR_A_TOKEN: "s3cret-t0ken" }), (text) => void written.push(text));
+	for (const chunk of ["calling with s3c", "ret-", "t0ken now and then a long line"]) chunks.push(chunk);
+	assert.deepEqual(written, ["calling with ", "", "ARTHUR_A_TOKEN now and then a long line"]);
+	chunks.push(" and last s3cret-t0ke");
+	assert.equal(written.at(-1), " and last ");
+	chunks.end();
+	assert.equal(written.join(""), "calling with ARTHUR_A_TOKEN now and then a long line and last s3cret-t0ke");
+	const bare: string[] = [];
+	const none = namedChunks(secretNames({}), (text) => void bare.push(text));
+	none.push("all at once s");
+	assert.deepEqual(bare, ["all at once s"]);
 });

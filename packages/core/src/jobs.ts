@@ -111,8 +111,8 @@ export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run
 	roles(project?: string): Promise<RoleView[]>;
 };
 
-// `folder` is the config's, with its `envFile`, and in the repository jobs start from while no plugin provides `projects` (job-checkout.ts); `limits` are the core's `jobs` options and the jobs' slice, `agent` its `agent.command`; `collect` reads what the plugins provide, e.g. a prompt's sections and the project list.
-export function jobRunner(home: string, folder: string, envFile: string, limits: Limits & Slice & { readonly idleMinutes: number; readonly offlineGraceMinutes: number }, agent: string, time: Clock, bus: Bus, collect: Collect): JobRunner {
+// `folder` is the config's, with its `envFile`, and in the repository jobs start from while no plugin provides `projects` (job-checkout.ts); `limits` are the core's `jobs` options and the jobs' slice, `agent` its `agent.command`; `collect` reads what the plugins provide, e.g. a prompt's sections and the project list; `hide` names each env value in the prompt (secret-names.ts).
+export function jobRunner(home: string, folder: string, envFile: string, limits: Limits & Slice & { readonly idleMinutes: number; readonly offlineGraceMinutes: number }, agent: string, time: Clock, bus: Bus, collect: Collect, hide = (text: string) => text): JobRunner {
 	const [kinds, roles, machines] = [kindRegistry(), roleRegistry(), machineRegistry(home)];
 	const where = (project: string | undefined) => checkout(folder, collect("projects", []), project);
 	const [checks, prepares, extensions] = [spawnChecks(home), [] as { readonly owner: string; readonly fn: Prepare }[], [] as string[]];
@@ -172,12 +172,12 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 				let [warnings, added, env] = [[] as string[], false, {} as Readonly<Record<string, string>>];
 				try {
 					// A worktree on another machine: the project's files the prompt reads come from the main checkout.
-					const built = prompt(role, there === undefined ? job.worktree : root, files, () => collect("prompt", [role.name, job]));
+					const built = prompt(role, there === undefined ? job.worktree : root, files, () => collect("prompt", [role.name, job])), named = hide(built.prompt);
 					warnings = [...built.warnings, ...(there !== undefined && preset.mcp ? [`MCP servers left out on ${machine.name}, which Arthur sends no MCP secret (arthur spawn --help, "On another machine"): ${Object.keys(preset.mcp).join(", ")}`] : [])];
 					const [own, since] = [{ resumeOnBudget: kind.resumeOnBudget === true, verdicts: kind.verdicts ?? [], extensions }, time.now()];
-					if (there !== undefined) addThere(machine, { job: { ...job, root: there }, prompt: built.prompt, kind: own, idleMinutes: limits.idleMinutes, since: since.toISOString() });
+					if (there !== undefined) addThere(machine, { job: { ...job, root: there }, prompt: named, kind: own, idleMinutes: limits.idleMinutes, since: since.toISOString() });
 					added = true;
-					writeRecord(home, job, built.prompt, own, limits.idleMinutes, since, checkouts(collect("projects", [])), { folder, envFile }, there === undefined ? preset.mcp : undefined);
+					writeRecord(home, job, named, own, limits.idleMinutes, since, checkouts(collect("projects", [])), { folder, envFile }, there === undefined ? preset.mcp : undefined);
 					release();
 					env = await prepared(job, false);
 				} catch (error) {

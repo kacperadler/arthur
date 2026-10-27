@@ -159,6 +159,22 @@ test("the sweep's copy of a job on another machine names each env value in its l
 	for (const file of files) assert.ok(!readFileSync(file, "utf8").includes("s3cret-t0ken-123"), file);
 });
 
+test("a sweep's copy of the log a job on another machine appended since the last one names each env value", async () => {
+	const gate = join(temporaryFolder(), "go");
+	const agent = fakeAgent({ steps: [{ stderr: "first line" }, { waitFor: gate }, { stderr: "401 for s3cret-t0ken-123" }, { message: "Done." }] });
+	const { home, there, jobs } = setup({ agent, hide: secretNames({ ARTHUR_TEST_TOKEN: "s3cret-t0ken-123" }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	assert.equal(job.failed, undefined);
+	await until("the first line there", () => existsSync(join(there, "jobs", job.id, "log")) && read(there, job.id, "log").includes("first line\n"));
+	jobs.sweep();
+	assert.match(read(home, job.id, "log"), /first line\n/);
+	writeFileSync(gate, "");
+	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
+	jobs.sweep();
+	assert.match(read(home, job.id, "log"), /first line\n[\s\S]*401 for ARTHUR_TEST_TOKEN\n/);
+	assert.doesNotMatch(read(home, job.id, "log"), /s3cret-t0ken-123/);
+});
+
 test("the push of a job's base to another machine and the fetch of its branch back are refused while the checkout's own config sets a key that may name a program", async () => {
 	const gate = join(temporaryFolder(), "go");
 	const { root, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Built it.", cost: 0 }] }) });

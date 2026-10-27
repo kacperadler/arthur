@@ -1,6 +1,6 @@
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
-import { chmodSync, type Dirent, existsSync, lstatSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { basename, dirname, join, relative } from "node:path";
+import { chmodSync, type Dirent, existsSync, lstatSync, readdirSync, readFileSync, readlinkSync, realpathSync, rmSync, statSync } from "node:fs";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 
 // The steps `arthur merge` runs on main once the branch is in (spec/roadmap.md, entry 54): the project's install, as the
 // projects plugin answers `projects.install` for the merge commit, the one a new worktree gets, then the `check` and `test`
@@ -20,7 +20,7 @@ const MAX_BUFFER = 64 * 2 ** 20;
 // under the jobs' slice `slice`, as a job runs, stopped once the step ended, so what its scripts leave behind is killed; with no
 // user manager to make one (the probe's systemd-run fails), out of a scope, which one `uncapped:` line says. A step still running
 // `limitSeconds` after it started is killed (SIGKILL) and fails, `timed out after <n> s` its error (AR0374). After each step,
-// passed or failed, every `.git` below the checkout's top that was not there, the same, before the first is removed, one line each (AR0463).
+// passed or failed, every repository below the checkout's top that was not there, the same, before the first is removed, one line each (AR0463, AR0466).
 export function stepRunner(root: string, slice: string, sandbox: (command: string) => [string, string[]], log: (line: string) => void, limitSeconds: number): Run {
 	const scope = (unit: string) => ["--user", "--scope", "--quiet", "--collect", `--slice=${slice}.slice`, `--unit=${unit}`, "-p", "KillSignal=SIGKILL", "--"];
 	const probe = spawnSync("systemd-run", [...scope(`arthur-merge-${process.pid}-0.scope`), "true"], { encoding: "utf8" });
@@ -49,22 +49,48 @@ export function stepRunner(root: string, slice: string, sandbox: (command: strin
 	};
 }
 
-// Each `.git` below the checkout's top by its path from `root`, stamped; not walked: the checkout's own, a `.git`'s inside, a symlink's target.
+// Each repository below the checkout's top by its path from `root`, stamped: a `.git`; a folder holding a `HEAD`, which git takes
+// as a Git folder whatever its name; a symlink `escapes` (AR0466). Not walked: the checkout's own `.git`, a repository's inside, a symlink's target.
 function repositories(root: string): Map<string, string> {
 	const found = new Map<string, string>();
+	const top = realpathSync(root);
 	const folders = [root];
 	for (let folder = folders.pop(); folder !== undefined; folder = folders.pop()) {
-		for (const entry of entries(folder)) {
+		const listed = entries(folder);
+		if (folder !== root && listed.some((entry) => entry.name === "HEAD")) {
+			found.set(relative(root, folder), stamp(folder));
+			continue;
+		}
+		for (const entry of listed) {
 			const path = join(folder, entry.name);
-			if (entry.name !== ".git") {
-				if (entry.isDirectory()) folders.push(path);
-			} else if (folder !== root) found.set(relative(root, path), stamp(path));
+			if (entry.name === ".git") {
+				if (folder !== root) found.set(relative(root, path), stamp(path));
+			} else if (entry.isDirectory()) folders.push(path);
+			else if (entry.isSymbolicLink() && escapes(top, path)) found.set(relative(root, path), stamp(path));
 		}
 	}
 	return found;
 }
 
-// A `.git` by the inode, owner, group, mode and change time, which a write, a rename, a chmod, a chgrp or an ACL sets and no step
+// Whether a git call through the symlink `link` would look for a repository where the sweep does not walk: its target is a folder
+// outside the checkout's real top `top`, or in its `.git`. A dangling one is judged by its nearest existing folder and the rest of
+// its path, as a folder may come there later; one to a file stays, as no git call runs in it (a venv's `python`).
+function escapes(top: string, link: string): boolean {
+	let rest = "";
+	for (let path = resolve(dirname(link), readlinkSync(link)); ; [path, rest] = [dirname(path), join(basename(path), rest)]) {
+		let real: string;
+		try {
+			real = realpathSync(path);
+		} catch {
+			continue;
+		}
+		if (rest === "" && !statSync(real).isDirectory()) return false;
+		const first = relative(top, join(real, rest)).split(sep)[0];
+		return first === ".." || first === ".git";
+	}
+}
+
+// A repository by the inode, owner, group, mode and change time, which a write, a rename, a chmod, a chgrp or an ACL sets and no step
 // can set back, of itself and, in a folder, of every entry below it, so a step's write in one there before (its `config`, a hook)
 // counts too; "unreadable" for one a step closed. What a git read changes there does not count (AR0467): an `index` (`git status`
 // rewrites one, a linked worktree's in `worktrees/<name>/`) and its `sharedindex.<hash>` (`core.splitIndex`), which run nothing,
@@ -87,7 +113,7 @@ function stamp(path: string): string {
 	}
 }
 
-// A folder a step made unreadable is made readable for its owner first, so no `.git` hides in it; one that stays so a step never wrote.
+// A folder a step made unreadable is made readable for its owner first, so no repository hides in it; one that stays so a step never wrote.
 function entries(folder: string): Dirent[] {
 	try {
 		return readdirSync(folder, { withFileTypes: true });

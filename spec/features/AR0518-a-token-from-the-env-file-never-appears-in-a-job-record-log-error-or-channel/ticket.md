@@ -40,3 +40,4 @@ Out:
 - 2026-10-27: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
 - 2026-10-27: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
 - 2026-10-27: AR0518 another round: the sweep copy names the log and result with the host hide, then review round 3; the owner: "AR-D194 1" (AR-D194)
+- 2026-10-27: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)

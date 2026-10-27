@@ -3874,9 +3874,9 @@
   {
     "id": "AR0487",
     "title": "An `arthur continue` instruction that starts with `-` is an option of `omp`",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0487-an-arthur-continue-instruction-that-starts-with-is-an-option-of-omp/ticket.md",
-    "updated": "2026-10-27T21:26:09.021Z",
+    "updated": "2026-10-27T21:30:33.208Z",
     "after": [
       "AR0511",
       "AR0514",
@@ -4021,9 +4021,9 @@
   {
     "id": "AR0503",
     "title": "`--no-ci` is a bare flag, \"on the owner's word only\", with no recorded decision",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0503-no-ci-is-a-bare-flag-on-the-owner-s-word-only-with-no-recorded-decision/ticket.md",
-    "updated": "2026-10-27T21:08:19.359Z",
+    "updated": "2026-10-27T21:26:31.822Z",
     "after": [
       "AR0511",
       "AR0514",
@@ -4140,9 +4140,9 @@
   {
     "id": "AR0519",
     "title": "The env guard refuses a command whose text holds the word env after a dot, such as a regex on Node's environment object",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0519-the-env-guard-refuses-a-command-whose-text-holds-the-word-env-after-a-dot-such/ticket.md",
-    "updated": "2026-10-27T21:07:58.148Z",
+    "updated": "2026-10-27T21:26:29.279Z",
     "after": [
       "AR0511",
       "AR0514",

@@ -130,7 +130,7 @@ test("under umask 022 arthur run leaves the home its user's alone: a new one 070
 	const { home } = project("");
 	mkdirSync(home);
 	const plugin = { name: "orchestration", setup() {}, start() { throw new Error("no socket"); } };
-	assert.equal(await runPlugins([plugin], home, () => () => {}, () => {}, async () => [], () => {}), 1);
+	assert.equal(await runPlugins([plugin], home, () => () => {}, async () => {}, async () => [], () => {}), 1);
 	assert.equal(statSync(home).mode & 0o777, 0o700, "runPlugins");
 });
 

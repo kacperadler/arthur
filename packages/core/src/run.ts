@@ -21,7 +21,7 @@ export async function runPlugins(
 	plugins: readonly Plugin[],
 	home: string,
 	follow: (everyMs: number) => () => void,
-	sweep: () => void,
+	sweep: () => Promise<void>,
 	doctor: () => Promise<readonly DoctorLine[]>,
 	emit: (name: string, data: unknown) => void,
 ): Promise<number> {

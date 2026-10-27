@@ -99,7 +99,7 @@ export type Jobs = RoleReads & {
 };
 
 // The runner of one load; `owner` is the plugin that registers, named in refusals. `prune` keeps a record a plugin's `jobs.keep` asks for; `sweep`: dead jobs here, then the copy from every other machine.
-export type JobRunner = ReturnType<typeof jobUpkeep> & Pick<Jobs, "spawn" | "run" | "machines" | "home" | "slice" | "prompt" | "vision" | "criteria" | "registerExtension"> & {
+export type JobRunner = Omit<ReturnType<typeof jobUpkeep>, "sweep"> & { sweep(): Promise<void> } & Pick<Jobs, "spawn" | "run" | "machines" | "home" | "slice" | "prompt" | "vision" | "criteria" | "registerExtension"> & {
 	registerKind(owner: string, kind: Kind): void;
 	registerRole(owner: string, role: Role): void;
 	beforeSpawn(owner: string, check: SpawnCheck): void;
@@ -125,7 +125,7 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 	const runner: JobRunner = {
 		...upkeep,
 		...roleReads(roles, where),
-		sweep: () => void (upkeep.sweep(), syncMachines(home, machines.others(), bus, time.now(), limits.offlineGraceMinutes)),
+		sweep: async () => (upkeep.sweep(), await syncMachines(home, machines.others(), bus, time.now(), limits.offlineGraceMinutes)),
 		registerKind: (owner, kind) => kinds.register(owner, kind),
 		registerRole: (owner, role) => roles.register(owner, role),
 		registerExtension: (url) => void extensions.push(extensionPath(url)),
@@ -187,7 +187,7 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 					throw new Error(`${error instanceof Error ? error.message : String(error)}; the job's worktree and record were removed`);
 				}
 				bus.emit("core", "job-started", { id: job.id, kind: name, project, root, branch: job.branch, worktree: job.worktree, tickets, machine: machine.name });
-				const failed = there === undefined ? await launch(home, job, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), env) : launchThere(home, machine, job.id, agent, limits.slice, bus, env);
+				const failed = there === undefined ? await launch(home, job, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), env) : await launchThere(home, machine, job.id, agent, limits.slice, bus, env);
 				return { ...job, warnings, failed };
 			} finally {
 				release();

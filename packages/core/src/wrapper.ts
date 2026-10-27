@@ -6,7 +6,7 @@ import { eventBus } from "./events.ts";
 import { deadline, reached } from "./job-limits.ts";
 import { install } from "./job-install.ts";
 import { oomFirst, watchMemory } from "./job-memory.ts";
-import { cached, hidden, sandboxed, writable } from "./job-sandbox.ts";
+import { cached, hidden, sandboxed, unsigned, writable } from "./job-sandbox.ts";
 import { endScope } from "./job-scope.ts";
 import { signal, stopGroup } from "./job-stop.ts";
 import { blockedBy, current, kept, moveJob, type State } from "./job-state.ts";
@@ -126,7 +126,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		note(`agent: ${agent} ${argv.join(" ")}`);
 		const stream = agentStream(), errors = namedChunks(hide, (text) => save("log", text, true));
 		const closed = Promise.withResolvers<[number | null, NodeJS.Signals | null]>();
-		const running = oomFirst(() => spawn(...sandboxed(writable(folder, worktree, extensions), secrets, agent, note)(argv), { cwd: worktree, env: { ...process.env, ARTHUR_JOB: folder }, stdio: ["ignore", "pipe", "pipe"], detached: true }));
+		const running = oomFirst(() => spawn(...sandboxed(writable(folder, worktree, extensions), secrets, agent, note)(argv), { cwd: worktree, env: { ...process.env, ...unsigned(process.env), ARTHUR_JOB: folder }, stdio: ["ignore", "pipe", "pipe"], detached: true }));
 		[child, playing] = [running, true];
 		for (const pipe of [running.stdout, running.stderr]) pipe.setEncoding("utf8");
 		running.stdout.on("data", (chunk: string) => {

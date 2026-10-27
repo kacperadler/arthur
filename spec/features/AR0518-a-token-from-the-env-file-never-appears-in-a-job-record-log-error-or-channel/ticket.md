@@ -36,3 +36,10 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: AR0402, refused twice by the provider
+- 2026-10-27: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
+- 2026-10-27: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
+- 2026-10-27: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
+- 2026-10-27: AR0518 another round: the sweep copy names the log and result with the host hide, then review round 3; the owner: "AR-D194 1" (AR-D194)
+- 2026-10-27: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
+- 2026-10-27: AR0518 another round: a test of the appended log copy (a second sweep while the job runs), then review round 4; the owner: "AR-D196 1" (AR-D196)
+- 2026-10-27: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D74)

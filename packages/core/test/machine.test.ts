@@ -111,14 +111,14 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	const tip = git(worktree, "rev-parse", "HEAD");
 	git(root, "branch", job.branch ?? "", git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit-tree", "main^{tree}", "-p", "main", "-m", "the earlier run"));
 	assert.equal(existsSync(join(root, "..", ".arthur-worktrees", job.id)), false, "no worktree here");
-	jobs.sweep();
+	await jobs.sweep();
 	assert.equal(read(home, job.id, "state"), "working");
 	assert.equal(read(home, job.id, "pid"), read(there, job.id, "pid"), "the sweep copied the run's files");
 	writeFileSync(gate, "");
 	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
 	assert.equal(events(home, "job-ended").length, 0);
 	writeFileSync(join(hooks, "reference-transaction"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual(["state", "reason", "result", "cost"].map((name) => read(home, job.id, name)), ["ended", "finished", "Built it.", "0.2500"]);
 	assert.match(read(home, job.id, "commits"), /the change/);
 	assert.equal(git(root, "rev-parse", job.branch ?? ""), tip, "the branch is fetched over the one from the earlier run");
@@ -126,7 +126,7 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	assert.deepEqual(events(home, "job-ended"), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }]);
 	assert.deepEqual(events(home, "job-state").map((data) => [data.machine, data.to]), [["gpu", "ended"]]);
 	const copies = calls().length;
-	jobs.sweep();
+	await jobs.sweep();
 	assert.equal(calls().length, copies, "an ended job is not copied again");
 	assert.equal(events(home, "job-ended").length, 1);
 
@@ -152,7 +152,7 @@ test("the sweep's copy of a job on another machine names each env value in its l
 	assert.equal(job.failed, undefined);
 	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "blocked");
 	assert.match(read(there, job.id, "log"), /installed with s3cret-t0ken-123\n/, "the wrapper there names nothing: no env file there");
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual(["state", "reason", "result"].map((name) => read(home, job.id, name)), ["blocked", "user: is ARTHUR_TEST_TOKEN still valid?", "Blocked: user is ARTHUR_TEST_TOKEN still valid?"]);
 	assert.match(read(home, job.id, "log"), /installed with ARTHUR_TEST_TOKEN\n[\s\S]*401 for ARTHUR_TEST_TOKEN\n/);
 	const files = readdirSync(home, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile()).map((entry) => join(entry.parentPath, entry.name));
@@ -166,11 +166,11 @@ test("a sweep's copy of the log a job on another machine appended since the last
 	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
 	assert.equal(job.failed, undefined);
 	await until("the first line there", () => existsSync(join(there, "jobs", job.id, "log")) && read(there, job.id, "log").includes("first line\n"));
-	jobs.sweep();
+	await jobs.sweep();
 	assert.match(read(home, job.id, "log"), /first line\n/);
 	writeFileSync(gate, "");
 	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
-	jobs.sweep();
+	await jobs.sweep();
 	assert.match(read(home, job.id, "log"), /first line\n[\s\S]*401 for ARTHUR_TEST_TOKEN\n/);
 	assert.doesNotMatch(read(home, job.id, "log"), /s3cret-t0ken-123/);
 });
@@ -187,7 +187,7 @@ test("the push of a job's base to another machine and the fetch of its branch ba
 	git(root, "config", "remote.gpu.receivepack", "program");
 	writeFileSync(gate, "");
 	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
-	assert.throws(() => jobs.sweep(), { message: said("fetch") });
+	await assert.rejects(jobs.sweep(), { message: said("fetch") });
 	assert.equal(git(root, "branch", "--list", job.branch ?? ""), "", "its branch not brought back");
 });
 
@@ -214,7 +214,7 @@ test("the push of a job's base and the fetch of its branch run no transport help
 		git(root, "config", named, "evil::x");
 		writeFileSync(gate, "");
 		await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
-		assert.throws(() => jobs.sweep(), { message: "git fetch: fatal: transport 'evil' not allowed" });
+		await assert.rejects(jobs.sweep(), { message: "git fetch: fatal: transport 'evil' not allowed" });
 		assert.equal(git(root, "branch", "--list", job.branch ?? ""), "", "its branch not brought back");
 		assert.equal(existsSync(ran), false, "nothing run");
 	} finally {
@@ -274,7 +274,7 @@ test("a prepare's variables reach the agent there through the launch's stdin, an
 	const starts = () => readFileSync(join(dirname(omp), "starts.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line).args as string[]);
 	const [start] = starts();
 	assert.equal(start?.[start.indexOf("--model") + 1], "ollama/qwen3");
-	jobs.sweep();
+	await jobs.sweep();
 	assert.equal(read(home, job.id, "model"), "mac/qwen3");
 	rmSync(join(dirname(omp), "env"));
 	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
@@ -284,7 +284,7 @@ test("a prepare's variables reach the agent there through the launch's stdin, an
 	assert.match(again, /^OLLAMA_BASE_URL=http:\/\/100\.101\.102\.103:11434$/m);
 	const second = starts()[1] ?? [];
 	assert.deepEqual([second[second.indexOf("--model") + 1], continued], ["ollama/qwen3", [false, true]]);
-	jobs.sweep();
+	await jobs.sweep();
 	const secret = (folder: string) => readdirSync(folder, { withFileTypes: true }).filter((entry) => entry.isFile() && readFileSync(join(folder, entry.name), "utf8").includes("remote-s3cr3t")).map((entry) => entry.name);
 	assert.deepEqual([secret(join(there, "jobs", job.id)), secret(join(home, "jobs", job.id)), calls().filter((call) => call.includes("remote-s3cr3t"))], [[], [], []]);
 });
@@ -299,13 +299,13 @@ test("a job on another machine starts with none of its role's MCP servers, nor i
 	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
 	const args = JSON.parse(readFileSync(join(dirname(omp), "starts.jsonl"), "utf8").split("\n")[0] ?? "").args as string[];
 	assert.deepEqual([args.includes("--plugin-dir"), args.includes("--config")], [false, false]);
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual([existsSync(join(home, "jobs", job.id, "mcp")), existsSync(join(there, "jobs", job.id, "mcp")), calls().filter((call) => call.includes("mcp-s3cr3t"))], [false, false, []]);
 	// A continue there: no local wrapper ever removes a `mcp/` here, so none may be written (AR0337).
 	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
 	const starts = () => readFileSync(join(dirname(omp), "starts.jsonl"), "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line).args as string[]);
 	await until("the continued job's end there", () => starts().length === 2 && read(there, job.id, "state") === "ended");
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual([starts()[1]?.includes("--plugin-dir"), existsSync(join(home, "jobs", job.id, "mcp")), existsSync(join(there, "jobs", job.id, "mcp")), calls().filter((call) => call.includes("mcp-s3cr3t"))], [false, false, false, []]);
 	const local = await jobs.spawn({ task: "Build it here." });
 	// Its record's `mcp/` lies there only during its run (AR0337): the flag of its start says it got them.
@@ -341,7 +341,7 @@ test("a job on local takes no SSH step, at its spawn or at a sweep, while anothe
 	const job = await jobs.spawn({ task: "Go." });
 	assert.equal(read(home, job.id, "machine"), "local");
 	await until("the job's end", () => read(home, job.id, "state") === "ended");
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual(calls(), []);
 });
 
@@ -398,7 +398,7 @@ test("arthur steer, stop, continue and prune of a job on another machine run the
 	await endedThere(there, job.id);
 	assert.deepEqual(starts(agent).map((start) => start.cwd), [worktree, worktree], "both runs there, in its worktree");
 	assert.equal(read(there, job.id, "continue"), "Go on.");
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["ended", "finished"]);
 	// A second continue, whose wrapper does not start there, ends here at once.
 	rmSync(join(there, "jobs", job.id, "timeout"));
@@ -417,7 +417,7 @@ test("a spawn's push to another machine and a prune there run no hook and no fsm
 	const { root, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Done." }] }) });
 	const first = await jobs.spawn({ task: "Go.", machine: "gpu" });
 	await endedThere(there, first.id);
-	jobs.sweep();
+	await jobs.sweep();
 	// Each hook these steps could run there, and an fsmonitor, noting its name in `ran`, as a job's program there may have set them.
 	const [hooks, ran, repository] = [temporaryFolder(), join(temporaryFolder(), "ran"), join(there, "repos/acme.git")];
 	for (const name of ["pre-receive", "update", "post-receive", "post-update", "reference-transaction", "post-checkout", "fsmonitor"])
@@ -428,7 +428,7 @@ test("a spawn's push to another machine and a prune there run no hook and no fsm
 	const second = await jobs.spawn({ task: "Again.", machine: "gpu" });
 	assert.equal(git(repository, "rev-parse", "refs/arthur/base"), git(root, "rev-parse", "HEAD"), "the new base was pushed there");
 	await endedThere(there, second.id);
-	jobs.sweep();
+	await jobs.sweep();
 	const removed = (id: string, branch = "") => `${id}: worktree ${join(there, "repos/.arthur-worktrees", id)} removed there; branch ${branch} deleted there; branch ${branch} deleted; record deleted`;
 	assert.deepEqual(jobs.prune([first.id, second.id]), [removed(first.id, first.branch), removed(second.id, second.branch)]);
 	assert.equal(existsSync(ran) ? readFileSync(ran, "utf8") : "", "");
@@ -457,7 +457,7 @@ test("a spawn is refused before any push while the repository there sets a key t
 	assert.equal(git(repository, "rev-parse", "refs/arthur/base"), git(root, "rev-parse", "HEAD"), "pushed once the key is gone");
 	git(repository, "config", "core.alternateRefsCommand", script);
 	await endedThere(there, job.id);
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual([git(root, "branch", "--list", job.branch ?? "").trim(), existsSync(ran)], [job.branch, false], "its branch fetched back, nothing run");
 	commit(root, "second");
 	git(root, "push", "--quiet", "--receive-pack=git -c core.hooksPath=/dev/null receive-pack", repository, "HEAD:refs/heads/control");
@@ -476,7 +476,7 @@ test("a prune there is refused, removing nothing, while the job's worktree there
 	commit(worktree, "a file");
 	writeFileSync(gate, "");
 	await endedThere(there, job.id);
-	jobs.sweep();
+	await jobs.sweep();
 	const [ran, filter] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "clean")];
 	writeFileSync(filter, `#!/bin/sh\necho clean >> '${ran}'\ncat\n`, { mode: 0o755 });
 	const [old, kept] = [new Date("2000-01-01"), `${job.id}: kept its worktree, branch and record: machine gpu: arthur remote-job prune: git worktree:`];
@@ -506,7 +506,7 @@ test("a prune there reads past a replacement under refs/replace in the repositor
 	const { there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Done." }] }) });
 	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
 	await endedThere(there, job.id);
-	jobs.sweep();
+	await jobs.sweep();
 	// The worktree's commit (of no file) read as one with a file, as a job's git replace there would write: its deletion would
 	// look staged, so a plain `git worktree remove` refuses the clean worktree.
 	const repository = join(there, "repos/acme.git");
@@ -524,7 +524,7 @@ test("offline mid-job: stop, steer and continue are refused naming the machine; 
 	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
 	const worktree = join(there, "repos/.arthur-worktrees", job.id);
 	writeFileSync(join(machine, "refuse"), "");
-	jobs.sweep();
+	await jobs.sweep();
 	const reason = "dependency: machine gpu unreachable since 2026-10-16T12:00:00.000Z";
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["blocked", reason]);
 	await assert.rejects(jobs.stop(job.id), { message: UNREACHABLE });
@@ -532,17 +532,17 @@ test("offline mid-job: stop, steer and continue are refused naming the machine; 
 	await assert.rejects(jobs.continue(job.id, "Go on."), { message: UNREACHABLE });
 	commit(worktree, "while offline");
 	now.at = new Date("2026-10-16T12:29:59Z");
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["blocked", reason], "a second short of the grace");
 
 	rmSync(join(machine, "refuse"));
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual([read(home, job.id, "state"), existsSync(join(home, "jobs", job.id, "offline"))], ["working", false], "it kept running there");
 	assert.deepEqual(events(home, "job-state").map((data) => [data.to, data.reason]), [["blocked", reason], ["working", ""]]);
 	commit(worktree, "once back");
 	writeFileSync(gate, "");
 	await endedThere(there, job.id);
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["ended", "finished"]);
 	assert.deepEqual(git(root, "log", "--format=%s", job.branch ?? "").split("\n"), ["once back", "while offline", "first"]);
 	assert.equal(starts(agent).length, 1, "the agent ran once");
@@ -565,11 +565,11 @@ test("offline past the grace: failed once, the worktree there kept; its end and 
 	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
 	const worktree = join(there, "repos/.arthur-worktrees", job.id);
 	writeFileSync(join(machine, "refuse"), "");
-	jobs.sweep();
+	await jobs.sweep();
 	now.at = new Date("2026-10-16T12:30:00Z");
-	jobs.sweep();
+	await jobs.sweep();
 	now.at = new Date("2026-10-16T12:31:00Z");
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["ended", "failed: machine offline"]);
 	assert.deepEqual(events(home, "job-ended").map((data) => data.reason), ["failed: machine offline"], "failed once");
 	const line = "ended: failed: machine offline: machine gpu unreachable since 2026-10-16T12:00:00.000Z, past core.jobs.offlineGraceMinutes (30)";
@@ -580,20 +580,20 @@ test("offline past the grace: failed once, the worktree there kept; its end and 
 	assert.match(jobs.prune([job.id])[0] ?? "", /: kept: it ended here while machine gpu did not answer; /);
 
 	rmSync(join(machine, "refuse"));
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["ended", "failed: machine offline"], "back, while its run there goes on");
 	commit(worktree, "the change");
 	writeFileSync(join(machine, "refuse"), "");
 	writeFileSync(gate, "");
 	await endedThere(there, job.id);
-	jobs.sweep();
+	await jobs.sweep();
 	rmSync(join(machine, "refuse"));
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["ended", "finished"]);
 	assert.equal(git(root, "log", "-1", "--format=%s", job.branch ?? ""), "the change");
 	assert.deepEqual(events(home, "job-ended").map((data) => data.reason), ["failed: machine offline", "finished"]);
 	const copies = calls().length;
-	jobs.sweep();
+	await jobs.sweep();
 	assert.equal(calls().length, copies, "its end arrived; it is not followed any more");
 });
 
@@ -641,42 +641,100 @@ test("a copy brings only the log's new bytes, appended here; arthur remote-job r
 	const gate = join(temporaryFolder(), "go");
 	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
 	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
-	jobs.sweep();
+	await jobs.sweep();
 	const before = read(there, job.id, "log");
 	assert.equal(read(home, job.id, "log"), before);
 	appendFileSync(join(there, "jobs", job.id, "log"), "one more line ✓\n");
-	jobs.sweep();
+	// Two copies at once, as a stop's beside the sweep's: the new bytes are appended once.
+	await Promise.all([jobs.sweep(), jobs.sweep()]);
 	assert.equal(read(home, job.id, "log"), `${before}one more line ✓\n`);
 	const records = (asked: string) => {
 		const run = spawnSync(process.execPath, [CLI, "remote-job", "records", there, `${job.id}=${asked}`], { cwd: there, encoding: "utf8" });
-		return (JSON.parse(run.stdout) as Record<string, { files: Record<string, string>; logFrom: number; logSize: number }>)[job.id];
+		return (JSON.parse(run.stdout) as Record<string, { files: Record<string, string>; logFrom: number; logSize: number; logTo: number }>)[job.id];
 	};
 	const size = Buffer.byteLength(`${before}one more line ✓\n`);
 	assert.deepEqual(records(`0:${Buffer.byteLength(before)}`), { ...records("0:0"), logFrom: Buffer.byteLength(before), files: { ...records("0:0")?.files, log: "one more line ✓\n" } });
-	assert.deepEqual([records("0:0")?.logFrom, records("0:0")?.logSize, records(`0:${size + 1}`)?.logFrom], [0, size, 0], "a log shorter than asked comes whole");
+	assert.deepEqual([records("0:0")?.logFrom, records("0:0")?.logSize, records("0:0")?.logTo, records(`0:${size + 1}`)?.logFrom], [0, size, size, 0], "a log shorter than asked comes whole");
 	assert.deepEqual([records(`0:${size}`)?.logFrom, records(`0:${size}`)?.files.log], [size, ""], "caught up exactly: nothing new, not the whole log");
 	writeFileSync(gate, "");
+});
+
+test("a log grown by more than 1 MiB arrives whole over several copies, each cut at a character, and the job ends here only once all of it did", async () => {
+	const gate = join(temporaryFolder(), "go");
+	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	await jobs.sweep();
+	// 3 bytes a character: a cut 256 KiB on from a character's start falls inside one.
+	appendFileSync(join(there, "jobs", job.id, "log"), `${"✓".repeat(400_000)}\n`);
+	writeFileSync(gate, "");
+	await endedThere(there, job.id);
+	const whole = read(there, job.id, "log");
+	let copies = 0;
+	for (; read(home, job.id, "state") !== "ended" && copies < 10; copies++) {
+		await jobs.sweep();
+		const here = read(home, job.id, "log");
+		assert.ok(whole.startsWith(here), `copy ${copies + 1}: the log here is the start of the one there`);
+		if (here !== whole) assert.equal(read(home, job.id, "state"), "working", `copy ${copies + 1}: the state waits for the rest of the log`);
+	}
+	assert.equal(read(home, job.id, "log"), whole, "every byte arrived");
+	assert.deepEqual([copies, read(home, job.id, "reason"), events(home, "job-ended").length], [5, "finished", 1]);
+	// Bytes none of which starts a character (a binary log): the cut moves back 3 bytes at most, so each copy still moves on.
+	writeFileSync(join(there, "jobs", job.id, "log"), Buffer.alloc(300_000, 0x80));
+	const run = spawnSync(process.execPath, [CLI, "remote-job", "records", there, `${job.id}=0:0`], { cwd: there, encoding: "utf8" });
+	assert.equal((JSON.parse(run.stdout) as Record<string, { logTo: number }>)[job.id]?.logTo, 256 * 1024 - 3);
+});
+
+test("a copy that does not answer within 20 s counts as the machine unreachable, its jobs held, and the process answers meanwhile", async (t) => {
+	const gate = join(temporaryFolder(), "go");
+	// Ends the fake `records` there and the agent, also when an assertion fails.
+	t.after(() => writeFileSync(gate, ""));
+	const { home, machine, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	// From here `arthur remote-job records` there does not end before `gate` exists, or 30 s on, in case the kit removed the gate's
+	// folder first; every other step is this core's.
+	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\n[ "$2" = records ] && n=0 && while [ ! -e '${gate}' ] && [ $n -lt 300 ]; do sleep 0.1; n=$((n + 1)); done && exit 0\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
+	// Real timers: the copy's limit is real time on a real child process, and only a timer firing meanwhile shows the event loop free.
+	let ticks = 0;
+	const [timer, started] = [setInterval(() => ticks++, 100), Date.now()];
+	t.after(() => clearInterval(timer));
+	await jobs.sweep();
+	const waited = Date.now() - started;
+	clearInterval(timer);
+	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["blocked", "dependency: machine gpu unreachable since 2026-10-16T12:00:00.000Z"]);
+	assert.ok(waited >= 20_000 && waited < 25_000, `the copy gave up after ${waited} ms`);
+	assert.ok(ticks > 100, `the process ran ${ticks} timer ticks of 100 ms during the ${waited} ms copy`);
+});
+
+test("a copy that answers more than 64 MiB is cut here and counts as the machine unreachable, its jobs held, the process alive", async (t) => {
+	const gate = join(temporaryFolder(), "go");
+	t.after(() => writeFileSync(gate, ""));
+	const { home, machine, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	// From here `arthur remote-job records` there answers 100 MiB, past what `records` itself would send.
+	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\n[ "$2" = records ] && exec head -c 104857600 /dev/zero\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
+	await jobs.sweep();
+	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["blocked", "dependency: machine gpu unreachable since 2026-10-16T12:00:00.000Z"]);
 });
 
 test("a copy refuses a record file whose name is not a plain record key, naming it, and writes nothing of that answer", async () => {
 	const gate = join(temporaryFolder(), "go");
 	const { home, machine, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
 	const [job, other] = [await jobs.spawn({ task: "Go.", machine: "gpu" }), await jobs.spawn({ task: "Go.", machine: "gpu" })];
-	jobs.sweep();
+	await jobs.sweep();
 	// From here `arthur remote-job records` there answers by hand what `answer` holds; every other step is this core's.
 	const answer = join(machine, "answer");
 	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\n[ "$2" = records ] && exec cat '${answer}'\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
-	const copy = (files: Record<string, string>) => writeFileSync(answer, JSON.stringify({ [job.id]: { state: "working", reason: "", since: "2026-10-16T12:00:00.000Z", at: 1, logFrom: 0, logSize: 0, files } }));
+	const copy = (files: Record<string, string>) => writeFileSync(answer, JSON.stringify({ [job.id]: { state: "working", reason: "", since: "2026-10-16T12:00:00.000Z", at: 1, logFrom: 0, logSize: 0, logTo: 0, files } }));
 	writeFileSync(join(home, "outside"), "mine\n");
 	const files = (folder: string) => readdirSync(folder, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile()).map((entry) => `${join(entry.parentPath, entry.name)}: ${readFileSync(join(entry.parentPath, entry.name), "utf8")}`).sort();
 	const before = files(home);
 	for (const key of [`sub/../../${other.id}/branch`, "../../outside", "state.lock"]) {
 		copy({ cost: "9.0000", [key]: "theirs\n" });
-		assert.throws(() => jobs.sweep(), { message: `machine gpu: job ${job.id} sent a record file ${JSON.stringify(key)}; expected a name of lowercase letters, digits and dashes` });
+		await assert.rejects(jobs.sweep(), { message: `machine gpu: job ${job.id} sent a record file ${JSON.stringify(key)}; expected a name of lowercase letters, digits and dashes` });
 		assert.deepEqual(files(home), before, `${key}: nothing of the answer is written, here or elsewhere`);
 	}
 	copy({ cost: "9.0000" });
-	jobs.sweep();
+	await jobs.sweep();
 	assert.equal(read(home, job.id, "cost"), "9.0000", "a plain key is still written");
 	writeFileSync(gate, "");
 });
@@ -685,7 +743,7 @@ test("a copy refuses a record file whose name is not a plain record key, naming 
 // From the call, `arthur remote-job records` there answers by hand: each job of `ended` at its end, with those files.
 function byHand(machine: string, ended: Readonly<Record<string, Record<string, string>>>) {
 	const answer = join(machine, "answer");
-	const copy = (files: Record<string, string>) => ({ state: "ended", reason: "finished", since: "2026-10-16T12:00:00.000Z", at: 1, logFrom: 0, logSize: 0, files });
+	const copy = (files: Record<string, string>) => ({ state: "ended", reason: "finished", since: "2026-10-16T12:00:00.000Z", at: 1, logFrom: 0, logSize: 0, logTo: 0, files });
 	writeFileSync(answer, JSON.stringify(Object.fromEntries(Object.entries(ended).map(([id, files]) => [id, copy(files)]))));
 	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\n[ "$2" = records ] && exec cat '${answer}'\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
 }
@@ -694,7 +752,7 @@ test("a copy writes only the run's files: a branch, project, task and kind sent 
 	const gate = join(temporaryFolder(), "go");
 	const { root, home, machine, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
 	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
-	jobs.sweep();
+	await jobs.sweep();
 	// There, the job's branch and a branch `side` hold a commit; here, `side` is free, at `main`.
 	const worktree = join(there, "repos/.arthur-worktrees", job.id);
 	commit(worktree, "the change");
@@ -709,7 +767,7 @@ test("a copy writes only the run's files: a branch, project, task and kind sent 
 	const run = ["pid", "active", "cost", "tool-calls", "activity", "result", "commits", "budget", "continue", "cpu", "memory", "feature", "feature-cpu", "feature-memory"];
 	const theirs = Object.fromEntries(run.map((name) => [name, `theirs ${name}\n`]));
 	byHand(machine, { [job.id]: { ...sent, ...theirs, branch: "side", project: "other", hold: "theirs" } });
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual(kept.map((name) => read(home, job.id, name)), spawned, "the spawn's keys stay");
 	assert.equal(existsSync(join(home, "jobs", job.id, "hold")), false);
 	assert.deepEqual(Object.fromEntries(run.map((name) => [name, read(home, job.id, name)])), theirs, "every file of the run is copied");
@@ -728,10 +786,10 @@ test("a record here whose branch is not arthur/<id> refuses the machine's copy, 
 	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(role), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
 	const [job, review] = [await jobs.spawn({ task: "Go.", machine: "gpu" }), await jobs.spawn({ task: "Review it.", kind: "review", machine: "gpu" })];
-	jobs.sweep();
+	await jobs.sweep();
 	assert.equal(read(home, review.id, "branch"), "");
 	byHand(machine, { [review.id]: { result: "PASS" } });
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual(["state", "result"].map((name) => read(home, review.id, name)), ["ended", "PASS"]);
 	assert.equal(calls().filter((call) => call.includes("git-upload-pack")).length, 0, "nothing is fetched for a job without a branch");
 	const worktree = join(there, "repos/.arthur-worktrees", job.id);
@@ -741,7 +799,7 @@ test("a record here whose branch is not arthur/<id> refuses the machine's copy, 
 	writeFileSync(join(home, "jobs", job.id, "branch"), "side");
 	const refs = git(root, "for-each-ref", "--format=%(refname) %(objectname)");
 	byHand(machine, { [job.id]: { cost: "0.5000" } });
-	assert.throws(() => jobs.sweep(), { message: `machine gpu: job ${job.id} names the branch "side" in its record here; expected arthur/${job.id} or none` });
+	await assert.rejects(jobs.sweep(), { message: `machine gpu: job ${job.id} names the branch "side" in its record here; expected arthur/${job.id} or none` });
 	assert.equal(git(root, "for-each-ref", "--format=%(refname) %(objectname)"), refs, "side's tip is unchanged");
 	assert.deepEqual(["state", "cost"].map((name) => read(home, job.id, name)), ["working", "0.0000"]);
 	writeFileSync(gate, "");
@@ -762,31 +820,31 @@ test("a plugin's hold on a job there stands at each copy while it runs there and
 	const { home, machine, there, jobs, now } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
 	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
 	jobs.block(job.id, "waiting for AR0001");
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "hold")], ["blocked", "waiting for AR0001"]);
 	writeFileSync(join(machine, "refuse"), "");
-	jobs.sweep();
+	await jobs.sweep();
 	assert.equal(read(home, job.id, "reason"), "dependency: machine gpu unreachable since 2026-10-16T12:00:00.000Z");
 	rmSync(join(machine, "refuse"));
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["blocked", "dependency: waiting for AR0001"], "back: the hold's reason again");
 
 	// Past the grace the hold goes with the run here, so the job is no longer in a run.
 	const held = await jobs.spawn({ task: "Hold.", machine: "gpu" });
 	jobs.block(held.id, "waiting for AR0002");
 	writeFileSync(join(machine, "refuse"), "");
-	jobs.sweep();
+	await jobs.sweep();
 	now.at = new Date("2026-10-16T13:00:00Z");
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual([read(home, held.id, "reason"), existsSync(join(home, "jobs", held.id, "hold"))], ["failed: machine offline", false]);
 	rmSync(join(machine, "refuse"));
 	writeFileSync(gate, "");
 	// The held job's run there went on through the offline spell, and a copy follows it until that run ends: wait for both.
 	for (const id of [job.id, held.id]) await until("the job's end there", () => existsSync(join(there, "jobs", id, "state")) && read(there, id, "state") === "ended");
-	jobs.sweep();
+	await jobs.sweep();
 	assert.deepEqual([read(home, job.id, "state"), existsSync(join(home, "jobs", job.id, "hold"))], ["ended", false]);
 	const copies = calls().length;
-	jobs.sweep();
+	await jobs.sweep();
 	assert.equal(calls().length, copies, "a job no longer held nor in a run is not copied again");
 });
 
@@ -797,7 +855,7 @@ test("a block with stop on a job there stops its run there and holds it blocked 
 	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
 	assert.deepEqual(["feature", "feature-cpu", "feature-memory"].map((name) => read(there, job.id, name)), ["AC0001", "1", "1G"]);
 	await jobs.block(job.id, "feature cap hours reached: 8.00 h of 8 h", true);
-	jobs.sweep();
+	await jobs.sweep();
 	const reason = "user: feature cap hours reached: 8.00 h of 8 h";
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason"), existsSync(join(home, "jobs", job.id, "hold"))], ["blocked", reason, false]);
 	assert.deepEqual([read(there, job.id, "state"), read(there, job.id, "reason")], ["ended", "stopped"]);

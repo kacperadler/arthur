@@ -3992,9 +3992,9 @@
   {
     "id": "AR0509",
     "title": "The sweep's copy from another machine has no size or time bound, so one machine stalls every job on it, or all of `arthur run`",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0509-the-sweep-s-copy-from-another-machine-has-no-size-or-time-bound-so-one-machine/ticket.md",
-    "updated": "2026-10-27T14:16:03.711Z"
+    "updated": "2026-10-27T15:51:09.272Z"
   },
   {
     "id": "AR0510",
@@ -4041,22 +4041,57 @@
   {
     "id": "AR0516",
     "title": "Since AR0508 hides ~/.ssh, a job and a merge step cannot sign a commit when Git signs with a key there",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0516-since-ar0508-hides-ssh-a-job-and-a-merge-step-cannot-sign-a-commit-when-git/ticket.md",
-    "updated": "2026-10-27T14:08:08.782Z"
+    "updated": "2026-10-27T15:46:07.272Z"
   },
   {
     "id": "AR0517",
     "title": "Arthur's records, logs, sockets and locks are readable only by Arthur's own user",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0517-arthur-s-records-logs-sockets-and-locks-are-readable-only-by-arthur-s-own-user/ticket.md",
-    "updated": "2026-10-27T14:14:31.742Z"
+    "updated": "2026-10-27T16:16:33.320Z"
   },
   {
     "id": "AR0518",
     "title": "A token from the env file never appears in a job record, log, error or channel message",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0518-a-token-from-the-env-file-never-appears-in-a-job-record-log-error-or-channel/ticket.md",
-    "updated": "2026-10-27T13:51:48.518Z"
+    "updated": "2026-10-27T17:57:46.023Z"
+  },
+  {
+    "id": "AR0519",
+    "title": "The env guard refuses a command whose text holds the word env after a dot, such as a regex on Node's environment object",
+    "status": "planning",
+    "path": "spec/features/AR0519-the-env-guard-refuses-a-command-whose-text-holds-the-word-env-after-a-dot-such/ticket.md",
+    "updated": "2026-10-27T15:46:26.656Z"
+  },
+  {
+    "id": "AR0520",
+    "title": "The copy's fetch of an ended job's branch, and the spawn's SSH steps, still block `arthur run` with no time limit",
+    "status": "planning",
+    "path": "spec/features/AR0520-the-copy-s-fetch-of-an-ended-job-s-branch-and-the-spawn-s-ssh-steps-still-block/ticket.md",
+    "updated": "2026-10-27T15:51:09.260Z"
+  },
+  {
+    "id": "AR0521",
+    "title": "A machine with many jobs whose logs grew a lot may not fit its copy in 20 s over a slow link, and counts as offline",
+    "status": "planning",
+    "path": "spec/features/AR0521-a-machine-with-many-jobs-whose-logs-grew-a-lot-may-not-fit-its-copy-in-20-s-over/ticket.md",
+    "updated": "2026-10-27T15:51:09.265Z"
+  },
+  {
+    "id": "AR0522",
+    "title": "`arthur run`'s stop does not wait for a sweep's copy still in flight",
+    "status": "planning",
+    "path": "spec/features/AR0522-arthur-run-s-stop-does-not-wait-for-a-sweep-s-copy-still-in-flight/ticket.md",
+    "updated": "2026-10-27T15:51:09.269Z"
+  },
+  {
+    "id": "AR0523",
+    "title": "umask.test.ts and spawn.test.ts put their test job in the production arthur-jobs slice",
+    "status": "planning",
+    "path": "spec/features/AR0523-umask-test-ts-and-spawn-test-ts-put-their-test-job-in-the-production-arthur-jobs/ticket.md",
+    "updated": "2026-10-27T16:16:44.985Z"
   }
 ]

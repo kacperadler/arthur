@@ -23,21 +23,26 @@ F7 of AR0403 (spec/features/AR0403-security-review-of-our-own-code-part-2-inject
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+Close F7 of AR0403 (severity low): a program named in the shared Git config runs as Arthur in `arthur run`'s process, outside every sandbox and scope, every few minutes.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- The fix the security review suggests, or one that closes the same gap with less code:
+  > give `health-checks.ts`'s `git` the same `--no-replace-objects -c core.hooksPath=/dev/null -c core.fsmonitor=false` and the `configRefusal` check other main-checkout calls use, with a test on a repository whose config sets `core.fsmonitor`.
+- A test that fails before the change and passes after it, for the case the Description reproduces.
+- The project's checks pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/manage/src/health-checks.ts`
+- `packages/manage/src/manage.ts`
+- `packages/session/src/restart.ts`
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Other findings of AR0403: their own tickets (AR0482 to AR0489).
 
 ## Decisions
 

@@ -23,21 +23,24 @@ F1 of AR0403 (spec/features/AR0403-security-review-of-our-own-code-part-2-inject
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+Close F1 of AR0403 (severity high): a steered coordinator runs `arthur decision ask --kind merge --ticket <id>`, answers it, then `arthur merge <job> --unreviewed --decision <id>`, `--budget 0 --decision <id>`, or `arthur take-main --decision <id>`; the decision log then shows the owner's word he never gave. `arthur ticket status <id> planned`, `arthur spawn` and `arthur merge` after a PASS have no owner check at all (`packages/orchestration/roles/coordinator.md:85` is the only bound).
 
 - Kind: security
+- Plan: yes
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- `plan.md` in this folder: the options to close this gap, each with what it costs and what the owner would notice, and a recommendation; the security review's suggestion is one option:
+  > record the owner's answer where his message arrives, not from the coordinator's shell: the inbox keeps each `[via <channel>]` message with a number, and `decision answer` must name one (`--message <n>`) whose text holds the words given, else it refuses; or a phone command (`/answer AR-D12 <words>`) the channel plugin records without the model. Out: the policy classes themselves, except that approving one needs the same proof.
+- No code; `npm test` and `npm run check` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `plan.md` only.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Building the chosen option: follow-up tickets after the owner picks.
 
 ## Decisions
 

@@ -23,21 +23,25 @@ F6 of AR0403 (spec/features/AR0403-security-review-of-our-own-code-part-2-inject
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+Close F6 of AR0403 (severity low): an instruction such as `--tools=...`, `--hook=<file>`, `--model=<name>` or `--version` changes how the resumed agent runs or ends it at once; one starting with `@` includes a file. The agent still runs in the job's sandbox, so the reach is that sandbox's.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- The fix the security review suggests, or one that closes the same gap with less code:
+  > put `--` before the message in `args` (`wrapper.ts:88`), for the task's `@<record>/task` as well; a test that a continue with `--version` reaches the fake agent as its message.
+- A test that fails before the change and passes after it, for the case the Description reproduces.
+- The project's checks pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/job-control.ts`
+- `packages/core/src/wrapper.ts`
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Other findings of AR0403: their own tickets (AR0482 to AR0489).
 
 ## Decisions
 

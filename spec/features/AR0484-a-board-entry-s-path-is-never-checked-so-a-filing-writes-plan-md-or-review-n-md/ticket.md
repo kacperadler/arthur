@@ -23,21 +23,31 @@ F3 of AR0403 (spec/features/AR0403-security-review-of-our-own-code-part-2-inject
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+Close F3 of AR0403 (severity medium): `arthur ticket file`, run outside any sandbox, writes a plan job's or a review job's final message as `plan.md`, `plan-review-N.md` or `review-N.md` into any folder Arthur's user can write (a folder whose `.md` files an agent loads as rules is one), and `arthur task` prints any `ticket.md` or `plan.md` the path names.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- The fix the security review suggests, or one that closes the same gap with less code:
+  > `entryProblem` refuses a `path` that is not `spec/features/<its own id>-<slug>/ticket.md` with a slug of `[a-z0-9-]` (the shape `delivery.ts:27` already reads); add `spec/build.json` to the always-review list.
+- A test that fails before the change and passes after it, for the case the Description reproduces.
+- The project's checks pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/board-file.ts`
+- `packages/core/src/ticket-file.ts`
+- `packages/delivery/src/changelog.ts`
+- `packages/delivery/src/review-file.ts`
+- `packages/manage/src/stats.ts`
+- `packages/orchestration/src/autopilot.ts`
+- `packages/orchestration/src/board-commands.ts`
+- `packages/orchestration/src/plan-file.ts`
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Other findings of AR0403: their own tickets (AR0482 to AR0489).
 
 ## Decisions
 

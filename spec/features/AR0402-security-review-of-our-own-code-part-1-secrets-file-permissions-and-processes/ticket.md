@@ -43,3 +43,4 @@ Out:
 - 2026-10-27: AR0402 approved by the owner (morning of 2026-10-27, one list of 18); the owner: "apprvoed: AR0467, AR0466, AR0471-AR0473, AR0464, AR0465, AR0468-AR0470, AR0474-AR0477, AR0402-AR0405" (AR-D138)
 - 2026-10-27: AR0402 held for the owner: no retry around the provider refusal; the worker is left as it is; the owner: "keep going till 88% of Claude 7 Day limit, go silent and always go with recommendations" (AR-D152)
 - 2026-10-27: Complete AR0402: continue its worker once on the same task and model, at the 7-day usage of 88%; the owner: "complete AR-D152, AR-D153" (AR-D177)
+- 2026-10-27: Drop AR0402; approve AR0517 and AR0518 and start them now; the owner: "AR-D185 1" (AR-D185)

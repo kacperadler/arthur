@@ -3134,9 +3134,9 @@
   {
     "id": "AR0402",
     "title": "Security review of our own code, part 1: secrets, file permissions and processes",
-    "status": "in-progress",
+    "status": "dropped",
     "path": "spec/features/AR0402-security-review-of-our-own-code-part-1-secrets-file-permissions-and-processes/ticket.md",
-    "updated": "2026-10-27T07:35:46.174Z",
+    "updated": "2026-10-27T13:51:47.023Z",
     "after": [
       "AR0432",
       "AR0350",
@@ -4048,15 +4048,15 @@
   {
     "id": "AR0517",
     "title": "Arthur's records, logs, sockets and locks are readable only by Arthur's own user",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0517-arthur-s-records-logs-sockets-and-locks-are-readable-only-by-arthur-s-own-user/ticket.md",
-    "updated": "2026-10-27T13:50:43.380Z"
+    "updated": "2026-10-27T13:51:47.790Z"
   },
   {
     "id": "AR0518",
     "title": "A token from the env file never appears in a job record, log, error or channel message",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0518-a-token-from-the-env-file-never-appears-in-a-job-record-log-error-or-channel/ticket.md",
-    "updated": "2026-10-27T13:50:44.241Z"
+    "updated": "2026-10-27T13:51:48.518Z"
   }
 ]

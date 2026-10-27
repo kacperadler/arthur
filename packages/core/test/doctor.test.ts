@@ -215,8 +215,13 @@ test("arthur doctor: an env file in a Git checkout that does not ignore it is a 
 	assert.deepEqual(line(), [0, "core env ignored: ok"]);
 	writeFileSync(join(folder, "env"), "ARTHUR_X=1\n");
 	git("add", "-f", "env");
-	assert.deepEqual(line(), [1, missing], "a file Git already tracks is not ignored");
-	git("rm", "-q", "--cached", "env");
+	git("-c", "user.name=test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "env");
+	const tracked = `core env ignored: missing: the env file ${join(folder, "env")} is tracked by the Git checkout ${folder}, so no .gitignore line ignores it, and every commit that holds it keeps its values; without it: a commit there takes its values into the repository, and a push sends them to every clone; fix: git -C ${folder} rm --cached -- env, commit, and rotate every value it held: the history keeps them`;
+	assert.deepEqual(line(), [1, tracked], "a file Git already tracks, though .gitignore names it");
+	git("rm", "--cached", "--", "env");
+	assert.deepEqual(line(), [0, "core env ignored: ok"], "untracked again, the .gitignore line holds");
+	writeFileSync(join(folder, ".gitignore"), "");
+	assert.deepEqual(line(), [1, missing], "untracked and not ignored: the .gitignore fix again");
 	mkdirSync(join(folder, "secrets"));
 	writeFileSync(join(folder, "arthur.config.ts"), 'export default { core: { envFile: "secrets/vars" }, plugins: [{ name: "orchestration", setup() {} }] };\n');
 	assert.match(String(line()[1]), new RegExp(`^core env ignored: missing: the env file ${join(folder, "secrets", "vars")} lies in the Git checkout ${folder}, `), "in a folder below the checkout's top");

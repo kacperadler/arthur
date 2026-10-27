@@ -67,10 +67,11 @@ export type Host = {
 	readonly agent: string;
 	// The sandbox of branch code a plugin runs outside a job, as a job's install runs in (delivery's checks on main): a function
 	// from a shell command to the command and arguments that run it by `sh -c` writing only in the checkout `folder` (each
-	// entry but `.git`, Arthur's home, config and env file; of `.git` its objects, refs, logs and index), the package managers'
-	// caches, the temporary folder and `/dev`, reading every file but the env file, and no other process's environment; where it
-	// cannot be set up, `note` gets one line, `no sandbox: <why>; each step writes wherever Arthur's user can`, and it runs bare.
-	sandbox(folder: string, note: (line: string) => void): (command: string) => [string, string[]];
+	// entry but `.git`, Arthur's home, config and env file; of `.git` its objects, refs, logs and index), the folder `cache`,
+	// made if missing, where the package managers' caches go (the plugin's own, which it removes), the temporary folder and
+	// `/dev`, reading every file but the env file, and no other process's environment; where it cannot be set up, `note` gets
+	// one line, `no sandbox: <why>; each step writes wherever Arthur's user can`, and it runs bare, its caches in `cache` still.
+	sandbox(folder: string, cache: string, note: (line: string) => void): (command: string) => [string, string[]];
 	// The package folders this load runs, the core's, then each enabled plugin's around its `module` if any (the session plugin's restart guard watches their `src/`); `package`, this plugin's own.
 	readonly code: readonly string[];
 	readonly package?: string;

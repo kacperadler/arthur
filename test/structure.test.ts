@@ -752,9 +752,16 @@ import { checkStructure } from "./structure.ts";
 // Nothing was cut.
 // AR0388 (F1 of AR0377, a security ticket; AR-D117): core 3 more (6328) for the guard's `$XDG_CONFIG_HOME/systemd` line (job-place.ts, git diff --numstat +7 -4).
 // Merged main (AR0434, AR0463) into AR0374: main's budgets plus AR0374's delivery 1513 (recounted with wc -l).
+// AR0454 (F1 of AR0449, a security ticket; the task allows the raise): core 2 more (6327) for the install's and each step's own
+// package caches in place of the shared ones, the `env` arguments that point them there and the folder `host.sandbox` takes
+// (job-sandbox.ts, git diff --numstat +13 -12; plugin.ts +5 -4), and delivery 6 more (1442) for each merge's cache folder, made
+// before its steps and removed after them, the reinstall's included (merge-command.ts +24 -18). The shared caches' list was cut.
+// Merged main (AR0463, AR0374) into AR0454: main's budgets plus AR0454's raises (recounted with wc -l).
 // Merged main (AR0374) into AR0388: main's budgets plus AR0388's core 6328 (recounted with wc -l).
 // Merged main (AR0374, AR0388) into AR0343: main's budgets plus AR0343's core 6343 (recounted).
-const BUDGETS = { core: 6343, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1513, github: 659, manage: 928, develop: 706, findings: 254 };
+// Merged main (AR0388) into AR0454: main's budgets plus AR0454's raises (recounted with wc -l).
+// Merged main (AR0454, AR0429) into AR0343: main's budgets plus AR0343's core 6345 (recounted).
+const BUDGETS = { core: 6345, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1519, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

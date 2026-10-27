@@ -161,15 +161,18 @@ test("without python3, or where it cannot set up the sandbox, the agent runs as 
 	assert.deepEqual(lines, why.map((reason) => `no sandbox: ${reason}; the agent writes wherever Arthur's user can`));
 });
 
-test("without python3, the install and each step of a plugin's sandbox run bare too, the install's log and the plugin told once why", (t) => {
+test("without python3, the install and each step of a plugin's sandbox run bare too, the install's log and the plugin told once why; a step's caches are still its own", (t) => {
 	const path = process.env.PATH;
 	t.after(() => (process.env.PATH = path));
 	process.env.PATH = temporaryFolder();
 	const lines: string[] = [];
 	const note = (line: string) => lines.push(line);
 	assert.deepEqual(sandboxed(["/tmp"], [], "sh", note, "the install")(["-c", "npm ci"]), ["sh", ["-c", "npm ci"]]);
-	const step = stepSandbox("/tmp", { envFile: "/nowhere/env", home: "/nowhere/home", config: "/nowhere/arthur.config.ts" }, note);
-	assert.deepEqual([step("npm ci"), step("npm test")], [["sh", ["-c", "npm ci"]], ["sh", ["-c", "npm test"]]]);
+	const cache = join(temporaryFolder(), "merge", "cache");
+	const step = stepSandbox("/tmp", cache, { envFile: "/nowhere/env", home: "/nowhere/home", config: "/nowhere/arthur.config.ts" }, note);
+	process.env.PATH = path;
+	const ran = spawnSync(...step('echo "$npm_config_cache $BUN_INSTALL_CACHE_DIR $XDG_CACHE_HOME $PNPM_HOME $COMPOSER_CACHE_DIR"'), { encoding: "utf8" });
+	assert.deepEqual([ran.stdout, existsSync(cache)], [`${[join(cache, "npm"), join(cache, "bun"), cache, join(cache, "pnpm-home"), join(cache, "composer")].join(" ")}\n`, true]);
 	const why = process.platform === "linux" ? "python3: spawnSync python3 ENOENT" : `${process.platform} has no Landlock`;
 	assert.deepEqual(lines, [`no sandbox: ${why}; the install writes wherever Arthur's user can`, `no sandbox: ${why}; each step writes wherever Arthur's user can`]);
 });
@@ -213,12 +216,14 @@ test("a merge step writes main's checkout but not its Git config, hooks or info,
 	process.env.TMPDIR = join(folder, "tmp");
 	mkdirSync(process.env.TMPDIR);
 	const lines: string[] = [];
-	const step = stepSandbox(root, { envFile, home, config }, (line) => lines.push(line));
+	const cache = join(home, "delivery", "cache-1");
+	const step = stepSandbox(root, cache, { envFile, home, config }, (line) => lines.push(line));
 	const writes = {
 		"a file in a folder": "echo x > src/made",
 		"a top-level file in place": "echo x >> README.md",
 		"beside the home": "echo x > ops/notes/made",
 		"a Git object": "echo x | git hash-object -w --stdin >/dev/null",
+		"its cache in the home": 'mkdir -p "$npm_config_cache/_npx" && echo x > "$XDG_CACHE_HOME/made"',
 		"a new top-level file": "echo x > made",
 		"a Git hook": "printf '#!/bin/sh\\ntouch planted\\n' > .git/hooks/post-commit && chmod +x .git/hooks/post-commit",
 		"the Git config": "git config core.fsmonitor 'touch planted'",
@@ -230,7 +235,8 @@ test("a merge step writes main's checkout but not its Git config, hooks or info,
 		"a new folder beside the home": "mkdir ops/made",
 	};
 	const ran = spawnSync(...step(tries(writes)), { cwd: root, encoding: "utf8" });
-	assert.deepEqual(ran.stdout.trim().split("\n"), Object.keys(writes).map((name, at) => `${name} ${at < 4 ? "written" : "refused"}`));
+	assert.deepEqual(ran.stdout.trim().split("\n"), Object.keys(writes).map((name, at) => `${name} ${at < 5 ? "written" : "refused"}`));
+	assert.deepEqual([existsSync(join(cache, "npm", "_npx")), readFileSync(join(cache, "made"), "utf8")], [true, "x\n"]);
 	const planted = spawnSync(...step("echo x > .git/hooks/post-commit; git config core.fsmonitor 'touch planted'"), { cwd: root, encoding: "utf8" });
 	assert.deepEqual([planted.status, planted.stderr.match(/Permission denied/g)?.length], [255, 2], planted.stderr);
 	assert.equal(readFileSync(gitConfig, "utf8"), before);
@@ -240,7 +246,7 @@ test("a merge step writes main's checkout but not its Git config, hooks or info,
 	assert.match(spawnSync("git", ["-C", root, "status", "--porcelain"], { encoding: "utf8" }).stdout, /^ M README\.md$/m);
 	// An env file in a folder not there leaves the rest writable; a home that is the checkout keeps all of it.
 	for (const [arthur, result] of [[{ envFile: join(root, "missing", "env"), home, config }, "written"], [{ envFile, home: root, config }, "refused"]] as const) {
-		const again = spawnSync(...stepSandbox(root, arthur, (line) => lines.push(line))(tries({ "a file in a folder": "echo y > src/made" })), { cwd: root, encoding: "utf8" });
+		const again = spawnSync(...stepSandbox(root, cache, arthur, (line) => lines.push(line))(tries({ "a file in a folder": "echo y > src/made" })), { cwd: root, encoding: "utf8" });
 		assert.equal(again.stdout, `a file in a folder ${result}\n`, arthur.home);
 	}
 	assert.deepEqual(lines, []);
@@ -343,18 +349,23 @@ test("a sandboxed job's command cannot read the environment of the arthur run th
 	assert.match(readFileSync(join(record, "log"), "utf8"), /\] sandbox: the agent writes only in /);
 });
 
-test("a job's install runs in its sandbox: it writes its worktree and the caches, not beside them, and reads neither the arthur run's environment nor the env file", { skip: bare }, async (t) => {
+test("a job's install runs in its sandbox: it writes its worktree and its own caches in the record, never the shared ones (~/.npm/_npx) nor beside them, and reads neither the arthur run's environment nor the env file", { skip: bare }, async (t) => {
 	const { folder, root, home } = repository();
 	writeFileSync(join(root, "env"), "ARTHUR_SECRET_TOKEN=s3cret-t0ken\n");
-	const [cache, temporary] = [join(folder, "cache"), join(folder, "tmp")];
-	mkdirSync(join(cache, "pnpm"), { recursive: true });
+	// The arthur run's own HOME, with the shared caches an install wrote before AR0454: npm's `_npx`, and pnpm's in XDG_CACHE_HOME.
+	const [user, shared, temporary] = [join(folder, "user"), join(folder, "cache"), join(folder, "tmp")];
+	mkdirSync(join(user, ".npm", "_npx"), { recursive: true });
+	mkdirSync(join(shared, "pnpm"), { recursive: true });
 	mkdirSync(temporary);
+	// What an `npx` planted in the shared cache would be, as Node's own mkdir reports it, then where npm's cache is.
+	const npx = join(folder, "npx.cjs");
+	writeFileSync(npx, 'const { join } = require("node:path");\ntry {\n\trequire("node:fs").mkdirSync(join(require("node:os").homedir(), ".npm", "_npx", "x"));\n\tconsole.log("written");\n} catch (error) {\n\tconsole.log(error.code);\n}\nconsole.log(process.env.npm_config_cache);\n');
 	const reads = `{ tr '\\0' '\\n' < "/proc/$RUNNER_PID/environ" || echo refused; } > environ 2>&1; { cat '${join(root, "env")}' || echo refused; } > env 2>&1`;
-	const writes = tries({ worktree: "echo x > made", cache: `echo x > '${join(cache, "pnpm", "store")}'`, beside: `echo x > '${join(folder, "planted")}'` });
-	const env = { TMPDIR: temporary, XDG_CACHE_HOME: cache, ARTHUR_INSTALL: `${reads}\n{\n${writes}\n} > writes` };
+	const writes = tries({ worktree: "echo x > made", "own npm cache": 'mkdir -p "$npm_config_cache/_npx/x"', "shared pnpm cache": `echo x > '${join(shared, "pnpm", "store")}'`, beside: `echo x > '${join(folder, "planted")}'` });
+	const env = { TMPDIR: temporary, XDG_CACHE_HOME: shared, ARTHUR_INSTALL: `${reads}\n'${process.execPath}' '${npx}' > npx\n{\n${writes}\n} > writes` };
 	const agent = join(folder, "agent");
 	writeFileSync(agent, "#!/bin/sh\necho ran > ran\n", { mode: 0o755 });
-	const child = spawn(process.execPath, ["--input-type=module", "-e", runner, JSON.stringify([home, root, agent, jobSlice, env])], { env: { ...process.env, ARTHUR_TEST_TOKEN: "shell-t0ken" }, stdio: ["pipe", "inherit", "inherit"] });
+	const child = spawn(process.execPath, ["--input-type=module", "-e", runner, JSON.stringify([home, root, agent, jobSlice, env])], { env: { ...process.env, HOME: user, ARTHUR_TEST_TOKEN: "shell-t0ken" }, stdio: ["pipe", "inherit", "inherit"] });
 	t.after(() => child.kill("SIGKILL"));
 	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
 	assert.match(readFileSync(`/proc/${child.pid}/environ`, "utf8"), /(^|\0)ARTHUR_TEST_TOKEN=shell-t0ken\0/, "a process outside the sandbox reads the secret");
@@ -367,11 +378,14 @@ test("a job's install runs in its sandbox: it writes its worktree and the caches
 		assert.match(read(name), /Permission denied\nrefused\n$/, name);
 		assert.doesNotMatch(read(name), /shell-t0ken|s3cret-t0ken/, name);
 	}
-	assert.deepEqual(read("writes").split("\n"), ["worktree written", "cache written", "beside refused", ""]);
-	assert.equal(readFileSync(join(cache, "pnpm", "store"), "utf8"), "x\n");
+	assert.equal(read("npx"), `EACCES\n${join(record, "cache", "npm")}\n`);
+	assert.deepEqual(readdirSync(join(user, ".npm", "_npx")), [], "nothing planted in the shared npx cache");
+	assert.deepEqual(read("writes").split("\n"), ["worktree written", "own npm cache written", "shared pnpm cache refused", "beside refused", ""]);
+	assert.deepEqual([existsSync(join(record, "cache", "npm", "_npx", "x")), existsSync(join(shared, "pnpm", "store"))], [true, false]);
 	const log = readFileSync(join(record, "log"), "utf8");
-	assert.match(log, new RegExp(`\\] sandbox: the install writes only in ${worktree}, ${record}, .*${join(cache, "pnpm")}, .*, reads every file but ${join(root, "env")}, `));
-	assert.match(log, /\] sandbox: the agent writes only in /);
+	const [install, agentWrites] = ["the install", "the agent"].map((who) => log.match(new RegExp(`\\] sandbox: ${who} writes only in (.*), reads every file but ${join(root, "env")}, `))?.[1]);
+	assert.equal(install, agentWrites, "the install writes no path the agent does not");
+	assert.match(install ?? "", new RegExp(`^${worktree}, ${record}, `));
 });
 
 test("an install that empties the record's guarded list does not unhide the env file: the agent still cannot read it", { skip: bare }, async (t) => {

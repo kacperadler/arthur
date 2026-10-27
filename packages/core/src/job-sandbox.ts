@@ -100,21 +100,22 @@ export function sandboxed(paths: readonly string[], hidden: readonly string[], a
 	return (argv) => (why === undefined ? ["python3", [...prefix, ...hidden, "--", agent, ...argv]] : [agent, [...argv]]);
 }
 
-// The package managers' caches an install writes besides its folder, where they are by default (docs/commands/spawn.md, "The
-// sandbox"); one not there is skipped, not made, so a first install of that manager outside a job, or `mkdir -p`, makes it.
-export function caches(): string[] {
-	const [home, { XDG_CACHE_HOME, XDG_DATA_HOME }] = [homedir(), process.env];
-	const cache = XDG_CACHE_HOME || join(home, ".cache");
-	return [join(home, ".npm"), join(home, ".bun", "install", "cache"), join(cache, "pnpm"), join(XDG_DATA_HOME || join(home, ".local", "share"), "pnpm"), join(cache, "uv"), join(cache, "composer"), join(home, ".composer", "cache")];
+// `env`'s arguments that run `sh -c <command>` with the package managers' caches in `folder`, a cache of its own (AR0454): npm's
+// (`npm_config_cache`), bun's (`BUN_INSTALL_CACHE_DIR`), pnpm's and uv's (`XDG_CACHE_HOME`), pnpm's store (`$PNPM_HOME/store`) and
+// composer's, never the shared ones, where branch code would leave what a later process outside any sandbox runs (`~/.npm/_npx`).
+export function cached(folder: string, command: string): string[] {
+	return [`npm_config_cache=${join(folder, "npm")}`, `BUN_INSTALL_CACHE_DIR=${join(folder, "bun")}`, `XDG_CACHE_HOME=${folder}`, `PNPM_HOME=${join(folder, "pnpm-home")}`, `COMPOSER_CACHE_DIR=${join(folder, "composer")}`, "sh", "-c", command];
 }
 
 // The sandbox of branch code a plugin runs outside a job (`Host.sandbox`, delivery's checks on main): `sh -c <command>` writing
-// only in the checkout `folder` as `checkout` says, the caches, the temporary folder and `/dev`, reading every file but the env
-// file `arthur.envFile`; `note` is told only where it cannot be set up, once, and each command then runs bare.
-export function stepSandbox(folder: string, arthur: { readonly envFile: string; readonly home: string; readonly config: string }, note: (line: string) => void): (command: string) => [string, string[]] {
-	const paths = [...checkout(folder, [arthur.home, arthur.config, arthur.envFile]), ...caches(), tmpdir(), "/dev"];
-	const start = sandboxed(paths, [arthur.envFile], "sh", (line) => void (line.startsWith("no sandbox: ") && note(line)), "each step");
-	return (command) => start(["-c", command]);
+// only in the checkout `folder` as `checkout` says, the cache folder `cache` (made here), which its caches use, the temporary
+// folder and `/dev`, reading every file but the env file `arthur.envFile`; `note` is told only where it cannot be set up, once,
+// and each command then runs bare, its caches in `cache` all the same.
+export function stepSandbox(folder: string, cache: string, arthur: { readonly envFile: string; readonly home: string; readonly config: string }, note: (line: string) => void): (command: string) => [string, string[]] {
+	mkdirSync(cache, { recursive: true });
+	const paths = [...checkout(folder, [arthur.home, arthur.config, arthur.envFile]), cache, tmpdir(), "/dev"];
+	const start = sandboxed(paths, [arthur.envFile], "env", (line) => void (line.startsWith("no sandbox: ") && note(line)), "each step");
+	return (command) => start(cached(cache, command));
 }
 
 // What a step may write of the checkout `folder` (AR0457): of its Git folder only the objects, refs, logs and index, never its

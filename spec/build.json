@@ -3992,9 +3992,9 @@
   {
     "id": "AR0509",
     "title": "The sweep's copy from another machine has no size or time bound, so one machine stalls every job on it, or all of `arthur run`",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0509-the-sweep-s-copy-from-another-machine-has-no-size-or-time-bound-so-one-machine/ticket.md",
-    "updated": "2026-10-27T13:17:50.991Z"
+    "updated": "2026-10-27T13:33:47.680Z"
   },
   {
     "id": "AR0510",

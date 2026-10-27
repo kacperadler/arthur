@@ -3684,9 +3684,9 @@
   {
     "id": "AR0465",
     "title": "A value given again with `-e` sits in the tmux client's command line while it runs",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0465-a-value-given-again-with-e-sits-in-the-tmux-client-s-command-line-while-it-runs/ticket.md",
-    "updated": "2026-10-27T08:36:10.262Z"
+    "updated": "2026-10-27T08:38:24.478Z"
   },
   {
     "id": "AR0466",
@@ -3712,9 +3712,9 @@
   {
     "id": "AR0469",
     "title": "The reinstall after a failed check uses the cache the branch's install wrote",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0469-the-reinstall-after-a-failed-check-uses-the-cache-the-branch-s-install-wrote/ticket.md",
-    "updated": "2026-10-27T08:30:01.425Z"
+    "updated": "2026-10-27T08:37:09.161Z"
   },
   {
     "id": "AR0470",

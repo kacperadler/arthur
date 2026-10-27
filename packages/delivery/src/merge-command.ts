@@ -1,5 +1,5 @@
 import { execFile, spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { basename, join } from "node:path";
 import { configRefusal } from "@arthur/core/git-config";
 import type { Command, Host, JobRecord, Requirement } from "@arthur/core/plugin";
@@ -121,24 +121,30 @@ async function merge(host: Host, name: string, mode: { readonly unreviewed: bool
 	const hash = git("rev-parse", "--short", made).stdout.trim();
 	console.log(`merged ${job.branch} into ${main}: ${hash}`);
 	const ask = { install: (commit: string) => host.call<string>("projects.install", { project: job.project, commit }), path: () => host.collect<string>("nvm.path", { root })[0] ?? "" };
-	const run = stepRunner(root, host.jobs.slice, host.sandbox(root, console.log), console.log, mode.stepSeconds);
-	const steps = mainChecks(root, ask, run, console.log);
-	if (steps.length === 0) console.log("no checks: package.json declares no check or test script");
-	const failing = steps.filter(failed).map((each) => each.command);
-	if (failing.length > 0) {
-		// `--keep`, unlike `--hard`, keeps the board's uncommitted moves, which the merge never touches. The checks ran a while: a
-		// job may have written the config since.
-		const refusal = configRefusal(root);
-		const reset = refusal === "" ? git("reset", "--quiet", "--keep", before) : { status: 1, stdout: "", stderr: refusal };
-		if (reset.status !== 0) throw new Error(`check failed on main (${failing.join(", ")}), and main could not be reset to ${before.slice(0, 7)}: ${last(reset)}`);
-		throw new Error(`check failed on main (${failing.join(", ")}); main reset to ${before.slice(0, 7)}, branch kept${reinstall(ask, run, steps, console.log)}`);
+	// The steps' package caches, the reinstall's too, in a folder of this merge in the plugin's own, removed after it (AR0454).
+	const cache = mkdtempSync(join(host.folder, "cache-"));
+	try {
+		const run = stepRunner(root, host.jobs.slice, host.sandbox(root, cache, console.log), console.log, mode.stepSeconds);
+		const steps = mainChecks(root, ask, run, console.log);
+		if (steps.length === 0) console.log("no checks: package.json declares no check or test script");
+		const failing = steps.filter(failed).map((each) => each.command);
+		if (failing.length > 0) {
+			// `--keep`, unlike `--hard`, keeps the board's uncommitted moves, which the merge never touches. The checks ran a while: a
+			// job may have written the config since.
+			const refusal = configRefusal(root);
+			const reset = refusal === "" ? git("reset", "--quiet", "--keep", before) : { status: 1, stdout: "", stderr: refusal };
+			if (reset.status !== 0) throw new Error(`check failed on main (${failing.join(", ")}), and main could not be reset to ${before.slice(0, 7)}: ${last(reset)}`);
+			throw new Error(`check failed on main (${failing.join(", ")}); main reset to ${before.slice(0, 7)}, branch kept${reinstall(ask, run, steps, console.log)}`);
+		}
+		saveLastMerge(host, job.project, made);
+		endWait(host, job.id);
+		if (ticket === undefined || folder === undefined) console.log("no ticket: no outcome.md, nothing moved");
+		else settleTicket(host, { job, ticket, folder, root, hash, subjects: subjects.split("\n"), steps, gap }, console.log);
+		console.log(writeChangelog(host, job.project));
+		return { project: job.project, branch: main };
+	} finally {
+		rmSync(cache, { recursive: true, force: true });
 	}
-	saveLastMerge(host, job.project, made);
-	endWait(host, job.id);
-	if (ticket === undefined || folder === undefined) console.log("no ticket: no outcome.md, nothing moved");
-	else settleTicket(host, { job, ticket, folder, root, hash, subjects: subjects.split("\n"), steps, gap }, console.log);
-	console.log(writeChangelog(host, job.project));
-	return { project: job.project, branch: main };
 }
 
 // `arthur doctor`'s requirement, also asked before each merge: an author and a committer for the merge commit, as `git merge`

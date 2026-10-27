@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { delimiter, dirname, join } from "node:path";
+import { basename, delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
 import { type AgentRun, fakeAgent, fakeHost, jobSlice, temporaryFolder } from "@arthur/core/testing";
@@ -47,8 +47,10 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 	// delivery recorded its last merge (AR0441). `take()` takes main as it is as docs/commands/merge.md tells the owner now.
 	git(root, "merge", "--quiet", "--no-ff", "-m", "Take main as it is", git(root, "commit-tree", "-p", "HEAD", "-m", "main as it is", "HEAD^{tree}"));
 	const bin = temporaryFolder();
-	writeFileSync(join(bin, "bun"), `#!/bin/sh\necho "$@" >> '${join(bin, "bun.log")}'\n[ ! -e '${join(bin, "fail")}' ] || { echo 'error: lockfile had changes' >&2; exit 1; }\n`, { mode: 0o755 });
+	writeFileSync(join(bin, "bun"), `#!/bin/sh\necho "$@" >> '${join(bin, "bun.log")}'\nmkdir -p "$BUN_INSTALL_CACHE_DIR" && echo "$BUN_INSTALL_CACHE_DIR" >> '${join(bin, "caches")}'\n[ ! -e '${join(bin, "fail")}' ] || { echo 'error: lockfile had changes' >&2; exit 1; }\n`, { mode: 0o755 });
 	const bun = () => (existsSync(join(bin, "bun.log")) ? readFileSync(join(bin, "bun.log"), "utf8") : "");
+	// The cache folder each install used, a line each, made by the fake `bun` in it as a real one would.
+	const caches = () => (existsSync(join(bin, "caches")) ? readFileSync(join(bin, "caches"), "utf8").trim().split("\n") : []);
 	t.after(() => {
 		process.env.PATH = PATH;
 	});
@@ -109,11 +111,11 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 	};
 	const head = () => git(root, "rev-parse", "HEAD");
 	const status = (id: string) => fake.host.board.get(id)?.status;
-	return { root, fake, git, commit, take: () => run("take-main", ["--decision", OWNER]), worker, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, owner, installAs: (next: string | Error) => void (answer = next), uncapped };
+	return { root, fake, git, commit, take: () => run("take-main", ["--decision", OWNER]), worker, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, caches, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, owner, installAs: (next: string | Error) => void (answer = next), uncapped };
 }
 
-test("a branch with a PASS on its tip goes in: checks pass, its review filed, outcome.md written, the ticket merged, the tickets it unblocks named", async (t) => {
-	const { root, fake, git, worker, review, merge, head, status, bun, installs } = await load(t);
+test("a branch with a PASS on its tip goes in: checks pass, its review filed, outcome.md written, the ticket merged, the tickets it unblocks named; the install's cache is the merge's own, gone after it", async (t) => {
+	const { root, fake, git, worker, review, merge, head, status, bun, caches, installs } = await load(t);
 	const job = await worker({ "shop.ts": "export const shop = 1;\n", "bun.lock": '{ "shop": 1 }\n' });
 	const passed = await review(job.id, "Clean.\n\nPASS");
 	const before = head();
@@ -138,6 +140,7 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 		].join("\n"),
 	);
 	assert.equal(bun(), "install --frozen-lockfile\n", "the project's install ran once");
+	assert.deepEqual(caches().map((each) => [dirname(dirname(each)), basename(each), existsSync(dirname(each))]), [[fake.host.folder, "bun", false]], "a cache folder in the plugin's own, removed after the merge");
 	assert.deepEqual(installs, [{ project: "acme", commit: "HEAD", head: git(root, "rev-parse", "HEAD") }], "asked of projects.install for the merge commit");
 	assert.match(readFileSync(join(root, FOLDER, "review-1.md"), "utf8"), new RegExp(`^- Job: ${passed}\n- Branch: ${job.branch}\n`, "m"));
 	const outcome = readFileSync(join(root, FOLDER, "outcome.md"), "utf8");
@@ -445,8 +448,8 @@ test("arthur take-main records main's HEAD only on the owner's merge decision of
 	assert.equal((await merge(job.id, "--unreviewed", "--decision", OWNER)).err, "");
 });
 
-test("a failed check resets main and names it, pushing nothing; the board's moves stay, main's own install is put back, nothing is written", async (t) => {
-	const { root, fake, git, take, worker, review, merge, head, status, bun, failBun, installs } = await load(t);
+test("a failed check resets main and names it, pushing nothing; the board's moves stay, main's own install is put back, nothing is written, the merge's cache removed", async (t) => {
+	const { root, fake, git, take, worker, review, merge, head, status, bun, caches, failBun, installs } = await load(t);
 	const pushes: unknown[] = [];
 	fake.provide("github.push", (branch: unknown) => (pushes.push(branch), Promise.resolve("github: pushed")));
 	const job = await worker({ broken: "", "bun.lock": '{ "broken": 1 }\n' });
@@ -458,6 +461,7 @@ test("a failed check resets main and names it, pushing nothing; the board's move
 	assert.deepEqual(pushes, [{ project: "acme", branch: job.branch }], "the PASS pushed the branch; the failed merge pushed no main");
 	assert.match(merged.out, /\nnpm test: failed, 1\/2 passed\.\n[\s\S]*ℹ pass 1\nreinstall of main's dependencies, bun install --frozen-lockfile: passed\.$/);
 	assert.equal(bun(), "install --frozen-lockfile\ninstall --frozen-lockfile\n");
+	assert.deepEqual(caches().map((each) => [dirname(dirname(each)), existsSync(each)]), Array(2).fill([fake.host.folder, false]), "the reinstall's cache in the merge's folder, gone after the failed merge");
 	const mergeCommit = git(root, "rev-parse", "ORIG_HEAD");
 	assert.deepEqual(installs, [{ project: "acme", commit: "HEAD", head: mergeCommit }, { project: "acme", commit: "HEAD", head: before }], "asked again after the reset, for main's own");
 	assert.equal(head(), before);

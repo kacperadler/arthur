@@ -3146,9 +3146,9 @@
   {
     "id": "AR0403",
     "title": "Security review of our own code, part 2: injection into shell, git, ssh and tmux, and prompt injection",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0403-security-review-of-our-own-code-part-2-injection-into-shell-git-ssh-and-tmux-and-prompt-injection/ticket.md",
-    "updated": "2026-10-27T07:35:48.316Z",
+    "updated": "2026-10-27T08:00:55.180Z",
     "after": [
       "AR0432",
       "AR0350",
@@ -3691,9 +3691,9 @@
   {
     "id": "AR0466",
     "title": "A step can plant a repository under a name other than `.git`, or a symlink to one, which the sweep does not see",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0466-a-step-can-plant-a-repository-under-a-name-other-than-git-or-a-symlink-to-one/ticket.md",
-    "updated": "2026-10-27T06:53:18.046Z"
+    "updated": "2026-10-27T08:01:04.440Z"
   },
   {
     "id": "AR0467",
@@ -3712,9 +3712,9 @@
   {
     "id": "AR0469",
     "title": "The reinstall after a failed check uses the cache the branch's install wrote",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0469-the-reinstall-after-a-failed-check-uses-the-cache-the-branch-s-install-wrote/ticket.md",
-    "updated": "2026-10-27T06:53:20.096Z"
+    "updated": "2026-10-27T08:01:05.506Z"
   },
   {
     "id": "AR0470",
@@ -3726,9 +3726,9 @@
   {
     "id": "AR0471",
     "title": "Other operators of `${PWD…}` and of the known variables read as nothing",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0471-other-operators-of-pwd-and-of-the-known-variables-read-as-nothing/ticket.md",
-    "updated": "2026-10-27T07:29:39.612Z"
+    "updated": "2026-10-27T08:00:54.448Z"
   },
   {
     "id": "AR0472",

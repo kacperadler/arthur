@@ -309,3 +309,4 @@
 {"record":"ask","id":"AR-D155","time":"2026-10-27T08:53:01+01:00","project":"arthur","kind":"merge","question":"Merge AR0464 (the stop test waits for the killed process to be reaped) after its PASS?","options":["Merge","Wait"],"recommend":1,"ticket":"AR0464"}
 {"record":"close","id":"AR-D147","time":"2026-10-27T08:53:51+01:00","reason":"ticket merged"}
 {"record":"close","id":"AR-D155","time":"2026-10-27T08:59:35+01:00","reason":"ticket merged"}
+{"record":"ask","id":"AR-D156","time":"2026-10-27T09:01:12+01:00","project":"arthur","kind":"merge","question":"Merge AR0403 (security review part 2: report and 8 findings, docs only, no review needed)?","options":["Merge","Wait"],"recommend":1,"ticket":"AR0403"}

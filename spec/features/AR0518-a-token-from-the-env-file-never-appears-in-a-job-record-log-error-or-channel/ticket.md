@@ -36,3 +36,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: AR0402, refused twice by the provider
+- 2026-10-27: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)

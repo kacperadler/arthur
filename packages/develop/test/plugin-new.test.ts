@@ -51,7 +51,7 @@ async function load(t: TestContext, root: string) {
 	return Object.assign(run, { home: dirname(fake.host.folder) });
 }
 
-const budgets = (root: string) => readFileSync(join(root, "test", "structure.test.ts"), "utf8").match(/^const BUDGETS = \{\n((?:\t.+,\n)*)\};$/m)?.[1] ?? "";
+const budgets = (root: string) => readFileSync(join(root, "test", "structure.test.ts"), "utf8").match(/^const BUDGETS = \{\n((?:\t.+,\n\n)*)\};$/m)?.[1] ?? "";
 // A command in the copy; a node:test run of its own, not one the test runner around this test skips as nested in it.
 const { NODE_TEST_CONTEXT: _, ...ENV } = process.env;
 const run = (root: string, command: string, ...args: string[]) => spawnSync(command, args, { cwd: root, env: ENV, encoding: "utf8" });
@@ -70,7 +70,7 @@ test("a new package passes npm run check, its own test and the structure test as
 		err: "",
 	});
 	assert.equal((await plugin(["new", "acmetest", "--budget=25"])).code, 0, "a budget of exactly the new src/ lines");
-	assert.equal(budgets(root), `${before}\t"acme-test-plugin": 40,\n\tacmetest: 25,\n`, "one package per line, each new one last");
+	assert.equal(budgets(root), `${before}\t"acme-test-plugin": 40,\n\n\tacmetest: 25,\n\n`, "one package per line, a blank line after each, each new one last");
 	assert.deepEqual(changed(root).split("\n").filter(Boolean).sort(), [
 		" M package-lock.json",
 		" M test/structure.test.ts",
@@ -129,7 +129,7 @@ test("refused, exit 1, before any write: a bad name, a missing or wrong budget, 
 	assert.equal(changed(root), "");
 
 	const structure = join(root, "test", "structure.test.ts");
-	writeFileSync(structure, readFileSync(structure, "utf8").replace(/^const BUDGETS = \{\n/m, 'const BUDGETS = {\n\tghost: 5,\n\t"ghost-town": 9,\n'));
+	writeFileSync(structure, readFileSync(structure, "utf8").replace(/^const BUDGETS = \{\n/m, 'const BUDGETS = {\n\tghost: 5,\n\n\t"ghost-town": 9,\n\n'));
 	commit(root);
 	for (const name of ["ghost", "ghost-town"]) assert.deepEqual(await plugin(["new", name, "--budget", "100"]), refused(`${name} has a line budget in test/structure.test.ts already`), name);
 	assert.equal((await plugin(["new", "town", "--budget", "100"])).code, 0, "ghost-town's budget is not town's");
@@ -139,13 +139,15 @@ test("refused, exit 1, before any write: a bad name, a missing or wrong budget, 
 
 	const answer = await plugin(["new", "acme", "--budget", "100"], "other");
 	assert.match(answer.err, /^refused: \/.+ is not Arthur's repository: no packages\/core; nothing was written$/);
-	writeFileSync(structure, `${readFileSync(structure, "utf8")}const BUDGETS = {\n\tcore: 1,\n};\n`);
+	writeFileSync(structure, `${readFileSync(structure, "utf8")}const BUDGETS = {\n\tcore: 1,\n\n};\n`);
 	commit(root);
-	assert.deepEqual(await plugin(["new", "acme", "--budget", "100"]), refused(`${structure} holds 2 blocks "const BUDGETS = {", one budget per line, "};", not one`));
-	// Empty, the old one-line form, and a line in the block that is not a budget: none is a block this command can add to.
-	for (const text of ["", "const BUDGETS = { core: 1 };\n", "const BUDGETS = {\n\tcore: 1,\n\t// why\n};\n"]) {
+	const blocks = (count: number) => refused(`${structure} holds ${count} blocks "const BUDGETS = {", one budget per line and a blank line after each, "};", not one`);
+	assert.deepEqual(await plugin(["new", "acme", "--budget", "100"]), blocks(2));
+	// Empty, the old one-line form, budgets without the blank line, and a line in the block that is not a budget: none is a
+	// block this command can add to.
+	for (const text of ["", "const BUDGETS = { core: 1 };\n", "const BUDGETS = {\n\tcore: 1,\n\tnvm: 2,\n};\n", "const BUDGETS = {\n\tcore: 1,\n\n\t// why\n};\n"]) {
 		writeFileSync(structure, text);
-		assert.deepEqual(await plugin(["new", "acme", "--budget", "100"]), refused(`${structure} holds 0 blocks "const BUDGETS = {", one budget per line, "};", not one`), text);
+		assert.deepEqual(await plugin(["new", "acme", "--budget", "100"]), blocks(0), text);
 	}
 	commit(root);
 	git(root, "rm", "--quiet", "package-lock.json");
@@ -179,7 +181,7 @@ test("in a job only its own worktree, named by --root, is written; never the pro
 	assert.equal((await plugin(["new", "acme", "--budget", "100", "--root", link])).code, 0, "a link to the worktree is the worktree");
 	assert.equal(changed(checkout), "", "the project's checkout is untouched");
 	assert.match(changed(worktree), /^\?\? packages\/acme\/src\/acme\.ts$/m);
-	assert.match(budgets(worktree), /\n\tacme: 100,\n$/);
+	assert.match(budgets(worktree), /\n\tacme: 100,\n\n$/);
 	assert.equal(readlinkSync(join(worktree, "node_modules", "@arthur", "acme")), join("..", "..", "packages", "acme"));
 	assert.ok(!existsSync(join(checkout, "node_modules", "@arthur", "acme")));
 });
@@ -258,7 +260,7 @@ test("the planner and the worker are told the line that makes a new plugin from 
 	const ran = spawnSync("sh", ["-c", line], { cwd: worktree, env, encoding: "utf8" });
 	assert.equal(ran.status, 0, `${line}\n${ran.stdout}${ran.stderr}`);
 	assert.match(changed(worktree), /^\?\? packages\/acme\/src\/acme\.ts$/m);
-	assert.match(budgets(worktree), /\n\tacme: 100,\n$/);
+	assert.match(budgets(worktree), /\n\tacme: 100,\n\n$/);
 	assert.equal(changed(checkout), "", "the project's checkout is untouched");
 	// The same line in another folder, with the CLI the checkout links: there it reads no arthur.config.ts.
 	const elsewhere = (folder: string) => line.replace(`cd ${first} && node_modules`, `cd ${folder} && ${first}/node_modules`);

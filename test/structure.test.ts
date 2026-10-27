@@ -6,26 +6,46 @@ import { test } from "node:test";
 import { checkStructure } from "./structure.ts";
 
 // The line budget of each package: the number of lines its src/ may hold. They live here only; a raise is a decision recorded in its ticket.
+// One budget per line, a blank line after each, so Git merges raises to two neighbours, or a raise and a new last one, without a conflict.
 const BUDGETS = {
 	core: 6345,
+
 	"core/testing": 349,
+
 	projects: 482,
+
 	orchestration: 2413,
+
 	machines: 488,
+
 	resources: 617,
+
 	session: 880,
+
 	schedule: 595,
+
 	models: 509,
+
 	youtrack: 661,
+
 	"commit-rules": 165,
+
 	nvm: 96,
+
 	telegram: 641,
+
 	uptime: 298,
+
 	delivery: 1552,
+
 	github: 659,
+
 	manage: 928,
+
 	develop: 706,
+
 	findings: 254,
+
 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);

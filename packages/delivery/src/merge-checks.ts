@@ -1,5 +1,5 @@
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
-import { chmodSync, type Dirent, existsSync, lstatSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { chmodSync, type Dirent, existsSync, lstatSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 
 // The steps `arthur merge` runs on main once the branch is in (spec/roadmap.md, entry 54): the project's install, as the
@@ -134,11 +134,17 @@ export function mainChecks(root: string, ask: Ask, run: Run, log: (line: string)
 
 export const failed = (each: Step): boolean => each.result.startsWith("failed");
 
-// After main was reset: main's own install run again, on main's own PATH, when the failed run had run the merge commit's.
-export function reinstall(ask: Ask, run: Run, steps: readonly Step[], log: (line: string) => void): string {
+// After main was reset: main's own install run again, on main's own PATH, when the failed run had run the merge commit's; by
+// `runner` over a fresh cache folder in `folder`, removed after it (AR0469): the branch's install wrote the merge's own.
+export function reinstall(ask: Ask, runner: (cache: string) => Run, folder: string, steps: readonly Step[], log: (line: string) => void): string {
 	if (!steps.some((each) => each.install)) return "";
-	const again = installed(ask, run, log, "reinstall of main's dependencies, ").steps;
-	return again.some(failed) ? `, but reinstalling main's dependencies failed (${again.filter(failed).map((each) => each.command).join(", ")}): they still hold the branch's install` : "";
+	const cache = mkdtempSync(join(folder, "cache-"));
+	try {
+		const again = installed(ask, runner(cache), log, "reinstall of main's dependencies, ").steps;
+		return again.some(failed) ? `, but reinstalling main's dependencies failed (${again.filter(failed).map((each) => each.command).join(", ")}): they still hold the branch's install` : "";
+	} finally {
+		rmSync(cache, { recursive: true, force: true });
+	}
 }
 
 // Main's environment, its PATH `ask.path` when not "", and the install of its HEAD as a step, none for ""; an answer that throws

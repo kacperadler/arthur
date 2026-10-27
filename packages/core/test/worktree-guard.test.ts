@@ -79,6 +79,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	mkdirSync(join(own.worktree, "sub"));
 	// A folder named `~+` in the worktree that leads to the main checkout: unquoted, `~+` is where the shell is instead.
 	symlinkSync(root, join(own.worktree, "~+"));
+	// A folder whose name has a space, leading to the main checkout: an assignment's fallback is one word, not split.
+	symlinkSync(root, join(own.worktree, "a b"));
 	const MAIN = "the main checkout";
 	const HOME = "Arthur's home folder";
 	const OTHER = "another job's worktree";
@@ -258,6 +260,16 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `echo x > \${x:-\${ARTHUR_JOB%/*}}/${other.id}/result` }, UNKNOWN],
 		["bash", { command: `echo x > "\${ARTHUR_JOB:+\${ARTHUR_JOB%/*}}"/${other.id}/result` }, UNKNOWN],
 		["bash", { command: "echo x > ${x:-$ARTHUR_JOB}/result" }, HOME],
+		// A fallback word's `>`, `2>`, `<`, `#` are text, and bash splits an unquoted one into words, but not in an assignment or a here-string.
+		["bash", { command: "rm ${x:-> ../../acme/README.md}" }, MAIN],
+		["bash", { command: "rm ${x:-a 2> ../../acme/README.md}" }, MAIN],
+		["bash", { command: "rm ${x:-< ../../acme/README.md}" }, MAIN],
+		["bash", { command: "rm ${x:-# ../../acme/README.md}" }, MAIN],
+		["bash", { command: "rm y=${x:-a ../../acme/README.md}" }, MAIN],
+		["bash", { command: "bash <<< ${x:-rm ../../acme/README.md}" }, MAIN],
+		["bash", { command: "OLDPWD=${x:-a b} cd -; rm README.md" }, MAIN],
+		["bash", { command: "export OLDPWD=${x:-a b}; cd -; rm README.md" }, MAIN],
+		["bash", { command: 'rm "${x:-a ../../acme/README.md}"' }, undefined],
 		["bash", { command: `cd ${main}; bash <<EOF\ncd /tmp; echo x > \${PWD:+x}; rm \${PWD:+$PWD}/README.md\nEOF` }, MAIN],
 		["bash", { command: 'rm "${HOME/x/x}/acme/README.md"' }, UNKNOWN],
 		["bash", { command: "rm /${HOME#/}/acme/README.md" }, UNKNOWN],

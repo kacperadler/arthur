@@ -42,4 +42,4 @@ Out:
 
 ## Decisions
 
-<!-- - YYYY-MM-DD: one decision the human made, in one line. -->
+- 2026-10-27: Jobs commit unsigned: Arthur turns commit signing off inside every job and merge step; the merge commit Arthur makes stays signed; AR0516 approved to build it; the owner: "AR-D184 1" (AR-D184)

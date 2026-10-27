@@ -3740,9 +3740,9 @@
   {
     "id": "AR0473",
     "title": "A long option of sudo or env followed by its value hides the command from the guard",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0473-a-long-option-of-sudo-or-env-followed-by-its-value-hides-the-command-from-the/ticket.md",
-    "updated": "2026-10-27T09:45:14.817Z"
+    "updated": "2026-10-27T09:51:50.389Z"
   },
   {
     "id": "AR0474",
@@ -3904,5 +3904,19 @@
     "status": "planning",
     "path": "spec/features/AR0496-a-home-set-in-front-of-a-command-is-ignored-by-the-guard-so-the-inner-shell/ticket.md",
     "updated": "2026-10-27T09:19:34.323Z"
+  },
+  {
+    "id": "AR0497",
+    "title": "A long option of the other wrappers followed by its value still hides the command",
+    "status": "planning",
+    "path": "spec/features/AR0497-a-long-option-of-the-other-wrappers-followed-by-its-value-still-hides-the/ticket.md",
+    "updated": "2026-10-27T09:51:50.372Z"
+  },
+  {
+    "id": "AR0498",
+    "title": "The command line `env -S` splits is not read",
+    "status": "planning",
+    "path": "spec/features/AR0498-the-command-line-env-s-splits-is-not-read/ticket.md",
+    "updated": "2026-10-27T09:51:50.384Z"
   }
 ]

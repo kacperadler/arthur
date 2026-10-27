@@ -9,11 +9,14 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0343 Git ignores `.env` only, while `core.envFile` may be any name the guard counts as a secrets file (56876e1e)
 - AR0374 The install at a spawn and each step of the merge have no time limit (a5779445)
 - AR0388 The user's systemd folder is guarded at `~/.config/systemd` only, not at `$XDG_CONFIG_HOME/systemd` (2bc30f66)
+- AR0403 Security review of our own code, part 2: injection into shell, git, ssh and tmux, and prompt injection (dae98db4)
 - AR0429 The guard misreads four short forms: $ARTHUR_JOB, env -C and sudo -D, a ~ after =, cd $PWD and cd ~+ (55a02d90)
 - AR0436 A bash call that changes the tree after its checks, before it ends, is recorded on the tree it ends on (05e0d6e2)
 - AR0454 The writable package caches carry branch code out of the sandbox (ff79c610)
+- AR0466 A step can plant a repository under a name other than `.git`, or a symlink to one, which the sweep does not see (dcef9252)
 - AR0467 A merge check that runs git inside an owner clone in the checkout deletes that clone history (b7f8edf8)
 - AR0468 A second arthur merge during the first one's checks merges on top of the unchecked merge commit (694a4cda)
+- AR0471 Other operators of `${PWD…}` and of the known variables read as nothing (6bcc4140)
 
 ### Changed
 

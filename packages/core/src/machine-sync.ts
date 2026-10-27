@@ -26,7 +26,8 @@ export type Copy = {
 // The files a copy brings besides `log`: the run's there, the wrapper's and those `remote-job continue` writes (as `continueJob` here); never the spawn's.
 const RUN = ["pid", "active", "cost", "tool-calls", "activity", "result", "commits", "budget", "continue", ...Object.keys(capFields({}))];
 const OFFLINE = "failed: machine offline";
-const COPY_SECONDS = 20;
+// The copy's limits: past either, the machine counts as not answering. `records` sends 256 KiB of log per job at most.
+const [COPY_SECONDS, COPY_CHARS] = [20, 64 * 1024 * 1024];
 
 // The jobs of `machine` a copy follows: those in a run, and those its going offline held or failed, the record's `offline`
 // naming when it was first found unreachable, until their state there arrives.
@@ -35,7 +36,7 @@ function followed(home: string, machine: Machine): string[] {
 }
 
 // The sweep's copy from each of `machines` at `at`, all at once; one that does not answer (ssh's exit 255, or no answer within
-// COPY_SECONDS) holds its jobs, any other failure is named once every machine was tried.
+// COPY_SECONDS or COPY_CHARS) holds its jobs, any other failure is named once every machine was tried.
 export async function syncMachines(home: string, machines: readonly Machine[], bus: Bus, at: Date, graceMinutes: number): Promise<void> {
 	const failed = (await Promise.all(machines.map((machine) => syncMachine(home, machine, bus).then(() => "", (error: Error) => (error.cause === 255 ? (unreachable(home, machine, bus, at, graceMinutes), "") : error.message))))).filter(Boolean);
 	if (failed.length > 0) throw new Error(failed.join("\n"));
@@ -48,7 +49,7 @@ export async function syncMachine(home: string, machine: Machine, bus: Bus): Pro
 	const ids = followed(home, machine);
 	if (ids.length === 0) return;
 	const asked = ids.map((id) => `${id}=${field(home, id)("synced") || "0:0"}`);
-	const answer = JSON.parse(await sshAsync(machine, ["arthur", "remote-job", "records", machine.home, ...asked], "", COPY_SECONDS)) as Record<string, Copy>;
+	const answer = JSON.parse(await sshAsync(machine, ["arthur", "remote-job", "records", machine.home, ...asked], "", COPY_SECONDS, COPY_CHARS)) as Record<string, Copy>;
 	// Before anything of the answer is written, each file's name is a record key (it decides the path written here), and a branch is the job's own or none.
 	for (const id of ids) for (const name of Object.keys(answer[id]?.files ?? {})) if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error(`machine ${machine.name}: job ${id} sent a record file ${JSON.stringify(name)}; expected a name of lowercase letters, digits and dashes`);
 	for (const [id, branch] of ids.map((id) => [id, field(home, id)("branch")])) if (branch !== "" && branch !== `arthur/${id}`) throw new Error(`machine ${machine.name}: job ${id} names the branch ${JSON.stringify(branch)} in its record here; expected arthur/${id} or none`);

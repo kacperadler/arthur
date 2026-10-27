@@ -41,3 +41,4 @@ Out:
 
 - 2026-10-25: The owner: split AR0311 into smaller reviews; this is one of AR0402 to AR0405.
 - 2026-10-27: AR0404 approved by the owner (morning of 2026-10-27, one list of 18); the owner: "apprvoed: AR0467, AR0466, AR0471-AR0473, AR0464, AR0465, AR0468-AR0470, AR0474-AR0477, AR0402-AR0405" (AR-D140)
+- 2026-10-27: AR0404 and AR0405 held for the owner with AR0402: no retry around the provider refusal; the slots go to the fixes; the owner: "keep going till 88% of Claude 7 Day limit, go silent and always go with recommendations" (AR-D153)

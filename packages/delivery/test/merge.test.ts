@@ -484,6 +484,40 @@ test("a failed check resets main and names it, pushing nothing; the board's move
 	assert.match(install.out, /error: lockfile had changes/);
 });
 
+test("a second merge of the project while the first runs its checks is refused naming the first, main unchanged; the lock goes with any end of the first, a dead holder's too", async (t) => {
+	const { root, fake, git, worker, review, merge, head } = await load(t);
+	const first = await worker({ broken: "" });
+	const second = await worker({ "cart.ts": "export const cart = 1;\n" }, "Ticket: spec/features/AC0002-cart/ticket.md");
+	assert.match((await merge(second.id)).err, /^arthur merge: no PASS on /, "a refused merge ends too");
+	await review(first.id, "PASS");
+	await review(second.id, "PASS");
+	// `nvm.path` is asked as the checks on main begin, the first's merge commit HEAD: the second merge starts then.
+	let during: Promise<unknown> | undefined;
+	let armed = false;
+	fake.provide("nvm.path", () => {
+		if (armed && during === undefined) during = Promise.try(() => fake.commands.find((each) => each.name === "merge")?.run({ args: [second.id], project: undefined })).catch((error: Error) => error.message);
+		return "";
+	});
+	const before = head();
+	armed = true;
+	const failed = await merge(first.id);
+	assert.match(failed.err, /^arthur merge: check failed on main \(npm test\); main reset to /);
+	assert.equal(await during, `a merge of ${first.id} is in progress on acme`);
+	assert.equal(head(), before);
+	assert.notEqual(spawnSync("git", ["-C", root, "merge-base", "--is-ancestor", second.tip, "HEAD"]).status, 0, "the second branch is not on main");
+	// A merge of another process (this test's parent stands for it) that has not named its job yet: named by its pid.
+	const lock = join(fake.host.folder, "acme", "merge.lock");
+	writeFileSync(lock, `${process.ppid}`);
+	assert.equal((await merge(second.id)).err, `arthur merge: a merge of pid ${process.ppid} is in progress on acme`);
+	assert.equal(head(), before);
+	// A merge killed while it held the lock left it: its pid is dead, so the next merge takes it over.
+	writeFileSync(lock, `${spawnSync(process.execPath, ["-e", ""]).pid}`);
+	const merged = await merge(second.id);
+	assert.equal(merged.code, undefined, merged.err);
+	assert.equal(git(root, "rev-parse", "HEAD^2"), second.tip);
+	assert.deepEqual(readdirSync(join(fake.host.folder, "acme")), ["last-merge"], "no lock and no job named after the merge");
+});
+
 test("a step still running at merge.stepSeconds is killed and fails, though it ignores SIGTERM: main reset, main's own install put back", async (t) => {
 	const { root, worker, review, merge, head, bun } = await load(t, { merge: { stepSeconds: 3 } });
 	const noted = temporaryFolder();

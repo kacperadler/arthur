@@ -1,7 +1,7 @@
 import { appendFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import type { Bus } from "./events.ts";
-import { gitOver, type Machine, ssh, url } from "./job-machine.ts";
+import { gitOver, type Machine, ssh, sshAsync, url } from "./job-machine.ts";
 import { capFields } from "./job-record.ts";
 import { sayUncapped, UNCAPPED } from "./job-scope.ts";
 import { current, field, inRun, jobIds, kept, moveJob, type State, write } from "./job-state.ts";
@@ -10,8 +10,8 @@ import { current, field, inRun, jobIds, kept, moveJob, type State, write } from 
 // does not answer does to them: docs/commands/spawn.md, "On another machine".
 
 // What `arthur remote-job records` answers per job: the state read first, then each file changed since the time asked, the
-// `log` from the byte asked (`logFrom`, 0 when the log there is shorter) of its `logSize` bytes, and `at`, the newest
-// modification time there, which the next copy asks from.
+// `log` from the byte asked (`logFrom`, 0 when the log there is shorter) of its `logSize` bytes up to `logTo`, where the next
+// copy asks from, and `at`, the newest modification time there, which the next copy asks from.
 export type Copy = {
 	readonly state: string;
 	readonly reason: string;
@@ -19,12 +19,15 @@ export type Copy = {
 	readonly at: number;
 	readonly logFrom: number;
 	readonly logSize: number;
+	readonly logTo: number;
 	readonly files: Readonly<Record<string, string>>;
 };
 
 // The files a copy brings besides `log`: the run's there, the wrapper's and those `remote-job continue` writes (as `continueJob` here); never the spawn's.
 const RUN = ["pid", "active", "cost", "tool-calls", "activity", "result", "commits", "budget", "continue", ...Object.keys(capFields({}))];
 const OFFLINE = "failed: machine offline";
+// The copy's limits: past either, the machine counts as not answering. `records` sends 256 KiB of log per job at most.
+const [COPY_SECONDS, COPY_CHARS] = [20, 64 * 1024 * 1024];
 
 // The jobs of `machine` a copy follows: those in a run, and those its going offline held or failed, the record's `offline`
 // naming when it was first found unreachable, until their state there arrives.
@@ -32,40 +35,33 @@ function followed(home: string, machine: Machine): string[] {
 	return jobIds(home).filter((id) => field(home, id)("machine") === machine.name && (inRun(current(home, id)) || field(home, id)("offline") !== ""));
 }
 
-// The sweep's copy from each of `machines` at `at`; one that does not answer (ssh's exit 255) holds its jobs, any other failure
-// is named once every machine was tried.
-export function syncMachines(home: string, machines: readonly Machine[], bus: Bus, at: Date, graceMinutes: number): void {
-	const failed: string[] = [];
-	for (const machine of machines) {
-		try {
-			syncMachine(home, machine, bus);
-		} catch (error) {
-			if (error instanceof Error && error.cause === 255) unreachable(home, machine, bus, at, graceMinutes);
-			else failed.push(error instanceof Error ? error.message : String(error));
-		}
-	}
+// The sweep's copy from each of `machines` at `at`, all at once; one that does not answer (ssh's exit 255, or no answer within
+// COPY_SECONDS or COPY_CHARS) holds its jobs, any other failure is named once every machine was tried.
+export async function syncMachines(home: string, machines: readonly Machine[], bus: Bus, at: Date, graceMinutes: number): Promise<void> {
+	const failed = (await Promise.all(machines.map((machine) => syncMachine(home, machine, bus).then(() => "", (error: Error) => (error.cause === 255 ? (unreachable(home, machine, bus, at, graceMinutes), "") : error.message))))).filter(Boolean);
 	if (failed.length > 0) throw new Error(failed.join("\n"));
 }
 
 // With one SSH call, copies the run's changed files of the records of `machine`'s followed jobs, of the log only its new bytes; a
 // run that ended there brings its branch into the job's `root` before its state moves here, then `job-ended`. A job failed
-// here while the machine was offline takes the state there only once that run ended.
-export function syncMachine(home: string, machine: Machine, bus: Bus): void {
+// here while the machine was offline takes the state there only once that run ended; a log cut short, once the rest arrived.
+export async function syncMachine(home: string, machine: Machine, bus: Bus): Promise<void> {
 	const ids = followed(home, machine);
 	if (ids.length === 0) return;
 	const asked = ids.map((id) => `${id}=${field(home, id)("synced") || "0:0"}`);
-	const answer = JSON.parse(ssh(machine, ["arthur", "remote-job", "records", machine.home, ...asked])) as Record<string, Copy>;
+	const answer = JSON.parse(await sshAsync(machine, ["arthur", "remote-job", "records", machine.home, ...asked], "", COPY_SECONDS, COPY_CHARS)) as Record<string, Copy>;
 	// Before anything of the answer is written, each file's name is a record key (it decides the path written here), and a branch is the job's own or none.
 	for (const id of ids) for (const name of Object.keys(answer[id]?.files ?? {})) if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error(`machine ${machine.name}: job ${id} sent a record file ${JSON.stringify(name)}; expected a name of lowercase letters, digits and dashes`);
 	for (const [id, branch] of ids.map((id) => [id, field(home, id)("branch")])) if (branch !== "" && branch !== `arthur/${id}`) throw new Error(`machine ${machine.name}: job ${id} names the branch ${JSON.stringify(branch)} in its record here; expected arthur/${id} or none`);
-	for (const id of ids) {
-		const copy = answer[id];
-		if (copy === undefined) continue;
-		const [folder, read] = [join(home, "jobs", id), field(home, id)];
+	for (const [index, id] of ids.entries()) {
+		const [copy, folder, read] = [answer[id], join(home, "jobs", id), field(home, id)];
+		// Another copy (a stop's beside the sweep's) that wrote since this one asked has these bytes in already.
+		if (copy === undefined || asked[index] !== `${id}=${read("synced") || "0:0"}`) continue;
 		for (const [name, text] of Object.entries(copy.files)) if (RUN.includes(name) && read(name) !== text) write(folder, name, text);
 		if (copy.files.log !== undefined && copy.logFrom > 0) appendFileSync(join(folder, "log"), copy.files.log);
 		else if (copy.files.log !== undefined) write(folder, "log", copy.files.log);
-		write(folder, "synced", `${copy.at}:${copy.logSize}`);
+		write(folder, "synced", `${copy.at}:${copy.logTo}`);
+		if (copy.logTo < copy.logSize) continue;
 		const ended = copy.state !== "working" && copy.state !== "idle";
 		if (read("state") === "ended" && !ended) continue;
 		if (ended && read("branch") !== "") gitOver(read("root"), ["fetch", "--quiet", url(machine, read("project")), `+refs/heads/arthur/${id}:refs/heads/arthur/${id}`]);
@@ -104,9 +100,9 @@ function unreachable(home: string, machine: Machine, bus: Bus, at: Date, graceMi
 
 // Starts the job's wrapper there in its own scope of the slice `slice`, whose limit is the machine's own, with the variables
 // `env` the prepares returned, sent on stdin; returns why it did not start, which ended the job there and, by a copy at once, here.
-export function launchThere(home: string, machine: Machine, id: string, agent: string, slice: string, bus: Bus, env: Readonly<Record<string, string>> = {}): string | undefined {
+export async function launchThere(home: string, machine: Machine, id: string, agent: string, slice: string, bus: Bus, env: Readonly<Record<string, string>> = {}): Promise<string | undefined> {
 	const failed = launched(home, machine, ssh(machine, ["arthur", "remote-job", "launch", machine.home, id, agent, slice], JSON.stringify(env)), bus);
-	if (failed !== undefined) syncMachine(home, machine, bus);
+	if (failed !== undefined) await syncMachine(home, machine, bus);
 	return failed;
 }
 

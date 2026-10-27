@@ -44,4 +44,5 @@ Out:
 
 ## Decisions
 - 2026-10-27: AR0527 approved: a planner writes plan.md for an activity log plugin, one file per day, users and agents; the owner: "can you create the task for it and plan?" (AR-D200)
+- 2026-10-27: Plan approved by the owner: plan.md at ddbaf77e; not built today; the owner: "AR-D203 1 - but do not build this today" (AR-D203)
 

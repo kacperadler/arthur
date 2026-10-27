@@ -1,6 +1,6 @@
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { chmodSync, type Dirent, existsSync, lstatSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { basename, dirname, join, relative } from "node:path";
 
 // The steps `arthur merge` runs on main once the branch is in (spec/roadmap.md, entry 54): the project's install, as the
 // projects plugin answers `projects.install` for the merge commit, the one a new worktree gets, then the `check` and `test`
@@ -64,12 +64,24 @@ function repositories(root: string): Map<string, string> {
 	return found;
 }
 
-// A `.git` by the inode and change time, which a write, a rename or a chmod sets and no step can set back, of itself and, in a
-// folder, of every entry below it, so a step's write in one there before (its `config`) counts too; "unreadable" for one a step closed.
+// A `.git` by the inode, owner, group, mode and change time, which a write, a rename, a chmod, a chgrp or an ACL sets and no step
+// can set back, of itself and, in a folder, of every entry below it, so a step's write in one there before (its `config`, a hook)
+// counts too; "unreadable" for one a step closed. What a git read changes there does not count (AR0467): an `index` (`git status`
+// rewrites one, a linked worktree's in `worktrees/<name>/`) and its `sharedindex.<hash>` (`core.splitIndex`), which run nothing,
+// and the change time of each folder git locks an index in (the `.git` folder, one holding an `index`), which the lock file it
+// makes and removes sets; their extended attributes, an ACL among them, count instead, read by python3, else their change time.
+const READ = /^(index|sharedindex\.[0-9a-f]+)$/;
+const ATTRIBUTES = "import os, sys\nfor p in sys.argv[1:]: print(p, sorted((n, os.getxattr(p, n, follow_symlinks=False).hex()) for n in os.listxattr(p, follow_symlinks=False)))";
 function stamp(path: string): string {
 	try {
-		const names = lstatSync(path).isDirectory() ? readdirSync(path, { recursive: true, encoding: "utf8" }).sort() : [];
-		return ["", ...names].map((name) => [name, lstatSync(join(path, name))] as const).map(([name, stat]) => `${name} ${stat.ino} ${stat.ctimeMs}`).join("\n");
+		const folder = lstatSync(path).isDirectory();
+		const names = folder ? readdirSync(path, { recursive: true, encoding: "utf8" }).sort() : [];
+		const locks = folder ? ["", ...names.filter((name) => basename(name) === "index").map((name) => relative(".", dirname(name)))] : [];
+		const read = folder ? spawnSync("python3", ["-I", "-c", ATTRIBUTES, ...locks.map((name) => join(path, name))], { encoding: "utf8" }) : undefined;
+		const held = new Set(read?.status === 0 ? locks : []);
+		const stats = ["", ...names].filter((name) => !READ.test(basename(name))).map((name) => [name, lstatSync(join(path, name))] as const);
+		const lines = stats.map(([name, stat]) => `${name} ${stat.ino} ${stat.uid} ${stat.gid} ${stat.mode} ${held.has(name) ? "" : stat.ctimeMs}`);
+		return [read?.status === 0 ? read.stdout : "", ...lines].join("\n");
 	} catch {
 		return "unreadable";
 	}

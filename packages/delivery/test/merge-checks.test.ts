@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fakeHost, jobSlice, temporaryFolder } from "@arthur/core/testing";
@@ -53,9 +53,10 @@ test("a step still running at its limit is killed with SIGKILL, though it ignore
 	assert.ok(Date.now() - started < 10_000, `it took ${Date.now() - started} ms`);
 });
 
-// A checkout `acme` with a real submodule at `vendor/lib` and the owner's own clones at `tools/scratch` and `tools/other`, all
-// there before the first step; `fsmonitor` a repository beside it whose `core.fsmonitor` writes `pwned`, as the reviewer of
-// AR0457 planted one.
+// A checkout `acme` with a real submodule at `vendor/lib` and the owner's own clones at `tools/scratch`, with one commit, a
+// linked worktree at `tools/wt` and `core.splitIndex` set, and `tools/other`, its `.git` 775 as umask 002 makes it, all there
+// before the first step; `fsmonitor` a repository beside it whose `core.fsmonitor` writes `pwned`, as the reviewer of AR0457
+// planted one.
 function planted() {
 	const folder = temporaryFolder();
 	const [root, pwned] = [join(folder, "acme"), join(folder, "pwned")];
@@ -69,6 +70,11 @@ function planted() {
 	git(join(folder, "lib"), "add", "--all");
 	git(join(folder, "lib"), "commit", "--quiet", "-m", "lib");
 	git(root, "submodule", "--quiet", "add", join(folder, "lib"), "vendor/lib");
+	git(join(root, "tools", "scratch"), "add", "--all");
+	git(join(root, "tools", "scratch"), "commit", "--quiet", "-m", "notes");
+	git(join(root, "tools", "scratch"), "worktree", "add", "--quiet", join(root, "tools", "wt"));
+	git(join(root, "tools", "scratch"), "config", "core.splitIndex", "true");
+	chmodSync(join(root, "tools", "other", ".git"), 0o775);
 	writeFileSync(join(root, ".gitignore"), "tools/\n");
 	git(root, "add", "--all");
 	git(root, "commit", "--quiet", "-m", "first");
@@ -116,4 +122,70 @@ test("a .git folder there before the first step that a step wrote in, its config
 	assert.deepEqual(lines.sort(), said(command, "tools/other/.git", "tools/scratch/.git"));
 	for (const folder of ["tools/scratch", "tools/other"]) git(join(root, folder), "status", "--porcelain");
 	assert.equal(existsSync(pwned), false, "git status in each clone ran no planted fsmonitor");
+});
+
+test("a step that only reads the owner's clones with git keeps them and their history, though git status rewrote their index, a split one and a linked worktree's; one that then writes a hook or core.fsmonitor in one has it removed", () => {
+	const { root, pwned, git, run, lines, kept } = planted();
+	const indexes = ["tools/scratch/.git/index", "tools/scratch/.git/worktrees/wt/index"].map((path) => join(root, path));
+	// A stat the index does not hold, so git status refreshes each index and writes it anew.
+	for (const path of ["tools/scratch/notes.md", "tools/wt/notes.md"]) utimesSync(join(root, path), 0, 0);
+	const [before, inodes] = [kept(), indexes.map((path) => lstatSync(path).ino)];
+	const read = ["tools/scratch", "tools/wt", "tools/other"].map((folder) => `git -C ${folder} status --porcelain`).concat("git -C tools/scratch log --oneline").join(" && ");
+	const ran = run(read, process.env);
+	assert.equal(ran.status, 0, ran.stderr);
+	for (const [at, path] of indexes.entries()) assert.notEqual(lstatSync(path).ino, inodes[at], `git status rewrote ${path}`);
+	assert.match(readdirSync(join(root, "tools", "scratch", ".git")).join(" "), /\bsharedindex\.[0-9a-f]+\b/, "git status split the index");
+	assert.deepEqual(lines, [], "a step that only read the clones adds no line");
+	assert.deepEqual(kept(), before, "the owner's clones are the same ones");
+	assert.equal(git(join(root, "tools", "scratch"), "log", "--format=%s"), "notes", "the clone keeps its history");
+	assert.equal(git(join(root, "tools", "wt"), "rev-parse", "--show-toplevel"), join(root, "tools", "wt"), "the linked worktree still works");
+	const hook = join(root, "tools/scratch/.git/hooks/post-checkout");
+	const command = [read, `printf '#!/bin/sh\\ntouch %s\\n' '${pwned}' > ${hook}`, `chmod +x ${hook}`, `git -C tools/other config core.fsmonitor "touch '${pwned}'"`].join(" && ");
+	assert.equal(run(command, process.env).status, 0);
+	assert.deepEqual(lines.sort(), said(command, "tools/other/.git", "tools/scratch/.git"));
+	assert.deepEqual([existsSync(hook), existsSync(join(root, "tools", "other", ".git"))], [false, false]);
+	git(join(root, "tools", "other"), "status", "--porcelain");
+	assert.equal(existsSync(pwned), false, "git status in the clone ran no planted fsmonitor");
+});
+
+// A POSIX ACL as Linux keeps it (`system.posix_acl_access`: version 2, then each entry's tag, permissions and id) that gives
+// `nobody` (65534) rwx under the mask rwx, so a 775 folder's mode stays as it was: `setfacl -m u:nobody:rwx`, by python3.
+const ACL = "import os, struct, sys\nos.setxattr(sys.argv[1], 'system.posix_acl_access', struct.pack('<I', 2) + b''.join(struct.pack('<HHI', *e) for e in [(1, 7, 2**32 - 1), (2, 7, 65534), (4, 7, 2**32 - 1), (16, 7, 2**32 - 1), (32, 5, 2**32 - 1)]))";
+// One of Arthur's user's groups other than the one a new folder gets; none for a user in one group.
+const group = process.getgroups?.().find((id) => id !== process.getegid?.());
+
+// What a step that runs `command` prints, once the test saw it removed the `.git` of `path`.
+function opened(command: string, path: string): string {
+	const { root, run, lines } = planted();
+	const ran = run(command, process.env);
+	assert.equal(ran.status, 0, ran.stderr);
+	assert.deepEqual(lines, said(command, path));
+	assert.equal(existsSync(join(root, path)), false);
+	return ran.stdout;
+}
+
+test("a step that only opens a folder in a clone's .git to others, by its mode or by an ACL that leaves the mode as it was, so another user could plant a hook there later, has it removed", () => {
+	opened("chmod o+w tools/other/.git", "tools/other/.git");
+	assert.equal(opened(`python3 -I -c "${ACL}" tools/other/.git && stat -c %a tools/other/.git`, "tools/other/.git"), "775\n", "the ACL left the mode as it was");
+});
+
+test("a step that only hands a group-writable .git of a clone to another group of Arthur's user has it removed", { skip: group === undefined && "Arthur's user is in one group" }, () => {
+	opened(`chgrp ${group} tools/other/.git`, "tools/other/.git");
+});
+
+test("where python3 cannot read a folder's attributes, a git read in a clone's .git counts as a change, so no ACL there is missed", () => {
+	// A python3 first on the PATH that fails, as one missing does, for Arthur's process only: the step runs on the PATH it had.
+	const bin = join(temporaryFolder(), "bin");
+	mkdirSync(bin);
+	writeFileSync(join(bin, "python3"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+	const path = process.env.PATH;
+	process.env.PATH = `${bin}:${path}`;
+	try {
+		const { run, lines } = planted();
+		const command = "git -C tools/other status --porcelain";
+		assert.equal(run(command, { ...process.env, PATH: path }).status, 0);
+		assert.deepEqual(lines, said(command, "tools/other/.git"));
+	} finally {
+		process.env.PATH = path;
+	}
 });

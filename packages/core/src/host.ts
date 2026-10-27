@@ -16,6 +16,7 @@ import { ownHome } from "./own-home.ts";
 import { coreRequirements } from "./requirements.ts";
 import type { Answer, Plugin } from "./plugin.ts";
 import { asPlugin, pluginHost, pluginStep, registry } from "./plugin-host.ts";
+import { type Hide, secretNames } from "./secret-names.ts";
 import type { Outgoing } from "./send-command.ts";
 
 // The plugin host (spec/roadmap.md, entry 4): checks the config's plugin list, resolves the enabled plugins' env variables,
@@ -29,8 +30,8 @@ import type { Outgoing } from "./send-command.ts";
 // `follow` is what `arthur run` follows the event log with; `project` is the project a name names (job-checkout.ts), refusing
 // one Arthur does not know; `autopilot` asks the plugin that provides `ticket.autopilot` to pre-approve a ticket (`arthur ticket`);
 // `doctor` checks the core's requirements and each plugin's (`arthur doctor`); `emit` logs and delivers an event of the core's;
-// `channels` asks every channel's `channel.send` (`arthur send`).
-export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"]; readonly project: (name: string) => unknown; readonly autopilot: (request: AutopilotRequest) => unknown; readonly doctor: () => Promise<DoctorLine[]>; readonly emit: (name: string, data: unknown) => void; readonly channels: (message: Outgoing) => Answer<unknown>[] };
+// `channels` asks every channel's `channel.send` (`arthur send`); `hide` names each env variable's value (secret-names.ts).
+export type LoadedPlugins = { readonly plugins: readonly Plugin[]; readonly warnings: readonly string[]; readonly jobs: JobRunner; readonly board: Board; readonly follow: Bus["follow"]; readonly project: (name: string) => unknown; readonly autopilot: (request: AutopilotRequest) => unknown; readonly doctor: () => Promise<DoctorLine[]>; readonly emit: (name: string, data: unknown) => void; readonly channels: (message: Outgoing) => Answer<unknown>[]; readonly hide: Hide };
 export type AutopilotRequest = { readonly id: string; readonly budgetUsd?: number };
 
 const REQUIRED = "orchestration";
@@ -40,15 +41,18 @@ const CORE = dirname(import.meta.dirname);
 // In a job (`inJob`, docs/commands/config.md) a plugin with a variable unset, and one that requires it, is left out.
 export async function loadPlugins(config: LoadedConfig, shell: Shell = process.env, commands: CommandRegistry = commandRegistry(), inJob = false): Promise<LoadedPlugins> {
 	const checked = await checkPlugins(config);
-	const { values, warnings, unset } = resolveEnv(config, shell, inJob), secrets = Object.values(values).flatMap((each) => Object.values(each));
+	const { values, warnings, unset } = resolveEnv(config, shell, inJob), secrets = Object.values(values).flatMap((each) => Object.values(each)), hide = secretNames(Object.assign({}, ...Object.values(values)));
 	const skipped = new Set<string>();
 	for (const plugin of checked) if (unset.has(plugin.name) || plugin.requires?.some((name) => skipped.has(name))) skipped.add(plugin.name);
 	const sorted = checked.filter((plugin) => !skipped.has(plugin.name));
 	if (skipped.size > 0) console.error(`arthur: inside a job, not loaded: ${[...skipped].join(", ")}: each names an env variable, and a job's CLI reads no env file`);
 	const names = registry();
 	const time = clock(config.core.timeZone, config.core.quietHours);
-	const bus = eventBus(config.core.home);
-	const jobs = jobRunner(config.core.home, dirname(config.path), config.core.envFile, { ...config.core.jobs, slice: SLICE }, config.core.agent.command, time, bus, names.collect);
+	const bus = eventBus(config.core.home, hide);
+	const runner = jobRunner(config.core.home, dirname(config.path), config.core.envFile, { ...config.core.jobs, slice: SLICE }, config.core.agent.command, time, bus, names.collect);
+	// What a record takes from a request (a task, an instruction, a block's reason, a steer) and a channel's reply, each value named.
+	const jobs: JobRunner = { ...runner, spawn: (request) => runner.spawn({ ...request, task: hide(request.task) }), continue: (id, instruction, ...rest) => runner.continue(id, hide(instruction), ...rest), block: (id, reason, stop) => runner.block(id, hide(reason), stop), steer: (id, text) => runner.steer(id, hide(text)) };
+	const routed: CommandRegistry = { ...commands, route: async (text, from) => hide(await commands.route(text, from)) };
 	let loading = true;
 	// `Host.package`: the nearest folder with a package.json above each plugin's own `module`; `Host.code`: the core's, then those, once each.
 	const packages = sorted.map((plugin) => (plugin.module === undefined ? undefined : packageOf(fileURLToPath(plugin.module))));
@@ -59,7 +63,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		const { enabled: _, ...options } = plugin.options ?? {};
 		const folder = join(config.core.home, plugin.name);
 		mkdirSync(folder, { recursive: true });
-		const host = pluginHost(names, commands, bus, jobs, { envFile: config.core.envFile, home: config.core.home, config: config.path }, { name: plugin.name, options, env: values[plugin.name] ?? {}, secrets, folder, clock: time, agent: config.core.agent.command, code, package: packages[index] }, () => loading);
+		const host = pluginHost(names, routed, bus, jobs, { envFile: config.core.envFile, home: config.core.home, config: config.path }, { name: plugin.name, options, env: values[plugin.name] ?? {}, secrets, folder, clock: time, agent: config.core.agent.command, code, package: packages[index] }, () => loading);
 		await pluginStep(plugin.name, "setup", () => plugin.setup(host));
 	}
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));
@@ -74,7 +78,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		const lists = names.collect("projects", []);
 		return doctor(coreRequirements(config.core, () => [dirname(config.path), ...(lists.length === 0 ? [] : projectList(lists).map((each) => each.path))]), answers);
 	};
-	return { plugins: sorted, warnings, jobs, board: core, follow: bus.follow, project, autopilot, doctor: checks, emit: (name, data) => void bus.emit("core", name, data), channels: (message) => names.collectEach("channel.send", [message]) };
+	return { plugins: sorted, warnings, jobs, board: core, follow: bus.follow, project, autopilot, doctor: checks, emit: (name, data) => void bus.emit("core", name, data), channels: (message) => names.collectEach("channel.send", [message.caption === undefined ? message : { ...message, caption: hide(message.caption) }]), hide };
 }
 
 // The host's refusals before any `setup`, which `arthur config check` runs too: the plugin list, `orchestration`, `requires`,

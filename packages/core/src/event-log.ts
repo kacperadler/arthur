@@ -27,9 +27,9 @@ export function withLog<T>(home: string, run: (fd: number) => T): T {
 	});
 }
 
-export function append(fd: number, plugin: string, name: string, data: unknown): Event {
+export function append(fd: number, plugin: string, name: string, data: unknown, hide: (text: string) => string = (text) => text): Event {
 	const { size } = fstatSync(fd);
-	const text = JSON.stringify({ seq: lastSeq(fd, size) + 1, time: new Date().toISOString(), plugin, name, data: data ?? null });
+	const text = JSON.stringify({ seq: lastSeq(fd, size) + 1, time: new Date().toISOString(), plugin, name, data: data ?? null }, (_key, value: unknown) => (typeof value === "string" ? hide(value) : value));
 	// A torn last line (a crash while writing it) is ended here, so it stays one skipped line instead of spoiling this one.
 	const last = Buffer.alloc(1);
 	const torn = size > 0 && readSync(fd, last, 0, 1, size - 1) === 1 && last[0] !== 0x0a;

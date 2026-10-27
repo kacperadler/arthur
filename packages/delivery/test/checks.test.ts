@@ -113,6 +113,15 @@ test("a line is clean only when the call began and ended on the same clean tree,
 	assert.equal(last(run({ ...bash("npm test; echo >> package.json", SUMMARY(3, 0)), during: () => writeFileSync(join(worktree, "package.json"), `${BOTH}\n`) })), "test pass 3/3 <commit> dirty", "tested beside a change, undone after");
 	const rewrite = () => void [writeFileSync(join(worktree, "package.json"), "{}"), writeFileSync(join(worktree, "package.json"), `${BOTH}\n`)];
 	assert.equal(last(run({ ...bash("cp old.json package.json && npm test && git show HEAD:package.json > package.json", SUMMARY(3, 0)), during: rewrite })), "test pass 3/3 <commit> dirty", "an older file put in, tested and put back without Git");
+	// Another file of the same size tested and put back, its mtime too (`touch -r`): only its ctime tells.
+	const reference = join(temporaryFolder(), "reference");
+	const restamp = () => {
+		execFileSync("touch", ["-r", join(worktree, "package.json"), reference]);
+		writeFileSync(join(worktree, "package.json"), `${BOTH}\n`.replace("tsc", "tsx"));
+		writeFileSync(join(worktree, "package.json"), `${BOTH}\n`);
+		execFileSync("touch", ["-r", reference, join(worktree, "package.json")]);
+	};
+	assert.equal(last(run({ ...bash("touch -r package.json ref && cp old.json package.json && npm test && git show HEAD:package.json > package.json && touch -r ref package.json", SUMMARY(3, 0)), during: restamp })), "test pass 3/3 <commit> dirty", "put back with its mtime");
 	const second = git("rev-parse", "HEAD");
 	assert.equal(last(run({ ...bash("npm test; git commit -q --allow-empty -m empty", SUMMARY(3, 0)), during: () => git("commit", "--quiet", "--allow-empty", "-m", "empty") })), `test pass 3/3 ${second} dirty`, "the same tree, another commit");
 	const empty = git("rev-parse", "HEAD");
@@ -146,7 +155,7 @@ test("the reads run no fsmonitor the worktree's config names, nor read a replace
 	assert.equal(run(bash("npm test", SUMMARY(3, 0))), "test pass 3/3 <commit> clean\ntest pass 3/3 <commit> dirty\n");
 });
 
-test("calls that overlap are each recorded on the tree they began on; a result whose call was not seen is dirty", (t) => {
+test("calls that overlap are each recorded on the tree they began on, in either order of their ends; a result whose call was not seen is dirty", (t) => {
 	const { begin, end, read, worktree, git } = load(t);
 	const [tests, check] = [bash("npm test", SUMMARY(3, 0)), bash("npm run check")];
 	writeFileSync(join(worktree, "package.json"), `${BOTH}\n`);
@@ -155,9 +164,16 @@ test("calls that overlap are each recorded on the tree they began on; a result w
 	begin("toolu_b", check);
 	end("toolu_a", tests);
 	end("toolu_b", check);
-	assert.equal(read(), "test pass 3/3 <commit> dirty\ncheck pass <commit> clean\n");
+	assert.equal(read(), "test pass 3/3 <commit> dirty\ncheck pass <commit> clean\n", "ended in the order they began");
+	writeFileSync(join(worktree, "package.json"), `${BOTH}\n`);
+	begin("toolu_c", tests);
+	git("checkout", "--", "package.json");
+	begin("toolu_d", check);
+	end("toolu_d", check);
 	end("toolu_c", tests);
-	assert.equal(read(), "test pass 3/3 <commit> dirty\ncheck pass <commit> clean\ntest pass 3/3 <commit> dirty\n");
+	assert.equal(read(), "test pass 3/3 <commit> dirty\ncheck pass <commit> clean\ncheck pass <commit> clean\ntest pass 3/3 <commit> dirty\n", "the later one ended first");
+	end("toolu_e", tests);
+	assert.equal(read(), "test pass 3/3 <commit> dirty\ncheck pass <commit> clean\ncheck pass <commit> clean\ntest pass 3/3 <commit> dirty\ntest pass 3/3 <commit> dirty\n");
 });
 
 test("a tracked file whose folder is now a file neither blocks the call nor throws at its end", (t) => {

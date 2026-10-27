@@ -110,6 +110,16 @@ test("a hidden path reads nowhere: not by its path, nor made later; a file besid
 	assert.deepEqual(log, [`sandbox: the agent writes only in ${open}, /dev, reads every file but ${join(shut, "env")}, ${join(open, "later", "env")}, and opens no Unix socket but a datagram one`]);
 });
 
+test("a hidden path inside another hidden folder unhides nothing of that folder", { skip: bare }, () => {
+	const folder = temporaryFolder();
+	const ssh = join(folder, ".ssh");
+	mkdirSync(ssh);
+	writeFileSync(join(ssh, "id_fake"), "FAKE-PRIVATE-KEY\n");
+	writeFileSync(join(ssh, "env"), "secret\n");
+	const { out } = inside(["/dev"], `cat '${join(ssh, "id_fake")}' || echo refused`, folder, [join(ssh, "env"), ssh]);
+	assert.equal(out, "refused\n");
+});
+
 test("in the sandbox a Unix socket is refused, a server's that listens as well; TCP still connects", { skip: locked }, async (t) => {
 	const folder = temporaryFolder();
 	const socket = join(folder, "server.sock");
@@ -404,6 +414,37 @@ test("an install that empties the record's guarded list does not unhide the env 
 	for (const name of readdirSync(record, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile())) {
 		assert.doesNotMatch(readFileSync(join(name.parentPath, name.name), "utf8"), /s3cret-t0ken/, name.name);
 	}
+});
+
+test("a job's install, its agent across a continue that found the guarded list emptied, and a merge step cannot read ~/.ssh (AR0508)", { skip: bare }, async (t) => {
+	const { folder, root, home } = repository();
+	const user = join(folder, "user");
+	const key = join(user, ".ssh", "id_fake");
+	mkdirSync(dirname(key), { recursive: true });
+	writeFileSync(key, "FAKE-PRIVATE-KEY\n");
+	const saved = process.env.HOME;
+	t.after(() => (saved === undefined ? delete process.env.HOME : (process.env.HOME = saved)));
+	process.env.HOME = user;
+	const read = `{ cat '${key}' || echo refused; } >> ssh-read 2>&1`;
+	const agent = join(folder, "agent");
+	writeFileSync(agent, `#!/bin/sh\n${read}\n: > "$ARTHUR_JOB/guarded"\n`, { mode: 0o755 });
+	const time = clock("UTC", undefined, () => new Date("2026-10-24T08:00:00Z"));
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), () => []);
+	jobs.prepare("test", () => ({ ARTHUR_INSTALL: read }));
+	const job = await jobs.spawn({ task: "Read." });
+	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
+	const record = join(home, "jobs", job.id);
+	assert.equal(readFileSync(join(record, "guarded"), "utf8"), "", "the agent emptied the guarded list");
+	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
+	await until("the second job-ended", () => (readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2 ? true : undefined));
+	const reads = readFileSync(join(readFileSync(join(record, "worktree"), "utf8"), "ssh-read"), "utf8");
+	assert.equal(reads.match(/Permission denied\nrefused\n/g)?.length, 4, "the install and the agent, in both runs");
+	assert.doesNotMatch(reads, /FAKE-PRIVATE-KEY/);
+	assert.match(readFileSync(join(record, "log"), "utf8"), new RegExp(`\\] sandbox: the install writes only in .*, reads every file but ${join(root, "env")}, ${join(user, ".ssh")}, `));
+	const step = stepSandbox(root, join(folder, "merge-cache"), { envFile: join(root, "env"), home, config: join(root, "arthur.config.ts") }, () => {});
+	const checked = spawnSync(...step(`cat '${key}'`), { cwd: root, encoding: "utf8" });
+	assert.deepEqual([checked.stdout, /Permission denied/.test(checked.stderr)], ["", true], checked.stderr);
+	assert.equal(readFileSync(key, "utf8"), "FAKE-PRIVATE-KEY\n", "outside the sandbox the key reads");
 });
 
 // A config in `folder` with the env file `envFile` and the home `home`: orchestration, `secret`, whose `leak` prints its token,

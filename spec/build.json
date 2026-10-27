@@ -3146,9 +3146,9 @@
   {
     "id": "AR0403",
     "title": "Security review of our own code, part 2: injection into shell, git, ssh and tmux, and prompt injection",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0403-security-review-of-our-own-code-part-2-injection-into-shell-git-ssh-and-tmux-and-prompt-injection/ticket.md",
-    "updated": "2026-10-27T08:00:55.180Z",
+    "updated": "2026-10-27T08:05:34.459Z",
     "after": [
       "AR0432",
       "AR0350",
@@ -3799,5 +3799,61 @@
     "status": "planning",
     "path": "spec/features/AR0481-a-stop-during-the-install-can-end-the-job-before-its-stop-of-the-install-s-group/ticket.md",
     "updated": "2026-10-27T07:59:35.719Z"
+  },
+  {
+    "id": "AR0482",
+    "title": "The coordinator writes the owner's answer itself, so every decision-gated step is its own word",
+    "status": "planning",
+    "path": "spec/features/AR0482-the-coordinator-writes-the-owner-s-answer-itself-so-every-decision-gated-step-is/ticket.md",
+    "updated": "2026-10-27T08:05:34.424Z"
+  },
+  {
+    "id": "AR0483",
+    "title": "The coordinator, the agent that reads the most outside text, runs with no sandbox and no worktree guard",
+    "status": "planning",
+    "path": "spec/features/AR0483-the-coordinator-the-agent-that-reads-the-most-outside-text-runs-with-no-sandbox/ticket.md",
+    "updated": "2026-10-27T08:05:34.429Z"
+  },
+  {
+    "id": "AR0484",
+    "title": "A board entry's `path` is never checked, so a filing writes `plan.md` or `review-N.md` outside the project",
+    "status": "planning",
+    "path": "spec/features/AR0484-a-board-entry-s-path-is-never-checked-so-a-filing-writes-plan-md-or-review-n-md/ticket.md",
+    "updated": "2026-10-27T08:05:34.434Z"
+  },
+  {
+    "id": "AR0485",
+    "title": "A project's vision, ticket titles and a blocked job's question enter the coordinator's system prompt unmarked",
+    "status": "planning",
+    "path": "spec/features/AR0485-a-project-s-vision-ticket-titles-and-a-blocked-job-s-question-enter-the/ticket.md",
+    "updated": "2026-10-27T08:05:34.438Z"
+  },
+  {
+    "id": "AR0486",
+    "title": "A finding's body becomes its ticket's Description verbatim, which the worker reads as the source of truth",
+    "status": "planning",
+    "path": "spec/features/AR0486-a-finding-s-body-becomes-its-ticket-s-description-verbatim-which-the-worker/ticket.md",
+    "updated": "2026-10-27T08:05:34.443Z"
+  },
+  {
+    "id": "AR0487",
+    "title": "An `arthur continue` instruction that starts with `-` is an option of `omp`",
+    "status": "planning",
+    "path": "spec/features/AR0487-an-arthur-continue-instruction-that-starts-with-is-an-option-of-omp/ticket.md",
+    "updated": "2026-10-27T08:05:34.447Z"
+  },
+  {
+    "id": "AR0488",
+    "title": "A health check runs `git status` in a main checkout with its `core.fsmonitor` on",
+    "status": "planning",
+    "path": "spec/features/AR0488-a-health-check-runs-git-status-in-a-main-checkout-with-its-core-fsmonitor-on/ticket.md",
+    "updated": "2026-10-27T08:05:34.451Z"
+  },
+  {
+    "id": "AR0489",
+    "title": "A coordinator option ending in `;` splits its `tmux new-session` into tmux commands",
+    "status": "planning",
+    "path": "spec/features/AR0489-a-coordinator-option-ending-in-splits-its-tmux-new-session-into-tmux-commands/ticket.md",
+    "updated": "2026-10-27T08:05:34.455Z"
   }
 ]

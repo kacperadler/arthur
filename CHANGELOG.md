@@ -12,6 +12,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0429 The guard misreads four short forms: $ARTHUR_JOB, env -C and sudo -D, a ~ after =, cd $PWD and cd ~+ (55a02d90)
 - AR0436 A bash call that changes the tree after its checks, before it ends, is recorded on the tree it ends on (05e0d6e2)
 - AR0454 The writable package caches carry branch code out of the sandbox (ff79c610)
+- AR0467 A merge check that runs git inside an owner clone in the checkout deletes that clone history (b7f8edf8)
 
 ### Changed
 

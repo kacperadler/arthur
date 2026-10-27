@@ -358,3 +358,4 @@
 {"record":"ask","id":"AR-D179","time":"2026-10-27T13:14:22+01:00","project":"arthur","kind":"merge","question":"Merge AR0404, the security review of channels, merge and delivery (its report and 9 findings, docs only, no review needed)?","options":["Merge","Wait"],"recommend":1,"ticket":"AR0404"}
 {"record":"answer","id":"AR-D179","time":"2026-10-27T13:15:08+01:00","decided":"Merge AR0404 now","picked":1,"words":"AR-D179 merge"}
 {"record":"ask","id":"AR-D180","time":"2026-10-27T13:26:36+01:00","project":"arthur","kind":"merge","question":"Merge AR0405, the security review of other machines, network and dependencies (its report and 4 findings, docs only, no review needed)?","options":["Merge","Wait"],"recommend":1,"ticket":"AR0405"}
+{"record":"answer","id":"AR-D180","time":"2026-10-27T13:34:11+01:00","decided":"Merge AR0405 now","picked":1,"words":"AR-D180 merge"}

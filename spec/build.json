@@ -3601,9 +3601,9 @@
   {
     "id": "AR0454",
     "title": "The writable package caches carry branch code out of the sandbox",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0454-the-writable-package-caches-carry-branch-code-out-of-the-sandbox/ticket.md",
-    "updated": "2026-10-26T23:54:30.524Z"
+    "updated": "2026-10-27T00:01:32.119Z"
   },
   {
     "id": "AR0455",

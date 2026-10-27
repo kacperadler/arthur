@@ -3158,9 +3158,9 @@
   {
     "id": "AR0404",
     "title": "Security review of our own code, part 3: channels, merge and delivery",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0404-security-review-of-our-own-code-part-3-channels-merge-and-delivery/ticket.md",
-    "updated": "2026-10-27T07:38:56.445Z",
+    "updated": "2026-10-27T12:14:12.897Z",
     "after": [
       "AR0432",
       "AR0350",
@@ -3170,9 +3170,9 @@
   {
     "id": "AR0405",
     "title": "Security review of our own code, part 4: other machines, network and dependencies",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0405-security-review-of-our-own-code-part-4-other-machines-network-and-dependencies/ticket.md",
-    "updated": "2026-10-27T06:52:50.333Z",
+    "updated": "2026-10-27T12:06:22.563Z",
     "after": [
       "AR0432",
       "AR0350",

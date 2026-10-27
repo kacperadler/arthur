@@ -408,3 +408,4 @@
 {"record":"answer","id":"AR-D205","time":"2026-10-27T20:55:41+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}
 {"record":"answer","id":"AR-D202","time":"2026-10-27T21:05:49+01:00","decided":"Merge AR0511 now","picked":1,"words":"AR-D202 1"}
 {"record":"answer","id":"AR-D203","time":"2026-10-27T21:05:50+01:00","decided":"Plan approved by the owner: plan.md at ddbaf77e; not built today","picked":1,"words":"AR-D203 1 - but do not build this today"}
+{"record":"ask","id":"AR-D206","time":"2026-10-27T21:14:08+01:00","project":"arthur","kind":"merge","question":"Merge AR0476 (arthur doctor: a tracked env file gets the untrack-and-rotate fix), which passed review?","options":["Merge","Wait"],"recommend":1,"ticket":"AR0476"}

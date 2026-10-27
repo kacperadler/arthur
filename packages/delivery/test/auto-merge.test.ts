@@ -182,7 +182,7 @@ test("--auto reads past a replacement of main's tip under refs/replace: the held
 	assert.equal((await merge(job.id, "--auto")).err, `arthur merge: --auto merges no held path: ${job.branch} changes packages/shop/package.json (package.json); its merge waits for the owner: arthur merge ${job.id} on his word; main is unchanged`);
 });
 
-test("--auto CI: failed refused, pending or no run of the tip waits (one on main counts as none), GitHub's refusal named; github not loaded refused without --no-ci, merged with it", async (t) => {
+test("--auto CI: failed refused, pending or no run of the tip waits (one on main counts as none), GitHub's refusal named; github not loaded refused, naming the owner's --no-ci; --auto --no-ci refused", async (t) => {
 	const { worker, review, merge, head, answers, waiting } = await load(t);
 	const job = await worker(1);
 	await review(job.id, "PASS");
@@ -206,11 +206,13 @@ test("--auto CI: failed refused, pending or no run of the tip waits (one on main
 	const bare = await load(t, false);
 	const other = await bare.worker(1);
 	await bare.review(other.id, "PASS");
+	const before = bare.head();
 	const refused = await bare.merge(other.id, "--auto");
-	assert.deepEqual([refused.code, refused.err], [1, `arthur merge: --auto asks CI of github, which is not loaded (plugin delivery: call("github.ci"): no plugin provides it); without it, only the owner's word merges: arthur merge ${other.id} --auto --no-ci; main is unchanged`]);
-	const merged = await bare.merge(other.id, "--auto", "--no-ci");
-	assert.equal(merged.code, undefined, merged.err);
-	assert.equal(bare.fake.host.board.get("AC0001")?.status, "merged");
+	assert.deepEqual([refused.code, refused.err], [1, `arthur merge: --auto asks CI of github, which is not loaded (plugin delivery: call("github.ci"): no plugin provides it); without it, only the owner's decision merges: arthur merge ${other.id} --no-ci --decision <the owner's decision id>; main is unchanged`]);
+	const without = await bare.merge(other.id, "--auto", "--no-ci");
+	assert.equal(without.code, 2, without.err);
+	assert.match(without.err, /^arthur merge: --auto merges only with CI passed, --no-ci without it on the owner's decision: one or the other\n/);
+	assert.equal(bare.head(), before);
 });
 
 test("CI passed on the tip after a new commit: the run of the old tip no longer counts; a commit with no run waits, the run below it on the branch neither merges nor wakes", async (t) => {

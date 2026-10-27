@@ -213,7 +213,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `projects.install` | projects | delivery (`arthur merge`) | `{ project, commit }`: the command that installs the project at that commit, as a new worktree gets it, `""` for none (above, "Changes since entry 51"). |
 | `nvm.path` | nvm | delivery (`arthur merge`) | `{ root }`, a project's checkout here: the PATH with its `.nvmrc`'s Node first, `""` without `.nvmrc` (above, "Changes since entry 51"). |
 | `merge.check` | projects | delivery (`arthur merge`) | A check of a job's branch before its merge: a text answer refuses it. |
-| `decision.owner` | orchestration | delivery (`arthur merge --unreviewed`, `arthur take-main`) | `{ id, what, kind, ticket?, job?, use }`: `""` when `id` is the owner's own answered decision of that kind, ticket or job, not used by another use, which it then marks used; else the refusal, one line. |
+| `decision.owner` | orchestration | delivery (`arthur merge --unreviewed` or `--no-ci`, `arthur take-main`) | `{ id, what, kind, ticket?, job?, use }`: `""` when `id` is the owner's own answered decision of that kind, ticket or job, not used by another use, which it then marks used; else the refusal, one line. |
 | `findings.onMerge` | findings | delivery (`arthur merge`) | `{ project, ticket, path, root }`, `path` the merged ticket's `findings.md`: the lines of its outcome's `## Left open`. |
 | `delivery.alwaysReview` | delivery | orchestration | `{ project, paths }`: the paths on the always-review list. |
 | `github.push` | github | delivery (a review's PASS, `arthur review-needed`'s `no review`, `arthur merge`) | A promise of one line: the branch pushed to origin, or why not. |

@@ -20,21 +20,22 @@ F1 of AR0475 (spec/features/AR0475-line-budgets-on-one-line-plus-a-comment-log-c
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+Two branches that each make a new plugin merge without a conflict in `BUDGETS`. Evidence: `packages/develop/src/plugin-new.ts:98` adds the new budget last, so both insert at the same place; `git merge-file` on two such copies of `test/structure.test.ts` gives one conflict (F1 of AR0475).
 
 - Kind: chore
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- `arthur plugin new` inserts the new budget in name order; a test makes two plugins with different names from the same base and `git merge-file` merges them with no conflict.
+- `npm run check` and `npm test` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/develop/src/plugin-new.ts`, `packages/develop/test/plugin-new.test.ts`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The form of `BUDGETS` and raises: unchanged.
 
 ## Decisions
 

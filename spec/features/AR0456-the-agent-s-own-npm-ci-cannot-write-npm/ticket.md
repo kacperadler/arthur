@@ -20,21 +20,24 @@ F3 of AR0449 (spec/features/AR0449-the-install-at-a-job-start-and-the-merge-chec
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+An agent that installs from the lockfile itself, as the worker's role tells it to when no install ran, has a writable npm cache. Evidence: in a job's sandbox `touch ~/.npm/_probe_x` gave `Permission denied` (F3 of AR0449); the shared cache stays closed to the agent so a job cannot poison another job's install (F1 of AR0449).
 
 - Kind: fix
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- The agent's npm runs with a cache of its own inside the job (`npm_config_cache` pointing at a job-private folder that is writable), never the shared `~/.npm`; a test shows `npm ci` in a job's sandbox writes there and the shared cache is untouched.
+- `spawn.md` says where the agent's cache is.
+- `npm run check` and `npm test` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/job-sandbox.ts` (or where the job's environment is set) and its test, `packages/core/docs/commands/spawn.md`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The shared caches the install and merge checks use: unchanged.
+- A missing shared cache on a fresh host: AR0455.
 
 ## Decisions
 

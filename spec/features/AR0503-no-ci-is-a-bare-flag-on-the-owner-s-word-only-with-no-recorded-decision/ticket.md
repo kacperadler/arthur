@@ -23,21 +23,24 @@ F5 of AR0404 (spec/features/AR0404-security-review-of-our-own-code-part-3-channe
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+`arthur merge --no-ci` needs the owner's recorded decision, as `--unreviewed` does, so a branch whose CI failed never goes in on the coordinator's word alone. Evidence: `packages/delivery/src/merge-command.ts:40`, `:108` take `--no-ci` as a bare flag; `--auto --no-ci` merges with no owner at all (`auto-merge.ts:53`).
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- `--no-ci` without `--decision <id>` is refused; with one, it is checked by `decision.owner` with `what: "--no-ci"`, kind `merge`, as `--unreviewed` is; a wrong kind, an open or another ticket's decision is refused. Tests in `merge.test.ts` as for `--unreviewed`.
+- `--auto --no-ci` is refused.
+- `merge.md` and the coordinator's role say so.
+- `npm run check` and `npm test` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/delivery/src/merge-command.ts`, `auto-merge.ts`, `packages/delivery/test/merge.test.ts`, `packages/delivery/docs/commands/merge.md`, `packages/orchestration/roles/coordinator.md`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- `--unreviewed`: unchanged.
 
 ## Decisions
 

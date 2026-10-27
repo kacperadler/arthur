@@ -23,21 +23,22 @@ F8 of AR0404 (spec/features/AR0404-security-review-of-our-own-code-part-3-channe
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+The Discord plan carries the Telegram lesson of AR0365 before Discord is built: a forwarded message is never a phone command, and its text is marked. Evidence: `spec/roadmap.md` entries 89 and 90 route any `/name text` from the owner's user to the command registry, with no rule for a forward or an edit.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- Entry 89's Done means: a forwarded message is never a phone command; its text and snapshots reach the coordinator after `[forwarded from <author>]`; an edit (`MESSAGE_UPDATE`) is ignored, as Telegram ignores `edited_message`; both are edge cases tested against the fake gateway.
+- `npm run check` and `npm test` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `spec/roadmap.md` (entries 89 and 90).
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Building the Discord plugin: its own roadmap entries.
 
 ## Decisions
 

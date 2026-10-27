@@ -20,24 +20,23 @@ F3 of AR0508 (spec/features/AR0508-a-sandboxed-job-reads-arthur-s-ssh-private-ke
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+The SSH docs say what is true since AR0508 hid `~/.ssh` from jobs. Evidence: `packages/core/docs/commands/spawn.md:120` still lists "a job reaching the user's own SSH login (`ssh localhost`)" as a limit.
 
 - Kind: docs
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- `spawn.md`'s limits say the SSH key is hidden from a job, and that the user's login is still reachable through a password or another stored credential.
+- `npm run check` and `npm test` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/docs/commands/spawn.md`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The sandbox itself: unchanged.
 
 ## Decisions
 
 - 2026-10-27: Source: F3 of AR0508
-
-<!-- - YYYY-MM-DD: one decision the human made, in one line. -->

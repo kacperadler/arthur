@@ -10,10 +10,9 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "nod
 // paths, `--`, then the agent's command line: a Landlock ruleset (Linux 5.13 on) under which the agent and every process it
 // starts write only beneath the writable paths (a missing one is skipped; a file takes only its own writes) and, when a path is
 // hidden, read every file but it: Landlock only grants, so each folder from `/` to its real path grants reads on every entry but
-// the next part (a symlink or an entry that does not open gets none, nor does a part made later), and none at or beneath a hidden
-// path (an env file inside `~/.ssh` unhides nothing of it), a seccomp filter that refuses io_uring
-// (whose sockets seccomp does not see) and a new Unix socket but a datagram one (omp's session lock), so no user bus, tmux
-// server or other local daemon runs a command outside it, and `no_new_privs`; then it execs the agent. Its refusal ends stderr.
+// the next part (a symlink, an entry that does not open, a part made later and a folder at or beneath a hidden path get none),
+// a seccomp filter that refuses io_uring (whose sockets seccomp does not see) and a new Unix socket but a datagram one (omp's
+// session lock), so no local daemon runs a command outside it, and `no_new_privs`; then it execs the agent. Its refusal ends stderr.
 const SCRIPT = `import ctypes, os, platform, stat, struct, sys
 libc = ctypes.CDLL(None, use_errno=True)
 libc.syscall.restype = libc.prctl.restype = ctypes.c_long
@@ -37,8 +36,7 @@ for path in paths:
 	if grant(fd, dirs if stat.S_ISDIR(os.fstat(fd).st_mode) else files) < 0: fail(f"Landlock: {path}")
 	os.close(fd)
 walk, reals = {}, [os.path.realpath(path) for path in hidden]
-for real in reals:
-	parts = real.split("/")
+for parts in (real.split("/") for real in reals):
 	for at in range(1, len(parts)): walk.setdefault("/".join(parts[:at]) or "/", set()).add(parts[at])
 for folder, skip in walk.items():
 	if any(folder == real or folder.startswith(real.rstrip("/") + "/") for real in reals): continue
@@ -76,9 +74,8 @@ export function writable(record: string, worktree: string, extensions: string): 
 	return [worktree, record, ...repository, tmpdir(), "/dev", join(homedir(), ".omp"), ...plugins];
 }
 
-// What the agent of the job whose record is `record` may not read: the env file its `guarded` file names (job-place.ts), none
-// in a record without one (an old record, a job on another machine), and always the user's `~/.ssh` (AR0508), whose keys reach
-// other machines and origin outside the sandbox and the merge; taken from no record, which the agent writes.
+// What the agent of the job whose record is `record` may not read: the env file its `guarded` file names (job-place.ts), if any,
+// and the user's `~/.ssh` (AR0508), taken from no record, which the agent writes; job-place.ts and spawn.md say why.
 export function hidden(record: string): string[] {
 	const text = existsSync(join(record, "guarded")) ? readFileSync(join(record, "guarded"), "utf8") : "";
 	return [...text.split("\n").filter((line) => line.startsWith("env /")).map((line) => line.slice(4)), join(homedir(), ".ssh")];

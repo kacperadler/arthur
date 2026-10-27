@@ -40,3 +40,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: F3 of AR0508
+- 2026-10-27: Merge AR0514 now; the owner: "AR-D204 1" (AR-D204)

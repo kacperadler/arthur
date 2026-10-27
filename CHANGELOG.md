@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Fixed
 
+- AR0343 Git ignores `.env` only, while `core.envFile` may be any name the guard counts as a secrets file (56876e1e)
 - AR0374 The install at a spawn and each step of the merge have no time limit (a5779445)
 - AR0388 The user's systemd folder is guarded at `~/.config/systemd` only, not at `$XDG_CONFIG_HOME/systemd` (2bc30f66)
 - AR0429 The guard misreads four short forms: $ARTHUR_JOB, env -C and sudo -D, a ~ after =, cd $PWD and cd ~+ (55a02d90)

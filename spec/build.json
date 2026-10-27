@@ -3733,9 +3733,9 @@
   {
     "id": "AR0472",
     "title": "An escaped variable in an unquoted heredoc reaches the inner shell unread by the guard",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0472-an-escaped-variable-in-an-unquoted-heredoc-reaches-the-inner-shell-unread-by-the/ticket.md",
-    "updated": "2026-10-27T08:44:49.977Z"
+    "updated": "2026-10-27T08:58:39.033Z"
   },
   {
     "id": "AR0473",
@@ -3747,9 +3747,9 @@
   {
     "id": "AR0474",
     "title": "A review pruned before the merge makes the ticket cost unknown",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0474-a-review-pruned-before-the-merge-makes-the-ticket-cost-unknown/ticket.md",
-    "updated": "2026-10-27T06:52:39.388Z"
+    "updated": "2026-10-27T08:58:45.918Z"
   },
   {
     "id": "AR0475",

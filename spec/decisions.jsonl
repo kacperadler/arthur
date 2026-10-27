@@ -371,3 +371,5 @@
 {"record":"answer","id":"AR-D185","time":"2026-10-27T14:51:46+01:00","decided":"Drop AR0402; approve AR0517 and AR0518 and start them now","picked":1,"words":"AR-D185 1"}
 {"record":"ask","id":"AR-D186","time":"2026-10-27T15:14:22+01:00","project":"arthur","kind":"budget","question":"Raise the orchestration line budget from 2421 to 2430 for AR0517 (the tmux socket folder check)?","options":["Raise it","Refuse"],"recommend":1,"ticket":"AR0517"}
 {"record":"answer","id":"AR-D186","time":"2026-10-27T15:14:28+01:00","decided":"Raise the orchestration line budget from 2421 to 2430 for AR0517, by the owner standing rule AR-D61","picked":1,"words":"IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS"}
+{"record":"ask","id":"AR-D187","time":"2026-10-27T15:16:22+01:00","project":"arthur","kind":"merge","question":"Merge AR0509, which passed review: the copy from another machine bounded in size and time","options":["Merge","Wait"],"recommend":1,"ticket":"AR0509"}
+{"record":"answer","id":"AR-D187","time":"2026-10-27T15:16:22+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}

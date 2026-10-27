@@ -1,7 +1,7 @@
 // The shell parser the guards share (spec/roadmap.md, entries 19 and 20). `shellCommands` reads a command line as bash does before brace and pathname expansion: its simple commands in the order they run, split at `;`, `&&`, `||`, `|`, `&` and
 // newlines, and `(` and `)` around a subshell, a `$(…)` or a backtick substitution, whose commands come before the command they are in. A word has its quotes removed, a backslash-newline gone, the escapes of `$'…'` decoded; a comment is dropped.
-// An expansion known only when the command runs (`$x`, `${x}`, `$1`) is nothing, or the word it falls back to (`${x:-word}`, also with `=`, `+`, `?` and without the colon, read with `plain`, where `<>;&|()#` are text;
-// outside double quotes, one with an unquoted blank or `<>;&|()#` is `\0-`, as the guard does not follow how bash splits it); a variable in `known` (`HOME`, `ARTHUR_JOB`) is its value, also with `-`, `=`, `?`; `known.HOME` is an unquoted `~` at a word's start or after an assignment's `=` (`~+` and `~-` there stay). `$PWD` is
+// An expansion known only when the command runs (`$x`, `${x}`, `$1`) is nothing, or the word it falls back to (`${x:-word}`, also with `=`, `+`, `?` and without the colon; in double quotes read as their text, `~` and `'` as written,
+// `$'…'` decoded, inner `"` gone; outside, one with an unquoted blank or `<>;&|()#` is `\0-`, as the guard does not follow how bash splits it); a variable in `known` (`HOME`, `ARTHUR_JOB`) is its value, also with `-`, `=`, `?`; `known.HOME` is an unquoted `~` at a word's start or after an assignment's `=` (`~+` and `~-` there stay). `$PWD` is
 // `~+` and `$OLDPWD` `~-` (also with `-`, `=`, `?`); one of them or of a set variable in `known` with another operator but `+` (`%`, `#`, `/`, `:1`, `${!x}`, `${#x}`) is `\0-`, in no bash word. A here-string's `~+` and an unquoted heredoc's `$PWD` or `${PWD}` (also with `-`, `=`, `?`) are `\0+`, the folder of the shell that reads them; its `${PWD` with another operator but `+` `\0-`. A quoted or escaped
 // `\*?[]{},()~`, or any other `~`, keeps a backslash, so a glob is told apart from a quoted star and a bare `~+` is `$PWD` or that prefix; `literal` removes it. `shellWords`: every word, a heredoc's body one.
 
@@ -52,7 +52,7 @@ export function shellWords(command: string): string[] {
 	return shellCommands(command).flatMap((item) => (typeof item === "string" ? [] : [...item.words, ...item.writes, ...item.reads, ...item.stdin.flatMap(shellWords)]));
 }
 
-export function shellCommands(command: string, known: Readonly<Record<string, string | undefined>> = {}, plain = false): Item[] {
+export function shellCommands(command: string, known: Readonly<Record<string, string | undefined>> = {}): Item[] {
 	const items: Item[] = [];
 	let current: Command = { words: [], writes: [], reads: [], stdin: [], alone: true };
 	// The substitutions of the command being read, which run before it.
@@ -86,7 +86,9 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 			const close = closing(command, at + 2, "{", "}");
 			const inner = command.slice(at + 2, close);
 			const [fallback, name, of] = [/^[#!]?(?:[A-Za-z_]\w*|\d+|[@*#?$!-])(?:\[[^\]]*\])?:?[-=+?]([^]*)$/.exec(inner), /^([A-Za-z_]\w*)(?:\[0\])?(?::?[-=?]|$)/.exec(inner)?.[1], /^[#!]?([A-Za-z_]\w*)/.exec(inner)?.[1]];
-			word += name === "OLDPWD" ? "~-" : fallback === null && name === undefined && of !== undefined && (of === "OLDPWD" || of === "PWD" || value(of) !== undefined) ? "\0-" : name === "PWD" ? "~+" : ((name && value(name)) ?? (fallback === null ? "" : !inDouble && /[\s<>;&|()#]/.test(fallback[1]!.replace(/\\.|'[^']*'|"(?:\\.|[^"\\])*"/gs, "")) ? "\0-" : shellCommands(fallback[1]!, known, true).flatMap((item) => (typeof item === "string" ? [] : item.words)).join(" ")));
+			const split = fallback !== null && !inDouble && /[\s<>;&|()#]/.test(fallback[1]!.replace(/\\.|'[^']*'|"(?:\\.|[^"\\])*"/gs, ""));
+			const text = fallback === null ? "" : !inDouble ? fallback[1]! : `"${fallback[1]!.replace(/(?<!\\)((?:\\\\)*)\$'((?:\\.|[^'\\])*)'/g, (_, slashes: string, ansi: string) => slashes + decodeEscapes(ansi).replace(/[$`"\\]/g, "\\$&")).replace(/(?<!\\)((?:\\\\)*)"/g, "$1")}"`;
+			word += name === "OLDPWD" ? "~-" : fallback === null && name === undefined && of !== undefined && (of === "OLDPWD" || of === "PWD" || value(of) !== undefined) ? "\0-" : name === "PWD" ? "~+" : ((name && value(name)) ?? (split ? "\0-" : shellCommands(text, known).flatMap((item) => (typeof item === "string" ? [] : item.words)).join(" ")));
 			return close + 1;
 		}
 		if (next === "'" && !inDouble) {
@@ -160,7 +162,6 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 			at++;
 		} else if (char === "$") at = dollar(at, false);
 		else if (char === "`") at = backtick(at);
-		else if (plain && /[<>;&|()#]/.test(char)) [word, at] = [word + char, at + 1];
 		else if (redirect !== undefined) {
 			// The number of the file descriptor it redirects, written right before it, is no word.
 			if (/^\d+$/.test(word)) word = "";

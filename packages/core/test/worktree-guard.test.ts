@@ -81,6 +81,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	symlinkSync(root, join(own.worktree, "~+"));
 	// A folder whose name has a space, leading to the main checkout: what an unquoted fallback `${x:-a b}` reaches when bash does not split it.
 	symlinkSync(root, join(own.worktree, "a b"));
+	// Folders named `~`, `'..'`, `\.\.` and `$x..`: a double-quoted fallback names them as written, where bash expands or removes nothing.
+	for (const name of ["~", "'..'", "\\.\\.", "$x.."]) mkdirSync(join(own.worktree, name));
 	const MAIN = "the main checkout";
 	const HOME = "Arthur's home folder";
 	const OTHER = "another job's worktree";
@@ -278,6 +280,16 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `echo \${x:-"a b"} \${x:-'a;b'} \${x:-a\\ b} \${HOME:-a b} \${PWD-a;b}` }, undefined],
 		["bash", { command: 'rm "${x:-a ../../acme/README.md}"' }, undefined],
 		...[..."<>;&|()#"].map((char) => ["bash", { command: `rm "\${x:-${char}}../../../../acme/README.md"` }, MAIN] as const),
+		["bash", { command: 'rm "${x:-~}"/../../../acme/README.md' }, MAIN],
+		["bash", { command: 'rm "${x:-~/../../../acme/README.md}"' }, MAIN],
+		["bash", { command: 'rm "${x:-"~"}/../../../acme/README.md"' }, MAIN],
+		["bash", { command: 'rm "${x:-~+}/README.md"' }, MAIN],
+		["bash", { command: `rm "\${x:-'..'}/../../../acme/README.md"` }, MAIN],
+		["bash", { command: 'rm "${x:-\\.\\.}/../../../acme/README.md"' }, MAIN],
+		["bash", { command: `rm "\${x:-$'..'}/../acme/README.md"` }, MAIN],
+		["bash", { command: `rm "\${x:-$'$x'}../../../acme/README.md"` }, MAIN],
+		["bash", { command: "rm ${x:-~}/acme/README.md" }, MAIN],
+		["bash", { command: "rm ${x:-~+}/README.md ${x:-~root}/README.md" }, undefined],
 		["bash", { command: `cd ${main}; bash <<EOF\ncd /tmp; echo x > \${PWD:+x}; rm \${PWD:+$PWD}/README.md\nEOF` }, MAIN],
 		["bash", { command: 'rm "${HOME/x/x}/acme/README.md"' }, UNKNOWN],
 		["bash", { command: "rm /${HOME#/}/acme/README.md" }, UNKNOWN],

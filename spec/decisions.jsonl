@@ -243,3 +243,5 @@
 {"record":"answer","id":"AR-D121","time":"2026-10-27T00:58:11+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}
 {"record":"ask","id":"AR-D122","time":"2026-10-27T01:13:01+01:00","project":"arthur","kind":"merge","question":"AR0436 passed review: merge it?","options":["Merge","Hold"],"recommend":1,"ticket":"AR0436"}
 {"record":"answer","id":"AR-D122","time":"2026-10-27T01:13:01+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}
+{"record":"ask","id":"AR-D123","time":"2026-10-27T01:22:24+01:00","project":"arthur","kind":"budget","question":"AR0436 needs the delivery line budget raised by 33 lines (1552 after tonight's merges): raise it?","options":["Raise","Keep"],"recommend":1,"ticket":"AR0436"}
+{"record":"answer","id":"AR-D123","time":"2026-10-27T01:22:26+01:00","decided":"Raise the delivery line budget by 33 for AR0436, 1552 on main (AR-D61)","picked":1,"words":"IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS"}

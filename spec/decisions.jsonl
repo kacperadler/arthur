@@ -344,3 +344,4 @@
 {"record":"answer","id":"AR-D172","time":"2026-10-27T10:01:35+01:00","decided":"AR0469: delivery line budget 1611 -> 1631 (its 7 lines plus 13 for the split into merge-sweep.ts)","picked":1,"words":"IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS"}
 {"record":"ask","id":"AR-D173","time":"2026-10-27T10:11:26+01:00","project":"arthur","kind":"merge","question":"Merge AR0472 (an escaped variable in an unquoted heredoc is read as the inner shell gets it) after its round-2 PASS?","options":["Merge","Wait"],"recommend":1,"ticket":"AR0472"}
 {"record":"close","id":"AR-D167","time":"2026-10-27T10:14:57+01:00","reason":"ticket merged"}
+{"record":"close","id":"AR-D173","time":"2026-10-27T10:19:19+01:00","reason":"ticket merged"}

@@ -233,7 +233,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `sudo --preserve-env rm ${main}/README.md` }, MAIN],
 		// AR0473: a long option of sudo or env that takes a value, given whole or by a prefix only it starts with, and the short ones, skip the word after them.
 		...["--user", "--us", "--auth-type", "--close-from", "--login-class", "--group", "--host", "--prompt", "--chroot", "--role", "--type", "--other-user", "--command-timeout", "-a", "-c", "-r", "-t"].map((option) => ["bash", { command: `sudo ${option} root rm ${main}/README.md` }, MAIN] as const),
-		...["--unset", "--u", "--argv0", "-a"].map((option) => ["bash", { command: `env ${option} X rm ${main}/README.md` }, MAIN] as const),
+		...["--unset", "--u", "--argv0", "--env0-from", "--e", "--quoting-style", "--q", "-a"].map((option) => ["bash", { command: `env ${option} X rm ${main}/README.md` }, MAIN] as const),
 		["bash", { command: `sudo --login rm ${main}/README.md` }, MAIN],
 		["bash", { command: `sudo --user=root rm ${main}/README.md` }, MAIN],
 		["bash", { command: `env --unset=X --ignore-environment rm ${main}/README.md` }, MAIN],

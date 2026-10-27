@@ -3698,16 +3698,16 @@
   {
     "id": "AR0467",
     "title": "A merge check that runs git inside an owner clone in the checkout deletes that clone history",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0467-a-merge-check-that-runs-git-inside-an-owner-clone-in-the-checkout-deletes-that/ticket.md",
-    "updated": "2026-10-27T07:15:42.249Z"
+    "updated": "2026-10-27T07:23:06.340Z"
   },
   {
     "id": "AR0468",
     "title": "A second arthur merge during the first one's checks merges on top of the unchecked merge commit",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0468-a-second-arthur-merge-during-the-first-one-s-checks-merges-on-top-of-the/ticket.md",
-    "updated": "2026-10-27T07:21:45.179Z"
+    "updated": "2026-10-27T07:22:28.687Z"
   },
   {
     "id": "AR0469",

@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/worktree-guard.ts:20` (`WRAPPERS`: only sudo and env list their long options)
 - What: `timeout --signal KILL 60 rm <main>/README.md` passes the guard: a row expecting the main checkout, added for a run of `node --test packages/core/test/worktree-guard.test.ts` and removed after, failed with `undefined`; real `timeout --signal KILL 5 echo timeout-ran` printed `timeout-ran`. The same holds, from the lines of `commandIndex`, for `timeout --kill-after`, `nice --adjustment`, `ionice --class`/`--classdata`/`--pid`/`--pgid`/`--uid`, `stdbuf --input`/`--output`/`--error`, GNU `time --format`/`--output` and the long options of `xargs` that take a value (an inference, not run).
 - Suggestion: list those wrappers' long options in `WRAPPERS` as sudo and env now are (`=` after those that take a value); `commandIndex` already reads them, prefixes included. A row each in `worktree-guard.test.ts`.
-- Status: open
+- Status: ticket AR0497
 
 ## F2. The command line `env -S` splits is not read
 
@@ -20,4 +20,20 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/worktree-guard.ts:20` (`-S` and `--split-string=` are skipped as an option value)
 - What: `env -S 'rm <main>/README.md'` passes the guard: a row expecting the main checkout, added for a run of `node --test packages/core/test/worktree-guard.test.ts` and removed after, failed with `undefined`; real `env -S 'echo split-ran'` printed `split-ran`. env splits the value into words and runs them, the words after it appended.
 - Suggestion: read the value of `env -S`/`--split-string` as the start of the command (split as `bash -c` text is, before the words after it), or refuse an `env -S` whose value the guard cannot split; a row each.
-- Status: open
+- Status: ticket AR0498
+
+## F3. coreutils master adds `--quoting-style=` to env
+
+- Kind: security
+- Found by: 2026-10-27-review-6bbfa971 (review), 2026-10-27
+- Where: `packages/core/src/worktree-guard.ts:20`
+- What: not released yet; once it ships it would open the same hole.
+- Status: fixed in 3db05599 (listed with `=`, a row for it and its prefix)
+
+## F4. An exact option name is read as ambiguous, not as an exact match as getopt_long does
+
+- Kind: chore
+- Found by: 2026-10-27-review-6bbfa971 (review), 2026-10-27
+- Where: `packages/core/src/worktree-guard.ts:19`
+- What: safe only while no whole option name is the start of a longer option that takes a value, which the comment documents; a future option breaking that rule would change the result quietly.
+- Status: dropped (holds for every option of both lists today, and the comment says what to check when a list grows)

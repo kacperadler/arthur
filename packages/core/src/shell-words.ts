@@ -118,8 +118,10 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 		heredocs.push({ into: current.stdin, delimiter, expands: !/['"\\]/.test(raw[1]!), strip });
 		return from + raw[0].length;
 	};
+	// An unquoted heredoc's body as the outer shell hands it on: a backslash before `$`, `` ` ``, `\` or a newline gone, `$name` or `${name}` of a variable in `known` its value.
+	const outer = (body: string): string => body.replace(/\\([$`\\\n])|\$(?:([A-Za-z_]\w*)|\{([A-Za-z_]\w*)\})/g, (match, escaped?: string, plain?: string, braced?: string) => (escaped !== undefined ? escaped.replace("\n", "") : ((Object.hasOwn(known, (plain ?? braced)!) ? known[(plain ?? braced)!] : undefined) ?? match)));
 	// The bodies of the heredocs noted on the line before `from`, each up to its delimiter's line; with an unquoted
-	// delimiter, the substitutions in the body run. Returns where the line after the last delimiter starts.
+	// delimiter, the substitutions in the body run and the body is read as `outer` hands it on. Returns where the line after the last delimiter starts.
 	const bodies = (from: number): number => {
 		for (const { into, delimiter, expands, strip } of heredocs) {
 			let [body, at, last] = ["", from, from];
@@ -131,7 +133,7 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 				body += `${line}\n`;
 				last = at;
 			}
-			into.push(expands ? body.replace(/(?<!\\)((?:\\\\)*)\$(?:PWD(?!\w)|\{PWD(?:\[0\])?(?::?[-=?][^{}]*)?\})/g, "$1\0+").replace(/(?<!\\)((?:\\\\)*)\$\{[#!]?PWD(?!\w|:?\+)/g, "$1\0-") : body);
+			into.push(expands ? outer(body.replace(/(?<!\\)((?:\\\\)*)\$(?:PWD(?!\w)|\{PWD(?:\[0\])?(?::?[-=?][^{}]*)?\})/g, "$1\0+").replace(/(?<!\\)((?:\\\\)*)\$\{[#!]?PWD(?!\w|:?\+)/g, "$1\0-")) : body);
 			for (let index = from; expands && index < last; ) {
 				index = command[index] === "\\" ? index + 2 : command[index] === "$" ? dollar(index, true) : command[index] === "`" ? backtick(index) : index + 1;
 			}

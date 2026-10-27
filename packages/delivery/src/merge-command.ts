@@ -144,7 +144,8 @@ async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly
 	// The steps' package caches in a folder of this merge in the plugin's own, removed after it (AR0454); the reinstall's in one of its own (AR0469).
 	const cache = mkdtempSync(join(host.folder, "cache-"));
 	try {
-		const runner = (folder: string) => stepRunner(root, host.jobs.slice, host.sandbox(root, folder, console.log), console.log, mode.stepSeconds);
+		const runs = stepRunner(root, host.jobs.slice, console.log, mode.stepSeconds);
+		const runner = (folder: string) => runs(host.sandbox(root, folder, console.log));
 		const steps = mainChecks(root, ask, runner(cache), console.log);
 		if (steps.length === 0) console.log("no checks: package.json declares no check or test script");
 		const failing = steps.filter(failed).map((each) => each.command);

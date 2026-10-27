@@ -36,7 +36,7 @@ test("each step on main runs in a sandbox: it writes main's checkout and the mer
 	};
 	const tries = Object.entries(writes).map(([name, command]) => `if (${command}) 2>/dev/null; then echo '${name} written'; else echo '${name} refused'; fi`);
 	const script = [`{ tr '\\0' '\\n' < /proc/${process.pid}/environ || echo refused; } 2>&1`, "{ cat env || echo refused; } 2>&1", ...tries].join("\n");
-	const ran = stepRunner(root, jobSlice.slice, sandbox, () => {}, 60)(script, { ...process.env, XDG_CACHE_HOME: join(folder, "cache") });
+	const ran = stepRunner(root, jobSlice.slice, () => {}, 60)(sandbox)(script, { ...process.env, XDG_CACHE_HOME: join(folder, "cache") });
 	assert.equal(ran.status, 0, ran.stderr);
 	assert.match(ran.stdout, /^[^\n]*environ: Permission denied\nrefused\ncat: env: Permission denied\nrefused\ncheckout written\ntop refused\nown cache written\nshared cache refused\nbeside refused\n$/);
 	assert.doesNotMatch(ran.stdout, /s3cret-t0ken/);
@@ -48,7 +48,7 @@ test("each step on main runs in a sandbox: it writes main's checkout and the mer
 test("a step still running at its limit is killed with SIGKILL, though it ignores SIGTERM, and its error names the limit", () => {
 	const started = Date.now();
 	// 8 s that SIGTERM does not end: with SIGTERM as the kill, the step exits 0 once they passed.
-	const ran = stepRunner(root, jobSlice.slice, sandbox, () => {}, 1)("trap '' TERM; for second in 1 2 3 4 5 6 7 8; do sleep 1; done", process.env);
+	const ran = stepRunner(root, jobSlice.slice, () => {}, 1)(sandbox)("trap '' TERM; for second in 1 2 3 4 5 6 7 8; do sleep 1; done", process.env);
 	assert.deepEqual([ran.status, ran.signal, ran.error?.message], [null, "SIGKILL", "timed out after 1 s"]);
 	assert.ok(Date.now() - started < 10_000, `it took ${Date.now() - started} ms`);
 });
@@ -79,9 +79,9 @@ function planted() {
 	git(root, "add", "--all");
 	git(root, "commit", "--quiet", "-m", "first");
 	const lines: string[] = [];
-	const run = stepRunner(root, jobSlice.slice, (command) => ["sh", ["-c", command]], (line) => void (line.startsWith("uncapped: ") || lines.push(line)), 60);
+	const runs = stepRunner(root, jobSlice.slice, (line) => void (line.startsWith("uncapped: ") || lines.push(line)), 60);
 	const kept = () => ["vendor/lib/.git", "tools/scratch/.git", "tools/other/.git"].map((path) => [lstatSync(join(root, path)).ino, existsSync(join(root, path))]);
-	return { root, pwned, gitfile: `gitdir: ${join(folder, "fsmonitor", ".git")}`, git, run, lines, kept };
+	return { root, pwned, gitfile: `gitdir: ${join(folder, "fsmonitor", ".git")}`, git, runs, run: runs((command) => ["sh", ["-c", command]]), lines, kept };
 }
 
 const said = (command: string, ...paths: string[]) => paths.map((path) => `removed ${path}, which ${command} left: a git call in that folder would run its config outside any sandbox`);
@@ -122,6 +122,16 @@ test("a .git folder there before the first step that a step wrote in, its config
 	assert.deepEqual(lines.sort(), said(command, "tools/other/.git", "tools/scratch/.git"));
 	for (const folder of ["tools/scratch", "tools/other"]) git(join(root, folder), "status", "--porcelain");
 	assert.equal(existsSync(pwned), false, "git status in each clone ran no planted fsmonitor");
+});
+
+test("the reinstall's runner, a sandbox of its own, sweeps against the merge's first look: a .git written after the checks' last sweep is removed after its step", () => {
+	const { root, runs, run, lines } = planted();
+	assert.equal(run("true", process.env).status, 0);
+	// What a process the checks left running, bare, writes after their last step's sweep: a repository of its own.
+	execFileSync("git", ["init", "-q", join(root, "late")]);
+	assert.equal(runs((command) => ["sh", ["-c", command]])("true", process.env).status, 0);
+	assert.deepEqual(lines, said("true", "late/.git"));
+	assert.equal(existsSync(join(root, "late", ".git")), false);
 });
 
 test("a step that only reads the owner's clones with git keeps them and their history, though git status rewrote their index, a split one and a linked worktree's; one that then writes a hook or core.fsmonitor in one has it removed", () => {

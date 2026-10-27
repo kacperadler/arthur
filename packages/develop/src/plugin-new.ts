@@ -13,7 +13,7 @@ const USAGE = "usage: arthur plugin new <name> --budget <lines> [--project <name
 // A plugin's name, as the host checks it at load.
 const NAME = /^[a-z]+(-[a-z]+)*$/;
 const STRUCTURE = "test/structure.test.ts";
-const BUDGETS = /^const BUDGETS = \{ (.*) \};$/gm;
+const BUDGETS = /^const BUDGETS = \{\n((?:\t.+,\n)*)\};$/gm;
 // Names whose function the new files cannot declare: JavaScript's reserved words, and the names those files declare or import.
 const UNUSABLE = [
 	..."arguments await break case catch class const continue debugger default delete do else enum eval export extends false finally for function".split(" "),
@@ -38,10 +38,10 @@ function refusal(root: string, name: string, budget: string | undefined, fn: str
 	if (!existsSync(join(root, "packages", "core", "package.json"))) return `${root} is not Arthur's repository: no packages/core`;
 	const structure = existsSync(join(root, STRUCTURE)) ? readFileSync(join(root, STRUCTURE), "utf8") : "";
 	const found = [...structure.matchAll(BUDGETS)];
-	if (found.length !== 1) return `${join(root, STRUCTURE)} holds ${found.length} lines "const BUDGETS = { ... };", not one`;
+	if (found.length !== 1) return `${join(root, STRUCTURE)} holds ${found.length} blocks "const BUDGETS = {", one budget per line, "};", not one`;
 	if (!existsSync(join(root, "package-lock.json"))) return `${root} has no package-lock.json`;
 	if (existsSync(join(root, "packages", name))) return `packages/${name} exists already`;
-	if (new RegExp(`(^|, )"?${name}"?: `).test(found[0]?.[1] ?? "")) return `${name} has a line budget in ${STRUCTURE} already`;
+	if (new RegExp(`^\t"?${name}"?: `, "m").test(found[0]?.[1] ?? "")) return `${name} has a line budget in ${STRUCTURE} already`;
 	return undefined;
 }
 
@@ -95,7 +95,7 @@ export function pluginNew(checkout: string, args: readonly string[], home: strin
 	renameSync(draft, folder);
 	replace(lockPath, lock);
 	const key = name.includes("-") ? `"${name}"` : name;
-	replace(structurePath, structure.replace(BUDGETS, (_, entries: string) => `const BUDGETS = { ${entries}, ${key}: ${budget} };`));
+	replace(structurePath, structure.replace(BUDGETS, (_, entries: string) => `const BUDGETS = {\n${entries}\t${key}: ${budget},\n};`));
 	// What `npm ci` would link, so `@arthur/<name>` resolves in arthur.config.ts before the next install.
 	const link = join(root, "node_modules", "@arthur", name);
 	if (existsSync(dirname(link)) && lstatSync(link, { throwIfNoEntry: false }) === undefined) symlinkSync(join("..", "..", "packages", name), link);

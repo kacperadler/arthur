@@ -3785,5 +3785,12 @@
     "status": "planning",
     "path": "spec/features/AR0479-a-merge-step-reading-an-owner-clone-still-deletes-it-when-python3-cannot-read/ticket.md",
     "updated": "2026-10-27T07:33:47.128Z"
+  },
+  {
+    "id": "AR0480",
+    "title": "Plan: a stats plugin, token use, cost and time of every job and of the coordinator, per role, ticket and project",
+    "status": "planning",
+    "path": "spec/features/AR0480-plan-a-stats-plugin-token-use-cost-and-time-of-every-job-and-of-the-coordinator/ticket.md",
+    "updated": "2026-10-27T07:46:03.978Z"
   }
 ]

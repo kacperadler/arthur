@@ -291,3 +291,4 @@
 {"record":"close","id":"AR-D145","time":"2026-10-27T08:11:04+01:00","reason":"ticket merged"}
 {"record":"ask","id":"AR-D146","time":"2026-10-27T08:13:18+01:00","project":"arthur","kind":"budget","question":"AR0468 needs the delivery line budget raised by 20 lines (1552 -> 1572 on its base; the per-project merge lock and its refusal in merge-command.ts): raise it?","options":["Raise","Keep"],"recommend":1,"ticket":"AR0468"}
 {"record":"answer","id":"AR-D146","time":"2026-10-27T08:13:19+01:00","decided":"AR0468: delivery line budget +20 (1552 -> 1572 on its base)","picked":1,"words":"IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS"}
+{"record":"ask","id":"AR-D147","time":"2026-10-27T08:22:22+01:00","project":"arthur","kind":"merge","question":"Merge AR0468 (one arthur merge per project at a time) after its PASS?","options":["Merge","Wait"],"recommend":1,"ticket":"AR0468"}

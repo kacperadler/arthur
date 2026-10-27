@@ -3705,9 +3705,9 @@
   {
     "id": "AR0468",
     "title": "A second arthur merge during the first one's checks merges on top of the unchecked merge commit",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0468-a-second-arthur-merge-during-the-first-one-s-checks-merges-on-top-of-the/ticket.md",
-    "updated": "2026-10-27T07:13:21.269Z"
+    "updated": "2026-10-27T07:21:45.179Z"
   },
   {
     "id": "AR0469",

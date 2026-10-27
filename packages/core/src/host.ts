@@ -49,7 +49,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const names = registry();
 	const time = clock(config.core.timeZone, config.core.quietHours);
 	const bus = eventBus(config.core.home, hide);
-	const runner = jobRunner(config.core.home, dirname(config.path), config.core.envFile, { ...config.core.jobs, slice: SLICE }, config.core.agent.command, time, bus, names.collect);
+	const runner = jobRunner(config.core.home, dirname(config.path), config.core.envFile, { ...config.core.jobs, slice: SLICE }, config.core.agent.command, time, bus, names.collect, hide);
 	// What a record takes from a request (a task, an instruction, a block's reason, a steer) and a channel's reply, each value named.
 	const jobs: JobRunner = { ...runner, spawn: (request) => runner.spawn({ ...request, task: hide(request.task) }), continue: (id, instruction, ...rest) => runner.continue(id, hide(instruction), ...rest), block: (id, reason, stop) => runner.block(id, hide(reason), stop), steer: (id, text) => runner.steer(id, hide(text)) };
 	const routed: CommandRegistry = { ...commands, route: async (text, from) => hide(await commands.route(text, from)) };
@@ -64,7 +64,8 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		const folder = join(config.core.home, plugin.name);
 		mkdirSync(folder, { recursive: true });
 		const host = pluginHost(names, routed, bus, jobs, { envFile: config.core.envFile, home: config.core.home, config: config.path }, { name: plugin.name, options, env: values[plugin.name] ?? {}, secrets, folder, clock: time, agent: config.core.agent.command, code, package: packages[index] }, () => loading);
-		await pluginStep(plugin.name, "setup", () => plugin.setup(host));
+		// A setup's error is printed before the CLI names what it prints (cli.ts), so it is named here.
+		await pluginStep(plugin.name, "setup", () => plugin.setup(host)).catch((error: Error) => Promise.reject(new Error(hide(error.message))));
 	}
 	const core = board(() => names.collect("projects", []), time, (name, data) => bus.emit("core", name, data));
 	refuseUnstartableTickets(core, jobs);

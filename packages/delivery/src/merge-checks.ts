@@ -26,7 +26,7 @@ export function stepRunner(root: string, slice: string, sandbox: (command: strin
 	const probe = spawnSync("systemd-run", [...scope(`arthur-merge-${process.pid}-0.scope`), "true"], { encoding: "utf8" });
 	const bare = probe.error?.message ?? (probe.status === 0 ? undefined : probe.stderr.trim().split("\n")[0] || `systemd-run exited ${probe.status ?? probe.signal}`);
 	if (bare !== undefined) log(`uncapped: no systemd scope (${bare}); the steps run bare, outside the jobs' slice, and what they leave behind is not killed`);
-	const before = repositories(root);
+	const before = repositories(root, () => true);
 	let count = 0;
 	const ran = (command: string, env: NodeJS.ProcessEnv) => {
 		const options = { cwd: root, env, encoding: "utf8", maxBuffer: MAX_BUFFER, timeout: limitSeconds * 1000, killSignal: "SIGKILL" } as const;
@@ -40,7 +40,7 @@ export function stepRunner(root: string, slice: string, sandbox: (command: strin
 	};
 	return (command, env) => {
 		const result = ran(command, env);
-		for (const [path, seen] of repositories(root)) {
+		for (const [path, seen] of repositories(root, escapes)) {
 			if (before.get(path) === seen) continue;
 			const failure = remove(join(root, path));
 			log(failure === "" ? `removed ${path}, which ${command} left: a git call in that folder would run its config outside any sandbox` : `${path}, which ${command} left, could not be removed (${failure}): a git call in that folder would run its config outside any sandbox`);
@@ -50,8 +50,9 @@ export function stepRunner(root: string, slice: string, sandbox: (command: strin
 }
 
 // Each repository below the checkout's top by its path from `root`, stamped: a `.git`; a folder holding a `HEAD`, which git takes
-// as a Git folder whatever its name; a symlink `escapes` (AR0466). Not walked: the checkout's own `.git`, a repository's inside, a symlink's target.
-function repositories(root: string): Map<string, string> {
+// as a Git folder whatever its name; a symlink `counts` (AR0466): every one before the first step, so one there then and the same
+// stays whatever its target became, one that `escapes` after a step. Not walked: the checkout's own `.git`, a repository's inside, a symlink's target.
+function repositories(root: string, counts: (top: string, link: string) => boolean): Map<string, string> {
 	const found = new Map<string, string>();
 	const top = realpathSync(root);
 	const folders = [root];
@@ -66,7 +67,7 @@ function repositories(root: string): Map<string, string> {
 			if (entry.name === ".git") {
 				if (folder !== root) found.set(relative(root, path), stamp(path));
 			} else if (entry.isDirectory()) folders.push(path);
-			else if (entry.isSymbolicLink() && escapes(top, path)) found.set(relative(root, path), stamp(path));
+			else if (entry.isSymbolicLink() && counts(top, path)) found.set(relative(root, path), stamp(path));
 		}
 	}
 	return found;

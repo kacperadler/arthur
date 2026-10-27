@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -287,6 +287,33 @@ test("arthur attach with no session says so; wrong usage of either command exits
 	assert.deepEqual(await command(fake, "attach", ["now"], lines), { code: 2, out: [], err: ["usage: arthur attach"] });
 	for (const args of [[], ["start"], ["stop", "now"], ["context", "now"]])
 		assert.deepEqual(await command(fake, "coordinator", args, lines), { code: 2, out: [], err: ["usage: arthur coordinator stop|context"] });
+});
+
+// AR0517: tmux makes its socket 0660, so whoever enters its folder in the socket's group reaches the coordinator.
+test("a socket path in a folder the group or others may enter refuses the coordinator's start, the folder left as it is and no server made; a name never", async (t) => {
+	const said: string[] = [];
+	for (const method of ["log", "error"] as const) t.mock.method(console, method, (text: string) => void said.push(text));
+	const folder = join(temporaryFolder(), "sockets");
+	const socket = join(folder, "tmux.sock");
+	mkdirSync(folder);
+	t.after(() => tmux(socket, "kill-server"));
+	const start = async (socket: string) => {
+		const supervisor = supervise(coordinatorOptions({ coordinator: { tmux: { session: "coord", socket }, exitWaitSeconds: 1, restartDelaySeconds: 1 } }), temporaryFolder(), "omp");
+		await until("the start's first line", () => said.length > 0);
+		await supervisor.stop();
+		return said.splice(0);
+	};
+	for (const mode of [0o750, 0o711]) {
+		chmodSync(folder, mode);
+		const line = `orchestration: coordinator start refused: the tmux socket's folder ${folder} is open to other users (mode ${mode.toString(8)}); chmod 700 ${folder}, or give coordinator.tmux.socket a name without a /; trying again in 1 s`;
+		assert.deepEqual([await start(socket), (statSync(folder).mode & 0o777).toString(8), existsSync(socket)], [[line], mode.toString(8), false]);
+	}
+	// A name's socket is in tmux's own folder, whatever folder arthur run runs in.
+	const [before, name] = [process.cwd(), `arthur-test-${process.pid}`];
+	process.chdir(folder);
+	t.after(() => process.chdir(before));
+	t.after(() => tmux(name, "kill-server"));
+	assert.doesNotMatch((await start(name)).join("\n"), /refused/);
 });
 
 test("arthur coordinator stop is refused while a job runs, naming it, and the coordinator goes on", { skip: NO_UNIX_SOCKET }, async (t) => {

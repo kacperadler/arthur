@@ -3712,9 +3712,9 @@
   {
     "id": "AR0469",
     "title": "The reinstall after a failed check uses the cache the branch's install wrote",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0469-the-reinstall-after-a-failed-check-uses-the-cache-the-branch-s-install-wrote/ticket.md",
-    "updated": "2026-10-27T09:01:42.024Z"
+    "updated": "2026-10-27T09:10:32.910Z"
   },
   {
     "id": "AR0470",
@@ -3733,9 +3733,9 @@
   {
     "id": "AR0472",
     "title": "An escaped variable in an unquoted heredoc reaches the inner shell unread by the guard",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0472-an-escaped-variable-in-an-unquoted-heredoc-reaches-the-inner-shell-unread-by-the/ticket.md",
-    "updated": "2026-10-27T09:05:22.723Z"
+    "updated": "2026-10-27T09:06:40.625Z"
   },
   {
     "id": "AR0473",
@@ -3747,9 +3747,9 @@
   {
     "id": "AR0474",
     "title": "A review pruned before the merge makes the ticket cost unknown",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0474-a-review-pruned-before-the-merge-makes-the-ticket-cost-unknown/ticket.md",
-    "updated": "2026-10-27T08:58:45.918Z"
+    "updated": "2026-10-27T09:06:45.195Z"
   },
   {
     "id": "AR0475",

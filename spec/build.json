@@ -3698,9 +3698,9 @@
   {
     "id": "AR0467",
     "title": "A merge check that runs git inside an owner clone in the checkout deletes that clone history",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0467-a-merge-check-that-runs-git-inside-an-owner-clone-in-the-checkout-deletes-that/ticket.md",
-    "updated": "2026-10-27T06:53:39.542Z"
+    "updated": "2026-10-27T07:12:27.434Z"
   },
   {
     "id": "AR0468",
@@ -3726,9 +3726,9 @@
   {
     "id": "AR0471",
     "title": "Other operators of `${PWD…}` and of the known variables read as nothing",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0471-other-operators-of-pwd-and-of-the-known-variables-read-as-nothing/ticket.md",
-    "updated": "2026-10-27T06:53:18.556Z"
+    "updated": "2026-10-27T07:11:41.054Z"
   },
   {
     "id": "AR0472",

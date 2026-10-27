@@ -2624,9 +2624,9 @@
   {
     "id": "AR0343",
     "title": "Git ignores `.env` only, while `core.envFile` may be any name the guard counts as a secrets file",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0343-git-ignores-env-only-while-core-envfile-may-be-any-name-the-guard-counts-as-a-secrets-file/ticket.md",
-    "updated": "2026-10-26T23:13:12.817Z"
+    "updated": "2026-10-27T00:20:07.113Z"
   },
   {
     "id": "AR0344",
@@ -2883,9 +2883,9 @@
   {
     "id": "AR0374",
     "title": "The install at a spawn and each step of the merge have no time limit",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0374-the-install-at-a-spawn-and-each-step-of-the-merge-have-no-time-limit/ticket.md",
-    "updated": "2026-10-26T23:14:28.912Z"
+    "updated": "2026-10-26T23:26:49.583Z"
   },
   {
     "id": "AR0375",
@@ -2981,9 +2981,9 @@
   {
     "id": "AR0388",
     "title": "The user's systemd folder is guarded at `~/.config/systemd` only, not at `$XDG_CONFIG_HOME/systemd`",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0388-the-user-s-systemd-folder-is-guarded-at-config-systemd-only-not-at-xdg-config-home-systemd/ticket.md",
-    "updated": "2026-10-26T23:10:49.638Z"
+    "updated": "2026-10-26T23:50:15.555Z"
   },
   {
     "id": "AR0389",
@@ -3380,9 +3380,9 @@
   {
     "id": "AR0429",
     "title": "The guard misreads four short forms: $ARTHUR_JOB, env -C and sudo -D, a ~ after =, cd $PWD and cd ~+",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0429-the-guard-misreads-four-short-forms-arthur-job-env-c-and-sudo-d-a-after-cd-pwd/ticket.md",
-    "updated": "2026-10-26T23:15:03.419Z"
+    "updated": "2026-10-27T00:09:49.929Z"
   },
   {
     "id": "AR0430",
@@ -3435,9 +3435,9 @@
   {
     "id": "AR0436",
     "title": "A bash call that changes the tree after its checks, before it ends, is recorded on the tree it ends on",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0436-a-bash-call-that-changes-the-tree-after-its-checks-before-it-ends-is-recorded-on/ticket.md",
-    "updated": "2026-10-26T21:41:06.440Z"
+    "updated": "2026-10-27T00:12:44.355Z"
   },
   {
     "id": "AR0437",
@@ -3601,9 +3601,9 @@
   {
     "id": "AR0454",
     "title": "The writable package caches carry branch code out of the sandbox",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0454-the-writable-package-caches-carry-branch-code-out-of-the-sandbox/ticket.md",
-    "updated": "2026-10-26T23:12:53.408Z"
+    "updated": "2026-10-27T00:05:38.923Z"
   },
   {
     "id": "AR0455",
@@ -3701,5 +3701,47 @@
     "status": "planning",
     "path": "spec/features/AR0467-a-merge-check-that-runs-git-inside-an-owner-clone-in-the-checkout-deletes-that/ticket.md",
     "updated": "2026-10-26T22:58:30.668Z"
+  },
+  {
+    "id": "AR0468",
+    "title": "A second arthur merge during the first one's checks merges on top of the unchecked merge commit",
+    "status": "planning",
+    "path": "spec/features/AR0468-a-second-arthur-merge-during-the-first-one-s-checks-merges-on-top-of-the/ticket.md",
+    "updated": "2026-10-26T23:26:49.579Z"
+  },
+  {
+    "id": "AR0469",
+    "title": "The reinstall after a failed check uses the cache the branch's install wrote",
+    "status": "planning",
+    "path": "spec/features/AR0469-the-reinstall-after-a-failed-check-uses-the-cache-the-branch-s-install-wrote/ticket.md",
+    "updated": "2026-10-27T00:05:38.915Z"
+  },
+  {
+    "id": "AR0470",
+    "title": "A merge killed during its steps leaves its cache folder behind",
+    "status": "planning",
+    "path": "spec/features/AR0470-a-merge-killed-during-its-steps-leaves-its-cache-folder-behind/ticket.md",
+    "updated": "2026-10-27T00:05:38.920Z"
+  },
+  {
+    "id": "AR0471",
+    "title": "Other operators of `${PWD…}` and of the known variables read as nothing",
+    "status": "planning",
+    "path": "spec/features/AR0471-other-operators-of-pwd-and-of-the-known-variables-read-as-nothing/ticket.md",
+    "updated": "2026-10-27T00:09:49.924Z"
+  },
+  {
+    "id": "AR0472",
+    "title": "An escaped variable in an unquoted heredoc reaches the inner shell unread by the guard",
+    "status": "planning",
+    "path": "spec/features/AR0472-an-escaped-variable-in-an-unquoted-heredoc-reaches-the-inner-shell-unread-by-the/ticket.md",
+    "updated": "2026-10-27T00:09:57.706Z"
+  },
+  {
+    "id": "AR0473",
+    "title": "A long option of sudo or env followed by its value hides the command from the guard",
+    "status": "planning",
+    "path": "spec/features/AR0473-a-long-option-of-sudo-or-env-followed-by-its-value-hides-the-command-from-the/ticket.md",
+    "updated": "2026-10-27T00:09:58.232Z"
   }
 ]

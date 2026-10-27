@@ -1,5 +1,6 @@
 .h/
 .env
+.env.*
 node_modules/
 arthur.config.ts
 .arthur/

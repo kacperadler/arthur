@@ -3712,9 +3712,9 @@
   {
     "id": "AR0469",
     "title": "The reinstall after a failed check uses the cache the branch's install wrote",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0469-the-reinstall-after-a-failed-check-uses-the-cache-the-branch-s-install-wrote/ticket.md",
-    "updated": "2026-10-27T08:44:40.586Z"
+    "updated": "2026-10-27T09:14:57.968Z"
   },
   {
     "id": "AR0470",
@@ -3733,9 +3733,9 @@
   {
     "id": "AR0472",
     "title": "An escaped variable in an unquoted heredoc reaches the inner shell unread by the guard",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0472-an-escaped-variable-in-an-unquoted-heredoc-reaches-the-inner-shell-unread-by-the/ticket.md",
-    "updated": "2026-10-27T08:44:49.977Z"
+    "updated": "2026-10-27T09:19:19.767Z"
   },
   {
     "id": "AR0473",
@@ -3747,9 +3747,9 @@
   {
     "id": "AR0474",
     "title": "A review pruned before the merge makes the ticket cost unknown",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0474-a-review-pruned-before-the-merge-makes-the-ticket-cost-unknown/ticket.md",
-    "updated": "2026-10-27T06:52:39.388Z"
+    "updated": "2026-10-27T09:14:02.486Z"
   },
   {
     "id": "AR0475",
@@ -3897,5 +3897,12 @@
     "status": "planned",
     "path": "spec/features/AR0495-source-file-size-in-three-zones-green-up-to-200-lines-yellow-up-to-220-red-up-to/ticket.md",
     "updated": "2026-10-27T08:56:25.323Z"
+  },
+  {
+    "id": "AR0496",
+    "title": "A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME",
+    "status": "planning",
+    "path": "spec/features/AR0496-a-home-set-in-front-of-a-command-is-ignored-by-the-guard-so-the-inner-shell/ticket.md",
+    "updated": "2026-10-27T09:19:34.323Z"
   }
 ]

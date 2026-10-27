@@ -25,7 +25,8 @@ const OWNER = "AC-D1";
 // `worker(files)` runs a worker on AC0001 that commits `files`; `review(job, message, cost)` runs a review ending on `message`, costing `cost` USD;
 // `merge(...args)` runs `arthur merge` as the CLI does, a throw being `arthur merge: <message>` and exit code 1; an `uncapped:`
 // line, there only on a host without a user manager, goes to `uncapped`, apart from its other lines, and a `no sandbox:` line,
-// there only on a host without the sandbox (merge-checks.test.ts tests it), nowhere.
+// there only on a host without the sandbox (merge-checks.test.ts tests it), nowhere; `hear(fn)` has `fn` see each line printed,
+// as it is printed.
 async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}) {
 	const root = join(temporaryFolder(), "acme");
 	const tickets = [["AC0001", "Shop"], ["AC0002", "Cart", ["AC0001"]], ["AC0003", "Pay", ["AC0001", "AC0002"]]] as const;
@@ -95,9 +96,10 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 		return { id: job.id, branch: job.branch ?? "", worktree: job.worktree, tip: commit(job.worktree, changes) };
 	};
 	const uncapped: string[] = [];
+	let heard = (_text: string) => {};
 	const run = async (name: string, args: readonly string[]) => {
 		const [out, err] = [[] as string[], [] as string[]];
-		t.mock.method(console, "log", (text: string) => (text.startsWith("uncapped: ") ? uncapped : text.startsWith("no sandbox: ") ? [] : out).push(text));
+		t.mock.method(console, "log", (text: string) => (heard(text), (text.startsWith("uncapped: ") ? uncapped : text.startsWith("no sandbox: ") ? [] : out).push(text)));
 		t.mock.method(console, "error", (text: string) => err.push(text));
 		const code = await Promise.try(() => fake.commands.find((each) => each.name === name)?.run({ args, project: undefined })).catch((error: Error) => (err.push(`arthur ${name}: ${error.message}`), 1));
 		t.mock.restoreAll();
@@ -111,7 +113,7 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 	};
 	const head = () => git(root, "rev-parse", "HEAD");
 	const status = (id: string) => fake.host.board.get(id)?.status;
-	return { root, fake, git, commit, take: () => run("take-main", ["--decision", OWNER]), worker, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, caches, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, owner, installAs: (next: string | Error) => void (answer = next), uncapped };
+	return { root, fake, git, commit, take: () => run("take-main", ["--decision", OWNER]), worker, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, caches, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, owner, installAs: (next: string | Error) => void (answer = next), uncapped, hear: (fn: (text: string) => void) => void (heard = fn) };
 }
 
 test("a branch with a PASS on its tip goes in: checks pass, its review filed, outcome.md written, the ticket merged, the tickets it unblocks named; the install's cache is the merge's own, gone after it", async (t) => {
@@ -481,8 +483,8 @@ test("arthur take-main records main's HEAD only on the owner's merge decision of
 	assert.equal((await merge(job.id, "--unreviewed", "--decision", OWNER)).err, "");
 });
 
-test("a failed check resets main and names it, pushing nothing; the board's moves stay, main's own install is put back, nothing is written, the merge's cache removed", async (t) => {
-	const { root, fake, git, take, worker, review, merge, head, status, bun, caches, failBun, installs } = await load(t);
+test("a failed check resets main and names it, pushing nothing; the board's moves stay, main's own install is put back over a fresh cache, nothing is written, both caches removed", async (t) => {
+	const { root, fake, git, take, worker, review, merge, head, status, bun, caches, failBun, installs, uncapped } = await load(t);
 	const pushes: unknown[] = [];
 	fake.provide("github.push", (branch: unknown) => (pushes.push(branch), Promise.resolve("github: pushed")));
 	const job = await worker({ broken: "", "bun.lock": '{ "broken": 1 }\n' });
@@ -493,8 +495,10 @@ test("a failed check resets main and names it, pushing nothing; the board's move
 	assert.equal(merged.err, `arthur merge: check failed on main (npm test); main reset to ${before.slice(0, 7)}, branch kept`);
 	assert.deepEqual(pushes, [{ project: "acme", branch: job.branch }], "the PASS pushed the branch; the failed merge pushed no main");
 	assert.match(merged.out, /\nnpm test: failed, 1\/2 passed\.\n[\s\S]*ℹ pass 1\nreinstall of main's dependencies, bun install --frozen-lockfile: passed\.$/);
+	assert.ok(uncapped.length <= 1, `one probe for the whole merge, the reinstall's runner included:\n${uncapped.join("\n")}`);
 	assert.equal(bun(), "install --frozen-lockfile\ninstall --frozen-lockfile\n");
-	assert.deepEqual(caches().map((each) => [dirname(dirname(each)), existsSync(each)]), Array(2).fill([fake.host.folder, false]), "the reinstall's cache in the merge's folder, gone after the failed merge");
+	assert.deepEqual(caches().map((each) => [dirname(dirname(each)), existsSync(each)]), Array(2).fill([fake.host.folder, false]), "both caches in the plugin's folder, gone after the failed merge");
+	assert.notEqual(dirname(caches()[1] ?? ""), dirname(caches()[0] ?? ""), "the reinstall's cache a fresh folder, not the one the branch's install wrote");
 	const mergeCommit = git(root, "rev-parse", "ORIG_HEAD");
 	assert.deepEqual(installs, [{ project: "acme", commit: "HEAD", head: mergeCommit }, { project: "acme", commit: "HEAD", head: before }], "asked again after the reset, for main's own");
 	assert.equal(head(), before);
@@ -515,6 +519,19 @@ test("a failed check resets main and names it, pushing nothing; the board's move
 	);
 	assert.doesNotMatch(install.out, /npm/, "a failed install ends the steps");
 	assert.match(install.out, /error: lockfile had changes/);
+});
+
+test("a .git that what the checks left behind writes after their last sweep is removed after the reinstall's step, which sweeps against the merge's first look", async (t) => {
+	const { root, worker, review, merge, hear } = await load(t);
+	const job = await worker({ broken: "", "bun.lock": '{ "broken": 1 }\n' });
+	await review(job.id, "PASS");
+	// A process `npm test` left running, bare, that writes a repository once npm test's sweep is done: when its result is printed,
+	// before the reinstall's runner exists, so a runner that took a look of its own then would count it as main's.
+	hear((text) => void (text.startsWith("npm test: failed") && execFileSync("git", ["init", "-q", join(root, "late")])));
+	const merged = await merge(job.id);
+	assert.equal(merged.code, 1, merged.err);
+	assert.match(merged.out, /\nremoved late\/\.git, which bun install --frozen-lockfile left: a git call in that folder would run its config outside any sandbox\nreinstall of main's dependencies, bun install --frozen-lockfile: passed\.$/);
+	assert.deepEqual([existsSync(join(root, "late")), existsSync(join(root, "late", ".git"))], [true, false]);
 });
 
 test("a second merge of the project while the first runs its checks is refused naming the first, main unchanged; the lock goes with any end of the first, a dead holder's too", async (t) => {

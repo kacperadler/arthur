@@ -141,11 +141,12 @@ async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly
 	const hash = git("rev-parse", "--short", made).stdout.trim();
 	console.log(`merged ${job.branch} into ${main}: ${hash}`);
 	const ask = { install: (commit: string) => host.call<string>("projects.install", { project: job.project, commit }), path: () => host.collect<string>("nvm.path", { root })[0] ?? "" };
-	// The steps' package caches, the reinstall's too, in a folder of this merge in the plugin's own, removed after it (AR0454).
+	// The steps' package caches in a folder of this merge in the plugin's own, removed after it (AR0454); the reinstall's in one of its own (AR0469).
 	const cache = mkdtempSync(join(host.folder, "cache-"));
 	try {
-		const run = stepRunner(root, host.jobs.slice, host.sandbox(root, cache, console.log), console.log, mode.stepSeconds);
-		const steps = mainChecks(root, ask, run, console.log);
+		const runs = stepRunner(root, host.jobs.slice, console.log, mode.stepSeconds);
+		const runner = (folder: string) => runs(host.sandbox(root, folder, console.log));
+		const steps = mainChecks(root, ask, runner(cache), console.log);
 		if (steps.length === 0) console.log("no checks: package.json declares no check or test script");
 		const failing = steps.filter(failed).map((each) => each.command);
 		if (failing.length > 0) {
@@ -154,7 +155,7 @@ async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly
 			const refusal = configRefusal(root);
 			const reset = refusal === "" ? git("reset", "--quiet", "--keep", before) : { status: 1, stdout: "", stderr: refusal };
 			if (reset.status !== 0) throw new Error(`check failed on main (${failing.join(", ")}), and main could not be reset to ${before.slice(0, 7)}: ${last(reset)}`);
-			throw new Error(`check failed on main (${failing.join(", ")}); main reset to ${before.slice(0, 7)}, branch kept${reinstall(ask, run, steps, console.log)}`);
+			throw new Error(`check failed on main (${failing.join(", ")}); main reset to ${before.slice(0, 7)}, branch kept${reinstall(ask, runner, host.folder, steps, console.log)}`);
 		}
 		saveLastMerge(host, job.project, made);
 		endWait(host, job.id);

@@ -64,7 +64,7 @@ function setup(options: { readonly agent?: string; readonly arthur?: string; rea
 	const answers: Readonly<Record<string, (() => readonly unknown[]) | undefined>> = { "jobs.place": options.place, "jobs.limits": options.caps, "roles.model": options.roles, prompt: options.prompt };
 	const collect = (name: string) => [...(answers[name]?.() ?? [])];
 	const limits = { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...(options.slice ?? jobSlice) };
-	const jobs = jobRunner(home, root, join(root, "env"), limits, options.agent ?? "omp", time, eventBus(home), collect, options.hide);
+	const jobs = jobRunner(home, root, join(root, "env"), limits, options.agent ?? "omp", time, eventBus(home, options.hide), collect);
 	jobs.registerMachine("machines", { name: "gpu", ssh: "gpu", home: there, labels: { os: "linux" } });
 	return { root, home, machine, there, jobs, now };
 }
@@ -142,6 +142,21 @@ test("the prompt a job on another machine gets names each env value, there as he
 	assert.equal(job.failed, undefined);
 	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
 	for (const folder of [home, there]) assert.match(read(folder, job.id, "prompt"), /Call it with ARTHUR_TEST_TOKEN\.\n/, folder);
+});
+
+test("the sweep's copy of a job on another machine names each env value in its log, final message and reason here", async () => {
+	const agent = fakeAgent({ steps: [{ stderr: "401 for s3cret-t0ken-123" }, { message: "Blocked: user is s3cret-t0ken-123 still valid?" }] });
+	const { home, there, jobs } = setup({ agent, hide: secretNames({ ARTHUR_TEST_TOKEN: "s3cret-t0ken-123" }) });
+	jobs.prepare("test", () => ({ ARTHUR_INSTALL: "echo installed with s3cret-t0ken-123" }));
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	assert.equal(job.failed, undefined);
+	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "blocked");
+	assert.match(read(there, job.id, "log"), /installed with s3cret-t0ken-123\n/, "the wrapper there names nothing: no env file there");
+	jobs.sweep();
+	assert.deepEqual(["state", "reason", "result"].map((name) => read(home, job.id, name)), ["blocked", "user: is ARTHUR_TEST_TOKEN still valid?", "Blocked: user is ARTHUR_TEST_TOKEN still valid?"]);
+	assert.match(read(home, job.id, "log"), /installed with ARTHUR_TEST_TOKEN\n[\s\S]*401 for ARTHUR_TEST_TOKEN\n/);
+	const files = readdirSync(home, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile()).map((entry) => join(entry.parentPath, entry.name));
+	for (const file of files) assert.ok(!readFileSync(file, "utf8").includes("s3cret-t0ken-123"), file);
 });
 
 test("the push of a job's base to another machine and the fetch of its branch back are refused while the checkout's own config sets a key that may name a program", async () => {

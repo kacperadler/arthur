@@ -767,7 +767,11 @@ import { checkStructure } from "./structure.ts";
 // Merged main (AR0388) into AR0454: main's budgets plus AR0454's raises (recounted with wc -l).
 // Merged main (AR0454, AR0429) into AR0343: main's budgets plus AR0343's core 6345 (recounted).
 // Merged main into AR0436: main's budgets plus AR0436's delivery 1552 (recounted).
-const BUDGETS = { core: 6345, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1552, github: 659, manage: 928, develop: 706, findings: 254 };
+// AR0468 (F1 of AR0374, a security ticket; the task allows the raise): delivery 20 more (1572) for one merge per project at a
+// time, core's lock taken before the merge's first look at main and released at any end, the second merge refused naming the
+// first's job, its `Mode` type pulled out for the two functions that take it (merge-command.ts, git diff --numstat +24 -4).
+// Nothing kept two merges apart before, so nothing was cut.
+const BUDGETS = { core: 6345, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1572, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

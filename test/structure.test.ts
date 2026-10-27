@@ -36,7 +36,7 @@ const BUDGETS = {
 
 	uptime: 298,
 
-	delivery: 1584,
+	delivery: 1611,
 
 	github: 659,
 

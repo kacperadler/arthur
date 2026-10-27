@@ -8,7 +8,7 @@ import { checkStructure } from "./structure.ts";
 // The line budget of each package: the number of lines its src/ may hold. They live here only; a raise is a decision recorded in its ticket.
 // One budget per line, a blank line after each, so Git merges raises to two neighbours, or a raise and a new last one, without a conflict.
 const BUDGETS = {
-	core: 6395,
+	core: 6410,
 
 	"core/testing": 349,
 

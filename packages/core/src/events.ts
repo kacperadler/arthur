@@ -24,12 +24,14 @@ export type Bus = {
 	// use: then from the log's end), then every `everyMs` the events another process appended; this bus's own were delivered
 	// at emit. Returns the stop of the checks; an emit after it still delivers first what another process appended.
 	follow(everyMs: number): () => void;
+	// What names each env value in this load (secret-names.ts): in every event, and in the record files the sweep copies from another machine.
+	readonly hide: (text: string) => string;
 };
 
 const DELIVERED = "events.delivered";
 
 // `hide` names each secret value in an event's text before it is logged (secret-names.ts), so every subscriber and reader gets the name.
-export function eventBus(home: string, hide?: (text: string) => string): Bus {
+export function eventBus(home: string, hide: (text: string) => string = (text) => text): Bus {
 	const kept = join(home, DELIVERED);
 	const handlers = new Map<string, readonly { readonly plugin: string; readonly fn: Handler }[]>();
 	const queue: Event[] = [];
@@ -84,6 +86,7 @@ export function eventBus(home: string, hide?: (text: string) => string): Bus {
 			return event;
 		},
 		read: (fromSeq) => readEvents(home, fromSeq),
+		hide,
 		follow(everyMs) {
 			read = withLog(home, (fd) => resume(kept, logEnd(fd)));
 			// The replay, at once. Then the number also covers this bus's own events from before, which it skipped as delivered

@@ -49,7 +49,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const names = registry();
 	const time = clock(config.core.timeZone, config.core.quietHours);
 	const bus = eventBus(config.core.home, hide);
-	const runner = jobRunner(config.core.home, dirname(config.path), config.core.envFile, { ...config.core.jobs, slice: SLICE }, config.core.agent.command, time, bus, names.collect, hide);
+	const runner = jobRunner(config.core.home, dirname(config.path), config.core.envFile, { ...config.core.jobs, slice: SLICE }, config.core.agent.command, time, bus, names.collect);
 	// What a record takes from a request (a task, an instruction, a block's reason, a steer) and a channel's reply, each value named.
 	const jobs: JobRunner = { ...runner, spawn: (request) => runner.spawn({ ...request, task: hide(request.task) }), continue: (id, instruction, ...rest) => runner.continue(id, hide(instruction), ...rest), block: (id, reason, stop) => runner.block(id, hide(reason), stop), steer: (id, text) => runner.steer(id, hide(text)) };
 	const routed: CommandRegistry = { ...commands, route: async (text, from) => hide(await commands.route(text, from)) };

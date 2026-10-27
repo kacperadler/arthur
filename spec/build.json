@@ -3712,9 +3712,9 @@
   {
     "id": "AR0469",
     "title": "The reinstall after a failed check uses the cache the branch's install wrote",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0469-the-reinstall-after-a-failed-check-uses-the-cache-the-branch-s-install-wrote/ticket.md",
-    "updated": "2026-10-27T08:44:40.586Z"
+    "updated": "2026-10-27T09:01:42.024Z"
   },
   {
     "id": "AR0470",
@@ -3733,9 +3733,9 @@
   {
     "id": "AR0472",
     "title": "An escaped variable in an unquoted heredoc reaches the inner shell unread by the guard",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0472-an-escaped-variable-in-an-unquoted-heredoc-reaches-the-inner-shell-unread-by-the/ticket.md",
-    "updated": "2026-10-27T08:58:39.033Z"
+    "updated": "2026-10-27T09:05:22.723Z"
   },
   {
     "id": "AR0473",

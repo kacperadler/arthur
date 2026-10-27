@@ -4213,5 +4213,12 @@
     "status": "planning",
     "path": "spec/features/AR0526-a-value-split-across-two-sweeps-copies-of-a-remote-job-s-log-is-not-named/ticket.md",
     "updated": "2026-10-27T18:21:13.047Z"
+  },
+  {
+    "id": "AR0527",
+    "title": "Plan: an activity log plugin, what each user and each agent or the harness did, one file per day",
+    "status": "planned",
+    "path": "spec/features/AR0527-plan-an-activity-log-plugin-what-each-user-and-each-agent-or-the-harness-did-one/ticket.md",
+    "updated": "2026-10-27T19:19:29.726Z"
   }
 ]

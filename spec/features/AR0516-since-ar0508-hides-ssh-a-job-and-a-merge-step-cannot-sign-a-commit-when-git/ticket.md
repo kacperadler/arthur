@@ -43,3 +43,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Jobs commit unsigned: Arthur turns commit signing off inside every job and merge step; the merge commit Arthur makes stays signed; AR0516 approved to build it; the owner: "AR-D184 1" (AR-D184)
+- 2026-10-27: Merge AR0516 once with commit and tag signing off in the merge environment (its one merge commit unsigned); then restart, and every later merge commit is signed again; the owner: "AR-D188 1" (AR-D188)

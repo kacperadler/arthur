@@ -449,6 +449,43 @@ test("a job's install, its agent across a continue that found the guarded list e
 	assert.equal(readFileSync(key, "utf8"), "FAKE-PRIVATE-KEY\n", "outside the sandbox the key reads");
 });
 
+test("where the user's Git config signs with a key in ~/.ssh, a job's install and agent and a merge step commit and tag unsigned with no flag, the config Git was given kept; outside, Git still signs (AR0516)", async (t) => {
+	const { folder, root, home } = repository();
+	const user = join(folder, "user");
+	const key = join(user, ".ssh", "id_fake.pub");
+	mkdirSync(dirname(key), { recursive: true });
+	writeFileSync(key, "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGZha2UtYXJ0aHVyLWtleS1ub3QtcmVhbC0wMDAwMDAw fake\n");
+	const config = join(user, ".gitconfig");
+	writeFileSync(config, `[user]\n\tname = test\n\temail = test@example.com\n\tsigningKey = ${key}\n[gpg]\n\tformat = ssh\n[commit]\n\tgpgSign = true\n[tag]\n\tgpgSign = true\n\tforceSignAnnotated = true\n`);
+	const env = { HOME: user, GIT_CONFIG_GLOBAL: config, GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "user.name", GIT_CONFIG_VALUE_0: "given" };
+	for (const [name, value] of Object.entries(env)) {
+		const was = process.env[name];
+		t.after(() => (was === undefined ? delete process.env[name] : (process.env[name] = was)));
+		process.env[name] = value;
+	}
+	const commit = (name: string) => `echo ${name} > ${name}.txt && git add ${name}.txt && git commit --quiet -m ${name} && git tag -a ${name}-tag -m ${name}`;
+	const agent = join(folder, "agent");
+	writeFileSync(agent, `#!/bin/sh\n{ ${commit("agent")}; } 2> "$ARTHUR_JOB/agent-err"\n`, { mode: 0o755 });
+	const time = clock("UTC", undefined, () => new Date("2026-10-27T08:00:00Z"));
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), () => []);
+	jobs.prepare("test", () => ({ ARTHUR_INSTALL: commit("install") }));
+	const job = await jobs.spawn({ task: "Commit." });
+	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
+	const record = join(home, "jobs", job.id);
+	const worktree = readFileSync(join(record, "worktree"), "utf8");
+	assert.equal(readFileSync(join(record, "agent-err"), "utf8"), "");
+	assert.deepEqual(git(worktree, "log", "-2", "--format=%s %G? %an").split("\n"), ["agent N given", "install N given"]);
+	const step = stepSandbox(root, join(folder, "merge-cache"), { envFile: join(root, "env"), home, config: join(root, "arthur.config.ts") }, () => {});
+	const repo = temporaryFolder();
+	git(repo, "init", "--quiet", "--initial-branch=main");
+	const checked = spawnSync(...step(commit("step")), { cwd: repo, encoding: "utf8" });
+	assert.equal(checked.status, 0, checked.stderr);
+	assert.equal(git(repo, "log", "-1", "--format=%s %G? %an"), "step N given");
+	for (const [at, tag] of [[worktree, "install-tag"], [worktree, "agent-tag"], [repo, "step-tag"]] as const) assert.doesNotMatch(git(at, "cat-file", "tag", tag), /SIGNATURE/, tag);
+	const outside = spawnSync("git", ["commit", "--quiet", "--allow-empty", "-m", "merge"], { cwd: repo, encoding: "utf8" });
+	assert.deepEqual([outside.status, /failed to write commit object/.test(outside.stderr)], [128, true], outside.stderr);
+});
+
 // A config in `folder` with the env file `envFile` and the home `home`: orchestration, `secret`, whose `leak` prints its token,
 // and `plain`, whose `plain` needs none; both commands run inside a job.
 function tokenConfig(folder: string, envFile: string, home: string): string {

@@ -23,9 +23,9 @@ import { setup } from "./setup.ts";
 
 // The `arthur` binary (spec/roadmap.md, entry 6): `arthur <command> [args]` runs a command the core or a plugin registered, on
 // `arthur.config.ts` in the working folder. The core's own commands run even when the config or a plugin does not load.
-
+// Under umask 077 whatever umask started it (AR0517): all it and its jobs write is its user's alone, worktrees included.
+process.umask(0o077);
 const USAGE = "usage: arthur <command> [args] [--project <name>]; arthur <command> --help; arthur help <command>";
-
 process.exitCode = await main(process.argv.slice(2));
 
 async function main(argv: readonly string[]): Promise<number> {

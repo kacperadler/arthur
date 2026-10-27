@@ -4041,9 +4041,9 @@
   {
     "id": "AR0516",
     "title": "Since AR0508 hides ~/.ssh, a job and a merge step cannot sign a commit when Git signs with a key there",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0516-since-ar0508-hides-ssh-a-job-and-a-merge-step-cannot-sign-a-commit-when-git/ticket.md",
-    "updated": "2026-10-27T14:38:15.992Z"
+    "updated": "2026-10-27T15:46:07.272Z"
   },
   {
     "id": "AR0517",
@@ -4058,5 +4058,12 @@
     "status": "in-progress",
     "path": "spec/features/AR0518-a-token-from-the-env-file-never-appears-in-a-job-record-log-error-or-channel/ticket.md",
     "updated": "2026-10-27T14:16:15.258Z"
+  },
+  {
+    "id": "AR0519",
+    "title": "The env guard refuses a command whose text holds the word env after a dot, such as a regex on Node's environment object",
+    "status": "planning",
+    "path": "spec/features/AR0519-the-env-guard-refuses-a-command-whose-text-holds-the-word-env-after-a-dot-such/ticket.md",
+    "updated": "2026-10-27T15:46:26.656Z"
   }
 ]

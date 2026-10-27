@@ -37,5 +37,5 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Found by: 2026-10-27-worker-96067971 (worker), 2026-10-27
 - Where: `packages/orchestration/src/hand-over.ts:19`; omp 18.3.0 `expandMentions` (`packages/tui/src/prompt/model-mention-syntax.ts`, pattern `/(^|\s)\^([^\s^]+)(?=\s|$)/g`)
 - What: in the same prompt path as F1, omp replaces a `^<model selector>` after whitespace that names an available model with `<model agent="m<n>" name="<name>"/>` and adds that model to the session as an agent (`appendCustomEntry`), for any text not marked `synthetic`. So a job's message or a review could add a model agent to the coordinator's session; it reads no file. Read from the bundled source, not run.
-- Suggestion: a word joiner after each such `^` in `handOver`, with its own test; left out here since the ticket is the file read.
+- Suggestion: a word joiner before each such `^` in `handOver` (omp needs whitespace or the start of the text right before it), with its own test; left out here since the ticket is the file read.
 - Status: open

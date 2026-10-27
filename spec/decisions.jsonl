@@ -411,3 +411,5 @@
 {"record":"ask","id":"AR-D206","time":"2026-10-27T21:14:08+01:00","project":"arthur","kind":"merge","question":"Merge AR0476 (arthur doctor: a tracked env file gets the untrack-and-rotate fix), which passed review?","options":["Merge","Wait"],"recommend":1,"ticket":"AR0476"}
 {"record":"ask","id":"AR-D207","time":"2026-10-27T21:16:38+01:00","project":"arthur","kind":"merge","question":"Merge AR0505 (coordinator role: a forwarded text is its sender words, never the owner answer), which passed review?","options":["Merge","Wait"],"recommend":1,"ticket":"AR0505"}
 {"record":"answer","id":"AR-D207","time":"2026-10-27T21:16:38+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}
+{"record":"answer","id":"AR-D206","time":"2026-10-27T21:37:15+01:00","decided":"Merge AR0476 now","picked":1,"words":"AR-D206 1"}
+{"record":"answer","id":"AR-D204","time":"2026-10-27T21:37:16+01:00","decided":"Merge AR0514 now","picked":1,"words":"AR-D204 1"}

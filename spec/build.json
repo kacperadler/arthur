@@ -3740,9 +3740,9 @@
   {
     "id": "AR0473",
     "title": "A long option of sudo or env followed by its value hides the command from the guard",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0473-a-long-option-of-sudo-or-env-followed-by-its-value-hides-the-command-from-the/ticket.md",
-    "updated": "2026-10-27T09:29:30.974Z"
+    "updated": "2026-10-27T09:35:41.097Z"
   },
   {
     "id": "AR0474",

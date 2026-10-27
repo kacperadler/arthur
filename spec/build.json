@@ -3601,9 +3601,9 @@
   {
     "id": "AR0454",
     "title": "The writable package caches carry branch code out of the sandbox",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0454-the-writable-package-caches-carry-branch-code-out-of-the-sandbox/ticket.md",
-    "updated": "2026-10-27T00:01:32.119Z"
+    "updated": "2026-10-27T00:05:38.923Z"
   },
   {
     "id": "AR0455",
@@ -3708,5 +3708,19 @@
     "status": "planning",
     "path": "spec/features/AR0468-a-second-arthur-merge-during-the-first-one-s-checks-merges-on-top-of-the/ticket.md",
     "updated": "2026-10-26T23:26:49.579Z"
+  },
+  {
+    "id": "AR0469",
+    "title": "The reinstall after a failed check uses the cache the branch's install wrote",
+    "status": "planning",
+    "path": "spec/features/AR0469-the-reinstall-after-a-failed-check-uses-the-cache-the-branch-s-install-wrote/ticket.md",
+    "updated": "2026-10-27T00:05:38.915Z"
+  },
+  {
+    "id": "AR0470",
+    "title": "A merge killed during its steps leaves its cache folder behind",
+    "status": "planning",
+    "path": "spec/features/AR0470-a-merge-killed-during-its-steps-leaves-its-cache-folder-behind/ticket.md",
+    "updated": "2026-10-27T00:05:38.920Z"
   }
 ]

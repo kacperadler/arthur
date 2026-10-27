@@ -3134,9 +3134,9 @@
   {
     "id": "AR0402",
     "title": "Security review of our own code, part 1: secrets, file permissions and processes",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0402-security-review-of-our-own-code-part-1-secrets-file-permissions-and-processes/ticket.md",
-    "updated": "2026-10-27T06:52:45.636Z",
+    "updated": "2026-10-27T07:35:46.174Z",
     "after": [
       "AR0432",
       "AR0350",
@@ -3146,9 +3146,9 @@
   {
     "id": "AR0403",
     "title": "Security review of our own code, part 2: injection into shell, git, ssh and tmux, and prompt injection",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0403-security-review-of-our-own-code-part-2-injection-into-shell-git-ssh-and-tmux-and-prompt-injection/ticket.md",
-    "updated": "2026-10-27T06:52:47.174Z",
+    "updated": "2026-10-27T07:35:48.316Z",
     "after": [
       "AR0432",
       "AR0350",
@@ -3158,9 +3158,9 @@
   {
     "id": "AR0404",
     "title": "Security review of our own code, part 3: channels, merge and delivery",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0404-security-review-of-our-own-code-part-3-channels-merge-and-delivery/ticket.md",
-    "updated": "2026-10-27T06:52:48.763Z",
+    "updated": "2026-10-27T07:38:56.445Z",
     "after": [
       "AR0432",
       "AR0350",

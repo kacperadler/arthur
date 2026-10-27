@@ -4042,9 +4042,9 @@
   {
     "id": "AR0505",
     "title": "The coordinator's role does not say that a `[forwarded from …]` text inside the owner's message is someone else's words",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0505-the-coordinator-s-role-does-not-say-that-a-forwarded-from-text-inside-the-owner/ticket.md",
-    "updated": "2026-10-27T20:16:30.904Z"
+    "updated": "2026-10-27T20:20:48.101Z"
   },
   {
     "id": "AR0506",

@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { isAbsolute, join } from "node:path";
+import { existsSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import type { Answer } from "@arthur/core/plugin";
@@ -105,8 +105,9 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 		while (alive() && Date.now() - began < coordinator.exitWaitSeconds * 1000 && !quit.signal.aborted) await pause(EXIT_POLL_MS);
 		if (quit.signal.aborted) return false;
 		const waited = ((Date.now() - began) / 1000).toFixed(1);
-		if (alive()) {
-			console.error(`orchestration: coordinator start refused: the previous ${agent} (pid ${pid}) is still running ${waited} s later; trying again in ${delay} s`);
+		const refusal = alive() ? `the previous ${agent} (pid ${pid}) is still running ${waited} s later` : openFolder(coordinator.socket);
+		if (refusal !== undefined) {
+			console.error(`orchestration: coordinator start refused: ${refusal}; trying again in ${delay} s`);
 			return false;
 		}
 		if (Date.now() - began >= EXIT_POLL_MS) console.log(`orchestration: the previous ${agent} (pid ${pid}) exited after ${waited} s`);
@@ -132,6 +133,14 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 		console.log(`orchestration: coordinator started: ${agent} (pid ${started}) in tmux session ${session}${fresh ? ", a fresh conversation" : ""}`);
 		return true;
 	}
+}
+
+// What makes a socket path's folder unfit (AR0517): tmux makes its socket 0660, so a user of its group who enters the folder
+// reaches the coordinator. A name's folder is tmux's own, `tmux-<uid>`, which tmux makes 0700 and refuses open to others.
+function openFolder(socket: string): string | undefined {
+	const folder = dirname(resolve(socket));
+	const mode = socket.includes("/") && existsSync(folder) ? statSync(folder).mode & 0o777 : 0;
+	return (mode & 0o077) === 0 ? undefined : `the tmux socket's folder ${folder} is open to other users (mode ${mode.toString(8)}); chmod 700 ${folder}, or give coordinator.tmux.socket a name without a /`;
 }
 
 // The agent holds `arthur run`'s environment only, so the redaction by name reads its values (AR0434). A server this start makes

@@ -284,6 +284,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: 'rm "${x:-~/../../../acme/README.md}"' }, MAIN],
 		["bash", { command: 'rm "${x:-"~/"}../../../acme/README.md"' }, MAIN],
 		["bash", { command: 'rm "${x:-\\"/../../../acme/README.md}"' }, MAIN],
+		["bash", { command: `rm "\${x:-\\"$HOME${"/..".repeat(dirname(root).split("/").length)}/../../acme/README.md}"` }, MAIN],
 		["bash", { command: 'rm "${x:-~+}/README.md"' }, MAIN],
 		["bash", { command: `rm "\${x:-'..'}/../../../acme/README.md"` }, MAIN],
 		["bash", { command: 'rm "${x:-\\.\\.}/../../../acme/README.md"' }, MAIN],

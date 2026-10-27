@@ -4140,9 +4140,9 @@
   {
     "id": "AR0519",
     "title": "The env guard refuses a command whose text holds the word env after a dot, such as a regex on Node's environment object",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0519-the-env-guard-refuses-a-command-whose-text-holds-the-word-env-after-a-dot-such/ticket.md",
-    "updated": "2026-10-27T21:26:29.279Z",
+    "updated": "2026-10-27T22:04:36.790Z",
     "after": [
       "AR0511",
       "AR0514",
@@ -4268,5 +4268,12 @@
     "status": "planning",
     "path": "spec/features/AR0533-a-merge-decision-lifts-whichever-flag-the-coordinator-names-not-the-one-the/ticket.md",
     "updated": "2026-10-27T21:36:49.256Z"
+  },
+  {
+    "id": "AR0534",
+    "title": "Delivery's review-needed reads `process\\.env` in a regex as the secrets file too",
+    "status": "planning",
+    "path": "spec/features/AR0534-delivery-s-review-needed-reads-process-env-in-a-regex-as-the-secrets-file-too/ticket.md",
+    "updated": "2026-10-27T22:04:36.785Z"
   }
 ]

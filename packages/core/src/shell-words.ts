@@ -1,11 +1,8 @@
-// The shell parser the guards share (spec/roadmap.md, entries 19 and 20). `shellCommands` reads a command line as bash does
-// before brace and pathname expansion: its simple commands in the order they run, split at `;`, `&&`, `||`, `|`, `&` and
-// newlines, and `(` and `)` around a subshell, a `$(…)` or a backtick substitution, whose commands come before the command
-// they are in. A word has its quotes removed, a backslash-newline gone, the escapes of `$'…'` decoded; a comment is dropped.
-// An expansion known only when the command runs (`$x`, `${x}`, `$1`) is nothing, or the word it falls back to (`${x:-word}`,
-// also with `=`, `+`, `?` and without the colon); a variable in `known` (`HOME`, `ARTHUR_JOB`) is its value, also with `-`,
-// `=`, `?`; `known.HOME` is an unquoted `~` at a word's start or after an assignment's `=` (`~+` and `~-` there stay). `$PWD` is
-// `~+`; `$OLDPWD` `~-` (also with `-`, `=`, `?`), `\0-`, in no bash word, with another operator but `+`. A here-string's `~+` and an unquoted heredoc's `$PWD` or `${PWD}` are `\0+`, the folder of the shell that reads them. A quoted or escaped
+// The shell parser the guards share (spec/roadmap.md, entries 19 and 20). `shellCommands` reads a command line as bash does before brace and pathname expansion: its simple commands in the order they run, split at `;`, `&&`, `||`, `|`, `&` and
+// newlines, and `(` and `)` around a subshell, a `$(…)` or a backtick substitution, whose commands come before the command they are in. A word has its quotes removed, a backslash-newline gone, the escapes of `$'…'` decoded; a comment is dropped.
+// An expansion known only when the command runs (`$x`, `${x}`, `$1`) is nothing, or the word it falls back to (`${x:-word}`, also with `=`, `+`, `?` and without the colon; in double quotes read as their text, `~` and `'` as written,
+// inner `"` gone, and `\0-` with a `$'…'` or `$"…"`, which `shopt extquote` reads two ways; outside, one with an unquoted blank or `<>;&|()#` is `\0-`, as the guard does not follow how bash splits it); a variable in `known` (`HOME`, `ARTHUR_JOB`) is its value, also with `-`, `=`, `?`; `known.HOME` is an unquoted `~` at a word's start or after an assignment's `=` (`~+` and `~-` there stay). `$PWD` is
+// `~+` and `$OLDPWD` `~-` (also with `-`, `=`, `?`); one of them or of a set variable in `known` with another operator but `+` (`%`, `#`, `/`, `:1`, `${!x}`, `${#x}`) is `\0-`, in no bash word. A here-string's `~+` and an unquoted heredoc's `$PWD` or `${PWD}` (also with `-`, `=`, `?`) are `\0+`, the folder of the shell that reads them; its `${PWD` with another operator but `+` `\0-`. A quoted or escaped
 // `\*?[]{},()~`, or any other `~`, keeps a backslash, so a glob is told apart from a quoted star and a bare `~+` is `$PWD` or that prefix; `literal` removes it. `shellWords`: every word, a heredoc's body one.
 
 const SPECIAL = "\\*?[]{},()~";
@@ -15,9 +12,8 @@ const REDIRECT = /^(?:&>>?|>>|>\||>&|<>|<<<|<<-?|<&|>|<)/;
 type Target = "write" | "read" | "duplicate" | "here";
 const TARGETS: Readonly<Record<string, Target>> = { "<": "read", "<&": "read", ">&": "duplicate", "<<<": "here" };
 
-// One simple command: its `words`; `writes`, the targets of the redirects that write a file (`>`, `>>`, `>|`, `<>`, `&>`,
-// `>&name`); `reads`, those of the others and a heredoc's delimiter; `stdin`, the text of a heredoc or a here string.
-// `alone` is false in a pipeline or in the background, where it runs in a subshell and a `cd` does not last.
+// One simple command: its `words`; `writes`, the targets of the redirects that write a file (`>`, `>>`, `>|`, `<>`, `&>`, `>&name`); `reads`, those of the others and a heredoc's delimiter;
+// `stdin`, the text of a heredoc or a here string. `alone` is false in a pipeline or in the background, where it runs in a subshell and a `cd` does not last.
 export type Command = { readonly words: string[]; readonly writes: string[]; readonly reads: string[]; readonly stdin: string[]; readonly alone: boolean };
 export type Item = Command | "(" | ")";
 
@@ -89,8 +85,10 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 		if (next === "{") {
 			const close = closing(command, at + 2, "{", "}");
 			const inner = command.slice(at + 2, close);
-			const [fallback, name] = [/^[#!]?(?:[A-Za-z_]\w*|\d+|[@*#?$!-])(?:\[[^\]]*\])?:?[-=+?]([^]*)$/.exec(inner), /^([A-Za-z_]\w*)(?:\[0\])?(?::?[-=?]|$)/.exec(inner)?.[1]];
-			word += name === "OLDPWD" ? "~-" : /^!?OLDPWD\b/.test(inner) && fallback === null ? "\0-" : name === "PWD" ? "~+" : ((name && value(name)) ?? (fallback !== null ? shellWords(fallback[1]!).join(" ") : ""));
+			const [fallback, name, of] = [/^[#!]?(?:[A-Za-z_]\w*|\d+|[@*#?$!-])(?:\[[^\]]*\])?:?[-=+?]([^]*)$/.exec(inner), /^([A-Za-z_]\w*)(?:\[0\])?(?::?[-=?]|$)/.exec(inner)?.[1], /^[#!]?([A-Za-z_]\w*)/.exec(inner)?.[1]];
+			const unsure = fallback !== null && (inDouble ? /(?<!\\)(?:\\\\)*\$['"]/.test(fallback[1]!) : /[\s<>;&|()#]/.test(fallback[1]!.replace(/\\.|'[^']*'|"(?:\\.|[^"\\])*"/gs, "")));
+			const text = fallback === null ? "" : inDouble ? `"${fallback[1]!.replace(/(?<!\\)((?:\\\\)*)"/g, "$1")}"` : fallback[1]!;
+			word += name === "OLDPWD" ? "~-" : fallback === null && name === undefined && of !== undefined && (of === "OLDPWD" || of === "PWD" || value(of) !== undefined) ? "\0-" : name === "PWD" ? "~+" : ((name && value(name)) ?? (unsure ? "\0-" : shellCommands(text, known).flatMap((item) => (typeof item === "string" ? [] : item.words)).join(" ")));
 			return close + 1;
 		}
 		if (next === "'" && !inDouble) {
@@ -133,7 +131,7 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 				body += `${line}\n`;
 				last = at;
 			}
-			into.push(expands ? body.replace(/(?<!\\)((?:\\\\)*)\$(?:PWD(?!\w)|\{PWD\})/g, "$1\0+") : body);
+			into.push(expands ? body.replace(/(?<!\\)((?:\\\\)*)\$(?:PWD(?!\w)|\{PWD(?:\[0\])?(?::?[-=?][^{}]*)?\})/g, "$1\0+").replace(/(?<!\\)((?:\\\\)*)\$\{[#!]?PWD(?!\w|:?\+)/g, "$1\0-") : body);
 			for (let index = from; expands && index < last; ) {
 				index = command[index] === "\\" ? index + 2 : command[index] === "$" ? dollar(index, true) : command[index] === "`" ? backtick(index) : index + 1;
 			}

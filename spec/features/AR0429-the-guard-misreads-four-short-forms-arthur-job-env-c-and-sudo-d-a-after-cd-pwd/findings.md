@@ -1,0 +1,42 @@
+# AR0429 - Findings
+
+What was discovered while doing this ticket but is not part of it: bugs, risks, gaps, and suggested changes. Workers add entries on their branch; the coordinator adds the non-blocking notes from reviews. One entry per finding, numbered, never deleted: only its Status changes.
+
+A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it), `ticket <id>` (a planning ticket carries it), `deferred (client summary)` (it goes to the client in a summary, not on the board), or `dropped (<reason>)`. `open` lives only until the merge, which settles every `Status: open` entry as the project's findings mode says: a planning ticket each (the default), one planning ticket for all of them, or `deferred (client summary)`.
+
+## F1. Other operators of `${PWD…}` and of the known variables read as nothing
+
+- Kind: security
+- Found by: 2026-10-27-review-7254140b (review), 2026-10-27
+- Where: `packages/core/src/shell-words.ts:93`
+- What: `${PWD%/x}`, `${ARTHUR_JOB%/*}`, `${HOME#/}` and the other operators but `-`, `=`, `?`, `+` give nothing, so `echo x > ${ARTHUR_JOB%/*}/<other job>/result` is judged as `/<other job>/result` and passes, while bash writes into the jobs' folder. An unquoted heredoc's `$PWD` is read only in its plain forms (`$PWD`, `${PWD}`), not with an operator. The ticket's Scope puts other operators out.
+- Suggestion: refuse a `${…}` of a known variable or of `PWD` with an operator the parser does not read, as `OLDPWD_UNKNOWN` does for `${OLDPWD…}`; leave computing the operators out.
+- Status: ticket AR0471
+
+## F2. An escaped variable in an unquoted heredoc reaches the inner shell unread by the guard
+
+- Kind: security
+- Found by: 2026-10-27-review-36dcaaef (review), 2026-10-27
+- Where: `packages/core/src/worktree-guard.ts`, `shell-words.ts`
+- Status: ticket AR0472
+
+## F3. A long option of sudo or env followed by its value hides the command from the guard
+
+- Kind: security
+- Found by: 2026-10-27-review-36dcaaef (review), 2026-10-27
+- Where: `packages/core/src/worktree-guard.ts`, `shell-words.ts`
+- Status: ticket AR0473
+
+## F4. The mutation `--chd` to `--ch` for sudo survives
+
+- Kind: security
+- Found by: 2026-10-27-review-36dcaaef (review), 2026-10-27
+- Where: `packages/core/src/worktree-guard.ts`, `shell-words.ts`
+- Status: dropped (harmless: sudo itself refuses the ambiguous `--ch`, so nothing runs)
+
+## F5. The mutation of the OLDPWD marker survives
+
+- Kind: security
+- Found by: 2026-10-27-review-36dcaaef (review), 2026-10-27
+- Where: `packages/core/src/worktree-guard.ts`, `shell-words.ts`
+- Status: dropped (only `${OLDPWD%...}` in text a shell reads from its input; no write it lets through was shown)

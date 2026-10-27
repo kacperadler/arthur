@@ -3,11 +3,12 @@ import { join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
 
 // Delivery's record of each review job (spec/roadmap.md, entry 52), `<folder>/reviews/<id>.json`, written by the review's
-// prepare: its ticket, the branch and commit it reviews, when it started, and its verdict once its run ended. The core's record
-// of a read-only kind names no branch and goes with `arthur prune`; this one stays, so a pruned FAIL still counts.
+// prepare: its ticket, the branch and commit it reviews, when it started, and its verdict and cost (USD, as the core's record
+// holds it) once its run ended. The core's record of a read-only kind names no branch and goes with `arthur prune`; this one
+// stays, so a pruned FAIL still counts, and a pruned review's cost still reaches the ticket's outcome.
 
 export type Verdict = "PASS" | "FAIL" | "none";
-export type Review = { readonly id: string; readonly ticket: string; readonly branch: string; readonly commit: string; readonly at: number; readonly verdict?: Verdict };
+export type Review = { readonly id: string; readonly ticket: string; readonly branch: string; readonly commit: string; readonly at: number; readonly verdict?: Verdict; readonly cost?: string };
 
 // The FAILs since the last PASS a branch may have; the next review then needs the owner's word (`--round`).
 export const LIMIT = 2;
@@ -48,14 +49,14 @@ export function verdictOf(result: string): Verdict {
 	return last === "PASS" || last === "FAIL" ? last : "none";
 }
 
-// A review's verdict once its run ended, kept in its record the first time it is read: none for a run that did not finish;
-// undefined while it runs, or when the core's record went before a verdict was kept.
+// A review's verdict once its run ended, kept in its record with the run's cost the first time it is read: none for a run that
+// did not finish; undefined while it runs, or when the core's record went before a verdict was kept.
 export function settle(host: Host, review: Review): Verdict | undefined {
 	if (review.verdict !== undefined) return review.verdict;
 	const job = host.jobs.list().find((each) => each.id === review.id);
 	if (job === undefined || host.jobs.running().includes(review.id)) return undefined;
 	const verdict = job.state === "ended" && job.reason === "finished" ? verdictOf(host.jobs.result(review.id)) : "none";
-	saveReview(host, { ...review, verdict });
+	saveReview(host, { ...review, verdict, cost: job.cost });
 	return verdict;
 }
 

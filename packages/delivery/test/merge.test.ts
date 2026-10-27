@@ -22,7 +22,7 @@ const OWNER = "AC-D1";
 // board; the project's checks in package.json; a `bun.lock`, whose install is a fake `bun` that notes each call in `bun.log`.
 // `projects.install` answers `answer` (`installAs` sets it, an Error thrown), each request noted in `installs` with main's HEAD;
 // `decision.owner` answers as orchestration does, "" for OWNER, each request noted in `owner`.
-// `worker(files)` runs a worker on AC0001 that commits `files`; `review(job, message)` runs a review ending on `message`;
+// `worker(files)` runs a worker on AC0001 that commits `files`; `review(job, message, cost)` runs a review ending on `message`, costing `cost` USD;
 // `merge(...args)` runs `arthur merge` as the CLI does, a throw being `arthur merge: <message>` and exit code 1; an `uncapped:`
 // line, there only on a host without a user manager, goes to `uncapped`, apart from its other lines, and a `no sandbox:` line,
 // there only on a host without the sandbox (merge-checks.test.ts tests it), nowhere; `hear(fn)` has `fn` see each line printed,
@@ -105,8 +105,8 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 		t.mock.restoreAll();
 		return { code, out: out.join("\n"), err: err.join("\n") };
 	};
-	const review = async (job: string, message: string) => {
-		agent({ steps: [{ message }] });
+	const review = async (job: string, message: string, cost = 0) => {
+		agent({ steps: [{ message, cost }] });
 		const { out } = await run("review", [job]);
 		await ended(out);
 		return out;
@@ -157,6 +157,39 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 	assert.match(readFileSync(join(root, "CHANGELOG.md"), "utf8"), new RegExp(`\n## \\d{4}-\\d{2}-\\d{2}\n\n### Other\n\n- AC0001 Shop \\(${hash}\\)\n$`), "rebuilt from outcome.md");
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "ticket-moved").at(-1)?.data, { id: "AC0001", project: "acme", from: "done", to: "merged" });
 	assert.equal((await merge(job.id)).err, `arthur merge: AC0001 is merged; a merge is of a ticket in-progress, review or done`);
+});
+
+test("a review filed and pruned before the merge, as its wake tells the coordinator, still has its cost in outcome.md", async (t) => {
+	const { root, fake, home, worker, review, merge } = await load(t);
+	const job = await worker();
+	const passed = await review(job.id, "Clean.\n\nPASS", 0.37);
+	assert.equal(fake.host.jobs.file("AC0001", passed), `${FOLDER}/review-1.md`);
+	rmSync(join(home, "jobs", passed), { recursive: true });
+	const merged = await merge(job.id);
+	assert.equal(merged.code, undefined, merged.err);
+	assert.match(readFileSync(join(root, FOLDER, "outcome.md"), "utf8"), /\n- Reviews: review-1\.md PASS\n- Cost: worker \$0\.00, reviews \$0\.37; review rounds 1\n/);
+});
+
+test("a review record kept before AR0474, with no cost, takes the cost from the core's record while it exists, and is n/a once that is pruned", async (t) => {
+	const { root, fake, home, worker, review, merge } = await load(t);
+	// The record as an Arthur before AR0474 kept it: the verdict without the cost.
+	const costless = (id: string) => {
+		const path = join(fake.host.folder, "reviews", `${id}.json`);
+		const { cost, ...kept } = JSON.parse(readFileSync(path, "utf8"));
+		assert.equal(cost, "0.3700", "settle kept the cost before it is taken away");
+		writeFileSync(path, `${JSON.stringify(kept)}\n`);
+	};
+	const first = await worker();
+	costless(await review(first.id, "Clean.\n\nPASS", 0.37));
+	assert.equal((await merge(first.id)).err, "");
+	assert.match(readFileSync(join(root, FOLDER, "outcome.md"), "utf8"), /\n- Cost: worker \$0\.00, reviews \$0\.37; review rounds 1\n/);
+	const second = await worker({ "cart.ts": "export const cart = 1;\n" }, "Ticket: spec/features/AC0002-cart/ticket.md");
+	const passed = await review(second.id, "Clean.\n\nPASS", 0.37);
+	costless(passed);
+	assert.equal(fake.host.jobs.file("AC0002", passed), "spec/features/AC0002-cart/review-1.md");
+	rmSync(join(home, "jobs", passed), { recursive: true });
+	assert.equal((await merge(second.id)).err, "");
+	assert.match(readFileSync(join(root, "spec/features/AC0002-cart/outcome.md"), "utf8"), /\n- Cost: worker \$0\.00, reviews n\/a; review rounds 1\n/);
 });
 
 // The checks on main, of a branch whose `test` script notes its cgroup and forks a sleeper out of its process group, noting its pid.

@@ -737,6 +737,10 @@ import { checkStructure } from "./structure.ts";
 // AR0400 (F1 of AR0394, a security ticket; its Done means: the prune here keeps the worktree, branch and record as
 // `arthur remote-job prune` does): core 4 more (6325) for that refusal, its comment and its import (job-records.ts, git diff
 // --numstat +4 -0). Nothing was cut.
+// AR0374 (F2 of AR0328, a security ticket; its Done means: a limit on each merge step, as one number in delivery's options):
+// delivery 13 more (1449) for `merge.stepSeconds`, its default and check, the option check walking the table's two options
+// (delivery-options.ts, git diff --numstat +20 -8), and the step killed at it, its result naming the limit (merge-checks.ts +8
+// -7). No step had a limit before, so nothing was cut; the install's limit is the job's timeout (wrapper.ts +2 -2, core unchanged).
 // Merged main (AR0400, AR0433) into AR0434: main's budgets plus AR0434's orchestration 2413 (recounted with wc -l).
 // AR0463 (F2 of AR0457, a security ticket; the owner's raise, AR-D103): delivery 64 more (1500) for the sweep after each merge
 // step of every `.git` below the checkout's top that was not there, the same, before the first step, one line each, with the
@@ -748,7 +752,22 @@ import { checkStructure } from "./structure.ts";
 // name the same commit and every tracked file unwritten, with `assume-unchanged` and `skip-worktree` counted as changes, a path
 // lstat cannot reach not thrown, and its git calls run with no hook, fsmonitor or replacement (checks-extension.ts, git diff
 // --numstat +52 -19). Nothing read the tree before a call, so nothing was cut.
-const BUDGETS = { core: 6325, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1533, github: 659, manage: 928, develop: 706, findings: 254 };
+// AR0343 (F7 of AR0319, a security ticket; its Done means: `arthur doctor` warns, critical, of an env file Git would commit):
+// core 15 more (6340) for the `env ignored` requirement and its comment lines (requirements.ts, git diff --numstat +20 -5).
+// Nothing was cut.
+// AR0388 (F1 of AR0377, a security ticket; AR-D117): core 3 more (6328) for the guard's `$XDG_CONFIG_HOME/systemd` line (job-place.ts, git diff --numstat +7 -4).
+// Merged main (AR0434, AR0463) into AR0374: main's budgets plus AR0374's delivery 1513 (recounted with wc -l).
+// AR0454 (F1 of AR0449, a security ticket; the task allows the raise): core 2 more (6327) for the install's and each step's own
+// package caches in place of the shared ones, the `env` arguments that point them there and the folder `host.sandbox` takes
+// (job-sandbox.ts, git diff --numstat +13 -12; plugin.ts +5 -4), and delivery 6 more (1442) for each merge's cache folder, made
+// before its steps and removed after them, the reinstall's included (merge-command.ts +24 -18). The shared caches' list was cut.
+// Merged main (AR0463, AR0374) into AR0454: main's budgets plus AR0454's raises (recounted with wc -l).
+// Merged main (AR0374) into AR0388: main's budgets plus AR0388's core 6328 (recounted with wc -l).
+// Merged main (AR0374, AR0388) into AR0343: main's budgets plus AR0343's core 6343 (recounted).
+// Merged main (AR0388) into AR0454: main's budgets plus AR0454's raises (recounted with wc -l).
+// Merged main (AR0454, AR0429) into AR0343: main's budgets plus AR0343's core 6345 (recounted).
+// Merged main into AR0436: main's budgets plus AR0436's delivery 1552 (recounted).
+const BUDGETS = { core: 6345, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1552, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

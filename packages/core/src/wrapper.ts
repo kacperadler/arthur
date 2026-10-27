@@ -6,7 +6,7 @@ import { eventBus } from "./events.ts";
 import { deadline, reached } from "./job-limits.ts";
 import { install } from "./job-install.ts";
 import { oomFirst, watchMemory } from "./job-memory.ts";
-import { caches, hidden, sandboxed, writable } from "./job-sandbox.ts";
+import { cached, hidden, sandboxed, writable } from "./job-sandbox.ts";
 import { endScope } from "./job-scope.ts";
 import { signal, stopGroup } from "./job-stop.ts";
 import { blockedBy, current, kept, moveJob, type State } from "./job-state.ts";
@@ -100,7 +100,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		if (why !== undefined) return which === "budget" || note(`${what}: ${which === "stop" ? "asked" : "reached"} as well`);
 		if (which === "stop" && playing && (child?.exitCode !== null || child.signalCode !== null)) return note("arthur stop: the agent had ended already");
 		why = which;
-		note(`${what}: stopping the agent`);
+		note(`${what}: stopping the ${playing ? "agent" : "install"}`);
 		if (child?.pid !== undefined) stopping = stopGroup(child.pid, id, note);
 	};
 	process.on("SIGTERM", () => halt("stop"));
@@ -119,8 +119,8 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		overCap = what;
 		halt("memory");
 	});
-	const secrets = hidden(folder); // Read once, before the install a prepare asked for (job-install.ts), so what it writes to the record unhides nothing from the agent. The install runs first, in the job's sandbox and the caches; one that fails, or a stop or a limit during it, starts no agent.
-	let failure = await install(process.env.ARTHUR_INSTALL, worktree, (command) => sandboxed([...writable(folder, worktree, extensions), ...caches()], secrets, "sh", note, "the install")(["-c", command]), note, (chunk) => save("log", chunk, true), (running) => (child = running));
+	const secrets = hidden(folder); // Read once, before the install a prepare asked for (job-install.ts), so what it writes to the record unhides nothing from the agent. The install runs first, in the job's sandbox, its package caches in the record's `cache` (AR0454); one that fails, or a stop or a limit during it, starts no agent.
+	let failure = await install(process.env.ARTHUR_INSTALL, worktree, (command) => sandboxed(writable(folder, worktree, extensions), secrets, "env", note, "the install")(cached(join(folder, "cache"), command)), note, (chunk) => save("log", chunk, true), (running) => (child = running));
 	// One run of the agent, until it exits, its output is read and its stop, if any, is over.
 	const play = async (argv: readonly string[]): Promise<[number | null, NodeJS.Signals | null]> => {
 		note(`agent: ${agent} ${argv.join(" ")}`);
@@ -173,7 +173,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	}
 	const reason =
 		why === "stop" ? "stopped"
-		: why === "time" ? `limit: time: the job ran past its timeout of ${timeout} minutes`
+		: why === "time" ? `limit: time: the job ran past its timeout of ${timeout} minutes${playing ? "" : ", during its install"}`
 		: why === "budget" ? `limit: budget: its cost $${record.cost().toFixed(4)} reached its budget of $${budgetUsd}`
 		: why === "memory" ? `limit: memory: ${overCap}`
 		: failure !== undefined ? `failed: the agent did not start: ${failure.message}`

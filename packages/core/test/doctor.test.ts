@@ -64,7 +64,7 @@ function project(home?: string) {
 	return { folder, home: home ?? join(folder, ".arthur"), say, log, arthur, env };
 }
 
-const CORE = ["core git: ok", "core node: ok", "core omp: ok", "core home: ok", "core controllers: ok", "core env: ok"];
+const CORE = ["core git: ok", "core node: ok", "core omp: ok", "core home: ok", "core controllers: ok", "core env: ok", "core env ignored: ok"];
 const REST = [
 	"orchestration tmux: ok",
 	"channel token: ok",
@@ -135,7 +135,7 @@ test("arthur doctor when a plugin's setup fails: the core's lines, then why the 
 	assert.match(broken.stderr, /^arthur doctor: arthur\.config\.ts did not load:\n/);
 });
 
-test("the core's requirements: git, Node 24, the agent, a writable home, critical; the controllers delegated and the env file's place, not; each missing with its reason and fix", async (t) => {
+test("the core's requirements: git, Node 24, the agent, a writable home, critical; the controllers delegated and the env file outside the agents' folders, not; each missing with its reason and fix", async (t) => {
 	t.after(() => void (process.env.PATH = PATH));
 	const bin = temporaryFolder();
 	symlinkSync("/bin/sh", join(bin, "sh"));
@@ -152,6 +152,7 @@ test("the core's requirements: git, Node 24, the agent, a writable home, critica
 			["core home: ok", false],
 			['core controllers: missing: the user manager has the controllers "memory pids", not cpu and memory; without it: jobs run without the joint limit of core.jobs.cpu and core.jobs.memory, and what a job leaves behind is not killed at its end; fix: delegate them (docs/setup.md, step 10), then reboot', false],
 			["core env: ok", false],
+			["core env ignored: ok", false],
 		],
 	);
 	assert.ok(existsSync(home), "a home that is not there yet is made");
@@ -194,6 +195,48 @@ test("arthur doctor: the env file by default lies outside; set beside the config
 	assert.match(env() ?? "", new RegExp(`^core env: missing: the env file ${join(folder, ".env")} lies inside ${folder}; `));
 	config(`{ envFile: ${JSON.stringify(join(shop, ".env"))} }`);
 	assert.match(env() ?? "", new RegExp(`^core env: missing: the env file ${join(shop, ".env")} lies inside ${shop}; `));
+});
+
+test("arthur doctor: an env file in a Git checkout that does not ignore it is a critical miss; ignored, ok; outside any checkout, ok", () => {
+	const { folder, arthur } = project();
+	writeFileSync(join(folder, "arthur.config.ts"), 'export default { core: { envFile: "env" }, plugins: [{ name: "orchestration", setup() {} }] };\n');
+	const git = (...args: string[]) => assert.equal(spawnSync("git", ["-C", folder, ...args], { encoding: "utf8" }).status, 0, args.join(" "));
+	const line = () => {
+		const run = arthur("doctor");
+		return [run.status, run.stdout.split("\n").find((text) => text.startsWith("core env ignored: "))];
+	};
+	assert.deepEqual(line(), [0, "core env ignored: ok"], "outside any checkout");
+	git("init", "-q");
+	const missing = `core env ignored: missing: the env file ${join(folder, "env")} lies in the Git checkout ${folder}, which does not ignore it; without it: a commit there takes its values into the repository, and a push sends them to every clone; fix: add env to the .gitignore beside it, or move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)`;
+	assert.deepEqual(line(), [1, missing], "not ignored, even before the file exists");
+	writeFileSync(join(folder, ".gitignore"), ".env\n");
+	assert.deepEqual(line(), [1, missing], "a .gitignore that ignores .env only");
+	writeFileSync(join(folder, ".gitignore"), "env\n");
+	assert.deepEqual(line(), [0, "core env ignored: ok"]);
+	writeFileSync(join(folder, "env"), "ARTHUR_X=1\n");
+	git("add", "-f", "env");
+	assert.deepEqual(line(), [1, missing], "a file Git already tracks is not ignored");
+	git("rm", "-q", "--cached", "env");
+	mkdirSync(join(folder, "secrets"));
+	writeFileSync(join(folder, "arthur.config.ts"), 'export default { core: { envFile: "secrets/vars" }, plugins: [{ name: "orchestration", setup() {} }] };\n');
+	assert.match(String(line()[1]), new RegExp(`^core env ignored: missing: the env file ${join(folder, "secrets", "vars")} lies in the Git checkout ${folder}, `), "in a folder below the checkout's top");
+	writeFileSync(join(folder, ".gitignore"), "/secrets/\n");
+	assert.deepEqual(line(), [0, "core env ignored: ok"], "a pattern at the checkout's top that ignores its folder");
+});
+
+test("the env file's own folder decides whether it lies in a Git checkout, not the folder arthur runs in", async (t) => {
+	const cwd = process.cwd();
+	t.after(() => process.chdir(cwd));
+	const [repository, plain] = [temporaryFolder(), temporaryFolder()];
+	assert.equal(spawnSync("git", ["-C", repository, "init", "-q"]).status, 0);
+	const line = async (envFile: string) => {
+		const ignored = coreRequirements({ home: "/unused", envFile, agent: { command: "omp" } }, () => []).filter((requirement) => requirement.name === "env ignored");
+		return (await doctor(ignored, []))[0]?.text;
+	};
+	process.chdir(plain);
+	assert.match((await line(join(repository, "env"))) ?? "", new RegExp(`^core env ignored: missing: the env file ${join(repository, "env")} lies in the Git checkout ${repository}, `), "run outside any checkout, the file in one");
+	process.chdir(repository);
+	assert.equal(await line(join(plain, "env")), "core env ignored: ok", "run in a checkout, the file outside every one");
 });
 
 test("arthur doctor while the load refuses, a variable missing: the core's own lines still warn of an env file beside the config", () => {

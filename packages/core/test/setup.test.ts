@@ -97,7 +97,7 @@ test("arthur setup: the tools, the config, the requirements, what can still go i
 		"env set | ARTHUR_TELEGRAM_CHAT_ID (telegram.chatIdEnv)",
 		"voice | off (enabled: false)",
 	]);
-	assert.deepEqual(section(run.stdout, "Requirements").slice(7), [
+	assert.deepEqual(section(run.stdout, "Requirements").slice(8), [
 		"orchestration tmux: ok",
 		"telegram ffmpeg: missing: not found; without it: no ffmpeg; fix: fix ffmpeg",
 		"telegram bot: missing: unreachable; without it: no bot; fix: fix bot",
@@ -139,7 +139,7 @@ test("a missing variable is a step that refuses the start; each enabled plugin's
 		"voice | off (enabled: false)",
 		`${join(xdg, "arthur", ".env")}: ARTHUR_OTHER is set on lines 2, 3; the last wins`,
 	]);
-	assert.deepEqual(section(run.stdout, "Requirements").slice(7), [
+	assert.deepEqual(section(run.stdout, "Requirements").slice(8), [
 		"orchestration tmux: ok",
 		"telegram ffmpeg: missing: not found; without it: no ffmpeg; fix: fix ffmpeg",
 		"the requirements a plugin checks in its setup are not checked until what Config refuses is fixed",

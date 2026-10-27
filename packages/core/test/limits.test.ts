@@ -150,6 +150,21 @@ test("a timeout during a long tool call stops the agent and the tool's process; 
 	assert.match(field(home, job.id, "log"), /\] limit: time: stopping the agent\n/);
 });
 
+test("a timeout during the install a prepare asked for stops it, though it ignores SIGTERM, names the install, and starts no agent", async () => {
+	const dir = temporaryFolder();
+	const agent = join(dir, "omp");
+	writeFileSync(agent, `#!/bin/sh\necho started >> '${dir}/starts'\n`, { mode: 0o755 });
+	const { home, jobs } = setup(agent);
+	jobs.prepare("projects", () => ({ ARTHUR_INSTALL: `trap '' TERM; echo $$ > '${dir}/install'; while :; do sleep 0.05; done` }));
+	const job = await jobs.spawn({ task: "Go.", timeoutMinutes: 0.05 });
+	const install = Number(await until("the install's process", () => (existsSync(join(dir, "install")) ? readFileSync(join(dir, "install"), "utf8").trim() || undefined : undefined)));
+	const data = await ended(home, job.id);
+	assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "limit: time: the job ran past its timeout of 0.05 minutes, during its install" });
+	assert.equal(alive(install), false);
+	assert.equal(existsSync(join(dir, "starts")), false, "no agent started");
+	assert.match(field(home, job.id, "log"), /\] limit: time: stopping the install\n/);
+});
+
 test("a timeout of 0, and one longer than a Node timer can wait, never stop the job", async () => {
 	for (const timeoutMinutes of [0, 50_000]) {
 		const gate = join(temporaryFolder(), "go");

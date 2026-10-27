@@ -12,6 +12,7 @@ import { eventBus } from "../src/events.ts";
 import { coreVersion, ssh, sshAsync } from "../src/job-machine.ts";
 import type { Slice } from "../src/job-scope.ts";
 import { jobRunner } from "../src/jobs.ts";
+import { secretNames } from "../src/secret-names.ts";
 import { fakeAgent, fakeHost, jobSlice, temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
@@ -43,9 +44,9 @@ const calls = () => (existsSync(sshLog) ? readFileSync(sshLog, "utf8").split("\n
 
 // A repository `acme` with one commit, a home folder beside it, and a machine `gpu` in a folder of its own whose `arthur` is
 // this core (`arthur` there: the script of `<machine>/bin/arthur`); the runner's plugin `machines` registers it, and `place`
-// answers its `jobs.place`, `caps` its `jobs.limits`, `roles` its `roles.model`, one answer per plugin that provides it. The
-// runner's clock stands at `now.at`, which a test moves.
-function setup(options: { readonly agent?: string; readonly arthur?: string; readonly place?: () => readonly unknown[]; readonly caps?: () => readonly unknown[]; readonly roles?: () => readonly unknown[]; readonly slice?: Slice } = {}) {
+// answers its `jobs.place`, `caps` its `jobs.limits`, `roles` its `roles.model`, `prompt` its `prompt`, one answer per plugin
+// that provides it; `hide` names the env values (secret-names.ts). The runner's clock stands at `now.at`, which a test moves.
+function setup(options: { readonly agent?: string; readonly arthur?: string; readonly place?: () => readonly unknown[]; readonly caps?: () => readonly unknown[]; readonly roles?: () => readonly unknown[]; readonly prompt?: () => readonly unknown[]; readonly hide?: (text: string) => string; readonly slice?: Slice } = {}) {
 	rmSync(sshLog, { force: true });
 	const folder = temporaryFolder();
 	const root = join(folder, "acme");
@@ -60,10 +61,10 @@ function setup(options: { readonly agent?: string; readonly arthur?: string; rea
 	const there = join(machine, "arthur-home");
 	const now = { at: new Date("2026-10-16T12:00:00Z") };
 	const time = clock("UTC", undefined, () => now.at);
-	const answers: Readonly<Record<string, (() => readonly unknown[]) | undefined>> = { "jobs.place": options.place, "jobs.limits": options.caps, "roles.model": options.roles };
+	const answers: Readonly<Record<string, (() => readonly unknown[]) | undefined>> = { "jobs.place": options.place, "jobs.limits": options.caps, "roles.model": options.roles, prompt: options.prompt };
 	const collect = (name: string) => [...(answers[name]?.() ?? [])];
 	const limits = { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...(options.slice ?? jobSlice) };
-	const jobs = jobRunner(home, root, join(root, "env"), limits, options.agent ?? "omp", time, eventBus(home), collect);
+	const jobs = jobRunner(home, root, join(root, "env"), limits, options.agent ?? "omp", time, eventBus(home, options.hide), collect);
 	jobs.registerMachine("machines", { name: "gpu", ssh: "gpu", home: there, labels: { os: "linux" } });
 	return { root, home, machine, there, jobs, now };
 }
@@ -132,6 +133,46 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	const second = await jobs.spawn({ task: "Again.", machine: "gpu", kind: "worker" });
 	assert.equal(second.failed, undefined);
 	assert.equal(calls().filter((call) => call.includes("receive-pack")).length, 1, "the base commit there is not pushed twice");
+});
+
+test("the prompt a job on another machine gets names each env value, there as here", async () => {
+	const agent = fakeAgent({ steps: [{ message: "Done." }] });
+	const { home, there, jobs } = setup({ agent, prompt: () => ["Call it with s3cret-t0ken-123."], hide: secretNames({ ARTHUR_TEST_TOKEN: "s3cret-t0ken-123" }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	assert.equal(job.failed, undefined);
+	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
+	for (const folder of [home, there]) assert.match(read(folder, job.id, "prompt"), /Call it with ARTHUR_TEST_TOKEN\.\n/, folder);
+});
+
+test("the sweep's copy of a job on another machine names each env value in its log, final message and reason here", async () => {
+	const agent = fakeAgent({ steps: [{ stderr: "401 for s3cret-t0ken-123" }, { message: "Blocked: user is s3cret-t0ken-123 still valid?" }] });
+	const { home, there, jobs } = setup({ agent, hide: secretNames({ ARTHUR_TEST_TOKEN: "s3cret-t0ken-123" }) });
+	jobs.prepare("test", () => ({ ARTHUR_INSTALL: "echo installed with s3cret-t0ken-123" }));
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	assert.equal(job.failed, undefined);
+	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "blocked");
+	assert.match(read(there, job.id, "log"), /installed with s3cret-t0ken-123\n/, "the wrapper there names nothing: no env file there");
+	await jobs.sweep();
+	assert.deepEqual(["state", "reason", "result"].map((name) => read(home, job.id, name)), ["blocked", "user: is ARTHUR_TEST_TOKEN still valid?", "Blocked: user is ARTHUR_TEST_TOKEN still valid?"]);
+	assert.match(read(home, job.id, "log"), /installed with ARTHUR_TEST_TOKEN\n[\s\S]*401 for ARTHUR_TEST_TOKEN\n/);
+	const files = readdirSync(home, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile()).map((entry) => join(entry.parentPath, entry.name));
+	for (const file of files) assert.ok(!readFileSync(file, "utf8").includes("s3cret-t0ken-123"), file);
+});
+
+test("a sweep's copy of the log a job on another machine appended since the last one names each env value", async () => {
+	const gate = join(temporaryFolder(), "go");
+	const agent = fakeAgent({ steps: [{ stderr: "first line" }, { waitFor: gate }, { stderr: "401 for s3cret-t0ken-123" }, { message: "Done." }] });
+	const { home, there, jobs } = setup({ agent, hide: secretNames({ ARTHUR_TEST_TOKEN: "s3cret-t0ken-123" }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	assert.equal(job.failed, undefined);
+	await until("the first line there", () => existsSync(join(there, "jobs", job.id, "log")) && read(there, job.id, "log").includes("first line\n"));
+	await jobs.sweep();
+	assert.match(read(home, job.id, "log"), /first line\n/);
+	writeFileSync(gate, "");
+	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
+	await jobs.sweep();
+	assert.match(read(home, job.id, "log"), /first line\n[\s\S]*401 for ARTHUR_TEST_TOKEN\n/);
+	assert.doesNotMatch(read(home, job.id, "log"), /s3cret-t0ken-123/);
 });
 
 test("the push of a job's base to another machine and the fetch of its branch back are refused while the checkout's own config sets a key that may name a program", async () => {

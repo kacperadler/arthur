@@ -540,5 +540,6 @@ test("a sandboxed job reads no token of the env file: not by its path, a link, n
 	assert.match(out.attack ?? "", new RegExp(`^arthur: unknown command leak\n[\\s\\S]*${envFile}: cannot be read \\(EACCES\\)`));
 	assert.match(readFileSync(join(record, "log"), "utf8"), new RegExp(`\\] sandbox: the agent writes only in .*, reads every file but ${envFile}, `));
 	const worktree = readFileSync(join(record, "worktree"), "utf8");
-	assert.equal(arthur(join(worktree, "own"), "leak").stdout, "leaked s3cret-t0ken\n", "outside the sandbox the same command reads the token");
+	// The CLI names the value it prints (secret-names.ts), so the name shows the command read the token itself.
+	assert.equal(arthur(join(worktree, "own"), "leak").stdout, "leaked ARTHUR_SECRET_TOKEN\n", "outside the sandbox the same command reads the token");
 });

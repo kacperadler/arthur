@@ -10,9 +10,9 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "nod
 // paths, `--`, then the agent's command line: a Landlock ruleset (Linux 5.13 on) under which the agent and every process it
 // starts write only beneath the writable paths (a missing one is skipped; a file takes only its own writes) and, when a path is
 // hidden, read every file but it: Landlock only grants, so each folder from `/` to its real path grants reads on every entry but
-// the next part (a symlink or an entry that does not open gets none, nor does a part made later), a seccomp filter that refuses io_uring
-// (whose sockets seccomp does not see) and a new Unix socket but a datagram one (omp's session lock), so no user bus, tmux
-// server or other local daemon runs a command outside it, and `no_new_privs`; then it execs the agent. Its refusal ends stderr.
+// the next part (a symlink, an entry that does not open, a part made later and a folder at or beneath a hidden path get none),
+// a seccomp filter that refuses io_uring (whose sockets seccomp does not see) and a new Unix socket but a datagram one (omp's
+// session lock), so no local daemon runs a command outside it, and `no_new_privs`; then it execs the agent. Its refusal ends stderr.
 const SCRIPT = `import ctypes, os, platform, stat, struct, sys
 libc = ctypes.CDLL(None, use_errno=True)
 libc.syscall.restype = libc.prctl.restype = ctypes.c_long
@@ -35,11 +35,11 @@ for path in paths:
 	except FileNotFoundError: continue
 	if grant(fd, dirs if stat.S_ISDIR(os.fstat(fd).st_mode) else files) < 0: fail(f"Landlock: {path}")
 	os.close(fd)
-walk = {}
-for path in hidden:
-	parts = os.path.realpath(path).split("/")
+walk, reals = {}, [os.path.realpath(path) for path in hidden]
+for parts in (real.split("/") for real in reals):
 	for at in range(1, len(parts)): walk.setdefault("/".join(parts[:at]) or "/", set()).add(parts[at])
 for folder, skip in walk.items():
+	if any(folder == real or folder.startswith(real.rstrip("/") + "/") for real in reals): continue
 	try: entries = [entry for entry in os.scandir(folder) if entry.name not in skip and not entry.is_symlink()]
 	except OSError: continue
 	for entry in entries:
@@ -74,11 +74,11 @@ export function writable(record: string, worktree: string, extensions: string): 
 	return [worktree, record, ...repository, tmpdir(), "/dev", join(homedir(), ".omp"), ...plugins];
 }
 
-// The env file the `guarded` file of the job whose record is `record` names (job-place.ts), which its agent may not read; none
-// in a record without one (an old record, a job on another machine).
+// What the agent of the job whose record is `record` may not read: the env file its `guarded` file names (job-place.ts), if any,
+// and the user's `~/.ssh` (AR0508), taken from no record, which the agent writes; job-place.ts and spawn.md say why.
 export function hidden(record: string): string[] {
 	const text = existsSync(join(record, "guarded")) ? readFileSync(join(record, "guarded"), "utf8") : "";
-	return text.split("\n").filter((line) => line.startsWith("env /")).map((line) => line.slice(4));
+	return [...text.split("\n").filter((line) => line.startsWith("env /")).map((line) => line.slice(4)), join(homedir(), ".ssh")];
 }
 
 // The sandbox over `paths`, reading every file but `hidden`, for `agent`, `who` in the log's line (`note`): a function from its
@@ -109,12 +109,12 @@ export function cached(folder: string, command: string): string[] {
 
 // The sandbox of branch code a plugin runs outside a job (`Host.sandbox`, delivery's checks on main): `sh -c <command>` writing
 // only in the checkout `folder` as `checkout` says, the cache folder `cache` (made here), which its caches use, the temporary
-// folder and `/dev`, reading every file but the env file `arthur.envFile`; `note` is told only where it cannot be set up, once,
-// and each command then runs bare, its caches in `cache` all the same.
+// folder and `/dev`, reading every file but the env file `arthur.envFile` and the user's `~/.ssh`; `note` is told only where it
+// cannot be set up, once, and each command then runs bare, its caches in `cache` all the same.
 export function stepSandbox(folder: string, cache: string, arthur: { readonly envFile: string; readonly home: string; readonly config: string }, note: (line: string) => void): (command: string) => [string, string[]] {
 	mkdirSync(cache, { recursive: true });
 	const paths = [...checkout(folder, [arthur.home, arthur.config, arthur.envFile]), cache, tmpdir(), "/dev"];
-	const start = sandboxed(paths, [arthur.envFile], "env", (line) => void (line.startsWith("no sandbox: ") && note(line)), "each step");
+	const start = sandboxed(paths, [arthur.envFile, join(homedir(), ".ssh")], "env", (line) => void (line.startsWith("no sandbox: ") && note(line)), "each step");
 	return (command) => start(cached(cache, command));
 }
 

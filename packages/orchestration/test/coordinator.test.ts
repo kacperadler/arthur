@@ -119,18 +119,20 @@ test("another plugin's coordinator.extension loads after orchestration's own, wi
 
 // AR0434: the redaction by name reads `arthur run`'s environment, so omp holds that one, not the global one of a tmux server
 // started earlier from another shell and kept by another session (`sleep`, so no shell of the host ends it). AR0465: the value
-// given again is in no process's argv, as `tmux` on `PATH` logging each client's arguments before it runs the real one shows.
+// given again is in no process's argv, as `tmux` on `PATH` logging each client's arguments before it runs the real one shows;
+// it refuses the first `new-session` of the coordinator, so a failed start leaves `update-environment` as it was too.
 test("the coordinator's agent holds arthur run's environment only: a name only the server's global environment holds is not in it, one it holds with another value has arthur run's, in no argv", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const { agent, release } = waiting();
 	t.after(release);
 	t.after(() => void delete process.env.ARTHUR_TEST_SECRET);
 	const secret = `arthur-run-${process.pid}`;
 	process.env.ARTHUR_TEST_SECRET = secret;
-	const { plugin, socket, starts } = await load(t, agent);
+	const { plugin, socket, err, starts } = await load(t, agent);
 	const wrapper = temporaryFolder();
-	const log = join(wrapper, "argv.log");
+	const [log, failed] = [join(wrapper, "argv.log"), join(wrapper, "failed")];
 	const real = spawnSync("sh", ["-c", "command -v tmux"], { encoding: "utf8" }).stdout.trim();
-	writeFileSync(join(wrapper, "tmux"), `#!/bin/sh\nprintf '%s\\n' "$*" >> '${log}'\nexec '${real}' "$@"\n`, { mode: 0o755 });
+	const once = `case " $* " in *" new-session "*" -s coord "*) [ -e '${failed}' ] || { : > '${failed}'; echo 'refused once by the test' >&2; exit 1; } ;; esac`;
+	writeFileSync(join(wrapper, "tmux"), `#!/bin/sh\nprintf '%s\\n' "$*" >> '${log}'\n${once}\nexec '${real}' "$@"\n`, { mode: 0o755 });
 	process.env.PATH = `${wrapper}${delimiter}${process.env.PATH}`;
 	tmux(socket, "new-session", "-d", "-s", "other", "sleep", "600");
 	tmux(socket, "set-environment", "-g", "ARTHUR_TEST_TOKEN", "short-val");
@@ -138,6 +140,10 @@ test("the coordinator's agent holds arthur run's environment only: a name only t
 	assert.equal(tmux(socket, "show-environment", "-g", "ARTHUR_TEST_TOKEN").stdout.trim(), "ARTHUR_TEST_TOKEN=short-val", "the server runs before the start");
 	const options = tmux(socket, "show-options", "-g", "update-environment").stdout;
 	await plugin.start?.();
+	const refused = "orchestration: coordinator start failed: tmux new-session: refused once by the test; trying again in 1 s";
+	await until("the first start's failure", () => err.some((line) => line.text === refused));
+	assert.equal(starts().length, 0);
+	assert.equal(tmux(socket, "show-options", "-g", "update-environment").stdout, options, "a failed start leaves update-environment as it was");
 	await until("the coordinator's start", () => starts().length === 1);
 	const environment = readFileSync(`/proc/${starts()[0]?.pid}/environ`, "utf8").split("\0");
 	assert.equal(environment.filter((variable) => variable.startsWith("ARTHUR_TEST_TOKEN=")).length, 0);

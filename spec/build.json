@@ -4048,9 +4048,9 @@
   {
     "id": "AR0517",
     "title": "Arthur's records, logs, sockets and locks are readable only by Arthur's own user",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0517-arthur-s-records-logs-sockets-and-locks-are-readable-only-by-arthur-s-own-user/ticket.md",
-    "updated": "2026-10-27T16:12:11.948Z"
+    "updated": "2026-10-27T16:16:33.320Z"
   },
   {
     "id": "AR0518",
@@ -4086,5 +4086,12 @@
     "status": "planning",
     "path": "spec/features/AR0522-arthur-run-s-stop-does-not-wait-for-a-sweep-s-copy-still-in-flight/ticket.md",
     "updated": "2026-10-27T15:51:09.269Z"
+  },
+  {
+    "id": "AR0523",
+    "title": "umask.test.ts and spawn.test.ts put their test job in the production arthur-jobs slice",
+    "status": "planning",
+    "path": "spec/features/AR0523-umask-test-ts-and-spawn-test-ts-put-their-test-job-in-the-production-arthur-jobs/ticket.md",
+    "updated": "2026-10-27T16:16:44.985Z"
   }
 ]

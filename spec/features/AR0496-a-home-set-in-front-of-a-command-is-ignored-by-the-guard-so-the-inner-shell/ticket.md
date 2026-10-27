@@ -1,0 +1,40 @@
+# AR0496 - A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME
+
+```json
+{
+  "id": "AR0496",
+  "title": "A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME",
+  "date": "2026-10-27"
+}
+```
+
+## Description
+
+F2 of AR0472 (spec/features/AR0472-an-escaped-variable-in-an-unquoted-heredoc-reaches-the-inner-shell-unread-by-the/findings.md), from review 2026-10-27-review-1027b2ed.
+
+## Goal
+
+The worktree guard reads `$HOME` as the job's own home, also when the command line sets another one in front of the command: `HOME=../../acme bash <<EOF
+rm \$HOME/README.md
+EOF` and `HOME=../../acme bash -c 'rm $HOME/README.md'` pass the guard, and real bash deleted the main checkout's README in both. It was there before AR0472.
+
+- Kind: security
+
+## Done means
+
+- An assignment of a known variable (`HOME`, `ARTHUR_JOB`, `PWD`, `OLDPWD`) in front of a command, or `export`ed before it in the same call, is either used as that variable's value for what the command runs, or makes the guard refuse with the unknown-path refusal; the worker picks the smaller one and says why.
+- Test rows in `packages/core/test/worktree-guard.test.ts`: both commands above refused; each fails before the change.
+- The project's checks pass.
+
+## Scope
+
+In:
+- `packages/core/src/shell-words.ts` (at its 200-line cap: free a line or split; a core budget raise is fine), `packages/core/src/worktree-guard.ts` if the refusal text changes.
+- `packages/core/test/worktree-guard.test.ts`.
+
+Out:
+- AR0491 to AR0494: the parser's other gaps, each its own ticket.
+
+## Decisions
+
+- 2026-10-27: Source: F2 of AR0472

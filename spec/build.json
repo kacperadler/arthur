@@ -4048,16 +4048,16 @@
   {
     "id": "AR0517",
     "title": "Arthur's records, logs, sockets and locks are readable only by Arthur's own user",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0517-arthur-s-records-logs-sockets-and-locks-are-readable-only-by-arthur-s-own-user/ticket.md",
-    "updated": "2026-10-27T15:52:13.663Z"
+    "updated": "2026-10-27T16:00:05.953Z"
   },
   {
     "id": "AR0518",
     "title": "A token from the env file never appears in a job record, log, error or channel message",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0518-a-token-from-the-env-file-never-appears-in-a-job-record-log-error-or-channel/ticket.md",
-    "updated": "2026-10-27T14:16:15.258Z"
+    "updated": "2026-10-27T15:58:35.074Z"
   },
   {
     "id": "AR0519",

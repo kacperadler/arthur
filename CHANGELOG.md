@@ -8,6 +8,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0374 The install at a spawn and each step of the merge have no time limit (a5779445)
 - AR0388 The user's systemd folder is guarded at `~/.config/systemd` only, not at `$XDG_CONFIG_HOME/systemd` (2bc30f66)
+- AR0454 The writable package caches carry branch code out of the sandbox (ff79c610)
 
 ## 2026-10-26
 

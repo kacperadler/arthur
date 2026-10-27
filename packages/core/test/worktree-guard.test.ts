@@ -81,8 +81,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	symlinkSync(root, join(own.worktree, "~+"));
 	// A folder whose name has a space, leading to the main checkout: what an unquoted fallback `${x:-a b}` reaches when bash does not split it.
 	symlinkSync(root, join(own.worktree, "a b"));
-	// Folders named `~`, `'..'` and `\.\.`: a double-quoted fallback names them as written, where bash expands or removes nothing.
-	for (const name of ["~", "'..'", "\\.\\."]) mkdirSync(join(own.worktree, name));
+	// Folders named `~`, `'..'`, `\.\.` and `"`: a double-quoted fallback names them as written, where bash expands or removes nothing.
+	for (const name of ["~", "'..'", "\\.\\.", '"']) mkdirSync(join(own.worktree, name));
 	const MAIN = "the main checkout";
 	const HOME = "Arthur's home folder";
 	const OTHER = "another job's worktree";
@@ -283,6 +283,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: 'rm "${x:-~}"/../../../acme/README.md' }, MAIN],
 		["bash", { command: 'rm "${x:-~/../../../acme/README.md}"' }, MAIN],
 		["bash", { command: 'rm "${x:-"~/"}../../../acme/README.md"' }, MAIN],
+		["bash", { command: 'rm "${x:-\\"}/../../../acme/README.md"' }, MAIN],
 		["bash", { command: 'rm "${x:-~+}/README.md"' }, MAIN],
 		["bash", { command: `rm "\${x:-'..'}/../../../acme/README.md"` }, MAIN],
 		["bash", { command: 'rm "${x:-\\.\\.}/../../../acme/README.md"' }, MAIN],

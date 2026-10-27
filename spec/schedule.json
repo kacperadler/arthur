@@ -13,5 +13,12 @@
     "action": {
       "message": "Morning: finish the night (AR-D98): stop starting work, let running jobs end or stop them, run arthur silent off, build the night report /home/kacper/arthur-reports/2026-10-27.html in the style of /tmp/night-report.py (Before/Now/What you notice per merged ticket, Still open, Numbers incl. Claude 7-day usage), send it with arthur send, and reply with the summary."
     }
+  },
+  {
+    "id": "morning-resume",
+    "at": "2026-10-28T09:10",
+    "action": {
+      "message": "Claude 7-day window should have reset (AR-D212: nothing new before it). Check npx arthur usage; if reset: restart Arthur first (AR0519 merged; unit arthur-day-restart-15) once no job runs, then spawn the three reviews (npx arthur review 2026-10-27-worker-96067971 for AR0532 first, then 2026-10-27-worker-e0a93fb6 for AR0477, 2026-10-27-worker-7ccfb33a for AR0470), then go on with Q2 -> Q3 -> Q4 per AR-D198. Tell the owner in one message."
+    }
   }
 ]

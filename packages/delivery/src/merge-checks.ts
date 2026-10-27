@@ -11,7 +11,7 @@ import { basename, dirname, join, relative } from "node:path";
 // commit (`projects.install`), "" none; `path`, the PATH of its checkout (`nvm.path`), "" the PATH as it is.
 export type Step = { readonly command: string; readonly result: string; readonly install?: true };
 type Ask = { readonly install: (commit: string) => string; readonly path: () => string };
-// Runs one step's command in main's checkout with `env`, as `stepRunner` makes it.
+// Runs one step's command in main's checkout with `env`, as `stepRunner`'s answer makes it for a sandbox.
 type Run = (command: string, env: NodeJS.ProcessEnv) => SpawnSyncReturns<string>;
 // Up to 64 MiB of a step's output is read, a whole test run's.
 const MAX_BUFFER = 64 * 2 ** 20;
@@ -19,16 +19,16 @@ const MAX_BUFFER = 64 * 2 ** 20;
 // How the steps of one merge run in `root` (AR0373): each in the sandbox `sandbox` starts it in (`host.sandbox`, AR0449) and a transient scope of its own
 // under the jobs' slice `slice`, as a job runs, stopped once the step ended, so what its scripts leave behind is killed; with no
 // user manager to make one (the probe's systemd-run fails), out of a scope, which one `uncapped:` line says. A step still running
-// `limitSeconds` after it started is killed (SIGKILL) and fails, `timed out after <n> s` its error (AR0374). After each step,
-// passed or failed, every `.git` below the checkout's top that was not there, the same, before the first is removed, one line each (AR0463).
-export function stepRunner(root: string, slice: string, sandbox: (command: string) => [string, string[]], log: (line: string) => void, limitSeconds: number): Run {
+// `limitSeconds` after it started is killed (SIGKILL) and fails, `timed out after <n> s` its error (AR0374). After each step, passed or failed,
+// every `.git` below the checkout's top that was not there, the same, before the first sandbox's first step is removed, one line each (AR0463, AR0469).
+export function stepRunner(root: string, slice: string, log: (line: string) => void, limitSeconds: number): (sandbox: (command: string) => [string, string[]]) => Run {
 	const scope = (unit: string) => ["--user", "--scope", "--quiet", "--collect", `--slice=${slice}.slice`, `--unit=${unit}`, "-p", "KillSignal=SIGKILL", "--"];
 	const probe = spawnSync("systemd-run", [...scope(`arthur-merge-${process.pid}-0.scope`), "true"], { encoding: "utf8" });
 	const bare = probe.error?.message ?? (probe.status === 0 ? undefined : probe.stderr.trim().split("\n")[0] || `systemd-run exited ${probe.status ?? probe.signal}`);
 	if (bare !== undefined) log(`uncapped: no systemd scope (${bare}); the steps run bare, outside the jobs' slice, and what they leave behind is not killed`);
 	const before = repositories(root);
 	let count = 0;
-	const ran = (command: string, env: NodeJS.ProcessEnv) => {
+	const ran = (sandbox: (command: string) => [string, string[]], command: string, env: NodeJS.ProcessEnv) => {
 		const options = { cwd: root, env, encoding: "utf8", maxBuffer: MAX_BUFFER, timeout: limitSeconds * 1000, killSignal: "SIGKILL" } as const;
 		const unit = `arthur-merge-${process.pid}-${++count}.scope`;
 		try {
@@ -38,8 +38,8 @@ export function stepRunner(root: string, slice: string, sandbox: (command: strin
 			if (bare === undefined) spawnSync("systemctl", ["--user", "stop", unit], { stdio: "ignore" });
 		}
 	};
-	return (command, env) => {
-		const result = ran(command, env);
+	return (sandbox) => (command, env) => {
+		const result = ran(sandbox, command, env);
 		for (const [path, seen] of repositories(root)) {
 			if (before.get(path) === seen) continue;
 			const failure = remove(join(root, path));

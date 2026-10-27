@@ -344,12 +344,25 @@ test("arthur continue resumes an ended worker in place: same id, branch, worktre
 	assert.deepEqual(["state", "reason", "result", "cost", "budget", "tool-calls", "continue"].map((name) => field(home, job.id, name)), ["ended", "finished", "Second.", "2.5000", "3", "1", "Also fix the README.\nThen commit."]);
 	const [start] = starts(resumed);
 	const extensions = ["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((name) => ["-e", join(import.meta.dirname, "..", "src", name)]);
-	assert.deepEqual(start?.args, ["--continue", "-p", "--mode", "json", "--auto-approve", "--tools", "read,edit,write,bash,grep,glob", "--append-system-prompt", join(folder, "prompt"), ...extensions, "Also fix the README.\nThen commit."]);
+	assert.deepEqual(start?.args, ["--continue", "-p", "--mode", "json", "--auto-approve", "--tools", "read,edit,write,bash,grep,glob", "--append-system-prompt", join(folder, "prompt"), ...extensions, "--", "Also fix the README.\nThen commit."]);
 	assert.equal(start?.cwd, job.worktree);
 	assert.deepEqual([starts(first).length, starts(resumed).length], [1, 1]);
 	assert.equal(git(root, "branch", "--list", "--format=%(refname:short)", `arthur/${job.id}`), `arthur/${job.id}`);
 	assert.deepEqual(readdirSync(join(home, "jobs")), [job.id]);
 	assert.match(field(home, job.id, "log") ?? "", /\] arthur continue: Also fix the README\.\n/);
+});
+
+// AR0487: omp takes `--version`, `--tools=...` or `@<file>` before `--` as its own option or a file to include.
+test("an instruction that starts with - or @ reaches the resumed agent as its message, after --", async () => {
+	const { agent, resumed } = resuming({ steps: [{ message: "First." }] }, { steps: [{ message: "Second." }] });
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	await ended(home, job.id);
+	for (const [count, instruction] of [[2, "--version"], [3, "@/etc/passwd"]] as const) {
+		await jobs.continue(job.id, instruction);
+		await ended(home, job.id, count);
+		assert.deepEqual(starts(resumed).at(-1)?.args.slice(-2), ["--", instruction]);
+	}
 });
 
 test("a continued job without a higher budget is stopped at once at the budget its cost already reached", async () => {

@@ -3170,9 +3170,9 @@
   {
     "id": "AR0405",
     "title": "Security review of our own code, part 4: other machines, network and dependencies",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0405-security-review-of-our-own-code-part-4-other-machines-network-and-dependencies/ticket.md",
-    "updated": "2026-10-27T12:06:22.563Z",
+    "updated": "2026-10-27T12:26:29.120Z",
     "after": [
       "AR0432",
       "AR0350",

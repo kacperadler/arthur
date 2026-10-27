@@ -168,6 +168,28 @@ test("a review filed and pruned before the merge, as its wake tells the coordina
 	assert.match(readFileSync(join(root, FOLDER, "outcome.md"), "utf8"), /\n- Reviews: review-1\.md PASS\n- Cost: worker \$0\.00, reviews \$0\.37; review rounds 1\n/);
 });
 
+test("a review record kept before AR0474, with no cost, takes the cost from the core's record while it exists, and is n/a once that is pruned", async (t) => {
+	const { root, fake, home, worker, review, merge } = await load(t);
+	// The record as an Arthur before AR0474 kept it: the verdict without the cost.
+	const costless = (id: string) => {
+		const path = join(fake.host.folder, "reviews", `${id}.json`);
+		const { cost, ...kept } = JSON.parse(readFileSync(path, "utf8"));
+		assert.equal(cost, "0.3700", "settle kept the cost before it is taken away");
+		writeFileSync(path, `${JSON.stringify(kept)}\n`);
+	};
+	const first = await worker();
+	costless(await review(first.id, "Clean.\n\nPASS", 0.37));
+	assert.equal((await merge(first.id)).err, "");
+	assert.match(readFileSync(join(root, FOLDER, "outcome.md"), "utf8"), /\n- Cost: worker \$0\.00, reviews \$0\.37; review rounds 1\n/);
+	const second = await worker({ "cart.ts": "export const cart = 1;\n" }, "Ticket: spec/features/AC0002-cart/ticket.md");
+	const passed = await review(second.id, "Clean.\n\nPASS", 0.37);
+	costless(passed);
+	assert.equal(fake.host.jobs.file("AC0002", passed), "spec/features/AC0002-cart/review-1.md");
+	rmSync(join(home, "jobs", passed), { recursive: true });
+	assert.equal((await merge(second.id)).err, "");
+	assert.match(readFileSync(join(root, "spec/features/AC0002-cart/outcome.md"), "utf8"), /\n- Cost: worker \$0\.00, reviews n\/a; review rounds 1\n/);
+});
+
 // The checks on main, of a branch whose `test` script notes its cgroup and forks a sleeper out of its process group, noting its pid.
 async function forkingTest(t: TestContext) {
 	const loaded = await load(t);

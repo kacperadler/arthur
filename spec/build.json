@@ -4057,9 +4057,6 @@
     "title": "A token from the env file never appears in a job record, log, error or channel message",
     "status": "planned",
     "path": "spec/features/AR0518-a-token-from-the-env-file-never-appears-in-a-job-record-log-error-or-channel/ticket.md",
-    "updated": "2026-10-27T13:51:48.518Z",
-    "after": [
-      "AR0517"
-    ]
+    "updated": "2026-10-27T13:51:48.518Z"
   }
 ]

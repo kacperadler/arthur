@@ -3712,9 +3712,9 @@
   {
     "id": "AR0469",
     "title": "The reinstall after a failed check uses the cache the branch's install wrote",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0469-the-reinstall-after-a-failed-check-uses-the-cache-the-branch-s-install-wrote/ticket.md",
-    "updated": "2026-10-27T08:12:14.117Z"
+    "updated": "2026-10-27T08:19:22.414Z"
   },
   {
     "id": "AR0470",

@@ -4048,9 +4048,9 @@
   {
     "id": "AR0517",
     "title": "Arthur's records, logs, sockets and locks are readable only by Arthur's own user",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0517-arthur-s-records-logs-sockets-and-locks-are-readable-only-by-arthur-s-own-user/ticket.md",
-    "updated": "2026-10-27T16:00:05.953Z"
+    "updated": "2026-10-27T16:12:11.948Z"
   },
   {
     "id": "AR0518",

@@ -3734,9 +3734,9 @@
   {
     "id": "AR0470",
     "title": "A merge killed during its steps leaves its cache folder behind",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0470-a-merge-killed-during-its-steps-leaves-its-cache-folder-behind/ticket.md",
-    "updated": "2026-10-27T06:53:20.601Z",
+    "updated": "2026-10-27T21:38:44.042Z",
     "after": [
       "AR0511",
       "AR0514",
@@ -3790,9 +3790,9 @@
   {
     "id": "AR0477",
     "title": "Nine exports nobody imports",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0477-nine-exports-nobody-imports/ticket.md",
-    "updated": "2026-10-27T06:52:44.056Z",
+    "updated": "2026-10-27T21:38:42.998Z",
     "after": [
       "AR0511",
       "AR0514",

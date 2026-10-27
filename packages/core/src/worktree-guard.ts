@@ -14,10 +14,10 @@ import { type Command, type Item, literal, shellCommands } from "./shell-words.t
 type Verdict = { block: true; reason: string } | undefined;
 type ExtensionApi = { on(event: "tool_call", handler: (event: { readonly toolName: string; readonly input: Readonly<Record<string, unknown>> }) => Verdict): void };
 
-// Commands that run the command after them, with their options that take a value: `timeout 60 rm x` is `rm`.
+// Commands that run the command after them, with their options that take a value: `timeout 60 rm x` is `rm`. The long options of sudo and env are all there, with `=` after those that take a value: getopt_long reads a prefix of only one of them as it (none is the whole name of one and a prefix of another that takes a value).
 const WRAPPERS: Readonly<Record<string, readonly string[]>> = {
 	...Object.fromEntries(["command", "builtin", "exec", "nohup", "setsid", "unbuffer", "chrt"].map((name) => [name, []])),
-	...{ sudo: ["-u", "-g", "-h", "-p", "-C", "-D", "-R", "-T", "-U"], doas: ["-u", "-C"], env: ["-u", "-C", "-S"], time: ["-f", "-o"], timeout: ["-s", "-k"], nice: ["-n"], ionice: ["-c", "-n", "-p", "-t"], stdbuf: ["-i", "-o", "-e"], xargs: ["-n", "-P", "-I", "-L", "-s", "-a", "-d", "-E", "-l", "-i"] },
+	...{ sudo: ["-u", "-g", "-h", "-p", "-a", "-c", "-r", "-t", "-C", "-D", "-R", "-T", "-U", "--auth-type=", "--close-from=", "--login-class=", "--chdir=", "--group=", "--host=", "--prompt=", "--chroot=", "--role=", "--type=", "--other-user=", "--command-timeout=", "--user=", "--askpass", "--bell", "--background", "--preserve-env", "--edit", "--set-home", "--help", "--login", "--remove-timestamp", "--reset-timestamp", "--list", "--no-update", "--non-interactive", "--preserve-groups", "--stdin", "--shell", "--version", "--validate"], doas: ["-u", "-C"], env: ["-a", "-u", "-C", "-S", "--argv0=", "--unset=", "--chdir=", "--split-string=", "--ignore-environment", "--null", "--block-signal", "--default-signal", "--ignore-signal", "--list-signal-handling", "--debug", "--help", "--version"], time: ["-f", "-o"], timeout: ["-s", "-k"], nice: ["-n"], ionice: ["-c", "-n", "-p", "-t"], stdbuf: ["-i", "-o", "-e"], xargs: ["-n", "-P", "-I", "-L", "-s", "-a", "-d", "-E", "-l", "-i"] },
 };
 // Words that start a command without being one.
 const RESERVED = ["{", "}", "!", "if", "then", "else", "elif", "do", "while", "until"];
@@ -43,17 +43,17 @@ function refusal(place: Place, path: string, shown = path, named = true): string
 	return name ? `arthur: refused: this call writes into ${name} (${shown}); a job writes only in its own worktree ${place.worktree}, outside Arthur's checkouts, home folder, install and config, and the user's own files` : linking;
 }
 
-// The index in `words` of the command they run, after assignments, reserved words and wrappers with their options (-1 if none), and the folders `env -C` and `sudo -D` run it in. A cluster takes a value after its first letter that does (`-iC dir`, `-iCdir`); `--chdir` is any prefix getopt_long tells apart (`env --c=dir`, `sudo --chd dir`).
+// The index in `words` of the command they run, after assignments, reserved words and wrappers with their options (-1 if none), and the folders `env -C` and `sudo -D` run it in. A cluster takes a value after its first letter that does (`-iC dir`, `-iCdir`); a long option of sudo or env is any prefix getopt_long tells apart (`env --c=dir`, `sudo --us root`).
 function commandIndex(words: readonly string[], dirs: string[] = []): [number, string[]] {
 	for (let index = 0; index < words.length; ) {
 		const name = basename(words[index]!);
-		const [values, [flag, least] = ["", ""]] = [Object.hasOwn(WRAPPERS, name) ? WRAPPERS[name]! : undefined, name === "env" ? ["C", "--c"] : name === "sudo" ? ["D", "--chd"] : undefined];
+		const [values, flag] = [Object.hasOwn(WRAPPERS, name) ? WRAPPERS[name]! : undefined, name === "env" ? "C" : name === "sudo" ? "D" : ""];
 		if (values === undefined && !RESERVED.includes(words[index]!) && !/^[A-Za-z_]\w*(\[[^\]]*\])?\+?=/.test(words[index]!)) return [index, dirs];
 		for (index++; values !== undefined && index < words.length && /^-|^[\d.]+[smhd]?$/.test(words[index]!); ) {
 			const [word, at, long] = [words[index]!, /^-[^-]/.test(words[index]!) ? [...words[index]!].findIndex((letter, position) => position > 0 && values.includes(`-${letter}`)) : -1, /^(--[^=]+)(=?)/.exec(words[index]!)];
-			const chdir = least !== "" && long !== null && long[1]!.length >= least.length && "--chdir".startsWith(long[1]!);
-			const takes = at > 0 ? at === word.length - 1 : chdir ? long[2] === "" : values.includes(word);
-			if (at > 0 ? word[at] === flag : chdir) dirs.push(takes ? (words[index + 1] ?? "") : word.slice(at > 0 ? at + 1 : word.indexOf("=") + 1));
+			const options = long === null ? [] : values.filter((each) => each.startsWith(long[1]!)), option = options.length === 1 ? options[0] : undefined;
+			const takes = at > 0 ? at === word.length - 1 : long !== null ? option?.endsWith("=") === true && long[2] === "" : values.includes(word);
+			if (at > 0 ? word[at] === flag : option === "--chdir=") dirs.push(takes ? (words[index + 1] ?? "") : word.slice(at > 0 ? at + 1 : word.indexOf("=") + 1));
 			index += takes ? 2 : 1;
 		}
 	}

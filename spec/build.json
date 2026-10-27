@@ -3874,9 +3874,9 @@
   {
     "id": "AR0487",
     "title": "An `arthur continue` instruction that starts with `-` is an option of `omp`",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0487-an-arthur-continue-instruction-that-starts-with-is-an-option-of-omp/ticket.md",
-    "updated": "2026-10-27T21:04:09.108Z",
+    "updated": "2026-10-27T21:26:09.021Z",
     "after": [
       "AR0511",
       "AR0514",

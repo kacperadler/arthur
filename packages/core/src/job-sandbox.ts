@@ -100,12 +100,12 @@ export function sandboxed(paths: readonly string[], hidden: readonly string[], a
 	return (argv) => (why === undefined ? ["python3", [...prefix, ...hidden, "--", agent, ...argv]] : [agent, [...argv]]);
 }
 
-// `env`'s arguments that run `sh -c <command>` with the package managers' caches in `folder`, a cache of its own (AR0454): npm's
-// (`npm_config_cache`), bun's (`BUN_INSTALL_CACHE_DIR`), pnpm's and uv's (`XDG_CACHE_HOME`), pnpm's store (`$PNPM_HOME/store`) and
-// composer's, never the shared ones, where branch code would leave what a later process outside any sandbox runs (`~/.npm/_npx`).
-export function cached(folder: string, command: string): string[] {
-	return [`npm_config_cache=${join(folder, "npm")}`, `BUN_INSTALL_CACHE_DIR=${join(folder, "bun")}`, `XDG_CACHE_HOME=${folder}`, `PNPM_HOME=${join(folder, "pnpm-home")}`, `COMPOSER_CACHE_DIR=${join(folder, "composer")}`, "sh", "-c", command];
-}
+// `env`'s arguments that run `sh -c <command>` with Git's signing off (`unsigned`) and the package managers' caches in `folder`, a
+// cache of its own (AR0454): npm's (`npm_config_cache`), bun's (`BUN_INSTALL_CACHE_DIR`), pnpm's and uv's (`XDG_CACHE_HOME`), pnpm's store
+// (`$PNPM_HOME/store`) and composer's, never the shared ones, where branch code would leave what a later process outside any sandbox runs (`~/.npm/_npx`).
+export const cached = (folder: string, command: string): string[] => [`npm_config_cache=${join(folder, "npm")}`, `BUN_INSTALL_CACHE_DIR=${join(folder, "bun")}`, `XDG_CACHE_HOME=${folder}`, `PNPM_HOME=${join(folder, "pnpm-home")}`, `COMPOSER_CACHE_DIR=${join(folder, "composer")}`, ...Object.entries(unsigned(process.env)).map(([name, value]) => `${name}=${value}`), "sh", "-c", command];
+// Git's commit and tag signing off (AR0516), after the config entries `env` gives Git, which stay: a job's agent, its install and a merge step read no key in `~/.ssh` (AR0508), so they commit unsigned; Arthur's merge commit, made outside, stays signed.
+export const unsigned = (env: NodeJS.ProcessEnv, given = Number.parseInt(env.GIT_CONFIG_COUNT ?? "", 10) || 0): Record<string, string> => ({ GIT_CONFIG_COUNT: `${given + 2}`, [`GIT_CONFIG_KEY_${given}`]: "commit.gpgSign", [`GIT_CONFIG_VALUE_${given}`]: "false", [`GIT_CONFIG_KEY_${given + 1}`]: "tag.gpgSign", [`GIT_CONFIG_VALUE_${given + 1}`]: "false" });
 
 // The sandbox of branch code a plugin runs outside a job (`Host.sandbox`, delivery's checks on main): `sh -c <command>` writing
 // only in the checkout `folder` as `checkout` says, the cache folder `cache` (made here), which its caches use, the temporary

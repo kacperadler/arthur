@@ -3726,9 +3726,9 @@
   {
     "id": "AR0471",
     "title": "Other operators of `${PWD…}` and of the known variables read as nothing",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0471-other-operators-of-pwd-and-of-the-known-variables-read-as-nothing/ticket.md",
-    "updated": "2026-10-27T08:00:54.448Z"
+    "updated": "2026-10-27T08:05:20.869Z"
   },
   {
     "id": "AR0472",

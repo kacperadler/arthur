@@ -1,7 +1,7 @@
 // The shell parser the guards share (spec/roadmap.md, entries 19 and 20). `shellCommands` reads a command line as bash does before brace and pathname expansion: its simple commands in the order they run, split at `;`, `&&`, `||`, `|`, `&` and
 // newlines, and `(` and `)` around a subshell, a `$(…)` or a backtick substitution, whose commands come before the command they are in. A word has its quotes removed, a backslash-newline gone, the escapes of `$'…'` decoded; a comment is dropped.
-// An expansion known only when the command runs (`$x`, `${x}`, `$1`) is nothing, or the word it falls back to (`${x:-word}`, also with `=`, `+`, `?` and without the colon, read with `plain`,
-// where `<>;&|()#` are text, and split into words where bash splits it); a variable in `known` (`HOME`, `ARTHUR_JOB`) is its value, also with `-`, `=`, `?`; `known.HOME` is an unquoted `~` at a word's start or after an assignment's `=` (`~+` and `~-` there stay). `$PWD` is
+// An expansion known only when the command runs (`$x`, `${x}`, `$1`) is nothing, or the word it falls back to (`${x:-word}`, also with `=`, `+`, `?` and without the colon, read with `plain`, where `<>;&|()#` are text;
+// outside double quotes, one with an unquoted blank or `<>;&|()#` is `\0-`, as the guard does not follow how bash splits it); a variable in `known` (`HOME`, `ARTHUR_JOB`) is its value, also with `-`, `=`, `?`; `known.HOME` is an unquoted `~` at a word's start or after an assignment's `=` (`~+` and `~-` there stay). `$PWD` is
 // `~+` and `$OLDPWD` `~-` (also with `-`, `=`, `?`); one of them or of a set variable in `known` with another operator but `+` (`%`, `#`, `/`, `:1`, `${!x}`, `${#x}`) is `\0-`, in no bash word. A here-string's `~+` and an unquoted heredoc's `$PWD` or `${PWD}` (also with `-`, `=`, `?`) are `\0+`, the folder of the shell that reads them; its `${PWD` with another operator but `+` `\0-`. A quoted or escaped
 // `\*?[]{},()~`, or any other `~`, keeps a backslash, so a glob is told apart from a quoted star and a bare `~+` is `$PWD` or that prefix; `literal` removes it. `shellWords`: every word, a heredoc's body one.
 
@@ -86,10 +86,7 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 			const close = closing(command, at + 2, "{", "}");
 			const inner = command.slice(at + 2, close);
 			const [fallback, name, of] = [/^[#!]?(?:[A-Za-z_]\w*|\d+|[@*#?$!-])(?:\[[^\]]*\])?:?[-=+?]([^]*)$/.exec(inner), /^([A-Za-z_]\w*)(?:\[0\])?(?::?[-=?]|$)/.exec(inner)?.[1], /^[#!]?([A-Za-z_]\w*)/.exec(inner)?.[1]];
-			const parts = name === "OLDPWD" ? ["~-"] : fallback === null && name === undefined && of !== undefined && (of === "OLDPWD" || of === "PWD" || value(of) !== undefined) ? ["\0-"] : name === "PWD" ? ["~+"] : name !== undefined && value(name) !== undefined ? [value(name)!] : fallback === null ? [] : shellCommands(fallback[1]!, known, true).flatMap((item) => (typeof item === "string" ? [] : item.words));
-			// Bash splits an unquoted fallback into words, but not in a here-string or an assignment, alone or to a declaration builtin.
-			const whole = inDouble || target === "here" || (/^[A-Za-z_]\w*(\[[^\]]*\])?\+?=/.test(word) && [undefined, "export", "declare", "typeset", "readonly", "local"].includes(current.words.find((each) => !/^[A-Za-z_]\w*(\[[^\]]*\])?\+?=/.test(each))));
-			parts.forEach((part, index) => (index === 0 ? (word += part) : whole ? (word += ` ${part}`) : (end(), (word = part))));
+			word += name === "OLDPWD" ? "~-" : fallback === null && name === undefined && of !== undefined && (of === "OLDPWD" || of === "PWD" || value(of) !== undefined) ? "\0-" : name === "PWD" ? "~+" : ((name && value(name)) ?? (fallback === null ? "" : !inDouble && /[\s<>;&|()#]/.test(fallback[1]!.replace(/\\.|'[^']*'|"(?:\\.|[^"\\])*"/gs, "")) ? "\0-" : shellCommands(fallback[1]!, known, true).flatMap((item) => (typeof item === "string" ? [] : item.words)).join(" ")));
 			return close + 1;
 		}
 		if (next === "'" && !inDouble) {

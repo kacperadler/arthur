@@ -79,7 +79,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	mkdirSync(join(own.worktree, "sub"));
 	// A folder named `~+` in the worktree that leads to the main checkout: unquoted, `~+` is where the shell is instead.
 	symlinkSync(root, join(own.worktree, "~+"));
-	// A folder whose name has a space, leading to the main checkout: an assignment's fallback is one word, not split.
+	// A folder whose name has a space, leading to the main checkout: what an unquoted fallback `${x:-a b}` reaches when bash does not split it.
 	symlinkSync(root, join(own.worktree, "a b"));
 	const MAIN = "the main checkout";
 	const HOME = "Arthur's home folder";
@@ -87,7 +87,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	// The whole refusal: its patch path is the job's own, never a name in the shared /tmp another job may pick too.
 	const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save a patch in your own worktree instead (git diff > .arthur-stash.patch, then git apply .arthur-stash.patch)";
 	const LINK = "a link to a repository";
-	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read builds it; name the folder instead";
+	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by an unquoted fallback (`${x:-…}`) with a blank or one of `<>;&|()#`; name the folder instead";
 	// Each call, and the place its refusal names: undefined when it passes.
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
 		["bash", { command: `echo x > ${main}/README.md` }, MAIN],
@@ -260,17 +260,24 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `echo x > \${x:-\${ARTHUR_JOB%/*}}/${other.id}/result` }, UNKNOWN],
 		["bash", { command: `echo x > "\${ARTHUR_JOB:+\${ARTHUR_JOB%/*}}"/${other.id}/result` }, UNKNOWN],
 		["bash", { command: "echo x > ${x:-$ARTHUR_JOB}/result" }, HOME],
-		// A fallback word's `>`, `2>`, `<`, `#` are text, and bash splits an unquoted one into words, but not in an assignment or a here-string.
-		["bash", { command: "rm ${x:-> ../../acme/README.md}" }, MAIN],
-		["bash", { command: "rm ${x:-a 2> ../../acme/README.md}" }, MAIN],
-		["bash", { command: "rm ${x:-< ../../acme/README.md}" }, MAIN],
-		["bash", { command: "rm ${x:-# ../../acme/README.md}" }, MAIN],
-		["bash", { command: "rm y=${x:-a ../../acme/README.md}" }, MAIN],
-		["bash", { command: "bash <<< ${x:-rm ../../acme/README.md}" }, MAIN],
-		["bash", { command: "OLDPWD=${x:-a b} cd -; rm README.md" }, MAIN],
-		["bash", { command: "export OLDPWD=${x:-a b}; cd -; rm README.md" }, MAIN],
+		// An unquoted fallback with an unquoted blank or one of `<>;&|()#` is refused wherever it stands; in double quotes those are text in one word.
+		["bash", { command: "rm ${x:-> ../../acme/README.md}" }, UNKNOWN],
+		["bash", { command: "rm ${x:-a 2> ../../acme/README.md}" }, UNKNOWN],
+		["bash", { command: "rm ${x:-< ../../acme/README.md}" }, UNKNOWN],
+		["bash", { command: "rm ${x:-# ../../acme/README.md}" }, UNKNOWN],
+		["bash", { command: "rm y=${x:-a ../../acme/README.md}" }, UNKNOWN],
+		["bash", { command: "bash <<< ${x:-rm ../../acme/README.md}" }, UNKNOWN],
+		["bash", { command: "OLDPWD=${x:-a b} cd -; rm README.md" }, UNKNOWN],
+		["bash", { command: "export OLDPWD=${x:-a b}; cd -; rm README.md" }, UNKNOWN],
+		["bash", { command: "IFS=; rm ${x:-a b}/README.md" }, UNKNOWN],
+		["bash", { command: "IFS=x; rm ${x:-a b}/README.md" }, UNKNOWN],
+		["bash", { command: "time OLDPWD=${x:-a b} cd -; rm README.md" }, UNKNOWN],
+		["bash", { command: "! OLDPWD=${x:-a b} cd -; rm README.md" }, UNKNOWN],
+		["bash", { command: "rm ${HOME+a b}/README.md" }, UNKNOWN],
+		...[..." \t\n<>;&|()#"].map((char) => ["bash", { command: `rm \${x:-a${char}b}/README.md` }, UNKNOWN] as const),
+		["bash", { command: `echo \${x:-"a b"} \${x:-'a;b'} \${x:-a\\ b} \${HOME:-a b} \${PWD-a;b}` }, undefined],
 		["bash", { command: 'rm "${x:-a ../../acme/README.md}"' }, undefined],
-		["bash", { command: "rm ${x:-a;../../acme/README.md} ${x:-a|../../acme/README.md} ${x:-a&../../acme/README.md} ${x:-(../../acme/README.md} ${x:-a)../../acme/README.md}" }, undefined],
+		...[..."<>;&|()#"].map((char) => ["bash", { command: `rm "\${x:-${char}}../../../../acme/README.md"` }, MAIN] as const),
 		["bash", { command: `cd ${main}; bash <<EOF\ncd /tmp; echo x > \${PWD:+x}; rm \${PWD:+$PWD}/README.md\nEOF` }, MAIN],
 		["bash", { command: 'rm "${HOME/x/x}/acme/README.md"' }, UNKNOWN],
 		["bash", { command: "rm /${HOME#/}/acme/README.md" }, UNKNOWN],

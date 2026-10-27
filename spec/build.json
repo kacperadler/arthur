@@ -3158,9 +3158,9 @@
   {
     "id": "AR0404",
     "title": "Security review of our own code, part 3: channels, merge and delivery",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0404-security-review-of-our-own-code-part-3-channels-merge-and-delivery/ticket.md",
-    "updated": "2026-10-27T12:14:12.897Z",
+    "updated": "2026-10-27T12:19:47.693Z",
     "after": [
       "AR0432",
       "AR0350",
@@ -3918,5 +3918,68 @@
     "status": "planning",
     "path": "spec/features/AR0498-the-command-line-env-s-splits-is-not-read/ticket.md",
     "updated": "2026-10-27T09:51:50.384Z"
+  },
+  {
+    "id": "AR0499",
+    "title": "A job writes the `review-needed` answer that `arthur merge` takes as a PASS",
+    "status": "planning",
+    "path": "spec/features/AR0499-a-job-writes-the-review-needed-answer-that-arthur-merge-takes-as-a-pass/ticket.md",
+    "updated": "2026-10-27T12:19:47.659Z"
+  },
+  {
+    "id": "AR0500",
+    "title": "The reviewer reads the diff through replacements under `refs/replace` that any job may write",
+    "status": "planning",
+    "path": "spec/features/AR0500-the-reviewer-reads-the-diff-through-replacements-under-refs-replace-that-any-job/ticket.md",
+    "updated": "2026-10-27T12:19:47.664Z"
+  },
+  {
+    "id": "AR0501",
+    "title": "A branch may rewrite the owner's decision log and the board, and `review-needed` lets a small one in without a review",
+    "status": "planning",
+    "path": "spec/features/AR0501-a-branch-may-rewrite-the-owner-s-decision-log-and-the-board-and-review-needed/ticket.md",
+    "updated": "2026-10-27T12:19:47.668Z"
+  },
+  {
+    "id": "AR0502",
+    "title": "An owner's answer in the decision log is the coordinator's word: nothing ties it to a message the owner sent",
+    "status": "planning",
+    "path": "spec/features/AR0502-an-owner-s-answer-in-the-decision-log-is-the-coordinator-s-word-nothing-ties-it/ticket.md",
+    "updated": "2026-10-27T12:19:47.672Z"
+  },
+  {
+    "id": "AR0503",
+    "title": "`--no-ci` is a bare flag, \"on the owner's word only\", with no recorded decision",
+    "status": "planning",
+    "path": "spec/features/AR0503-no-ci-is-a-bare-flag-on-the-owner-s-word-only-with-no-recorded-decision/ticket.md",
+    "updated": "2026-10-27T12:19:47.676Z"
+  },
+  {
+    "id": "AR0504",
+    "title": "Any run of the workflow on the tip's sha counts as the branch's CI, whatever its event, branch or repository",
+    "status": "planning",
+    "path": "spec/features/AR0504-any-run-of-the-workflow-on-the-tip-s-sha-counts-as-the-branch-s-ci-whatever-its/ticket.md",
+    "updated": "2026-10-27T12:19:47.679Z"
+  },
+  {
+    "id": "AR0505",
+    "title": "The coordinator's role does not say that a `[forwarded from …]` text inside the owner's message is someone else's words",
+    "status": "planning",
+    "path": "spec/features/AR0505-the-coordinator-s-role-does-not-say-that-a-forwarded-from-text-inside-the-owner/ticket.md",
+    "updated": "2026-10-27T12:19:47.683Z"
+  },
+  {
+    "id": "AR0506",
+    "title": "The Discord plan names no rule for a forwarded message",
+    "status": "planning",
+    "path": "spec/features/AR0506-the-discord-plan-names-no-rule-for-a-forwarded-message/ticket.md",
+    "updated": "2026-10-27T12:19:47.686Z"
+  },
+  {
+    "id": "AR0507",
+    "title": "A branch's own `.gitattributes` can hide a text file's lines from the reviewer's diff",
+    "status": "planning",
+    "path": "spec/features/AR0507-a-branch-s-own-gitattributes-can-hide-a-text-file-s-lines-from-the-reviewer-s/ticket.md",
+    "updated": "2026-10-27T12:19:47.690Z"
   }
 ]

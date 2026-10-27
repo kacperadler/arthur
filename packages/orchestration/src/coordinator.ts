@@ -20,7 +20,7 @@ const POLL_MS = 500;
 const EXIT_POLL_MS = 200;
 // In the plugin's folder: the last agent started, `<pid> <start time>`; the mark `arthur coordinator stop` leaves; and the mark
 // `coordinator.restart` leaves for a fresh conversation at the next start.
-export const PID_FILE = "coordinator.pid";
+const PID_FILE = "coordinator.pid";
 export const STOPPED = "stopped";
 export const FRESH = "fresh";
 

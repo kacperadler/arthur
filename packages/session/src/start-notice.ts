@@ -10,7 +10,7 @@ import { redact } from "./credential.ts";
 // and a notice for each coordinator turn that failed before any text, which the turn extension (turn-extension.ts) leaves in
 // `turn-failed/`: docs/session.md, "The start notice".
 
-export const TURN_FAILED = "turn-failed";
+const TURN_FAILED = "turn-failed";
 const PROBE_SECONDS = 60;
 const QUESTION = "Answer with one word: ready.";
 

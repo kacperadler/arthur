@@ -12,7 +12,7 @@ const [FILE, ASK] = ["silent.json", "silent-ask"];
 const USAGE = "usage: arthur silent [on '<the work; its stop condition>' | off | ask]";
 
 // No file is off; a file that does not parse, or holds something else, counts as on.
-export function silentState(folder: string): State {
+function silentState(folder: string): State {
 	let text: string;
 	try {
 		text = readFileSync(join(folder, FILE), "utf8");

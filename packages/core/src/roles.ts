@@ -15,7 +15,7 @@ export type Role = {
 
 // Where a project keeps the files the roles read, relative to its repository; its `prompts` in the project list moves them.
 export type PromptFiles = { readonly vision: string; readonly criteriaDir: string; readonly rolesDir: string };
-export const PROJECT_FILES: PromptFiles = { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria", rolesDir: ".agents/arthur/roles" };
+const PROJECT_FILES: PromptFiles = { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria", rolesDir: ".agents/arthur/roles" };
 
 // A project's `prompts` over the defaults, each a path inside its repository (the core reads them there), else refused.
 export function promptFiles(project: { readonly name: string; readonly prompts?: unknown }): PromptFiles {

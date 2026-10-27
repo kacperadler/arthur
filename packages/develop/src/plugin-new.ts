@@ -63,7 +63,7 @@ function locked(text: string, name: string): string {
 	return `${JSON.stringify(lock, null, 2)}\n`;
 }
 
-export function pluginNew(checkout: string, args: readonly string[], home: string): number {
+function pluginNew(checkout: string, args: readonly string[], home: string): number {
 	let [positionals, budget, at]: [string[], string | undefined, string | undefined] = [[], undefined, undefined];
 	try {
 		({ positionals, values: { budget, root: at } } = parseArgs({ args: [...args], options: { budget: { type: "string" }, root: { type: "string" } }, allowPositionals: true, strict: true }));

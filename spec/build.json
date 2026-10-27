@@ -3992,9 +3992,9 @@
   {
     "id": "AR0509",
     "title": "The sweep's copy from another machine has no size or time bound, so one machine stalls every job on it, or all of `arthur run`",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0509-the-sweep-s-copy-from-another-machine-has-no-size-or-time-bound-so-one-machine/ticket.md",
-    "updated": "2026-10-27T14:16:03.711Z"
+    "updated": "2026-10-27T15:51:09.272Z"
   },
   {
     "id": "AR0510",
@@ -4065,5 +4065,26 @@
     "status": "planning",
     "path": "spec/features/AR0519-the-env-guard-refuses-a-command-whose-text-holds-the-word-env-after-a-dot-such/ticket.md",
     "updated": "2026-10-27T15:46:26.656Z"
+  },
+  {
+    "id": "AR0520",
+    "title": "The copy's fetch of an ended job's branch, and the spawn's SSH steps, still block `arthur run` with no time limit",
+    "status": "planning",
+    "path": "spec/features/AR0520-the-copy-s-fetch-of-an-ended-job-s-branch-and-the-spawn-s-ssh-steps-still-block/ticket.md",
+    "updated": "2026-10-27T15:51:09.260Z"
+  },
+  {
+    "id": "AR0521",
+    "title": "A machine with many jobs whose logs grew a lot may not fit its copy in 20 s over a slow link, and counts as offline",
+    "status": "planning",
+    "path": "spec/features/AR0521-a-machine-with-many-jobs-whose-logs-grew-a-lot-may-not-fit-its-copy-in-20-s-over/ticket.md",
+    "updated": "2026-10-27T15:51:09.265Z"
+  },
+  {
+    "id": "AR0522",
+    "title": "`arthur run`'s stop does not wait for a sweep's copy still in flight",
+    "status": "planning",
+    "path": "spec/features/AR0522-arthur-run-s-stop-does-not-wait-for-a-sweep-s-copy-still-in-flight/ticket.md",
+    "updated": "2026-10-27T15:51:09.269Z"
   }
 ]

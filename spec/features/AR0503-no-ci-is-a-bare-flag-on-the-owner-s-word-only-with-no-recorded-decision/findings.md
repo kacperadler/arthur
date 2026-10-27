@@ -11,4 +11,21 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/orchestration/src/decision-use.ts:27-56`; `packages/delivery/src/merge-command.ts:126`
 - What: `decision.owner` checks a decision's kind (`merge`), ticket or job, state and use, never `what`: the question the owner answered is not tied to `--unreviewed` or `--no-ci`. So an answered `merge` decision of ticket X, asked to let X in without a PASS, also lets `--no-ci` through on the same merge (`arthur merge <job> --unreviewed --no-ci --decision <id>`: both flags ask, the second passes as the same use `merge <job>`), and an unused `merge` decision of X asked for anything else lifts either flag. Seen in the lines above; the delivery test `merge.test.ts` "a plain merge asks github.ci …" shows both flags passing on one id with its fake, which answers as orchestration does for an id.
 - Suggestion: record the flag in the decision, `arthur decision ask --kind merge --for --unreviewed|--no-ci` (or the flags in the used mark: `merge <job> --unreviewed`), and refuse in `refusal` a decision whose recorded flag is not `what`. Out: `arthur take-main`'s own decisions, which already need no ticket and no job.
-- Status: open
+- Status: ticket AR0533
+
+## F2. No test checks that `--no-ci --decision` still refuses a branch without a PASS
+
+- Kind: test
+- Found by: 2026-10-27-review-55f2df17 (review), 2026-10-27
+- Where: `packages/delivery/src/merge-command.ts:124`
+- What: adding `&& mode.ci` to the PASS-gap condition, so `--no-ci` also skips the PASS check, is caught by no test.
+- Status: ticket AR0533 (one ticket on `--no-ci`'s decision; its test goes there)
+
+## F3. Four docs outside the ticket's list were changed
+
+- Kind: docs
+- Found by: 2026-10-27-review-55f2df17 (review), 2026-10-27
+- Where: `decision.md`, `github.md`, `docs/plugin-api.md`, `decision-use.ts`
+- What: each described the old bare flag; each now says what the code does.
+- Status: dropped (needed to keep the docs true; no behaviour)
+

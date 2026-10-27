@@ -3985,9 +3985,9 @@
   {
     "id": "AR0508",
     "title": "A sandboxed job reads Arthur's SSH private key, and with it gets an unconfined shell on every other machine and a push to origin",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0508-a-sandboxed-job-reads-arthur-s-ssh-private-key-and-with-it-gets-an-unconfined/ticket.md",
-    "updated": "2026-10-27T13:26:53.210Z"
+    "updated": "2026-10-27T13:31:11.656Z"
   },
   {
     "id": "AR0509",
@@ -4009,5 +4009,33 @@
     "status": "planned",
     "path": "spec/features/AR0511-the-github-plugin-s-docs-offer-a-classic-token-with-repo-which-writes-every/ticket.md",
     "updated": "2026-10-27T12:45:12.683Z"
+  },
+  {
+    "id": "AR0512",
+    "title": "A job that empties its record's `guarded` file reads the env file after `arthur continue`",
+    "status": "planning",
+    "path": "spec/features/AR0512-a-job-that-empties-its-record-s-guarded-file-reads-the-env-file-after-arthur/ticket.md",
+    "updated": "2026-10-27T13:31:11.647Z"
+  },
+  {
+    "id": "AR0513",
+    "title": "Credentials outside `~/.ssh` and the env file still reach origin from a job",
+    "status": "planning",
+    "path": "spec/features/AR0513-credentials-outside-ssh-and-the-env-file-still-reach-origin-from-a-job/ticket.md",
+    "updated": "2026-10-27T13:31:11.653Z"
+  },
+  {
+    "id": "AR0514",
+    "title": "spawn.md still lists a job reaching the user's own SSH login as a limit, which a hidden ~/.ssh mostly ends",
+    "status": "planning",
+    "path": "spec/features/AR0514-spawn-md-still-lists-a-job-reaching-the-user-s-own-ssh-login-as-a-limit-which-a/ticket.md",
+    "updated": "2026-10-27T13:31:31.534Z"
+  },
+  {
+    "id": "AR0515",
+    "title": "The hidden ~/.ssh follows $HOME, while OpenSSH finds the home from the user account",
+    "status": "planning",
+    "path": "spec/features/AR0515-the-hidden-ssh-follows-home-while-openssh-finds-the-home-from-the-user-account/ticket.md",
+    "updated": "2026-10-27T13:31:32.053Z"
   }
 ]

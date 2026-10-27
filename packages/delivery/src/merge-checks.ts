@@ -1,6 +1,6 @@
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { chmodSync, type Dirent, existsSync, lstatSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { basename, dirname, join, relative } from "node:path";
 
 // The steps `arthur merge` runs on main once the branch is in (spec/roadmap.md, entry 54): the project's install, as the
 // projects plugin answers `projects.install` for the merge commit, the one a new worktree gets, then the `check` and `test`
@@ -65,11 +65,16 @@ function repositories(root: string): Map<string, string> {
 }
 
 // A `.git` by the inode and change time, which a write, a rename or a chmod sets and no step can set back, of itself and, in a
-// folder, of every entry below it, so a step's write in one there before (its `config`) counts too; "unreadable" for one a step closed.
+// folder, of every entry below it, so a step's write in one there before (its `config`, a hook) counts too; "unreadable" for one a
+// step closed. What a git read changes there does not count (AR0467): an `index` (`git status` rewrites one, a linked worktree's in
+// `worktrees/<name>/`) and its `sharedindex.<hash>` (`core.splitIndex`), which run nothing, and a folder's change time, which a
+// lock file made and removed sets; a folder's permissions count, and an entry added or removed shows as a name.
+const READ = /^(index|sharedindex\.[0-9a-f]+)$/;
 function stamp(path: string): string {
 	try {
 		const names = lstatSync(path).isDirectory() ? readdirSync(path, { recursive: true, encoding: "utf8" }).sort() : [];
-		return ["", ...names].map((name) => [name, lstatSync(join(path, name))] as const).map(([name, stat]) => `${name} ${stat.ino} ${stat.ctimeMs}`).join("\n");
+		const stats = ["", ...names].filter((name) => !READ.test(basename(name))).map((name) => [name, lstatSync(join(path, name))] as const);
+		return stats.map(([name, stat]) => `${name} ${stat.ino} ${stat.mode} ${stat.isDirectory() ? "" : stat.ctimeMs}`).join("\n");
 	} catch {
 		return "unreadable";
 	}

@@ -16,6 +16,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0466 A step can plant a repository under a name other than `.git`, or a symlink to one, which the sweep does not see (dcef9252)
 - AR0467 A merge check that runs git inside an owner clone in the checkout deletes that clone history (b7f8edf8)
 - AR0468 A second arthur merge during the first one's checks merges on top of the unchecked merge commit (694a4cda)
+- AR0471 Other operators of `${PWD…}` and of the known variables read as nothing (6bcc4140)
 
 ### Changed
 

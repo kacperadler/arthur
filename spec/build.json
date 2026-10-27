@@ -3726,9 +3726,9 @@
   {
     "id": "AR0471",
     "title": "Other operators of `${PWD…}` and of the known variables read as nothing",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0471-other-operators-of-pwd-and-of-the-known-variables-read-as-nothing/ticket.md",
-    "updated": "2026-10-27T08:35:55.165Z"
+    "updated": "2026-10-27T08:42:42.698Z"
   },
   {
     "id": "AR0472",
@@ -3862,5 +3862,33 @@
     "status": "planning",
     "path": "spec/features/AR0490-a-symlink-or-a-head-folder-the-branch-itself-commits-is-kept-by-the-sweep/ticket.md",
     "updated": "2026-10-27T08:26:35.616Z"
+  },
+  {
+    "id": "AR0491",
+    "title": "A command substitution inside a fallback word is never judged",
+    "status": "planning",
+    "path": "spec/features/AR0491-a-command-substitution-inside-a-fallback-word-is-never-judged/ticket.md",
+    "updated": "2026-10-27T08:42:42.689Z"
+  },
+  {
+    "id": "AR0492",
+    "title": "An unquoted `~user` is read as a relative folder named `~user`",
+    "status": "planning",
+    "path": "spec/features/AR0492-an-unquoted-user-is-read-as-a-relative-folder-named-user/ticket.md",
+    "updated": "2026-10-27T08:42:42.694Z"
+  },
+  {
+    "id": "AR0493",
+    "title": "A backslash-newline after $ is not removed, so the guard reads a folder name where bash reads ..",
+    "status": "planning",
+    "path": "spec/features/AR0493-a-backslash-newline-after-is-not-removed-so-the-guard-reads-a-folder-name-where/ticket.md",
+    "updated": "2026-10-27T08:43:03.515Z"
+  },
+  {
+    "id": "AR0494",
+    "title": "The guard skips an escaped quote inside quotes when it finds a fallback end, so a command can hide after it",
+    "status": "planning",
+    "path": "spec/features/AR0494-the-guard-skips-an-escaped-quote-inside-quotes-when-it-finds-a-fallback-end-so-a/ticket.md",
+    "updated": "2026-10-27T08:43:04.027Z"
   }
 ]

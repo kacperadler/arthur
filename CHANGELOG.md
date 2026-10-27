@@ -13,6 +13,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0436 A bash call that changes the tree after its checks, before it ends, is recorded on the tree it ends on (05e0d6e2)
 - AR0454 The writable package caches carry branch code out of the sandbox (ff79c610)
 
+### Changed
+
+- AR0475 Line budgets on one line, plus a comment log, conflict on most merges of main (ae463a28)
+
 ## 2026-10-26
 
 ### Fixed

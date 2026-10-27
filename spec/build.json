@@ -3380,9 +3380,9 @@
   {
     "id": "AR0429",
     "title": "The guard misreads four short forms: $ARTHUR_JOB, env -C and sudo -D, a ~ after =, cd $PWD and cd ~+",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0429-the-guard-misreads-four-short-forms-arthur-job-env-c-and-sudo-d-a-after-cd-pwd/ticket.md",
-    "updated": "2026-10-26T23:57:58.323Z"
+    "updated": "2026-10-27T00:09:49.929Z"
   },
   {
     "id": "AR0430",
@@ -3722,5 +3722,26 @@
     "status": "planning",
     "path": "spec/features/AR0470-a-merge-killed-during-its-steps-leaves-its-cache-folder-behind/ticket.md",
     "updated": "2026-10-27T00:05:38.920Z"
+  },
+  {
+    "id": "AR0471",
+    "title": "Other operators of `${PWD…}` and of the known variables read as nothing",
+    "status": "planning",
+    "path": "spec/features/AR0471-other-operators-of-pwd-and-of-the-known-variables-read-as-nothing/ticket.md",
+    "updated": "2026-10-27T00:09:49.924Z"
+  },
+  {
+    "id": "AR0472",
+    "title": "An escaped variable in an unquoted heredoc reaches the inner shell unread by the guard",
+    "status": "planning",
+    "path": "spec/features/AR0472-an-escaped-variable-in-an-unquoted-heredoc-reaches-the-inner-shell-unread-by-the/ticket.md",
+    "updated": "2026-10-27T00:09:57.706Z"
+  },
+  {
+    "id": "AR0473",
+    "title": "A long option of sudo or env followed by its value hides the command from the guard",
+    "status": "planning",
+    "path": "spec/features/AR0473-a-long-option-of-sudo-or-env-followed-by-its-value-hides-the-command-from-the/ticket.md",
+    "updated": "2026-10-27T00:09:58.232Z"
   }
 ]

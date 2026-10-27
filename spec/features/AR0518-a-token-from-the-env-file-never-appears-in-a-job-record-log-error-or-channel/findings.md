@@ -38,4 +38,45 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/git-writes.ts:10`
 - What: in this job, `GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=commit.gpgSign GIT_CONFIG_VALUE_0=false ... git commit -q -am "..."` was refused with the guard's line "this git call reads config the guard does not (... GIT_CONFIG* ...)", while `export GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=commit.gpgSign ...; git commit -q -am "..."` in one bash call committed (81feccc2). The guard reads the assignments that prefix the git word only, so config set by `export` earlier in the same call, or in an earlier call of the shell, reaches git unseen: an alias or `core.hooksPath` the guard never checks.
 - Suggestion: count `export`/`declare -x` of `GIT_CONFIG*`, `HOME` and `XDG_CONFIG_HOME` earlier in the call as set for each git call after it, and refuse; a persistent shell's earlier calls stay out of reach (the sandbox's matter). Out: the owner's own unsigned commits (AR-D184), which the guard could allow for `commit.gpgSign` and `tag.gpgSign` alone.
-- Status: open
+- Status: ticket AR0524
+
+## F5. The CLI and a task name only enabled plugins' env values
+
+- Kind: security
+- Found by: reviews 1, 2, 4 and 5 of AR0518, 2026-10-27
+- Where: `packages/core/src/host.ts:44`
+- What: `hide` is built from enabled plugins' `...Env` values, while the job's wrapper names every value in the env file.
+- Status: ticket AR0525
+
+## F6. A value split across two sweeps' copies of a remote log is not named
+
+- Kind: security
+- Found by: reviews 3, 4 and 5 of AR0518, 2026-10-27
+- Where: `packages/core/src/machine-sync.ts:62-63`
+- What: each copied piece is named alone; `config.md` states the gap.
+- Status: ticket AR0526
+
+## F7. A value seen only in an escaped form is not named
+
+- Kind: security
+- Found by: review 1 of AR0518, 2026-10-27
+- Where: `packages/core/src/wrapper.ts:55`
+- What: a value printed JSON-escaped (`\"`, `\\`, `\uXXXX`) would get through.
+- Status: dropped (today's token formats hold only letters, digits, `-`, `_` and `:`, which JSON never escapes)
+
+## F8. The uncaught-error handler drops `error.cause`
+
+- Kind: ux
+- Found by: review 2 of AR0518, 2026-10-27
+- Where: `packages/core/src/secret-names.ts` (`printNames`)
+- What: Node would also print `error.cause`; the named stack alone loses it. Nothing leaks.
+- Status: dropped (a lost detail on a crash, not a leak; no case of a plugin error with a cause seen)
+
+## F9. `notLoaded` folded onto one line, and two files at exactly 200 lines, to fit the budget
+
+- Kind: chore
+- Found by: reviews 1 and 5 of AR0518, 2026-10-27
+- Where: `packages/core/src/cli.ts:189`, `jobs.ts`, `wrapper.ts`
+- What: lines squeezed to stay within the core budget.
+- Status: dropped (same behaviour; AR0495's size zones cover the files at the limit)
+

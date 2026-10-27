@@ -4055,9 +4055,9 @@
   {
     "id": "AR0518",
     "title": "A token from the env file never appears in a job record, log, error or channel message",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0518-a-token-from-the-env-file-never-appears-in-a-job-record-log-error-or-channel/ticket.md",
-    "updated": "2026-10-27T18:16:05.455Z"
+    "updated": "2026-10-27T18:20:21.726Z"
   },
   {
     "id": "AR0519",
@@ -4093,5 +4093,26 @@
     "status": "planning",
     "path": "spec/features/AR0523-umask-test-ts-and-spawn-test-ts-put-their-test-job-in-the-production-arthur-jobs/ticket.md",
     "updated": "2026-10-27T16:16:44.985Z"
+  },
+  {
+    "id": "AR0524",
+    "title": "The worktree guard refuses `GIT_CONFIG_*=... git commit` but lets `export GIT_CONFIG_*=...; git commit` through",
+    "status": "planning",
+    "path": "spec/features/AR0524-the-worktree-guard-refuses-git-config-git-commit-but-lets-export-git-config-git/ticket.md",
+    "updated": "2026-10-27T18:20:21.722Z"
+  },
+  {
+    "id": "AR0525",
+    "title": "The CLI and a plugin's task name only enabled plugins' env values, while a job names every value in the env file",
+    "status": "planning",
+    "path": "spec/features/AR0525-the-cli-and-a-plugin-s-task-name-only-enabled-plugins-env-values-while-a-job/ticket.md",
+    "updated": "2026-10-27T18:21:12.565Z"
+  },
+  {
+    "id": "AR0526",
+    "title": "A value split across two sweeps' copies of a remote job's log is not named",
+    "status": "planning",
+    "path": "spec/features/AR0526-a-value-split-across-two-sweeps-copies-of-a-remote-job-s-log-is-not-named/ticket.md",
+    "updated": "2026-10-27T18:21:13.047Z"
   }
 ]

@@ -22,7 +22,7 @@ F4 of AR0508 (spec/features/AR0508-a-sandboxed-job-reads-arthur-s-ssh-private-ke
 
 <!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
 
-- Kind: <!-- feat | fix | security | perf | refactor | test | docs | build | ci | chore | ux -->
+- Kind: security
 
 ## Done means
 

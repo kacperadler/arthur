@@ -28,7 +28,7 @@ function ran(command: string, args: readonly string[]): Promise<Ran> {
 // `core` as the config holds it; `folders`: the config's and each project's checkout; `node`, the version that runs this; `env`, Arthur's environment.
 export function coreRequirements({ home, envFile, agent: { command: agent } }: { readonly home: string; readonly envFile: string; readonly agent: { readonly command: string } }, folders: () => readonly string[], node = process.versions.node, env: Readonly<Record<string, string | undefined>> = process.env): Requirement[] {
 	const user = userInfo().username;
-	let manager = true;
+	let [manager, tracked] = [true, false];
 	return [
 		{
 			name: "git",
@@ -98,17 +98,17 @@ export function coreRequirements({ home, envFile, agent: { command: agent } }: {
 			fix: "move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)",
 		},
 		{
-			// A commit of the checkout (`git add -A`, the coordinator's in the config's folder) takes in a file Git does not ignore.
+			// A commit of the checkout (`git add -A`, the coordinator's in the config's folder) takes in a file Git does not ignore; one it tracks no .gitignore line ignores.
 			name: "env ignored",
 			check: async () => {
-				const folder = dirname(envFile);
+				const [folder, name] = [dirname(envFile), basename(envFile)];
 				const checkout = await ran("git", ["-C", folder, "rev-parse", "--show-toplevel"]);
-				if (!checkout.ok) return "ok";
-				const ignored = await ran("git", ["-C", folder, "check-ignore", "-q", "--", basename(envFile)]);
-				return ignored.ok ? "ok" : `missing: the env file ${envFile} lies in the Git checkout ${checkout.stdout.trim()}, which does not ignore it`;
+				if (!checkout.ok || (await ran("git", ["-C", folder, "check-ignore", "-q", "--", name])).ok) return "ok";
+				tracked = (await ran("git", ["-C", folder, "ls-files", "--error-unmatch", "--", name])).ok;
+				return `missing: the env file ${envFile} ${tracked ? "is tracked by" : "lies in"} the Git checkout ${checkout.stdout.trim()}, ${tracked ? "so no .gitignore line ignores it, and every commit that holds it keeps its values" : "which does not ignore it"}`;
 			},
 			costs: "a commit there takes its values into the repository, and a push sends them to every clone",
-			fix: `add ${basename(envFile)} to the .gitignore beside it, or move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)`,
+			get fix() { return tracked ? `git -C ${dirname(envFile)} rm --cached -- ${basename(envFile)}, commit, and rotate every value it held: the history keeps them` : `add ${basename(envFile)} to the .gitignore beside it, or move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)`; },
 			critical: true,
 		},
 		// Named, never its value.

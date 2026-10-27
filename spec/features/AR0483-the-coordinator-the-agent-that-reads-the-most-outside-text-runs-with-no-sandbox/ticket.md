@@ -23,21 +23,24 @@ F2 of AR0403 (spec/features/AR0403-security-review-of-our-own-code-part-2-inject
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+Close F2 of AR0403 (severity high): a steered coordinator can `git merge` and `git push` a branch in a main checkout without `arthur merge`, write Arthur's install or another project's checkout, read `~/.ssh` into its transcript, or send any readable file to the channel. `docs/deploy.md:45` describes outside text steering a job; it does not say the coordinator is the one agent whose prompt is the only bound.
 
 - Kind: security
+- Plan: yes
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- `plan.md` in this folder: the options to close this gap, each with what it costs and what the owner would notice, and a recommendation; the security review's suggestion is one option:
+  > give the coordinator a bound of its own that keeps the AR0329 decision: load the worktree guard in the coordinator with its places (Arthur's install, every main checkout but its board files, `~/.ssh`, `~/.config/systemd`, Git config) and refuse `git push`, `git merge`, `git reset` and `git update-ref` on a main branch from its tool calls, so only `arthur merge` moves main; longer term, run the coordinator under Landlock writing only its folder, Arthur's home and the config folder, and have `arthur run` perform merges and pushes on its request. Say in `docs/deploy.md` that the coordinator's prompt is its only bound until then. Which of these is wanted is a decision for the owner.
+- No code; `npm test` and `npm run check` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `plan.md` only.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Building the chosen option: follow-up tickets after the owner picks.
 
 ## Decisions
 

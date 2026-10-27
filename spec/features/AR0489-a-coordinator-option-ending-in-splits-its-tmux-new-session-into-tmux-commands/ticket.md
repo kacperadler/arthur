@@ -23,21 +23,25 @@ F8 of AR0403 (spec/features/AR0403-security-review-of-our-own-code-part-2-inject
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+Close F8 of AR0403 (severity low): a config value or an environment value with a trailing `;` makes the coordinator's start fail or run a tmux command of that value's choosing. The config is the owner's file, so the reach is a hand-edit's mistake more than an attacker's.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- The fix the security review suggests, or one that closes the same gap with less code:
+  > escape a trailing `;` as `\;` in each argument `supervise` passes to `tmux new-session`, or refuse such a value in the option checks; a test with `model: "x;"`.
+- A test that fails before the change and passes after it, for the case the Description reproduces.
+- The project's checks pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/orchestration/src/coordinator.ts`
+- `packages/orchestration/src/orchestration-options.ts`
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Other findings of AR0403: their own tickets (AR0482 to AR0489).
 
 ## Decisions
 

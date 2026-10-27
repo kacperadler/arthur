@@ -1,7 +1,8 @@
 import { execFile, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { configRefusal } from "@arthur/core/git-config";
+import { takeLock } from "@arthur/core/lock";
 import type { Command, Host, JobRecord, Requirement } from "@arthur/core/plugin";
 import { autoRefusal, ciRefusal } from "./auto-merge.ts";
 import { writeChangelog } from "./changelog.ts";
@@ -43,7 +44,7 @@ export function mergeCommand(host: Host, procedure: URL, held: (path: string) =>
 				console.error(`arthur merge: ${flag !== undefined ? `unknown flag ${flag}` : (mixed ?? (name === undefined ? "no job" : `one job; got ${words.length}`))}\n${USAGE}`);
 				return 2;
 			}
-			const branch = await merge(host, name, { unreviewed, decision, auto, ci: !noCi, held, stepSeconds });
+			const branch = await locked(host, name, { unreviewed, decision, auto, ci: !noCi, held, stepSeconds });
 			const pushed = await Promise.all(host.collect<Promise<string>>("github.push", branch));
 			for (const line of pushed) console.log(line);
 			console.log(`nothing committed but the merge, nothing ${pushed.length === 0 ? "pushed or " : ""}pruned\n\n${readFileSync(procedure, "utf8").trim()}`);
@@ -51,10 +52,29 @@ export function mergeCommand(host: Host, procedure: URL, held: (path: string) =>
 	};
 }
 
-// Merges, and returns main as `github.push` takes it.
-async function merge(host: Host, name: string, mode: { readonly unreviewed: boolean; readonly decision: string | undefined; readonly auto: boolean; readonly ci: boolean; readonly held: (path: string) => boolean; readonly stepSeconds: number }): Promise<{ readonly project: string; readonly branch: string }> {
+type Mode = { readonly unreviewed: boolean; readonly decision: string | undefined; readonly auto: boolean; readonly ci: boolean; readonly held: (path: string) => boolean; readonly stepSeconds: number };
+
+// One merge per project at a time, from its first look at main to any end (AR0468): a second one during the first's checks
+// would merge on top of its unchecked commit, which a failed check resets under it. Core's lock, a dead holder's taken over.
+async function locked(host: Host, name: string, mode: Mode): Promise<{ readonly project: string; readonly branch: string }> {
 	const job = host.jobs.list().find((each) => each.id === name || each.id.endsWith(`-${name}`));
 	if (job === undefined) throw new Error(`no job ${name}; arthur jobs lists them`);
+	const [own, merging] = [join(host.folder, job.project), join(host.folder, job.project, "merging")];
+	mkdirSync(own, { recursive: true });
+	const lock = takeLock(join(own, "merge.lock"));
+	if ("heldBy" in lock) throw new Error(`a merge of ${(existsSync(merging) && readFileSync(merging, "utf8").trim()) || `pid ${lock.heldBy}`} is in progress on ${job.project}`);
+	try {
+		writeFileSync(`${merging}.${process.pid}`, `${job.id}\n`);
+		renameSync(`${merging}.${process.pid}`, merging);
+		return await merge(host, job, mode);
+	} finally {
+		rmSync(merging, { force: true });
+		lock.release();
+	}
+}
+
+// Merges, and returns main as `github.push` takes it.
+async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly project: string; readonly branch: string }> {
 	if (job.branch === "") throw new Error(`${job.id} is a ${job.kind} job, read-only: it has no branch to merge`);
 	if (host.jobs.running().includes(job.id)) throw new Error(`${job.id} is in a run (${job.state}); merge its branch once the run has ended`);
 	const root = host.board.projects().find((project) => project.name === job.project)?.path;

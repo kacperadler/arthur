@@ -15,7 +15,7 @@ export type Instance = {
 };
 
 // Items asked per page; a page with fewer is the last.
-export const PAGE = 100;
+const PAGE = 100;
 
 // The JSON of `path` (e.g. `issues/SHOP-1`) with `params`, sent `body` in a POST when given, as JSON or, a form, as
 // multipart; `what` names what was asked, for a 404 and any other refusal.

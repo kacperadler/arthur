@@ -108,7 +108,7 @@ export async function continueJob(home: string, id: string, instruction: string,
 		bus.emit("core", "job-started", { id, kind, project, root: job.root, branch, worktree, tickets, machine });
 		failed = there === undefined ? await launch(home, job, agent, slice, bus, uncapped, env) : startedThere;
 		// The wrapper there did not start: its end, here at once.
-		if (there !== undefined && failed !== undefined) syncMachine(home, there, bus);
+		if (there !== undefined && failed !== undefined) await syncMachine(home, there, bus);
 		return failed;
 	} finally {
 		release();

@@ -38,7 +38,7 @@ export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: Finis
 		if (machine === undefined) return stopJob(home, id);
 		const line = (await sshAsync(machine, ["arthur", "remote-job", "stop", machine.home, id])).trim();
 		// Its end there, here at once.
-		syncMachine(home, machine, bus);
+		await syncMachine(home, machine, bus);
 		return line;
 	};
 	const records = (): JobRecord[] =>

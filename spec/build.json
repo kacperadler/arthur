@@ -3677,9 +3677,9 @@
   {
     "id": "AR0464",
     "title": "The stop test of a forked install process fails now and then under a merge step",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0464-the-stop-test-of-a-forked-install-process-fails-now-and-then-under-a-merge-step/ticket.md",
-    "updated": "2026-10-27T06:53:40.623Z"
+    "updated": "2026-10-27T07:49:23.669Z"
   },
   {
     "id": "AR0465",
@@ -3789,8 +3789,8 @@
   {
     "id": "AR0480",
     "title": "Plan: a stats plugin, token use, cost and time of every job and of the coordinator, per role, ticket and project",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0480-plan-a-stats-plugin-token-use-cost-and-time-of-every-job-and-of-the-coordinator/ticket.md",
-    "updated": "2026-10-27T07:46:03.978Z"
+    "updated": "2026-10-27T07:50:24.212Z"
   }
 ]

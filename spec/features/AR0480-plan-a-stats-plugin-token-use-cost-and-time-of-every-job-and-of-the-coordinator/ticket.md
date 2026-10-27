@@ -44,3 +44,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: The owner asked for a stats plugin that measures every job (coordinator, worker, reviewer and the rest) for tokens, costs and tasks; the coordinator prepares a plan ticket, left at planning for his approval.
+- 2026-10-27: AR0480 approved: a planner writes plan.md after the current day run; the owner: "AR-D154 1" (AR-D154)

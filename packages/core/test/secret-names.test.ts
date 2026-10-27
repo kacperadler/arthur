@@ -25,7 +25,7 @@ export default { core: { timeZone: "UTC", envFile: ${JSON.stringify(envFile)}, a
 	{ name: "orchestration", options: { tokenEnv: "${NAME}" }, setup(host) {
 		const token = host.env.${NAME};
 		host.provide("projects", () => [{ name: "acme", path: import.meta.dirname, prefix: "AC" }]);
-		host.jobs.prepare(() => ({ ARTHUR_INSTALL: "echo installed for " + token + "; printf 'then %s' " + token.slice(0, 10) }));
+		host.jobs.prepare(() => ({ ARTHUR_INSTALL: "printf 'piece %s' " + token.slice(0, 10) + "; sleep 0.3; printf '%s whole\\\\n' " + token.slice(10) + "; echo installed for " + token + "; printf 'then %s' " + token.slice(0, 10) }));
 		host.provide("prompt", () => "Use the token " + token + " for the API.");
 		host.provide("token.check", () => { throw new Error("401 Unauthorized: the token " + token + " was refused"); });
 		host.commands.register({ name: "boom", doc, run: () => host.call("token.check"), phone: { about: "checks the token", reply: () => host.call("token.check") } });
@@ -92,7 +92,7 @@ test("a token of the env file never lands under the home, in a line the CLI prin
 	assert.deepEqual([record("task"), record("reason")], [`Call the API with the token ${NAME}.`, `user: is ${NAME} still valid?`]);
 	assert.match(record("prompt"), new RegExp(`Use the token ${NAME} for the API\\.`));
 	const start = token.slice(0, 10);
-	assert.match(record("log"), new RegExp(`install: echo installed for ${NAME}[\\s\\S]*\ninstalled for ${NAME}\nthen ${start}\\[arthur [\\s\\S]*split ${NAME} ends\n[\\s\\S]*calling with ${NAME}\n[\\s\\S]*401 for ${NAME}\n[\\s\\S]*last ${start}[\\s\\S]*arthur continue: Go on with ${NAME}\\.\n`));
+	assert.match(record("log"), new RegExp(`install: printf [\\s\\S]*\npiece ${NAME} whole\ninstalled for ${NAME}\nthen ${start}\\[arthur [\\s\\S]*split ${NAME} ends\n[\\s\\S]*calling with ${NAME}\n[\\s\\S]*401 for ${NAME}\n[\\s\\S]*last ${start}[\\s\\S]*arthur continue: Go on with ${NAME}\\.\n`));
 	assert.deepEqual(files(join(home, "jobs", id, "steer")).map((file) => readFileSync(file, "utf8")).filter((text) => text.includes("only once")), [`Use ${NAME} only once.\n`]);
 	assert.match(runs[4]?.stderr ?? "", new RegExp(`^arthur boom: 401 Unauthorized: the token ${NAME} was refused\n$`));
 	assert.deepEqual(readFileSync(sent, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line)), [
@@ -119,11 +119,36 @@ test("a plugin's setup that fails with the token says its name in every command'
 	}
 });
 
+test("an uncaught exception, an unhandled rejection and bytes written by a plugin say the token's name; the first two exit 1", () => {
+	const secrets = temporaryFolder();
+	writeFileSync(join(secrets, "env"), `${NAME}=supersecret-value-123\n`);
+	const root = temporaryFolder();
+	writeFileSync(join(root, "doc.md"), "# arthur\n");
+	const wait = "new Promise((done) => setTimeout(done, 5000))";
+	writeFileSync(join(root, "arthur.config.ts"), `const doc = new URL("./doc.md", import.meta.url);
+export default { core: { envFile: ${JSON.stringify(join(secrets, "env"))} }, plugins: [{ name: "orchestration", options: { tokenEnv: "${NAME}" }, setup(host) {
+	const token = host.env.${NAME};
+	host.commands.register({ name: "later", doc, run: () => (setTimeout(() => { throw new Error("later " + token); }, 10), ${wait}) });
+	host.commands.register({ name: "rejects", doc, run: () => (void Promise.reject(new Error("rejected " + token)), ${wait}) });
+	host.commands.register({ name: "bytes", doc, run: () => void process.stdout.write(Buffer.from("buf " + token + " ä\\n")) });
+} }] };
+`);
+	const later = arthur(root, "later"), rejects = arthur(root, "rejects"), bytes = arthur(root, "bytes");
+	assert.deepEqual([later.status, later.stderr.split("\n")[0]], [1, `Error: later ${NAME}`]);
+	assert.deepEqual([rejects.status, rejects.stderr.split("\n")[0]], [1, `Error: rejected ${NAME}`]);
+	assert.deepEqual([bytes.status, bytes.stdout], [0, `buf ${NAME} ä\n`]);
+	for (const run of [later, rejects, bytes]) assert.ok(!`${run.stdout}${run.stderr}`.includes("supersecret-value-123"), `${run.stdout}${run.stderr}`);
+});
+
 test("each value of 8 characters or more becomes its name, the longest first, whatever characters it holds; a shorter one stays", () => {
 	const hide = secretNames({ ARTHUR_A_KEY: "a+b.c*d?(e)$&", ARTHUR_A_LONG: "a+b.c*d?(e)$&-and-more", ARTHUR_A_PIN: "1234567", ARTHUR_A_CODE: "12345678" });
 	assert.equal(hide("x a+b.c*d?(e)$&-and-more y a+b.c*d?(e)$& z 1234567 12345678 abXcYd"), "x ARTHUR_A_LONG y ARTHUR_A_KEY z 1234567 ARTHUR_A_CODE abXcYd");
 	assert.deepEqual(hide.values, ["a+b.c*d?(e)$&-and-more", "a+b.c*d?(e)$&", "12345678"]);
 	assert.equal(secretNames({ ARTHUR_A_PIN: "1234567", ARTHUR_A_EMPTY: "" })("1234567"), "1234567");
+	// In bytes, a value as its UTF-8; a character a chunk cuts short stays the byte it was.
+	const bytes = secretNames({ ARTHUR_A_WORD: "pässwörd-123" }).bytes;
+	assert.equal(bytes(Buffer.from("x pässwörd-123 y")).toString(), "x ARTHUR_A_WORD y");
+	assert.deepEqual(bytes(Buffer.from("ä").subarray(0, 1)), Buffer.from("ä").subarray(0, 1));
 });
 
 test("a value a pipe splits across chunks is named whole; only an end that may start a value waits, for the next chunk or the end", () => {

@@ -3170,9 +3170,9 @@
   {
     "id": "AR0405",
     "title": "Security review of our own code, part 4: other machines, network and dependencies",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0405-security-review-of-our-own-code-part-4-other-machines-network-and-dependencies/ticket.md",
-    "updated": "2026-10-27T12:26:29.120Z",
+    "updated": "2026-10-27T12:38:07.796Z",
     "after": [
       "AR0432",
       "AR0350",
@@ -3981,5 +3981,33 @@
     "status": "planning",
     "path": "spec/features/AR0507-a-branch-s-own-gitattributes-can-hide-a-text-file-s-lines-from-the-reviewer-s/ticket.md",
     "updated": "2026-10-27T12:19:47.690Z"
+  },
+  {
+    "id": "AR0508",
+    "title": "A sandboxed job reads Arthur's SSH private key, and with it gets an unconfined shell on every other machine and a push to origin",
+    "status": "planning",
+    "path": "spec/features/AR0508-a-sandboxed-job-reads-arthur-s-ssh-private-key-and-with-it-gets-an-unconfined/ticket.md",
+    "updated": "2026-10-27T12:38:07.780Z"
+  },
+  {
+    "id": "AR0509",
+    "title": "The sweep's copy from another machine has no size or time bound, so one machine stalls every job on it, or all of `arthur run`",
+    "status": "planning",
+    "path": "spec/features/AR0509-the-sweep-s-copy-from-another-machine-has-no-size-or-time-bound-so-one-machine/ticket.md",
+    "updated": "2026-10-27T12:38:07.785Z"
+  },
+  {
+    "id": "AR0510",
+    "title": "The GitHub, Telegram and YouTrack API addresses take `http://` for any host, sending the token in the clear",
+    "status": "planning",
+    "path": "spec/features/AR0510-the-github-telegram-and-youtrack-api-addresses-take-http-for-any-host-sending/ticket.md",
+    "updated": "2026-10-27T12:38:07.789Z"
+  },
+  {
+    "id": "AR0511",
+    "title": "The github plugin's docs offer a classic token with `repo`, which writes every repository of the account",
+    "status": "planning",
+    "path": "spec/features/AR0511-the-github-plugin-s-docs-offer-a-classic-token-with-repo-which-writes-every/ticket.md",
+    "updated": "2026-10-27T12:38:07.793Z"
   }
 ]

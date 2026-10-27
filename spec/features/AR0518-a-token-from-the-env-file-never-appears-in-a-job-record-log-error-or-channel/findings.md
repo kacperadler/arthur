@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/wrapper.ts:136`, `packages/core/src/job-install.ts:16`
 - What: the wrapper names each env file value in each write to the record (`save`), and the agent's stderr and the install's output are written chunk by chunk as the pipe hands them over. A value that straddles two chunks (a 64 KiB pipe read ending inside it) lands in `log` as written. The agent's stdout is whole lines (`agentStream`), so it is not affected. Not reproduced; the pipe's chunking makes it rare.
 - Suggestion: hold back the last `longest value - 1` characters of each stderr and install chunk until the next one or the pipe's end, then name and write them. Out: stdout, already whole lines.
-- Status: open
+- Status: fixed in 9e07ff35
 
 ## F2. A job on another machine writes its log and result without naming any value
 
@@ -29,7 +29,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/jobs.ts:175`
 - What: the host names each value in a spawn's task, but the prompt is built from what the plugins' `prompt` providers answer and written into the record's `prompt` unchanged. No plugin puts a value there today [INFERENCE: from the providers read for this ticket, not a full audit].
 - Suggestion: pass the host's `hide` to `jobRunner` and name `built.prompt` before `writeRecord`; this needs a line in `jobs.ts`, which is at 200 lines.
-- Status: open
+- Status: fixed in 9e07ff35
 
 ## F4. The worktree guard refuses `GIT_CONFIG_*=... git commit` but lets `export GIT_CONFIG_*=...; git commit` through
 

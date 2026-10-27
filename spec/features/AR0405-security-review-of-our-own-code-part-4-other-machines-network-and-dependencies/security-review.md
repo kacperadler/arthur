@@ -133,4 +133,4 @@ What was checked: both lockfiles, the install commands the docs give, the CI wor
 - `node --import @arthur/core/testing --test packages/models/test/*.test.ts`: 18 tests, 18 pass, 0 fail.
 - `node --import @arthur/core/testing --test --test-name-pattern="redirect" packages/uptime/test/*.test.ts`: 7 tests, 7 pass, 0 fail.
 - The probes quoted above: `isPrivate`, the sandbox over a fake `~/.ssh`, `spawnSync` past 1 MiB, the GitHub client across a cross-origin redirect, `checkSite` against mapped and metadata redirects, the option checks with `http://`, the lockfile script, `npm audit` in both projects.
-- `npm run check` and `npm test`: see the job's final message.
+- `npx tsc` (what `npm run check` runs): exit 0. `npm test`: `ℹ tests 1206`, `ℹ pass 1145`, `ℹ fail 0`, `ℹ cancelled 0`, `ℹ skipped 61`.

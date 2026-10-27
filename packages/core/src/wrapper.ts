@@ -12,6 +12,7 @@ import { signal, stopGroup } from "./job-stop.ts";
 import { blockedBy, current, kept, moveJob, type State } from "./job-state.ts";
 import { commitsSince } from "./git.ts";
 import { runRecord } from "./run-record.ts";
+import { envFileNames, namedChunks } from "./secret-names.ts";
 import { closeSteers } from "./steer-inbox.ts";
 
 // One background process per job, `node wrapper.ts <home> <id> <agent>`, started in the job's scope by `launch` (job-scope.ts); what it writes and when: docs/commands/spawn.md. A pipe a process the agent left holds open is read 2 s past its exit, then closed.
@@ -47,11 +48,11 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 			return leave();
 		}
 	};
-	// A file of the record written whole (under a temporary name, then renamed), or appended to without creating it (`rm -r`).
-	const save = (name: string, text: string | Uint8Array, append = false): void =>
+	// A file of the record written whole (under a temporary name, then renamed), or appended to without creating it (`rm -r`); text named (secret-names.ts).
+	const save = (name: string, text: string, append = false): void =>
 		guard(() => {
 			const fd = openSync(join(folder, append ? name : `.${name}`), append ? constants.O_WRONLY | constants.O_APPEND : "w");
-			writeFileSync(fd, text);
+			writeFileSync(fd, hide(text));
 			closeSync(fd);
 			if (!append) renameSync(join(folder, `.${name}`), join(folder, name));
 		});
@@ -59,7 +60,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	const note = (line: string) => save("log", `[arthur ${new Date().toISOString()}] ${line}\n`, true);
 	const names = ["kind", "project", "model", "thinking", "branch", "root", "worktree", "base", "timeout", "budget", "resume-on-budget", "idle-minutes"];
 	const [kind = "", project = "", model = "", thinking = "", branch = "", root = "", worktree = "", base = "", timeout = "", budget = "", resumes = "", idle = ""] = names.map(field);
-	const bus = eventBus(home);
+	const secrets = hidden(folder), hide = envFileNames(secrets), bus = eventBus(home, hide), installed = namedChunks(hide, (text) => save("log", text, true)); // Read once, before the install a prepare asked for (job-install.ts), so what it writes to the record changes neither what the agent may read nor which values are named.
 	// A move from `from` to `to` (job-state.ts) only: a job a plugin holds stays `blocked` until its run ends, so it never moves here.
 	const move = (from: State, to: State) => guard(() => moveJob(home, id, bus, (now) => (now.state === from ? [to, ""] : undefined)));
 	// The agent's output: `active` takes its time, an idle job works again, and it turns idle after `idle-minutes` without any.
@@ -119,27 +120,26 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		overCap = what;
 		halt("memory");
 	});
-	const secrets = hidden(folder); // Read once, before the install a prepare asked for (job-install.ts), so what it writes to the record unhides nothing from the agent. The install runs first, in the job's sandbox, its package caches in the record's `cache` (AR0454); one that fails, or a stop or a limit during it, starts no agent.
-	let failure = await install(process.env.ARTHUR_INSTALL, worktree, (command) => sandboxed(writable(folder, worktree, extensions), secrets, "env", note, "the install")(cached(join(folder, "cache"), command)), note, (chunk) => save("log", chunk, true), (running) => (child = running));
+	let failure = await install(process.env.ARTHUR_INSTALL, worktree, (command) => sandboxed(writable(folder, worktree, extensions), secrets, "env", note, "the install")(cached(join(folder, "cache"), command)), note, (chunk) => installed.push(chunk), (running) => (child = running)).finally(installed.end); // The install runs first, in the job's sandbox, its package caches in the record's `cache` (AR0454); one that fails, or a stop or a limit during it, starts no agent.
 	// One run of the agent, until it exits, its output is read and its stop, if any, is over.
 	const play = async (argv: readonly string[]): Promise<[number | null, NodeJS.Signals | null]> => {
 		note(`agent: ${agent} ${argv.join(" ")}`);
-		const stream = agentStream();
+		const stream = agentStream(), errors = namedChunks(hide, (text) => save("log", text, true));
 		const closed = Promise.withResolvers<[number | null, NodeJS.Signals | null]>();
 		const running = oomFirst(() => spawn(...sandboxed(writable(folder, worktree, extensions), secrets, agent, note)(argv), { cwd: worktree, env: { ...process.env, ...unsigned(process.env), ARTHUR_JOB: folder }, stdio: ["ignore", "pipe", "pipe"], detached: true }));
 		[child, playing] = [running, true];
-		running.stdout.setEncoding("utf8");
+		for (const pipe of [running.stdout, running.stderr]) pipe.setEncoding("utf8");
 		running.stdout.on("data", (chunk: string) => {
 			record.apply(stream.push(chunk));
 			active();
 		});
-		running.stderr.on("data", (chunk: Buffer) => {
-			save("log", chunk, true);
+		running.stderr.on("data", (chunk: string) => {
+			errors.push(chunk);
 			active();
 		});
 		running.once("error", (error) => (failure = error));
 		running.once("exit", () => setTimeout(() => [running.stdout, running.stderr].forEach((pipe) => pipe.destroy()), 2000).unref());
-		running.once("close", (code, killed) => closed.resolve([code, killed]));
+		running.once("close", (code, killed) => (errors.end(), closed.resolve([code, killed])));
 		const ending = await closed.promise;
 		record.apply(stream.end());
 		await stopping;
@@ -193,7 +193,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	guard(() =>
 		moveJob(home, id, bus, () => {
 			rmSync(join(folder, "hold"), { force: true });
-			return [state, said];
+			return [state, hide(said)];
 		}),
 	);
 	bus.emit("core", "job-ended", { id, kind, project, state, reason: said, ...(undelivered.length > 0 ? { undelivered } : {}) });

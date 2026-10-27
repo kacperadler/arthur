@@ -45,8 +45,9 @@ export async function syncMachines(home: string, machines: readonly Machine[], b
 // With one SSH call, copies the run's changed files of the records of `machine`'s followed jobs, of the log only its new bytes; a
 // run that ended there brings its branch into the job's `root` before its state moves here, then `job-ended`. A job failed
 // here while the machine was offline takes the state there only once that run ended; a log cut short, once the rest arrived.
+// Each file and reason is named with the bus's `hide` here: the record there guards no env file, so its wrapper named nothing.
 export async function syncMachine(home: string, machine: Machine, bus: Bus): Promise<void> {
-	const ids = followed(home, machine);
+	const ids = followed(home, machine), { hide } = bus;
 	if (ids.length === 0) return;
 	const asked = ids.map((id) => `${id}=${field(home, id)("synced") || "0:0"}`);
 	const answer = JSON.parse(await sshAsync(machine, ["arthur", "remote-job", "records", machine.home, ...asked], "", COPY_SECONDS, COPY_CHARS)) as Record<string, Copy>;
@@ -57,16 +58,16 @@ export async function syncMachine(home: string, machine: Machine, bus: Bus): Pro
 		const [copy, folder, read] = [answer[id], join(home, "jobs", id), field(home, id)];
 		// Another copy (a stop's beside the sweep's) that wrote since this one asked has these bytes in already.
 		if (copy === undefined || asked[index] !== `${id}=${read("synced") || "0:0"}`) continue;
-		for (const [name, text] of Object.entries(copy.files)) if (RUN.includes(name) && read(name) !== text) write(folder, name, text);
-		if (copy.files.log !== undefined && copy.logFrom > 0) appendFileSync(join(folder, "log"), copy.files.log);
-		else if (copy.files.log !== undefined) write(folder, "log", copy.files.log);
+		for (const [name, text] of Object.entries(copy.files)) if (RUN.includes(name) && read(name) !== hide(text)) write(folder, name, hide(text));
+		if (copy.files.log !== undefined && copy.logFrom > 0) appendFileSync(join(folder, "log"), hide(copy.files.log));
+		else if (copy.files.log !== undefined) write(folder, "log", hide(copy.files.log));
 		write(folder, "synced", `${copy.at}:${copy.logTo}`);
 		if (copy.logTo < copy.logSize) continue;
 		const ended = copy.state !== "working" && copy.state !== "idle";
 		if (read("state") === "ended" && !ended) continue;
 		if (ended && read("branch") !== "") gitOver(read("root"), ["fetch", "--quiet", url(machine, read("project")), `+refs/heads/arthur/${id}:refs/heads/arthur/${id}`]);
 		// A plugin's hold here stands while the run goes on there, and ends with it, as the wrapper's does, unless it stopped the run.
-		let [state, reason] = [copy.state, copy.reason];
+		let [state, reason] = [copy.state, hide(copy.reason)];
 		moveJob(home, id, bus, (now) => {
 			if (now.hold !== "" && !ended) return ["blocked", kept(now) ?? `dependency: ${now.hold}`];
 			rmSync(join(folder, "hold"), { force: true });

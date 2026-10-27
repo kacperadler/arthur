@@ -307,3 +307,4 @@
 {"record":"ask","id":"AR-D154","time":"2026-10-27T08:46:37+01:00","project":"arthur","kind":"plan","question":"Approve AR0480 (plan for a stats plugin: tokens, cost and time of every job and of the coordinator) now, so a planner writes plan.md after the current day run; or leave it at planning?","options":["Approve: plan after this day run","Leave it at planning for now"],"recommend":1,"ticket":"AR0480"}
 {"record":"answer","id":"AR-D154","time":"2026-10-27T08:50:23+01:00","decided":"AR0480 approved: a planner writes plan.md after the current day run","picked":1,"words":"AR-D154 1"}
 {"record":"ask","id":"AR-D155","time":"2026-10-27T08:53:01+01:00","project":"arthur","kind":"merge","question":"Merge AR0464 (the stop test waits for the killed process to be reaped) after its PASS?","options":["Merge","Wait"],"recommend":1,"ticket":"AR0464"}
+{"record":"close","id":"AR-D147","time":"2026-10-27T08:53:51+01:00","reason":"ticket merged"}

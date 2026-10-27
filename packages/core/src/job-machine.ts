@@ -84,23 +84,22 @@ export function machineRegistry(home: string) {
 	};
 }
 
-// Runs `command` here, `input` on its stdin; resolves once it ended, to its exit code (null when a signal killed it; 127 when
-// it did not start, as a shell says) and its whole output. Past `limitSeconds` it is killed and resolves at once, its pipes
-// closed even when a child of it holds them: code null, `timed out after <n> s` the last line of its stderr.
-function execute([command = "", ...args]: readonly string[], input = "", limitSeconds?: number): Promise<Ran> {
+// Runs `command` here, `input` on its stdin; resolves once it ended, to its exit code (null when a signal killed it; 127 when it did not
+// start, as a shell says) and its whole output. Past `limitSeconds`, or past `limitChars` characters of output, it is killed and resolves at
+// once, its pipes closed even when a child of it holds them: code null, `timed out after <n> s` or `answered more than <n> characters` last on stderr.
+function execute([command = "", ...args]: readonly string[], input = "", limitSeconds?: number, limitChars = Infinity): Promise<Ran> {
 	const output = { stdout: "", stderr: "" };
 	const child = spawn(command, args, { stdio: "pipe" });
 	// A command that ends without reading its input: its exit code tells what happened.
 	child.stdin.on("error", () => {}).end(input);
-	child.stdout.setEncoding("utf8").on("data", (chunk: string) => (output.stdout += chunk));
-	child.stderr.setEncoding("utf8").on("data", (chunk: string) => (output.stderr += chunk));
 	const ended = Promise.withResolvers<Ran>();
-	const cut = () => {
+	const cut = (why: string) => {
 		child.kill("SIGKILL");
 		for (const pipe of [child.stdout, child.stderr]) pipe.destroy();
-		ended.resolve({ code: null, stdout: output.stdout, stderr: `${output.stderr}timed out after ${limitSeconds} s\n` });
+		ended.resolve({ code: null, stdout: output.stdout, stderr: `${output.stderr}${why}\n` });
 	};
-	const limit = limitSeconds === undefined ? undefined : setTimeout(cut, limitSeconds * 1000);
+	for (const name of ["stdout", "stderr"] as const) child[name].setEncoding("utf8").on("data", (chunk: string) => (output[name] += chunk) && output.stdout.length + output.stderr.length > limitChars && cut(`answered more than ${limitChars} characters`));
+	const limit = limitSeconds === undefined ? undefined : setTimeout(() => cut(`timed out after ${limitSeconds} s`), limitSeconds * 1000);
 	child.once("error", (error) => ended.resolve({ code: 127, stdout: output.stdout, stderr: `${command}: ${error.message}` }));
 	child.once("close", (code) => ended.resolve({ code, ...output }));
 	return ended.promise.finally(() => clearTimeout(limit));
@@ -110,7 +109,8 @@ function execute([command = "", ...args]: readonly string[], input = "", limitSe
 const repositoryThere = (machine: Machine, project: string) => join(machine.home, "repos", `${project}.git`);
 export const url = (machine: Machine, project: string) => `${machine.ssh}:${repositoryThere(machine, project)}`;
 
-// Runs `argv` there, `input` on its stdin; its stdout, or the error of `failure`. `sshAsync` waits without blocking; past `limitSeconds` it fails as with exit 255.
+// Runs `argv` there, `input` on its stdin; its stdout, or the error of `failure`. `sshAsync` waits without blocking; past
+// `limitSeconds`, or past `limitChars` characters of output, it fails as with exit 255.
 export function ssh(machine: Machine, argv: readonly string[], input = ""): string {
 	const run = spawnSync("ssh", [...OPTIONS, machine.ssh, argv.map(quote).join(" ")], { encoding: "utf8", input });
 	// A command that ends without reading its input: its exit code tells what happened.
@@ -120,9 +120,10 @@ export function ssh(machine: Machine, argv: readonly string[], input = ""): stri
 	if (failed !== undefined) throw failed;
 	return run.stdout;
 }
-export async function sshAsync(machine: Machine, argv: readonly string[], input = "", limitSeconds?: number): Promise<string> {
-	const run = await execute(["ssh", ...OPTIONS, machine.ssh, argv.map(quote).join(" ")], input, limitSeconds);
-	const failed = failure(machine, argv, run.code === null && run.stderr.endsWith(`timed out after ${limitSeconds} s\n`) ? 255 : run.code, run.stderr);
+export async function sshAsync(machine: Machine, argv: readonly string[], input = "", limitSeconds?: number, limitChars?: number): Promise<string> {
+	const run = await execute(["ssh", ...OPTIONS, machine.ssh, argv.map(quote).join(" ")], input, limitSeconds, limitChars);
+	const cut = run.code === null && /(timed out after \S+ s|answered more than \d+ characters)\n$/.test(run.stderr);
+	const failed = failure(machine, argv, cut ? 255 : run.code, run.stderr);
 	if (failed !== undefined) throw failed;
 	return run.stdout;
 }

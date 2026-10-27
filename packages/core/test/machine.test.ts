@@ -649,8 +649,9 @@ test("a copy that does not answer within 20 s counts as the machine unreachable,
 	t.after(() => writeFileSync(gate, ""));
 	const { home, machine, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
 	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
-	// From here `arthur remote-job records` there does not end before `gate` exists; every other step is this core's.
-	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\n[ "$2" = records ] && while [ ! -e '${gate}' ]; do sleep 0.1; done && exit 0\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
+	// From here `arthur remote-job records` there does not end before `gate` exists, or 30 s on, in case the kit removed the gate's
+	// folder first; every other step is this core's.
+	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\n[ "$2" = records ] && n=0 && while [ ! -e '${gate}' ] && [ $n -lt 300 ]; do sleep 0.1; n=$((n + 1)); done && exit 0\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
 	// Real timers: the copy's limit is real time on a real child process, and only a timer firing meanwhile shows the event loop free.
 	let ticks = 0;
 	const [timer, started] = [setInterval(() => ticks++, 100), Date.now()];
@@ -661,6 +662,17 @@ test("a copy that does not answer within 20 s counts as the machine unreachable,
 	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["blocked", "dependency: machine gpu unreachable since 2026-10-16T12:00:00.000Z"]);
 	assert.ok(waited >= 20_000 && waited < 25_000, `the copy gave up after ${waited} ms`);
 	assert.ok(ticks > 100, `the process ran ${ticks} timer ticks of 100 ms during the ${waited} ms copy`);
+});
+
+test("a copy that answers more than 64 MiB is cut here and counts as the machine unreachable, its jobs held, the process alive", async (t) => {
+	const gate = join(temporaryFolder(), "go");
+	t.after(() => writeFileSync(gate, ""));
+	const { home, machine, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	// From here `arthur remote-job records` there answers 100 MiB, past what `records` itself would send.
+	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\n[ "$2" = records ] && exec head -c 104857600 /dev/zero\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
+	await jobs.sweep();
+	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["blocked", "dependency: machine gpu unreachable since 2026-10-16T12:00:00.000Z"]);
 });
 
 test("a copy refuses a record file whose name is not a plain record key, naming it, and writes nothing of that answer", async () => {

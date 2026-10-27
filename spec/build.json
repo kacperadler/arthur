@@ -3890,5 +3890,12 @@
     "status": "planning",
     "path": "spec/features/AR0494-the-guard-skips-an-escaped-quote-inside-quotes-when-it-finds-a-fallback-end-so-a/ticket.md",
     "updated": "2026-10-27T08:43:04.027Z"
+  },
+  {
+    "id": "AR0495",
+    "title": "Source file size in three zones: green up to 200 lines, yellow up to 220, red up to 250, never above",
+    "status": "planning",
+    "path": "spec/features/AR0495-source-file-size-in-three-zones-green-up-to-200-lines-yellow-up-to-220-red-up-to/ticket.md",
+    "updated": "2026-10-27T08:54:22.534Z"
   }
 ]

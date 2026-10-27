@@ -39,3 +39,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: the coordinator's own turn on AR0487's wake (an `@/etc/passwd` in a job's message was read into the coordinator's context)
+- 2026-10-27: AR0532 approved; start it in the next free slot, ahead of the rest of Q2-Q4; the owner: "AR-D208 1" (AR-D208)

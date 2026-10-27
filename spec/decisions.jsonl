@@ -414,3 +414,4 @@
 {"record":"answer","id":"AR-D206","time":"2026-10-27T21:37:15+01:00","decided":"Merge AR0476 now","picked":1,"words":"AR-D206 1"}
 {"record":"answer","id":"AR-D204","time":"2026-10-27T21:37:16+01:00","decided":"Merge AR0514 now","picked":1,"words":"AR-D204 1"}
 {"record":"ask","id":"AR-D208","time":"2026-10-27T22:04:43+01:00","project":"arthur","kind":"job","question":"Approve AR0532 (a job message naming @<path> makes the coordinator read that file) and start it ahead of the rest of Q2-Q4?","options":["Approve and start it next","Approve, after Q4","Leave at planning"],"recommend":1,"ticket":"AR0532"}
+{"record":"answer","id":"AR-D208","time":"2026-10-27T22:22:18+01:00","decided":"AR0532 approved; start it in the next free slot, ahead of the rest of Q2-Q4","picked":1,"words":"AR-D208 1"}

@@ -4021,9 +4021,9 @@
   {
     "id": "AR0503",
     "title": "`--no-ci` is a bare flag, \"on the owner's word only\", with no recorded decision",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0503-no-ci-is-a-bare-flag-on-the-owner-s-word-only-with-no-recorded-decision/ticket.md",
-    "updated": "2026-10-27T20:46:34.780Z",
+    "updated": "2026-10-27T21:08:19.359Z",
     "after": [
       "AR0511",
       "AR0514",
@@ -4140,9 +4140,9 @@
   {
     "id": "AR0519",
     "title": "The env guard refuses a command whose text holds the word env after a dot, such as a regex on Node's environment object",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0519-the-env-guard-refuses-a-command-whose-text-holds-the-word-env-after-a-dot-such/ticket.md",
-    "updated": "2026-10-27T20:46:35.891Z",
+    "updated": "2026-10-27T21:07:58.148Z",
     "after": [
       "AR0511",
       "AR0514",
@@ -4258,8 +4258,8 @@
   {
     "id": "AR0532",
     "title": "A job final message naming @<path> makes the coordinator read that file into its own context",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0532-a-job-final-message-naming-path-makes-the-coordinator-read-that-file-into-its/ticket.md",
-    "updated": "2026-10-27T21:04:22.091Z"
+    "updated": "2026-10-27T21:22:19.918Z"
   }
 ]

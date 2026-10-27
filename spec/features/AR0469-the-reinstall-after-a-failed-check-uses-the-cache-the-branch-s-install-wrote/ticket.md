@@ -40,3 +40,4 @@ Out:
 
 - 2026-10-27: Source: F1 of AR0454
 - 2026-10-27: AR0469 approved by the owner (morning of 2026-10-27, one list of 18); the owner: "apprvoed: AR0467, AR0466, AR0471-AR0473, AR0464, AR0465, AR0468-AR0470, AR0474-AR0477, AR0402-AR0405" (AR-D132)
+- 2026-10-27: AR0469: delivery line budget 1584 -> 1590; the owner: "IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS" (AR-D158)

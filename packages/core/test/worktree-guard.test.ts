@@ -282,7 +282,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		...[..."<>;&|()#"].map((char) => ["bash", { command: `rm "\${x:-${char}}../../../../acme/README.md"` }, MAIN] as const),
 		["bash", { command: 'rm "${x:-~}"/../../../acme/README.md' }, MAIN],
 		["bash", { command: 'rm "${x:-~/../../../acme/README.md}"' }, MAIN],
-		["bash", { command: 'rm "${x:-"~"}/../../../acme/README.md"' }, MAIN],
+		["bash", { command: 'rm "${x:-"~/"}../../../acme/README.md"' }, MAIN],
 		["bash", { command: 'rm "${x:-~+}/README.md"' }, MAIN],
 		["bash", { command: `rm "\${x:-'..'}/../../../acme/README.md"` }, MAIN],
 		["bash", { command: 'rm "${x:-\\.\\.}/../../../acme/README.md"' }, MAIN],

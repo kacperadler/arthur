@@ -110,7 +110,7 @@ function execute([command = "", ...args]: readonly string[], input = "", limitSe
 const repositoryThere = (machine: Machine, project: string) => join(machine.home, "repos", `${project}.git`);
 export const url = (machine: Machine, project: string) => `${machine.ssh}:${repositoryThere(machine, project)}`;
 
-// Runs `argv` there, `input` on its stdin; its stdout, or the error of `failure`. `sshAsync` waits without blocking.
+// Runs `argv` there, `input` on its stdin; its stdout, or the error of `failure`. `sshAsync` waits without blocking; past `limitSeconds` it fails as with exit 255.
 export function ssh(machine: Machine, argv: readonly string[], input = ""): string {
 	const run = spawnSync("ssh", [...OPTIONS, machine.ssh, argv.map(quote).join(" ")], { encoding: "utf8", input });
 	// A command that ends without reading its input: its exit code tells what happened.
@@ -120,9 +120,9 @@ export function ssh(machine: Machine, argv: readonly string[], input = ""): stri
 	if (failed !== undefined) throw failed;
 	return run.stdout;
 }
-export async function sshAsync(machine: Machine, argv: readonly string[], input = ""): Promise<string> {
-	const run = await execute(["ssh", ...OPTIONS, machine.ssh, argv.map(quote).join(" ")], input);
-	const failed = failure(machine, argv, run.code, run.stderr);
+export async function sshAsync(machine: Machine, argv: readonly string[], input = "", limitSeconds?: number): Promise<string> {
+	const run = await execute(["ssh", ...OPTIONS, machine.ssh, argv.map(quote).join(" ")], input, limitSeconds);
+	const failed = failure(machine, argv, run.code === null && run.stderr.endsWith(`timed out after ${limitSeconds} s\n`) ? 255 : run.code, run.stderr);
 	if (failed !== undefined) throw failed;
 	return run.stdout;
 }

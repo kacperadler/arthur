@@ -5,7 +5,7 @@ import { projectOf } from "./decision-commands.ts";
 import { policyOf } from "./decision-classes.ts";
 import { type Decision, decisions, readLog } from "./decision-log.ts";
 
-// What only the owner's recorded decision lets through (AR0355): `arthur merge --unreviewed`, which delivery asks of
+// What only the owner's recorded decision lets through (AR0355): `arthur merge --unreviewed` or `--no-ci` (AR0503), which delivery asks of
 // `decision.owner`, and `--budget 0` of `arthur spawn` or `arthur continue` on a paid model, the `decision` the core hands
 // `beforeSpawn`. docs/commands/decision.md, "What only the owner's decision lets through".
 

@@ -5,8 +5,8 @@ import { type CiRun, startWait } from "./ci-wait.ts";
 import { reviewsOf } from "./review-records.ts";
 
 // `arthur merge --auto` (spec/roadmap.md, entry 59): the merge without the owner, only for a project with `autoMerge` on, a
-// PASS on the tip itself, no held path in the branch, and CI passed on it as `github.ci` answers; `--no-ci`, on the owner's
-// word, leaves CI out. CI not passed yet leaves a wait (ci-wait.ts). A plain merge asks CI too (AR0362). docs/commands/merge.md.
+// PASS on the tip itself, no held path in the branch, and CI passed on it as `github.ci` answers; never with `--no-ci`, which
+// only the owner's decision lifts (AR0503). CI not passed yet leaves a wait (ci-wait.ts). A plain merge asks CI too (AR0362). docs/commands/merge.md.
 
 type Entry = { readonly name: string; readonly autoMerge?: boolean; readonly prompts?: { readonly rolesDir?: string } };
 // The project's role overrides when its `prompts` names none, as the core reads them.
@@ -18,7 +18,7 @@ const git = (root: string, ...words: string[]) => spawnSync("git", ["--no-replac
 
 // Why `--auto` may not merge `job`'s `tip` into `main` at `before`, each refusal naming its rule; "" when it may. `held` is
 // delivery's always-review list.
-export async function autoRefusal(host: Host, held: (path: string) => boolean, merge: { readonly job: JobRecord; readonly root: string; readonly tip: string; readonly before: string; readonly ci: boolean }): Promise<string> {
+export async function autoRefusal(host: Host, held: (path: string) => boolean, merge: { readonly job: JobRecord; readonly root: string; readonly tip: string; readonly before: string }): Promise<string> {
 	const { job, root, tip, before } = merge;
 	const entry = entryOf(host, job.project);
 	if (entry?.autoMerge !== true) return `--auto merges only in a project with autoMerge on; ${job.project} has autoMerge ${entry?.autoMerge ?? "unset"}, so its merges wait for the owner: arthur merge ${job.id} on his word`;
@@ -40,7 +40,7 @@ export async function autoRefusal(host: Host, held: (path: string) => boolean, m
 		const rule = rules.find(([, globs]) => globs.some((glob) => matchesGlob(path, glob)))?.[0] ?? (held(path) ? "the always-review list" : undefined);
 		if (rule !== undefined) return `--auto merges no held path: ${job.branch} changes ${path} (${rule}); its merge waits for the owner: arthur merge ${job.id} on his word`;
 	}
-	return merge.ci ? ciRefusal(host, merge, true) : "";
+	return ciRefusal(host, merge, true);
 }
 
 // Why CI keeps `tip` out, "" when it may go in: for `--auto` (`auto`) CI passed on the tip itself, a run not ended or none on
@@ -50,7 +50,7 @@ export async function ciRefusal(host: Host, { job, root, tip, before }: { readon
 	try {
 		asked = host.call<Promise<CiRun | undefined>>("github.ci", { project: job.project, branch: job.branch });
 	} catch (error) {
-		return auto ? `--auto asks CI of github, which is not loaded (${(error as Error).message}); without it, only the owner's word merges: arthur merge ${job.id} --auto --no-ci` : "";
+		return auto ? `--auto asks CI of github, which is not loaded (${(error as Error).message}); without it, only the owner's decision merges: arthur merge ${job.id} --no-ci --decision <the owner's decision id>` : "";
 	}
 	const rule = `${auto ? "--auto" : "arthur merge"} merges only with CI passed on the branch`;
 	let run: CiRun | undefined;
@@ -71,6 +71,6 @@ export async function ciRefusal(host: Host, { job, root, tip, before }: { readon
 		startWait(host, { job: job.id, project: job.project, branch: job.branch, tip, own });
 		return `${rule}: ${where}, is ${run.status}${waits}`;
 	}
-	if (run.conclusion !== "success") return `${rule}: ${where}, ended ${run.conclusion}: ${run.url}; why: arthur ci ${job.branch} --project ${job.project}${auto ? "" : `; or merge it with --no-ci on the owner's word only`}`;
+	if (run.conclusion !== "success") return `${rule}: ${where}, ended ${run.conclusion}: ${run.url}; why: arthur ci ${job.branch} --project ${job.project}${auto ? "" : `; or merge it with --no-ci --decision <the owner's decision id>`}`;
 	return "";
 }

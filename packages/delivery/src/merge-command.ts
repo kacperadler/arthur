@@ -17,10 +17,10 @@ import { lastMerge, saveLastMerge } from "./take-main.ts";
 // checkout has, main, after every refusal; the checks run there, and main reset when one fails; then the ticket's side
 // (merge-outcome.ts) and the procedure after a merge. It commits nothing past the merge and prunes nothing; main is pushed by
 // the plugin that provides `github.push` (entry 58), when one is loaded. `--auto` (entry 59): the merge without the owner,
-// after the refusals of auto-merge.ts; CI asked of github for every merge, `--no-ci` leaving it out (AR0362); `--unreviewed`
-// only with the owner's decision that orchestration's `decision.owner` holds (AR0355). docs/commands/merge.md.
+// after the refusals of auto-merge.ts; CI asked of github for every merge, `--no-ci` leaving it out (AR0362); `--unreviewed` and
+// `--no-ci`, never with `--auto`, only with the owner's decision orchestration's `decision.owner` holds (AR0355, AR0503). docs/commands/merge.md.
 
-const USAGE = "usage: arthur merge <job> [--unreviewed --decision <id> | --auto] [--no-ci]";
+const USAGE = "usage: arthur merge <job> [--auto | [--unreviewed] [--no-ci] --decision <id>]";
 const FLAGS = ["--unreviewed", "--auto", "--no-ci"];
 // The board's moves since the last commit are left uncommitted until the commit after a merge, so they are no dirt; nor is the
 // changelog each merge rebuilds (changelog.ts).
@@ -39,7 +39,7 @@ export function mergeCommand(host: Host, procedure: URL, held: (path: string) =>
 			const flag = words.find((word) => word.startsWith("-"));
 			const [name] = words;
 			const [unreviewed = false, auto = false, noCi = false] = FLAGS.map((each) => args.includes(each));
-			const mixed = auto && unreviewed ? "--auto merges only with a PASS, --unreviewed without one: one or the other" : decision === "" || decision?.startsWith("-") ? "--decision needs a value" : decision !== undefined && !unreviewed ? "--decision goes with --unreviewed" : undefined;
+			const mixed = auto && unreviewed ? "--auto merges only with a PASS, --unreviewed without one: one or the other" : auto && noCi ? "--auto merges only with CI passed, --no-ci without it on the owner's decision: one or the other" : decision === "" || decision?.startsWith("-") ? "--decision needs a value" : decision !== undefined && !unreviewed && !noCi ? "--decision goes with --unreviewed or --no-ci" : undefined;
 			if (name === undefined || words.length > 1 || flag !== undefined || mixed !== undefined) {
 				console.error(`arthur merge: ${flag !== undefined ? `unknown flag ${flag}` : (mixed ?? (name === undefined ? "no job" : `one job; got ${words.length}`))}\n${USAGE}`);
 				return 2;
@@ -123,9 +123,9 @@ async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly
 	if (strays.length > 0) throw new Error(`${main} has ${strays.length} commits since its last merge that change code (${named}); ${lift}`);
 	const gap = passGap(host, job, tip);
 	if (gap !== "" && !mode.unreviewed && !mode.auto) throw new Error(`${gap}; review it with arthur review ${job.id}, or merge it with --unreviewed --decision <the owner's decision id>; main is unchanged`);
-	const owner = mode.unreviewed ? host.call<string>("decision.owner", { id: mode.decision ?? "", what: "--unreviewed", kind: "merge", ticket: ticket?.id, job: job.id, use: `merge ${job.id}` }) : "";
+	const owner = [...(mode.unreviewed ? ["--unreviewed"] : []), ...(mode.ci ? [] : ["--no-ci"])].reduce((said, what) => said || host.call<string>("decision.owner", { id: mode.decision ?? "", what, kind: "merge", ticket: ticket?.id, job: job.id, use: `merge ${job.id}` }), "");
 	if (owner !== "") throw new Error(`${owner}; main is unchanged`);
-	const refusal = mode.auto ? await autoRefusal(host, mode.held, { job, root, tip, before, ci: mode.ci }) : mode.ci ? await ciRefusal(host, { job, root, tip, before }, false) : "";
+	const refusal = mode.auto ? await autoRefusal(host, mode.held, { job, root, tip, before }) : mode.ci ? await ciRefusal(host, { job, root, tip, before }, false) : "";
 	if (refusal !== "") throw new Error(`${refusal}; main is unchanged`);
 	const refusals = host.collect("merge.check", job).filter((answer) => typeof answer === "string" && answer !== "");
 	if (refusals.length > 0) throw new Error(`refused by merge.check: ${refusals.join("; ")}; main is unchanged`);

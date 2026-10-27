@@ -4084,9 +4084,9 @@
   {
     "id": "AR0511",
     "title": "The github plugin's docs offer a classic token with `repo`, which writes every repository of the account",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0511-the-github-plugin-s-docs-offer-a-classic-token-with-repo-which-writes-every/ticket.md",
-    "updated": "2026-10-27T12:45:12.683Z"
+    "updated": "2026-10-27T19:34:23.872Z"
   },
   {
     "id": "AR0512",
@@ -4105,9 +4105,9 @@
   {
     "id": "AR0514",
     "title": "spawn.md still lists a job reaching the user's own SSH login as a limit, which a hidden ~/.ssh mostly ends",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0514-spawn-md-still-lists-a-job-reaching-the-user-s-own-ssh-login-as-a-limit-which-a/ticket.md",
-    "updated": "2026-10-27T18:54:15.380Z"
+    "updated": "2026-10-27T19:20:35.211Z"
   },
   {
     "id": "AR0515",

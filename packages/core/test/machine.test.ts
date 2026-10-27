@@ -12,6 +12,7 @@ import { eventBus } from "../src/events.ts";
 import { coreVersion, ssh, sshAsync } from "../src/job-machine.ts";
 import type { Slice } from "../src/job-scope.ts";
 import { jobRunner } from "../src/jobs.ts";
+import { secretNames } from "../src/secret-names.ts";
 import { fakeAgent, fakeHost, jobSlice, temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
@@ -43,9 +44,9 @@ const calls = () => (existsSync(sshLog) ? readFileSync(sshLog, "utf8").split("\n
 
 // A repository `acme` with one commit, a home folder beside it, and a machine `gpu` in a folder of its own whose `arthur` is
 // this core (`arthur` there: the script of `<machine>/bin/arthur`); the runner's plugin `machines` registers it, and `place`
-// answers its `jobs.place`, `caps` its `jobs.limits`, `roles` its `roles.model`, one answer per plugin that provides it. The
-// runner's clock stands at `now.at`, which a test moves.
-function setup(options: { readonly agent?: string; readonly arthur?: string; readonly place?: () => readonly unknown[]; readonly caps?: () => readonly unknown[]; readonly roles?: () => readonly unknown[]; readonly slice?: Slice } = {}) {
+// answers its `jobs.place`, `caps` its `jobs.limits`, `roles` its `roles.model`, `prompt` its `prompt`, one answer per plugin
+// that provides it; `hide` names the env values (secret-names.ts). The runner's clock stands at `now.at`, which a test moves.
+function setup(options: { readonly agent?: string; readonly arthur?: string; readonly place?: () => readonly unknown[]; readonly caps?: () => readonly unknown[]; readonly roles?: () => readonly unknown[]; readonly prompt?: () => readonly unknown[]; readonly hide?: (text: string) => string; readonly slice?: Slice } = {}) {
 	rmSync(sshLog, { force: true });
 	const folder = temporaryFolder();
 	const root = join(folder, "acme");
@@ -60,10 +61,10 @@ function setup(options: { readonly agent?: string; readonly arthur?: string; rea
 	const there = join(machine, "arthur-home");
 	const now = { at: new Date("2026-10-16T12:00:00Z") };
 	const time = clock("UTC", undefined, () => now.at);
-	const answers: Readonly<Record<string, (() => readonly unknown[]) | undefined>> = { "jobs.place": options.place, "jobs.limits": options.caps, "roles.model": options.roles };
+	const answers: Readonly<Record<string, (() => readonly unknown[]) | undefined>> = { "jobs.place": options.place, "jobs.limits": options.caps, "roles.model": options.roles, prompt: options.prompt };
 	const collect = (name: string) => [...(answers[name]?.() ?? [])];
 	const limits = { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...(options.slice ?? jobSlice) };
-	const jobs = jobRunner(home, root, join(root, "env"), limits, options.agent ?? "omp", time, eventBus(home), collect);
+	const jobs = jobRunner(home, root, join(root, "env"), limits, options.agent ?? "omp", time, eventBus(home), collect, options.hide);
 	jobs.registerMachine("machines", { name: "gpu", ssh: "gpu", home: there, labels: { os: "linux" } });
 	return { root, home, machine, there, jobs, now };
 }
@@ -132,6 +133,15 @@ test("a worker on another machine runs there over SSH; the sweep copies its reco
 	const second = await jobs.spawn({ task: "Again.", machine: "gpu", kind: "worker" });
 	assert.equal(second.failed, undefined);
 	assert.equal(calls().filter((call) => call.includes("receive-pack")).length, 1, "the base commit there is not pushed twice");
+});
+
+test("the prompt a job on another machine gets names each env value, there as here", async () => {
+	const agent = fakeAgent({ steps: [{ message: "Done." }] });
+	const { home, there, jobs } = setup({ agent, prompt: () => ["Call it with s3cret-t0ken-123."], hide: secretNames({ ARTHUR_TEST_TOKEN: "s3cret-t0ken-123" }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	assert.equal(job.failed, undefined);
+	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
+	for (const folder of [home, there]) assert.match(read(folder, job.id, "prompt"), /Call it with ARTHUR_TEST_TOKEN\.\n/, folder);
 });
 
 test("the push of a job's base to another machine and the fetch of its branch back are refused while the checkout's own config sets a key that may name a program", async () => {

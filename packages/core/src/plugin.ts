@@ -69,7 +69,7 @@ export type Host = {
 	// from a shell command to the command and arguments that run it by `sh -c` writing only in the checkout `folder` (each
 	// entry but `.git`, Arthur's home, config and env file; of `.git` its objects, refs, logs and index), the folder `cache`,
 	// made if missing, where the package managers' caches go (the plugin's own, which it removes), the temporary folder and
-	// `/dev`, reading every file but the env file, and no other process's environment; where it cannot be set up, `note` gets
+	// `/dev`, reading every file but the env file and `~/.ssh`, and no other process's environment; where it cannot be set up, `note` gets
 	// one line, `no sandbox: <why>; each step writes wherever Arthur's user can`, and it runs bare, its caches in `cache` still.
 	sandbox(folder: string, cache: string, note: (line: string) => void): (command: string) => [string, string[]];
 	// The package folders this load runs, the core's, then each enabled plugin's around its `module` if any (the session plugin's restart guard watches their `src/`); `package`, this plugin's own.

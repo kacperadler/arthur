@@ -381,3 +381,5 @@
 {"record":"answer","id":"AR-D190","time":"2026-10-27T17:00:54+01:00","decided":"AR0517 another round: the worker puts a fake agent first on PATH in the socket-folder test, then review round 3","picked":1,"words":"AR-D190 1]"}
 {"record":"ask","id":"AR-D191","time":"2026-10-27T17:12:19+01:00","project":"arthur","kind":"merge","question":"Merge AR0517, which passed review: owner-only modes for Arthur files and the tmux socket folder check","options":["Merge","Wait"],"recommend":1,"ticket":"AR0517"}
 {"record":"answer","id":"AR-D191","time":"2026-10-27T17:12:19+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D74"}
+{"record":"ask","id":"AR-D192","time":"2026-10-27T17:20:24+01:00","project":"arthur","kind":"budget","question":"Raise the core line budget from 6377 to 6395 for AR0518 (security tickets): the fixes of its review 1","options":["Raise it","Refuse"],"recommend":1,"ticket":"AR0518"}
+{"record":"answer","id":"AR-D192","time":"2026-10-27T17:20:24+01:00","decided":"Raise the core line budget by what the fix needs, without asking the owner","words":"by policy: AR-D63"}

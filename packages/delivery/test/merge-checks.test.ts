@@ -55,13 +55,13 @@ test("a step still running at its limit is killed with SIGKILL, though it ignore
 
 // A checkout `acme` with a real submodule at `vendor/lib` and the owner's own clones at `tools/scratch`, with one commit, a
 // linked worktree at `tools/wt` and `core.splitIndex` set, and `tools/other`, its `.git` 775 as umask 002 makes it, his bare
-// repository `tools/bare.git` and his symlink `tools/beside` to a repository beside the checkout, all there before the first
-// step; `fsmonitor` that repository, whose `core.fsmonitor` writes `pwned`, as the reviewer of AR0457 planted one.
+// repository `tools/bare.git`, his symlink `tools/beside` to a repository beside the checkout and `tools/py` to a file `out/py`
+// there, all there before the first step; `fsmonitor` that repository, whose `core.fsmonitor` writes `pwned`, as the reviewer of AR0457 planted one.
 function planted() {
 	const folder = temporaryFolder();
 	const [root, pwned] = [join(folder, "acme"), join(folder, "pwned")];
 	const git = (at: string, ...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "protocol.file.allow=always", "-C", at, ...args], { encoding: "utf8" }).trim();
-	for (const [path, text] of Object.entries({ "acme/src/shop.ts": "export const shop = 1;\n", "acme/lib/cart.ts": "export const cart = 1;\n", "acme/tools/scratch/notes.md": "# notes\n", "acme/tools/other/notes.md": "# notes\n", "lib/lib.ts": "export const lib = 1;\n", "fsmonitor/a": "" })) {
+	for (const [path, text] of Object.entries({ "acme/src/shop.ts": "export const shop = 1;\n", "acme/lib/cart.ts": "export const cart = 1;\n", "acme/tools/scratch/notes.md": "# notes\n", "acme/tools/other/notes.md": "# notes\n", "lib/lib.ts": "export const lib = 1;\n", "fsmonitor/a": "", "out/py": "" })) {
 		mkdirSync(join(folder, path, ".."), { recursive: true });
 		writeFileSync(join(folder, path), text);
 	}
@@ -77,6 +77,7 @@ function planted() {
 	chmodSync(join(root, "tools", "other", ".git"), 0o775);
 	git(root, "init", "--quiet", "--bare", "tools/bare.git");
 	symlinkSync(join(folder, "fsmonitor"), join(root, "tools", "beside"));
+	symlinkSync(join(folder, "out", "py"), join(root, "tools", "py"));
 	writeFileSync(join(root, ".gitignore"), "tools/\n");
 	git(root, "add", "--all");
 	git(root, "commit", "--quiet", "-m", "first");
@@ -105,10 +106,10 @@ test("a step's nested repository and .git file are removed after it, one line ea
 	assert.equal(lines.length, 2, "a step that plants nothing adds no line");
 });
 
-test("a failed step is swept too: a submodule's .git file it rewrote, a repository in a folder it made unreadable, and one it made unremovable; the checkout's own .git, even remade by a step run bare, stays, and the one it moved away is removed", () => {
+test("a failed step is swept too: a submodule's .git file it rewrote, a repository in a folder it made unreadable, and one it made unremovable; the checkout's own .git, even remade by a step run bare, and the checkout with a HEAD at its top stay, and the .git it moved away is removed", () => {
 	const { root, gitfile, git, run, lines } = planted();
 	const head = git(root, "rev-parse", "HEAD");
-	const command = ["mv .git .git-old", "cp -R .git-old .git", `echo '${gitfile}' > vendor/lib/.git`, "mkdir -p deep/x hard", "git init -q deep/x", "chmod 300 deep", "git init -q hard", "chmod 500 hard/.git/objects hard", "exit 1"].join(" && ");
+	const command = ["mv .git .git-old", "cp -R .git-old .git", "echo 'ref: refs/heads/main' > HEAD", `echo '${gitfile}' > vendor/lib/.git`, "mkdir -p deep/x hard", "git init -q deep/x", "chmod 300 deep", "git init -q hard", "chmod 500 hard/.git/objects hard", "exit 1"].join(" && ");
 	const ran = run(command, process.env);
 	assert.equal(ran.status, 1, ran.stderr);
 	assert.deepEqual(lines.sort(), said(command, ".git-old", "deep/x/.git", "hard/.git", "vendor/lib/.git"));
@@ -137,7 +138,7 @@ test("a repository a step made under another name, a bare one turned into a work
 	assert.deepEqual(kept(), before, "the owner's clones, bare repository and symlink are the same ones");
 });
 
-test("a symlink a step made to a folder outside the checkout, into its .git, or dangling outside it is removed after it, one line each; one to a folder inside it, to a file, or dangling inside it stays", () => {
+test("a symlink a step made to a folder outside the checkout, into its .git, or dangling outside it is removed after it, one line each; one to a folder inside it, to a file, or dangling inside it stays, and so does the owner's from before the first step, though its target went and a folder came in its place", () => {
 	const { root, run, lines } = planted();
 	const beside = join(root, "..");
 	const links = { link: join(beside, "fsmonitor"), objects: "../.git/objects", later: join(beside, "later"), inner: "../lib", file: join(beside, "fsmonitor", "a"), soon: "../made/later" };
@@ -147,6 +148,9 @@ test("a symlink a step made to a folder outside the checkout, into its .git, or 
 	assert.deepEqual(lines.sort(), said(command, "src/later", "src/link", "src/objects"));
 	assert.deepEqual(Object.keys(links).map((name) => lstatSync(join(root, "src", name), { throwIfNoEntry: false })?.isSymbolicLink() ?? false), [false, false, false, true, true, true]);
 	assert.equal(existsSync(join(beside, "fsmonitor", ".git")), true, "the removed symlink's target stays");
+	for (const step of [`rm '${join(beside, "out", "py")}'`, `mkdir '${join(beside, "out", "py")}'`]) assert.equal(run(step, process.env).status, 0);
+	assert.equal(lines.length, 3, "the owner's symlink, the same, adds no line");
+	assert.equal(lstatSync(join(root, "tools", "py")).isSymbolicLink(), true);
 });
 
 test("a step that only reads the owner's clones with git keeps them and their history, though git status rewrote their index, a split one and a linked worktree's; one that then writes a hook or core.fsmonitor in one has it removed", () => {

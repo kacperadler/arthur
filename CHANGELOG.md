@@ -35,6 +35,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0464 The stop test of a forked install process fails now and then under a merge step (93da6344)
 - AR0475 Line budgets on one line, plus a comment log, conflict on most merges of main (ae463a28)
+- AR0511 The github plugin's docs offer a classic token with `repo`, which writes every repository of the account (231e9f1d)
 
 ## 2026-10-26
 

@@ -3783,9 +3783,9 @@
   {
     "id": "AR0476",
     "title": "arthur doctor tells the owner to fix a committed env file with a .gitignore line that cannot help",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0476-arthur-doctor-tells-the-owner-to-fix-a-committed-env-file-with-a-gitignore-line/ticket.md",
-    "updated": "2026-10-27T20:04:14.177Z"
+    "updated": "2026-10-27T20:13:42.613Z"
   },
   {
     "id": "AR0477",
@@ -4042,9 +4042,9 @@
   {
     "id": "AR0505",
     "title": "The coordinator's role does not say that a `[forwarded from …]` text inside the owner's message is someone else's words",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0505-the-coordinator-s-role-does-not-say-that-a-forwarded-from-text-inside-the-owner/ticket.md",
-    "updated": "2026-10-27T20:02:47.296Z"
+    "updated": "2026-10-27T20:10:17.783Z"
   },
   {
     "id": "AR0506",
@@ -4084,9 +4084,9 @@
   {
     "id": "AR0511",
     "title": "The github plugin's docs offer a classic token with `repo`, which writes every repository of the account",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0511-the-github-plugin-s-docs-offer-a-classic-token-with-repo-which-writes-every/ticket.md",
-    "updated": "2026-10-27T19:34:23.872Z"
+    "updated": "2026-10-27T20:13:39.821Z"
   },
   {
     "id": "AR0512",

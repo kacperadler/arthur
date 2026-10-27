@@ -110,14 +110,16 @@ test("a hidden path reads nowhere: not by its path, nor made later; a file besid
 	assert.deepEqual(log, [`sandbox: the agent writes only in ${open}, /dev, reads every file but ${join(shut, "env")}, ${join(open, "later", "env")}, and opens no Unix socket but a datagram one`]);
 });
 
-test("a hidden path inside another hidden folder unhides nothing of that folder", { skip: bare }, () => {
+test("a hidden path inside another hidden folder, directly or deeper, unhides nothing of that folder", { skip: bare }, () => {
 	const folder = temporaryFolder();
 	const ssh = join(folder, ".ssh");
-	mkdirSync(ssh);
-	writeFileSync(join(ssh, "id_fake"), "FAKE-PRIVATE-KEY\n");
-	writeFileSync(join(ssh, "env"), "secret\n");
-	const { out } = inside(["/dev"], `cat '${join(ssh, "id_fake")}' || echo refused`, folder, [join(ssh, "env"), ssh]);
-	assert.equal(out, "refused\n");
+	mkdirSync(join(ssh, "sub"), { recursive: true });
+	for (const at of [ssh, join(ssh, "sub")]) {
+		writeFileSync(join(at, "id_fake"), "FAKE-PRIVATE-KEY\n");
+		writeFileSync(join(at, "env"), "secret\n");
+	}
+	const read = `for key in '${join(ssh, "id_fake")}' '${join(ssh, "sub", "id_fake")}'; do cat "$key" || echo refused; done`;
+	for (const env of [join(ssh, "env"), join(ssh, "sub", "env")]) assert.equal(inside(["/dev"], read, folder, [env, ssh]).out, "refused\nrefused\n", env);
 });
 
 test("in the sandbox a Unix socket is refused, a server's that listens as well; TCP still connects", { skip: locked }, async (t) => {

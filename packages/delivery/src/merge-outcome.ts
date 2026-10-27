@@ -39,11 +39,10 @@ export function settleTicket(host: Host, merged: Merged, log: (line: string) => 
 	const reviews = filed()
 		.filter(({ text }) => text.includes(`\n- Branch: ${job.branch}\n`))
 		.map(({ name, text }) => `${name} ${/^- Verdict: (.+)$/m.exec(text)?.[1] ?? "none"}`);
+	// A cost as the core's record holds it now, else as delivery's review record kept it when the review ended (a pruned one).
 	const records = host.jobs.list();
-	const dollars = (ids: readonly string[]) => {
-		const costs = ids.map((id) => records.find((record) => record.id === id)?.cost ?? "");
-		return costs.some((cost) => cost === "") ? "n/a" : `$${costs.reduce((sum, cost) => sum + Number(cost), 0).toFixed(2)}`;
-	};
+	const live = (id: string) => records.find((record) => record.id === id)?.cost;
+	const dollars = (costs: readonly (string | undefined)[]) => (costs.some((cost) => cost === undefined || cost === "") ? "n/a" : `$${costs.reduce((sum, cost) => sum + Number(cost), 0).toFixed(2)}`);
 	const left = findings(host, merged);
 	for (const line of left) log(line);
 	const text = [
@@ -52,7 +51,7 @@ export function settleTicket(host: Host, merged: Merged, log: (line: string) => 
 		`- Merged: ${host.clock.local().date}, \`${merged.hash}\``,
 		`- Branch: ${job.branch}`,
 		`- Reviews: ${reviews.join(", ") || "none"}${merged.gap && `; merged unreviewed (--unreviewed): ${merged.gap}`}`,
-		`- Cost: worker ${dollars([job.id])}, reviews ${dollars(ended.map(([review]) => review.id))}; review rounds ${reviews.length}`,
+		`- Cost: worker ${dollars([live(job.id)])}, reviews ${dollars(ended.map(([review]) => live(review.id) ?? review.cost))}; review rounds ${reviews.length}`,
 		...["", "## What went in", "", ...merged.subjects.map((subject) => `- ${subject}`)],
 		...["", "## Checks on main", "", ...(merged.steps.length > 0 ? merged.steps.map((each) => `- \`${each.command}\`: ${each.result}`) : ["- no checks"])],
 		...["", "## Left open", "", ...left, ""],

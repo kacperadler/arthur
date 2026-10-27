@@ -43,3 +43,4 @@ Out:
 - 2026-10-27: AR0469: delivery line budget 1584 -> 1590; the owner: "IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS" (AR-D158)
 - 2026-10-27: AR0469: delivery line budget 1590 -> 1591 on its base; the owner: "IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS" (AR-D162)
 - 2026-10-27: AR0469: round 3, tests only: a merge-level test that the reinstall removes a late .git, and the one uncapped line asserted; the owner: "keep going till 88% of Claude 7 Day limit, go silent and always go with recommendations" (AR-D164)
+- 2026-10-27: AR0469 merge of main: (a) shorten comments only to bring merge-checks.ts to 200 lines, no code change (the shortest diff; the coordinator's recommendation under AR-D142); the owner: "keep going till 88% of Claude 7 Day limit, go silent and always go with recommendations" (AR-D169)

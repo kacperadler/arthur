@@ -20,22 +20,23 @@ F1 of AR0429 (spec/features/AR0429-the-guard-misreads-four-short-forms-arthur-jo
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+A job can write into another job's folder through `${ARTHUR_JOB%/*}` and the other `${…}` operators the guard reads as nothing (evidence in the finding above).
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- A `${…}` of `PWD` or a known variable with an operator the parser does not read is refused, as `${OLDPWD…}` is; rows in `packages/core/test/worktree-guard.test.ts` that fail without the fix.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/shell-words.ts`, `packages/core/test/worktree-guard.test.ts`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Computing the operators; AR0472 and AR0473.
 
 ## Decisions
 
 - 2026-10-27: Source: F1 of AR0429
+- 2026-10-27: AR0471 approved by the owner (morning of 2026-10-27, one list of 18); the owner: "apprvoed: AR0467, AR0466, AR0471-AR0473, AR0464, AR0465, AR0468-AR0470, AR0474-AR0477, AR0402-AR0405" (AR-D126)

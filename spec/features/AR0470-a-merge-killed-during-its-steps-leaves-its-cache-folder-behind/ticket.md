@@ -20,22 +20,23 @@ F2 of AR0454 (spec/features/AR0454-the-writable-package-caches-carry-branch-code
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+A merge killed during its steps leaves its `cache-*` folder, with what the branch's install wrote, in delivery's folder for good (finding above).
 
 - Kind: fix
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- At each merge's start, delivery removes its own `cache-*` folders older than a day and keeps younger ones; a test in `packages/delivery/test/merge.test.ts` with an old and a young folder.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/delivery/src/merge-command.ts`, its test.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Reusing a cache folder.
 
 ## Decisions
 
 - 2026-10-27: Source: F2 of AR0454
+- 2026-10-27: AR0470 approved by the owner (morning of 2026-10-27, one list of 18); the owner: "apprvoed: AR0467, AR0466, AR0471-AR0473, AR0464, AR0465, AR0468-AR0470, AR0474-AR0477, AR0402-AR0405" (AR-D133)

@@ -20,22 +20,23 @@ F1 of AR0463 (spec/features/AR0463-a-merge-step-can-plant-a-nested-repository-wh
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+Close the hole the finding above shows: a merge step that plants a bare repository under another name, or a symlink to a repository, still gets its fsmonitor run at the owner's next git call there. Evidence: the throwaway script in the finding printed `ran fsmonitor: true` for both.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- After a merge step, a symlink the step made and a folder the step made that holds `HEAD` and `objects/` are removed (or the step's writes are confined), with one line each; tests in `packages/delivery/test/merge-checks.test.ts` for both forms that fail without the fix.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/delivery/src/merge-checks.ts`, its test, `packages/delivery/docs/commands/merge.md`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The `.git` sweep's rule for the owner's own clones: AR0467.
 
 ## Decisions
 
 - 2026-10-26: Source: F1 of AR0463
+- 2026-10-27: AR0466 approved by the owner (morning of 2026-10-27, one list of 18); the owner: "apprvoed: AR0467, AR0466, AR0471-AR0473, AR0464, AR0465, AR0468-AR0470, AR0474-AR0477, AR0402-AR0405" (AR-D125)

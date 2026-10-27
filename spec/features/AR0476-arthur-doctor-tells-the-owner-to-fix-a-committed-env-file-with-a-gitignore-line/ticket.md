@@ -39,3 +39,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: audit spec/quality/2026-10-27.md
+- 2026-10-27: AR0476 approved by the owner (morning of 2026-10-27, one list of 18); the owner: "apprvoed: AR0467, AR0466, AR0471-AR0473, AR0464, AR0465, AR0468-AR0470, AR0474-AR0477, AR0402-AR0405" (AR-D136)

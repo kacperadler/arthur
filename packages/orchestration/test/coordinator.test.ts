@@ -290,35 +290,40 @@ test("arthur attach with no session says so; wrong usage of either command exits
 });
 
 // AR0517: tmux makes its socket 0660, so whoever enters its folder in the socket's group reaches the coordinator.
-test("a socket path in a folder the group or others may enter refuses the coordinator's start, the folder left as it is and no server made; a missing folder and a name never", async (t) => {
+test("a socket path in a folder the group or others may enter refuses the coordinator's start, the folder left as it is and tmux never asked; a missing folder and a name never", async (t) => {
 	const said: string[] = [];
 	for (const method of ["log", "error"] as const) t.mock.method(console, method, (text: string) => void said.push(text));
+	// The fake agent first on PATH, and beside it a tmux that runs nothing: it notes which omp its new-session would start
+	// and on which socket, then fails, so no host's agent or tmux server is ever reached.
+	const agent = fakeAgent({ steps: [] });
+	const asked = join(dirname(agent), "new-session");
+	writeFileSync(join(dirname(agent), "tmux"), `#!/bin/sh\nfor arg; do [ "$arg" = new-session ] && echo "$(command -v omp) $1 $2" >> '${asked}'; done\necho "stub tmux: no server" >&2\nexit 1\n`, { mode: 0o755 });
+	process.env.PATH = `${dirname(agent)}${delimiter}${PATH}`;
+	t.after(() => void (process.env.PATH = PATH));
 	const folder = join(temporaryFolder(), "sockets");
 	const socket = join(folder, "tmux.sock");
 	mkdirSync(folder);
-	t.after(() => tmux(socket, "kill-server"));
 	const start = async (socket: string) => {
 		const supervisor = supervise(coordinatorOptions({ coordinator: { tmux: { session: "coord", socket }, exitWaitSeconds: 1, restartDelaySeconds: 1 } }), temporaryFolder(), "omp");
 		await until("the start's first line", () => said.length > 0);
 		await supervisor.stop();
 		return said.splice(0);
 	};
+	const failed = "orchestration: coordinator start failed: tmux new-session: stub tmux: no server; trying again in 1 s";
 	for (const mode of [0o750, 0o711, 0o705, 0o703]) {
 		chmodSync(folder, mode);
 		const line = `orchestration: coordinator start refused: the tmux socket's folder ${folder} is open to other users (mode ${mode.toString(8)}); chmod 700 ${folder}, or give coordinator.tmux.socket a name without a /; trying again in 1 s`;
-		assert.deepEqual([await start(socket), (statSync(folder).mode & 0o777).toString(8), existsSync(socket)], [[line], mode.toString(8), false]);
+		assert.deepEqual([await start(socket), (statSync(folder).mode & 0o777).toString(8), existsSync(asked)], [[line], mode.toString(8), false]);
 	}
 	// A folder that is not there is not refused: tmux's own failure says so, and nothing makes the folder.
 	const missing = join(temporaryFolder(), "missing");
-	const failed = await start(join(missing, "tmux.sock"));
-	assert.deepEqual([failed.length, existsSync(missing)], [1, false]);
-	assert.match(failed[0] ?? "", /^orchestration: coordinator start failed: tmux new-session: .+; trying again in 1 s$/);
+	assert.deepEqual([await start(join(missing, "tmux.sock")), existsSync(missing)], [[failed], false]);
 	// A name's socket is in tmux's own folder, whatever folder arthur run runs in.
 	const [before, name] = [process.cwd(), `arthur-test-${process.pid}`];
 	process.chdir(folder);
 	t.after(() => process.chdir(before));
-	t.after(() => tmux(name, "kill-server"));
-	assert.doesNotMatch((await start(name)).join("\n"), /refused/);
+	assert.deepEqual(await start(name), [failed]);
+	assert.deepEqual(readFileSync(asked, "utf8").split("\n"), [`${agent} -S ${join(missing, "tmux.sock")}`, `${agent} -L ${name}`, ""], "each new-session would start the fake agent");
 });
 
 test("arthur coordinator stop is refused while a job runs, naming it, and the coordinator goes on", { skip: NO_UNIX_SOCKET }, async (t) => {

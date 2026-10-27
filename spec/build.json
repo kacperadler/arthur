@@ -3691,9 +3691,9 @@
   {
     "id": "AR0466",
     "title": "A step can plant a repository under a name other than `.git`, or a symlink to one, which the sweep does not see",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0466-a-step-can-plant-a-repository-under-a-name-other-than-git-or-a-symlink-to-one/ticket.md",
-    "updated": "2026-10-27T08:15:50.945Z"
+    "updated": "2026-10-27T08:20:35.376Z"
   },
   {
     "id": "AR0467",

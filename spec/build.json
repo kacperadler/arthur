@@ -3992,9 +3992,9 @@
   {
     "id": "AR0509",
     "title": "The sweep's copy from another machine has no size or time bound, so one machine stalls every job on it, or all of `arthur run`",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0509-the-sweep-s-copy-from-another-machine-has-no-size-or-time-bound-so-one-machine/ticket.md",
-    "updated": "2026-10-27T13:42:47.148Z"
+    "updated": "2026-10-27T14:16:03.711Z"
   },
   {
     "id": "AR0510",
@@ -4048,9 +4048,9 @@
   {
     "id": "AR0517",
     "title": "Arthur's records, logs, sockets and locks are readable only by Arthur's own user",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0517-arthur-s-records-logs-sockets-and-locks-are-readable-only-by-arthur-s-own-user/ticket.md",
-    "updated": "2026-10-27T13:51:52.894Z"
+    "updated": "2026-10-27T14:14:31.742Z"
   },
   {
     "id": "AR0518",

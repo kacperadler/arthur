@@ -524,6 +524,41 @@ test("the extension's notice of omp's error reaches the phone with each env file
 	]);
 });
 
+test("an @<path> in a message's text reaches the agent as that text with a word joiner before the @, so omp reads no file: handed while idle, joining a turn, resuming one", (t) => {
+	const folder = temporaryFolder();
+	t.after(() => delete process.env.ARTHUR_ORCHESTRATION_FOLDER);
+	process.env.ARTHUR_ORCHESTRATION_FOLDER = folder;
+	t.mock.timers.enable({ apis: ["Date"], now: 0 });
+	const handlers = new Map<string, (event: object, ctx: object) => unknown>();
+	const sent: unknown[][] = [];
+	extension({ on: (name: string, handler: (event: object, ctx: object) => unknown) => void handlers.set(name, handler), sendUserMessage: (...args: unknown[]) => void sent.push(args) } as unknown as Parameters<typeof extension>[0]);
+	let tick = () => {};
+	const ctx = { hasUI: true, isIdle: () => true, ui: { setStatus: () => {} }, setInterval: (fn: () => void) => void (tick = fn) };
+	const put = (seq: number, message: object) => writeFileSync(join(folder, "inbox", "queued", `${seq}-1792363617800`), JSON.stringify(message));
+	// omp 18.3.0's utils/file-mentions.ts: each `@` it reads a file for.
+	const mentions = (content: string) => [...content.matchAll(/@(?:"([^"]+)"|'([^']+)'|([^\s@]+))/g)].filter((match) => match.index === 0 || /[\s([{<"'`]/.test(content[match.index - 1] ?? "")).map((match) => match[0]);
+	const text = "@/etc/passwd first\nthe test input `@/etc/passwd`, (@~/.ssh/id_ed25519) @\"/home/me/my notes.md\" and @'.env'\n> @.env\nme@example.com, @@x, a\t@/etc/hosts";
+	assert.deepEqual(mentions(text), ["@/etc/passwd", "@/etc/passwd`,", "@~/.ssh/id_ed25519)", '@"/home/me/my notes.md"', "@'.env'", "@.env", "@/etc/hosts"]);
+	const quoted = "> \u2060@/etc/passwd first\n> the test input `\u2060@/etc/passwd`, (\u2060@~/.ssh/id_ed25519) \u2060@\"/home/me/my notes.md\" and \u2060@'.env'\n> > \u2060@.env\n> me@example.com, \u2060@@x, a\t\u2060@/etc/hosts";
+	mkdirSync(join(folder, "inbox", "queued"), { recursive: true });
+	put(1, { text });
+	handlers.get("session_start")?.({}, ctx);
+	tick();
+	t.mock.timers.tick(1000);
+	tick();
+	handlers.get("agent_start")?.({}, ctx);
+	put(2, { channel: "telegram", text });
+	handlers.get("tool_result")?.({}, ctx);
+	put(3, { channel: "telegram", text });
+	const resumed = handlers.get("session_stop")?.({}, ctx) as { additionalContext: string };
+	assert.deepEqual(sent, [
+		[`[Arthur]\n${quoted}\n\n${ARTHUR}`, { attribution: "agent" }],
+		[`[via telegram, sent during this turn]\n${quoted}`, { deliverAs: "aside" }],
+	]);
+	assert.equal(resumed.additionalContext, `[via telegram, sent during this turn, after your last tool call]\n${quoted}\n\n${AGAIN}`);
+	for (const content of [...sent.map((args) => String(args[0])), resumed.additionalContext]) assert.deepEqual(mentions(content), [], content);
+});
+
 test("a reply ends the wait: the next turn that ends without a reply has its messages go again at once", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const steps: AgentStep[] = [...FAILED, ...FAILED, { prompt: true }, { message: "Done." }, { end: true }, ...FAILED, { prompt: true }, { message: "Again." }, { end: true }, { prompt: true }];
 	const { file: clock, move } = agentClock();

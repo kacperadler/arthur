@@ -2624,9 +2624,9 @@
   {
     "id": "AR0343",
     "title": "Git ignores `.env` only, while `core.envFile` may be any name the guard counts as a secrets file",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0343-git-ignores-env-only-while-core-envfile-may-be-any-name-the-guard-counts-as-a-secrets-file/ticket.md",
-    "updated": "2026-10-27T00:12:47.934Z"
+    "updated": "2026-10-27T00:20:07.113Z"
   },
   {
     "id": "AR0344",

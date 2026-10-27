@@ -3691,9 +3691,9 @@
   {
     "id": "AR0466",
     "title": "A step can plant a repository under a name other than `.git`, or a symlink to one, which the sweep does not see",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0466-a-step-can-plant-a-repository-under-a-name-other-than-git-or-a-symlink-to-one/ticket.md",
-    "updated": "2026-10-27T08:01:04.440Z"
+    "updated": "2026-10-27T08:08:25.389Z"
   },
   {
     "id": "AR0467",
@@ -3712,9 +3712,9 @@
   {
     "id": "AR0469",
     "title": "The reinstall after a failed check uses the cache the branch's install wrote",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0469-the-reinstall-after-a-failed-check-uses-the-cache-the-branch-s-install-wrote/ticket.md",
-    "updated": "2026-10-27T08:06:37.878Z"
+    "updated": "2026-10-27T08:12:14.117Z"
   },
   {
     "id": "AR0470",
@@ -3726,9 +3726,9 @@
   {
     "id": "AR0471",
     "title": "Other operators of `${PWD…}` and of the known variables read as nothing",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0471-other-operators-of-pwd-and-of-the-known-variables-read-as-nothing/ticket.md",
-    "updated": "2026-10-27T08:05:20.869Z"
+    "updated": "2026-10-27T08:11:21.466Z"
   },
   {
     "id": "AR0472",

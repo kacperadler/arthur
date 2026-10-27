@@ -3747,9 +3747,9 @@
   {
     "id": "AR0474",
     "title": "A review pruned before the merge makes the ticket cost unknown",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0474-a-review-pruned-before-the-merge-makes-the-ticket-cost-unknown/ticket.md",
-    "updated": "2026-10-27T09:06:45.195Z"
+    "updated": "2026-10-27T09:14:02.486Z"
   },
   {
     "id": "AR0475",

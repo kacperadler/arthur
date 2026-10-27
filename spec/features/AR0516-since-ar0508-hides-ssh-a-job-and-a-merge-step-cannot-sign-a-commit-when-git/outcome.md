@@ -21,5 +21,4 @@
 
 ## Left open
 
-- Findings: none; no findings.md on this ticket.
 - Tickets from findings: AR0519 (F7).

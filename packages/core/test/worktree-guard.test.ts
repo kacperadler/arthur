@@ -261,6 +261,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		// so the inner shell expands what it escaped and reads their value where it would not expand them.
 		["bash", { command: "bash <<EOF\necho x > \\$ARTHUR_JOB/result\nEOF" }, HOME],
 		["bash", { command: "bash <<EOF\nrm \\$HOME/acme/README.md\nEOF" }, MAIN],
+		["bash", { command: `bash <<EOF\nrm \\$x${main}/README.md\nEOF` }, MAIN],
+		["bash", { command: `cd ${main}; bash <<EOF\ncd /tmp; rm \\$OLDPWD/README.md\nEOF` }, MAIN],
 		["bash", { command: `bash <<EOF\necho \\\`rm ${main}/README.md\\\`\nEOF` }, MAIN],
 		["bash", { command: "bash <<EOF\nrm \\\\$HOME/acme/README.md\nEOF" }, MAIN],
 		["bash", { command: "bash <<EOF\necho x > '${ARTHUR_JOB}'/result\nEOF" }, HOME],

@@ -257,6 +257,18 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `cd ${main}; bash <<EOF\ncd /tmp; rm \${PWD}/README.md\nEOF` }, MAIN],
 		["bash", { command: `cd ${main}; bash <<'EOF'\ncd /tmp; rm $PWD/README.md\nEOF\nbash <<EOF\ncd /tmp; rm \\$PWD/README.md\nEOF` }, undefined],
 		["bash", { command: `cd ${main}; bash <<< 'cd /tmp; rm $PWD/README.md' && bash <<< "cd /tmp; rm ~+/README.md"` }, undefined],
+		// AR0472: an unquoted heredoc drops the backslash before `$`, `` ` `` and `\` and expands `$HOME` and `$ARTHUR_JOB` itself,
+		// so the inner shell expands what it escaped and reads their value where it would not expand them.
+		["bash", { command: "bash <<EOF\necho x > \\$ARTHUR_JOB/result\nEOF" }, HOME],
+		["bash", { command: "bash <<EOF\nrm \\$HOME/acme/README.md\nEOF" }, MAIN],
+		["bash", { command: `bash <<EOF\nrm \\$x${main}/README.md\nEOF` }, MAIN],
+		["bash", { command: `cd ${main}; bash <<EOF\ncd /tmp; rm \\$OLDPWD/README.md\nEOF` }, MAIN],
+		["bash", { command: `bash <<EOF\necho \\\`rm ${main}/README.md\\\`\nEOF` }, MAIN],
+		["bash", { command: "bash <<EOF\nrm \\\\$HOME/acme/README.md\nEOF" }, MAIN],
+		["bash", { command: "bash <<EOF\necho x > '${ARTHUR_JOB}'/result\nEOF" }, HOME],
+		["bash", { command: "bash <<EOF\nrm \\\n$HOME/acme/README.md\nEOF" }, MAIN],
+		["bash", { command: `bash <<EOF\necho x > \$toString${main}/README.md\nEOF` }, MAIN],
+		["bash", { command: "bash <<'EOF'\necho x > \\$ARTHUR_JOB/result\nEOF\nbash <<EOF\necho x > \\\\\\$ARTHUR_JOB/result\nEOF" }, undefined],
 		// AR0471: an operator of `${PWD…}` or of a known variable the parser does not read is refused, as one of `${OLDPWD…}` is.
 		["bash", { command: `echo x > \${ARTHUR_JOB%/*}/${other.id}/result` }, UNKNOWN],
 		["bash", { command: `echo x > \${x:-\${ARTHUR_JOB%/*}}/${other.id}/result` }, UNKNOWN],

@@ -30,3 +30,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: the host names each value in a spawn's task, but the prompt is built from what the plugins' `prompt` providers answer and written into the record's `prompt` unchanged. No plugin puts a value there today [INFERENCE: from the providers read for this ticket, not a full audit].
 - Suggestion: pass the host's `hide` to `jobRunner` and name `built.prompt` before `writeRecord`; this needs a line in `jobs.ts`, which is at 200 lines.
 - Status: open
+
+## F4. The worktree guard refuses `GIT_CONFIG_*=... git commit` but lets `export GIT_CONFIG_*=...; git commit` through
+
+- Kind: security
+- Found by: 2026-10-27-worker-28470be0 (worker), 2026-10-27
+- Where: `packages/core/src/git-writes.ts:10`
+- What: in this job, `GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=commit.gpgSign GIT_CONFIG_VALUE_0=false ... git commit -q -am "..."` was refused with the guard's line "this git call reads config the guard does not (... GIT_CONFIG* ...)", while `export GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=commit.gpgSign ...; git commit -q -am "..."` in one bash call committed (81feccc2). The guard reads the assignments that prefix the git word only, so config set by `export` earlier in the same call, or in an earlier call of the shell, reaches git unseen: an alias or `core.hooksPath` the guard never checks.
+- Suggestion: count `export`/`declare -x` of `GIT_CONFIG*`, `HOME` and `XDG_CONFIG_HOME` earlier in the call as set for each git call after it, and refuse; a persistent shell's earlier calls stay out of reach (the sandbox's matter). Out: the owner's own unsigned commits (AR-D184), which the guard could allow for `commit.gpgSign` and `tag.gpgSign` alone.
+- Status: open

@@ -61,6 +61,8 @@ $ node -e 'const {spawnSync}=require("node:child_process"); const r=spawnSync("n
 status null signal SIGTERM error ENOBUFS stdout bytes 1059776
 ```
 
+Then the real `ssh()` of `job-machine.ts`, with a fake `ssh` first on `PATH` (in a temporary folder, removed) that prints 2 MiB, as a copy's `remote-job records` would: `thrown: machine mac: ssh: spawnSync ssh ENOBUFS | cause: undefined`. The cause is not 255, so `syncMachines` (`machine-sync.ts:41-45`) counts it as a failure, not as a machine offline.
+
 The log a copy sends from the byte last asked holds the agent's stream and the install's output (`wrapper.ts:123`, `:137`), so a job that writes more than 1 MiB between two sweeps leaves that machine's every job uncopied from then on, since `synced` (`machine-sync.ts:68`) never moves past it.
 
 ### What a job can do on the other side: F1

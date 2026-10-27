@@ -767,7 +767,10 @@ import { checkStructure } from "./structure.ts";
 // Merged main (AR0388) into AR0454: main's budgets plus AR0454's raises (recounted with wc -l).
 // Merged main (AR0454, AR0429) into AR0343: main's budgets plus AR0343's core 6345 (recounted).
 // Merged main into AR0436: main's budgets plus AR0436's delivery 1552 (recounted).
-const BUDGETS = { core: 6345, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1552, github: 659, manage: 928, develop: 706, findings: 254 };
+// AR0467 (F3 of AR0463; the task allows the raise): delivery 5 more (1557) for the `.git` stamp that leaves out what a git read
+// changes there, an `index`, a `sharedindex.<hash>` and a folder's change time, and counts a folder's permissions instead, with
+// its comment (merge-checks.ts, git diff --numstat +8 -3). Nothing told a read from a write before, so nothing was cut.
+const BUDGETS = { core: 6345, "core/testing": 349, projects: 482, orchestration: 2413, machines: 488, resources: 617, session: 880, schedule: 595, models: 509, youtrack: 661, "commit-rules": 165, nvm: 96, telegram: 641, uptime: 298, delivery: 1557, github: 659, manage: 928, develop: 706, findings: 254 };
 
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 

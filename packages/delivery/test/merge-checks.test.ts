@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fakeHost, jobSlice, temporaryFolder } from "@arthur/core/testing";
@@ -53,9 +53,9 @@ test("a step still running at its limit is killed with SIGKILL, though it ignore
 	assert.ok(Date.now() - started < 10_000, `it took ${Date.now() - started} ms`);
 });
 
-// A checkout `acme` with a real submodule at `vendor/lib` and the owner's own clones at `tools/scratch` and `tools/other`, all
-// there before the first step; `fsmonitor` a repository beside it whose `core.fsmonitor` writes `pwned`, as the reviewer of
-// AR0457 planted one.
+// A checkout `acme` with a real submodule at `vendor/lib` and the owner's own clones at `tools/scratch`, with one commit, a
+// linked worktree at `tools/wt` and `core.splitIndex` set, and `tools/other`, all there before the first step; `fsmonitor` a
+// repository beside it whose `core.fsmonitor` writes `pwned`, as the reviewer of AR0457 planted one.
 function planted() {
 	const folder = temporaryFolder();
 	const [root, pwned] = [join(folder, "acme"), join(folder, "pwned")];
@@ -69,6 +69,10 @@ function planted() {
 	git(join(folder, "lib"), "add", "--all");
 	git(join(folder, "lib"), "commit", "--quiet", "-m", "lib");
 	git(root, "submodule", "--quiet", "add", join(folder, "lib"), "vendor/lib");
+	git(join(root, "tools", "scratch"), "add", "--all");
+	git(join(root, "tools", "scratch"), "commit", "--quiet", "-m", "notes");
+	git(join(root, "tools", "scratch"), "worktree", "add", "--quiet", join(root, "tools", "wt"));
+	git(join(root, "tools", "scratch"), "config", "core.splitIndex", "true");
 	writeFileSync(join(root, ".gitignore"), "tools/\n");
 	git(root, "add", "--all");
 	git(root, "commit", "--quiet", "-m", "first");
@@ -116,4 +120,35 @@ test("a .git folder there before the first step that a step wrote in, its config
 	assert.deepEqual(lines.sort(), said(command, "tools/other/.git", "tools/scratch/.git"));
 	for (const folder of ["tools/scratch", "tools/other"]) git(join(root, folder), "status", "--porcelain");
 	assert.equal(existsSync(pwned), false, "git status in each clone ran no planted fsmonitor");
+});
+
+test("a step that only reads the owner's clones with git keeps them and their history, though git status rewrote their index, a split one and a linked worktree's; one that then writes a hook or core.fsmonitor in one has it removed", () => {
+	const { root, pwned, git, run, lines, kept } = planted();
+	const indexes = ["tools/scratch/.git/index", "tools/scratch/.git/worktrees/wt/index"].map((path) => join(root, path));
+	// A stat the index does not hold, so git status refreshes each index and writes it anew.
+	for (const path of ["tools/scratch/notes.md", "tools/wt/notes.md"]) utimesSync(join(root, path), 0, 0);
+	const [before, inodes] = [kept(), indexes.map((path) => lstatSync(path).ino)];
+	const read = ["tools/scratch", "tools/wt", "tools/other"].map((folder) => `git -C ${folder} status --porcelain`).concat("git -C tools/scratch log --oneline").join(" && ");
+	const ran = run(read, process.env);
+	assert.equal(ran.status, 0, ran.stderr);
+	for (const [at, path] of indexes.entries()) assert.notEqual(lstatSync(path).ino, inodes[at], `git status rewrote ${path}`);
+	assert.match(readdirSync(join(root, "tools", "scratch", ".git")).join(" "), /\bsharedindex\.[0-9a-f]+\b/, "git status split the index");
+	assert.deepEqual(lines, [], "a step that only read the clones adds no line");
+	assert.deepEqual(kept(), before, "the owner's clones are the same ones");
+	assert.equal(git(join(root, "tools", "scratch"), "log", "--format=%s"), "notes", "the clone keeps its history");
+	assert.equal(git(join(root, "tools", "wt"), "rev-parse", "--show-toplevel"), join(root, "tools", "wt"), "the linked worktree still works");
+	const hook = join(root, "tools/scratch/.git/hooks/post-checkout");
+	const command = [read, `printf '#!/bin/sh\\ntouch %s\\n' '${pwned}' > ${hook}`, `chmod +x ${hook}`, `git -C tools/other config core.fsmonitor "touch '${pwned}'"`].join(" && ");
+	assert.equal(run(command, process.env).status, 0);
+	assert.deepEqual(lines.sort(), said(command, "tools/other/.git", "tools/scratch/.git"));
+	assert.deepEqual([existsSync(hook), existsSync(join(root, "tools", "other", ".git"))], [false, false]);
+	git(join(root, "tools", "other"), "status", "--porcelain");
+	assert.equal(existsSync(pwned), false, "git status in the clone ran no planted fsmonitor");
+});
+
+test("a step that only opens a folder in a clone's .git to others, so another user could plant a hook there later, has it removed", () => {
+	const { run, lines } = planted();
+	const command = "chmod o+w tools/scratch/.git/hooks";
+	assert.equal(run(command, process.env).status, 0);
+	assert.deepEqual(lines, said(command, "tools/scratch/.git"));
 });

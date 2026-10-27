@@ -3677,9 +3677,9 @@
   {
     "id": "AR0464",
     "title": "The stop test of a forked install process fails now and then under a merge step",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0464-the-stop-test-of-a-forked-install-process-fails-now-and-then-under-a-merge-step/ticket.md",
-    "updated": "2026-10-27T07:52:44.028Z"
+    "updated": "2026-10-27T07:59:35.724Z"
   },
   {
     "id": "AR0465",
@@ -3792,5 +3792,12 @@
     "status": "planned",
     "path": "spec/features/AR0480-plan-a-stats-plugin-token-use-cost-and-time-of-every-job-and-of-the-coordinator/ticket.md",
     "updated": "2026-10-27T07:50:24.212Z"
+  },
+  {
+    "id": "AR0481",
+    "title": "A stop during the install can end the job before its stop of the install's group is over",
+    "status": "planning",
+    "path": "spec/features/AR0481-a-stop-during-the-install-can-end-the-job-before-its-stop-of-the-install-s-group/ticket.md",
+    "updated": "2026-10-27T07:59:35.719Z"
   }
 ]

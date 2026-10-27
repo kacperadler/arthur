@@ -36,7 +36,9 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0464 The stop test of a forked install process fails now and then under a merge step (93da6344)
 - AR0475 Line budgets on one line, plus a comment log, conflict on most merges of main (ae463a28)
+- AR0476 arthur doctor tells the owner to fix a committed env file with a .gitignore line that cannot help (ed92ed7d)
 - AR0511 The github plugin's docs offer a classic token with `repo`, which writes every repository of the account (231e9f1d)
+- AR0514 spawn.md still lists a job reaching the user's own SSH login as a limit, which a hidden ~/.ssh mostly ends (de720e86)
 
 ## 2026-10-26
 

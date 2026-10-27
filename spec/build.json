@@ -3783,9 +3783,9 @@
   {
     "id": "AR0476",
     "title": "arthur doctor tells the owner to fix a committed env file with a .gitignore line that cannot help",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0476-arthur-doctor-tells-the-owner-to-fix-a-committed-env-file-with-a-gitignore-line/ticket.md",
-    "updated": "2026-10-27T20:13:42.613Z"
+    "updated": "2026-10-27T20:45:36.140Z"
   },
   {
     "id": "AR0477",
@@ -4105,9 +4105,9 @@
   {
     "id": "AR0514",
     "title": "spawn.md still lists a job reaching the user's own SSH login as a limit, which a hidden ~/.ssh mostly ends",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0514-spawn-md-still-lists-a-job-reaching-the-user-s-own-ssh-login-as-a-limit-which-a/ticket.md",
-    "updated": "2026-10-27T19:35:03.389Z"
+    "updated": "2026-10-27T20:41:30.472Z"
   },
   {
     "id": "AR0515",
@@ -4247,5 +4247,12 @@
     "after": [
       "AR0529"
     ]
+  },
+  {
+    "id": "AR0531",
+    "title": "The env file fixes arthur doctor prints put an unquoted folder in a shell command",
+    "status": "planning",
+    "path": "spec/features/AR0531-the-env-file-fixes-arthur-doctor-prints-put-an-unquoted-folder-in-a-shell/ticket.md",
+    "updated": "2026-10-27T20:45:59.289Z"
   }
 ]

@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: AR0402, refused twice by the provider
+- 2026-10-27: Raise the orchestration line budget from 2421 to 2430 for AR0517, by the owner standing rule AR-D61; the owner: "IF YOU NEED THEN ADD MORE LINES TO THE CORE, TO NOT ASK ME ABOUT THIS" (AR-D186)

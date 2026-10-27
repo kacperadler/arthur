@@ -16,7 +16,7 @@ import { rolesCommand } from "./roles-command.ts";
 import { sendCommand } from "./send-command.ts";
 import { spawnCommand } from "./spawn-command.ts";
 import { ticketCommand } from "./ticket-command.ts";
-import type { Plugin } from "./plugin.ts";
+import { printNames } from "./secret-names.ts";
 import { coreRequirements } from "./requirements.ts";
 import { runPlugins } from "./run.ts";
 import { setup } from "./setup.ts";
@@ -72,8 +72,9 @@ async function load(): Promise<{ readonly commands: CommandRegistry; readonly pr
 	try {
 		const config = await loadConfig("arthur.config.ts");
 		read = config;
-		const { plugins, jobs, board, follow, project, autopilot, doctor: checks, emit, channels } = await loadPlugins(config, process.env, commands, insideJob(config.core.home) !== undefined);
+		const { plugins, jobs, board, follow, project, autopilot, doctor: checks, emit, channels, hide } = await loadPlugins(config, process.env, commands, insideJob(config.core.home) !== undefined);
 		loaded = { plugins, home: config.core.home, follow, jobs, board, autopilot, doctor: checks, emit, channels };
+		printNames(hide);
 		return { commands, project, home: config.core.home };
 	} catch (error) {
 		const problem = error instanceof Error ? error.message : String(error);
@@ -185,9 +186,7 @@ function unknown(name: string, commands: CommandRegistry, problem: string | unde
 	return 2;
 }
 
-function notLoaded(problem: string): string {
-	return `only the core's commands are listed: arthur.config.ts did not load:\n${problem}`;
-}
+function notLoaded(problem: string): string { return `only the core's commands are listed: arthur.config.ts did not load:\n${problem}`; }
 
 // The doc file existed when the command was registered; it may have been deleted since.
 function printDoc(command: Command): number {

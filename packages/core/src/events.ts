@@ -28,7 +28,8 @@ export type Bus = {
 
 const DELIVERED = "events.delivered";
 
-export function eventBus(home: string): Bus {
+// `hide` names each secret value in an event's text before it is logged (secret-names.ts), so every subscriber and reader gets the name.
+export function eventBus(home: string, hide?: (text: string) => string): Bus {
 	const kept = join(home, DELIVERED);
 	const handlers = new Map<string, readonly { readonly plugin: string; readonly fn: Handler }[]>();
 	const queue: Event[] = [];
@@ -73,7 +74,7 @@ export function eventBus(home: string): Bus {
 				const at = read;
 				const { size } = fstatSync(fd);
 				if (at !== undefined && size >= at.offset) catchUp(fd, at, size);
-				const event = append(fd, plugin, name, data);
+				const event = append(fd, plugin, name, data, hide);
 				if (at === undefined) early.add(event.seq);
 				else read = { offset: fstatSync(fd).size, next: event.seq + 1 };
 				return event;

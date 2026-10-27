@@ -20,7 +20,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/wrapper.ts:63`, `packages/core/src/machine-sync.ts:65`
 - What: the wrapper names the values of the env file its record's `guarded` names. On another machine that path is this machine's, so the wrapper there reads nothing and names nothing; the sweep then copies its `log`, `result` and `reason` into this home as written (`syncMachine`). The task, instructions and steers are named here before they go there, and no plugin's variable reaches that machine but a prepare's, so a value reaches that log only through a prepare's variable or the agent's own reading there.
 - Suggestion: name the copied files with the loading process's `hide` in `syncMachine` before `write`/`appendFileSync`. Out: sending any value to the other machine.
-- Status: open
+- Status: fixed in d8add945
 
 ## F3. A plugin's prompt section goes into the record's `prompt` as written
 

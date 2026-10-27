@@ -3698,16 +3698,16 @@
   {
     "id": "AR0467",
     "title": "A merge check that runs git inside an owner clone in the checkout deletes that clone history",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0467-a-merge-check-that-runs-git-inside-an-owner-clone-in-the-checkout-deletes-that/ticket.md",
-    "updated": "2026-10-27T07:15:42.249Z"
+    "updated": "2026-10-27T07:33:37.529Z"
   },
   {
     "id": "AR0468",
     "title": "A second arthur merge during the first one's checks merges on top of the unchecked merge commit",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0468-a-second-arthur-merge-during-the-first-one-s-checks-merges-on-top-of-the/ticket.md",
-    "updated": "2026-10-27T07:21:45.179Z"
+    "updated": "2026-10-27T07:22:28.687Z"
   },
   {
     "id": "AR0469",
@@ -3728,7 +3728,7 @@
     "title": "Other operators of `${PWD…}` and of the known variables read as nothing",
     "status": "in-progress",
     "path": "spec/features/AR0471-other-operators-of-pwd-and-of-the-known-variables-read-as-nothing/ticket.md",
-    "updated": "2026-10-27T07:21:32.964Z"
+    "updated": "2026-10-27T07:29:39.612Z"
   },
   {
     "id": "AR0472",
@@ -3778,5 +3778,12 @@
     "status": "planning",
     "path": "spec/features/AR0478-two-new-plugins-made-at-once-still-conflict-in-budgets/ticket.md",
     "updated": "2026-10-27T07:11:04.240Z"
+  },
+  {
+    "id": "AR0479",
+    "title": "A merge step reading an owner clone still deletes it when python3 cannot read the .git attributes, with a reason that hides why",
+    "status": "planning",
+    "path": "spec/features/AR0479-a-merge-step-reading-an-owner-clone-still-deletes-it-when-python3-cannot-read/ticket.md",
+    "updated": "2026-10-27T07:33:47.128Z"
   }
 ]

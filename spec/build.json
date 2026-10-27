@@ -3241,14 +3241,15 @@
   {
     "id": "AR0414",
     "title": "A job may commit the stash refusal's .arthur-stash.patch by mistake, and its git diff leaves staged changes out",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0414-a-job-may-commit-the-stash-refusal-s-arthur-stash-patch-by-mistake-and-its-git/ticket.md",
-    "updated": "2026-10-26T10:52:22.655Z",
+    "updated": "2026-10-27T18:54:19.485Z",
     "after": [
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405"
+      "AR0487",
+      "AR0477",
+      "AR0470",
+      "AR0519",
+      "AR0503"
     ]
   },
   {
@@ -3608,16 +3609,30 @@
   {
     "id": "AR0455",
     "title": "A package cache that does not exist yet stays closed, so a fresh host's first install in a job fails",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0455-a-package-cache-that-does-not-exist-yet-stays-closed-so-a-fresh-host-s-first/ticket.md",
-    "updated": "2026-10-26T17:18:10.599Z"
+    "updated": "2026-10-27T18:54:18.982Z",
+    "after": [
+      "AR0487",
+      "AR0477",
+      "AR0470",
+      "AR0519",
+      "AR0503"
+    ]
   },
   {
     "id": "AR0456",
     "title": "The agent's own `npm ci` cannot write `~/.npm`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0456-the-agent-s-own-npm-ci-cannot-write-npm/ticket.md",
-    "updated": "2026-10-26T17:18:10.602Z"
+    "updated": "2026-10-27T18:54:18.466Z",
+    "after": [
+      "AR0487",
+      "AR0477",
+      "AR0470",
+      "AR0519",
+      "AR0503"
+    ]
   },
   {
     "id": "AR0457",
@@ -3721,7 +3736,14 @@
     "title": "A merge killed during its steps leaves its cache folder behind",
     "status": "planned",
     "path": "spec/features/AR0470-a-merge-killed-during-its-steps-leaves-its-cache-folder-behind/ticket.md",
-    "updated": "2026-10-27T06:53:20.601Z"
+    "updated": "2026-10-27T06:53:20.601Z",
+    "after": [
+      "AR0511",
+      "AR0514",
+      "AR0505",
+      "AR0506",
+      "AR0476"
+    ]
   },
   {
     "id": "AR0471",
@@ -3770,14 +3792,28 @@
     "title": "Nine exports nobody imports",
     "status": "planned",
     "path": "spec/features/AR0477-nine-exports-nobody-imports/ticket.md",
-    "updated": "2026-10-27T06:52:44.056Z"
+    "updated": "2026-10-27T06:52:44.056Z",
+    "after": [
+      "AR0511",
+      "AR0514",
+      "AR0505",
+      "AR0506",
+      "AR0476"
+    ]
   },
   {
     "id": "AR0478",
     "title": "Two new plugins made at once still conflict in BUDGETS",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0478-two-new-plugins-made-at-once-still-conflict-in-budgets/ticket.md",
-    "updated": "2026-10-27T07:11:04.240Z"
+    "updated": "2026-10-27T18:54:20.003Z",
+    "after": [
+      "AR0487",
+      "AR0477",
+      "AR0470",
+      "AR0519",
+      "AR0503"
+    ]
   },
   {
     "id": "AR0479",
@@ -3838,9 +3874,16 @@
   {
     "id": "AR0487",
     "title": "An `arthur continue` instruction that starts with `-` is an option of `omp`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0487-an-arthur-continue-instruction-that-starts-with-is-an-option-of-omp/ticket.md",
-    "updated": "2026-10-27T08:05:34.447Z"
+    "updated": "2026-10-27T18:54:16.932Z",
+    "after": [
+      "AR0511",
+      "AR0514",
+      "AR0505",
+      "AR0506",
+      "AR0476"
+    ]
   },
   {
     "id": "AR0488",
@@ -3873,23 +3916,44 @@
   {
     "id": "AR0492",
     "title": "An unquoted `~user` is read as a relative folder named `~user`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0492-an-unquoted-user-is-read-as-a-relative-folder-named-user/ticket.md",
-    "updated": "2026-10-27T08:42:42.694Z"
+    "updated": "2026-10-27T18:54:22.058Z",
+    "after": [
+      "AR0456",
+      "AR0455",
+      "AR0414",
+      "AR0478",
+      "AR0523"
+    ]
   },
   {
     "id": "AR0493",
     "title": "A backslash-newline after $ is not removed, so the guard reads a folder name where bash reads ..",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0493-a-backslash-newline-after-is-not-removed-so-the-guard-reads-a-folder-name-where/ticket.md",
-    "updated": "2026-10-27T08:43:03.515Z"
+    "updated": "2026-10-27T18:54:22.566Z",
+    "after": [
+      "AR0456",
+      "AR0455",
+      "AR0414",
+      "AR0478",
+      "AR0523"
+    ]
   },
   {
     "id": "AR0494",
     "title": "The guard skips an escaped quote inside quotes when it finds a fallback end, so a command can hide after it",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0494-the-guard-skips-an-escaped-quote-inside-quotes-when-it-finds-a-fallback-end-so-a/ticket.md",
-    "updated": "2026-10-27T08:43:04.027Z"
+    "updated": "2026-10-27T18:54:23.075Z",
+    "after": [
+      "AR0456",
+      "AR0455",
+      "AR0414",
+      "AR0478",
+      "AR0523"
+    ]
   },
   {
     "id": "AR0495",
@@ -3901,9 +3965,16 @@
   {
     "id": "AR0496",
     "title": "A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0496-a-home-set-in-front-of-a-command-is-ignored-by-the-guard-so-the-inner-shell/ticket.md",
-    "updated": "2026-10-27T09:19:34.323Z"
+    "updated": "2026-10-27T18:54:21.530Z",
+    "after": [
+      "AR0456",
+      "AR0455",
+      "AR0414",
+      "AR0478",
+      "AR0523"
+    ]
   },
   {
     "id": "AR0497",
@@ -3950,9 +4021,16 @@
   {
     "id": "AR0503",
     "title": "`--no-ci` is a bare flag, \"on the owner's word only\", with no recorded decision",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0503-no-ci-is-a-bare-flag-on-the-owner-s-word-only-with-no-recorded-decision/ticket.md",
-    "updated": "2026-10-27T12:19:47.676Z"
+    "updated": "2026-10-27T18:54:17.956Z",
+    "after": [
+      "AR0511",
+      "AR0514",
+      "AR0505",
+      "AR0506",
+      "AR0476"
+    ]
   },
   {
     "id": "AR0504",
@@ -3964,16 +4042,16 @@
   {
     "id": "AR0505",
     "title": "The coordinator's role does not say that a `[forwarded from …]` text inside the owner's message is someone else's words",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0505-the-coordinator-s-role-does-not-say-that-a-forwarded-from-text-inside-the-owner/ticket.md",
-    "updated": "2026-10-27T12:19:47.683Z"
+    "updated": "2026-10-27T18:54:15.898Z"
   },
   {
     "id": "AR0506",
     "title": "The Discord plan names no rule for a forwarded message",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0506-the-discord-plan-names-no-rule-for-a-forwarded-message/ticket.md",
-    "updated": "2026-10-27T12:19:47.686Z"
+    "updated": "2026-10-27T18:54:16.409Z"
   },
   {
     "id": "AR0507",
@@ -4027,9 +4105,9 @@
   {
     "id": "AR0514",
     "title": "spawn.md still lists a job reaching the user's own SSH login as a limit, which a hidden ~/.ssh mostly ends",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0514-spawn-md-still-lists-a-job-reaching-the-user-s-own-ssh-login-as-a-limit-which-a/ticket.md",
-    "updated": "2026-10-27T13:31:31.534Z"
+    "updated": "2026-10-27T18:54:15.380Z"
   },
   {
     "id": "AR0515",
@@ -4062,9 +4140,16 @@
   {
     "id": "AR0519",
     "title": "The env guard refuses a command whose text holds the word env after a dot, such as a regex on Node's environment object",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0519-the-env-guard-refuses-a-command-whose-text-holds-the-word-env-after-a-dot-such/ticket.md",
-    "updated": "2026-10-27T15:46:26.656Z"
+    "updated": "2026-10-27T18:54:17.446Z",
+    "after": [
+      "AR0511",
+      "AR0514",
+      "AR0505",
+      "AR0506",
+      "AR0476"
+    ]
   },
   {
     "id": "AR0520",
@@ -4090,16 +4175,30 @@
   {
     "id": "AR0523",
     "title": "umask.test.ts and spawn.test.ts put their test job in the production arthur-jobs slice",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0523-umask-test-ts-and-spawn-test-ts-put-their-test-job-in-the-production-arthur-jobs/ticket.md",
-    "updated": "2026-10-27T16:16:44.985Z"
+    "updated": "2026-10-27T18:54:20.513Z",
+    "after": [
+      "AR0487",
+      "AR0477",
+      "AR0470",
+      "AR0519",
+      "AR0503"
+    ]
   },
   {
     "id": "AR0524",
     "title": "The worktree guard refuses `GIT_CONFIG_*=... git commit` but lets `export GIT_CONFIG_*=...; git commit` through",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0524-the-worktree-guard-refuses-git-config-git-commit-but-lets-export-git-config-git/ticket.md",
-    "updated": "2026-10-27T18:20:21.722Z"
+    "updated": "2026-10-27T18:54:21.027Z",
+    "after": [
+      "AR0456",
+      "AR0455",
+      "AR0414",
+      "AR0478",
+      "AR0523"
+    ]
   },
   {
     "id": "AR0525",

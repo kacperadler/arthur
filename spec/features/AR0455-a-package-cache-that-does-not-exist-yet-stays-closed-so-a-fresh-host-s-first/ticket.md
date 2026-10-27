@@ -20,21 +20,22 @@ F2 of AR0449 (spec/features/AR0449-the-install-at-a-job-start-and-the-merge-chec
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+A fresh host's first install in a job does not fail on a package cache that was never made. Evidence: `packages/core/src/job-sandbox.ts` (`caches`) skips a writable path that is missing, so `npm ci` cannot create `~/.npm`; `spawn.md` documents it.
 
 - Kind: ux
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- `arthur doctor` names each missing cache of a package manager the projects' lockfiles use, with `mkdir -p <path>` as its fix; a test with a temporary home covers a missing and a present cache.
+- `npm run check` and `npm test` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- The doctor check in `packages/core` (or the plugin that owns `doctor`) and its test, `packages/core/docs/commands/spawn.md`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Making the caches at each spawn: a test would write into the real home folder.
 
 ## Decisions
 

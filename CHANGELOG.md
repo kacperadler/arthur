@@ -28,6 +28,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0509 The sweep's copy from another machine has no size or time bound, so one machine stalls every job on it, or all of `arthur run` (38558fd4)
 - AR0516 Since AR0508 hides ~/.ssh, a job and a merge step cannot sign a commit when Git signs with a key there (b2b1c1e4)
 - AR0517 Arthur's records, logs, sockets and locks are readable only by Arthur's own user (94f98593)
+- AR0518 A token from the env file never appears in a job record, log, error or channel message (3b00352d)
 
 ### Changed
 

@@ -23,21 +23,22 @@ F4 of AR0405 (spec/features/AR0405-security-review-of-our-own-code-part-4-other-
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+The github plugin's docs recommend only a fine-grained token limited to the projects' repositories, so a leaked token cannot write every repository of the account. Evidence: F4 of AR0405 above: `packages/github/docs/github.md:23` gives "a classic one with `repo`" as an equal choice, and the classic `repo` scope writes code, issues and settings of every repository the account reaches, while the plugin needs only Actions (read, write for `arthur ci --rerun`) and Pull requests: read.
 
 - Kind: docs
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- `github.md` names the fine-grained token as the one recipe: its repositories (the projects' only) and its permissions (Actions: read, or read and write for `--rerun`; Pull requests: read); the classic token is named as broader than needed and to be avoided.
+- `npm run check` and `npm test` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/github/docs/github.md`: the token recipe.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- A check of the token's scope at start: not asked.
 
 ## Decisions
 

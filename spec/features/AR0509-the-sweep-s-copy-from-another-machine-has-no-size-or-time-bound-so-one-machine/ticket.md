@@ -23,21 +23,27 @@ F2 of AR0405 (spec/features/AR0405-security-review-of-our-own-code-part-4-other-
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+Bound the sweep's copy of job records from another machine in size and time, so one machine that answers too much or never answers cannot stall its jobs forever or freeze all of `arthur run` (Telegram, `/stopall`, every plugin). Evidence: F2 of AR0405 above: `ssh()` in `packages/core/src/job-machine.ts:114-122` runs `spawnSync` with no `maxBuffer` or `timeout`; a fake `ssh` printing 2 MiB gave `ssh: spawnSync ssh ENOBUFS` with no cause 255, so the machine is neither copied nor held offline, every sweep.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- The copy runs over `sshAsync` with a time limit; a copy that times out counts as the machine unreachable, so the offline grace applies (a test with a fake `remote-job records` that never ends: the machine is held offline and `arthur run` keeps answering).
+- `remote-job records` sends at most a fixed number of log bytes per job and says where it stopped; the next copy goes on from there (a test with a fake answer of more than 1 MiB: every byte of the log arrives over several sweeps, and the job ends here).
+- `npm run check` and `npm test` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/job-machine.ts`: the copy's call with a time limit.
+- `packages/core/src/machine-sync.ts`: the copy over `sshAsync`, a timeout counted as offline, the copy resumed from where the last one stopped.
+- `packages/core/src/remote-job.ts`: `records` capped to a byte budget per job.
+- `packages/core/src/jobs.ts`: the sweep awaits the copy.
+- `packages/core/test/machine.test.ts`: the two tests above.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Other `ssh` calls (stop, steer, continue): already over `sshAsync`.
 
 ## Decisions
 

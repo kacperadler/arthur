@@ -23,21 +23,24 @@ F3 of AR0405 (spec/features/AR0405-security-review-of-our-own-code-part-4-other-
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+Refuse an `http://` API address for GitHub, Telegram and YouTrack unless its host is loopback, so a typo or a server without TLS never sends a token in plain text over the internet. Evidence: F3 of AR0405 above: `checkOptions` of github and telegram returned `[]` for `http://api.github.com` and `http://api.telegram.org` (`packages/github/src/github-options.ts:31`, `packages/telegram/src/telegram-options.ts:21`, `packages/youtrack/src/youtrack.ts:58`).
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- `http:` is accepted only for `localhost`, `127.0.0.0/8` and `::1`; any other host with `http:` is refused, naming the option's path, as youtrack's refusal words it. Tests in each plugin: `http://api.github.com`, `http://api.telegram.org` and a YouTrack `http://` URL on a public host refused; `http://127.0.0.1:<port>` accepted; each fails before the change.
+- The plugins' existing tests on their loopback fakes pass; `npm run check` and `npm test` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/github/src/github-options.ts`, `packages/github/test/github-options.test.ts`.
+- `packages/telegram/src/telegram-options.ts`, `packages/telegram/test/telegram.test.ts`.
+- `packages/youtrack/src/youtrack.ts`, `packages/youtrack/test/youtrack.test.ts`.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- A private-network GitHub Enterprise Server without TLS: it would need its own option, a separate decision.
 
 ## Decisions
 

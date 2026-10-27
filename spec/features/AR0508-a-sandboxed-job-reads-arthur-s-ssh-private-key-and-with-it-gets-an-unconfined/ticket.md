@@ -23,21 +23,28 @@ F1 of AR0405 (spec/features/AR0405-security-review-of-our-own-code-part-4-other-
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+Hide Arthur's SSH keys (`~/.ssh`) from every job, so a job cannot use them to get a shell on another machine outside its sandbox or push to origin past `arthur merge` (vision: a job works only in its own worktree; nothing reaches main but through the merge). Evidence: F1 of AR0405 above: the real `sandboxed()` printed a fake `home/.ssh/id_fake` whole, while the hidden env file gave `Permission denied` (`packages/core/src/job-sandbox.ts:79-82` hides only the env file).
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- A sandboxed job's agent, its install and a merge's checks (`stepSandbox`) all get `Permission denied` on reading a file under the home's `.ssh`, as on the env file; a test in `packages/core/test/sandbox.test.ts` over a temporary home with a fake key fails before the change and passes after.
+- Arthur's own push, fetch and `ssh` to machines, run outside the sandbox, keep working: the existing machine and merge tests pass.
+- `spawn.md` and `docs/deploy.md` say `~/.ssh` is hidden from jobs.
+- `npm run check` and `npm test` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/job-sandbox.ts`: `~/.ssh` joins the hidden paths of `hidden()` and of `stepSandbox`.
+- `packages/core/src/job-record.ts`: if the record's `guarded` list is written here, `~/.ssh` is written with the env file.
+- `packages/core/test/sandbox.test.ts`: the test above.
+- `packages/core/docs/commands/spawn.md`, `docs/deploy.md`: the hidden folder named.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Limiting a job's network: a separate decision.
+- Jobs on another machine: their sandbox there follows the same code; no change beyond it.
 
 ## Decisions
 

@@ -85,7 +85,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	// The whole refusal: its patch path is the job's own, never a name in the shared /tmp another job may pick too.
 	const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save a patch in your own worktree instead (git diff > .arthur-stash.patch, then git apply .arthur-stash.patch)";
 	const LINK = "a link to a repository";
-	const UNKNOWN = "arthur: refused: the guard cannot tell where OLDPWD leads here: it is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; name the folder instead";
+	const UNKNOWN = "arthur: refused: the guard cannot tell where OLDPWD leads here: it is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; nor what an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` it does not read gives; name the folder instead";
 	// Each call, and the place its refusal names: undefined when it passes.
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
 		["bash", { command: `echo x > ${main}/README.md` }, MAIN],
@@ -253,6 +253,17 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `cd ${main}; bash <<EOF\ncd /tmp; rm \${PWD}/README.md\nEOF` }, MAIN],
 		["bash", { command: `cd ${main}; bash <<'EOF'\ncd /tmp; rm $PWD/README.md\nEOF\nbash <<EOF\ncd /tmp; rm \\$PWD/README.md\nEOF` }, undefined],
 		["bash", { command: `cd ${main}; bash <<< 'cd /tmp; rm $PWD/README.md' && bash <<< "cd /tmp; rm ~+/README.md"` }, undefined],
+		// AR0471: an operator of `${PWD…}` or of a known variable the parser does not read is refused, as one of `${OLDPWD…}` is.
+		["bash", { command: `echo x > \${ARTHUR_JOB%/*}/${other.id}/result` }, UNKNOWN],
+		["bash", { command: 'rm "${HOME/x/x}/acme/README.md"' }, UNKNOWN],
+		["bash", { command: "rm /${HOME#/}/acme/README.md" }, UNKNOWN],
+		["bash", { command: "cd ${PWD%/x}; rm README.md", cwd: main }, UNKNOWN],
+		["bash", { command: "rm ${!PWD}/README.md", cwd: main }, UNKNOWN],
+		["bash", { command: "echo x > ${#HOME}" }, UNKNOWN],
+		["bash", { command: `cd ${main}; bash <<EOF\ncd /tmp; rm \${PWD%/x}/README.md\nEOF` }, UNKNOWN],
+		["bash", { command: `cd ${main}; bash <<EOF\ncd /tmp; rm \${PWD:-x}/README.md\nEOF` }, MAIN],
+		["bash", { command: `cd ${main}; bash <<EOF\ncd /tmp; rm \${PWD:-\${x}}/README.md\nEOF` }, UNKNOWN],
+		["bash", { command: "echo ${HOME+x} ${PWD:+x} ${HOME:-x} ${PWDX%/x}" }, undefined],
 		["bash", { command: `git -C ${main} commit -m x` }, MAIN],
 		["bash", { command: `git --work-tree=${otherJob} checkout -- .` }, OTHER],
 		["bash", { command: `cd ${otherJob} && git reset --hard` }, OTHER],

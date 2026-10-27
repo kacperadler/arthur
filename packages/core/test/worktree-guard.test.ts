@@ -270,6 +270,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: "OLDPWD=${x:-a b} cd -; rm README.md" }, MAIN],
 		["bash", { command: "export OLDPWD=${x:-a b}; cd -; rm README.md" }, MAIN],
 		["bash", { command: 'rm "${x:-a ../../acme/README.md}"' }, undefined],
+		["bash", { command: "rm ${x:-a;../../acme/README.md} ${x:-a|../../acme/README.md} ${x:-a&../../acme/README.md} ${x:-(../../acme/README.md)}" }, undefined],
 		["bash", { command: `cd ${main}; bash <<EOF\ncd /tmp; echo x > \${PWD:+x}; rm \${PWD:+$PWD}/README.md\nEOF` }, MAIN],
 		["bash", { command: 'rm "${HOME/x/x}/acme/README.md"' }, UNKNOWN],
 		["bash", { command: "rm /${HOME#/}/acme/README.md" }, UNKNOWN],

@@ -4,6 +4,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## 2026-10-28
 
+### Fixed
+
+- AR0470 A merge killed during its steps leaves its cache folder behind (4a964c77)
+
 ### Changed
 
 - AR0477 Nine exports nobody imports (392ae9be)

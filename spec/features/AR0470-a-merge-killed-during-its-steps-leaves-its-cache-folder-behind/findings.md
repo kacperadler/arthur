@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/src/merge-command.ts:168` (`rmSync(cache, { recursive: true, force: true })` in `finally`), and `reinstall` in `packages/delivery/src/merge-checks.ts:73`
 - What: `rmSync` with `recursive` and `force` throws `EACCES` on a folder holding a subfolder without write permission (seen: `node -e` making `probe-cache/sub` with a file, `chmod 0500 sub`, then `rmSync("probe-cache", { recursive: true, force: true })` printed `threw EACCES`). A step's code can leave one in the merge's cache folder (a package manager's read-only store, or the branch's script on purpose). The throw in the `finally` replaces `merge`'s return, so `arthur merge` exits with `EACCES` after main was merged, the ticket settled and the changelog written, and `github.push` is never asked [INFERENCE: from the code, not run]. The folder then stays; AR0470's sweep at a later merge's start (`find ... -exec rm -rf`) fails on it too, silently, at every merge.
 - Suggestion: before removing a cache folder, give its owner write permission on every folder in it (`chmod -R u+w`, as Go's `go clean -modcache` needs), in the `finally`, in `reinstall`'s and in the sweep; or catch the removal's error and print one line naming the folder left. Out: reusing a cache folder.
-- Status: open
+- Status: ticket AR0535
 
 ## F2. Cache folders a merge killed before AR0470 left, named `cache-<random>`, stay
 
@@ -20,4 +20,23 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/src/merge-command.ts:65`
 - What: AR0470 renamed a merge's cache folders `cache_<random>` and sweeps only those, since a project may be named `cache-<anything>` (`packages/projects/src/project-options.ts:14`) and its folder in delivery's holds `last-merge` (review 2026-10-28-review-1600b1c1). A `cache-<random>` folder that a merge killed between AR0454 and AR0470 left is therefore never removed; its name alone cannot tell it from such a project's folder.
 - Suggestion: the owner removes them once by hand after checking none is a project's folder (`ls -d <delivery folder>/cache-*`, then `rm -rf` each whose name is no project's in the project list); no code. Out: a sweep of `cache-*`.
-- Status: open
+- Status: ticket AR0536
+
+## F3. Moving the sweep to after the lock's release is not caught by a test
+
+- What: review 2 and review 3 note that the sweep at the merge's start could move into the `finally` after `lock.release()` with no test failing; it behaves almost the same.
+- Status: dropped (no change in behaviour a user would see)
+
+## F4. Removing `-mindepth 1` from the sweep is not caught
+
+- What: reviews 2 and 3: delivery's folder itself is never named `cache_*`, so the flag has no effect today.
+- Status: dropped (no effect)
+
+## F5. A merge running longer than a day could have its own cache swept
+
+- What: review 2: a merge whose cache folder's direct entries are more than 24 h old while it still runs would be swept by another merge; only with `merge.stepSeconds` set far above its default of 3600.
+- Status: dropped (needs a step limit above a day, which nobody sets)
+
+## F6. `merge-command.ts` is at exactly 200 lines, reached by joining two comments
+
+- Status: dropped (AR0495's size zones address files squeezed to the limit)

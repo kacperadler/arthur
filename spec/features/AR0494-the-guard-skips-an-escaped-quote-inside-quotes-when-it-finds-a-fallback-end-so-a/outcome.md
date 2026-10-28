@@ -7,10 +7,8 @@
 
 ## What went in
 
-- fix(AR0494): a ${…} ends past an escaped quote in quotes, as in bash
-- docs(AR0494): F1, limits tests time out under load
-- test(AR0494): rows for backslash-newline and an unclosed quote in ${…}
-- test(AR0494): row for an unclosed single quote in ${…}
+- The worktree guard now ends a `${...}` or `$(...)` where bash does when a quote inside it is escaped: a `\"` inside double quotes no longer closes them, a backslash-newline counts as an escape, and a quote never closed runs to the end of the text. So `echo "${x:-"\""}"; rm ../../acme/README.md` is refused, naming the main checkout.
+- Test rows cover the escaped quote, a backslash-newline in double quotes, and a double or single quote never closed inside `${...}`.
 
 ## Checks on main
 
@@ -21,3 +19,5 @@
 ## Left open
 
 - Deferred (client summary): F1. limits.test.ts waits time out when the machine runs other suites
+- Deferred (client summary): F2. `\'` inside `$'...'` quoting is not honoured when the guard finds the end of a `${...}`
+- Dropped: F3.

@@ -3916,9 +3916,9 @@
   {
     "id": "AR0492",
     "title": "An unquoted `~user` is read as a relative folder named `~user`",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0492-an-unquoted-user-is-read-as-a-relative-folder-named-user/ticket.md",
-    "updated": "2026-10-28T12:13:57.483Z",
+    "updated": "2026-10-28T12:30:26.237Z",
     "after": [
       "AR0478"
     ]
@@ -4173,9 +4173,9 @@
   {
     "id": "AR0524",
     "title": "The worktree guard refuses `GIT_CONFIG_*=... git commit` but lets `export GIT_CONFIG_*=...; git commit` through",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0524-the-worktree-guard-refuses-git-config-git-commit-but-lets-export-git-config-git/ticket.md",
-    "updated": "2026-10-28T12:13:42.414Z",
+    "updated": "2026-10-28T12:32:49.656Z",
     "after": [
       "AR0478"
     ]
@@ -4361,5 +4361,19 @@
     "status": "planning",
     "path": "spec/features/AR0544-the-merge-step-timeout-test-fails-under-load-its-3-s-limit-also-catches-npm-run/ticket.md",
     "updated": "2026-10-28T10:59:01.925Z"
+  },
+  {
+    "id": "AR0545",
+    "title": "Bash builtins that set a variable without an assignment word still change git's config unseen",
+    "status": "planning",
+    "path": "spec/features/AR0545-bash-builtins-that-set-a-variable-without-an-assignment-word-still-change-git-s/ticket.md",
+    "updated": "2026-10-28T12:32:49.649Z"
+  },
+  {
+    "id": "AR0546",
+    "title": "A function body or a trap is judged before a later export, and the `function f { }` form is not parsed at all",
+    "status": "planning",
+    "path": "spec/features/AR0546-a-function-body-or-a-trap-is-judged-before-a-later-export-and-the-function-f/ticket.md",
+    "updated": "2026-10-28T12:33:10.118Z"
   }
 ]

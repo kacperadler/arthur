@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { basename, delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
@@ -157,6 +157,27 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 	assert.match(readFileSync(join(root, "CHANGELOG.md"), "utf8"), new RegExp(`\n## \\d{4}-\\d{2}-\\d{2}\n\n### Other\n\n- AC0001 Shop \\(${hash}\\)\n$`), "rebuilt from outcome.md");
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "ticket-moved").at(-1)?.data, { id: "AC0001", project: "acme", from: "done", to: "merged" });
 	assert.equal((await merge(job.id)).err, `arthur merge: AC0001 is merged; a merge is of a ticket in-progress, review or done`);
+});
+
+test("a merge's start removes delivery's cache_ folders older than a day to the minute, as a killed merge leaves them, with what is in them; a younger one, maybe a running merge's, a project's folder named cache-*, another old folder and an old cache_ one below the top stay", async (t) => {
+	const { fake, worker, merge, caches } = await load(t);
+	const job = await worker({ "bun.lock": '{ "shop": 1 }\n' });
+	// A folder below the top is aged before the one holding it, whose time each write in it moves.
+	const aged = (name: string, seconds: number, file = join("bun", "deep", "left")) => {
+		const path = join(fake.host.folder, name);
+		mkdirSync(dirname(join(path, file)), { recursive: true });
+		writeFileSync(join(path, file), "what was written there\n");
+		const at = new Date(Date.now() - seconds * 1000);
+		utimesSync(path, at, at);
+		return path;
+	};
+	const day = 24 * 3600;
+	const below = [aged(join("cache_Runnin", "cache_x"), 2 * day), aged(join("cache-shop", "cache_x"), 2 * day)];
+	const [old, young, project, other] = [aged("cache_kiLLed", day + 30), aged("cache_Runnin", day - 30), aged("cache-shop", 2 * day, "last-merge"), aged("caches", 2 * day)];
+	const merged = await merge(job.id, "--unreviewed", "--decision", OWNER);
+	assert.equal(merged.code, undefined, merged.err);
+	assert.deepEqual([old, young, project, other, ...below].map((path) => existsSync(path)), [false, true, true, true, true, true]);
+	assert.match(basename(dirname(caches()[0] ?? "")), /^cache_[A-Za-z0-9]{6}$/, "the merge's own cache folder has the name the sweep removes");
 });
 
 test("a review filed and pruned before the merge, as its wake tells the coordinator, still has its cost in outcome.md", async (t) => {
@@ -498,7 +519,7 @@ test("a failed check resets main and names it, pushing nothing; the board's move
 	assert.match(merged.out, /\nnpm test: failed, 1\/2 passed\.\n[\s\S]*ℹ pass 1\nreinstall of main's dependencies, bun install --frozen-lockfile: passed\.$/);
 	assert.ok(uncapped.length <= 1, `one probe for the whole merge, the reinstall's runner included:\n${uncapped.join("\n")}`);
 	assert.equal(bun(), "install --frozen-lockfile\ninstall --frozen-lockfile\n");
-	assert.deepEqual(caches().map((each) => [dirname(dirname(each)), existsSync(each)]), Array(2).fill([fake.host.folder, false]), "both caches in the plugin's folder, gone after the failed merge");
+	assert.deepEqual(caches().map((each) => [dirname(dirname(each)), /^cache_/.test(basename(dirname(each))), existsSync(each)]), Array(2).fill([fake.host.folder, true, false]), "both caches in the plugin's folder, named as the sweep at a merge's start removes them, gone after the failed merge");
 	assert.notEqual(dirname(caches()[1] ?? ""), dirname(caches()[0] ?? ""), "the reinstall's cache a fresh folder, not the one the branch's install wrote");
 	const mergeCommit = git(root, "rev-parse", "ORIG_HEAD");
 	assert.deepEqual(installs, [{ project: "acme", commit: "HEAD", head: mergeCommit }, { project: "acme", commit: "HEAD", head: before }], "asked again after the reset, for main's own");

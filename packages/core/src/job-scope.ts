@@ -9,9 +9,6 @@ import type { Job } from "./jobs.ts";
 
 // A job's systemd scope and the slice all jobs share: docs/commands/spawn.md.
 
-// The slice of Arthur's jobs, without `.slice`; a test names its own.
-export const SLICE = "arthur-jobs";
-
 // The joint slice: its name, the cores (`cpu`) and the systemd `MemoryMax` (`memory`) all jobs in it share.
 export type Slice = { readonly slice: string; readonly cpu: number; readonly memory: string };
 // The joint limit when the config sets none: here, and on another machine, where the config is not, from its own cores.

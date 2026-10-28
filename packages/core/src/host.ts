@@ -10,7 +10,6 @@ import { resolveEnv, type Shell } from "./env.ts";
 import { type Bus, eventBus } from "./events.ts";
 import { type DoctorLine, doctor, ownAnswers } from "./doctor.ts";
 import { knownProject } from "./job-checkout.ts";
-import { SLICE } from "./job-scope.ts";
 import { type JobRunner, jobRunner } from "./jobs.ts";
 import { ownHome } from "./own-home.ts";
 import { coreRequirements } from "./requirements.ts";
@@ -39,7 +38,10 @@ const CORE = dirname(import.meta.dirname);
 
 // `commands` holds what the core registered before; the plugins' commands join it, and a name registered twice refuses the load.
 // In a job (`inJob`, docs/commands/config.md) a plugin with a variable unset, and one that requires it, is left out.
+// `ARTHUR_JOB_SLICE` in `shell` names the jobs' slice in place of Arthur's own, `arthur-jobs`, as the test kit does for a test's CLI.
 export async function loadPlugins(config: LoadedConfig, shell: Shell = process.env, commands: CommandRegistry = commandRegistry(), inJob = false): Promise<LoadedPlugins> {
+	const slice = shell.ARTHUR_JOB_SLICE || "arthur-jobs";
+	if (!/^\w+(-\w+)*$/.test(slice)) throw new Error(`ARTHUR_JOB_SLICE: expected a systemd slice name without .slice, letters, digits and _ in parts joined by -; it is ${JSON.stringify(slice)}`);
 	const checked = await checkPlugins(config);
 	const { values, warnings, unset } = resolveEnv(config, shell, inJob), secrets = Object.values(values).flatMap((each) => Object.values(each)), hide = secretNames(Object.assign({}, ...Object.values(values)));
 	const skipped = new Set<string>();
@@ -49,7 +51,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 	const names = registry();
 	const time = clock(config.core.timeZone, config.core.quietHours);
 	const bus = eventBus(config.core.home, hide);
-	const runner = jobRunner(config.core.home, dirname(config.path), config.core.envFile, { ...config.core.jobs, slice: SLICE }, config.core.agent.command, time, bus, names.collect);
+	const runner = jobRunner(config.core.home, dirname(config.path), config.core.envFile, { ...config.core.jobs, slice }, config.core.agent.command, time, bus, names.collect);
 	// What a record takes from a request (a task, an instruction, a block's reason, a steer) and a channel's reply, each value named.
 	const jobs: JobRunner = { ...runner, spawn: (request) => runner.spawn({ ...request, task: hide(request.task) }), continue: (id, instruction, ...rest) => runner.continue(id, hide(instruction), ...rest), block: (id, reason, stop) => runner.block(id, hide(reason), stop), steer: (id, text) => runner.steer(id, hide(text)) };
 	const routed: CommandRegistry = { ...commands, route: async (text, from) => hide(await commands.route(text, from)) };

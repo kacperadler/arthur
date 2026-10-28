@@ -6,7 +6,7 @@ import { insideJob } from "../src/inside-job.ts";
 import { temporaryFolder } from "../src/testing.ts";
 
 const ID = "2026-10-23-worker-0a1b2c3d";
-const SCOPE = `0::/user.slice/user-1000.slice/user@1000.service/arthur.slice/arthur-jobs.slice/arthur-job-${ID}.scope\n`;
+const SCOPE = `0::/user.slice/user-1000.slice/user@1000.service/arthur_test_0a1b2c3d.slice/arthur-job-${ID}.scope\n`;
 const RECORD = { ARTHUR_JOB: "/home/arthur/.arthur/jobs/2026-10-24-worker-ffff0000" };
 
 // A home folder holding the record of job ID, as a spawn makes it.

@@ -19,7 +19,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Kind: docs
 - Found by: 2026-10-28-worker-eddb9bac (worker), 2026-10-28
 - Where: `spec/roadmap.md:834`
-- What: entry 81 says voice claims every `voice` part only; since AR0550 it also claims `audio` parts and provides `voice.transcribe` and `arthur transcribe` (the vision's plugin table and the README's plugin list say so). Entry 99 (video) names `voice.transcribe` with AR0550, so a reader of 81 alone does not find what 99 depends on.
+- What: entry 81 says voice claims every `voice` part only; since AR0550 it also claims `audio` parts and provides `voice.transcribe` and `arthur transcribe` (the vision's plugin table and the README's plugin list say so). Entry 102 (video) names `voice.transcribe` with AR0550, so a reader of 81 alone does not find what 102 depends on.
 - Suggestion: one "Also delivers (AR0550)" line under entry 81 naming `audio` parts, `voice.transcribe` and `arthur transcribe`, in the shape entry 89's "Also delivers (AR0127)" uses.
 - Budget: 0.3
 - Status: open

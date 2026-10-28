@@ -17,6 +17,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0532 A job final message naming @<path> makes the coordinator read that file into its own context (e79b9701)
 - AR0533 A merge decision lifts whichever flag the coordinator names, not the one the owner decided (76f2ab84)
 - AR0534 Delivery's review-needed reads `process\.env` in a regex as the secrets file too (56c24517)
+- AR0537 A job's own session reads each file its task or a continue's text names as `@<path>` (e8fa77e8)
 - AR0538 The coordinator's handoff is handed back through `sendUserMessage` unescaped (e51a7dee)
 - AR0539 A `^<model>` in a message's text gives the coordinator's session a model agent (32736d04)
 

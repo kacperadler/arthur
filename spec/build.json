@@ -4282,9 +4282,9 @@
   {
     "id": "AR0537",
     "title": "A job's own session reads each file its task or a continue's text names as `@<path>`",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0537-a-job-s-own-session-reads-each-file-its-task-or-a-continue-s-text-names-as-path/ticket.md",
-    "updated": "2026-10-28T17:52:26.425Z",
+    "updated": "2026-10-28T17:57:43.843Z",
     "after": [
       "AR0533",
       "AR0531",

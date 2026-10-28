@@ -13,7 +13,7 @@ import { RETROS } from "./retro-due.ts";
 // How long a ticket may stand without a job, main hold commits not pushed, or the board hold changes not committed.
 export const HOUR_MS = 3_600_000;
 // The share of a filesystem's space or inodes left free under which it is full.
-export const LOW = 0.1;
+const LOW = 0.1;
 // The statuses a job should be working on.
 const OPEN = ["in-progress", "review"];
 // What the board is in a project's checkout (the core's board.ts).

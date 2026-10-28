@@ -78,7 +78,7 @@ function span(ms: number): string {
 	return `${Math.floor(minutes / (24 * 60))} d ${Math.floor((minutes % (24 * 60)) / 60)} h`;
 }
 
-export function windowText(window: Window, now: number): string {
+function windowText(window: Window, now: number): string {
 	return `${window.label} ${Math.round(window.used * 100)}% used${window.resetsAt === undefined ? "" : `, resets in ${span(window.resetsAt - now)}`}`;
 }
 

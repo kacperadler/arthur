@@ -7,7 +7,7 @@ import { filePlan, filePlanReview } from "./plan-file.ts";
 // refusals before a spawn, and the procedure the coordinator's wake carries when one ends: docs/commands/plan.md.
 
 export const PLAN = "plan";
-export const PLAN_REVIEW = "plan-review";
+const PLAN_REVIEW = "plan-review";
 // A plan's budget when `plan.budgetUsd` is left out: plans of the harness Arthur replaces stopped at $2 twice.
 export const PLAN_BUDGET = 5;
 // The ticket a task's `Ticket:` path lies in, and its folder: `spec/features/<id>-<slug>/...`.

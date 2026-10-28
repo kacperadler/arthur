@@ -3241,9 +3241,9 @@
   {
     "id": "AR0414",
     "title": "A job may commit the stash refusal's .arthur-stash.patch by mistake, and its git diff leaves staged changes out",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0414-a-job-may-commit-the-stash-refusal-s-arthur-stash-patch-by-mistake-and-its-git/ticket.md",
-    "updated": "2026-10-28T10:21:16.957Z",
+    "updated": "2026-10-28T10:45:22.317Z",
     "after": [
       "AR0487",
       "AR0477",
@@ -3623,9 +3623,9 @@
   {
     "id": "AR0456",
     "title": "The agent's own `npm ci` cannot write `~/.npm`",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0456-the-agent-s-own-npm-ci-cannot-write-npm/ticket.md",
-    "updated": "2026-10-28T10:21:14.843Z",
+    "updated": "2026-10-28T10:44:14.288Z",
     "after": [
       "AR0487",
       "AR0477",
@@ -4175,9 +4175,9 @@
   {
     "id": "AR0523",
     "title": "umask.test.ts and spawn.test.ts put their test job in the production arthur-jobs slice",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0523-umask-test-ts-and-spawn-test-ts-put-their-test-job-in-the-production-arthur-jobs/ticket.md",
-    "updated": "2026-10-27T18:54:20.513Z",
+    "updated": "2026-10-28T10:44:26.057Z",
     "after": [
       "AR0487",
       "AR0477",

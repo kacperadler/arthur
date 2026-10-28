@@ -4399,5 +4399,12 @@
     "status": "planned",
     "path": "spec/features/AR0552-docs-video-in-the-architecture-diagram-and-roadmap-voice-and-video-as-media/ticket.md",
     "updated": "2026-10-28T20:53:50.093Z"
+  },
+  {
+    "id": "AR0553",
+    "title": "Speech: the coordinator answers a voice note with a voice note, spoken on this server",
+    "status": "planned",
+    "path": "spec/features/AR0553-speech-the-coordinator-answers-a-voice-note-with-a-voice-note-spoken-on-this/ticket.md",
+    "updated": "2026-10-28T20:58:36.682Z"
   }
 ]

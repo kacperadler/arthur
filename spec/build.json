@@ -3955,7 +3955,7 @@
     "title": "A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME",
     "status": "in-progress",
     "path": "spec/features/AR0496-a-home-set-in-front-of-a-command-is-ignored-by-the-guard-so-the-inner-shell/ticket.md",
-    "updated": "2026-10-28T14:10:25.443Z",
+    "updated": "2026-10-28T14:50:07.232Z",
     "after": [
       "AR0478"
     ]

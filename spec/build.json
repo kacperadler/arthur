@@ -3623,9 +3623,9 @@
   {
     "id": "AR0456",
     "title": "The agent's own `npm ci` cannot write `~/.npm`",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0456-the-agent-s-own-npm-ci-cannot-write-npm/ticket.md",
-    "updated": "2026-10-28T10:44:14.288Z",
+    "updated": "2026-10-28T10:52:34.824Z",
     "after": [
       "AR0487",
       "AR0477",

@@ -281,6 +281,15 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `env HOME=${main} sh -c 'cd && rm README.md'` }, UNKNOWN],
 		["bash", { command: `HOME=${main}; echo x > ~/README.md` }, UNKNOWN],
 		["bash", { command: `PWD=${main}; bash <<EOF\nrm $PWD/README.md\nEOF` }, UNKNOWN],
+		// A read the guard judges before the assignment still runs after it: a function's body, a loop's next round.
+		["bash", { command: `f() { rm $HOME/README.md; }; export HOME=${main}; f` }, UNKNOWN],
+		["bash", { command: `f() { rm $HOME/README.md; }; HOME=${main}; f` }, UNKNOWN],
+		["bash", { command: `f() { rm ~/README.md; }; declare -x HOME=${main}; f` }, UNKNOWN],
+		["bash", { command: `f() { bash -c 'rm $HOME/README.md'; }; export HOME=${main}; f` }, UNKNOWN],
+		["bash", { command: `f() { cd; rm README.md; }; export HOME=${main}; f` }, UNKNOWN],
+		["bash", { command: `f() { rm $PWD/README.md; }; PWD=${main}; f` }, UNKNOWN],
+		["bash", { command: `for i in 1 2; do rm -f $HOME/README.md; HOME=${main}; done` }, UNKNOWN],
+		["bash", { command: `while :; do rm $HOME/README.md; export HOME=${main}; done` }, UNKNOWN],
 		["bash", { command: `HOME=${main} cd && rm README.md` }, UNKNOWN],
 		["bash", { command: `HOME=${main} find . -maxdepth 0 -exec sh -c 'rm $HOME/README.md' \\;` }, UNKNOWN],
 		["bash", { command: `HOME=${main}; rm ~/README.md` }, UNKNOWN],
@@ -512,9 +521,6 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		delete process.env.ARTHUR_JOB;
 		assert.equal(worktreeRefusal(place, "bash", { command: "echo x > $ARTHUR_JOB/result" }), undefined);
 		assert.ok(worktreeRefusal(place, "bash", { command: `echo x > \${ARTHUR_JOB:-${root}}/README.md` })?.includes("into the main checkout"));
-		// Without HOME in the agent's env, `$HOME` is nothing, so any word may read a HOME the call set.
-		delete process.env.HOME;
-		assert.equal(worktreeRefusal(place, "bash", { command: `HOME=${main}; rm $HOME/README.md` }), UNKNOWN);
 	} finally {
 		for (const [name, value] of Object.entries(saved)) value === undefined ? delete process.env[name] : (process.env[name] = value);
 	}
@@ -684,27 +690,31 @@ test("config set earlier in the same call (export, declare -x, a bare assignment
 	const unseen = [
 		"export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.c GIT_CONFIG_VALUE_0=config; git c a.c d",
 		"export GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=commit.gpgSign GIT_CONFIG_VALUE_0=false; git commit -q -am x",
-		"export HOME=/tmp/h; git commit -m x",
-		"readonly HOME=/tmp/h; git status",
 		"f() { local XDG_CONFIG_HOME=/tmp/h; git status; }; f",
 		"export XDG_CONFIG_HOME=/tmp/h && git status",
 		"declare -x GIT_CONFIG_GLOBAL=/tmp/x.cfg; git commit -m x",
 		"typeset -gx GIT_CONFIG_PARAMETERS=\"'alias.c'='config'\"; git c a.c d",
-		"HOME=/tmp/h; git commit -m x",
 		"XDG_CONFIG_HOME+=/h; export XDG_CONFIG_HOME; git status",
 		"HOME+=/h git commit -m x",
 		"HOME[0]=/tmp/h git commit -m x",
+		"env XDG_CONFIG_HOME=/tmp/h sh -c 'git status'",
+	];
+	for (const command of unseen) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /^arthur: refused: this git call reads config the guard does not/, command);
+	// HOME set alone, by a declaration or before a shell or `eval` is refused where it stands (AR0496), wherever a read of it runs, so before any git call; one after git too.
+	const unknown = [
+		"export HOME=/tmp/h; git commit -m x",
+		"readonly HOME=/tmp/h; git status",
+		"HOME=/tmp/h; git commit -m x",
 		"export HOME=/tmp/h; cd ..; (git commit -m x)",
 		"export HOME=/tmp/h; bash -c 'git commit -m x'",
 		"bash -c 'export HOME=/tmp/h; git commit -m x'",
 		"HOME=/tmp/h bash -c 'git commit -m x'",
-		"env XDG_CONFIG_HOME=/tmp/h sh -c 'git status'",
 		"HOME=/tmp/h eval git commit -m x",
 		"export 'HOME=/tmp/h'; git commit -m x",
-	];
-	for (const command of unseen) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /^arthur: refused: this git call reads config the guard does not/, command);
-	const passing = [
 		"git commit -m x; export HOME=/tmp/h",
+	];
+	for (const command of unknown) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /^arthur: refused: the guard cannot tell where this path leads/, command);
+	const passing = [
 		"export GIT_AUTHOR_NAME=x GIT_CONFIG_NOSYSTEM=1; git commit -m x",
 		"HOMEDIR=/tmp/h; export XDG_CONFIG; git status",
 		"export HOME; git status",

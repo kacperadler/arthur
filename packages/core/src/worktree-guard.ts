@@ -5,8 +5,11 @@ import { gitCall, UNREAD } from "./git-writes.ts";
 import { declaredPlace, jobPlace, type Place, real } from "./job-place.ts";
 import { type Command, type Item, literal, shellCommands } from "./shell-words.ts";
 
-// The worktree guard (spec/roadmap.md, entry 20): an OMP extension the wrapper loads into every job with `-e`, beside the env guard, that refuses a tool call writing into the main checkout, the home folder, another job's worktree, any project's checkout or job worktree, Arthur's install, config folder and env
-// file, or the user's `~/.ssh`, `~/.config/systemd` and Git config (job-place.ts), before the tool runs. `ARTHUR_JOB` names the job's record, which says where they are, the other projects as declared now; the home folder holds the record, and a project's jobs' worktrees sit in `.arthur-worktrees` beside its checkout. Reading passes everywhere; writing anywhere else (the job's own worktree, /tmp) passes. Without `ARTHUR_JOB` (not in a job) it refuses nothing.
+// The worktree guard (spec/roadmap.md, entry 20): an OMP extension the wrapper loads into every job with `-e`, beside the env guard, that refuses a tool call
+// writing into the main checkout, the home folder, another job's worktree, any project's checkout or job worktree, Arthur's install, config folder and env
+// file, or the user's `~/.ssh`, `~/.config/systemd` and Git config (job-place.ts), before the tool runs. `ARTHUR_JOB` names the job's record, which says where
+// they are, the other projects as declared now; the home folder holds the record, and a project's jobs' worktrees sit in `.arthur-worktrees` beside its
+// checkout. Reading passes everywhere; writing anywhere else (the job's own worktree, /tmp) passes. Without `ARTHUR_JOB` (not in a job) it refuses nothing.
 
 type Verdict = { block: true; reason: string } | undefined;
 type ExtensionApi = { on(event: "tool_call", handler: (event: { readonly toolName: string; readonly input: Readonly<Record<string, unknown>> }) => Verdict): void };
@@ -19,8 +22,6 @@ const WRAPPERS: Readonly<Record<string, readonly string[]>> = {
 // Words that start a command without being one.
 const RESERVED = ["{", "}", "!", "if", "then", "else", "elif", "do", "while", "until"];
 const SHELLS = ["bash", "sh", "zsh", "dash", "ksh"];
-// An assignment of a variable the guard reads with the value the job started with (AR0496).
-const SETS = /^(?:HOME|ARTHUR_JOB|PWD)(?:\[[^\]]*\])?\+?=/;
 // A command that may change every operand, and one that writes only its last operand or the folder after `-t`.
 const WRITES = ["mv", "rm", "rmdir", "touch", "mkdir", "truncate", "chmod", "chown", "chgrp", "unlink", "shred", "patch", "tee", "sponge"];
 const COPIES = ["cp", "install", "rsync", "scp"];
@@ -68,7 +69,7 @@ function commandIndex(words: readonly string[], dirs: string[] = []): [number, s
 // outside the worktrees folder, `gc.*` or `maintenance.*` config given or written), or one of these after a `cd` there. The command is the word after
 // assignments and wrappers (`sudo`, `timeout 60`), also in `bash -c`, a shell's heredoc, `eval`; each path is resolved from where the commands before it left
 // (`cd`, `cd -`, `pushd`, `git -C`, a subshell undoing them; `env -C` and `sudo -D` for the command alone, not the redirects the shell opens or its `$PWD`),
-// through symlinks, with `$HOME`, `$ARTHUR_JOB` and `$PWD` known. One of them set alone or by `export`, `declare`, `typeset`, `readonly` or `local`, or before a shell or `eval`, makes a later command unknown that reads it: a word or redirect holding the value the job started with (`~`, `$HOME`; `$PWD`'s `~+`, a heredoc's `\0+`), or a `cd` to HOME; one set before any other command but `git` (which refuses HOME as config unseen), or a name one of those builtins sets that holds an expansion (`export $v=…`), is unknown at once. Not seen: a path built at run time (another `$x`, a glob, a brace list, what `xargs` reads, an `OLDPWD` `read` sets, a `GIT_DIR` exported before), a program that writes (`node -e`, `tar -C`, `curl -o`), an alias in the user's Git config, a link the same call makes and uses, or a ref no worktree has checked out moved from the job's own worktree. It is not a sandbox.
+// through symlinks, with `$HOME`, `$ARTHUR_JOB` and `$PWD` known; one of them set by the call, before a command but `git` (which refuses it as config unseen), alone or by `export`, `declare`, `typeset`, `readonly` or `local`, or any name one of those builtins sets that holds an expansion (`export $v=…`), is refused as unknown, every word being read with the values the job started with. Not seen: a path built at run time (another `$x`, a glob, a brace list, what `xargs` reads, an `OLDPWD` `read` sets, a `GIT_DIR` exported before), a program that writes (`node -e`, `tar -C`, `curl -o`), an alias in the user's Git config, a link the same call makes and uses, or a ref no worktree has checked out moved from the job's own worktree. It is not a sandbox.
 function bashRefusal(place: Place, command: string, start: string): string | undefined {
 	let cwd = start;
 	// Where `cd -`, `~-` and `$OLDPWD` (shell-words.ts reads it as `~-`, with another operator `\0-`) go: bash's OLDPWD, from the agent's env; none when unset.
@@ -91,14 +92,13 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 		const [raw, words] = [command.words.map(here), command.words.map((word) => literal(here(word)))];
 		const [at, dirs] = commandIndex(words), verb = basename(words[at] ?? ""), declares = ["export", "declare", "typeset", "readonly", "local"].includes(verb);
 		if ([...command.words, ...command.writes].some((word) => word.includes("\0") || ((!previous || previous.includes("\0")) && /(^|=)~-(\/|$)/.test(literal(word)))) || command.words.some((word, index) => /^OLDPWD(\[(?!\d+\])|\+=\(|=\(\[)/.test(word) || (index < at && /^OLDPWD(\[|=\()/.test(word)))) return OLDPWD_UNKNOWN;
-		const stale = (["HOME", "ARTHUR_JOB", "PWD"] as const).some((name) => configured.some((word) => SETS.test(word) && /^\w+/.exec(word)![0] === name) && (name === "PWD" ? [...command.words, ...command.writes].some((word) => /(?<!\\)(?:\\\\)*~\+/.test(word)) || command.stdin.some((text) => text.includes("\0+")) : !known[name] || [...words, ...command.writes.map((word) => literal(here(word)))].some((word) => word.includes(known[name]!)) || (name === "HOME" && verb === "cd" && !words.slice(at + 1).some((word) => word === "-" || !word.startsWith("-")))));
-		if (stale || (declares && command.dynamic) || words.some((word, index) => index < at && SETS.test(word) && !["git", "eval", ...SHELLS].includes(verb))) return OLDPWD_UNKNOWN;
+		if ((declares && command.dynamic) || words.some((word, index) => /^(?:HOME|ARTHUR_JOB|PWD)(?:\[[^\]]*\])?\+?=/.test(word) && (at < 0 || (index < at && verb !== "git") || declares))) return OLDPWD_UNKNOWN;
 		const redirected = theirs(command.writes.map((word) => literal(here(word))));
 		if (!moved && redirected === undefined && dirs.length > 0) return run(["("]) ?? ((cwd = dirs.reduce(located, cwd)), judge({ ...command, words: raw, stdin: command.stdin.map((text) => text.replaceAll("\0+", subshells.at(-1)![0])), writes: [] }, true)) ?? run([")"]);
 		const moves = ["cd", "pushd", "popd"].includes(verb);
 		const args = words.slice(at + 1);
 		// An assignment (`=`, `+=`, to `OLDPWD[0]`, or a list `OLDPWD=(a …)` for `a`) alone or by `export`, `declare` or `readonly` sets OLDPWD as written, an `unset` but `-f` clears it, neither once read-only, and a `local` naming it makes it unknown (`\0`), in a function's body or at the top, where bash refuses it; one before `cd` sets it for that `cd` (which then sets the folder it left), one before a shell or `eval` for what they run, a child shell's writable again. Config the guard does not read (`UNREAD`) set so, or by `local`, counts as set before every git call after it, even past the end of a subshell that set it.
-		if (at < 0 || declares) configured.push(...words.filter((word) => UNREAD.test(word) || SETS.test(word)));
+		if (at < 0 || ["export", "declare", "typeset", "readonly", "local"].includes(verb)) configured.push(...words.filter((word) => UNREAD.test(word)));
 		for (const set of command.alone && !fixed && (at < 0 || moves || ["export", "declare", "typeset", "readonly"].includes(verb)) ? command.words.map((word) => /^OLDPWD(?:\[0+\])?(\+?)=\(?([^]*)/.exec(word)) : []) if (set) previous = (set[1] ? (previous ?? "") : "") + literal(set[2]!).replace(/^~-(?=\/|$)/, previous || "~-");
 		if (command.alone && !fixed && verb === "unset" && words.some((word) => /^OLDPWD(\[0+\])?$/.test(word)) && !words.some((word) => /^-\w*f/.test(word))) previous = undefined;
 		if (verb === "local" && args.some((word) => /^OLDPWD(?!\w)/.test(word))) previous = "\0";

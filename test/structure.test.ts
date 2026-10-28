@@ -25,7 +25,7 @@ const BUDGETS = {
 
 	machines: 488,
 
-	manage: 928,
+	manage: 931,
 
 	models: 509,
 

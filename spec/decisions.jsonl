@@ -442,3 +442,5 @@
 {"record":"answer","id":"AR-D220","time":"2026-10-28T10:53:27+01:00","decided":"AR0470 another round: the worker adds a test that the sweep keeps an old cache_ entry below the top level, then review round 3","picked":1,"words":"AR-D219 1\nAR-D220 1"}
 {"record":"ask","id":"AR-D221","time":"2026-10-28T11:09:53+01:00","project":"arthur","kind":"merge","question":"Merge AR0470 (a merge deletes cache folders older than a day), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0470"}
 {"record":"answer","id":"AR-D221","time":"2026-10-28T11:09:53+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D222","time":"2026-10-28T11:15:57+01:00","project":"arthur","kind":"merge","question":"Merge AR0532 (an at-sign path in text sent to the coordinator no longer attaches that file), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0532"}
+{"record":"answer","id":"AR-D222","time":"2026-10-28T11:15:57+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

@@ -27,9 +27,7 @@ export type Space = Pick<StatsFs, "blocks" | "bavail" | "bsize" | "files" | "ffr
 const hours = (ms: number) => `${Math.floor(ms / HOUR_MS)} h`;
 const free = (share: number) => `${Math.floor(share * 100)}%`;
 
-// Git's output, or undefined when it exits with an error; Git missing throws. No hook or fsmonitor the checkout's config names
-// runs, nor a replacement (refs/replace), and nothing runs while that config may name another program (a clean filter for
-// `git status`): a program a job runs may have written it (AR0488), and the refusal is the check's line.
+// Git's output, or undefined when it exits with an error; Git missing, or a config that may name a program (AR0488), throws.
 function git(path: string, args: readonly string[]): string | undefined {
 	const refusal = configRefusal(path);
 	if (refusal !== "") throw new Error(refusal);

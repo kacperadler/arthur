@@ -13,6 +13,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0493 A backslash-newline after $ is not removed, so the guard reads a folder name where bash reads .. (b89c5cb8)
 - AR0494 The guard skips an escaped quote inside quotes when it finds a fallback end, so a command can hide after it (9b488940)
 - AR0524 The worktree guard refuses `GIT_CONFIG_*=... git commit` but lets `export GIT_CONFIG_*=...; git commit` through (ee5ef763)
+- AR0531 The env file fixes arthur doctor prints put an unquoted folder in a shell command (3520fee0)
 - AR0532 A job final message naming @<path> makes the coordinator read that file into its own context (e79b9701)
 
 ### Changed

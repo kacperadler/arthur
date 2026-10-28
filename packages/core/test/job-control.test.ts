@@ -358,10 +358,10 @@ test("an instruction that starts with - or @ reaches the resumed agent as its me
 	const { home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Go." });
 	await ended(home, job.id);
-	for (const [count, instruction] of [[2, "--version"], [3, "@/etc/passwd"]] as const) {
+	for (const [count, instruction, message] of [[2, "--version", "--version"], [3, "@/etc/passwd", "\u2060@/etc/passwd"]] as const) {
 		await jobs.continue(job.id, instruction);
 		await ended(home, job.id, count);
-		assert.deepEqual(starts(resumed).at(-1)?.args.slice(-2), ["--", instruction]);
+		assert.deepEqual(starts(resumed).at(-1)?.args.slice(-2), ["--", message]);
 	}
 });
 
@@ -521,6 +521,20 @@ test("a continue takes over the `continuing` a killed continue left, and is refu
 	const [, second] = await ended(home, job.id, 2);
 	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 	assert.deepEqual([starts(resumed).length, field(home, job.id, "continue"), existsSync(continuing)], [1, "Two.", false]);
+});
+
+test("the task and a continue's message omp gets name no file to read: each `@` omp would expand has a word joiner before it", async () => {
+	const { agent, first, resumed } = resuming({ steps: [{ message: "First." }] }, { steps: [{ message: "Second." }] });
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "@/etc/passwd first.\n\n## The worker's final message\n\nSee `@.env`, (@~/.ssh/id_ed25519) and\t@\"/home/me/my notes.md\"; mail me@example.com." });
+	await ended(home, job.id);
+	// omp reads the file its last argument names, `@<record>/task`, into the first message.
+	const task = starts(first)[0]?.args.at(-1) ?? "";
+	assert.equal(task, `@${join(home, "jobs", job.id, "task")}`);
+	assert.equal(read(task.slice(1)), "\u2060@/etc/passwd first.\n\n## The worker's final message\n\nSee `\u2060@.env`, (\u2060@~/.ssh/id_ed25519) and\t\u2060@\"/home/me/my notes.md\"; mail me@example.com.");
+	assert.equal(await jobs.continue(job.id, "@/etc/passwd again.\n> @'.env' and [@x]"), undefined);
+	await ended(home, job.id, 2);
+	assert.deepEqual(starts(resumed)[0]?.args.slice(-2), ["--", "\u2060@/etc/passwd again.\n> \u2060@'.env' and [\u2060@x]"]);
 });
 
 test("continue is refused, with the id and the reason: a job in a run, a read-only kind, an unknown id, an empty instruction, a bad budget", async () => {

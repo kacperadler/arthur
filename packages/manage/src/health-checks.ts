@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, type StatsFs, statfsSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, normalize } from "node:path";
+import { configRefusal } from "@arthur/core/git-config";
 import type { Host, JobRecord, Project, Ticket } from "@arthur/core/plugin";
 import { AUDITS } from "./audit.ts";
 import { newest, type Reports } from "./report-file.ts";
@@ -26,9 +27,13 @@ export type Space = Pick<StatsFs, "blocks" | "bavail" | "bsize" | "files" | "ffr
 const hours = (ms: number) => `${Math.floor(ms / HOUR_MS)} h`;
 const free = (share: number) => `${Math.floor(share * 100)}%`;
 
-// Git's output, or undefined when it exits with an error; Git missing throws.
+// Git's output, or undefined when it exits with an error; Git missing throws. No hook or fsmonitor the checkout's config names
+// runs, nor a replacement (refs/replace), and nothing runs while that config may name another program (a clean filter for
+// `git status`): a program a job runs may have written it (AR0488), and the refusal is the check's line.
 function git(path: string, args: readonly string[]): string | undefined {
-	const ran = spawnSync("git", ["-C", path, ...args], { encoding: "utf8" });
+	const refusal = configRefusal(path);
+	if (refusal !== "") throw new Error(refusal);
+	const ran = spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", path, ...args], { encoding: "utf8" });
 	if (ran.error !== undefined) throw ran.error;
 	return ran.status === 0 ? ran.stdout : undefined;
 }

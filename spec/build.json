@@ -4353,5 +4353,12 @@
     "status": "planning",
     "path": "spec/features/AR0540-a-worker-blocked-on-the-owner-whose-ticket-is-dropped-can-be-neither-continued/ticket.md",
     "updated": "2026-10-28T10:26:07.311Z"
+  },
+  {
+    "id": "AR0541",
+    "title": "A worker ends its run while its npm test runs in the background, and has no way to read the result",
+    "status": "planning",
+    "path": "spec/features/AR0541-a-worker-ends-its-run-while-its-npm-test-runs-in-the-background-and-has-no-way/ticket.md",
+    "updated": "2026-10-28T10:51:40.995Z"
   }
 ]

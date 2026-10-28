@@ -40,3 +40,4 @@ Out:
 - 2026-10-27: Source: F2 of AR0472
 - 2026-10-28: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)
 - 2026-10-28: AR0496 another round: refuse a declaration whose name holds an unquoted { * ? or [ before its =, review commands as tests, then review round 3; the owner: "AR-D239 1" (AR-D239)
+- 2026-10-28: AR0496 another round: no index exception, every unquoted { * ? [ before the = of a declaration word is refused, then review round 4; the owner: "And go as long as this tasks will be done, today you have to focus on this fixes so do not ask me about decision for them, just go with recommendation till is done (AR-D242)" (AR-D244)

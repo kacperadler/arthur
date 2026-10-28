@@ -47,3 +47,4 @@ Out:
 
 - 2026-10-27: Source: F8 of AR0403
 - 2026-10-28: Raise the orchestration line budget from 2430 to 2434 for AR0489; by recommendation under AR-D271; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D275)
+- 2026-10-28: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

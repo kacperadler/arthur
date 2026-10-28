@@ -3869,9 +3869,9 @@
   {
     "id": "AR0488",
     "title": "A health check runs `git status` in a main checkout with its `core.fsmonitor` on",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0488-a-health-check-runs-git-status-in-a-main-checkout-with-its-core-fsmonitor-on/ticket.md",
-    "updated": "2026-10-28T21:46:43.448Z"
+    "updated": "2026-10-28T22:00:15.026Z"
   },
   {
     "id": "AR0489",

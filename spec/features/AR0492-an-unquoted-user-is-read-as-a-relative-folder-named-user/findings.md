@@ -1,0 +1,14 @@
+# AR0492 - Findings
+
+What was discovered while doing this ticket but is not part of it: bugs, risks, gaps, and suggested changes. Workers add entries on their branch; the coordinator adds the non-blocking notes from reviews. One entry per finding, numbered, never deleted: only its Status changes.
+
+A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it), `ticket <id>` (a planning ticket carries it), `deferred (client summary)` (it goes to the client in a summary, not on the board), or `dropped (<reason>)`. `open` lives only until the merge, which settles every `Status: open` entry as the project's findings mode says: a planning ticket each (the default), one planning ticket for all of them, or `deferred (client summary)`.
+
+## F1. A `~` after a `:` in an assignment's value is not expanded by the parser
+
+- Kind: security
+- Found by: 2026-10-28-worker-6a0ef2e0 (worker), 2026-10-28
+- Where: `packages/core/src/shell-words.ts:194`
+- What: bash expands a tilde prefix after each unquoted `:` of an assignment's value too, also in an assignment-like argument: `bash -c 'x=a:~root/y; echo $x; echo PATH=a:~/b'` prints `a:/root/y` and `PATH=a:/home/<user>/b`. The parser expands or refuses a `~` only at a word's start or right after the `=`, so `x=a:~/b` keeps `\~`. [INFERENCE] the guard reads an assignment's value as one path, which a `:`-joined list is not, so no write through it was found; a variable such a list feeds (`CDPATH=a:~acme` before a `cd`) could still lead elsewhere.
+- Suggestion: treat a `~` after an unquoted `:` in an assignment-like word as at a word's start: `~` the home, `~name` and the other prefixes `\0-`.
+- Status: open

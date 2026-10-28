@@ -4394,5 +4394,25 @@
       "AR0538",
       "AR0539"
     ]
+  },
+  {
+    "id": "AR0550",
+    "title": "Voice: local transcription of voice notes with whisper.cpp (roadmap 81)",
+    "status": "planning",
+    "path": "spec/features/AR0550-voice-local-transcription-of-voice-notes-with-whisper-cpp-roadmap-81/ticket.md",
+    "updated": "2026-10-28T17:41:22.882Z",
+    "after": [
+      "AR0548"
+    ]
+  },
+  {
+    "id": "AR0551",
+    "title": "Video: frames and the spoken words of a video part, with ffmpeg and the voice plugin",
+    "status": "planning",
+    "path": "spec/features/AR0551-video-frames-and-the-spoken-words-of-a-video-part-with-ffmpeg-and-the-voice/ticket.md",
+    "updated": "2026-10-28T17:41:51.749Z",
+    "after": [
+      "AR0550"
+    ]
   }
 ]

@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Fixed
 
+- AR0479 A merge step reading an owner clone still deletes it when python3 cannot read the .git attributes, with a reason that hides why (4d1ac2a0)
 - AR0484 A board entry's `path` is never checked, so a filing writes `plan.md` or `review-N.md` outside the project (ee93422d)
 - AR0547 A `~` after a `:` in an assignment's value is not expanded by the parser (0eca382f)
 

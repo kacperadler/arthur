@@ -6,8 +6,9 @@ const WRITES_CHECKOUT = ["commit", "checkout", "checkout-index", "read-tree", "u
 const WRITES_OPERANDS = ["add", "rm", "mv", "restore", "clean", "apply", "init"];
 const VALUE_OPTIONS = ["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--attr-source"];
 // Config the guard does not read, given with the call: an include by `-c`, an alias or include by `--config-env`, and the
-// variables that add config or move the user's (`GIT_CONFIG_NOSYSTEM` only drops the system's). An alias or include key.
-const UNREAD = /^(?:GIT_CONFIG(?!_NOSYSTEM=)\w*|HOME|XDG_CONFIG_HOME)=/;
+// variables that add config or move the user's (`GIT_CONFIG_NOSYSTEM` only drops the system's), set, appended to or set at an
+// index (bash's `HOME[0]=` sets `HOME`); the guard also counts them set earlier in the call (worktree-guard.ts). An alias or include key.
+export const UNREAD = /^(?:GIT_CONFIG(?!_NOSYSTEM\b)\w*|HOME|XDG_CONFIG_HOME)(?:\[[^\]]*\])?\+?=/;
 const LOADS = /^(?:alias|include(?:if)?)(?:\.|$)/i;
 // `git config`: its options that take a value; those that neither read nor change by themselves (any other, an abbreviation
 // or a `--no-` included, may change); the actions that only read, and the subcommands that change.

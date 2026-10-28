@@ -1,7 +1,7 @@
 import { closeSync, constants, openSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { linkedFolders, linkName } from "./git-link.ts";
-import { gitCall } from "./git-writes.ts";
+import { gitCall, UNREAD } from "./git-writes.ts";
 import { declaredPlace, jobPlace, type Place, real } from "./job-place.ts";
 import { type Command, type Item, literal, shellCommands } from "./shell-words.ts";
 
@@ -74,7 +74,7 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 	let cwd = start;
 	// Where `cd -`, `~-` and `$OLDPWD` (shell-words.ts reads it as `~-`, with another operator `\0-`) go: bash's OLDPWD, from the agent's env; none when unset.
 	let [previous, fixed, pushed] = [process.env.OLDPWD, false, [] as string[]];
-	const [known, subshells] = [{ HOME: process.env.HOME, ARTHUR_JOB: process.env.ARTHUR_JOB }, [] as [string, string | undefined, string[], boolean][]];
+	const [known, subshells, configured] = [{ HOME: process.env.HOME, ARTHUR_JOB: process.env.ARTHUR_JOB }, [] as [string, string | undefined, string[], boolean][], [] as string[]];
 	const located = (base: string, path: string): string => real(resolve(base, path.replace(/^~-(?=\/|$)/, previous || "~-")));
 	// A `~+` without a backslash (`$PWD`, or the prefix `~+` alone or before `/` at a word's start or after its `=`; shell-words.ts), and `\0+` in a here-string or a heredoc a shell reads: where the shell is.
 	const here = (word: string): string => word.replace(/(?<!\\)((?:\\\\)*)~\+/g, (_, slashes: string) => slashes + cwd.replaceAll("\\", "\\\\"));
@@ -97,8 +97,8 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 		const verb = basename(words[at] ?? "");
 		const moves = ["cd", "pushd", "popd"].includes(verb);
 		const args = words.slice(at + 1);
-		// An assignment (`=`, `+=`, to `OLDPWD[0]`, or a list `OLDPWD=(a …)` for `a`) alone or by `export`, `declare` or `readonly` sets OLDPWD as written, an `unset` but
-		// `-f` clears it, neither once read-only, and a `local` naming it makes it unknown (`\0`), in a function's body or at the top, where bash refuses it; one before `cd` sets it for that `cd` (which then sets the folder it left), one before a shell or `eval` for what they run, a child shell's writable again.
+		// An assignment (`=`, `+=`, to `OLDPWD[0]`, or a list `OLDPWD=(a …)` for `a`) alone or by `export`, `declare` or `readonly` sets OLDPWD as written, an `unset` but `-f` clears it, neither once read-only, and a `local` naming it makes it unknown (`\0`), in a function's body or at the top, where bash refuses it; one before `cd` sets it for that `cd` (which then sets the folder it left), one before a shell or `eval` for what they run, a child shell's writable again. Config the guard does not read (`UNREAD`) set so, or by `local`, counts as set before every git call after it, even past the end of a subshell that set it.
+		if (at < 0 || ["export", "declare", "typeset", "readonly", "local"].includes(verb)) configured.push(...words.filter((word) => UNREAD.test(word)));
 		for (const set of command.alone && !fixed && (at < 0 || moves || ["export", "declare", "typeset", "readonly"].includes(verb)) ? command.words.map((word) => /^OLDPWD(?:\[0+\])?(\+?)=\(?([^]*)/.exec(word)) : []) if (set) previous = (set[1] ? (previous ?? "") : "") + literal(set[2]!).replace(/^~-(?=\/|$)/, previous || "~-");
 		if (command.alone && !fixed && verb === "unset" && words.some((word) => /^OLDPWD(\[0+\])?$/.test(word)) && !words.some((word) => /^-\w*f/.test(word))) previous = undefined;
 		if (verb === "local" && args.some((word) => /^OLDPWD(?!\w)/.test(word))) previous = "\0";
@@ -122,7 +122,7 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 			const [kept, found] = [previous, run([{ ...command, words: command.words.slice(0, at), alone: true }, ...shellCommands(args.join(" "), known)])];
 			if (words.slice(0, at).some((word) => /^OLDPWD\+?=/.test(word))) previous = kept;
 			return found;
-		} else if (verb === "git") return git(args, words.slice(0, at));
+		} else if (verb === "git") return git(args, [...configured, ...words.slice(0, at)]);
 		else if (verb === "find") return find(args);
 		else if (WRITES.includes(verb) || (["sed", "perl"].includes(verb) && args.some((word) => /^-[a-zA-Z]*i|^--in-place/.test(word)))) return theirs(args);
 		else if (COPIES.includes(verb)) return theirs([operands.at(-1) ?? "", ...args.filter((word) => word.startsWith("--target-directory")), ...args.filter((_, index) => args[index - 1] === "-t")]);

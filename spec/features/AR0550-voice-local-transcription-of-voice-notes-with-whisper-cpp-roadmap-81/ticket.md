@@ -41,3 +41,4 @@ Out:
 - Video parts: AR0551.
 
 ## Decisions
+- 2026-10-28: AR0550 (voice) first and done today; AR0548 and the AR0549 plan wait; other tasks may stop; the owner: "and focus on this voice, other tasks you can stop but this must be done today" (AR-D259)

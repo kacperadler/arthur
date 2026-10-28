@@ -4327,9 +4327,9 @@
   {
     "id": "AR0544",
     "title": "The merge step timeout test fails under load: its 3 s limit also catches `npm run check`",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0544-the-merge-step-timeout-test-fails-under-load-its-3-s-limit-also-catches-npm-run/ticket.md",
-    "updated": "2026-10-28T21:03:17.212Z"
+    "updated": "2026-10-28T21:26:42.496Z"
   },
   {
     "id": "AR0545",

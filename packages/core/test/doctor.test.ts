@@ -207,7 +207,7 @@ test("arthur doctor: an env file in a Git checkout that does not ignore it is a 
 	};
 	assert.deepEqual(line(), [0, "core env ignored: ok"], "outside any checkout");
 	git("init", "-q");
-	const missing = `core env ignored: missing: the env file ${join(folder, "env")} lies in the Git checkout ${folder}, which does not ignore it; without it: a commit there takes its values into the repository, and a push sends them to every clone; fix: add env to the .gitignore beside it, or move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)`;
+	const missing = `core env ignored: missing: the env file ${join(folder, "env")} lies in the Git checkout ${folder}, which does not ignore it; without it: a commit there takes its values into the repository, and a push sends them to every clone; fix: printf '\\n%s\\n' 'env' >> '${join(folder, ".gitignore")}', or move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)`;
 	assert.deepEqual(line(), [1, missing], "not ignored, even before the file exists");
 	writeFileSync(join(folder, ".gitignore"), ".env\n");
 	assert.deepEqual(line(), [1, missing], "a .gitignore that ignores .env only");
@@ -216,7 +216,7 @@ test("arthur doctor: an env file in a Git checkout that does not ignore it is a 
 	writeFileSync(join(folder, "env"), "ARTHUR_X=1\n");
 	git("add", "-f", "env");
 	git("-c", "user.name=test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "env");
-	const tracked = `core env ignored: missing: the env file ${join(folder, "env")} is tracked by the Git checkout ${folder}, so no .gitignore line ignores it, and every commit that holds it keeps its values; without it: a commit there takes its values into the repository, and a push sends them to every clone; fix: git -C ${folder} rm --cached -- env, commit, and rotate every value it held: the history keeps them`;
+	const tracked = `core env ignored: missing: the env file ${join(folder, "env")} is tracked by the Git checkout ${folder}, so no .gitignore line ignores it, and every commit that holds it keeps its values; without it: a commit there takes its values into the repository, and a push sends them to every clone; fix: git -C '${folder}' rm --cached -- 'env', commit, and rotate every value it held: the history keeps them`;
 	assert.deepEqual(line(), [1, tracked], "a file Git already tracks, though .gitignore names it");
 	git("rm", "--cached", "--", "env");
 	assert.deepEqual(line(), [0, "core env ignored: ok"], "untracked again, the .gitignore line holds");
@@ -227,6 +227,31 @@ test("arthur doctor: an env file in a Git checkout that does not ignore it is a 
 	assert.match(String(line()[1]), new RegExp(`^core env ignored: missing: the env file ${join(folder, "secrets", "vars")} lies in the Git checkout ${folder}, `), "in a folder below the checkout's top");
 	writeFileSync(join(folder, ".gitignore"), "/secrets/\n");
 	assert.deepEqual(line(), [0, "core env ignored: ok"], "a pattern at the checkout's top that ignores its folder");
+});
+
+test("each env file fix runs as printed, in a folder with a space, for a name with a quote or what a .gitignore line reads as its own syntax, and gives ok", async () => {
+	const folder = join(temporaryFolder(), "my 'secret' files");
+	mkdirSync(folder);
+	const git = (...args: string[]) => assert.equal(spawnSync("git", ["-C", folder, ...args], { encoding: "utf8" }).status, 0, args.join(" "));
+	git("init", "-q");
+	for (const name of ["my env", "it's", "#env", "!env", "env ", "e[nv]", "e\\nv"]) {
+		const envFile = join(folder, name);
+		writeFileSync(envFile, "ARTHUR_X=1\n");
+		const line = async () => (await doctor(coreRequirements({ home: "/unused", envFile, agent: { command: "omp" } }, () => []).filter((requirement) => requirement.name === "env ignored"), []))[0]?.text ?? "";
+		// Pasted as printed: the command before `, commit` or `, or move`, run by sh; then the check again.
+		const fixed = async (kind: string) => {
+			const command = /; fix: (.+?), (?:commit|or move)/.exec(await line())?.[1];
+			assert.ok(command !== undefined, `${name}: a ${kind} fix is printed`);
+			const run = spawnSync("sh", ["-c", command], { encoding: "utf8" });
+			assert.equal(run.status, 0, `${name}: ${command}: ${run.stderr}`);
+			return line();
+		};
+		assert.equal(await fixed(".gitignore"), "core env ignored: ok", `${name}: the .gitignore fix`);
+		git("add", "-f", "--", name);
+		git("-c", "user.name=test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", name);
+		assert.match(await line(), /is tracked by/, `${name}: committed`);
+		assert.equal(await fixed("tracked"), "core env ignored: ok", `${name}: the tracked fix`);
+	}
 });
 
 test("the env file's own folder decides whether it lies in a Git checkout, not the folder arthur runs in", async (t) => {

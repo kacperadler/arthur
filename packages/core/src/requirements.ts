@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { accessSync, constants } from "node:fs";
 import { userInfo } from "node:os";
-import { basename, dirname, relative, sep } from "node:path";
+import { basename, dirname, join, relative, sep } from "node:path";
 import { ownHome } from "./own-home.ts";
 import type { Requirement } from "./plugin.ts";
 
@@ -98,7 +98,7 @@ export function coreRequirements({ home, envFile, agent: { command: agent } }: {
 			fix: "move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)",
 		},
 		{
-			// A commit of the checkout (`git add -A`, the coordinator's in the config's folder) takes in a file Git does not ignore; one it tracks no .gitignore line ignores.
+			// A commit of the checkout (`git add -A`, the coordinator's in the config's folder) takes in a file Git does not ignore; one it tracks no .gitignore line ignores. Each fix runs as pasted (AR0531): a folder or name is one shell `word`, the .gitignore line escapes its own syntax (`\`, `[`, a leading `#` or `!`, a trailing space).
 			name: "env ignored",
 			check: async () => {
 				const [folder, name] = [dirname(envFile), basename(envFile)];
@@ -108,7 +108,7 @@ export function coreRequirements({ home, envFile, agent: { command: agent } }: {
 				return `missing: the env file ${envFile} ${tracked ? "is tracked by" : "lies in"} the Git checkout ${checkout.stdout.trim()}, ${tracked ? "so no .gitignore line ignores it, and every commit that holds it keeps its values" : "which does not ignore it"}`;
 			},
 			costs: "a commit there takes its values into the repository, and a push sends them to every clone",
-			get fix() { return tracked ? `git -C ${dirname(envFile)} rm --cached -- ${basename(envFile)}, commit, and rotate every value it held: the history keeps them` : `add ${basename(envFile)} to the .gitignore beside it, or move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)`; },
+			get fix() { const word = (text: string) => `'${text.replaceAll("'", "'\\''")}'`; return tracked ? `git -C ${word(dirname(envFile))} rm --cached -- ${word(basename(envFile))}, commit, and rotate every value it held: the history keeps them` : `printf '\\n%s\\n' ${word(basename(envFile).replace(/[\\[]|^[#!]| $/g, "\\$&"))} >> ${word(join(dirname(envFile), ".gitignore"))}, or move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)`; },
 			critical: true,
 		},
 		// Named, never its value.

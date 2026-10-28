@@ -14,6 +14,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Changed
 
 - AR0477 Nine exports nobody imports (392ae9be)
+- AR0523 umask.test.ts and spawn.test.ts put their test job in the production arthur-jobs slice (088fb76b)
 
 ## 2026-10-27
 

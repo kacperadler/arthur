@@ -89,7 +89,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	// The whole refusal: its patch saves staged and unstaged changes in a folder of the job's own worktree that ignores itself, never a name in the shared /tmp another job may pick too, nor a file a `git add -A` commits.
 	const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save your staged and unstaged changes in a folder your worktree ignores instead (mkdir -p .arthur-stash && echo '*' > .arthur-stash/.gitignore && git diff --binary HEAD > .arthur-stash/patch, then git apply .arthur-stash/patch)";
 	const LINK = "a link to a repository";
-	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes; name the folder instead";
+	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes, or by an unquoted `~name` (a user's home or a `dirs` entry); name the folder instead";
 	// Each call, and the place its refusal names: undefined when it passes.
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
 		["bash", { command: `echo x > ${main}/README.md` }, MAIN],
@@ -310,7 +310,11 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: 'rm "${x:-$".."}/../acme/README.md"' }, UNKNOWN],
 		["bash", { command: `echo "\${x:-\\$'a'}"` }, undefined],
 		["bash", { command: "rm ${x:-~}/acme/README.md" }, MAIN],
-		["bash", { command: "rm ${x:-~+}/README.md ${x:-~root}/README.md" }, undefined],
+		["bash", { command: "rm ${x:-~+}/README.md" }, undefined],
+		// AR0492: an unquoted `~name` at a word's start or after an assignment's `=` is that user's home or a `dirs` entry, which the guard does not read; quoted or elsewhere it is a name.
+		["bash", { command: "rm ~acme/arthur/README.md" }, UNKNOWN],
+		...["rm ${x:-~root}/README.md", "echo x > ~acme", "x=~acme/arthur/README.md; rm $x", "echo x > ~1/README.md", "rm ~+1/README.md"].map((command) => ["bash", { command }, UNKNOWN] as const),
+		["bash", { command: "rm '~acme/README.md' \\~acme/README.md ~\"acme\"/README.md ~acme\\/README.md a~acme/README.md --x=~acme/README.md" }, undefined],
 		["bash", { command: `cd ${main}; bash <<EOF\ncd /tmp; echo x > \${PWD:+x}; rm \${PWD:+$PWD}/README.md\nEOF` }, MAIN],
 		["bash", { command: 'rm "${HOME/x/x}/acme/README.md"' }, UNKNOWN],
 		["bash", { command: "rm /${HOME#/}/acme/README.md" }, UNKNOWN],

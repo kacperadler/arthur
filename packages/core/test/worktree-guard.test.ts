@@ -86,8 +86,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	const MAIN = "the main checkout";
 	const HOME = "Arthur's home folder";
 	const OTHER = "another job's worktree";
-	// The whole refusal: its patch path is the job's own, never a name in the shared /tmp another job may pick too.
-	const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save a patch in your own worktree instead (git diff > .arthur-stash.patch, then git apply .arthur-stash.patch)";
+	// The whole refusal: its patch saves staged and unstaged changes in a folder of the job's own worktree that ignores itself, never a name in the shared /tmp another job may pick too, nor a file a `git add -A` commits.
+	const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save your staged and unstaged changes in a folder your worktree ignores instead (mkdir -p .arthur-stash && echo '*' > .arthur-stash/.gitignore && git diff --binary HEAD > .arthur-stash/patch, then git apply .arthur-stash/patch)";
 	const LINK = "a link to a repository";
 	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes; name the folder instead";
 	// Each call, and the place its refusal names: undefined when it passes.
@@ -454,7 +454,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `git commit -m "cd ${main} && rm README.md"` }, undefined],
 		["bash", { command: `cat > notes.md <<'EOF'\nrm -rf ${main}\necho x > ${main}/f\nEOF\nrm notes.md` }, undefined],
 		["bash", { command: `echo hi # > ${main}/f` }, undefined],
-		["bash", { command: "git diff > .arthur-stash.patch && git checkout . && git apply .arthur-stash.patch" }, undefined],
+		["bash", { command: "mkdir -p .arthur-stash && echo '*' > .arthur-stash/.gitignore && git diff --binary HEAD > .arthur-stash/patch && git reset --hard && git apply .arthur-stash/patch" }, undefined],
 		["bash", { command: "echo x > /tmp/arthur-worktree-guard-test && rm /tmp/arthur-worktree-guard-test" }, undefined],
 		["write", { path: "notes.txt", content: "x" }, undefined],
 		["write", { path: "local://plan.md", content: "x" }, undefined],

@@ -4258,9 +4258,9 @@
   {
     "id": "AR0534",
     "title": "Delivery's review-needed reads `process\\.env` in a regex as the secrets file too",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0534-delivery-s-review-needed-reads-process-env-in-a-regex-as-the-secrets-file-too/ticket.md",
-    "updated": "2026-10-28T16:37:07.256Z",
+    "updated": "2026-10-28T16:41:52.354Z",
     "after": [
       "AR0493"
     ]

@@ -16,6 +16,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0531 The env file fixes arthur doctor prints put an unquoted folder in a shell command (3520fee0)
 - AR0532 A job final message naming @<path> makes the coordinator read that file into its own context (e79b9701)
 - AR0533 A merge decision lifts whichever flag the coordinator names, not the one the owner decided (76f2ab84)
+- AR0534 Delivery's review-needed reads `process\.env` in a regex as the secrets file too (56c24517)
 
 ### Changed
 

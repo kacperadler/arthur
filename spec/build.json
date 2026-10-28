@@ -3926,9 +3926,9 @@
   {
     "id": "AR0493",
     "title": "A backslash-newline after $ is not removed, so the guard reads a folder name where bash reads ..",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0493-a-backslash-newline-after-is-not-removed-so-the-guard-reads-a-folder-name-where/ticket.md",
-    "updated": "2026-10-28T11:59:39.023Z",
+    "updated": "2026-10-28T12:39:43.066Z",
     "after": [
       "AR0478"
     ]
@@ -3936,9 +3936,9 @@
   {
     "id": "AR0494",
     "title": "The guard skips an escaped quote inside quotes when it finds a fallback end, so a command can hide after it",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0494-the-guard-skips-an-escaped-quote-inside-quotes-when-it-finds-a-fallback-end-so-a/ticket.md",
-    "updated": "2026-10-27T18:54:23.075Z",
+    "updated": "2026-10-28T12:39:44.652Z",
     "after": [
       "AR0478"
     ]
@@ -4280,16 +4280,16 @@
   {
     "id": "AR0535",
     "title": "A read-only folder a step leaves in the merge's cache turns a merge that went in into an error",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0535-a-read-only-folder-a-step-leaves-in-the-merge-s-cache-turns-a-merge-that-went-in/ticket.md",
-    "updated": "2026-10-28T10:14:47.136Z"
+    "updated": "2026-10-28T12:52:17.868Z"
   },
   {
     "id": "AR0536",
     "title": "Cache folders a merge killed before AR0470 left, named `cache-<random>`, stay",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0536-cache-folders-a-merge-killed-before-ar0470-left-named-cache-random-stay/ticket.md",
-    "updated": "2026-10-28T10:14:47.141Z"
+    "updated": "2026-10-28T12:52:18.898Z"
   },
   {
     "id": "AR0537",
@@ -4344,9 +4344,9 @@
   {
     "id": "AR0542",
     "title": "The agent's bun, pnpm, uv and composer still have no writable cache",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0542-the-agent-s-bun-pnpm-uv-and-composer-still-have-no-writable-cache/ticket.md",
-    "updated": "2026-10-28T10:59:01.915Z"
+    "updated": "2026-10-28T12:52:19.991Z"
   },
   {
     "id": "AR0543",

@@ -3799,9 +3799,9 @@
   {
     "id": "AR0479",
     "title": "A merge step reading an owner clone still deletes it when python3 cannot read the .git attributes, with a reason that hides why",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0479-a-merge-step-reading-an-owner-clone-still-deletes-it-when-python3-cannot-read/ticket.md",
-    "updated": "2026-10-28T23:03:26.336Z"
+    "updated": "2026-10-28T23:33:51.267Z"
   },
   {
     "id": "AR0480",
@@ -3834,9 +3834,9 @@
   {
     "id": "AR0484",
     "title": "A board entry's `path` is never checked, so a filing writes `plan.md` or `review-N.md` outside the project",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0484-a-board-entry-s-path-is-never-checked-so-a-filing-writes-plan-md-or-review-n-md/ticket.md",
-    "updated": "2026-10-28T23:03:24.579Z"
+    "updated": "2026-10-28T23:38:45.150Z"
   },
   {
     "id": "AR0485",
@@ -4042,9 +4042,9 @@
   {
     "id": "AR0510",
     "title": "The GitHub, Telegram and YouTrack API addresses take `http://` for any host, sending the token in the clear",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0510-the-github-telegram-and-youtrack-api-addresses-take-http-for-any-host-sending/ticket.md",
-    "updated": "2026-10-28T23:03:28.169Z"
+    "updated": "2026-10-28T23:37:23.415Z"
   },
   {
     "id": "AR0511",

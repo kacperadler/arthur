@@ -31,6 +31,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0477 Nine exports nobody imports (392ae9be)
 - AR0478 Two new plugins made at once still conflict in BUDGETS (0cf2657b)
 - AR0523 umask.test.ts and spawn.test.ts put their test job in the production arthur-jobs slice (088fb76b)
+- AR0544 The merge step timeout test fails under load: its 3 s limit also catches `npm run check` (bd73579d)
 
 ## 2026-10-27
 

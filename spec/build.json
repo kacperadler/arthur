@@ -3869,9 +3869,9 @@
   {
     "id": "AR0488",
     "title": "A health check runs `git status` in a main checkout with its `core.fsmonitor` on",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0488-a-health-check-runs-git-status-in-a-main-checkout-with-its-core-fsmonitor-on/ticket.md",
-    "updated": "2026-10-28T21:25:38.016Z"
+    "updated": "2026-10-28T21:46:43.448Z"
   },
   {
     "id": "AR0489",
@@ -4327,9 +4327,9 @@
   {
     "id": "AR0544",
     "title": "The merge step timeout test fails under load: its 3 s limit also catches `npm run check`",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0544-the-merge-step-timeout-test-fails-under-load-its-3-s-limit-also-catches-npm-run/ticket.md",
-    "updated": "2026-10-28T21:26:42.496Z"
+    "updated": "2026-10-28T21:50:16.704Z"
   },
   {
     "id": "AR0545",

@@ -4231,9 +4231,9 @@
   {
     "id": "AR0531",
     "title": "The env file fixes arthur doctor prints put an unquoted folder in a shell command",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0531-the-env-file-fixes-arthur-doctor-prints-put-an-unquoted-folder-in-a-shell/ticket.md",
-    "updated": "2026-10-28T07:55:02.201Z",
+    "updated": "2026-10-28T16:05:02.002Z",
     "after": [
       "AR0493"
     ]
@@ -4248,9 +4248,9 @@
   {
     "id": "AR0533",
     "title": "A merge decision lifts whichever flag the coordinator names, not the one the owner decided",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0533-a-merge-decision-lifts-whichever-flag-the-coordinator-names-not-the-one-the/ticket.md",
-    "updated": "2026-10-28T07:55:00.173Z",
+    "updated": "2026-10-28T16:01:18.670Z",
     "after": [
       "AR0493"
     ]
@@ -4258,9 +4258,9 @@
   {
     "id": "AR0534",
     "title": "Delivery's review-needed reads `process\\.env` in a regex as the secrets file too",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0534-delivery-s-review-needed-reads-process-env-in-a-regex-as-the-secrets-file-too/ticket.md",
-    "updated": "2026-10-28T07:55:04.211Z",
+    "updated": "2026-10-28T15:49:49.930Z",
     "after": [
       "AR0493"
     ]

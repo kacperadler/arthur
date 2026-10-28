@@ -460,3 +460,5 @@
 {"record":"answer","id":"AR-D229","time":"2026-10-28T12:35:41+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D230","time":"2026-10-28T13:13:51+01:00","project":"arthur","kind":"merge","question":"Merge AR0524 (export of git config before git is refused), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0524"}
 {"record":"answer","id":"AR-D230","time":"2026-10-28T13:13:51+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D231","time":"2026-10-28T13:34:06+01:00","project":"arthur","kind":"merge","question":"Merge AR0492 (an unquoted ~user is refused by the guard), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0492"}
+{"record":"answer","id":"AR-D231","time":"2026-10-28T13:34:06+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

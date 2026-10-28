@@ -40,4 +40,3 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: F1 of AR0475
-- 2026-10-28: Worker: the develop line budget in `test/structure.test.ts` rises by 4, to 710: the package was at its budget of 706, and the insertion in name order takes 4 more lines in `plugin-new.ts` than the insertion last did.

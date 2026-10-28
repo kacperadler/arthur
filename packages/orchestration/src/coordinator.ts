@@ -30,6 +30,10 @@ export function tmux(coordinator: Coordinator, args: readonly string[], inherit 
 	return spawnSync("tmux", [...socket, ...args], inherit ? { stdio: "inherit" } : { encoding: "utf8" });
 }
 
+// tmux splits its command arguments, not its `-L`/`-S` socket, at a trailing `;`, and reads a trailing `\;` as a `;` (tmux 3.4's
+// cmd-parse.y): a value's last `;` written `\;` keeps it one argument, as given, never the end of a command (AR0489).
+const literal = (arg: string): string => (arg.endsWith(";") ? `${arg.slice(0, -1)}\\;` : arg);
+
 // `none` without the session; `dead` when its agent exited and a `remain-on-exit` in the human's tmux.conf kept the pane. The
 // session's name is checked, so another session on the same server (whose global environment AR0434 clears) is never taken for it.
 export function pane(coordinator: Coordinator): "none" | "alive" | "dead" {
@@ -119,7 +123,7 @@ export function supervise(coordinator: Coordinator, folder: string, agent: strin
 		const { restore, refused } = own(coordinator);
 		const variables = [`ARTHUR_ORCHESTRATION_FOLDER=${folder}`, `ARTHUR_ORCHESTRATION_CONTEXT=${CONTEXT_COMMAND}`, ...added.flatMap((extension) => Object.entries(extension.env).map(([key, value]) => `${key}=${value}`))];
 		const env = variables.flatMap((variable) => ["-e", variable]);
-		const made = refused ?? tmux(coordinator, ["new-session", "-d", "-P", "-F", "#{pane_pid}", "-s", session, "-c", process.cwd(), ...env, ...command]);
+		const made = refused ?? tmux(coordinator, ["new-session", "-d", "-P", "-F", "#{pane_pid}", "-s", session, "-c", process.cwd(), ...env, ...command].map(literal));
 		if (restore.length > 0) tmux(coordinator, restore);
 		if (made.status !== 0) {
 			const why = made.error?.message ?? String(made.stderr).trim().split("\n").at(-1);
@@ -150,12 +154,12 @@ function openFolder(socket: string): string | undefined {
 function own(coordinator: Coordinator) {
 	const shown = tmux(coordinator, ["show-environment", "-g"]);
 	const global = (shown.status === 0 ? String(shown.stdout).split("\n") : []).filter((line) => line.indexOf("=") > 0).map((line) => [line.slice(0, line.indexOf("=")), line.slice(line.indexOf("=") + 1)] as const);
-	const clear = global.flatMap(([name]) => (process.env[name] === undefined ? [";", "set-environment", "-g", "-u", name] : []));
+	const clear = global.flatMap(([name]) => (process.env[name] === undefined ? [";", "set-environment", "-g", "-u", literal(name)] : []));
 	const given = global.flatMap(([name, value]) => (process.env[name] === undefined || process.env[name] === value ? [] : [name]));
 	const listed = given.length > 0 ? String(tmux(coordinator, ["show-options", "-g", "update-environment"]).stdout ?? "") : "";
 	const free = Math.max(-1, ...[...listed.matchAll(/^update-environment\[(\d+)\]/gm)].map((match) => Number(match[1]))) + 1;
 	const indices = given.map((_, at) => `update-environment[${free + at}]`);
-	const calls = [...clear, ...given.flatMap((name, at) => [";", "set-option", "-g", indices[at] as string, name])];
+	const calls = [...clear, ...given.flatMap((name, at) => [";", "set-option", "-g", indices[at] as string, literal(name)])];
 	const called = calls.length > 0 ? tmux(coordinator, calls.slice(1)) : undefined;
 	const restore = indices.flatMap((index) => [";", "set-option", "-gu", index]).slice(1);
 	return { restore, refused: called?.status === 0 ? undefined : called };

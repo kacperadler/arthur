@@ -561,3 +561,5 @@
 {"record":"answer","id":"AR-D279","time":"2026-10-28T22:55:41+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D280","time":"2026-10-28T23:22:42+01:00","project":"arthur","kind":"merge","question":"Merge AR0552 (docs: video in the architecture and README diagrams, roadmap entry 102), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0552"}
 {"record":"answer","id":"AR-D280","time":"2026-10-28T23:22:42+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D281","time":"2026-10-28T23:41:02+01:00","project":"arthur","kind":"merge","question":"Merge AR0425 (a site check redirect lookup ends at the check time limit; all five redirect statuses tested), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0425"}
+{"record":"answer","id":"AR-D281","time":"2026-10-28T23:41:02+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

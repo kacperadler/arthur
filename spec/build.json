@@ -3916,9 +3916,9 @@
   {
     "id": "AR0492",
     "title": "An unquoted `~user` is read as a relative folder named `~user`",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0492-an-unquoted-user-is-read-as-a-relative-folder-named-user/ticket.md",
-    "updated": "2026-10-28T12:30:26.237Z",
+    "updated": "2026-10-28T12:38:40.682Z",
     "after": [
       "AR0478"
     ]
@@ -4375,5 +4375,12 @@
     "status": "planning",
     "path": "spec/features/AR0546-a-function-body-or-a-trap-is-judged-before-a-later-export-and-the-function-f/ticket.md",
     "updated": "2026-10-28T12:33:10.118Z"
+  },
+  {
+    "id": "AR0547",
+    "title": "A `~` after a `:` in an assignment's value is not expanded by the parser",
+    "status": "planning",
+    "path": "spec/features/AR0547-a-after-a-in-an-assignment-s-value-is-not-expanded-by-the-parser/ticket.md",
+    "updated": "2026-10-28T12:38:40.677Z"
   }
 ]

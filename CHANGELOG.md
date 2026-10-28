@@ -14,6 +14,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0414 A job may commit the stash refusal's .arthur-stash.patch by mistake, and its git diff leaves staged changes out (19577505)
 - AR0456 The agent's own `npm ci` cannot write `~/.npm` (0ac4520e)
 - AR0470 A merge killed during its steps leaves its cache folder behind (4a964c77)
+- AR0488 A health check runs `git status` in a main checkout with its `core.fsmonitor` on (61c66613)
 - AR0489 A coordinator option ending in `;` splits its `tmux new-session` into tmux commands (58e1232e)
 - AR0492 An unquoted `~user` is read as a relative folder named `~user` (09d8b6d7)
 - AR0493 A backslash-newline after $ is not removed, so the guard reads a folder name where bash reads .. (b89c5cb8)

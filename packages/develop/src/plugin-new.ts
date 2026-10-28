@@ -95,7 +95,11 @@ function pluginNew(checkout: string, args: readonly string[], home: string): num
 	renameSync(draft, folder);
 	replace(lockPath, lock);
 	const key = name.includes("-") ? `"${name}"` : name;
-	replace(structurePath, structure.replace(BUDGETS, (_, entries: string) => `const BUDGETS = {\n${entries}\t${key}: ${budget},\n\n};`));
+	// In name order: before the first budget whose name sorts after it, else last, so two new plugins' branches merge cleanly.
+	replace(structurePath, structure.replace(BUDGETS, (_, entries: string) => {
+		const at = [...entries.matchAll(/^\t"?([^":]+)/gm)].find((entry) => (entry[1] ?? "") > name)?.index ?? entries.length;
+		return `const BUDGETS = {\n${entries.slice(0, at)}\t${key}: ${budget},\n\n${entries.slice(at)}};`;
+	}));
 	// What `npm ci` would link, so `@arthur/<name>` resolves in arthur.config.ts before the next install.
 	const link = join(root, "node_modules", "@arthur", name);
 	if (existsSync(dirname(link)) && lstatSync(link, { throwIfNoEntry: false }) === undefined) symlinkSync(join("..", "..", "packages", name), link);

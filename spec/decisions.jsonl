@@ -565,3 +565,5 @@
 {"record":"answer","id":"AR-D281","time":"2026-10-28T23:41:02+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D282","time":"2026-10-28T23:58:15+01:00","project":"arthur","kind":"merge","question":"Merge AR0547 (a tilde after an unquoted colon in an assignment is read as a home folder by the guard), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0547"}
 {"record":"answer","id":"AR-D282","time":"2026-10-28T23:58:15+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D283","time":"2026-10-29T00:38:57+01:00","project":"arthur","kind":"merge","question":"Merge AR0484 (a board entry path must be its own ticket.md; spec/build.json on the always-review list), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0484"}
+{"record":"answer","id":"AR-D283","time":"2026-10-29T00:38:57+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

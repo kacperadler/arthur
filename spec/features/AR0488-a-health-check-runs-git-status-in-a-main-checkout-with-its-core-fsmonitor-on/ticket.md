@@ -47,3 +47,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: F7 of AR0403
+- 2026-10-28: Raise the manage plugin line budget from 928 to 931 for AR0488 (3 lines of a security fix); decided by recommendation under AR-D271; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note): go with all recommendations overnight and do not ask" (AR-D274)

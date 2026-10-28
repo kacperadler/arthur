@@ -496,3 +496,5 @@
 {"record":"answer","id":"AR-D247","time":"2026-10-28T16:24:29+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D248","time":"2026-10-28T17:05:12+01:00","project":"arthur","kind":"merge","question":"Merge AR0531 (the env file fixes arthur doctor prints are quoted), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0531"}
 {"record":"answer","id":"AR-D248","time":"2026-10-28T17:05:12+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D249","time":"2026-10-28T17:14:18+01:00","project":"arthur","kind":"merge","question":"Merge AR0533 (a merge decision lets through only the flags recorded when it was asked), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0533"}
+{"record":"answer","id":"AR-D249","time":"2026-10-28T17:14:18+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

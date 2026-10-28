@@ -3241,9 +3241,9 @@
   {
     "id": "AR0414",
     "title": "A job may commit the stash refusal's .arthur-stash.patch by mistake, and its git diff leaves staged changes out",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0414-a-job-may-commit-the-stash-refusal-s-arthur-stash-patch-by-mistake-and-its-git/ticket.md",
-    "updated": "2026-10-28T10:45:22.317Z",
+    "updated": "2026-10-28T10:53:36.008Z",
     "after": [
       "AR0487",
       "AR0477",
@@ -3623,9 +3623,9 @@
   {
     "id": "AR0456",
     "title": "The agent's own `npm ci` cannot write `~/.npm`",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0456-the-agent-s-own-npm-ci-cannot-write-npm/ticket.md",
-    "updated": "2026-10-28T10:52:34.824Z",
+    "updated": "2026-10-28T10:59:01.928Z",
     "after": [
       "AR0487",
       "AR0477",
@@ -4360,5 +4360,26 @@
     "status": "planning",
     "path": "spec/features/AR0541-a-worker-ends-its-run-while-its-npm-test-runs-in-the-background-and-has-no-way/ticket.md",
     "updated": "2026-10-28T10:51:40.995Z"
+  },
+  {
+    "id": "AR0542",
+    "title": "The agent's bun, pnpm, uv and composer still have no writable cache",
+    "status": "planning",
+    "path": "spec/features/AR0542-the-agent-s-bun-pnpm-uv-and-composer-still-have-no-writable-cache/ticket.md",
+    "updated": "2026-10-28T10:59:01.915Z"
+  },
+  {
+    "id": "AR0543",
+    "title": "Inside a job's sandbox the agent cannot read or stop a command omp moved to the background",
+    "status": "dropped",
+    "path": "spec/features/AR0543-inside-a-job-s-sandbox-the-agent-cannot-read-or-stop-a-command-omp-moved-to-the/ticket.md",
+    "updated": "2026-10-28T10:59:29.987Z"
+  },
+  {
+    "id": "AR0544",
+    "title": "The merge step timeout test fails under load: its 3 s limit also catches `npm run check`",
+    "status": "planning",
+    "path": "spec/features/AR0544-the-merge-step-timeout-test-fails-under-load-its-3-s-limit-also-catches-npm-run/ticket.md",
+    "updated": "2026-10-28T10:59:01.925Z"
   }
 ]

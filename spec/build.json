@@ -3869,16 +3869,16 @@
   {
     "id": "AR0488",
     "title": "A health check runs `git status` in a main checkout with its `core.fsmonitor` on",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0488-a-health-check-runs-git-status-in-a-main-checkout-with-its-core-fsmonitor-on/ticket.md",
-    "updated": "2026-10-28T18:06:51.652Z"
+    "updated": "2026-10-28T20:41:12.921Z"
   },
   {
     "id": "AR0489",
     "title": "A coordinator option ending in `;` splits its `tmux new-session` into tmux commands",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0489-a-coordinator-option-ending-in-splits-its-tmux-new-session-into-tmux-commands/ticket.md",
-    "updated": "2026-10-28T18:06:51.136Z"
+    "updated": "2026-10-28T20:41:11.244Z"
   },
   {
     "id": "AR0490",
@@ -4327,9 +4327,9 @@
   {
     "id": "AR0544",
     "title": "The merge step timeout test fails under load: its 3 s limit also catches `npm run check`",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0544-the-merge-step-timeout-test-fails-under-load-its-3-s-limit-also-catches-npm-run/ticket.md",
-    "updated": "2026-10-28T18:06:50.614Z"
+    "updated": "2026-10-28T20:41:09.724Z"
   },
   {
     "id": "AR0545",

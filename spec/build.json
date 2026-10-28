@@ -4386,9 +4386,9 @@
   {
     "id": "AR0551",
     "title": "Video: frames and the spoken words of a video part, with ffmpeg and the voice plugin",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0551-video-frames-and-the-spoken-words-of-a-video-part-with-ffmpeg-and-the-voice/ticket.md",
-    "updated": "2026-10-28T19:06:28.080Z",
+    "updated": "2026-10-28T19:39:02.505Z",
     "after": [
       "AR0550"
     ]

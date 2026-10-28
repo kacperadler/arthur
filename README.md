@@ -63,7 +63,8 @@ flowchart TD
     core[config, plugin host, events, ticket board<br/>jobs, guards and sandbox; cleanup hooks planned]
   end
   subgraph FIRST[First-version plugins: each talks only to the core]
-    chan[channels<br/>telegram, voice, video; discord planned]
+    chan[channels<br/>telegram; discord planned]
+    media[media: claim a channel's parts<br/>voice, video]
     coord[coordinator<br/>orchestration, session, schedule]
     proj[projects<br/>projects, nvm, commit-rules, findings]
     res[machines and resources<br/>machines, resources, models, uptime; docker planned]
@@ -78,7 +79,7 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class coord,proj,deliv,self built;
+  class coord,proj,deliv,self,media built;
   class core,chan,res partial;
   class later planned;
   class owner,repos outside;

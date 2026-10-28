@@ -644,6 +644,40 @@ test("a git write through an alias given by -c, or GIT_DIR, GIT_WORK_TREE, GIT_I
 	assert.equal(git(own.worktree, "config", "--worktree", "a.c"), "d", "the alias ran git config in the worktree's own config");
 });
 
+test("config set earlier in the same call (export, declare -x, a bare assignment, a prefix to a shell or eval) refuses each git call after it, as one set before git does", async () => {
+	const { home, own } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id));
+	const unseen = [
+		"export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.c GIT_CONFIG_VALUE_0=config; git c a.c d",
+		"export GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=commit.gpgSign GIT_CONFIG_VALUE_0=false; git commit -q -am x",
+		"export HOME=/tmp/h; git commit -m x",
+		"readonly HOME=/tmp/h; git status",
+		"f() { local XDG_CONFIG_HOME=/tmp/h; git status; }; f",
+		"export XDG_CONFIG_HOME=/tmp/h && git status",
+		"declare -x GIT_CONFIG_GLOBAL=/tmp/x.cfg; git commit -m x",
+		"typeset -gx GIT_CONFIG_PARAMETERS=\"'alias.c'='config'\"; git c a.c d",
+		"HOME=/tmp/h; git commit -m x",
+		"XDG_CONFIG_HOME+=/h; export XDG_CONFIG_HOME; git status",
+		"HOME+=/h git commit -m x",
+		"HOME[0]=/tmp/h git commit -m x",
+		"export HOME=/tmp/h; cd ..; (git commit -m x)",
+		"export HOME=/tmp/h; bash -c 'git commit -m x'",
+		"bash -c 'export HOME=/tmp/h; git commit -m x'",
+		"HOME=/tmp/h bash -c 'git commit -m x'",
+		"env XDG_CONFIG_HOME=/tmp/h sh -c 'git status'",
+		"HOME=/tmp/h eval git commit -m x",
+		"export 'HOME=/tmp/h'; git commit -m x",
+	];
+	for (const command of unseen) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /^arthur: refused: this git call reads config the guard does not/, command);
+	const passing = [
+		"git commit -m x; export HOME=/tmp/h",
+		"export GIT_AUTHOR_NAME=x GIT_CONFIG_NOSYSTEM=1; git commit -m x",
+		"HOMEDIR=/tmp/h; export XDG_CONFIG; git status",
+		"export HOME; git status",
+	];
+	for (const command of passing) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
+});
+
 test("a call writing a .git or commondir is refused, and a git write through one that links to the main checkout's repository; a worktree's own link and other repositories pass", async () => {
 	const { root, home, own } = await jobs();
 	const place = jobPlace(join(home, "jobs", own.id));

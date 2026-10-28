@@ -567,3 +567,5 @@
 {"record":"answer","id":"AR-D282","time":"2026-10-28T23:58:15+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D283","time":"2026-10-29T00:38:57+01:00","project":"arthur","kind":"merge","question":"Merge AR0484 (a board entry path must be its own ticket.md; spec/build.json on the always-review list), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0484"}
 {"record":"answer","id":"AR-D283","time":"2026-10-29T00:38:57+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D284","time":"2026-10-29T00:53:36+01:00","project":"arthur","kind":"merge","question":"Merge AR0479 (a merge step reads a clone attributes once more after a python3 failure, and names python3 as the reason when it removes one), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0479"}
+{"record":"answer","id":"AR-D284","time":"2026-10-29T00:53:36+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

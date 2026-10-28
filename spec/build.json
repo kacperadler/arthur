@@ -3916,9 +3916,9 @@
   {
     "id": "AR0492",
     "title": "An unquoted `~user` is read as a relative folder named `~user`",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0492-an-unquoted-user-is-read-as-a-relative-folder-named-user/ticket.md",
-    "updated": "2026-10-27T18:54:22.058Z",
+    "updated": "2026-10-28T11:40:56.640Z",
     "after": [
       "AR0478"
     ]
@@ -3926,9 +3926,9 @@
   {
     "id": "AR0493",
     "title": "A backslash-newline after $ is not removed, so the guard reads a folder name where bash reads ..",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0493-a-backslash-newline-after-is-not-removed-so-the-guard-reads-a-folder-name-where/ticket.md",
-    "updated": "2026-10-27T18:54:22.566Z",
+    "updated": "2026-10-28T11:59:39.023Z",
     "after": [
       "AR0478"
     ]
@@ -3953,9 +3953,9 @@
   {
     "id": "AR0496",
     "title": "A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0496-a-home-set-in-front-of-a-command-is-ignored-by-the-guard-so-the-inner-shell/ticket.md",
-    "updated": "2026-10-27T18:54:21.530Z",
+    "updated": "2026-10-28T12:11:02.047Z",
     "after": [
       "AR0478"
     ]
@@ -4173,9 +4173,9 @@
   {
     "id": "AR0524",
     "title": "The worktree guard refuses `GIT_CONFIG_*=... git commit` but lets `export GIT_CONFIG_*=...; git commit` through",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0524-the-worktree-guard-refuses-git-config-git-commit-but-lets-export-git-config-git/ticket.md",
-    "updated": "2026-10-27T18:54:21.027Z",
+    "updated": "2026-10-28T11:59:58.992Z",
     "after": [
       "AR0478"
     ]

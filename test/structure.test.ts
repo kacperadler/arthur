@@ -6,45 +6,46 @@ import { test } from "node:test";
 import { checkStructure } from "./structure.ts";
 
 // The line budget of each package: the number of lines its src/ may hold. They live here only; a raise is a decision recorded in its ticket.
-// One budget per line, a blank line after each, so Git merges raises to two neighbours, or a raise and a new last one, without a conflict.
+// One budget per line in name order, a blank line after each, so Git merges raises to two neighbours, and two new budgets with an
+// existing budget's name sorting between theirs, without a conflict.
 const BUDGETS = {
+	"commit-rules": 165,
+
 	core: 6414,
 
 	"core/testing": 349,
 
-	projects: 482,
+	delivery: 1631,
 
-	orchestration: 2430,
+	develop: 710,
+
+	findings: 254,
+
+	github: 659,
 
 	machines: 488,
 
-	resources: 617,
-
-	session: 880,
-
-	schedule: 595,
+	manage: 928,
 
 	models: 509,
 
-	youtrack: 661,
-
-	"commit-rules": 165,
-
 	nvm: 96,
+
+	orchestration: 2430,
+
+	projects: 482,
+
+	resources: 617,
+
+	schedule: 595,
+
+	session: 880,
 
 	telegram: 641,
 
 	uptime: 298,
 
-	delivery: 1631,
-
-	github: 659,
-
-	manage: 928,
-
-	develop: 710,
-
-	findings: 254,
+	youtrack: 661,
 
 };
 
@@ -86,6 +87,7 @@ function check(
 
 test("the repository keeps every rule", () => {
 	assert.deepEqual(checkStructure(join(import.meta.dirname, ".."), BUDGETS), []);
+	assert.deepEqual(Object.keys(BUDGETS), Object.keys(BUDGETS).toSorted(), "BUDGETS in name order, as arthur plugin new inserts");
 });
 
 // The README is a front page (AR0450, AR-D87): at most 120 lines, with one small ```mermaid block GitHub draws; the full diagram is arthur.mmd.

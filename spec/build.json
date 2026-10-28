@@ -3938,7 +3938,7 @@
     "title": "The guard skips an escaped quote inside quotes when it finds a fallback end, so a command can hide after it",
     "status": "in-progress",
     "path": "spec/features/AR0494-the-guard-skips-an-escaped-quote-inside-quotes-when-it-finds-a-fallback-end-so-a/ticket.md",
-    "updated": "2026-10-28T12:39:44.652Z",
+    "updated": "2026-10-28T13:15:12.735Z",
     "after": [
       "AR0478"
     ]

@@ -3609,9 +3609,9 @@
   {
     "id": "AR0455",
     "title": "A package cache that does not exist yet stays closed, so a fresh host's first install in a job fails",
-    "status": "in-progress",
+    "status": "dropped",
     "path": "spec/features/AR0455-a-package-cache-that-does-not-exist-yet-stays-closed-so-a-fresh-host-s-first/ticket.md",
-    "updated": "2026-10-28T10:21:15.855Z",
+    "updated": "2026-10-28T10:24:49.846Z",
     "after": [
       "AR0487",
       "AR0477",
@@ -3804,9 +3804,9 @@
   {
     "id": "AR0478",
     "title": "Two new plugins made at once still conflict in BUDGETS",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0478-two-new-plugins-made-at-once-still-conflict-in-budgets/ticket.md",
-    "updated": "2026-10-27T18:54:20.003Z",
+    "updated": "2026-10-28T10:23:30.074Z",
     "after": [
       "AR0487",
       "AR0477",
@@ -4314,22 +4314,37 @@
   {
     "id": "AR0537",
     "title": "A job's own session reads each file its task or a continue's text names as `@<path>`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0537-a-job-s-own-session-reads-each-file-its-task-or-a-continue-s-text-names-as-path/ticket.md",
-    "updated": "2026-10-28T10:20:05.411Z"
+    "updated": "2026-10-28T10:24:50.853Z",
+    "after": [
+      "AR0533",
+      "AR0531",
+      "AR0534"
+    ]
   },
   {
     "id": "AR0538",
     "title": "The coordinator's handoff is handed back through `sendUserMessage` unescaped",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0538-the-coordinator-s-handoff-is-handed-back-through-sendusermessage-unescaped/ticket.md",
-    "updated": "2026-10-28T10:20:05.416Z"
+    "updated": "2026-10-28T10:24:52.668Z",
+    "after": [
+      "AR0533",
+      "AR0531",
+      "AR0534"
+    ]
   },
   {
     "id": "AR0539",
     "title": "A `^<model>` in a message's text gives the coordinator's session a model agent",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0539-a-model-in-a-message-s-text-gives-the-coordinator-s-session-a-model-agent/ticket.md",
-    "updated": "2026-10-28T10:20:05.419Z"
+    "updated": "2026-10-28T10:24:54.557Z",
+    "after": [
+      "AR0533",
+      "AR0531",
+      "AR0534"
+    ]
   }
 ]

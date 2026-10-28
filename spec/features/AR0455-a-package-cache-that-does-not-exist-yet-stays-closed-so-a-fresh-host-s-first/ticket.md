@@ -40,3 +40,4 @@ Out:
 ## Decisions
 
 - 2026-10-26: Source: F2 of AR0449
+- 2026-10-28: Close AR0455 as already done by AR0454 (ff79c610); no doctor line; the agent own npm ci stays with AR0456; the owner: "AR-D224 1 AR-D223 1" (AR-D224)

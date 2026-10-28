@@ -15,7 +15,7 @@ It needs the `projects` plugin, which sets up first.
 
 ## Options
 
-- `instances`: the YouTrack servers, at least one, each `{ name?, urlEnv, tokenEnv }`, at most one without a name. `name` is the one a project's `tracker.instance` gives; `urlEnv` names the variable holding the server's URL, as `https://example.youtrack.cloud`; `tokenEnv` the variable holding a permanent token of the YouTrack user Arthur reads and writes as.
+- `instances`: the YouTrack servers, at least one, each `{ name?, urlEnv, tokenEnv }`, at most one without a name. `name` is the one a project's `tracker.instance` gives; `urlEnv` names the variable holding the server's URL, as `https://example.youtrack.cloud` (`http` only on loopback: `localhost`, 127.0.0.0/8, `::1`; anywhere else the token would cross the network in plain text); `tokenEnv` the variable holding a permanent token of the YouTrack user Arthur reads and writes as.
 - `timeoutSeconds`: how long one call to YouTrack may take before it is given up. Default 30.
 
 Its page, what `arthur youtrack --help` prints, is [`commands/youtrack.md`](commands/youtrack.md), with every verb, option and refusal in full.

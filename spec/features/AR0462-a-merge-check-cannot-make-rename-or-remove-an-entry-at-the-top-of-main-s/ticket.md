@@ -20,21 +20,24 @@ F1 of AR0457 (spec/features/AR0457-a-merge-check-can-leave-a-git-hook-or-config-
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+Since AR0457, a merge check's step may write inside each top-level entry of main's checkout but not in the checkout's folder itself (Landlock grants a right on a folder to all beneath it, `.git/hooks` included). So a check that makes, renames or removes a top-level entry (`dist/`, `coverage/`, `tsconfig.tsbuildinfo`) fails with `Permission denied` (`packages/core/src/job-sandbox.ts`, `checkout`).
 
 - Kind: ux
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- A check that makes a top-level folder or file the project names passes; `.git/hooks` and `.git/config` stay out of reach (a test of each).
+- The approach is the one the owner picks (Decisions below) before the worker starts.
+- `npm run check` and `npm test` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/job-sandbox.ts` and the merge step that calls it; `docs/commands/merge.md`.
+- Their tests.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Changing Landlock's model.
 
 ## Decisions
 

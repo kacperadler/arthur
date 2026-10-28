@@ -4077,9 +4077,9 @@
   {
     "id": "AR0515",
     "title": "The hidden ~/.ssh follows $HOME, while OpenSSH finds the home from the user account",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0515-the-hidden-ssh-follows-home-while-openssh-finds-the-home-from-the-user-account/ticket.md",
-    "updated": "2026-10-27T13:31:32.053Z"
+    "updated": "2026-10-28T19:44:55.311Z"
   },
   {
     "id": "AR0516",
@@ -4133,9 +4133,9 @@
   {
     "id": "AR0522",
     "title": "`arthur run`'s stop does not wait for a sweep's copy still in flight",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0522-arthur-run-s-stop-does-not-wait-for-a-sweep-s-copy-still-in-flight/ticket.md",
-    "updated": "2026-10-27T15:51:09.269Z"
+    "updated": "2026-10-28T19:44:49.337Z"
   },
   {
     "id": "AR0523",

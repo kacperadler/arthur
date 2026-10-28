@@ -315,6 +315,22 @@ test("a setup or a check that throws stops the load and names the plugin", async
 	assert.equal(await refusal(check), "plugin youtrack: check failed: bad");
 });
 
+test("ARTHUR_JOB_SLICE names the jobs' slice, Arthur's own when unset or empty; a name that is not one systemd slice refuses the load before any setup", async () => {
+	const ran: string[] = [];
+	const slice = async (shell: Shell) => {
+		let named = "";
+		await loadPlugins(config([fake(ran, "orchestration", { setup: (host) => void (named = host.jobs.slice) })]), shell);
+		return named;
+	};
+	assert.deepEqual([await slice({ ARTHUR_JOB_SLICE: "arthur_test_1f-AC0001" }), await slice({}), await slice({ ARTHUR_JOB_SLICE: "" })], ["arthur_test_1f-AC0001", "arthur-jobs", "arthur-jobs"]);
+	ran.length = 0;
+	for (const name of ["jobs.slice", "-jobs", "jobs-", "a--b", "a b", "a/b", "ä"]) {
+		const expected = `ARTHUR_JOB_SLICE: expected a systemd slice name without .slice, letters, digits and _ in parts joined by -; it is ${JSON.stringify(name)}`;
+		assert.equal(await refusal(config([fake(ran, "orchestration")]), { ARTHUR_JOB_SLICE: name }), expected);
+	}
+	assert.deepEqual(ran, []);
+});
+
 test("a spawn during the load refuses it, from any plugin's host, and creates nothing; after the load a spawn goes to the runner", async () => {
 	const root = join(temporaryFolder(), "acme");
 	mkdirSync(root);

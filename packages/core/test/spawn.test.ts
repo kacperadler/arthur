@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { readEvents } from "../src/event-log.ts";
-import { fakeAgent, temporaryFolder } from "../src/testing.ts";
+import { fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>[,<model>...]] [--thinking <level>] [--timeout <minutes>] [--budget <usd> [--decision <id>]] [--machine <name>] [--requires <labels>] [--ignore-restart]";
@@ -44,7 +44,7 @@ function repository(config = CONFIG): string {
 }
 
 function arthur(root: string, ...args: string[]): { readonly status: number | null; readonly stdout: string; readonly stderr: string } {
-	return spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
+	return spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_JOB_SLICE: jobSlice.slice } });
 }
 
 const jobs = (root: string) => (existsSync(join(root, ".arthur/jobs")) ? readdirSync(join(root, ".arthur/jobs")) : []);
@@ -94,14 +94,19 @@ test("arthur spawn returns while the agent of core.agent.command runs in the bac
 test("a wrapper that systemd-run did not start: arthur spawn prints the id, then the reason, and exits 1; the worktree stays", () => {
 	const root = repository();
 	const bin = temporaryFolder();
-	writeFileSync(join(bin, "systemctl"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
-	writeFileSync(join(bin, "systemd-run"), "#!/bin/sh\necho 'Failed to start transient scope unit: Access denied' >&2\nexit 1\n", { mode: 0o755 });
-	const run = spawnSync(process.execPath, [CLI, "spawn", "Build it."], { cwd: root, encoding: "utf8", env: { PATH: `${bin}:${process.env.PATH}`, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
+	// Each notes its arguments in `<itself>.args`, a line per call.
+	writeFileSync(join(bin, "systemctl"), '#!/bin/sh\necho "$@" >> "$0.args"\nexit 0\n', { mode: 0o755 });
+	writeFileSync(join(bin, "systemd-run"), "#!/bin/sh\necho \"$@\" >> \"$0.args\"\necho 'Failed to start transient scope unit: Access denied' >&2\nexit 1\n", { mode: 0o755 });
+	const run = spawnSync(process.execPath, [CLI, "spawn", "Build it."], { cwd: root, encoding: "utf8", env: { PATH: `${bin}:${process.env.PATH}`, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_JOB_SLICE: jobSlice.slice } });
 	const id = run.stdout.trim();
 	assert.match(run.stdout, /^\d{4}-\d\d-\d\d-worker-[0-9a-f]{8}\n$/);
 	assert.deepEqual([run.status, run.stderr.split("\n").at(-2)], [1, "failed: systemd-run: Failed to start transient scope unit: Access denied"]);
 	assert.deepEqual(["state", "reason"].map((name) => readFileSync(join(root, ".arthur/jobs", id, name), "utf8")), ["ended", "failed: systemd-run: Failed to start transient scope unit: Access denied"]);
 	assert.equal(git(join(dirname(root), ".arthur-worktrees", id), "branch", "--show-current"), `arthur/${id}`);
+	const args = (tool: string) => readFileSync(join(bin, `${tool}.args`), "utf8").trimEnd().split("\n").map((line) => line.split(" "));
+	const slice = `${jobSlice.slice}.slice`;
+	assert.deepEqual(args("systemctl").map((line) => line.slice(0, 4)), [["--user", "set-property", "--runtime", slice]], "the kit's slice named by ARTHUR_JOB_SLICE, never Arthur's own");
+	assert.ok(args("systemd-run")[0]?.includes(`--slice=${slice}`), args("systemd-run").join("\n"));
 });
 
 test("--kind review makes a detached checkout with the kind's limits", () => {
@@ -221,7 +226,7 @@ test("two arthur spawn processes at once get distinct ids, branches and worktree
 	const root = repository();
 	const once = () =>
 		new Promise<string>((resolve, reject) => {
-			const child = spawn(process.execPath, [CLI, "spawn", "Go."], { cwd: root, env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME } });
+			const child = spawn(process.execPath, [CLI, "spawn", "Go."], { cwd: root, env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_JOB_SLICE: jobSlice.slice } });
 			let out = "";
 			child.stdout.on("data", (chunk) => (out += chunk));
 			child.on("close", (code) => (code === 0 ? resolve(out.trim()) : reject(new Error(`exit ${code}`))));

@@ -77,7 +77,7 @@ export type Jobs = RoleReads & {
 	beforeSpawn(check: SpawnCheck): void;
 	// After the worktree and the record exist, before the agent starts; a throw removes both and refuses the spawn; it runs here, on another machine through `run`. Variables it returns go into the job's environment only (job-scope.ts), never its record, and reach the prepares after it, in setup order, as `env`. `arthur continue` runs it again on the job its record holds, `continued` true, for its variables only: a throw refuses the continue, and a step that sets up the worktree returns at once.
 	prepare(fn: Prepare): void;
-	// Machines jobs run on over SSH, `local` the core's; `run`: one command on one, `input` on its stdin; `machines`: every name; `home`: Arthur's home folder on one (docs/commands/spawn.md); `slice`: the jobs' systemd slice without `.slice`, `arthur-jobs`, a test kit's own under the fake host.
+	// Machines jobs run on over SSH, `local` the core's; `run`: one command on one, `input` on its stdin; `machines`: every name; `home`: Arthur's home folder on one (docs/commands/spawn.md); `slice`: the jobs' systemd slice without `.slice`, `arthur-jobs` or the one `ARTHUR_JOB_SLICE` names (host.ts), a test kit's own under the fake host.
 	registerMachine(machine: Machine): void;
 	run(machine: string, argv: readonly string[], limitSeconds?: number, input?: string): Promise<Ran>;
 	machines(): string[];

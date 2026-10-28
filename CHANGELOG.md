@@ -4,6 +4,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## 2026-10-28
 
+### Added
+
+- AR0550 Voice: local transcription of voice notes with whisper.cpp (roadmap 81) (6964e6ab)
+
 ### Fixed
 
 - AR0414 A job may commit the stash refusal's .arthur-stash.patch by mistake, and its git diff leaves staged changes out (19577505)

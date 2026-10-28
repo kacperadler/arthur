@@ -212,19 +212,61 @@ test("a step that only hands a group-writable .git of a clone to another group o
 	opened(`chgrp ${group} tools/other/.git`, "tools/other/.git");
 });
 
-test("where python3 cannot read a folder's attributes, a git read in a clone's .git counts as a change, so no ACL there is missed", () => {
-	// A python3 first on the PATH that fails, as one missing does, for Arthur's process only: the step runs on the PATH it had.
+// What `body` returns, run with a python3 first on Arthur's PATH that runs the shell `script` instead, as one missing or failing
+// does, kept in `bin`, for Arthur's process only: a step runs on `path`, the PATH it had.
+function withPython3<T>(script: string, body: (path: string | undefined, bin: string) => T): T {
 	const bin = join(temporaryFolder(), "bin");
 	mkdirSync(bin);
-	writeFileSync(join(bin, "python3"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+	writeFileSync(join(bin, "python3"), `#!/bin/sh\n${script}\n`, { mode: 0o755 });
 	const path = process.env.PATH;
 	process.env.PATH = `${bin}:${path}`;
 	try {
-		const { run, lines } = planted();
-		const command = "git -C tools/other status --porcelain";
-		assert.equal(run(command, { ...process.env, PATH: path }).status, 0);
-		assert.deepEqual(lines, said(command, "tools/other/.git"));
+		return body(path, bin);
 	} finally {
 		process.env.PATH = path;
+	}
+}
+
+const unread = (command: string, ...paths: string[]) => paths.map((path) => `removed ${path}, which ${command} left: python3 failed to read the extended attributes of its Git folders, so a git read there could not be told from a change`);
+
+test("where python3 cannot read a folder's attributes, a git read in a clone's .git counts as a change, so no ACL there is missed, and the line says python3 failed; a repository a step made keeps the usual line", () => {
+	withPython3("exit 1", (path) => {
+		const { run, lines } = planted();
+		const command = "git init -q src && git -C tools/other status --porcelain";
+		assert.equal(run(command, { ...process.env, PATH: path }).status, 0);
+		assert.deepEqual(lines.sort(), [...said(command, "src/.git"), ...unread(command, "tools/other/.git")]);
+	});
+});
+
+test("a python3 that failed on the first look only, or on both readings after a step, makes every clone's .git count as a change, and the line says python3 failed", () => {
+	const owners = ["tools/bare.git", "tools/other/.git", "tools/scratch/.git"];
+	const first = withPython3("exit 1", () => planted());
+	assert.equal(first.run("true", process.env).status, 0);
+	assert.deepEqual(first.lines.sort(), unread("true", ...owners), "failed on the first look");
+	const second = planted();
+	withPython3("exit 1", (path) => assert.equal(second.run("true", { ...process.env, PATH: path }).status, 0));
+	assert.deepEqual(second.lines.sort(), unread("true", ...owners), "failed after the step, and again on the retry");
+});
+
+test("a python3 that fails once on a clone's .git after a step is asked again, so a clone the step only read stays; one that fails on the retry too has that clone removed", () => {
+	const real = execFileSync("sh", ["-c", "command -v python3"], { encoding: "utf8" }).trim();
+	const read = ["tools/scratch", "tools/other"].map((folder) => `git -C ${folder} status --porcelain`).join(" && ");
+	for (const failures of [1, 2]) {
+		const { root, git, run, lines, kept } = planted();
+		const before = kept();
+		// Its first `failures` reads of tools/scratch/.git, counted, fail; every other read works.
+		const count = `case "$*" in *tools/scratch/.git*) n=$(cat "$0.count" 2>/dev/null || echo 0); echo $((n + 1)) > "$0.count"; [ "$n" -ge ${failures} ] || exit 1;; esac`;
+		const calls = withPython3(`${count}\nexec '${real}' "$@"`, (path, bin) => {
+			assert.equal(run(read, { ...process.env, PATH: path }).status, 0);
+			return readFileSync(join(bin, "python3.count"), "utf8");
+		});
+		assert.equal(calls, "2\n", "the sweep read tools/scratch/.git twice, once again after a failure, never a third time");
+		if (failures === 2) {
+			assert.deepEqual(lines, unread(read, "tools/scratch/.git"));
+			continue;
+		}
+		assert.deepEqual(lines, [], "a failed read asked again adds no line");
+		assert.deepEqual(kept(), before, "the owner's clones are the same ones");
+		assert.equal(git(join(root, "tools", "scratch"), "log", "--format=%s"), "notes", "the clone keeps its history");
 	}
 });

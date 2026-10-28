@@ -3926,9 +3926,9 @@
   {
     "id": "AR0493",
     "title": "A backslash-newline after $ is not removed, so the guard reads a folder name where bash reads ..",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0493-a-backslash-newline-after-is-not-removed-so-the-guard-reads-a-folder-name-where/ticket.md",
-    "updated": "2026-10-28T12:39:43.066Z",
+    "updated": "2026-10-28T13:04:29.572Z",
     "after": [
       "AR0478"
     ]
@@ -3953,9 +3953,9 @@
   {
     "id": "AR0496",
     "title": "A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0496-a-home-set-in-front-of-a-command-is-ignored-by-the-guard-so-the-inner-shell/ticket.md",
-    "updated": "2026-10-28T12:56:02.488Z",
+    "updated": "2026-10-28T12:56:30.367Z",
     "after": [
       "AR0478"
     ]

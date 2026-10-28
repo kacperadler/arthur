@@ -920,7 +920,7 @@ test("refused at load, naming the option and the variable but never its value: a
 	const env = envFor("https://youtrack.example");
 	for (const url of ["", "youtrack.example", "ftp://youtrack.example", "https://me:pass@youtrack.example", "https://youtrack.example/?a=1", "https://youtrack.example/#top"]) {
 		const message = await refusal(load(t, { ...env, ARTHUR_YOUTRACK_ACME_URL: url }));
-		assert.equal(message, "instances[1].urlEnv: ARTHUR_YOUTRACK_ACME_URL does not hold an http or https URL without a user, query or fragment");
+		assert.equal(message, "instances[1].urlEnv: ARTHUR_YOUTRACK_ACME_URL does not hold an https URL, or an http one on loopback (localhost, 127.0.0.0/8, ::1), without a user, query or fragment");
 	}
 	for (const token of ["", `${TOKEN} `, `${TOKEN}\n`, `${TOKEN}é`]) {
 		const message = await refusal(load(t, { ...env, ARTHUR_YOUTRACK_TOKEN: token }));
@@ -928,9 +928,19 @@ test("refused at load, naming the option and the variable but never its value: a
 	}
 	assert.equal(
 		await refusal(load(t, { ARTHUR_YOUTRACK_TOKEN: TOKEN, ARTHUR_YOUTRACK_ACME_URL: "https://acme.example", ARTHUR_YOUTRACK_ACME_TOKEN: ACME_TOKEN })),
-		"instances[0].urlEnv: ARTHUR_YOUTRACK_URL does not hold an http or https URL without a user, query or fragment",
+		"instances[0].urlEnv: ARTHUR_YOUTRACK_URL does not hold an https URL, or an http one on loopback (localhost, 127.0.0.0/8, ::1), without a user, query or fragment",
 		"a variable not set",
 	);
+});
+
+test("a URL with http only on loopback (localhost, 127.0.0.0/8, ::1), where the token never crosses the network in plain text; https anywhere", async (t) => {
+	const env = envFor("https://youtrack.example");
+	for (const url of ["http://youtrack.example", "http://example.youtrack.cloud/youtrack", "http://126.255.255.255", "http://128.0.0.0", "http://10.0.0.1", "http://127.0.0.1.example", "http://localhost.example", "http://localhost.", "http://evil.localhost", "http://[::2]", "ftp://127.0.0.1"]) {
+		const message = await refusal(load(t, { ...env, ARTHUR_YOUTRACK_ACME_URL: url }));
+		assert.equal(message, "instances[1].urlEnv: ARTHUR_YOUTRACK_ACME_URL does not hold an https URL, or an http one on loopback (localhost, 127.0.0.0/8, ::1), without a user, query or fragment", url);
+	}
+	for (const url of ["http://127.0.0.1:4567", "http://127.0.0.0", "http://127.255.255.255:1", "http://localhost:8080/youtrack", "http://LOCALHOST", "http://[::1]:1", "https://example.youtrack.cloud", "https://10.0.0.1"])
+		await load(t, { ...env, ARTHUR_YOUTRACK_ACME_URL: url });
 });
 
 test("the options are checked before setup, each problem at its path", () => {

@@ -12,6 +12,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Fixed
 
 - AR0414 A job may commit the stash refusal's .arthur-stash.patch by mistake, and its git diff leaves staged changes out (19577505)
+- AR0425 A redirect's lookup in a site check ignores the check's time limit, and a 308 hop has no test (c133bb0d)
 - AR0456 The agent's own `npm ci` cannot write `~/.npm` (0ac4520e)
 - AR0470 A merge killed during its steps leaves its cache folder behind (4a964c77)
 - AR0488 A health check runs `git status` in a main checkout with its `core.fsmonitor` on (61c66613)

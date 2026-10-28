@@ -11,4 +11,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/test/limits.test.ts:144`
 - What: in a full `npm test` while about ten other test runs from other worktrees shared the machine, "a timeout during a long tool call stops the agent and the tool's process; a kind that resumes at its budget is not resumed" failed after 21 s with `Error: timed out waiting for the tool's process`. The same file run alone right after (`node --import @arthur/core/testing --test packages/core/test/limits.test.ts`) passed 18 of 18. AR0425 does not touch the core.
 - Suggestion: find what the test waits for at line 144 and why it can take over the wait under load; give that wait a bound that holds on a loaded machine, or make it wait on the state itself. The test's behavior stays as it is.
-- Status: open
+- Status: deferred (client summary)
+
+## F2. Notes of the review
+
+- Kind: chore
+- Found by: 2026-10-28-review-02c0423e (reviewer), 2026-10-28
+- Where: `packages/uptime/src/site-check.ts:30`
+- What: each hop to another host adds an abort listener to the check's signal and never removes it (at most 20, for one check); `new Promise` kept over `Promise.withResolvers()` to stay within the 298-line budget.
+- Status: dropped (bounded and short-lived; the budget reason is recorded)

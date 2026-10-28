@@ -65,7 +65,7 @@ What `setup` gets, one host per plugin. `@arthur/core/testing`'s `fakeHost` give
 | `jobs.run(machine, argv, limitSeconds?, input?)` | One command on a registered machine, `input` on its stdin; resolves to a `Ran`. |
 | `jobs.machines()` | The names of the registered machines. |
 | `jobs.home(machine)` | Arthur's home folder on a registered machine, the core's own on `local`; refused for a name no plugin registers (above, "Changes since entry 51"). |
-| `jobs.slice` | The name of the jobs' systemd slice without `.slice`: `arthur-jobs`, the test kit's own (`jobSlice`) under `fakeHost` (above, "Changes since entry 51"). |
+| `jobs.slice` | The name of the jobs' systemd slice without `.slice`: `arthur-jobs`, or the one `ARTHUR_JOB_SLICE` names (`arthur spawn --help`); the test kit's own (`jobSlice`) under `fakeHost`, which the kit also sets as `ARTHUR_JOB_SLICE` (above, "Changes since entry 51"). |
 | `jobs.spawn(request)` | A job from a `SpawnRequest`; resolves to `Started` once its wrapper started. |
 | `jobs.continue(id, instruction, budgetUsd?)` | `arthur continue` of an ended job with a branch, `budgetUsd` replacing its budget, through every `beforeSpawn` and `prepare` as at the CLI; resolves to why its wrapper did not start, undefined once it started (above, "Changes since entry 51"). |
 | `jobs.block(id, reason, stop?)` | Holds a job in a run `blocked` on `dependency: <reason>` until its run ends; with `stop`, on `user: <reason>`, and stops the run, resolving once it is over. Refused for an empty reason and a job not in a run. |

@@ -26,9 +26,9 @@ for (const key of Object.keys(process.env)) if (key.startsWith("ARTHUR_") || key
 const root = mkdtempSync(join(tmpdir(), "arthur-test-"));
 Object.assign(process.env, { TMUX_TMPDIR: root, XDG_CONFIG_HOME: root });
 
-// The joint slice of a test's jobs, never Arthur's own: `arthur_test_<8 hex digits>.slice` right under the user manager (a `-` would nest it in another slice); at exit it is stopped, with any job still in it, and its limits are removed.
+// The joint slice of a test's jobs, never Arthur's own: `arthur_test_<8 hex digits>.slice` right under the user manager (a `-` would nest it in another slice); at exit it is stopped, with any job still in it, and its limits are removed. `ARTHUR_JOB_SLICE` names it to a load in this process (host.ts) and to an `arthur` it starts; a test that gives the CLI an env of its own passes it there.
 export const jobSlice: Slice = { slice: `arthur_test_${randomBytes(4).toString("hex")}`, cpu: 2, memory: "2G" };
-
+process.env.ARTHUR_JOB_SLICE = jobSlice.slice;
 process.on("exit", () => {
 	for (const verb of ["stop", "revert"]) spawnSync("systemctl", ["--user", verb, `${jobSlice.slice}.slice`], { stdio: "ignore" });
 	for (const socket of (spawnSync("find", [root, "-type", "s", "-print0"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).stdout ?? "").split("\0").filter(Boolean)) spawnSync("tmux", ["-S", socket, "kill-server"], { stdio: "ignore" });

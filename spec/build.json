@@ -3926,9 +3926,9 @@
   {
     "id": "AR0493",
     "title": "A backslash-newline after $ is not removed, so the guard reads a folder name where bash reads ..",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0493-a-backslash-newline-after-is-not-removed-so-the-guard-reads-a-folder-name-where/ticket.md",
-    "updated": "2026-10-28T14:01:39.897Z",
+    "updated": "2026-10-28T14:16:43.507Z",
     "after": [
       "AR0478"
     ]
@@ -3936,9 +3936,9 @@
   {
     "id": "AR0494",
     "title": "The guard skips an escaped quote inside quotes when it finds a fallback end, so a command can hide after it",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0494-the-guard-skips-an-escaped-quote-inside-quotes-when-it-finds-a-fallback-end-so-a/ticket.md",
-    "updated": "2026-10-28T14:08:41.983Z",
+    "updated": "2026-10-28T14:17:01.122Z",
     "after": [
       "AR0478"
     ]

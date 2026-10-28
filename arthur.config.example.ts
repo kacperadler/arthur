@@ -1,6 +1,6 @@
 // Example arthur.config.ts with every plugin, planned ones included. Built, under `packages/`: the core and commit-rules,
 // delivery, develop, findings, github, machines, manage, models, nvm, orchestration, projects, resources, schedule, session,
-// telegram, uptime, voice, youtrack. Planned, no package yet (spec/roadmap.md builds them): discord, docker (first); server,
+// telegram, uptime, video, voice, youtrack. Planned, no package yet (spec/roadmap.md builds them): discord, docker (first); server,
 // signal, slack, whatsapp (later). So a copy of the whole file does not load; it fails on the first planned import
 // (`Cannot find package '@arthur/discord'`). Take a plugin from it once its package exists. Illustrative for the planned
 // ones: their option names are proposed, not final.
@@ -46,6 +46,7 @@ import { signal } from "@arthur/signal"; // later, named
 import { slack } from "@arthur/slack"; // later, named
 import { telegram } from "@arthur/telegram"; // first, named
 import { uptime } from "@arthur/uptime"; // first, named
+import { video } from "@arthur/video"; // first, named
 import { voice } from "@arthur/voice"; // first, named
 import { whatsapp } from "@arthur/whatsapp"; // later, named
 import { youtrack } from "@arthur/youtrack"; // first, named
@@ -370,7 +371,7 @@ export default defineConfig({
 
 		// Channels: the same interface (receive, send text, send media), one plugin each. A channel only receives: it saves what came
 		// under `.arthur/<channel>/` and emits one message with its parts typed (text, photo, video, voice, audio, file; an album is
-		// several parts), and transcribes nothing; a media plugin (voice) turns the parts it handles into text for the coordinator.
+		// several parts), and transcribes nothing; a media plugin (voice, video) turns the parts it handles into text for the coordinator.
 		// A channel only routes `/name text` to the host and sends the reply; each plugin registers the commands it owns (`/jobs`,
 		// `/board`, `/health`, `/restart`, ...).
 		// A message may carry its place (a Telegram topic, a Discord or Slack channel): a place some project's `chat` names goes to
@@ -392,6 +393,17 @@ export default defineConfig({
 			language: "pl", // a language code, or "auto" for whisper's own detection
 			timeoutSeconds: 300, // ffmpeg or whisper running longer on one file is killed; the coordinator gets the path and why
 			maxSeconds: 600, // a longer file is not transcribed; the human is told in one line, the coordinator gets the path
+		}),
+
+		// Videos from any channel, cut on this server by ffmpeg; nothing leaves the server. The coordinator gets a few frames as PNG
+		// files in .arthur/video/, each with the second it shows, and the words of the sound track through the voice plugin's
+		// `voice.transcribe`: `[video <seconds> s] <transcript> frames: <path> at <s> s, ... (<path>)`. `arthur doctor` checks
+		// `ffmpeg` and `ffprobe`; while one is missing a video reaches the coordinator as its path.
+		video({
+			everySeconds: 5, // a frame from each step of this many seconds; a scene change adds one between them
+			maxFrames: 12, // the most frames taken from one video, the first ones in time
+			maxSeconds: 600, // a longer video is not cut; the human is told in one line, the coordinator gets the path
+			timeoutSeconds: 300, // ffprobe or ffmpeg running longer on one step is killed; the coordinator gets the path and why
 		}),
 
 		// Plugins for managing Arthur: the nightly audit, the weekly retro, health, pruning, stats.

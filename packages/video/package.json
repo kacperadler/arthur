@@ -1,0 +1,10 @@
+{
+  "name": "@arthur/video",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/video.ts",
+    "./options": "./src/video-options.ts"
+  }
+}

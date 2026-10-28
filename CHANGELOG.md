@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Fixed
 
+- AR0414 A job may commit the stash refusal's .arthur-stash.patch by mistake, and its git diff leaves staged changes out (19577505)
 - AR0456 The agent's own `npm ci` cannot write `~/.npm` (0ac4520e)
 - AR0470 A merge killed during its steps leaves its cache folder behind (4a964c77)
 - AR0532 A job final message naming @<path> makes the coordinator read that file into its own context (e79b9701)

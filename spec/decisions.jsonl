@@ -453,3 +453,4 @@
 {"record":"answer","id":"AR-D226","time":"2026-10-28T11:52:44+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D227","time":"2026-10-28T11:59:52+01:00","project":"arthur","kind":"merge","question":"Merge AR0414 (the stash refusal advice saves staged changes in a self-ignoring folder), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0414"}
 {"record":"answer","id":"AR-D227","time":"2026-10-28T11:59:52+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"answer","id":"AR-D225","time":"2026-10-28T12:05:48+01:00","decided":"Raise the develop plugin line budget from 706 to 710 for AR0478","picked":1,"words":"AR-D225 1"}

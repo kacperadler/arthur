@@ -3241,9 +3241,9 @@
   {
     "id": "AR0414",
     "title": "A job may commit the stash refusal's .arthur-stash.patch by mistake, and its git diff leaves staged changes out",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0414-a-job-may-commit-the-stash-refusal-s-arthur-stash-patch-by-mistake-and-its-git/ticket.md",
-    "updated": "2026-10-28T10:53:36.008Z",
+    "updated": "2026-10-28T11:05:37.302Z",
     "after": [
       "AR0487",
       "AR0477",

@@ -4248,9 +4248,9 @@
   {
     "id": "AR0533",
     "title": "A merge decision lifts whichever flag the coordinator names, not the one the owner decided",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0533-a-merge-decision-lifts-whichever-flag-the-coordinator-names-not-the-one-the/ticket.md",
-    "updated": "2026-10-28T16:14:09.383Z",
+    "updated": "2026-10-28T16:18:30.010Z",
     "after": [
       "AR0493"
     ]

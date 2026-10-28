@@ -61,6 +61,8 @@ async function locked(host: Host, name: string, mode: Mode): Promise<{ readonly 
 	if (job === undefined) throw new Error(`no job ${name}; arthur jobs lists them`);
 	const [own, merging] = [join(host.folder, job.project), join(host.folder, job.project, "merging")];
 	mkdirSync(own, { recursive: true });
+	// A cache folder (the steps', below) that a merge killed before its `finally` left goes at a later merge's start once a day old; a younger one may be a running merge's (AR0470). Its `_` keeps every other folder here out: no project's name, job's id, `hand-backs` or `reviews` has one.
+	spawnSync("find", [host.folder, "-mindepth", "1", "-maxdepth", "1", "-name", "cache_*", "-mmin", "+1440", "-exec", "rm", "-rf", "{}", "+"]);
 	const lock = takeLock(join(own, "merge.lock"));
 	if ("heldBy" in lock) throw new Error(`a merge of ${(existsSync(merging) && readFileSync(merging, "utf8").trim()) || `pid ${lock.heldBy}`} is in progress on ${job.project}`);
 	try {
@@ -142,7 +144,7 @@ async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly
 	console.log(`merged ${job.branch} into ${main}: ${hash}`);
 	const ask = { install: (commit: string) => host.call<string>("projects.install", { project: job.project, commit }), path: () => host.collect<string>("nvm.path", { root })[0] ?? "" };
 	// The steps' package caches in a folder of this merge in the plugin's own, removed after it (AR0454); the reinstall's in one of its own (AR0469).
-	const cache = mkdtempSync(join(host.folder, "cache-"));
+	const cache = mkdtempSync(join(host.folder, "cache_"));
 	try {
 		const runs = stepRunner(root, host.jobs.slice, console.log, mode.stepSeconds);
 		const runner = (folder: string) => runs(host.sandbox(root, folder, console.log));
@@ -150,8 +152,7 @@ async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly
 		if (steps.length === 0) console.log("no checks: package.json declares no check or test script");
 		const failing = steps.filter(failed).map((each) => each.command);
 		if (failing.length > 0) {
-			// `--keep`, unlike `--hard`, keeps the board's uncommitted moves, which the merge never touches. The checks ran a while: a
-			// job may have written the config since.
+			// `--keep`, unlike `--hard`, keeps the board's uncommitted moves, which the merge never touches. The checks ran a while: a job may have written the config since.
 			const refusal = configRefusal(root);
 			const reset = refusal === "" ? git("reset", "--quiet", "--keep", before) : { status: 1, stdout: "", stderr: refusal };
 			if (reset.status !== 0) throw new Error(`check failed on main (${failing.join(", ")}), and main could not be reset to ${before.slice(0, 7)}: ${last(reset)}`);
@@ -182,8 +183,7 @@ export function identityRequirement(project: string, root: string): Requirement 
 	};
 }
 
-// Why the branch's tip has no PASS, or "" when it has one: the newest review of that commit with a verdict says PASS, or
-// `arthur review-needed` answered `no review` for it.
+// Why the branch's tip has no PASS, or "" when it has one: the newest review of that commit with a verdict says PASS, or `arthur review-needed` answered `no review` for it.
 function passGap(host: Host, job: JobRecord, tip: string): string {
 	const reviews = reviewsOf(host, job.branch);
 	const onTip = reviews.findLast(([review, verdict]) => tip.startsWith(review.commit) && (verdict === "PASS" || verdict === "FAIL"));

@@ -70,7 +70,7 @@ export const failed = (each: Step): boolean => each.result.startsWith("failed");
 // `runner` over a fresh cache folder in `folder`, removed after it (AR0469): the branch's install wrote the merge's own.
 export function reinstall(ask: Ask, runner: (cache: string) => Run, folder: string, steps: readonly Step[], log: (line: string) => void): string {
 	if (!steps.some((each) => each.install)) return "";
-	const cache = mkdtempSync(join(folder, "cache-"));
+	const cache = mkdtempSync(join(folder, "cache_"));
 	try {
 		const again = installed(ask, runner(cache), log, "reinstall of main's dependencies, ").steps;
 		return again.some(failed) ? `, but reinstalling main's dependencies failed (${again.filter(failed).map((each) => each.command).join(", ")}): they still hold the branch's install` : "";

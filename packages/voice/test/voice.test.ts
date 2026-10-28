@@ -109,7 +109,7 @@ test("options: the defaults hold with none given; each wrong one is refused nami
 	const paths = (options: Readonly<Record<string, unknown>>) => checkOptions(options).map((problem) => `${problem.path}: ${problem.problem}`);
 	for (const key of ["threads", "timeoutSeconds", "maxSeconds"])
 		for (const value of [0, -1, 1.5, "4"]) assert.deepEqual(paths({ [key]: value }), [`${key}: expected a positive whole number, got ${typeof value === "string" ? `"${value}"` : value}`]);
-	for (const value of ["PL", "p", "polish", "", 2]) assert.equal(paths({ language: value }).length, 1, String(value));
+	for (const value of ["PL", "p", "pols", "polish", "", 2]) assert.equal(paths({ language: value }).length, 1, String(value));
 	for (const value of ["models/ggml-medium.bin", "medium.bin", "../medium", "", 1]) assert.equal(paths({ model: value }).length, 1, String(value));
 	assert.deepEqual(paths({ nope: 1 }), ["nope: unknown option; options: model, threads, language, timeoutSeconds, maxSeconds"]);
 });
@@ -184,6 +184,14 @@ test("whisper-cli, the model or ffmpeg missing: nothing runs, the note goes on a
 		const named = what === "model" ? `model ${join(fake.host.folder, "models", "ggml-medium.bin")}` : what;
 		assert.equal(await onPath(dir, () => turn(part(path, 3))), `[voice 3 s: not transcribed: ${named} missing; see arthur doctor] (${path})`);
 		assert.equal(await onPath(dir, () => turn(part(path))), `[voice: not transcribed: ${named} missing; see arthur doctor] (${path})`);
+		assert.deepEqual(calls(), []);
+	}
+	// A file of the tool's name that cannot be run is as missing as none.
+	for (const tool of ["whisper-cli", "ffmpeg"]) {
+		const { note, part, turn, dir, calls } = await load();
+		chmodSync(join(dir, tool), 0o644);
+		const path = note(HELLO);
+		assert.equal(await onPath(dir, () => turn(part(path, 3))), `[voice 3 s: not transcribed: ${tool} missing; see arthur doctor] (${path})`);
 		assert.deepEqual(calls(), []);
 	}
 });

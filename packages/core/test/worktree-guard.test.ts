@@ -89,7 +89,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	// The whole refusal: its patch saves staged and unstaged changes in a folder of the job's own worktree that ignores itself, never a name in the shared /tmp another job may pick too, nor a file a `git add -A` commits.
 	const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save your staged and unstaged changes in a folder your worktree ignores instead (mkdir -p .arthur-stash && echo '*' > .arthur-stash/.gitignore && git diff --binary HEAD > .arthur-stash/patch, then git apply .arthur-stash/patch)";
 	const LINK = "a link to a repository";
-	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes, or by an unquoted `~name` (a user's home or a `dirs` entry); or the command holds a backslash-newline after a character other than a blank, or any after a heredoc's `<<`, where bash joins the lines; name the folder instead, on one line";
+	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes, or by an unquoted `~name` (a user's home or a `dirs` entry); or the command holds a backslash-newline after a character other than a blank, or in `$'…'`, or any after a heredoc's `<<`, where bash joins the lines, or a `<<` after `((` or `$[`, which bash may read as arithmetic; name the folder instead, on one line";
 	// Each call, and the place its refusal names: undefined when it passes.
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
 		["bash", { command: `echo x > ${main}/README.md` }, MAIN],
@@ -340,6 +340,12 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: "cat <<EOF\na \\\nEOF\ncat <<X\nEOF\nrm $HOME/acme/README.md\nX" }, UNKNOWN],
 		["bash", { command: "cat <<-EOF\n\t\\\nEOF\nrm $HOME/acme/README.md" }, UNKNOWN],
 		["bash", { command: "bash << \\\nEOF\nrm \\$HOME/acme/README.md\nEOF" }, UNKNOWN],
+		["bash", { command: "echo `x`; rm '\\\n'/../../../acme/README.md" }, UNKNOWN],
+		// A backslash-newline in `$'…'`, which bash keeps there and joins in what a shell or `eval` runs, where the guard decodes the escape away.
+		...["bash -c", "sh -c", "eval", "bash <<<"].map((runner) => ["bash", { command: `${runner} $'rm \\\n$HOME/acme/README.md'` }, UNKNOWN] as const),
+		// A `<<` after `((` or `$[`, which bash reads as arithmetic where the guard would read a heredoc.
+		...["((x<<1))", "echo $((x<<1))", "echo $[x<<1]"].map((arithmetic) => ["bash", { command: `${arithmetic}\nrm ../../acme/README.md` }, UNKNOWN] as const),
+		["bash", { command: "for ((i=0; i<2; i++)); do echo $((i+1)) $[i] $'a\\nb'; done && rm notes.txt" }, undefined],
 		["bash", { command: "rm -f \\\n notes.txt\t\\\nother.txt && bash <<< 'echo a' \\\n && rm notes.txt" }, undefined],
 		["bash", { command: "rm ${x:-~}/acme/README.md" }, MAIN],
 		["bash", { command: "rm ${x:-~+}/README.md" }, undefined],

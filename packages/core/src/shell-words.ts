@@ -1,7 +1,7 @@
 // The shell parser the guards share (spec/roadmap.md, entries 19 and 20). `shellCommands` reads a command line as bash does before brace and pathname expansion: its simple commands in the order they run, split at `;`, `&&`, `||`, `|`, `&` and
 // newlines, and `(` and `)` around a subshell, a `$(…)` or a backtick substitution, whose commands come before the command they are in. A word has its quotes removed, a backslash-newline gone, the escapes of `$'…'` decoded; a comment is dropped.
 // An expansion known only when the command runs (`$x`, `${x}`, `$1`) is nothing, or the word it falls back to (`${x:-word}`, also with `=`, `+`, `?` and without the colon; in double quotes read as their text, `~` and `'` as written,
-// inner `"` gone, and `\0-` with a `$'…'` or `$"…"`, which `shopt extquote` reads two ways; outside, one with an unquoted blank or `<>;&|()#` is `\0-`, as the guard does not follow how bash splits it); a variable in `known` (`HOME`, `ARTHUR_JOB`) is its value, also with `-`, `=`, `?`; `known.HOME` is an unquoted `~` up to a `/` or `:` at a word's start, after an assignment's `=` or after an unquoted `:` in its value (`~+` and `~-` there stay, any other `~name` there, a user's home or a `dirs` entry, is `\0-`). `$PWD` is
+// inner `"` gone, and `\0-` with a `$'…'` or `$"…"`, which `shopt extquote` reads two ways; outside, one with an unquoted blank or `<>;&|()#` is `\0-`, as the guard does not follow how bash splits it); a variable in `known` (`HOME`, `ARTHUR_JOB`) is its value, also with `-`, `=`, `?`; `known.HOME` is an unquoted `~` at a word's start, after an assignment's `=` or after an unquoted `:` in its value (`~+` and `~-` there stay, any other `~name` there, a user's home or a `dirs` entry, is `\0-`). `$PWD` is
 // `~+` and `$OLDPWD` `~-` (also with `-`, `=`, `?`); one of them or of a set variable in `known` with another operator but `+` (`%`, `#`, `/`, `:1`, `${!x}`, `${#x}`) is `\0-`, in no bash word. A here-string's `~+` and an unquoted heredoc's `$PWD` or `${PWD}` (also with `-`, `=`, `?`) are `\0+`, the folder of the shell that reads them; its `${PWD` with another operator but `+` `\0-`. A quoted or escaped
 // `\*?[]{},()~`, or any other `~`, keeps a backslash, so a glob is told apart from a quoted star and a bare `~+` is `$PWD` or that prefix; `literal` removes it. `shellWords`: every word, a heredoc's body one.
 
@@ -191,7 +191,7 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 			end();
 			at++;
 		} else {
-			const tilde = char === "~" && (colon === at ? /^[A-Za-z_]\w*(?:\[[^\]]*\])?\+?=/ : /^(?:[A-Za-z_]\w*(?:\[[^\]]*\])?\+?=)?$/).test(word) ? /^~([^/:\s;&|()<>'"\\$`]*)(?=[/:\s;&|()<>]|$)/.exec(command.slice(at))?.[1] : undefined;
+			const tilde = char === "~" && (colon === at ? /^[A-Za-z_]\w*(?:\[[^\]]*\])?\+?=/ : /^(?:[A-Za-z_]\w*(?:\[[^\]]*\])?\+?=)?$/).test(word) ? /^~([^/\s;&|()<>'"\\$`]*)(?=[/\s;&|()<>]|$)/.exec(command.slice(at))?.[1] : undefined;
 			[word, at, colon] = [word + (char !== "~" ? char : tilde === "" ? (value("HOME") ?? char) : tilde === undefined ? "\\~" : tilde === "+" || tilde === "-" ? char : "\0-"), at + 1, char === ":" ? at + 1 : colon];
 		}
 	}

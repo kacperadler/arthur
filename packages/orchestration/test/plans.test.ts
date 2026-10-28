@@ -101,6 +101,19 @@ test("filing a failed plan job is refused and writes nothing; so is a worker, an
 	assert.throws(() => jobs.file("AC0042", failed.id), { message: "AC0042 is not on the board" });
 });
 
+test("a board entry whose path leaves the project is refused, and the plan is written nowhere (AR0484)", async (t) => {
+	const { jobs, root, ended } = await load(t);
+	const plan = await jobs.spawn({ task: `Ticket: ${TICKET}`, kind: "plan" });
+	await ended(plan.id);
+	const board = join(root, "spec/build.json");
+	const path = "spec/features/../../../outside/ticket.md";
+	writeFileSync(board, readFileSync(board, "utf8").replace(`"path":"${TICKET}"`, `"path":"${path}"`));
+	mkdirSync(join(root, "../outside"));
+	assert.throws(() => jobs.file("AC0001", plan.id), { message: new RegExp(`\\[0\\]\\.path: expected spec/features/AC0001-<slug>/ticket\\.md, a slug of a-z, 0-9 and -, got "spec/features/\\.\\./\\.\\./\\.\\./outside/ticket\\.md"`) });
+	assert.deepEqual(readdirSync(join(root, "../outside")), [], "nothing written outside the project");
+	assert.equal(existsSync(join(root, PLAN)), false);
+});
+
 test("a plan still in a run is refused", async (t) => {
 	const gate = join(temporaryFolder(), "gate");
 	const { jobs } = await load(t, { steps: [{ waitFor: gate }, { message: "plan" }] });

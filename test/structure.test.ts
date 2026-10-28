@@ -45,6 +45,8 @@ const BUDGETS = {
 
 	uptime: 298,
 
+	voice: 246,
+
 	youtrack: 661,
 
 };

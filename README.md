@@ -50,7 +50,8 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **youtrack**, built: issues, articles, comments and attachments, and the rules for a job on an issue ([youtrack](packages/youtrack/docs/commands/youtrack.md)).
 - **manage**, built: health, stats, the audit, the retro and the daily prune ([manage](packages/manage/docs/manage.md)).
 - **develop**, built: `arthur plugin new` and `arthur eval` with its scenarios ([develop](packages/develop/docs/develop.md)).
-- Planned: project agents, discord, voice, docker and the core's cleanup hooks; later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
+- **voice**, built: voice notes and audio files transcribed on this server by whisper.cpp, and `arthur transcribe` ([voice](packages/voice/docs/voice.md)).
+- Planned: project agents, discord, docker and the core's cleanup hooks; later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
 
 What Arthur is built from: green is built, light green partly built, grey planned. The full picture is [the diagram](https://kacperadler.github.io/arthur/diagram/), drawn from [`arthur.mmd`](arthur.mmd).
 
@@ -61,7 +62,7 @@ flowchart TD
     core[config, plugin host, events, ticket board<br/>jobs, guards and sandbox; cleanup hooks planned]
   end
   subgraph FIRST[First-version plugins: each talks only to the core]
-    chan[channels<br/>telegram; discord, voice planned]
+    chan[channels<br/>telegram, voice; discord planned]
     coord[coordinator<br/>orchestration, session, schedule]
     proj[projects<br/>projects, nvm, commit-rules, findings]
     res[machines and resources<br/>machines, resources, models, uptime; docker planned]

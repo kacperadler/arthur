@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-29
+
+### Fixed
+
+- AR0547 A `~` after a `:` in an assignment's value is not expanded by the parser (0eca382f)
+
 ## 2026-10-28
 
 ### Added

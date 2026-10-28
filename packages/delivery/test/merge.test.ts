@@ -159,20 +159,23 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 	assert.equal((await merge(job.id)).err, `arthur merge: AC0001 is merged; a merge is of a ticket in-progress, review or done`);
 });
 
-test("a merge's start removes delivery's cache-* folders older than a day, as a killed merge leaves them, with what is in them; a younger one, maybe a running merge's, and another old folder stay", async (t) => {
-	const { fake, worker, merge } = await load(t);
-	const aged = (name: string, hours: number) => {
+test("a merge's start removes delivery's cache_ folders older than a day to the minute, as a killed merge leaves them, with what is in them; a younger one, maybe a running merge's, a project's folder named cache-* and another old folder stay", async (t) => {
+	const { fake, worker, merge, caches } = await load(t);
+	const job = await worker({ "bun.lock": '{ "shop": 1 }\n' });
+	const aged = (name: string, seconds: number, file = join("bun", "deep", "left")) => {
 		const path = join(fake.host.folder, name);
-		mkdirSync(join(path, "bun", "deep"), { recursive: true });
-		writeFileSync(join(path, "bun", "deep", "left"), "what the branch's install wrote\n");
-		const at = new Date(Date.now() - hours * 3_600_000);
+		mkdirSync(dirname(join(path, file)), { recursive: true });
+		writeFileSync(join(path, file), "what was written there\n");
+		const at = new Date(Date.now() - seconds * 1000);
 		utimesSync(path, at, at);
 		return path;
 	};
-	const [old, young, other] = [aged("cache-killed", 25), aged("cache-running", 23), aged("caches", 48)];
-	const merged = await merge((await worker()).id, "--unreviewed", "--decision", OWNER);
+	const day = 24 * 3600;
+	const [old, young, project, other] = [aged("cache_kiLLed", day + 30), aged("cache_Runnin", day - 30), aged("cache-shop", 2 * day, "last-merge"), aged("caches", 2 * day)];
+	const merged = await merge(job.id, "--unreviewed", "--decision", OWNER);
 	assert.equal(merged.code, undefined, merged.err);
-	assert.deepEqual([old, young, other].map((path) => existsSync(path)), [false, true, true]);
+	assert.deepEqual([old, young, project, other].map((path) => existsSync(path)), [false, true, true, true]);
+	assert.match(basename(dirname(caches()[0] ?? "")), /^cache_[A-Za-z0-9]{6}$/, "the merge's own cache folder has the name the sweep removes");
 });
 
 test("a review filed and pruned before the merge, as its wake tells the coordinator, still has its cost in outcome.md", async (t) => {
@@ -514,7 +517,7 @@ test("a failed check resets main and names it, pushing nothing; the board's move
 	assert.match(merged.out, /\nnpm test: failed, 1\/2 passed\.\n[\s\S]*ℹ pass 1\nreinstall of main's dependencies, bun install --frozen-lockfile: passed\.$/);
 	assert.ok(uncapped.length <= 1, `one probe for the whole merge, the reinstall's runner included:\n${uncapped.join("\n")}`);
 	assert.equal(bun(), "install --frozen-lockfile\ninstall --frozen-lockfile\n");
-	assert.deepEqual(caches().map((each) => [dirname(dirname(each)), existsSync(each)]), Array(2).fill([fake.host.folder, false]), "both caches in the plugin's folder, gone after the failed merge");
+	assert.deepEqual(caches().map((each) => [dirname(dirname(each)), /^cache_/.test(basename(dirname(each))), existsSync(each)]), Array(2).fill([fake.host.folder, true, false]), "both caches in the plugin's folder, named as the sweep at a merge's start removes them, gone after the failed merge");
 	assert.notEqual(dirname(caches()[1] ?? ""), dirname(caches()[0] ?? ""), "the reinstall's cache a fresh folder, not the one the branch's install wrote");
 	const mergeCommit = git(root, "rev-parse", "ORIG_HEAD");
 	assert.deepEqual(installs, [{ project: "acme", commit: "HEAD", head: mergeCommit }, { project: "acme", commit: "HEAD", head: before }], "asked again after the reset, for main's own");

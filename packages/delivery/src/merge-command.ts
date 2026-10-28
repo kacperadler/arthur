@@ -61,8 +61,8 @@ async function locked(host: Host, name: string, mode: Mode): Promise<{ readonly 
 	if (job === undefined) throw new Error(`no job ${name}; arthur jobs lists them`);
 	const [own, merging] = [join(host.folder, job.project), join(host.folder, job.project, "merging")];
 	mkdirSync(own, { recursive: true });
-	// A cache folder (the steps', below) that a merge killed before its `finally` left goes at a later merge's start once a day old; a younger one may be a running merge's (AR0470).
-	spawnSync("find", [host.folder, "-mindepth", "1", "-maxdepth", "1", "-name", "cache-*", "-mmin", "+1440", "-exec", "rm", "-rf", "{}", "+"]);
+	// A cache folder (the steps', below) that a merge killed before its `finally` left goes at a later merge's start once a day old; a younger one may be a running merge's (AR0470). Its `_` keeps every other folder here out: no project's name, job's id, `hand-backs` or `reviews` has one.
+	spawnSync("find", [host.folder, "-mindepth", "1", "-maxdepth", "1", "-name", "cache_*", "-mmin", "+1440", "-exec", "rm", "-rf", "{}", "+"]);
 	const lock = takeLock(join(own, "merge.lock"));
 	if ("heldBy" in lock) throw new Error(`a merge of ${(existsSync(merging) && readFileSync(merging, "utf8").trim()) || `pid ${lock.heldBy}`} is in progress on ${job.project}`);
 	try {
@@ -144,7 +144,7 @@ async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly
 	console.log(`merged ${job.branch} into ${main}: ${hash}`);
 	const ask = { install: (commit: string) => host.call<string>("projects.install", { project: job.project, commit }), path: () => host.collect<string>("nvm.path", { root })[0] ?? "" };
 	// The steps' package caches in a folder of this merge in the plugin's own, removed after it (AR0454); the reinstall's in one of its own (AR0469).
-	const cache = mkdtempSync(join(host.folder, "cache-"));
+	const cache = mkdtempSync(join(host.folder, "cache_"));
 	try {
 		const runs = stepRunner(root, host.jobs.slice, console.log, mode.stepSeconds);
 		const runner = (folder: string) => runs(host.sandbox(root, folder, console.log));

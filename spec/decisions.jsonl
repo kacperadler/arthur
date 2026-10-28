@@ -458,3 +458,5 @@
 {"record":"answer","id":"AR-D228","time":"2026-10-28T12:19:31+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D229","time":"2026-10-28T12:35:41+01:00","project":"arthur","kind":"merge","question":"Merge AR0478 (arthur plugin new puts a new budget in name order; BUDGETS sorted once), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0478"}
 {"record":"answer","id":"AR-D229","time":"2026-10-28T12:35:41+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D230","time":"2026-10-28T13:13:51+01:00","project":"arthur","kind":"merge","question":"Merge AR0524 (export of git config before git is refused), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0524"}
+{"record":"answer","id":"AR-D230","time":"2026-10-28T13:13:51+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

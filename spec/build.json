@@ -4306,9 +4306,9 @@
   {
     "id": "AR0539",
     "title": "A `^<model>` in a message's text gives the coordinator's session a model agent",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0539-a-model-in-a-message-s-text-gives-the-coordinator-s-session-a-model-agent/ticket.md",
-    "updated": "2026-10-28T17:18:07.737Z",
+    "updated": "2026-10-28T17:26:17.224Z",
     "after": [
       "AR0533",
       "AR0531",

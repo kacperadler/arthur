@@ -590,18 +590,22 @@ test("a second merge of the project while the first runs its checks is refused n
 	assert.deepEqual(readdirSync(join(fake.host.folder, "acme")), ["last-merge"], "no lock and no job named after the merge");
 });
 
+// The limit leaves `npm run check` room on a loaded host (AR0544: 3 s caught it at load 40); the slow step's 60 s stays above it.
 test("a step still running at merge.stepSeconds is killed and fails, though it ignores SIGTERM: main reset, main's own install put back", async (t) => {
-	const { root, worker, review, merge, head, bun } = await load(t, { merge: { stepSeconds: 3 } });
+	const { root, worker, review, merge, head, bun } = await load(t, { merge: { stepSeconds: 15 } });
 	const noted = temporaryFolder();
 	const slow = `require("node:fs").writeFileSync(${JSON.stringify(join(noted, "pid"))}, String(process.pid));\nprocess.on("SIGTERM", () => {});\nsetTimeout(() => {}, 60_000);\n`;
 	const job = await worker({ "test.js": slow, "bun.lock": '{ "slow": 1 }\n' });
 	await review(job.id, "PASS");
 	const before = head();
+	const started = Date.now();
 	const merged = await merge(job.id);
+	const took = Date.now() - started;
 	const pid = Number(readFileSync(join(noted, "pid"), "utf8"));
 	t.after(() => void spawnSync("kill", ["-9", String(pid)]));
 	assert.equal(merged.err, `arthur merge: check failed on main (npm test); main reset to ${before.slice(0, 7)}, branch kept`);
-	assert.match(merged.out, /\nnpm run check: passed\.\nnpm test: failed, timed out after 3 s\.\n[\s\S]*\nreinstall of main's dependencies, bun install --frozen-lockfile: passed\.$/);
+	assert.match(merged.out, /\nnpm run check: passed\.\nnpm test: failed, timed out after 15 s\.\n[\s\S]*\nreinstall of main's dependencies, bun install --frozen-lockfile: passed\.$/);
+	assert.ok(took >= 15_000, `the slow step runs its full 15 s before it is killed: the merge took ${took} ms`);
 	assert.equal(bun(), "install --frozen-lockfile\ninstall --frozen-lockfile\n");
 	assert.deepEqual([head(), readFileSync(join(root, "bun.lock"), "utf8")], [before, "{}\n"]);
 	if (manager) assert.equal(running(pid), false, `the test's process ${pid} still runs`);

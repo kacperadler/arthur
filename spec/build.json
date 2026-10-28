@@ -4282,9 +4282,9 @@
   {
     "id": "AR0537",
     "title": "A job's own session reads each file its task or a continue's text names as `@<path>`",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0537-a-job-s-own-session-reads-each-file-its-task-or-a-continue-s-text-names-as-path/ticket.md",
-    "updated": "2026-10-28T16:42:51.286Z",
+    "updated": "2026-10-28T17:17:21.695Z",
     "after": [
       "AR0533",
       "AR0531",
@@ -4294,9 +4294,9 @@
   {
     "id": "AR0538",
     "title": "The coordinator's handoff is handed back through `sendUserMessage` unescaped",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0538-the-coordinator-s-handoff-is-handed-back-through-sendusermessage-unescaped/ticket.md",
-    "updated": "2026-10-28T16:42:52.844Z",
+    "updated": "2026-10-28T16:59:49.900Z",
     "after": [
       "AR0533",
       "AR0531",
@@ -4306,9 +4306,9 @@
   {
     "id": "AR0539",
     "title": "A `^<model>` in a message's text gives the coordinator's session a model agent",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0539-a-model-in-a-message-s-text-gives-the-coordinator-s-session-a-model-agent/ticket.md",
-    "updated": "2026-10-28T16:42:54.711Z",
+    "updated": "2026-10-28T17:18:07.737Z",
     "after": [
       "AR0533",
       "AR0531",

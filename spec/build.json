@@ -4294,9 +4294,9 @@
   {
     "id": "AR0538",
     "title": "The coordinator's handoff is handed back through `sendUserMessage` unescaped",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0538-the-coordinator-s-handoff-is-handed-back-through-sendusermessage-unescaped/ticket.md",
-    "updated": "2026-10-28T17:29:49.948Z",
+    "updated": "2026-10-28T17:34:44.121Z",
     "after": [
       "AR0533",
       "AR0531",

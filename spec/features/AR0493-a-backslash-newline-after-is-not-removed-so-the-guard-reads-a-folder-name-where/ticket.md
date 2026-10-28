@@ -42,3 +42,4 @@ Out:
 - 2026-10-27: Source: F3 of AR0471
 - 2026-10-28: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
 - 2026-10-28: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
+- 2026-10-28: AR0493 another round: joinLines follows ${...} outside quotes as it does inside double quotes, the review rows as tests, then review round 3; the owner: "AR-D238 1" (AR-D238)

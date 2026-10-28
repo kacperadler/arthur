@@ -10,7 +10,7 @@
 
 ## Description
 
-<!-- Two or three sentences: what changes, and for whom. -->
+Found while running AR0455 (2026-10-28): once the owner answers a blocked worker's question by dropping its ticket, nothing ends that job. After this change `arthur stop` ends it, so the coordinator can prune it.
 
 ## Goal
 
@@ -34,4 +34,3 @@ Out:
 
 ## Decisions
 
-<!-- - YYYY-MM-DD: one decision the human made, in one line. -->

@@ -3806,7 +3806,7 @@
     "title": "Two new plugins made at once still conflict in BUDGETS",
     "status": "in-progress",
     "path": "spec/features/AR0478-two-new-plugins-made-at-once-still-conflict-in-budgets/ticket.md",
-    "updated": "2026-10-28T10:23:30.074Z",
+    "updated": "2026-10-28T11:15:18.272Z",
     "after": [
       "AR0487",
       "AR0477",
@@ -4175,9 +4175,9 @@
   {
     "id": "AR0523",
     "title": "umask.test.ts and spawn.test.ts put their test job in the production arthur-jobs slice",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0523-umask-test-ts-and-spawn-test-ts-put-their-test-job-in-the-production-arthur-jobs/ticket.md",
-    "updated": "2026-10-28T10:44:26.057Z",
+    "updated": "2026-10-28T11:07:33.920Z",
     "after": [
       "AR0487",
       "AR0477",

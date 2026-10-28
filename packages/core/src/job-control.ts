@@ -66,7 +66,7 @@ export function steerJob(home: string, id: string, text: string): string {
 // `check` runs the `beforeSpawn` checks and holds the spawn lock (spawn-check.ts) until the job is `working` again, and answers
 // the caps in force now (`jobs.limits`), which replace the record's before the launch, and the role's MCP servers (`writeMcp`);
 // `prepare` runs the prepares told it is a continue, their variables going to the wrapper here, else on the stdin of `remote-job
-// continue` as at a spawn, never into the record; `uncapped` hears why a job with caps runs bare here (job-scope.ts).
+// continue` as at a spawn, never into the record; `uncapped` hears why a job with caps runs bare here (job-scope.ts). The record's `continue`, what omp gets, has a word joiner before each `@` omp would read a file for, as `task` (job-record.ts).
 export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, uncapped: (why: string) => void, steps: { readonly check: (job: Job) => Promise<{ readonly release: () => void; readonly caps: Caps; readonly mcp?: McpServers }>; readonly prepare: (job: Job) => Promise<Readonly<Record<string, string>>> }, there?: Machine): Promise<string | undefined> {
 	const { folder, field } = record(home, id);
 	if (instruction.trim() === "") throw new Error("the instruction is empty");
@@ -99,7 +99,7 @@ export async function continueJob(home: string, id: string, instruction: string,
 		for (const [name, text] of Object.entries(capFields(passed.caps))) write(folder, name, text);
 		if (there === undefined) {
 			rmSync(join(folder, "pid"), { force: true });
-			write(folder, "continue", instruction.trim());
+			write(folder, "continue", instruction.trim().replace(/(?<=^|[\s([{<"'`])@/g, "\u2060@"));
 			writeMcp(folder, passed.mcp);
 			appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] arthur continue: ${instruction.trim().split("\n")[0]}\n`);
 		}

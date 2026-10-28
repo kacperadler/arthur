@@ -1,6 +1,6 @@
 // Example arthur.config.ts with every plugin, planned ones included. Built, under `packages/`: the core and commit-rules,
 // delivery, develop, findings, github, machines, manage, models, nvm, orchestration, projects, resources, schedule, session,
-// telegram, uptime, youtrack. Planned, no package yet (spec/roadmap.md builds them): discord, docker, voice (first); server,
+// telegram, uptime, voice, youtrack. Planned, no package yet (spec/roadmap.md builds them): discord, docker (first); server,
 // signal, slack, whatsapp (later). So a copy of the whole file does not load; it fails on the first planned import
 // (`Cannot find package '@arthur/discord'`). Take a plugin from it once its package exists. Illustrative for the planned
 // ones: their option names are proposed, not final.
@@ -381,16 +381,17 @@ export default defineConfig({
 			// media: true, // entry 49: photos, files and voice notes in and out; until then refused as unknown
 		}),
 
-		// Voice notes from any channel, transcribed on this server's CPU with whisper.cpp (`whisper-cli`); nothing leaves the
-		// server. ffmpeg converts the channel's audio; one note at a time, in the order they came. The coordinator gets
-		// `[voice <seconds> s] <transcript> (<path>)`; the original file stays where the channel saved it. `arthur doctor` checks
+		// Voice notes and audio files from any channel, transcribed on this server's CPU with whisper.cpp (`whisper-cli`); nothing
+		// leaves the server. ffmpeg converts the channel's audio; one file at a time, in the order they came. The coordinator gets
+		// `[voice <seconds> s] <transcript> (<path>)` (`[audio ...]` for an audio file); the original file stays where the channel
+		// saved it. `arthur transcribe <file> [--times]` and `voice.transcribe` do the same for any file. `arthur doctor` checks
 		// `whisper-cli`, the model file and `ffmpeg`; while one is missing a note reaches the coordinator as its path.
 		voice({
-			model: "small", // a whisper.cpp model name (the file .arthur/voice/models/ggml-<model>.bin) or a path to a .bin file
+			model: "medium", // a whisper.cpp model name (the file .arthur/voice/models/ggml-<model>.bin) or the absolute path of a .bin file
 			threads: 4, // CPU threads whisper uses
 			language: "pl", // a language code, or "auto" for whisper's own detection
-			timeoutSeconds: 300, // a transcription running longer is cut; the coordinator gets the path and why
-			maxSeconds: 600, // a longer note is not transcribed; the human is told in one line, the coordinator gets the path
+			timeoutSeconds: 300, // ffmpeg or whisper running longer on one file is killed; the coordinator gets the path and why
+			maxSeconds: 600, // a longer file is not transcribed; the human is told in one line, the coordinator gets the path
 		}),
 
 		// Plugins for managing Arthur: the nightly audit, the weekly retro, health, pruning, stats.

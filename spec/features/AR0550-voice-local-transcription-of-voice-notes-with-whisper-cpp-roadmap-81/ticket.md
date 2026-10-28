@@ -45,3 +45,4 @@ Out:
 - 2026-10-28: After the voice plugin merges: whisper.cpp built into ~/.local/bin, the medium model into Arthur voice models folder, voice turned on with language auto; the plugin describes its requirements (arthur doctor); the owner: "AR-D263 - the plugin should be able to discribe what have to be installed and this requirements should be installed. AR-D263 - 1" (AR-D263)
 - 2026-10-28: Not 300: the owner finds it too many lines; asked to spread the code across files (already 5 files, at most 77 lines each); the number asked again; the owner: "AR-D262 - too much lines, can we spred this to sepparated files" (AR-D262)
 - 2026-10-28: Voice plugin line budget 246, exactly its code today; the owner: "AR-D264 1" (AR-D264)
+- 2026-10-28: AR0550 another round, and further rounds without asking until it is ready to merge; the owner: "AR-D265 1 - and do this till will be ready to merge" (AR-D265)

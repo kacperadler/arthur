@@ -4175,9 +4175,9 @@
   {
     "id": "AR0523",
     "title": "umask.test.ts and spawn.test.ts put their test job in the production arthur-jobs slice",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0523-umask-test-ts-and-spawn-test-ts-put-their-test-job-in-the-production-arthur-jobs/ticket.md",
-    "updated": "2026-10-28T11:07:33.920Z",
+    "updated": "2026-10-28T11:19:22.528Z",
     "after": [
       "AR0487",
       "AR0477",

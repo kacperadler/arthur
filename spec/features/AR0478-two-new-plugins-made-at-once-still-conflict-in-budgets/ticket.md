@@ -40,3 +40,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: F1 of AR0475
+- 2026-10-28: Raise the develop plugin line budget from 706 to 710 for AR0478; the owner: "AR-D225 1" (AR-D225)

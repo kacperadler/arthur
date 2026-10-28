@@ -11,7 +11,7 @@ import { line, whole } from "./decision-views.ts";
 // docs/commands/decision.md and decisions.md.
 
 const USAGE = [
-	"usage: arthur decision ask --kind <kind> --question <text> [--ticket <id>] [--job <id>] [--option <text>]... [--recommend <n or text>]",
+	"usage: arthur decision ask --kind <kind> --question <text> [--ticket <id>] [--job <id>] [--what --unreviewed|--no-ci]... [--option <text>]... [--recommend <n or text>]",
 	"       arthur decision answer <id> --decided <one line> [--picked <n>] <the owner's words>",
 	"       arthur decision close <id> <reason>",
 	"       arthur decision class propose --kind <kind> --match <text> --decided <one line> --backed-by <id>...",
@@ -68,9 +68,9 @@ export function decisionCommands(host: Host): Command[] {
 			}
 			const [verb = "", ...rest] = args;
 			const sub = verb === "class" ? (rest[0] ?? "") : "";
-			const read = verb === "ask" ? parse(rest, ["--kind", "--question", "--ticket", "--job", "--option", "--recommend"], ["--option"]) : sub === "propose" ? parse(rest.slice(1), ["--kind", "--match", "--decided", "--backed-by"], ["--backed-by"]) : parse(sub === "" ? rest : rest.slice(1), verb === "answer" ? ["--decided", "--picked"] : []);
-			// `ask` takes no words, `propose` only the ids after --backed-by, the others an id first.
-			const words = read === undefined ? false : sub === "propose" ? read.words.length === 0 || read.flags["--backed-by"] !== undefined : (verb === "ask") === (read.words.length === 0);
+			const read = verb === "ask" ? parse(rest, ["--kind", "--question", "--ticket", "--job", "--what", "--option", "--recommend"], ["--what", "--option"]) : sub === "propose" ? parse(rest.slice(1), ["--kind", "--match", "--decided", "--backed-by"], ["--backed-by"]) : parse(sub === "" ? rest : rest.slice(1), verb === "answer" ? ["--decided", "--picked"] : []);
+			// `ask` takes no words, and `--what` only a merge flag with --kind merge (AR0533); `propose` only the ids after --backed-by, the others an id first.
+			const words = read === undefined ? false : sub === "propose" ? read.words.length === 0 || read.flags["--backed-by"] !== undefined : (verb === "ask") === (read.words.length === 0) && (read.flags["--what"] ?? []).every((flag) => read.flags["--kind"]?.[0] === "merge" && ["--unreviewed", "--no-ci"].includes(flag));
 			if (read === undefined || !words || !["ask", "answer", "close", "class"].includes(verb) || (verb === "class" && !["propose", "revoke"].includes(sub))) {
 				console.error(USAGE);
 				return 2;
@@ -85,10 +85,9 @@ export function decisionCommands(host: Host): Command[] {
 			};
 			try {
 				if (verb === "ask") {
-					const [recommend, ticket, job] = [one("--recommend"), one("--ticket")?.toUpperCase(), one("--job")];
-					const given = { kind: one("--kind") ?? "", question: one("--question") ?? "", options: read.flags["--option"] ?? [] };
-					const optional = { ...(recommend === undefined ? {} : { recommend: /^\d+$/.test(recommend) ? Number(recommend) : recommend }), ...(ticket === undefined ? {} : { ticket }), ...(job === undefined ? {} : { job }) };
-					const { id, policy, classes, unwritten } = ask(host, projectNamed(host, project), { ...given, ...optional });
+					const [recommend, ticket, job, what] = [one("--recommend"), one("--ticket")?.toUpperCase(), one("--job"), read.flags["--what"]];
+					const optional = { ...(recommend === undefined ? {} : { recommend: /^\d+$/.test(recommend) ? Number(recommend) : recommend }), ...(ticket === undefined ? {} : { ticket }), ...(job === undefined ? {} : { job }), ...(what === undefined ? {} : { what }) };
+					const { id, policy, classes, unwritten } = ask(host, projectNamed(host, project), { kind: one("--kind") ?? "", question: one("--question") ?? "", options: read.flags["--option"] ?? [], ...optional });
 					const by = policy === undefined ? "" : `\n${id} answered by policy (${policyOf(policy)}): ${policy.decided}; act on it as on the owner's answer, and say so in your reply`;
 					return done(`${id}${by}${classes.length > 1 ? `\n${id} goes to the owner: it matches classes ${classes.join(" and ")}` : ""}`, unwritten);
 				}

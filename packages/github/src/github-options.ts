@@ -28,7 +28,7 @@ const INSTANCE: Readonly<Record<string, ValueOption>> = {
 	apiUrl: {
 		about: "The REST API's address; GitHub Enterprise Server's is https://<host>/api/v3",
 		default: API_URL,
-		check: (value) => (typeof value === "string" && URL.canParse(value) && ["http:", "https:"].includes(new URL(value).protocol) ? undefined : "an http or https URL"),
+		check: (value) => { const url = typeof value === "string" ? URL.parse(value) : null; return url?.protocol === "https:" || (url?.protocol === "http:" && /^(localhost|127(\.\d+){3}|\[::1\])$/.test(url.hostname)) ? undefined : "an https URL, or an http one on loopback (localhost, 127.0.0.0/8, ::1)"; },
 	},
 };
 const instanceList: Check = (value) => (Array.isArray(value) && value.length > 0 ? undefined : "a list of at least one instance");

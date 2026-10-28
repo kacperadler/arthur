@@ -11,7 +11,7 @@ plugins: [orchestration({}), telegram({ bots: [{ botTokenEnv: "ARTHUR_TELEGRAM_B
 In `telegram({ ... })` in `arthur.config.ts`, checked at load; any other option or key is refused, naming its path:
 
 - `bots`: at least one bot, each `{ name?, botTokenEnv, chatIdEnv }`. `botTokenEnv` names the variable holding the bot's token from @BotFather, `chatIdEnv` the one holding the id of the only chat the bot answers: the owner's private chat with it, a positive whole number (a group's id is refused, since its other members are not the owner). At most one bot has no name; a name is lowercase letters, digits and single dashes, from a letter, and no two bots share one. A named bot's variables are `ARTHUR_TELEGRAM_<NAME>_...`, as for every named instance (`arthur config --help`).
-- `apiUrl`: the Bot API's address, default `https://api.telegram.org`; a test points it at its fake. The token is part of each call's URL, so it goes only there.
+- `apiUrl`: the Bot API's address, default `https://api.telegram.org`; a test points it at its fake. The token is part of each call's URL, so it goes only there, and `http` is refused unless the host is loopback (`localhost`, 127.0.0.0/8, `::1`).
 
 At setup, a token that is not `<digits>:<letters, digits, _ and ->` refuses the load with `bots[<i>].botTokenEnv: <variable> does not hold a bot token as @BotFather gives it: ...`, and a chat id that is not a positive whole number with `bots[<i>].chatIdEnv: <variable> does not hold a chat id: the owner's private chat with the bot, a positive whole number`; neither prints the value.
 

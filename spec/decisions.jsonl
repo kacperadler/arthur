@@ -456,3 +456,5 @@
 {"record":"answer","id":"AR-D225","time":"2026-10-28T12:05:48+01:00","decided":"Raise the develop plugin line budget from 706 to 710 for AR0478","picked":1,"words":"AR-D225 1"}
 {"record":"ask","id":"AR-D228","time":"2026-10-28T12:19:31+01:00","project":"arthur","kind":"merge","question":"Merge AR0523 (tests put their jobs in the test kit slice, not the production one), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0523"}
 {"record":"answer","id":"AR-D228","time":"2026-10-28T12:19:31+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D229","time":"2026-10-28T12:35:41+01:00","project":"arthur","kind":"merge","question":"Merge AR0478 (arthur plugin new puts a new budget in name order; BUDGETS sorted once), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0478"}
+{"record":"answer","id":"AR-D229","time":"2026-10-28T12:35:41+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

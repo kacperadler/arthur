@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -324,6 +324,84 @@ test("a socket path in a folder the group or others may enter refuses the coordi
 	t.after(() => process.chdir(before));
 	assert.deepEqual(await start(name), [failed]);
 	assert.deepEqual(readFileSync(asked, "utf8").split("\n"), [`${agent} -S ${join(missing, "tmux.sock")}`, `${agent} -L ${name}`, ""], "each new-session would start the fake agent");
+});
+
+// tmux's split of its command arguments into commands (tmux 3.4's cmd-parse.y, cmd_parse_from_arguments): a trailing `;` ends
+// a command, a trailing `\;` is a `;`, any other `;` is the argument's own.
+function commands(args: readonly string[]): string[][] {
+	const all: string[][] = [[]];
+	for (const arg of args) {
+		const last = all.at(-1) as string[];
+		if (!arg.endsWith(";")) last.push(arg);
+		else if (arg.endsWith("\\;")) last.push(`${arg.slice(0, -2)};`);
+		else {
+			if (arg !== ";") last.push(arg.slice(0, -1));
+			all.push([]);
+		}
+	}
+	return all.filter((command) => command.length > 0);
+}
+
+// AR0489: tmux takes an argument's trailing `;` for a command separator, so a value ending in one would end the command.
+test("a config or environment value ending in ; reaches tmux as one argument of its command, as given, never the end of one", async (t) => {
+	const said: string[] = [];
+	for (const method of ["log", "error"] as const) t.mock.method(console, method, (text: string) => void said.push(text));
+	// A tmux that runs nothing: it notes each call's arguments; its server's global environment holds two names ending in `;`, one
+	// arthur run lacks and one it holds with another value; its new-session fails, so no agent or tmux server is ever reached.
+	const bin = temporaryFolder();
+	const calls = join(bin, "calls.jsonl");
+	const stub = [
+		`#!${process.execPath}`,
+		"const args = process.argv.slice(2);",
+		`require("node:fs").appendFileSync(${JSON.stringify(calls)}, JSON.stringify(args) + "\\n");`,
+		`if (args.includes("show-environment")) process.stdout.write("ARTHUR_TEST_STRAY;=1\\nARTHUR_TEST_GIVEN;=theirs\\n");`,
+		`else if (args.includes("new-session")) (process.stderr.write("stub tmux: no server\\n"), (process.exitCode = 1));`,
+	];
+	writeFileSync(join(bin, "tmux"), `${stub.join("\n")}\n`, { mode: 0o755 });
+	process.env.PATH = `${bin}${delimiter}${PATH}`;
+	process.env["ARTHUR_TEST_GIVEN;"] = "ours";
+	const before = process.cwd();
+	t.after(() => {
+		process.env.PATH = PATH;
+		delete process.env["ARTHUR_TEST_GIVEN;"];
+		process.chdir(before);
+	});
+	const folder = temporaryFolder();
+	const extension = { file: join(folder, "extension.ts"), env: { ARTHUR_TEST_VALUE: "v;" } };
+	const context = `ARTHUR_ORCHESTRATION_CONTEXT=${JSON.stringify([process.execPath, CLI, "coordinator", "context"])}`;
+	// The model of the finding; a value already ending in `\;`; a lone `;`; a `;` inside a value, which tmux leaves as it is.
+	for (const [model, quick] of [["x;", "y\\;"], [";", "a;b"]] as const) {
+		// arthur run in a folder whose name ends in `;`, the new-session's -c.
+		const work = join(temporaryFolder(), "work;");
+		mkdirSync(work);
+		process.chdir(work);
+		rmSync(calls, { force: true });
+		const options = { coordinator: { model, thinking: "high", tmux: { session: "coord", socket: `arthur-test-${process.pid}` }, exitWaitSeconds: 1, restartDelaySeconds: 1 }, roles: { quick: { model: quick } } };
+		const supervisor = supervise(coordinatorOptions(options), folder, "omp", [extension]);
+		await until("the start's failure", () => said.length > 0);
+		await supervisor.stop();
+		assert.deepEqual(said.splice(0), ["orchestration: coordinator start failed: tmux new-session: stub tmux: no server; trying again in 1 s"]);
+		// Each call as tmux runs it, its socket's -L and name left out.
+		const asked = readFileSync(calls, "utf8").split("\n").slice(0, -1).map((line) => commands(JSON.parse(line).slice(2)));
+		const own = [["set-environment", "-g", "-u", "ARTHUR_TEST_STRAY;"], ["set-option", "-g", "update-environment[0]", "ARTHUR_TEST_GIVEN;"]];
+		assert.deepEqual(asked.find((call) => call[0]?.[0] === "set-environment"), own, "the server's names, each one argument");
+		const env = ["-e", `ARTHUR_ORCHESTRATION_FOLDER=${folder}`, "-e", context, "-e", "ARTHUR_TEST_VALUE=v;"];
+		const agent = ["omp", "--continue", "--auto-approve", "--model", model, "--thinking", "high", "--smol", quick, "-e", ENV_GUARD, "-e", INBOX, "-e", CONTEXT, "-e", extension.file];
+		assert.deepEqual(asked.find((call) => call[0]?.[0] === "new-session"), [["new-session", "-d", "-P", "-F", "#{pane_pid}", "-s", "coord", "-c", process.cwd(), ...env, ...agent]]);
+	}
+});
+
+test("a model ending in ; starts the coordinator on a real tmux with that model and the variables, as given", { skip: NO_UNIX_SOCKET }, async (t) => {
+	const { agent, release } = waiting();
+	t.after(release);
+	const extension = join(temporaryFolder(), "session-extension.ts");
+	writeFileSync(extension, "export default () => {};\n");
+	const { fake, plugin, socket, starts } = await load(t, agent, { model: "x;" }, undefined, { quick: { model: "y\\;" } });
+	fake.provide("coordinator.extension", () => ({ file: extension, env: { ARTHUR_TEST_VALUE: "v;" } }));
+	await plugin.start?.();
+	await until("the coordinator's start", () => starts().length === 1);
+	assert.deepEqual(starts()[0]?.args, ["--continue", "--auto-approve", "--model", "x;", "--smol", "y\\;", "-e", ENV_GUARD, "-e", INBOX, "-e", CONTEXT, "-e", extension]);
+	assert.equal(tmux(socket, "show-environment", "-t", "=coord", "ARTHUR_TEST_VALUE").stdout.trim(), "ARTHUR_TEST_VALUE=v;");
 });
 
 test("arthur coordinator stop is refused while a job runs, naming it, and the coordinator goes on", { skip: NO_UNIX_SOCKET }, async (t) => {

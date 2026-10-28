@@ -4282,9 +4282,9 @@
   {
     "id": "AR0537",
     "title": "A job's own session reads each file its task or a continue's text names as `@<path>`",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0537-a-job-s-own-session-reads-each-file-its-task-or-a-continue-s-text-names-as-path/ticket.md",
-    "updated": "2026-10-28T17:28:44.590Z",
+    "updated": "2026-10-28T17:43:03.128Z",
     "after": [
       "AR0533",
       "AR0531",
@@ -4398,9 +4398,9 @@
   {
     "id": "AR0550",
     "title": "Voice: local transcription of voice notes with whisper.cpp (roadmap 81)",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0550-voice-local-transcription-of-voice-notes-with-whisper-cpp-roadmap-81/ticket.md",
-    "updated": "2026-10-28T17:41:22.882Z",
+    "updated": "2026-10-28T17:43:48.921Z",
     "after": [
       "AR0548"
     ]
@@ -4408,9 +4408,9 @@
   {
     "id": "AR0551",
     "title": "Video: frames and the spoken words of a video part, with ffmpeg and the voice plugin",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0551-video-frames-and-the-spoken-words-of-a-video-part-with-ffmpeg-and-the-voice/ticket.md",
-    "updated": "2026-10-28T17:41:51.749Z",
+    "updated": "2026-10-28T17:43:49.838Z",
     "after": [
       "AR0550"
     ]

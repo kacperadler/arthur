@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-28
+
+### Changed
+
+- AR0477 Nine exports nobody imports (392ae9be)
+
 ## 2026-10-27
 
 ### Fixed

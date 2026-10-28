@@ -353,6 +353,11 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: "rm ~acme/arthur/README.md" }, UNKNOWN],
 		...["rm ${x:-~root}/README.md", "echo x > ~acme", "x=~acme/arthur/README.md; rm $x", "echo x > ~1/README.md", "rm ~+1/README.md"].map((command) => ["bash", { command }, UNKNOWN] as const),
 		["bash", { command: "rm '~acme/README.md' \\~acme/README.md ~\"acme\"/README.md ~acme\\/README.md a~acme/README.md --x=~acme/README.md" }, undefined],
+		// AR0547: bash reads a `~` after an unquoted `:` in an assignment's value, also in an assignment-like argument, as at a word's start. A `~name` running into a `:`, `~-:x` the folder `$OLDPWD:x`, is refused as unknown.
+		...["x=a:~acme/y; echo x > $x", "rm PATH=a:~acme/README.md", "x=a:~1/y", "x=a:~+1/y", "x=$y:~acme", "x=a::~acme", "x[1]=a:~acme", "x+=a:~acme", "x=a=b:~acme", "x=a:~acme:b", "x='a\\':~acme"].map((command) => ["bash", { command }, UNKNOWN] as const),
+		...["echo x > ~-:x", "rm ~-:x/../README.md"].map((command) => ["bash", { command: `cd ${main}/sub; cd ${own.worktree}; ${command}` }, UNKNOWN] as const),
+		["bash", { command: "x=a:'~acme'/y; echo x > $x" }, undefined],
+		["bash", { command: "x=a\\:~acme x=\"a:\"~acme x=a:\\~acme x=a:b~acme x=a:~/acme x=a:~+/acme; rm a:~acme/README.md --x=a:~acme" }, undefined],
 		["bash", { command: `cd ${main}; bash <<EOF\ncd /tmp; echo x > \${PWD:+x}; rm \${PWD:+$PWD}/README.md\nEOF` }, MAIN],
 		["bash", { command: 'rm "${HOME/x/x}/acme/README.md"' }, UNKNOWN],
 		["bash", { command: "rm /${HOME#/}/acme/README.md" }, UNKNOWN],

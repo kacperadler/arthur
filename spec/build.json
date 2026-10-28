@@ -3834,9 +3834,9 @@
   {
     "id": "AR0484",
     "title": "A board entry's `path` is never checked, so a filing writes `plan.md` or `review-N.md` outside the project",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0484-a-board-entry-s-path-is-never-checked-so-a-filing-writes-plan-md-or-review-n-md/ticket.md",
-    "updated": "2026-10-28T23:38:45.150Z"
+    "updated": "2026-10-28T23:48:52.770Z"
   },
   {
     "id": "AR0485",

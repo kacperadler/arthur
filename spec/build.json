@@ -4173,9 +4173,9 @@
   {
     "id": "AR0524",
     "title": "The worktree guard refuses `GIT_CONFIG_*=... git commit` but lets `export GIT_CONFIG_*=...; git commit` through",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0524-the-worktree-guard-refuses-git-config-git-commit-but-lets-export-git-config-git/ticket.md",
-    "updated": "2026-10-28T11:59:58.992Z",
+    "updated": "2026-10-28T12:13:42.414Z",
     "after": [
       "AR0478"
     ]

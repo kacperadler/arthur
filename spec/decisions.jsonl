@@ -508,3 +508,5 @@
 {"record":"answer","id":"AR-D253","time":"2026-10-28T17:43:32+01:00","decided":"AR0548 approved, after AR0539","picked":1,"words":"AR-D250 2"}
 {"record":"ask","id":"AR-D254","time":"2026-10-28T18:18:19+01:00","project":"arthur","kind":"merge","question":"Merge AR0539 (a word joiner before each ^ a message hands over, so it names no model agent), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0539"}
 {"record":"answer","id":"AR-D254","time":"2026-10-28T18:18:19+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D255","time":"2026-10-28T18:29:59+01:00","project":"arthur","kind":"merge","question":"Merge AR0538 (the handoff handed back with a word joiner before each at-sign omp would read), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0538"}
+{"record":"answer","id":"AR-D255","time":"2026-10-28T18:29:59+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

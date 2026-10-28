@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { accessSync, constants } from "node:fs";
 import { userInfo } from "node:os";
-import { basename, dirname, relative, sep } from "node:path";
+import { basename, dirname, join, relative, sep } from "node:path";
 import { ownHome } from "./own-home.ts";
 import type { Requirement } from "./plugin.ts";
 
@@ -24,6 +24,9 @@ function ran(command: string, args: readonly string[]): Promise<Ran> {
 	});
 	return promise;
 }
+
+// One shell word, whatever `text` holds: a fix pasted as printed runs on a folder or name with a space or a quote (AR0531).
+const word = (text: string): string => `'${text.replaceAll("'", "'\\''")}'`;
 
 // `core` as the config holds it; `folders`: the config's and each project's checkout; `node`, the version that runs this; `env`, Arthur's environment.
 export function coreRequirements({ home, envFile, agent: { command: agent } }: { readonly home: string; readonly envFile: string; readonly agent: { readonly command: string } }, folders: () => readonly string[], node = process.versions.node, env: Readonly<Record<string, string | undefined>> = process.env): Requirement[] {
@@ -108,7 +111,8 @@ export function coreRequirements({ home, envFile, agent: { command: agent } }: {
 				return `missing: the env file ${envFile} ${tracked ? "is tracked by" : "lies in"} the Git checkout ${checkout.stdout.trim()}, ${tracked ? "so no .gitignore line ignores it, and every commit that holds it keeps its values" : "which does not ignore it"}`;
 			},
 			costs: "a commit there takes its values into the repository, and a push sends them to every clone",
-			get fix() { return tracked ? `git -C ${dirname(envFile)} rm --cached -- ${basename(envFile)}, commit, and rotate every value it held: the history keeps them` : `add ${basename(envFile)} to the .gitignore beside it, or move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)`; },
+			// A .gitignore line takes `\`, `[`, a leading `#` or `!` and a trailing space as its own syntax unless escaped.
+			get fix() { return tracked ? `git -C ${word(dirname(envFile))} rm --cached -- ${word(basename(envFile))}, commit, and rotate every value it held: the history keeps them` : `printf '\\n%s\\n' ${word(basename(envFile).replace(/[\\[]|^[#!]| $/g, "\\$&"))} >> ${word(join(dirname(envFile), ".gitignore"))}, or move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)`; },
 			critical: true,
 		},
 		// Named, never its value.

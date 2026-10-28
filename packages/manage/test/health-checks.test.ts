@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import type { JobRecord, Ticket } from "@arthur/core/plugin";
@@ -121,6 +121,33 @@ test("the board's changes not committed for an hour, by its oldest file's time, 
 	rmSync(join(project.path, "spec/build.json"));
 	assert.deepEqual(uncommittedBoard(project, now), [], "a deletion alone");
 	assert.throws(() => uncommittedBoard({ ...project, path: temporaryFolder() }, now), { message: /^git status failed in / });
+});
+
+test("no hook, fsmonitor or replacement the checkout's Git folder names is used; a key that may name another program refuses each check, running nothing", () => {
+	const { project, git, commit } = repository();
+	const [ran, hooked] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "hooked")];
+	mkdirSync(join(project.path, "spec"));
+	commit(ago(120), "spec/build.json");
+	// `git status` writes the index it refreshes, which runs post-index-change.
+	writeFileSync(join(project.path, ".git/hooks/post-index-change"), `#!/bin/sh\ntouch ${hooked}\n`, { mode: 0o755 });
+	git("config", "core.fsmonitor", `touch ${ran}; false`);
+	const board = join(project.path, "spec/build.json");
+	utimesSync(board, new Date(NOW - HOUR_MS / 2), new Date(NOW - HOUR_MS / 2));
+	assert.deepEqual(uncommittedBoard(project, NOW), []);
+	assert.deepEqual(unpushed(project, NOW), ["acme: main has 1 commit not pushed to origin/main, the oldest made 2 h ago"]);
+	assert.deepEqual([existsSync(ran), existsSync(hooked)], [false, false], "no fsmonitor, no hook ran");
+	utimesSync(board, new Date(NOW - HOUR_MS), new Date(NOW - HOUR_MS));
+	git("status", "--porcelain");
+	assert.deepEqual([existsSync(ran), existsSync(hooked)], [true, true], "git status without -c runs both");
+	rmSync(ran);
+	// Main's new commit read as the one origin has: nothing would be ahead.
+	git("replace", "HEAD", "origin/main");
+	assert.deepEqual(unpushed(project, NOW), ["acme: main has 1 commit not pushed to origin/main, the oldest made 2 h ago"], "past the replacement");
+	git("config", "filter.board.clean", `touch ${ran}; cat`);
+	const refusal = `${join(project.path, ".git", "config")} sets filter.board.clean, which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig`;
+	assert.throws(() => uncommittedBoard(project, NOW), { message: refusal });
+	assert.throws(() => unpushed(project, NOW), { message: refusal });
+	assert.equal(existsSync(ran), false, "nothing ran");
 });
 
 test("a finished audit or retro ended an hour ago that no report's `- Job:` line names is not filed; filed, it is", () => {

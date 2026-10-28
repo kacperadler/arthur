@@ -159,9 +159,10 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 	assert.equal((await merge(job.id)).err, `arthur merge: AC0001 is merged; a merge is of a ticket in-progress, review or done`);
 });
 
-test("a merge's start removes delivery's cache_ folders older than a day to the minute, as a killed merge leaves them, with what is in them; a younger one, maybe a running merge's, a project's folder named cache-* and another old folder stay", async (t) => {
+test("a merge's start removes delivery's cache_ folders older than a day to the minute, as a killed merge leaves them, with what is in them; a younger one, maybe a running merge's, a project's folder named cache-*, another old folder and an old cache_ one below the top stay", async (t) => {
 	const { fake, worker, merge, caches } = await load(t);
 	const job = await worker({ "bun.lock": '{ "shop": 1 }\n' });
+	// A folder below the top is aged before the one holding it, whose time each write in it moves.
 	const aged = (name: string, seconds: number, file = join("bun", "deep", "left")) => {
 		const path = join(fake.host.folder, name);
 		mkdirSync(dirname(join(path, file)), { recursive: true });
@@ -171,10 +172,11 @@ test("a merge's start removes delivery's cache_ folders older than a day to the 
 		return path;
 	};
 	const day = 24 * 3600;
+	const below = [aged(join("cache_Runnin", "cache_x"), 2 * day), aged(join("cache-shop", "cache_x"), 2 * day)];
 	const [old, young, project, other] = [aged("cache_kiLLed", day + 30), aged("cache_Runnin", day - 30), aged("cache-shop", 2 * day, "last-merge"), aged("caches", 2 * day)];
 	const merged = await merge(job.id, "--unreviewed", "--decision", OWNER);
 	assert.equal(merged.code, undefined, merged.err);
-	assert.deepEqual([old, young, project, other].map((path) => existsSync(path)), [false, true, true, true]);
+	assert.deepEqual([old, young, project, other, ...below].map((path) => existsSync(path)), [false, true, true, true, true, true]);
 	assert.match(basename(dirname(caches()[0] ?? "")), /^cache_[A-Za-z0-9]{6}$/, "the merge's own cache folder has the name the sweep removes");
 });
 

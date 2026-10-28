@@ -4396,9 +4396,9 @@
   {
     "id": "AR0552",
     "title": "Docs: video in the architecture diagram and roadmap, voice and video as media plugins in the README diagram",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0552-docs-video-in-the-architecture-diagram-and-roadmap-voice-and-video-as-media/ticket.md",
-    "updated": "2026-10-28T20:53:50.093Z"
+    "updated": "2026-10-28T21:26:58.808Z"
   },
   {
     "id": "AR0553",

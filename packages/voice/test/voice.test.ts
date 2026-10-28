@@ -106,6 +106,7 @@ test("options: the defaults hold with none given; each wrong one is refused nami
 	assert.deepEqual(checkOptions({}), []);
 	assert.deepEqual(checkOptions({ model: "large-v3-turbo", threads: 8, language: "auto", timeoutSeconds: 1, maxSeconds: 1 }), []);
 	assert.deepEqual(checkOptions({ model: "/srv/models/ggml-medium.bin", language: "yue" }), []);
+	assert.deepEqual(checkOptions({ language: "pl" }), []);
 	const paths = (options: Readonly<Record<string, unknown>>) => checkOptions(options).map((problem) => `${problem.path}: ${problem.problem}`);
 	for (const key of ["threads", "timeoutSeconds", "maxSeconds"])
 		for (const value of [0, -1, 1.5, "4"]) assert.deepEqual(paths({ [key]: value }), [`${key}: expected a positive whole number, got ${typeof value === "string" ? `"${value}"` : value}`]);
@@ -214,6 +215,7 @@ test("voice.transcribe: through the host, a file's transcript and its segments i
 	const transcribe = (path: string, bin = dir) => onPath(bin, () => fake.call<Promise<unknown>>("voice.transcribe", path));
 	const path = note(HELLO);
 	assert.deepEqual(await transcribe(path), { seconds: 3, text: "Hello there. How are you?", segments: [{ start: 0, end: 1.5, text: "Hello there." }, { start: 1.5, end: 3, text: "How are you?" }] });
+	assert.deepEqual(await transcribe(note({ seconds: 2, segments: [[0, 2, " [BLANK_AUDIO]"]] })), { seconds: 2, text: "", segments: [] });
 	const long = note({ ...HELLO, seconds: 6 });
 	await assert.rejects(transcribe(long), { message: `${long}: audio of 6 s is over maxSeconds 5; not transcribed` });
 	await assert.rejects(transcribe("/no/such.ogg"), { message: "/no/such.ogg: not transcribed: no file /no/such.ogg" });
@@ -243,11 +245,13 @@ test("arthur transcribe prints the transcript, with --times a segment a line; re
 	assert.deepEqual(await cli(loaded, path), [0, "Hello there. How are you?"]);
 	assert.deepEqual(await cli(loaded, path, "--times"), [0, "0.00 1.50 Hello there.", "1.50 3.00 How are you?"]);
 	assert.deepEqual(await cli(loaded, loaded.note({ seconds: 2 }), "--times"), [0, "[no speech in 2 s]"]);
+	assert.deepEqual(await cli(loaded, loaded.note({ seconds: 2, segments: [[0, 2, " [BLANK_AUDIO]"]] }), "--times"), [0, "[no speech in 2 s]"]);
 	assert.deepEqual(await cli(loaded, "/no/such.ogg"), [1, "! refused: /no/such.ogg: not transcribed: no file /no/such.ogg"]);
 	const long = loaded.note({ ...HELLO, seconds: 6 });
 	assert.deepEqual(await cli(loaded, long), [1, `! refused: ${long}: audio of 6 s is over maxSeconds 5; not transcribed`]);
 	assert.deepEqual(await cli(loaded), [2, "! usage: arthur transcribe <file> [--times]"]);
 	assert.deepEqual(await cli(loaded, path, path), [2, "! usage: arthur transcribe <file> [--times]"]);
+	assert.deepEqual(await cli(loaded, ""), [2, "! usage: arthur transcribe <file> [--times]"]);
 	assert.equal((await cli(loaded, path, "--nope"))[0], 2);
 });
 

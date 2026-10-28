@@ -4251,9 +4251,16 @@
   {
     "id": "AR0531",
     "title": "The env file fixes arthur doctor prints put an unquoted folder in a shell command",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0531-the-env-file-fixes-arthur-doctor-prints-put-an-unquoted-folder-in-a-shell/ticket.md",
-    "updated": "2026-10-27T20:45:59.289Z"
+    "updated": "2026-10-28T07:55:02.201Z",
+    "after": [
+      "AR0524",
+      "AR0496",
+      "AR0492",
+      "AR0493",
+      "AR0494"
+    ]
   },
   {
     "id": "AR0532",
@@ -4265,15 +4272,29 @@
   {
     "id": "AR0533",
     "title": "A merge decision lifts whichever flag the coordinator names, not the one the owner decided",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0533-a-merge-decision-lifts-whichever-flag-the-coordinator-names-not-the-one-the/ticket.md",
-    "updated": "2026-10-27T21:36:49.256Z"
+    "updated": "2026-10-28T07:55:00.173Z",
+    "after": [
+      "AR0524",
+      "AR0496",
+      "AR0492",
+      "AR0493",
+      "AR0494"
+    ]
   },
   {
     "id": "AR0534",
     "title": "Delivery's review-needed reads `process\\.env` in a regex as the secrets file too",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0534-delivery-s-review-needed-reads-process-env-in-a-regex-as-the-secrets-file-too/ticket.md",
-    "updated": "2026-10-27T22:04:36.785Z"
+    "updated": "2026-10-28T07:55:04.211Z",
+    "after": [
+      "AR0524",
+      "AR0496",
+      "AR0492",
+      "AR0493",
+      "AR0494"
+    ]
   }
 ]

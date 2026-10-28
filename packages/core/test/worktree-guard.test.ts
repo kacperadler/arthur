@@ -181,7 +181,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `cd ${main}; cd /tmp; OLDPWD+=/ eval 'cd /var'; cd -; rm README.md` }, MAIN],
 		["bash", { command: `cd /tmp; cd /var; OLDPWD[0]=${root}; cd -; rm README.md` }, MAIN],
 		["bash", { command: `cd /tmp; OLDPWD=(${root}); cd -; rm README.md` }, MAIN],
-		["bash", { command: `cd /tmp; declare OLDPWD[0]=${root}; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd /tmp; declare OLDPWD[0]=${root}; cd -; rm README.md` }, UNKNOWN],
 		["bash", { command: `cd ${main}; cd /tmp; OLDPWD[1]=/var; cd -; rm README.md` }, MAIN],
 		["bash", { command: `cd /tmp; cd ${root}; unset OLDPWD[0]; cd -; rm README.md` }, MAIN],
 		["bash", { command: `cd ${main}; OLDPWD='(/tmp'; cd -; rm README.md` }, MAIN],
@@ -317,7 +317,13 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `export HOM?=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
 		["bash", { command: `export HOM*=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
 		["bash", { command: `export H[O]ME=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
-		["bash", { command: `export "{HOME,X}=1" 'HOM?'=2 Y={a,b} Z=*; declare -a arr[0]=1` }, undefined],
+		// An index is a glob too where the shell does not see the builtin itself (`command`, `builtin`, dash's `export`): it matches a folder named `HOME=..`.
+		["bash", { command: `command export HOM[E]=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `builtin export HOM[E]=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `sh -c 'export HOM[E]=${main}; rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `command declare -x HOM[E]=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `command export PW[D]=${main}; bash -c 'rm $PWD/README.md'` }, UNKNOWN],
+		["bash", { command: `export "{HOME,X}=1" 'HOM?'=2 Y={a,b} Z=*; declare -a 'arr[0]'=1` }, undefined],
 		["bash", { command: `export FOO=$x BAR="$(pwd)" > $log; declare -r v=\${x:-1}; readonly "w=$v"` }, undefined],
 		["bash", { command: `echo HOME=${main} PWD=${main} > notes.txt; HOMEX=${main} PWDX=1 bash -c 'rm $HOME/README.md'` }, undefined],
 		// AR0471: an operator of `${PWD…}` or of a known variable the parser does not read is refused, as one of `${OLDPWD…}` is.

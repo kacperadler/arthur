@@ -14,7 +14,9 @@ flowchart TD
     terminal ~~~ telegram ~~~ signal ~~~ discord ~~~ slack ~~~ whatsapp
   end
   subgraph MEDIA[Media]
-    voice[voice<br/>whisper.cpp, on the CPU]
+    voice[voice<br/>whisper.cpp, on the CPU<br/>voice.transcribe]
+    video[video<br/>ffmpeg: frames, sound track]
+    voice ~~~ video
   end
 
   subgraph CORE[Arthur core - always on]
@@ -76,7 +78,9 @@ flowchart TD
 
   human <-->|messages| CH
   CH <-->|typed parts, text, media| host
-  MEDIA <-->|claims voice parts, text back| host
+  MEDIA <-->|claims voice, audio and video parts, text back| host
+  video -->|asks voice.transcribe for a video's words| host
+  host -->|voice.transcribe| voice
   ORCH <-->|events, commands| host
   CONV <-->|events, commands| host
   RES <-->|events, commands| host
@@ -89,5 +93,5 @@ flowchart TD
 
   classDef first fill:#d8f5d8,stroke:#2d7a2d,color:#000;
   classDef later fill:#eee,stroke:#888,stroke-dasharray:4 3,color:#555;
-  class terminal,telegram,discord,orchestration,session,schedule,machines,models,resources,docker,delivery,projects,nvm,findings,youtrack,github,commit,manage,develop,voice first;
+  class terminal,telegram,discord,orchestration,session,schedule,machines,models,resources,docker,delivery,projects,nvm,findings,youtrack,github,commit,manage,develop,voice,video first;
   class whatsapp,signal,slack,agents,server later;

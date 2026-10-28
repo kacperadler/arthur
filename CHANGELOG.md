@@ -7,6 +7,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Fixed
 
 - AR0470 A merge killed during its steps leaves its cache folder behind (4a964c77)
+- AR0532 A job final message naming @<path> makes the coordinator read that file into its own context (e79b9701)
 
 ### Changed
 

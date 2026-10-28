@@ -20,7 +20,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/wrapper.ts:89`; `packages/delivery/src/review-command.ts:83`; `packages/delivery/src/hand-back.ts:144`
 - What: the wrapper starts a job as `omp -p ... @<record>/task`, and a continue as `omp --continue ... '<message>'`. omp 18.3.0's CLI (`processFileArguments`) puts the task file's content into the first message as `<file name="<path>">\n<content>\n</file>`, and print mode sends it with `session.prompt(text, { images })`, so the same `extractFileMentions` as in F1 runs over the task's whole text (read from the bundled source, not run: without an API key `#So` throws before it reads mentions). A review's task quotes the worker's final message under `## The worker's final message`, and a hand-back's continue quotes the review's final message, so an `@/etc/passwd` a worker or a reviewer writes makes the next job's omp read that file with the owner's rights, outside the job's sandbox. This is the case the reviewer of AR0487 reported. It is not this ticket's code path: the task and a continue's text go from the core's wrapper to omp's CLI, not through the coordinator's inbox; `steer.ts`'s `deliverAs: "steer"` takes `#Rs` and reads no mention. Seen once: `spec/features/AR0487-an-arthur-continue-instruction-that-starts-with-is-an-option-of-omp/review-1.md:26` says the reviewer's session had `/etc/passwd` attached, from the worker's final message its task quoted. Seen again on 2026-10-28 through a continue: the hand-back of review 2026-10-28-review-08853e13 quoted its findings, whose text named `/etc/passwd` as a mention right after a double quote, and this worker's continued session got the whole file attached after that message.
 - Suggestion: escape as `hand-over.ts` does in the text the core hands to omp, once, in the core: the `task` file as the wrapper's spawn writes it and the message of `arthur continue` (`host.jobs.continue`), so every plugin's task is covered; a test runs the fake agent and checks the exact task and continue text. The escape would be a second copy of that pattern, as the styleguide allows before a third use; the core cannot import the orchestration plugin.
-- Status: open
+- Status: ticket AR0537
 
 ## F3. The coordinator's handoff is handed back through `sendUserMessage` unescaped
 
@@ -29,7 +29,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/session/src/handoff-extension.ts:64`
 - What: after a restart or compaction the session plugin quotes the coordinator's handoff file and sends it with `pi.sendUserMessage(..., { attribution: "agent" })`, the path F1 describes. A handoff that copies an `@<path>` from a message it summed up (the inbox now hands it `\u2060@`, which a model may still write back as a plain `@`) makes omp read that file into the next session.
 - Suggestion: put the word joiner before each such `@` of the quoted lines there too, with a test through the extension; out of this ticket's Scope (the session plugin).
-- Status: open
+- Status: ticket AR0538
 
 ## F4. A `^<model>` in a message's text gives the coordinator's session a model agent
 
@@ -38,4 +38,9 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/orchestration/src/hand-over.ts:14`; omp 18.3.0 `expandMentions` (`packages/tui/src/prompt/model-mention-syntax.ts`, pattern `/(^|\s)\^([^\s^]+)(?=\s|$)/g`)
 - What: in the same prompt path as F1, omp replaces a `^<model selector>` after whitespace that names an available model with `<model agent="m<n>" name="<name>"/>` and adds that model to the session as an agent (`appendCustomEntry`), for any text not marked `synthetic`. So a job's message or a review could add a model agent to the coordinator's session; it reads no file. Read from the bundled source, not run.
 - Suggestion: a word joiner before each such `^` in `handOver` (omp needs whitespace or the start of the text right before it), with its own test; left out here since the ticket is the file read.
-- Status: open
+- Status: ticket AR0539
+
+## F5. A list of exactly the test's spaces in place of `\s` still passes the test
+
+- What: review 3: replacing `\s` in the escape's lookbehind with space, tab, U+00A0, U+3000 and U+FEFF passes the test, while omp would still match after U+1680, U+2000 to U+200A, U+202F or U+205F; every plausible narrowing is caught.
+- Status: dropped (only by copying the test's characters into the code; review 3 fuzzed 300,000 strings with all 25 characters of `\s` and omp matched none)

@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Fixed
 
+- AR0484 A board entry's `path` is never checked, so a filing writes `plan.md` or `review-N.md` outside the project (ee93422d)
 - AR0547 A `~` after a `:` in an assignment's value is not expanded by the parser (0eca382f)
 
 ## 2026-10-28

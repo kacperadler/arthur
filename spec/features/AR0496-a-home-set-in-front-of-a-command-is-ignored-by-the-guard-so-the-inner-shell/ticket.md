@@ -39,3 +39,4 @@ Out:
 
 - 2026-10-27: Source: F2 of AR0472
 - 2026-10-28: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)
+- 2026-10-28: AR0496 another round: refuse a declaration whose name holds an unquoted { * ? or [ before its =, review commands as tests, then review round 3; the owner: "AR-D239 1" (AR-D239)

@@ -41,7 +41,7 @@ Refused, one line each, with exit code 1:
 - An `after` that names a ticket not on the same board, a dropped one, or leads back to the ticket through the afters on the board (a cycle, named as its chain, for example `DM0001 cannot wait for itself: DM0001 after DM0002 after DM0001`).
 - An unknown status; an id that is not on its project's board, or whose prefix no project has.
 - A title that is empty, has spaces around it, spans lines, or has no letter a-z or digit.
-- A board file broken by hand (not JSON, not an array, an entry without a valid `id`, `title`, `status`, `path` or `updated`, an `after` that is not a list of ids, an id twice): the message names the file and the first problem, and the file is left as it is. A missing board file is an empty board.
+- A board file broken by hand (not JSON, not an array, an entry without a valid `id`, `title`, `status`, `path` or `updated`, an `after` that is not a list of ids, an id twice): the message names the file and the first problem, and the file is left as it is. A valid `path` is the one `arthur ticket new` writes, `spec/features/<its own id>-<slug>/ticket.md` with a slug of `a-z`, `0-9` and `-`, so a filing, written beside it, never leaves the project: any other is refused as `[<n>].path: expected spec/features/<id>-<slug>/ticket.md, a slug of a-z, 0-9 and -, got "<path>"`. A missing board file is an empty board.
 - No project list (no plugin provides `projects`), a list provided twice, an empty one, a project without a name, an absolute folder or a prefix of capital letters, two projects with one name or one prefix, and an unknown `--project`.
 - A config that does not load: the board needs the plugins' project list.
 

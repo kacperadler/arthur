@@ -11,10 +11,10 @@ export const summary = "review jobs of a worker's branch, their verdict moving t
 // Git, which the review's checkout and its range need, is the core's tool.
 export const tools: readonly Tool[] = [];
 
-// The always-review list left out: what reads secrets (the `.env` loading, entry 3, the env guard), the CI-failure handling
-// (entries 57 to 59), the CI's workflows, the review rules, the prompt files every role reads (roles, criteria, the vision, the
-// overrides under `.agents/`, named as `**` enters no dot folder; AR0351), and what the merge and each spawn run (AR0358, AR0432).
-export const ALWAYS_REVIEW = ["**/env.ts", "**/env-*.ts", "**/ci.ts", "**/ci-*.ts", "**/github-ci.ts", "**/auto-merge.ts", "**/merge-command.ts", ".github/workflows/**", "**/review-needed.ts", "**/checks-extension.ts", "**/roles/**", "**/criteria/**", ".agents/**", "spec/vision.md", "**/package.json", "**/package-lock.json", "**/npm-shrinkwrap.json", "**/bun.lock", "**/bun.lockb", "**/yarn.lock", "**/pnpm-lock.yaml", "**/.npmrc", "**/.nvmrc", "**/composer.json", "**/composer.lock", "**/uv.lock", "**/pyproject.toml", "**/.yarnrc.yml", "**/.pnpmfile.cjs", "**/bunfig.toml", ".githooks/**", ".husky/**"];
+// The always-review list left out: what reads secrets (`.env` loading, entry 3, the env guard), the CI-failure handling (entries
+// 57 to 59), the CI's workflows, the review rules, the prompt files every role reads (roles, criteria, the vision, the overrides
+// under `.agents/`, named as `**` enters no dot folder; AR0351), the board (AR0484), what the merge and each spawn run (AR0358, AR0432).
+export const ALWAYS_REVIEW = ["**/env.ts", "**/env-*.ts", "**/ci.ts", "**/ci-*.ts", "**/github-ci.ts", "**/auto-merge.ts", "**/merge-command.ts", ".github/workflows/**", "**/review-needed.ts", "**/checks-extension.ts", "**/roles/**", "**/criteria/**", ".agents/**", "spec/vision.md", "spec/build.json", "**/package.json", "**/package-lock.json", "**/npm-shrinkwrap.json", "**/bun.lock", "**/bun.lockb", "**/yarn.lock", "**/pnpm-lock.yaml", "**/.npmrc", "**/.nvmrc", "**/composer.json", "**/composer.lock", "**/uv.lock", "**/pyproject.toml", "**/.yarnrc.yml", "**/.pnpmfile.cjs", "**/bunfig.toml", ".githooks/**", ".husky/**"];
 // An hour for each step of a merge's checks on main (AR0374), a whole test run's.
 export const STEP_SECONDS = 3600;
 

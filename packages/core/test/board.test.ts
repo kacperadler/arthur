@@ -345,7 +345,11 @@ test("a board file broken by hand is refused, naming the file, and never written
 		[JSON.stringify([{ ...valid, id: "DM1" }]), '[0].id: expected a prefix in capitals and a number of 4 digits or more, got "DM1"'],
 		[JSON.stringify([{ ...valid, title: "" }]), "[0].title: expected a non-empty string"],
 		[JSON.stringify([{ ...valid, status: "doing" }]), '[0].status: expected one of planning, planned, in-progress, review, done, merged, dropped, got "doing"'],
-		[JSON.stringify([{ ...valid, path: undefined }]), "[0].path: expected the path of its ticket.md"],
+		[JSON.stringify([{ ...valid, path: undefined }]), "[0].path: expected spec/features/DM0001-<slug>/ticket.md, a slug of a-z, 0-9 and -, got nothing"],
+		// A filing writes next to the ticket.md: a path that leaves the project, or names another ticket's folder, is refused.
+		...["spec/features/../../../outside/ticket.md", "spec/features/DM0001-one/../../../outside/ticket.md", "/tmp/DM0001-one/ticket.md", "spec/features/DM0002-one/ticket.md", "spec/features/DM00011-one/ticket.md", "spec/features/DM0001-/ticket.md", "spec/features/DM0001-One/ticket.md", "spec/features/DM0001-one/plan.md", "spec/features/DM0001-one/ticket.md/", "spec/features/DM0001-one/x/ticket.md", "spec/features/DM0001-one/ticket.md\n", "./spec/features/DM0001-one/ticket.md"].map(
+			(path) => [JSON.stringify([{ ...valid, path }]), `[0].path: expected spec/features/DM0001-<slug>/ticket.md, a slug of a-z, 0-9 and -, got ${JSON.stringify(path)}`] as [string, string],
+		),
 		[JSON.stringify([{ ...valid, updated: "yesterday" }]), "[0].updated: expected an ISO 8601 time"],
 		[JSON.stringify([valid, valid]), "[1].id: DM0001 is on the board twice"],
 		[JSON.stringify([{ ...valid, after: "DM0002" }]), '[0].after: expected a list of ticket ids, got "DM0002"'],

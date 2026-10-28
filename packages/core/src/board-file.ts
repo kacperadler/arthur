@@ -19,8 +19,8 @@ export const NEXT: Readonly<Record<Status, readonly Status[]>> = {
 	dropped: [],
 };
 
-// `path`: the ticket's `ticket.md`, from the project's folder; `updated`: when it was created or last moved, ISO 8601; `after`:
-// the ids of the tickets it waits for (entry 18), absent when it waits for none.
+// `path`: the ticket's `ticket.md`, from the project's folder, in the one shape `arthur ticket new` writes so a filing beside it
+// stays in the project (AR0484); `updated`: when it was created or last moved, ISO 8601; `after`: the ids it waits for, if any.
 export type Entry = {
 	readonly id: string;
 	readonly title: string;
@@ -73,7 +73,7 @@ function entryProblem(entry: unknown): string | undefined {
 	if (typeof id !== "string" || !ID.test(id)) return `.id: expected a prefix in capitals and a number of 4 digits or more, got ${describe(id)}`;
 	if (typeof title !== "string" || title === "") return ".title: expected a non-empty string";
 	if (!STATUSES.includes(status as Status)) return `.status: expected one of ${STATUSES.join(", ")}, got ${describe(status)}`;
-	if (typeof path !== "string" || path === "") return ".path: expected the path of its ticket.md";
+	if (typeof path !== "string" || !new RegExp(`^spec/features/${id}-[a-z0-9-]+/ticket\\.md$`).test(path)) return `.path: expected spec/features/${id}-<slug>/ticket.md, a slug of a-z, 0-9 and -, got ${describe(path)}`;
 	if (typeof updated !== "string" || Number.isNaN(Date.parse(updated))) return ".updated: expected an ISO 8601 time";
 	if (after !== undefined && (!Array.isArray(after) || !after.every((each) => typeof each === "string" && ID.test(each))))
 		return `.after: expected a list of ticket ids, got ${describe(after)}`;

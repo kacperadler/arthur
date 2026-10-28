@@ -3343,9 +3343,9 @@
   {
     "id": "AR0425",
     "title": "A redirect's lookup in a site check ignores the check's time limit, and a 308 hop has no test",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0425-a-redirect-s-lookup-in-a-site-check-ignores-the-check-s-time-limit-and-a-308-hop/ticket.md",
-    "updated": "2026-10-28T22:01:19.363Z"
+    "updated": "2026-10-28T22:31:29.290Z"
   },
   {
     "id": "AR0426",
@@ -4348,9 +4348,9 @@
   {
     "id": "AR0547",
     "title": "A `~` after a `:` in an assignment's value is not expanded by the parser",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0547-a-after-a-in-an-assignment-s-value-is-not-expanded-by-the-parser/ticket.md",
-    "updated": "2026-10-28T22:22:10.837Z"
+    "updated": "2026-10-28T22:36:21.920Z"
   },
   {
     "id": "AR0548",

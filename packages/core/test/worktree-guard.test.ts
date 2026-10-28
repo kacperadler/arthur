@@ -89,7 +89,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	// The whole refusal: its patch saves staged and unstaged changes in a folder of the job's own worktree that ignores itself, never a name in the shared /tmp another job may pick too, nor a file a `git add -A` commits.
 	const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save your staged and unstaged changes in a folder your worktree ignores instead (mkdir -p .arthur-stash && echo '*' > .arthur-stash/.gitignore && git diff --binary HEAD > .arthur-stash/patch, then git apply .arthur-stash/patch)";
 	const LINK = "a link to a repository";
-	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes; or HOME, ARTHUR_JOB or PWD is set by the call, which the guard reads as the job started, or a variable `export`, `declare`, `typeset`, `readonly` or `local` sets is named at run time; name the folder instead";
+	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes, or by an unquoted `~name` (a user's home or a `dirs` entry); or HOME, ARTHUR_JOB or PWD is set by the call, which the guard reads as the job started, or a variable `export`, `declare`, `typeset`, `readonly` or `local` sets is named at run time; name the folder instead";
 	// Each call, and the place its refusal names: undefined when it passes.
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
 		["bash", { command: `echo x > ${main}/README.md` }, MAIN],
@@ -279,6 +279,8 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `HOME=${main} bash <<EOF\nrm \\$HOME/README.md\nEOF` }, UNKNOWN],
 		["bash", { command: `HOME=${main} bash -c 'rm $HOME/README.md'` }, UNKNOWN],
 		["bash", { command: `env HOME=${main} sh -c 'cd && rm README.md'` }, UNKNOWN],
+		["bash", { command: `HOME=${main}; echo x > ~/README.md` }, UNKNOWN],
+		["bash", { command: `PWD=${main}; bash <<EOF\nrm $PWD/README.md\nEOF` }, UNKNOWN],
 		["bash", { command: `HOME=${main} cd && rm README.md` }, UNKNOWN],
 		["bash", { command: `HOME=${main} find . -maxdepth 0 -exec sh -c 'rm $HOME/README.md' \\;` }, UNKNOWN],
 		["bash", { command: `HOME=${main}; rm ~/README.md` }, UNKNOWN],
@@ -335,7 +337,11 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: 'rm "${x:-$".."}/../acme/README.md"' }, UNKNOWN],
 		["bash", { command: `echo "\${x:-\\$'a'}"` }, undefined],
 		["bash", { command: "rm ${x:-~}/acme/README.md" }, MAIN],
-		["bash", { command: "rm ${x:-~+}/README.md ${x:-~root}/README.md" }, undefined],
+		["bash", { command: "rm ${x:-~+}/README.md" }, undefined],
+		// AR0492: an unquoted `~name` at a word's start or after an assignment's `=` is that user's home or a `dirs` entry, which the guard does not read; quoted or elsewhere it is a name.
+		["bash", { command: "rm ~acme/arthur/README.md" }, UNKNOWN],
+		...["rm ${x:-~root}/README.md", "echo x > ~acme", "x=~acme/arthur/README.md; rm $x", "echo x > ~1/README.md", "rm ~+1/README.md"].map((command) => ["bash", { command }, UNKNOWN] as const),
+		["bash", { command: "rm '~acme/README.md' \\~acme/README.md ~\"acme\"/README.md ~acme\\/README.md a~acme/README.md --x=~acme/README.md" }, undefined],
 		["bash", { command: `cd ${main}; bash <<EOF\ncd /tmp; echo x > \${PWD:+x}; rm \${PWD:+$PWD}/README.md\nEOF` }, MAIN],
 		["bash", { command: 'rm "${HOME/x/x}/acme/README.md"' }, UNKNOWN],
 		["bash", { command: "rm /${HOME#/}/acme/README.md" }, UNKNOWN],
@@ -506,6 +512,9 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		delete process.env.ARTHUR_JOB;
 		assert.equal(worktreeRefusal(place, "bash", { command: "echo x > $ARTHUR_JOB/result" }), undefined);
 		assert.ok(worktreeRefusal(place, "bash", { command: `echo x > \${ARTHUR_JOB:-${root}}/README.md` })?.includes("into the main checkout"));
+		// Without HOME in the agent's env, `$HOME` is nothing, so any word may read a HOME the call set.
+		delete process.env.HOME;
+		assert.equal(worktreeRefusal(place, "bash", { command: `HOME=${main}; rm $HOME/README.md` }), UNKNOWN);
 	} finally {
 		for (const [name, value] of Object.entries(saved)) value === undefined ? delete process.env[name] : (process.env[name] = value);
 	}
@@ -667,6 +676,40 @@ test("a git write through an alias given by -c, or GIT_DIR, GIT_WORK_TREE, GIT_I
 	for (const command of passing) spawnSync("sh", ["-c", command], { cwd: own.worktree, env: { ...process.env, GIT_COMMITTER_NAME: "x", GIT_COMMITTER_EMAIL: "x@example.com", GIT_AUTHOR_EMAIL: "x@example.com" }, stdio: "ignore" });
 	assert.deepEqual([readFileSync(join(root, ".git", "config"), "utf8"), readFileSync(join(root, "README.md"), "utf8")], [shared, readme]);
 	assert.equal(git(own.worktree, "config", "--worktree", "a.c"), "d", "the alias ran git config in the worktree's own config");
+});
+
+test("config set earlier in the same call (export, declare -x, a bare assignment, a prefix to a shell or eval) refuses each git call after it, as one set before git does", async () => {
+	const { home, own } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id));
+	const unseen = [
+		"export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.c GIT_CONFIG_VALUE_0=config; git c a.c d",
+		"export GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=commit.gpgSign GIT_CONFIG_VALUE_0=false; git commit -q -am x",
+		"export HOME=/tmp/h; git commit -m x",
+		"readonly HOME=/tmp/h; git status",
+		"f() { local XDG_CONFIG_HOME=/tmp/h; git status; }; f",
+		"export XDG_CONFIG_HOME=/tmp/h && git status",
+		"declare -x GIT_CONFIG_GLOBAL=/tmp/x.cfg; git commit -m x",
+		"typeset -gx GIT_CONFIG_PARAMETERS=\"'alias.c'='config'\"; git c a.c d",
+		"HOME=/tmp/h; git commit -m x",
+		"XDG_CONFIG_HOME+=/h; export XDG_CONFIG_HOME; git status",
+		"HOME+=/h git commit -m x",
+		"HOME[0]=/tmp/h git commit -m x",
+		"export HOME=/tmp/h; cd ..; (git commit -m x)",
+		"export HOME=/tmp/h; bash -c 'git commit -m x'",
+		"bash -c 'export HOME=/tmp/h; git commit -m x'",
+		"HOME=/tmp/h bash -c 'git commit -m x'",
+		"env XDG_CONFIG_HOME=/tmp/h sh -c 'git status'",
+		"HOME=/tmp/h eval git commit -m x",
+		"export 'HOME=/tmp/h'; git commit -m x",
+	];
+	for (const command of unseen) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /^arthur: refused: this git call reads config the guard does not/, command);
+	const passing = [
+		"git commit -m x; export HOME=/tmp/h",
+		"export GIT_AUTHOR_NAME=x GIT_CONFIG_NOSYSTEM=1; git commit -m x",
+		"HOMEDIR=/tmp/h; export XDG_CONFIG; git status",
+		"export HOME; git status",
+	];
+	for (const command of passing) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
 });
 
 test("a call writing a .git or commondir is refused, and a git write through one that links to the main checkout's repository; a worktree's own link and other repositories pass", async () => {

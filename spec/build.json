@@ -3916,9 +3916,9 @@
   {
     "id": "AR0492",
     "title": "An unquoted `~user` is read as a relative folder named `~user`",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0492-an-unquoted-user-is-read-as-a-relative-folder-named-user/ticket.md",
-    "updated": "2026-10-27T18:54:22.058Z",
+    "updated": "2026-10-28T12:38:40.682Z",
     "after": [
       "AR0478"
     ]
@@ -3926,9 +3926,9 @@
   {
     "id": "AR0493",
     "title": "A backslash-newline after $ is not removed, so the guard reads a folder name where bash reads ..",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0493-a-backslash-newline-after-is-not-removed-so-the-guard-reads-a-folder-name-where/ticket.md",
-    "updated": "2026-10-27T18:54:22.566Z",
+    "updated": "2026-10-28T12:39:43.066Z",
     "after": [
       "AR0478"
     ]
@@ -3936,9 +3936,9 @@
   {
     "id": "AR0494",
     "title": "The guard skips an escaped quote inside quotes when it finds a fallback end, so a command can hide after it",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0494-the-guard-skips-an-escaped-quote-inside-quotes-when-it-finds-a-fallback-end-so-a/ticket.md",
-    "updated": "2026-10-27T18:54:23.075Z",
+    "updated": "2026-10-28T12:39:44.652Z",
     "after": [
       "AR0478"
     ]
@@ -3953,9 +3953,9 @@
   {
     "id": "AR0496",
     "title": "A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0496-a-home-set-in-front-of-a-command-is-ignored-by-the-guard-so-the-inner-shell/ticket.md",
-    "updated": "2026-10-27T18:54:21.530Z",
+    "updated": "2026-10-28T12:56:02.488Z",
     "after": [
       "AR0478"
     ]
@@ -4173,9 +4173,9 @@
   {
     "id": "AR0524",
     "title": "The worktree guard refuses `GIT_CONFIG_*=... git commit` but lets `export GIT_CONFIG_*=...; git commit` through",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0524-the-worktree-guard-refuses-git-config-git-commit-but-lets-export-git-config-git/ticket.md",
-    "updated": "2026-10-27T18:54:21.027Z",
+    "updated": "2026-10-28T12:32:49.656Z",
     "after": [
       "AR0478"
     ]
@@ -4280,16 +4280,16 @@
   {
     "id": "AR0535",
     "title": "A read-only folder a step leaves in the merge's cache turns a merge that went in into an error",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0535-a-read-only-folder-a-step-leaves-in-the-merge-s-cache-turns-a-merge-that-went-in/ticket.md",
-    "updated": "2026-10-28T10:14:47.136Z"
+    "updated": "2026-10-28T12:52:17.868Z"
   },
   {
     "id": "AR0536",
     "title": "Cache folders a merge killed before AR0470 left, named `cache-<random>`, stay",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0536-cache-folders-a-merge-killed-before-ar0470-left-named-cache-random-stay/ticket.md",
-    "updated": "2026-10-28T10:14:47.141Z"
+    "updated": "2026-10-28T12:52:18.898Z"
   },
   {
     "id": "AR0537",
@@ -4344,9 +4344,9 @@
   {
     "id": "AR0542",
     "title": "The agent's bun, pnpm, uv and composer still have no writable cache",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0542-the-agent-s-bun-pnpm-uv-and-composer-still-have-no-writable-cache/ticket.md",
-    "updated": "2026-10-28T10:59:01.915Z"
+    "updated": "2026-10-28T12:52:19.991Z"
   },
   {
     "id": "AR0543",
@@ -4361,5 +4361,26 @@
     "status": "planning",
     "path": "spec/features/AR0544-the-merge-step-timeout-test-fails-under-load-its-3-s-limit-also-catches-npm-run/ticket.md",
     "updated": "2026-10-28T10:59:01.925Z"
+  },
+  {
+    "id": "AR0545",
+    "title": "Bash builtins that set a variable without an assignment word still change git's config unseen",
+    "status": "planning",
+    "path": "spec/features/AR0545-bash-builtins-that-set-a-variable-without-an-assignment-word-still-change-git-s/ticket.md",
+    "updated": "2026-10-28T12:32:49.649Z"
+  },
+  {
+    "id": "AR0546",
+    "title": "A function body or a trap is judged before a later export, and the `function f { }` form is not parsed at all",
+    "status": "planning",
+    "path": "spec/features/AR0546-a-function-body-or-a-trap-is-judged-before-a-later-export-and-the-function-f/ticket.md",
+    "updated": "2026-10-28T12:33:10.118Z"
+  },
+  {
+    "id": "AR0547",
+    "title": "A `~` after a `:` in an assignment's value is not expanded by the parser",
+    "status": "planning",
+    "path": "spec/features/AR0547-a-after-a-in-an-assignment-s-value-is-not-expanded-by-the-parser/ticket.md",
+    "updated": "2026-10-28T12:38:40.677Z"
   }
 ]

@@ -3936,9 +3936,9 @@
   {
     "id": "AR0494",
     "title": "The guard skips an escaped quote inside quotes when it finds a fallback end, so a command can hide after it",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0494-the-guard-skips-an-escaped-quote-inside-quotes-when-it-finds-a-fallback-end-so-a/ticket.md",
-    "updated": "2026-10-28T13:15:12.735Z",
+    "updated": "2026-10-28T13:28:30.113Z",
     "after": [
       "AR0478"
     ]
@@ -3955,7 +3955,7 @@
     "title": "A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME",
     "status": "in-progress",
     "path": "spec/features/AR0496-a-home-set-in-front-of-a-command-is-ignored-by-the-guard-so-the-inner-shell/ticket.md",
-    "updated": "2026-10-28T12:56:30.367Z",
+    "updated": "2026-10-28T13:47:57.871Z",
     "after": [
       "AR0478"
     ]

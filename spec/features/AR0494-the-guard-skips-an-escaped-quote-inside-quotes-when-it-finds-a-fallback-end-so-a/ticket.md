@@ -37,3 +37,4 @@ Out:
 
 - 2026-10-27: Source: F4 of AR0471
 - 2026-10-28: AR0494 another round: the worker adds the test row for a never-closed single quote inside ${...}, then review round 3; the owner: "AR-D237 1" (AR-D237)
+- 2026-10-28: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

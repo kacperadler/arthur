@@ -49,3 +49,4 @@ Out:
 - 2026-10-28: AR0493 another round: joinLines follows ${...} outside quotes as it does inside double quotes, the review rows as tests, then review round 3; the owner: "AR-D238 1" (AR-D238)
 - 2026-10-28: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
 - 2026-10-28: AR0493: fix the ticket to refuse a backslash-newline not after a blank, drop the joining branch, new worker from main; the owner: "And go as long as this tasks will be done, today you have to focus on this fixes so do not ask me about decision for them, just go with recommendation till is done (AR-D242)" (AR-D243)
+- 2026-10-28: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

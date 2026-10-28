@@ -400,6 +400,36 @@ test("a job's install runs in its sandbox: it writes its worktree and its own ca
 	assert.match(install ?? "", new RegExp(`^${worktree}, ${record}, `));
 });
 
+test("a job's agent that runs npm ci itself writes npm's cache in the record, the install's, never the shared one the arthur run's npm_config_cache names (AR0456)", { skip: bare }, async (t) => {
+	const { folder, root, home } = repository();
+	// A lockfile whose one dependency is a tarball in the repository, so `npm ci` fills a cache and reaches no registry.
+	const build = { ...process.env, npm_config_cache: join(folder, "build-cache"), npm_config_audit: "false", npm_config_fund: "false", npm_config_update_notifier: "false" };
+	mkdirSync(join(folder, "dep"));
+	writeFileSync(join(folder, "dep", "package.json"), '{ "name": "dep", "version": "1.0.0" }\n');
+	execFileSync("npm", ["pack", "--silent", "--pack-destination", root], { cwd: join(folder, "dep"), env: build });
+	writeFileSync(join(root, "package.json"), '{ "name": "acme", "version": "1.0.0" }\n');
+	execFileSync("npm", ["install", "--silent", "./dep-1.0.0.tgz"], { cwd: root, env: build });
+	git(root, "add", "dep-1.0.0.tgz", "package.json", "package-lock.json");
+	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "lockfile");
+	const [user, temporary] = [join(folder, "user"), join(folder, "tmp")];
+	mkdirSync(join(user, ".npm"), { recursive: true });
+	mkdirSync(temporary);
+	const agent = join(folder, "agent");
+	writeFileSync(agent, '#!/bin/sh\nnpm ci > "$ARTHUR_JOB/ci" 2>&1\necho "exit $?" >> "$ARTHUR_JOB/ci"\n', { mode: 0o755 });
+	const env = { HOME: user, npm_config_cache: join(user, ".npm"), npm_config_audit: "false", npm_config_fund: "false", npm_config_update_notifier: "false" };
+	const child = spawn(process.execPath, ["--input-type=module", "-e", runner, JSON.stringify([home, root, agent, jobSlice, { TMPDIR: temporary }])], { env: { ...process.env, ...env }, stdio: ["pipe", "inherit", "inherit"] });
+	t.after(() => child.kill("SIGKILL"));
+	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
+	const [id = ""] = readdirSync(join(home, "jobs"));
+	const record = join(home, "jobs", id);
+	const worktree = readFileSync(join(record, "worktree"), "utf8");
+	assert.match(readFileSync(join(record, "ci"), "utf8"), /added 1 package[^]*\nexit 0\n$/);
+	assert.equal(existsSync(join(worktree, "node_modules", "dep", "package.json")), true);
+	assert.equal(existsSync(join(record, "cache", "npm", "_cacache", "index-v5")), true, "npm's cache is the record's");
+	assert.deepEqual(readdirSync(join(user, ".npm")), [], "the shared cache is untouched");
+	assert.match(readFileSync(join(record, "log"), "utf8"), /\] sandbox: the agent writes only in /);
+});
+
 test("an install that empties the record's guarded list does not unhide the env file: the agent still cannot read it", { skip: bare }, async (t) => {
 	const { folder, root, home } = repository();
 	writeFileSync(join(root, "env"), "ARTHUR_SECRET_TOKEN=s3cret-t0ken\n");

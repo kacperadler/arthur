@@ -89,7 +89,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	// The whole refusal: its patch saves staged and unstaged changes in a folder of the job's own worktree that ignores itself, never a name in the shared /tmp another job may pick too, nor a file a `git add -A` commits.
 	const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save your staged and unstaged changes in a folder your worktree ignores instead (mkdir -p .arthur-stash && echo '*' > .arthur-stash/.gitignore && git diff --binary HEAD > .arthur-stash/patch, then git apply .arthur-stash/patch)";
 	const LINK = "a link to a repository";
-	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes; name the folder instead";
+	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes; or HOME, ARTHUR_JOB or PWD is set by the call, which the guard reads as the job started; name the folder instead";
 	// Each call, and the place its refusal names: undefined when it passes.
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
 		["bash", { command: `echo x > ${main}/README.md` }, MAIN],
@@ -275,6 +275,19 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: "bash <<EOF\nrm \\\n$HOME/acme/README.md\nEOF" }, MAIN],
 		["bash", { command: `bash <<EOF\necho x > \$toString${main}/README.md\nEOF` }, MAIN],
 		["bash", { command: "bash <<'EOF'\necho x > \\$ARTHUR_JOB/result\nEOF\nbash <<EOF\necho x > \\\\\\$ARTHUR_JOB/result\nEOF" }, undefined],
+		// AR0496: a call that sets HOME, ARTHUR_JOB or PWD, before a command, alone or by a declaration, is refused as unknown; the guard read every word with the values the job started with.
+		["bash", { command: `HOME=${main} bash <<EOF\nrm \\$HOME/README.md\nEOF` }, UNKNOWN],
+		["bash", { command: `HOME=${main} bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `env HOME=${main} sh -c 'cd && rm README.md'` }, UNKNOWN],
+		["bash", { command: `HOME=${main} cd && rm README.md` }, UNKNOWN],
+		["bash", { command: `HOME=${main} find . -maxdepth 0 -exec sh -c 'rm $HOME/README.md' \\;` }, UNKNOWN],
+		["bash", { command: `HOME=${main}; rm ~/README.md` }, UNKNOWN],
+		["bash", { command: `export HOME=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `f() { local PWD=${main}; rm $PWD/README.md; }; f` }, UNKNOWN],
+		["bash", { command: `PWD=${main}; rm $PWD/README.md` }, UNKNOWN],
+		["bash", { command: `ARTHUR_JOB=${main} eval 'rm $ARTHUR_JOB/README.md'` }, UNKNOWN],
+		["bash", { command: `bash -c 'HOME+=/acme; rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `echo HOME=${main} PWD=${main} > notes.txt; HOMEX=${main} PWDX=1 bash -c 'rm $HOME/README.md'` }, undefined],
 		// AR0471: an operator of `${PWD…}` or of a known variable the parser does not read is refused, as one of `${OLDPWD…}` is.
 		["bash", { command: `echo x > \${ARTHUR_JOB%/*}/${other.id}/result` }, UNKNOWN],
 		["bash", { command: `echo x > \${x:-\${ARTHUR_JOB%/*}}/${other.id}/result` }, UNKNOWN],

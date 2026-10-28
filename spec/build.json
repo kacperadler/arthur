@@ -4348,9 +4348,9 @@
   {
     "id": "AR0547",
     "title": "A `~` after a `:` in an assignment's value is not expanded by the parser",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0547-a-after-a-in-an-assignment-s-value-is-not-expanded-by-the-parser/ticket.md",
-    "updated": "2026-10-28T22:48:43.946Z"
+    "updated": "2026-10-28T22:58:06.738Z"
   },
   {
     "id": "AR0548",

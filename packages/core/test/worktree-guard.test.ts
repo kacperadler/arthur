@@ -89,7 +89,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	// The whole refusal: its patch saves staged and unstaged changes in a folder of the job's own worktree that ignores itself, never a name in the shared /tmp another job may pick too, nor a file a `git add -A` commits.
 	const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save your staged and unstaged changes in a folder your worktree ignores instead (mkdir -p .arthur-stash && echo '*' > .arthur-stash/.gitignore && git diff --binary HEAD > .arthur-stash/patch, then git apply .arthur-stash/patch)";
 	const LINK = "a link to a repository";
-	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes; or HOME, ARTHUR_JOB or PWD is set by the call, which the guard reads as the job started; name the folder instead";
+	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes; or HOME, ARTHUR_JOB or PWD is set by the call, which the guard reads as the job started, or a variable `export`, `declare`, `typeset`, `readonly` or `local` sets is named at run time; name the folder instead";
 	// Each call, and the place its refusal names: undefined when it passes.
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
 		["bash", { command: `echo x > ${main}/README.md` }, MAIN],
@@ -287,6 +287,18 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `PWD=${main}; rm $PWD/README.md` }, UNKNOWN],
 		["bash", { command: `ARTHUR_JOB=${main} eval 'rm $ARTHUR_JOB/README.md'` }, UNKNOWN],
 		["bash", { command: `bash -c 'HOME+=/acme; rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `HOME[0]=${main}; rm $HOME/README.md` }, UNKNOWN],
+		["bash", { command: `declare -x HOME=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `typeset HOME=${main}; rm $HOME/README.md` }, UNKNOWN],
+		["bash", { command: `readonly HOME=${main}; rm $HOME/README.md` }, UNKNOWN],
+		// A name an `export`, `declare`, `typeset`, `readonly` or `local` sets that holds an expansion is known only at run time.
+		["bash", { command: `v=HOME; export $v=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `v=HOME; declare "\${v}=${main}"; rm ~/README.md` }, UNKNOWN],
+		["bash", { command: `v=OME; export H$v=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `export $(echo HOME=${main}); bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `f() { local \`echo PWD\`=${main}; rm $PWD/README.md; }; f` }, UNKNOWN],
+		["bash", { command: `declare -x "\`echo HOME\`=${main}"; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `export FOO=$x BAR="$(pwd)" > $log; declare -r v=\${x:-1}; readonly "w=$v"` }, undefined],
 		["bash", { command: `echo HOME=${main} PWD=${main} > notes.txt; HOMEX=${main} PWDX=1 bash -c 'rm $HOME/README.md'` }, undefined],
 		// AR0471: an operator of `${PWD…}` or of a known variable the parser does not read is refused, as one of `${OLDPWD…}` is.
 		["bash", { command: `echo x > \${ARTHUR_JOB%/*}/${other.id}/result` }, UNKNOWN],

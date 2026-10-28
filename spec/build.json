@@ -4282,9 +4282,9 @@
   {
     "id": "AR0537",
     "title": "A job's own session reads each file its task or a continue's text names as `@<path>`",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0537-a-job-s-own-session-reads-each-file-its-task-or-a-continue-s-text-names-as-path/ticket.md",
-    "updated": "2026-10-28T10:24:50.853Z",
+    "updated": "2026-10-28T16:42:51.286Z",
     "after": [
       "AR0533",
       "AR0531",
@@ -4294,9 +4294,9 @@
   {
     "id": "AR0538",
     "title": "The coordinator's handoff is handed back through `sendUserMessage` unescaped",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0538-the-coordinator-s-handoff-is-handed-back-through-sendusermessage-unescaped/ticket.md",
-    "updated": "2026-10-28T10:24:52.668Z",
+    "updated": "2026-10-28T16:42:52.844Z",
     "after": [
       "AR0533",
       "AR0531",
@@ -4306,9 +4306,9 @@
   {
     "id": "AR0539",
     "title": "A `^<model>` in a message's text gives the coordinator's session a model agent",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0539-a-model-in-a-message-s-text-gives-the-coordinator-s-session-a-model-agent/ticket.md",
-    "updated": "2026-10-28T10:24:54.557Z",
+    "updated": "2026-10-28T16:42:54.711Z",
     "after": [
       "AR0533",
       "AR0531",
@@ -4370,5 +4370,29 @@
     "status": "planning",
     "path": "spec/features/AR0547-a-after-a-in-an-assignment-s-value-is-not-expanded-by-the-parser/ticket.md",
     "updated": "2026-10-28T12:38:40.677Z"
+  },
+  {
+    "id": "AR0548",
+    "title": "The coordinator instructions built as text in TypeScript move into Markdown procedures",
+    "status": "planned",
+    "path": "spec/features/AR0548-the-coordinator-instructions-built-as-text-in-typescript-move-into-markdown/ticket.md",
+    "updated": "2026-10-28T16:43:32.585Z",
+    "after": [
+      "AR0537",
+      "AR0538",
+      "AR0539"
+    ]
+  },
+  {
+    "id": "AR0549",
+    "title": "Plan: a root AGENTS.md that says what an Arthur instance is for, and the roles it may need",
+    "status": "planning",
+    "path": "spec/features/AR0549-plan-a-root-agents-md-that-says-what-an-arthur-instance-is-for-and-the-roles-it/ticket.md",
+    "updated": "2026-10-28T16:42:31.601Z",
+    "after": [
+      "AR0537",
+      "AR0538",
+      "AR0539"
+    ]
   }
 ]

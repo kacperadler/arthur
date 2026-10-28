@@ -537,9 +537,10 @@ test("an @<path> in a message's text reaches the agent as that text with a word 
 	const put = (seq: number, message: object) => writeFileSync(join(folder, "inbox", "queued", `${seq}-1792363617800`), JSON.stringify(message));
 	// omp 18.3.0's utils/file-mentions.ts: each `@` it reads a file for.
 	const mentions = (content: string) => [...content.matchAll(/@(?:"([^"]+)"|'([^']+)'|([^\s@]+))/g)].filter((match) => match.index === 0 || /[\s([{<"'`]/.test(content[match.index - 1] ?? "")).map((match) => match[0]);
-	const text = "@/etc/passwd first\nthe test input `@/etc/passwd`, (@~/.ssh/id_ed25519) @\"/home/me/my notes.md\" and @'.env'\n> @.env\nme@example.com, @@x, a\t@/etc/hosts";
-	assert.deepEqual(mentions(text), ["@/etc/passwd", "@/etc/passwd`,", "@~/.ssh/id_ed25519)", '@"/home/me/my notes.md"', "@'.env'", "@.env", "@/etc/hosts"]);
-	const quoted = "> \u2060@/etc/passwd first\n> the test input `\u2060@/etc/passwd`, (\u2060@~/.ssh/id_ed25519) \u2060@\"/home/me/my notes.md\" and \u2060@'.env'\n> > \u2060@.env\n> me@example.com, \u2060@@x, a\t\u2060@/etc/hosts";
+	// One `@` after each character omp takes before a mention: the start, whitespace, ( [ { < " ' `.
+	const text = "@/etc/passwd first\nthe test input `@/etc/passwd`, (@~/.ssh/id_ed25519) @\"/home/me/my notes.md\" and @'.env'\n> @.env\nme@example.com, @@x, a\t@/etc/hosts\n\"@a\" '@b' <@c> [@d] {@e}";
+	assert.deepEqual(mentions(text), ["@/etc/passwd", "@/etc/passwd`,", "@~/.ssh/id_ed25519)", '@"/home/me/my notes.md"', "@'.env'", "@.env", "@/etc/hosts", '@a"', "@b'", "@c>", "@d]", "@e}"]);
+	const quoted = "> \u2060@/etc/passwd first\n> the test input `\u2060@/etc/passwd`, (\u2060@~/.ssh/id_ed25519) \u2060@\"/home/me/my notes.md\" and \u2060@'.env'\n> > \u2060@.env\n> me@example.com, \u2060@@x, a\t\u2060@/etc/hosts\n> \"\u2060@a\" '\u2060@b' <\u2060@c> [\u2060@d] {\u2060@e}";
 	mkdirSync(join(folder, "inbox", "queued"), { recursive: true });
 	put(1, { text });
 	handlers.get("session_start")?.({}, ctx);

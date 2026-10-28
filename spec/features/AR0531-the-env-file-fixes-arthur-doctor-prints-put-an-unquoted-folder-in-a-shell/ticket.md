@@ -35,3 +35,4 @@ Out:
 
 - 2026-10-27: Source: F3 of AR0476
 - 2026-10-28: AR0531 approved; added to the AR-D198 queue as Q5, after Q4; the work resumes at 10:10 on 2026-10-28; the owner: "i approve them and add them to this 20 tickets that are in the queue, but resume the work at 10:10 not at 09:10" (AR-D214)
+- 2026-10-28: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

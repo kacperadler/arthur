@@ -3804,9 +3804,9 @@
   {
     "id": "AR0478",
     "title": "Two new plugins made at once still conflict in BUDGETS",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0478-two-new-plugins-made-at-once-still-conflict-in-budgets/ticket.md",
-    "updated": "2026-10-28T11:15:18.272Z",
+    "updated": "2026-10-28T11:35:31.443Z",
     "after": [
       "AR0487",
       "AR0477",

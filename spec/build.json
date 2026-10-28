@@ -4348,9 +4348,9 @@
   {
     "id": "AR0547",
     "title": "A `~` after a `:` in an assignment's value is not expanded by the parser",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0547-a-after-a-in-an-assignment-s-value-is-not-expanded-by-the-parser/ticket.md",
-    "updated": "2026-10-28T22:01:17.809Z"
+    "updated": "2026-10-28T22:22:10.837Z"
   },
   {
     "id": "AR0548",
@@ -4396,9 +4396,9 @@
   {
     "id": "AR0552",
     "title": "Docs: video in the architecture diagram and roadmap, voice and video as media plugins in the README diagram",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0552-docs-video-in-the-architecture-diagram-and-roadmap-voice-and-video-as-media/ticket.md",
-    "updated": "2026-10-28T21:26:58.808Z"
+    "updated": "2026-10-28T22:22:32.907Z"
   },
   {
     "id": "AR0553",

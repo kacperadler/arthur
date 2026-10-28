@@ -311,6 +311,9 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `echo "\${x:-\\$'a'}"` }, undefined],
 		// The `${…}` ends where bash ends it: an escaped `"` inside quotes in it does not close them, so the command after it is judged.
 		["bash", { command: 'echo "${x:-"\\""}"; rm ../../acme/README.md' }, MAIN],
+		["bash", { command: 'echo "${x:-"\\\n"}"; rm ../../acme/README.md' }, MAIN],
+		// A double quote never closed in a `${…}` runs to the end of the text, where bash stops at its syntax error.
+		["bash", { command: 'echo "${x:-"a' }, undefined],
 		["bash", { command: "rm ${x:-~}/acme/README.md" }, MAIN],
 		["bash", { command: "rm ${x:-~+}/README.md" }, undefined],
 		// AR0492: an unquoted `~name` at a word's start or after an assignment's `=` is that user's home or a `dirs` entry, which the guard does not read; quoted or elsewhere it is a name.

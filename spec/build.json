@@ -4346,5 +4346,12 @@
       "AR0531",
       "AR0534"
     ]
+  },
+  {
+    "id": "AR0540",
+    "title": "A worker blocked on the owner whose ticket is dropped can be neither continued, stopped nor pruned",
+    "status": "planning",
+    "path": "spec/features/AR0540-a-worker-blocked-on-the-owner-whose-ticket-is-dropped-can-be-neither-continued/ticket.md",
+    "updated": "2026-10-28T10:26:07.311Z"
   }
 ]

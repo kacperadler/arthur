@@ -5,16 +5,13 @@ import { basename, dirname, join, relative, resolve, sep } from "node:path";
 // The sweep after each step `arthur merge` runs on main (merge-checks.ts, AR0463, AR0466): every repository below the checkout's
 // top that a step left is removed, so no git call there runs its config outside any sandbox. docs/commands/merge.md, "Checks on main".
 
-// Each repository `before` (`repositories(root, () => true)` before the first step) does not hold, the same, after `command`
-// ran: removed, one line each to `log`. One whose attributes python3 failed to read is read again once, so a single failed call
-// does not make a git read count as a change (AR0479); when a read of one there before failed, the line says so.
+// Each repository `before` (`repositories(root, () => true)` before the first step) does not hold, the same, after `command` ran,
+// read once more first where python3 failed (AR0479): removed, one line each to `log`, saying so where python3 failed on one there before.
 export function sweep(root: string, before: ReadonlyMap<string, string>, command: string, log: (line: string) => void): void {
-	for (const [path, first] of repositories(root, escapes)) {
-		const [was, seen] = [before.get(path), first.startsWith(UNREAD) ? stamp(join(root, path)) : first];
-		if (was === seen) continue;
-		const why = was !== undefined && (was.startsWith(UNREAD) || seen.startsWith(UNREAD)) ? "python3 failed to read the extended attributes of its Git folders, so a git read there could not be told from a change" : "a git call in that folder would run its config outside any sandbox";
+	for (const [path, seen] of [...repositories(root, escapes)].map(([path, first]) => [path, first.startsWith(UNREAD) ? stamp(join(root, path)) : first] as const)) {
+		if (before.get(path) === seen) continue;
 		const failure = remove(join(root, path));
-		log(failure === "" ? `removed ${path}, which ${command} left: ${why}` : `${path}, which ${command} left, could not be removed (${failure}): ${why}`);
+		log(`${failure === "" ? `removed ${path}, which ${command} left` : `${path}, which ${command} left, could not be removed (${failure})`}: ${before.has(path) && [before.get(path), seen].some((one) => one?.startsWith(UNREAD)) ? "python3 failed to read the extended attributes of its Git folders, so a git read there could not be told from a change" : "a git call in that folder would run its config outside any sandbox"}`);
 	}
 }
 
@@ -65,10 +62,8 @@ function escapes(top: string, link: string): boolean {
 // counts too; "unreadable" for one a step closed. What a git read changes there does not count (AR0467): an `index` (`git status`
 // rewrites one, a linked worktree's in `worktrees/<name>/`) and its `sharedindex.<hash>` (`core.splitIndex`), which run nothing,
 // and the change time of each folder git locks an index in (the `.git` folder, one holding an `index`), which the lock file it
-// makes and removes sets; their extended attributes, an ACL among them, count instead, read by python3, else their change time,
-// the stamp then starting with `UNREAD`.
-const READ = /^(index|sharedindex\.[0-9a-f]+)$/;
-const UNREAD = "python3 failed";
+// makes and removes sets; their extended attributes, an ACL among them, count instead, read by python3, else (`UNREAD` first) their change time.
+const [READ, UNREAD] = [/^(index|sharedindex\.[0-9a-f]+)$/, "python3 failed"];
 const ATTRIBUTES = "import os, sys\nfor p in sys.argv[1:]: print(p, sorted((n, os.getxattr(p, n, follow_symlinks=False).hex()) for n in os.listxattr(p, follow_symlinks=False)))";
 function stamp(path: string): string {
 	try {

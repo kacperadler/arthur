@@ -3343,16 +3343,9 @@
   {
     "id": "AR0425",
     "title": "A redirect's lookup in a site check ignores the check's time limit, and a 308 hop has no test",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0425-a-redirect-s-lookup-in-a-site-check-ignores-the-check-s-time-limit-and-a-308-hop/ticket.md",
-    "updated": "2026-10-26T10:52:23.148Z",
-    "after": [
-      "AR0424",
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405"
-    ]
+    "updated": "2026-10-28T18:06:52.671Z"
   },
   {
     "id": "AR0426",
@@ -3443,28 +3436,16 @@
   {
     "id": "AR0437",
     "title": "A CI wait still cancels a hung run below the tip, whose end it no longer tells",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0437-a-ci-wait-still-cancels-a-hung-run-below-the-tip-whose-end-it-no-longer-tells/ticket.md",
-    "updated": "2026-10-26T10:52:25.669Z",
-    "after": [
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405"
-    ]
+    "updated": "2026-10-28T18:06:56.264Z"
   },
   {
     "id": "AR0438",
     "title": "A variable set in the shell alone passes `config check` but is missing for every `arthur` command a job runs",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0438-a-variable-set-in-the-shell-alone-passes-config-check-but-is-missing-for-every/ticket.md",
-    "updated": "2026-10-26T10:52:26.185Z",
-    "after": [
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405"
-    ]
+    "updated": "2026-10-28T18:06:56.774Z"
   },
   {
     "id": "AR0439",
@@ -3818,9 +3799,9 @@
   {
     "id": "AR0479",
     "title": "A merge step reading an owner clone still deletes it when python3 cannot read the .git attributes, with a reason that hides why",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0479-a-merge-step-reading-an-owner-clone-still-deletes-it-when-python3-cannot-read/ticket.md",
-    "updated": "2026-10-27T07:33:47.128Z"
+    "updated": "2026-10-28T18:06:53.712Z"
   },
   {
     "id": "AR0480",
@@ -3832,9 +3813,9 @@
   {
     "id": "AR0481",
     "title": "A stop during the install can end the job before its stop of the install's group is over",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0481-a-stop-during-the-install-can-end-the-job-before-its-stop-of-the-install-s-group/ticket.md",
-    "updated": "2026-10-27T07:59:35.719Z"
+    "updated": "2026-10-28T18:06:55.233Z"
   },
   {
     "id": "AR0482",
@@ -3853,9 +3834,9 @@
   {
     "id": "AR0484",
     "title": "A board entry's `path` is never checked, so a filing writes `plan.md` or `review-N.md` outside the project",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0484-a-board-entry-s-path-is-never-checked-so-a-filing-writes-plan-md-or-review-n-md/ticket.md",
-    "updated": "2026-10-27T08:05:34.434Z"
+    "updated": "2026-10-28T18:06:53.189Z"
   },
   {
     "id": "AR0485",
@@ -3888,30 +3869,30 @@
   {
     "id": "AR0488",
     "title": "A health check runs `git status` in a main checkout with its `core.fsmonitor` on",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0488-a-health-check-runs-git-status-in-a-main-checkout-with-its-core-fsmonitor-on/ticket.md",
-    "updated": "2026-10-27T08:05:34.451Z"
+    "updated": "2026-10-28T18:06:51.652Z"
   },
   {
     "id": "AR0489",
     "title": "A coordinator option ending in `;` splits its `tmux new-session` into tmux commands",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0489-a-coordinator-option-ending-in-splits-its-tmux-new-session-into-tmux-commands/ticket.md",
-    "updated": "2026-10-27T08:05:34.455Z"
+    "updated": "2026-10-28T18:06:51.136Z"
   },
   {
     "id": "AR0490",
     "title": "A symlink or a HEAD folder the branch itself commits is kept by the sweep",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0490-a-symlink-or-a-head-folder-the-branch-itself-commits-is-kept-by-the-sweep/ticket.md",
-    "updated": "2026-10-27T08:26:35.616Z"
+    "updated": "2026-10-28T18:06:58.833Z"
   },
   {
     "id": "AR0491",
     "title": "A command substitution inside a fallback word is never judged",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0491-a-command-substitution-inside-a-fallback-word-is-never-judged/ticket.md",
-    "updated": "2026-10-27T08:42:42.689Z"
+    "updated": "2026-10-28T18:06:59.338Z"
   },
   {
     "id": "AR0492",
@@ -3963,16 +3944,16 @@
   {
     "id": "AR0497",
     "title": "A long option of the other wrappers followed by its value still hides the command",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0497-a-long-option-of-the-other-wrappers-followed-by-its-value-still-hides-the/ticket.md",
-    "updated": "2026-10-27T09:51:50.372Z"
+    "updated": "2026-10-28T18:06:59.855Z"
   },
   {
     "id": "AR0498",
     "title": "The command line `env -S` splits is not read",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0498-the-command-line-env-s-splits-is-not-read/ticket.md",
-    "updated": "2026-10-27T09:51:50.384Z"
+    "updated": "2026-10-28T18:07:00.370Z"
   },
   {
     "id": "AR0499",
@@ -4190,9 +4171,9 @@
   {
     "id": "AR0526",
     "title": "A value split across two sweeps' copies of a remote job's log is not named",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0526-a-value-split-across-two-sweeps-copies-of-a-remote-job-s-log-is-not-named/ticket.md",
-    "updated": "2026-10-27T18:21:13.047Z"
+    "updated": "2026-10-28T18:06:58.321Z"
   },
   {
     "id": "AR0527",
@@ -4318,16 +4299,16 @@
   {
     "id": "AR0540",
     "title": "A worker blocked on the owner whose ticket is dropped can be neither continued, stopped nor pruned",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0540-a-worker-blocked-on-the-owner-whose-ticket-is-dropped-can-be-neither-continued/ticket.md",
-    "updated": "2026-10-28T10:26:07.311Z"
+    "updated": "2026-10-28T18:06:54.218Z"
   },
   {
     "id": "AR0541",
     "title": "A worker ends its run while its npm test runs in the background, and has no way to read the result",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0541-a-worker-ends-its-run-while-its-npm-test-runs-in-the-background-and-has-no-way/ticket.md",
-    "updated": "2026-10-28T10:51:40.995Z"
+    "updated": "2026-10-28T18:06:54.729Z"
   },
   {
     "id": "AR0542",
@@ -4346,30 +4327,30 @@
   {
     "id": "AR0544",
     "title": "The merge step timeout test fails under load: its 3 s limit also catches `npm run check`",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0544-the-merge-step-timeout-test-fails-under-load-its-3-s-limit-also-catches-npm-run/ticket.md",
-    "updated": "2026-10-28T10:59:01.925Z"
+    "updated": "2026-10-28T18:06:50.614Z"
   },
   {
     "id": "AR0545",
     "title": "Bash builtins that set a variable without an assignment word still change git's config unseen",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0545-bash-builtins-that-set-a-variable-without-an-assignment-word-still-change-git-s/ticket.md",
-    "updated": "2026-10-28T12:32:49.649Z"
+    "updated": "2026-10-28T18:07:00.888Z"
   },
   {
     "id": "AR0546",
     "title": "A function body or a trap is judged before a later export, and the `function f { }` form is not parsed at all",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0546-a-function-body-or-a-trap-is-judged-before-a-later-export-and-the-function-f/ticket.md",
-    "updated": "2026-10-28T12:33:10.118Z"
+    "updated": "2026-10-28T18:07:01.442Z"
   },
   {
     "id": "AR0547",
     "title": "A `~` after a `:` in an assignment's value is not expanded by the parser",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0547-a-after-a-in-an-assignment-s-value-is-not-expanded-by-the-parser/ticket.md",
-    "updated": "2026-10-28T12:38:40.677Z"
+    "updated": "2026-10-28T18:06:52.167Z"
   },
   {
     "id": "AR0548",

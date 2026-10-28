@@ -4405,6 +4405,16 @@
     "title": "Speech: the coordinator answers a voice note with a voice note, spoken on this server",
     "status": "planned",
     "path": "spec/features/AR0553-speech-the-coordinator-answers-a-voice-note-with-a-voice-note-spoken-on-this/ticket.md",
-    "updated": "2026-10-28T20:58:36.682Z"
+    "updated": "2026-10-28T20:58:36.682Z",
+    "after": [
+      "AR0554"
+    ]
+  },
+  {
+    "id": "AR0554",
+    "title": "Rename the voice plugin to listen",
+    "status": "planned",
+    "path": "spec/features/AR0554-rename-the-voice-plugin-to-listen/ticket.md",
+    "updated": "2026-10-28T21:50:45.475Z"
   }
 ]

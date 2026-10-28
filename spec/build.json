@@ -3876,9 +3876,9 @@
   {
     "id": "AR0489",
     "title": "A coordinator option ending in `;` splits its `tmux new-session` into tmux commands",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0489-a-coordinator-option-ending-in-splits-its-tmux-new-session-into-tmux-commands/ticket.md",
-    "updated": "2026-10-28T21:25:51.900Z"
+    "updated": "2026-10-28T21:45:20.071Z"
   },
   {
     "id": "AR0490",

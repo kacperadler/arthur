@@ -3659,9 +3659,9 @@
   {
     "id": "AR0462",
     "title": "A merge check cannot make, rename or remove an entry at the top of main's checkout",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0462-a-merge-check-cannot-make-rename-or-remove-an-entry-at-the-top-of-main-s/ticket.md",
-    "updated": "2026-10-26T21:05:56.324Z"
+    "updated": "2026-10-28T19:51:28.689Z"
   },
   {
     "id": "AR0463",

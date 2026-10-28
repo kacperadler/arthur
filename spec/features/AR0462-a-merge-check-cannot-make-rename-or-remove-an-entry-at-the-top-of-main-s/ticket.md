@@ -42,3 +42,4 @@ Out:
 ## Decisions
 
 - 2026-10-26: Source: F1 of AR0457
+- 2026-10-28: AR0462 dropped: no project check makes a top-level entry today; the owner: "AR-D268 3" (AR-D268)

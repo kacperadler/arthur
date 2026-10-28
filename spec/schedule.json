@@ -20,12 +20,5 @@
     "action": {
       "message": "The owner moved the resume to 10:10 (2026-10-28 08:5x, telegram). Check npx arthur usage that the Claude 7-day window reset. Restart Arthur first (AR0519 merged; unit arthur-day-restart-15) once no job runs, then spawn the three reviews (npx arthur review 2026-10-27-worker-96067971 for AR0532 first, then 2026-10-27-worker-e0a93fb6 for AR0477, 2026-10-27-worker-7ccfb33a for AR0470), then go on Q2 -> Q3 -> Q4 -> Q5 (AR0533, AR0531, AR0534; approved AR-D213 to AR-D215) per AR-D198, and stop after Q5. Tell the owner in one message."
     }
-  },
-  {
-    "id": "after-restart-1016",
-    "at": "2026-10-28T10:16",
-    "action": {
-      "message": "Backup wake after restart arthur-day-restart-15 (10:10). If the three reviews (AR0532 worker 2026-10-27-worker-96067971, AR0477 2026-10-27-worker-e0a93fb6, AR0470 2026-10-27-worker-7ccfb33a) are not yet spawned, spawn them now (review-needed first), then go on per the handoff; if they are, do nothing new."
-    }
   }
 ]

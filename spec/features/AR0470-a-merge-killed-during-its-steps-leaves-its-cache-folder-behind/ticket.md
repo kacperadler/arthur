@@ -40,3 +40,4 @@ Out:
 
 - 2026-10-27: Source: F2 of AR0454
 - 2026-10-27: AR0470 approved by the owner (morning of 2026-10-27, one list of 18); the owner: "apprvoed: AR0467, AR0466, AR0471-AR0473, AR0464, AR0465, AR0468-AR0470, AR0474-AR0477, AR0402-AR0405" (AR-D133)
+- 2026-10-28: AR0470 another round: the worker adds a test that the sweep keeps an old cache_ entry below the top level, then review round 3; the owner: "AR-D219 1 AR-D220 1" (AR-D220)

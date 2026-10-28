@@ -22,10 +22,10 @@ export function decisionUse(host: Host): void {
 }
 
 // Why `asked` may not go on, "" when it may: its id names a question of its kind, of its ticket (else its job, else neither),
-// that the owner answered himself, the later answer counting, and no other use took it. A pass marks the id used in
-// `<folder>/used/<id>`, created whole or not at all; only the same merge again passes it then: a job's branch goes in once.
+// that the owner answered himself, the later answer counting, for a merge with `what` among its `--what` (AR0533), and no other use
+// took it. A pass marks the id used in `<folder>/used/<id>`, created whole or not at all; only the same merge again passes it then.
 function refusal(host: Host, { id, what, kind, ticket, job, use }: Use): string {
-	if (id === "") return `${what} needs the owner's decision: arthur decision ask --kind ${kind} --question '<what he decides>'${ticket !== undefined ? ` --ticket ${ticket}` : job !== undefined ? ` --job ${job}` : ""}, his answer recorded with arthur decision answer, then ${what} --decision <its id>`;
+	if (id === "") return `${what} needs the owner's decision: arthur decision ask --kind ${kind}${use.startsWith("merge ") ? ` --what ${what}` : ""} --question '<what he decides>'${ticket !== undefined ? ` --ticket ${ticket}` : job !== undefined ? ` --job ${job}` : ""}, his answer recorded with arthur decision answer, then ${what} --decision <its id>`;
 	const upper = id.toUpperCase();
 	let found: Decision | undefined;
 	try {
@@ -44,6 +44,7 @@ function refusal(host: Host, { id, what, kind, ticket, job, use }: Use): string 
 		const theirs = ask.ticket !== undefined ? `ticket ${ask.ticket}` : ask.job !== undefined ? `job ${ask.job}` : "no ticket and no job";
 		return `${upper} is of ${theirs}, not of ${ticket !== undefined ? `ticket ${ticket}` : job !== undefined ? `job ${job}` : "a spawn of no ticket"}`;
 	}
+	if (use.startsWith("merge ") && !(ask.what ?? []).includes(what)) return `${upper} lets through ${ask.what?.join(" and ") || "no merge flag"}, not ${what}: ask the owner for ${what} with arthur decision ask --kind merge --what ${what}`;
 	const mark = join(host.folder, "used", upper);
 	mkdirSync(join(host.folder, "used"), { recursive: true });
 	try {

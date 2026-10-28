@@ -3916,9 +3916,9 @@
   {
     "id": "AR0492",
     "title": "An unquoted `~user` is read as a relative folder named `~user`",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0492-an-unquoted-user-is-read-as-a-relative-folder-named-user/ticket.md",
-    "updated": "2026-10-28T11:40:56.640Z",
+    "updated": "2026-10-28T12:13:57.483Z",
     "after": [
       "AR0478"
     ]

@@ -20,5 +20,12 @@
     "action": {
       "message": "The owner moved the resume to 10:10 (2026-10-28 08:5x, telegram). Check npx arthur usage that the Claude 7-day window reset. Restart Arthur first (AR0519 merged; unit arthur-day-restart-15) once no job runs, then spawn the three reviews (npx arthur review 2026-10-27-worker-96067971 for AR0532 first, then 2026-10-27-worker-e0a93fb6 for AR0477, 2026-10-27-worker-7ccfb33a for AR0470), then go on Q2 -> Q3 -> Q4 -> Q5 (AR0533, AR0531, AR0534; approved AR-D213 to AR-D215) per AR-D198, and stop after Q5. Tell the owner in one message."
     }
+  },
+  {
+    "id": "night-report-2026-10-29",
+    "at": "2026-10-29T05:30",
+    "action": {
+      "message": "Night report due (the owner, AR-D271): write one HTML page, brutalist style, black and red with some blue, of what happened overnight on queue Q1-Q3 and what did not: each ticket merged (one plain line on what it changes), each one failed, held or not started and why, the done/new counts, decisions taken by recommendation under AR-D271, CI, Claude weekly usage against the 33% cap, and what waits for him. Save it under .arthur/reports/ and send it with arthur send and a one-line caption."
+    }
   }
 ]

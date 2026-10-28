@@ -70,7 +70,7 @@ test("a new package passes npm run check, its own test and the structure test as
 		err: "",
 	});
 	assert.equal((await plugin(["new", "acmetest", "--budget=25"])).code, 0, "a budget of exactly the new src/ lines");
-	assert.equal(budgets(root), `${before}\t"acme-test-plugin": 40,\n\n\tacmetest: 25,\n\n`, "one package per line, a blank line after each, each new one last");
+	assert.equal(budgets(root), `\t"acme-test-plugin": 40,\n\n\tacmetest: 25,\n\n${before}`, "one package per line, a blank line after each, in name order");
 	assert.deepEqual(changed(root).split("\n").filter(Boolean).sort(), [
 		" M package-lock.json",
 		" M test/structure.test.ts",
@@ -104,6 +104,36 @@ test("a new package passes npm run check, its own test and the structure test as
 	const stray = run(root, process.execPath, "--test", "test/structure.test.ts");
 	assert.notEqual(stray.status, 0, stray.stdout + stray.stderr);
 	assert.match(stray.stdout, /packages\/stray: has no line budget; add one to test\/structure.test.ts/);
+});
+
+test("plugins made from the same base go in name order, each pair at different places, and git merge-file merges any two with no conflict", async (t) => {
+	const root = copy();
+	const plugin = await load(t, root);
+	const structure = join(root, "test", "structure.test.ts");
+	const base = readFileSync(structure, "utf8");
+	const folder = temporaryFolder();
+	writeFileSync(join(folder, "base"), base);
+	const names = ["acme", "core-bot", "delta", "nebula", "zeta"] as const;
+	const made = { acme: "", "core-bot": "", delta: "", nebula: "", zeta: "" };
+	for (const name of names) {
+		writeFileSync(structure, base);
+		assert.equal((await plugin(["new", name, "--budget", "40"])).code, 0, name);
+		made[name] = readFileSync(structure, "utf8");
+		writeFileSync(join(folder, name), made[name]);
+	}
+	// Before a quoted budget, first and in the middle; between two plain ones; last when no budget's name sorts after it.
+	assert.match(made.acme, /^const BUDGETS = \{\n\tacme: 40,\n\n\t"commit-rules": /m);
+	assert.match(made["core-bot"], /\n\tcore: \d+,\n\n\t"core-bot": 40,\n\n\t"core\/testing": /);
+	assert.match(made.delta, /\n\tdelivery: \d+,\n\n\tdelta: 40,\n\n\tdevelop: /);
+	assert.match(made.nebula, /\n\tmodels: \d+,\n\n\tnebula: 40,\n\n\tnvm: /);
+	assert.match(made.zeta, /\n\tyoutrack: \d+,\n\n\tzeta: 40,\n\n\};$/m);
+	for (const [index, ours] of names.entries())
+		for (const theirs of names.slice(index + 1)) {
+			const merged = run(folder, "git", "merge-file", "-p", ours, "base", theirs);
+			assert.equal(merged.status, 0, `${ours} and ${theirs}: ${merged.stdout}`);
+			for (const name of [ours, theirs]) assert.match(merged.stdout, new RegExp(`\\n\\t"?${name}"?: 40,\\n\\n`), `${ours} and ${theirs}: ${name}`);
+			assert.equal(merged.stdout.length, made[ours].length + made[theirs].length - base.length, `${ours} and ${theirs}: nothing else changed`);
+		}
 });
 
 test("refused, exit 1, before any write: a bad name, a missing or wrong budget, a name taken; wrong usage exits 2", async (t) => {
@@ -181,7 +211,7 @@ test("in a job only its own worktree, named by --root, is written; never the pro
 	assert.equal((await plugin(["new", "acme", "--budget", "100", "--root", link])).code, 0, "a link to the worktree is the worktree");
 	assert.equal(changed(checkout), "", "the project's checkout is untouched");
 	assert.match(changed(worktree), /^\?\? packages\/acme\/src\/acme\.ts$/m);
-	assert.match(budgets(worktree), /\n\tacme: 100,\n\n$/);
+	assert.match(budgets(worktree), /^\tacme: 100,\n\n\t"commit-rules": /);
 	assert.equal(readlinkSync(join(worktree, "node_modules", "@arthur", "acme")), join("..", "..", "packages", "acme"));
 	assert.ok(!existsSync(join(checkout, "node_modules", "@arthur", "acme")));
 });
@@ -260,7 +290,7 @@ test("the planner and the worker are told the line that makes a new plugin from 
 	const ran = spawnSync("sh", ["-c", line], { cwd: worktree, env, encoding: "utf8" });
 	assert.equal(ran.status, 0, `${line}\n${ran.stdout}${ran.stderr}`);
 	assert.match(changed(worktree), /^\?\? packages\/acme\/src\/acme\.ts$/m);
-	assert.match(budgets(worktree), /\n\tacme: 100,\n\n$/);
+	assert.match(budgets(worktree), /^\tacme: 100,\n\n\t"commit-rules": /);
 	assert.equal(changed(checkout), "", "the project's checkout is untouched");
 	// The same line in another folder, with the CLI the checkout links: there it reads no arthur.config.ts.
 	const elsewhere = (folder: string) => line.replace(`cd ${first} && node_modules`, `cd ${folder} && ${first}/node_modules`);

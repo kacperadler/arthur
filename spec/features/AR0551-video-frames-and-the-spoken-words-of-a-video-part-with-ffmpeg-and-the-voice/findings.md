@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/video/src/video.ts:41`
 - What: each video gets a folder `.arthur/video/<uuid>/` of up to `maxFrames` PNG files, kept for the coordinator to open, as the ticket asks. Nothing ever removes them, so the folder grows with every video the owner sends. Reproduce: send two videos; both folders stay after the coordinator's turn and after a restart.
 - Suggestion: the video plugin removes, at `start`, its own folders older than a number of days (an option such as `keepDays`), or answers manage's daily prune through a provided name; the frames of the current conversation stay.
-- Status: open
+- Status: deferred (client summary)
 
 ## F2. With maxFrames reached, the end of a long video has no frame
 
@@ -20,4 +20,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/video/src/ffmpeg.ts:29`
 - What: ffmpeg keeps the first `maxFrames` frames in time (`-frames:v`), as the ticket says. At the defaults (a frame every 5 s, at most 12) a video longer than about a minute shows the coordinator only its first minute; a 10-minute screen recording's last 9 minutes have no frame. Reproduce: a 120-s video gives frames at 0 to 55 s only (`packages/video/test/video.test.ts`, the test "other kinds of part ... at its default" asserts the 12).
 - Suggestion: widen the step to `max(everySeconds, seconds / maxFrames)` once the length is known, so the frames spread over the whole video; scene changes stay as they are.
-- Status: open
+- Status: deferred (client summary)
+
+## F3. Notes of the review
+
+- Kind: test
+- Found by: 2026-10-28-review-bd20481d (reviewer), 2026-10-28
+- Where: `packages/video/src/ffmpeg.ts:14,23`, `packages/video/src/video.ts:35,38`, `README.md`
+- What: no test pins the scene threshold 0.4, or that a file with only a subtitle or data stream besides video counts as no sound; the channel's `seconds` is trusted for `maxSeconds`, as in voice; a run that writes no frame ends in an empty frame list; the README diagram puts video next to the channels.
+- Status: deferred (client summary)

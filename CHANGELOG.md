@@ -7,6 +7,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Added
 
 - AR0550 Voice: local transcription of voice notes with whisper.cpp (roadmap 81) (6964e6ab)
+- AR0551 Video: frames and the spoken words of a video part, with ffmpeg and the voice plugin (c7b4c24d)
 
 ### Fixed
 

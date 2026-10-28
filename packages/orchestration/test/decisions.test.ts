@@ -111,7 +111,7 @@ test("an ask is refused, naming why and writing nothing: an empty question, anot
 	assert.equal(existsSync(file()), false);
 	for (const args of [["ask", "--kind", "plan", "--question", "Go?", "extra"], ["ask", "--kind"], ["ask", "--kind", "plan", "--kind", "job", "--question", "Go?"], ["ask", "--color", "red"], ["vote"], [], ["answer"], ["close"]]) {
 		const [code, said] = await decision(...args);
-		assert.deepEqual([code, said.split("\n")[0]], [2, "usage: arthur decision ask --kind <kind> --question <text> [--ticket <id>] [--job <id>] [--option <text>]... [--recommend <n or text>]"], args.join(" "));
+		assert.deepEqual([code, said.split("\n")[0]], [2, "usage: arthur decision ask --kind <kind> --question <text> [--ticket <id>] [--job <id>] [--what --unreviewed|--no-ci]... [--option <text>]... [--recommend <n or text>]"], args.join(" "));
 	}
 	assert.equal(existsSync(file()), false);
 });

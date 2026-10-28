@@ -11,8 +11,8 @@ import { branchOf, worker } from "./review-command.ts";
 const USAGE = "usage: arthur review-needed <worker job>";
 // At most this many lines added and removed, a branch with passing checks needs no review.
 const SMALL = 30;
-// `.env` as text, a file's name: not `process.env`, `.envrc` or `.environment`.
-const DOT_ENV = /(?<!\w)\.env\b/;
+// `.env` as text, a file's name: not `process.env`, a regex's `process\.env` (core's env-refusal.ts), `.envrc` or `.environment`.
+const DOT_ENV = /(?<![\w.]\\*)\.env\b/;
 
 // `held`: whether a path is on the always-review list.
 export function reviewNeededCommand(host: Host, held: (path: string) => boolean): Command {

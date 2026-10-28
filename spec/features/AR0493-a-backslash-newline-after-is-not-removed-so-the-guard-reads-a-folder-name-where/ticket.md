@@ -41,3 +41,4 @@ Out:
 
 - 2026-10-27: Source: F3 of AR0471
 - 2026-10-28: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
+- 2026-10-28: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)

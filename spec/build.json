@@ -4379,9 +4379,9 @@
   {
     "id": "AR0550",
     "title": "Voice: local transcription of voice notes with whisper.cpp (roadmap 81)",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0550-voice-local-transcription-of-voice-notes-with-whisper-cpp-roadmap-81/ticket.md",
-    "updated": "2026-10-28T18:26:56.645Z"
+    "updated": "2026-10-28T18:39:24.133Z"
   },
   {
     "id": "AR0551",

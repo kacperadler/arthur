@@ -3790,9 +3790,9 @@
   {
     "id": "AR0477",
     "title": "Nine exports nobody imports",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0477-nine-exports-nobody-imports/ticket.md",
-    "updated": "2026-10-28T09:11:37.515Z",
+    "updated": "2026-10-28T09:20:21.008Z",
     "after": [
       "AR0511",
       "AR0514",

@@ -3734,9 +3734,9 @@
   {
     "id": "AR0470",
     "title": "A merge killed during its steps leaves its cache folder behind",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0470-a-merge-killed-during-its-steps-leaves-its-cache-folder-behind/ticket.md",
-    "updated": "2026-10-28T09:11:38.786Z",
+    "updated": "2026-10-28T09:21:23.260Z",
     "after": [
       "AR0511",
       "AR0514",

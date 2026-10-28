@@ -3343,9 +3343,9 @@
   {
     "id": "AR0425",
     "title": "A redirect's lookup in a site check ignores the check's time limit, and a 308 hop has no test",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0425-a-redirect-s-lookup-in-a-site-check-ignores-the-check-s-time-limit-and-a-308-hop/ticket.md",
-    "updated": "2026-10-28T22:31:29.290Z"
+    "updated": "2026-10-28T22:40:52.518Z"
   },
   {
     "id": "AR0426",

@@ -10,6 +10,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0456 The agent's own `npm ci` cannot write `~/.npm` (0ac4520e)
 - AR0470 A merge killed during its steps leaves its cache folder behind (4a964c77)
 - AR0492 An unquoted `~user` is read as a relative folder named `~user` (09d8b6d7)
+- AR0493 A backslash-newline after $ is not removed, so the guard reads a folder name where bash reads .. (b89c5cb8)
 - AR0494 The guard skips an escaped quote inside quotes when it finds a fallback end, so a command can hide after it (9b488940)
 - AR0524 The worktree guard refuses `GIT_CONFIG_*=... git commit` but lets `export GIT_CONFIG_*=...; git commit` through (ee5ef763)
 - AR0532 A job final message naming @<path> makes the coordinator read that file into its own context (e79b9701)

@@ -3934,9 +3934,9 @@
   {
     "id": "AR0496",
     "title": "A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0496-a-home-set-in-front-of-a-command-is-ignored-by-the-guard-so-the-inner-shell/ticket.md",
-    "updated": "2026-10-29T07:37:32.838Z",
+    "updated": "2026-10-29T07:57:43.587Z",
     "after": [
       "AR0478"
     ]
@@ -4171,9 +4171,9 @@
   {
     "id": "AR0526",
     "title": "A value split across two sweeps' copies of a remote job's log is not named",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0526-a-value-split-across-two-sweeps-copies-of-a-remote-job-s-log-is-not-named/ticket.md",
-    "updated": "2026-10-29T07:38:07.080Z"
+    "updated": "2026-10-29T07:48:10.855Z"
   },
   {
     "id": "AR0527",

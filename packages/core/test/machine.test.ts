@@ -684,6 +684,74 @@ test("a log grown by more than 1 MiB arrives whole over several copies, each cut
 	assert.equal((JSON.parse(run.stdout) as Record<string, { logTo: number }>)[job.id]?.logTo, 256 * 1024 - 3);
 });
 
+test("a line a job there is still writing waits for the next copy, asked from the same time, so a value it splits arrives only as its name", async () => {
+	const gate = join(temporaryFolder(), "go");
+	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }), hide: secretNames({ ARTHUR_TEST_TOKEN: "s3cret-t0ken-123" }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	await jobs.sweep();
+	const [folder, before] = [join(there, "jobs", job.id), read(home, job.id, "log")];
+	appendFileSync(join(folder, "log"), "done\n401 for ✓ s3cret-t0");
+	// The log older than another file there: a copy that asked from the newest time would not send it again.
+	const since = new Date(Number(read(home, job.id, "synced").split(":")[0]) + 1);
+	utimesSync(join(folder, "log"), since, since);
+	writeFileSync(join(folder, "task"), "Go.");
+	for (const copy of [1, 2]) {
+		await jobs.sweep();
+		assert.equal(read(home, job.id, "log"), `${before}done\n`, `copy ${copy}: the unfinished line waits`);
+	}
+	// Caught up to the line's start: the copy, though it reaches the log's end, holds no line break and brings nothing.
+	appendFileSync(join(folder, "log"), "ken");
+	await jobs.sweep();
+	assert.equal(read(home, job.id, "log"), `${before}done\n`);
+	appendFileSync(join(folder, "log"), "-123\n");
+	await jobs.sweep();
+	assert.equal(read(home, job.id, "log"), `${before}done\n401 for ✓ ARTHUR_TEST_TOKEN\n`);
+	writeFileSync(gate, "");
+});
+
+test("a copy that brings the log from its first byte, the first one or after the log there got shorter, holds back its unfinished line too", async () => {
+	const gate = join(temporaryFolder(), "go"), agent = fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] });
+	const { home, there, jobs } = setup({ agent, hide: secretNames({ ARTHUR_TEST_TOKEN: "s3cret-t0ken-123" }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	const log = join(there, "jobs", job.id, "log");
+	// The wrapper's notes come before the agent's start; the agent then waits, writing nothing.
+	await until("the agent started there", () => starts(agent).length === 1);
+	const started = readFileSync(log, "utf8");
+	appendFileSync(log, "401 for s3cret-t0");
+	await jobs.sweep();
+	assert.equal(read(home, job.id, "log"), started, "the first copy");
+	appendFileSync(log, "ken-123\n");
+	await jobs.sweep();
+	assert.equal(read(home, job.id, "log"), `${started}401 for ARTHUR_TEST_TOKEN\n`);
+	writeFileSync(log, "rewritten\n401 for s3cret-t0");
+	await jobs.sweep();
+	assert.equal(read(home, job.id, "log"), "rewritten\n", "a log shorter than asked");
+	appendFileSync(log, "ken-123\n");
+	await jobs.sweep();
+	assert.equal(read(home, job.id, "log"), "rewritten\n401 for ARTHUR_TEST_TOKEN\n");
+	writeFileSync(gate, "");
+});
+
+test("a value the 256 KiB cut of a copy splits, or a last line without a line break, arrives only as its name, and the job ends here once all of it did", async () => {
+	const gate = join(temporaryFolder(), "go");
+	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }), hide: secretNames({ ARTHUR_TEST_TOKEN: "s3cret-t0ken-123" }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	await jobs.sweep();
+	const log = join(there, "jobs", job.id, "log");
+	// The cut, 256 KiB on from the byte the next copy asks from, falls inside the value, after "s3cret-t".
+	appendFileSync(log, `${"x".repeat(256 * 1024 - 17)}\n401 for s3cret-t0ken-123\n`);
+	writeFileSync(gate, "");
+	await endedThere(there, job.id);
+	appendFileSync(log, "a last line without a line break: s3cret-t0ken-123");
+	let copies = 0;
+	for (; read(home, job.id, "state") !== "ended" && copies < 5; copies++) {
+		await jobs.sweep();
+		assert.doesNotMatch(read(home, job.id, "log"), /s3cret/, `copy ${copies + 1}`);
+	}
+	assert.equal(read(home, job.id, "log"), read(there, job.id, "log").replaceAll("s3cret-t0ken-123", "ARTHUR_TEST_TOKEN"));
+	assert.deepEqual([copies, events(home, "job-ended").length], [2, 1]);
+});
+
 test("a copy that does not answer within 20 s counts as the machine unreachable, its jobs held, and the process answers meanwhile", async (t) => {
 	const gate = join(temporaryFolder(), "go");
 	// Ends the fake `records` there and the agent, also when an assertion fails.

@@ -367,6 +367,13 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		...[..." \t\n<>;&|()#"].map((char) => ["bash", { command: `rm \${x:-a${char}b}/README.md` }, UNKNOWN] as const),
 		["bash", { command: `echo \${x:-"a b"} \${x:-'a;b'} \${x:-a\\ b} \${HOME:-a b} \${PWD-a;b}` }, undefined],
 		["bash", { command: 'rm "${x:-a ../../acme/README.md}"' }, undefined],
+		// AR0491: the substitutions in a fallback word run before the command it is in, with each operator, quoted or not, nested, and a `cd` in them does not last.
+		["bash", { command: "echo ${x:-$(rm ../../acme/README.md)}" }, MAIN],
+		["bash", { command: 'echo "${x:-$(rm ../../acme/README.md)}"' }, MAIN],
+		...["-", "=", ":=", "+", ":+", "?", ":?"].map((operator) => ["bash", { command: `echo \${x${operator}$(rm ../../acme/README.md)}` }, MAIN] as const),
+		["bash", { command: 'echo "${x:-`rm ../../acme/README.md`}"' }, MAIN],
+		["bash", { command: "echo ${x:-${y:-$(echo $(rm ../../acme/README.md))}}" }, MAIN],
+		["bash", { command: 'echo "${x:-$(cd ../../acme)}"; rm README.md' }, undefined],
 		...[..."<>;&|()#"].map((char) => ["bash", { command: `rm "\${x:-${char}}../../../../acme/README.md"` }, MAIN] as const),
 		["bash", { command: 'rm "${x:-~}"/../../../acme/README.md' }, MAIN],
 		["bash", { command: 'rm "${x:-~/../../../acme/README.md}"' }, MAIN],

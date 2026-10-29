@@ -41,3 +41,4 @@ Out:
 - Docker's own cleanup: already in the docker plugin.
 
 ## Decisions
+- 2026-10-29: AR0555 approved: a planner writes the plan, then it is built; the owner: "AR-D301 1 but should be also able to create pull requests and issues" (AR-D301)

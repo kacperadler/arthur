@@ -309,7 +309,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `export $(echo HOME=${main}); bash -c 'rm $HOME/README.md'` }, UNKNOWN],
 		["bash", { command: `f() { local \`echo PWD\`=${main}; rm $PWD/README.md; }; f` }, UNKNOWN],
 		["bash", { command: `declare -x "\`echo HOME\`=${main}"; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
-		// A brace list or a glob in the name a declaration sets expands to names the guard does not read.
+		// Only a plain name (letters, digits and `_`, not first a digit, written as is) passes where a declaration, `env` or `sudo` sets one (AR-D245): a brace list, a glob, an extglob, an index, a quoted or escaped special character is refused.
 		["bash", { command: `export {HOME,X}=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
 		["bash", { command: `export HOM{E,}=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
 		["bash", { command: `declare -x {HOME,X}=${main}; rm ~/README.md` }, UNKNOWN],
@@ -323,7 +323,23 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `sh -c 'export HOM[E]=${main}; rm $HOME/README.md'` }, UNKNOWN],
 		["bash", { command: `command declare -x HOM[E]=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
 		["bash", { command: `command export PW[D]=${main}; bash -c 'rm $PWD/README.md'` }, UNKNOWN],
-		["bash", { command: `export "{HOME,X}=1" 'HOM?'=2 Y={a,b} Z=*; declare -a 'arr[0]'=1` }, undefined],
+		// Review 6 of AR0496: an extglob in a declared name, and a brace list, glob or expansion in a name `env` or `sudo` sets.
+		["bash", { command: "bash -O extglob -c 'export HOM@(E)=../../acme; rm $HOME/README.md'" }, UNKNOWN],
+		["bash", { command: "bash -O extglob -c 'export HOM+(E)=../../acme; rm $HOME/README.md'" }, UNKNOWN],
+		["bash", { command: "shopt -s extglob; command export HOM@(E)=../../acme; bash -c 'rm $HOME/README.md'" }, UNKNOWN],
+		["bash", { command: "env {HOME,X}=../../acme bash -c 'rm $HOME/README.md'" }, UNKNOWN],
+		["bash", { command: "env HOM[E]=../../acme bash -c 'rm $HOME/README.md'" }, UNKNOWN],
+		["bash", { command: "env HOM?=../../acme bash -c 'rm $HOME/README.md'" }, UNKNOWN],
+		["bash", { command: `sudo HOM[E]=${main} bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `env $v=${main} bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `env -u X \${v:-X}=${main} bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `sudo -u root env $v bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `export "{HOME,X}=1"` }, UNKNOWN],
+		["bash", { command: `export 'HOM?'=2` }, UNKNOWN],
+		["bash", { command: `export HOM\\[E]=${main}` }, UNKNOWN],
+		["bash", { command: `declare -a 'arr[0]'=1` }, UNKNOWN],
+		["bash", { command: "export 1X=1" }, UNKNOWN],
+		["bash", { command: `export Y={a,b} Z=* _x1+=2 "W"=3 -- V; declare +x -a arr=(1 2); env -u X FOO=1 BAR+=2 ls $v "$w" \${x:-y}; sudo -u root ls $v` }, undefined],
 		["bash", { command: `export FOO=$x BAR="$(pwd)" > $log; declare -r v=\${x:-1}; readonly "w=$v"` }, undefined],
 		["bash", { command: `echo HOME=${main} PWD=${main} > notes.txt; HOMEX=${main} PWDX=1 bash -c 'rm $HOME/README.md'` }, undefined],
 		// AR0471: an operator of `${PWD…}` or of a known variable the parser does not read is refused, as one of `${OLDPWD…}` is.

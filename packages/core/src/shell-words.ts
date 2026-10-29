@@ -13,8 +13,8 @@ type Target = "write" | "read" | "duplicate" | "here";
 const TARGETS: Readonly<Record<string, Target>> = { "<": "read", "<&": "read", ">&": "duplicate", "<<<": "here" };
 
 // One simple command: its `words`; `writes`, the targets of the redirects that write a file (`>`, `>>`, `>|`, `<>`, `&>`, `>&name`); `reads`, those of the others and a heredoc's delimiter;
-// `stdin`, the text of a heredoc or a here string. `alone` is false in a pipeline or in the background, where it runs in a subshell and a `cd` does not last. `dynamic`: a `$` or a backtick stood in one of its words before that word's first `=` (an empty word too), so a name `export` sets is known only at run time.
-export type Command = { readonly words: string[]; readonly writes: string[]; readonly reads: string[]; readonly stdin: string[]; readonly alone: boolean; readonly dynamic?: boolean };
+// `stdin`, the text of a heredoc or a here string. `alone` is false in a pipeline or in the background, where it runs in a subshell and a `cd` does not last. `dynamic`: the index of each word in which a `$` or a backtick stood before its first `=` (of an empty word, that of the next one), so a name `export` or `env` sets there is known only at run time.
+export type Command = { readonly words: string[]; readonly writes: string[]; readonly reads: string[]; readonly stdin: string[]; readonly alone: boolean; readonly dynamic?: readonly number[] };
 export type Item = Command | "(" | ")";
 
 const quoted = (text: string): string => [...text].map((char) => (SPECIAL.includes(char) ? `\\${char}` : char)).join("");
@@ -73,7 +73,7 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 		[before, current, target] = [[], { words: [], writes: [], reads: [], stdin: [], alone }, undefined];
 	};
 	const value = (name: string): string | undefined => (Object.hasOwn(known, name) && known[name] !== undefined ? quoted(known[name]) : undefined);
-	const mark = () => void (target === undefined && !word.includes("=") && (current = { ...current, dynamic: true }));
+	const mark = () => void (target === undefined && !word.includes("=") && (current = { ...current, dynamic: [...(current.dynamic ?? []), current.words.length] }));
 	// The expansion that starts with `$` at `at`, inside double quotes or not: adds its text to the word, returns where it ends.
 	const dollar = (at: number, inDouble: boolean): number => {
 		const next = command[at + 1];

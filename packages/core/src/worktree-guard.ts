@@ -90,9 +90,9 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 	};
 	const judge = (command: Command, moved = false): string | undefined => {
 		const [raw, words] = [command.words.map(here), command.words.map((word) => literal(here(word)))];
-		const [at, dirs] = commandIndex(words), verb = basename(words[at] ?? ""), declares = ["export", "declare", "typeset", "readonly", "local"].includes(verb);
+		const [at, dirs] = commandIndex(words), verb = basename(words[at] ?? ""), declares = ["export", "declare", "typeset", "readonly", "local"].includes(verb), from = declares ? at : words.findIndex((word) => ["env", "sudo"].includes(basename(word))), named = (index: number) => from >= 0 && index > from && index <= (declares ? words.length : at);
 		if ([...command.words, ...command.writes].some((word) => word.includes("\0") || ((!previous || previous.includes("\0")) && /(^|=)~-(\/|$)/.test(literal(word)))) || command.words.some((word, index) => /^OLDPWD(\[(?!\d+\])|\+=\(|=\(\[)/.test(word) || (index < at && /^OLDPWD(\[|=\()/.test(word)))) return OLDPWD_UNKNOWN;
-		if ((declares && (command.dynamic || command.words.some((word, index) => index > at && /[{*?[]/.test(word.split("=")[0]!.replace(/\\./g, ""))))) || words.some((word, index) => /^(?:HOME|ARTHUR_JOB|PWD)(?:\[[^\]]*\])?\+?=/.test(word) && (at < 0 || (index < at && verb !== "git") || declares))) return OLDPWD_UNKNOWN;
+		if (command.words.some((word, index) => named(index) && !(declares ? /^[-+]/ : /^-|^[^=]*$/).test(word) && !/^[A-Za-z_]\w*(\+?=|$)/.test(word)) || command.dynamic?.some(named) || words.some((word, index) => /^(?:HOME|ARTHUR_JOB|PWD)(?:\[[^\]]*\])?\+?=/.test(word) && (at < 0 || (index < at && verb !== "git") || declares))) return OLDPWD_UNKNOWN;
 		const redirected = theirs(command.writes.map((word) => literal(here(word))));
 		if (!moved && redirected === undefined && dirs.length > 0) return run(["("]) ?? ((cwd = dirs.reduce(located, cwd)), judge({ ...command, words: raw, stdin: command.stdin.map((text) => text.replaceAll("\0+", subshells.at(-1)![0])), writes: [] }, true)) ?? run([")"]);
 		const moves = ["cd", "pushd", "popd"].includes(verb);

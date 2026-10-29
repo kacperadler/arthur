@@ -571,3 +571,5 @@
 {"record":"answer","id":"AR-D284","time":"2026-10-29T00:53:36+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D285","time":"2026-10-29T00:58:31+01:00","project":"arthur","kind":"merge","question":"Merge AR0510 (the GitHub, Telegram and YouTrack API addresses take http only on loopback, so a token never goes in the clear), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0510"}
 {"record":"answer","id":"AR-D285","time":"2026-10-29T00:58:31+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D286","time":"2026-10-29T01:32:39+01:00","project":"arthur","kind":"merge","question":"Merge AR0481 (a stop during the install waits for the install group stop before the job ends), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0481"}
+{"record":"answer","id":"AR-D286","time":"2026-10-29T01:32:39+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

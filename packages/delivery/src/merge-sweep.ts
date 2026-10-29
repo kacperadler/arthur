@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
-import { type Dirent, existsSync, lstatSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync } from "node:fs";
+import { type Dirent, existsSync, lstatSync, readdirSync, readlinkSync, realpathSync, rmSync, type Stats, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { basename, dirname, join, relative, sep } from "node:path";
 
 // The sweep after each step `arthur merge` runs on main (merge-checks.ts, AR0463, AR0466): every repository below the checkout's
 // top that a step left is removed, so no git call there runs its config outside any sandbox. docs/commands/merge.md, "Checks on main".
@@ -60,29 +60,41 @@ function escapes(top: string, link: string): boolean {
 	return folder && (first === ".." || first === ".git");
 }
 
-// Where the symlink `link` leads, as the kernel follows it from its folder's real path (AR0490): its target's real path, a
-// dangling one's nearest existing folder's joined with the rest of its path, as a folder may come there later; and whether a folder may be there.
-function target(link: string): { readonly path: string; readonly folder: boolean } {
-	let rest = "";
-	for (let path = resolve(realpathSync(dirname(link)), readlinkSync(link)); ; [path, rest] = [dirname(path), join(basename(path), rest)]) {
-		let real: string;
+// Where the symlink `link` leads, as the kernel follows it from its folder's real path, part by part (AR0490): each symlink on
+// the way, `link` first, a folder's too, by its path, and where it ends: a real path, or a dangling one's nearest existing folder's
+// joined with the rest of its path, as a folder may come there later (past 40 links, as the kernel's ELOOP); and whether a folder may be there.
+function target(link: string): { readonly hops: readonly string[]; readonly path: string; readonly folder: boolean } {
+	const [hops, rest] = [[] as string[], [basename(link)]];
+	let at = realpathSync(dirname(link));
+	while (rest.length > 0 && hops.length <= 40) {
+		const next = join(at, rest[0] ?? "");
+		let stat: Stats;
 		try {
-			real = realpathSync(path);
+			stat = lstatSync(next);
 		} catch {
-			continue;
+			break;
 		}
-		return { path: join(real, rest), folder: rest !== "" || statSync(real).isDirectory() };
+		rest.shift();
+		if (!stat.isSymbolicLink()) at = next;
+		else {
+			hops.push(next);
+			const text = readlinkSync(next);
+			if (text.startsWith(sep)) at = sep;
+			rest.unshift(...text.split(sep).filter(Boolean));
+		}
 	}
+	return { hops, path: join(at, ...rest), folder: rest.length > 0 || statSync(at).isDirectory() };
 }
 
-// A symlink by its own stamp and, where it leads into a folder of `writes`, by its target's too (AR0490), "missing" while none is
-// there, so a step that puts a repository there, in place of a file or in a folder, changes it; `UNSEEN` for a target it cannot read.
+// A symlink by its own stamp and, where it leads into a folder of `writes` or through a symlink there, which a step can point
+// elsewhere, by each link's on the way, where it ends and its target's stamp too (AR0490), "missing" while none is there, so a
+// step that puts a repository there, in place of a file or in a folder, or points a link on the way at one, changes it; `UNSEEN` for a target it cannot read.
 const UNSEEN = "target unread";
 function linked(link: string, writes: readonly string[]): string {
-	const { path } = target(link);
-	if (!writes.some((folder) => path === folder || path.startsWith(`${folder}${sep}`))) return stamp(link);
+	const { hops, path } = target(link);
+	if (![...hops, path].some((each) => writes.some((folder) => each === folder || each.startsWith(`${folder}${sep}`)))) return stamp(link);
 	const seen = existsSync(path) ? stamp(path) : "missing";
-	return `${stamp(link)}\n${seen === "unreadable" ? UNSEEN : seen}`;
+	return [...hops.map((hop) => `${hop} ${stamp(hop)}`), path, seen === "unreadable" ? UNSEEN : seen].join("\n");
 }
 
 // A repository by the inode, owner, group, mode and change time, which a write, a rename, a chmod, a chgrp or an ACL sets and no step

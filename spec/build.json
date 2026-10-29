@@ -4413,9 +4413,9 @@
   {
     "id": "AR0554",
     "title": "Rename the voice plugin to listen",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0554-rename-the-voice-plugin-to-listen/ticket.md",
-    "updated": "2026-10-29T14:21:34.827Z"
+    "updated": "2026-10-29T14:42:08.617Z"
   },
   {
     "id": "AR0555",

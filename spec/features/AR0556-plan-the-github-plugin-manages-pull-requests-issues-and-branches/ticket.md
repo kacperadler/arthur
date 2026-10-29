@@ -39,3 +39,4 @@ Out:
 
 ## Decisions
 - 2026-10-29: AR0556 planning approved, started after the 22 fixes of Q1-Q3; each group of commands (pull requests, issues, branches, CI) in its own source file; the owner: "AR-D302 1 / AR-D303 1 / GitHub management commands - this we will do in the future, maybe after this 22 tickets and remember to create a sepparated files to each group of functionallity" (AR-D302)
+- 2026-10-29: Plan approved by the owner: plan.md at d22e7cfc; the owner: "AR-D327 1" (AR-D327)

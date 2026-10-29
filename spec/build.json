@@ -3436,9 +3436,9 @@
   {
     "id": "AR0437",
     "title": "A CI wait still cancels a hung run below the tip, whose end it no longer tells",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0437-a-ci-wait-still-cancels-a-hung-run-below-the-tip-whose-end-it-no-longer-tells/ticket.md",
-    "updated": "2026-10-29T02:49:16.735Z"
+    "updated": "2026-10-29T02:54:11.180Z"
   },
   {
     "id": "AR0438",
@@ -4077,9 +4077,9 @@
   {
     "id": "AR0515",
     "title": "The hidden ~/.ssh follows $HOME, while OpenSSH finds the home from the user account",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0515-the-hidden-ssh-follows-home-while-openssh-finds-the-home-from-the-user-account/ticket.md",
-    "updated": "2026-10-29T02:40:34.870Z"
+    "updated": "2026-10-29T02:53:23.574Z"
   },
   {
     "id": "AR0516",

@@ -40,3 +40,4 @@ Out:
 
 ## Decisions
 - 2026-10-29: AR0564 report skill approved; started once AR0555 merges, beside the AR0561 planner and the AR0562 worker; the owner: "sometimes in the raport the commands are not visible, remember this in the future, maybe create a skill for creating a rport that will describe how to use colors, styles, ect" (AR-D339)
+- 2026-10-29: AR0564: another round; the page check waits until the page has fully loaded and refuses every kind of text it cannot read, then review round 3; the owner: "AR-D347 1" (AR-D347)

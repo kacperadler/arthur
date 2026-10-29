@@ -95,6 +95,12 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 		await ended(job.id);
 		return { id: job.id, branch: job.branch ?? "", worktree: job.worktree, tip: commit(job.worktree, changes) };
 	};
+	// A worker whose task names the ticket at `path` instead, never on the board, with a commit main lacks.
+	const aside = async (path: string) => {
+		const job = await worker({ "aside.ts": "export const aside = 1;\n" }, "No ticket here.");
+		writeFileSync(join(home, "jobs", job.id, "task"), `Ticket: ${path}`);
+		return job;
+	};
 	const uncapped: string[] = [];
 	let heard = (_text: string) => {};
 	const run = async (name: string, args: readonly string[]) => {
@@ -113,14 +119,16 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 	};
 	const head = () => git(root, "rev-parse", "HEAD");
 	const status = (id: string) => fake.host.board.get(id)?.status;
-	return { root, fake, git, commit, take: () => run("take-main", ["--decision", OWNER]), worker, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, caches, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, owner, installAs: (next: string | Error) => void (answer = next), uncapped, hear: (fn: (text: string) => void) => void (heard = fn) };
+	return { root, fake, git, commit, take: () => run("take-main", ["--decision", OWNER]), worker, aside, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, caches, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, owner, installAs: (next: string | Error) => void (answer = next), uncapped, hear: (fn: (text: string) => void) => void (heard = fn) };
 }
 
 test("a branch with a PASS on its tip goes in: checks pass, its review filed, outcome.md written, the ticket merged, the tickets it unblocks named, the ticket's jobs pruned; the install's cache is the merge's own, gone after it", async (t) => {
-	const { root, fake, home, git, worker, review, merge, head, status, bun, caches, installs } = await load(t);
+	const { root, fake, home, git, worker, aside, review, merge, head, status, bun, caches, installs } = await load(t);
 	const job = await worker({ "shop.ts": "export const shop = 1;\n", "bun.lock": '{ "shop": 1 }\n' });
 	// Another worker of the ticket, its commit never merged: a merge never forces its branch away.
 	const other = await worker({ "draft.ts": "export const draft = 1;\n" });
+	// Jobs of another ticket, and of an id that only begins like AC0001: none of them is this merge's.
+	const strangers = [await aside("spec/features/AC0002-cart/ticket.md"), await aside("spec/features/AC00010-shops/ticket.md")];
 	const passed = await review(job.id, "Clean.\n\nPASS");
 	const checkout = readFileSync(join(home, "jobs", passed, "worktree"), "utf8");
 	// What delivery keeps of the job in its folder: the CI wait an earlier `--auto` left.
@@ -167,6 +175,7 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "ticket-moved").at(-1)?.data, { id: "AC0001", project: "acme", from: "done", to: "merged" });
 	assert.deepEqual([job.id, passed, other.id].map((id) => existsSync(join(home, "jobs", id))), [false, false, true], "the ticket's ended jobs pruned, the one whose branch main lacks kept");
 	assert.equal(git(root, "branch", "--list", other.branch), other.branch);
+	assert.deepEqual(strangers.map((each) => [existsSync(join(home, "jobs", each.id)), existsSync(each.worktree), git(root, "branch", "--list", "--format=%(refname:short)", each.branch)]), strangers.map((each) => [true, true, each.branch]), "another ticket's jobs untouched");
 	assert.deepEqual([existsSync(job.worktree), existsSync(checkout), git(root, "branch", "--list", job.branch)], [false, false, ""]);
 	assert.deepEqual([existsSync(join(fake.host.folder, job.id)), existsSync(join(fake.host.folder, "reviews", `${passed}.json`))], [false, true], "delivery's folder of the job goes, its record of the review stays");
 	fake.collect("jobs.keep", { id: "reviews" });
@@ -724,12 +733,15 @@ test("with nvm.path provided, the install and checks run on its PATH, asked for 
 });
 
 test("a dropped ticket's ended jobs are pruned, an unmerged branch deleted with git branch -D; a job in a run or blocked, one on another machine, a worktree with changes, another ticket's or project's job and a planted config keep theirs", async (t) => {
-	const { root, fake, home, git, worker } = await load(t);
+	const { root, fake, home, git, worker, aside } = await load(t);
 	const [kept, gone, blocked, remote, orphan] = [await worker(), await worker(), await worker(), await worker(), await worker()];
 	// Their worktrees removed by hand: the prune finds only their unmerged branches, which no worktree holds.
 	for (const job of [gone, blocked, remote, orphan]) git(root, "worktree", "remove", job.worktree);
 	// Blocked by a plugin's hold after its run, on a machine no plugin registers now, and of a project no longer in the list.
 	for (const [job, file, value] of [[blocked, "state", "blocked"], [remote, "machine", "gpu"], [orphan, "project", "gone"]] as const) writeFileSync(join(home, "jobs", job.id, file), value);
+	// Jobs of another ticket, and of an id that only begins like AC0001, their branches unmerged and in no worktree: never forced.
+	const strangers = [await aside("spec/features/AC0002-cart/ticket.md"), await aside("spec/features/AC00010-shops/ticket.md")];
+	for (const job of strangers) git(root, "worktree", "remove", job.worktree);
 	const dirty = await worker({});
 	writeFileSync(join(dirty.worktree, "draft.ts"), "export const draft = 1;\n");
 	const loose = await worker({ "loose.ts": "export const loose = 1;\n" }, "No ticket here.");
@@ -740,7 +752,7 @@ test("a dropped ticket's ended jobs are pruned, an unmerged branch deleted with 
 	const said: string[] = [];
 	t.mock.method(console, "log", (text: string) => void said.push(text));
 	const drop = (project = "acme") => fake.emit("ticket-moved", { id: "AC0001", project, from: "in-progress", to: "dropped" });
-	const all = [kept, gone, blocked, remote, orphan, dirty, loose, running];
+	const all = [kept, gone, blocked, remote, orphan, dirty, loose, running, ...strangers];
 	const exists = () => all.map((job) => [existsSync(join(home, "jobs", job.id)), git(root, "branch", "--list", job.branch ?? "") !== ""]);
 	// A key a job can write in the repository's config: no git call runs, every branch stays.
 	git(root, "config", "core.sshCommand", "/bin/false");
@@ -763,7 +775,7 @@ test("a dropped ticket's ended jobs are pruned, an unmerged branch deleted with 
 	assert.ok(said.includes(`delivery: AC0001 dropped: ${blocked.id}: kept: it is blocked (finished), not ended`), said.join("\n"));
 	assert.ok(said.some((line) => line.startsWith(`delivery: AC0001 dropped: ${remote.id}: kept its worktree, branch and record: `)), said.join("\n"));
 	assert.ok(said.some((line) => line.startsWith(`delivery: AC0001 dropped: ${dirty.id}: kept its worktree, branch and record: git worktree: `)), said.join("\n"));
-	assert.equal(said.some((line) => line.includes(orphan.id) || line.includes(loose.id)), false, "another project's job and a job of no ticket are not the ticket's");
+	assert.equal(said.some((line) => [orphan, loose, ...strangers].some((job) => line.includes(job.id))), false, "another project's job, a job of no ticket, another ticket's are not the ticket's");
 	assert.deepEqual(exists(), [[false, false], [false, false], ...Array(all.length - 2).fill([true, true])]);
 	assert.equal(existsSync(kept.worktree), false);
 	// The project's drop prunes its job; with the project gone from the list no branch is forced.

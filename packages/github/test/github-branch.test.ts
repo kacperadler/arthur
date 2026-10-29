@@ -181,6 +181,9 @@ test("a branch not in main whose origin tip is the one github pushed is deleted 
 	assert.equal(w.tip(failing.branch), failing.tip);
 	assert.equal(existsSync(join(w.fake.host.folder, "pushed", failing.id)), true, "its record stays for the next try");
 	assert.deepEqual(w.notices().length, 1);
+	const refused = w.job(3);
+	assert.equal(await w.push(refused.branch), `github: ${refused.branch} not pushed to origin: [remote rejected] (pre-receive hook declined)`);
+	assert.equal(existsSync(join(w.fake.host.folder, "pushed", refused.id)), false, "a push origin refused records no tip");
 });
 
 test("the delete is leased: a branch whose tip moved since it was read is refused, the others of the same push deleted; a planted config refuses it whole, running nothing", async (t) => {

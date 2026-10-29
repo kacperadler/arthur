@@ -406,12 +406,17 @@ test("a refusal by the core or by delivery itself, which no freed slot lifts, en
 	other();
 	await until("the continue refused again", () => asked === 4);
 	assert.deepEqual([step(one.id), told()], ["continue", []]);
-	// The core's: its ticket dropped meanwhile; a draft in the worker's worktree keeps the job through the drop's prune.
+	// The core's: its ticket dropped meanwhile. The drop's prune leaves the worker, still handed back, and says so (F1 of AR0555); its review goes.
 	full = false;
-	writeFileSync(join(readFileSync(join(dirname(fake.host.folder), "jobs", one.id, "worktree"), "utf8"), "draft.ts"), "export const draft = 1;\n");
+	const said: string[] = [];
+	t.mock.method(console, "log", (text: string) => void said.push(text));
 	fake.host.board.move("AC0002", "dropped");
+	t.mock.restoreAll();
+	assert.ok(said.includes(`delivery: AC0002 dropped: ${one.id}: kept: delivery still hands it back after a FAIL review; arthur prune ${one.id} once that ends`), said.join("\n"));
+	assert.deepEqual([field(one.id, "state"), reviews(fake)], ["ended", []]);
 	other();
 	await until("the hand-back ended", () => step(one.id) === undefined);
+	assert.equal(field(one.id, "state"), "ended", "the worker is still there for the coordinator's own hand-back");
 	const core = `refused by core: AC0002 is dropped, which cannot move to in-progress; a worker starts on a ticket that is planned, in-progress, review, done`;
 	const stopped = `Delivery's hand-back of ${one.branch} after FAIL ${failed.id} stopped: ${core}. Hand it back yourself: arthur continue ${one.id} '<the findings of ${failed.id}>', then arthur review ${one.id} once it ends.`;
 	assert.deepEqual(told(), [stopped]);

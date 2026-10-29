@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readlinkSync, realpathSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, userInfo } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
 // Where a job may not write, as the worktree guard (worktree-guard.ts) sees it: from the job's record, and the other
@@ -13,15 +13,19 @@ export type Place = { readonly worktree: string; readonly branch: string; readon
 // The keys of the record's `guarded` file, and the name each place has in a refusal.
 const GUARDED: Readonly<Record<string, string>> = { config: "Arthur's config folder", env: "Arthur's env file", install: "Arthur's install", ssh: "the user's SSH folder", systemd: "the user's systemd folder", gitconfig: "the user's Git config", gitxdg: "the user's Git config" };
 
+// The user's `~/.ssh` (AR0515): the one in the user account's home folder, where OpenSSH finds it (`getpwuid`, never `$HOME`),
+// and `$HOME`'s too when Arthur runs with it set elsewhere, an absolute path (an empty `$HOME` gives none).
+export const sshFolders = (): string[] => [...new Set([join(userInfo().homedir, ".ssh"), join(homedir(), ".ssh")])].filter(isAbsolute);
+
 // The record's `guarded` file, a line `<key> <absolute path>` each: Arthur's install, the folder that holds the core's
 // package (the clone of docs/setup.md, so every plugin's package too; `node_modules` of an install from npm), the user's
-// `~/.ssh`, `~/.config/systemd`, `~/.gitconfig` and `~/.config/git/`, a second `systemd` and `gitxdg` line for
+// `~/.ssh` (`sshFolders`, a line each), `~/.config/systemd`, `~/.gitconfig` and `~/.config/git/`, a second `systemd` and `gitxdg` line for
 // `$XDG_CONFIG_HOME/systemd` and `$XDG_CONFIG_HOME/git/` (which systemd's user manager and Git read instead) when they
 // differ, and with `config` (none on another machine) the config's folder and env file. A file Git's config includes is
 // not followed.
 export function guardedPlaces(config?: { readonly folder: string; readonly envFile: string }): string {
 	const [user, xdg] = [homedir(), process.env.XDG_CONFIG_HOME];
-	const places = [...(config ? [["config", config.folder], ["env", config.envFile]] : []), ["install", resolve(import.meta.dirname, "..", "..", "..")], ["ssh", join(user, ".ssh")], ["systemd", join(user, ".config", "systemd")], ["gitconfig", join(user, ".gitconfig")], ["gitxdg", join(user, ".config", "git")]];
+	const places = [...(config ? [["config", config.folder], ["env", config.envFile]] : []), ["install", resolve(import.meta.dirname, "..", "..", "..")], ...sshFolders().map((path) => ["ssh", path]), ["systemd", join(user, ".config", "systemd")], ["gitconfig", join(user, ".gitconfig")], ["gitxdg", join(user, ".config", "git")]];
 	const moved = xdg ? [["systemd", join(xdg, "systemd")], ["gitxdg", join(xdg, "git")]] : [];
 	return [...new Set([...places, ...moved].map(([key, path]) => `${key} ${path}`))].join("\n");
 }

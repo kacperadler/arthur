@@ -810,6 +810,69 @@ test("config set earlier in the same call (export, declare -x, a bare assignment
 	for (const command of passing) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
 });
 
+test("config a builtin sets without an assignment word (for, read, printf -v, mapfile, getopts, let, ((…)), a nameref, ${name:=…}) refuses each git call after it, as one set before git does", async () => {
+	const { home, own } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id));
+	const unseen = [
+		"for HOME in /tmp/h; do git status; done",
+		"select XDG_CONFIG_HOME in /tmp/h; do git status; break; done",
+		"read HOME <<< /tmp/h; git status",
+		"read -aHOME <<< /tmp/h; git status",
+		"printf -v GIT_CONFIG_GLOBAL %s /tmp/x.cfg; export GIT_CONFIG_GLOBAL; git commit -m x",
+		"printf -vXDG_CONFIG_HOME %s /tmp/h; git status",
+		"mapfile -t XDG_CONFIG_HOME < /tmp/list; git status",
+		"readarray HOME <<< /tmp/h; git status",
+		"getopts h: GIT_CONFIG_COUNT; export GIT_CONFIG_COUNT; git status",
+		"let HOME=5; git status",
+		"let 'XDG_CONFIG_HOME = 5'; git status",
+		"(( HOME = 5 )); git status",
+		": $(( GIT_CONFIG_COUNT = 1 )); export GIT_CONFIG_COUNT; git status",
+		"declare -n r=HOME; r=/tmp/h; git status",
+		"declare -n r; r=HOME; r=/tmp/h; git status",
+		"typeset -n r=$v; r=/tmp/h; git status",
+		"declare -n r=x; for r in HOME; do r=/tmp/h; done; git status",
+		": ${GIT_CONFIG_COUNT:=1}; export GIT_CONFIG_COUNT; git status",
+		': "${XDG_CONFIG_HOME=/tmp/h}"; git status',
+		"v=HOME; declare -n r=${v:-x}; r=/tmp/h; git status",
+		"v=GIT_CONFIG_COUNT; : ${!v:=1}; export GIT_CONFIG_COUNT; git status",
+		// A name known only at run time.
+		"v=HOME; read $v <<< /tmp/h; git status",
+		"v='HOME=5'; let $v; git status",
+		"v=HOME; (( $v++ )); git status",
+		"v=OME; (( H$v = 5 )); git status",
+		"v=HOME; printf -v \"$v\" %s /tmp/h; git status",
+		"v=HOME; let \"$v=5\"; git status",
+		"v=HOME; (( $v = 5 )); git status",
+		"eval 'for HOME in /tmp/h; do :; done'; git status",
+	];
+	for (const command of unseen) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /^arthur: refused: this git call reads config the guard does not/, command);
+	// An assignment builtin given a name built at run time is refused where it stands (AR0496), before any git call.
+	assert.match(worktreeRefusal(place, "bash", { command: "v=HOME; export $v=/tmp/h; git status" }) ?? "", /^arthur: refused: the guard cannot tell where this path leads/);
+	const passing = [
+		"for x in a; do git status; done",
+		"select x in a; do git status; break; done",
+		"read x <<< a; git status",
+		"read -a x <<< a; git status",
+		"printf -v x %s HOME; git status",
+		"mapfile -t x < /tmp/list; git status",
+		"readarray x <<< a; git status",
+		"getopts h: x; git status",
+		"let x=5; git status",
+		"(( $v == 5 )); git status",
+		"(echo HOME); git status",
+		"(( x = 5 )); git status",
+		"(( total += $v )); git status",
+		"declare -n r=x; r=/tmp/h; git status",
+		"declare -n r=x; for x in HOME; do :; done; git status",
+		"declare -n r=x; echo $v; git status",
+		"declare x=$(git diff --name-only $base); git status",
+		": ${x:=1}; git status",
+		": ${GIT_CONFIG_NOSYSTEM:=1}; git status",
+		"git status; read HOME <<< /tmp/h",
+	];
+	for (const command of passing) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
+});
+
 test("a call writing a .git or commondir is refused, and a git write through one that links to the main checkout's repository; a worktree's own link and other repositories pass", async () => {
 	const { root, home, own } = await jobs();
 	const place = jobPlace(join(home, "jobs", own.id));

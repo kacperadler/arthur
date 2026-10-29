@@ -161,7 +161,7 @@ test("refused before any request: wrong usage (exit 2), a number that is none; p
 	const api = await fakeGithub(t);
 	const run = await setUp(t, [shop()], [{ tokenEnv: "ARTHUR_GITHUB_TOKEN", apiUrl: api.apiUrl }]);
 	api.pulls["acme/shop"] = [pull(12)];
-	const usage = "usage: arthur github pr list [--all]|get <n>|merge <n> [--project <name>]";
+	const usage = "usage: arthur github pr list [--all]|get <n>|merge <n> | branch sweep [--dry-run] [--project <name>]";
 	for (const args of [[], ["pr"], ["pr", "nope"], ["issue", "list"], ["pr", "get"], ["pr", "get", "1", "2"], ["pr", "list", "x"], ["pr", "get", "12", "--all"], ["pr", "list", "--force"], ["pr", "constructor", "x"], ["toString", "x"]])
 		assert.deepEqual(await run(args), { code: 2, out: "", err: usage }, args.join(" "));
 	for (const word of ["0", "012", "abc", "1.5", "１２"]) assert.deepEqual(await run(["pr", "get", word]), { code: 1, out: "", err: `${word} is not a pull request number such as 12; nothing was asked of GitHub` });

@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
-import { matchesGlob } from "node:path";
+import { readFileSync, rmSync } from "node:fs";
+import { join, matchesGlob } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
 import { entryOf } from "./auto-merge.ts";
 import { changelogCommand } from "./changelog.ts";
@@ -12,6 +12,7 @@ import { reviewFiler } from "./review-file.ts";
 import { reviewNeededCommand } from "./review-needed.ts";
 import { failsSincePass, LIMIT, type Review, readReview, saveReview, settle, type Verdict, verdictOf } from "./review-records.ts";
 import { takeMainCommand } from "./take-main.ts";
+import { pruneTicket } from "./ticket-prune.ts";
 
 // The delivery plugin (spec/roadmap.md, entry 52): the kind `review`, a read-only job on the reviewer role in a detached checkout
 // of a worker's branch, on `roles.reviewer`'s model in a session of its own. It moves its ticket to review as it starts, and its
@@ -27,6 +28,8 @@ const REVIEW = "review";
 const TICKET = /^spec\/features\/([A-Z]+\d{4,})-[^/]+\/ticket\.md$/;
 // The statuses a reviewed ticket may have: its worker started it, and a review moves it to review.
 const REVIEWED = ["in-progress", "review", "done"];
+// A job's id, `<date>-<kind>-<8 hex digits>`, the one name of a job's folder here.
+const JOB = /^\d{4}-\d\d-\d\d-[a-z0-9-]+-[0-9a-f]{8}$/;
 
 export function delivery(options: { readonly enabled?: boolean; readonly review?: { readonly alwaysReview?: readonly string[] }; readonly merge?: { readonly stepSeconds?: number } } = {}): Plugin {
 	let loop: HandBack | undefined;
@@ -77,6 +80,14 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 				void Promise.all(host.collect<Promise<string>>("github.push", branch)).then((lines) => lines.forEach((line) => console.log(line)));
 			});
 			host.events.on("stop-all", () => back.cancel());
+			// A dropped ticket's jobs freed, an unmerged branch too (AR0555); the lines go to the log.
+			host.events.on("ticket-moved", ({ data }) => {
+				const { id, project, to } = (data ?? {}) as { readonly id?: unknown; readonly project?: unknown; readonly to?: unknown };
+				if (to === "dropped" && typeof id === "string" && typeof project === "string") for (const line of pruneTicket(host, project, id, [], true)) console.log(`delivery: ${id} dropped: ${line}`);
+			});
+			// Asked by the core's prune: the job's own folder here (`checks`, `review-needed`, the CI wait) goes with its record;
+			// delivery's record of a review, `reviews/<id>.json`, stays for the FAIL counts and the costs.
+			host.provide("jobs.keep", ({ id }: { readonly id: string }) => void (JOB.test(id) && rmSync(join(host.folder, id), { recursive: true, force: true })));
 			// Asked with the job-ended data and the final message the wake shows: a review of this home by its record, one in
 			// no home (an eval's) by the record its data names.
 			host.provide("coordinator.wake", (job: Readonly<Record<string, unknown>>, result?: unknown) => {

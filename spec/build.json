@@ -3436,9 +3436,9 @@
   {
     "id": "AR0437",
     "title": "A CI wait still cancels a hung run below the tip, whose end it no longer tells",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0437-a-ci-wait-still-cancels-a-hung-run-below-the-tip-whose-end-it-no-longer-tells/ticket.md",
-    "updated": "2026-10-29T02:02:46.362Z"
+    "updated": "2026-10-29T02:32:19.717Z"
   },
   {
     "id": "AR0438",

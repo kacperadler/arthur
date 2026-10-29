@@ -870,6 +870,21 @@ test("a block with stop on a job there stops its run there and holds it blocked 
 	await endedThere(there, job.id);
 });
 
+test("arthur stop ends a job there blocked on the user here, without SSH; arthur prune then frees it there and here", async () => {
+	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Blocked: user is AR0455 met by AR0454?" }] }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "blocked");
+	await jobs.sweep();
+	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["blocked", "user: is AR0455 met by AR0454?"]);
+	assert.equal(await jobs.stop(job.id), `${job.id}: stopped`);
+	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["ended", "stopped"]);
+	assert.deepEqual(events(home, "job-ended").map((data) => data.reason), ["user: is AR0455 met by AR0454?", "stopped"]);
+	assert.equal(calls().some((call) => call.includes("'remote-job' 'stop'")), false, "its state here is the one that counts");
+	const worktree = join(there, "repos/.arthur-worktrees", job.id);
+	assert.deepEqual(jobs.prune([job.id]), [`${job.id}: worktree ${worktree} removed there; branch ${job.branch} deleted there; branch ${job.branch} deleted; record deleted`]);
+	assert.deepEqual([existsSync(worktree), existsSync(join(there, "jobs", job.id)), existsSync(join(home, "jobs", job.id))], [false, false, false]);
+});
+
 test("jobs.limits' feature must name its slice in letters and digits, or the spawn is refused before anything exists", async () => {
 	const { home, jobs } = setup({ caps: () => [{ feature: { name: "AC-1" } }] });
 	await assert.rejects(jobs.spawn({ task: "Go." }), { message: 'jobs.limits: feature.name must be letters and digits, got "AC-1"' });

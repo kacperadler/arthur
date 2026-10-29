@@ -18,6 +18,8 @@ import { findings } from "@arthur/findings";
 import * as findingsFile from "@arthur/findings/options";
 import { github } from "@arthur/github";
 import * as githubFile from "@arthur/github/options";
+import { listen } from "@arthur/listen";
+import * as listenFile from "@arthur/listen/options";
 import { machines } from "@arthur/machines";
 import * as machinesFile from "@arthur/machines/options";
 import { manage } from "@arthur/manage";
@@ -42,8 +44,6 @@ import { uptime } from "@arthur/uptime";
 import * as uptimeFile from "@arthur/uptime/options";
 import { video } from "@arthur/video";
 import * as videoFile from "@arthur/video/options";
-import { voice } from "@arthur/voice";
-import * as voiceFile from "@arthur/voice/options";
 import { youtrack } from "@arthur/youtrack";
 import * as youtrackFile from "@arthur/youtrack/options";
 
@@ -70,7 +70,7 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	manage: [manageFile, manage()],
 	develop: [developFile, develop()],
 	findings: [findingsFile, findings()],
-	voice: [voiceFile, voice()],
+	listen: [listenFile, listen()],
 	video: [videoFile, video()],
 };
 

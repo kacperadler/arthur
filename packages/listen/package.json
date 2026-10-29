@@ -1,0 +1,10 @@
+{
+  "name": "@arthur/listen",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/listen.ts",
+    "./options": "./src/listen-options.ts"
+  }
+}

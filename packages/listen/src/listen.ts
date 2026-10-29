@@ -3,22 +3,22 @@ import type { Claim, Part } from "@arthur/core/parts";
 import type { Plugin } from "@arthur/core/plugin";
 import { type Transcript, transcriber } from "./transcribe.ts";
 import { transcribeCommand } from "./transcribe-command.ts";
-import { checkOptions, type VoiceOptions, voiceOptions } from "./voice-options.ts";
-import { requirements } from "./voice-tools.ts";
+import { checkOptions, type ListenOptions, listenOptions } from "./listen-options.ts";
+import { requirements } from "./listen-tools.ts";
 
-// The voice plugin (spec/roadmap.md, entry 81; AR0550): every `voice` and `audio` part from any channel reaches the
-// coordinator as its text, transcribed on this server by whisper.cpp; `voice.transcribe` and `arthur transcribe` do the same
-// for any file, through the same queue. docs/voice.md.
+// The listen plugin (spec/roadmap.md, entry 81; AR0550, renamed from voice in AR0554): every `voice` and `audio` part from
+// any channel reaches the coordinator as its text, transcribed on this server by whisper.cpp; `listen.transcribe` and
+// `arthur transcribe` do the same for any file, through the same queue. docs/listen.md.
 
-export function voice(options: { readonly enabled?: boolean } & Partial<VoiceOptions> = {}): Plugin {
+export function listen(options: { readonly enabled?: boolean } & Partial<ListenOptions> = {}): Plugin {
 	return {
-		name: "voice",
+		name: "listen",
 		module: import.meta.url,
 		options,
 		check: checkOptions,
-		doctor: (given, core) => requirements(voiceOptions(given), join(core.home, "voice")),
+		doctor: (given, core) => requirements(listenOptions(given), join(core.home, "listen")),
 		setup(host) {
-			const loaded = voiceOptions(host.options);
+			const loaded = listenOptions(host.options);
 			const transcribe = transcriber(host, loaded);
 			host.provide("message.part", (part: Part): Promise<Claim> | undefined => {
 				if ((part.kind !== "voice" && part.kind !== "audio") || part.path === undefined) return undefined;
@@ -30,8 +30,8 @@ export function voice(options: { readonly enabled?: boolean } & Partial<VoiceOpt
 				});
 			});
 			// Any file by its path, for the coordinator and other plugins: its transcript, or an error saying why there is none.
-			host.provide("voice.transcribe", async (path: unknown): Promise<Transcript> => {
-				if (typeof path !== "string" || path.trim() === "") throw new Error(`voice.transcribe: expected a file's path, got ${JSON.stringify(path)}`);
+			host.provide("listen.transcribe", async (path: unknown): Promise<Transcript> => {
+				if (typeof path !== "string" || path.trim() === "") throw new Error(`listen.transcribe: expected a file's path, got ${JSON.stringify(path)}`);
 				const done = await transcribe(resolve(path));
 				if ("text" in done) return done;
 				throw new Error(done.over ? `${path}: audio of ${done.seconds} s is over maxSeconds ${loaded.maxSeconds}; not transcribed` : `${path}: not transcribed: ${done.why}`);

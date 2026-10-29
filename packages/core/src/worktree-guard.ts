@@ -3,6 +3,7 @@ import { basename, dirname, join, resolve, sep } from "node:path";
 import { linkedFolders, linkName } from "./git-link.ts";
 import { gitCall, UNREAD } from "./git-writes.ts";
 import { declaredPlace, jobPlace, type Place, real } from "./job-place.ts";
+import { commandIndex } from "./command-index.ts";
 import { type Command, type Item, literal, shellCommands } from "./shell-words.ts";
 
 // The worktree guard (spec/roadmap.md, entry 20): an OMP extension the wrapper loads into every job with `-e`, beside the env guard, that refuses a tool call
@@ -14,20 +15,13 @@ import { type Command, type Item, literal, shellCommands } from "./shell-words.t
 type Verdict = { block: true; reason: string } | undefined;
 type ExtensionApi = { on(event: "tool_call", handler: (event: { readonly toolName: string; readonly input: Readonly<Record<string, unknown>> }) => Verdict): void };
 
-// Commands that run the command after them, with their options that take a value: `timeout 60 rm x` is `rm`. The long options are there as their sources list them (sudo's `parse_args.c`, coreutils' `env.c`, `timeout.c`, `nice.c` and `stdbuf.c`, util-linux's `ionice.c`, GNU time's `time.c`, findutils' `xargs.c`; master, 2026-10), a newer one missing, with `=` after those that take a value (not xargs' optional ones, which take one only after `=`, as `-i`, `-e` and `-l` take one only in their word): getopt_long reads a word as the option it names whole, else as the options it is a prefix of, which run the command only when they agree on taking a value; none that takes a value is the whole name of one and a prefix of one that does not (`sudo --login` is, and takes none).
-const WRAPPERS: Readonly<Record<string, readonly string[]>> = {
-	...Object.fromEntries(["command", "builtin", "exec", "nohup", "setsid", "unbuffer", "chrt"].map((name) => [name, []])),
-	...{ sudo: ["-u", "-g", "-h", "-p", "-a", "-c", "-r", "-t", "-C", "-D", "-R", "-T", "-U", "--auth-type=", "--close-from=", "--login-class=", "--chdir=", "--group=", "--host=", "--prompt=", "--chroot=", "--role=", "--type=", "--other-user=", "--command-timeout=", "--user=", "--askpass", "--bell", "--background", "--preserve-env", "--edit", "--set-home", "--help", "--login", "--remove-timestamp", "--reset-timestamp", "--list", "--no-update", "--non-interactive", "--preserve-groups", "--stdin", "--shell", "--version", "--validate"], doas: ["-u", "-C"], env: ["-a", "-u", "-C", "-S", "--argv0=", "--env0-from=", "--unset=", "--chdir=", "--quoting-style=", "--split-string=", "--ignore-environment", "--null", "--block-signal", "--default-signal", "--ignore-signal", "--list-signal-handling", "--debug", "--help", "--version"], time: ["-f", "-o", "--format=", "--output=", "--output-file=", "--append", "--portability", "--quiet", "--verbose", "--help", "--version"], timeout: ["-s", "-k", "--signal=", "--kill-after=", "--foreground", "--preserve-status", "--verbose", "--help", "--version"], nice: ["-n", "--adjustment=", "--help", "--version"], ionice: ["-c", "-n", "-p", "-P", "-u", "--class=", "--classdata=", "--pid=", "--pgid=", "--uid=", "--ignore", "--help", "--version"], stdbuf: ["-i", "-o", "-e", "--input=", "--output=", "--error=", "--help", "--version"], xargs: ["-n", "-P", "-I", "-L", "-s", "-a", "-d", "-E", "--arg-file=", "--delimiter=", "--max-args=", "--max-chars=", "--max-procs=", "--process-slot-var=", "--max-lines", "--replace", "--eof", "--null", "--open-tty", "--interactive", "--no-run-if-empty", "--verbose", "--show-limits", "--exit", "--help", "--version"] },
-};
-// Words that start a command without being one.
-const RESERVED = ["{", "}", "!", "if", "then", "else", "elif", "do", "while", "until"];
 const SHELLS = ["bash", "sh", "zsh", "dash", "ksh"];
 // A command that may change every operand, and one that writes only its last operand or the folder after `-t`.
 const WRITES = ["mv", "rm", "rmdir", "touch", "mkdir", "truncate", "chmod", "chown", "chgrp", "unlink", "shred", "patch", "tee", "sponge"];
 const COPIES = ["cp", "install", "rsync", "scp"];
 const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save your staged and unstaged changes in a folder your worktree ignores instead (mkdir -p .arthur-stash && echo '*' > .arthur-stash/.gitignore && git diff --binary HEAD > .arthur-stash/patch, then git apply .arthur-stash/patch)";
 const UNSEEN = "arthur: refused: this git call reads config the guard does not (a shell alias, an include, --config-env, GIT_CONFIG*, HOME or XDG_CONFIG_HOME set for it), or writes an alias or include that later git calls would run unseen; run the command itself instead";
-const OLDPWD_UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes, or by an unquoted `~name` (a user's home or a `dirs` entry); or the command holds a backslash-newline after a character other than a blank, or in `$'…'`, or any after a heredoc's `<<`, where bash joins the lines, or a `<<` after `((` or `$[`, which bash may read as arithmetic; or HOME, ARTHUR_JOB or PWD is set by the call, which the guard reads as the job started, or a variable `export`, `declare`, `typeset`, `readonly`, `local`, `env` or `sudo` sets is named other than by a plain name (letters, digits and `_`, not first a digit, written as is); name the folder instead, on one line";
+const OLDPWD_UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes, or by an unquoted `~name` (a user's home or a `dirs` entry); or the command holds a backslash-newline after a character other than a blank, or in `$'…'`, or any after a heredoc's `<<`, where bash joins the lines, or a `<<` after `((` or `$[`, which bash may read as arithmetic; or HOME, ARTHUR_JOB or PWD is set by the call, which the guard reads as the job started, or a variable `export`, `declare`, `typeset`, `readonly`, `local`, `env` or `sudo` sets is named other than by a plain name (letters, digits and `_`, not first a digit, written as is); or the string `env -S` splits holds a backslash, a backtick, a `$`, a `~`, a line break or one of `;&|<>()`, which env reads apart from bash; name the folder instead, on one line";
 
 const inside = (path: string, folder: string): boolean => path === folder || path.startsWith(folder.endsWith(sep) ? folder : folder + sep);
 
@@ -43,23 +37,6 @@ function refusal(place: Place, path: string, shown = path, named = true): string
 	return name ? `arthur: refused: this call writes into ${name} (${shown}); a job writes only in its own worktree ${place.worktree}, outside Arthur's checkouts, home folder, install and config, and the user's own files` : linking;
 }
 
-// The index in `words` of the command they run, after assignments, reserved words and wrappers with their options (-1 if none), and the folders `env -C` and `sudo -D` run it in. A cluster takes a value after its first letter that does (`-iC dir`, `-iCdir`); a long option is any prefix of those that agree on taking a value (`env --c=dir`, `sudo --us root`, `time --out f`).
-function commandIndex(words: readonly string[], dirs: string[] = []): [number, string[]] {
-	for (let index = 0; index < words.length; ) {
-		const name = basename(words[index]!);
-		const [values, flag] = [Object.hasOwn(WRAPPERS, name) ? WRAPPERS[name]! : undefined, name === "env" ? "C" : name === "sudo" ? "D" : ""];
-		if (values === undefined && !RESERVED.includes(words[index]!) && !/^[A-Za-z_]\w*(\[[^\]]*\])?\+?=/.test(words[index]!)) return [index, dirs];
-		for (index++; values !== undefined && index < words.length && /^-|^[\d.]+[smhd]?$/.test(words[index]!); ) {
-			const [word, at, long] = [words[index]!, /^-[^-]/.test(words[index]!) ? [...words[index]!].findIndex((letter, position) => position > 0 && values.includes(`-${letter}`)) : -1, /^(--[^=]+)(=?)/.exec(words[index]!)];
-			const options = long === null ? [] : values.filter((each) => each.startsWith(long[1]!)), option = new Set(options.map((each) => each.endsWith("="))).size === 1 ? options[0] : undefined;
-			const takes = at > 0 ? at === word.length - 1 : long !== null ? option?.endsWith("=") === true && long[2] === "" : values.includes(word);
-			if (at > 0 ? word[at] === flag : option === "--chdir=") dirs.push(takes ? (words[index + 1] ?? "") : word.slice(at > 0 ? at + 1 : word.indexOf("=") + 1));
-			index += takes ? 2 : 1;
-		}
-	}
-	return [-1, dirs];
-}
-
 // Whether a bash command run in `start` writes into a guarded place, or a `.git` or `commondir`: a redirect, a writing command (`rm`, `mv`, `sed -i`, `cp` into
 // it, `ln` to or in it, `dd of=`, `find -delete` or `-exec`), a `git` write aimed at it (also by `GIT_DIR=`, `GIT_WORK_TREE=`, `GIT_INDEX_FILE=`,
 // `GIT_OBJECT_DIRECTORY=` or `GIT_COMMON_DIR=` before it or after `env`, an alias its `-c` gives, or a link of its folders), any `git stash`, a `git config`
@@ -67,7 +44,7 @@ function commandIndex(words: readonly string[], dirs: string[] = []): [number, s
 // point a checkout at a branch another worktree holds (`--ignore-other-worktrees`, `checkout -B`, `symbolic-ref`), `git replace` but a list, one that rewrites
 // the repository every worktree shares (`gc`, `prune`, `repack`, `reflog expire`, `maintenance`, `filter-repo`, `worktree prune`, `worktree add` or `move`
 // outside the worktrees folder, `gc.*` or `maintenance.*` config given or written), or one of these after a `cd` there. The command is the word after
-// assignments and wrappers (`sudo`, `timeout 60`), also in `bash -c`, a shell's heredoc, `eval`; each path is resolved from where the commands before it left
+// assignments and wrappers (`sudo`, `timeout 60`, the words `env -S` splits), also in `bash -c`, a shell's heredoc, `eval`; each path is resolved from where the commands before it left
 // (`cd`, `cd -`, `pushd`, `git -C`, a subshell undoing them; `env -C` and `sudo -D` for the command alone, not the redirects the shell opens or its `$PWD`), through symlinks, with `$HOME`, `$ARTHUR_JOB` and `$PWD` known; one of them set by the call, before a command but `git` (which refuses it as config unseen), alone or by `export`, `declare`, `typeset`, `readonly` or `local`, or any name one of those builtins, `env` or `sudo` sets that is not a plain name (letters, digits and `_`, not first a digit, with no expansion, glob, brace list, index or escape: `export {HOME,X}=…`, `env HOM[E]=…`, `export HOM@(E)=…`, `export $v=…`), is refused as unknown, every word being read with the values the job started with. Not seen: a path built at run time (another `$x`, a glob, a brace list, what `xargs` reads, an `OLDPWD` `read` sets, a `GIT_DIR` exported before), a program that writes (`node -e`, `tar -C`, `curl -o`), an alias in the user's Git config, a link the same call makes and uses, or a ref no worktree has checked out moved from the job's own worktree. It is not a sandbox. A backslash-newline after a character other than a blank, or in `$'…'` (which keeps it where the parser decodes it away), or any after a heredoc's `<<`, in the call or in what a shell or `eval` in it runs (`$'…'` may make one there), is unknown (`\0`): bash joins the lines there and the parser does not (AR0493); so is a `<<` after `((` or `$[`, which bash may read as arithmetic and the parser as a heredoc.
 function bashRefusal(place: Place, command: string, start: string): string | undefined {
 	let cwd = start;
@@ -90,7 +67,13 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 	};
 	const judge = (command: Command, moved = false, arithmetic = false): string | undefined => {
 		const [raw, words] = [command.words.map(here), command.words.map((word) => literal(here(word)))];
-		const [at, dirs] = commandIndex(words), verb = basename(words[at] ?? ""), declares = ["export", "declare", "typeset", "readonly", "local"].includes(verb), from = declares ? at : words.findIndex((word) => ["env", "sudo"].includes(basename(word))), named = (index: number) => from >= 0 && index > from && index <= (declares ? words.length : at);
+		const [at, dirs, split] = commandIndex(words), verb = basename(words[at] ?? ""), declares = ["export", "declare", "typeset", "readonly", "local"].includes(verb), from = declares ? at : words.findIndex((word) => ["env", "sudo"].includes(basename(word))), named = (index: number) => from >= 0 && index > from && index <= (declares ? words.length : at);
+		// The words `env -S` splits its string into replace its option and value, as bash splits them when the string holds none of the characters env reads apart; a word bash built at run time stays so, one up to the value at the first word the string gives.
+		if (split !== undefined && /[\\`$~;&|<>()\n]/.test(split[1])) return OLDPWD_UNKNOWN;
+		if (split !== undefined) {
+			const [end, spliced] = [split[0], [...command.words.slice(0, at), ...parse(split[1]).flatMap((item) => (typeof item === "string" ? [] : item.words))]];
+			return judge({ ...command, words: [...spliced, ...command.words.slice(end)], dynamic: command.dynamic?.map((index) => (index < end ? at : index - end + spliced.length)) });
+		}
 		if ([...command.words, ...command.writes].some((word) => word.includes("\0") || ((!previous || previous.includes("\0")) && /(^|=)~-(\/|$)/.test(literal(word)))) || command.words.some((word, index) => /^OLDPWD(\[(?!\d+\])|\+=\(|=\(\[)/.test(word) || (index < at && /^OLDPWD(\[|=\()/.test(word)))) return OLDPWD_UNKNOWN;
 		if (command.words.some((word, index) => named(index) && !(declares ? /^[-+]/ : /^-|^[^=]*$/).test(word) && !/^[A-Za-z_]\w*(\+?=|$)/.test(word)) || command.dynamic?.some(named) || words.some((word, index) => /^(?:HOME|ARTHUR_JOB|PWD)(?:\[[^\]]*\])?\+?=/.test(word) && (at < 0 || (index < at && verb !== "git") || declares))) return OLDPWD_UNKNOWN;
 		const redirected = theirs(command.writes.map((word) => literal(here(word))));

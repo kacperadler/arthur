@@ -1,24 +1,37 @@
 import { spawnSync } from "node:child_process";
-import { type Dirent, lstatSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync } from "node:fs";
-import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { type Dirent, existsSync, lstatSync, readdirSync, readlinkSync, realpathSync, rmSync, type Stats, statSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { basename, dirname, join, relative, sep } from "node:path";
 
 // The sweep after each step `arthur merge` runs on main (merge-checks.ts, AR0463, AR0466): every repository below the checkout's
 // top that a step left is removed, so no git call there runs its config outside any sandbox. docs/commands/merge.md, "Checks on main".
 
-// Each repository `before` (`repositories(root, () => true)` before the first step) does not hold, the same, after `command` ran,
-// read once more first where python3 failed (AR0479): removed, one line each to `log`, saying so where python3 failed on one there before.
-export function sweep(root: string, before: ReadonlyMap<string, string>, command: string, log: (line: string) => void): void {
-	for (const [path, seen] of [...repositories(root, escapes)].map(([path, first]) => [path, first.startsWith(UNREAD) ? stamp(join(root, path)) : first] as const)) {
-		if (before.get(path) === seen) continue;
+// What the sweep holds as the owner's own (AR0490): each repository below main's checkout `root` as it is now, before `git merge`
+// (stepRunner), so what the branch commits is a step's to the sweep, every symlink there one, and the folders a step writes: the
+// checkout's `.git`, the temporary folder and `/dev`, as the step's sandbox has them (`host.sandbox`), and `writes` (the merge's caches), each by its real path.
+type Owned = { readonly repositories: ReadonlyMap<string, string>; readonly writes: readonly string[] };
+export function owned(root: string, writes: readonly string[]): Owned {
+	const places = [join(realpathSync(root), ".git"), ...[tmpdir(), "/dev", ...writes].map((folder) => realpathSync(folder))];
+	return { repositories: repositories(root, () => true, places), writes: places };
+}
+
+// Each repository `owner` does not hold, the same, after `command` ran, read once more first where python3 failed (AR0479): removed,
+// one line each to `log`, saying so where python3 failed on one there before, or where a symlink's target a step writes was unread.
+export function sweep(root: string, owner: Owned, command: string, log: (line: string) => void): void {
+	for (const [path, seen] of [...repositories(root, escapes, owner.writes)].map(([path, first]) => [path, first.startsWith(UNREAD) ? stamp(join(root, path)) : first] as const)) {
+		const before = owner.repositories.get(path);
+		if (before === seen && !seen.endsWith(UNSEEN)) continue;
 		const failure = remove(join(root, path));
-		log(`${failure === "" ? `removed ${path}, which ${command} left` : `${path}, which ${command} left, could not be removed (${failure})`}: ${before.has(path) && [before.get(path), seen].some((one) => one?.startsWith(UNREAD)) ? "python3 failed to read the extended attributes of its Git folders, so a git read there could not be told from a change" : "a git call in that folder would run its config outside any sandbox"}`);
+		const why = seen.endsWith(UNSEEN) ? "its target, in a folder a step writes, could not be read, so a repository there could not be told from the owner's own" : before !== undefined && [before, seen].some((one) => one.startsWith(UNREAD)) ? "python3 failed to read the extended attributes of its Git folders, so a git read there could not be told from a change" : "a git call in that folder would run its config outside any sandbox";
+		log(`${failure === "" ? `removed ${path}, which ${command} left` : `${path}, which ${command} left, could not be removed (${failure})`}: ${why}`);
 	}
 }
 
 // Each repository below the checkout's top by its path from `root`, stamped: a `.git`; a folder holding a `HEAD`, which git takes
-// as a Git folder whatever its name; a symlink `counts` (AR0466): every one before the first step, so one there then and the same
-// stays whatever its target became, one that `escapes` after a step. Not walked: the checkout's own `.git`, a repository's inside, a symlink's target.
-export function repositories(root: string, counts: (top: string, link: string) => boolean): Map<string, string> {
+// as a Git folder whatever its name; a symlink `counts` (AR0466): every one before `git merge`, so one there then and the same
+// stays whatever its target became, unless it leads into a folder a step writes, `writes` (`linked`); one that `escapes` after a
+// step. Not walked: the checkout's own `.git`, a repository's inside, a symlink's target.
+function repositories(root: string, counts: (top: string, link: string) => boolean, writes: readonly string[]): Map<string, string> {
 	const found = new Map<string, string>();
 	const top = realpathSync(root);
 	const folders = [root];
@@ -31,30 +44,66 @@ export function repositories(root: string, counts: (top: string, link: string) =
 		for (const entry of listed) {
 			const path = join(folder, entry.name);
 			if (entry.name === ".git") {
-				if (folder !== root) found.set(relative(root, path), stamp(path));
+				if (folder !== root) found.set(relative(root, path), entry.isSymbolicLink() ? linked(path, writes) : stamp(path));
 			} else if (entry.isDirectory()) folders.push(path);
-			else if (entry.isSymbolicLink() && counts(top, path)) found.set(relative(root, path), stamp(path));
+			else if (entry.isSymbolicLink() && counts(top, path)) found.set(relative(root, path), linked(path, writes));
 		}
 	}
 	return found;
 }
 
 // Whether a git call through the symlink `link` would look for a repository where the sweep does not walk: its target is a folder
-// outside the checkout's real top `top`, or in its `.git`. A dangling one is judged by its nearest existing folder and the rest of
-// its path, as a folder may come there later; one to a file stays, as no git call runs in it (a venv's `python`).
+// outside the checkout's real top `top`, or in its `.git`; one to a file stays, as no git call runs in it (a venv's `python`).
 function escapes(top: string, link: string): boolean {
-	let rest = "";
-	for (let path = resolve(dirname(link), readlinkSync(link)); ; [path, rest] = [dirname(path), join(basename(path), rest)]) {
-		let real: string;
+	const { path, folder } = target(link);
+	const first = relative(top, path).split(sep)[0];
+	return folder && (first === ".." || first === ".git");
+}
+
+// Where the symlink `link` leads, as the kernel follows it from its folder's real path, part by part (AR0490): each symlink on
+// the way, `link` first, a folder's too, by its path, and where it ends: a real path, or a dangling one's nearest existing folder's
+// joined with the rest of its path, as a folder may come there later, or, after 40 links, the kernel's limit, the rest unfollowed; and whether a folder may be there.
+function target(link: string): { readonly hops: readonly string[]; readonly path: string; readonly folder: boolean } {
+	const [hops, rest] = [[] as string[], [basename(link)]];
+	let at = realpathSync(dirname(link));
+	while (rest.length > 0 && hops.length < 40) {
+		const next = join(at, rest[0] ?? "");
+		let stat: Stats;
 		try {
-			real = realpathSync(path);
+			stat = lstatSync(next);
 		} catch {
-			continue;
+			break;
 		}
-		if (rest === "" && !statSync(real).isDirectory()) return false;
-		const first = relative(top, join(real, rest)).split(sep)[0];
-		return first === ".." || first === ".git";
+		rest.shift();
+		if (!stat.isSymbolicLink()) at = next;
+		else {
+			hops.push(next);
+			const text = readlinkSync(next);
+			if (text.startsWith(sep)) at = sep;
+			rest.unshift(...text.split(sep).filter(Boolean));
+		}
 	}
+	return { hops, path: join(at, ...rest), folder: rest.length > 0 || statSync(at).isDirectory() };
+}
+
+// A symlink by its own stamp and, where it leads into a folder of `writes` or through a symlink there, which a step can point
+// elsewhere, by each link's on the way, where it ends and its target's stamp too (AR0490), "missing" while none is there, so a
+// step that puts a repository there, in place of a file or in a folder, or points a link on the way at one, changes it; and by the
+// `.git` and `HEAD` of each folder above where it ends and above each link, from the folder of `writes` down, where git, walking
+// up from its working folder, would find a repository a step made there. `UNSEEN` for a target it cannot read.
+const UNSEEN = "target unread";
+function linked(link: string, writes: readonly string[]): string {
+	const { hops, path } = target(link);
+	const inside = (folder: string, each: string) => each === folder || each.startsWith(`${folder}${sep}`);
+	const ends = [...hops, path];
+	if (!ends.some((each) => writes.some((folder) => inside(folder, each)))) return stamp(link);
+	const above = ends.flatMap((each) => writes.filter((folder) => inside(folder, each) && each !== folder).flatMap((folder) => {
+		const parents = [dirname(each)];
+		while (parents.at(-1) !== folder) parents.push(dirname(parents.at(-1) ?? folder));
+		return parents.flatMap((parent) => [".git", "HEAD"].map((name) => join(parent, name)));
+	}));
+	const seen = existsSync(path) ? stamp(path) : "missing";
+	return [...hops.map((hop) => `${hop} ${stamp(hop)}`), ...above.map((each) => `${each} ${existsSync(each) ? stamp(each) : "missing"}`), path, seen === "unreadable" ? UNSEEN : seen].join("\n");
 }
 
 // A repository by the inode, owner, group, mode and change time, which a write, a rename, a chmod, a chgrp or an ACL sets and no step

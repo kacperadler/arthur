@@ -76,8 +76,8 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	// A resumed run continues the agent's last session in the worktree, which is the job's own, with `resume` as its message after `--`, text even when it starts with `-` or `@` (AR0487); the task `@<record>/task` goes before it, as omp includes a file only from there.
 	const args = (resume: string | undefined) => [
 		...(resume === undefined ? [] : ["--continue"]),
-		...["-p", "--mode", "json", "--auto-approve", "--tools", branch === "" ? READ_ONLY_TOOLS : WORKER_TOOLS],
-		// The role's MCP servers when the spawn wrote them (job-record.ts); the overlay keeps a read-only role without `write`.
+		...["-p", "--mode", "json", "--auto-approve", "--config", resolve(import.meta.dirname, "job-omp.yml"), "--tools", branch === "" ? READ_ONLY_TOOLS : WORKER_TOOLS],
+		// The role's MCP servers when the spawn wrote them (job-record.ts); their overlay, after omp's settings of every job (job-omp.yml), keeps a read-only role without `write`.
 		...(existsSync(join(folder, "mcp")) ? ["--plugin-dir", join(folder, "mcp"), "--config", join(folder, "mcp.yml")] : []),
 		...["--append-system-prompt", join(folder, "prompt")],
 		// The core's extensions, then those the plugins registered (`extensions`, paths from this folder: job-record.ts).

@@ -3883,9 +3883,9 @@
   {
     "id": "AR0490",
     "title": "A symlink or a HEAD folder the branch itself commits is kept by the sweep",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0490-a-symlink-or-a-head-folder-the-branch-itself-commits-is-kept-by-the-sweep/ticket.md",
-    "updated": "2026-10-29T08:11:20.101Z"
+    "updated": "2026-10-29T09:39:07.848Z"
   },
   {
     "id": "AR0491",
@@ -3944,9 +3944,9 @@
   {
     "id": "AR0497",
     "title": "A long option of the other wrappers followed by its value still hides the command",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0497-a-long-option-of-the-other-wrappers-followed-by-its-value-still-hides-the/ticket.md",
-    "updated": "2026-10-28T18:06:59.855Z"
+    "updated": "2026-10-29T09:39:09.514Z"
   },
   {
     "id": "AR0498",

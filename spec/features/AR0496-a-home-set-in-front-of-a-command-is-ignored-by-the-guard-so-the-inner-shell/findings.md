@@ -11,4 +11,20 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/worktree-guard.ts:95`
 - What: AR0496 refuses a call that sets HOME, ARTHUR_JOB or PWD by an assignment (before a command, alone, or by `export`, `declare`, `typeset`, `readonly`, `local`). It also refuses a name one of those builtins sets that holds a `$` or a backtick (`export $v=…`). Other builtins set these variables too, and the guard still reads the job's own values. Each of these passed the guard (as temporary pass rows in the table test of `packages/core/test/worktree-guard.test.ts`), and real bash deleted `../../acme/README.md` from a folder two levels below it: `for HOME in ../../acme; do rm $HOME/README.md; done`, `read HOME <<< ../../acme; rm $HOME/README.md`, `printf -v HOME ../../acme; rm $HOME/README.md`, `declare -n x=HOME; x=../../acme; bash -c 'rm $HOME/README.md'`. Review 2026-10-28-review-3a3446cb saw `v=HOME; eval $v=../../acme; rm ~/README.md` pass the guard. `eval` rereads its arguments once they are expanded, and by then the name is gone; this branch does not change the path `eval` takes. `mapfile`, `getopts` and `select` are untried. [INFERENCE] they behave the same.
 - Suggestion: refuse a call where `for`/`select` loops over a known name, `read`, `mapfile`, `readarray` or `getopts` names one, `printf -v` targets one, or `declare -n`/`local -n`/`typeset -n` refers to one. All of these use the same unknown refusal. For `eval`: refuse an `eval` whose command is `dynamic` (shell-words.ts) and whose reread text holds a word starting with `=`. Unsetting a known variable (`unset HOME`) stays out: it empties the path and points it at `/`, not at a checkout.
-- Status: open
+- Status: deferred (client summary)
+
+## F2. A glob as the command after `env` or `sudo` still passes the guard
+
+- Kind: security
+- Found by: 2026-10-29-review-a8180493 (review), 2026-10-29
+- Where: `packages/core/src/worktree-guard.ts`
+- What: `env HOM* ...` (and `env X* ...` at the base) is not judged; older than this branch, left out of the round by AR-D305.
+- Status: deferred (client summary)
+
+## F3. `HOME` set inside `env -S` still passes the guard
+
+- Kind: security
+- Found by: 2026-10-29-review-a8180493 (review), 2026-10-29
+- Where: `packages/core/src/worktree-guard.ts:95`
+- What: `env -SHOME=...`, `env -iSHOME=...` and `env --split-string=HOME=...` pass; env splits that string into assignments and a command.
+- Status: ticket AR0498

@@ -9,7 +9,7 @@ import { video } from "../src/video.ts";
 import { videoOptions } from "../src/video-options.ts";
 
 // The video plugin against the fake host, with a fake `ffprobe` and `ffmpeg` on PATH that print and exit as the real ones do,
-// and the test as the voice plugin, answering `voice.transcribe`. A video's file is JSON that tells the fakes what it holds:
+// and the test as the listen plugin, answering `listen.transcribe`. A video's file is JSON that tells the fakes what it holds:
 // its length, a sound track, its scene changes, a step that fails or hangs. docs/video.md.
 
 type Step = "probe" | "frames" | "sound";
@@ -66,19 +66,19 @@ function fakes(tools: readonly string[] = ["ffprobe", "ffmpeg"]) {
 	return { dir, calls };
 }
 
-// What the test, as the voice plugin, answers `voice.transcribe`: its answer, or the error it rejects with; null, no voice plugin.
-type Voice = ((wav: string) => { readonly seconds: number; readonly text: string; readonly segments: readonly { readonly start: number; readonly end: number; readonly text: string }[] } | Error) | null;
+// What the test, as the listen plugin, answers `listen.transcribe`: its answer, or the error it rejects with; null, no listen plugin.
+type Listen = ((wav: string) => { readonly seconds: number; readonly text: string; readonly segments: readonly { readonly start: number; readonly end: number; readonly text: string }[] } | Error) | null;
 
-const HELLO: Voice = () => ({ seconds: 12, text: "Hello there. How are you?", segments: [{ start: 0, end: 1.46, text: "Hello there." }, { start: 1.46, end: 3, text: "How are you?" }] });
+const HELLO: Listen = () => ({ seconds: 12, text: "Hello there. How are you?", segments: [{ start: 0, end: 1.46, text: "Hello there." }, { start: 1.46, end: 3, text: "How are you?" }] });
 
-// The plugin set up with `options`, only `tools` on PATH, and `voice` answering `voice.transcribe` when given.
-async function load(options: Readonly<Record<string, unknown>> = {}, voice: Voice = HELLO, tools?: readonly string[]) {
+// The plugin set up with `options`, only `tools` on PATH, and `listen` answering `listen.transcribe` when given.
+async function load(options: Readonly<Record<string, unknown>> = {}, listen: Listen = HELLO, tools?: readonly string[]) {
 	const fake = fakeHost({ name: "video", options });
 	const asked: { wav: string; there: boolean }[] = [];
-	if (voice !== null)
-		fake.provide("voice.transcribe", async (wav: string) => {
+	if (listen !== null)
+		fake.provide("listen.transcribe", async (wav: string) => {
 			asked.push({ wav, there: existsSync(wav) });
-			const answer = voice(wav);
+			const answer = listen(wav);
 			if (answer instanceof Error) throw answer;
 			return answer;
 		});
@@ -132,7 +132,7 @@ test("a video becomes [video <seconds> s] <transcript> frames: <path at s>, ... 
 	const frame = (n: number) => join(folder, `frame-${n}.png`);
 	assert.equal(line, `[video 12 s] (0-1.5 s) Hello there. (1.5-3 s) How are you? frames: ${frame(1)} at 0 s, ${frame(2)} at 5 s, ${frame(3)} at 10 s (${path})`);
 	assert.equal(dirname(folder), fake.host.folder, "everything the plugin writes is in its own folder");
-	assert.deepEqual(asked, [{ wav: join(folder, "sound.wav"), there: true }], "voice.transcribe gets the WAV through the host, while it is there");
+	assert.deepEqual(asked, [{ wav: join(folder, "sound.wav"), there: true }], "listen.transcribe gets the WAV through the host, while it is there");
 	assert.deepEqual(files(), [1, 2, 3].map((n) => join(folder.split("/").at(-1) ?? "", `frame-${n}.png`)));
 	const sound = calls().find((call) => call.step === "sound")?.args;
 	assert.deepEqual(sound?.slice(sound.indexOf("-map"), -1), ["-map", "0:a:0", "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le"]);
@@ -157,7 +157,7 @@ test("frames at each everySeconds step and at scene changes, at most maxFrames, 
 	assert.equal(framesOf(await turn(part(clip({ seconds: 60 })))).length, 12, "exactly maxFrames when the video holds more");
 });
 
-test("a video with no sound track: its frames and no sound; ffmpeg takes no WAV and the voice plugin is not asked", async () => {
+test("a video with no sound track: its frames and no sound; ffmpeg takes no WAV and the listen plugin is not asked", async () => {
 	const { clip, part, turn, calls, asked } = await load();
 	const path = clip({ seconds: 7 });
 	assert.deepEqual((await turn(part(path))).replace(/ frames: .*/, ""), "[video 7 s: no sound]");
@@ -165,15 +165,15 @@ test("a video with no sound track: its frames and no sound; ffmpeg takes no WAV 
 	assert.deepEqual([calls().filter((call) => call.step === "sound"), asked], [[], []]);
 });
 
-test("the voice plugin not enabled, failing or hearing nothing: the frames, and why there are no words; the WAV goes", async () => {
-	const cases: readonly (readonly [Voice, string])[] = [
-		[null, "not transcribed: the voice plugin is not enabled"],
+test("the listen plugin not enabled, failing or hearing nothing: the frames, and why there are no words; the WAV goes", async () => {
+	const cases: readonly (readonly [Listen, string])[] = [
+		[null, "not transcribed: the listen plugin is not enabled"],
 		[(wav) => new Error(`${wav}: not transcribed: whisper-cli missing; see arthur doctor`), "not transcribed: whisper-cli missing; see arthur doctor"],
 		[(wav) => new Error(`${wav}: audio of 12 s is over maxSeconds 5; not transcribed`), "not transcribed: audio of 12 s is over maxSeconds 5; not transcribed"],
 		[() => ({ seconds: 12, text: "", segments: [] }), "no speech"],
 	];
-	for (const [voice, why] of cases) {
-		const { clip, part, turn, files } = await load({}, voice);
+	for (const [listen, why] of cases) {
+		const { clip, part, turn, files } = await load({}, listen);
 		const line = await turn(part(clip({ seconds: 12, sound: true })));
 		assert.equal(line.replace(/ frames: .*/, ""), `[video 12 s: ${why}]`);
 		assert.deepEqual(framesOf(line), ["frame-1.png at 0", "frame-2.png at 5", "frame-3.png at 10"]);
@@ -181,7 +181,7 @@ test("the voice plugin not enabled, failing or hearing nothing: the frames, and 
 	}
 });
 
-test("ffmpeg failing on the sound track or past timeoutSeconds: the frames, and why; the half-written WAV goes and the voice plugin is not asked", async () => {
+test("ffmpeg failing on the sound track or past timeoutSeconds: the frames, and why; the half-written WAV goes and the listen plugin is not asked", async () => {
 	const { clip, part, turn, files, asked } = await load({ timeoutSeconds: 1 });
 	const line = await turn(part(clip({ seconds: 12, sound: true, fail: { sound: "Error while decoding stream #0:1: Invalid data found when processing input" } })), part(clip({ seconds: 12, sound: true, hang: "sound" })));
 	assert.deepEqual(

@@ -9,7 +9,7 @@ export type InstanceOptions = { readonly name?: string; readonly tokenEnv: strin
 export type Wake = "ci-finished" | "pull-request-review";
 export type GithubOptions = { readonly enabled?: boolean; readonly instances: readonly InstanceOptions[]; readonly poll?: { readonly everySeconds?: number }; readonly wakeOn?: readonly Wake[] };
 
-export const summary = "GitHub accounts, named and unnamed: CI runs polled, ci-finished once per run attempt, arthur ci and --rerun, branches pushed, pull request reviews";
+export const summary = "GitHub accounts, named and unnamed: CI runs polled, ci-finished once per run attempt, arthur ci and --rerun, branches pushed, pull request reviews, arthur github pr reads";
 
 export const tools: readonly Tool[] = [];
 
@@ -24,7 +24,7 @@ const INSTANCE: Readonly<Record<string, ValueOption>> = {
 		default: "none: the unnamed instance, for every other owner",
 		check: (value) => (typeof value === "string" && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(value) ? undefined : "a GitHub owner in lowercase: letters, digits and single dashes"),
 	},
-	tokenEnv: { about: "The variable holding a token that reads Actions of the owner's repositories", check: (value) => (typeof value === "string" && value !== "" ? undefined : "the name of an env variable") },
+	tokenEnv: { about: "The variable holding a token of the owner's repositories with Actions: read, and Pull requests: read for reviews and arthur github pr", check: (value) => (typeof value === "string" && value !== "" ? undefined : "the name of an env variable") },
 	apiUrl: {
 		about: "The REST API's address; GitHub Enterprise Server's is https://<host>/api/v3",
 		default: API_URL,

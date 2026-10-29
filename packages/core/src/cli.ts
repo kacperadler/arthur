@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { type Command, type CommandRegistry, commandRegistry } from "./commands.ts";
+import { type Command, type CommandRegistry, commandRegistry, groupPage } from "./commands.ts";
 import { configCheck } from "./config-check.ts";
 import { type LoadedConfig, loadConfig } from "./config.ts";
 import { type DoctorLine, doctor, ownAnswers, printAtStart } from "./doctor.ts";
@@ -42,7 +42,7 @@ async function main(argv: readonly string[]): Promise<number> {
 	const { commands, problem, project: known, home } = await load();
 	const command = commands.find(name);
 	if (command === undefined) return unknown(name, commands, problem);
-	if (args.includes("--help")) return printDoc(command);
+	if (args.includes("--help")) return printDoc(command, args[0]);
 	// Inside a job (inside-job.ts, AR0354) only a command that declares `inJob` runs (AR0353); the plugins' commands are known
 	// only once they loaded, which every command a job may run loads too.
 	const job = insideJob(home);
@@ -188,12 +188,12 @@ function unknown(name: string, commands: CommandRegistry, problem: string | unde
 
 function notLoaded(problem: string): string { return `only the core's commands are listed: arthur.config.ts did not load:\n${problem}`; }
 
-// The doc file existed when the command was registered; it may have been deleted since.
-function printDoc(command: Command): number {
+// The doc file existed when the command was registered; it may have been deleted since. `word`, the first after the command, may name a group's page.
+function printDoc(command: Command, word?: string): number {
 	if (!existsSync(command.doc)) {
 		console.error(`arthur ${command.name}: its doc file ${fileURLToPath(command.doc)} was deleted after Arthur loaded`);
 		return 1;
 	}
-	process.stdout.write(readFileSync(command.doc, "utf8"));
+	process.stdout.write(readFileSync(groupPage(command.doc, word), "utf8"));
 	return 0;
 }

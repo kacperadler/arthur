@@ -75,7 +75,7 @@ flowchart TD
       end
       subgraph DELIV[Delivery and trackers]
         delivery[delivery<br/>review, merge, hand-back, changelog<br/>auto-merge after a PASS and green CI]
-        github[github<br/>polls CI runs, PR reviews<br/>arthur ci, reruns, pushes]
+        github[github<br/>polls CI runs, PR reviews<br/>arthur ci, reruns, pushes<br/>arthur github: PR reads]
         youtrack[youtrack<br/>reads and writes issues, articles<br/>comments, attachments, rules for jobs]
         delivery ~~~ github ~~~ youtrack
       end
@@ -135,7 +135,7 @@ flowchart TD
   projects -->|clones| repos
   models -->|probes| providers
   docker -.->|labels, sweeps| dockerd
-  github -->|polls CI runs, PR reviews; reruns| gh
+  github -->|polls CI runs, PR reviews; reruns; reads PRs| gh
   github -->|pushes reviewed branches, main| repos
   youtrack -.->|reads, writes| yt
   telegram -.->|polls, sends| tg

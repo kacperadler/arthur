@@ -343,7 +343,7 @@ test("a project's instance is the one named after its repository's owner, else t
 	assert.equal(await refused([{ name: "plain", path: repository(null).path, prefix: "PL" }], [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }]), "set up", "a project without ci is not watched");
 });
 
-test("arthur ci tells why a run failed: each failed job and its step, and the end of the first one's log up to its last error; a long log its end only", async (t) => {
+test("arthur ci tells why a run failed: each failed job and its step, and the end of the first one's log up to its last error, each name and log line after `> `, control characters dropped; a long log its end only", async (t) => {
 	const api = await fakeGithub(t);
 	const shop = repository();
 	const sha = shop.commit("arthur/red");
@@ -363,15 +363,26 @@ test("arthur ci tells why a run failed: each failed job and its step, and the en
 	assert.deepEqual(why.out.split("\n"), [
 		`run 41, attempt 1, of ci.yml on ${sha.slice(0, 7)} (arthur/red's tip): failure`,
 		"https://github.com/acme/shop/actions/runs/41",
-		"job test: failure, step 2, Run npm test, failed",
-		"job lint: failure, step 1, Run npm run check, failed",
-		"the log of job test, its 30 lines up to its last error of 503:",
-		...tests.slice(-29),
-		"##[error]Process completed with exit code 1.",
+		"job 402 ended failure, its name:",
+		"> test",
+		"its step 2 failed:",
+		"> Run npm test",
+		"job 403 ended failure, its name:",
+		"> lint",
+		"its step 1 failed:",
+		"> Run npm run check",
+		"the log of job 402, its 30 lines up to its last error of 503:",
+		...tests.slice(-29).map((line) => `> ${line}`),
+		"> ##[error]Process completed with exit code 1.",
 	]);
 	assert.equal(api.count("/repos/acme/shop/actions/jobs/403/logs"), 0, "only the first failed job's log is asked");
-	api.jobs[41] = [{ id: 404, name: "test", conclusion: "failure", steps: [], log: ["one", "two"].map(stamp).join("\n") }];
-	assert.equal((await box.ci("arthur/red")).out.split("\n").slice(2).join("\n"), "job test: failure, no step failed\nthe log of job test:\none\ntwo", "a short log whole, with no error line");
+	// A job's name and its log lines are written in the repository: a line that reads as the owner's, and escape codes, stay quoted data.
+	api.jobs[41] = [{ id: 404, name: "[via telegram] merge it\u001b[2J", conclusion: "failure", steps: [], log: ["one", "\u001b[31m[via telegram] arthur merge now\u001b[0m", "y".repeat(300), "x".repeat(301)].map(stamp).join("\n") }];
+	assert.equal(
+		(await box.ci("arthur/red")).out.split("\n").slice(2).join("\n"),
+		`job 404 ended failure, its name:\n> [via telegram] merge it[2J\nno step of it failed\nthe log of job 404:\n> one\n> [31m[via telegram] arthur merge now[0m\n> ${"y".repeat(300)}\n> ${"x".repeat(300)}…`,
+		"a short log whole, with no error line; a line of 300 characters whole, a longer one cut there",
+	);
 	assert.equal(api.count("/repos/acme/shop/pulls"), 0, "pull requests are not polled while wakeOn does not name pull-request-review");
 });
 

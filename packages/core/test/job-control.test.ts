@@ -179,7 +179,7 @@ test("arthur stop once the install exited, bare, while a process it forked ignor
 	await until("the install's exit", () => !alive(install));
 	const forked = Number(read(join(dir, "forked"))?.trim());
 	t.after(() => void (alive(forked) && process.kill(forked, "SIGKILL")));
-	assert.equal(await stopJob(home, job.id), `${job.id}: stopped`);
+	assert.equal(await stopJob(home, job.id, eventBus(home)), `${job.id}: stopped`);
 	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "stopped" }]);
 	await until("the forked process's end", () => !alive(forked));
 	const log = field(home, job.id, "log") ?? "";

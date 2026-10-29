@@ -429,7 +429,7 @@ test("a drop ends the hand-back of its ticket's worker, which goes with its bran
 	assert.deepEqual([step(two.id), reviews(fake)], [undefined, [second.id]], "no review after the second; the first went with its dropped ticket's prune");
 });
 
-test("a review in its run when its ticket is dropped is kept, then pruned when it ends: its FAIL hands nothing back, files nothing and tells the coordinator nothing", async (t) => {
+test("a review in its run when its ticket is dropped is kept, then pruned when it ends: its FAIL hands nothing back, files nothing, its wake says just that, and the coordinator gets no other word", async (t) => {
 	const { root, fake, git, worker, review, ended, agent, state, step, home } = await load(t, { start: true });
 	const told = () => fake.emitted.flatMap((event) => (event.name === "coordinator-message" && typeof event.data === "object" && event.data !== null && "text" in event.data ? [String(event.data.text)] : []));
 	const one = await worker(`Ticket: ${OTHER}`);
@@ -447,9 +447,14 @@ test("a review in its run when its ticket is dropped is kept, then pruned when i
 	t.mock.method(console, "error", (text: string) => void failed.push(text));
 	writeFileSync(gate, "");
 	await ended(id);
+	// Right after its end's handlers the job is still there: a wake (orchestration's, whatever the plugins' order) reads its final message; the prune comes after.
+	assert.deepEqual([state(id), fake.host.jobs.result(id)], ["ended", "Missing test.\n\nFAIL"]);
+	const wake = fake.collect<string | undefined>("coordinator.wake", { id, kind: "review", project: "acme", state: "ended", reason: "finished" }, "Missing test.\n\nFAIL");
+	assert.deepEqual(wake, [`Review ${id} ended on AC0002, which is dropped: it is not filed, nothing is handed back, and delivery prunes it with the ticket's other jobs. Nothing to do.`]);
+	await until("the review pruned", () => state(id) === "");
 	t.mock.restoreAll();
 	assert.ok(said.includes(`delivery: AC0002 dropped: ${id}: worktree ${checkout} removed; record deleted`), said.join("\n"));
-	assert.deepEqual([state(id), failed, fake.host.board.get("AC0002")?.status], ["", [], "dropped"], "the review's record went with its end; its verdict moves no dropped ticket");
+	assert.deepEqual([failed, fake.host.board.get("AC0002")?.status], [[], "dropped"], "its verdict moves no dropped ticket");
 	// A FAIL of another ticket after it: once its worker is continued, the hand-back has acted on the first end (one queue).
 	const two = await worker();
 	await review("Missing test.\n\nFAIL", two.id);

@@ -24,6 +24,8 @@ The coordinator manages a project's GitHub from `arthur github ...`: pull reques
 ## Done means
 
 - A plan, approved by the owner, that names: the commands (`arthur github pr list|get|create|comment|close|merge`, `arthur github issue list|get|create|comment|label|close`, `arthur github branch list|delete`; creating a pull request and an issue are required, the owner 2026-10-29), each with its doc page and refusals; which are reads and which are writes; that a write runs only on the owner's word, as YouTrack's; that a pull request merge on GitHub never bypasses `arthur merge`'s review and CI rules (or is left out); that every text read from GitHub reaches the coordinator marked as data; the token's least scopes; the plugin's line budget; the tickets it splits into, each neither a one-liner nor the whole plugin.
+- Each group of commands (pull requests, issues, branches, CI) lives in its own source file and doc page (the owner, 2026-10-29).
+- Started after the 22 fixes of queue Q1-Q3 (the owner, 2026-10-29).
 - The fake GitHub in tests answers in the shape GitHub's REST documentation shows, every field.
 
 ## Scope
@@ -36,3 +38,4 @@ Out:
 - Webhooks: the plugin keeps polling (vision, "GitHub without webhooks").
 
 ## Decisions
+- 2026-10-29: AR0556 planning approved, started after the 22 fixes of Q1-Q3; each group of commands (pull requests, issues, branches, CI) in its own source file; the owner: "AR-D302 1 / AR-D303 1 / GitHub management commands - this we will do in the future, maybe after this 22 tickets and remember to create a sepparated files to each group of functionallity" (AR-D302)

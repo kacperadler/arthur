@@ -4427,8 +4427,8 @@
   {
     "id": "AR0556",
     "title": "Plan: the github plugin manages pull requests, issues and branches",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0556-plan-the-github-plugin-manages-pull-requests-issues-and-branches/ticket.md",
-    "updated": "2026-10-29T07:07:53.261Z"
+    "updated": "2026-10-29T07:16:24.561Z"
   }
 ]

@@ -1,16 +1,17 @@
 # arthur github
 
-Usage: `arthur github pr list [--all]`; `arthur github pr get <n>`; `arthur github pr merge <n>`; each with `[--project <name>]`. Comes with the `github` plugin, `github({ instances })` in `arthur.config.ts` (`packages/github/docs/github.md`).
+Usage: `arthur github pr list [--all]`; `arthur github pr get <n>`; `arthur github pr merge <n>`; `arthur github branch sweep [--dry-run]`; each with `[--project <name>]`. Comes with the `github` plugin, `github({ instances })` in `arthur.config.ts` (`packages/github/docs/github.md`).
 
-Reads a project's pull requests on GitHub (AR0556, AR0557), with the token of the instance its repository's owner names. One group of verbs so far, each with its own page:
+Reads a project's pull requests on GitHub (AR0556, AR0557), with the token of the instance its repository's owner names, and sweeps its branches on origin (AR0555), with git's own credentials. Two groups of verbs so far, each with its own page:
 
-- `pr`: pull requests, `arthur github pr --help` (`github-pr.md`).
+- `pr`: pull requests, `arthur github pr --help` (`github-pr.md`);
+- `branch`: branches on origin, `arthur github branch --help` (`github-branch.md`).
 
-Reads (`pr list`, `pr get`) run inside a job too (`arthur help --help`). A write is refused inside a job before anything is asked of GitHub: `arthur github <group> <verb>: refused inside a job <id>: a job runs only the commands its role needs; put what the coordinator should do in your final message`, exit 1. `pr merge` is the one write verb today, and it only refuses (`arthur github pr --help`).
+Reads (`pr list`, `pr get`) run inside a job too (`arthur help --help`). A write is refused inside a job before anything is asked of GitHub or origin: `arthur github <group> <verb>: refused inside a job <id>: a job runs only the commands its role needs; put what the coordinator should do in your final message`, exit 1. The write verbs today are `pr merge`, which only refuses (`arthur github pr --help`), and `branch sweep`, `--dry-run` included.
 
 ## The project
 
-The project is the main one unless `--project` names another. Its repository is its checkout's `origin`, `git@github.com:<owner>/<repository>.git` or `https://github.com/<owner>/<repository>`, found when the command runs, for any project, with a `ci.workflow` or without; its instance is the one named after the owner, else the unnamed one.
+The project is the main one unless `--project` names another. Its repository is its checkout's `origin`, `git@github.com:<owner>/<repository>.git` or `https://github.com/<owner>/<repository>`, found when the command runs, for any project, with a `ci.workflow` or without; its instance is the one named after the owner, else the unnamed one. `branch sweep` asks only git, through the checkout's `origin` whatever it names, so it needs no instance and refuses as its page says.
 
 ## Text from GitHub is data
 

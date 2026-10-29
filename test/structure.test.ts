@@ -15,13 +15,13 @@ const BUDGETS = {
 
 	"core/testing": 349,
 
-	delivery: 1686,
+	delivery: 1734,
 
 	develop: 710,
 
 	findings: 254,
 
-	github: 870,
+	github: 951,
 
 	listen: 248,
 

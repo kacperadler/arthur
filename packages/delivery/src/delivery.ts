@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
-import { matchesGlob } from "node:path";
+import { readFileSync, rmSync } from "node:fs";
+import { basename, join, matchesGlob } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
 import { entryOf } from "./auto-merge.ts";
 import { changelogCommand } from "./changelog.ts";
@@ -7,11 +7,12 @@ import { type CiEnd, type CiWaits, ciEnded, ciWaits } from "./ci-wait.ts";
 import { ALWAYS_REVIEW, checkOptions, STEP_SECONDS } from "./delivery-options.ts";
 import { CANCELLED, type HandBack, handBack } from "./hand-back.ts";
 import { identityRequirement, mergeCommand } from "./merge-command.ts";
-import { reviewCommand, reviewTask, worker } from "./review-command.ts";
+import { FEATURE, reviewCommand, reviewTask, worker } from "./review-command.ts";
 import { reviewFiler } from "./review-file.ts";
 import { reviewNeededCommand } from "./review-needed.ts";
 import { failsSincePass, LIMIT, type Review, readReview, saveReview, settle, type Verdict, verdictOf } from "./review-records.ts";
 import { takeMainCommand } from "./take-main.ts";
+import { pruneTicket } from "./ticket-prune.ts";
 
 // The delivery plugin (spec/roadmap.md, entry 52): the kind `review`, a read-only job on the reviewer role in a detached checkout
 // of a worker's branch, on `roles.reviewer`'s model in a session of its own. It moves its ticket to review as it starts, and its
@@ -27,6 +28,8 @@ const REVIEW = "review";
 const TICKET = /^spec\/features\/([A-Z]+\d{4,})-[^/]+\/ticket\.md$/;
 // The statuses a reviewed ticket may have: its worker started it, and a review moves it to review.
 const REVIEWED = ["in-progress", "review", "done"];
+// A job's id, `<date>-<kind>-<8 hex digits>`, the one name of a job's folder here.
+const JOB = /^\d{4}-\d\d-\d\d-[a-z0-9-]+-[0-9a-f]{8}$/;
 
 export function delivery(options: { readonly enabled?: boolean; readonly review?: { readonly alwaysReview?: readonly string[] }; readonly merge?: { readonly stepSeconds?: number } } = {}): Plugin {
 	let loop: HandBack | undefined;
@@ -63,13 +66,20 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 				const review = readReview(host, typeof data === "object" && data !== null && "id" in data ? data.id : undefined);
 				if (review !== undefined) host.board.move(review.ticket, "review");
 			});
+			// A dropped ticket's jobs freed, an unmerged branch too, and each that was in a run once it ends (AR0555); the lines go to the log.
+			const dropped = (project: string, ticket: string) => pruneTicket(host, project, ticket, [], true).forEach((line) => console.log(`delivery: ${ticket} dropped: ${line}`));
 			host.events.on("job-ended", ({ data }) => {
 				const id = typeof data === "object" && data !== null && "id" in data ? data.id : undefined;
 				const review = readReview(host, id);
 				const verdict = review && settle(host, review);
 				// Every run's end goes to the hand-back (queued, so it acts after the moves below); a PASS's branch is pushed.
 				if (typeof id === "string") back.ended(id, review, verdict);
-				if (review === undefined || (verdict !== "PASS" && verdict !== "FAIL")) return;
+				// A dropped ticket's job is pruned as the drop prunes, once every handler of this end has read it (orchestration's wake
+				// reads its final message), whatever the order of the plugins; the drop ended its hand-back already.
+				const job = host.jobs.list().find((each) => each.id === id);
+				for (const ticket of new Set(job?.tickets.map((path) => basename(FEATURE.exec(path)?.[1] ?? "").split("-")[0] ?? "")))
+					if (job !== undefined && host.board.get(ticket)?.status === "dropped") setImmediate(() => dropped(job.project, ticket));
+				if (review === undefined || (verdict !== "PASS" && verdict !== "FAIL") || host.board.get(review.ticket)?.status === "dropped") return;
 				host.board.move(review.ticket, verdict === "PASS" ? "done" : "in-progress");
 				if (verdict === "FAIL") return;
 				// The plugin that provides `github.push` (entry 58), when one is loaded, pushes the reviewed branch: its line goes to the log.
@@ -77,11 +87,21 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 				void Promise.all(host.collect<Promise<string>>("github.push", branch)).then((lines) => lines.forEach((line) => console.log(line)));
 			});
 			host.events.on("stop-all", () => back.cancel());
+			host.events.on("ticket-moved", ({ data }) => {
+				const { id, project, to } = (data ?? {}) as { readonly id?: unknown; readonly project?: unknown; readonly to?: unknown };
+				if (to === "dropped" && typeof id === "string" && typeof project === "string") dropped(project, id);
+			});
+			// Asked by the core's prune: the job's own folder here (`checks`, `review-needed`, the CI wait) goes with its record;
+			// delivery's record of a review, `reviews/<id>.json`, stays for the FAIL counts and the costs.
+			host.provide("jobs.keep", ({ id }: { readonly id: string }) => void (JOB.test(id) && rmSync(join(host.folder, id), { recursive: true, force: true })));
 			// Asked with the job-ended data and the final message the wake shows: a review of this home by its record, one in
 			// no home (an eval's) by the record its data names.
 			host.provide("coordinator.wake", (job: Readonly<Record<string, unknown>>, result?: unknown) => {
 				const review = job.kind === REVIEW ? readReview(host, job.id) : undefined;
 				const seen = review ? recorded(host, review) : job.kind === REVIEW ? named(job, result) : undefined;
+				// A review of a ticket dropped before it ended: nothing of the verdict's steps happens (AR0555).
+				if (seen !== undefined && host.board.get(seen.review.ticket)?.status === "dropped")
+					return `Review ${seen.review.id} ended on ${seen.review.ticket}, which is dropped: it is not filed, nothing is handed back, and delivery prunes it with the ticket's other jobs. Nothing to do.`;
 				return seen ? wake(seen, procedure) : back.wake(job.id);
 			});
 			host.commands.register(reviewCommand(host, procedure));

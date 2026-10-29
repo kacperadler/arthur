@@ -392,8 +392,8 @@ test("a continue or review refused at maxAgents waits for the next end of a run,
 	assert.equal(reviews(fake).length, 2);
 });
 
-test("a refusal by the core or by delivery itself, which no freed slot lifts, ends the hand-back and tells the coordinator once", async (t) => {
-	const { fake, worker, review, ended, field, step } = await load(t, { start: true });
+test("a drop ends the hand-back of its ticket's worker, which goes with its branch, and tells the coordinator nothing; a refusal by delivery itself, which no freed slot lifts, ends the hand-back and tells the coordinator once", async (t) => {
+	const { root, fake, git, worker, review, ended, field, step } = await load(t, { start: true });
 	let [full, asked] = [false, 0];
 	fake.beforeSpawn((spawn) => (asked++, full && spawn.kind === "worker" ? "maxAgents is 1 and 1 job is in a run: other; spawn again once one ends" : undefined));
 	const told = () => fake.emitted.flatMap((event) => (event.name === "coordinator-message" && typeof event.data === "object" && event.data !== null && "text" in event.data ? [String(event.data.text)] : []));
@@ -401,20 +401,20 @@ test("a refusal by the core or by delivery itself, which no freed slot lifts, en
 	// Another plugin's refusal is tried again at each run's end, silently.
 	const one = await worker(`Ticket: ${OTHER}`);
 	full = true;
-	const failed = await review("Missing test.\n\nFAIL", one.id);
+	await review("Missing test.\n\nFAIL", one.id);
 	await until("the continue refused", () => asked === 3);
 	other();
 	await until("the continue refused again", () => asked === 4);
 	assert.deepEqual([step(one.id), told()], ["continue", []]);
-	// The core's: its ticket dropped meanwhile.
+	// Its ticket dropped meanwhile (F1 of AR0555): the hand-back ends, and the worker and its review go as the ticket's other jobs do.
 	full = false;
+	const said: string[] = [];
+	t.mock.method(console, "log", (text: string) => void said.push(text));
 	fake.host.board.move("AC0002", "dropped");
-	other();
-	await until("the hand-back ended", () => step(one.id) === undefined);
-	const core = `refused by core: AC0002 is dropped, which cannot move to in-progress; a worker starts on a ticket that is planned, in-progress, review, done`;
-	const stopped = `Delivery's hand-back of ${one.branch} after FAIL ${failed.id} stopped: ${core}. Hand it back yourself: arthur continue ${one.id} '<the findings of ${failed.id}>', then arthur review ${one.id} once it ends.`;
-	assert.deepEqual(told(), [stopped]);
-	// A later run's end is acted on before the next hand-back's (one queue): it neither continues the worker nor says it again.
+	t.mock.restoreAll();
+	assert.ok(said.includes(`delivery: AC0002 dropped: ${one.branch} deleted, not merged: AC0002 is dropped`), said.join("\n"));
+	assert.deepEqual([step(one.id), field(one.id, "state"), git(root, "branch", "--list", one.branch), reviews(fake)], [undefined, undefined, "", []]);
+	// A later run's end continues no one and says nothing.
 	other();
 	// Delivery's own: the review's ticket moved back to planning by hand while the worker ran.
 	const two = await worker();
@@ -423,10 +423,45 @@ test("a refusal by the core or by delivery itself, which no freed slot lifts, en
 	await until("the continued run's end", () => fake.host.jobs.result(two.id).startsWith("Missing test."));
 	fake.host.board.move("AC0001", "planning");
 	await ended(two.id);
-	await until("the review refused", () => told().length === 2);
-	assert.match(told()[1] ?? "", new RegExp(`^Delivery's hand-back of ${two.branch} after FAIL ${second.id} stopped: refused by delivery: AC0001 is planning; a review is of a ticket in-progress, review or done\\. Hand it back yourself: `));
-	assert.deepEqual([step(two.id), reviews(fake).length], [undefined, 2]);
-	assert.equal(field(one.id, "continue"), undefined, "never continued");
+	await until("the review refused", () => told().length > 0);
+	assert.equal(told().length, 1, told().join("\n"));
+	assert.match(told()[0] ?? "", new RegExp(`^Delivery's hand-back of ${two.branch} after FAIL ${second.id} stopped: refused by delivery: AC0001 is planning; a review is of a ticket in-progress, review or done\\. Hand it back yourself: `));
+	assert.deepEqual([step(two.id), reviews(fake)], [undefined, [second.id]], "no review after the second; the first went with its dropped ticket's prune");
+});
+
+test("a review in its run when its ticket is dropped is kept, then pruned when it ends: its FAIL hands nothing back, files nothing, its wake says just that, and the coordinator gets no other word", async (t) => {
+	const { root, fake, git, worker, review, ended, agent, state, step, home } = await load(t, { start: true });
+	const told = () => fake.emitted.flatMap((event) => (event.name === "coordinator-message" && typeof event.data === "object" && event.data !== null && "text" in event.data ? [String(event.data.text)] : []));
+	const one = await worker(`Ticket: ${OTHER}`);
+	const gate = join(temporaryFolder(), "gate");
+	agent({ steps: [{ waitFor: gate }, { message: "Missing test.\n\nFAIL" }] });
+	const said: string[] = [];
+	t.mock.method(console, "log", (text: string) => void said.push(text));
+	await fake.commands[0]?.run({ args: [one.id], project: undefined });
+	const id = said[0] ?? "";
+	const checkout = readFileSync(join(home, "jobs", id, "worktree"), "utf8");
+	fake.host.board.move("AC0002", "dropped");
+	assert.ok(said.includes(`delivery: AC0002 dropped: ${id}: kept: it is in a run; once it ends, delivery prunes it, its branch too`), said.join("\n"));
+	assert.ok(said.includes(`delivery: AC0002 dropped: ${one.branch} deleted, not merged: AC0002 is dropped`), said.join("\n"));
+	const failed: string[] = [];
+	t.mock.method(console, "error", (text: string) => void failed.push(text));
+	writeFileSync(gate, "");
+	await ended(id);
+	// Right after its end's handlers the job is still there: a wake (orchestration's, whatever the plugins' order) reads its final message; the prune comes after.
+	assert.deepEqual([state(id), fake.host.jobs.result(id)], ["ended", "Missing test.\n\nFAIL"]);
+	const wake = fake.collect<string | undefined>("coordinator.wake", { id, kind: "review", project: "acme", state: "ended", reason: "finished" }, "Missing test.\n\nFAIL");
+	assert.deepEqual(wake, [`Review ${id} ended on AC0002, which is dropped: it is not filed, nothing is handed back, and delivery prunes it with the ticket's other jobs. Nothing to do.`]);
+	await until("the review pruned", () => state(id) === "");
+	t.mock.restoreAll();
+	assert.ok(said.includes(`delivery: AC0002 dropped: ${id}: worktree ${checkout} removed; record deleted`), said.join("\n"));
+	assert.deepEqual([failed, fake.host.board.get("AC0002")?.status], [[], "dropped"], "its verdict moves no dropped ticket");
+	// A FAIL of another ticket after it: once its worker is continued, the hand-back has acted on the first end (one queue).
+	const two = await worker();
+	await review("Missing test.\n\nFAIL", two.id);
+	await until("the second worker continued", () => step(two.id) === "continued");
+	assert.deepEqual([step(one.id), told(), git(root, "branch", "--list", one.branch), existsSync(join(home, "jobs", one.id))], [undefined, [], "", false]);
+	const filed = join(root, dirname(OTHER));
+	assert.deepEqual(existsSync(filed) ? readdirSync(filed).filter((name) => name.startsWith("review-")) : [], [], "the dropped ticket's FAIL is not filed");
 });
 
 test("stop-all cancels the hand-back: between the worker's end and its review, before a FAIL's end is acted on, and while a review starts", async (t) => {

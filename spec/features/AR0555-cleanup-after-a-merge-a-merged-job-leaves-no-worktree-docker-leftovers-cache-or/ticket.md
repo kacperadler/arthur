@@ -44,3 +44,4 @@ Out:
 - 2026-10-29: AR0555 approved: a planner writes the plan, then it is built; the owner: "AR-D301 1 but should be also able to create pull requests and issues" (AR-D301)
 - 2026-10-29: Plan approved by the owner: plan.md at 7ee53d43; the owner: "AR-D328 1" (AR-D328)
 - 2026-10-29: Start AR0555 (cleanup after a merge) once AR0557 merges; AR-D330 stop otherwise stands; the owner: "Go with clinup after merge" (AR-D333)
+- 2026-10-29: AR0555: github line budget 870 -> 951, delivery 1686 -> 1723, as the plan approved in AR-D328; the owner: "AR-D328 1" (AR-D335)

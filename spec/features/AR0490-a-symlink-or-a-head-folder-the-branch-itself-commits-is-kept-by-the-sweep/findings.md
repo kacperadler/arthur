@@ -44,7 +44,16 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 
 - Kind: ux
 - Found by: 2026-10-29-review-99b84863 (review), 2026-10-29
-- Where: `packages/delivery/src/merge-sweep.ts:96`
+- Where: `packages/delivery/src/merge-sweep.ts:105`
 - What: the snapshot is taken before `git merge`, and a target's stamp is recursive. `git merge` itself updates `refs/heads/<main>` and the logs, so such a link's target changed by the first step and the link is removed. That is the safe direction, but the owner loses the link. Read from the code by the reviewer.
 - Suggestion: take a second look at such links right after `git merge`, before the first step, for the part of `.git` the merge writes. Out: links into the folders a step writes elsewhere.
+- Status: open
+
+## F6. An owner's link to the delivery folder is removed after the first step of every merge
+
+- Kind: ux
+- Found by: 2026-10-29-review-358ec032 (review), 2026-10-29
+- Where: `packages/delivery/src/merge-command.ts:135`, `packages/delivery/test/merge.test.ts` (`what the branch itself commits counts as a step's to the sweep`)
+- What: the delivery folder is a folder a step writes (the merge's caches go there), so an owner's link to it is judged by its target. Each merge adds a `cache_` folder there, which changes it, so the link goes after the first step. The merge test shows it. That is the safe direction, but the owner loses the link.
+- Suggestion: pass the merge's cache folders to the sweep instead of the whole delivery folder, made before the runner. Out: the other folders a step writes.
 - Status: open

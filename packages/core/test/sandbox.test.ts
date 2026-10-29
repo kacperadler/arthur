@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
-import { homedir, tmpdir } from "node:os";
+import { homedir, tmpdir, userInfo } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -10,7 +10,8 @@ import { pathToFileURL } from "node:url";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
-import { sandboxed, stepSandbox, writable } from "../src/job-sandbox.ts";
+import { hidden, sandboxed, stepSandbox, writable } from "../src/job-sandbox.ts";
+import { guardedPlaces } from "../src/job-place.ts";
 import { jobRunner } from "../src/jobs.ts";
 import { fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
 
@@ -211,6 +212,19 @@ test("writable: the worktree, the record, the Git folders a commit writes, the t
 	assert.deepEqual(writable(record, worktree, `${extension}\n`), [worktree, record, join(dotGit, "worktrees", "2026-10-24-worker-0a1b2c3d"), join(dotGit, "objects"), join(dotGit, "refs"), join(dotGit, "logs"), tmpdir(), "/dev", join(homedir(), ".omp"), join(home, "delivery", "2026-10-24-worker-0a1b2c3d")]);
 	assert.equal(existsSync(join(home, "delivery", "2026-10-24-worker-0a1b2c3d")), true);
 	assert.deepEqual(writable(record, join(folder, "gone"), ""), [join(folder, "gone"), record, tmpdir(), "/dev", join(homedir(), ".omp")], "no Git folder for a worktree Git does not know");
+});
+
+test("the hidden ~/.ssh and the guarded file's ssh lines are the user account's, where OpenSSH looks, and $HOME's too only when it is another absolute folder (AR0515)", (t) => {
+	const folder = temporaryFolder();
+	const [user, account] = [userInfo().homedir, join(userInfo().homedir, ".ssh")];
+	const saved = process.env.HOME;
+	t.after(() => (saved === undefined ? delete process.env.HOME : (process.env.HOME = saved)));
+	writeFileSync(join(folder, "guarded"), `env ${join(folder, "env")}\nssh ${join(folder, "planted")}\n`);
+	for (const [home, expected] of [[folder, [account, join(folder, ".ssh")]], [user, [account]], [`${user}/`, [account]], ["", [account]], [undefined, [account]]] as const) {
+		home === undefined ? delete process.env.HOME : (process.env.HOME = home);
+		assert.deepEqual(hidden(folder), [join(folder, "env"), ...expected], `HOME=${home}`);
+		assert.deepEqual(guardedPlaces().split("\n").filter((line) => line.startsWith("ssh ")), expected.map((path) => `ssh ${path}`), `HOME=${home}`);
+	}
 });
 
 test("a merge step writes main's checkout but not its Git config, hooks or info, Arthur's home, config or env file, a new top-level entry, nor through a link", { skip: bare }, (t) => {
@@ -448,16 +462,19 @@ test("an install that empties the record's guarded list does not unhide the env 
 	}
 });
 
-test("a job's install, its agent across a continue that found the guarded list emptied, and a merge step cannot read ~/.ssh (AR0508)", { skip: bare }, async (t) => {
+test("a job's install, its agent across a continue that found the guarded list emptied, and a merge step cannot read ~/.ssh, $HOME's nor the user account's where $HOME is elsewhere (AR0508, AR0515)", { skip: bare }, async (t) => {
 	const { folder, root, home } = repository();
 	const user = join(folder, "user");
 	const key = join(user, ".ssh", "id_fake");
+	const account = join(userInfo().homedir, ".ssh");
 	mkdirSync(dirname(key), { recursive: true });
 	writeFileSync(key, "FAKE-PRIVATE-KEY\n");
 	const saved = process.env.HOME;
 	t.after(() => (saved === undefined ? delete process.env.HOME : (process.env.HOME = saved)));
 	process.env.HOME = user;
-	const read = `{ cat '${key}' || echo refused; } >> ssh-read 2>&1`;
+	// The account's own `~/.ssh` is the user's real one: the job only counts the bytes it reads of its files (the sandbox hides a
+	// file's content, not a folder's entries), never copies them, and reads none where it is hidden (or missing).
+	const read = `{ cat '${key}' || echo refused; } >> ssh-read 2>&1; cat '${account}'/* 2>/dev/null | wc -c >> account-read`;
 	const agent = join(folder, "agent");
 	writeFileSync(agent, `#!/bin/sh\n${read}\n: > "$ARTHUR_JOB/guarded"\n`, { mode: 0o755 });
 	const time = clock("UTC", undefined, () => new Date("2026-10-24T08:00:00Z"));
@@ -469,11 +486,16 @@ test("a job's install, its agent across a continue that found the guarded list e
 	assert.equal(readFileSync(join(record, "guarded"), "utf8"), "", "the agent emptied the guarded list");
 	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
 	await until("the second job-ended", () => (readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2 ? true : undefined));
-	const reads = readFileSync(join(readFileSync(join(record, "worktree"), "utf8"), "ssh-read"), "utf8");
+	const worktree = readFileSync(join(record, "worktree"), "utf8");
+	const reads = readFileSync(join(worktree, "ssh-read"), "utf8");
 	assert.equal(reads.match(/Permission denied\nrefused\n/g)?.length, 4, "the install and the agent, in both runs");
 	assert.doesNotMatch(reads, /FAKE-PRIVATE-KEY/);
-	assert.match(readFileSync(join(record, "log"), "utf8"), new RegExp(`\\] sandbox: the install writes only in .*, reads every file but ${join(root, "env")}, ${join(user, ".ssh")}, `));
+	assert.deepEqual(readFileSync(join(worktree, "account-read"), "utf8").split(/\s+/).filter(Boolean), ["0", "0", "0", "0"], "the install and the agent, in both runs");
+	const log = readFileSync(join(record, "log"), "utf8");
+	for (const who of ["the install", "the agent"]) assert.match(log, new RegExp(`\\] sandbox: ${who} writes only in .*, reads every file but ${join(root, "env")}, ${account}, ${join(user, ".ssh")}, `), who);
 	const step = stepSandbox(root, join(folder, "merge-cache"), { envFile: join(root, "env"), home, config: join(root, "arthur.config.ts") }, () => {});
+	const [, args] = step(`cat '${key}'`);
+	assert.deepEqual(args.slice(args.indexOf("--") + 1, args.indexOf("--", args.indexOf("--") + 1)), [join(root, "env"), account, join(user, ".ssh")], "the merge step hides both");
 	const checked = spawnSync(...step(`cat '${key}'`), { cwd: root, encoding: "utf8" });
 	assert.deepEqual([checked.stdout, /Permission denied/.test(checked.stderr)], ["", true], checked.stderr);
 	assert.equal(readFileSync(key, "utf8"), "FAKE-PRIVATE-KEY\n", "outside the sandbox the key reads");

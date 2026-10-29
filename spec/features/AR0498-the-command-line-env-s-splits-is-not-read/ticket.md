@@ -44,3 +44,4 @@ Out:
 
 - 2026-10-27: Source: F2 of AR0473
 - 2026-10-29: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
+- 2026-10-29: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

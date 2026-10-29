@@ -10,6 +10,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0481 A stop during the install can end the job before its stop of the install's group is over (e80132da)
 - AR0484 A board entry's `path` is never checked, so a filing writes `plan.md` or `review-N.md` outside the project (ee93422d)
 - AR0510 The GitHub, Telegram and YouTrack API addresses take `http://` for any host, sending the token in the clear (6d1556d9)
+- AR0541 A worker ends its run while its npm test runs in the background, and has no way to read the result (fadd4657)
 - AR0547 A `~` after a `:` in an assignment's value is not expanded by the parser (0eca382f)
 
 ## 2026-10-28

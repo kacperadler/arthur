@@ -661,3 +661,5 @@
 {"record":"ask","id":"AR-D330","time":"2026-10-29T15:42:37+01:00","project":"arthur","kind":"job","question":"After AR0554 (rename voice to listen) and AR0557 (GitHub T1) merge, start the next tickets (AR0555, AR0558) or stop?","options":["Stop after these two; start nothing else","Go on with AR0555 and AR0558"],"recommend":1}
 {"record":"answer","id":"AR-D330","time":"2026-10-29T15:42:38+01:00","decided":"Stop after AR0554 and AR0557: start no other ticket until the owner says so","picked":1,"words":"stop after this two tasks"}
 {"record":"answer","id":"AR-D329","time":"2026-10-29T15:42:47+01:00","decided":"AR0554: listen line budget 246 -> 248, video line \"not transcribed: the listen plugin is not enabled\"","picked":1,"words":"AR-D329 1"}
+{"record":"ask","id":"AR-D331","time":"2026-10-29T15:48:26+01:00","project":"arthur","kind":"merge","question":"Merge AR0554 (rename the voice plugin to listen), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0554"}
+{"record":"answer","id":"AR-D331","time":"2026-10-29T15:48:26+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

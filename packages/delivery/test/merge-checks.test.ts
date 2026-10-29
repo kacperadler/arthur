@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fakeHost, jobSlice, temporaryFolder } from "@arthur/core/testing";
 import { stepRunner } from "../src/merge-checks.ts";
@@ -191,6 +191,31 @@ test("an owner's symlink into the checkout's .git or a folder a step writes is j
 	assert.deepEqual(lines.sort(), said(command, "tools/box", "tools/cached", "tools/edge", "tools/later", "tools/linked/.git", "tools/obj"));
 	assert.deepEqual(["obj", "box", "later", "cached", "edge", "linked/.git", "same", "gone", "sibling"].map((name) => lstatSync(join(root, "tools", name), { throwIfNoEntry: false })?.isSymbolicLink() ?? false), [false, false, false, false, false, false, true, true, true]);
 	assert.equal(existsSync(join(root, object, "HEAD")), true, "the removed symlink's target stays");
+});
+
+test("an owner's symlink that passes through a symlink in a folder a step writes, first, further down its chain or as a folder on its path, is judged by its target too: a step that points that link at a repository outside every such folder has it removed, one line each; one whose chain stays outside them stays", () => {
+	const { root, writable, run, lines } = planted((root, writable) => {
+		const beside = dirname(root);
+		for (const folder of ["elsewhere/fsmonitor", "elsewhere2"]) mkdirSync(join(beside, folder), { recursive: true });
+		const links: [string, string][] = [
+			[join(writable, "s"), join(beside, "elsewhere")],
+			[join(root, "tools", "hop"), join(writable, "s")],
+			[join(writable, "s2"), join(beside, "elsewhere")],
+			[join(beside, "mid"), join(writable, "s2")],
+			[join(root, "tools", "far"), join(beside, "mid")],
+			[join(writable, "dl"), join(beside, "elsewhere")],
+			[join(root, "tools", "comp"), join(writable, "dl", "fsmonitor")],
+			[join(beside, "mid2"), join(beside, "elsewhere2")],
+			[join(root, "tools", "plain"), join(beside, "mid2")],
+		];
+		for (const [path, target] of links) symlinkSync(target, path);
+	});
+	const beside = dirname(root);
+	const command = [`ln -sfn '${join(beside, "fsmonitor")}' '${join(writable, "s")}'`, `ln -sfn '${join(beside, "fsmonitor")}' '${join(writable, "s2")}'`, `ln -sfn '${beside}' '${join(writable, "dl")}'`, `ln -sfn '${join(beside, "fsmonitor")}' '${join(beside, "mid2")}'`].join(" && ");
+	const ran = run(command, process.env);
+	assert.equal(ran.status, 0, ran.stderr);
+	assert.deepEqual(lines.sort(), said(command, "tools/comp", "tools/far", "tools/hop"));
+	assert.deepEqual(["hop", "far", "comp", "plain"].map((name) => lstatSync(join(root, "tools", name), { throwIfNoEntry: false })?.isSymbolicLink() ?? false), [false, false, false, true]);
 });
 
 test("an owner's symlink to a folder a step writes that holds what Arthur's user cannot read is removed after the first step, though the step wrote nothing, as a repository there could not be told from the owner's own", { skip: process.getuid?.() === 0 && "root reads every folder" }, () => {

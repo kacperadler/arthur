@@ -4133,9 +4133,9 @@
   {
     "id": "AR0522",
     "title": "`arthur run`'s stop does not wait for a sweep's copy still in flight",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0522-arthur-run-s-stop-does-not-wait-for-a-sweep-s-copy-still-in-flight/ticket.md",
-    "updated": "2026-10-29T00:42:45.289Z"
+    "updated": "2026-10-29T01:17:26.356Z"
   },
   {
     "id": "AR0523",
@@ -4299,16 +4299,16 @@
   {
     "id": "AR0540",
     "title": "A worker blocked on the owner whose ticket is dropped can be neither continued, stopped nor pruned",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0540-a-worker-blocked-on-the-owner-whose-ticket-is-dropped-can-be-neither-continued/ticket.md",
-    "updated": "2026-10-29T00:03:43.056Z"
+    "updated": "2026-10-29T01:01:48.689Z"
   },
   {
     "id": "AR0541",
     "title": "A worker ends its run while its npm test runs in the background, and has no way to read the result",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0541-a-worker-ends-its-run-while-its-npm-test-runs-in-the-background-and-has-no-way/ticket.md",
-    "updated": "2026-10-29T00:37:54.832Z"
+    "updated": "2026-10-29T01:17:49.187Z"
   },
   {
     "id": "AR0542",

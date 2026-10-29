@@ -816,6 +816,34 @@ test("config set earlier in the same call (export, declare -x, a bare assignment
 	for (const command of passing) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
 });
 
+test("a function's body or a trap's command is judged with every config assignment of the call counted, also one after it, and a `function f { … }` body as an `f() { … }` one (AR0546)", async () => {
+	const { root, home, own } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id));
+	const [UNSEEN, UNKNOWN, MAIN] = [/^arthur: refused: this git call reads config the guard does not/, /^arthur: refused: the guard cannot tell where this path leads/, /^arthur: refused: this call writes into the main checkout/];
+	const refused: (readonly [string, RegExp])[] = [
+		["f() { git c a.c d; }; export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.c GIT_CONFIG_VALUE_0=config; f", UNSEEN],
+		["cd() { git status; }; export XDG_CONFIG_HOME=/tmp/h; cd .", UNSEEN],
+		['trap "git status" EXIT; export XDG_CONFIG_HOME=/tmp/h', UNSEEN],
+		["git status; export GIT_CONFIG_GLOBAL=/tmp/x.cfg", UNSEEN],
+		// Config set before a command is in the environment of a function it calls, and of that function's git calls.
+		["f() { git c a.c d; }; GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.c GIT_CONFIG_VALUE_0=config f", UNSEEN],
+		["f() { git status; }; GIT_CONFIG_GLOBAL=/tmp/x.cfg f", UNSEEN],
+		["f() { git status; }; XDG_CONFIG_HOME=/tmp/h f", UNSEEN],
+		["cd() { git status; }; XDG_CONFIG_HOME=/tmp/h cd .", UNSEEN],
+		// HOME set anywhere in the call is refused where it stands (AR0496).
+		["cd() { git status; }; export HOME=/tmp/h; cd .", UNKNOWN],
+		['trap "git status" EXIT; export HOME=/tmp/h', UNKNOWN],
+		[`trap "rm -rf ${root}/x" EXIT`, MAIN],
+		[`trap -- "rm -rf ${root}/x" EXIT`, MAIN],
+		[`function f { rm -rf ${root}/x; }; f`, MAIN],
+		[`function f() { rm -rf ${root}/x; }; f`, MAIN],
+	];
+	for (const [command, reason] of refused) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", reason, command);
+	// A trap's `cd` runs at the end, after what follows it.
+	const passing = ["f() { git status; }; export GIT_AUTHOR_NAME=x; f", "function f { git status; }; f", 'trap "git status" EXIT', "trap - EXIT", "trap -p", `trap "cd ${root}" EXIT; rm -f README.md`];
+	for (const command of passing) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
+});
+
 test("a call writing a .git or commondir is refused, and a git write through one that links to the main checkout's repository; a worktree's own link and other repositories pass", async () => {
 	const { root, home, own } = await jobs();
 	const place = jobPlace(join(home, "jobs", own.id));

@@ -14,6 +14,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0510 The GitHub, Telegram and YouTrack API addresses take `http://` for any host, sending the token in the clear (6d1556d9)
 - AR0515 The hidden ~/.ssh follows $HOME, while OpenSSH finds the home from the user account (2f79e8ca)
 - AR0522 `arthur run`'s stop does not wait for a sweep's copy still in flight (8c353fd9)
+- AR0526 A value split across two sweeps' copies of a remote job's log is not named (405e01ba)
 - AR0540 A worker blocked on the owner whose ticket is dropped can be neither continued, stopped nor pruned (030a7cf6)
 - AR0541 A worker ends its run while its npm test runs in the background, and has no way to read the result (fadd4657)
 - AR0547 A `~` after a `:` in an assignment's value is not expanded by the parser (0eca382f)

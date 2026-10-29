@@ -3883,9 +3883,9 @@
   {
     "id": "AR0490",
     "title": "A symlink or a HEAD folder the branch itself commits is kept by the sweep",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0490-a-symlink-or-a-head-folder-the-branch-itself-commits-is-kept-by-the-sweep/ticket.md",
-    "updated": "2026-10-29T07:58:37.140Z"
+    "updated": "2026-10-29T08:11:20.101Z"
   },
   {
     "id": "AR0491",
@@ -4171,9 +4171,9 @@
   {
     "id": "AR0526",
     "title": "A value split across two sweeps' copies of a remote job's log is not named",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0526-a-value-split-across-two-sweeps-copies-of-a-remote-job-s-log-is-not-named/ticket.md",
-    "updated": "2026-10-29T08:07:40.927Z"
+    "updated": "2026-10-29T08:13:15.737Z"
   },
   {
     "id": "AR0527",

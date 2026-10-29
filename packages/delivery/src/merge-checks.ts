@@ -1,7 +1,7 @@
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { repositories, sweep } from "./merge-sweep.ts";
+import { owned, sweep } from "./merge-sweep.ts";
 
 // The steps `arthur merge` runs on main once the branch is in (spec/roadmap.md, entry 54): the project's install, as the
 // projects plugin answers `projects.install` for the merge commit, the one a new worktree gets, then the `check` and `test`
@@ -21,13 +21,14 @@ const MAX_BUFFER = 64 * 2 ** 20;
 // under the jobs' slice `slice`, as a job runs, stopped once the step ended, so what its scripts leave behind is killed; with no
 // user manager to make one (the probe's systemd-run fails), out of a scope, which one `uncapped:` line says. A step still running
 // `limitSeconds` after it started is killed (SIGKILL) and fails, `timed out after <n> s` its error (AR0374). After each step, passed or failed, every
-// repository below the checkout's top that was not there, the same, before the first sandbox's first step is removed, one line each (AR0463, AR0466, AR0469).
-export function stepRunner(root: string, slice: string, log: (line: string) => void, limitSeconds: number): (sandbox: (command: string) => [string, string[]]) => Run {
+// repository below the checkout's top that was not there, the same, when the runner was made is removed, one line each (AR0463, AR0466, AR0469):
+// made before `git merge`, so what the branch commits counts as a step's, `writes` the folders outside the checkout a step writes but the temporary one and `/dev` (AR0490).
+export function stepRunner(root: string, slice: string, log: (line: string) => void, limitSeconds: number, writes: readonly string[]): (sandbox: (command: string) => [string, string[]]) => Run {
 	const scope = (unit: string) => ["--user", "--scope", "--quiet", "--collect", `--slice=${slice}.slice`, `--unit=${unit}`, "-p", "KillSignal=SIGKILL", "--"];
 	const probe = spawnSync("systemd-run", [...scope(`arthur-merge-${process.pid}-0.scope`), "true"], { encoding: "utf8" });
 	const bare = probe.error?.message ?? (probe.status === 0 ? undefined : probe.stderr.trim().split("\n")[0] || `systemd-run exited ${probe.status ?? probe.signal}`);
 	if (bare !== undefined) log(`uncapped: no systemd scope (${bare}); the steps run bare, outside the jobs' slice, and what they leave behind is not killed`);
-	const before = repositories(root, () => true);
+	const owner = owned(root, writes);
 	let count = 0;
 	const ran = (sandbox: (command: string) => [string, string[]], command: string, env: NodeJS.ProcessEnv) => {
 		const options = { cwd: root, env, encoding: "utf8", maxBuffer: MAX_BUFFER, timeout: limitSeconds * 1000, killSignal: "SIGKILL" } as const;
@@ -41,7 +42,7 @@ export function stepRunner(root: string, slice: string, log: (line: string) => v
 	};
 	return (sandbox) => (command, env) => {
 		const result = ran(sandbox, command, env);
-		sweep(root, before, command, log);
+		sweep(root, owner, command, log);
 		return result;
 	};
 }

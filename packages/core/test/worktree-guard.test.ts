@@ -816,7 +816,7 @@ test("config set earlier in the same call (export, declare -x, a bare assignment
 	for (const command of passing) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
 });
 
-test("config a builtin sets without an assignment word (for, read, printf -v, mapfile, getopts, let, ((…)), a nameref, ${name:=…}) refuses each git call after it, as one set before git does", async () => {
+test("config a builtin sets without an assignment word (for, read, printf -v, mapfile, getopts, let, ((…)), $[…], a nameref, ${name:=…}) refuses each git call after it, as one set before git does", async () => {
 	const { home, own } = await jobs();
 	const place = jobPlace(join(home, "jobs", own.id));
 	const unseen = [
@@ -833,6 +833,8 @@ test("config a builtin sets without an assignment word (for, read, printf -v, ma
 		"let 'XDG_CONFIG_HOME = 5'; git status",
 		"(( HOME = 5 )); git status",
 		": $(( GIT_CONFIG_COUNT = 1 )); export GIT_CONFIG_COUNT; git status",
+		"echo $[XDG_CONFIG_HOME=1]; export XDG_CONFIG_HOME; git status",
+		"(( ((1)) + 0, HOME = 5 )); git status",
 		"declare -n r=HOME; r=/tmp/h; git status",
 		"declare -n r; r=HOME; r=/tmp/h; git status",
 		"typeset -n r=$v; r=/tmp/h; git status",
@@ -849,6 +851,10 @@ test("config a builtin sets without an assignment word (for, read, printf -v, ma
 		"v=HOME; printf -v \"$v\" %s /tmp/h; git status",
 		"v=HOME; let \"$v=5\"; git status",
 		"v=HOME; (( $v = 5 )); git status",
+		// Arithmetic with a run-time word: bash evaluates its value as arithmetic too, whatever operator follows it (shell-words splits `|`, `&` and `>>` off).
+		...["$v |= 1", "$v &= 1", "$v>>=1", "$v == 5", "total += $v", "total += `echo $v`"].map((expression) => `v=XDG_CONFIG_HOME; (( ${expression} )); export XDG_CONFIG_HOME; git status`),
+		"v=XDG_CONFIG_HOME; : $(( $v |= 1 )); export XDG_CONFIG_HOME; git status",
+		"v=XDG_CONFIG_HOME; echo $[ $v = 1 ]; export XDG_CONFIG_HOME; git status",
 		"eval 'for HOME in /tmp/h; do :; done'; git status",
 	];
 	for (const command of unseen) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /^arthur: refused: this git call reads config the guard does not/, command);
@@ -864,10 +870,14 @@ test("config a builtin sets without an assignment word (for, read, printf -v, ma
 		"readarray x <<< a; git status",
 		"getopts h: x; git status",
 		"let x=5; git status",
-		"(( $v == 5 )); git status",
 		"(echo HOME); git status",
+		"( (echo HOME) ); git status",
 		"(( x = 5 )); git status",
-		"(( total += $v )); git status",
+		"echo $(( 1 + 2 )) $[1 + 2]; git status",
+		// Each arithmetic text ends at the bracket that closes it.
+		"(( x++ )); echo $v; git status",
+		"(( (x) + 1 )); echo $v HOME; git status",
+		"echo $[1] $v; git status",
 		"declare -n r=x; r=/tmp/h; git status",
 		"declare -n r=x; for x in HOME; do :; done; git status",
 		"declare -n r=x; echo $v; git status",

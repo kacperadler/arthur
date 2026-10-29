@@ -88,7 +88,7 @@ const fullPull = (full: string, pull: FakePull) => ({
 });
 const shapedComment = (full: string, number: number, { id, user: login, body, created = T }: FakeComment) => ({
 	...{ id, node_id: "MDEyOklzc3VlQ29tbWVudDE=", url: `${API}/repos/${full}/issues/comments/${id}`, html_url: `https://github.com/${full}/issues/${number}#issuecomment-${id}`, body, user: user(login, 3) },
-	...{ created_at: created, updated_at: created, issue_url: `${API}/repos/${full}/issues/${number}`, author_association: "COLLABORATOR" },
+	...{ created_at: created, updated_at: created, issue_url: `${API}/repos/${full}/issues/${number}`, author_association: "COLLABORATOR", minimized: null },
 });
 const shapedReview = (full: string, number: number, { id, user: login, state, body, submitted = T }: FakeReview) => ({
 	...{ id, node_id: "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3ODA=", user: user(login, 2), body, state, html_url: `https://github.com/${full}/pull/${number}#pullrequestreview-${id}`, pull_request_url: `${API}/repos/${full}/pulls/${number}` },

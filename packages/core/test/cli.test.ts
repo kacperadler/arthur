@@ -58,6 +58,8 @@ test("--help and arthur help print a command's doc file, the core's and a plugin
 test("arthur <command> <word> --help prints the group's page beside the command's doc when it exists, else the command's own", () => {
 	const folder = project();
 	writeFileSync(join(folder, "echo-pr.md"), "# arthur echo pr\n");
+	// A page whose word is not lowercase exists too: only the word's form keeps it out.
+	writeFileSync(join(folder, "echo-PR.md"), "# arthur echo PR\n");
 	for (const args of [["echo", "pr", "--help"], ["echo", "pr", "list", "--help"], ["--project", "acme", "echo", "pr", "--help"]])
 		assert.deepEqual([arthur(folder, ...args).status, arthur(folder, ...args).stdout], [0, "# arthur echo pr\n"], args.join(" "));
 	// No page for the word, a word that is no group's name, one that reaches another file, or the word after --help: the command's own.

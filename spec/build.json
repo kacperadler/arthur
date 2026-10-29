@@ -3890,9 +3890,9 @@
   {
     "id": "AR0491",
     "title": "A command substitution inside a fallback word is never judged",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0491-a-command-substitution-inside-a-fallback-word-is-never-judged/ticket.md",
-    "updated": "2026-10-29T09:31:57.799Z"
+    "updated": "2026-10-29T09:38:05.538Z"
   },
   {
     "id": "AR0492",
@@ -3934,9 +3934,9 @@
   {
     "id": "AR0496",
     "title": "A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0496-a-home-set-in-front-of-a-command-is-ignored-by-the-guard-so-the-inner-shell/ticket.md",
-    "updated": "2026-10-29T09:29:55.870Z",
+    "updated": "2026-10-29T09:38:20.220Z",
     "after": [
       "AR0478"
     ]

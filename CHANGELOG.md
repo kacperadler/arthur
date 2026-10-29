@@ -4,6 +4,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## 2026-10-29
 
+### Added
+
+- AR0557 GitHub T1: an arthur github command and pull request reads (79553878)
+
 ### Fixed
 
 - AR0437 A CI wait still cancels a hung run below the tip, whose end it no longer tells (91c8a24b)

@@ -26,6 +26,7 @@ export type HandBack = {
 const ID = /^[\w-]+$/;
 // Why a job a step started as `stop-all` came is stopped again: its hold, `user: <this>`.
 export const CANCELLED = "arthur stopall cancelled delivery's hand-back";
+export const handingBack = (host: Host, id: string) => ID.test(id) && existsSync(join(host.folder, "hand-backs", `${id}.json`)); // Whether job `id` waits in a hand-back (AR0555).
 
 export function handBack(host: Host): HandBack {
 	const folder = join(host.folder, "hand-backs");

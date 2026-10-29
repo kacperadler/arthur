@@ -237,6 +237,10 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `sudo --login rm ${main}/README.md` }, MAIN],
 		["bash", { command: `sudo --user=root rm ${main}/README.md` }, MAIN],
 		["bash", { command: `env --unset=X --ignore-environment rm ${main}/README.md` }, MAIN],
+		// AR0497: so do those of timeout, nice, ionice, stdbuf, GNU time and xargs, and a prefix of several that agree on taking one (`time --out`); xargs' optional ones, ionice's `-t` and a prefix of several that disagree take none.
+		["bash", { command: `timeout --signal KILL 60 rm ${main}/README.md` }, MAIN],
+		...["timeout --signal", "timeout --s", "timeout --kill-after", "nice --adjustment", "nice --a", "ionice --class", "ionice --classdata", "ionice --pid", "ionice --pgid", "ionice --uid", "ionice -P", "ionice -u", "stdbuf --input", "stdbuf --output", "stdbuf --error", "time --format", "time --output", "time --output-file", "time --out", "xargs --arg-file", "xargs --delimiter", "xargs --max-args", "xargs --max-chars", "xargs --max-procs", "xargs --process-slot-var"].map((option) => ["bash", { command: `${option} X ${option.startsWith("timeout") ? "60 " : ""}rm ${main}/README.md` }, MAIN] as const),
+		...["xargs --max-lines", "xargs --replace", "xargs --eof", "xargs -i", "xargs -l", "xargs --max-", "ionice -t", "ionice --ignore", "timeout --foreground 60", "time --verbose"].map((option) => ["bash", { command: `${option} rm ${main}/README.md` }, MAIN] as const),
 		["bash", { command: `cd ${main}; env -C /tmp rm $PWD/README.md` }, MAIN],
 		["bash", { command: "GIT_WORK_TREE=~/acme git checkout -- ." }, MAIN],
 		["bash", { command: "GIT_INDEX_FILE=~/acme/.git/index git add ." }, MAIN],

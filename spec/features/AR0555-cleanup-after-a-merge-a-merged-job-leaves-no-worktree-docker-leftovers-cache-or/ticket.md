@@ -42,3 +42,4 @@ Out:
 
 ## Decisions
 - 2026-10-29: AR0555 approved: a planner writes the plan, then it is built; the owner: "AR-D301 1 but should be also able to create pull requests and issues" (AR-D301)
+- 2026-10-29: Plan approved by the owner: plan.md at 7ee53d43; the owner: "AR-D328 1" (AR-D328)

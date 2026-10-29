@@ -42,7 +42,8 @@ Each is a class of the base style below.
 - Red only for what needs the owner; every command and id in full (no ellipsis, no cut), readable on what is behind it.
 - At least 4.5:1 between every text and its background, large text included.
 - Text sits on its own ancestors' backgrounds: no text positioned over or under another element, no background on a `::before` or `::after`, no text in an image or an SVG.
-- A page is static HTML: no `<script>` and no `on…` attribute, since a script can change the page after the check has read it.
+- Text is text in the HTML, in its element's `color`: none in `content` of a `::before` or `::after`, no `::first-line` or `::first-letter` styling, no `-webkit-text-fill-color` other than the `color`, no `filter`, `backdrop-filter`, `mix-blend-mode`, `clip-path`, mask or `content-visibility`, no form field (`input`, `textarea`, `select`), no `iframe`, `object`, `embed`, `video`, `audio` or `canvas`. List markers are checked as text.
+- A page is static HTML that is done once it has loaded: no `<script>`, no `on…` attribute, no animation and no transition, and every image loads (none `loading="lazy"`), since anything of these can change the page after the check has read it.
 
 ## The base style
 
@@ -96,7 +97,7 @@ Before every `arthur send` of a page, run from the repository's root, `<page>` b
 node -e 'eval(String(require("fs").readFileSync(".agents/arthur/criteria/report.md")).split("```js page-check\n")[1].split("\n```")[0])' <page>
 ~~~
 
-It renders the page in headless Chrome 420 px wide and prints one line per problem: a text below 4.5:1 against its background (`contrast 1.12:1, #ffffff on #f2f2f2: code "arthur repeats"`); a text it cannot check (`opacity`, an image, an SVG, a colour that is not plain RGB, another element's background or a `::before` or `::after` one behind it or over it); a script; a page with no text; and anything wider than the screen, scrolling sideways inside it, or cut at its edge. Exit 0 with `ok: ...` when there is none, 1 with the problems; fix each and run it again. Exit 2 when it could not check: no browser runs (set `CHROME` to a Chrome or Chromium binary; Playwright's `chrome-headless-shell` will do), or the page's markup ends inside a comment or a tag that swallowed the check. Send only a page that printed `ok`.
+It renders the page in headless Chrome 420 px wide and, once the page and its images, style sheets and fonts have loaded, prints one line per problem: a text or list marker below 4.5:1 against its background (`contrast 1.12:1, #ffffff on #f2f2f2: code "arthur repeats"`); a text it cannot check (`opacity`, an image, an SVG, a colour that is not plain RGB, another element's background or a `::before` or `::after` one behind it or over it), and each thing the rules above forbid, named; a script, an animation, a transition or an image that did not load, which could change the page after the check; a page with no text; and anything wider than the screen, scrolling sideways inside it, or cut at its edge. Exit 0 with `ok: ...` when there is none, 1 with the problems; fix each and run it again. Exit 2 when it could not check: no browser runs (set `CHROME` to a Chrome or Chromium binary; Playwright's `chrome-headless-shell` will do), or the page did not finish loading in 10 s or its markup ends inside a comment or a tag that swallowed the check. Send only a page that printed `ok`.
 
 ```js page-check
 const { spawnSync } = process.getBuiltinModule("node:child_process");
@@ -106,9 +107,10 @@ const { homedir } = process.getBuiltinModule("node:os");
 const { basename, dirname, join, resolve } = process.getBuiltinModule("node:path");
 const { pathToFileURL } = process.getBuiltinModule("node:url");
 
-// Runs inside the page: every element with its own text against what lies behind it, then the width. `id` names the result,
-// which the page cannot know, so it cannot forge one.
-function check(width, id) {
+// Runs inside the page once it has loaded, its fonts too: first what could still change it or holds text the check cannot
+// read, then every element with its own text and every list marker against what lies behind it, then the width. `id` names
+// the result, which the page cannot know, so it cannot forge one; `self` is the check's own script.
+function check(width, id, self) {
 	const problems = [];
 	const rgb = (value) => (/^rgba?\(/.test(value) ? value.match(/[\d.]+/g).map(Number) : undefined);
 	const opaque = (style) => style.backgroundImage !== "none" || (rgb(style.backgroundColor)?.[3] ?? 1) > 0;
@@ -116,9 +118,28 @@ function check(width, id) {
 	const hex = (c) => `#${c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`;
 	const lum = (c) => c.map((v) => ((v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)).reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
 	const name = (el) => `${el.tagName.toLowerCase()}${typeof el.className === "string" && el.className.trim() ? `.${el.className.trim().split(/\s+/).join(".")}` : ""} "${el.textContent.trim().replace(/\s+/g, " ").slice(0, 40)}"`;
+	const fill = (style) => style.getPropertyValue("-webkit-text-fill-color");
+	const later = "which can change the page after the check";
 	if (innerWidth !== width) problems.push(`rendered ${innerWidth} px wide, not ${width}`);
-	for (const el of document.querySelectorAll("script")) if (el !== document.currentScript) problems.push(`a script, which can change the page after the check: ${name(el)}`);
-	for (const el of document.querySelectorAll("*")) for (const { name: attribute } of el.attributes) if (/^on/i.test(attribute)) problems.push(`a script in ${attribute}, which can change the page after the check: ${name(el)}`);
+	for (const el of document.querySelectorAll("*")) {
+		if (el.tagName === "SCRIPT" && el !== self) problems.push(`a script, ${later}: ${name(el)}`);
+		for (const { name: attribute } of el.attributes) if (/^on/i.test(attribute)) problems.push(`a script in ${attribute}, ${later}: ${name(el)}`);
+		if (/^(IFRAME|OBJECT|EMBED|VIDEO|AUDIO|CANVAS|INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) problems.push(`not checked, a ${el.tagName.toLowerCase()}: ${name(el)}`);
+		if (el.tagName === "IMG" && !(el.complete && el.naturalWidth > 0)) problems.push(`an image that did not load: ${el.getAttribute("src")}`);
+		const style = getComputedStyle(el);
+		for (const [part, at] of [["", style], ["::before", getComputedStyle(el, "::before")], ["::after", getComputedStyle(el, "::after")]]) {
+			if (at.animationName !== "none") problems.push(`an animation${part && ` on ${part}`}, ${later}: ${name(el)}`);
+			if (at.transitionDuration.split(",").some((each) => parseFloat(each) > 0)) problems.push(`a transition${part && ` on ${part}`}, ${later}: ${name(el)}`);
+			if (part !== "" && !/^(none|normal|"")$/.test(at.content)) problems.push(`not checked, text in ${part}: ${name(el)}`);
+		}
+		const effects = [["filter", "none"], ["backdrop-filter", "none"], ["mix-blend-mode", "normal"], ["clip-path", "none"], ["mask-image", "none"], ["content-visibility", "visible"]];
+		for (const [property, none] of effects)
+			if (style.getPropertyValue(property) !== none) problems.push(`not checked, ${property}: ${name(el)}`);
+		for (const part of ["::first-line", "::first-letter"]) {
+			const at = getComputedStyle(el, part);
+			if (at.color !== style.color || opaque(at)) problems.push(`not checked, ${part} styling: ${name(el)}`);
+		}
+	}
 	// An element at the text's place that is neither the text's own nor its ancestor's: a layer over or under it. Every
 	// element is hit for the look, `pointer-events: none` included.
 	const hit = document.createElement("style");
@@ -136,6 +157,31 @@ function check(width, id) {
 			if (other !== undefined) return `another element's background, ${name(other)}`;
 		}
 	};
+	// Text of colour `value` in `el` against its ancestors' backgrounds; `node`, its text, for the layers at its place.
+	const judge = (el, value, node, what) => {
+		let [back, unknown] = [[255, 255, 255], undefined];
+		const chain = [];
+		for (let at = el; at; at = at.parentElement) chain.unshift(at);
+		for (const at of chain) {
+			const style = getComputedStyle(at);
+			if (Number(style.opacity) < 1) unknown = "opacity";
+			if (style.backgroundImage !== "none") unknown = "a background image";
+			const paint = rgb(style.backgroundColor);
+			if (paint === undefined) unknown = `the background ${style.backgroundColor}`;
+			else back = over(paint, back);
+			for (const pseudo of ["::before", "::after"]) {
+				const generated = getComputedStyle(at, pseudo);
+				if (generated.content !== "none" && opaque(generated)) unknown = `a ${pseudo} background`;
+			}
+		}
+		const color = rgb(value) ?? (unknown ??= `the colour ${value}`);
+		if (node !== undefined) unknown ??= layer(node, el);
+		if (unknown !== undefined) return problems.push(`not checked, ${unknown}: ${what}`);
+		const front = over(color, back);
+		const [light, dark] = [lum(front), lum(back)].sort((a, b) => b - a);
+		const ratio = (light + 0.05) / (dark + 0.05);
+		if (ratio < 4.5) problems.push(`contrast ${ratio.toFixed(2)}:1, ${hex(front)} on ${hex(back)}: ${what}`);
+	};
 	const seen = new Set();
 	let texts = 0;
 	const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -149,31 +195,11 @@ function check(width, id) {
 			continue;
 		}
 		texts++;
-		let [back, unknown] = [[255, 255, 255], undefined];
-		const chain = [];
-		for (let at = el; at; at = at.parentElement) chain.unshift(at);
-		for (const at of chain) {
-			const style = getComputedStyle(at);
-			if (Number(style.opacity) < 1) unknown = "opacity";
-			if (style.backgroundImage !== "none") unknown = "a background image";
-			const fill = rgb(style.backgroundColor);
-			if (fill === undefined) unknown = `the background ${style.backgroundColor}`;
-			else back = over(fill, back);
-			for (const pseudo of ["::before", "::after"]) {
-				const generated = getComputedStyle(at, pseudo);
-				if (!/^(none|normal)$/.test(generated.content) && opaque(generated)) unknown = `a ${pseudo} background`;
-			}
-		}
-		const color = rgb(getComputedStyle(el).color) ?? (unknown ??= `the colour ${getComputedStyle(el).color}`);
-		unknown ??= layer(node, el);
-		if (unknown !== undefined) {
-			problems.push(`not checked, ${unknown}: ${name(el)}`);
-			continue;
-		}
-		const front = over(color, back);
-		const [light, dark] = [lum(front), lum(back)].sort((a, b) => b - a);
-		const ratio = (light + 0.05) / (dark + 0.05);
-		if (ratio < 4.5) problems.push(`contrast ${ratio.toFixed(2)}:1, ${hex(front)} on ${hex(back)}: ${name(el)}`);
+		judge(el, fill(getComputedStyle(el)), node, name(el));
+	}
+	for (const el of document.body.querySelectorAll("*")) {
+		const style = getComputedStyle(el);
+		if (style.display.includes("list-item") && style.listStyleType !== "none" && el.getClientRects().length > 0 && style.visibility === "visible") judge(el, fill(getComputedStyle(el, "::marker")), undefined, `::marker of ${name(el)}`);
 	}
 	hit.remove();
 	if (texts === 0) problems.push("no text found to check");
@@ -211,15 +237,17 @@ if (page === undefined) {
 	console.error("usage: the command above, with the page's path");
 	process.exit(2);
 }
-// A copy beside the page, so its relative links load; the check runs after the page's own markup.
+// A copy beside the page, so its relative links load. The check waits for the load event, so every image and style sheet,
+// then for the fonts; the browser dumps the page only after 10 s of the page's own (virtual) time, past both.
 const copy = join(dirname(resolve(page)), `.${basename(page)}.check.html`);
-writeFileSync(copy, `${readFileSync(page, "utf8")}\n<script>(${check})(${WIDTH}, "${ID}")</script>\n`);
+const start = `{ const own = document.currentScript; addEventListener("load", () => document.fonts.ready.then(() => (${check})(${WIDTH}, "${ID}", own))); }`;
+writeFileSync(copy, `${readFileSync(page, "utf8")}\n<script>${start}</script>\n`);
 const caches = [".cache", "Library/Caches"].flatMap((cache) => globSync(join(homedir(), cache, "ms-playwright/chromium_headless_shell-*/chrome-headless-shell-*/chrome-headless-shell")).sort().reverse());
 let run;
 try {
 	for (const browser of [process.env.CHROME, "chromium", "chromium-browser", "google-chrome", ...caches].filter(Boolean)) {
 		// No sandbox: Ubuntu 23.10+ refuses Chrome's, and the page is one Arthur wrote, not a site.
-		run = spawnSync(browser, ["--headless", "--no-sandbox", "--disable-gpu", "--hide-scrollbars", `--window-size=${WIDTH},900`, "--dump-dom", pathToFileURL(copy).href], { encoding: "utf8", timeout: 60_000 });
+		run = spawnSync(browser, ["--headless", "--no-sandbox", "--disable-gpu", "--hide-scrollbars", `--window-size=${WIDTH},900`, "--virtual-time-budget=10000", "--dump-dom", pathToFileURL(copy).href], { encoding: "utf8", timeout: 60_000 });
 		if (run.error?.code !== "ENOENT") break;
 	}
 } finally {
@@ -229,7 +257,7 @@ const found = new RegExp(`<script type="application/json" id="${ID}">(.*?)</scri
 if (found === null) {
 	const browser = "set CHROME to a Chrome or Chromium binary";
 	if (run === undefined || run.error?.code === "ENOENT") console.error(`no browser found; ${browser}`);
-	else if (run.status === 0 && run.stdout.includes("<html")) console.error("the check never ran in the page: its markup ends inside a comment or a <script>, <style> or <textarea>, which swallowed it; close it");
+	else if (run.status === 0 && run.stdout.includes("<html")) console.error("the check never ran in the page: it did not finish loading in 10 s, or its markup ends inside a comment or a <script>, <style> or <textarea>, which swallowed the check; close it");
 	else console.error(`the browser failed: ${run.error?.message ?? run.stderr.trim().split("\n").at(-1)}; ${browser}`);
 	process.exit(2);
 }

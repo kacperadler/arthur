@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, globSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, globSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { test } from "node:test";
 import { temporaryFolder } from "@arthur/core/testing";
 
@@ -16,12 +17,13 @@ const STYLE = SKILL.split("\n```css\n")[1]?.split("\n```")[0] ?? "";
 const page = (style: string, body: string) =>
 	`<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>T</title><style>${style}</style></head><body>${body}</body></html>\n`;
 
-// The command as the file writes it, `<page>` the page's path, from the repository's root, in `env`.
-function check(html: string, env: NodeJS.ProcessEnv = process.env) {
+// The command as the file writes it, `<page>` the page's path, from the repository's root, in `env`; `files` beside the page.
+function check(html: string, env: NodeJS.ProcessEnv = process.env, files: Readonly<Record<string, string>> = {}) {
 	const folder = temporaryFolder();
 	writeFileSync(join(folder, "page.html"), html);
+	for (const [file, text] of Object.entries(files)) writeFileSync(join(folder, file), text);
 	const run = spawnSync("/bin/bash", ["-c", COMMAND.replace("<page>", join(folder, "page.html"))], { cwd: ROOT, encoding: "utf8", env });
-	assert.deepEqual(readdirSync(folder), ["page.html"], "the copy the browser read is gone");
+	assert.deepEqual(readdirSync(folder).sort(), ["page.html", ...Object.keys(files)].sort(), "the copy the browser read is gone");
 	return { code: run.status, lines: `${run.stdout}${run.stderr}`.trim().split("\n") };
 }
 
@@ -107,17 +109,19 @@ test("with no browser it checks nothing and exits 2, never 0", () => {
 	assert.deepEqual([code, lines], [2, ["no browser found; set CHROME to a Chrome or Chromium binary"]]);
 });
 
-test("a page with a script, an on… handler, a forged result or no text fails; markup that swallows the check exits 2", { skip: NO_BROWSER && "no Chrome or Chromium" }, () => {
+test("a page with a script, an on… handler, a forged result or no text fails, and text a script adds is read; markup that swallows the check exits 2", { skip: NO_BROWSER && "no Chrome or Chromium" }, () => {
 	const late = `<script>document.addEventListener("DOMContentLoaded", () => document.body.insertAdjacentHTML("beforeend", '<p style="color:#eeeeee">late</p>'))</script>`;
 	const forged = '<script type="application/json" id="page-check">{"texts":9,"problems":[]}</script>';
 	const scripted = check(page("", `<p onclick="go()">tap</p>${late}${forged}`));
 	const because = "which can change the page after the check";
-	assert.deepEqual([scripted.code, scripted.lines.slice(0, -1).map((line) => line.split(": ")[0])], [1, [`a script, ${because}`, `a script, ${because}`, `a script in onclick, ${because}`]]);
-	assert.match(scripted.lines.at(-1) ?? "", /^3 problems in .*page\.html at 420 px$/, "the forged result is not read");
+	const named = [`a script in onclick, ${because}`, `a script, ${because}`, `a script, ${because}`, "contrast 1.16:1, #eeeeee on #ffffff"];
+	assert.deepEqual([scripted.code, scripted.lines.slice(0, -1).map((line) => line.split(": ")[0])], [1, named]);
+	assert.match(scripted.lines.at(-1) ?? "", /^4 problems in .*page\.html at 420 px$/, "the forged result is not read");
 	const empty = check(page("", "<div></div>"));
 	assert.deepEqual([empty.code, empty.lines.slice(0, -1)], [1, ["no text found to check"]]);
 	const swallowed = check(page("", "<p>x</p><!--"));
-	assert.deepEqual([swallowed.code, swallowed.lines], [2, ["the check never ran in the page: its markup ends inside a comment or a <script>, <style> or <textarea>, which swallowed it; close it"]]);
+	const never = "the check never ran in the page: it did not finish loading in 10 s, or its markup ends inside a comment or a <script>, <style> or <textarea>, which swallowed the check; close it";
+	assert.deepEqual([swallowed.code, swallowed.lines], [2, [never]]);
 });
 
 test("text over or under a layer that is not its ancestor, further down the page, is named, never passed", { skip: NO_BROWSER && "no Chrome or Chromium" }, () => {
@@ -130,4 +134,56 @@ test("text over or under a layer that is not its ancestor, further down the page
 	].join("");
 	const { code, lines } = check(page(style, body));
 	assert.deepEqual([code, lines.slice(0, -1)], [1, ['not checked, another element\'s background, div "": p "over black"', 'not checked, another element\'s background, div "": p "under white"', 'not checked, a ::before background: p.bar "pseudo"']]);
+});
+
+test("the page is checked once its images have loaded: an image without a size that widens it fails, and so does one that never loads", { skip: NO_BROWSER && "no Chrome or Chromium" }, () => {
+	const wide = '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="10"><rect width="900" height="10"/></svg>\n';
+	const { code, lines } = check(page("body { margin:0 }", '<p>base</p><img src="wide.svg" alt="">'), process.env, { "wide.svg": wide });
+	assert.deepEqual([code, lines.slice(0, -1)], [1, ["the page scrolls sideways: 900 px wide on a 420 px screen", 'wider than the screen, 0 to 900 px: img ""']]);
+	const missing = check(page("", '<p>base</p><img src="missing.png" alt="">'));
+	assert.deepEqual([missing.code, missing.lines.slice(0, -1)], [1, ["an image that did not load: missing.png"]]);
+});
+
+const FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf";
+test("the page is checked once its fonts have loaded: text a web font widens past the screen fails", { skip: (NO_BROWSER || !existsSync(FONT)) && `no Chrome or Chromium, or no ${FONT}` }, () => {
+	const style = `@font-face { font-family: Wide; src: url("${pathToFileURL(FONT).href}"); } p { font: 60px Wide, serif; white-space: nowrap; margin: 0; } body { margin: 0 }`;
+	const { code, lines } = check(page(style, `<p>${"i".repeat(15)}</p>`));
+	assert.equal(code, 1, lines.join("\n"));
+	assert.match(lines[0] ?? "", /^the page scrolls sideways: \d+ px wide on a 420 px screen$/);
+	assert.match(lines[1] ?? "", /^text wider than the screen, 0 to \d+ px: p "i+"$/);
+});
+
+test("an animation or a transition, on an element or its ::before or ::after, is refused: it can change the page after the check", { skip: NO_BROWSER && "no Chrome or Chromium" }, () => {
+	const style = "@keyframes fade { to { color:#eeeeee } } .a { animation: fade 0s 0.2s forwards } .t { transition: color 1s } .b::before, .c::after { content:''; animation: fade 1s } .d::before { content:''; transition: color 1s }";
+	const { code, lines } = check(page(style, '<p class="a">fade</p><p class="t">move</p><p class="b">before</p><p class="c">after</p><p class="d">eased</p>'));
+	const because = "which can change the page after the check";
+	const refused = [`an animation, ${because}: p.a "fade"`, `a transition, ${because}: p.t "move"`, `an animation on ::before, ${because}: p.b "before"`, `an animation on ::after, ${because}: p.c "after"`, `a transition on ::before, ${because}: p.d "eased"`];
+	assert.equal(code, 1);
+	assert.deepEqual(lines.filter((line) => line.includes(because)), refused);
+});
+
+test("text the check cannot read is named, never passed; text in -webkit-text-fill-color and list markers is checked in that colour", { skip: NO_BROWSER && "no Chrome or Chromium" }, () => {
+	const style = [
+		'.x::after { content:" arthur repeats"; color:#eeeeee } .y::before { content:"> " }',
+		".fill { -webkit-text-fill-color:#eeeeee } li::marker { color:#eeeeee }",
+		".line::first-line { color:#eeeeee } .letter::first-letter { color:#eeeeee } .boxed::first-letter { background:#0a0a0a }",
+	].join(" ");
+	const effects = ["filter:invert(1)", "backdrop-filter:invert(1)", "mix-blend-mode:difference", "clip-path:inset(0 50% 0 0)", "mask-image:linear-gradient(transparent, #000)", "content-visibility:auto"];
+	const fields = ['<input value="arthur repeats">', "<textarea></textarea>", "<select></select>", '<iframe srcdoc="<p>inside</p>"></iframe>', "<object></object>", "<embed>", "<video></video>", "<audio controls></audio>", "<canvas></canvas>"];
+	const body = ['<p class="x">x</p><p class="y">y</p><p class="fill">fill</p><p class="line">line</p><p class="letter">letter</p><p class="boxed">boxed</p>', ...effects.map((effect, n) => `<p style="${effect}">e${n}</p>`), ...fields, "<ol><li>item</li></ol>"].join("");
+	const { code, lines } = check(page(style, body));
+	assert.deepEqual([code, lines.slice(0, -1)], [
+		1,
+		[
+			'not checked, text in ::after: p.x "x"',
+			'not checked, text in ::before: p.y "y"',
+			'not checked, ::first-line styling: p.line "line"',
+			'not checked, ::first-letter styling: p.letter "letter"',
+			'not checked, ::first-letter styling: p.boxed "boxed"',
+			...["filter", "backdrop-filter", "mix-blend-mode", "clip-path", "mask-image", "content-visibility"].map((property, n) => `not checked, ${property}: p "e${n}"`),
+			...["input", "textarea", "select", "iframe", "object", "embed", "video", "audio", "canvas"].map((tag) => `not checked, a ${tag}: ${tag} ""`),
+			'contrast 1.16:1, #eeeeee on #ffffff: p.fill "fill"',
+			'contrast 1.16:1, #eeeeee on #ffffff: ::marker of li "item"',
+		],
+	]);
 });

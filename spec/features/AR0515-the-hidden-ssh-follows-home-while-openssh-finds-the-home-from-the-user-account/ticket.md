@@ -42,4 +42,5 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: F4 of AR0508
+- 2026-10-29: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
 

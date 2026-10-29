@@ -45,4 +45,5 @@ Out:
 
 - 2026-10-25: Source: F1 of AR0359
 - 2026-10-25: AR0437 approved under AR-D31, group 2; the owner: "always go with recommendation till the 8 am morning" (AR-D43)
-- 2026-10-29: AR0437: delivery line budget 1631 -> 1636 (its 5 lines), as Done means allows under AR-D29
+- 2026-10-29: Raise the delivery line budget from 1631 to 1636 for AR0437; by recommendation under AR-D271; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D291)
+- 2026-10-29: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

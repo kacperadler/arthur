@@ -4482,9 +4482,9 @@
   {
     "id": "AR0562",
     "title": "arthur repeats and /repeats: what the owner decides again and again and what agents keep hitting, and a decisions retro",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0562-arthur-repeats-and-repeats-what-the-owner-decides-again-and-again-and-what/ticket.md",
-    "updated": "2026-10-29T19:12:54.157Z"
+    "updated": "2026-10-29T20:37:45.502Z"
   },
   {
     "id": "AR0563",
@@ -4499,8 +4499,8 @@
   {
     "id": "AR0564",
     "title": "A report skill: how every HTML page for the owner is styled and checked before it is sent",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0564-a-report-skill-how-every-html-page-for-the-owner-is-styled-and-checked-before-it/ticket.md",
-    "updated": "2026-10-29T19:42:29.543Z"
+    "updated": "2026-10-29T20:37:47.278Z"
   }
 ]

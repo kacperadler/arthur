@@ -27,7 +27,7 @@ async function load(list: readonly { name: string; prefix: string; path: string 
 test("every role of the plugins that register one reads each of its criteria files in Arthur's own repository", async () => {
 	const fake = await load([{ name: "arthur", prefix: "AR", path: ROOT }]);
 	const criteria = fake.host.jobs.criteria();
-	assert.deepEqual(criteria.toSorted(), ["audit", "autopilot", "retro", "review", "styleguide"], "the criteria the loaded roles read");
+	assert.deepEqual(criteria.toSorted(), ["audit", "autopilot", "report", "retro", "review", "styleguide"], "the criteria the loaded roles read");
 	for (const role of ["worker", ...fake.roles.map((each) => each.name)]) assert.deepEqual(fake.host.jobs.prompt(role, "arthur").warnings, [], role);
 	for (const name of criteria) {
 		const sections = readFileSync(join(ROOT, ".agents/arthur/criteria", `${name}.md`), "utf8").split(/^#+ .*$/m).slice(1);

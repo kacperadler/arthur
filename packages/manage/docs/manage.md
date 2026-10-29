@@ -53,7 +53,7 @@ A run with nothing to free prints nothing. A part that fails, the jobs unreadabl
 
 ## The audit
 
-Manage registers the kind `audit`: read-only, a detached checkout of HEAD with no branch, the role `auditor` (`packages/manage/roles/auditor.md`, which `arthur roles` lists) and the project's criteria files `audit` and `styleguide`. `packages/manage/criteria/audit.md` is the audit criteria to start from: `arthur init` writes it to a new project's `<criteriaDir>/audit.md` (`arthur init --help`); copy it there for a project given earlier, and change it to fit. Its budget is `audit.budgetUsd`, and it asks the core for one resume at its budget, with the budget doubled (`arthur spawn --help`); stopped again, it is not resumed twice.
+Manage registers the kind `audit`: read-only, a detached checkout of HEAD with no branch, the role `auditor` (`packages/manage/roles/auditor.md`, which `arthur roles` lists) and the project's criteria files `audit`, `styleguide` and `report` (how a page for the owner looks and is checked before it is sent). `packages/manage/criteria/audit.md` is the audit criteria to start from: `arthur init` writes it to a new project's `<criteriaDir>/audit.md` (`arthur init --help`); copy it there for a project given earlier, and change it to fit. Its budget is `audit.budgetUsd`, and it asks the core for one resume at its budget, with the budget doubled (`arthur spawn --help`); stopped again, it is not resumed twice.
 
 Every audit's prompt, after the role and the project's sections, gets `## This audit`, read from the project's checkout when the job starts:
 
@@ -83,7 +83,7 @@ When an audit ends, the coordinator's wake carries the procedure `packages/manag
 
 ## The retro
 
-Manage registers the kind `retro`: read-only, a detached checkout of HEAD with no branch, the role `retro` (`packages/manage/roles/retro.md`, which `arthur roles` lists) and the project's criteria file `retro`. `packages/manage/criteria/retro.md` is the retro criteria to start from: `arthur init` writes it to a new project's `<criteriaDir>/retro.md`; copy it there for a project given earlier, and change it to fit. Its budget is `retro.budgetUsd`, else the core's `jobs.budgetUsd`.
+Manage registers the kind `retro`: read-only, a detached checkout of HEAD with no branch, the role `retro` (`packages/manage/roles/retro.md`, which `arthur roles` lists) and the project's criteria files `retro` and `report` (how a page for the owner looks and is checked before it is sent). `packages/manage/criteria/retro.md` is the retro criteria to start from: `arthur init` writes it to a new project's `<criteriaDir>/retro.md`; copy it there for a project given earlier, and change it to fit. Its budget is `retro.budgetUsd`, else the core's `jobs.budgetUsd`.
 
 Every retro's prompt, after the role and the project's sections, gets `## This retro`, read from the project's checkout when the job starts:
 

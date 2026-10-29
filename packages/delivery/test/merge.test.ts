@@ -122,6 +122,10 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 	return { root, fake, git, commit, take: () => run("take-main", ["--decision", OWNER]), worker, aside, ended, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, caches, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, owner, installAs: (next: string | Error) => void (answer = next), uncapped, hear: (fn: (text: string) => void) => void (heard = fn) };
 }
 
+async function until(what: string, holds: () => boolean) {
+	for (const deadline = Date.now() + 15_000; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
+}
+
 test("a branch with a PASS on its tip goes in: checks pass, its review filed, outcome.md written, the ticket merged, the tickets it unblocks named, the ticket's jobs pruned; the install's cache is the merge's own, gone after it", async (t) => {
 	const { root, fake, home, git, worker, aside, review, merge, head, status, bun, caches, installs } = await load(t);
 	const job = await worker({ "shop.ts": "export const shop = 1;\n", "bun.lock": '{ "shop": 1 }\n' });
@@ -791,8 +795,26 @@ test("a dropped ticket's ended jobs are pruned, an unmerged branch deleted with 
 	said.length = 0;
 	writeFileSync(gate, "");
 	await ended(running.id);
-	assert.ok(said.some((line) => line.startsWith(`delivery: AC0001 dropped: ${running.id}: worktree ${running.worktree} removed; branch ${running.branch} deleted; record deleted`)), said.join("\n"));
+	await until("its prune at its end", () => said.some((line) => line.startsWith(`delivery: AC0001 dropped: ${running.id}: worktree ${running.worktree} removed; branch ${running.branch} deleted; record deleted`)));
 	assert.deepEqual(exists()[7], [false, false]);
+});
+
+test("a merge ends the hand-backs of its ticket's jobs, a worker still in a run included, so none goes on to review a merged ticket", async (t) => {
+	const { fake, worker, merge } = await load(t);
+	const job = await worker();
+	const waiting = await worker({ "draft.ts": "export const draft = 1;\n" });
+	const gate = join(temporaryFolder(), "gate");
+	process.env.PATH = `${dirname(fakeAgent({ steps: [{ waitFor: gate }, { message: "done" }] }))}${delimiter}${process.env.PATH}`;
+	const running = await fake.host.jobs.spawn({ task: `Ticket: ${TICKET}` });
+	t.after(() => writeFileSync(gate, ""));
+	// What delivery's hand-back keeps of each (hand-back.ts): one waits for a slot to be continued, one runs on a review's findings.
+	const folder = join(fake.host.folder, "hand-backs");
+	mkdirSync(folder, { recursive: true });
+	for (const [id, step] of [[waiting.id, "continue"], [running.id, "continued"]]) writeFileSync(join(folder, `${id}.json`), `${JSON.stringify({ worker: id, review: "2026-01-01-review-0000000f", findings: "Missing test.", step })}\n`);
+	const merged = await merge(job.id, "--unreviewed", "--decision", OWNER);
+	assert.equal(merged.code, undefined, merged.err);
+	assert.deepEqual(readdirSync(folder), [], "no hand-back of the merged ticket is left");
+	assert.match(merged.out, new RegExp(`\n${running.id}: kept: it is (working|idle), not ended\n`), "the worker in a run is kept all the same");
 });
 
 test("refused before anything: wrong usage, no job, a read-only or running job, a gone branch, a detached or dirty main, nothing new, a ticket not mergeable", async (t) => {

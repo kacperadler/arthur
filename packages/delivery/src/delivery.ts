@@ -74,8 +74,11 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 				const verdict = review && settle(host, review);
 				// Every run's end goes to the hand-back (queued, so it acts after the moves below); a PASS's branch is pushed.
 				if (typeof id === "string") back.ended(id, review, verdict);
+				// A dropped ticket's job is pruned as the drop prunes, once every handler of this end has read it (orchestration's wake
+				// reads its final message), whatever the order of the plugins; the drop ended its hand-back already.
 				const job = host.jobs.list().find((each) => each.id === id);
-				for (const ticket of new Set(job?.tickets.map((path) => basename(FEATURE.exec(path)?.[1] ?? "").split("-")[0] ?? ""))) if (job && host.board.get(ticket)?.status === "dropped") dropped(job.project, ticket);
+				for (const ticket of new Set(job?.tickets.map((path) => basename(FEATURE.exec(path)?.[1] ?? "").split("-")[0] ?? "")))
+					if (job !== undefined && host.board.get(ticket)?.status === "dropped") setImmediate(() => dropped(job.project, ticket));
 				if (review === undefined || (verdict !== "PASS" && verdict !== "FAIL") || host.board.get(review.ticket)?.status === "dropped") return;
 				host.board.move(review.ticket, verdict === "PASS" ? "done" : "in-progress");
 				if (verdict === "FAIL") return;
@@ -96,6 +99,9 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 			host.provide("coordinator.wake", (job: Readonly<Record<string, unknown>>, result?: unknown) => {
 				const review = job.kind === REVIEW ? readReview(host, job.id) : undefined;
 				const seen = review ? recorded(host, review) : job.kind === REVIEW ? named(job, result) : undefined;
+				// A review of a ticket dropped before it ended: nothing of the verdict's steps happens (AR0555).
+				if (seen !== undefined && host.board.get(seen.review.ticket)?.status === "dropped")
+					return `Review ${seen.review.id} ended on ${seen.review.ticket}, which is dropped: it is not filed, nothing is handed back, and delivery prunes it with the ticket's other jobs. Nothing to do.`;
 				return seen ? wake(seen, procedure) : back.wake(job.id);
 			});
 			host.commands.register(reviewCommand(host, procedure));

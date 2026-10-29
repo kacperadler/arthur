@@ -4475,23 +4475,23 @@
   {
     "id": "AR0561",
     "title": "Plan: agents do the right thing by default, every repeated correction moved up the pyramid",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0561-plan-agents-do-the-right-thing-by-default-every-repeated-correction-moved-up-the/ticket.md",
-    "updated": "2026-10-29T18:53:44.959Z"
+    "updated": "2026-10-29T19:12:53.615Z"
   },
   {
     "id": "AR0562",
     "title": "arthur repeats and /repeats: what the owner decides again and again and what agents keep hitting, and a decisions retro",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0562-arthur-repeats-and-repeats-what-the-owner-decides-again-and-again-and-what/ticket.md",
-    "updated": "2026-10-29T18:53:45.505Z"
+    "updated": "2026-10-29T19:12:54.157Z"
   },
   {
     "id": "AR0563",
     "title": "arthur pyramid and /pyramid: a pyramid audit of any project, one planning ticket and a before and after page",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0563-arthur-pyramid-and-pyramid-a-pyramid-audit-of-any-project-one-planning-ticket/ticket.md",
-    "updated": "2026-10-29T18:53:46.038Z",
+    "updated": "2026-10-29T19:12:54.686Z",
     "after": [
       "AR0562"
     ]

@@ -3953,7 +3953,7 @@
     "title": "The command line `env -S` splits is not read",
     "status": "in-progress",
     "path": "spec/features/AR0498-the-command-line-env-s-splits-is-not-read/ticket.md",
-    "updated": "2026-10-29T10:15:03.895Z"
+    "updated": "2026-10-29T10:47:50.735Z"
   },
   {
     "id": "AR0499",

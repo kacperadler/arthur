@@ -4133,9 +4133,9 @@
   {
     "id": "AR0522",
     "title": "`arthur run`'s stop does not wait for a sweep's copy still in flight",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0522-arthur-run-s-stop-does-not-wait-for-a-sweep-s-copy-still-in-flight/ticket.md",
-    "updated": "2026-10-29T01:28:53.462Z"
+    "updated": "2026-10-29T01:35:40.718Z"
   },
   {
     "id": "AR0523",

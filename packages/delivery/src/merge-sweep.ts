@@ -62,11 +62,11 @@ function escapes(top: string, link: string): boolean {
 
 // Where the symlink `link` leads, as the kernel follows it from its folder's real path, part by part (AR0490): each symlink on
 // the way, `link` first, a folder's too, by its path, and where it ends: a real path, or a dangling one's nearest existing folder's
-// joined with the rest of its path, as a folder may come there later (past 40 links, as the kernel's ELOOP); and whether a folder may be there.
+// joined with the rest of its path, as a folder may come there later, or, after 40 links, the kernel's limit, the rest unfollowed; and whether a folder may be there.
 function target(link: string): { readonly hops: readonly string[]; readonly path: string; readonly folder: boolean } {
 	const [hops, rest] = [[] as string[], [basename(link)]];
 	let at = realpathSync(dirname(link));
-	while (rest.length > 0 && hops.length <= 40) {
+	while (rest.length > 0 && hops.length < 40) {
 		const next = join(at, rest[0] ?? "");
 		let stat: Stats;
 		try {

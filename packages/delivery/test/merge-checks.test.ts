@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, realpathSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fakeHost, jobSlice, temporaryFolder } from "@arthur/core/testing";
@@ -216,6 +216,23 @@ test("an owner's symlink that passes through a symlink in a folder a step writes
 	assert.equal(ran.status, 0, ran.stderr);
 	assert.deepEqual(lines.sort(), said(command, "tools/comp", "tools/far", "tools/hop"));
 	assert.deepEqual(["hop", "far", "comp", "plain"].map((name) => lstatSync(join(root, "tools", name), { throwIfNoEntry: false })?.isSymbolicLink() ?? false), [false, false, false, true]);
+});
+
+test("an owner's symlink at the end of 40 links, the most the kernel follows, that ends in a folder a step writes is judged by its target too; one in a ring of links ends the sweep and stays", () => {
+	const { root, writable, run, lines } = planted((root, writable) => {
+		const beside = dirname(root);
+		mkdirSync(join(writable, "box"));
+		const chain = Array.from({ length: 39 }, (_, at) => join(beside, `c${at + 1}`));
+		for (const [at, path] of chain.entries()) symlinkSync(chain[at + 1] ?? join(writable, "box"), path);
+		symlinkSync(join(beside, "c1"), join(root, "tools", "deep"));
+		for (const [path, target] of [["r1", "r2"], ["r2", "r1"]] as const) symlinkSync(join(beside, target), join(beside, path));
+		symlinkSync(join(beside, "r1"), join(root, "tools", "ring"));
+	});
+	assert.equal(realpathSync(join(root, "tools", "deep")), realpathSync(join(writable, "box")), "the kernel follows the 40 links");
+	const command = `git init -q --bare '${join(writable, "box", "sub")}'`;
+	assert.equal(run(command, process.env).status, 0);
+	assert.deepEqual(lines, said(command, "tools/deep"));
+	assert.equal(lstatSync(join(root, "tools", "ring")).isSymbolicLink(), true);
 });
 
 test("an owner's symlink to a folder a step writes that holds what Arthur's user cannot read is removed after the first step, though the step wrote nothing, as a repository there could not be told from the owner's own", { skip: process.getuid?.() === 0 && "root reads every folder" }, () => {

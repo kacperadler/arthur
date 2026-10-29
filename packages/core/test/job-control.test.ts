@@ -99,7 +99,7 @@ test("arthur stop ends a running job stopped: SIGTERM to the agent and the proce
 	const tool = Number(await until("the tool's process", () => read(join(dir, "tool"))?.trim() || undefined));
 	await running(home, job.id);
 	const started = Date.now();
-	assert.equal(await stopJob(home, job.id), `${job.id}: stopped`);
+	assert.equal(await stopJob(home, job.id, eventBus(home)), `${job.id}: stopped`);
 	assert.ok(Date.now() - started < GRACE_SECONDS * 1000, "no grace needed: the agent ends on SIGTERM");
 	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "stopped" }]);
 	assert.deepEqual([field(home, job.id, "state"), field(home, job.id, "reason")], ["ended", "stopped"]);
@@ -114,7 +114,7 @@ test("arthur stop during the install a prepare asked for ends the job stopped: t
 	jobs.prepare("projects", () => ({ ARTHUR_INSTALL: `trap 'exit 0' TERM; echo $$ > '${dir}/install'; while :; do sleep 0.05; done` }));
 	const job = await jobs.spawn({ task: "Go." });
 	const install = Number(await until("the install's process", () => read(join(dir, "install"))?.trim() || undefined));
-	assert.equal(await stopJob(home, job.id), `${job.id}: stopped`);
+	assert.equal(await stopJob(home, job.id, eventBus(home)), `${job.id}: stopped`);
 	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "stopped" }]);
 	assert.equal(alive(install), false);
 	assert.equal(existsSync(join(dir, "started")), false, "no agent started");
@@ -132,7 +132,7 @@ test("arthur stop once the install exited, while a process it forked still holds
 	await until("the install's exit", () => !alive(install));
 	const forked = Number(read(join(dir, "forked"))?.trim());
 	assert.ok(alive(forked), "its forked process still holds the pipe");
-	assert.equal(await stopJob(home, job.id), `${job.id}: stopped`);
+	assert.equal(await stopJob(home, job.id, eventBus(home)), `${job.id}: stopped`);
 	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "stopped" }]);
 	assert.equal(existsSync(join(dir, "started")), false, "no agent started");
 	assert.doesNotMatch(field(home, job.id, "log") ?? "", /\] agent: |had ended already/);
@@ -160,7 +160,7 @@ test("arthur stop of an agent that ignores SIGTERM: SIGKILL to its group after t
 	const pid = Number(await until("the agent", () => read(join(dir, "pid"))?.trim() || undefined));
 	await running(home, job.id);
 	const started = Date.now();
-	assert.equal(await stopJob(home, job.id), `${job.id}: stopped`);
+	assert.equal(await stopJob(home, job.id, eventBus(home)), `${job.id}: stopped`);
 	const took = Date.now() - started;
 	// Below the GRACE_SECONDS + 10 after which arthur stop gives up, with room for a slow runner.
 	assert.ok(took >= GRACE_SECONDS * 1000 && took < (GRACE_SECONDS + 5) * 1000, `stopped after ${took} ms`);
@@ -178,7 +178,7 @@ test("arthur stop kills a process that left the agent's group, even where no sco
 	const pid = Number(await until("the daemon", () => read(join(folder, "daemon"))?.trim() || undefined));
 	await running(home, job.id);
 	assert.match(field(home, job.id, "log") ?? "", /no systemd scope/);
-	assert.equal(await stopJob(home, job.id), `${job.id}: stopped`);
+	assert.equal(await stopJob(home, job.id, eventBus(home)), `${job.id}: stopped`);
 	await until("the daemon's end", () => !alive(pid));
 	assert.match(field(home, job.id, "log") ?? "", new RegExp(`\\] SIGKILL to ${pid}, which had left the agent's process group: sleep 300\\n`));
 });
@@ -188,7 +188,7 @@ test("a stop that comes while a limit stops the job leaves the limit's state, an
 	const { home, jobs } = setup(agent);
 	const job = await jobs.spawn({ task: "Audit.", kind: "audit" });
 	await until("the stop at the budget", () => field(home, job.id, "log")?.includes("] limit: budget: stopping the agent\n"));
-	assert.equal(await stopJob(home, job.id), `${job.id}: ended (limit: budget: its cost $1.0000 reached its budget of $1) before the stop`);
+	assert.equal(await stopJob(home, job.id, eventBus(home)), `${job.id}: ended (limit: budget: its cost $1.0000 reached its budget of $1) before the stop`);
 	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: asked as well\n/);
 	assert.equal(field(home, job.id, "budget"), "1");
 	assert.equal(read(join(dir, "pid"))?.trim().split("\n").length, 1, "one start, no resume");
@@ -230,19 +230,58 @@ test("refused, each with the id and the reason: stopping or steering a job not i
 	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }));
 	const job = await jobs.spawn({ task: "Go." });
 	await ended(home, job.id);
-	await assert.rejects(stopJob(home, job.id), { message: `${job.id} is ended (finished), not in a run; nothing to stop` });
+	await assert.rejects(stopJob(home, job.id, eventBus(home)), { message: `${job.id} is ended (finished), not in a run; nothing to stop` });
 	assert.throws(() => steerJob(home, job.id, "Also this."), { message: `${job.id} is ended (finished), not in a run; a steer reaches only a job in a run, and arthur continue resumes an ended or blocked worker` });
-	// A run that ended blocked is not in a run either.
-	writeFileSync(join(home, "jobs", job.id, "state"), "blocked");
-	writeFileSync(join(home, "jobs", job.id, "reason"), "user: may I?");
-	await assert.rejects(stopJob(home, job.id), { message: `${job.id} is blocked (user: may I?), not in a run; nothing to stop` });
-	assert.throws(() => steerJob(home, job.id, "Also this."), { message: /^\S+ is blocked \(user: may I\?\), not in a run; a steer/ });
+	// A run that ended blocked on a dependency waits for it: a stop does not end it. Nor one written by hand ended on the user.
+	for (const [state, reason] of [["blocked", "dependency: AR0006"], ["ended", "user: may I?"]] as const) {
+		writeFileSync(join(home, "jobs", job.id, "state"), state);
+		writeFileSync(join(home, "jobs", job.id, "reason"), reason);
+		await assert.rejects(stopJob(home, job.id, eventBus(home)), { message: `${job.id} is ${state} (${reason}), not in a run; nothing to stop` });
+	}
 	for (const id of ["2026-10-16-worker-00000000", "../../etc", ""]) {
-		await assert.rejects(stopJob(home, id), { message: `${id}: no such job in ${join(home, "jobs")}` });
+		await assert.rejects(stopJob(home, id, eventBus(home)), { message: `${id}: no such job in ${join(home, "jobs")}` });
 		assert.throws(() => steerJob(home, id, "x"), { message: `${id}: no such job in ${join(home, "jobs")}` });
 	}
 	assert.throws(() => steerJob(home, job.id, "  "), { message: "the text is empty" });
 	assert.deepEqual(readdirSync(join(home, "jobs", job.id, "steer")), ["closed"], "nothing queued");
+});
+
+test("arthur stop ends a run that ended blocked on the user, which arthur prune then frees; refused while a continue holds the record", async (t) => {
+	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Blocked: user is AR0455 met by AR0454?" }] }));
+	const job = await jobs.spawn({ task: "Go." });
+	const asked = "user: is AR0455 met by AR0454?";
+	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "blocked", reason: asked }]);
+	assert.throws(() => steerJob(home, job.id, "Also this."), { message: `${job.id} is blocked (${asked}), not in a run; a steer reaches only a job in a run, and arthur continue resumes an ended or blocked worker` });
+	assert.deepEqual(jobs.prune([job.id]), [`${job.id}: kept: it is blocked (${asked}), not ended`]);
+	const continuing = join(home, "jobs", job.id, "continuing");
+	const live = spawn("sleep", ["300"]);
+	t.after(() => live.kill());
+	writeFileSync(continuing, String(live.pid));
+	await assert.rejects(jobs.stop(job.id), { message: `${job.id}: being continued` });
+	assert.deepEqual([field(home, job.id, "state"), field(home, job.id, "reason"), read(continuing)], ["blocked", asked, String(live.pid)], "the continue keeps it");
+	rmSync(continuing);
+	assert.equal(await jobs.stop(job.id), `${job.id}: stopped`);
+	const [, second, ...more] = await ended(home, job.id, 2);
+	assert.deepEqual([second, more], [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "stopped" }, []]);
+	assert.deepEqual([field(home, job.id, "state"), field(home, job.id, "reason"), existsSync(continuing)], ["ended", "stopped", false]);
+	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: ended while blocked \(user: is AR0455 met by AR0454\?\)\n$/);
+	await assert.rejects(jobs.stop(job.id), { message: `${job.id} is ended (stopped), not in a run; nothing to stop` });
+	assert.deepEqual(jobs.prune([job.id]), [`${job.id}: worktree ${job.worktree} removed; branch ${job.branch} deleted; record deleted`]);
+	assert.equal(existsSync(join(home, "jobs", job.id)), false);
+});
+
+test("a stop that finds the job blocked on the user, then moved into a run while it waited for the record, ends nothing and tells that run's state", async (t) => {
+	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Blocked: user may I?" }] }));
+	const job = await jobs.spawn({ task: "Go." });
+	await ended(home, job.id);
+	const folder = join(home, "jobs", job.id);
+	// Another process holds the record's state lock and moves the job to working meanwhile, as a continue's move does.
+	const mover = spawn("sh", ["-c", `echo $$ > '${folder}/.held' && mv '${folder}/.held' '${folder}/state.lock' && sleep 0.5 && printf working > '${folder}/state' && rm '${folder}/state.lock'`], { stdio: "ignore" });
+	t.after(() => mover.kill());
+	await until("the lock held", () => existsSync(join(folder, "state.lock")));
+	await assert.rejects(stopJob(home, job.id, eventBus(home)), { message: `${job.id}: its wrapper ${field(home, job.id, "pid")} is gone though its state says working; nothing to stop` });
+	assert.deepEqual([field(home, job.id, "state"), field(home, job.id, "reason"), existsSync(join(folder, "continuing"))], ["working", "user: may I?", false]);
+	assert.doesNotMatch(field(home, job.id, "log") ?? "", /arthur stop: ended/);
 });
 
 test("a stop of a job whose wrapper is gone sends no signal and says so", async () => {
@@ -252,7 +291,12 @@ test("a stop of a job whose wrapper is gone sends no signal and says so", async 
 	// As after a crash of the wrapper: the record says working, and its pid is now another process's, this test's.
 	writeFileSync(join(home, "jobs", job.id, "state"), "working");
 	writeFileSync(join(home, "jobs", job.id, "pid"), String(process.pid));
-	await assert.rejects(stopJob(home, job.id), { message: `${job.id}: its wrapper ${process.pid} is gone though its state says working; nothing to stop` });
+	await assert.rejects(stopJob(home, job.id, eventBus(home)), { message: `${job.id}: its wrapper ${process.pid} is gone though its state says working; nothing to stop` });
+	// A plugin's block that stops the run holds it blocked on the user while its run lasts: that run is stopped, not ended here.
+	writeFileSync(join(home, "jobs", job.id, "state"), "blocked");
+	writeFileSync(join(home, "jobs", job.id, "reason"), "user: feature cap reached");
+	writeFileSync(join(home, "jobs", job.id, "hold"), "feature cap reached");
+	await assert.rejects(stopJob(home, job.id, eventBus(home)), { message: `${job.id}: its wrapper ${process.pid} is gone though its state says blocked; nothing to stop` });
 });
 
 test("two steers before the next tool call both reach the agent after it, in order, and are moved to done", async () => {

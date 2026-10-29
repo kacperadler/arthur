@@ -3883,9 +3883,9 @@
   {
     "id": "AR0490",
     "title": "A symlink or a HEAD folder the branch itself commits is kept by the sweep",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0490-a-symlink-or-a-head-folder-the-branch-itself-commits-is-kept-by-the-sweep/ticket.md",
-    "updated": "2026-10-29T10:57:38.178Z"
+    "updated": "2026-10-29T11:03:35.893Z"
   },
   {
     "id": "AR0491",
@@ -4334,9 +4334,9 @@
   {
     "id": "AR0545",
     "title": "Bash builtins that set a variable without an assignment word still change git's config unseen",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0545-bash-builtins-that-set-a-variable-without-an-assignment-word-still-change-git-s/ticket.md",
-    "updated": "2026-10-29T10:51:57.863Z"
+    "updated": "2026-10-29T11:02:25.742Z"
   },
   {
     "id": "AR0546",

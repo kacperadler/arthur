@@ -11,6 +11,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0479 A merge step reading an owner clone still deletes it when python3 cannot read the .git attributes, with a reason that hides why (4d1ac2a0)
 - AR0481 A stop during the install can end the job before its stop of the install's group is over (e80132da)
 - AR0484 A board entry's `path` is never checked, so a filing writes `plan.md` or `review-N.md` outside the project (ee93422d)
+- AR0490 A symlink or a HEAD folder the branch itself commits is kept by the sweep (cab65080)
 - AR0491 A command substitution inside a fallback word is never judged (45222bfd)
 - AR0496 A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME (0e336859)
 - AR0497 A long option of the other wrappers followed by its value still hides the command (4d7b2940)

@@ -37,3 +37,4 @@ Out:
 
 ## Decisions
 - 2026-10-29: AR0554: listen line budget 246 -> 248, video line "not transcribed: the listen plugin is not enabled"; the owner: "AR-D329 1" (AR-D329)
+- 2026-10-29: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

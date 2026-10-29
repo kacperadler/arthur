@@ -579,3 +579,5 @@
 {"record":"answer","id":"AR-D288","time":"2026-10-29T02:17:58+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D289","time":"2026-10-29T02:26:49+01:00","project":"arthur","kind":"merge","question":"Merge AR0540 (arthur stop ends a job blocked on the owner, so prune can free it), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0540"}
 {"record":"answer","id":"AR-D289","time":"2026-10-29T02:26:49+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D290","time":"2026-10-29T02:31:27+01:00","project":"arthur","kind":"merge","question":"Merge AR0522 (arthur run keeps run.pid until every sweep still running has ended), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0522"}
+{"record":"answer","id":"AR-D290","time":"2026-10-29T02:31:27+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

@@ -4299,16 +4299,16 @@
   {
     "id": "AR0540",
     "title": "A worker blocked on the owner whose ticket is dropped can be neither continued, stopped nor pruned",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0540-a-worker-blocked-on-the-owner-whose-ticket-is-dropped-can-be-neither-continued/ticket.md",
-    "updated": "2026-10-29T01:01:48.689Z"
+    "updated": "2026-10-29T01:22:20.289Z"
   },
   {
     "id": "AR0541",
     "title": "A worker ends its run while its npm test runs in the background, and has no way to read the result",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0541-a-worker-ends-its-run-while-its-npm-test-runs-in-the-background-and-has-no-way/ticket.md",
-    "updated": "2026-10-29T01:17:49.187Z"
+    "updated": "2026-10-29T01:26:25.942Z"
   },
   {
     "id": "AR0542",

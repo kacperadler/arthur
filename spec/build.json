@@ -4420,9 +4420,9 @@
   {
     "id": "AR0555",
     "title": "Cleanup after a merge: a merged job leaves no worktree, Docker leftovers, cache, or branch here or on GitHub",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0555-cleanup-after-a-merge-a-merged-job-leaves-no-worktree-docker-leftovers-cache-or/ticket.md",
-    "updated": "2026-10-29T07:07:52.295Z"
+    "updated": "2026-10-29T07:14:48.674Z"
   },
   {
     "id": "AR0556",

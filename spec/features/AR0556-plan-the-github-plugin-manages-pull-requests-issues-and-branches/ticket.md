@@ -23,7 +23,7 @@ The coordinator manages a project's GitHub from `arthur github ...`: pull reques
 
 ## Done means
 
-- A plan, approved by the owner, that names: the commands (`arthur github pr list|get|create|comment|close|merge`, `arthur github issue list|get|create|comment|label|close`, `arthur github branch list|delete`, or fewer), each with its doc page and refusals; which are reads and which are writes; that a write runs only on the owner's word, as YouTrack's; that a pull request merge on GitHub never bypasses `arthur merge`'s review and CI rules (or is left out); that every text read from GitHub reaches the coordinator marked as data; the token's least scopes; the plugin's line budget; the tickets it splits into, each neither a one-liner nor the whole plugin.
+- A plan, approved by the owner, that names: the commands (`arthur github pr list|get|create|comment|close|merge`, `arthur github issue list|get|create|comment|label|close`, `arthur github branch list|delete`; creating a pull request and an issue are required, the owner 2026-10-29), each with its doc page and refusals; which are reads and which are writes; that a write runs only on the owner's word, as YouTrack's; that a pull request merge on GitHub never bypasses `arthur merge`'s review and CI rules (or is left out); that every text read from GitHub reaches the coordinator marked as data; the token's least scopes; the plugin's line budget; the tickets it splits into, each neither a one-liner nor the whole plugin.
 - The fake GitHub in tests answers in the shape GitHub's REST documentation shows, every field.
 
 ## Scope

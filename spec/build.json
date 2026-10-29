@@ -3883,9 +3883,9 @@
   {
     "id": "AR0490",
     "title": "A symlink or a HEAD folder the branch itself commits is kept by the sweep",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0490-a-symlink-or-a-head-folder-the-branch-itself-commits-is-kept-by-the-sweep/ticket.md",
-    "updated": "2026-10-29T09:39:07.848Z"
+    "updated": "2026-10-29T10:01:45.191Z"
   },
   {
     "id": "AR0491",
@@ -3934,9 +3934,9 @@
   {
     "id": "AR0496",
     "title": "A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0496-a-home-set-in-front-of-a-command-is-ignored-by-the-guard-so-the-inner-shell/ticket.md",
-    "updated": "2026-10-29T09:58:01.372Z",
+    "updated": "2026-10-29T10:03:33.718Z",
     "after": [
       "AR0478"
     ]
@@ -3944,9 +3944,9 @@
   {
     "id": "AR0497",
     "title": "A long option of the other wrappers followed by its value still hides the command",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0497-a-long-option-of-the-other-wrappers-followed-by-its-value-still-hides-the/ticket.md",
-    "updated": "2026-10-29T09:52:37.575Z"
+    "updated": "2026-10-29T10:02:54.428Z"
   },
   {
     "id": "AR0498",

@@ -1,0 +1,7 @@
+# omp's settings for every run of a job (`--config`, wrapper.ts): a bash call runs in the call until it ends or its timeout, never
+# moved to the background, whose result a job's run, ended at its last answer, never gets (AR0541).
+bash:
+  autoBackground:
+    enabled: false
+async:
+  enabled: false

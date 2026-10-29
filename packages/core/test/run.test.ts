@@ -134,6 +134,53 @@ test("under umask 022 arthur run leaves the home its user's alone: a new one 070
 	assert.equal(statSync(home).mode & 0o777, 0o700, "runPlugins");
 });
 
+// runPlugins in this process, its 30 s sweep on mocked timers: plugin b's start lets `sweeps` sweeps begin, then fails, which
+// stops a and the run. Resolves once a's stop is over and every promise after it has run, so `run.pid` would be gone by then
+// unless something holds it.
+async function stopAfterSweeps(t: TestContext, sweep: () => Promise<void>, sweeps: number) {
+	t.mock.timers.enable({ apis: ["setInterval"] });
+	t.mock.method(console, "log", () => {});
+	const failed = t.mock.method(console, "error", () => {});
+	const { home } = project("");
+	let stopped = false;
+	const a = { name: "a", setup() {}, stop: () => void (stopped = true) };
+	const b = { name: "b", setup() {}, start() { for (let each = 0; each < sweeps; each++) t.mock.timers.tick(30_000); throw new Error("no socket"); } };
+	let code: number | undefined;
+	const run = runPlugins([a, b], home, () => () => {}, sweep, async () => [], () => {}).then((exit) => (code = exit));
+	await until(() => stopped, "a's stop");
+	await new Promise(setImmediate);
+	return { run, code: () => code, locked: () => existsSync(join(home, "run.pid")), errors: () => failed.mock.calls.map((call) => String(call.arguments[0])) };
+}
+
+test("a stop releases run.pid only once every sweep still running has ended, a failed one too, and right after the last", async (t) => {
+	const running: PromiseWithResolvers<void>[] = [];
+	const hold = () => {
+		const sweep = Promise.withResolvers<void>();
+		running.push(sweep);
+		return sweep.promise;
+	};
+	const stop = await stopAfterSweeps(t, hold, 2);
+	assert.equal(running.length, 2, "two sweeps began");
+	assert.deepEqual([stop.locked(), stop.code()], [true, undefined], "both still running");
+	running[1]?.resolve();
+	await new Promise(setImmediate);
+	assert.deepEqual([stop.locked(), stop.code()], [true, undefined], "the first still running");
+	running[0]?.reject(new Error("ssh timed out"));
+	await new Promise(setImmediate);
+	assert.deepEqual([stop.locked(), stop.code()], [false, 1]);
+	assert.equal(await stop.run, 1);
+	assert.ok(stop.errors().includes("arthur run: the sweep for dead jobs failed: ssh timed out"), stop.errors().join("\n"));
+});
+
+test("a stop with no sweep running releases run.pid at once: none began, or the one that began has ended", async (t) => {
+	for (const sweeps of [0, 1]) {
+		let began = 0;
+		const stop = await stopAfterSweeps(t, async () => void began++, sweeps);
+		assert.deepEqual([began, stop.locked(), stop.code()], [sweeps, false, 1], `${sweeps} sweeps`);
+		t.mock.reset();
+	}
+});
+
 test("SIGINT stops like SIGTERM; a stop that throws is named, the other plugins still stop, and the exit code is 1", async (t) => {
 	const { folder, home, log } = project('plugin("orchestration"), plugin("a", { stop() { log("stop a"); throw new Error("stuck"); } }), plugin("b")');
 	const run = start(t, folder);

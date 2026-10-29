@@ -168,6 +168,25 @@ test("arthur stop of an agent that ignores SIGTERM: SIGKILL to its group after t
 	assert.match(field(home, job.id, "log") ?? "", new RegExp(`\\] the agent's process group is still alive ${GRACE_SECONDS} seconds after SIGTERM: SIGKILL\\n`));
 });
 
+test("arthur stop once the install exited, bare, while a process it forked ignores SIGTERM: the job ends only after the SIGKILL of the install's group", async (t) => {
+	bare(t);
+	const { agent, dir } = script((dir) => [`touch '${dir}/started'`]);
+	const { home, jobs } = setup(agent);
+	// The forked process ignores SIGTERM, so only the SIGKILL after the grace ends it; it holds the install's output meanwhile.
+	jobs.prepare("projects", () => ({ ARTHUR_INSTALL: `(trap '' TERM; exec sleep 300) & echo $! > '${dir}/forked'; echo $$ > '${dir}/install'` }));
+	const job = await jobs.spawn({ task: "Go." });
+	const install = Number(await until("the install's process", () => read(join(dir, "install"))?.trim() || undefined));
+	await until("the install's exit", () => !alive(install));
+	const forked = Number(read(join(dir, "forked"))?.trim());
+	t.after(() => void (alive(forked) && process.kill(forked, "SIGKILL")));
+	assert.equal(await stopJob(home, job.id), `${job.id}: stopped`);
+	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "stopped" }]);
+	await until("the forked process's end", () => !alive(forked));
+	const log = field(home, job.id, "log") ?? "";
+	assert.match(log, new RegExp(`\\] arthur stop: stopping the install\\n(.*\\n)*\\[arthur [^\\]]+\\] the agent's process group is still alive ${GRACE_SECONDS} seconds after SIGTERM: SIGKILL\\n(.*\\n)*\\[arthur [^\\]]+\\] ended: stopped\\n$`));
+	assert.equal(existsSync(join(dir, "started")), false, "no agent started");
+});
+
 test("arthur stop kills a process that left the agent's group, even where no scope holds the job", async (t) => {
 	bare(t);
 	const folder = temporaryFolder();
@@ -388,7 +407,7 @@ test("arthur continue resumes an ended worker in place: same id, branch, worktre
 	assert.deepEqual(["state", "reason", "result", "cost", "budget", "tool-calls", "continue"].map((name) => field(home, job.id, name)), ["ended", "finished", "Second.", "2.5000", "3", "1", "Also fix the README.\nThen commit."]);
 	const [start] = starts(resumed);
 	const extensions = ["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((name) => ["-e", join(import.meta.dirname, "..", "src", name)]);
-	assert.deepEqual(start?.args, ["--continue", "-p", "--mode", "json", "--auto-approve", "--tools", "read,edit,write,bash,grep,glob", "--append-system-prompt", join(folder, "prompt"), ...extensions, "--", "Also fix the README.\nThen commit."]);
+	assert.deepEqual(start?.args, ["--continue", "-p", "--mode", "json", "--auto-approve", "--config", join(import.meta.dirname, "..", "src", "job-omp.yml"), "--tools", "read,edit,write,bash,grep,glob", "--append-system-prompt", join(folder, "prompt"), ...extensions, "--", "Also fix the README.\nThen commit."]);
 	assert.equal(start?.cwd, job.worktree);
 	assert.deepEqual([starts(first).length, starts(resumed).length], [1, 1]);
 	assert.equal(git(root, "branch", "--list", "--format=%(refname:short)", `arthur/${job.id}`), `arthur/${job.id}`);

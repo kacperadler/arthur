@@ -4336,14 +4336,14 @@
     "title": "Bash builtins that set a variable without an assignment word still change git's config unseen",
     "status": "in-progress",
     "path": "spec/features/AR0545-bash-builtins-that-set-a-variable-without-an-assignment-word-still-change-git-s/ticket.md",
-    "updated": "2026-10-29T11:02:25.742Z"
+    "updated": "2026-10-29T12:28:31.582Z"
   },
   {
     "id": "AR0546",
     "title": "A function body or a trap is judged before a later export, and the `function f { }` form is not parsed at all",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0546-a-function-body-or-a-trap-is-judged-before-a-later-export-and-the-function-f/ticket.md",
-    "updated": "2026-10-29T11:17:01.073Z"
+    "updated": "2026-10-29T12:29:29.803Z"
   },
   {
     "id": "AR0547",

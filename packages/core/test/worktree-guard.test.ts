@@ -816,7 +816,7 @@ test("config set earlier in the same call (export, declare -x, a bare assignment
 	for (const command of passing) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
 });
 
-test("config a builtin sets without an assignment word (for, read, printf -v, mapfile, getopts, let, ((…)), $[…], a nameref, ${name:=…}) refuses each git call after it, as one set before git does", async () => {
+test("config a builtin sets without an assignment word (for, read, printf -v, mapfile, getopts, let, ((…)), $[…], a nameref, ${name:=…}) refuses each git call of the call, as one set before git does", async () => {
 	const { home, own } = await jobs();
 	const place = jobPlace(join(home, "jobs", own.id));
 	const unseen = [
@@ -856,10 +856,20 @@ test("config a builtin sets without an assignment word (for, read, printf -v, ma
 		"v=XDG_CONFIG_HOME; : $(( $v |= 1 )); export XDG_CONFIG_HOME; git status",
 		"v=XDG_CONFIG_HOME; echo $[ $v = 1 ]; export XDG_CONFIG_HOME; git status",
 		"eval 'for HOME in /tmp/h; do :; done'; git status",
+		// Bash removes the double quotes inside arithmetic before it evaluates it.
+		'(( HO""ME = 5 )); git status',
+		': $(( XDG_CONFIG""_HOME = 1 )); export XDG_CONFIG_HOME; git status',
+		'echo $[ HO""ME = 1 ]; git status',
+		`eval '(( HO""ME = 5 ))'; git status`,
+		'let HO""ME=5; git status',
+		// Every git call of the call counts it, also one before it (AR0546).
+		"git status; read HOME <<< /tmp/h",
 	];
 	for (const command of unseen) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /^arthur: refused: this git call reads config the guard does not/, command);
 	// An assignment builtin given a name built at run time is refused where it stands (AR0496), before any git call.
 	assert.match(worktreeRefusal(place, "bash", { command: "v=HOME; export $v=/tmp/h; git status" }) ?? "", /^arthur: refused: the guard cannot tell where this path leads/);
+	// A backslash-newline joins the name in bash, which the guard refuses as unknown (AR0493).
+	assert.match(worktreeRefusal(place, "bash", { command: "(( HO\\\nME = 5 )); git status" }) ?? "", /^arthur: refused: the guard cannot tell where this path leads/);
 	const passing = [
 		"for x in a; do git status; done",
 		"select x in a; do git status; break; done",
@@ -884,8 +894,38 @@ test("config a builtin sets without an assignment word (for, read, printf -v, ma
 		"declare x=$(git diff --name-only $base); git status",
 		": ${x:=1}; git status",
 		": ${GIT_CONFIG_NOSYSTEM:=1}; git status",
-		"git status; read HOME <<< /tmp/h",
+		// Single quotes or a backslash inside arithmetic stay, and bash refuses the expression as a syntax error.
+		"(( HO''ME = 5 )); git status",
+		"(( HO\\ME = 5 )); git status",
 	];
+	for (const command of passing) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
+});
+
+test("a function's body or a trap's command is judged with every config assignment of the call counted, also one after it, and a `function f { … }` body as an `f() { … }` one (AR0546)", async () => {
+	const { root, home, own } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id));
+	const [UNSEEN, UNKNOWN, MAIN] = [/^arthur: refused: this git call reads config the guard does not/, /^arthur: refused: the guard cannot tell where this path leads/, /^arthur: refused: this call writes into the main checkout/];
+	const refused: (readonly [string, RegExp])[] = [
+		["f() { git c a.c d; }; export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.c GIT_CONFIG_VALUE_0=config; f", UNSEEN],
+		["cd() { git status; }; export XDG_CONFIG_HOME=/tmp/h; cd .", UNSEEN],
+		['trap "git status" EXIT; export XDG_CONFIG_HOME=/tmp/h', UNSEEN],
+		["git status; export GIT_CONFIG_GLOBAL=/tmp/x.cfg", UNSEEN],
+		// Config set before a command is in the environment of a function it calls, and of that function's git calls.
+		["f() { git c a.c d; }; GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.c GIT_CONFIG_VALUE_0=config f", UNSEEN],
+		["f() { git status; }; GIT_CONFIG_GLOBAL=/tmp/x.cfg f", UNSEEN],
+		["f() { git status; }; XDG_CONFIG_HOME=/tmp/h f", UNSEEN],
+		["cd() { git status; }; XDG_CONFIG_HOME=/tmp/h cd .", UNSEEN],
+		// HOME set anywhere in the call is refused where it stands (AR0496).
+		["cd() { git status; }; export HOME=/tmp/h; cd .", UNKNOWN],
+		['trap "git status" EXIT; export HOME=/tmp/h', UNKNOWN],
+		[`trap "rm -rf ${root}/x" EXIT`, MAIN],
+		[`trap -- "rm -rf ${root}/x" EXIT`, MAIN],
+		[`function f { rm -rf ${root}/x; }; f`, MAIN],
+		[`function f() { rm -rf ${root}/x; }; f`, MAIN],
+	];
+	for (const [command, reason] of refused) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", reason, command);
+	// A trap's `cd` runs at the end, after what follows it.
+	const passing = ["f() { git status; }; export GIT_AUTHOR_NAME=x; f", "function f { git status; }; f", 'trap "git status" EXIT', "trap - EXIT", "trap -p", `trap "cd ${root}" EXIT; rm -f README.md`];
 	for (const command of passing) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
 });
 

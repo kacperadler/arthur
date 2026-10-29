@@ -43,3 +43,4 @@ Out:
 - 2026-10-28: Source: F3 of AR0524
 - 2026-10-29: AR0546: a git call in a bash call that sets git config anywhere is refused, as HOME already is; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D322)
 - 2026-10-29: AR0546: core line budget 6460 -> 6467; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D321)
+- 2026-10-29: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

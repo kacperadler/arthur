@@ -3436,16 +3436,16 @@
   {
     "id": "AR0437",
     "title": "A CI wait still cancels a hung run below the tip, whose end it no longer tells",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0437-a-ci-wait-still-cancels-a-hung-run-below-the-tip-whose-end-it-no-longer-tells/ticket.md",
-    "updated": "2026-10-28T18:06:56.264Z"
+    "updated": "2026-10-29T01:36:46.940Z"
   },
   {
     "id": "AR0438",
     "title": "A variable set in the shell alone passes `config check` but is missing for every `arthur` command a job runs",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0438-a-variable-set-in-the-shell-alone-passes-config-check-but-is-missing-for-every/ticket.md",
-    "updated": "2026-10-28T18:06:56.774Z"
+    "updated": "2026-10-29T01:36:48.554Z"
   },
   {
     "id": "AR0439",
@@ -4299,9 +4299,9 @@
   {
     "id": "AR0540",
     "title": "A worker blocked on the owner whose ticket is dropped can be neither continued, stopped nor pruned",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0540-a-worker-blocked-on-the-owner-whose-ticket-is-dropped-can-be-neither-continued/ticket.md",
-    "updated": "2026-10-29T01:22:20.289Z"
+    "updated": "2026-10-29T01:36:36.818Z"
   },
   {
     "id": "AR0541",

@@ -218,21 +218,28 @@ test("an owner's symlink that passes through a symlink in a folder a step writes
 	assert.deepEqual(["hop", "far", "comp", "plain"].map((name) => lstatSync(join(root, "tools", name), { throwIfNoEntry: false })?.isSymbolicLink() ?? false), [false, false, false, true]);
 });
 
-test("a repository a step plants in a folder above an owner's symlink's target, or above a link on its way, inside the temporary folder, where git walking up finds it, removes the symlink, one line each; one whose folders above stay the same stays", () => {
+test("a repository a step plants in a folder above an owner's symlink's target, the one right above, two above, or the temporary folder itself, where git walking up finds it, or above a link on its way, removes the symlink, one line each; one whose folders above stay the same stays", () => {
 	const { root, pwned, writable, run, lines } = planted((root, writable) => {
 		const beside = dirname(root);
-		for (const folder of ["cache/box", "b/inner", "h", "calm/box"]) mkdirSync(join(writable, folder), { recursive: true });
+		for (const folder of ["cache/box", "b/inner", "h", "calm/box", "a/b/box"]) mkdirSync(join(writable, folder), { recursive: true });
 		mkdirSync(join(beside, "elsewhere3"));
 		symlinkSync(join(beside, "elsewhere3"), join(writable, "h", "s"));
-		const links: [string, string][] = [["deepbox", "cache/box"], ["inbare", "b/inner"], ["hp", "h/s"], ["calm", "calm/box"]];
+		const links: [string, string][] = [["deepbox", "cache/box"], ["inbare", "b/inner"], ["hp", "h/s"], ["calm", "calm/box"], ["deep", "a/b/box"]];
 		for (const [name, target] of links) symlinkSync(join(writable, target), join(root, "tools", name));
 	});
-	const command = [`git init -q '${join(writable, "cache")}'`, `git -C '${join(writable, "cache")}' config core.fsmonitor "touch '${pwned}'"`, `git init -q --bare '${join(writable, "b")}'`, `git init -q '${join(writable, "h")}'`].join(" && ");
+	const command = [`git init -q '${join(writable, "cache")}'`, `git -C '${join(writable, "cache")}' config core.fsmonitor "touch '${pwned}'"`, `git init -q --bare '${join(writable, "b")}'`, `git init -q '${join(writable, "h")}'`, `git init -q '${join(writable, "a")}'`].join(" && ");
 	const ran = run(command, process.env);
 	assert.equal(ran.status, 0, ran.stderr);
-	assert.equal(execFileSync("git", ["-C", join(writable, "cache", "box"), "rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim(), realpathSync(join(writable, "cache")), "git walks up from the target to the planted repository");
-	assert.deepEqual(lines.sort(), said(command, "tools/deepbox", "tools/hp", "tools/inbare"));
-	assert.deepEqual(["deepbox", "inbare", "hp", "calm"].map((name) => lstatSync(join(root, "tools", name), { throwIfNoEntry: false })?.isSymbolicLink() ?? false), [false, false, false, true]);
+	const top = (folder: string) => execFileSync("git", ["-C", join(writable, folder), "rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
+	assert.deepEqual([top("cache/box"), top("a/b/box")], [realpathSync(join(writable, "cache")), realpathSync(join(writable, "a"))], "git walks up from each target to the planted repository");
+	assert.deepEqual(lines.sort(), said(command, "tools/deep", "tools/deepbox", "tools/hp", "tools/inbare"));
+	assert.deepEqual(["deepbox", "inbare", "hp", "deep", "calm"].map((name) => lstatSync(join(root, "tools", name), { throwIfNoEntry: false })?.isSymbolicLink() ?? false), [false, false, false, false, true]);
+	// A repository in the temporary folder itself, above every target in it.
+	const second = `git init -q '${writable}'`;
+	assert.equal(run(second, process.env).status, 0);
+	assert.equal(top("calm/box"), realpathSync(writable), "git walks up from the target to the temporary folder's repository");
+	assert.deepEqual(lines.slice(4), said(second, "tools/calm"));
+	assert.equal(lstatSync(join(root, "tools", "calm"), { throwIfNoEntry: false }), undefined);
 });
 
 test("an owner's symlink at the end of 40 links, the most the kernel follows, that ends in a folder a step writes is judged by its target too; one in a ring of links ends the sweep and stays", () => {

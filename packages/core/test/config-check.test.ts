@@ -39,9 +39,29 @@ test("each variable of the enabled plugins is listed set or missing, with the op
 	]);
 	assert.equal(ok, false);
 	assert.deepEqual(await configCheck(join(folder, "arthur.config.ts"), { ARTHUR_YOUTRACK_ACME_TOKEN: "" }), {
-		lines: ["set     ARTHUR_YOUTRACK_URL (youtrack.instances[0].urlEnv)", "set     ARTHUR_YOUTRACK_ACME_TOKEN (youtrack.instances[1].tokenEnv)"],
+		lines: [
+			`ARTHUR_YOUTRACK_ACME_TOKEN is set in the shell only; the arthur service does not see it, put it in ${join(folder, "vars")}`,
+			"set     ARTHUR_YOUTRACK_URL (youtrack.instances[0].urlEnv)",
+			"set     ARTHUR_YOUTRACK_ACME_TOKEN (youtrack.instances[1].tokenEnv)",
+		],
 		ok: true,
 	});
+});
+
+test("a variable set in the shell but not in the env file is said, without its value and without failing the check", async () => {
+	const folder = project(PLUGINS, "ARTHUR_YOUTRACK_URL=https://yt.example\n");
+	const shellOnly = `ARTHUR_YOUTRACK_ACME_TOKEN is set in the shell only; the arthur service does not see it, put it in ${join(folder, "vars")}`;
+	const both = await configCheck(join(folder, "arthur.config.ts"), { ARTHUR_YOUTRACK_URL: SECRET, ARTHUR_YOUTRACK_ACME_TOKEN: SECRET });
+	assert.deepEqual(both, { lines: [shellOnly, "set     ARTHUR_YOUTRACK_URL (youtrack.instances[0].urlEnv)", "set     ARTHUR_YOUTRACK_ACME_TOKEN (youtrack.instances[1].tokenEnv)"], ok: true });
+	// A variable of a disabled plugin is not looked up, so not said; with no env file, every set variable is the shell's.
+	const none = project(`[${ORCHESTRATION}, { name: "server", setup() {}, options: { enabled: false, tokenEnv: "ARTHUR_SERVER_TOKEN" } }, { name: "youtrack", setup() {}, options: { tokenEnv: "ARTHUR_YOUTRACK_TOKEN" } }]`);
+	assert.deepEqual((await configCheck(join(none, "arthur.config.ts"), { ARTHUR_SERVER_TOKEN: "x", ARTHUR_YOUTRACK_TOKEN: "x" })).lines, [
+		`ARTHUR_YOUTRACK_TOKEN is set in the shell only; the arthur service does not see it, put it in ${join(none, "vars")}`,
+		"set     ARTHUR_YOUTRACK_TOKEN (youtrack.tokenEnv)",
+	]);
+	const run = spawnSync(process.execPath, [CLI, "config", "check"], { cwd: folder, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_YOUTRACK_ACME_TOKEN: SECRET } });
+	assert.deepEqual([run.status, run.stdout.split("\n")[0]], [0, shellOnly]);
+	assert.doesNotMatch(run.stdout, new RegExp(SECRET));
 });
 
 test("a missing env file is named when a variable is missing; a duplicate key is said and does not fail the check", async () => {

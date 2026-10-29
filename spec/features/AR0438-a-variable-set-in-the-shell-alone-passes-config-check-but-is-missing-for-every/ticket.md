@@ -41,3 +41,6 @@ Out:
 
 - 2026-10-25: Source: F1 of AR0338
 - 2026-10-25: AR0438 approved under AR-D31, group 2; the owner: "always go with recommendation till the 8 am morning" (AR-D44)
+- 2026-10-29: Ship the corrected wording: ARTHUR_X is set in the shell only; the arthur service does not see it, put it in <envFile> (the ticket text predates AR0443, after which a job reads no env file); by recommendation under AR-D271; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D292)
+- 2026-10-29: Raise the core line budget from 6440 to 6443 for AR0438; by recommendation under AR-D271; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D293)
+- 2026-10-29: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { chmodSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fakeHost, jobSlice, temporaryFolder } from "@arthur/core/testing";
@@ -206,6 +206,15 @@ test("an owner's symlink to a folder a step writes that holds what Arthur's user
 	} finally {
 		chmodSync(join(writable, "closed", "shut"), 0o755);
 	}
+});
+
+test("an owner's symlink into /dev, which a step writes, is judged by its target too: a repository a step put where it pointed has it removed", { skip: !existsSync("/dev/shm") && "no /dev/shm" }, (t) => {
+	const shm = mkdtempSync("/dev/shm/arthur-test-");
+	t.after(() => rmSync(shm, { recursive: true, force: true }));
+	const { root, run, lines } = planted((root) => symlinkSync(join(shm, "box"), join(root, "tools", "shm")));
+	const command = `git init -q --bare '${join(shm, "box")}'`;
+	assert.equal(run(command, process.env).status, 0);
+	assert.deepEqual(lines, said(command, "tools/shm"));
 });
 
 test("a symlink a step made is followed from its folder's real path, as the kernel does: one in a checkout reached through a symlink that leads outside it is removed, though read from the symlinked path its text leads inside", () => {

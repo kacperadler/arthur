@@ -816,6 +816,91 @@ test("config set earlier in the same call (export, declare -x, a bare assignment
 	for (const command of passing) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
 });
 
+test("config a builtin sets without an assignment word (for, read, printf -v, mapfile, getopts, let, ((…)), $[…], a nameref, ${name:=…}) refuses each git call of the call, as one set before git does", async () => {
+	const { home, own } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id));
+	const unseen = [
+		"for HOME in /tmp/h; do git status; done",
+		"select XDG_CONFIG_HOME in /tmp/h; do git status; break; done",
+		"read HOME <<< /tmp/h; git status",
+		"read -aHOME <<< /tmp/h; git status",
+		"printf -v GIT_CONFIG_GLOBAL %s /tmp/x.cfg; export GIT_CONFIG_GLOBAL; git commit -m x",
+		"printf -vXDG_CONFIG_HOME %s /tmp/h; git status",
+		"mapfile -t XDG_CONFIG_HOME < /tmp/list; git status",
+		"readarray HOME <<< /tmp/h; git status",
+		"getopts h: GIT_CONFIG_COUNT; export GIT_CONFIG_COUNT; git status",
+		"let HOME=5; git status",
+		"let 'XDG_CONFIG_HOME = 5'; git status",
+		"(( HOME = 5 )); git status",
+		": $(( GIT_CONFIG_COUNT = 1 )); export GIT_CONFIG_COUNT; git status",
+		"echo $[XDG_CONFIG_HOME=1]; export XDG_CONFIG_HOME; git status",
+		"(( ((1)) + 0, HOME = 5 )); git status",
+		"declare -n r=HOME; r=/tmp/h; git status",
+		"declare -n r; r=HOME; r=/tmp/h; git status",
+		"typeset -n r=$v; r=/tmp/h; git status",
+		"declare -n r=x; for r in HOME; do r=/tmp/h; done; git status",
+		": ${GIT_CONFIG_COUNT:=1}; export GIT_CONFIG_COUNT; git status",
+		': "${XDG_CONFIG_HOME=/tmp/h}"; git status',
+		"v=HOME; declare -n r=${v:-x}; r=/tmp/h; git status",
+		"v=GIT_CONFIG_COUNT; : ${!v:=1}; export GIT_CONFIG_COUNT; git status",
+		// A name known only at run time.
+		"v=HOME; read $v <<< /tmp/h; git status",
+		"v='HOME=5'; let $v; git status",
+		"v=HOME; (( $v++ )); git status",
+		"v=OME; (( H$v = 5 )); git status",
+		"v=HOME; printf -v \"$v\" %s /tmp/h; git status",
+		"v=HOME; let \"$v=5\"; git status",
+		"v=HOME; (( $v = 5 )); git status",
+		// Arithmetic with a run-time word: bash evaluates its value as arithmetic too, whatever operator follows it (shell-words splits `|`, `&` and `>>` off).
+		...["$v |= 1", "$v &= 1", "$v>>=1", "$v == 5", "total += $v", "total += `echo $v`"].map((expression) => `v=XDG_CONFIG_HOME; (( ${expression} )); export XDG_CONFIG_HOME; git status`),
+		"v=XDG_CONFIG_HOME; : $(( $v |= 1 )); export XDG_CONFIG_HOME; git status",
+		"v=XDG_CONFIG_HOME; echo $[ $v = 1 ]; export XDG_CONFIG_HOME; git status",
+		"eval 'for HOME in /tmp/h; do :; done'; git status",
+		// Bash removes the double quotes inside arithmetic before it evaluates it.
+		'(( HO""ME = 5 )); git status',
+		': $(( XDG_CONFIG""_HOME = 1 )); export XDG_CONFIG_HOME; git status',
+		'echo $[ HO""ME = 1 ]; git status',
+		`eval '(( HO""ME = 5 ))'; git status`,
+		'let HO""ME=5; git status',
+		// Every git call of the call counts it, also one before it (AR0546).
+		"git status; read HOME <<< /tmp/h",
+	];
+	for (const command of unseen) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /^arthur: refused: this git call reads config the guard does not/, command);
+	// An assignment builtin given a name built at run time is refused where it stands (AR0496), before any git call.
+	assert.match(worktreeRefusal(place, "bash", { command: "v=HOME; export $v=/tmp/h; git status" }) ?? "", /^arthur: refused: the guard cannot tell where this path leads/);
+	// A backslash-newline joins the name in bash, which the guard refuses as unknown (AR0493).
+	assert.match(worktreeRefusal(place, "bash", { command: "(( HO\\\nME = 5 )); git status" }) ?? "", /^arthur: refused: the guard cannot tell where this path leads/);
+	const passing = [
+		"for x in a; do git status; done",
+		"select x in a; do git status; break; done",
+		"read x <<< a; git status",
+		"read -a x <<< a; git status",
+		"printf -v x %s HOME; git status",
+		"mapfile -t x < /tmp/list; git status",
+		"readarray x <<< a; git status",
+		"getopts h: x; git status",
+		"let x=5; git status",
+		"(echo HOME); git status",
+		"( (echo HOME) ); git status",
+		"(( x = 5 )); git status",
+		"echo $(( 1 + 2 )) $[1 + 2]; git status",
+		// Each arithmetic text ends at the bracket that closes it.
+		"(( x++ )); echo $v; git status",
+		"(( (x) + 1 )); echo $v HOME; git status",
+		"echo $[1] $v; git status",
+		"declare -n r=x; r=/tmp/h; git status",
+		"declare -n r=x; for x in HOME; do :; done; git status",
+		"declare -n r=x; echo $v; git status",
+		"declare x=$(git diff --name-only $base); git status",
+		": ${x:=1}; git status",
+		": ${GIT_CONFIG_NOSYSTEM:=1}; git status",
+		// Single quotes or a backslash inside arithmetic stay, and bash refuses the expression as a syntax error.
+		"(( HO''ME = 5 )); git status",
+		"(( HO\\ME = 5 )); git status",
+	];
+	for (const command of passing) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
+});
+
 test("a function's body or a trap's command is judged with every config assignment of the call counted, also one after it, and a `function f { … }` body as an `f() { … }` one (AR0546)", async () => {
 	const { root, home, own } = await jobs();
 	const place = jobPlace(join(home, "jobs", own.id));

@@ -621,3 +621,5 @@
 {"record":"answer","id":"AR-D309","time":"2026-10-29T10:30:40+01:00","decided":"Prune Docker build cache unused for 24 h (docker builder prune --filter until=24h); images, containers and volumes kept","picked":1,"words":"AR-D309 1"}
 {"record":"ask","id":"AR-D310","time":"2026-10-29T10:32:32+01:00","project":"arthur","kind":"merge","question":"Merge AR0491 (a substitution inside a fallback word is judged), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0491"}
 {"record":"answer","id":"AR-D310","time":"2026-10-29T10:32:32+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D311","time":"2026-10-29T10:38:45+01:00","project":"arthur","kind":"merge","question":"Merge AR0496 (a HOME set in front of a command is refused; plain-name allow-list), which passed review?","options":["Merge now","Wait"],"recommend":1,"ticket":"AR0496"}
+{"record":"answer","id":"AR-D311","time":"2026-10-29T10:38:45+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

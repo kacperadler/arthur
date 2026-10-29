@@ -2,20 +2,22 @@ import { dirname } from "node:path";
 import { insideJob } from "@arthur/core/inside-job";
 import type { Command, Host } from "@arthur/core/plugin";
 import type { Instance, Repository } from "./github-api.ts";
+import { branch } from "./github-branch.ts";
 import { git } from "./github-git.ts";
 import { pr } from "./github-pr.ts";
 
-// `arthur github pr|issue|branch ...` (AR0556's plan; AR0557 the command and the pull request reads): a project's pull
-// requests on GitHub, asked with the token of the instance its repository's owner names. A read runs inside a job too; a
-// write is refused there before any request. Text people wrote on GitHub is printed only after `> `, as data.
-// docs/commands/github.md, and a page per group: github-pr.md.
+// `arthur github pr|issue|branch ...` (AR0556's plan; AR0557 the command and the pull request reads; AR0555 `branch sweep`):
+// a project's pull requests on GitHub, asked with the token of the instance its repository's owner names, and its branches
+// on origin, asked with git's own credentials. A read runs inside a job too; a write is refused there before any request.
+// Text people wrote on GitHub is printed only after `> `, as data. docs/commands/github.md, and a page per group: github-pr.md,
+// github-branch.md.
 
 export type Entry = { readonly name: string; readonly path: string; readonly ci?: { readonly workflow: string } };
 
-const USAGE = "usage: arthur github pr list [--all]|get <n>|merge <n> [--project <name>]";
+const USAGE = "usage: arthur github pr list [--all]|get <n>|merge <n> | branch sweep [--dry-run] [--project <name>]";
 // The words each verb of a group takes after it, and the flags it takes.
-const VERBS: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = { pr: { list: [], get: ["n"], merge: ["n"] } };
-const FLAGS: Readonly<Record<string, readonly string[]>> = { "pr list": ["--all"] };
+const VERBS: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = { pr: { list: [], get: ["n"], merge: ["n"] }, branch: { sweep: [] } };
+const FLAGS: Readonly<Record<string, readonly string[]>> = { "pr list": ["--all"], "branch sweep": ["--dry-run"] };
 // The verbs that only read; a job runs only these.
 const READS = ["list", "get"];
 
@@ -35,7 +37,7 @@ export function githubCommand(host: Host, list: readonly Entry[], accounts: read
 				return (console.error(`arthur github ${group} ${verb}: refused inside a job ${job}: a job runs only the commands its role needs; put what the coordinator should do in your final message`), 1);
 			const entry = project === undefined ? list[0] : list.find((each) => each.name === project);
 			if (entry === undefined) throw new Error(`${project === undefined ? "no project to act on" : `no project ${project}`}; projects: ${list.map((each) => each.name).join(", ") || "none"}`);
-			return pr(repository(entry, accounts), verb, words, flags.includes("--all"));
+			return group === "branch" ? branch(host, entry, flags.includes("--dry-run")) : pr(repository(entry, accounts), verb, words, flags.includes("--all"));
 		},
 	};
 }

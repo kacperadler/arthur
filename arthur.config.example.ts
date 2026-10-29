@@ -363,7 +363,8 @@ export default defineConfig({
 		// other: `{ name: "acme", tokenEnv: "ARTHUR_GITHUB_ACME_TOKEN" }`. GitHub Enterprise Server: `apiUrl:
 		// "https://<host>/api/v3"`. `arthur ci <branch>` tells why a run failed, `--rerun` reruns it once; `arthur github pr list|get`
 		// reads a project's pull requests, any project with a GitHub origin; a branch a review passed and main after a merge are
-		// pushed to origin with git's own credentials, never a prompt. packages/github/docs/github.md.
+		// pushed to origin with git's own credentials, never a prompt, and a pruned job's branch is deleted there; `arthur github
+		// branch sweep [--dry-run]` deletes the arthur/* branches left there by jobs gone. packages/github/docs/github.md.
 		github({
 			instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }], // fine-grained, Actions: read (and write to rerun a run); Pull requests: read for reviews and arthur github pr
 			poll: { everySeconds: 120 }, // one request per project with a ci.workflow per poll

@@ -192,7 +192,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `doctor` | delivery, machines, models, nvm, projects | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
 | `jobs.place` | machines | the core, each spawn | The machine a job runs on. |
 | `jobs.limits` | resources | the core, each spawn | The job's own caps. |
-| `jobs.keep` | none yet | the core (`arthur prune`) | Whether an ended job's record is kept. |
+| `jobs.keep` | github, delivery | the core (`arthur prune`) | Whether an ended job's record is kept; asked once its worktree and branch are freed, so a provider also frees what it holds of the job: github deletes its branch on origin, delivery its folder of the job (AR0555). |
 | `models.pick` | models | the core, each spawn with a model | `{ model, why, free }` for `(list, machine)`. |
 | `roles.model` | orchestration | the core, session (its LLM probe), develop (`arthur eval`) | `{ model, thinking, quick, mcp }` of a role; `mcp` its MCP servers in omp's `mcpServers` shape (AR0234). |
 | `message.part` | listen, video | the core (`turnText`) | A `Claim` for a part it handles. |

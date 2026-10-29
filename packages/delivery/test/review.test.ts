@@ -406,8 +406,9 @@ test("a refusal by the core or by delivery itself, which no freed slot lifts, en
 	other();
 	await until("the continue refused again", () => asked === 4);
 	assert.deepEqual([step(one.id), told()], ["continue", []]);
-	// The core's: its ticket dropped meanwhile.
+	// The core's: its ticket dropped meanwhile; a draft in the worker's worktree keeps the job through the drop's prune.
 	full = false;
+	writeFileSync(join(readFileSync(join(dirname(fake.host.folder), "jobs", one.id, "worktree"), "utf8"), "draft.ts"), "export const draft = 1;\n");
 	fake.host.board.move("AC0002", "dropped");
 	other();
 	await until("the hand-back ended", () => step(one.id) === undefined);
@@ -425,7 +426,7 @@ test("a refusal by the core or by delivery itself, which no freed slot lifts, en
 	await ended(two.id);
 	await until("the review refused", () => told().length === 2);
 	assert.match(told()[1] ?? "", new RegExp(`^Delivery's hand-back of ${two.branch} after FAIL ${second.id} stopped: refused by delivery: AC0001 is planning; a review is of a ticket in-progress, review or done\\. Hand it back yourself: `));
-	assert.deepEqual([step(two.id), reviews(fake).length], [undefined, 2]);
+	assert.deepEqual([step(two.id), reviews(fake)], [undefined, [second.id]], "no review after the second; the first went with its dropped ticket's prune");
 	assert.equal(field(one.id, "continue"), undefined, "never continued");
 });
 

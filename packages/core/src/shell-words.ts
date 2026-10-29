@@ -13,8 +13,8 @@ type Target = "write" | "read" | "duplicate" | "here";
 const TARGETS: Readonly<Record<string, Target>> = { "<": "read", "<&": "read", ">&": "duplicate", "<<<": "here" };
 
 // One simple command: its `words`; `writes`, the targets of the redirects that write a file (`>`, `>>`, `>|`, `<>`, `&>`, `>&name`); `reads`, those of the others and a heredoc's delimiter;
-// `stdin`, the text of a heredoc or a here string. `alone` is false in a pipeline or in the background, where it runs in a subshell and a `cd` does not last.
-export type Command = { readonly words: string[]; readonly writes: string[]; readonly reads: string[]; readonly stdin: string[]; readonly alone: boolean };
+// `stdin`, the text of a heredoc or a here string. `alone` is false in a pipeline or in the background, where it runs in a subshell and a `cd` does not last. `dynamic`: the index of each word in which a `$` or a backtick stood before its first `=` (of an empty word, that of the next one), so a name `export` or `env` sets there is known only at run time.
+export type Command = { readonly words: string[]; readonly writes: string[]; readonly reads: string[]; readonly stdin: string[]; readonly alone: boolean; readonly dynamic?: readonly number[] };
 export type Item = Command | "(" | ")";
 
 const quoted = (text: string): string => [...text].map((char) => (SPECIAL.includes(char) ? `\\${char}` : char)).join("");
@@ -34,8 +34,7 @@ export function decodeEscapes(text: string): string {
 	});
 }
 
-// The index of the character that closes the one opened just before `from`: `)` for `(`, `}` for `{`, nested pairs and
-// quoted text skipped, an escaped `"` in double quotes not closing them; the end of the text when it is never closed.
+// The index of the character that closes the one opened just before `from`: `)` for `(`, `}` for `{`, nested pairs and quoted text skipped, an escaped `"` in double quotes not closing them; the end of the text when it is never closed.
 function closing(text: string, from: number, open: string, close: string): number {
 	let depth = 1;
 	for (let at = from; at < text.length; at++) {
@@ -74,6 +73,7 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 		[before, current, target] = [[], { words: [], writes: [], reads: [], stdin: [], alone }, undefined];
 	};
 	const value = (name: string): string | undefined => (Object.hasOwn(known, name) && known[name] !== undefined ? quoted(known[name]) : undefined);
+	const mark = () => void (target === undefined && !word.includes("=") && (current = { ...current, dynamic: [...(current.dynamic ?? []), current.words.length] }));
 	// The expansion that starts with `$` at `at`, inside double quotes or not: adds its text to the word, and the substitutions of a fallback word to `before`; returns where it ends.
 	const dollar = (at: number, inDouble: boolean): number => {
 		const next = command[at + 1];
@@ -157,13 +157,13 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 			for (at++; at < command.length && command[at] !== '"'; ) {
 				const inner = command[at]!;
 				if (inner === "\\" && '$`"\\\n'.includes(command[at + 1] ?? "")) [word, at] = [word + (command[at + 1] === "\n" ? "" : quoted(command[at + 1]!)), at + 2];
-				else if (inner === "$") at = dollar(at, true);
-				else if (inner === "`") at = backtick(at);
+				else if (inner === "$") at = (mark(), dollar(at, true));
+				else if (inner === "`") at = (mark(), backtick(at));
 				else word += quoted(command[at++]!);
 			}
 			at++;
-		} else if (char === "$") at = dollar(at, false);
-		else if (char === "`") at = backtick(at);
+		} else if (char === "$") at = (mark(), dollar(at, false));
+		else if (char === "`") at = (mark(), backtick(at));
 		else if (redirect !== undefined) {
 			// The number of the file descriptor it redirects, written right before it, is no word.
 			if (/^\d+$/.test(word)) word = "";

@@ -11,4 +11,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/job-place.ts:18` (`sshFolders`, `os.userInfo()`)
 - What: `os.userInfo()` throws a `SystemError` when the process's uid has no passwd entry (Node's docs for `os.userInfo`), as in a container run with `--user <uid>` and `HOME` set. `sshFolders` runs for every job's record (`guardedPlaces`), its sandbox (`hidden`) and each merge step (`stepSandbox`), so there each of them now throws, where before `homedir()` read `$HOME`. Not reproduced: this host refuses a user namespace (`unshare --user --map-user=54321` gives `cannot open /proc/self/uid_map: Permission denied`), the only unprivileged way to get such a uid. OpenSSH itself refuses to run there, `No user exists for uid` (an inference from its source, not run), so `$HOME`'s `.ssh` alone would do.
 - Suggestion: catch the `SystemError` of `userInfo()` in `sshFolders` and keep `$HOME`'s `.ssh` alone, with a test that runs under a uid without an account (a user namespace, where the host allows one).
-- Status: open
+- Status: deferred (client summary)
+
+## F2. The end-to-end test reads the size of the real `~/.ssh`
+
+- Kind: test
+- Found by: 2026-10-29-review-0af893d9 (reviewer), 2026-10-29
+- Where: `packages/core/test/sandbox.test.ts:474`
+- What: the test counts the bytes a job could read from the runner's real `~/.ssh` and never copies them; `userInfo()` cannot be faked, so this is the only proof the account's folder is hidden.
+- Status: dropped (only a count is kept; it proves the fix)

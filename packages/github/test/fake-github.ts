@@ -6,15 +6,30 @@ import type { TestContext } from "node:test";
 // A fake GitHub REST API on a loopback port the OS picks, answering in the shape of GitHub's documentation, every field of it:
 // "List workflow runs for a workflow", "List jobs for a workflow run attempt", "Download job logs for a workflow run" (a 302
 // to the log's text), "Re-run a workflow" (201, the run's next attempt queued), "Cancel a workflow run" (202, the run
-// cancelled; 409 for one completed), "List pull requests", "List reviews for a pull request", and the headers of "Rate limits
-// for the REST API".
+// cancelled; 409 for one completed), "List pull requests", "Get a pull request", "List reviews for a pull request", "List
+// issue comments", with the `link` header of "Using pagination in the REST API" on each page that has a next one, and the
+// headers of "Rate limits for the REST API".
 
 export type FakeRun = { readonly id: number; attempt?: number; readonly sha: string; readonly branch: string; status: "queued" | "in_progress" | "completed"; conclusion: "success" | "failure" | "cancelled" | null; readonly started?: string };
 export type FakeStep = { readonly name: string; readonly conclusion: "success" | "failure" | "skipped" };
 export type FakeJob = { readonly id: number; readonly name: string; readonly conclusion: "success" | "failure"; readonly steps: readonly FakeStep[]; readonly log: string };
 // `submitted`, GitHub's `submitted_at` of a review not pending: 2026-01-01 when left out, none when null.
 export type FakeReview = { readonly id: number; readonly user: string; readonly state: "APPROVED" | "CHANGES_REQUESTED" | "COMMENTED" | "PENDING"; readonly body: string; readonly submitted?: string | null };
-export type FakePull = { readonly number: number; readonly title: string; readonly branch: string; updated: string; readonly reviews: FakeReview[] };
+// A pull request: `state` open when left out, `merged` its `merged_at` (closed then), `user` octocat, `body` the docs' own.
+export type FakePull = {
+	readonly number: number;
+	readonly title: string;
+	readonly branch: string;
+	updated: string;
+	readonly reviews: FakeReview[];
+	readonly state?: "open" | "closed";
+	readonly merged?: string;
+	readonly draft?: boolean;
+	readonly user?: string;
+	readonly body?: string | null;
+	readonly comments?: readonly FakeComment[];
+};
+export type FakeComment = { readonly id: number; readonly user: string; readonly body: string; readonly created?: string };
 export type Reply = { readonly status: number; readonly headers?: Readonly<Record<string, string>>; readonly body: unknown };
 
 export const DOCS = "https://docs.github.com/rest";
@@ -50,20 +65,31 @@ const shapedJob = (full: string, run: FakeRun, { id, name, conclusion, steps }: 
 	...{ labels: ["ubuntu-latest"], runner_id: 1, runner_name: "GitHub Actions 1", runner_group_id: 2, runner_group_name: "GitHub Actions", workflow_name: "CI", head_branch: run.branch },
 });
 const branchOf = (full: string, ref: string, sha: string) => ({ label: `${full.split("/")[0]}:${ref}`, ref, sha, user: user(full.split("/")[0] ?? "", 1), repo: repo(full) });
-const shapedPull = (full: string, { number, title, branch, updated }: FakePull) => {
+const shapedPull = (full: string, { number, title, branch, updated, state = "open", merged, draft = false, user: login = "octocat", body = "Please pull these awesome changes" }: FakePull) => {
 	const url = `${API}/repos/${full}/pulls/${number}`;
 	const links = { self: url, html: `https://github.com/${full}/pull/${number}`, issue: `${API}/repos/${full}/issues/${number}`, comments: `${API}/repos/${full}/issues/${number}/comments` };
+	const closed = merged ?? (state === "closed" ? updated : null);
 	return {
 		...{ url, id: 1000 + number, node_id: "MDExOlB1bGxSZXF1ZXN0MQ==", html_url: links.html, diff_url: `${links.html}.diff`, patch_url: `${links.html}.patch`, issue_url: links.issue, commits_url: `${url}/commits` },
-		...{ review_comments_url: `${url}/comments`, review_comment_url: `${API}/repos/${full}/pulls/comments{/number}`, comments_url: links.comments, statuses_url: `${API}/repos/${full}/statuses/abc`, number, state: "open", locked: false, title },
-		...{ user: user("octocat", 1), body: "Please pull these awesome changes", labels: [], milestone: null, active_lock_reason: null, created_at: T, updated_at: updated, closed_at: null, merged_at: null, merge_commit_sha: null },
+		...{ review_comments_url: `${url}/comments`, review_comment_url: `${API}/repos/${full}/pulls/comments{/number}`, comments_url: links.comments, statuses_url: `${API}/repos/${full}/statuses/abc`, number, state: merged === undefined ? state : "closed", locked: false, title },
+		...{ user: user(login, 1), body, labels: [], milestone: null, active_lock_reason: null, created_at: T, updated_at: updated, closed_at: closed, merged_at: merged ?? null, merge_commit_sha: merged === undefined ? null : "e5bd3914e2e596debea16f433f57875b5b90bcd6" },
 		...{ assignee: null, assignees: [], requested_reviewers: [], requested_teams: [], head: branchOf(full, branch, "6dcb09b5b57875f334f61aebed695e2e4193db5e"), base: branchOf(full, "main", "6dcb09b5b57875f334f61aebed695e2e4193db5e") },
 		_links: Object.fromEntries(
 			Object.entries({ ...links, review_comments: `${url}/comments`, review_comment: `${API}/repos/${full}/pulls/comments{/number}`, commits: `${url}/commits`, statuses: `${API}/repos/${full}/statuses/abc` }).map(([key, href]) => [key, { href }]),
 		),
-		...{ author_association: "OWNER", auto_merge: null, draft: false },
+		...{ author_association: "OWNER", auto_merge: null, draft },
 	};
 };
+// "Get a pull request" adds these to a listed one.
+const fullPull = (full: string, pull: FakePull) => ({
+	...shapedPull(full, pull),
+	...{ merged: pull.merged !== undefined, mergeable: true, rebaseable: true, mergeable_state: "clean", merged_by: pull.merged === undefined ? null : user("octocat", 1), comments: pull.comments?.length ?? 0 },
+	...{ review_comments: 0, maintainer_can_modify: true, commits: 3, additions: 100, deletions: 3, changed_files: 5 },
+});
+const shapedComment = (full: string, number: number, { id, user: login, body, created = T }: FakeComment) => ({
+	...{ id, node_id: "MDEyOklzc3VlQ29tbWVudDE=", url: `${API}/repos/${full}/issues/comments/${id}`, html_url: `https://github.com/${full}/issues/${number}#issuecomment-${id}`, body, user: user(login, 3) },
+	...{ created_at: created, updated_at: created, issue_url: `${API}/repos/${full}/issues/${number}`, author_association: "COLLABORATOR", minimized: null },
+});
 const shapedReview = (full: string, number: number, { id, user: login, state, body, submitted = T }: FakeReview) => ({
 	...{ id, node_id: "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3ODA=", user: user(login, 2), body, state, html_url: `https://github.com/${full}/pull/${number}#pullrequestreview-${id}`, pull_request_url: `${API}/repos/${full}/pulls/${number}` },
 	_links: { html: { href: `https://github.com/${full}/pull/${number}#pullrequestreview-${id}` }, pull_request: { href: `${API}/repos/${full}/pulls/${number}` } },
@@ -72,10 +98,11 @@ const shapedReview = (full: string, number: number, { id, user: login, state, bo
 });
 
 // `runs[<owner>/<repo>/<workflow>]` newest first; `jobs[<run id>]` the jobs of its attempt, each with its log; `pulls[<owner>/<repo>]`
-// the open pull requests; `next` replies once each, before anything else; `always` replies to every request while set, `post`
-// to every POST; `clock` is GitHub's clock less this machine's, in ms, as its `date` header says it (null: no `date`); `slow`
-// the ms an answer waits after its request, its body taken at the request. `seen` holds each request: its method, path, time
-// and Authorization.
+// its pull requests, listed in that order by `state` (`open`, GitHub's default, `closed` or `all`), each with its reviews and
+// comments, every list paged by `per_page` (GitHub's default 30) and `page`; `next` replies once each, before anything else;
+// `always` replies to every request while set, `post` to every POST; `clock` is GitHub's clock less this machine's, in ms, as
+// its `date` header says it (null: no `date`); `slow` the ms an answer waits after its request, its body taken at the request.
+// `seen` holds each request: its method, path, time and Authorization.
 export async function fakeGithub(t: TestContext) {
 	const runs: Record<string, FakeRun[]> = {};
 	const jobs: Record<number, FakeJob[]> = {};
@@ -111,11 +138,26 @@ export async function fakeGithub(t: TestContext) {
 				[cancelled.status, cancelled.conclusion] = ["completed", "cancelled"];
 				return { status: 202, body: {} };
 			}
-			const [pullsOf = ""] = match(/^\/repos\/([^/]+\/[^/]+)\/pulls\?state=open&sort=updated&direction=desc&per_page=100$/) ?? [];
-			if (pulls[pullsOf] !== undefined) return { status: 200, body: pulls[pullsOf].map((pull) => shapedPull(pullsOf, pull)) };
-			const [reviewsOf = "", number = ""] = match(/^\/repos\/([^/]+\/[^/]+)\/pulls\/(\d+)\/reviews\?per_page=100$/) ?? [];
-			const pull = pulls[reviewsOf]?.find((each) => String(each.number) === number);
-			if (pull !== undefined) return { status: 200, body: pull.reviews.map((review) => shapedReview(reviewsOf, pull.number, review)) };
+			const url = new URL(path, "http://fake");
+			const paged = (items: readonly unknown[]): Reply => {
+				const [per, page] = [Number(url.searchParams.get("per_page") ?? 30), Number(url.searchParams.get("page") ?? 1)];
+				const after = new URLSearchParams({ ...Object.fromEntries(url.searchParams), page: String(page + 1) });
+				return { status: 200, body: items.slice((page - 1) * per, page * per), ...(items.length > page * per ? { headers: { link: `<${API}${url.pathname}?${after}>; rel="next"` } } : {}) };
+			};
+			const [listOf = ""] = match(/^\/repos\/([^/]+\/[^/]+)\/pulls(?:\?|$)/) ?? [];
+			const wanted = url.searchParams.get("state") ?? "open";
+			const stateOf = (pull: FakePull) => pull.state ?? (pull.merged === undefined ? "open" : "closed");
+			if (pulls[listOf] !== undefined) return paged(pulls[listOf].filter((pull) => wanted === "all" || stateOf(pull) === wanted).map((pull) => shapedPull(listOf, pull)));
+			const find = (pattern: RegExp) => {
+				const [of = "", number = ""] = match(pattern) ?? [];
+				return { of, pull: pulls[of]?.find((each) => String(each.number) === number) };
+			};
+			const got = find(/^\/repos\/([^/]+\/[^/]+)\/pulls\/(\d+)$/);
+			if (got.pull !== undefined) return { status: 200, body: fullPull(got.of, got.pull) };
+			const reviewed = find(/^\/repos\/([^/]+\/[^/]+)\/pulls\/(\d+)\/reviews\?/);
+			if (reviewed.pull !== undefined) return paged(reviewed.pull.reviews.map((review) => shapedReview(reviewed.of, reviewed.pull!.number, review)));
+			const said = find(/^\/repos\/([^/]+\/[^/]+)\/issues\/(\d+)\/comments\?/);
+			if (said.pull !== undefined) return paged((said.pull.comments ?? []).map((comment) => shapedComment(said.of, said.pull!.number, comment)));
 			return undefined;
 		})();
 		const log = /^\/blob\/logs\/(\d+)$/.exec(path)?.[1];

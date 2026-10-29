@@ -48,3 +48,4 @@ Out:
 - 2026-10-29: AR0496 review round 7 of the allow-list branch; the owner: "AR-D303 1 (raise by $5 and finish, then go to review)" (AR-D304)
 - 2026-10-29: AR0496 another round: the worker adds tests for the three run-time-name marks (shell-words.ts:160, 161, 166) only; HOME inside env -S goes to AR0498; then review round 6; the owner: "AR-D305 1" (AR-D305)
 - 2026-10-29: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)
+- 2026-10-29: AR0496 budget raised to $25.65 to merge main after AR0491; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D312)

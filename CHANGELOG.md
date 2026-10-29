@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Fixed
 
+- AR0437 A CI wait still cancels a hung run below the tip, whose end it no longer tells (91c8a24b)
 - AR0438 A variable set in the shell alone passes `config check` but is missing for every `arthur` command a job runs (4d95ef30)
 - AR0479 A merge step reading an owner clone still deletes it when python3 cannot read the .git attributes, with a reason that hides why (4d1ac2a0)
 - AR0481 A stop during the install can end the job before its stop of the install's group is over (e80132da)

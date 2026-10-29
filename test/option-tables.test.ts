@@ -168,7 +168,9 @@ test("each package's check refuses an unknown option, naming its path and exactl
 	}
 });
 
-test("each plugin names its own module, so host.code holds its package and the restart guard watches its code", () => {
-	for (const [name, [, plugin]] of Object.entries(PLUGINS))
+test("each plugin is named as its package folder and names its own module, so host.code holds its package and the restart guard watches its code", () => {
+	for (const [name, [, plugin]] of Object.entries(PLUGINS)) {
+		assert.equal(plugin.name, name, "its options, folder under the home and doctor lines go by its package's name");
 		assert.equal(plugin.module === undefined ? undefined : dirname(dirname(fileURLToPath(plugin.module))), join(import.meta.dirname, "..", "packages", name), name);
+	}
 });

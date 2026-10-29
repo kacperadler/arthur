@@ -3883,16 +3883,16 @@
   {
     "id": "AR0490",
     "title": "A symlink or a HEAD folder the branch itself commits is kept by the sweep",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0490-a-symlink-or-a-head-folder-the-branch-itself-commits-is-kept-by-the-sweep/ticket.md",
-    "updated": "2026-10-29T07:04:59.397Z"
+    "updated": "2026-10-29T07:58:37.140Z"
   },
   {
     "id": "AR0491",
     "title": "A command substitution inside a fallback word is never judged",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0491-a-command-substitution-inside-a-fallback-word-is-never-judged/ticket.md",
-    "updated": "2026-10-28T18:06:59.338Z"
+    "updated": "2026-10-29T07:58:41.435Z"
   },
   {
     "id": "AR0492",

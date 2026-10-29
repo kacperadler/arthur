@@ -4341,9 +4341,9 @@
   {
     "id": "AR0546",
     "title": "A function body or a trap is judged before a later export, and the `function f { }` form is not parsed at all",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0546-a-function-body-or-a-trap-is-judged-before-a-later-export-and-the-function-f/ticket.md",
-    "updated": "2026-10-28T18:07:01.442Z"
+    "updated": "2026-10-29T11:17:01.073Z"
   },
   {
     "id": "AR0547",

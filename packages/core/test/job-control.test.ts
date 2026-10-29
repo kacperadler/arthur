@@ -168,6 +168,25 @@ test("arthur stop of an agent that ignores SIGTERM: SIGKILL to its group after t
 	assert.match(field(home, job.id, "log") ?? "", new RegExp(`\\] the agent's process group is still alive ${GRACE_SECONDS} seconds after SIGTERM: SIGKILL\\n`));
 });
 
+test("arthur stop once the install exited, bare, while a process it forked ignores SIGTERM: the job ends only after the SIGKILL of the install's group", async (t) => {
+	bare(t);
+	const { agent, dir } = script((dir) => [`touch '${dir}/started'`]);
+	const { home, jobs } = setup(agent);
+	// The forked process ignores SIGTERM, so only the SIGKILL after the grace ends it; it holds the install's output meanwhile.
+	jobs.prepare("projects", () => ({ ARTHUR_INSTALL: `(trap '' TERM; exec sleep 300) & echo $! > '${dir}/forked'; echo $$ > '${dir}/install'` }));
+	const job = await jobs.spawn({ task: "Go." });
+	const install = Number(await until("the install's process", () => read(join(dir, "install"))?.trim() || undefined));
+	await until("the install's exit", () => !alive(install));
+	const forked = Number(read(join(dir, "forked"))?.trim());
+	t.after(() => void (alive(forked) && process.kill(forked, "SIGKILL")));
+	assert.equal(await stopJob(home, job.id), `${job.id}: stopped`);
+	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "stopped" }]);
+	await until("the forked process's end", () => !alive(forked));
+	const log = field(home, job.id, "log") ?? "";
+	assert.match(log, new RegExp(`\\] arthur stop: stopping the install\\n(.*\\n)*\\[arthur [^\\]]+\\] the agent's process group is still alive ${GRACE_SECONDS} seconds after SIGTERM: SIGKILL\\n(.*\\n)*\\[arthur [^\\]]+\\] ended: stopped\\n$`));
+	assert.equal(existsSync(join(dir, "started")), false, "no agent started");
+});
+
 test("arthur stop kills a process that left the agent's group, even where no scope holds the job", async (t) => {
 	bare(t);
 	const folder = temporaryFolder();

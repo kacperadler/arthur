@@ -276,18 +276,18 @@ test("an owner's symlink into /dev, which a step writes, is judged by its target
 	assert.deepEqual(lines, said(command, "tools/shm"));
 });
 
-test("a symlink a step made is followed from its folder's real path, as the kernel does: one in a checkout reached through a symlink that leads outside it is removed, though read from the symlinked path its text leads inside", () => {
+test("a symlink a step made is followed from its folder's real path, as the kernel does: one in a checkout reached through a symlink that leads outside it is removed, though read from the symlinked path its text leads inside; one to a folder beside it inside the checkout stays", () => {
 	const folder = temporaryFolder();
 	const [real, outside, root] = [join(folder, "deep", "er", "acme"), join(folder, "deep", "er", "deep", "er", "acme", "inner"), join(folder, "alias")];
-	for (const path of [join(real, "src"), join(real, "inner"), outside]) mkdirSync(path, { recursive: true });
+	for (const path of [join(real, "src", "sub"), join(real, "inner"), outside]) mkdirSync(path, { recursive: true });
 	symlinkSync(real, root);
 	const lines: string[] = [];
 	const run = stepRunner(root, jobSlice.slice, (line) => void (line.startsWith("uncapped: ") || lines.push(line)), 60, [])((command) => ["sh", ["-c", command]]);
-	const command = "ln -s ../../deep/er/acme/inner src/link && readlink -f src/link";
+	const command = "ln -s ../../deep/er/acme/inner src/link && ln -s sub src/in && readlink -f src/link";
 	const ran = run(command, process.env);
 	assert.equal(ran.stdout, `${outside}\n`, ran.stderr);
 	assert.deepEqual(lines, said(command, "src/link"));
-	assert.equal(lstatSync(join(real, "src", "link"), { throwIfNoEntry: false }), undefined);
+	assert.deepEqual([lstatSync(join(real, "src", "link"), { throwIfNoEntry: false }), lstatSync(join(real, "src", "in")).isSymbolicLink()], [undefined, true]);
 });
 
 test("a step that only reads the owner's clones with git keeps them and their history, though git status rewrote their index, a split one and a linked worktree's; one that then writes a hook or core.fsmonitor in one has it removed", () => {

@@ -218,6 +218,23 @@ test("an owner's symlink that passes through a symlink in a folder a step writes
 	assert.deepEqual(["hop", "far", "comp", "plain"].map((name) => lstatSync(join(root, "tools", name), { throwIfNoEntry: false })?.isSymbolicLink() ?? false), [false, false, false, true]);
 });
 
+test("a repository a step plants in a folder above an owner's symlink's target, or above a link on its way, inside the temporary folder, where git walking up finds it, removes the symlink, one line each; one whose folders above stay the same stays", () => {
+	const { root, pwned, writable, run, lines } = planted((root, writable) => {
+		const beside = dirname(root);
+		for (const folder of ["cache/box", "b/inner", "h", "calm/box"]) mkdirSync(join(writable, folder), { recursive: true });
+		mkdirSync(join(beside, "elsewhere3"));
+		symlinkSync(join(beside, "elsewhere3"), join(writable, "h", "s"));
+		const links: [string, string][] = [["deepbox", "cache/box"], ["inbare", "b/inner"], ["hp", "h/s"], ["calm", "calm/box"]];
+		for (const [name, target] of links) symlinkSync(join(writable, target), join(root, "tools", name));
+	});
+	const command = [`git init -q '${join(writable, "cache")}'`, `git -C '${join(writable, "cache")}' config core.fsmonitor "touch '${pwned}'"`, `git init -q --bare '${join(writable, "b")}'`, `git init -q '${join(writable, "h")}'`].join(" && ");
+	const ran = run(command, process.env);
+	assert.equal(ran.status, 0, ran.stderr);
+	assert.equal(execFileSync("git", ["-C", join(writable, "cache", "box"), "rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim(), realpathSync(join(writable, "cache")), "git walks up from the target to the planted repository");
+	assert.deepEqual(lines.sort(), said(command, "tools/deepbox", "tools/hp", "tools/inbare"));
+	assert.deepEqual(["deepbox", "inbare", "hp", "calm"].map((name) => lstatSync(join(root, "tools", name), { throwIfNoEntry: false })?.isSymbolicLink() ?? false), [false, false, false, true]);
+});
+
 test("an owner's symlink at the end of 40 links, the most the kernel follows, that ends in a folder a step writes is judged by its target too; one in a ring of links ends the sweep and stays", () => {
 	const { root, writable, run, lines } = planted((root, writable) => {
 		const beside = dirname(root);

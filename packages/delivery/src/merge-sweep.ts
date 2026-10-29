@@ -88,13 +88,32 @@ function target(link: string): { readonly hops: readonly string[]; readonly path
 
 // A symlink by its own stamp and, where it leads into a folder of `writes` or through a symlink there, which a step can point
 // elsewhere, by each link's on the way, where it ends and its target's stamp too (AR0490), "missing" while none is there, so a
-// step that puts a repository there, in place of a file or in a folder, or points a link on the way at one, changes it; `UNSEEN` for a target it cannot read.
+// step that puts a repository there, in place of a file or in a folder, or points a link on the way at one, changes it; and by the
+// `.git` and `HEAD` of each folder above where it ends and above each link, from the folder of `writes` down, where git, walking
+// up from its working folder, would find a repository a step made there. `UNSEEN` for a target it cannot read.
 const UNSEEN = "target unread";
 function linked(link: string, writes: readonly string[]): string {
 	const { hops, path } = target(link);
-	if (![...hops, path].some((each) => writes.some((folder) => each === folder || each.startsWith(`${folder}${sep}`)))) return stamp(link);
+	const inside = (folder: string, each: string) => each === folder || each.startsWith(`${folder}${sep}`);
+	const ends = [...hops, path];
+	if (!ends.some((each) => writes.some((folder) => inside(folder, each)))) return stamp(link);
+	const above = ends.flatMap((each) => writes.filter((folder) => inside(folder, each) && each !== folder).flatMap((folder) => {
+		const parents = [dirname(each)];
+		while (parents.at(-1) !== folder) parents.push(dirname(parents.at(-1) ?? folder));
+		return parents.flatMap((parent) => [".git", "HEAD"].map((name) => join(parent, name)));
+	}));
 	const seen = existsSync(path) ? stamp(path) : "missing";
-	return [...hops.map((hop) => `${hop} ${stamp(hop)}`), path, seen === "unreadable" ? UNSEEN : seen].join("\n");
+	return [...hops.map((hop) => `${hop} ${stamp(hop)}`), ...above.map((each) => `${each} ${present(each) ? stamp(each) : "missing"}`), path, seen === "unreadable" ? UNSEEN : seen].join("\n");
+}
+
+// Whether `path` is there, a dangling symlink too; not for one in a folder that cannot be searched, where git would not see it either.
+function present(path: string): boolean {
+	try {
+		lstatSync(path);
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 // A repository by the inode, owner, group, mode and change time, which a write, a rename, a chmod, a chgrp or an ACL sets and no step

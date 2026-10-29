@@ -3883,16 +3883,16 @@
   {
     "id": "AR0490",
     "title": "A symlink or a HEAD folder the branch itself commits is kept by the sweep",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0490-a-symlink-or-a-head-folder-the-branch-itself-commits-is-kept-by-the-sweep/ticket.md",
-    "updated": "2026-10-28T18:06:58.833Z"
+    "updated": "2026-10-29T10:01:45.191Z"
   },
   {
     "id": "AR0491",
     "title": "A command substitution inside a fallback word is never judged",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0491-a-command-substitution-inside-a-fallback-word-is-never-judged/ticket.md",
-    "updated": "2026-10-28T18:06:59.338Z"
+    "updated": "2026-10-29T09:38:05.538Z"
   },
   {
     "id": "AR0492",
@@ -3934,9 +3934,9 @@
   {
     "id": "AR0496",
     "title": "A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0496-a-home-set-in-front-of-a-command-is-ignored-by-the-guard-so-the-inner-shell/ticket.md",
-    "updated": "2026-10-28T15:13:14.416Z",
+    "updated": "2026-10-29T10:03:33.718Z",
     "after": [
       "AR0478"
     ]
@@ -3944,9 +3944,9 @@
   {
     "id": "AR0497",
     "title": "A long option of the other wrappers followed by its value still hides the command",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0497-a-long-option-of-the-other-wrappers-followed-by-its-value-still-hides-the/ticket.md",
-    "updated": "2026-10-28T18:06:59.855Z"
+    "updated": "2026-10-29T10:02:54.428Z"
   },
   {
     "id": "AR0498",
@@ -4171,9 +4171,9 @@
   {
     "id": "AR0526",
     "title": "A value split across two sweeps' copies of a remote job's log is not named",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0526-a-value-split-across-two-sweeps-copies-of-a-remote-job-s-log-is-not-named/ticket.md",
-    "updated": "2026-10-28T18:06:58.321Z"
+    "updated": "2026-10-29T08:13:15.737Z"
   },
   {
     "id": "AR0527",
@@ -4416,5 +4416,19 @@
     "status": "planned",
     "path": "spec/features/AR0554-rename-the-voice-plugin-to-listen/ticket.md",
     "updated": "2026-10-28T21:50:45.475Z"
+  },
+  {
+    "id": "AR0555",
+    "title": "Cleanup after a merge: a merged job leaves no worktree, Docker leftovers, cache, or branch here or on GitHub",
+    "status": "planned",
+    "path": "spec/features/AR0555-cleanup-after-a-merge-a-merged-job-leaves-no-worktree-docker-leftovers-cache-or/ticket.md",
+    "updated": "2026-10-29T07:14:48.674Z"
+  },
+  {
+    "id": "AR0556",
+    "title": "Plan: the github plugin manages pull requests, issues and branches",
+    "status": "planned",
+    "path": "spec/features/AR0556-plan-the-github-plugin-manages-pull-requests-issues-and-branches/ticket.md",
+    "updated": "2026-10-29T07:16:24.561Z"
   }
 ]

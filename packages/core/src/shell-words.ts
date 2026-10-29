@@ -1,5 +1,5 @@
 // The shell parser the guards share (spec/roadmap.md, entries 19 and 20). `shellCommands` reads a command line as bash does before brace and pathname expansion: its simple commands in the order they run, split at `;`, `&&`, `||`, `|`, `&` and
-// newlines, and `(` and `)` around a subshell, a `$(…)` or a backtick substitution, whose commands come before the command they are in. A word has its quotes removed, a backslash-newline gone, the escapes of `$'…'` decoded; a comment is dropped.
+// newlines, and `(` and `)` around a subshell, a `$(…)` or a backtick substitution, also one in a fallback word, whose commands come before the command they are in. A word has its quotes removed, a backslash-newline gone, the escapes of `$'…'` decoded; a comment is dropped.
 // An expansion known only when the command runs (`$x`, `${x}`, `$1`) is nothing, or the word it falls back to (`${x:-word}`, also with `=`, `+`, `?` and without the colon; in double quotes read as their text, `~` and `'` as written,
 // inner `"` gone, and `\0-` with a `$'…'` or `$"…"`, which `shopt extquote` reads two ways; outside, one with an unquoted blank or `<>;&|()#` is `\0-`, as the guard does not follow how bash splits it); a variable in `known` (`HOME`, `ARTHUR_JOB`) is its value, also with `-`, `=`, `?`; `known.HOME` is an unquoted `~` at a word's start, after an assignment's `=` or after an unquoted `:` in its value (`~+` and `~-` there stay, any other `~name` there, a user's home or a `dirs` entry, is `\0-`). `$PWD` is
 // `~+` and `$OLDPWD` `~-` (also with `-`, `=`, `?`); one of them or of a set variable in `known` with another operator but `+` (`%`, `#`, `/`, `:1`, `${!x}`, `${#x}`) is `\0-`, in no bash word. A here-string's `~+` and an unquoted heredoc's `$PWD` or `${PWD}` (also with `-`, `=`, `?`) are `\0+`, the folder of the shell that reads them; its `${PWD` with another operator but `+` `\0-`. A quoted or escaped
@@ -13,8 +13,8 @@ type Target = "write" | "read" | "duplicate" | "here";
 const TARGETS: Readonly<Record<string, Target>> = { "<": "read", "<&": "read", ">&": "duplicate", "<<<": "here" };
 
 // One simple command: its `words`; `writes`, the targets of the redirects that write a file (`>`, `>>`, `>|`, `<>`, `&>`, `>&name`); `reads`, those of the others and a heredoc's delimiter;
-// `stdin`, the text of a heredoc or a here string. `alone` is false in a pipeline or in the background, where it runs in a subshell and a `cd` does not last.
-export type Command = { readonly words: string[]; readonly writes: string[]; readonly reads: string[]; readonly stdin: string[]; readonly alone: boolean };
+// `stdin`, the text of a heredoc or a here string. `alone` is false in a pipeline or in the background, where it runs in a subshell and a `cd` does not last. `dynamic`: the index of each word in which a `$` or a backtick stood before its first `=` (of an empty word, that of the next one), so a name `export` or `env` sets there is known only at run time.
+export type Command = { readonly words: string[]; readonly writes: string[]; readonly reads: string[]; readonly stdin: string[]; readonly alone: boolean; readonly dynamic?: readonly number[] };
 export type Item = Command | "(" | ")";
 
 const quoted = (text: string): string => [...text].map((char) => (SPECIAL.includes(char) ? `\\${char}` : char)).join("");
@@ -34,8 +34,7 @@ export function decodeEscapes(text: string): string {
 	});
 }
 
-// The index of the character that closes the one opened just before `from`: `)` for `(`, `}` for `{`, nested pairs and
-// quoted text skipped, an escaped `"` in double quotes not closing them; the end of the text when it is never closed.
+// The index of the character that closes the one opened just before `from`: `)` for `(`, `}` for `{`, nested pairs and quoted text skipped, an escaped `"` in double quotes not closing them; the end of the text when it is never closed.
 function closing(text: string, from: number, open: string, close: string): number {
 	let depth = 1;
 	for (let at = from; at < text.length; at++) {
@@ -74,7 +73,8 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 		[before, current, target] = [[], { words: [], writes: [], reads: [], stdin: [], alone }, undefined];
 	};
 	const value = (name: string): string | undefined => (Object.hasOwn(known, name) && known[name] !== undefined ? quoted(known[name]) : undefined);
-	// The expansion that starts with `$` at `at`, inside double quotes or not: adds its text to the word, returns where it ends.
+	const mark = () => void (target === undefined && !word.includes("=") && (current = { ...current, dynamic: [...(current.dynamic ?? []), current.words.length] }));
+	// The expansion that starts with `$` at `at`, inside double quotes or not: adds its text to the word, and the substitutions of a fallback word to `before`; returns where it ends.
 	const dollar = (at: number, inDouble: boolean): number => {
 		const next = command[at + 1];
 		if (next === "(") {
@@ -87,8 +87,10 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 			const inner = command.slice(at + 2, close);
 			const [fallback, name, of] = [/^[#!]?(?:[A-Za-z_]\w*|\d+|[@*#?$!-])(?:\[[^\]]*\])?:?[-=+?]([^]*)$/.exec(inner), /^([A-Za-z_]\w*)(?:\[0\])?(?::?[-=?]|$)/.exec(inner)?.[1], /^[#!]?([A-Za-z_]\w*)/.exec(inner)?.[1]];
 			const unsure = fallback !== null && (inDouble ? /(?<!\\)(?:\\\\)*\$['"]/.test(fallback[1]!) : /[\s<>;&|()#]/.test(fallback[1]!.replace(/\\.|'[^']*'|"(?:\\.|[^"\\])*"/gs, "")));
-			const text = fallback === null ? "" : inDouble ? `"${fallback[1]!.replace(/(?<!\\)((?:\\\\)*)"/g, "$1")}"` : fallback[1]!;
-			word += name === "OLDPWD" ? "~-" : fallback === null && name === undefined && of !== undefined && (of === "OLDPWD" || of === "PWD" || value(of) !== undefined) ? "\0-" : name === "PWD" ? "~+" : ((name && value(name)) ?? (unsure ? "\0-" : shellCommands(text, known).flatMap((item) => (typeof item === "string" ? [] : item.words)).join(" ")));
+			const parsed = fallback === null ? [] : shellCommands(inDouble ? `"${fallback[1]!.replace(/(?<!\\)((?:\\\\)*)"/g, "$1")}"` : fallback[1]!, known);
+			let depth = 0;
+			before.push(...parsed.filter((item) => (depth += item === "(" ? 1 : item === ")" ? -1 : 0) > 0 || item === ")"));
+			word += name === "OLDPWD" ? "~-" : fallback === null && name === undefined && of !== undefined && (of === "OLDPWD" || of === "PWD" || value(of) !== undefined) ? "\0-" : name === "PWD" ? "~+" : ((name && value(name)) ?? (unsure ? "\0-" : parsed.flatMap((item) => (typeof item === "string" ? [] : item.words)).join(" ")));
 			return close + 1;
 		}
 		if (next === "'" && !inDouble) {
@@ -134,9 +136,7 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 				last = at;
 			}
 			into.push(expands ? outer(body.replace(/(?<!\\)((?:\\\\)*)\$(?:PWD(?!\w)|\{PWD(?:\[0\])?(?::?[-=?][^{}]*)?\})/g, "$1\0+").replace(/(?<!\\)((?:\\\\)*)\$\{[#!]?PWD(?!\w|:?\+)/g, "$1\0-")) : body);
-			for (let index = from; expands && index < last; ) {
-				index = command[index] === "\\" ? index + 2 : command[index] === "$" ? dollar(index, true) : command[index] === "`" ? backtick(index) : index + 1;
-			}
+			for (let index = from; expands && index < last; ) index = command[index] === "\\" ? index + 2 : command[index] === "$" ? dollar(index, true) : command[index] === "`" ? backtick(index) : index + 1;
 			word = "";
 			from = Math.min(at, command.length);
 		}
@@ -157,13 +157,13 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 			for (at++; at < command.length && command[at] !== '"'; ) {
 				const inner = command[at]!;
 				if (inner === "\\" && '$`"\\\n'.includes(command[at + 1] ?? "")) [word, at] = [word + (command[at + 1] === "\n" ? "" : quoted(command[at + 1]!)), at + 2];
-				else if (inner === "$") at = dollar(at, true);
-				else if (inner === "`") at = backtick(at);
+				else if (inner === "$") at = (mark(), dollar(at, true));
+				else if (inner === "`") at = (mark(), backtick(at));
 				else word += quoted(command[at++]!);
 			}
 			at++;
-		} else if (char === "$") at = dollar(at, false);
-		else if (char === "`") at = backtick(at);
+		} else if (char === "$") at = (mark(), dollar(at, false));
+		else if (char === "`") at = (mark(), backtick(at));
 		else if (redirect !== undefined) {
 			// The number of the file descriptor it redirects, written right before it, is no word.
 			if (/^\d+$/.test(word)) word = "";

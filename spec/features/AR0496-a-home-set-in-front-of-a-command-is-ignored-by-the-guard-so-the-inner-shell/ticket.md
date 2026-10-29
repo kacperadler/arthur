@@ -44,3 +44,8 @@ Out:
 - 2026-10-28: AR0496 another round with an allow-list of plain literal names for declaration, env and sudo arguments, then review round 5; the owner: "And go as long as this tasks will be done, today you have to focus on this fixes so do not ask me about decision for them, just go with recommendation till is done (AR-D242)" (AR-D245)
 - 2026-10-28: Hold AR0496 (branch kept at 09e8bd55) and go on with the queue; Q5 now waits only on AR0493; the owner: "And go as long as this tasks will be done, today you have to focus on this fixes so do not ask me about decision for them, just go with recommendation till is done (AR-D242)" (AR-D246)
 - 2026-10-29: AR0496: continue its worker once more with a short instruction; the owner: "AR0496 give it one more shot, and go with this 7 fixes" (AR-D299)
+- 2026-10-29: AR0496 budget raised by $5 to $22.65 so its worker finishes the allow-list round; the owner: "AR-D302 1 / AR-D303 1 / GitHub management commands - this we will do in the future, maybe after this 22 tickets and remember to create a sepparated files to each group of functionallity" (AR-D303)
+- 2026-10-29: AR0496 review round 7 of the allow-list branch; the owner: "AR-D303 1 (raise by $5 and finish, then go to review)" (AR-D304)
+- 2026-10-29: AR0496 another round: the worker adds tests for the three run-time-name marks (shell-words.ts:160, 161, 166) only; HOME inside env -S goes to AR0498; then review round 6; the owner: "AR-D305 1" (AR-D305)
+- 2026-10-29: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)
+- 2026-10-29: AR0496 budget raised to $25.65 to merge main after AR0491; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D312)

@@ -26,7 +26,25 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 
 - Kind: ux
 - Found by: 2026-10-29-worker-6a44e150 (worker), 2026-10-29
-- Where: `packages/delivery/src/merge-sweep.ts:21`, `:84`
+- Where: `packages/delivery/src/merge-sweep.ts:21`, `:96`
 - What: a symlink into a folder a step writes is stamped with its target's stamp, and that stamp reads the folder's extended attributes with python3. When python3 fails on one look only, the stamps differ and the symlink is removed. The line then says `a git call in that folder would run its config outside any sandbox`, not the python3 line, and AR0479's retry does not run for it, because the link's stamp does not start with `python3 failed`. The result is safe: the link goes. Read from the code, not run.
 - Suggestion: retry and word a symlink's target stamp as `.git` folders are retried and worded (AR0479). Out: the rules of what is judged.
+- Status: open
+
+## F4. Main's checkout with a `.git` file judges no link into its common Git folder by its target
+
+- Kind: security
+- Found by: 2026-10-29-review-99b84863 (review), 2026-10-29
+- Where: `packages/delivery/src/merge-sweep.ts:14`
+- What: `owned` counts only `<checkout>/.git` as the checkout's Git folder. When main's checkout has a `.git` file (a separate git dir), a step writes the common dir's `objects`, `refs` and `logs` (`packages/core/src/job-sandbox.ts:127-129`), but an owner's link into them is stamped by itself only. Read from the code by the reviewer; main is normally a plain clone.
+- Suggestion: add the folder `git rev-parse --path-format=absolute --git-common-dir` names, run with the merge's safe git flags, to the folders a step writes. Out: the rest of the sweep.
+- Status: open
+
+## F5. An owner's link into `.git/refs`, `.git/logs` or `.git` is removed after the first step though no step wrote there
+
+- Kind: ux
+- Found by: 2026-10-29-review-99b84863 (review), 2026-10-29
+- Where: `packages/delivery/src/merge-sweep.ts:96`
+- What: the snapshot is taken before `git merge`, and a target's stamp is recursive. `git merge` itself updates `refs/heads/<main>` and the logs, so such a link's target changed by the first step and the link is removed. That is the safe direction, but the owner loses the link. Read from the code by the reviewer.
+- Suggestion: take a second look at such links right after `git merge`, before the first step, for the part of `.git` the merge writes. Out: links into the folders a step writes elsewhere.
 - Status: open

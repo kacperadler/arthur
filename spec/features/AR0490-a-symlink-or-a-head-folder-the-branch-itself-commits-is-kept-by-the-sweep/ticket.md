@@ -51,3 +51,4 @@ Out:
 - 2026-10-29: AR0490 review round 3 after the worker also stamps .git and HEAD in each parent of the link end and of each hop inside the write folder; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D314)
 - 2026-10-29: AR0490: delivery line budget 1677 -> 1686; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D315)
 - 2026-10-29: AR0490 review round 4 after the worker adds test plants two levels above a target and in the write folder itself; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D316)
+- 2026-10-29: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

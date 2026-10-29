@@ -40,3 +40,4 @@ Out:
 
 - 2026-10-29: Source: the approved plan of AR0556 (AR-D327)
 - 2026-10-29: AR0557: github line budget 659 -> 870, core 6467 -> 6470, as the plan approved in AR-D327; the owner: "AR-D327 1" (AR-D332)
+- 2026-10-29: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

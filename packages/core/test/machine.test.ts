@@ -709,6 +709,29 @@ test("a line a job there is still writing waits for the next copy, asked from th
 	writeFileSync(gate, "");
 });
 
+test("a copy that brings the log from its first byte, the first one or after the log there got shorter, holds back its unfinished line too", async () => {
+	const gate = join(temporaryFolder(), "go"), agent = fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] });
+	const { home, there, jobs } = setup({ agent, hide: secretNames({ ARTHUR_TEST_TOKEN: "s3cret-t0ken-123" }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	const log = join(there, "jobs", job.id, "log");
+	// The wrapper's notes come before the agent's start; the agent then waits, writing nothing.
+	await until("the agent started there", () => starts(agent).length === 1);
+	const started = readFileSync(log, "utf8");
+	appendFileSync(log, "401 for s3cret-t0");
+	await jobs.sweep();
+	assert.equal(read(home, job.id, "log"), started, "the first copy");
+	appendFileSync(log, "ken-123\n");
+	await jobs.sweep();
+	assert.equal(read(home, job.id, "log"), `${started}401 for ARTHUR_TEST_TOKEN\n`);
+	writeFileSync(log, "rewritten\n401 for s3cret-t0");
+	await jobs.sweep();
+	assert.equal(read(home, job.id, "log"), "rewritten\n", "a log shorter than asked");
+	appendFileSync(log, "ken-123\n");
+	await jobs.sweep();
+	assert.equal(read(home, job.id, "log"), "rewritten\n401 for ARTHUR_TEST_TOKEN\n");
+	writeFileSync(gate, "");
+});
+
 test("a value the 256 KiB cut of a copy splits, or a last line without a line break, arrives only as its name, and the job ends here once all of it did", async () => {
 	const gate = join(temporaryFolder(), "go");
 	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }), hide: secretNames({ ARTHUR_TEST_TOKEN: "s3cret-t0ken-123" }) });

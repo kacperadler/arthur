@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { chmodSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -7,12 +8,12 @@ import { turnText } from "@arthur/core/parts";
 import type { Part } from "@arthur/core/parts";
 import type { Command } from "@arthur/core/plugin";
 import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
-import { voice } from "../src/voice.ts";
-import { checkOptions } from "../src/voice-options.ts";
+import { listen } from "../src/listen.ts";
+import { checkOptions } from "../src/listen-options.ts";
 
-// The voice plugin against the fake host, with a fake `ffmpeg` and a fake `whisper-cli` on PATH that print and exit as the
+// The listen plugin against the fake host, with a fake `ffmpeg` and a fake `whisper-cli` on PATH that print and exit as the
 // real ones do. A note's file is JSON that tells them what to do: its length, whisper's segments, a failure or a hang.
-// docs/voice.md.
+// docs/listen.md.
 
 type Note = { readonly seconds: number; readonly segments?: readonly (readonly [number, number, string])[]; readonly ffmpeg?: string; readonly whisper?: string; readonly hang?: "ffmpeg" | "whisper"; readonly delayMs?: number };
 
@@ -69,13 +70,13 @@ function fakes(tools: readonly string[] = ["ffmpeg", "whisper-cli"]) {
 
 // The plugin set up with `options`, the model file in its folder and only `tools` on PATH.
 async function load(options: Readonly<Record<string, unknown>> = {}, tools?: readonly string[], model = true) {
-	const fake = fakeHost({ name: "voice", options });
+	const fake = fakeHost({ name: "listen", options });
 	if (model) {
 		mkdirSync(join(fake.host.folder, "models"));
 		writeFileSync(join(fake.host.folder, "models", "ggml-medium.bin"), "model");
 	}
 	const bin = fakes(tools);
-	await fake.setup(voice(options as never));
+	await fake.setup(listen(options as never));
 	const notes = temporaryFolder();
 	let count = 0;
 	const note = (content: Note) => {
@@ -197,29 +198,51 @@ test("whisper-cli, the model or ffmpeg missing: nothing runs, the note goes on a
 	}
 });
 
-test("arthur doctor names each requirement, none critical, with the model in the home's voice folder or at its path", async () => {
+test("arthur doctor names each requirement, none critical, with the model in the home's listen folder or at its path", async () => {
 	const folder = temporaryFolder();
 	writeFileSync(join(folder, "arthur.config.ts"), "export default {};\n");
 	const core = (await loadConfig(join(folder, "arthur.config.ts"))).core;
 	const { dir } = fakes(["whisper-cli"]);
-	const lines = await onPath(dir, async () => Promise.all(((await voice().doctor?.({}, core)) ?? []).map(async (need) => `${need.name}: ${await need.check()}; critical ${need.critical}; ${need.costs}`)));
+	const lines = await onPath(dir, async () => Promise.all(((await listen().doctor?.({}, core)) ?? []).map(async (need) => `${need.name}: ${await need.check()}; critical ${need.critical}; ${need.costs}`)));
 	const costs = "voice notes and audio files reach the coordinator as paths, and arthur transcribe refuses";
-	assert.deepEqual(lines, [`whisper-cli: ok; critical false; ${costs}`, `whisper model: missing: no file ${join(core.home, "voice", "models", "ggml-medium.bin")}; critical false; ${costs}`, `ffmpeg: missing: ffmpeg not found on PATH; critical false; ${costs}`]);
+	assert.deepEqual(lines, [`whisper-cli: ok; critical false; ${costs}`, `whisper model: missing: no file ${join(core.home, "listen", "models", "ggml-medium.bin")}; critical false; ${costs}`, `ffmpeg: missing: ffmpeg not found on PATH; critical false; ${costs}`]);
 	const own = join(folder, "own.bin");
 	writeFileSync(own, "model");
-	assert.equal(await (await voice().doctor?.({ model: own }, core))?.[1]?.check(), "ok");
+	assert.equal(await (await listen().doctor?.({ model: own }, core))?.[1]?.check(), "ok");
 });
 
-test("voice.transcribe: through the host, a file's transcript and its segments in seconds; each refusal an error", async () => {
+test("arthur doctor: a model left in the home's voice folder, from before the rename, has the move as its fix, which makes it ok", async () => {
+	const folder = temporaryFolder();
+	writeFileSync(join(folder, "arthur.config.ts"), "export default {};\n");
+	const core = (await loadConfig(join(folder, "arthur.config.ts"))).core;
+	const model = async (options: Readonly<Record<string, unknown>> = {}) => (await listen().doctor?.(options, core))?.[1];
+	const [old, now] = [join(core.home, "voice", "models"), join(core.home, "listen", "models")];
+	const download = (name: string) => `in whisper.cpp, sh models/download-ggml-model.sh ${name}, then move models/ggml-${name}.bin to ${join(now, `ggml-${name}.bin`)}`;
+	assert.equal((await model())?.fix, download("medium"), "no old folder: the download");
+	mkdirSync(join(old, "ggml-medium.bin"), { recursive: true });
+	assert.equal((await model())?.fix, download("medium"), "a folder of the model's name is no model");
+	writeFileSync(join(old, "ggml-small.bin"), "small");
+	assert.equal((await model())?.fix, download("medium"), "another model in the old folder is not this one");
+	assert.equal(await (await model({ model: join(old, "ggml-small.bin") }))?.check(), "ok", "a path is used where it is");
+	const moved = await model({ model: "small" });
+	assert.equal(moved?.fix, `mkdir -p ${now} && mv ${join(old, "ggml-small.bin")} ${join(now, "ggml-small.bin")}`);
+	assert.equal(await moved?.check(), `missing: no file ${join(now, "ggml-small.bin")}`, "the old file is not used in place");
+	execFileSync("sh", ["-c", moved?.fix ?? ""]);
+	assert.equal(await moved?.check(), "ok");
+	assert.equal(readFileSync(join(now, "ggml-small.bin"), "utf8"), "small");
+	assert.deepEqual(readdirSync(old), ["ggml-medium.bin"], "only the model moves");
+});
+
+test("listen.transcribe: through the host, a file's transcript and its segments in seconds; each refusal an error", async () => {
 	const { note, dir, fake } = await load({ maxSeconds: 5 });
-	const transcribe = (path: string, bin = dir) => onPath(bin, () => fake.call<Promise<unknown>>("voice.transcribe", path));
+	const transcribe = (path: string, bin = dir) => onPath(bin, () => fake.call<Promise<unknown>>("listen.transcribe", path));
 	const path = note(HELLO);
 	assert.deepEqual(await transcribe(path), { seconds: 3, text: "Hello there. How are you?", segments: [{ start: 0, end: 1.5, text: "Hello there." }, { start: 1.5, end: 3, text: "How are you?" }] });
 	assert.deepEqual(await transcribe(note({ seconds: 2, segments: [[0, 2, " [BLANK_AUDIO]"]] })), { seconds: 2, text: "", segments: [] });
 	const long = note({ ...HELLO, seconds: 6 });
 	await assert.rejects(transcribe(long), { message: `${long}: audio of 6 s is over maxSeconds 5; not transcribed` });
 	await assert.rejects(transcribe("/no/such.ogg"), { message: "/no/such.ogg: not transcribed: no file /no/such.ogg" });
-	await assert.rejects(transcribe(""), { message: 'voice.transcribe: expected a file\'s path, got ""' });
+	await assert.rejects(transcribe(""), { message: 'listen.transcribe: expected a file\'s path, got ""' });
 	await assert.rejects(transcribe(path, temporaryFolder()), { message: `${path}: not transcribed: whisper-cli missing; see arthur doctor` });
 });
 

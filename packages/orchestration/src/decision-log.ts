@@ -20,7 +20,7 @@ export const DECISION_ID = /^([A-Z]+)-D(\d+)$/;
 // The longest Decisions line; a longer one has the owner's words cut.
 export const LINE = 400;
 
-export type Ask = { readonly record: "ask"; readonly id: string; readonly time: string; readonly project: string; readonly kind: string; readonly question: string; readonly options: readonly string[]; readonly recommend?: number | string; readonly ticket?: string; readonly job?: string; readonly class?: Class };
+export type Ask = { readonly record: "ask"; readonly id: string; readonly time: string; readonly project: string; readonly kind: string; readonly question: string; readonly options: readonly string[]; readonly recommend?: number | string; readonly ticket?: string; readonly job?: string; readonly what?: readonly string[]; readonly class?: Class };
 export type Answer = { readonly record: "answer"; readonly id: string; readonly time: string; readonly decided: string; readonly picked?: number; readonly words: string };
 export type Close = { readonly record: "close"; readonly id: string; readonly time: string; readonly reason: string };
 export type Revoke = { readonly record: "revoke"; readonly id: string; readonly time: string; readonly words: string };
@@ -61,7 +61,7 @@ function problem(value: unknown, asked: ReadonlyMap<string, string>, prefix: str
 		if (asked.has(each.id)) return `a second ask of ${each.id}`;
 		if (!KINDS.includes(String(each.kind)) && each.kind !== CLASS) return `kind ${JSON.stringify(each.kind)}`;
 		if (!text("question") || !text("project")) return "no question or project";
-		if (!Array.isArray(each.options) || !each.options.every((option) => typeof option === "string")) return "options not a list of texts";
+		if ([each.options, each.what ?? []].some((list) => !Array.isArray(list) || !list.every((one) => typeof one === "string"))) return "options or what not a list of texts";
 		if (["ticket", "job"].some((key) => key in each && !text(key))) return "a ticket or job not a text";
 		if ("recommend" in each && !(text("recommend") || Number.isInteger(each.recommend))) return "recommend neither a number nor a text";
 		return classProblem(each, asked, KINDS);
@@ -165,7 +165,7 @@ export function ask(host: Host, project: Project, asked: Omit<Ask, "record" | "i
 	let classes: readonly string[] = [];
 	const { added, unwritten } = change(host, project, (entries, time) => {
 		const next = Math.max(0, ...entries.flatMap((each) => (each.record === "ask" ? [Number(DECISION_ID.exec(each.id)?.[2])] : []))) + 1;
-		const kept = { ...(asked.ticket === undefined ? {} : { ticket: asked.ticket }), ...(asked.job === undefined ? {} : { job: asked.job }), ...(asked.class === undefined ? {} : { class: asked.class }) };
+		const kept = { ...(asked.ticket === undefined ? {} : { ticket: asked.ticket }), ...(asked.job === undefined ? {} : { job: asked.job }), ...(asked.what === undefined ? {} : { what: asked.what }), ...(asked.class === undefined ? {} : { class: asked.class }) };
 		const said = recommend === undefined ? {} : { recommend: typeof recommend === "number" ? recommend : redact(recommend, host.secrets) };
 		const record = { record: "ask", id: `${project.prefix}-D${next}`, time, project: project.name, kind: asked.kind, question: redact(question, host.secrets), options: options.map((option) => redact(option, host.secrets)), ...said, ...kept } satisfies Ask;
 		const policy = byPolicy(entries, record, kind);

@@ -103,6 +103,10 @@ const BRANCHES: readonly (readonly [string, (at: At) => void, string | undefined
 		PASSING,
 		"no review: 6 lines changed; the job's checks: check pass, test pass 3/3",
 	],
+	["a regex on process\\.env in code", edit("src/shop.ts", "export const keys = /process\\.env\\.(\\w+)/g;\n"), PASSING, "no review: 2 lines changed; the job's checks: check pass, test pass 3/3"],
+	["a regex in a string on process\\.env in code", edit("src/shop.ts", 'export const keys = new RegExp("process\\\\.env\\\\.(\\\\w+)", "g");\n'), PASSING, "no review: 2 lines changed; the job's checks: check pass, test pass 3/3"],
+	["a regex with a dot before the backslash on process\\.env in code", edit("src/shop.ts", "export const keys = /process.\\.env\\.(\\w+)/g;\n"), PASSING, "no review: 2 lines changed; the job's checks: check pass, test pass 3/3"],
+	["a regex naming the .env file in code", edit("src/shop.ts", "export const secrets = /^\\.env$/;\n"), PASSING, "review: the diff mentions .env in src/shop.ts"],
 	["a binary file, small, with passing checks", edit("src/shop.wasm", "\0asm\x01\0\0\0"), PASSING, "review: changes a binary file src/shop.wasm"],
 	["a binary *.md beside docs", both(edit("README.md", "# acme shop\n"), edit("docs/logo.md", "\0PNG\n")), undefined, "review: changes a binary file docs/logo.md"],
 	["docs only", both(edit("README.md", "# acme shop\n"), edit("docs/guide.md", "# The guide\n")), undefined, "no review: 2 files, all docs (*.md)"],
@@ -182,10 +186,10 @@ test("the always-review list: review.alwaysReview replaces the default, and deli
 	assert.deepEqual(fake.call("delivery.alwaysReview", { project: "acme", paths: ["docs/guide.md", "src/env.ts", "README.md"] }), ["docs/guide.md"]);
 	const plain = fakeHost({ name: "delivery" });
 	await plain.setup(delivery());
-	const paths = ["src/env.ts", "packages/core/src/env-guard.ts", ".github/workflows/ci.yml", "packages/github/src/ci-failure.ts", "packages/delivery/roles/reviewer.md", ".agents/arthur/roles/reviewer.md", ".agents/arthur/criteria/review.md"];
+	const paths = ["src/env.ts", "packages/core/src/env-guard.ts", ".github/workflows/ci.yml", "packages/github/src/ci-failure.ts", "packages/delivery/roles/reviewer.md", ".agents/arthur/roles/reviewer.md", ".agents/arthur/criteria/review.md", "spec/build.json"];
 	const prompts = [".agents/arthur/roles/worker.md", ".agents/arthur/criteria/styleguide.md", ".agents/arthur/criteria/autopilot.md", "spec/vision.md", "roles/worker.md", "packages/orchestration/roles/coordinator.md", "packages/delivery/roles/coordinator/review-limit.md", "prompts/criteria/review.md"];
 	const runs = ["package.json", "packages/shop/package.json", "package-lock.json", "npm-shrinkwrap.json", "bun.lock", "bun.lockb", "yarn.lock", "pnpm-lock.yaml", ".npmrc", ".nvmrc", "composer.json", "composer.lock", "uv.lock", "pyproject.toml", ".yarnrc.yml", ".pnpmfile.cjs", "bunfig.toml", "packages/shop/.nvmrc", ".githooks/pre-commit", ".husky/_/husky.sh"];
-	const free = ["src/shop.ts", "src/environment.ts", "src/package.json.ts", "docs/yarn.lock.md", ".github/hooks/x", "README.md", "docs/vision.md", "spec/roadmap.md", "packages/orchestration/src/roles.ts", "docs/criteria.md"];
+	const free = ["src/shop.ts", "src/environment.ts", "src/package.json.ts", "docs/yarn.lock.md", ".github/hooks/x", "README.md", "docs/vision.md", "spec/roadmap.md", "packages/orchestration/src/roles.ts", "docs/criteria.md", "spec/build.json.bak", "docs/spec/build.json"];
 	assert.deepEqual(plain.call("delivery.alwaysReview", { project: "acme", paths: [...paths, ...prompts, ...runs, ...free] }), [...paths, ...prompts, ...runs], "the default: what reads secrets, the CI-failure handling, the review rules, the prompt files the roles read, a project's own under .agents/ too, what the merge and a spawn run; a README stays docs");
 });
 

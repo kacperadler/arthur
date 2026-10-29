@@ -22,18 +22,22 @@ The worktree guard's shell parser never removes a backslash-newline right after 
 
 ## Done means
 
-- The parser removes a backslash-newline wherever bash does (outside single quotes), before reading `$`, so `$\<newline>HOME` reads as `$HOME` and the fallback's `$\<newline>'..'` is refused like `$'..'`.
-- Test rows in `packages/core/test/worktree-guard.test.ts`: both commands above refused (main checkout or unknown), and `$\<newline>HOME/../acme/README.md` refused; each fails before the change.
+Refusal, not emulation (as AR-D157 chose for AR0471): three review rounds of a second parser that joins lines as bash does (branch arthur/2026-10-28-worker-86ff30bd, dropped) each opened a new place where it and the guard's parser disagree (review-1.md to review-3.md). This ticket does not join lines in a second pass.
+
+- A bash call holding a backslash-newline whose preceding character is not a blank (a space or a tab) is refused with the existing "cannot tell" (unknown) refusal, checked once on the raw command text before it is parsed, wherever it stands (quotes, `${...}`, a heredoc and its delimiter included). A backslash-newline after a blank, the usual line continuation between words, is read as today.
+- Refused rows in `packages/core/test/worktree-guard.test.ts`: both Goal commands, `rm $\<newline>HOME/acme/README.md`, `<<\<newline>EOF` and the AR0472 heredoc row, and every command of review-1.md to review-3.md of this ticket that ends in a write to the main checkout; each fails before the change. A passing row: a long command split with ` \<newline>` between words.
+- `docs/deploy.md`'s guard paragraph names the refusal.
 - The project's checks pass.
 
 ## Scope
 
 In:
-- `packages/core/src/shell-words.ts` (at its 200-line cap: free a line or split, a core budget raise is fine).
-- `packages/core/test/worktree-guard.test.ts`.
+- `packages/core/src/worktree-guard.ts` or `packages/core/src/shell-words.ts`: the one check (each at its 200-line cap: free a line, a core budget raise is fine).
+- `packages/core/test/worktree-guard.test.ts`, `docs/deploy.md`.
 
 Out:
 - AR0491 (a command substitution in a fallback), AR0492 (`~user`): their own tickets.
+- A second pass that joins lines as bash does: dropped with the old branch.
 
 ## Decisions
 
@@ -41,3 +45,8 @@ Out:
 
 - 2026-10-27: Source: F3 of AR0471
 - 2026-10-28: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
+- 2026-10-28: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
+- 2026-10-28: AR0493 another round: joinLines follows ${...} outside quotes as it does inside double quotes, the review rows as tests, then review round 3; the owner: "AR-D238 1" (AR-D238)
+- 2026-10-28: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
+- 2026-10-28: AR0493: fix the ticket to refuse a backslash-newline not after a blank, drop the joining branch, new worker from main; the owner: "And go as long as this tasks will be done, today you have to focus on this fixes so do not ask me about decision for them, just go with recommendation till is done (AR-D242)" (AR-D243)
+- 2026-10-28: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

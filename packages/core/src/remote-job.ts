@@ -60,7 +60,7 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 	},
 	// `stop`, `steer` and `continue` as here, on the record there: `arthur stop --help` and the others say what each refuses.
 	async stop(home, [id = ""]) {
-		console.log(await stopJob(home, id));
+		console.log(await stopJob(home, id, eventBus(home)));
 	},
 	// Reads the text on stdin; prints the steer's number.
 	steer(home, [id = ""]) {

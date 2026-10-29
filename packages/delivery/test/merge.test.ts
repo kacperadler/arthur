@@ -70,7 +70,7 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 	const owner: unknown[] = [];
 	fake.provide("decision.owner", (asked: { readonly id: string; readonly what: string }) => {
 		owner.push(asked);
-		if (asked.id === "") return `${asked.what} needs the owner's decision: arthur decision ask --kind merge --question '<what he decides>' --ticket AC0001, his answer recorded with arthur decision answer, then ${asked.what} --decision <its id>`;
+		if (asked.id === "") return `${asked.what} needs the owner's decision: arthur decision ask --kind merge${asked.what.startsWith("--") ? ` --what ${asked.what}` : ""} --question '<what he decides>' --ticket AC0001, his answer recorded with arthur decision answer, then ${asked.what} --decision <its id>`;
 		return asked.id === OWNER ? "" : `${asked.id} is not in the decision log of project acme`;
 	});
 	await fake.setup(delivery(options));
@@ -320,7 +320,7 @@ test("refused, main unchanged: no PASS on the tip, a FAIL on it, a PASS on an ol
 	assert.equal((await merge(job.id)).err, unreviewed(tip, `no review of it has a verdict (last PASS: ${job.tip.slice(0, 7)})`));
 	assert.equal(head(), start);
 	// `decision.owner` holds --unreviewed: its refusal refuses the merge, main unchanged.
-	assert.deepEqual(await merge(job.id, "--unreviewed"), { code: 1, out: "", err: "arthur merge: --unreviewed needs the owner's decision: arthur decision ask --kind merge --question '<what he decides>' --ticket AC0001, his answer recorded with arthur decision answer, then --unreviewed --decision <its id>; main is unchanged" });
+	assert.deepEqual(await merge(job.id, "--unreviewed"), { code: 1, out: "", err: "arthur merge: --unreviewed needs the owner's decision: arthur decision ask --kind merge --what --unreviewed --question '<what he decides>' --ticket AC0001, his answer recorded with arthur decision answer, then --unreviewed --decision <its id>; main is unchanged" });
 	assert.deepEqual(await merge(job.id, "--decision", "AC-D9", "--unreviewed"), { code: 1, out: "", err: "arthur merge: AC-D9 is not in the decision log of project acme; main is unchanged" });
 	assert.equal(head(), start);
 	const merged = await merge(job.id, "--unreviewed", "--decision", OWNER);
@@ -590,18 +590,22 @@ test("a second merge of the project while the first runs its checks is refused n
 	assert.deepEqual(readdirSync(join(fake.host.folder, "acme")), ["last-merge"], "no lock and no job named after the merge");
 });
 
+// The limit leaves `npm run check` room on a loaded host (AR0544: 3 s caught it at load 40); the slow step's 60 s stays above it.
 test("a step still running at merge.stepSeconds is killed and fails, though it ignores SIGTERM: main reset, main's own install put back", async (t) => {
-	const { root, worker, review, merge, head, bun } = await load(t, { merge: { stepSeconds: 3 } });
+	const { root, worker, review, merge, head, bun } = await load(t, { merge: { stepSeconds: 15 } });
 	const noted = temporaryFolder();
 	const slow = `require("node:fs").writeFileSync(${JSON.stringify(join(noted, "pid"))}, String(process.pid));\nprocess.on("SIGTERM", () => {});\nsetTimeout(() => {}, 60_000);\n`;
 	const job = await worker({ "test.js": slow, "bun.lock": '{ "slow": 1 }\n' });
 	await review(job.id, "PASS");
 	const before = head();
+	const started = Date.now();
 	const merged = await merge(job.id);
+	const took = Date.now() - started;
 	const pid = Number(readFileSync(join(noted, "pid"), "utf8"));
 	t.after(() => void spawnSync("kill", ["-9", String(pid)]));
 	assert.equal(merged.err, `arthur merge: check failed on main (npm test); main reset to ${before.slice(0, 7)}, branch kept`);
-	assert.match(merged.out, /\nnpm run check: passed\.\nnpm test: failed, timed out after 3 s\.\n[\s\S]*\nreinstall of main's dependencies, bun install --frozen-lockfile: passed\.$/);
+	assert.match(merged.out, /\nnpm run check: passed\.\nnpm test: failed, timed out after 15 s\.\n[\s\S]*\nreinstall of main's dependencies, bun install --frozen-lockfile: passed\.$/);
+	assert.ok(took >= 15_000, `the slow step runs its full 15 s before it is killed: the merge took ${took} ms`);
 	assert.equal(bun(), "install --frozen-lockfile\ninstall --frozen-lockfile\n");
 	assert.deepEqual([head(), readFileSync(join(root, "bun.lock"), "utf8")], [before, "{}\n"]);
 	if (manager) assert.equal(running(pid), false, `the test's process ${pid} still runs`);
@@ -773,7 +777,7 @@ test("a plain merge asks github.ci: a run on the branch's own commits that ended
 	answer = ciRun(job.tip, job.branch, { conclusion: "cancelled" });
 	assert.match((await merge(job.id)).err, /, the tip, ended cancelled: /, "any end other than success refuses");
 	// `decision.owner` holds --no-ci as it holds --unreviewed: its refusal refuses the merge before CI is asked, main unchanged.
-	assert.deepEqual(await merge(job.id, "--no-ci"), { code: 1, out: "", err: "arthur merge: --no-ci needs the owner's decision: arthur decision ask --kind merge --question '<what he decides>' --ticket AC0001, his answer recorded with arthur decision answer, then --no-ci --decision <its id>; main is unchanged" });
+	assert.deepEqual(await merge(job.id, "--no-ci"), { code: 1, out: "", err: "arthur merge: --no-ci needs the owner's decision: arthur decision ask --kind merge --what --no-ci --question '<what he decides>' --ticket AC0001, his answer recorded with arthur decision answer, then --no-ci --decision <its id>; main is unchanged" });
 	assert.deepEqual(await merge(job.id, "--decision", "AC-D9", "--no-ci"), { code: 1, out: "", err: "arthur merge: AC-D9 is not in the decision log of project acme; main is unchanged" });
 	assert.equal(head(), start);
 	const lifted = await merge(job.id, "--no-ci", "--decision", OWNER);
@@ -795,9 +799,14 @@ test("a plain merge asks github.ci: a run on the branch's own commits that ended
 		assert.equal(merged.code, undefined, `${name}: ${merged.err}`);
 		assert.deepEqual(asked.at(-1), { project: "acme", branch: each.branch }, name);
 	}
-	// Without a PASS and with CI failed, --unreviewed lifts only the PASS; both flags ask the owner's decision, one id for this merge.
+	// Without a PASS and with CI failed, --unreviewed lifts only the PASS and --no-ci only CI; both flags ask the owner's decision,
+	// one id for this merge (orchestration lets it through only when asked with both: --what --unreviewed --what --no-ci).
 	const both = await worker({ "both.ts": "export const both = 1;\n" }, "No ticket here.");
 	answer = ciRun(both.tip, both.branch, { conclusion: "failure" });
+	const before = head();
+	owner.length = 0;
+	assert.deepEqual(await merge(both.id, "--no-ci", "--decision", OWNER), { code: 1, out: "", err: `arthur merge: no PASS on ${both.branch}'s tip ${both.tip.slice(0, 7)}: no review of it has a verdict (last PASS: none); review it with arthur review ${both.id}, or merge it with --unreviewed --decision <the owner's decision id>; main is unchanged` });
+	assert.deepEqual([owner, head()], [[], before], "--no-ci with the owner's decision never lifts the PASS");
 	assert.match((await merge(both.id, "--unreviewed", "--decision", OWNER)).err, /merges only with CI passed on the branch: .*, ended failure: /);
 	owner.length = 0;
 	const merged = await merge(both.id, "--unreviewed", "--no-ci", "--decision", OWNER);

@@ -3343,16 +3343,9 @@
   {
     "id": "AR0425",
     "title": "A redirect's lookup in a site check ignores the check's time limit, and a 308 hop has no test",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0425-a-redirect-s-lookup-in-a-site-check-ignores-the-check-s-time-limit-and-a-308-hop/ticket.md",
-    "updated": "2026-10-26T10:52:23.148Z",
-    "after": [
-      "AR0424",
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405"
-    ]
+    "updated": "2026-10-28T22:48:49.138Z"
   },
   {
     "id": "AR0426",
@@ -3443,28 +3436,16 @@
   {
     "id": "AR0437",
     "title": "A CI wait still cancels a hung run below the tip, whose end it no longer tells",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0437-a-ci-wait-still-cancels-a-hung-run-below-the-tip-whose-end-it-no-longer-tells/ticket.md",
-    "updated": "2026-10-26T10:52:25.669Z",
-    "after": [
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405"
-    ]
+    "updated": "2026-10-29T02:54:11.180Z"
   },
   {
     "id": "AR0438",
     "title": "A variable set in the shell alone passes `config check` but is missing for every `arthur` command a job runs",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0438-a-variable-set-in-the-shell-alone-passes-config-check-but-is-missing-for-every/ticket.md",
-    "updated": "2026-10-26T10:52:26.185Z",
-    "after": [
-      "AR0402",
-      "AR0403",
-      "AR0404",
-      "AR0405"
-    ]
+    "updated": "2026-10-29T02:25:32.781Z"
   },
   {
     "id": "AR0439",
@@ -3678,9 +3659,9 @@
   {
     "id": "AR0462",
     "title": "A merge check cannot make, rename or remove an entry at the top of main's checkout",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0462-a-merge-check-cannot-make-rename-or-remove-an-entry-at-the-top-of-main-s/ticket.md",
-    "updated": "2026-10-26T21:05:56.324Z"
+    "updated": "2026-10-28T19:51:28.689Z"
   },
   {
     "id": "AR0463",
@@ -3818,9 +3799,9 @@
   {
     "id": "AR0479",
     "title": "A merge step reading an owner clone still deletes it when python3 cannot read the .git attributes, with a reason that hides why",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0479-a-merge-step-reading-an-owner-clone-still-deletes-it-when-python3-cannot-read/ticket.md",
-    "updated": "2026-10-27T07:33:47.128Z"
+    "updated": "2026-10-28T23:58:02.006Z"
   },
   {
     "id": "AR0480",
@@ -3832,9 +3813,9 @@
   {
     "id": "AR0481",
     "title": "A stop during the install can end the job before its stop of the install's group is over",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0481-a-stop-during-the-install-can-end-the-job-before-its-stop-of-the-install-s-group/ticket.md",
-    "updated": "2026-10-27T07:59:35.719Z"
+    "updated": "2026-10-29T00:39:39.722Z"
   },
   {
     "id": "AR0482",
@@ -3853,9 +3834,9 @@
   {
     "id": "AR0484",
     "title": "A board entry's `path` is never checked, so a filing writes `plan.md` or `review-N.md` outside the project",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0484-a-board-entry-s-path-is-never-checked-so-a-filing-writes-plan-md-or-review-n-md/ticket.md",
-    "updated": "2026-10-27T08:05:34.434Z"
+    "updated": "2026-10-28T23:48:52.770Z"
   },
   {
     "id": "AR0485",
@@ -3888,30 +3869,30 @@
   {
     "id": "AR0488",
     "title": "A health check runs `git status` in a main checkout with its `core.fsmonitor` on",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0488-a-health-check-runs-git-status-in-a-main-checkout-with-its-core-fsmonitor-on/ticket.md",
-    "updated": "2026-10-27T08:05:34.451Z"
+    "updated": "2026-10-28T22:00:15.026Z"
   },
   {
     "id": "AR0489",
     "title": "A coordinator option ending in `;` splits its `tmux new-session` into tmux commands",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0489-a-coordinator-option-ending-in-splits-its-tmux-new-session-into-tmux-commands/ticket.md",
-    "updated": "2026-10-27T08:05:34.455Z"
+    "updated": "2026-10-28T21:55:11.565Z"
   },
   {
     "id": "AR0490",
     "title": "A symlink or a HEAD folder the branch itself commits is kept by the sweep",
-    "status": "planning",
+    "status": "in-progress",
     "path": "spec/features/AR0490-a-symlink-or-a-head-folder-the-branch-itself-commits-is-kept-by-the-sweep/ticket.md",
-    "updated": "2026-10-27T08:26:35.616Z"
+    "updated": "2026-10-29T07:04:59.397Z"
   },
   {
     "id": "AR0491",
     "title": "A command substitution inside a fallback word is never judged",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0491-a-command-substitution-inside-a-fallback-word-is-never-judged/ticket.md",
-    "updated": "2026-10-27T08:42:42.689Z"
+    "updated": "2026-10-28T18:06:59.338Z"
   },
   {
     "id": "AR0492",
@@ -3926,9 +3907,9 @@
   {
     "id": "AR0493",
     "title": "A backslash-newline after $ is not removed, so the guard reads a folder name where bash reads ..",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0493-a-backslash-newline-after-is-not-removed-so-the-guard-reads-a-folder-name-where/ticket.md",
-    "updated": "2026-10-28T12:39:43.066Z",
+    "updated": "2026-10-28T15:28:44.965Z",
     "after": [
       "AR0478"
     ]
@@ -3936,9 +3917,9 @@
   {
     "id": "AR0494",
     "title": "The guard skips an escaped quote inside quotes when it finds a fallback end, so a command can hide after it",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0494-the-guard-skips-an-escaped-quote-inside-quotes-when-it-finds-a-fallback-end-so-a/ticket.md",
-    "updated": "2026-10-28T12:39:44.652Z",
+    "updated": "2026-10-28T14:25:44.895Z",
     "after": [
       "AR0478"
     ]
@@ -3953,9 +3934,9 @@
   {
     "id": "AR0496",
     "title": "A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME",
-    "status": "done",
+    "status": "in-progress",
     "path": "spec/features/AR0496-a-home-set-in-front-of-a-command-is-ignored-by-the-guard-so-the-inner-shell/ticket.md",
-    "updated": "2026-10-28T12:56:02.488Z",
+    "updated": "2026-10-28T15:13:14.416Z",
     "after": [
       "AR0478"
     ]
@@ -3963,16 +3944,16 @@
   {
     "id": "AR0497",
     "title": "A long option of the other wrappers followed by its value still hides the command",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0497-a-long-option-of-the-other-wrappers-followed-by-its-value-still-hides-the/ticket.md",
-    "updated": "2026-10-27T09:51:50.372Z"
+    "updated": "2026-10-28T18:06:59.855Z"
   },
   {
     "id": "AR0498",
     "title": "The command line `env -S` splits is not read",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0498-the-command-line-env-s-splits-is-not-read/ticket.md",
-    "updated": "2026-10-27T09:51:50.384Z"
+    "updated": "2026-10-28T18:07:00.370Z"
   },
   {
     "id": "AR0499",
@@ -4061,9 +4042,9 @@
   {
     "id": "AR0510",
     "title": "The GitHub, Telegram and YouTrack API addresses take `http://` for any host, sending the token in the clear",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0510-the-github-telegram-and-youtrack-api-addresses-take-http-for-any-host-sending/ticket.md",
-    "updated": "2026-10-27T12:45:12.163Z"
+    "updated": "2026-10-29T00:02:56.218Z"
   },
   {
     "id": "AR0511",
@@ -4096,9 +4077,9 @@
   {
     "id": "AR0515",
     "title": "The hidden ~/.ssh follows $HOME, while OpenSSH finds the home from the user account",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0515-the-hidden-ssh-follows-home-while-openssh-finds-the-home-from-the-user-account/ticket.md",
-    "updated": "2026-10-27T13:31:32.053Z"
+    "updated": "2026-10-29T02:58:54.576Z"
   },
   {
     "id": "AR0516",
@@ -4152,9 +4133,9 @@
   {
     "id": "AR0522",
     "title": "`arthur run`'s stop does not wait for a sweep's copy still in flight",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0522-arthur-run-s-stop-does-not-wait-for-a-sweep-s-copy-still-in-flight/ticket.md",
-    "updated": "2026-10-27T15:51:09.269Z"
+    "updated": "2026-10-29T01:35:40.718Z"
   },
   {
     "id": "AR0523",
@@ -4190,9 +4171,9 @@
   {
     "id": "AR0526",
     "title": "A value split across two sweeps' copies of a remote job's log is not named",
-    "status": "planning",
+    "status": "in-progress",
     "path": "spec/features/AR0526-a-value-split-across-two-sweeps-copies-of-a-remote-job-s-log-is-not-named/ticket.md",
-    "updated": "2026-10-27T18:21:13.047Z"
+    "updated": "2026-10-29T07:04:57.749Z"
   },
   {
     "id": "AR0527",
@@ -4231,15 +4212,11 @@
   {
     "id": "AR0531",
     "title": "The env file fixes arthur doctor prints put an unquoted folder in a shell command",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0531-the-env-file-fixes-arthur-doctor-prints-put-an-unquoted-folder-in-a-shell/ticket.md",
-    "updated": "2026-10-28T07:55:02.201Z",
+    "updated": "2026-10-28T16:11:50.727Z",
     "after": [
-      "AR0524",
-      "AR0496",
-      "AR0492",
-      "AR0493",
-      "AR0494"
+      "AR0493"
     ]
   },
   {
@@ -4252,29 +4229,21 @@
   {
     "id": "AR0533",
     "title": "A merge decision lifts whichever flag the coordinator names, not the one the owner decided",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0533-a-merge-decision-lifts-whichever-flag-the-coordinator-names-not-the-one-the/ticket.md",
-    "updated": "2026-10-28T07:55:00.173Z",
+    "updated": "2026-10-28T16:18:30.010Z",
     "after": [
-      "AR0524",
-      "AR0496",
-      "AR0492",
-      "AR0493",
-      "AR0494"
+      "AR0493"
     ]
   },
   {
     "id": "AR0534",
     "title": "Delivery's review-needed reads `process\\.env` in a regex as the secrets file too",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0534-delivery-s-review-needed-reads-process-env-in-a-regex-as-the-secrets-file-too/ticket.md",
-    "updated": "2026-10-28T07:55:04.211Z",
+    "updated": "2026-10-28T16:41:52.354Z",
     "after": [
-      "AR0524",
-      "AR0496",
-      "AR0492",
-      "AR0493",
-      "AR0494"
+      "AR0493"
     ]
   },
   {
@@ -4294,9 +4263,9 @@
   {
     "id": "AR0537",
     "title": "A job's own session reads each file its task or a continue's text names as `@<path>`",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0537-a-job-s-own-session-reads-each-file-its-task-or-a-continue-s-text-names-as-path/ticket.md",
-    "updated": "2026-10-28T10:24:50.853Z",
+    "updated": "2026-10-28T17:57:43.843Z",
     "after": [
       "AR0533",
       "AR0531",
@@ -4306,9 +4275,9 @@
   {
     "id": "AR0538",
     "title": "The coordinator's handoff is handed back through `sendUserMessage` unescaped",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0538-the-coordinator-s-handoff-is-handed-back-through-sendusermessage-unescaped/ticket.md",
-    "updated": "2026-10-28T10:24:52.668Z",
+    "updated": "2026-10-28T17:34:44.121Z",
     "after": [
       "AR0533",
       "AR0531",
@@ -4318,9 +4287,9 @@
   {
     "id": "AR0539",
     "title": "A `^<model>` in a message's text gives the coordinator's session a model agent",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0539-a-model-in-a-message-s-text-gives-the-coordinator-s-session-a-model-agent/ticket.md",
-    "updated": "2026-10-28T10:24:54.557Z",
+    "updated": "2026-10-28T17:26:17.224Z",
     "after": [
       "AR0533",
       "AR0531",
@@ -4330,16 +4299,16 @@
   {
     "id": "AR0540",
     "title": "A worker blocked on the owner whose ticket is dropped can be neither continued, stopped nor pruned",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0540-a-worker-blocked-on-the-owner-whose-ticket-is-dropped-can-be-neither-continued/ticket.md",
-    "updated": "2026-10-28T10:26:07.311Z"
+    "updated": "2026-10-29T02:00:13.666Z"
   },
   {
     "id": "AR0541",
     "title": "A worker ends its run while its npm test runs in the background, and has no way to read the result",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0541-a-worker-ends-its-run-while-its-npm-test-runs-in-the-background-and-has-no-way/ticket.md",
-    "updated": "2026-10-28T10:51:40.995Z"
+    "updated": "2026-10-29T01:26:25.942Z"
   },
   {
     "id": "AR0542",
@@ -4358,29 +4327,108 @@
   {
     "id": "AR0544",
     "title": "The merge step timeout test fails under load: its 3 s limit also catches `npm run check`",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0544-the-merge-step-timeout-test-fails-under-load-its-3-s-limit-also-catches-npm-run/ticket.md",
-    "updated": "2026-10-28T10:59:01.925Z"
+    "updated": "2026-10-28T21:50:16.704Z"
   },
   {
     "id": "AR0545",
     "title": "Bash builtins that set a variable without an assignment word still change git's config unseen",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0545-bash-builtins-that-set-a-variable-without-an-assignment-word-still-change-git-s/ticket.md",
-    "updated": "2026-10-28T12:32:49.649Z"
+    "updated": "2026-10-28T18:07:00.888Z"
   },
   {
     "id": "AR0546",
     "title": "A function body or a trap is judged before a later export, and the `function f { }` form is not parsed at all",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0546-a-function-body-or-a-trap-is-judged-before-a-later-export-and-the-function-f/ticket.md",
-    "updated": "2026-10-28T12:33:10.118Z"
+    "updated": "2026-10-28T18:07:01.442Z"
   },
   {
     "id": "AR0547",
     "title": "A `~` after a `:` in an assignment's value is not expanded by the parser",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0547-a-after-a-in-an-assignment-s-value-is-not-expanded-by-the-parser/ticket.md",
-    "updated": "2026-10-28T12:38:40.677Z"
+    "updated": "2026-10-28T23:02:40.706Z"
+  },
+  {
+    "id": "AR0548",
+    "title": "The coordinator instructions built as text in TypeScript move into Markdown procedures",
+    "status": "planned",
+    "path": "spec/features/AR0548-the-coordinator-instructions-built-as-text-in-typescript-move-into-markdown/ticket.md",
+    "updated": "2026-10-28T16:43:32.585Z",
+    "after": [
+      "AR0537",
+      "AR0538",
+      "AR0539"
+    ]
+  },
+  {
+    "id": "AR0549",
+    "title": "Plan: a root AGENTS.md that says what an Arthur instance is for, and the roles it may need",
+    "status": "planning",
+    "path": "spec/features/AR0549-plan-a-root-agents-md-that-says-what-an-arthur-instance-is-for-and-the-roles-it/ticket.md",
+    "updated": "2026-10-28T16:42:31.601Z",
+    "after": [
+      "AR0537",
+      "AR0538",
+      "AR0539"
+    ]
+  },
+  {
+    "id": "AR0550",
+    "title": "Voice: local transcription of voice notes with whisper.cpp (roadmap 81)",
+    "status": "merged",
+    "path": "spec/features/AR0550-voice-local-transcription-of-voice-notes-with-whisper-cpp-roadmap-81/ticket.md",
+    "updated": "2026-10-28T19:04:11.811Z"
+  },
+  {
+    "id": "AR0551",
+    "title": "Video: frames and the spoken words of a video part, with ffmpeg and the voice plugin",
+    "status": "merged",
+    "path": "spec/features/AR0551-video-frames-and-the-spoken-words-of-a-video-part-with-ffmpeg-and-the-voice/ticket.md",
+    "updated": "2026-10-28T19:43:30.291Z",
+    "after": [
+      "AR0550"
+    ]
+  },
+  {
+    "id": "AR0552",
+    "title": "Docs: video in the architecture diagram and roadmap, voice and video as media plugins in the README diagram",
+    "status": "merged",
+    "path": "spec/features/AR0552-docs-video-in-the-architecture-diagram-and-roadmap-voice-and-video-as-media/ticket.md",
+    "updated": "2026-10-28T22:31:07.645Z"
+  },
+  {
+    "id": "AR0553",
+    "title": "Speech: the coordinator answers a voice note with a voice note, spoken on this server",
+    "status": "planned",
+    "path": "spec/features/AR0553-speech-the-coordinator-answers-a-voice-note-with-a-voice-note-spoken-on-this/ticket.md",
+    "updated": "2026-10-28T20:58:36.682Z",
+    "after": [
+      "AR0554"
+    ]
+  },
+  {
+    "id": "AR0554",
+    "title": "Rename the voice plugin to listen",
+    "status": "planned",
+    "path": "spec/features/AR0554-rename-the-voice-plugin-to-listen/ticket.md",
+    "updated": "2026-10-28T21:50:45.475Z"
+  },
+  {
+    "id": "AR0555",
+    "title": "Cleanup after a merge: a merged job leaves no worktree, Docker leftovers, cache, or branch here or on GitHub",
+    "status": "planning",
+    "path": "spec/features/AR0555-cleanup-after-a-merge-a-merged-job-leaves-no-worktree-docker-leftovers-cache-or/ticket.md",
+    "updated": "2026-10-29T07:07:52.295Z"
+  },
+  {
+    "id": "AR0556",
+    "title": "Plan: the github plugin manages pull requests, issues and branches",
+    "status": "planning",
+    "path": "spec/features/AR0556-plan-the-github-plugin-manages-pull-requests-issues-and-branches/ticket.md",
+    "updated": "2026-10-29T07:07:53.261Z"
   }
 ]

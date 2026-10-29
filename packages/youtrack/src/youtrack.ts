@@ -55,8 +55,8 @@ export function youtrack(options: YoutrackOptions): Plugin {
 // the load, naming the option and the variable, never the value.
 function server(env: Readonly<Record<string, string>>, { name, urlEnv, tokenEnv }: InstanceOptions, index: number, timeoutSeconds: number): Instance {
 	const url = URL.parse(env[urlEnv] ?? "");
-	if (url === null || !["http:", "https:"].includes(url.protocol) || url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== "")
-		throw new Error(`instances[${index}].urlEnv: ${urlEnv} does not hold an http or https URL without a user, query or fragment`);
+	if (url === null || !(url.protocol === "https:" || (url.protocol === "http:" && /^(localhost|127(\.\d+){3}|\[::1\])$/.test(url.hostname))) || url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== "")
+		throw new Error(`instances[${index}].urlEnv: ${urlEnv} does not hold an https URL, or an http one on loopback (localhost, 127.0.0.0/8, ::1), without a user, query or fragment`);
 	const token = env[tokenEnv] ?? "";
 	if (!/^[\x21-\x7e]+$/.test(token)) throw new Error(`instances[${index}].tokenEnv: ${tokenEnv} is empty or holds a space or a character outside ASCII, which a header cannot carry`);
 	return { name, label: name ?? "(unnamed)", urlEnv, tokenEnv, base: `${url.origin}${url.pathname.replace(/\/+$/, "")}`, token, timeoutSeconds };

@@ -28,6 +28,8 @@ Refused at load (and by `arthur config check`), naming the option: a `compactAt`
 
 At every start of the coordinator's agent, the extension notes its pid in `<home>/session/agent`, and, when the handoff is newer than the last one a conversation read, gives it to the new conversation as its first message: `[Arthur] The coordinator just started again. Before that you wrote this handoff (<path>); go on from it:` and its text, each line quoted (`> ` before it), so no line of it reads as a message's mark. So the handoff carries the work in progress and the unanswered questions across every way a conversation ends: a compaction, a fresh start, a `/restart`, a crash. A handoff of only blanks is never read back, and one read (its modification time is noted in `<home>/session/handoff-read`) is not read again. A read that fails to reach the agent stays unread, for the next start.
 
+The handoff read back, after a compaction as after a start, never makes omp read a file: omp reads into the turn each file a message names as `@<path>`, `@"<path>"` or `@'<path>'` at the start of a line or after whitespace or one of `(`, `[`, `{`, `<`, `"`, `'` and `` ` ``, so each such `@` of the handoff gets a word joiner (U+2060) before it, as the coordinator's inbox does (`arthur coordinator --help`).
+
 A `request.json` that is not a request (edited by hand) is dropped: `session: <home>/session/request.json is not a request, so it is dropped: <its first 200 characters>`. A request is replaced by a restart while a compaction is still asked for: the extension drops the compaction, which then prints nothing.
 
 The extension acts only in the coordinator's own session, one with a UI, never in a `task` subagent.

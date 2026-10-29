@@ -27,7 +27,7 @@ export async function checkSite(url: string, expect: number | string | undefined
 			if (hops === 20 || !response.headers.has("location") || ![301, 302, 303, 307, 308].includes(response.status)) break;
 			await response.body?.cancel();
 			at = new URL(response.headers.get("location") as string, at);
-			if (at.host !== named) await new Promise((ok, no) => guarded(at.hostname.replace(/^\[(.*)\]$/, "$1"), { all: true }, (error) => (error ? no(error) : ok(at))));
+			if (at.host !== named) await new Promise((ok, no) => (signal.throwIfAborted(), signal.addEventListener("abort", () => no(signal.reason)), guarded(at.hostname.replace(/^\[(.*)\]$/, "$1"), { all: true }, (error) => (error ? no(error) : ok(at)))));
 			if (BLOCKED_PORTS.includes(at.port)) throw new Error("bad port"); // as fetch, which judged every hop before AR0424
 		}
 	} catch (error) {

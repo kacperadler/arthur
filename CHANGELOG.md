@@ -22,6 +22,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0526 A value split across two sweeps' copies of a remote job's log is not named (405e01ba)
 - AR0540 A worker blocked on the owner whose ticket is dropped can be neither continued, stopped nor pruned (030a7cf6)
 - AR0541 A worker ends its run while its npm test runs in the background, and has no way to read the result (fadd4657)
+- AR0545 Bash builtins that set a variable without an assignment word still change git's config unseen (cbbd5833)
 - AR0546 A function body or a trap is judged before a later export, and the `function f { }` form is not parsed at all (a634a0ac)
 - AR0547 A `~` after a `:` in an assignment's value is not expanded by the parser (0eca382f)
 

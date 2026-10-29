@@ -33,4 +33,5 @@ Out:
 - A job blocked on a dependency or held by a plugin (stop already handles one held in a run).
 
 ## Decisions
+- 2026-10-29: Raise the core line budget from 6414 to 6440 for AR0540 (a blocked job can be stopped and pruned); by recommendation under AR-D271, as AR-D29 lets the coordinator raise a budget a fix needs; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note): go with all recommendations overnight and do not ask" (AR-D287)
 

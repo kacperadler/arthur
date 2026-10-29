@@ -1,0 +1,42 @@
+# AR0564 - A report skill: how every HTML page for the owner is styled and checked before it is sent
+
+```json
+{
+  "id": "AR0564",
+  "title": "A report skill: how every HTML page for the owner is styled and checked before it is sent",
+  "date": "2026-10-29"
+}
+```
+
+## Description
+
+The owner, 2026-10-29, with a screenshot of the pyramid report: "sometimes in the report the commands are not visible, remember this in the future, maybe create a skill for creating a report that will describe how to use colors, styles, etc."
+
+The cause in that report: a `code` chip with a light grey background inherited the white text of the black heading it sat in, so `arthur repeats` and `/pyramid X` were white on light grey (contrast about 1.1:1). The coordinator writes such pages by hand (the night report, the pyramid report), and roles will write more (AR0563's before and after page, the retro's and audit's pages); the only rule today is AR-D298 (black and white base, blue accent, red only for what matters, content centred), kept in the coordinator's memory.
+
+## Goal
+
+Every HTML page sent to the owner follows one written style and passes one contrast and phone-width check before it is sent, so nothing on it is unreadable.
+
+- Kind: docs
+
+## Done means
+
+- A skill file, `.agents/arthur/criteria/report.md`: the palette (AR-D298), type, layout for a phone first (no horizontal scroll at 420 px, content centred, tables that wrap), components (number tiles, before and after columns, tables, notes, warnings, tags for layers), and the rules that would have prevented this bug: every element that sets a background also sets its text colour; a chip (`code`, a tag) inside a dark block is styled for that block; red only for what needs the owner; every command and id readable.
+- The check, in the same file, run before every `arthur send` of a page: render it at 420 px wide and confirm no text is below 4.5:1 contrast against its background and nothing scrolls sideways, with the short script to do it.
+- The coordinator's prompt reads it (its criteria list), and so do the roles that write a page for the owner (retro and auditor today; AR0563's pyramid role when it lands).
+- `arthur init` gives a new project the file's skeleton, as it does the other criteria.
+- A test that the coordinator's and the retro's assembled prompts hold the file.
+
+## Scope
+
+In:
+- `.agents/arthur/criteria/report.md` (new).
+- `packages/orchestration/src/` (the coordinator's criteria list), `packages/manage/src/` (retro and auditor criteria lists), `packages/projects/src/` (`arthur init`'s criteria skeleton), their tests; line budgets as the change measures.
+
+Out:
+- Changing manage's plain `page()` builder for filed reports: it sets no colours, so it has no contrast bug.
+- A contrast check inside `arthur send`: a later ticket if pages still go out unreadable.
+
+## Decisions
+- 2026-10-29: AR0564 report skill approved; started once AR0555 merges, beside the AR0561 planner and the AR0562 worker; the owner: "sometimes in the raport the commands are not visible, remember this in the future, maybe create a skill for creating a rport that will describe how to use colors, styles, ect" (AR-D339)

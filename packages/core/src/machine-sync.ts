@@ -42,10 +42,10 @@ export async function syncMachines(home: string, machines: readonly Machine[], b
 	if (failed.length > 0) throw new Error(failed.join("\n"));
 }
 
-// With one SSH call, copies the run's changed files of the records of `machine`'s followed jobs, of the log only its new bytes; a
-// run that ended there brings its branch into the job's `root` before its state moves here, then `job-ended`. A job failed
-// here while the machine was offline takes the state there only once that run ended; a log cut short, once the rest arrived.
-// Each file and reason is named with the bus's `hide` here: the record there guards no env file, so its wrapper named nothing.
+// With one SSH call, copies the run's changed files of the records of `machine`'s followed jobs, of the log only its new bytes up to the last line break, the
+// rest asked again from the same time and byte, so a value a cut splits is named whole (all once the run ended there and its log came whole, or a cut holds no
+// line break); a run that ended there brings its branch into `root` before its state moves here, then `job-ended`. A job failed here while offline takes the
+// state there once that run ended; a log cut short, once the rest arrived. Each file and reason is named with the bus's `hide`: the record there guards no env file.
 export async function syncMachine(home: string, machine: Machine, bus: Bus): Promise<void> {
 	const ids = followed(home, machine), { hide } = bus;
 	if (ids.length === 0) return;
@@ -59,11 +59,11 @@ export async function syncMachine(home: string, machine: Machine, bus: Bus): Pro
 		// Another copy (a stop's beside the sweep's) that wrote since this one asked has these bytes in already.
 		if (copy === undefined || asked[index] !== `${id}=${read("synced") || "0:0"}`) continue;
 		for (const [name, text] of Object.entries(copy.files)) if (RUN.includes(name) && read(name) !== hide(text)) write(folder, name, hide(text));
-		if (copy.files.log !== undefined && copy.logFrom > 0) appendFileSync(join(folder, "log"), hide(copy.files.log));
-		else if (copy.files.log !== undefined) write(folder, "log", hide(copy.files.log));
-		write(folder, "synced", `${copy.at}:${copy.logTo}`);
+		const ended = copy.state !== "working" && copy.state !== "idle", log = copy.files.log ?? "", rest = (ended && copy.logTo === copy.logSize) || (copy.logTo < copy.logSize && !log.includes("\n")) ? "" : log.slice(log.lastIndexOf("\n") + 1);
+		if (copy.files.log !== undefined && copy.logFrom > 0) appendFileSync(join(folder, "log"), hide(log.slice(0, log.length - rest.length)));
+		else if (copy.files.log !== undefined) write(folder, "log", hide(log.slice(0, log.length - rest.length)));
+		write(folder, "synced", rest === "" ? `${copy.at}:${copy.logTo}` : `${(read("synced") || "0:0").split(":")[0]}:${copy.logTo - Buffer.byteLength(rest)}`);
 		if (copy.logTo < copy.logSize) continue;
-		const ended = copy.state !== "working" && copy.state !== "idle";
 		if (read("state") === "ended" && !ended) continue;
 		if (ended && read("branch") !== "") gitOver(read("root"), ["fetch", "--quiet", url(machine, read("project")), `+refs/heads/arthur/${id}:refs/heads/arthur/${id}`]);
 		// A plugin's hold here stands while the run goes on there, and ends with it, as the wrapper's does, unless it stopped the run.

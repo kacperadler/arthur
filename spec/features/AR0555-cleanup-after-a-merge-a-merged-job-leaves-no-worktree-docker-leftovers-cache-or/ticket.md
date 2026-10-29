@@ -47,3 +47,4 @@ Out:
 - 2026-10-29: AR0555: github line budget 870 -> 951, delivery 1686 -> 1723, as the plan approved in AR-D328; the owner: "AR-D328 1" (AR-D335)
 - 2026-10-29: AR0555: another round; the worker fixes the drop keeping a handed-back worker, then review round 3; the owner: "AR-D336 another round" (AR-D336)
 - 2026-10-29: AR0555: delivery line budget 1723 -> 1728, as the plan approved in AR-D328; the owner: "AR-D328 1" (AR-D338)
+- 2026-10-29: AR0555: another round; the worker fixes the wake for a dropped ticket review and tests the merge ending hand-backs, then review round 4; the owner: "AR-D340 - Another round" (AR-D340)

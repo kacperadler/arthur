@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { basename, delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
@@ -554,6 +554,28 @@ test("a .git that what the checks left behind writes after their last sweep is r
 	assert.equal(merged.code, 1, merged.err);
 	assert.match(merged.out, /\nremoved late\/\.git, which bun install --frozen-lockfile left: a git call in that folder would run its config outside any sandbox\nreinstall of main's dependencies, bun install --frozen-lockfile: passed\.$/);
 	assert.deepEqual([existsSync(join(root, "late")), existsSync(join(root, "late", ".git"))], [true, false]);
+});
+
+test("what the branch itself commits counts as a step's to the sweep: a symlink to a folder outside the checkout and a folder holding a HEAD and a config with core.fsmonitor are removed after the first step, and main goes in; so is the owner's symlink to the plugin's folder, where the merge's caches go", async (t) => {
+	const { root, fake, git, worker, review, merge } = await load(t);
+	const outside = join(root, "..", "outside");
+	mkdirSync(outside);
+	const job = await worker({ "fixture/HEAD": "ref: refs/heads/main\n", "fixture/refs/heads/main": "", "fixture/config": "[core]\n\tfsmonitor = touch pwned\n" });
+	symlinkSync(outside, join(job.worktree, "out"));
+	git(job.worktree, "add", "out");
+	git(job.worktree, "commit", "--quiet", "-m", "link out");
+	await review(job.id, "PASS");
+	// The owner's own, untracked; the temporary folder moved apart, so the plugin's folder is no folder a step writes but as the merge's caches.
+	symlinkSync(fake.host.folder, join(root, "delivery"));
+	const saved = process.env.TMPDIR;
+	process.env.TMPDIR = join(root, "..", "tmp");
+	mkdirSync(process.env.TMPDIR);
+	t.after(() => void (saved === undefined ? delete process.env.TMPDIR : (process.env.TMPDIR = saved)));
+	const merged = await merge(job.id);
+	assert.equal(merged.code, undefined, merged.err);
+	const said = (path: string) => `removed ${path}, which bun install --frozen-lockfile left: a git call in that folder would run its config outside any sandbox`;
+	assert.deepEqual(merged.out.split("\n").slice(1, 5).sort(), [said("delivery"), said("fixture"), said("out"), "bun install --frozen-lockfile: passed."].sort());
+	assert.deepEqual([existsSync(join(root, "fixture")), ...["out", "delivery"].map((name) => lstatSync(join(root, name), { throwIfNoEntry: false })), git(root, "ls-tree", "--name-only", "HEAD", "out", "fixture")], [false, undefined, undefined, "fixture\nout"]);
 });
 
 test("a second merge of the project while the first runs its checks is refused naming the first, main unchanged; the lock goes with any end of the first, a dead holder's too", async (t) => {

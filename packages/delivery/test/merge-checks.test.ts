@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { chmodSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, realpathSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fakeHost, jobSlice, temporaryFolder } from "@arthur/core/testing";
 import { stepRunner } from "../src/merge-checks.ts";
@@ -36,7 +36,7 @@ test("each step on main runs in a sandbox: it writes main's checkout and the mer
 	};
 	const tries = Object.entries(writes).map(([name, command]) => `if (${command}) 2>/dev/null; then echo '${name} written'; else echo '${name} refused'; fi`);
 	const script = [`{ tr '\\0' '\\n' < /proc/${process.pid}/environ || echo refused; } 2>&1`, "{ cat env || echo refused; } 2>&1", ...tries].join("\n");
-	const ran = stepRunner(root, jobSlice.slice, () => {}, 60)(sandbox)(script, { ...process.env, XDG_CACHE_HOME: join(folder, "cache") });
+	const ran = stepRunner(root, jobSlice.slice, () => {}, 60, [])(sandbox)(script, { ...process.env, XDG_CACHE_HOME: join(folder, "cache") });
 	assert.equal(ran.status, 0, ran.stderr);
 	assert.match(ran.stdout, /^[^\n]*environ: Permission denied\nrefused\ncat: env: Permission denied\nrefused\ncheckout written\ntop refused\nown cache written\nshared cache refused\nbeside refused\n$/);
 	assert.doesNotMatch(ran.stdout, /s3cret-t0ken/);
@@ -48,7 +48,7 @@ test("each step on main runs in a sandbox: it writes main's checkout and the mer
 test("a step still running at its limit is killed with SIGKILL, though it ignores SIGTERM, and its error names the limit", () => {
 	const started = Date.now();
 	// 8 s that SIGTERM does not end: with SIGTERM as the kill, the step exits 0 once they passed.
-	const ran = stepRunner(root, jobSlice.slice, () => {}, 1)(sandbox)("trap '' TERM; for second in 1 2 3 4 5 6 7 8; do sleep 1; done", process.env);
+	const ran = stepRunner(root, jobSlice.slice, () => {}, 1, [])(sandbox)("trap '' TERM; for second in 1 2 3 4 5 6 7 8; do sleep 1; done", process.env);
 	assert.deepEqual([ran.status, ran.signal, ran.error?.message], [null, "SIGKILL", "timed out after 1 s"]);
 	assert.ok(Date.now() - started < 10_000, `it took ${Date.now() - started} ms`);
 });
@@ -56,8 +56,9 @@ test("a step still running at its limit is killed with SIGKILL, though it ignore
 // A checkout `acme` with a real submodule at `vendor/lib` and the owner's own clones at `tools/scratch`, with one commit, a
 // linked worktree at `tools/wt` and `core.splitIndex` set, and `tools/other`, its `.git` 775 as umask 002 makes it, his bare
 // repository `tools/bare.git`, his symlink `tools/beside` to a repository beside the checkout and `tools/py` to a file `out/py`
-// there, all there before the first step; `fsmonitor` that repository, whose `core.fsmonitor` writes `pwned`, as the reviewer of AR0457 planted one.
-function planted() {
+// there, and what `own` adds then, all there before the first step, `writable` beside it the temporary folder and `caches`
+// the merge's caches, the folders outside it a step writes but `/dev`; `fsmonitor` that repository, whose `core.fsmonitor` writes `pwned`, as the reviewer of AR0457 planted one.
+function planted(own: (root: string, writable: string) => void = () => {}) {
 	const folder = temporaryFolder();
 	const [root, pwned] = [join(folder, "acme"), join(folder, "pwned")];
 	const git = (at: string, ...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "protocol.file.allow=always", "-C", at, ...args], { encoding: "utf8" }).trim();
@@ -81,10 +82,16 @@ function planted() {
 	writeFileSync(join(root, ".gitignore"), "tools/\n");
 	git(root, "add", "--all");
 	git(root, "commit", "--quiet", "-m", "first");
+	const [writable, caches] = [join(folder, "writable"), join(folder, "caches")];
+	for (const path of [writable, caches]) mkdirSync(path);
+	own(root, writable);
 	const lines: string[] = [];
-	const runs = stepRunner(root, jobSlice.slice, (line) => void (line.startsWith("uncapped: ") || lines.push(line)), 60);
+	const saved = process.env.TMPDIR;
+	process.env.TMPDIR = writable;
+	const runs = stepRunner(root, jobSlice.slice, (line) => void (line.startsWith("uncapped: ") || lines.push(line)), 60, [caches]);
+	saved === undefined ? delete process.env.TMPDIR : (process.env.TMPDIR = saved);
 	const kept = () => ["vendor/lib/.git", "tools/scratch/.git", "tools/other/.git", "tools/bare.git", "tools/beside"].map((path) => [lstatSync(join(root, path)).ino, existsSync(join(root, path))]);
-	return { root, pwned, gitfile: `gitdir: ${join(folder, "fsmonitor", ".git")}`, git, runs, run: runs((command) => ["sh", ["-c", command]]), lines, kept };
+	return { root, pwned, writable, gitfile: `gitdir: ${join(folder, "fsmonitor", ".git")}`, git, runs, run: runs((command) => ["sh", ["-c", command]]), lines, kept };
 }
 
 const said = (command: string, ...paths: string[]) => paths.map((path) => `removed ${path}, which ${command} left: a git call in that folder would run its config outside any sandbox`);
@@ -148,7 +155,7 @@ test("a repository a step made under another name, a bare one turned into a work
 	assert.deepEqual(kept(), before, "the owner's clones, bare repository and symlink are the same ones");
 });
 
-test("a symlink a step made to a folder outside the checkout, into its .git, or dangling outside it is removed after it, one line each; one to a folder inside it, to a file, or dangling inside it stays, and so does the owner's from before the first step, though its target went and a folder came in its place", () => {
+test("a symlink a step made to a folder outside the checkout, into its .git, or dangling outside it is removed after it, one line each; one to a folder inside it, to a file, or dangling inside it stays, and so does the owner's from before the first step to a file no step writes, though its target went and a folder came in its place", () => {
 	const { root, run, lines } = planted();
 	const beside = join(root, "..");
 	const links = { link: join(beside, "fsmonitor"), objects: "../.git/objects", later: join(beside, "later"), inner: "../lib", file: join(beside, "fsmonitor", "a"), soon: "../made/later" };
@@ -161,6 +168,133 @@ test("a symlink a step made to a folder outside the checkout, into its .git, or 
 	for (const step of [`rm '${join(beside, "out", "py")}'`, `mkdir '${join(beside, "out", "py")}'`]) assert.equal(run(step, process.env).status, 0);
 	assert.equal(lines.length, 3, "the owner's symlink, the same, adds no line");
 	assert.equal(lstatSync(join(root, "tools", "py")).isSymbolicLink(), true);
+});
+
+test("an owner's symlink into the checkout's .git or a folder a step writes is judged by its target too: one a step put a repository at, in place of its file, in its folder, where it dangled, in the merge's caches, or in a .git symlink's Git folder, is removed, one line each; one whose target stayed the same or still dangles stays, and so does one to a folder beside the writable one whose name begins as its does", () => {
+	const { root, writable, pwned, run, lines } = planted((root, writable) => {
+		const object = execFileSync("git", ["-C", root, "hash-object", "-w", "--stdin"], { input: "owner's\n", encoding: "utf8" }).trim();
+		for (const box of ["box", "same"]) {
+			mkdirSync(join(writable, box));
+			writeFileSync(join(writable, box, "a"), "");
+		}
+		mkdirSync(`${writable}2`);
+		mkdirSync(join(root, "tools", "linked"));
+		execFileSync("git", ["init", "-q", "--bare", join(writable, "repo.git")]);
+		const links = { obj: `../.git/objects/${object.slice(0, 2)}/${object.slice(2)}`, box: join(writable, "box"), same: join(writable, "same"), later: join(writable, "later"), gone: join(writable, "gone"), edge: writable, sibling: `${writable}2`, cached: join(writable, "..", "caches", "pkg"), "linked/.git": join(writable, "repo.git") };
+		for (const [name, target] of Object.entries(links)) symlinkSync(target, join(root, "tools", name));
+	});
+	// The object's path from the checkout's top, where the step runs: the link's own text, `../` off.
+	const object = readlinkSync(join(root, "tools", "obj")).slice(3);
+	const command = [`rm -f ${object}`, `git init -q --bare ${object}`, `git -C ${object} config core.fsmonitor "touch '${pwned}'"`, `git init -q --bare '${join(writable, "box", "sub")}'`, `git init -q --bare '${join(writable, "later")}'`, `git init -q --bare '${join(writable, "..", "caches", "pkg")}'`, `git -C '${join(writable, "repo.git")}' config core.fsmonitor "touch '${pwned}'"`, `git init -q --bare '${writable}2/sub'`].join(" && ");
+	const ran = run(command, process.env);
+	assert.equal(ran.status, 0, ran.stderr);
+	assert.deepEqual(lines.sort(), said(command, "tools/box", "tools/cached", "tools/edge", "tools/later", "tools/linked/.git", "tools/obj"));
+	assert.deepEqual(["obj", "box", "later", "cached", "edge", "linked/.git", "same", "gone", "sibling"].map((name) => lstatSync(join(root, "tools", name), { throwIfNoEntry: false })?.isSymbolicLink() ?? false), [false, false, false, false, false, false, true, true, true]);
+	assert.equal(existsSync(join(root, object, "HEAD")), true, "the removed symlink's target stays");
+});
+
+test("an owner's symlink that passes through a symlink in a folder a step writes, first, further down its chain or as a folder on its path, is judged by its target too: a step that points that link at a repository outside every such folder has it removed, one line each; one whose chain stays outside them stays", () => {
+	const { root, writable, run, lines } = planted((root, writable) => {
+		const beside = dirname(root);
+		for (const folder of ["elsewhere/fsmonitor", "elsewhere2"]) mkdirSync(join(beside, folder), { recursive: true });
+		const links: [string, string][] = [
+			[join(writable, "s"), join(beside, "elsewhere")],
+			[join(root, "tools", "hop"), join(writable, "s")],
+			[join(writable, "s2"), join(beside, "elsewhere")],
+			[join(beside, "mid"), join(writable, "s2")],
+			[join(root, "tools", "far"), join(beside, "mid")],
+			[join(writable, "dl"), join(beside, "elsewhere")],
+			[join(root, "tools", "comp"), join(writable, "dl", "fsmonitor")],
+			[join(beside, "mid2"), join(beside, "elsewhere2")],
+			[join(root, "tools", "plain"), join(beside, "mid2")],
+		];
+		for (const [path, target] of links) symlinkSync(target, path);
+	});
+	const beside = dirname(root);
+	const command = [`ln -sfn '${join(beside, "fsmonitor")}' '${join(writable, "s")}'`, `ln -sfn '${join(beside, "fsmonitor")}' '${join(writable, "s2")}'`, `ln -sfn '${beside}' '${join(writable, "dl")}'`, `ln -sfn '${join(beside, "fsmonitor")}' '${join(beside, "mid2")}'`].join(" && ");
+	const ran = run(command, process.env);
+	assert.equal(ran.status, 0, ran.stderr);
+	assert.deepEqual(lines.sort(), said(command, "tools/comp", "tools/far", "tools/hop"));
+	assert.deepEqual(["hop", "far", "comp", "plain"].map((name) => lstatSync(join(root, "tools", name), { throwIfNoEntry: false })?.isSymbolicLink() ?? false), [false, false, false, true]);
+});
+
+test("a repository a step plants in a folder above an owner's symlink's target, the one right above, two above, or the temporary folder itself, where git walking up finds it, or above a link on its way, removes the symlink, one line each; one whose folders above stay the same stays", () => {
+	const { root, pwned, writable, run, lines } = planted((root, writable) => {
+		const beside = dirname(root);
+		for (const folder of ["cache/box", "b/inner", "h", "calm/box", "a/b/box"]) mkdirSync(join(writable, folder), { recursive: true });
+		mkdirSync(join(beside, "elsewhere3"));
+		symlinkSync(join(beside, "elsewhere3"), join(writable, "h", "s"));
+		const links: [string, string][] = [["deepbox", "cache/box"], ["inbare", "b/inner"], ["hp", "h/s"], ["calm", "calm/box"], ["deep", "a/b/box"]];
+		for (const [name, target] of links) symlinkSync(join(writable, target), join(root, "tools", name));
+	});
+	const command = [`git init -q '${join(writable, "cache")}'`, `git -C '${join(writable, "cache")}' config core.fsmonitor "touch '${pwned}'"`, `git init -q --bare '${join(writable, "b")}'`, `git init -q '${join(writable, "h")}'`, `git init -q '${join(writable, "a")}'`].join(" && ");
+	const ran = run(command, process.env);
+	assert.equal(ran.status, 0, ran.stderr);
+	const top = (folder: string) => execFileSync("git", ["-C", join(writable, folder), "rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
+	assert.deepEqual([top("cache/box"), top("a/b/box")], [realpathSync(join(writable, "cache")), realpathSync(join(writable, "a"))], "git walks up from each target to the planted repository");
+	assert.deepEqual(lines.sort(), said(command, "tools/deep", "tools/deepbox", "tools/hp", "tools/inbare"));
+	assert.deepEqual(["deepbox", "inbare", "hp", "deep", "calm"].map((name) => lstatSync(join(root, "tools", name), { throwIfNoEntry: false })?.isSymbolicLink() ?? false), [false, false, false, false, true]);
+	// A repository in the temporary folder itself, above every target in it.
+	const second = `git init -q '${writable}'`;
+	assert.equal(run(second, process.env).status, 0);
+	assert.equal(top("calm/box"), realpathSync(writable), "git walks up from the target to the temporary folder's repository");
+	assert.deepEqual(lines.slice(4), said(second, "tools/calm"));
+	assert.equal(lstatSync(join(root, "tools", "calm"), { throwIfNoEntry: false }), undefined);
+});
+
+test("an owner's symlink at the end of 40 links, the most the kernel follows, that ends in a folder a step writes is judged by its target too; one in a ring of links ends the sweep and stays", () => {
+	const { root, writable, run, lines } = planted((root, writable) => {
+		const beside = dirname(root);
+		mkdirSync(join(writable, "box"));
+		const chain = Array.from({ length: 39 }, (_, at) => join(beside, `c${at + 1}`));
+		for (const [at, path] of chain.entries()) symlinkSync(chain[at + 1] ?? join(writable, "box"), path);
+		symlinkSync(join(beside, "c1"), join(root, "tools", "deep"));
+		for (const [path, target] of [["r1", "r2"], ["r2", "r1"]] as const) symlinkSync(join(beside, target), join(beside, path));
+		symlinkSync(join(beside, "r1"), join(root, "tools", "ring"));
+	});
+	assert.equal(realpathSync(join(root, "tools", "deep")), realpathSync(join(writable, "box")), "the kernel follows the 40 links");
+	const command = `git init -q --bare '${join(writable, "box", "sub")}'`;
+	assert.equal(run(command, process.env).status, 0);
+	assert.deepEqual(lines, said(command, "tools/deep"));
+	assert.equal(lstatSync(join(root, "tools", "ring")).isSymbolicLink(), true);
+});
+
+test("an owner's symlink to a folder a step writes that holds what Arthur's user cannot read is removed after the first step, though the step wrote nothing, as a repository there could not be told from the owner's own", { skip: process.getuid?.() === 0 && "root reads every folder" }, () => {
+	const { root, writable, run, lines } = planted((root, writable) => {
+		mkdirSync(join(writable, "closed", "shut"), { recursive: true });
+		chmodSync(join(writable, "closed", "shut"), 0);
+		symlinkSync(join(writable, "closed"), join(root, "tools", "closed"));
+	});
+	try {
+		assert.equal(run("true", process.env).status, 0);
+		assert.deepEqual(lines, ["removed tools/closed, which true left: its target, in a folder a step writes, could not be read, so a repository there could not be told from the owner's own"]);
+		assert.deepEqual([lstatSync(join(root, "tools", "closed"), { throwIfNoEntry: false }), existsSync(join(writable, "closed", "shut"))], [undefined, true]);
+	} finally {
+		chmodSync(join(writable, "closed", "shut"), 0o755);
+	}
+});
+
+test("an owner's symlink into /dev, which a step writes, is judged by its target too: a repository a step put where it pointed has it removed", { skip: !existsSync("/dev/shm") && "no /dev/shm" }, (t) => {
+	const shm = mkdtempSync("/dev/shm/arthur-test-");
+	t.after(() => rmSync(shm, { recursive: true, force: true }));
+	const { root, run, lines } = planted((root) => symlinkSync(join(shm, "box"), join(root, "tools", "shm")));
+	const command = `git init -q --bare '${join(shm, "box")}'`;
+	assert.equal(run(command, process.env).status, 0);
+	assert.deepEqual(lines, said(command, "tools/shm"));
+});
+
+test("a symlink a step made is followed from its folder's real path, as the kernel does: one in a checkout reached through a symlink that leads outside it is removed, though read from the symlinked path its text leads inside; one to a folder beside it inside the checkout stays", () => {
+	const folder = temporaryFolder();
+	const [real, outside, root] = [join(folder, "deep", "er", "acme"), join(folder, "deep", "er", "deep", "er", "acme", "inner"), join(folder, "alias")];
+	for (const path of [join(real, "src", "sub"), join(real, "inner"), outside]) mkdirSync(path, { recursive: true });
+	symlinkSync(real, root);
+	const lines: string[] = [];
+	const run = stepRunner(root, jobSlice.slice, (line) => void (line.startsWith("uncapped: ") || lines.push(line)), 60, [])((command) => ["sh", ["-c", command]]);
+	const command = "ln -s ../../deep/er/acme/inner src/link && ln -s sub src/in && readlink -f src/link";
+	const ran = run(command, process.env);
+	assert.equal(ran.stdout, `${outside}\n`, ran.stderr);
+	assert.deepEqual(lines, said(command, "src/link"));
+	assert.deepEqual([lstatSync(join(real, "src", "link"), { throwIfNoEntry: false }), lstatSync(join(real, "src", "in")).isSymbolicLink()], [undefined, true]);
 });
 
 test("a step that only reads the owner's clones with git keeps them and their history, though git status rewrote their index, a split one and a linked worktree's; one that then writes a hook or core.fsmonitor in one has it removed", () => {

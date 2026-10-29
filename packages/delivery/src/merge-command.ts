@@ -132,6 +132,7 @@ async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly
 	const refusals = host.collect("merge.check", job).filter((answer) => typeof answer === "string" && answer !== "");
 	if (refusals.length > 0) throw new Error(`refused by merge.check: ${refusals.join("; ")}; main is unchanged`);
 
+	const runs = stepRunner(root, host.jobs.slice, console.log, mode.stepSeconds, [host.folder]); // Before `git merge`: its look at main's checkout is the owner's own state, which the sweep after each step keeps (AR0490); the steps' caches go in host.folder.
 	const merged = git("merge", "--no-ff", "-m", ticket === undefined ? `Merge ${job.branch}` : `Merge ${ticket.id}: ${ticket.title}`, tip);
 	if (merged.status !== 0) {
 		const conflicts = git("diff", "--name-only", "--diff-filter=U").stdout.trim();
@@ -146,7 +147,6 @@ async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly
 	// The steps' package caches in a folder of this merge in the plugin's own, removed after it (AR0454); the reinstall's in one of its own (AR0469).
 	const cache = mkdtempSync(join(host.folder, "cache_"));
 	try {
-		const runs = stepRunner(root, host.jobs.slice, console.log, mode.stepSeconds);
 		const runner = (folder: string) => runs(host.sandbox(root, folder, console.log));
 		const steps = mainChecks(root, ask, runner(cache), console.log);
 		if (steps.length === 0) console.log("no checks: package.json declares no check or test script");

@@ -3813,9 +3813,9 @@
   {
     "id": "AR0481",
     "title": "A stop during the install can end the job before its stop of the install's group is over",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0481-a-stop-during-the-install-can-end-the-job-before-its-stop-of-the-install-s-group/ticket.md",
-    "updated": "2026-10-28T18:06:55.233Z"
+    "updated": "2026-10-29T00:03:46.581Z"
   },
   {
     "id": "AR0482",
@@ -4299,16 +4299,16 @@
   {
     "id": "AR0540",
     "title": "A worker blocked on the owner whose ticket is dropped can be neither continued, stopped nor pruned",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0540-a-worker-blocked-on-the-owner-whose-ticket-is-dropped-can-be-neither-continued/ticket.md",
-    "updated": "2026-10-28T18:06:54.218Z"
+    "updated": "2026-10-29T00:03:43.056Z"
   },
   {
     "id": "AR0541",
     "title": "A worker ends its run while its npm test runs in the background, and has no way to read the result",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0541-a-worker-ends-its-run-while-its-npm-test-runs-in-the-background-and-has-no-way/ticket.md",
-    "updated": "2026-10-28T18:06:54.729Z"
+    "updated": "2026-10-29T00:03:44.686Z"
   },
   {
     "id": "AR0542",

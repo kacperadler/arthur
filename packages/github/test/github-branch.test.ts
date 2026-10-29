@@ -183,10 +183,15 @@ test("a branch not in main whose origin tip is the one github pushed is deleted 
 	assert.deepEqual(w.notices().length, 1);
 });
 
-test("the delete is leased: a branch whose tip moved since it was read is refused, the others of the same push deleted", async (t) => {
+test("the delete is leased: a branch whose tip moved since it was read is refused, the others of the same push deleted; a planted config refuses it whole, running nothing", async (t) => {
 	const w = await world(t);
 	const [moved, fine] = [w.job(1), w.job(2)];
 	git(w.path, "push", "--quiet", "origin", moved.branch, fine.branch);
+	git(w.path, "config", "core.sshCommand", "/bin/false");
+	const planted = `${join(w.path, ".git", "config")} sets core.sshcommand, which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig`;
+	assert.deepEqual([...(await deleteOnOrigin(w.path, new Map([[fine.branch, fine.tip]])))], [[fine.branch, planted]]);
+	git(w.path, "config", "--unset", "core.sshCommand");
+	assert.deepEqual(w.deletes(), []);
 	const stale = git(w.path, "rev-parse", "main");
 	const result = await deleteOnOrigin(w.path, new Map([[moved.branch, stale], [fine.branch, fine.tip]]));
 	assert.deepEqual([...result], [[moved.branch, "[rejected] (stale info)"], [fine.branch, ""]]);

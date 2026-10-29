@@ -119,9 +119,8 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 test("a branch with a PASS on its tip goes in: checks pass, its review filed, outcome.md written, the ticket merged, the tickets it unblocks named, the ticket's jobs pruned; the install's cache is the merge's own, gone after it", async (t) => {
 	const { root, fake, home, git, worker, review, merge, head, status, bun, caches, installs } = await load(t);
 	const job = await worker({ "shop.ts": "export const shop = 1;\n", "bun.lock": '{ "shop": 1 }\n' });
-	// Another worker of the ticket, its worktree holding a file it never committed: the prune keeps it.
-	const other = await worker({});
-	writeFileSync(join(other.worktree, "draft.ts"), "export const draft = 1;\n");
+	// Another worker of the ticket, its commit never merged: a merge never forces its branch away.
+	const other = await worker({ "draft.ts": "export const draft = 1;\n" });
 	const passed = await review(job.id, "Clean.\n\nPASS");
 	const checkout = readFileSync(join(home, "jobs", passed, "worktree"), "utf8");
 	// What delivery keeps of the job in its folder: the CI wait an earlier `--auto` left.
@@ -133,7 +132,7 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 	const hash = git(root, "rev-parse", "--short", "HEAD");
 	assert.deepEqual(git(root, "log", "-1", "--format=%s%n%P"), `Merge AC0001: Shop\n${before} ${job.tip}`);
 	assert.equal(
-		merged.out,
+		merged.out.replace(/not fully merged\.$/m, "not fully merged"), // Git's own words, which end in a full stop in some versions.
 		[
 			`merged ${job.branch} into main: ${hash}`,
 			"bun install --frozen-lockfile: passed.",
@@ -147,7 +146,7 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 			"wrote CHANGELOG.md: 1 merged ticket",
 			`${job.id}: worktree ${job.worktree} removed; branch ${job.branch} deleted; record deleted`,
 			`${passed}: worktree ${checkout} removed; record deleted`,
-			`${other.id}: kept its worktree, branch and record: git worktree: fatal: '${other.worktree}' contains modified or untracked files, use --force to delete it`,
+			`${other.id}: worktree ${other.worktree} removed; kept branch ${other.branch} and the record: git branch: error: the branch '${other.branch}' is not fully merged`,
 			DONE,
 		].join("\n"),
 	);
@@ -166,7 +165,8 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 	assert.deepEqual([status("AC0001"), status("AC0002"), status("AC0003")], ["merged", "planned", "planned"]);
 	assert.match(readFileSync(join(root, "CHANGELOG.md"), "utf8"), new RegExp(`\n## \\d{4}-\\d{2}-\\d{2}\n\n### Other\n\n- AC0001 Shop \\(${hash}\\)\n$`), "rebuilt from outcome.md");
 	assert.deepEqual(fake.emitted.filter((event) => event.name === "ticket-moved").at(-1)?.data, { id: "AC0001", project: "acme", from: "done", to: "merged" });
-	assert.deepEqual([job.id, passed, other.id].map((id) => existsSync(join(home, "jobs", id))), [false, false, true], "the ticket's ended jobs pruned, the one Git keeps kept");
+	assert.deepEqual([job.id, passed, other.id].map((id) => existsSync(join(home, "jobs", id))), [false, false, true], "the ticket's ended jobs pruned, the one whose branch main lacks kept");
+	assert.equal(git(root, "branch", "--list", other.branch), other.branch);
 	assert.deepEqual([existsSync(job.worktree), existsSync(checkout), git(root, "branch", "--list", job.branch)], [false, false, ""]);
 	assert.deepEqual([existsSync(join(fake.host.folder, job.id)), existsSync(join(fake.host.folder, "reviews", `${passed}.json`))], [false, true], "delivery's folder of the job goes, its record of the review stays");
 	fake.collect("jobs.keep", { id: "reviews" });
@@ -772,7 +772,7 @@ test("a dropped ticket's ended jobs are pruned, an unmerged branch deleted with 
 	assert.match(said.join("\n"), new RegExp(`^delivery: AC0001 dropped: ${orphan.id}: kept branch ${orphan.branch} and the record: git branch: error: [^\n]*$`));
 	assert.deepEqual(exists()[4], [true, true]);
 	said.length = 0;
-	fake.emit("ticket-moved", { id: "AC0002", project: "acme", from: "planned", to: "in-progress" });
+	fake.emit("ticket-moved", { id: "AC0001", project: "acme", from: "in-progress", to: "review" });
 	assert.deepEqual(said, [], "only a drop prunes");
 });
 

@@ -103,17 +103,7 @@ function linked(link: string, writes: readonly string[]): string {
 		return parents.flatMap((parent) => [".git", "HEAD"].map((name) => join(parent, name)));
 	}));
 	const seen = existsSync(path) ? stamp(path) : "missing";
-	return [...hops.map((hop) => `${hop} ${stamp(hop)}`), ...above.map((each) => `${each} ${present(each) ? stamp(each) : "missing"}`), path, seen === "unreadable" ? UNSEEN : seen].join("\n");
-}
-
-// Whether `path` is there, a dangling symlink too; not for one in a folder that cannot be searched, where git would not see it either.
-function present(path: string): boolean {
-	try {
-		lstatSync(path);
-		return true;
-	} catch {
-		return false;
-	}
+	return [...hops.map((hop) => `${hop} ${stamp(hop)}`), ...above.map((each) => `${each} ${existsSync(each) ? stamp(each) : "missing"}`), path, seen === "unreadable" ? UNSEEN : seen].join("\n");
 }
 
 // A repository by the inode, owner, group, mode and change time, which a write, a rename, a chmod, a chgrp or an ACL sets and no step

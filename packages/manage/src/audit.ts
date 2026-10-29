@@ -30,7 +30,7 @@ function git(root: string, args: readonly string[]): string | undefined {
 const lines = (text: string) => text.split("\n").filter((line) => line.trim() !== "");
 
 export function audit(host: Host, options: AuditOptions | undefined): void {
-	host.jobs.registerRole({ name: ROLE, file: new URL("../roles/auditor.md", import.meta.url), criteria: ["audit", "styleguide"] });
+	host.jobs.registerRole({ name: ROLE, file: new URL("../roles/auditor.md", import.meta.url), criteria: ["audit", "styleguide", "report"] });
 	host.jobs.registerKind({ name: KIND, readOnly: true, role: ROLE, budgetUsd: options?.budgetUsd ?? AUDIT_BUDGET, resumeOnBudget: true, file: (filing) => fileReport(AUDITS, filing) });
 	host.provide("prompt", (role: string, job: Job) => (role === ROLE ? context(host, job) : undefined));
 	const procedure = new URL("../roles/coordinator/audit-ended.md", import.meta.url);

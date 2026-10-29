@@ -18,6 +18,8 @@ import { findings } from "@arthur/findings";
 import * as findingsFile from "@arthur/findings/options";
 import { github } from "@arthur/github";
 import * as githubFile from "@arthur/github/options";
+import { listen } from "@arthur/listen";
+import * as listenFile from "@arthur/listen/options";
 import { machines } from "@arthur/machines";
 import * as machinesFile from "@arthur/machines/options";
 import { manage } from "@arthur/manage";
@@ -42,8 +44,6 @@ import { uptime } from "@arthur/uptime";
 import * as uptimeFile from "@arthur/uptime/options";
 import { video } from "@arthur/video";
 import * as videoFile from "@arthur/video/options";
-import { voice } from "@arthur/voice";
-import * as voiceFile from "@arthur/voice/options";
 import { youtrack } from "@arthur/youtrack";
 import * as youtrackFile from "@arthur/youtrack/options";
 
@@ -70,7 +70,7 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	manage: [manageFile, manage()],
 	develop: [developFile, develop()],
 	findings: [findingsFile, findings()],
-	voice: [voiceFile, voice()],
+	listen: [listenFile, listen()],
 	video: [videoFile, video()],
 };
 
@@ -168,7 +168,9 @@ test("each package's check refuses an unknown option, naming its path and exactl
 	}
 });
 
-test("each plugin names its own module, so host.code holds its package and the restart guard watches its code", () => {
-	for (const [name, [, plugin]] of Object.entries(PLUGINS))
+test("each plugin is named as its package folder and names its own module, so host.code holds its package and the restart guard watches its code", () => {
+	for (const [name, [, plugin]] of Object.entries(PLUGINS)) {
+		assert.equal(plugin.name, name, "its options, folder under the home and doctor lines go by its package's name");
 		assert.equal(plugin.module === undefined ? undefined : dirname(dirname(fileURLToPath(plugin.module))), join(import.meta.dirname, "..", "packages", name), name);
+	}
 });

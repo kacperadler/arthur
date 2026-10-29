@@ -4413,16 +4413,19 @@
   {
     "id": "AR0554",
     "title": "Rename the voice plugin to listen",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0554-rename-the-voice-plugin-to-listen/ticket.md",
-    "updated": "2026-10-29T14:21:34.827Z"
+    "updated": "2026-10-29T14:53:34.245Z"
   },
   {
     "id": "AR0555",
     "title": "Cleanup after a merge: a merged job leaves no worktree, Docker leftovers, cache, or branch here or on GitHub",
     "status": "planned",
     "path": "spec/features/AR0555-cleanup-after-a-merge-a-merged-job-leaves-no-worktree-docker-leftovers-cache-or/ticket.md",
-    "updated": "2026-10-29T07:14:48.674Z"
+    "updated": "2026-10-29T07:14:48.674Z",
+    "after": [
+      "AR0557"
+    ]
   },
   {
     "id": "AR0556",
@@ -4434,9 +4437,9 @@
   {
     "id": "AR0557",
     "title": "GitHub T1: an arthur github command and pull request reads",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0557-github-t1-an-arthur-github-command-and-pull-request-reads/ticket.md",
-    "updated": "2026-10-29T14:33:13.289Z"
+    "updated": "2026-10-29T16:30:07.509Z"
   },
   {
     "id": "AR0558",

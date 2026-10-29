@@ -2,7 +2,7 @@ import { parseArgs } from "node:util";
 import type { Command, Host } from "@arthur/core/plugin";
 import type { Transcript } from "./transcribe.ts";
 
-// `arthur transcribe <file> [--times]` (AR0550): a file's transcript through `voice.transcribe`, the queue and limits a voice
+// `arthur transcribe <file> [--times]` (AR0550): a file's transcript through `listen.transcribe`, the queue and limits a voice
 // note goes through. docs/commands/transcribe.md.
 
 const USAGE = "usage: arthur transcribe <file> [--times]";
@@ -26,7 +26,7 @@ export function transcribeCommand(host: Pick<Host, "call">): Command {
 			}
 			let done: Transcript;
 			try {
-				done = await host.call<Promise<Transcript>>("voice.transcribe", file);
+				done = await host.call<Promise<Transcript>>("listen.transcribe", file);
 			} catch (error) {
 				console.error(`refused: ${(error as Error).message}`);
 				return 1;

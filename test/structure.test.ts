@@ -23,6 +23,8 @@ const BUDGETS = {
 
 	github: 870,
 
+	listen: 248,
+
 	machines: 488,
 
 	manage: 931,
@@ -46,8 +48,6 @@ const BUDGETS = {
 	uptime: 298,
 
 	video: 186,
-
-	voice: 246,
 
 	youtrack: 661,
 

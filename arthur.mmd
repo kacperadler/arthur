@@ -48,9 +48,9 @@ flowchart TD
       subgraph CHAN[Channels and media]
         telegram[telegram<br/>text, media, phone menu]
         discord[discord<br/>main channel, one per project<br/>text, media, /name text]
-        voice[voice<br/>whisper.cpp, on the CPU]
-        video[video<br/>ffmpeg frames, words by voice]
-        telegram ~~~ discord ~~~ voice ~~~ video
+        listen[listen<br/>whisper.cpp, on the CPU]
+        video[video<br/>ffmpeg frames, words by listen]
+        telegram ~~~ discord ~~~ listen ~~~ video
       end
       subgraph COORD[Coordinator]
         orchestration[orchestration<br/>coordinator, arthur attach<br/>context, jobs by state, planning, autopilot<br/>morning report, decision log, decision classes]
@@ -147,7 +147,7 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,parts,api,machines,session,schedule,projects,models,nvm,commit,youtrack,telegram,uptime,github,delivery,findings,resources,manage,orchestration,develop,voice,video built;
+  class lbuilt,files,terminal,loader,host,commands,run,events,clock,board,prompts,runner,guards,kit,options,parts,api,machines,session,schedule,projects,models,nvm,commit,youtrack,telegram,uptime,github,delivery,findings,resources,manage,orchestration,develop,listen,video built;
   class lpartial partial;
   class lplanned,discord,corelater,agents,docker,signal,slack,whatsapp,server,apps,knowledge,company planned;
   class loutside,human,tg,omp,repos,remote,providers,dockerd,gh,yt,dc,sl,sites outside;

@@ -6,7 +6,7 @@ import type { OptionProblem, Options } from "@arthur/core/plugin";
 
 export type VideoOptions = { readonly everySeconds: number; readonly maxFrames: number; readonly maxSeconds: number; readonly timeoutSeconds: number };
 
-export const summary = "videos from any channel cut on this server by ffmpeg into frames and a sound track the voice plugin transcribes";
+export const summary = "videos from any channel cut on this server by ffmpeg into frames and a sound track the listen plugin transcribes";
 
 export const tools: readonly Tool[] = [{ name: "ffmpeg", version: ["ffmpeg", "-version"] }];
 

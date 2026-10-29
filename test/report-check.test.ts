@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { chmodSync, globSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { temporaryFolder } from "@arthur/core/testing";
 
@@ -15,15 +16,18 @@ const STYLE = SKILL.split("\n```css\n")[1]?.split("\n```")[0] ?? "";
 const page = (style: string, body: string) =>
 	`<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>T</title><style>${style}</style></head><body>${body}</body></html>\n`;
 
-// The command as the file writes it, `<page>` the page's path, from the repository's root.
-function check(html: string) {
+// The command as the file writes it, `<page>` the page's path, from the repository's root, in `env`.
+function check(html: string, env: NodeJS.ProcessEnv = process.env) {
 	const folder = temporaryFolder();
 	writeFileSync(join(folder, "page.html"), html);
-	const run = spawnSync("bash", ["-c", COMMAND.replace("<page>", join(folder, "page.html"))], { cwd: ROOT, encoding: "utf8" });
+	const run = spawnSync("/bin/bash", ["-c", COMMAND.replace("<page>", join(folder, "page.html"))], { cwd: ROOT, encoding: "utf8", env });
 	assert.deepEqual(readdirSync(folder), ["page.html"], "the copy the browser read is gone");
 	return { code: run.status, lines: `${run.stdout}${run.stderr}`.trim().split("\n") };
 }
 
+// A browser the check would find, for a wrapper around it.
+const which = (name: string) => spawnSync("/bin/bash", ["-c", `command -v ${name}`], { encoding: "utf8" }).stdout.trim();
+const BROWSER = [process.env.CHROME, ...["chromium", "chromium-browser", "google-chrome"].map(which), ...globSync(join(homedir(), ".cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-*/chrome-headless-shell"))].find(Boolean);
 const NO_BROWSER = check(page("", "<p>x</p>")).lines.at(-1)?.startsWith("no browser found") === true;
 
 test("a page of the base style and every component passes at 420 px", { skip: NO_BROWSER && "no Chrome or Chromium" }, () => {
@@ -43,7 +47,7 @@ test("a page of the base style and every component passes at 420 px", { skip: NO
 
 test("a chip on grey in a black heading, as in the pyramid report, fails with its contrast, and so do light grey and see-through text", { skip: NO_BROWSER && "no Chrome or Chromium" }, () => {
 	const style = "h3 { background:#0a0a0a; color:#ffffff; } code { background:#f2f2f2; } p { color:#777777; }";
-	const hidden = '<p style="visibility:hidden;color:#ffffff">hidden</p><p style="display:none;color:#ffffff">gone</p><script>"no text of a page"</script>';
+	const hidden = '<p style="visibility:hidden;color:#ffffff">hidden</p><p style="display:none;color:#ffffff">gone</p><style>p::selection { color:#ffffff }</style>';
 	const { code, lines } = check(page(style, `<h3>AR0562 · <code>arthur repeats</code></h3><p>quiet</p><p style="color:#767676">just enough</p><p style="color:rgba(10,10,10,.4)">see-through</p>${hidden}`));
 	const found = ['contrast 1.12:1, #ffffff on #f2f2f2: code "arthur repeats"', 'contrast 4.48:1, #777777 on #ffffff: p "quiet"', 'contrast 2.71:1, #9d9d9d on #ffffff: p "see-through"'];
 	assert.deepEqual([code, lines.slice(0, -1)], [1, found], "#767676, 4.54:1, passes; hidden text is not read");
@@ -57,14 +61,73 @@ test("text the check cannot read against its background is named, never passed",
 	assert.deepEqual([code, lines.slice(0, -1)], [1, named]);
 });
 
-test("a line wider than 420 px, a table that scrolls inside, and text cut at the edge each fail", { skip: NO_BROWSER && "no Chrome or Chromium" }, () => {
-	const long = "word ".repeat(10).replaceAll(" ", "-");
-	const body = `<pre>${long.repeat(3)}</pre><div style="overflow-x:auto"><table style="width:900px"><tr><td>wide</td></tr></table></div><p style="overflow:hidden;white-space:nowrap">${long.repeat(3)}</p>`;
-	const { code, lines } = check(page("body { margin:0 }", body));
+// Each case at the limit: exactly 420 px, or a box exactly as wide as its content, passes; 1 px more fails, named once,
+// by its outermost box.
+const edges = (over: number) =>
+	[
+		`<div style="width:${420 + over}px"><div>wide</div></div>`,
+		`<div style="margin-left:-${over}px;width:100px">left</div>`,
+		`<div style="overflow:hidden;width:100px"><div style="width:${100 + over}px">cut</div></div>`,
+		`<div style="overflow-x:auto;width:100px"><div style="width:${100 + over}px">scroll</div></div>`,
+		`<p style="margin:0;width:420px;direction:rtl;text-indent:-${over}px">past</p>`,
+		`<p style="margin:0;text-indent:-${over}px">start</p>`,
+	].join("");
+
+test("a page exactly 420 px wide, with boxes exactly as wide as their content, passes", { skip: NO_BROWSER && "no Chrome or Chromium" }, () => {
+	const { code, lines } = check(page("body { margin:0 }", edges(0)));
+	assert.deepEqual([code, lines.length], [0, 1], lines.join("\n"));
+	assert.match(lines[0] ?? "", /^ok: /);
+});
+
+test("1 px past either edge, 1 px scrolling or cut inside a box, and text 1 px past either edge each fail", { skip: NO_BROWSER && "no Chrome or Chromium" }, () => {
+	const { code, lines } = check(page("body { margin:0 }", edges(1)));
 	assert.equal(code, 1, lines.join("\n"));
-	assert.match(lines[0] ?? "", /^the page scrolls sideways: \d+ px wide on a 420 px screen$/);
-	assert.match(lines[1] ?? "", /^scrolls sideways inside, 900 px in 420: div "wide"$/);
-	assert.match(lines[2] ?? "", /^cuts its text, \d+ px in 420: p "word-word-/);
-	assert.match(lines[3] ?? "", /^text wider than the screen, 0 to \d+ px: pre "word-word-/);
-	assert.equal(lines.length, 5, lines.join("\n"));
+	assert.deepEqual(lines.slice(0, 5), [
+		"the page scrolls sideways: 421 px wide on a 420 px screen",
+		'wider than the screen, 0 to 421 px: div "wide"',
+		'wider than the screen, -1 to 99 px: div "left"',
+		'cuts its text, 101 px in 100: div "cut"',
+		'scrolls sideways inside, 101 px in 100: div "scroll"',
+	]);
+	assert.match(lines[5] ?? "", /^text wider than the screen, \d+ to 421 px: p "past"$/);
+	assert.match(lines[6] ?? "", /^text wider than the screen, -1 to \d+ px: p "start"$/);
+	assert.match(lines[7] ?? "", /^7 problems in .*page\.html at 420 px$/);
+});
+
+test("a page rendered at another width is refused, as with a browser that ignores the 420 px window", { skip: NO_BROWSER && "no Chrome or Chromium" }, () => {
+	const wrapper = join(temporaryFolder(), "chrome");
+	writeFileSync(wrapper, `#!/bin/sh\nexec ${JSON.stringify(BROWSER)} "$@" --window-size=500,900\n`);
+	chmodSync(wrapper, 0o755);
+	const { code, lines } = check(page("", "<p>fine</p>"), { ...process.env, CHROME: wrapper });
+	assert.deepEqual([code, lines[0]], [1, "rendered 500 px wide, not 420"]);
+});
+
+test("with no browser it checks nothing and exits 2, never 0", () => {
+	const { code, lines } = check(page("", "<p>x</p>"), { PATH: dirname(process.execPath), HOME: temporaryFolder() });
+	assert.deepEqual([code, lines], [2, ["no browser found; set CHROME to a Chrome or Chromium binary"]]);
+});
+
+test("a page with a script, an on… handler, a forged result or no text fails; markup that swallows the check exits 2", { skip: NO_BROWSER && "no Chrome or Chromium" }, () => {
+	const late = `<script>document.addEventListener("DOMContentLoaded", () => document.body.insertAdjacentHTML("beforeend", '<p style="color:#eeeeee">late</p>'))</script>`;
+	const forged = '<script type="application/json" id="page-check">{"texts":9,"problems":[]}</script>';
+	const scripted = check(page("", `<p onclick="go()">tap</p>${late}${forged}`));
+	const because = "which can change the page after the check";
+	assert.deepEqual([scripted.code, scripted.lines.slice(0, -1).map((line) => line.split(": ")[0])], [1, [`a script, ${because}`, `a script, ${because}`, `a script in onclick, ${because}`]]);
+	assert.match(scripted.lines.at(-1) ?? "", /^3 problems in .*page\.html at 420 px$/, "the forged result is not read");
+	const empty = check(page("", "<div></div>"));
+	assert.deepEqual([empty.code, empty.lines.slice(0, -1)], [1, ["no text found to check"]]);
+	const swallowed = check(page("", "<p>x</p><!--"));
+	assert.deepEqual([swallowed.code, swallowed.lines], [2, ["the check never ran in the page: its markup ends inside a comment or a <script>, <style> or <textarea>, which swallowed it; close it"]]);
+});
+
+test("text over or under a layer that is not its ancestor, further down the page, is named, never passed", { skip: NO_BROWSER && "no Chrome or Chromium" }, () => {
+	const style = ".bar { position:relative; } .bar::before { content:''; position:absolute; inset:0; background:#0a0a0a; }";
+	const body = [
+		'<div style="height:2000px"></div>',
+		'<div style="position:relative"><div style="position:absolute;inset:0;background:#0a0a0a"></div><p style="position:relative;margin:0;color:#111111">over black</p></div>',
+		'<div style="position:relative"><p style="margin:0">under white</p><div style="position:absolute;inset:0;background:#ffffff;pointer-events:none"></div></div>',
+		'<p class="bar">pseudo</p>',
+	].join("");
+	const { code, lines } = check(page(style, body));
+	assert.deepEqual([code, lines.slice(0, -1)], [1, ['not checked, another element\'s background, div "": p "over black"', 'not checked, another element\'s background, div "": p "under white"', 'not checked, a ::before background: p.bar "pseudo"']]);
 });

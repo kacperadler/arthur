@@ -41,7 +41,8 @@ Each is a class of the base style below.
 - A chip (`code`, a `.tag`) inside a dark block (`header`, `th`, `.cmd h3`) has a rule for that block: `header code, th code, .cmd h3 code { background: var(--paper); color: var(--ink); }`. The pyramid report broke on this: a `code` on grey inherited the white of its black heading, so `arthur repeats` was white on grey, 1.1:1.
 - Red only for what needs the owner; every command and id in full (no ellipsis, no cut), readable on what is behind it.
 - At least 4.5:1 between every text and its background, large text included.
-- Text sits on its own ancestors' backgrounds: no text positioned over another element, none in an image or an SVG.
+- Text sits on its own ancestors' backgrounds: no text positioned over or under another element, no background on a `::before` or `::after`, no text in an image or an SVG.
+- A page is static HTML: no `<script>` and no `on…` attribute, since a script can change the page after the check has read it.
 
 ## The base style
 
@@ -95,24 +96,46 @@ Before every `arthur send` of a page, run from the repository's root, `<page>` b
 node -e 'eval(String(require("fs").readFileSync(".agents/arthur/criteria/report.md")).split("```js page-check\n")[1].split("\n```")[0])' <page>
 ~~~
 
-It renders the page in headless Chrome 420 px wide and prints one line per problem: a text below 4.5:1 against its background (`contrast 1.12:1, #ffffff on #f2f2f2: code "arthur repeats"`), a text it cannot check (an image, an SVG, `opacity`, a colour that is not plain RGB), and anything wider than the screen or scrolling sideways inside it. Exit 0 with `ok: ...` when there is none, 1 with the problems; fix each and run it again. Exit 2 when no browser runs: set `CHROME` to a Chrome or Chromium binary (Playwright's `chrome-headless-shell` will do). Send only a page that printed `ok`.
+It renders the page in headless Chrome 420 px wide and prints one line per problem: a text below 4.5:1 against its background (`contrast 1.12:1, #ffffff on #f2f2f2: code "arthur repeats"`); a text it cannot check (`opacity`, an image, an SVG, a colour that is not plain RGB, another element's background or a `::before` or `::after` one behind it or over it); a script; a page with no text; and anything wider than the screen, scrolling sideways inside it, or cut at its edge. Exit 0 with `ok: ...` when there is none, 1 with the problems; fix each and run it again. Exit 2 when it could not check: no browser runs (set `CHROME` to a Chrome or Chromium binary; Playwright's `chrome-headless-shell` will do), or the page's markup ends inside a comment or a tag that swallowed the check. Send only a page that printed `ok`.
 
 ```js page-check
 const { spawnSync } = process.getBuiltinModule("node:child_process");
+const { randomUUID } = process.getBuiltinModule("node:crypto");
 const { globSync, readFileSync, rmSync, writeFileSync } = process.getBuiltinModule("node:fs");
 const { homedir } = process.getBuiltinModule("node:os");
 const { basename, dirname, join, resolve } = process.getBuiltinModule("node:path");
 const { pathToFileURL } = process.getBuiltinModule("node:url");
 
-// Runs inside the page: every element with its own text against the backgrounds of its ancestors, then the width.
-function check(width) {
+// Runs inside the page: every element with its own text against what lies behind it, then the width. `id` names the result,
+// which the page cannot know, so it cannot forge one.
+function check(width, id) {
 	const problems = [];
 	const rgb = (value) => (/^rgba?\(/.test(value) ? value.match(/[\d.]+/g).map(Number) : undefined);
+	const opaque = (style) => style.backgroundImage !== "none" || (rgb(style.backgroundColor)?.[3] ?? 1) > 0;
 	const over = ([r, g, b, a = 1], under) => [r, g, b].map((c, i) => c * a + under[i] * (1 - a));
 	const hex = (c) => `#${c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`;
 	const lum = (c) => c.map((v) => ((v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)).reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
 	const name = (el) => `${el.tagName.toLowerCase()}${typeof el.className === "string" && el.className.trim() ? `.${el.className.trim().split(/\s+/).join(".")}` : ""} "${el.textContent.trim().replace(/\s+/g, " ").slice(0, 40)}"`;
 	if (innerWidth !== width) problems.push(`rendered ${innerWidth} px wide, not ${width}`);
+	for (const el of document.querySelectorAll("script")) if (el !== document.currentScript) problems.push(`a script, which can change the page after the check: ${name(el)}`);
+	for (const el of document.querySelectorAll("*")) for (const { name: attribute } of el.attributes) if (/^on/i.test(attribute)) problems.push(`a script in ${attribute}, which can change the page after the check: ${name(el)}`);
+	// An element at the text's place that is neither the text's own nor its ancestor's: a layer over or under it. Every
+	// element is hit for the look, `pointer-events: none` included.
+	const hit = document.createElement("style");
+	hit.textContent = "* { pointer-events: auto !important; }";
+	document.documentElement.append(hit);
+	const layer = (node, el) => {
+		const range = document.createRange();
+		range.selectNodeContents(node);
+		const start = scrollY;
+		for (const { left, right, top, bottom } of range.getClientRects()) {
+			const [x, y] = [(left + right) / 2, start + (top + bottom) / 2];
+			if (x < 0 || x >= innerWidth) continue;
+			scrollTo(0, y - innerHeight / 2);
+			const other = document.elementsFromPoint(x, y - scrollY).find((at) => !at.contains(el) && !el.contains(at) && opaque(getComputedStyle(at)));
+			if (other !== undefined) return `another element's background, ${name(other)}`;
+		}
+	};
 	const seen = new Set();
 	let texts = 0;
 	const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -136,8 +159,13 @@ function check(width) {
 			const fill = rgb(style.backgroundColor);
 			if (fill === undefined) unknown = `the background ${style.backgroundColor}`;
 			else back = over(fill, back);
+			for (const pseudo of ["::before", "::after"]) {
+				const generated = getComputedStyle(at, pseudo);
+				if (!/^(none|normal)$/.test(generated.content) && opaque(generated)) unknown = `a ${pseudo} background`;
+			}
 		}
 		const color = rgb(getComputedStyle(el).color) ?? (unknown ??= `the colour ${getComputedStyle(el).color}`);
+		unknown ??= layer(node, el);
 		if (unknown !== undefined) {
 			problems.push(`not checked, ${unknown}: ${name(el)}`);
 			continue;
@@ -147,6 +175,8 @@ function check(width) {
 		const ratio = (light + 0.05) / (dark + 0.05);
 		if (ratio < 4.5) problems.push(`contrast ${ratio.toFixed(2)}:1, ${hex(front)} on ${hex(back)}: ${name(el)}`);
 	}
+	hit.remove();
+	if (texts === 0) problems.push("no text found to check");
 	const wide = document.documentElement.scrollWidth;
 	if (wide > innerWidth) problems.push(`the page scrolls sideways: ${wide} px wide on a ${innerWidth} px screen`);
 	// The outermost element past the screen's edge, or scrolling or cut inside; then text past the edge outside them.
@@ -155,8 +185,8 @@ function check(width) {
 	for (const el of document.body.querySelectorAll("*")) {
 		const { left, right, width: size } = el.getBoundingClientRect();
 		const overflow = getComputedStyle(el).overflowX;
-		const outside = size > 0 && (right > innerWidth + 1 || left < -1);
-		const hides = overflow !== "visible" && el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 1;
+		const outside = size > 0 && (right > innerWidth || left < 0);
+		const hides = overflow !== "visible" && el.clientWidth > 0 && el.scrollWidth > el.clientWidth;
 		if (!outside && !hides) continue;
 		if (!inside(el)) problems.push(outside ? `wider than the screen, ${Math.round(left)} to ${Math.round(right)} px: ${name(el)}` : `${/auto|scroll/.test(overflow) ? "scrolls sideways inside" : "cuts its text"}, ${el.scrollWidth} px in ${el.clientWidth}: ${name(el)}`);
 		out.add(el);
@@ -165,16 +195,17 @@ function check(width) {
 	for (const el of seen) {
 		range.selectNodeContents(el);
 		const { left, right } = range.getBoundingClientRect();
-		if ((right > innerWidth + 1 || left < -1) && !inside(el)) problems.push(`text wider than the screen, ${Math.round(left)} to ${Math.round(right)} px: ${name(el)}`);
+		if ((right > innerWidth || left < 0) && !inside(el)) problems.push(`text wider than the screen, ${Math.round(left)} to ${Math.round(right)} px: ${name(el)}`);
 	}
 	const result = document.createElement("script");
 	result.type = "application/json";
-	result.id = "page-check";
+	result.id = id;
 	result.textContent = JSON.stringify({ texts, problems }).replaceAll("<", "\\u003c");
 	document.body.append(result);
 }
 
 const WIDTH = 420;
+const ID = `page-check-${randomUUID()}`;
 const page = process.argv[1];
 if (page === undefined) {
 	console.error("usage: the command above, with the page's path");
@@ -182,7 +213,7 @@ if (page === undefined) {
 }
 // A copy beside the page, so its relative links load; the check runs after the page's own markup.
 const copy = join(dirname(resolve(page)), `.${basename(page)}.check.html`);
-writeFileSync(copy, `${readFileSync(page, "utf8")}\n<script>(${check})(${WIDTH})</script>\n`);
+writeFileSync(copy, `${readFileSync(page, "utf8")}\n<script>(${check})(${WIDTH}, "${ID}")</script>\n`);
 const caches = [".cache", "Library/Caches"].flatMap((cache) => globSync(join(homedir(), cache, "ms-playwright/chromium_headless_shell-*/chrome-headless-shell-*/chrome-headless-shell")).sort().reverse());
 let run;
 try {
@@ -194,10 +225,12 @@ try {
 } finally {
 	rmSync(copy, { force: true });
 }
-const found = /<script type="application\/json" id="page-check">(.*?)<\/script>/s.exec(run?.stdout ?? "");
+const found = new RegExp(`<script type="application/json" id="${ID}">(.*?)</script>`, "s").exec(run?.stdout ?? "");
 if (found === null) {
-	const why = run === undefined || run.error?.code === "ENOENT" ? "no browser found" : (run.error?.message ?? run.stderr.trim().split("\n").at(-1));
-	console.error(`${why}; set CHROME to a Chrome or Chromium binary`);
+	const browser = "set CHROME to a Chrome or Chromium binary";
+	if (run === undefined || run.error?.code === "ENOENT") console.error(`no browser found; ${browser}`);
+	else if (run.status === 0 && run.stdout.includes("<html")) console.error("the check never ran in the page: its markup ends inside a comment or a <script>, <style> or <textarea>, which swallowed it; close it");
+	else console.error(`the browser failed: ${run.error?.message ?? run.stderr.trim().split("\n").at(-1)}; ${browser}`);
 	process.exit(2);
 }
 const { texts, problems } = JSON.parse(found[1]);

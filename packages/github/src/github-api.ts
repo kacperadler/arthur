@@ -1,6 +1,6 @@
-// GitHub's REST API (spec/roadmap.md, entries 57 and 58), with the token as a `Bearer`: one request, `ask`, and a workflow's
-// newest runs on it. A refusal is one line naming the instance or the repository and the variable, never the token; a rate
-// limit answers when the next request may go, as GitHub's "Rate limits for the REST API" says.
+// GitHub's REST API (spec/roadmap.md, entries 57 and 58), with the token as a `Bearer`: one request, `ask`, a list page after
+// page, `pages`, and a workflow's newest runs. A refusal is one line naming the instance or the repository and the variable,
+// never the token; a rate limit answers when the next request may go, as GitHub's "Rate limits for the REST API" says.
 
 export type Instance = {
 	readonly name: string | undefined;
@@ -11,8 +11,9 @@ export type Instance = {
 	readonly apiUrl: string;
 	readonly token: string;
 };
-// A project with a `ci.workflow`: its checkout, its repository (`owner/name`) and the instance that reads it.
-export type Watched = { readonly project: string; readonly path: string; readonly repo: string; readonly workflow: string; readonly instance: Instance };
+// A project's checkout, its repository (`owner/name`) and the instance that reads it; `Watched`, one with a `ci.workflow`.
+export type Repository = { readonly project: string; readonly path: string; readonly repo: string; readonly instance: Instance };
+export type Watched = Repository & { readonly workflow: string };
 
 // `attempt` is GitHub's `run_attempt`: a rerun keeps the run's `id` and raises it. `startedAt` is the attempt's start,
 // `run_started_at` (else `created_at`), as GitHub writes it.
@@ -24,8 +25,11 @@ export type Runs = { readonly runs: readonly Run[]; readonly until?: number };
 // A 2xx answer: its text, its JSON when it is some, and GitHub's `date` header (its clock, whole seconds) when it sent one.
 export type Answer = { readonly body: unknown; readonly text: string; readonly until?: number; readonly date?: string };
 
-// Runs asked per poll: GitHub's largest page. A branch whose nearest run is older than these has none.
+// GitHub's largest page: the runs asked per poll, so a branch whose nearest run is older than these has none, and a list's page.
 export const PER_PAGE = 100;
+// The pages `pages` asks at most, and what a list cut there says after its name.
+const PAGES = 10;
+export const CUT = `stop at ${PAGES} pages of ${PER_PAGE}: GitHub may hold more`;
 const TIMEOUT_MS = 30_000;
 // A secondary rate limit that says no time: "wait for at least one minute before retrying".
 const MINUTE_MS = 60_000;
@@ -72,6 +76,20 @@ export async function workflowRuns(instance: Instance, repo: string, workflow: s
 	const list = field(answer.body, "workflow_runs");
 	if (!Array.isArray(list)) return { text: `instance ${instance.label}: the answer for ${what} holds no workflow_runs`, loud: false };
 	return { runs: list.flatMap((each) => run(each) ?? []), ...(answer.until === undefined ? {} : { until: answer.until }) };
+}
+
+// Every item of the list at `path`, in GitHub's order, page after page of `PER_PAGE`, at most `PAGES` pages: `cut` when the
+// last one asked was full, so GitHub may hold more.
+export async function pages(instance: Instance, path: string, what: string, needs: string, signal: AbortSignal): Promise<{ readonly items: readonly unknown[]; readonly cut: boolean } | Failure> {
+	const items: unknown[] = [];
+	for (let page = 1; page <= PAGES; page++) {
+		const answer = await ask(instance, `${path}${path.includes("?") ? "&" : "?"}per_page=${PER_PAGE}&page=${page}`, what, needs, signal);
+		if (!("body" in answer)) return answer;
+		if (!Array.isArray(answer.body)) return { text: `instance ${instance.label}: the answer for ${what} is no list`, loud: false };
+		items.push(...answer.body);
+		if (answer.body.length < PER_PAGE) return { items, cut: false };
+	}
+	return { items, cut: true };
 }
 
 // When the next request may go, in ms, when the answer says to wait: `retry-after` seconds; else, the requests left at 0,

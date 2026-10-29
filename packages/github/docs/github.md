@@ -1,6 +1,6 @@
 # The github plugin
 
-Roadmap entries 57 and 58: while `arthur run` runs, Arthur asks GitHub for the CI runs of the branches in play and emits `ci-finished` once per run attempt, and, when `wakeOn` names them, the reviews of open pull requests as `pull-request-review`; either wakes the coordinator when `wakeOn` names it. Nothing listens for GitHub: the plugin polls, so there is no endpoint to expose and no webhook secret. `arthur ci <branch>` tells why a branch's run failed and reruns it once (`arthur ci --help`), and a branch a review passed and main after a merge are pushed to origin.
+Roadmap entries 57 and 58: while `arthur run` runs, Arthur asks GitHub for the CI runs of the branches in play and emits `ci-finished` once per run attempt, and, when `wakeOn` names them, the reviews of open pull requests as `pull-request-review`; either wakes the coordinator when `wakeOn` names it. Nothing listens for GitHub: the plugin polls, so there is no endpoint to expose and no webhook secret. `arthur ci <branch>` tells why a branch's run failed and reruns it once (`arthur ci --help`), `arthur github` reads a project's pull requests (`arthur github --help`), and a branch a review passed and main after a merge are pushed to origin.
 
 ```ts
 plugins: [
@@ -20,7 +20,7 @@ It needs `projects` in the list (`requires`), which sets up first.
 
 - `instances`: the GitHub accounts, at least one, each `{ name?, tokenEnv, apiUrl? }`, at most one without a name.
 - `name`: a GitHub owner, user or organization, in lowercase (letters, digits, single dashes): the instance reads that owner's repositories. Left out: the unnamed instance, which reads every repository whose owner no instance is named after.
-- `tokenEnv`: the variable holding the token. Make it a fine-grained personal access token whose "Repository access" is "Only select repositories", the projects' repositories and no other, with Actions: read, or Actions: read and write for `arthur ci --rerun` and `github.cancel`, and Pull requests: read for `pull-request-review`; GitHub adds Metadata: read itself. Avoid a classic token: its `repo` scope reads and writes the code, issues and settings of every repository the account reaches, far beyond what the plugin needs, so a leaked one could push to any of them past `arthur merge`. Arthur does not check the token's scope. Its value never goes into an error, a notice, an event or a file.
+- `tokenEnv`: the variable holding the token. Make it a fine-grained personal access token whose "Repository access" is "Only select repositories", the projects' repositories and no other, with Actions: read, or Actions: read and write for `arthur ci --rerun` and `github.cancel`, and Pull requests: read for `pull-request-review` and `arthur github pr list` and `pr get`; GitHub adds Metadata: read itself. Never Contents, Administration or Workflows: branches are pushed with git's own credentials, and no verb merges on GitHub (`arthur github pr --help`), so even a leaked token pushes no code past `arthur merge`. Avoid a classic token: its `repo` scope reads and writes the code, issues and settings of every repository the account reaches, far beyond what the plugin needs, so a leaked one could push to any of them past `arthur merge`. Arthur does not check the token's scope. Its value never goes into an error, a notice, an event or a file.
 - `apiUrl`: the REST API's address; default `https://api.github.com`. GitHub Enterprise Server's is `https://<host>/api/v3`.
 - `poll.everySeconds`: a whole number of seconds, 1 or more, between two polls; default 120. A poll asks once per project with a `ci.workflow`, and GitHub allows a token 5000 requests an hour.
 - `wakeOn`: the events that wake the coordinator, each at most once, among `ci-finished` and `pull-request-review`; default `["ci-finished"]`, and `[]` wakes it on nothing. `pull-request-review` also turns on the polling of pull request reviews, which costs a request per project and one per pull request updated since the poll before.
@@ -31,7 +31,11 @@ Refused at load, with the option's path: an unknown option or key, no instances,
 - a project with a `ci.workflow` whose checkout has no `origin`: `project <name>: ci.workflow is set, but its checkout has no origin remote to name its GitHub repository`; one whose `origin` ends in no `<owner>/<repository>`: `project <name>: its origin remote names no <owner>/<repository>` (the remote's URL is never said: it may hold a credential);
 - a project whose owner no instance is named after, with no unnamed instance: `project <name>: no instance of github is named <owner>, the owner of <owner>/<repository>, and none is unnamed; github's instances: <names>`.
 
-A project without `ci` is not polled.
+A project without `ci` is not polled, and nothing of it is checked at load: `arthur github` finds its repository and instance when it runs for it, and refuses then, in the words above without `ci.workflow is set, but `.
+
+## Pull requests
+
+`arthur github pr list [--all]` and `arthur github pr get <n>` read a project's pull requests, `pr get` with its comments and reviews (`arthur github pr --help`); they run inside a job too. Text people wrote on GitHub (titles, bodies, comments, reviews) and `arthur ci`'s job names, step names and log lines are printed only after `> `, control characters dropped, so none reads as Arthur's or the owner's; the coordinator's role takes them as data. A write is refused inside a job before any request, and `pr merge` always: a merge is `arthur merge <job>`, and the push of main marks the pull request merged. The token needs Pull requests: read for them.
 
 ## The runs
 

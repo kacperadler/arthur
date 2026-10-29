@@ -39,3 +39,5 @@ Out:
 ## Decisions
 
 - 2026-10-29: Source: the approved plan of AR0556 (AR-D327)
+- 2026-10-29: Line budgets raised as the approved plan's Line budget says (AR-D327): github 659 -> 870, core 6467 -> 6470 (the group page lookup, `groupPage` in commands.ts).
+- 2026-10-29: `pr merge`, the verb that only refuses, is built here, not in T2: this ticket's Done means asks for it (refused with no request, and refused inside a job as a write).

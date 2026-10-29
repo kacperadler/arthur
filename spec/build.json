@@ -4077,9 +4077,9 @@
   {
     "id": "AR0515",
     "title": "The hidden ~/.ssh follows $HOME, while OpenSSH finds the home from the user account",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0515-the-hidden-ssh-follows-home-while-openssh-finds-the-home-from-the-user-account/ticket.md",
-    "updated": "2026-10-29T02:53:23.574Z"
+    "updated": "2026-10-29T02:58:54.576Z"
   },
   {
     "id": "AR0516",

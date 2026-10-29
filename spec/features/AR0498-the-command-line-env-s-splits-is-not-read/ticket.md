@@ -43,3 +43,4 @@ Out:
 ## Decisions
 
 - 2026-10-27: Source: F2 of AR0473
+- 2026-10-29: Worker 2026-10-29-worker-8bf1122a: core line budget raised from 6448 to 6460, as Scope allows: 12 lines for reading the `env -S` string, with `commandIndex` and the wrappers moved to `command-index.ts` to keep `worktree-guard.ts` under 200 lines.

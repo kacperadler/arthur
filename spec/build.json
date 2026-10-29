@@ -3890,9 +3890,9 @@
   {
     "id": "AR0491",
     "title": "A command substitution inside a fallback word is never judged",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0491-a-command-substitution-inside-a-fallback-word-is-never-judged/ticket.md",
-    "updated": "2026-10-29T08:14:27.139Z"
+    "updated": "2026-10-29T09:31:57.799Z"
   },
   {
     "id": "AR0492",

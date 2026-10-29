@@ -1,5 +1,5 @@
 // The shell parser the guards share (spec/roadmap.md, entries 19 and 20). `shellCommands` reads a command line as bash does before brace and pathname expansion: its simple commands in the order they run, split at `;`, `&&`, `||`, `|`, `&` and
-// newlines, and `(` and `)` around a subshell, a `$(…)` or a backtick substitution, whose commands come before the command they are in. A word has its quotes removed, a backslash-newline gone, the escapes of `$'…'` decoded; a comment is dropped.
+// newlines, and `(` and `)` around a subshell, a `$(…)` or a backtick substitution, also one in a fallback word, whose commands come before the command they are in. A word has its quotes removed, a backslash-newline gone, the escapes of `$'…'` decoded; a comment is dropped.
 // An expansion known only when the command runs (`$x`, `${x}`, `$1`) is nothing, or the word it falls back to (`${x:-word}`, also with `=`, `+`, `?` and without the colon; in double quotes read as their text, `~` and `'` as written,
 // inner `"` gone, and `\0-` with a `$'…'` or `$"…"`, which `shopt extquote` reads two ways; outside, one with an unquoted blank or `<>;&|()#` is `\0-`, as the guard does not follow how bash splits it); a variable in `known` (`HOME`, `ARTHUR_JOB`) is its value, also with `-`, `=`, `?`; `known.HOME` is an unquoted `~` at a word's start, after an assignment's `=` or after an unquoted `:` in its value (`~+` and `~-` there stay, any other `~name` there, a user's home or a `dirs` entry, is `\0-`). `$PWD` is
 // `~+` and `$OLDPWD` `~-` (also with `-`, `=`, `?`); one of them or of a set variable in `known` with another operator but `+` (`%`, `#`, `/`, `:1`, `${!x}`, `${#x}`) is `\0-`, in no bash word. A here-string's `~+` and an unquoted heredoc's `$PWD` or `${PWD}` (also with `-`, `=`, `?`) are `\0+`, the folder of the shell that reads them; its `${PWD` with another operator but `+` `\0-`. A quoted or escaped
@@ -74,7 +74,7 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 		[before, current, target] = [[], { words: [], writes: [], reads: [], stdin: [], alone }, undefined];
 	};
 	const value = (name: string): string | undefined => (Object.hasOwn(known, name) && known[name] !== undefined ? quoted(known[name]) : undefined);
-	// The expansion that starts with `$` at `at`, inside double quotes or not: adds its text to the word, returns where it ends.
+	// The expansion that starts with `$` at `at`, inside double quotes or not: adds its text to the word, and the substitutions of a fallback word to `before`; returns where it ends.
 	const dollar = (at: number, inDouble: boolean): number => {
 		const next = command[at + 1];
 		if (next === "(") {
@@ -87,8 +87,10 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 			const inner = command.slice(at + 2, close);
 			const [fallback, name, of] = [/^[#!]?(?:[A-Za-z_]\w*|\d+|[@*#?$!-])(?:\[[^\]]*\])?:?[-=+?]([^]*)$/.exec(inner), /^([A-Za-z_]\w*)(?:\[0\])?(?::?[-=?]|$)/.exec(inner)?.[1], /^[#!]?([A-Za-z_]\w*)/.exec(inner)?.[1]];
 			const unsure = fallback !== null && (inDouble ? /(?<!\\)(?:\\\\)*\$['"]/.test(fallback[1]!) : /[\s<>;&|()#]/.test(fallback[1]!.replace(/\\.|'[^']*'|"(?:\\.|[^"\\])*"/gs, "")));
-			const text = fallback === null ? "" : inDouble ? `"${fallback[1]!.replace(/(?<!\\)((?:\\\\)*)"/g, "$1")}"` : fallback[1]!;
-			word += name === "OLDPWD" ? "~-" : fallback === null && name === undefined && of !== undefined && (of === "OLDPWD" || of === "PWD" || value(of) !== undefined) ? "\0-" : name === "PWD" ? "~+" : ((name && value(name)) ?? (unsure ? "\0-" : shellCommands(text, known).flatMap((item) => (typeof item === "string" ? [] : item.words)).join(" ")));
+			const parsed = fallback === null ? [] : shellCommands(inDouble ? `"${fallback[1]!.replace(/(?<!\\)((?:\\\\)*)"/g, "$1")}"` : fallback[1]!, known);
+			let depth = 0;
+			before.push(...parsed.filter((item) => (depth += item === "(" ? 1 : item === ")" ? -1 : 0) > 0 || item === ")"));
+			word += name === "OLDPWD" ? "~-" : fallback === null && name === undefined && of !== undefined && (of === "OLDPWD" || of === "PWD" || value(of) !== undefined) ? "\0-" : name === "PWD" ? "~+" : ((name && value(name)) ?? (unsure ? "\0-" : parsed.flatMap((item) => (typeof item === "string" ? [] : item.words)).join(" ")));
 			return close + 1;
 		}
 		if (next === "'" && !inDouble) {
@@ -134,9 +136,7 @@ export function shellCommands(command: string, known: Readonly<Record<string, st
 				last = at;
 			}
 			into.push(expands ? outer(body.replace(/(?<!\\)((?:\\\\)*)\$(?:PWD(?!\w)|\{PWD(?:\[0\])?(?::?[-=?][^{}]*)?\})/g, "$1\0+").replace(/(?<!\\)((?:\\\\)*)\$\{[#!]?PWD(?!\w|:?\+)/g, "$1\0-")) : body);
-			for (let index = from; expands && index < last; ) {
-				index = command[index] === "\\" ? index + 2 : command[index] === "$" ? dollar(index, true) : command[index] === "`" ? backtick(index) : index + 1;
-			}
+			for (let index = from; expands && index < last; ) index = command[index] === "\\" ? index + 2 : command[index] === "$" ? dollar(index, true) : command[index] === "`" ? backtick(index) : index + 1;
 			word = "";
 			from = Math.min(at, command.length);
 		}

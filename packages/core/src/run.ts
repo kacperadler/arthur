@@ -4,8 +4,8 @@ import { takeLock } from "./lock.ts";
 import { ownHome } from "./own-home.ts";
 import type { Plugin } from "./plugin.ts";
 
-// `arthur run`, Arthur as a process: docs/commands/run.md. From the lock on until the stops it also sweeps for dead jobs
-// every SWEEP_MS (spec/roadmap.md, entry 15).
+// `arthur run`, Arthur as a process: docs/commands/run.md. From the lock on until the stops it also sweeps for dead jobs every
+// SWEEP_MS (spec/roadmap.md, entry 15). Its stop releases the lock only once every sweep in flight, which writes job records, has ended.
 
 const SIGNALS = ["SIGTERM", "SIGINT"] as const;
 // Under the 2^31 ms a timer can wait; it only keeps the process alive until a signal comes.
@@ -26,8 +26,7 @@ export async function runPlugins(
 	emit: (name: string, data: unknown) => void,
 ): Promise<number> {
 	let signalled: string | undefined;
-	let wake = () => {};
-	const stopping = new Promise<void>((resolve) => (wake = resolve));
+	const { promise: stopping, resolve: wake } = Promise.withResolvers<void>();
 	const signal = (name: string) => {
 		signalled ??= name;
 		wake();
@@ -47,7 +46,8 @@ export async function runPlugins(
 		if ("heldBy" in lock) throw new Error(`${home} is already run by pid ${lock.heldBy}; one arthur run per home folder`);
 		let unfollow = () => {};
 		const failed = (error: unknown) => console.error(`arthur run: the sweep for dead jobs failed: ${error instanceof Error ? error.message : String(error)}`);
-		const sweeping = setInterval(() => Promise.try(sweep).catch(failed), SWEEP_MS);
+		let sweeps = Promise.resolve();
+		const sweeping = setInterval(() => (sweeps = Promise.all([sweeps, Promise.try(sweep).catch(failed)]).then(() => {})), SWEEP_MS);
 		try {
 			unfollow = follow(FOLLOW_MS);
 			// After the replay of the log, so this start's lines come last.
@@ -87,7 +87,7 @@ export async function runPlugins(
 		} finally {
 			unfollow();
 			clearInterval(sweeping);
-			lock.release();
+			await sweeps.then(lock.release);
 		}
 	} finally {
 		clearInterval(keepAlive);

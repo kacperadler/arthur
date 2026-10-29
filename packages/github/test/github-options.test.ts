@@ -27,13 +27,20 @@ test("refused: an unknown option, no instances, an instance not an object, an un
 	assert.deepEqual(checkOptions({ instances: [{ name: "acme" }] }), [{ path: "instances[0].tokenEnv", problem: "expected the name of an env variable, got nothing" }]);
 });
 
-test("refused: a name that is no lowercase owner, an apiUrl that is not http or https, two unnamed, one name twice", () => {
+test("refused: a name that is no lowercase owner, an apiUrl that is not https or loopback http, two unnamed, one name twice", () => {
 	for (const name of ["Acme", "acme_x", "-acme", "acme-", "a--b", ""])
 		assert.deepEqual(checkOptions({ instances: [{ name, tokenEnv: "X" }] }), [{ path: "instances[0].name", problem: `expected a GitHub owner in lowercase: letters, digits and single dashes, got ${JSON.stringify(name)}` }], name);
 	for (const apiUrl of ["api.github.com", "ftp://api.github.com", ""])
-		assert.deepEqual(checkOptions({ instances: [{ tokenEnv: "X", apiUrl }] }), [{ path: "instances[0].apiUrl", problem: `expected an http or https URL, got ${JSON.stringify(apiUrl)}` }], apiUrl);
+		assert.deepEqual(checkOptions({ instances: [{ tokenEnv: "X", apiUrl }] }), [{ path: "instances[0].apiUrl", problem: `expected an https URL, or an http one on loopback (localhost, 127.0.0.0/8, ::1), got ${JSON.stringify(apiUrl)}` }], apiUrl);
 	assert.deepEqual(checkOptions({ instances: [{ tokenEnv: "X" }, { tokenEnv: "Y" }] }), [{ path: "instances[1]", problem: "instances[0] has no name either; at most one instance is unnamed" }]);
 	assert.deepEqual(checkOptions({ instances: [{ name: "acme", tokenEnv: "X" }, { name: "acme", tokenEnv: "Y" }] }), [{ path: "instances[1].name", problem: "acme is the name of instances[0] too" }]);
+});
+
+test("apiUrl: http only on loopback (localhost, 127.0.0.0/8, ::1), where the token never crosses the network in plain text; https anywhere", () => {
+	for (const apiUrl of ["http://api.github.com", "http://ghe.acme.example/api/v3", "http://126.255.255.255", "http://128.0.0.0", "http://10.0.0.1", "http://127.0.0.1.example", "http://localhost.example", "http://localhost.", "http://evil.localhost", "http://[::2]", "ftp://127.0.0.1"])
+		assert.deepEqual(checkOptions({ instances: [{ tokenEnv: "X", apiUrl }] }), [{ path: "instances[0].apiUrl", problem: `expected an https URL, or an http one on loopback (localhost, 127.0.0.0/8, ::1), got ${JSON.stringify(apiUrl)}` }], apiUrl);
+	for (const apiUrl of ["http://127.0.0.1:4567", "http://127.0.0.0", "http://127.255.255.255:1", "http://localhost:8080/api/v3", "http://LOCALHOST", "http://[::1]:1", "https://api.github.com", "https://10.0.0.1"])
+		assert.deepEqual(checkOptions({ instances: [{ tokenEnv: "X", apiUrl }] }), [], apiUrl);
 });
 
 test("refused: poll not an object, an unknown key in it, everySeconds below 1 or not whole", () => {

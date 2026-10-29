@@ -39,3 +39,8 @@ Out:
 
 - 2026-10-27: Source: F2 of AR0472
 - 2026-10-28: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)
+- 2026-10-28: AR0496 another round: refuse a declaration whose name holds an unquoted { * ? or [ before its =, review commands as tests, then review round 3; the owner: "AR-D239 1" (AR-D239)
+- 2026-10-28: AR0496 another round: no index exception, every unquoted { * ? [ before the = of a declaration word is refused, then review round 4; the owner: "And go as long as this tasks will be done, today you have to focus on this fixes so do not ask me about decision for them, just go with recommendation till is done (AR-D242)" (AR-D244)
+- 2026-10-28: AR0496 another round with an allow-list of plain literal names for declaration, env and sudo arguments, then review round 5; the owner: "And go as long as this tasks will be done, today you have to focus on this fixes so do not ask me about decision for them, just go with recommendation till is done (AR-D242)" (AR-D245)
+- 2026-10-28: Hold AR0496 (branch kept at 09e8bd55) and go on with the queue; Q5 now waits only on AR0493; the owner: "And go as long as this tasks will be done, today you have to focus on this fixes so do not ask me about decision for them, just go with recommendation till is done (AR-D242)" (AR-D246)
+- 2026-10-29: AR0496: continue its worker once more with a short instruction; the owner: "AR0496 give it one more shot, and go with this 7 fixes" (AR-D299)

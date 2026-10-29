@@ -39,3 +39,4 @@ Out:
 
 - 2026-10-25: Source: F2 of AR0367
 - 2026-10-25: AR0425 approved as written; the owner: "AR0421 to AR0426 - all" (AR-D26)
+- 2026-10-28: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

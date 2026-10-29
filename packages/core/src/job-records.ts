@@ -5,7 +5,7 @@ import { FEATURE, taskTickets } from "./board-jobs.ts";
 import type { Clock } from "./clock.ts";
 import type { Bus } from "./events.ts";
 import { configRefusal } from "./git-config.ts";
-import { steerJob, stopJob, wrappers } from "./job-control.ts";
+import { onUser, steerJob, stopJob, wrappers } from "./job-control.ts";
 import { type Machine, ssh, sshAsync } from "./job-machine.ts";
 import { blockJob, current, field, ID, inRun, jobIds, moveJob, STATES, told } from "./job-state.ts";
 import { syncMachine } from "./machine-sync.ts";
@@ -33,9 +33,10 @@ export function findJob(home: string, query: string): string {
 // 22); a machine that does not answer refuses them, naming it.
 export function jobUpkeep(home: string, time: Clock, bus: Bus, keep: (job: FinishedJob) => readonly unknown[], there: (id: string) => Machine | undefined) {
 	let gone = new Set<string>();
+	// A job there blocked on the user, its run over, is no longer copied from there: its state here is the one that counts, and it ends here.
 	const stop = async (id: string): Promise<string> => {
 		const machine = there(id);
-		if (machine === undefined) return stopJob(home, id);
+		if (machine === undefined || onUser(current(home, id))) return stopJob(home, id, bus);
 		const line = (await sshAsync(machine, ["arthur", "remote-job", "stop", machine.home, id])).trim();
 		// Its end there, here at once.
 		await syncMachine(home, machine, bus);

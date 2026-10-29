@@ -15,14 +15,14 @@ import { botApi, type Call, CHAT, load, message, nowhere, SECOND, said, TOKEN, u
 
 const CONFLICT = "Conflict: terminated by other getUpdates request; make sure that only one bot instance is running";
 
-test("options: bots is a list of at least one, each with its two variables, at most one unnamed, names unique; apiUrl an http URL", () => {
+test("options: bots is a list of at least one, each with its two variables, at most one unnamed, names unique; apiUrl an https URL or loopback http", () => {
 	const bot = { botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" };
 	assert.deepEqual(checkOptions({ bots: [bot, { ...bot, name: "second" }], apiUrl: "http://127.0.0.1:1" }), []);
 	assert.deepEqual(checkOptions({}), [{ path: "bots", problem: "expected a list of at least one bot, got nothing" }]);
 	assert.deepEqual(checkOptions({ bots: [] }), [{ path: "bots", problem: "expected a list of at least one bot, got an empty list" }]);
 	assert.deepEqual(checkOptions({ bots: [bot, bot, { ...bot, name: "x" }, { ...bot, name: "x" }], media: true, apiUrl: "ftp://x" }), [
 		{ path: "media", problem: "unknown option; options: bots, apiUrl" },
-		{ path: "apiUrl", problem: 'expected an http or https URL, got "ftp://x"' },
+		{ path: "apiUrl", problem: 'expected an https URL, or an http one on loopback (localhost, 127.0.0.0/8, ::1), got "ftp://x"' },
 		{ path: "bots[1]", problem: "bots[0] has no name either; at most one bot is unnamed" },
 		{ path: "bots[3].name", problem: "x is the name of bots[2] too" },
 	]);
@@ -33,6 +33,14 @@ test("options: bots is a list of at least one, each with its two variables, at m
 		{ path: "bots[0].chatIdEnv", problem: "expected the name of an env variable, got nothing" },
 		{ path: "bots[1]", problem: "expected a bot { name?, botTokenEnv, chatIdEnv }, got 7" },
 	]);
+});
+
+test("apiUrl: http only on loopback (localhost, 127.0.0.0/8, ::1), where the token in each call's path never crosses the network in plain text; https anywhere", () => {
+	const bots = [{ botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }];
+	for (const apiUrl of ["http://api.telegram.org", "http://126.255.255.255", "http://128.0.0.0", "http://10.0.0.1", "http://127.0.0.1.example", "http://localhost.example", "http://localhost.", "http://evil.localhost", "http://[::2]", "ftp://127.0.0.1"])
+		assert.deepEqual(checkOptions({ bots, apiUrl }), [{ path: "apiUrl", problem: `expected an https URL, or an http one on loopback (localhost, 127.0.0.0/8, ::1), got ${JSON.stringify(apiUrl)}` }], apiUrl);
+	for (const apiUrl of ["http://127.0.0.1:4567", "http://127.0.0.0", "http://127.255.255.255:1", "http://localhost:8080", "http://LOCALHOST", "http://[::1]:1", "https://api.telegram.org", "https://10.0.0.1"])
+		assert.deepEqual(checkOptions({ bots, apiUrl }), [], apiUrl);
 });
 
 test("a token or a chat id Telegram could not take refuses the load, naming the option and the variable, never the value", async (t) => {

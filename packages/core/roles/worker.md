@@ -16,6 +16,7 @@ You implement one task in your own Git worktree, on your own branch. Nobody read
 - Stay inside the task. A new or changed command or option brings its usage line, its doc page and its line in the example config with it, whether the task names them or not.
 - Install dependencies from the lockfile before the first check when the worktree has none (for example `npm ci`).
 - Run the project's own checks and report their real output. Passing checks do not prove the change: before the final message, try it against the ticket's Goal the way a reviewer will, and name what you ran.
+- Run each check (the project's tests, its type check) in one bash call with a `timeout` of 1800 seconds: a call ends at its timeout, 300 seconds when it names none, and a check it kills gives no result. A suite that needs longer gets up to 3600.
 - Each new behavior, every refusal included, has a test that fails when the behavior is removed: remove or invert it once and see the test fail. A fake of an outside service answers in the shape its documentation shows, every field included, not only the one your code reads.
 - Before the final message, break each condition your change adds (a guard, a refusal, a limit) on purpose, see a test fail, then restore it; a condition no test catches gets a test.
 - Run every command that a line you write tells someone to run (in a doc, a role, a procedure) exactly as written, and check it has the effect the line promises.

@@ -2,7 +2,7 @@
 
 Usage:
 
-- `arthur decision ask --kind <kind> --question <text> [--ticket <id>] [--job <id>] [--option <text>]... [--recommend <n or text>]`
+- `arthur decision ask --kind <kind> --question <text> [--ticket <id>] [--job <id>] [--what --unreviewed|--no-ci]... [--option <text>]... [--recommend <n or text>]`
 - `arthur decision answer <id> --decided <one line> [--picked <n>] <the owner's words>`
 - `arthur decision close <id> <reason>`
 - `arthur decision class propose --kind <kind> --match <text> --decided <one line> --backed-by <id>...`
@@ -14,7 +14,7 @@ Comes with the `orchestration` plugin, which every config holds. It records ever
 
 Each project keeps one append-only file, `spec/decisions.jsonl`, next to its board and in Git: the coordinator commits it with the board. Only this command and the plugin itself write it, never a hand: under a lock in `.arthur/orchestration/` (`decisions-<project>.lock`), which this command waits for up to 10 s and the plugin's own records without holding up `arthur run` (up to 60 s, its other work going on meanwhile), the whole file written to `spec/.decisions.jsonl.<pid>` and renamed, so a reader never sees half of it. Each line is one JSON record with its id:
 
-- `ask`: `{ record, id, time, project, kind, question, options, recommend?, ticket?, job?, class? }`, `class` only on a class's proposal (kind `class`, below);
+- `ask`: `{ record, id, time, project, kind, question, options, recommend?, ticket?, job?, what?, class? }`, `what` the merge flags the decision lets through (below), `class` only on a class's proposal (kind `class`, below);
 - `answer`: `{ record, id, time, decided, picked?, words }`, `words` `by policy: <class id>` for an answer given by policy;
 - `close`: `{ record, id, time, reason }`;
 - `revoke`: `{ record, id, time, words }`, the owner revoking a class.
@@ -32,9 +32,9 @@ The kinds:
 - `plan`: a planning ticket's plan waiting for the owner's approval (`arthur plan --help`).
 - `review`: what comes after a branch's second FAIL (`arthur review --help`).
 - `budget`: a raise of a package's line budget, or a job with no money limit (`--budget 0`, below).
-- `merge`: a merge without a PASS (`arthur merge --unreviewed`, below).
+- `merge`: a merge without a PASS or without CI (`arthur merge --unreviewed` or `--no-ci`, below).
 
-`--option` gives an option offered, once each, numbered from 1 in the order given; `--recommend` is the coordinator's recommendation, an option's number or words.
+`--option` gives an option offered, once each, numbered from 1 in the order given; `--recommend` is the coordinator's recommendation, an option's number or words. `--what` names a merge flag the owner's answer lets through, `--unreviewed` or `--no-ci`, once per flag, only with `--kind merge` (AR0533); a merge decision without it lets no flag through.
 
 ## Answering
 
@@ -80,9 +80,9 @@ The `ask` prints a second line, `<id> answered by policy (<class id>): <decided>
 
 ## What only the owner's decision lets through
 
-`arthur merge <job> --unreviewed` or `--no-ci` (AR0503), and `--budget 0` of `arthur spawn` or `arthur continue` on a paid model go on only with `--decision <id>` (AR0355). The plugin checks it, `call("decision.owner", …)` for the merge and its `beforeSpawn` for the spawns, and refuses, naming why: no id (naming the ask to make, `arthur decision ask --kind merge|budget --question '<what he decides>' --ticket <id>`); an id the log does not hold; a question of another kind (`merge` for the merge, `budget` for the spawns); one open or closed; one whose later answer is by policy; one of another ticket than the job's (the first its task names), or, for a job naming none, of another job, or, for a spawn naming none, one with a ticket or a job; one used already. A pass marks it used in `<home>/orchestration/used/<id>`, created whole or not at all, holding what used it (`merge <job>`, `spawn`, `continue <job>`): only the same job's merge tried again (after a conflict or a failed check) passes it again, since a branch goes in once. A spawn or continue refused by a later plugin's check has used it too: ask again.
+`arthur merge <job> --unreviewed` or `--no-ci` (AR0503), and `--budget 0` of `arthur spawn` or `arthur continue` on a paid model go on only with `--decision <id>` (AR0355). The plugin checks it, `call("decision.owner", …)` for the merge and its `beforeSpawn` for the spawns, and refuses, naming why: no id (naming the ask to make, `arthur decision ask --kind merge --what <flag>|budget --question '<what he decides>' --ticket <id>`); an id the log does not hold; a question of another kind (`merge` for the merge, `budget` for the spawns); one open or closed; one whose later answer is by policy; one of another ticket than the job's (the first its task names), or, for a job naming none, of another job, or, for a spawn naming none, one with a ticket or a job; for a merge, one whose `--what` does not name the flag (AR0533): `<id> lets through <its flags, or no merge flag>, not <flag>: ask the owner for <flag> with arthur decision ask --kind merge --what <flag>`, so a decision for `--unreviewed` never lets `--no-ci` through, and `arthur merge <job> --unreviewed --no-ci --decision <id>` needs one asked with both; one used already. A pass marks it used in `<home>/orchestration/used/<id>`, created whole or not at all, holding what used it (`merge <job>`, `spawn`, `continue <job>`): only the same job's merge tried again (after a conflict or a failed check) passes it again, since a branch goes in once. A spawn or continue refused by a later plugin's check has used it too: ask again.
 
-`arthur take-main` (the delivery plugin, AR0441) asks `decision.owner` the same way, kind `merge`, for no ticket and no job: an ask with neither (`arthur decision ask --kind merge --question '<what he decides>'`), used once.
+`arthur take-main` (the delivery plugin, AR0441) asks `decision.owner` the same way, kind `merge`, for no ticket and no job: an ask with neither (`arthur decision ask --kind merge --question '<what he decides>'`), used once; it is no merge flag, so `--what` is not checked.
 
 ## Refused
 
@@ -96,4 +96,4 @@ Each refusal prints `arthur decision <verb>: refused: <why>`, writes nothing, an
 - `class revoke`: an id the log does not hold, or that is no class; a class already revoked; no owner's words.
 - Any verb, when a line of the log is not a record (a hand edit): `<file> line <n> is not a decision record (<why>); ...`, the file left as it is; for a class, an approval by policy, an answer by policy naming no class above it, or a revoke of no class too. Undo the edit (`git diff -- spec/decisions.jsonl`).
 
-Wrong usage (no verb, an unknown flag, a flag without its value or given twice, words after `ask`, no id after `answer`, `close` or `class revoke`, `class` without `propose` or `revoke`, ids after `class propose` with no `--backed-by`) prints the usage and exits 2.
+Wrong usage (no verb, an unknown flag, a flag without its value or given twice, words after `ask`, a `--what` other than `--unreviewed` or `--no-ci` or without `--kind merge`, no id after `answer`, `close` or `class revoke`, `class` without `propose` or `revoke`, ids after `class propose` with no `--backed-by`) prints the usage and exits 2.

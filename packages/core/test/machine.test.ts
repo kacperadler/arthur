@@ -298,7 +298,7 @@ test("a job on another machine starts with none of its role's MCP servers, nor i
 	assert.deepEqual([job.failed, told(job.warnings)], [undefined, ["MCP servers left out on gpu, which Arthur sends no MCP secret (arthur spawn --help, \"On another machine\"): docs, web"]]);
 	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
 	const args = JSON.parse(readFileSync(join(dirname(omp), "starts.jsonl"), "utf8").split("\n")[0] ?? "").args as string[];
-	assert.deepEqual([args.includes("--plugin-dir"), args.includes("--config")], [false, false]);
+	assert.deepEqual([args.includes("--plugin-dir"), args.some((arg) => arg.endsWith("mcp.yml"))], [false, false]);
 	await jobs.sweep();
 	assert.deepEqual([existsSync(join(home, "jobs", job.id, "mcp")), existsSync(join(there, "jobs", job.id, "mcp")), calls().filter((call) => call.includes("mcp-s3cr3t"))], [false, false, []]);
 	// A continue there: no local wrapper ever removes a `mcp/` here, so none may be written (AR0337).
@@ -868,6 +868,21 @@ test("a block with stop on a job there stops its run there and holds it blocked 
 	assert.deepEqual(names.map((name) => read(there, job.id, name)), ["", "2G", "AC0001", "", "4G"]);
 	assert.deepEqual(names.map((name) => read(home, job.id, name)), ["", "2G", "AC0001", "", "4G"]);
 	await endedThere(there, job.id);
+});
+
+test("arthur stop ends a job there blocked on the user here, without SSH; arthur prune then frees it there and here", async () => {
+	const { home, there, jobs } = setup({ agent: fakeAgent({ steps: [{ message: "Blocked: user is AR0455 met by AR0454?" }] }) });
+	const job = await jobs.spawn({ task: "Go.", machine: "gpu" });
+	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "blocked");
+	await jobs.sweep();
+	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["blocked", "user: is AR0455 met by AR0454?"]);
+	assert.equal(await jobs.stop(job.id), `${job.id}: stopped`);
+	assert.deepEqual([read(home, job.id, "state"), read(home, job.id, "reason")], ["ended", "stopped"]);
+	assert.deepEqual(events(home, "job-ended").map((data) => data.reason), ["user: is AR0455 met by AR0454?", "stopped"]);
+	assert.equal(calls().some((call) => call.includes("'remote-job' 'stop'")), false, "its state here is the one that counts");
+	const worktree = join(there, "repos/.arthur-worktrees", job.id);
+	assert.deepEqual(jobs.prune([job.id]), [`${job.id}: worktree ${worktree} removed there; branch ${job.branch} deleted there; branch ${job.branch} deleted; record deleted`]);
+	assert.deepEqual([existsSync(worktree), existsSync(join(there, "jobs", job.id)), existsSync(join(home, "jobs", job.id))], [false, false, false]);
 });
 
 test("jobs.limits' feature must name its slice in letters and digits, or the spawn is refused before anything exists", async () => {

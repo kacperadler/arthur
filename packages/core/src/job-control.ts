@@ -8,7 +8,7 @@ import { type Machine, sshAsync } from "./job-machine.ts";
 import { capFields, recordedJob, writeMcp } from "./job-record.ts";
 import { type Caps, launch, type Slice } from "./job-scope.ts";
 import { GRACE_SECONDS } from "./job-stop.ts";
-import { current, field, ID, inRun, moveJob, told, write } from "./job-state.ts";
+import { type Current, current, field, ID, inRun, moveJob, told, write } from "./job-state.ts";
 import { takeLock } from "./lock.ts";
 import { launched, syncMachine } from "./machine-sync.ts";
 import { processTable } from "./process-table.ts";
@@ -33,10 +33,11 @@ export function wrappers(id: string, table = processTable()): string[] {
 	return table.filter(({ args }) => args.includes(` ${id} `, args.indexOf("/wrapper.ts ") + 1) && args.includes("/wrapper.ts ")).map((entry) => String(entry.pid));
 }
 
-// Returns the line `arthur stop` prints once the job's run is over.
-export async function stopJob(home: string, id: string): Promise<string> {
-	const { field } = record(home, id);
+// Returns the line `arthur stop` prints once the job's run is over. A job blocked on the user, not in a run, ends at once.
+export async function stopJob(home: string, id: string, bus: Bus): Promise<string> {
+	const { folder, field } = record(home, id);
 	const now = current(home, id);
+	if (onUser(now)) return endOnUser(home, id, folder, bus);
 	if (!inRun(now)) throw new Error(`${id} is ${told(now)}, not in a run; nothing to stop`);
 	const pid = field("pid");
 	if (!wrappers(id).includes(pid)) throw new Error(`${id}: its wrapper ${pid} is gone though its state says ${now.state}; nothing to stop`);
@@ -45,6 +46,30 @@ export async function stopJob(home: string, id: string): Promise<string> {
 		if (Date.now() > end) throw new Error(`${id}: its wrapper ${pid} did not end the job within ${STOP_WAIT_SECONDS} seconds of SIGTERM`);
 	const final = current(home, id);
 	return final.reason === "stopped" ? `${id}: stopped` : `${id}: ${told(final)} before the stop`;
+}
+
+// A run that ended blocked on the user (`Blocked: user`, or a plugin's block that stopped it), whose question may never be answered.
+export const onUser = (now: Current): boolean => now.state === "blocked" && now.reason.startsWith("user: ") && !inRun(now);
+
+// Ends job `id` blocked on the user as a stop would, `state` last, then `job-ended`. Its `continuing` lock keeps a continue
+// from resuming it meanwhile; one that moved it on before the lock was taken leaves it to `stopJob` again.
+function endOnUser(home: string, id: string, folder: string, bus: Bus): Promise<string> | string {
+	const lock = takeLock(join(folder, "continuing"));
+	if ("heldBy" in lock) throw new Error(`${id}: being continued`);
+	let moved: boolean;
+	try {
+		moved = moveJob(home, id, bus, (now) => {
+			if (!onUser(now)) return undefined;
+			appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] arthur stop: ended while ${told(now)}\n`);
+			return ["ended", "stopped"];
+		});
+	} finally {
+		lock.release();
+	}
+	if (!moved) return stopJob(home, id, bus);
+	const read = field(home, id);
+	bus.emit("core", "job-ended", { id, kind: read("kind"), project: read("project"), state: "ended", reason: "stopped" });
+	return `${id}: stopped`;
 }
 
 // Returns the steer's number.
@@ -66,7 +91,7 @@ export function steerJob(home: string, id: string, text: string): string {
 // `check` runs the `beforeSpawn` checks and holds the spawn lock (spawn-check.ts) until the job is `working` again, and answers
 // the caps in force now (`jobs.limits`), which replace the record's before the launch, and the role's MCP servers (`writeMcp`);
 // `prepare` runs the prepares told it is a continue, their variables going to the wrapper here, else on the stdin of `remote-job
-// continue` as at a spawn, never into the record; `uncapped` hears why a job with caps runs bare here (job-scope.ts).
+// continue` as at a spawn, never into the record; `uncapped` hears why a job with caps runs bare here (job-scope.ts). The record's `continue`, what omp gets, has a word joiner before each `@` omp would read a file for, as `task` (job-record.ts).
 export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, uncapped: (why: string) => void, steps: { readonly check: (job: Job) => Promise<{ readonly release: () => void; readonly caps: Caps; readonly mcp?: McpServers }>; readonly prepare: (job: Job) => Promise<Readonly<Record<string, string>>> }, there?: Machine): Promise<string | undefined> {
 	const { folder, field } = record(home, id);
 	if (instruction.trim() === "") throw new Error("the instruction is empty");
@@ -99,7 +124,7 @@ export async function continueJob(home: string, id: string, instruction: string,
 		for (const [name, text] of Object.entries(capFields(passed.caps))) write(folder, name, text);
 		if (there === undefined) {
 			rmSync(join(folder, "pid"), { force: true });
-			write(folder, "continue", instruction.trim());
+			write(folder, "continue", instruction.trim().replace(/(?<=^|[\s([{<"'`])@/g, "\u2060@"));
 			writeMcp(folder, passed.mcp);
 			appendFileSync(join(folder, "log"), `[arthur ${new Date().toISOString()}] arthur continue: ${instruction.trim().split("\n")[0]}\n`);
 		}

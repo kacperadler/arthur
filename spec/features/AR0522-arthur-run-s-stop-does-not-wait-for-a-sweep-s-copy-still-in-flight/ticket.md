@@ -20,22 +20,26 @@ F3 of AR0509 (spec/features/AR0509-the-sweep-s-copy-from-another-machine-has-no-
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+`arthur run`'s stop releases `run.pid` while a sweep's copy from another machine may still run (`packages/core/src/run.ts:50`, `:89-90`), so that copy can write job records after the lock is gone, beside a new `arthur run`'s first sweep.
 
 - Kind: fix
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- The stop waits for the sweep in flight, if any, before it releases `run.pid`; a test with a copy held open shows the lock still held until the copy ends, and released right after.
+- A stop with no sweep in flight is as quick as today (a test).
+- `npm run check` and `npm test` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/run.ts`: keep the sweep's promise and await it before the lock is released.
+- Its test.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- The copy itself (AR0509), its size and time bounds.
 
 ## Decisions
 
 - 2026-10-27: Source: F3 of AR0509
+- 2026-10-29: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

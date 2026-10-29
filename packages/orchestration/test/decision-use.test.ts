@@ -8,7 +8,8 @@ import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { orchestration } from "../src/orchestration.ts";
 
 // AR0355: `arthur merge --unreviewed` (delivery's `decision.owner` call) and `--budget 0` of a spawn on a paid model (the
-// spawn's `decision`) go on only with the owner's own decision of their kind, for the job's ticket, used once.
+// spawn's `decision`) go on only with the owner's own decision of their kind, for the job's ticket, used once; a merge flag
+// only with a decision that names it (AR0533).
 
 const PATH = process.env.PATH ?? "";
 const ONE = "spec/features/AC0001-one/ticket.md";
@@ -56,13 +57,13 @@ async function setup(t: TestContext) {
 		return id;
 	};
 	const used = (id: string) => (existsSync(join(fake.host.folder, "used", id)) ? readFileSync(join(fake.host.folder, "used", id), "utf8") : undefined);
-	return { fake, decision, owners, used, call: (asked: object) => fake.host.call<string>("decision.owner", { what: "--unreviewed", kind: "merge", use: `merge ${JOB}`, ...asked }) };
+	return { fake, root, printed, decision, owners, used, call: (asked: object) => fake.host.call<string>("decision.owner", { what: "--unreviewed", kind: "merge", use: `merge ${JOB}`, ...asked }) };
 }
 
 test("--unreviewed goes on only with the owner's merge decision of its ticket, else of its job; each refusal names why", async (t) => {
 	const { decision, owners, call, used } = await setup(t);
-	assert.equal(call({ id: "", ticket: "AC0001", job: JOB }), `--unreviewed needs the owner's decision: arthur decision ask --kind merge --question '<what he decides>' --ticket AC0001, his answer recorded with arthur decision answer, then --unreviewed --decision <its id>`);
-	assert.equal(call({ id: "", job: JOB }), `--unreviewed needs the owner's decision: arthur decision ask --kind merge --question '<what he decides>' --job ${JOB}, his answer recorded with arthur decision answer, then --unreviewed --decision <its id>`);
+	assert.equal(call({ id: "", ticket: "AC0001", job: JOB }), `--unreviewed needs the owner's decision: arthur decision ask --kind merge --what --unreviewed --question '<what he decides>' --ticket AC0001, his answer recorded with arthur decision answer, then --unreviewed --decision <its id>`);
+	assert.equal(call({ id: "", job: JOB }), `--unreviewed needs the owner's decision: arthur decision ask --kind merge --what --unreviewed --question '<what he decides>' --job ${JOB}, his answer recorded with arthur decision answer, then --unreviewed --decision <its id>`);
 	assert.equal(call({ id: "AC-D9", ticket: "AC0001", job: JOB }), "AC-D9 is not in the decision log of project acme");
 	assert.equal(call({ id: "ZZ-D1", ticket: "AC0001", job: JOB }), "ZZ-D1: no project has the prefix ZZ; prefixes: AC");
 	assert.equal(call({ id: "yes", ticket: "AC0001", job: JOB }), "YES is no decision id: <prefix>-D<number>, as arthur decision ask printed it");
@@ -79,12 +80,12 @@ test("--unreviewed goes on only with the owner's merge decision of its ticket, e
 	assert.equal(call({ id: other, job: JOB }), `${other} is of job 2026-03-04-worker-0000ffff, not of job ${JOB}`);
 	assert.equal(call({ id: other, ticket: "AC0001", job: "2026-03-04-worker-0000ffff" }), `${other} is of job 2026-03-04-worker-0000ffff, not of ticket AC0001`);
 	assert.deepEqual([used(plan), used(open), used(two), used(other)], [undefined, undefined, undefined, undefined], "a refusal uses no decision");
-	const one = await owners("merge", "--ticket", "AC0001");
+	const one = await owners("merge", "--ticket", "AC0001", "--what", "--unreviewed");
 	assert.equal(call({ id: one.toLowerCase(), ticket: "AC0001", job: JOB }), "", "the owner's, its id in any case");
 	assert.equal(used(one), `merge ${JOB}`);
 	assert.equal(call({ id: one, ticket: "AC0001", job: JOB }), "", "the same merge tried again, after a conflict or a failed check");
 	assert.equal(call({ id: one, ticket: "AC0001", job: "2026-03-04-worker-0000eeee", use: "merge 2026-03-04-worker-0000eeee" }), `${one} was used already (merge ${JOB}); ask the owner again`);
-	const mine = await owners("merge", "--job", JOB);
+	const mine = await owners("merge", "--job", JOB, "--what", "--unreviewed");
 	assert.equal(call({ id: mine, job: JOB }), "", "a job of no ticket: the owner's of that job");
 });
 
@@ -93,10 +94,40 @@ test("--unreviewed refuses a decision a class answered by policy; the owner's la
 	const backing = await owners("merge", "--ticket", "AC0002");
 	const proposal = await decision("class", "propose", "--kind", "merge", "--match", "go on", "--decided", "It may", "--backed-by", backing);
 	await decision("answer", proposal, "--picked", "1", "--decided", "Pre-approve unreviewed merges", "zawsze");
-	const policy = await decision("ask", "--kind", "merge", "--question", "May it go on unreviewed?", "--ticket", "AC0001");
+	const policy = await decision("ask", "--kind", "merge", "--question", "May it go on unreviewed?", "--ticket", "AC0001", "--what", "--unreviewed");
 	assert.equal(call({ id: policy, ticket: "AC0001", job: JOB }), `${policy} was answered by policy (${proposal}), not by the owner`);
 	await decision("answer", policy, "--decided", "It may", "tak, sam");
 	assert.equal(call({ id: policy, ticket: "AC0001", job: JOB }), "");
+});
+
+test("a merge decision lets through only the flags its --what names: one for --unreviewed refuses --no-ci, one for both allows both", async (t) => {
+	const { owners, call, used, fake, root, printed } = await setup(t);
+	const asked = { ticket: "AC0001", job: JOB };
+	const none = await owners("merge", "--ticket", "AC0001");
+	assert.equal(call({ ...asked, id: none }), `${none} lets through no merge flag, not --unreviewed: ask the owner for --unreviewed with arthur decision ask --kind merge --what --unreviewed`);
+	const unreviewed = await owners("merge", "--ticket", "AC0001", "--what", "--unreviewed");
+	assert.equal(call({ ...asked, id: unreviewed, what: "--no-ci" }), `${unreviewed} lets through --unreviewed, not --no-ci: ask the owner for --no-ci with arthur decision ask --kind merge --what --no-ci`);
+	assert.deepEqual([used(none), used(unreviewed)], [undefined, undefined], "a refusal uses no decision");
+	// As `arthur merge <job> --unreviewed --no-ci --decision <id>` asks: --unreviewed first, then --no-ci for the same merge.
+	assert.equal(call({ ...asked, id: unreviewed }), "");
+	assert.equal(call({ ...asked, id: unreviewed, what: "--no-ci" }), `${unreviewed} lets through --unreviewed, not --no-ci: ask the owner for --no-ci with arthur decision ask --kind merge --what --no-ci`, "used for --unreviewed on this merge, still not --no-ci");
+	const both = await owners("merge", "--job", JOB, "--what", "--no-ci", "--what", "--unreviewed");
+	assert.equal(call({ id: both, job: JOB }), "");
+	assert.equal(call({ id: both, job: JOB, what: "--no-ci" }), "");
+	const ask = async (...args: string[]) => {
+		printed.length = 0;
+		const code = await fake.commands.find((command) => command.name === "decision")?.run({ args: ["ask", "--question", "Go?", "--ticket", "AC0001", ...args], project: undefined });
+		return [code, printed.join("\n").split("\n")[0]];
+	};
+	const usage = "usage: arthur decision ask --kind <kind> --question <text> [--ticket <id>] [--job <id>] [--what --unreviewed|--no-ci]... [--option <text>]... [--recommend <n or text>]";
+	assert.deepEqual(await ask("--kind", "merge", "--what", "--no-ci", "--what", "--auto"), [2, usage], "--what names a merge flag");
+	assert.deepEqual(await ask("--kind", "budget", "--what", "--no-ci"), [2, usage], "--what only with --kind merge");
+	const take = await owners("merge");
+	assert.equal(take, "AC-D4", "a refused ask writes nothing");
+	assert.equal(fake.host.call<string>("decision.owner", { id: take, what: "arthur take-main", kind: "merge", use: "take-main acme 0000abcd" }), "", "take-main's own decision names no merge flag");
+	const log = join(root, "spec/decisions.jsonl");
+	writeFileSync(log, `${readFileSync(log, "utf8")}${JSON.stringify({ record: "ask", id: "AC-D5", time: "2026-03-04T08:00:00+00:00", project: "acme", kind: "merge", question: "Go?", options: [], ticket: "AC0001", what: "--no-ci" })}\n`);
+	assert.match(call({ ...asked, id: unreviewed }), /decisions\.jsonl line \d+ is not a decision record \(options or what not a list of texts\)/, "a hand-edited what is no list");
 });
 
 test("--budget 0 on a paid spawn starts only with the owner's budget decision of its ticket, or of no ticket for a spawn of none, once", async (t) => {

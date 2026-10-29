@@ -2,22 +2,56 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-29
+
+### Fixed
+
+- AR0437 A CI wait still cancels a hung run below the tip, whose end it no longer tells (91c8a24b)
+- AR0438 A variable set in the shell alone passes `config check` but is missing for every `arthur` command a job runs (4d95ef30)
+- AR0479 A merge step reading an owner clone still deletes it when python3 cannot read the .git attributes, with a reason that hides why (4d1ac2a0)
+- AR0481 A stop during the install can end the job before its stop of the install's group is over (e80132da)
+- AR0484 A board entry's `path` is never checked, so a filing writes `plan.md` or `review-N.md` outside the project (ee93422d)
+- AR0510 The GitHub, Telegram and YouTrack API addresses take `http://` for any host, sending the token in the clear (6d1556d9)
+- AR0515 The hidden ~/.ssh follows $HOME, while OpenSSH finds the home from the user account (2f79e8ca)
+- AR0522 `arthur run`'s stop does not wait for a sweep's copy still in flight (8c353fd9)
+- AR0540 A worker blocked on the owner whose ticket is dropped can be neither continued, stopped nor pruned (030a7cf6)
+- AR0541 A worker ends its run while its npm test runs in the background, and has no way to read the result (fadd4657)
+- AR0547 A `~` after a `:` in an assignment's value is not expanded by the parser (0eca382f)
+
 ## 2026-10-28
+
+### Added
+
+- AR0550 Voice: local transcription of voice notes with whisper.cpp (roadmap 81) (6964e6ab)
+- AR0551 Video: frames and the spoken words of a video part, with ffmpeg and the voice plugin (c7b4c24d)
 
 ### Fixed
 
 - AR0414 A job may commit the stash refusal's .arthur-stash.patch by mistake, and its git diff leaves staged changes out (19577505)
+- AR0425 A redirect's lookup in a site check ignores the check's time limit, and a 308 hop has no test (c133bb0d)
 - AR0456 The agent's own `npm ci` cannot write `~/.npm` (0ac4520e)
 - AR0470 A merge killed during its steps leaves its cache folder behind (4a964c77)
+- AR0488 A health check runs `git status` in a main checkout with its `core.fsmonitor` on (61c66613)
+- AR0489 A coordinator option ending in `;` splits its `tmux new-session` into tmux commands (58e1232e)
 - AR0492 An unquoted `~user` is read as a relative folder named `~user` (09d8b6d7)
+- AR0493 A backslash-newline after $ is not removed, so the guard reads a folder name where bash reads .. (b89c5cb8)
+- AR0494 The guard skips an escaped quote inside quotes when it finds a fallback end, so a command can hide after it (9b488940)
 - AR0524 The worktree guard refuses `GIT_CONFIG_*=... git commit` but lets `export GIT_CONFIG_*=...; git commit` through (ee5ef763)
+- AR0531 The env file fixes arthur doctor prints put an unquoted folder in a shell command (3520fee0)
 - AR0532 A job final message naming @<path> makes the coordinator read that file into its own context (e79b9701)
+- AR0533 A merge decision lifts whichever flag the coordinator names, not the one the owner decided (76f2ab84)
+- AR0534 Delivery's review-needed reads `process\.env` in a regex as the secrets file too (56c24517)
+- AR0537 A job's own session reads each file its task or a continue's text names as `@<path>` (e8fa77e8)
+- AR0538 The coordinator's handoff is handed back through `sendUserMessage` unescaped (e51a7dee)
+- AR0539 A `^<model>` in a message's text gives the coordinator's session a model agent (32736d04)
 
 ### Changed
 
 - AR0477 Nine exports nobody imports (392ae9be)
 - AR0478 Two new plugins made at once still conflict in BUDGETS (0cf2657b)
 - AR0523 umask.test.ts and spawn.test.ts put their test job in the production arthur-jobs slice (088fb76b)
+- AR0544 The merge step timeout test fails under load: its 3 s limit also catches `npm run check` (bd73579d)
+- AR0552 Docs: video in the architecture diagram and roadmap, voice and video as media plugins in the README diagram (285ae5ee)
 
 ## 2026-10-27
 

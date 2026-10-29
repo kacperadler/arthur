@@ -72,7 +72,7 @@ export default { core: { home: HOME, jobs: { budgetUsd: 3 } }, plugins: [
 const INSTALLED = { orchestration: ORCHESTRATION, telegram: TELEGRAM, voice: VOICE, docker: DOCKER, broken: undefined };
 
 test("arthur setup: the tools, the config, the requirements, what can still go in, and the next steps; no value is printed", () => {
-	const { arthur } = project({ config: FULL, env: "ARTHUR_TELEGRAM_CHAT_ID=file-secret-456\n", packages: INSTALLED });
+	const { xdg, arthur } = project({ config: FULL, env: "ARTHUR_TELEGRAM_CHAT_ID=file-secret-456\n", packages: INSTALLED });
 	const run = arthur(["setup"], { ARTHUR_TELEGRAM_BOT_TOKEN: "shell-secret-123" });
 	assert.equal(run.stderr, "");
 	const tools = section(run.stdout, "Tools");
@@ -96,6 +96,7 @@ test("arthur setup: the tools, the config, the requirements, what can still go i
 		"env set | ARTHUR_TELEGRAM_BOT_TOKEN (telegram.botTokenEnv)",
 		"env set | ARTHUR_TELEGRAM_CHAT_ID (telegram.chatIdEnv)",
 		"voice | off (enabled: false)",
+		`ARTHUR_TELEGRAM_BOT_TOKEN is set in the shell only; the arthur service does not see it, put it in ${join(xdg, "arthur", ".env")}`,
 	]);
 	assert.deepEqual(section(run.stdout, "Requirements").slice(8), [
 		"orchestration tmux: ok",
@@ -138,6 +139,7 @@ test("a missing variable is a step that refuses the start; each enabled plugin's
 		"env missing ARTHUR_TELEGRAM_CHAT_ID (telegram.chatIdEnv)",
 		"voice | off (enabled: false)",
 		`${join(xdg, "arthur", ".env")}: ARTHUR_OTHER is set on lines 2, 3; the last wins`,
+		`ARTHUR_TELEGRAM_BOT_TOKEN is set in the shell only; the arthur service does not see it, put it in ${join(xdg, "arthur", ".env")}`,
 	]);
 	assert.deepEqual(section(run.stdout, "Requirements").slice(8), [
 		"orchestration tmux: ok",

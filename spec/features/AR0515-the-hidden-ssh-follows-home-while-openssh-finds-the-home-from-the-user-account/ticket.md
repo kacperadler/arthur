@@ -20,24 +20,28 @@ F4 of AR0508 (spec/features/AR0508-a-sandboxed-job-reads-arthur-s-ssh-private-ke
 
 ## Goal
 
-<!-- What we are after, what it moves in spec/vision.md, and the evidence (file:line, a command and its output). -->
+The sandbox hides `join(homedir(), ".ssh")` (`packages/core/src/job-sandbox.ts:81`, `:117`; `packages/core/src/job-place.ts:24`), and `homedir()` follows `$HOME`, while OpenSSH finds the home from the user account. With `$HOME` set elsewhere, the `.ssh` ssh really uses stays readable to a job.
 
 - Kind: security
 
 ## Done means
 
-<!-- Each observable result, and the test that proves it; the project's checks pass. -->
+- The hidden `.ssh` is the user account's (`os.userInfo().homedir`), and also `$HOME`'s when the two differ; a test with `HOME` set to another folder shows the account's `.ssh` hidden from the job.
+- The `guarded` file's `ssh` line names the same folder or folders.
+- `npm run check` and `npm test` pass.
 
 ## Scope
 
 In:
-<!-- - `path/to/file.ts`: what changes there. -->
+- `packages/core/src/job-sandbox.ts`, `packages/core/src/job-place.ts`.
+- Their tests.
 
 Out:
-<!-- - What this ticket does not do, and which ticket does. -->
+- Other credentials outside `~/.ssh`: AR0513.
 
 ## Decisions
 
 - 2026-10-27: Source: F4 of AR0508
+- 2026-10-29: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
+- 2026-10-29: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)
 
-<!-- - YYYY-MM-DD: one decision the human made, in one line. -->

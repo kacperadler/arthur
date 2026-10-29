@@ -561,6 +561,18 @@ test("an @<path> in a message's text reaches the agent as that text with a word 
 	for (const content of [...sent.map((args) => String(args[0])), resumed.additionalContext]) assert.deepEqual(mentions(content), [], content);
 });
 
+test("a ^<model> in a message's text is handed over with a word joiner before the ^, so omp adds no model agent to the session", () => {
+	// omp 18.3.0's expandMentions: each `^<model>` it adds to the session as an agent when the model is available.
+	const mentions = (content: string) => [...content.matchAll(/(^|\s)\^([^\s^]+)(?=\s|$)/g)].map((match) => match[2]);
+	// A `^` at the start of a line and after each whitespace (JavaScript's `\s`, U+00A0, U+3000 and U+FEFF included); none inside a word.
+	const text = "^opus first\nuse ^sonnet, then\t^gpt-5\n> ^haiku\na\u00a0^b c\u3000^d e\ufeff^f x^y ^^z ^last";
+	assert.deepEqual(mentions(text), ["opus", "sonnet,", "gpt-5", "haiku", "b", "d", "f", "last"]);
+	const handed = handOver([{ text }, { channel: "telegram", text }]);
+	const quoted = "> \u2060^opus first\n> use \u2060^sonnet, then\t\u2060^gpt-5\n> > \u2060^haiku\n> a\u00a0\u2060^b c\u3000\u2060^d e\ufeff\u2060^f x^y \u2060^^z \u2060^last";
+	assert.equal(handed, `[Arthur]\n${quoted}\n\n[via telegram]\n${quoted}\n\n${ARTHUR}`);
+	assert.deepEqual(mentions(handed), []);
+});
+
 test("a reply ends the wait: the next turn that ends without a reply has its messages go again at once", { skip: NO_UNIX_SOCKET }, async (t) => {
 	const steps: AgentStep[] = [...FAILED, ...FAILED, { prompt: true }, { message: "Done." }, { end: true }, ...FAILED, { prompt: true }, { message: "Again." }, { end: true }, { prompt: true }];
 	const { file: clock, move } = agentClock();

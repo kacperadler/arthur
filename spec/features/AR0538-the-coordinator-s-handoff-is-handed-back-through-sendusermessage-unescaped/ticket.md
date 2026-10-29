@@ -40,3 +40,4 @@ Out:
 ## Decisions
 
 - 2026-10-28: Source: F3 of AR0532
+- 2026-10-28: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

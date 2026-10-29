@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type FakeHost, fakeHost } from "@arthur/core/testing";
+import { checkSite } from "../src/site-check.ts";
 import { readState } from "../src/uptime-state.ts";
 import { type UptimeOptions, uptime } from "../src/uptime.ts";
 
@@ -49,16 +50,34 @@ async function server(t: TestContext) {
 }
 
 // `name` resolved to `answer()` in this process, by dns.lookup and by its promise both: the exports the check and a socket read.
-function resolving(t: TestContext, name: string, answer: () => LookupAddress[]): void {
+// An answer of undefined is a dns.lookup that never answers.
+function resolving(t: TestContext, name: string, answer: () => LookupAddress[] | undefined): void {
 	const [real, promised] = [dns.lookup, dnsPromises.lookup];
 	dns.lookup = ((host: string, options: LookupOptions, done: (error: null, address: string | LookupAddress[], family?: number) => void) => {
 		if (host !== name) return real(host, options, done as never);
 		const all = answer();
+		if (all === undefined) return;
 		return options.all ? done(null, all) : done(null, all[0]?.address ?? "", all[0]?.family);
 	}) as typeof real;
-	dnsPromises.lookup = (async (host: string, options: LookupOptions) => (host !== name ? promised(host, options) : options.all ? answer() : answer()[0])) as typeof promised;
+	dnsPromises.lookup = (async (host: string, options: LookupOptions) => (host !== name ? promised(host, options) : options.all ? answer() : answer()?.[0])) as typeof promised;
 	syncBuiltinESMExports();
 	t.after(() => void ((dns.lookup = real), (dnsPromises.lookup = promised), syncBuiltinESMExports()));
+}
+
+// `name` resolves to a public address, which net.createConnection, replaced in this process, connects to at 127.0.0.1 once the
+// check's own lookup has allowed it: a hop to an outside host without one. The ports connected to by that name are returned.
+function outside(t: TestContext, name: string): number[] {
+	resolving(t, name, () => [{ address: "203.0.113.5", family: 4 }]);
+	const [real, ports] = [net.createConnection, [] as number[]];
+	const local = (address: string) => (address === "203.0.113.5" ? "127.0.0.1" : address);
+	net.createConnection = ((options: TcpNetConnectOpts, listener?: () => void) => {
+		if (options.host !== name) return real(options, listener);
+		ports.push(Number(options.port));
+		const lookup = options.lookup as LookupFunction;
+		return real({ ...options, lookup: (host, each, done) => lookup(host, each, (error, address, family) => done(error, typeof address === "string" ? local(address) : address.map((one) => ({ ...one, address: local(one.address) })), family)) }, listener);
+	}) as typeof real;
+	t.after(() => void (net.createConnection = real));
+	return ports;
 }
 
 // A fake host for `sites`, now at START unless given, where projects acme and beta are the project list.
@@ -121,15 +140,45 @@ test("a slow answer past the timeout fails the check", async (t) => {
 	assert.deepEqual(notices(), [`uptime: ${url} (project acme) is down since ${SINCE}: no answer within 1 s`]);
 });
 
-test("a redirect is followed, and the page it leads to is judged", async (t) => {
+test("a redirect of each status 301, 302, 303, 307 and 308 is followed, and the page it leads to is judged", async (t) => {
 	const site = await server(t);
-	const to = (path: string): Answer => (response) => void response.writeHead(302, { location: path }).end();
-	Object.assign(site.answers, { "/": to("/home"), "/home": ok, "/old": to("/gone"), "/gone": broken });
-	const [home, old] = [site.url("/"), site.url("/old")];
-	const { notices } = await started(t, { acme: [{ url: home, expect: "Welcome", everySeconds: 1 }, { url: old, everySeconds: 1 }] });
+	const to = (status: number, path: string): Answer => (response) => void response.writeHead(status, { location: path }).end();
+	const statuses = [301, 302, 303, 307, 308];
+	for (const status of statuses) Object.assign(site.answers, { [`/${status}`]: to(status, `/home${status}`), [`/home${status}`]: ok });
+	Object.assign(site.answers, { "/old": to(302, "/gone"), "/gone": broken });
+	const old = site.url("/old");
+	const { notices } = await started(t, { acme: [...statuses.map((status) => ({ url: site.url(`/${status}`), expect: "Welcome", everySeconds: 1 })), { url: old, everySeconds: 1 }] });
 	await until("the down notice", () => notices().length === 1);
-	await until("two checks of the page / leads to", () => site.seen("/home") >= 2);
+	await until("two checks of each page a redirect leads to", () => statuses.every((status) => site.seen(`/home${status}`) >= 2));
 	assert.deepEqual(notices(), [`uptime: ${old} (project acme) is down since ${SINCE}: answered 500, expected a 2xx status`]);
+});
+
+test("a redirect's lookup that never answers ends the check at its time limit, also when the limit passes just before it", { timeout: 10_000 }, async (t) => {
+	const site = await server(t);
+	let asked = 0;
+	resolving(t, "slow.example", () => void asked++);
+	outside(t, "public.example");
+	site.answers["/"] = (response) => void response.writeHead(302, { location: "http://slow.example/" }).end();
+	site.answers["/far"] = (response) => void response.writeHead(302, { location: `http://public.example:${site.port}/` }).end();
+	const timed = async (path: string) => {
+		const from = performance.now();
+		const check = await checkSite(site.url(path), undefined, 1);
+		return { check, took: performance.now() - from };
+	};
+	const first = await timed("/");
+	assert.deepEqual([first.check, asked], [{ ok: false, reason: "no answer within 1 s", answered: false }, 1]);
+	assert.ok(first.took >= 990 && first.took < 2000, `the check took ${first.took} ms`);
+	// /far leads to public.example, whose answer leads to slow.example. That answer's body, the second one cancelled, is
+	// cancelled past the limit, so the limit has passed when the lookup of slow.example would start: none starts.
+	const [cancel, cancelled] = [ReadableStream.prototype.cancel, { count: 0 }];
+	ReadableStream.prototype.cancel = async function (this: ReadableStream, reason?: unknown) {
+		if (++cancelled.count === 2) await sleep(1100);
+		return cancel.call(this, reason);
+	};
+	t.after(() => void (ReadableStream.prototype.cancel = cancel));
+	const second = await timed("/far");
+	assert.deepEqual([second.check, asked, cancelled.count, site.seen("/")], [{ ok: false, reason: "no answer within 1 s", answered: false }, 1, 2, 2]);
+	assert.ok(second.took >= 1100 && second.took < 2000, `the check took ${second.took} ms`);
 });
 
 test("a redirect to another host is followed only when no address of it is loopback, link-local or private, at each of at most 20 hops", async (t) => {
@@ -201,18 +250,7 @@ for (const all of [true, false]) test(`a redirect to a name that answers a publi
 
 test("a hop to another host is judged by its own answer: its status, a status without a body, its text, the time limit; a bad port is refused before a connection", async (t) => {
 	const [site, inside] = [await server(t), await server(t)];
-	// public.example resolves to a public address, which net.createConnection, replaced in this process, connects to at
-	// 127.0.0.1 once the check's own lookup has allowed it: a hop to an outside host without one.
-	resolving(t, "public.example", () => [{ address: "203.0.113.5", family: 4 }]);
-	const [real, ports] = [net.createConnection, [] as number[]];
-	const local = (address: string) => (address === "203.0.113.5" ? "127.0.0.1" : address);
-	net.createConnection = ((options: TcpNetConnectOpts, listener?: () => void) => {
-		if (options.host !== "public.example") return real(options, listener);
-		ports.push(Number(options.port));
-		const lookup = options.lookup as LookupFunction;
-		return real({ ...options, lookup: (name, each, done) => lookup(name, each, (error, address, family) => done(error, typeof address === "string" ? local(address) : address.map((one) => ({ ...one, address: local(one.address) })), family)) }, listener);
-	}) as typeof real;
-	t.after(() => void (net.createConnection = real));
+	const ports = outside(t, "public.example");
 	const paths = ["/500", "/204", "/205", "/304", "/text", "/hang"];
 	Object.assign(inside.answers, { "/500": broken, "/204": (response) => void response.writeHead(204).end(), "/205": (response) => void response.writeHead(205).end(), "/304": (response) => void response.writeHead(304).end(), "/text": ok, "/hang": hang } satisfies Record<string, Answer>);
 	for (const path of paths) site.answers[path] = (response) => void response.writeHead(302, { location: `http://public.example:${inside.port}${path}` }).end();

@@ -18,7 +18,7 @@ const BOT: Readonly<Record<string, ValueOption>> = {
 };
 
 const botList: Check = (value) => (Array.isArray(value) && value.length > 0 ? undefined : "a list of at least one bot");
-const address: Check = (value) => (typeof value === "string" && /^https?:$/.test(URL.parse(value)?.protocol ?? "") ? undefined : "an http or https URL");
+const address: Check = (value) => { const url = typeof value === "string" ? URL.parse(value) : null; return url?.protocol === "https:" || (url?.protocol === "http:" && /^(localhost|127(\.\d+){3}|\[::1\])$/.test(url.hostname)) ? undefined : "an https URL, or an http one on loopback (localhost, 127.0.0.0/8, ::1)"; };
 
 export const table: OptionTable = {
 	bots: { about: "The bots, each { name?, botTokenEnv, chatIdEnv }; at most one without a name; a reply goes by the bot its messages came through, the rest by the unnamed one, else the first", check: botList, each: BOT },

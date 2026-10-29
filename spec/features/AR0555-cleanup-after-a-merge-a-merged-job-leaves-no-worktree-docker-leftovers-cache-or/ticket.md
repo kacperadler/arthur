@@ -50,3 +50,4 @@ Out:
 - 2026-10-29: AR0555: another round; the worker fixes the wake for a dropped ticket review and tests the merge ending hand-backs, then review round 4; the owner: "AR-D340 - Another round" (AR-D340)
 - 2026-10-29: AR0555 worker: if it stops at its budget, continue it with a budget of $35; the owner: "go with recommendations" (AR-D341)
 - 2026-10-29: AR0555: delivery line budget 1728 -> 1734, as the plan approved in AR-D328; the owner: "AR-D328 1" (AR-D342)
+- 2026-10-29: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

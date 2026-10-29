@@ -4171,9 +4171,9 @@
   {
     "id": "AR0526",
     "title": "A value split across two sweeps' copies of a remote job's log is not named",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0526-a-value-split-across-two-sweeps-copies-of-a-remote-job-s-log-is-not-named/ticket.md",
-    "updated": "2026-10-29T07:48:10.855Z"
+    "updated": "2026-10-29T08:07:40.927Z"
   },
   {
     "id": "AR0527",

@@ -41,3 +41,4 @@ Out:
 ## Decisions
 
 - 2026-10-28: Source: F3 of AR0524
+- 2026-10-29: AR0546: a git call in a bash call that sets git config anywhere is refused, as HOME already is; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D322)

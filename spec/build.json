@@ -3944,9 +3944,9 @@
   {
     "id": "AR0497",
     "title": "A long option of the other wrappers followed by its value still hides the command",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0497-a-long-option-of-the-other-wrappers-followed-by-its-value-still-hides-the/ticket.md",
-    "updated": "2026-10-29T10:02:54.428Z"
+    "updated": "2026-10-29T10:09:23.994Z"
   },
   {
     "id": "AR0498",

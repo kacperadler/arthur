@@ -108,7 +108,7 @@ test("a finished worker: the agent gets the worker's tools, model, thinking and 
 	assert.ok(start);
 	assert.deepEqual(start?.args, [
 		...["-p", "--mode", "json", "--auto-approve", ...SETTINGS, "--tools", "read,edit,write,bash,grep,glob"],
-		...["--append-system-prompt", join(folder, "prompt"), ...EXTENSIONS, "--model", "anthropic/opus", "--thinking", "high", `@${join(folder, "task")}`],
+		...["--session-dir", join(folder, "session"), "--append-system-prompt", join(folder, "prompt"), ...EXTENSIONS, "--model", "anthropic/opus", "--thinking", "high", `@${join(folder, "task")}`],
 	]);
 	// omp's settings the agent got: no bash call moves to the background, whose result a run that ended never gets (AR0541).
 	const settings = readFileSync(start?.args[start.args.indexOf("--config") + 1] ?? "", "utf8");
@@ -146,7 +146,7 @@ test("a read-only kind gets no edit or write, no model flag, and no commits", as
 	const folder = join(home, "jobs", job.id);
 	assert.deepEqual(starts(agent)[0]?.args, [
 		...["-p", "--mode", "json", "--auto-approve", ...SETTINGS, "--tools", "read,bash,grep,glob"],
-		...["--append-system-prompt", join(folder, "prompt"), ...EXTENSIONS, `@${join(folder, "task")}`],
+		...["--session-dir", join(folder, "session"), "--append-system-prompt", join(folder, "prompt"), ...EXTENSIONS, `@${join(folder, "task")}`],
 	]);
 	assert.deepEqual(data, { id: job.id, kind: "review", project: "acme", state: "ended", reason: "finished" });
 	assert.deepEqual([record.result, record.commits, record["tool-calls"], record.cost], ["PASS", "", "0", "0.0000"]);
@@ -168,7 +168,7 @@ test("the extensions plugins register load after the core's own, in their order,
 	const record = join(home, "jobs", job.id);
 	assert.deepEqual(starts(agent)[0]?.args, [
 		...["-p", "--mode", "json", "--auto-approve", ...SETTINGS, "--tools", "read,bash,grep,glob"],
-		...["--append-system-prompt", join(record, "prompt"), ...EXTENSIONS, ...paths.flatMap((path) => ["-e", path]), `@${join(record, "task")}`],
+		...["--session-dir", join(record, "session"), "--append-system-prompt", join(record, "prompt"), ...EXTENSIONS, ...paths.flatMap((path) => ["-e", path]), `@${join(record, "task")}`],
 	]);
 	assert.equal(readFileSync(join(folder, "loaded"), "utf8"), "first.ts\nsecond.ts\n", "the agent loaded each");
 	assert.equal(readFileSync(join(record, "extensions"), "utf8"), paths.map((path) => relative(join(import.meta.dirname, "..", "src"), path)).join("\n"));

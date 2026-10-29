@@ -159,8 +159,8 @@ test("each job gets its role's MCP servers, all or its own, read-only tools unch
 		await until(`start ${index + 1}`, () => starts().length === index + 1);
 	}
 	const record = (id: string, name: string) => join(home, "jobs", id, name);
-	// From `--tools` up to the prompt: the tools and, with servers, the plugin folder and the overlay.
-	const flags = (args: readonly string[]) => args.slice(args.indexOf("--tools"), args.indexOf("--append-system-prompt"));
+	// From `--tools` up to the session folder: the tools and, with servers, the plugin folder and the overlay.
+	const flags = (args: readonly string[]) => args.slice(args.indexOf("--tools"), args.indexOf("--session-dir"));
 	const [worker = "", review = "", audit = ""] = ids;
 	assert.deepEqual(starts().map(flags), [
 		["--tools", "read,edit,write,bash,grep,glob", "--plugin-dir", record(worker, "mcp"), "--config", record(worker, "mcp.yml")],

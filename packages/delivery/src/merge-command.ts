@@ -12,18 +12,18 @@ import { settleTicket } from "./merge-outcome.ts";
 import { FEATURE } from "./review-command.ts";
 import { reviewsOf } from "./review-records.ts";
 import { lastMerge, saveLastMerge } from "./take-main.ts";
+import { pruneTicket } from "./ticket-prune.ts";
 
 // `arthur merge <job> [--unreviewed]` (spec/roadmap.md, entry 54): an ended job's branch merged into the branch its project's
 // checkout has, main, after every refusal; the checks run there, and main reset when one fails; then the ticket's side
-// (merge-outcome.ts) and the procedure after a merge. It commits nothing past the merge and prunes nothing; main is pushed by
-// the plugin that provides `github.push` (entry 58), when one is loaded. `--auto` (entry 59): the merge without the owner,
-// after the refusals of auto-merge.ts; CI asked of github for every merge, `--no-ci` leaving it out (AR0362); `--unreviewed` and
-// `--no-ci`, never with `--auto`, only with the owner's decision orchestration's `decision.owner` holds (AR0355, AR0503). docs/commands/merge.md.
+// (merge-outcome.ts), main pushed by the plugin that provides `github.push` (entry 58) when one is loaded, the job and its
+// ticket's pruned (AR0555), and the procedure after a merge; nothing committed past the merge. `--auto` (entry 59): the merge
+// without the owner, after the refusals of auto-merge.ts; CI asked of github for every merge, `--no-ci` leaving it out (AR0362);
+// `--unreviewed` and `--no-ci`, never with `--auto`, only with the owner's decision `decision.owner` holds (AR0355, AR0503). docs/commands/merge.md.
 
 const USAGE = "usage: arthur merge <job> [--auto | [--unreviewed] [--no-ci] --decision <id>]";
 const FLAGS = ["--unreviewed", "--auto", "--no-ci"];
-// The board's moves since the last commit are left uncommitted until the commit after a merge, so they are no dirt; nor is the
-// changelog each merge rebuilds (changelog.ts).
+// The board's moves since the last commit wait uncommitted for the commit after a merge, so they are no dirt; nor is the changelog each merge rebuilds (changelog.ts).
 const DERIVED = ["spec/build.json", "CHANGELOG.md"];
 const MERGEABLE = ["in-progress", "review", "done"];
 
@@ -44,10 +44,10 @@ export function mergeCommand(host: Host, procedure: URL, held: (path: string) =>
 				console.error(`arthur merge: ${flag !== undefined ? `unknown flag ${flag}` : (mixed ?? (name === undefined ? "no job" : `one job; got ${words.length}`))}\n${USAGE}`);
 				return 2;
 			}
-			const branch = await locked(host, name, { unreviewed, decision, auto, ci: !noCi, held, stepSeconds });
+			const { job, ticket, ...branch } = await locked(host, name, { unreviewed, decision, auto, ci: !noCi, held, stepSeconds });
 			const pushed = await Promise.all(host.collect<Promise<string>>("github.push", branch));
-			for (const line of pushed) console.log(line);
-			console.log(`nothing committed but the merge, nothing ${pushed.length === 0 ? "pushed or " : ""}pruned\n\n${readFileSync(procedure, "utf8").trim()}`);
+			for (const line of [...pushed, ...pruneTicket(host, branch.project, ticket, [job], false)]) console.log(line);
+			console.log(`nothing committed but the merge${pushed.length === 0 ? ", nothing pushed" : ""}\n\n${readFileSync(procedure, "utf8").trim()}`);
 		},
 	};
 }
@@ -56,7 +56,7 @@ type Mode = { readonly unreviewed: boolean; readonly decision: string | undefine
 
 // One merge per project at a time, from its first look at main to any end (AR0468): a second one during the first's checks
 // would merge on top of its unchecked commit, which a failed check resets under it. Core's lock, a dead holder's taken over.
-async function locked(host: Host, name: string, mode: Mode): Promise<{ readonly project: string; readonly branch: string }> {
+async function locked(host: Host, name: string, mode: Mode) {
 	const job = host.jobs.list().find((each) => each.id === name || each.id.endsWith(`-${name}`));
 	if (job === undefined) throw new Error(`no job ${name}; arthur jobs lists them`);
 	const [own, merging] = [join(host.folder, job.project), join(host.folder, job.project, "merging")];
@@ -75,8 +75,8 @@ async function locked(host: Host, name: string, mode: Mode): Promise<{ readonly 
 	}
 }
 
-// Merges, and returns main as `github.push` takes it.
-async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly project: string; readonly branch: string }> {
+// Merges, and returns main as `github.push` takes it, with the job and its ticket, which the prune after it frees.
+async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly project: string; readonly branch: string; readonly job: string; readonly ticket: string | undefined }> {
 	if (job.branch === "") throw new Error(`${job.id} is a ${job.kind} job, read-only: it has no branch to merge`);
 	if (host.jobs.running().includes(job.id)) throw new Error(`${job.id} is in a run (${job.state}); merge its branch once the run has ended`);
 	const root = host.board.projects().find((project) => project.name === job.project)?.path;
@@ -163,7 +163,7 @@ async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly
 		if (ticket === undefined || folder === undefined) console.log("no ticket: no outcome.md, nothing moved");
 		else settleTicket(host, { job, ticket, folder, root, hash, subjects: subjects.split("\n"), steps, gap }, console.log);
 		console.log(writeChangelog(host, job.project));
-		return { project: job.project, branch: main };
+		return { project: job.project, branch: main, job: job.id, ticket: ticket?.id };
 	} finally {
 		rmSync(cache, { recursive: true, force: true });
 	}

@@ -1,5 +1,6 @@
 import type { Plugin } from "@arthur/core/plugin";
 import { type Failure, type Instance, type Run, type Watched, workflowRuns } from "./github-api.ts";
+import { pruned, recordPush } from "./github-branch.ts";
 import { built, cancel, ciCommand } from "./github-ci.ts";
 import { type Entry, githubCommand, repository } from "./github-command.ts";
 import { git, nearestRun, push } from "./github-git.ts";
@@ -14,7 +15,8 @@ import { readState, type State, writeState } from "./github-state.ts";
 // `wakeOn` names it; with `pull-request-review` in `wakeOn`, the reviews of the open pull requests are told likewise. A refusal
 // is said once until GitHub answers again; a rate limit stops the instance's requests for as long as GitHub says. Also `arthur
 // ci` (github-ci.ts), `arthur github` (github-command.ts), and `github.push`, which delivery asks to push a reviewed branch and
-// main. Entry 59: `github.ci` and `github.cancel`, which delivery's `arthur merge` asks. docs/github.md.
+// main. Entry 59: `github.ci` and `github.cancel`, which delivery's `arthur merge` asks. AR0555: a pruned job's branch deleted
+// on origin (github-branch.ts). docs/github.md.
 
 export type { GithubOptions };
 
@@ -38,11 +40,17 @@ export function github(options: GithubOptions): Plugin {
 			const watched: Watched[] = list.flatMap((project) => (project.ci === undefined ? [] : [{ ...repository(project, accounts, "ci.workflow is set, but "), workflow: project.ci.workflow }]));
 			host.commands.register(ciCommand(host, watched));
 			host.commands.register(githubCommand(host, list, accounts));
-			// Asked by delivery after a PASS and a merge: one line, what came of the push.
-			host.provide("github.push", ({ project, branch }: { readonly project: string; readonly branch: string }) => {
+			// Asked by delivery after a PASS and a merge: one line, what came of the push; a job's branch pushed is recorded at the tip it had.
+			host.provide("github.push", async ({ project, branch }: { readonly project: string; readonly branch: string }) => {
 				const path = list.find((each) => each.name === project)?.path;
-				return path === undefined ? Promise.resolve(`github: ${branch} not pushed to origin: no project ${project}`) : push(path, branch);
+				if (path === undefined) return `github: ${branch} not pushed to origin: no project ${project}`;
+				const tip = git(path, "rev-parse", "--verify", "--quiet", `refs/heads/${branch}`);
+				const line = await push(path, branch);
+				if (tip !== undefined && line.startsWith("github: pushed ")) recordPush(host.folder, branch, tip);
+				return line;
 			});
+			// Asked by the core's prune: a pruned job's branch deleted on origin (AR0555).
+			host.provide("jobs.keep", pruned(host, list));
 			// Asked by delivery's `arthur merge --auto` and its CI waits: the run that built a branch, as `arthur ci` finds it, with
 			// how many commits below the tip it is, undefined for none; a refusal rejects. And a hung run cancelled.
 			host.provide("github.ci", ({ project, branch }: { readonly project: string; readonly branch: string }) =>

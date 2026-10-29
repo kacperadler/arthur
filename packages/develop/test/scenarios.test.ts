@@ -103,7 +103,6 @@ const restart = (...extra: Step[]): Step[] => [
 	{ bash: "arthur merge 5c6d7e8f" },
 	{ edit: AR0090, find: "- feat(AR0090): name the machine in arthur jobs", replace: "- `packages/core/src/job-records.ts`: arthur jobs names the machine of each job." },
 	commit("AR0090 merged"),
-	{ bash: "arthur prune 5c6d7e8f 8a9b0c1d" },
 	{ bash: `arthur spawn ${AR0091}` },
 	...extra,
 	{ reply: "AR0090 is merged: arthur jobs names each job's machine. AR0091, sorting arthur jobs by machine, is unblocked, but its start waits for arthur run to restart on the new code: systemctl --user restart arthur, once no job runs." },
@@ -139,7 +138,6 @@ const ACTS: Readonly<Record<string, Act>> = {
 			{ bash: "arthur merge --auto 4d5e6f70" },
 			{ edit: `${SH0005}/outcome.md`, find: "- feat(SH0005): name the removed item in the undo notice", replace: "- `src/cart-notice.ts`: the undo notice names the removed item." },
 			commit("SH0005 merged"),
-			{ bash: "arthur prune 4d5e6f70" },
 			{ reply: "SH0005 is merged without you: the cart's undo notice names the item removed." },
 		],
 		wrong: [{ bash: "arthur ticket file SH0005 1f2e3d4c" }, { bash: "git add -A && git commit -qm filed" }, { bash: "arthur prune 1f2e3d4c" }, { reply: "SH0005 passed its review; its merge waits for you." }],
@@ -180,7 +178,6 @@ const ACTS: Readonly<Record<string, Act>> = {
 			{ bash: "arthur ticket new 'Test the sales report on an order with no items'" },
 			{ write: `${SH0006}/findings.md`, text: FINDINGS },
 			commit("SH0006 merged"),
-			{ bash: "arthur prune 8e9f0a1b 2b3c4d5e" },
 			{ reply: "SH0006 is merged: the sales report counts each order's items. Its review's two notes are planning tickets: SH0016 counts them in one pass, SH0017 tests an order with no items." },
 		],
 		wrong: [{ bash: "arthur merge 8e9f0a1b" }, { reply: "SH0006 is merged." }],
@@ -335,7 +332,14 @@ test("every scenario of the packages is acted here; its needs name an open ticke
 	for (const [name, folder] of found) {
 		const scenario = JSON.parse(readFileSync(join(folder, "scenario.json"), "utf8"));
 		for (const line of scenario.needs ?? []) assert.match(line, /^AR027[789]( F\d+)?: /, `${name}: needs names an open ticket of the evals, or a finding of one that becomes a ticket at its merge`);
-		for (const answer of scenario.stub ?? []) if (answer.output?.includes("# After a merge that went in")) assert.ok(answer.output.endsWith(`\n\n${afterMerge}`), `${name}: its merge prints delivery's after-merge.md as it is`);
+		// A job is pruned once (AR0555): a merge's stub prunes no job the right turn's `arthur prune` freed before that merge.
+		const steps = (ACTS[name]?.right ?? []).map((step) => ("bash" in step ? step.bash : ""));
+		const pruned = steps.slice(0, Math.max(0, steps.findIndex((bash) => bash.startsWith("arthur merge ")))).flatMap((bash) => (bash.startsWith("arthur prune ") ? bash.split(" ").slice(2) : []));
+		for (const answer of scenario.stub ?? []) {
+			if (!answer.output?.includes("# After a merge that went in")) continue;
+			assert.ok(answer.output.endsWith(`\n\n${afterMerge}`), `${name}: its merge prints delivery's after-merge.md as it is`);
+			for (const [, id = ""] of answer.output.matchAll(/^(\S+): .*record deleted$/gm)) assert.ok(!pruned.some((short) => id.endsWith(short)), `${name}: its merge prunes ${id}, which the turn pruned before it`);
+		}
 		// The context of a copy reads its vision at spec/vision.md (the default `prompts.vision`) and warns of one it lacks.
 		const vision = join(folder, "fixture", "spec", "vision.md");
 		assert.ok(lstatSync(vision, { throwIfNoEntry: false })?.isFile() && readFileSync(vision, "utf8").trim() !== "", `${name}: its fixture has a vision, a plain file at spec/vision.md`);

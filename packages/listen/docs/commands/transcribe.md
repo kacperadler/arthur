@@ -2,7 +2,7 @@
 
 Usage: `arthur transcribe <file> [--times]`.
 
-A voice note, an audio file or any file ffmpeg reads, transcribed on this server by whisper.cpp, never in the cloud (the voice plugin, AR0550; docs/voice.md). It goes through `voice.transcribe`, so through the same queue, `model`, `threads`, `language`, `timeoutSeconds` and `maxSeconds` as a voice note from a channel: one file at a time in this process.
+A voice note, an audio file or any file ffmpeg reads, transcribed on this server by whisper.cpp, never in the cloud (the listen plugin, AR0550; docs/listen.md). It goes through `listen.transcribe`, so through the same queue, `model`, `threads`, `language`, `timeoutSeconds` and `maxSeconds` as a voice note from a channel: one file at a time in this process.
 
 ```
 $ arthur transcribe .arthur/telegram/media/note.ogg
@@ -23,4 +23,4 @@ Refused, exit code 1, nothing transcribed, on stderr:
 - `whisper-cli` or `ffmpeg` not on `PATH`, or the model file missing: `refused: <file>: not transcribed: <whisper-cli | model <path> | ffmpeg> missing; see arthur doctor`;
 - ffmpeg or whisper-cli failing: `refused: <file>: not transcribed: <the last line it printed on stderr>`, or `timed out after <timeoutSeconds> s`.
 
-Exit code 2 for no file, two files, or an option other than `--times`. Without the voice plugin enabled, `arthur` has no `transcribe` command.
+Exit code 2 for no file, two files, or an option other than `--times`. Without the listen plugin enabled, `arthur` has no `transcribe` command.

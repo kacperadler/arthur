@@ -1,6 +1,6 @@
 // Example arthur.config.ts with every plugin, planned ones included. Built, under `packages/`: the core and commit-rules,
-// delivery, develop, findings, github, machines, manage, models, nvm, orchestration, projects, resources, schedule, session,
-// telegram, uptime, video, voice, youtrack. Planned, no package yet (spec/roadmap.md builds them): discord, docker (first); server,
+// delivery, develop, findings, github, listen, machines, manage, models, nvm, orchestration, projects, resources, schedule,
+// session, telegram, uptime, video, youtrack. Planned, no package yet (spec/roadmap.md builds them): discord, docker (first); server,
 // signal, slack, whatsapp (later). So a copy of the whole file does not load; it fails on the first planned import
 // (`Cannot find package '@arthur/discord'`). Take a plugin from it once its package exists. Illustrative for the planned
 // ones: their option names are proposed, not final.
@@ -32,6 +32,7 @@ import { discord } from "@arthur/discord"; // first, named
 import { docker } from "@arthur/docker"; // first, named
 import { findings } from "@arthur/findings"; // first, named
 import { github } from "@arthur/github"; // first, derived
+import { listen } from "@arthur/listen"; // first, named
 import { machines } from "@arthur/machines"; // first, named
 import { manage } from "@arthur/manage"; // first, named
 import { models } from "@arthur/models"; // first, named
@@ -47,7 +48,6 @@ import { slack } from "@arthur/slack"; // later, named
 import { telegram } from "@arthur/telegram"; // first, named
 import { uptime } from "@arthur/uptime"; // first, named
 import { video } from "@arthur/video"; // first, named
-import { voice } from "@arthur/voice"; // first, named
 import { whatsapp } from "@arthur/whatsapp"; // later, named
 import { youtrack } from "@arthur/youtrack"; // first, named
 
@@ -372,7 +372,7 @@ export default defineConfig({
 
 		// Channels: the same interface (receive, send text, send media), one plugin each. A channel only receives: it saves what came
 		// under `.arthur/<channel>/` and emits one message with its parts typed (text, photo, video, voice, audio, file; an album is
-		// several parts), and transcribes nothing; a media plugin (voice, video) turns the parts it handles into text for the coordinator.
+		// several parts), and transcribes nothing; a media plugin (listen, video) turns the parts it handles into text for the coordinator.
 		// A channel only routes `/name text` to the host and sends the reply; each plugin registers the commands it owns (`/jobs`,
 		// `/board`, `/health`, `/restart`, ...).
 		// A message may carry its place (a Telegram topic, a Discord or Slack channel): a place some project's `chat` names goes to
@@ -386,10 +386,10 @@ export default defineConfig({
 		// Voice notes and audio files from any channel, transcribed on this server's CPU with whisper.cpp (`whisper-cli`); nothing
 		// leaves the server. ffmpeg converts the channel's audio; one file at a time, in the order they came. The coordinator gets
 		// `[voice <seconds> s] <transcript> (<path>)` (`[audio ...]` for an audio file); the original file stays where the channel
-		// saved it. `arthur transcribe <file> [--times]` and `voice.transcribe` do the same for any file. `arthur doctor` checks
+		// saved it. `arthur transcribe <file> [--times]` and `listen.transcribe` do the same for any file. `arthur doctor` checks
 		// `whisper-cli`, the model file and `ffmpeg`; while one is missing a note reaches the coordinator as its path.
-		voice({
-			model: "medium", // a whisper.cpp model name (the file .arthur/voice/models/ggml-<model>.bin) or the absolute path of a .bin file
+		listen({
+			model: "medium", // a whisper.cpp model name (the file .arthur/listen/models/ggml-<model>.bin) or the absolute path of a .bin file
 			threads: 4, // CPU threads whisper uses
 			language: "pl", // a language code, or "auto" for whisper's own detection
 			timeoutSeconds: 300, // ffmpeg or whisper running longer on one file is killed; the coordinator gets the path and why
@@ -397,8 +397,8 @@ export default defineConfig({
 		}),
 
 		// Videos from any channel, cut on this server by ffmpeg; nothing leaves the server. The coordinator gets a few frames as PNG
-		// files in .arthur/video/, each with the second it shows, and the words of the sound track through the voice plugin's
-		// `voice.transcribe`: `[video <seconds> s] <transcript> frames: <path> at <s> s, ... (<path>)`. `arthur doctor` checks
+		// files in .arthur/video/, each with the second it shows, and the words of the sound track through the listen plugin's
+		// `listen.transcribe`: `[video <seconds> s] <transcript> frames: <path> at <s> s, ... (<path>)`. `arthur doctor` checks
 		// `ffmpeg` and `ffprobe`; while one is missing a video reaches the coordinator as its path.
 		video({
 			everySeconds: 5, // a frame from each step of this many seconds; a scene change adds one between them

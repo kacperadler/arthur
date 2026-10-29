@@ -26,6 +26,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0546 A function body or a trap is judged before a later export, and the `function f { }` form is not parsed at all (a634a0ac)
 - AR0547 A `~` after a `:` in an assignment's value is not expanded by the parser (0eca382f)
 
+### Changed
+
+- AR0554 Rename the voice plugin to listen (4fcca560)
+
 ## 2026-10-28
 
 ### Added

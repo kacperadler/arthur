@@ -9,7 +9,7 @@ import { absent, requirements } from "./video-tools.ts";
 import { tenth, words } from "./words.ts";
 
 // The video plugin (AR0551): every `video` part from any channel reaches the coordinator as what it shows and what is said in
-// it, cut on this server by ffmpeg into frames and a sound track the voice plugin transcribes. docs/video.md.
+// it, cut on this server by ffmpeg into frames and a sound track the listen plugin transcribes. docs/video.md.
 
 export function video(options: { readonly enabled?: boolean } & Partial<VideoOptions> = {}): Plugin {
 	return {

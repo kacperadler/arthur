@@ -1,14 +1,14 @@
 import { accessSync, constants, statSync } from "node:fs";
-import { delimiter, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import type { Requirement } from "@arthur/core/plugin";
-import type { VoiceOptions } from "./voice-options.ts";
+import type { ListenOptions } from "./listen-options.ts";
 
 // What a transcription needs on this server (spec/roadmap.md, entry 81): `whisper-cli` and `ffmpeg` on PATH and the model
-// file. `arthur doctor` lists them, none critical; a transcription runs only when none is missing. docs/voice.md.
+// file. `arthur doctor` lists them, none critical; a transcription runs only when none is missing. docs/listen.md.
 
 const COSTS = "voice notes and audio files reach the coordinator as paths, and arthur transcribe refuses";
 
-// The model's file: a path as given, a name in `folder`, the plugin's own (`<home>/voice/`).
+// The model's file: a path as given, a name in `folder`, the plugin's own (`<home>/listen/`).
 export const modelFile = (model: string, folder: string): string => (model.startsWith("/") ? model : join(folder, "models", `ggml-${model}.bin`));
 
 // Whether an executable file `name` is in a folder of PATH, as the shell finds it.
@@ -24,9 +24,11 @@ function onPath(name: string): boolean {
 }
 
 // Each requirement: `what` a note's line names when it is missing, `why` the doctor's reason.
-function needs(options: VoiceOptions, folder: string) {
+function needs(options: ListenOptions, folder: string) {
 	const file = modelFile(options.model, folder);
-	const download = options.model.startsWith("/") ? `put the model at ${file}` : `in whisper.cpp, sh models/download-ggml-model.sh ${options.model}, then move models/ggml-${options.model}.bin to ${file}`;
+	// A named model where the plugin kept it while it was called voice (AR0554): the fix is its move.
+	const old = modelFile(options.model, join(dirname(folder), "voice"));
+	const download = options.model.startsWith("/") ? `put the model at ${file}` : statSync(old, { throwIfNoEntry: false })?.isFile() ? `mkdir -p ${dirname(file)} && mv ${old} ${file}` : `in whisper.cpp, sh models/download-ggml-model.sh ${options.model}, then move models/ggml-${options.model}.bin to ${file}`;
 	return [
 		{ name: "whisper-cli", what: "whisper-cli", why: "whisper-cli not found on PATH", there: () => onPath("whisper-cli"), fix: "build whisper.cpp (git clone https://github.com/ggml-org/whisper.cpp; cmake -B build; cmake --build build -j --config Release) and put build/bin/whisper-cli on PATH" },
 		{ name: "whisper model", what: `model ${file}`, why: `no file ${file}`, there: () => statSync(file, { throwIfNoEntry: false })?.isFile() ?? false, fix: download },
@@ -35,11 +37,11 @@ function needs(options: VoiceOptions, folder: string) {
 }
 
 // The first thing missing, as a note's line names it (`<what> missing; see arthur doctor`), or undefined.
-export function missing(options: VoiceOptions, folder: string): string | undefined {
+export function missing(options: ListenOptions, folder: string): string | undefined {
 	const need = needs(options, folder).find(({ there }) => !there());
 	return need === undefined ? undefined : `${need.what} missing; see arthur doctor`;
 }
 
-export function requirements(options: VoiceOptions, folder: string): Requirement[] {
+export function requirements(options: ListenOptions, folder: string): Requirement[] {
 	return needs(options, folder).map(({ name, why, there, fix }) => ({ name, check: () => (there() ? "ok" : `missing: ${why}`), costs: COSTS, fix, critical: false }));
 }

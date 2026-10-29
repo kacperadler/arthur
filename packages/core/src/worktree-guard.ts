@@ -44,13 +44,13 @@ function refusal(place: Place, path: string, shown = path, named = true): string
 // point a checkout at a branch another worktree holds (`--ignore-other-worktrees`, `checkout -B`, `symbolic-ref`), `git replace` but a list, one that rewrites
 // the repository every worktree shares (`gc`, `prune`, `repack`, `reflog expire`, `maintenance`, `filter-repo`, `worktree prune`, `worktree add` or `move`
 // outside the worktrees folder, `gc.*` or `maintenance.*` config given or written), or one of these after a `cd` there. The command is the word after
-// assignments and wrappers (`sudo`, `timeout 60`, the words `env -S` splits), also in `bash -c`, a shell's heredoc, `eval`; each path is resolved from where the commands before it left
+// assignments and wrappers (`sudo`, `timeout 60`, the words `env -S` splits), also in `bash -c`, a shell's heredoc, `eval`, a trap's command, a function's body where it is defined (`f() …`, `function f …`); each path is resolved from where the commands before it left
 // (`cd`, `cd -`, `pushd`, `git -C`, a subshell undoing them; `env -C` and `sudo -D` for the command alone, not the redirects the shell opens or its `$PWD`), through symlinks, with `$HOME`, `$ARTHUR_JOB` and `$PWD` known; one of them set by the call, before a command but `git` (which refuses it as config unseen), alone or by `export`, `declare`, `typeset`, `readonly` or `local`, or any name one of those builtins, `env` or `sudo` sets that is not a plain name (letters, digits and `_`, not first a digit, with no expansion, glob, brace list, index or escape: `export {HOME,X}=…`, `env HOM[E]=…`, `export HOM@(E)=…`, `export $v=…`), is refused as unknown, every word being read with the values the job started with. Not seen: a path built at run time (another `$x`, a glob, a brace list, what `xargs` reads, an `OLDPWD` `read` sets, a `GIT_DIR` exported before), a program that writes (`node -e`, `tar -C`, `curl -o`), an alias in the user's Git config, a link the same call makes and uses, or a ref no worktree has checked out moved from the job's own worktree. It is not a sandbox. A backslash-newline after a character other than a blank, or in `$'…'` (which keeps it where the parser decodes it away), or any after a heredoc's `<<`, in the call or in what a shell or `eval` in it runs (`$'…'` may make one there), is unknown (`\0`): bash joins the lines there and the parser does not (AR0493); so is a `<<` after `((` or `$[`, which bash may read as arithmetic and the parser as a heredoc.
-function bashRefusal(place: Place, command: string, start: string): string | undefined {
+function bashRefusal(place: Place, command: string, start: string, unread?: readonly string[]): string | undefined {
 	let cwd = start;
 	// Where `cd -`, `~-` and `$OLDPWD` (shell-words.ts reads it as `~-`, with another operator `\0-`) go: bash's OLDPWD, from the agent's env; none when unset.
 	let [previous, fixed, pushed] = [process.env.OLDPWD, false, [] as string[]];
-	const [known, subshells, configured] = [{ HOME: process.env.HOME, ARTHUR_JOB: process.env.ARTHUR_JOB }, [] as [string, string | undefined, string[], boolean][], [] as string[]];
+	const [known, subshells, configured] = [{ HOME: process.env.HOME, ARTHUR_JOB: process.env.ARTHUR_JOB }, [] as [string, string | undefined, string[], boolean][], [...(unread ?? [])]];
 	const located = (base: string, path: string): string => real(resolve(base, path.replace(/^~-(?=\/|$)/, previous || "~-")));
 	const parse = (text: string): Item[] => (/(?<![ \t])\\\n|(?<!<)<<(?!<)[^]*\\\n|\$'(?:[^'\\]|\\[^])*\\\n|(?:\(\(|\$\[)[^]*<</.test(text) ? [{ words: ["\0"], writes: [], reads: [], stdin: [], alone: true }] : shellCommands(text, known));
 	// A `~+` without a backslash (`$PWD`, or the prefix `~+` alone or before `/` at a word's start or after its `=`; shell-words.ts), and `\0+` in a here-string or a heredoc a shell reads: where the shell is.
@@ -80,7 +80,7 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 		if (!moved && redirected === undefined && dirs.length > 0) return run(["("]) ?? ((cwd = dirs.reduce(located, cwd)), judge({ ...command, words: raw, stdin: command.stdin.map((text) => text.replaceAll("\0+", subshells.at(-1)![0])), writes: [] }, true)) ?? run([")"]);
 		const moves = ["cd", "pushd", "popd"].includes(verb);
 		const args = words.slice(at + 1);
-		// An assignment (`=`, `+=`, to `OLDPWD[0]`, or a list `OLDPWD=(a …)` for `a`) alone or by `export`, `declare` or `readonly` sets OLDPWD as written, an `unset` but `-f` clears it, neither once read-only, and a `local` naming it makes it unknown (`\0`), in a function's body or at the top, where bash refuses it; one before `cd` sets it for that `cd` (which then sets the folder it left), one before a shell or `eval` for what they run, a child shell's writable again. Config the guard does not read (`UNREAD`) set so, or by `local`, counts as set before every git call after it, even past the end of a subshell that set it.
+		// An assignment (`=`, `+=`, to `OLDPWD[0]`, or a list `OLDPWD=(a …)` for `a`) alone or by `export`, `declare` or `readonly` sets OLDPWD as written, an `unset` but `-f` clears it, neither once read-only, and a `local` naming it makes it unknown (`\0`), in a function's body or at the top, where bash refuses it; one before `cd` sets it for that `cd` (which then sets the folder it left), one before a shell or `eval` for what they run, a child shell's writable again. Config the guard does not read (`UNREAD`) set so, or by `local`, counts as set before every git call of the call, also one before it, which a function's body, a trap or a loop's next round runs after it (the call is judged again with it known), and past the end of a subshell that set it.
 		if (at < 0 || ["export", "declare", "typeset", "readonly", "local"].includes(verb)) configured.push(...words.filter((word) => UNREAD.test(word)));
 		for (const set of command.alone && !fixed && (at < 0 || moves || ["export", "declare", "typeset", "readonly"].includes(verb)) ? command.words.map((word) => /^OLDPWD(?:\[0+\])?(\+?)=\(?([^]*)/.exec(word)) : []) if (set) previous = (set[1] ? (previous ?? "") : "") + literal(set[2]!).replace(/^~-(?=\/|$)/, previous || "~-");
 		if (command.alone && !fixed && verb === "unset" && words.some((word) => /^OLDPWD(\[0+\])?$/.test(word)) && !words.some((word) => /^-\w*f/.test(word))) previous = undefined;
@@ -100,6 +100,9 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 		} else if (SHELLS.includes(verb)) {
 			const flag = args.findIndex((word) => /^-[a-z]*c[a-z]*$/.test(word));
 			return (flag >= 0 ? [args[flag + 1] ?? ""] : operands.length === 0 ? command.stdin : []).map((text) => run(["(", { ...command, words: command.words.slice(0, at), alone: true }]) ?? ((fixed = false), run([...parse(text.replaceAll("\0+", cwd)), ")"]))).find(Boolean);
+		} else if (verb === "trap") {
+			// The command a trap runs later, its first word (after `--`; its options only list), is judged where it is set, in a subshell so its `cd` does not move what follows.
+			return run(["(", ...parse((args[0] === "--" ? args[1] : args[0]) ?? ""), ")"]);
 		} else if (verb === "eval") {
 			// Bash puts back the OLDPWD a prefix replaced once `eval` ends, whatever its `cd`s set.
 			const [kept, found] = [previous, run([{ ...command, words: command.words.slice(0, at), alone: true }, ...parse(args.join(" "))])];
@@ -142,7 +145,7 @@ function bashRefusal(place: Place, command: string, start: string): string | und
 		const tree = writesCheckout || config !== undefined ? (theirs([dir], dir, false) ?? theirs(trees, dir, false) ?? [dir, ...trees].flatMap((path) => linkedFolders(located(dir, path)).map((folder) => refusal(place, real(folder), `${path}, a link to ${folder}`, false))).find(Boolean)) : undefined;
 		return tree ?? (writesOperands ? theirs(rest, dir) : undefined) ?? (alias === undefined ? undefined : git(alias, assignments));
 	};
-	return run(parse(command));
+	return run(parse(command)) ?? (unread === undefined ? bashRefusal(place, command, start, configured) : undefined);
 }
 
 // The files an `edit` input names: each `[path#TAG]` header and each `MV` target; `+` body lines are text.

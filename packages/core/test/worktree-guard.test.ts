@@ -89,7 +89,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	// The whole refusal: its patch saves staged and unstaged changes in a folder of the job's own worktree that ignores itself, never a name in the shared /tmp another job may pick too, nor a file a `git add -A` commits.
 	const STASH = "arthur: refused: git stash keeps one stack for every worktree of the repository, so a pop may apply another job's change here; save your staged and unstaged changes in a folder your worktree ignores instead (mkdir -p .arthur-stash && echo '*' > .arthur-stash/.gitignore && git diff --binary HEAD > .arthur-stash/patch, then git apply .arthur-stash/patch)";
 	const LINK = "a link to a repository";
-	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes, or by an unquoted `~name` (a user's home or a `dirs` entry); or the command holds a backslash-newline after a character other than a blank, or in `$'…'`, or any after a heredoc's `<<`, where bash joins the lines, or a `<<` after `((` or `$[`, which bash may read as arithmetic; name the folder instead, on one line";
+	const UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes, or by an unquoted `~name` (a user's home or a `dirs` entry); or the command holds a backslash-newline after a character other than a blank, or in `$'…'`, or any after a heredoc's `<<`, where bash joins the lines, or a `<<` after `((` or `$[`, which bash may read as arithmetic; or HOME, ARTHUR_JOB or PWD is set by the call, which the guard reads as the job started, or a variable `export`, `declare`, `typeset`, `readonly`, `local`, `env` or `sudo` sets is named other than by a plain name (letters, digits and `_`, not first a digit, written as is); name the folder instead, on one line";
 	// Each call, and the place its refusal names: undefined when it passes.
 	const calls: ReadonlyArray<readonly [string, Record<string, unknown>, string | undefined]> = [
 		["bash", { command: `echo x > ${main}/README.md` }, MAIN],
@@ -181,7 +181,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `cd ${main}; cd /tmp; OLDPWD+=/ eval 'cd /var'; cd -; rm README.md` }, MAIN],
 		["bash", { command: `cd /tmp; cd /var; OLDPWD[0]=${root}; cd -; rm README.md` }, MAIN],
 		["bash", { command: `cd /tmp; OLDPWD=(${root}); cd -; rm README.md` }, MAIN],
-		["bash", { command: `cd /tmp; declare OLDPWD[0]=${root}; cd -; rm README.md` }, MAIN],
+		["bash", { command: `cd /tmp; declare OLDPWD[0]=${root}; cd -; rm README.md` }, UNKNOWN],
 		["bash", { command: `cd ${main}; cd /tmp; OLDPWD[1]=/var; cd -; rm README.md` }, MAIN],
 		["bash", { command: `cd /tmp; cd ${root}; unset OLDPWD[0]; cd -; rm README.md` }, MAIN],
 		["bash", { command: `cd ${main}; OLDPWD='(/tmp'; cd -; rm README.md` }, MAIN],
@@ -237,6 +237,10 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `sudo --login rm ${main}/README.md` }, MAIN],
 		["bash", { command: `sudo --user=root rm ${main}/README.md` }, MAIN],
 		["bash", { command: `env --unset=X --ignore-environment rm ${main}/README.md` }, MAIN],
+		// AR0497: so do those of timeout, nice, ionice, stdbuf, GNU time and xargs, and a prefix of several that agree on taking one (`time --out`); xargs' optional ones, ionice's `-t` and a prefix of several that disagree take none.
+		["bash", { command: `timeout --signal KILL 60 rm ${main}/README.md` }, MAIN],
+		...["timeout --signal", "timeout --s", "timeout --kill-after", "nice --adjustment", "nice --a", "ionice --class", "ionice --classdata", "ionice --pid", "ionice --pgid", "ionice --uid", "ionice -P", "ionice -u", "stdbuf --input", "stdbuf --output", "stdbuf --error", "time --format", "time --output", "time --output-file", "time --out", "xargs --arg-file", "xargs --delimiter", "xargs --max-args", "xargs --max-chars", "xargs --max-procs", "xargs --process-slot-var"].map((option) => ["bash", { command: `${option} X ${option.startsWith("timeout") ? "60 " : ""}rm ${main}/README.md` }, MAIN] as const),
+		...["xargs --max-lines", "xargs --replace", "xargs --eof", "xargs -i", "xargs -l", "xargs --max-", "ionice -t", "ionice --ignore", "timeout --foreground 60", "time --verbose"].map((option) => ["bash", { command: `${option} rm ${main}/README.md` }, MAIN] as const),
 		["bash", { command: `cd ${main}; env -C /tmp rm $PWD/README.md` }, MAIN],
 		["bash", { command: "GIT_WORK_TREE=~/acme git checkout -- ." }, MAIN],
 		["bash", { command: "GIT_INDEX_FILE=~/acme/.git/index git add ." }, MAIN],
@@ -275,6 +279,76 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: "bash <<EOF\nrm \\\n$HOME/acme/README.md\nEOF" }, UNKNOWN],
 		["bash", { command: `bash <<EOF\necho x > \$toString${main}/README.md\nEOF` }, MAIN],
 		["bash", { command: "bash <<'EOF'\necho x > \\$ARTHUR_JOB/result\nEOF\nbash <<EOF\necho x > \\\\\\$ARTHUR_JOB/result\nEOF" }, undefined],
+		// AR0496: a call that sets HOME, ARTHUR_JOB or PWD, before a command, alone or by a declaration, is refused as unknown; the guard read every word with the values the job started with.
+		["bash", { command: `HOME=${main} bash <<EOF\nrm \\$HOME/README.md\nEOF` }, UNKNOWN],
+		["bash", { command: `HOME=${main} bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `env HOME=${main} sh -c 'cd && rm README.md'` }, UNKNOWN],
+		["bash", { command: `HOME=${main}; echo x > ~/README.md` }, UNKNOWN],
+		["bash", { command: `PWD=${main}; bash <<EOF\nrm $PWD/README.md\nEOF` }, UNKNOWN],
+		// A read the guard judges before the assignment still runs after it: a function's body, a loop's next round.
+		["bash", { command: `f() { rm $HOME/README.md; }; export HOME=${main}; f` }, UNKNOWN],
+		["bash", { command: `f() { rm $HOME/README.md; }; HOME=${main}; f` }, UNKNOWN],
+		["bash", { command: `f() { rm ~/README.md; }; declare -x HOME=${main}; f` }, UNKNOWN],
+		["bash", { command: `f() { bash -c 'rm $HOME/README.md'; }; export HOME=${main}; f` }, UNKNOWN],
+		["bash", { command: `f() { cd; rm README.md; }; export HOME=${main}; f` }, UNKNOWN],
+		["bash", { command: `f() { rm $PWD/README.md; }; PWD=${main}; f` }, UNKNOWN],
+		["bash", { command: `for i in 1 2; do rm -f $HOME/README.md; HOME=${main}; done` }, UNKNOWN],
+		["bash", { command: `while :; do rm $HOME/README.md; export HOME=${main}; done` }, UNKNOWN],
+		["bash", { command: `HOME=${main} cd && rm README.md` }, UNKNOWN],
+		["bash", { command: `HOME=${main} find . -maxdepth 0 -exec sh -c 'rm $HOME/README.md' \\;` }, UNKNOWN],
+		["bash", { command: `HOME=${main}; rm ~/README.md` }, UNKNOWN],
+		["bash", { command: `export HOME=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `f() { local PWD=${main}; rm $PWD/README.md; }; f` }, UNKNOWN],
+		["bash", { command: `PWD=${main}; rm $PWD/README.md` }, UNKNOWN],
+		["bash", { command: `ARTHUR_JOB=${main} eval 'rm $ARTHUR_JOB/README.md'` }, UNKNOWN],
+		["bash", { command: `bash -c 'HOME+=/acme; rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `HOME[0]=${main}; rm $HOME/README.md` }, UNKNOWN],
+		["bash", { command: `declare -x HOME=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `typeset HOME=${main}; rm $HOME/README.md` }, UNKNOWN],
+		["bash", { command: `readonly HOME=${main}; rm $HOME/README.md` }, UNKNOWN],
+		// A name an `export`, `declare`, `typeset`, `readonly` or `local` sets that holds an expansion is known only at run time.
+		["bash", { command: `v=HOME; export $v=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `v=HOME; declare "\${v}=${main}"; rm ~/README.md` }, UNKNOWN],
+		["bash", { command: `v=OME; export H$v=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `export $(echo HOME=${main}); bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `f() { local \`echo PWD\`=${main}; rm $PWD/README.md; }; f` }, UNKNOWN],
+		["bash", { command: `declare -x "\`echo HOME\`=${main}"; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		// Only a plain name (letters, digits and `_`, not first a digit, written as is) passes where a declaration, `env` or `sudo` sets one (AR-D245): a brace list, a glob, an extglob, an index, a quoted or escaped special character is refused.
+		["bash", { command: `export {HOME,X}=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `export HOM{E,}=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `declare -x {HOME,X}=${main}; rm ~/README.md` }, UNKNOWN],
+		["bash", { command: `f() { local {PWD,X}=${main}; rm $PWD/README.md; }; f` }, UNKNOWN],
+		["bash", { command: `export HOM?=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `export HOM*=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `export H[O]ME=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		// An index is a glob too where the shell does not see the builtin itself (`command`, `builtin`, dash's `export`): it matches a folder named `HOME=..`.
+		["bash", { command: `command export HOM[E]=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `builtin export HOM[E]=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `sh -c 'export HOM[E]=${main}; rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `command declare -x HOM[E]=${main}; bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `command export PW[D]=${main}; bash -c 'rm $PWD/README.md'` }, UNKNOWN],
+		// Review 6 of AR0496: an extglob in a declared name, and a brace list, glob or expansion in a name `env` or `sudo` sets.
+		["bash", { command: "bash -O extglob -c 'export HOM@(E)=../../acme; rm $HOME/README.md'" }, UNKNOWN],
+		["bash", { command: "bash -O extglob -c 'export HOM+(E)=../../acme; rm $HOME/README.md'" }, UNKNOWN],
+		["bash", { command: "shopt -s extglob; command export HOM@(E)=../../acme; bash -c 'rm $HOME/README.md'" }, UNKNOWN],
+		["bash", { command: "env {HOME,X}=../../acme bash -c 'rm $HOME/README.md'" }, UNKNOWN],
+		["bash", { command: "env HOM[E]=../../acme bash -c 'rm $HOME/README.md'" }, UNKNOWN],
+		["bash", { command: "env HOM?=../../acme bash -c 'rm $HOME/README.md'" }, UNKNOWN],
+		["bash", { command: `sudo HOM[E]=${main} bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `env $v=${main} bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `env -u X \${v:-X}=${main} bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `sudo -u root env $v bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `env "$v" bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `env "\`echo HOME=${main}\`" bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `env \`echo HOME=${main}\` bash -c 'rm $HOME/README.md'` }, UNKNOWN],
+		["bash", { command: `export "{HOME,X}=1"` }, UNKNOWN],
+		["bash", { command: `export 'HOM?'=2` }, UNKNOWN],
+		["bash", { command: `export HOM\\[E]=${main}` }, UNKNOWN],
+		["bash", { command: `declare -a 'arr[0]'=1` }, UNKNOWN],
+		["bash", { command: "export 1X=1" }, UNKNOWN],
+		["bash", { command: `export Y={a,b} Z=* _x1+=2 "W"=3 -- V; declare +x -a arr=(1 2); env -u X FOO=1 BAR+=2 ls $v "$w" \${x:-y}; sudo -u root ls $v` }, undefined],
+		["bash", { command: `export FOO=$x BAR="$(pwd)" > $log; declare -r v=\${x:-1}; readonly "w=$v"` }, undefined],
+		["bash", { command: `echo HOME=${main} PWD=${main} > notes.txt; HOMEX=${main} PWDX=1 bash -c 'rm $HOME/README.md'` }, undefined],
 		// AR0471: an operator of `${PWD…}` or of a known variable the parser does not read is refused, as one of `${OLDPWD…}` is.
 		["bash", { command: `echo x > \${ARTHUR_JOB%/*}/${other.id}/result` }, UNKNOWN],
 		["bash", { command: `echo x > \${x:-\${ARTHUR_JOB%/*}}/${other.id}/result` }, UNKNOWN],
@@ -297,6 +371,13 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		...[..." \t\n<>;&|()#"].map((char) => ["bash", { command: `rm \${x:-a${char}b}/README.md` }, UNKNOWN] as const),
 		["bash", { command: `echo \${x:-"a b"} \${x:-'a;b'} \${x:-a\\ b} \${HOME:-a b} \${PWD-a;b}` }, undefined],
 		["bash", { command: 'rm "${x:-a ../../acme/README.md}"' }, undefined],
+		// AR0491: the substitutions in a fallback word run before the command it is in, with each operator, quoted or not, nested, and a `cd` in them does not last.
+		["bash", { command: "echo ${x:-$(rm ../../acme/README.md)}" }, MAIN],
+		["bash", { command: 'echo "${x:-$(rm ../../acme/README.md)}"' }, MAIN],
+		...["-", "=", ":=", "+", ":+", "?", ":?"].map((operator) => ["bash", { command: `echo \${x${operator}$(rm ../../acme/README.md)}` }, MAIN] as const),
+		["bash", { command: 'echo "${x:-`rm ../../acme/README.md`}"' }, MAIN],
+		["bash", { command: "echo ${x:-${y:-$(echo $(rm ../../acme/README.md))}}" }, MAIN],
+		["bash", { command: 'echo "${x:-$(cd ../../acme)}"; rm README.md' }, undefined],
 		...[..."<>;&|()#"].map((char) => ["bash", { command: `rm "\${x:-${char}}../../../../acme/README.md"` }, MAIN] as const),
 		["bash", { command: 'rm "${x:-~}"/../../../acme/README.md' }, MAIN],
 		["bash", { command: 'rm "${x:-~/../../../acme/README.md}"' }, MAIN],
@@ -697,27 +778,31 @@ test("config set earlier in the same call (export, declare -x, a bare assignment
 	const unseen = [
 		"export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.c GIT_CONFIG_VALUE_0=config; git c a.c d",
 		"export GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=commit.gpgSign GIT_CONFIG_VALUE_0=false; git commit -q -am x",
-		"export HOME=/tmp/h; git commit -m x",
-		"readonly HOME=/tmp/h; git status",
 		"f() { local XDG_CONFIG_HOME=/tmp/h; git status; }; f",
 		"export XDG_CONFIG_HOME=/tmp/h && git status",
 		"declare -x GIT_CONFIG_GLOBAL=/tmp/x.cfg; git commit -m x",
 		"typeset -gx GIT_CONFIG_PARAMETERS=\"'alias.c'='config'\"; git c a.c d",
-		"HOME=/tmp/h; git commit -m x",
 		"XDG_CONFIG_HOME+=/h; export XDG_CONFIG_HOME; git status",
 		"HOME+=/h git commit -m x",
 		"HOME[0]=/tmp/h git commit -m x",
+		"env XDG_CONFIG_HOME=/tmp/h sh -c 'git status'",
+	];
+	for (const command of unseen) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /^arthur: refused: this git call reads config the guard does not/, command);
+	// HOME set alone, by a declaration or before a shell or `eval` is refused where it stands (AR0496), wherever a read of it runs, so before any git call; one after git too.
+	const unknown = [
+		"export HOME=/tmp/h; git commit -m x",
+		"readonly HOME=/tmp/h; git status",
+		"HOME=/tmp/h; git commit -m x",
 		"export HOME=/tmp/h; cd ..; (git commit -m x)",
 		"export HOME=/tmp/h; bash -c 'git commit -m x'",
 		"bash -c 'export HOME=/tmp/h; git commit -m x'",
 		"HOME=/tmp/h bash -c 'git commit -m x'",
-		"env XDG_CONFIG_HOME=/tmp/h sh -c 'git status'",
 		"HOME=/tmp/h eval git commit -m x",
 		"export 'HOME=/tmp/h'; git commit -m x",
-	];
-	for (const command of unseen) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /^arthur: refused: this git call reads config the guard does not/, command);
-	const passing = [
 		"git commit -m x; export HOME=/tmp/h",
+	];
+	for (const command of unknown) assert.match(worktreeRefusal(place, "bash", { command }) ?? "", /^arthur: refused: the guard cannot tell where this path leads/, command);
+	const passing = [
 		"export GIT_AUTHOR_NAME=x GIT_CONFIG_NOSYSTEM=1; git commit -m x",
 		"HOMEDIR=/tmp/h; export XDG_CONFIG; git status",
 		"export HOME; git status",

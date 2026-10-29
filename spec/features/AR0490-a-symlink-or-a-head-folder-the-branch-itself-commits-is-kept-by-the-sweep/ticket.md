@@ -46,3 +46,6 @@ Out:
 - 2026-10-27: Source: F2 and F3 of AR0466 too (review notes)
 
 - 2026-10-27: Source: F1 of AR0466
+- 2026-10-29: AR0490: delivery line budget 1636 -> 1665; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D306)
+- 2026-10-29: AR0490: delivery line budget 1665 -> 1677; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D308)
+- 2026-10-29: AR0490 review round 3 after the worker also stamps .git and HEAD in each parent of the link end and of each hop inside the write folder; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D314)

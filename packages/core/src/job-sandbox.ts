@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { sshFolders } from "./job-place.ts";
 
 // The sandbox a job's agent runs in (AR0376): what it may write, and the command that starts it there; docs/commands/spawn.md,
 // "The sandbox". The worktree guard (worktree-guard.ts) keeps honest mistakes apart; this is the bound for what it cannot read.
@@ -75,10 +76,10 @@ export function writable(record: string, worktree: string, extensions: string): 
 }
 
 // What the agent of the job whose record is `record` may not read: the env file its `guarded` file names (job-place.ts), if any,
-// and the user's `~/.ssh` (AR0508), taken from no record, which the agent writes; job-place.ts and spawn.md say why.
+// and the user's `~/.ssh` (AR0508, `sshFolders`), taken from no record, which the agent writes; job-place.ts and spawn.md say why.
 export function hidden(record: string): string[] {
 	const text = existsSync(join(record, "guarded")) ? readFileSync(join(record, "guarded"), "utf8") : "";
-	return [...text.split("\n").filter((line) => line.startsWith("env /")).map((line) => line.slice(4)), join(homedir(), ".ssh")];
+	return [...text.split("\n").filter((line) => line.startsWith("env /")).map((line) => line.slice(4)), ...sshFolders()];
 }
 
 // The sandbox over `paths`, reading every file but `hidden`, for `agent`, `who` in the log's line (`note`): a function from its
@@ -114,7 +115,7 @@ export const unsigned = (env: NodeJS.ProcessEnv, given = Number.parseInt(env.GIT
 export function stepSandbox(folder: string, cache: string, arthur: { readonly envFile: string; readonly home: string; readonly config: string }, note: (line: string) => void): (command: string) => [string, string[]] {
 	mkdirSync(cache, { recursive: true });
 	const paths = [...checkout(folder, [arthur.home, arthur.config, arthur.envFile]), cache, tmpdir(), "/dev"];
-	const start = sandboxed(paths, [arthur.envFile, join(homedir(), ".ssh")], "env", (line) => void (line.startsWith("no sandbox: ") && note(line)), "each step");
+	const start = sandboxed(paths, [arthur.envFile, ...sshFolders()], "env", (line) => void (line.startsWith("no sandbox: ") && note(line)), "each step");
 	return (command) => start(cached(cache, command));
 }
 

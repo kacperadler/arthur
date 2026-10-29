@@ -18,6 +18,6 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Kind: test
 - Found by: 2026-10-29-worker-8705208f (worker), 2026-10-29
 - Where: `packages/core/test/limits.test.ts:160`
-- What: in a full `npm test` while two other worktrees ran theirs, `a timeout during the install a prepare asked for stops it, ...` failed with `Error: timed out waiting for the install's process` after 21.8 s; the same file alone passed 18 of 18 (`node --import @arthur/core/testing --test packages/core/test/limits.test.ts`). The change of AR0541 does not touch the install's path.
+- What: in a full `npm test` while two other worktrees ran theirs, `a timeout during the install a prepare asked for stops it, ...` failed with `Error: timed out waiting for the install's process` after 21.8 s; the same file alone passed 18 of 18 (`node --import @arthur/core/testing --test packages/core/test/limits.test.ts`). The change of AR0541 does not touch the install's path. A later full run beside five others (`duration_ms 972629`) failed three tests of the file, each after about 22 s: `a timeout during a long tool call ...`, `a timeout during the install ...` and `an agent that ignores SIGTERM at its limit ...`; the run beside it passed all (`pass 1205, fail 0`), and the file alone again passed 18 of 18.
 - Suggestion: find what the 20 s `until` waits for there and why it is slow under load (the sandbox's setup for the install, a `ps` scan); raise that wait or make it wait for the state it asserts.
 - Status: open

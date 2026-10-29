@@ -46,3 +46,4 @@ Out:
 - The pyramid audit command: AR0563.
 
 ## Decisions
+- 2026-10-29: AR0562 worker stays stopped at its $12 budget; its uncommitted work stays in its worktree; the owner: "AR-D346 2" (AR-D346)

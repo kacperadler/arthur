@@ -3813,9 +3813,9 @@
   {
     "id": "AR0481",
     "title": "A stop during the install can end the job before its stop of the install's group is over",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0481-a-stop-during-the-install-can-end-the-job-before-its-stop-of-the-install-s-group/ticket.md",
-    "updated": "2026-10-29T00:32:29.404Z"
+    "updated": "2026-10-29T00:39:39.722Z"
   },
   {
     "id": "AR0482",
@@ -4306,9 +4306,9 @@
   {
     "id": "AR0541",
     "title": "A worker ends its run while its npm test runs in the background, and has no way to read the result",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0541-a-worker-ends-its-run-while-its-npm-test-runs-in-the-background-and-has-no-way/ticket.md",
-    "updated": "2026-10-29T00:23:28.635Z"
+    "updated": "2026-10-29T00:37:54.832Z"
   },
   {
     "id": "AR0542",

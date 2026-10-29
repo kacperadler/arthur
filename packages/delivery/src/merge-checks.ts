@@ -19,7 +19,7 @@ const MAX_BUFFER = 64 * 2 ** 20;
 
 // How the steps of one merge run in `root` (AR0373): each in the sandbox `sandbox` starts it in (`host.sandbox`, AR0449) and a transient scope of its own
 // under the jobs' slice `slice`, as a job runs, stopped once the step ended, so what its scripts leave behind is killed; with no
-// user manager to make one (the probe's systemd-run fails), out of a scope, which one `uncapped:` line says. A step still running
+// user manager to make one (the probe's systemd-run fails), out of a scope, which one `uncapped:` line says before the first step. A step still running
 // `limitSeconds` after it started is killed (SIGKILL) and fails, `timed out after <n> s` its error (AR0374). After each step, passed or failed, every
 // repository below the checkout's top that was not there, the same, when the runner was made is removed, one line each (AR0463, AR0466, AR0469):
 // made before `git merge`, so what the branch commits counts as a step's, `writes` the folders outside the checkout a step writes but the temporary one and `/dev` (AR0490).
@@ -27,10 +27,10 @@ export function stepRunner(root: string, slice: string, log: (line: string) => v
 	const scope = (unit: string) => ["--user", "--scope", "--quiet", "--collect", `--slice=${slice}.slice`, `--unit=${unit}`, "-p", "KillSignal=SIGKILL", "--"];
 	const probe = spawnSync("systemd-run", [...scope(`arthur-merge-${process.pid}-0.scope`), "true"], { encoding: "utf8" });
 	const bare = probe.error?.message ?? (probe.status === 0 ? undefined : probe.stderr.trim().split("\n")[0] || `systemd-run exited ${probe.status ?? probe.signal}`);
-	if (bare !== undefined) log(`uncapped: no systemd scope (${bare}); the steps run bare, outside the jobs' slice, and what they leave behind is not killed`);
 	const owner = owned(root, writes);
 	let count = 0;
 	const ran = (sandbox: (command: string) => [string, string[]], command: string, env: NodeJS.ProcessEnv) => {
+		if (count === 0 && bare !== undefined) log(`uncapped: no systemd scope (${bare}); the steps run bare, outside the jobs' slice, and what they leave behind is not killed`);
 		const options = { cwd: root, env, encoding: "utf8", maxBuffer: MAX_BUFFER, timeout: limitSeconds * 1000, killSignal: "SIGKILL" } as const;
 		const unit = `arthur-merge-${process.pid}-${++count}.scope`;
 		try {

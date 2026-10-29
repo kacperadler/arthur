@@ -332,7 +332,14 @@ test("every scenario of the packages is acted here; its needs name an open ticke
 	for (const [name, folder] of found) {
 		const scenario = JSON.parse(readFileSync(join(folder, "scenario.json"), "utf8"));
 		for (const line of scenario.needs ?? []) assert.match(line, /^AR027[789]( F\d+)?: /, `${name}: needs names an open ticket of the evals, or a finding of one that becomes a ticket at its merge`);
-		for (const answer of scenario.stub ?? []) if (answer.output?.includes("# After a merge that went in")) assert.ok(answer.output.endsWith(`\n\n${afterMerge}`), `${name}: its merge prints delivery's after-merge.md as it is`);
+		// A job is pruned once (AR0555): a merge's stub prunes no job the right turn's `arthur prune` freed before that merge.
+		const steps = (ACTS[name]?.right ?? []).map((step) => ("bash" in step ? step.bash : ""));
+		const pruned = steps.slice(0, Math.max(0, steps.findIndex((bash) => bash.startsWith("arthur merge ")))).flatMap((bash) => (bash.startsWith("arthur prune ") ? bash.split(" ").slice(2) : []));
+		for (const answer of scenario.stub ?? []) {
+			if (!answer.output?.includes("# After a merge that went in")) continue;
+			assert.ok(answer.output.endsWith(`\n\n${afterMerge}`), `${name}: its merge prints delivery's after-merge.md as it is`);
+			for (const [, id = ""] of answer.output.matchAll(/^(\S+): .*record deleted$/gm)) assert.ok(!pruned.some((short) => id.endsWith(short)), `${name}: its merge prunes ${id}, which the turn pruned before it`);
+		}
 		// The context of a copy reads its vision at spec/vision.md (the default `prompts.vision`) and warns of one it lacks.
 		const vision = join(folder, "fixture", "spec", "vision.md");
 		assert.ok(lstatSync(vision, { throwIfNoEntry: false })?.isFile() && readFileSync(vision, "utf8").trim() !== "", `${name}: its fixture has a vision, a plain file at spec/vision.md`);

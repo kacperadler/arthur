@@ -119,7 +119,7 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 	};
 	const head = () => git(root, "rev-parse", "HEAD");
 	const status = (id: string) => fake.host.board.get(id)?.status;
-	return { root, fake, git, commit, take: () => run("take-main", ["--decision", OWNER]), worker, aside, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, caches, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, owner, installAs: (next: string | Error) => void (answer = next), uncapped, hear: (fn: (text: string) => void) => void (heard = fn) };
+	return { root, fake, git, commit, take: () => run("take-main", ["--decision", OWNER]), worker, aside, ended, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, caches, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, owner, installAs: (next: string | Error) => void (answer = next), uncapped, hear: (fn: (text: string) => void) => void (heard = fn) };
 }
 
 test("a branch with a PASS on its tip goes in: checks pass, its review filed, outcome.md written, the ticket merged, the tickets it unblocks named, the ticket's jobs pruned; the install's cache is the merge's own, gone after it", async (t) => {
@@ -733,7 +733,7 @@ test("with nvm.path provided, the install and checks run on its PATH, asked for 
 });
 
 test("a dropped ticket's ended jobs are pruned, an unmerged branch deleted with git branch -D; a job in a run or blocked, one on another machine, a worktree with changes, another ticket's or project's job and a planted config keep theirs", async (t) => {
-	const { root, fake, home, git, worker, aside } = await load(t);
+	const { root, fake, home, git, worker, aside, ended } = await load(t);
 	const [kept, gone, blocked, remote, orphan] = [await worker(), await worker(), await worker(), await worker(), await worker()];
 	// Their worktrees removed by hand: the prune finds only their unmerged branches, which no worktree holds.
 	for (const job of [gone, blocked, remote, orphan]) git(root, "worktree", "remove", job.worktree);
@@ -771,7 +771,7 @@ test("a dropped ticket's ended jobs are pruned, an unmerged branch deleted with 
 		`delivery: AC0001 dropped: ${kept.branch} deleted, not merged: AC0001 is dropped`,
 		`delivery: AC0001 dropped: ${kept.id}: record deleted`,
 	].sort());
-	assert.ok(said.includes(`delivery: AC0001 dropped: ${running.id}: kept: it is working, not ended`) || said.includes(`delivery: AC0001 dropped: ${running.id}: kept: it is idle, not ended`), said.join("\n"));
+	assert.ok(said.includes(`delivery: AC0001 dropped: ${running.id}: kept: it is in a run; once it ends, delivery prunes it, its branch too`), said.join("\n"));
 	assert.ok(said.includes(`delivery: AC0001 dropped: ${blocked.id}: kept: it is blocked (finished), not ended`), said.join("\n"));
 	assert.ok(said.some((line) => line.startsWith(`delivery: AC0001 dropped: ${remote.id}: kept its worktree, branch and record: `)), said.join("\n"));
 	assert.ok(said.some((line) => line.startsWith(`delivery: AC0001 dropped: ${dirty.id}: kept its worktree, branch and record: git worktree: `)), said.join("\n"));
@@ -785,7 +785,14 @@ test("a dropped ticket's ended jobs are pruned, an unmerged branch deleted with 
 	assert.deepEqual(exists()[4], [true, true]);
 	said.length = 0;
 	fake.emit("ticket-moved", { id: "AC0001", project: "acme", from: "in-progress", to: "review" });
-	assert.deepEqual(said, [], "only a drop prunes");
+	assert.equal(said.join("\n"), "", "only a drop prunes");
+	// The job in a run, once it ends on the dropped ticket, goes as the drop's prune would have taken it.
+	fake.host.board.move("AC0001", "dropped");
+	said.length = 0;
+	writeFileSync(gate, "");
+	await ended(running.id);
+	assert.ok(said.some((line) => line.startsWith(`delivery: AC0001 dropped: ${running.id}: worktree ${running.worktree} removed; branch ${running.branch} deleted; record deleted`)), said.join("\n"));
+	assert.deepEqual(exists()[7], [false, false]);
 });
 
 test("refused before anything: wrong usage, no job, a read-only or running job, a gone branch, a detached or dirty main, nothing new, a ticket not mergeable", async (t) => {

@@ -26,7 +26,7 @@ export type HandBack = {
 const ID = /^[\w-]+$/;
 // Why a job a step started as `stop-all` came is stopped again: its hold, `user: <this>`.
 export const CANCELLED = "arthur stopall cancelled delivery's hand-back";
-export const handingBack = (host: Host, id: string) => ID.test(id) && existsSync(join(host.folder, "hand-backs", `${id}.json`)); // Whether job `id` waits in a hand-back (AR0555).
+export const endHandBack = (host: Host, id: string) => ID.test(id) && rmSync(join(host.folder, "hand-backs", `${id}.json`), { force: true }); // A ticket's prune ends its job's hand-back (AR0555).
 
 export function handBack(host: Host): HandBack {
 	const folder = join(host.folder, "hand-backs");
@@ -100,6 +100,7 @@ export function handBack(host: Host): HandBack {
 			const at = generation;
 			later(() => {
 				const name = review?.branch.slice("arthur/".length) ?? id;
+				if (review !== undefined && host.board.get(review.ticket)?.status === "dropped") return drop(name); // A dropped ticket's FAIL is neither filed nor handed back (AR0555).
 				const record = read(name);
 				if (review !== undefined && record?.review !== review.id && verdict === "FAIL") file(review);
 				if (at !== generation) return;

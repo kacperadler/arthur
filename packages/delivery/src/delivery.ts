@@ -1,5 +1,5 @@
 import { readFileSync, rmSync } from "node:fs";
-import { join, matchesGlob } from "node:path";
+import { basename, join, matchesGlob } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
 import { entryOf } from "./auto-merge.ts";
 import { changelogCommand } from "./changelog.ts";
@@ -7,7 +7,7 @@ import { type CiEnd, type CiWaits, ciEnded, ciWaits } from "./ci-wait.ts";
 import { ALWAYS_REVIEW, checkOptions, STEP_SECONDS } from "./delivery-options.ts";
 import { CANCELLED, type HandBack, handBack } from "./hand-back.ts";
 import { identityRequirement, mergeCommand } from "./merge-command.ts";
-import { reviewCommand, reviewTask, worker } from "./review-command.ts";
+import { FEATURE, reviewCommand, reviewTask, worker } from "./review-command.ts";
 import { reviewFiler } from "./review-file.ts";
 import { reviewNeededCommand } from "./review-needed.ts";
 import { failsSincePass, LIMIT, type Review, readReview, saveReview, settle, type Verdict, verdictOf } from "./review-records.ts";
@@ -66,13 +66,17 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 				const review = readReview(host, typeof data === "object" && data !== null && "id" in data ? data.id : undefined);
 				if (review !== undefined) host.board.move(review.ticket, "review");
 			});
+			// A dropped ticket's jobs freed, an unmerged branch too, and each that was in a run once it ends (AR0555); the lines go to the log.
+			const dropped = (project: string, ticket: string) => pruneTicket(host, project, ticket, [], true).forEach((line) => console.log(`delivery: ${ticket} dropped: ${line}`));
 			host.events.on("job-ended", ({ data }) => {
 				const id = typeof data === "object" && data !== null && "id" in data ? data.id : undefined;
 				const review = readReview(host, id);
 				const verdict = review && settle(host, review);
 				// Every run's end goes to the hand-back (queued, so it acts after the moves below); a PASS's branch is pushed.
 				if (typeof id === "string") back.ended(id, review, verdict);
-				if (review === undefined || (verdict !== "PASS" && verdict !== "FAIL")) return;
+				const job = host.jobs.list().find((each) => each.id === id);
+				for (const ticket of new Set(job?.tickets.map((path) => basename(FEATURE.exec(path)?.[1] ?? "").split("-")[0] ?? ""))) if (job && host.board.get(ticket)?.status === "dropped") dropped(job.project, ticket);
+				if (review === undefined || (verdict !== "PASS" && verdict !== "FAIL") || host.board.get(review.ticket)?.status === "dropped") return;
 				host.board.move(review.ticket, verdict === "PASS" ? "done" : "in-progress");
 				if (verdict === "FAIL") return;
 				// The plugin that provides `github.push` (entry 58), when one is loaded, pushes the reviewed branch: its line goes to the log.
@@ -80,10 +84,9 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 				void Promise.all(host.collect<Promise<string>>("github.push", branch)).then((lines) => lines.forEach((line) => console.log(line)));
 			});
 			host.events.on("stop-all", () => back.cancel());
-			// A dropped ticket's jobs freed, an unmerged branch too (AR0555); the lines go to the log.
 			host.events.on("ticket-moved", ({ data }) => {
 				const { id, project, to } = (data ?? {}) as { readonly id?: unknown; readonly project?: unknown; readonly to?: unknown };
-				if (to === "dropped" && typeof id === "string" && typeof project === "string") for (const line of pruneTicket(host, project, id, [], true)) console.log(`delivery: ${id} dropped: ${line}`);
+				if (to === "dropped" && typeof id === "string" && typeof project === "string") dropped(project, id);
 			});
 			// Asked by the core's prune: the job's own folder here (`checks`, `review-needed`, the CI wait) goes with its record;
 			// delivery's record of a review, `reviews/<id>.json`, stays for the FAIL counts and the costs.

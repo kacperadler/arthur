@@ -2,18 +2,19 @@ import { spawnSync } from "node:child_process";
 import { basename } from "node:path";
 import { configRefusal } from "@arthur/core/git-config";
 import type { Host } from "@arthur/core/plugin";
-import { handingBack } from "./hand-back.ts";
+import { endHandBack } from "./hand-back.ts";
 import { FEATURE } from "./review-command.ts";
 
 // A ticket's jobs freed as `arthur prune` frees them (AR0555), after its merge and when it is dropped: each job of `project`
-// whose task names a file of the ticket's folder, and `also`, but a worker delivery still hands back after a FAIL, said so.
-// The prune keeps a job in a run, held or blocked, a worktree with changes, and a branch main lacks; with `drop`, such a branch
-// of an ended job here goes with `git branch -D`, which Git refuses while a worktree has it, and its job is pruned again.
+// whose task names a file of the ticket's folder, and `also`, its hand-back ended. The prune keeps a job in a run, held or
+// blocked, a worktree with changes, and a branch main lacks; with `drop`, such a branch of an ended job here goes with `git
+// branch -D` (Git refuses one a worktree has) and the job is pruned again, and a job in a run is left to its end (delivery.ts).
 export function pruneTicket(host: Host, project: string, ticket: string | undefined, also: readonly string[], drop: boolean): string[] {
 	const named = host.jobs.list().filter((job) => job.project === project && ticket !== undefined && job.tickets.some((path) => basename(FEATURE.exec(path)?.[1] ?? "").startsWith(`${ticket}-`)));
-	const all = [...new Set([...also, ...named.map((job) => job.id)])];
-	const [ids, held] = [all.filter((id) => !handingBack(host, id)), all.filter((id) => handingBack(host, id))];
-	const lines = [...held.map((id) => `${id}: kept: delivery still hands it back after a FAIL review; arthur prune ${id} once that ends`), ...(ids.length === 0 ? [] : host.jobs.prune(ids))];
+	const [all, busy] = [[...new Set([...also, ...named.map((job) => job.id)])], host.jobs.running()];
+	for (const id of all) endHandBack(host, id);
+	const ids = all.filter((id) => !drop || !busy.includes(id));
+	const lines = [...all.filter((id) => !ids.includes(id)).map((id) => `${id}: kept: it is in a run; once it ends, delivery prunes it, its branch too`), ...(ids.length === 0 ? [] : host.jobs.prune(ids))];
 	const root = host.board.projects().find((each) => each.name === project)?.path;
 	const left = drop ? host.jobs.list().filter((job) => ids.includes(job.id) && job.state === "ended" && job.branch !== "" && job.machine === "local") : [];
 	if (root === undefined || left.length === 0) return lines;

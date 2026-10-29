@@ -3883,9 +3883,9 @@
   {
     "id": "AR0490",
     "title": "A symlink or a HEAD folder the branch itself commits is kept by the sweep",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0490-a-symlink-or-a-head-folder-the-branch-itself-commits-is-kept-by-the-sweep/ticket.md",
-    "updated": "2026-10-29T10:24:01.089Z"
+    "updated": "2026-10-29T10:33:38.075Z"
   },
   {
     "id": "AR0491",

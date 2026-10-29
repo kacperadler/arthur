@@ -1,6 +1,7 @@
 import type { Plugin } from "@arthur/core/plugin";
 import { type Failure, type Instance, type Run, type Watched, workflowRuns } from "./github-api.ts";
 import { built, cancel, ciCommand } from "./github-ci.ts";
+import { type Entry, githubCommand, repository } from "./github-command.ts";
 import { git, nearestRun, push } from "./github-git.ts";
 import { API_URL, checkOptions, EVERY_SECONDS, type GithubOptions, type InstanceOptions, WAKE_ON } from "./github-options.ts";
 import { newReviews } from "./github-pulls.ts";
@@ -12,12 +13,10 @@ import { readState, type State, writeState } from "./github-state.ts";
 // attempt as `ci-finished` (AR0238: a rerun keeps its id), across a restart too (github-state.ts), and wakes the coordinator when
 // `wakeOn` names it; with `pull-request-review` in `wakeOn`, the reviews of the open pull requests are told likewise. A refusal
 // is said once until GitHub answers again; a rate limit stops the instance's requests for as long as GitHub says. Also `arthur
-// ci` (github-ci.ts), and `github.push`, which delivery asks to push a reviewed branch and main. Entry 59: `github.ci` and
-// `github.cancel`, which delivery's `arthur merge` asks. docs/github.md.
+// ci` (github-ci.ts), `arthur github` (github-command.ts), and `github.push`, which delivery asks to push a reviewed branch and
+// main. Entry 59: `github.ci` and `github.cancel`, which delivery's `arthur merge` asks. docs/github.md.
 
 export type { GithubOptions };
-
-type Entry = { readonly name: string; readonly path: string; readonly ci?: { readonly workflow: string } };
 
 export function github(options: GithubOptions): Plugin {
 	let round = async (_signal: AbortSignal) => {};
@@ -35,8 +34,10 @@ export function github(options: GithubOptions): Plugin {
 			every = (poll?.everySeconds ?? EVERY_SECONDS) * 1000;
 			const accounts = instances.map((each, index) => account(host.env, each, index));
 			const [list = []] = host.collect<readonly Entry[]>("projects");
-			const watched = list.flatMap((project) => (project.ci === undefined ? [] : [watch(project, project.ci.workflow, accounts)]));
+			// A project without `ci.workflow` is found only when `arthur github` runs for it, so nothing of it is refused here.
+			const watched: Watched[] = list.flatMap((project) => (project.ci === undefined ? [] : [{ ...repository(project, accounts, "ci.workflow is set, but "), workflow: project.ci.workflow }]));
 			host.commands.register(ciCommand(host, watched));
+			host.commands.register(githubCommand(host, list, accounts));
 			// Asked by delivery after a PASS and a merge: one line, what came of the push.
 			host.provide("github.push", ({ project, branch }: { readonly project: string; readonly branch: string }) => {
 				const path = list.find((each) => each.name === project)?.path;
@@ -152,19 +153,4 @@ function account(env: Readonly<Record<string, string>>, { name, tokenEnv, apiUrl
 	const token = env[tokenEnv] ?? "";
 	if (!/^[\x21-\x7e]+$/.test(token)) throw new Error(`instances[${index}].tokenEnv: ${tokenEnv} is empty or holds a space or a character outside ASCII, which a header cannot carry`);
 	return { name, label: name ?? "(unnamed)", tokenEnv, apiUrl: apiUrl.replace(/\/+$/, ""), token };
-}
-
-// A project with a `ci.workflow`: its GitHub repository from its checkout's `origin`, and the instance named after the
-// repository's owner, else the unnamed one. A project neither fits refuses the load; the remote's URL is never said, as it
-// may hold a credential.
-function watch(project: Entry, workflow: string, accounts: readonly Instance[]): Watched {
-	const remote = git(project.path, "remote", "get-url", "origin");
-	if (remote === undefined) throw new Error(`project ${project.name}: ci.workflow is set, but its checkout has no origin remote to name its GitHub repository`);
-	// An owner is letters, digits and dashes, a repository adds `.` and `_`: what a credential in the URL can never pass as.
-	const [, owner, name] = /[/:]([A-Za-z0-9-]+)\/([\w.-]+?)(?:\.git)?\/?$/.exec(remote) ?? [];
-	if (owner === undefined || name === undefined) throw new Error(`project ${project.name}: its origin remote names no <owner>/<repository>`);
-	const instance = accounts.find((each) => each.name === owner.toLowerCase()) ?? accounts.find((each) => each.name === undefined);
-	if (instance === undefined)
-		throw new Error(`project ${project.name}: no instance of github is named ${owner.toLowerCase()}, the owner of ${owner}/${name}, and none is unnamed; github's instances: ${accounts.map((each) => each.label).join(", ")}`);
-	return { project: project.name, path: project.path, repo: `${owner}/${name}`, workflow, instance };
 }

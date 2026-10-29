@@ -13,7 +13,7 @@ export type CommandInput = {
 export type Command = {
 	// Lowercase letters, digits and dashes; `/Jobs` is not `jobs`. A phone command's name has no dash and at most 32 characters.
 	readonly name: string;
-	// What `arthur <name> --help` prints, e.g. `new URL("../docs/commands/jobs.md", import.meta.url)`; it must exist at registration.
+	// What `arthur <name> --help` prints, e.g. `new URL("../docs/commands/jobs.md", import.meta.url)`; it must exist at registration. A group's page beside it, `jobs-<word>.md`, is what `arthur <name> <word> --help` prints (`groupPage`).
 	readonly doc: URL;
 	// Writes its own output; returns the exit code, nothing meaning 0.
 	readonly run: (input: CommandInput) => number | void | Promise<number | void>;
@@ -47,6 +47,9 @@ export type CommandRegistry = Omit<Commands, "register"> & {
 
 const NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 const PHONE_NAME = /^[a-z][a-z0-9]{0,31}$/;
+
+// The page `arthur <name> <word> --help` prints: `<doc>-<word>.md` beside the doc when `word` is lowercase letters, digits and dashes and that file exists (a group's page), else the doc.
+export const groupPage = (doc: URL, word = ""): URL => (/^[a-z][a-z0-9-]*$/.test(word) ? [new URL(doc.href.replace(/\.md$/, `-${word}.md`))].find((page) => existsSync(page)) : undefined) ?? doc;
 
 // `owner` is the plugin that registers, or `core`; a refusal names it.
 export function commandRegistry(): CommandRegistry {

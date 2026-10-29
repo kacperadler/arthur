@@ -46,7 +46,7 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **uptime**, built: each project's sites checked over HTTP, a notice when one goes down and when it is back ([uptime](packages/uptime/docs/uptime.md)).
 - **telegram**, built: text, media and the phone menu ([telegram](packages/telegram/docs/telegram.md)).
 - **delivery**, built: review, `review-needed`, merge with the checks on main, `take-main`, the hand-back after a FAIL, the changelog, auto-merge ([commands](packages/delivery/docs/commands/)).
-- **github**, built: CI runs, reruns, pushes and pull request reviews ([github](packages/github/docs/github.md)).
+- **github**, built: CI runs, reruns, pushes, pull request reviews and `arthur github`, which reads pull requests ([github](packages/github/docs/github.md)).
 - **youtrack**, built: issues, articles, comments and attachments, and the rules for a job on an issue ([youtrack](packages/youtrack/docs/commands/youtrack.md)).
 - **manage**, built: health, stats, the audit, the retro and the daily prune ([manage](packages/manage/docs/manage.md)).
 - **develop**, built: `arthur plugin new` and `arthur eval` with its scenarios ([develop](packages/develop/docs/develop.md)).

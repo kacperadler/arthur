@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { insideJob } from "@arthur/core/inside-job";
 import type { Command, Host } from "@arthur/core/plugin";
 import { ask, field, type Run, type Watched, workflowRuns } from "./github-api.ts";
+import { quoted, text } from "./github-command.ts";
 import { DEPTH, git, nearestRun } from "./github-git.ts";
 
 // `arthur ci <branch> [--rerun]` (spec/roadmap.md, entry 58): the run that built the branch, as the poll finds it (the newest
@@ -88,7 +89,8 @@ async function rerun(host: Host, each: Watched, run: Run, refuse: (text: string)
 	return 0;
 }
 
-// Each failed job of the run's attempt with its failed step, then the end of the first one's log.
+// Each failed job of the run's attempt with its failed step, then the end of the first one's log; the jobs' and steps' names
+// and the log's lines, written in the repository, each on a line of its own after `> `.
 async function why(each: Watched, run: Run, refuse: (text: string) => number): Promise<number> {
 	const signal = new AbortController().signal;
 	const answer = await ask(each.instance, `/repos/${each.repo}/actions/runs/${run.id}/attempts/${run.attempt}/jobs?per_page=100`, `the jobs of run ${run.id} of ${each.repo}`, "Actions: read", signal);
@@ -102,18 +104,19 @@ async function why(each: Watched, run: Run, refuse: (text: string) => number): P
 	for (const job of failed) {
 		const steps = field(job, "steps");
 		const step = (Array.isArray(steps) ? steps : []).find((one) => FAILED.includes(String(field(one, "conclusion"))));
-		console.log(`job ${String(field(job, "name"))}: ${String(field(job, "conclusion"))}, ${step === undefined ? "no step failed" : `step ${String(field(step, "number"))}, ${String(field(step, "name"))}, failed`}`);
+		const named = [`job ${text(field(job, "id"))} ended ${text(field(job, "conclusion"))}, its name:`, ...quoted(field(job, "name"))];
+		console.log([...named, ...(step === undefined ? ["no step of it failed"] : [`its step ${text(field(step, "number"))} failed:`, ...quoted(field(step, "name"))])].join("\n"));
 	}
 	const [first] = failed;
-	const name = String(field(first, "name"));
-	const log = await ask(each.instance, `/repos/${each.repo}/actions/jobs/${String(field(first, "id"))}/logs`, `the log of job ${name} of ${each.repo}`, "Actions: read", signal);
+	const id = text(field(first, "id"));
+	const log = await ask(each.instance, `/repos/${each.repo}/actions/jobs/${id}/logs`, `the log of job ${id} of ${each.repo}`, "Actions: read", signal);
 	if (!("body" in log)) return refuse(log.text);
 	// Each line starts with its time, `2026-01-01T00:00:00.0000000Z `, left out here.
-	const lines = log.text.replace(/\r/g, "").replace(/\n+$/, "").split("\n").map((line) => line.replace(/^\d{4}-\d\d-\d\dT[\d:.]+Z ?/, ""));
+	const lines = log.text.replace(/\r/g, "").replace(/\n+$/, "").split("\n").map((line) => text(line.replace(/^\d{4}-\d\d-\d\dT[\d:.]+Z ?/, "")));
 	const error = lines.findLastIndex((line) => line.startsWith("##[error]"));
 	const end = error < 0 ? lines.length : error + 1;
-	const shown = lines.slice(Math.max(0, end - LOG_LINES), end).map((line) => (line.length > LINE_CHARS ? `${line.slice(0, LINE_CHARS)}…` : line));
+	const shown = lines.slice(Math.max(0, end - LOG_LINES), end).map((line) => `> ${line.length > LINE_CHARS ? `${line.slice(0, LINE_CHARS)}…` : line}`);
 	const cut = shown.length < lines.length ? `, its ${shown.length} lines up to ${error < 0 ? "its end" : "its last error"} of ${lines.length}` : "";
-	console.log(`the log of job ${name}${cut}:\n${shown.join("\n")}`);
+	console.log(`the log of job ${id}${cut}:\n${shown.join("\n")}`);
 	return 0;
 }

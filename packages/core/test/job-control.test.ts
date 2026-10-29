@@ -363,7 +363,7 @@ test("arthur continue resumes an ended worker in place: same id, branch, worktre
 	assert.deepEqual(["state", "reason", "result", "cost", "budget", "tool-calls", "continue"].map((name) => field(home, job.id, name)), ["ended", "finished", "Second.", "2.5000", "3", "1", "Also fix the README.\nThen commit."]);
 	const [start] = starts(resumed);
 	const extensions = ["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((name) => ["-e", join(import.meta.dirname, "..", "src", name)]);
-	assert.deepEqual(start?.args, ["--continue", "-p", "--mode", "json", "--auto-approve", "--tools", "read,edit,write,bash,grep,glob", "--append-system-prompt", join(folder, "prompt"), ...extensions, "--", "Also fix the README.\nThen commit."]);
+	assert.deepEqual(start?.args, ["--continue", "-p", "--mode", "json", "--auto-approve", "--config", join(import.meta.dirname, "..", "src", "job-omp.yml"), "--tools", "read,edit,write,bash,grep,glob", "--append-system-prompt", join(folder, "prompt"), ...extensions, "--", "Also fix the README.\nThen commit."]);
 	assert.equal(start?.cwd, job.worktree);
 	assert.deepEqual([starts(first).length, starts(resumed).length], [1, 1]);
 	assert.equal(git(root, "branch", "--list", "--format=%(refname:short)", `arthur/${job.id}`), `arthur/${job.id}`);

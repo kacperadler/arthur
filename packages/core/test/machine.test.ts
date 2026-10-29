@@ -298,7 +298,7 @@ test("a job on another machine starts with none of its role's MCP servers, nor i
 	assert.deepEqual([job.failed, told(job.warnings)], [undefined, ["MCP servers left out on gpu, which Arthur sends no MCP secret (arthur spawn --help, \"On another machine\"): docs, web"]]);
 	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
 	const args = JSON.parse(readFileSync(join(dirname(omp), "starts.jsonl"), "utf8").split("\n")[0] ?? "").args as string[];
-	assert.deepEqual([args.includes("--plugin-dir"), args.includes("--config")], [false, false]);
+	assert.deepEqual([args.includes("--plugin-dir"), args.some((arg) => arg.endsWith("mcp.yml"))], [false, false]);
 	await jobs.sweep();
 	assert.deepEqual([existsSync(join(home, "jobs", job.id, "mcp")), existsSync(join(there, "jobs", job.id, "mcp")), calls().filter((call) => call.includes("mcp-s3cr3t"))], [false, false, []]);
 	// A continue there: no local wrapper ever removes a `mcp/` here, so none may be written (AR0337).

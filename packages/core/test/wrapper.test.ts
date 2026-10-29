@@ -16,6 +16,7 @@ const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root
 const commit = (root: string, message: string) => git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", message);
 const RECORD = ["state", "reason", "pid", "log", "result", "cost", "tool-calls", "activity", "commits"];
 const EXTENSIONS = ["env-guard.ts", "worktree-guard.ts", "steer.ts"].flatMap((file) => ["-e", join(import.meta.dirname, "..", "src", file)]);
+const SETTINGS = ["--config", join(import.meta.dirname, "..", "src", "job-omp.yml")];
 
 // A repository `acme`, a home folder beside it, and a runner whose agent is `agent` and whose plugins provide `collect`; the
 // plugin `delivery` owns the read-only kind `review`.
@@ -106,9 +107,15 @@ test("a finished worker: the agent gets the worker's tools, model, thinking and 
 	const [start] = starts(agent);
 	assert.ok(start);
 	assert.deepEqual(start?.args, [
-		...["-p", "--mode", "json", "--auto-approve", "--tools", "read,edit,write,bash,grep,glob"],
+		...["-p", "--mode", "json", "--auto-approve", ...SETTINGS, "--tools", "read,edit,write,bash,grep,glob"],
 		...["--append-system-prompt", join(folder, "prompt"), ...EXTENSIONS, "--model", "anthropic/opus", "--thinking", "high", `@${join(folder, "task")}`],
 	]);
+	// omp's settings the agent got: no bash call moves to the background, whose result a run that ended never gets (AR0541).
+	const settings = readFileSync(start?.args[start.args.indexOf("--config") + 1] ?? "", "utf8");
+	assert.match(settings, /^bash:\n  autoBackground:\n    enabled: false\n/m);
+	assert.match(settings, /^async:\n  enabled: false\n/m);
+	// The prompt the agent got tells it to give each check a bash timeout past the suite's run: without one, omp kills the call at 300 s (AR0541).
+	assert.match(readFileSync(start?.args[start.args.indexOf("--append-system-prompt") + 1] ?? "", "utf8"), /^- Run each check \(the project's tests, its type check\) in one bash call with a `timeout` of 1800 seconds: /m);
 	assert.equal(start?.cwd, job.worktree);
 	assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 	const { log, pid, ...rest } = record;
@@ -138,7 +145,7 @@ test("a read-only kind gets no edit or write, no model flag, and no commits", as
 	const { data, record } = await ended(home, job.id);
 	const folder = join(home, "jobs", job.id);
 	assert.deepEqual(starts(agent)[0]?.args, [
-		...["-p", "--mode", "json", "--auto-approve", "--tools", "read,bash,grep,glob"],
+		...["-p", "--mode", "json", "--auto-approve", ...SETTINGS, "--tools", "read,bash,grep,glob"],
 		...["--append-system-prompt", join(folder, "prompt"), ...EXTENSIONS, `@${join(folder, "task")}`],
 	]);
 	assert.deepEqual(data, { id: job.id, kind: "review", project: "acme", state: "ended", reason: "finished" });
@@ -160,7 +167,7 @@ test("the extensions plugins register load after the core's own, in their order,
 	await ended(home, job.id);
 	const record = join(home, "jobs", job.id);
 	assert.deepEqual(starts(agent)[0]?.args, [
-		...["-p", "--mode", "json", "--auto-approve", "--tools", "read,bash,grep,glob"],
+		...["-p", "--mode", "json", "--auto-approve", ...SETTINGS, "--tools", "read,bash,grep,glob"],
 		...["--append-system-prompt", join(record, "prompt"), ...EXTENSIONS, ...paths.flatMap((path) => ["-e", path]), `@${join(record, "task")}`],
 	]);
 	assert.equal(readFileSync(join(folder, "loaded"), "utf8"), "first.ts\nsecond.ts\n", "the agent loaded each");
@@ -226,7 +233,7 @@ test("a job's MCP secrets lie in its record only during a run: gone once it is e
 	await until("the agent resumed", () => starts(agent).length === 2);
 	assert.match(readFileSync(secrets, "utf8"), /"TOKEN": "second-s3cret"/, "the role's answer at the continue, not the spawn's");
 	assert.equal(statSync(secrets).mode & 0o777, 0o600);
-	assert.deepEqual(starts(agent)[1]?.args.slice(7, 11), ["--plugin-dir", join(folder, "mcp"), "--config", join(folder, "mcp.yml")]);
+	assert.deepEqual(starts(agent)[1]?.args.slice(9, 13), ["--plugin-dir", join(folder, "mcp"), "--config", join(folder, "mcp.yml")]);
 	writeFileSync(gate, "");
 	await until("the second job-ended", () => readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2);
 	assert.equal(existsSync(join(folder, "mcp")), false);

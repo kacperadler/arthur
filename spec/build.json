@@ -4042,9 +4042,9 @@
   {
     "id": "AR0510",
     "title": "The GitHub, Telegram and YouTrack API addresses take `http://` for any host, sending the token in the clear",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0510-the-github-telegram-and-youtrack-api-addresses-take-http-for-any-host-sending/ticket.md",
-    "updated": "2026-10-28T23:55:02.440Z"
+    "updated": "2026-10-29T00:02:56.218Z"
   },
   {
     "id": "AR0511",

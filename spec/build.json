@@ -4430,5 +4430,43 @@
     "status": "planned",
     "path": "spec/features/AR0556-plan-the-github-plugin-manages-pull-requests-issues-and-branches/ticket.md",
     "updated": "2026-10-29T07:16:24.561Z"
+  },
+  {
+    "id": "AR0557",
+    "title": "GitHub T1: an arthur github command and pull request reads",
+    "status": "planned",
+    "path": "spec/features/AR0557-github-t1-an-arthur-github-command-and-pull-request-reads/ticket.md",
+    "updated": "2026-10-29T14:33:13.289Z"
+  },
+  {
+    "id": "AR0558",
+    "title": "GitHub T2: create, comment on and close pull requests",
+    "status": "planned",
+    "path": "spec/features/AR0558-github-t2-create-comment-on-and-close-pull-requests/ticket.md",
+    "updated": "2026-10-29T14:33:13.845Z",
+    "after": [
+      "AR0557"
+    ]
+  },
+  {
+    "id": "AR0559",
+    "title": "GitHub T3: list, read, create, comment on, label and close issues",
+    "status": "planned",
+    "path": "spec/features/AR0559-github-t3-list-read-create-comment-on-label-and-close-issues/ticket.md",
+    "updated": "2026-10-29T14:33:14.374Z",
+    "after": [
+      "AR0558"
+    ]
+  },
+  {
+    "id": "AR0560",
+    "title": "GitHub T4: list and delete branches on origin",
+    "status": "planned",
+    "path": "spec/features/AR0560-github-t4-list-and-delete-branches-on-origin/ticket.md",
+    "updated": "2026-10-29T14:33:14.909Z",
+    "after": [
+      "AR0557",
+      "AR0555"
+    ]
   }
 ]

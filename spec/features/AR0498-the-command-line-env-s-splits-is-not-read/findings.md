@@ -11,4 +11,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/shell-words.ts` (`shellCommands`)
 - What: `shellCommands("git -C '' -C ../../acme commit -m x")` gives the words `git -C -C ../../acme commit -m x`: the empty word `''` (and `""`, or `"$v"` with `v` unknown) is dropped, where bash keeps it as an empty argument. The next word then becomes an option's value. A row `["bash", { command: "git -C '' -C ../../acme commit --allow-empty -m x" }, MAIN]`, added to `packages/core/test/worktree-guard.test.ts` for a run of `node --test --test-name-pattern="each call that writes into the main checkout" packages/core/test/worktree-guard.test.ts` and removed after, failed with `undefined`. Real `git -C '' -C packages rev-parse --show-prefix` printed `packages/`, so git takes `-C ''` as a no-op and the commit would land in the main checkout. Other wrappers or options with a value may be open to the same shift (`sudo -u '' …`) [inference, not run].
 - Suggestion: keep a quoted empty word in `shellCommands` as an empty word (bash drops only an unquoted expansion that comes out empty), with a row for `git -C ''` and one for an option of a wrapper; leave the unquoted-expansion case as it is.
-- Status: open
+- Status: deferred (client summary)
+
+## F2. `env -S 'cd ...'; rm ...` is refused though env running cd moves nothing
+
+- Kind: fix
+- Found by: 2026-10-29-review-b92060b6 (review), 2026-10-29
+- Where: `packages/core/src/worktree-guard.ts`
+- What: a `cd` run by env changes no folder of the shell; the guard reads it as one, as it read `env cd` before this branch. Too strict, not a hole.
+- Status: deferred (client summary)

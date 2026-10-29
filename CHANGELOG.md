@@ -15,6 +15,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0491 A command substitution inside a fallback word is never judged (45222bfd)
 - AR0496 A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME (0e336859)
 - AR0497 A long option of the other wrappers followed by its value still hides the command (4d7b2940)
+- AR0498 The command line `env -S` splits is not read (18285acb)
 - AR0510 The GitHub, Telegram and YouTrack API addresses take `http://` for any host, sending the token in the clear (6d1556d9)
 - AR0515 The hidden ~/.ssh follows $HOME, while OpenSSH finds the home from the user account (2f79e8ca)
 - AR0522 `arthur run`'s stop does not wait for a sweep's copy still in flight (8c353fd9)

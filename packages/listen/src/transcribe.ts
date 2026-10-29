@@ -2,11 +2,11 @@ import { randomUUID } from "node:crypto";
 import { readFileSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
-import type { VoiceOptions } from "./voice-options.ts";
-import { missing, modelFile } from "./voice-tools.ts";
+import type { ListenOptions } from "./listen-options.ts";
+import { missing, modelFile } from "./listen-tools.ts";
 
 // One file to text on this server (spec/roadmap.md, entry 81): ffmpeg makes a 16 kHz mono WAV in the plugin's folder, removed
-// after, and whisper-cli transcribes it on the CPU; one file at a time, in the order they were asked. docs/voice.md.
+// after, and whisper-cli transcribes it on the CPU; one file at a time, in the order they were asked. docs/listen.md.
 
 export type Segment = { readonly start: number; readonly end: number; readonly text: string };
 // `seconds`: the length given, else the WAV's, rounded; `text` is whisper's segments joined by spaces, "" when it heard no speech.
@@ -43,7 +43,7 @@ function segments(stdout: string): Segment[] {
 	});
 }
 
-export function transcriber(host: Pick<Host, "folder" | "jobs">, options: VoiceOptions): Transcribe {
+export function transcriber(host: Pick<Host, "folder" | "jobs">, options: ListenOptions): Transcribe {
 	const { folder } = host;
 	const why = (tool: string, ran: { readonly code: number | null; readonly stderr: string }) => lastLine(ran.stderr) || `${tool} exited with code ${ran.code ?? "on a signal"}`;
 	const one = async (path: string, given?: number): Promise<Transcript | Untranscribed> => {

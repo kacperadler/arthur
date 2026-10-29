@@ -4437,9 +4437,9 @@
   {
     "id": "AR0557",
     "title": "GitHub T1: an arthur github command and pull request reads",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0557-github-t1-an-arthur-github-command-and-pull-request-reads/ticket.md",
-    "updated": "2026-10-29T16:35:25.009Z"
+    "updated": "2026-10-29T16:51:30.217Z"
   },
   {
     "id": "AR0558",

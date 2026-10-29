@@ -4334,9 +4334,9 @@
   {
     "id": "AR0545",
     "title": "Bash builtins that set a variable without an assignment word still change git's config unseen",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0545-bash-builtins-that-set-a-variable-without-an-assignment-word-still-change-git-s/ticket.md",
-    "updated": "2026-10-29T12:28:31.582Z"
+    "updated": "2026-10-29T14:12:27.614Z"
   },
   {
     "id": "AR0546",

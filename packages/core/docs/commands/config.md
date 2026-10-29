@@ -22,6 +22,7 @@ Names: `ARTHUR_<PLUGIN>_<WHAT>`, or inside a named instance (an entry with a `na
 Said, without failing the check:
 
 - A key set twice in the env file: `<file>: KEY is set on lines 2, 5; the last wins`.
+- A variable set in the shell but not in the env file: `ARTHUR_X is set in the shell only; the arthur service does not see it, put it in <envFile>`. The service runs `arthur run` without the login shell (`docs/setup.md`, step 9), so there the variable is missing and refuses the start; a job sees neither (above). `arthur setup` prints the same line.
 
 Refused, one line each (the same lines refuse the start):
 

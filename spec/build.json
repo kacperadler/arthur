@@ -3936,7 +3936,7 @@
     "title": "A HOME= set in front of a command is ignored by the guard, so the inner shell reads another HOME",
     "status": "done",
     "path": "spec/features/AR0496-a-home-set-in-front-of-a-command-is-ignored-by-the-guard-so-the-inner-shell/ticket.md",
-    "updated": "2026-10-29T09:38:20.220Z",
+    "updated": "2026-10-29T09:58:01.372Z",
     "after": [
       "AR0478"
     ]
@@ -3944,9 +3944,9 @@
   {
     "id": "AR0497",
     "title": "A long option of the other wrappers followed by its value still hides the command",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0497-a-long-option-of-the-other-wrappers-followed-by-its-value-still-hides-the/ticket.md",
-    "updated": "2026-10-29T09:39:09.514Z"
+    "updated": "2026-10-29T09:52:37.575Z"
   },
   {
     "id": "AR0498",

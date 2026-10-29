@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Added
 
+- AR0555 Cleanup after a merge: a merged job leaves no worktree, Docker leftovers, cache, or branch here or on GitHub (21bdc5ff)
 - AR0557 GitHub T1: an arthur github command and pull request reads (79553878)
 
 ### Fixed

@@ -3883,9 +3883,9 @@
   {
     "id": "AR0490",
     "title": "A symlink or a HEAD folder the branch itself commits is kept by the sweep",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0490-a-symlink-or-a-head-folder-the-branch-itself-commits-is-kept-by-the-sweep/ticket.md",
-    "updated": "2026-10-29T10:33:38.075Z"
+    "updated": "2026-10-29T10:57:38.178Z"
   },
   {
     "id": "AR0491",
@@ -3951,9 +3951,9 @@
   {
     "id": "AR0498",
     "title": "The command line `env -S` splits is not read",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0498-the-command-line-env-s-splits-is-not-read/ticket.md",
-    "updated": "2026-10-29T10:47:50.735Z"
+    "updated": "2026-10-29T10:54:56.992Z"
   },
   {
     "id": "AR0499",
@@ -4334,9 +4334,9 @@
   {
     "id": "AR0545",
     "title": "Bash builtins that set a variable without an assignment word still change git's config unseen",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0545-bash-builtins-that-set-a-variable-without-an-assignment-word-still-change-git-s/ticket.md",
-    "updated": "2026-10-29T10:15:05.994Z"
+    "updated": "2026-10-29T10:51:57.863Z"
   },
   {
     "id": "AR0546",

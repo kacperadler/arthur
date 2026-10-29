@@ -825,6 +825,11 @@ test("a function's body or a trap's command is judged with every config assignme
 		["cd() { git status; }; export XDG_CONFIG_HOME=/tmp/h; cd .", UNSEEN],
 		['trap "git status" EXIT; export XDG_CONFIG_HOME=/tmp/h', UNSEEN],
 		["git status; export GIT_CONFIG_GLOBAL=/tmp/x.cfg", UNSEEN],
+		// Config set before a command is in the environment of a function it calls, and of that function's git calls.
+		["f() { git c a.c d; }; GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.c GIT_CONFIG_VALUE_0=config f", UNSEEN],
+		["f() { git status; }; GIT_CONFIG_GLOBAL=/tmp/x.cfg f", UNSEEN],
+		["f() { git status; }; XDG_CONFIG_HOME=/tmp/h f", UNSEEN],
+		["cd() { git status; }; XDG_CONFIG_HOME=/tmp/h cd .", UNSEEN],
 		// HOME set anywhere in the call is refused where it stands (AR0496).
 		["cd() { git status; }; export HOME=/tmp/h; cd .", UNKNOWN],
 		['trap "git status" EXIT; export HOME=/tmp/h', UNKNOWN],

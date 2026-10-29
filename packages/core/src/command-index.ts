@@ -8,10 +8,14 @@ const WRAPPERS: Readonly<Record<string, readonly string[]>> = {
 // Words that start a command without being one.
 const RESERVED = ["{", "}", "!", "if", "then", "else", "elif", "do", "while", "until"];
 
-// The index in `words` of the command they run, after assignments, reserved words and wrappers with their options (-1 if none), and the folders `env -C` and `sudo -D` run it in. A cluster takes a value after its first letter that does (`-iC dir`, `-iCdir`); a long option is any prefix of those that agree on taking a value (`env --c=dir`, `sudo --us root`, `time --out f`).
+// The index in `words` of the command they run, after assignments, reserved words (`function` with the name it defines, so its body's first command is read) and wrappers with their options (-1 if none), and the folders `env -C` and `sudo -D` run it in. A cluster takes a value after its first letter that does (`-iC dir`, `-iCdir`); a long option is any prefix of those that agree on taking a value (`env --c=dir`, `sudo --us root`, `time --out f`).
 // At an `env -S` (`--split-string`) it stops: the index of its option, then where the words after its value start and the value, which env splits into words that it reads on before those.
 export function commandIndex(words: readonly string[], dirs: string[] = []): [number, string[], [number, string]?] {
 	for (let index = 0; index < words.length; ) {
+		if (words[index] === "function") {
+			index += 2;
+			continue;
+		}
 		const name = basename(words[index]!);
 		const [values, flag] = [Object.hasOwn(WRAPPERS, name) ? WRAPPERS[name]! : undefined, name === "env" ? "C" : name === "sudo" ? "D" : ""];
 		if (values === undefined && !RESERVED.includes(words[index]!) && !/^[A-Za-z_]\w*(\[[^\]]*\])?\+?=/.test(words[index]!)) return [index, dirs];

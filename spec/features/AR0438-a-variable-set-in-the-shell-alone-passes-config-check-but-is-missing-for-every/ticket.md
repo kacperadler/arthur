@@ -41,3 +41,4 @@ Out:
 
 - 2026-10-25: Source: F1 of AR0338
 - 2026-10-25: AR0438 approved under AR-D31, group 2; the owner: "always go with recommendation till the 8 am morning" (AR-D44)
+- 2026-10-29: core's line budget raised from 6414 to 6417, the lines the shell-only warning needs in `config-check.ts` (AR-D29).

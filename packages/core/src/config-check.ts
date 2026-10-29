@@ -7,7 +7,8 @@ export const envLine = (variable: EnvVariable) => `${variable.set ? "set    " : 
 
 // What `arthur config check` and `arthur setup` read: the config, else why it does not load; the host's refusals before any
 // `setup`, else what the binary's own load refused (`setupProblem`), which such a refusal stops before any `setup`, so it is
-// one of the refusals already; and the env check, whose problems refuse the start too.
+// one of the refusals already; and the env check, whose problems refuse the start too, and whose warnings say each variable
+// set in the shell only, which the service, run without the login shell (docs/setup.md, step 9), does not see.
 export async function readConfig(path: string, shell: Shell, setupProblem?: string): Promise<{ readonly config: LoadedConfig; readonly refused: string[]; readonly env: EnvCheck } | { readonly config?: undefined; readonly refused: string[]; readonly env?: undefined }> {
 	let config;
 	try {
@@ -21,7 +22,9 @@ export async function readConfig(path: string, shell: Shell, setupProblem?: stri
 	} catch (error) {
 		refused = (error instanceof Error ? error.message : String(error)).split("\n");
 	}
-	const env = checkEnv(config, shell);
+	const checked = checkEnv(config, shell), file = checkEnv(config, {}).values;
+	const shellOnly = checked.variables.filter((variable) => shell[variable.name] !== undefined && file[variable.plugin]?.[variable.name] === undefined);
+	const env = { ...checked, warnings: [...checked.warnings, ...shellOnly.map((variable) => `${variable.name} is set in the shell only; the arthur service does not see it, put it in ${config.core.envFile}`)] };
 	const before = refused.length > 0 || env.problems.length > 0 || env.variables.some((variable) => !variable.set);
 	return { config, refused: before || setupProblem === undefined ? refused : setupProblem.split("\n"), env };
 }

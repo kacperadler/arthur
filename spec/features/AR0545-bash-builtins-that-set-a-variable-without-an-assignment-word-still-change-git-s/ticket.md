@@ -44,3 +44,4 @@ Out:
 
 - 2026-10-28: Source: F1 of AR0524
 - 2026-10-29: AR0545: refusing x=HOME; export $x=... at the export (unknown path) meets the Done means point; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D318)
+- 2026-10-29: AR0545: one more worker round for the quoted name in arithmetic, then review round 3; the owner: "Idz z wszystkich rekomendacjow i nie pytaj mnie (AR-D271, voice note)" (AR-D324)

@@ -4422,7 +4422,7 @@
     "title": "Cleanup after a merge: a merged job leaves no worktree, Docker leftovers, cache, or branch here or on GitHub",
     "status": "in-progress",
     "path": "spec/features/AR0555-cleanup-after-a-merge-a-merged-job-leaves-no-worktree-docker-leftovers-cache-or/ticket.md",
-    "updated": "2026-10-29T18:20:46.472Z",
+    "updated": "2026-10-29T19:41:57.777Z",
     "after": [
       "AR0557"
     ]
@@ -4495,5 +4495,12 @@
     "after": [
       "AR0562"
     ]
+  },
+  {
+    "id": "AR0564",
+    "title": "A report skill: how every HTML page for the owner is styled and checked before it is sent",
+    "status": "planned",
+    "path": "spec/features/AR0564-a-report-skill-how-every-html-page-for-the-owner-is-styled-and-checked-before-it/ticket.md",
+    "updated": "2026-10-29T19:42:29.543Z"
   }
 ]

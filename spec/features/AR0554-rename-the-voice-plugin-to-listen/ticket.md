@@ -36,3 +36,4 @@ Out:
 - The owner's `arthur.config.ts` (git-ignored): the coordinator changes `voice(...)` to `listen(...)` at the merge.
 
 ## Decisions
+- 2026-10-29: AR0554: listen line budget 246 -> 248, video line "not transcribed: the listen plugin is not enabled"; the owner: "AR-D329 1" (AR-D329)

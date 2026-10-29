@@ -182,7 +182,7 @@ test("--auto reads past a replacement of main's tip under refs/replace: the held
 	assert.equal((await merge(job.id, "--auto")).err, `arthur merge: --auto merges no held path: ${job.branch} changes packages/shop/package.json (package.json); its merge waits for the owner: arthur merge ${job.id} on his word; main is unchanged`);
 });
 
-test("--auto CI: failed refused, pending or no run of the tip waits (one on main counts as none), GitHub's refusal named; github not loaded refused, naming the owner's --no-ci; --auto --no-ci refused", async (t) => {
+test("--auto CI: failed refused, pending or no run of the tip waits (one on main, or one github puts on the tip whose commit is not the tip, counts as none; a plain merge keeps it), GitHub's refusal named; github not loaded refused, naming the owner's --no-ci; --auto --no-ci refused", async (t) => {
 	const { worker, review, merge, head, answers, waiting } = await load(t);
 	const job = await worker(1);
 	await review(job.id, "PASS");
@@ -197,11 +197,17 @@ test("--auto CI: failed refused, pending or no run of the tip waits (one on main
 	answers.ci = ciRun(start, "main", { below: 1 });
 	assert.equal((await merge(job.id, "--auto")).err, rule(`no run built the tip yet (the nearest, 7, ran on ${start.slice(0, 7)}, 1 below the tip)${waits}`));
 	assert.equal(waiting(job.id), true);
+	answers.ci = ciRun(start, job.branch);
+	assert.equal((await merge(job.id, "--auto")).err, rule(`no run built the tip yet (the nearest, 7, ran on ${start.slice(0, 7)}, not the tip ${job.tip.slice(0, 7)})${waits}`), "github says 0 below the tip, but the run's commit is not the tip delivery read");
 	answers.ci = undefined;
 	assert.equal((await merge(job.id, "--auto")).err, rule(`no run built the tip yet${waits}`));
 	answers.ci = ciRun(job.tip, job.branch, { status: "queued", conclusion: null });
 	assert.equal((await merge(job.id, "--auto")).err, rule(`run 7, attempt 1, on ${job.tip.slice(0, 7)}, the tip, is queued${waits}`));
 	assert.equal(head(), start);
+	answers.ci = ciRun(start, job.branch);
+	const plain = await merge(job.id);
+	assert.equal(plain.code, undefined, `a plain merge keeps github's below 0: ${plain.err}`);
+	assert.notEqual(head(), start);
 
 	const bare = await load(t, false);
 	const other = await bare.worker(1);
@@ -240,6 +246,24 @@ test("CI passed on the tip after a new commit: the run of the old tip no longer 
 	const end = { project: "acme", branch: docs.branch, below: 1, run: ciRun(docs.tip, docs.branch) };
 	assert.deepEqual(fake.collect<boolean>("delivery.ciEnded", end), [false], "an end 1 below the tip, on the branch's own commit, wakes nobody");
 	assert.deepEqual(messages(), []);
+});
+
+test("a run 1 below the tip, on the branch's own commit, that hangs past 30 minutes is cancelled, and its end wakes the coordinator as delivery's cancel, once", async (t) => {
+	const { fake, commit, worker, review, merge, answers, cancels, messages } = await load(t);
+	const job = await worker(1);
+	commit(job.worktree, { "late.ts": "export const late = 1;\n" });
+	await review(job.id, "PASS");
+	answers.ci = ciRun(job.tip, job.branch, { below: 1, status: "in_progress", conclusion: null, startedAt: T0 });
+	assert.match((await merge(job.id, "--auto")).err, /: no run built the tip yet \(the nearest, 7, ran on [0-9a-f]{7}, 1 below the tip\); it waits: /);
+	fake.setNow(new Date(Date.parse(T0) + 30 * 60_000));
+	await ciWaits(fake.host).round();
+	assert.deepEqual(cancels, [{ project: "acme", run: 7 }]);
+	const end = () => fake.collect<boolean>("delivery.ciEnded", { project: "acme", branch: job.branch, below: 1, run: ciRun(job.tip, job.branch, { below: 1, conclusion: "cancelled" }) });
+	assert.deepEqual(end(), [true], "delivery's to tell, so github's wake leaves it out");
+	assert.deepEqual(messages(), [`CI ended cancelled, cancelled by delivery after it ran 30 minutes on ${job.branch} (run 7, attempt 1, on ${job.tip.slice(0, 7)}): https://github.com/acme/shop/actions/runs/7. Not merged; it waits on: the next end of a run on it wakes you again. Why: arthur ci ${job.branch} --project acme; then a failure in the branch's own code goes back to its worker: arthur continue ${job.id} '<the failed step and its lines>'; one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once: arthur ci ${job.branch} --project acme --rerun`]);
+	assert.deepEqual(end(), [true]);
+	assert.equal(messages().length, 1, "told once");
+	assert.deepEqual(fake.collect<boolean>("delivery.ciEnded", { project: "acme", branch: job.branch, below: 1, run: ciRun(job.tip, job.branch, { attempt: 2, below: 1, conclusion: "failure" }) }), [false], "a rerun delivery did not cancel stays github's");
 });
 
 test("a waiting branch's CI end, as github's poll asks delivery.ciEnded, wakes the coordinator with its verdict once per run end, a rerun's end again, and answers true; the poll never wakes on an end; a run on main, another branch or project, or no wait answers false", async (t) => {

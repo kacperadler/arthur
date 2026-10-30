@@ -2,10 +2,10 @@ import { spawnSync } from "node:child_process";
 import { matchesGlob } from "node:path";
 import type { Host, JobRecord } from "@arthur/core/plugin";
 import { type CiRun, startWait } from "./ci-wait.ts";
-import { reviewsOf } from "./review-records.ts";
+import { noReview, reviewsOf } from "./review-records.ts";
 
 // `arthur merge --auto` (spec/roadmap.md, entry 59): the merge without the owner, only for a project with `autoMerge` on, a
-// PASS on the tip itself, no held path in the branch, and CI passed on it as `github.ci` answers; never with `--no-ci`, which
+// PASS (or `no review` and no other review of it) on the tip itself, no held path in the branch, and CI passed on it as `github.ci` answers; never with `--no-ci`, which
 // only the owner's decision lifts (AR0503). CI not passed yet leaves a wait (ci-wait.ts). A plain merge asks CI too (AR0362). docs/commands/merge.md.
 
 type Entry = { readonly name: string; readonly autoMerge?: boolean; readonly prompts?: { readonly rolesDir?: string } };
@@ -24,9 +24,10 @@ export async function autoRefusal(host: Host, held: (path: string) => boolean, m
 	if (entry?.autoMerge !== true) return `--auto merges only in a project with autoMerge on; ${job.project} has autoMerge ${entry?.autoMerge ?? "unset"}, so its merges wait for the owner: arthur merge ${job.id} on his word`;
 	const reviews = reviewsOf(host, job.branch);
 	const onTip = reviews.findLast(([review, verdict]) => tip.startsWith(review.commit) && (verdict === "PASS" || verdict === "FAIL"));
-	if (onTip?.[1] !== "PASS") {
+	const ofTip = reviews.findLast(([review]) => tip.startsWith(review.commit));
+	if (onTip?.[1] !== "PASS" && (ofTip !== undefined || !noReview(host, job.id, tip))) {
 		const pass = reviews.findLast(([, verdict]) => verdict === "PASS")?.[0];
-		const why = onTip !== undefined ? `its newest review, ${onTip[0].id}, says FAIL` : pass !== undefined ? `the last PASS, ${pass.id}, is on an older commit, ${pass.commit.slice(0, 7)}` : "no review of it says PASS";
+		const why = onTip !== undefined ? `its newest review, ${onTip[0].id}, says FAIL` : ofTip !== undefined ? `its review ${ofTip[0].id} has no verdict` : pass !== undefined ? `the last PASS, ${pass.id}, is on an older commit, ${pass.commit.slice(0, 7)}` : "no review of it says PASS";
 		return `--auto merges only with a PASS on the tip: ${job.branch}'s tip ${tip.slice(0, 7)}: ${why}; review the tip: arthur review ${job.id}`;
 	}
 	const rules: readonly (readonly [string, readonly string[]])[] = [

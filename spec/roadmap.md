@@ -637,8 +637,8 @@ The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.m
 ### 52. Review jobs
 
 - Package: delivery.
-- Delivers: the kind `review` (read-only, a fresh model, the reviewer role and review criteria); the verdict `PASS` or `FAIL` from the last line moves the ticket to done or in-progress; no verdict fails the job; `arthur ticket file` of a review writes the next `review-N.md`, never twice; at most 2 FAILs since the last PASS, then `--round N`; the procedure sent at the limit.
-- Done means: edge cases: `PASS` not on the last line is no verdict; filing the same review twice is refused; the third review without `--round` is refused, naming the two FAILs. Every review task carries `Ticket: spec/features/<id>-<slug>/ticket.md`, so placement (31) reads the ticket's labels; a test shows a review of a ticket with `os=macos` lands on that machine (F1 of AR0125).
+- Delivers: the kind `review` (read-only, a fresh model, the reviewer role and review criteria); the verdict `PASS` or `FAIL` from the last line moves the ticket to done or in-progress; no verdict fails the job; `arthur ticket file` of a review writes the next `review-N.md`, never twice; at most 4 FAILs since the last PASS (2 before AR0576), then `--round N`; the procedure sent at the limit.
+- Done means: edge cases: `PASS` not on the last line is no verdict; filing the same review twice is refused; the review after the limit without `--round` is refused, naming its FAILs. Every review task carries `Ticket: spec/features/<id>-<slug>/ticket.md`, so placement (31) reads the ticket's labels; a test shows a review of a ticket with `os=macos` lands on that machine (F1 of AR0125).
 - Depends on: 51.
 - Size: a day.
 - Covers: D1, B7, O10.
@@ -665,7 +665,7 @@ The host API, as these entries build it (entry 51 fixed it in `docs/plugin-api.m
 
 - Package: delivery.
 - Delivers: after a FAIL: file it, continue the worker with the findings and a new budget, spawn the next review when the worker ends; cancelled by `stop-all`; spawns go through `beforeSpawn`, so `maxAgents` holds.
-- Done means: edge cases: `/stopall` between the worker's end and the next review cancels it; a refused spawn (at `maxAgents`) is retried when a slot frees, not dropped; the second FAIL stops the loop at the review limit.
+- Done means: edge cases: `/stopall` between the worker's end and the next review cancels it; a refused spawn (at `maxAgents`) is retried when a slot frees, not dropped; the FAIL at the review limit (the fourth since AR0576) stops the loop.
 - Depends on: 54.
 - Size: half a day to a day.
 - Covers: D4, T14 (the cancel).
@@ -1085,7 +1085,7 @@ Each row is one capability of the harness Arthur replaces, as it was inventoried
 | O7 | The procedure when a retro ends | 63 |
 | O8 | The procedure when an onboarding ends | 42 |
 | O9 | The procedure when a plan or plan review ends | 28 |
-| O10 | The procedure at two FAIL reviews | 52 |
+| O10 | The procedure at four FAIL reviews | 52 |
 | O11 | The morning report | 65 |
 | O12 | At most N jobs at once, enforced | 26 |
 | O13 | Model and thinking level per role | 26 |

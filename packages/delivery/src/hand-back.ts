@@ -8,8 +8,8 @@ import { failsSincePass, LIMIT, type Review, type Verdict } from "./review-recor
 // worker continued with the findings and a new budget, the next review spawned when the worker's run finished, each through
 // the host, so every `beforeSpawn` (`maxAgents`) holds. Another plugin's refusal keeps the step for the next `job-ended`,
 // when a slot may be free; the core's or delivery's own, which no freed slot lifts, and any other error drop the hand-back
-// and tell the coordinator. `stop-all` drops every hand-back, and a job a step started meanwhile is stopped. The second FAIL
-// since the last PASS starts none: the limit's procedure goes to the coordinator. docs/commands/review.md, "Hand-back".
+// and tell the coordinator. `stop-all` drops every hand-back, and a job a step started meanwhile is stopped. The fourth FAIL
+// (LIMIT) since the last PASS starts none: the limit's procedure goes to the coordinator. docs/commands/review.md, "Hand-back".
 
 // `continue`: the worker is to be continued; `continued`: its run goes on; `review`: the next review is to start; `reviewing`: it runs.
 type Step = "continue" | "continued" | "review" | "reviewing";
@@ -105,7 +105,7 @@ export function handBack(host: Host): HandBack {
 				if (review !== undefined && record?.review !== review.id && verdict === "FAIL") file(review);
 				if (at !== generation) return;
 				if (review !== undefined && record?.review !== review.id) {
-					// Below the limit the worker is continued; a PASS, no verdict, or the second FAIL ends the hand-back.
+					// Below the limit the worker is continued; a PASS, no verdict, or the FAIL at the limit ends the hand-back.
 					if (verdict === "FAIL" && failsSincePass(host, review.branch).length < LIMIT) save({ worker: name, review: review.id, findings: host.jobs.result(review.id).trim(), step: "continue" });
 					else drop(name);
 				}

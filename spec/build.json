@@ -4591,9 +4591,9 @@
   {
     "id": "AR0575",
     "title": "Defaults T7: a passed CI run wakes no one, and Arthur restarts by itself once no job runs",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0575-defaults-t7-a-passed-ci-run-wakes-no-one-and-arthur-restarts-by-itself-once-no/ticket.md",
-    "updated": "2026-10-30T09:38:31.236Z"
+    "updated": "2026-10-30T09:43:59.297Z"
   },
   {
     "id": "AR0576",

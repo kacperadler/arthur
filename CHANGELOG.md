@@ -7,6 +7,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Added
 
 - AR0569 Defaults T1: a check call gets 1800 s by itself, pkill is refused, and every steer is an event (cdb0abdc)
+- AR0575 Defaults T7: a passed CI run wakes no one, and Arthur restarts by itself once no job runs (7431ebe0)
 
 ### Fixed
 

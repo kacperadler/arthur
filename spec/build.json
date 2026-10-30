@@ -4717,15 +4717,6 @@
     "title": "Plan: a dokploy plugin, deploy and upload to the owner's Dokploy servers",
     "status": "planned",
     "path": "spec/features/AR0588-plan-a-dokploy-plugin-deploy-and-upload-to-the-owner-s-dokploy-servers/ticket.md",
-    "updated": "2026-10-30T13:44:58.936Z",
-    "after": [
-      "AR0572",
-      "AR0574",
-      "AR0576",
-      "AR0579",
-      "AR0580",
-      "AR0583",
-      "AR0585"
-    ]
+    "updated": "2026-10-30T13:44:58.936Z"
   }
 ]

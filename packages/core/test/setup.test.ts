@@ -159,7 +159,7 @@ test("a missing variable is a step that refuses the start; each enabled plugin's
 
 test("Next: the config first, then the env, then critical requirements, then the rest; exit 1", () => {
 	const config = `${NEED}
-export default { core: { home: HOME, agent: { command: "arthur-test-no-agent" } }, plugins: [
+export default { core: { home: HOME, jobs: { unsandboxed: true }, agent: { command: "arthur-test-no-agent" } }, plugins: [
 	{ name: "orchestration", setup() {} },
 	{ name: "telegram", requires: ["ghost"], options: { chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }, setup() {} },
 ] };
@@ -181,7 +181,7 @@ export default { core: { home: HOME, agent: { command: "arthur-test-no-agent" } 
 
 test("a critical requirement missing is a step that refuses the start, before every other one; a fix said twice is one step", () => {
 	const { arthur } = project({
-		config: `${NEED}\nexport default { core: { home: HOME }, plugins: [{ name: "orchestration", setup(host) { host.provide("doctor", () => [need("soft", false, "missing: x"), need("tmux", true, "missing: no tmux"), { ...need("again", false, "missing: y"), fix: "fix soft" }]); } }] };\n`,
+		config: `${NEED}\nexport default { core: { home: HOME, jobs: { unsandboxed: true } }, plugins: [{ name: "orchestration", setup(host) { host.provide("doctor", () => [need("soft", false, "missing: x"), need("tmux", true, "missing: no tmux"), { ...need("again", false, "missing: y"), fix: "fix soft" }]); } }] };\n`,
 	});
 	const run = arthur();
 	assert.deepEqual(section(run.stdout, "Next"), ["Next", "1. fix tmux. Refuses the start.", "2. fix soft", "Run arthur setup again after each step."]);
@@ -189,14 +189,14 @@ test("a critical requirement missing is a step that refuses the start, before ev
 });
 
 test("nothing missing: Next says nothing, and exit 0", () => {
-	const { arthur } = project({ config: `${NEED}\nexport default { core: { home: HOME }, plugins: [{ name: "orchestration", setup(host) { host.provide("doctor", () => [need("tmux", true)]); } }] };\n` });
+	const { arthur } = project({ config: `${NEED}\nexport default { core: { home: HOME, jobs: { unsandboxed: true } }, plugins: [{ name: "orchestration", setup(host) { host.provide("doctor", () => [need("tmux", true)]); } }] };\n` });
 	const run = arthur();
 	assert.deepEqual(section(run.stdout, "Can still go"), ["Can still go in arthur.config.ts", "nothing"]);
 	assert.deepEqual([run.status, run.stdout.split("\n").slice(-3)], [0, ["Next", "  nothing", ""]]);
 });
 
 test("an env file set beside the config: its doctor line under Requirements and its move a step of Next that does not refuse the start", () => {
-	const { folder, arthur } = project({ config: `${NEED}\nexport default { core: { home: HOME, envFile: ".env" }, plugins: [{ name: "orchestration", setup() {} }] };\n` });
+	const { folder, arthur } = project({ config: `${NEED}\nexport default { core: { home: HOME, jobs: { unsandboxed: true }, envFile: ".env" }, plugins: [{ name: "orchestration", setup() {} }] };\n` });
 	const run = arthur();
 	assert.match(section(run.stdout, "Requirements")[6] ?? "", new RegExp(`^core env: missing: the env file ${join(folder, ".env")} lies inside ${folder}; `));
 	assert.deepEqual([run.status, section(run.stdout, "Next")], [0, ["Next", "1. move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)", "Run arthur setup again after each step."]]);

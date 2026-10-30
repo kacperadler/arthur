@@ -384,7 +384,7 @@ test("the arthur binary lists, stops, steers, continues and prunes a job by its 
 	git(root, "add", "--all");
 	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "ignore");
 	const agent = fakeAgent({ steps: [{ waitFor: join(temporaryFolder(), "never") }] });
-	writeFileSync(join(root, "arthur.config.ts"), `export default { core: { timeZone: "UTC", agent: { command: ${JSON.stringify(agent)} } }, plugins: [{ name: "orchestration", setup() {} }] };\n`);
+	writeFileSync(join(root, "arthur.config.ts"), `export default { core: { timeZone: "UTC", jobs: { unsandboxed: true }, agent: { command: ${JSON.stringify(agent)} } }, plugins: [{ name: "orchestration", setup() {} }] };\n`);
 	const cli = join(import.meta.dirname, "..", "src", "cli.ts");
 	const arthur = (...args: string[]) => spawnSync(process.execPath, [cli, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_JOB_SLICE: jobSlice.slice } });
 	const id = arthur("spawn", "Go.").stdout.trim();

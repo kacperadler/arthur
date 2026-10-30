@@ -21,3 +21,17 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: a file whose fixed waits drop below its `FIXED_WAITS` number passes, and a later change may add waits back up to the old number unrefused; the comment asks to lower the number, nothing checks it. A loop whose sleep is on a line after its header, or a synchronous `Atomics.wait` poll (`packages/core/test/job-control.test.ts:500`, inside a mocked synchronous function where the async `until` cannot run), is refused only through that count, not as a loop.
 - Suggestion: refuse a count under the baseline too (`has N fixed waits, under its baseline of M; lower it`), so the numbers only go down. Out: reading loops over several lines.
 - Status: deferred (client summary)
+
+## F3. The structure check misses a wait under another name
+
+- Kind: test
+- Found by: review 1 (not blocking)
+- What: `import { setTimeout as delay } from "node:timers/promises"` in a loop, `scheduler.wait` and a `setInterval` poll inside a Promise pass both the loop rule and the wait count (`test/structure.ts:23-24` match only `sleep` and `setTimeout`).
+- Status: deferred (client summary)
+
+## F4. The kit's until default deadline of 20 s is untested
+
+- Kind: test
+- Found by: review 1 (not blocking)
+- What: `packages/core/src/until.ts:5`: `deadlineMs = 2_000`, `>` to `>=`, and a 200 ms poll all leave `testing.test.ts` passing.
+- Status: deferred (client summary)

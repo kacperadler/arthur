@@ -748,3 +748,7 @@
 {"record":"answer","id":"AR-D372","time":"2026-10-30T11:23:07+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D373","time":"2026-10-30T11:55:48+01:00","project":"arthur","kind":"merge","question":"Merge AR0587 (report check tests find the browser under the real home) after its passed review?","options":[],"ticket":"AR0587"}
 {"record":"answer","id":"AR-D373","time":"2026-10-30T11:55:48+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D374","time":"2026-10-30T11:57:48+01:00","project":"arthur","kind":"merge","question":"Merge AR0570 (a branch cannot change its ticket, the board or the decision log) after its passed review?","options":[],"ticket":"AR0570"}
+{"record":"answer","id":"AR-D374","time":"2026-10-30T11:57:48+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D375","time":"2026-10-30T11:57:49+01:00","project":"arthur","kind":"merge","question":"Merge AR0571 (a job resumes once after a provider error or no verdict) after its passed review?","options":[],"ticket":"AR0571"}
+{"record":"answer","id":"AR-D375","time":"2026-10-30T11:57:49+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

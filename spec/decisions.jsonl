@@ -740,3 +740,5 @@
 {"record":"answer","id":"AR-D368","time":"2026-10-30T10:26:36+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D369","time":"2026-10-30T10:38:44+01:00","project":"arthur","kind":"merge","question":"Merge AR0575 (no wake on CI success, restart when due) after its passed review?","options":[],"ticket":"AR0575"}
 {"record":"answer","id":"AR-D369","time":"2026-10-30T10:38:44+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D370","time":"2026-10-30T10:42:46+01:00","project":"arthur","kind":"merge","question":"Merge AR0577 (test kit HOME, TMPDIR, git identity, signal cleanup) after its passed review?","options":[],"ticket":"AR0577"}
+{"record":"answer","id":"AR-D370","time":"2026-10-30T10:42:46+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

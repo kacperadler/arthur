@@ -3,6 +3,7 @@ import { appendFileSync, closeSync, constants, existsSync, mkdirSync, openSync, 
 import { join, resolve } from "node:path";
 import { agentStream } from "./agent-stream.ts";
 import { eventBus } from "./events.ts";
+import { reason as endingOf, resumeFor, type Why } from "./job-ending.ts";
 import { deadline, reached } from "./job-limits.ts";
 import { install } from "./job-install.ts";
 import { oomFirst, watchMemory } from "./job-memory.ts";
@@ -90,8 +91,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	];
 	// What stopped the job first, which its state says, whatever came after; `final` once nothing may resume it: its time
 	// is up, its memory went over its cap, or `arthur stop` asked. A stop that comes once the agent exited on its own leaves its
-	// ending as it is.
-	type Why = "time" | "budget" | "memory" | "stop";
+	// ending as it is, and rules out a resume.
 	let why = undefined as Why | undefined;
 	let final = false;
 	let stopping = Promise.resolve();
@@ -154,6 +154,13 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		record.clearStop();
 		[code, killed] = await play(args(`Your budget of $${budget} ran out and was doubled to $${doubled}, once. Go on with the task where you stopped.`));
 	}
+	const ending = () => endingOf({ why, timeout, playing, cost: record.cost(), budgetUsd, overCap, failure, killed, code, stopped: record.stopped(), result: record.result(), verdicts });
+	const first = ending(), again = final ? undefined : resumeFor(first, verdicts); // One resume, by the budget's path, unless a stop or a limit came.
+	if (again !== undefined) {
+		note(`resume: ${first}; the run resumes once`);
+		record.clearStop();
+		[code, killed] = await play(args(again));
+	}
 	cancel();
 	quiet();
 	// A kill over the cap that ended the agent before a sample saw it ends the job at the cap all the same.
@@ -171,18 +178,7 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 	} catch (error) {
 		note(`no commits listed: ${error instanceof Error ? error.message : String(error)}`);
 	}
-	const reason =
-		why === "stop" ? "stopped"
-		: why === "time" ? `limit: time: the job ran past its timeout of ${timeout} minutes${playing ? "" : ", during its install"}`
-		: why === "budget" ? `limit: budget: its cost $${record.cost().toFixed(4)} reached its budget of $${budgetUsd}`
-		: why === "memory" ? `limit: memory: ${overCap}`
-		: failure !== undefined ? `failed: the agent did not start: ${failure.message}`
-		: killed !== null ? `failed: the agent was killed by ${killed}`
-		: record.stopped() !== "" ? `failed: the agent stopped on ${record.stopped()}`
-		: code !== 0 ? `failed: the agent exited ${code}`
-		: record.result() === "" ? "failed: the agent ended without a final message"
-		: verdicts !== "" && !verdicts.split("\n").includes(record.result().trimEnd().split("\n").at(-1)?.trim() ?? "") ? `failed: no verdict: the last line of its final message is not ${verdicts.split("\n").join(" or ")} alone`
-		: "finished";
+	const reason = ending();
 	// A run that finished on a `Blocked:` line waits for what it names; a plugin's hold ends with the run, unless it stopped the run.
 	const blocked = kept(guard(() => current(home, id))) ?? (reason === "finished" ? blockedBy(record.result()) : undefined);
 	const [state, said] = blocked === undefined ? (["ended", reason] as const) : (["blocked", blocked] as const);

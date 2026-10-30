@@ -369,7 +369,8 @@ test("a model lost mid-job fails the job with the agent's reason; it is never sw
 		const { fake } = await load({ providers: { mac: { kind: "ollama", url: mac.url } } }, {}, root);
 		const job = await fake.host.jobs.spawn({ task: "Build it.", model: ["mac/qwen3-coder", "anthropic/claude-haiku-5-5"] });
 		assert.equal(await ended(dirname(fake.host.folder), job.id), "failed: the agent stopped on error: Connection error: fetch failed (http://mac:11434)");
-		assert.equal(starts().length, 1, "one run of the agent, on its one model");
+		// The connection error is resumed once (AR0571), on the same model, and the second failure ends the job.
+		assert.deepEqual(starts().map((args) => [args[0] === "--continue", args[args.indexOf("--model") + 1]]), [[false, "ollama/qwen3-coder"], [true, "ollama/qwen3-coder"]], "two runs of the agent, on its one model");
 	} finally {
 		mac.close();
 		process.env.PATH = PATH;

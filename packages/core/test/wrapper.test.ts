@@ -114,6 +114,8 @@ test("a finished worker: the agent gets the worker's tools, model, thinking and 
 	const settings = readFileSync(start?.args[start.args.indexOf("--config") + 1] ?? "", "utf8");
 	assert.match(settings, /^bash:\n  autoBackground:\n    enabled: false\n/m);
 	assert.match(settings, /^async:\n  enabled: false\n/m);
+	// omp tries a transient provider error 20 times before the run stops on it (AR0571).
+	assert.match(settings, /^retry:\n  maxRetries: 20\n/m);
 	assert.equal(start?.cwd, job.worktree);
 	assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 	const { log, pid, ...rest } = record;
@@ -206,6 +208,73 @@ test("an agent that cannot start: failed, naming why", async () => {
 	assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: `failed: ${reason}` });
 	assert.deepEqual([record.result, record.cost, record["tool-calls"]], ["", "0.0000", "0"]);
 });
+
+// An agent that plays run A, `first`, and run B, `resumed`, when it is started with `--continue`.
+function resuming(first: AgentRun, resumed: AgentRun): { readonly agent: string; readonly first: string; readonly resumed: string } {
+	const [one, two] = [fakeAgent(first), fakeAgent(resumed)];
+	const agent = join(temporaryFolder(), "omp");
+	writeFileSync(agent, `#!/bin/sh\ncase " $* " in *" --continue "*) exec '${two}' "$@" ;; esac\nexec '${one}' "$@"\n`, { mode: 0o755 });
+	return { agent, first: one, resumed: two };
+}
+const startsOf = (agent: string) => (existsSync(join(dirname(agent), "starts.jsonl")) ? starts(agent) : []);
+
+// What omp prints as the error of a run it gave up on after its retries: an Anthropic overload as it answers it, a connection
+// error, a 5xx.
+const OVERLOADED = '529 {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}';
+const TRANSIENT = [OVERLOADED, "Connection error.", '500 {"type":"error","error":{"type":"api_error","message":"Internal server error"}}'];
+const PROVIDER = "Your run stopped on a provider error; Arthur resumes it once. Go on with the task where you stopped.";
+const VERDICT = "Your final message did not end on a verdict; Arthur resumes the run once. Write your final message again, its last line exactly PASS or FAIL, alone.";
+const failing = (error: string): AgentRun => ({ steps: [{ message: "", stopReason: "error", error }], exitCode: 1 });
+
+// Run A, run B, the kind, the job's reason and the message of the one resume, with `--continue`, after `--`.
+const RESUMES: readonly (readonly [string, AgentRun, AgentRun, string, string, string])[] = [
+	...TRANSIENT.map((error) => [`a provider error, ${error.slice(0, 20)}, then a finished run`, failing(error), { steps: [{ message: "Done." }] }, "worker", "finished", PROVIDER] as const),
+	["a provider error twice: the second ends the run as today", failing(OVERLOADED), failing(OVERLOADED), "worker", `failed: the agent stopped on error: ${OVERLOADED}`, PROVIDER],
+	["no verdict, then one", { steps: [{ message: "Looks fine to me." }] }, { steps: [{ message: "Looks fine.\n\nPASS" }] }, "judged", "finished", VERDICT],
+	["no verdict twice: the second ends the run as today", { steps: [{ message: "**PASS**" }] }, { steps: [{ message: "Verdict: PASS" }] }, "judged", "failed: no verdict: the last line of its final message is not PASS or FAIL alone", VERDICT],
+	["a provider error, then no verdict: no second resume", failing(OVERLOADED), { steps: [{ message: "Clean." }] }, "judged", "failed: no verdict: the last line of its final message is not PASS or FAIL alone", PROVIDER],
+];
+
+for (const [name, first, resumed, kind, reason, message] of RESUMES)
+	test(`a run resumes once with --continue on ${name}: ended, ${reason}`, async () => {
+		const played = resuming(first, resumed);
+		const { home, jobs } = setup(played.agent);
+		jobs.registerKind("delivery", { name: "judged", readOnly: true, role: "reviewer", verdicts: ["PASS", "FAIL"] });
+		const job = await jobs.spawn({ task: "Go.", kind });
+		const { data, record } = await ended(home, job.id);
+		assert.deepEqual(data, { id: job.id, kind, project: "acme", state: "ended", reason });
+		const [a, b, ...more] = [...startsOf(played.first), ...startsOf(played.resumed)];
+		const folder = join(home, "jobs", job.id);
+		assert.equal(a?.args.at(-1), `@${join(folder, "task")}`, "run A gets the task");
+		assert.deepEqual([b?.args[0], ...(b?.args.slice(-2) ?? [])], ["--continue", "--", message], "run B continues the session with the fixed message");
+		assert.deepEqual(b?.args.slice(1, -2), a?.args.slice(0, -1), "run B gets every other argument run A got");
+		assert.deepEqual(more, [], "never a second resume");
+		const failed = first.steps[0] !== undefined && "error" in first.steps[0] ? `failed: the agent stopped on error: ${first.steps[0].error}` : "failed: no verdict: the last line of its final message is not PASS or FAIL alone";
+		assert.equal(record.log?.split(`] resume: ${failed}; the run resumes once\n`).length, 2, record.log);
+		assert.ok(record.log?.endsWith(`] ended: ${reason}\n`), record.log);
+	});
+
+// Run A, the kind and the job's reason: an ending a resume does not mend, which ends the run at once, B never played.
+const FINAL: readonly (readonly [string, AgentRun, string, string])[] = [
+	["an error that is not transient", failing("401 authentication_error"), "worker", "failed: the agent stopped on error: 401 authentication_error"],
+	["a cyber refusal, even as a 5xx", failing("500 Request blocked under cyber_policy: trusted access for cyber is required"), "worker", "failed: the agent stopped on error: 500 Request blocked under cyber_policy: trusted access for cyber is required"],
+	["a user abort, even with a provider error's text", { steps: [{ message: "Half.", stopReason: "aborted", error: OVERLOADED }] }, "worker", `failed: the agent stopped on aborted: ${OVERLOADED}`],
+	["a kill", { steps: [{ signal: "SIGKILL" }] }, "judged", "failed: the agent was killed by SIGKILL"],
+	["an exit without a stop", { steps: [{ message: "Done." }], exitCode: 3 }, "worker", "failed: the agent exited 3"],
+	["no final message, a kind with verdicts", { steps: [{ tool: "read", args: { path: "README.md" } }] }, "judged", "failed: the agent ended without a final message"],
+];
+
+for (const [name, first, kind, reason] of FINAL)
+	test(`a run that ends on ${name} is not resumed: ended, ${reason}`, async () => {
+		const played = resuming(first, { steps: [{ message: "PASS" }] });
+		const { home, jobs } = setup(played.agent);
+		jobs.registerKind("delivery", { name: "judged", readOnly: true, role: "reviewer", verdicts: ["PASS", "FAIL"] });
+		const job = await jobs.spawn({ task: "Go.", kind });
+		const { data, record } = await ended(home, job.id);
+		assert.deepEqual(data, { id: job.id, kind, project: "acme", state: "ended", reason });
+		assert.deepEqual([startsOf(played.first).length, startsOf(played.resumed).length], [1, 0]);
+		assert.doesNotMatch(record.log ?? "", /\] resume: /);
+	});
 
 // Every role's MCP servers as orchestration answers them in `roles.model`, a secret filled in from `token()` at each answer.
 const withMcp = (token: () => string): Collect => (name) => (name === "roles.model" ? [{ mcp: { docs: { command: "docs-mcp", env: { TOKEN: token() } } } }] : []);

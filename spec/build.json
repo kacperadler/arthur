@@ -4598,9 +4598,9 @@
   {
     "id": "AR0576",
     "title": "Defaults T8: a passed review merges by itself in an autoMerge project, and four FAILs come before the owner is asked",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0576-defaults-t8-a-passed-review-merges-by-itself-in-an-automerge-project-and-four/ticket.md",
-    "updated": "2026-10-30T07:47:06.368Z",
+    "updated": "2026-10-30T15:25:00.224Z",
     "after": [
       "AR0574",
       "AR0575"
@@ -4725,5 +4725,22 @@
     "status": "planned",
     "path": "spec/features/AR0589-plan-each-project-keeps-all-its-plugin-settings-in-one-place-of-arthur-config-ts/ticket.md",
     "updated": "2026-10-30T15:06:19.754Z"
+  },
+  {
+    "id": "AR0590",
+    "title": "AR0589 T3: a job cannot read the shared home .arthur/ of other projects",
+    "status": "planned",
+    "path": "spec/features/AR0590-ar0589-t3-a-job-cannot-read-the-shared-home-arthur-of-other-projects/ticket.md",
+    "updated": "2026-10-30T16:58:17.176Z",
+    "after": [
+      "AR0589"
+    ]
+  },
+  {
+    "id": "AR0591",
+    "title": "The sandbox check reads a python3 that exits 127 itself as a missing agent, so the job runs without a sandbox",
+    "status": "planned",
+    "path": "spec/features/AR0591-the-sandbox-check-reads-a-python3-that-exits-127-itself-as-a-missing-agent-so/ticket.md",
+    "updated": "2026-10-30T16:58:16.636Z"
   }
 ]

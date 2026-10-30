@@ -4,7 +4,8 @@
 {
   "id": "AR0585",
   "title": "Before a job ends, the agent is reminded to close the processes it started that are no longer needed",
-  "date": "2026-10-30"
+  "date": "2026-10-30",
+  "budget": 6
 }
 ```
 
@@ -32,14 +33,12 @@ Evidence:
 ## Scope
 
 In:
-- A job extension beside `packages/delivery/src/checks-extension.ts`, or in the plugin the owner names; its doc page; its tests.
+- A job extension in the delivery plugin beside `packages/delivery/src/checks-extension.ts` (AR-D361), its registration, its doc page, its tests; delivery's line budget raised as measured.
 
 Out:
 - Killing processes by force: the job's own scope still ends them when the job ends.
 - The coordinator's own session.
 
-## Open question
-
-Where it lives: the owner said "connected to the cleanup plugin", and no plugin has that name. The candidates: the `manage` plugin beside its daily cleanup, the `delivery` plugin beside its job extension, or a new `cleanup` plugin.
-
 ## Decisions
+- 2026-10-30: AR0585 approved; it lives in the delivery plugin, beside the job extension; the owner: "i have to focus on my work, go with recomendations and do not cross 70% of weekly usage, do to silent mode" (AR-D361)
+- 2026-10-30: AR0585 budget $6; delivery line budget raised by what it needs as measured; the owner: "i have to focus on my work, go with recomendations and do not cross 70% of weekly usage, do to silent mode" (AR-D364)

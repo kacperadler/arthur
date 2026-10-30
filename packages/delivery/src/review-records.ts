@@ -10,8 +10,8 @@ import type { Host } from "@arthur/core/plugin";
 export type Verdict = "PASS" | "FAIL" | "none";
 export type Review = { readonly id: string; readonly ticket: string; readonly branch: string; readonly commit: string; readonly at: number; readonly verdict?: Verdict; readonly cost?: string };
 
-// The FAILs since the last PASS a branch may have; the next review then needs the owner's word (`--round`).
-export const LIMIT = 2;
+// The FAILs since the last PASS a branch may have, each handed back (hand-back.ts); the next review needs the owner's word (`--round`).
+export const LIMIT = 4;
 // A job id, the only name a record file takes, so an event's `id` never leads out of the folder.
 const ID = /^[\w-]+$/;
 
@@ -75,4 +75,16 @@ export function failsSincePass(host: Host, branch: string): string[] {
 	const verdicts = reviewsOf(host, branch);
 	const pass = verdicts.findLastIndex(([, verdict]) => verdict === "PASS");
 	return verdicts.slice(pass + 1).flatMap(([review, verdict]) => (verdict === "FAIL" ? [review.id] : []));
+}
+
+// Whether `arthur review-needed` answered `no review` for job `id` at `tip`, as `<folder>/<id>/review-needed` keeps it; a
+// missing or broken answer is none.
+export function noReview(host: Host, id: string, tip: string): boolean {
+	let kept: unknown;
+	try {
+		kept = JSON.parse(readFileSync(join(host.folder, id, "review-needed"), "utf8"));
+	} catch {
+		return false;
+	}
+	return typeof kept === "object" && kept !== null && "answer" in kept && "commit" in kept && String(kept.answer).startsWith("no review") && kept.commit === tip;
 }

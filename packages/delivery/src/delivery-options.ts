@@ -6,7 +6,7 @@ import type { OptionProblem, Options } from "@arthur/core/plugin";
 // the reviewer's model is orchestration's `roles.reviewer`. docs/commands/review.md, docs/commands/review-needed.md,
 // docs/commands/merge.md.
 
-export const summary = "review jobs of a worker's branch, their verdict moving the ticket, at most 2 FAILs before the owner decides; whether a branch needs one; its merge with the checks on main, on its own after a PASS and green CI; CHANGELOG.md from the merged tickets";
+export const summary = "review jobs of a worker's branch, their verdict moving the ticket, at most 4 FAILs before the owner decides; whether a branch needs one; its merge with the checks on main, on its own after a PASS or a no review and green CI; CHANGELOG.md from the merged tickets";
 
 // Git, which the review's checkout and its range need, is the core's tool.
 export const tools: readonly Tool[] = [];

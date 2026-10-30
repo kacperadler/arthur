@@ -284,7 +284,7 @@ export default defineConfig({
 
 		// Review, merge and CI gate of a worker branch. A plugin, not core. Built so far (entries 52 and 53): `arthur review <worker
 		// job>` starts a read-only review of the branch's tip on the reviewer role, whose model is `roles.reviewer` above; its verdict,
-		// PASS or FAIL alone on the last line, moves the ticket to done or back to in-progress; after 2 FAILs since the branch's last
+		// PASS or FAIL alone on the last line, moves the ticket to done or back to in-progress; after 4 FAILs since the branch's last
 		// PASS a review needs `--round N`, on the owner's word only (packages/delivery/docs/commands/review.md). `arthur review-needed
 		// <worker job>` says whether a branch needs a review at all; a branch that changes a file on `review.alwaysReview` (glob
 		// patterns from a project's root, replacing the default list) always does (packages/delivery/docs/commands/review-needed.md).
@@ -450,7 +450,7 @@ export default defineConfig({
 // projects/arthur/project.config.ts
 //	export default [
 //		projects.project({ title: "Arthur", about: "Runs coding agents in Git worktrees for one human, with a ticket board and plugins from one config.", path: "../..", prefix: "AR" }),
-//		delivery.project({ autoMerge: true }), // merge after a PASS and green CI without asking
+//		delivery.project({ autoMerge: true }), // arthur run merges after a PASS or a no review, and green CI, without asking
 //		youtrack.project({ project: "ART" }),
 //		github.project({ workflow: "ci.yml" }),
 //		commitRules.project({ regex: "^(?=.{1,72}$)(feat|fix|refactor|perf|test|docs|build|ci|chore|revert)(\\([\\w-]+\\))?!?: .+$" }),

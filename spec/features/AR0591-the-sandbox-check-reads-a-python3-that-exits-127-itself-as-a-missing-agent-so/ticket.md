@@ -36,3 +36,4 @@ Out:
 
 - 2026-10-30: Source: F1 of AR0572
 - 2026-10-30: Ticket and approve; the owner: "by recommendation: G5188" (AR-D395)
+- 2026-10-30: AR0591 worker budget $6; the owner: "Go with recommendations till 70%" (AR-D399)

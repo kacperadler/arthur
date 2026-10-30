@@ -30,7 +30,7 @@ The kinds:
 - `job`: a job blocked on the owner. The plugin records it by itself when the job turns `blocked: user <question>`, with the job and its ticket, and the notice names it: `<job> asks [AR-D12]: <question>`; a job blocked twice asks twice. The wake of its run names the id and the command to answer it. While another process holds the log's lock, the question is recorded and the notice sent once the lock is free; a wake written before says `Its question was not in the decision log yet` and how to find its id (`arthur decisions --kind job`). Past 60 s the notice goes naming no decision and the event fails, logged with the plugin's name.
 - `question`: a question in the coordinator's reply.
 - `plan`: a planning ticket's plan waiting for the owner's approval (`arthur plan --help`).
-- `review`: what comes after a branch's second FAIL (`arthur review --help`).
+- `review`: what comes after a branch's fourth FAIL (`arthur review --help`).
 - `budget`: a raise of a package's line budget, or a job with no money limit (`--budget 0`, below).
 - `merge`: a merge without a PASS or without CI (`arthur merge --unreviewed` or `--no-ci`, below).
 

@@ -4561,9 +4561,9 @@
   {
     "id": "AR0572",
     "title": "Defaults T4: a job with no sandbox refuses to start unless core.jobs.unsandboxed is on",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0572-defaults-t4-a-job-with-no-sandbox-refuses-to-start-unless-core-jobs-unsandboxed/ticket.md",
-    "updated": "2026-10-30T14:49:28.655Z",
+    "updated": "2026-10-30T15:09:21.760Z",
     "after": [
       "AR0571"
     ]

@@ -175,6 +175,21 @@ test("refused: wrong usage, no such job, a job with no ticket", async (t) => {
 	assert.equal((await decide(undefined, loose.id)).err, `arthur review-needed: ${loose.id}'s task names no ticket; a review is of one ticket's branch`);
 });
 
+test("merge.check is asked first: a branch any answer refuses is refused with every answer, nothing kept, moved or pushed; blank answers let the rules decide", async (t) => {
+	const { fake, job, branch, decide, status } = await load(t);
+	const [asked, pushes]: [string[], unknown[]] = [[], []];
+	let answers: (string | undefined)[] = ["arthur/x changes spec/build.json, which only the coordinator writes", "another plugin's reason"];
+	for (const at of [0, 1]) fake.provide("merge.check", (each: { readonly id: string }) => (asked.push(each.id), answers[at]));
+	fake.provide("github.push", (each: unknown) => (pushes.push(each), Promise.resolve("github: pushed")));
+	branch(edit("README.md", "# acme shop\n"));
+	const refused = await decide(PASSING);
+	assert.deepEqual(refused, { code: 1, out: "", err: `arthur review-needed: refused by merge.check: ${answers.join("; ")}; no review until the branch passes it` }, "a docs-only branch, else no review");
+	assert.deepEqual(asked, [job.id, job.id], "asked with the job as host.jobs.list() has it");
+	assert.deepEqual([status(), existsSync(join(fake.host.folder, job.id, "review-needed")), pushes], ["in-progress", false, []]);
+	answers = [undefined, ""];
+	assert.deepEqual(await decide(PASSING), { code: undefined, out: "no review: 1 file, all docs (*.md)\nAC0001 moves to done.\ngithub: pushed", err: "" });
+});
+
 test("the always-review list: review.alwaysReview replaces the default, and delivery.alwaysReview answers the paths on it", async (t) => {
 	const { fake, branch, decide } = await load(t, { review: { alwaysReview: ["docs/**"] } });
 	branch(edit("docs/guide.md", "# The guide\n"));

@@ -4506,9 +4506,9 @@
   {
     "id": "AR0565",
     "title": "limits.test.ts fails under load: three tests race a fixed 3 s job limit",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0565-limits-test-ts-fails-under-load-three-tests-race-a-fixed-3-s-job-limit/ticket.md",
-    "updated": "2026-10-30T01:48:38.580Z"
+    "updated": "2026-10-30T01:53:17.880Z"
   },
   {
     "id": "AR0566",

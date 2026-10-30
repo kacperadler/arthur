@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-30
+
+### Changed
+
+- AR0565 limits.test.ts fails under load: three tests race a fixed 3 s job limit (4888ddf5)
+
 ## 2026-10-29
 
 ### Added

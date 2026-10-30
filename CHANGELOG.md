@@ -4,6 +4,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## 2026-10-30
 
+### Fixed
+
+- AR0566 Five job roles tell the agent to wait on proc://, which a job sandbox cannot reach (425ca8aa)
+
 ### Changed
 
 - AR0564 A report skill: how every HTML page for the owner is styled and checked before it is sent (f60b89db)

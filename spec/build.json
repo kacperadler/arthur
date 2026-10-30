@@ -4513,23 +4513,23 @@
   {
     "id": "AR0566",
     "title": "Five job roles tell the agent to wait on proc://, which a job sandbox cannot reach",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0566-five-job-roles-tell-the-agent-to-wait-on-proc-which-a-job-sandbox-cannot-reach/ticket.md",
-    "updated": "2026-10-30T07:47:34.411Z"
+    "updated": "2026-10-30T07:47:46.651Z"
   },
   {
     "id": "AR0567",
     "title": "AR0311's 18 findings stay open forever though each is already a ticket",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0567-ar0311-s-18-findings-stay-open-forever-though-each-is-already-a-ticket/ticket.md",
-    "updated": "2026-10-30T07:47:35.521Z"
+    "updated": "2026-10-30T07:47:47.718Z"
   },
   {
     "id": "AR0568",
     "title": "After the listen rename, the core still names the voice plugin, and versions.mmd misses four plugins",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0568-after-the-listen-rename-the-core-still-names-the-voice-plugin-and-versions-mmd/ticket.md",
-    "updated": "2026-10-30T07:47:36.608Z"
+    "updated": "2026-10-30T07:47:48.895Z"
   },
   {
     "id": "AR0569",

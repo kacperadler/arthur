@@ -47,6 +47,7 @@ Exit 1, nothing kept and nothing moved:
 - No such job: `arthur review-needed: no job <name>; arthur jobs lists them`; not a worker, `<id> is a <kind> job; a review is of a worker's branch`; still in a run, `<id> is in a run (<state>); review its branch once the run has ended`.
 - A worker whose task names no ticket, or several: `<id>'s task names no ticket; a review is of one ticket's branch`.
 - A branch gone from the main checkout: `arthur/<id> is not in <folder>: pruned, or not brought back from its machine`; a branch with no commits beyond HEAD: `arthur/<id> at <commit> adds nothing to HEAD (<commit>): nothing to review`.
+- A branch the merge would refuse, asked before the rules above: every text answer of `collect("merge.check", job)`, as `arthur merge` asks it (`arthur merge --help`), such as orchestration's refusal of a worker's branch that changes a `ticket.md`, the decision log or the board: `refused by merge.check: <answer>; <answer>; no review until the branch passes it`. No review is paid for a branch the merge refuses.
 - On `no review`, a ticket the board cannot move to `done` (merged, dropped, planned): the board's refusal, such as `AC0001: merged cannot move to done; from merged: none, it is final`.
 
 Wrong usage (no job, two, a flag) prints the usage line and exits 2.

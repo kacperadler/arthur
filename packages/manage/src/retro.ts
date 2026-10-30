@@ -17,7 +17,7 @@ const KIND = "retro";
 export const RETRO_TASK = "Look back on the merges since the last retro, as your role and the retro criteria say.";
 
 export function retro(host: Host, options: RetroOptions | undefined): void {
-	host.jobs.registerRole({ name: KIND, file: new URL("../roles/retro.md", import.meta.url), criteria: ["retro"] });
+	host.jobs.registerRole({ name: KIND, file: new URL("../roles/retro.md", import.meta.url), criteria: ["retro", "report"] });
 	host.jobs.registerKind({ name: KIND, readOnly: true, role: KIND, ...(options?.budgetUsd === undefined ? {} : { budgetUsd: options.budgetUsd }), file: (filing) => fileReport(RETROS, filing) });
 	host.provide("prompt", (role: string, job: Job) => (role === KIND ? context(host, job) : undefined));
 	const procedure = new URL("../roles/coordinator/retro-ended.md", import.meta.url);

@@ -80,6 +80,8 @@ test("audit.at registers one entry with the schedule on audit.days, running mana
 
 test("the night's audit is a read-only job with its budget and model, its prompt the commits, board, stats, findings and vision", async (t) => {
 	const { night, read, printed, commit, root } = await load(t, { audit: { at: "02:00", budgetUsd: 7.5, model: "anthropic/opus" } });
+	mkdirSync(join(root, ".agents/arthur/criteria"), { recursive: true });
+	writeFileSync(join(root, ".agents/arthur/criteria/report.md"), "# Report\n\nInk on paper.\n");
 	const head = commit("second");
 	const job = await night();
 	assert.ok(job !== undefined);
@@ -88,6 +90,7 @@ test("the night's audit is a read-only job with its budget and model, its prompt
 	assert.deepEqual([job.branch, read(job.id, "task"), read(job.id, "budget"), read(job.id, "model"), read(job.id, "resume-on-budget"), read(job.id, "base")], ["", AUDIT_TASK, "7.5", "anthropic/opus", "true", head]);
 	const prompt = read(job.id, "prompt");
 	assert.match(prompt, /^# Auditor\n/);
+	assert.ok(prompt.includes("\n\n## Report (.agents/arthur/criteria/report.md)\n\n# Report\n\nInk on paper.\n\n"), "the page criteria, for a page it writes for the owner");
 	const section = prompt.slice(prompt.indexOf("## This audit"));
 	assert.match(section, new RegExp(`^## This audit\n\nYou audit project acme at ${head}; your worktree is a detached checkout of that commit\\.\n\n`));
 	assert.match(section, /### Commits of the last 24 hours \(no report in spec\/quality\/ names an audited commit\)\n\n[0-9a-f]+ second\n[0-9a-f]+ first\n\n/);

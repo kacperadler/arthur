@@ -74,6 +74,8 @@ export default defineConfig({
 			// 2 decimals, or "infinity"; a value systemd would refuse is refused at load
 			idleMinutes: 10, // a running job with no output or tool call this long is `idle`; 0 = never
 			offlineGraceMinutes: 30, // a job whose machine stops answering is `blocked` this long, then failed; 0 = failed at once
+			unsandboxed: false, // true: where a job's sandbox cannot be set up (macOS, no python3, a kernel without Landlock), its
+			// install and agent run with your user's writes; false = such a job ends `failed: no sandbox: ...`; `arthur doctor` says which
 		},
 	},
 

@@ -16,7 +16,7 @@ test("each event is one line with its sequence number, time and plugin; subscrib
 	const home = join(temporaryFolder(), ".arthur");
 	const seen: Event[] = [];
 	const plugin = (name: string, setup: Plugin["setup"]): Plugin => ({ name, setup });
-	const jobs = { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, cpu: 1, memory: "70%" };
+	const jobs = { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, cpu: 1, memory: "70%" };
 	const core = { home, envFile: join(home, "env"), agent: { command: "omp" }, timeZone: "UTC", quietHours: undefined, jobs };
 	const before = new Date().toISOString();
 	await loadPlugins({

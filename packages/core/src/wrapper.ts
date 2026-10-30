@@ -72,8 +72,8 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		quiet();
 		quiet = deadline(Number(idle), () => move("working", "idle"));
 	};
-	// `quick`, `memory`, `feature`, `feature-memory`, `verdicts` and `extensions` are missing from a record an older Arthur wrote.
-	const [instruction, spent, quick, memory = "", feature = "", featureMemory = "", verdicts = "", extensions = ""] = ["continue", "cost", "quick", "memory", "feature", "feature-memory", "verdicts", "extensions"].map((name) => (existsSync(join(folder, name)) ? field(name) : undefined));
+	// `quick`, `memory`, `feature`, `feature-memory`, `verdicts`, `extensions` and `unsandboxed` are missing from a record an older Arthur wrote; without the last a job needs its sandbox.
+	const [instruction, spent, quick, memory = "", feature = "", featureMemory = "", verdicts = "", extensions = "", unsandboxed = ""] = ["continue", "cost", "quick", "memory", "feature", "feature-memory", "verdicts", "extensions", "unsandboxed"].map((name) => (existsSync(join(folder, name)) ? field(name) : undefined));
 	// A resumed run continues the agent's last session, kept in the record's `session` folder so the prune removes it with the record, with `resume` as its message after `--`, text even when it starts with `-` or `@` (AR0487); the task `@<record>/task` goes before it, as omp includes a file only from there.
 	const args = (resume: string | undefined) => [
 		...(resume === undefined ? [] : ["--continue"]),
@@ -120,13 +120,15 @@ async function run(home: string, id: string, agent: string): Promise<void> {
 		overCap = what;
 		halt("memory");
 	});
-	let failure = await install(process.env.ARTHUR_INSTALL, worktree, (command) => sandboxed(writable(folder, worktree, extensions), secrets, "env", note, "the install")(cached(join(folder, "cache"), command)), note, (chunk) => installed.push(chunk), (running) => (child = running)).finally(installed.end).finally(() => stopping); // The install runs first, in the job's sandbox, its package caches in the record's `cache` (AR0454); one that fails, or a stop or a limit during it, starts no agent, and the job ends only once the stop of the install's group is over (AR0481).
+	let failure = await install(process.env.ARTHUR_INSTALL, worktree, (command) => sandboxed(writable(folder, worktree, extensions), secrets, "env", note, "the install", unsandboxed === "true")(cached(join(folder, "cache"), command)), note, (chunk) => installed.push(chunk), (running) => (child = running)).catch((error: Error) => error).finally(installed.end).finally(() => stopping); // The install runs first, in the job's sandbox, its package caches in the record's `cache` (AR0454); one that fails, its sandbox's refusal (`no sandbox: ...`) included, or a stop or a limit during it, starts no agent, and the job ends only once the stop of the install's group is over (AR0481).
 	// One run of the agent, until it exits, its output is read and its stop, if any, is over; its npm's cache is the install's, the record's, never the shared one (AR0456).
 	const play = async (argv: readonly string[]): Promise<[number | null, NodeJS.Signals | null]> => {
 		note(`agent: ${agent} ${argv.join(" ")}`);
+		let command: [string, string[]];
+		try { command = sandboxed(writable(folder, worktree, extensions), secrets, agent, note, "the agent", unsandboxed === "true")(argv); } catch (error) { failure = error as Error; return [null, null]; } // `no sandbox: ...` starts no agent.
 		const stream = agentStream(), errors = namedChunks(hide, (text) => save("log", text, true));
 		const closed = Promise.withResolvers<[number | null, NodeJS.Signals | null]>();
-		const running = oomFirst(() => spawn(...sandboxed(writable(folder, worktree, extensions), secrets, agent, note)(argv), { cwd: worktree, env: { ...process.env, ...unsigned(process.env), npm_config_cache: join(folder, "cache", "npm"), ARTHUR_JOB: folder }, stdio: ["ignore", "pipe", "pipe"], detached: true }));
+		const running = oomFirst(() => spawn(...command, { cwd: worktree, env: { ...process.env, ...unsigned(process.env), npm_config_cache: join(folder, "cache", "npm"), ARTHUR_JOB: folder }, stdio: ["ignore", "pipe", "pipe"], detached: true }));
 		[child, playing] = [running, true];
 		for (const pipe of [running.stdout, running.stderr]) pipe.setEncoding("utf8");
 		running.stdout.on("data", (chunk: string) => {

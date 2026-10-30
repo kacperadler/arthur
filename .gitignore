@@ -4,4 +4,4 @@
 node_modules/
 arthur.config.ts
 .arthur/
-projects/
+/projects/

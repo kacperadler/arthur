@@ -41,4 +41,5 @@ Out:
 
 ## Decisions
 - 2026-10-30: AR0587 approved with $3, next in the queue, under the owner delegation to go with my recommendations; the owner: "i have to focus on my work, go with recomendations and do not cross 70% of weekly usage, do to silent mode" (AR-D371)
+- 2026-10-30: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)
 

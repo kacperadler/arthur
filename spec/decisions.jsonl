@@ -746,3 +746,5 @@
 {"record":"answer","id":"AR-D371","time":"2026-10-30T10:53:43+01:00","decided":"AR0587 approved with $3, next in the queue, under the owner delegation to go with my recommendations","picked":1,"words":"i have to focus on my work, go with recomendations and do not cross 70% of weekly usage, do to silent mode"}
 {"record":"ask","id":"AR-D372","time":"2026-10-30T11:23:07+01:00","project":"arthur","kind":"merge","question":"Merge AR0581 (fakes checked against recorded shapes, stricter tsc) after its passed review?","options":[],"ticket":"AR0581"}
 {"record":"answer","id":"AR-D372","time":"2026-10-30T11:23:07+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D373","time":"2026-10-30T11:55:48+01:00","project":"arthur","kind":"merge","question":"Merge AR0587 (report check tests find the browser under the real home) after its passed review?","options":[],"ticket":"AR0587"}
+{"record":"answer","id":"AR-D373","time":"2026-10-30T11:55:48+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

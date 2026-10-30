@@ -93,11 +93,11 @@ export function github(options: GithubOptions): Plugin {
 					const fresh = !told.has(key(run));
 					told.add(key(run));
 					const { project, repo, workflow } = each;
-					// A branch whose CI wait delivery woke the coordinator for (`delivery.ciEnded`) is left out: one wake per run end.
+					// A branch whose CI wait delivery woke the coordinator for (`delivery.ciEnded`) is left out: one wake per run end; a passed run wakes no one.
 					const rest = ends.flatMap(({ branch, below }) => (host.collect<boolean>("delivery.ciEnded", { project, branch, below, run }).includes(true) ? [] : [branch]));
 					if (!fresh) continue;
 					host.events.emit("ci-finished", { project, repo, workflow, run: run.id, attempt: run.attempt, sha: run.sha, branch: run.branch, branches: ends.map((end) => end.branch), conclusion: run.conclusion, url: run.url });
-					if (!wakeOn.includes("ci-finished") || rest.length === 0) continue;
+					if (!wakeOn.includes("ci-finished") || rest.length === 0 || run.conclusion === "success") continue;
 					const ci = `arthur ci ${rest[0]} --project ${project}`;
 					// A job's branch goes back to its worker; main, or any branch no job has, is the owner's. A job id names one branch.
 					const job = host.jobs.list().find((each) => each.branch === rest[0])?.id;

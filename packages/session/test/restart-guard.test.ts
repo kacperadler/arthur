@@ -53,7 +53,7 @@ async function load(t: TestContext, arthur: string, options: SessionOptions = {}
 
 const due = (merges: string, since: string) => `refused by session: restart due: ${merges} changed Arthur's code ${since}; restart arthur run once no job runs, or pass --ignore-restart`;
 const dueLine = (merges: string, since: string) =>
-	`Restart: due, ${merges} changed Arthur's code ${since}. Every spawn and continue is refused, unless --ignore-restart, until arthur run starts again (the service: systemctl --user restart arthur, or /restart, which ends it) once no job runs.`;
+	`Restart: due, ${merges} changed Arthur's code ${since}. Every spawn and continue is refused, unless --ignore-restart, until arthur run starts again: under its service it restarts itself once no job runs.`;
 
 test("a merge that changed the code arthur run loaded refuses every spawn, unless --ignore-restart, and the context says so; nothing before", async (t) => {
 	const arthur = checkout("arthur");

@@ -10,6 +10,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0571 Defaults T3: a job resumes once after a provider error or an ending with no verdict (4393690f)
 - AR0573 Defaults T5: the merge writes What went in per file and commits the ticket's folder itself (820466db)
 - AR0575 Defaults T7: a passed CI run wakes no one, and Arthur restarts by itself once no job runs (7431ebe0)
+- AR0583 Defaults T15: a go-with-my-recommendation grant, and a policy answer continues the job (691ec332)
 
 ### Fixed
 

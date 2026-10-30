@@ -793,3 +793,5 @@
 {"record":"answer","id":"AR-D394","time":"2026-10-30T17:57:47+01:00","decided":"AR0576 raised to $18 and continued","picked":1,"words":"Go with recommendations till 70%"}
 {"record":"ask","id":"AR-D395","time":"2026-10-30T17:58:16+01:00","project":"arthur","kind":"job","question":"Make the AR0572 python3 sandbox gap a ticket (AR0591) and approve it, instead of leaving it deferred in the client summary?","options":["Ticket and approve","Leave it deferred"],"recommend":1,"ticket":"AR0591"}
 {"record":"answer","id":"AR-D395","time":"2026-10-30T17:58:16+01:00","decided":"Ticket and approve","words":"by recommendation: G5188"}
+{"record":"ask","id":"AR-D396","time":"2026-10-30T17:58:40+01:00","project":"arthur","kind":"budget","question":"Budget for the AR0589 worker on the plan ticket 1 (project folders and pieces, many packages)?","options":["$16","$10"],"recommend":1,"ticket":"AR0589"}
+{"record":"answer","id":"AR-D396","time":"2026-10-30T17:58:40+01:00","decided":"AR0589 ticket 1 worker budget $16","picked":1,"words":"Go with recommendations till 70%"}

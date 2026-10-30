@@ -6,6 +6,7 @@ import { hostname, userInfo } from "node:os";
 import { delimiter, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { doctor } from "../src/doctor.ts";
+import { noSandbox } from "../src/job-sandbox.ts";
 import { coreRequirements } from "../src/requirements.ts";
 import { temporaryFolder, until } from "../src/testing.ts";
 
@@ -63,7 +64,10 @@ function project(home?: string) {
 	return { folder, home: home ?? join(folder, ".arthur"), say, log, arthur, env };
 }
 
-const CORE = ["core git: ok", "core node: ok", "core omp: ok", "core home: ok", "core controllers: ok", "core env: ok", "core env ignored: ok"];
+const SANDBOX_FIX = "without it: every job fails at its start, failed: no sandbox; fix: run Arthur on Linux 5.13 or later with python3 (docs/deploy.md), or set core.jobs.unsandboxed: true in arthur.config.ts to run jobs without one, with the writes of your user";
+// This host's sandbox line: `ok` where the sandbox sets up, else missing with why.
+const sandbox = noSandbox([], "sh");
+const CORE = ["core git: ok", "core node: ok", "core omp: ok", "core home: ok", "core controllers: ok", "core env: ok", "core env ignored: ok", sandbox === undefined ? "core sandbox: ok" : `core sandbox: missing: no sandbox: ${sandbox}; ${SANDBOX_FIX}`];
 const REST = [
 	"orchestration tmux: ok",
 	"channel token: ok",
@@ -134,14 +138,15 @@ test("arthur doctor when a plugin's setup fails: the core's lines, then why the 
 	assert.match(broken.stderr, /^arthur doctor: arthur\.config\.ts did not load:\n/);
 });
 
-test("the core's requirements: git, Node 24, the agent, a writable home, critical; the controllers delegated and the env file outside the agents' folders, not; each missing with its reason and fix", async (t) => {
+test("the core's requirements: git, Node 24, the agent, a writable home, critical; the controllers delegated, the env file outside the agents' folders and the sandbox (ok with core.jobs.unsandboxed on), not; each missing with its reason and fix", async (t) => {
 	t.after(() => void (process.env.PATH = PATH));
 	const bin = temporaryFolder();
 	symlinkSync("/bin/sh", join(bin, "sh"));
 	systemctl(bin, { controllers: "memory pids" });
 	process.env.PATH = bin;
 	const home = join(temporaryFolder(), "home");
-	const lines = await doctor(coreRequirements({ home, envFile: "/elsewhere/.env", agent: { command: "omp" } }, () => [home], "22.11.0", {}), []);
+	const why = process.platform === "linux" ? "python3: spawnSync python3 ENOENT" : `${process.platform} has no Landlock`;
+	const lines = await doctor(coreRequirements({ home, envFile: "/elsewhere/.env", agent: { command: "omp" }, jobs: { unsandboxed: false } }, () => [home], "22.11.0", {}), []);
 	assert.deepEqual(
 		lines.map((line) => [line.text, line.critical]),
 		[
@@ -152,24 +157,27 @@ test("the core's requirements: git, Node 24, the agent, a writable home, critica
 			['core controllers: missing: the user manager has the controllers "memory pids", not cpu and memory; without it: jobs run without the joint limit of core.jobs.cpu and core.jobs.memory, and what a job leaves behind is not killed at its end; fix: delegate them (docs/setup.md, step 10), then reboot', false],
 			["core env: ok", false],
 			["core env ignored: ok", false],
+			[`core sandbox: missing: no sandbox: ${why}; ${SANDBOX_FIX}`, false],
 		],
 	);
 	assert.ok(existsSync(home), "a home that is not there yet is made");
 	systemctl(bin, { manager: false });
 	const agent = join(bin, "my-agent");
 	writeFileSync(agent, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
-	const [, node, found, , controllers] = await doctor(coreRequirements({ home, envFile: "/elsewhere/.env", agent: { command: agent } }, () => [], "24.0.0"), []);
+	const [, node, found, , controllers] = await doctor(coreRequirements({ home, envFile: "/elsewhere/.env", agent: { command: agent }, jobs: { unsandboxed: false } }, () => [], "24.0.0"), []);
 	assert.deepEqual([node?.text, found?.text], ["core node: ok", "core my-agent: ok"], "Node 24.0.0 is enough; an agent by its path is found, never run");
 	assert.equal(
 		controllers?.text,
 		`core controllers: missing: no systemd user manager, so no job scope and no user service (Failed to connect to bus: No medium found); without it: jobs run without the joint limit of core.jobs.cpu and core.jobs.memory, and what a job leaves behind is not killed at its end; fix: sudo loginctl enable-linger ${USER}; none on macOS or in a container, where jobs run bare`,
 	);
 	assert.equal(controllers?.critical, false);
+	const [opted] = await doctor(coreRequirements({ home, envFile: "/elsewhere/.env", agent: { command: agent }, jobs: { unsandboxed: true } }, () => [], "24.0.0").filter((requirement) => requirement.name === "sandbox"), []);
+	assert.deepEqual([opted?.text, opted?.missing], [`core sandbox: ok (no sandbox: ${why}; core.jobs.unsandboxed is on, so a job writes wherever ${USER} can)`, false], "opted in, a host without the sandbox is no miss");
 });
 
 test("the env file inside the config's folder or a project's checkout is a miss, not critical, naming that folder; outside every one it is ok", async () => {
 	const line = async (envFile: string, folders: readonly string[]) => {
-		const [env] = coreRequirements({ home: "/unused", envFile, agent: { command: "omp" } }, () => folders).filter((requirement) => requirement.name === "env");
+		const [env] = coreRequirements({ home: "/unused", envFile, agent: { command: "omp" }, jobs: { unsandboxed: false } }, () => folders).filter((requirement) => requirement.name === "env");
 		const [found] = await doctor(env === undefined ? [] : [env], []);
 		return [found?.text, found?.critical];
 	};
@@ -236,7 +244,7 @@ test("each env file fix runs as printed, in a folder with a space, for a name wi
 	for (const name of ["my env", "it's", "#env", "!env", "env ", "e[nv]", "e\\nv"]) {
 		const envFile = join(folder, name);
 		writeFileSync(envFile, "ARTHUR_X=1\n");
-		const line = async () => (await doctor(coreRequirements({ home: "/unused", envFile, agent: { command: "omp" } }, () => []).filter((requirement) => requirement.name === "env ignored"), []))[0]?.text ?? "";
+		const line = async () => (await doctor(coreRequirements({ home: "/unused", envFile, agent: { command: "omp" }, jobs: { unsandboxed: false } }, () => []).filter((requirement) => requirement.name === "env ignored"), []))[0]?.text ?? "";
 		// Pasted as printed: the command before `, commit` or `, or move`, run by sh; then the check again.
 		const fixed = async (kind: string) => {
 			const command = /; fix: (.+?), (?:commit|or move)/.exec(await line())?.[1];
@@ -259,7 +267,7 @@ test("the env file's own folder decides whether it lies in a Git checkout, not t
 	const [repository, plain] = [temporaryFolder(), temporaryFolder()];
 	assert.equal(spawnSync("git", ["-C", repository, "init", "-q"]).status, 0);
 	const line = async (envFile: string) => {
-		const ignored = coreRequirements({ home: "/unused", envFile, agent: { command: "omp" } }, () => []).filter((requirement) => requirement.name === "env ignored");
+		const ignored = coreRequirements({ home: "/unused", envFile, agent: { command: "omp" }, jobs: { unsandboxed: false } }, () => []).filter((requirement) => requirement.name === "env ignored");
 		return (await doctor(ignored, []))[0]?.text;
 	};
 	process.chdir(plain);
@@ -298,7 +306,7 @@ test("a home that is not writable is a critical miss", { skip: ROOT && "root wri
 	const parent = temporaryFolder();
 	chmodSync(parent, 0o555);
 	t.after(() => chmodSync(parent, 0o755));
-	const [, , , home] = await doctor(coreRequirements({ home: join(parent, "home"), envFile: "/elsewhere/.env", agent: { command: "omp" } }, () => []), []);
+	const [, , , home] = await doctor(coreRequirements({ home: join(parent, "home"), envFile: "/elsewhere/.env", agent: { command: "omp" }, jobs: { unsandboxed: false } }, () => []), []);
 	assert.equal(home?.text, `core home: missing: ${join(parent, "home")} is not writable (EACCES); without it: nothing is kept: no job record, no event log, no plugin's state; fix: sudo chown -R ${USER} ${join(parent, "home")}, or set core.home in arthur.config.ts to a folder ${USER} can write`);
 	assert.equal(home?.critical, true);
 });
@@ -312,7 +320,7 @@ test("under umask 022 the home is its user's alone: a new one is made 0700, one 
 	mkdirSync(earlier);
 	assert.equal(mode(earlier), 0o755, "the umask in force");
 	for (const home of [made, earlier]) {
-		const [, , , line] = await doctor(coreRequirements({ home, envFile: "/elsewhere/.env", agent: { command: "omp" } }, () => []), []);
+		const [, , , line] = await doctor(coreRequirements({ home, envFile: "/elsewhere/.env", agent: { command: "omp" }, jobs: { unsandboxed: false } }, () => []), []);
 		assert.deepEqual([line?.text, mode(home)], ["core home: ok", 0o700], home);
 	}
 	const { home, arthur } = project();

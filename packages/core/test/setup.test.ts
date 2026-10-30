@@ -62,7 +62,7 @@ function section(output: string, title: string): string[] {
 }
 
 const FULL = `${NEED}
-export default { core: { home: HOME, jobs: { budgetUsd: 3 } }, plugins: [
+export default { core: { home: HOME, jobs: { budgetUsd: 3, unsandboxed: true } }, plugins: [
 	{ name: "orchestration", options: { maxAgents: 2, coordinator: { model: "m" } }, doctor: () => [need("tmux", true)], setup() {} },
 	{ name: "telegram", options: { botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID", bots: [1, 2], media: true },
 		doctor: () => [need("ffmpeg", false, "missing: not found")], setup(host) { host.provide("doctor", () => [need("bot", false, "missing: unreachable")]); } },
@@ -90,7 +90,7 @@ test("arthur setup: the tools, the config, the requirements, what can still go i
 	]);
 	assert.deepEqual(section(run.stdout, "Config"), [
 		"Config: arthur.config.ts",
-		"core | set: home, jobs.budgetUsd; not set: envFile, agent, timeZone, quietHours, jobs.timeoutMinutes, jobs.idleMinutes, jobs.cpu, jobs.memory, jobs.offlineGraceMinutes",
+		"core | set: home, jobs.budgetUsd, jobs.unsandboxed; not set: envFile, agent, timeZone, quietHours, jobs.timeoutMinutes, jobs.idleMinutes, jobs.cpu, jobs.memory, jobs.offlineGraceMinutes",
 		"orchestration | on | set: maxAgents, coordinator.model; not set: coordinator.thinking",
 		"telegram | on | set: botTokenEnv, chatIdEnv, bots (2), media",
 		"env set | ARTHUR_TELEGRAM_BOT_TOKEN (telegram.botTokenEnv)",
@@ -98,7 +98,7 @@ test("arthur setup: the tools, the config, the requirements, what can still go i
 		"voice | off (enabled: false)",
 		`ARTHUR_TELEGRAM_BOT_TOKEN is set in the shell only; the arthur service does not see it, put it in ${join(xdg, "arthur", ".env")}`,
 	]);
-	assert.deepEqual(section(run.stdout, "Requirements").slice(8), [
+	assert.deepEqual(section(run.stdout, "Requirements").slice(9), [
 		"orchestration tmux: ok",
 		"telegram ffmpeg: missing: not found; without it: no ffmpeg; fix: fix ffmpeg",
 		"telegram bot: missing: unreachable; without it: no bot; fix: fix bot",
@@ -141,7 +141,7 @@ test("a missing variable is a step that refuses the start; each enabled plugin's
 		`${join(xdg, "arthur", ".env")}: ARTHUR_OTHER is set on lines 2, 3; the last wins`,
 		`ARTHUR_TELEGRAM_BOT_TOKEN is set in the shell only; the arthur service does not see it, put it in ${join(xdg, "arthur", ".env")}`,
 	]);
-	assert.deepEqual(section(run.stdout, "Requirements").slice(8), [
+	assert.deepEqual(section(run.stdout, "Requirements").slice(9), [
 		"orchestration tmux: ok",
 		"telegram ffmpeg: missing: not found; without it: no ffmpeg; fix: fix ffmpeg",
 		"the requirements a plugin checks in its setup are not checked until what Config refuses is fixed",

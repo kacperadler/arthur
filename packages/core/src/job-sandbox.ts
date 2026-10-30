@@ -83,22 +83,25 @@ export function hidden(record: string): string[] {
 }
 
 // The sandbox over `paths`, reading every file but `hidden`, for `agent`, `who` in the log's line (`note`): a function from its
-// arguments to the command and arguments that start it there; on a host where it cannot be set up (not Linux, no `python3`, a
-// kernel without Landlock), or for an agent the sandbox's shell does not find, which then fails to start as it would bare, to
-// the agent's own, the log told why. The probe that tells which hides nothing: it only finds the agent, and the walk of a
-// crowded folder above `hidden` costs.
-export function sandboxed(paths: readonly string[], hidden: readonly string[], agent: string, note: (line: string) => void, who = "the agent"): (argv: readonly string[]) => [string, string[]] {
-	const prefix = ["-I", "-c", SCRIPT, ...paths, "--"];
-	const probe = process.platform === "linux" ? spawnSync("python3", [...prefix, "--", "/bin/sh", "-c", 'command -v "$1" || exit 127', "sh", agent], { encoding: "utf8" }) : undefined;
-	const why =
-		probe === undefined ? `${process.platform} has no Landlock`
+// arguments to the command and arguments that start it there. On a host where it cannot be set up it throws `no sandbox: <why>;
+// set core.jobs.unsandboxed: true ...` (`noSandbox`), unless `unsandboxed` (that option; a plugin's steps) lets it start the
+// agent's own, the log told why; so does an agent the sandbox's shell does not find, which then fails to start as it would bare.
+export function sandboxed(paths: readonly string[], hidden: readonly string[], agent: string, note: (line: string) => void, who = "the agent", unsandboxed = false): (argv: readonly string[]) => [string, string[]] {
+	const why = noSandbox(paths, agent);
+	if (why !== undefined && !unsandboxed && why !== `the agent ${agent} is not there`) throw new Error(`no sandbox: ${why}; set core.jobs.unsandboxed: true in arthur.config.ts to run ${who} with the writes of Arthur's user`);
+	const reads = hidden.length === 0 ? "" : `, reads every file but ${hidden.join(", ")}`;
+	note(why === undefined ? `sandbox: ${who} writes only in ${paths.join(", ")}${reads}, and opens no Unix socket but a datagram one` : `no sandbox: ${why}; ${who} writes wherever Arthur's user can`);
+	return (argv) => (why === undefined ? ["python3", ["-I", "-c", SCRIPT, ...paths, "--", ...hidden, "--", agent, ...argv]] : [agent, [...argv]]);
+}
+
+// Why the sandbox over `paths` cannot start `agent` here, undefined where it can; the probe hides nothing, as the walk of a crowded folder above a hidden path costs.
+export function noSandbox(paths: readonly string[], agent: string): string | undefined {
+	const probe = process.platform === "linux" ? spawnSync("python3", ["-I", "-c", SCRIPT, ...paths, "--", "--", "/bin/sh", "-c", 'command -v "$1" || exit 127', "sh", agent], { encoding: "utf8" }) : undefined;
+	return probe === undefined ? `${process.platform} has no Landlock`
 		: probe.error !== undefined ? `python3: ${probe.error.message}`
 		: probe.status === 0 ? undefined
 		: probe.status === 127 ? `the agent ${agent} is not there`
 		: probe.stderr.trim().split("\n").at(-1) || `python3 exited ${probe.status ?? probe.signal}`;
-	const reads = hidden.length === 0 ? "" : `, reads every file but ${hidden.join(", ")}`;
-	note(why === undefined ? `sandbox: ${who} writes only in ${paths.join(", ")}${reads}, and opens no Unix socket but a datagram one` : `no sandbox: ${why}; ${who} writes wherever Arthur's user can`);
-	return (argv) => (why === undefined ? ["python3", [...prefix, ...hidden, "--", agent, ...argv]] : [agent, [...argv]]);
 }
 
 // `env`'s arguments that run `sh -c <command>` with Git's signing off (`unsigned`) and the package managers' caches in `folder`, a
@@ -115,7 +118,7 @@ export const unsigned = (env: NodeJS.ProcessEnv, given = Number.parseInt(env.GIT
 export function stepSandbox(folder: string, cache: string, arthur: { readonly envFile: string; readonly home: string; readonly config: string }, note: (line: string) => void): (command: string) => [string, string[]] {
 	mkdirSync(cache, { recursive: true });
 	const paths = [...checkout(folder, [arthur.home, arthur.config, arthur.envFile]), cache, tmpdir(), "/dev"];
-	const start = sandboxed(paths, [arthur.envFile, ...sshFolders()], "env", (line) => void (line.startsWith("no sandbox: ") && note(line)), "each step");
+	const start = sandboxed(paths, [arthur.envFile, ...sshFolders()], "env", (line) => void (line.startsWith("no sandbox: ") && note(line)), "each step", true);
 	return (command) => start(cached(cache, command));
 }
 

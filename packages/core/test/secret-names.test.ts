@@ -20,7 +20,7 @@ function config(sent: string, envFile: string, agent: string): string {
 	return `import { appendFileSync } from "node:fs";
 const doc = new URL("./doc.md", import.meta.url);
 const sent = (message) => appendFileSync(${JSON.stringify(sent)}, JSON.stringify(message) + "\\n");
-export default { core: { timeZone: "UTC", envFile: ${JSON.stringify(envFile)}, agent: { command: ${JSON.stringify(agent)} } }, plugins: [
+export default { core: { timeZone: "UTC", jobs: { unsandboxed: true }, envFile: ${JSON.stringify(envFile)}, agent: { command: ${JSON.stringify(agent)} } }, plugins: [
 	{ name: "orchestration", options: { tokenEnv: "${NAME}" }, setup(host) {
 		const token = host.env.${NAME};
 		host.provide("projects", () => [{ name: "acme", path: import.meta.dirname, prefix: "AC" }]);

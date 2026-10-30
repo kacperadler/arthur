@@ -44,7 +44,7 @@ test("a config without core options loads with every default filled, the env fil
 			agent: { command: "omp" },
 			timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 			quietHours: undefined,
-			jobs: { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, cpu: Math.max(1, availableParallelism() - 1), memory: "70%" },
+			jobs: { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: false, cpu: Math.max(1, availableParallelism() - 1), memory: "70%" },
 		},
 		plugins: [],
 	});
@@ -82,6 +82,7 @@ test("each default the core's option table writes as a value is the one loadConf
 		"jobs.idleMinutes": jobs.idleMinutes,
 		"jobs.memory": jobs.memory,
 		"jobs.offlineGraceMinutes": jobs.offlineGraceMinutes,
+		"jobs.unsandboxed": jobs.unsandboxed,
 	});
 });
 
@@ -94,7 +95,7 @@ export default {
 		agent: { command: "/usr/local/bin/omp" },
 		timeZone: "Europe/Warsaw",
 		quietHours: { from: "22:00", to: "07:30" },
-		jobs: { timeoutMinutes: minutes, budgetUsd: 0, idleMinutes: 5, cpu: 0.5, memory: "8G", offlineGraceMinutes: 0 },
+		jobs: { timeoutMinutes: minutes, budgetUsd: 0, idleMinutes: 5, cpu: 0.5, memory: "8G", offlineGraceMinutes: 0, unsandboxed: true },
 	},
 	plugins: [{ name: "fake" }],
 };
@@ -106,7 +107,7 @@ export default {
 		agent: { command: "/usr/local/bin/omp" },
 		timeZone: "Europe/Warsaw",
 		quietHours: { from: "22:00", to: "07:30" },
-		jobs: { timeoutMinutes: 0, budgetUsd: 0, idleMinutes: 5, cpu: 0.5, memory: "8G", offlineGraceMinutes: 0 },
+		jobs: { timeoutMinutes: 0, budgetUsd: 0, idleMinutes: 5, cpu: 0.5, memory: "8G", offlineGraceMinutes: 0, unsandboxed: true },
 	});
 	assert.deepEqual(config.plugins, [{ name: "fake" }]);
 });
@@ -125,7 +126,7 @@ test("an unknown option is refused at every level, naming its path and the optio
 	const core = await refusal(withCore('{ homeDir: ".arthur" }'));
 	assert.match(core, /: core\.homeDir: unknown option; expected one of home, envFile, agent, timeZone, quietHours, jobs$/);
 	const jobs = await refusal(withCore("{ jobs: { offlineMinutes: 30 } }"));
-	assert.match(jobs, /: core\.jobs\.offlineMinutes: unknown option; expected one of timeoutMinutes, budgetUsd, idleMinutes, cpu, memory, offlineGraceMinutes$/);
+	assert.match(jobs, /: core\.jobs\.offlineMinutes: unknown option; expected one of timeoutMinutes, budgetUsd, idleMinutes, cpu, memory, offlineGraceMinutes, unsandboxed$/);
 });
 
 test("a wrong type is refused, naming the path, what was expected and what was given", async () => {
@@ -142,6 +143,7 @@ test("a wrong type is refused, naming the path, what was expected and what was g
 		['{ jobs: { memory: "101%" } }', /: core\.jobs\.memory: expected systemd MemoryMax syntax .*, got "101%"$/],
 		['{ jobs: { memory: "lots" } }', /: core\.jobs\.memory: expected systemd MemoryMax syntax .*, got "lots"$/],
 		["{ jobs: { offlineGraceMinutes: -1 } }", /: core\.jobs\.offlineGraceMinutes: expected a number of 0 or more, got -1$/],
+		['{ jobs: { unsandboxed: "true" } }', /: core\.jobs\.unsandboxed: expected true or false, got "true"$/],
 	];
 	for (const [core, expected] of cases) assert.match(await refusal(withCore(core)), expected, core);
 	assert.match(await refusal(configFile('export default "core";\n')), /: default export: expected an object from defineConfig\(\{ \.\.\. \}\), got "core"$/);
@@ -198,7 +200,7 @@ test("every problem is named, one line each, starting with the config file", asy
 	assert.deepEqual(lines, [
 		`${file}: core.home: expected a non-empty string, got 1`,
 		`${file}: core.timeZone: expected a time zone such as Europe/Warsaw, got "Nowhere"`,
-		`${file}: core.jobs.extra: unknown option; expected one of timeoutMinutes, budgetUsd, idleMinutes, cpu, memory, offlineGraceMinutes`,
+		`${file}: core.jobs.extra: unknown option; expected one of timeoutMinutes, budgetUsd, idleMinutes, cpu, memory, offlineGraceMinutes, unsandboxed`,
 		`${file}: core.jobs.budgetUsd: expected a number of 0 or more, got -1`,
 	]);
 });

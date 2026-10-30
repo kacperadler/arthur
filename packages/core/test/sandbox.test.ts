@@ -3,7 +3,7 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { homedir, tmpdir, userInfo } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
 import { clock } from "../src/clock.ts";
@@ -16,10 +16,10 @@ import { fakeAgent, jobSlice, temporaryFolder, until } from "../src/testing.ts";
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 
-// `script` run by `sh -c` in the sandbox over `paths`, reading every file but `hidden`, from `cwd`: its output, and the lines the log was told.
+// `script` run by `sh -c` in the sandbox over `paths`, reading every file but `hidden`, from `cwd`, or bare on a host without it: its output, and the lines the log was told.
 function inside(paths: readonly string[], script: string, cwd?: string, hidden: readonly string[] = []): { readonly out: string; readonly log: readonly string[] } {
 	const log: string[] = [];
-	const [command, args] = sandboxed(paths, hidden, "sh", (line) => log.push(line))(["-c", script]);
+	const [command, args] = sandboxed(paths, hidden, "sh", (line) => log.push(line), "the agent", true)(["-c", script]);
 	return { out: spawnSync(command, args, { cwd, encoding: "utf8" }).stdout, log };
 }
 
@@ -150,36 +150,39 @@ test("python3 loads no module of the agent's folder before the sandbox is set", 
 	assert.equal(existsSync(join(folder, "loaded")), false);
 });
 
-test("an agent the sandbox's shell does not find starts bare, so it fails to start as it would without a sandbox", { skip: bare }, () => {
+test("an agent the sandbox's shell does not find starts bare without the opt-in too, so it fails to start as it would without a sandbox", { skip: bare }, () => {
 	const lines: string[] = [];
 	const missing = join(temporaryFolder(), "omp");
 	assert.deepEqual(sandboxed(["/tmp"], [], missing, (line) => lines.push(line))(["-p"]), [missing, ["-p"]]);
 	assert.deepEqual(lines, [`no sandbox: the agent ${missing} is not there; the agent writes wherever Arthur's user can`]);
 });
 
-test("without python3, or where it cannot set up the sandbox, the agent runs as it is and the log says why", (t) => {
+test("without python3, or where it cannot set up the sandbox, the agent is refused, naming core.jobs.unsandboxed, unless opted in: then it runs as it is and the log says why", (t) => {
 	const bin = temporaryFolder();
 	const path = process.env.PATH;
 	t.after(() => (process.env.PATH = path));
 	process.env.PATH = bin;
 	const lines: string[] = [];
 	const note = (line: string) => lines.push(line);
-	assert.deepEqual(sandboxed(["/tmp"], [], "omp", note)(["-p", "task"]), ["omp", ["-p", "task"]]);
-	writeFileSync(join(bin, "python3"), "#!/bin/sh\necho 'Traceback (most recent call last):' >&2\necho 'Landlock: Operation not supported' >&2\nexit 1\n", { mode: 0o755 });
-	assert.deepEqual(sandboxed(["/tmp"], [], "omp", note)(["-p", "task"]), ["omp", ["-p", "task"]]);
-	writeFileSync(join(bin, "python3"), "#!/bin/sh\nexit 3\n", { mode: 0o755 });
-	assert.deepEqual(sandboxed(["/tmp"], [], "omp", note)(["-p", "task"]), ["omp", ["-p", "task"]]);
-	const why = process.platform === "linux" ? ["python3: spawnSync python3 ENOENT", "Landlock: Operation not supported", "python3 exited 3"] : Array(3).fill(`${process.platform} has no Landlock`);
-	assert.deepEqual(lines, why.map((reason) => `no sandbox: ${reason}; the agent writes wherever Arthur's user can`));
+	const refused = (why: string) => ({ message: `no sandbox: ${why}; set core.jobs.unsandboxed: true in arthur.config.ts to run the agent with the writes of Arthur's user` });
+	const why: string[] = process.platform === "linux" ? ["python3: spawnSync python3 ENOENT", "Landlock: Operation not supported", "python3 exited 3"] : Array(3).fill(`${process.platform} has no Landlock`);
+	const bare = ["", "#!/bin/sh\necho 'Traceback (most recent call last):' >&2\necho 'Landlock: Operation not supported' >&2\nexit 1\n", "#!/bin/sh\nexit 3\n"];
+	for (const [index, script] of bare.entries()) {
+		if (script !== "") writeFileSync(join(bin, "python3"), script, { mode: 0o755 });
+		assert.throws(() => sandboxed(["/tmp"], [], "omp", note), refused(why[index] ?? ""), why[index]);
+		assert.throws(() => sandboxed(["/tmp"], [], "omp", note, "the agent", false), refused(why[index] ?? ""), why[index]);
+		assert.deepEqual(sandboxed(["/tmp"], [], "omp", note, "the agent", true)(["-p", "task"]), ["omp", ["-p", "task"]]);
+	}
+	assert.deepEqual(lines, why.map((reason) => `no sandbox: ${reason}; the agent writes wherever Arthur's user can`), "a refusal logs nothing; the opt-in says why");
 });
 
-test("without python3, the install and each step of a plugin's sandbox run bare too, the install's log and the plugin told once why; a step's caches are still its own", (t) => {
+test("without python3, the install opted in and each step of a plugin's sandbox, which needs no opt-in, run bare, the install's log and the plugin told once why; a step's caches are still its own", (t) => {
 	const path = process.env.PATH;
 	t.after(() => (process.env.PATH = path));
 	process.env.PATH = temporaryFolder();
 	const lines: string[] = [];
 	const note = (line: string) => lines.push(line);
-	assert.deepEqual(sandboxed(["/tmp"], [], "sh", note, "the install")(["-c", "npm ci"]), ["sh", ["-c", "npm ci"]]);
+	assert.deepEqual(sandboxed(["/tmp"], [], "sh", note, "the install", true)(["-c", "npm ci"]), ["sh", ["-c", "npm ci"]]);
 	const cache = join(temporaryFolder(), "merge", "cache");
 	const step = stepSandbox("/tmp", cache, { envFile: "/nowhere/env", home: "/nowhere/home", config: "/nowhere/arthur.config.ts" }, note);
 	process.env.PATH = path;
@@ -187,6 +190,31 @@ test("without python3, the install and each step of a plugin's sandbox run bare 
 	assert.deepEqual([ran.stdout, existsSync(cache)], [`${[join(cache, "npm"), join(cache, "bun"), cache, join(cache, "pnpm-home"), join(cache, "composer")].join(" ")}\n`, true]);
 	const why = process.platform === "linux" ? "python3: spawnSync python3 ENOENT" : `${process.platform} has no Landlock`;
 	assert.deepEqual(lines, [`no sandbox: ${why}; the install writes wherever Arthur's user can`, `no sandbox: ${why}; each step writes wherever Arthur's user can`]);
+});
+
+test("a job on a host without the sandbox fails before its install or agent starts, naming core.jobs.unsandboxed; with the option on both run bare and the log says why", async () => {
+	const why = process.platform === "linux" ? "Landlock: Operation not supported" : `${process.platform} has no Landlock`;
+	const bin = temporaryFolder();
+	writeFileSync(join(bin, "python3"), "#!/bin/sh\necho 'Landlock: Operation not supported' >&2\nexit 1\n", { mode: 0o755 });
+	const time = clock("UTC", undefined, () => new Date("2026-10-30T08:00:00Z"));
+	const run = async (unsandboxed: boolean, install: boolean) => {
+		const { root, home } = repository();
+		const [agent, installed] = [fakeAgent({ steps: [{ message: "Done." }] }), join(temporaryFolder(), "installed")];
+		const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed, ...jobSlice }, agent, time, eventBus(home), () => []);
+		jobs.prepare("test", () => ({ PATH: [bin, process.env.PATH].join(delimiter), ...(install ? { ARTHUR_INSTALL: `touch '${installed}'` } : {}) }));
+		const job = await jobs.spawn({ task: "Go." });
+		const ended = await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
+		const started = existsSync(join(dirname(agent), "starts.jsonl"));
+		return { reason: (ended.data as { readonly reason: string }).reason, started, installed: existsSync(installed), log: readFileSync(join(home, "jobs", job.id, "log"), "utf8") };
+	};
+	const refused = (who: string) => `failed: no sandbox: ${why}; set core.jobs.unsandboxed: true in arthur.config.ts to run ${who} with the writes of Arthur's user`;
+	const agent = await run(false, false);
+	assert.deepEqual([agent.reason, agent.started], [refused("the agent"), false]);
+	const install = await run(false, true);
+	assert.deepEqual([install.reason, install.started, install.installed], [refused("the install"), false, false]);
+	const bare = await run(true, true);
+	assert.deepEqual([bare.reason, bare.started, bare.installed], ["finished", true, true]);
+	for (const who of ["the install", "the agent"]) assert.match(bare.log, new RegExp(`\\] no sandbox: ${why}; ${who} writes wherever Arthur's user can\n`), who);
 });
 
 // A repository `acme` with a job's worktree on its branch, and the job's record in a home folder beside it.
@@ -295,7 +323,7 @@ test("a job's agent writes its worktree, a commit on its branch, its record and 
 	};
 	writeFileSync(agent, `#!/bin/sh\n{\n${tries(writes)}\n} > results\n`, { mode: 0o755 });
 	const time = clock("UTC", undefined, () => new Date("2026-10-24T08:00:00Z"));
-	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), () => []);
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), () => []);
 	jobs.prepare("test", () => ({ TMPDIR: temporary }));
 	const job = await jobs.spawn({ task: "Write." });
 	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
@@ -323,7 +351,7 @@ test("a sandboxed job's agent takes omp's session lock, so a review whose final 
 	const agent = join(folder, "agent");
 	writeFileSync(agent, `#!/bin/sh\npython3 '${lock}' job-${process.pid} || exit 1\nexec '${fakeAgent({ steps: [{ message: "Clean.\n\nPASS\n" }] })}' "$@"\n`, { mode: 0o755 });
 	const time = clock("UTC", undefined, () => new Date("2026-10-24T08:00:00Z"));
-	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), () => []);
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), () => []);
 	jobs.registerKind("delivery", { name: "judged", readOnly: true, role: "worker", verdicts: ["PASS", "FAIL"] });
 	const job = await jobs.spawn({ task: "Judge.", kind: "judged" });
 	const ended = await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
@@ -342,7 +370,7 @@ import { eventBus } from ${JSON.stringify(import.meta.resolve("../src/events.ts"
 import { jobRunner } from ${JSON.stringify(import.meta.resolve("../src/jobs.ts"))};
 const [home, root, agent, slice, env] = JSON.parse(process.argv[1]);
 const time = clock("UTC", undefined, () => new Date("2026-10-24T08:00:00Z"));
-const jobs = jobRunner(home, root, root + "/env", { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...slice }, agent, time, eventBus(home), () => []);
+const jobs = jobRunner(home, root, root + "/env", { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...slice }, agent, time, eventBus(home), () => []);
 jobs.prepare("test", () => ({ RUNNER_PID: String(process.pid), ...env }));
 await jobs.spawn({ task: "Read." });
 process.stdin.resume();
@@ -468,7 +496,7 @@ test("a job's install, its agent across a continue that found the guarded list e
 	const agent = join(folder, "agent");
 	writeFileSync(agent, `#!/bin/sh\n${read}\n: > "$ARTHUR_JOB/guarded"\n`, { mode: 0o755 });
 	const time = clock("UTC", undefined, () => new Date("2026-10-24T08:00:00Z"));
-	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), () => []);
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), () => []);
 	jobs.prepare("test", () => ({ ARTHUR_INSTALL: read }));
 	const job = await jobs.spawn({ task: "Read." });
 	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
@@ -509,7 +537,7 @@ test("where the user's Git config signs with a key in ~/.ssh, a job's install an
 	const agent = join(folder, "agent");
 	writeFileSync(agent, `#!/bin/sh\n{ ${commit("agent")}; } 2> "$ARTHUR_JOB/agent-err"\n`, { mode: 0o755 });
 	const time = clock("UTC", undefined, () => new Date("2026-10-27T08:00:00Z"));
-	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), () => []);
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), () => []);
 	jobs.prepare("test", () => ({ ARTHUR_INSTALL: commit("install") }));
 	const job = await jobs.spawn({ task: "Commit." });
 	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
@@ -566,7 +594,7 @@ test("a sandboxed job reads no token of the env file: not by its path, a link, n
 	const agent = join(folder, "agent");
 	writeFileSync(agent, `#!/bin/sh\n${Object.entries(reads).map(([name, command]) => `(${command}) > "$ARTHUR_JOB/${name}" 2>&1`).join("\n")}\n`, { mode: 0o755 });
 	const time = clock("UTC", undefined, () => new Date("2026-10-24T08:00:00Z"));
-	const jobs = jobRunner(home, root, envFile, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), () => []);
+	const jobs = jobRunner(home, root, envFile, { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), () => []);
 	jobs.prepare("test", () => ({ TMPDIR: temporary }));
 	const job = await jobs.spawn({ task: "Read." });
 	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));

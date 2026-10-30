@@ -16,7 +16,7 @@ function config(plugins: readonly object[], envText?: string): LoadedConfig {
 	mkdirSync(folder);
 	const envFile = join(folder, "env");
 	if (envText !== undefined) writeFileSync(envFile, envText);
-	const jobs = { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, cpu: 1, memory: "70%" };
+	const jobs = { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, cpu: 1, memory: "70%" };
 	const core = { home: join(folder, ".arthur"), envFile, agent: { command: "omp" }, timeZone: "UTC", quietHours: undefined, jobs };
 	return { path: join(folder, "arthur.config.ts"), core, plugins: plugins.map((plugin) => ({ setup() {}, ...plugin })) };
 }

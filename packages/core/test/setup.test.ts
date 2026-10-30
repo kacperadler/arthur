@@ -62,7 +62,7 @@ function section(output: string, title: string): string[] {
 }
 
 const FULL = `${NEED}
-export default { core: { home: HOME, jobs: { budgetUsd: 3 } }, plugins: [
+export default { core: { home: HOME, jobs: { budgetUsd: 3, unsandboxed: true } }, plugins: [
 	{ name: "orchestration", options: { maxAgents: 2, coordinator: { model: "m" } }, doctor: () => [need("tmux", true)], setup() {} },
 	{ name: "telegram", options: { botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID", bots: [1, 2], media: true },
 		doctor: () => [need("ffmpeg", false, "missing: not found")], setup(host) { host.provide("doctor", () => [need("bot", false, "missing: unreachable")]); } },
@@ -90,7 +90,7 @@ test("arthur setup: the tools, the config, the requirements, what can still go i
 	]);
 	assert.deepEqual(section(run.stdout, "Config"), [
 		"Config: arthur.config.ts",
-		"core | set: home, jobs.budgetUsd; not set: envFile, agent, timeZone, quietHours, jobs.timeoutMinutes, jobs.idleMinutes, jobs.cpu, jobs.memory, jobs.offlineGraceMinutes",
+		"core | set: home, jobs.budgetUsd, jobs.unsandboxed; not set: envFile, agent, timeZone, quietHours, jobs.timeoutMinutes, jobs.idleMinutes, jobs.cpu, jobs.memory, jobs.offlineGraceMinutes",
 		"orchestration | on | set: maxAgents, coordinator.model; not set: coordinator.thinking",
 		"telegram | on | set: botTokenEnv, chatIdEnv, bots (2), media",
 		"env set | ARTHUR_TELEGRAM_BOT_TOKEN (telegram.botTokenEnv)",
@@ -98,7 +98,7 @@ test("arthur setup: the tools, the config, the requirements, what can still go i
 		"voice | off (enabled: false)",
 		`ARTHUR_TELEGRAM_BOT_TOKEN is set in the shell only; the arthur service does not see it, put it in ${join(xdg, "arthur", ".env")}`,
 	]);
-	assert.deepEqual(section(run.stdout, "Requirements").slice(8), [
+	assert.deepEqual(section(run.stdout, "Requirements").slice(9), [
 		"orchestration tmux: ok",
 		"telegram ffmpeg: missing: not found; without it: no ffmpeg; fix: fix ffmpeg",
 		"telegram bot: missing: unreachable; without it: no bot; fix: fix bot",
@@ -141,7 +141,7 @@ test("a missing variable is a step that refuses the start; each enabled plugin's
 		`${join(xdg, "arthur", ".env")}: ARTHUR_OTHER is set on lines 2, 3; the last wins`,
 		`ARTHUR_TELEGRAM_BOT_TOKEN is set in the shell only; the arthur service does not see it, put it in ${join(xdg, "arthur", ".env")}`,
 	]);
-	assert.deepEqual(section(run.stdout, "Requirements").slice(8), [
+	assert.deepEqual(section(run.stdout, "Requirements").slice(9), [
 		"orchestration tmux: ok",
 		"telegram ffmpeg: missing: not found; without it: no ffmpeg; fix: fix ffmpeg",
 		"the requirements a plugin checks in its setup are not checked until what Config refuses is fixed",
@@ -159,7 +159,7 @@ test("a missing variable is a step that refuses the start; each enabled plugin's
 
 test("Next: the config first, then the env, then critical requirements, then the rest; exit 1", () => {
 	const config = `${NEED}
-export default { core: { home: HOME, agent: { command: "arthur-test-no-agent" } }, plugins: [
+export default { core: { home: HOME, jobs: { unsandboxed: true }, agent: { command: "arthur-test-no-agent" } }, plugins: [
 	{ name: "orchestration", setup() {} },
 	{ name: "telegram", requires: ["ghost"], options: { chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }, setup() {} },
 ] };
@@ -181,7 +181,7 @@ export default { core: { home: HOME, agent: { command: "arthur-test-no-agent" } 
 
 test("a critical requirement missing is a step that refuses the start, before every other one; a fix said twice is one step", () => {
 	const { arthur } = project({
-		config: `${NEED}\nexport default { core: { home: HOME }, plugins: [{ name: "orchestration", setup(host) { host.provide("doctor", () => [need("soft", false, "missing: x"), need("tmux", true, "missing: no tmux"), { ...need("again", false, "missing: y"), fix: "fix soft" }]); } }] };\n`,
+		config: `${NEED}\nexport default { core: { home: HOME, jobs: { unsandboxed: true } }, plugins: [{ name: "orchestration", setup(host) { host.provide("doctor", () => [need("soft", false, "missing: x"), need("tmux", true, "missing: no tmux"), { ...need("again", false, "missing: y"), fix: "fix soft" }]); } }] };\n`,
 	});
 	const run = arthur();
 	assert.deepEqual(section(run.stdout, "Next"), ["Next", "1. fix tmux. Refuses the start.", "2. fix soft", "Run arthur setup again after each step."]);
@@ -189,14 +189,14 @@ test("a critical requirement missing is a step that refuses the start, before ev
 });
 
 test("nothing missing: Next says nothing, and exit 0", () => {
-	const { arthur } = project({ config: `${NEED}\nexport default { core: { home: HOME }, plugins: [{ name: "orchestration", setup(host) { host.provide("doctor", () => [need("tmux", true)]); } }] };\n` });
+	const { arthur } = project({ config: `${NEED}\nexport default { core: { home: HOME, jobs: { unsandboxed: true } }, plugins: [{ name: "orchestration", setup(host) { host.provide("doctor", () => [need("tmux", true)]); } }] };\n` });
 	const run = arthur();
 	assert.deepEqual(section(run.stdout, "Can still go"), ["Can still go in arthur.config.ts", "nothing"]);
 	assert.deepEqual([run.status, run.stdout.split("\n").slice(-3)], [0, ["Next", "  nothing", ""]]);
 });
 
 test("an env file set beside the config: its doctor line under Requirements and its move a step of Next that does not refuse the start", () => {
-	const { folder, arthur } = project({ config: `${NEED}\nexport default { core: { home: HOME, envFile: ".env" }, plugins: [{ name: "orchestration", setup() {} }] };\n` });
+	const { folder, arthur } = project({ config: `${NEED}\nexport default { core: { home: HOME, jobs: { unsandboxed: true }, envFile: ".env" }, plugins: [{ name: "orchestration", setup() {} }] };\n` });
 	const run = arthur();
 	assert.match(section(run.stdout, "Requirements")[6] ?? "", new RegExp(`^core env: missing: the env file ${join(folder, ".env")} lies inside ${folder}; `));
 	assert.deepEqual([run.status, section(run.stdout, "Next")], [0, ["Next", "1. move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)", "Run arthur setup again after each step."]]);

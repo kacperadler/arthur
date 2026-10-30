@@ -9,7 +9,7 @@ export function reason({ why, playing, timeout, cost, budgetUsd, overCap, failur
 		: why === "time" ? `limit: time: the job ran past its timeout of ${timeout} minutes${playing ? "" : ", during its install"}`
 		: why === "budget" ? `limit: budget: its cost $${cost.toFixed(4)} reached its budget of $${budgetUsd}`
 		: why === "memory" ? `limit: memory: ${overCap}`
-		: failure !== undefined ? `failed: the agent did not start: ${failure.message}`
+		: failure !== undefined ? `failed: ${failure.message.startsWith("no sandbox: ") ? "" : "the agent did not start: "}${failure.message}`
 		: killed !== null ? `failed: the agent was killed by ${killed}`
 		: stopped !== "" ? `failed: the agent stopped on ${stopped}`
 		: code !== 0 ? `failed: the agent exited ${code}`

@@ -13,7 +13,7 @@ const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>[,<mod
 // "stale" unless `--ignore-restart`, places a file in every new worktree, failing on a task that says "break", and provides the
 // repository as the one project, prefix AC.
 const CONFIG = `import { writeFileSync } from "node:fs";
-export default { core: { timeZone: "UTC", jobs: { budgetUsd: 3 } }, plugins: [{ name: "orchestration", setup(host) {
+export default { core: { timeZone: "UTC", jobs: { budgetUsd: 3, unsandboxed: true } }, plugins: [{ name: "orchestration", setup(host) {
 	host.jobs.registerRole({ name: "reviewer", file: new URL("./reviewer.md", import.meta.url), criteria: [] });
 	host.jobs.registerKind({ name: "review", readOnly: true, role: "reviewer", timeoutMinutes: 15 });
 	host.jobs.beforeSpawn((spawn) => (spawn.task.includes("refuse") ? "maxAgents 3 reached" : spawn.task.includes("stale") && !spawn.ignoreRestart ? "restart due: AC0001" : undefined));

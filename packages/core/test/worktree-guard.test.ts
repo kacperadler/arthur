@@ -50,7 +50,7 @@ async function jobs(calls: readonly Call[] = []): Promise<{ readonly root: strin
 		writeFileSync(join(import.meta.dirname, basename(process.cwd()) + ".json"), JSON.stringify(refused));\n`,
 		{ mode: 0o755 },
 	);
-	const runner = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), () => []);
+	const runner = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), () => []);
 	const own = await runner.spawn({ task: "own" });
 	const other = await runner.spawn({ task: "other" });
 	await until("both jobs ended", () => (readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2 ? true : undefined));
@@ -1097,7 +1097,7 @@ test("a job of one project refuses writes into another project's main checkout a
 	const agent = join(temporaryFolder(), "omp");
 	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
 	const collect = (name: string) => (name === "projects" ? [list] : []);
-	const runner = jobRunner(home, alpha, join(alpha, "env"), { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
+	const runner = jobRunner(home, alpha, join(alpha, "env"), { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
 	const own = await runner.spawn({ task: "own" });
 	const theirs = await runner.spawn({ task: "theirs", project: "beta" });
 	await until("both jobs ended", () => (readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2 ? true : undefined));
@@ -1143,7 +1143,7 @@ test("a job refuses writes into Arthur's install, config folder and env file, an
 	const home = join(config, ".arthur");
 	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
 	const collect = (name: string) => (name === "projects" ? [[{ name: "alpha", prefix: "AL", path: alpha }]] : []);
-	const runner = jobRunner(home, config, secrets, { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
+	const runner = jobRunner(home, config, secrets, { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
 	const own = await runner.spawn({ task: "own" });
 	await until("the job ended", () => (readEvents(home, 1).some((event) => event.name === "job-ended") ? true : undefined));
 	const record = join(home, "jobs", own.id);
@@ -1199,7 +1199,7 @@ test("a job of Arthur's own repository still builds a plugin in its worktree, ru
 	const arthur = repository("arthur");
 	const [home, secrets, agent] = [join(arthur, ".arthur"), join(arthur, "env"), join(temporaryFolder(), "omp")];
 	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
-	const runner = jobRunner(home, arthur, secrets, { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), () => []);
+	const runner = jobRunner(home, arthur, secrets, { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), () => []);
 	const own = await runner.spawn({ task: "own" });
 	await until("the job ended", () => (readEvents(home, 1).some((event) => event.name === "job-ended") ? true : undefined));
 	const record = join(home, "jobs", own.id);
@@ -1227,7 +1227,7 @@ test("a project declared while a job runs is refused to it at once; an unreadabl
 	const agent = join(temporaryFolder(), "omp");
 	writeFileSync(agent, "#!/bin/sh\n", { mode: 0o755 });
 	const collect = (name: string) => (name === "projects" ? [[{ name: "alpha", prefix: "AL", path: alpha }]] : []);
-	const runner = jobRunner(home, alpha, join(alpha, "env"), { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
+	const runner = jobRunner(home, alpha, join(alpha, "env"), { timeoutMinutes: 5, budgetUsd: 1, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, clock("UTC", undefined), eventBus(home), collect);
 	const own = await runner.spawn({ task: "own" });
 	await until("the job ended", () => (readEvents(home, 1).some((event) => event.name === "job-ended") ? true : undefined));
 	const record = join(home, "jobs", own.id);

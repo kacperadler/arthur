@@ -31,7 +31,7 @@ function repository(files: Readonly<Record<string, string>> = { "README.md": "ac
 // A runner whose clock reads 2026-10-16 in Warsaw, 23:30 UTC the evening before.
 function runner(home: string, root: string): JobRunner {
 	const time = clock("Europe/Warsaw", undefined, () => new Date("2026-10-15T23:30:00Z"));
-	return jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, "omp", time, eventBus(home), () => []);
+	return jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, "omp", time, eventBus(home), () => []);
 }
 
 // The files `names` of a record; the wrapper writes the run's files beside them as it goes.

@@ -41,3 +41,4 @@ Out:
 
 - 2026-10-30: Source: audit spec/quality/2026-10-30.md
 - 2026-10-30: AR0567 approved; its worker starts now; the owner: "AR0566, AR0567, AR0568 - approve" (AR-D357)
+- 2026-10-30: Merge AR0567 now; the owner: "AR-D360 1" (AR-D360)

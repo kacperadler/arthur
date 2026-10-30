@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
+import { root } from "./test-env.ts"; // First: the kit's environment is set before any other module of the core loads.
 import { board } from "./board.ts";
 import { moveStartedTickets, refuseUnstartableTickets } from "./board-jobs.ts";
 import { clock } from "./clock.ts";
@@ -17,14 +17,8 @@ import type { Role } from "./roles.ts";
 import type { Host, Options, Plugin, Provider, SpawnCheck } from "./plugin.ts";
 import { pluginHost, registry } from "./plugin-host.ts";
 
-// The test kit (spec/roadmap.md, entries 4, 11 and 13), `@arthur/core/testing`, which `npm test` loads into every test process
-// (`--import`) as the safety net: every `ARTHUR_` variable and tmux's session variables are cleared and tmux's default socket
-// and `XDG_CONFIG_HOME`, where the env file lies by default, move into a temporary folder, so no test reaches a live bot, token or tmux server; `omp` on `PATH` is the fake agent with
-// no run (it fails), so no job reaches the real agent; at exit go the tmux servers on its sockets (tmux's default one included; a server outlives its removed socket, unreachable then; `find` follows no link out), its slice `jobSlice`, and every folder the kit makes.
-
-for (const key of Object.keys(process.env)) if (key.startsWith("ARTHUR_") || key === "TMUX" || key === "TMUX_PANE") delete process.env[key];
-const root = mkdtempSync(join(tmpdir(), "arthur-test-"));
-Object.assign(process.env, { TMUX_TMPDIR: root, XDG_CONFIG_HOME: root });
+// The test kit (spec/roadmap.md, entries 4, 11 and 13), `@arthur/core/testing`, which `npm test` loads into every test process (`--import`) as the safety net: its environment (test-env.ts) keeps live variables, folders and identities out of reach, so no test reaches
+// a live bot, token or tmux server; `omp` on `PATH` is the fake agent with no run (it fails), so no job reaches the real agent; at exit go the tmux servers on its sockets (tmux's default one included; a server outlives its removed socket, unreachable then; `find` follows no link out), its slice `jobSlice`, and every folder the kit makes.
 
 // The joint slice of a test's jobs, never Arthur's own: `arthur_test_<8 hex digits>.slice` right under the user manager (a `-` would nest it in another slice); at exit it is stopped, with any job still in it, and its limits are removed. `ARTHUR_JOB_SLICE` names it to a load in this process (host.ts) and to an `arthur` it starts; a test that gives the CLI an env of its own passes it there.
 export const jobSlice: Slice = { slice: `arthur_test_${randomBytes(4).toString("hex")}`, cpu: 2, memory: "2G" };
@@ -36,9 +30,9 @@ process.on("exit", () => {
 });
 process.env.PATH = [dirname(fakeAgent({ steps: [{ stderr: "fake agent: this test scripted no run" }], exitCode: 1 })), process.env.PATH].join(delimiter);
 
-// A new empty folder of the kit's, e.g. a test's home folder instead of a live `.arthur/`.
+// A new empty folder of the kit's, in its TMPDIR, where a job's sandbox lets it write as in the system's, e.g. a test's home folder instead of a live `.arthur/`.
 export function temporaryFolder(): string {
-	return mkdtempSync(join(root, "folder-"));
+	return mkdtempSync(join(root, "tmp", "folder-"));
 }
 
 // A scripted run of the fake agent: its `steps`, played in order, then its `exitCode` (default 0); its extensions' first `failSends` messages throw, the next `dropSends` sent while idle

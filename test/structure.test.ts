@@ -13,7 +13,7 @@ const BUDGETS = {
 
 	core: 6476,
 
-	"core/testing": 351,
+	"core/testing": 357,
 
 	delivery: 1737,
 
@@ -228,14 +228,14 @@ test("a package over its line budget, or without one, fails; tests do not count"
 	assert.deepEqual(check({}, { core: 3, "core/testing": 2 }), ["packages/telegram: has no line budget; add one to test/structure.test.ts"]);
 });
 
-test("the core's test kit, testing.ts and fake-agent.ts, counts against core/testing alone, and needs that budget", () => {
-	const kit = { "packages/core/src/fake-agent.ts": lines(5) };
-	assert.deepEqual(check(kit, { core: 1, "core/testing": 7, telegram: 300 }), []);
-	assert.deepEqual(check(kit, { core: 1, "core/testing": 6, telegram: 300 }), [
-		"packages/core: its test kit (src/testing.ts, src/fake-agent.ts) has 7 lines, over its line budget of 6",
+test("the core's test kit, testing.ts, test-env.ts and fake-agent.ts, counts against core/testing alone, and needs that budget", () => {
+	const kit = { "packages/core/src/fake-agent.ts": lines(5), "packages/core/src/test-env.ts": lines(3) };
+	assert.deepEqual(check(kit, { core: 1, "core/testing": 10, telegram: 300 }), []);
+	assert.deepEqual(check(kit, { core: 1, "core/testing": 9, telegram: 300 }), [
+		"packages/core: its test kit (src/testing.ts, src/test-env.ts, src/fake-agent.ts) has 10 lines, over its line budget of 9",
 	]);
 	assert.deepEqual(check({ "packages/core/src/extra.ts": lines(6) }, { core: 7, "core/testing": 1, telegram: 300 }), [
-		"packages/core: its test kit (src/testing.ts, src/fake-agent.ts) has 2 lines, over its line budget of 1",
+		"packages/core: its test kit (src/testing.ts, src/test-env.ts, src/fake-agent.ts) has 2 lines, over its line budget of 1",
 	]);
 	assert.deepEqual(check({}, { core: 1, telegram: 300 }), [
 		"packages/core: has no line budget for its test kit; add core/testing to test/structure.test.ts",

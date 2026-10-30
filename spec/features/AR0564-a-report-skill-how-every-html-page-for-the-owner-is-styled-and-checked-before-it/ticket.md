@@ -46,3 +46,4 @@ Out:
 - 2026-10-30: AR0564 budget raised by $8 to $20.57 so its worker finishes the round; the owner: "AR-D349 - go with recommendation" (AR-D349)
 - 2026-10-30: AR0564: another round; the worker drops or tests the 20-screenshot cap, then review round 5; keep going until it is merged; the owner: "AR-D352 1 and go till is merged" (AR-D352)
 - 2026-10-30: AR0564 budget raised by $5 to $25.57, under the owner word to go until it is merged; the owner: "AR-D352 1 and go till is merged" (AR-D353)
+- 2026-10-30: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

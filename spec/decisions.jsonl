@@ -707,3 +707,5 @@
 {"record":"answer","id":"AR-D352","time":"2026-10-30T08:17:21+01:00","decided":"AR0564: another round; the worker drops or tests the 20-screenshot cap, then review round 5; keep going until it is merged","picked":1,"words":"AR-D352 1 and go till is merged"}
 {"record":"ask","id":"AR-D353","time":"2026-10-30T08:17:22+01:00","project":"arthur","kind":"budget","question":"Raise AR0564 budget by $5 to $25.57 so the worker can finish round 5 and later rounds until it is merged?","options":["Raise to $25.57","Keep $20.57"],"recommend":1,"ticket":"AR0564"}
 {"record":"answer","id":"AR-D353","time":"2026-10-30T08:17:32+01:00","decided":"AR0564 budget raised by $5 to $25.57, under the owner word to go until it is merged","picked":1,"words":"AR-D352 1 and go till is merged"}
+{"record":"ask","id":"AR-D354","time":"2026-10-30T08:34:38+01:00","project":"arthur","kind":"merge","question":"Merge AR0564 (report skill) after its passed review?","options":[],"ticket":"AR0564"}
+{"record":"answer","id":"AR-D354","time":"2026-10-30T08:34:38+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

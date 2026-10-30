@@ -4,6 +4,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## 2026-10-30
 
+### Added
+
+- AR0569 Defaults T1: a check call gets 1800 s by itself, pkill is refused, and every steer is an event (cdb0abdc)
+
 ### Fixed
 
 - AR0566 Five job roles tell the agent to wait on proc://, which a job sandbox cannot reach (425ca8aa)

@@ -4541,9 +4541,9 @@
   {
     "id": "AR0570",
     "title": "Defaults T2: a branch cannot change its ticket, the board or the decision log",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0570-defaults-t2-a-branch-cannot-change-its-ticket-the-board-or-the-decision-log/ticket.md",
-    "updated": "2026-10-30T10:56:18.351Z",
+    "updated": "2026-10-30T11:05:54.269Z",
     "after": [
       "AR0569"
     ]

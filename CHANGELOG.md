@@ -32,6 +32,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0578 Defaults T10: one until for every test, and the time-limit tests stop racing (a18ef20c)
 - AR0581 Defaults T13: the fakes of GitHub, YouTrack and Telegram are checked against recorded shapes, and tsc gets stricter (e45aba3d)
 - AR0587 The report check tests skip on this server since the test kit moved HOME (0c4b7f93)
+- AR0589 Plan: each project keeps all its plugin settings in one place of arthur.config.ts (1f31ca20)
 
 ## 2026-10-29
 

@@ -30,3 +30,17 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: the role turns silent mode on for delegated work but never names `--recommend` and its bounds, so the coordinator knows to record a grant only from its handoff memory, which the plan (P13) deletes once this ticket merges, or from `arthur silent --help`.
 - Suggestion: one clause on line 64: when the owner says to go with your recommendation, add `--recommend` with the bound he names (`--until`, `--usage`, `--tickets`), and ask every decision with `--recommend`. Delete the handoff's grant memory only after that line is in.
 - Status: deferred (client summary)
+
+## F4. An owner answer whose words start with by recommendation is refused as a grant's
+
+- Kind: fix
+- Found by: review 1 (not blocking)
+- What: `decision answer` with the owner's words beginning `by recommendation: ...` would be turned down where the owner's word is needed; unlikely, and the decision-use test uses that route on purpose.
+- Status: deferred (client summary)
+
+## F5. Commit 9e5b85e8 is titled test but changes source
+
+- Kind: chore
+- Found by: review 1 (not blocking)
+- What: the worker's final message says so; history only.
+- Status: deferred (client summary)

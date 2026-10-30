@@ -81,6 +81,12 @@ test("a page 3001 px tall is screenshot in 3 slices of 1500 px, and the last run
 	assert.equal(exact.shots.length, 2, "3000 px is two slices");
 });
 
+test("a page 30 001 px tall is shot whole, in 21 slices: no part of a page goes out unseen", skip, () => {
+	const { code, shots } = check(page("body { margin:0 }", '<p style="margin:0;height:30001px">tall</p>'));
+	assert.equal(code, 0);
+	assert.deepEqual(shots.map(({ name }) => name), Array.from({ length: 21 }, (_, n) => `page.html.420px/${n + 1}.png`));
+});
+
 test("a screenshot that fails exits 2: no page is sent without one", skip, () => {
 	const { code, lines } = check(page("", "<p>fine</p>"), wrapper('case "$*" in *--screenshot*) echo "cannot write" >&2; exit 1;; esac'));
 	assert.deepEqual([code, lines.at(-1)], [2, "no screenshot: cannot write; the page is not sent without one"]);

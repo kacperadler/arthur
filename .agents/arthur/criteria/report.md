@@ -99,7 +99,7 @@ First run, from the repository's root, `<page>` being the page's path:
 node -e 'eval(String(require("fs").readFileSync(".agents/arthur/criteria/report.md")).split("```js page-check\n")[1].split("\n```")[0])' <page>
 ~~~
 
-It renders the page in headless Chrome 420 px wide, once it and its images and fonts have loaded, and prints one line per problem: the page scrolling sideways (`the page scrolls sideways: 900 px wide on a 420 px screen`), each element that ends past the screen's edge or scrolls sideways inside, and each element whose text colour, against its own background or else its nearest ancestor's, is below 4.5:1 (`contrast 1.12:1, #ffffff on #f2f2f2: code "arthur repeats"`). Exit 0 with `ok: ...` when there is none, 1 with the problems; fix each and run it again. Exit 2 when it could not check: no browser runs (set `CHROME` to a Chrome or Chromium binary; Playwright's `chrome-headless-shell` will do), the page never finished loading, or no screenshot was taken. Each run also takes screenshots of the page at 420 px, 1500 px of it each (at most 20), into the folder `<page>.420px/` beside it (`1.png`, `2.png`, ...), replacing the last run's, and prints their paths.
+It renders the page in headless Chrome 420 px wide, once it and its images and fonts have loaded, and prints one line per problem: the page scrolling sideways (`the page scrolls sideways: 900 px wide on a 420 px screen`), each element that ends past the screen's edge or scrolls sideways inside, and each element whose text colour, against its own background or else its nearest ancestor's, is below 4.5:1 (`contrast 1.12:1, #ffffff on #f2f2f2: code "arthur repeats"`). Exit 0 with `ok: ...` when there is none, 1 with the problems; fix each and run it again. Exit 2 when it could not check: no browser runs (set `CHROME` to a Chrome or Chromium binary; Playwright's `chrome-headless-shell` will do), the page never finished loading, or no screenshot was taken. Each run also takes screenshots of the page at 420 px, 1500 px of it each, all of it, into the folder `<page>.420px/` beside it (`1.png`, `2.png`, ...), replacing the last run's, and prints their paths.
 
 Then look at every one of those screenshots (`read` each) before sending: every heading, command, id and number readable, nothing cut or overlapping. A page that looks wrong is not sent, whatever the script printed.
 
@@ -196,7 +196,7 @@ if (found === null) {
 const { texts, height, problems } = JSON.parse(found[1]);
 for (const problem of problems) console.log(problem);
 console.log(problems.length === 0 ? `ok: ${page} at ${WIDTH} px: ${texts} texts at 4.5:1 or more against their declared background, nothing scrolls sideways` : `${problems.length} problems in ${page} at ${WIDTH} px`);
-// The whole page, a screen of 1500 px at a time (at most 20), each slice small enough to read at full size; the page is shifted
+// The whole page, a screen of 1500 px at a time, each slice small enough to read at full size; the page is shifted
 // up by a style added to a copy, so its relative links load as in the check.
 const shots = `${page}.${WIDTH}px`;
 const SLICE = 1500;
@@ -205,7 +205,7 @@ mkdirSync(shots);
 const taken = [];
 let failed;
 try {
-	for (let n = 0; n < Math.min(Math.max(Math.ceil(height / SLICE), 1), 20) && failed === undefined; n++) {
+	for (let n = 0; n < Math.ceil(height / SLICE) && failed === undefined; n++) {
 		writeFileSync(copy, `${readFileSync(page, "utf8")}\n<style>html { transform: translateY(-${n * SLICE}px) }</style>\n`);
 		const file = join(shots, `${n + 1}.png`);
 		const shot = chrome(browser, SLICE, `--screenshot=${resolve(file)}`, pathToFileURL(copy).href);

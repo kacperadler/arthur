@@ -50,7 +50,7 @@ function withEnv(t: TestContext, env: Readonly<Record<string, string | undefined
 	}
 }
 
-type Project = { readonly name: string; readonly path: string; readonly prefix: string; readonly ci?: { readonly workflow: string } };
+type Project = { readonly name: string; readonly path: string; readonly prefix: string; readonly pieces?: { readonly github?: { readonly workflow: string } } };
 
 // The plugin set up on a fake host with `projects` and started; stopped at the end. `record` writes a job's record as the core
 // does, which the plugin reads through `host.jobs.list()`; `ci` runs `arthur ci` and gives its exit code and output.
@@ -87,7 +87,7 @@ const options = (apiUrl: string, more: Partial<GithubOptions> = {}): GithubOptio
 test("a finished run is told once per run attempt, across polls and a restart, and wakes the coordinator; a rerun's end is told once; what finished before the first poll is not told; the token stays out", async (t) => {
 	const api = await fakeGithub(t);
 	const shop = repository();
-	const project = { name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } };
+	const project = { name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) };
 	const branch = shop.commit("arthur/one");
 	api.runs["acme/shop/ci.yml"] = [{ id: 11, sha: shop.head(), branch: "main", status: "completed", conclusion: "success" }];
 	const first = await started(t, [project], options(api.apiUrl));
@@ -164,7 +164,7 @@ test("a passed run is told as ci-finished and wakes no one; a failed one on the 
 	const shop = repository();
 	const passed: FakeRun = { id: 61, sha: shop.commit("arthur/one"), branch: "arthur/one", status: "in_progress", conclusion: null };
 	api.runs["acme/shop/ci.yml"] = [passed];
-	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } }], options(api.apiUrl));
+	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) }], options(api.apiUrl));
 	box.record("2026-01-01-worker-0000000a", "shop", "arthur/one");
 	await until("a poll", () => api.count(PATH) >= 2);
 	[passed.status, passed.conclusion] = ["completed", "success"];
@@ -187,7 +187,7 @@ test("a commit with no run of its own has the run of the nearest commit before i
 	const run: FakeRun = { id: 21, sha: built, branch: "arthur/two", status: "in_progress", conclusion: null };
 	const main: FakeRun = { id: 20, sha: shop.head(), branch: "main", status: "queued", conclusion: null };
 	api.runs["acme/shop/ci.yml"] = [run, main];
-	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } }], options(api.apiUrl, { wakeOn: [] }));
+	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) }], options(api.apiUrl, { wakeOn: [] }));
 	box.record("2026-01-01-worker-0000000b", "shop", "arthur/two");
 	box.record("2026-01-01-worker-0000000c", "shop", "arthur/fresh");
 	git(shop.path, "branch", "arthur/fresh", "main");
@@ -217,7 +217,7 @@ test("a branch deleted while in play leaves it: its run is not told, nothing is 
 	const gone: FakeRun = { id: 31, sha: shop.commit("arthur/gone"), branch: "arthur/gone", status: "in_progress", conclusion: null };
 	const kept: FakeRun = { id: 32, sha: shop.commit("arthur/kept"), branch: "arthur/kept", status: "in_progress", conclusion: null };
 	api.runs["acme/shop/ci.yml"] = [kept, gone];
-	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } }], options(api.apiUrl));
+	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) }], options(api.apiUrl));
 	box.record("2026-01-01-worker-0000000e", "shop", "arthur/gone");
 	box.record("2026-01-01-worker-0000000f", "shop", "arthur/kept");
 	await until("a poll", () => api.count(PATH) >= 2);
@@ -241,7 +241,7 @@ test("a branch delivery.ciEnded answers true for is left out of the wake and the
 	shop.commit("arthur/also");
 	const run: FakeRun = { id: 41, sha: tip, branch: "arthur/waits", status: "in_progress", conclusion: null };
 	api.runs["acme/shop/ci.yml"] = [run, { id: 40, sha: shop.commit("arthur/old"), branch: "arthur/old", status: "completed", conclusion: "success" }];
-	const project = { name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } };
+	const project = { name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) };
 	const fake = fakeHost({ name: "github", options: options(api.apiUrl), env: { ARTHUR_GITHUB_TOKEN: TOKEN } });
 	fake.provide("projects", () => [project]);
 	// The test as delivery: the branches whose CI wait it says it woke the coordinator for.
@@ -284,8 +284,8 @@ test("a 401 is said once, not every poll, for every project of the instance; onc
 	api.runs["acme/site/build.yml"] = [];
 	api.state.always = { status: 401, body: { message: "Bad credentials", documentation_url: DOCS, status: "401" } };
 	const projects = [
-		{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } },
-		{ name: "site", path: site.path, prefix: "SI", ci: { workflow: "build.yml" } },
+		{ name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) },
+		{ name: "site", path: site.path, prefix: "SI", pieces: github.project({ workflow: "build.yml" }) },
 		{ name: "plain", path: repository(null).path, prefix: "PL" },
 	];
 	const box = await started(t, projects, options(api.apiUrl));
@@ -309,7 +309,7 @@ test("a rate limit stops the instance's requests until the time GitHub says: x-r
 	const reset = Math.ceil(Date.now() / 1000) + 3;
 	const limited = { message: "API rate limit exceeded for user ID 1.", documentation_url: "https://docs.github.com/rest/overview/rate-limits-for-the-rest-api", status: "403" };
 	api.next.push({ status: 403, headers: { "x-ratelimit-remaining": "0", "x-ratelimit-reset": String(reset) }, body: limited });
-	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } }], options(api.apiUrl));
+	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) }], options(api.apiUrl));
 	await until("the request after the reset", () => api.count(PATH) >= 2);
 	assert.ok((api.seen[1]?.at ?? 0) >= reset * 1000, "no request before x-ratelimit-reset");
 	api.next.push({ status: 429, headers: { "retry-after": "2" }, body: { message: "You have exceeded a secondary rate limit.", documentation_url: DOCS, status: "429" } });
@@ -331,8 +331,8 @@ test("a project's instance is the one named after its repository's owner, else t
 		{ name: "acme", tokenEnv: "ARTHUR_GITHUB_ACME_TOKEN", apiUrl: api.apiUrl },
 	];
 	const projects = [
-		{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } },
-		{ name: "tool", path: other.path, prefix: "TO", ci: { workflow: "ci.yml" } },
+		{ name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) },
+		{ name: "tool", path: other.path, prefix: "TO", pieces: github.project({ workflow: "ci.yml" }) },
 	];
 	await started(t, projects, { instances, poll: { everySeconds: 1 } }, { ARTHUR_GITHUB_TOKEN: TOKEN, ARTHUR_GITHUB_ACME_TOKEN: ACME_TOKEN });
 	await until("both polled", () => api.count("/repos/Acme/") >= 1 && api.count("/repos/someone/") >= 1);
@@ -348,7 +348,7 @@ test("a project's instance is the one named after its repository's owner, else t
 	};
 	const acme = [{ name: "acme", tokenEnv: "ARTHUR_GITHUB_TOKEN" }];
 	assert.equal(await refused(projects, acme), "project tool: no instance of github is named someone, the owner of someone/tool, and none is unnamed; github's instances: acme");
-	assert.equal(await refused([{ ...projects[0], path: repository(null).path } as Project], acme), "project shop: ci.workflow is set, but its checkout has no origin remote to name its GitHub repository");
+	assert.equal(await refused([{ ...projects[0], path: repository(null).path } as Project], acme), "project shop: github.project({ workflow }) is set, but its checkout has no origin remote to name its GitHub repository");
 	assert.equal(await refused([{ ...projects[0], path: repository("https://user:secret@example.com/shop").path } as Project], acme), "project shop: its origin remote names no <owner>/<repository>");
 	assert.equal(await refused(projects, [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }], {}), "instances[0].tokenEnv: ARTHUR_GITHUB_TOKEN is empty or holds a space or a character outside ASCII, which a header cannot carry");
 	assert.equal(await refused([{ name: "plain", path: repository(null).path, prefix: "PL" }], [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }]), "set up", "a project without ci is not watched");
@@ -368,7 +368,7 @@ test("arthur ci tells why a run failed: each failed job and its step, and the en
 		{ id: 402, name: "test", conclusion: "failure", steps: ["Set up job", "Run npm test", "Post Run actions/checkout@v4"].map((name, index) => ({ name, conclusion: index === 1 ? "failure" : "success" })), log: long },
 		{ id: 403, name: "lint", conclusion: "failure", steps: [{ name: "Run npm run check", conclusion: "failure" }], log: stamp("x") },
 	];
-	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } }], options(api.apiUrl));
+	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) }], options(api.apiUrl));
 	const why = await box.ci("arthur/red");
 	assert.deepEqual([why.code, why.err], [0, ""]);
 	assert.deepEqual(why.out.split("\n"), [
@@ -403,7 +403,7 @@ test("arthur ci refuses: a rerun of a passed run or one not finished, a rerun in
 	const main: FakeRun = { id: 50, sha: shop.head(), branch: "main", status: "completed", conclusion: "success" };
 	api.runs["acme/shop/ci.yml"] = [main];
 	const projects = [
-		{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } },
+		{ name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) },
 		{ name: "plain", path: repository(null).path, prefix: "PL" },
 	];
 	const box = await started(t, projects, options(api.apiUrl));
@@ -430,7 +430,7 @@ test("arthur ci refuses: a rerun of a passed run or one not finished, a rerun in
 	assert.deepEqual(await refused("main"), [1, "arthur ci: no run built main: none of its last 1000 commits has one among the 0 newest runs of ci.yml"]);
 	const ci = box.fake.commands.find((command) => command.name === "ci");
 	assert.equal(await ci?.run({ args: ["main"], project: "plain" }), 1);
-	assert.equal(box.errors.at(-1), "arthur ci: project plain has no ci.workflow, so github watches no run of it");
+	assert.equal(box.errors.at(-1), "arthur ci: project plain has no github.project({ workflow }), so github watches no run of it");
 	for (const [args, why] of [
 		[[], "no branch"],
 		[["main", "arthur/x"], "one branch; got 2"],
@@ -446,7 +446,7 @@ test("in a job's scope arthur ci --rerun is refused with ARTHUR_JOB cleared once
 	const api = await fakeGithub(t);
 	const shop = repository();
 	api.runs["acme/shop/ci.yml"] = [{ id: 50, sha: shop.head(), branch: "main", status: "completed", conclusion: "cancelled" }];
-	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } }], options(api.apiUrl));
+	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) }], options(api.apiUrl));
 	mkdirSync(join(dirname(box.fake.host.folder), "jobs", scope ?? ""), { recursive: true });
 	const asked = api.seen.length;
 	const ran = await box.ci("main", "--rerun");
@@ -462,7 +462,7 @@ test("github.ci answers the run that built a branch as arthur ci finds it, how f
 	const run: FakeRun = { id: 60, sha: built, branch: "arthur/one", status: "in_progress", conclusion: null, started: "2026-01-01T00:05:00Z" };
 	api.runs["acme/shop/ci.yml"] = [run];
 	const projects = [
-		{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } },
+		{ name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) },
 		{ name: "plain", path: repository(null).path, prefix: "PL" },
 	];
 	const box = await started(t, projects, options(api.apiUrl));
@@ -470,13 +470,13 @@ test("github.ci answers the run that built a branch as arthur ci finds it, how f
 	const url = "https://github.com/acme/shop/actions/runs/60";
 	assert.deepEqual(await ci("shop", "arthur/one"), { id: 60, attempt: 1, sha: built, branch: "arthur/one", status: "in_progress", conclusion: null, url, startedAt: "2026-01-01T00:05:00Z", below: 1 });
 	assert.equal(await ci("shop", "main"), undefined, "no run built main");
-	await assert.rejects(ci("plain", "main"), { message: "project plain has no ci.workflow, so github watches no run of it" });
+	await assert.rejects(ci("plain", "main"), { message: "project plain has no github.project({ workflow }), so github watches no run of it" });
 	await assert.rejects(ci("shop", "arthur/none"), { message: `no branch arthur/none in ${shop.path}` });
 	const cancel = (project: string, id: number) => box.fake.call<Promise<string>>("github.cancel", { project, run: id });
 	assert.equal(await cancel("shop", 60), "github: cancel of run 60 of acme/shop asked");
 	assert.deepEqual([run.status, run.conclusion, api.seen.filter((each) => each.method === "POST").map((each) => each.path)], ["completed", "cancelled", ["/repos/acme/shop/actions/runs/60/cancel"]]);
 	await assert.rejects(cancel("shop", 60), { message: "instance (unnamed): 409 for run 60 of acme/shop: Cannot cancel a workflow run that is completed." });
-	await assert.rejects(cancel("plain", 60), { message: "project plain has no ci.workflow, so github watches no run of it" });
+	await assert.rejects(cancel("plain", 60), { message: "project plain has no github.project({ workflow }), so github watches no run of it" });
 	api.state.post = { status: 403, body: { message: "Resource not accessible by personal access token", documentation_url: DOCS, status: "403" } };
 	await assert.rejects(cancel("shop", 60), { message: "instance (unnamed): 403 for run 60 of acme/shop: Resource not accessible by personal access token; the token in ARTHUR_GITHUB_TOKEN needs Actions: read and write on it" });
 	api.state.always = { status: 401, body: { message: "Bad credentials", documentation_url: DOCS, status: "401" } };
@@ -659,7 +659,7 @@ test("pull request reviews, polled when wakeOn names them: each told once and wo
 	api.runs["acme/shop/ci.yml"] = [];
 	const cart: FakePull = { number: 7, title: "Add the cart", branch: "arthur/cart", updated: "2026-01-01T00:00:00Z", reviews: [{ id: 70, user: "kacper", state: "COMMENTED", body: "Before Arthur watched." }] };
 	api.pulls["acme/shop"] = [cart];
-	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } }], options(api.apiUrl, { wakeOn: ["pull-request-review"] }));
+	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) }], options(api.apiUrl, { wakeOn: ["pull-request-review"] }));
 	const told = () => box.fake.emitted.filter((event) => event.name === "pull-request-review").map((event) => event.data);
 	const LIST = "/repos/acme/shop/pulls?";
 	await until("two polls", () => api.count(LIST) >= 2);
@@ -688,7 +688,7 @@ test("pull request reviews, polled when wakeOn names them: each told once and wo
 test("a pull request closed and reopened, while polled or across a restart, has told only its reviews submitted since the poll before", async (t) => {
 	const api = await fakeGithub(t);
 	const shop = repository();
-	const project = { name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } };
+	const project = { name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) };
 	api.runs["acme/shop/ci.yml"] = [];
 	// GitHub's `submitted_at`, in whole seconds.
 	const now = () => new Date().toISOString().replace(/\.\d+Z$/, "Z");
@@ -740,7 +740,7 @@ test("a poll's time is GitHub's, its list's date less the answer's time: a revie
 	const now = (ago = 0) => new Date(Date.now() + (api.state.clock ?? 0) - ago * 1000).toISOString().replace(/\.\d+Z$/, "Z");
 	const pull = (number: number, ...reviews: readonly [number, string][]): FakePull => ({ number, title: `Pull ${number}`, branch: `arthur/${number}`, updated: now(), reviews: reviews.map(([id, submitted]) => ({ id, user: "octo", state: "COMMENTED", body: "", submitted })) });
 	api.pulls["acme/shop"] = [pull(7, [70, now()])];
-	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } }], options(api.apiUrl, { wakeOn: ["pull-request-review"] }));
+	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", pieces: github.project({ workflow: "ci.yml" }) }], options(api.apiUrl, { wakeOn: ["pull-request-review"] }));
 	const told = () => box.fake.emitted.filter((event) => event.name === "pull-request-review").map((event) => (event.data as { readonly review: number }).review);
 	const LIST = "/repos/acme/shop/pulls?";
 	const polls = async (what: string) => {
@@ -766,4 +766,14 @@ test("a poll's time is GitHub's, its list's date less the answer's time: a revie
 	await until("review 100, on this machine's clock", () => told().includes(100));
 	await polls("two more polls without a date");
 	assert.deepEqual([told(), box.errors], [[80, 90, 100], []]);
+});
+
+test("a project's piece of another shape is refused before the setup, naming the project and the helper", async () => {
+	for (const piece of [{}, { workflow: "" }, { workflow: 1 }, { workflow: "ci.yml", branch: "main" }, "ci.yml"]) {
+		const options = { instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }] };
+		const fake = fakeHost({ name: "github", options, env: { ARTHUR_GITHUB_TOKEN: TOKEN } });
+		fake.provide("projects", () => [{ name: "shop", path: repository().path, prefix: "SH", pieces: { github: piece } }]);
+		await assert.rejects(fake.setup(github(options)), { message: "project shop: github.project(...): expected { workflow }, a non-empty string: the workflow's file name or name" }, JSON.stringify(piece));
+		assert.deepEqual(fake.commands, [], "no setup ran");
+	}
 });

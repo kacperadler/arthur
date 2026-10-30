@@ -717,7 +717,7 @@ test("the install is the project's own, as projects.install answers: a custom co
 	assert.match(own.out, new RegExp(`^merged ${second.branch} into main: [0-9a-f]+\nbun run deps: passed\\.\nnpm run check: passed\\.\n`));
 	assert.equal(bun(), "run deps\n", "the project's own command, though no lockfile changed");
 	assert.match(readFileSync(join(root, cart, "outcome.md"), "utf8"), /\n## Checks on main\n\n- `bun run deps`: passed\.\n/);
-	const refusal = "project acme: two known lockfiles (bun.lock, package-lock.json) and no install; set install in its entry of arthur.config.ts";
+	const refusal = "project acme: two known lockfiles (bun.lock, package-lock.json) and no install; set install in its projects.project(...)";
 	installAs(new Error(refusal));
 	const pay = "spec/features/AC0003-pay";
 	const third = await worker({ "pay.ts": "export const pay = 1;\n", "package-lock.json": "{}\n" }, `Ticket: ${pay}/ticket.md`);

@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { everyOption } from "@arthur/core/option-table";
 import { type FakeHost, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
-import { table } from "../src/project-options.ts";
+import { PIECE } from "../src/project-options.ts";
 import { type ProjectEntry, projects } from "../src/projects.ts";
+import { projectFolders } from "./folders.ts";
 
 const PATH = process.env.PATH ?? "";
 const PROCEDURE = readFileSync(new URL("../roles/coordinator/onboarding-ended.md", import.meta.url), "utf8").trim();
@@ -22,9 +22,9 @@ async function load(entry: Partial<ProjectEntry> = {}): Promise<{ readonly fake:
 	}
 	git(shop, "add", "--all");
 	git(shop, "commit", "--quiet", "-m", "first");
-	const list = [{ name: "shop", prefix: "SH", path: shop, ...entry }];
+	const options = { folders: projectFolders([{ name: "shop", prefix: "SH", path: shop, ...entry }]) };
 	const fake = fakeHost({ name: "projects" });
-	await fake.setup({ setup: (host) => projects({ list }).setup({ ...host, options: { list } }) });
+	await fake.setup({ setup: (host) => projects(options).setup({ ...host, options }) });
 	return { fake, shop, home: dirname(fake.host.folder) };
 }
 
@@ -45,11 +45,11 @@ const finished = (id: string) => ({ id, kind: "onboarding", project: "shop", sta
 // The wake's lines as orchestration asks them: with the job-ended data and the job's final message.
 const woken = (fake: FakeHost, job: Readonly<Record<"id" | "kind" | "project" | "state" | "reason", string>>, result = fake.host.jobs.result(job.id)) => fake.collect("coordinator.wake", job, result);
 
-test("the kind onboarding has its own branch and role, and its prompt names the files it drafts, where prompts puts them", async (t) => {
-	const { fake, home } = await load({ prompts: { vision: "docs/vision.md", criteriaDir: "docs/criteria/" } });
+test("the kind onboarding has its own branch and role, and its prompt names the files it drafts", async (t) => {
+	const { fake, home } = await load();
 	assert.deepEqual(fake.kinds, [{ name: "onboarding", readOnly: false, role: "onboarding" }]);
 	assert.deepEqual(fake.roles.map((role) => [role.name, role.criteria]), [["onboarding", ["styleguide"]]]);
-	const section = "## The files this onboarding drafts\n\n- The vision: `docs/vision.md`\n- The criteria: `docs/criteria/styleguide.md`\n\nIts merge accepts only `docs/vision.md` and `docs/criteria/*.md`.";
+	const section = "## The files this onboarding drafts\n\n- The vision: `spec/vision.md`\n- The criteria: `.agents/arthur/criteria/styleguide.md`\n\nIts merge accepts only `spec/vision.md` and `.agents/arthur/criteria/*.md`.";
 	assert.deepEqual(fake.collect("prompt", "worker", { project: "shop" }), [undefined]);
 	const id = await onboard(t, fake, home, "## Repository\nA shop.\n");
 	const prompt = readFileSync(join(home, "jobs", id, "prompt"), "utf8");
@@ -58,10 +58,19 @@ test("the kind onboarding has its own branch and role, and its prompt names the 
 	assert.match(readFileSync(join(home, "jobs", id, "branch"), "utf8"), /^arthur\/\d{4}-\d\d-\d\d-onboarding-[0-9a-f]{8}$/);
 });
 
+test("a project whose prompts are in its folder gets no onboarding: the spawn is refused before anything exists; a worker still starts", async () => {
+	const { fake, home } = await load({ prompts: { vision: "vision.md" } });
+	const [project] = fake.collect<readonly { readonly folder: string }[]>("projects")[0] ?? [];
+	const reason = `project shop keeps its prompts in its folder ${project?.folder}; arthur init and the onboarding write only repository files: write vision there yourself`;
+	await assert.rejects(fake.host.jobs.spawn({ task: "Onboard shop.", kind: "onboarding" }), { message: `refused by projects: ${reason}` });
+	assert.equal(existsSync(join(home, "jobs")) ? readdirSync(join(home, "jobs")).length : 0, 0);
+	await fake.host.jobs.spawn({ task: "Build it." });
+});
+
 test("the prompts the option table names as the default are the files the roles read and the onboarding drafts with prompts left out", async (t) => {
-	const values = everyOption(table).filter(({ path, entry }) => entry.default !== undefined && !["list.*.title", "list.*.install"].includes(path));
-	assert.deepEqual(values.map(({ path }) => path), ["list.*.prompts"], "every other default is words for a person");
-	const [vision, criteriaDir, rolesDir] = (values[0]?.entry.default ?? "").split(", ");
+	const values = Object.entries(PIECE).filter(([key, entry]) => entry.default !== undefined && !["title", "install"].includes(key));
+	assert.deepEqual(values.map(([key]) => key), ["prompts"], "every other default is words for a person");
+	const [vision, criteriaDir, rolesDir] = (values[0]?.[1].default ?? "").replace(/, in its repository$/, "").split(", ");
 	const { fake, shop, home } = await load();
 	mkdirSync(join(shop, ".agents/arthur/roles"), { recursive: true });
 	writeFileSync(join(shop, ".agents/arthur/roles/onboarding.md"), "Ask about the shop's customers.\n");

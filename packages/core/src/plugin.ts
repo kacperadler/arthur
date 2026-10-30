@@ -48,6 +48,10 @@ export type Plugin = {
 	// Its requirements read from the same, without its setup or its env values, so `arthur doctor` and `arthur setup` check them
 	// even while the load refuses (a variable missing).
 	readonly doctor?: (options: Options, core: LoadedConfig["core"]) => readonly Requirement[] | Promise<readonly Requirement[]>;
+	// Its check of one project's piece, what its `<name>.project(...)` helper made in that project's file (`pieces[<name>]` of
+	// `projects`), with its own options: a problem, or undefined. Having it declares the piece: the host runs it on every
+	// project's piece before `setup`, and `arthur doctor` names a piece no loaded plugin declares.
+	readonly piece?: (value: unknown, options: Options) => string | undefined;
 	readonly setup: (host: Host) => void | Promise<void>;
 	readonly start?: () => void | Promise<void>;
 	readonly stop?: () => void | Promise<void>;

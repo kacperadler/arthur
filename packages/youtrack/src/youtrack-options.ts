@@ -3,7 +3,7 @@ import type { Check, OptionTable, Tool, ValueOption } from "@arthur/core/option-
 import type { OptionProblem, Options } from "@arthur/core/plugin";
 
 // The youtrack plugin's options file (spec/roadmap.md, entries 44 and 93), checked before any setup by walking `table`:
-// docs/commands/youtrack.md, "Options". The variables' values, and each project's `tracker`, are checked at setup.
+// docs/commands/youtrack.md, "Options". The variables' values, and each project's `youtrack.project(...)`, are checked at load.
 
 export const summary = "YouTrack servers, named and unnamed: each project's issues and articles, read and written through arthur youtrack";
 
@@ -14,7 +14,7 @@ export const MAX_TIMEOUT = 300;
 const variable: Check = (value) => (typeof value === "string" && value !== "" ? undefined : "the name of an env variable");
 
 const INSTANCE: Readonly<Record<string, ValueOption>> = {
-	name: { about: "The instance's name, which a project's tracker.instance gives", default: "none: the unnamed instance", check: (value) => (typeof value === "string" && /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(value) ? undefined : "lowercase letters, digits and single dashes, from a letter") },
+	name: { about: "The instance's name, which a project's youtrack.project({ instance }) gives", default: "none: the unnamed instance", check: (value) => (typeof value === "string" && /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(value) ? undefined : "lowercase letters, digits and single dashes, from a letter") },
 	urlEnv: { about: "The variable holding the server's URL, as https://example.youtrack.cloud", check: variable },
 	tokenEnv: { about: "The variable holding a permanent token of the YouTrack user Arthur reads and writes as", check: variable },
 };

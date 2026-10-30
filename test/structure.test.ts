@@ -9,23 +9,23 @@ import { checkStructure } from "./structure.ts";
 // One budget per line in name order, a blank line after each, so Git merges raises to two neighbours, and two new budgets with an
 // existing budget's name sorting between theirs, without a conflict.
 const BUDGETS = {
-	"commit-rules": 165,
+	"commit-rules": 178,
 
-	core: 6518,
+	core: 6571,
 
-	"core/testing": 369,
+	"core/testing": 374,
 
-	delivery: 1886,
+	delivery: 1895,
 
 	develop: 710,
 
-	findings: 276,
+	findings: 264,
 
-	github: 951,
+	github: 960,
 
 	listen: 248,
 
-	machines: 488,
+	machines: 502,
 
 	manage: 931,
 
@@ -35,7 +35,7 @@ const BUDGETS = {
 
 	orchestration: 2575,
 
-	projects: 482,
+	projects: 556,
 
 	resources: 617,
 
@@ -45,11 +45,11 @@ const BUDGETS = {
 
 	telegram: 641,
 
-	uptime: 298,
+	uptime: 291,
 
 	video: 186,
 
-	youtrack: 661,
+	youtrack: 672,
 
 };
 

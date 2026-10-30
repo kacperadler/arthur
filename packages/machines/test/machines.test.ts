@@ -426,7 +426,7 @@ async function placing(provided = true): Promise<Placing> {
 	return at;
 }
 
-// The project `acme` as the projects plugin serves it, with `requires` when given: a repository with one commit holding
+// The project `acme` as the projects plugin serves it, with its piece `requires` when given: a repository with one commit holding
 // ticket AC0001, whose `ticket.md` has `json` as its JSON block, none when undefined.
 function acme(requires?: unknown, json?: string): Readonly<Record<string, unknown>> {
 	const folder = join(temporaryFolder(), "acme");
@@ -435,7 +435,7 @@ function acme(requires?: unknown, json?: string): Readonly<Record<string, unknow
 	execFileSync("git", ["init", "--quiet", "--initial-branch=main", folder]);
 	execFileSync("git", ["-C", folder, "add", "--all"]);
 	execFileSync("git", ["-C", folder, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "first"]);
-	return { name: "acme", path: folder, prefix: "AC", ...(requires === undefined ? {} : { requires }) };
+	return { name: "acme", path: folder, prefix: "AC", pieces: requires === undefined ? {} : { machines: requires } };
 }
 
 const TICKET = "spec/features/AC0001-one/ticket.md";
@@ -533,7 +533,7 @@ test("--machine with the labels goes there unchecked; a ticket's broken JSON blo
 	const shape = "requires must be { os?, arch?, tools? }, os and arch non-empty strings, tools a list of them; got";
 	await assert.rejects(place(at, { tickets: [TICKET] }), { message: `ticket AC0001 (${file}): ${shape} an object` });
 	await assert.rejects(place(at, { requires: { gpu: true } }), { message: `--requires: ${shape} an object` });
-	at.projects = [{ ...project, requires: ["macos"] }];
+	at.projects = [{ ...project, pieces: { machines: ["macos"] } }];
 	await assert.rejects(place(at), { message: `project acme: ${shape} a list` });
 });
 
@@ -562,4 +562,17 @@ test("a ticket's machine places each job of it there, unchecked and when full, w
 	}
 	writeFileSync(file, '# AC0001\n\n```json\n{ "id": "AC0001", }\n```\n');
 	await assert.rejects(place(at, { tickets: [TICKET], requires: { tools: ["docker"] } }), { message: /its JSON block is not JSON/ }, "read beside --requires too");
+});
+
+test("a project's piece that is no labels is refused before the setup, naming the project and the helper; labels pass", async () => {
+	const shape = "requires must be { os?, arch?, tools? }, os and arch non-empty strings, tools a list of them; got";
+	for (const [piece, got] of [[["macos"], "a list"], [{ gpu: true }, "an object"], [{ tools: "docker" }, "an object"], ["macos", '"macos"']] as const) {
+		const fake = fakeHost({ name: "machines" });
+		fake.provide("projects", () => [{ name: "acme", path: temporaryFolder(), prefix: "AC", pieces: { machines: piece } }]);
+		await assert.rejects(fake.setup(machines()), { message: `project acme: machines.project(...): ${shape} ${got}` }, JSON.stringify(piece));
+		assert.deepEqual(fake.commands, [], "no setup ran");
+	}
+	const fine = fakeHost({ name: "machines" });
+	fine.provide("projects", () => [{ name: "acme", path: temporaryFolder(), prefix: "AC", pieces: machines.project({ os: "macos", tools: ["xcodebuild"] }) }]);
+	await fine.setup(machines());
 });

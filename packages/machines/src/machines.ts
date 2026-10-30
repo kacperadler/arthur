@@ -3,13 +3,14 @@ import { coreVersion } from "@arthur/core";
 import type { Plugin } from "@arthur/core/plugin";
 import { checkMachine, type Disk, missingHere, publicAddress, type Report } from "./machine-check.ts";
 import { checkOptions, type Labels, type MachineEntry, type MachinesOptions } from "./machine-options.ts";
-import { labelsText, placement } from "./machine-place.ts";
+import { labelsProblem, labelsText, placement } from "./machine-place.ts";
 
 // The machines plugin (spec/roadmap.md, entries 30 and 31): the machines of the `list` option, each registered with the core's
 // job runner; `local`'s labels; each machine checked at start and every `check.everySeconds` (machine-check.ts), its changes
 // emitted as `machine-online` and `machine-offline`, each round handed to `collect("machines.round")` as it begins, whose
 // answers name the paths each check's df reads; each job placed by labels (machine-place.ts); `arthur machines` and
-// `/machines`; a doctor requirement per machine, `local` only with tools labels. docs/commands/machines.md.
+// `/machines`; a doctor requirement per machine, `local` only with tools labels; a project's piece, the labels its jobs need.
+// docs/commands/machines.md.
 
 export type { MachineEntry, MachinesOptions };
 
@@ -33,7 +34,9 @@ export function machines(options: MachinesOptions = {}): Plugin {
 		name: "machines",
 		module: import.meta.url,
 		options,
+		after: ["projects"],
 		check: checkOptions,
+		piece: labelsProblem,
 		async setup(host) {
 			const { local = {}, list = [], check = {} } = host.options as MachinesOptions;
 			everySeconds = check.everySeconds ?? EVERY_SECONDS;
@@ -164,3 +167,6 @@ export function machines(options: MachinesOptions = {}): Plugin {
 		},
 	};
 }
+
+// A project file's piece: `machines.project({ os: "macos", tools: ["xcodebuild"] })`, the labels its jobs need.
+machines.project = (requires: Labels) => ({ machines: requires });

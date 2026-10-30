@@ -89,16 +89,18 @@ flowchart TD
 
 Development needs Node 24: `npm ci`, then `npm run check` and `npm test`.
 
-To run Arthur in a clone after `npm ci`, with `node_modules/.bin` on your `PATH`, write an `arthur.config.ts` (Git ignores it) with the two plugins that need nothing else:
+To run Arthur in a clone after `npm ci`, with `node_modules/.bin` on your `PATH`, write an `arthur.config.ts` with the two plugins that need nothing else, and the project's file (Git ignores both):
 
 ```ts
+// arthur.config.ts
 import { defineConfig } from "@arthur/core";
 import { orchestration } from "@arthur/orchestration";
 import { projects } from "@arthur/projects";
 
-export default defineConfig({
-	plugins: [orchestration({}), projects({ list: [{ name: "arthur", prefix: "AR", path: "." }] })],
-});
+export default defineConfig({ plugins: [orchestration({}), projects({ folders: ["projects/arthur"] })] });
+// projects/arthur/project.config.ts
+import { projects } from "@arthur/projects";
+export default [projects.project({ prefix: "AR", path: "../.." })];
 ```
 
 Then `arthur config check`, `arthur projects` and `arthur board` answer at once. `arthur run` starts the coordinator, which needs tmux and OMP, and `arthur attach` opens it. [`docs/setup.md`](docs/setup.md) sets Arthur up on a VPS as a systemd service, step by step.

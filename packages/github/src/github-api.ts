@@ -11,7 +11,7 @@ export type Instance = {
 	readonly apiUrl: string;
 	readonly token: string;
 };
-// A project's checkout, its repository (`owner/name`) and the instance that reads it; `Watched`, one with a `ci.workflow`.
+// A project's checkout, its repository (`owner/name`) and the instance that reads it; `Watched`, one with a `github.project({ workflow })`.
 export type Repository = { readonly project: string; readonly path: string; readonly repo: string; readonly instance: Instance };
 export type Watched = Repository & { readonly workflow: string };
 

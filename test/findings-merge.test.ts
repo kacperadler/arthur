@@ -8,6 +8,7 @@ import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testin
 import { delivery } from "@arthur/delivery";
 import { findings } from "@arthur/findings";
 import { projects } from "@arthur/projects";
+import { projectFolders } from "./project-folders.ts";
 
 // Roadmap entry 83 with the merge (54) that asks it: `arthur merge` of a worker's branch whose findings.md has an open entry,
 // with the findings plugin loaded and without it. A plugin's own tests never load another plugin; this one, outside every
@@ -32,8 +33,9 @@ async function load(t: TestContext, withFindings: boolean, settings: Readonly<Re
 	git(shop, "config", "user.name", "t");
 	git(shop, "config", "user.email", "t@example.com");
 	const list = [{ name: "shop", prefix: "SH", path: shop }];
+	const given = projectFolders(list);
 	const fake = fakeHost({ name: "projects", now: new Date("2026-10-21T10:00:00Z") });
-	const plugins: [Plugin, Readonly<Record<string, unknown>>][] = [[projects({ list }), { list }], [delivery(), {}], ...(withFindings ? [[findings(), settings] as [Plugin, {}]] : [])];
+	const plugins: [Plugin, Readonly<Record<string, unknown>>][] = [[projects(given), given], [delivery(), {}], ...(withFindings ? [[findings(), settings] as [Plugin, {}]] : [])];
 	for (const [plugin, options] of plugins) await fake.setup({ setup: (host) => plugin.setup({ ...host, options }) });
 	// orchestration's check of the owner's decision is its own tests' (AR0355): here every id is the owner's.
 	fake.provide("decision.owner", () => "");

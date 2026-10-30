@@ -54,7 +54,7 @@ type OptionsFile = { readonly table: OptionTable; readonly summary: string; read
 
 const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	orchestration: [orchestrationFile, orchestration()],
-	projects: [projectsFile, projects({ list: [] })],
+	projects: [projectsFile, projects({ folders: [] })],
 	machines: [machinesFile, machines()],
 	resources: [resourcesFile, resources({})],
 	session: [sessionFile, session()],
@@ -94,7 +94,7 @@ test("every option of the core and of each plugin has its meaning in one line, e
 	}
 	assert.deepEqual(
 		Object.entries(PLUGINS).flatMap(([name, [file]]) => (everyOption(file.table).length === 0 ? [name] : [])),
-		["nvm", "commit-rules"],
+		["nvm", "commit-rules", "uptime", "findings"],
 		"the plugins without options are checked here too, and only they have an empty table",
 	);
 	assert.deepEqual(
@@ -145,7 +145,6 @@ test("an option two levels deep has its meaning like a top-level one, after its 
 		"roles.quick, no role, its own line after each role's (AR0178)",
 	);
 	assert.equal(about(orchestrationFile.table, "roles.quick.model"), "omp's quick model (--smol) for every job and the coordinator");
-	assert.ok(paths(projectsFile.table).includes("list.*.prefix"), "a project's prefix");
 	assert.ok(paths(machinesFile.table).includes("list.*.labels.os"), "a machine's os, three levels down");
 	assert.ok(paths(core.table).includes("jobs.memory"), "the core's jobs.memory");
 });

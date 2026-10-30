@@ -1,6 +1,6 @@
 import { existsSync, linkSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import type { Project, ProjectEntry } from "./projects.ts";
+import type { Project } from "./projects.ts";
 
 // `arthur init <project>` (spec/roadmap.md, entry 42): what Arthur reads, given to a repository without a board, each file only
 // where it is missing; it commits nothing: docs/commands/init.md.
@@ -14,9 +14,15 @@ function criterion(name: string, code: readonly string[]): string {
 	return shipped === undefined ? `# ${name[0]?.toUpperCase()}${name.slice(1).replaceAll("-", " ")}\n` : readFileSync(shipped, "utf8");
 }
 
-// Where the project's `prompts` keeps its vision and criteria, the files an onboarding drafts; `criteriaDir` without a final `/`.
-export function drafted(project: ProjectEntry): { readonly vision: string; readonly criteriaDir: string } {
-	return { vision: join(project.prompts?.vision ?? "spec/vision.md"), criteriaDir: join(project.prompts?.criteriaDir ?? ".agents/arthur/criteria", ".") };
+// Where the project's repository keeps its vision and criteria, the files an onboarding drafts: the core's defaults, since a
+// project whose `prompts` names its own keeps them in its folder (folderPrompts).
+export const DRAFTED = { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria" };
+
+// Why `arthur init` and an onboarding leave a project alone whose `prompts` name files of its project folder: both write only
+// its repository's files.
+export function folderPrompts(project: Project): string | undefined {
+	if (project.prompts === undefined || Object.keys(project.prompts).length === 0) return undefined;
+	return `project ${project.name} keeps its prompts in its folder ${project.folder}; arthur init and the onboarding write only repository files: write ${Object.keys(project.prompts).join(", ")} there yourself`;
 }
 
 // `criteria`: the criteria files the registered roles read (`host.jobs.criteria()`); `code`: the load's package folders (`host.code`).
@@ -34,8 +40,13 @@ export function init(all: readonly Project[], args: readonly string[], flag: str
 		console.error(`arthur init: ${project.name} has a board already, ${join(project.path, BOARD)}; arthur init is for a repository without one`);
 		return 1;
 	};
+	const own = folderPrompts(project);
+	if (own !== undefined) {
+		console.error(`arthur init: ${own}`);
+		return 1;
+	}
 	if (existsSync(join(project.path, BOARD))) return refused();
-	const { vision, criteriaDir } = drafted(project);
+	const { vision, criteriaDir } = DRAFTED;
 	// The board last: once it is there the repository counts as given, so an init cut short can run again.
 	const files: [string, string][] = [
 		[vision, readFileSync(new URL("vision.md", SKELETON), "utf8")],

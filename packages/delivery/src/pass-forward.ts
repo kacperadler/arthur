@@ -34,7 +34,7 @@ export function passForward(host: Host): PassForward {
 		});
 	};
 	const forward: Forward = (project, job, why, key) => {
-		if (entryOf(host, project)?.autoMerge !== true || !JOB.test(job)) return false;
+		if (entryOf(host, project)?.pieces?.delivery?.autoMerge !== true || !JOB.test(job)) return false;
 		void opened.then(() => run(project, job, why, key));
 		return true;
 	};

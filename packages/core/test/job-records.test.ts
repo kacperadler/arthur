@@ -381,6 +381,10 @@ test("a steer, by arthur steer or /steer, and a continue that started emit job-s
 		{ id: job.id, kind: "worker", text: "Fix the README.", via: "continue" },
 	]);
 	await until("the continued run's end", () => events(home, "job-ended").length === 2);
+	// A record without its `timeout` makes the wrapper exit before it writes its pid: the continue did not start.
+	rmSync(join(home, "jobs", job.id, "timeout"));
+	assert.equal((await command(commands, "continue", job.id, "Once more.")).code, 1);
+	assert.equal(events(home, "job-steered").length, 3, "a continue whose wrapper did not start");
 });
 
 test("the arthur binary lists, stops, steers, continues and prunes a job by its short id; arguments where none go exit 2", async () => {

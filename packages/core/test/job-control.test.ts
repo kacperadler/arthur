@@ -226,6 +226,19 @@ test("a stop that comes once the agent exited on its own leaves the job's own en
 	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: the agent had ended already\n/);
 });
 
+test("a stop that comes once the agent exited on a provider error rules out the resume (AR0571)", async () => {
+	const overloaded = { ...JSON.parse(spent(0, "error")).message, errorMessage: "529 overloaded_error" };
+	const { agent, dir } = script((dir) => [`echo '${JSON.stringify({ type: "message_end", message: overloaded })}'`, "sleep 300 &", `echo $$ >> '${dir}/pid'`, "exit 1"]);
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	const pid = Number(await until("the agent", () => read(join(dir, "pid"))?.trim() || undefined));
+	await until("the agent's exit", () => !alive(pid));
+	process.kill(Number(field(home, job.id, "pid")), "SIGTERM");
+	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "failed: the agent stopped on error: 529 overloaded_error" }]);
+	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: the agent had ended already\n/);
+	assert.equal(read(join(dir, "pid"))?.trim().split("\n").length, 1, "one start, no resume");
+});
+
 for (const scoped of [true, false])
 	test(`a process the agent left holding its output open delays the job's end by the grace only; ${scoped ? "its scope kills it" : "bare, it runs on"}`, { skip: scoped && !manager && "no systemd user manager" }, async (t) => {
 		if (!scoped) bare(t);

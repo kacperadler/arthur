@@ -148,7 +148,7 @@ test("PASS not on the last line is no verdict: the run ends failed, the ticket s
 	const reason = "failed: no verdict: the last line of its final message is not PASS or FAIL alone";
 	assert.equal(readFileSync(join(home, "jobs", none.id, "reason"), "utf8"), reason, "the core's record says the review failed");
 	assert.equal(status("AC0001"), "review");
-	assert.match(String(fake.collect("coordinator.wake", { id: none.id, kind: "review" })[0]), new RegExp(`^Review ${none.id}: no verdict, so the review failed: .* Review again with arthur review ${job.id}, then arthur prune ${none.id}\\.$`));
+	assert.match(String(fake.collect("coordinator.wake", { id: none.id, kind: "review" })[0]), new RegExp(`^Review ${none.id}: no verdict, so the review failed: the last line of its final message is not PASS or FAIL alone though Arthur resumed it once for that already, or its run did not finish\\. .* Review again with arthur review ${job.id}, then arthur prune ${none.id}\\.$`));
 	assert.throws(() => fake.host.jobs.file("AC0001", none.id), { message: `${none.id} ended ended (${reason}), not finished: its result is unfinished and is never filed; prune it` });
 	assert.deepEqual(readdirSync(join(root, FOLDER)), ["ticket.md"]);
 	assert.deepEqual(fake.collect("coordinator.wake", { id: job.id, kind: "worker" }), [undefined], "a worker's wake gets nothing");

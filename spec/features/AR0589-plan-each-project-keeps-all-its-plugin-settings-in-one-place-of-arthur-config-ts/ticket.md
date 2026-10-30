@@ -34,3 +34,4 @@ Out:
 - The dokploy plugin itself: AR0588, which follows the shape this plan picks.
 
 ## Decisions
+- 2026-10-30: A folder per project (projects/<name>/) with its config file, docs and criteria, paths relative to it; the file holds only that project pieces, each made by its plugin helper (uptime.project, dokploy.project, youtrack.project); arthur.config.ts keeps each plugin with accounts once and loads the project files; each plugin checks its own pieces at start; the owner: "…" (AR-D391, cut: arthur decisions AR-D391 prints it whole)

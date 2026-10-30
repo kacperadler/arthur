@@ -65,10 +65,10 @@ The plugin answers the core's `jobs.place` for every spawn, `arthur spawn` and a
 
 1. `arthur spawn --requires os=macos,tools=xcodebuild` (a plugin's spawn: `requires: { os: "macos", tools: ["xcodebuild"] }`).
 2. The `requires` key of its ticket's JSON block, the `json` block at the top of the ticket's `ticket.md`, such as `"requires": { "os": "macos", "tools": ["xcodebuild"] }`. The ticket is the first `Ticket:` of the task that lies in a ticket folder (`spec/features/<id>-<slug>/`), read in the project's main checkout. The ticket's `requires` replaces the project's as a whole; an empty one, `"requires": {}`, clears it.
-3. The project's `requires` in the `projects` plugin's list (see `arthur projects --help`).
+3. The project's piece, `machines.project({ os?, arch?, tools? })` in its project file (`arthur projects --help`, "A project's file"). One of another shape is refused at load, before the setup: `plugin machines: setup failed: project <name>: machines.project(...): requires must be ...`.
 4. None: the job may go to any machine.
 
-The ticket and the project come from the list the `projects` plugin provides; without it (projects off), neither requires anything. Every job of a ticket, worker, review or plan, whose task names the ticket, is placed by the same labels, so its checks run where it was built.
+The ticket and the project come from the projects the `projects` plugin provides; without it (projects off), neither requires anything. Every job of a ticket, worker, review or plan, whose task names the ticket, is placed by the same labels, so its checks run where it was built.
 
 A ticket's JSON block may also name the machine every job of it runs on, `"machine": "local"`, read beside `requires` (also when `--requires` replaces its labels): a ticket that cannot run elsewhere, such as one that makes a new plugin with `arthur plugin new` (`arthur plugin --help`). It is placed as `--machine` is, below; `--machine` wins over it.
 

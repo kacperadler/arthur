@@ -179,7 +179,7 @@ test("refused before any request: wrong usage (exit 2), a number that is none; p
 	assert.deepEqual(await run(["pr", "list"]), { code: 0, out: "#12 open, arthur/12 -> main, by octocat, updated 2026-01-02\n> pull 12", err: "" });
 });
 
-test("a project without ci.workflow is found when the command runs, by --project too, with its owner's instance; one that fits none refuses then, not at load", async (t) => {
+test("a project without github.project({ workflow }) is found when the command runs, by --project too, with its owner's instance; one that fits none refuses then, not at load", async (t) => {
 	const api = await fakeGithub(t);
 	const projects = [
 		shop(),

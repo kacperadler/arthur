@@ -38,3 +38,4 @@ Out:
 - 2026-10-30: Plan approved by the owner: plan.md at 245bd882, as recommended: AR0589 ticket 1 first, then AR0588 beside ticket 2; arthur.config.ts stays readable to jobs; ticket 3 to hide the shared home opened now; every per-project key moves; a disabled plugin piece is a doctor line; prompt files default from the repository; the owner: "Go with recommendations till 70%" (AR-D393)
 - 2026-10-30: AR0589 ticket 1 worker budget $16; the owner: "Go with recommendations till 70%" (AR-D396)
 - 2026-10-30: AR0589 ticket 1 raised to $26 and continued; the owner: "Go with recommendations till 70%" (AR-D397)
+- 2026-10-30: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

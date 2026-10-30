@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
@@ -33,10 +33,11 @@ function repository(files: Readonly<Record<string, string>> = {}): string {
 	return root;
 }
 
-async function load(root: string, commitRules_?: Rule, other?: string): Promise<FakeHost> {
+// The plugin set up with project acme at `root`, its project folder `folder`, its piece `rule`, and another project at `other`.
+async function load(root: string, rule?: Rule, other?: string, folder = temporaryFolder()): Promise<FakeHost> {
 	const fake = fakeHost({ name: "commit-rules", root });
-	const project = { name: "acme", prefix: "AC", path: root, ...(commitRules_ === undefined ? {} : { commitRules: commitRules_ }) };
-	fake.provide("projects", () => (other === undefined ? [project] : [project, { name: "other", prefix: "OT", path: other }]));
+	const project = { name: "acme", prefix: "AC", path: root, folder, pieces: rule === undefined ? {} : commitRules.project(rule) };
+	fake.provide("projects", () => (other === undefined ? [project] : [project, { name: "other", prefix: "OT", path: other, folder: temporaryFolder(), pieces: {} }]));
 	await fake.setup(commitRules());
 	const reviewer = join(temporaryFolder(), "reviewer.md");
 	writeFileSync(reviewer, "# Reviewer\n");
@@ -127,47 +128,67 @@ test("a project without commitRules gets no hook and no text; its Git configurat
 test("words go into the worker's and the reviewer's prompt, and no other role's", async () => {
 	const fake = await load(repository(), { words: `  ${WORDS}\n` });
 	const worker = await fake.host.jobs.spawn({ task: "Build it." });
-	assert.ok(promptOf(fake, worker.id).endsWith(`\n\n## Commit messages\n\nThis project's rule for every commit message you write (commitRules.words in arthur.config.ts):\n\n${WORDS}\n`));
+	assert.ok(promptOf(fake, worker.id).endsWith(`\n\n## Commit messages\n\nThis project's rule for every commit message you write (commitRules.project({ words }) in its project file):\n\n${WORDS}\n`));
 	const review = await fake.host.jobs.spawn({ task: "Review it.", kind: "review" });
 	const judge = "This project's rule for commit messages; judge each commit of the branch by it, and a message that breaks it is a finding";
-	assert.equal(promptOf(fake, review.id), `# Reviewer\n\n## Commit messages\n\n${judge} (commitRules.words in arthur.config.ts):\n\n${WORDS}\n`);
+	assert.equal(promptOf(fake, review.id), `# Reviewer\n\n## Commit messages\n\n${judge} (commitRules.project({ words }) in its project file):\n\n${WORDS}\n`);
 	const plan = await fake.host.jobs.spawn({ task: "Plan it.", kind: "plan" });
 	assert.equal(promptOf(fake, plan.id), "# Reviewer\n");
 	assert.deepEqual(commit(worker.worktree, "Fixed it").code, 0, "words are no hook");
 });
 
-test("a file is read from the project's repository at the job's commit, not from the working tree", async () => {
-	const root = repository({ "docs/commit-rules.md": `# Commits\n\n${WORDS}\n` });
-	const base = git(root, "rev-parse", "HEAD").slice(0, 7);
-	writeFileSync(join(root, "docs/commit-rules.md"), "Anything goes.\n");
-	const fake = await load(root, { file: "docs/commit-rules.md" });
+test("a file is read from the project's folder at each spawn, not from its repository", async () => {
+	const root = repository({ "docs/commit-rules.md": "Anything goes.\n" });
+	const folder = temporaryFolder();
+	mkdirSync(join(folder, "docs"));
+	writeFileSync(join(folder, "docs/commit-rules.md"), `# Commits\n\n${WORDS}\n`);
+	const fake = await load(root, { file: "docs/commit-rules.md" }, undefined, folder);
 	const job = await fake.host.jobs.spawn({ task: "Build it." });
-	assert.ok(promptOf(fake, job.id).endsWith(`## Commit messages\n\nThis project's rule for every commit message you write (docs/commit-rules.md at ${base}):\n\n# Commits\n\n${WORDS}\n`));
+	const file = join(folder, "docs/commit-rules.md");
+	assert.ok(promptOf(fake, job.id).endsWith(`## Commit messages\n\nThis project's rule for every commit message you write (${file}):\n\n# Commits\n\n${WORDS}\n`));
 	assert.deepEqual(job.warnings.filter((warning) => warning.startsWith("commit-rules")), []);
+	writeFileSync(file, "# Commits\n\nChanged.\n");
+	assert.ok(promptOf(fake, (await fake.host.jobs.spawn({ task: "Build it." })).id).endsWith("(" + file + "):\n\n# Commits\n\nChanged.\n"), "read again at the next spawn");
 });
 
-test("a missing, empty or folder rule file is a warning of the spawn, not a line on stderr, and the job starts without it", async (t) => {
-	const root = repository({ "docs/empty.md": " \n\n", "docs/rules/a.md": "A\n" });
-	const base = git(root, "rev-parse", "HEAD").slice(0, 7);
+test("a missing, empty, folder or symlinked rule file is a warning of the spawn, not a line on stderr, and the job starts without it", async (t) => {
+	const root = repository();
+	const folder = temporaryFolder();
+	mkdirSync(join(folder, "docs/rules"), { recursive: true });
+	writeFileSync(join(folder, "docs/empty.md"), " \n\n");
+	writeFileSync(join(folder, "docs/rules/a.md"), "A\n");
+	symlinkSync(join(folder, "docs/rules/a.md"), join(folder, "docs/link.md"));
 	const printed = t.mock.method(console, "error", () => {});
 	for (const [file, problem, kind, role] of [
 		["docs/missing.md", "missing or not a file", "worker", "worker"],
 		["docs/rules", "missing or not a file", "review", "reviewer"],
+		["docs/link.md", "missing or not a file", "worker", "worker"],
 		["docs/empty.md", "empty", "worker", "worker"],
 	] as const) {
-		const fake = await load(root, { file });
+		const fake = await load(root, { file }, undefined, folder);
 		const job = await fake.host.jobs.spawn({ task: "Build it.", kind });
 		assert.equal(job.failed, undefined);
 		assert.equal(promptOf(fake, job.id).includes("Commit messages"), false, file);
-		assert.deepEqual(job.warnings.filter((warning) => warning.startsWith("commit-rules")), [`commit-rules: project acme: rule file ${file} at ${base} is ${problem}; the ${role} goes without it`]);
+		assert.deepEqual(job.warnings.filter((warning) => warning.startsWith("commit-rules")), [`commit-rules: project acme: rule file ${join(folder, file)} is ${problem}; the ${role} goes without it`]);
 	}
 	assert.equal(printed.mock.callCount(), 0);
 });
 
-test("refused at load: a regex that does not compile, naming the project", async () => {
-	const fake = fakeHost({ name: "commit-rules" });
-	fake.provide("projects", () => [{ name: "acme", prefix: "AC", path: repository(), commitRules: { regex: "^(feat: .+$" } }]);
-	await assert.rejects(fake.setup(commitRules()), { message: "project acme: commitRules.regex does not compile: Invalid regular expression: /^(feat: .+$/: Unterminated group" });
+test("refused at load, before the setup, naming the project and the helper: a regex that does not compile, a piece of another shape, a file outside the folder", async () => {
+	for (const [rule, problem] of [
+		[{ regex: "^(feat: .+$" }, "regex does not compile: Invalid regular expression: /^(feat: .+$/: Unterminated group"],
+		[{ regex: "^a", words: "b" }, "expected exactly one of { regex }, { words }, { file }, a non-empty string"],
+		[{ words: "" }, "expected exactly one of { regex }, { words }, { file }, a non-empty string"],
+		[{ format: "x" }, "expected exactly one of { regex }, { words }, { file }, a non-empty string"],
+		["^a", "expected exactly one of { regex }, { words }, { file }, a non-empty string"],
+		[{ file: "../rules.md" }, 'file "../rules.md" is not a path inside the project\'s folder'],
+		[{ file: "/etc/rules.md" }, 'file "/etc/rules.md" is not a path inside the project\'s folder'],
+	] as const) {
+		const fake = fakeHost({ name: "commit-rules" });
+		fake.provide("projects", () => [{ name: "acme", prefix: "AC", path: repository(), folder: temporaryFolder(), pieces: { "commit-rules": rule } }]);
+		await assert.rejects(fake.setup(commitRules()), { message: `project acme: commit-rules.project(...): ${problem}` }, JSON.stringify(rule));
+		assert.deepEqual(fake.provided, [], "no setup ran");
+	}
 });
 
 test("a hook that cannot be installed refuses the spawn, naming the project; no worktree or branch is left", async () => {
@@ -182,10 +203,10 @@ test("a hook that cannot be installed refuses the spawn, naming the project; no 
 	assert.equal(git(root, "worktree", "list").split("\n").length, 1);
 });
 
-test("the plugin takes no option: a project's rule is its commitRules", () => {
+test("the plugin takes no option: a project's rule is its commitRules.project(...)", () => {
 	assert.deepEqual(table, {});
 	assert.deepEqual(checkOptions({}), []);
-	assert.deepEqual(checkOptions({ installHook: true }), [{ path: "installHook", problem: "unknown option; commit-rules takes none: a project's rule is its commitRules in the projects list" }]);
+	assert.deepEqual(checkOptions({ installHook: true }), [{ path: "installHook", problem: "unknown option; commit-rules takes none: a project's rule is its commitRules.project(...) in its project file" }]);
 });
 
 // The hook as `prepare` installs it in a worktree the test made, as `arthur remote-job add` makes one on another machine;

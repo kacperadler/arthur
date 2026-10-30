@@ -5,7 +5,7 @@ Managing Arthur itself: roadmap entry 60, health: `arthur health` and `/health`,
 ```ts
 plugins: [
 	orchestration({}),
-	projects({ list: [{ name: "arthur", prefix: "AR", path: "." }] }),
+	projects({ folders: ["projects/arthur"] }), // projects/arthur/project.config.ts: projects.project({ prefix: "AR", path: "../.." })
 	schedule({}),
 	manage({ health: { everyMinutes: 30 }, prune: { keepJobsDays: 14 }, audit: { at: "02:00", days: ["tue", "fri"] }, retro: { day: "fri", at: "22:30" } }),
 ],

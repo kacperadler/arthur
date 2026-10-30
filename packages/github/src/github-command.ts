@@ -12,7 +12,9 @@ import { pr } from "./github-pr.ts";
 // Text people wrote on GitHub is printed only after `> `, as data. docs/commands/github.md, and a page per group: github-pr.md,
 // github-branch.md.
 
-export type Entry = { readonly name: string; readonly path: string; readonly ci?: { readonly workflow: string } };
+export type Entry = { readonly name: string; readonly path: string; readonly pieces?: { readonly github?: CiPiece } };
+// A project's piece: the workflow whose runs build its branches.
+export type CiPiece = { readonly workflow: string };
 
 const USAGE = "usage: arthur github pr list [--all]|get <n>|merge <n> | branch sweep [--dry-run] [--project <name>]";
 // The words each verb of a group takes after it, and the flags it takes.
@@ -43,7 +45,7 @@ export function githubCommand(host: Host, list: readonly Entry[], accounts: read
 }
 
 // A project's GitHub repository, from its checkout's `origin`, and the instance named after the repository's owner, else the
-// unnamed one; one neither fits is refused, `ci` starting the refusal of a missing origin (`ci.workflow is set, but `, at
+// unnamed one; one neither fits is refused, `ci` starting the refusal of a missing origin (`github.project({ workflow }) is set, but `, at
 // load). The remote's URL is never said: it may hold a credential.
 export function repository(project: Entry, accounts: readonly Instance[], ci = ""): Repository {
 	const remote = git(project.path, "remote", "get-url", "origin");

@@ -51,10 +51,10 @@ export function ciCommand(host: Host, watched: readonly Watched[]): Command {
 }
 
 // The run that built `branch` of `project` (github-git.ts `nearestRun`), with the project and how many runs GitHub listed; a
-// refusal throws: a project without `ci.workflow`, a branch not in its checkout, GitHub's own.
+// refusal throws: a project without `github.project({ workflow })`, a branch not in its checkout, GitHub's own.
 export async function built(watched: readonly Watched[], project: string | undefined, branch: string) {
 	const each = watched.find((one) => one.project === project);
-	if (each === undefined) throw new Error(`project ${project} has no ci.workflow, so github watches no run of it`);
+	if (each === undefined) throw new Error(`project ${project} has no github.project({ workflow }), so github watches no run of it`);
 	if (git(each.path, "rev-parse", "--verify", "--quiet", `refs/heads/${branch}`) === undefined) throw new Error(`no branch ${branch} in ${each.path}`);
 	const answer = await workflowRuns(each.instance, each.repo, each.workflow, new AbortController().signal);
 	if (!("runs" in answer)) throw new Error(answer.text);
@@ -64,7 +64,7 @@ export async function built(watched: readonly Watched[], project: string | undef
 // Asks GitHub to cancel run `id` of `project`'s workflow: one line once it took the request; a refusal throws.
 export async function cancel(watched: readonly Watched[], project: string, id: number): Promise<string> {
 	const each = watched.find((one) => one.project === project);
-	if (each === undefined) throw new Error(`project ${project} has no ci.workflow, so github watches no run of it`);
+	if (each === undefined) throw new Error(`project ${project} has no github.project({ workflow }), so github watches no run of it`);
 	const answer = await ask(each.instance, `/repos/${each.repo}/actions/runs/${id}/cancel`, `run ${id} of ${each.repo}`, "Actions: read and write", new AbortController().signal, "POST");
 	if (!("body" in answer)) throw new Error(answer.text);
 	return `github: cancel of run ${id} of ${each.repo} asked`;

@@ -4,10 +4,13 @@ import { type Tracked, youtrackCommand } from "./youtrack-command.ts";
 import { checkOptions } from "./youtrack-options.ts";
 
 // The youtrack plugin (spec/roadmap.md, entries 44 to 46): YouTrack servers as instances, named and unnamed, each project's
-// `tracker` picking one; `arthur youtrack issue|article|comment ...` reads and writes them: docs/commands/youtrack.md. Every
-// job of a project on YouTrack gets the rules for its issues in its prompt. It needs the project list, so `projects` sets up first.
+// `youtrack.project({ instance?, project })` picking one; `arthur youtrack issue|article|comment ...` reads and writes them:
+// docs/commands/youtrack.md. Every job of a project on YouTrack gets the rules for its issues in its prompt. It needs the
+// project list, so `projects` sets up first.
 
 export type InstanceOptions = { readonly name?: string; readonly urlEnv: string; readonly tokenEnv: string };
+// A project's piece: the YouTrack project its issues are in, on the instance it names, else the unnamed one.
+export type TrackerPiece = { readonly instance?: string; readonly project: string };
 
 export type YoutrackOptions = { readonly enabled?: boolean; readonly instances: readonly InstanceOptions[]; readonly timeoutSeconds?: number };
 
@@ -23,18 +26,23 @@ export function youtrack(options: YoutrackOptions): Plugin {
 		options,
 		requires: ["projects"],
 		check: checkOptions,
+		piece(value, options) {
+			const { instance, project, ...rest } = (typeof value === "object" && value !== null && !Array.isArray(value) ? value : {}) as Readonly<Record<string, unknown>>;
+			if (Object.keys(rest).length > 0 || typeof project !== "string" || (instance !== undefined && typeof instance !== "string")) return "expected { instance?, project }, each a string";
+			if (!SHORT_NAME.test(project)) return `project ${JSON.stringify(project)} is not a YouTrack project id: a letter, then letters, digits and underscores`;
+			const names = (options as YoutrackOptions).instances.map((each) => each.name);
+			const known = `youtrack's instances: ${names.map((name) => name ?? "(unnamed)").join(", ")}`;
+			if (!names.includes(instance)) return instance === undefined ? `it names no instance and youtrack has no unnamed one; ${known}` : `instance ${instance} is not an instance of youtrack; ${known}`;
+			return undefined;
+		},
 		setup(host) {
 			const { instances, timeoutSeconds = TIMEOUT_SECONDS } = host.options as YoutrackOptions;
 			const servers = instances.map((each, index) => server(host.env, each, index, timeoutSeconds));
-			const [list] = host.collect<readonly { readonly name: string; readonly tracker?: { readonly plugin: string; readonly instance?: string; readonly project: string } }[]>("projects");
-			const projects: Tracked[] = (list ?? []).map(({ name, tracker }) => {
-				if (tracker?.plugin !== "youtrack") return { name, tracker: undefined };
-				if (!SHORT_NAME.test(tracker.project)) throw new Error(`project ${name}: tracker.project ${JSON.stringify(tracker.project)} is not a YouTrack project id: a letter, then letters, digits and underscores`);
-				const instance = servers.find((each) => each.name === tracker.instance);
-				const known = `youtrack's instances: ${servers.map((each) => each.label).join(", ")}`;
-				if (instance === undefined && tracker.instance === undefined) throw new Error(`project ${name}: its tracker names no instance and youtrack has no unnamed one; ${known}`);
-				if (instance === undefined) throw new Error(`project ${name}: tracker.instance ${tracker.instance} is not an instance of youtrack; ${known}`);
-				return { name, tracker: { instance, project: tracker.project } };
+			const [list] = host.collect<readonly { readonly name: string; readonly pieces?: { readonly youtrack?: TrackerPiece } }[]>("projects");
+			const projects: Tracked[] = (list ?? []).map(({ name, pieces }) => {
+				const piece = pieces?.youtrack;
+				const instance = servers.find((each) => each.name === piece?.instance);
+				return { name, tracker: piece === undefined || instance === undefined ? undefined : { instance, project: piece.project } };
 			});
 			host.commands.register({ name: "youtrack", doc: new URL("../docs/commands/youtrack.md", import.meta.url), inJob: true, run: ({ args, project }) => youtrackCommand(projects, args, project, host.folder) });
 			// Any job of the project may be handed one of its issues, so each gets the rules, in every role.
@@ -61,3 +69,6 @@ function server(env: Readonly<Record<string, string>>, { name, urlEnv, tokenEnv 
 	if (!/^[\x21-\x7e]+$/.test(token)) throw new Error(`instances[${index}].tokenEnv: ${tokenEnv} is empty or holds a space or a character outside ASCII, which a header cannot carry`);
 	return { name, label: name ?? "(unnamed)", urlEnv, tokenEnv, base: `${url.origin}${url.pathname.replace(/\/+$/, "")}`, token, timeoutSeconds };
 }
+
+// A project file's piece: `youtrack.project({ instance: "acme", project: "SHOP" })`.
+youtrack.project = (piece: TrackerPiece) => ({ youtrack: piece });

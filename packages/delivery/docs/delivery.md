@@ -1,9 +1,9 @@
 # The delivery plugin
 
-Review and merge of a worker's branch: a plugin, not the core, which stays a job runner. `arthur review <worker job>` starts a read-only review of the branch's tip on the reviewer role (orchestration's `roles.reviewer`); its verdict, PASS or FAIL, moves the ticket, a FAIL hands the work back to the worker, and after 4 FAILs since the branch's last PASS the next review waits for the owner's word. `arthur review-needed` says whether a branch needs a review at all; one that changes a file on the always-review list always does. `arthur merge` merges a branch with a PASS into main and runs the checks on main; for a project with `autoMerge` (an option of `projects`) `arthur run` runs it on its own after a PASS or a `no review`, and it merges once CI passed (`arthur merge --help`, "On its own"). `arthur take-main` takes main as it is, on the owner's word, and `arthur changelog` writes `CHANGELOG.md` from the merged tickets, as each merge does.
+Review and merge of a worker's branch: a plugin, not the core, which stays a job runner. `arthur review <worker job>` starts a read-only review of the branch's tip on the reviewer role (orchestration's `roles.reviewer`); its verdict, PASS or FAIL, moves the ticket, a FAIL hands the work back to the worker, and after 4 FAILs since the branch's last PASS the next review waits for the owner's word. `arthur review-needed` says whether a branch needs a review at all; one that changes a file on the always-review list always does. `arthur merge` merges a branch with a PASS into main and runs the checks on main; for a project with `autoMerge` (its piece, `delivery.project({ autoMerge: true })` in its project file) `arthur run` runs it on its own after a PASS or a `no review`, and it merges once CI passed (`arthur merge --help`, "On its own"). `arthur take-main` takes main as it is, on the owner's word, and `arthur changelog` writes `CHANGELOG.md` from the merged tickets, as each merge does.
 
 ```ts
-plugins: [orchestration({}), projects({ list: [...] }), delivery({ review: { alwaysReview: ["**/env.ts", ".github/workflows/**"] } })],
+plugins: [orchestration({}), projects({ folders: [...] }), delivery({ review: { alwaysReview: ["**/env.ts", ".github/workflows/**"] } })],
 ```
 
 ## Options

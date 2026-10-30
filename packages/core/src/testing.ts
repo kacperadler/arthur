@@ -16,6 +16,7 @@ import { jobRunner } from "./jobs.ts";
 import type { Role } from "./roles.ts";
 import type { Host, Options, Plugin, Provider, SpawnCheck } from "./plugin.ts";
 import { pluginHost, registry } from "./plugin-host.ts";
+import { checkPieces } from "./project-pieces.ts";
 export { until } from "./until.ts";
 
 // The test kit (spec/roadmap.md, entries 4, 11 and 13), `@arthur/core/testing`, which `npm test` loads into every test process (`--import`) as the safety net: its environment (test-env.ts) keeps live variables, folders and identities out of reach, so no test reaches
@@ -71,9 +72,10 @@ export function fakeAgent(run: AgentRun): string {
 type Use = { readonly kind: "call" | "collect"; readonly name: string; readonly args: readonly unknown[] };
 
 export type FakeHost = {
-	// Given to the plugin's `setup`, which `setup(plugin)` runs: a spawn during it throws, as in a real load.
+	// Given to the plugin's `setup`, which `setup(plugin)` runs after the plugin's `piece` check of each project's piece, as
+	// the host does (its problems thrown, unprefixed): a spawn during it throws, as in a real load.
 	readonly host: Host;
-	setup(plugin: Pick<Plugin, "setup">): Promise<void>;
+	setup(plugin: Pick<Plugin, "setup" | "piece">): Promise<void>;
 	// What the plugin did through `host`, in order.
 	readonly provided: readonly string[];
 	readonly calls: readonly Use[];
@@ -173,9 +175,12 @@ export function fakeHost(plugin: {
 	};
 	return {
 		host,
-		setup(plugin) {
+		setup(each) {
 			loading = true;
-			return Promise.try(() => plugin.setup(host)).finally(() => (loading = false));
+			return Promise.try(() => {
+				checkPieces({ name: plugin.name, piece: each.piece }, real.options, names.collect("projects", []));
+				return each.setup(host);
+			}).finally(() => (loading = false));
 		},
 		provided,
 		calls,

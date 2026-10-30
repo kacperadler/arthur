@@ -11,7 +11,7 @@ const TEMPLATE = readFileSync(new URL("../templates/findings.md", import.meta.ur
 const HEAD = "# AC0001 - Findings\n\nWhat was discovered.\n\n";
 
 // Two projects, `acme` (AC), whose ticket AC0001 "Shop" was just merged, and `shop` (SH), each with a real board; the plugin
-// set up with `mode`; `merge(text)` writes AC0001's findings.md (none when left out) and asks `findings.onMerge` as
+// set up with each project's `mode`, its piece; `merge(text)` writes AC0001's findings.md (none when left out) and asks `findings.onMerge` as
 // `arthur merge` does; `ticket(id)` reads a ticket's ticket.md.
 async function load(mode?: Readonly<Record<string, string>>) {
 	const [root, shop] = [join(temporaryFolder(), "acme"), join(temporaryFolder(), "shop")];
@@ -20,13 +20,13 @@ async function load(mode?: Readonly<Record<string, string>>) {
 	writeFileSync(join(root, FOLDER, "ticket.md"), "# AC0001 - Shop\n");
 	writeFileSync(join(root, "spec/build.json"), JSON.stringify([{ id: "AC0001", title: "Shop", status: "merged", path: `${FOLDER}/ticket.md`, updated: "2026-10-21T08:00:00Z" }]));
 	writeFileSync(join(shop, "spec/build.json"), "[]");
-	const options = mode === undefined ? {} : { mode };
-	const fake = fakeHost({ name: "findings", options, now: new Date("2026-10-21T10:00:00Z") });
+	const fake = fakeHost({ name: "findings", now: new Date("2026-10-21T10:00:00Z") });
+	const pieces = (name: string) => (mode?.[name] === undefined ? {} : { findings: mode[name] });
 	fake.provide("projects", () => [
-		{ name: "acme", path: root, prefix: "AC" },
-		{ name: "shop", path: shop, prefix: "SH" },
+		{ name: "acme", path: root, prefix: "AC", pieces: pieces("acme") },
+		{ name: "shop", path: shop, prefix: "SH", pieces: pieces("shop") },
 	]);
-	await fake.setup(findings(options as Parameters<typeof findings>[0]));
+	await fake.setup(findings());
 	const merge = (text?: string, passed: { readonly review?: string; readonly notes?: readonly string[] } = {}) => {
 		if (text !== undefined) writeFileSync(join(root, PATH), text);
 		return fake.call<string>("findings.onMerge", { project: "acme", ticket: "AC0001", path: PATH, root, ...passed });

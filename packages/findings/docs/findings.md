@@ -3,18 +3,21 @@
 Roadmap entry 83: what a ticket's `findings.md` holds, and what `arthur merge` makes of its open entries, per project. The plugin is optional: without it a merge leaves every open entry open and says so once (`arthur merge --help`, step 4), and there is no `/findings`.
 
 ```ts
-plugins: [orchestration({}), projects({ list: [...] }), delivery(), findings({ mode: { "acme-shop": "summary" } })],
+// arthur.config.ts
+plugins: [orchestration({}), projects({ folders: ["projects/acme-shop"] }), delivery(), findings()],
+// projects/acme-shop/project.config.ts
+export default [projects.project({ prefix: "AS", path: "../../../acme-shop" }), findings.project("summary")];
 ```
 
-## Options
+## Its piece
 
-`mode`: each project's mode, by the project's name; a project it does not name gets `ticket`.
+The plugin takes no option but `enabled`. A project's mode is its piece, `findings.project(<mode>)` in its project file (`arthur projects --help`, "A project's file"); a project without one gets `ticket`.
 
 - `ticket` (the default): one planning ticket for each open entry.
 - `grouped`: one planning ticket for the merged ticket, every open entry in it.
 - `summary`: no ticket; each open entry becomes `deferred (client summary)` and is listed in the outcome, for the client's summary.
 
-Refused at load: an unknown option (`<key>: unknown option; options: mode`); `mode` that is not an object; an unknown mode, naming its project (`findings.mode.<project>: project <project>: expected one of ticket, grouped, summary, got "<value>"`); a key of `mode` that is no project of the projects list (`plugin findings: setup failed: mode names <names>, not a project of the projects list; each key of mode is a project's name`).
+Refused at load: any option, the old `mode` among them (`findings.<key>: unknown option; findings takes none: a project's mode is its findings.project("summary") in its project file`); a piece that is no mode, before the plugin's setup, naming its project (`plugin findings: setup failed: project <project>: findings.project(...): expected one of ticket, grouped, summary, got "<value>"`).
 
 ## The format
 

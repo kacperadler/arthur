@@ -9,6 +9,7 @@ import { delivery } from "@arthur/delivery";
 import { manage } from "@arthur/manage";
 import { orchestration } from "@arthur/orchestration";
 import { projects } from "@arthur/projects";
+import { projectFolders } from "./project-folders.ts";
 
 // AR0272: Arthur's own repository, a project of a list without `prompts`, gives every role the plugins that register one
 // read each of its criteria files, in `.agents/arthur/criteria/`, none missing, empty, or only headings.
@@ -17,9 +18,10 @@ const ROOT = join(import.meta.dirname, "..");
 
 // The real plugins that register a role, set up for `list` on a fake host whose load runs `code`.
 async function load(list: readonly { name: string; prefix: string; path: string }[], code: readonly string[] = []) {
+	const given = projectFolders(list);
 	const fake = fakeHost({ name: "test", code });
 	fake.provide("schedule.register", () => undefined);
-	const plugins: [Plugin, Readonly<Record<string, unknown>>][] = [[projects({ list }), { list }], [delivery(), {}], [manage(), {}], [orchestration(), {}]];
+	const plugins: [Plugin, Readonly<Record<string, unknown>>][] = [[projects(given), given], [delivery(), {}], [manage(), {}], [orchestration(), {}]];
 	for (const [plugin, options] of plugins) await fake.setup({ setup: (host) => plugin.setup({ ...host, options }) });
 	return fake;
 }

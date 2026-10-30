@@ -4,7 +4,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { dirname, join, relative } from "node:path";
 import { test } from "node:test";
 import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
-import { type ProjectsOptions, projects } from "../src/projects.ts";
+import { type Project, type ProjectsOptions, projects } from "../src/projects.ts";
+import { type Listed, projectFolders } from "./folders.ts";
 
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 
@@ -21,25 +22,71 @@ function repository(files: Readonly<Record<string, string>> = { "README.md": "# 
 	return root;
 }
 
-// The plugin set up on a fake host with these options; `home` gets the host's home folder, for options that name it.
-async function load(options: ProjectsOptions | ((home: string) => ProjectsOptions)): Promise<FakeHost> {
+// The options of these tests: the projects, each written to its own folder, and reposDir.
+type Given = { readonly list: readonly Listed[]; readonly reposDir?: string };
+const options = ({ list, reposDir }: Given): ProjectsOptions => ({ folders: projectFolders(list), ...(reposDir === undefined ? {} : { reposDir }) });
+
+// The plugin set up on a fake host with these projects; `home` gets the host's home folder, for options that name it.
+async function load(given: Given | ((home: string) => Given)): Promise<FakeHost> {
 	const fake = fakeHost({ name: "projects" });
-	const given = typeof options === "function" ? options(dirname(fake.host.folder)) : options;
-	await fake.setup({ setup: (host) => projects(given).setup({ ...host, options: given }) });
+	const written = options(typeof given === "function" ? given(dirname(fake.host.folder)) : given);
+	await fake.setup({ setup: (host) => projects(written).setup({ ...host, options: written }) });
 	return fake;
 }
 
-test("the list is served in config order, each folder absolute, the title the name when left out", async () => {
+test("the projects are served in the order of folders, each named by its folder, its path from that folder, its pieces and real folder with it", async () => {
 	const [shop, blog] = [repository(), repository()];
+	const parent = join(temporaryFolder(), "projects");
+	const [shopFolder = "", blogFolder = ""] = projectFolders(
+		[
+			{ name: "web-shop", title: "Shop", prefix: "SH", path: shop, prompts: { vision: "docs/vision.md" }, pieces: { uptime: [{ url: "https://shop.example/" }], findings: "summary" } },
+			{ name: "blog", prefix: "BL", path: relative(join(parent, "blog"), blog) },
+		],
+		parent,
+	);
 	const cwd = process.cwd();
-	process.chdir(dirname(blog));
+	process.chdir(dirname(parent));
 	try {
-		const fake = await load({ list: [{ name: "web-shop", title: "Shop", prefix: "SH", path: shop }, { name: "blog", prefix: "BL", path: relative(dirname(blog), blog) }] });
-		const [list] = fake.collect<readonly { name: string; path: string; title: string }[]>("projects");
-		assert.deepEqual(list?.map(({ name, path, title }) => [name, path, title]), [["web-shop", shop, "Shop"], ["blog", blog, "blog"]]);
+		const folders = [relative(dirname(parent), shopFolder), relative(dirname(parent), blogFolder)];
+		const fake = fakeHost({ name: "projects" });
+		await fake.setup({ setup: (host) => projects({ folders }).setup({ ...host, options: { folders } }) });
+		const [list] = fake.collect<readonly Project[]>("projects");
+		assert.deepEqual(
+			list?.map(({ name, path, title, folder, pieces, prompts }) => [name, path, title, folder, pieces, prompts]),
+			[
+				["web-shop", shop, "Shop", shopFolder, { uptime: [{ url: "https://shop.example/" }], findings: "summary" }, { vision: join(shopFolder, "docs/vision.md") }],
+				["blog", blog, "blog", blogFolder, {}, undefined],
+			],
+		);
 	} finally {
 		process.chdir(cwd);
 	}
+});
+
+test("a project file's refusals name the file: missing, not a list, a piece without one key, a plugin twice, no projects piece, a bad one", async () => {
+	const parent = temporaryFolder();
+	const file = (name: string, text: string) => {
+		mkdirSync(join(parent, name), { recursive: true });
+		writeFileSync(join(parent, name, "project.config.ts"), text);
+		return join(parent, name);
+	};
+	const setup = (folder: string) => {
+		const given = { folders: [folder] };
+		return fakeHost({ name: "projects" }).setup({ setup: (host) => projects(given).setup({ ...host, options: given }) });
+	};
+	const refused = (folder: string, ...problems: string[]) => assert.rejects(setup(folder), { message: problems.map((problem) => `${join(folder, "project.config.ts")}: ${problem}`).join("\n") });
+	mkdirSync(join(parent, "empty"));
+	await refused(join(parent, "empty"), "missing; each folder of projects.folders holds its project's project.config.ts");
+	await refused(file("object", "export default { projects: {} };\n"), "expected a default export of the project's pieces, such as export default [projects.project({ ... }), uptime.project([...])], got an object");
+	await assert.rejects(setup(file("broken", "export default [;\n")), { message: new RegExp(`^${join(parent, "broken", "project.config.ts")}: does not load: \\S`) });
+	const repo = repository();
+	const entry = JSON.stringify({ prefix: "SH", path: repo });
+	const oneKey = "expected a piece made by a plugin's helper, such as uptime.project([...]), one key, got";
+	await refused(file("two-keys", `export default [{ projects: ${entry} }, { uptime: [], findings: "summary" }, "uptime", {}];\n`), `[1]: ${oneKey} an object`, `[2]: ${oneKey} "uptime"`, `[3]: ${oneKey} an object`);
+	await refused(file("twice", `export default [{ projects: ${entry} }, { uptime: [] }, { uptime: [] }];\n`), "[2]: a second uptime.project(...); the first is [1]; one piece per plugin");
+	await refused(file("none", "export default [{ uptime: [] }];\n"), "no projects.project({ prefix, path or repo, ... }); each project file holds one");
+	await refused(file("bad", `export default [{ projects: { prefix: "sh", path: ${JSON.stringify(repo)}, tracker: {} } }];\n`), 'projects.project(...).prefix: expected capital letters A-Z, got "sh"', "projects.project(...).tracker: unknown key; keys: prefix, path, repo, title, about, install, prompts");
+	await setup(file("good", `export default [{ projects: ${entry} }, { uptime: [] }];\n`));
 });
 
 test("each load keeps every project's name and checkout in <home>/projects/checkouts, rewritten only when the list changed", async () => {
@@ -47,9 +94,10 @@ test("each load keeps every project's name and checkout in <home>/projects/check
 	const first = await load({ list: [{ name: "web-shop", prefix: "SH", path: shop }] });
 	const file = join(first.host.folder, "checkouts");
 	// The config loaded again in the same home folder, as each `arthur` command does.
-	const reload = async (list: ProjectsOptions["list"]) => {
+	const reload = async (list: Given["list"]) => {
 		const again = fakeHost({ name: "projects" });
-		await again.setup({ setup: (host) => projects({ list }).setup({ ...host, folder: first.host.folder, options: { list } }) });
+		const written = options({ list });
+		await again.setup({ setup: (host) => projects(written).setup({ ...host, folder: first.host.folder, options: written }) });
 	};
 	assert.equal(readFileSync(file, "utf8"), `web-shop ${shop}\n`);
 	const inode = statSync(file).ino;
@@ -168,7 +216,7 @@ test("a path that is not a folder or holds no .git is refused, naming the projec
 test("two known lockfiles and no install are refused at load, naming the files; an install lets them be", async () => {
 	const root = repository({ "bun.lock": "{}", "package-lock.json": "{}" });
 	await assert.rejects(load({ list: [{ name: "a", prefix: "A", path: root }] }), {
-		message: "project a: two known lockfiles (bun.lock, package-lock.json) and no install; set install in its entry of arthur.config.ts",
+		message: "project a: two known lockfiles (bun.lock, package-lock.json) and no install; set install in its projects.project(...)",
 	});
 	await load({ list: [{ name: "a", prefix: "A", path: root, install: "bun install" }] });
 });
@@ -228,12 +276,13 @@ test("doctor: a project with an about and a board is ok; one without either is a
 	const fake = await load({ list: [{ name: "web-shop", prefix: "SH", path: repository({ "spec/build.json": "[]\n" }), about: "Online shop." }, { name: "blog", prefix: "BL", path: repository() }] });
 	const [requirements] = fake.collect<readonly { name: string; check: () => string; costs: string; fix: string; critical: boolean }[]>("doctor");
 	const about = "the coordinator knows it only by prefix, name and title";
+	const [shop, blog] = fake.collect<readonly Project[]>("projects")[0] ?? [];
 	assert.deepEqual(
 		requirements?.map((each) => [each.name, each.check(), each.costs, each.fix, each.critical]),
 		[
-			["web-shop about", "ok", about, "add about to project web-shop in arthur.config.ts", false],
+			["web-shop about", "ok", about, `add about to projects.project(...) in ${shop?.folder}/project.config.ts`, false],
 			["web-shop board", "ok", "no tickets for web-shop", "arthur init web-shop", false],
-			["blog about", "missing: no about", about, "add about to project blog in arthur.config.ts", false],
+			["blog about", "missing: no about", about, `add about to projects.project(...) in ${blog?.folder}/project.config.ts`, false],
 			["blog board", "missing: no spec/build.json", "no tickets for blog", "arthur init blog", false],
 		],
 	);

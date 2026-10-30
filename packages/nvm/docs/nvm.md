@@ -3,7 +3,7 @@
 Roadmap entry 84: each project's jobs run on the Node its `.nvmrc` names, as nvm finds it on the job's machine. `arthur init` writes that file (the major version of the Node Arthur runs on, `24` today) into a repository without one. The plugin is optional: without it every job runs on the Node of Arthur's `PATH` (`docs/setup.md`, step 8), whatever `.nvmrc` says.
 
 ```ts
-plugins: [orchestration({}), nvm(), projects({ list: [...] })],
+plugins: [orchestration({}), nvm(), projects({ folders: [...] })],
 ```
 
 It has no options but `enabled`; any other is refused at load (`nvm.<key>: unknown option; nvm has no options but enabled`).

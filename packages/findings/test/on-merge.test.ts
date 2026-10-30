@@ -27,9 +27,9 @@ async function load(mode?: Readonly<Record<string, string>>) {
 		{ name: "shop", path: shop, prefix: "SH" },
 	]);
 	await fake.setup(findings(options as Parameters<typeof findings>[0]));
-	const merge = (text?: string) => {
+	const merge = (text?: string, passed: { readonly review?: string; readonly notes?: readonly string[] } = {}) => {
 		if (text !== undefined) writeFileSync(join(root, PATH), text);
-		return fake.call<string>("findings.onMerge", { project: "acme", ticket: "AC0001", path: PATH, root });
+		return fake.call<string>("findings.onMerge", { project: "acme", ticket: "AC0001", path: PATH, root, ...passed });
 	};
 	const ticket = (id: string) => {
 		const found = fake.host.board.get(id);
@@ -128,6 +128,49 @@ test("an entry whose title the board refuses stays open and is said; the others 
 	const none = HEAD + entry(1, "!!!", "open");
 	assert.equal(merge(none), '- Findings: F1 left open, no ticket made: a title needs a letter a-z or a digit, for its folder name: "!!!"');
 	assert.equal(read(), none, "nothing made, the file untouched");
+});
+
+const REVIEW = "2026-10-21-review-1a2b3c4d";
+const NOTES = [
+	"- (security) `src/auth.ts:12`: The token is logged. An error prints the session token.",
+	"- (bug) cart.ts:3: The total rounds down.",
+	"- (risk) pay.ts:9: Retries never stop. Nothing caps a retry.",
+	"- (minor) shop.ts:1: A long line. Wrap it.",
+	"- (bug) a note with no place",
+	"- bug cart.ts:4: No kind in brackets. Left out.",
+];
+const noted = (n: number, title: string, kind: string, where: string, what: string, status: string) => `## F${n}. ${title}\n\n- Kind: ${kind}\n- Found by: ${REVIEW} (review), 2026-10-21\n- Where: \`${where}\`\n- What: ${what}\n- Status: ${status}\n`;
+
+test("a passed review's notes of kind security, bug or risk become open entries, settled with the rest; without a findings.md one is made from the template's head", async () => {
+	const { merge, read, ticket } = await load();
+	assert.equal(merge(undefined, { review: REVIEW, notes: ["- (minor) shop.ts:1: A long line. Wrap it."] }), "- Findings: none; no findings.md on this ticket.", "no note to file, no file made");
+	assert.equal(merge(undefined, { review: REVIEW, notes: NOTES }), "- Tickets from findings: AC0002 (F1), AC0003 (F2), AC0004 (F3).");
+	const head = TEMPLATE.slice(0, TEMPLATE.indexOf("## F1.")).replace("{{id}}", "AC0001");
+	const entries = [
+		noted(1, "The token is logged", "security", "src/auth.ts:12", "An error prints the session token.", "ticket AC0002"),
+		noted(2, "The total rounds down", "fix", "cart.ts:3", "The total rounds down.", "ticket AC0003"),
+		noted(3, "Retries never stop", "fix", "pay.ts:9", "Nothing caps a retry.", "ticket AC0004"),
+	];
+	assert.equal(read(), head + entries.join("\n"));
+	const two = ticket("AC0002")?.text ?? "";
+	assert.deepEqual([ticket("AC0002")?.title, ticket("AC0003")?.title, ticket("AC0004")?.title], ["The token is logged", "The total rounds down", "Retries never stop"]);
+	assert.ok(two.includes(`## Description\n\nF1 of AC0001 (${PATH}).\n\n- Kind: security\n- Found by: ${REVIEW} (review), 2026-10-21\n`) && two.includes("\n- Kind: security\n\n## Done means"), two);
+	assert.ok((ticket("AC0004")?.text ?? "").includes("\n- Kind: fix\n\n## Done means"), "a risk is a fix ticket");
+});
+
+test("notes are numbered after the file's last entry, settled in the project's mode, and never filed twice; one the board refuses stays open, the file written", async () => {
+	const { merge, read, ids } = await load({ acme: "summary" });
+	const text = HEAD + entry(1, "Fixed", "fixed in abc1234") + entry(4, "Open one", "open");
+	const notes = ["- (risk) a.ts:1: Late write. Two writers race.", "- (bug) b.ts:2: Lost cart"];
+	assert.equal(merge(text, { review: REVIEW, notes }), "- Deferred (client summary): F4. Open one\n- Deferred (client summary): F5. Late write\n- Deferred (client summary): F6. Lost cart");
+	const settled = text.replace("- Status: open", "- Status: deferred (client summary)") + [noted(5, "Late write", "fix", "a.ts:1", "Two writers race.", "deferred (client summary)"), noted(6, "Lost cart", "fix", "b.ts:2", "Lost cart", "deferred (client summary)")].join("\n");
+	assert.equal(read(), settled);
+	assert.equal(merge(undefined, { review: REVIEW, notes }), "- Tickets from findings: none open.", "asked again with the same review");
+	assert.equal(read(), settled, "nothing filed twice");
+	assert.deepEqual(ids(), ["AC0001"]);
+	const refused = await load();
+	assert.equal(refused.merge(HEAD, { review: REVIEW, notes: ["- (bug) a.ts:1: ???. Nothing to name it by."] }), '- Findings: F1 left open, no ticket made: a title needs a letter a-z or a digit, for its folder name: "???"');
+	assert.equal(refused.read(), `${HEAD}${noted(1, "???", "fix", "a.ts:1", "Nothing to name it by.", "open")}`);
 });
 
 test("a worker's prompt carries the findings.md template; other roles get nothing", async () => {

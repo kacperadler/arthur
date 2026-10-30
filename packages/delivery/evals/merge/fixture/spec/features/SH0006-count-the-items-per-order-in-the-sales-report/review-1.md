@@ -13,10 +13,10 @@ The sales report has an Items column, the sum of each order's quantities, as Don
 
 None.
 
-**Notes**
+## Notes
 
-- `src/report.ts:88`: the count reads each order's items twice, once for the total and once for the column; one pass would do.
-- `test/report.test.ts:140`: no test covers an order with no items, which the report shows as 0.
+- (minor) `src/report.ts:88`: The count reads each order's items twice. Once for the total and once for the column; one pass would do.
+- (risk) `test/report.test.ts:140`: No test covers an order with no items. The report shows such an order as 0, and no test holds that.
 
 **Checks I ran**
 

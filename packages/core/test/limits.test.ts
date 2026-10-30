@@ -34,8 +34,9 @@ function setup(agent: string): { readonly root: string; readonly home: string; r
 	return { root, home, jobs };
 }
 
+// Gives up after 60 s: past the longest time limit `timed` sets, 24 s, and the grace of a stop after it.
 async function until<T>(what: string, predicate: () => T | undefined): Promise<T> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
+	for (const start = Date.now(); Date.now() - start < 60_000; await sleep(20)) {
 		const value = predicate();
 		if (value !== undefined && value !== false) return value;
 	}
@@ -44,11 +45,33 @@ async function until<T>(what: string, predicate: () => T | undefined): Promise<T
 
 const field = (home: string, id: string, name: string) => readFileSync(join(home, "jobs", id, name), "utf8");
 
-// The job's `job-ended` data, once the wrapper emitted it; the record's `state` is final then.
+// The job's `job-ended` event, once the wrapper emitted it; the record's `state` is final then.
+const endOf = (home: string, id: string) => readEvents(home, 1).find((event) => event.name === "job-ended" && typeof event.data === "object" && event.data !== null && "id" in event.data && event.data.id === id);
+
 async function ended(home: string, id: string): Promise<unknown> {
-	const mine = (data: unknown) => typeof data === "object" && data !== null && "id" in data && data.id === id;
-	const event = await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended" && mine(event.data)));
-	return event.data;
+	return (await until("job-ended", () => endOf(home, id))).data;
+}
+
+// A time limit counts from the wrapper's start, before the sandbox's, which a busy host can push past a short limit
+// (AR0565). `attempt` runs a test with a limit of 3 s, then twice as long while the limit ended its job before the state
+// the test awaits, up to 24 s; it answers false when it did (`before`), true when it ran its assertions.
+async function timed(attempt: (timeoutMinutes: number) => Promise<boolean>): Promise<void> {
+	for (let seconds = 3; seconds <= 24; seconds *= 2) if (await attempt(seconds / 60)) return;
+	assert.fail("each time limit up to 24 s ended the job before the state the test awaits");
+}
+
+// What `predicate` gives once it holds, or undefined when the job ended first, which only its time limit may have done.
+async function before<T>(home: string, id: string, timeoutMinutes: number, what: string, predicate: () => T | undefined): Promise<T | undefined> {
+	const seen = await until(`${what} or the job's end`, () => {
+		const end = endOf(home, id); // Read first: a state that holds once the job has ended held before its end.
+		const value = predicate();
+		if (value !== undefined && value !== false) return { value };
+		return end && { end };
+	});
+	if ("value" in seen) return seen.value;
+	const { reason } = seen.end.data as { readonly reason: string };
+	assert.ok(reason.startsWith(`limit: time: the job ran past its timeout of ${timeoutMinutes} minutes`), `ended before ${what}: ${reason}`);
+	return undefined;
 }
 
 const starts = (agent: string) =>
@@ -132,38 +155,43 @@ for (const [name, costs, budgetUsd, outcome, cost] of BUDGETS)
 		if (outcome !== "finished") assert.match(field(home, job.id, "log"), /\] limit: budget: stopping the agent\n/);
 	});
 
-test("a timeout during a long tool call stops the agent and the tool's process; a kind that resumes at its budget is not resumed", async () => {
-	const dir = temporaryFolder();
-	const agent = join(dir, "omp");
-	const start = { type: "tool_execution_start", toolCallId: "toolu_1", toolName: "bash", args: { command: "sleep 100" } };
-	const script = ["#!/bin/sh", `echo started >> '${dir}/starts'`, `echo '${JSON.stringify(start)}'`, `sleep 100 & echo $! > '${dir}/tool'`, "wait"];
-	writeFileSync(agent, `${script.join("\n")}\n`, { mode: 0o755 });
-	const { home, jobs } = setup(agent);
-	// 3 s: room for the sandbox's start, whose walk to hide the env file (AR0443) crosses the crowded temporary folder.
-	const job = await jobs.spawn({ task: "Audit.", kind: "audit", timeoutMinutes: 0.05 });
-	const tool = Number(await until("the tool's process", () => (existsSync(join(dir, "tool")) ? readFileSync(join(dir, "tool"), "utf8").trim() || undefined : undefined)));
-	const data = await ended(home, job.id);
-	assert.deepEqual(data, { id: job.id, kind: "audit", project: "acme", state: "ended", reason: "limit: time: the job ran past its timeout of 0.05 minutes" });
-	assert.deepEqual(["state", "activity", "tool-calls"].map((name) => field(home, job.id, name)), ["ended", "tool", "1"]);
-	await until("the tool's process stopped", () => !alive(tool));
-	assert.equal(readFileSync(join(dir, "starts"), "utf8"), "started\n");
-	assert.match(field(home, job.id, "log"), /\] limit: time: stopping the agent\n/);
-});
+test("a timeout during a long tool call stops the agent and the tool's process; a kind that resumes at its budget is not resumed", () =>
+	timed(async (timeoutMinutes) => {
+		const dir = temporaryFolder();
+		const agent = join(dir, "omp");
+		const start = { type: "tool_execution_start", toolCallId: "toolu_1", toolName: "bash", args: { command: "sleep 100" } };
+		const script = ["#!/bin/sh", `echo started >> '${dir}/starts'`, `echo '${JSON.stringify(start)}'`, `sleep 100 & echo $! > '${dir}/tool'`, "wait"];
+		writeFileSync(agent, `${script.join("\n")}\n`, { mode: 0o755 });
+		const { home, jobs } = setup(agent);
+		const job = await jobs.spawn({ task: "Audit.", kind: "audit", timeoutMinutes });
+		const pid = await before(home, job.id, timeoutMinutes, "the tool's process", () => (existsSync(join(dir, "tool")) ? readFileSync(join(dir, "tool"), "utf8").trim() || undefined : undefined));
+		if (pid === undefined) return false;
+		const data = await ended(home, job.id);
+		assert.deepEqual(data, { id: job.id, kind: "audit", project: "acme", state: "ended", reason: `limit: time: the job ran past its timeout of ${timeoutMinutes} minutes` });
+		assert.deepEqual(["state", "activity", "tool-calls"].map((name) => field(home, job.id, name)), ["ended", "tool", "1"]);
+		await until("the tool's process stopped", () => !alive(Number(pid)));
+		assert.equal(readFileSync(join(dir, "starts"), "utf8"), "started\n");
+		assert.match(field(home, job.id, "log"), /\] limit: time: stopping the agent\n/);
+		return true;
+	}));
 
-test("a timeout during the install a prepare asked for stops it, though it ignores SIGTERM, names the install, and starts no agent", async () => {
-	const dir = temporaryFolder();
-	const agent = join(dir, "omp");
-	writeFileSync(agent, `#!/bin/sh\necho started >> '${dir}/starts'\n`, { mode: 0o755 });
-	const { home, jobs } = setup(agent);
-	jobs.prepare("projects", () => ({ ARTHUR_INSTALL: `trap '' TERM; echo $$ > '${dir}/install'; while :; do sleep 0.05; done` }));
-	const job = await jobs.spawn({ task: "Go.", timeoutMinutes: 0.05 });
-	const install = Number(await until("the install's process", () => (existsSync(join(dir, "install")) ? readFileSync(join(dir, "install"), "utf8").trim() || undefined : undefined)));
-	const data = await ended(home, job.id);
-	assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "limit: time: the job ran past its timeout of 0.05 minutes, during its install" });
-	assert.equal(alive(install), false);
-	assert.equal(existsSync(join(dir, "starts")), false, "no agent started");
-	assert.match(field(home, job.id, "log"), /\] limit: time: stopping the install\n/);
-});
+test("a timeout during the install a prepare asked for stops it, though it ignores SIGTERM, names the install, and starts no agent", () =>
+	timed(async (timeoutMinutes) => {
+		const dir = temporaryFolder();
+		const agent = join(dir, "omp");
+		writeFileSync(agent, `#!/bin/sh\necho started >> '${dir}/starts'\n`, { mode: 0o755 });
+		const { home, jobs } = setup(agent);
+		jobs.prepare("projects", () => ({ ARTHUR_INSTALL: `trap '' TERM; echo $$ > '${dir}/install'; while :; do sleep 0.05; done` }));
+		const job = await jobs.spawn({ task: "Go.", timeoutMinutes });
+		const pid = await before(home, job.id, timeoutMinutes, "the install's process", () => (existsSync(join(dir, "install")) ? readFileSync(join(dir, "install"), "utf8").trim() || undefined : undefined));
+		if (pid === undefined) return false;
+		const data = await ended(home, job.id);
+		assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: `limit: time: the job ran past its timeout of ${timeoutMinutes} minutes, during its install` });
+		assert.equal(alive(Number(pid)), false);
+		assert.equal(existsSync(join(dir, "starts")), false, "no agent started");
+		assert.match(field(home, job.id, "log"), /\] limit: time: stopping the install\n/);
+		return true;
+	}));
 
 test("a timeout of 0, and one longer than a Node timer can wait, never stop the job", async () => {
 	for (const timeoutMinutes of [0, 50_000]) {
@@ -197,35 +225,40 @@ test("a kind that asks for it is resumed once at its budget, doubled, and stoppe
 	assert.equal(log.match(/\] limit: budget: \$1\.0000 reached \$1; the kind resumes once, its budget doubled to \$2\n/g)?.length, 1, log);
 });
 
-test("an agent that ignores SIGTERM at its limit gets SIGKILL after the grace; its time out while it stops at its budget, it is not resumed", async () => {
-	// An agent that ignores SIGTERM: stopped at its budget, it would go on until the test lets it end, which it never does.
-	const dir = temporaryFolder();
-	const agent = join(dir, "omp");
-	const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 1, cacheRead: 0, cacheWrite: 0, total: 1 } };
-	const content = [{ type: "text", text: "Spent." }];
-	const message = { role: "assistant", content, api: "anthropic-messages", provider: "anthropic", model: "fake", usage, stopReason: "toolUse", timestamp: 0 };
-	const script = ["#!/bin/sh", `echo $$ >> '${dir}/starts'`, "trap '' TERM", `echo '${JSON.stringify({ type: "message_end", message })}'`];
-	writeFileSync(agent, `${[...script, `while [ ! -e '${dir}/go' ] && [ -d '${dir}' ]; do sleep 0.02; done`].join("\n")}\n`, { mode: 0o755 });
-	const { home, jobs } = setup(agent);
-	// 3 s: past the sandbox's start and the stop at the budget, and inside the grace of GRACE_SECONDS after it.
-	const job = await jobs.spawn({ task: "Audit.", kind: "audit", timeoutMinutes: 0.05 });
-	const log = join(home, "jobs", job.id, "log");
-	// The grace counts from the wrapper's own time of the stop, which its log line gives, not from when the test saw that line.
-	const line = await until("the stop at the budget", () => (existsSync(log) && /\[arthur ([^\]]+)\] limit: budget: stopping the agent\n/.exec(readFileSync(log, "utf8"))) || undefined);
-	const stopped = Date.parse(line[1] ?? "");
-	await ended(home, job.id);
-	const took = Date.now() - stopped;
-	assert.ok(took < (GRACE_SECONDS + 5) * 1000, `ended ${took} ms after the stop`);
-	assert.ok(took >= GRACE_SECONDS * 1000, `ended ${took} ms after the stop, before the grace was over`);
-	assert.deepEqual(["reason", "budget"].map((name) => field(home, job.id, name)), ["limit: budget: its cost $1.0000 reached its budget of $1", "1"]);
-	const text = field(home, job.id, "log");
-	assert.match(text, /\] limit: time: reached as well\n/);
-	assert.match(text, new RegExp(`\\] the agent's process group is still alive ${GRACE_SECONDS} seconds after SIGTERM: SIGKILL\\n`));
-	const pids = readFileSync(join(dir, "starts"), "utf8").trim().split("\n");
-	assert.equal(pids.length, 1, "not resumed");
-	assert.equal(alive(Number(pids[0])), false);
-	assert.equal(existsSync(join(dir, "go")), false);
-});
+test("an agent that ignores SIGTERM at its limit gets SIGKILL after the grace; its time out while it stops at its budget, it is not resumed", () =>
+	timed(async (timeoutMinutes) => {
+		// An agent that ignores SIGTERM: stopped at its budget, it would go on until the test lets it end, which it never does.
+		const dir = temporaryFolder();
+		const agent = join(dir, "omp");
+		const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 1, cacheRead: 0, cacheWrite: 0, total: 1 } };
+		const content = [{ type: "text", text: "Spent." }];
+		const message = { role: "assistant", content, api: "anthropic-messages", provider: "anthropic", model: "fake", usage, stopReason: "toolUse", timestamp: 0 };
+		// It spends its budget 2 s before the time limit, counted like the limit from the wrapper's start (its `pid`), or at once
+		// when it starts later: the time limit comes inside the grace of GRACE_SECONDS after the stop at the budget.
+		const spend = [`started=$(date -r "$ARTHUR_JOB/pid" +%s%3N)`, `while [ "$(date +%s%3N)" -lt $((started + ${Math.round(timeoutMinutes * 60_000) - 2000})) ]; do sleep 0.02; done`];
+		const script = ["#!/bin/sh", `echo $$ >> '${dir}/starts'`, "trap '' TERM", ...spend, `echo '${JSON.stringify({ type: "message_end", message })}'`];
+		writeFileSync(agent, `${[...script, `while [ ! -e '${dir}/go' ] && [ -d '${dir}' ]; do sleep 0.02; done`].join("\n")}\n`, { mode: 0o755 });
+		const { home, jobs } = setup(agent);
+		const job = await jobs.spawn({ task: "Audit.", kind: "audit", timeoutMinutes });
+		const log = join(home, "jobs", job.id, "log");
+		// The grace counts from the wrapper's own time of the stop, which its log line gives, not from when the test saw that line.
+		const line = await before(home, job.id, timeoutMinutes, "the stop at the budget", () => (existsSync(log) && /\[arthur ([^\]]+)\] limit: budget: stopping the agent\n/.exec(readFileSync(log, "utf8"))) || undefined);
+		if (line === undefined) return false;
+		const stopped = Date.parse(line[1] ?? "");
+		await ended(home, job.id);
+		const took = Date.now() - stopped;
+		assert.ok(took < (GRACE_SECONDS + 5) * 1000, `ended ${took} ms after the stop`);
+		assert.ok(took >= GRACE_SECONDS * 1000, `ended ${took} ms after the stop, before the grace was over`);
+		assert.deepEqual(["reason", "budget"].map((name) => field(home, job.id, name)), ["limit: budget: its cost $1.0000 reached its budget of $1", "1"]);
+		const text = field(home, job.id, "log");
+		assert.match(text, /\] limit: time: reached as well\n/);
+		assert.match(text, new RegExp(`\\] the agent's process group is still alive ${GRACE_SECONDS} seconds after SIGTERM: SIGKILL\\n`));
+		const pids = readFileSync(join(dir, "starts"), "utf8").trim().split("\n");
+		assert.equal(pids.length, 1, "not resumed");
+		assert.equal(alive(Number(pids[0])), false);
+		assert.equal(existsSync(join(dir, "go")), false);
+		return true;
+	}));
 
 test("a kind that does not ask for it is not resumed at its budget", async () => {
 	const agent = fakeAgent({ steps: [{ message: "Spent.", cost: 0.5, stopReason: "toolUse" }, stuck()] });

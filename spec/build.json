@@ -4616,9 +4616,9 @@
   {
     "id": "AR0578",
     "title": "Defaults T10: one until for every test, and the time-limit tests stop racing",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0578-defaults-t10-one-until-for-every-test-and-the-time-limit-tests-stop-racing/ticket.md",
-    "updated": "2026-10-30T11:38:19.006Z",
+    "updated": "2026-10-30T13:18:07.722Z",
     "after": [
       "AR0577"
     ]
@@ -4665,9 +4665,9 @@
   {
     "id": "AR0583",
     "title": "Defaults T15: a go-with-my-recommendation grant, and a policy answer continues the job",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0583-defaults-t15-a-go-with-my-recommendation-grant-and-a-policy-answer-continues-the/ticket.md",
-    "updated": "2026-10-30T11:27:54.375Z",
+    "updated": "2026-10-30T13:07:45.166Z",
     "after": [
       "AR0570"
     ]

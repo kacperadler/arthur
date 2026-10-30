@@ -6,6 +6,7 @@ import { type TestContext, test } from "node:test";
 import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { ciWaits } from "../src/ci-wait.ts";
 import { delivery } from "../src/delivery.ts";
+import { saveReview } from "../src/review-records.ts";
 
 const PATH = process.env.PATH ?? "";
 const TEST_JS = 'console.log("ℹ tests 1\\nℹ pass 1");\n';
@@ -144,8 +145,8 @@ test("--auto merges with autoMerge on, a PASS on the tip and CI passed; refused,
 	assert.equal(fake.host.board.get("AC0001")?.status, "merged");
 });
 
-test("--auto takes arthur review-needed's no review for the tip as its PASS; not for an older tip, nor over a FAIL on the tip", async (t) => {
-	const { commit, worker, review, run, merge, answers, head } = await load(t);
+test("--auto takes arthur review-needed's no review for the tip as its PASS; not for an older tip, nor beside a review of the tip that runs, has no verdict or says FAIL, nor a review answer", async (t) => {
+	const { fake, commit, worker, review, run, merge, answers, head } = await load(t);
 	const docs = (n: number) => `no review: ${n} file${n === 1 ? "" : "s"}, all docs (*.md)\nAC0001 moves to done.\nacme merges on its own (autoMerge): arthur run runs arthur merge --auto `;
 	const job = await worker(1, { "notes.md": "# Notes\n" });
 	assert.ok((await run("review-needed", [job.id])).out.startsWith(docs(1)));
@@ -155,6 +156,12 @@ test("--auto takes arthur review-needed's no review for the tip as its PASS; not
 	const refused = (why: string) => `arthur merge: --auto merges only with a PASS on the tip: ${job.branch}'s tip ${tip.slice(0, 7)}: ${why}; review the tip: arthur review ${job.id}; main is unchanged`;
 	assert.equal((await merge(job.id, "--auto")).err, refused("no review of it says PASS"), "the no review of an older tip");
 	assert.ok((await run("review-needed", [job.id])).out.startsWith(docs(2)));
+	// A review of the tip still in its run (no verdict, no core record ended), then one that ended with none: no merge meanwhile.
+	const pending = { id: "2026-01-01-review-0000beef", ticket: "AC0001", branch: job.branch, commit: tip, at: 1 };
+	saveReview(fake.host, pending);
+	assert.equal((await merge(job.id, "--auto")).err, refused(`its review ${pending.id} has no verdict`), "a review that runs");
+	saveReview(fake.host, { ...pending, verdict: "none" });
+	assert.equal((await merge(job.id, "--auto")).err, refused(`its review ${pending.id} has no verdict`), "a review that ended with no verdict");
 	const failed = await review(job.id, "Wrong file.\n\nFAIL");
 	assert.equal((await merge(job.id, "--auto")).err, refused(`its newest review, ${failed}, says FAIL`));
 	assert.equal(head(), start);
@@ -164,6 +171,11 @@ test("--auto takes arthur review-needed's no review for the tip as its PASS; not
 	const merged = await merge(other.id, "--auto");
 	assert.equal(merged.code, undefined, merged.err);
 	assert.match(merged.out, new RegExp(`^merged ${other.branch} into main: [0-9a-f]+\n`));
+	// review-needed's `review` for the tip is no PASS.
+	const code = await worker(3);
+	assert.match((await run("review-needed", [code.id])).out, /^review: /);
+	answers.ci = ciRun(code.tip, code.branch);
+	assert.equal((await merge(code.id, "--auto")).err, `arthur merge: --auto merges only with a PASS on the tip: ${code.branch}'s tip ${code.tip.slice(0, 7)}: no review of it says PASS; review the tip: arthur review ${code.id}; main is unchanged`);
 });
 
 test("--auto refuses a held path: a role, the vision, CI, package.json, the always-review list (a lockfile too), a held file renamed away; another path goes in", async (t) => {

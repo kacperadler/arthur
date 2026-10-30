@@ -111,12 +111,13 @@ test("the coordinator's role reads pull requests with arthur github, takes its a
 });
 
 // AR0258, AR0576: in a project with `autoMerge` on delivery runs `arthur merge --auto` itself and wakes the coordinator with what
-// it printed; the role must act on that as on its own merge, neither waiting for the owner's word nor running it again.
+// it printed; the role must act on that as on its own merge, neither waiting for the owner's word nor running it again, but where
+// the merge's result says to (after `a merge of <job> is in progress`, merge.md).
 test("the coordinator's role acts on delivery's own arthur merge --auto without the owner or a second run, and waits on a refusal that says it waits", () => {
 	const lines = ROLE.split("\n");
 	const merge = lines.find((each) => each.startsWith("- When the owner asks for a merge:"));
 	assert.ok(merge, "the role says how to merge");
-	assert.match(merge, /In a project with `autoMerge` on, delivery runs `arthur merge --auto <job>` itself after a PASS, a `no review` or CI passed, and its wake carries what that merge printed: act on it as on a merge you ran \(`arthur merge --help`, "On its own"\), without running it again/);
+	assert.match(merge, /In a project with `autoMerge` on, delivery runs `arthur merge --auto <job>` itself after a PASS, a `no review` or CI passed, and its wake carries what that merge printed: act on it as on a merge you ran \(`arthur merge --help`, "On its own"\): never run that merge again, but where its result says so, as after `a merge of <job> is in progress`/);
 	assert.match(merge, /a refusal that says `it waits` needs nothing until CI passes/);
 	const never = lines.find((each) => each.startsWith("- Never merge a branch"));
 	assert.match(never ?? "", /but by `--autopilot` or a wake's `arthur merge --auto` as above/, "the Never rule leaves the wake's --auto merge out");

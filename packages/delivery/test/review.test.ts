@@ -659,6 +659,12 @@ test("in arthur run with autoMerge on, a PASS and then CI passed on a waiting br
 		told(fake)[1],
 		`CI passed on ${job.branch} (run 7, attempt 1, on ${job.commit.slice(0, 7)}): ${run.url}. ${ran}: exit 1, it did not go in; act on its last line as arthur merge --help, "What the coordinator does with the result", says. What it printed:\n\narthur merge: --auto merges no held path: x changes roles/a.md (a role); its merge waits for the owner: arthur merge x on his word; main is unchanged`,
 	);
+	// A rerun that passes, attempt 2 of the same run: its own cause, so the merge runs again and wakes the coordinator again.
+	assert.deepEqual(fake.collect("delivery.ciEnded", { project: "acme", branch: job.branch, below: 0, run: { ...run, attempt: 2 } }), [true]);
+	assert.equal(await forwarded(fake.host.folder, job.id), `${passed.id}\nci 7/1\nci 7/2\n`, "each run attempt is a cause of its own");
+	await until("the coordinator woken a third time", () => told(fake).length === 3);
+	assert.equal(merge.asked().length, 3);
+	assert.match(told(fake)[2] ?? "", new RegExp(`^CI passed on ${job.branch} \\(run 7, attempt 2, `));
 });
 
 test("a no review of arthur review-needed, in its own process, is merged by arthur run once it starts, with one wake; the same answer again runs none", async (t) => {

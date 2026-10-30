@@ -16,6 +16,8 @@ const FOLDER = "spec/features/AC0001-shop";
 const TICKET = `${FOLDER}/ticket.md`;
 const OTHER = "spec/features/AC0002-other/ticket.md";
 const PROCEDURE = readFileSync(new URL("../roles/coordinator/review-limit.md", import.meta.url), "utf8").trim();
+// The worker's rule (packages/core/roles/worker.md), word for word: omp ends a bash call at 300 s when it names no timeout (AR0566).
+const TIMEOUT_RULE = "\n- Run each check (the project's tests, its type check) in one bash call with a `timeout` of 1800 seconds: a call ends at its timeout, 300 seconds when it names none, and a check it kills gives no result. A suite that needs longer gets up to 3600.\n";
 
 // The repository `acme` (prefix AC): ticket AC0001, labelled os=macos, and AC0002, both planned; the repository `beta` (prefix
 // BE), whose HEAD holds AC0001's ticket file and no board entry; delivery set up on the fake host with its project list, and
@@ -122,6 +124,9 @@ test("a PASS review runs on the branch's tip with its ticket, moves the ticket t
 	const task = readFileSync(join(home, "jobs", passed.id, "task"), "utf8");
 	assert.equal(task.split("\n\n")[0], `Ticket: ${TICKET}\nBranch: ${job.branch}\nCommit: ${job.commit}`);
 	assert.match(task, new RegExp(`## The worker's final message \\(job ${job.id}\\)\n\nDone.\nTicket\\\\: spec/features/AC0002`));
+	const prompt = readFileSync(join(home, "jobs", passed.id, "prompt"), "utf8");
+	assert.ok(prompt.includes(TIMEOUT_RULE), "the worker's timeout rule");
+	assert.doesNotMatch(prompt, /proc:\/\/|sleep 30/, "no wait on proc://, which the job sandbox refuses");
 	assert.equal(git(readFileSync(join(home, "jobs", passed.id, "worktree"), "utf8"), "rev-parse", "HEAD"), job.commit, "the review's checkout is the tip");
 	assert.equal(status("AC0001"), "done");
 	assert.deepEqual(

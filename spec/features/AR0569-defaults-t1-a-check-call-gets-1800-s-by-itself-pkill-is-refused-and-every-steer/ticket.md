@@ -41,3 +41,4 @@ Out:
 ## Decisions
 
 - 2026-10-30: Source: the approved plan of AR0561 (AR-D345)
+- 2026-10-30: AR0561 tickets budgets: $8 each, $12 for AR0571, AR0576, AR0578, AR0579, AR0583 and AR0584; AR0569 continued at $8; the owner: "AR-D363 1" (AR-D363)

@@ -4520,9 +4520,9 @@
   {
     "id": "AR0567",
     "title": "AR0311's 18 findings stay open forever though each is already a ticket",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0567-ar0311-s-18-findings-stay-open-forever-though-each-is-already-a-ticket/ticket.md",
-    "updated": "2026-10-30T07:47:47.718Z"
+    "updated": "2026-10-30T07:56:15.134Z"
   },
   {
     "id": "AR0568",
@@ -4534,9 +4534,9 @@
   {
     "id": "AR0569",
     "title": "Defaults T1: a check call gets 1800 s by itself, pkill is refused, and every steer is an event",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0569-defaults-t1-a-check-call-gets-1800-s-by-itself-pkill-is-refused-and-every-steer/ticket.md",
-    "updated": "2026-10-30T07:46:59.864Z"
+    "updated": "2026-10-30T07:56:36.903Z"
   },
   {
     "id": "AR0570",

@@ -29,4 +29,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/orchestration/roles/coordinator.md:64`
 - What: the role turns silent mode on for delegated work but never names `--recommend` and its bounds, so the coordinator knows to record a grant only from its handoff memory, which the plan (P13) deletes once this ticket merges, or from `arthur silent --help`.
 - Suggestion: one clause on line 64: when the owner says to go with your recommendation, add `--recommend` with the bound he names (`--until`, `--usage`, `--tickets`), and ask every decision with `--recommend`. Delete the handoff's grant memory only after that line is in.
-- Status: open
+- Status: deferred (client summary)

@@ -4665,9 +4665,9 @@
   {
     "id": "AR0583",
     "title": "Defaults T15: a go-with-my-recommendation grant, and a policy answer continues the job",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0583-defaults-t15-a-go-with-my-recommendation-grant-and-a-policy-answer-continues-the/ticket.md",
-    "updated": "2026-10-30T14:13:23.031Z",
+    "updated": "2026-10-30T14:22:02.778Z",
     "after": [
       "AR0570"
     ]

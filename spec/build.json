@@ -4598,9 +4598,9 @@
   {
     "id": "AR0576",
     "title": "Defaults T8: a passed review merges by itself in an autoMerge project, and four FAILs come before the owner is asked",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0576-defaults-t8-a-passed-review-merges-by-itself-in-an-automerge-project-and-four/ticket.md",
-    "updated": "2026-10-30T17:32:02.823Z",
+    "updated": "2026-10-30T17:57:46.425Z",
     "after": [
       "AR0574",
       "AR0575"
@@ -4722,9 +4722,9 @@
   {
     "id": "AR0589",
     "title": "Plan: each project keeps all its plugin settings in one place of arthur.config.ts",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0589-plan-each-project-keeps-all-its-plugin-settings-in-one-place-of-arthur-config-ts/ticket.md",
-    "updated": "2026-10-30T16:58:50.530Z"
+    "updated": "2026-10-30T17:52:53.754Z"
   },
   {
     "id": "AR0590",

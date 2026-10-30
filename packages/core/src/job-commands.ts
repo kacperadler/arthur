@@ -1,12 +1,13 @@
 import type { Command } from "./commands.ts";
 import { amount, parseFlags, text } from "./flags.ts";
 import { findJob } from "./job-records.ts";
-import { STATES } from "./job-state.ts";
+import { field, STATES } from "./job-state.ts";
 import type { JobRunner } from "./jobs.ts";
 
 // `arthur stop`, `continue` and `steer` (spec/roadmap.md, entry 14), `arthur jobs`, `prune` and `stopall` (entry 15), on a
 // job's full or short id, on another machine there (entry 22); `/jobs`, `/steer <id> <text>` and `/stopall` on a channel.
-// `home` and `jobs` throw when the config did not load, since the record lives in the configured home folder.
+// `home` and `jobs` throw when the config did not load, since the record lives in the configured home folder; `emit` logs the
+// core's event, `job-steered` once a steer is queued or a continue started (AR0569).
 
 const USAGE = {
 	stop: "usage: arthur stop <id>",
@@ -17,10 +18,12 @@ const USAGE = {
 	stopall: "usage: arthur stopall",
 };
 
-export function jobCommands(home: () => string, jobs: () => JobRunner): Command[] {
+export function jobCommands(home: () => string, jobs: () => JobRunner, emit: () => (name: string, data: unknown) => void): Command[] {
+	const steered = (id: string, text: string, via: "steer" | "continue") => emit()("job-steered", { id, kind: field(home(), id)("kind"), text, via });
 	const steer = (query: string, text: string) => {
 		const id = findJob(home(), query);
-		return `${id}: steer ${jobs().steer(id, text)} queued for after its next tool call`;
+		const line = `${id}: steer ${jobs().steer(id, text)} queued for after its next tool call`;
+		return (steered(id, text, "steer"), line);
 	};
 	return [
 		command("stop", 1, async ([id = ""]) => console.log(await jobs().stop(findJob(home(), id)))),
@@ -35,7 +38,7 @@ export function jobCommands(home: () => string, jobs: () => JobRunner): Command[
 			if (decision !== undefined && Number(budget) !== 0) return usage("continue", "--decision goes with --budget 0");
 			const id = findJob(home(), query);
 			const failed = await jobs().continue(id, instruction, budget === undefined ? undefined : Number(budget), ignoreRestart !== undefined, Number(budget) === 0 ? (decision ?? "") : undefined);
-			if (failed === undefined) return console.log(`${id}: continued`);
+			if (failed === undefined) return (steered(id, instruction, "continue"), console.log(`${id}: continued`));
 			console.error(`${id}: failed: ${failed}`);
 			return 1;
 		}),

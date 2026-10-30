@@ -165,6 +165,7 @@ Emitted by the core, named `core` unless said otherwise; `data` holds the fields
 | `job-started` | `id`, `kind`, `project`, `root`, `branch`, `worktree`, `tickets`, `machine` | A spawn or `arthur continue`, as it starts the job's wrapper. |
 | `job-state` | `id`, `project`, `ticket` (the id its task names, or null), `machine`, `from`, `to`, `reason` | A job's state changed: `working`, `idle`, `blocked`, `ended`. |
 | `job-ended` | `id`, `kind`, `project`, `state` (`ended` or `blocked`), `reason`, `undelivered?` (the steers it never got) | A run ended. |
+| `job-steered` | `id`, `kind`, `text`, `via` (`steer` or `continue`) | `arthur steer` (or `/steer`) queued a correction, or `arthur continue` started a run; a plugin's `host.jobs.steer` or `continue` emits none. |
 | `stop-all` | `ids` | `arthur stopall`, before it stops them. |
 | `ticket-created` | `id`, `project`, `title`, `status`, `path` | A ticket was created; named by the plugin whose `host.board` created it, else `core`. |
 | `ticket-moved` | `id`, `project`, `from`, `to` | A ticket moved; named by the plugin whose `host.board` moved it, else `core` (`arthur ticket`, a worker's start). |

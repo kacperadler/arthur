@@ -701,3 +701,5 @@
 {"record":"close","id":"AR-D350","time":"2026-10-30T02:48:56+01:00","reason":"asked again in the words of the merge policy"}
 {"record":"ask","id":"AR-D351","time":"2026-10-30T02:48:56+01:00","project":"arthur","kind":"merge","question":"Merge AR0565 (three limits.test.ts timeout tests no longer race a fixed 3 s limit): its passed review at 27e09c0?","options":[],"ticket":"AR0565"}
 {"record":"answer","id":"AR-D351","time":"2026-10-30T02:48:56+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"answer","id":"AR-D348","time":"2026-10-30T07:56:41+01:00","decided":"AR0564 changed: keep the style rules and a simple check of declared colours, drop the claim of a complete check, add a phone-width screenshot the writer looks at before sending","picked":2,"words":"AR-D348 - go with recommendation"}
+{"record":"answer","id":"AR-D349","time":"2026-10-30T07:56:42+01:00","decided":"AR0564 budget raised by $8 to $20.57 so its worker finishes the round","picked":1,"words":"AR-D349 - go with recommendation"}

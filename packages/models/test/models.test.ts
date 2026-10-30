@@ -416,6 +416,26 @@ test("a report older than 10 minutes is fetched again; a failed fetch keeps the 
 	assert.equal(starts(failing), 1);
 });
 
+test("models.usage reads the highest used percent of the last report's windows, a model tier's too; none before a report, with no window, or after a failed fetch", async () => {
+	says(report([{ id: "5h", used: 0.82, resetsIn: 60 }, { id: "7d", used: 0.5, resetsIn: 600 }, { id: "7d", used: 0.91, tier: "fable", resetsIn: 600 }]));
+	const { fake } = await load({});
+	assert.deepEqual(fake.collect("models.usage"), [undefined], "no report fetched yet");
+	await fake.host.commands.route("/usage");
+	assert.deepEqual(fake.collect("models.usage"), [91]);
+	says(report([], { accountsWithoutUsage: ["openai-codex"] }));
+	fake.setNow(new Date(after(11)));
+	await fake.host.commands.route("/usage");
+	assert.deepEqual(fake.collect("models.usage"), [undefined], "no window");
+	says(report([{ id: "5h", used: 0.1, resetsIn: 60 }]));
+	fake.setNow(new Date(after(22)));
+	await fake.host.commands.route("/usage");
+	assert.deepEqual(fake.collect("models.usage"), [10]);
+	agent({ steps: [{ stderr: "network down" }], exitCode: 1 });
+	fake.setNow(new Date(after(33)));
+	await fake.host.commands.route("/usage");
+	assert.deepEqual(fake.collect("models.usage"), [undefined], "the last fetch failed: the reading is unknown");
+});
+
 test("a list skips a built-in model whose provider's window is at or over limits.stopAt; a window over limits.warnAt is on the spawn line and in the context", async () => {
 	says(report([{ id: "5h", used: 0.82, resetsIn: 60 }, { id: "7d", used: 0.96, resetsIn: 600 }, { id: "7d", used: 0.99, tier: "fable", resetsIn: 600 }]));
 	const { fake, pick } = await load({});

@@ -15,7 +15,7 @@ Comes with the `orchestration` plugin, which every config holds. It records ever
 Each project keeps one append-only file, `spec/decisions.jsonl`, next to its board and in Git: the coordinator commits it with the board. Only this command and the plugin itself write it, never a hand: under a lock in `.arthur/orchestration/` (`decisions-<project>.lock`), which this command waits for up to 10 s and the plugin's own records without holding up `arthur run` (up to 60 s, its other work going on meanwhile), the whole file written to `spec/.decisions.jsonl.<pid>` and renamed, so a reader never sees half of it. Each line is one JSON record with its id:
 
 - `ask`: `{ record, id, time, project, kind, question, options, recommend?, ticket?, job?, what?, class? }`, `what` the merge flags the decision lets through (below), `class` only on a class's proposal (kind `class`, below);
-- `answer`: `{ record, id, time, decided, picked?, words }`, `words` `by policy: <class id>` for an answer given by policy;
+- `answer`: `{ record, id, time, decided, picked?, words }`, `words` `by policy: <class id>` for an answer given by policy, `by recommendation: <grant id>` for one the owner's grant gave (`arthur silent --help`, "Go with my recommendation");
 - `close`: `{ record, id, time, reason }`;
 - `revoke`: `{ record, id, time, words }`, the owner revoking a class.
 
@@ -34,7 +34,7 @@ The kinds:
 - `budget`: a raise of a package's line budget, or a job with no money limit (`--budget 0`, below).
 - `merge`: a merge without a PASS or without CI (`arthur merge --unreviewed` or `--no-ci`, below).
 
-`--option` gives an option offered, once each, numbered from 1 in the order given; `--recommend` is the coordinator's recommendation, an option's number or words. `--what` names a merge flag the owner's answer lets through, `--unreviewed` or `--no-ci`, once per flag, only with `--kind merge` (AR0533); a merge decision without it lets no flag through.
+`--option` gives an option offered, once each, numbered from 1 in the order given; `--recommend` is the coordinator's recommendation, an option's number or words. `--what` names a merge flag the owner's answer lets through, `--unreviewed` or `--no-ci`, once per flag, only with `--kind merge` (AR0533); a merge decision without it lets no flag through. While the owner's grant of `arthur silent on ... --recommend` holds, an ask with `--recommend` that no class answers is answered by that recommendation in the same write, but never a merge with `--what`, a `budget` question or a class's proposal, and prints `<id> answered by recommendation (<grant id>): <decided>; act on it as on the owner's answer, and say so in your reply` (`arthur silent --help`).
 
 ## Answering
 
@@ -74,7 +74,7 @@ Then each `ask` of the class's kind whose question names every word of `--match`
 - YYYY-MM-DD: <decided>; pre-approved by policy (AR-D7)
 ```
 
-The `ask` prints a second line, `<id> answered by policy (<class id>): <decided>; act on it as on the owner's answer, and say so in your reply`. A job's question answered so leaves the job blocked: its notice ends ` — answered by policy (<class id>): <decided>`, so the owner's phone shows it decided, and the wake names the decision to continue it with. A question two or more approved classes match is left to the owner: its second line is `<id> goes to the owner: it matches classes <id> and <id>`. A class never answers a class's proposal.
+The `ask` prints a second line, `<id> answered by policy (<class id>): <decided>; act on it as on the owner's answer, and say so in your reply`. A job's question answered so continues the job by itself (AR0583): the plugin runs `arthur continue <job> '<decided>'` once, the decision its instruction, when the job's record is blocked at the end of its run, or at its run's end when a plugin held it then (`<home>/orchestration/continued/<decision id>` marks it done); its notice ends ` — answered by policy (<class id>): <decided>`, so the owner's phone shows it decided, and the wake says `The job is continued by policy (<class id>) with that decision`, or, with no record of it blocked on that question, that it was not continued. A continue that fails reaches the coordinator as a message of its own, `<job> was not continued by policy (<class id>): <why>; arthur continue <job> '<decided>' continues it with that decision.` A question two or more approved classes match is left to the owner: its second line is `<id> goes to the owner: it matches classes <id> and <id>`. A class never answers a class's proposal.
 
 `class revoke` records the owner's revoke; from then the class's questions go to him again, and the answers given by policy before stay as recorded. A later answer approving the proposal again holds again. `arthur decisions --classes` lists each class, proposed, approved, refused, revoked or closed, with its evidence and the questions it answered.
 

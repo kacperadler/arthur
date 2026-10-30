@@ -2,6 +2,7 @@ import type { Host, Project } from "@arthur/core/plugin";
 import { redact } from "./credential.ts";
 import { CLASS, type Class, classStates, described, OPTIONS, policyOf, ticketKind, words } from "./decision-classes.ts";
 import { ask, change, type Decision, decisions, KINDS, oneLine, readLog, type Revoke } from "./decision-log.ts";
+import { recommendedBy } from "./silent.ts";
 
 // `arthur decision class propose|revoke` and `arthur decisions --classes` (spec/roadmap.md, entry 97): a class proposed from
 // the owner's answered decisions, with the agreement of the coordinator's recommendations with his picks on them, and
@@ -25,6 +26,7 @@ export function propose(host: Host, project: Project, given: { readonly kind: st
 		const last = found.answers.at(-1);
 		if (last === undefined) throw new Error(`${id} is ${found.state}, not answered by the owner`);
 		if (policyOf(last) !== undefined) throw new Error(`${id} was answered by policy (${policyOf(last)}), not by the owner`);
+		if (recommendedBy(last) !== undefined) throw new Error(`${id} was answered by recommendation (${recommendedBy(last)}), not by the owner`);
 		if (found.ask.kind !== kind) throw new Error(`${id} is a ${found.ask.kind} question, not ${kind}`);
 		if (!same(last.decided, decided)) throw new Error(`${id} decided "${last.decided}", not the class's "${decided}"`);
 		const named = words(found.ask.question);

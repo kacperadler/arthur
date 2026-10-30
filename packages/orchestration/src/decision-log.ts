@@ -7,12 +7,13 @@ import { byPolicy, CLASS, type Class, classProblem, policyOf, ticketKind } from 
 import { redact } from "./credential.ts";
 import { logLock } from "./decision-lock.ts";
 import { section } from "./plans.ts";
+import { byRecommendation } from "./silent.ts";
 
 // The decision log (spec/roadmap.md, entries 96 and 97): each project's `spec/decisions.jsonl`, one record a line, `ask`,
 // `answer`, `close` or a class's `revoke`, appended only here, under a lock, the whole file written to a temporary name and
 // renamed. An answer to a question of a ticket becomes a dated line under the ticket's Decisions, written after the log; a
 // crash between the two is repaired by the next write. A question an approved class matches is answered by policy in the
-// same write (decision-classes.ts). docs/commands/decision.md.
+// same write (decision-classes.ts), else by its recommendation under the owner's grant (silent.ts). docs/commands/decision.md.
 
 export const KINDS = ["job", "question", "plan", "review", "budget", "merge"];
 export const FILE = "spec/decisions.jsonl";
@@ -151,8 +152,8 @@ function repair(host: Host, project: Project, entries: readonly Entry[]): string
 	return notes.length === 0 ? undefined : notes.join("; ");
 }
 
-// Records a question; its id. One approved class matching it answers it by policy in the same write, its answer returned;
-// two or more leave it to the owner, `classes` naming them.
+// Records a question; its id. One approved class matching it answers it by policy in the same write, else the owner's grant by
+// its recommendation, that answer returned; two or more classes leave it to the owner, `classes` naming them.
 export function ask(host: Host, project: Project, asked: Omit<Ask, "record" | "id" | "time" | "project">, lock = withLock): { readonly id: string; readonly unwritten?: string; readonly policy?: Answer; readonly classes: readonly string[] } {
 	const question = asked.question.trim();
 	if (question === "") throw new Error("an empty question: --question <what the owner decides>");
@@ -170,10 +171,9 @@ export function ask(host: Host, project: Project, asked: Omit<Ask, "record" | "i
 		const record = { record: "ask", id: `${project.prefix}-D${next}`, time, project: project.name, kind: asked.kind, question: redact(question, host.secrets), options: options.map((option) => redact(option, host.secrets)), ...said, ...kept } satisfies Ask;
 		const policy = byPolicy(entries, record, kind);
 		classes = policy.classes;
-		return [record, ...policy.answers];
+		return [record, ...policy.answers, ...(classes.length === 0 ? byRecommendation(host, record) : [])];
 	}, lock);
-	const policy = added.find((each) => each.record === "answer");
-	return { id: added[0]?.id ?? "", unwritten, ...(policy === undefined ? {} : { policy }), classes };
+	return { id: added[0]?.id ?? "", unwritten, ...(added[1]?.record === "answer" ? { policy: added[1] } : {}), classes };
 }
 
 // Records the owner's answer; the record as written, with its question.

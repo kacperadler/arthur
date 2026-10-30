@@ -856,7 +856,7 @@ test("in a job's scope a write to YouTrack is refused with ARTHUR_JOB cleared on
 	assert.equal(seen.length, asked);
 });
 
-test("every job of a project on YouTrack gets the rules for its issues in its prompt, in any role; a job of another project gets none", async (t) => {
+test("every job of a project on YouTrack gets the rules for its issues in its prompt, in any role; a job of another project gets none", async () => {
 	const repository = () => {
 		const root = temporaryFolder();
 		for (const args of [["init", "--quiet", "--initial-branch=main"], ["-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "--allow-empty", "-m", "start"]]) execFileSync("git", args, { cwd: root });

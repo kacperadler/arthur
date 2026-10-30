@@ -4541,9 +4541,9 @@
   {
     "id": "AR0570",
     "title": "Defaults T2: a branch cannot change its ticket, the board or the decision log",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0570-defaults-t2-a-branch-cannot-change-its-ticket-the-board-or-the-decision-log/ticket.md",
-    "updated": "2026-10-30T07:47:00.855Z",
+    "updated": "2026-10-30T09:52:45.131Z",
     "after": [
       "AR0569"
     ]
@@ -4551,9 +4551,9 @@
   {
     "id": "AR0571",
     "title": "Defaults T3: a job resumes once after a provider error or an ending with no verdict",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0571-defaults-t3-a-job-resumes-once-after-a-provider-error-or-an-ending-with-no/ticket.md",
-    "updated": "2026-10-30T07:47:01.865Z",
+    "updated": "2026-10-30T09:52:46.269Z",
     "after": [
       "AR0569"
     ]
@@ -4648,9 +4648,9 @@
   {
     "id": "AR0581",
     "title": "Defaults T13: the fakes of GitHub, YouTrack and Telegram are checked against recorded shapes, and tsc gets stricter",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0581-defaults-t13-the-fakes-of-github-youtrack-and-telegram-are-checked-against/ticket.md",
-    "updated": "2026-10-30T09:27:51.861Z"
+    "updated": "2026-10-30T09:52:44.095Z"
   },
   {
     "id": "AR0582",
@@ -4704,5 +4704,12 @@
     "status": "merged",
     "path": "spec/features/AR0586-the-report-check-tests-fail-on-github-ci-its-chrome-will-not-render-narrower/ticket.md",
     "updated": "2026-10-30T09:33:14.522Z"
+  },
+  {
+    "id": "AR0587",
+    "title": "The report check tests skip on this server since the test kit moved HOME",
+    "status": "planned",
+    "path": "spec/features/AR0587-the-report-check-tests-skip-on-this-server-since-the-test-kit-moved-home/ticket.md",
+    "updated": "2026-10-30T09:53:43.985Z"
   }
 ]

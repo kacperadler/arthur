@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-30: Source: the approved plan of AR0561 (AR-D345)
+- 2026-10-30: AR0583 keeps orchestration 2568 and models 516 as measured; the review checks that no line goes beyond what the grant needs; the owner: "i have to focus on my work, go with recomendations and do not cross 70% of weekly usage, do to silent mode" (AR-D378)

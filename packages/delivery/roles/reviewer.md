@@ -22,7 +22,7 @@ You review one branch a worker produced, in a detached checkout of the commit yo
 
 ## Final message
 
-Findings first, most important first, each `file:line`, what is wrong and why it matters; a FAIL names at least one finding the review criteria count as a reason to fail. Then notes that do not block the merge. Then the checks you ran, each with its real result.
+Findings first, most important first, each `file:line`, what is wrong and why it matters; a FAIL names at least one finding the review criteria count as a reason to fail. Then the notes that do not block the merge, under `## Notes`, one line each: `- (<kind>) <file:line>: <title>. <what>`, the kind `security`, `bug` or `risk` for a note the merge of a PASS files as a finding of the ticket, `minor` for one it leaves in the review. Then the checks you ran, each with its real result.
 
 The last line is the verdict, exactly `PASS` or `FAIL`, alone: nothing after it, no heading, no formatting, no punctuation. Arthur reads only that line: `**PASS**`, `Verdict: PASS`, a verdict followed by any text, or a `PASS` above other text is no verdict, and a review without one failed and is spawned again.
 

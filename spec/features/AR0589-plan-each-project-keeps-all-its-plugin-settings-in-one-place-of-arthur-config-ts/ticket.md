@@ -23,7 +23,7 @@ Adding a project is one edit in one place: everything about that project, for ev
 
 ## Done means
 
-- A plan, approved by the owner, that names the shape the owner picks (AR-D389); how a plugin declares and checks its project key through the host (no plugin imports another); what moves (uptime's `sites`, the `tracker` and `chat` keys, and the dokploy key of AR0588) and that no old shape is kept; how `arthur doctor` reports a project key no enabled plugin reads; the line budgets; the tickets it splits into.
+- A plan, approved by the owner, that builds the shape the owner picked in AR-D391: a folder per project with its config file, docs and criteria, each plugin giving a `.project()` helper for its per-project part, plugins with accounts once in arthur.config.ts; how a plugin declares and checks its project key through the host (no plugin imports another); what moves (uptime's `sites`, the `tracker` and `chat` keys, and the dokploy key of AR0588) and that no old shape is kept; how `arthur doctor` reports a project key no enabled plugin reads; the line budgets; the tickets it splits into.
 
 ## Scope
 

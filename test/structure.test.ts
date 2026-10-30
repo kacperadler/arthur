@@ -15,11 +15,11 @@ const BUDGETS = {
 
 	"core/testing": 374,
 
-	delivery: 1784,
+	delivery: 1844,
 
 	develop: 710,
 
-	findings: 276,
+	findings: 264,
 
 	github: 960,
 
@@ -45,7 +45,7 @@ const BUDGETS = {
 
 	telegram: 641,
 
-	uptime: 298,
+	uptime: 291,
 
 	video: 186,
 

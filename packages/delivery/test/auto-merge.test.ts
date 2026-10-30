@@ -169,7 +169,7 @@ test("--auto refuses a held path: a role, the vision, CI, package.json, the alwa
 	answers.ci = ciRun(plain.tip, plain.branch);
 	const merged = await merge(plain.id, "--auto");
 	assert.equal(merged.code, undefined, merged.err);
-	assert.equal(git(root, "log", "-1", "--format=%s"), "Merge AC0009: T AC0009");
+	assert.equal(git(root, "log", "-2", "--format=%s"), "spec: AC0009 merged\nMerge AC0009: T AC0009");
 });
 
 test("--auto reads past a replacement of main's tip under refs/replace: the held path the branch changes still refuses it", async (t) => {

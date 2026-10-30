@@ -11,7 +11,7 @@ const PATH = process.env.PATH ?? "";
 const FOLDER = "spec/features/AC0001-shop";
 const TICKET = `${FOLDER}/ticket.md`;
 const PROCEDURE = readFileSync(new URL("../roles/coordinator/after-merge.md", import.meta.url), "utf8").trim();
-const DONE = `nothing committed but the merge, nothing pushed\n\n${PROCEDURE}`;
+const DONE = `\n${PROCEDURE}`;
 // The project's own checks: `npm test` prints node --test's summary and fails while a file `broken` exists.
 const TEST_JS = 'const broken = require("node:fs").existsSync("broken");\nconsole.log(`ℹ tests 2\\nℹ pass ${broken ? 1 : 2}`);\nprocess.exit(broken ? 1 : 0);\n';
 const PACKAGE = JSON.stringify({ scripts: { check: 'node -e ""', test: "node test.js" } });
@@ -22,7 +22,7 @@ const OWNER = "AC-D1";
 // board; the project's checks in package.json; a `bun.lock`, whose install is a fake `bun` that notes each call in `bun.log`.
 // `projects.install` answers `answer` (`installAs` sets it, an Error thrown), each request noted in `installs` with main's HEAD;
 // `decision.owner` answers as orchestration does, "" for OWNER, each request noted in `owner`.
-// `worker(files)` runs a worker on AC0001 that commits `files`; `review(job, message, cost)` runs a review ending on `message`, costing `cost` USD;
+// `worker(files, task, message)` runs a worker on AC0001 that commits `files` and ends on `message`; `review(job, message, cost)` runs a review ending on `message`, costing `cost` USD;
 // `merge(...args)` runs `arthur merge` as the CLI does, a throw being `arthur merge: <message>` and exit code 1; an `uncapped:`
 // line, there only on a host without a user manager, goes to `uncapped`, apart from its other lines, and a `no sandbox:` line,
 // there only on a host without the sandbox (merge-checks.test.ts tests it), nowhere; `hear(fn)` has `fn` see each line printed,
@@ -89,8 +89,8 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 		if (Object.keys(changes).length > 0) git(worktree, "commit", "--quiet", "-m", `change ${Object.keys(changes).join(" ")}`);
 		return git(worktree, "rev-parse", "HEAD");
 	};
-	const worker = async (changes: Readonly<Record<string, string>> = { "shop.ts": "export const shop = 1;\n" }, task = `Ticket: ${TICKET}`) => {
-		agent({ steps: [{ message: "Done." }] });
+	const worker = async (changes: Readonly<Record<string, string>> = { "shop.ts": "export const shop = 1;\n" }, task = `Ticket: ${TICKET}`, message = "Done.") => {
+		agent({ steps: [{ message }] });
 		const job = await fake.host.jobs.spawn({ task });
 		await ended(job.id);
 		return { id: job.id, branch: job.branch ?? "", worktree: job.worktree, tip: commit(job.worktree, changes) };
@@ -141,8 +141,8 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 	const before = head();
 	const merged = await merge(job.id.slice(-8));
 	assert.equal(merged.code, undefined, merged.err);
-	const hash = git(root, "rev-parse", "--short", "HEAD");
-	assert.deepEqual(git(root, "log", "-1", "--format=%s%n%P"), `Merge AC0001: Shop\n${before} ${job.tip}`);
+	const hash = git(root, "rev-parse", "--short", "HEAD^");
+	assert.deepEqual(git(root, "log", "-2", "--format=%s%n%P"), `spec: AC0001 merged\n${git(root, "rev-parse", "HEAD^")}\nMerge AC0001: Shop\n${before} ${job.tip}`);
 	assert.equal(
 		merged.out.replace(/not fully merged\.$/m, "not fully merged"), // Git's own words, which end in a full stop in some versions.
 		[
@@ -152,10 +152,12 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 			"npm test: 2/2 passed.",
 			`filed ${FOLDER}/review-1.md`,
 			"- Findings: none; no findings.md on this ticket.",
-			`wrote ${FOLDER}/outcome.md; rewrite What went in from the commit subjects listed there`,
+			`wrote ${FOLDER}/outcome.md`,
 			"AC0001 merged",
 			"unblocked: AC0002",
 			"wrote CHANGELOG.md: 1 merged ticket",
+			`committed spec: AC0001 merged: ${git(root, "rev-parse", "--short", "HEAD")}`,
+			"nothing pushed: no plugin provides github.push",
 			`${job.id}: worktree ${job.worktree} removed; branch ${job.branch} deleted; record deleted`,
 			`${passed}: worktree ${checkout} removed; record deleted`,
 			`${other.id}: worktree ${other.worktree} removed; kept branch ${other.branch} and the record: git branch: error: the branch '${other.branch}' is not fully merged`,
@@ -164,7 +166,7 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 	);
 	assert.equal(bun(), "install --frozen-lockfile\n", "the project's install ran once");
 	assert.deepEqual(caches().map((each) => [dirname(dirname(each)), basename(each), existsSync(dirname(each))]), [[fake.host.folder, "bun", false]], "a cache folder in the plugin's own, removed after the merge");
-	assert.deepEqual(installs, [{ project: "acme", commit: "HEAD", head: git(root, "rev-parse", "HEAD") }], "asked of projects.install for the merge commit");
+	assert.deepEqual(installs, [{ project: "acme", commit: "HEAD", head: git(root, "rev-parse", "HEAD^") }], "asked of projects.install for the merge commit");
 	assert.match(readFileSync(join(root, FOLDER, "review-1.md"), "utf8"), new RegExp(`^- Job: ${passed}\n- Branch: ${job.branch}\n`, "m"));
 	const outcome = readFileSync(join(root, FOLDER, "outcome.md"), "utf8");
 	assert.match(outcome, new RegExp(`^# AC0001 - Outcome\n\n- Merged: \\d{4}-\\d{2}-\\d{2}, \`${hash}\`\n- Branch: ${job.branch}\n- Reviews: review-1.md PASS\n- Cost: worker \\$\\d+\\.\\d{2}, reviews \\$\\d+\\.\\d{2}; review rounds 1\n`));
@@ -185,6 +187,39 @@ test("a branch with a PASS on its tip goes in: checks pass, its review filed, ou
 	fake.collect("jobs.keep", { id: "reviews" });
 	assert.equal(existsSync(join(fake.host.folder, "reviews", `${passed}.json`)), true, "a name that is no job's id removes nothing");
 	assert.equal((await merge(other.id)).err, `arthur merge: AC0001 is merged; a merge is of a ticket in-progress, review or done`);
+});
+
+test("What went in: the worker's own lines, `- <path>: not described` for each file the merge changed that they leave out; the ticket's folder, the tickets findings.onMerge made, the board and CHANGELOG.md committed as spec: <id> merged before github.push", async (t) => {
+	const { root, fake, git, worker, merge } = await load(t);
+	const message = "Built.\n\n## What went in\n\n- `shop.ts`: sells the shop's items.\n- cart.ts: holds the cart.\nA line that names no file.\n- gone.ts: a file the branch never had.\n\n## Checks\n\n- test.js: 2/2 passed.\n";
+	const job = await worker({ "shop.ts": "export const shop = 1;\n", "cart.ts": "export const cart = 1;\n", "docs/notes.md": "# Notes\n" }, `Ticket: ${TICKET}`, message);
+	// A ticket the coordinator made before the merge, left uncommitted: no ticket of this merge's.
+	const before = fake.host.board.create("Made before", "acme");
+	let made = "";
+	fake.provide("findings.onMerge", (asked: { readonly project: string }) => ((made = fake.host.board.create("Follow the notes", asked.project).path), "- Tickets from findings: AC0005"));
+	const pushed: string[] = [];
+	fake.provide("github.push", () => (pushed.push(git(root, "log", "-1", "--format=%s"), git(root, "status", "--porcelain", "--untracked-files=no")), Promise.resolve("github: pushed main to origin: a..b")));
+	const merged = await merge(job.id, "--unreviewed", "--decision", OWNER);
+	assert.equal(merged.code, undefined, merged.err);
+	assert.match(readFileSync(join(root, FOLDER, "outcome.md"), "utf8"), /\n## What went in\n\n- `shop\.ts`: sells the shop's items\.\n- cart\.ts: holds the cart\.\n- gone\.ts: a file the branch never had\.\n- docs\/notes\.md: not described\n\n## Checks on main\n/);
+	assert.match(merged.out, new RegExp(`\nwrote CHANGELOG\\.md: 1 merged ticket\ncommitted spec: AC0001 merged: ${git(root, "rev-parse", "--short", "HEAD")}\ngithub: pushed main to origin: a\\.\\.b\n`));
+	assert.deepEqual(pushed, ["spec: AC0001 merged", ""], "committed, nothing of it left, before the push");
+	assert.equal(git(root, "show", "--name-only", "--format=%P", "HEAD"), `${git(root, "rev-parse", "HEAD^")}\n\nCHANGELOG.md\nspec/build.json\n${FOLDER}/outcome.md\n${made}`);
+	assert.equal(git(root, "status", "--porcelain", "--", dirname(before.path)), `?? ${dirname(before.path)}/`);
+});
+
+test("a key that may name a program, set in the repository's config while the checks ran, keeps the spec: commit from running it: the merge is in, the commit left to the coordinator", async (t) => {
+	const { root, git, worker, merge, head } = await load(t);
+	const [ran, program] = [join(temporaryFolder(), "ran"), join(temporaryFolder(), "program")];
+	writeFileSync(program, `#!/bin/sh\necho program >> '${ran}'\ncat\n`, { mode: 0o755 });
+	// The branch gives every file a filter; its test, run on main after the merge, names the filter's program and passes.
+	const plants = `require("node:child_process").execFileSync("git", ["config", "filter.x.clean", ${JSON.stringify(program)}]);\nconsole.log("ℹ tests 2\\nℹ pass 2");\n`;
+	const job = await worker({ ".gitattributes": "* filter=x\n", "test.js": plants });
+	const merged = await merge(job.id, "--unreviewed", "--decision", OWNER);
+	assert.equal(merged.code, undefined, merged.err);
+	const said = `${join(root, ".git", "config")} sets filter.x.clean, which a job can write and which may name a program Arthur's git would run; remove it, or set it in your ~/.gitconfig`;
+	assert.match(merged.out, new RegExp(`\nwrote CHANGELOG\\.md: 1 merged ticket\nspec: AC0001 merged not committed: ${said.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}; commit ${FOLDER}, spec/build\\.json, CHANGELOG\\.md\n`));
+	assert.deepEqual([git(root, "log", "-1", "--format=%s", head()), existsSync(ran)], ["Merge AC0001: Shop", false]);
 });
 
 test("a merge's start removes delivery's cache_ folders older than a day to the minute, as a killed merge leaves them, with what is in them; a younger one, maybe a running merge's, a project's folder named cache-*, another old folder and an old cache_ one below the top stay", async (t) => {
@@ -308,7 +343,7 @@ test("replacements under refs/replace, as a job's git replace would write, chang
 	assert.equal((await run("review-needed", [job.id])).out, "no review: 1 file, all docs (*.md)\nAC0001 moves to done.");
 	const merged = await merge(job.id);
 	assert.equal(merged.code, undefined, merged.err);
-	assert.equal(git(root, "log", "-1", "--format=%s%n%P%n%T"), `Merge AC0001: Shop\n${before} ${job.tip}\n${tree}`);
+	assert.equal(git(root, "log", "-1", "--format=%s%n%P%n%T", "HEAD^"), `Merge AC0001: Shop\n${before} ${job.tip}\n${tree}`);
 	assert.deepEqual(git(root, "replace", "-l").split("\n").sort(), [before, job.tip].sort(), "the replacements are still there: each step read past them");
 });
 
@@ -388,15 +423,14 @@ test("a merge conflict leaves main as it was: no merge in progress, the ticket w
 	assert.equal(status("AC0001"), "done");
 });
 
-test("each merge that went in rebuilds CHANGELOG.md; the rebuilt file left uncommitted is no dirt for the next merge", async (t) => {
+test("each merge that went in rebuilds CHANGELOG.md and commits it; one edited by hand and left uncommitted is no dirt for the next merge", async (t) => {
 	const { root, git, worker, merge } = await load(t);
 	const first = await worker();
 	assert.equal((await merge(first.id, "--unreviewed", "--decision", OWNER)).err, "");
-	git(root, "add", "CHANGELOG.md");
-	git(root, "commit", "--quiet", "-m", "the changelog");
+	writeFileSync(join(root, "CHANGELOG.md"), "# Changelog\n\nEdited by hand.\n");
 	const cart = await worker({ "cart.ts": "export const cart = 1;\n" }, "Ticket: spec/features/AC0002-cart/ticket.md");
 	assert.match((await merge(cart.id, "--unreviewed", "--decision", OWNER)).out, /\nwrote CHANGELOG\.md: 2 merged tickets\n/);
-	assert.match(git(root, "status", "--porcelain", "--untracked-files=no"), /^ ?M CHANGELOG\.md$/m, "rebuilt, not committed");
+	assert.equal(git(root, "status", "--porcelain", "--untracked-files=no"), "", "rebuilt and committed");
 	const pay = await worker({ "pay.ts": "export const pay = 1;\n" }, "Ticket: spec/features/AC0003-pay/ticket.md");
 	const merged = await merge(pay.id, "--unreviewed", "--decision", OWNER);
 	assert.equal(merged.err, "");
@@ -407,10 +441,10 @@ test("only a merge puts code on main: a code commit since the last merge refuses
 	const { root, fake, git, commit, take, worker, merge, head } = await load(t);
 	const first = await worker();
 	assert.equal((await merge(first.id, "--unreviewed", "--decision", OWNER)).err, "");
+	assert.equal(git(root, "show", "--name-only", "--format=%s", "HEAD"), "spec: AC0001 merged\n\nCHANGELOG.md\nspec/build.json\nspec/features/AC0001-shop/outcome.md");
 	commit(root, { "README.md": "# acme, a shop\n", "docs/guide.md": "# Guide\n" });
-	assert.match(git(root, "show", "--name-only", "--format=", "HEAD"), /^CHANGELOG\.md\nREADME\.md\ndocs\/guide\.md\nspec\/build\.json\nspec\/features\/AC0001-shop\/outcome\.md$/);
 	const cart = await worker({ "cart.ts": "export const cart = 1;\n" }, "Ticket: spec/features/AC0002-cart/ticket.md");
-	assert.equal((await merge(cart.id, "--unreviewed", "--decision", OWNER)).err, "", "the commit after a merge, of spec/, CHANGELOG.md and *.md, is no code");
+	assert.equal((await merge(cart.id, "--unreviewed", "--decision", OWNER)).err, "", "the commits after a merge, of spec/, CHANGELOG.md and *.md, are no code");
 	const hand = git(root, "rev-parse", "--short", commit(root, { "hand.ts": "export const hand = 1;\n" }));
 	commit(root, { "spec/notes.md": "# Notes\n" });
 	const again = git(root, "rev-parse", "--short", commit(root, { "hand.ts": "export const hand = 2;\n" }));
@@ -452,12 +486,20 @@ test("a merge commit made on main outside arthur merge hides nothing: code befor
 	const record = join(fake.host.folder, "acme", "last-merge");
 	const first = await worker();
 	assert.equal((await merge(first.id, "--unreviewed", "--decision", OWNER)).err, "");
-	const merged = head();
+	const merged = git(root, "rev-parse", "HEAD^");
 	assert.equal(readFileSync(record, "utf8"), `${merged}\n`, "the merge commit, written whole");
 	assert.deepEqual(readdirSync(dirname(record)), ["last-merge"], "no temporary file left");
+	// Main reset to `to`, the board's uncommitted moves kept as they are.
+	const reset = (to: string) => {
+		const board = readFileSync(join(root, "spec", "build.json"), "utf8");
+		git(root, "reset", "--quiet", "--hard", to);
+		writeFileSync(join(root, "spec", "build.json"), board);
+	};
+	// The spec: commit undone, its board kept: the branch below starts at the merge commit, so a reset below it leaves the branch's own changes alone.
+	reset(merged);
 	const cart = await worker({ "cart.ts": "export const cart = 1;\n" }, "Ticket: spec/features/AC0002-cart/ticket.md");
 	const refused = (commits: string) => `arthur merge: main has 1 commits since its last merge that change code (${commits}); only a merge puts code on main; the owner decides, and arthur take-main lifts it: main is unchanged`;
-	// One code file committed alone, so `reset --keep` keeps the board's uncommitted moves (AC0002 in progress).
+	// One code file committed alone; a reset keeps the board's uncommitted moves (AC0002 in progress).
 	const code = (path: string) => {
 		writeFileSync(join(root, path), "export const code = 1;\n");
 		git(root, "add", path);
@@ -469,14 +511,14 @@ test("a merge commit made on main outside arthur merge hides nothing: code befor
 	git(root, "merge", "--quiet", "--no-ff", "-m", "a job's own merge", git(root, "commit-tree", "-p", "HEAD", "-m", "empty", "HEAD^{tree}"));
 	assert.deepEqual(await merge(cart.id, "--unreviewed", "--decision", OWNER), { code: 1, out: "", err: refused(hand) });
 	// A job's `git merge --no-ff` of a branch of its own: the merge itself brings the code.
-	git(root, "reset", "--quiet", "--keep", merged);
+	reset(merged);
 	git(root, "checkout", "--quiet", "-b", "side");
 	code("side.ts");
 	git(root, "checkout", "--quiet", "main");
 	git(root, "merge", "--quiet", "--no-ff", "-m", "a job's merge of its branch", "side");
 	assert.deepEqual(await merge(cart.id, "--unreviewed", "--decision", OWNER), { code: 1, out: "", err: refused(git(root, "rev-parse", "--short", "HEAD")) });
 	// The recorded merge made a second parent: main's first-parent line runs through the job's code instead.
-	git(root, "reset", "--quiet", "--keep", `${merged}^1`);
+	reset(`${merged}^1`);
 	code("off.ts");
 	git(root, "merge", "--quiet", "--no-ff", "-m", "a merge that takes the recorded one as its second parent", merged);
 	const before = head();
@@ -485,7 +527,7 @@ test("a merge commit made on main outside arthur merge hides nothing: code befor
 	assert.equal(head(), before);
 	assert.equal(readFileSync(record, "utf8"), `${merged}\n`, "a refused merge records nothing");
 	// Main reset below the recorded merge, its code ended with a job's own merge: the record is no ancestor of HEAD any more.
-	git(root, "reset", "--quiet", "--keep", `${merged}^1`);
+	reset(`${merged}^1`);
 	code("below.ts");
 	git(root, "merge", "--quiet", "--no-ff", "-m", "a job's own merge", git(root, "commit-tree", "-p", "HEAD", "-m", "empty", "HEAD^{tree}"));
 	const below = head();
@@ -498,7 +540,7 @@ test("a merge commit made on main outside arthur merge hides nothing: code befor
 	assert.equal((await take()).code, undefined);
 	assert.equal(readFileSync(record, "utf8"), `${below}\n`);
 	assert.equal((await merge(cart.id, "--unreviewed", "--decision", OWNER)).err, "");
-	assert.equal(readFileSync(record, "utf8"), `${head()}\n`, "the merge that went in recorded");
+	assert.equal(readFileSync(record, "utf8"), `${git(root, "rev-parse", "HEAD^")}\n`, "the merge that went in recorded");
 });
 
 test("arthur take-main records main's HEAD only on the owner's merge decision of no ticket and no job; refused, it writes nothing; then the next merge goes in", async (t) => {
@@ -637,7 +679,7 @@ test("a second merge of the project while the first runs its checks is refused n
 	writeFileSync(lock, `${spawnSync(process.execPath, ["-e", ""]).pid}`);
 	const merged = await merge(second.id);
 	assert.equal(merged.code, undefined, merged.err);
-	assert.equal(git(root, "rev-parse", "HEAD^2"), second.tip);
+	assert.equal(git(root, "rev-parse", "HEAD^^2"), second.tip);
 	assert.deepEqual(readdirSync(join(fake.host.folder, "acme")), ["last-merge"], "no lock and no job named after the merge");
 });
 
@@ -715,7 +757,7 @@ test("with nvm.path provided, the install and checks run on its PATH, asked for 
 	await review(job.id, "PASS");
 	const merged = await merge(job.id);
 	assert.equal(merged.code, undefined, merged.err);
-	assert.deepEqual(asked, [{ root, head: head() }], "asked once, for the merge commit, before the steps");
+	assert.deepEqual(asked, [{ root, head: git(root, "rev-parse", "HEAD^") }], "asked once, for the merge commit, before the steps");
 	assert.deepEqual([ran().includes("install.js"), ran().includes("-e "), ran().includes("test.js")], [true, true, true], ran().join("\n"));
 
 	const cart = "spec/features/AC0002-cart";
@@ -880,7 +922,7 @@ test("merge.check: any text answer refuses with every answer, main unchanged and
 	assert.equal(merged.code, undefined, merged.err);
 	assert.match(merged.out, new RegExp(`^merged ${job.branch} into main: [0-9a-f]+\nbun install --frozen-lockfile: passed\\.\nnpm run check: passed\\.\nnpm test: 2/2 passed\\.\nno ticket: no outcome\\.md, nothing moved\nwrote CHANGELOG\\.md: 0 merged tickets\n`));
 	const pruned = `${job.id}: worktree ${job.worktree} removed; branch ${job.branch} deleted; record deleted`;
-	assert.ok(merged.out.endsWith(`wrote CHANGELOG.md: 0 merged tickets\ngithub: main not pushed to origin: [rejected] (non-fast-forward)\n${pruned}\nnothing committed but the merge\n\n${PROCEDURE}`), merged.out);
+	assert.ok(merged.out.endsWith(`wrote CHANGELOG.md: 0 merged tickets\ngithub: main not pushed to origin: [rejected] (non-fast-forward)\n${pruned}\n\n${PROCEDURE}`), merged.out);
 	assert.deepEqual(pushes, [{ project: "acme", branch: "main" }]);
 	assert.equal(git(root, "log", "-1", "--format=%s"), `Merge ${job.branch}`);
 });
@@ -1030,5 +1072,5 @@ test("no git identity: arthur doctor's line per project says so and names the fi
 	assert.equal((await doctor())[0]?.said, "ok", "a repository-local identity is one");
 	const merged = await merge(job.id);
 	assert.equal(merged.code, undefined, merged.err);
-	assert.equal(git(root, "log", "-1", "--format=%an <%ae> %cn <%ce>"), "Owner <owner@example.com> Owner <owner@example.com>", "the merge commit is the owner's, none Arthur made");
+	assert.equal(git(root, "log", "-2", "--format=%s: %an <%ae> %cn <%ce>"), "spec: AC0001 merged: Owner <owner@example.com> Owner <owner@example.com>\nMerge AC0001: Shop: Owner <owner@example.com> Owner <owner@example.com>", "the merge commit and the spec: one are the owner's, none Arthur made");
 });

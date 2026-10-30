@@ -4756,5 +4756,29 @@
     "status": "planned",
     "path": "spec/features/AR0593-ar0589-t2-a-job-sees-only-its-own-project/ticket.md",
     "updated": "2026-10-30T20:15:36.720Z"
+  },
+  {
+    "id": "AR0594",
+    "title": "Retro: a worker sent back after a FAIL fixes the cause, not only the reviewer's examples",
+    "status": "planning",
+    "path": "spec/features/AR0594-retro-a-worker-sent-back-after-a-fail-fixes-the-cause-not-only-the-reviewer-s/ticket.md",
+    "updated": "2026-10-30T21:36:00.793Z"
+  },
+  {
+    "id": "AR0595",
+    "title": "Retro: a change brings along every line it makes false, whichever file holds it",
+    "status": "planning",
+    "path": "spec/features/AR0595-retro-a-change-brings-along-every-line-it-makes-false-whichever-file-holds-it/ticket.md",
+    "updated": "2026-10-30T21:36:01.300Z"
+  },
+  {
+    "id": "AR0596",
+    "title": "Retro: the project's review criteria fail a branch that leaves docs saying the old thing",
+    "status": "planning",
+    "path": "spec/features/AR0596-retro-the-project-s-review-criteria-fail-a-branch-that-leaves-docs-saying-the/ticket.md",
+    "updated": "2026-10-30T21:36:01.814Z",
+    "after": [
+      "AR0595"
+    ]
   }
 ]

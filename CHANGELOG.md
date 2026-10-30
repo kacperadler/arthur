@@ -12,6 +12,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Fixed
 
 - AR0566 Five job roles tell the agent to wait on proc://, which a job sandbox cannot reach (425ca8aa)
+- AR0570 Defaults T2: a branch cannot change its ticket, the board or the decision log (5a2e3ed8)
 - AR0586 The report check tests fail on GitHub CI: its Chrome will not render narrower than 500 px (8c271b51)
 
 ### Changed
@@ -21,6 +22,8 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0567 AR0311's 18 findings stay open forever though each is already a ticket (4a15b3fc)
 - AR0568 After the listen rename, the core still names the voice plugin, and versions.mmd misses four plugins (8faffe55)
 - AR0577 Defaults T9: the test kit keeps HOME, TMPDIR and the git identity in its own folder, and cleans up on a signal (4b974151)
+- AR0581 Defaults T13: the fakes of GitHub, YouTrack and Telegram are checked against recorded shapes, and tsc gets stricter (e45aba3d)
+- AR0587 The report check tests skip on this server since the test kit moved HOME (0c4b7f93)
 
 ## 2026-10-29
 

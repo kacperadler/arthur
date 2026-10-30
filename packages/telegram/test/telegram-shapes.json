@@ -1,0 +1,847 @@
+{
+	"source": "https://core.telegram.org/bots/api",
+	"version": "Bot API 10.3",
+	"recorded": "2026-10-30",
+	"how": "the field table of each type a fake answer holds; a field whose description starts Optional is optional, one that says Returned only in getMe is in every getMe answer; Response is the envelope that Making requests describes in prose",
+	"types": {
+		"Response": {
+			"ok": {
+				"type": "Boolean"
+			},
+			"result": {
+				"type": "Result",
+				"optional": true
+			},
+			"description": {
+				"type": "String",
+				"optional": true
+			},
+			"error_code": {
+				"type": "Integer",
+				"optional": true
+			},
+			"parameters": {
+				"type": "ResponseParameters",
+				"optional": true
+			}
+		},
+		"Update": {
+			"update_id": {
+				"type": "Integer"
+			},
+			"message": {
+				"type": "Message",
+				"optional": true
+			},
+			"edited_message": {
+				"type": "Message",
+				"optional": true
+			},
+			"channel_post": {
+				"type": "Message",
+				"optional": true
+			},
+			"edited_channel_post": {
+				"type": "Message",
+				"optional": true
+			},
+			"business_connection": {
+				"type": "BusinessConnection",
+				"optional": true
+			},
+			"business_message": {
+				"type": "Message",
+				"optional": true
+			},
+			"edited_business_message": {
+				"type": "Message",
+				"optional": true
+			},
+			"deleted_business_messages": {
+				"type": "BusinessMessagesDeleted",
+				"optional": true
+			},
+			"guest_message": {
+				"type": "Message",
+				"optional": true
+			},
+			"message_reaction": {
+				"type": "MessageReactionUpdated",
+				"optional": true
+			},
+			"message_reaction_count": {
+				"type": "MessageReactionCountUpdated",
+				"optional": true
+			},
+			"inline_query": {
+				"type": "InlineQuery",
+				"optional": true
+			},
+			"chosen_inline_result": {
+				"type": "ChosenInlineResult",
+				"optional": true
+			},
+			"callback_query": {
+				"type": "CallbackQuery",
+				"optional": true
+			},
+			"shipping_query": {
+				"type": "ShippingQuery",
+				"optional": true
+			},
+			"pre_checkout_query": {
+				"type": "PreCheckoutQuery",
+				"optional": true
+			},
+			"purchased_paid_media": {
+				"type": "PaidMediaPurchased",
+				"optional": true
+			},
+			"poll": {
+				"type": "Poll",
+				"optional": true
+			},
+			"poll_answer": {
+				"type": "PollAnswer",
+				"optional": true
+			},
+			"my_chat_member": {
+				"type": "ChatMemberUpdated",
+				"optional": true
+			},
+			"chat_member": {
+				"type": "ChatMemberUpdated",
+				"optional": true
+			},
+			"chat_join_request": {
+				"type": "ChatJoinRequest",
+				"optional": true
+			},
+			"chat_boost": {
+				"type": "ChatBoostUpdated",
+				"optional": true
+			},
+			"removed_chat_boost": {
+				"type": "ChatBoostRemoved",
+				"optional": true
+			},
+			"managed_bot": {
+				"type": "ManagedBotUpdated",
+				"optional": true
+			},
+			"subscription": {
+				"type": "BotSubscriptionUpdated",
+				"optional": true
+			},
+			"stopped_message_generation": {
+				"type": "MessageGenerationStopped",
+				"optional": true
+			}
+		},
+		"Message": {
+			"message_id": {
+				"type": "Integer"
+			},
+			"message_thread_id": {
+				"type": "Integer",
+				"optional": true
+			},
+			"direct_messages_topic": {
+				"type": "DirectMessagesTopic",
+				"optional": true
+			},
+			"from": {
+				"type": "User",
+				"optional": true
+			},
+			"sender_chat": {
+				"type": "Chat",
+				"optional": true
+			},
+			"sender_boost_count": {
+				"type": "Integer",
+				"optional": true
+			},
+			"sender_business_bot": {
+				"type": "User",
+				"optional": true
+			},
+			"sender_tag": {
+				"type": "String",
+				"optional": true
+			},
+			"receiver_user": {
+				"type": "User",
+				"optional": true
+			},
+			"ephemeral_message_id": {
+				"type": "Integer",
+				"optional": true
+			},
+			"date": {
+				"type": "Integer"
+			},
+			"guest_query_id": {
+				"type": "String",
+				"optional": true
+			},
+			"business_connection_id": {
+				"type": "String",
+				"optional": true
+			},
+			"chat": {
+				"type": "Chat"
+			},
+			"forward_origin": {
+				"type": "MessageOrigin",
+				"optional": true
+			},
+			"is_topic_message": {
+				"type": "True",
+				"optional": true
+			},
+			"is_automatic_forward": {
+				"type": "True",
+				"optional": true
+			},
+			"reply_to_message": {
+				"type": "Message",
+				"optional": true
+			},
+			"external_reply": {
+				"type": "ExternalReplyInfo",
+				"optional": true
+			},
+			"quote": {
+				"type": "TextQuote",
+				"optional": true
+			},
+			"reply_to_story": {
+				"type": "Story",
+				"optional": true
+			},
+			"reply_to_checklist_task_id": {
+				"type": "Integer",
+				"optional": true
+			},
+			"reply_to_poll_option_id": {
+				"type": "String",
+				"optional": true
+			},
+			"via_bot": {
+				"type": "User",
+				"optional": true
+			},
+			"guest_bot_caller_user": {
+				"type": "User",
+				"optional": true
+			},
+			"guest_bot_caller_chat": {
+				"type": "Chat",
+				"optional": true
+			},
+			"edit_date": {
+				"type": "Integer",
+				"optional": true
+			},
+			"has_protected_content": {
+				"type": "True",
+				"optional": true
+			},
+			"is_from_offline": {
+				"type": "True",
+				"optional": true
+			},
+			"is_paid_post": {
+				"type": "True",
+				"optional": true
+			},
+			"media_group_id": {
+				"type": "String",
+				"optional": true
+			},
+			"author_signature": {
+				"type": "String",
+				"optional": true
+			},
+			"paid_star_count": {
+				"type": "Integer",
+				"optional": true
+			},
+			"text": {
+				"type": "String",
+				"optional": true
+			},
+			"entities": {
+				"type": "Array of MessageEntity",
+				"optional": true
+			},
+			"link_preview_options": {
+				"type": "LinkPreviewOptions",
+				"optional": true
+			},
+			"suggested_post_info": {
+				"type": "SuggestedPostInfo",
+				"optional": true
+			},
+			"effect_id": {
+				"type": "String",
+				"optional": true
+			},
+			"rich_message": {
+				"type": "RichMessage",
+				"optional": true
+			},
+			"animation": {
+				"type": "Animation",
+				"optional": true
+			},
+			"audio": {
+				"type": "Audio",
+				"optional": true
+			},
+			"document": {
+				"type": "Document",
+				"optional": true
+			},
+			"live_photo": {
+				"type": "LivePhoto",
+				"optional": true
+			},
+			"paid_media": {
+				"type": "PaidMediaInfo",
+				"optional": true
+			},
+			"photo": {
+				"type": "Array of PhotoSize",
+				"optional": true
+			},
+			"sticker": {
+				"type": "Sticker",
+				"optional": true
+			},
+			"story": {
+				"type": "Story",
+				"optional": true
+			},
+			"video": {
+				"type": "Video",
+				"optional": true
+			},
+			"video_note": {
+				"type": "VideoNote",
+				"optional": true
+			},
+			"voice": {
+				"type": "Voice",
+				"optional": true
+			},
+			"caption": {
+				"type": "String",
+				"optional": true
+			},
+			"caption_entities": {
+				"type": "Array of MessageEntity",
+				"optional": true
+			},
+			"show_caption_above_media": {
+				"type": "True",
+				"optional": true
+			},
+			"has_media_spoiler": {
+				"type": "True",
+				"optional": true
+			},
+			"checklist": {
+				"type": "Checklist",
+				"optional": true
+			},
+			"contact": {
+				"type": "Contact",
+				"optional": true
+			},
+			"dice": {
+				"type": "Dice",
+				"optional": true
+			},
+			"game": {
+				"type": "Game",
+				"optional": true
+			},
+			"poll": {
+				"type": "Poll",
+				"optional": true
+			},
+			"venue": {
+				"type": "Venue",
+				"optional": true
+			},
+			"location": {
+				"type": "Location",
+				"optional": true
+			},
+			"new_chat_members": {
+				"type": "Array of User",
+				"optional": true
+			},
+			"left_chat_member": {
+				"type": "User",
+				"optional": true
+			},
+			"chat_owner_left": {
+				"type": "ChatOwnerLeft",
+				"optional": true
+			},
+			"chat_owner_changed": {
+				"type": "ChatOwnerChanged",
+				"optional": true
+			},
+			"new_chat_title": {
+				"type": "String",
+				"optional": true
+			},
+			"new_chat_photo": {
+				"type": "Array of PhotoSize",
+				"optional": true
+			},
+			"delete_chat_photo": {
+				"type": "True",
+				"optional": true
+			},
+			"group_chat_created": {
+				"type": "True",
+				"optional": true
+			},
+			"supergroup_chat_created": {
+				"type": "True",
+				"optional": true
+			},
+			"channel_chat_created": {
+				"type": "True",
+				"optional": true
+			},
+			"message_auto_delete_timer_changed": {
+				"type": "MessageAutoDeleteTimerChanged",
+				"optional": true
+			},
+			"migrate_to_chat_id": {
+				"type": "Integer",
+				"optional": true
+			},
+			"migrate_from_chat_id": {
+				"type": "Integer",
+				"optional": true
+			},
+			"pinned_message": {
+				"type": "MaybeInaccessibleMessage",
+				"optional": true
+			},
+			"invoice": {
+				"type": "Invoice",
+				"optional": true
+			},
+			"successful_payment": {
+				"type": "SuccessfulPayment",
+				"optional": true
+			},
+			"refunded_payment": {
+				"type": "RefundedPayment",
+				"optional": true
+			},
+			"users_shared": {
+				"type": "UsersShared",
+				"optional": true
+			},
+			"chat_shared": {
+				"type": "ChatShared",
+				"optional": true
+			},
+			"gift": {
+				"type": "GiftInfo",
+				"optional": true
+			},
+			"unique_gift": {
+				"type": "UniqueGiftInfo",
+				"optional": true
+			},
+			"gift_upgrade_sent": {
+				"type": "GiftInfo",
+				"optional": true
+			},
+			"connected_website": {
+				"type": "String",
+				"optional": true
+			},
+			"write_access_allowed": {
+				"type": "WriteAccessAllowed",
+				"optional": true
+			},
+			"passport_data": {
+				"type": "PassportData",
+				"optional": true
+			},
+			"proximity_alert_triggered": {
+				"type": "ProximityAlertTriggered",
+				"optional": true
+			},
+			"boost_added": {
+				"type": "ChatBoostAdded",
+				"optional": true
+			},
+			"chat_background_set": {
+				"type": "ChatBackground",
+				"optional": true
+			},
+			"checklist_tasks_done": {
+				"type": "ChecklistTasksDone",
+				"optional": true
+			},
+			"checklist_tasks_added": {
+				"type": "ChecklistTasksAdded",
+				"optional": true
+			},
+			"community_chat_added": {
+				"type": "CommunityChatAdded",
+				"optional": true
+			},
+			"community_chat_joined": {
+				"type": "CommunityChatJoined",
+				"optional": true
+			},
+			"community_chat_removed": {
+				"type": "CommunityChatRemoved",
+				"optional": true
+			},
+			"direct_message_price_changed": {
+				"type": "DirectMessagePriceChanged",
+				"optional": true
+			},
+			"forum_topic_created": {
+				"type": "ForumTopicCreated",
+				"optional": true
+			},
+			"forum_topic_edited": {
+				"type": "ForumTopicEdited",
+				"optional": true
+			},
+			"forum_topic_closed": {
+				"type": "ForumTopicClosed",
+				"optional": true
+			},
+			"forum_topic_reopened": {
+				"type": "ForumTopicReopened",
+				"optional": true
+			},
+			"general_forum_topic_hidden": {
+				"type": "GeneralForumTopicHidden",
+				"optional": true
+			},
+			"general_forum_topic_unhidden": {
+				"type": "GeneralForumTopicUnhidden",
+				"optional": true
+			},
+			"giveaway_created": {
+				"type": "GiveawayCreated",
+				"optional": true
+			},
+			"giveaway": {
+				"type": "Giveaway",
+				"optional": true
+			},
+			"giveaway_winners": {
+				"type": "GiveawayWinners",
+				"optional": true
+			},
+			"giveaway_completed": {
+				"type": "GiveawayCompleted",
+				"optional": true
+			},
+			"managed_bot_created": {
+				"type": "ManagedBotCreated",
+				"optional": true
+			},
+			"paid_message_price_changed": {
+				"type": "PaidMessagePriceChanged",
+				"optional": true
+			},
+			"poll_option_added": {
+				"type": "PollOptionAdded",
+				"optional": true
+			},
+			"poll_option_deleted": {
+				"type": "PollOptionDeleted",
+				"optional": true
+			},
+			"suggested_post_approved": {
+				"type": "SuggestedPostApproved",
+				"optional": true
+			},
+			"suggested_post_approval_failed": {
+				"type": "SuggestedPostApprovalFailed",
+				"optional": true
+			},
+			"suggested_post_declined": {
+				"type": "SuggestedPostDeclined",
+				"optional": true
+			},
+			"suggested_post_paid": {
+				"type": "SuggestedPostPaid",
+				"optional": true
+			},
+			"suggested_post_refunded": {
+				"type": "SuggestedPostRefunded",
+				"optional": true
+			},
+			"video_chat_scheduled": {
+				"type": "VideoChatScheduled",
+				"optional": true
+			},
+			"video_chat_started": {
+				"type": "VideoChatStarted",
+				"optional": true
+			},
+			"video_chat_ended": {
+				"type": "VideoChatEnded",
+				"optional": true
+			},
+			"video_chat_participants_invited": {
+				"type": "VideoChatParticipantsInvited",
+				"optional": true
+			},
+			"web_app_data": {
+				"type": "WebAppData",
+				"optional": true
+			},
+			"reply_markup": {
+				"type": "InlineKeyboardMarkup",
+				"optional": true
+			}
+		},
+		"User": {
+			"id": {
+				"type": "Integer"
+			},
+			"is_bot": {
+				"type": "Boolean"
+			},
+			"first_name": {
+				"type": "String"
+			},
+			"last_name": {
+				"type": "String",
+				"optional": true
+			},
+			"username": {
+				"type": "String",
+				"optional": true
+			},
+			"language_code": {
+				"type": "String",
+				"optional": true
+			},
+			"is_premium": {
+				"type": "True",
+				"optional": true
+			},
+			"added_to_attachment_menu": {
+				"type": "True",
+				"optional": true
+			},
+			"can_join_groups": {
+				"type": "Boolean",
+				"optional": true,
+				"getMe": true
+			},
+			"can_read_all_group_messages": {
+				"type": "Boolean",
+				"optional": true,
+				"getMe": true
+			},
+			"supports_guest_queries": {
+				"type": "Boolean",
+				"optional": true,
+				"getMe": true
+			},
+			"supports_inline_queries": {
+				"type": "Boolean",
+				"optional": true,
+				"getMe": true
+			},
+			"can_connect_to_business": {
+				"type": "Boolean",
+				"optional": true,
+				"getMe": true
+			},
+			"has_main_web_app": {
+				"type": "Boolean",
+				"optional": true,
+				"getMe": true
+			},
+			"has_topics_enabled": {
+				"type": "Boolean",
+				"optional": true,
+				"getMe": true
+			},
+			"allows_users_to_create_topics": {
+				"type": "Boolean",
+				"optional": true,
+				"getMe": true
+			},
+			"can_manage_bots": {
+				"type": "Boolean",
+				"optional": true,
+				"getMe": true
+			},
+			"supports_join_request_queries": {
+				"type": "Boolean",
+				"optional": true,
+				"getMe": true
+			}
+		},
+		"Chat": {
+			"id": {
+				"type": "Integer"
+			},
+			"type": {
+				"type": "String"
+			},
+			"title": {
+				"type": "String",
+				"optional": true
+			},
+			"username": {
+				"type": "String",
+				"optional": true
+			},
+			"first_name": {
+				"type": "String",
+				"optional": true
+			},
+			"last_name": {
+				"type": "String",
+				"optional": true
+			},
+			"is_forum": {
+				"type": "True",
+				"optional": true
+			},
+			"is_direct_messages": {
+				"type": "True",
+				"optional": true
+			}
+		},
+		"PhotoSize": {
+			"file_id": {
+				"type": "String"
+			},
+			"file_unique_id": {
+				"type": "String"
+			},
+			"width": {
+				"type": "Integer"
+			},
+			"height": {
+				"type": "Integer"
+			},
+			"file_size": {
+				"type": "Integer",
+				"optional": true
+			}
+		},
+		"Video": {
+			"file_id": {
+				"type": "String"
+			},
+			"file_unique_id": {
+				"type": "String"
+			},
+			"width": {
+				"type": "Integer"
+			},
+			"height": {
+				"type": "Integer"
+			},
+			"duration": {
+				"type": "Integer"
+			},
+			"thumbnail": {
+				"type": "PhotoSize",
+				"optional": true
+			},
+			"cover": {
+				"type": "Array of PhotoSize",
+				"optional": true
+			},
+			"start_timestamp": {
+				"type": "Integer",
+				"optional": true
+			},
+			"qualities": {
+				"type": "Array of VideoQuality",
+				"optional": true
+			},
+			"file_name": {
+				"type": "String",
+				"optional": true
+			},
+			"mime_type": {
+				"type": "String",
+				"optional": true
+			},
+			"file_size": {
+				"type": "Integer",
+				"optional": true
+			}
+		},
+		"Document": {
+			"file_id": {
+				"type": "String"
+			},
+			"file_unique_id": {
+				"type": "String"
+			},
+			"thumbnail": {
+				"type": "PhotoSize",
+				"optional": true
+			},
+			"file_name": {
+				"type": "String",
+				"optional": true
+			},
+			"mime_type": {
+				"type": "String",
+				"optional": true
+			},
+			"file_size": {
+				"type": "Integer",
+				"optional": true
+			}
+		},
+		"File": {
+			"file_id": {
+				"type": "String"
+			},
+			"file_unique_id": {
+				"type": "String"
+			},
+			"file_size": {
+				"type": "Integer",
+				"optional": true
+			},
+			"file_path": {
+				"type": "String",
+				"optional": true
+			}
+		},
+		"ResponseParameters": {
+			"migrate_to_chat_id": {
+				"type": "Integer",
+				"optional": true
+			},
+			"retry_after": {
+				"type": "Integer",
+				"optional": true
+			}
+		}
+	}
+}

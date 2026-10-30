@@ -1,5 +1,5 @@
 import { closeSync, constants, openSync, statSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, resolve, sep } from "node:path";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { linkedFolders, linkName } from "./git-link.ts";
 import { gitCall, UNREAD } from "./git-writes.ts";
 import { declaredPlace, jobPlace, type Place, real } from "./job-place.ts";
@@ -23,13 +23,15 @@ const STASH = "arthur: refused: git stash keeps one stack for every worktree of 
 const UNSEEN = "arthur: refused: this git call reads config the guard does not (a shell alias, an include, --config-env, GIT_CONFIG*, HOME or XDG_CONFIG_HOME set for it), or writes an alias or include that later git calls would run unseen; run the command itself instead";
 const KILLS = ["pkill", "killall"];
 const KILL = "arthur: refused: pkill and killall pick processes by name, so they also stop other jobs' processes and Arthur's own; stop yours by its process id instead (kill <pid>, the pid from $! when you start it in the background)";
+const TICKET = "arthur: refused: a ticket's ticket.md is the coordinator's, written on main, and the merge refuses a branch that changes one; write what you found in the ticket's findings.md, and what the ticket should say in your final message";
 const OLDPWD_UNKNOWN = "arthur: refused: the guard cannot tell where this path leads: OLDPWD is unset, where bash reads `~-` and `$OLDPWD` apart, or named by a `local`, or set at an index bash computes, by a list appended or with indexes, as an index or a list before a command, or changed by an operator of `${OLDPWD…}`; or it is built by an operator of `${PWD…}`, `${HOME…}` or `${ARTHUR_JOB…}` the guard does not read, or by a fallback (`${x:-…}`) with a blank or one of `<>;&|()#` unquoted, or with `$'…'` or `$\"…\"` in double quotes, or by an unquoted `~name` (a user's home or a `dirs` entry); or the command holds a backslash-newline after a character other than a blank, or in `$'…'`, or any after a heredoc's `<<`, where bash joins the lines, or a `<<` after `((` or `$[`, which bash may read as arithmetic; or HOME, ARTHUR_JOB or PWD is set by the call, which the guard reads as the job started, or a variable `export`, `declare`, `typeset`, `readonly`, `local`, `env` or `sudo` sets is named other than by a plain name (letters, digits and `_`, not first a digit, written as is); or the string `env -S` splits holds a backslash, a backtick, a `$`, a `~`, a line break or one of `;&|<>()`, which env reads apart from bash; name the folder instead, on one line";
 
 const inside = (path: string, folder: string): boolean => path === folder || path.startsWith(folder.endsWith(sep) ? folder : folder + sep);
 
 // The line that refuses writing `path` (absolute, resolved), or undefined when it is not a guarded place. Of nested places (a project's checkout inside
-// another's, the job's own worktree, no place, in the jobs' folder) the innermost names it. The worktree's `.git` file is its link to the repository, as is any path `named` `.git` or `commondir` (git-link.ts).
+// another's, the job's own worktree, no place, in the jobs' folder) the innermost names it. The worktree's `.git` file is its link to the repository, as is any path `named` `.git` or `commondir` (git-link.ts). A ticket's `spec/features/*/ticket.md` in the worktree is the coordinator's (AR0570); its `findings.md` stays the job's.
 function refusal(place: Place, path: string, shown = path, named = true): string | undefined {
+	if (/^spec\/features\/[^/]+\/ticket\.md$/.test(relative(place.worktree, path))) return TICKET;
 	const link = join(place.worktree, ".git");
 	const linking = named && (linkName(path) || linkName(shown)) ? `arthur: refused: this call writes ${shown}, which Git reads as a link to a repository (a .git or commondir) and so may make its folder a checkout of main; make or remove a repository's folder with git init, git clone or rm -r instead` : undefined;
 	const places: (readonly [string, string])[] = [[place.worktree, ""], [place.home, "Arthur's home folder"], [place.worktrees, "another job's worktree"], [place.root, "the main checkout"], [link, "the main checkout"]];

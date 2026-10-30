@@ -11,11 +11,11 @@ import { checkStructure } from "./structure.ts";
 const BUDGETS = {
 	"commit-rules": 165,
 
-	core: 6501,
+	core: 6503,
 
 	"core/testing": 357,
 
-	delivery: 1737,
+	delivery: 1740,
 
 	develop: 710,
 
@@ -33,7 +33,7 @@ const BUDGETS = {
 
 	nvm: 96,
 
-	orchestration: 2434,
+	orchestration: 2463,
 
 	projects: 482,
 

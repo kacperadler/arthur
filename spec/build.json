@@ -4739,8 +4739,8 @@
   {
     "id": "AR0591",
     "title": "The sandbox check reads a python3 that exits 127 itself as a missing agent, so the job runs without a sandbox",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0591-the-sandbox-check-reads-a-python3-that-exits-127-itself-as-a-missing-agent-so/ticket.md",
-    "updated": "2026-10-30T18:53:24.531Z"
+    "updated": "2026-10-30T18:59:54.075Z"
   }
 ]

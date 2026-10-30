@@ -760,3 +760,5 @@
 {"record":"answer","id":"AR-D378","time":"2026-10-30T13:04:59+01:00","decided":"AR0583 keeps orchestration 2568 and models 516 as measured; the review checks that no line goes beyond what the grant needs","picked":1,"words":"i have to focus on my work, go with recomendations and do not cross 70% of weekly usage, do to silent mode"}
 {"record":"ask","id":"AR-D379","time":"2026-10-30T13:39:49+01:00","project":"arthur","kind":"merge","question":"Merge AR0573 (merge writes What went in per file; main merged in) after its passed review?","options":[],"ticket":"AR0573"}
 {"record":"answer","id":"AR-D379","time":"2026-10-30T13:39:49+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D380","time":"2026-10-30T14:19:14+01:00","project":"arthur","kind":"merge","question":"Merge AR0578 (one kit until for every test, fixed waits capped) after its passed review?","options":[],"ticket":"AR0578"}
+{"record":"answer","id":"AR-D380","time":"2026-10-30T14:19:14+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

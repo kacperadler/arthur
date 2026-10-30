@@ -107,3 +107,11 @@
 ## Left open
 
 - Findings: none; no findings.md on this ticket.
+
+## Config swap at the merge
+
+The real `arthur.config.ts` is git-ignored, so the coordinator swapped it by hand at this merge:
+
+1. Before the merge: wrote `arthur.config.next.ts` (the old config with `projects({ folders: ["projects/arthur"] })` in place of the `list`, and `findings()` with no `mode`) and `projects/arthur/project.config.ts` with the pieces `projects.project`, `delivery.project({ autoMerge: true })` (AR-D345), `github.project({ workflow: "ci.yml" })`, `commitRules.project({ regex })` and `findings.project("summary")`.
+2. After the merge: `mv arthur.config.next.ts arthur.config.ts`, then `arthur config check` (every variable set), `arthur doctor` (every line ok) and `arthur projects` (AR Arthur listed).
+3. The old config is kept outside the repository until the next restart proves the new one.

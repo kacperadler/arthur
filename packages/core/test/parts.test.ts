@@ -57,7 +57,7 @@ test("the first claim in setup order replaces the part by its text; its reply go
 test("an unclaimed voice note is one line to the coordinator and the same line to the human", async () => {
 	const { host: on, replies } = host();
 	assert.equal(await turnText(on, 3, { channel: "telegram", parts: [voice] }), NOT_TRANSCRIBED);
-	assert.equal(NOT_TRANSCRIBED, "[voice note not transcribed: the voice plugin is not enabled]");
+	assert.equal(NOT_TRANSCRIBED, "[voice note not transcribed: the listen plugin is not enabled]");
 	assert.deepEqual(replies(), [{ text: NOT_TRANSCRIBED, answers: [3], channels: ["telegram"] }]);
 });
 

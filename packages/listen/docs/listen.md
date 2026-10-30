@@ -30,7 +30,7 @@ One file at a time: a queue in the order the parts were asked for, so two notes 
 - ffmpeg or whisper-cli exiting non-zero, or killed after `timeoutSeconds`: `[<kind> <seconds> s: not transcribed: <why>] (<path>)`, `<why>` being the last line the tool printed on stderr, or `timed out after <timeoutSeconds> s`.
 - `whisper-cli`, the model file or `ffmpeg` missing: nothing runs, and the coordinator gets `[<kind> <seconds> s: not transcribed: <whisper-cli | model <path> | ffmpeg> missing; see arthur doctor] (<path>)`; without the part's seconds, `[<kind>: not transcribed: ...]`.
 
-Without the plugin enabled, a voice part reaches the coordinator as `[voice note not transcribed: the voice plugin is not enabled]`, and an audio part as its saved path.
+Without the plugin enabled, a voice part reaches the coordinator as `[voice note not transcribed: the listen plugin is not enabled]`, and an audio part as its saved path.
 
 ## `listen.transcribe`
 

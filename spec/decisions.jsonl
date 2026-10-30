@@ -718,3 +718,4 @@
 {"record":"answer","id":"AR-D356","time":"2026-10-30T08:47:33+01:00","decided":"AR0566 approved; its worker starts now","words":"AR0566, AR0567, AR0568 - approve"}
 {"record":"answer","id":"AR-D357","time":"2026-10-30T08:47:34+01:00","decided":"AR0567 approved; its worker starts now","words":"AR0566, AR0567, AR0568 - approve"}
 {"record":"answer","id":"AR-D358","time":"2026-10-30T08:47:36+01:00","decided":"AR0568 approved; its worker starts now","words":"AR0566, AR0567, AR0568 - approve"}
+{"record":"ask","id":"AR-D359","time":"2026-10-30T08:47:57+01:00","project":"arthur","kind":"job","question":"Start the 16 AR0561 tickets: the four that wait for nothing (AR0569, AR0575, AR0577, AR0581) as job slots free up, then each next one as soon as what it waits for is merged?","options":["Yes, all 16 in the plan order, no further asking","Only AR0569 first, then ask again","Hold them all for now"],"recommend":1,"ticket":"AR0561"}

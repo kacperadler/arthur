@@ -13,6 +13,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0575 Defaults T7: a passed CI run wakes no one, and Arthur restarts by itself once no job runs (7431ebe0)
 - AR0576 Defaults T8: a passed review merges by itself in an autoMerge project, and four FAILs come before the owner is asked (c2bb5da7)
 - AR0583 Defaults T15: a go-with-my-recommendation grant, and a policy answer continues the job (691ec332)
+- AR0585 Before a job ends, the agent is reminded to close the processes it started that are no longer needed (81dd75ff)
 
 ### Fixed
 

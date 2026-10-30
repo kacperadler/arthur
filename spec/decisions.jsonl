@@ -795,3 +795,5 @@
 {"record":"answer","id":"AR-D395","time":"2026-10-30T17:58:16+01:00","decided":"Ticket and approve","words":"by recommendation: G5188"}
 {"record":"ask","id":"AR-D396","time":"2026-10-30T17:58:40+01:00","project":"arthur","kind":"budget","question":"Budget for the AR0589 worker on the plan ticket 1 (project folders and pieces, many packages)?","options":["$16","$10"],"recommend":1,"ticket":"AR0589"}
 {"record":"answer","id":"AR-D396","time":"2026-10-30T17:58:40+01:00","decided":"AR0589 ticket 1 worker budget $16","picked":1,"words":"Go with recommendations till 70%"}
+{"record":"ask","id":"AR-D397","time":"2026-10-30T18:41:00+01:00","project":"arthur","kind":"budget","question":"AR0589 ticket 1 (project folders and pieces) stopped at its $16 budget with 82 files changed, uncommitted, rewriting the example config last. Raise to $26 and continue?","options":["Raise to $26 and continue","Leave it stopped"],"recommend":1,"ticket":"AR0589"}
+{"record":"answer","id":"AR-D397","time":"2026-10-30T18:41:08+01:00","decided":"AR0589 ticket 1 raised to $26 and continued","picked":1,"words":"Go with recommendations till 70%"}

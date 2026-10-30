@@ -4527,9 +4527,9 @@
   {
     "id": "AR0568",
     "title": "After the listen rename, the core still names the voice plugin, and versions.mmd misses four plugins",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0568-after-the-listen-rename-the-core-still-names-the-voice-plugin-and-versions-mmd/ticket.md",
-    "updated": "2026-10-30T08:05:34.763Z"
+    "updated": "2026-10-30T08:12:29.498Z"
   },
   {
     "id": "AR0569",

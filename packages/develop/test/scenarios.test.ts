@@ -62,10 +62,8 @@ const KIND = "- Kind: <!-- feat | fix | security | perf | refactor | test | docs
 const DECISION = "<!-- - YYYY-MM-DD: one decision the human made, in one line. -->";
 const APPROVED = "- 2026-10-21: The owner approved it.\n";
 const SH0004 = "spec/features/SH0004-show-the-cart-s-total-with-tax/ticket.md";
-const SH0005 = "spec/features/SH0005-name-the-removed-item-in-the-cart-s-undo-notice";
 const SH0006 = "spec/features/SH0006-count-the-items-per-order-in-the-sales-report";
 const SH0011 = "spec/features/SH0011-warn-when-a-product-has-no-image/ticket.md";
-const AR0090 = "spec/features/AR0090-name-the-machine-in-arthur-jobs/outcome.md";
 const AR0091 = "'Ticket: spec/features/AR0091-sort-arthur-jobs-by-machine/ticket.md'";
 const CHECK_FAILED = `'npm test failed on main after the merge: test/catalog.test.ts:77, a product named with spaces around it is listed untrimmed (expected Blue mug, got " Blue mug"). Fix it, run the checks, commit, and end.'`;
 // A ticket `arthur ticket new` made, filled as a procedure asks: its kind under the Goal and its source under the Decisions.
@@ -101,8 +99,6 @@ const retro = (...extra: Step[]): Step[] => [
 const restart = (...extra: Step[]): Step[] => [
 	{ bash: "arthur jobs" },
 	{ bash: "arthur merge 5c6d7e8f" },
-	{ edit: AR0090, find: "- feat(AR0090): name the machine in arthur jobs", replace: "- `packages/core/src/job-records.ts`: arthur jobs names the machine of each job." },
-	commit("AR0090 merged"),
 	{ bash: `arthur spawn ${AR0091}` },
 	...extra,
 	{ reply: "AR0090 is merged: arthur jobs names each job's machine. AR0091, sorting arthur jobs by machine, is unblocked, but its start waits for arthur run to restart on the new code: systemctl --user restart arthur, once no job runs." },
@@ -136,12 +132,10 @@ const ACTS: Readonly<Record<string, Act>> = {
 			commit("SH0005: review 1 filed"),
 			{ bash: "arthur prune 1f2e3d4c" },
 			{ bash: "arthur merge --auto 4d5e6f70" },
-			{ edit: `${SH0005}/outcome.md`, find: "- feat(SH0005): name the removed item in the undo notice", replace: "- `src/cart-notice.ts`: the undo notice names the removed item." },
-			commit("SH0005 merged"),
 			{ reply: "SH0005 is merged without you: the cart's undo notice names the item removed." },
 		],
 		wrong: [{ bash: "arthur ticket file SH0005 1f2e3d4c" }, { bash: "git add -A && git commit -qm filed" }, { bash: "arthur prune 1f2e3d4c" }, { reply: "SH0005 passed its review; its merge waits for you." }],
-		fails: ["origin:refs/heads/main stayed at ", "no call matches /^arthur merge (?=.*--auto)"],
+		fails: ["no call matches /^arthur merge (?=.*--auto)"],
 	},
 	"delivery/review-pass-hook": {
 		right: [
@@ -173,15 +167,14 @@ const ACTS: Readonly<Record<string, Act>> = {
 		right: [
 			{ bash: "arthur jobs" },
 			{ bash: "arthur merge 8e9f0a1b" },
-			{ edit: `${SH0006}/outcome.md`, find: "- feat(SH0006): count the items per order in the sales report", replace: "- `src/report.ts`: the sales report's Items column, the sum of each order's quantities." },
 			{ bash: "arthur ticket new 'Count the items of each order in one pass'" },
 			{ bash: "arthur ticket new 'Test the sales report on an order with no items'" },
 			{ write: `${SH0006}/findings.md`, text: FINDINGS },
-			commit("SH0006 merged"),
+			commit("SH0006: review notes"),
 			{ reply: "SH0006 is merged: the sales report counts each order's items. Its review's two notes are planning tickets: SH0016 counts them in one pass, SH0017 tests an order with no items." },
 		],
 		wrong: [{ bash: "arthur merge 8e9f0a1b" }, { reply: "SH0006 is merged." }],
-		fails: [`${SH0006}/findings.md is missing`, `${SH0006}/outcome.md does not match `, "refs/heads/main stayed at ", "origin:refs/heads/main stayed at ", "no call matches /^arthur ticket new / after arthur merge 8e9f0a1b"],
+		fails: [`${SH0006}/findings.md is missing`, "refs/heads/main stayed at ", "no call matches /^arthur ticket new / after arthur merge 8e9f0a1b"],
 	},
 	"delivery/check-failed": {
 		right: [

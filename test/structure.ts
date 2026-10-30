@@ -11,7 +11,7 @@ const RUNTIME_KEYS = ["dependencies", "optionalDependencies", "peerDependencies"
 const TOOLCHAIN = ["typescript", "@types/node"];
 const LICENSE = "Apache-2.0";
 // The core's test kit: it never runs in production, so its lines count against a budget of their own, `core/testing`.
-const TEST_KIT = [join("src", "testing.ts"), join("src", "fake-agent.ts")];
+const TEST_KIT = [join("src", "testing.ts"), join("src", "test-env.ts"), join("src", "fake-agent.ts")];
 // String literals and comments; strings come first so that `//` inside a string stays part of it.
 const TOKENS = /"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`|\/\/[^\n]*|\/\*[\s\S]*?\*\//g;
 const SPECIFIER = /(?:\bfrom|\bimport|\brequire)\s*\(?\s*(["'])([^"'\n]+)\1/g;

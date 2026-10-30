@@ -31,6 +31,8 @@ The coordinator sees the first lines first, so put what needs action first. Then
 
 Each fact in the final message (a check passed, a count, a behavior) names beside it the command that showed it.
 
+End it with a `## What went in` section: one `- <path>: <what it does now>` line for each file your branch changes, deleted ones included. `arthur merge` copies those lines into the ticket's `outcome.md` and writes `- <path>: not described` for a file you leave out.
+
 When you stop because the task cannot go on without something outside you, the very first line of the final message says so, alone on its line, and the rest follows as above: `Blocked: user <the precise question>` when only the human can answer it, `Blocked: on <ticket or job id>` when another ticket or job must be done first. Never write a `Blocked:` line when you finished the task.
 
 ## Never

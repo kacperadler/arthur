@@ -5,7 +5,7 @@ import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { type TestContext, test } from "node:test";
-import { type AgentRun, type FakeHost, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import type { LoadedConfig } from "@arthur/core";
 import { supervise } from "../src/coordinator.ts";
 import { coordinatorOptions } from "../src/orchestration-options.ts";
@@ -50,10 +50,6 @@ function tmux(socket: string, ...args: string[]) {
 function starts(agent: string): { pid: number; cwd: string; args: string[] }[] {
 	const file = join(dirname(agent), "starts.jsonl");
 	return existsSync(file) ? readFileSync(file, "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line)) : [];
-}
-
-async function until(what: string, holds: () => boolean, ms = 15_000): Promise<void> {
-	for (const deadline = Date.now() + ms; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
 }
 
 // A command the plugin registered, run as the CLI would, with what it printed.

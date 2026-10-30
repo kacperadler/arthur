@@ -183,8 +183,9 @@ export default defineConfig({
 			// A job's own cap on its scope, and what it reserves on its machine (34). `cpu`: cores, a number above 0, at most the
 			// machine's cores; over it a job is slowed. `memory`: MemoryMax syntax as core.jobs.memory; over it a job ends
 			// `limit: memory`. Each left out = no cap and no reservation; above core.jobs.cpu or core.jobs.memory = refused at
-			// load. Without a user manager (macOS) memory is sampled every 10 s and CPU is not capped.
-			perJob: { cpu: 2, memory: "4G" },
+			// load. Without a user manager (macOS) memory is sampled every 10 s and CPU is not capped. 3: Arthur's own `npm test`
+			// took 12 min on 3 cores, 6 min on 7 (AR0578).
+			perJob: { cpu: 3, memory: "4G" },
 			// All jobs of one ticket together (worker, reviews, plans), each replaced by the ticket's own `caps`; 0 = no cap.
 			// `budgetUsd`: their costs summed; `hours`: their run time summed. A spawn at either is refused; a running job that
 			// reaches one is stopped and held `blocked` on the user, `cap-reached` emitted, `arthur continue` resumes it once the

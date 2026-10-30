@@ -2,7 +2,7 @@
 
 Usage: `arthur changelog [--project <name>]`. Comes with the `delivery` plugin (roadmap entry 56). Answered without the model, for one project, the main one unless `--project` names another.
 
-Writes `CHANGELOG.md` at the project's root from its merged tickets, and prints `wrote CHANGELOG.md: <n> merged tickets`. `arthur merge` writes it the same way after every merge that went in (`arthur merge --help`, "Steps"); neither commits it: the commit after a merge does. The file is rebuilt whole each time, so a hand edit is overwritten at the next merge.
+Writes `CHANGELOG.md` at the project's root from its merged tickets, and prints `wrote CHANGELOG.md: <n> merged tickets`. `arthur merge` writes it the same way after every merge that went in and commits it in its `spec: <id> merged` commit (`arthur merge --help`, "Steps"); `arthur changelog` commits nothing. The file is rebuilt whole each time, so a hand edit is overwritten at the next merge.
 
 ```
 # Changelog

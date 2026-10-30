@@ -3,9 +3,8 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { readEvents } from "../src/event-log.ts";
-import { fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
+import { fakeAgent, jobSlice, temporaryFolder, until } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const USAGE = "usage: arthur spawn <task> [--kind <name>] [--model <model>[,<model>...]] [--thinking <level>] [--timeout <minutes>] [--budget <usd> [--decision <id>]] [--machine <name>] [--requires <labels>] [--ignore-restart]";
@@ -81,13 +80,13 @@ test("arthur spawn returns while the agent of core.agent.command runs in the bac
 	assert.equal(run.status, 0, run.stderr);
 	const id = run.stdout.trim();
 	const started = join(dirname(agent), "starts.jsonl");
-	for (const start = Date.now(); !existsSync(started) && Date.now() - start < 20_000; ) await sleep(20);
+	await until("the agent's start", () => existsSync(started));
 	const state = readFileSync(join(root, ".arthur/jobs", id, "state"), "utf8");
 	assert.equal(state, "working", "the agent waits for the gate after arthur spawn returned");
 	writeFileSync(gate, "");
 	const ended = () => readEvents(join(root, ".arthur"), 1).find((event) => event.name === "job-ended");
-	for (const start = Date.now(); ended() === undefined && Date.now() - start < 20_000; ) await sleep(20);
-	assert.deepEqual(ended()?.data, { id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
+	const { data } = await until("job-ended", ended);
+	assert.deepEqual(data, { id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 	assert.equal(readFileSync(join(root, ".arthur/jobs", id, "result"), "utf8"), "Built it.");
 });
 

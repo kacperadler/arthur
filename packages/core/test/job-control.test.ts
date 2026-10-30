@@ -5,7 +5,6 @@ import { syncBuiltinESMExports } from "node:module";
 import { delimiter, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { board } from "../src/board.ts";
 import { moveStartedTickets, refuseUnstartableTickets } from "../src/board-jobs.ts";
 import { clock } from "../src/clock.ts";
@@ -16,7 +15,7 @@ import { GRACE_SECONDS } from "../src/job-stop.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
 import steerExtension from "../src/steer.ts";
 import { queueSteer } from "../src/steer-inbox.ts";
-import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
+import { type AgentRun, fakeAgent, jobSlice, temporaryFolder, until } from "../src/testing.ts";
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
@@ -40,14 +39,6 @@ function setup(agent: string): { readonly root: string; readonly home: string; r
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
 	jobs.registerKind("delivery", { name: "audit", readOnly: false, role: "reviewer", budgetUsd: 1, resumeOnBudget: true });
 	return { root, home, jobs, bus };
-}
-
-async function until<T>(what: string, predicate: () => T | undefined): Promise<T> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined && value !== false) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
 }
 
 const read = (path: string) => (existsSync(path) ? readFileSync(path, "utf8") : undefined);
@@ -224,6 +215,19 @@ test("a stop that comes once the agent exited on its own leaves the job's own en
 	process.kill(Number(field(home, job.id, "pid")), "SIGTERM");
 	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" }]);
 	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: the agent had ended already\n/);
+});
+
+test("a stop that comes once the agent exited on a provider error rules out the resume (AR0571)", async () => {
+	const overloaded = { ...JSON.parse(spent(0, "error")).message, errorMessage: "529 overloaded_error" };
+	const { agent, dir } = script((dir) => [`echo '${JSON.stringify({ type: "message_end", message: overloaded })}'`, "sleep 300 &", `echo $$ >> '${dir}/pid'`, "exit 1"]);
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	const pid = Number(await until("the agent", () => read(join(dir, "pid"))?.trim() || undefined));
+	await until("the agent's exit", () => !alive(pid));
+	process.kill(Number(field(home, job.id, "pid")), "SIGTERM");
+	assert.deepEqual(await ended(home, job.id), [{ id: job.id, kind: "worker", project: "acme", state: "ended", reason: "failed: the agent stopped on error: 529 overloaded_error" }]);
+	assert.match(field(home, job.id, "log") ?? "", /\] arthur stop: the agent had ended already\n/);
+	assert.equal(read(join(dir, "pid"))?.trim().split("\n").length, 1, "one start, no resume");
 });
 
 for (const scoped of [true, false])

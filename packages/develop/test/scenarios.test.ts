@@ -141,13 +141,13 @@ const ACTS: Readonly<Record<string, Act>> = {
 	},
 	"delivery/review-fail-continue": {
 		right: [
-			{ edit: SH0004, find: APPROVED, replace: `${APPROVED}- 2026-10-22: The owner chose a third review round after two FAILs.\n` },
-			commit("SH0004: a third round"),
+			{ edit: SH0004, find: APPROVED, replace: `${APPROVED}- 2026-10-22: The owner chose a fifth review round after four FAILs.\n` },
+			commit("SH0004: a fifth round"),
 			{ bash: "arthur continue 7b2e4d11 'Review 2c3d4e5f says FAIL: round the tax half up, as src/receipt.ts:20 does (src/cart.ts:44). Fix it, run the checks, commit, and end.'" },
-			{ reply: "SH0004, the cart's total with tax, goes for a third round: its worker rounds the tax half up, then I review it again." },
+			{ reply: "SH0004, the cart's total with tax, goes for a fifth round: its worker rounds the tax half up, then I review it again." },
 		],
-		wrong: [{ bash: "arthur review 7b2e4d11 --round 3" }, { reply: "SH0004's third review started." }],
-		fails: [`${SH0004} does not match /^## Decisions`, "no call matches /^arthur continue ", "arthur review 7b2e4d11 --round 3 matches /^arthur review/"],
+		wrong: [{ bash: "arthur review 7b2e4d11 --round 5" }, { reply: "SH0004's fifth review started." }],
+		fails: [`${SH0004} does not match /^## Decisions`, "no call matches /^arthur continue ", "arthur review 7b2e4d11 --round 5 matches /^arthur review/"],
 	},
 	"delivery/merge": {
 		right: [{ bash: "arthur jobs" }, { bash: "arthur merge 8e9f0a1b" }, { reply: "SH0006 is merged: the sales report counts each order's items. Its review's risk note is planning ticket SH0016: no test covers an order with no items." }],

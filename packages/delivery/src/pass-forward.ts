@@ -5,11 +5,10 @@ import { fileURLToPath } from "node:url";
 import type { Host } from "@arthur/core/plugin";
 import { entryOf } from "./auto-merge.ts";
 
-// The merge without the coordinator (AR0576): after a PASS, a `no review` or CI passed on a waiting branch, in a project with
-// `autoMerge` on, `arthur merge --auto <job>` runs as a child of `arthur run`, the core's CLI on this node in the folder `arthur
-// run` runs in, so its checks on main never hold the run's loop; what it printed wakes the coordinator once, merged or refused.
-// Only `arthur run` acts, once `start` opened it; `<folder>/<job>/forwarded` keeps each cause forwarded, so a repeated event
-// runs no second merge. docs/commands/merge.md, "On its own".
+// The merge without the coordinator (AR0576): after a PASS, a `no review` or CI passed on a waiting branch, with `autoMerge` on,
+// `arthur merge --auto <job>` runs as a child of `arthur run` (the core's CLI, in the folder it runs in), so the checks on main never
+// hold its loop; its output wakes the coordinator once. Only `arthur run` acts (`start`); `<folder>/<job>/forwarded` keeps each
+// cause, so a repeated event runs no second merge. docs/commands/merge.md, "On its own".
 
 const CLI = fileURLToPath(import.meta.resolve("@arthur/core/cli"));
 // A job id, as a merge takes it and a folder name: never a flag, never a path.

@@ -4648,9 +4648,9 @@
   {
     "id": "AR0581",
     "title": "Defaults T13: the fakes of GitHub, YouTrack and Telegram are checked against recorded shapes, and tsc gets stricter",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0581-defaults-t13-the-fakes-of-github-youtrack-and-telegram-are-checked-against/ticket.md",
-    "updated": "2026-10-30T10:22:55.390Z"
+    "updated": "2026-10-30T10:35:41.696Z"
   },
   {
     "id": "AR0582",
@@ -4708,8 +4708,8 @@
   {
     "id": "AR0587",
     "title": "The report check tests skip on this server since the test kit moved HOME",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0587-the-report-check-tests-skip-on-this-server-since-the-test-kit-moved-home/ticket.md",
-    "updated": "2026-10-30T09:53:43.985Z"
+    "updated": "2026-10-30T10:23:17.506Z"
   }
 ]

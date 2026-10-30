@@ -808,13 +808,16 @@ async function acmeJob(t: TestContext, fake: FakeHost, acme: string, steps: Agen
 }
 
 test("a job's question an approved class answers continues the job by itself, once, with the decision; the wake says so", async (t) => {
-	const { decision, fake, acme, blocked } = await setup(t);
+	const { decision, fake, acme, blocked, printed } = await setup(t);
 	await dropClass(decision, blocked);
 	const job = await acmeJob(t, fake, acme, [{ message: "Blocked: user May I drop the archive table?" }]);
 	await until("the run's end", () => job.logged("job-ended").length === 1);
 	job.next();
-	// Its end right after its block, the continue under way: the second chance to continue it finds it done.
+	// Its end right after its block, the first continue under way and the job still blocked: only the mark of the first keeps
+	// the second from starting, quietly.
 	for (const name of ["job-state", "job-ended"]) for (const event of job.logged(name)) fake.emit(name, event.data);
+	assert.equal(job.record("state"), "blocked", "the end was delivered before the continue moved the job");
+	assert.deepEqual(printed.filter((line) => /handler of .* failed/.test(line)), []);
 	await until("the continued run's end", () => job.record("state") === "ended");
 	assert.deepEqual([job.record("continue"), job.record("reason"), fake.host.jobs.result(job.id)], ["Drop the table", "finished", "Dropped."]);
 	assert.equal(job.record("log").match(/\] arthur continue: /g)?.length, 1, "continued once");
@@ -888,6 +891,24 @@ test("a continue by policy that is refused leaves the job blocked and tells the 
 	await until("the coordinator told", () => told().length === 1);
 	assert.deepEqual(told(), [{ text: `${job.id} was not continued by policy (AC-D2): refused by test: no slot for it; arthur continue ${job.id} 'Drop the table' continues it with that decision.` }]);
 	assert.deepEqual([job.record("state"), job.record("continue")], ["blocked", ""]);
+});
+
+test("a continue by policy whose wrapper does not start tells the coordinator why, with the command", async (t) => {
+	const { decision, fake, acme, blocked } = await setup(t);
+	await dropClass(decision, blocked);
+	const job = await acmeJob(t, fake, acme, [{ message: "Blocked: user May I drop the archive table?" }]);
+	await until("the run's end", () => job.logged("job-ended").length === 1);
+	// A `systemctl` that sets any slice and a `systemd-run` that refuses the scope, first on PATH: `jobs.continue` resolves with why.
+	const bin = temporaryFolder();
+	writeFileSync(join(bin, "systemctl"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+	writeFileSync(join(bin, "systemd-run"), "#!/bin/sh\necho 'Failed to start transient scope unit: Access denied' >&2\nexit 1\n", { mode: 0o755 });
+	process.env.PATH = `${bin}${delimiter}${process.env.PATH}`;
+	for (const event of job.logged("job-state")) fake.emit("job-state", event.data);
+	const told = () => fake.emitted.filter((event) => event.name === "coordinator-message").map((event) => event.data);
+	await until("the coordinator told", () => told().length === 1);
+	const why = "systemd-run: Failed to start transient scope unit: Access denied";
+	assert.deepEqual(told(), [{ text: `${job.id} was not continued by policy (AC-D2): ${why}; arthur continue ${job.id} 'Drop the table' continues it with that decision.` }]);
+	assert.deepEqual([job.record("state"), job.record("reason")], ["ended", `failed: ${why}`]);
 });
 
 test("a job's question answered by policy and longer than one message is cut before what decided it; an ending that leaves no room is cut as any text", async (t) => {

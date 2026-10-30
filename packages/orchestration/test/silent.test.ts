@@ -260,7 +260,7 @@ async function granting(t: TestContext) {
 }
 
 const ANSWERED = (id: string, grant: string, decided: string) => `${id}\n${id} answered by recommendation (${grant}): ${decided}; act on it as on the owner's answer, and say so in your reply`;
-const NEVER = "never a merge with --what, a budget question or a class's proposal";
+const NEVER = "never a merge question, a budget question or a class's proposal";
 
 test("a grant with --until answers an ask with --recommend by its recommendation, an option's or its words, until that time; an ask without --recommend waits", async (t) => {
 	const { fake, silent, ask, log, state, grant, context } = await granting(t);
@@ -306,13 +306,13 @@ test("a grant with --tickets answers only an ask of one of its tickets", async (
 	assert.deepEqual(await ask("--recommend", "1"), [0, "AC-D3"], "no ticket");
 });
 
-test("a grant never answers a merge naming a flag, a budget question, a class's proposal, or a question a class answers or two classes match", async (t) => {
+test("a grant never answers a merge question, a budget question, a class's proposal, or a question a class answers or two classes match; its answer backs no class", async (t) => {
 	const { silent, decision, ask, log, grant } = await granting(t);
 	await silent("on", WORK, "--until", "23:00", "--recommend");
-	const merge = (...what: string[]) => decision("ask", "--kind", "merge", "--question", "Merge AC0001?", "--ticket", "AC0001", "--option", "Merge", "--recommend", "1", ...what);
-	assert.deepEqual(await merge("--what", "--unreviewed"), [0, "AC-D1"]);
-	assert.deepEqual(await merge("--what", "--no-ci"), [0, "AC-D2"]);
-	assert.deepEqual(await merge(), [0, ANSWERED("AC-D3", grant(), "Merge")], "a merge naming no flag lets none through");
+	const merge = (...what: string[]) => decision("ask", "--kind", "merge", "--question", "Merge AC0001?", "--option", "Merge", "--recommend", "1", ...what);
+	assert.deepEqual(await merge("--ticket", "AC0001", "--what", "--unreviewed"), [0, "AC-D1"]);
+	assert.deepEqual(await merge("--ticket", "AC0001", "--what", "--no-ci"), [0, "AC-D2"]);
+	assert.deepEqual(await merge(), [0, "AC-D3"], "arthur take-main's question names no flag, and is the owner's too");
 	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Run AC0001 with no money limit?", "--ticket", "AC0001", "--option", "Yes", "--recommend", "1"), [0, "AC-D4"]);
 	// The owner's own answer backs a class; its proposal, recommended 1, stays his.
 	assert.deepEqual(await ask(), [0, "AC-D5"]);
@@ -324,7 +324,9 @@ test("a grant never answers a merge naming a flag, a budget question, a class's 
 	await decision("class", "propose", "--kind", "question", "--match", "red", "--decided", "Blue", "--backed-by", "AC-D5");
 	await decision("answer", "AC-D8", "--picked", "1", "--decided", "Pre-approve blue again", "yes");
 	assert.deepEqual(await ask("--recommend", "2"), [0, "AC-D9\nAC-D9 goes to the owner: it matches classes AC-D6 and AC-D8"]);
-	assert.deepEqual(log().filter((each) => each.record === "answer" && each.words.startsWith("by recommendation")).map((each) => each.id), ["AC-D3"]);
+	assert.deepEqual(await decision("ask", "--kind", "question", "--question", "Green or yellow?", "--option", "Green", "--recommend", "1"), [0, ANSWERED("AC-D10", grant(), "Green")]);
+	assert.deepEqual(await decision("class", "propose", "--kind", "question", "--match", "green", "--decided", "Green", "--backed-by", "AC-D10"), [1, `arthur decision class propose: refused: AC-D10 was answered by recommendation (${grant()}), not by the owner`]);
+	assert.deepEqual(log().filter((each) => each.record === "answer" && each.words.startsWith("by recommendation")).map((each) => each.id), ["AC-D10"]);
 });
 
 test("a grant ends with arthur silent off, an on without --recommend and /silent on; a hand-edited grant answers nothing", async (t) => {

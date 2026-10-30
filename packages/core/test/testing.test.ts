@@ -6,10 +6,9 @@ import { createServer } from "node:net";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import type { Plugin } from "@arthur/core/plugin";
-import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 
 // A plugin as a later one will be: it provides one name and calls another in its setup.
 const schedule = (options: { readonly at: string }): Plugin => ({
@@ -210,6 +209,19 @@ function child(script: string): { readonly seen: { arthur: [string, string][]; t
 	return { seen, status: run.status };
 }
 
+test("until returns the first value other than undefined and false, 0, an empty string and null included, and fails naming what past its deadline", async () => {
+	for (const value of [0, "", null, true]) {
+		const answers: unknown[] = [undefined, false, value];
+		assert.equal(await until("a value", () => answers.shift()), value);
+	}
+	// The deadline is real time: it is what until measures.
+	const started = Date.now();
+	let asked = 0;
+	await assert.rejects(until("the never", () => (asked++, false), { deadlineMs: 200 }), { message: "waited 0.2 s for the never" });
+	assert.ok(Date.now() - started >= 200, `failed after ${Date.now() - started} ms`);
+	assert.ok(asked > 2, `asked ${asked} times`);
+});
+
 test("the kit clears every ARTHUR_ and tmux variable but names its own job slice in ARTHUR_JOB_SLICE, and removes its folders when the process exits, passed or failed", () => {
 	for (const script of ["", "process.exitCode = 1;", 'throw new Error("a failed test");']) {
 		const { seen, status } = child(script);
@@ -327,8 +339,7 @@ test("the kit ends, before it removes its folder, the tmux servers a test left o
 	};
 	t.after(() => pids.filter(alive).forEach((pid) => process.kill(pid, "SIGKILL")));
 	assert.equal(new Set(pids).size, 3, `three servers: ${pids}`);
-	for (let waited = 0; waited < 5000 && pids.some(alive); waited += 50) await sleep(50);
-	assert.deepEqual(pids.filter(alive), [], "a tmux server outlived the kit's exit");
+	await until("the tmux servers' end at the kit's exit", () => !pids.some(alive), { deadlineMs: 5000 });
 	assert.equal(spawnSync("tmux", ["-S", outside, "has-session", "-t", "outside"]).status, 0, "the kit ended a server outside its folder");
 });
 

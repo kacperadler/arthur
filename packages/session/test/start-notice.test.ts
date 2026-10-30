@@ -5,17 +5,13 @@ import { hostname } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type SessionOptions, session } from "../src/session.ts";
 import { probe } from "../src/start-notice.ts";
 import turnFailures from "../src/turn-extension.ts";
 
 const HOST = hostname();
 const ARGS = ["-p", "--no-session", "--no-title", "--no-tools", "--no-extensions", "--no-skills", "--no-rules", "--mode", "json"];
-
-async function until(what: string, holds: () => boolean, ms = 20_000): Promise<void> {
-	for (const deadline = Date.now() + ms; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-}
 
 // Whole lines only: a line the agent is still appending has no line break yet.
 const lines = (file: string): Record<string, unknown>[] => (existsSync(file) ? readFileSync(file, "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line)) : []);

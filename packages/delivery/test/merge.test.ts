@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { basename, delimiter, dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { type AgentRun, fakeAgent, fakeHost, jobSlice, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, jobSlice, temporaryFolder, until } from "@arthur/core/testing";
 import { delivery } from "../src/delivery.ts";
 
 const PATH = process.env.PATH ?? "";
@@ -77,7 +76,7 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 	const home = dirname(fake.host.folder);
 	const ended = async (id: string) => {
 		const state = join(home, "jobs", id, "state");
-		for (const deadline = Date.now() + 15_000; !existsSync(state) || readFileSync(state, "utf8") !== "ended"; await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${id} to end`);
+		await until(`${id} to end`, () => existsSync(state) && readFileSync(state, "utf8") === "ended");
 		fake.emit("job-ended", { id, state: "ended" });
 	};
 	const commit = (worktree: string, changes: Readonly<Record<string, string>>) => {
@@ -120,10 +119,6 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 	const head = () => git(root, "rev-parse", "HEAD");
 	const status = (id: string) => fake.host.board.get(id)?.status;
 	return { root, fake, git, commit, take: () => run("take-main", ["--decision", OWNER]), worker, aside, ended, review, merge: (...args: string[]) => run("merge", args), run, head, status, bun, caches, failBun: () => writeFileSync(join(bin, "fail"), ""), home, installs, owner, installAs: (next: string | Error) => void (answer = next), uncapped, hear: (fn: (text: string) => void) => void (heard = fn) };
-}
-
-async function until(what: string, holds: () => boolean) {
-	for (const deadline = Date.now() + 15_000; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
 }
 
 test("a branch with a PASS on its tip goes in: checks pass, its review filed, outcome.md written, the ticket merged, the tickets it unblocks named, the ticket's jobs pruned; the install's cache is the merge's own, gone after it", async (t) => {

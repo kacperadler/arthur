@@ -9,7 +9,7 @@ import net, { type AddressInfo, type LookupFunction, type TcpNetConnectOpts } fr
 import { join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
-import { type FakeHost, fakeHost } from "@arthur/core/testing";
+import { type FakeHost, fakeHost, until } from "@arthur/core/testing";
 import { checkSite } from "../src/site-check.ts";
 import { readState } from "../src/uptime-state.ts";
 import { type UptimeOptions, uptime } from "../src/uptime.ts";
@@ -23,14 +23,6 @@ type Answer = (response: ServerResponse) => void;
 const ok: Answer = (response) => void response.end("Welcome to Acme");
 const broken: Answer = (response) => void response.writeHead(500).end("oops");
 const hang: Answer = () => {};
-
-async function until<T>(what: string, predicate: () => T | undefined | false): Promise<T> {
-	for (const end = Date.now() + 20_000; Date.now() < end; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined && value !== false) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
-}
 
 // A server whose path `p` answers with `answers[p]` (404 when unset); `seen(p)` counts the requests to it; `close` stops it.
 async function server(t: TestContext) {

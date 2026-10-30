@@ -3,13 +3,12 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { moveJob, quiet } from "../src/job-state.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
-import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
+import { type AgentRun, fakeAgent, jobSlice, temporaryFolder, until } from "../src/testing.ts";
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 const TASK = "Go.\nTicket: spec/features/AR0007-tables/ticket.md";
@@ -28,14 +27,6 @@ function setup(agent: string, idleMinutes = 10, now?: () => Date): { readonly ho
 	const home = join(folder, "home");
 	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes, offlineGraceMinutes: 30, ...jobSlice }, agent, clock("UTC", undefined, now), eventBus(home), () => []);
 	return { home, jobs };
-}
-
-async function until<T>(what: string, predicate: () => T | undefined | false): Promise<T> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined && value !== false) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
 }
 
 const field = (home: string, id: string, name: string) => readFileSync(join(home, "jobs", id, name), "utf8");

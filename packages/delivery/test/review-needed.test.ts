@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { checkOptions } from "../src/delivery-options.ts";
 import { delivery } from "../src/delivery.ts";
 
@@ -51,7 +50,7 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 	const home = dirname(fake.host.folder);
 	const state = (id: string) => (existsSync(join(home, "jobs", id, "state")) ? readFileSync(join(home, "jobs", id, "state"), "utf8") : "");
 	const ended = async (id: string) => {
-		for (const deadline = Date.now() + 15_000; state(id) !== "ended"; await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${id} to end`);
+		await until(`${id} to end`, () => state(id) === "ended");
 	};
 	const job = await fake.host.jobs.spawn({ task: `Ticket: ${TICKET}` });
 	await ended(job.id);

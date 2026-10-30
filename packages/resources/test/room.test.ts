@@ -5,10 +5,9 @@ import { syncBuiltinESMExports } from "node:module";
 import os from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { loadConfig } from "@arthur/core";
 import { everyOption, type OptionTable } from "@arthur/core/option-table";
-import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { table } from "../src/resource-options.ts";
 import { type ResourcesOptions, resources } from "../src/resources.ts";
 import { roomOf } from "../src/room.ts";
@@ -89,10 +88,6 @@ async function load(t: TestContext, options: ResourcesOptions = OPTIONS) {
 	const records = () => (existsSync(join(home, "jobs")) ? readdirSync(join(home, "jobs")) : []);
 	const notices = () => fake.emitted.filter((event) => event.name === "notice").map((event) => (event.data as { text: string }).text);
 	return { fake, plugin, home, release, records, notices };
-}
-
-async function until(what: string, holds: () => boolean, ms = 20_000): Promise<void> {
-	for (const start = Date.now(); !holds(); await sleep(20)) if (Date.now() - start > ms) throw new Error(`timed out waiting for ${what}`);
 }
 
 const sample = (cores: number, load: number, free: number, total = 16 * GB) => ({ at: NOW.toISOString(), jobs: [], cores, load, free, total });

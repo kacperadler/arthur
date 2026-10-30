@@ -2,10 +2,9 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
 import { everyOption } from "@arthur/core/option-table";
-import { type FakeHost, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type FakeHost, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { table } from "../src/project-options.ts";
 import { type ProjectEntry, projects } from "../src/projects.ts";
 
@@ -37,8 +36,7 @@ async function onboard(t: TestContext, fake: FakeHost, home: string, message: st
 	});
 	const { id } = await fake.host.jobs.spawn({ task: "Onboard shop.", kind: "onboarding" });
 	const state = join(home, "jobs", id, "state");
-	for (const deadline = Date.now() + 15_000; !existsSync(state) || readFileSync(state, "utf8") !== "ended"; await sleep(50))
-		if (Date.now() > deadline) throw new Error(`timed out waiting for ${id} to end`);
+	await until(`${id} to end`, () => existsSync(state) && readFileSync(state, "utf8") === "ended");
 	return id;
 }
 

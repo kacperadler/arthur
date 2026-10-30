@@ -5,9 +5,8 @@ import os, { availableParallelism } from "node:os";
 import { syncBuiltinESMExports } from "node:module";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { loadConfig } from "@arthur/core";
-import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type ResourcesOptions, resources } from "../src/resources.ts";
 
 const manager = spawnSync("systemctl", ["--user", "show-environment"]).status === 0;
@@ -85,12 +84,12 @@ test("a job spawned with the plugin gets its caps on its own scope, in the test 
 	await fake.setup(resources(options));
 	const job = await fake.host.jobs.spawn({ task: "Go." });
 	const record = join(dirname(fake.host.folder), "jobs", job.id);
-	for (const start = Date.now(); !existsSync(join(record, "pid")); await sleep(20)) assert.ok(Date.now() - start < 10_000, "the wrapper's pid");
+	await until("the wrapper's pid", () => existsSync(join(record, "pid")));
 	const show = (property: string) => execFileSync("systemctl", ["--user", "show", `arthur-job-${job.id}.scope`, "-p", property, "--value"], { encoding: "utf8" }).trim();
 	assert.match(execFileSync("systemctl", ["--user", "show", `arthur-job-${job.id}.scope`, "-p", "Slice", "--value"], { encoding: "utf8" }), /^arthur_test_/);
 	// The core caps a job's CPU at the machine's cores: 1.5 cores on two or more, 1 on one.
 	assert.deepEqual([show("CPUQuotaPerSecUSec"), show("MemoryMax")], [availableParallelism() >= 2 ? "1.500000s" : "1s", String(512 * 2 ** 20)]);
 	writeFileSync(gate, "");
-	for (const start = Date.now(); readFileSync(join(record, "state"), "utf8") !== "ended"; await sleep(20)) assert.ok(Date.now() - start < 10_000, "the job's end");
+	await until("the job's end", () => readFileSync(join(record, "state"), "utf8") === "ended");
 	assert.equal(readFileSync(join(record, "reason"), "utf8"), "finished");
 });

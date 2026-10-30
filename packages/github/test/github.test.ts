@@ -6,8 +6,7 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
-import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type GithubOptions, github } from "../src/github.ts";
 import { DOCS, type FakePull, type FakeRun, fakeGithub } from "./fake-github.ts";
 
@@ -16,14 +15,6 @@ import { DOCS, type FakePull, type FakeRun, fakeGithub } from "./fake-github.ts"
 
 const TOKEN = "github_pat_11ARTHUR0test0Never0Printed0abcdefghijklmnopqrstuvwxyz";
 const ACME_TOKEN = "ghp_AcmeT0kenNeverPrinted0123456789abcdef";
-
-async function until<T>(what: string, predicate: () => T | undefined | false): Promise<T> {
-	for (const end = Date.now() + 20_000; Date.now() < end; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined && value !== false) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
-}
 
 const git = (path: string, ...args: readonly string[]) => execFileSync("git", ["-C", path, "-c", "user.name=test", "-c", "user.email=test@example.com", ...args], { encoding: "utf8" }).trim();
 

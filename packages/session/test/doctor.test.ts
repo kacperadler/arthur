@@ -2,18 +2,13 @@ import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import { hostname, userInfo } from "node:os";
 import { delimiter, dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import type { LoadedConfig } from "@arthur/core";
 import { session } from "../src/session.ts";
 
 const HOST = hostname();
 const USER = userInfo().username;
-
-async function until(what: string, holds: () => boolean): Promise<void> {
-	for (const deadline = Date.now() + 20_000; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-}
 
 // `systemctl` and `loginctl` first on PATH, each a script of `body`, until the test ends, which restores the PATH of the file's start.
 const PATH = process.env.PATH;

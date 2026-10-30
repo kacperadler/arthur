@@ -13,7 +13,7 @@ const BUDGETS = {
 
 	core: 6478,
 
-	"core/testing": 357,
+	"core/testing": 369,
 
 	delivery: 1740,
 
@@ -53,6 +53,34 @@ const BUDGETS = {
 
 };
 
+// The fixed waits (sleep, setTimeout, Atomics.wait outside strings and comments) each test file may hold, by its path; a file
+// left out may hold none. A test waits with until for the state it asserts; one here waits for nothing to happen. Lower a
+// number when its waits go, never raise one. One per line in name order, a blank line after each, as BUDGETS.
+const FIXED_WAITS = {
+	"packages/core/test/job-control.test.ts": 1,
+
+	"packages/github/test/fake-github.ts": 1,
+
+	"packages/orchestration/test/coordinator.test.ts": 5,
+
+	"packages/orchestration/test/inbox.test.ts": 3,
+
+	"packages/orchestration/test/job-states.test.ts": 1,
+
+	"packages/resources/test/feature-caps.test.ts": 1,
+
+	"packages/session/test/restart.test.ts": 25,
+
+	"packages/session/test/session.test.ts": 10,
+
+	"packages/session/test/start-notice.test.ts": 1,
+
+	"packages/telegram/test/fake-bot-api.ts": 1,
+
+	"packages/uptime/test/uptime.test.ts": 2,
+
+};
+
 const lines = (count: number) => "export const a = 1;\n".repeat(count);
 
 // A tree that keeps every rule: the core publishes "." and "./testing", one plugin uses both.
@@ -75,6 +103,7 @@ const BASE: Readonly<Record<string, string>> = {
 function check(
 	files: Readonly<Record<string, string | undefined>>,
 	budgets: Readonly<Record<string, number>> = { core: 100, "core/testing": 100, telegram: 300 },
+	waits: Readonly<Record<string, number>> = {},
 ): string[] {
 	const root = mkdtempSync(join(tmpdir(), "arthur-structure-test-"));
 	try {
@@ -83,14 +112,14 @@ function check(
 			mkdirSync(dirname(join(root, path)), { recursive: true });
 			writeFileSync(join(root, path), text);
 		}
-		return checkStructure(root, budgets);
+		return checkStructure(root, budgets, waits);
 	} finally {
 		rmSync(root, { recursive: true, force: true });
 	}
 }
 
 test("the repository keeps every rule", () => {
-	assert.deepEqual(checkStructure(join(import.meta.dirname, ".."), BUDGETS), []);
+	assert.deepEqual(checkStructure(join(import.meta.dirname, ".."), BUDGETS, FIXED_WAITS), []);
 	assert.deepEqual(Object.keys(BUDGETS), Object.keys(BUDGETS).toSorted(), "BUDGETS in name order, as arthur plugin new inserts");
 });
 
@@ -98,9 +127,10 @@ test("the repository keeps every rule", () => {
 test("the README holds at most 120 lines and one closed mermaid flowchart of at most 40", () => {
 	const readme = readFileSync(join(import.meta.dirname, "..", "README.md"), "utf8");
 	assert.ok(readme.split("\n").length <= 121, "README.md holds at most 120 lines");
-	const blocks = [...readme.matchAll(/^```mermaid\n([\s\S]*?)^```$/gm)].map((match) => match[1] ?? "");
+	// \x60 is a backtick, which test/structure.ts would read as the start of a template string.
+	const blocks = [...readme.matchAll(/^\x60\x60\x60mermaid\n([\s\S]*?)^\x60\x60\x60$/gm)].map((match) => match[1] ?? "");
 	assert.equal(blocks.length, 1, "one ```mermaid block");
-	assert.match(blocks[0] ?? "", /^flowchart [^`]*$/, "a flowchart, closed before any other fence");
+	assert.match(blocks[0] ?? "", /^flowchart [^\x60]*$/, "a flowchart, closed before any other fence");
 	assert.ok((blocks[0] ?? "").split("\n").length <= 41, "at most 40 lines; the rest is arthur.mmd");
 });
 
@@ -228,20 +258,63 @@ test("a package over its line budget, or without one, fails; tests do not count"
 	assert.deepEqual(check({}, { core: 3, "core/testing": 2 }), ["packages/telegram: has no line budget; add one to test/structure.test.ts"]);
 });
 
-test("the core's test kit, testing.ts, test-env.ts and fake-agent.ts, counts against core/testing alone, and needs that budget", () => {
-	const kit = { "packages/core/src/fake-agent.ts": lines(5), "packages/core/src/test-env.ts": lines(3) };
-	assert.deepEqual(check(kit, { core: 1, "core/testing": 10, telegram: 300 }), []);
-	assert.deepEqual(check(kit, { core: 1, "core/testing": 9, telegram: 300 }), [
-		"packages/core: its test kit (src/testing.ts, src/test-env.ts, src/fake-agent.ts) has 10 lines, over its line budget of 9",
+test("the core's test kit, testing.ts, test-env.ts, fake-agent.ts and until.ts, counts against core/testing alone, and needs that budget", () => {
+	const kit = { "packages/core/src/fake-agent.ts": lines(5), "packages/core/src/test-env.ts": lines(3), "packages/core/src/until.ts": lines(1) };
+	assert.deepEqual(check(kit, { core: 1, "core/testing": 11, telegram: 300 }), []);
+	assert.deepEqual(check(kit, { core: 1, "core/testing": 10, telegram: 300 }), [
+		"packages/core: its test kit (src/testing.ts, src/test-env.ts, src/fake-agent.ts, src/until.ts) has 11 lines, over its line budget of 10",
 	]);
 	assert.deepEqual(check({ "packages/core/src/extra.ts": lines(6) }, { core: 7, "core/testing": 1, telegram: 300 }), [
-		"packages/core: its test kit (src/testing.ts, src/test-env.ts, src/fake-agent.ts) has 2 lines, over its line budget of 1",
+		"packages/core: its test kit (src/testing.ts, src/test-env.ts, src/fake-agent.ts, src/until.ts) has 2 lines, over its line budget of 1",
 	]);
 	assert.deepEqual(check({}, { core: 1, telegram: 300 }), [
 		"packages/core: has no line budget for its test kit; add core/testing to test/structure.test.ts",
 	]);
 	assert.deepEqual(check({ "packages/telegram/src/testing.ts": lines(5) }, { core: 1, "core/testing": 2, telegram: 6 }), [
 		"packages/telegram: has 7 source lines, over its line budget of 6",
+	]);
+});
+
+// AR0578: a test waits with the kit's until for the state it asserts.
+test("a test file's own until, or a loop that sleeps, fails in a package's test/ and the root's test/ alike; in a string, a comment or src/ it passes", () => {
+	const waits = { "test/loop.test.ts": 1, "packages/telegram/test/fake-api.ts": 1 };
+	assert.deepEqual(
+		check(
+			{
+				"packages/telegram/test/own.test.ts": "async function until(what, holds) {}\nexport function untilLater() {}\n",
+				"packages/telegram/test/arrow.test.ts": "const until = async (what) => what;\n",
+				"packages/telegram/test/fake-api.ts": "for (const end = Date.now() + 1000; !done(); await setTimeout(20)) {}\n",
+				"test/loop.test.ts": "while (!done()) await sleep(10);\n",
+			},
+			undefined,
+			waits,
+		),
+		[
+			"test/loop.test.ts: has a loop that sleeps; wait with until from @arthur/core/testing",
+			"packages/telegram/test/arrow.test.ts: declares its own until; import until from @arthur/core/testing",
+			"packages/telegram/test/fake-api.ts: has a loop that sleeps; wait with until from @arthur/core/testing",
+			"packages/telegram/test/own.test.ts: declares its own until; import until from @arthur/core/testing",
+		],
+	);
+	const quoted = [
+		'import { until } from "@arthur/core/testing";',
+		'await until("the reply", () => replied());',
+		"// for (;;) await sleep(10), never: function until() {}",
+		'const script = "async function until() { while (true) await sleep(10); }";',
+		"const child = `for (;;) setTimeout(go, 10); const until = 1;`;",
+		"",
+	].join("\n");
+	const own = "export async function until() {\n\tfor (;;) await sleep(10);\n}\n";
+	assert.deepEqual(check({ "packages/telegram/test/quoted.test.ts": quoted, "test/quoted.test.ts": quoted, "packages/telegram/src/wait.ts": own }), []);
+});
+
+test("a test file's fixed waits up to its baseline pass, one more fails; a file left out may hold none; strings and comments do not count", () => {
+	const quiet = "await sleep(1200);\nsetTimeout(done, 5);\nAtomics.wait(cell, 0, 0, 20);\n// await sleep(1)\nconst child = 'setTimeout(() => {}, 300_000)';\n";
+	const files = { "packages/telegram/test/quiet.test.ts": quiet, "test/quiet.test.ts": "await sleep(300);\n" };
+	assert.deepEqual(check(files, undefined, { "packages/telegram/test/quiet.test.ts": 3, "test/quiet.test.ts": 1 }), []);
+	assert.deepEqual(check(files, undefined, { "packages/telegram/test/quiet.test.ts": 2 }), [
+		"test/quiet.test.ts: has 1 fixed waits (sleep, setTimeout, Atomics.wait), over its baseline of 0 in test/structure.test.ts; wait for the state with until",
+		"packages/telegram/test/quiet.test.ts: has 3 fixed waits (sleep, setTimeout, Atomics.wait), over its baseline of 2 in test/structure.test.ts; wait for the state with until",
 	]);
 });
 

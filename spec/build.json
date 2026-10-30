@@ -4561,9 +4561,9 @@
   {
     "id": "AR0572",
     "title": "Defaults T4: a job with no sandbox refuses to start unless core.jobs.unsandboxed is on",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0572-defaults-t4-a-job-with-no-sandbox-refuses-to-start-unless-core-jobs-unsandboxed/ticket.md",
-    "updated": "2026-10-30T07:47:02.864Z",
+    "updated": "2026-10-30T13:31:41.133Z",
     "after": [
       "AR0571"
     ]
@@ -4581,9 +4581,9 @@
   {
     "id": "AR0574",
     "title": "Defaults T6: a passed review's notes reach findings.md by themselves",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0574-defaults-t6-a-passed-review-s-notes-reach-findings-md-by-themselves/ticket.md",
-    "updated": "2026-10-30T07:47:04.871Z",
+    "updated": "2026-10-30T13:31:39.948Z",
     "after": [
       "AR0573"
     ]

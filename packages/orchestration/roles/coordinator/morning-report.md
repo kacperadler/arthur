@@ -5,7 +5,7 @@ The schedule entry of `morningReport.at` sends this each morning. Your reply to 
 Gather each section from every project, then write them in this order, each under its name. An empty section is left out whole, its name too, never written as `none`:
 
 1. Built overnight: the jobs that ended since the previous report with commits on their ticket (`arthur jobs --state ended`, your conversation, the handoff after a fresh start), each with what it built. Left out when no job built anything.
-2. Merged without the owner: each `arthur merge --auto` you ran since the previous report, with what the owner will see change. Left out when you merged nothing.
+2. Merged without the owner: each `arthur merge --auto` that went in since the previous report, yours or delivery's on its own (its wake), with what the owner will see change. Left out when you merged nothing.
 3. Waiting for approval: the tickets at `planning` on each board (`arthur board`), the plans waiting for his ok, and the branches with a PASS waiting for his merge. Left out when nothing waits for his ok.
 4. Waiting for a decision: each job blocked on the owner (`blocked`, `user:` in your context) and each question you asked him that he has not answered. Left out when no decision waits.
 5. Needs attention: the lines of `arthur health`. Left out when it says all is well, or prints `unknown command health` (the manage plugin is not loaded).

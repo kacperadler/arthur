@@ -110,14 +110,14 @@ test("the coordinator's role reads pull requests with arthur github, takes its a
 	assert.match(write, /only when the owner asks, and say in the reply what was written; a merge is `arthur merge`, never GitHub's/);
 });
 
-// AR0258: delivery's wakes tell the coordinator `arthur merge --auto` in a project with `autoMerge` on; the role must not
-// leave it waiting for the owner's word there.
-test("the coordinator's role runs a wake's arthur merge --auto without the owner, and waits on a refusal that says it waits", () => {
+// AR0258, AR0576: in a project with `autoMerge` on delivery runs `arthur merge --auto` itself and wakes the coordinator with what
+// it printed; the role must act on that as on its own merge, neither waiting for the owner's word nor running it again.
+test("the coordinator's role acts on delivery's own arthur merge --auto without the owner or a second run, and waits on a refusal that says it waits", () => {
 	const lines = ROLE.split("\n");
 	const merge = lines.find((each) => each.startsWith("- When the owner asks for a merge:"));
 	assert.ok(merge, "the role says how to merge");
-	assert.match(merge, /In a project with `autoMerge` on, a wake that names `arthur merge --auto <job>` \(after a PASS, after CI passed\) is run without waiting for the owner/);
-	assert.match(merge, /a refusal that says `it waits` needs nothing until CI's wake/);
+	assert.match(merge, /In a project with `autoMerge` on, delivery runs `arthur merge --auto <job>` itself after a PASS, a `no review` or CI passed, and its wake carries what that merge printed: act on it as on a merge you ran \(`arthur merge --help`, "On its own"\), without running it again/);
+	assert.match(merge, /a refusal that says `it waits` needs nothing until CI passes/);
 	const never = lines.find((each) => each.startsWith("- Never merge a branch"));
 	assert.match(never ?? "", /but by `--autopilot` or a wake's `arthur merge --auto` as above/, "the Never rule leaves the wake's --auto merge out");
 	const decision = lines.find((each) => each.startsWith("- A decision is what only the owner may do"));

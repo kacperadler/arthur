@@ -94,13 +94,13 @@ export function sandboxed(paths: readonly string[], hidden: readonly string[], a
 	return (argv) => (why === undefined ? ["python3", ["-I", "-c", SCRIPT, ...paths, "--", ...hidden, "--", agent, ...argv]] : [agent, [...argv]]);
 }
 
-// Why the sandbox over `paths` cannot start `agent` here, undefined where it can; the probe hides nothing, as the walk of a crowded folder above a hidden path costs.
+// Why the sandbox over `paths` cannot start `agent` here, undefined where it can; the probe hides nothing, as the walk of a crowded folder above a hidden path costs; the agent is missing only where the probe's own shell says so, never on a bare 127, which a broken python3 shim exits too (AR0591).
 export function noSandbox(paths: readonly string[], agent: string): string | undefined {
-	const probe = process.platform === "linux" ? spawnSync("python3", ["-I", "-c", SCRIPT, ...paths, "--", "--", "/bin/sh", "-c", 'command -v "$1" || exit 127', "sh", agent], { encoding: "utf8" }) : undefined;
+	const probe = process.platform === "linux" ? spawnSync("python3", ["-I", "-c", SCRIPT, ...paths, "--", "--", "/bin/sh", "-c", 'command -v "$1" || { echo missing; exit 127; }', "sh", agent], { encoding: "utf8" }) : undefined;
 	return probe === undefined ? `${process.platform} has no Landlock`
 		: probe.error !== undefined ? `python3: ${probe.error.message}`
 		: probe.status === 0 ? undefined
-		: probe.status === 127 ? `the agent ${agent} is not there`
+		: probe.status === 127 && probe.stdout === "missing\n" ? `the agent ${agent} is not there`
 		: probe.stderr.trim().split("\n").at(-1) || `python3 exited ${probe.status ?? probe.signal}`;
 }
 

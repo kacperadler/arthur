@@ -5,6 +5,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
+import { inflateSync } from "node:zlib";
 import { temporaryFolder } from "@arthur/core/testing";
 
 // AR0564: the check of `.agents/arthur/criteria/report.md`, run as its line says, on pages in a temporary folder; it needs a
@@ -18,9 +19,37 @@ const page = (style: string, body: string) =>
 	`<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>T</title><style>${style}</style></head><body>${body}</body></html>\n`;
 const SHOTS = "screenshots, look at each before sending: ";
 
+// The top and bottom rows of a PNG as Chrome writes one (8 bits, RGB or RGBA, not interlaced), each as the page's width in
+// it: the pixels before the window's grey (#808080) right of the frame, every pixel after them grey; -1 when they are mixed.
+function frame(png: Buffer): [number, number] {
+	const [width, height, bpp] = [png.readUInt32BE(16), png.readUInt32BE(20), png[25] === 6 ? 4 : 3];
+	const idat: Buffer[] = [];
+	for (let at = 8; at < png.length; at += png.readUInt32BE(at) + 12) if (png.toString("latin1", at + 4, at + 8) === "IDAT") idat.push(png.subarray(at + 8, at + 8 + png.readUInt32BE(at)));
+	const data = inflateSync(Buffer.concat(idat));
+	const stride = width * bpp;
+	let row = new Uint8Array(stride);
+	const rows: Uint8Array[] = [];
+	for (let y = 0; y < height; y++) {
+		const [filter, prev] = [data[y * (stride + 1)] ?? 0, row];
+		row = Uint8Array.from(data.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1)));
+		for (let i = 0; i < stride; i++) {
+			const [a, b, c] = [i < bpp ? 0 : (row[i - bpp] ?? 0), prev[i] ?? 0, i < bpp ? 0 : (prev[i - bpp] ?? 0)];
+			const [pa, pb, pc] = [Math.abs(b - c), Math.abs(a - c), Math.abs(a + b - 2 * c)];
+			row[i] = ((row[i] ?? 0) + [0, a, b, (a + b) >> 1, pa <= pb && pa <= pc ? a : pb <= pc ? b : c][filter]!) & 255;
+		}
+		rows.push(row);
+	}
+	const edge = (row: Uint8Array) => {
+		const grey = Array.from({ length: width }, (_, x) => [0, 1, 2].every((n) => row[x * bpp + n] === 128));
+		const first = grey.indexOf(true);
+		return first === -1 ? width : grey.slice(first).every(Boolean) ? first : -1;
+	};
+	return [edge(rows[0]!), edge(rows[height - 1]!)];
+}
+
 // The command as the file writes it, `<page>` the page's path, from the repository's root, in `env`; `files` beside the page.
-// `lines` is what it printed but the screenshots' line; `shots`, the screenshots that line names, each read as a PNG's size,
-// `pngs` their bytes; `left`, what the screenshots' folder holds.
+// `lines` is what it printed but the screenshots' line; `shots`, the screenshots that line names, each read as a PNG's size
+// and the page's width in its top and bottom rows, `pngs` their bytes; `left`, what the screenshots' folder holds.
 function check(html: string, env: NodeJS.ProcessEnv = process.env, files: Readonly<Record<string, string>> = {}) {
 	const folder = temporaryFolder();
 	writeFileSync(join(folder, "page.html"), html);
@@ -35,7 +64,7 @@ function check(html: string, env: NodeJS.ProcessEnv = process.env, files: Readon
 	const pngs = paths.map((path) => readFileSync(path));
 	const shots = paths.map((path) => {
 		const png = readFileSync(path);
-		return { name: path.slice(folder.length + 1), width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
+		return { name: path.slice(folder.length + 1), width: png.readUInt32BE(16), height: png.readUInt32BE(20), page: frame(png) };
 	});
 	const left = existsSync(join(folder, "page.html.420px")) ? readdirSync(join(folder, "page.html.420px")) : [];
 	return { code: run.status, lines: all.filter((line) => !line.startsWith(SHOTS)), shots, pngs, left };
@@ -54,7 +83,7 @@ function wrapper(shell: string): NodeJS.ProcessEnv {
 	return { ...process.env, CHROME: file };
 }
 
-test("a page of the base style and every component passes at 420 px, with one screenshot 420 px wide", skip, () => {
+test("a page of the base style and every component passes at 420 px, with one screenshot of the 500 px window", skip, () => {
 	const body = [
 		"<header><h1>Night <code>arthur repeats</code></h1><p>Lead <code>/pyramid X</code></p></header><main>",
 		'<div class="nums"><div class="r"><b>44</b><span>steers</span></div><div class="b"><b>96%</b><span>answers</span></div></div>',
@@ -67,7 +96,7 @@ test("a page of the base style and every component passes at 420 px, with one sc
 	const { code, lines, shots } = check(page(STYLE, body));
 	assert.deepEqual([code, lines.length], [0, 1], lines.join("\n"));
 	assert.match(lines[0] ?? "", /^ok: .*page\.html at 420 px: \d+ texts at 4\.5:1 or more against their declared background, nothing scrolls sideways$/);
-	assert.deepEqual(shots, [{ name: "page.html.420px/1.png", width: 420, height: 1500 }]);
+	assert.deepEqual(shots, [{ name: "page.html.420px/1.png", width: 500, height: 1500, page: [420, 420] }], "the page 420 px wide, top to bottom, grey right of it");
 });
 
 test("a page 3001 px tall is screenshot in 3 slices of 1500 px, and the last run's slices are replaced", skip, () => {
@@ -75,7 +104,7 @@ test("a page 3001 px tall is screenshot in 3 slices of 1500 px, and the last run
 	const { code, shots, pngs, left } = check(page("body { margin:0 }", '<p style="margin:0;height:3001px">tall</p>'), process.env, stale);
 	assert.notDeepEqual(pngs[0], pngs[1], "the second slice shows the page further down, not its top again");
 	assert.equal(code, 0);
-	assert.deepEqual(shots.map(({ name, width, height }) => [name, width, height]), [1, 2, 3].map((n) => [`page.html.420px/${n}.png`, 420, 1500]));
+	assert.deepEqual(shots.map(({ name, width, height, page }) => [name, width, height, page]), [1, 2, 3].map((n) => [`page.html.420px/${n}.png`, 500, 1500, [420, 420]]));
 	assert.deepEqual(left.toSorted(), ["1.png", "2.png", "3.png"]);
 	const exact = check(page("body { margin:0 }", '<p style="margin:0;height:3000px">tall</p>'));
 	assert.equal(exact.shots.length, 2, "3000 px is two slices");
@@ -84,7 +113,7 @@ test("a page 3001 px tall is screenshot in 3 slices of 1500 px, and the last run
 test("a page 30 001 px tall is shot whole, in 21 slices: no part of a page goes out unseen", skip, () => {
 	const { code, shots } = check(page("body { margin:0 }", '<p style="margin:0;height:30001px">tall</p>'));
 	assert.equal(code, 0);
-	assert.deepEqual(shots.map(({ name }) => name), Array.from({ length: 21 }, (_, n) => `page.html.420px/${n + 1}.png`));
+	assert.deepEqual(shots.map(({ name, page }) => [name, page]), Array.from({ length: 21 }, (_, n) => [`page.html.420px/${n + 1}.png`, [420, 420]]), "each slice shows the page down to its bottom row");
 });
 
 test("a screenshot that fails exits 2: no page is sent without one", skip, () => {
@@ -145,8 +174,17 @@ test("1 px past either edge, or 1 px scrolling inside a box, each fail", skip, (
 	]);
 });
 
-test("a page rendered at another width is refused, as with a browser that ignores the 420 px window", skip, () => {
-	const { code, lines } = check(page("", "<p>fine</p>"), wrapper('case "$*" in *--dump-dom*) exec ' + JSON.stringify(BROWSER) + ' "$@" --window-size=500,900;; esac'));
+// AR0586: GitHub's Google Chrome keeps a window at least 500 px wide; this one keeps it at least 600 px.
+test("a browser that keeps a window wider than asked still checks the page at 420 px, in its frame", skip, () => {
+	const wide = 'for a; do shift; case "$a" in --window-size=*) h=${a#*,}; w=${a#--window-size=}; w=${w%,*}; [ "$w" -lt 600 ] && w=600; a="--window-size=$w,$h";; esac; set -- "$@" "$a"; done';
+	const { code, lines, shots } = check(page("body { margin:0 }", edges(0)), wrapper(wide));
+	assert.deepEqual([code, lines.length], [0, 1], lines.join("\n"));
+	assert.match(lines[0] ?? "", /^ok: .*page\.html at 420 px: /);
+	assert.deepEqual(shots.map(({ width, page }) => [width, page]), [[600, [420, 420]]], "the screenshot is of the window the browser kept, the page in its frame");
+});
+
+test("a page rendered at another width is refused, as with a browser that ignores the frame's 420 px", skip, () => {
+	const { code, lines } = check(page("", "<p>fine</p>"), wrapper('case "$*" in *--dump-dom*) for a; do :; done; sed -i "s/width:420px/width:500px/" "${a#file://}";; esac'));
 	assert.deepEqual([code, lines[0]], [1, "rendered 500 px wide, not 420"]);
 });
 
@@ -159,7 +197,7 @@ test("with no browser it checks nothing and exits 2, never 0", () => {
 
 test("text a page's script adds before load is checked, a forged result is not read, a page with no text fails, and markup that swallows the check exits 2", skip, () => {
 	const late = `<script>document.addEventListener("DOMContentLoaded", () => document.body.insertAdjacentHTML("beforeend", '<p style="color:#eeeeee">late</p>'))</script>`;
-	const forged = '<script type="application/json" id="page-check">{"texts":9,"height":10,"problems":[]}</script>';
+	const forged = '<script type="application/json" id="page-check">{"texts":9,"height":10,"problems":[]}</script><script>parent.postMessage({ id: "page-check", result: \'{"texts":9,"height":10,"problems":[]}\' }, "*")</script>';
 	const scripted = check(page("", `<p>tap</p>${late}${forged}`));
 	assert.deepEqual([scripted.code, scripted.lines.slice(0, -1)], [1, ['contrast 1.16:1, #eeeeee on #ffffff: p "late"']]);
 	const empty = check(page("", "<div></div>"));

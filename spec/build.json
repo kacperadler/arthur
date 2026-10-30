@@ -4534,9 +4534,9 @@
   {
     "id": "AR0569",
     "title": "Defaults T1: a check call gets 1800 s by itself, pkill is refused, and every steer is an event",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0569-defaults-t1-a-check-call-gets-1800-s-by-itself-pkill-is-refused-and-every-steer/ticket.md",
-    "updated": "2026-10-30T08:51:13.577Z"
+    "updated": "2026-10-30T08:58:46.910Z"
   },
   {
     "id": "AR0570",

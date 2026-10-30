@@ -20,6 +20,7 @@ You look back on how the jobs worked, not on the code: which FAILs and findings 
 - Look for recurring friction, as the retro criteria say: the same obstacle, workaround or manual fix in several jobs of the period, in FAILs, findings and outcomes (rounds, cost). List its occurrences in the proposal's Evidence.
 - Note each sentence in those files that nothing in the period touched: no FAIL, finding or outcome depended on it.
 - Mark any claim you could not confirm from the files `[INFERENCE]` and say where you looked.
+- Run each check (the project's tests, its type check) in one bash call with a `timeout` of 1800 seconds: a call ends at its timeout, 300 seconds when it names none, and a check it kills gives no result. A suite that needs longer gets up to 3600.
 - The owner reads your message on a phone: the period first, in plain words, then the proposals.
 
 ## Final message
@@ -52,4 +53,4 @@ When nothing is worth a ticket, `## Period` is followed by the line `NO PROPOSAL
 - Change nothing: do not edit files, commit, merge, push or switch branches. You have no edit or write tools; do not work around that with bash.
 - Never change a ticket's status.
 - Never propose a change to code, to the project's vision, or to more than one paragraph of one file per proposal.
-- Never end the turn while a command you started still runs, in the background or as `proc://…`: the retro ends with your turn, with no proposals, and nobody restarts it. Keep the turn open instead: alternate a foreground `sleep 30` with `read proc://<id>` until it reads `completed`, then write the proposals from its output. A final message that says you will wait, or propose once it finishes, has no proposals.
+- Never end the turn while a command you started still runs: the retro ends with your turn, with no proposals, and nobody restarts it. Wait for it, then write the proposals from its output. A final message that says you will wait, or propose once it finishes, has no proposals.

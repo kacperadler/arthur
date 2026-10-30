@@ -11,6 +11,8 @@ const PATH = process.env.PATH ?? "";
 const FOLDER = "spec/features/AC0001-big";
 const TICKET = `${FOLDER}/ticket.md`;
 const PLAN = `${FOLDER}/plan.md`;
+// The worker's rule (packages/core/roles/worker.md), word for word: omp ends a bash call at 300 s when it names no timeout (AR0566).
+const TIMEOUT_RULE = "\n- Run each check (the project's tests, its type check) in one bash call with a `timeout` of 1800 seconds: a call ends at its timeout, 300 seconds when it names none, and a check it kills gives no result. A suite that needs longer gets up to 3600.\n";
 
 const ticketText = (decisions = "") =>
 	`# AC0001 - Big\n\n\`\`\`json\n{ "id": "AC0001", "requires": { "os": "macos" } }\n\`\`\`\n\n## Goal\n\nA big change.\n\n- Kind: feature\n- Plan: yes\n\n## Decisions\n\n${decisions}`;
@@ -48,6 +50,12 @@ async function load(t: TestContext, run: AgentRun = { steps: [{ message: "## App
 }
 
 const readState = (home: string, id: string) => (existsSync(join(home, "jobs", id, "state")) ? readFileSync(join(home, "jobs", id, "state"), "utf8") : "");
+// The prompt a plan or plan review job got carries the worker's timeout rule, and no wait on proc://, which the job sandbox refuses.
+const checkPrompt = (home: string, id: string) => {
+	const prompt = readFileSync(join(home, "jobs", id, "prompt"), "utf8");
+	assert.ok(prompt.includes(TIMEOUT_RULE), "the worker's timeout rule");
+	assert.doesNotMatch(prompt, /proc:\/\/|sleep 30/, "no wait on proc://, which the job sandbox refuses");
+};
 
 test("a plan or plan review without one ticket.md on a Ticket: line, or of a ticket not on the board, is refused before any record", async (t) => {
 	const { jobs, home, root, commit } = await load(t);
@@ -67,9 +75,10 @@ test("a plan or plan review without one ticket.md on a Ticket: line, or of a tic
 });
 
 test("a plan files as plan.md with its header; planned again it replaces it, one plan.md, the old one in Git history", async (t) => {
-	const { jobs, root, ended, commit, git } = await load(t);
+	const { jobs, root, ended, commit, git, home } = await load(t);
 	const first = await jobs.spawn({ task: `Ticket: ${TICKET}`, kind: "plan" });
 	assert.equal(first.budgetUsd, 5, "plan.budgetUsd left out is 5");
+	checkPrompt(home, first.id);
 	await ended(first.id);
 	assert.equal(jobs.file("AC0001", first.id), PLAN);
 	assert.equal(readFileSync(join(root, PLAN), "utf8"), `# AC0001 - Plan\n\n- Job: ${first.id}\n- Planned at: ${first.base}\n\n## Approach\nSmall.`);
@@ -123,12 +132,13 @@ test("a plan still in a run is refused", async (t) => {
 });
 
 test("plan reviews number on from the highest one, record the verdict, and a job is never filed twice", async (t) => {
-	const { jobs, root, ended, commit } = await load(t, { steps: [{ message: "The plan holds.\n\nPASS\n" }] });
+	const { jobs, root, ended, commit, home } = await load(t, { steps: [{ message: "The plan holds.\n\nPASS\n" }] });
 	writeFileSync(join(root, PLAN), "# plan\n");
 	writeFileSync(join(root, FOLDER, "plan-review-1.md"), "one\n");
 	writeFileSync(join(root, FOLDER, "plan-review-3.md"), "three\n");
 	commit("plan and two reviews");
 	const review = await jobs.spawn({ task: `Ticket: ${TICKET}`, kind: "plan-review" });
+	checkPrompt(home, review.id);
 	await ended(review.id);
 	assert.equal(jobs.file("AC0001", review.id), `${FOLDER}/plan-review-4.md`);
 	assert.equal(

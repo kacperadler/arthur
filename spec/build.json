@@ -4694,9 +4694,9 @@
   {
     "id": "AR0585",
     "title": "Before a job ends, the agent is reminded to close the processes it started that are no longer needed",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0585-before-a-job-ends-the-agent-is-reminded-to-close-the-processes-it-started-that/ticket.md",
-    "updated": "2026-10-30T19:58:12.195Z"
+    "updated": "2026-10-30T20:16:26.901Z"
   },
   {
     "id": "AR0586",

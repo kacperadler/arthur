@@ -3972,9 +3972,9 @@
   {
     "id": "AR0501",
     "title": "A branch may rewrite the owner's decision log and the board, and `review-needed` lets a small one in without a review",
-    "status": "planning",
+    "status": "dropped",
     "path": "spec/features/AR0501-a-branch-may-rewrite-the-owner-s-decision-log-and-the-board-and-review-needed/ticket.md",
-    "updated": "2026-10-27T12:19:47.668Z"
+    "updated": "2026-10-30T07:47:24.481Z"
   },
   {
     "id": "AR0502",
@@ -4448,7 +4448,7 @@
     "path": "spec/features/AR0558-github-t2-create-comment-on-and-close-pull-requests/ticket.md",
     "updated": "2026-10-29T14:33:13.845Z",
     "after": [
-      "AR0557"
+      "AR0581"
     ]
   },
   {
@@ -4513,22 +4513,182 @@
   {
     "id": "AR0566",
     "title": "Five job roles tell the agent to wait on proc://, which a job sandbox cannot reach",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0566-five-job-roles-tell-the-agent-to-wait-on-proc-which-a-job-sandbox-cannot-reach/ticket.md",
-    "updated": "2026-10-30T01:07:33.581Z"
+    "updated": "2026-10-30T07:47:34.411Z"
   },
   {
     "id": "AR0567",
     "title": "AR0311's 18 findings stay open forever though each is already a ticket",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0567-ar0311-s-18-findings-stay-open-forever-though-each-is-already-a-ticket/ticket.md",
-    "updated": "2026-10-30T01:07:34.097Z"
+    "updated": "2026-10-30T07:47:35.521Z"
   },
   {
     "id": "AR0568",
     "title": "After the listen rename, the core still names the voice plugin, and versions.mmd misses four plugins",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0568-after-the-listen-rename-the-core-still-names-the-voice-plugin-and-versions-mmd/ticket.md",
-    "updated": "2026-10-30T01:07:34.628Z"
+    "updated": "2026-10-30T07:47:36.608Z"
+  },
+  {
+    "id": "AR0569",
+    "title": "Defaults T1: a check call gets 1800 s by itself, pkill is refused, and every steer is an event",
+    "status": "planned",
+    "path": "spec/features/AR0569-defaults-t1-a-check-call-gets-1800-s-by-itself-pkill-is-refused-and-every-steer/ticket.md",
+    "updated": "2026-10-30T07:46:59.864Z"
+  },
+  {
+    "id": "AR0570",
+    "title": "Defaults T2: a branch cannot change its ticket, the board or the decision log",
+    "status": "planned",
+    "path": "spec/features/AR0570-defaults-t2-a-branch-cannot-change-its-ticket-the-board-or-the-decision-log/ticket.md",
+    "updated": "2026-10-30T07:47:00.855Z",
+    "after": [
+      "AR0569"
+    ]
+  },
+  {
+    "id": "AR0571",
+    "title": "Defaults T3: a job resumes once after a provider error or an ending with no verdict",
+    "status": "planned",
+    "path": "spec/features/AR0571-defaults-t3-a-job-resumes-once-after-a-provider-error-or-an-ending-with-no/ticket.md",
+    "updated": "2026-10-30T07:47:01.865Z",
+    "after": [
+      "AR0569"
+    ]
+  },
+  {
+    "id": "AR0572",
+    "title": "Defaults T4: a job with no sandbox refuses to start unless core.jobs.unsandboxed is on",
+    "status": "planned",
+    "path": "spec/features/AR0572-defaults-t4-a-job-with-no-sandbox-refuses-to-start-unless-core-jobs-unsandboxed/ticket.md",
+    "updated": "2026-10-30T07:47:02.864Z",
+    "after": [
+      "AR0571"
+    ]
+  },
+  {
+    "id": "AR0573",
+    "title": "Defaults T5: the merge writes What went in per file and commits the ticket's folder itself",
+    "status": "planned",
+    "path": "spec/features/AR0573-defaults-t5-the-merge-writes-what-went-in-per-file-and-commits-the-ticket-s/ticket.md",
+    "updated": "2026-10-30T07:47:03.858Z",
+    "after": [
+      "AR0569"
+    ]
+  },
+  {
+    "id": "AR0574",
+    "title": "Defaults T6: a passed review's notes reach findings.md by themselves",
+    "status": "planned",
+    "path": "spec/features/AR0574-defaults-t6-a-passed-review-s-notes-reach-findings-md-by-themselves/ticket.md",
+    "updated": "2026-10-30T07:47:04.871Z",
+    "after": [
+      "AR0573"
+    ]
+  },
+  {
+    "id": "AR0575",
+    "title": "Defaults T7: a passed CI run wakes no one, and Arthur restarts by itself once no job runs",
+    "status": "planned",
+    "path": "spec/features/AR0575-defaults-t7-a-passed-ci-run-wakes-no-one-and-arthur-restarts-by-itself-once-no/ticket.md",
+    "updated": "2026-10-30T07:47:05.372Z"
+  },
+  {
+    "id": "AR0576",
+    "title": "Defaults T8: a passed review merges by itself in an autoMerge project, and four FAILs come before the owner is asked",
+    "status": "planned",
+    "path": "spec/features/AR0576-defaults-t8-a-passed-review-merges-by-itself-in-an-automerge-project-and-four/ticket.md",
+    "updated": "2026-10-30T07:47:06.368Z",
+    "after": [
+      "AR0574",
+      "AR0575"
+    ]
+  },
+  {
+    "id": "AR0577",
+    "title": "Defaults T9: the test kit keeps HOME, TMPDIR and the git identity in its own folder, and cleans up on a signal",
+    "status": "planned",
+    "path": "spec/features/AR0577-defaults-t9-the-test-kit-keeps-home-tmpdir-and-the-git-identity-in-its-own/ticket.md",
+    "updated": "2026-10-30T07:47:06.873Z"
+  },
+  {
+    "id": "AR0578",
+    "title": "Defaults T10: one until for every test, and the time-limit tests stop racing",
+    "status": "planned",
+    "path": "spec/features/AR0578-defaults-t10-one-until-for-every-test-and-the-time-limit-tests-stop-racing/ticket.md",
+    "updated": "2026-10-30T07:47:07.867Z",
+    "after": [
+      "AR0577"
+    ]
+  },
+  {
+    "id": "AR0579",
+    "title": "Defaults T11: npm run mutate finds the tests that do not catch a change",
+    "status": "planned",
+    "path": "spec/features/AR0579-defaults-t11-npm-run-mutate-finds-the-tests-that-do-not-catch-a-change/ticket.md",
+    "updated": "2026-10-30T07:47:08.867Z",
+    "after": [
+      "AR0569"
+    ]
+  },
+  {
+    "id": "AR0580",
+    "title": "Defaults T12: a review starts only on a tip whose check, test and mutate passed",
+    "status": "planned",
+    "path": "spec/features/AR0580-defaults-t12-a-review-starts-only-on-a-tip-whose-check-test-and-mutate-passed/ticket.md",
+    "updated": "2026-10-30T07:47:09.867Z",
+    "after": [
+      "AR0576",
+      "AR0578",
+      "AR0579"
+    ]
+  },
+  {
+    "id": "AR0581",
+    "title": "Defaults T13: the fakes of GitHub, YouTrack and Telegram are checked against recorded shapes, and tsc gets stricter",
+    "status": "planned",
+    "path": "spec/features/AR0581-defaults-t13-the-fakes-of-github-youtrack-and-telegram-are-checked-against/ticket.md",
+    "updated": "2026-10-30T07:47:10.369Z"
+  },
+  {
+    "id": "AR0582",
+    "title": "Defaults T14: a source line over 160 characters counts as more than one",
+    "status": "planned",
+    "path": "spec/features/AR0582-defaults-t14-a-source-line-over-160-characters-counts-as-more-than-one/ticket.md",
+    "updated": "2026-10-30T07:47:11.366Z",
+    "after": [
+      "AR0495"
+    ]
+  },
+  {
+    "id": "AR0583",
+    "title": "Defaults T15: a go-with-my-recommendation grant, and a policy answer continues the job",
+    "status": "planned",
+    "path": "spec/features/AR0583-defaults-t15-a-go-with-my-recommendation-grant-and-a-policy-answer-continues-the/ticket.md",
+    "updated": "2026-10-30T07:47:12.365Z",
+    "after": [
+      "AR0570"
+    ]
+  },
+  {
+    "id": "AR0584",
+    "title": "Defaults T16: verify.md criteria for workers and reviewers, one Every job rule, and the retro sees the corrections",
+    "status": "planned",
+    "path": "spec/features/AR0584-defaults-t16-verify-md-criteria-for-workers-and-reviewers-one-every-job-rule-and/ticket.md",
+    "updated": "2026-10-30T07:47:13.353Z",
+    "after": [
+      "AR0570",
+      "AR0571",
+      "AR0572",
+      "AR0574",
+      "AR0575",
+      "AR0576",
+      "AR0579",
+      "AR0580",
+      "AR0562",
+      "AR0566"
+    ]
   }
 ]

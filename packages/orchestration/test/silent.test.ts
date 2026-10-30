@@ -285,7 +285,7 @@ test("a grant with --usage holds while models.usage reads under that percent; no
 	const { fake, silent, ask, state, grant } = await granting(t);
 	assert.deepEqual(await silent("on", WORK, "--usage", "80", "--recommend"), [1, "arthur silent: refused: --usage needs the models plugin, which reads the usage (models.usage)"]);
 	assert.equal(state(), undefined, "nothing written");
-	let used: number | undefined = 79.5;
+	let used: number | null | undefined = 79.5;
 	fake.provide("models.usage", () => used);
 	assert.equal((await silent("on", WORK, "--usage", "80", "--recommend"))[0], 0);
 	assert.deepEqual(state().grant, { id: grant(), usage: 80 });
@@ -294,6 +294,8 @@ test("a grant with --usage holds while models.usage reads under that percent; no
 	assert.deepEqual(await ask("--recommend", "1"), [0, "AC-D2"], "80% is not under 80%");
 	used = undefined;
 	assert.deepEqual(await ask("--recommend", "1"), [0, "AC-D3"], "no usage report");
+	used = null;
+	assert.deepEqual(await ask("--recommend", "1"), [0, "AC-D4"], "a reading that is no number");
 });
 
 test("a grant with --tickets answers only an ask of one of its tickets", async (t) => {

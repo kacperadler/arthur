@@ -74,8 +74,8 @@ export function decisionHooks(host: Host): void {
 	});
 	// The run's end of a job a plugin held when its question was answered by policy.
 	host.events.on("job-ended", (event) => {
-		const { id, project, state, reason } = (event.data ?? {}) as Readonly<Record<string, unknown>>;
-		const where = state === "blocked" && typeof reason === "string" && reason.startsWith("user: ") ? eventProject(host, project) : undefined;
+		const { id, project, reason } = (event.data ?? {}) as Readonly<Record<string, unknown>>;
+		const where = typeof reason === "string" && reason.startsWith("user: ") ? eventProject(host, project) : undefined;
 		const last = where === undefined ? undefined : question(host, where, id, String(reason));
 		if (last !== undefined) continueByPolicy(host, String(id), last.ask.id, last.answers.at(-1));
 	});

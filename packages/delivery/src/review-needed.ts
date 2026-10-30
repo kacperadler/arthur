@@ -27,6 +27,9 @@ export function reviewNeededCommand(host: Host, held: (path: string) => boolean)
 			}
 			const job = worker(host, name);
 			const { folder: feature, root, commit: tip, base } = branchOf(host, job);
+			// The merge's own checks first (AR0570): no review is paid for a branch the merge would refuse.
+			const refusals = host.collect("merge.check", job).filter((answer) => typeof answer === "string" && answer !== "");
+			if (refusals.length > 0) throw new Error(`refused by merge.check: ${refusals.join("; ")}; no review until the branch passes it`);
 			const ticket = basename(feature).split("-")[0] ?? "";
 			// No hook or fsmonitor the main checkout's config names runs, nor a replacement (refs/replace): a program a job runs may have set them (AR0330, AR0384).
 			const git = (...words: string[]) => {

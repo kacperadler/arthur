@@ -277,7 +277,7 @@ test("an owner's symlink to a folder a step writes that holds what Arthur's user
 test("an owner's symlink into /dev, which a step writes, is judged by its target too: a repository a step put where it pointed has it removed", { skip: !existsSync("/dev/shm") && "no /dev/shm" }, (t) => {
 	const shm = mkdtempSync("/dev/shm/arthur-test-");
 	t.after(() => rmSync(shm, { recursive: true, force: true }));
-	const { root, run, lines } = planted((root) => symlinkSync(join(shm, "box"), join(root, "tools", "shm")));
+	const { run, lines } = planted((root) => symlinkSync(join(shm, "box"), join(root, "tools", "shm")));
 	const command = `git init -q --bare '${join(shm, "box")}'`;
 	assert.equal(run(command, process.env).status, 0);
 	assert.deepEqual(lines, said(command, "tools/shm"));

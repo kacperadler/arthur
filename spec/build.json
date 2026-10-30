@@ -4513,9 +4513,9 @@
   {
     "id": "AR0566",
     "title": "Five job roles tell the agent to wait on proc://, which a job sandbox cannot reach",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0566-five-job-roles-tell-the-agent-to-wait-on-proc-which-a-job-sandbox-cannot-reach/ticket.md",
-    "updated": "2026-10-30T07:47:46.651Z"
+    "updated": "2026-10-30T08:06:21.124Z"
   },
   {
     "id": "AR0567",

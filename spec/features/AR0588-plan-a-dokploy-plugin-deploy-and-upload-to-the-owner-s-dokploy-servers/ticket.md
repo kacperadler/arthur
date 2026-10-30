@@ -41,3 +41,4 @@ Out:
 - Managing the Dokploy server itself (installing it, its users and its domains): the owner does that in Dokploy.
 
 ## Decisions
+- 2026-10-30: AR0588 approved; its plan is written after the current plan tickets (AR0572, AR0574, AR0576, AR0579, AR0580, AR0583, AR0585); the owner: "AR-D382 1" (AR-D382)

@@ -625,6 +625,30 @@ test("in a job, each call that writes into the main checkout, the home folder or
 	assert.ok(replaced.includes("into the main checkout (git replace -d main)"), replaced);
 });
 
+test("pkill and killall are refused wherever the guard finds a command, through a shell, eval, sudo or a wrapper too; kill <pid> and pgrep pass", async () => {
+	const { home, own } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id));
+	const KILL = "arthur: refused: pkill and killall pick processes by name, so they also stop other jobs' processes and Arthur's own; stop yours by its process id instead (kill <pid>, the pid from $! when you start it in the background)";
+	const refused = [
+		"pkill -f 'node --test'",
+		"killall node",
+		"/usr/bin/pkill node",
+		"npm test; pkill -9 -f vitest",
+		"bash -c 'pkill node'",
+		`sh -c "true && killall -9 node"`,
+		"eval 'pkill node'",
+		"sudo pkill node",
+		"sudo -u root killall node",
+		"timeout 5 env X=1 pkill node",
+		"(cd /tmp && pkill node)",
+		"echo $(pkill node)",
+		"find . -name x -exec pkill {} +",
+		"bash <<'EOF'\npkill node\nEOF",
+	];
+	for (const command of refused) assert.equal(worktreeRefusal(place, "bash", { command }), KILL, command);
+	for (const command of ["kill 12345", "kill -TERM $!", "sleep 60 & kill $!", "pgrep -f node", "echo pkill killall", "git commit -m 'no pkill'", "grep -r pkill src", "kill -9 -- -4242"]) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
+});
+
 test("git config that changes the config every worktree shares, the user's or the system's is refused naming its key; reads, a worktree's own and a file elsewhere pass", async () => {
 	const { root, home, own, other } = await jobs();
 	const place = jobPlace(join(home, "jobs", own.id));

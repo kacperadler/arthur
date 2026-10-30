@@ -302,6 +302,18 @@ test("the fake agent notes its start only once its extensions are loaded and the
 	assert.equal(readFileSync(starts, "utf8").split("\n").length, 2, "one start, noted after");
 });
 
+test("the fake agent runs a tool call with the input the last answering tool_call handler returns, as omp does", () => {
+	const agent = fakeAgent({ steps: [{ tool: "bash", args: { command: "npm test" } }, { tool: "bash", args: { command: "ls" } }, { tool: "bash", args: { command: "pwd" } }] });
+	const [seen, first, last, silent] = ["seen", "first.ts", "last.ts", "silent.ts"].map((name) => join(dirname(agent), name)) as [string, string, string, string];
+	// Each handler gets the call as the model gave it; `last` notes the input each tool_result reports, the one the tool ran with.
+	writeFileSync(first, `export default (pi) => pi.on("tool_call", ({ input }) => (input.command === "ls" ? {} : { input: { ...input, timeout: 1 } }));\n`);
+	writeFileSync(last, `import { appendFileSync } from "node:fs";\nexport default (pi) => {\n\tpi.on("tool_call", ({ input }) => (input.command === "npm test" ? { input: { ...input, timeout: 1800 } } : undefined));\n\tpi.on("tool_result", ({ input }) => appendFileSync(${JSON.stringify(seen)}, JSON.stringify(input) + "\\n"));\n};\n`);
+	writeFileSync(silent, `export default (pi) => pi.on("tool_call", () => undefined);\n`);
+	const run = spawnSync(agent, ["-e", first, "-e", last, "-e", silent], { encoding: "utf8" });
+	assert.equal(run.status, 0, run.stderr);
+	assert.deepEqual(readFileSync(seen, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line)), [{ command: "npm test", timeout: 1800 }, { command: "ls" }, { command: "pwd", timeout: 1 }]);
+});
+
 function hasTmux(): boolean {
 	try {
 		execFileSync("tmux", ["-V"], { stdio: "ignore" });

@@ -28,12 +28,12 @@ function load(t: TestContext, packageJson: string | null = BOTH) {
 	const handlers: { readonly event: string; readonly handler: (event: object, ctx: { readonly cwd: string }) => unknown }[] = [];
 	checks({ on: (event, handler) => void handlers.push({ event, handler: handler as (event: object, ctx: { readonly cwd: string }) => unknown }) });
 	const file = join(home, "delivery", "2026-01-01-worker-00000001", "checks");
-	const emit = (type: string, event: object, why: string) => {
-		for (const { handler } of handlers.filter((each) => each.event === type)) assert.equal(handler({ type, ...event }, { cwd: worktree }), undefined, why);
+	const emit = (type: string, event: object) => handlers.filter((each) => each.event === type).map(({ handler }) => handler({ type, ...event }, { cwd: worktree }));
+	// What `tool_call` answers: the input the call runs with when it revises it, never a block.
+	const begin = (toolCallId: string, { toolName, input = {} }: Call) => emit("tool_call", { toolCallId, toolName, input }).map((answer) => (assert.equal((answer as { block?: unknown } | undefined)?.block, undefined, "the call is not blocked"), answer));
+	const end = (toolCallId: string, { toolName, input = {}, output = "", isError = false, details = {} }: Call) => {
+		for (const answer of emit("tool_result", { toolCallId, toolName, input, content: [{ type: "text", text: output }], details, isError })) assert.equal(answer, undefined, "the result is left as it is");
 	};
-	const begin = (toolCallId: string, { toolName, input = {} }: Call) => emit("tool_call", { toolCallId, toolName, input }, "the call is not blocked");
-	const end = (toolCallId: string, { toolName, input = {}, output = "", isError = false, details = {} }: Call) =>
-		emit("tool_result", { toolCallId, toolName, input, content: [{ type: "text", text: output }], details, isError }, "the result is left as it is");
 	const read = () => (existsSync(file) ? readFileSync(file, "utf8").replaceAll(git("rev-parse", "HEAD"), "<commit>") : "");
 	let calls = 0;
 	const run = (...each: readonly Call[]) => {
@@ -185,6 +185,19 @@ test("a tracked file whose folder is now a file neither blocks the call nor thro
 	const flatten = () => void [rmSync(join(worktree, "src"), { recursive: true }), writeFileSync(join(worktree, "src"), "")];
 	assert.equal(run({ ...bash("rm -r src && touch src && npm test", SUMMARY(3, 0)), during: flatten }), "test pass 3/3 <commit> dirty\n", "ENOTDIR as the call ends");
 	assert.equal(run(bash("npm test", SUMMARY(3, 0))), "test pass 3/3 <commit> dirty\ntest pass 3/3 <commit> dirty\n", "ENOTDIR as the call begins");
+});
+
+test("a check call runs with a timeout of at least 1800 seconds; any other command, and a script the package.json lacks, run as given", (t) => {
+	const { begin } = load(t, JSON.stringify({ scripts: { test: "node --test" } }));
+	const call = (input: object, toolName = "bash") => begin("toolu_1", { toolName, input });
+	assert.deepEqual(call({ command: "npm test" }), [{ input: { command: "npm test", timeout: 1800 } }], "no timeout: 300 s in omp");
+	assert.deepEqual(call({ command: "npm test 2>&1 | tail -5", timeout: 300 }), [{ input: { command: "npm test 2>&1 | tail -5", timeout: 1800 } }]);
+	assert.deepEqual(call({ command: "npm ci && npm t", timeout: 1799 }), [{ input: { command: "npm ci && npm t", timeout: 1800 } }]);
+	assert.deepEqual(call({ command: "npm test", timeout: 1800 }), [{ input: { command: "npm test", timeout: 1800 } }]);
+	assert.deepEqual(call({ command: "npm test", timeout: 2400, cwd: "sub" }), [{ input: { command: "npm test", timeout: 2400, cwd: "sub" } }], "a longer one kept, the rest of the input too");
+	assert.deepEqual(call({ command: "npm test", timeout: "2400" }), [{ input: { command: "npm test", timeout: 1800 } }], "a timeout that is no number is none");
+	for (const input of [{ command: "ls", timeout: 10 }, { command: "echo npm test" }, { command: "npm run check" }, {}]) assert.deepEqual(call(input), [undefined], JSON.stringify(input));
+	assert.deepEqual(call({ command: "npm test" }, "read"), [undefined], "another tool");
 });
 
 test("a call the bash tool moved to the background, and a job without a record, give no line", (t) => {

@@ -4,6 +4,8 @@ Usage: `arthur steer <id> <text>`; on a channel `/steer <id> <text>`, the text b
 
 Gives a job in a run (`working`, `idle`, or held `blocked` by a plugin; see `arthur jobs --help`) one correction, the text as one quoted argument, which its agent gets after its next tool call, while the run goes on. The job is named by its full id or its short id (the 8 hex digits that end it, as `arthur jobs` shows it). Prints, or on a channel answers, `<id>: steer <number> queued for after its next tool call`, the full id.
 
+Once the steer is queued, `arthur steer` and `/steer` emit the core's event `job-steered` with the job's `id`, its `kind`, the `text` and `via: "steer"`; a refused steer emits none. A plugin's `host.jobs.steer` emits none.
+
 How it reaches the agent: the steer is written whole into the record as `<home>/jobs/<id>/steer/inbox/<number>`, numbered on from `0001` over every steer the job had. The wrapper loads the steer extension into every job's agent (`-e steer.ts`, with `ARTHUR_JOB` naming the record); after each tool call it hands the agent every steer waiting in `inbox/`, oldest first, each as a user message delivered as a steer, moves it to `steer/done/`, and adds `steered <number>: <first line>` to the job's log. Two steers sent before the next tool call both arrive after it, in the order they were sent.
 
 A steer still in `inbox/` when the job ends (the agent made no tool call after it) is moved to `steer/undelivered/`, the log saying `undelivered steer <number>: <first line>`, and `job-ended` names it: its data has `undelivered`, the numbers, when there is one. A later `arthur continue` does not deliver it; give the correction as the instruction instead.

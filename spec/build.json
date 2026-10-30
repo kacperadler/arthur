@@ -4541,9 +4541,9 @@
   {
     "id": "AR0570",
     "title": "Defaults T2: a branch cannot change its ticket, the board or the decision log",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0570-defaults-t2-a-branch-cannot-change-its-ticket-the-board-or-the-decision-log/ticket.md",
-    "updated": "2026-10-30T10:37:03.243Z",
+    "updated": "2026-10-30T11:05:54.269Z",
     "after": [
       "AR0569"
     ]
@@ -4551,9 +4551,9 @@
   {
     "id": "AR0571",
     "title": "Defaults T3: a job resumes once after a provider error or an ending with no verdict",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0571-defaults-t3-a-job-resumes-once-after-a-provider-error-or-an-ending-with-no/ticket.md",
-    "updated": "2026-10-30T10:36:34.341Z",
+    "updated": "2026-10-30T11:46:11.298Z",
     "after": [
       "AR0569"
     ]
@@ -4571,9 +4571,9 @@
   {
     "id": "AR0573",
     "title": "Defaults T5: the merge writes What went in per file and commits the ticket's folder itself",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0573-defaults-t5-the-merge-writes-what-went-in-per-file-and-commits-the-ticket-s/ticket.md",
-    "updated": "2026-10-30T07:47:03.858Z",
+    "updated": "2026-10-30T11:37:57.684Z",
     "after": [
       "AR0569"
     ]
@@ -4616,9 +4616,9 @@
   {
     "id": "AR0578",
     "title": "Defaults T10: one until for every test, and the time-limit tests stop racing",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0578-defaults-t10-one-until-for-every-test-and-the-time-limit-tests-stop-racing/ticket.md",
-    "updated": "2026-10-30T07:47:07.867Z",
+    "updated": "2026-10-30T11:38:19.006Z",
     "after": [
       "AR0577"
     ]
@@ -4665,9 +4665,9 @@
   {
     "id": "AR0583",
     "title": "Defaults T15: a go-with-my-recommendation grant, and a policy answer continues the job",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0583-defaults-t15-a-go-with-my-recommendation-grant-and-a-policy-answer-continues-the/ticket.md",
-    "updated": "2026-10-30T07:47:12.365Z",
+    "updated": "2026-10-30T11:27:54.375Z",
     "after": [
       "AR0570"
     ]
@@ -4708,8 +4708,8 @@
   {
     "id": "AR0587",
     "title": "The report check tests skip on this server since the test kit moved HOME",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0587-the-report-check-tests-skip-on-this-server-since-the-test-kit-moved-home/ticket.md",
-    "updated": "2026-10-30T10:55:37.238Z"
+    "updated": "2026-10-30T11:00:32.169Z"
   }
 ]

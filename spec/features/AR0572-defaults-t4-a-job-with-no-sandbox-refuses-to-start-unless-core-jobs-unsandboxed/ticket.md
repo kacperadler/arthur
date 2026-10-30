@@ -39,3 +39,4 @@ Out:
 ## Decisions
 
 - 2026-10-30: Source: the approved plan of AR0561 (AR-D345)
+- 2026-10-30: AR0572 raised to $14 and continued from where it stopped; the owner: "i have to focus on my work, go with recomendations and do not cross 70% of weekly usage, do to silent mode" (AR-D385)

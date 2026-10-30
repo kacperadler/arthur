@@ -4694,9 +4694,9 @@
   {
     "id": "AR0585",
     "title": "Before a job ends, the agent is reminded to close the processes it started that are no longer needed",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0585-before-a-job-ends-the-agent-is-reminded-to-close-the-processes-it-started-that/ticket.md",
-    "updated": "2026-10-30T08:11:56.614Z"
+    "updated": "2026-10-30T19:58:12.195Z"
   },
   {
     "id": "AR0586",
@@ -4722,9 +4722,9 @@
   {
     "id": "AR0589",
     "title": "Plan: each project keeps all its plugin settings in one place of arthur.config.ts",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0589-plan-each-project-keeps-all-its-plugin-settings-in-one-place-of-arthur-config-ts/ticket.md",
-    "updated": "2026-10-30T19:26:21.546Z"
+    "updated": "2026-10-30T20:06:57.855Z"
   },
   {
     "id": "AR0590",

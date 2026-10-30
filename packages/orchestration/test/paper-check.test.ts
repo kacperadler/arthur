@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { fakeHost, temporaryFolder } from "@arthur/core/testing";
@@ -49,7 +49,7 @@ async function setup(t: TestContext) {
 	return { root, git, write, branch, check };
 }
 
-const REFUSED = (branch: string, files: string) => [`${branch} changes ${files}, which only the coordinator's arthur ticket, arthur decision and board commands write on main; undo that change on the branch (git checkout <the branch's base> -- <file>, or git rm a file it added) and commit, with what it was for in the ticket's findings.md or the final message`];
+const REFUSED = (branch: string, files: string) => [`${branch} changes ${files}, which only the coordinator's arthur ticket, arthur decision and board commands write on main; put each back as main has it on the branch (git checkout <main> -- <file>, or git rm one main lacks) and commit, with what it was for in the ticket's findings.md or the final message`];
 
 test("a worker's branch that adds, changes, deletes or renames a ticket.md, or changes the decision log or the board, is refused naming each file; the rest pass", async (t) => {
 	const { root, write, branch, check } = await setup(t);
@@ -71,6 +71,7 @@ test("a worker's branch that adds, changes, deletes or renames a ticket.md, or c
 		write("spec/features/AC0001-shop/findings.md", "# AC0001 - Findings\n\n## F1. A bug\n");
 		write("spec/features/AC0001-shop/plan.md", "# Plan\n");
 		write("spec/features/AC0001-shop/notes/ticket.md", "# Notes\n");
+		write("spec/features/AC0001-shop/ticket.md.orig", "# A merge's leftover\n");
 		write("spec/features/ticket.md", "# Not a ticket's\n");
 		write("docs/spec/build.json", "[]\n");
 		write("spec/build.json.bak", "[]\n");
@@ -80,7 +81,7 @@ test("a worker's branch that adds, changes, deletes or renames a ticket.md, or c
 	assert.deepEqual(check(free), [undefined], "findings.md, a plan and paths that only look alike pass");
 });
 
-test("judged from where the branch left HEAD, for a worker only: main's own later change to a ticket is not the branch's; a missing project or branch refuses", async (t) => {
+test("judged as the merge goes, for a worker only: main's own later change to a ticket is not the branch's, a conflict in one is; a missing project or branch refuses", async (t) => {
 	const { git, write, branch, check } = await setup(t);
 	const code = branch("arthur/code", () => write("src/shop.ts", "export const shop = 2;\n"));
 	write(TICKET, "# AC0001 - Shop, moved by the coordinator\n");
@@ -88,7 +89,46 @@ test("judged from where the branch left HEAD, for a worker only: main's own late
 	git("commit", "--quiet", "-am", "board moves");
 	assert.deepEqual(check(code), [undefined]);
 	const ticket = branch("arthur/ticket", () => write(TICKET, "# AC0001 - Shop, by the branch\n"));
+	assert.deepEqual(check(ticket), REFUSED("arthur/ticket", TICKET), "a merge that conflicts in the ticket changes it too");
 	assert.deepEqual(check(ticket, "onboarding"), [undefined], "another kind is another plugin's to check");
 	assert.deepEqual(check(ticket, "worker", "blog"), ["project blog is not in the list"]);
-	assert.match(String(check("arthur/gone")[0]), /^git diff HEAD\.\.\.arthur\/gone: fatal: /);
+	assert.match(String(check("arthur/gone")[0]), /^cannot tell what merging arthur\/gone changes: .+/);
 });
+
+// Git's diff of `HEAD...<branch>` takes one of several merge bases, by commit date: either order of the sibling's commit and the
+// owner's decision makes one of the two bases hide the branch's change from it, so both are tried.
+for (const siblingFirst of [false, true]) {
+	test(`a branch with two merge bases is judged as the merge goes: one that merged a sibling and main, then put back the sibling's ticket, is refused before it drops the owner's line (the sibling's commit ${siblingFirst ? "before" : "after"} the decision)`, async (t) => {
+		const { root, write, check } = await setup(t);
+		let clock = 1_800_000_000;
+		const git = (...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "-C", root, ...args], { encoding: "utf8", env: { ...process.env, GIT_COMMITTER_DATE: `${(clock += 100)} +0000`, GIT_AUTHOR_DATE: `${clock} +0000` } });
+		const decided = "# AC0001 - Shop\n\n## Decisions\n\n- 2026-10-30: the owner's\n";
+		// The sibling branches off main before the decision, its one commit dated before or after it.
+		git("branch", "arthur/x");
+		const steps = [
+			() => {
+				write(TICKET, decided);
+				git("commit", "--quiet", "-am", "the owner's decision");
+			},
+			() => {
+				git("switch", "--quiet", "arthur/x");
+				write("src/x.ts", "export const x = 1;\n");
+				git("add", "--all");
+				git("commit", "--quiet", "-m", "x");
+				git("switch", "--quiet", "main");
+			},
+		];
+		for (const step of siblingFirst ? steps.toReversed() : steps) step();
+		git("switch", "--quiet", "-c", "arthur/c", "main~1");
+		git("merge", "--quiet", "--no-ff", "--no-edit", "arthur/x");
+		git("merge", "--quiet", "--no-edit", "main");
+		git("checkout", "arthur/x", "--", TICKET);
+		git("commit", "--quiet", "-m", "the sibling's ticket");
+		git("switch", "--quiet", "main");
+		git("merge", "--quiet", "--no-ff", "--no-edit", "arthur/x");
+		assert.equal(git("merge-base", "--all", "main", "arthur/c").trim().split("\n").length, 2, "two merge bases");
+		assert.deepEqual(check("arthur/c"), REFUSED("arthur/c", TICKET));
+		git("merge", "--quiet", "--no-ff", "--no-edit", "arthur/c");
+		assert.notEqual(readFileSync(join(root, TICKET), "utf8"), decided, "what the refusal kept out: the merge drops the owner's line");
+	});
+}

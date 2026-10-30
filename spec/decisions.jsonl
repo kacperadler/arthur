@@ -752,3 +752,5 @@
 {"record":"answer","id":"AR-D374","time":"2026-10-30T11:57:48+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D375","time":"2026-10-30T11:57:49+01:00","project":"arthur","kind":"merge","question":"Merge AR0571 (a job resumes once after a provider error or no verdict) after its passed review?","options":[],"ticket":"AR0571"}
 {"record":"answer","id":"AR-D375","time":"2026-10-30T11:57:49+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D376","time":"2026-10-30T12:38:14+01:00","project":"arthur","kind":"merge","question":"Merge AR0573 (the merge writes What went in per file and commits the ticket folder) after its passed review?","options":[],"ticket":"AR0573"}
+{"record":"answer","id":"AR-D376","time":"2026-10-30T12:38:14+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

@@ -4551,9 +4551,9 @@
   {
     "id": "AR0571",
     "title": "Defaults T3: a job resumes once after a provider error or an ending with no verdict",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0571-defaults-t3-a-job-resumes-once-after-a-provider-error-or-an-ending-with-no/ticket.md",
-    "updated": "2026-10-30T11:35:43.343Z",
+    "updated": "2026-10-30T11:41:02.108Z",
     "after": [
       "AR0569"
     ]
@@ -4616,9 +4616,9 @@
   {
     "id": "AR0578",
     "title": "Defaults T10: one until for every test, and the time-limit tests stop racing",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0578-defaults-t10-one-until-for-every-test-and-the-time-limit-tests-stop-racing/ticket.md",
-    "updated": "2026-10-30T07:47:07.867Z",
+    "updated": "2026-10-30T11:38:19.006Z",
     "after": [
       "AR0577"
     ]

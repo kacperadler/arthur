@@ -4581,9 +4581,9 @@
   {
     "id": "AR0574",
     "title": "Defaults T6: a passed review's notes reach findings.md by themselves",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0574-defaults-t6-a-passed-review-s-notes-reach-findings-md-by-themselves/ticket.md",
-    "updated": "2026-10-30T14:39:57.705Z",
+    "updated": "2026-10-30T14:45:06.512Z",
     "after": [
       "AR0573"
     ]
@@ -4718,5 +4718,12 @@
     "status": "planned",
     "path": "spec/features/AR0588-plan-a-dokploy-plugin-deploy-and-upload-to-the-owner-s-dokploy-servers/ticket.md",
     "updated": "2026-10-30T13:44:58.936Z"
+  },
+  {
+    "id": "AR0589",
+    "title": "Plan: each project keeps all its plugin settings in one place of arthur.config.ts",
+    "status": "planning",
+    "path": "spec/features/AR0589-plan-each-project-keeps-all-its-plugin-settings-in-one-place-of-arthur-config-ts/ticket.md",
+    "updated": "2026-10-30T14:43:21.743Z"
   }
 ]

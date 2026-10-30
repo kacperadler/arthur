@@ -12,7 +12,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: `delivery/merge` now scores a coordinator that runs `arthur merge` and names the ticket the merge made from the review's risk note, and never runs `arthur ticket new`. Before, it scored the coordinator copying the notes by hand. The baseline's 3/3 was measured on the old scenario with a real model. No run here measured the new one, so the next `arthur eval` compares against a rate from a different test.
 - Suggestion: run `arthur eval delivery/merge --runs 3` with the real model and record its rate in `evals/baseline.json`. Nothing else changes.
 - Budget: 0.5
-- Status: open
+- Status: deferred (client summary)
 
 ## F2. Without the findings plugin, a passed review's notes reach no findings.md
 
@@ -21,4 +21,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/src/merge-outcome.ts:101`
 - What: AR0574 deleted the after-merge step where the coordinator copied the notes, as the plan says. In a project with no `findings.onMerge` provider, a PASS review's security, bug or risk notes now stay only in its `review-N.md`. The merge says `- Findings: ... left as it is` or `- Findings: none; no findings.md on this ticket.` and never says that notes were left too.
 - Suggestion: when no provider answers and `notes` holds a line of kind security, bug or risk, add `- Findings: <n> review notes left in <review-N.md>: no plugin provides findings.onMerge` to the no-provider line. No coordinator step comes back.
-- Status: open
+- Status: deferred (client summary)

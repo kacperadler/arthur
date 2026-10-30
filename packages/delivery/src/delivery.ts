@@ -1,7 +1,7 @@
 import { readFileSync, rmSync } from "node:fs";
 import { basename, join, matchesGlob } from "node:path";
 import type { Host, Plugin } from "@arthur/core/plugin";
-import { entryOf } from "./auto-merge.ts";
+import { autoMergePiece, type DeliveryPiece, entryOf } from "./auto-merge.ts";
 import { changelogCommand } from "./changelog.ts";
 import { type CiEnd, type CiWaits, ciEnded, ciWaits } from "./ci-wait.ts";
 import { ALWAYS_REVIEW, checkOptions, STEP_SECONDS } from "./delivery-options.ts";
@@ -22,7 +22,7 @@ import { pruneTicket } from "./ticket-prune.ts";
 // review-needed`, the always-review list it and autopilot ask (`delivery.alwaysReview`), and the extension that records each
 // job's checks: docs/commands/review-needed.md. Entry 54: `arthur merge`: docs/commands/merge.md. Entry 55: the hand-back after
 // a FAIL (hand-back.ts): docs/commands/review.md, "Hand-back". Entry 56: `arthur changelog`: docs/commands/changelog.md. Entry
-// 59: `arthur merge --auto`, and the CI waits it leaves, polled while `arthur run` runs (ci-wait.ts).
+// 59: `arthur merge --auto`, and the CI waits it leaves, polled while `arthur run` runs (ci-wait.ts); a project file's piece, `delivery.project({ autoMerge: true })`.
 
 const REVIEW = "review";
 const TICKET = /^spec\/features\/([A-Z]+\d{4,})-[^/]+\/ticket\.md$/;
@@ -38,7 +38,9 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 		name: "delivery",
 		module: import.meta.url,
 		options,
+		after: ["projects"],
 		check: checkOptions,
+		piece: autoMergePiece,
 		start() {
 			loop?.start();
 			waits?.start();
@@ -159,7 +161,7 @@ function recorded(host: Host, review: Review): Seen {
 	const [verdict, job] = [settle(host, review), host.jobs.list().find((each) => each.id === review.id)];
 	const project = job?.project ?? "";
 	// Its own place among the FAILs since the last PASS, so a wake built later says what it said at the end.
-	return { review, verdict, project, autoMerge: entryOf(host, project)?.autoMerge === true, reason: job?.reason, fails: () => failsSincePass(host, review.branch).indexOf(review.id) + 1 };
+	return { review, verdict, project, autoMerge: entryOf(host, project)?.pieces?.delivery?.autoMerge === true, reason: job?.reason, fails: () => failsSincePass(host, review.branch).indexOf(review.id) + 1 };
 }
 
 // A review in no home (an eval's, docs/commands/review.md): the record its data names, `records.delivery`, `{ ticket, branch,
@@ -194,3 +196,5 @@ function wake({ review, verdict, project, autoMerge, reason, fails: place }: See
 	const line = `Review verdict: FAIL on ${review.branch} at ${review.commit.slice(0, 7)}, ${fails} since its last PASS; ${review.ticket} moves back to in-progress. ${filed}${back}`;
 	return fails >= LIMIT ? `${line}\n\n${readFileSync(procedure, "utf8").trim()}` : line;
 }
+
+delivery.project = (piece: DeliveryPiece) => ({ delivery: piece });

@@ -170,10 +170,10 @@ test("a project's prompts move the files the roles read; host.jobs reads a role'
 	assert.deepEqual(jobs.vision("acme"), { project: "acme", path: "docs/vision.md", problem: "missing" });
 });
 
-test("a project's prompts naming a path outside its repository, or another key, refuse the spawn and the reads, naming the project", async () => {
+test("a project's prompts naming a relative path outside its repository, or another key, refuse the spawn and the reads, naming the project", async () => {
 	for (const [prompts, key, path] of [
 		[{ vision: "../secret.md" }, "vision", "../secret.md"],
-		[{ criteriaDir: "/etc" }, "criteriaDir", "/etc"],
+		[{ criteriaDir: "" }, "criteriaDir", ""],
 		[{ rolesDir: "a/../../b" }, "rolesDir", "a/../../b"],
 		[{ visions: "spec" }, "visions", "spec"],
 	] as const) {
@@ -181,11 +181,29 @@ test("a project's prompts naming a path outside its repository, or another key, 
 		const names = registry();
 		names.provide("projects", "projects", () => [{ name: "acme", path: root, prefix: "AC", prompts }]);
 		const jobs = runner(root, home, names);
-		const message = `project acme: prompts.${key}: expected vision, criteriaDir, rolesDir, each a path inside its repository, got ${JSON.stringify(path)}`;
+		const message = `project acme: prompts.${key}: expected vision, criteriaDir, rolesDir, each absolute or a path inside its repository, got ${JSON.stringify(path)}`;
 		await assert.rejects(jobs.spawn({ task: "Go." }), { message }, key);
 		assert.throws(() => jobs.vision(), { message }, key);
 		nothingMade(root, home);
 	}
+});
+
+test("an absolute prompts path, a project folder's, is read from there; one left out from the worktree; a symlink there is refused", async () => {
+	const { root, home } = repository({ [`${ROLES}/worker.md`]: "Use tabs.\n", [`${CRITERIA}/styleguide.md`]: "# Repository style\n" });
+	const folder = temporaryFolder();
+	mkdirSync(join(folder, "criteria"));
+	writeFileSync(join(folder, "criteria/styleguide.md"), "# Folder style\n");
+	writeFileSync(join(folder, "vision.md"), "# Folder vision\n");
+	const names = registry();
+	names.provide("projects", "projects", () => [{ name: "acme", path: root, prefix: "AC", prompts: { criteriaDir: join(folder, "criteria"), vision: join(folder, "vision.md") } }]);
+	const jobs = runner(root, home, names);
+	const worker = await jobs.spawn({ task: "Go." });
+	const style = join(folder, "criteria/styleguide.md");
+	assert.equal(prompt(home, worker.id), `${WORKER.trim()}\n\n## Project override, which wins over the role above (${ROLES}/worker.md)\n\nUse tabs.\n\n## Folder style (${style})\n\n# Folder style\n`);
+	assert.deepEqual(jobs.vision(), { project: "acme", path: join(folder, "vision.md"), text: "# Folder vision\n" });
+	rmSync(style);
+	symlinkSync(join(root, CRITERIA, "styleguide.md"), style);
+	await assert.rejects(jobs.spawn({ task: "Go." }), { message: `${style} is a symlink; ${REFUSED}` });
 });
 
 test("a prompt section that is not text, undefined or { text, warnings } of text refuses the spawn and removes what was made", async () => {

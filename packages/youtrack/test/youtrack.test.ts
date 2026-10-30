@@ -22,9 +22,9 @@ const INSTANCES = [
 	{ name: "acme", urlEnv: "ARTHUR_YOUTRACK_ACME_URL", tokenEnv: "ARTHUR_YOUTRACK_ACME_TOKEN" },
 ];
 const PROJECTS = [
-	{ name: "web-shop", prefix: "SH", tracker: { plugin: "youtrack", project: "SHOP" } },
-	{ name: "site", prefix: "SI", tracker: { plugin: "youtrack", instance: "acme", project: "SITE" } },
-	{ name: "blog", prefix: "BL" },
+	{ name: "web-shop", prefix: "SH", pieces: youtrack.project({ project: "SHOP" }) },
+	{ name: "site", prefix: "SI", pieces: youtrack.project({ instance: "acme", project: "SITE" }) },
+	{ name: "blog", prefix: "BL", pieces: {} },
 ];
 
 // The plugin set up on a fake host with the project list `projects` and the variables `env`; `run` runs `arthur youtrack`
@@ -648,22 +648,15 @@ test("a work item adds its minutes and text; 0 minutes, or anything but a whole 
 	assert.deepEqual(seen, []);
 });
 
-test("refused at load, naming the project: an instance youtrack does not have, no unnamed one to fall back on, a project id of another form", async (t) => {
+test("refused before the setup, naming the project and the helper: an instance youtrack does not have, no unnamed one to fall back on, a project id of another form, another shape", async (t) => {
 	const env = envFor("https://youtrack.example");
-	const loadWith = (projects: readonly unknown[], options?: YoutrackOptions) => load(t, env, { projects, ...(options === undefined ? {} : { options }) });
-	assert.equal(
-		await refusal(loadWith([{ name: "web-shop", tracker: { plugin: "youtrack", instance: "main", project: "SHOP" } }])),
-		"project web-shop: tracker.instance main is not an instance of youtrack; youtrack's instances: (unnamed), acme",
-	);
-	assert.equal(
-		await refusal(loadWith([{ name: "web-shop", tracker: { plugin: "youtrack", project: "SHOP" } }], { instances: INSTANCES.slice(1) })),
-		"project web-shop: its tracker names no instance and youtrack has no unnamed one; youtrack's instances: acme",
-	);
-	assert.equal(
-		await refusal(loadWith([{ name: "web-shop", tracker: { plugin: "youtrack", project: "SHOP/../x" } }])),
-		'project web-shop: tracker.project "SHOP/../x" is not a YouTrack project id: a letter, then letters, digits and underscores',
-	);
-	await loadWith([{ name: "blog", tracker: { plugin: "jira", instance: "nope", project: "a b" } }]);
+	const loadWith = (piece: unknown, options?: YoutrackOptions) => load(t, env, { projects: [{ name: "web-shop", pieces: { youtrack: piece } }], ...(options === undefined ? {} : { options }) });
+	const refused = (problem: string) => `project web-shop: youtrack.project(...): ${problem}`;
+	assert.equal(await refusal(loadWith({ instance: "main", project: "SHOP" })), refused("instance main is not an instance of youtrack; youtrack's instances: (unnamed), acme"));
+	assert.equal(await refusal(loadWith({ project: "SHOP" }, { instances: INSTANCES.slice(1) })), refused("it names no instance and youtrack has no unnamed one; youtrack's instances: acme"));
+	assert.equal(await refusal(loadWith({ project: "SHOP/../x" })), refused('project "SHOP/../x" is not a YouTrack project id: a letter, then letters, digits and underscores'));
+	for (const piece of ["SHOP", { plugin: "youtrack", project: "SHOP" }, { project: 1 }, { instance: 2, project: "SHOP" }]) assert.equal(await refusal(loadWith(piece)), refused("expected { instance?, project }, each a string"), JSON.stringify(piece));
+	await loadWith({ instance: "acme", project: "SHOP" });
 });
 
 test("refused at load, naming the option and the variable but never its value: a URL that is not one, a token a header cannot carry", async (t) => {

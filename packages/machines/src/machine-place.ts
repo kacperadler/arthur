@@ -24,22 +24,29 @@ export function labelsText(labels: Labels): string {
 	return Object.entries(labels).map(([key, value]) => `${key} ${Array.isArray(value) ? value.join(" ") : value}`).join(", ") || "none";
 }
 
-// `value` as labels, refused naming `where` when it is not `{ os?, arch?, tools? }`; `{}` needs none.
-function labelsOf(value: unknown, where: string): Labels {
+// Why `value` is not labels, `{ os?, arch?, tools? }`, or undefined when it is; `{}` needs none. It also checks a project's
+// piece, `machines.project({ ... })`.
+export function labelsProblem(value: unknown): string | undefined {
 	const record = (value ?? {}) as Readonly<Record<string, unknown>>;
 	const text = (item: unknown) => typeof item === "string" && item.trim() !== "";
 	const keys = Object.keys(record).every((key) => key === "os" || key === "arch" || key === "tools");
 	const values = [record.os, record.arch].every((item) => item === undefined || text(item)) && (record.tools === undefined || (Array.isArray(record.tools) && record.tools.every(text)));
-	if (typeof value !== "object" || value === null || Array.isArray(value) || !keys || !values)
-		throw new Error(`${where}: requires must be { os?, arch?, tools? }, os and arch non-empty strings, tools a list of them; got ${describe(value)}`);
-	return record as Labels;
+	if (typeof value !== "object" || value === null || Array.isArray(value) || !keys || !values) return `requires must be { os?, arch?, tools? }, os and arch non-empty strings, tools a list of them; got ${describe(value)}`;
+	return undefined;
 }
 
-// `--requires`, else the `requires` of the JSON block of the first ticket the task names, else its project's, else none; and
+// `value` as labels, refused naming `where` when it is not.
+function labelsOf(value: unknown, where: string): Labels {
+	const problem = labelsProblem(value);
+	if (problem !== undefined) throw new Error(`${where}: ${problem}`);
+	return value as Labels;
+}
+
+// `--requires`, else the `requires` of the JSON block of the first ticket the task names, else its project's piece, `machines.project({ ... })`, else none; and
 // that block's `machine`, which places every job of the ticket. A ticket and a project are read from the list the projects
 // plugin provides; without it, neither requires anything.
 function need(host: Host, asked: Asked): Need {
-	const [list] = host.collect<readonly { readonly name?: unknown; readonly path?: unknown; readonly requires?: unknown }[]>("projects");
+	const [list] = host.collect<readonly { readonly name?: unknown; readonly path?: unknown; readonly pieces?: { readonly machines?: unknown } }[]>("projects");
 	const project = Array.isArray(list) ? list.find((each) => each?.name === asked.project) : undefined;
 	if (project === undefined || typeof project.path !== "string") return asked.requires === undefined ? NONE : { labels: labelsOf(asked.requires, "--requires"), from: "--requires" };
 	const [, folder, id] = asked.tickets.map((path) => FEATURE.exec(path)).find((match) => match !== null) ?? [];
@@ -57,7 +64,8 @@ function need(host: Host, asked: Asked): Need {
 	const pin = machine === undefined ? {} : { machine };
 	if (asked.requires !== undefined) return { labels: labelsOf(asked.requires, "--requires"), from: "--requires", ...pin };
 	if ("requires" in ticket) return { labels: labelsOf(ticket.requires, `ticket ${id} (${file})`), from: `ticket ${id}`, ...pin };
-	return project.requires === undefined ? { ...NONE, ...pin } : { labels: labelsOf(project.requires, `project ${asked.project}`), from: `project ${asked.project}`, ...pin };
+	const own = project.pieces?.machines;
+	return own === undefined ? { ...NONE, ...pin } : { labels: labelsOf(own, `project ${asked.project}`), from: `project ${asked.project}`, ...pin };
 }
 
 // The labels `seat` lacks of `labels`, as text; empty when it has each: the same os and arch, every tool listed.

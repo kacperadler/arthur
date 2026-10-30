@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
-import { drafted, writeOnce } from "./init.ts";
+import { DRAFTED, folderPrompts, writeOnce } from "./init.ts";
 import type { Project } from "./projects.ts";
 
 // The kind `onboarding` (spec/roadmap.md, entry 42): its role, the files it drafts named in its prompt, the procedure its end
@@ -19,10 +19,14 @@ type Ended = { readonly id?: unknown; readonly kind?: unknown; readonly project?
 export function onboarding(host: Host, all: readonly Project[]): void {
 	host.jobs.registerRole({ name: KIND, file: new URL("../roles/onboarding.md", import.meta.url), criteria: ["styleguide"] });
 	host.jobs.registerKind({ name: KIND, readOnly: false, role: KIND });
+	host.jobs.beforeSpawn((spawn) => {
+		const project = all.find((each) => each.name === spawn.project);
+		return spawn.kind === KIND && project !== undefined ? folderPrompts(project) : undefined;
+	});
 	host.provide("prompt", (role: string, job: { readonly project: string }) => {
 		const project = all.find((each) => each.name === job.project);
 		if (role !== KIND || project === undefined) return undefined;
-		const { vision, criteriaDir } = drafted(project);
+		const { vision, criteriaDir } = DRAFTED;
 		const criteria = host.jobs.criteria().map((name) => `\`${criteriaDir}/${name}.md\``).join(", ");
 		return `## The files this onboarding drafts\n\n- The vision: \`${vision}\`\n- The criteria: ${criteria}\n\nIts merge accepts only \`${vision}\` and \`${criteriaDir}/*.md\`.`;
 	});
@@ -66,7 +70,7 @@ function questions(host: Host, job: Ended, result: string): string[] {
 function outside(project: Project, branch: string): string | undefined {
 	const diff = spawnSync("git", ["-C", project.path, "diff", "--raw", "-z", "--no-renames", `HEAD...${branch}`, "--"], { encoding: "utf8" });
 	if (diff.status !== 0) return `git diff HEAD...${branch}: ${diff.stderr.trim().split("\n").at(-1)}`;
-	const { vision, criteriaDir } = drafted(project);
+	const { vision, criteriaDir } = DRAFTED;
 	const [links, others]: [string[], string[]] = [[], []];
 	const fields = diff.stdout.split("\0");
 	for (let at = 0; at + 1 < fields.length; at += 2) {

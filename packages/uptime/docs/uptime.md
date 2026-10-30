@@ -3,29 +3,28 @@
 Roadmap entry 98: Arthur checks each project's sites over plain HTTP while `arthur run` runs, and tells the owner when one is down and when it is back, before a client calls. A check is a `GET` in the plugin itself: no model is called, so it costs no usage. It has no command; what it says goes out as notices, through every channel (telegram), and as events on the event stream.
 
 ```ts
-plugins: [
-	orchestration({}),
-	projects({ list: [{ name: "acme", prefix: "AC", path: "../acme" }] }),
-	uptime({
-		sites: {
-			acme: [
-				{ url: "https://acme.example/" }, // a 2xx status, checked every 60 s
-				{ url: "https://acme.example/health", expect: "ok", everySeconds: 30 }, // a 2xx status and the page holds "ok"
-				{ url: "https://admin.acme.example/", expect: 401 }, // exactly this status
-			],
-		},
-	}),
-],
+// arthur.config.ts
+plugins: [orchestration({}), projects({ folders: ["projects/acme"] }), uptime()],
+
+// projects/acme/project.config.ts
+export default [
+	projects.project({ prefix: "AC", path: "../../../acme" }),
+	uptime.project([
+		{ url: "https://acme.example/" }, // a 2xx status, checked every 60 s
+		{ url: "https://acme.example/health", expect: "ok", everySeconds: 30 }, // a 2xx status and the page holds "ok"
+		{ url: "https://admin.acme.example/", expect: 401 }, // exactly this status
+	]),
+];
 ```
 
-## Options
+## Its piece
 
-- `sites`: each project's sites, by the project's name, each a list of `{ url, expect?, everySeconds? }`. A key that is not a project of the projects list refuses the load: `plugin uptime: setup failed: sites names <keys>, not a project of the projects list; each key of sites is a project's name`.
+The plugin takes no option but `enabled`; any other, the old `sites` among them, is refused as unknown. A project's sites are its piece, `uptime.project([...])` in its project file (`arthur projects --help`, "A project's file"): a list of at least one `{ url, expect?, everySeconds? }`.
 - `url`: required, an `http://` or `https://` address. A redirect is followed (at most 20; the answer to a 21st is judged as it is), and the page it leads to is judged. A redirect to another host (a host and port other than the `url`'s) is followed only when none of its addresses (`dns.lookup`, all of them) is unspecified (`0.0.0.0/8`, `::`), loopback (`127.0.0.0/8`, `::1`), link-local (`169.254.0.0/16` with the cloud metadata address, `fe80::/10`) or private (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, Tailscale's `100.64.0.0/10`, `fc00::/7`), IPv4-mapped IPv6 included. That hop goes through `node:http`/`node:https`, whose connection resolves the name once more and is refused the same way, so a name whose DNS answers a public address first and a private one next never reaches the private one. A redirect to a port of the Fetch standard's bad-port list (below) fails the check with `bad port`, before any connection. The `url`'s own host is followed to whatever its address.
 - `expect`: a status code from 100 to 599, which the answer must have exactly; or non-empty text, which a page with a 2xx status must hold. Left out: any 2xx status.
 - `everySeconds`: a whole number of seconds, 1 or more, between two checks of the site; default 60. A check is cut after 10 s, or after `everySeconds` when that is shorter, so two checks of one site never overlap.
 
-Refused at load, with the option's path: an unknown option or key, `sites` not an object, a project's sites not a list, a site without a `url`, a `url` that is not http or https, an `expect` or `everySeconds` out of range, and the same `url` twice in one project. A `url` on a port of the Fetch standard's bad-port list (9, 25, 6000, 6665 to 6669, 10080 and others), which fetch never reaches, is refused too: `project <project>: <url> is on port <port>, which fetch never reaches: the Fetch standard blocks it; use another port`.
+Refused at load, before the plugin's setup, as `plugin uptime: setup failed: project <project>: uptime.project(...): <problems>`, each problem with the site's place (`[1].url: ...`) and all of them on one line, `; ` between: sites that are no list or an empty one, a site that is not an object, an unknown key, a site without a `url`, a `url` that is not http or https, an `expect` or `everySeconds` out of range, and the same `url` twice in one project. A `url` on a port of the Fetch standard's bad-port list (9, 25, 6000, 6665 to 6669, 10080 and others), which fetch never reaches, is refused too: `[<i>].url: <url> is on port <port>, which fetch never reaches: the Fetch standard blocks it; use another port`.
 
 ## Down and up
 

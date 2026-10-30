@@ -50,7 +50,8 @@ async function load(t: TestContext, github = true) {
 	});
 	const fake = fakeHost({ name: "delivery", root });
 	let project: Record<string, unknown> = { autoMerge: true };
-	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC", ...project }]);
+	// `autoMerge` is the project's piece, `delivery.project({ autoMerge })`; the rest is the project's own.
+	fake.provide("projects", () => [(({ autoMerge, ...own }) => ({ name: "acme", path: root, prefix: "AC", ...own, pieces: autoMerge === undefined ? {} : delivery.project({ autoMerge: autoMerge as boolean }) }))(project)]);
 	fake.provide("projects.install", () => "");
 	const asked: unknown[] = [];
 	const cancels: unknown[] = [];
@@ -345,4 +346,13 @@ test("a run that hangs is cancelled 30 minutes after its start, once, across a r
 	t.mock.restoreAll();
 	assert.equal(said.length, 1, said.join("\n"));
 	assert.match(said[0] ?? "", /^delivery: .*broken\/ci-wait is no CI wait \(.+\); remove it, and arthur merge --auto broken again$/);
+});
+
+test("a project's piece other than { autoMerge: true | false } is refused before the setup, naming the project and the helper", async () => {
+	for (const piece of [true, {}, { autoMerge: "yes" }, { autoMerge: true, ci: "ci.yml" }]) {
+		const fake = fakeHost({ name: "delivery" });
+		fake.provide("projects", () => [{ name: "acme", path: temporaryFolder(), prefix: "AC", pieces: { delivery: piece } }]);
+		await assert.rejects(fake.setup(delivery()), { message: "project acme: delivery.project(...): expected { autoMerge }, true or false" }, JSON.stringify(piece));
+		assert.deepEqual(fake.commands, [], "no setup ran");
+	}
 });

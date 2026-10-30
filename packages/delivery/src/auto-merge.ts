@@ -4,14 +4,19 @@ import type { Host, JobRecord } from "@arthur/core/plugin";
 import { type CiRun, startWait } from "./ci-wait.ts";
 import { reviewsOf } from "./review-records.ts";
 
-// `arthur merge --auto` (spec/roadmap.md, entry 59): the merge without the owner, only for a project with `autoMerge` on, a
+// `arthur merge --auto` (spec/roadmap.md, entry 59): the merge without the owner, only for a project whose piece,
+// `delivery.project({ autoMerge: true })` in its project file, turns it on, a
 // PASS on the tip itself, no held path in the branch, and CI passed on it as `github.ci` answers; never with `--no-ci`, which
 // only the owner's decision lifts (AR0503). CI not passed yet leaves a wait (ci-wait.ts). A plain merge asks CI too (AR0362). docs/commands/merge.md.
 
-type Entry = { readonly name: string; readonly autoMerge?: boolean; readonly prompts?: { readonly rolesDir?: string } };
+// A project's piece: whether a branch with a PASS review and green CI merges on its own.
+export type DeliveryPiece = { readonly autoMerge: boolean };
+export const autoMergePiece = (value: unknown): string | undefined =>
+	typeof value === "object" && value !== null && Object.keys(value).join() === "autoMerge" && typeof (value as DeliveryPiece).autoMerge === "boolean" ? undefined : "expected { autoMerge }, true or false";
+type Entry = { readonly name: string; readonly prompts?: { readonly rolesDir?: string }; readonly pieces?: { readonly delivery?: DeliveryPiece } };
 // The project's role overrides when its `prompts` names none, as the core reads them.
 const ROLES_DIR = ".agents/arthur/roles";
-// The project as the list gives it, with the keys delivery reads that `host.board.projects()` leaves out.
+// The project as the list gives it, with what delivery reads that `host.board.projects()` leaves out.
 export const entryOf = (host: Host, project: string) => host.collect<readonly Entry[]>("projects")[0]?.find((each) => each.name === project);
 // No hook or fsmonitor the main checkout's config names runs, nor a replacement (refs/replace): a program a job runs may have set them (AR0330, AR0384).
 const git = (root: string, ...words: string[]) => spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...words], { encoding: "utf8" }).stdout.trim();
@@ -21,7 +26,8 @@ const git = (root: string, ...words: string[]) => spawnSync("git", ["--no-replac
 export async function autoRefusal(host: Host, held: (path: string) => boolean, merge: { readonly job: JobRecord; readonly root: string; readonly tip: string; readonly before: string }): Promise<string> {
 	const { job, root, tip, before } = merge;
 	const entry = entryOf(host, job.project);
-	if (entry?.autoMerge !== true) return `--auto merges only in a project with autoMerge on; ${job.project} has autoMerge ${entry?.autoMerge ?? "unset"}, so its merges wait for the owner: arthur merge ${job.id} on his word`;
+	const autoMerge = entry?.pieces?.delivery?.autoMerge;
+	if (autoMerge !== true) return `--auto merges only in a project with autoMerge on; ${job.project} has autoMerge ${autoMerge ?? "unset"}, so its merges wait for the owner: arthur merge ${job.id} on his word`;
 	const reviews = reviewsOf(host, job.branch);
 	const onTip = reviews.findLast(([review, verdict]) => tip.startsWith(review.commit) && (verdict === "PASS" || verdict === "FAIL"));
 	if (onTip?.[1] !== "PASS") {

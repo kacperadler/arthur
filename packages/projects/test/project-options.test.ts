@@ -1,108 +1,82 @@
 import assert from "node:assert/strict";
-import { resolve } from "node:path";
 import { test } from "node:test";
-import { checkOptions } from "../src/project-options.ts";
+import { checkOptions, checkProjects } from "../src/project-options.ts";
 
-const shop = { name: "web-shop", title: "Shop", prefix: "SH", path: "/srv/web-shop", about: "Online shop for garden tools." };
-const docs = { name: "docs", prefix: "DOC", repo: "git@example.com:acme/docs.git" };
+const shop = { title: "Shop", prefix: "SH", path: "/srv/web-shop", about: "Online shop for garden tools." };
+const docs = { prefix: "DOC", repo: "git@example.com:acme/docs.git" };
 
-// The problems of a list of these projects, as `path: problem` lines.
-const problems = (list: readonly unknown[], extra: Readonly<Record<string, unknown>> = { reposDir: "/srv/repos" }) =>
-	checkOptions({ list, ...extra }).map(({ path, problem }) => `${path}: ${problem}`);
+// The problems of these projects, each `[name, piece]`, its file `/p/<name>/project.config.ts` in the folder `/p/<name>`.
+const written = (list: readonly (readonly [string, unknown])[]) => list.map(([name, piece]) => ({ name, file: `/p/${name}/project.config.ts`, folder: `/p/${name}`, piece }));
+const problems = (list: readonly (readonly [string, unknown])[]) => checkProjects(written(list), "/srv/repos");
 
-test("a list that keeps every rule passes: path and repo projects, every optional key", () => {
-	const full = {
-		...shop,
-		install: "",
-		tracker: { plugin: "youtrack", instance: "main", project: "SHOP" },
-		ci: { workflow: "Linux" },
-		commitRules: { regex: "^feat" },
-		autoMerge: true,
-		requires: { os: "linux", arch: "x64", tools: ["docker"] },
-		docker: false,
-		prompts: { vision: "docs/vision.md", criteriaDir: ".agents/harness/criteria", rolesDir: "./.agents/harness/roles" },
-	};
-	assert.deepEqual(problems([full, docs, { name: "api.v2", prefix: "API", path: "../api" }]), []);
-	assert.deepEqual(problems([shop], {}), [], "reposDir is needed only by a repo");
+test("projects that keep every rule pass: path and repo projects, every optional key, a path counted from the folder", () => {
+	const full = { ...shop, install: "", prompts: { vision: "docs/vision.md", criteriaDir: "criteria", rolesDir: "./roles" } };
+	assert.deepEqual(problems([["web-shop", full], ["docs", docs], ["api.v2", { prefix: "API", path: "../api" }]]), []);
+	assert.deepEqual(checkProjects(written([["web-shop", shop]]), undefined), [], "reposDir is needed only by a repo");
 });
 
-test("an about of exactly 300 characters and a title of 60 pass; one more, or a line break, is refused", () => {
-	assert.deepEqual(problems([{ ...shop, about: "a".repeat(300), title: "t".repeat(60) }]), []);
-	assert.deepEqual(problems([{ ...shop, about: "a".repeat(301) }]), ['list[0].about: project web-shop: expected one line of 1 to 300 characters, got "' + "a".repeat(301) + '"']);
-	assert.deepEqual(problems([{ ...shop, about: "One.\nTwo." }]), ['list[0].about: project web-shop: expected one line of 1 to 300 characters, got "One.\\nTwo."']);
-	assert.deepEqual(problems([{ ...shop, title: "t".repeat(61) }]), [`list[0].title: project web-shop: expected one line of 1 to 60 characters, got "${"t".repeat(61)}"`]);
+test("an about of exactly 300 characters and a title of 60 pass; one more, or a line break, is refused, naming the file", () => {
+	assert.deepEqual(problems([["web-shop", { ...shop, about: "a".repeat(300), title: "t".repeat(60) }]]), []);
+	assert.deepEqual(problems([["web-shop", { ...shop, about: "a".repeat(301) }]]), [`/p/web-shop/project.config.ts: projects.project(...).about: expected one line of 1 to 300 characters, got "${"a".repeat(301)}"`]);
+	assert.deepEqual(problems([["web-shop", { ...shop, about: "One.\nTwo." }]]), ['/p/web-shop/project.config.ts: projects.project(...).about: expected one line of 1 to 300 characters, got "One.\\nTwo."']);
+	assert.deepEqual(problems([["web-shop", { ...shop, title: "t".repeat(61) }]]), [`/p/web-shop/project.config.ts: projects.project(...).title: expected one line of 1 to 60 characters, got "${"t".repeat(61)}"`]);
 });
 
-test("a missing name or prefix, and both or neither of path and repo, are refused, naming the project", () => {
-	assert.deepEqual(problems([{ prefix: "SH", path: "/srv/a" }]), ["list[0].name: a project without a name: name is required"]);
-	assert.deepEqual(problems([{ name: "a", path: "/srv/a" }]), ["list[0].prefix: project a: prefix is required"]);
-	assert.deepEqual(problems([{ name: "a", prefix: "A" }]), ["list[0]: project a: expected exactly one of path and repo"]);
-	assert.deepEqual(problems([{ ...docs, path: "/srv/docs" }]), ["list[0]: project docs: expected exactly one of path and repo"]);
-});
-
-test("a bad name or prefix is refused", () => {
-	for (const name of ["Shop", "-shop", ".", "a/b", "a b", ""])
-		assert.match(problems([{ ...shop, name }])[0] ?? "", /^list\[0\]\.name: .*expected lowercase letters, digits, dots and dashes/, name);
-	for (const prefix of ["sh", "S1", "", "S-H"]) assert.match(problems([{ ...shop, prefix }])[0] ?? "", /^list\[0\]\.prefix: project web-shop: expected capital letters A-Z/, prefix);
+test("a missing prefix, a bad one, both or neither of path and repo, a repo without reposDir and a piece that is no object are refused", () => {
+	assert.deepEqual(problems([["a", { path: "/srv/a" }]]), ["/p/a/project.config.ts: projects.project(...).prefix: prefix is required"]);
+	for (const prefix of ["sh", "S1", "", "S-H"]) assert.match(problems([["web-shop", { ...shop, prefix }]])[0] ?? "", /^\/p\/web-shop\/project\.config\.ts: projects\.project\(\.\.\.\)\.prefix: expected capital letters A-Z/, prefix);
+	assert.deepEqual(problems([["a", { prefix: "A" }]]), ["/p/a/project.config.ts: projects.project(...): expected exactly one of path and repo"]);
+	assert.deepEqual(problems([["docs", { ...docs, path: "/srv/docs" }]]), ["/p/docs/project.config.ts: projects.project(...): expected exactly one of path and repo"]);
+	assert.deepEqual(checkProjects(written([["docs", docs]]), undefined), ["/p/docs/project.config.ts: projects.project(...).repo: a repo is cloned into reposDir, which is not set"]);
+	assert.deepEqual(problems([["a", "SH"]]), ['/p/a/project.config.ts: projects.project(...): expected { prefix, path or repo, ... }, got "SH"']);
 });
 
 test("two projects sharing a name, prefix or title, without case and across the three keys, are refused", () => {
-	const other = { name: "other", prefix: "OT", path: "/srv/other" };
-	assert.deepEqual(problems([shop, { ...other, name: "web-shop" }]), [
-		'list[1].name: project web-shop: its name "web-shop" is the name of project web-shop; names, prefixes and titles are compared without case',
-	]);
-	assert.deepEqual(problems([shop, { ...other, prefix: "SH" }]), [
-		'list[1].prefix: project other: its prefix "sh" is the prefix of project web-shop; names, prefixes and titles are compared without case',
-	]);
-	assert.deepEqual(problems([shop, { ...other, title: "SHOP" }]), [
-		'list[1].title: project other: its title "shop" is the title of project web-shop; names, prefixes and titles are compared without case',
-	]);
-	assert.deepEqual(problems([{ ...other, name: "ka" }, { ...shop, prefix: "KA" }]), [
-		'list[1].prefix: project web-shop: its prefix "ka" is the name of project ka; names, prefixes and titles are compared without case',
-	]);
-	assert.deepEqual(problems([{ ...other, name: "shop", title: "Shop" }]), [], "a project's own name and title may be one word");
+	const other = { prefix: "OT", path: "/srv/other" };
+	const same = (key: string, word: string, first: string) => `/p/other/project.config.ts: projects.project(...)${key === "name" ? "" : `.${key}`}: its ${key} "${word}" is ${first}; names, prefixes and titles are compared without case`;
+	assert.deepEqual(problems([["web-shop", shop], ["other", { ...other, prefix: "SH" }]]), [same("prefix", "sh", "the prefix of project web-shop")]);
+	assert.deepEqual(problems([["web-shop", shop], ["other", { ...other, title: "SHOP" }]]), [same("title", "shop", "the title of project web-shop")]);
+	assert.deepEqual(problems([["ka", other], ["other", { ...other, path: "/srv/b", prefix: "KA" }]]), [same("prefix", "ka", "the name of project ka")]);
+	assert.deepEqual(problems([["web-shop", { ...shop, prefix: "OTHER" }], ["other", { ...other }]]), [same("name", "other", "the prefix of project web-shop")]);
+	assert.deepEqual(problems([["shop", { ...other, title: "Shop" }]]), [], "a project's own name and title may be one word");
 });
 
-test("two projects with one folder are refused: the same path, or a path where a repo is cloned", () => {
-	assert.deepEqual(problems([shop, { name: "b", prefix: "B", path: "/srv/web-shop/" }]), ["list[1]: project b: its folder /srv/web-shop is the folder of project web-shop"]);
-	assert.deepEqual(problems([docs, { name: "b", prefix: "B", path: "/srv/repos/docs" }]), ["list[1]: project b: its folder /srv/repos/docs is the folder of project docs"]);
-	assert.deepEqual(problems([shop, { name: "b", prefix: "B", path: resolve("rel") }, { name: "c", prefix: "C", path: "rel" }]), [
-		`list[2]: project c: its folder ${resolve("rel")} is the folder of project b`,
-	]);
+test("two projects with one checkout are refused: the same path, from each folder, or a path where a repo is cloned", () => {
+	assert.deepEqual(problems([["web-shop", shop], ["b", { prefix: "B", path: "/srv/web-shop/" }]]), ["/p/b/project.config.ts: projects.project(...): its checkout /srv/web-shop is the checkout of project web-shop"]);
+	assert.deepEqual(problems([["docs", docs], ["b", { prefix: "B", path: "/srv/repos/docs" }]]), ["/p/b/project.config.ts: projects.project(...): its checkout /srv/repos/docs is the checkout of project docs"]);
+	assert.deepEqual(problems([["a", { prefix: "A", path: "../shop" }], ["b", { prefix: "B", path: "../../p/shop" }]]), ["/p/b/project.config.ts: projects.project(...): its checkout /p/shop is the checkout of project a"]);
 });
 
-test("an unknown key is refused, pathPrepend among them", () => {
-	for (const key of ["pathPrepend", "branch"])
-		assert.deepEqual(problems([{ ...shop, [key]: ["/opt/bin"] }]), [
-			`list[0].${key}: project web-shop: unknown key; keys: name, prefix, path, repo, title, about, install, tracker, ci, commitRules, autoMerge, requires, docker, prompts`,
-		]);
-	assert.deepEqual(problems([shop], { aliases: {} }), ["aliases: unknown option; options: list, reposDir"]);
+test("a key that moved to its plugin's piece, or any other unknown key, is refused", () => {
+	for (const key of ["name", "tracker", "ci", "commitRules", "autoMerge", "requires", "docker", "pathPrepend"])
+		assert.deepEqual(problems([["web-shop", { ...shop, [key]: true }]]), [`/p/web-shop/project.config.ts: projects.project(...).${key}: unknown key; keys: prefix, path, repo, title, about, install, prompts`]);
 });
 
-test("a wrong shape for each key a later plugin reads is refused", () => {
-	const wrong: Readonly<Record<string, readonly unknown[]>> = {
-		tracker: ["youtrack", { plugin: "youtrack" }, { plugin: "youtrack", project: "S", extra: 1 }, { plugin: "", project: "S" }],
-		ci: ["Linux", {}, { workflow: 1 }],
-		commitRules: [{}, { regex: "^a", words: "b" }, { regex: "" }, { format: "x" }, "^a"],
-		autoMerge: ["yes", 1],
-		requires: ["linux", { tools: "docker" }, { os: 1 }, { gpu: true }],
-		docker: ["no"],
-		install: [false, ["npm", "ci"]],
-		// A path the core would read outside the project's repository, or not a path.
-		prompts: ["spec", { vision: "/etc/passwd" }, { criteriaDir: "../other/criteria" }, { rolesDir: "a/../../b" }, { vision: "" }, { overrides: "x" }],
-	};
-	for (const [key, values] of Object.entries(wrong))
-		for (const value of values) {
-			const [first, ...rest] = problems([{ ...shop, [key]: value }]);
-			assert.match(first ?? "", new RegExp(`^list\\[0\\]\\.${key}: project web-shop: expected `), `${key}: ${JSON.stringify(value)}`);
-			assert.deepEqual(rest, []);
-		}
+test("a wrong install, and prompts that are not paths inside the project's folder, are refused", () => {
+	for (const [key, value] of [
+		["install", false],
+		["install", ["npm", "ci"]],
+		["prompts", "spec"],
+		["prompts", { vision: "/etc/passwd" }],
+		["prompts", { criteriaDir: "../other/criteria" }],
+		["prompts", { rolesDir: "a/../../b" }],
+		["prompts", { vision: "" }],
+		["prompts", { overrides: "x" }],
+	] as const) {
+		const [first, ...rest] = problems([["web-shop", { ...shop, [key]: value }]]);
+		assert.match(first ?? "", new RegExp(`^/p/web-shop/project\\.config\\.ts: projects\\.project\\(\\.\\.\\.\\)\\.${key}: expected `), `${key}: ${JSON.stringify(value)}`);
+		assert.deepEqual(rest, []);
+	}
 });
 
-test("no list, an empty one, a non-object entry, a repo without reposDir, and a bad reposDir are refused", () => {
-	assert.deepEqual(problems([]), ["list: expected a list of at least one project, got an empty list"]);
-	assert.deepEqual(checkOptions({}).map((each) => each.path), ["list"]);
-	assert.deepEqual(problems(["web-shop"]), ['list[0]: expected a project { name, prefix, path or repo, ... }, got "web-shop"']);
-	assert.deepEqual(problems([docs], {}), ["list[0].repo: project docs: a repo is cloned into reposDir, which is not set"]);
-	assert.deepEqual(problems([shop], { reposDir: "" }), ['reposDir: expected a folder, got ""']);
+test("the options: folders, each named as a project and once; reposDir a folder; the old list refused as unknown", () => {
+	const paths = (options: Readonly<Record<string, unknown>>) => checkOptions(options).map(({ path, problem }) => `${path}: ${problem}`);
+	assert.deepEqual(paths({ folders: ["projects/web-shop", "/srv/projects/api.v2"], reposDir: "/srv/repos" }), []);
+	assert.deepEqual(paths({ folders: [] }), ["folders: expected a list of at least one folder, each a non-empty string, got an empty list"]);
+	assert.deepEqual(paths({}), ["folders: expected a list of at least one folder, each a non-empty string, got nothing"]);
+	assert.deepEqual(paths({ folders: ["a", ""] }), ["folders: expected a list of at least one folder, each a non-empty string, got a list"]);
+	assert.deepEqual(paths({ folders: ["projects/Shop"] }), ['folders[0]: the folder\'s name "Shop" is the project\'s name: lowercase letters, digits, dots and dashes, from a letter or digit']);
+	assert.deepEqual(paths({ folders: ["a/shop", "b/shop/"] }), ["folders[1]: a second folder named shop, as folders[0]; the folder's name is the project's name"]);
+	assert.deepEqual(paths({ folders: ["shop"], reposDir: "" }), ['reposDir: expected a folder, got ""']);
+	assert.deepEqual(paths({ folders: ["shop"], list: [{ name: "shop", prefix: "SH", path: "." }] }), ["list: unknown option; options: folders, reposDir"]);
 });

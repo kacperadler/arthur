@@ -8,11 +8,11 @@ import { work } from "./youtrack-work.ts";
 import { create, move, setField, tag, update } from "./youtrack-write.ts";
 
 // `arthur youtrack issue|article|comment|attachment ...` (spec/roadmap.md, entries 44 to 46; AR0222): a project's issues,
-// articles, their comments and attachments, read from and written to the instance its `tracker` picks:
+// articles, their comments and attachments, read from and written to the instance its `youtrack.project(...)` picks:
 // docs/commands/youtrack.md. An id outside the project's YouTrack project is refused before any call. The coordinator may
 // delete an issue, an article or an attachment (AR0220); a job never writes, so never deletes.
 
-// A project of the list, and what its `tracker` names when that is youtrack: the instance and the YouTrack project's id.
+// A project of the list, and what its `youtrack.project(...)` names: the instance and the YouTrack project's id.
 export type Tracked = { readonly name: string; readonly tracker: { readonly instance: Instance; readonly project: string } | undefined };
 
 const USAGE =

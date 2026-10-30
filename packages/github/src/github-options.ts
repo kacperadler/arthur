@@ -3,7 +3,7 @@ import type { Check, OptionTable, Tool, ValueOption } from "@arthur/core/option-
 import type { OptionProblem, Options } from "@arthur/core/plugin";
 
 // The github plugin's options file (spec/roadmap.md, entries 57, 58 and 93), checked before any setup by walking `table`:
-// docs/github.md, "Options". The tokens' values, and which instance each project with a `ci.workflow` uses, are checked at setup.
+// docs/github.md, "Options". The tokens' values, and which instance each project with a `github.project({ workflow })` uses, are checked at setup.
 
 export type InstanceOptions = { readonly name?: string; readonly tokenEnv: string; readonly apiUrl?: string };
 export type Wake = "ci-finished" | "pull-request-review";
@@ -38,7 +38,7 @@ const wakes: Check = (value) =>
 
 export const table: OptionTable = {
 	instances: { about: "The GitHub accounts, each { name?, tokenEnv, apiUrl? }; at most one without a name", check: instanceList, each: INSTANCE },
-	poll: { about: "How often the CI runs are asked for", fields: { everySeconds: { about: "Seconds between two polls; each asks GitHub once per project with a ci.workflow", default: String(EVERY_SECONDS), check: every } } },
+	poll: { about: "How often the CI runs are asked for", fields: { everySeconds: { about: "Seconds between two polls; each asks GitHub once per project with a github.project({ workflow })", default: String(EVERY_SECONDS), check: every } } },
 	wakeOn: {
 		about: "The events that wake the coordinator; pull-request-review also turns on the polling of pull request reviews",
 		default: WAKE_ON.join(", "),

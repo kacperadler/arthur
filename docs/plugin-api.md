@@ -26,6 +26,7 @@ export function schedule(options: ScheduleOptions = {}): Plugin {
 | `after` | The plugins whose `setup` runs first when they are loaded; one missing or disabled is no refusal. |
 | `check(options, core)` | Its own options, `enabled` left out, and the core's as loaded; it returns `{ path, problem }` for each wrong one, and every problem refuses the start. |
 | `doctor(options, core)` | Its requirements read from the same, without its setup or its env values, so `arthur doctor` and `arthur setup` check them while the load refuses. |
+| `piece(value, options)` | Its check of one project's piece, the value its `<name>.project(...)` helper made in that project's file, with its own options (`enabled` left out): a problem, or undefined. Having it declares the piece. Below, "Project pieces". |
 | `setup(host)` | Registers: commands, kinds, roles, checks, provided names, subscriptions. A `host.jobs.spawn` before every plugin's `setup` has run throws `<plugin>: spawn during setup; start jobs from start() or later`. |
 | `start()` | Long-lived work (a poll, a timer); called only by `arthur run`, in setup order. |
 | `stop()` | Ends it; called by `arthur run` on SIGTERM, in reverse order. |
@@ -122,7 +123,18 @@ Each decided in the ticket that made it.
 - AR0449 (AR0440's Risks and Open questions; its Done means: each check of a merge in a sandbox of its own, through what the core publishes): `sandbox(folder, note)`, the sandbox a job's install runs in, for branch code a plugin runs outside a job, with the core's env file hidden, which no member gave a plugin; delivery runs each step of `arthur merge` in it, inside the step's scope. A prepare's `ARTHUR_INSTALL` now runs in the job's sandbox too (`arthur spawn --help`, "The sandbox"). The test kit's host hides `<root>/env`, its jobs' env file.
 - AR0454 (F1 of AR0449; its Done means: the install and each merge step get a cache of their own, in a folder of that job or of that merge, removed after it): `sandbox(folder, cache, note)`, `cache` the folder the package managers' caches of those commands go to, in place of the shared ones every process of Arthur's user reads (`~/.npm`, whose `_npx` a later `npx` runs, `~/.bun/install/cache`, pnpm's, uv's and composer's), which the sandbox no longer lets them write. Delivery's `arthur merge` gives each merge its own in its folder, `<delivery folder>/cache-<random>`, and removes it after the last step. A job's install keeps its caches in its record's `cache` folder.
 - AR0518 (its Done means: no env file value in a job's record or log, an error or a channel's message): each value of an enabled plugin's `...Env` variable, from the shell or the env file, 8 characters or more, becomes its variable's name in what `events.emit` logs and delivers, in the task, instruction, reason and text of `jobs.spawn`, `jobs.continue`, `jobs.block` and the core's steer, in the record's prompt with the `prompt` sections, in the reply of `commands.route`, in the caption `channel.send` gets, in the error of a `setup` that throws, and in every text the CLI prints; a job's wrapper names the values of its env file in each file of the record it writes and its events. A plugin that needs a value keeps it from `env`. No host member changed.
+- AR0589 (AR-D391, its approved plan): `Plugin.piece(value, options)`, and each project's `pieces` and `folder` in what the projects plugin provides as `projects` (below, "Project pieces").
 - AR0557 (AR0556's approved plan, Option 2; its Done means: `arthur github pr --help` prints `github-pr.md`): a command's group page, `<doc>-<word>.md` beside its `doc`, which `arthur <command> <word> … --help` prints when it exists and `<word>` is lowercase letters, digits and dashes, else the command's `doc` (`arthur help --help`). A plugin registers nothing more for it. No host member changed.
+
+### Project pieces
+
+Each project has a folder of its own with its `project.config.ts` (`arthur projects --help`, "A project's file"): a list of pieces, each made by a plugin's helper, `<plugin>.project(value)`, which only returns `{ <plugin name>: value }`; accounts and tokens stay in the plugin's own options in `arthur.config.ts`. A plugin with something per project:
+
+- exports the helper beside its function: `dokploy.project = (piece: DokployPiece) => ({ dokploy: piece })`, the key its own `name`;
+- declares `piece(value, options)`, its check of one project's piece. Before that plugin's `setup` the host runs it on every project's `pieces[<name>]` it gets from `collect("projects")`, and a problem refuses the load naming the project and the helper: `plugin dokploy: setup failed: project shop: dokploy.project(...): <problem>`. So a plugin with `piece` sets up after `projects` (`requires` or `after`), and its setup never sees a malformed piece. The test kit's fake host runs it the same way in `setup(plugin)`;
+- reads its piece in its setup, or later, from the projects it collects: `project.pieces.dokploy`. No plugin imports another, and the projects plugin checks none but its own, `projects.project(...)`.
+
+A piece that no loaded plugin with `piece` reads, a disabled plugin's or a key written by hand, is a line of `arthur doctor`, never critical (`arthur doctor --help`): inside a job a plugin whose variable is unset is not loaded, and its pieces must not break the job's commands, so its pieces are not checked there.
 
 ## Types
 
@@ -188,7 +200,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 
 | Name | Provided by | Asked by | The answer |
 | --- | --- | --- | --- |
-| `projects` | projects | the core (`host.board`, a spawn's checkout), plugins | The project list. |
+| `projects` | projects | the core (`host.board`, a spawn's checkout, a plugin's `piece`, `arthur doctor`), plugins | The projects, each with its `folder`, the real path of its project folder, and its `pieces`, every other plugin's piece of its file by plugin name (above, "Project pieces"). |
 | `prompt` | commit-rules, develop, findings, manage, projects, youtrack | the core, `collect` at a spawn | A section of the prompt for `(role, job)`. |
 | `doctor` | delivery, machines, models, nvm, projects | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
 | `jobs.place` | machines | the core, each spawn | The machine a job runs on. |

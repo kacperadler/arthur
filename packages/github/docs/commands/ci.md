@@ -2,7 +2,7 @@
 
 Usage: `arthur ci <branch> [--rerun] [--project <name>]`. Comes with the `github` plugin, `github({ instances })` in `arthur.config.ts` (`packages/github/docs/github.md`).
 
-Tells the run of the project's `ci.workflow` that built a branch of its checkout, and why it failed; `--rerun` reruns it once. The project is the main one unless `--project` names another; the branch is one of its checkout's, `main` or a job's `arthur/<job id>`.
+Tells the run of the project's workflow, its `github.project({ workflow })`, that built a branch of its checkout, and why it failed; `--rerun` reruns it once. The project is the main one unless `--project` names another; the branch is one of its checkout's, `main` or a job's `arthur/<job id>`.
 
 ## The run
 
@@ -24,7 +24,7 @@ Prints the run's line, then asks GitHub to rerun the whole run ("Re-run a workfl
 Exit 1, one line `arthur ci: <why>` (`arthur ci --rerun: <why>` for the first), nothing asked of GitHub past the refusal:
 
 - `--rerun` inside a job (`arthur help --help`), where `arthur ci <branch>` still reads the run when its token is in the job's shell (otherwise github is not loaded in a job, `arthur config --help`): `arthur ci --rerun: refused inside a job <id>: a job runs only the commands its role needs; put what the coordinator should do in your final message`, before anything is asked of GitHub.
-- A project without `ci.workflow`: `project <name> has no ci.workflow, so github watches no run of it`.
+- A project without `github.project({ workflow })`: `project <name> has no github.project({ workflow }), so github watches no run of it`.
 - A branch the checkout lacks: `no branch <branch> in <folder>`.
 - No run built it: `no run built <branch>: none of its last 1000 commits has one among the <n> newest runs of <workflow>`.
 - `--rerun` of a run not finished: `run <id> is <status>, not finished; only a run that failed or was cancelled is rerun`; of a run that passed: `run <id> passed; only a run that failed or was cancelled is rerun` (`ended <conclusion>` for one `skipped`, `neutral`, ...).

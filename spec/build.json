@@ -4722,9 +4722,9 @@
   {
     "id": "AR0589",
     "title": "Plan: each project keeps all its plugin settings in one place of arthur.config.ts",
-    "status": "review",
+    "status": "in-progress",
     "path": "spec/features/AR0589-plan-each-project-keeps-all-its-plugin-settings-in-one-place-of-arthur-config-ts/ticket.md",
-    "updated": "2026-10-30T19:05:46.608Z"
+    "updated": "2026-10-30T19:26:21.546Z"
   },
   {
     "id": "AR0590",

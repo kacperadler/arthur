@@ -40,3 +40,4 @@ Out:
 ## Decisions
 
 - 2026-10-30: Source: audit spec/quality/2026-10-30.md
+- 2026-10-30: AR0567 approved; its worker starts now; the owner: "AR0566, AR0567, AR0568 - approve" (AR-D357)

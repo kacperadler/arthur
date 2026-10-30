@@ -74,3 +74,5 @@ Out:
 - Installing anything: the post's own setup (a Cursor plugin) is not used.
 
 ## Decisions
+- 2026-10-30: Plan approved by the owner: plan.md at 782333b3, with every recommendation: 16 tickets; merge on PASS in a child process and autoMerge on for arthur once T8 merges; fail-closed sandbox; 4 FAILs before the owner is asked; per-job CPU cap 3 after a timing run; AR0501 dropped as folded into T2; the owner: "AR-D345 - approve" (AR-D345)
+- 2026-10-30: AR0561 tickets raise their line budgets by the plan numbers as measured, under the plan approval AR-D345; the owner: "AR-D345 - approve" (AR-D355)

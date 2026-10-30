@@ -4722,9 +4722,9 @@
   {
     "id": "AR0589",
     "title": "Plan: each project keeps all its plugin settings in one place of arthur.config.ts",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0589-plan-each-project-keeps-all-its-plugin-settings-in-one-place-of-arthur-config-ts/ticket.md",
-    "updated": "2026-10-30T18:44:05.662Z"
+    "updated": "2026-10-30T19:05:46.608Z"
   },
   {
     "id": "AR0590",
@@ -4742,5 +4742,12 @@
     "status": "merged",
     "path": "spec/features/AR0591-the-sandbox-check-reads-a-python3-that-exits-127-itself-as-a-missing-agent-so/ticket.md",
     "updated": "2026-10-30T18:59:54.075Z"
+  },
+  {
+    "id": "AR0592",
+    "title": "Plan: a discord plugin, the owner chat with Arthur in a private Discord server",
+    "status": "planned",
+    "path": "spec/features/AR0592-plan-a-discord-plugin-the-owner-chat-with-arthur-in-a-private-discord-server/ticket.md",
+    "updated": "2026-10-30T19:12:09.752Z"
   }
 ]

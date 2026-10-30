@@ -803,3 +803,6 @@
 {"record":"answer","id":"AR-D399","time":"2026-10-30T19:04:40+01:00","decided":"AR0591 worker budget $6","picked":1,"words":"Go with recommendations till 70%"}
 {"record":"ask","id":"AR-D400","time":"2026-10-30T19:53:34+01:00","project":"arthur","kind":"merge","question":"Merge AR0591 (a python3 that exits 127 itself no longer passes the sandbox refusal) after its passed review?","options":[],"ticket":"AR0591"}
 {"record":"answer","id":"AR-D400","time":"2026-10-30T19:53:34+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D401","time":"2026-10-30T20:12:00+01:00","project":"arthur","kind":"job","question":"Open AR0592 (plan a Discord plugin) and start its planner now?","options":["Yes, plan it now","Ticket only"],"recommend":1,"ticket":"AR0592"}
+{"record":"answer","id":"AR-D401","time":"2026-10-30T20:12:00+01:00","decided":"Yes, plan it now","words":"by recommendation: G5188"}
+{"record":"answer","id":"AR-D401","time":"2026-10-30T20:12:09+01:00","decided":"AR0592 opened and its planner started, on the owner own request","picked":1,"words":"I wanna add discord plugin to this project, can you create a task for that, at first we have to plan this, and i have to understand how this will work"}

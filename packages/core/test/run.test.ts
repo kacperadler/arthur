@@ -4,9 +4,8 @@ import { once } from "node:events";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { runPlugins } from "../src/run.ts";
-import { temporaryFolder } from "../src/testing.ts";
+import { temporaryFolder, until } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const BOOT_ID = "/proc/sys/kernel/random/boot_id";
@@ -47,14 +46,10 @@ function runOnce(folder: string, ...args: string[]): Ended {
 	return spawnSync(process.execPath, [CLI, "run", ...args], { cwd: folder, encoding: "utf8", env: ENV });
 }
 
-async function until(holds: () => boolean, what: string): Promise<void> {
-	for (const deadline = Date.now() + 10_000; !holds(); await sleep(10)) if (Date.now() > deadline) assert.fail(`waited 10 s for ${what}`);
-}
-
 test("arthur run starts in dependency order, refuses a second run on the home naming the pid, and stops in reverse on SIGTERM", async (t) => {
 	const { folder, home, log } = project('plugin("a", { requires: ["b"] }), plugin("orchestration"), plugin("b", { stop: undefined })');
 	const run = start(t, folder);
-	await until(() => run.output().includes("started"), "the start");
+	await until("the start", () => run.output().includes("started"));
 	assert.equal(log(), "start b\nstart a\nstart orchestration\n");
 	assert.equal(run.output(), `arthur run: pid ${run.child.pid} started b, a, orchestration\n`);
 	assert.match(readFileSync(join(home, "run.pid"), "utf8"), new RegExp(`^${run.child.pid}( |$)`));
@@ -83,7 +78,7 @@ test("a lock of a dead pid, one that names no pid, or one written in an earlier 
 		mkdirSync(home);
 		writeFileSync(join(home, "run.pid"), text);
 		const run = start(t, folder);
-		await until(() => run.output().includes("started"), `the start over a lock holding ${JSON.stringify(text)}`);
+		await until(`the start over a lock holding ${JSON.stringify(text)}`, () => run.output().includes("started"));
 		assert.match(readFileSync(join(home, "run.pid"), "utf8"), new RegExp(`^${run.child.pid}( |$)`));
 		run.child.kill("SIGTERM");
 		assert.equal((await run.ended).status, 0);
@@ -147,7 +142,7 @@ async function stopAfterSweeps(t: TestContext, sweep: () => Promise<void>, sweep
 	const b = { name: "b", setup() {}, start() { for (let each = 0; each < sweeps; each++) t.mock.timers.tick(30_000); throw new Error("no socket"); } };
 	let code: number | undefined;
 	const run = runPlugins([a, b], home, () => () => {}, sweep, async () => [], () => {}).then((exit) => (code = exit));
-	await until(() => stopped, "a's stop");
+	await until("a's stop", () => stopped);
 	await new Promise(setImmediate);
 	return { run, code: () => code, locked: () => existsSync(join(home, "run.pid")), errors: () => failed.mock.calls.map((call) => String(call.arguments[0])) };
 }
@@ -184,7 +179,7 @@ test("a stop with no sweep running releases run.pid at once: none began, or the 
 test("SIGINT stops like SIGTERM; a stop that throws is named, the other plugins still stop, and the exit code is 1", async (t) => {
 	const { folder, home, log } = project('plugin("orchestration"), plugin("a", { stop() { log("stop a"); throw new Error("stuck"); } }), plugin("b")');
 	const run = start(t, folder);
-	await until(() => run.output().includes("started"), "the start");
+	await until("the start", () => run.output().includes("started"));
 	run.child.kill("SIGINT");
 	const ended = await run.ended;
 	assert.deepEqual([ended.status, ended.stderr], [1, "arthur run: plugin a: stop failed: stuck\n"]);
@@ -203,7 +198,7 @@ test("SIGTERM during a start lets it finish, stops it and those before it, and s
 	} })`;
 	const { folder, home, log } = project(`plugin("orchestration"), ${slow}, plugin("c")`);
 	const run = start(t, folder);
-	await until(() => log().includes("start b"), "b's start");
+	await until("b's start", () => log().includes("start b"));
 	run.child.kill("SIGTERM");
 	const ended = await run.ended;
 	assert.deepEqual([ended.status, ended.stderr], [0, ""]);
@@ -250,14 +245,14 @@ test("an event a command emits reaches the daemon's subscribers once, from the d
 	};
 	const before = ping("a");
 	const run = start(t, folder);
-	await until(() => run.output().includes("started"), "the start");
+	await until("the start", () => run.output().includes("started"));
 	const daemon = run.child.pid;
 	const b = ping("b");
-	await until(() => log().includes(`${daemon} ponged 3`), "the daemon's answer to b");
+	await until("the daemon's answer to b", () => log().includes(`${daemon} ponged 3`));
 	const c = ping("c");
-	await until(() => log().includes(`${daemon} ponged 5`), "the daemon's answer to c");
+	await until("the daemon's answer to c", () => log().includes(`${daemon} ponged 5`));
 	run.child.kill("SIGTERM");
-	await until(() => log().includes("stop orchestration"), "the stop");
+	await until("the stop", () => log().includes("stop orchestration"));
 	const d = ping("d");
 	writeFileSync(join(folder, "pinged-in-stop"), "");
 	assert.equal((await run.ended).status, 0);
@@ -308,13 +303,13 @@ test("the events appended while no daemon runs reach the next one once, a crash 
 	};
 	const daemon = async () => {
 		const run = start(t, folder);
-		await until(() => run.output().includes("started"), "the start");
+		await until("the start", () => run.output().includes("started"));
 		return { ...run, pid: run.child.pid };
 	};
 	emit("pinged", "before any daemon");
 	const first = await daemon();
 	emit("pinged", "b");
-	await until(() => log().includes(`${first.pid} pinged 2 b`), "b");
+	await until("b", () => log().includes(`${first.pid} pinged 2 b`));
 	first.child.kill("SIGTERM");
 	assert.equal((await first.ended).status, 0);
 	assert.equal(readFileSync(join(home, "events.delivered"), "utf8"), "2\n");
@@ -322,22 +317,22 @@ test("the events appended while no daemon runs reach the next one once, a crash 
 	emit("pinged", "c");
 	emit("pinged", "d");
 	const second = await daemon();
-	await until(() => log().includes(`${second.pid} pinged 4 d`), "the replay of c and d");
+	await until("the replay of c and d", () => log().includes(`${second.pid} pinged 4 d`));
 	emit("slow", "crash");
-	await until(() => log().includes(`${second.pid} slow begun 5`), "the slow handler");
+	await until("the slow handler", () => log().includes(`${second.pid} slow begun 5`));
 	second.child.kill("SIGKILL");
 	await second.ended;
 
 	const third = await daemon();
-	await until(() => log().includes(`${third.pid} slow done 5`), "the replay of the event the crash cut");
+	await until("the replay of the event the crash cut", () => log().includes(`${third.pid} slow done 5`));
 	emit("slow", "stop");
-	await until(() => log().includes(`${third.pid} slow begun 6`), "the slow handler");
+	await until("the slow handler", () => log().includes(`${third.pid} slow begun 6`));
 	third.child.kill("SIGTERM");
 	assert.equal((await third.ended).status, 0);
 
 	const fourth = await daemon();
 	emit("pinged", "e");
-	await until(() => log().includes(`${fourth.pid} pinged 7 e`), "e");
+	await until("e", () => log().includes(`${fourth.pid} pinged 7 e`));
 	fourth.child.kill("SIGTERM");
 	assert.equal((await fourth.ended).status, 0);
 	assert.equal(

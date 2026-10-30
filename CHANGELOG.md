@@ -7,6 +7,8 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Added
 
 - AR0569 Defaults T1: a check call gets 1800 s by itself, pkill is refused, and every steer is an event (cdb0abdc)
+- AR0571 Defaults T3: a job resumes once after a provider error or an ending with no verdict (4393690f)
+- AR0573 Defaults T5: the merge writes What went in per file and commits the ticket's folder itself (820466db)
 - AR0575 Defaults T7: a passed CI run wakes no one, and Arthur restarts by itself once no job runs (7431ebe0)
 
 ### Fixed
@@ -22,6 +24,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0567 AR0311's 18 findings stay open forever though each is already a ticket (4a15b3fc)
 - AR0568 After the listen rename, the core still names the voice plugin, and versions.mmd misses four plugins (8faffe55)
 - AR0577 Defaults T9: the test kit keeps HOME, TMPDIR and the git identity in its own folder, and cleans up on a signal (4b974151)
+- AR0578 Defaults T10: one until for every test, and the time-limit tests stop racing (a18ef20c)
 - AR0581 Defaults T13: the fakes of GitHub, YouTrack and Telegram are checked against recorded shapes, and tsc gets stricter (e45aba3d)
 - AR0587 The report check tests skip on this server since the test kit moved HOME (0c4b7f93)
 

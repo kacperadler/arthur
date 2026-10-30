@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
-import { setTimeout } from "node:timers/promises";
 import { test } from "node:test";
-import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type ProjectEntry, projects } from "../src/projects.ts";
 
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
@@ -40,7 +39,7 @@ const record = (fake: FakeHost, id: string) => join(dirname(fake.host.folder), "
 // fails here (the fake host's `omp` has no run).
 async function ended(fake: FakeHost, id: string): Promise<string> {
 	const file = (name: string) => (existsSync(join(record(fake, id), name)) ? readFileSync(join(record(fake, id), name), "utf8") : "");
-	for (const end = Date.now() + 15_000; file("state") !== "ended"; await setTimeout(50)) if (Date.now() > end) throw new Error(`${id} did not end`);
+	await until(`${id} to end`, () => file("state") === "ended");
 	return file("reason");
 }
 

@@ -4,9 +4,8 @@ import { once } from "node:events";
 import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
-import { type AgentRun, type FakeHost, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, type FakeHost, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { orchestration } from "../src/orchestration.ts";
 
 // The decision log (spec/roadmap.md, entry 96): `arthur decision`, `arthur decisions`, the ticket's Decisions line, the plugin's
@@ -23,10 +22,6 @@ const BARE_TEXT = "# AC0002 - Bare\n\n## Goal\n\nNo decisions yet.\n";
 const JOB = "2026-03-04-worker-0000abcd";
 
 type Ran = readonly [number, string];
-
-async function until(what: string, holds: () => boolean, ms = 20_000): Promise<void> {
-	for (const deadline = Date.now() + ms; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-}
 
 // Two projects, acme (AC: AC0001 with Decisions and a section after it, AC0002 without) and shop (SH: SH0001), the plugin set
 // up on the fake host in Warsaw, outside any job; `env` stands for the env file's values, the host's `secrets`.
@@ -256,9 +251,8 @@ test("while another process holds the log's lock, a job's question and the close
 	const holder = spawn("sleep", ["60"]);
 	t.after(() => holder.kill());
 	const lock = join(fake.host.folder, "decisions-acme.lock");
-	const until = async (what: string, done: () => boolean) => {
-		for (const end = Date.now() + 5000; !done(); await sleep(10)) if (Date.now() > end) assert.fail(`no ${what} within 5 s`);
-	};
+	// Each wait below ends within 5 s, before `withLock` would give up on the live holder.
+	const soon = { deadlineMs: 5000 };
 	// Each emit returns at once; `withLock` would wait 10 s for the live holder, then fail.
 	const held = (emit: () => void) => {
 		writeFileSync(lock, String(holder.pid));
@@ -276,7 +270,7 @@ test("while another process holds the log's lock, a job's question and the close
 	], "the job's earlier question, answered, is not taken for this one");
 	assert.deepEqual(fake.collect("coordinator.wake", { id: JOB, kind: "worker", project: "elsewhere", state: "blocked", reason: "user: And the archive?" }).filter(Boolean), [], "a project not listed has no log to look in");
 	rmSync(lock);
-	await until("notice", () => notices().length === 2);
+	await until("notice", () => notices().length === 2, soon);
 	assert.equal(notices()[1], `${JOB} asks [AC-D2]: And the archive?`);
 	assert.deepEqual(wake("And the archive?"), [`Its question is decision AC-D2: record the owner's answer first, arthur decision answer AC-D2 --decided '<the decision in one line>' '<his words>', then arthur continue ${JOB} '<his answer>'.`]);
 	await decision("ask", "--kind", "question", "--question", "Merge AC0002 first?", "--ticket", "AC0002");
@@ -287,7 +281,7 @@ test("while another process holds the log's lock, a job's question and the close
 	});
 	assert.deepEqual(closes(), []);
 	rmSync(lock);
-	await until("closes", () => closes().length === 2);
+	await until("closes", () => closes().length === 2, soon);
 	assert.deepEqual(closes().toSorted(), [["AC-D2", "job continued"], ["AC-D3", "ticket dropped"]]);
 	// A log broken by hand while they wait: the notice still goes, without an id, and each event fails, named.
 	const [other, third] = ["2026-03-04-worker-0000ffff", "2026-03-04-worker-0000eeee"];
@@ -300,7 +294,7 @@ test("while another process holds the log's lock, a job's question and the close
 	appendFileSync(file(), "not json\n");
 	printed.length = 0;
 	rmSync(lock);
-	await until("failures", () => printed.length === 3);
+	await until("failures", () => printed.length === 3, soon);
 	assert.equal(notices().at(-1), `${other} asks: May I?`);
 	assert.deepEqual(printed.map((line) => /^plugin orchestration: handler of (job-state|ticket-moved) \(event \d+\) failed: .* is not a decision record/.exec(line)?.[1]).toSorted(), ["job-state", "job-state", "ticket-moved"]);
 });
@@ -573,7 +567,7 @@ test("an ask waits for the log's lock another process holds, and writes after th
 	asker.stdout.on("data", (chunk) => (out += chunk));
 	asker.stderr.on("data", (chunk) => (out += chunk));
 	const asked = once(asker, "exit");
-	while (!existsSync(`${lock}.${asker.pid}`) && !existsSync(file) && asker.exitCode === null) await sleep(2);
+	await until("the ask waiting on the lock, or its end", () => existsSync(`${lock}.${asker.pid}`) || existsSync(file) || asker.exitCode !== null);
 	holder.send("release");
 	assert.deepEqual([(await held)[0], (await asked)[0], out.trim()], [0, 0, "DM-D2"]);
 	const log = readFileSync(file, "utf8").trim().split("\n").map((line) => JSON.parse(line));

@@ -29,7 +29,7 @@ The core asks `models.pick` at every spawn with a model, a single one too: the l
 - A probe is `curl -q --config -` on the job's machine through `host.jobs.run`, so a job on another machine is probed from there: a loopback or private url may not reach the same server from here. The url, the key's header and the address the name resolved to here (curl's `resolve`) go on curl's stdin, never in an argument. `-q` keeps curl from reading any `.curlrc` and `noproxy = "*"` from following the proxy variables (`http_proxy`, `HTTPS_PROXY`, `ALL_PROXY`), so the request and its key go only to the provider's address.
 - One probe per provider and machine runs at a time, across every `arthur` process: a probe holds the lock `<home>/models/probe.<machine>.<provider>.lock`, and a process that waited for it takes the answer the first one wrote. Each answer is kept with its time in `<home>/models/probes.json`, written whole (a temporary name, then renamed), and reused for 30 s by every process, so two `arthur spawn` commands at once make one request. A `probes.json` that is not JSON, or an entry of another shape, keeps nothing.
 - A built-in model is available unless its provider's window is at its limit (below).
-- A job never changes model mid-run: a model lost while the job runs (the Mac goes to sleep) fails the job with the reason the agent gave.
+- A job never changes model mid-run: a model lost while the job runs (the Mac goes to sleep) fails the job with the reason the agent gave, after the one resume on the same model that a connection error gets (`arthur spawn --help`).
 
 ## A job on a provider model
 

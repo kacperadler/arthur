@@ -16,14 +16,14 @@ import { pruneTicket } from "./ticket-prune.ts";
 
 // `arthur merge <job> [--unreviewed]` (spec/roadmap.md, entry 54): an ended job's branch merged into the branch its project's
 // checkout has, main, after every refusal; the checks run there, and main reset when one fails; then the ticket's side
-// (merge-outcome.ts), main pushed by the plugin that provides `github.push` (entry 58) when one is loaded, the job and its
-// ticket's pruned (AR0555), and the procedure after a merge; nothing committed past the merge. `--auto` (entry 59): the merge
+// (merge-outcome.ts) and its commit, main pushed by the plugin that provides `github.push` (entry 58) when one is loaded, the job and its
+// ticket's pruned (AR0555), and the procedure after a merge. `--auto` (entry 59): the merge
 // without the owner, after the refusals of auto-merge.ts; CI asked of github for every merge, `--no-ci` leaving it out (AR0362);
 // `--unreviewed` and `--no-ci`, never with `--auto`, only with the owner's decision `decision.owner` holds (AR0355, AR0503). docs/commands/merge.md.
 
 const USAGE = "usage: arthur merge <job> [--auto | [--unreviewed] [--no-ci] --decision <id>]";
 const FLAGS = ["--unreviewed", "--auto", "--no-ci"];
-// The board's moves since the last commit wait uncommitted for the commit after a merge, so they are no dirt; nor is the changelog each merge rebuilds (changelog.ts).
+// The board's moves since the last commit wait uncommitted for the merge's spec: commit (merge-outcome.ts), so they are no dirt; nor is the changelog each merge rebuilds (changelog.ts).
 const DERIVED = ["spec/build.json", "CHANGELOG.md"];
 const MERGEABLE = ["in-progress", "review", "done"];
 
@@ -46,8 +46,8 @@ export function mergeCommand(host: Host, procedure: URL, held: (path: string) =>
 			}
 			const { job, ticket, ...branch } = await locked(host, name, { unreviewed, decision, auto, ci: !noCi, held, stepSeconds });
 			const pushed = await Promise.all(host.collect<Promise<string>>("github.push", branch));
-			for (const line of [...pushed, ...pruneTicket(host, branch.project, ticket, [job], false)]) console.log(line);
-			console.log(`nothing committed but the merge${pushed.length === 0 ? ", nothing pushed" : ""}\n\n${readFileSync(procedure, "utf8").trim()}`);
+			for (const line of [...(pushed.length > 0 ? pushed : ["nothing pushed: no plugin provides github.push"]), ...pruneTicket(host, branch.project, ticket, [job], false)]) console.log(line);
+			console.log(`\n${readFileSync(procedure, "utf8").trim()}`);
 		},
 	};
 }
@@ -160,9 +160,8 @@ async function merge(host: Host, job: JobRecord, mode: Mode): Promise<{ readonly
 		}
 		saveLastMerge(host, job.project, made);
 		endWait(host, job.id);
-		if (ticket === undefined || folder === undefined) console.log("no ticket: no outcome.md, nothing moved");
-		else settleTicket(host, { job, ticket, folder, root, hash, subjects: subjects.split("\n"), steps, gap }, console.log);
-		console.log(writeChangelog(host, job.project));
+		if (ticket === undefined || folder === undefined) console.log(`no ticket: no outcome.md, nothing moved\n${writeChangelog(host, job.project)}`);
+		else settleTicket(host, { job, ticket, folder, root, hash, subjects: subjects.split("\n"), steps, gap, git }, console.log);
 		return { project: job.project, branch: main, job: job.id, ticket: ticket?.id };
 	} finally {
 		rmSync(cache, { recursive: true, force: true });

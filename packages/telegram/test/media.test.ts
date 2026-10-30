@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync, truncateSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { temporaryFolder } from "@arthur/core/testing";
-import { botApi, CHAT, load, said, TOKEN, until } from "./fake-bot-api.ts";
+import { temporaryFolder, until } from "@arthur/core/testing";
+import { botApi, CHAT, load, said, TOKEN } from "./fake-bot-api.ts";
 
 const MB = 1024 * 1024;
 

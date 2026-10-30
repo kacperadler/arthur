@@ -16,6 +16,7 @@ import { jobRunner } from "./jobs.ts";
 import type { Role } from "./roles.ts";
 import type { Host, Options, Plugin, Provider, SpawnCheck } from "./plugin.ts";
 import { pluginHost, registry } from "./plugin-host.ts";
+export { until } from "./until.ts";
 
 // The test kit (spec/roadmap.md, entries 4, 11 and 13), `@arthur/core/testing`, which `npm test` loads into every test process (`--import`) as the safety net: its environment (test-env.ts) keeps live variables, folders and identities out of reach, so no test reaches
 // a live bot, token or tmux server; `omp` on `PATH` is the fake agent with no run (it fails), so no job reaches the real agent; at exit go the tmux servers on its sockets (tmux's default one included; a server outlives its removed socket, unreachable then; `find` follows no link out), its slice `jobSlice`, and every folder the kit makes.

@@ -187,7 +187,7 @@ function wake({ review, verdict, project, autoMerge, reason, fails: place }: See
 	if (verdict !== "FAIL" && (reason === "stopped" || reason === `user: ${CANCELLED}`))
 		return `Review ${review.id} was stopped, so it has no verdict, is never filed, and ${review.ticket} stays at review. Review again only when the owner asks: arthur review ${worker}; arthur prune ${review.id} frees it.`;
 	if (verdict !== "FAIL")
-		return `Review ${review.id}: no verdict, so the review failed: the last line of its final message is not PASS or FAIL alone, or its run did not finish. It is never filed, and ${review.ticket} stays at review. Review again with arthur review ${worker}, then arthur prune ${review.id}.`;
+		return `Review ${review.id}: no verdict, so the review failed: the last line of its final message is not PASS or FAIL alone though Arthur resumed it once for that already, or its run did not finish. It is never filed, and ${review.ticket} stays at review. Review again with arthur review ${worker}, then arthur prune ${review.id}.`;
 	const fails = place();
 	const filed = `Delivery files it as the next review-N.md in ${review.ticket}'s folder; commit that, then arthur prune ${review.id}.`;
 	const back = fails < LIMIT ? ` It hands the branch back: ${worker} continues with the findings and a new budget, and the next review starts when it ends; arthur stopall cancels it.` : " The hand-back stops at the limit.";

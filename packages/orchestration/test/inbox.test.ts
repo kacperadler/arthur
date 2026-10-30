@@ -5,7 +5,7 @@ import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
 import { NOT_TRANSCRIBED } from "@arthur/core/parts";
-import { type AgentRun, type AgentStep, type FakeHost, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, type AgentStep, fakeAgent, type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import extension, { pause } from "../src/inbox-extension.ts";
 import { handOver } from "../src/hand-over.ts";
 import { inbox, queue } from "../src/inbox.ts";
@@ -20,10 +20,6 @@ const ARTHUR = "The messages marked [Arthur] or [Arthur: <plugin>] come from Art
 const NOT_YET = "Its question was not in the decision log yet: arthur decisions --kind job --project shop shows its id. Open, record the owner's answer first, arthur decision answer <its id> --decided '<the decision in one line>' '<his words>', then arthur continue 2026-10-17-worker-0000abcd '<his answer>'; answered by policy, the plugin continues the job with that decision by itself: say so in your reply.";
 const RESTART = "sent before a restart; no reply to it was sent";
 const DAY = 24 * 3_600_000;
-
-async function until(what: string, holds: () => boolean, ms = 20_000): Promise<void> {
-	for (const deadline = Date.now() + ms; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-}
 
 // Files a fake's `waitFor` steps wait for.
 function gates() {

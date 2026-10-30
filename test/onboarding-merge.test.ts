@@ -2,10 +2,9 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
 import type { Plugin } from "@arthur/core/plugin";
-import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { delivery } from "@arthur/delivery";
 import { projects } from "@arthur/projects";
 
@@ -45,8 +44,7 @@ async function load(t: TestContext, code: Readonly<Record<string, string>> = {})
 		process.env.PATH = `${dirname(fakeAgent({ steps: [{ message: "## Drafts\nDone." }] }))}${delimiter}${saved}`;
 		const job = await fake.host.jobs.spawn({ task: "Onboard shop.", kind: "onboarding" });
 		const state = join(dirname(fake.host.folder), "jobs", job.id, "state");
-		for (const deadline = Date.now() + 15_000; !existsSync(state) || readFileSync(state, "utf8") !== "ended"; await sleep(50))
-			if (Date.now() > deadline) throw new Error(`timed out waiting for ${job.id} to end`);
+		await until(`${job.id} to end`, () => existsSync(state) && readFileSync(state, "utf8") === "ended");
 		for (const [path, text] of Object.entries(files)) writeFileSync(join(job.worktree, path), text);
 		git(job.worktree, "add", "--all");
 		git(job.worktree, "commit", "--quiet", "-m", "docs: draft the vision");

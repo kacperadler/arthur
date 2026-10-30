@@ -2,10 +2,9 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
 import { coreVersion } from "@arthur/core";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { delivery } from "../src/delivery.ts";
 import { handBack } from "../src/hand-back.ts";
 import { reviewTask, worker as workerOf } from "../src/review-command.ts";
@@ -58,7 +57,7 @@ async function load(t: TestContext, { start = false } = {}) {
 	const home = dirname(fake.host.folder);
 	const state = (id: string) => (existsSync(join(home, "jobs", id, "state")) ? readFileSync(join(home, "jobs", id, "state"), "utf8") : "");
 	const ended = async (id: string) => {
-		for (const deadline = Date.now() + 15_000; state(id) !== "ended"; await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${id} to end`);
+		await until(`${id} to end`, () => state(id) === "ended");
 		fake.emit("job-ended", { id, state: "ended" });
 	};
 	const worker = async (task = `Ticket: ${TICKET}`) => {
@@ -92,10 +91,6 @@ async function load(t: TestContext, { start = false } = {}) {
 		return typeof record === "object" && record !== null && "step" in record ? record.step : undefined;
 	};
 	return { root, other, fake, git, worker, review, status, home, state, ended, agent, field, step, plugin };
-}
-
-async function until(what: string, holds: () => boolean) {
-	for (const deadline = Date.now() + 15_000; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
 }
 
 test("the verdict is the last line, exactly PASS or FAIL; anything else is none", () => {
@@ -148,7 +143,7 @@ test("PASS not on the last line is no verdict: the run ends failed, the ticket s
 	const reason = "failed: no verdict: the last line of its final message is not PASS or FAIL alone";
 	assert.equal(readFileSync(join(home, "jobs", none.id, "reason"), "utf8"), reason, "the core's record says the review failed");
 	assert.equal(status("AC0001"), "review");
-	assert.match(String(fake.collect("coordinator.wake", { id: none.id, kind: "review" })[0]), new RegExp(`^Review ${none.id}: no verdict, so the review failed: .* Review again with arthur review ${job.id}, then arthur prune ${none.id}\\.$`));
+	assert.match(String(fake.collect("coordinator.wake", { id: none.id, kind: "review" })[0]), new RegExp(`^Review ${none.id}: no verdict, so the review failed: the last line of its final message is not PASS or FAIL alone though Arthur resumed it once for that already, or its run did not finish\\. .* Review again with arthur review ${job.id}, then arthur prune ${none.id}\\.$`));
 	assert.throws(() => fake.host.jobs.file("AC0001", none.id), { message: `${none.id} ended ended (${reason}), not finished: its result is unfinished and is never filed; prune it` });
 	assert.deepEqual(readdirSync(join(root, FOLDER)), ["ticket.md"]);
 	assert.deepEqual(fake.collect("coordinator.wake", { id: job.id, kind: "worker" }), [undefined], "a worker's wake gets nothing");

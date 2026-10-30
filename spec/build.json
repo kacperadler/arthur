@@ -4551,9 +4551,9 @@
   {
     "id": "AR0571",
     "title": "Defaults T3: a job resumes once after a provider error or an ending with no verdict",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0571-defaults-t3-a-job-resumes-once-after-a-provider-error-or-an-ending-with-no/ticket.md",
-    "updated": "2026-10-30T10:56:43.841Z",
+    "updated": "2026-10-30T11:46:11.298Z",
     "after": [
       "AR0569"
     ]
@@ -4561,9 +4561,9 @@
   {
     "id": "AR0572",
     "title": "Defaults T4: a job with no sandbox refuses to start unless core.jobs.unsandboxed is on",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0572-defaults-t4-a-job-with-no-sandbox-refuses-to-start-unless-core-jobs-unsandboxed/ticket.md",
-    "updated": "2026-10-30T07:47:02.864Z",
+    "updated": "2026-10-30T13:31:41.133Z",
     "after": [
       "AR0571"
     ]
@@ -4571,9 +4571,9 @@
   {
     "id": "AR0573",
     "title": "Defaults T5: the merge writes What went in per file and commits the ticket's folder itself",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0573-defaults-t5-the-merge-writes-what-went-in-per-file-and-commits-the-ticket-s/ticket.md",
-    "updated": "2026-10-30T10:56:54.354Z",
+    "updated": "2026-10-30T12:50:38.260Z",
     "after": [
       "AR0569"
     ]
@@ -4581,9 +4581,9 @@
   {
     "id": "AR0574",
     "title": "Defaults T6: a passed review's notes reach findings.md by themselves",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0574-defaults-t6-a-passed-review-s-notes-reach-findings-md-by-themselves/ticket.md",
-    "updated": "2026-10-30T07:47:04.871Z",
+    "updated": "2026-10-30T13:31:39.948Z",
     "after": [
       "AR0573"
     ]
@@ -4616,9 +4616,9 @@
   {
     "id": "AR0578",
     "title": "Defaults T10: one until for every test, and the time-limit tests stop racing",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0578-defaults-t10-one-until-for-every-test-and-the-time-limit-tests-stop-racing/ticket.md",
-    "updated": "2026-10-30T07:47:07.867Z",
+    "updated": "2026-10-30T13:24:47.320Z",
     "after": [
       "AR0577"
     ]
@@ -4665,9 +4665,9 @@
   {
     "id": "AR0583",
     "title": "Defaults T15: a go-with-my-recommendation grant, and a policy answer continues the job",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0583-defaults-t15-a-go-with-my-recommendation-grant-and-a-policy-answer-continues-the/ticket.md",
-    "updated": "2026-10-30T07:47:12.365Z",
+    "updated": "2026-10-30T13:52:32.438Z",
     "after": [
       "AR0570"
     ]
@@ -4711,5 +4711,21 @@
     "status": "merged",
     "path": "spec/features/AR0587-the-report-check-tests-skip-on-this-server-since-the-test-kit-moved-home/ticket.md",
     "updated": "2026-10-30T11:00:32.169Z"
+  },
+  {
+    "id": "AR0588",
+    "title": "Plan: a dokploy plugin, deploy and upload to the owner's Dokploy servers",
+    "status": "planned",
+    "path": "spec/features/AR0588-plan-a-dokploy-plugin-deploy-and-upload-to-the-owner-s-dokploy-servers/ticket.md",
+    "updated": "2026-10-30T13:44:58.936Z",
+    "after": [
+      "AR0572",
+      "AR0574",
+      "AR0576",
+      "AR0579",
+      "AR0580",
+      "AR0583",
+      "AR0585"
+    ]
   }
 ]

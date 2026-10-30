@@ -3,8 +3,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { ciWaits } from "../src/ci-wait.ts";
 import { delivery } from "../src/delivery.ts";
 
@@ -74,7 +73,7 @@ async function load(t: TestContext, github = true) {
 	const home = dirname(fake.host.folder);
 	const ended = async (id: string) => {
 		const state = join(home, "jobs", id, "state");
-		for (const deadline = Date.now() + 15_000; !existsSync(state) || readFileSync(state, "utf8") !== "ended"; await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${id} to end`);
+		await until(`${id} to end`, () => existsSync(state) && readFileSync(state, "utf8") === "ended");
 		fake.emit("job-ended", { id, state: "ended" });
 	};
 	const agent = (run: AgentRun) => {
@@ -169,7 +168,7 @@ test("--auto refuses a held path: a role, the vision, CI, package.json, the alwa
 	answers.ci = ciRun(plain.tip, plain.branch);
 	const merged = await merge(plain.id, "--auto");
 	assert.equal(merged.code, undefined, merged.err);
-	assert.equal(git(root, "log", "-1", "--format=%s"), "Merge AC0009: T AC0009");
+	assert.equal(git(root, "log", "-2", "--format=%s"), "spec: AC0009 merged\nMerge AC0009: T AC0009");
 });
 
 test("--auto reads past a replacement of main's tip under refs/replace: the held path the branch changes still refuses it", async (t) => {

@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { orchestration } from "../src/orchestration.ts";
 
 const PATH = process.env.PATH ?? "";
@@ -44,7 +43,7 @@ async function load(t: TestContext, run: AgentRun = { steps: [{ message: "## App
 	await fake.setup(orchestration(options));
 	const home = dirname(fake.host.folder);
 	const ended = async (id: string) => {
-		for (const deadline = Date.now() + 15_000; readState(home, id) !== "ended"; await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${id} to end`);
+		await until(`${id} to end`, () => readState(home, id) === "ended");
 	};
 	return { root, fake, jobs: fake.host.jobs, git, commit, ended, home };
 }
@@ -149,14 +148,17 @@ test("plan reviews number on from the highest one, record the verdict, and a job
 	assert.equal(readFileSync(join(root, FOLDER, "plan-review-3.md"), "utf8"), "three\n");
 });
 
-test("a plan review without a bare verdict on its last line is filed with the verdict none", async (t) => {
-	const { jobs, root, ended, commit } = await load(t, { steps: [{ message: "Looks fine.\n**PASS**" }] });
+test("a plan review without a bare verdict on its last line is resumed once, then ends failed: no verdict, and is never filed", async (t) => {
+	const { jobs, root, ended, commit, home } = await load(t, { steps: [{ message: "Looks fine.\n**PASS**" }] });
 	writeFileSync(join(root, PLAN), "# plan\n");
 	commit("plan");
 	const review = await jobs.spawn({ task: `Ticket: ${TICKET}`, kind: "plan-review" });
 	await ended(review.id);
-	assert.equal(jobs.file("AC0001", review.id), `${FOLDER}/plan-review-1.md`);
-	assert.match(readFileSync(join(root, FOLDER, "plan-review-1.md"), "utf8"), /\n- Verdict: none\n/);
+	const reason = "failed: no verdict: the last line of its final message is not PASS or FAIL alone";
+	assert.equal(readFileSync(join(home, "jobs", review.id, "reason"), "utf8"), reason);
+	assert.match(readFileSync(join(home, "jobs", review.id, "log"), "utf8"), new RegExp(`\\] resume: ${reason}; the run resumes once\\n`));
+	assert.throws(() => jobs.file("AC0001", review.id), { message: `${review.id} ended ended (${reason}), not finished: its result is unfinished and is never filed; prune it` });
+	assert.deepEqual(readdirSync(join(root, FOLDER)).sort(), ["plan.md", "ticket.md"]);
 });
 
 test("a worker on a Plan: yes ticket needs its plan.md committed, approved by the owner for this plan.md, and on its Plan: line", async (t) => {

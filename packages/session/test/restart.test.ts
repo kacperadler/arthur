@@ -4,7 +4,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, rmdirSync, statSync, wr
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type SessionOptions, session } from "../src/session.ts";
 
 const ARTHUR = "This message comes from Arthur, not the owner; your reply goes to the owner only if one of their messages joins this turn.";
@@ -16,10 +16,6 @@ const QUOTED = "> Work in progress: AR0144, its worker ended.\n> Next: review it
 const ask = (handoff: string, how: string) =>
 	`[Arthur] This conversation ends after this turn: the coordinator restarts ${how}. First write your handoff to ${handoff}, replacing what it holds: the work in progress, the next steps, and every question to the owner still unanswered, with when you asked it. The next conversation starts by reading it. ${ARTHUR}`;
 const read = (handoff: string) => `[Arthur] The coordinator just started again. Before that you wrote this handoff (${handoff}); go on from it:\n\n${QUOTED}\n\n${ARTHUR}`;
-
-async function until(what: string, holds: () => boolean, ms = 20_000): Promise<void> {
-	for (const deadline = Date.now() + ms; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-}
 
 // Whole lines only: a line the agent is still appending has no line break yet.
 const lines = (file: string): Record<string, unknown>[] => (existsSync(file) ? readFileSync(file, "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line)) : []);

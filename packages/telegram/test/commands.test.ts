@@ -4,8 +4,8 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
 import type { Command, Host } from "@arthur/core/plugin";
-import { temporaryFolder } from "@arthur/core/testing";
-import { botApi, CHAT, load, SECOND, said, TOKEN, until } from "./fake-bot-api.ts";
+import { temporaryFolder, until } from "@arthur/core/testing";
+import { botApi, CHAT, load, SECOND, said, TOKEN } from "./fake-bot-api.ts";
 
 // Phone commands and the command menu (spec/roadmap.md, entry 50).
 

@@ -4,7 +4,6 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import type { AddressInfo } from "node:net";
 import { join } from "node:path";
 import type { TestContext } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { fakeHost } from "@arthur/core/testing";
 import { type TelegramOptions, telegram } from "../src/telegram.ts";
 
@@ -15,10 +14,6 @@ export const TOKEN = ["7012345678", `AAH-${"t".repeat(31)}`].join(":");
 export const SECOND = ["7087654321", `AAG-${"s".repeat(31)}`].join(":");
 export const CHAT = 4242;
 export const NOW = new Date("2026-10-19T10:00:00Z");
-
-export async function until(what: string, holds: () => boolean, ms = 20_000): Promise<void> {
-	for (const deadline = Date.now() + ms; !holds(); await sleep(20)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-}
 
 // The address of a loopback port nothing listens on any more: the Bot API unreachable.
 export async function nowhere(): Promise<string> {

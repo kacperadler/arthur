@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { type AgentStep, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentStep, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { orchestration } from "../src/orchestration.ts";
 import { endCoordinator } from "./coordinator-end.ts";
 import { NO_UNIX_SOCKET } from "./unix-socket.ts";
@@ -15,10 +14,6 @@ import { NO_UNIX_SOCKET } from "./unix-socket.ts";
 const PATH = process.env.PATH ?? "";
 const NOW = new Date("2026-10-19T08:00:00Z");
 const WORK = "AR0207 to AR0209 merged; stop at $20";
-
-async function until(what: string, holds: () => boolean, ms = 20_000): Promise<void> {
-	for (const deadline = Date.now() + ms; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-}
 
 // The plugin set up on a fake host in Warsaw, its coordinator not started; `silent.json` written before the setup when given,
 // as an earlier process left it. `run` is `arthur silent <args>`, its exit code and what it printed; `stop` sweeps the outbox.

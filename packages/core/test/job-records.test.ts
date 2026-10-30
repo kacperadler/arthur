@@ -5,7 +5,6 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, utimesSync, w
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { mock, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { clock } from "../src/clock.ts";
 import { type CommandRegistry, commandRegistry } from "../src/commands.ts";
 import { readEvents } from "../src/event-log.ts";
@@ -13,7 +12,7 @@ import { eventBus } from "../src/events.ts";
 import { jobCommands } from "../src/job-commands.ts";
 import { findJob } from "../src/job-records.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
-import { fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
+import { fakeAgent, jobSlice, temporaryFolder, until } from "../src/testing.ts";
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 const NOW = new Date("2026-10-16T12:00:00Z");
@@ -39,14 +38,6 @@ function setup(agent = fakeAgent({ steps: [{ message: "Done." }] }), keep: (job:
 	const commands = commandRegistry();
 	for (const command of jobCommands(() => home, () => jobs, () => (name, data) => void bus.emit("core", name, data))) commands.register("core", command);
 	return { root, home, jobs, commands };
-}
-
-async function until<T>(what: string, predicate: () => T | undefined | false): Promise<T> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined && value !== false) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
 }
 
 const field = (home: string, id: string, name: string) => readFileSync(join(home, "jobs", id, name), "utf8");

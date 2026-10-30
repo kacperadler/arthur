@@ -42,3 +42,4 @@ Out:
 ## Decisions
 - 2026-10-30: AR0585 approved; it lives in the delivery plugin, beside the job extension; the owner: "i have to focus on my work, go with recomendations and do not cross 70% of weekly usage, do to silent mode" (AR-D361)
 - 2026-10-30: AR0585 budget $6; delivery line budget raised by what it needs as measured; the owner: "i have to focus on my work, go with recomendations and do not cross 70% of weekly usage, do to silent mode" (AR-D364)
+- 2026-10-30: AR0585 continued to merge main, limit $9; the owner: "Go with recommendations till 70%" (AR-D404)

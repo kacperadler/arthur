@@ -4543,7 +4543,7 @@
     "title": "Defaults T2: a branch cannot change its ticket, the board or the decision log",
     "status": "in-progress",
     "path": "spec/features/AR0570-defaults-t2-a-branch-cannot-change-its-ticket-the-board-or-the-decision-log/ticket.md",
-    "updated": "2026-10-30T09:52:45.131Z",
+    "updated": "2026-10-30T10:19:41.513Z",
     "after": [
       "AR0569"
     ]
@@ -4648,9 +4648,9 @@
   {
     "id": "AR0581",
     "title": "Defaults T13: the fakes of GitHub, YouTrack and Telegram are checked against recorded shapes, and tsc gets stricter",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0581-defaults-t13-the-fakes-of-github-youtrack-and-telegram-are-checked-against/ticket.md",
-    "updated": "2026-10-30T10:05:57.855Z"
+    "updated": "2026-10-30T10:14:26.314Z"
   },
   {
     "id": "AR0582",

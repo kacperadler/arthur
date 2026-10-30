@@ -157,6 +157,19 @@ test("an agent the sandbox's shell does not find starts bare without the opt-in 
 	assert.deepEqual(lines, [`no sandbox: the agent ${missing} is not there; the agent writes wherever Arthur's user can`]);
 });
 
+test("a python3 that exits 127 itself, as a pyenv shim with no Python, is no missing agent: a real agent is refused, naming core.jobs.unsandboxed, unless opted in", (t) => {
+	const bin = temporaryFolder();
+	writeFileSync(join(bin, "python3"), "#!/bin/sh\necho 'pyenv: python3: command not found' >&2\nexit 127\n", { mode: 0o755 });
+	const path = process.env.PATH;
+	t.after(() => (process.env.PATH = path));
+	process.env.PATH = [bin, path].join(delimiter);
+	const why = process.platform === "linux" ? "pyenv: python3: command not found" : `${process.platform} has no Landlock`;
+	const lines: string[] = [];
+	assert.throws(() => sandboxed(["/tmp"], [], "sh", (line) => lines.push(line)), { message: `no sandbox: ${why}; set core.jobs.unsandboxed: true in arthur.config.ts to run the agent with the writes of Arthur's user` });
+	assert.deepEqual(sandboxed(["/tmp"], [], "sh", (line) => lines.push(line), "the agent", true)(["-c", "echo ran"]), ["sh", ["-c", "echo ran"]]);
+	assert.deepEqual(lines, [`no sandbox: ${why}; the agent writes wherever Arthur's user can`]);
+});
+
 test("without python3, or where it cannot set up the sandbox, the agent is refused, naming core.jobs.unsandboxed, unless opted in: then it runs as it is and the log says why", (t) => {
 	const bin = temporaryFolder();
 	const path = process.env.PATH;

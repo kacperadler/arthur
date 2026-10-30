@@ -32,7 +32,7 @@ const file = (name) => new URL("./" + name, import.meta.url);
 const said = (name) => (existsSync(file(name)) ? readFileSync(file(name), "utf8") : "ok");
 const log = (line) => appendFileSync(file("log.txt"), line + "\\n");
 const need = (name, critical) => ({ name, check: () => said(name), costs: "no " + name, fix: "fix " + name, critical });
-export default { core: { home: HOME }, plugins: [
+export default { core: { home: HOME, jobs: { unsandboxed: true } }, plugins: [
 	{ name: "orchestration", doctor: () => [need("tmux", true)], setup(host) {
 		host.events.on("doctor", (event) => log("doctor " + JSON.stringify(event.data)));
 		host.events.on("notice", (event) => log("notice " + JSON.stringify(event.data.text)));
@@ -65,9 +65,9 @@ function project(home?: string) {
 }
 
 const SANDBOX_FIX = "without it: every job fails at its start, failed: no sandbox; fix: run Arthur on Linux 5.13 or later with python3 (docs/deploy.md), or set core.jobs.unsandboxed: true in arthur.config.ts to run jobs without one, with the writes of your user";
-// This host's sandbox line: `ok` where the sandbox sets up, else missing with why.
+// This host's sandbox line for a config with core.jobs.unsandboxed on, as the CLI tests' configs are: `ok`, with why where the sandbox does not set up.
 const sandbox = noSandbox([], "sh");
-const CORE = ["core git: ok", "core node: ok", "core omp: ok", "core home: ok", "core controllers: ok", "core env: ok", "core env ignored: ok", sandbox === undefined ? "core sandbox: ok" : `core sandbox: missing: no sandbox: ${sandbox}; ${SANDBOX_FIX}`];
+const CORE = ["core git: ok", "core node: ok", "core omp: ok", "core home: ok", "core controllers: ok", "core env: ok", "core env ignored: ok", sandbox === undefined ? "core sandbox: ok" : `core sandbox: ok (no sandbox: ${sandbox}; core.jobs.unsandboxed is on, so a job writes wherever ${USER} can)`];
 const REST = [
 	"orchestration tmux: ok",
 	"channel token: ok",
@@ -103,7 +103,7 @@ test("arthur doctor while the load refuses, a variable missing: the core's lines
 		join(folder, "arthur.config.ts"),
 		`import { appendFileSync } from "node:fs";
 const need = (name, critical) => ({ name, check: () => "missing: no " + name, costs: "no " + name, fix: "install " + name, critical });
-export default { plugins: [
+export default { core: { jobs: { unsandboxed: true } }, plugins: [
 	{ name: "orchestration", doctor: () => [need("tmux", true)], setup(host) { appendFileSync(new URL("./log.txt", import.meta.url), "setup\\n"); host.provide("doctor", () => [need("socket", true)]); } },
 	{ name: "telegram", options: { enabled: true, botTokenEnv: "ARTHUR_DOCTOR_TEST_TOKEN" }, doctor: async (options, core) => [need(\`ffmpeg \${Object.keys(options)} \${core.agent.command}\`, false)], setup() {} },
 	{ name: "broken", doctor() { throw new Error("no list today"); }, setup() {} },
@@ -128,7 +128,7 @@ export default { plugins: [
 
 test("arthur doctor when a plugin's setup fails: the core's lines, then why the rest is not checked; a config that does not load, the reason alone", () => {
 	const { folder, arthur } = project();
-	writeFileSync(join(folder, "arthur.config.ts"), 'export default { plugins: [{ name: "orchestration", setup() { throw new Error("no socket"); } }] };\n');
+	writeFileSync(join(folder, "arthur.config.ts"), 'export default { core: { jobs: { unsandboxed: true } }, plugins: [{ name: "orchestration", setup() { throw new Error("no socket"); } }] };\n');
 	const failed = arthur("doctor");
 	assert.deepEqual([failed.status, failed.stdout], [1, [...CORE, ""].join("\n")]);
 	assert.equal(failed.stderr, "arthur doctor: the requirements a plugin checks in its setup are not checked: arthur.config.ts did not load:\nplugin orchestration: setup failed: no socket\n");

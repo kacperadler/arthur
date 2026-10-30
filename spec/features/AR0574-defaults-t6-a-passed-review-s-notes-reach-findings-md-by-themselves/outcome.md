@@ -36,3 +36,6 @@
 
 - Deferred (client summary): F1. The delivery/merge eval's baseline predates its new scenario
 - Deferred (client summary): F2. Without the findings plugin, a passed review's notes reach no findings.md
+- Deferred (client summary): F3. Without the findings plugin, a worker's own open entries are settled by no one either.
+- Deferred (client summary): F4. A note's title ends at its first period and space.
+- Deferred (client summary): F5. The merge eval's stubbed findings.md head differs from the template's.

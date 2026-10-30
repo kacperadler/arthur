@@ -22,3 +22,24 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - What: AR0574 deleted the after-merge step where the coordinator copied the notes, as the plan says. In a project with no `findings.onMerge` provider, a PASS review's security, bug or risk notes now stay only in its `review-N.md`. The merge says `- Findings: ... left as it is` or `- Findings: none; no findings.md on this ticket.` and never says that notes were left too.
 - Suggestion: when no provider answers and `notes` holds a line of kind security, bug or risk, add `- Findings: <n> review notes left in <review-N.md>: no plugin provides findings.onMerge` to the no-provider line. No coordinator step comes back.
 - Status: deferred (client summary)
+
+## F3. Without the findings plugin, a worker's own open entries are settled by no one either
+
+- Kind: risk
+- Found by: review 1 (not blocking)
+- What: `packages/delivery/roles/coordinator/after-merge.md:1`: the deleted step also held the fallback for `no plugin provides findings.onMerge`; F2 names only the review notes.
+- Status: deferred (client summary)
+
+## F4. A note's title ends at its first period and space
+
+- Kind: fix
+- Found by: review 1 (not blocking)
+- What: `packages/findings/src/on-merge.ts:17`: `- (bug) a.ts:1: Use e.g. X. why` gets the title "Use e.g".
+- Status: deferred (client summary)
+
+## F5. The merge eval's stubbed findings.md head differs from the template's
+
+- Kind: test
+- Found by: review 1 (not blocking)
+- What: `packages/delivery/evals/merge/scenario.json`: a one-line head where the plugin writes the template's two paragraphs; the scoring is unchanged.
+- Status: deferred (client summary)

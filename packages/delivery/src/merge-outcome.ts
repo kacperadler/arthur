@@ -7,7 +7,7 @@ import type { Step } from "./merge-checks.ts";
 import { reviewsOf } from "./review-records.ts";
 
 // What `arthur merge` does for the ticket once its branch is in and the checks passed (spec/roadmap.md, entry 54): files the
-// branch's reviews, hands the ticket's findings to `findings.onMerge`, writes `outcome.md`, sets the ticket merged, names
+// branch's reviews, hands the ticket's findings and its passed review's notes to `findings.onMerge`, writes `outcome.md`, sets the ticket merged, names
 // the planned tickets it unblocks, rebuilds CHANGELOG.md and commits the ticket's side. docs/commands/merge.md, "Steps".
 
 export type Merged = {
@@ -48,7 +48,7 @@ export function settleTicket(host: Host, merged: Merged, log: (line: string) => 
 	const records = host.jobs.list();
 	const live = (id: string) => records.find((record) => record.id === id)?.cost;
 	const dollars = (costs: readonly (string | undefined)[]) => (costs.some((cost) => cost === undefined || cost === "") ? "n/a" : `$${costs.reduce((sum, cost) => sum + Number(cost), 0).toFixed(2)}`);
-	const left = findings(host, merged);
+	const left = findings(host, merged, notesOf(filed(), job.branch));
 	for (const line of left) log(line);
 	const text = [
 		`# ${ticket.id} - Outcome`,
@@ -93,15 +93,24 @@ function wentIn(host: Host, { job, hash, subjects, git }: Merged): string[] {
 	return [...lines, ...files.filter((file) => !named.has(file)).map((file) => `- ${file}: not described`)];
 }
 
-// The `## Left open` lines: each `findings.onMerge` provider's answer, asked with the ticket's `findings.md`; without one, the
-// findings stay as they are, said once.
-function findings(host: Host, { job, ticket, folder, root }: Merged): string[] {
+// The `## Left open` lines: each `findings.onMerge` provider's answer, asked with the ticket's `findings.md` and the passed
+// review's notes; without one, the findings stay as they are, said once.
+function findings(host: Host, { job, ticket, folder, root }: Merged, passed: Passed): string[] {
 	const path = `${folder}/findings.md`;
-	const answers = host.collectEach("findings.onMerge", { project: job.project, ticket: ticket.id, path, root });
+	const answers = host.collectEach("findings.onMerge", { project: job.project, ticket: ticket.id, path, root, ...passed });
 	if (answers.length === 0)
 		return [existsSync(join(root, path)) ? `- Findings: ${path} left as it is, every open entry still open: no plugin provides findings.onMerge` : "- Findings: none; no findings.md on this ticket."];
 	return answers.flatMap((answer) => {
 		if ("error" in answer) return [`- Findings: findings.onMerge of ${answer.plugin} failed: ${answer.error.message}; ${path} left as it is`];
 		return typeof answer.value === "string" && answer.value.trim() !== "" ? answer.value.trim().split("\n") : [`- Findings: findings.onMerge of ${answer.plugin} answered no lines`];
 	});
+}
+
+// The `- (<kind>) <file:line>: <title>. <what>` lines under `## Notes` of the branch's last filed PASS review (roles/reviewer.md),
+// and that review's job; none without one.
+type Passed = { readonly review: string; readonly notes: readonly string[] };
+function notesOf(files: readonly { readonly text: string }[], branch: string): Passed {
+	const text = files.findLast(({ text }) => text.includes(`\n- Branch: ${branch}\n`) && /^- Verdict: PASS$/m.test(text))?.text ?? "";
+	const section = text.split(/^## Notes[ \t]*$/m)[1]?.split(/^#{1,2} /m)[0] ?? "";
+	return { review: /^- Job: (.+)$/m.exec(text)?.[1] ?? "", notes: section.split("\n").filter((line) => /^- \(\w+\) /.test(line)) };
 }

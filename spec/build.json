@@ -4534,9 +4534,9 @@
   {
     "id": "AR0569",
     "title": "Defaults T1: a check call gets 1800 s by itself, pkill is refused, and every steer is an event",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0569-defaults-t1-a-check-call-gets-1800-s-by-itself-pkill-is-refused-and-every-steer/ticket.md",
-    "updated": "2026-10-30T07:56:36.903Z"
+    "updated": "2026-10-30T08:51:13.577Z"
   },
   {
     "id": "AR0570",
@@ -4591,9 +4591,9 @@
   {
     "id": "AR0575",
     "title": "Defaults T7: a passed CI run wakes no one, and Arthur restarts by itself once no job runs",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0575-defaults-t7-a-passed-ci-run-wakes-no-one-and-arthur-restarts-by-itself-once-no/ticket.md",
-    "updated": "2026-10-30T07:47:05.372Z"
+    "updated": "2026-10-30T08:37:47.408Z"
   },
   {
     "id": "AR0576",
@@ -4701,8 +4701,8 @@
   {
     "id": "AR0586",
     "title": "The report check tests fail on GitHub CI: its Chrome will not render narrower than 500 px",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0586-the-report-check-tests-fail-on-github-ci-its-chrome-will-not-render-narrower/ticket.md",
-    "updated": "2026-10-30T08:12:46.018Z"
+    "updated": "2026-10-30T08:39:45.251Z"
   }
 ]

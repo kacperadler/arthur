@@ -3,9 +3,8 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { readEvents } from "../src/event-log.ts";
-import { fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
+import { fakeAgent, jobSlice, temporaryFolder, until } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const LOCK = join(import.meta.dirname, "..", "src", "lock.ts");
@@ -34,7 +33,7 @@ test("under umask 022 every file and folder an arthur command and its job write 
 	const spawned = spawnSync(process.execPath, [CLI, "spawn", "Build it."], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_JOB_SLICE: jobSlice.slice } });
 	assert.equal(spawned.status, 0, spawned.stderr);
 	const id = spawned.stdout.trim();
-	for (const start = Date.now(); !readEvents(home, 1).some((event) => event.name === "job-ended"); await sleep(20)) if (Date.now() - start > 20_000) assert.fail("the job did not end");
+	await until("the job's end", () => readEvents(home, 1).some((event) => event.name === "job-ended"));
 	const record = join(home, "jobs", id);
 	const worktree = readFileSync(join(record, "worktree"), "utf8");
 	for (const path of [join(record, "task"), join(record, "log"), join(home, "events.jsonl"), join(home, "wrapper.log"), join(home, "orchestration", "held.lock"), join(worktree, ".gitignore")])

@@ -6,17 +6,13 @@ import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { type AgentRun, type FakeHost, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { everyOption, type OptionTable } from "@arthur/core/option-table";
 import { checkOptions, type SessionOptions, session } from "../src/session.ts";
 import { DEFAULTS, table } from "../src/session-options.ts";
 
 const ARTHUR = "This message comes from Arthur, not the owner; your reply goes to the owner only if one of their messages joins this turn.";
 const HANDOFF = "Work in progress: AR0143, its worker runs.\nNext: review its branch.\nUnanswered: merge AR0140? (asked at 12:40)";
-
-async function until(what: string, holds: () => boolean, ms = 20_000): Promise<void> {
-	for (const deadline = Date.now() + ms; !holds(); await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-}
 
 // Whole lines only: a line the agent is still appending has no line break yet.
 const lines = (file: string): Record<string, unknown>[] => (existsSync(file) ? readFileSync(file, "utf8").split("\n").slice(0, -1).map((line) => JSON.parse(line)) : []);

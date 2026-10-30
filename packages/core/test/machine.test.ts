@@ -4,7 +4,6 @@ import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSyn
 import { availableParallelism, totalmem } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
@@ -13,7 +12,7 @@ import { coreVersion, ssh, sshAsync } from "../src/job-machine.ts";
 import type { Slice } from "../src/job-scope.ts";
 import { jobRunner } from "../src/jobs.ts";
 import { secretNames } from "../src/secret-names.ts";
-import { fakeAgent, fakeHost, jobSlice, temporaryFolder } from "../src/testing.ts";
+import { fakeAgent, fakeHost, jobSlice, temporaryFolder, until } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
@@ -67,14 +66,6 @@ function setup(options: { readonly agent?: string; readonly arthur?: string; rea
 	const jobs = jobRunner(home, root, join(root, "env"), limits, options.agent ?? "omp", time, eventBus(home, options.hide), collect);
 	jobs.registerMachine("machines", { name: "gpu", ssh: "gpu", home: there, labels: { os: "linux" } });
 	return { root, home, machine, there, jobs, now };
-}
-
-async function until<T>(what: string, predicate: () => T | undefined | false): Promise<T> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined && value !== false) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
 }
 
 const read = (home: string, id: string, name: string) => readFileSync(join(home, "jobs", id, name), "utf8");

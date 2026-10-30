@@ -3,10 +3,9 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import type { Requirement } from "@arthur/core/plugin";
-import { type FakeHost, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { checkOptions } from "../src/nvm-options.ts";
 import { nvm } from "../src/nvm.ts";
 
@@ -90,11 +89,6 @@ async function load(root: string, nvmDir: string, before?: () => Readonly<Record
 	const after: Readonly<Record<string, string>>[] = [];
 	fake.host.jobs.prepare((_job, env) => void after.push(env));
 	return { fake, after, home: dirname(fake.host.folder) };
-}
-
-async function until(what: string, predicate: () => boolean): Promise<void> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) if (predicate()) return;
-	throw new Error(`timed out waiting for ${what}`);
 }
 
 const ended = (home: string, id: string) => existsSync(join(home, "jobs", id, "state")) && readFileSync(join(home, "jobs", id, "state"), "utf8") === "ended";

@@ -3,9 +3,8 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import type { Plugin } from "@arthur/core/plugin";
-import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { delivery } from "@arthur/delivery";
 import { github } from "@arthur/github";
 import { projects } from "@arthur/projects";
@@ -19,10 +18,6 @@ const FOLDER = "spec/features/SH0001-shop";
 const TOKEN = "github_pat_11ARTHUR0test0Never0Printed0abcdefghijklmnopqrstuvwxyz";
 const RUNS = "/repos/acme/shop/actions/workflows/ci.yml/runs";
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
-
-async function until(what: string, predicate: () => boolean) {
-	for (const end = Date.now() + 20_000; !predicate(); await sleep(20)) if (Date.now() > end) throw new Error(`timed out waiting for ${what}`);
-}
 
 test("a waiting branch's CI end wakes the coordinator once, delivery's wake; the merge it asks for ends the wait and no later poll wakes again", async (t) => {
 	const api = await fakeGithub(t);

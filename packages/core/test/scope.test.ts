@@ -4,7 +4,6 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync }
 import { availableParallelism } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { clock } from "../src/clock.ts";
 import { loadConfig } from "../src/config.ts";
 import { readEvents } from "../src/event-log.ts";
@@ -13,7 +12,7 @@ import { insideJob } from "../src/inside-job.ts";
 import type { Caps, Slice } from "../src/job-scope.ts";
 import { oomFirst } from "../src/job-memory.ts";
 import { jobRunner, type Spawn } from "../src/jobs.ts";
-import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
+import { type AgentRun, fakeAgent, jobSlice, temporaryFolder, until } from "../src/testing.ts";
 
 // Every job here runs in the kit's slice, `jobSlice`, never Arthur's own, and the kit removes it when the process exits.
 const manager = spawnSync("systemctl", ["--user", "show-environment"]).status === 0;
@@ -35,14 +34,6 @@ function setup(agent: string, slice: Slice = jobSlice, caps: (spawn: Spawn) => r
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
 	const collect = (name: string, [spawn]: readonly unknown[]) => (name === "jobs.limits" ? [...caps(spawn as Spawn)] : []);
 	return { home, jobs: jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...slice }, agent, time, eventBus(home), collect) };
-}
-
-async function until<T>(what: string, predicate: () => T | undefined): Promise<T> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined && value !== false) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
 }
 
 const read = (path: string) => (existsSync(path) ? readFileSync(path, "utf8").trim() || undefined : undefined);

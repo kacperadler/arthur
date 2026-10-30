@@ -3,8 +3,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
-import { fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { github } from "../src/github.ts";
 import { deleteOnOrigin } from "../src/github-git.ts";
 
@@ -15,14 +14,6 @@ const TOKEN = "github_pat_11ARTHUR0test0Never0Printed0abcdefghijklmnopqrstuvwxyz
 const NONE = "0000000000000000000000000000000000000000";
 
 const git = (path: string, ...args: readonly string[]) => execFileSync("git", ["-C", path, "-c", "user.name=test", "-c", "user.email=test@example.com", ...args], { encoding: "utf8" }).trim();
-
-async function until<T>(what: string, predicate: () => T | undefined | false): Promise<T> {
-	for (const end = Date.now() + 20_000; Date.now() < end; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined && value !== false) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
-}
 
 // The owner's ~/.gitconfig, allowing a push to an origin that is a folder (AR0393), for the test alone.
 const FOLDERS_ALLOWED = join(temporaryFolder(), "gitconfig");

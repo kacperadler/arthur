@@ -811,3 +811,4 @@
 {"record":"answer","id":"AR-D403","time":"2026-10-30T21:07:15+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D404","time":"2026-10-30T21:18:40+01:00","project":"arthur","kind":"budget","question":"AR0585 passed review but must merge main (structure test clash); continue its worker with the limit at $9 (it spent $3.57 of $6)?","options":["Limit $9","Keep $6"],"recommend":1,"ticket":"AR0585"}
 {"record":"answer","id":"AR-D404","time":"2026-10-30T21:18:41+01:00","decided":"AR0585 continued to merge main, limit $9","picked":1,"words":"Go with recommendations till 70%"}
+{"record":"answer","id":"AR-D402","time":"2026-10-30T22:15:23+01:00","decided":"Plan approved by the owner: plan.md at b9554741","picked":1,"words":"AR-D402 1"}

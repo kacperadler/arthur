@@ -24,6 +24,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 - AR0567 AR0311's 18 findings stay open forever though each is already a ticket (4a15b3fc)
 - AR0568 After the listen rename, the core still names the voice plugin, and versions.mmd misses four plugins (8faffe55)
 - AR0577 Defaults T9: the test kit keeps HOME, TMPDIR and the git identity in its own folder, and cleans up on a signal (4b974151)
+- AR0578 Defaults T10: one until for every test, and the time-limit tests stop racing (a18ef20c)
 - AR0581 Defaults T13: the fakes of GitHub, YouTrack and Telegram are checked against recorded shapes, and tsc gets stricter (e45aba3d)
 - AR0587 The report check tests skip on this server since the test kit moved HOME (0c4b7f93)
 

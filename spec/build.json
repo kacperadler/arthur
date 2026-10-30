@@ -4616,9 +4616,9 @@
   {
     "id": "AR0578",
     "title": "Defaults T10: one until for every test, and the time-limit tests stop racing",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0578-defaults-t10-one-until-for-every-test-and-the-time-limit-tests-stop-racing/ticket.md",
-    "updated": "2026-10-30T13:18:07.722Z",
+    "updated": "2026-10-30T13:24:47.320Z",
     "after": [
       "AR0577"
     ]

@@ -46,8 +46,8 @@ export function byRecommendation(host: Host, ask: Ask): Answer[] {
 	if (grant === undefined || decided === undefined || ask.kind === CLASS || ask.kind === "budget" || (ask.what ?? []).length > 0) return [];
 	if (grant.until !== undefined && !(host.clock.now().getTime() < Date.parse(grant.until))) return [];
 	if (grant.tickets !== undefined && !(ask.ticket !== undefined && grant.tickets.includes(ask.ticket))) return [];
-	const used = grant.usage === undefined ? [] : host.collect<unknown>("models.usage");
-	if (grant.usage !== undefined && !(used.length === 1 && typeof used[0] === "number" && used[0] < grant.usage)) return [];
+	const [used] = grant.usage === undefined ? [] : host.collect<unknown>("models.usage");
+	if (grant.usage !== undefined && !(typeof used === "number" && used < grant.usage)) return [];
 	return [{ record: "answer", id: ask.id, time: ask.time, decided, words: `by recommendation: ${grant.id}` }];
 }
 

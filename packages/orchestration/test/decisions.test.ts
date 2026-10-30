@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { once } from "node:events";
 import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { fakeHost, temporaryFolder, until } from "@arthur/core/testing";
+import { type AgentRun, type FakeHost, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { orchestration } from "../src/orchestration.ts";
 
 // The decision log (spec/roadmap.md, entry 96): `arthur decision`, `arthur decisions`, the ticket's Decisions line, the plugin's
@@ -266,7 +266,7 @@ test("while another process holds the log's lock, a job's question and the close
 	held(() => blocked(JOB, "And the archive?"));
 	assert.deepEqual([notices(), log()?.length], [[`${JOB} asks [AC-D1]: May I drop the table?`], 2], "the notice waits for its question's id");
 	assert.deepEqual(wake("And the archive?"), [
-		`Its question was not in the decision log yet: arthur decisions --kind job --project acme shows its id. Open, record the owner's answer first, arthur decision answer <its id> --decided '<the decision in one line>' '<his words>', then arthur continue ${JOB} '<his answer>'; answered by policy, act on that decision as on the owner's answer, and say so in your reply.`,
+		`Its question was not in the decision log yet: arthur decisions --kind job --project acme shows its id. Open, record the owner's answer first, arthur decision answer <its id> --decided '<the decision in one line>' '<his words>', then arthur continue ${JOB} '<his answer>'; answered by policy, the plugin continues the job with that decision by itself: say so in your reply.`,
 	], "the job's earlier question, answered, is not taken for this one");
 	assert.deepEqual(fake.collect("coordinator.wake", { id: JOB, kind: "worker", project: "elsewhere", state: "blocked", reason: "user: And the archive?" }).filter(Boolean), [], "a project not listed has no log to look in");
 	rmSync(lock);
@@ -761,21 +761,148 @@ test("a question two approved classes match goes to the owner naming both; a cla
 	assert.deepEqual(await decision("ask", "--kind", "budget", "--question", "Orchestration needs more?", "--ticket", "AC0001"), [0, "AC-D9\nAC-D9 answered by policy (AC-D5): Raise the line budget; act on it as on the owner's answer, and say so in your reply"]);
 });
 
-test("a job's question an approved class matches is answered by policy, and the wake says so with the decision to continue it with", async (t) => {
-	const { decision, fake, log, blocked, notices } = await setup(t);
+// AC-D1, a job's question the owner answered "Drop the table", backs AC-D2, the class of job questions naming "drop table"
+// he approved; the next one is AC-D3.
+async function dropClass(decision: (...args: string[]) => Promise<Ran>, blocked: (id: string, question: string) => unknown) {
 	blocked(JOB, "May I drop the old orders table?");
 	await decision("answer", "AC-D1", "--decided", "Drop the table", "yes, drop it");
 	assert.equal((await decision("class", "propose", "--kind", "job", "--match", "drop table", "--decided", "Drop the table", "--backed-by", "AC-D1"))[0], 0);
 	await decision("answer", "AC-D2", "--picked", "1", "--decided", "Pre-approve dropping tables", "always");
+}
+
+test("a job's question an approved class matches is answered by policy; with no record of the job blocked on it, the wake says it was not continued", async (t) => {
+	const { decision, fake, log, blocked, notices } = await setup(t);
+	await dropClass(decision, blocked);
 	const other = "2026-03-04-worker-0000ffff";
 	blocked(other, "May I drop the archive table?");
 	assert.deepEqual(log()?.slice(-1), [{ record: "answer", id: "AC-D3", time: "2026-03-04T06:00:00+01:00", decided: "Drop the table", words: "by policy: AC-D2" }]);
 	assert.equal(notices().at(-1), `${other} asks [AC-D3]: May I drop the archive table? — answered by policy (AC-D2): Drop the table`);
 	const wake = { id: other, kind: "worker", project: "acme", state: "blocked", reason: "user: May I drop the archive table?" };
 	assert.deepEqual(fake.collect("coordinator.wake", wake).filter(Boolean), [
-		`Its question is decision AC-D3, answered by policy (AC-D2): Drop the table. Act on it as on the owner's answer, arthur continue ${other} '<that decision>', and say so in your reply.`,
+		"Its question is decision AC-D3, answered by policy (AC-D2): Drop the table. The job was not continued by itself, since no record of it is blocked on that question; say so in your reply.",
 	]);
 	assert.deepEqual(fake.collect("coordinator.wake", { ...wake, id: JOB, reason: "user: May I drop the old orders table?" }).filter(Boolean), [], "a question the owner answered needs no line");
+	assert.deepEqual(fake.emitted.filter((event) => event.name === "coordinator-message"), [], "no job, no continue to fail");
+});
+
+// A job of acme whose fake agent ends its run as `steps` say, acme committed first; `next`, the agent a continue starts.
+async function acmeJob(t: TestContext, fake: FakeHost, acme: string, steps: AgentRun["steps"]) {
+	const git = (...args: string[]) => execFileSync("git", ["-C", acme, "-c", "user.name=test", "-c", "user.email=test@example.com", ...args]);
+	git("add", "--all");
+	git("commit", "--quiet", "-m", "first");
+	const PATH = process.env.PATH;
+	t.after(() => void (process.env.PATH = PATH));
+	process.env.PATH = `${dirname(fakeAgent({ steps }))}${delimiter}${PATH}`;
+	const job = await fake.host.jobs.spawn({ task: "Clean the database.", project: "acme" });
+	const folder = join(dirname(fake.host.folder), "jobs", job.id);
+	const record = (name: string) => (existsSync(join(folder, name)) ? readFileSync(join(folder, name), "utf8") : "");
+	// What the job's wrapper logged, as `arthur run` delivers it.
+	const logged = (name: string) => fake.host.events.read(1).filter(({ name: each, data }) => each === name && typeof data === "object" && data !== null && "id" in data && data.id === job.id);
+	return { id: job.id, record, logged, next: () => void (process.env.PATH = `${dirname(fakeAgent({ steps: [{ message: "Dropped." }] }))}${delimiter}${PATH}`) };
+}
+
+test("a job's question an approved class answers continues the job by itself, once, with the decision; the wake says so", async (t) => {
+	const { decision, fake, acme, blocked, printed } = await setup(t);
+	await dropClass(decision, blocked);
+	const job = await acmeJob(t, fake, acme, [{ message: "Blocked: user May I drop the archive table?" }]);
+	await until("the run's end", () => job.logged("job-ended").length === 1);
+	job.next();
+	// Its end right after its block, the first continue under way and the job still blocked: only the mark of the first keeps
+	// the second from starting, quietly.
+	for (const name of ["job-state", "job-ended"]) for (const event of job.logged(name)) fake.emit(name, event.data);
+	assert.equal(job.record("state"), "blocked", "the end was delivered before the continue moved the job");
+	assert.deepEqual(printed.filter((line) => /handler of .* failed/.test(line)), []);
+	await until("the continued run's end", () => job.record("state") === "ended");
+	assert.deepEqual([job.record("continue"), job.record("reason"), fake.host.jobs.result(job.id)], ["Drop the table", "finished", "Dropped."]);
+	assert.equal(job.record("log").match(/\] arthur continue: /g)?.length, 1, "continued once");
+	assert.deepEqual(fake.emitted.filter((event) => event.name === "coordinator-message"), []);
+	assert.deepEqual(fake.collect("coordinator.wake", { id: job.id, kind: "worker", project: "acme", state: "blocked", reason: "user: May I drop the archive table?" }).filter(Boolean), [
+		"Its question is decision AC-D3, answered by policy (AC-D2): Drop the table. The job is continued by policy (AC-D2) with that decision; a continue that fails comes as a message of its own. Say so in your reply.",
+	]);
+});
+
+test("a job's question answered by policy once the log's lock is free, after its run's end, still continues it", async (t) => {
+	const { decision, fake, acme, blocked } = await setup(t);
+	await dropClass(decision, blocked);
+	const job = await acmeJob(t, fake, acme, [{ message: "Blocked: user May I drop the archive table?" }]);
+	await until("the run's end", () => job.logged("job-ended").length === 1);
+	job.next();
+	const holder = spawn("sleep", ["60"]);
+	t.after(() => holder.kill());
+	writeFileSync(join(fake.host.folder, "decisions-acme.lock"), String(holder.pid));
+	for (const name of ["job-state", "job-ended"]) for (const event of job.logged(name)) fake.emit(name, event.data);
+	assert.equal(job.record("state"), "blocked", "its end found no answer yet");
+	rmSync(join(fake.host.folder, "decisions-acme.lock"));
+	await until("the continued run's end", () => job.record("state") === "ended");
+	assert.deepEqual([job.record("continue"), fake.host.jobs.result(job.id)], ["Drop the table", "Dropped."]);
+});
+
+test("the plugin never continues a job on the owner's own answer, nor one no longer blocked when its question is answered by policy", async (t) => {
+	const { decision, fake, acme, blocked } = await setup(t);
+	await dropClass(decision, blocked);
+	const job = await acmeJob(t, fake, acme, [{ message: "Blocked: user May I rename the archive?" }]);
+	await until("the run's end", () => job.logged("job-ended").length === 1);
+	job.next();
+	for (const event of job.logged("job-state")) fake.emit("job-state", event.data);
+	await decision("answer", "AC-D3", "--decided", "Rename it", "yes");
+	for (const event of job.logged("job-ended")) fake.emit("job-ended", event.data);
+	const marked = (id: string) => existsSync(join(fake.host.folder, "continued", id));
+	assert.deepEqual([marked("AC-D3"), job.record("state"), job.record("continue")], [false, "blocked", ""], "the coordinator continues it with the owner's answer");
+	assert.equal(await fake.host.jobs.continue(job.id, "Rename it."), undefined);
+	await until("the continued run's end", () => job.record("state") === "ended");
+	// A block of its earlier run, delivered again after it ended.
+	fake.emit("job-state", { id: job.id, project: "acme", ticket: null, machine: "local", from: "working", to: "blocked", reason: "user: May I drop the archive table?" });
+	assert.deepEqual([(job.record("log").match(/\] arthur continue: /g) ?? []).length, marked("AC-D4"), job.record("continue")], [1, false, "Rename it."]);
+});
+
+test("a job a plugin holds in its run, its question answered by policy, is continued at its run's end", async (t) => {
+	const { decision, fake, acme, blocked, notices } = await setup(t);
+	await dropClass(decision, blocked);
+	const gate = join(temporaryFolder(), "gate");
+	t.after(() => writeFileSync(gate, ""));
+	const job = await acmeJob(t, fake, acme, [{ waitFor: gate }, { message: "Never reached." }]);
+	await until("its run", () => job.record("state") === "working");
+	job.next();
+	await fake.host.jobs.block(job.id, "May I drop the archive table?", true);
+	assert.equal(notices().at(-1), `${job.id} asks [AC-D3]: May I drop the archive table? — answered by policy (AC-D2): Drop the table`);
+	assert.equal(job.record("continue"), "", "held in its run: not continued yet");
+	await until("the run's end", () => job.logged("job-ended").length === 1);
+	for (const event of job.logged("job-ended")) fake.emit("job-ended", event.data);
+	await until("the continued run's end", () => job.record("state") === "ended");
+	assert.deepEqual([job.record("continue"), fake.host.jobs.result(job.id)], ["Drop the table", "Dropped."]);
+});
+
+test("a continue by policy that is refused leaves the job blocked and tells the coordinator why, with the command", async (t) => {
+	const { decision, fake, acme, blocked } = await setup(t);
+	await dropClass(decision, blocked);
+	let refuse = false;
+	fake.beforeSpawn(() => (refuse ? "no slot for it" : undefined));
+	const job = await acmeJob(t, fake, acme, [{ message: "Blocked: user May I drop the archive table?" }]);
+	await until("the run's end", () => job.logged("job-ended").length === 1);
+	refuse = true;
+	for (const event of job.logged("job-state")) fake.emit("job-state", event.data);
+	const told = () => fake.emitted.filter((event) => event.name === "coordinator-message").map((event) => event.data);
+	await until("the coordinator told", () => told().length === 1);
+	assert.deepEqual(told(), [{ text: `${job.id} was not continued by policy (AC-D2): refused by test: no slot for it; arthur continue ${job.id} 'Drop the table' continues it with that decision.` }]);
+	assert.deepEqual([job.record("state"), job.record("continue")], ["blocked", ""]);
+});
+
+test("a continue by policy whose wrapper does not start tells the coordinator why, with the command", async (t) => {
+	const { decision, fake, acme, blocked } = await setup(t);
+	await dropClass(decision, blocked);
+	const job = await acmeJob(t, fake, acme, [{ message: "Blocked: user May I drop the archive table?" }]);
+	await until("the run's end", () => job.logged("job-ended").length === 1);
+	// A `systemctl` that sets any slice and a `systemd-run` that refuses the scope, first on PATH: `jobs.continue` resolves with why.
+	const bin = temporaryFolder();
+	writeFileSync(join(bin, "systemctl"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+	writeFileSync(join(bin, "systemd-run"), "#!/bin/sh\necho 'Failed to start transient scope unit: Access denied' >&2\nexit 1\n", { mode: 0o755 });
+	process.env.PATH = `${bin}${delimiter}${process.env.PATH}`;
+	for (const event of job.logged("job-state")) fake.emit("job-state", event.data);
+	const told = () => fake.emitted.filter((event) => event.name === "coordinator-message").map((event) => event.data);
+	await until("the coordinator told", () => told().length === 1);
+	const why = "systemd-run: Failed to start transient scope unit: Access denied";
+	assert.deepEqual(told(), [{ text: `${job.id} was not continued by policy (AC-D2): ${why}; arthur continue ${job.id} 'Drop the table' continues it with that decision.` }]);
+	assert.deepEqual([job.record("state"), job.record("reason")], ["ended", `failed: ${why}`]);
 });
 
 test("a job's question answered by policy and longer than one message is cut before what decided it; an ending that leaves no room is cut as any text", async (t) => {

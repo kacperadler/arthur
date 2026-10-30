@@ -78,6 +78,13 @@ export function models(options: ModelsOptions = {}): Plugin {
 				const warned = overWarning(usage.kept(), warnAt, now());
 				return warned.length === 0 ? "" : `Usage windows at or over limits.warnAt (${warnAt}%):\n${warned.map((line) => `- ${line}`).join("\n")}`;
 			});
+			// The highest used percent of the last report's windows, the `--usage` bound of a grant (orchestration's `arthur silent`);
+			// undefined without a window, or when the last fetch failed.
+			host.provide("models.usage", () => {
+				const { accounts = [], failed } = usage.kept();
+				const used = failed === undefined ? accounts.flatMap((account) => account.windows.map((window) => window.used * 100)) : [];
+				return used.length === 0 ? undefined : Math.max(...used);
+			});
 			host.commands.register({
 				name: "usage",
 				doc: new URL("../docs/commands/usage.md", import.meta.url),

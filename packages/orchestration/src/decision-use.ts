@@ -4,6 +4,7 @@ import type { Host } from "@arthur/core/plugin";
 import { projectOf } from "./decision-commands.ts";
 import { policyOf } from "./decision-classes.ts";
 import { type Decision, decisions, readLog } from "./decision-log.ts";
+import { recommendedBy } from "./silent.ts";
 
 // What only the owner's recorded decision lets through (AR0355): `arthur merge --unreviewed` or `--no-ci` (AR0503), which delivery asks of
 // `decision.owner`, and `--budget 0` of `arthur spawn` or `arthur continue` on a paid model, the `decision` the core hands
@@ -40,6 +41,7 @@ function refusal(host: Host, { id, what, kind, ticket, job, use }: Use): string 
 	if (state !== "answered") return `${upper} is ${state}, not answered by the owner`;
 	const policy = policyOf(answers.at(-1));
 	if (policy !== undefined) return `${upper} was answered by policy (${policy}), not by the owner`;
+	if (recommendedBy(answers.at(-1)) !== undefined) return `${upper} was answered by recommendation (${recommendedBy(answers.at(-1))}), the owner's grant, not by the owner`;
 	if (ask.ticket !== ticket || (ticket === undefined && ask.job !== job)) {
 		const theirs = ask.ticket !== undefined ? `ticket ${ask.ticket}` : ask.job !== undefined ? `job ${ask.job}` : "no ticket and no job";
 		return `${upper} is of ${theirs}, not of ${ticket !== undefined ? `ticket ${ticket}` : job !== undefined ? `job ${job}` : "a spawn of no ticket"}`;

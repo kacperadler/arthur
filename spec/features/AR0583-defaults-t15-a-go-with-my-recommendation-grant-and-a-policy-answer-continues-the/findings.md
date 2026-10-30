@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/orchestration/src/decision-class.ts:27`
 - What: `arthur decision class propose --backed-by <id>` refuses a backing decision answered by policy, but takes one answered `by recommendation: <grant id>` (the owner's grant, `arthur silent on ... --recommend`) as the owner's own answer. A class built on the coordinator's own recommendations would then answer by policy for good, with evidence that reads as the owner's. [INFERENCE: read in the code, not run] the refusal checks `policyOf` only, so grant with `--until`, ask with `--recommend 1`, then `class propose --backed-by` that id would be accepted.
 - Suggestion: refuse a backing answer whose words start `by recommendation:` as the one by policy is refused, naming it. Leave the grant itself as it is.
-- Status: open
+- Status: fixed in d482c8ea
 
 ## F2. decision.owner takes a by-recommendation answer as the owner's
 
@@ -20,7 +20,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/orchestration/src/decision-use.ts:42`
 - What: `refusal` refuses an answer by policy for `arthur merge --unreviewed|--no-ci`, `--budget 0` and `arthur take-main`, but not one by recommendation. The grant never answers a merge with `--what` or a budget question (this ticket, tested in `silent.test.ts`), so those stay the owner's. [INFERENCE: read in the code and `decision.md`, not run] `arthur take-main` asks a kind `merge` question with no `--what`, which a grant without `--tickets` does answer, and `decision.owner` would then let take-main through on the coordinator's recommendation.
 - Suggestion: in `refusal`, refuse an answer whose words start `by recommendation:` like one by policy (`<id> was answered by recommendation (<grant id>), not by the owner`), with a row in `decision-use.test.ts`.
-- Status: open
+- Status: fixed in d482c8ea
 
 ## F3. The coordinator's role does not say when to record a grant
 

@@ -768,3 +768,5 @@
 {"record":"answer","id":"AR-D382","time":"2026-10-30T14:44:57+01:00","decided":"AR0588 approved; its plan is written after the current plan tickets (AR0572, AR0574, AR0576, AR0579, AR0580, AR0583, AR0585)","picked":1,"words":"AR-D382 1"}
 {"record":"ask","id":"AR-D383","time":"2026-10-30T14:52:47+01:00","project":"arthur","kind":"merge","question":"Merge AR0583 (go-with-my-recommendation grant; policy answer continues the job) after its passed review?","options":[],"ticket":"AR0583"}
 {"record":"answer","id":"AR-D383","time":"2026-10-30T14:52:47+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D384","time":"2026-10-30T15:13:38+01:00","project":"arthur","kind":"merge","question":"Merge AR0583 (recommendation grant; main merged in) after its passed review?","options":[],"ticket":"AR0583"}
+{"record":"answer","id":"AR-D384","time":"2026-10-30T15:13:38+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

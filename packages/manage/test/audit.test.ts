@@ -16,6 +16,8 @@ const PATH = process.env.PATH ?? "";
 const NOW = new Date("2026-10-21T02:00:00Z");
 const FOUND = "spec/features/AC0001-one";
 const PROCEDURE = readFileSync(new URL("../roles/coordinator/audit-ended.md", import.meta.url), "utf8").trim();
+// The worker's rule (packages/core/roles/worker.md), word for word: omp ends a bash call at 300 s when it names no timeout (AR0566).
+const TIMEOUT_RULE = "\n- Run each check (the project's tests, its type check) in one bash call with a `timeout` of 1800 seconds: a call ends at its timeout, 300 seconds when it names none, and a check it kills gives no result. A suite that needs longer gets up to 3600.\n";
 
 const findings = [
 	"# AC0001 - Findings\n",
@@ -90,6 +92,8 @@ test("the night's audit is a read-only job with its budget and model, its prompt
 	assert.deepEqual([job.branch, read(job.id, "task"), read(job.id, "budget"), read(job.id, "model"), read(job.id, "resume-on-budget"), read(job.id, "base")], ["", AUDIT_TASK, "7.5", "anthropic/opus", "true", head]);
 	const prompt = read(job.id, "prompt");
 	assert.match(prompt, /^# Auditor\n/);
+	assert.ok(prompt.includes(TIMEOUT_RULE), "the worker's timeout rule");
+	assert.doesNotMatch(prompt, /proc:\/\/|sleep 30/, "no wait on proc://, which the job sandbox refuses");
 	assert.ok(prompt.includes("\n\n## Report (.agents/arthur/criteria/report.md)\n\n# Report\n\nInk on paper.\n\n"), "the page criteria, for a page it writes for the owner");
 	const section = prompt.slice(prompt.indexOf("## This audit"));
 	assert.match(section, new RegExp(`^## This audit\n\nYou audit project acme at ${head}; your worktree is a detached checkout of that commit\\.\n\n`));

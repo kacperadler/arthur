@@ -1,7 +1,7 @@
 {
 	"source": "https://github.com/github/rest-api-description/blob/c66e298030d4070b70a569dcd4268b3a041b5380/descriptions/api.github.com/api.github.com.json",
 	"recorded": "2026-10-30",
-	"how": "the keys of each components.examples value, at every depth; an array holds its first item's keys, any other value null; empty-object is the schema the 201 of a rerun and the 202 of a cancel answer",
+	"how": "the keys of each components.examples value, at every depth, and every property the answer's schema lists as required there that the example leaves out (null: not compared below); an array holds its first item's keys, any other value null; empty-object is the schema the 201 of a rerun and the 202 of a cancel answer",
 	"shapes": {
 		"workflow-run-paginated": {
 			"total_count": null,
@@ -263,7 +263,8 @@
 					"runner_group_id": null,
 					"runner_group_name": null,
 					"workflow_name": null,
-					"head_branch": null
+					"head_branch": null,
+					"created_at": null
 				}
 			]
 		},
@@ -314,7 +315,9 @@
 						"name": null,
 						"description": null,
 						"color": null,
-						"default": null
+						"default": null,
+						"archived_at": null,
+						"archived_by": null
 					}
 				],
 				"milestone": {
@@ -438,7 +441,8 @@
 						"notification_setting": null,
 						"members_url": null,
 						"repositories_url": null,
-						"parent": null
+						"parent": null,
+						"type": null
 					}
 				],
 				"head": {
@@ -808,7 +812,9 @@
 					"name": null,
 					"description": null,
 					"color": null,
-					"default": null
+					"default": null,
+					"archived_at": null,
+					"archived_by": null
 				}
 			],
 			"milestone": {
@@ -931,7 +937,8 @@
 					"notification_setting": null,
 					"permission": null,
 					"members_url": null,
-					"repositories_url": null
+					"repositories_url": null,
+					"type": null
 				}
 			],
 			"head": {

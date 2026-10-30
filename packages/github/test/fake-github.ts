@@ -60,7 +60,7 @@ const shapedRun = (full: string, workflow: string, { id, attempt = 1, sha, branc
 });
 const shapedJob = (full: string, run: FakeRun, { id, name, conclusion, steps }: FakeJob) => ({
 	...{ id, run_id: run.id, run_url: `${API}/repos/${full}/actions/runs/${run.id}`, node_id: "MDg6Q2hlY2tSdW40", head_sha: run.sha, url: `${API}/repos/${full}/actions/jobs/${id}` },
-	...{ html_url: `https://github.com/${full}/runs/${id}`, status: "completed", conclusion, started_at: T, completed_at: T, name, check_run_url: `${API}/repos/${full}/check-runs/${id}` },
+	...{ html_url: `https://github.com/${full}/runs/${id}`, status: "completed", conclusion, created_at: T, started_at: T, completed_at: T, name, check_run_url: `${API}/repos/${full}/check-runs/${id}` },
 	steps: steps.map((step, index) => ({ status: "completed", conclusion: step.conclusion, name: step.name, number: index + 1, started_at: T, completed_at: T })),
 	...{ labels: ["ubuntu-latest"], runner_id: 1, runner_name: "GitHub Actions 1", runner_group_id: 2, runner_group_name: "GitHub Actions", workflow_name: "CI", head_branch: run.branch },
 });

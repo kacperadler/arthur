@@ -4,7 +4,8 @@ import test from "node:test";
 import { fakeGithub } from "./fake-github.ts";
 
 // The keys of each answer the documentation shows, recorded in github-shapes.json from the examples of GitHub's REST API
-// description (its `source`, read on its `recorded` day). The fake changes shape only through a reviewed change of that file.
+// description and the properties its schemas require that an example leaves out (its `source`, read on its `recorded` day).
+// The fake changes shape only through a reviewed change of that file.
 const { shapes } = JSON.parse(readFileSync(new URL("github-shapes.json", import.meta.url), "utf8")) as { shapes: Record<string, unknown> };
 
 // Each key path where `got` and the documented `shape` differ: `-` a key the documentation shows and the fake leaves out,

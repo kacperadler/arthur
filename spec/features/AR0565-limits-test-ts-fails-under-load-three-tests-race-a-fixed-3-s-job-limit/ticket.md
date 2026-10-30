@@ -45,3 +45,4 @@ Out:
 
 - 2026-10-30: Source: audit spec/quality/2026-10-30.md
 - 2026-10-30: Pre-approved by policy: test from audit spec/quality/2026-10-30.md, 1 Scope file, budget $3 of the $3 cap
+- 2026-10-30: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

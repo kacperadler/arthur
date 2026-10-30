@@ -4591,9 +4591,9 @@
   {
     "id": "AR0575",
     "title": "Defaults T7: a passed CI run wakes no one, and Arthur restarts by itself once no job runs",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0575-defaults-t7-a-passed-ci-run-wakes-no-one-and-arthur-restarts-by-itself-once-no/ticket.md",
-    "updated": "2026-10-30T09:08:46.122Z"
+    "updated": "2026-10-30T09:38:31.236Z"
   },
   {
     "id": "AR0576",
@@ -4609,9 +4609,9 @@
   {
     "id": "AR0577",
     "title": "Defaults T9: the test kit keeps HOME, TMPDIR and the git identity in its own folder, and cleans up on a signal",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0577-defaults-t9-the-test-kit-keeps-home-tmpdir-and-the-git-identity-in-its-own/ticket.md",
-    "updated": "2026-10-30T09:08:47.216Z"
+    "updated": "2026-10-30T09:34:28.810Z"
   },
   {
     "id": "AR0578",

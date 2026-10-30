@@ -110,6 +110,7 @@ export function delivery(options: { readonly enabled?: boolean; readonly review?
 			host.commands.register(takeMainCommand(host));
 			host.commands.register(changelogCommand(host));
 			host.jobs.registerExtension(new URL("./checks-extension.ts", import.meta.url));
+			host.jobs.registerExtension(new URL("./processes-extension.ts", import.meta.url));
 			// Asked with a project and paths from its root (orchestration's autopilot): those on the list, the same in every project.
 			host.provide("delivery.alwaysReview", ({ paths }: { readonly paths: readonly string[] }) => paths.filter(held));
 			// Asked by github's poll as a run ends on a branch: true when a CI wait woke the coordinator for it (ci-wait.ts).

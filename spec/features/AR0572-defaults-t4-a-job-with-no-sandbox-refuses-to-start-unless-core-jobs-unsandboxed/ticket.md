@@ -42,3 +42,4 @@ Out:
 - 2026-10-30: AR0572 raised to $14 and continued from where it stopped; the owner: "i have to focus on my work, go with recomendations and do not cross 70% of weekly usage, do to silent mode" (AR-D385)
 - 2026-10-30: Raise the core line budget by what the fix needs, without asking the owner; pre-approved by policy (AR-D63)
 - 2026-10-30: AR0572 keeps core 6518 as measured (+15, the doctor sandbox line); the review checks the lines; the owner: "i have to focus on my work, go with recomendations and do not cross 70% of weekly usage, do to silent mode" (AR-D387)
+- 2026-10-30: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

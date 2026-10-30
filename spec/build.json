@@ -4581,9 +4581,9 @@
   {
     "id": "AR0574",
     "title": "Defaults T6: a passed review's notes reach findings.md by themselves",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0574-defaults-t6-a-passed-review-s-notes-reach-findings-md-by-themselves/ticket.md",
-    "updated": "2026-10-30T14:26:33.720Z",
+    "updated": "2026-10-30T14:39:57.705Z",
     "after": [
       "AR0573"
     ]

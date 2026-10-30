@@ -4648,9 +4648,9 @@
   {
     "id": "AR0581",
     "title": "Defaults T13: the fakes of GitHub, YouTrack and Telegram are checked against recorded shapes, and tsc gets stricter",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0581-defaults-t13-the-fakes-of-github-youtrack-and-telegram-are-checked-against/ticket.md",
-    "updated": "2026-10-30T10:14:26.314Z"
+    "updated": "2026-10-30T10:22:55.390Z"
   },
   {
     "id": "AR0582",

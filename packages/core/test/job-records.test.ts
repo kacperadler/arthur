@@ -31,7 +31,7 @@ function setup(agent = fakeAgent({ steps: [{ message: "Done." }] }), keep: (job:
 	mkdirSync(home);
 	const time = clock("UTC", undefined, () => NOW);
 	const bus = eventBus(home);
-	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, bus, (name, [job]) => (name === "jobs.keep" ? [keep(job)] : []));
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, bus, (name, [job]) => (name === "jobs.keep" ? [keep(job)] : []));
 	writeFileSync(join(folder, "reviewer.md"), "# Reviewer\n");
 	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(join(folder, "reviewer.md")), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
@@ -384,7 +384,7 @@ test("the arthur binary lists, stops, steers, continues and prunes a job by its 
 	git(root, "add", "--all");
 	git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "ignore");
 	const agent = fakeAgent({ steps: [{ waitFor: join(temporaryFolder(), "never") }] });
-	writeFileSync(join(root, "arthur.config.ts"), `export default { core: { timeZone: "UTC", agent: { command: ${JSON.stringify(agent)} } }, plugins: [{ name: "orchestration", setup() {} }] };\n`);
+	writeFileSync(join(root, "arthur.config.ts"), `export default { core: { timeZone: "UTC", jobs: { unsandboxed: true }, agent: { command: ${JSON.stringify(agent)} } }, plugins: [{ name: "orchestration", setup() {} }] };\n`);
 	const cli = join(import.meta.dirname, "..", "src", "cli.ts");
 	const arthur = (...args: string[]) => spawnSync(process.execPath, [cli, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_JOB_SLICE: jobSlice.slice } });
 	const id = arthur("spawn", "Go.").stdout.trim();

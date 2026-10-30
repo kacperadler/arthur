@@ -34,7 +34,7 @@ function setup(run: AgentRun = { steps: [{ message: "Done." }] }) {
 function runner(home: string, root: string, agent: string, provided: Readonly<Record<string, readonly ((...args: never[]) => unknown)[]>> = {}) {
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T12:00:00Z"));
 	const collect = (name: string, args: readonly unknown[]) => (provided[name] ?? []).map((fn) => (fn as (...args: readonly unknown[]) => unknown)(...args));
-	return jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), collect);
+	return jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), collect);
 }
 
 const read = (home: string, id: string, name: string) => readFileSync(join(home, "jobs", id, name), "utf8");

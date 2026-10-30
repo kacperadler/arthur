@@ -59,6 +59,7 @@ export const table: OptionTable = {
 				check: optional((value) => (typeof value === "string" && memoryBytes(value, 1) !== undefined ? undefined : 'systemd MemoryMax syntax such as "70%", "8G" or "infinity"')),
 			},
 			offlineGraceMinutes: { about: "Minutes a job stays blocked once its machine stops answering, then it fails; 0: it fails at once", default: "30", check: optional(atLeastZero) },
+			unsandboxed: { about: "Where a job's sandbox cannot be set up (macOS, no python3, a kernel without Landlock), its agent runs with the writes of Arthur's user; false: such a job fails, failed: no sandbox", default: "false", check: optional((value) => (typeof value === "boolean" ? undefined : "true or false")) },
 		},
 	},
 };

@@ -33,7 +33,7 @@ function setup(agent: string, slice: Slice = jobSlice, caps: (spawn: Spawn) => r
 	const home = join(folder, "home");
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
 	const collect = (name: string, [spawn]: readonly unknown[]) => (name === "jobs.limits" ? [...caps(spawn as Spawn)] : []);
-	return { home, jobs: jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...slice }, agent, time, eventBus(home), collect) };
+	return { home, jobs: jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...slice }, agent, time, eventBus(home), collect) };
 }
 
 const read = (path: string) => (existsSync(path) ? readFileSync(path, "utf8").trim() || undefined : undefined);

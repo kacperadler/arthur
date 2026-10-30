@@ -33,7 +33,7 @@ function setup(agent: string): { readonly root: string; readonly home: string; r
 	const home = join(folder, "home");
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
 	const bus = eventBus(home);
-	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, bus, () => []);
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, bus, () => []);
 	writeFileSync(join(folder, "reviewer.md"), "# Reviewer\n");
 	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(join(folder, "reviewer.md")), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
@@ -728,7 +728,7 @@ test("the arthur binary stops, steers and continues a job by its id; wrong usage
 	const agent = fakeAgent({ steps: [stuck()] });
 	const full = join(root, "..", "full");
 	const check = `host.jobs.beforeSpawn((spawn) => (spawn.decision !== undefined ? \`decision \${JSON.stringify(spawn.decision)} of \${spawn.id}\` : existsSync(${JSON.stringify(full)}) && !spawn.ignoreRestart ? "restart due: AC0001" : undefined))`;
-	writeFileSync(join(root, "arthur.config.ts"), `import { existsSync } from "node:fs";\nexport default { core: { timeZone: "UTC", agent: { command: ${JSON.stringify(agent)} } }, plugins: [{ name: "orchestration", setup(host) { ${check}; } }] };\n`);
+	writeFileSync(join(root, "arthur.config.ts"), `import { existsSync } from "node:fs";\nexport default { core: { timeZone: "UTC", jobs: { unsandboxed: true }, agent: { command: ${JSON.stringify(agent)} } }, plugins: [{ name: "orchestration", setup(host) { ${check}; } }] };\n`);
 	const arthur = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH ?? "", XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME, ARTHUR_JOB_SLICE: jobSlice.slice } });
 	const home = join(root, ".arthur");
 	const id = arthur("spawn", "Go.").stdout.trim();

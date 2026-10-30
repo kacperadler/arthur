@@ -24,5 +24,6 @@ In `core: { ... }` of `arthur.config.ts`; each may be left out. An unknown optio
 - `jobs.cpu`: the cores all jobs together may use, in one systemd slice. Default the machine's cores less one, at least 1.
 - `jobs.memory`: the memory all jobs together may use, as systemd's `MemoryMax`. Default `70%`.
 - `jobs.offlineGraceMinutes`: minutes a job stays `blocked` once its machine stops answering, then it fails; 0 fails it at once. Default 30.
+- `jobs.unsandboxed`: `true` lets a job run where its sandbox cannot be set up (macOS, no `python3`, a kernel without Landlock), its install and agent with the writes of Arthur's user; `false` ends such a job `failed: no sandbox: <why>; set core.jobs.unsandboxed: true ...` before anything of it starts (`arthur spawn --help`, "The sandbox"). Default `false`.
 
 `arthur config check` checks the config and lists every variable it names, `arthur doctor` checks what Arthur needs on this machine, and `arthur setup` reports what is there, set and missing on a new one. Each command's page, what `arthur <command> --help` prints, is in [`commands/`](commands/).

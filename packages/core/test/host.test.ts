@@ -13,7 +13,7 @@ import { temporaryFolder } from "../src/testing.ts";
 // A loaded config with its own home folder and no env file.
 function config(plugins: readonly unknown[]): LoadedConfig {
 	const folder = temporaryFolder();
-	const jobs = { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, cpu: 1, memory: "70%" };
+	const jobs = { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, cpu: 1, memory: "70%" };
 	const core = { home: join(folder, ".arthur"), envFile: join(folder, "env"), agent: { command: "omp" }, timeZone: "UTC", quietHours: undefined, jobs };
 	return { path: join(folder, "arthur.config.ts"), core, plugins };
 }

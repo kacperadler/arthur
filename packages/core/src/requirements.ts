@@ -2,14 +2,15 @@ import { execFile } from "node:child_process";
 import { accessSync, constants } from "node:fs";
 import { userInfo } from "node:os";
 import { basename, dirname, join, relative, sep } from "node:path";
+import { noSandbox } from "./job-sandbox.ts";
 import { ownHome } from "./own-home.ts";
 import type { Requirement } from "./plugin.ts";
 
 // The core's own requirements for `arthur doctor` (spec/roadmap.md, entry 80): git, Node 24 or newer, the agent binary, a
 // writable home and the env file ignored by the Git checkout it lies in (AR0343), each critical; the CPU and memory controllers
-// delegated to the user manager (entry 13), the env file outside the config's folder and every project's checkout (AR0339) and
-// each model provider's key omp reads set in Arthur's environment, which a job's launch keeps (job-scope.ts drops only `ARTHUR_`
-// ones; AR0439), not critical. docs/commands/doctor.md.
+// delegated to the user manager (entry 13), the env file outside the config's folder and every project's checkout (AR0339), the
+// job sandbox, without which a job fails unless `core.jobs.unsandboxed` is on, and each model provider's key omp reads set in Arthur's
+// environment, which a job's launch keeps (job-scope.ts drops only `ARTHUR_` ones; AR0439), not critical. docs/commands/doctor.md.
 
 const PROVIDER_KEYS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "AZURE_OPENAI_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY", "MISTRAL_API_KEY", "GROQ_API_KEY", "DEEPSEEK_API_KEY", "CEREBRAS_API_KEY", "TOGETHER_API_KEY", "FIREWORKS_API_KEY", "PERPLEXITY_API_KEY", "MOONSHOT_API_KEY", "ZAI_API_KEY", "MINIMAX_API_KEY", "OLLAMA_API_KEY", "LM_STUDIO_API_KEY"];
 
@@ -26,7 +27,7 @@ function ran(command: string, args: readonly string[]): Promise<Ran> {
 }
 
 // `core` as the config holds it; `folders`: the config's and each project's checkout; `node`, the version that runs this; `env`, Arthur's environment.
-export function coreRequirements({ home, envFile, agent: { command: agent } }: { readonly home: string; readonly envFile: string; readonly agent: { readonly command: string } }, folders: () => readonly string[], node = process.versions.node, env: Readonly<Record<string, string | undefined>> = process.env): Requirement[] {
+export function coreRequirements({ home, envFile, agent: { command: agent }, jobs: { unsandboxed } }: { readonly home: string; readonly envFile: string; readonly agent: { readonly command: string }; readonly jobs: { readonly unsandboxed: boolean } }, folders: () => readonly string[], node = process.versions.node, env: Readonly<Record<string, string | undefined>> = process.env): Requirement[] {
 	const user = userInfo().username;
 	let [manager, tracked] = [true, false];
 	return [
@@ -110,6 +111,12 @@ export function coreRequirements({ home, envFile, agent: { command: agent } }: {
 			costs: "a commit there takes its values into the repository, and a push sends them to every clone",
 			get fix() { const word = (text: string) => `'${text.replaceAll("'", "'\\''")}'`; return tracked ? `git -C ${word(dirname(envFile))} rm --cached -- ${word(basename(envFile))}, commit, and rotate every value it held: the history keeps them` : `printf '\\n%s\\n' ${word(basename(envFile).replace(/[\\[]|^[#!]| $/g, "\\$&"))} >> ${word(join(dirname(envFile), ".gitignore"))}, or move it to ~/.config/arthur/.env and remove core.envFile from arthur.config.ts (docs/setup.md, step 6)`; },
 			critical: true,
+		},
+		{
+			name: "sandbox",
+			check: () => { const why = noSandbox([], "sh"); return why === undefined ? "ok" : unsandboxed ? `ok (no sandbox: ${why}; core.jobs.unsandboxed is on, so a job writes wherever ${user} can)` : `missing: no sandbox: ${why}`; },
+			costs: "every job fails at its start, failed: no sandbox",
+			fix: "run Arthur on Linux 5.13 or later with python3 (docs/deploy.md), or set core.jobs.unsandboxed: true in arthur.config.ts to run jobs without one, with the writes of your user",
 		},
 		// Named, never its value.
 		...PROVIDER_KEYS.filter((key) => (env[key] ?? "") !== "").map((key) => ({

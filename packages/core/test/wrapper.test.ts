@@ -29,7 +29,7 @@ function setup(agent: string, collect: Collect = () => []): { readonly root: str
 	commit(root, "first");
 	const home = join(folder, "home");
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
-	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), collect);
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), collect);
 	writeFileSync(join(folder, "reviewer.md"), "# Reviewer\n");
 	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(join(folder, "reviewer.md")), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
@@ -304,7 +304,7 @@ test("a continue of a job whose kind no plugin registers now starts without MCP 
 	await ended(home, job.id);
 	// The next load, without the plugin that registered the kind.
 	const time = clock("UTC", undefined, () => new Date("2026-10-16T08:00:00Z"));
-	const next = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), withMcp(() => "s3cret"));
+	const next = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), withMcp(() => "s3cret"));
 	assert.equal(await next.continue(job.id, "Go on."), undefined);
 	await until("the second job-ended", () => readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2);
 	assert.deepEqual(starts(agent).map((start) => start.args.includes("--plugin-dir")), [true, false]);

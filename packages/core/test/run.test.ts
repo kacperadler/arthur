@@ -9,7 +9,7 @@ import { temporaryFolder, until } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const BOOT_ID = "/proc/sys/kernel/random/boot_id";
-// A user manager with the CPU and memory controllers delegated, as systemd answers, so `arthur run`'s doctor misses nothing.
+// A user manager with the CPU and memory controllers delegated, as systemd answers, and jobs that may run without the sandbox (a host without it), so `arthur run`'s doctor misses nothing.
 const BIN = temporaryFolder();
 writeFileSync(join(BIN, "systemctl"), `#!/bin/sh\n[ "$1" = --user ] && exit 0\necho 'cpu memory pids'\n`, { mode: 0o755 });
 const ENV = { PATH: `${BIN}:${process.env.PATH ?? ""}`, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME ?? "" };
@@ -23,7 +23,7 @@ const plugin = (name, more = {}) => ({ name, setup() {}, start() { log("start " 
 
 function project(plugins: string): { readonly folder: string; readonly home: string; readonly log: () => string } {
 	const folder = temporaryFolder();
-	writeFileSync(join(folder, "arthur.config.ts"), `${HEAD}export default { plugins: [${plugins}] };\n`);
+	writeFileSync(join(folder, "arthur.config.ts"), `${HEAD}export default { core: { jobs: { unsandboxed: true } }, plugins: [${plugins}] };\n`);
 	const log = () => (existsSync(join(folder, "log.txt")) ? readFileSync(join(folder, "log.txt"), "utf8") : "");
 	return { folder, home: join(folder, ".arthur"), log };
 }

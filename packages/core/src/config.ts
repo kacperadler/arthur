@@ -23,6 +23,7 @@ export type CoreOptions = {
 		readonly cpu?: number;
 		readonly memory?: string;
 		readonly offlineGraceMinutes?: number;
+		readonly unsandboxed?: boolean;
 	};
 };
 
@@ -37,7 +38,7 @@ export type LoadedConfig = {
 		readonly agent: { readonly command: string };
 		readonly timeZone: string;
 		readonly quietHours: QuietHours | undefined;
-		readonly jobs: { readonly timeoutMinutes: number; readonly budgetUsd: number; readonly idleMinutes: number; readonly cpu: number; readonly memory: string; readonly offlineGraceMinutes: number };
+		readonly jobs: { readonly timeoutMinutes: number; readonly budgetUsd: number; readonly idleMinutes: number; readonly cpu: number; readonly memory: string; readonly offlineGraceMinutes: number; readonly unsandboxed: boolean };
 	};
 	readonly plugins: readonly unknown[];
 };
@@ -117,6 +118,7 @@ function withDefaults(config: ArthurConfig, file: string): LoadedConfig {
 				cpu: core.jobs?.cpu ?? machineLimit().cpu,
 				memory: core.jobs?.memory ?? machineLimit().memory,
 				offlineGraceMinutes: core.jobs?.offlineGraceMinutes ?? 30,
+				unsandboxed: core.jobs?.unsandboxed ?? false,
 			},
 		},
 		plugins: config.plugins ?? [],

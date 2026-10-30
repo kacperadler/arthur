@@ -4541,9 +4541,9 @@
   {
     "id": "AR0570",
     "title": "Defaults T2: a branch cannot change its ticket, the board or the decision log",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0570-defaults-t2-a-branch-cannot-change-its-ticket-the-board-or-the-decision-log/ticket.md",
-    "updated": "2026-10-30T10:37:03.243Z",
+    "updated": "2026-10-30T10:56:18.351Z",
     "after": [
       "AR0569"
     ]
@@ -4551,9 +4551,9 @@
   {
     "id": "AR0571",
     "title": "Defaults T3: a job resumes once after a provider error or an ending with no verdict",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0571-defaults-t3-a-job-resumes-once-after-a-provider-error-or-an-ending-with-no/ticket.md",
-    "updated": "2026-10-30T10:36:34.341Z",
+    "updated": "2026-10-30T10:56:43.841Z",
     "after": [
       "AR0569"
     ]
@@ -4571,9 +4571,9 @@
   {
     "id": "AR0573",
     "title": "Defaults T5: the merge writes What went in per file and commits the ticket's folder itself",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0573-defaults-t5-the-merge-writes-what-went-in-per-file-and-commits-the-ticket-s/ticket.md",
-    "updated": "2026-10-30T07:47:03.858Z",
+    "updated": "2026-10-30T10:56:54.354Z",
     "after": [
       "AR0569"
     ]

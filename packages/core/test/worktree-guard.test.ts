@@ -649,6 +649,42 @@ test("pkill and killall are refused wherever the guard finds a command, through 
 	for (const command of ["kill 12345", "kill -TERM $!", "sleep 60 & kill $!", "pgrep -f node", "echo pkill killall", "git commit -m 'no pkill'", "grep -r pkill src", "kill -9 -- -4242"]) assert.equal(worktreeRefusal(place, "bash", { command }), undefined, command);
 });
 
+test("a write to a ticket's ticket.md in the job's worktree is refused, by edit, write or bash, a new ticket's and through a link too, saying what to do instead; findings.md, a plan and look-alikes pass", async () => {
+	const { home, own, other } = await jobs();
+	const place = jobPlace(join(home, "jobs", own.id));
+	const TICKET = "arthur: refused: a ticket's ticket.md is the coordinator's, written on main, and the merge refuses a branch that changes one; write what you found in the ticket's findings.md, and what the ticket should say in your final message";
+	const ticket = "spec/features/AC0001-shop/ticket.md";
+	mkdirSync(join(own.worktree, dirname(ticket)), { recursive: true });
+	writeFileSync(join(own.worktree, ticket), "# AC0001 - Shop\n");
+	symlinkSync(ticket, join(own.worktree, "notes.md"));
+	const refused: Call[] = [
+		["write", { path: ticket, content: "x" }],
+		["write", { path: join(own.worktree, ticket), content: "x" }],
+		["write", { path: "spec/features/AC0002-new/ticket.md", content: "x" }],
+		["write", { path: "notes.md", content: "x" }],
+		["edit", { input: `[${ticket}#1A2B]\nPUT >1:\n+- 2026-10-30: decided` }],
+		["edit", { input: "[spec/features/AC0001-shop/findings.md#1A2B]\nMV spec/features/AC0001-shop/ticket.md" }],
+		["bash", { command: `echo '- 2026-10-30: decided' >> ${ticket}` }],
+		["bash", { command: `sed -i 's/Shop/Store/' ${ticket}` }],
+		["bash", { command: "cd spec/features/AC0001-shop && rm ticket.md" }],
+		["bash", { command: `mv findings.md ${ticket}` }],
+		["bash", { command: "printf x > ticket.md", cwd: "spec/features/AC0001-shop" }],
+		["bash", { command: `bash -c 'tee ${ticket} < /dev/null'` }],
+	];
+	for (const [toolName, input] of refused) assert.equal(worktreeRefusal(place, toolName, input), TICKET, JSON.stringify(input));
+	const passing: Call[] = [
+		["write", { path: "spec/features/AC0001-shop/findings.md", content: "x" }],
+		["write", { path: "spec/features/AC0001-shop/plan.md", content: "x" }],
+		["write", { path: "spec/features/AC0001-shop/notes/ticket.md", content: "x" }],
+		["write", { path: "spec/features/ticket.md", content: "x" }],
+		["write", { path: "ticket.md", content: "x" }],
+		["write", { path: join(temporaryFolder(), ticket), content: "x" }],
+		["bash", { command: `cat ${ticket} && cp ${ticket} ${join(temporaryFolder(), "copy.md")} && git diff -- ${ticket}` }],
+	];
+	for (const [toolName, input] of passing) assert.equal(worktreeRefusal(place, toolName, input), undefined, JSON.stringify(input));
+	assert.match(worktreeRefusal(place, "write", { path: join(other.worktree, ticket) }) ?? "", /into another job's worktree/, "another job's ticket.md is its worktree's");
+});
+
 test("git config that changes the config every worktree shares, the user's or the system's is refused naming its key; reads, a worktree's own and a file elsewhere pass", async () => {
 	const { root, home, own, other } = await jobs();
 	const place = jobPlace(join(home, "jobs", own.id));

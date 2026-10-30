@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type ManageOptions, manage } from "../src/manage.ts";
 import { RETRO_TASK } from "../src/retro.ts";
 
@@ -84,7 +83,7 @@ async function load(t: TestContext, options: ManageOptions = {}, run: AgentRun =
 		return { printed, job: retros().length > before ? retros()[0] : undefined };
 	};
 	const ended = async (id: string) => {
-		for (const deadline = Date.now() + 15_000; read(id, "state") !== "ended"; await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${id} to end`);
+		await until(`${id} to end`, () => read(id, "state") === "ended");
 	};
 	return { root, fake, git, commit, merge, merges, entries, command, scheduled, read, ended, jobs: fake.host.jobs };
 }

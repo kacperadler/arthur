@@ -5,10 +5,9 @@ import { availableParallelism, totalmem } from "node:os";
 import { arch, platform } from "node:process";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { coreVersion, loadConfig } from "@arthur/core";
 import type { Plugin } from "@arthur/core/plugin";
-import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type MachinesOptions, machines } from "../src/machines.ts";
 
 // The fake `ssh` on PATH, for this file. `ssh -G <host>` prints its config as ssh does, `hostname` read from
@@ -88,14 +87,6 @@ const events = (fake: FakeHost) => fake.emitted.map((event) => [event.name, even
 // The one command of a machine's check over ssh, as the core quotes it: its script and its `node -e` script, then the number
 // of paths its df reads, those paths and its tools labels.
 const CHECK = "'sh' '-c' '[^']+' 'sh' '[^']+'";
-
-async function until<T>(what: string, predicate: () => T | undefined | false): Promise<T> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined && value !== false) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
-}
 
 test("each listed machine is registered with the core's job runner; a job's commands reach it over ssh's batch mode", async () => {
 	machine("mac-mini", "Darwin arm64");

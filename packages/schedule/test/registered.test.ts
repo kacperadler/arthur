@@ -3,18 +3,13 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
-import { fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import type { Entry } from "../src/entry.ts";
 import { claim } from "../src/run-state.ts";
 import { schedule } from "../src/schedule.ts";
 
 const STANDUP: Entry = { id: "standup", at: "09:00", action: { message: "Plan the day." } };
 const REPORT = { id: "report", at: "08:00", option: "morningReport.at", action: { message: "Write the morning report." } };
-
-async function until(what: string, holds: () => boolean, ms = 20_000): Promise<void> {
-	for (const deadline = Date.now() + ms; !holds(); await sleep(20)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-}
 
 // The schedule plugin set up on a fake host in Warsaw at `now`, as `arthur run` and the `arthur` binary set it up. Its file is
 // `<root>/spec/schedule.json`, given by its absolute path, so nothing reads the folder the tests run in; `manage` is the

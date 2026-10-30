@@ -4,13 +4,12 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
 import { GRACE_SECONDS } from "../src/job-stop.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
-import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
+import { type AgentRun, fakeAgent, jobSlice, temporaryFolder, until } from "../src/testing.ts";
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 
@@ -34,14 +33,9 @@ function setup(agent: string): { readonly root: string; readonly home: string; r
 	return { root, home, jobs };
 }
 
-// Gives up after 60 s: past the longest time limit `timed` sets, 24 s, and the grace of a stop after it.
-async function until<T>(what: string, predicate: () => T | undefined): Promise<T> {
-	for (const start = Date.now(); Date.now() - start < 60_000; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined && value !== false) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
-}
+// Past the longest time limit `timed` sets, 24 s, and the grace of a stop after it: a wait for a job's end, or for a state the
+// job's end may come first to.
+const LONG = { deadlineMs: 60_000 };
 
 const field = (home: string, id: string, name: string) => readFileSync(join(home, "jobs", id, name), "utf8");
 
@@ -49,7 +43,7 @@ const field = (home: string, id: string, name: string) => readFileSync(join(home
 const endOf = (home: string, id: string) => readEvents(home, 1).find((event) => event.name === "job-ended" && typeof event.data === "object" && event.data !== null && "id" in event.data && event.data.id === id);
 
 async function ended(home: string, id: string): Promise<unknown> {
-	return (await until("job-ended", () => endOf(home, id))).data;
+	return (await until("job-ended", () => endOf(home, id), LONG)).data;
 }
 
 // A time limit counts from the wrapper's start, before the sandbox's, which a busy host can push past a short limit
@@ -67,7 +61,7 @@ async function before<T>(home: string, id: string, timeoutMinutes: number, what:
 		const value = predicate();
 		if (value !== undefined && value !== false) return { value };
 		return end && { end };
-	});
+	}, LONG);
 	if ("value" in seen) return seen.value;
 	const { reason } = seen.end.data as { readonly reason: string };
 	assert.ok(reason.startsWith(`limit: time: the job ran past its timeout of ${timeoutMinutes} minutes`), `ended before ${what}: ${reason}`);

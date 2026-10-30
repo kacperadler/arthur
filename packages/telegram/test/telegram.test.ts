@@ -6,12 +6,12 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { everyOption, type OptionTable } from "@arthur/core/option-table";
-import { fakeHost } from "@arthur/core/testing";
+import { fakeHost, until } from "@arthur/core/testing";
 import { OTHER } from "../src/poll.ts";
 import { cut, slices } from "../src/slices.ts";
 import { checkOptions, table } from "../src/telegram-options.ts";
 import { API_URL, telegram } from "../src/telegram.ts";
-import { botApi, type Call, CHAT, load, message, nowhere, SECOND, said, TOKEN, until } from "./fake-bot-api.ts";
+import { botApi, type Call, CHAT, load, message, nowhere, SECOND, said, TOKEN } from "./fake-bot-api.ts";
 
 const CONFLICT = "Conflict: terminated by other getUpdates request; make sure that only one bot instance is running";
 

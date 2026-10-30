@@ -5,7 +5,6 @@ import { syncBuiltinESMExports } from "node:module";
 import { delimiter, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { board } from "../src/board.ts";
 import { moveStartedTickets, refuseUnstartableTickets } from "../src/board-jobs.ts";
 import { clock } from "../src/clock.ts";
@@ -16,7 +15,7 @@ import { GRACE_SECONDS } from "../src/job-stop.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
 import steerExtension from "../src/steer.ts";
 import { queueSteer } from "../src/steer-inbox.ts";
-import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
+import { type AgentRun, fakeAgent, jobSlice, temporaryFolder, until } from "../src/testing.ts";
 
 const git = (root: string, ...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
@@ -40,14 +39,6 @@ function setup(agent: string): { readonly root: string; readonly home: string; r
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
 	jobs.registerKind("delivery", { name: "audit", readOnly: false, role: "reviewer", budgetUsd: 1, resumeOnBudget: true });
 	return { root, home, jobs, bus };
-}
-
-async function until<T>(what: string, predicate: () => T | undefined): Promise<T> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
-		const value = predicate();
-		if (value !== undefined && value !== false) return value;
-	}
-	throw new Error(`timed out waiting for ${what}`);
 }
 
 const read = (path: string) => (existsSync(path) ? readFileSync(path, "utf8") : undefined);

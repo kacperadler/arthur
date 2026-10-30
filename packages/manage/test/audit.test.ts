@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { AUDIT_TASK } from "../src/audit.ts";
 import { type ManageOptions, manage } from "../src/manage.ts";
 
@@ -65,7 +64,7 @@ async function load(t: TestContext, options: ManageOptions = { audit: { at: "02:
 		return audits().length > before ? audits()[0] : undefined;
 	};
 	const ended = async (id: string) => {
-		for (const deadline = Date.now() + 15_000; read(id, "state") !== "ended"; await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${id} to end`);
+		await until(`${id} to end`, () => read(id, "state") === "ended");
 	};
 	return { root, fake, git, commit, entries, printed, home, read, night, ended, jobs: fake.host.jobs };
 }
@@ -164,8 +163,7 @@ test("an audit is resumed once when its budget runs out, doubled, then stopped; 
 	const job = await night();
 	assert.ok(job !== undefined);
 	// The state is written last, so the wait is for it, not for the reason before it.
-	for (const deadline = Date.now() + 20_000; read(job.id, "state") !== "ended" || !read(job.id, "reason").startsWith("limit: budget: its cost $2"); await sleep(50))
-		if (Date.now() > deadline) throw new Error(`timed out: ${read(job.id, "state")} ${read(job.id, "reason")}`);
+	await until("the end at the doubled budget", () => read(job.id, "state") === "ended" && read(job.id, "reason").startsWith("limit: budget: its cost $2"));
 	assert.deepEqual([read(job.id, "state"), read(job.id, "reason"), read(job.id, "budget")], ["ended", "limit: budget: its cost $2.0000 reached its budget of $2", "2"]);
 	assert.equal(read(job.id, "log").match(/the kind resumes once, its budget doubled to \$2\n/g)?.length, 1, "resumed once, never twice");
 	assert.throws(() => jobs.file(undefined, job.id), { message: `${job.id} ended ended (limit: budget: its cost $2.0000 reached its budget of $2), not finished: its result is unfinished and is never filed; prune it` });

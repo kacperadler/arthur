@@ -7,11 +7,10 @@ import { syncBuiltinESMExports } from "node:module";
 import type { AddressInfo } from "node:net";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { promisify } from "node:util";
 import { everyOption, type OptionTable } from "@arthur/core/option-table";
 import type { Requirement } from "@arthur/core/plugin";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { checkOptions, table } from "../src/model-options.ts";
 import { DEFAULTS, type ModelsOptions, models } from "../src/models.ts";
 
@@ -229,7 +228,7 @@ test("two processes probing at once make one request: the second waits for the f
 	const requests: string[] = [];
 	const http = createServer(async (request, response) => {
 		requests.push(request.url ?? "");
-		while (readdirSync(asking).length < 2) await sleep(10);
+		await until("both askers", () => readdirSync(asking).length >= 2);
 		response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(TAGS));
 	});
 	await new Promise<void>((resolve) => http.listen(0, "127.0.0.1", resolve));
@@ -286,11 +285,8 @@ test("a job on another machine is probed from there, through host.jobs.run over 
 const record = (home: string, id: string) =>
 	readdirSync(join(home, "jobs", id), { withFileTypes: true }).flatMap((entry) => (entry.isFile() ? [readFileSync(join(home, "jobs", id, entry.name), "utf8")] : [])).join("\n");
 async function ended(home: string, id: string): Promise<string> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) {
-		const state = existsSync(join(home, "jobs", id, "state")) ? readFileSync(join(home, "jobs", id, "state"), "utf8") : "";
-		if (state === "ended") return readFileSync(join(home, "jobs", id, "reason"), "utf8");
-	}
-	throw new Error(`job ${id} did not end`);
+	await until(`job ${id} to end`, () => existsSync(join(home, "jobs", id, "state")) && readFileSync(join(home, "jobs", id, "state"), "utf8") === "ended");
+	return readFileSync(join(home, "jobs", id, "reason"), "utf8");
 }
 
 // A repository with one commit, and `omp` the fake agent playing `run` with its environment written to `env` beside it.

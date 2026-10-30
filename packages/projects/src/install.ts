@@ -21,7 +21,7 @@ export function installCommand(project: Installs, root: string, commit: string):
 	const listed = spawnSync("git", ["-C", root, "ls-tree", "--name-only", commit], { encoding: "utf8" });
 	const found = listed.status === 0 ? listed.stdout.split("\n").filter((name) => Object.hasOwn(LOCKFILES, name)) : [];
 	if (found.length > 1)
-		throw new Error(`project ${project.name}: two known lockfiles (${found.join(", ")}) and no install; set install in its entry of arthur.config.ts`);
+		throw new Error(`project ${project.name}: two known lockfiles (${found.join(", ")}) and no install; set install in its projects.project(...)`);
 	return found[0] === undefined ? "" : (LOCKFILES[found[0]] ?? "");
 }
 

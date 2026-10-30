@@ -49,7 +49,7 @@ export function reviewNeededCommand(host: Host, held: (path: string) => boolean)
 			if (!answer.startsWith("no review")) return;
 			for (const line of [`${ticket} moves to done.`, ...(await Promise.all(host.collect<Promise<string>>("github.push", { project: job.project, branch: job.branch })))]) console.log(line);
 			host.events.emit("no-review", { id: job.id, project: job.project, ticket, branch: job.branch, commit: tip });
-			if (entryOf(host, job.project)?.autoMerge === true) console.log(`${job.project} merges on its own (autoMerge): arthur run runs arthur merge --auto ${job.id} and wakes you with what it printed; nothing to do until then.`);
+			if (entryOf(host, job.project)?.pieces?.delivery?.autoMerge === true) console.log(`${job.project} merges on its own (autoMerge): arthur run runs arthur merge --auto ${job.id} and wakes you with what it printed; nothing to do until then.`);
 		},
 	};
 }

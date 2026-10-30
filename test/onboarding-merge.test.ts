@@ -7,6 +7,7 @@ import type { Plugin } from "@arthur/core/plugin";
 import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { delivery } from "@arthur/delivery";
 import { projects } from "@arthur/projects";
+import { projectFolders } from "./project-folders.ts";
 
 // Roadmap entry 54 with the plugin whose `merge.check` it asks: `arthur merge` of an onboarding's branch, which the projects
 // plugin lets in only when it changes the vision and the criteria files. A plugin's own tests never load another plugin; this
@@ -30,8 +31,9 @@ async function load(t: TestContext, code: Readonly<Record<string, string>> = {})
 	git(shop, "config", "user.name", "t");
 	git(shop, "config", "user.email", "t@example.com");
 	const list = [{ name: "shop", prefix: "SH", path: shop }];
+	const given = projectFolders(list);
 	const fake = fakeHost({ name: "projects" });
-	const plugins: [Plugin, Readonly<Record<string, unknown>>][] = [[projects({ list }), { list }], [delivery(), {}]];
+	const plugins: [Plugin, Readonly<Record<string, unknown>>][] = [[projects(given), given], [delivery(), {}]];
 	for (const [plugin, options] of plugins) await fake.setup({ setup: (host) => plugin.setup({ ...host, options }) });
 	// orchestration's check of the owner's decision is its own tests' (AR0355): here every id is the owner's.
 	fake.provide("decision.owner", () => "");

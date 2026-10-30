@@ -4,7 +4,8 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { test } from "node:test";
 import { type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
-import { type ProjectEntry, projects } from "../src/projects.ts";
+import { projects } from "../src/projects.ts";
+import { type Listed, projectFolders } from "./folders.ts";
 
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 const commit = (root: string, files: Readonly<Record<string, string>>) => {
@@ -28,9 +29,10 @@ for (const tool of ["npm", "bun"])
 process.env.PATH = [bin, process.env.PATH].join(delimiter);
 const called = () => (existsSync(calls) ? readFileSync(calls, "utf8").split("\n").filter(Boolean) : []);
 
-async function load(list: readonly ProjectEntry[]): Promise<FakeHost> {
-	const fake = fakeHost({ name: "projects", options: { list } });
-	await fake.setup(projects({ list }));
+async function load(list: readonly Listed[]): Promise<FakeHost> {
+	const options = { folders: projectFolders(list) };
+	const fake = fakeHost({ name: "projects", options });
+	await fake.setup(projects(options));
 	return fake;
 }
 
@@ -75,11 +77,11 @@ test("the install runs with the PATH the prepares returned, as the nvm plugin's 
 	writeFileSync(join(nvmBin, "node"), "#!/bin/sh\necho v22.1.0\n", { mode: 0o755 });
 	writeFileSync(join(nvmBin, "npm"), `#!/bin/sh\necho "$(pwd) npm $* on $(node --version)" >> '${calls}'\n`, { mode: 0o755 });
 	const root = repository({ "package-lock.json": "{}" });
-	const list = [{ name: "shop", prefix: "SH", path: root }];
-	const fake = fakeHost({ name: "projects", options: { list } });
+	const options = { folders: projectFolders([{ name: "shop", prefix: "SH", path: root }]) };
+	const fake = fakeHost({ name: "projects", options });
 	let path: string | undefined;
 	fake.host.jobs.prepare(() => (path === undefined ? undefined : { PATH: path }));
-	await fake.setup(projects({ list }));
+	await fake.setup(projects(options));
 	path = [nvmBin, process.env.PATH].join(delimiter);
 	const job = await fake.host.jobs.spawn({ task: "Go." });
 	await ended(fake, job.id);
@@ -131,7 +133,7 @@ test("two lockfiles at the job's base refuse the spawn, though there was one at 
 	const fake = await load([{ name: "shop", prefix: "SH", path: root }]);
 	commit(root, { "package-lock.json": "{}" });
 	await assert.rejects(fake.host.jobs.spawn({ task: "Go." }), {
-		message: "plugin projects: prepare failed: project shop: two known lockfiles (bun.lock, package-lock.json) and no install; set install in its entry of arthur.config.ts; the job's worktree and record were removed",
+		message: "plugin projects: prepare failed: project shop: two known lockfiles (bun.lock, package-lock.json) and no install; set install in its projects.project(...); the job's worktree and record were removed",
 	});
 	assert.equal(git(root, "branch", "--list"), "* main");
 });
@@ -145,6 +147,6 @@ test("projects.install answers the install a worktree of that commit gets: own, 
 	const install = (project: string, commit: string) => fake.collect<string>("projects.install", { project, commit })[0];
 	assert.deepEqual([install("own", "HEAD"), install("off", "HEAD"), install("locked", "HEAD"), install("locked", first)], ["make deps", "", "bun install --frozen-lockfile", ""]);
 	commit(locked, { "package-lock.json": "{}" });
-	assert.throws(() => install("locked", "HEAD"), { message: "project locked: two known lockfiles (bun.lock, package-lock.json) and no install; set install in its entry of arthur.config.ts" });
+	assert.throws(() => install("locked", "HEAD"), { message: "project locked: two known lockfiles (bun.lock, package-lock.json) and no install; set install in its projects.project(...)" });
 	assert.throws(() => install("gone", "HEAD"), { message: "no project gone" });
 });

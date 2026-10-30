@@ -63,12 +63,12 @@ export PATH="$HOME/arthur/node_modules/.bin:$PATH"
 Write `~/arthur/arthur.config.ts` with the plugins that take a ticket from a job to its merge, each documented on its page:
 
 - `orchestration`, which every config needs: the coordinator, jobs and `maxAgents`, planning (`arthur coordinator --help`);
-- `projects`, with your projects (`arthur projects --help`). Each project names its repository: `path`, a clone already on this machine, or `repo`, a Git URL Arthur clones into `reposDir`. Its `ci.workflow` names the workflow file the `github` plugin watches, in the GitHub repository of the checkout's `origin` remote (`git@github.com:<owner>/<repository>.git` or `https://github.com/<owner>/<repository>`); a project with `ci.workflow` and no such `origin` refuses the setup (`packages/github/docs/github.md`);
+- `projects`, with your project folders (`arthur projects --help`): one folder per project, `~/arthur/projects/<name>/`, its `project.config.ts` holding everything about that project, each piece made by its plugin's helper. Its `projects.project(...)` names its repository: `path`, a clone already on this machine, counted from the project's folder, or `repo`, a Git URL Arthur clones into `reposDir`. Its `github.project({ workflow })` names the workflow file the `github` plugin watches, in the GitHub repository of the checkout's `origin` remote (`git@github.com:<owner>/<repository>.git` or `https://github.com/<owner>/<repository>`); a project with one and no such `origin` refuses the setup (`packages/github/docs/github.md`);
 - `session`: the coordinator's conversation, compacted by day and fresh at night, `/restart`, and the restart guard (`packages/session/docs/session.md`);
 - `schedule`: actions and jobs at set times, and the entries other plugins register from their options, such as `manage`'s audit (`arthur schedule --help`);
 - `delivery`: the review of a worker's branch and `arthur merge` (`arthur review --help`, `arthur merge --help`);
 - `github`: the CI runs of the branches in play, and the push of a branch a review passed and of main after a merge (`packages/github/docs/github.md`);
-- `commit-rules`: each project's `commitRules` (`packages/commit-rules/docs/commit-rules.md`);
+- `commit-rules`: each project's `commitRules.project(...)` (`packages/commit-rules/docs/commit-rules.md`);
 - `findings`: what `arthur merge` makes of a ticket's open findings (`packages/findings/docs/findings.md`);
 - `manage`: health, stats, the audit, the retro and pruning (`packages/manage/docs/manage.md`).
 
@@ -91,7 +91,7 @@ export default defineConfig({
 		orchestration({}),
 		session({}),
 		schedule({}),
-		projects({ list: [{ name: "shop", prefix: "SH", path: "/home/<user>/shop", ci: { workflow: "ci.yml" } }] }),
+		projects({ folders: ["projects/shop"] }),
 		commitRules(),
 		findings({}),
 		delivery({}),
@@ -101,11 +101,20 @@ export default defineConfig({
 });
 ```
 
+Then `~/arthur/projects/shop/project.config.ts`, the project's pieces:
+
+```ts
+import { github } from "@arthur/github";
+import { projects } from "@arthur/projects";
+
+export default [projects.project({ prefix: "SH", path: "/home/<user>/shop" }), github.project({ workflow: "ci.yml" })];
+```
+
 Do not copy `arthur.config.example.ts`: it lists every plugin, planned ones included, and the packages of those do not exist yet, so it does not load (`Cannot find package '@arthur/discord'`). Take a plugin from it once its roadmap entry is merged.
 
 Every option the core and each built plugin take, with its meaning and its default, is in one table per package, the same one its check walks: the core's in `packages/core/src/core-options.ts`, each plugin's in the file its `package.json` exports as `./options` (for example `packages/orchestration/src/orchestration-options.ts`), with the plugin's one-line summary and the tools it runs.
 
-The config stays in `~/arthur`, so its `@arthur/*` imports resolve from the clone's `node_modules`. Its `core.home` (default `.arthur/` beside it) holds Arthur's state: the event log, each plugin's folder, the job records and `run.pid`. Job worktrees go to `.arthur-worktrees/` beside the repository they start from. Git ignores `arthur.config.ts` and `.arthur/` (`.gitignore`), so your project list never reaches the public repository, and `git pull` leaves both as they are.
+The config and the project folders stay in `~/arthur`, so their `@arthur/*` imports resolve from the clone's `node_modules`. Its `core.home` (default `.arthur/` beside it) holds Arthur's state: the event log, each plugin's folder, the job records and `run.pid`. Job worktrees go to `.arthur-worktrees/` beside the repository they start from. Git ignores `arthur.config.ts`, `projects/` and `.arthur/` (`.gitignore`), so your projects never reach the public repository, and `git pull` leaves both as they are.
 
 **Check:** `arthur config check` refuses nothing and lists the one variable step 6 sets, which `github` names, as `missing`; until step 6 sets it, it exits 1, which here means that variable only, not a broken config:
 

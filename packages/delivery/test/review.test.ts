@@ -24,7 +24,7 @@ const TIMEOUT_RULE = "\n- Run each check (the project's tests, its type check) i
 // BE), whose HEAD holds AC0001's ticket file and no board entry; delivery set up on the fake host with its project list, and
 // with `start` started as `arthur run` starts it, so it hands a FAIL back. `worker(task, file)` runs a worker on AC0001 and
 // commits a file on its branch (`<job>.ts` by default), as a worker would; `review(message, ...args)` runs `arthur review` with
-// the fake agent playing a reviewer whose final message is `message`; `setAutoMerge` sets acme's `autoMerge`.
+// the fake agent playing a reviewer whose final message is `message`; `setAutoMerge` sets acme's piece, `delivery.project({ autoMerge })`.
 async function load(t: TestContext, { start = false } = {}) {
 	const root = join(temporaryFolder(), "acme");
 	for (const [path, json] of [[TICKET, '{ "id": "AC0001", "requires": { "os": "macos" } }'], [OTHER, '{ "id": "AC0002" }']] as const) {
@@ -53,7 +53,7 @@ async function load(t: TestContext, { start = false } = {}) {
 	};
 	const fake = fakeHost({ name: "delivery", root });
 	let autoMerge: boolean | undefined;
-	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC", ...(autoMerge === undefined ? {} : { autoMerge }) }, { name: "beta", path: other, prefix: "BE" }]);
+	fake.provide("projects", () => [{ name: "acme", path: root, prefix: "AC", pieces: autoMerge === undefined ? {} : delivery.project({ autoMerge }) }, { name: "beta", path: other, prefix: "BE", pieces: {} }]);
 	const plugin = delivery();
 	await fake.setup(plugin);
 	if (start) await plugin.start?.();

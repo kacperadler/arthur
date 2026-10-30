@@ -1,6 +1,6 @@
 # The machines plugin
 
-The machines jobs run on: `local`, where Arthur and the coordinator run, and others reached with `ssh` over a private network (Tailscale), with the user's own keys and `~/.ssh/config`: no secret in the config, no password prompt, no host key accepted on its own, and a machine whose address is not private is refused. Each machine has labels (os, arch, tools); a job goes to a machine that has the labels its project's or its ticket's `requires` names. Every machine is checked at the start of `arthur run` and then at a set interval, and a change is `machine-online` or `machine-offline`. Nothing listens for Arthur on any of them.
+The machines jobs run on: `local`, where Arthur and the coordinator run, and others reached with `ssh` over a private network (Tailscale), with the user's own keys and `~/.ssh/config`: no secret in the config, no password prompt, no host key accepted on its own, and a machine whose address is not private is refused. Each machine has labels (os, arch, tools); a job goes to a machine that has the labels its project's piece, `machines.project({ ... })`, or its ticket's `requires` names. Every machine is checked at the start of `arthur run` and then at a set interval, and a change is `machine-online` or `machine-offline`. Nothing listens for Arthur on any of them.
 
 ```ts
 machines({

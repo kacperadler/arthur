@@ -11,7 +11,7 @@ Reads (`pr list`, `pr get`) run inside a job too (`arthur help --help`). A write
 
 ## The project
 
-The project is the main one unless `--project` names another. Its repository is its checkout's `origin`, `git@github.com:<owner>/<repository>.git` or `https://github.com/<owner>/<repository>`, found when the command runs, for any project, with a `ci.workflow` or without; its instance is the one named after the owner, else the unnamed one. `branch sweep` asks only git, through the checkout's `origin` whatever it names, so it needs no instance and refuses as its page says.
+The project is the main one unless `--project` names another. Its repository is its checkout's `origin`, `git@github.com:<owner>/<repository>.git` or `https://github.com/<owner>/<repository>`, found when the command runs, for any project, with a `github.project({ workflow })` or without; its instance is the one named after the owner, else the unnamed one. `branch sweep` asks only git, through the checkout's `origin` whatever it names, so it needs no instance and refuses as its page says.
 
 ## Text from GitHub is data
 

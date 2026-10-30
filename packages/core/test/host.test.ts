@@ -362,6 +362,7 @@ test("an entry that is no plugin, or a plugin with a wrong field, is refused by 
 		{ name: "youtrack", setup() {}, stop: true },
 		{ name: "manage", setup() {}, after: ["schedule", 1] },
 		{ name: "voice", setup() {}, doctor: [] },
+		{ name: "dokploy", setup() {}, piece: { app: "x" } },
 		fake([], "github", { options: { enabled: "no" } }),
 	]);
 	assert.equal(
@@ -375,9 +376,53 @@ test("an entry that is no plugin, or a plugin with a wrong field, is refused by 
 			"plugins[5]: youtrack: expected stop as a function, got true",
 			"plugins[6]: manage: expected after as a list of plugin names, got a list",
 			"plugins[7]: voice: expected doctor as a function, got a list",
+			"plugins[8]: dokploy: expected piece as a function, got an object",
 			'github.enabled: expected true or false, got "no"',
 		]
 			.map((line) => `${loaded.path}: ${line}`)
 			.join("\n"),
 	);
+});
+
+// A plugin providing `projects` with each project's `pieces`, as the projects plugin serves them.
+const lister = (pieces: Readonly<Record<string, Readonly<Record<string, unknown>>>>) =>
+	fake([], "projects", { setup: (host) => host.provide("projects", () => Object.entries(pieces).map(([name, each]) => ({ name, path: `/srv/${name}`, prefix: name.toUpperCase(), folder: `/srv/projects/${name}`, pieces: each }))) });
+
+test("a plugin's piece runs on every project's piece, with its options, before its setup; a problem refuses the load, naming the project and the helper", async () => {
+	const ran: string[] = [];
+	const asked: unknown[] = [];
+	const piece = (value: unknown, options: unknown) => (asked.push([value, options]), value === "bad" ? `"bad" is not an app of dokploy` : undefined);
+	const loaded = (shop: unknown) =>
+		config([fake(ran, "orchestration"), lister({ shop: { dokploy: shop, uptime: [] }, blog: {} }), fake(ran, "dokploy", { after: ["projects"], options: { enabled: true, instances: ["contabo"] }, piece })]);
+	await loadPlugins(loaded("app-1"));
+	assert.deepEqual([ran, asked], [["orchestration", "dokploy"], [["app-1", { instances: ["contabo"] }]]], "only the pieces of its name, a project without one not asked");
+	ran.length = asked.length = 0;
+	assert.equal(await refusal(loaded("bad")), 'plugin dokploy: setup failed: project shop: dokploy.project(...): "bad" is not an app of dokploy');
+	assert.deepEqual(ran, ["orchestration"], "its setup never ran");
+});
+
+test("inside a job a plugin left unloaded has its pieces not checked; a disabled one neither", async (t) => {
+	t.mock.method(console, "error", () => {});
+	const piece = () => "never valid";
+	const loaded = (options: Readonly<Record<string, unknown>>) => config([fake([], "orchestration"), lister({ shop: { dokploy: { app: "x" } } }), fake([], "dokploy", { after: ["projects"], options, piece })]);
+	assert.match(await refusal(loaded({ tokenEnv: "ARTHUR_DOKPLOY_TOKEN" }), { ARTHUR_DOKPLOY_TOKEN: "t0ken-value" }), /project shop: dokploy\.project\(\.\.\.\): never valid/);
+	const { plugins } = await loadPlugins(loaded({ tokenEnv: "ARTHUR_DOKPLOY_TOKEN" }), {}, undefined, true);
+	assert.deepEqual(plugins.map((plugin) => plugin.name), ["orchestration", "projects"]);
+	await loadPlugins(loaded({ enabled: false }));
+});
+
+test("arthur doctor names, one non-critical line each, a piece no loaded plugin reads: a disabled plugin's, a hand-written key; none when every piece is read", async () => {
+	const reader = (name: string, enabled = true) => fake([], name, { after: ["projects"], options: { enabled }, piece: () => undefined });
+	const lines = async (plugins: readonly unknown[]) => {
+		const loaded = await loadPlugins(config([fake([], "orchestration"), lister({ shop: { dokploy: { app: "x" }, uptim: [] }, blog: { uptime: [] } }), ...plugins]));
+		return (await loaded.doctor()).filter((line) => line.missing && line.plugin === "core" && /^(shop|blog) /.test(line.name));
+	};
+	const missing = (project: string, key: string) => {
+		const fix = `enable ${key} in arthur.config.ts, or remove the line from /srv/projects/${project}/project.config.ts`;
+		const text = `core ${project} ${key}: missing: no enabled plugin reads ${key}.project(...); without it: project ${project}'s ${key}.project(...) does nothing; fix: ${fix}`;
+		return { plugin: "core", name: `${project} ${key}`, text, missing: true, critical: false, fix };
+	};
+	assert.deepEqual(await lines([reader("uptime"), reader("dokploy", false)]), [missing("shop", "dokploy"), missing("shop", "uptim")]);
+	assert.deepEqual(await lines([reader("uptime"), reader("dokploy"), reader("uptim")]), []);
+	assert.deepEqual(await lines([reader("dokploy"), fake([], "uptime"), reader("uptim")]), [missing("blog", "uptime")], "a loaded plugin without piece reads none");
 });

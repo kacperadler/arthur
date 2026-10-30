@@ -2,7 +2,7 @@
 
 Usage: `arthur plugin new <name> --budget <lines> [--project <name> | --root <job's worktree>]`. Comes with the `develop` plugin (roadmap entry 66). Answered without the model.
 
-Makes a new plugin package in Arthur's repository: the checkout of the main project, or of the one `--project` names, the project Arthur develops itself in (`projects({ list: [{ name: "arthur", prefix: "AR", path: "." }] })`). It writes into that checkout as it is, on its current branch, and commits nothing.
+Makes a new plugin package in Arthur's repository: the checkout of the main project, or of the one `--project` names, the project Arthur develops itself in (`projects({ folders: ["projects/arthur"] })`, its `projects/arthur/project.config.ts` holding `projects.project({ prefix: "AR", path: "../.." })`). It writes into that checkout as it is, on its current branch, and commits nothing.
 
 ```
 $ arthur plugin new acme-bot --budget 120

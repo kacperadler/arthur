@@ -1,6 +1,6 @@
 import type { Plugin } from "@arthur/core/plugin";
 import { type Check, checkSite } from "./site-check.ts";
-import { checkOptions, EVERY_SECONDS, type UptimeOptions } from "./uptime-options.ts";
+import { checkOptions, checkSites, EVERY_SECONDS, type Site as UptimeSite, type UptimeOptions } from "./uptime-options.ts";
 import { readState, writeState } from "./uptime-state.ts";
 
 // The uptime plugin (spec/roadmap.md, entry 98): each project's sites checked over plain HTTP while `arthur run` runs, no model
@@ -32,13 +32,11 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 		options,
 		check: checkOptions,
 		after: ["projects"],
+		piece: checkSites,
 		setup(host) {
-			const listed = (host.options as UptimeOptions).sites ?? {};
-			const projects = new Set(host.collect<readonly { readonly name: string }[]>("projects").flat().map((project) => project.name));
-			const strangers = Object.keys(listed).filter((name) => !projects.has(name));
-			if (strangers.length > 0) throw new Error(`sites names ${strangers.join(", ")}, not a project of the projects list; each key of sites is a project's name`);
-			const sites: Site[] = Object.entries(listed).flatMap(([project, list]) =>
-				list.map(({ url, expect, everySeconds = EVERY_SECONDS }) => ({ project, url, expect, every: everySeconds * 1000, next: 0, fails: 0, reason: "" })),
+			const listed = host.collect<readonly { readonly name: string; readonly pieces?: { readonly uptime?: readonly UptimeSite[] } }[]>("projects").flat();
+			const sites: Site[] = listed.flatMap(({ name: project, pieces }) =>
+				(pieces?.uptime ?? []).map(({ url, expect, everySeconds = EVERY_SECONDS }) => ({ project, url, expect, every: everySeconds * 1000, next: 0, fails: 0, reason: "" })),
 			);
 			const key = (site: Site) => `${site.project} ${site.url}`;
 			let offline: Date | undefined;
@@ -129,3 +127,6 @@ export function uptime(options: UptimeOptions = {}): Plugin {
 		stop() { running = false; clearInterval(timer); },
 	};
 }
+
+// A project file's piece: `uptime.project([{ url: "https://shop.example/" }])`, its sites.
+uptime.project = (sites: readonly UptimeSite[]) => ({ uptime: sites });

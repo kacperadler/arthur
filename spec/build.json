@@ -4711,5 +4711,12 @@
     "status": "merged",
     "path": "spec/features/AR0587-the-report-check-tests-skip-on-this-server-since-the-test-kit-moved-home/ticket.md",
     "updated": "2026-10-30T11:00:32.169Z"
+  },
+  {
+    "id": "AR0588",
+    "title": "Plan: a dokploy plugin, deploy and upload to the owner's Dokploy servers",
+    "status": "planning",
+    "path": "spec/features/AR0588-plan-a-dokploy-plugin-deploy-and-upload-to-the-owner-s-dokploy-servers/ticket.md",
+    "updated": "2026-10-30T13:43:26.709Z"
   }
 ]

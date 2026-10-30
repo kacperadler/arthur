@@ -172,6 +172,9 @@ test("a retro is a read-only job, its prompt the period's files, stats, board, a
 	env.commit("work on a ticket since dropped");
 	env.git("checkout", "--quiet", "main");
 	env.git("merge", "--quiet", "--no-ff", "-m", "Merge AC0077: Dropped from the board", "gone");
+	mkdirSync(join(env.root, ".agents/arthur/criteria"), { recursive: true });
+	writeFileSync(join(env.root, ".agents/arthur/criteria/report.md"), "# Report\n\nInk on paper.\n");
+	env.commit("the page criteria");
 	const plugin = fakeHost({ name: "manage", root: env.root, code: [inside, outside] });
 	plugin.provide("projects", () => [{ name: "acme", path: env.root, prefix: "AC" }]);
 	await plugin.setup(manage({}));
@@ -181,6 +184,7 @@ test("a retro is a read-only job, its prompt the period's files, stats, board, a
 	assert.deepEqual([job.branch, read("task"), job.kind], [undefined, RETRO_TASK, "retro"]);
 	const prompt = read("prompt");
 	assert.match(prompt, /^# Retro\n\n## Your job\n/);
+	assert.ok(prompt.includes("\n\n## Report (.agents/arthur/criteria/report.md)\n\n# Report\n\nInk on paper.\n\n"), "the page criteria, for a page it writes for the owner");
 	const section = prompt.slice(prompt.indexOf("## This retro"));
 	assert.ok(section.startsWith(`## This retro\n\nYou look back on project acme at ${job.base}; your worktree is a detached checkout of that commit.\n\n`), section);
 	assert.ok(
@@ -193,7 +197,7 @@ test("a retro is a read-only job, its prompt the period's files, stats, board, a
 	);
 	assert.ok(section.includes("### Stats\n\nStats of acme: 2 merged tickets\n"), "no retro yet: every merged ticket");
 	assert.ok(section.includes("### Board\n\n"), section);
-	assert.ok(section.endsWith(`### Roles and criteria\n\nThe files the plugins ship:\n- packages/manage/roles/retro.md\n- packages/manage/roles/coordinator/retro-ended.md\n- ${join(outside, "criteria/review.md")}\n\nThe project's own criteria files, beside the retro criteria above: styleguide, audit, retro.\n`), section);
+	assert.ok(section.endsWith(`### Roles and criteria\n\nThe files the plugins ship:\n- packages/manage/roles/retro.md\n- packages/manage/roles/coordinator/retro-ended.md\n- ${join(outside, "criteria/review.md")}\n\nThe project's own criteria files, beside the retro criteria above: styleguide, audit, report, retro.\n`), section);
 });
 
 test("retro.day and retro.at register one weekly entry; it starts a retro only while one is due, and none on another day", async (t) => {

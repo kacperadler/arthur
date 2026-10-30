@@ -4571,9 +4571,9 @@
   {
     "id": "AR0573",
     "title": "Defaults T5: the merge writes What went in per file and commits the ticket's folder itself",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0573-defaults-t5-the-merge-writes-what-went-in-per-file-and-commits-the-ticket-s/ticket.md",
-    "updated": "2026-10-30T12:39:39.706Z",
+    "updated": "2026-10-30T12:50:38.260Z",
     "after": [
       "AR0569"
     ]

@@ -220,6 +220,10 @@ test("until returns the first value other than undefined and false, 0, an empty 
 	await assert.rejects(until("the never", () => (asked++, false), { deadlineMs: 200 }), { message: "waited 0.2 s for the never" });
 	assert.ok(Date.now() - started >= 200, `failed after ${Date.now() - started} ms`);
 	assert.ok(asked > 2, `asked ${asked} times`);
+	// At a deadline of 0 it asks once more at most, after its first wait, never later.
+	let once = 0;
+	await assert.rejects(until("nothing", () => (once++, false), { deadlineMs: 0 }), { message: "waited 0 s for nothing" });
+	assert.ok(once <= 2, `asked ${once} times`);
 });
 
 test("the kit clears every ARTHUR_ and tmux variable but names its own job slice in ARTHUR_JOB_SLICE, and removes its folders when the process exits, passed or failed", () => {

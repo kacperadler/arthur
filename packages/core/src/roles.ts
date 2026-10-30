@@ -13,16 +13,17 @@ export type Role = {
 	readonly criteria: readonly string[];
 };
 
-// Where a project keeps the files the roles read, relative to its repository; its `prompts` in the project list moves them.
+// Where a project keeps the files the roles read, relative to its repository, or absolute: a file of its project folder, as
+// the projects plugin serves one at its real path; its `prompts` moves them.
 export type PromptFiles = { readonly vision: string; readonly criteriaDir: string; readonly rolesDir: string };
 const PROJECT_FILES: PromptFiles = { vision: "spec/vision.md", criteriaDir: ".agents/arthur/criteria", rolesDir: ".agents/arthur/roles" };
 
-// A project's `prompts` over the defaults, each a path inside its repository (the core reads them there), else refused.
+// A project's `prompts` over the defaults, each absolute or a path inside its repository (the core reads it there), else refused.
 export function promptFiles(project: { readonly name: string; readonly prompts?: unknown }): PromptFiles {
 	const files: Readonly<Record<string, unknown>> = { ...PROJECT_FILES, ...(project.prompts ?? {}) };
 	for (const [key, path] of Object.entries(files))
-		if (!Object.hasOwn(PROJECT_FILES, key) || typeof path !== "string" || path === "" || isAbsolute(path) || normalize(path).split(sep)[0] === "..")
-			throw new Error(`project ${project.name}: prompts.${key}: expected ${Object.keys(PROJECT_FILES).join(", ")}, each a path inside its repository, got ${JSON.stringify(path)}`);
+		if (!Object.hasOwn(PROJECT_FILES, key) || typeof path !== "string" || path === "" || (!isAbsolute(path) && normalize(path).split(sep)[0] === ".."))
+			throw new Error(`project ${project.name}: prompts.${key}: expected ${Object.keys(PROJECT_FILES).join(", ")}, each absolute or a path inside its repository, got ${JSON.stringify(path)}`);
 	return files as PromptFiles;
 }
 
@@ -169,12 +170,13 @@ export async function roleModel(collect: Collect, role: string): Promise<{ reado
 	return { model: model as string | readonly string[] | undefined, thinking: thinking as string | undefined, quick: quick as string | undefined, mcp: mcp as McpServers | undefined };
 }
 
-// A project's own file, never through a symlink: one on the way to it would read whatever it points at.
+// A project's own file, never through a symlink: one on the way to it would read whatever it points at. `path` is relative to
+// the checkout `folder`, or absolute (a project folder's file, given at its real path).
 function projectFile(folder: string, path: string): Pick<Source, "text" | "problem"> {
-	const full = join(folder, path);
+	const full = isAbsolute(path) ? path : join(folder, path);
 	const stat = lstatSync(full, { throwIfNoEntry: false });
 	if (stat === undefined) return { problem: "missing" };
-	if (stat.isSymbolicLink() || realpathSync(full) !== join(realpathSync(folder), path)) return { problem: "a symlink" };
+	if (stat.isSymbolicLink() || realpathSync(full) !== (isAbsolute(path) ? path : join(realpathSync(folder), path))) return { problem: "a symlink" };
 	if (!stat.isFile()) return { problem: "not a file" };
 	return { text: readFileSync(full, "utf8") };
 }

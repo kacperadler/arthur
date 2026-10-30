@@ -15,7 +15,7 @@ The core itself does no orchestration. The coordinator is the `orchestration` pl
 - Work happens in isolated worktrees, on their own branches.
 - Plain files in git and in the home folder (`.arthur/`) are the truth: tickets, the board, job records. No database.
 - Arthur starts with an empty board. Nothing of the predecessor's tickets, outcomes, reviews or reports is carried over.
-- Projects are declared in `arthur.config.ts`, and nowhere else: each one's path or repository, ticket prefix, tracker instance, commit rules and other settings are options of the `projects` plugin. There is no separate JSON file for them. Adding a project is an edit of the config, reviewed like code.
+- Each project has one folder, named in `arthur.config.ts` (AR-D391): `projects/<name>/` with its `project.config.ts`, which holds everything about that project for every plugin (its path or repository and ticket prefix, its tracker project, commit rules, CI workflow, sites and other settings), each piece made by its plugin's helper, and may hold its own vision and criteria. A plugin's accounts and tokens stay once in `arthur.config.ts`. Adding a project is one folder and one line of the config, reviewed like code.
 - The agent is OMP. The core runs `omp`; there is no agent-adapter layer.
 - Arthur is English only: code, docs, and everything it says to the user (channel messages, reports, prompts). The human may write in any language; Arthur answers in English.
 - Arthur exposes nothing to the internet: no public endpoint, no webhook receiver, no public port. Every plugin calls out (Telegram and GitHub are polled, Discord's gateway is an outbound connection) or talks to a local process. Other machines are reached over SSH on a private network (Tailscale), never over the internet; the owner's own apps, later, reach Arthur over the same network by the VPS's Tailscale name.
@@ -24,11 +24,11 @@ The core itself does no orchestration. The coordinator is the `orchestration` pl
 - It runs on a VPS as a process, and may run jobs on other machines it reaches over SSH. Running it needs Node and OMP, no runtime dependencies.
 - It stays small enough for one person to understand from its map: the core has a line budget, and each plugin has its own.
 - The repository is public, on GitHub: `git@github.com:kacperadler/arthur.git`.
-- What reaches GitHub is about Arthur alone (the owner, 2026-10-17): no committed file names a client, another project of the owner, its folders, or the work done for it. The owner's real project list lives only in `arthur.config.ts`, which Git ignores; examples, tests and plans use made-up names.
+- What reaches GitHub is about Arthur alone (the owner, 2026-10-17): no committed file names a client, another project of the owner, its folders, or the work done for it. The owner's real projects live only in `arthur.config.ts` and the project folders it names, `projects/`, which Git ignores; examples, tests and plans use made-up names.
 
 ## The coordinator and its options
 
-The `orchestration` plugin is the coordinator: one interactive `omp` in its own tmux session, started again whenever it ends. It directs every project in the `projects` list that has no agent of its own, and the work across projects; its limits count across all of them. A project with a `chat` in `projects` gets its own agent: one more interactive `omp`, supervised the same way, in the project's folder, which directs that project's jobs and answers in that chat. What remains configurable:
+The `orchestration` plugin is the coordinator: one interactive `omp` in its own tmux session, started again whenever it ends. It directs every project, one folder per project named in `arthur.config.ts`, that has no agent of its own, and the work across projects; its limits count across all of them. A project with a `chat` in its project file (`orchestration.project({ chat })`) gets its own agent: one more interactive `omp`, supervised the same way, in the project's folder, which directs that project's jobs and answers in that chat. What remains configurable:
 
 | Option | Does |
 | --- | --- |
@@ -69,7 +69,7 @@ Plugins. First = in the first version, later = after it. Named = the owner named
 | resources (named) | first | Caps per job (CPU, memory) and per feature (CPU, memory, time, money), how many jobs start from each machine's free resources, below `maxAgents`, and a floor of free disk per machine. Below. |
 | session (named) | first | The coordinator's conversation: compaction at 08:00, 13:00 and 18:00 whatever jobs run, a fresh start at 23:00 once no job runs (tried again every 15 minutes, skipped that night after 03:00), each after a handoff the next conversation reads first (work in progress, next steps, unanswered questions to the human), `/restart` and `/restart fresh`, the restart guard, the start notice and LLM probe. |
 | schedule (named) | first | A module for actions and jobs at set times: an entry is a daily time or a one-off date and time, and does an action (a message to the coordinator, optionally a named procedure) or a job (spawn one of a kind). Other plugins register their own entries from their options; hand-added ones live in a file. |
-| projects (named) | first | The project list, declared in the config: path or repo, ticket prefix, tracker instance, commit rules, auto-merge, CI workflow, vision and criteria paths. Onboarding of a new repository. |
+| projects (named) | first | One folder per project, named in the config, each with its `project.config.ts`: path or repo, ticket prefix, install, vision and criteria paths; every other plugin's piece there is that plugin's to read and check. Onboarding of a new repository. |
 | nvm (named) | first | Each project's Node version, from its `.nvmrc`, first on its jobs' `PATH` through nvm on the job's machine. |
 | findings (named) | first | The `findings.md` format, and what happens to a merged ticket's open findings, per project: a planning ticket each, one per merged ticket, or a summary for the client; `/findings`. |
 | commit-rules (named) | first | Each project's commit format, set by a regex, a plain-words rule, or a path to a Markdown file that describes it. Below. |
@@ -193,7 +193,7 @@ Interface: `host.jobs.cleanup(fn)`, `host.jobs.prepare` returning variables for 
 - Running a job on another machine: the core's job runner, over SSH. Which machines exist, their labels, and which one a job goes to: `machines`.
 - A job's time and money: the core. A job's CPU and memory, a feature's caps, and how many jobs the free resources allow: `resources`.
 - Free disk on a machine: `resources` (`keepFree.disk`). A job's Docker resources, the build cache cap and the leftover sweep: `docker`, through the core's cleanup hook on worktree removal.
-- A project's own agent and the routing of its chat: `orchestration`; the place it answers in: the project's `chat` key in `projects`.
+- A project's own agent and the routing of its chat: `orchestration`; the place it answers in: the project's `orchestration.project({ chat })` in its project file.
 
 ## Licence
 
@@ -203,7 +203,7 @@ Apache-2.0. Arthur is open source: anyone may use, change, fork and sell it unde
 
 - A hosted service, accounts, or a marketplace of third-party plugins. Plugins are packages the owner installs and lists in the config.
 - Anything that listens on a public address: no webhooks, no public endpoint. The server plugin, when it comes, is reachable only over a private network.
-- A mode without a coordinator, or a project list outside the config.
+- A mode without a coordinator, or projects outside the folders the config names.
 - Another agent runtime: Claude Code, Codex and others are not supported; OMP only.
 - A plugin that changes the core's rules. A plugin adds, the core stays.
 - Config in JSON or YAML, or a secret inside the config.
@@ -214,7 +214,7 @@ Apache-2.0. Arthur is open source: anyone may use, change, fork and sell it unde
 
 1. Merge and review are a plugin, `delivery`, shipped in the first version. The core stays a job runner.
 2. The plugin API is frozen after building three plugins (telegram, youtrack, schedule), not before.
-3. One channel interface; a message may name its place (a topic or a channel), which a project's `chat` maps to its agent; WhatsApp last of the channels.
+3. One channel interface; a message may name its place (a topic or a channel), which a project's `orchestration.project({ chat })` maps to its agent; WhatsApp last of the channels.
 4. Server later. The first version polls GitHub. Arthur exposes nothing to the internet (no public port, no webhooks). The core emits events from day one.
 5. The name is Arthur. `arthur.config.ts` and `.arthur/` are its files. Everything is English.
 6. The env prefix is `ARTHUR_` (`ARTHUR_YOUTRACK_TOKEN`), with named instances as above.
@@ -224,7 +224,7 @@ Apache-2.0. Arthur is open source: anyone may use, change, fork and sell it unde
 10. The coordinator is always there and talks with the user through a channel or the terminal; there is no single-agent mode. A project may have its own agent beside the coordinator (20).
 11. Commit rules are their own plugin; the format is a regex, a plain-words rule, or a Markdown file, per project.
 12. Arthur starts with an empty board; no history of the predecessor is carried over.
-13. Projects live in `arthur.config.ts` (path, prefix, tracker instance, commit rules, other settings), not in a separate JSON file.
+13. Each project lives in one folder, named in `arthur.config.ts`, with its `project.config.ts` holding every plugin's piece of it (path, prefix, tracker project, commit rules, other settings) and, if the owner wants, its own vision and criteria (AR-D391).
 14. The coordinator is the `orchestration` plugin, required and impossible to disable, not part of the core: the core stays a job runner, and the coordinator is tested apart against a fake host.
 15. The agent is OMP; the config is TypeScript naming env variables; diagrams are Mermaid.
 16. Every job has one state: working, idle, blocked (on the user or a dependency), or ended; the coordinator and the channels show it.

@@ -1,7 +1,7 @@
 import type { Host, Prepare } from "@arthur/core/plugin";
 import type { Project } from "./commit-rules.ts";
 
-// The `commit-msg` hook of a project's `commitRules.regex` (spec/roadmap.md, entry 43): docs/commit-rules.md, "The hook". It goes
+// The `commit-msg` hook of a project's `commitRules.project({ regex })` (spec/roadmap.md, entry 43): docs/commit-rules.md, "The hook". It goes
 // into the job's own worktree only: a hooks folder in the worktree's Git folder, named by `core.hooksPath` in that worktree's
 // `config.worktree`, which Git reads once `extensions.worktreeConfig` is on, and which goes with the worktree.
 
@@ -60,7 +60,7 @@ git config --worktree core.hooksPath "$dir"
 
 // A merge's subject is Git's (`Merge branch ...`), so it is not checked; the project's own `commit-msg` runs after the check.
 const COMMIT_MSG = `#!/bin/sh
-# Arthur's commit-rules plugin: this job's commit subjects follow the project's commitRules.regex.
+# Arthur's commit-rules plugin: this job's commit subjects follow the project's commit rule regex.
 here="$(dirname "$0")"
 [ -e "$(git rev-parse --git-path MERGE_HEAD)" ] || node "$here/check.mjs" "$1" || exit 1
 hook="$(cat "$here/own")/commit-msg"
@@ -76,7 +76,7 @@ exec "$hook" "$@"
 `;
 
 // The subject is the message's first line that is neither blank nor a comment, as Git keeps it; the rule is the file beside.
-const CHECK = `// Arthur's commit-rules plugin: the subject of a commit in this job's worktree must match the project's commitRules.regex.
+const CHECK = `// Arthur's commit-rules plugin: the subject of a commit in this job's worktree must match the project's commit rule regex.
 import { readFileSync } from "node:fs";
 const rule = readFileSync(new URL("rule", import.meta.url), "utf8");
 const subject = readFileSync(process.argv[2], "utf8").split("\\n").find((line) => line.trim() !== "" && !line.startsWith("#"))?.trimEnd() ?? "";

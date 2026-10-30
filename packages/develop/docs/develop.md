@@ -5,7 +5,7 @@ Developing Arthur itself: roadmap entry 66, `arthur plugin new <name> --budget <
 ```ts
 plugins: [
 	orchestration({}),
-	projects({ list: [{ name: "arthur", prefix: "AR", path: "." }] }),
+	projects({ folders: ["projects/arthur"] }), // projects/arthur/project.config.ts: projects.project({ prefix: "AR", path: "../.." })
 	develop({ evals: { runs: 3, baseline: "evals/baseline.json" } }),
 ],
 ```

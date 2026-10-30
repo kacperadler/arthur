@@ -1010,11 +1010,11 @@ test("findings go to findings.onMerge: none open makes no ticket, an open one's 
 	const cart = "spec/features/AC0002-cart";
 	const second = await worker({ "cart.ts": "export const cart = 1;\n" }, `Ticket: ${cart}/ticket.md`);
 	findings(cart, entry(1, "fixed in abc1234") + entry(2, "dropped (not needed)"));
-	await review(second.id, "PASS");
+	const passed = await review(second.id, "PASS");
 	const none = await merge(second.id);
 	assert.equal(none.code, undefined, none.err);
 	assert.match(none.out, /\n- Findings: none open; no ticket made\.\n- Findings: findings\.onMerge of test failed: a second plugin broke; spec\/features\/AC0002-cart\/findings\.md left as it is\n/);
-	assert.deepEqual(asked, [{ project: "acme", ticket: "AC0002", path: `${cart}/findings.md`, root }]);
+	assert.deepEqual(asked, [{ project: "acme", ticket: "AC0002", path: `${cart}/findings.md`, root, review: passed, notes: [] }]);
 	assert.deepEqual(fake.host.board.list().map((ticket) => ticket.id), ["AC0001", "AC0002", "AC0003"], "no ticket made");
 	const pay = "spec/features/AC0003-pay";
 	const third = await worker({ "pay.ts": "export const pay = 1;\n" }, `Ticket: ${pay}/ticket.md`);
@@ -1024,6 +1024,27 @@ test("findings go to findings.onMerge: none open makes no ticket, an open one's 
 	assert.match(made.out, /\n- Tickets from findings: AC0004 \(F2\)\.\n/);
 	assert.deepEqual([status("AC0003"), status("AC0004")], ["merged", "planning"], "the finding's ticket gets the next id after the board's");
 	assert.match(readFileSync(join(root, pay, "outcome.md"), "utf8"), /\n## Left open\n\n- Tickets from findings: AC0004 \(F2\)\.\n- Findings: findings\.onMerge of test failed: /);
+});
+
+test("findings.onMerge gets the `## Notes` lines of the branch's last PASS review, its job with them; an earlier PASS's, a later FAIL's, another branch's or another heading's lines stay out; without a PASS review, none", async (t) => {
+	const { root, fake, worker, review, merge } = await load(t);
+	const asked: unknown[] = [];
+	fake.provide("findings.onMerge", (request: unknown) => (asked.push(request), "- Tickets from findings: none open."));
+	const job = await worker();
+	const notes = ["- (security) `shop.ts:1`: The key is logged. An error prints it.", "- (minor) shop.ts:2: A long line. Wrap it."];
+	const earlier = await review(job.id, "## Notes\n\n- (bug) shop.ts:5: An earlier PASS's note. Not filed.\n\nPASS");
+	const passed = await review(job.id, `Clean.\n\n## Findings\n\n- (bug) shop.ts:9: Not a note. Under Findings.\n\n## Notes\n\n${notes.join("\n")}\nNo dash, no note.\n- a plain line\n\n## Checks run\n\n- (bug) test.js:1: Not a note either. Under Checks.\n\nPASS`);
+	const failed = await review(job.id, "## Notes\n\n- (bug) shop.ts:3: A FAIL's note. Not filed.\n\nFAIL");
+	const other = await worker({ "draft.ts": "export const draft = 1;\n" });
+	const theirs = await review(other.id, "## Notes\n\n- (bug) draft.ts:1: Another branch's note. Not filed.\n\nPASS");
+	for (const id of [earlier, passed, failed, theirs]) fake.host.jobs.file("AC0001", id);
+	const merged = await merge(job.id, "--unreviewed", "--decision", OWNER);
+	assert.equal(merged.code, undefined, merged.err);
+	assert.deepEqual(asked, [{ project: "acme", ticket: "AC0001", path: `${FOLDER}/findings.md`, root, review: passed, notes }]);
+	const cart = "spec/features/AC0002-cart";
+	const unreviewed = await worker({ "cart.ts": "export const cart = 1;\n" }, `Ticket: ${cart}/ticket.md`);
+	assert.equal((await merge(unreviewed.id, "--unreviewed", "--decision", OWNER)).code, undefined);
+	assert.deepEqual(asked.at(-1), { project: "acme", ticket: "AC0002", path: `${cart}/findings.md`, root, review: "", notes: [] });
 });
 
 // A git with no identity anywhere, as on a fresh machine or runner: a user config that forbids guessing one (so a host with a

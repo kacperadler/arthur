@@ -2,7 +2,5 @@
 
 `arthur merge` printed this after its last step (`arthur merge --help`). In the same turn:
 
-1. Copy the reviews' non-blocking notes into the ticket's `findings.md` as new entries, and settle each: a planning ticket (`arthur ticket new '<title>'`, its Description the finding, its Decisions `- <date>: Source: F<n> of <ticket>`) with the entry's status `ticket <id>`, or `dropped (<reason>)`. When the merge said `no plugin provides findings.onMerge`, settle its open entries the same way. List those tickets under `## Left open` in `outcome.md`, and commit what this step changed.
-   Settle the notes in the project's findings mode, as the merge settled the open entries: on `- Deferred (client summary):` lines (`summary`) no ticket, each note's status `deferred (client summary)` and its own such line under `## Left open`; on a `- Tickets from findings:` ticket with several entries or titled `Findings of <ticket>: <its title>` (`grouped`) every note goes into that ticket's Description, status `ticket <id>` (one such ticket for all notes when none was made); else a ticket each (`ticket`). When the lines show no mode (`none open`, no `findings.md`), `findings({ mode })` in `arthur.config.ts` names the project's, `ticket` when it does not.
-2. Tell the owner the tickets made from findings, each with its title and a plain sentence on what it would change.
-3. On `spec: <id> merged not committed: <why>`, tell the owner the line; once he has fixed what it names, commit the paths it lists. On `unblocked: …`, spawn those tickets at once: their approval covered the order.
+1. Tell the owner the tickets made from findings, each with its title and a plain sentence on what it would change.
+2. On `spec: <id> merged not committed: <why>`, tell the owner the line; once he has fixed what it names, commit the paths it lists. On `unblocked: …`, spawn those tickets at once: their approval covered the order.

@@ -62,7 +62,6 @@ const KIND = "- Kind: <!-- feat | fix | security | perf | refactor | test | docs
 const DECISION = "<!-- - YYYY-MM-DD: one decision the human made, in one line. -->";
 const APPROVED = "- 2026-10-21: The owner approved it.\n";
 const SH0004 = "spec/features/SH0004-show-the-cart-s-total-with-tax/ticket.md";
-const SH0006 = "spec/features/SH0006-count-the-items-per-order-in-the-sales-report";
 const SH0011 = "spec/features/SH0011-warn-when-a-product-has-no-image/ticket.md";
 const AR0091 = "'Ticket: spec/features/AR0091-sort-arthur-jobs-by-machine/ticket.md'";
 const CHECK_FAILED = `'npm test failed on main after the merge: test/catalog.test.ts:77, a product named with spaces around it is listed untrimmed (expected Blue mug, got " Blue mug"). Fix it, run the checks, commit, and end.'`;
@@ -104,8 +103,6 @@ const restart = (...extra: Step[]): Step[] => [
 	{ reply: "AR0090 is merged: arthur jobs names each job's machine. AR0091, sorting arthur jobs by machine, is unblocked, but its start waits for arthur run to restart on the new code: systemctl --user restart arthur, once no job runs." },
 ];
 const QUESTIONS = ["1. Who reads the blog?", "2. Is a post changed after it is published?", "3. Which languages?", "4. Must a post have an image?", "5. Who approves a post?", "6. Are old posts removed?"];
-const FINDINGS =
-	"# SH0006 - Findings\n\n## F1. The count reads each order's items twice\n\n- Kind: refactor\n- Found by: 2026-10-22-review-2b3c4d5e (review), 2026-10-22\n- Where: `src/report.ts:88`\n- What: the count reads each order's items once for the total and once for the column.\n- Suggestion: one pass.\n- Status: ticket SH0016\n\n## F2. No test of an order with no items\n\n- Kind: test\n- Found by: 2026-10-22-review-2b3c4d5e (review), 2026-10-22\n- Where: `test/report.test.ts:140`\n- What: the report shows 0 for an order with no items, and no test holds it.\n- Suggestion: a test of that order.\n- Status: ticket SH0017\n";
 
 const ACTS: Readonly<Record<string, Act>> = {
 	"delivery/worker-done": {
@@ -164,17 +161,9 @@ const ACTS: Readonly<Record<string, Act>> = {
 		fails: [`${SH0004} does not match /^## Decisions`, "no call matches /^arthur continue ", "arthur review 7b2e4d11 --round 3 matches /^arthur review/"],
 	},
 	"delivery/merge": {
-		right: [
-			{ bash: "arthur jobs" },
-			{ bash: "arthur merge 8e9f0a1b" },
-			{ bash: "arthur ticket new 'Count the items of each order in one pass'" },
-			{ bash: "arthur ticket new 'Test the sales report on an order with no items'" },
-			{ write: `${SH0006}/findings.md`, text: FINDINGS },
-			commit("SH0006: review notes"),
-			{ reply: "SH0006 is merged: the sales report counts each order's items. Its review's two notes are planning tickets: SH0016 counts them in one pass, SH0017 tests an order with no items." },
-		],
-		wrong: [{ bash: "arthur merge 8e9f0a1b" }, { reply: "SH0006 is merged." }],
-		fails: [`${SH0006}/findings.md is missing`, "refs/heads/main stayed at ", "no call matches /^arthur ticket new / after arthur merge 8e9f0a1b"],
+		right: [{ bash: "arthur jobs" }, { bash: "arthur merge 8e9f0a1b" }, { reply: "SH0006 is merged: the sales report counts each order's items. Its review's risk note is planning ticket SH0016: no test covers an order with no items." }],
+		wrong: [{ bash: "arthur merge 8e9f0a1b" }, { bash: "arthur ticket new 'Test an order with no items'" }, { reply: "SH0006 is merged." }],
+		fails: ["arthur ticket new Test an order with no items matches /^arthur ticket new /", "the reply does not match /SH0016/"],
 	},
 	"delivery/check-failed": {
 		right: [

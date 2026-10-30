@@ -4,7 +4,8 @@ import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { type FakeHost, fakeHost, temporaryFolder } from "@arthur/core/testing";
-import { type ProjectEntry, projects } from "../src/projects.ts";
+import { projects } from "../src/projects.ts";
+import { type Listed, projectFolders } from "./folders.ts";
 
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 const SKELETON = (path: string) => readFileSync(new URL(`../skeleton/${path}`, import.meta.url), "utf8");
@@ -27,10 +28,11 @@ function repository(files: Readonly<Record<string, string>>, commit = true): str
 
 // The plugin set up with `list`, beside a role registered as another plugin's, which reads `criteria` (the coordinator's by default);
 // `code`, the package folders of the load.
-async function load(list: readonly ProjectEntry[], criteria = ["styleguide", "autopilot", "report"], code: readonly string[] = []): Promise<FakeHost> {
+async function load(list: readonly Listed[], criteria = ["styleguide", "autopilot", "report"], code: readonly string[] = []): Promise<FakeHost> {
 	const fake = fakeHost({ name: "projects", code });
 	const other = { name: "coordinator", file: new URL("../roles/onboarding.md", import.meta.url), criteria };
-	await fake.setup({ setup: (host) => (host.jobs.registerRole(other), projects({ list }).setup({ ...host, options: { list } })) });
+	const options = { folders: projectFolders(list) };
+	await fake.setup({ setup: (host) => (host.jobs.registerRole(other), projects(options).setup({ ...host, options })) });
 	return fake;
 }
 
@@ -139,12 +141,16 @@ test("a repository without package.json still gets an .nvmrc with the major vers
 	assert.equal(existsSync(join(api, "package.json")), false);
 });
 
-test("prompts moves the vision and the criteria init writes", async (t) => {
+test("a project whose prompts are in its folder is refused: arthur init writes only repository files, and writes none", async (t) => {
 	const shop = repository({ "README.md": "# Shop\n" });
 	const fake = await load([{ name: "shop", prefix: "SH", path: shop, prompts: { vision: "./docs/vision.md", criteriaDir: "docs/criteria/" } }]);
-	const { out } = await init(t, fake, ["shop"]);
-	assert.equal(out.split("\n")[0], "created: docs/vision.md, docs/criteria/styleguide.md, docs/criteria/autopilot.md, docs/criteria/report.md, .nvmrc, spec/build.json");
-	assert.equal(existsSync(join(shop, "spec/vision.md")), false);
+	const [project] = fake.collect<readonly { readonly folder: string }[]>("projects")[0] ?? [];
+	assert.deepEqual(await init(t, fake, ["shop"]), {
+		code: 1,
+		out: "",
+		err: `arthur init: project shop keeps its prompts in its folder ${project?.folder}; arthur init and the onboarding write only repository files: write vision, criteriaDir there yourself`,
+	});
+	assert.deepEqual([existsSync(join(shop, "spec")), existsSync(join(shop, ".nvmrc")), existsSync(join(project?.folder ?? "", "docs"))], [false, false, false]);
 });
 
 test("arthur init without one project, with two, or with --project is wrong usage and writes nothing", async (t) => {

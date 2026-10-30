@@ -8,6 +8,7 @@ import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testin
 import { delivery } from "@arthur/delivery";
 import { github } from "@arthur/github";
 import { projects } from "@arthur/projects";
+import { projectFolders } from "./project-folders.ts";
 import { type FakeRun, fakeGithub } from "../packages/github/test/fake-github.ts";
 
 // AR0257: the end of a CI run on a branch `arthur merge --auto` left waiting wakes the coordinator once, delivery's wake, not
@@ -43,12 +44,13 @@ test("a waiting branch's CI end wakes the coordinator once, delivery's wake; the
 	git(shop, "merge", "--quiet", "--no-ff", "-m", "Take main as it is", git(shop, "commit-tree", "-p", "HEAD", "-m", "main as it is", "HEAD^{tree}"));
 	git(shop, "remote", "add", "origin", origin);
 	git(shop, "push", "--quiet", "origin", "main");
-	const list = [{ name: "shop", prefix: "SH", path: shop, autoMerge: true, ci: { workflow: "ci.yml" } }];
+	const list = [{ name: "shop", prefix: "SH", path: shop, pieces: { delivery: { autoMerge: true }, github: { workflow: "ci.yml" } } }];
+	const given = projectFolders(list);
 	const fake = fakeHost({ name: "projects", now: new Date("2026-10-21T10:00:00Z"), env: { ARTHUR_GITHUB_TOKEN: TOKEN } });
 	const options = { instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN", apiUrl: api.apiUrl }], poll: { everySeconds: 1 } };
 	const [withDelivery, withGithub] = [delivery(), github(options)];
 	const loaded: [Plugin, Readonly<Record<string, unknown>>][] = [
-		[projects({ list }), { list }],
+		[projects(given), given],
 		[withDelivery, {}],
 		[withGithub, options],
 	];

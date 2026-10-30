@@ -18,8 +18,8 @@
 //   are polled) or talks to a local process. Other machines are reached over SSH on a private network (Tailscale).
 // - The coordinator is always on: `orchestration` is required; the host refuses to start without it and refuses `enabled: false`
 //   on it. The human talks to it through a channel plugin or the terminal (`arthur attach`).
-// - Projects are declared here, in `projects`, and nowhere else: no separate JSON file. The board starts empty. Your
-//   `arthur.config.ts` is ignored by Git (`.gitignore`), so your project list stays on your machine.
+// - Projects are named here, in `projects({ folders })`, each with its folder and `project.config.ts`. The board starts empty. Your
+//   `arthur.config.ts` and `projects/` are ignored by Git (`.gitignore`), so your projects stay on your machine.
 // - Everything in this file, and everything Arthur says to the user, is English.
 // - Marked `first` ships in the first version, `later` after it (docs/architecture/versions.mmd). `named` = the owner named it;
 //   `derived` = added because the harness Arthur replaces already does it.
@@ -148,7 +148,7 @@ export default defineConfig({
 		// The machines jobs run on. `local` is the one Arthur and the coordinator run on; its os and arch are detected. The others
 		// are reached with ssh over a private network (Tailscale), with the user's own keys and ~/.ssh/config: no secret here, no
 		// password prompt, no host key accepted on its own, and a host that resolves to a public address is refused. Each machine
-		// needs Node, git, OMP logged in, and Arthur's core of the same version. A project's or a ticket's `requires` names the
+		// needs Node, git, OMP logged in, and Arthur's core of the same version. A project's `machines.project(...)` or a ticket's `requires` names the
 		// labels its jobs need. `arthur machines` (`/machines`) shows each one, online or why not, and its jobs.
 		machines({
 			local: { labels: { tools: ["docker"] }, maxJobs: 3 }, // both optional; `os` and `arch` are detected, never set here
@@ -244,100 +244,34 @@ export default defineConfig({
 		// before projects: listed after it, the load is refused. No options. packages/nvm/docs/nvm.md.
 		nvm(),
 
-		// The project list, the only place projects are declared; the first is the main one. Each project: its name (lowercase
-		// letters, digits, dots and dashes), where it lives (a path, or a repo Arthur clones into `reposDir`, which lies outside
-		// the home folder), its ticket prefix (ids are PREFIX0001, PREFIX0002, ... from an empty board), its `title` and `about`
-		// (the line the coordinator reads every turn, so a word in a message finds the project), its `install` (else the lockfile
-		// picks a frozen install; "" for none), its tracker instance (`tracker.instance` names an instance of the youtrack plugin;
-		// without it, the unnamed one), its CI workflow, its commit rules, the machine labels its jobs need (`requires`; a ticket's
-		// own `"requires"` in its JSON block replaces it), `docker: false` to leave its jobs' Docker resources unlabelled and
-		// uncleaned (default: on while the docker plugin is), and `chat`: the place of a channel (a Telegram topic, a Discord or
-		// Slack channel) where the project's own agent talks with you; without it the coordinator handles the project. `prompts`
-		// moves the files the roles read inside its repository: its vision (default spec/vision.md), its criteria folder (default
-		// .agents/arthur/criteria) and its role overrides (default .agents/arthur/roles). Adding a project is an edit of this
-		// list; `arthur projects` shows it.
-		// One repository may be several projects, each checkout its own entry. `arthur.config.ts` is ignored by Git, so the real
-		// list stays on the machine.
+		// The project folders, one per project, the first the main one: each folder is named as its project (lowercase letters,
+		// digits, dots and dashes) and holds its `project.config.ts`, everything about that project for every plugin, each
+		// piece made by its plugin's helper (the example files are at the end of this file). Accounts and tokens stay in each
+		// plugin's own section here. Adding a project is one folder and one line in `folders`; `arthur projects` shows it. A
+		// piece no enabled plugin reads is a line of `arthur doctor`. `projects/` is ignored by Git, as this file is, so the real
+		// projects stay on the machine. `reposDir` is where `repo` projects are cloned, outside the home folder.
 		projects({
 			reposDir: "../repos",
-			list: [
-				{
-					name: "arthur",
-					title: "Arthur",
-					about: "Runs coding agents in Git worktrees for one human, with a ticket board and plugins from one config.",
-					path: ".",
-					prefix: "AR",
-					autoMerge: true, // merge after a PASS and green CI without asking
-					tracker: { plugin: "youtrack", project: "ART" },
-					ci: { workflow: "ci.yml" },
-					commitRules: { regex: "^(?=.{1,72}$)(feat|fix|refactor|perf|test|docs|build|ci|chore|revert)(\\([\\w-]+\\))?!?: .+$" },
-				},
-				{
-					name: "acme-shop",
-					title: "Acme Shop",
-					about: "The online shop of the client Acme: customers order garden tools; it succeeds when an order is paid.",
-					repo: "git@github.com:acme/shop.git",
-					prefix: "SHOP",
-					install: "bun install --frozen-lockfile && bun run build:deps", // runs in each new worktree
-					autoMerge: false, // every merge waits for the human
-					tracker: { plugin: "youtrack", instance: "acme", project: "SHOP" },
-					ci: { workflow: "build.yml" },
-					commitRules: { words: "Start with the ticket id, then a verb in the imperative." }, // judged by the review
-					chat: { plugin: "telegram", place: "12" }, // its own agent answers in topic 12 of the bot's chat (`instance` names a bot)
-				},
-				{
-					name: "acme-site",
-					title: "Acme Site",
-					about: "Acme's company website: who they are and how to reach them.",
-					repo: "git@github.com:acme/site.git",
-					prefix: "SITE",
-					autoMerge: false,
-					tracker: { plugin: "youtrack", instance: "acme", project: "SITE" },
-					ci: { workflow: "ci.yml" },
-					commitRules: { file: "docs/commit-rules.md" }, // read as plain words, from the project's own repository
-					docker: false, // its jobs' containers are not labelled, nor removed with their worktree; the sweep still runs
-				},
-				{
-					name: "acme-ios",
-					title: "Acme iOS",
-					repo: "git@github.com:acme/ios.git",
-					prefix: "IOS",
-					install: "", // nothing to install
-					autoMerge: false,
-					tracker: { plugin: "youtrack", instance: "acme", project: "IOS" },
-					ci: { workflow: "ios.yml" },
-					requires: { os: "macos", tools: ["xcodebuild"] }, // every job of this project runs on a machine with these labels
-				},
-			],
+			folders: ["projects/arthur", "projects/acme-shop", "projects/acme-site", "projects/acme-ios"],
 		}),
 
-		// Applies each project's `commitRules`: a regex becomes a commit-msg hook in the project's job worktrees that refuses a
-		// non-matching subject; words and a file are given to the worker and the reviewer, and the review judges them. It takes no
-		// option of its own (packages/commit-rules/docs/commit-rules.md).
+		// Applies each project's `commitRules.project(...)`: a regex becomes a commit-msg hook in the project's job worktrees that
+		// refuses a non-matching subject; words and a file of the project's folder are given to the worker and the reviewer, and
+		// the review judges them. It takes no option of its own (packages/commit-rules/docs/commit-rules.md).
 		commitRules(),
 
-		// What `arthur merge` makes of a merged ticket's open findings, per project, by its name: "ticket" (the default for a
-		// project not named: one planning ticket each), "grouped" (one planning ticket for them all) or "summary" (no ticket;
-		// each `deferred (client summary)`, listed in the outcome for the client). An unknown mode, or a key that is not a
-		// project, refuses the load. Also `/findings`. Without it, findings stay open. packages/findings/docs/findings.md.
-		findings({
-			mode: { "acme-site": "summary", "acme-ios": "grouped" },
-		}),
+		// What `arthur merge` makes of a merged ticket's open findings, by each project's `findings.project(mode)`: "ticket" (the
+		// default for a project without one: one planning ticket each), "grouped" (one planning ticket for them all) or "summary"
+		// (no ticket; each `deferred (client summary)`, listed in the outcome for the client). Also `/findings`. Without it,
+		// findings stay open. No options. packages/findings/docs/findings.md.
+		findings(),
 
-		// Each project's sites, checked over plain HTTP while `arthur run` runs (no model, so no usage). A site is down after 2
-		// failed checks in a row (no answer in time, refused, a TLS error, a wrong status, the text missing): one notice with its
-		// URL, the reason and since when, and `uptime-down`; one more with how long when it answers, and `uptime-up`. When no
-		// site answers, one notice that this machine looks offline, none per site. A key that is not a project refuses the load.
+		// Each project's sites, its `uptime.project([...])`, checked over plain HTTP while `arthur run` runs (no model, so no
+		// usage). A site is down after 2 failed checks in a row (no answer in time, refused, a TLS error, a wrong status, the text
+		// missing): one notice with its URL, the reason and since when, and `uptime-down`; one more with how long when it
+		// answers, and `uptime-up`. When no site answers, one notice that this machine looks offline, none per site. No options.
 		// packages/uptime/docs/uptime.md.
-		uptime({
-			sites: {
-				"acme-shop": [
-					{ url: "https://shop.acme.example/" }, // any 2xx status, checked every 60 s
-					{ url: "https://shop.acme.example/health", expect: "ok", everySeconds: 30 }, // a 2xx page that holds "ok"
-					{ url: "https://admin.shop.acme.example/", expect: 401 }, // exactly this status
-				],
-			},
-		}),
+		uptime(),
 
 		// One entry per YouTrack server. The names are the variables, not their values. The unnamed one uses
 		// ARTHUR_YOUTRACK_URL and ARTHUR_YOUTRACK_TOKEN; `acme` uses ARTHUR_YOUTRACK_ACME_URL and ARTHUR_YOUTRACK_ACME_TOKEN.
@@ -498,3 +432,67 @@ export default defineConfig({
 		}),
 	],
 });
+
+// The project files `projects({ folders })` names, each `projects/<name>/project.config.ts`, every path in it counted from its
+// folder. `projects.project(...)` holds what the projects plugin and the core read: where the project lives (a `path`, or a
+// `repo` Arthur clones into `reposDir`), its ticket prefix (ids are PREFIX0001, PREFIX0002, ... from an empty board), its
+// `title` and `about` (the line the coordinator reads every turn, so a word in a message finds the project), its `install`
+// (else the lockfile picks a frozen install; "" for none) and `prompts`, files of the project's folder the roles read in
+// place of its repository's (default spec/vision.md, .agents/arthur/criteria and .agents/arthur/roles in the repository).
+// Every other piece is its plugin's, checked by it at load: its tracker (`instance` names an instance of the youtrack plugin;
+// without it, the unnamed one), its CI workflow, its commit rules, auto-merge, the machine labels its jobs need (a ticket's
+// own `"requires"` in its JSON block replaces them), its sites, what a merge makes of its findings; planned, `docker.project(false)`
+// to leave its jobs' Docker resources unlabelled and uncleaned (default: on while the docker plugin is), and
+// `orchestration.project({ chat })`, the place of a channel (a Telegram topic, a Discord or Slack channel) where the project's
+// own agent talks with you; without it the coordinator handles the project. One repository may be several projects, each
+// checkout its own folder. Each file imports the helpers it uses: `import { projects } from "@arthur/projects";`.
+//
+// projects/arthur/project.config.ts
+//	export default [
+//		projects.project({ title: "Arthur", about: "Runs coding agents in Git worktrees for one human, with a ticket board and plugins from one config.", path: "../..", prefix: "AR" }),
+//		delivery.project({ autoMerge: true }), // merge after a PASS and green CI without asking
+//		youtrack.project({ project: "ART" }),
+//		github.project({ workflow: "ci.yml" }),
+//		commitRules.project({ regex: "^(?=.{1,72}$)(feat|fix|refactor|perf|test|docs|build|ci|chore|revert)(\\([\\w-]+\\))?!?: .+$" }),
+//	];
+//
+// projects/acme-shop/project.config.ts
+//	export default [
+//		projects.project({
+//			title: "Acme Shop",
+//			about: "The online shop of the client Acme: customers order garden tools; it succeeds when an order is paid.",
+//			repo: "git@github.com:acme/shop.git",
+//			prefix: "SHOP",
+//			install: "bun install --frozen-lockfile && bun run build:deps", // runs in each new worktree
+//			prompts: { vision: "vision.md" }, // projects/acme-shop/vision.md, kept off the client's repository
+//		}),
+//		delivery.project({ autoMerge: false }), // every merge waits for the human
+//		youtrack.project({ instance: "acme", project: "SHOP" }),
+//		github.project({ workflow: "build.yml" }),
+//		commitRules.project({ words: "Start with the ticket id, then a verb in the imperative." }), // judged by the review
+//		uptime.project([
+//			{ url: "https://shop.acme.example/" }, // any 2xx status, checked every 60 s
+//			{ url: "https://shop.acme.example/health", expect: "ok", everySeconds: 30 }, // a 2xx page that holds "ok"
+//			{ url: "https://admin.shop.acme.example/", expect: 401 }, // exactly this status
+//		]),
+//		orchestration.project({ chat: { plugin: "telegram", place: "12" } }), // planned: its own agent answers in topic 12 of the bot's chat
+//	];
+//
+// projects/acme-site/project.config.ts
+//	export default [
+//		projects.project({ title: "Acme Site", about: "Acme's company website: who they are and how to reach them.", repo: "git@github.com:acme/site.git", prefix: "SITE" }),
+//		youtrack.project({ instance: "acme", project: "SITE" }),
+//		github.project({ workflow: "ci.yml" }),
+//		commitRules.project({ file: "commit-rules.md" }), // projects/acme-site/commit-rules.md, read as plain words
+//		findings.project("summary"),
+//		docker.project(false), // planned: its jobs' containers are not labelled, nor removed with their worktree; the sweep still runs
+//	];
+//
+// projects/acme-ios/project.config.ts
+//	export default [
+//		projects.project({ title: "Acme iOS", repo: "git@github.com:acme/ios.git", prefix: "IOS", install: "" }), // nothing to install
+//		youtrack.project({ instance: "acme", project: "IOS" }),
+//		github.project({ workflow: "ios.yml" }),
+//		machines.project({ os: "macos", tools: ["xcodebuild"] }), // every job of this project runs on a machine with these labels
+//		findings.project("grouped"),
+//	];

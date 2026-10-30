@@ -5,7 +5,7 @@ Roadmap entries 57 and 58: while `arthur run` runs, Arthur asks GitHub for the C
 ```ts
 plugins: [
 	orchestration({}),
-	projects({ list: [{ name: "shop", prefix: "SH", repo: "git@github.com:acme/shop.git", ci: { workflow: "ci.yml" } }] }),
+	projects({ folders: ["projects/shop"] }), // projects/shop/project.config.ts: projects.project({ prefix: "SH", repo: "git@github.com:acme/shop.git" }), github.project({ workflow: "ci.yml" })
 	github({
 		instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }, { name: "acme", tokenEnv: "ARTHUR_GITHUB_ACME_TOKEN" }],
 		poll: { everySeconds: 120 },
@@ -22,16 +22,16 @@ It needs `projects` in the list (`requires`), which sets up first.
 - `name`: a GitHub owner, user or organization, in lowercase (letters, digits, single dashes): the instance reads that owner's repositories. Left out: the unnamed instance, which reads every repository whose owner no instance is named after.
 - `tokenEnv`: the variable holding the token. Make it a fine-grained personal access token whose "Repository access" is "Only select repositories", the projects' repositories and no other, with Actions: read, or Actions: read and write for `arthur ci --rerun` and `github.cancel`, and Pull requests: read for `pull-request-review` and `arthur github pr list` and `pr get`; GitHub adds Metadata: read itself. Never Contents, Administration or Workflows: branches are pushed with git's own credentials, and no verb merges on GitHub (`arthur github pr --help`), so even a leaked token pushes no code past `arthur merge`. Avoid a classic token: its `repo` scope reads and writes the code, issues and settings of every repository the account reaches, far beyond what the plugin needs, so a leaked one could push to any of them past `arthur merge`. Arthur does not check the token's scope. Its value never goes into an error, a notice, an event or a file.
 - `apiUrl`: the REST API's address; default `https://api.github.com`. GitHub Enterprise Server's is `https://<host>/api/v3`.
-- `poll.everySeconds`: a whole number of seconds, 1 or more, between two polls; default 120. A poll asks once per project with a `ci.workflow`, and GitHub allows a token 5000 requests an hour.
+- `poll.everySeconds`: a whole number of seconds, 1 or more, between two polls; default 120. A poll asks once per project with a `github.project({ workflow })`, and GitHub allows a token 5000 requests an hour.
 - `wakeOn`: the events that wake the coordinator, each at most once, among `ci-finished` and `pull-request-review`; default `["ci-finished"]`, and `[]` wakes it on nothing. `pull-request-review` also turns on the polling of pull request reviews, which costs a request per project and one per pull request updated since the poll before.
 
 Refused at load, with the option's path: an unknown option or key, no instances, a `name` that is not a lowercase owner, two unnamed instances or one name twice, an `apiUrl` that is not https, or http on loopback (`localhost`, 127.0.0.0/8, `::1`, where a test's fake answers; anywhere else the token would cross the network in plain text), a `poll.everySeconds` below 1 or not whole, a `wakeOn` that is no list, names another event, or names one twice. At setup, naming the option or the project:
 
 - a token that is empty or that a header cannot carry: `instances[<n>].tokenEnv: <variable> is empty or holds a space or a character outside ASCII, which a header cannot carry`;
-- a project with a `ci.workflow` whose checkout has no `origin`: `project <name>: ci.workflow is set, but its checkout has no origin remote to name its GitHub repository`; one whose `origin` ends in no `<owner>/<repository>`: `project <name>: its origin remote names no <owner>/<repository>` (the remote's URL is never said: it may hold a credential);
+- a project with a `github.project({ workflow })` whose checkout has no `origin`: `project <name>: github.project({ workflow }) is set, but its checkout has no origin remote to name its GitHub repository`; one whose `origin` ends in no `<owner>/<repository>`: `project <name>: its origin remote names no <owner>/<repository>` (the remote's URL is never said: it may hold a credential);
 - a project whose owner no instance is named after, with no unnamed instance: `project <name>: no instance of github is named <owner>, the owner of <owner>/<repository>, and none is unnamed; github's instances: <names>`.
 
-A project without `ci` is not polled, and nothing of it is checked at load: `arthur github` finds its repository and instance when it runs for it, and refuses then, in the words above without `ci.workflow is set, but `.
+A project without `github.project({ workflow })` is not polled, and nothing of it is checked at load: `arthur github` finds its repository and instance when it runs for it, and refuses then, in the words above without `github.project({ workflow }) is set, but `. A piece of another shape is refused at load, before the setup: `plugin github: setup failed: project <name>: github.project(...): expected { workflow }, a non-empty string: the workflow's file name or name`.
 
 ## Pull requests
 
@@ -39,7 +39,7 @@ A project without `ci` is not polled, and nothing of it is checked at load: `art
 
 ## The runs
 
-A project's repository is its checkout's `origin`, `git@github.com:<owner>/<repository>.git` or `https://github.com/<owner>/<repository>`; its workflow is `ci.workflow`, the file name in `.github/workflows/` (`ci.yml`) or the workflow's id. At the start of `arthur run`, then every `poll.everySeconds`, each such project's 100 newest runs of that workflow are asked for (`GET /repos/<owner>/<repository>/actions/workflows/<workflow>/runs`), one project after the other.
+A project's repository is its checkout's `origin`, `git@github.com:<owner>/<repository>.git` or `https://github.com/<owner>/<repository>`; its workflow is the `workflow` of its piece, `github.project({ workflow })` in its project file, the file name in `.github/workflows/` (`ci.yml`) or the workflow's id. At the start of `arthur run`, then every `poll.everySeconds`, each such project's 100 newest runs of that workflow are asked for (`GET /repos/<owner>/<repository>/actions/workflows/<workflow>/runs`), one project after the other.
 
 The branches in play are the checkout's own branch (main) and the branch of every job of the project (`host.jobs.list()`), in any state, while it still exists in the checkout. A branch's run is the newest run on the nearest commit of its first-parent line, from its tip back at most 1000 commits, that has one: a commit that touches no path the workflow watches has no run, so the run before it counts. A job's branch not pushed yet has the run of the commit it started from on main.
 
@@ -53,7 +53,7 @@ With `ci-finished` in `wakeOn`, each one that did not end `success` also reaches
 
 ## Pull request reviews
 
-With `pull-request-review` in `wakeOn`, each poll also asks, per project with a `ci.workflow`, for its repository's 100 open pull requests most recently updated, and for the reviews of each one that is new or whose `updated_at` changed since the poll before (submitting a review updates it). Each submitted review not told before (a pending one is a draft, not submitted) is emitted as `pull-request-review`:
+With `pull-request-review` in `wakeOn`, each poll also asks, per project with a `github.project({ workflow })`, for its repository's 100 open pull requests most recently updated, and for the reviews of each one that is new or whose `updated_at` changed since the poll before (submitting a review updates it). Each submitted review not told before (a pending one is a draft, not submitted) is emitted as `pull-request-review`:
 
 `{ project, repo, pull, title, branch, review, user, state, body, url }`
 

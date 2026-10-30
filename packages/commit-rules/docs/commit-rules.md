@@ -1,21 +1,24 @@
 # commit-rules
 
-The `commit-rules` plugin (roadmap entry 43): each project's rule for its commit messages, set by `commitRules` in its entry of the `projects` plugin's list (`arthur projects --help`), in one of three forms. It needs the `projects` plugin and takes no option of its own: `commitRules()` in `arthur.config.ts`, or `commitRules({ enabled: false })`.
+The `commit-rules` plugin (roadmap entry 43): each project's rule for its commit messages, set by its piece, `commitRules.project(...)` in its project file (`arthur projects --help`, "A project's file"), in one of three forms: `commitRules.project({ regex: "..." })`, `{ words }` or `{ file }`. The piece's key is the plugin's name, `commit-rules`, so a refusal and `arthur doctor` name it `commit-rules.project(...)`. It needs the `projects` plugin and takes no option of its own: `commitRules()` in `arthur.config.ts`, or `commitRules({ enabled: false })`.
 
 | Form | Example | What the plugin does |
 | --- | --- | --- |
 | `regex` | `{ regex: "^(?=.{1,72}$)(feat\|fix\|docs)(\\([\\w-]+\\))?!?: .+$" }` | A `commit-msg` hook in each job worktree of the project refuses a commit whose subject does not match, and says the rule. Nothing goes into the prompt. |
 | `words` | `{ words: "Start with the ticket id, then a verb in the imperative." }` | The words go into the prompt of the project's workers and reviewers; the review judges the branch's messages by them. No hook. |
-| `file` | `{ file: "docs/commit-rules.md" }` | The file, a path in the project's repository, is read at the commit the job starts from and goes into the prompt as words, so the rule is versioned with the project. No hook. |
+| `file` | `{ file: "commit-rules.md" }` | The file, a path inside the project's folder (`projects/<name>/`), is read at each spawn and goes into the prompt as words. No hook. |
 
-A project without `commitRules` gets no hook and no text.
+A project without `commitRules.project(...)` gets no hook and no text.
 
 ## Refused at load
 
-- A `regex` that does not compile as a JavaScript regular expression refuses the load, naming the project, so `arthur config check` and `arthur run` say it and no job starts: `plugin commit-rules: setup failed: project <name>: commitRules.regex does not compile: <why>`.
-- Any option but `enabled`: `unknown option; commit-rules takes none: a project's rule is its commitRules in the projects list`.
+Each refuses the load before the plugin's setup, naming the project, so `arthur config check` and `arthur run` say it and no job starts:
 
-The shape of `commitRules` (exactly one of the three keys, a non-empty string) is the `projects` plugin's check.
+- A `regex` that does not compile as a JavaScript regular expression: `plugin commit-rules: setup failed: project <name>: commit-rules.project(...): regex does not compile: <why>`.
+- A piece of another shape, not exactly one of the three keys with a non-empty string: `... commit-rules.project(...): expected exactly one of { regex }, { words }, { file }, a non-empty string`.
+- A `file` that is absolute or leads out of the project's folder: `... commit-rules.project(...): file "<file>" is not a path inside the project's folder`.
+
+Any option but `enabled` is refused too: `unknown option; commit-rules takes none: a project's rule is its commitRules.project(...) in its project file`.
 
 ## The hook
 
@@ -37,4 +40,4 @@ The rule of `words` or `file` is a section at the end of the prompt of the roles
 - worker: `## Commit messages`, then `This project's rule for every commit message you write (<source>):` and the rule.
 - reviewer: the same heading, then `This project's rule for commit messages; judge each commit of the branch by it, and a message that breaks it is a finding (<source>):` and the rule.
 
-`<source>` is `commitRules.words in arthur.config.ts`, or `<file> at <the job's commit, 7 digits>`. The file is read from Git at that commit, never from the working tree, so an uncommitted change does not count. A file missing at that commit, a folder, or an empty one is a warning of the spawn (`arthur spawn` prints it on stderr, `host.jobs.spawn` returns it in the job's `warnings`) and the job starts without the section: `warning: commit-rules: project <name>: rule file <file> at <commit> is missing or not a file; the <role> goes without it` (`is empty` for an empty one).
+`<source>` is `commitRules.project({ words }) in its project file`, or the file's path in the project's folder. The file is read at each spawn. A file missing, a folder, a symlink, or an empty one is a warning of the spawn (`arthur spawn` prints it on stderr, `host.jobs.spawn` returns it in the job's `warnings`) and the job starts without the section: `warning: commit-rules: project <name>: rule file <path> is missing or not a file; the <role> goes without it` (`is empty` for an empty one).

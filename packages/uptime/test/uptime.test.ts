@@ -12,7 +12,8 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { type FakeHost, fakeHost, until } from "@arthur/core/testing";
 import { checkSite } from "../src/site-check.ts";
 import { readState } from "../src/uptime-state.ts";
-import { type UptimeOptions, uptime } from "../src/uptime.ts";
+import type { Site } from "../src/uptime-options.ts";
+import { uptime } from "../src/uptime.ts";
 
 // The uptime plugin against the fake host and a local HTTP server on a port the OS picks, each path answering as the test
 // sets it. Sites are checked every second here, so a check is cut after 1 s.
@@ -72,17 +73,20 @@ function outside(t: TestContext, name: string): number[] {
 	return ports;
 }
 
-// A fake host for `sites`, now at START unless given, where projects acme and beta are the project list.
-function host(sites: UptimeOptions["sites"], more: { readonly now?: Date; readonly quietHours?: { from: string; to: string } } = {}): FakeHost {
-	const fake = fakeHost({ name: "uptime", options: { sites }, now: START, ...more });
-	fake.provide("projects", () => [{ name: "acme" }, { name: "beta" }]);
+// Each project's sites, its piece, by the project's name.
+type Sites = Readonly<Record<string, readonly Site[]>>;
+
+// A fake host now at START unless given, where projects acme and beta are the project list, each with its `sites` as its piece.
+function host(sites: Sites, more: { readonly now?: Date; readonly quietHours?: { from: string; to: string } } = {}): FakeHost {
+	const fake = fakeHost({ name: "uptime", now: START, ...more });
+	fake.provide("projects", () => ["acme", "beta"].map((name) => ({ name, pieces: sites[name] === undefined ? {} : uptime.project(sites[name]) })));
 	return fake;
 }
 
 // The plugin set up on `fake` and started; stopped at the end. Its checks run on real timers against a real server: the
 // timeout cut by `fetch` and the server's own time are what is tested.
-async function started(t: TestContext, sites: UptimeOptions["sites"], fake: FakeHost = host(sites)) {
-	const plugin = uptime({ sites });
+async function started(t: TestContext, sites: Sites, fake: FakeHost = host(sites)) {
+	const plugin = uptime();
 	await fake.setup(plugin);
 	await plugin.start?.();
 	t.after(() => plugin.stop?.());
@@ -356,11 +360,10 @@ test("a state file broken or edited by hand is taken as no site down; an entry t
 	assert.deepEqual(readState(fake.host.folder), { down: { "acme http://b/": { since: START.toISOString(), reason: "refused" } } });
 });
 
-test("a key of sites that is not a project refuses the load", async () => {
-	const sites = { acme: [], acmee: [{ url: "https://acme.example/" }] };
-	const fake = fakeHost({ name: "uptime", options: { sites } });
-	fake.provide("projects", () => [{ name: "acme" }]);
-	await assert.rejects(fake.setup(uptime({ sites })), {
-		message: "sites names acmee, not a project of the projects list; each key of sites is a project's name",
+test("a project's piece that is no list of sites refuses the load before the setup, naming the project and the helper", async () => {
+	const fake = host({ acme: [{ url: "https://acme.example/" }], beta: [{ url: "ftp://beta.example/" }, { url: "https://beta.example/", timeout: 5 } as Site] });
+	await assert.rejects(fake.setup(uptime()), {
+		message: 'project beta: uptime.project(...): [0].url: expected an http or https URL, got "ftp://beta.example/"; [1].timeout: unknown key; keys: url, expect, everySeconds',
 	});
+	assert.deepEqual(fake.provided, [], "no setup ran");
 });

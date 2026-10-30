@@ -43,4 +43,5 @@ Out:
 
 ## Decisions
 - 2026-10-30: AR0586 approved; it starts first, in the next free slot, budget $4; the owner: "i have to focus on my work, go with recomendations and do not cross 70% of weekly usage, do to silent mode" (AR-D362)
+- 2026-10-30: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)
 

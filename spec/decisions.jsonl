@@ -736,3 +736,5 @@
 {"record":"answer","id":"AR-D366","time":"2026-10-30T09:26:45+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D367","time":"2026-10-30T09:51:25+01:00","project":"arthur","kind":"merge","question":"Merge AR0569 (check timeout, pkill refused, job-steered) after its passed review?","options":[],"ticket":"AR0569"}
 {"record":"answer","id":"AR-D367","time":"2026-10-30T09:51:25+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D368","time":"2026-10-30T10:26:36+01:00","project":"arthur","kind":"merge","question":"Merge AR0586 (report check at 420 px on any Chrome) after its passed review?","options":[],"ticket":"AR0586"}
+{"record":"answer","id":"AR-D368","time":"2026-10-30T10:26:36+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

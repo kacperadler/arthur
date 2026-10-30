@@ -4598,9 +4598,9 @@
   {
     "id": "AR0576",
     "title": "Defaults T8: a passed review merges by itself in an autoMerge project, and four FAILs come before the owner is asked",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0576-defaults-t8-a-passed-review-merges-by-itself-in-an-automerge-project-and-four/ticket.md",
-    "updated": "2026-10-30T17:57:46.425Z",
+    "updated": "2026-10-30T18:03:58.448Z",
     "after": [
       "AR0574",
       "AR0575"

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, globSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
+import { userInfo } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
@@ -50,7 +50,7 @@ function frame(png: Buffer): [number, number] {
 // The command as the file writes it, `<page>` the page's path, from the repository's root, in `env`; `files` beside the page.
 // `lines` is what it printed but the screenshots' line; `shots`, the screenshots that line names, each read as a PNG's size
 // and the page's width in its top and bottom rows, `pngs` their bytes; `left`, what the screenshots' folder holds.
-function check(html: string, env: NodeJS.ProcessEnv = process.env, files: Readonly<Record<string, string>> = {}) {
+function check(html: string, env: NodeJS.ProcessEnv = ENV, files: Readonly<Record<string, string>> = {}) {
 	const folder = temporaryFolder();
 	writeFileSync(join(folder, "page.html"), html);
 	for (const [file, text] of Object.entries(files)) {
@@ -70,11 +70,14 @@ function check(html: string, env: NodeJS.ProcessEnv = process.env, files: Readon
 	return { code: run.status, lines: all.filter((line) => !line.startsWith(SHOTS)), shots, pngs, left };
 }
 
-// A browser the check would find, for a wrapper around it.
+// A browser the check would find, looked up under the real user's home: the test kit sets HOME to its own folder (AR0577),
+// where the check, run with that HOME, finds none; so the tests hand it the browser as CHROME.
 const which = (name: string) => spawnSync("/bin/bash", ["-c", `command -v ${name}`], { encoding: "utf8" }).stdout.trim();
-const BROWSER = [process.env.CHROME, ...["chromium", "chromium-browser", "google-chrome"].map(which), ...globSync(join(homedir(), ".cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-*/chrome-headless-shell"))].find(Boolean);
+const caches = [".cache", "Library/Caches"].flatMap((cache) => globSync(join(userInfo().homedir, cache, "ms-playwright/chromium_headless_shell-*/chrome-headless-shell-*/chrome-headless-shell")).sort().reverse());
+const BROWSER = [process.env.CHROME, ...["chromium", "chromium-browser", "google-chrome"].map(which), ...caches].find(Boolean);
 const NO_BROWSER = BROWSER === undefined;
 const skip = { skip: NO_BROWSER && "no Chrome or Chromium" };
+const ENV: NodeJS.ProcessEnv = { ...process.env, CHROME: BROWSER };
 // A wrapper around the browser that runs `shell` first, with the browser's arguments in "$*".
 function wrapper(shell: string): NodeJS.ProcessEnv {
 	const file = join(temporaryFolder(), "chrome");
@@ -101,7 +104,7 @@ test("a page of the base style and every component passes at 420 px, with one sc
 
 test("a page 3001 px tall is screenshot in 3 slices of 1500 px, and the last run's slices are replaced", skip, () => {
 	const stale = { "page.html.420px/9.png": "old" };
-	const { code, shots, pngs, left } = check(page("body { margin:0 }", '<p style="margin:0;height:3001px">tall</p>'), process.env, stale);
+	const { code, shots, pngs, left } = check(page("body { margin:0 }", '<p style="margin:0;height:3001px">tall</p>'), ENV, stale);
 	assert.notDeepEqual(pngs[0], pngs[1], "the second slice shows the page further down, not its top again");
 	assert.equal(code, 0);
 	assert.deepEqual(shots.map(({ name, width, height, page }) => [name, width, height, page]), [1, 2, 3].map((n) => [`page.html.420px/${n}.png`, 500, 1500, [420, 420]]));
@@ -209,7 +212,7 @@ test("text a page's script adds before load is checked, a forged result is not r
 
 test("the page is checked once its images have loaded: an image without a size that widens it fails", skip, () => {
 	const wide = '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="10"><rect width="900" height="10"/></svg>\n';
-	const { code, lines } = check(page("body { margin:0 }", '<p>base</p><img src="wide.svg" alt="">'), process.env, { "wide.svg": wide });
+	const { code, lines } = check(page("body { margin:0 }", '<p>base</p><img src="wide.svg" alt="">'), ENV, { "wide.svg": wide });
 	assert.deepEqual([code, lines.slice(0, -1)], [1, ["the page scrolls sideways: 900 px wide on a 420 px screen", 'wider than the screen, 0 to 900 px: img ""']]);
 });
 

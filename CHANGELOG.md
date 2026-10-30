@@ -12,6 +12,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Fixed
 
 - AR0566 Five job roles tell the agent to wait on proc://, which a job sandbox cannot reach (425ca8aa)
+- AR0570 Defaults T2: a branch cannot change its ticket, the board or the decision log (5a2e3ed8)
 - AR0586 The report check tests fail on GitHub CI: its Chrome will not render narrower than 500 px (8c271b51)
 
 ### Changed

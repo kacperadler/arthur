@@ -26,7 +26,7 @@ export function plans(host: Host): void {
 	host.jobs.registerRole({ name: "planner", file: new URL("../roles/planner.md", import.meta.url), criteria: ["styleguide"] });
 	host.jobs.registerRole({ name: "plan-reviewer", file: new URL("../roles/plan-reviewer.md", import.meta.url), criteria: ["styleguide"] });
 	host.jobs.registerKind({ name: PLAN, readOnly: true, role: "planner", budgetUsd, resumeOnBudget: true, file: filePlan });
-	host.jobs.registerKind({ name: PLAN_REVIEW, readOnly: true, role: "plan-reviewer", file: filePlanReview });
+	host.jobs.registerKind({ name: PLAN_REVIEW, readOnly: true, role: "plan-reviewer", verdicts: ["PASS", "FAIL"], file: filePlanReview });
 	host.jobs.beforeSpawn(({ kind, project, task, tickets, budgetUsd, free }) => {
 		const plan = kind === PLAN || kind === PLAN_REVIEW;
 		if (!plan && (kind !== "worker" || tickets.length === 0)) return undefined;

@@ -50,3 +50,4 @@ Out:
 
 - 2026-10-30: Source: audit spec/quality/2026-10-30.md
 - 2026-10-30: AR0566 approved; its worker starts now; the owner: "AR0566, AR0567, AR0568 - approve" (AR-D356)
+- 2026-10-30: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

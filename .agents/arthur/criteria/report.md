@@ -99,7 +99,7 @@ First run, from the repository's root, `<page>` being the page's path:
 node -e 'eval(String(require("fs").readFileSync(".agents/arthur/criteria/report.md")).split("```js page-check\n")[1].split("\n```")[0])' <page>
 ~~~
 
-It renders the page in headless Chrome 420 px wide, once it and its images and fonts have loaded, and prints one line per problem: the page scrolling sideways (`the page scrolls sideways: 900 px wide on a 420 px screen`), each element that ends past the screen's edge or scrolls sideways inside, and each element whose text colour, against its own background or else its nearest ancestor's, is below 4.5:1 (`contrast 1.12:1, #ffffff on #f2f2f2: code "arthur repeats"`). Exit 0 with `ok: ...` when there is none, 1 with the problems; fix each and run it again. Exit 2 when it could not check: no browser runs (set `CHROME` to a Chrome or Chromium binary; Playwright's `chrome-headless-shell` will do), the page never finished loading, or no screenshot was taken. Each run also takes screenshots of the page at 420 px, 1500 px of it each, all of it, into the folder `<page>.420px/` beside it (`1.png`, `2.png`, ...), replacing the last run's, and prints their paths.
+It renders the page in headless Chrome, in a frame 420 px wide on a window 500 px wide (Chrome keeps a window at least 500 px wide), once it and its images and fonts have loaded, and prints one line per problem: the page scrolling sideways (`the page scrolls sideways: 900 px wide on a 420 px screen`), each element that ends past the screen's edge or scrolls sideways inside, and each element whose text colour, against its own background or else its nearest ancestor's, is below 4.5:1 (`contrast 1.12:1, #ffffff on #f2f2f2: code "arthur repeats"`). Exit 0 with `ok: ...` when there is none, 1 with the problems; fix each and run it again. Exit 2 when it could not check: no browser runs (set `CHROME` to a Chrome or Chromium binary; Playwright's `chrome-headless-shell` will do), the page never finished loading, or no screenshot was taken. Each run also takes screenshots of the page at 420 px, 1500 px of it each, all of it, into the folder `<page>.420px/` beside it (`1.png`, `2.png`, ...), replacing the last run's, and prints their paths; each is 500 px wide, grey right of the page's 420 px.
 
 Then look at every one of those screenshots (`read` each) before sending: every heading, command, id and number readable, nothing cut or overlapping. A page that looks wrong is not sent, whatever the script printed.
 
@@ -114,7 +114,8 @@ const { basename, dirname, join, resolve } = process.getBuiltinModule("node:path
 const { pathToFileURL } = process.getBuiltinModule("node:url");
 
 // Runs inside the page once it has loaded: the width, then each element with its own text against the background its CSS
-// declares, its own or its nearest ancestor's. `id` names the result, which the page cannot know, so it cannot forge one.
+// declares, its own or its nearest ancestor's. `id` names the result it posts to the window around the page's frame, which
+// the page cannot know, so it cannot forge one.
 function check(width, id) {
 	const problems = [];
 	const rgb = (value) => (/^rgba?\(/.test(value) ? value.match(/[\d.]+/g).map(Number) : undefined);
@@ -154,36 +155,40 @@ function check(width, id) {
 		if (ratio < 4.5) problems.push(`contrast ${ratio.toFixed(2)}:1, ${hex(front)} on ${hex(back)}: ${name(el)}`);
 	}
 	if (texts === 0) problems.push("no text found to check");
-	const result = document.createElement("script");
-	result.type = "application/json";
-	result.id = id;
-	result.textContent = JSON.stringify({ texts, height: document.documentElement.scrollHeight, problems }).replaceAll("<", "\\u003c");
-	document.body.append(result);
+	parent.postMessage({ id, result: JSON.stringify({ texts, height: document.documentElement.scrollHeight, problems }).replaceAll("<", "\\u003c") }, "*");
 }
 
 const WIDTH = 420;
+const WINDOW = 500;
 const ID = `page-check-${randomUUID()}`;
 const page = process.argv[1];
 if (page === undefined) {
 	console.error("usage: the command above, with the page's path");
 	process.exit(2);
 }
-// A copy beside the page, so its relative links load; the check waits for the load event and the fonts. Virtual time lets the
-// browser dump the page only once that is done, up to 10 s of the page's own time.
+// A copy beside the page, so its relative links load, shown in a frame WIDTH px wide: new headless Chrome keeps a window at
+// least WINDOW px wide, so the window cannot set the width. The check waits for the load event and the fonts, and the window
+// writes each result posted to it into its own document, where only the one named by ID is read. Virtual time lets the
+// browser dump the window only once that is done, up to 10 s of the page's own time.
 const copy = join(dirname(resolve(page)), `.${basename(page)}.check.html`);
+const window = join(dirname(resolve(page)), `.${basename(page)}.window.html`);
+const frame = (height) =>
+	writeFileSync(window, `<!doctype html>\n<meta charset="utf-8"><style>html, body { margin:0; background:#808080 } iframe { display:block; border:0; width:${WIDTH}px; height:${height}px; background:#ffffff }</style><iframe src="${pathToFileURL(copy).href}"></iframe>\n<script>addEventListener("message", ({ data }) => { const result = document.createElement("script"); result.type = "application/json"; result.id = data.id; result.textContent = data.result; document.body.append(result); });</script>\n`);
 writeFileSync(copy, `${readFileSync(page, "utf8")}\n<script>addEventListener("load", () => document.fonts.ready.then(() => (${check})(${WIDTH}, "${ID}")));</script>\n`);
+frame(900);
 const caches = [".cache", "Library/Caches"].flatMap((cache) => globSync(join(homedir(), cache, "ms-playwright/chromium_headless_shell-*/chrome-headless-shell-*/chrome-headless-shell")).sort().reverse());
 // No sandbox: Ubuntu 23.10+ refuses Chrome's, and the page is one Arthur wrote, not a site.
-const chrome = (browser, height, ...what) => spawnSync(browser, ["--headless", "--no-sandbox", "--disable-gpu", "--hide-scrollbars", `--window-size=${WIDTH},${height}`, "--virtual-time-budget=10000", ...what], { encoding: "utf8", timeout: 60_000 });
+const chrome = (browser, height, ...what) => spawnSync(browser, ["--headless", "--no-sandbox", "--disable-gpu", "--hide-scrollbars", `--window-size=${WINDOW},${height}`, "--virtual-time-budget=10000", ...what], { encoding: "utf8", timeout: 60_000 });
 let run;
 let browser;
 try {
 	for (browser of [process.env.CHROME, "chromium", "chromium-browser", "google-chrome", ...caches].filter(Boolean)) {
-		run = chrome(browser, 900, "--dump-dom", pathToFileURL(copy).href);
+		run = chrome(browser, 900, "--dump-dom", pathToFileURL(window).href);
 		if (run.error?.code !== "ENOENT") break;
 	}
 } finally {
 	rmSync(copy, { force: true });
+	rmSync(window, { force: true });
 }
 const found = new RegExp(`<script type="application/json" id="${ID}">(.*?)</script>`, "s").exec(run?.stdout ?? "");
 if (found === null) {
@@ -197,7 +202,7 @@ const { texts, height, problems } = JSON.parse(found[1]);
 for (const problem of problems) console.log(problem);
 console.log(problems.length === 0 ? `ok: ${page} at ${WIDTH} px: ${texts} texts at 4.5:1 or more against their declared background, nothing scrolls sideways` : `${problems.length} problems in ${page} at ${WIDTH} px`);
 // The whole page, a screen of 1500 px at a time, each slice small enough to read at full size; the page is shifted
-// up by a style added to a copy, so its relative links load as in the check.
+// up by a style added to a copy, shown in the frame as in the check.
 const shots = `${page}.${WIDTH}px`;
 const SLICE = 1500;
 rmSync(shots, { recursive: true, force: true });
@@ -207,13 +212,15 @@ let failed;
 try {
 	for (let n = 0; n < Math.ceil(height / SLICE) && failed === undefined; n++) {
 		writeFileSync(copy, `${readFileSync(page, "utf8")}\n<style>html { transform: translateY(-${n * SLICE}px) }</style>\n`);
+		frame(SLICE);
 		const file = join(shots, `${n + 1}.png`);
-		const shot = chrome(browser, SLICE, `--screenshot=${resolve(file)}`, pathToFileURL(copy).href);
+		const shot = chrome(browser, SLICE, `--screenshot=${resolve(file)}`, pathToFileURL(window).href);
 		if (shot.status === 0) taken.push(file);
 		else failed = shot.error?.message ?? shot.stderr.trim().split("\n").at(-1);
 	}
 } finally {
 	rmSync(copy, { force: true });
+	rmSync(window, { force: true });
 }
 if (failed !== undefined) {
 	console.error(`no screenshot: ${failed}; the page is not sent without one`);

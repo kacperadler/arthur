@@ -4733,7 +4733,7 @@
     "path": "spec/features/AR0590-ar0589-t3-a-job-cannot-read-the-shared-home-arthur-of-other-projects/ticket.md",
     "updated": "2026-10-30T16:58:17.176Z",
     "after": [
-      "AR0589"
+      "AR0593"
     ]
   },
   {
@@ -4749,5 +4749,12 @@
     "status": "planned",
     "path": "spec/features/AR0592-plan-a-discord-plugin-the-owner-chat-with-arthur-in-a-private-discord-server/ticket.md",
     "updated": "2026-10-30T19:12:09.752Z"
+  },
+  {
+    "id": "AR0593",
+    "title": "AR0589 T2: a job sees only its own project",
+    "status": "planned",
+    "path": "spec/features/AR0593-ar0589-t2-a-job-sees-only-its-own-project/ticket.md",
+    "updated": "2026-10-30T20:15:36.720Z"
   }
 ]

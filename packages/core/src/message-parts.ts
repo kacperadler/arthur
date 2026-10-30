@@ -13,7 +13,7 @@ export type Received = { readonly channel: string; readonly parts: readonly Part
 export type Claim = { readonly text: string; readonly reply?: string };
 
 const KINDS: readonly unknown[] = ["text", "photo", "video", "voice", "audio", "file"];
-export const NOT_TRANSCRIBED = "[voice note not transcribed: the voice plugin is not enabled]";
+export const NOT_TRANSCRIBED = "[voice note not transcribed: the listen plugin is not enabled]";
 
 const filled = (value: unknown): value is string => typeof value === "string" && value.trim() !== "";
 const record = (value: unknown) => (typeof value === "object" && value !== null ? value : {}) as Readonly<Record<string, unknown>>;

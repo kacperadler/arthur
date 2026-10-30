@@ -4,8 +4,8 @@ flowchart TD
 
   subgraph V1[First version]
     core[core<br/>with job state and jobs over SSH]
-    p1[orchestration - always on,<br/>machines, models, resources,<br/>session, schedule,<br/>projects, youtrack, telegram,<br/>discord]
-    p2[delivery, github,<br/>commit-rules, listen]
+    p1[orchestration - always on,<br/>machines, models, resources, uptime,<br/>session, schedule,<br/>projects, nvm, youtrack, telegram,<br/>discord]
+    p2[delivery, github,<br/>commit-rules, findings,<br/>listen, video]
     p3[manage, develop,<br/>docker]
     core ~~~ p1 ~~~ p2 ~~~ p3
   end

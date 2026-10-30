@@ -40,3 +40,4 @@ Out:
 - 2026-10-30: Source: the approved plan of AR0561 (AR-D345)
 - 2026-10-30: AR0583 keeps orchestration 2568 and models 516 as measured; the review checks that no line goes beyond what the grant needs; the owner: "i have to focus on my work, go with recomendations and do not cross 70% of weekly usage, do to silent mode" (AR-D378)
 - 2026-10-30: AR0583 keeps orchestration 2575 as measured (+7 for the take-main refusals); the review checks the lines; the owner: "i have to focus on my work, go with recomendations and do not cross 70% of weekly usage, do to silent mode" (AR-D381)
+- 2026-10-30: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

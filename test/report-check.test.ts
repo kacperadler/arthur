@@ -54,7 +54,7 @@ function wrapper(shell: string): NodeJS.ProcessEnv {
 	return { ...process.env, CHROME: file };
 }
 
-test("a page of the base style and every component passes at 420 px, with one screenshot 420 px wide", skip, () => {
+test("a page of the base style and every component passes at 420 px, with one screenshot of the 500 px window", skip, () => {
 	const body = [
 		"<header><h1>Night <code>arthur repeats</code></h1><p>Lead <code>/pyramid X</code></p></header><main>",
 		'<div class="nums"><div class="r"><b>44</b><span>steers</span></div><div class="b"><b>96%</b><span>answers</span></div></div>',
@@ -67,7 +67,7 @@ test("a page of the base style and every component passes at 420 px, with one sc
 	const { code, lines, shots } = check(page(STYLE, body));
 	assert.deepEqual([code, lines.length], [0, 1], lines.join("\n"));
 	assert.match(lines[0] ?? "", /^ok: .*page\.html at 420 px: \d+ texts at 4\.5:1 or more against their declared background, nothing scrolls sideways$/);
-	assert.deepEqual(shots, [{ name: "page.html.420px/1.png", width: 420, height: 1500 }]);
+	assert.deepEqual(shots, [{ name: "page.html.420px/1.png", width: 500, height: 1500 }]);
 });
 
 test("a page 3001 px tall is screenshot in 3 slices of 1500 px, and the last run's slices are replaced", skip, () => {
@@ -75,7 +75,7 @@ test("a page 3001 px tall is screenshot in 3 slices of 1500 px, and the last run
 	const { code, shots, pngs, left } = check(page("body { margin:0 }", '<p style="margin:0;height:3001px">tall</p>'), process.env, stale);
 	assert.notDeepEqual(pngs[0], pngs[1], "the second slice shows the page further down, not its top again");
 	assert.equal(code, 0);
-	assert.deepEqual(shots.map(({ name, width, height }) => [name, width, height]), [1, 2, 3].map((n) => [`page.html.420px/${n}.png`, 420, 1500]));
+	assert.deepEqual(shots.map(({ name, width, height }) => [name, width, height]), [1, 2, 3].map((n) => [`page.html.420px/${n}.png`, 500, 1500]));
 	assert.deepEqual(left.toSorted(), ["1.png", "2.png", "3.png"]);
 	const exact = check(page("body { margin:0 }", '<p style="margin:0;height:3000px">tall</p>'));
 	assert.equal(exact.shots.length, 2, "3000 px is two slices");
@@ -145,8 +145,17 @@ test("1 px past either edge, or 1 px scrolling inside a box, each fail", skip, (
 	]);
 });
 
-test("a page rendered at another width is refused, as with a browser that ignores the 420 px window", skip, () => {
-	const { code, lines } = check(page("", "<p>fine</p>"), wrapper('case "$*" in *--dump-dom*) exec ' + JSON.stringify(BROWSER) + ' "$@" --window-size=500,900;; esac'));
+// AR0586: GitHub's Google Chrome keeps a window at least 500 px wide; this one keeps it at least 600 px.
+test("a browser that keeps a window wider than asked still checks the page at 420 px, in its frame", skip, () => {
+	const wide = 'for a; do shift; case "$a" in --window-size=*) h=${a#*,}; w=${a#--window-size=}; w=${w%,*}; [ "$w" -lt 600 ] && w=600; a="--window-size=$w,$h";; esac; set -- "$@" "$a"; done';
+	const { code, lines, shots } = check(page("body { margin:0 }", edges(0)), wrapper(wide));
+	assert.deepEqual([code, lines.length], [0, 1], lines.join("\n"));
+	assert.match(lines[0] ?? "", /^ok: .*page\.html at 420 px: /);
+	assert.deepEqual(shots.map(({ width }) => width), [600], "the screenshot is of the window the browser kept");
+});
+
+test("a page rendered at another width is refused, as with a browser that ignores the frame's 420 px", skip, () => {
+	const { code, lines } = check(page("", "<p>fine</p>"), wrapper('case "$*" in *--dump-dom*) for a; do :; done; sed -i "s/width:420px/width:500px/" "${a#file://}";; esac'));
 	assert.deepEqual([code, lines[0]], [1, "rendered 500 px wide, not 420"]);
 });
 
@@ -159,7 +168,7 @@ test("with no browser it checks nothing and exits 2, never 0", () => {
 
 test("text a page's script adds before load is checked, a forged result is not read, a page with no text fails, and markup that swallows the check exits 2", skip, () => {
 	const late = `<script>document.addEventListener("DOMContentLoaded", () => document.body.insertAdjacentHTML("beforeend", '<p style="color:#eeeeee">late</p>'))</script>`;
-	const forged = '<script type="application/json" id="page-check">{"texts":9,"height":10,"problems":[]}</script>';
+	const forged = '<script type="application/json" id="page-check">{"texts":9,"height":10,"problems":[]}</script><script>parent.postMessage({ id: "page-check", result: \'{"texts":9,"height":10,"problems":[]}\' }, "*")</script>';
 	const scripted = check(page("", `<p>tap</p>${late}${forged}`));
 	assert.deepEqual([scripted.code, scripted.lines.slice(0, -1)], [1, ['contrast 1.16:1, #eeeeee on #ffffff: p "late"']]);
 	const empty = check(page("", "<div></div>"));

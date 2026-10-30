@@ -15,8 +15,7 @@ export function paperCheck(host: Host): void {
 		if (root === undefined) return `project ${job.project} is not in the list`;
 		// No hook, fsmonitor or replacement a job may have set in the checkout's config runs (AR0330, AR0384).
 		const git = (...words: string[]) => spawnSync("git", ["--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, ...words], { encoding: "utf8" });
-		// HEAD against the tree `git merge` would make, every merge base counted (a branch that merged a sibling's has two), a
-		// conflicted one too. Its first line is that tree, also on exit 1 (a conflict), which an unknown branch exits with as well.
+		// HEAD against the tree `git merge` would make, its first line, every merge base counted (a branch that merged a sibling's has two); a conflict's too, exit 1 as an unknown branch's, which prints no tree.
 		const merged = git("merge-tree", "--write-tree", "--no-messages", "HEAD", job.branch);
 		const [tree = ""] = merged.stdout.split("\n");
 		const diff = /^[0-9a-f]{40,64}$/.test(tree) ? git("diff", "--name-only", "-z", "--no-renames", "HEAD", tree, "--") : { ...merged, status: -1 };

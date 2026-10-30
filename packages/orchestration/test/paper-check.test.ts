@@ -89,10 +89,16 @@ test("judged as the merge goes, for a worker only: main's own later change to a 
 	git("commit", "--quiet", "-am", "board moves");
 	assert.deepEqual(check(code), [undefined]);
 	const ticket = branch("arthur/ticket", () => write(TICKET, "# AC0001 - Shop, by the branch\n"));
-	assert.deepEqual(check(ticket), REFUSED("arthur/ticket", TICKET), "a merge that conflicts in the ticket changes it too");
+	assert.deepEqual(check(ticket), REFUSED("arthur/ticket", TICKET));
+	git("switch", "--quiet", "-c", "arthur/conflict", "main~1");
+	write(TICKET, "# AC0001 - Shop, by the branch before the board moved\n");
+	write("src/shop.ts", "export const shop = 4;\n");
+	git("commit", "--quiet", "-am", "conflict");
+	git("switch", "--quiet", "main");
+	assert.deepEqual(check("arthur/conflict"), REFUSED("arthur/conflict", TICKET), "a merge that conflicts in the ticket changes it too");
 	assert.deepEqual(check(ticket, "onboarding"), [undefined], "another kind is another plugin's to check");
 	assert.deepEqual(check(ticket, "worker", "blog"), ["project blog is not in the list"]);
-	assert.match(String(check("arthur/gone")[0]), /^cannot tell what merging arthur\/gone changes: .+/);
+	assert.deepEqual(check("arthur/gone"), ["cannot tell what merging arthur/gone changes: merge-tree: arthur/gone - not something we can merge"]);
 });
 
 // Git's diff of `HEAD...<branch>` takes one of several merge bases, by commit date: either order of the sibling's commit and the

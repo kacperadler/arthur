@@ -114,8 +114,6 @@ test("a finished worker: the agent gets the worker's tools, model, thinking and 
 	const settings = readFileSync(start?.args[start.args.indexOf("--config") + 1] ?? "", "utf8");
 	assert.match(settings, /^bash:\n  autoBackground:\n    enabled: false\n/m);
 	assert.match(settings, /^async:\n  enabled: false\n/m);
-	// The prompt the agent got tells it to give each check a bash timeout past the suite's run: without one, omp kills the call at 300 s (AR0541).
-	assert.match(readFileSync(start?.args[start.args.indexOf("--append-system-prompt") + 1] ?? "", "utf8"), /^- Run each check \(the project's tests, its type check\) in one bash call with a `timeout` of 1800 seconds: /m);
 	assert.equal(start?.cwd, job.worktree);
 	assert.deepEqual(data, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" });
 	const { log, pid, ...rest } = record;

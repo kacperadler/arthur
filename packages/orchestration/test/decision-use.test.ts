@@ -100,6 +100,22 @@ test("--unreviewed refuses a decision a class answered by policy; the owner's la
 	assert.equal(call({ id: policy, ticket: "AC0001", job: JOB }), "");
 });
 
+// The grant never answers a merge or a budget question (silent.ts); a record of one, as a hand left it, still lets nothing through.
+test("take-main, --unreviewed and --budget 0 refuse a decision answered by recommendation, the owner's grant", async (t) => {
+	const { decision, call, fake } = await setup(t);
+	const granted = async (...ask: string[]) => {
+		const id = await decision("ask", "--question", "Go?", ...ask);
+		await decision("answer", id, "--decided", "Go", "by recommendation: G7");
+		return id;
+	};
+	const take = await granted("--kind", "merge");
+	assert.equal(fake.host.call<string>("decision.owner", { id: take, what: "arthur take-main", kind: "merge", use: "take-main acme 0000abcd" }), `${take} was answered by recommendation (G7), the owner's grant, not by the owner`);
+	const unreviewed = await granted("--kind", "merge", "--ticket", "AC0001", "--what", "--unreviewed");
+	assert.equal(call({ id: unreviewed, ticket: "AC0001", job: JOB }), `${unreviewed} was answered by recommendation (G7), the owner's grant, not by the owner`);
+	const budget = await granted("--kind", "budget", "--ticket", "AC0001");
+	await assert.rejects(fake.host.jobs.spawn({ task: `Ticket: ${ONE}`, budgetUsd: 0, decision: budget }), { message: `refused by orchestration: ${budget} was answered by recommendation (G7), the owner's grant, not by the owner` });
+});
+
 test("a merge decision lets through only the flags its --what names: one for --unreviewed refuses --no-ci, one for both allows both", async (t) => {
 	const { owners, call, used, fake, root, printed } = await setup(t);
 	const asked = { ticket: "AC0001", job: JOB };

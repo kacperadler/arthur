@@ -90,10 +90,12 @@ for (const [index, step] of run.steps.entries()) {
 	at = index;
 	if ("tool" in step) {
 		const toolCallId = `toolu_fake_${index}`;
-		const input = step.args ?? {};
-		await event({ type: "tool_execution_start", toolCallId, toolName: step.tool, args: input });
-		const verdicts = (await ask("tool_call", { toolCallId, toolName: step.tool, input })) as ({ block?: boolean; reason?: string } | undefined)[];
+		const given = step.args ?? {};
+		await event({ type: "tool_execution_start", toolCallId, toolName: step.tool, args: given });
+		const verdicts = (await ask("tool_call", { toolCallId, toolName: step.tool, input: given })) as ({ block?: boolean; reason?: string; input?: object } | undefined)[];
 		const verdict = verdicts.find((each) => each?.block);
+		// As omp: the last handler that answers, when its answer has an `input`, revises what the tool runs with.
+		const input = verdicts.findLast(Boolean)?.input ?? given;
 		const blocked = verdict === undefined ? undefined : verdict.reason || "Tool execution was blocked by an extension";
 		const isError = blocked !== undefined || (step.failed ?? false);
 		const result = { content: [{ type: "text", text: blocked ?? step.output ?? "" }], details: {} };

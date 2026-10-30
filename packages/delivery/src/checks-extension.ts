@@ -6,11 +6,12 @@ import { basename, dirname, join } from "node:path";
 // (`host.jobs.registerExtension`): after each bash call it adds to the job's `checks`, `<home>/delivery/<job>/checks`, what a run
 // of the project's own checks said, each line ending with the commit the call began on and `clean` only when the tree was the
 // same clean one as the call began and as it ended, else `dirty` (AR0436). `arthur review-needed` reads it:
-// docs/commands/review-needed.md, "The job's checks".
+// docs/commands/review-needed.md, "The job's checks". A bash call that runs them gets a timeout of at least 1800 seconds (AR0569):
+// omp kills a call at its timeout, 300 seconds when it names none, and a killed check gives no result.
 
 type Script = "check" | "test";
-type ToolEvent = { readonly toolCallId?: unknown; readonly toolName?: unknown; readonly input?: { readonly command?: unknown }; readonly content?: unknown; readonly details?: { readonly async?: unknown }; readonly isError?: unknown };
-type ExtensionApi = { on(event: "tool_call" | "tool_result", handler: (event: ToolEvent, ctx: { readonly cwd: string }) => void): void };
+type ToolEvent = { readonly toolCallId?: unknown; readonly toolName?: unknown; readonly input?: { readonly command?: unknown; readonly timeout?: unknown }; readonly content?: unknown; readonly details?: { readonly async?: unknown }; readonly isError?: unknown };
+type ExtensionApi = { on(event: "tool_call" | "tool_result", handler: (event: ToolEvent, ctx: { readonly cwd: string }) => { readonly input: object } | undefined): void };
 type Tree = { readonly head: string; readonly files: string; readonly clean: boolean };
 
 export default function checks(pi: ExtensionApi): void {
@@ -19,10 +20,12 @@ export default function checks(pi: ExtensionApi): void {
 	// The job's record is `<home>/jobs/<id>`, and delivery's folder `<home>/delivery`.
 	const file = join(dirname(dirname(record)), "delivery", basename(record), "checks");
 	// The tree each bash call that runs the checks began on, by its call's id, until its result. A handler that throws blocks
-	// the call; none of these does.
+	// the call; none of these does. The input a `tool_call` handler returns is the one omp runs the call with.
 	const began = new Map<unknown, Tree | undefined>();
 	pi.on("tool_call", (event, ctx) => {
-		if (event.toolName === "bash" && scripts(event.input?.command, ctx.cwd).length > 0) began.set(event.toolCallId, tree(ctx.cwd));
+		if (event.toolName !== "bash" || scripts(event.input?.command, ctx.cwd).length === 0) return;
+		began.set(event.toolCallId, tree(ctx.cwd));
+		return { input: { ...event.input, timeout: Math.max(typeof event.input?.timeout === "number" ? event.input.timeout : 0, 1800) } };
 	});
 	pi.on("tool_result", (event, ctx) => {
 		const before = began.get(event.toolCallId);

@@ -31,12 +31,13 @@ function setup(agent = fakeAgent({ steps: [{ message: "Done." }] }), keep: (job:
 	const home = join(folder, "home");
 	mkdirSync(home);
 	const time = clock("UTC", undefined, () => NOW);
-	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, eventBus(home), (name, [job]) => (name === "jobs.keep" ? [keep(job)] : []));
+	const bus = eventBus(home);
+	const jobs = jobRunner(home, root, join(root, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, ...jobSlice }, agent, time, bus, (name, [job]) => (name === "jobs.keep" ? [keep(job)] : []));
 	writeFileSync(join(folder, "reviewer.md"), "# Reviewer\n");
 	jobs.registerRole("delivery", { name: "reviewer", file: pathToFileURL(join(folder, "reviewer.md")), criteria: [] });
 	jobs.registerKind("delivery", { name: "review", readOnly: true, role: "reviewer" });
 	const commands = commandRegistry();
-	for (const command of jobCommands(() => home, () => jobs)) commands.register("core", command);
+	for (const command of jobCommands(() => home, () => jobs, () => (name, data) => void bus.emit("core", name, data))) commands.register("core", command);
 	return { root, home, jobs, commands };
 }
 
@@ -362,6 +363,30 @@ test("/steer <id> <text> steers a running job by its short id; /jobs lists; wron
 	await commands.route("/stopall");
 });
 
+test("a steer, by arthur steer or /steer, and a continue that started emit job-steered with the job's id, kind, text and how; a refused one emits nothing", async () => {
+	const gate = join(temporaryFolder(), "gate");
+	const { home, jobs, commands } = setup(fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }));
+	const job = await jobs.spawn({ task: "Go." });
+	await until("working", () => field(home, job.id, "state") === "working");
+	assert.equal((await command(commands, "steer", job.id.slice(-8), "Mind the tests.")).code, 0);
+	assert.equal(await commands.route(`/steer ${job.id} Use a timeout of 1800.\nAlways.`), `${job.id}: steer 0002 queued for after its next tool call`);
+	await assert.rejects(command(commands, "continue", job.id, "Go on."), /in a run/);
+	writeFileSync(gate, "");
+	await finished(home, job.id);
+	await assert.rejects(command(commands, "steer", job.id, "Too late."), /not in a run/);
+	assert.deepEqual(await command(commands, "continue", job.id, "Fix the README."), { code: 0, out: `${job.id}: continued`, err: "" });
+	assert.deepEqual(events(home, "job-steered"), [
+		{ id: job.id, kind: "worker", text: "Mind the tests.", via: "steer" },
+		{ id: job.id, kind: "worker", text: "Use a timeout of 1800.\nAlways.", via: "steer" },
+		{ id: job.id, kind: "worker", text: "Fix the README.", via: "continue" },
+	]);
+	await until("the continued run's end", () => events(home, "job-ended").length === 2);
+	// A record without its `timeout` makes the wrapper exit before it writes its pid: the continue did not start.
+	rmSync(join(home, "jobs", job.id, "timeout"));
+	assert.equal((await command(commands, "continue", job.id, "Once more.")).code, 1);
+	assert.equal(events(home, "job-steered").length, 3, "a continue whose wrapper did not start");
+});
+
 test("the arthur binary lists, stops, steers, continues and prunes a job by its short id; arguments where none go exit 2", async () => {
 	const { root } = setup();
 	writeFileSync(join(root, ".gitignore"), ".arthur/\n");
@@ -379,6 +404,7 @@ test("the arthur binary lists, stops, steers, continues and prunes a job by its 
 	assert.equal(arthur("steer", short, "Mind the tests.").stdout, `${id}: steer 0001 queued for after its next tool call\n`);
 	assert.equal(arthur("stop", short).stdout, `${id}: stopped\n`);
 	assert.equal(arthur("continue", short, "Go on.").stdout, `${id}: continued\n`);
+	assert.deepEqual(events(join(root, ".arthur"), "job-steered"), [{ id, kind: "worker", text: "Mind the tests.", via: "steer" }, { id, kind: "worker", text: "Go on.", via: "continue" }]);
 	assert.equal(arthur("stopall").stdout, `${id}: stopped\n`);
 	assert.equal(arthur("prune", short).stdout, `${id}: worktree ${join(root, "..", ".arthur-worktrees", id)} removed; branch arthur/${id} deleted; record deleted\n`);
 	for (const [args, problem] of [

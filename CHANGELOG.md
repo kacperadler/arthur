@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Changed
 
+- AR0564 A report skill: how every HTML page for the owner is styled and checked before it is sent (f60b89db)
 - AR0565 limits.test.ts fails under load: three tests race a fixed 3 s job limit (4888ddf5)
 
 ## 2026-10-29

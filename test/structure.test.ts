@@ -41,7 +41,7 @@ const BUDGETS = {
 
 	schedule: 595,
 
-	session: 880,
+	session: 887,
 
 	telegram: 641,
 

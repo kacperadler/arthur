@@ -11,7 +11,8 @@ import type { SessionOptions } from "./session.ts";
 // The fresh start and `/restart` (spec/roadmap.md, entry 36): a restart only once no job runs, after the handoff the
 // coordinator writes (handoff-extension.ts), through orchestration's `coordinator.restart`; at `freshAt` a fresh conversation,
 // tried every `freshRetryMinutes` until `freshUntil`; after the restart one `Restarted.` notice: docs/session.md and
-// docs/commands/restart.md. While a restart is due (restart-guard.ts), `/restart` under the service ends `arthur run` too.
+// docs/commands/restart.md. While a restart is due (restart-guard.ts), `/restart` under the service ends `arthur run` too, and
+// once no job runs `arthur run` asks that restart itself.
 
 // How long `/restart` waits for the handoff before it restarts without one.
 const RESTART_WAIT_SECONDS = 120;
@@ -48,7 +49,7 @@ export function registerRestart(host: Host): void {
 		const ids = host.jobs.running();
 		if (ids.length > 0) return { code: 1, line: `error: ${running(ids)}; run /stopall first` };
 		const pending = readRequest(host.folder);
-		if (pending !== undefined && pending.then !== "compact") return { code: 1, line: `error: a restart is already on its way, asked by ${pending.slot === "/restart" ? "/restart" : `freshAt ${pending.slot}`}` };
+		if (pending !== undefined && pending.then !== "compact") return { code: 1, line: `error: a restart is already on its way, asked by ${{ "/restart": "/restart", due: "the restart guard" }[pending.slot] ?? `freshAt ${pending.slot}`}` };
 		const why = due(host);
 		const run = why !== undefined && servicePid(host.folder) !== undefined;
 		const also =
@@ -81,7 +82,7 @@ export function registerRestart(host: Host): void {
 }
 
 // Every 500 ms in `arthur run`: the outcome of a restart asked for, acted on; the `Restarted.` notice once the next coordinator
-// is up; and tonight's tries of the fresh start.
+// is up; a restart due under the service, asked once no job runs; and tonight's tries of the fresh start.
 export function restarts(host: Host): () => void {
 	const { freshAt = DEFAULTS.freshAt, freshRetryMinutes = DEFAULTS.freshRetryMinutes, freshUntil = DEFAULTS.freshUntil } = host.options as SessionOptions;
 	const [file, step, clock] = [join(host.folder, REQUEST), freshRetryMinutes * 60_000, host.clock];
@@ -94,6 +95,8 @@ export function restarts(host: Host): () => void {
 	};
 	let night = plan();
 	let tried: number | undefined;
+	// Set once a restart ended `arthur run`: no restart due is asked again while it stops.
+	let leaving = false;
 	// A try that did not restart: the next one, or after the last the night skipped with one line.
 	const again = (why: string, told: boolean) => {
 		const last = (tried ?? night.at) >= night.end;
@@ -115,14 +118,16 @@ export function restarts(host: Host): () => void {
 		const gone = request.pid !== undefined && !alive(request.pid);
 		if (request.line === undefined && !none && !gone && Date.now() - request.asked < request.waitSeconds * 1000) return;
 		rmSync(file, { force: true });
-		const [byNight, fresh, written] = [request.slot !== "/restart", request.then === "fresh", request.line === "handoff written"];
+		// A notice only for the `/restart` the owner asked; the restart due (slot `due`) goes on as his does, not as a night's try.
+		const [owner, fresh, written] = [request.slot === "/restart", request.then === "fresh", request.line === "handoff written"];
+		const byNight = !owner && request.slot !== "due";
 		const why = request.line ?? (gone ? "handoff not written: the coordinator ended" : `handoff not written within ${request.waitSeconds} s`);
 		// No coordinator: nothing to ask, the restart goes on; a night's handoff that failed withdraws its try.
 		if (byNight && !written && !none) return again(why, true);
 		const ids = host.jobs.running();
 		if (ids.length > 0) {
 			if (byNight) return again(running(ids, false), false);
-			host.events.emit("notice", { text: `restart: not done, ${running(ids)}; run /stopall first` });
+			if (owner) host.events.emit("notice", { text: `restart: not done, ${running(ids)}; run /stopall first` });
 			return;
 		}
 		// The night is over before the restart is asked, so one that throws never holds the next night's tries.
@@ -133,12 +138,13 @@ export function restarts(host: Host): () => void {
 		try {
 			restart(host, fresh, written, run);
 		} catch (error) {
-			// The owner who asked hears it; the night's is only logged, and the next night tries again.
-			if (!byNight) host.events.emit("notice", { text: `restart: not done: ${String((error as Error).message).split("\n")[0]}` });
+			// The owner who asked hears it; the night's and the restart due's are only logged, and tried again.
+			if (owner) host.events.emit("notice", { text: `restart: not done: ${String((error as Error).message).split("\n")[0]}` });
 			throw error;
 		}
 		const how = written ? "which starts by reading the handoff" : none ? "with no handoff: no coordinator was running" : `with no handoff (${why})`;
 		console.log(`session: ${byNight ? "fresh: done" : "restart: done"}; the coordinator restarts${fresh ? " in a fresh conversation" : ""}, ${how}${run ? "; arthur run ends, and its service starts it again on the new code" : ""}`);
+		leaving ||= run;
 		if (run) process.kill(process.pid, "SIGTERM");
 	};
 
@@ -172,6 +178,8 @@ export function restarts(host: Host): () => void {
 	return () => {
 		settle();
 		notice();
+		if (!leaving && servicePid(host.folder) === process.pid && host.jobs.running().length === 0 && readRequest(host.folder) === undefined && due(host) !== undefined)
+			put(file, JSON.stringify({ then: "restart", slot: "due", asked: Date.now(), waitSeconds: RESTART_WAIT_SECONDS, run: true } satisfies Request));
 		const now = clock.now().getTime();
 		if (tried !== undefined || now < night.at) return;
 		// A window passed unseen (a clock that jumped, a machine that slept) is skipped, never tried late.

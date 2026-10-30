@@ -168,6 +168,26 @@ test("a finished run is told once per run attempt, across polls and a restart, a
 	assert.ok(!JSON.stringify([first.errors, restarted.errors]).includes(TOKEN));
 });
 
+test("a passed run is told as ci-finished and wakes no one; a failed one on the same branch wakes the coordinator", async (t) => {
+	const api = await fakeGithub(t);
+	const shop = repository();
+	const passed: FakeRun = { id: 61, sha: shop.commit("arthur/one"), branch: "arthur/one", status: "in_progress", conclusion: null };
+	api.runs["acme/shop/ci.yml"] = [passed];
+	const box = await started(t, [{ name: "shop", path: shop.path, prefix: "SH", ci: { workflow: "ci.yml" } }], options(api.apiUrl));
+	box.record("2026-01-01-worker-0000000a", "shop", "arthur/one");
+	await until("a poll", () => api.count(PATH) >= 2);
+	[passed.status, passed.conclusion] = ["completed", "success"];
+	await until("the passed run told", () => box.finished().length === 1);
+	const polls = api.count(PATH);
+	await until("two more polls", () => api.count(PATH) >= polls + 2);
+	assert.deepEqual([box.finished().map((event) => event.run), box.messages()], [[61], []]);
+	const failed: FakeRun = { id: 62, sha: shop.commit("arthur/one"), branch: "arthur/one", status: "completed", conclusion: "failure" };
+	api.runs["acme/shop/ci.yml"]?.unshift(failed);
+	await until("the failed run told", () => box.finished().length === 2);
+	assert.equal(box.messages().length, 1);
+	assert.match(box.messages()[0] ?? "", /^CI run 62, attempt 1, of ci.yml in shop ended failure on arthur\/one /);
+});
+
 test("a commit with no run of its own has the run of the nearest commit before it, for the poll and arthur ci; two branches on one run are one event; wakeOn [] wakes nobody", async (t) => {
 	const api = await fakeGithub(t);
 	const shop = repository();

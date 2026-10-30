@@ -801,3 +801,5 @@
 {"record":"answer","id":"AR-D398","time":"2026-10-30T18:57:56+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D399","time":"2026-10-30T19:04:33+01:00","project":"arthur","kind":"budget","question":"Budget for the AR0591 worker (a python3 that exits 127 itself passes the sandbox refusal; one core file and its test)?","options":["$6","$10"],"recommend":1,"ticket":"AR0591"}
 {"record":"answer","id":"AR-D399","time":"2026-10-30T19:04:40+01:00","decided":"AR0591 worker budget $6","picked":1,"words":"Go with recommendations till 70%"}
+{"record":"ask","id":"AR-D400","time":"2026-10-30T19:53:34+01:00","project":"arthur","kind":"merge","question":"Merge AR0591 (a python3 that exits 127 itself no longer passes the sandbox refusal) after its passed review?","options":[],"ticket":"AR0591"}
+{"record":"answer","id":"AR-D400","time":"2026-10-30T19:53:34+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

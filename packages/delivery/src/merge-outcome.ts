@@ -1,12 +1,14 @@
 import { existsSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { configRefusal } from "@arthur/core/git-config";
 import type { Host, JobRecord, Ticket } from "@arthur/core/plugin";
+import { writeChangelog } from "./changelog.ts";
 import type { Step } from "./merge-checks.ts";
 import { reviewsOf } from "./review-records.ts";
 
 // What `arthur merge` does for the ticket once its branch is in and the checks passed (spec/roadmap.md, entry 54): files the
-// branch's reviews, hands the ticket's findings to `findings.onMerge`, writes `outcome.md`, sets the ticket merged and names
-// the planned tickets it unblocks. docs/commands/merge.md, "Steps".
+// branch's reviews, hands the ticket's findings to `findings.onMerge`, writes `outcome.md`, sets the ticket merged, names
+// the planned tickets it unblocks, rebuilds CHANGELOG.md and commits the ticket's side. docs/commands/merge.md, "Steps".
 
 export type Merged = {
 	readonly job: JobRecord;
@@ -17,12 +19,15 @@ export type Merged = {
 	readonly subjects: readonly string[];
 	readonly steps: readonly Step[];
 	readonly gap: string;
+	readonly git: (...words: string[]) => { readonly status: number | null; readonly stdout: string; readonly stderr: string };
 };
 
 const REVIEW = /^review-(\d+)\.md$/;
+const DESCRIBED = /^- `?(.+?)`?: \S/;
 
 export function settleTicket(host: Host, merged: Merged, log: (line: string) => void): void {
-	const { job, ticket, folder, root } = merged;
+	const { job, ticket, folder, root, git } = merged;
+	const had = new Set(host.board.list(job.project).map((each) => each.id));
 	const filed = () =>
 		readdirSync(join(root, folder))
 			.flatMap((name) => (REVIEW.test(name) ? [{ name, text: readFileSync(join(root, folder, name), "utf8") }] : []))
@@ -52,19 +57,40 @@ export function settleTicket(host: Host, merged: Merged, log: (line: string) => 
 		`- Branch: ${job.branch}`,
 		`- Reviews: ${reviews.join(", ") || "none"}${merged.gap && `; merged unreviewed (--unreviewed): ${merged.gap}`}`,
 		`- Cost: worker ${dollars([live(job.id)])}, reviews ${dollars(ended.map(([review]) => live(review.id) ?? review.cost))}; review rounds ${reviews.length}`,
-		...["", "## What went in", "", ...merged.subjects.map((subject) => `- ${subject}`)],
+		...["", "## What went in", "", ...wentIn(host, merged)],
 		...["", "## Checks on main", "", ...(merged.steps.length > 0 ? merged.steps.map((each) => `- \`${each.command}\`: ${each.result}`) : ["- no checks"])],
 		...["", "## Left open", "", ...left, ""],
 	].join("\n");
 	const draft = join(root, folder, `.outcome.${process.pid}`);
 	writeFileSync(draft, text);
 	renameSync(draft, join(root, folder, "outcome.md"));
-	log(`wrote ${folder}/outcome.md; rewrite What went in from the commit subjects listed there`);
+	log(`wrote ${folder}/outcome.md`);
 	host.board.move(ticket.id, "merged");
 	log(`${ticket.id} merged`);
 	const board = host.board.list(job.project);
 	const unblocked = board.filter((each) => each.status === "planned" && each.after?.includes(ticket.id) === true && each.after.every((id) => board.find((other) => other.id === id)?.status === "merged"));
 	if (unblocked.length > 0) log(`unblocked: ${unblocked.map((each) => each.id).join(", ")}`);
+	log(writeChangelog(host, job.project));
+	// The ticket's side in one commit before the push, the tickets findings.onMerge made and the board's other moves with it; a job may have written the config while the checks ran.
+	const made = host.board.list(job.project).flatMap((each) => (had.has(each.id) ? [] : [dirname(each.path)]));
+	const paths = [folder, ...made, "spec/build.json", "CHANGELOG.md"].filter((path) => existsSync(join(root, path)));
+	const subject = `spec: ${ticket.id} merged`;
+	const refusal = configRefusal(root);
+	const added = refusal === "" ? git("add", "--all", "--", ...paths) : { status: 1, stdout: "", stderr: refusal };
+	const done = added.status === 0 ? git("commit", "--quiet", "-m", subject, "--", ...paths) : added;
+	if (done.status === 0) log(`committed ${subject}: ${git("rev-parse", "--short", "HEAD").stdout.trim()}`);
+	else log(`${subject} not committed: ${(done.stderr.trim() || done.stdout.trim()).split("\n").at(-1)}; commit ${paths.join(", ")}`);
+}
+
+// The `- <path>: <what it does now>` lines (the path in backticks or not) of the `## What went in` of the worker's final message,
+// then `- <path>: not described` for each file the merge changed that none names; without that section, the branch's commit subjects.
+function wentIn(host: Host, { job, hash, subjects, git }: Merged): string[] {
+	const section = host.jobs.result(job.id).split(/^## What went in[ \t]*$/m)[1]?.split(/^#{1,2} /m)[0];
+	if (section === undefined) return subjects.map((subject) => `- ${subject}`);
+	const lines = section.split("\n").filter((line) => DESCRIBED.test(line));
+	const named = new Set(lines.map((line) => DESCRIBED.exec(line)?.[1]));
+	const files = git("diff", "--name-only", "--no-renames", "-z", `${hash}^1`, hash).stdout.split("\0").filter(Boolean);
+	return [...lines, ...files.filter((file) => !named.has(file)).map((file) => `- ${file}: not described`)];
 }
 
 // The `## Left open` lines: each `findings.onMerge` provider's answer, asked with the ticket's `findings.md`; without one, the

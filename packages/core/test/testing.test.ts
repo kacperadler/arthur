@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { once } from "node:events";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -205,7 +206,7 @@ function child(script: string): { readonly seen: { arthur: [string, string][]; t
 	const env = { ...process.env, ARTHUR_TELEGRAM_BOT_TOKEN: "live-token", ARTHUR_HOME: "/live/.arthur", ARTHUR_JOB_SLICE: "live-slice", TMUX: "/tmp/tmux-1000/default,1,0", TMUX_PANE: "%1" };
 	const run = spawnSync(process.execPath, ["--input-type=module", "-e", code], { env, encoding: "utf8" });
 	const seen = JSON.parse(run.stdout.trim()) as { arthur: [string, string][]; tmux: string | null; folder: string; socketDir: string; slice: string };
-	assert.equal(dirname(seen.folder), seen.socketDir, "tmux's default socket lives in the kit's folder");
+	assert.equal(dirname(dirname(seen.folder)), seen.socketDir, "tmux's default socket lives in the kit's folder");
 	return { seen, status: run.status };
 }
 
@@ -235,6 +236,53 @@ test("the kit's job slice is not Arthur's, and is stopped with what runs in it a
 	assert.match(slice, /^arthur_test_[0-9a-f]{8}$/);
 	assert.match(before, /^ActiveState=active\nDropInPaths=\S+MemoryMax\.conf\n$/);
 	assert.equal(show(slice), "ActiveState=inactive\nDropInPaths=\n");
+});
+
+const SYSTEMD = spawnSync("systemctl", ["--user", "show-environment"]).status === 0;
+
+// A child that loads the kit, makes a folder of the kit's and one in `tmpdir()`, starts its slice where systemd runs, runs `script`, prints what
+// it made, and waits until `signal` ends it; returns what it printed, the folders, and how it ended.
+async function signalled(signal: NodeJS.Signals, script = "") {
+	const kit = import.meta.resolve("@arthur/core/testing");
+	const code = `const { jobSlice, temporaryFolder } = await import(${JSON.stringify(kit)});
+		const { execFileSync } = await import("node:child_process"), { mkdtempSync } = await import("node:fs"), { tmpdir } = await import("node:os"), { join } = await import("node:path");
+		if (${SYSTEMD}) execFileSync("systemd-run", ["--user", "--quiet", "--collect", "--slice=" + jobSlice.slice + ".slice", "sleep", "300"]);
+		${script}
+		console.log(JSON.stringify({ folder: temporaryFolder(), scratch: mkdtempSync(join(tmpdir(), "scratch-")), slice: jobSlice.slice }));
+		setInterval(() => {}, 2 ** 30);`;
+	const run = spawn(process.execPath, ["--input-type=module", "-e", code], { stdio: ["ignore", "pipe", "inherit"] });
+	let out = "";
+	run.stdout.setEncoding("utf8").on("data", (chunk: string) => (out += chunk));
+	const closed = once(run, "close") as Promise<[number | null, NodeJS.Signals | null]>;
+	while (!out.includes("\n") && run.exitCode === null) await Promise.race([once(run.stdout, "data"), closed]);
+	const made = JSON.parse(out.split("\n")[0] ?? "") as { readonly folder: string; readonly scratch: string; readonly slice: string };
+	run.kill(signal);
+	const [status, killed] = await closed;
+	return { ...made, root: dirname(dirname(made.folder)), out, status, killed };
+}
+
+test("a child the kit runs in, ended by SIGTERM, SIGINT or SIGHUP, leaves no root, no folder in its TMPDIR and no slice", async () => {
+	for (const [signal, number] of [["SIGTERM", 15], ["SIGINT", 2], ["SIGHUP", 1]] as const) {
+		const ended = await signalled(signal);
+		assert.deepEqual([ended.status, ended.killed], [128 + number, null], `${signal}: the exit cleanup ended it`);
+		assert.ok(ended.scratch.startsWith(join(ended.root, "tmp")), `${signal}: ${ended.scratch} is in the kit's TMPDIR`);
+		assert.equal(existsSync(ended.root), false, `${signal}: ${ended.root} is left`);
+		if (SYSTEMD) assert.equal(execFileSync("systemctl", ["--user", "show", `${ended.slice}.slice`, "-p", "ActiveState"], { encoding: "utf8" }), "ActiveState=inactive\n", `${signal}: the slice runs on`);
+	}
+});
+
+test("a signal another handler takes is left to it: the kit ends nothing, and cleans up when that handler exits", async () => {
+	const ended = await signalled("SIGTERM", 'process.on("SIGTERM", () => { console.log("own handler"); process.exit(0); });');
+	assert.deepEqual([ended.status, ended.killed, ended.out.endsWith("own handler\n")], [0, null, true]);
+	assert.equal(existsSync(ended.root), false, `${ended.root} is left`);
+});
+
+test("under the kit, HOME and TMPDIR are folders of its own and git commits as its own identity, not the user's", () => {
+	const root = dirname(dirname(temporaryFolder()));
+	assert.deepEqual([homedir(), tmpdir()], [join(root, "home"), join(root, "tmp")]);
+	const repository = temporaryFolder();
+	for (const args of [["init", "--quiet"], ["commit", "--quiet", "--allow-empty", "-m", "first"]]) execFileSync("git", ["-C", repository, ...args]);
+	assert.equal(execFileSync("git", ["-C", repository, "log", "-1", "--format=%an <%ae> %cn <%ce>"], { encoding: "utf8" }), "test <test@example.com> test <test@example.com>\n");
 });
 
 test("a tmux command under the kit reaches no live server", { skip: !hasTmux() && "tmux is not installed" }, () => {

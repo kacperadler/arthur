@@ -3,10 +3,9 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
 import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { type TestContext, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { orchestration } from "../src/orchestration.ts";
 
 const ROLE_FILE = fileURLToPath(new URL("../roles/coordinator.md", import.meta.url));
@@ -285,7 +284,7 @@ async function turns(cwd: string, command: readonly string[], between: () => voi
 	const env = { ...process.env, ARTHUR_ORCHESTRATION_CONTEXT: JSON.stringify(command) };
 	const child = spawn(agent, [...mode, "-e", EXTENSION, "-e", sender], { cwd, env, stdio: "ignore" });
 	const exited = once(child, "exit");
-	for (const deadline = Date.now() + 20_000; !existsSync(system); await sleep(50)) if (Date.now() > deadline) throw new Error("no first turn");
+	await until("the first turn", () => existsSync(system));
 	between();
 	writeFileSync(gate, "");
 	await exited;

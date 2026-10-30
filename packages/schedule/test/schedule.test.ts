@@ -3,9 +3,8 @@ import { execFileSync, spawn } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { everyOption } from "@arthur/core/option-table";
-import { fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import type { Entry } from "../src/entry.ts";
 import { claim } from "../src/run-state.ts";
 import { table } from "../src/schedule-options.ts";
@@ -14,10 +13,6 @@ import { sweeper } from "../src/sweep.ts";
 
 const FILE = "spec/schedule.json";
 const STANDUP: Entry = { id: "standup", at: "09:00", action: { message: "Plan the day." } };
-
-async function until(what: string, holds: () => boolean, ms = 20_000): Promise<void> {
-	for (const deadline = Date.now() + ms; !holds(); await sleep(20)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-}
 
 // The sweep of `entries` and of `spec/schedule.json` in a folder of its own, on a fake host in Warsaw at `now`; what it prints,
 // emits as coordinator messages and as notices, caught.

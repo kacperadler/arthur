@@ -3,11 +3,10 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { clock } from "../src/clock.ts";
 import { eventBus } from "../src/events.ts";
 import { jobRunner, type Prepare } from "../src/jobs.ts";
-import { type AgentRun, fakeAgent, jobSlice, temporaryFolder } from "../src/testing.ts";
+import { type AgentRun, fakeAgent, jobSlice, temporaryFolder, until } from "../src/testing.ts";
 
 // Roadmap entry 82 in the core: a spawn's model as one name or an ordered list, which the plugin that provides `models.pick`
 // picks from; a prepare's variables in the job's environment only. The models plugin's own tests cover its probes.
@@ -41,8 +40,8 @@ function runner(home: string, root: string, agent: string, provided: Readonly<Re
 const read = (home: string, id: string, name: string) => readFileSync(join(home, "jobs", id, name), "utf8");
 const records = (home: string) => (existsSync(join(home, "jobs")) ? readdirSync(join(home, "jobs")) : []);
 async function ended(home: string, id: string): Promise<string> {
-	for (const start = Date.now(); Date.now() - start < 20_000; await sleep(20)) if (existsSync(join(home, "jobs", id, "state")) && read(home, id, "state") === "ended") return read(home, id, "reason");
-	throw new Error(`${id} did not end`);
+	await until(`${id} to end`, () => existsSync(join(home, "jobs", id, "state")) && read(home, id, "state") === "ended");
+	return read(home, id, "reason");
 }
 const modelOf = (args: readonly string[]) => args[args.indexOf("--model") + 1];
 

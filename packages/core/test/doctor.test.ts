@@ -5,10 +5,9 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, symli
 import { hostname, userInfo } from "node:os";
 import { delimiter, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import { doctor } from "../src/doctor.ts";
 import { coreRequirements } from "../src/requirements.ts";
-import { temporaryFolder } from "../src/testing.ts";
+import { temporaryFolder, until } from "../src/testing.ts";
 
 const CLI = join(import.meta.dirname, "..", "src", "cli.ts");
 const USER = userInfo().username;
@@ -348,10 +347,6 @@ function start(t: TestContext, folder: string, env: Readonly<Record<string, stri
 	return { child, output: () => stdout, ended: once(child, "close").then(([status]) => status as number | null) };
 }
 
-async function until(holds: () => boolean, what: string): Promise<void> {
-	for (const deadline = Date.now() + 20_000; !holds(); await sleep(20)) if (Date.now() > deadline) assert.fail(`waited 20 s for ${what}`);
-}
-
 const REFUSED = "arthur run: refused: a critical requirement is missing; fix each line above, then run arthur doctor\n";
 const BROKEN = REST.filter((line) => line.includes(": missing: ")).map((line) => `arthur run: ${line}\n`).join("");
 const notice = (...lines: string[]) => `notice ${JSON.stringify([`arthur run refused on ${hostname()}: a critical requirement is missing`, ...lines].join("\n"))}\n`;
@@ -396,13 +391,13 @@ test("arthur run: missing lines that are not critical are printed, then sent as 
 	const { folder, say, log, env } = project();
 	say("token", "missing: no TOKEN set");
 	const run = start(t, folder, env);
-	await until(() => run.output().includes("started"), "the start");
+	await until("the start", () => run.output().includes("started"));
 	assert.equal(run.output(), `arthur run: ${TOKEN}\n${BROKEN}arthur run: pid ${run.child.pid} started orchestration, channel, broken, noisy, shapeless\n`);
 	assert.equal(log(), `doctor ${JSON.stringify({ lines: [TOKEN, ...MISSING] })}\nstart orchestration\nstart channel\n`);
 	run.child.kill("SIGTERM");
 	assert.equal(await run.ended, 0);
 	const second = start(t, folder, env);
-	await until(() => second.output().includes("started"), "the second start");
+	await until("the second start", () => second.output().includes("started"));
 	assert.equal(log(), `doctor ${JSON.stringify({ lines: [TOKEN, ...MISSING] })}\nstart orchestration\nstart channel\nstart orchestration\nstart channel\n`, "nothing new: no event");
 	second.child.kill("SIGTERM");
 	assert.equal(await second.ended, 0);

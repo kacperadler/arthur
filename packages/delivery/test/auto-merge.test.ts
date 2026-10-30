@@ -3,8 +3,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
-import { type AgentRun, fakeAgent, fakeHost, temporaryFolder } from "@arthur/core/testing";
+import { type AgentRun, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { ciWaits } from "../src/ci-wait.ts";
 import { delivery } from "../src/delivery.ts";
 
@@ -74,7 +73,7 @@ async function load(t: TestContext, github = true) {
 	const home = dirname(fake.host.folder);
 	const ended = async (id: string) => {
 		const state = join(home, "jobs", id, "state");
-		for (const deadline = Date.now() + 15_000; !existsSync(state) || readFileSync(state, "utf8") !== "ended"; await sleep(50)) if (Date.now() > deadline) throw new Error(`timed out waiting for ${id} to end`);
+		await until(`${id} to end`, () => existsSync(state) && readFileSync(state, "utf8") === "ended");
 		fake.emit("job-ended", { id, state: "ended" });
 	};
 	const agent = (run: AgentRun) => {

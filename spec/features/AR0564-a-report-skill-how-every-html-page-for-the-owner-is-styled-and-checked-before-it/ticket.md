@@ -44,3 +44,4 @@ Out:
 - 2026-10-29: AR0564: another round on the review-3 findings, then review round 4; the owner: "AR-D348 1" (AR-D348)
 - 2026-10-30: AR0564 changed: keep the style rules and a simple check of declared colours, drop the claim of a complete check, add a phone-width screenshot the writer looks at before sending; the owner: "AR-D348 - go with recommendation" (AR-D348)
 - 2026-10-30: AR0564 budget raised by $8 to $20.57 so its worker finishes the round; the owner: "AR-D349 - go with recommendation" (AR-D349)
+- 2026-10-30: AR0564: another round; the worker drops or tests the 20-screenshot cap, then review round 5; keep going until it is merged; the owner: "AR-D352 1 and go till is merged" (AR-D352)

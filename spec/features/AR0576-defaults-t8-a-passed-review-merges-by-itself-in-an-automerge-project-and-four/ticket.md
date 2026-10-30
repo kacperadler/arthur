@@ -39,3 +39,4 @@ Out:
 ## Decisions
 
 - 2026-10-30: Source: the approved plan of AR0561 (AR-D345)
+- 2026-10-30: AR0576 raised to $18 and continued; the owner: "Go with recommendations till 70%" (AR-D394)

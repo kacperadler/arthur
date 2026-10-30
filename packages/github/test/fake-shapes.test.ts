@@ -8,10 +8,12 @@ import { fakeGithub } from "./fake-github.ts";
 const { shapes } = JSON.parse(readFileSync(new URL("github-shapes.json", import.meta.url), "utf8")) as { shapes: Record<string, unknown> };
 
 // Each key path where `got` and the documented `shape` differ: `-` a key the documentation shows and the fake leaves out,
-// `+` one the fake adds. Each item of an array is held to the documented first item; a null on either side is not compared.
+// `+` one the fake adds, or a list or object the fake answers as something else. Each item of a list is held to the
+// documented first item; a null on either side, or a value the documentation shows as neither list nor object, is not compared.
 const drift = (got: unknown, shape: unknown, at = ""): string[] => {
-	if (got === null || shape === null || typeof got !== "object" || typeof shape !== "object") return [];
-	if (Array.isArray(shape)) return Array.isArray(got) && shape.length > 0 ? got.flatMap((item, index) => drift(item, shape[0], `${at}[${index}]`)) : [];
+	if (got === null || shape === null || typeof shape !== "object") return [];
+	if (Array.isArray(shape)) return Array.isArray(got) ? got.flatMap((item, index) => drift(item, shape[0], `${at}[${index}]`)) : [`${at}: not a list`];
+	if (typeof got !== "object" || Array.isArray(got)) return [`${at}: not an object`];
 	const [has, shown] = [got as Record<string, unknown>, shape as Record<string, unknown>];
 	return [
 		...Object.keys(shown).filter((key) => !(key in has)).map((key) => `- ${at}.${key}`),
@@ -43,9 +45,10 @@ test("every route of the fake GitHub answers with the keys GitHub's documentatio
 	);
 });
 
-test("the comparison names a key the fake leaves out, one it adds, at any depth and in any item, and takes null for any shape", () => {
+test("the comparison names a key the fake leaves out, one it adds, a list or object answered as something else, at any depth and in any item, and takes null for any shape", () => {
 	const shape = { id: null, user: { login: null }, labels: [{ name: null }], milestone: { title: null } };
 	assert.deepEqual(drift({ id: 1, user: { login: "a" }, labels: [{ name: "x" }], milestone: null }, shape), []);
 	assert.deepEqual(drift({ user: { login: "a", type: "User" }, labels: [{ name: "x" }, {}], milestone: {} }, shape), ["- .id", "+ .user.type", "- .labels[1].name", "- .milestone.title"]);
 	assert.deepEqual(drift({ id: 1, user: { login: "a" }, labels: [{ color: "red" }], milestone: null }, { ...shape, labels: [] }), [], "an empty documented list shows no item to hold the fake's to");
+	assert.deepEqual(drift({ id: 1, user: "a", labels: { name: "x" }, milestone: [] }, shape), [".user: not an object", ".labels: not a list", ".milestone: not an object"]);
 });

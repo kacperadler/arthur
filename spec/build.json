@@ -4551,9 +4551,9 @@
   {
     "id": "AR0571",
     "title": "Defaults T3: a job resumes once after a provider error or an ending with no verdict",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0571-defaults-t3-a-job-resumes-once-after-a-provider-error-or-an-ending-with-no/ticket.md",
-    "updated": "2026-10-30T11:41:02.108Z",
+    "updated": "2026-10-30T11:46:11.298Z",
     "after": [
       "AR0569"
     ]

@@ -4609,9 +4609,9 @@
   {
     "id": "AR0577",
     "title": "Defaults T9: the test kit keeps HOME, TMPDIR and the git identity in its own folder, and cleans up on a signal",
-    "status": "review",
+    "status": "done",
     "path": "spec/features/AR0577-defaults-t9-the-test-kit-keeps-home-tmpdir-and-the-git-identity-in-its-own/ticket.md",
-    "updated": "2026-10-30T09:34:28.810Z"
+    "updated": "2026-10-30T09:42:33.386Z"
   },
   {
     "id": "AR0578",

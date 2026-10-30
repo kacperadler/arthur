@@ -8,6 +8,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0564 A report skill: how every HTML page for the owner is styled and checked before it is sent (f60b89db)
 - AR0565 limits.test.ts fails under load: three tests race a fixed 3 s job limit (4888ddf5)
+- AR0567 AR0311's 18 findings stay open forever though each is already a ticket (4a15b3fc)
 
 ## 2026-10-29
 

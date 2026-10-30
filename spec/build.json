@@ -4520,16 +4520,16 @@
   {
     "id": "AR0567",
     "title": "AR0311's 18 findings stay open forever though each is already a ticket",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0567-ar0311-s-18-findings-stay-open-forever-though-each-is-already-a-ticket/ticket.md",
-    "updated": "2026-10-30T07:56:15.134Z"
+    "updated": "2026-10-30T08:05:50.485Z"
   },
   {
     "id": "AR0568",
     "title": "After the listen rename, the core still names the voice plugin, and versions.mmd misses four plugins",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0568-after-the-listen-rename-the-core-still-names-the-voice-plugin-and-versions-mmd/ticket.md",
-    "updated": "2026-10-30T07:47:48.895Z"
+    "updated": "2026-10-30T08:05:34.763Z"
   },
   {
     "id": "AR0569",

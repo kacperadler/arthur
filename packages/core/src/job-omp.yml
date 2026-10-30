@@ -5,3 +5,10 @@ bash:
     enabled: false
 async:
   enabled: false
+# A provider error omp counts as transient (connection error, overload, 5xx) is tried again 20 times, not omp's default 10. Its
+# back-off (omp 18.3.0) waits 0.5, 1, 2, 4 s, then 8 s before each further try, each less up to a quarter of jitter: 101.6 to
+# 135.5 s in all, longer only where the provider asks for a longer wait (each at most `retry.maxDelayMs`, 5 minutes). A try of
+# the Anthropic API is itself its client's 11 requests, about 50 s against a server that answers 529, so a job waits about
+# 19 minutes before the run stops on the error; the wrapper then resumes it once (job-ending.ts).
+retry:
+  maxRetries: 20

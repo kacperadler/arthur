@@ -4551,9 +4551,9 @@
   {
     "id": "AR0571",
     "title": "Defaults T3: a job resumes once after a provider error or an ending with no verdict",
-    "status": "done",
+    "status": "review",
     "path": "spec/features/AR0571-defaults-t3-a-job-resumes-once-after-a-provider-error-or-an-ending-with-no/ticket.md",
-    "updated": "2026-10-30T10:56:43.841Z",
+    "updated": "2026-10-30T11:35:43.343Z",
     "after": [
       "AR0569"
     ]
@@ -4571,9 +4571,9 @@
   {
     "id": "AR0573",
     "title": "Defaults T5: the merge writes What went in per file and commits the ticket's folder itself",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0573-defaults-t5-the-merge-writes-what-went-in-per-file-and-commits-the-ticket-s/ticket.md",
-    "updated": "2026-10-30T10:56:54.354Z",
+    "updated": "2026-10-30T11:37:57.684Z",
     "after": [
       "AR0569"
     ]
@@ -4665,9 +4665,9 @@
   {
     "id": "AR0583",
     "title": "Defaults T15: a go-with-my-recommendation grant, and a policy answer continues the job",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0583-defaults-t15-a-go-with-my-recommendation-grant-and-a-policy-answer-continues-the/ticket.md",
-    "updated": "2026-10-30T07:47:12.365Z",
+    "updated": "2026-10-30T11:27:54.375Z",
     "after": [
       "AR0570"
     ]

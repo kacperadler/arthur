@@ -20,8 +20,9 @@ const STATES = ["Verified", "In Progress", "Fixed", "Open", "Verified", null, "F
 // A value of a bundle as `bundle(values(name,ordinal))` asks for it; the server's order is not the ordinal's. SHOP's
 // Reopened and Won't fix hold no issue.
 const element = (name: string, ordinal: number, $type: string, isResolved?: boolean) => ({ name, ordinal, ...(isResolved === undefined ? {} : { isResolved }), id: `71-${ordinal}`, $type });
-// A project's custom field as `admin/projects/<id>/customFields` answers it with `field(name),bundle(values(name,ordinal))`.
-const projectField = (name: string, $type: string, values: readonly unknown[] | null) => ({ field: { name, id: `58-${name.length}`, $type: "CustomField" }, ...(values === null ? {} : { bundle: { values, id: "64-1", $type: "Bundle" } }), id: "102-1", $type });
+// A project's custom field as `admin/projects/<id>/customFields` answers it with `field(name),bundle(values(name,ordinal))`;
+// its bundle's `$type` that of its field (`EnumBundle` for an `EnumProjectCustomField`).
+const projectField = (name: string, $type: string, values: readonly unknown[] | null) => ({ field: { name, id: `58-${name.length}`, $type: "CustomField" }, ...(values === null ? {} : { bundle: { values, id: "64-1", $type: $type.replace("ProjectCustomField", "Bundle") } }), id: "102-1", $type });
 const PRIORITY_FIELD = projectField("Priority", "EnumProjectCustomField", [element("Critical", 0, "EnumBundleElement"), element("Normal", 1, "EnumBundleElement")]);
 const STATE_FIELD = projectField(
 	"State",
@@ -234,7 +235,7 @@ export async function server(t: TestContext, issues = 3) {
 		if (request.method === "DELETE" && path === "/api/articles/SHOP-A-2/comments/251-1") return send(response, 403, { error: "Forbidden", error_description: "You have no permission\nto delete the comment of jane" });
 		if (path === "/api/articles/SHOP-A-2/comments/251-0") return send(response, 200, { id: "251-0", $type: "ArticleComment" });
 		if (path === "/api/articles/SHOP-A-2/attachments" && request.method === "POST") return send(response, 200, [{ name: (form?.get("upload") as File | null)?.name, id: "75-2", $type: "ArticleAttachment" }]);
-		if (path === "/api/articles/SHOP-A-2/attachments") return send(response, 200, page([{ ...attachment("75-1", "steps.txt", "/api/files/75-1?sign=MTgz", 4, "text/plain", null), issue: undefined, article: { idReadable: "SHOP-A-2", $type: "Article" }, $type: "ArticleAttachment" }]));
+		if (path === "/api/articles/SHOP-A-2/attachments") return send(response, 200, page([{ ...attachment("75-1", "steps.txt", "/api/files/75-1?sign=MTgz", 4, "text/plain", null), issue: undefined, thumbnailURL: undefined, article: { idReadable: "SHOP-A-2", $type: "Article" }, $type: "ArticleAttachment" }]));
 		if (request.method === "DELETE" && path === "/api/articles/SHOP-A-2/attachments/75-1") return response.writeHead(200).end();
 		if (path === "/api/issues/SHOP-1/attachments" && !acme) return send(response, 200, page(ATTACHMENTS("")));
 		if (path === "/api/issues/SITE-1/attachments" && acme) return send(response, 200, page([attachment("74-5", "notes.txt", "/acme/api/files/74-5?sign=MTgw", 10, "text/plain", null)]));

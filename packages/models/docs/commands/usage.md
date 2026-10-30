@@ -14,6 +14,6 @@ openai-codex: no data
 - The report is kept in `<home>/models/usage.json` and fetched again once the last fetch is 10 minutes old; `arthur run` asks every minute, so the coordinator's context stays current. A fetch that fails keeps the last report, and the answer starts with its age: `as of 14 min ago; the fetch 0 min ago failed: <reason>`.
 - An agent without a usage report (the command fails, or prints no `reports` list): `the agent has no usage report (<reason>); no model is skipped for its limits`.
 
-What the windows do elsewhere: a model list skips a built-in model whose provider has a window at or over `limits.stopAt` (default 95%) on every account, and a window at or over `limits.warnAt` (default 80%) is named on a job's spawn line and in the coordinator's context: docs/models.md, "Limits".
+What the windows do elsewhere: a model list skips a built-in model whose provider has a window at or over `limits.stopAt` (default 95%) on every account, and a window at or over `limits.warnAt` (default 80%) is named on a job's spawn line and in the coordinator's context: docs/models.md, "Limits". The plugin provides `models.usage`, the highest used percent of any window of the last report (undefined with no window, or when the last fetch failed), which bounds the owner's grant of `arthur silent on --usage <percent>` (the orchestration plugin, `arthur silent --help`).
 
 Exit code 2 for any argument other than `--email`.

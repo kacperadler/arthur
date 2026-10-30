@@ -4502,5 +4502,33 @@
     "status": "in-progress",
     "path": "spec/features/AR0564-a-report-skill-how-every-html-page-for-the-owner-is-styled-and-checked-before-it/ticket.md",
     "updated": "2026-10-29T22:05:38.838Z"
+  },
+  {
+    "id": "AR0565",
+    "title": "limits.test.ts fails under load: three tests race a fixed 3 s job limit",
+    "status": "planned",
+    "path": "spec/features/AR0565-limits-test-ts-fails-under-load-three-tests-race-a-fixed-3-s-job-limit/ticket.md",
+    "updated": "2026-10-30T01:09:05.959Z"
+  },
+  {
+    "id": "AR0566",
+    "title": "Five job roles tell the agent to wait on proc://, which a job sandbox cannot reach",
+    "status": "planning",
+    "path": "spec/features/AR0566-five-job-roles-tell-the-agent-to-wait-on-proc-which-a-job-sandbox-cannot-reach/ticket.md",
+    "updated": "2026-10-30T01:07:33.581Z"
+  },
+  {
+    "id": "AR0567",
+    "title": "AR0311's 18 findings stay open forever though each is already a ticket",
+    "status": "planning",
+    "path": "spec/features/AR0567-ar0311-s-18-findings-stay-open-forever-though-each-is-already-a-ticket/ticket.md",
+    "updated": "2026-10-30T01:07:34.097Z"
+  },
+  {
+    "id": "AR0568",
+    "title": "After the listen rename, the core still names the voice plugin, and versions.mmd misses four plugins",
+    "status": "planning",
+    "path": "spec/features/AR0568-after-the-listen-rename-the-core-still-names-the-voice-plugin-and-versions-mmd/ticket.md",
+    "updated": "2026-10-30T01:07:34.628Z"
   }
 ]

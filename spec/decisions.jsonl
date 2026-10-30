@@ -754,3 +754,5 @@
 {"record":"answer","id":"AR-D375","time":"2026-10-30T11:57:49+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
 {"record":"ask","id":"AR-D376","time":"2026-10-30T12:38:14+01:00","project":"arthur","kind":"merge","question":"Merge AR0573 (the merge writes What went in per file and commits the ticket folder) after its passed review?","options":[],"ticket":"AR0573"}
 {"record":"answer","id":"AR-D376","time":"2026-10-30T12:38:14+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}
+{"record":"ask","id":"AR-D377","time":"2026-10-30T12:41:14+01:00","project":"arthur","kind":"merge","question":"Merge AR0571 (resume once; main merged in) after its passed review?","options":[],"ticket":"AR0571"}
+{"record":"answer","id":"AR-D377","time":"2026-10-30T12:41:14+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

@@ -188,7 +188,7 @@ test("a project's prompts naming a relative path outside its repository, or anot
 	}
 });
 
-test("an absolute prompts path, a project folder's, is read from there; one left out from the worktree; a symlink there is refused", async () => {
+test("an absolute prompts path, a project folder's, is read from there; one left out from the worktree; a symlink there, or a symlinked folder on the way, is refused", async () => {
 	const { root, home } = repository({ [`${ROLES}/worker.md`]: "Use tabs.\n", [`${CRITERIA}/styleguide.md`]: "# Repository style\n" });
 	const folder = temporaryFolder();
 	mkdirSync(join(folder, "criteria"));
@@ -203,6 +203,12 @@ test("an absolute prompts path, a project folder's, is read from there; one left
 	assert.deepEqual(jobs.vision(), { project: "acme", path: join(folder, "vision.md"), text: "# Folder vision\n" });
 	rmSync(style);
 	symlinkSync(join(root, CRITERIA, "styleguide.md"), style);
+	await assert.rejects(jobs.spawn({ task: "Go." }), { message: `${style} is a symlink; ${REFUSED}` });
+	// The folder itself a symlink to a folder outside the project's: the file in it is a plain file, only its real path tells.
+	const outside = temporaryFolder();
+	writeFileSync(join(outside, "styleguide.md"), "# Outside style\n");
+	rmSync(join(folder, "criteria"), { recursive: true });
+	symlinkSync(outside, join(folder, "criteria"));
 	await assert.rejects(jobs.spawn({ task: "Go." }), { message: `${style} is a symlink; ${REFUSED}` });
 });
 

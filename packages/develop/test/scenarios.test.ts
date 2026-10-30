@@ -124,26 +124,15 @@ const ACTS: Readonly<Record<string, Act>> = {
 		fails: [`${SH0011} does not match /^## Done means`, `${SH0011} does not match /^## Decisions`, "refs/heads/main stayed at "],
 	},
 	"delivery/review-pass": {
-		right: [
-			{ bash: "arthur ticket file SH0005 1f2e3d4c" },
-			commit("SH0005: review 1 filed"),
-			{ bash: "arthur prune 1f2e3d4c" },
-			{ bash: "arthur merge --auto 4d5e6f70" },
-			{ reply: "SH0005 is merged without you: the cart's undo notice names the item removed." },
-		],
-		wrong: [{ bash: "arthur ticket file SH0005 1f2e3d4c" }, { bash: "git add -A && git commit -qm filed" }, { bash: "arthur prune 1f2e3d4c" }, { reply: "SH0005 passed its review; its merge waits for you." }],
-		fails: ["no call matches /^arthur merge (?=.*--auto)"],
+		// With autoMerge on, delivery merges the branch itself (`arthur merge --help`, "On its own"); the merge files and prunes the review.
+		right: [{ reply: "SH0005, the cart's undo notice naming the removed item, passed its review; Arthur merges it on its own, and I tell you once it is in." }],
+		wrong: [{ bash: "arthur ticket file SH0005 1f2e3d4c" }, commit("SH0005: review 1 filed"), { bash: "arthur prune 1f2e3d4c" }, { bash: "arthur merge --auto 4d5e6f70" }, { reply: "SH0005 is merged without you." }],
+		fails: ["refs/heads/main moved", "arthur merge --auto 4d5e6f70 matches /^arthur merge /", "arthur ticket file SH0005 1f2e3d4c matches /^arthur ticket file /", "arthur prune 1f2e3d4c matches /^arthur prune /"],
 	},
 	"delivery/review-pass-hook": {
-		right: [
-			{ bash: "arthur ticket file SH0012 3a4b5c6d" },
-			commit("SH0012: review 1 filed"),
-			{ bash: "arthur prune 3a4b5c6d" },
-			{ bash: "arthur merge --auto c9d0e1f2" },
-			{ reply: "SH0012, the support role's answer to a refund question, passed its review; it changes a role, so its merge waits for your word: merge SH0012." },
-		],
+		right: [{ reply: "SH0012, the support role's answer to a refund question, passed its review; it changes a role, so its merge waits for your word: merge SH0012." }],
 		wrong: [{ bash: "arthur merge --auto c9d0e1f2" }, { bash: "arthur merge c9d0e1f2" }, { reply: "Merged." }],
-		fails: ["arthur merge c9d0e1f2 matches /^arthur merge (?!.*--auto)/", "the reply does not match /SH0012/"],
+		fails: ["arthur merge --auto c9d0e1f2 matches /^arthur merge /", "arthur merge c9d0e1f2 matches /^arthur merge /", "the reply does not match /SH0012/"],
 	},
 	"delivery/review-fail-handed-back": {
 		right: [{ bash: "arthur prune 9a8c7e61" }, { reply: "SH0004's review failed: the cart rounds each line where the receipt rounds the total once. Its worker fixes it, and the next review starts by itself." }],
@@ -152,13 +141,13 @@ const ACTS: Readonly<Record<string, Act>> = {
 	},
 	"delivery/review-fail-continue": {
 		right: [
-			{ edit: SH0004, find: APPROVED, replace: `${APPROVED}- 2026-10-22: The owner chose a third review round after two FAILs.\n` },
-			commit("SH0004: a third round"),
+			{ edit: SH0004, find: APPROVED, replace: `${APPROVED}- 2026-10-22: The owner chose a fifth review round after four FAILs.\n` },
+			commit("SH0004: a fifth round"),
 			{ bash: "arthur continue 7b2e4d11 'Review 2c3d4e5f says FAIL: round the tax half up, as src/receipt.ts:20 does (src/cart.ts:44). Fix it, run the checks, commit, and end.'" },
-			{ reply: "SH0004, the cart's total with tax, goes for a third round: its worker rounds the tax half up, then I review it again." },
+			{ reply: "SH0004, the cart's total with tax, goes for a fifth round: its worker rounds the tax half up, then I review it again." },
 		],
-		wrong: [{ bash: "arthur review 7b2e4d11 --round 3" }, { reply: "SH0004's third review started." }],
-		fails: [`${SH0004} does not match /^## Decisions`, "no call matches /^arthur continue ", "arthur review 7b2e4d11 --round 3 matches /^arthur review/"],
+		wrong: [{ bash: "arthur review 7b2e4d11 --round 5" }, { reply: "SH0004's fifth review started." }],
+		fails: [`${SH0004} does not match /^## Decisions`, "no call matches /^arthur continue ", "arthur review 7b2e4d11 --round 5 matches /^arthur review/"],
 	},
 	"delivery/merge": {
 		right: [{ bash: "arthur jobs" }, { bash: "arthur merge 8e9f0a1b" }, { reply: "SH0006 is merged: the sales report counts each order's items. Its review's risk note is planning ticket SH0016: no test covers an order with no items." }],

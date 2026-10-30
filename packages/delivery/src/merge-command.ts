@@ -10,7 +10,7 @@ import { endWait } from "./ci-wait.ts";
 import { failed, mainChecks, reinstall, stepRunner } from "./merge-checks.ts";
 import { settleTicket } from "./merge-outcome.ts";
 import { FEATURE } from "./review-command.ts";
-import { reviewsOf } from "./review-records.ts";
+import { noReview, reviewsOf } from "./review-records.ts";
 import { lastMerge, saveLastMerge } from "./take-main.ts";
 import { pruneTicket } from "./ticket-prune.ts";
 
@@ -186,14 +186,7 @@ export function identityRequirement(project: string, root: string): Requirement 
 function passGap(host: Host, job: JobRecord, tip: string): string {
 	const reviews = reviewsOf(host, job.branch);
 	const onTip = reviews.findLast(([review, verdict]) => tip.startsWith(review.commit) && (verdict === "PASS" || verdict === "FAIL"));
-	if (onTip?.[1] === "PASS") return "";
-	let kept: unknown;
-	try {
-		kept = JSON.parse(readFileSync(join(host.folder, job.id, "review-needed"), "utf8"));
-	} catch {
-		// No answer of `arthur review-needed`, or a broken one: no `no review`.
-	}
-	if (typeof kept === "object" && kept !== null && "answer" in kept && "commit" in kept && String(kept.answer).startsWith("no review") && kept.commit === tip) return "";
+	if (onTip?.[1] === "PASS" || noReview(host, job.id, tip)) return "";
 	const pass = reviews.findLast(([, verdict]) => verdict === "PASS")?.[0].commit.slice(0, 7) ?? "none";
 	return `no PASS on ${job.branch}'s tip ${tip.slice(0, 7)}: ${onTip === undefined ? "no review of it has a verdict" : `its newest review, ${onTip[0].id}, says FAIL`} (last PASS: ${pass})`;
 }

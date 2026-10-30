@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
+import type { Forward } from "./pass-forward.ts";
 
 // A branch waiting for its CI (spec/roadmap.md, entry 59): `arthur merge --auto` refused it only for CI not yet passed, and
 // left `<folder>/<job>/ci-wait`. A run's end is told by github's poll, which asks `delivery.ciEnded` (AR0257, one wake per run
@@ -61,16 +62,16 @@ export function endWait(host: Host, id: string): void {
 // The verdict a run that built a waiting branch ended on, as the coordinator's wake says it.
 function ended(wait: Wait, run: CiEnd["run"], cancelled: boolean): string {
 	const where = `${wait.branch} (run ${run.id}, attempt ${run.attempt}, on ${run.sha.slice(0, 7)}): ${run.url}`;
-	if (run.conclusion === "success") return `CI passed on ${where}. It waited for that: arthur merge --auto ${wait.job}`;
+	if (run.conclusion === "success") return `CI passed on ${where}.`;
 	const ci = `arthur ci ${wait.branch} --project ${wait.project}`;
 	const hung = cancelled ? `, cancelled by delivery after it ran ${HANG_MINUTES} minutes` : "";
 	return `CI ended ${run.conclusion}${hung} on ${where}. Not merged; it waits on: the next end of a run on it wakes you again. Why: ${ci}; then a failure in the branch's own code goes back to its worker: arthur continue ${wait.job} '<the failed step and its lines>'; one that looks transient (a network error, a runner lost, a timeout in a step that passed before) is rerun once: ${ci} --rerun`;
 }
 
 // `delivery.ciEnded`: the end of a run on a waiting branch's tip, or of one delivery cancelled at any depth (AR0437), wakes the
-// coordinator, once per run attempt, and answers true; any other end, one below the tip included (AR0359), answers false, and
-// github's wake tells it. The wait ends only in a round.
-export function ciEnded(host: Host, { project, branch, below, run }: CiEnd): boolean {
+// coordinator once per run attempt and answers true, a success through the merge it runs (pass-forward.ts) unless autoMerge went
+// off; any other end, one below the tip included (AR0359), answers false, and github's wake tells it. The wait ends in a round.
+export function ciEnded(host: Host, { project, branch, below, run }: CiEnd, forward: Forward): boolean {
 	for (const id of waiting(host)) {
 		const wait = read(host, id);
 		if (wait instanceof Error || wait.project !== project || wait.branch !== branch || gone(host, id, wait) !== undefined) continue;
@@ -81,7 +82,9 @@ export function ciEnded(host: Host, { project, branch, below, run }: CiEnd): boo
 		if (below !== 0 && !cancelled) continue;
 		if (told.includes(`${key} ended`)) return true;
 		appendFileSync(file, `${key} ended\n`);
-		host.events.emit("coordinator-message", { text: ended(wait, run, cancelled) });
+		const text = ended(wait, run, cancelled);
+		if (run.conclusion !== "success" || !forward(project, id, text, `ci ${key}`))
+			host.events.emit("coordinator-message", { text: run.conclusion === "success" ? `${text} ${project} no longer merges on its own (autoMerge off): its merge waits for the owner: arthur merge ${id} on his word` : text });
 		return true;
 	}
 	return false;

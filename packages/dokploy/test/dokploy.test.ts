@@ -23,7 +23,7 @@ const deployed = (day: number, status: FakeDeployment["status"], more: Partial<F
 // Seven deployments in the order Dokploy stored them, which is not their order in time.
 const DEPLOYMENTS = [deployed(26, "done"), deployed(30, "running"), deployed(24, "done"), deployed(28, "done"), deployed(25, "cancelled"), deployed(29, "error", { title: "Fix\u001b[31m checkout", errorMessage: "Build failed\nnpm ERR! \u0007missing script: build\n" }), deployed(27, "done")];
 const SHOP_WEB = { id: "kXx3shopWeb01", name: "Shop web", status: "done", project: "Shop", environment: "production", domains: [{ host: "shop.example", https: true }, { host: "shop.example", https: true, path: "/admin" }], deployments: DEPLOYMENTS } as const;
-const SHOP_API = { id: "kXx3shopApi02", name: "Shop API", status: "running", project: "Shop", environment: "staging", sourceType: "github" } as const;
+const SHOP_API = { id: "kXx3shopApi02", name: "Shop API", status: "running", project: "Shop", environment: "staging", sourceType: "github", domains: [{ host: "api.shop.internal", https: false }] } as const;
 const CLIENT_SITE = { id: "cl1entSite", name: "Client site", status: "idle", project: "Random", environment: "production" } as const;
 
 const PROJECTS = [
@@ -94,6 +94,9 @@ test("apps lists each instance's projects under its name, Dokploy's environments
 	const bare = await fakeDokploy(t);
 	const none = await load(t, { instances: [{ url: bare.url, tokenEnv: "ARTHUR_DOKPLOY_TOKEN" }] }, { projects: [] });
 	assert.deepEqual(await none(undefined, "apps"), { code: 0, out: "instance (unnamed)\nno projects", err: "" });
+	// A member's project.all leaves out the environments the member may not see, all of them here.
+	bare.scripted.set("project.all", { status: 200, body: [{ projectId: "prj-hidden", name: "Hidden", environments: [] }] });
+	assert.deepEqual(await none(undefined, "apps"), { code: 0, out: "instance (unnamed)\nproject Hidden: no applications", err: "" });
 });
 
 test("apps goes on past an instance that fails, printing its error line, and exits 1", async (t) => {
@@ -114,7 +117,7 @@ test("app prints the project's app: its project and environment, source, status,
 	].join("\n");
 	assert.deepEqual(await run(undefined, "app"), { code: 0, out: web, err: "" });
 	assert.deepEqual(main.seen.map(({ path, query, key }) => [path, query, key]), [["/api/application.one", { applicationId: SHOP_WEB.id }, TOKEN]]);
-	const api = "Shop API (kXx3shopApi02) on instance (unnamed)\nproject: Shop, environment: staging\nsource: github, status: running\ndomains: none\nlast deployment: none";
+	const api = "Shop API (kXx3shopApi02) on instance (unnamed)\nproject: Shop, environment: staging\nsource: github, status: running\ndomains: http://api.shop.internal/\nlast deployment: none";
 	assert.deepEqual(await run("shop", "app", SHOP_API.id), { code: 0, out: api, err: "" });
 	const site = "Client site (cl1entSite) on instance client\nproject: Random, environment: production\nsource: drop, status: idle\ndomains: none\nlast deployment: none";
 	assert.deepEqual(await run("client", "app"), { code: 0, out: site, err: "" });

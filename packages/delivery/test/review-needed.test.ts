@@ -13,7 +13,8 @@ const PASSING = "check pass TIP clean\ntest pass 3/3 TIP clean\n";
 const OLD = "0123456789abcdef0123456789abcdef01234567";
 const SUMMARY = "✔ shop\nℹ tests 3\nℹ suites 0\nℹ pass 3\nℹ fail 0\nℹ duration_ms 5\n";
 const FILES: Readonly<Record<string, string>> = {
-	"package.json": `${JSON.stringify({ scripts: { check: "tsc", test: "node --test" } })}\n`,
+	// A mutate script too, whose lines `no review` does not ask for (AR0580 asks them before a review only).
+	"package.json": `${JSON.stringify({ scripts: { check: "tsc", test: "node --test", mutate: "node mutate.ts" } })}\n`,
 	"src/env.ts": "export const env = 1;\n",
 	"src/shop.ts": "export const shop = 1;\n",
 	"README.md": "# acme\n",

@@ -1,0 +1,10 @@
+{
+  "name": "@arthur/dokploy",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/dokploy.ts",
+    "./options": "./src/dokploy-options.ts"
+  }
+}

@@ -1,0 +1,362 @@
+{
+	"sources": {
+		"project-all-documented": "https://docs.dokploy.com/docs/api, the example answer of GET /api/project.all, verbatim",
+		"dokploy-v0.30.10": "https://github.com/Dokploy/dokploy/tree/v0.30.10: apps/dokploy/server/api/routers/project.ts (all, as an owner or admin), routers/application.ts (one), routers/deployment.ts (all), packages/server/src/services/application.ts (findApplicationById), services/deployment.ts (findAllDeploymentsByApplicationId), the tables of packages/server/src/db/schema/ (project, environment, application, domain, deployment, tag), and the error body of @dokploy/trpc-openapi 0.0.18 (adapters/node-http/core.js) with apps/dokploy/server/api/trpc.ts (errorFormatter) and pages/api/[...trpc].ts (the 401 without a key)"
+	},
+	"recorded": "2026-10-31",
+	"how": "the keys of each answer at every depth; a list holds its first item's keys, any other value null. Dokploy's openapi.json gives {} for every 200, so the shapes come from the documentation's one example (project-all-documented) and from the source at v0.30.10 (the rest). A related record findApplicationById reads that the fake answers empty or null (mounts, redirects, security, ports, previewDeployments; the git providers, server and registries) is [] or null here: not compared below",
+	"shapes": {
+		"project-all-documented": [
+			{
+				"projectId": null,
+				"name": null,
+				"description": null,
+				"createdAt": null,
+				"adminId": null,
+				"applications": [],
+				"mariadb": [],
+				"mongo": [],
+				"mysql": [
+					{
+						"mysqlId": null,
+						"name": null,
+						"appName": null,
+						"description": null,
+						"databaseName": null,
+						"databaseUser": null,
+						"databasePassword": null,
+						"databaseRootPassword": null,
+						"dockerImage": null,
+						"command": null,
+						"env": null,
+						"memoryReservation": null,
+						"memoryLimit": null,
+						"cpuReservation": null,
+						"cpuLimit": null,
+						"externalPort": null,
+						"applicationStatus": null,
+						"createdAt": null,
+						"projectId": null
+					}
+				],
+				"postgres": [],
+				"redis": [
+					{
+						"redisId": null,
+						"name": null,
+						"appName": null,
+						"description": null,
+						"databasePassword": null,
+						"dockerImage": null,
+						"command": null,
+						"env": null,
+						"memoryReservation": null,
+						"memoryLimit": null,
+						"cpuReservation": null,
+						"cpuLimit": null,
+						"externalPort": null,
+						"createdAt": null,
+						"applicationStatus": null,
+						"projectId": null
+					}
+				],
+				"compose": []
+			}
+		],
+		"project-all": [
+			{
+				"projectId": null,
+				"name": null,
+				"description": null,
+				"createdAt": null,
+				"organizationId": null,
+				"env": null,
+				"environments": [
+					{
+						"name": null,
+						"environmentId": null,
+						"isDefault": null,
+						"applications": [
+							{
+								"applicationId": null,
+								"name": null,
+								"applicationStatus": null
+							}
+						],
+						"mariadb": [
+							{
+								"mariadbId": null
+							}
+						],
+						"mongo": [
+							{
+								"mongoId": null
+							}
+						],
+						"mysql": [
+							{
+								"mysqlId": null
+							}
+						],
+						"postgres": [
+							{
+								"postgresId": null
+							}
+						],
+						"redis": [
+							{
+								"redisId": null
+							}
+						],
+						"compose": [
+							{
+								"composeId": null,
+								"name": null,
+								"composeStatus": null
+							}
+						],
+						"libsql": [
+							{
+								"libsqlId": null
+							}
+						]
+					}
+				],
+				"projectTags": [
+					{
+						"id": null,
+						"projectId": null,
+						"tagId": null,
+						"tag": {
+							"tagId": null,
+							"name": null,
+							"color": null,
+							"createdAt": null,
+							"organizationId": null
+						}
+					}
+				]
+			}
+		],
+		"application-one": {
+			"applicationId": null,
+			"name": null,
+			"appName": null,
+			"description": null,
+			"env": null,
+			"previewEnv": null,
+			"watchPaths": null,
+			"previewBuildArgs": null,
+			"previewBuildSecrets": null,
+			"previewLabels": null,
+			"previewWildcard": null,
+			"previewPort": null,
+			"previewHttps": null,
+			"previewPath": null,
+			"previewCertificateType": null,
+			"previewCustomCertResolver": null,
+			"previewLimit": null,
+			"isPreviewDeploymentsActive": null,
+			"previewRequireCollaboratorPermissions": null,
+			"rollbackActive": null,
+			"buildArgs": null,
+			"buildSecrets": null,
+			"memoryReservation": null,
+			"memoryLimit": null,
+			"cpuReservation": null,
+			"cpuLimit": null,
+			"title": null,
+			"enabled": null,
+			"subtitle": null,
+			"command": null,
+			"args": null,
+			"icon": null,
+			"refreshToken": null,
+			"sourceType": null,
+			"cleanCache": null,
+			"repository": null,
+			"owner": null,
+			"branch": null,
+			"buildPath": null,
+			"triggerType": null,
+			"autoDeploy": null,
+			"gitlabProjectId": null,
+			"gitlabRepository": null,
+			"gitlabOwner": null,
+			"gitlabBranch": null,
+			"gitlabBuildPath": null,
+			"gitlabPathNamespace": null,
+			"giteaRepository": null,
+			"giteaOwner": null,
+			"giteaBranch": null,
+			"giteaBuildPath": null,
+			"bitbucketRepository": null,
+			"bitbucketRepositorySlug": null,
+			"bitbucketOwner": null,
+			"bitbucketBranch": null,
+			"bitbucketBuildPath": null,
+			"username": null,
+			"password": null,
+			"dockerImage": null,
+			"registryUrl": null,
+			"customGitUrl": null,
+			"customGitBranch": null,
+			"customGitBuildPath": null,
+			"customGitSSHKeyId": null,
+			"enableSubmodules": null,
+			"dockerfile": null,
+			"dockerContextPath": null,
+			"dockerBuildStage": null,
+			"dropBuildPath": null,
+			"healthCheckSwarm": null,
+			"restartPolicySwarm": null,
+			"placementSwarm": null,
+			"updateConfigSwarm": null,
+			"rollbackConfigSwarm": null,
+			"modeSwarm": null,
+			"labelsSwarm": null,
+			"networkSwarm": null,
+			"stopGracePeriodSwarm": null,
+			"endpointSpecSwarm": null,
+			"ulimitsSwarm": null,
+			"replicas": null,
+			"applicationStatus": null,
+			"buildType": null,
+			"railpackVersion": null,
+			"herokuVersion": null,
+			"publishDirectory": null,
+			"isStaticSpa": null,
+			"createEnvFile": null,
+			"createdAt": null,
+			"registryId": null,
+			"rollbackRegistryId": null,
+			"environmentId": null,
+			"githubId": null,
+			"gitlabId": null,
+			"giteaId": null,
+			"bitbucketId": null,
+			"serverId": null,
+			"buildServerId": null,
+			"buildRegistryId": null,
+			"networkIds": null,
+			"detachDokployNetwork": null,
+			"environment": {
+				"environmentId": null,
+				"name": null,
+				"description": null,
+				"createdAt": null,
+				"env": null,
+				"projectId": null,
+				"isDefault": null,
+				"project": {
+					"projectId": null,
+					"name": null,
+					"description": null,
+					"createdAt": null,
+					"organizationId": null,
+					"env": null
+				}
+			},
+			"domains": [
+				{
+					"domainId": null,
+					"host": null,
+					"https": null,
+					"port": null,
+					"customEntrypoint": null,
+					"path": null,
+					"serviceName": null,
+					"domainType": null,
+					"uniqueConfigKey": null,
+					"createdAt": null,
+					"composeId": null,
+					"customCertResolver": null,
+					"applicationId": null,
+					"previewDeploymentId": null,
+					"certificateType": null,
+					"internalPath": null,
+					"stripPath": null,
+					"middlewares": null,
+					"forwardAuthEnabled": null,
+					"enabled": null
+				}
+			],
+			"deployments": [
+				{
+					"deploymentId": null,
+					"title": null,
+					"description": null,
+					"status": null,
+					"logPath": null,
+					"pid": null,
+					"applicationId": null,
+					"composeId": null,
+					"serverId": null,
+					"isPreviewDeployment": null,
+					"previewDeploymentId": null,
+					"createdAt": null,
+					"startedAt": null,
+					"finishedAt": null,
+					"errorMessage": null,
+					"scheduleId": null,
+					"backupId": null,
+					"rollbackId": null,
+					"volumeBackupId": null,
+					"buildServerId": null
+				}
+			],
+			"mounts": [],
+			"redirects": [],
+			"security": [],
+			"ports": [],
+			"gitlab": null,
+			"github": null,
+			"bitbucket": null,
+			"gitea": null,
+			"server": null,
+			"previewDeployments": [],
+			"registry": null,
+			"buildRegistry": null,
+			"rollbackRegistry": null,
+			"hasGitProviderAccess": null,
+			"unauthorizedProvider": null
+		},
+		"deployment-all": [
+			{
+				"deploymentId": null,
+				"title": null,
+				"description": null,
+				"status": null,
+				"logPath": null,
+				"pid": null,
+				"applicationId": null,
+				"composeId": null,
+				"serverId": null,
+				"isPreviewDeployment": null,
+				"previewDeploymentId": null,
+				"createdAt": null,
+				"startedAt": null,
+				"finishedAt": null,
+				"errorMessage": null,
+				"scheduleId": null,
+				"backupId": null,
+				"rollbackId": null,
+				"volumeBackupId": null,
+				"buildServerId": null
+			}
+		],
+		"error": {
+			"message": null,
+			"code": null,
+			"data": {
+				"code": null,
+				"httpStatus": null,
+				"path": null,
+				"zodError": null
+			}
+		},
+		"error-unauthorized": {
+			"message": null
+		}
+	}
+}

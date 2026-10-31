@@ -27,5 +27,12 @@
     "action": {
       "message": "Night report due (the owner, AR-D271): write one HTML page, brutalist style, black and red with some blue, of what happened overnight on queue Q1-Q3 and what did not: each ticket merged (one plain line on what it changes), each one failed, held or not started and why, the done/new counts, decisions taken by recommendation under AR-D271, CI, Claude weekly usage against the 33% cap, and what waits for him. Save it under .arthur/reports/ and send it with arthur send and a one-line caption."
     }
+  },
+  {
+    "id": "morning-asks-2026-10-31",
+    "at": "2026-10-31T08:05",
+    "action": {
+      "message": "Morning report, promised to the owner overnight: read .arthur/session/handoff.md, then ask him, each with an arthur decision ask id: approve retro tickets AR0594, AR0595, AR0596; the budget for the AR0592 Discord ticket-1 worker (and the AR0588, AR0593/AR0590, AR0579/AR0580 workers), with weekly usage at 67% until about 2026-11-04. Start nothing without his word."
+    }
   }
 ]

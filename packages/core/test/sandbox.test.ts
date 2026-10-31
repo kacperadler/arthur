@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { homedir, tmpdir, userInfo } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
@@ -259,12 +259,32 @@ test("the hidden ~/.ssh and the guarded file's ssh lines are the user account's,
 	const [user, account] = [userInfo().homedir, join(userInfo().homedir, ".ssh")];
 	const saved = process.env.HOME;
 	t.after(() => (saved === undefined ? delete process.env.HOME : (process.env.HOME = saved)));
-	writeFileSync(join(folder, "guarded"), `env ${join(folder, "env")}\nssh ${join(folder, "planted")}\n`);
-	for (const [home, expected] of [[folder, [account, join(folder, ".ssh")]], [user, [account]], [`${user}/`, [account]], ["", [account]], [undefined, [account]]] as const) {
-		home === undefined ? delete process.env.HOME : (process.env.HOME = home);
-		assert.deepEqual(hidden(folder), [join(folder, "env"), ...expected], `HOME=${home}`);
-		assert.deepEqual(guardedPlaces().split("\n").filter((line) => line.startsWith("ssh ")), expected.map((path) => `ssh ${path}`), `HOME=${home}`);
+	const record = join(folder, "jobs", "2026-10-24-worker-0a1b2c3d");
+	mkdirSync(record, { recursive: true });
+	writeFileSync(join(record, "guarded"), `env ${join(folder, "env")}\nssh ${join(folder, "planted")}\n`);
+	// The rest of the list is the home's (AR0590): hidden whole, with the record and the projects plugin's lists shown.
+	const home = [realpathSync(folder), `+${record}`, `+${join(folder, "projects", "checkouts")}`, `+${join(folder, "projects", "folders")}`];
+	for (const [where, expected] of [[folder, [account, join(folder, ".ssh")]], [user, [account]], [`${user}/`, [account]], ["", [account]], [undefined, [account]]] as const) {
+		where === undefined ? delete process.env.HOME : (process.env.HOME = where);
+		assert.deepEqual(hidden(record), [join(folder, "env"), ...expected, ...home], `HOME=${where}`);
+		assert.deepEqual(guardedPlaces().split("\n").filter((line) => line.startsWith("ssh ")), expected.map((path) => `ssh ${path}`), `HOME=${where}`);
 	}
+});
+
+test("hidden: the home whole, but shown the job's own record, its project's other records and the projects plugin's lists; a record of no project shows none but itself; a home holding the job's checkout stays (AR0590)", () => {
+	const home = realpathSync(temporaryFolder());
+	const [own = "", sibling = "", theirs = "", none = "", unnamed = ""] = ["0a0a0001", "0a0a0002", "0b0b0001", "0c0c0001", "0c0c0002"].map((hex) => join(home, "jobs", `2026-10-30-worker-${hex}`));
+	for (const [record, project] of [[own, "shop1"], [sibling, "shop1\n"], [theirs, "shop2"], [none, undefined], [unnamed, undefined]] as const) {
+		mkdirSync(record, { recursive: true });
+		writeFileSync(join(record, "kind"), "worker");
+		if (project !== undefined) writeFileSync(join(record, "project"), project);
+	}
+	const lists = [`+${join(home, "projects", "checkouts")}`, `+${join(home, "projects", "folders")}`];
+	const ofHome = (record: string) => hidden(record).filter((path) => path.startsWith(home) || path.startsWith("+")).sort();
+	assert.deepEqual(ofHome(own), [home, `+${own}`, `+${sibling}`, ...lists].sort());
+	assert.deepEqual(ofHome(none), [home, `+${none}`, ...lists].sort(), "no other record of no project");
+	writeFileSync(join(own, "root"), join(home, "shop1"));
+	assert.deepEqual(ofHome(own), [], "a home that holds the job's main checkout is not hidden, as that checkout is not");
 });
 
 test("a merge step writes main's checkout but not its Git config, hooks or info, Arthur's home, config or env file, a new top-level entry, nor through a link", { skip: bare }, (t) => {
@@ -638,7 +658,7 @@ test("a job of shop1 gets Permission denied on shop2's checkout, its project fol
 		git(root, "add", "--all");
 		git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "first");
 	}
-	const [theirs, sibling] = [join(folder, ".arthur-worktrees", "2026-10-30-worker-5b0b2000"), join(folder, ".arthur-worktrees", "2026-10-30-worker-5a0a1000")] as const;
+	const [theirs = "", sibling = "", later = ""] = ["5b0b2000", "5a0a1000", "5b0b3000"].map((hex) => join(folder, ".arthur-worktrees", `2026-10-30-worker-${hex}`));
 	for (const [root, worktree] of [[shop2, theirs], [shop1, sibling]] as const) git(root, "worktree", "add", "--quiet", "--detach", worktree);
 	for (const name of ["shop1", "shop2"]) {
 		mkdirSync(join(arthur, "projects", name), { recursive: true });
@@ -656,6 +676,7 @@ test("a job of shop1 gets Permission denied on shop2's checkout, its project fol
 		"shop2's folder": join(arthur, "projects", "shop2", "project.config.ts"),
 		"a shop2 job's worktree": join(theirs, "README.md"),
 		"another shop1 job's worktree": join(sibling, "README.md"),
+		"a shop2 job's worktree made during its install": join(later, "README.md"),
 		"the env file": join(arthur, "env"),
 		"its worktree": "README.md",
 		"its root": join(shop1, "README.md"),
@@ -673,11 +694,19 @@ test("a job of shop1 gets Permission denied on shop2's checkout, its project fol
 	const time = clock("UTC", undefined, () => new Date("2026-10-30T08:00:00Z"));
 	const list = [{ name: "shop1", path: shop1, prefix: "SA" }, { name: "shop2", path: shop2, prefix: "SB" }];
 	const jobs = jobRunner(home, arthur, join(arthur, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), (name) => (name === "projects" ? [list] : []));
+	// An install that waits for the gate: the worktree made meanwhile is made after the hidden list was read, before the agent's sandbox.
+	const gate = join(folder, "gate");
+	jobs.prepare("test", () => ({ ARTHUR_INSTALL: `while [ ! -e '${gate}' ]; do sleep 0.05; done` }));
 	const job = await jobs.spawn({ task: "Read.", project: "shop1" });
+	await until("the install's sandbox", () => existsSync(join(home, "jobs", job.id, "log")) && readFileSync(join(home, "jobs", job.id, "log"), "utf8").includes("] sandbox: the install "));
+	git(shop2, "worktree", "add", "--quiet", "--detach", later);
+	writeFileSync(gate, "");
 	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
 	assert.deepEqual(readFileSync(join(home, "jobs", job.id, "reads"), "utf8").trim().split("\n"), [
-		...Object.keys(reads).map((name, at) => `${name} ${at < 5 ? "denied" : "read"}`),
+		...Object.keys(reads).map((name, at) => `${name} ${at < 6 ? "denied" : "read"}`),
 		"a commit made",
 	]);
 	assert.equal(git(shop1, "log", "--format=%s", "-1", `arthur/${job.id}`), "sandboxed");
+	const log = readFileSync(join(home, "jobs", job.id, "log"), "utf8");
+	assert.equal(log.includes(`, ${home}, (shown: ${join(home, "jobs", job.id)}), `), true, "the log names the home hidden and its record shown");
 });

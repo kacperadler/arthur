@@ -4805,9 +4805,9 @@
   {
     "id": "AR0600",
     "title": "Split the five source files that leave their zone once a line counts once per 160 characters",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0600-split-the-five-source-files-that-leave-their-zone-once-a-line-counts-once-per/ticket.md",
-    "updated": "2026-10-31T23:31:36.221Z"
+    "updated": "2026-10-31T23:38:14.527Z"
   },
   {
     "id": "AR0601",

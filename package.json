@@ -11,6 +11,7 @@
   ],
   "scripts": {
     "check": "tsc",
+    "mutate": "node test/mutate.ts",
     "test": "node --import @arthur/core/testing --test \"test/**/*.test.ts\" \"packages/*/test/**/*.test.ts\""
   },
   "devDependencies": {

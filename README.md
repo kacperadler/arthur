@@ -87,7 +87,7 @@ flowchart TD
 
 ## Try it
 
-Development needs Node 24: `npm ci`, then `npm run check` and `npm test`.
+Development needs Node 24: `npm ci`, then `npm run check` and `npm test`. On a branch with its work committed, `npm run mutate` names each mutant of the branch's change that no test catches (at most 25; `npm run mutate -- --max <n>` sets the cap).
 
 To run Arthur in a clone after `npm ci`, with `node_modules/.bin` on your `PATH`, write an `arthur.config.ts` with the two plugins that need nothing else, and the project's file (Git ignores both):
 

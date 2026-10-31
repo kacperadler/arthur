@@ -9,7 +9,7 @@ import { basename, dirname, join } from "node:path";
 // docs/commands/review-needed.md, "The job's checks". A bash call that runs them gets a timeout of at least 1800 seconds (AR0569):
 // omp kills a call at its timeout, 300 seconds when it names none, and a killed check gives no result.
 
-type Script = "check" | "test";
+type Script = "check" | "test" | "mutate";
 type ToolEvent = { readonly toolCallId?: unknown; readonly toolName?: unknown; readonly input?: { readonly command?: unknown; readonly timeout?: unknown }; readonly content?: unknown; readonly details?: { readonly async?: unknown }; readonly isError?: unknown };
 type ExtensionApi = { on(event: "tool_call" | "tool_result", handler: (event: ToolEvent, ctx: { readonly cwd: string }) => { readonly input: object } | undefined): void };
 type Tree = { readonly head: string; readonly files: string; readonly clean: boolean };
@@ -33,10 +33,10 @@ export default function checks(pi: ExtensionApi): void {
 		const lines = event.toolName === "bash" ? ran(event, ctx.cwd) : [];
 		const after = lines.length === 0 ? undefined : tree(ctx.cwd);
 		if (after === undefined) return;
-		// The same commit and the same untouched files: the tree the checks ran on is the one read as the call ended.
-		const clean = before !== undefined && before.head === after.head && before.files === after.files && after.clean;
+		// The same commit and the same untouched files: the tree the checks ran on is the one read as the call ended; mutate (AR0579) writes files and puts them back, so the same clean commit at both ends.
+		const clean = (line: string) => before !== undefined && before.head === after.head && after.clean && (line.startsWith("mutate") ? before.clean : before.files === after.files);
 		mkdirSync(dirname(file), { recursive: true });
-		appendFileSync(file, lines.map((line) => `${line} ${(before ?? after).head} ${clean ? "clean" : "dirty"}\n`).join(""));
+		appendFileSync(file, lines.map((line) => `${line} ${(before ?? after).head} ${clean(line) ? "clean" : "dirty"}\n`).join(""));
 	});
 }
 
@@ -63,10 +63,11 @@ function tree(cwd: string): Tree | undefined {
 }
 
 // The lines of one bash call: `check pass|fail` per `npm run check`, `test pass|fail <passed>/<total>` per `npm test` (`npm t`,
-// `npm run test`), in the command's order, for the scripts the worktree's package.json declares; any other command, or a call
-// the bash tool moved to the background (it returned before the checks did), none. Commands joined by `;`, `&&` or `|` give one
-// exit status, so the output decides too: a check fails on a TypeScript error; a test takes pass or fail from node --test's
-// last summary (`fail 0` passes), and from the exit status without one.
+// `npm run test`), `mutate pass|fail` per `npm run mutate`, in the command's order, for the scripts the worktree's package.json
+// declares; any other command, or a call the bash tool moved to the background (it returned before the checks did), none.
+// Commands joined by `;`, `&&` or `|` give one exit status, so the output decides too: a check fails on a TypeScript error; a
+// test takes pass or fail from node --test's last summary (`fail 0` passes), and from the exit status without one; mutate
+// passes only on an exit status of 0 and a last summary with `0 survived`.
 function ran(event: ToolEvent, cwd: string): string[] {
 	if (event.details?.async !== undefined) return [];
 	const runs = scripts(event.input?.command, cwd);
@@ -76,21 +77,22 @@ function ran(event: ToolEvent, cwd: string): string[] {
 	const [tests, passed, failures] = [count("tests"), count("pass"), count("fail")];
 	return runs.map((name) => {
 		if (name === "check") return `check ${failed || /\berror TS\d+|^error:/m.test(output) ? "fail" : "pass"}`;
+		if (name === "mutate") return `mutate ${!failed && Array.from(output.matchAll(/^mutate: \d+ mutants, \d+ caught, (\d+) survived/gm)).at(-1)?.[1] === "0" ? "pass" : "fail"}`;
 		if (tests === undefined || passed === undefined || failures === undefined) return `test ${failed ? "fail" : "pass"}`;
 		return `test ${failures === "0" ? "pass" : "fail"} ${passed}/${tests}`;
 	});
 }
 
-// The runs of the `check` and `test` scripts the package.json in `worktree` declares that `command` names, in its order; a
-// missing or broken package.json declares none.
+// The runs of the `check`, `test` and `mutate` scripts the package.json in `worktree` declares that `command` names, in its
+// order; a missing or broken package.json declares none.
 function scripts(command: unknown, worktree: string): Script[] {
 	if (typeof command !== "string") return [];
 	let declared: readonly Script[];
 	try {
 		const { scripts } = JSON.parse(readFileSync(join(worktree, "package.json"), "utf8")) as { readonly scripts?: Readonly<Record<string, unknown>> };
-		declared = (["check", "test"] as const).filter((name) => typeof scripts?.[name] === "string");
+		declared = (["check", "test", "mutate"] as const).filter((name) => typeof scripts?.[name] === "string");
 	} catch {
 		return [];
 	}
-	return Array.from(command.matchAll(/(?:^|[;&|(\n])\s*npm\s+(test|t|run\s+test|run\s+check)(?=$|[\s;&|)])/g), (match): Script => ((match[1] ?? "").endsWith("check") ? "check" : "test")).filter((name) => declared.includes(name));
+	return Array.from(command.matchAll(/(?:^|[;&|(\n])\s*npm\s+(test|t|run\s+(?:test|check|mutate))(?=$|[\s;&|)])/g), (match): Script => (match[1]?.endsWith("check") ? "check" : match[1]?.endsWith("mutate") ? "mutate" : "test")).filter((name) => declared.includes(name));
 }

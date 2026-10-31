@@ -15,8 +15,10 @@ test("identify asks for intents 33281 alone; a heartbeat with no ACK before the 
 	const rest = api.calls.find((call) => call.path === "/gateway/bot");
 	assert.deepEqual([rest?.headers.authorization, rest?.headers["user-agent"]], [`Bot ${TOKEN}`, "DiscordBot (https://github.com/kacperadler/arthur, 1)"]);
 	assert.equal(api.connections[0]?.url, "/?v=10&encoding=json");
+	// The first heartbeat goes out after a random part of the interval, so it may precede READY and rightly carry null; the
+	// third goes out two whole intervals later, once READY and GUILD_CREATE were seen.
 	await until("three heartbeats", () => api.sent(1).length >= 3);
-	assert.equal(api.sent(1)[0]?.d, 2, "the heartbeat carries the last sequence: READY 1, GUILD_CREATE 2");
+	assert.equal(api.sent(1)[2]?.d, 2, "the heartbeat carries the last sequence: READY 1, GUILD_CREATE 2");
 	assert.equal(api.connections[0]?.closed, undefined, "each acknowledged, so the connection holds");
 	api.unacked = 1;
 	await until("closed for the missing ACK", () => api.connections[0]?.closed !== undefined);

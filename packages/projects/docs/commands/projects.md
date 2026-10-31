@@ -54,7 +54,9 @@ A missing clone is made at load: into a temporary name, renamed when whole, so a
 
 A project's repository without a board, `spec/build.json`, gets what Arthur reads from `arthur init <project>`: the vision and criteria skeletons, an `.nvmrc` and an empty board; then an onboarding job drafts its vision and criteria (`arthur init --help`). `arthur doctor` names each project without a board (`projects <name> board: missing: no spec/build.json`, not critical).
 
-Each load that succeeds keeps the projects' names and checkouts in `<home>/projects/checkouts`, a line `<name> <checkout>` each, rewritten whole only when they changed. Every running job's worktree guard reads it on each tool call, so a project added (and loaded, as by `arthur projects`) is refused to every other project's job at once, not from its next spawn.
+Each load that succeeds outside a job keeps the projects' names and checkouts in `<home>/projects/checkouts`, a line `<name> <checkout>` each, and their names and folders in `<home>/projects/folders`, a line `<name> <folder>` each (the folder's real path), each rewritten whole only when it changed. Every running job's worktree guard reads `checkouts` on each tool call, so a project added (and loaded, as by `arthur projects`) is refused to every other project's job at once, not from its next spawn; each run of a job reads both at its start, and its sandbox hides the other projects' checkouts, folders and jobs' worktrees from it (`arthur spawn --help`, "The sandbox").
+
+Inside a job (`arthur help --help`) the plugin imports only the job's own project's file, the folder of `folders` named as the project the job's record names, and serves that project alone: `arthur projects` there lists it alone, another project's file is never imported, and `checkouts` and `folders` are left as they are. A job whose project no folder holds is refused: `job <id> is of project "<name>", which no folder of projects.folders holds; a job loads only its own project`, and only the core's commands load there.
 
 ## The coordinator's context
 

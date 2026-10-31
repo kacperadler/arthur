@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type Board, board, projectList } from "./board.ts";
@@ -38,13 +38,16 @@ const REQUIRED = "orchestration";
 const CORE = dirname(import.meta.dirname);
 
 // `commands` holds what the core registered before; the plugins' commands join it, and a name registered twice refuses the load.
-// In a job (`inJob`, docs/commands/config.md) a plugin with a variable unset, and one that requires it, is left out.
+// In a job (`job`, insideJob's id; docs/commands/config.md) a plugin with a variable unset, and one that requires it, is left out,
+// and each plugin's `Host.job` names the job and the project its record in the home holds.
 // `ARTHUR_JOB_SLICE` in `shell` names the jobs' slice in place of Arthur's own, `arthur-jobs`, as the test kit does for a test's CLI.
-export async function loadPlugins(config: LoadedConfig, shell: Shell = process.env, commands: CommandRegistry = commandRegistry(), inJob = false): Promise<LoadedPlugins> {
+export async function loadPlugins(config: LoadedConfig, shell: Shell = process.env, commands: CommandRegistry = commandRegistry(), job?: string): Promise<LoadedPlugins> {
 	const slice = shell.ARTHUR_JOB_SLICE || "arthur-jobs";
 	if (!/^\w+(-\w+)*$/.test(slice)) throw new Error(`ARTHUR_JOB_SLICE: expected a systemd slice name without .slice, letters, digits and _ in parts joined by -; it is ${JSON.stringify(slice)}`);
 	const checked = await checkPlugins(config);
-	const { values, warnings, unset } = resolveEnv(config, shell, inJob), secrets = Object.values(values).flatMap((each) => Object.values(each)), hide = secretNames(Object.assign({}, ...Object.values(values)));
+	const record = join(config.core.home, "jobs", job ?? "", "project");
+	const own = job === undefined ? undefined : { id: job, project: existsSync(record) ? readFileSync(record, "utf8").trim() : "" };
+	const { values, warnings, unset } = resolveEnv(config, shell, job !== undefined), secrets = Object.values(values).flatMap((each) => Object.values(each)), hide = secretNames(Object.assign({}, ...Object.values(values)));
 	const skipped = new Set<string>();
 	for (const plugin of checked) if (unset.has(plugin.name) || plugin.requires?.some((name) => skipped.has(name))) skipped.add(plugin.name);
 	const sorted = checked.filter((plugin) => !skipped.has(plugin.name));
@@ -66,7 +69,7 @@ export async function loadPlugins(config: LoadedConfig, shell: Shell = process.e
 		const { enabled: _, ...options } = plugin.options ?? {};
 		const folder = join(config.core.home, plugin.name);
 		mkdirSync(folder, { recursive: true });
-		const host = pluginHost(names, routed, bus, jobs, { envFile: config.core.envFile, home: config.core.home, config: config.path }, { name: plugin.name, options, env: values[plugin.name] ?? {}, secrets, folder, clock: time, agent: config.core.agent.command, code, package: packages[index] }, () => loading);
+		const host = pluginHost(names, routed, bus, jobs, { envFile: config.core.envFile, home: config.core.home, config: config.path }, { name: plugin.name, options, env: values[plugin.name] ?? {}, secrets, folder, clock: time, agent: config.core.agent.command, code, package: packages[index], job: own }, () => loading);
 		// A setup's error is printed before the CLI names what it prints (cli.ts), so it is named here; its pieces are checked first.
 		const setup = () => {
 			checkPieces(plugin, options, names.collect("projects", []));

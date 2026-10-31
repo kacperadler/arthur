@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { basename, join } from "node:path";
 import type { Command, Host } from "@arthur/core/plugin";
 import { entryOf } from "./auto-merge.ts";
-import { branchOf, worker } from "./review-command.ts";
+import { branchOf, tipChecks, worker } from "./review-command.ts";
 
 // `arthur review-needed <worker job>` (spec/roadmap.md, entry 53): whether an ended worker's branch needs a review, by the
 // first rule that holds, its answer kept in `<folder>/<job>/review-needed`; on `no review` its ticket moved to done, its branch
@@ -75,21 +75,13 @@ function decide(git: (...words: string[]) => string, base: string, tip: string, 
 	const size = numstat.reduce((sum, [added, removed]) => sum + Number(added) + Number(removed), 0);
 	const lines = `${size} line${size === 1 ? "" : "s"} changed`;
 	if (size > SMALL) return `review: ${lines}, over ${SMALL}`;
-	let scripts: readonly string[] = [];
-	try {
-		const { scripts: declared } = JSON.parse(git("show", `${tip}:package.json`)) as { readonly scripts?: Readonly<Record<string, unknown>> };
-		scripts = ["check", "test"].filter((name) => typeof declared?.[name] === "string");
-	} catch {
-		// No package.json at the tip, or a broken one: no checks.
-	}
-	if (scripts.length === 0) return `review: ${lines}; the project's package.json declares no check or test script`;
-	const recorded = checks.split("\n").map((line) => line.split(" ")).filter((words) => words.length >= 4);
-	if (recorded.length === 0) return `review: ${lines}; the job recorded no checks`;
-	const latest = scripts.map((script) => recorded.findLast((words) => words[0] === script && words.at(-2) === tip && words.at(-1) === "clean") ?? recorded.findLast(([name]) => name === script));
-	const off = latest.find((words) => words !== undefined && `${words.at(-2)} ${words.at(-1)}` !== `${tip} clean`);
+	const latest = tipChecks(git, tip, checks).filter(([script]) => script !== "mutate");
+	if (latest.length === 0) return `review: ${lines}; the project's package.json declares no check or test script`;
+	if (!checks.split("\n").some((line) => line.split(" ").length >= 4)) return `review: ${lines}; the job recorded no checks`;
+	const off = latest.find(([, words]) => words !== undefined && `${words.at(-2)} ${words.at(-1)}` !== `${tip} clean`)?.[1];
 	if (off !== undefined) return `review: ${lines}; the job's checks ran on ${off.at(-2) === tip ? "a dirty tree" : `${off.at(-2)}, not the tip`}`;
-	const results = latest.map((words, at) => words?.slice(0, -2).join(" ") ?? `no ${scripts[at]}`);
-	return `${latest.every((words) => words?.[1] === "pass") ? "no review" : "review"}: ${lines}; the job's checks: ${results.join(", ")}`;
+	const results = latest.map(([script, words]) => words?.slice(0, -2).join(" ") ?? `no ${script}`);
+	return `${latest.every(([, words]) => words?.[1] === "pass") ? "no review" : "review"}: ${lines}; the job's checks: ${results.join(", ")}`;
 }
 
 // The first file of a `git diff --unified=0` with `.env` in a changed line.

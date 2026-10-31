@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
-import { reviewTask, worker } from "./review-command.ts";
+import { reviewTask, untested, worker } from "./review-command.ts";
 import { failsSincePass, LIMIT, type Review, type Verdict } from "./review-records.ts";
 
 // The hand-back after a FAIL review (spec/roadmap.md, entry 55), in `arthur run` alone, so one process acts: the FAIL filed, its
@@ -11,9 +11,9 @@ import { failsSincePass, LIMIT, type Review, type Verdict } from "./review-recor
 // and tell the coordinator. `stop-all` drops every hand-back, and a job a step started meanwhile is stopped. The fourth FAIL
 // (LIMIT) since the last PASS starts none: the limit's procedure goes to the coordinator. docs/commands/review.md, "Hand-back".
 
-// `continue`: the worker is to be continued; `continued`: its run goes on; `review`: the next review is to start; `reviewing`: it runs.
+// `continue`: the worker is to be continued; `continued`: its run goes on; `review`: the next review is to start; `reviewing`: it runs; `missed`: it was continued once to run its checks.
 type Step = "continue" | "continued" | "review" | "reviewing";
-type Pending = { readonly worker: string; readonly review: string; readonly findings: string; readonly step: Step };
+type Pending = { readonly worker: string; readonly review: string; readonly findings: string; readonly step: Step; readonly missed?: true };
 // `start`: `arthur run`'s, from which on it acts; `ended`: a run's `job-ended`, with delivery's record of a review and its
 // verdict; `cancel`: `stop-all`; `wake`: the worker's wake line while its hand-back goes on.
 export type HandBack = {
@@ -77,15 +77,14 @@ export function handBack(host: Host): HandBack {
 		for (const record of names.sort().flatMap((name) => read(name.slice(0, -".json".length)) ?? [])) {
 			if (record.step === "continue") await step(record, () => resume(host, record), "continued");
 			if (record.step !== "review") continue;
-			await step(
-				record,
-				async () => {
-					const job = worker(host, record.worker);
-					const { task, commit } = reviewTask(host, job, undefined);
-					return (await host.jobs.spawn({ task, kind: "review", project: job.project, fetch: commit })).id;
-				},
-				"reviewing",
-			);
+			// A tip without its checks passed (AR0580), once a round: an error reading it is `reviewTask`'s, below, which throws it again.
+			const gap = record.missed === true ? undefined : await Promise.try(() => untested(host, worker(host, record.worker))).catch(() => undefined);
+			if (gap !== undefined) await step({ ...record, missed: true }, () => resume(host, record, `Arthur starts no review yet: ${gap}. Commit your work, then run the project's check, test and mutate scripts (npm run check, npm test, npm run mutate) on the committed tip, change nothing after them, name each mutant that survives in your final message, and end: Arthur reviews the branch when you end.`), "continued");
+			else await step(record, async () => {
+				const job = worker(host, record.worker);
+				const { task, commit } = reviewTask(host, job, undefined);
+				return (await host.jobs.spawn({ task, kind: "review", project: job.project, fetch: commit })).id;
+			}, "reviewing");
 		}
 	};
 
@@ -139,11 +138,10 @@ export function handBack(host: Host): HandBack {
 	}
 }
 
-// The worker continued with the review's findings and a new budget, its budget again on top of what it spent; no limit stays none.
-async function resume(host: Host, record: Pending): Promise<string> {
+// The worker continued with the review's findings, or `instruction`, and a new budget, its budget again on top of what it spent; no limit stays none.
+async function resume(host: Host, record: Pending, instruction = `Review ${record.review} of your branch arthur/${record.worker} says FAIL. Fix every finding below, run the project's checks, commit, and end: Arthur reviews the branch again when you end.\n\n## The review's final message\n\n${record.findings}`): Promise<string> {
 	const job = host.jobs.list().find((each) => each.id === record.worker);
 	const [cost, budget] = [Number(job?.cost) || 0, Number(job?.budget) || 0];
-	const instruction = `Review ${record.review} of your branch arthur/${record.worker} says FAIL. Fix every finding below, run the project's checks, commit, and end: Arthur reviews the branch again when you end.\n\n## The review's final message\n\n${record.findings}`;
 	const failed = await host.jobs.continue(record.worker, instruction, budget > 0 ? Math.round((cost + budget) * 100) / 100 : undefined);
 	if (failed !== undefined) throw new Error(`its continue did not start: ${failed}`);
 	return record.worker;

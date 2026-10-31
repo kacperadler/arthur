@@ -40,6 +40,10 @@ The lines are the job's own word: the job's sandbox keeps `<home>/delivery/<job>
 
 A job on another machine writes its checks there, not here, so `arthur review-needed` reads none for it and answers `review`.
 
+## Before a review
+
+The same lines decide whether a review may start at all (AR0580). `arthur review` (`arthur review --help`) and the hand-back's next review start one only when, for each of `check`, `test` and `mutate` the tip's `package.json` declares, the job's latest line on the tip's clean tree is there: `check pass` and `test pass`, and a `mutate` line with any result, whose survivors the worker names in its final message. Otherwise `arthur review` is refused, exit 1, before any job exists: `arthur review: arthur/<id> at <commit> is reviewed only once the job's checks passed on its clean tip (check and test pass, mutate ran): <what is missing>`, each missing script as `no <script>`, `<script> ran on a dirty tree`, `<script> ran on <commit>, not the tip`, or its failing line (`test fail 2/3`); `arthur spawn --kind review` with the task it would write is refused as any task it does not write now. The hand-back instead continues the worker once to run them (`arthur review --help`, "Hand-back"). A tip whose `package.json` declares none of them, and a job on another machine, whose lines are there, need none.
+
 ## Refused
 
 Exit 1, nothing kept and nothing moved:

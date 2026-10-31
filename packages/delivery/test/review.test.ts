@@ -694,3 +694,91 @@ test("a no review of arthur review-needed, in its own process, is merged by arth
 	assert.equal(await forwarded(fake.host.folder, job.id), `no review ${job.commit}\n`, "no commit, no merge");
 	assert.deepEqual([existsSync(join(fake.host.folder, "..", "outside")), existsSync(join(fake.host.folder, "--unreviewed"))], [false, false], "an id that is no job's is never a path or a flag");
 });
+
+// The hand-back's continue of a worker whose tip's checks did not pass, after the refusal.
+const RUN_CHECKS =
+	"Commit your work, then run the project's check, test and mutate scripts (npm run check, npm test, npm run mutate) on the committed tip, change nothing after them, name each mutant that survives in your final message, and end: Arthur reviews the branch when you end.";
+
+test("a review starts only on a tip whose check, test and mutate passed there: arthur review refuses one without each, the hand-back continues its worker once to run them, and a second miss goes to the coordinator", async (t) => {
+	const { root, fake, git, worker, review, home, ended, field, step, agent, state } = await load(t, { start: true });
+	writeFileSync(join(root, "package.json"), `${JSON.stringify({ scripts: { check: "tsc", test: "node --test", mutate: "node mutate.ts" } })}\n`);
+	git(root, "add", "package.json");
+	git(root, "commit", "--quiet", "-m", "scripts");
+	const old = git(root, "rev-parse", "HEAD");
+	const job = await worker();
+	const tip = job.commit;
+	const checks = (lines: string) => (mkdirSync(join(fake.host.folder, job.id), { recursive: true }), writeFileSync(join(fake.host.folder, job.id, "checks"), lines));
+	// Each on the tip's clean tree: mutate with survivors left, which the worker names.
+	const passing = (at: string) => `check pass ${at} clean\ntest pass 3/3 ${at} clean\nmutate fail ${at} clean\n`;
+	const refusal = (at: string, gaps: string) => `${job.branch} at ${at.slice(0, 7)} is reviewed only once the job's checks passed on its clean tip (check and test pass, mutate ran): ${gaps}`;
+	const moved = (from: string) => ["check", "test", "mutate"].map((script) => `${script} ran on ${from.slice(0, 7)}, not the tip`).join(", ");
+	for (const [lines, gaps] of [
+		["", "no check, no test, no mutate"],
+		[`test pass 3/3 ${tip} clean\nmutate pass ${tip} clean\n`, "no check"],
+		[`check pass ${tip} clean\nmutate pass ${tip} clean\n`, "no test"],
+		[`check pass ${tip} clean\ntest pass 3/3 ${tip} clean\n`, "no mutate"],
+		[passing(tip).replace("check pass", "check fail"), "check fail"],
+		[passing(tip).replace("test pass 3/3", "test fail 2/3"), "test fail 2/3"],
+		[passing(tip).replace(`test pass 3/3 ${tip} clean`, `test pass 3/3 ${tip} dirty`), "test ran on a dirty tree"],
+		[passing(tip).replace(`mutate fail ${tip}`, `mutate fail ${old}`), `mutate ran on ${old.slice(0, 7)}, not the tip`],
+	] as const) {
+		checks(lines);
+		const refused = await review("PASS", job.id);
+		assert.deepEqual([refused.code, refused.err], [1, `arthur review: ${refusal(tip, gaps)}`], JSON.stringify(lines));
+	}
+	assert.deepEqual(reviews(fake), [], "no review job for a tip without its checks");
+	checks(passing(tip));
+	const first = await review("Missing test.\n\nFAIL", job.id);
+	await until("the worker continued with the findings", () => step(job.id) === "continued");
+	await until("the continued run's end", () => fake.host.jobs.result(job.id).startsWith("Missing test."));
+	// The worker's fix, committed, so its tip moved and the old tip's checks count no more.
+	const worktree = field(job.id, "worktree") ?? "";
+	const commit = (name: string) => {
+		writeFileSync(join(worktree, name), "export const fix = 1;\n");
+		git(worktree, "add", name);
+		git(worktree, "commit", "--quiet", "-m", name);
+		return git(root, "rev-parse", job.branch);
+	};
+	const second = commit("fix.ts");
+	agent({ steps: [{ message: "Checks run." }] });
+	await ended(job.id);
+	await until("the worker continued to run its checks", () => field(job.id, "continue") === `Arthur starts no review yet: ${refusal(second, moved(tip))}. ${RUN_CHECKS}` && step(job.id) === "continued");
+	assert.deepEqual(reviews(fake), [first.id], "no review of a tip without its checks");
+	// It ran them on its tip: the next review starts there.
+	checks(passing(second));
+	await until("the run of its checks ended", () => fake.host.jobs.result(job.id) === "Checks run.");
+	agent({ steps: [{ message: "Missing test.\n\nFAIL" }] });
+	await ended(job.id);
+	await until("the next review", () => step(job.id) === "reviewing");
+	const [next = ""] = reviews(fake).filter((id) => id !== first.id);
+	assert.equal(readFileSync(join(home, "jobs", next, "task"), "utf8").split("\n\n")[0], `Ticket: ${TICKET}\nBranch: ${job.branch}\nCommit: ${second}`);
+	// Its FAIL hands back again: a fix committed, a continue to run the checks, which the worker ends without: the coordinator is told.
+	await until("review 2's run", () => state(next) === "ended");
+	fake.emit("job-ended", { id: next, state: "ended" });
+	await until("the worker continued with review 2's findings", () => field(job.id, "continue")?.startsWith(`Review ${next} `) === true && step(job.id) === "continued");
+	await until("that run's end", () => fake.host.jobs.result(job.id).startsWith("Missing test."));
+	const third = commit("more.ts");
+	agent({ steps: [{ message: "Checks run." }] });
+	await ended(job.id);
+	await until("the worker continued to run its checks, once in this round too", () => field(job.id, "continue") === `Arthur starts no review yet: ${refusal(third, moved(second))}. ${RUN_CHECKS}` && step(job.id) === "continued");
+	await until("the run of its checks ended", () => fake.host.jobs.result(job.id) === "Checks run.");
+	await ended(job.id);
+	await until("the hand-back ended", () => step(job.id) === undefined);
+	assert.deepEqual(told(fake), [`Delivery's hand-back of ${job.branch} after FAIL ${next} stopped: ${refusal(third, moved(second))}. Hand it back yourself: arthur continue ${job.id} '<the findings of ${next}>', then arthur review ${job.id} once it ends.`]);
+	assert.equal(reviews(fake).length, 2, "no review after the second miss");
+	// A job on another machine writes its checks there: none is asked of it.
+	writeFileSync(join(home, "jobs", job.id, "machine"), "mac");
+	assert.match(reviewTask(fake.host, workerOf(fake.host, job.id), undefined).task, new RegExp(`^Ticket: ${TICKET}\nBranch: ${job.branch}\nCommit: ${third}\n`));
+});
+
+test("a hand-back whose worker's tip cannot be read for its next review stops and tells the coordinator once", async (t) => {
+	const { fake, worker, review, ended, step, home } = await load(t, { start: true });
+	const job = await worker();
+	const failed = await review("Missing test.\n\nFAIL", job.id);
+	await until("the worker continued", () => step(job.id) === "continued");
+	await until("the continued run's end", () => fake.host.jobs.result(job.id).startsWith("Missing test."));
+	writeFileSync(join(home, "jobs", job.id, "project"), "gone");
+	await ended(job.id);
+	await until("the hand-back ended", () => step(job.id) === undefined);
+	assert.deepEqual(told(fake), [`Delivery's hand-back of ${job.branch} after FAIL ${failed.id} stopped: ${job.id}'s project gone is not in the project list. Hand it back yourself: arthur continue ${job.id} '<the findings of ${failed.id}>', then arthur review ${job.id} once it ends.`]);
+});

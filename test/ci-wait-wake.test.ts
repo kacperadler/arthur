@@ -94,6 +94,10 @@ test("a waiting branch's CI end wakes the coordinator once, delivery's wake; the
 	git(job.worktree, "add", "--all");
 	git(job.worktree, "commit", "--quiet", "-m", "feat(SH0001): the shop");
 	const tip = git(job.worktree, "rev-parse", "HEAD");
+	// The worker's checks passed on its tip, as delivery's extension records them, so a review starts (AR0580); delivery runs on
+	// this one fake host, so its folder is the host's.
+	mkdirSync(join(fake.host.folder, job.id), { recursive: true });
+	writeFileSync(join(fake.host.folder, job.id, "checks"), `check pass ${tip} clean\ntest pass 1/1 ${tip} clean\n`);
 	agent("PASS");
 	await run("review", job.id);
 	const review = out.at(-1) ?? "";

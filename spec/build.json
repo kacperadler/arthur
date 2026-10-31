@@ -4626,9 +4626,9 @@
   {
     "id": "AR0579",
     "title": "Defaults T11: npm run mutate finds the tests that do not catch a change",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0579-defaults-t11-npm-run-mutate-finds-the-tests-that-do-not-catch-a-change/ticket.md",
-    "updated": "2026-10-30T07:47:08.867Z",
+    "updated": "2026-10-31T13:44:11.926Z",
     "after": [
       "AR0569"
     ]
@@ -4746,37 +4746,37 @@
   {
     "id": "AR0592",
     "title": "Plan: a discord plugin, the owner chat with Arthur in a private Discord server",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0592-plan-a-discord-plugin-the-owner-chat-with-arthur-in-a-private-discord-server/ticket.md",
-    "updated": "2026-10-30T19:12:09.752Z"
+    "updated": "2026-10-31T13:12:48.942Z"
   },
   {
     "id": "AR0593",
     "title": "AR0589 T2: a job sees only its own project",
-    "status": "planned",
+    "status": "review",
     "path": "spec/features/AR0593-ar0589-t2-a-job-sees-only-its-own-project/ticket.md",
-    "updated": "2026-10-30T20:15:36.720Z"
+    "updated": "2026-10-31T13:44:02.422Z"
   },
   {
     "id": "AR0594",
     "title": "Retro: a worker sent back after a FAIL fixes the cause, not only the reviewer's examples",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0594-retro-a-worker-sent-back-after-a-fail-fixes-the-cause-not-only-the-reviewer-s/ticket.md",
-    "updated": "2026-10-30T21:36:00.793Z"
+    "updated": "2026-10-31T13:45:49.255Z"
   },
   {
     "id": "AR0595",
     "title": "Retro: a change brings along every line it makes false, whichever file holds it",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0595-retro-a-change-brings-along-every-line-it-makes-false-whichever-file-holds-it/ticket.md",
-    "updated": "2026-10-30T21:36:01.300Z"
+    "updated": "2026-10-31T13:45:49.943Z"
   },
   {
     "id": "AR0596",
     "title": "Retro: the project's review criteria fail a branch that leaves docs saying the old thing",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0596-retro-the-project-s-review-criteria-fail-a-branch-that-leaves-docs-saying-the/ticket.md",
-    "updated": "2026-10-30T21:36:01.814Z",
+    "updated": "2026-10-31T13:45:50.617Z",
     "after": [
       "AR0595"
     ]

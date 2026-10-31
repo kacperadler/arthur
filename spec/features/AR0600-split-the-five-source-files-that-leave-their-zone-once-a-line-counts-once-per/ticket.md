@@ -42,3 +42,4 @@ Out:
 - `test/structure.ts` and the width count itself: AR0582.
 
 ## Decisions
+- 2026-10-31: Approve AR0600 and add it to tonight's batch; the owner: "go with recomendations" (AR-D415)

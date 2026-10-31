@@ -4655,11 +4655,11 @@
   {
     "id": "AR0582",
     "title": "Defaults T14: a source line over 160 characters counts as more than one",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0582-defaults-t14-a-source-line-over-160-characters-counts-as-more-than-one/ticket.md",
-    "updated": "2026-10-30T07:47:11.366Z",
+    "updated": "2026-10-31T19:13:07.923Z",
     "after": [
-      "AR0495"
+      "AR0600"
     ]
   },
   {
@@ -4801,5 +4801,12 @@
     "status": "planning",
     "path": "spec/features/AR0599-two-core-job-tests-can-start-the-same-systemd-scope-name-at-once/ticket.md",
     "updated": "2026-10-31T18:24:23.851Z"
+  },
+  {
+    "id": "AR0600",
+    "title": "Split the five source files that leave their zone once a line counts once per 160 characters",
+    "status": "planning",
+    "path": "spec/features/AR0600-split-the-five-source-files-that-leave-their-zone-once-a-line-counts-once-per/ticket.md",
+    "updated": "2026-10-31T19:25:24.648Z"
   }
 ]

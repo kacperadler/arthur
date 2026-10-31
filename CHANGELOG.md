@@ -10,6 +10,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Fixed
 
+- AR0590 AR0589 T3: a job cannot read the shared home .arthur/ of other projects (c966fcae)
 - AR0593 AR0589 T2: a job sees only its own project (d8013c2d)
 
 ### Changed

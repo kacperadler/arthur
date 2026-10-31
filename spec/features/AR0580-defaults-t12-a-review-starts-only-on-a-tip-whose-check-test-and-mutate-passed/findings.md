@@ -11,7 +11,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/src/review-command.ts:126`, `packages/core/src/machine-sync.ts:27`
 - What: the review gate (AR0580) reads the job's checks from `<home>/delivery/<job>/checks`, which the checks extension writes on the machine the job runs on. The sweep's copy from another machine brings only the record files in `RUN` (`machine-sync.ts:27`), never delivery's folder, so a job there has no lines here. Gating such a job would refuse every review of its branch for good, so `untested` asks nothing of a job whose `machine` is not `local`: its branch is reviewed without its checks, as before AR0580. `arthur review-needed` already answers `review` for it (`docs/commands/review-needed.md`, last line of "The job's checks").
 - Suggestion: bring each registered extension's folder of a job back with its record (`arthur remote-job records` sends `<home>/<plugin>/<id>/` too), then drop the `machine === "local"` exemption in `untested`. The checks extension itself stays as it is.
-- Status: open
+- Status: deferred (client summary)
 
 ## F2. The hand-back's stop after a second checks miss tells the coordinator to hand back findings
 
@@ -20,4 +20,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/delivery/src/hand-back.ts:51`
 - What: when the worker's tip misses its checks a second time in a round, `tell` sends `Delivery's hand-back of arthur/<id> after FAIL <review> stopped: <refusal>. Hand it back yourself: arthur continue <id> '<the findings of <review>>', then arthur review <id> once it ends.` The worker already worked the findings; what is missing is the checks on its tip, so the advice names the wrong thing to send. Shown by the second-miss row of `packages/delivery/test/review.test.ts` ("a review starts only on a tip ...").
 - Suggestion: let `tell` take the advice, and for a checks miss say `arthur continue <id> 'run npm run check, npm test and npm run mutate on your committed tip', then arthur review <id> once it ends.`; the other stops keep today's line. `delivery.ts` is at 200 lines and stays untouched.
-- Status: open
+- Status: deferred (client summary)
+
+## F3. jobs on another machine skip the gate (F1)
+
+- Kind: fix
+- Found by: 2026-10-31-review-5841e509 (review), 2026-10-31
+- Where: `packages/delivery/src/review-command.ts:126`
+- What: `untested` asks nothing of a job whose `machine` is not `local`. That departs from the literal Goal, but gating would refuse every such branch for good, because the checks file never comes back from the other machine. The existing `review-needed.md` already says such jobs have no checks here. The worker raised it openly as F1 with a fix (bring the extension folders back in machine sync, outside this ticket's Scope). The ticket's intent still holds for local jobs, so this is not a FAIL.
+- Status: deferred (client summary)

@@ -20,12 +20,12 @@ export default { plugins: [orchestration({}), projects({ folders: ["projects/sho
 	youtrack({ instances: [{ urlEnv: "ARTHUR_YOUTRACK_URL", tokenEnv: "ARTHUR_YOUTRACK_TOKEN" }] })] };
 `;
 
-// The project `shop` holding the config, its board with SH0001 and a schedule file; one run outside a job first makes the
-// home folder as a live one has it.
+// The project `shop` holding the config, its board with SH0001 and a schedule file, and the home holding the job's record,
+// which names its project; one run outside a job first makes the home folder as a live one has it.
 function shop(): string {
 	const folder = temporaryFolder();
 	const board = [{ id: "SH0001", title: "Shop", status: "planned", path: "spec/features/SH0001-shop/ticket.md", updated: "2026-10-21T08:00:00Z" }];
-	for (const [path, text] of Object.entries({ "arthur.config.ts": CONFIG, "projects/shop/project.config.ts": 'export default [{ projects: { prefix: "SH", path: "../.." } }];\n', "spec/features/SH0001-shop/ticket.md": "# SH0001 - Shop\n", "spec/build.json": JSON.stringify(board), "spec/schedule.json": "[]\n" })) {
+	for (const [path, text] of Object.entries({ "arthur.config.ts": CONFIG, "projects/shop/project.config.ts": 'export default [{ projects: { prefix: "SH", path: "../.." } }];\n', "spec/features/SH0001-shop/ticket.md": "# SH0001 - Shop\n", "spec/build.json": JSON.stringify(board), "spec/schedule.json": "[]\n", [`.arthur/jobs/${RECORD.split("/").at(-1)}/project`]: "shop\n" })) {
 		mkdirSync(dirname(join(folder, path)), { recursive: true });
 		writeFileSync(join(folder, path), text);
 	}

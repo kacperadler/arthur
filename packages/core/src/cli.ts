@@ -72,7 +72,7 @@ async function load(): Promise<{ readonly commands: CommandRegistry; readonly pr
 	try {
 		const config = await loadConfig("arthur.config.ts");
 		read = config;
-		const { plugins, jobs, board, follow, project, autopilot, doctor: checks, emit, channels, hide } = await loadPlugins(config, process.env, commands, insideJob(config.core.home) !== undefined);
+		const { plugins, jobs, board, follow, project, autopilot, doctor: checks, emit, channels, hide } = await loadPlugins(config, process.env, commands, insideJob(config.core.home));
 		loaded = { plugins, home: config.core.home, follow, jobs, board, autopilot, doctor: checks, emit, channels };
 		printNames(hide);
 		return { commands, project, home: config.core.home };

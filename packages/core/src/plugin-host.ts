@@ -86,7 +86,7 @@ export function pluginHost(
 	bus: Bus,
 	runner: JobRunner,
 	arthur: { readonly envFile: string; readonly home: string; readonly config: string },
-	own: Pick<Host, "name" | "options" | "env" | "secrets" | "folder" | "clock" | "agent" | "code" | "package">,
+	own: Pick<Host, "name" | "options" | "env" | "secrets" | "folder" | "clock" | "agent" | "code" | "package" | "job">,
 	loading: () => boolean,
 ): Host {
 	const tickets = board(() => names.collect("projects", []), own.clock, (name, data) => bus.emit(own.name, name, data));

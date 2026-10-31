@@ -4791,9 +4791,9 @@
   {
     "id": "AR0598",
     "title": "The Discord gateway test reads the first heartbeat, which may go out before READY with a null sequence",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0598-the-discord-gateway-test-reads-the-first-heartbeat-which-may-go-out-before-ready/ticket.md",
-    "updated": "2026-10-31T20:36:46.699Z"
+    "updated": "2026-10-31T23:22:38.225Z"
   },
   {
     "id": "AR0599",

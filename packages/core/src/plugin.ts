@@ -69,6 +69,8 @@ export type Host = {
 	readonly clock: Clock;
 	// The core's `agent.command`, the agent a plugin starts outside a job (orchestration's coordinator).
 	readonly agent: string;
+	// Inside a job (inside-job.ts): its id and its record's `project`, "" when this home holds no record of it; undefined outside one.
+	readonly job?: { readonly id: string; readonly project: string };
 	// The sandbox of branch code a plugin runs outside a job, as a job's install runs in (delivery's checks on main): a function
 	// from a shell command to the command and arguments that run it by `sh -c` writing only in the checkout `folder` (each
 	// entry but `.git`, Arthur's home, config and env file; of `.git` its objects, refs, logs and index), the folder `cache`,

@@ -259,17 +259,30 @@ test("inside a job the env file is not read: a plugin whose variable is not in t
 	await loadPlugins(loaded, shell);
 	assert.deepEqual(ran, ["secret", "needy", "orchestration", "shell"], "outside a job the file is read");
 	ran.length = hosts.length = 0;
-	const { plugins } = await loadPlugins(loaded, shell, undefined, true);
+	const { plugins } = await loadPlugins(loaded, shell, undefined, "2026-10-30-worker-0a1b2c3d");
 	assert.deepEqual([ran, plugins.map((plugin) => plugin.name)], [["orchestration", "shell"], ["orchestration", "shell"]]);
 	assert.deepEqual([hosts[0]?.env, hosts[0]?.secrets], [{ ARTHUR_SHELL_TOKEN: "from-the-shell" }, ["from-the-shell"]]);
 	rmSync(loaded.core.envFile);
 	mkdirSync(loaded.core.envFile);
 	assert.match(await refusal(loaded, shell), /: cannot be read \(EISDIR\)$/m);
 	ran.length = 0;
-	await loadPlugins(loaded, shell, undefined, true);
+	await loadPlugins(loaded, shell, undefined, "2026-10-30-worker-0a1b2c3d");
 	assert.deepEqual(ran, ["orchestration", "shell"], "an env file that cannot be read is not read in a job");
 	const line = "arthur: inside a job, not loaded: secret, needy: each names an env variable, and a job's CLI reads no env file";
 	assert.deepEqual(errors.mock.calls.map((call) => call.arguments), [[line], [line]]);
+});
+
+test("Host.job inside a job is its id and the project its record in the home names, \"\" for a record the home does not hold; outside a job it is undefined", async () => {
+	const hosts: Host[] = [];
+	const loaded = config([fake([], "orchestration", { setup: (host) => void hosts.push(host) })]);
+	const record = join(loaded.core.home, "jobs", "2026-10-30-worker-0a1b2c3d");
+	mkdirSync(record, { recursive: true });
+	writeFileSync(join(record, "project"), "shop\n");
+	for (const job of ["2026-10-30-worker-0a1b2c3d", "2026-10-30-worker-ffff0000", undefined]) await loadPlugins(loaded, {}, undefined, job);
+	assert.deepEqual(
+		hosts.map((host) => host.job),
+		[{ id: "2026-10-30-worker-0a1b2c3d", project: "shop" }, { id: "2026-10-30-worker-ffff0000", project: "" }, undefined],
+	);
 });
 
 test("host.code holds the core's package folder, then the package folder around each enabled plugin's own module, once; none for a disabled one or one that names no module; host.package is each plugin's own", async () => {
@@ -406,7 +419,7 @@ test("inside a job a plugin left unloaded has its pieces not checked; a disabled
 	const piece = () => "never valid";
 	const loaded = (options: Readonly<Record<string, unknown>>) => config([fake([], "orchestration"), lister({ shop: { dokploy: { app: "x" } } }), fake([], "dokploy", { after: ["projects"], options, piece })]);
 	assert.match(await refusal(loaded({ tokenEnv: "ARTHUR_DOKPLOY_TOKEN" }), { ARTHUR_DOKPLOY_TOKEN: "t0ken-value" }), /project shop: dokploy\.project\(\.\.\.\): never valid/);
-	const { plugins } = await loadPlugins(loaded({ tokenEnv: "ARTHUR_DOKPLOY_TOKEN" }), {}, undefined, true);
+	const { plugins } = await loadPlugins(loaded({ tokenEnv: "ARTHUR_DOKPLOY_TOKEN" }), {}, undefined, "2026-10-30-worker-0a1b2c3d");
 	assert.deepEqual(plugins.map((plugin) => plugin.name), ["orchestration", "projects"]);
 	await loadPlugins(loaded({ enabled: false }));
 });

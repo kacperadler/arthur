@@ -89,7 +89,7 @@ test("a project file's refusals name the file: missing, not a list, a piece with
 	await setup(file("good", `export default [{ projects: ${entry} }, { uptime: [] }];\n`));
 });
 
-test("each load keeps every project's name and checkout in <home>/projects/checkouts, rewritten only when the list changed", async () => {
+test("each load keeps every project's name and checkout in <home>/projects/checkouts, and its name and folder in folders, rewritten only when the list changed", async () => {
 	const [shop, blog] = [repository(), repository()];
 	const first = await load({ list: [{ name: "web-shop", prefix: "SH", path: shop }] });
 	const file = join(first.host.folder, "checkouts");
@@ -105,9 +105,36 @@ test("each load keeps every project's name and checkout in <home>/projects/check
 	assert.equal(statSync(file).ino, inode, "the same list leaves the file as it is");
 	await reload([{ name: "web-shop", prefix: "SH", path: shop }, { name: "blog", prefix: "BL", path: blog }]);
 	assert.equal(readFileSync(file, "utf8"), `web-shop ${shop}\nblog ${blog}\n`);
+	const folders = readFileSync(join(first.host.folder, "folders"), "utf8");
+	assert.match(folders, /^web-shop \/\S+\/web-shop\nblog \/\S+\/blog\n$/);
 	await assert.rejects(reload([{ name: "web-shop", prefix: "SH", path: join(shop, "gone") }]), /is not a folder/);
 	assert.equal(readFileSync(file, "utf8"), `web-shop ${shop}\nblog ${blog}\n`, "a config that does not load leaves the list as it was");
-	assert.deepEqual(readdirSync(first.host.folder), ["checkouts"]);
+	assert.equal(readFileSync(join(first.host.folder, "folders"), "utf8"), folders);
+	assert.deepEqual(readdirSync(first.host.folder), ["checkouts", "folders"]);
+});
+
+test("inside a job only the job's own project is imported and served, the lists left as they were; a job of a project no folder holds is refused", async () => {
+	const [shop, other] = [repository(), repository()];
+	const [ownFolder = "", otherFolder = ""] = projectFolders([{ name: "shop1", prefix: "SA", path: shop }, { name: "shop2", prefix: "SB", path: other }]);
+	// shop2's file leaves a marker beside it when it is imported.
+	const marker = join(otherFolder, "imported");
+	writeFileSync(join(otherFolder, "project.config.ts"), `import { writeFileSync } from "node:fs";\nwriteFileSync(${JSON.stringify(marker)}, "");\nexport default [{ projects: ${JSON.stringify({ prefix: "SB", path: other })} }];\n`);
+	const folders = [ownFolder, otherFolder];
+	const inJob = async (project: string) => {
+		const fake = fakeHost({ name: "projects", job: { id: "2026-10-30-worker-0a1b2c3d", project } });
+		writeFileSync(join(fake.host.folder, "checkouts"), "kept\n");
+		await fake.setup({ setup: (host) => projects({ folders }).setup({ ...host, options: { folders } }) });
+		return fake;
+	};
+	const job = await inJob("shop1");
+	assert.deepEqual(job.collect<readonly Project[]>("projects")[0]?.map((project) => [project.name, project.path]), [["shop1", shop]]);
+	assert.equal(existsSync(marker), false, "shop2's file is never imported");
+	assert.deepEqual([readFileSync(join(job.host.folder, "checkouts"), "utf8"), readdirSync(job.host.folder)], ["kept\n", ["checkouts"]]);
+	for (const project of ["shop3", ""])
+		await assert.rejects(inJob(project), { message: `job 2026-10-30-worker-0a1b2c3d is of project ${JSON.stringify(project)}, which no folder of projects.folders holds; a job loads only its own project` });
+	const outside = fakeHost({ name: "projects" });
+	await outside.setup({ setup: (host) => projects({ folders }).setup({ ...host, options: { folders } }) });
+	assert.deepEqual([outside.collect<readonly Project[]>("projects")[0]?.map((project) => project.name), existsSync(marker)], [["shop1", "shop2"], true], "outside a job every file is imported");
 });
 
 test("one repository checked out three times is three projects, each with its own board, whatever ids that board holds", async () => {

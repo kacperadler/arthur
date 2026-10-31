@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/dokploy/src/dokploy-command.ts:29`
 - What: with several instances, `arthur dokploy app <id>` or `status <id>` on the unnamed instance has no way to say so: `--instance` matches only a named instance (`--instance (unnamed)` is refused as no instance of dokploy), so the call goes through only with `--project` of a project whose `dokploy.project(...)` names no instance. `apps` still reads it. The plan names no word for it; the test "which instance: ..." in `packages/dokploy/test/dokploy.test.ts` pins the refusal.
 - Suggestion: accept one reserved word for the unnamed instance, such as `--instance default`, refused as an instance `name` in `dokploy-options.ts` so it cannot clash; or leave it, since the owner can name every instance. A product choice, so it is not made here.
-- Status: open
+- Status: deferred (client summary)

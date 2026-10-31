@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, openSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { FEATURE, taskTickets } from "./board-jobs.ts";
 import type { Bus } from "./events.ts";
@@ -26,10 +26,12 @@ export const field = (home: string, id: string) => (name: string): string => {
 	}
 };
 
-// Every record, the newest spawn first; a record being written (`.<id>`) is not one yet.
+// Every record, the newest spawn first; a record being written (`.<id>`) is not one yet, nor one this process may not read, as a
+// job's sandbox hides another project's (job-sandbox.ts).
 export function jobIds(home: string): string[] {
 	const folder = join(home, "jobs");
-	const ids = existsSync(folder) ? readdirSync(folder).filter((name) => ID.test(name) && existsSync(join(folder, name, "kind"))) : [];
+	const opens = (file: string) => { try { closeSync(openSync(file, "r")); return true; } catch { return false; } };
+	const ids = existsSync(folder) ? readdirSync(folder).filter((name) => ID.test(name) && opens(join(folder, name, "kind"))) : [];
 	const spawned = (id: string) => statSync(join(folder, id, "kind"), { throwIfNoEntry: false })?.mtimeMs ?? 0;
 	return ids.sort((a, b) => spawned(b) - spawned(a));
 }

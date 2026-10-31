@@ -12,6 +12,7 @@ import { real, sshFolders } from "./job-place.ts";
 // starts write only beneath the writable paths (a missing one is skipped; a file takes only its own writes) and, when a path is
 // hidden, read every file but it: Landlock only grants, so each folder from `/` to its real path grants reads on every entry but
 // the next part (a symlink, an entry that does not open, a part made later and a folder at or beneath a hidden path get none),
+// and a hidden path written `+<path>` is one shown, read beneath a hidden folder (not through a symlink as its last part),
 // a seccomp filter that refuses io_uring (whose sockets seccomp does not see) and a new Unix socket but a datagram one (omp's
 // session lock), so no local daemon runs a command outside it, and `no_new_privs`; then it execs the agent. Its refusal ends stderr.
 const SCRIPT = `import ctypes, os, platform, stat, struct, sys
@@ -36,18 +37,19 @@ for path in paths:
 	except FileNotFoundError: continue
 	if grant(fd, dirs if stat.S_ISDIR(os.fstat(fd).st_mode) else files) < 0: fail(f"Landlock: {path}")
 	os.close(fd)
-walk, reals = {}, [os.path.realpath(path) for path in hidden]
+shown = [path[1:] for path in hidden if path.startswith("+")]
+walk, reals = {}, [os.path.realpath(path) for path in hidden if not path.startswith("+")]
 for parts in (real.split("/") for real in reals):
 	for at in range(1, len(parts)): walk.setdefault("/".join(parts[:at]) or "/", set()).add(parts[at])
 for folder, skip in walk.items():
 	if any(folder == real or folder.startswith(real.rstrip("/") + "/") for real in reals): continue
-	try: entries = [entry for entry in os.scandir(folder) if entry.name not in skip and not entry.is_symlink()]
+	try: shown += [entry.path for entry in os.scandir(folder) if entry.name not in skip and not entry.is_symlink()]
 	except OSError: continue
-	for entry in entries:
-		try: fd = os.open(entry.path, os.O_PATH | os.O_NOFOLLOW | os.O_CLOEXEC)
-		except OSError: continue
-		grant(fd, 1 << 2)
-		os.close(fd)
+for path in shown:
+	try: fd = os.open(path, os.O_PATH | os.O_NOFOLLOW | os.O_CLOEXEC)
+	except OSError: continue
+	grant(fd, 1 << 2)
+	os.close(fd)
 arch, socket = {"x86_64": (0xC000003E, 41), "aarch64": (0xC00000B7, 198)}.get(platform.machine(), (0, 0))
 if arch == 0: sys.exit(f"seccomp: no filter for {platform.machine()}")
 program = [(0x20, 0, 0, 4), (0x15, 0, 10, arch), (0x20, 0, 0, 0), (0x35, 8, 0, 0x40000000), (0x15, 7, 0, 425), (0x15, 0, 5, socket), (0x20, 0, 0, 16), (0x15, 0, 3, 1), (0x20, 0, 0, 24), (0x54, 0, 0, 0xF), (0x15, 0, 1, 2), (6, 0, 0, 0x7FFF0000), (6, 0, 0, 0x50000 | 13)]
@@ -77,27 +79,29 @@ export function writable(record: string, worktree: string, extensions: string): 
 // What the agent of the job whose record is `record` may not read: the env file its `guarded` file names (job-place.ts), if any,
 // and the user's `~/.ssh` (AR0508, `sshFolders`), taken from no record, which the agent writes; job-place.ts and spawn.md say why.
 // Then (AR0593), of the projects the projects plugin keeps in `<home>/projects/checkouts` and `folders`, which no job writes,
-// `<name> <path>` a line: each other project's checkout and folder, and each entry of every project's `.arthur-worktrees` but the
-// job's own worktree; never a path that is or holds the job's worktree, root, Git folder, record (so neither its home), install or config.
+// `<name> <path>` a line: each other project's checkout and folder, and every project's `.arthur-worktrees`, whole, so a worktree
+// made there later too; but `+<path>`, shown, the job's own worktree. Then (AR0590) its home, whole: the event log, the
+// coordinator's files, every plugin's folder (its own folder of an extension too, which it still writes), every record and any
+// entry made later; but shown the job's own record, each other record there now that names its project, and the projects
+// plugin's `checkouts` and `folders` (job-place.ts). Never a path that is or holds the job's root, Git folder, install or config,
+// nor, but the worktrees' folder and the home, its worktree or record.
 export function hidden(record: string): string[] {
-	const text = existsSync(join(record, "guarded")) ? readFileSync(join(record, "guarded"), "utf8") : "";
-	return [...text.split("\n").filter((line) => line.startsWith("env /")).map((line) => line.slice(4)), ...sshFolders(), ...otherProjects(record, text)];
-}
-
-function otherProjects(record: string, guarded: string): string[] {
-	const home = dirname(dirname(record));
 	const read = (file: string) => (existsSync(file) ? readFileSync(file, "utf8") : "");
+	const [jobs, home, guarded] = [dirname(record), dirname(dirname(record)), read(join(record, "guarded"))];
 	const listed = (name: string) => read(join(home, "projects", name)).split("\n").flatMap((line) => (/^\S+ \//.test(line) ? [[line.slice(0, line.indexOf(" ")), line.slice(line.indexOf(" ") + 1)]] : []));
 	const [project = "", worktree = "", root = ""] = ["project", "worktree", "root"].map((name) => read(join(record, name)).trim());
 	const checkouts = listed("checkouts");
 	const others = [...checkouts, ...listed("folders")].flatMap(([name = "", path = ""]) => (name === project ? [] : [path]));
-	const parents = new Set(checkouts.map(([, path = ""]) => real(join(dirname(path), ".arthur-worktrees"))));
-	const worktrees = [...parents].flatMap((folder) => (existsSync(folder) ? readdirSync(folder).map((entry) => join(folder, entry)) : []));
-	const candidates = new Set([...others, ...worktrees].map((path) => real(path)));
-	if (candidates.size === 0) return [];
+	const parents = [...new Set(checkouts.map(([, path = ""]) => real(join(dirname(path), ".arthur-worktrees"))))].filter((folder) => existsSync(folder));
 	const installed = guarded.split("\n").filter((line) => /^(install|config) \//.test(line)).map((line) => line.slice(line.indexOf(" ") + 1));
-	const kept = [worktree, root, ...(worktree === "" ? [] : gitFolders(worktree)), record, ...installed].filter((path) => path !== "").map((path) => real(path));
-	return [...candidates].filter((path) => !kept.some((own) => own === path || own.startsWith(`${path}${sep}`)));
+	const kept = [root, ...(worktree === "" ? [] : gitFolders(worktree)), ...installed].filter((path) => path !== "").map((path) => real(path));
+	const own = [record, worktree].filter((path) => path !== "").map((path) => real(path));
+	const holds = (path: string, places: readonly string[]) => places.some((place) => place === path || place.startsWith(`${path}${sep}`));
+	const unkept = [...new Set(others.map((path) => real(path)))].filter((path) => !holds(path, [...kept, ...own]));
+	const records = readdirSync(jobs).filter((id) => id === basename(record) || (project !== "" && read(join(jobs, id, "project")).trim() === project));
+	const shown = [...records.map((id) => join(jobs, id)), join(home, "projects", "checkouts"), join(home, "projects", "folders")];
+	const env = guarded.split("\n").filter((line) => line.startsWith("env /")).map((line) => line.slice(4));
+	return [...env, ...sshFolders(), ...unkept, ...parents.filter((folder) => !holds(folder, [...kept, real(record)])), ...(worktree === "" ? [] : [`+${worktree}`]), ...(holds(real(home), kept) ? [] : [real(home), ...shown.map((path) => `+${path}`)])];
 }
 
 // The worktree's own Git folder and its repository's, absolute; none for a folder Git does not know.
@@ -113,7 +117,7 @@ function gitFolders(worktree: string): string[] {
 export function sandboxed(paths: readonly string[], hidden: readonly string[], agent: string, note: (line: string) => void, who = "the agent", unsandboxed = false): (argv: readonly string[]) => [string, string[]] {
 	const why = noSandbox(paths, agent);
 	if (why !== undefined && !unsandboxed && why !== `the agent ${agent} is not there`) throw new Error(`no sandbox: ${why}; set core.jobs.unsandboxed: true in arthur.config.ts to run ${who} with the writes of Arthur's user`);
-	const reads = hidden.length === 0 ? "" : `, reads every file but ${hidden.join(", ")}`;
+	const reads = hidden.length === 0 ? "" : `, reads every file but ${hidden.map((path) => (path.startsWith("+") ? `(shown: ${path.slice(1)})` : path)).join(", ")}`;
 	note(why === undefined ? `sandbox: ${who} writes only in ${paths.join(", ")}${reads}, and opens no Unix socket but a datagram one` : `no sandbox: ${why}; ${who} writes wherever Arthur's user can`);
 	return (argv) => (why === undefined ? ["python3", ["-I", "-c", SCRIPT, ...paths, "--", ...hidden, "--", agent, ...argv]] : [agent, [...argv]]);
 }

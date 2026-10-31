@@ -63,7 +63,7 @@ export type Host = {
 	// The plugin's own `...Env` variables that are set, by variable name; `secrets`, every enabled plugin's set values, for redaction.
 	readonly env: Readonly<Record<string, string>>;
 	readonly secrets: readonly string[];
-	// `<home>/<plugin>/`, created before `setup`; no other plugin reads or writes it.
+	// `<home>/<plugin>/`, created before `setup`; no other plugin reads or writes it. Inside a job's sandbox it cannot be read (job-sandbox.ts).
 	readonly folder: string;
 	// One clock for every plugin, in the core's `timeZone` with its `quietHours`.
 	readonly clock: Clock;

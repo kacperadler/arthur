@@ -2,7 +2,7 @@
 
 Usage: `arthur jobs [--state <state>]`; on a channel `/jobs`.
 
-Every project's jobs, from their records in `<home>/jobs/`, answered without the model; `no jobs` when there is none. One group per state, under its heading, in this order, each newest spawn first: `blocked`, `working`, `idle`, `ended`. One line per job:
+Every project's jobs, from their records in `<home>/jobs/`, answered without the model; `no jobs` when there is none. Inside a job, the records its sandbox shows: its own and those of its project that were there when its run started (`arthur spawn --help`, "The sandbox"). One group per state, under its heading, in this order, each newest spawn first: `blocked`, `working`, `idle`, `ended`. One line per job:
 
 ```
 AR0018  worker  blocked  1h15m  $0.40/$2.00  acme  436045b4  user: may I drop the old table?

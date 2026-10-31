@@ -1,6 +1,6 @@
 // Example arthur.config.ts with every plugin, planned ones included. Built, under `packages/`: the core and commit-rules,
-// delivery, develop, findings, github, listen, machines, manage, models, nvm, orchestration, projects, resources, schedule,
-// session, telegram, uptime, video, youtrack. Planned, no package yet (spec/roadmap.md builds them): discord, docker (first); server,
+// delivery, develop, dokploy, findings, github, listen, machines, manage, models, nvm, orchestration, projects, resources,
+// schedule, session, telegram, uptime, video, youtrack. Planned, no package yet (spec/roadmap.md builds them): discord, docker (first); server,
 // signal, slack, whatsapp (later). So a copy of the whole file does not load; it fails on the first planned import
 // (`Cannot find package '@arthur/discord'`). Take a plugin from it once its package exists. Illustrative for the planned
 // ones: their option names are proposed, not final.
@@ -30,6 +30,7 @@ import { delivery } from "@arthur/delivery"; // first, derived
 import { develop } from "@arthur/develop"; // first, named
 import { discord } from "@arthur/discord"; // first, named
 import { docker } from "@arthur/docker"; // first, named
+import { dokploy } from "@arthur/dokploy"; // first, named
 import { findings } from "@arthur/findings"; // first, named
 import { github } from "@arthur/github"; // first, derived
 import { listen } from "@arthur/listen"; // first, named
@@ -282,6 +283,17 @@ export default defineConfig({
 			],
 		}),
 
+		// One entry per Dokploy server of the owner, its address literal and its API key in a variable: the unnamed one's in
+		// ARTHUR_DOKPLOY_TOKEN, `client`'s in ARTHUR_DOKPLOY_CLIENT_TOKEN. `url` is https, or http on loopback, a private or a
+		// Tailscale address only. `arthur dokploy apps|app|status` reads their projects, applications and deployments, the
+		// coordinator only; a project's app is its `dokploy.project({ instance?, app })`. packages/dokploy/docs/dokploy.md.
+		dokploy({
+			instances: [
+				{ url: "https://dokploy.example.com", tokenEnv: "ARTHUR_DOKPLOY_TOKEN" },
+				{ name: "client", url: "https://panel.acme.example", tokenEnv: "ARTHUR_DOKPLOY_CLIENT_TOKEN" },
+			],
+		}),
+
 		// Review, merge and CI gate of a worker branch. A plugin, not core. Built so far (entries 52 and 53): `arthur review <worker
 		// job>` starts a read-only review of the branch's tip on the reviewer role, whose model is `roles.reviewer` above; its verdict,
 		// PASS or FAIL alone on the last line, moves the ticket to done or back to in-progress; after 4 FAILs since the branch's last
@@ -441,7 +453,8 @@ export default defineConfig({
 // place of its repository's (default spec/vision.md, .agents/arthur/criteria and .agents/arthur/roles in the repository).
 // Every other piece is its plugin's, checked by it at load: its tracker (`instance` names an instance of the youtrack plugin;
 // without it, the unnamed one), its CI workflow, its commit rules, auto-merge, the machine labels its jobs need (a ticket's
-// own `"requires"` in its JSON block replaces them), its sites, what a merge makes of its findings; planned, `docker.project(false)`
+// own `"requires"` in its JSON block replaces them), its sites, its Dokploy app (`instance` names an instance of the dokploy
+// plugin; without it, the unnamed one), what a merge makes of its findings; planned, `docker.project(false)`
 // to leave its jobs' Docker resources unlabelled and uncleaned (default: on while the docker plugin is), and
 // `orchestration.project({ chat })`, the place of a channel (a Telegram topic, a Discord or Slack channel) where the project's
 // own agent talks with you; without it the coordinator handles the project. One repository may be several projects, each
@@ -475,6 +488,7 @@ export default defineConfig({
 //			{ url: "https://shop.acme.example/health", expect: "ok", everySeconds: 30 }, // a 2xx page that holds "ok"
 //			{ url: "https://admin.shop.acme.example/", expect: 401 }, // exactly this status
 //		]),
+//		dokploy.project({ instance: "client", app: "kXx3shopWeb01" }), // the application `arthur dokploy app` and `status` read without an id
 //		orchestration.project({ chat: { plugin: "telegram", place: "12" } }), // planned: its own agent answers in topic 12 of the bot's chat
 //	];
 //

@@ -14,6 +14,8 @@ import { delivery } from "@arthur/delivery";
 import * as deliveryFile from "@arthur/delivery/options";
 import { develop } from "@arthur/develop";
 import * as developFile from "@arthur/develop/options";
+import { discord } from "@arthur/discord";
+import * as discordFile from "@arthur/discord/options";
 import { findings } from "@arthur/findings";
 import * as findingsFile from "@arthur/findings/options";
 import { github } from "@arthur/github";
@@ -62,6 +64,7 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	models: [modelsFile, models()],
 	youtrack: [youtrackFile, youtrack({ instances: [] })],
 	telegram: [telegramFile, telegram({ bots: [] })],
+	discord: [discordFile, discord({ bots: [] })],
 	nvm: [nvmFile, nvm()],
 	"commit-rules": [commitRulesFile, commitRules()],
 	uptime: [uptimeFile, uptime()],

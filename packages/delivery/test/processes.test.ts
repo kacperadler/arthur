@@ -95,3 +95,12 @@ test("in the job's systemd scope a daemon that left the agent's tree is named; t
 	// Only the job's own processes: a scope of its own holds none but the leftover.
 	if (own === undefined) assert.deepEqual(messages, reminded(`- pid ${pid}: ${SHOWN}`));
 });
+
+test("in a continued run's systemd scope, named by the time it started, a daemon that left the agent's tree is named", { skip: !manager && "no systemd user manager" }, (t) => {
+	const job = record();
+	const unit = `arthur-job-${basename(job)}.1793433600000.scope`;
+	t.after(() => spawnSync("systemctl", ["--user", "stop", unit]));
+	const under = ["systemd-run", "--user", "--scope", "--quiet", "--collect", `--slice=${jobSlice.slice}.slice`, `--unit=${unit}`];
+	const { messages, pid } = play(t, { ARTHUR_JOB: job }, `(setsid ${NODE} </dev/null >/dev/null 2>&1 &)`, { gone: true, under });
+	assert.deepEqual(messages, reminded(`- pid ${pid}: ${SHOWN}`));
+});

@@ -204,7 +204,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | --- | --- | --- | --- |
 | `projects` | projects | the core (`host.board`, a spawn's checkout, a plugin's `piece`, `arthur doctor`), plugins | The projects, inside a job only the job's own (`host.job`), each with its `folder`, the real path of its project folder, and its `pieces`, every other plugin's piece of its file by plugin name (above, "Project pieces"). |
 | `prompt` | commit-rules, develop, findings, manage, projects, youtrack | the core, `collect` at a spawn | A section of the prompt for `(role, job)`. |
-| `doctor` | delivery, machines, models, nvm, projects | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
+| `doctor` | delivery, discord, machines, models, nvm, projects | the core (`arthur doctor`) | `Requirement`s that need the plugin's setup. |
 | `jobs.place` | machines | the core, each spawn | The machine a job runs on. |
 | `jobs.limits` | resources | the core, each spawn | The job's own caps. |
 | `jobs.keep` | github, delivery | the core (`arthur prune`) | Whether an ended job's record is kept; asked once its worktree and branch are freed, so a provider also frees what it holds of the job: github deletes its branch on origin, delivery its folder of the job (AR0555). |
@@ -218,7 +218,7 @@ The names plugins provide and ask for today; who provides, who asks, and what th
 | `coordinator.wake` | delivery, manage, orchestration, projects | orchestration | Lines of the wake for an ended job, asked with the job-ended data and its final message. |
 | `coordinator.extension` | session | orchestration | `{ file, env }`: an OMP extension the coordinator loads. |
 | `coordinator.restart` | orchestration | session | Restarts the coordinator, `{ fresh }`. |
-| `coordinator.silent` | orchestration | telegram | Whether the silent mode holds a notice. |
+| `coordinator.silent` | orchestration | discord, telegram | Whether the silent mode holds a notice. |
 | `coordinator.turn` | orchestration | develop (`arthur eval`) | A promise of the text the coordinator's agent gets for `(event name, data, result)`, one event handed over alone. |
 | `coordinator.checkoutContext` | orchestration | develop (`arthur eval`) | `{ root, at, context }`, a copy of the main project's repository, a `Date` and `{ <plugin>: <text> }`: the coordinator's context there at that instant, without the live jobs, open decisions and silent mode, each plugin's lines `context`'s instead of its live answer (above, "Changes since entry 51"). |
 | `models.lists` | orchestration | models | Every role's model list. |

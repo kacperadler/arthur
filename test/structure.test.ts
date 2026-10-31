@@ -19,6 +19,8 @@ const BUDGETS = {
 
 	develop: 710,
 
+	discord: 750,
+
 	findings: 264,
 
 	github: 960,

@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Added
 
+- AR0580 Defaults T12: a review starts only on a tip whose check, test and mutate passed (1384c34b)
 - AR0588 Plan: a dokploy plugin, deploy and upload to the owner's Dokploy servers (e4a950b0)
 - AR0592 Plan: a discord plugin, the owner chat with Arthur in a private Discord server (84170c00)
 

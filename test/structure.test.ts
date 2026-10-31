@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { checkStructure } from "./structure.ts";
+import { checkStructure, type Structure } from "./structure.ts";
 
 // The line budget of each package: the number of lines its src/ may hold. They live here only.
 // One budget per line in name order, a blank line after each, so Git merges raises to two neighbours, and two new budgets with an
@@ -53,6 +53,12 @@ const BUDGETS = {
 
 };
 
+// The source files allowed in the red zone, 221 to 250 lines, by their path from the root (AR0495): each one's reason is in its
+// ticket's Decisions, as a budget raise's is. A file over 250 lines fails listed or not; a listed file at 220 lines or fewer fails
+// until it leaves the list. One per line in name order, a blank line after each, as BUDGETS.
+const RED_FILES: readonly string[] = [
+];
+
 // The fixed waits (sleep, setTimeout, Atomics.wait outside strings and comments) each test file may hold, by its path; a file
 // left out may hold none. A test waits with until for the state it asserts; one here waits for nothing to happen. Lower a
 // number when its waits go, never raise one. One per line in name order, a blank line after each, as BUDGETS.
@@ -100,11 +106,12 @@ const BASE: Readonly<Record<string, string>> = {
 	"packages/telegram/test/telegram.test.ts": 'import { fakeHost } from "@arthur/core/testing";\nimport "../src/telegram.ts";\n',
 };
 
-function check(
+function structureOf(
 	files: Readonly<Record<string, string | undefined>>,
 	budgets: Readonly<Record<string, number>> = { core: 100, "core/testing": 100, telegram: 300 },
 	waits: Readonly<Record<string, number>> = {},
-): string[] {
+	red: readonly string[] = [],
+): Structure {
 	const root = mkdtempSync(join(tmpdir(), "arthur-structure-test-"));
 	try {
 		for (const [path, text] of Object.entries({ ...BASE, ...files })) {
@@ -112,15 +119,22 @@ function check(
 			mkdirSync(dirname(join(root, path)), { recursive: true });
 			writeFileSync(join(root, path), text);
 		}
-		return checkStructure(root, budgets, waits);
+		return checkStructure(root, budgets, waits, red);
 	} finally {
 		rmSync(root, { recursive: true, force: true });
 	}
 }
 
-test("the repository keeps every rule", () => {
-	assert.deepEqual(checkStructure(join(import.meta.dirname, ".."), BUDGETS, FIXED_WAITS), []);
+const check = (files: Readonly<Record<string, string | undefined>>, budgets?: Readonly<Record<string, number>>, waits?: Readonly<Record<string, number>>) =>
+	structureOf(files, budgets, waits).problems;
+
+// The yellow and red files' lines, printed on every run, so the coordinator and the owner see them in the checks' output.
+test("the repository keeps every rule", (t) => {
+	const { problems, zones } = checkStructure(join(import.meta.dirname, ".."), BUDGETS, FIXED_WAITS, RED_FILES);
+	for (const line of zones) t.diagnostic(line);
+	assert.deepEqual(problems, []);
 	assert.deepEqual(Object.keys(BUDGETS), Object.keys(BUDGETS).toSorted(), "BUDGETS in name order, as arthur plugin new inserts");
+	assert.deepEqual(RED_FILES, RED_FILES.toSorted(), "RED_FILES in name order");
 });
 
 // The README is a front page (AR0450, AR-D87): at most 120 lines, with one small ```mermaid block GitHub draws; the full diagram is arthur.mmd.
@@ -240,12 +254,39 @@ test("the words class, enum and an import in a comment or a string pass", () => 
 	assert.deepEqual(check({ "packages/telegram/src/words.ts": text }), []);
 });
 
-test("a source file of exactly 200 lines passes, 201 lines fails", () => {
-	assert.deepEqual(check({ "packages/telegram/src/long.ts": lines(200) }), []);
-	assert.deepEqual(check({ "packages/telegram/src/long.ts": lines(200).trimEnd() }), []);
-	assert.deepEqual(check({ "packages/telegram/src/long.ts": lines(201) }), [
-		"packages/telegram/src/long.ts: has 201 lines; a source file has at most 200",
+test("a source file is green up to 200 lines, yellow up to 220 with its line, red up to 250 only when listed, never above", () => {
+	const file = "packages/telegram/src/long.ts";
+	const listed = [file];
+	assert.deepEqual(structureOf({ [file]: lines(200) }), { problems: [], zones: [] });
+	assert.deepEqual(structureOf({ [file]: lines(200).trimEnd() }), { problems: [], zones: [] });
+	assert.deepEqual(structureOf({ [file]: lines(201) }), { problems: [], zones: [`${file}: 201 lines, yellow (over 200)`] });
+	assert.deepEqual(structureOf({ [file]: lines(220) }), { problems: [], zones: [`${file}: 220 lines, yellow (over 200)`] });
+	assert.deepEqual(structureOf({ [file]: lines(221) }, undefined, undefined, listed), {
+		problems: [],
+		zones: [`${file}: 221 lines, red (over 220), listed in RED_FILES`],
+	});
+	assert.deepEqual(structureOf({ [file]: lines(221) }, undefined, undefined, ["packages/telegram/src/other.ts"]).problems, [
+		`${file}: has 221 lines, red (over 220); split it, or list it in RED_FILES in test/structure.test.ts with its reason in the ticket's Decisions`,
+		"packages/telegram/src/other.ts: listed in RED_FILES in test/structure.test.ts, but no source file over 220 lines; remove it from the list",
 	]);
+	assert.deepEqual(structureOf({ [file]: lines(250) }, undefined, undefined, listed), {
+		problems: [],
+		zones: [`${file}: 250 lines, red (over 220), listed in RED_FILES`],
+	});
+	assert.deepEqual(structureOf({ [file]: lines(251) }, undefined, undefined, listed), {
+		problems: [`${file}: has 251 lines; a source file has at most 250, listed in RED_FILES or not`],
+		zones: [],
+	});
+	assert.deepEqual(check({ [file]: lines(251) }), [`${file}: has 251 lines; a source file has at most 250, listed in RED_FILES or not`]);
+});
+
+test("a file in RED_FILES at 220 lines or fewer, or gone, fails until it leaves the list; a test file is never sized", () => {
+	const red = ["packages/telegram/src/long.ts", "packages/telegram/src/gone.ts", "packages/telegram/test/long.test.ts"];
+	const files = { "packages/telegram/src/long.ts": lines(220), "packages/telegram/test/long.test.ts": lines(300) };
+	assert.deepEqual(structureOf(files, undefined, undefined, red), {
+		problems: red.map((path) => `${path}: listed in RED_FILES in test/structure.test.ts, but no source file over 220 lines; remove it from the list`),
+		zones: ["packages/telegram/src/long.ts: 220 lines, yellow (over 200)"],
+	});
 });
 
 test("a package over its line budget, or without one, fails; tests do not count", () => {

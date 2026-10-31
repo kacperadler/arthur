@@ -48,3 +48,4 @@ Out:
 
 - 2026-10-27: The owner proposed green, yellow and red zones for a file's lines and a tool that counts and guards them; the coordinator wrote this ticket, left at planning for his approval.
 - 2026-10-27: AR0495 approved as written; built after this day run; the owner: "AR-D171 1" (AR-D171)
+- 2026-10-31: Merge AR0495 (source file size zones) now; the owner: "Go with recommendations" (AR-D410)

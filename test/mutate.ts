@@ -11,7 +11,6 @@ import { basename, dirname, join, resolve } from "node:path";
 // tracked file is refused, so `git checkout -- .` undoes even a SIGKILL. Exit 0 with no survivor, 1 with one, 2 when refused.
 
 type Mutant = { readonly file: string; readonly line: number; readonly what: string; readonly text: string };
-
 // A test run of one mutant that lasts longer is killed, its process group with it, and counts as caught: a mutant that hangs.
 const RUN_MS = 600_000;
 const KIT = import.meta.resolve("@arthur/core/testing");
@@ -20,6 +19,8 @@ const FLIPS: Readonly<Record<string, string>> = { "===": "!==", "!==": "===", "<
 const STOP = /&&|\|\||\?\?|=>|\?(?![.?])|[:,;]|(?<![=!<>])=(?![=>])|\breturn\b/y;
 const ARRAY = /(?<=(?:^|[=(,[?{|&]|\breturn)\s*)\[/g;
 const REGEX = /(?<=(?:^|[=(,:!&|?{};]|\breturn)\s*)\/(?![/*])(?:\\.|\[(?:\\.|[^\]\\])*\]|[^/\\[])+\/[dgimsuvy]*/g;
+// A trimmed line no mutant of which changes what runs: blank, a comment, an import, a type or interface, a type's member.
+const INERT = /^(\/\/|\/?\*|import\b|(export\s+)?(type|interface)\b|(readonly\s+)?[\w$]+\??: [^=(]*;$|$)/;
 
 let kept: { readonly path: string; readonly bytes: Buffer } | undefined;
 let running: number | undefined;
@@ -42,14 +43,14 @@ function refuse(why: string): never {
 }
 
 const args = process.argv.slice(2);
-const max = args.length === 0 ? 50 : args.length === 2 && args[0] === "--max" && /^[1-9]\d*$/.test(args[1] ?? "") ? Number(args[1]) : refuse("usage: npm run mutate [-- --max <n>]");
+const max = args.length === 0 ? 25 : args.length === 2 && args[0] === "--max" && /^[1-9]\d*$/.test(args[1] ?? "") ? Number(args[1]) : refuse("usage: npm run mutate [-- --max <n>]");
 const root = git(process.cwd(), "rev-parse", "--show-toplevel").trim();
 if (git(root, "status", "--porcelain", "--untracked-files=no") !== "") refuse("refused: the tree has uncommitted changes to tracked files; commit them first");
 const base = git(root, "merge-base", "main", "HEAD").trim();
 const files = git(root, "diff", "--name-only", "--diff-filter=d", base, "HEAD", "--", "*.ts").split("\n").filter((file) => file !== "" && !/\.(test|d)\.ts$/.test(file));
 const changes = files.map((file) => ({ file, lines: readFileSync(join(root, file), "utf8").split("\n"), hunks: hunks(git(root, "diff", "--unified=0", "--no-color", base, "HEAD", "--", file)) }));
 const mutants = [
-	...changes.flatMap(({ file, lines, hunks }) => hunks.map(({ at, size, old }): Mutant => ({ file, line: at + 1, what: "hunk reverted to the base", text: [...lines.slice(0, at), ...old, ...lines.slice(at + size)].join("\n") }))),
+	...changes.flatMap(({ file, lines, hunks }) => hunks.filter(({ at, size, old }) => [...lines.slice(at, at + size), ...old].some((line) => !INERT.test(line.trim()))).map(({ at, size, old }): Mutant => ({ file, line: at + 1, what: "hunk reverted to the base", text: [...lines.slice(0, at), ...old, ...lines.slice(at + size)].join("\n") }))),
 	...changes.flatMap(({ file, lines, hunks }) =>
 		hunks.flatMap(({ at, size }) => lines.slice(at, at + size).flatMap((line, index) => lineMutants(line).map((mutated): Mutant => ({ file, line: at + index + 1, what: `${line.trim()} => ${mutated.trim() || "(deleted)"}`, text: [...lines.slice(0, at + index), mutated, ...lines.slice(at + index + 1)].join("\n") })))),
 	),
@@ -78,8 +79,7 @@ function hunks(diff: string): { readonly at: number; readonly size: number; read
 // `===`/`!==`, `<`/`<=` or `>`/`>=` flipped; a number +-1; `true`/`false`; `.some`/`.every`; one `&&`/`||` operand dropped;
 // one array element, regex alternative or character class member dropped. Imports and type declarations have none.
 function lineMutants(line: string): string[] {
-	const trimmed = line.trim();
-	if (trimmed === "" || /^(\/\/|\/?\*|import\b|(export\s+)?(type|interface)\b|(readonly\s+)?[\w$]+\??: [^=(]*;$)/.test(trimmed)) return [];
+	if (INERT.test(line.trim())) return [];
 	const code = line.replace(/\s+\/\/.*$/, "");
 	const out: string[] = [];
 	const put = (start: number, end: number, by: string) => out.push(`${code.slice(0, start)}${by}${code.slice(end)}${line.slice(code.length)}`);

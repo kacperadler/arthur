@@ -90,7 +90,7 @@ test("dropped unanswered: another user, another server, the bot itself, a webhoo
 
 test("a thread, a forum post or a voice channel's chat gets one line in the main channel; a file or a sticker a line where it came, its text still going", async (t) => {
 	const api = await fakeDiscord(t);
-	const { plugin, received } = await load(t, { apiUrl: api.url });
+	const { plugin, received, folder } = await load(t, { apiUrl: api.url });
 	await plugin.start?.();
 	await until("identified", () => api.sent(2).length === 1);
 	api.message({ channel_id: THREAD, content: "In a thread." });
@@ -101,6 +101,7 @@ test("a thread, a forum post or a voice channel's chat gets one line in the main
 	await until("four lines", () => api.took.length === 4);
 	assert.deepEqual(api.took, [sent(MAIN, ELSEWHERE), sent(MAIN, ELSEWHERE), sent(PROJECT, OTHER), sent(MAIN, OTHER)]);
 	assert.deepEqual(received(), [{ channel: "discord", parts: said("With a sticker.") }]);
+	assert.deepEqual(Object.keys(JSON.parse(readFileSync(join(folder, "seen.json"), "utf8"))[""]).sort(), [MAIN, PROJECT], "only text channels are kept as heard");
 });
 
 test("a forward is marked with its author, cut of what could break the mark, else a hidden sender; one without text is the mark alone", async (t) => {
@@ -184,7 +185,7 @@ test("replies go when their channels hold discord or are empty, notices unless c
 
 test("slices of at most 2000 cut at line breaks; in quiet hours with SUPPRESS_NOTIFICATIONS; a 429 waits its retry_after", async (t) => {
 	const api = await fakeDiscord(t);
-	const { fake, plugin } = await load(t, { apiUrl: api.url });
+	const { fake, plugin, queued } = await load(t, { apiUrl: api.url });
 	await plugin.start?.();
 	const [a, b] = ["a".repeat(1500), "b".repeat(500)];
 	fake.emit("notice", { text: `${a}\n${b}` });
@@ -201,6 +202,8 @@ test("slices of at most 2000 cut at line breaks; in quiet hours with SUPPRESS_NO
 	await until("the retry", () => api.took.length === 4);
 	const [limited, retried] = api.calls.filter((call) => call.method === "POST").slice(-2);
 	assert.ok(limited !== undefined && retried !== undefined && retried.at - limited.at >= 1490, `${retried?.at} - ${limited?.at}`);
+	assert.deepEqual(api.took[3], sent(MAIN, "After the wait."), "the rate-limited slice itself goes after the wait");
+	assert.deepEqual(queued("refused"), [], "a 429 is no refusal: nothing set aside");
 });
 
 test("a refused slice (404, a channel gone) is set aside and told once; a channel deleted sends to the main one; CHANNEL_CREATE adds one", async (t) => {

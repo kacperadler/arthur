@@ -51,9 +51,9 @@ export function receiver(host: Host, bot: Bot, send: Send, named: () => void, si
 		const channel = String(message.channel_id);
 		const author = record(message.author);
 		if ((live && message.guild_id !== bot.guild) || author.id !== bot.user || message.webhook_id !== undefined || ![0, 19].includes(Number(message.type))) return;
+		if (channels?.has(channel) !== true) return send(bot, ELSEWHERE, undefined);
 		if (!after(message.id, seen[channel] ?? "0")) return;
 		keep(channel, String(message.id));
-		if (channels?.has(channel) !== true) return send(bot, ELSEWHERE, undefined);
 		const forward = record(message.message_reference).type === 1;
 		const snapshots = list(message.message_snapshots).map((each) => record(record(each).message));
 		const texts = [message, ...(forward ? snapshots : [])].map((each) => String(each.content ?? "").trim()).filter((text) => text !== "");

@@ -3927,9 +3927,9 @@
   {
     "id": "AR0495",
     "title": "Source file size in three zones: green up to 200 lines, yellow up to 220, red up to 250, never above",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0495-source-file-size-in-three-zones-green-up-to-200-lines-yellow-up-to-220-red-up-to/ticket.md",
-    "updated": "2026-10-31T16:35:49.566Z"
+    "updated": "2026-10-31T19:12:43.254Z"
   },
   {
     "id": "AR0496",

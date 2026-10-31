@@ -17,6 +17,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Changed
 
+- AR0495 Source file size in three zones: green up to 200 lines, yellow up to 220, red up to 250, never above (4253ffdb)
 - AR0579 Defaults T11: npm run mutate finds the tests that do not catch a change (6d1e9372)
 
 ## 2026-10-30

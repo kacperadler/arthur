@@ -25,10 +25,11 @@ const TESTS = {
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 const mutate = (root: string, ...args: string[]) => spawnSync(process.execPath, [MUTATE, ...args], { cwd: root, encoding: "utf8" });
 
-// A repository whose main holds the tests and a first limit.ts, and whose branch `work`, checked out, changes limit.ts to LIMIT.
+// A repository whose main holds the tests, a first limit.ts and notes.ts, and whose branch `work`, checked out, changes
+// limit.ts to LIMIT, adds only a comment and a type to notes.ts, and adds a line to a test file: no mutant of either.
 function repo(tests: Readonly<Record<string, string>> = TESTS): string {
 	const root = temporaryFolder();
-	const files = { "package.json": '{ "type": "module" }\n', "packages/a/package.json": "{}\n", "packages/a/src/limit.ts": "export const unit = 1;\n", ...tests };
+	const files = { "package.json": '{ "type": "module" }\n', "packages/a/package.json": "{}\n", "packages/a/src/limit.ts": "export const unit = 1;\n", "packages/a/src/notes.ts": "export const note = 1;\n", ...tests };
 	for (const [path, text] of Object.entries(files)) {
 		mkdirSync(dirname(join(root, path)), { recursive: true });
 		writeFileSync(join(root, path), text);
@@ -38,6 +39,8 @@ function repo(tests: Readonly<Record<string, string>> = TESTS): string {
 	git(root, "commit", "--quiet", "-m", "main");
 	git(root, "checkout", "--quiet", "-b", "work");
 	writeFileSync(join(root, "packages/a/src/limit.ts"), LIMIT);
+	writeFileSync(join(root, "packages/a/src/notes.ts"), "// A note.\nexport type Note = number;\nexport const note = 1;\n");
+	appendFileSync(join(root, "packages/b/test/b.test.ts"), "export const touched = 1;\n");
 	git(root, "commit", "--quiet", "-am", "limit");
 	return root;
 }

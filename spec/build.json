@@ -4780,5 +4780,12 @@
     "after": [
       "AR0595"
     ]
+  },
+  {
+    "id": "AR0597",
+    "title": "A job that rewrites its record's project, worktree or root gets another project unhidden, or writes outside its worktree, after arthur continue",
+    "status": "planning",
+    "path": "spec/features/AR0597-a-job-that-rewrites-its-record-s-project-worktree-or-root-gets-another-project/ticket.md",
+    "updated": "2026-10-31T14:08:31.723Z"
   }
 ]

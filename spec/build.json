@@ -4626,9 +4626,9 @@
   {
     "id": "AR0579",
     "title": "Defaults T11: npm run mutate finds the tests that do not catch a change",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0579-defaults-t11-npm-run-mutate-finds-the-tests-that-do-not-catch-a-change/ticket.md",
-    "updated": "2026-10-31T14:53:32.685Z",
+    "updated": "2026-10-31T16:04:19.240Z",
     "after": [
       "AR0569"
     ]

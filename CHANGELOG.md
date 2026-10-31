@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Added
 
+- AR0588 Plan: a dokploy plugin, deploy and upload to the owner's Dokploy servers (e4a950b0)
 - AR0592 Plan: a discord plugin, the owner chat with Arthur in a private Discord server (84170c00)
 
 ### Fixed

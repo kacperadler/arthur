@@ -4,7 +4,10 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 // The rules that keep Arthur small (spec/roadmap.md, entry 1), checked over one repository tree.
 // Each problem is one line: the file, then the rule it breaks. The line budgets and fixed-wait baselines come from the caller.
 
-const MAX_FILE_LINES = 200;
+// A source file's zones (AR0495): green up to 200 lines, yellow up to 220, red up to 250 only when listed, never above.
+const GREEN_LINES = 200;
+const YELLOW_LINES = 220;
+const MAX_FILE_LINES = 250;
 const CODE = /\.[cm]?[jt]s$/;
 const BANNED_NAMES = /^(index|types|utils)\.[cm]?[jt]s$/;
 const RUNTIME_KEYS = ["dependencies", "optionalDependencies", "peerDependencies"];
@@ -26,31 +29,49 @@ const FIXED_WAIT = /\b(?:sleep|setTimeout)\s*\(|\bAtomics\.wait\s*\(/g;
 type Report = (path: string, rule: string) => void;
 type Waits = Readonly<Record<string, number>>;
 type TestFile = (file: string, code: string) => void;
+export type Structure = { readonly problems: string[]; readonly zones: string[] };
 type Pkg = { readonly dir: string; readonly name: string; readonly coreExports: readonly string[] };
 
-// `waits`: the fixed waits each test file may hold, by its path from `root`; a file left out may hold none.
-export function checkStructure(root: string, budgets: Readonly<Record<string, number>>, waits: Waits): string[] {
+// `waits`: the fixed waits each test file may hold, by its path from `root`; a file left out may hold none. `red`: the source
+// files allowed in the red zone, by their path from `root`; a listed file not there is a problem too. `zones`: a line for each
+// source file past green, yellow or listed red.
+export function checkStructure(root: string, budgets: Readonly<Record<string, number>>, waits: Waits, red: readonly string[]): Structure {
 	const problems: string[] = [];
+	const zones: string[] = [];
+	const redSeen: string[] = [];
 	const report: Report = (path, rule) => problems.push(`${relative(root, path) || "."}: ${rule}`);
 	const testFile: TestFile = (file, code) => checkTestFile(file, code, waits[relative(root, file).split(sep).join("/")] ?? 0, report);
+	// A source file's zone: a yellow or listed red one gets its line, an unlisted red one or one above red is a problem.
+	const size = (file: string, lines: number) => {
+		const path = relative(root, file).split(sep).join("/");
+		const listed = red.includes(path);
+		if (listed && lines > YELLOW_LINES) redSeen.push(path);
+		if (lines > MAX_FILE_LINES) report(file, `has ${lines} lines; a source file has at most ${MAX_FILE_LINES}, listed in RED_FILES or not`);
+		else if (lines > YELLOW_LINES && !listed)
+			report(file, `has ${lines} lines, red (over ${YELLOW_LINES}); split it, or list it in RED_FILES in test/structure.test.ts with its reason in the ticket's Decisions`);
+		else if (lines > YELLOW_LINES) zones.push(`${path}: ${lines} lines, red (over ${YELLOW_LINES}), listed in RED_FILES`);
+		else if (lines > GREEN_LINES) zones.push(`${path}: ${lines} lines, yellow (over ${GREEN_LINES})`);
+	};
 	checkManifest(join(root, "package.json"), report);
 	const tests = join(root, "test");
 	for (const path of existsSync(tests) ? readdirSync(tests, { recursive: true, encoding: "utf8" }).filter((path) => CODE.test(path)).sort() : [])
 		testFile(join(tests, path), strip(readFileSync(join(tests, path), "utf8"), true));
 	const packages = join(root, "packages");
-	if (!existsSync(packages)) return problems;
+	if (!existsSync(packages)) return { problems, zones };
 	const coreManifest = join(packages, "core", "package.json");
 	const coreExports = exportKeys(existsSync(coreManifest) ? JSON.parse(readFileSync(coreManifest, "utf8")).exports : undefined);
 	for (const name of readdirSync(packages).sort()) {
 		const dir = join(packages, name);
 		if (!statSync(dir).isDirectory()) continue;
 		checkManifest(join(dir, "package.json"), report);
-		checkPackage({ dir, name, coreExports }, budgets, report, testFile);
+		checkPackage({ dir, name, coreExports }, budgets, report, testFile, size);
 	}
-	return problems;
+	for (const path of red.filter((path) => !redSeen.includes(path)))
+		problems.push(`${path}: listed in RED_FILES in test/structure.test.ts, but no source file over ${YELLOW_LINES} lines; remove it from the list`);
+	return { problems, zones };
 }
 
-function checkPackage(pkg: Pkg, budgets: Readonly<Record<string, number>>, report: Report, testFile: TestFile): void {
+function checkPackage(pkg: Pkg, budgets: Readonly<Record<string, number>>, report: Report, testFile: TestFile, size: (file: string, lines: number) => void): void {
 	const files = readdirSync(pkg.dir, { recursive: true, encoding: "utf8" })
 		.filter((path) => CODE.test(path) && !path.split(sep).includes("node_modules"))
 		.sort();
@@ -73,7 +94,7 @@ function checkPackage(pkg: Pkg, budgets: Readonly<Record<string, number>>, repor
 		const lines = lineCount(text);
 		if (kit.includes(path)) kitLines += lines;
 		else sourceLines += lines;
-		if (lines > MAX_FILE_LINES) report(file, `has ${lines} lines; a source file has at most ${MAX_FILE_LINES}`);
+		size(file, lines);
 	}
 	const budget = budgets[pkg.name];
 	if (budget === undefined) report(pkg.dir, "has no line budget; add one to test/structure.test.ts");

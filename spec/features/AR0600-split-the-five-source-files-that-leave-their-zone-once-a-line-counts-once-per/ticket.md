@@ -43,3 +43,4 @@ Out:
 
 ## Decisions
 - 2026-10-31: Approve AR0600 and add it to tonight's batch; the owner: "go with recomendations" (AR-D415)
+- 2026-11-01: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

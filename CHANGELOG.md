@@ -2,6 +2,13 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-11-01
+
+### Changed
+
+- AR0598 The Discord gateway test reads the first heartbeat, which may go out before READY with a null sequence (8bdec3cf)
+- AR0600 Split the five source files that leave their zone once a line counts once per 160 characters (2320de78)
+
 ## 2026-10-31
 
 ### Added

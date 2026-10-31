@@ -534,6 +534,7 @@ test("in a job, each call that writes into the main checkout, the home folder or
 		["bash", { command: `find ${main} -name '*.log' -delete` }, MAIN],
 		["bash", { command: `find ${otherJob} -name x -exec rm {} +` }, OTHER],
 		["bash", { command: `sh -c 'echo x > ${main}/f'` }, MAIN],
+		...["bash", "zsh", "dash", "ksh"].map((shell) => ["bash", { command: `${shell} -c 'rm ${main}/f'` }, MAIN] as const),
 		["bash", { command: `eval "rm ${main}/f"` }, MAIN],
 		["bash", { command: `echo $(cd ${main} && touch f)` }, MAIN],
 		["bash", { command: `true | tee ${main}/log` }, MAIN],

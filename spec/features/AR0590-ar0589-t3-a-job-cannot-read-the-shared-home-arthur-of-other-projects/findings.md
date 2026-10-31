@@ -20,4 +20,12 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/job-sandbox.ts:101` (the records shown by `project`), `packages/core/src/job-sandbox.ts:104` (`+<worktree>`)
 - What: `hidden()` shows each record whose `project` equals the job's own record's `project`, and shows the path the record's `worktree` names. Both fields sit in the record the agent may write (AR0593's F1, ticket AR0597). An agent that rewrites its `project` to shop2 sees shop2's records in its next run (a `continue`); one that rewrites `worktree` to any path gets it shown, inside a hidden folder too. [INFERENCE: read from the lines named; no run of a forged record was made.]
 - Suggestion: AR0597's fix (the fields the sandbox is built from kept out of the agent's reach) closes this too; its tests should cover `project` and `worktree` as `hidden()` reads them here.
-- Status: open
+- Status: deferred (client summary)
+
+## F3. the sandbox takes the job's project and worktree from the job's record, which the agent can rewrite
+
+- Kind: security
+- Found by: 2026-10-31-review-152a034c (review), 2026-10-31
+- Where: `packages/core/src/job-sandbox.ts:101,104`
+- What: So in its next run an agent could see another project's records, or get any path shown. The trust problem predates this branch (AR0593 already relied on `project`), and ticket AR0597 covers it. The worker filed it as F2, which is open for the merge to settle.
+- Status: deferred (client summary)

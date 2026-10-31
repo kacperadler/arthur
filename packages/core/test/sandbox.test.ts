@@ -3,7 +3,7 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { homedir, tmpdir, userInfo } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
 import { clock } from "../src/clock.ts";
@@ -625,4 +625,59 @@ test("a sandboxed job reads no token of the env file: not by its path, a link, n
 	const worktree = readFileSync(join(record, "worktree"), "utf8");
 	// The CLI names the value it prints (secret-names.ts), so the name shows the command read the token itself.
 	assert.equal(arthur(join(worktree, "own"), "leak").stdout, "leaked ARTHUR_SECRET_TOKEN\n", "outside the sandbox the same command reads the token");
+});
+
+test("a job of shop1 gets Permission denied on shop2's checkout, its project folder, other jobs' worktrees and the env file; it keeps its worktree, root, Git folder, record, install, config and own project folder (AR0593)", { skip: bare }, async () => {
+	const folder = temporaryFolder();
+	// shop1 and shop2 in one parent folder, so their jobs' worktrees share one `.arthur-worktrees`; shop1's Git folder beside its checkout.
+	const [shop1, shop2, arthur, home] = [join(folder, "shop1"), join(folder, "shop2"), join(folder, "arthur"), join(folder, "home")] as const;
+	for (const [root, more] of [[shop1, [`--separate-git-dir=${join(folder, "shop1.git")}`]], [shop2, []]] as const) {
+		mkdirSync(root);
+		git(root, "init", "--quiet", "--initial-branch=main", ...more);
+		writeFileSync(join(root, "README.md"), `${root}\n`);
+		git(root, "add", "--all");
+		git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "first");
+	}
+	const [theirs, sibling] = [join(folder, ".arthur-worktrees", "2026-10-30-worker-5b0b2000"), join(folder, ".arthur-worktrees", "2026-10-30-worker-5a0a1000")] as const;
+	for (const [root, worktree] of [[shop2, theirs], [shop1, sibling]] as const) git(root, "worktree", "add", "--quiet", "--detach", worktree);
+	for (const name of ["shop1", "shop2"]) {
+		mkdirSync(join(arthur, "projects", name), { recursive: true });
+		writeFileSync(join(arthur, "projects", name, "project.config.ts"), `export default [];\n`);
+	}
+	writeFileSync(join(arthur, "arthur.config.ts"), "export default {};\n");
+	writeFileSync(join(arthur, "env"), "ARTHUR_SECRET_TOKEN=s3cret-t0ken\n");
+	// The lists as the projects plugin writes them, each other line naming one place the job keeps: its root, Git folder, record, install and config.
+	const install = resolve(import.meta.dirname, "..", "..", "..");
+	mkdirSync(join(home, "projects"), { recursive: true });
+	writeFileSync(join(home, "projects", "checkouts"), `shop1 ${shop1}\nshop2 ${shop2}\narthur ${arthur}\n`);
+	writeFileSync(join(home, "projects", "folders"), [`shop1 ${join(arthur, "projects", "shop1")}`, `shop2 ${join(arthur, "projects", "shop2")}`, `twin ${shop1}`, `git ${join(folder, "shop1.git")}`, `jobs ${join(home, "jobs")}`, `install ${install}`, ""].join("\n"));
+	const reads = {
+		"shop2's checkout": join(shop2, "README.md"),
+		"shop2's folder": join(arthur, "projects", "shop2", "project.config.ts"),
+		"a shop2 job's worktree": join(theirs, "README.md"),
+		"another shop1 job's worktree": join(sibling, "README.md"),
+		"the env file": join(arthur, "env"),
+		"its worktree": "README.md",
+		"its root": join(shop1, "README.md"),
+		"its Git folder": join(folder, "shop1.git", "HEAD"),
+		"its record": "$ARTHUR_JOB/task",
+		"its home": join(home, "projects", "checkouts"),
+		"the install": join(install, "package.json"),
+		"the config": join(arthur, "arthur.config.ts"),
+		"its project folder": join(arthur, "projects", "shop1", "project.config.ts"),
+	};
+	const lines = Object.entries(reads).map(([name, path]) => `if cat "${path}" >/dev/null 2>"$ARTHUR_JOB/err"; then echo "${name} read"; elif grep -q 'Permission denied' "$ARTHUR_JOB/err"; then echo "${name} denied"; else echo "${name} failed"; fi`);
+	const commit = "echo x > new.txt && git add new.txt && git -c user.name=test -c user.email=test@example.com -c commit.gpgsign=false commit --quiet -m sandboxed && echo 'a commit made'";
+	const agent = join(folder, "agent");
+	writeFileSync(agent, `#!/bin/sh\n{\n${lines.join("\n")}\n${commit}\n} > "$ARTHUR_JOB/reads" 2>&1\n`, { mode: 0o755 });
+	const time = clock("UTC", undefined, () => new Date("2026-10-30T08:00:00Z"));
+	const list = [{ name: "shop1", path: shop1, prefix: "SA" }, { name: "shop2", path: shop2, prefix: "SB" }];
+	const jobs = jobRunner(home, arthur, join(arthur, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), (name) => (name === "projects" ? [list] : []));
+	const job = await jobs.spawn({ task: "Read.", project: "shop1" });
+	await until("job-ended", () => readEvents(home, 1).find((event) => event.name === "job-ended"));
+	assert.deepEqual(readFileSync(join(home, "jobs", job.id, "reads"), "utf8").trim().split("\n"), [
+		...Object.keys(reads).map((name, at) => `${name} ${at < 5 ? "denied" : "read"}`),
+		"a commit made",
+	]);
+	assert.equal(git(shop1, "log", "--format=%s", "-1", `arthur/${job.id}`), "sandboxed");
 });

@@ -11,7 +11,7 @@ import { checkStructure } from "./structure.ts";
 const BUDGETS = {
 	"commit-rules": 178,
 
-	core: 6571,
+	core: 6600,
 
 	"core/testing": 374,
 
@@ -35,7 +35,7 @@ const BUDGETS = {
 
 	orchestration: 2575,
 
-	projects: 556,
+	projects: 564,
 
 	resources: 617,
 

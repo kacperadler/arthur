@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { pathToFileURL } from "node:url";
+import { JOB_SCOPE } from "@arthur/core/inside-job";
 import { everyOption, type OptionTable } from "@arthur/core/option-table";
 import type { SpawnRequest } from "@arthur/core/plugin";
 import { fakeHost, temporaryFolder } from "@arthur/core/testing";
@@ -594,7 +595,7 @@ test("inside a job, every write to YouTrack is refused before any call; reading 
 });
 
 // The job whose systemd scope runs this test, when one does (a job's own `npm test`).
-const scope = /\/arthur-job-([^/]+)\.scope$/.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
+const scope = JOB_SCOPE.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
 
 test("in a job's scope a write to YouTrack is refused with ARTHUR_JOB cleared once the home holds that job's record", { skip: scope === undefined && "not run in a job's systemd scope" }, async (t) => {
 	const { url, seen } = await server(t);

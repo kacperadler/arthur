@@ -280,9 +280,9 @@ Exports: `configRefusal`.
 
 ### `@arthur/core/inside-job`
 
-Exports: `insideJob`.
+Exports: `JOB_SCOPE`, `insideJob`.
 
-`insideJob(home, cgroup?, env?)`: the id of the job of Arthur's home `home` this process runs in, undefined outside one. Under systemd it is the job's scope, `arthur-job-<id>.scope` on the last line of `/proc/self/cgroup` (`cgroup`), which no process of the job can change, when `<home>/jobs/<id>` exists; else, a job run bare, the folder name of the record `ARTHUR_JOB` names (`env`, default `process.env`), which a job's shell can clear. Each refusal of a command inside a job asks it, a plugin with its home as `dirname(host.folder)`. Why the scope: [`deploy.md`](deploy.md), "Threat model".
+`insideJob(home, cgroup?, env?)`: the id of the job of Arthur's home `home` this process runs in, undefined outside one. Under systemd it is the job's scope, `arthur-job-<id>.scope`, `arthur-job-<id>.<ms>.scope` for a continued run (`JOB_SCOPE`, the pattern that finds the id at a cgroup path's end), on the last line of `/proc/self/cgroup` (`cgroup`), which no process of the job can change, when `<home>/jobs/<id>` exists; else, a job run bare, the folder name of the record `ARTHUR_JOB` names (`env`, default `process.env`), which a job's shell can clear. Each refusal of a command inside a job asks it, a plugin with its home as `dirname(host.folder)`. Why the scope: [`deploy.md`](deploy.md), "Threat model".
 
 ### `@arthur/core/lock`
 

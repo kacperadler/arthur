@@ -4,6 +4,7 @@ import { availableParallelism } from "node:os";
 import { basename, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import type { Bus } from "./events.ts";
+import { JOB_SCOPE } from "./inside-job.ts";
 import { field, moveJob, write } from "./job-state.ts";
 import type { Job } from "./jobs.ts";
 
@@ -20,8 +21,6 @@ export type Caps = { readonly cpu?: number; readonly memory?: string; readonly f
 
 // How long `launch` waits for the wrapper's `pid`.
 const START_MS = 10_000;
-
-const scope = (id: string) => `arthur-job-${id}.scope`;
 
 // The caps of a spawn: what the one plugin that provides `jobs.limits` answers, none without one.
 export async function jobCaps(answers: readonly unknown[]): Promise<Caps> {
@@ -56,8 +55,9 @@ export async function launch(home: string, job: Pick<Job, "id" | "kind" | "proje
 		if (cpu !== "" || memory !== "" || feature !== "") uncapped(bare);
 	}
 	const log = join(home, "wrapper.log");
-	// `systemd-run` execs `sh`, which execs the wrapper with its stderr on the log: what reaches the pipe is systemd-run's own.
-	const scoped = ["systemd-run", "--user", "--scope", "--quiet", "--collect", `--slice=${slice}.slice`, `--unit=${scope(id)}`, ...ownLimits(cpu, memory, featureMemory), "--"];
+	// `systemd-run` execs `sh`, which execs the wrapper with its stderr on the log: what reaches the pipe is systemd-run's own. After
+	// a continue (the record's `continue`) the scope's name has the time it starts, as the run before's can still be loaded (AR0599).
+	const scoped = ["systemd-run", "--user", "--scope", "--quiet", "--collect", `--slice=${slice}.slice`, `--unit=arthur-job-${id}${existsSync(join(home, "jobs", id, "continue")) ? `.${Date.now()}` : ""}.scope`, ...ownLimits(cpu, memory, featureMemory), "--"];
 	const [command = "", ...args] = bare === undefined ? [...scoped, "/bin/sh", "-c", 'exec "$@" 2>>"$0"', log, ...wrapper] : wrapper;
 	const output = openSync(log, "a");
 	let child: ChildProcess;
@@ -152,7 +152,7 @@ export function ownScope(id: string): string | undefined {
 	const self = "/proc/self/cgroup";
 	const cgroup = /^0::(.*)$/m.exec(existsSync(self) ? readFileSync(self, "utf8") : "")?.[1];
 	const folder = join("/sys/fs/cgroup", cgroup ?? "");
-	return cgroup?.endsWith(`/${scope(id)}`) && existsSync(join(folder, "cgroup.procs")) ? folder : undefined;
+	return cgroup !== undefined && JOB_SCOPE.exec(cgroup)?.[1] === id && existsSync(join(folder, "cgroup.procs")) ? folder : undefined;
 }
 
 // Called by job `id`'s wrapper at the job's end: SIGKILL to every other process in its scope, a daemon that left the job's

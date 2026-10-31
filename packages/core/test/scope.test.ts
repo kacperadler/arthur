@@ -101,6 +101,25 @@ test("a job that forks a daemon leaves nothing running once its state is final, 
 	await until("the scope's end", () => show(`arthur-job-${job.id}.scope`, "ActiveState") === "inactive");
 });
 
+test("a continued job runs in a scope of a new name, which names its job, and a daemon the run forks is gone once it ends", needsManager, async () => {
+	const folder = temporaryFolder();
+	const done = fakeAgent({ steps: [{ message: "Done." }] });
+	// The fake agent; started with `--continue`, it first forks a daemon, out of its process group, that notes its cgroup and pid.
+	const daemon = `setsid sh -c 'cat /proc/self/cgroup > "${folder}/cgroup"; echo $$ > "${folder}/daemon"; exec sleep 300' </dev/null >/dev/null 2>&1 &`;
+	const agent = join(folder, "omp");
+	writeFileSync(agent, `#!/bin/sh\ncase " $* " in *" --continue "*) ${daemon} while [ ! -s '${folder}/daemon' ]; do sleep 0.02; done ;; esac\nexec '${done}' "$@"\n`, { mode: 0o755 });
+	const { home, jobs } = setup(agent);
+	const job = await jobs.spawn({ task: "Go." });
+	await ended(home);
+	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
+	await until("the continued run's end", () => readEvents(home, 1).filter((event) => event.name === "job-ended").length === 2);
+	const cgroup = read(join(folder, "cgroup")) ?? "";
+	assert.match(cgroup, new RegExp(`/${jobSlice.slice}\\.slice/arthur-job-${job.id}\\.\\d+\\.scope$`));
+	assert.equal(insideJob(home, cgroup, {}), job.id, "the continued run's cgroup names its job without ARTHUR_JOB");
+	const pid = Number(read(join(folder, "daemon")));
+	assert.ok(!running(pid), `the daemon ${pid} still runs`);
+});
+
 test("a prepare's install runs in the job's scope before the agent, and a daemon it forks is gone once the job ends", needsManager, async () => {
 	const folder = temporaryFolder();
 	const { home, jobs } = setup(fakeAgent({ steps: [{ message: "Done." }] }));

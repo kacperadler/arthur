@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { JOB_SCOPE } from "@arthur/core/inside-job";
 import { fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import type { Entry } from "../src/entry.ts";
 import { claim } from "../src/run-state.ts";
@@ -295,7 +296,7 @@ test("inside a job (ARTHUR_JOB set) arthur schedule add and remove refuse, the f
 });
 
 // The job whose systemd scope runs this test, when one does (a job's own `npm test`).
-const scope = /\/arthur-job-([^/]+)\.scope$/.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
+const scope = JOB_SCOPE.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
 
 test("in a job's scope arthur schedule remove is refused with ARTHUR_JOB cleared once the home holds that job's record", { skip: scope === undefined && "not run in a job's systemd scope" }, async (t) => {
 	const box = await load(t, [], "2026-10-19T10:00:00+02:00");

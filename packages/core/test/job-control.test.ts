@@ -10,6 +10,7 @@ import { moveStartedTickets, refuseUnstartableTickets } from "../src/board-jobs.
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { type Bus, eventBus } from "../src/events.ts";
+import { insideJob } from "../src/inside-job.ts";
 import { steerJob, stopJob } from "../src/job-control.ts";
 import { GRACE_SECONDS } from "../src/job-stop.ts";
 import { type JobRunner, jobRunner } from "../src/jobs.ts";
@@ -459,6 +460,32 @@ test("a continue whose wrapper does not start ends the job failed and says why, 
 	assert.deepEqual(second, { id: job.id, kind: "worker", project: "acme", state: "ended", reason: `failed: ${reason}` });
 	assert.deepEqual(["state", "reason", "pid"].map((name) => field(home, job.id, name)), ["ended", `failed: ${reason}`, undefined]);
 	assert.equal(existsSync(join(home, "jobs", job.id, "continuing")), false, "a failed continue frees the record");
+});
+
+test("each continue starts its run in a scope of a new name, as the scope of the run before can still be loaded", async (t) => {
+	const { agent } = resuming({ steps: [{ message: "First." }] }, { steps: [{ message: "Again." }] });
+	const { home, jobs } = setup(agent);
+	// A `systemctl` that sets any slice and a `systemd-run` that, as systemd while a scope is loaded, refuses a name it started
+	// once, first on PATH; else it notes the name in `<itself>.units` and execs the wrapper.
+	const bin = temporaryFolder();
+	writeFileSync(join(bin, "systemctl"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+	const refuse = `echo "Failed to start transient scope unit: Unit $unit was already loaded or has a fragment file." >&2; exit 1`;
+	writeFileSync(join(bin, "systemd-run"), `#!/bin/sh\nfor arg; do case $arg in --unit=*) unit=\${arg#--unit=} ;; esac; done\nif grep -qxF "$unit" "$0.units" 2>/dev/null; then ${refuse}; fi\necho "$unit" >> "$0.units"\nwhile [ "$1" != -- ]; do shift; done\nshift\nexec "$@"\n`, { mode: 0o755 });
+	const saved = process.env.PATH;
+	t.after(() => void (process.env.PATH = saved));
+	process.env.PATH = [bin, saved].join(delimiter);
+	const job = await jobs.spawn({ task: "Go." });
+	await ended(home, job.id);
+	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
+	await ended(home, job.id, 2);
+	assert.equal(await jobs.continue(job.id, "Once more."), undefined);
+	const finished = { id: job.id, kind: "worker", project: "acme", state: "ended", reason: "finished" };
+	assert.deepEqual(await ended(home, job.id, 3), [finished, finished, finished]);
+	const [first, ...continued] = readFileSync(join(bin, "systemd-run.units"), "utf8").trimEnd().split("\n");
+	assert.equal(first, `arthur-job-${job.id}.scope`);
+	assert.equal(continued.length, 2);
+	for (const unit of continued) assert.match(unit, new RegExp(`^arthur-job-${job.id}\\.\\d+\\.scope$`));
+	assert.equal(insideJob(home, `0::/${jobSlice.slice}.slice/${continued[1]}\n`, {}), job.id, "a continued run's scope names its job");
 });
 
 test("a continue moves the job to working before its wrapper starts, so a continue that takes its lock over is refused", { timeout: 30_000 }, async (t) => {

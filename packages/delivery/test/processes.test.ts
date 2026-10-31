@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { JOB_SCOPE } from "@arthur/core/inside-job";
 import { fakeAgent, jobSlice, temporaryFolder } from "@arthur/core/testing";
 
 const EXTENSION = join(import.meta.dirname, "..", "src", "processes-extension.ts");
@@ -79,7 +80,7 @@ test("with no process left, without ps, or outside a job, nothing is said and th
 });
 
 // The job whose systemd scope runs this test, when one does (a job's own `npm test`): the agent runs in it as that job's.
-const own = /\/arthur-job-([^/]+)\.scope$/.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
+const own = JOB_SCOPE.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
 
 test("in the job's systemd scope a daemon that left the agent's tree is named; the agent and its parent, its wrapper, are not", { skip: own === undefined && !manager && "no systemd user manager, and not run in a job's systemd scope" }, (t) => {
 	const job = own === undefined ? record() : join(temporaryFolder(), "jobs", own);

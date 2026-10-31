@@ -3,6 +3,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, readlinkSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { JOB_SCOPE } from "@arthur/core/inside-job";
 import { fakeHost, temporaryFolder } from "@arthur/core/testing";
 import { develop } from "../src/develop.ts";
 
@@ -217,7 +218,7 @@ test("in a job only its own worktree, named by --root, is written; never the pro
 });
 
 // The job whose systemd scope runs this test, when one does (a job's own `npm test`).
-const scope = /\/arthur-job-([^/]+)\.scope$/.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
+const scope = JOB_SCOPE.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
 
 test("in a job's scope only its own worktree is written with ARTHUR_JOB cleared once the home holds that job's record", { skip: scope === undefined && "not run in a job's systemd scope" }, async (t) => {
 	const [checkout, worktree] = [temporaryFolder(), temporaryFolder()];

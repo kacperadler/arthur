@@ -20,6 +20,8 @@ test("the scope on the last line of /proc/self/cgroup names the job when the hom
 	for (const env of [{}, { ARTHUR_JOB: "" }, RECORD]) assert.equal(insideJob(home(), SCOPE, env), ID, JSON.stringify(env));
 	// cgroup v1 beside v2 (systemd's hybrid mode): the v2 line is the last.
 	assert.equal(insideJob(home(), `12:pids:/user.slice\n1:name=systemd:/user.slice/arthur-job-${ID}.scope\n${SCOPE}`, {}), ID);
+	// A continued run's scope, named by the time it started.
+	assert.equal(insideJob(home(), SCOPE.replace(".scope", ".1793433600000.scope"), {}), ID);
 });
 
 test("without a job's scope, or with one whose record the home does not hold, only ARTHUR_JOB marks a job, by its record's folder name", () => {

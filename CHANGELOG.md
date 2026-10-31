@@ -2,6 +2,12 @@
 
 Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a hand edit is overwritten at the next merge.
 
+## 2026-10-31
+
+### Fixed
+
+- AR0593 AR0589 T2: a job sees only its own project (d8013c2d)
+
 ## 2026-10-30
 
 ### Added

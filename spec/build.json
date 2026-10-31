@@ -4753,9 +4753,9 @@
   {
     "id": "AR0593",
     "title": "AR0589 T2: a job sees only its own project",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0593-ar0589-t2-a-job-sees-only-its-own-project/ticket.md",
-    "updated": "2026-10-31T13:44:02.422Z"
+    "updated": "2026-10-31T14:08:10.817Z"
   },
   {
     "id": "AR0594",

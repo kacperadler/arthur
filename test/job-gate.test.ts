@@ -13,9 +13,9 @@ const PACKAGES = join(import.meta.dirname, "..", "packages");
 const CLI = join(PACKAGES, "core", "src", "cli.ts");
 const RECORD = "/home/arthur/.arthur/jobs/2026-10-23-worker-0a1b2c3d";
 const REFUSAL = "refused inside a job 2026-10-23-worker-0a1b2c3d: a job runs only the commands its role needs; put what the coordinator should do in your final message";
-const PLUGINS = ["orchestration", "projects", "delivery", "develop", "findings", "github", "machines", "manage", "models", "resources", "schedule", "session", "youtrack"];
+const PLUGINS = ["orchestration", "projects", "delivery", "develop", "dokploy", "findings", "github", "machines", "manage", "models", "resources", "schedule", "session", "youtrack"];
 const CONFIG = `${PLUGINS.map((name) => `import { ${name} } from ${JSON.stringify(join(PACKAGES, name, "src", `${name}.ts`))};`).join("\n")}
-export default { plugins: [orchestration({}), projects({ folders: ["projects/shop"] }), delivery({}), develop({}), findings({}),
+export default { plugins: [orchestration({}), projects({ folders: ["projects/shop"] }), delivery({}), develop({}), dokploy({ instances: [{ url: "http://127.0.0.1:9", tokenEnv: "ARTHUR_DOKPLOY_TOKEN" }] }), findings({}),
 	github({ instances: [{ tokenEnv: "ARTHUR_GITHUB_TOKEN" }] }), machines({}), manage({}), models({}), resources({}), schedule({ file: "spec/schedule.json" }), session({}),
 	youtrack({ instances: [{ urlEnv: "ARTHUR_YOUTRACK_URL", tokenEnv: "ARTHUR_YOUTRACK_TOKEN" }] })] };
 `;
@@ -35,7 +35,7 @@ function shop(): string {
 }
 
 function arthur(folder: string, job: string, ...args: string[]) {
-	const env = { PATH: process.env.PATH ?? "", HOME: folder, XDG_CONFIG_HOME: join(folder, ".config"), ARTHUR_GITHUB_TOKEN: "t", ARTHUR_YOUTRACK_URL: "http://127.0.0.1:9", ARTHUR_YOUTRACK_TOKEN: "t", ARTHUR_JOB: job };
+	const env = { PATH: process.env.PATH ?? "", HOME: folder, XDG_CONFIG_HOME: join(folder, ".config"), ARTHUR_DOKPLOY_TOKEN: "t", ARTHUR_GITHUB_TOKEN: "t", ARTHUR_YOUTRACK_URL: "http://127.0.0.1:9", ARTHUR_YOUTRACK_TOKEN: "t", ARTHUR_JOB: job };
 	return spawnSync(process.execPath, [CLI, ...args], { cwd: folder, encoding: "utf8", env });
 }
 
@@ -83,6 +83,8 @@ test("inside a job every command that changes Arthur's state refuses with one li
 		["schedule", "remove", "nightly"],
 		["remote-job", "stop", "/home/arthur/.arthur", job],
 		["remote-job", "add", "/home/arthur/.arthur"],
+		["dokploy", "apps"],
+		["dokploy", "status", "kXx3shopWeb01"],
 	] as const) {
 		const run = arthur(folder, RECORD, name, ...args);
 		const said = name === "schedule" || name === "remote-job" ? `${name} ${args[0]}` : name === "ci" ? "ci --rerun" : name;

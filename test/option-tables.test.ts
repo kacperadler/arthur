@@ -16,6 +16,8 @@ import { develop } from "@arthur/develop";
 import * as developFile from "@arthur/develop/options";
 import { discord } from "@arthur/discord";
 import * as discordFile from "@arthur/discord/options";
+import { dokploy } from "@arthur/dokploy";
+import * as dokployFile from "@arthur/dokploy/options";
 import { findings } from "@arthur/findings";
 import * as findingsFile from "@arthur/findings/options";
 import { github } from "@arthur/github";
@@ -72,6 +74,7 @@ const PLUGINS: Readonly<Record<string, readonly [OptionsFile, Plugin]>> = {
 	github: [githubFile, github({ instances: [] })],
 	manage: [manageFile, manage()],
 	develop: [developFile, develop()],
+	dokploy: [dokployFile, dokploy({ instances: [] })],
 	findings: [findingsFile, findings()],
 	listen: [listenFile, listen()],
 	video: [videoFile, video()],

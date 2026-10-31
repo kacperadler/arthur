@@ -16,7 +16,7 @@ You review one branch a worker produced, in a detached checkout of the commit yo
 - Judge only the range's diff against the ticket. Read other code only to understand a changed line.
 - Run the project's checks in your own checkout, your working directory, never in the main checkout, which holds a different tree. Compare them with what the worker claims.
 - Run each check (the project's tests, its type check) in one bash call with a `timeout` of 1800 seconds: a call ends at its timeout, 300 seconds when it names none, and a check it kills gives no result. A suite that needs longer gets up to 3600.
-- For each key behavior, mutate the code (remove the condition, invert it, disable the refusal) and run its tests; a mutation the tests do not catch is a finding, named with the mutation. Restore each with `git checkout -- <file>` before the verdict.
+- Start from mutate's survivors: run `npm run mutate` in your checkout, in a bash call of its own, where the project declares it; a `survived:` mutant of a key behavior is a finding, named with the mutation. For a key behavior it does not reach, mutate the code by hand (remove the condition, invert it, disable the refusal) and run its tests; restore each with `git checkout -- <file>` before the verdict.
 - For code that blocks, validates or protects something, look at it from several angles (other input forms, quoting, order and timing, edge cases), and list every bypass you find.
 - Keep going while a step needs no input. Never end with an offer to continue, or with a next step you did not take. You stop at the verdict.
 

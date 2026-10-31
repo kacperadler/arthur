@@ -4,9 +4,18 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## 2026-10-31
 
+### Added
+
+- AR0592 Plan: a discord plugin, the owner chat with Arthur in a private Discord server (84170c00)
+
 ### Fixed
 
+- AR0590 AR0589 T3: a job cannot read the shared home .arthur/ of other projects (c966fcae)
 - AR0593 AR0589 T2: a job sees only its own project (d8013c2d)
+
+### Changed
+
+- AR0579 Defaults T11: npm run mutate finds the tests that do not catch a change (6d1e9372)
 
 ## 2026-10-30
 

@@ -3927,9 +3927,9 @@
   {
     "id": "AR0495",
     "title": "Source file size in three zones: green up to 200 lines, yellow up to 220, red up to 250, never above",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0495-source-file-size-in-three-zones-green-up-to-200-lines-yellow-up-to-220-red-up-to/ticket.md",
-    "updated": "2026-10-27T08:56:25.323Z"
+    "updated": "2026-10-31T15:48:57.416Z"
   },
   {
     "id": "AR0496",
@@ -4626,9 +4626,9 @@
   {
     "id": "AR0579",
     "title": "Defaults T11: npm run mutate finds the tests that do not catch a change",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0579-defaults-t11-npm-run-mutate-finds-the-tests-that-do-not-catch-a-change/ticket.md",
-    "updated": "2026-10-31T13:44:11.926Z",
+    "updated": "2026-10-31T16:04:19.240Z",
     "after": [
       "AR0569"
     ]
@@ -4715,9 +4715,9 @@
   {
     "id": "AR0588",
     "title": "Plan: a dokploy plugin, deploy and upload to the owner's Dokploy servers",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0588-plan-a-dokploy-plugin-deploy-and-upload-to-the-owner-s-dokploy-servers/ticket.md",
-    "updated": "2026-10-30T13:44:58.936Z"
+    "updated": "2026-10-31T15:48:47.185Z"
   },
   {
     "id": "AR0589",
@@ -4729,9 +4729,9 @@
   {
     "id": "AR0590",
     "title": "AR0589 T3: a job cannot read the shared home .arthur/ of other projects",
-    "status": "planned",
+    "status": "merged",
     "path": "spec/features/AR0590-ar0589-t3-a-job-cannot-read-the-shared-home-arthur-of-other-projects/ticket.md",
-    "updated": "2026-10-30T16:58:17.176Z",
+    "updated": "2026-10-31T16:26:53.289Z",
     "after": [
       "AR0593"
     ]
@@ -4746,9 +4746,9 @@
   {
     "id": "AR0592",
     "title": "Plan: a discord plugin, the owner chat with Arthur in a private Discord server",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0592-plan-a-discord-plugin-the-owner-chat-with-arthur-in-a-private-discord-server/ticket.md",
-    "updated": "2026-10-31T14:43:46.278Z"
+    "updated": "2026-10-31T16:10:56.517Z"
   },
   {
     "id": "AR0593",

@@ -38,3 +38,4 @@ Out:
 ## Decisions
 
 - 2026-10-30: Source: the approved plan of AR0561 (AR-D345)
+- 2026-10-31: Merge AR0579 (npm run mutate) now; the owner: "Go all with recommendations" (AR-D407)

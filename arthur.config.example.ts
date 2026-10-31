@@ -1,8 +1,8 @@
 // Example arthur.config.ts with every plugin, planned ones included. Built, under `packages/`: the core and commit-rules,
-// delivery, develop, dokploy, findings, github, listen, machines, manage, models, nvm, orchestration, projects, resources,
-// schedule, session, telegram, uptime, video, youtrack. Planned, no package yet (spec/roadmap.md builds them): discord, docker (first); server,
-// signal, slack, whatsapp (later). So a copy of the whole file does not load; it fails on the first planned import
-// (`Cannot find package '@arthur/discord'`). Take a plugin from it once its package exists. Illustrative for the planned
+// delivery, develop, discord, dokploy, findings, github, listen, machines, manage, models, nvm, orchestration, projects,
+// resources, schedule, session, telegram, uptime, video, youtrack. Planned, no package yet (spec/roadmap.md builds them):
+// docker (first); server, signal, slack, whatsapp (later). So a copy of the whole file does not load; it fails on the first
+// planned import (`Cannot find package '@arthur/docker'`). Take a plugin from it once its package exists. Illustrative for the planned
 // ones: their option names are proposed, not final.
 //
 // Rules:
@@ -405,9 +405,9 @@ export default defineConfig({
 			allowedNumberEnv: "ARTHUR_SIGNAL_ALLOWED_NUMBER", // the only number the plugin answers
 		}),
 
-		// Discord through its gateway: an outbound WebSocket, no Interactions Endpoint URL, so nothing listens. One server, and in
-		// it only your user. Turn on the MESSAGE_CONTENT intent in Discord's developer portal; without it messages arrive empty.
-		// Phone commands are typed as `/name text`.
+		// Discord through its gateway: an outbound WebSocket, no Interactions Endpoint URL, so nothing listens. One private server,
+		// and in it only your user. Turn on Message Content Intent in Discord's developer portal; without it Discord refuses the
+		// connection (4014). Text in and out today; files, voice messages and phone commands typed as `/name text` come with entry 90.
 		discord({
 			enabled: false,
 			bots: [

@@ -33,4 +33,5 @@ Out:
 - The `guarded` file: AR0512.
 
 ## Decisions
+- 2026-10-31: Approve AR0597 and add it to tonight's batch; the owner: "go with recomendations" (AR-D418)
 

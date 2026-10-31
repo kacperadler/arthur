@@ -4655,11 +4655,11 @@
   {
     "id": "AR0582",
     "title": "Defaults T14: a source line over 160 characters counts as more than one",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0582-defaults-t14-a-source-line-over-160-characters-counts-as-more-than-one/ticket.md",
-    "updated": "2026-10-30T07:47:11.366Z",
+    "updated": "2026-10-31T19:13:07.923Z",
     "after": [
-      "AR0495"
+      "AR0600"
     ]
   },
   {
@@ -4784,22 +4784,36 @@
   {
     "id": "AR0597",
     "title": "A job that rewrites its record's project, worktree or root gets another project unhidden, or writes outside its worktree, after arthur continue",
-    "status": "planning",
+    "status": "planned",
     "path": "spec/features/AR0597-a-job-that-rewrites-its-record-s-project-worktree-or-root-gets-another-project/ticket.md",
-    "updated": "2026-10-31T14:08:31.723Z"
+    "updated": "2026-10-31T20:36:36.608Z"
   },
   {
     "id": "AR0598",
     "title": "The Discord gateway test reads the first heartbeat, which may go out before READY with a null sequence",
-    "status": "planning",
+    "status": "merged",
     "path": "spec/features/AR0598-the-discord-gateway-test-reads-the-first-heartbeat-which-may-go-out-before-ready/ticket.md",
-    "updated": "2026-10-31T16:56:10.924Z"
+    "updated": "2026-10-31T23:22:38.225Z"
   },
   {
     "id": "AR0599",
     "title": "Two core job tests can start the same systemd scope name at once",
-    "status": "planning",
+    "status": "in-progress",
     "path": "spec/features/AR0599-two-core-job-tests-can-start-the-same-systemd-scope-name-at-once/ticket.md",
-    "updated": "2026-10-31T18:24:23.851Z"
+    "updated": "2026-10-31T20:48:24.638Z"
+  },
+  {
+    "id": "AR0600",
+    "title": "Split the five source files that leave their zone once a line counts once per 160 characters",
+    "status": "merged",
+    "path": "spec/features/AR0600-split-the-five-source-files-that-leave-their-zone-once-a-line-counts-once-per/ticket.md",
+    "updated": "2026-10-31T23:38:14.527Z"
+  },
+  {
+    "id": "AR0601",
+    "title": "Docs catch up: Dokploy in the README, setup guide, architecture diagram and vision; the roadmap and arthur.mmd lines left stale",
+    "status": "planned",
+    "path": "spec/features/AR0601-docs-catch-up-dokploy-in-the-readme-setup-guide-architecture-diagram-and-vision/ticket.md",
+    "updated": "2026-10-31T22:40:46.424Z"
   }
 ]

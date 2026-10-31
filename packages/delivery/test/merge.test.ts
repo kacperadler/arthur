@@ -111,6 +111,10 @@ async function load(t: TestContext, options: Parameters<typeof delivery>[0] = {}
 		return { code, out: out.join("\n"), err: err.join("\n") };
 	};
 	const review = async (job: string, message: string, cost = 0) => {
+		// The worker's checks passed on its tip, as delivery's extension records them, so a review starts (AR0580).
+		const tip = git(root, "rev-parse", `arthur/${job}`);
+		mkdirSync(join(fake.host.folder, job), { recursive: true });
+		writeFileSync(join(fake.host.folder, job, "checks"), `check pass ${tip} clean\ntest pass 2/2 ${tip} clean\n`);
 		agent({ steps: [{ message, cost }] });
 		const { out } = await run("review", [job]);
 		await ended(out);

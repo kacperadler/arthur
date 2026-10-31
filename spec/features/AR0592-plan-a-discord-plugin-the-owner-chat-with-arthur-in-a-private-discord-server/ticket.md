@@ -47,3 +47,4 @@ Out:
 - 2026-10-30: Yes, plan it now; the owner: "by recommendation: G5188" (AR-D401)
 - 2026-10-30: AR0592 opened and its planner started, on the owner own request; the owner: "I wanna add discord plugin to this project, can you create a task for that, at first we have to plan this, and i have to understand how this will work" (AR-D401)
 - 2026-10-30: Plan approved by the owner: plan.md at b9554741; the owner: "AR-D402 1" (AR-D402)
+- 2026-10-31: Merge AR0592 ticket 1 (discord plugin, text) now; the owner: "Go all with recommendations" (AR-D408)

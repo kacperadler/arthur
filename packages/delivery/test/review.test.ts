@@ -770,3 +770,15 @@ test("a review starts only on a tip whose check, test and mutate passed there: a
 	writeFileSync(join(home, "jobs", job.id, "machine"), "mac");
 	assert.match(reviewTask(fake.host, workerOf(fake.host, job.id), undefined).task, new RegExp(`^Ticket: ${TICKET}\nBranch: ${job.branch}\nCommit: ${third}\n`));
 });
+
+test("a hand-back whose worker's tip cannot be read for its next review stops and tells the coordinator once", async (t) => {
+	const { fake, worker, review, ended, step, home } = await load(t, { start: true });
+	const job = await worker();
+	const failed = await review("Missing test.\n\nFAIL", job.id);
+	await until("the worker continued", () => step(job.id) === "continued");
+	await until("the continued run's end", () => fake.host.jobs.result(job.id).startsWith("Missing test."));
+	writeFileSync(join(home, "jobs", job.id, "project"), "gone");
+	await ended(job.id);
+	await until("the hand-back ended", () => step(job.id) === undefined);
+	assert.deepEqual(told(fake), [`Delivery's hand-back of ${job.branch} after FAIL ${failed.id} stopped: ${job.id}'s project gone is not in the project list. Hand it back yourself: arthur continue ${job.id} '<the findings of ${failed.id}>', then arthur review ${job.id} once it ends.`]);
+});

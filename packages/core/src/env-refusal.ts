@@ -1,6 +1,7 @@
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
-import { decodeEscapes, literal, shellWords } from "./shell-words.ts";
+import { decodeEscapes, literal } from "./shell-escapes.ts";
+import { shellWords } from "./shell-words.ts";
 
 // The env guard's refusal (spec/roadmap.md, entry 19), which the extension env-guard.ts asks before a tool runs. A secrets
 // file is `.env` or `.env<suffix>` (`.env.local`, `.env-prod`, `dir/.env`, `.env:1-5`, a read selector), in any case, since

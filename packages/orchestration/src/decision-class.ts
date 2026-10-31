@@ -1,7 +1,8 @@
 import type { Host, Project } from "@arthur/core/plugin";
 import { redact } from "./credential.ts";
 import { CLASS, type Class, classStates, described, OPTIONS, policyOf, ticketKind, words } from "./decision-classes.ts";
-import { ask, change, type Decision, decisions, KINDS, oneLine, readLog, type Revoke } from "./decision-log.ts";
+import { change, type Decision, decisions, KINDS, oneLine, readLog, type Revoke } from "./decision-log.ts";
+import { ask } from "./decision-writes.ts";
 import { recommendedBy } from "./silent.ts";
 
 // `arthur decision class propose|revoke` and `arthur decisions --classes` (spec/roadmap.md, entry 97): a class proposed from

@@ -3,7 +3,7 @@ import type { Clock } from "./clock.ts";
 import type { Commands } from "./commands.ts";
 import type { LoadedConfig } from "./config.ts";
 import type { Events } from "./events.ts";
-import type { Jobs } from "./jobs.ts";
+import type { Jobs } from "./host-jobs.ts";
 
 // The plugin shape and the host one plugin sees (spec/roadmap.md, entries 4 and 51), `@arthur/core/plugin`: docs/plugin-api.md.
 // A plugin is a function from its options to a `Plugin`; the config's plugin list holds what those functions return. The host

@@ -4,7 +4,8 @@ import type { Host, Project } from "@arthur/core/plugin";
 import { redact } from "./credential.ts";
 import { policyOf } from "./decision-classes.ts";
 import { queued } from "./decision-lock.ts";
-import { type Answer, ask, close, type Decision, decisions, readLog } from "./decision-log.ts";
+import { type Answer, type Decision, decisions, readLog } from "./decision-log.ts";
+import { ask, close } from "./decision-writes.ts";
 
 // What the plugin records in the decision log by itself (spec/roadmap.md, entry 96): the question of a job blocked on the
 // owner, asked as kind `job` (blocked-notice.ts names its id in the notice); a close once what an open question waits on is

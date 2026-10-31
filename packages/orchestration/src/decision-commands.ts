@@ -3,7 +3,8 @@ import { insideJob } from "@arthur/core/inside-job";
 import type { Command, Host, Project } from "@arthur/core/plugin";
 import { classList, evidence, propose, revoke } from "./decision-class.ts";
 import { described } from "./decision-classes.ts";
-import { answer, ask, close, DECISION_ID, type Decision, decisions, KINDS, readLog } from "./decision-log.ts";
+import { DECISION_ID, type Decision, decisions, KINDS, readLog } from "./decision-log.ts";
+import { answer, ask, close } from "./decision-writes.ts";
 import { line, whole } from "./decision-views.ts";
 
 // `arthur decision ask|answer|close|class`, the one writer of the decision log besides the plugin itself, refused inside a

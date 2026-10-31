@@ -4794,5 +4794,12 @@
     "status": "planning",
     "path": "spec/features/AR0598-the-discord-gateway-test-reads-the-first-heartbeat-which-may-go-out-before-ready/ticket.md",
     "updated": "2026-10-31T16:56:10.924Z"
+  },
+  {
+    "id": "AR0599",
+    "title": "Two core job tests can start the same systemd scope name at once",
+    "status": "planning",
+    "path": "spec/features/AR0599-two-core-job-tests-can-start-the-same-systemd-scope-name-at-once/ticket.md",
+    "updated": "2026-10-31T18:24:23.851Z"
   }
 ]

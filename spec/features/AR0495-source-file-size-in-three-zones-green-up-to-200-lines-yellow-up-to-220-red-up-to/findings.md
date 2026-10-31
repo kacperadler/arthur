@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `spec/roadmap.md:27`
 - What: entry 1's Delivers says "every source file at most 200 lines" and its Done means "a file of exactly 200 lines passes, 201 fails". Since AR0495 a 201-line file passes as yellow, and the cap is 250 for a file in `RED_FILES`. The ticket's Scope does not name `spec/roadmap.md`, so the branch left it.
 - Suggestion: reword the two lines to the three zones (green to 200, yellow to 220 with a printed line, red to 250 only when listed in `RED_FILES`, never above), pointing at the styleguide's Shape; nothing else in the entry changes.
-- Status: open
+- Status: deferred (client summary)

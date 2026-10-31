@@ -1,0 +1,1240 @@
+{
+	"source": "https://github.com/discord/discord-api-docs/tree/main/developers",
+	"version": "API v10",
+	"recorded": "2026-10-31",
+	"how": "the field table of each object a fake answer holds, from the docs' Markdown: a key ending ? is optional, a type starting ? is nullable (written nullable); guild create and message create are the guild and message objects plus the extra fields of those events; unavailable guild and error are written from the docs' examples (Unavailable Guild Object; Example JSON Error Response), which have no table",
+	"types": {
+		"payload": {
+			"op": {
+				"type": "integer"
+			},
+			"d": {
+				"type": "mixed (any JSON value)",
+				"nullable": true
+			},
+			"s": {
+				"type": "integer",
+				"nullable": true
+			},
+			"t": {
+				"type": "string",
+				"nullable": true
+			}
+		},
+		"hello": {
+			"heartbeat_interval": {
+				"type": "integer"
+			}
+		},
+		"ready": {
+			"v": {
+				"type": "integer"
+			},
+			"user": {
+				"type": "user object"
+			},
+			"guilds": {
+				"type": "array of Unavailable Guild objects"
+			},
+			"session_id": {
+				"type": "string"
+			},
+			"resume_gateway_url": {
+				"type": "string"
+			},
+			"shard": {
+				"type": "array of two integers (shard_id, num_shards)",
+				"optional": true
+			},
+			"application": {
+				"type": "partial application object"
+			}
+		},
+		"guild": {
+			"id": {
+				"type": "snowflake"
+			},
+			"name": {
+				"type": "string"
+			},
+			"icon": {
+				"type": "string",
+				"nullable": true
+			},
+			"icon_hash": {
+				"type": "string",
+				"optional": true,
+				"nullable": true
+			},
+			"splash": {
+				"type": "string",
+				"nullable": true
+			},
+			"discovery_splash": {
+				"type": "string",
+				"nullable": true
+			},
+			"owner": {
+				"type": "boolean",
+				"optional": true
+			},
+			"owner_id": {
+				"type": "snowflake"
+			},
+			"permissions": {
+				"type": "string",
+				"optional": true
+			},
+			"region": {
+				"type": "string",
+				"optional": true,
+				"nullable": true
+			},
+			"afk_channel_id": {
+				"type": "snowflake",
+				"nullable": true
+			},
+			"afk_timeout": {
+				"type": "integer"
+			},
+			"widget_enabled": {
+				"type": "boolean",
+				"optional": true
+			},
+			"widget_channel_id": {
+				"type": "snowflake",
+				"optional": true,
+				"nullable": true
+			},
+			"verification_level": {
+				"type": "integer"
+			},
+			"default_message_notifications": {
+				"type": "integer"
+			},
+			"explicit_content_filter": {
+				"type": "integer"
+			},
+			"roles": {
+				"type": "array of role objects"
+			},
+			"emojis": {
+				"type": "array of emoji objects"
+			},
+			"features": {
+				"type": "array of guild feature strings"
+			},
+			"mfa_level": {
+				"type": "integer"
+			},
+			"application_id": {
+				"type": "snowflake",
+				"nullable": true
+			},
+			"system_channel_id": {
+				"type": "snowflake",
+				"nullable": true
+			},
+			"system_channel_flags": {
+				"type": "integer"
+			},
+			"rules_channel_id": {
+				"type": "snowflake",
+				"nullable": true
+			},
+			"max_presences": {
+				"type": "integer",
+				"optional": true,
+				"nullable": true
+			},
+			"max_members": {
+				"type": "integer",
+				"optional": true
+			},
+			"vanity_url_code": {
+				"type": "string",
+				"nullable": true
+			},
+			"description": {
+				"type": "string",
+				"nullable": true
+			},
+			"banner": {
+				"type": "string",
+				"nullable": true
+			},
+			"premium_tier": {
+				"type": "integer"
+			},
+			"premium_subscription_count": {
+				"type": "integer",
+				"optional": true
+			},
+			"preferred_locale": {
+				"type": "string"
+			},
+			"public_updates_channel_id": {
+				"type": "snowflake",
+				"nullable": true
+			},
+			"max_video_channel_users": {
+				"type": "integer",
+				"optional": true
+			},
+			"max_stage_video_channel_users": {
+				"type": "integer",
+				"optional": true
+			},
+			"approximate_member_count": {
+				"type": "integer",
+				"optional": true
+			},
+			"approximate_presence_count": {
+				"type": "integer",
+				"optional": true
+			},
+			"welcome_screen": {
+				"type": "welcome screen object",
+				"optional": true
+			},
+			"nsfw_level": {
+				"type": "integer"
+			},
+			"stickers": {
+				"type": "array of sticker objects",
+				"optional": true
+			},
+			"premium_progress_bar_enabled": {
+				"type": "boolean"
+			},
+			"safety_alerts_channel_id": {
+				"type": "snowflake",
+				"nullable": true
+			},
+			"incidents_data": {
+				"type": "incidents data object",
+				"nullable": true
+			}
+		},
+		"guild create": {
+			"id": {
+				"type": "snowflake"
+			},
+			"name": {
+				"type": "string"
+			},
+			"icon": {
+				"type": "string",
+				"nullable": true
+			},
+			"icon_hash": {
+				"type": "string",
+				"optional": true,
+				"nullable": true
+			},
+			"splash": {
+				"type": "string",
+				"nullable": true
+			},
+			"discovery_splash": {
+				"type": "string",
+				"nullable": true
+			},
+			"owner": {
+				"type": "boolean",
+				"optional": true
+			},
+			"owner_id": {
+				"type": "snowflake"
+			},
+			"permissions": {
+				"type": "string",
+				"optional": true
+			},
+			"region": {
+				"type": "string",
+				"optional": true,
+				"nullable": true
+			},
+			"afk_channel_id": {
+				"type": "snowflake",
+				"nullable": true
+			},
+			"afk_timeout": {
+				"type": "integer"
+			},
+			"widget_enabled": {
+				"type": "boolean",
+				"optional": true
+			},
+			"widget_channel_id": {
+				"type": "snowflake",
+				"optional": true,
+				"nullable": true
+			},
+			"verification_level": {
+				"type": "integer"
+			},
+			"default_message_notifications": {
+				"type": "integer"
+			},
+			"explicit_content_filter": {
+				"type": "integer"
+			},
+			"roles": {
+				"type": "array of role objects"
+			},
+			"emojis": {
+				"type": "array of emoji objects"
+			},
+			"features": {
+				"type": "array of guild feature strings"
+			},
+			"mfa_level": {
+				"type": "integer"
+			},
+			"application_id": {
+				"type": "snowflake",
+				"nullable": true
+			},
+			"system_channel_id": {
+				"type": "snowflake",
+				"nullable": true
+			},
+			"system_channel_flags": {
+				"type": "integer"
+			},
+			"rules_channel_id": {
+				"type": "snowflake",
+				"nullable": true
+			},
+			"max_presences": {
+				"type": "integer",
+				"optional": true,
+				"nullable": true
+			},
+			"max_members": {
+				"type": "integer",
+				"optional": true
+			},
+			"vanity_url_code": {
+				"type": "string",
+				"nullable": true
+			},
+			"description": {
+				"type": "string",
+				"nullable": true
+			},
+			"banner": {
+				"type": "string",
+				"nullable": true
+			},
+			"premium_tier": {
+				"type": "integer"
+			},
+			"premium_subscription_count": {
+				"type": "integer",
+				"optional": true
+			},
+			"preferred_locale": {
+				"type": "string"
+			},
+			"public_updates_channel_id": {
+				"type": "snowflake",
+				"nullable": true
+			},
+			"max_video_channel_users": {
+				"type": "integer",
+				"optional": true
+			},
+			"max_stage_video_channel_users": {
+				"type": "integer",
+				"optional": true
+			},
+			"approximate_member_count": {
+				"type": "integer",
+				"optional": true
+			},
+			"approximate_presence_count": {
+				"type": "integer",
+				"optional": true
+			},
+			"welcome_screen": {
+				"type": "welcome screen object",
+				"optional": true
+			},
+			"nsfw_level": {
+				"type": "integer"
+			},
+			"stickers": {
+				"type": "array of sticker objects",
+				"optional": true
+			},
+			"premium_progress_bar_enabled": {
+				"type": "boolean"
+			},
+			"safety_alerts_channel_id": {
+				"type": "snowflake",
+				"nullable": true
+			},
+			"incidents_data": {
+				"type": "incidents data object",
+				"nullable": true
+			},
+			"joined_at": {
+				"type": "ISO8601 timestamp"
+			},
+			"large": {
+				"type": "boolean"
+			},
+			"unavailable": {
+				"type": "boolean",
+				"optional": true
+			},
+			"member_count": {
+				"type": "integer"
+			},
+			"voice_states": {
+				"type": "array of partial voice state objects"
+			},
+			"members": {
+				"type": "array of guild member objects"
+			},
+			"channels": {
+				"type": "array of channel objects"
+			},
+			"threads": {
+				"type": "array of channel objects"
+			},
+			"presences": {
+				"type": "array of partial presence update objects"
+			},
+			"stage_instances": {
+				"type": "array of stage instance objects"
+			},
+			"guild_scheduled_events": {
+				"type": "array of guild scheduled event objects"
+			},
+			"soundboard_sounds": {
+				"type": "array of soundboard sound objects"
+			}
+		},
+		"channel": {
+			"id": {
+				"type": "snowflake"
+			},
+			"type": {
+				"type": "integer"
+			},
+			"guild_id": {
+				"type": "snowflake",
+				"optional": true
+			},
+			"position": {
+				"type": "integer",
+				"optional": true
+			},
+			"permission_overwrites": {
+				"type": "array of overwrite objects",
+				"optional": true
+			},
+			"name": {
+				"type": "string",
+				"optional": true,
+				"nullable": true
+			},
+			"topic": {
+				"type": "string",
+				"optional": true,
+				"nullable": true
+			},
+			"nsfw": {
+				"type": "boolean",
+				"optional": true
+			},
+			"last_message_id": {
+				"type": "snowflake",
+				"optional": true,
+				"nullable": true
+			},
+			"bitrate": {
+				"type": "integer",
+				"optional": true
+			},
+			"user_limit": {
+				"type": "integer",
+				"optional": true
+			},
+			"rate_limit_per_user": {
+				"type": "integer",
+				"optional": true
+			},
+			"recipients": {
+				"type": "array of user objects",
+				"optional": true
+			},
+			"icon": {
+				"type": "string",
+				"optional": true,
+				"nullable": true
+			},
+			"owner_id": {
+				"type": "snowflake",
+				"optional": true
+			},
+			"application_id": {
+				"type": "snowflake",
+				"optional": true,
+				"nullable": true
+			},
+			"managed": {
+				"type": "boolean",
+				"optional": true
+			},
+			"parent_id": {
+				"type": "snowflake",
+				"optional": true,
+				"nullable": true
+			},
+			"last_pin_timestamp": {
+				"type": "ISO8601 timestamp",
+				"optional": true,
+				"nullable": true
+			},
+			"rtc_region": {
+				"type": "string",
+				"optional": true,
+				"nullable": true
+			},
+			"video_quality_mode": {
+				"type": "integer",
+				"optional": true
+			},
+			"message_count": {
+				"type": "integer",
+				"optional": true
+			},
+			"member_count": {
+				"type": "integer",
+				"optional": true
+			},
+			"thread_metadata": {
+				"type": "a thread metadata object",
+				"optional": true
+			},
+			"member": {
+				"type": "a thread member object",
+				"optional": true
+			},
+			"default_auto_archive_duration": {
+				"type": "integer",
+				"optional": true
+			},
+			"permissions": {
+				"type": "string",
+				"optional": true
+			},
+			"app_permissions": {
+				"type": "string",
+				"optional": true
+			},
+			"flags": {
+				"type": "integer",
+				"optional": true
+			},
+			"total_message_sent": {
+				"type": "integer",
+				"optional": true
+			},
+			"available_tags": {
+				"type": "array of tag objects",
+				"optional": true
+			},
+			"applied_tags": {
+				"type": "array of snowflakes",
+				"optional": true
+			},
+			"default_reaction_emoji": {
+				"type": "default reaction object",
+				"optional": true,
+				"nullable": true
+			},
+			"default_thread_rate_limit_per_user": {
+				"type": "integer",
+				"optional": true
+			},
+			"default_sort_order": {
+				"type": "integer",
+				"optional": true,
+				"nullable": true
+			},
+			"default_forum_layout": {
+				"type": "integer",
+				"optional": true
+			}
+		},
+		"message": {
+			"id": {
+				"type": "snowflake"
+			},
+			"channel_id": {
+				"type": "snowflake"
+			},
+			"author": {
+				"type": "user object"
+			},
+			"content": {
+				"type": "string"
+			},
+			"timestamp": {
+				"type": "ISO8601 timestamp"
+			},
+			"edited_timestamp": {
+				"type": "ISO8601 timestamp",
+				"nullable": true
+			},
+			"tts": {
+				"type": "boolean"
+			},
+			"mention_everyone": {
+				"type": "boolean"
+			},
+			"mentions": {
+				"type": "array of user objects"
+			},
+			"mention_roles": {
+				"type": "array of role object ids"
+			},
+			"mention_channels": {
+				"type": "array of channel mention objects",
+				"optional": true
+			},
+			"attachments": {
+				"type": "array of attachment objects"
+			},
+			"embeds": {
+				"type": "array of embed objects"
+			},
+			"reactions": {
+				"type": "array of reaction objects",
+				"optional": true
+			},
+			"nonce": {
+				"type": "integer or string",
+				"optional": true
+			},
+			"pinned": {
+				"type": "boolean"
+			},
+			"webhook_id": {
+				"type": "snowflake",
+				"optional": true
+			},
+			"type": {
+				"type": "integer"
+			},
+			"activity": {
+				"type": "message activity object",
+				"optional": true
+			},
+			"application": {
+				"type": "partial application object",
+				"optional": true
+			},
+			"application_id": {
+				"type": "snowflake",
+				"optional": true
+			},
+			"flags": {
+				"type": "integer",
+				"optional": true
+			},
+			"message_reference": {
+				"type": "message reference object",
+				"optional": true
+			},
+			"message_snapshots": {
+				"type": "array of message snapshot objects",
+				"optional": true
+			},
+			"referenced_message": {
+				"type": "message object",
+				"optional": true,
+				"nullable": true
+			},
+			"interaction_metadata": {
+				"type": "message interaction metadata object",
+				"optional": true
+			},
+			"interaction": {
+				"type": "message interaction object",
+				"optional": true
+			},
+			"thread": {
+				"type": "channel object",
+				"optional": true
+			},
+			"components": {
+				"type": "array of message components",
+				"optional": true
+			},
+			"sticker_items": {
+				"type": "array of message sticker item objects",
+				"optional": true
+			},
+			"stickers": {
+				"type": "array of sticker objects",
+				"optional": true
+			},
+			"position": {
+				"type": "integer",
+				"optional": true
+			},
+			"role_subscription_data": {
+				"type": "role subscription data object",
+				"optional": true
+			},
+			"resolved": {
+				"type": "resolved data",
+				"optional": true
+			},
+			"poll": {
+				"type": "poll object",
+				"optional": true
+			},
+			"call": {
+				"type": "message call object",
+				"optional": true
+			},
+			"shared_client_theme": {
+				"type": "shared client theme object",
+				"optional": true
+			}
+		},
+		"message create": {
+			"id": {
+				"type": "snowflake"
+			},
+			"channel_id": {
+				"type": "snowflake"
+			},
+			"author": {
+				"type": "user object"
+			},
+			"content": {
+				"type": "string"
+			},
+			"timestamp": {
+				"type": "ISO8601 timestamp"
+			},
+			"edited_timestamp": {
+				"type": "ISO8601 timestamp",
+				"nullable": true
+			},
+			"tts": {
+				"type": "boolean"
+			},
+			"mention_everyone": {
+				"type": "boolean"
+			},
+			"mentions": {
+				"type": "array of user objects, optionally with an additional partial member field"
+			},
+			"mention_roles": {
+				"type": "array of role object ids"
+			},
+			"mention_channels": {
+				"type": "array of channel mention objects",
+				"optional": true
+			},
+			"attachments": {
+				"type": "array of attachment objects"
+			},
+			"embeds": {
+				"type": "array of embed objects"
+			},
+			"reactions": {
+				"type": "array of reaction objects",
+				"optional": true
+			},
+			"nonce": {
+				"type": "integer or string",
+				"optional": true
+			},
+			"pinned": {
+				"type": "boolean"
+			},
+			"webhook_id": {
+				"type": "snowflake",
+				"optional": true
+			},
+			"type": {
+				"type": "integer"
+			},
+			"activity": {
+				"type": "message activity object",
+				"optional": true
+			},
+			"application": {
+				"type": "partial application object",
+				"optional": true
+			},
+			"application_id": {
+				"type": "snowflake",
+				"optional": true
+			},
+			"flags": {
+				"type": "integer",
+				"optional": true
+			},
+			"message_reference": {
+				"type": "message reference object",
+				"optional": true
+			},
+			"message_snapshots": {
+				"type": "array of message snapshot objects",
+				"optional": true
+			},
+			"referenced_message": {
+				"type": "message object",
+				"optional": true,
+				"nullable": true
+			},
+			"interaction_metadata": {
+				"type": "message interaction metadata object",
+				"optional": true
+			},
+			"interaction": {
+				"type": "message interaction object",
+				"optional": true
+			},
+			"thread": {
+				"type": "channel object",
+				"optional": true
+			},
+			"components": {
+				"type": "array of message components",
+				"optional": true
+			},
+			"sticker_items": {
+				"type": "array of message sticker item objects",
+				"optional": true
+			},
+			"stickers": {
+				"type": "array of sticker objects",
+				"optional": true
+			},
+			"position": {
+				"type": "integer",
+				"optional": true
+			},
+			"role_subscription_data": {
+				"type": "role subscription data object",
+				"optional": true
+			},
+			"resolved": {
+				"type": "resolved data",
+				"optional": true
+			},
+			"poll": {
+				"type": "poll object",
+				"optional": true
+			},
+			"call": {
+				"type": "message call object",
+				"optional": true
+			},
+			"shared_client_theme": {
+				"type": "shared client theme object",
+				"optional": true
+			},
+			"guild_id": {
+				"type": "snowflake",
+				"optional": true
+			},
+			"member": {
+				"type": "partial guild member object",
+				"optional": true
+			},
+			"channel_type": {
+				"type": "integer",
+				"optional": true
+			}
+		},
+		"message reference": {
+			"type": {
+				"type": "integer",
+				"optional": true
+			},
+			"message_id": {
+				"type": "snowflake",
+				"optional": true
+			},
+			"channel_id": {
+				"type": "snowflake",
+				"optional": true
+			},
+			"guild_id": {
+				"type": "snowflake",
+				"optional": true
+			},
+			"fail_if_not_exists": {
+				"type": "boolean",
+				"optional": true
+			}
+		},
+		"message snapshot": {
+			"message": {
+				"type": "partial message object"
+			}
+		},
+		"attachment": {
+			"id": {
+				"type": "snowflake"
+			},
+			"filename": {
+				"type": "string"
+			},
+			"title": {
+				"type": "string",
+				"optional": true
+			},
+			"description": {
+				"type": "string",
+				"optional": true
+			},
+			"content_type": {
+				"type": "string",
+				"optional": true
+			},
+			"size": {
+				"type": "integer"
+			},
+			"url": {
+				"type": "string"
+			},
+			"proxy_url": {
+				"type": "string"
+			},
+			"height": {
+				"type": "integer",
+				"optional": true,
+				"nullable": true
+			},
+			"width": {
+				"type": "integer",
+				"optional": true,
+				"nullable": true
+			},
+			"placeholder": {
+				"type": "string",
+				"optional": true
+			},
+			"placeholder_version": {
+				"type": "integer",
+				"optional": true
+			},
+			"ephemeral": {
+				"type": "boolean",
+				"optional": true
+			},
+			"duration_secs": {
+				"type": "float",
+				"optional": true
+			},
+			"waveform": {
+				"type": "string",
+				"optional": true
+			},
+			"flags": {
+				"type": "integer",
+				"optional": true
+			},
+			"clip_participants": {
+				"type": "array of user objects",
+				"optional": true
+			},
+			"clip_created_at": {
+				"type": "ISO8601 timestamp",
+				"optional": true
+			},
+			"application": {
+				"type": "application",
+				"optional": true,
+				"nullable": true
+			}
+		},
+		"user": {
+			"id": {
+				"type": "snowflake"
+			},
+			"username": {
+				"type": "string"
+			},
+			"discriminator": {
+				"type": "string"
+			},
+			"global_name": {
+				"type": "string",
+				"nullable": true
+			},
+			"avatar": {
+				"type": "string",
+				"nullable": true
+			},
+			"bot": {
+				"type": "boolean",
+				"optional": true
+			},
+			"system": {
+				"type": "boolean",
+				"optional": true
+			},
+			"mfa_enabled": {
+				"type": "boolean",
+				"optional": true
+			},
+			"banner": {
+				"type": "string",
+				"optional": true,
+				"nullable": true
+			},
+			"accent_color": {
+				"type": "integer",
+				"optional": true,
+				"nullable": true
+			},
+			"locale": {
+				"type": "string",
+				"optional": true
+			},
+			"verified": {
+				"type": "boolean",
+				"optional": true
+			},
+			"email": {
+				"type": "string",
+				"optional": true,
+				"nullable": true
+			},
+			"flags": {
+				"type": "integer",
+				"optional": true
+			},
+			"premium_type": {
+				"type": "integer",
+				"optional": true
+			},
+			"public_flags": {
+				"type": "integer",
+				"optional": true
+			},
+			"avatar_decoration_data": {
+				"type": "avatar decoration data object",
+				"optional": true,
+				"nullable": true
+			},
+			"collectibles": {
+				"type": "collectibles object",
+				"optional": true,
+				"nullable": true
+			},
+			"primary_guild": {
+				"type": "user primary guild object",
+				"optional": true,
+				"nullable": true
+			}
+		},
+		"get gateway bot": {
+			"url": {
+				"type": "string"
+			},
+			"shards": {
+				"type": "integer"
+			},
+			"session_start_limit": {
+				"type": "session_start_limit object"
+			}
+		},
+		"session_start_limit": {
+			"total": {
+				"type": "integer"
+			},
+			"remaining": {
+				"type": "integer"
+			},
+			"reset_after": {
+				"type": "integer"
+			},
+			"max_concurrency": {
+				"type": "integer"
+			}
+		},
+		"application": {
+			"id": {
+				"type": "snowflake"
+			},
+			"name": {
+				"type": "string"
+			},
+			"icon": {
+				"type": "string",
+				"nullable": true
+			},
+			"description": {
+				"type": "string"
+			},
+			"rpc_origins": {
+				"type": "array of strings",
+				"optional": true
+			},
+			"bot_public": {
+				"type": "boolean"
+			},
+			"bot_require_code_grant": {
+				"type": "boolean"
+			},
+			"bot": {
+				"type": "partial user object",
+				"optional": true
+			},
+			"terms_of_service_url": {
+				"type": "string",
+				"optional": true
+			},
+			"privacy_policy_url": {
+				"type": "string",
+				"optional": true
+			},
+			"owner": {
+				"type": "partial user object",
+				"optional": true
+			},
+			"verify_key": {
+				"type": "string"
+			},
+			"team": {
+				"type": "team object",
+				"nullable": true
+			},
+			"guild_id": {
+				"type": "snowflake",
+				"optional": true
+			},
+			"guild": {
+				"type": "partial guild object",
+				"optional": true
+			},
+			"primary_sku_id": {
+				"type": "snowflake",
+				"optional": true
+			},
+			"slug": {
+				"type": "string",
+				"optional": true
+			},
+			"cover_image": {
+				"type": "string",
+				"optional": true
+			},
+			"flags": {
+				"type": "integer",
+				"optional": true
+			},
+			"flags_new": {
+				"type": "string",
+				"optional": true
+			},
+			"approximate_guild_count": {
+				"type": "integer",
+				"optional": true
+			},
+			"approximate_user_install_count": {
+				"type": "integer",
+				"optional": true
+			},
+			"approximate_user_authorization_count": {
+				"type": "integer",
+				"optional": true
+			},
+			"redirect_uris": {
+				"type": "array of strings",
+				"optional": true
+			},
+			"interactions_endpoint_url": {
+				"type": "string",
+				"optional": true,
+				"nullable": true
+			},
+			"role_connections_verification_url": {
+				"type": "string",
+				"optional": true,
+				"nullable": true
+			},
+			"event_webhooks_url": {
+				"type": "string",
+				"optional": true,
+				"nullable": true
+			},
+			"event_webhooks_status": {
+				"type": "application event webhook status",
+				"optional": true
+			},
+			"event_webhooks_types": {
+				"type": "array of strings",
+				"optional": true
+			},
+			"tags": {
+				"type": "array of strings",
+				"optional": true
+			},
+			"install_params": {
+				"type": "install params object",
+				"optional": true
+			},
+			"integration_types_config": {
+				"type": "dictionary with keys of application integration types",
+				"optional": true
+			},
+			"custom_install_url": {
+				"type": "string",
+				"optional": true
+			}
+		},
+		"rate limit response": {
+			"message": {
+				"type": "string"
+			},
+			"retry_after": {
+				"type": "float"
+			},
+			"global": {
+				"type": "boolean"
+			},
+			"code": {
+				"type": "integer",
+				"optional": true
+			}
+		},
+		"unavailable guild": {
+			"id": {
+				"type": "snowflake"
+			},
+			"unavailable": {
+				"type": "boolean"
+			}
+		},
+		"error": {
+			"code": {
+				"type": "integer"
+			},
+			"message": {
+				"type": "string"
+			},
+			"errors": {
+				"type": "object",
+				"optional": true
+			}
+		}
+	}
+}

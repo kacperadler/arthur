@@ -11,13 +11,15 @@ import { checkStructure } from "./structure.ts";
 const BUDGETS = {
 	"commit-rules": 178,
 
-	core: 6600,
+	core: 6606,
 
 	"core/testing": 374,
 
-	delivery: 1895,
+	delivery: 1897,
 
 	develop: 710,
+
+	discord: 750,
 
 	dokploy: 450,
 

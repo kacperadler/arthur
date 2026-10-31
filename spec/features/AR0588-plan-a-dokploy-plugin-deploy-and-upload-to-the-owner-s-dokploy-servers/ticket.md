@@ -44,3 +44,4 @@ Out:
 - 2026-10-30: AR0588 approved; its plan is written after the current plan tickets (AR0572, AR0574, AR0576, AR0579, AR0580, AR0583, AR0585); the owner: "AR-D382 1" (AR-D382)
 - 2026-10-30: AR0588 plan starts now, ahead of the remaining plan tickets; the plugin serves several named Dokploy instances; the owner: "I wanna add the dokploy plugin as fast as possible, BUT, there is a catch, what if i have multiple dokploy instances?" (AR-D386)
 - 2026-10-30: Plan approved by the owner: plan.md at 293af006, as written: https only, an upload over a Git or Docker app only with --replace-source, dokploy line budget 450; the owner: "AR-D390 1 - I already send this to you" (AR-D390)
+- 2026-10-31: Merge AR0588 ticket 1 (dokploy plugin, read only) now; the owner: "Go all with recommendations" (AR-D409)

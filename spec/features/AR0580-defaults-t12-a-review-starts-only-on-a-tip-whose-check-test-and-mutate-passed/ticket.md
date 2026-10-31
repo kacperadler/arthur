@@ -37,3 +37,4 @@ Out:
 
 - 2026-10-30: Source: the approved plan of AR0561 (AR-D345)
 - 2026-10-31: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)
+- 2026-10-31: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

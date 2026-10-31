@@ -110,7 +110,7 @@ import { projects } from "@arthur/projects";
 export default [projects.project({ prefix: "SH", path: "/home/<user>/shop" }), github.project({ workflow: "ci.yml" })];
 ```
 
-Do not copy `arthur.config.example.ts`: it lists every plugin, planned ones included, and the packages of those do not exist yet, so it does not load (`Cannot find package '@arthur/discord'`). Take a plugin from it once its roadmap entry is merged.
+Do not copy `arthur.config.example.ts`: it lists every plugin, planned ones included, and the packages of those do not exist yet, so it does not load (`Cannot find package '@arthur/docker'`). Take a plugin from it once its roadmap entry is merged.
 
 Every option the core and each built plugin take, with its meaning and its default, is in one table per package, the same one its check walks: the core's in `packages/core/src/core-options.ts`, each plugin's in the file its `package.json` exports as `./options` (for example `packages/orchestration/src/orchestration-options.ts`), with the plugin's one-line summary and the tools it runs.
 
@@ -286,9 +286,17 @@ import { telegram } from "@arthur/telegram";
 telegram({ bots: [{ botTokenEnv: "ARTHUR_TELEGRAM_BOT_TOKEN", chatIdEnv: "ARTHUR_TELEGRAM_CHAT_ID" }] }),
 ```
 
-Then restart the service (step 9). Without a channel, the terminal of step 12 is the only way in.
+Discord does the same from a private server of your own, a main channel for the coordinator and one more per project (roadmap entry 89: text in and out; files and the phone commands come with entry 90). Make the server and its bot and give Arthur the bot's token, the server's id, your user id and the main channel's id, as `packages/discord/docs/discord.md`, "Setting it up", says; the invite link it gives asks for four permissions and no more. Never paste a secret in a channel: Discord keeps every message.
 
-**Check:** `arthur config check` says `set` for both variables, and a message you write to the bot gets the coordinator's answer within a minute.
+```ts
+import { discord } from "@arthur/discord";
+// in plugins:
+discord({ bots: [{ tokenEnv: "ARTHUR_DISCORD_BOT_TOKEN", guildIdEnv: "ARTHUR_DISCORD_GUILD_ID", userIdEnv: "ARTHUR_DISCORD_USER_ID", channelIdEnv: "ARTHUR_DISCORD_CHANNEL_ID" }] }),
+```
+
+Both can be on at once: a reply goes back to the channel its message came from, and every notice goes to both. Then restart the service (step 9). Without a channel, the terminal of step 12 is the only way in.
+
+**Check:** `arthur config check` says `set` for each channel's variables, a message you write to the bot gets the coordinator's answer within a minute, and for Discord each `discord bot` line of `arthur doctor` says `ok`.
 
 ## 14. Check everything with `arthur doctor`
 

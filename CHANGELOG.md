@@ -4,6 +4,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## 2026-10-31
 
+### Added
+
+- AR0592 Plan: a discord plugin, the owner chat with Arthur in a private Discord server (84170c00)
+
 ### Fixed
 
 - AR0593 AR0589 T2: a job sees only its own project (d8013c2d)

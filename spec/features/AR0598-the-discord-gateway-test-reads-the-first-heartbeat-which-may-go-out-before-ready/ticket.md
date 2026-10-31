@@ -33,3 +33,4 @@ Out:
 - `packages/discord/src/gateway.ts`: its behaviour is correct and does not change.
 
 ## Decisions
+- 2026-10-31: Approve AR0598 and add it to tonight's batch; the owner: "go with recomendations" (AR-D416)

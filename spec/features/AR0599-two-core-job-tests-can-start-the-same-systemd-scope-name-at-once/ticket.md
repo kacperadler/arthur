@@ -31,3 +31,4 @@ In:
 - `packages/core/test/job-control.test.ts`.
 
 ## Decisions
+- 2026-10-31: Approve AR0599 and add it to tonight's batch; the owner: "go with recomendations" (AR-D417)

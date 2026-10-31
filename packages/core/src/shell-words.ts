@@ -1,3 +1,6 @@
+import { closing } from "./shell-closing.ts";
+import { decodeEscapes, literal, quoted } from "./shell-escapes.ts";
+
 // The shell parser the guards share (spec/roadmap.md, entries 19 and 20). `shellCommands` reads a command line as bash does before brace and pathname expansion: its simple commands in the order they run, split at `;`, `&&`, `||`, `|`, `&` and
 // newlines, and `(` and `)` around a subshell, a `$(…)` or a backtick substitution, also one in a fallback word, whose commands come before the command they are in. A word has its quotes removed, a backslash-newline gone, the escapes of `$'…'` decoded; a comment is dropped.
 // An expansion known only when the command runs (`$x`, `${x}`, `$1`) is nothing, or the word it falls back to (`${x:-word}`, also with `=`, `+`, `?` and without the colon; in double quotes read as their text, `~` and `'` as written,
@@ -5,8 +8,6 @@
 // `~+` and `$OLDPWD` `~-` (also with `-`, `=`, `?`); one of them or of a set variable in `known` with another operator but `+` (`%`, `#`, `/`, `:1`, `${!x}`, `${#x}`) is `\0-`, in no bash word. A here-string's `~+` and an unquoted heredoc's `$PWD` or `${PWD}` (also with `-`, `=`, `?`) are `\0+`, the folder of the shell that reads them; its `${PWD` with another operator but `+` `\0-`. A quoted or escaped
 // `\*?[]{},()~`, or any other `~`, keeps a backslash, so a glob is told apart from a quoted star and a bare `~+` is `$PWD` or that prefix; `literal` removes it. `shellWords`: every word, a heredoc's body one.
 
-const SPECIAL = "\\*?[]{},()~";
-const ESCAPES: Readonly<Record<string, string>> = { a: "\x07", b: "\b", e: "\x1b", E: "\x1b", f: "\f", n: "\n", r: "\r", t: "\t", v: "\v" };
 // A redirect operator where the text starts; `&>` and `&>>` write stdout and stderr. Any operator not in TARGETS writes.
 const REDIRECT = /^(?:&>>?|>>|>\||>&|<>|<<<|<<-?|<&|>|<)/;
 type Target = "write" | "read" | "duplicate" | "here";
@@ -16,36 +17,6 @@ const TARGETS: Readonly<Record<string, Target>> = { "<": "read", "<&": "read", "
 // `stdin`, the text of a heredoc or a here string. `alone` is false in a pipeline or in the background, where it runs in a subshell and a `cd` does not last. `dynamic`: the index of each word in which a `$` or a backtick stood before its first `=` (of an empty word, that of the next one), so a name `export` or `env` sets there is known only at run time.
 export type Command = { readonly words: string[]; readonly writes: string[]; readonly reads: string[]; readonly stdin: string[]; readonly alone: boolean; readonly dynamic?: readonly number[] };
 export type Item = Command | "(" | ")";
-
-const quoted = (text: string): string => [...text].map((char) => (SPECIAL.includes(char) ? `\\${char}` : char)).join("");
-
-export function literal(word: string): string {
-	return word.replace(/\\(.)/gs, "$1");
-}
-
-// Text with the escapes of bash's `$'…'` resolved: `\xHH`, `\uHHHH`, `\UHHHHHHHH` (one digit or more), octal `\NNN`,
-// `\cX`, and the letters of ESCAPES; any other escaped character stands for itself.
-export function decodeEscapes(text: string): string {
-	return text.replace(/\\(?:x([0-9a-fA-F]{1,2})|u([0-9a-fA-F]{1,4})|U([0-9a-fA-F]{1,8})|([0-7]{1,3})|c(.)|(.))/gs, (_, hex?: string, short?: string, long?: string, octal?: string, control?: string, other?: string) => {
-		if (control !== undefined) return String.fromCharCode(control.charCodeAt(0) & 31);
-		if (other !== undefined) return ESCAPES[other] ?? other;
-		const code = parseInt(hex ?? short ?? long ?? octal ?? "", octal === undefined ? 16 : 8);
-		return code <= 0x10ffff ? String.fromCodePoint(code) : "";
-	});
-}
-
-// The index of the character that closes the one opened just before `from`: `)` for `(`, `}` for `{`, nested pairs and quoted text skipped, an escaped `"` in double quotes not closing them; the end of the text when it is never closed.
-function closing(text: string, from: number, open: string, close: string): number {
-	let depth = 1;
-	for (let at = from; at < text.length; at++) {
-		const char = text[at]!;
-		if (char === "\\") at++;
-		else if (char === "'" || char === '"') at += /^(?:'[^']*'?|"(?:\\.|[^"\\])*"?)/s.exec(text.slice(at))![0].length - 1;
-		else if (char === open) depth++;
-		else if (char === close && --depth === 0) return at;
-	}
-	return text.length;
-}
 
 export function shellWords(command: string): string[] {
 	return shellCommands(command).flatMap((item) => (typeof item === "string" ? [] : [...item.words, ...item.writes, ...item.reads, ...item.stdin.flatMap(shellWords)]));

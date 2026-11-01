@@ -4760,9 +4760,9 @@
   {
     "id": "AR0594",
     "title": "Retro: a worker sent back after a FAIL fixes the cause, not only the reviewer's examples",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0594-retro-a-worker-sent-back-after-a-fail-fixes-the-cause-not-only-the-reviewer-s/ticket.md",
-    "updated": "2026-10-31T13:45:49.255Z"
+    "updated": "2026-11-01T03:36:50.812Z"
   },
   {
     "id": "AR0595",
@@ -4800,7 +4800,7 @@
     "title": "Two core job tests can start the same systemd scope name at once",
     "status": "in-progress",
     "path": "spec/features/AR0599-two-core-job-tests-can-start-the-same-systemd-scope-name-at-once/ticket.md",
-    "updated": "2026-11-01T01:34:38.458Z"
+    "updated": "2026-11-01T03:27:16.322Z"
   },
   {
     "id": "AR0600",

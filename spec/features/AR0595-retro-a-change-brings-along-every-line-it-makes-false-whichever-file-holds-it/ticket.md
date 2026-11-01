@@ -50,3 +50,4 @@ After:
 ## Decisions
 
 - 2026-10-30: Source: retro spec/retro/2026-10-30.md
+- 2026-11-01: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

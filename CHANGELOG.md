@@ -12,6 +12,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 - AR0582 Defaults T14: a source line over 160 characters counts as more than one (61f2a538)
 - AR0594 Retro: a worker sent back after a FAIL fixes the cause, not only the reviewer's examples (b9308c3e)
+- AR0595 Retro: a change brings along every line it makes false, whichever file holds it (3989d460)
 - AR0598 The Discord gateway test reads the first heartbeat, which may go out before READY with a null sequence (8bdec3cf)
 - AR0600 Split the five source files that leave their zone once a line counts once per 160 characters (2320de78)
 - AR0601 Docs catch up: Dokploy in the README, setup guide, architecture diagram and vision; the roadmap and arthur.mmd lines left stale (290e014e)

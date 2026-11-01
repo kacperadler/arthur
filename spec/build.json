@@ -4767,9 +4767,9 @@
   {
     "id": "AR0595",
     "title": "Retro: a change brings along every line it makes false, whichever file holds it",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0595-retro-a-change-brings-along-every-line-it-makes-false-whichever-file-holds-it/ticket.md",
-    "updated": "2026-11-01T03:47:52.718Z"
+    "updated": "2026-11-01T04:09:10.531Z"
   },
   {
     "id": "AR0596",
@@ -4798,9 +4798,9 @@
   {
     "id": "AR0599",
     "title": "Two core job tests can start the same systemd scope name at once",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0599-two-core-job-tests-can-start-the-same-systemd-scope-name-at-once/ticket.md",
-    "updated": "2026-11-01T03:27:16.322Z"
+    "updated": "2026-11-01T04:02:14.629Z"
   },
   {
     "id": "AR0600",

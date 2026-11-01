@@ -11,4 +11,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `docs/architecture/core-and-plugins.mmd:47-53`
 - What: uptime (roadmap 98, built) is in the README's Features and diagram, `arthur.mmd`, `versions.mmd` and the vision's plugin table, but `grep -c uptime docs/architecture/core-and-plugins.mmd` prints 0: no node, no arrow to the client sites, not in the `first` class. The ticket named dokploy only, so the branch left it.
 - Suggestion: an `uptime[uptime<br/>client sites over HTTP<br/>down and up notices]` node in the RES subgraph, `uptime -->|checks| sites[(client sites)]`, and `uptime` in the `first` class line; nothing else changes.
-- Status: open
+- Status: deferred (client summary)

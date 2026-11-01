@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync } from "
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { real, sshFolders } from "./job-place.ts";
+import type { Job } from "./jobs.ts";
 
 // The sandbox a job's agent runs in (AR0376): what it may write, and the command that starts it there; docs/commands/spawn.md,
 // "The sandbox". The worktree guard (worktree-guard.ts) keeps honest mistakes apart; this is the bound for what it cannot read.
@@ -62,18 +63,26 @@ try: os.execvp(argv[0], argv)
 except OSError as error: sys.exit(f"{argv[0]}: {error.strerror}")
 `;
 
-// Where the agent of the job whose record is `record` may write: its worktree and record, the Git folders a commit on its
-// branch writes (the worktree's own, and the objects, refs and logs of the repository; not its config or hooks), the
-// temporary folder, `/dev` (`/dev/null`, a terminal), omp's own state (`~/.omp`, its sessions and logins), and for each
-// extension a plugin registered (`extensions`, the record's, paths from the core's `src/`) `<home>/<its package's folder>/<id>`,
-// made here, where it records what the agent did.
-export function writable(record: string, worktree: string, extensions: string): string[] {
-	const [own = "", common = ""] = gitFolders(worktree);
-	const repository = common === "" ? [] : [...(own === common ? [] : [own]), ...["objects", "refs", "logs"].map((name) => join(common, name))];
+// Where the agent of the job whose record is `record` may write: its worktree and record, the Git folders a commit on its branch
+// writes (`worktrees/<id>` and the objects, refs and logs of the repository of its `root`, never found from the worktree's `.git`,
+// which the agent writes; not its config or hooks), the temporary folder, `/dev` (`/dev/null`, a terminal), omp's own state (`~/.omp`,
+// its sessions and logins), and for each extension a plugin registered (`extensions`, the record's, paths from the core's `src/`)
+// `<home>/<its package's folder>/<id>`, made here, where it records what the agent did. `job` is the wrapper's, never the record's (AR0597).
+export function writable(record: string, job: Pick<Job, "root" | "worktree">, extensions: string): string[] {
+	const common = gitCommon(job.root);
+	const repository = common === "" ? [] : [join(common, "worktrees", basename(record)), ...["objects", "refs", "logs"].map((name) => join(common, name))];
 	const home = dirname(dirname(record));
 	const plugins = extensions.split("\n").filter(Boolean).map((path) => join(home, basename(dirname(dirname(resolve(import.meta.dirname, path)))), basename(record)));
 	for (const folder of plugins) mkdirSync(folder, { recursive: true });
-	return [worktree, record, ...repository, tmpdir(), "/dev", join(homedir(), ".omp"), ...plugins];
+	return [job.worktree, record, ...repository, tmpdir(), "/dev", join(homedir(), ".omp"), ...plugins];
+}
+
+// Why `job`, as the record its job writes names it, is not its spawn's place (AR0597), undefined when it is: `root`, its project's checkout
+// now, `.arthur-worktrees/<id>` beside it, which Git added to that repository (`worktrees/<id>`, only `git worktree add` makes; a job writes its own).
+export function misplaced(id: string, job: Pick<Job, "project" | "root" | "worktree">, root: string): string | undefined {
+	const [worktree, common] = [join(dirname(root), ".arthur-worktrees", id), gitCommon(root)];
+	if (job.root !== root || job.worktree !== worktree) return `its record names the checkout ${job.root} and the worktree ${job.worktree}, where a job of ${job.project} has ${root} and ${worktree}`;
+	return common !== "" && existsSync(join(common, "worktrees", id)) ? undefined : `Git added no worktree ${id} to the repository of ${root}`;
 }
 
 // What the agent of the job whose record is `record` may not read: the env file its `guarded` file names (job-place.ts), if any,
@@ -84,17 +93,16 @@ export function writable(record: string, worktree: string, extensions: string): 
 // coordinator's files, every plugin's folder (its own folder of an extension too, which it still writes), every record and any
 // entry made later; but shown the job's own record, each other record there now that names its project, and the projects
 // plugin's `checkouts` and `folders` (job-place.ts). Never a path that is or holds the job's root, Git folder, install or config,
-// nor, but the worktrees' folder and the home, its worktree or record.
-export function hidden(record: string): string[] {
+// nor, but the worktrees' folder and the home, its worktree or record. `job` is the wrapper's, never the record's (AR0597).
+export function hidden(record: string, { project, root, worktree }: Pick<Job, "project" | "root" | "worktree">): string[] {
 	const read = (file: string) => (existsSync(file) ? readFileSync(file, "utf8") : "");
 	const [jobs, home, guarded] = [dirname(record), dirname(dirname(record)), read(join(record, "guarded"))];
 	const listed = (name: string) => read(join(home, "projects", name)).split("\n").flatMap((line) => (/^\S+ \//.test(line) ? [[line.slice(0, line.indexOf(" ")), line.slice(line.indexOf(" ") + 1)]] : []));
-	const [project = "", worktree = "", root = ""] = ["project", "worktree", "root"].map((name) => read(join(record, name)).trim());
 	const checkouts = listed("checkouts");
 	const others = [...checkouts, ...listed("folders")].flatMap(([name = "", path = ""]) => (name === project ? [] : [path]));
 	const parents = [...new Set(checkouts.map(([, path = ""]) => real(join(dirname(path), ".arthur-worktrees"))))].filter((folder) => existsSync(folder));
 	const installed = guarded.split("\n").filter((line) => /^(install|config) \//.test(line)).map((line) => line.slice(line.indexOf(" ") + 1));
-	const kept = [root, ...(worktree === "" ? [] : gitFolders(worktree)), ...installed].filter((path) => path !== "").map((path) => real(path));
+	const kept = [root, gitCommon(root), ...installed].filter((path) => path !== "").map((path) => real(path));
 	const own = [record, worktree].filter((path) => path !== "").map((path) => real(path));
 	const holds = (path: string, places: readonly string[]) => places.some((place) => place === path || place.startsWith(`${path}${sep}`));
 	const unkept = [...new Set(others.map((path) => real(path)))].filter((path) => !holds(path, [...kept, ...own]));
@@ -104,10 +112,10 @@ export function hidden(record: string): string[] {
 	return [...env, ...sshFolders(), ...unkept, ...parents.filter((folder) => !holds(folder, [...kept, real(record)])), ...(worktree === "" ? [] : [`+${worktree}`]), ...(holds(real(home), kept) ? [] : [real(home), ...shown.map((path) => `+${path}`)])];
 }
 
-// The worktree's own Git folder and its repository's, absolute; none for a folder Git does not know.
-function gitFolders(worktree: string): string[] {
-	const git = spawnSync("git", ["-C", worktree, "rev-parse", "--path-format=absolute", "--git-dir", "--git-common-dir"], { encoding: "utf8" });
-	return git.status === 0 ? git.stdout.trim().split("\n") : [];
+// The Git folder of the repository `checkout` is in, absolute; "" for none given or a folder Git does not know (`-C ""` is the working folder).
+function gitCommon(checkout: string): string {
+	const git = checkout === "" ? undefined : spawnSync("git", ["-C", checkout, "rev-parse", "--path-format=absolute", "--git-common-dir"], { encoding: "utf8" });
+	return git?.status === 0 ? git.stdout.trim() : "";
 }
 
 // The sandbox over `paths`, reading every file but `hidden`, for `agent`, `who` in the log's line (`note`): a function from its

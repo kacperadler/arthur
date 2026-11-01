@@ -108,7 +108,7 @@ export function jobRunner(home: string, folder: string, envFile: string, limits:
 		slice: limits.slice,
 		roles: (project) => describeRoles(roles, kinds.all(), where(project), collect),
 		continue: (id, instruction, budgetUsd, ignoreRestart = false, decision) =>
-			continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), { check: async (job) => ({ mcp: kinds.get(job.kind) && (await roleModel(collect, kinds.get(job.kind)!.role)).mcp, caps: await jobCaps(collect("jobs.limits", [{ ...job, ignoreRestart }])), release: await checks.pass({ ...job, ignoreRestart, ...(job.free || decision === undefined ? {} : { decision }) }) }), prepare: (job) => prepared({ ...job, ignoreRestart }, true) }, machines.of(id)),
+			continueJob(home, id, instruction, budgetUsd, agent, limits, bus, (why) => sayUncapped(home, LOCAL, why, bus), { check: async (job) => ({ mcp: kinds.get(job.kind) && (await roleModel(collect, kinds.get(job.kind)!.role)).mcp, caps: await jobCaps(collect("jobs.limits", [{ ...job, ignoreRestart }])), release: await checks.pass({ ...job, ignoreRestart, ...(job.free || decision === undefined ? {} : { decision }) }) }), prepare: (job) => prepared({ ...job, ignoreRestart }, true), root: (project) => where(project).root }, machines.of(id)),
 		file: (board, id, job) => fileJob(home, board, (name) => kinds.get(name)?.file, id, job),
 		async spawn(request) {
 			const name = request.kind ?? "worker";

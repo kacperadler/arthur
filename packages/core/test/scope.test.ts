@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { basename, delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { clock } from "../src/clock.ts";
 import { loadConfig } from "../src/config.ts";
@@ -279,7 +279,10 @@ test("arthur continue sets the ticket's slice to the caps in force now, not to t
 	answer = { memory: "400M", feature: { name: "AC0001" } };
 	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
 	assert.deepEqual(limits.map((property) => show(slice, property)), ["infinity", "infinity", "infinity"]);
-	assert.equal(show(`arthur-job-${job.id}.scope`, "MemoryMax"), String(400 * 2 ** 20));
+	// The continued run's scope, named by the time it started: the one its wrapper runs in.
+	const unit = basename(cgroup(Number(read(join(home, "jobs", job.id, "pid")))) ?? "");
+	assert.match(unit, new RegExp(`^arthur-job-${job.id}\\.\\d+\\.scope$`));
+	assert.equal(show(unit, "MemoryMax"), String(400 * 2 ** 20));
 	assert.deepEqual(["cpu", "memory", "feature", "feature-cpu", "feature-memory"].map((name) => read(join(home, "jobs", job.id, name)) ?? ""), ["", "400M", "AC0001", "", ""]);
 	writeFileSync(gate, "");
 	assert.equal(await endedWith(home, job.id), "finished");

@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { JOB_SCOPE } from "@arthur/core/inside-job";
 import { fakeAgent, jobSlice, temporaryFolder } from "@arthur/core/testing";
 
 const EXTENSION = join(import.meta.dirname, "..", "src", "processes-extension.ts");
@@ -79,7 +80,7 @@ test("with no process left, without ps, or outside a job, nothing is said and th
 });
 
 // The job whose systemd scope runs this test, when one does (a job's own `npm test`): the agent runs in it as that job's.
-const own = /\/arthur-job-([^/]+)\.scope$/.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
+const own = JOB_SCOPE.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
 
 test("in the job's systemd scope a daemon that left the agent's tree is named; the agent and its parent, its wrapper, are not", { skip: own === undefined && !manager && "no systemd user manager, and not run in a job's systemd scope" }, (t) => {
 	const job = own === undefined ? record() : join(temporaryFolder(), "jobs", own);
@@ -93,4 +94,13 @@ test("in the job's systemd scope a daemon that left the agent's tree is named; t
 	for (const not of [agent, parent]) assert.ok(not !== undefined && !content.includes(`- pid ${not}: `), `${not} in ${content}`);
 	// Only the job's own processes: a scope of its own holds none but the leftover.
 	if (own === undefined) assert.deepEqual(messages, reminded(`- pid ${pid}: ${SHOWN}`));
+});
+
+test("in a continued run's systemd scope, named by the time it started, a daemon that left the agent's tree is named", { skip: !manager && "no systemd user manager" }, (t) => {
+	const job = record();
+	const unit = `arthur-job-${basename(job)}.1793433600000.scope`;
+	t.after(() => spawnSync("systemctl", ["--user", "stop", unit]));
+	const under = ["systemd-run", "--user", "--scope", "--quiet", "--collect", `--slice=${jobSlice.slice}.slice`, `--unit=${unit}`];
+	const { messages, pid } = play(t, { ARTHUR_JOB: job }, `(setsid ${NODE} </dev/null >/dev/null 2>&1 &)`, { gone: true, under });
+	assert.deepEqual(messages, reminded(`- pid ${pid}: ${SHOWN}`));
 });

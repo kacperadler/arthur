@@ -223,7 +223,7 @@ sudo systemctl daemon-reload
 
 ## 10. CPU and memory for the jobs
 
-Each job runs under the same manager in a scope of its own, `arthur-job-<id>.scope`, inside `arthur-jobs.slice`, whose limits are `core.jobs.cpu` and `core.jobs.memory`, so all jobs together cannot starve the coordinator. A job's install runs in its scope, and each check of `arthur merge` on main in a scope of its own in the same slice (`arthur merge --help`). Whatever a job or a check leaves running is killed when it ends. The manager holds jobs to those limits only when the system delegates the CPU and memory controllers to it, as systemd 255 of Ubuntu 24.04 does by default. When the check below misses either, delegate them, then reboot so the manager starts with them:
+Each job runs under the same manager in a scope of its own, `arthur-job-<id>.scope` (`arthur-job-<id>.<ms>.scope` for a run `arthur continue` started), inside `arthur-jobs.slice`, whose limits are `core.jobs.cpu` and `core.jobs.memory`, so all jobs together cannot starve the coordinator. A job's install runs in its scope, and each check of `arthur merge` on main in a scope of its own in the same slice (`arthur merge --help`). Whatever a job or a check leaves running is killed when it ends. The manager holds jobs to those limits only when the system delegates the CPU and memory controllers to it, as systemd 255 of Ubuntu 24.04 does by default. When the check below misses either, delegate them, then reboot so the manager starts with them:
 
 ```sh
 printf '[Service]\nDelegate=cpu cpuset io memory pids\n' | sudo install -D -m 644 /dev/stdin /etc/systemd/system/user@.service.d/delegate.conf

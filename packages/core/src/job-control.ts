@@ -116,8 +116,7 @@ export async function continueJob(home: string, id: string, instruction: string,
 		const job = { ...asked, cpu: passed.caps.cpu, memory: passed.caps.memory, feature: passed.caps.feature };
 		const env = await steps.prepare(job);
 		const budget = budgetUsd === undefined ? [] : [String(budgetUsd)];
-		// A new scope of the job's name cannot start while a wrapper of the job still runs in it, and two wrappers never run for a
-		// job: one that runs on past the grace refuses the continue. Its `pid` goes, so `launch` waits for the new one's.
+		// Two wrappers never run for a job: one running past the grace refuses the continue. Its `pid` goes, so `launch` waits for the new one's.
 		for (const end = Date.now() + GRACE_SECONDS * 1000; there === undefined; await sleep(50)) {
 			const running = wrappers(id);
 			if (running.length === 0) break;

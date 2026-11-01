@@ -5,6 +5,7 @@ import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, rmSync,
 import { delimiter, dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { JOB_SCOPE } from "@arthur/core/inside-job";
 import { type AgentRun, type FakeHost, fakeAgent, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { orchestration } from "../src/orchestration.ts";
 
@@ -127,7 +128,7 @@ test("inside a job every arthur decision is refused and writes nothing; arthur d
 });
 
 // The job whose systemd scope runs this test, when one does (a job's own `npm test`).
-const scope = /\/arthur-job-([^/]+)\.scope$/.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
+const scope = JOB_SCOPE.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
 
 test("in a job's scope arthur decision is refused with ARTHUR_JOB cleared once the home holds that job's record", { skip: scope === undefined && "not run in a job's systemd scope" }, async (t) => {
 	const { decision, fake, file } = await setup(t);

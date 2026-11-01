@@ -30,13 +30,13 @@ export default function processes(pi: ExtensionApi): void {
 }
 
 // The processes of job `id` but the agent (this process) and its wrapper (its parent): in the job's systemd scope,
-// `arthur-job-<id>.scope`, every one, a daemon that left the agent's process tree included; in a job that runs bare, the
-// agent's descendants.
+// `arthur-job-<id>.scope`, `arthur-job-<id>.<ms>.scope` for a continued run, every one, a daemon that left the agent's process
+// tree included; in a job that runs bare, the agent's descendants.
 function leftovers(id: string): { readonly pid: number; readonly command: string }[] {
 	const self = "/proc/self/cgroup";
 	const cgroup = /^0::(.*)$/m.exec(existsSync(self) ? readFileSync(self, "utf8") : "")?.[1];
 	const procs = join("/sys/fs/cgroup", cgroup ?? "", "cgroup.procs");
-	const scope = cgroup?.endsWith(`/arthur-job-${id}.scope`) && existsSync(procs) ? new Set(readFileSync(procs, "utf8").split("\n").filter(Boolean).map(Number)) : undefined;
+	const scope = /\/arthur-job-([^/.]+)(?:\.\d+)?\.scope$/.exec(cgroup ?? "")?.[1] === id && existsSync(procs) ? new Set(readFileSync(procs, "utf8").split("\n").filter(Boolean).map(Number)) : undefined;
 	const ps = spawnSync("ps", ["-A", "-o", "pid=,ppid=,args="], { encoding: "utf8" });
 	// Without `ps` (ENOENT), none: a handler that throws would break the run's end.
 	const all = (ps.stdout ?? "")

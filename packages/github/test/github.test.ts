@@ -6,6 +6,7 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
+import { JOB_SCOPE } from "@arthur/core/inside-job";
 import { type FakeHost, fakeHost, temporaryFolder, until } from "@arthur/core/testing";
 import { type GithubOptions, github } from "../src/github.ts";
 import { DOCS, type FakePull, type FakeRun, fakeGithub } from "./fake-github.ts";
@@ -440,7 +441,7 @@ test("arthur ci refuses: a rerun of a passed run or one not finished, a rerun in
 });
 
 // The job whose systemd scope runs this test, when one does (a job's own `npm test`).
-const scope = /\/arthur-job-([^/]+)\.scope$/.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
+const scope = JOB_SCOPE.exec(existsSync("/proc/self/cgroup") ? readFileSync("/proc/self/cgroup", "utf8").trimEnd() : "")?.[1];
 
 test("in a job's scope arthur ci --rerun is refused with ARTHUR_JOB cleared once the home holds that job's record", { skip: scope === undefined && "not run in a job's systemd scope" }, async (t) => {
 	const api = await fakeGithub(t);

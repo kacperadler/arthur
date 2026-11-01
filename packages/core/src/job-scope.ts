@@ -43,9 +43,10 @@ export function jobEnv(owner: string, value: unknown): Readonly<Record<string, s
 
 // Starts the wrapper of `job` (`agent`: `core.agent.command`) with `env`, the prepares' variables, over Arthur's environment but its
 // `ARTHUR_` ones, every `...Env` secret; returns why it did not start, which ended the job `failed`. A capped job run bare tells `uncapped` why.
-export async function launch(home: string, job: Pick<Job, "id" | "kind" | "project">, agent: string, jobs: Slice, bus: Bus, uncapped: (why: string) => void, env: Readonly<Record<string, string>> = {}): Promise<string | undefined> {
+// The wrapper builds the sandbox from `job`'s project, root and worktree, given on its command line, never the record's (AR0597).
+export async function launch(home: string, job: Pick<Job, "id" | "kind" | "project" | "root" | "worktree">, agent: string, jobs: Slice, bus: Bus, uncapped: (why: string) => void, env: Readonly<Record<string, string>> = {}): Promise<string | undefined> {
 	const { id } = job;
-	const wrapper = [process.execPath, join(import.meta.dirname, "wrapper.ts"), home, id, agent];
+	const wrapper = [process.execPath, join(import.meta.dirname, "wrapper.ts"), home, id, agent, job.project, job.root, job.worktree];
 	const [cpu = "", memory = "", feature = "", featureCpu = "", featureMemory = ""] = ["cpu", "memory", "feature", "feature-cpu", "feature-memory"].map(field(home, id));
 	// The slice of the job's ticket, a `-` nesting it in the jobs' slice.
 	const slice = feature === "" ? jobs.slice : `${jobs.slice}-${feature}`;

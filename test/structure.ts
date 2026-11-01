@@ -8,6 +8,8 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 const GREEN_LINES = 200;
 const YELLOW_LINES = 220;
 const MAX_FILE_LINES = 250;
+// A line counts once per 160 characters begun (AR0582), toward the zones and the budgets: a longer line is not a way around them.
+const LINE_WIDTH = 160;
 const CODE = /\.[cm]?[jt]s$/;
 const BANNED_NAMES = /^(index|types|utils)\.[cm]?[jt]s$/;
 const RUNTIME_KEYS = ["dependencies", "optionalDependencies", "peerDependencies"];
@@ -156,5 +158,6 @@ function strip(text: string, strings: boolean): string {
 
 function lineCount(text: string): number {
 	if (text === "") return 0;
-	return text.split("\n").length - (text.endsWith("\n") ? 1 : 0);
+	const rows = (text.endsWith("\n") ? text.slice(0, -1) : text).split("\n");
+	return rows.reduce((sum, row) => sum + Math.max(1, Math.ceil(row.length / LINE_WIDTH)), 0);
 }

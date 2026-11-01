@@ -9,51 +9,51 @@ import { checkStructure, type Structure } from "./structure.ts";
 // One budget per line in name order, a blank line after each, so Git merges raises to two neighbours, and two new budgets with an
 // existing budget's name sorting between theirs, without a conflict.
 const BUDGETS = {
-	"commit-rules": 178,
+	"commit-rules": 184,
 
-	core: 6628,
+	core: 7039,
 
-	"core/testing": 374,
+	"core/testing": 403,
 
-	delivery: 1923,
+	delivery: 2064,
 
-	develop: 710,
+	develop: 760,
 
 	discord: 750,
 
 	dokploy: 450,
 
-	findings: 264,
+	findings: 276,
 
-	github: 960,
+	github: 1020,
 
-	listen: 248,
+	listen: 262,
 
-	machines: 502,
+	machines: 535,
 
-	manage: 931,
+	manage: 966,
 
-	models: 516,
+	models: 534,
 
-	nvm: 96,
+	nvm: 98,
 
-	orchestration: 2584,
+	orchestration: 2732,
 
-	projects: 564,
+	projects: 594,
 
-	resources: 617,
+	resources: 638,
 
-	schedule: 595,
+	schedule: 619,
 
-	session: 887,
+	session: 917,
 
-	telegram: 641,
+	telegram: 680,
 
-	uptime: 291,
+	uptime: 312,
 
-	video: 186,
+	video: 197,
 
-	youtrack: 672,
+	youtrack: 733,
 
 };
 
@@ -282,6 +282,25 @@ test("a source file is green up to 200 lines, yellow up to 220 with its line, re
 		zones: [],
 	});
 	assert.deepEqual(check({ [file]: lines(251) }), [`${file}: has 251 lines; a source file has at most 250, listed in RED_FILES or not`]);
+});
+
+test("a line counts once per 160 characters begun, toward a file's zone and its package's budget; an empty line or file as written", () => {
+	const file = "packages/telegram/src/wide.ts";
+	const row = (width: number) => `${"x".repeat(width)}\n`;
+	// BASE's packages/telegram/src/telegram.ts holds 2 lines.
+	const over = (text: string, budget: number) => check({ [file]: text }, { core: 100, "core/testing": 100, telegram: budget });
+	const has = (lines: number, budget: number) => [`packages/telegram: has ${lines} source lines, over its line budget of ${budget}`];
+	assert.deepEqual(over(row(160), 3), []);
+	assert.deepEqual(over(row(161), 3), has(4, 3));
+	assert.deepEqual(over(row(161), 4), []);
+	assert.deepEqual(over(row(161).trimEnd(), 4), []);
+	assert.deepEqual(over(row(320), 4), []);
+	assert.deepEqual(over(row(321), 4), has(5, 4));
+	assert.deepEqual(over("\n\n", 4), []);
+	assert.deepEqual(over("\n\n\n", 4), has(5, 4));
+	assert.deepEqual(over("", 2), []);
+	assert.deepEqual(structureOf({ [file]: lines(199) + row(160) }).zones, []);
+	assert.deepEqual(structureOf({ [file]: lines(199) + row(161) }).zones, [`${file}: 201 lines, yellow (over 200)`]);
 });
 
 test("a file in RED_FILES at 220 lines or fewer, or gone, fails until it leaves the list; a test file is never sized", () => {

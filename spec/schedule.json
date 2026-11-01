@@ -34,5 +34,12 @@
     "action": {
       "message": "Morning report, promised to the owner overnight: read .arthur/session/handoff.md, then ask him, each with an arthur decision ask id: approve retro tickets AR0594, AR0595, AR0596; the budget for the AR0592 Discord ticket-1 worker (and the AR0588, AR0593/AR0590, AR0579/AR0580 workers), with weekly usage at 67% until about 2026-11-04. Start nothing without his word."
     }
+  },
+  {
+    "id": "ar0562-resume",
+    "at": "2026-11-04T08:30",
+    "action": {
+      "message": "AR-D428 (owner picked 1): usage has reset. Run arthur usage; then arthur continue 2026-10-29-worker-868301bd with a new budget to commit and finish AR0562 (arthur repeats), then AR0584 once AR0562 merges."
+    }
   }
 ]

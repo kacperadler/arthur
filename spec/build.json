@@ -4815,5 +4815,19 @@
     "status": "merged",
     "path": "spec/features/AR0601-docs-catch-up-dokploy-in-the-readme-setup-guide-architecture-diagram-and-vision/ticket.md",
     "updated": "2026-11-01T01:27:06.524Z"
+  },
+  {
+    "id": "AR0602",
+    "title": "Discord T2: photos, files, voice and the phone commands in Discord (roadmap 90)",
+    "status": "planning",
+    "path": "spec/features/AR0602-discord-t2-photos-files-voice-and-the-phone-commands-in-discord-roadmap-90/ticket.md",
+    "updated": "2026-11-01T13:50:45.270Z"
+  },
+  {
+    "id": "AR0603",
+    "title": "Dokploy T2: upload a file or folder and start a deploy, on the owner's word",
+    "status": "planning",
+    "path": "spec/features/AR0603-dokploy-t2-upload-a-file-or-folder-and-start-a-deploy-on-the-owner-s-word/ticket.md",
+    "updated": "2026-11-01T13:50:45.838Z"
   }
 ]

@@ -4774,9 +4774,9 @@
   {
     "id": "AR0596",
     "title": "Retro: the project's review criteria fail a branch that leaves docs saying the old thing",
-    "status": "planned",
+    "status": "done",
     "path": "spec/features/AR0596-retro-the-project-s-review-criteria-fail-a-branch-that-leaves-docs-saying-the/ticket.md",
-    "updated": "2026-10-31T13:45:50.617Z",
+    "updated": "2026-11-01T04:33:55.661Z",
     "after": [
       "AR0595"
     ]

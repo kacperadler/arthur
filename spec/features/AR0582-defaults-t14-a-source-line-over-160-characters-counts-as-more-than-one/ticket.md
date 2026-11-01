@@ -38,3 +38,4 @@ Out:
 - 2026-10-30: Source: the approved plan of AR0561 (AR-D345)
 - 2026-10-31: Option (a): a separate ticket, AR0600, splits the five files first with no behaviour change; AR0582 merges after it; the owner: "go with recomendations" (AR-D413)
 - 2026-10-31: Re-baseline every package line budget to its measured count under the 160-character width count (about +1251 lines, final numbers re-measured after AR0600); the owner: "go with recomendations" (AR-D414)
+- 2026-11-01: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

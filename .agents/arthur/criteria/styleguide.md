@@ -11,6 +11,7 @@
 - Plain functions, union types and early returns; no classes, no frameworks.
 - No runtime dependencies: `dependencies` stays empty in every `package.json`. Dev dependencies are the toolchain only (`typescript`, `@types/node`).
 - A source file's size is in one of three zones, held by `test/structure.test.ts`: green up to 200 lines; yellow, 201 to 220, passes, and each run of the test prints its line (`<path>: 207 lines, yellow (over 200)`); red, 221 to 250, passes only for a file listed in `RED_FILES` beside `BUDGETS`, its reason in the ticket's Decisions as a budget raise's is, and fails unlisted; above 250 fails, listed or not. Past green, a split is planned: a branch that moves a file into yellow or red says why.
+- Width: a line counts once per 160 characters begun, `max(1, ceil(length/160))`, toward a file's zone and its package's line budget, as `test/structure.ts` counts it; a 161-character line counts 2. A longer line is never a way to stay inside either.
 - The core and each plugin get a line budget when the structure test that holds it exists; the number lives in that test only. A raise of an existing package's budget shows in the merge's outcome.md; a new package's first budget is the owner's decision.
 - English only: code, comments, docs, messages, prompts, file keys.
 - No secret in code, config or a test fixture: an option ending in `Env` names the variable that holds it, and an error never prints its value.

@@ -72,7 +72,9 @@ Write `~/arthur/arthur.config.ts` with the plugins that take a ticket from a job
 - `findings`: what `arthur merge` makes of a ticket's open findings (`packages/findings/docs/findings.md`);
 - `manage`: health, stats, the audit, the retro and pruning (`packages/manage/docs/manage.md`).
 
-The channel, `telegram`, comes in step 13, and other machines for jobs with the `machines` plugin of step 11.
+The channels, `telegram` and `discord`, come in step 13, and other machines for jobs with the `machines` plugin of step 11.
+
+A project that runs on a Dokploy server of yours can add `dokploy`: `arthur dokploy apps|app|status` reads each server's projects, applications and deployments for the coordinator, never in a job; upload and deploy are planned (AR0588's second ticket). Each server is an entry of `instances`, its address in the config and its API key in a variable the env file of step 6 holds (`ARTHUR_DOKPLOY_TOKEN`, or `ARTHUR_DOKPLOY_<INSTANCE>_TOKEN` for a named one), and the project's application is its `dokploy.project({ instance?, app })`, as `packages/dokploy/docs/dokploy.md` says; it needs `projects`. Then `arthur config check` lists that variable too.
 
 ```ts
 import { defineConfig } from "@arthur/core";

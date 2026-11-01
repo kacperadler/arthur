@@ -47,3 +47,4 @@ Out:
 
 ## Decisions
 - 2026-10-29: AR0562 worker stays stopped at its $12 budget; its uncommitted work stays in its worktree; the owner: "AR-D346 2" (AR-D346)
+- 2026-11-01: Continue the AR0562 worker with a new budget after the usage reset (about 2026-11-04 08:00), then AR0584; the owner: "AR-D428 1" (AR-D428)

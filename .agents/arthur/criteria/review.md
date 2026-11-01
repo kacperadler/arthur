@@ -15,7 +15,7 @@ Can the owner merge this branch as it is? Judge the branch against its instructi
 
 ## FAIL when any one holds
 
-- A requirement is missing, stubbed, faked, or only claimed in the final message.
+- A requirement is missing, stubbed, faked, or only claimed in the final message; or a line of the docs, the README, a diagram, the roadmap, a role or a code comment still says what the branch changed (search for each name, number and message the diff changes), in a file the Scope's Out does not name.
 - A check fails, or a claimed result does not reproduce.
 - A boundary breaks: a plugin imports another plugin, a core file by path, or anything outside `@arthur/core`'s published exports; the core imports a plugin; a plugin reads or writes another plugin's folder under `.arthur/`, or reads a file beyond the one path another plugin handed it in an event or a `collect` answer (a message part's `path`).
 - The styleguide's Shape rules break: a runtime dependency, an `index.ts`, `types.ts` or `utils.ts`, a class or enum, non-erasable TypeScript, a source file over 250 lines, or red (221 to 250) and not in `RED_FILES` with its reason in the ticket's Decisions, a line budget exceeded.

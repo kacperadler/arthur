@@ -20,7 +20,7 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/develop/src/plugin-new.ts:36`
 - What: the `--budget` refusal ("below the N lines the new package's src/ holds as created") counts `text.split("\n").length - 1`, not the width count of `test/structure.ts`. The template's longest src line is 122 characters for `acme` and 131 for `acme-test-plugin`, and grows with the name, so a long enough name gives a line over 160: `--budget` at the physical count is then accepted and the structure test fails on the package as created.
 - Suggestion: count each src line as `max(1, ceil(length/160))` there too, with a test for a name long enough to cross 160.
-- Status: open
+- Status: deferred (client summary)
 
 ## F3. Six source files go yellow under the width count
 
@@ -29,4 +29,4 @@ A finding ends in one of four statuses: `fixed in <commit>` (the branch fixed it
 - Where: `packages/core/src/board.ts`, `packages/core/src/cli.ts`, `packages/core/src/testing.ts`, `packages/core/src/wrapper.ts`, `packages/delivery/src/merge-command.ts`, `packages/session/src/restart.ts`
 - What: with main at 2320de78 merged, counted as `max(1, ceil(length/160))` per line they hold board.ts 203 (200 physical), cli.ts 207 (199), testing.ts 220 (200), wrapper.ts 217 (198), merge-command.ts 218 (192), restart.ts 209 (199): yellow, which passes and prints its line on each run of `node --test test/structure.test.ts`. No code of theirs changed; the count did. `testing.ts` is at 220, one line from red.
 - Suggestion: plan a split of each below 200, as the styleguide asks of a file past green, `testing.ts` first; until then a line added to any of them that holds over 160 characters costs more than one.
-- Status: open
+- Status: deferred (client summary)

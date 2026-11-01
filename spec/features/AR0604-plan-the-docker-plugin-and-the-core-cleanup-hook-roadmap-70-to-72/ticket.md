@@ -51,4 +51,5 @@ Out:
 - Any code. The worker tickets the plan names do that.
 
 ## Decisions
+- 2026-11-01: AR0604 approved; its plan is written on 2026-11-04 at 10:30; the owner: "AR-D430 2 and plan it at nov 4 at 10:30" (AR-D430)
 

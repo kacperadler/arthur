@@ -55,4 +55,5 @@ Out:
 - Project agents in project channels: roadmap 85 to 88.
 
 ## Decisions
+- 2026-11-01: AR0602 and AR0603 approved; they run after the weekly usage reset on 2026-11-04; the owner: "AR-D429 1" (AR-D429)
 

@@ -41,5 +41,19 @@
     "action": {
       "message": "AR-D428 (owner picked 1): usage has reset. Run arthur usage; then arthur continue 2026-10-29-worker-868301bd with a new budget to commit and finish AR0562 (arthur repeats), then AR0584 once AR0562 merges."
     }
+  },
+  {
+    "id": "ar0602-ar0603-start",
+    "at": "2026-11-04T09:00",
+    "action": {
+      "message": "AR-D429 (owner picked 1): run arthur usage (AR-D420: nothing at 77% or more); then spawn AR0602 (Discord T2) and AR0603 (Dokploy T2) with --machine local, as slots allow beside the AR0562 continue (2 at once)."
+    }
+  },
+  {
+    "id": "ar0604-plan",
+    "at": "2026-11-04T10:30",
+    "action": {
+      "message": "AR-D430 (owner: plan it at Nov 4 10:30): run arthur usage (AR-D420); then arthur spawn --kind plan for AR0604, the docker plugin and core cleanup hook plan."
+    }
   }
 ]

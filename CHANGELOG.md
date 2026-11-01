@@ -7,6 +7,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 ### Fixed
 
 - AR0597 A job that rewrites its record's project, worktree or root gets another project unhidden, or writes outside its worktree, after arthur continue (b9549ffe)
+- AR0599 Two core job tests can start the same systemd scope name at once (091ae34b)
 
 ### Changed
 

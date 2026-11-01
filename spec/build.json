@@ -4798,9 +4798,9 @@
   {
     "id": "AR0599",
     "title": "Two core job tests can start the same systemd scope name at once",
-    "status": "review",
+    "status": "merged",
     "path": "spec/features/AR0599-two-core-job-tests-can-start-the-same-systemd-scope-name-at-once/ticket.md",
-    "updated": "2026-11-01T04:02:14.629Z"
+    "updated": "2026-11-01T04:16:17.474Z"
   },
   {
     "id": "AR0600",

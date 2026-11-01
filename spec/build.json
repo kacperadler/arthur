@@ -4655,9 +4655,9 @@
   {
     "id": "AR0582",
     "title": "Defaults T14: a source line over 160 characters counts as more than one",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0582-defaults-t14-a-source-line-over-160-characters-counts-as-more-than-one/ticket.md",
-    "updated": "2026-10-31T19:13:07.923Z",
+    "updated": "2026-11-01T00:25:04.156Z",
     "after": [
       "AR0600"
     ]

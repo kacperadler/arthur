@@ -9,7 +9,7 @@ import { pathToFileURL } from "node:url";
 import { clock } from "../src/clock.ts";
 import { readEvents } from "../src/event-log.ts";
 import { eventBus } from "../src/events.ts";
-import { hidden, sandboxed, stepSandbox, writable } from "../src/job-sandbox.ts";
+import { hidden, misplaced, sandboxed, stepSandbox, writable } from "../src/job-sandbox.ts";
 import { guardedPlaces } from "../src/job-place.ts";
 import { jobRunner } from "../src/jobs.ts";
 import { fakeAgent, jobSlice, temporaryFolder, until } from "../src/testing.ts";
@@ -242,16 +242,42 @@ function repository(): { readonly folder: string; readonly root: string; readonl
 	return { folder, root, home: join(folder, "home") };
 }
 
-test("writable: the worktree, the record, the Git folders a commit writes, the temporary folder, /dev, omp's state, and each extension's folder, made", () => {
+test("writable: the worktree, the record, the Git folders a commit writes, taken from the root, the temporary folder, /dev, omp's state, and each extension's folder, made", () => {
 	const { folder, root, home } = repository();
 	const worktree = join(folder, ".arthur-worktrees", "2026-10-24-worker-0a1b2c3d");
 	git(root, "worktree", "add", "--quiet", "-b", "arthur/2026-10-24-worker-0a1b2c3d", worktree);
 	const record = join(home, "jobs", "2026-10-24-worker-0a1b2c3d");
 	const extension = join("..", "..", "delivery", "src", "checks-extension.ts");
 	const dotGit = join(root, ".git");
-	assert.deepEqual(writable(record, worktree, `${extension}\n`), [worktree, record, join(dotGit, "worktrees", "2026-10-24-worker-0a1b2c3d"), join(dotGit, "objects"), join(dotGit, "refs"), join(dotGit, "logs"), tmpdir(), "/dev", join(homedir(), ".omp"), join(home, "delivery", "2026-10-24-worker-0a1b2c3d")]);
+	const expected = [worktree, record, join(dotGit, "worktrees", "2026-10-24-worker-0a1b2c3d"), join(dotGit, "objects"), join(dotGit, "refs"), join(dotGit, "logs"), tmpdir(), "/dev", join(homedir(), ".omp"), join(home, "delivery", "2026-10-24-worker-0a1b2c3d")];
+	assert.deepEqual(writable(record, { root, worktree }, `${extension}\n`), expected);
 	assert.equal(existsSync(join(home, "delivery", "2026-10-24-worker-0a1b2c3d")), true);
-	assert.deepEqual(writable(record, join(folder, "gone"), ""), [join(folder, "gone"), record, tmpdir(), "/dev", join(homedir(), ".omp")], "no Git folder for a worktree Git does not know");
+	// The agent writes its worktree's `.git` and its own `worktrees/<id>`: a `gitdir` or `commondir` there naming another repository changes nothing.
+	const other = join(folder, "other");
+	git(folder, "init", "--quiet", other);
+	writeFileSync(join(worktree, ".git"), `gitdir: ${join(other, ".git")}\n`);
+	writeFileSync(join(dotGit, "worktrees", "2026-10-24-worker-0a1b2c3d", "commondir"), `${join(other, ".git")}\n`);
+	assert.deepEqual(writable(record, { root, worktree }, `${extension}\n`), expected);
+	assert.deepEqual(writable(record, { root: join(folder, "gone"), worktree: join(folder, "gone") }, ""), [join(folder, "gone"), record, tmpdir(), "/dev", join(homedir(), ".omp")], "no Git folder for a root Git does not know");
+	assert.deepEqual(writable(record, { root: "", worktree }, ""), [worktree, record, tmpdir(), "/dev", join(homedir(), ".omp")], "none for no root, not the working folder's");
+});
+
+test("misplaced: a continue's record whose root or worktree is not the spawn's, or whose worktree Git did not add to the root's repository, is named; the spawn's is not (AR0597)", () => {
+	const { folder, root } = repository();
+	const id = "2026-10-24-worker-0a1b2c3d";
+	const worktree = join(folder, ".arthur-worktrees", id);
+	git(root, "worktree", "add", "--quiet", "-b", `arthur/${id}`, worktree);
+	const job = { project: "acme", root, worktree };
+	assert.equal(misplaced(id, job, root), undefined);
+	const where = `where a job of acme has ${root} and ${worktree}`;
+	assert.equal(misplaced(id, { ...job, root: join(folder, "other") }, root), `its record names the checkout ${join(folder, "other")} and the worktree ${worktree}, ${where}`);
+	assert.equal(misplaced(id, { ...job, worktree: join(folder, "other") }, root), `its record names the checkout ${root} and the worktree ${join(folder, "other")}, ${where}`);
+	assert.equal(misplaced(id, { ...job, worktree: `${worktree}/` }, root), `its record names the checkout ${root} and the worktree ${worktree}/, ${where}`);
+	// Another repository beside it, whose jobs' worktrees share `.arthur-worktrees`: Git added no worktree of this id to it.
+	const other = join(folder, "other");
+	git(folder, "init", "--quiet", other);
+	assert.equal(misplaced(id, { project: "other", root: other, worktree }, other), `Git added no worktree ${id} to the repository of ${other}`);
+	assert.equal(misplaced(id, { project: "gone", root: join(folder, "gone"), worktree }, join(folder, "gone")), `Git added no worktree ${id} to the repository of ${join(folder, "gone")}`);
 });
 
 test("the hidden ~/.ssh and the guarded file's ssh lines are the user account's, where OpenSSH looks, and $HOME's too only when it is another absolute folder (AR0515)", (t) => {
@@ -266,7 +292,7 @@ test("the hidden ~/.ssh and the guarded file's ssh lines are the user account's,
 	const home = [realpathSync(folder), `+${record}`, `+${join(folder, "projects", "checkouts")}`, `+${join(folder, "projects", "folders")}`];
 	for (const [where, expected] of [[folder, [account, join(folder, ".ssh")]], [user, [account]], [`${user}/`, [account]], ["", [account]], [undefined, [account]]] as const) {
 		where === undefined ? delete process.env.HOME : (process.env.HOME = where);
-		assert.deepEqual(hidden(record), [join(folder, "env"), ...expected, ...home], `HOME=${where}`);
+		assert.deepEqual(hidden(record, { project: "", root: "", worktree: "" }), [join(folder, "env"), ...expected, ...home], `HOME=${where}`);
 		assert.deepEqual(guardedPlaces().split("\n").filter((line) => line.startsWith("ssh ")), expected.map((path) => `ssh ${path}`), `HOME=${where}`);
 	}
 });
@@ -274,17 +300,17 @@ test("the hidden ~/.ssh and the guarded file's ssh lines are the user account's,
 test("hidden: the home whole, but shown the job's own record, its project's other records and the projects plugin's lists; a record of no project shows none but itself; a home holding the job's checkout stays (AR0590)", () => {
 	const home = realpathSync(temporaryFolder());
 	const [own = "", sibling = "", theirs = "", none = "", unnamed = ""] = ["0a0a0001", "0a0a0002", "0b0b0001", "0c0c0001", "0c0c0002"].map((hex) => join(home, "jobs", `2026-10-30-worker-${hex}`));
-	for (const [record, project] of [[own, "shop1"], [sibling, "shop1\n"], [theirs, "shop2"], [none, undefined], [unnamed, undefined]] as const) {
+	// The job's own record names shop2, as its agent may have rewritten it: the project the wrapper was given counts (AR0597).
+	for (const [record, project] of [[own, "shop2"], [sibling, "shop1\n"], [theirs, "shop2"], [none, undefined], [unnamed, undefined]] as const) {
 		mkdirSync(record, { recursive: true });
 		writeFileSync(join(record, "kind"), "worker");
 		if (project !== undefined) writeFileSync(join(record, "project"), project);
 	}
 	const lists = [`+${join(home, "projects", "checkouts")}`, `+${join(home, "projects", "folders")}`];
-	const ofHome = (record: string) => hidden(record).filter((path) => path.startsWith(home) || path.startsWith("+")).sort();
-	assert.deepEqual(ofHome(own), [home, `+${own}`, `+${sibling}`, ...lists].sort());
-	assert.deepEqual(ofHome(none), [home, `+${none}`, ...lists].sort(), "no other record of no project");
-	writeFileSync(join(own, "root"), join(home, "shop1"));
-	assert.deepEqual(ofHome(own), [], "a home that holds the job's main checkout is not hidden, as that checkout is not");
+	const ofHome = (record: string, project: string, root = "") => hidden(record, { project, root, worktree: "" }).filter((path) => path.startsWith(home) || path.startsWith("+")).sort();
+	assert.deepEqual(ofHome(own, "shop1"), [home, `+${own}`, `+${sibling}`, ...lists].sort());
+	assert.deepEqual(ofHome(none, ""), [home, `+${none}`, ...lists].sort(), "no other record of no project");
+	assert.deepEqual(ofHome(own, "shop1", join(home, "shop1")), [], "a home that holds the job's main checkout is not hidden, as that checkout is not");
 });
 
 test("a merge step writes main's checkout but not its Git config, hooks or info, Arthur's home, config or env file, a new top-level entry, nor through a link", { skip: bare }, (t) => {
@@ -709,4 +735,55 @@ test("a job of shop1 gets Permission denied on shop2's checkout, its project fol
 	assert.equal(git(shop1, "log", "--format=%s", "-1", `arthur/${job.id}`), "sandboxed");
 	const log = readFileSync(join(home, "jobs", job.id, "log"), "utf8");
 	assert.equal(log.includes(`, ${home}, (shown: ${join(home, "jobs", job.id)}), `), true, "the log names the home hidden and its record shown");
+});
+
+test("a job whose agent rewrote its record's project, root and worktree is not continued; one continued while a process rewrites them still hides the other project and refuses writes outside its worktree (AR0597)", { skip: bare }, async () => {
+	const folder = temporaryFolder();
+	// shop1 and shop2 in one parent folder: their jobs' worktrees share one `.arthur-worktrees`, so shop2's place there is this job's.
+	const [shop1, shop2, arthur, home, outside, temporary] = ["shop1", "shop2", "arthur", "home", "outside", "tmp"].map((name) => join(folder, name)) as [string, string, string, string, string, string];
+	for (const root of [shop1, shop2]) {
+		mkdirSync(root);
+		git(root, "init", "--quiet", "--initial-branch=main");
+		writeFileSync(join(root, "README.md"), `${root}\n`);
+		git(root, "add", "--all");
+		git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "first");
+	}
+	for (const made of [arthur, outside, temporary]) mkdirSync(made);
+	mkdirSync(join(home, "projects"), { recursive: true });
+	writeFileSync(join(home, "projects", "checkouts"), `shop1 ${shop1}\nshop2 ${shop2}\n`);
+	// Each run: what it reads of shop2 and writes outside its worktree, then the record rewritten as shop2's job, writing `outside`.
+	const forge = (record: string, worktree: string) => `printf shop2 > "${record}/project"; printf '%s' '${shop2}' > "${record}/root"; printf '%s' '${worktree}' > "${record}/worktree"`;
+	const tries = [`if cat '${join(shop2, "README.md")}' >/dev/null 2>&1; then echo 'shop2 read'; else echo 'shop2 denied'; fi`, `if (echo x > '${join(outside, "file")}') 2>/dev/null; then echo 'outside written'; else echo 'outside refused'; fi`];
+	const agent = join(folder, "agent");
+	writeFileSync(agent, `#!/bin/sh\n{\n${tries.join("\n")}\n} >> "$ARTHUR_JOB/marks"\n${forge("$ARTHUR_JOB", outside)}\n`, { mode: 0o755 });
+	const time = clock("UTC", undefined, () => new Date("2026-10-31T08:00:00Z"));
+	const list = [{ name: "shop1", path: shop1, prefix: "SA" }, { name: "shop2", path: shop2, prefix: "SB" }];
+	const jobs = jobRunner(home, arthur, join(arthur, "env"), { timeoutMinutes: 120, budgetUsd: 2, idleMinutes: 10, offlineGraceMinutes: 30, unsandboxed: true, ...jobSlice }, agent, time, eventBus(home), (name) => (name === "projects" ? [list] : []));
+	// A process the job left behind that rewrites the record once the continue checked it, before the wrapper starts; the job's
+	// temporary folder its own, not the one `outside` is in.
+	let late = "";
+	jobs.prepare("test", () => (late === "" || execFileSync("sh", ["-c", late]), { TMPDIR: temporary }));
+	const job = await jobs.spawn({ task: "Read.", project: "shop1" });
+	const record = join(home, "jobs", job.id);
+	const ended = (runs: number) => until(`${runs} job-ended`, () => (readEvents(home, 1).filter((event) => event.name === "job-ended").length === runs ? true : undefined));
+	await ended(1);
+	const marks = () => readFileSync(join(record, "marks"), "utf8");
+	assert.equal(marks(), "shop2 denied\noutside refused\n");
+	assert.deepEqual(["project", "root", "worktree"].map((name) => readFileSync(join(record, name), "utf8")), ["shop2", shop2, outside], "the agent rewrote its record");
+	const refused = (root: string, worktree: string, why: string) => ({ message: `${job.id}: its record names the checkout ${root} and the worktree ${worktree}, ${why}; its record was changed since the spawn: spawn a new job on its branch arthur/${job.id}` });
+	await assert.rejects(jobs.continue(job.id, "Go on."), refused(shop2, outside, `where a job of shop2 has ${shop2} and ${job.worktree}`));
+	// shop2's place, its worktree this job's own: Git added no worktree of this id to shop2's repository.
+	writeFileSync(join(record, "worktree"), job.worktree);
+	await assert.rejects(jobs.continue(job.id, "Go on."), { message: `${job.id}: Git added no worktree ${job.id} to the repository of ${shop2}; its record was changed since the spawn: spawn a new job on its branch arthur/${job.id}` });
+	writeFileSync(join(record, "root"), shop1);
+	await assert.rejects(jobs.continue(job.id, "Go on."), refused(shop1, job.worktree, `where a job of shop2 has ${shop2} and ${job.worktree}`));
+	assert.equal(marks(), "shop2 denied\noutside refused\n", "no run started");
+	// The spawn's place back; the process rewrites it after the check: the wrapper builds the sandbox from what the continue checked.
+	writeFileSync(join(record, "project"), "shop1");
+	late = forge(record, outside);
+	assert.equal(await jobs.continue(job.id, "Go on."), undefined);
+	await ended(2);
+	assert.equal(readFileSync(join(record, "project"), "utf8"), "shop2", "the record was rewritten before the run");
+	assert.equal(marks(), "shop2 denied\noutside refused\n".repeat(2));
+	assert.equal(existsSync(join(outside, "file")), false);
 });

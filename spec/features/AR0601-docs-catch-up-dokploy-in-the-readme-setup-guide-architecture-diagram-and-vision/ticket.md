@@ -36,3 +36,4 @@ In:
 
 ## Decisions
 - 2026-10-31: Approve AR0601 and start it; the silent work stops at 80% weekly usage or when the current tickets are done; the owner: "Set limit to 80% and go till current tasks are done, AR601 start" (AR-D419)
+- 2026-11-01: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

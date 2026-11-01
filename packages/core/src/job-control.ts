@@ -7,6 +7,7 @@ import { checkLimits } from "./job-limits.ts";
 import { type Machine, sshAsync } from "./job-machine.ts";
 import { capFields, recordedJob, writeMcp } from "./job-record.ts";
 import { type Caps, launch, type Slice } from "./job-scope.ts";
+import { misplaced } from "./job-sandbox.ts";
 import { GRACE_SECONDS } from "./job-stop.ts";
 import { type Current, current, field, ID, inRun, moveJob, told, write } from "./job-state.ts";
 import { takeLock } from "./lock.ts";
@@ -27,7 +28,7 @@ function record(home: string, id: string): { readonly folder: string; readonly f
 	return { folder, field: field(home, id) };
 }
 
-// The pids of job `id`'s wrappers, told by their command line `.../wrapper.ts <home> <id> <agent>` (`launch`, job-scope.ts),
+// The pids of job `id`'s wrappers, told by their command line `.../wrapper.ts <home> <id> <agent> <project> <root> <worktree>` (`launch`, job-scope.ts),
 // also before one wrote its `pid` (a continue killed meanwhile left that moment) and not a process that took its pid since.
 export function wrappers(id: string, table = processTable()): string[] {
 	return table.filter(({ args }) => args.includes(` ${id} `, args.indexOf("/wrapper.ts ") + 1) && args.includes("/wrapper.ts ")).map((entry) => String(entry.pid));
@@ -92,7 +93,8 @@ export function steerJob(home: string, id: string, text: string): string {
 // the caps in force now (`jobs.limits`), which replace the record's before the launch, and the role's MCP servers (`writeMcp`);
 // `prepare` runs the prepares told it is a continue, their variables going to the wrapper here, else on the stdin of `remote-job
 // continue` as at a spawn, never into the record; `uncapped` hears why a job with caps runs bare here (job-scope.ts). The record's `continue`, what omp gets, has a word joiner before each `@` omp would read a file for, as `task` (job-record.ts).
-export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, uncapped: (why: string) => void, steps: { readonly check: (job: Job) => Promise<{ readonly release: () => void; readonly caps: Caps; readonly mcp?: McpServers }>; readonly prepare: (job: Job) => Promise<Readonly<Record<string, string>>> }, there?: Machine): Promise<string | undefined> {
+// `root` names a project's checkout now, against which the record's place is checked, as its job writes it (`misplaced`, AR0597).
+export async function continueJob(home: string, id: string, instruction: string, budgetUsd: number | undefined, agent: string, slice: Slice, bus: Bus, uncapped: (why: string) => void, steps: { readonly check: (job: Job) => Promise<{ readonly release: () => void; readonly caps: Caps; readonly mcp?: McpServers }>; readonly prepare: (job: Job) => Promise<Readonly<Record<string, string>>>; readonly root: (name: string) => string }, there?: Machine): Promise<string | undefined> {
 	const { folder, field } = record(home, id);
 	if (instruction.trim() === "") throw new Error("the instruction is empty");
 	const lock = takeLock(join(folder, "continuing"));
@@ -105,6 +107,8 @@ export async function continueJob(home: string, id: string, instruction: string,
 		if (inRun(now)) throw new Error(`${id} is ${told(now)}, in a run; a job in a run is not continued, arthur steer gives it a correction`);
 		if (branch === undefined) throw new Error(`${id} is a ${kind}, a read-only kind without a branch of its own; only a job with a branch is continued`);
 		if (worktree === "" || (there === undefined && !existsSync(worktree))) throw new Error(`${id}: its worktree was pruned; spawn a new job on its branch ${branch}`);
+		const moved = there === undefined ? misplaced(id, recorded, steps.root(project)) : undefined;
+		if (moved !== undefined) throw new Error(`${id}: ${moved}; its record was changed since the spawn: spawn a new job on its branch ${branch}`);
 		checkLimits("continue", { budgetUsd });
 		const asked = { ...recorded, budgetUsd: budgetUsd ?? recorded.budgetUsd };
 		const passed = await steps.check(asked);

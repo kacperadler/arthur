@@ -55,7 +55,7 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 	async launch(home, [id = "", agent = "", slice = ""]) {
 		const read = record(home, id);
 		const env = jobEnv("core", JSON.parse(readFileSync(0, "utf8").trim() || "{}"));
-		const failed = await launch(home, { id, kind: read("kind"), project: read("project") }, agent, { slice, ...machineLimit() }, eventBus(home), (why) => console.log(`${UNCAPPED}${why}`), env);
+		const failed = await launch(home, { id, kind: read("kind"), project: read("project"), root: read("root"), worktree: read("worktree") }, agent, { slice, ...machineLimit() }, eventBus(home), (why) => console.log(`${UNCAPPED}${why}`), env);
 		if (failed !== undefined) console.log(failed);
 	},
 	// `stop`, `steer` and `continue` as here, on the record there: `arthur stop --help` and the others say what each refuses.
@@ -67,10 +67,10 @@ const STEPS: Readonly<Record<string, (home: string, args: readonly string[]) => 
 		console.log(steerJob(home, id, readFileSync(0, "utf8")));
 	},
 	// Reads `{ instruction, env }` on stdin, `env` the variables the prepares returned on the main Arthur; `caps`, the caps in force
-	// (JSON of what `jobs.limits` answered), replace the record's; prints why the wrapper did not start, as `launch`.
+	// (JSON of what `jobs.limits` answered), replace the record's; prints why the wrapper did not start, as `launch`. `root` as `add` has it.
 	async continue(home, [id = "", agent = "", slice = "", caps = "{}", budget]) {
 		const { instruction, env } = JSON.parse(readFileSync(0, "utf8")) as { readonly instruction: string; readonly env?: unknown };
-		const steps = { check: async () => ({ release: () => {}, caps: await jobCaps([JSON.parse(caps)]) }), prepare: async () => jobEnv("core", env) };
+		const steps = { check: async () => ({ release: () => {}, caps: await jobCaps([JSON.parse(caps)]) }), prepare: async () => jobEnv("core", env), root: (project: string) => join(home, "repos", `${project}.git`) };
 		const failed = await continueJob(home, id, instruction, budget === undefined ? undefined : Number(budget), agent, { slice, ...machineLimit() }, eventBus(home), (why) => console.log(`${UNCAPPED}${why}`), steps);
 		if (failed !== undefined) console.log(failed);
 	},

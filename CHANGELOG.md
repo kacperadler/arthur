@@ -4,11 +4,16 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## 2026-11-01
 
+### Fixed
+
+- AR0597 A job that rewrites its record's project, worktree or root gets another project unhidden, or writes outside its worktree, after arthur continue (b9549ffe)
+
 ### Changed
 
 - AR0582 Defaults T14: a source line over 160 characters counts as more than one (61f2a538)
 - AR0598 The Discord gateway test reads the first heartbeat, which may go out before READY with a null sequence (8bdec3cf)
 - AR0600 Split the five source files that leave their zone once a line counts once per 160 characters (2320de78)
+- AR0601 Docs catch up: Dokploy in the README, setup guide, architecture diagram and vision; the roadmap and arthur.mmd lines left stale (290e014e)
 
 ## 2026-10-31
 

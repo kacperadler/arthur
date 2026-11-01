@@ -4784,9 +4784,9 @@
   {
     "id": "AR0597",
     "title": "A job that rewrites its record's project, worktree or root gets another project unhidden, or writes outside its worktree, after arthur continue",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0597-a-job-that-rewrites-its-record-s-project-worktree-or-root-gets-another-project/ticket.md",
-    "updated": "2026-11-01T01:20:40.302Z"
+    "updated": "2026-11-01T02:35:20.937Z"
   },
   {
     "id": "AR0598",

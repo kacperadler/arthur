@@ -4,6 +4,10 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ## 2026-11-01
 
+### Fixed
+
+- AR0597 A job that rewrites its record's project, worktree or root gets another project unhidden, or writes outside its worktree, after arthur continue (b9549ffe)
+
 ### Changed
 
 - AR0582 Defaults T14: a source line over 160 characters counts as more than one (61f2a538)

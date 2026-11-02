@@ -4854,5 +4854,15 @@
     "status": "planning",
     "path": "spec/features/AR0606-discord-t3-the-phone-commands-as-discord-application-commands-suggested-when-the/ticket.md",
     "updated": "2026-11-02T17:54:01.265Z"
+  },
+  {
+    "id": "AR0607",
+    "title": "Runbook: what the coordinator checks and does, in order, when a project site is down",
+    "status": "planned",
+    "path": "spec/features/AR0607-runbook-what-the-coordinator-checks-and-does-in-order-when-a-project-site-is/ticket.md",
+    "updated": "2026-11-02T18:45:28.336Z",
+    "after": [
+      "AR0603"
+    ]
   }
 ]

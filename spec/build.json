@@ -2659,9 +2659,9 @@
   {
     "id": "AR0348",
     "title": "The answer of `records` is not checked, and one job's bad answer stops the copy of the machine's other jobs",
-    "status": "in-progress",
+    "status": "merged",
     "path": "spec/features/AR0348-the-answer-of-records-is-not-checked-and-one-job-s-bad-answer-stops-the-copy-of-the-machine-s-other-jobs/ticket.md",
-    "updated": "2026-11-02T15:26:52.951Z",
+    "updated": "2026-11-02T15:58:12.205Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -2839,9 +2839,9 @@
   {
     "id": "AR0369",
     "title": "The agent's own request to a provider is never checked against the private network",
-    "status": "in-progress",
+    "status": "review",
     "path": "spec/features/AR0369-the-agent-s-own-request-to-a-provider-is-never-checked-against-the-private-network/ticket.md",
-    "updated": "2026-11-02T15:42:12.496Z",
+    "updated": "2026-11-02T15:50:19.127Z",
     "after": [
       "AR0402",
       "AR0403",

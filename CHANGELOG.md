@@ -11,6 +11,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Fixed
 
+- AR0348 The answer of `records` is not checked, and one job's bad answer stops the copy of the machine's other jobs (83adb63f)
 - AR0392 A job's program can still plant a key between the config check and the git call (5fc95d86)
 
 ## 2026-11-01

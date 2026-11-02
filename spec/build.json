@@ -2839,9 +2839,9 @@
   {
     "id": "AR0369",
     "title": "The agent's own request to a provider is never checked against the private network",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0369-the-agent-s-own-request-to-a-provider-is-never-checked-against-the-private-network/ticket.md",
-    "updated": "2026-11-02T15:58:20.940Z",
+    "updated": "2026-11-02T16:07:12.107Z",
     "after": [
       "AR0402",
       "AR0403",
@@ -4021,9 +4021,9 @@
   {
     "id": "AR0507",
     "title": "A branch's own `.gitattributes` can hide a text file's lines from the reviewer's diff",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0507-a-branch-s-own-gitattributes-can-hide-a-text-file-s-lines-from-the-reviewer-s/ticket.md",
-    "updated": "2026-11-02T10:19:03.040Z"
+    "updated": "2026-11-02T16:00:07.227Z"
   },
   {
     "id": "AR0508",

@@ -4021,9 +4021,9 @@
   {
     "id": "AR0507",
     "title": "A branch's own `.gitattributes` can hide a text file's lines from the reviewer's diff",
-    "status": "in-progress",
+    "status": "done",
     "path": "spec/features/AR0507-a-branch-s-own-gitattributes-can-hide-a-text-file-s-lines-from-the-reviewer-s/ticket.md",
-    "updated": "2026-11-02T16:00:07.227Z"
+    "updated": "2026-11-02T16:36:00.913Z"
   },
   {
     "id": "AR0508",

@@ -4875,5 +4875,12 @@
       "AR0390",
       "AR0397"
     ]
+  },
+  {
+    "id": "AR0609",
+    "title": "A personality file every agent reads, the coordinator included, as tone only",
+    "status": "planning",
+    "path": "spec/features/AR0609-a-personality-file-every-agent-reads-the-coordinator-included-as-tone-only/ticket.md",
+    "updated": "2026-11-02T21:25:53.267Z"
   }
 ]

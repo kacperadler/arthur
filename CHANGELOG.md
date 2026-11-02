@@ -6,6 +6,7 @@ Generated from the merged tickets of `spec/build.json` by `arthur changelog`; a 
 
 ### Added
 
+- AR0562 arthur repeats and /repeats: what the owner decides again and again and what agents keep hitting, and a decisions retro (202a0e93)
 - AR0602 Discord T2: photos, files, voice and the phone commands in Discord (roadmap 90) (e4225ba9)
 
 ## 2026-11-01

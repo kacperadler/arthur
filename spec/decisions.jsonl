@@ -912,3 +912,5 @@
 {"record":"answer","id":"AR-D452","time":"2026-11-02T15:50:34+01:00","decided":"Raise the core line budget by what the fix needs, without asking the owner","words":"by policy: AR-D63"}
 {"record":"ask","id":"AR-D453","time":"2026-11-02T16:02:10+01:00","project":"arthur","kind":"budget","question":"AR0348 raises the core line budget from 7056 to 7079 (+23) for its check of each job record answer (security ticket). Accept?","options":["Accept","Shrink first"],"recommend":1,"ticket":"AR0348"}
 {"record":"answer","id":"AR-D453","time":"2026-11-02T16:02:10+01:00","decided":"Raise the core line budget by what the fix needs, without asking the owner","words":"by policy: AR-D63"}
+{"record":"ask","id":"AR-D454","time":"2026-11-02T16:07:31+01:00","project":"arthur","kind":"merge","question":"AR0392 passed review (PASS at 1482cc0); it changes always-review packages/delivery/src/merge-command.ts. Merge it?","options":["Merge","Hold"],"recommend":1,"ticket":"AR0392"}
+{"record":"answer","id":"AR-D454","time":"2026-11-02T16:07:31+01:00","decided":"Merge a ticket once its review passed, without asking the owner","words":"by policy: AR-D218"}

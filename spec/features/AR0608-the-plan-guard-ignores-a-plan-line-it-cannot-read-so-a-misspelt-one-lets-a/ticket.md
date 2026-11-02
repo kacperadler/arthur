@@ -32,3 +32,4 @@ Out:
 - Rewriting the merged and dropped tickets' history.
 
 ## Decisions
+- 2026-11-02: AR0608 approved: the plan guard refuses a Plan line that is not exactly yes; queued after Group 2, after the weekly reset; the owner: "AR-D462 - yes" (AR-D462)

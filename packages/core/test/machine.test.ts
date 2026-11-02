@@ -178,7 +178,7 @@ test("the push of a job's base to another machine and the fetch of its branch ba
 	git(root, "config", "remote.gpu.receivepack", "program");
 	writeFileSync(gate, "");
 	await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
-	await assert.rejects(jobs.sweep(), { message: said("fetch") });
+	await assert.rejects(jobs.sweep(), { message: `machine gpu: job ${job.id}: ${said("fetch")}` });
 	assert.equal(git(root, "branch", "--list", job.branch ?? ""), "", "its branch not brought back");
 });
 
@@ -205,7 +205,7 @@ test("the push of a job's base and the fetch of its branch run no transport help
 		git(root, "config", named, "evil::x");
 		writeFileSync(gate, "");
 		await until("the job's end there", () => existsSync(join(there, "jobs", job.id, "state")) && read(there, job.id, "state") === "ended");
-		await assert.rejects(jobs.sweep(), { message: "git fetch: fatal: transport 'evil' not allowed" });
+		await assert.rejects(jobs.sweep(), { message: `machine gpu: job ${job.id}: git fetch: fatal: transport 'evil' not allowed` });
 		assert.equal(git(root, "branch", "--list", job.branch ?? ""), "", "its branch not brought back");
 		assert.equal(existsSync(ran), false, "nothing run");
 	} finally {
@@ -824,12 +824,53 @@ test("a copy refuses a record file whose name is not a plain record key, naming 
 	const before = files(home);
 	for (const key of [`sub/../../${other.id}/branch`, "../../outside", "state.lock"]) {
 		copy({ cost: "9.0000", [key]: "theirs\n" });
-		await assert.rejects(jobs.sweep(), { message: `machine gpu: job ${job.id} sent a record file ${JSON.stringify(key)}; expected a name of lowercase letters, digits and dashes` });
+		await assert.rejects(jobs.sweep(), { message: `machine gpu: job ${job.id}: sent a record file ${JSON.stringify(key)}; expected a name of lowercase letters, digits and dashes` });
 		assert.deepEqual(files(home), before, `${key}: nothing of the answer is written, here or elsewhere`);
 	}
 	copy({ cost: "9.0000" });
 	await jobs.sweep();
 	assert.equal(read(home, job.id, "cost"), "9.0000", "a plain key is still written");
+	writeFileSync(gate, "");
+});
+
+// AR0348: one job's answer that is not of the shape of `records` is refused, nothing of it written, and the machine's other job still moves.
+test("a copy refuses a job's answer of the wrong shape, naming the job, writes nothing of it, and still copies the machine's other job", async () => {
+	const gate = join(temporaryFolder(), "go");
+	const { home, machine, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
+	const [first, second] = [(await jobs.spawn({ task: "Go.", machine: "gpu" })).id, (await jobs.spawn({ task: "Go.", machine: "gpu" })).id];
+	await jobs.sweep();
+	const answer = join(machine, "answer");
+	writeFileSync(join(machine, "bin/arthur"), `#!/bin/sh\n[ "$2" = records ] && exec cat '${answer}'\nexec '${process.execPath}' '${CLI}' "$@"\n`, { mode: 0o755 });
+	const copy = (files: Record<string, unknown>) => ({ state: "working", reason: "", since: "2026-10-16T12:00:00.000Z", at: 1, logFrom: 0, logSize: 0, logTo: 0, files });
+	const record = (id: string) => readdirSync(join(home, "jobs", id)).map((name) => `${name}: ${read(home, id, name)}`);
+	const rows: readonly (readonly [Record<string, unknown> | string | null, string])[] = [
+		[{ since: "yesterday" }, `sent since "yesterday"; expected a date`],
+		[{ since: 5 }, "sent since 5; expected a date"],
+		[{ state: "done" }, `sent the state "done"; expected one of blocked, working, idle, ended`],
+		[{ state: "ended", reason: 7 }, "sent the reason 7; expected a text"],
+		[{ at: "1" }, `sent at "1"; expected a finite number`],
+		[{ logFrom: null }, "sent logFrom null; expected a finite number"],
+		[{ logSize: undefined }, "sent logSize undefined; expected a finite number"],
+		[{ logTo: "0" }, `sent logTo "0"; expected a finite number`],
+		[{ files: null }, "sent the files null; expected an object of texts"],
+		[{ files: "cost" }, `sent the files "cost"; expected an object of texts`],
+		[{ files: { cost: 9 } }, "sent the record file cost as 9; expected a text"],
+		[null, "sent null as its record; expected an object"],
+		["working", `sent "working" as its record; expected an object`],
+	];
+	for (const [index, [bad, why]] of rows.entries())
+		for (const [badId, goodId] of [[first, second], [second, first]] as const) {
+			const before = record(badId);
+			const sent = typeof bad === "object" && bad !== null ? { ...copy({ cost: "9.0000" }), ...bad } : bad;
+			writeFileSync(answer, JSON.stringify({ [badId]: sent, [goodId]: copy({ cost: `${index}.5000` }) }));
+			await assert.rejects(jobs.sweep(), { message: `machine gpu: job ${badId}: ${why}` });
+			assert.deepEqual(record(badId), before, `${why}: nothing of the job's answer is written, its state unchanged`);
+			assert.equal(read(home, goodId, "cost"), `${index}.5000`, `${why}: the machine's other job is still copied`);
+		}
+	// Both jobs refused: each named on its own line, the newest first, as a sweep copies them.
+	writeFileSync(answer, JSON.stringify({ [first]: copy({ cost: 1 }), [second]: { ...copy({}), state: "gone" } }));
+	await assert.rejects(jobs.sweep(), { message: [`machine gpu: job ${second}: sent the state "gone"; expected one of blocked, working, idle, ended`, `machine gpu: job ${first}: sent the record file cost as 1; expected a text`].join("\n") });
+	assert.deepEqual([first, second].map((id) => read(home, id, "state")), ["working", "working"]);
 	writeFileSync(gate, "");
 });
 
@@ -872,7 +913,7 @@ test("a copy writes only the run's files: a branch, project, task and kind sent 
 	writeFileSync(gate, "");
 });
 
-test("a record here whose branch is not arthur/<id> refuses the machine's copy, naming it, nothing written or fetched; a job without a branch fetches none", async () => {
+test("a record here whose branch is not arthur/<id> refuses the job's copy, naming it, nothing written or fetched; a job without a branch fetches none", async () => {
 	const gate = join(temporaryFolder(), "go");
 	const { root, home, machine, there, jobs } = setup({ agent: fakeAgent({ steps: [{ waitFor: gate }, { message: "Done." }] }) });
 	const role = join(temporaryFolder(), "reviewer.md");
@@ -893,7 +934,7 @@ test("a record here whose branch is not arthur/<id> refuses the machine's copy, 
 	writeFileSync(join(home, "jobs", job.id, "branch"), "side");
 	const refs = git(root, "for-each-ref", "--format=%(refname) %(objectname)");
 	byHand(machine, { [job.id]: { cost: "0.5000" } });
-	await assert.rejects(jobs.sweep(), { message: `machine gpu: job ${job.id} names the branch "side" in its record here; expected arthur/${job.id} or none` });
+	await assert.rejects(jobs.sweep(), { message: `machine gpu: job ${job.id}: names the branch "side" in its record here; expected arthur/${job.id} or none` });
 	assert.equal(git(root, "for-each-ref", "--format=%(refname) %(objectname)"), refs, "side's tip is unchanged");
 	assert.deepEqual(["state", "cost"].map((name) => read(home, job.id, name)), ["working", "0.0000"]);
 	writeFileSync(gate, "");

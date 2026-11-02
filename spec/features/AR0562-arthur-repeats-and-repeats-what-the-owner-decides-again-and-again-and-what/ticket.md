@@ -50,3 +50,4 @@ Out:
 - 2026-11-01: Continue the AR0562 worker with a new budget after the usage reset (about 2026-11-04 08:00), then AR0584; the owner: "AR-D428 1" (AR-D428)
 - 2026-11-02: Accept the AR0562 line budget raises: manage 931 to 1262, orchestration 2434 to 2440; the owner: "AR-D444 1" (AR-D444)
 - 2026-11-02: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)
+- 2026-11-02: Merge a ticket once its review passed, without asking the owner; pre-approved by policy (AR-D218)

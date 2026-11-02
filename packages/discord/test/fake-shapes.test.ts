@@ -40,6 +40,7 @@ test("every answer of the fake, REST and gateway, holds the fields Discord's doc
 		[`/guilds/${GUILD}?with_counts=true`, "GET", TOKEN, "guild"],
 		[`/channels/${MAIN}/messages?after=0&limit=100`, "GET", TOKEN, "array of message objects"],
 		[`/channels/${MAIN}/messages`, "POST", TOKEN, "message"],
+		[`/channels/${MAIN}`, "GET", TOKEN, "channel"],
 		["/channels/1300000000000000099/messages", "POST", TOKEN, "error"],
 		["/applications/@me", "GET", "wrong", "error"],
 	];
@@ -47,6 +48,14 @@ test("every answer of the fake, REST and gateway, holds the fields Discord's doc
 		const response = await fetch(`${api.url}${path}`, { method, headers: { Authorization: `Bot ${token}`, "Content-Type": "application/json" }, ...(method === "POST" ? { body: JSON.stringify({ content: "hi" }) } : {}) });
 		problems.push(...drift(await response.json(), type, `${method} ${path}`));
 	}
+	// A message with files, as channel.send makes one: its answer's attachments too.
+	const form = new FormData();
+	form.set("payload_json", JSON.stringify({ allowed_mentions: { parse: [] }, flags: 0, attachments: [{ id: 0, filename: "a.png" }] }));
+	form.set("files[0]", new Blob(["png"]), "a.png");
+	const upload = await fetch(`${api.url}/channels/${MAIN}/messages`, { method: "POST", headers: { Authorization: `Bot ${TOKEN}` }, body: form });
+	const uploaded = (await upload.json()) as { attachments?: unknown };
+	assert.equal(Array.isArray(uploaded.attachments) && uploaded.attachments.length, 1);
+	problems.push(...drift(uploaded, "message", "POST multipart"));
 	// The gateway: Hello, READY and GUILD_CREATE after Identify, an ACK, a message, then RESUMED on a second connection.
 	const got: { op?: unknown; d?: unknown; t?: unknown }[] = [];
 	const open = (path: string) => {
@@ -61,7 +70,7 @@ test("every answer of the fake, REST and gateway, holds the fields Discord's doc
 	await until("READY and GUILD_CREATE", () => got.length === 3);
 	first.send(JSON.stringify({ op: 1, d: 2 }));
 	await until("the ACK", () => got.length === 4);
-	api.message();
+	api.message({ flags: 8192, attachments: [api.attach("1800000000000000001", "voice-message.ogg", "ogg", { content_type: "audio/ogg", duration_secs: 3.5, waveform: "AAAA", flags: 0 })] });
 	await until("the message", () => got.length === 5);
 	const second = open("/resume?v=10&encoding=json");
 	await until("Hello again", () => got.length === 6);

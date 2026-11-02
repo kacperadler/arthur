@@ -1,6 +1,6 @@
 # The discord plugin
 
-Roadmap entry 89: the owner talks to the coordinator from a private Discord server. Each bot keeps one outbound connection to Discord's gateway, so nothing listens on the internet; the owner's text in the server's text channels reaches the coordinator, and the coordinator's replies and Arthur's notices come back through an outbox that survives Discord being away and a restart. Files, photos, voice messages and the `/name` phone commands come with entry 90. It has no command of its own.
+Roadmap entries 89 and 90: the owner talks to the coordinator from a private Discord server. Each bot keeps one outbound connection to Discord's gateway, so nothing listens on the internet; the owner's text, photos, videos, voice messages and files in the server's text channels reach the coordinator, `/name text` runs a phone command, and the coordinator's replies and Arthur's notices come back through an outbox that survives Discord being away and a restart; `arthur send` sends files. It has no command of its own.
 
 ```ts
 plugins: [orchestration({}), discord({ bots: [{ tokenEnv: "ARTHUR_DISCORD_BOT_TOKEN", guildIdEnv: "ARTHUR_DISCORD_GUILD_ID", userIdEnv: "ARTHUR_DISCORD_USER_ID", channelIdEnv: "ARTHUR_DISCORD_CHANNEL_ID" }] })],
@@ -32,11 +32,12 @@ Each bot asks `GET /gateway/bot` with `Authorization: Bot <token>` and Discord's
 
 GUILD_CREATE gives the server's text channels (type 0), and CHANNEL_CREATE, CHANNEL_UPDATE and CHANNEL_DELETE keep that set. A `MESSAGE_CREATE` counts only when it is of the bot's server (`guild_id`), by the owner (`author.id`), has no `webhook_id` and is a plain message or a reply (type 0 or 19); anything else is dropped unanswered: another user, the bot itself, another server, a webhook, a system message. A direct message never arrives, since no DIRECT_MESSAGES intent is asked. An edit (`MESSAGE_UPDATE`) is no new message, so it is never heard.
 
-- In the main channel the message becomes `message-received` `{ channel: "discord", parts }`; in another text channel of the server it adds `place`, that channel's id; a message to a named bot adds `instance`, the bot's name. The part is the text, trimmed, as a `text` part. Until the project agents route by place (entries 85 and 86), a project channel's message reaches the coordinator and the reply goes to the main channel.
-- A message in a thread, a forum post or a voice channel's chat is not read, since sending there needs more permissions: `a message outside the server's text channels (a thread, a forum post, a voice channel's chat) was not read: only the text channels reach Arthur` goes back to the main channel.
-- A file, a photo, a voice message or a sticker is not read as yet (entry 90): `only text reaches the coordinator through Discord as yet: ...` goes back to the channel it came in; its text, if any, still reaches the coordinator.
-- A message the owner forwarded (`message_reference.type` 1, the original in `message_snapshots`) reaches the coordinator as `[forwarded from <author>]` and the texts of the message and its snapshot, the author the event names (Discord's snapshot names none today, so it reads `a hidden sender`), without control characters, line or paragraph separators, format characters or `]`. One without text is the mark alone.
-- Messages are heard one after another, in the order they came.
+- In the main channel the message becomes `message-received` `{ channel: "discord", parts }`; in another text channel of the server it adds `place`, that channel's id; a message to a named bot adds `instance`, the bot's name. Until the project agents route by place (entries 85 and 86), a project channel's message reaches the coordinator and the reply goes to the main channel.
+- The parts: the message's files first, in order, then its text, trimmed, as a `text` part. Each attachment is downloaded at once, since Discord's CDN links expire, from its signed `url`, which asks no token, so none goes with it, and saved whole as `.arthur/discord/media/<attachment id>-<file name>` (the name's last segment, without control characters or leading dots, so it stays in the folder; `<attachment id>` alone for a file without a name). A voice message (the message flag IS_VOICE_MESSAGE, 8192) is `voice`, with Discord's `duration_secs` as `seconds`; any other file goes by its `content_type`: `image/*` a `photo`, `video/*` a `video`, `audio/*` an `audio`, anything else, or none, a `file` (`application/octet-stream` when Discord gives no type). The plugin reads nothing of it.
+- A file Discord does not hand over is a `text` part in its place saying why, `[<kind> <file name> not saved: <why>]`: `Discord's CDN answered <status>`, `Discord gave no url`, or the download's error. A stop during a download drops the message, which is then not heard, so the next start reads it again.
+- A sticker, and a message with neither text nor a file (only a link's preview, say), gets `only text, photos, videos, voice messages, audio and files reach the coordinator: a sticker is not read` back in the channel it came in; a sticker's text, if any, still reaches the coordinator.
+- A message the owner forwarded (`message_reference.type` 1, the original in `message_snapshots`) reaches the coordinator as the snapshot's files, then `[forwarded from <author>]` and the texts of the message and its snapshot, the author the event names (Discord's snapshot names none today, so it reads `a hidden sender`), without control characters, line or paragraph separators, format characters or `]`. One without text is the mark alone, after its files. It is never a phone command.
+- Messages are heard one after another, in the order they came: one that waits for its downloads holds those after it, and a stop waits for the message in hand.
 
 Discord does not replay what was written while the bot was away. So each GUILD_CREATE, which a new session brings, reads each text channel's messages since the last one heard there, at most 10 minutes back (`GET /channels/{id}/messages?after=...`, which needs the Read Message History permission), oldest first, before what comes after it. The last message heard in each channel is kept in `.arthur/discord/seen.json`, by bot, so none is heard twice across a restart; a broken file reads as nothing heard. A failed read is one line on stderr naming the channel.
 
@@ -58,6 +59,22 @@ As telegram's: every slice is first a file of `.arthur/discord/outbox/`, `{ bot,
 - A refused slice (any other 4xx: `404 Unknown Channel` for a channel deleted while it waited, a missing permission) moves to `outbox/refused/`, one line on stderr, and the next slices go; the first refusal since a slice last went is told in a `notice` with the slice.
 - A file of the outbox that is not such a slice is set aside the same way, with a line and no notice. A send under way ends even at a stop; a wait is cut short.
 
+### Sending files
+
+`channel.send`, which `arthur send` asks (`arthur send --help`), sends files at once by the unnamed bot, else the first, not through the outbox, so it needs no gateway: as one message, one multipart request (`POST /channels/{id}/messages` with `payload_json`, which holds the caption as `content`, `allowed_mentions: { parse: [] }`, `flags: 4096` in quiet hours and each file's `{ id, filename }` in `attachments`, and the files as `files[0]` to `files[n]`). A `place` goes where it is a text channel of the bot's server, asked of Discord (`GET /channels/{id}`); a place Discord says is no such channel (any 4xx, a 429 aside), one of another server, the main channel's id, and one that is no id go to the main channel. A lookup or an upload that fails ends the send with Discord's line, `discord bot <name>: <call>: <status>: <message>`, never the token. It answers `sent <n> files in 1 message`.
+
+Every file is checked before anything goes, and each problem is one line of the refusal: more than 10 files (`<n> files; Discord takes at most 10 in one message`); a caption over 2000 characters; a missing file or a folder (`<path>: no such file`); an empty one (`<path>: empty; Discord takes no empty file`); one over 20 MiB (`<path>: <size> bytes; Discord takes at most 20971520 (20 MiB) in one file`); the files and the caption together over 25 MiB (`<bytes> bytes in all; Discord takes at most 26214400 (25 MiB) in one message`). Discord's "Uploading Files" reference sets both limits.
+
+## Phone commands
+
+A message that starts with `/name` (1 to 32 letters, digits and underscores, then a space, a line break or its end), written by the owner, not forwarded and without a file, is a phone command, not a message to the coordinator: the plugin hands `/name` and the rest of the text to the host's command registry (`arthur help --help`, "Phone commands"), with `channel: "discord"`, its `place` for a message in a project channel and its `instance`, the bot's name, for a message to a named bot. The reply goes back by the same bot to the same channel, through the outbox like any reply, so one longer than a message goes in slices of at most 2000, in order. Discord shows no menu of them: they are typed as text.
+
+- A name no phone command has gets the registry's line, `unknown command /<name>; phone commands: /a, /b`; the case counts, so `/Jobs` is unknown too.
+- A text where the slash starts no such name (`/tmp/x is full`, `/ hi`, a name over 32 characters, a space before the slash) reaches the coordinator as any text, and so does `/name` in a message with a file.
+- A forwarded `/name` is never run: it reaches the coordinator marked `[forwarded from ...]`. An edit to `/name` is no new message, so it runs nothing.
+- A command written while Arthur was away, at most 10 minutes back, runs once at the start; it counts as heard before it runs, so a restart never runs it twice.
+- A command is handled in its turn among the messages: those after it wait for its reply.
+
 ## Doctor
 
 `arthur doctor` shows four lines per bot, each `discord bot <name>: <requirement>`, none critical, so a token Discord reset never keeps the coordinator from starting: `token` and `Message Content Intent` (`GET /applications/@me`: its `flags` hold GATEWAY_MESSAGE_CONTENT or GATEWAY_MESSAGE_CONTENT_LIMITED), `server 2FA` (`mfa_level` 1) and `server members` (exactly 2, you and the bot, from `GET /guilds/{id}?with_counts=true`), each with its fix. A 401, 403 or 404 is `missing: ...`; a Discord that does not answer within 5 s, or answers anything else, is `ok (Discord not reached: ...)`.
@@ -73,7 +90,7 @@ About 15 minutes, once:
 5. **The ids.** In User Settings, Advanced, turn on Developer Mode, then right-click (long-press on the phone) each and use Copy ID: the server into `ARTHUR_DISCORD_GUILD_ID`, your own name into `ARTHUR_DISCORD_USER_ID`, the main channel into `ARTHUR_DISCORD_CHANNEL_ID`.
 6. **Config.** Add `discord({ bots: [...] })` as above to `arthur.config.ts` and run `arthur config check`: the four variables say `set`.
 7. **Phone.** Set the server's notifications to "All Messages" on your phone.
-8. **Check.** Restart the service, run `arthur doctor` (each Discord line `ok`), then write "hi" in the main channel.
+8. **Check.** Restart the service, run `arthur doctor` (each Discord line `ok`), then write "hi" in the main channel, and `/board`, which Arthur answers at once.
 
 Never paste a secret in a channel: Discord keeps every message on its servers.
 

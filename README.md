@@ -43,7 +43,7 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **findings**, built: the `findings.md` format, and what a merge makes of open findings ([findings](packages/findings/docs/findings.md)).
 - **uptime**, built: each project's sites checked over HTTP, a notice when one goes down and when it is back ([uptime](packages/uptime/docs/uptime.md)).
 - **telegram**, built: text, media and the phone menu ([telegram](packages/telegram/docs/telegram.md)).
-- **discord**, partly built: text in and out through the gateway, on one private server, a channel per project; media and the phone commands planned ([discord](packages/discord/docs/discord.md)).
+- **discord**, built: text, media and the phone commands through the gateway, on one private server, a channel per project ([discord](packages/discord/docs/discord.md)).
 - **delivery**, built: review, `review-needed`, merge with the checks on main, `take-main`, the hand-back after a FAIL, the changelog, auto-merge ([commands](packages/delivery/docs/commands/)).
 - **github**, built: CI runs, reruns, pushes, pull request reviews and `arthur github`, which reads pull requests ([github](packages/github/docs/github.md)).
 - **youtrack**, built: issues, articles, comments and attachments, and the rules for a job on an issue ([youtrack](packages/youtrack/docs/commands/youtrack.md)).
@@ -52,7 +52,7 @@ One line per package; each links the pages with the detail. `arthur help` lists 
 - **develop**, built: `arthur plugin new` and `arthur eval` with its scenarios ([develop](packages/develop/docs/develop.md)).
 - **listen**, built: voice notes and audio files transcribed on this server by whisper.cpp, and `arthur transcribe` ([listen](packages/listen/docs/listen.md)).
 - **video**, built: videos cut on this server by ffmpeg into frames and a sound track the listen plugin transcribes ([video](packages/video/docs/video.md)).
-- Planned: project agents, discord's media and phone commands, dokploy's upload and deploy, docker and the core's cleanup hooks; later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
+- Planned: project agents, dokploy's upload and deploy, docker and the core's cleanup hooks; later signal, slack, whatsapp, a server, a web panel and mobile app over Tailscale, a knowledge base and a company edition ([roadmap](spec/roadmap.md)).
 
 What Arthur is built from: green is built, light green partly built, grey planned. The full picture is [the diagram](https://kacperadler.github.io/arthur/diagram/), drawn from [`arthur.mmd`](arthur.mmd).
 
@@ -63,7 +63,7 @@ flowchart TD
     core[config, plugin host, events, ticket board<br/>jobs, guards and sandbox; cleanup hooks planned]
   end
   subgraph FIRST[First-version plugins: each talks only to the core]
-    chan[channels<br/>telegram; discord text, its media planned]
+    chan[channels<br/>telegram, discord]
     media[media: claim a channel's parts<br/>listen, video]
     coord[coordinator<br/>orchestration, session, schedule]
     proj[projects<br/>projects, nvm, commit-rules, findings]
@@ -79,8 +79,8 @@ flowchart TD
   classDef partial fill:#f0f9e0,stroke:#2d7a2d,stroke-width:2px,color:#000;
   classDef planned fill:#eee,stroke:#888,stroke-dasharray:5 4,color:#555;
   classDef outside fill:#e3edfa,stroke:#4a6fa5,color:#000;
-  class coord,proj,self,media built;
-  class core,chan,res,deliv partial;
+  class coord,proj,self,media,chan built;
+  class core,res,deliv partial;
   class later planned;
   class owner,repos outside;
 ```

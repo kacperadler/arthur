@@ -2,7 +2,7 @@
 
 Usage: `arthur send <file>... [--caption <text>] [--place <id>]`
 
-Sends files to the owner through every enabled channel (on Telegram: `packages/telegram/docs/telegram.md`, "Sending files"), each by the plugin's own rules, and prints one line per channel, `<channel>: <what it sent>`, for example `telegram: sent 3 files in 2 messages`. A relative path is read from the folder `arthur send` runs in.
+Sends files to the owner through every enabled channel (on Telegram: `packages/telegram/docs/telegram.md`, on Discord: `packages/discord/docs/discord.md`, each "Sending files"), each by the plugin's own rules, and prints one line per channel, `<channel>: <what it sent>`, for example `telegram: sent 3 files in 2 messages`. A relative path is read from the folder `arthur send` runs in.
 
 - `--caption <text>`: shown with the first message.
 - `--place <id>`: where the files go on each channel, a Telegram topic's number or a Discord or Slack channel's id; a channel that has no such place sends to its allowed chat, as it does without `--place`.

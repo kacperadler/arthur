@@ -1,31 +1,37 @@
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Host } from "@arthur/core/plugin";
+import { attachments } from "./media-in.ts";
 import { type Bot, rest } from "./rest.ts";
 
-// What one bot hears through the gateway (spec/roadmap.md, entry 89): the server's text channels, from GUILD_CREATE and the
-// CHANNEL_ events, and the owner's messages. A message counts when it is of the bot's server, by the owner (`author.id`), not
-// a webhook's, a plain one or a reply: in the main channel it becomes `message-received` `{ channel: "discord", parts,
-// instance? }`, in another text channel with that channel's id as `place`; one in a thread, a forum post or a voice channel's
-// chat gets a line back in the main channel instead, and so does a sticker or a file, which only text reaches the coordinator
-// as yet. One the owner forwarded is marked `[forwarded from <author>]`. An edit is no new message, so it is never heard.
-// Each GUILD_CREATE (a new session) also reads what the owner wrote in each text channel since the last message heard there,
-// at most 10 minutes back, kept in `<folder>/seen.json`, so what he wrote while Arthur was away comes once: docs/discord.md.
+// What one bot hears through the gateway (spec/roadmap.md, entries 89 and 90): the server's text channels, from GUILD_CREATE and
+// the CHANNEL_ events, and the owner's messages. A message counts when it is of the bot's server, by the owner (`author.id`), not
+// a webhook's, a plain one or a reply. `/name text` he did not forward and sent without a file is a phone command, routed to the
+// host's registry with its channel, place and instance, the reply sent back there. Any other becomes `message-received` `{
+// channel: "discord", parts, instance? }`, its files first (media-in.ts), then its text; in another text channel than the main
+// one with that channel's id as `place`. One in a thread, a forum post or a voice channel's chat gets a line back in the main
+// channel instead; a sticker, or a message of neither text nor files, a line where it came. One the owner forwarded is marked
+// `[forwarded from <author>]` and never a command. An edit is no new message, so it is never heard. Each GUILD_CREATE (a new
+// session) also reads what the owner wrote in each text channel since the last message heard there, at most 10 minutes back,
+// kept in `<folder>/seen.json`, so what he wrote while Arthur was away comes once: docs/discord.md.
 
 export type Send = (bot: Bot, text: string, place: string | undefined) => void;
-// What a bot hears: `known` its server's text channels, undefined until GUILD_CREATE named them; `on` takes each dispatch.
-export type Ear = { known(): ReadonlySet<string> | undefined; on(type: string, data: Readonly<Record<string, unknown>>): void };
+// What a bot hears: `known` its server's text channels, undefined until GUILD_CREATE named them; `on` takes each dispatch;
+// `idle` is the end of the messages in hand.
+export type Ear = { known(): ReadonlySet<string> | undefined; on(type: string, data: Readonly<Record<string, unknown>>): void; idle(): Promise<void> };
 type Message = Readonly<Record<string, unknown>> & { readonly id?: unknown; readonly channel_id?: unknown; readonly content?: unknown };
 
 const OLDEST_MS = 600_000;
 // Discord's epoch, the first millisecond of 2015, from which a snowflake's top 42 bits count.
 const EPOCH = 1420070400000n;
-export const OTHER = "only text reaches the coordinator through Discord as yet: a file, a photo, a voice message or a sticker is not read";
+export const OTHER = "only text, photos, videos, voice messages, audio and files reach the coordinator: a sticker is not read";
 export const ELSEWHERE = "a message outside the server's text channels (a thread, a forum post, a voice channel's chat) was not read: only the text channels reach Arthur";
 
 const record = (value: unknown) => (typeof value === "object" && value !== null ? value : {}) as Readonly<Record<string, unknown>>;
 const list = (value: unknown) => (Array.isArray(value) ? (value as readonly unknown[]) : []);
 const after = (id: unknown, than: string) => typeof id === "string" && /^\d{1,20}$/.test(id) && BigInt(id) > BigInt(than);
+// A phone command: 1 to 32 letters, digits and underscores after the slash, then a space, a line break or the end.
+const COMMAND = /^\/(\w{1,32})(?=\s|$)/;
 
 export function receiver(host: Host, bot: Bot, send: Send, named: () => void, signal: AbortSignal): Ear {
 	let channels: Set<string> | undefined;
@@ -47,22 +53,28 @@ export function receiver(host: Host, bot: Bot, send: Send, named: () => void, si
 		renameSync(`${file}.tmp`, file);
 	};
 
-	const hear = (message: Message, live: boolean) => {
+	const hear = async (message: Message, live: boolean) => {
 		const channel = String(message.channel_id);
 		const author = record(message.author);
 		if ((live && message.guild_id !== bot.guild) || author.id !== bot.user || message.webhook_id !== undefined || ![0, 19].includes(Number(message.type))) return;
 		if (channels?.has(channel) !== true) return send(bot, ELSEWHERE, undefined);
 		if (!after(message.id, seen[channel] ?? "0")) return;
-		keep(channel, String(message.id));
 		const forward = record(message.message_reference).type === 1;
-		const snapshots = list(message.message_snapshots).map((each) => record(record(each).message));
-		const texts = [message, ...(forward ? snapshots : [])].map((each) => String(each.content ?? "").trim()).filter((text) => text !== "");
-		const files = [message, ...snapshots].some((each) => list(each.attachments).length > 0 || list(each.sticker_items).length > 0);
+		const sources = [message, ...(forward ? list(message.message_snapshots).map((each) => record(record(each).message)) : [])];
+		const texts = sources.map((each) => String(each.content ?? "").trim()).filter((text) => text !== "");
 		const place = channel === bot.channel ? undefined : channel;
-		if (files || (texts.length === 0 && !forward)) send(bot, OTHER, place);
-		if (texts.length === 0 && !forward) return;
-		const text = forward ? [`[forwarded from ${origin(snapshots)}]`, ...texts].join(" ") : texts.join(" ");
-		host.events.emit("message-received", { channel: "discord", parts: [{ kind: "text", text, mime: "text/plain" }], ...(place === undefined ? {} : { place }), ...(bot.name === undefined ? {} : { instance: bot.name }) });
+		const from = { channel: "discord", ...(place === undefined ? {} : { place }), ...(bot.name === undefined ? {} : { instance: bot.name }) };
+		// Saved before the message counts as heard, so one a stop cut short is read again at the next start.
+		const files = await attachments(host.folder, sources, signal);
+		if (signal.aborted) return;
+		keep(channel, String(message.id));
+		const command = forward || files.length > 0 || typeof message.content !== "string" ? null : COMMAND.exec(message.content);
+		if (command !== null) return send(bot, await host.commands.route(`/${command[1]}${command.input.slice(command[0].length)}`, from), place);
+		const nothing = texts.length === 0 && files.length === 0 && !forward;
+		if (nothing || sources.some((each) => list(each.sticker_items).length > 0)) send(bot, OTHER, place);
+		if (nothing) return;
+		const text = forward ? [`[forwarded from ${origin(sources.slice(1))}]`, ...texts].join(" ") : texts.join(" ");
+		host.events.emit("message-received", { ...from, parts: [...files, ...(text === "" ? [] : [{ kind: "text", text, mime: "text/plain" }])] });
 	};
 
 	// What the owner wrote in each text channel since the last message heard there, at most 10 minutes back, oldest first.
@@ -72,7 +84,7 @@ export function receiver(host: Host, bot: Bot, send: Send, named: () => void, si
 			const since = after(seen[channel], floor) ? (seen[channel] as string) : floor;
 			try {
 				const messages = list(await rest(bot, "GET", `/channels/${channel}/messages?after=${since}&limit=100`, undefined, signal)).map(record);
-				for (const message of messages.toSorted((a, b) => (after(a.id, String(b.id)) ? 1 : -1))) hear({ ...message, channel_id: channel }, false);
+				for (const message of messages.toSorted((a, b) => (after(a.id, String(b.id)) ? 1 : -1))) await hear({ ...message, channel_id: channel }, false);
 			} catch (error) {
 				if (signal.aborted) return;
 				console.error(`${(error as Error).message}; what the owner wrote in channel ${channel} while Arthur was away is not read`);
@@ -93,6 +105,7 @@ export function receiver(host: Host, bot: Bot, send: Send, named: () => void, si
 				else channels.delete(String(data.id));
 			} else if (type === "MESSAGE_CREATE") chain = chain.then(() => hear(data, true));
 		},
+		idle: () => chain,
 	};
 }
 

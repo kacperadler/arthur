@@ -88,15 +88,14 @@ test("dropped unanswered: another user, another server, the bot itself, a webhoo
 	assert.deepEqual(api.took, []);
 });
 
-test("a thread, a forum post or a voice channel's chat gets one line in the main channel; a file or a sticker a line where it came, its text still going", async (t) => {
+test("a thread, a forum post or a voice channel's chat gets one line in the main channel; a sticker, or neither text nor file, a line where it came, its text still going", async (t) => {
 	const api = await fakeDiscord(t);
 	const { plugin, received, folder } = await load(t, { apiUrl: api.url });
 	await plugin.start?.();
 	await until("identified", () => api.sent(2).length === 1);
 	api.message({ channel_id: THREAD, content: "In a thread." });
 	api.message({ channel_id: "1300000000000000005", content: "In the voice channel's chat." });
-	const file = { id: "1800000000000000001", filename: "a.png", size: 3, url: "https://cdn.discordapp.com/a.png", proxy_url: "https://media.discordapp.net/a.png" };
-	api.message({ channel_id: PROJECT, content: "", attachments: [file] });
+	api.message({ channel_id: PROJECT, content: "  ", embeds: [{ type: "rich", title: "A link's preview" }] });
 	api.message({ content: "With a sticker.", sticker_items: [{ id: "1900000000000000001", name: "wave", format_type: 1 }] });
 	await until("four lines", () => api.took.length === 4);
 	assert.deepEqual(api.took, [sent(MAIN, ELSEWHERE), sent(MAIN, ELSEWHERE), sent(PROJECT, OTHER), sent(MAIN, OTHER)]);

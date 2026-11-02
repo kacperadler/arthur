@@ -4836,5 +4836,12 @@
     "status": "planned",
     "path": "spec/features/AR0604-plan-the-docker-plugin-and-the-core-cleanup-hook-roadmap-70-to-72/ticket.md",
     "updated": "2026-11-01T13:57:26.050Z"
+  },
+  {
+    "id": "AR0605",
+    "title": "arthur config check type-checks arthur.config.ts and every project file with tsc",
+    "status": "planning",
+    "path": "spec/features/AR0605-arthur-config-check-type-checks-arthur-config-ts-and-every-project-file-with-tsc/ticket.md",
+    "updated": "2026-11-02T17:49:45.623Z"
   }
 ]

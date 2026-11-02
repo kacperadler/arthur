@@ -4021,9 +4021,9 @@
   {
     "id": "AR0507",
     "title": "A branch's own `.gitattributes` can hide a text file's lines from the reviewer's diff",
-    "status": "done",
+    "status": "merged",
     "path": "spec/features/AR0507-a-branch-s-own-gitattributes-can-hide-a-text-file-s-lines-from-the-reviewer-s/ticket.md",
-    "updated": "2026-11-02T16:36:00.913Z"
+    "updated": "2026-11-02T16:40:46.500Z"
   },
   {
     "id": "AR0508",
@@ -4056,9 +4056,9 @@
   {
     "id": "AR0512",
     "title": "A job that empties its record's `guarded` file reads the env file after `arthur continue`",
-    "status": "planned",
+    "status": "in-progress",
     "path": "spec/features/AR0512-a-job-that-empties-its-record-s-guarded-file-reads-the-env-file-after-arthur/ticket.md",
-    "updated": "2026-11-02T10:19:03.564Z"
+    "updated": "2026-11-02T16:36:15.098Z"
   },
   {
     "id": "AR0513",
